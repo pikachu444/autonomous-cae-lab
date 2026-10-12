@@ -1,0 +1,9 @@
+llm:
+  harness: gpt
+  deployment_mode: local
+  mode: ""
+  team_mode: ""
+  agent_overrides: {}
+  agent_overrides_consume: false
+# Actual user model assignments are in docs/CODEX_WORKFLOW.md and .codex/config.toml.
+# Pro is an external authorized ChatGPT UI conversation, not a MoAI model/provider.

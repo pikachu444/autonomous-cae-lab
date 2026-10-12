@@ -1,0 +1,61 @@
+{
+  "version": "3.2.0-dev.2aab5f7",
+  "source_commit": "2aab5f797b75983e132af451da68f69e3426557b",
+  "binary_sha256": "a38211fb14f86d0bf5a9c3a1e83cc46042fbcaa9354bbdb8c9ba7a0566203d19",
+  "skills": [
+    {
+      "name": "moai",
+      "action": "added complete official resource tree",
+      "skill_exists": true
+    },
+    {
+      "name": "moai-plan",
+      "action": "added complete official resource tree",
+      "skill_exists": true
+    },
+    {
+      "name": "moai-sync",
+      "action": "added complete official resource tree",
+      "skill_exists": true
+    },
+    {
+      "name": "moai-workflow-spec",
+      "action": "added complete official resource tree",
+      "skill_exists": true
+    },
+    {
+      "name": "moai-workflow-project",
+      "action": "added complete official resource tree",
+      "skill_exists": true
+    }
+  ],
+  "current_session_mcp_exposed": true,
+  "automatic_implementation_authorized": false,
+  "protected_unchanged": true,
+  "protected_sha256": {
+    "C:\\SourceCodes\\autonomous-cae-lab\\AGENTS.md": "b91737cab337b4156875010933f365143e57851bc1397f37d9a360f0634c4215",
+    "C:\\Users\\pikac\\.codex\\config.toml": "5742d710df183483bd241fd17bb1f0be55ce5b0f8ed51e319beb37ec243ad3b9",
+    "C:\\Users\\pikac\\.claude\\settings.json": "c086f72e56796f8df5f224d6b3cec9d00a2795477fb1647534e2c7883a7334aa"
+  },
+  "wiring_exit_code": 0,
+  "hook_host_trust": "not confirmed",
+  "skill_host_discovery": "confirmed: refreshed available-skills catalog lists all 5 installed MoAI skills",
+  "spec_strict_lint": "passed; [] findings",
+  "mcp_read_probe": "initialize/tools/list/spec_progress actually succeeded; local subprocess",
+  "cli_config_issue": "0.146.1 cannot parse existing global features.context_management dict; persistent global bytes preserved",
+  "cli_read_probe": "mcp get moai succeeded with command-local -c features.context_management=false; no inference/settings writes",
+  "allowed_mcp_tools": [
+    "spec_audit",
+    "spec_drift",
+    "spec_progress",
+    "todo_list"
+  ],
+  "current_session_mcp_call": "host-exposed mcp__moai__spec_progress actually called after capability refresh; SPEC-DESKTOP-001 draft returned",
+  "observed_runtime_models": {
+    "main": "gpt-6.1-sol/high (requested xhigh; project config xhigh does not alter running turn)",
+    "astra": "gpt-6-astra/xhigh",
+    "source_inventory": "gpt-6-luna/high",
+    "qt_spike": "gpt-6.1-sol/high"
+  },
+  "subsequent_external_global_config_change": "initial staging/merge before-after protected hashes identical; current later global hash differs, preserve user/host edits without resetting"
+}

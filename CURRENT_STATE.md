@@ -7,12 +7,69 @@
 
 ## 현재 결정과 맡긴 작업
 
+**최신 사용자 지시(2026-10-12): 상세 기획·GUI 설계와 별도 Qt 시제품을 먼저 완성해
+검토에 제출한다. 제품 본구현은 사용자가 개발 시작을 지시한 뒤에 진행한다.**
+아래의 앞선 문서 통합 완료와 다음 구현 방향은 재사용 근거이며 이번 설계의 완료 근거가
+아니다. 이번 배정은 MoAI의 Codex 연결, 운영 지침의 충돌 정리, 전체 기능/구현 명세,
+편집 가능한 작업/화면/상태 설계, 상호작용 시안, Qt 조작 확인, 실제 Pro 작성과 Astra
+독립 검토다. Windows 로컬 Qt/PySide6·FreeCAD·ParaView를 유지하고 추가 지출은 0원이다.
+
+현재 기준은 `9a6e3083037630b45694b812b135dc1cd63cf95a`, upstream은 아래 핀과 같다.
+사용자 `.codex-remote-attachments/`는 보존한다. 제품 코드 변경과 solver/provider 계산은
+시작하지 않았다. 기존 문서·시안은 설계 재료이고 새 상세 기획 수용은 **미완료**다.
+
+연결 확인: MoAI `3.2.0-dev.2aab5f7`과 ChatGPT 인증 Codex CLI `0.146.1`을 확인했다.
+초기 partial wiring에서 기존 설정을 보호한 selective Codex 연결을 추가했다.
+MoAI CLI status의 wired와 실제 local stdio initialize/tools/list/`spec_progress`를 확인했다.
+SPEC strict lint도 통과했다. 이후 current host에 MCP 도구 4개가 실제 노출됐고
+`mcp__moai__spec_progress`를 호출해 draft SPEC을 읽었다. hook trust는 별도 미확인이다.
+SPEC/read 도구 4개만 config에서 허용한다. 실제 skill catalog에는 MoAI 스킬5개가 나타났다.
+기존 CLI0.146.1은 global `features.context_management` map을 boolean으로 읽다 실패한다.
+global bytes를 보존했고 read-only `mcp get`에만 임시 false override를 써 등록을 확인했다.
+사용자 Python 3.13에는 PySide6 `6.9.1`, Matplotlib, Qt Designer가 있다. 별도 설치된
+Research runtime에는 PySide6가 없으므로 둘을 같은 환경으로 보고하지 않는다.
+
+실제 Pro 상태: **전송 확인·산출물 작성 중**. 이전 실제 세션의 Edge 확장 경로를 확인했고
+사용자가 Edge를 연 뒤 연결됐다. 실제 Pro power5/5 UI 확인 후 새 요청
+`PRO-DESKTOP-DESIGN-20261012-01`을 한 번 보내고 7개 원문 구간과 마지막 본문을 대조했다.
+[실제 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5), local 전달/응답 기록은
+`runs/pro-relay/20261012-desktop-design/`이다. ZIP upload는 file-URL permission으로 실패해
+**inline 실제 본문**(최신 사용자 원문·Pro 요청·source reuse·Astra·PROJECT_SCOPE·v2·ADR 기준)을
+전달했다. 공개 pinned source도 Pro가 실제 조회하는 중이다. 다른 모델/API로 대체하지 않았다.
+
+Penpot은 로그인 화면까지 확인했으나 **계정이 없으니 탭을 닫고 무시하라는 최신 사용자
+지시로 제외**했다. 계정 생성/유료 trial 없이 editable SVG/.drawio/.ui와 native Qt interaction을
+사용한다. 새 Pro 원문 회수 뒤 이 변경을 명세에 반영하고 독립 Astra와 실제 산출물을 검토한다.
+내장 브라우저 attach/Windows browser URL-policy 실패는 초기 연결 근거로만 보존한다.
+현재 브라우저 연결은 복구됐으며 그 실패를 전체 작업 금지로 확대하지 않는다.
+
+별도 [Qt 시제품](docs/design/20261012-desktop-planning/qt_prototype/README.md)의 Material
+import/단위/구간/DEMO 비교/채택/save/cold-reopen offscreen 확인을 수행했다. Astra가 Shift
+선택·시험별 설정/invalid 계수 보존과 추가 복구 결함을 재현했고 bounded Sol/high가 교정 중이다.
+actual desktop 조작/DPI/제품서비스/physics는 이 offscreen 검사로 완료 처리하지 않는다.
+검토 자료 입구는 [새 설계 자료](docs/design/20261012-desktop-planning/README.md)다.
+
+추가 환경 확인: Qt Designer의 `material.ui` 로드는 native accessibility tree로 확인했으나
+실제 screenshot은 Windows PIN 잠금 화면이었다. native 입력은 중단했고 사용자에게 잠금
+해제를 요청했다. 보호된 인증 화면을 조작하지 않는다. draw.io Desktop32.4.1은 공식 portable
+ZIP을 ignored `runs/tools`에 내려받아 path containment 확인 후 추출했다(추가 비용0).
+실제 `.drawio` 열기/export는 Pro 원본 회수 뒤 확인한다.
+
+모델 실행 기록: Astra `gpt-6-astra/xhigh`, 조사 `gpt-6-luna/high`, Qt spike `gpt-6.1-sol/high`를
+확인했다. 주 Codex는 project/global 설정 Sol/xhigh와 달리 현재 턴 기록이 **Sol/high**다.
+활성 추론 수준 확인/변경을 사용자에게 요청했으며 xhigh 실행으로 표시하지 않는다.
+init/merge 단계에서 global 보호 해시는 유지됐고 이후 외부 변경으로 global hash가 달라졌다.
+사용자/host 변경을 되돌리지 않는다.
+
+### 앞선 통합 기록
+
 사용자는 Codex와 실제 ChatGPT Pro가 문서 정리와 작업 방식을 토론해 **확정하고 반영**하도록
 지시했다. 제안·상태 보고만 반복하거나 일상 반영을 위해 다시 승인을 기다리는 단계가 아니다.
 맡긴 현행 문서/진입점 정리, Pro/Codex 책임 확정, Space 안내와 Git 기준 연결은 **완료**했다.
 문서 통합 커밋 `6b0c2ed14f9d61204cabfe3c47288f2438202798`을 원격 main에 게시하고
 같은 SHA를 확인했다. 관련 Space 6개 Page의 갱신·본문 재조회·기존 첨부 보존도 확인했다.
-남은 문서 승인이나 제안 확정 단계는 없다. 다음 제품 구현은 아래 범위로 이어간다.
+앞선 통합에 남은 문서 승인이나 제안 확정 단계는 없다. 아래 제품 방향의 본구현은
+최신 사용자 지시에 따라 이번 상세 기획 검토와 개발 시작 지시를 기다린다.
 
 다음 제품 작업은 아래 **독립 도구군의 실제 작업 완성**으로 확정한다. 특정 C3D10 메시나
 F05 진단을 전체 제품 개발의 우선 과제 또는 선행조건으로 두지 않는다. 제품 구현 자체를
@@ -38,7 +95,7 @@ F05 진단을 전체 제품 개발의 우선 과제 또는 선행조건으로 �
 
 전체 구성은 FreeCAD CAD/FE, ParaView Post, 독립 Research 도구와 선택 Workbench로
 정해져 있다. 상당한 구현과 부분 실행 근거가 있으나 전체 제품·사용성·배포는 미완료다.
-구성을 처음부터 다시 기획할 필요는 없다.
+구성·기존 구현을 재사용하되 최신 요청의 상세 화면·사용성 기획은 다시 검토한다.
 
 | 영역 | 현재 구현/근거 | 남은 주요 제품 작업 |
 |---|---|---|
@@ -59,7 +116,7 @@ F05 진단을 전체 제품 개발의 우선 과제 또는 선행조건으로 �
 설치/실행 스크립트다. [실행 기록](docs/WORKBENCH_PROGRESS.md)의 S1/S2와 후속 교정에서
 이미 고친 Pre/Post Save, 초안, 선택·응답 읽기 결함을 새 미해결 과제로 복사하지 않는다.
 
-## 확정한 다음 제품 작업
+## 승인 후 이어갈 제품 구현 방향
 
 **목표:** 사용자가 원하는 독립 도구에서 자기 자료·모델을 열고 주요 편집과 필요한 계산을
 수행하며, 같은 개정·결과를 다른 도구에서 이어 보고, 저장·종료 후 다시 연구를 계속한다.
@@ -92,7 +149,8 @@ F05 진단을 전체 제품 개발의 우선 과제 또는 선행조건으로 �
 - 설치 후 시작/재실행 안내가 실제 동작과 맞고, GUI·CLI·Python·선택 MCP의 지원 범위가 일치한다.
 
 Pro에게는 이 절과 제품 계획·관련 코드의 동일 기준 버전, 미반영 사용자 결정·산출물,
-실제 확인 범위를 함께 전달한다. 새 작업표를 만들거나 기본 구조를 재선정하지 않는다.
+실제 확인 범위를 함께 전달한다. 이번에는 전체 기능과 화면/상태에 연결한 개발 명세와
+구현 작업표를 보완한다. 기본 문서 소유와 native 재사용 경계를 임의로 교체하지 않는다.
 
 ## 문서와 새 세션 운영
 

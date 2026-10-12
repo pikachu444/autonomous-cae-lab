@@ -1,0 +1,17 @@
+workflow:
+  execution_mode: manual
+  auto_clear:
+    enabled: false
+    after_plan: false
+    after_run: false
+  project:
+    continuation: none
+  worktree:
+    auto_create: false
+    auto_merge: false
+    auto_cleanup: false
+  autonomy:
+    mode: manual
+# No automatic run/goal/loop/provider/merge transition. User has authorized planning,
+# independent review, separate Qt prototype, limited technical checks and Git records.
+# Full implementation requires the user's later development-start instruction.

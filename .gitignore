@@ -8,3 +8,11 @@ dist/
 *.egg-info/
 
 build/
+
+# MoAI runtime state is local. Specs/configuration and review artifacts stay in Git.
+.moai/state/
+.moai/logs/
+.moai/cache/
+.moai/temp/
+.moai/memory/
+.moai/reports/plan-html/

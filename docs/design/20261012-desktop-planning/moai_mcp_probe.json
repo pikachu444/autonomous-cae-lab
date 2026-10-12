@@ -1,0 +1,144 @@
+{
+  "transport": "local stdio subprocess; host-exposed call recorded in tool_connection.json",
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "serverInfo": {
+      "name": "moai",
+      "version": "3.2.0-dev.2aab5f7 (commit: 2aab5f797b75983e132af451da68f69e3426557b, built: 2026-10-12T06:42:50Z)"
+    },
+    "instructions": "moai self-hosted MCP server, build 3.2.0-dev.2aab5f7 (commit: 2aab5f797b75983e132af451da68f69e3426557b, built: 2026-10-12T06:42:50Z) (pid 57640). This process was spawned by the host and keeps running the build it started with: after reinstalling the moai binary, reconnect the server so the host respawns it, otherwise newly added tools stay absent from tools/list. Run `moai doctor` to compare the running server against the installed binary."
+  },
+  "tool_names": [
+    "audit_cache",
+    "audit_multi",
+    "claude_audit",
+    "codex_audit",
+    "codex_job_cancel",
+    "codex_job_result",
+    "codex_job_status",
+    "codex_review",
+    "codex_role_audit",
+    "codex_role_audit_result",
+    "codex_role_audit_status",
+    "codex_setup",
+    "codex_task",
+    "factory_complete",
+    "factory_decide",
+    "factory_msg_body",
+    "factory_msg_list",
+    "factory_msg_receipt",
+    "factory_msg_send",
+    "factory_msg_status",
+    "factory_next",
+    "factory_stage",
+    "glm_audit",
+    "glm_job_cancel",
+    "glm_job_result",
+    "glm_job_status",
+    "glm_review",
+    "glm_task",
+    "goal_arm",
+    "goal_status",
+    "graph_file_api",
+    "graph_find_code",
+    "graph_shortest_path",
+    "graph_trace_calls",
+    "jev_ask",
+    "session_list",
+    "session_msg_list",
+    "session_msg_poll",
+    "session_msg_register",
+    "session_msg_send",
+    "spec_audit",
+    "spec_drift",
+    "spec_progress",
+    "todo_add",
+    "todo_list",
+    "verify_snapshot",
+    "verify_trend"
+  ],
+  "read_tool_inputs": {
+    "spec_audit": {
+      "required": [],
+      "properties": [
+        "filter_era",
+        "filter_spec",
+        "include_grandfathered",
+        "project_root"
+      ]
+    },
+    "spec_drift": {
+      "required": [],
+      "properties": [
+        "project_root"
+      ]
+    },
+    "spec_progress": {
+      "required": [],
+      "properties": [
+        "project_root"
+      ]
+    },
+    "todo_list": {
+      "required": [],
+      "properties": [
+        "project_root"
+      ]
+    }
+  },
+  "provider_or_model_called": false,
+  "tool_call": {
+    "name": "spec_progress",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "spec_progress: ok"
+        }
+      ],
+      "structuredContent": {
+        "_root": {
+          "dir": "C:\\SourceCodes\\autonomous-cae-lab",
+          "source": "param"
+        },
+        "count": 1,
+        "specs": [
+          {
+            "Path": "C:\\SourceCodes\\autonomous-cae-lab\\.moai\\specs\\SPEC-DESKTOP-001\\spec.md",
+            "Frontmatter": {
+              "ID": "SPEC-DESKTOP-001",
+              "Title": "Windows engineering research desktop workflows and design acceptance",
+              "Version": "0.1.0",
+              "Status": "draft",
+              "Created": "2026-10-12",
+              "Updated": "2026-10-12",
+              "Author": "Codex integration; actual Pro product design author",
+              "Priority": "P1 High",
+              "Phase": "design-before-implementation",
+              "Module": "apps/research, apps/desktop_pre, apps/desktop_post",
+              "Dependencies": null,
+              "BcID": null,
+              "Lifecycle": "spec-anchored",
+              "Tags": "desktop, Qt, native, product-design",
+              "Breaking": false,
+              "RelatedRule": null,
+              "LintConfig": {
+                "Skip": null
+              },
+              "HarnessLevel": "",
+              "Era": "V3R6",
+              "Tier": "L",
+              "AmendmentOf": ""
+            },
+            "ParseError": null
+          }
+        ]
+      }
+    }
+  }
+}

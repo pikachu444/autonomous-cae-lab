@@ -1,6 +1,13 @@
 # 실제 연구 작업을 위한 제품 구성과 화면 구현 계획
 
 작성: 2026-10-11. 운영·우선순위 확정: 2026-10-12.
+
+> 최신 사용자 지시: 전체 상세 명세, 상태별 데스크톱 화면, 편집 가능한 도면과
+> 상호작용 시안, 별도 Qt 시제품을 먼저 검토에 제출한다. 기존 기획/PDF/구현은 재사용
+> 자료이며 새 설계 수용 완료의 근거가 아니다. 본구현은 사용자 개발 시작 지시 이후다.
+> Research는 기존 Qt/PySide6, Pre/Post는 FreeCAD/ParaView native 기능을 사용한다.
+> 브라우저/localhost/웹 래핑을 제품 주 화면으로 삼지 않으며 추가 지출은 0원이다.
+> [현행 기준과 ADR 적용](ADR_APPLICABILITY.md), [설계 검토 자료](design/20261012-desktop-planning/README.md)를 함께 읽는다.
 대상은 자기 자료·모델·기존 해석 결과로 연구하는 사용자다.
 이 문서는 채택한 제품 방향이다. 구현 현황과 다음 작업은 [CURRENT_STATE](../CURRENT_STATE.md),
 Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 관리한다.

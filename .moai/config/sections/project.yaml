@@ -1,0 +1,6 @@
+project:
+  name: "Autonomous CAE Lab"
+  description: "Windows local engineering research tools; desktop design before implementation approval"
+  initialized: true
+  optimized: false
+  template_version: "3.2.0-dev.2aab5f7"

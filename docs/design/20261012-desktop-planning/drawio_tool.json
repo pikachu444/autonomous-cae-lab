@@ -1,0 +1,10 @@
+{
+  "official_release": "v32.4.1",
+  "source_url": "https://github.com/jgraph/drawio-desktop/releases/download/v32.4.1/draw.io-32.4.1-windows.zip",
+  "bytes": 179820351,
+  "sha256": "b9ced12274d1f1e9a80280e2dc43d3b2dbe2ae30a1553f42dd46011a587ee19b",
+  "location": "C:\\SourceCodes\\autonomous-cae-lab\\runs\\tools\\drawio-32.4.1\\app",
+  "license": "Apache-2.0; bundled notices retained",
+  "additional_spending": 0,
+  "installation": "portable extracted to ignored runs/tools; no machine settings changed"
+}
