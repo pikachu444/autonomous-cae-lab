@@ -286,12 +286,22 @@ class ReportPage(QWidget):
                     p.drawText(QRectF(x-28,area.bottom()+8,56,24),Qt.AlignmentFlag.AlignCenter,f"{x0+(x1-x0)*i/5:.3g}")
                     p.drawText(QRectF(46,y-12,50,24),Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter,f"{y0+(y1-y0)*i/5:.3g}")
                 for n,s in enumerate(series):
-                    p.setPen(QPen(QColor(s.get("color",BLUE)),2));path=QPainterPath();started=False
+                    color=QColor(s.get("color",BLUE));p.setPen(QPen(color,2))
+                    path=QPainterPath();started=False
                     for x,y in zip(s["x"],s["y"]):
-                        if not isinstance(y,(int,float)) or not math.isfinite(y):started=False;continue
-                        if started:path.lineTo(point(x,y))
-                        else:path.moveTo(point(x,y));started=True
-                    p.drawPath(path);p.drawText(104,782+20*n,s.get("name","Curve"))
+                        if not isinstance(x,(int,float)) or not isinstance(y,(int,float)) or not math.isfinite(x) or not math.isfinite(y):
+                            started=False;continue
+                        position=point(x,y)
+                        if s.get("scatter"):
+                            p.setBrush(color);p.drawEllipse(position,4,4)
+                        elif started:path.lineTo(position)
+                        else:path.moveTo(position);started=True
+                    p.setBrush(Qt.BrushStyle.NoBrush)
+                    if not s.get("scatter"):p.drawPath(path)
+                    if s.get("scatter"):
+                        p.setBrush(color);p.drawEllipse(QPointF(94,778+20*n),3,3);p.setBrush(Qt.BrushStyle.NoBrush)
+                    else:p.drawLine(84,778+20*n,100,778+20*n)
+                    p.drawText(108,782+20*n,s.get("name","Curve"))
                 p.setPen(QColor(INK));font(14)
                 p.drawText(QRectF(104,738,544,26),Qt.AlignmentFlag.AlignCenter,section.get("xlabel",""))
                 p.drawText(48,268,section.get("ylabel",""))

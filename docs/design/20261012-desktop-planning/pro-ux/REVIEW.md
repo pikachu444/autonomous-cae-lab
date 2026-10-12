@@ -10,6 +10,8 @@ UX-RECOVERY-01에 따라 Codex가 Windows Python3.13.5/PySide6 6.9.1/QtSvg로 �
 
 FN-32-01/FN-35-01은 새 전용 상태와 해당 D1 prior contract를 추가 UX 열에 연결했다. 직접 읽은 D1 CSV와 원 74행·18열·순서를 비교하여 동일함을 확인했다. 이전 60a4fab의 정직한 prior-only 표시는 새 전용 UI 소스로 갱신하되 production report/device adapter의 미연결 상태는 유지한다.
 
+독립 Sol/high는 `600f9f8`의 세 source를 공개 GitHub에서 정적으로 읽어 즉시 startup/import/lifetime/Save blocker를 찾지 못했다. 이는 STATIC_ONLY이며 Qt 실행이 아니다. 독립 Astra/xhigh는 Optimization의 1점 constraint-violation scatter와 RBF prediction scatter가 ReportPage에서 선으로 취급되어 누락/오표현되는 오류를 찾아냈다. ReportPage에 scatter marker와 결측 구간 분리를 반영하여 preview/PDF가 같은 표식 규칙을 사용하게 교정했다. 이 교정의 실제 렌더 확인은 Windows 실행 대상으로 남는다.
+
 ---
 
 # Desktop UX review record

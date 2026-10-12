@@ -100,5 +100,5 @@ The following four state recipes and native views were published in source check
 | acquisition-connection | Existing trace + Connection and end | FN-35 | Unavailable driver, NOT_SENT/NOT_RECEIVED, UNKNOWN terminal, return to Data/setup |
 
 ```powershell
-py -3.13 export_screens.py --offscreen --state report-sections --state report-preview --state acquisition-channels --state acquisition-connection --output "$env:TEMP\\caelab-completion-svg" --png-output "$env:TEMP\\caelab-completion-png"
+py -3.13 export_screens.py --offscreen --state report-sections --state report-preview --state acquisition-channels --state acquisition-connection --output "$env:TEMP\caelab-completion-svg" --png-output "$env:TEMP\caelab-completion-png"
 ```
