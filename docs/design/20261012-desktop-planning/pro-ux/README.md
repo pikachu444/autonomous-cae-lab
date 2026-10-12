@@ -114,3 +114,9 @@ py -3.13 state_acceptance.py --source . --output "$env:TEMP\caelab-check-state"
 ```
 
 실제 FreeCAD/ParaView 실행·도킹, solver/optimizer/PDE 계산, provider 권한·호출, remote scheduler, 장비 연결은 이 시제품에서 실행하지 않았습니다. weak form/ODE·확장 구성모델의 정의는 편집할 수 있으며 미연결 실행은 명시적으로 남아 있습니다. **UNKNOWN, NOT_RELEASED, F05 `3.32295e-6 > 1e-6`은 그대로입니다.**
+
+## Report selection correction checkpoint
+
+UX-REPORT-FIX-01/02 source correction: a supported structural locator selects its exact retained field and time in the report table and in Open source; an absent frame remains unavailable. Curve pages state that they contain all retained times and mark the selected frame. Preview paging follows the visible section. PDF and Markdown include a small Study/result/selection/review reference. Current Study checks remain NOT_EVALUATED / UNKNOWN / NOT_RELEASED; the unchanged historical F05 record is available only through an explicitly added Historical F05 check section. Use Study asks before replacing edited report sections. The Acquisition connection tab reserves room for all six connection/end rows. PDF text and table fit is checked using the active installed Qt font.
+
+These corrections were authored after the remote Linux environment disconnected. New execution is unverified here; the user’s Codex Windows reviewer runs the source with the existing Python 3.13.5 / PySide6 6.9.1 environment. Earlier reported Windows passes apply to their tested checkpoint, not automatically to this correction.

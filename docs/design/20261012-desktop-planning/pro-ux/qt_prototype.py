@@ -30,7 +30,7 @@ except ImportError:
     raise SystemExit("PySide6 is not available in this interpreter. Use the existing Windows Python 3.13 / PySide6 6.9.1 environment. Nothing was installed.")
 
 from prototype_state import (ReviewSession, ReviewError, TOOL_NAMES, METHODS, HERE, clone, digest,
-                             RESPONSE_ROLES, EVALUATORS, VARIABLE_BINDINGS, METHOD_INPUTS, method_sheet, binding_ids, report_sections)
+                             RESPONSE_ROLES, EVALUATORS, VARIABLE_BINDINGS, METHOD_INPUTS, method_sheet, binding_ids, report_sections, structural_location)
 from qt_widgets import make_table, CurveView, EngineeringView, NodeView, ReportPage, BLUE, TEAL, ORANGE, RED
 
 STYLE = """
@@ -2620,13 +2620,25 @@ class ReportWindow(ToolWindow):
         if not key:raise ReviewError("Select a Study.")
         source=self.session.doc(key)
         if source["dirty"]:raise ReviewError("Save the selected Study before bringing its judgment and evidence into the report.")
+        proposed=report_sections(source,self.session.results)
+        original=report_sections(self.data["study_document"],self.session.results)
+        if self.data["sections"] and self.data["sections"]!=original:
+            message=QMessageBox(self);message.setWindowTitle("Replace report sections")
+            message.setText("Replace "+str(len(self.data["sections"]))+" edited sections with "+str(len(proposed))+" sections from "+source["name"]+"?")
+            message.setInformativeText("Local notes, exclusions and edited content will be replaced. Cancel keeps the report unchanged.")
+            message.setDetailedText("Current sections:\n"+"\n".join(s["title"] for s in self.data["sections"])+
+                "\n\nFrom the selected Study:\n"+"\n".join(s["title"] for s in proposed))
+            replace=message.addButton("Replace sections",QMessageBox.ButtonRole.AcceptRole)
+            cancel=message.addButton(QMessageBox.StandardButton.Cancel);message.setDefaultButton(cancel)
+            message.exec()
+            if message.clickedButton() is not replace:return False
         payload=clone(self.data);payload.update(study_document=clone(source),
-            sections=report_sections(source,self.session.results),evidence=clone(source["saved"].get("evidence",[])))
-        self.session.change(self.key,payload,"Use selected Study in report");self.refresh()
+            sections=proposed,evidence=clone(source["saved"].get("evidence",[])))
+        self.session.change(self.key,payload,"Use selected Study in report");self.refresh();return True
 
     def add_section(self):
         dialog=QDialog(self);dialog.setWindowTitle("Add report section");form=QFormLayout(dialog)
-        kind=QComboBox();kind.addItems(["Text","Evidence table","Evidence curve"]);title=QLineEdit("Notes")
+        kind=QComboBox();kind.addItems(["Text","Evidence table","Evidence curve","Historical F05 check"]);title=QLineEdit("Notes")
         result=QComboBox()
         for rid,record in self.session.results.items():
             if record.get("fields") or record.get("kind")=="numerical":result.addItem(record.get("method",record.get("candidate","Clamp result")),rid)
@@ -2636,7 +2648,10 @@ class ReportWindow(ToolWindow):
             if record.get("kind")=="numerical":
                 for table in record["fixture"]["tables"]:
                     for row in table["rows"]:locator.addItem(record["method"]+" / "+table["name"]+" / "+str(row[0]))
-            else:locator.addItem("Gauge / t = 0.04 s")
+            else:
+                for array,field in record.get("fields",{}).items():
+                    label="Gauge" if array=="Displacement" else array
+                    for time in record.get("times",[]):locator.addItem(label+" / t = "+str(time)+" s")
         result.currentIndexChanged.connect(locations);locations()
         for label,widget in (("Content",kind),("Heading",title),("Result",result),("Selection",locator)):form.addRow(label,widget)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
@@ -2644,6 +2659,13 @@ class ReportWindow(ToolWindow):
         if dialog.exec()!=QDialog.DialogCode.Accepted:return
         payload=clone(self.data)
         if kind.currentText()=="Text":section={"kind":"text","text":"","source":{"kind":"local"},"enabled":True}
+        elif kind.currentText()=="Historical F05 check":
+            f05=self.session.dump()["F05"]
+            section={"kind":"table","enabled":True,"headers":["Historical check","Value","Tolerance","Outcome"],
+                "rows":[["F05",f05["value"],f05["tolerance"],f05["verdict"]]],
+                "caption":"Historical Task1 evidence only; it does not validate this Study. Original raw Task1 report is not linked in this prototype.",
+                "source":{"kind":"history","id":"Task1 / F05","locator":"prototype_state.py / ReviewSession.dump / F05",
+                          "scope":"Historical Task1 check; current Study remains NOT_EVALUATED"}}
         else:
             rid=result.currentData();temporary=clone(payload["study_document"])
             temporary["saved"]["evidence"]=[{"ref":rid,"locator":locator.currentText()}]
@@ -2653,7 +2675,7 @@ class ReportWindow(ToolWindow):
             payload["evidence"].append({"ref":rid,"locator":locator.currentText()})
         used={s["id"] for s in payload["sections"]};n=1
         while "section-"+str(n) in used:n+=1
-        section.update(id="section-"+str(n),title=title.text());payload["sections"].append(section)
+        section.update(id="section-"+str(n),title=("Historical F05 check" if kind.currentText()=="Historical F05 check" and title.text()=="Notes" else title.text()));payload["sections"].append(section)
         self.session.change(self.key,payload,"Add report section");self._selected_id=section["id"];self.refresh()
 
     def remove_section(self):
@@ -2695,25 +2717,45 @@ class ReportWindow(ToolWindow):
             if self.source_table.columnCount():self.source_table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
         else:
             self.section_stack.setCurrentIndex(2);self.source_curve.xlabel=section.get("xlabel","");self.source_curve.ylabel=section.get("ylabel","")
-            self.source_curve.set_series(section.get("series",[]));self.source_curve.caption="Retained synthetic source / no new calculation"
+            self.source_curve.set_series(section.get("series",[]));self.source_curve.cursor_x=section.get("cursor_x");self.source_curve.caption="Retained synthetic source / no new calculation"
         source=section.get("source",{})
         self.source_label.setText(source.get("locator") or ("Selected Study: "+self.data["study_document"]["name"] if source.get("kind")=="study" else "Report text"))
         self._building=False
         self._page_index=next((i for i,p in enumerate(self.pages()) if p["id"]==section["id"]),0);self.update_preview()
 
+    def source_note(self,section):
+        source=section.get("source",{});study=self.data["study_document"]
+        if source.get("kind")=="history":
+            lines=["Historical source: "+source.get("id",""),source.get("locator",""),source.get("scope","")]
+        else:
+            lines=["Study: "+study["id"]+" / saved revision "+str(study["revision"])]
+            if source.get("kind")=="result":
+                lines.extend(["Result: "+str(source.get("id","")),"Selection: "+source.get("locator","")])
+            elif source.get("kind")=="local":lines.append("Content: local report text / current Study checks")
+        lines.append("Review: "+self.document["id"]+(" / "+Path(self.document["file"]).name if self.document["file"] else " / not yet saved"))
+        return "\n".join(lines)
+
     def pages(self):
         pages=[]
         for value in self.data["sections"]:
             if not value.get("enabled"):continue
-            section=clone(value);source=section.get("source",{})
+            section=clone(value);source=section.get("source",{});section["source_note"]=self.source_note(section)
             if source.get("kind")=="result" and source.get("id") not in self.session.results:section["unavailable"]=True
-            if section["kind"]=="table" and len(section.get("rows",[]))>18:
-                for start in range(0,len(section["rows"]),18):
-                    page=clone(section);page["rows"]=section["rows"][start:start+18]
-                    page["caption"]=section.get("caption","")+f" Rows {start+1}–{min(start+18,len(section['rows']))}."
+            if section["kind"]=="table" and len(section.get("rows",[]))>16:
+                for start in range(0,len(section["rows"]),16):
+                    page=clone(section);page["rows"]=section["rows"][start:start+16]
+                    page["caption"]=section.get("caption","")+f" Rows {start+1}–{min(start+16,len(section['rows']))}."
                     pages.append(page)
             else:pages.append(section)
         return pages
+
+    def page_layout_errors(self,pages=None):
+        if self.data["output_format"]!="Review PDF":return []
+        errors=[]
+        for index,page in enumerate(self.pages() if pages is None else pages):
+            errors.extend("Page "+str(index+1)+" ("+page.get("title","Section")+"): "+message
+                for message in self.preview.layout_issues(self.data["title"],page))
+        return errors
 
     def update_preview(self):
         if not hasattr(self,"preview"):return
@@ -2724,17 +2766,25 @@ class ReportWindow(ToolWindow):
         if hasattr(self,"output_checks"):
             fill_table(self.output_checks,[["Pages",len(pages)],["Missing evidence",sum(bool(p.get("unavailable")) for p in pages)],
                 ["Judgment",self.data["study_document"]["saved"].get("judgment","Undecided")],
-                ["Export","Needs correction" if self.session.diagnostics(self.key) else "Review draft ready"]])
+                ["Export","Needs correction" if self.session.diagnostics(self.key) or self.page_layout_errors(pages) else "Review draft ready"]])
             self.output_checks.resizeColumnsToContents()
             self.export_note.setText("Last preview: "+Path(self.data["last_export"]).name if self.data.get("last_export") else "Choose the output file when exporting.")
 
-    def page_move(self,offset):self._page_index+=offset;self.update_preview()
+    def page_move(self,offset):
+        pages=self.pages()
+        if not pages:return
+        index=max(0,min(self._page_index+offset,len(pages)-1));sid=pages[index]["id"]
+        for row in range(self.section_list.count()):
+            if self.section_list.item(row).data(Qt.ItemDataRole.UserRole)==sid:
+                self.section_list.setCurrentRow(row);break
+        self._page_index=index;self.update_preview()
     def preview_tab(self,index):
         if hasattr(self,"output_dock"):self.output_dock.setVisible(index==1)
         self.update_preview()
 
     def open_source(self):
-        section=self.selected_section()
+        pages=self.pages()
+        section=pages[self._page_index] if self.tabs.currentIndex()==1 and pages else self.selected_section()
         if not section:return
         source=section.get("source",{})
         if source.get("kind")=="result":return self.hub.open_result(source["id"],source.get("locator"))
@@ -2742,6 +2792,9 @@ class ReportWindow(ToolWindow):
             session=ReviewSession();document=clone(self.data["study_document"])
             session.documents[document["key"]]=document;session.results=clone(self.session.results)
             return self.hub.open_other(session,document["key"])
+        if source.get("kind")=="history":
+            return text_dialog(self,"Historical F05 evidence",source["scope"]+"\n\nSource: "+source["locator"]+
+                "\n\n"+json.dumps(self.session.dump()["F05"],indent=2)+"\n\nOriginal raw Task1 report: unlinked in this planning prototype.")
         self.update_title("This section is local report text.")
 
     def export_to(self,path):
@@ -2749,7 +2802,11 @@ class ReportWindow(ToolWindow):
         if errors:
             self.tabs.setCurrentIndex(1)
             raise ReviewError(" ".join(message for field,message in errors))
-        path=Path(path);pages=self.pages();path.parent.mkdir(parents=True,exist_ok=True)
+        pages=self.pages();layout_errors=self.page_layout_errors(pages)
+        if layout_errors:
+            self.tabs.setCurrentIndex(1)
+            raise ReviewError("\n".join(layout_errors))
+        path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
         descriptor,temporary=tempfile.mkstemp(prefix="report-preview-",suffix=path.suffix,dir=path.parent);os.close(descriptor)
         try:
             if self.data["output_format"]=="Review PDF":
@@ -2780,7 +2837,7 @@ class ReportWindow(ToolWindow):
                             lines.extend([series.get("name","Curve"),"",
                                 "| "+section.get("xlabel","x")+" | "+section.get("ylabel","y")+" |","| --- | --- |"])
                             lines.extend(f"| {x} | {y} |" for x,y in zip(series["x"],series["y"]))
-                    lines.extend(["",section.get("caption",""),""])
+                    lines.extend(["",section.get("caption",""),"",section.get("source_note",""),""])
                 Path(temporary).write_text("\n".join(lines),encoding="utf-8")
             os.replace(temporary,path)
         finally:
@@ -2868,7 +2925,9 @@ class AcquisitionWindow(ToolWindow):
         self.tabs=QTabWidget();self.tabs.setObjectName("acquisitionReviewTabs")
         self.tabs.addTab(self.samples,"Existing samples");self.tabs.addTab(connection,"Connection and end")
         right_split=QSplitter(Qt.Orientation.Vertical);right_split.addWidget(self.curve);right_split.addWidget(self.tabs)
-        right_split.setSizes([455,300]);right=box(self.source_label,right_split,margins=5)
+        right_split.setSizes([455,300]);self.right_split=right_split
+        self.tabs.currentChanged.connect(self.connection_tab_changed)
+        right=box(self.source_label,right_split,margins=5)
         split=QSplitter();split.addWidget(left);split.addWidget(right);split.setSizes([610,810])
         split.setStretchFactor(0,0);split.setStretchFactor(1,1);self.setCentralWidget(split)
         self._selected_channel=self.data.get("selected_channel","ch1");self.refresh()
@@ -3014,6 +3073,10 @@ class AcquisitionWindow(ToolWindow):
             else "Plan values checked. Driver, calibration validity and live permission remain unverified.")
         self.update_title("Plan values checked; live acquisition remains UNAVAILABLE");return True
 
+    def connection_tab_changed(self,index):
+        total=max(700,self.right_split.height())
+        self.right_split.setSizes([max(200,total-470),470] if index==1 else [455,300])
+
     def show_connection_loss(self):
         self.session.edit(self.key,"connection_scenario","Connection loss example");self.refresh();self.tabs.setCurrentIndex(1)
 
@@ -3046,6 +3109,7 @@ class AcquisitionWindow(ToolWindow):
         fill_table(self.connection_table,[["Live connection","UNAVAILABLE"],["Acquisition phase","Not observed"],
             ["Requested stop","NOT_SENT"],["Device stop acknowledgment","NOT_RECEIVED"],["Physical terminal state","UNKNOWN"],["Allowed control","NONE"]])
         self.connection_table.resizeColumnsToContents();self.connection_table.horizontalHeader().setStretchLastSection(True)
+        self.connection_table.setMinimumHeight(self.connection_table.horizontalHeader().height()+sum(self.connection_table.rowHeight(i) for i in range(self.connection_table.rowCount()))+6)
         self._sample_ids=getattr(self,"_sample_ids",self.document.get("view",{}).get("acquisition_samples",[]))
         self._building=False;self._refreshed=True;self.select_channel();self.update_title()
 
@@ -3164,6 +3228,7 @@ class DesktopHub:
             return dialog
         if not self.session.results[result_id].get("fields"):
             raise ReviewError("This retained result has no 3D field arrays. Inspect its owning tool result table.")
+        context=structural_location(self.session.results[result_id],locator) if locator else None
         key="post:"+result_id
         if key not in self.session.documents:
             from prototype_state import make_document
@@ -3172,6 +3237,10 @@ class DesktopHub:
             payload["time"]=result.get("time",.04)
             name=self.session.doc(result["source"]["id"])["name"]+" result" if result["source"]["id"] in [d["id"] for d in self.session.documents.values()] else "Retained result"
             self.session.documents[key]=make_document(key,name,"native_post","POST-"+result_id,1,payload)
+        if context:
+            payload=clone(self.session.doc(key)["draft"])
+            payload.update(array=context["array"],time=context["time"],unit=context["unit"],association=context["association"])
+            self.session.change(key,payload,"Open selected evidence frame")
         return self.open(key)
 
     def discussion_for(self,source_key):

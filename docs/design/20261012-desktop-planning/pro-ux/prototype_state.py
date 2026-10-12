@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import tempfile
 import uuid
 from pathlib import Path
@@ -318,6 +319,24 @@ def structural_fields(displacement=.31):
     }
 
 
+def structural_location(record,locator):
+    """Resolve a supported structural evidence locator to one retained frame."""
+    match=re.fullmatch(r"([^/]+)\s*/\s*t\s*=\s*([-+0-9.eE]+)\s*s",str(locator).strip())
+    if not match:raise ReviewError("This structural evidence location is unavailable: "+str(locator))
+    label=match.group(1).strip();array="Displacement" if label=="Gauge" else label
+    field=record.get("fields",{}).get(array)
+    try:time=float(match.group(2))
+    except ValueError:raise ReviewError("The evidence time is invalid.")
+    times=record.get("times",[])
+    if not field or not math.isfinite(time) or time not in times:
+        raise ReviewError("The exact evidence field/frame is unavailable; no nearest or final frame was substituted.")
+    index=times.index(time);values=field.get("values",[])
+    if index>=len(values) or not isinstance(values[index],(int,float)) or not math.isfinite(values[index]):
+        raise ReviewError("The selected evidence frame has no finite value.")
+    return {"array":array,"time":time,"unit":field["unit"],"association":field["association"],
+            "value":values[index],"index":index}
+
+
 def report_sections(study_document, results):
     """Editable review pages from an explicit saved Study; no report engine."""
     study=study_document["saved"]
@@ -341,30 +360,34 @@ def report_sections(study_document, results):
                            headers=clone(table["headers"]) if table else ["Evidence","Status"],rows=rows)
             if not rows:section["unavailable"]=True
         else:
-            section.update(headers=["Quantity","Value","Unit"],rows=[
-                ["Displacement",result.get("metrics",{}).get("displacement"),"mm"],
-                ["Mass",result.get("metrics",{}).get("mass"),"kg"],
-                ["Clearance",result.get("metrics",{}).get("clearance"),"mm"]])
+            try:
+                frame=structural_location(result,source["locator"])
+                section.update(headers=["Quantity","Value","Unit"],rows=[
+                    [frame["array"],frame["value"],frame["unit"]],["Selected time",frame["time"],"s"]],
+                    caption="Authored synthetic frame; "+frame["association"]+", global basis. Exact selected time.")
+            except ReviewError as error:
+                section.update(headers=["Evidence","Status"],rows=[[source["locator"],"Unavailable"]],
+                               unavailable=True,caption=str(error))
         sections.append(section)
-        if result and result.get("kind")=="numerical" and result["fixture"].get("series"):
+        if result and not section.get("unavailable") and result.get("kind")=="numerical" and result["fixture"].get("series"):
             fixture=result["fixture"]
             sections.append({"id":"curve-"+str(index),"title":result["method"]+" response view",
                 "kind":"curve","enabled":True,"source":clone(source),"series":clone(fixture["series"]),
                 "xlabel":fixture["xlabel"],"ylabel":fixture["ylabel"],
                 "caption":"Authored method overview; all retained points. Selected row remains in the preceding table."})
-        elif result and result.get("fields",{}).get("Displacement"):
-            sections.append({"id":"curve-"+str(index),"title":"Displacement through the load step",
-                "kind":"curve","enabled":True,"source":clone(source),"series":[{"name":"Displacement",
-                "x":clone(result["times"]),"y":clone(result["fields"]["Displacement"]["values"]),"color":"#286998"}],
-                "xlabel":"Time [s]","ylabel":"Displacement [mm]",
-                "caption":"Authored synthetic frames; POINTS, global basis; all retained times, no downsampling."})
+        elif result and not section.get("unavailable") and result.get("fields"):
+            frame=structural_location(result,source["locator"]);field=result["fields"][frame["array"]]
+            sections.append({"id":"curve-"+str(index),"title":frame["array"]+" through the load step",
+                "kind":"curve","enabled":True,"source":clone(source),"series":[{"name":frame["array"],
+                "x":clone(result["times"]),"y":clone(field["values"]),"color":"#286998"}],
+                "xlabel":"Time [s]","ylabel":frame["array"]+" ["+frame["unit"]+"]","cursor_x":frame["time"],
+                "caption":"Authored synthetic frames; "+frame["association"]+", global basis; all retained times, no downsampling. Dashed line: selected frame."})
     sections.append({"id":"judgment","title":"Research judgment","kind":"text","enabled":True,
         "text":study.get("judgment","Undecided")+"\n"+(study.get("reason") or "No judgment has been applied.")+
         "\n\nNext research: "+study.get("next_research",""),"source":{"kind":"study"}})
     sections.append({"id":"checks","title":"Checks and limitations","kind":"table","enabled":True,
         "headers":["Check","State"],"rows":[["Process completion","Not executed in this prototype"],
-        ["Numerical validity","Not evaluated"],["Engineering checks","UNKNOWN"],["Release","NOT_RELEASED"],
-        ["F05","FAIL: 3.32295e-6 > 1e-6"]],"source":{"kind":"local"},
+        ["Numerical validity","NOT_EVALUATED"],["Engineering checks","UNKNOWN"],["Release","NOT_RELEASED"]],"source":{"kind":"local"},
         "caption":"Process termination, numerical validity and engineering judgment remain separate."})
     return sections
 

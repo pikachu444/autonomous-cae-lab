@@ -142,7 +142,8 @@ def report_check():
     window.output_format.setCurrentText("Markdown");pump()
     markdown=workspace/"Report preview.md";window.export_to(markdown)
     text=markdown.read_text(encoding="utf-8")
-    assert "0.31" in text and "3.32295e-6 > 1e-6" in text
+    assert "0.31" in text and "NOT_EVALUATED" in text and "F05" not in text
+    assert "Selection: Gauge / t = 0.04 s" in text and "Study: " in text and "Result: " in text
     rid=window.data["evidence"][0]["ref"];retained=session.results.pop(rid)
     try:
         try:window.export_to(workspace/"Missing.md")

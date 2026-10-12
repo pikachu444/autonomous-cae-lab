@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
-from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QPolygonF, QFont
+from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QPolygonF, QFont, QFontMetricsF
 from PySide6.QtWidgets import (
     QApplication, QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem,
@@ -225,13 +225,63 @@ class ReportPage(QWidget):
     def set_page(self,title,section,number,count):
         self.title=title;self.section=section;self.page_number=number;self.page_count=count;self.update()
 
+    def page_font(self,size,bold=False):
+        font=QFont(self.font());font.setPixelSize(size);font.setBold(bold);return font
+
+    def table_widths(self,section):
+        headers=section.get("headers",[]);rows=section.get("rows",[])
+        body=QFontMetricsF(self.page_font(13));head=QFontMetricsF(self.page_font(12,True));widths=[]
+        for index,header in enumerate(headers):
+            words=str(header).split() or [""]
+            width=max([54]+[head.horizontalAdvance(word)+14 for word in words])
+            for row in rows:
+                if index<len(row):
+                    value="Unavailable" if row[index] is None else str(row[index])
+                    width=max(width,body.horizontalAdvance(value)+14)
+            widths.append(width)
+        total=sum(widths) or 1
+        return [624*width/total for width in widths]
+
+    def layout_issues(self,title,section):
+        """Measure the same fonts, widths and wrapping that paint_page uses."""
+        issues=[]
+        def check(label,text,width,height,size,bold=False,wrap=True):
+            if not text:return
+            metrics=QFontMetricsF(self.page_font(size,bold))
+            flags=Qt.TextFlag.TextWordWrap if wrap else Qt.TextFlag.TextSingleLine
+            bounds=metrics.boundingRect(QRectF(0,0,max(1,width),100000),flags,str(text))
+            if bounds.width()>width+.5 or bounds.height()>height+.5:
+                issues.append(label+" does not fit the PDF page; shorten or split this section, or choose Markdown.")
+        check("Report title",title,624,70,25,True)
+        check("Section heading",section.get("title",""),624,66,20,True)
+        if not section.get("unavailable"):
+            if section.get("kind")=="text":
+                check("Section text",section.get("text",""),624,578,14)
+            elif section.get("kind")=="table":
+                widths=self.table_widths(section)
+                for width,header in zip(widths,section.get("headers",[])):
+                    check("Table heading "+str(header),header,width-14,42,12,True)
+                for row in section.get("rows",[]):
+                    for width,value in zip(widths,row):
+                        check("Table value",str(value) if value is not None else "Unavailable",width-14,28,13,wrap=False)
+                check("Table caption",section.get("caption",""),624,76,12)
+                if len(section.get("rows",[]))>16:issues.append("Split the table into pages of at most 16 rows.")
+            elif section.get("kind")=="curve":
+                series=section.get("series",[])
+                if len(series)>5:issues.append("This PDF curve page supports five series; split the section or choose Markdown.")
+                check("Horizontal axis",section.get("xlabel",""),544,26,14,wrap=False)
+                check("Vertical quantity",section.get("ylabel",""),624,26,14,wrap=False)
+                for item in series:check("Curve legend",item.get("name","Curve"),564,20,12,wrap=False)
+                check("Curve caption",section.get("caption",""),624,40,12)
+        check("Source reference",section.get("source_note",""),624,80,10)
+        return issues
+
     def paint_page(self,p,target):
         p.save();p.setRenderHint(QPainter.RenderHint.Antialiasing)
         scale=min(target.width()/720,target.height()/1018)
         p.translate(target.center().x()-360*scale,target.center().y()-509*scale);p.scale(scale,scale)
         p.fillRect(QRectF(0,0,720,1018),QColor("white"))
-        def font(size,bold=False):
-            f=QFont(self.font());f.setPixelSize(size);f.setBold(bold);p.setFont(f)
+        def font(size,bold=False):p.setFont(self.page_font(size,bold))
         font(12);p.setPen(QColor("#62717d"))
         p.drawText(QRectF(48,30,624,24),Qt.AlignmentFlag.AlignLeft,"AUTONOMOUS CAE LAB   /   REVIEW DRAFT")
         font(25,True);p.setPen(QColor(INK))
@@ -245,13 +295,9 @@ class ReportPage(QWidget):
             p.drawText(QRectF(48,256,624,200),Qt.TextFlag.TextWordWrap,
                        "Evidence unavailable\n\nThis section has no available source. Other sections remain editable.")
         elif section.get("kind")=="text":
-            p.drawText(QRectF(48,252,624,634),Qt.TextFlag.TextWordWrap,section.get("text",""))
+            p.drawText(QRectF(48,252,624,578),Qt.TextFlag.TextWordWrap,section.get("text",""))
         elif section.get("kind")=="table":
-            headers=section.get("headers",[]);rows=section.get("rows",[])
-            widths=[max(6,len(str(h))) for h in headers]
-            for row in rows:
-                for i,value in enumerate(row[:len(widths)]):widths[i]=max(widths[i],min(28,len(str(value))))
-            total=sum(widths) or 1;widths=[624*w/total for w in widths]
+            headers=section.get("headers",[]);rows=section.get("rows",[]);widths=self.table_widths(section)
             x=48;y=252;p.fillRect(QRectF(48,y,624,52),QColor("#eaf0f5"));font(12,True)
             for width,header in zip(widths,headers):
                 p.setPen(QColor(INK));p.drawText(QRectF(x+7,y+5,width-14,42),
@@ -262,10 +308,10 @@ class ReportPage(QWidget):
                 x=48
                 for width,value in zip(widths,row):
                     p.setPen(QColor(INK));p.drawText(QRectF(x+7,y,width-14,28),
-                        Qt.AlignmentFlag.AlignVCenter,str(value) if value is not None else "Unavailable");x+=width
+                        Qt.AlignmentFlag.AlignVCenter|Qt.TextFlag.TextSingleLine,str(value) if value is not None else "Unavailable");x+=width
                 y+=28
             font(12);p.setPen(QColor("#62717d"))
-            p.drawText(QRectF(48,y+20,624,82),Qt.TextFlag.TextWordWrap,section.get("caption",""))
+            p.drawText(QRectF(48,y+12,624,76),Qt.TextFlag.TextWordWrap,section.get("caption",""))
         elif section.get("kind")=="curve":
             series=section.get("series",[])
             points=[(x,y) for s in series for x,y in zip(s["x"],s["y"])
@@ -274,7 +320,7 @@ class ReportPage(QWidget):
                 xs,ys=zip(*points);x0,x1=min(xs),max(xs);y0,y1=min(0,min(ys)),max(ys)
                 if x0==x1:x1=x0+1
                 if y0==y1:y1=y0+1
-                area=QRectF(104,294,544,410);font(12)
+                area=QRectF(104,294,544,350);font(12)
                 def point(x,y):
                     return QPointF(area.left()+(x-x0)/(x1-x0)*area.width(),area.bottom()-(y-y0)/(y1-y0)*area.height())
                 for i in range(6):
@@ -299,17 +345,25 @@ class ReportPage(QWidget):
                     p.setBrush(Qt.BrushStyle.NoBrush)
                     if not s.get("scatter"):p.drawPath(path)
                     if s.get("scatter"):
-                        p.setBrush(color);p.drawEllipse(QPointF(94,778+20*n),3,3);p.setBrush(Qt.BrushStyle.NoBrush)
-                    else:p.drawLine(84,778+20*n,100,778+20*n)
-                    p.drawText(108,782+20*n,s.get("name","Curve"))
+                        p.setBrush(color);p.drawEllipse(QPointF(94,728+20*n),3,3);p.setBrush(Qt.BrushStyle.NoBrush)
+                    else:p.drawLine(84,728+20*n,100,728+20*n)
+                    p.drawText(QRectF(108,718+20*n,564,20),Qt.AlignmentFlag.AlignVCenter,s.get("name","Curve"))
+                cursor=section.get("cursor_x")
+                if isinstance(cursor,(int,float)) and math.isfinite(cursor) and x0<=cursor<=x1:
+                    p.setPen(QPen(QColor(ORANGE),1.5,Qt.PenStyle.DashLine))
+                    x=point(cursor,y0).x();p.drawLine(QPointF(x,area.top()),QPointF(x,area.bottom()))
                 p.setPen(QColor(INK));font(14)
-                p.drawText(QRectF(104,738,544,26),Qt.AlignmentFlag.AlignCenter,section.get("xlabel",""))
-                p.drawText(48,268,section.get("ylabel",""))
+                p.drawText(QRectF(104,680,544,26),Qt.AlignmentFlag.AlignCenter,section.get("xlabel",""))
+                p.drawText(QRectF(48,252,624,26),Qt.AlignmentFlag.AlignLeft,section.get("ylabel",""))
             font(12);p.setPen(QColor("#62717d"))
-            p.drawText(QRectF(48,866,624,60),Qt.TextFlag.TextWordWrap,section.get("caption",""))
-        font(11);p.setPen(QColor("#62717d"));p.drawLine(48,942,672,942)
-        p.drawText(QRectF(48,954,560,22),Qt.AlignmentFlag.AlignLeft,"Synthetic review content / UNKNOWN / NOT_RELEASED")
-        p.drawText(QRectF(609,954,63,22),Qt.AlignmentFlag.AlignRight,f"{self.page_number} / {self.page_count}")
+            p.drawText(QRectF(48,834,624,40),Qt.TextFlag.TextWordWrap,section.get("caption",""))
+        font(10);p.setPen(QColor("#62717d"))
+        p.drawText(QRectF(48,886,624,80),Qt.TextFlag.TextWordWrap,section.get("source_note",""))
+        issues=self.layout_issues(self.title,section)
+        font(11);p.setPen(QColor(RED if issues else "#62717d"));p.drawLine(48,974,672,974)
+        footer="Page content needs correction before PDF export" if issues else "Synthetic review content / UNKNOWN / NOT_RELEASED"
+        p.drawText(QRectF(48,983,560,22),Qt.AlignmentFlag.AlignLeft,footer)
+        p.drawText(QRectF(609,983,63,22),Qt.AlignmentFlag.AlignRight,f"{self.page_number} / {self.page_count}")
         p.restore()
 
     def paintEvent(self,event):
