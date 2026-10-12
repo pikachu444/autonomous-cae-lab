@@ -34,6 +34,17 @@ METHODS = {
     "MOO": ("Candidates", "Pareto front", "Constraints"),
     "MDO": ("Disciplines", "Coupling", "Objectives"),
 }
+METHOD_INPUTS = {
+    "DOE": [("Sampling","Latin hypercube"),("Design points",20),("Replicates",1)],
+    "Inverse": [("Algorithm","Least squares"),("Loss","Huber"),("Residual scale",1.0),("Observation weight",1.0),("Holdout","Tension B")],
+    "Optimization": [("Algorithm","Differential evolution"),("Population",15),("Relative tolerance",1e-6)],
+    "Sobol sensitivity": [("Design","Saltelli A/B/crossed"),("Base samples",128),("Bootstrap replicates",200),("Input dependence","Independent")],
+    "UQ": [("Sampling","Monte Carlo"),("Samples",1000),("Quantiles","0.05, 0.50, 0.95"),("Failure threshold",.35)],
+    "RBF surrogate": [("Kernel","Thin plate spline"),("Smoothing",0.0),("Holdout fraction",.2),("Extrapolation","Block outside support")],
+    "MOO": [("Method","Epsilon constraint"),("Primary objective","Mass"),("Error thresholds [%]","2.0, 2.5, 3.0, 4.0"),("Feasibility tolerance",1e-6)],
+    "MDO": [("Architecture","Existing Evaluation"),("Coupling","Lagged Picard"),("Iteration limit",25),("Coupling tolerance",1e-6)],
+}
+
 RESPONSE_ROLES = ("Minimize", "Maximize", "Upper bound", "Lower bound", "Target", "Observe")
 EVALUATORS = ("Unassigned", "Clamp / material response", "Structural Simulation",
               "Material response", "PDE response", "Thermal expansion Evaluation")
@@ -78,6 +89,215 @@ def atomic_json(path: Path, content: Any) -> None:
     finally:
         if os.path.exists(name):
             os.unlink(name)
+
+
+def binding_ids(variables):
+    """Stable field identity for an editable method matrix, independent of row order."""
+    return [{"owner":v["owner"],"field":v["field"],"unit":v["unit"]} for v in variables]
+
+
+def remap_method_bindings(old, new):
+    if binding_ids(old.get("variables", [])) == binding_ids(new.get("variables", [])):
+        return new
+    payload = clone(new)
+    current = binding_ids(payload.get("variables", []))
+    for method, sheet in payload.get("method_sheets", {}).items():
+        previous = sheet.get("bindings", binding_ids(old.get("variables", [])))
+        rows = sheet.get("primary", [])
+        if method in ("DOE", "Optimization", "Sobol sensitivity", "RBF surrogate"):
+            lead = 2 if method == "Sobol sensitivity" else 1
+            tail = 0 if method == "Sobol sensitivity" else 2 if method == "RBF surrogate" else 1
+            remapped = []
+            for row in rows:
+                if len(row) != lead + len(previous) + tail:
+                    sheet["stale"] = True
+                    continue
+                values = [row[lead + previous.index(b)] if b in previous else "" for b in current]
+                remapped.append(row[:lead] + values + (row[-tail:] if tail else []))
+            if not sheet.get("stale"):sheet["primary"] = remapped
+        elif method == "UQ":
+            by_name = {row[0]:row for row in rows if row}
+            sheet["primary"] = [by_name.get(v["owner"]+"."+v["field"],
+                [v["owner"]+"."+v["field"],"Uniform",v["start"],(v["upper"]-v["lower"])/6,v["lower"],v["upper"]])
+                for v in payload["variables"]]
+            sheet.pop("secondary", None)
+        sheet["bindings"] = current
+    return payload
+
+
+def observation_groups(data):
+    obs = data.get("observation_snapshot", {})
+    excluded = set(obs.get("quality_excluded", []))
+    train = set(data.get("train_samples", []))
+    groups = {"Tension A":[s["id"] for s in obs.get("samples", [])
+                            if s["id"] not in excluded and s["id"] in train]}
+    groups[data.get("holdout", "Tension B")] = ["B"+str(i) for i in range(81)]
+    return groups
+
+
+def method_sheet(data, candidates=(), front=()):
+    """One editable definition shared by the Qt tables and submission checks."""
+    method = data["method"]; variables = data["variables"]
+    names = [v["owner"]+"."+v["field"]+" ["+v["unit"]+"]" for v in variables]
+    if method in ("DOE", "Optimization"):
+        return ["Case"]+names+["Use"], [], ["Control","Value"], [["Design","Editable candidate matrix"],["Result","No evaluation"]]
+    if method == "Sobol sensitivity":
+        return ["Block","Row"]+names, [], ["Pairing rule","Value"], [["Base blocks","A, B"],["Crossed blocks","A_B per variable"],["Input dependence","Independent"],["Second order","Off"]]
+    if method == "UQ":
+        return ["Variable","Distribution","Location","Scale","Lower","Upper"], [[v["owner"]+"."+v["field"],"Uniform",v["start"],(v["upper"]-v["lower"])/6,v["lower"],v["upper"]] for v in variables], ["Variable pair","Correlation"], [[variables[i]["field"]+" / "+variables[j]["field"],0.0] for i in range(len(variables)) for j in range(i+1,len(variables))]
+    if method == "Inverse":
+        groups=observation_groups(data)
+        return ["Observation","Use","Weight","Residual scale","Included","Unit"], [[name,"Train" if name=="Tension A" else "Holdout",1.0 if name=="Tension A" else 0.0,1.0,len(ids),"MPa"] for name,ids in groups.items()], ["Residual definition","Value"], [["Measure","First Piola / engineering strain"],["Objective","Weighted train residual RMS"],["Holdout","Excluded from fit objective"]]
+    if method == "RBF surrogate":
+        return ["Case"]+names+["Response","Split"], [], ["Support / validation","Value"], [["Validation","Independent holdout"],["Out of range","Unavailable"],["Prediction","Separate from new evaluation"]]
+    if method == "MDO":
+        return ["Discipline","Owner","Input","Output"], [["Heat","V-02","Boundary temperature [K]","Temperature [K]"],["Expand","V-03","Temperature [K]","Displacement [m]"]], ["Transfer","Value"], [["Evaluation","EVAL-01"],["Association","POINTS"],["Mapping","exact_same_mesh"],["Actual source field","PENDING"]]
+    return ["Objective / constraint","Limit","Role"], [[r["name"],str(r["limit"]),r["role"]] for r in data["responses"]], ["Front membership","Value"], [[c["id"],"Non-dominated" if c["id"] in front else "Dominated" if c["status"]=="Retained fixture" else c["status"]] for c in candidates]
+
+
+def active_training(data):
+    """Return precisely the selected observation groups; no residual is calculated."""
+    headers, defaults, _, _ = method_sheet(data)
+    rows = data.get("method_sheets", {}).get("Inverse", {}).get("primary", defaults)
+    groups = observation_groups(data)
+    included = []; weights = {}; holdout = []
+    for row in rows:
+        if len(row) != 6 or row[0] not in groups:continue
+        if row[1] == "Train":
+            try:weight,scale = float(row[2]),float(row[3])
+            except (ValueError, TypeError):continue
+            if weight <= 0 or scale <= 0:continue
+            for sid in groups[row[0]]:
+                included.append(sid);weights[sid] = {"weight":weight,"scale":scale,"group":row[0]}
+        elif row[1] == "Holdout":holdout.extend(groups[row[0]])
+    return included, weights, holdout
+
+
+def method_diagnostics(data):
+    errors = []; method=data["method"]; variables=data["variables"]
+    if method not in METHOD_INPUTS:return [("method","Choose a supported planning method.")]
+    settings = dict(METHOD_INPUTS[method]);settings.update(data.get("method_settings",{}).get(method,{}))
+    sheet=data.get("method_sheets",{}).get(method,{})
+    headers,defaults,second_headers,second_defaults=method_sheet(data)
+    rows=sheet.get("primary",defaults);secondary=sheet.get("secondary",second_defaults)
+    def error(message):errors.append(("method_inputs",message))
+    def numeric(value, minimum=None, integer=False, strict=False):
+        v=float(value)
+        if not math.isfinite(v) or (minimum is not None and (v<=minimum if strict else v<minimum)) or (integer and not v.is_integer()):raise ValueError()
+        return v
+    try:
+        budget=numeric(data["budget"],1,True)
+        requests = {"DOE":lambda:numeric(settings["Design points"],1,True)*numeric(settings["Replicates"],1,True),
+                    "Sobol sensitivity":lambda:numeric(settings["Base samples"],2,True)*(len(variables)+2),
+                    "UQ":lambda:numeric(settings["Samples"],1,True),
+                    "Optimization":lambda:numeric(settings["Population"],1,True)}
+        if method in requests and requests[method]() > budget:error("Requested evaluations exceed the total budget. Edit Method or reduce the design.")
+    except (ValueError,TypeError,KeyError):error("Correct the method sample count and evaluation budget.")
+    if sheet.get("stale") or (sheet.get("bindings") is not None and sheet["bindings"]!=binding_ids(variables)):
+        error("The matrix uses different variable fields. Rebuild the example matrix or enter a new design.")
+        return errors
+    if any(len(row)!=len(headers) for row in rows):
+        error("Complete each method row; its columns must match the current variable bindings.")
+        return errors
+    if method in ("DOE","Optimization","RBF surrogate","Sobol sensitivity"):
+        lead=2 if method=="Sobol sensitivity" else 1
+        identifiers=[]
+        for row in rows:
+            if not str(row[0]).strip():error("Each case or block needs a name.")
+            try:
+                for variable,value in zip(variables,row[lead:lead+len(variables)]):
+                    v=numeric(value)
+                    if v<float(variable["lower"]) or v>float(variable["upper"]):raise ValueError()
+            except (ValueError,TypeError):error("Every matrix value must be finite and within its variable bounds.")
+            if method!="Sobol sensitivity":identifiers.append(str(row[0]))
+        if len(identifiers)!=len(set(identifiers)):error("Case names must be unique.")
+    if method in ("DOE","Optimization") and rows:
+        if any(row[-1] not in ("Yes","No") for row in rows):error("Use must be Yes or No.")
+        active=sum(row[-1]=="Yes" for row in rows)
+        if not active:error("Select at least one design case.")
+        try:
+            if method=="DOE" and active!=numeric(settings["Design points"],1,True):error("Design points must equal the number of active matrix rows.")
+            if active*numeric(settings.get("Replicates",1),1,True)>numeric(data["budget"],1,True):error("Active matrix evaluations exceed the budget.")
+        except (ValueError,TypeError):pass
+    if method=="Sobol sensitivity" and rows:
+        blocks={};expected={"A","B"}|{"A_B:"+v["field"] for v in variables}
+        for row in rows:
+            group=blocks.setdefault(str(row[0]),{})
+            if str(row[1]) in group:error("Sobol block row IDs must be unique.")
+            group[str(row[1])]=row[2:]
+        if set(blocks)!=expected:error("Include A, B and one A_B block per variable.")
+        a=blocks.get("A",{});b=blocks.get("B",{})
+        if set(a)!=set(b) or not a:error("Pair A and B using the same nonempty row IDs.")
+        try:
+            if len(a)!=numeric(settings["Base samples"],2,True):error("Base samples must equal paired A/B rows.")
+        except (ValueError,TypeError):pass
+        for j,var in enumerate(variables):
+            crossed=blocks.get("A_B:"+var["field"],{})
+            if set(crossed)!=set(a):error("Every crossed block needs the same A/B row IDs.")
+            for rid,values in crossed.items():
+                if rid not in a or rid not in b:continue
+                try:
+                    wanted=[float(b[rid][k] if k==j else a[rid][k]) for k in range(len(variables))]
+                    if [float(v) for v in values]!=wanted:error("A_B values must copy A except for the named variable from B.")
+                except (ValueError,TypeError,IndexError):error("Correct crossed-block numeric values.")
+        if settings.get("Input dependence")!="Independent":error("This Sobol design requires independent inputs; retain correlated studies under UQ.")
+    if method=="Inverse":
+        groups=observation_groups(data);seen=[]
+        for row in rows:
+            seen.append(row[0])
+            if row[0] not in groups:error("Bind the observation row to Tension A or the retained Tension B fixture.");continue
+            if row[1] not in ("Train","Holdout","Exclude"):error("Observation Use must be Train, Holdout or Exclude.")
+            try:
+                numeric(row[2],0,strict=row[1]=="Train");numeric(row[3],0,strict=True)
+                if numeric(row[4],0,True)!=len(groups[row[0]]):error("Included count must match this observation source and quality selection. Refresh observations.")
+            except (ValueError,TypeError):error("Use a positive training weight and residual scale; Holdout/Exclude may use zero weight.")
+            if row[5]!="MPa":error("This stress residual fixture uses MPa.")
+        if len(seen)!=len(set(seen)):error("Each observation group may appear only once.")
+        included,_,_=active_training(data)
+        if not included:error("Choose at least one observation with Train and a positive weight.")
+    if method=="UQ":
+        names=[v["owner"]+"."+v["field"] for v in variables]
+        if [row[0] for row in rows]!=names:error("Distribution rows must match the variable bindings.")
+        for row in rows:
+            if row[1] not in ("Uniform","Normal","Lognormal","Triangular"):error("Choose Uniform, Normal, Lognormal or Triangular.")
+            try:
+                location=numeric(row[2]);numeric(row[3],0,strict=True);lo=numeric(row[4]);hi=numeric(row[5])
+                if lo>=hi or (row[1]=="Triangular" and not lo<=location<=hi):raise ValueError()
+                if row[1]=="Lognormal" and lo<=0:raise ValueError()
+            except (ValueError,TypeError):error("Correct the distribution location, positive scale and ordered bounds.")
+        matrix=[[float(i==j) for j in range(len(variables))] for i in range(len(variables))]
+        try:
+            values=[numeric(row[1]) for row in secondary]
+            if len(values)!=len(variables)*(len(variables)-1)//2 or any(abs(v)>1 for v in values):raise ValueError()
+            index=0
+            for i in range(len(variables)):
+                for j in range(i+1,len(variables)):matrix[i][j]=matrix[j][i]=values[index];index+=1
+            # Small LDL check for a valid correlation matrix, not a UQ engine.
+            for k in range(len(matrix)):
+                pivot=matrix[k][k]
+                if pivot < -1e-12:raise ValueError()
+                if abs(pivot)<1e-12:
+                    if any(abs(matrix[i][k])>1e-12 for i in range(k+1,len(matrix))):raise ValueError()
+                    continue
+                for i in range(k+1,len(matrix)):
+                    for j in range(i,len(matrix)):matrix[i][j]-=matrix[i][k]*matrix[j][k]/pivot;matrix[j][i]=matrix[i][j]
+        except (ValueError,TypeError,IndexError):error("Correlations must form a symmetric positive-semidefinite matrix with values in [-1, 1].")
+        try:
+            quantiles=[numeric(v.strip()) for v in str(settings["Quantiles"]).split(",")]
+            if quantiles!=sorted(set(quantiles)) or any(not 0<v<1 for v in quantiles):raise ValueError()
+        except (ValueError,TypeError):error("Enter increasing, unique quantiles between 0 and 1.")
+    if method=="RBF surrogate":
+        if not rows:error("Add training and holdout cases before reviewing a surrogate fit.")
+        if rows and not ({row[-1] for row in rows}>={"Train","Holdout"}):error("Provide separate Train and Holdout cases.")
+        for row in rows:
+            if row[-1] not in ("Train","Holdout","Exclude"):error("Split must be Train, Holdout or Exclude.")
+            try:numeric(row[-2])
+            except (ValueError,TypeError):error("Each included surrogate case requires a finite measured or evaluated response.")
+        if secondary!=second_defaults:error("Only independent holdout and blocked extrapolation are connected in this review prototype.")
+    if method=="MDO":
+        if rows!=defaults:error("Bind Heat to V-02 and Expand to V-03 in the existing Evaluation definition.")
+        if secondary!=second_defaults:error("Review the temperature / POINTS / exact_same_mesh transfer in Evaluation; no new scheduler is created.")
+    return list(dict.fromkeys(errors))
 
 
 def make_document(key, name, owner, doc_id, revision, payload):
@@ -271,6 +491,7 @@ class ReviewSession:
                     "source": {"id": "CAD-01", "revision": 12}, "plan": clone(candidate["plan_ref"]),
                     "candidate": cid, "attempt": "fixture-attempt-"+cid, "time": .04,
                     "input_values": {"thickness": candidate["thickness"], "mu": candidate["mu"]},
+                    "geometry": {**clone(self.documents["cad"]["saved"]),"thickness":candidate["thickness"]},
                     "status": "RETAINED_FIXTURE",
                     "metrics": {k:candidate[k] for k in ("mass","displacement","clearance")},
                     "times": [0,.01,.02,.04],
@@ -297,17 +518,21 @@ class ReviewSession:
                 return doc["key"], clone(item["payload"])
         raise ReviewError("This exact saved revision is not retained. Current draft was not substituted.")
 
-    def change(self, key, payload, label):
+    def change(self, key, payload, label, buffers=None):
         doc = self.doc(key)
         if doc["owner"] == "native_pre" and any(payload.get(k) != doc["draft"].get(k) for k in ("thickness","width","height","geometry_type")):
             payload = clone(payload)
             payload["mesh"]["stale"] = True
-        if payload == doc["draft"]:
+        if doc["owner"] == "Numerical":
+            payload = remap_method_bindings(doc["draft"], payload)
+        next_buffers = clone(doc["buffers"] if buffers is None else buffers)
+        if payload == doc["draft"] and next_buffers == doc["buffers"]:
             doc["dirty"] = doc["draft"] != doc["saved"] or bool(doc["buffers"])
             return
-        doc["undo"].append({"payload": clone(doc["draft"]), "label": label})
+        doc["undo"].append({"payload": clone(doc["draft"]), "buffers": clone(doc["buffers"]), "label": label})
         doc["redo"].clear()
         doc["draft"] = clone(payload)
+        doc["buffers"] = next_buffers
         doc["generation"] += 1
         doc["dirty"] = doc["draft"] != doc["saved"] or bool(doc["buffers"])
         self.events.append({"action": label, "owner": doc["id"], "kind": "UI_EDIT"})
@@ -323,8 +548,9 @@ class ReviewSession:
         if not doc[src]:
             return False
         entry = doc[src].pop()
-        doc[dst].append({"payload": clone(doc["draft"]), "label": entry["label"]})
+        doc[dst].append({"payload": clone(doc["draft"]), "buffers": clone(doc["buffers"]), "label": entry["label"]})
         doc["draft"] = entry["payload"]
+        doc["buffers"] = clone(entry.get("buffers", {}))
         doc["generation"] += 1
         doc["dirty"] = doc["draft"] != doc["saved"] or bool(doc["buffers"])
         return True
@@ -383,8 +609,10 @@ class ReviewSession:
                 if dep["missing"] and dep["id"] not in self.relocations:
                     errors.append(("dependencies", "Locate the missing original: " + dep["name"]))
         elif doc["owner"] == "PDE":
-            for field in ("k", "mesh"):
+            for field in ("k", "mesh", "width", "height"):
                 positive(field)
+            if data.get("pending_boundaries"):errors.append(("boundary","Apply or reset the edited boundary condition."))
+            if not data.get("field", "").isidentifier():errors.append(("field","Use a valid unknown field name."))
             if not data["equation"].strip():
                 errors.append(("equation", "An equation is required."))
         elif doc["owner"] == "Simulation":
@@ -431,7 +659,8 @@ class ReviewSession:
                 "Iteration limit":(1,None,True),"Relative tolerance":(1e-15,None,False),"Coupling tolerance":(1e-15,None,False),
                 "Feasibility tolerance":(1e-15,None,False),"Residual scale":(1e-15,None,False),"Observation weight":(0,None,False),
                 "Smoothing":(0,None,False),"Holdout fraction":(1e-12,1-1e-12,False),"Failure threshold":(None,None,False)}
-            for name,value in data.get("method_settings",{}).get(data["method"],{}).items():
+            method_settings = dict(METHOD_INPUTS.get(data["method"], []));method_settings.update(data.get("method_settings",{}).get(data["method"],{}))
+            for name,value in method_settings.items():
                 if name in numeric_rules:
                     lo,hi,integer=numeric_rules[name]
                     try:
@@ -455,6 +684,7 @@ class ReviewSession:
                         if not math.isfinite(float(response["limit"])):raise ValueError()
                     except (ValueError,TypeError):
                         errors.append((response["name"],"A finite numeric response limit is required."))
+            errors.extend(method_diagnostics(data))
         elif doc["owner"] == "Evaluation":
             refs=[s["ref"]["id"] for s in data["stages"]]
             if refs != ["V-02","V-03"]:
@@ -462,6 +692,8 @@ class ReviewSession:
             if data.get("transfer_draft"):
                 errors.append(("transfer","Review and apply edited transfer fields."))
             positive("tolerance")
+            positive("limit")
+            if isinstance(data.get("limit"),(int,float)) and not float(data["limit"]).is_integer():errors.append(("limit","Use an integer iteration limit."))
         errors.extend((field, "Unfinished input: " + str(value)) for field, value in doc["buffers"].items())
         return errors
 
@@ -494,7 +726,7 @@ class ReviewSession:
         doc = self.doc(key)
         if fail:
             raise ReviewError("Simulated write failure. Saved revision and draft are retained.")
-        path = Path(path or doc["file"] or self.workspace / (doc["id"] + ".json"))
+        path = Path(path or doc["file"] or self.workspace / (doc["name"] + ".json"))
         if path.exists():
             try:
                 previous = json.loads(path.read_text(encoding="utf-8"))
@@ -513,8 +745,17 @@ class ReviewSession:
                                      "source": "EXPLICIT_REVIEW_SAVE"})
         saved["dirty"] = bool(saved["buffers"])
         saved["file"] = str(path)
+        attachments = {}
+        if doc["owner"] == "native_post":
+            result_id = saved["draft"].get("result")
+            if result_id in self.results:
+                attachments["result"] = clone(self.results[result_id])
+                job = next((j for j in self.jobs if j.get("result") == result_id), None)
+                if job:
+                    attachments["job"] = clone(job)
+                    attachments["input"] = clone(self.frozen.get(job["input"]))
         atomic_json(path, {"format": FORMAT, "kind": "document", "document": saved,
-                           "draft_valid": not self.diagnostics(key)})
+                           "attachments": attachments, "draft_valid": not self.diagnostics(key)})
         self.documents[doc["key"]] = saved
         self.paths[doc["id"]] = str(path)
         return {"id": saved["id"], "revision": saved["revision"],
@@ -528,6 +769,9 @@ class ReviewSession:
         plan["sources"]["data"] = {"id": data["id"], "revision": data["revision"]}
         plan["observation_snapshot"] = clone(data["saved"])
         plan["data_source_stale"] = False
+        groups=observation_groups(plan)
+        for row in plan.get("method_sheets",{}).get("Inverse",{}).get("primary",[]):
+            if row and row[0] in groups and len(row)==6:row[4]=len(groups[row[0]])
         self.change(key, plan, "Refresh saved observations")
 
     def freeze(self, key):
@@ -547,6 +791,8 @@ class ReviewSession:
             mask = set(obs["quality_excluded"])
             keep = set(payload["train_samples"])
             item["included_ids"] = [s["id"] for s in obs["samples"] if s["id"] not in mask and s["id"] in keep]
+            if payload["method"] == "Inverse":
+                item["included_ids"],item["observation_weights"],item["holdout_ids"] = active_training(payload)
             item["included_count"] = len(item["included_ids"])
             item["observation_ref"] = clone(payload["sources"]["data"])
         self.frozen[frozen_id] = item
@@ -590,7 +836,9 @@ class ReviewSession:
             family=input_payload.get("family","")
             if not (owner=="native_pre" or (owner=="Simulation" and family not in ("Thermal","Thermoelastic"))):
                 raise ReviewError("No retained result fixture is provided for this input type. The attempt remains unevaluated.")
+            geometry=clone(input_payload) if owner=="native_pre" else self.resolve(input_payload["model_ref"])[1]
             self.results[result_id] = {"id": result_id, "synthetic": True, "kind":"structural",
+                "geometry":geometry,
                 "source": clone(job["source"]), "input": job["input"],
                 "attempt": job["attempt"], "time": .04, "status": "RETAINED_FIXTURE",
                 "metrics": {"displacement": .31, "mass": .42, "clearance": .12},
@@ -779,5 +1027,17 @@ class ReviewSession:
         if key in self.documents and self.documents[key]["dirty"]:
             raise ReviewError("An unsaved document is open. Save or undo it before reopening.")
         doc["file"] = str(Path(path))
+        attachments = raw.get("attachments", {})
+        result = attachments.get("result")
+        if result:
+            if result["id"] != doc["draft"].get("result") or not result.get("synthetic"):
+                raise ReviewError("The attached result does not match this synthetic review document.")
+            if result["id"] in self.results and self.results[result["id"]] != result:
+                raise ReviewError("A different result has this identity. Open the document in a separate review session.")
+            self.results[result["id"]] = clone(result)
+            job = attachments.get("job")
+            if job and not any(j["id"] == job["id"] for j in self.jobs):self.jobs.append(clone(job))
+            frozen = attachments.get("input")
+            if frozen:self.frozen[frozen["id"]] = clone(frozen)
         self.documents[key] = doc
         return key

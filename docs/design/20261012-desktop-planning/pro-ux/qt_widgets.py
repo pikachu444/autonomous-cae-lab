@@ -249,6 +249,19 @@ class EngineeringView(QWidget):
         self.point_pick=False;self.plane_axis="X";self.plane_offset=0.0
         self.label = "Native host illustration" if mode in ("cad","post") else "Domain illustration"
 
+    def set_geometry(self, geometry):
+        for field,attr in (("width","model_width"),("height","model_height"),("thickness","thickness"),
+                           ("geometry_type","geometry_type"),("instances","instances"),("through_hole","through_hole")):
+            if field in geometry:setattr(self,attr,geometry[field])
+        self.conditions=geometry.get("conditions",[])
+        self.sketch_segments=geometry.get("sketch",{}).get("lines",[])
+        self.moving_part=geometry.get("selected_part","Clamp")
+        self.joint_type=geometry.get("joint",{}).get("type","Revolute")
+        self.joint_angle=geometry.get("joint",{}).get("angle",15)
+        self.mesh_size=geometry.get("mesh",{}).get("size",2)
+        self.mesh_type=geometry.get("mesh",{}).get("type","Tet4")
+        self.update()
+
     def set_selected(self, name):
         self.selected = name
         self.update()
@@ -257,12 +270,12 @@ class EngineeringView(QWidget):
         x,y,z=v
         xx=x*math.cos(self.yaw)-y*math.sin(self.yaw)
         yy=x*math.sin(self.yaw)+y*math.cos(self.yaw)
-        scale = min(self.width()/150, self.height()/115)*self.zoom
+        scale = min(self.width()/(150+max(0,self.instances-2)*30), self.height()/(115+max(0,self.instances-2)*20))*self.zoom
         return QPointF(self.width()/2+xx*scale,
                        self.height()*.58+(yy*math.sin(self.pitch)-z*math.cos(self.pitch))*scale)
 
     def _part_point(self,v,name):
-        if self.mode!="cad" or not name.startswith(self.moving_part+"/"):return v
+        if self.mode not in ("cad","post") or not name.startswith(self.moving_part+"/"):return v
         x,y,z=v;a=math.radians(self.joint_angle)
         if self.joint_type=="Slider":return (x+self.joint_angle/4,y,z)
         if self.joint_type=="Fixed":return v
@@ -281,8 +294,8 @@ class EngineeringView(QWidget):
                  ((20,-12,8),(35,12,34),"Clamp/Leg/Face2","#95a6b5"),
                  ((-38,-16,34),(38,16,34+self.thickness),"Clamp/Pad/Face6","#c3cdd5")]
         if self.mode in ("pde","thermal","thermoelastic"):
-            boxes = [((-50,-32,0),(50,32,3),"Left edge","#abc3d4")]
-        if self.mode=="cad":
+            boxes = [((-self.model_width/2,-self.model_height/2,0),(self.model_width/2,self.model_height/2,3),"Left edge","#abc3d4")]
+        if self.mode in ("cad","post"):
             w=max(.1,self.model_width);h=max(.1,self.model_height);t=max(.1,self.thickness)
             if self.geometry_type in ("Plate","Block"):
                 boxes=[((-w/2,-h/2,0),(w/2,h/2,t),"Plate/Pad/Face6","#b9c8d4")]
@@ -291,6 +304,14 @@ class EngineeringView(QWidget):
                        ((-w*.49,-h*.4,8),(-w*.28,h*.4,h+6),"Clamp/Leg/Face1","#95a6b5"),
                        ((w*.28,-h*.4,8),(w*.49,h*.4,h+6),"Clamp/Leg/Face2","#95a6b5"),
                        ((-w*.53,-h*.57,h+6),(w*.53,h*.57,h+6+t),"Clamp/Pad/Face6","#c3cdd5")]
+            if self.geometry_type=="Clamp":
+                if self.instances==1:boxes=boxes[:1]
+                elif self.instances>2:
+                    assembly=list(boxes[1:])
+                    for index in range(2,self.instances):
+                        offset=(index-1)*(h*1.3)
+                        for lo,hi,name,color in assembly:
+                            boxes.append(((lo[0],lo[1]+offset,lo[2]),(hi[0],hi[1]+offset,hi[2]),name.replace("Clamp/","Clamp "+str(index)+"/"),color))
             if self.sketch:
                 p.fillRect(self.rect(),QColor("#f4f6f8"));r=QRectF(self.width()*.2,self.height()*.25,min(self.width()*.7,w*self.width()/140),min(self.height()*.5,h*self.height()/100))
                 p.setPen(QPen(QColor(TEAL),2));p.setBrush(QColor("#dcebe7"));p.drawRect(r)
@@ -345,13 +366,18 @@ class EngineeringView(QWidget):
             p.setPen(QPen(QColor(ORANGE),2));p.setBrush(QColor("white"))
             for name,x in (("Gauge left",-25),("Gauge right",25),("Clamp centre",0)):
                 point=self._project((x,0,50));p.drawEllipse(point,5,5);p.drawText(point+QPointF(8,-8),name)
-        if self.through_hole and self.mode=="cad":
-            centre=self._project((0,0,self.model_height+6+self.thickness))
+        if self.through_hole and self.mode in ("cad","post"):
+            centre=self._project(self._part_point((0,0,self.model_height+6+self.thickness),"Clamp/Pad/Face6"))
             p.setBrush(QColor("#637986"));p.setPen(QPen(QColor("#34556b"),2));p.drawEllipse(centre,22*self.zoom,11*self.zoom)
         if self.conditions and self.mode=="cad":
             point=self._project((0,0,self.model_height+6+self.thickness))
             p.setPen(QPen(QColor(ORANGE),3));p.drawLine(point+QPointF(0,-65),point+QPointF(0,-10))
             p.drawLine(point+QPointF(0,-10),point+QPointF(-6,-20));p.drawLine(point+QPointF(0,-10),point+QPointF(6,-20))
+        if self.mode in ("pde","thermal","thermoelastic"):
+            x=self.model_width/2;y=self.model_height/2
+            edges={"Left edge":((-x,-y,3),(-x,y,3)),"Right edge":((x,-y,3),(x,y,3)),"Top edge":((-x,y,3),(x,y,3)),"Bottom edge":((-x,-y,3),(x,-y,3))}
+            if self.selected in edges:
+                p.setPen(QPen(QColor(ORANGE),4));a,b=edges[self.selected];p.drawLine(self._project(a),self._project(b))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QColor(INK))
         p.setFont(QFont("Segoe UI",10))
@@ -359,7 +385,9 @@ class EngineeringView(QWidget):
         p.setPen(QColor("#74818c"))
         p.drawText(QRectF(12,self.height()-28,self.width()-24,20),Qt.AlignmentFlag.AlignLeft,self.label+" · synthetic")
         if self.annotation:p.drawText(18,52,self.annotation)
-        if self.mode=="post" and self.field_available:
+        if self.mode=="post" and self.field_available and self.field_max==0:
+            p.fillRect(self.width()-68,65,15,35,QColor("#91b9ce"));p.drawText(self.width()-48,85,"0")
+        if self.mode=="post" and self.field_available and self.field_max!=0:
             for i in range(7):
                 p.fillRect(self.width()-68,65+i*25,15,25,QColor.fromHsv(170-i*24,145,205))
                 p.drawText(self.width()-48,78+i*25,f"{self.field_max*(6-i)/6:.3g}")
@@ -374,6 +402,15 @@ class EngineeringView(QWidget):
         self.drag=event.position()
         if event.button()==Qt.MouseButton.LeftButton and self.sketch and self.draw_line:
             self.sketch_line_start=event.position();return
+        if event.button()==Qt.MouseButton.LeftButton and self.mode in ("pde","thermal","thermoelastic"):
+            x=self.model_width/2;y=self.model_height/2
+            edges={"Left edge":((-x,-y,3),(-x,y,3)),"Right edge":((x,-y,3),(x,y,3)),
+                   "Top edge":((-x,y,3),(x,y,3)),"Bottom edge":((-x,-y,3),(x,-y,3))}
+            def distance(pair):
+                a,b=[self._project(v) for v in pair];v=b-a;p=event.position()-a
+                length=v.x()*v.x()+v.y()*v.y();t=max(0,min(1,(p.x()*v.x()+p.y()*v.y())/length)) if length else 0
+                return (event.position()-(a+v*t)).manhattanLength()
+            self.selected=min(edges,key=lambda key:distance(edges[key]));self.faceSelected.emit(self.selected);self.update();return
         if event.button()==Qt.MouseButton.LeftButton and self.point_pick:
             choices=[(name,self._project((x,0,50))) for name,x in (("Gauge left",-25),("Gauge right",25),("Clamp centre",0))]
             chosen=min(choices,key=lambda pair:(pair[1]-event.position()).manhattanLength())[0]
