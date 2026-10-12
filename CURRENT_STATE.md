@@ -44,22 +44,35 @@ Penpot은 로그인 화면까지 확인했으나 **계정이 없으니 탭을 �
 현재 브라우저 연결은 복구됐으며 그 실패를 전체 작업 금지로 확대하지 않는다.
 
 별도 [Qt 시제품](docs/design/20261012-desktop-planning/qt_prototype/README.md)의 Material
-import/단위/구간/DEMO 비교/채택/save/cold-reopen offscreen 확인을 수행했다. Astra가 Shift
-선택·시험별 설정/invalid 계수 보존과 추가 복구 결함을 재현했고 bounded Sol/high가 교정 중이다.
-actual desktop 조작/DPI/제품서비스/physics는 이 offscreen 검사로 완료 처리하지 않는다.
+import/단위/구간/DEMO 비교/채택/save/cold-reopen에서 Astra가 재현한 P1/P2 8개를
+bounded Sol/high가 교정했고 Astra가 관련 QTest·코드·캡처를 독립 재검토했다.
+최종 표시 gate 교정도 읽기 전용으로 확인했다. Codex는 actual Windows CSV/저장 chooser,
+표 선택/Shift 방향키·채택/Undo/Redo·dock Float/기본 배치 복구·종료 뒤 새 프로세스 재열기를
+확인했다. [검토/실제 조작 기록](docs/design/20261012-desktop-planning/QT_REVIEW.md)에
+최종 소스 해시와 최초 표시 불일치·교정 범위를 보존한다. native drag/Shift-click·여러 DPI·
+접근성·제품서비스/physics·새 전체 Pro 설계 수용은 아직 미확인이다.
 검토 자료 입구는 [새 설계 자료](docs/design/20261012-desktop-planning/README.md)다.
 
-추가 환경 확인: Qt Designer의 `material.ui` 로드는 native accessibility tree로 확인했으나
-실제 screenshot은 Windows PIN 잠금 화면이었다. native 입력은 중단했고 사용자에게 잠금
-해제를 요청했다. 보호된 인증 화면을 조작하지 않는다. draw.io Desktop32.4.1은 공식 portable
+추가 환경 확인: 처음 Qt Designer 캡처는 Windows PIN 잠금 화면이라 입력을 중단했다.
+사용자가 직접 잠금을 해제한 뒤 새 창 상태에서 Designer 원본·Qt 실제 조작을 확인했다.
+보호된 인증 화면은 조작하지 않았다. draw.io Desktop32.4.1은 공식 portable
 ZIP을 ignored `runs/tools`에 내려받아 path containment 확인 후 추출했다(추가 비용0).
 실제 `.drawio` 열기/export는 Pro 원본 회수 뒤 확인한다.
 
 모델 실행 기록: Astra `gpt-6-astra/xhigh`, 조사 `gpt-6-luna/high`, Qt spike `gpt-6.1-sol/high`를
-확인했다. 주 Codex는 project/global 설정 Sol/xhigh와 달리 현재 턴 기록이 **Sol/high**다.
-활성 추론 수준 확인/변경을 사용자에게 요청했으며 xhigh 실행으로 표시하지 않는다.
+확인했다. 주 Codex의 앞선 실행 기록은 project/global Sol/xhigh 설정과 달리 **Sol/high**였다.
+사용자가 활성 추론 수준을 바꿨다고 답했다. 변경 전 기록을 xhigh로 소급 표시하지 않는다.
 init/merge 단계에서 global 보호 해시는 유지됐고 이후 외부 변경으로 global hash가 달라졌다.
 사용자/host 변경을 되돌리지 않는다.
+
+관련 Space의 [제품 입구](https://chatgpt.com/space/page_6ac6e5e8d7688191a58c5760fda2d2d9)에
+최신 기획 우선·개발 시작 지시 관문·Penpot 제외와 Git/Pro 링크를 반영했고 본문 재조회에서
+나머지 블록/첨부 보존을 확인했다. Git–Space 자동 동기화가 아니다.
+기존 PRODUCT_PLAN의 없는 owner/창 분류와 상세 v2의 작성 당시 T표를 현재 소스 재사용
+기준에 맞춰 정리했다. Pro UI는 연결 해제/답변 대기지만 동일 요청의 실제 cloud 작업은
+inProgress이며 문서·화면·도면의 연결 검사를 진행하고 있다. 아직 ZIP을 회수하지 않았고
+새 전체 명세·상호작용 시안의 완료를 선언하지 않는다. 다음은 실제 Pro 산출물 회수→
+최신 Penpot 제외 반영→전체 Astra 독립 검토→도면/Qt 실제 열람·교정→사용자 검토 제출이다.
 
 ### 앞선 통합 기록
 

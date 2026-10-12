@@ -1,0 +1,49 @@
+{
+  "artifact_status": "provisional planning technical check; existing Pro v2 basis",
+  "mode": "QT_QPA_PLATFORM=offscreen; QWidget.grab; no desktop input or OS screenshots",
+  "python": "3.13.5",
+  "pyside6": "6.9.1",
+  "matplotlib": "3.10.1",
+  "source_sha256": {
+    "main.py": "bc5e52bf7440c46ed8e55bfcad41dd2d6441472b04848f474ed5d631ea03f653",
+    "material.ui": "9bd83a4b72b7019050d6a72023d710ccbad43897a9df474f8b651099a0852228",
+    "selfcheck.py": "48e6b22826ef40b6de129cf2128a7b8b96373296e006f9abb8873208ad144849"
+  },
+  "checked": [
+    "empty state",
+    "unsupported unit and mapping block/correction",
+    "table/plot linked selection",
+    "real offscreen QTest row2 click / Shift-row5 click / Shift-arrow selection preserves current index",
+    "source A-B-A retains each mapping/units/selection through undo/redo and save/reopen",
+    "native coefficient editor preserves negative/non-numeric drafts, blocks run, corrects, undo/redo and saves/reopens",
+    "empty/negative/text/NaN/Infinity coefficient drafts cold subprocess reopen, zero fits; invalid with complete result cannot adopt",
+    "edited input coefficients block stale adoption and preserve original result input",
+    "forged source hash/context/range/input coefficients/x/observed reject before replacing live or running document; no fit rerun",
+    "1000x650 fixed selected candidate/status; input readiness separate from terminal completion/failure progress",
+    "QTest adopt-button/Yes dialog then immediate/event-processed fixed target and button agree; Undo/Redo/coefficient edit keep gate display consistent",
+    "saved running close/replace QMessageBox warns local DEMO stops; offscreen QTest keep/stop actions preserve or stop timer",
+    "new Undo branch edit versions remain unique after save/reopen",
+    "timer start/cancel",
+    "injected failure/new-run recovery",
+    "fixed simulated comparison",
+    "stale-result adoption block",
+    "adoption undo/redo",
+    "raw bytes and old result preservation",
+    "atomic save error preserves previous file",
+    "malformed reopen preserves current document",
+    "cold subprocess reopen without computation",
+    "interrupted save reopens as interrupted",
+    "dirty state after edit and undo",
+    "missing original source works from retained bytes",
+    "unsupported unit draft saves and reopens without fit",
+    "floating/redocking Qt API",
+    "1440x900 and 1000x650 widget captures"
+  ],
+  "unverified": [
+    "actual desktop dragging/floating/keyboard/file dialogs/DPI/accessibility",
+    "physical/numerical validity",
+    "product services, common owner/revisions/GUI-CLI-Python-MCP",
+    "large data responsiveness",
+    "new actual Pro design acceptance and Astra final review"
+  ]
+}

@@ -311,13 +311,13 @@ CAD/FE의 native 수명 연결과 사례 B의 측정·지그 강성 기초를 �
 
 | 사용자 동작 | 재사용하는 현재 코드 | 새 연결과 남은 한계 |
 |---|---|---|
-| 파일 열기·열/단위 지정·원 자료 확인 | `caelab/workbench.py`의 `upload/register_local_input/input_preview`, `adapters/file_table.py`의 `preview_table/read_table` | Data 문서의 원 행 ID·변환 recipe·품질 사유·Undo·저장. reader는 현재 비유한 값과 비단조 축을 거절하며 일반 표 편집기나 품질 mask 관리기가 아님 |
+| 파일 열기·열/단위 지정·원 자료 확인 | 기존 `caelab/data_document.py`, `apps/research/data_window.py`와 `workbench.py`의 import/preview, `adapters/file_table.py` | 기존 매핑·문서 저장/Undo를 재사용하고 표–곡선 연동 선택·수치 단위 변환·mask/recipe를 보완한다. reader의 지원 범위를 일반 표 편집·품질 관리 전체로 확대하지 않음 |
 | 법칙·계수·이력 편집 후 직접 평가 | `caelab/evaluation.py`의 `prepare/evaluate`, `adapters/felupe_material.py` | 정확한 입력을 기존 평가기에 전달하고 곡선·진단을 선택에 연결. FELUPE의 현재 지원은 `linear_elastic`와 `neo_hooke`; DP/J2 지원으로 확대하지 않음 |
 | 시험·변수·응답·예산을 수정해 동정/DOE | `caelab/numerical.py`의 `fit_model/run_doe/optimize/load_observations/compare_curves` | Material 옆과 독립 Numerical이 같은 Plan 편집기 사용. protocol revision·관측·변수 binding을 고정하고 기존 잔차·보간·실패 정책을 유지 |
 | 후보·관측/예측·실패를 함께 비교하고 계수 채택 | fit의 후보 원장·최종 fit/holdout 곡선, `analyze_candidates`, `evaluation.read_result` | 모든 후보 곡선은 현재 보존되지 않음. 보존된 결과를 열거나 추가 평가임을 명시하고 실제 기록평가. 숨은 재실행이나 만들어 낸 후보 곡선 금지. 채택은 원 Material owner의 새 revision |
 | 작업 검사·제출·취소·결과 열기 | `caelab/jobs.py`의 `JobManager`, `Workbench.submit/resource_request` | 고정 입력→제출 receipt→job→결과를 같은 선택으로 연결. 재시작 미종료 job은 현재 `INTERRUPTED`이며 자동 프로세스 재접속·재개 완료가 아님 |
-| 근거를 열고 계획을 제안받아 결과로 후속 질문 | `assist/experts.py`의 `ExpertRuntime.plan/ask`, `assist/knowledge.py`와 Workbench callbacks | 반환된 계획을 편집 가능한 Plan 초안으로 연결하고 명시 제출. Co-STORM의 논점·reply·사용자 개입·pause/resume 화면은 새 구현. 기존 제한 자문을 전체 다자 협업으로 표시하지 않음 |
-| 닫았다 다시 열어 편집을 계속하고 MCP로 같은 명령 실행 | 기존 evaluation/job/Expert session 저장, HTTP Workbench 및 `openscience/workbench_mcp.py` | Data/Material/Plan 문서 owner·working generation·semantic Undo·invalid draft 저장·충돌 관문은 아직 없음. 기존 input/job/result 저장을 편집 문서의 복원이라고 세지 않음 |
+| 근거를 열고 계획을 제안받아 결과로 후속 질문 | 기존 `apps/research/expert_window.py`, `caelab/discussion_document.py`, `assist/experts.py`와 Workbench callbacks | 기존 reply·사용자 개입·pause/resume·저장을 재사용해 자료→토론→편집 가능한 Plan→명시 제출→결과 후속 논의를 완성한다. 기존 제한 자문/화면을 전체 다자 협업의 수용으로 표시하지 않음 |
+| 닫았다 다시 열어 편집을 계속하고 MCP로 같은 명령 실행 | 기존 `material_document.py`, `data_document.py`, `numerical_document.py`의 owner·generation·Undo/Redo·draft/revision, HTTP Workbench 및 `openscience/workbench_mcp.py` | 같은 owner를 재사용해 셀 편집·저장/부분 실패·외부 변경·cold reopen을 실제 화면에서 완성한다. 현재 owner/명령의 존재와 전체 사용자 작업의 수용을 구별한다 |
 
 Windows에서 검증된 FELUPE 경로를 첫 Material 실행에 쓴다. 준비형 MFront는 현재
 Elasticity E/ν·영 초기상태·Linux `.so`/Singularity 경로이므로 Windows 기본 기능으로
@@ -354,15 +354,15 @@ Research 묶음의 통과 장면은 다음과 같다. 이는 **다음 구현의 
 ### Material 담당의 첫 작업 단위와 구현 인계
 
 Material 담당의 첫 단위는 **계수·이력 편집→직접 평가→이전 결과 비교→저장·재열기**다.
-아래 세 작업은 이 담당 범위의 인계로 유지한다. CAD/FE·Post·Data·Runner는 필요한
+아래 세 작업은 기존 구현을 재사용·확장하는 인계다. CAD/FE·Post·Data·Runner는 필요한
 공통 계약이 준비되는 대로 병행한다. 같은 P1에서 자료·동정·실패·채택·실행·자문을
 연결하며, 이 작은 Material 단위를 전체 제품의 첫 인도물이나 착수 관문으로 쓰지 않는다.
 
 | 순서 | 구현 책임과 코드 대상 | 종료 장면과 판정 |
 |---|---|---|
-| 1 문서와 공통 명령 | 신규 제안 `caelab/material_document.py`에 Material owner와 draft/revision 저장, `caelab/document_commands.py`에 대상·generation·중복 명령/충돌 관문. 기존 `storage.py`의 atomic JSON 쓰기를 재사용하되 여러 산출물의 일괄 게시를 이미 지원한다고 가정하지 않음. HTTP·MCP는 기존 `workbench_routes.py`/`workbench_client.py`/`workbench_mcp.py`를 같은 owner로 연결 | GUI와 MCP가 같은 계수·이력 변경을 읽음. stale 명령은 거절. invalid 원문과 진단을 저장·재열기하고 수정/Undo 가능. 잘못된 필수 입력의 실행은 차단 |
+| 1 문서와 공통 명령 | 기존 `caelab/material_document.py`의 owner·draft/revision·generation 검사·중복 명령/충돌·Undo/Redo·채택 관문을 재사용한다. `document_commands.py`는 현재 없는 옛 제안이므로 새 공통 소유자를 전제하지 않는다. 기존 `storage.py`·HTTP/Client/MCP 경로를 유지하고 여러 문서의 부분 저장과 복구를 필요한 곳에 보완한다 | GUI와 MCP가 같은 계수·이력 변경을 읽음. stale 명령은 거절. invalid 원문과 진단을 저장·재열기하고 수정/Undo 가능. 잘못된 필수 입력의 실행은 차단 |
 | 2 평가와 결과 보존 | 기존 `evaluation.prepare/evaluate/save_evaluation/read_result`와 `material.felupe` 호출. 평가 시작의 정확한 law/settings/values·입력 revision과 producer를 고정. 기존 `JobManager`/Workbench 제출·조회와 연결하고 새 scheduler를 만들지 않음 | E를 바꾼 실제 두 응답과 이전 입력을 함께 확인. 편집 도중 도착한 결과는 자기 입력에 연결되고 현재 결과로 자동 채택하지 않음. 비교/채택/holdout에 쓴 입력·곡선·진단은 다시 열 수 있음 |
-| 3 참조 화면에 연결 | 신규 후보 `apps/research/material_window.py`: MCalibration의 시험 목록·계수표·큰 관측/예측 곡선·실행 출력을 유지하고 위 공통 명령만 호출. 기존 Windows 설치/시작·수치 패키지를 재사용하고 Research UI 의존성과 직접 진입은 추가 검증 | 실제 계수/이력 입력·선택·오류 위치·Undo·Run Once·결과 비교·File Save/Close/Open을 이어 수행. 같은 문서를 MCP로 수정했을 때 같은 화면 값. 캡처만 비슷한 mockup은 통과하지 않음 |
+| 3 참조 화면에 연결 | 기존 `apps/research/material_window.py`의 계수/이력 표·곡선·진단·결과와 공통 명령 연결을 확장한다. 시험 목록·자료 매핑·구간/mask·Plan/후보 선택을 작업 맥락에 배치한다. 기존 Windows 설치/시작·수치 패키지를 재사용하고 직접 진입과 실제 사용성은 추가 검증 | 실제 계수/이력 입력·선택·오류 위치·Undo·Run Once·결과 비교·File Save/Close/Open을 이어 수행. 같은 문서를 MCP로 수정했을 때 같은 화면 값. 캡처만 비슷한 mockup은 통과하지 않음 |
 
 **첫 단위의 접속과 저장 계약:** 기존 로컬 서비스가 문서마다 활성 Material owner 하나를
 보유한다. Research 시작기는 같은 store·source·설정의 서비스를 시작하거나 재사용하고,
@@ -371,7 +371,8 @@ GUI와 HTTP/MCP는 그 서비스의 동일 문서/session에 연결한다. GUI/M
 직렬 처리하며 서비스 재시작 후 이전 session의 명령은 거절한다. 이 서비스 사용은
 Workbench 화면이나 AI 계정의 사용을 요구하지 않는다. 기존 `apps/lab/server.py`,
 `caelab/workbench_client.py`, `openscience/workbench_mcp.py`를 확장하는 계획이며
-새 통신 framework나 현재 구현된 문서 명령을 뜻하지 않는다.
+새 통신 framework를 만들지 않는다. 기존 문서 명령의 지원 범위와 이번 화면 개발의 차이는
+[현재 소스 재사용표](design/20261012-desktop-planning/SOURCE_REUSE.md)를 따른다.
 
 저장에는 보존 대상으로 고정한 입력·곡선·진단과 그 참조가 함께 포함된다. 필요한
 파일을 완성·검증한 뒤 committed 문서 manifest를 마지막에 게시한다. 중간 실패는
@@ -379,8 +380,9 @@ Workbench 화면이나 AI 계정의 사용을 요구하지 않는다. 기존 `ap
 **owner 프로세스 종료→새 프로세스에서 저장본 열기**까지 포함한다. 같은 메모리 owner에
 창만 다시 연결하는 시험으로 대신하지 않는다. invalid draft·이전 결과·정확한 참조가
 복원되고, 열기 자체로 재계산하지 않아야 한다. 두 계약까지 반영한 첫 단위는
-**Material 담당의 제한된 구현안·구현 미착수**이며, 실제 GUI/MCP 교차 편집·Undo와 저장 중 실패·재시작
-검증이 다음 구현의 수용 조건이다.
+**Material 담당의 기존 구현을 확장할 수용안**이다. 기존 부분 구현·검증 이력을 재사용하며,
+전체 GUI/MCP 교차 작업·부분 저장 실패·재시작의 사용자 수용은 별도로 확인한다.
+이번 상세 기획의 제품 본구현은 사용자 개발 시작 지시 이후다.
 
 첫 입력은 기존 탄성 기준을 사용한다. `material.felupe/linear_elastic`, E=1000MPa,
 ν=0.25, 시간 [0,1,2]s, F=diag(1+ε,1,1), ε=[0,0.001,0.002]에서 σxx는
@@ -388,9 +390,10 @@ Workbench 화면이나 AI 계정의 사용을 요구하지 않는다. 기존 `ap
 유지한다. **횡변형이 구속된 규정 변형 이력**이며 측면 자유 인장이나 항복 검증으로
 표시하지 않는다. 다른 열 배치·시간/이력의 두 번째 자료는 P1 전체 통과에 필수다.
 
-Material owner가 `set_parameters`, `set_history`, `undo/redo`, `evaluate`,
-`retain_result`, `save/open`의 의미를 소유한다. 이름은 구현할 공통 명령의 제안이며
-현재 노출된 MCP 도구가 아니다. 계수/이력 변경과 후보 채택을 Undo할 수 있지만
+Material owner가 계수·이력 편집, Undo/Redo, 평가, 결과 보존, 저장·열기의 의미를 소유한다.
+기존 `material.update`, `document.undo/redo/save`, 평가·채택 명령을 재사용한다. 옛
+`set_parameters`/`set_history` 등의 개념 이름을 새 MCP 도구 이름으로 전제하지 않는다.
+계수/이력 변경과 후보 채택을 Undo할 수 있지만
 계산 결과·job을 삭제하거나 재실행하지 않는다. invalid draft는 원 편집값과 진단을
 보존하고 실행 입력은 유효한 snapshot만 사용한다. 저장 후 열기 자체로 계산하지 않는다.
 결과 비교는 단위·성분·위치·frame·응력 measure와 축 의미를 확인한다. 현재 linear

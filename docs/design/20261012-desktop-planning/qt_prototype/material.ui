@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MaterialPrototype</class>
+ <widget class="QMainWindow" name="MaterialPrototype">
+  <property name="geometry"><rect><x>0</x><y>0</y><width>1440</width><height>900</height></rect></property>
+  <property name="windowTitle"><string>Material — DEMO 기술 시제품</string></property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="centralLayout">
+    <item><widget class="QLabel" name="banner"><property name="text"><string>DEMO · SIMULATED UI · 물리 타당성 미검증 / 제품 구현 아님</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+    <item><widget class="QLabel" name="stateLabel"><property name="wordWrap"><bool>true</bool></property></widget></item>
+    <item><widget class="QSplitter" name="workSplitter"><property name="orientation"><enum>Qt::Vertical</enum></property>
+     <widget class="QWidget" name="plotHost"><layout class="QVBoxLayout" name="plotLayout"/></widget>
+     <widget class="QTableWidget" name="dataTable"><property name="selectionBehavior"><enum>QAbstractItemView::SelectRows</enum></property><property name="selectionMode"><enum>QAbstractItemView::ContiguousSelection</enum></property><property name="editTriggers"><set>QAbstractItemView::NoEditTriggers</set></property></widget>
+    </widget></item>
+    <item><widget class="QLabel" name="diagnostic"><property name="text"><string>CSV를 열거나 파일 메뉴의 데모 시험을 선택하세요.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar"/>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="testDock"><property name="windowTitle"><string>시험 · 매핑 · 계수</string></property><attribute name="dockWidgetArea"><number>1</number></attribute>
+   <widget class="QWidget" name="dockContents"><layout class="QVBoxLayout" name="dockLayout">
+    <item><widget class="QScrollArea" name="dockScroll"><property name="widgetResizable"><bool>true</bool></property>
+     <widget class="QWidget" name="scrollContents"><layout class="QVBoxLayout" name="controlsLayout">
+      <item><widget class="QLabel" name="sourceLabel"><property name="text"><string>원자료 보존 · 시험을 선택해 다시 보기</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QListWidget" name="testList"><property name="maximumHeight"><number>72</number></property></widget></item>
+      <item><widget class="QGroupBox" name="mappingGroup"><property name="title"><string>열 역할과 단위</string></property><layout class="QFormLayout" name="mappingLayout">
+       <item row="0" column="0"><widget class="QLabel" name="xLabel"><property name="text"><string>변형률 열</string></property><property name="buddy"><cstring>xColumn</cstring></property></widget></item>
+       <item row="0" column="1"><widget class="QComboBox" name="xColumn"/></item>
+       <item row="1" column="0"><widget class="QLabel" name="xuLabel"><property name="text"><string>변형률 단위</string></property><property name="buddy"><cstring>xUnit</cstring></property></widget></item>
+       <item row="1" column="1"><widget class="QComboBox" name="xUnit"><property name="editable"><bool>true</bool></property><item><property name="text"><string>1</string></property></item><item><property name="text"><string>%</string></property></item></widget></item>
+       <item row="2" column="0"><widget class="QLabel" name="yLabel"><property name="text"><string>응력 열</string></property><property name="buddy"><cstring>yColumn</cstring></property></widget></item>
+       <item row="2" column="1"><widget class="QComboBox" name="yColumn"/></item>
+       <item row="3" column="0"><widget class="QLabel" name="yuLabel"><property name="text"><string>응력 단위</string></property><property name="buddy"><cstring>yUnit</cstring></property></widget></item>
+       <item row="3" column="1"><widget class="QComboBox" name="yUnit"><property name="editable"><bool>true</bool></property><item><property name="text"><string>MPa</string></property></item><item><property name="text"><string>kPa</string></property></item><item><property name="text"><string>Pa</string></property></item></widget></item>
+      </layout></widget></item>
+      <item><widget class="QGroupBox" name="rangeGroup"><property name="title"><string>동정 구간 · 원 행 기준</string></property><layout class="QHBoxLayout" name="rangeLayout">
+       <item><widget class="QSpinBox" name="firstRow"><property name="prefix"><string>시작 </string></property><property name="minimum"><number>1</number></property></widget></item>
+       <item><widget class="QSpinBox" name="lastRow"><property name="prefix"><string>끝 </string></property><property name="minimum"><number>1</number></property></widget></item>
+      </layout></widget></item>
+      <item><widget class="QLabel" name="rangeHelp"><property name="text"><string>표에서 Shift 선택 / 관측 그래프를 좌우 드래그</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QLabel" name="modelLabel"><property name="text"><string>데모 선형 응답: σ = E·ε + b</string></property></widget></item>
+      <item><widget class="QTableWidget" name="coefficientTable"><property name="maximumHeight"><number>116</number></property></widget></item>
+      <item><widget class="QLabel" name="resultsLabel"><property name="text"><string>보존 후보 · DEMO / SIMULATED UI</string></property></widget></item>
+      <item><widget class="QListWidget" name="resultsList"><property name="minimumHeight"><number>84</number></property><property name="maximumHeight"><number>120</number></property></widget></item>
+     </layout></widget>
+    </widget></item>
+    <item><widget class="QPushButton" name="fitButton"><property name="text"><string>모델 동정 시뮬레이션 시작</string></property></widget></item>
+    <item><widget class="QPushButton" name="cancelButton"><property name="text"><string>이번 실행 취소</string></property></widget></item>
+    <item><widget class="QProgressBar" name="progress"><property name="value"><number>0</number></property></widget></item>
+    <item><widget class="QLabel" name="targetLabel"><property name="text"><string>선택 후보 없음 · 채택 차단</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+    <item><widget class="QPushButton" name="adoptButton"><property name="text"><string>선택 후보 계수 채택…</string></property></widget></item>
+   </layout></widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
