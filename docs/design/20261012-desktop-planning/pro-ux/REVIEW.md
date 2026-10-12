@@ -1,8 +1,38 @@
+## UX-FINAL-01/02/03 — Windows 검토와 최종 동결
+
+**Qt core 세 파일·fixture·exporter·상태 recipe는 `dd43015961e38db2f2e18274ea930aaf313a1bd0`에서 동결한다.** 9e 복원 커밋은 게시하지 않았다. 마지막 변경은 `qt_complete_acceptance.py`의 focus helper 두 줄과 문서/개발 연결 기록이다. `Workflows.drawio`와 `screens/`는 이제 Codex root의 생성·배치 통합 대상으로 두며 이 작성 작업에서 수정·복원하지 않는다.
+
+### 실제 Windows 확인 — 사용자 전달 결과
+
+UX-FINAL-01/02/03에서 전달된 **Codex Windows Python3.13.5/PySide6 6.9.1 실행**이다. 본 원격 Linux 실행 기록과 구별한다.
+
+| 주체 / 검토본 | 확인된 범위와 결과 |
+|---|---|
+| 독립 Sol/high — 9e313e5 Report | Gauge 0/0.02/0.04 s = 0/0.2294/0.31 mm와 같은 Post frame, Contact pressure 0.02 s = 1.5 MPa, 없는 0.03 s/Unknown field 차단 및 placeholder, PDF/MD exact refs, Use Study Cancel/Replace/Undo, fresh Python cold reopen PASS |
+| 독립 Astra/xhigh — 9e313e5 | page/left selection/source 동기화, 출력 refs, F05 explicit history only, Acquisition 6행/physical terminal UNKNOWN 가시성 CLOSED |
+| 독립 Sol/high — Acquisition focus 진단 | modal 후 activeWindow/focusWidget=None이지만 settings의 QLineEdit는 이미 존재. delegate 결함이 아닌 harness focus 문제로 확인 |
+| 독립 Sol/high — helper 보정 | window raise/activate/pump/scroll 후 기존 F2로 1e 유지/Check False → 5e2 및 -1.2e-5 수정/Check True PASS, callback 0 |
+| Codex root — dd43015 + ignored-copy의 동일 activation/scroll 보정 | Report 절·출력·cold reopen, exact 0/0.02/0.04·gauge·absent 0.03·Cancel·F05·overflow, Acquisition numeric/channel/selection/unavailable/cold의 **3그룹 모두 PASS, callback 0** |
+| 독립 Sol/high — dd43015 source delta | 추가된 세 경로의 소스 검토에서 새 finding 없음 |
+| Codex root — dd43015 Windows export | **56상태 SVG/PNG 생성 완료** 보고. Report 0.02초 선택과 실제 Qt font 확인. 새 네 번째 drawio page도 Desktop에서 export |
+
+마지막 test patch는 `edit_cell`의 기존 F2 앞에 `window.raise_(); window.activateWindow(); pump()`와 `scrollToItem()`만 더한다. 다른 검사를 추가하거나 editor를 직접 만들어 우회하지 않는다. 위 3그룹 PASS는 Codex root가 같은 보정을 적용한 ignored copy를 실행한 사용자 전달 결과다. 게시된 최종 파일 회수와 저장소 통합은 Codex root가 맡는다.
+
+### 남은 전달 경계
+
+56 SVG/PNG의 **생성 완료**와 이 source 작성자의 Git 게시 범위를 구별한다. 실제 생성·시각 확인·통합 주체는 Codex Windows다. 본 작업은 기존 52 SVG나 manifest를 새 결과로 덮어쓰거나 원격 렌더 PASS로 바꾸지 않는다. `Workflows.drawio`의 겹친 화살표 label과 Reopen/Edit plan 연결선 배치는 Codex root가 geometry만 조정한다고 명시했으며 이후 그 파일은 root 소유다.
+
+Luna/high가 dd43015의 공개 CSV/JSON과 원 D1 backlog를 독립 대조했다. 원 74행·18열·순서와 모든 원값은 차이 0이며, 각 수치 방법과 FN-32/FN-35의 전용 상태/원 계약 연결이 정확했다. 이 읽기 검사는 Qt/렌더 수용을 대신하지 않는다.
+
+실제 FreeCAD/ParaView host, solver/optimizer/PDE/constitutive 계산, provider/OAuth model 권한·호출, remote scheduler, 실제 acquisition/control/physical stop ACK는 실행하지 않았다. 문서·곡선·장면은 작성된 합성 시안이다. 제품 실행·공학 판정은 UNKNOWN / NOT_RELEASED이며 F05 원 값 3.32295e-6, 허용치 1e-6, FAIL을 그대로 둔다. **제품 개발은 사용자 산출물 검토 후 명시적 시작 지시를 기다린다.**
+
+---
+
 ## UX-REPORT-FIX-01/02 — 정확한 선택 근거와 출력
 
-`9e313e5`에 원 근거/프레임·preview paging·출처 footnote·편집 절 교체 확인·historical F05·connection 행 배치를 먼저 게시했다. 후속 source에서는 이전 Post의 임의 filter/gauge를 원 근거로 가져오지 않도록 supported gauge endpoints와 Surface selection까지 명시적으로 복원한다. 사용자 재현의 0/0.02/0.04초는 각각 0/0.2294/0.31 mm를 읽고, 없는 0.03초는 unavailable이다. 곡선은 all retained times와 선택 cursor를 표시한다. 같은 native page painter에서 PDF/preview를 그리고 Markdown에는 같은 값과 정확 source를 남긴다.
+`9e313e5`에 원 근거/프레임·preview paging·출처 footnote·편집 절 교체 확인·historical F05·connection 행 배치를 먼저 게시했다. dd43015에는 Post 선택 복원/지원 field 한정/오류 page jump를 추가했으며, UX-FINAL-02에 따라 그 source를 동결했다. 제한 검사 및 전체 3그룹의 사용자 전달 결과는 문서 맨 위 FINAL-03 기록을 따른다. 사용자 재현의 0/0.02/0.04초는 각각 0/0.2294/0.31 mm를 읽고, 없는 0.03초는 unavailable이다. 곡선은 all retained times와 선택 cursor를 표시한다. 같은 native page painter에서 PDF/preview를 그리고 Markdown에는 같은 값과 정확 source를 남긴다.
 
-현재 Study의 Checks는 NOT_EVALUATED / UNKNOWN / NOT_RELEASED이다. 원 F05 value 3.32295e-6 / tolerance 1e-6 / FAIL은 바꾸지 않았으며, 명시적으로 추가한 Historical F05 check 절에서만 Task1 역사 범위를 표시한다. 변경한 Notes/순서/포함 여부를 Use Study가 조용히 지우지 않는다. 기본 Cancel의 교체 확인을 거친다. PDF 내용이 실제 설치 글꼴의 페이지 영역을 넘으면 해당 절을 선택하고 출력을 막는다. invalid draft Save와 Markdown 출력 범위는 별도다.
+현재 Study의 Checks는 NOT_EVALUATED / UNKNOWN / NOT_RELEASED이다. 원 F05 value 3.32295e-6 / tolerance 1e-6 / FAIL은 바꾸지 않았으며, 명시적으로 추가한 Historical F05 check 절에서만 Task1 역사 범위를 표시한다. 변경한 Notes/순서/포함 여부를 Use Study가 조용히 지우지 않는다. 기본 Cancel의 교체 확인을 거친다. PDF 내용이 실제 설치 글꼴의 페이지 영역을 넘으면 페이지/절을 명시한 오류로 출력을 막는다. invalid draft Save와 Markdown 출력 범위는 별도다.
 
 **사용자 측 Windows 실행 보고:** UX-REPORT-FIX-01/02에서 `600f9f8`의 두 창 시작/렌더와 Report PDF 5페이지, Markdown 포함/제외·본문·삭제 Undo·export, Acquisition Cancel, 195 N→0.195 kN, A82 선택, offset 0.15, 잘못된 rate/미완성 입력 차단, live unavailable guards가 PASS로 전달됐다. 이 사실은 Codex/Sol의 Windows Python3.13.5/PySide6 6.9.1 실행 보고이며 본 원격 Linux 실행이 아니다. 동시에 발견된 선택 시간/페이지 source/편집 손실/6행 배치 문제를 위 source에서 교정했다. 그 보고를 교정본 PASS로 확대하지 않는다.
 

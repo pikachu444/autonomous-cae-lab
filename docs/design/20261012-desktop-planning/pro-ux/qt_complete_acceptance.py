@@ -45,6 +45,8 @@ def edit_line(editor,value):
     QTest.keyClicks(editor,value);QTest.keyClick(editor,Qt.Key.Key_Return);pump()
 
 def edit_cell(table,row,column,value):
+    window=table.window();window.raise_();window.activateWindow();pump()
+    table.scrollToItem(table.item(row,column))
     table.setCurrentCell(row,column);table.setFocus();QTest.keyClick(table,Qt.Key.Key_F2);pump()
     editor=app.focusWidget();assert isinstance(editor,QLineEdit),"Engineering text delegate missing"
     edit_line(editor,value)

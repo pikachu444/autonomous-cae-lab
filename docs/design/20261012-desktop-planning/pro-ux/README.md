@@ -102,7 +102,7 @@ py -3.13 export_screens.py --offscreen --state post-compare --state expert-discu
 
 ## 제한 기술 검사
 
-아래 스크립트는 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. `qt_complete_acceptance.py`는 Report/Acquisition용 3개 집중 경로이며 현재 원격에서는 미실행입니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.
+아래 스크립트는 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. `qt_complete_acceptance.py`는 Report/Acquisition용 3개 집중 경로이며 현재 원격에서는 미실행입니다. Windows 확인은 이 문서의 최종 확인 절을 따릅니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.
 
 ```powershell
 py -3.13 qt_acceptance.py --source . --offscreen --output "$env:TEMP\caelab-check-base"
@@ -120,3 +120,11 @@ py -3.13 state_acceptance.py --source . --output "$env:TEMP\caelab-check-state"
 UX-REPORT-FIX-01/02 source correction: a supported structural locator selects its exact retained field and time in the report table and in Open source; an absent frame remains unavailable. Curve pages state that they contain all retained times and mark the selected frame. Preview paging follows the visible section. PDF and Markdown include a small Study/result/selection/review reference. Current Study checks remain NOT_EVALUATED / UNKNOWN / NOT_RELEASED; the unchanged historical F05 record is available only through an explicitly added Historical F05 check section. Use Study asks before replacing edited report sections. The Acquisition connection tab reserves room for all six connection/end rows. PDF text and table fit is checked using the active installed Qt font.
 
 These corrections were authored after the remote Linux environment disconnected. New execution is unverified here; the user’s Codex Windows reviewer runs the source with the existing Python 3.13.5 / PySide6 6.9.1 environment. Earlier reported Windows passes apply to their tested checkpoint, not automatically to this correction.
+
+## 최종 확인과 전달 — UX-FINAL-03
+
+Qt core 3파일·fixture·exporter·상태 recipe는 `dd43015`에서 고정합니다. 마지막 test-only 패치는 채널 modal 후 목표 창을 활성화하고 셀을 스크롤한 다음 기존 F2 편집을 수행하는 두 줄입니다. Qt 본체나 delegate를 바꾸지 않습니다.
+
+사용자가 전달한 Codex Windows Python3.13.5/PySide6 6.9.1 확인에서 **dd43015와 같은 activation/scroll 보정을 사용한 `qt_complete_acceptance.py` 3그룹이 모두 PASS, callback 0**입니다. Report 절/출력/cold reopen, 정확한 시간·gauge/없는 프레임/편집 Cancel/F05/overflow, Acquisition 입력/채널/선택/unavailable/cold 경로를 확인했습니다. 독립 Sol/Astra의 이전 9e Report·장비 배치 교정도 CLOSED이며, dd의 제한 source 변경은 새 finding이 없었습니다. 이 결과는 **Codex Windows 실제 검사 보고**이고 원격 Linux 실행이 아닙니다.
+
+56상태 SVG/PNG와 네 번째 drawio 페이지의 Desktop export도 Codex Windows에서 생성 완료로 전달됐습니다. 저장소 렌더 통합과 drawio 화살표 geometry 교정은 Codex root가 맡습니다. 이 작성 작업은 `screens/`와 `Workflows.drawio`를 더 수정하거나 복원하지 않습니다. 최종 실행/통합 범위와 한계는 [REVIEW.md](REVIEW.md)에 기록했습니다. 실제 native host/solver/provider/device 실행이나 제품 개발은 시작하지 않았습니다. 제품 개발은 사용자의 검토 후 명시적 시작 지시가 필요합니다.
