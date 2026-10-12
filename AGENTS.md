@@ -1,179 +1,91 @@
-# Autonomous CAE Lab — development instructions
+# Autonomous CAE Lab — agent instructions
 
-## Active task: local integration recovery
+## Start from the current assignment
 
-For the current post-merge work, read `docs/WORKBENCH_RECOVERY.md` and the updated
-`CODEX_START.txt` before selecting implementation work. Start from the current
-remote main while preserving local changes, not the old unmerged PR #1 branch.
-The recovery document supplements the existing W1–W5 design and use cases; it
-specifies the concrete remaining native runtime, response, expert and UI work.
-Previous implementation/test counts are not proof of live user-flow completion.
+Read [CURRENT_STATE.md](CURRENT_STATE.md), [the product overview](docs/PRODUCT_PLAN.md)
+and [CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md) before choosing work. Then read the
+relevant sections of [the detailed product plan](docs/PRODUCT_UI_MCP_PLAN.md),
+applicable contracts/ADRs, code and tests. Inspect Git status, source commits,
+the pinned submodule and evidence for the exact source under discussion.
 
-Work on the user's local Windows/WSL environment. Do not substitute Codex Cloud
-or GitHub Actions runtime results for readiness of that local installation.
-Reuse the existing code and agent roles. The lead owns shared interfaces and
-integration; delegate disjoint native/numerical and expert/UI tasks, with at most
-two helper threads, then obtain independent review of important integrations.
-Use the recovery document's R1–R5 tasks and A–F user outcomes as the current
-completion criteria. Missing credentials or native execution remain incomplete,
-not whole-system success. Continue independent work without fabricating results.
+CURRENT_STATE is the only current assignment/status/next-action record. HANDOFF
+and CODEX_START are short entry points. Dated logs, old SYSTEM plans, R1–R5/W1–W5
+instructions and PR comments are evidence or references, not competing current
+queues. Do not restart their old tasks or require a full historical audit before
+continuing. Preserve PROJECT_SCOPE's original requirements and read its relevant
+sections with REQUIREMENTS_VALIDITY_REVIEW; 52 section numbers are not 52 equal
+features or a completion percentage. Valid architecture and numerical contracts
+remain effective; do not dismiss every ADR as obsolete history.
 
-## Product and current direction
+The latest direct user instruction controls scope and priority, including a new
+decision in Space before it is transferred to Git. Distinguish user decisions
+from Pro/Codex proposals. Recover missing context from the current records; never
+invent previous conversations or assume another machine's files are available.
 
-Build a lightweight engineering research workbench, not a CAD-demo framework or
-an enterprise simulation-management system. Material evaluation, parameter
-identification, PDE, structural/explicit analysis, data-only research and solver
-experiments are first-class uses. CAD is optional. Python/API and CLI use must
-not require an AI provider, OpenScience or MCP. Expert assistance, knowledge
-retrieval, literature tools and MCP are optional integrations.
+## Product and responsibilities
 
-Read `docs/WORKBENCH_REDESIGN.md` for the W1–W5 design. Read
-`docs/WORKBENCH_USE_CASES.md` for concrete research questions, inputs, outputs,
-limitations and the final implementation handoff. The latter is a use-case
-appendix, not a replacement architecture or a new profile system. Then inspect
-relevant code, tests and current Git state. Do not preload all ADRs or cumulative
-status histories. Search those records only for the behavior being changed.
+Build independently usable engineering research tools: FreeCAD CAD/FE, ParaView
+Post, Data, Material, PDE, Numerical, Runner, Expert and related research documents.
+Workbench is an optional connection view. Ordinary GUI, Python and CLI use must
+not require CAD, AI, OpenScience or MCP when the selected operation does not need
+them. Preserve material identification, CAD-free research, external results,
+structural/explicit analysis, numerical methods and expert consultation. LS-OPT
+is unavailable and must not become a prerequisite.
 
-The owner's current instructions take precedence over historical project
-policies. Old `PROJECT_SCOPE.md`, `HANDOFF.md`, `CURRENT_STATE.md`, ADRs and
-OpenScience contracts are historical references, not an instruction to keep
-obsolete profiles, prompt bytes, exact model choices or development ceremonies.
-They remain useful sources for earlier requirements and numerical observations;
-this redesign does not certify or erase those observations.
+Pro writes substantial product designs, implementations, related tests/CI and docs.
+Codex challenges assumptions, reviews source and actual behavior, integrates the
+result and owns current-state/document synchronization. Codex performs the
+assigned documentation and integration work; do not silently replace Pro as
+the implementation author. Use bounded independent helpers when useful and
+supported, with explicit file ownership and no concurrent shared-interface edits.
+The lead owns common schema/Core/registry/provenance integration. Actual user
+model choices take precedence over old agent-model recommendations.
 
-## External results and LLM-assisted research
-
-LS-OPT is unavailable for this project. Do not make it a dependency, fallback or
-new procurement prerequisite. OpenRadioss is not the only permitted backend.
-Use existing commercial/external solver inputs, registered execution/extraction
-tools and separate ASCII/CSV/text outputs through the same response and numerical
-interfaces. Reading imported results must not require the original solver.
-The chip impact experiment is an example, not a new product boundary or profile.
-
-Read redesign sections 4.4, 7.1 and 12.8 together with all W1–W5 work packages.
-The LLM proposes variables, justified ranges, objectives, DOE and follow-up work.
-Existing numerical libraries generate samples, evaluate candidates and compute
-sensitivity. The LLM interprets these actual results and proposes the next study
-step. Do not reduce this to an optimizer button plus a fixed answer, and do not
-use an LLM as a per-candidate numeric parser or objective evaluator.
-
-Separate imported-results analysis, file-based batch exchange and registered
-automated execution. Unknown candidate values, missing outputs and unperformed
-runs remain unknown. New candidates need real evaluations; surrogate predictions
-are labeled separately. Keep physical channel meaning, units and event definitions.
-Build the generic connection during the first workbench; specific commercial
-cards, native formats and company runtimes can follow. Do not pause all work for
-LS-DYNA access or replace the wider research scope with this one application.
-
-## Development setup and orchestration
-
-Read `docs/CODEX_WORKFLOW.md` for model/reasoning, usage control, task ownership,
-W1–W5 integration and session handoff. Read `docs/DEVELOPMENT_SKILLS.md` for the
-existing skills, their sources, dependencies and explicit invocation conditions.
-These documents supplement, not replace, the product design and use cases.
-The tracked launch instruction is `CODEX_START.txt`; do not depend on chat history
-or an older attached prompt for missing decisions.
-
-Use `.codex/config.toml` and `.codex/agents/` as project development defaults,
-subject to the actual client, account, trust and user overrides. Verify effective
-settings once; do not claim repository files have changed the user's running app.
-The normal lead is Astra High, helpers are Sol High, and at most two helper
-threads are open. Use Extra High only for a difficult bounded decision. Do not
-spawn recursively or auto-enable paid speed modes, purchases or API fallback.
-
-The vendored `research`, `grill-me` and `grilling` are explicit-use development
-skills under `.agents/skills/`. Select `research` for substantial reuse/API
-questions. Select the interview skills only for genuinely unsettled user
-choices. Do not restart the agreed product interview. Follow the skill-use
-catalog rather than installing every previously mentioned tool.
-
-Keep one current progress record. After a feature bundle, return to the whole
-W1–W5 and use-case outcomes. Close finished helpers and carry forward the next
-implementation location, not another full audit or duplicated history document.
-
-## Integration and merge decisions
-
-There is no permanent ban on merging into main. Earlier "do not merge" wording
-protected the document-review stage; it is not a product or architecture constraint.
-If the user assigns implementation and merging, that authorization covers the
-reviewed feature bundles in that assignment. The lead may merge their PRs after
-reviewing the changes, checking the relevant behavior and satisfying required
-repository checks. Do not request redundant approval for each small commit.
-A merged feature is not proof that all of W1–W5 is complete. Report unfinished or
-untested capabilities accurately. Do not bypass branch protection, force-push,
-discard user work or merge unrelated changes. If merging was not assigned, submit
-the PR for approval; do not interpret this document as authorization by itself.
-This interpretation also applies to older merge cautions in the referenced plans.
-
-## How to work
-
-- Begin a substantive bundle with the user-visible outcome and its place in the
-  whole workbench. Track material identification, CAD-free numerical research,
-  existing-result analysis and defect/expert consultation together. Do not let
-  the easiest fixture or smallest validation issue replace those outcomes.
-- Reuse implemented CAD-free APIs and SciPy integration before introducing
-  replacements. Do not substitute another example for a feature. Example case
-  IDs, numbers, material names and sample counts are not product restrictions.
-- Before building reusable infrastructure, inspect the repository and relevant
-  maintained libraries/tools. Compare integration cost, runtime overhead,
-  deployment, license and exit cost. Reuse, wrap, simplify or build according to
-  fit; neither a large framework nor custom code is the default. Small fixes do
-  not require an elaborate research ceremony.
-- Existing development skills may help challenge assumptions, search for reuse
-  or review complexity. Inspect their actual source and dependencies first.
-  Do not create a new skill or install an entire harness by default. Development
-  aids such as grill-me or Ouroboros are not product runtime requirements.
-- Complete coherent feature bundles with their input, real calculation/tool
-  use, output and consuming UI/API. Review architecture before shared-interface
-  changes; do not demand a new approval, ADR or duplicated report per small edit.
-  Use independent review when useful; do not claim unavailable reviewers ran.
-- If assigned the whole redesign, continue beyond W1 through the dependencies
-  of W2–W5. Record missing native runtimes or model accounts accurately and keep
-  independent implementation moving. Do not relabel missing live verification
-  as complete, or restart a full audit for each blocked connection.
-- Remove obsolete code and tests when their contract is intentionally replaced.
-  State the removed behavior and the replacement checks. Prototype API and
-  development-record compatibility are not unconditional requirements.
+Complete the authorized outcome. Do not repeatedly stop at plans, transmission
+receipts, status reports or approval requests for routine steps already assigned.
+Settle material disagreements with Pro and apply the decision. Ask only for an
+unresolved user choice or genuinely missing authority; continue independent work.
+Do not start unassigned provider calls, native runs or unrelated implementation
+merely because an old prompt says to do so.
 
 ## Technical boundaries
 
-- Numerical libraries/solvers perform numerical search and physics. LLMs plan,
-  retrieve, interpret and request tools; do not invoke an LLM per objective call.
-- Keep domain meaning and backend syntax distinct, without inventing a universal
-  schema for every solver. Preserve native input/result files when useful.
-- Keep expert knowledge, installed capability, execution resources, authorization
-  and scientific checks separate. Do not encode them as copied scenario profiles.
-- Separate fast in-memory/batch evaluation from recorded long-running jobs.
-  Measure direct-library overhead, I/O, memory and concurrency before claiming
-  speedups. Protect short record updates without serializing independent solves.
-  If measured overhead is already small, report that result and continue to the
-  next user function. Do not force endless micro-optimization to invent a gain.
-- Use one implementation of a behavior through Python, CLI, GUI and optional
-  transports. Never require an OpenScience session for ordinary computation.
-- Browser teaching calculations and rule-based expert examples are explanatory
-  artifacts, not production backends or proof of live agent execution. Reuse
-  established numerical/retrieval/agent libraries for the product.
+- OpenScience/Expert plans, asks, retrieves and interprets; deterministic numerical
+  libraries generate DOE/search candidates and solvers perform physics.
+- Core owns shared records, schemas, mappings, execution gates, artifacts, evidence
+  and provenance. Domain plugins own engineering rules; adapters own native syntax
+  and paths. Reuse pinned `plugins/fixture_design/upstream` through adapters.
+- Reuse the existing readers, numerical engines, JobManager and document owners.
+  GUI/CLI/Python/MCP must address the same document/revision/result and commands.
+  Preserve editable CAD and exact saved source/result relationships.
+- Invalid drafts may remain editable/saveable, but invalid required parameters or
+  CAD block export and downstream execution. New runs use new IDs/stores; preserve
+  old results, failed metrics and original inputs.
+- A validation verdict is distinct from its evidence. Unknown machine/material/
+  strength/physical/durability requirements remain UNKNOWN and prevent applicable
+  engineering release. CI, solver exit success and expert agreement are not approval.
+- Never weaken a numerical threshold, replace the requested response or relabel a
+  failure to obtain a pass. State supported scope and unverified behavior honestly.
+- Before new infrastructure, inspect existing code and maintained tools. Record
+  material architectural decisions and their contract/requirement impact; small
+  fixes do not require new ceremonies, frameworks or duplicated reports.
 
-## Accuracy, data and completion
+## Integrate, record and finish
 
-Never invent solver runs, timings, tests, physical validation or successful
-cleanup. A numerical result, a software check and approval for an actual design
-are different claims. Do not relax a scientific reference just to make tests pass.
-Exploratory work may retain assumptions and unresolved checks without pretending
-that it has been approved for production. Expert agreement is not causal proof;
-preserve opposing evidence and the test needed to distinguish hypotheses.
+Verify the behavior affected by the change, including real user workflows when
+claiming GUI completion and reference comparisons when claiming numerical validity.
+Do not rerun unchanged full suites or native campaigns without a concrete reason.
+Keep product implementation, actual execution, usability and engineering qualification
+as separate claims. C3D10/F05 work is not the default prerequisite for product work.
 
-Protect credentials, company data, user edits and uncommitted work. This repository
-is public. No silent model/provider fallback or transfer of private content.
-Do not delete user-owned raw data or adopt unknown running processes. Use isolated
-branches and work directories; no force-push or merge without authorization.
-Hashing may identify important inputs/results; it must not freeze ordinary
-prompts or policies indefinitely. Describe records to the user as execution
-history, source, validation basis and result files rather than unexplained jargon.
+Preserve user edits and untracked files. Review the staged diff, commit meaningful
+verified units, use authorized Git access and confirm remote publication. Never
+force-push, bypass branch protection or erase history. If publication is blocked,
+retain the local commit and record that it is unpushed. This public repository must
+not contain credentials, company CAD/data or environment secrets.
 
-Finish each bundle with what the user can now do, an actual input/run/result,
-changed or removed responsibilities, checks actually run, limitations and the
-next coherent outcome. Update current documentation only where needed. Do not
-copy progress into several historical documents. A plan is not a feature, and
-passing a narrow test is not whole-system proof. W1–W5 complete the defined first
-workbench, not every physical model, solver card, coupled system or device.
+At a meaningful checkpoint, update CURRENT_STATE and the affected design/usage or
+acceptance record. Update requirement status only when it changes. HANDOFF links
+to that state instead of duplicating it. Codex updates the relevant Space summary
+and links for material decisions; no automatic Git–Space synchronization is assumed.
+See CODEX_WORKFLOW for ownership, document roles and fresh-session instructions.

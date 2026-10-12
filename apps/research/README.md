@@ -1,71 +1,87 @@
-# Material Research native editor
+# Independent Research desktop tools
 
-This PySide6 window connects to an **existing** local Workbench service. It does
-not create a private document store, controller, solver, or numerical model.
-The service owns material edits, draft validation, Undo/Redo, revisions, saves
-and evaluation jobs; GUI and MCP clients use those same commands.
+The PySide6 tools share the existing local HTTP service. Each document owner
+controls edits, validation, Undo/Redo, revisions, saves and evaluations; GUI,
+CLI/Python and optional MCP use the same supported commands. FreeCAD Pre and
+ParaView Post remain separate native processes with their own runtimes.
 
-With PySide6 and matplotlib installed in the UI environment, run from the repo:
+## Start on Windows
+
+From the repository, select the tool explicitly:
 
 ```powershell
-python -m apps.research.material_window --service http://127.0.0.1:PORT
-python -m apps.research.material_window --service http://127.0.0.1:PORT --document-id DOCUMENT_ID
-python -m apps.research.runner_window --service http://127.0.0.1:PORT --job-id JOB_ID
+powershell -ExecutionPolicy Bypass -File .\scripts\start_cae_research.ps1 -Tool data
+powershell -ExecutionPolicy Bypass -File .\scripts\start_cae_research.ps1 -Tool material -DocumentId DOCUMENT_ID
+powershell -ExecutionPolicy Bypass -File .\scripts\start_cae_research.ps1 -Tool runner -JobId JOB_ID
 ```
 
-On Windows, `scripts/start_cae_research.ps1` uses the existing private installer
-and service launcher, adding the `research-ui` optional dependencies. It reuses
-only a server whose store, source and operator configuration match the existing
-launch receipt. `-DocumentId M...` opens a saved/recoverable document; `-PrepareOnly`
-prepares the service without opening a window. `-RuntimeRoot`, `-Store` and `-Port`
-keep separate research stores and environments explicit. No AI login is needed.
-`-Tool runner -JobId J...` opens Runner directly against that same service.
-Material's **Open in Runner** follows the selected evaluation's exact job.
-Runner shows submitted inputs, resources, actual status, retained results and
-whole-job cancellation. Opening a result never reruns it. **Open source document**
-returns to its Material owner and selected run while preserving unapplied edits.
-Fit/DOE cancellation targets the parent execution; candidate cancellation is not
-advertised. Partial failures and configured penalties remain distinct from valid
-objectives. Fields expose their retained references; this window plots only real
-scalar/series data returned by the service, in bounded original row ranges.
+Available `-Tool` values are `data`, `material`, `pde`, `numerical`, `expert`,
+`runner`, `simulation`, `evaluation` and `study`; the default is `runner`.
+Use an actual saved document/job ID or omit that option to enter the tool.
+`-PrepareOnly` prepares the shared service without opening a window. `-RuntimeRoot`,
+`-Store` and `-Port` select the runtime, retained research store and service port.
+The helper uses the private installer with `research-ui` dependencies and checks
+the existing launch receipt before reusing a service. It can download dependencies.
 
-`CAELAB_SERVICE_URL` may replace `--service`. The service environment needs the
-selected backend; the GUI environment does not import FELUPE. Do not mix this
-environment with FreeCAD's or ParaView's bundled Qt/Python.
+The root `Start-CAE-Lab.cmd` still opens the existing web Workbench. The helper
+above is the current direct route to these desktop tools. Product entry/file-open
+integration and installation/restart usability remain in
+[CURRENT_STATE](../../CURRENT_STATE.md).
 
-The layout follows the Material reference in `docs/PRODUCT_UI_MCP_PLAN.md` §6.2:
-left protocol and coefficient tables, a large actual stress plot on the right,
-and retained runs/diagnostics below. It is a bounded editor for existing FELUPE
-`linear_elastic` and `neo_hooke` input, not general constitutive or FE support.
-The prescribed 3×3 deformation gradient is editable at each time. A path with
-fixed lateral components must not be described as a free tensile test.
+## Connect to a running service
 
-1. Open or create a material document; edit coefficients, units and the complete
-   history table. Invalid text is retained, never converted to zero.
-2. **Apply inputs** sends the full draft to the service owner. **Run once** uses
-   that applied generation. Unapplied cells cannot be silently ignored by Run.
-3. Select a retained run, or Ctrl/Shift-select several compatible runs. Curves
-   and values come only from actual service results; selecting never evaluates.
-   Input generation/revision and earlier-input status remain visible. Different
-   units, axes or stress measures are not silently overlaid or converted.
-   Curves use `Client.document_result`, so saved document results can reopen
-   without the original live job outputs; the service verifies retained data.
-4. **Save / Ctrl+S** applies local cells and saves through the owner, including
-   invalid drafts when supported by its validation contract. Close offers Save,
-   Keep service draft, or Cancel. Keeping a draft does not promise a saved
-   revision; draft recovery is controlled by the service. Closing does not
-   cancel solver jobs.
-5. A remote edit during local editing produces a conflict without changing the
-   cells. Reload the owner version explicitly or retain local edits as a new
-   document. Idle windows refresh from the same owner.
-6. A malformed external draft that cannot fit the tables remains intact in
-   Diagnostics. Save and owner Undo/Redo remain available; the window does not
-   invent a corrected structure. Another client may also repair that draft.
+With the UI dependencies installed, use the same launcher against your actual URL:
 
-This first window does not implement Data import, Numerical Plan editing,
-calibration, general state/tangent inspection, or a new Expert UI. Existing
-service capabilities and backend validation remain authoritative. Offscreen
-tests cover widget behavior with a test-only client and real HTTP owner editing,
-save, Undo/Redo and restart. They do not qualify FELUPE, native material physics,
-or visible GUI acceptance. Retained plot fixtures in widget tests are labeled
-test data; the product has no synthesized response fallback.
+```powershell
+python -m apps.research.desktop --service http://127.0.0.1:8766 data
+python -m apps.research.desktop --service http://127.0.0.1:8766 material --document-id DOCUMENT_ID
+python -m apps.research.desktop --service http://127.0.0.1:8766 numerical
+python -m apps.research.desktop --service http://127.0.0.1:8766 expert
+python -m apps.research.desktop --service http://127.0.0.1:8766 runner --job-id JOB_ID
+```
+
+`CAELAB_SERVICE_URL` can replace `--service`. The GUI does not import every solver;
+the service environment must provide the backend used by a requested calculation.
+Ordinary editing and existing-result reading do not require an AI login. Expert
+inference requires the configured actual provider and its permitted tool scope.
+Do not combine this Qt/Python environment with FreeCAD's or ParaView's bundles.
+
+## Current tool responsibilities
+
+| Tool | Existing document and actions |
+|---|---|
+| Data | CSV/NPZ source preview/import, channels/axes/units, mapping and segments/masks, retained responses and comparison |
+| Material | Advertised FELUPE/MFront law input, coefficients and histories, actual direct evaluation, retained curves, Numerical Plan and candidate adoption |
+| PDE | Declared model, support checks, evaluation, retained fields, Post and Plan navigation |
+| Numerical | Material or Request Plan, variables/responses, method settings, actual candidates and owner adoption |
+| Runner | Submitted input, resources, execution state, logs/diagnostics, cancellation and exact result/source navigation |
+| Expert | Discussion roles, issues, replies/intervention, pause/resume, evidence and unexecuted Plan proposals |
+| Simulation | Supported saved simulation input and evaluation/result connections |
+| Evaluation | Reusable saved stages, typed transfers and declared iteration, retained stage attempts |
+| Study | Questions, hypotheses, evidence and judgments referencing exact documents/results |
+
+Use each tool's owner validation and advertised support. A prescribed deformation
+history is not automatically a free tensile test; field/state transfer is not
+implicitly supported by adding another stage. The product has no synthesized
+response fallback. A proposal or retained-result read never implicitly submits a job.
+
+## Editing, saving and continuing
+
+Apply editable inputs before running; invalid drafts remain visible and cannot
+silently become valid calculation input. Save uses the document owner. Where a
+window offers Keep service draft, it is distinct from a saved revision. Closing
+a window does not cancel its solver job. Preserve conflicts with edits from
+another client and explicitly reload or save a separate document.
+
+Select the actual retained run/candidate/stage to inspect its source revision,
+response, units and diagnostics. Old results remain attached to their original
+inputs. Open in Runner, Post or the source document follows the selected retained
+reference; it does not rerun the calculation. Missing files and unsupported
+selections must be repaired or changed explicitly.
+
+[The detailed product plan](../../docs/PRODUCT_UI_MCP_PLAN.md) defines the intended
+editing and connection depth. [Current state](../../CURRENT_STATE.md) distinguishes
+implementation from remaining user workflows. [Dated verification](../../docs/WORKBENCH_PROGRESS.md)
+separates source/offscreen/HTTP checks, actual native calculations and actual GUI or
+provider flows; the new standalone Expert flow and complete native workflows are
+not certified merely by the presence of these windows.

@@ -1,3 +1,8 @@
+> 2026-10-12 역할 정리: 아래는 보존하는 사용 사례·재사용 근거·세부 설계다.
+> 현행 제품 구성은 [제품 계획](PRODUCT_PLAN.md)과 [상세기획](PRODUCT_UI_MCP_PLAN.md),
+> 구현 현황과 배정은 [CURRENT_STATE](../CURRENT_STATE.md)를 따른다.
+> 옛 단계·구현 상태를 현재 작업표로 복사하지 않는다. 유효한 owner/수치 계약은 유지한다.
+
 # Workbench reuse decisions
 
 2026-10-07. Bounded W1/W2/W4 source investigation; this note does not certify native

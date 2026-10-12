@@ -1,3 +1,9 @@
+> 2026-10-12 정리: 이 파일은 당시의 개발 순서·판단·실행 기록을 보존한 참고 문서다.
+> 아래의 “현재”, “다음”, 중지/승인/담당 표시는 기록 당시를 뜻하며 새 작업 지시가 아니다.
+> 지금의 배정은 [CURRENT_STATE](../CURRENT_STATE.md), 제품 기준은
+> [PRODUCT_PLAN](PRODUCT_PLAN.md)·[상세기획](PRODUCT_UI_MCP_PLAN.md), 운영은
+> [CODEX_WORKFLOW](CODEX_WORKFLOW.md)를 따른다. 유효한 기능·실패 근거는 보존한다.
+
 # Autonomous CAE Lab — 로컬 통합 완성 작업 지시
 
 2026-10-08. 제품 재설계가 아니라, 구현한 W1–W5의 누락된 연결을 완성하는 후속 개발 명세다.

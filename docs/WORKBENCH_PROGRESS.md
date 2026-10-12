@@ -1,4 +1,23 @@
-# Current workbench implementation
+# Dated implementation and verification records
+
+## 2026-10-12 — Product documentation and collaboration finalized
+
+The owner requested actual consolidation, and Codex and Pro finalized the roles,
+document ownership and next product unit. [CODEX_WORKFLOW](CODEX_WORKFLOW.md)
+contains the agreed rules; [CURRENT_STATE](../CURRENT_STATE.md) owns current facts,
+assignment and next actions. Pro writes product changes and related tests/CI/docs;
+Codex independently reviews, checks the actual environment, integrates and updates
+Git/Space. Independent tool workflows and actual Expert research are next;
+C3D10/F05 work is deferred and does not gate all product work.
+
+The original 52 descriptions, detailed inventory and accumulated status records
+are preserved in [the consolidation archive](history/20261012-before-consolidation/README.md).
+Old entries below retain their dated source/run scope, including old pause and
+draft-PR statements. PR7 merged at `92a51fd7967ba1127b5a56755ebef6a46f41f04e`
+with the owner's acceptance of the known F05 failure for development integration.
+No product source, solver setting or threshold changes in this documentation unit;
+no new GUI, provider or numerical execution is claimed. Publication and Page
+readback are tracked in CURRENT_STATE, not as a new benchmark.
 
 ## 2026-10-12 S5 follow-up completes hosted CI and all four later native stages
 

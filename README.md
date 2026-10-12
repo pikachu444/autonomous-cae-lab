@@ -4,14 +4,22 @@ A local engineering research workbench for material histories, parameter fitting
 numerical studies, existing solver results and optional expert assistance. Python
 calculations do not require CAD, an AI account, OpenScience or MCP.
 
+Current product direction: [product overview](docs/PRODUCT_PLAN.md) and
+[detailed design](docs/PRODUCT_UI_MCP_PLAN.md). Current implementation and next
+work: [CURRENT_STATE](CURRENT_STATE.md). Development roles and document updates:
+[CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md).
+
 ## Install and start
 
 **Windows 10/11 x64, without WSL:** download and extract the repository ZIP,
 then double-click `Start-CAE-Lab.cmd`. It installs a private Python environment
-and opens the workbench. Internet is required; system Python, Git and admin
+and opens the existing web workbench. Internet is required; system Python, Git and admin
 rights are not required for the base/numerical/material features. Keep the
 extracted source folder. Native CAD/solvers and expert accounts are separate.
 See the [Windows quick start and supported scope](docs/WINDOWS_QUICKSTART.md).
+For independent Data, Material, PDE, Numerical, Expert and related desktop tools,
+use [the Research launcher instructions](apps/research/README.md). Native CAD/FE
+and Post retain their separate applications and runtimes.
 
 For manual installation on Linux or Windows, Python 3.12+ is required.
 From a source checkout:

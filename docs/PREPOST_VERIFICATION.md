@@ -1,5 +1,19 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-12 — 후속 교정과 병합 상태
+
+아래 r4/r5는 당시 실행 기록이다. 이후 S1/S2에서 Pre의 Windows 관리형 저장과
+의존 문서 dirty 추적, Post의 일반 Save 경로와 부분 복구, 보존 응답 읽기 및 일부
+UI 초안·선택 결함을 교정했다. 해당 항목을 그대로 새 미해결 목록으로 복사하지 않는다.
+[S1 검토](../benchmarks/records/20261011-stabilization-s1-review.json),
+[S2 통합](../benchmarks/records/20261011-stabilization-s2-integration.json),
+[UI/CI 후속 교정](../benchmarks/records/20261012-stabilization-ui-ci-corrections.json),
+[정확한 source의 최종 CI](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)를 따른다.
+
+PR7은 `92a51fd7967ba1127b5a56755ebef6a46f41f04e`로 병합됐다. 이는 실제 FreeCAD 전체
+사용 작업·모든 Post 기능·수치/공학 수용의 완료가 아니다. 현재 남은 제품 작업은
+[CURRENT_STATE](../CURRENT_STATE.md)에 두며 이 파일에는 실제 검증 근거만 추가한다.
+
 ## 2026-10-11 r5 실제 Post 수정과 Pre 저장 결함
 
 r5 소스는 MAIN/REVIEW에 한 번씩 통합됐으며 누적 구현은

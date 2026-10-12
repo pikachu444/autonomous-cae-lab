@@ -1,5 +1,10 @@
 # Windows에서 설치하고 첫 계산하기
 
+이 안내의 기본 시작기는 기존 웹 Workbench를 연다. 독립 Data·Material·PDE·Numerical·
+Expert·Runner 등의 데스크톱 도구는 [Research 실행 안내](../apps/research/README.md)의
+`start_cae_research.ps1 -Tool ...` 경로를 사용한다. 설치 후 제품 진입과 재실행의 남은
+작업은 [CURRENT_STATE](../CURRENT_STATE.md)에서 관리한다.
+
 ## 시작
 
 1. 저장소의 **Code → Download ZIP**으로 내려받아 사용자 폴더에 압축을 푼다.

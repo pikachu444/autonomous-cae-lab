@@ -2,9 +2,10 @@
 
 Date: 2026-10-11
 
-Status: The user's domain-separation correction is adopted in the design.
-Physical packaging and new document implementations remain proposals. This ADR
-does not certify the existing GUI prototypes or change the Core wire contract.
+Status: Adopted. ADR0061/0062 and PR7 implement independent document owners and
+native connections; the 2026-10-12 merge includes subsequent stabilization.
+Current product/packaging completion is tracked in [CURRENT_STATE](../CURRENT_STATE.md).
+This ADR records the ownership decision, not complete GUI or physical acceptance.
 
 ## Reason and retained requirements
 

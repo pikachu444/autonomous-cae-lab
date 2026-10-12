@@ -1,3 +1,9 @@
+> 2026-10-12 document boundary: the architecture and command contracts remain
+> effective. Implementation/checkpoint paragraphs below describe their dated source;
+> later stabilization supersedes old open-defect and draft-PR statements. Use
+> [CURRENT_STATE](../CURRENT_STATE.md) for current implementation, assignment and next actions.
+> A documentation edit adds no execution or engineering approval.
+
 ## Existing-workflow corrections — 2026-10-11
 
 `calculations.plan`, `calculations.submit` and the Plan editor share the same

@@ -1,3 +1,9 @@
+> 2026-10-12 document boundary: the architecture and command contracts remain
+> effective. Implementation/checkpoint paragraphs below describe their dated source;
+> later stabilization supersedes old open-defect and draft-PR statements. Use
+> [CURRENT_STATE](CURRENT_STATE.md) for current implementation, assignment and next actions.
+> A documentation edit adds no execution or engineering approval.
+
 ## Existing-workflow stabilization — 2026-10-11
 
 S1/S2 correct publication, dependency dirty tracking, managed Post Save,

@@ -1,3 +1,9 @@
+> 2026-10-12 정리: 이 파일은 당시의 개발 순서·판단·실행 기록을 보존한 참고 문서다.
+> 아래의 “현재”, “다음”, 중지/승인/담당 표시는 기록 당시를 뜻하며 새 작업 지시가 아니다.
+> 지금의 배정은 [CURRENT_STATE](../CURRENT_STATE.md), 제품 기준은
+> [PRODUCT_PLAN](PRODUCT_PLAN.md)·[상세기획](PRODUCT_UI_MCP_PLAN.md), 운영은
+> [CODEX_WORKFLOW](CODEX_WORKFLOW.md)를 따른다. 유효한 기능·실패 근거는 보존한다.
+
 # 개발 스킬과 도구 사용 기준
 
 2026-10-07 · Codex 개발용 · 제품 기능/필수 설치와 별도
