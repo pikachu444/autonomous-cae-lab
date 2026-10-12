@@ -1,0 +1,13 @@
+SYNTHETIC CALIBRATION RECORD — UI ILLUSTRATION ONLY
+
+Document: CAL-018
+Revision: 2
+Locator: Force channel / calibration row 18
+Channel: Force
+Measurement range: 0–2000 N
+Calibration operation: force-channel scale and zero check
+Declared applicability: synthetic force-channel example only
+Engineering validity: UNKNOWN
+This is not a laboratory certificate or evidence of device calibration.
+
+row 18: reference 500 N; indicated 501 N; synthetic correction -1 N.
