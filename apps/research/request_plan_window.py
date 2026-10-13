@@ -592,34 +592,44 @@ class RequestPlanWindow(NumericalWindow):
             self._leave(lambda:self.open_document(title=title,draft=draft))
         self._call(prepare,ready,relevant=relevant)
 
+    def _confirmation_model(self,reference):
+        """Read the exact retained training condition chain without executing."""
+        ref=deepcopy(reference)
+        seen=set()
+        for _ in range(16):
+            key=(ref['document_id'],ref['job_id'])
+            if key in seen:raise ValueError('Stored model source loop')
+            seen.add(key)
+            if self.client.document_result_reference(*key)!=ref:
+                raise ValueError('Stored model reference changed')
+            doc=self.client.document_read(key[0])
+            run=next(row for row in doc['runs'] if row['job_id']==key[1])
+            if canonical_hash(run['draft'])!=run['input_sha256']:
+                raise ValueError('Stored model submitted inputs changed')
+            inputs=run['draft']['request']['inputs']
+            refs=inputs.get('result_refs',{})
+            if 'model' in refs:
+                ref=refs['model'];continue
+            training=refs.get('training')
+            if training is None:
+                raise ValueError('Actual training evaluator is not recorded; choose an explicit model in a new DOE Plan')
+            if self.client.document_result_reference(training['document_id'],training['job_id'])!=training:
+                raise ValueError('Training reference changed')
+            origin=self.client.document_read(training['document_id'])
+            original_run=next(row for row in origin['runs'] if row['job_id']==training['job_id'])
+            original=original_run['draft']
+            if canonical_hash(original)!=original_run['input_sha256']:
+                raise ValueError('Training submitted inputs changed')
+            engine=original.get('request',{}).get('inputs',{})
+            if not engine.get('backend') or not isinstance(engine.get('settings',{}),dict):
+                raise ValueError('Training source has no reusable evaluator settings')
+            return deepcopy(original),deepcopy(engine)
+        raise ValueError('Stored model reference chain is too deep')
+
     def _prepare_confirmation(self, reference, result, chosen, before, relevant):
         # Follow the frozen training request, never today's editable draft.
         def read_model():
-            ref = deepcopy(reference)
-            seen = set()
-            for _ in range(16):
-                key = (ref['document_id'],ref['job_id'])
-                if key in seen:raise ValueError('Stored model source loop')
-                seen.add(key)
-                exact = self.client.document_result_reference(*key)
-                if exact != ref:raise ValueError('Stored model reference changed')
-                doc = self.client.document_read(key[0])
-                run = next(row for row in doc['runs'] if row['job_id']==key[1])
-                inputs = run['draft']['request']['inputs']
-                refs = inputs.get('result_refs',{})
-                if 'model' in refs:
-                    ref = refs['model'];continue
-                training = refs.get('training')
-                if training is None:raise ValueError('Actual training evaluator is not recorded; choose an explicit model in a new DOE Plan')
-                actual = self.client.document_result_reference(training['document_id'],training['job_id'])
-                if actual != training:raise ValueError('Training reference changed')
-                origin = self.client.document_read(training['document_id'])
-                original = next(row for row in origin['runs'] if row['job_id']==training['job_id'])['draft']
-                engine = original.get('request',{}).get('inputs',{})
-                if not engine.get('backend') or not isinstance(engine.get('settings',{}),dict):
-                    raise ValueError('Training source has no reusable evaluator settings')
-                return deepcopy(original),deepcopy(engine)
-            raise ValueError('Stored model reference chain is too deep')
+            return self._confirmation_model(reference)
         def received(payload):
             if not relevant():return
             original,engine=payload
@@ -638,7 +648,7 @@ class RequestPlanWindow(NumericalWindow):
     def compare_prediction(self):
         candidate=deepcopy(self._selected_actual_candidate())
         if not candidate or self._busy or self._callbacks:return
-        run=next((row for row in self.document['runs'] if row['job_id']==self.selected_job()),{})
+        run=deepcopy(next((row for row in self.document['runs'] if row['job_id']==self.selected_job()),{}))
         link=run.get('draft',{}).get('method_inputs',{}).get('surrogate',{})
         ref=deepcopy(link.get('result_refs',{}).get('model'))
         if not ref:return
@@ -647,7 +657,11 @@ class RequestPlanWindow(NumericalWindow):
             return self.document and identity==(self.document['id'],self.document['session_id'],
                 self.selected_job(),self._candidate_selection_serial)
         def read():
-            from caelab.surrogate_archive import confirmation_values
+            from caelab.surrogate_archive import confirmation_values,validate_confirmation_request
+            if canonical_hash(run.get('draft'))!=run.get('input_sha256'):
+                raise ValueError('Actual submitted confirmation inputs changed')
+            original,_=self._confirmation_model(ref)
+            validate_confirmation_request(original,run['draft'])
             if self.client.document_result_reference(ref['document_id'],ref['job_id'])!=ref:
                 raise ValueError('저장 예측의 참조가 달라졌습니다.')
             prediction=self.client.document_result(ref['document_id'],ref['job_id'])

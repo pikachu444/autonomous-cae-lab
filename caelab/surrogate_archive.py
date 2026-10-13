@@ -104,3 +104,36 @@ def confirmation_values(prediction, actual, point):
     return {'definition':definition,'values':deepcopy(point),'predicted':predicted,
             'actual':value,'difference':value-predicted if value is not None else None,
             'actual_status':actual.get('execution_status','UNKNOWN'),'reason':reason}
+
+
+
+def validate_confirmation_request(training_draft,actual_draft):
+    """Same-model confirmation is narrower than comparing arbitrary experiments."""
+    from .numerical import _variables
+    from .storage import canonical_hash
+    original=training_draft.get('request',{}).get('inputs',{})
+    actual_request=actual_draft.get('request',{})
+    actual=actual_request.get('inputs',{})
+    def changed(part):
+        raise ValueError('평가 조건 변경: '+part+'. 같은 모델의 예측 확인으로 비교할 수 없습니다. 원래 결과는 유지됩니다.')
+    if actual_request.get('operation')!='doe':
+        changed('확인 방법')
+    if original.get('backend')!=actual.get('backend'):
+        changed('평가기')
+    if not isinstance(original.get('settings'),dict) or canonical_hash(original['settings'])!=canonical_hash(actual.get('settings')):
+        changed('고정 설정')
+    def declarations(value):
+        return [(row['id'],row['unit'],row['transform']) for row in _variables(value.get('variables'))]
+    if declarations(original)!=declarations(actual):
+        changed('변수 순서·단위·변환')
+    def model(draft):
+        ref=draft.get('model_source')
+        if ref is not None:return ref
+        source=draft.get('source')
+        if not isinstance(source,dict):return None
+        if 'pde_document_id' in source:
+            return {**{key:value for key,value in source.items() if key!='pde_document_id'},
+                    'kind':'pde','document_id':source['pde_document_id']}
+        return source if source.get('kind') in {'material','pde','simulation','evaluation'} else None
+    if model(training_draft)!=model(actual_draft):
+        changed('저장 모델')

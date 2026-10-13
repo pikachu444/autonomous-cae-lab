@@ -212,3 +212,25 @@ def test_material_binding_reuses_owner_contract_without_calculation(monkeypatch,
     with pytest.raises(ValueError):
         adapter.bind_inputs(original['settings'],{'E':-1.} if law=='linear_elastic' else {'mu':-1.})
     assert original==before
+
+
+
+@pytest.mark.parametrize('change,reason',[
+    (lambda d:d['request']['inputs'].update(backend='other.evaluator'),'평가기'),
+    (lambda d:d['request']['inputs']['settings'].update(scale=2.),'고정 설정'),
+    (lambda d:d['request']['inputs']['variables'][0].update(unit='mm'),'변수'),
+    (lambda d:d['request']['inputs']['variables'][0].update(transform='log',lower=.01),'변수'),
+    (lambda d:d.update(model_source={'document_id':'Mother'}),'저장 모델'),
+])
+def test_confirmation_rejects_changed_frozen_evaluator_conditions(change,reason):
+    from caelab.surrogate_archive import validate_confirmation_request
+    original=request_draft({'purpose':'training','operation':'doe','inputs':{
+        'backend':'test.d6.algebra','settings':{},'variables':variables()},'budget':{'evaluations':3}})
+    actual=deepcopy(original)
+    actual['request'].update(purpose='explicit confirmation',budget={'evaluations':1})
+    actual['request']['inputs']['candidates']=[{'values':{'x':.35}}]
+    validate_confirmation_request(original,actual)
+    change(actual)
+    with pytest.raises(ValueError,match=reason):
+        validate_confirmation_request(original,actual)
+    assert original['request']['inputs']['settings']=={}

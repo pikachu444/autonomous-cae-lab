@@ -78,7 +78,7 @@ def install_algebra(monkeypatch):
         if settings.get('fail') and x>.75:
             return {'execution_status':'FAILED','responses':{},'diagnostics':{'failure_reason':'Declared failure'}}
         return {'execution_status':'SUCCEEDED','responses':{'cost':{
-            'kind':'scalar','value':x*x,'unit':'MPa','component':'scalar','location':'model','reduction':'none'}}}
+            'kind':'scalar','value':settings.get('factor',1)*x*x,'unit':'MPa','component':'scalar','location':'model','reduction':'none'}}}
     monkeypatch.setitem(_registry,'test.d6.ui',Backend('test.d6.ui',('prepared',),lambda:evaluate))
 
 
@@ -400,6 +400,22 @@ def test_saved_prediction_to_explicit_actual_confirmation_and_paired_read(enviro
     wait(app,lambda:not reopened._busy and bool(dialogs),reopened)
     assert dialogs[0][1]=='0.16'
     assert len(wb.manager.list())==jobs
+    assert wb.document_result(original_id,mjob)==original
+    first_actual=deepcopy(actual)
+    # Unapplied edits must not relabel the selected OLD actual execution.
+    reopened._edit_structure(lambda value:value['settings'].update(factor=2.))
+    reopened.compare_prediction()
+    wait(app,lambda:not reopened._busy and len(dialogs)==2,reopened)
+    assert len(wb.manager.list())==jobs
+    changed_job,changed_result=execute(app,wb,reopened)
+    save(app,reopened)
+    assert changed_result['candidates'][0]['responses']['cost']['value']==pytest.approx(.32)
+    reopened.candidates.selectRow(0);app.processEvents()
+    jobs=len(wb.manager.list())
+    reopened.compare_prediction()
+    wait(app,lambda:not reopened._busy and '평가 조건 변경' in reopened.message.text(),reopened)
+    assert len(dialogs)==2 and len(wb.manager.list())==jobs
+    assert wb.document_result(reopened.document['id'],cjob)==first_actual
     assert wb.document_result(original_id,mjob)==original
 
 
