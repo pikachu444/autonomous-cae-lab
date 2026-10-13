@@ -112,6 +112,9 @@ def test_sobol_second_order_exact_rows_and_json_boundary():
     assert result['indices']['S2'][0][0] is None and result['indices']['S2'][1][0] is None
     assert result['second_order_pairs'][0]['first']=='x'
     canonical_hash(result)
+    reordered=deepcopy(table);reordered['variables'].reverse()
+    with pytest.raises(ValueError,match='variable order'):
+        numerical.analyze_sensitivity(plan,reordered,definition())
     broken=deepcopy(table);broken['candidates'][2]['execution_status']='FAILED'
     with pytest.raises(numerical.EvaluationFailed):numerical.analyze_sensitivity(plan,broken,definition())
     with pytest.raises(ValueError,match='identities/order'):numerical.analyze_sensitivity(plan,dict(table,candidates=list(reversed(table['candidates']))),definition())
@@ -162,3 +165,26 @@ def test_retained_training_prediction_confirmation_and_cold_owner(tmp_path,monke
         assert cjob!=qjob and wb.document_result(model['id'],mjob)==expected
     finally:
         assert wb.shutdown()['joined']
+
+
+@pytest.mark.parametrize('options',[{'degree':-1},{'epsilon':0.,'smoothing':1.},{'epsilon':-1.,'smoothing':1.}])
+def test_archive_preserves_supported_native_option_state(options):
+    train,hold=tables()
+    result=surrogate_result(train,hold,definition(),[{'x':.35}],options=options)
+    assert predict(result,[{'x':.35}])['predictions']==result['predictions']
+
+
+def test_confirmation_reads_exact_saved_point_and_preserves_failure(monkeypatch):
+    from caelab.surrogate_archive import confirmation_values
+    train,hold=tables()
+    prediction=surrogate_result(train,hold,definition(),[{'x':.35}])
+    actual=numerical.run_doe(algebra,variables(),candidates=[{'x':.35}])['candidates'][0]
+    monkeypatch.setattr(numerical.Surrogate,'predict',lambda *a,**k:pytest.fail('Hidden prediction in reader'))
+    row=confirmation_values(prediction,actual,{'x':.35})
+    assert row['actual']==pytest.approx(.35**2)
+    assert row['difference']==pytest.approx(row['actual']-row['predicted'])
+    failed=deepcopy(actual);failed.update(execution_status='FAILED',responses={},failure_reason='Native failure')
+    row=confirmation_values(prediction,failed,{'x':.35})
+    assert row['actual'] is None and row['difference'] is None and row['reason']
+    with pytest.raises(ValueError,match='coordinates differ'):
+        confirmation_values(prediction,dict(actual,values={'x':.36}),{'x':.35})

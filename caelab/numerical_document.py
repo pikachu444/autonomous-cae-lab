@@ -21,7 +21,7 @@ def request_draft(request=None, *, source=None):
 
 def request_diagnostics(draft):
     try:
-        if set(draft) - {'method_inputs'} != {'mode', 'request', 'source'}:
+        if set(draft) - {'method_inputs', 'model_source'} != {'mode', 'request', 'source'}:
             raise ValueError('Request Plan requires mode, editable request and source reference')
         if 'method_inputs' in draft:
             from .assist.experts import _PLAN_INPUTS
@@ -40,6 +40,9 @@ def request_diagnostics(draft):
         validate_plan_request(request)
         from .research_operations import validate_result_refs
         validate_result_refs(request['operation'], request['inputs'])
+        if 'model_source' in draft:
+            from .evaluation_definition import check_reference
+            check_reference(draft['model_source'],{'material':'M','pde':'Q','simulation':'V','evaluation':'E'})
         source = draft['source']
         if source is not None:
             if isinstance(source, dict) and 'document_id' in source:
@@ -394,6 +397,14 @@ class NumericalDocuments(MaterialDocuments):
         if draft.get('mode') == 'request':
             if self.prepare_request is None:
                 raise ValueError('The shared numerical request service is unavailable; the Plan remains editable')
+            model_source=draft.get('model_source')
+            if model_source is not None:
+                from .evaluation_definition import check_reference,verify_reference
+                check_reference(model_source,{'material':'M','pde':'Q','simulation':'V','evaluation':'E'})
+                if self.resolve_source_revision is None:
+                    raise ValueError('The saved model source resolver is unavailable')
+                model_original=self.resolve_source_revision(model_source['document_id'],model_source['saved_revision'])
+                verify_reference(model_source,model_original)
             source = draft.get('source')
             if source is not None and 'document_id' in source:
                 if self.resolve_source_revision is None:

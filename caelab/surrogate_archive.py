@@ -49,7 +49,7 @@ def restore(value):
     if (y.ndim != 2 or y.shape[1] != dimensions or not len(y)
             or d.shape != (len(y),1) or powers.ndim != 2 or powers.shape[1] != dimensions
             or np.any(powers < 0) or not np.array_equal(powers, np.floor(powers))
-            or arrays['smoothing'].shape != (len(y),) or np.any(arrays['smoothing'] < 0)
+            or arrays['smoothing'].shape != (len(y),)
             or arrays['shift'].shape != (dimensions,) or arrays['scale'].shape != (dimensions,)
             or np.any(arrays['scale'] <= 0)
             or arrays['coefficients'].shape != (len(y)+len(powers),1)):
@@ -59,7 +59,7 @@ def restore(value):
         raise ValueError('Unknown stored RBF kernel')
     epsilon = float(state['epsilon'])
     support = np.asarray(value['support'], dtype=float)
-    if (not np.isfinite(epsilon) or epsilon <= 0 or support.shape != (2,dimensions)
+    if (not np.isfinite(epsilon) or support.shape != (2,dimensions)
             or not np.all(np.isfinite(support)) or np.any(support[0] > support[1])):
         raise ValueError('Invalid RBF support or shape parameter')
     # Explicit numeric conversion above prevents deserializing code or objects.
@@ -78,3 +78,29 @@ def predict(retained, points):
         'model_artifact': deepcopy(retained['model_artifact']),
         'training_performed': False, 'solver_execution': 'NOT_PERFORMED',
         'limitations': ['Predictions use stored coefficients; they are not actual evaluator results.']}
+
+
+def confirmation_values(prediction, actual, point):
+    """Compare already retained records, never predict or execute in a reader."""
+    from .numerical import _scalar, EvaluationFailed
+    matches=[row for row in prediction.get('predictions',[]) if row.get('values')==point]
+    if len(matches)!=1 or matches[0].get('execution_status')!='PREDICTED':
+        raise ValueError('Select one exact retained prediction at the confirmation point')
+    if actual.get('values')!=point:
+        raise ValueError('Actual evaluation coordinates differ from the predicted point')
+    definition=deepcopy(prediction.get('response',{}))
+    if not definition:
+        raise ValueError('The stored prediction lacks its physical response definition')
+    response=matches[0].get('responses',{}).get(definition['response'],{})
+    predicted=response.get('value')
+    if (response.get('unit')!=definition['unit'] or type(predicted) not in (int,float)
+            or not np.isfinite(predicted)):
+        raise ValueError('The retained prediction value or unit is unavailable')
+    reason=''
+    try:
+        value=_scalar(actual,definition)
+    except (EvaluationFailed,ValueError,KeyError,TypeError) as error:
+        value=None;reason=str(error)
+    return {'definition':definition,'values':deepcopy(point),'predicted':predicted,
+            'actual':value,'difference':value-predicted if value is not None else None,
+            'actual_status':actual.get('execution_status','UNKNOWN'),'reason':reason}

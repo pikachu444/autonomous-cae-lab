@@ -28,7 +28,7 @@ def _run(wb, plan_id, job_id):
         raise ValueError('Domain adoption requires an actual submitted Request Plan')
     if run.get('input_sha256') != canonical_hash(draft):
         raise ValueError('The frozen submitted Plan input changed')
-    source = draft.get('source')
+    source = draft.get('model_source') or draft.get('source')
     if isinstance(source, dict) and source.get('kind') == 'study':
         raise ValueError('Study evidence does not declare an original domain adoption target; bind an explicit Simulation/Evaluation source')
     check_reference(source, {'simulation': 'V', 'evaluation': 'E', 'material': 'M'})

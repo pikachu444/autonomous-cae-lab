@@ -188,7 +188,7 @@ class DesktopLinks:
         run = next((row for row in plan.get('runs', []) if row['job_id'] == check_id(job_id)), None)
         if run is None:
             raise ValueError('The selected result does not belong to this Numerical Plan')
-        source = run.get('draft', {}).get('source')
+        source = run.get('draft', {}).get('model_source') or run.get('draft', {}).get('source')
         if not isinstance(source, dict):
             raise ValueError('This Plan has no explicitly bound original PDE document')
         target = source.get('pde_document_id') or (source.get('document_id') if source.get('kind') == 'pde' else None)

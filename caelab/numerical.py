@@ -1407,6 +1407,12 @@ def analyze_sensitivity(plan, table, response):
     sampling = plan.get('sampling', {})
     if sampling.get('method') != 'SALib.sobol':
         raise ValueError("Sobol analysis requires its matched SALib sampling plan, never ordinary LHS")
+    planned_variables = _variables(plan['variables'])
+    evaluated_variables = _variables(table['variables'])
+    identity = lambda rows: [(v['id'],v['unit'],v['lower'],v['upper'],v['transform']) for v in rows]
+    if (identity(planned_variables) != identity(evaluated_variables)
+            or sampling.get('problem',{}).get('names') != [v['id'] for v in planned_variables]):
+        raise ValueError("Sensitivity variable order, units and bounds differ from the sampling plan")
     expected, rows = plan['candidates'], table['candidates']
     if len(expected) != len(rows) or any(a['candidate_id'] != b['candidate_id'] or a['values'] != b['values'] for a, b in zip(expected, rows)):
         raise ValueError("Response identities/order/values differ from the sensitivity sampling plan")

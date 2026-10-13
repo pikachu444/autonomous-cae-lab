@@ -7,7 +7,7 @@ from copy import deepcopy
 import math
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QHBoxLayout,
+from PySide6.QtWidgets import (QStyledItemDelegate, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout,
     QLabel, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 from caelab.storage import canonical_hash
 
@@ -18,6 +18,68 @@ ROLES = {'table':'분석 자료','plan':'Sobol 표본','training':'학습 자료
 STATE = {'SUCCEEDED':'계산됨','PARTIAL_FAILURE':'일부 실패','FAILED':'실패','REJECTED':'실행 거절',
          'CANCELLED':'취소됨','PREDICTED':'예측','NOT_EVALUATED':'미평가'}
 SOURCES = ('ASSUMED','MEASURED_REPORTED','PUBLISHED_REFERENCE','SYNTHETIC')
+
+
+CHOICE_LABELS = {
+    'INDEPENDENT_USER_DECLARED':'독립 분포', 'CORRELATED_NORMAL_USER_DECLARED':'상관 정규분포',
+    'ASSUMED':'사용자 가정', 'MEASURED_REPORTED':'측정 자료', 'PUBLISHED_REFERENCE':'공개 문헌', 'SYNTHETIC':'합성 예제',
+    'summary':'요약 응답', 'all':'전체 응답', 'linear':'선형', 'log':'로그',
+    'fit':'피팅', 'holdout':'검증', 'minimize':'최소화', 'maximize':'최대화',
+    'none':'단일 값', 'max':'최댓값', 'min':'최솟값', 'mean':'평균', 'final':'마지막 증분', 'abs_max':'절댓값 최대',
+    'uniform':'균등분포', 'normal':'정규분포', 'truncnorm':'절단 정규분포', 'lognormal':'로그정규분포',
+    'least_squares':'최소제곱', 'differential_evolution':'차분 진화',
+    'thin_plate_spline':'박판 스플라인', 'cubic':'3차', 'quintic':'5차',
+    'multiquadric':'다중 이차', 'inverse_multiquadric':'역 다중 이차',
+    'inverse_quadratic':'역 이차', 'gaussian':'가우시안',
+}
+
+
+def choice_options(choices):
+    """(Visible label, canonical value); unknown values remain editable text."""
+    rows=[]
+    for value in choices:
+        if isinstance(value,(tuple,list)) and len(value)==2:
+            rows.append((str(value[0]),deepcopy(value[1])))
+        elif type(value) is bool:
+            rows.append(('포함' if value else '포함하지 않음',value))
+        else:rows.append((CHOICE_LABELS.get(value,str(value)),value))
+    return rows
+
+
+def choice_label(value,choices):
+    for label,canonical in choice_options(choices):
+        if type(value) is type(canonical) and value==canonical:return label
+    from .request_plan_window import value_text
+    return '' if value is None else value_text(value)
+
+
+def choice_value(text,choices):
+    for label,canonical in choice_options(choices):
+        if text==label:return deepcopy(canonical)
+    return text
+
+
+def objective_label(row):
+    if not isinstance(row,dict):return '응답 미지정'
+    response=str(row.get('response') or '응답 미지정')
+    component=row.get('component')
+    if component and component!='scalar':response+=' '+str(component)
+    return response+' ['+str(row.get('unit') or '단위 미지정')+'] '+CHOICE_LABELS.get(row.get('direction','minimize'),str(row.get('direction')))
+
+
+def display_number(value):
+    if value is None:return '—'
+    if type(value) is bool:return '예' if value else '아니요'
+    if type(value) in (int,float):return format(value,'.6g') if math.isfinite(value) else '사용 불가'
+    return str(value)
+
+
+class ResultDisplay(QStyledItemDelegate):
+    """Read-only paint formatting. Exact item data, tooltips and stored values remain."""
+    def displayText(self,value,locale):
+        if str(value)=='null':return '—'
+        parsed=number(str(value))
+        return display_number(parsed)
 
 
 def number(text):
@@ -59,9 +121,10 @@ class MethodDialog(QDialog):
             self.tabs.addTab(item,title);self.tables.append(item)
             return item
         def cell(t,row,col,text,path=None,numeric=False,choices=()):
-            item=QTableWidgetItem(value_text(text))
+            shown=choice_label(text,choices) if choices else value_text(text)
+            item=QTableWidgetItem(shown)
             item.setToolTip(value_text(text))
-            item.setData(DATA,dict(path=path,numeric=numeric,choices=choices,shown=value_text(text)))
+            item.setData(DATA,dict(path=path,numeric=numeric,choices=choices,shown=shown))
             if path is None:item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             t.setItem(row,col,item)
         if operation=='uq':
@@ -83,6 +146,13 @@ class MethodDialog(QDialog):
             current=value.get('correlation',{})
             current=current if isinstance(current,dict) else {}
             raw=current.get('matrix',[])
+            if current and current.get('variables')!=self.names:
+                # Do not relabel an AB coefficient as AC after removing/reordering B.
+                # Leave the original invalid declaration untouched until explicit
+                # removal or a complete new matrix is entered.
+                raw=[]
+                warning=QLabel('변수가 바뀌었습니다. 기존 상관은 유지되며 실행이 차단됩니다. 새 행렬을 입력하거나 상관을 제거하세요.')
+                warning.setWordWrap(True);layout.addWidget(warning)
             for i,name in enumerate(self.names):
                 cell(matrix,i,0,name)
                 for j in range(len(self.names)):
@@ -163,7 +233,8 @@ class MethodDialog(QDialog):
                     item=t.item(i,j);meta=item.data(DATA) or {}
                     if meta.get('path') and item.text()!=meta['shown']:
                         # Empty text is retained if edited; invalid drafts remain repairable.
-                        patch(result,meta['path'],number(item.text()) if meta['numeric'] else item.text())
+                        parsed=choice_value(item.text(),meta.get('choices',()))
+                        patch(result,meta['path'],number(parsed) if meta['numeric'] and isinstance(parsed,str) else parsed)
                         if meta['path'][0]=='distributions':
                             law=result['distributions'][meta['path'][1]]
                             if 'unit' not in law:law['unit']=t.item(i,1).text()
@@ -214,9 +285,11 @@ def method_settings(operation,value):
         add('분포 근거',('source','origin'),'',False,SOURCES)
         add('자료 또는 가정',('source','reference'),'')
     elif operation=='sample_sensitivity':
-        add('2차 효과 포함',('second_order',),False,False,('false','true'))
+        add('2차 효과 포함',('second_order',),False,False,(False,True))
     elif operation=='epsilon':
-        add('주 목표 행 (0부터)',('primary_index',),0,True)
+        objectives=value.get('objectives',[])
+        choices=tuple((objective_label(row),index) for index,row in enumerate(objectives)) if isinstance(objectives,list) else ()
+        add('주 목표',('primary_index',),0,True,choices)
         add('전체 평가 예산',('total_evaluation_budget',),1000,True)
         add('세대 수',('options','max_generations'),40,True)
         add('집단 크기',('options','population_size'),12,True)
@@ -248,7 +321,7 @@ def refresh_extra(window,value,operation):
     summary=''
     if operation=='uq':
         laws=value.get('distributions',{})
-        if isinstance(laws,dict):summary=', '.join(name+': '+str(law.get('distribution','미지정')) for name,law in laws.items() if isinstance(law,dict))
+        if isinstance(laws,dict):summary=', '.join(name+': '+CHOICE_LABELS.get(law.get('distribution'),str(law.get('distribution','미지정'))) for name,law in laws.items() if isinstance(law,dict))
         summary=summary or '변수별 분포를 지정하세요.'
     elif operation=='epsilon':
         grid=value.get('threshold_grid',[])
@@ -304,9 +377,9 @@ def plot(window,result,inputs):
         else:empty('이 응답의 유효 표본이 없습니다.')
         window.result_summary.setText('전체 '+str(len(rows))+' / 유효 '+str(stat.get('valid_count',0))+
             ' / 응답 사용 불가 '+str(stat.get('failed_count',0))+
-            ' (전체 중 '+str(stat.get('failure_fraction','없음'))+')'+
-            '  |  q05 / q50 / q95: '+' / '.join(str(stat.get('quantiles',{}).get(k,'없음')) for k in ('q05','q50','q95'))+
-            '  |  유효 표본의 기준 초과 비율: '+str(stat.get('exceedance_fraction_valid','없음')))
+            ' (전체 중 '+display_number(stat.get('failure_fraction'))+')'+
+            '  |  q05 / q50 / q95: '+' / '.join(display_number(stat.get('quantiles',{}).get(k)) for k in ('q05','q50','q95'))+
+            '  |  유효 표본의 기준 초과 비율: '+display_number(stat.get('exceedance_fraction_valid')))
     elif kind=='epsilon_optimization':
         definitions=inputs.get('objectives',[])
         archive=set(result.get('pareto',{}).get('nondominated_ids',[]))
@@ -362,7 +435,7 @@ def plot(window,result,inputs):
             else:empty('예측할 점을 지정하고 명시적으로 실행하세요.')
             ax.set_xlabel('예측점 번호');ax.set_ylabel('예측 ['+str(validation.get('unit',''))+']')
         excluded=validation.get('exclusions',{})
-        window.result_summary.setText('검증 RMSE '+str(validation.get('rmse','없음'))+' ['+str(validation.get('unit',''))+']'+
+        window.result_summary.setText('검증 RMSE '+display_number(validation.get('rmse'))+' ['+str(validation.get('unit',''))+']'+
             ' / 제외: 학습 '+str(len(excluded.get('training',[])))+', 검증 '+str(len(excluded.get('holdout',[])))+
             ' / 실제 해석 미수행')
     elif result.get('sensitivity'):
@@ -379,3 +452,63 @@ def plot(window,result,inputs):
     else:
         window.figure.delaxes(ax);return False
     return True
+
+
+class ConfirmationDialog(QDialog):
+    """Two retained values at one exact point; reading cannot create a job."""
+    def __init__(self,parent,record):
+        super().__init__(parent)
+        from .request_plan_window import value_text
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+        self.setWindowTitle('예측과 실제 평가')
+        self.resize(780,560)
+        layout=QVBoxLayout(self)
+        definition=record['definition']
+        layout.addWidget(QLabel(str(definition['response'])+' ['+str(definition['unit'])+']'))
+        table=QTableWidget(3,2)
+        table.setHorizontalHeaderLabels(['값','결과'])
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        for i,(label,key) in enumerate((('저장 예측','predicted'),('실제 평가','actual'),('실제 − 예측','difference'))):
+            table.setItem(i,0,QTableWidgetItem(label))
+            cell=QTableWidgetItem('사용 불가' if record[key] is None else display_number(record[key]))
+            cell.setData(DATA,deepcopy(record[key]));cell.setToolTip(value_text(record[key]))
+            table.setItem(i,1,cell)
+        table.resizeColumnsToContents();table.setMaximumHeight(150);layout.addWidget(table)
+        figure=Figure(figsize=(6,3));canvas=FigureCanvasQTAgg(figure);layout.addWidget(canvas,1)
+        ax=figure.add_subplot(111)
+        ax.scatter([0],[record['predicted']],marker='x',label='저장 예측')
+        if record['actual'] is not None:ax.scatter([0],[record['actual']],marker='o',facecolors='none',edgecolors='#276b9d',label='실제 평가')
+        ax.set_xticks([0],['같은 좌표']);ax.set_ylabel('['+definition['unit']+']');ax.legend()
+        figure.tight_layout()
+        if record['reason']:
+            reason=QLabel(record['reason']);reason.setWordWrap(True);layout.addWidget(reason)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject);layout.addWidget(buttons)
+
+
+def remap_thresholds(before,after):
+    """Keep physical objective identity when the primary/rows change in a sheet."""
+    old=before.get('objectives',[])
+    new=after.get('objectives',[])
+    oi=before.get('primary_index',0)
+    ni=after.get('primary_index',0)
+    if old==new and oi==ni:return
+    if not isinstance(old,list) or not isinstance(new,list):return
+    valid_old=type(oi) is int and 0<=oi<len(old)
+    if old!=new and oi==ni and valid_old:
+        original=canonical_hash(old[oi])
+        matches=[i for i,row in enumerate(new) if canonical_hash(row)==original]
+        ni=matches[0] if len(matches)==1 else ''
+        after['primary_index']=ni
+    # A temporarily invalid primary cannot safely name any existing secondary.
+    old_grid=before.get('threshold_grid',[])
+    secondary=[row for i,row in enumerate(old) if i!=oi]
+    mapping={}
+    if valid_old and isinstance(old_grid,list):
+        for row,values in zip(secondary,old_grid):
+            key=canonical_hash(row)
+            if key in mapping:mapping[key]=None
+            else:mapping[key]=deepcopy(values)
+    after['threshold_grid']=[deepcopy(mapping.get(canonical_hash(row)) or [])
+                            for i,row in enumerate(new) if i!=ni]

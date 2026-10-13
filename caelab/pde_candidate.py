@@ -80,7 +80,7 @@ def prepare_candidate(run, result, candidate_id, source_document):
         raise ValueError('PDE candidate adoption requires a submitted Request Plan')
     if 'input_sha256' in run and run['input_sha256'] != canonical_hash(plan):
         raise ValueError('The retained submitted Plan input changed')
-    reference = _original_reference(plan.get('source'), source_document)
+    reference = _original_reference(plan.get('model_source') or plan.get('source'), source_document)
     request = plan.get('request')
     if not isinstance(request, dict) or request.get('operation') not in _KINDS:
         raise ValueError('PDE candidates require doe, fit, optimize, uq or epsilon')

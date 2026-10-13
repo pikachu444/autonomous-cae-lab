@@ -12,7 +12,7 @@ import uuid
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
-    QInputDialog, QLabel, QLineEdit, QPushButton, QPlainTextEdit, QSplitter,
+    QInputDialog, QLabel, QLineEdit, QPushButton, QPlainTextEdit, QSplitter, QSizePolicy,
     QScrollArea, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QHeaderView, QTabWidget, QToolBar, QTreeWidget,
     QTreeWidgetItem, QVBoxLayout, QWidget)
 
@@ -87,7 +87,8 @@ class _WorksheetDelegate(QStyledItemDelegate):
         if binding.get('choices'):
             editor = QComboBox(parent)
             editor.setEditable(True)  # Retain an existing unsupported value for repair.
-            editor.addItems(binding['choices'])
+            from .numerical_methods import choice_options
+            for label,value in choice_options(binding['choices']):editor.addItem(label,value)
             return editor
         return QLineEdit(parent)
 
@@ -100,6 +101,7 @@ class _WorksheetDelegate(QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         text = editor.currentText() if isinstance(editor, QComboBox) else editor.text()
+        # The visible label is decoded by the sheet/local dialog, not stored as schema data.
         model.setData(index, text, Qt.ItemDataRole.EditRole)
 
 
@@ -158,6 +160,8 @@ class RequestPlanWindow(NumericalWindow):
         self.statusBar().addPermanentWidget(self.identity)
         root = QWidget()
         outer = QVBoxLayout(root)
+        outer.setContentsMargins(6,6,6,6)
+        outer.setSpacing(4)
         self.message = QLabel()
         self.message.setWordWrap(True)
         outer.addWidget(self.message)
@@ -196,6 +200,9 @@ class RequestPlanWindow(NumericalWindow):
         self.model_button = QPushButton('모델 선택…')
         self.model_button.clicked.connect(self.choose_model_document)
         model_row.addWidget(self.model_button)
+        self.model_open_button=QPushButton('모델 열기')
+        self.model_open_button.clicked.connect(self.open_model_source)
+        model_row.addWidget(self.model_open_button)
         form.addRow('계산 모델', model_row)
         form.addRow('평가 횟수', self.evaluations)
         inputs_layout.addLayout(form)
@@ -320,14 +327,19 @@ class RequestPlanWindow(NumericalWindow):
         source_row.addWidget(self.source_context, 1)
         source_row.addWidget(self.source_button)
         inputs_layout.addLayout(source_row)
-        self.work_pages.addTab(self.editor, '계획')
+        self.plan_page=QScrollArea()
+        self.plan_page.setWidgetResizable(True)
+        self.plan_page.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.plan_page.setWidget(self.editor)
+        self.work_pages.addTab(self.plan_page, '계획')
         right = self.results_panel = QWidget()
         right.setMinimumWidth(0)
         result_layout = QVBoxLayout(right)
-        result_layout.addWidget(QLabel('계산 이력'))
+        result_layout.setContentsMargins(6,6,6,6)
+        result_layout.setSpacing(4)
         self.runs = readonly_table(['계산', '상태', '계산 입력', '현재 계획과 관계'])
         self.runs.setColumnHidden(2, True)
-        self.runs.setMaximumHeight(115)
+        self.runs.setFixedHeight(64)
         self.runs.itemSelectionChanged.connect(self._selection_changed)
         result_layout.addWidget(self.runs)
         actions = QHBoxLayout()
@@ -357,9 +369,14 @@ class RequestPlanWindow(NumericalWindow):
         result_layout.addLayout(actions)
         self.tabs = QTabWidget()
         self.candidates = readonly_table(['후보', '실행 상태', '변수 값', '목적값', '조건 충족', '실패 이유'])
+        from .numerical_methods import ResultDisplay
+        self.candidates.setItemDelegate(ResultDisplay(self.candidates))
         self.candidates.itemSelectionChanged.connect(self._candidate_changed)
         candidate_panel = QWidget()
         candidate_layout = QVBoxLayout(candidate_panel)
+        candidate_layout.setContentsMargins(2,2,2,2)
+        candidate_layout.setSpacing(2)
+        self.candidates.setMinimumHeight(70)
         self.tabs.addTab(candidate_panel, '계산 결과')
         self.responses = QTreeWidget()
         self.responses.setHeaderLabels(['응답 정보', '계산값'])
@@ -368,16 +385,25 @@ class RequestPlanWindow(NumericalWindow):
         configure_plot_fonts()
         self.figure = Figure(figsize=(7, 4))
         self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas.setMinimumHeight(180)
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
         plot_panel = QWidget()
         plot_layout = QVBoxLayout(plot_panel)
+        plot_layout.setContentsMargins(2,2,2,2)
+        plot_layout.setSpacing(2)
         self.plot_response = QComboBox()
         self.plot_response.currentIndexChanged.connect(self._plot_selected_result)
-        plot_layout.addWidget(self.plot_response)
+        plot_controls=QHBoxLayout()
+        plot_controls.addWidget(self.plot_response,1)
+        plot_layout.addLayout(plot_controls)
         plot_layout.addWidget(self.canvas)
-        result_split = QSplitter(Qt.Orientation.Vertical)
+        result_split = self.result_splitter = QSplitter(Qt.Orientation.Vertical)
+        result_split.setChildrenCollapsible(False)
         result_split.addWidget(self.candidates)
         result_split.addWidget(plot_panel)
-        result_split.setSizes([260, 380])
+        result_split.setStretchFactor(0,1)
+        result_split.setStretchFactor(1,3)
+        result_split.setSizes([130,390])
         candidate_layout.addWidget(result_split)
         self.canvas.mpl_connect('pick_event', self._candidate_plot_picked)
         self.details = QPlainTextEdit()
@@ -422,7 +448,7 @@ class RequestPlanWindow(NumericalWindow):
         self.result_summary = QLabel()
         self.result_summary.setWordWrap(True)
         self.result_summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        result_layout.addWidget(self.method_response)
+        plot_controls.addWidget(self.method_response,1)
         result_layout.addWidget(self.result_summary)
         workflow_row = QHBoxLayout()
         self.next_method = QComboBox()
@@ -434,17 +460,23 @@ class RequestPlanWindow(NumericalWindow):
         self.next_method_button.clicked.connect(self.plan_from_result)
         workflow_row.addWidget(self.next_method)
         workflow_row.addWidget(self.next_method_button)
+        self.confirmation_button=QPushButton('예측과 실제 비교…')
+        self.confirmation_button.clicked.connect(self.compare_prediction)
+        workflow_row.addWidget(self.confirmation_button)
         workflow_row.addStretch()
         result_layout.addLayout(workflow_row)
         result_layout.addWidget(self.tabs, 1)
         self.candidate_results_button = QPushButton('선택 후보 결과 열기')
         self.candidate_results_button.setObjectName('openCandidateStageResults')
         self.candidate_results_button.clicked.connect(self.open_candidate_results)
-        result_layout.addWidget(self.candidate_results_button)
+        candidate_commands=QHBoxLayout()
+        candidate_commands.addWidget(self.candidate_results_button)
         self.pde_adopt_button = QPushButton('Review / adopt candidate to PDE…')
         self.pde_adopt_button.setObjectName('reviewPDECandidate')
         self.pde_adopt_button.clicked.connect(self.review_pde_candidate)
-        result_layout.addWidget(self.pde_adopt_button)
+        candidate_commands.addWidget(self.pde_adopt_button)
+        candidate_commands.addStretch()
+        result_layout.addLayout(candidate_commands)
         self._build_adoption_receipt_ui(result_layout)
         self.work_pages.addTab(right, '결과')
         self.request_splitter.hide()
@@ -530,6 +562,7 @@ class RequestPlanWindow(NumericalWindow):
                 return
             budget = max(1,len(result.get('candidates',[]))) if action == 'doe' else 1
             draft = request_draft({'purpose':title,'operation':operation,'inputs':inputs,'budget':{'evaluations':budget}},source=source)
+            if frozen.get('model_source'):draft['model_source']=deepcopy(frozen['model_source'])
             self._leave(lambda:self.open_document(title=title,draft=draft))
         self._call(prepare,ready,relevant=relevant)
 
@@ -571,9 +604,33 @@ class RequestPlanWindow(NumericalWindow):
             inputs['candidates']=[{'candidate_id':'Confirmation','values':deepcopy(chosen['values'])}]
             draft=request_draft({'purpose':'대리 예측 실제 확인','operation':'doe','inputs':inputs,
                                  'budget':{'evaluations':1}},source=deepcopy(original.get('source')))
+            if original.get('model_source'):draft['model_source']=deepcopy(original['model_source'])
             draft['method_inputs']={'surrogate':{'result_refs':{'model':reference},'points':[deepcopy(chosen['values'])]}}
             self._leave(lambda:self.open_document(title='대리 예측 실제 확인',draft=draft))
         self._call(read_model,received,relevant=relevant)
+
+    def compare_prediction(self):
+        candidate=deepcopy(self._selected_actual_candidate())
+        if not candidate or self._busy or self._callbacks:return
+        run=next((row for row in self.document['runs'] if row['job_id']==self.selected_job()),{})
+        link=run.get('draft',{}).get('method_inputs',{}).get('surrogate',{})
+        ref=deepcopy(link.get('result_refs',{}).get('model'))
+        if not ref:return
+        identity=(self.document['id'],self.document['session_id'],self.selected_job(),self._candidate_selection_serial)
+        def relevant():
+            return self.document and identity==(self.document['id'],self.document['session_id'],
+                self.selected_job(),self._candidate_selection_serial)
+        def read():
+            from caelab.surrogate_archive import confirmation_values
+            if self.client.document_result_reference(ref['document_id'],ref['job_id'])!=ref:
+                raise ValueError('저장 예측의 참조가 달라졌습니다.')
+            prediction=self.client.document_result(ref['document_id'],ref['job_id'])
+            return confirmation_values(prediction,candidate,candidate['values'])
+        def received(value):
+            from .numerical_methods import ConfirmationDialog
+            dialog=ConfirmationDialog(self,value)
+            dialog.exec()
+        self._call(read,received,relevant=relevant)
 
     def _method_result_view(self, result):
         from .numerical_methods import STATE
@@ -605,6 +662,29 @@ class RequestPlanWindow(NumericalWindow):
             values += [objective,'범위 밖' if row.get('out_of_range') else '충족' if row.get('feasible') is True else '위반' if row.get('feasible') is False else '미판정',row.get('failure_reason','')]
             for j,value in enumerate(values):self._set_cell(self.candidates,i,j,value,False)
         if 0<=picked<len(rows):self.candidates.selectRow(picked)
+        if result.get('kind')=='sensitivity_plan':
+            dimensions=len(variables);second=result.get('sampling',{}).get('second_order',False)
+            stride=2*dimensions+2 if second else dimensions+2
+            col=self.candidates.columnCount();self.candidates.setColumnCount(col+1)
+            self.candidates.setHorizontalHeaderItem(col,QTableWidgetItem('matched 표본 역할'))
+            for i in range(len(rows)):
+                offset=i%stride
+                role='A' if offset==0 else 'B' if offset==stride-1 else (
+                    'AB '+names[offset-1] if offset<=dimensions else 'BA '+names[offset-dimensions-1])
+                self._set_cell(self.candidates,i,col,str(i//stride+1)+' / '+role,False)
+        elif result.get('method')=='SALib.sobol':
+            names=result.get('sampling',{}).get('problem',{}).get('names',[])
+            indices=result.get('indices',{})
+            pairs=result.get('second_order_pairs',[])
+            self.candidates.setColumnCount(5)
+            self.candidates.setHorizontalHeaderLabels(['변수 또는 변수쌍','1차 효과 / 2차 효과','신뢰구간 폭','총효과','신뢰구간 폭'])
+            self.candidates.setRowCount(len(names)+len(pairs))
+            for i,name in enumerate(names):
+                values=[name]+[(indices.get(key,[])[i] if i<len(indices.get(key,[])) else None) for key in ('S1','S1_conf','ST','ST_conf')]
+                for j,value in enumerate(values):self._set_cell(self.candidates,i,j,value,False)
+            for i,row in enumerate(pairs,len(names)):
+                for j,value in enumerate((row['first']+' / '+row['second'],row['value'],row['confidence'],None,None)):
+                    self._set_cell(self.candidates,i,j,value,False)
         self.candidates.resizeColumnsToContents()
         self.candidates.blockSignals(False)
         prior=self.method_response.currentData()
@@ -638,7 +718,7 @@ class RequestPlanWindow(NumericalWindow):
         inputs = request.get('inputs', {}) if isinstance(request, dict) else {}
         inputs = inputs if isinstance(inputs, dict) else {}
         self.source.setPlainText(json.dumps({'source': draft.get('source'),
-            'result_refs': inputs.get('result_refs', {})},
+            'model_source':draft.get('model_source'),'result_refs': inputs.get('result_refs', {})},
             ensure_ascii=False, indent=2))
         self.source_dialog.show()
         self.source_dialog.raise_()
@@ -685,7 +765,8 @@ class RequestPlanWindow(NumericalWindow):
         return table
 
     def _sheet_cell(self, table, row, column, value, path=None, *, numeric=False, choices=(), entry=None, label=None):
-        text = label if label is not None else '' if value is None else value_text(value)
+        from .numerical_methods import choice_label
+        text = label if label is not None else choice_label(value,choices)
         item = QTableWidgetItem(text)
         item.setToolTip(text)
         item.setData(DATA, {'path': path, 'numeric': numeric, 'choices': list(choices),
@@ -700,6 +781,7 @@ class RequestPlanWindow(NumericalWindow):
         if root is None or self._sheet_populating:
             return
         value = self._input_value(root)
+        self._worksheet_basis=deepcopy(value)
         # Read the CURRENT typed buffer. These are display fallbacks only:
         # a later manual response selection wins, and no draft leaf is rewritten.
         settings=value.get('settings',{})
@@ -846,25 +928,38 @@ class RequestPlanWindow(NumericalWindow):
                 if isinstance(parent, dict) and key not in parent:
                     parent[key] = {}
                 parent = parent[key]
-            parent[path[-1]] = (text == 'true' if path == ('second_order',) and text in {'true','false'}
-                                  else numeric_text(text) if binding.get('numeric') else text)
+            from .numerical_methods import choice_value
+            parsed=choice_value(text,binding.get('choices',()))
+            # Programmatic/raw edits retain the same bool contract as the advanced editor.
+            if path==('second_order',) and parsed in ('true','false'):parsed=parsed=='true'
+            parent[path[-1]] = numeric_text(parsed) if binding.get('numeric') and isinstance(parsed,str) else parsed
         # The tree remains the single authoritative buffer. Do not clear the
         # live table editor during its delegate commit or round partial text.
         value = self._input_value(self.inputs.topLevelItem(0))
         try:
+            before=deepcopy(value)
             change(value)
+            if self.operation.currentData()=='epsilon':
+                from .numerical_methods import remap_thresholds
+                remap_thresholds(before,value)
         except (ValueError, TypeError, KeyError, IndexError) as error:
             self.message.setText('Repair the input structure in Model / advanced: ' + str(error))
             return
         self._sheet_populating = True
         try:
             self._populate_inputs(value)
-            binding['shown'] = text
+            from .numerical_methods import choice_label
+            current=self._at_path(value,path)
+            shown=choice_label(current,binding.get('choices',()))
+            binding['shown'] = shown
             item.setData(DATA, binding)
-            item.setToolTip(text)
+            item.setText(shown)
+            item.setToolTip(value_text(current))
         finally:
             self._sheet_populating = False
         self._edited()
+        if self.operation.currentData()=='epsilon' and (path==('primary_index',) or path[0]=='objectives'):
+            QTimer.singleShot(0,self._refresh_worksheet)
 
     def _remove_sheet_entries(self, table):
         entries = [table.item(index.row(), 0).data(DATA).get('entry')
@@ -909,14 +1004,9 @@ class RequestPlanWindow(NumericalWindow):
                 ' as the evaluator? Existing variable bounds, responses and method options will remain for review.')
             if answer != QMessageBox.StandardButton.Yes or not relevant():
                 return
-            self._worksheet_labels.clear()
-            self._worksheet_responses.clear()
-            # An independent Plan records its selected model source; existing
-            # Expert/Study/other origin remains its own return destination.
-            if self._request_buffer.get('source') is None:
-                self._request_buffer['source'] = {'document_id':document['id'],'kind':document['kind'],
-                    'saved_revision':document['saved_revision'],'input_revision':document['input_revision'],
-                    'input_sha256':canonical_hash(document['draft'])}
+            model_source={'document_id':document['id'],'kind':document['kind'],
+                'saved_revision':document['saved_revision'],'input_revision':document['input_revision'],
+                'input_sha256':canonical_hash(document['draft'])}
             if self.operation.currentData() == 'fit':
                 trials = self.edited_draft()['request']['inputs'].get('experiments', [])
                 if not isinstance(trials, list) or not trials or any(not isinstance(row, dict) for row in trials):
@@ -932,9 +1022,9 @@ class RequestPlanWindow(NumericalWindow):
                 def bind_model(value):
                     value['backend'] = inputs['backend']
                     value['experiments'][selected]['settings'] = deepcopy(inputs['settings'])
-                self._edit_structure(bind_model)
+                self._edit_structure(bind_model, model_source=model_source)
             else:
-                self._edit_structure(lambda value: value.update(backend=inputs['backend'], settings=deepcopy(inputs['settings'])))
+                self._edit_structure(lambda value: value.update(backend=inputs['backend'], settings=deepcopy(inputs['settings'])), model_source=model_source)
         def listed(payload):
             documents = [row for row in payload['documents'] if row.get('kind') in {'material', 'pde', 'simulation', 'evaluation'}]
             labels = [str(i+1)+'. '+row['title']+' ('+row['kind']+')' for i,row in enumerate(documents)]
@@ -973,7 +1063,7 @@ class RequestPlanWindow(NumericalWindow):
         self._result_errors.clear()
         self._statuses.clear()
         self._show_document(document)
-        self.work_pages.setCurrentWidget(self.results_panel if document.get('runs') else self.editor)
+        self.work_pages.setCurrentWidget(self.results_panel if document.get('runs') else self.plan_page)
         self.message.setText('계산 계획을 열었습니다.')
         self._post_observation = None
         self._observation_key = None
@@ -983,7 +1073,7 @@ class RequestPlanWindow(NumericalWindow):
 
     @staticmethod
     def _shape_error(draft):
-        if not isinstance(draft, dict) or set(draft) - {'method_inputs'} != {'mode', 'request', 'source'} or draft.get('mode') != 'request':
+        if not isinstance(draft, dict) or set(draft) - {'method_inputs', 'model_source'} != {'mode', 'request', 'source'} or draft.get('mode') != 'request':
             return 'This document is not a request Plan. Its original draft is retained; use its own editor or Undo.'
         if 'method_inputs' in draft and (not isinstance(draft['method_inputs'], dict)
                 or any(not isinstance(value, dict) for value in draft['method_inputs'].values())):
@@ -1072,6 +1162,13 @@ class RequestPlanWindow(NumericalWindow):
         if self._populating:
             return
         metadata = item.data(0, DATA)
+        if column==1 and self.operation.currentData()=='epsilon' and hasattr(self,'_worksheet_basis'):
+            before=deepcopy(self._worksheet_basis)
+            value=self._input_value(self.inputs.topLevelItem(0))
+            from .numerical_methods import remap_thresholds
+            remap_thresholds(before,value)
+            if value!=self._input_value(self.inputs.topLevelItem(0)):
+                self._populate_inputs(value)
         if column == 1 and metadata and metadata['path'] == ('backend',):
             self.backend.setText(item.text(1))
         self._edited()
@@ -1344,7 +1441,8 @@ class RequestPlanWindow(NumericalWindow):
             return False
         context = self._request_context()
         relevant = lambda: self._request_context() == context and not self.conflict
-        source = deepcopy(self.edited_draft().get('source') or {})
+        draft=self.edited_draft()
+        source = deepcopy((draft.get('model_source') if model else None) or draft.get('source') or {})
         source_id = source.get('document_id') or source.get('pde_document_id')
         backend = self.edited_draft()['request']['inputs'].get('backend')
 
@@ -1691,7 +1789,9 @@ class RequestPlanWindow(NumericalWindow):
                 or self.operation.currentData() not in PDE_CANDIDATE_OPERATIONS):
             return
         context = self._request_context()
-        source = deepcopy(self.edited_draft().get('source'))
+        selected_run=next((row for row in self.document.get('runs',[]) if row['job_id']==self.selected_job()),{})
+        submitted=selected_run.get('draft',{})
+        source = deepcopy(submitted.get('model_source') or submitted.get('source'))
         target_kind, target_id = self._candidate_target(source)
         if not target_id:
             return
@@ -1801,12 +1901,21 @@ class RequestPlanWindow(NumericalWindow):
             value = value[part]
         return value
 
-    def _edit_structure(self, callback):
+    def _edit_structure(self, callback, *, model_source=None):
         if self._view_error or not self.document or self._busy and not self._busy_background:
             return
         draft = self.edited_draft()
         try:
+            before=deepcopy(draft['request']['inputs'])
             callback(draft['request']['inputs'])
+            if self.operation.currentData()=='epsilon':
+                from .numerical_methods import remap_thresholds
+                remap_thresholds(before,draft['request']['inputs'])
+            if model_source is not None:
+                draft['model_source']=deepcopy(model_source)
+                prior=draft.get('source')
+                if prior is None or prior.get('kind') in {'material','pde','simulation','evaluation'} or 'pde_document_id' in prior:
+                    draft['source']=deepcopy(model_source)
         except (ValueError, TypeError, KeyError, IndexError, AttributeError) as error:
             self.message.setText('Input edit was not applied; the current draft is retained. ' + str(error))
             return False
@@ -2305,17 +2414,24 @@ class RequestPlanWindow(NumericalWindow):
             self._result_cache.get(self.selected_job(), {}).get('candidates'))
         result = self._result_cache.get(self.selected_job(), {})
         self.next_method_button.setEnabled(available and bool(result))
+        run=next((row for row in self.document.get('runs',[]) if row['job_id']==self.selected_job()),{}) if present else {}
+        link=run.get('draft',{}).get('method_inputs',{}).get('surrogate',{})
+        self.confirmation_button.setVisible(bool(link.get('result_refs',{}).get('model')))
+        self.confirmation_button.setEnabled(available and bool(self._selected_actual_candidate()))
         self.candidates.setVisible(candidate_task and not (result.get('responses') or result.get('curves'))
-                                   or bool(result.get('candidates', result.get('predictions', []))))
+                                   or bool(result.get('candidates', result.get('predictions', []))) or result.get('method')=='SALib.sobol')
         self.candidate_results_button.setVisible(candidate_task)
-        self.pde_adopt_button.setVisible(candidate_task)
+        self.pde_adopt_button.setVisible(candidate_task and bool(self._candidate_target(run.get('draft',{}).get('model_source') or run.get('draft',{}).get('source'))[1]))
         self.candidate_results_button.setEnabled(read_available and bool(self._selected_actual_candidate())
             and callable(getattr(self.client, 'numerical_evaluation_result', None)))
         self.variables_button.setEnabled(read_available and not self._view_error and self.operation.currentData() in MODEL_OPERATIONS | {'sample_sensitivity'}
                                          and (self.operation.currentData() == 'sample_sensitivity' or callable(getattr(self.client, 'describe_inputs', None))))
         for button in (self.model_response_button, self.observation_button):
             button.setEnabled(read_available and not self._view_error and callable(getattr(self.client, 'document_result_metadata', None)))
-        source = self.document['draft'].get('source') if present and isinstance(self.document['draft'], dict) else None
+        selected_run=next((row for row in self.document.get('runs',[]) if row['job_id']==self.selected_job()),{}) if present else {}
+        frozen=selected_run.get('draft',{})
+        source=frozen.get('model_source') or frozen.get('source')
+        self.model_open_button.setEnabled(enabled and bool(self.edited_draft().get('model_source') or self._candidate_target(self.edited_draft().get('source'))[1]))
         target_kind, target_id = self._candidate_target(source)
         self.pde_adopt_button.setText('선택 후보를 PDE에 채택…' if target_kind == 'pde' else '선택 후보를 원본에 채택…')
         self.pde_adopt_button.setEnabled(read_available and not self._view_error and bool(target_id)
@@ -2327,7 +2443,8 @@ class RequestPlanWindow(NumericalWindow):
         self._update_adoption_receipt_actions()
         self.observed_read.setEnabled(enabled and self.operation.currentData() == 'fit' and self.observed_trial.count() > 0)
         self.observed_post.setEnabled(enabled and self._observation_matches() and bool(self._post_observation.get('source_available')))
-        source_id = source.get('discussion_id',source.get('pde_document_id',source.get('document_id'))) if isinstance(source,dict) else None
+        origin=self.edited_draft().get('source') if present else None
+        source_id = origin.get('discussion_id',origin.get('pde_document_id',origin.get('document_id'))) if isinstance(origin,dict) else None
         self.source_button.setEnabled(present and available and isinstance(source_id,str) and source_id.startswith(('X','S','Q','T','M','N','V','E')))
         self.reload_button.setVisible(self.conflict)
         self.copy_button.setVisible(self.conflict)
@@ -2493,8 +2610,17 @@ class RequestPlanWindow(NumericalWindow):
         if event.isAccepted() and receiver:
             receiver.close()
 
+    def open_model_source(self):
+        draft=self.edited_draft()
+        reference=draft.get('model_source') or draft.get('source')
+        kind,identifier=self._candidate_target(reference)
+        if not identifier:return
+        from .desktop import launch_tool
+        self._call(lambda:launch_tool(self.client,kind,document_id=identifier),
+                   lambda _:self.message.setText('선택한 모델 문서를 열었습니다.'))
+
     def open_source(self):
-        source = deepcopy(self.document['draft'].get('source'))
+        source = deepcopy(self.edited_draft().get('source'))
         identifier = source.get('discussion_id',source.get('pde_document_id',source.get('document_id'))) if isinstance(source,dict) else None
         if not isinstance(identifier,str) or not identifier.startswith(('X','S','Q','T','M','N','V','E')):
             self.message.setText('This request has no retained original source document.')
