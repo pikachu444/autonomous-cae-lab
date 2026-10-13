@@ -86,6 +86,17 @@ service-only bootstrap is intended for subsequent Qt use, request
 service running. Command-line failures return nonzero without waiting for input;
 only a failed no-argument double-click pauses to keep the diagnostic visible.
 
+The CMD wrapper clears the inherited `PSModulePath` only inside its existing
+`setlocal` scope. Windows PowerShell builds its own default module paths, including
+its standard hash commands, even when the parent is PowerShell 7 via Python/CMD.
+The caller's environment is restored when the batch returns; no user/machine
+environment variable, profile or settings file is written. The installer and
+all existing hash/ownership checks remain unchanged. An external Python program
+that directly starts a PowerShell helper should likewise remove this key only
+from its child environment; the CMD wrapper cannot intercept that separate caller.
+This follows Microsoft's
+[documented intermediate-process behavior](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath#starting-windows-powershell-from-powershell-7).
+
 ## Connect to a running service
 
 With the UI dependencies installed, use the same launcher against your actual URL:
@@ -160,20 +171,30 @@ without pip, and Windows PowerShell. It runs the real CMD/PowerShell launch scri
 with installer, process/listener/health and desktop doubles. It checks fresh Qt
 installation requests and dispatch order, direct tools and exact IDs, positive
 service preparation versus install-only, reuse/conflict gates, Korean/spaced paths,
-and exit codes. Its CMD failure tests deliberately keep stdin open. It downloads
+and exit codes. Its CMD failure tests deliberately keep stdin open. A separate
+CMD probe deliberately inherits an uppercase, incompatible module path, executes
+real Windows PowerShell Get-FileHash, checks the standard module location and
+verifies the calling CMD retains its environment. Ordinary test children remove
+the inherited key case-insensitively. It downloads
 nothing and starts no actual server or Qt window. On other platforms it is skipped.
 The Python entry-point tests require the existing test dependencies and check the
 actual executable error boundary, including rejected abbreviated preparation flags.
 
 Execution evidence is separate from this source:
-- Codex reported Windows execution of the initial `111a36f` entry-point and
-  existing navigation tests as passing, source-mismatch refusal as nonzero, actual
-  private-runtime Qt dependency installation/imports, and root PrepareOnly returning
-  the shared-service/tool context.
-- Pro's execution environment is disconnected: authored CMD corrections,
-  abbreviation regression and Windows launcher harness are **NOT_RUN by Pro**.
-  Published tests are not a claim that the default visible window or all real
-  tool handoffs have passed on Windows.
+- Codex reported the initial `111a36f` Windows entry/navigation checks,
+  source-mismatch refusal, private-runtime Qt installation/imports and root
+  PrepareOnly context. At `0b22ccc`, the entry-point tests also passed the
+  abbreviated preparation-option rejection with no Qt import.
+- With `PSMODULEPATH` removed from the Windows test child environment, Codex
+  reported the launcher cases passing except for an assertion on a wrapped
+  `Write-Error` message. Exact exit 17 and one desktop dispatch already matched;
+  this update makes that diagnostic assertion independent of console line wrapping.
+- Codex also reported real Qt Runner and saved Data document construction/rendering
+  against service 18766 in offscreen mode. OS input and DPI acceptance remain
+  **NOT_RUN**.
+- Pro's environment remains disconnected: this update's CMD-local environment
+  correction, module/hash/caller-environment regression and diagnostic assertion
+  are **NOT_RUN by Pro**. They require execution against the returned commit.
 
 Codex performs the current Windows execution and integration against the returned
 commit. A real GUI check should open the chosen tool through the root CMD, then

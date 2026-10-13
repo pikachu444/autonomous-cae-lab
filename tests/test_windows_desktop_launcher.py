@@ -188,7 +188,10 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         (folder / "scripts/install-windows.ps1").write_text(INSTALLER, encoding="utf-8-sig")
         (folder / "apps/research/desktop.py").write_text(DESKTOP, encoding="utf-8")
         (folder / "harness.ps1").write_text(HARNESS, encoding="utf-8-sig")
-        environment = dict(os.environ)
+        # Windows dict keys may be uppercase; isolate only this child environment.
+        # powershell.exe must build Windows PowerShell paths, not inherit PS7 paths.
+        environment = {key: value for key, value in os.environ.items()
+                       if key.upper() != "PSMODULEPATH"}
         environment.update({
             "LOCALAPPDATA": str(folder / "test appdata"),
             "CAE_LAUNCH_TEST_EVENTS": str(folder / "events.jsonl"),
@@ -353,7 +356,9 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
                 result, events, _ = self.run_case([self.phase(entry)], desktop_exit=17)
                 self.assertEqual(result.returncode, 17, result.stderr)
                 self.assertEqual(len(self.events_of(events, "desktop")), 1)
-                self.assertIn("exited with code 17", result.stderr)
+                # Windows PowerShell may wrap Write-Error even within a word.
+                diagnostic = "".join(result.stderr.split()).lower()
+                self.assertIn("runnerdesktopexitedwithcode17.", diagnostic)
 
     def run_cmd_with_open_stdin(self, arguments, folder, environment):
         # Keep stdin open through wait(): communicate() would close it and hide pause bugs.
@@ -384,6 +389,46 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("Port", result.stdout + result.stderr)
                 self.assertFalse(Path(environment["CAE_LAUNCH_TEST_EVENTS"]).exists())
+
+    def test_cmd_rebuilds_builtin_module_paths_without_changing_its_caller(self):
+        folder, environment = self.case()
+        shutil.copyfile(ROOT / "Start-CAE-Lab.cmd", folder / "Start-CAE-Lab.cmd")
+        probe = folder / "hash input.txt"
+        probe.write_bytes(b"abc")
+        foreign_modules = folder / "foreign PowerShell modules"
+        foreign_modules.mkdir()
+        # Deliberately reintroduce an uppercase inherited key for the real CMD
+        # boundary. The ordinary Python-to-PowerShell harness removes it.
+        environment["PSMODULEPATH"] = str(foreign_modules)
+        environment["CAE_LAUNCH_TEST_MODULE_PATH"] = str(foreign_modules)
+        environment["CAE_LAUNCH_TEST_HASH_INPUT"] = str(probe)
+        (folder / "scripts/start-windows.ps1").write_text(r"""
+[CmdletBinding()]
+param([switch]$InstallOnly)
+$ErrorActionPreference = 'Stop'
+$hash = (Get-FileHash -LiteralPath $env:CAE_LAUNCH_TEST_HASH_INPUT -Algorithm SHA256).Hash
+$command = Get-Command Get-FileHash -ErrorAction Stop
+@{sha256=$hash.ToLowerInvariant();module=$command.Module.ModuleBase;
+  pshome=$PSHOME;major=$PSVersionTable.PSVersion.Major} |
+    ConvertTo-Json -Compress |
+    Set-Content -LiteralPath $env:CAE_LAUNCH_TEST_EVENTS -Encoding UTF8
+""", encoding="utf-8-sig")
+        caller = folder / "caller.cmd"
+        caller.write_text(r"""@echo off
+call "%~dp0Start-CAE-Lab.cmd" -InstallOnly
+set "CAE_TEST_CHILD_EXIT=%ERRORLEVEL%"
+if not "%PSMODULEPATH%"=="%CAE_LAUNCH_TEST_MODULE_PATH%" exit /b 91
+exit /b %CAE_TEST_CHILD_EXIT%
+""", encoding="utf-8")
+        result = self.run_cmd_with_open_stdin([str(caller)], folder, environment)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        actual = json.loads(Path(environment["CAE_LAUNCH_TEST_EVENTS"]).read_text(
+            encoding="utf-8-sig"))
+        self.assertEqual(actual["sha256"],
+                         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+        self.assertEqual(actual["major"], 5)
+        self.assertEqual(os.path.normcase(actual["module"]), os.path.normcase(
+            str(Path(actual["pshome"]) / "Modules/Microsoft.PowerShell.Utility")))
 
     def test_cmd_preserves_quoted_paths_selectors_and_failure_code(self):
         for code in (0, 17):
