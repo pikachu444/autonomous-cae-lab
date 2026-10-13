@@ -240,3 +240,57 @@ The changed common FRD reader's 34 existing focused tests and four affected FEM
 Qt tests passed. Export took minutes; inspection found repeated full native
 node-table access in element quality. A local table per quality call was
 requested from Pro, preserving all thresholds and checks.
+
+## Execution corrections after Windows integration
+
+Root/Codex reported 16 passes and three failures in the first bounded Windows
+contact/output run on 8d350ab. Those three failures reached the exact deck-byte
+check because the test fixture used Windows CRLF, whereas native export
+explicitly writes LF. The fixture now uses the export's LF policy; the product's
+byte/hash/deck checks are unchanged.
+
+The same correction updates these concrete paths:
+
+- FreeCAD's integrated face NodeLoadTable already carries numerical newtons
+  in dimensionless Quantity.Value. It is read directly without converting to
+  N a second time. The native total is still normalized once over the face union.
+- Fixed/Displacement nodes are resolved from the current body-local References.
+  A same-name mesh group from an earlier face selection is neither trusted nor
+  deleted. Focused native API doubles include stale groups for both conditions,
+  separate bodies and the integrated force table.
+- Successful, failed and cancelled contact attempts expose their exact retained
+  design input. Runner's existing Open source document route admits that frozen
+  contact copy after the original FreeCAD owner closes. Live-owner activation
+  and rejection of unrelated native input kinds remain unchanged.
+- DAT/FRD frame matching uses both formats' retained printed tokens through the
+  existing precision helper. This handles their different native decimal
+  precision without a new engineering tolerance or matching another increment.
+
+Focused checks for the changed boundaries:
+
+    python -m pytest tests/test_contact_execution.py tests/test_contact_native_export.py
+    python -m pytest tests/test_desktop_navigation.py -k "contact_attempt_closed or closed_origin_still"
+
+The native API, process and launch collaborators in these tests are explicit
+doubles. They do not establish native solver or operating-system acceptance.
+Root also reported actual FreeCAD GUI meshing and saving of the public two-feet
+model (Base 1147 nodes/532 volumes; Bridge 2256 nodes/1122 volumes), with empty
+contact diagnostics; that precedes this new export correction and is not a
+solver/Post result. This author's remote execution of the corrections remains
+**NOT_RUN**. Windows execution/integration belongs to Root/Codex.
+
+
+The native quality pass now reads FreeCAD's complete node dictionary once per
+synchronous quality/hash call and passes that local table to each element.
+Connectivity, all four samples, both numerical floors, bad-element rows and
+the complete mesh hash are unchanged; there is no persistent cache.
+The focused quality check compares complete results and hashes, counts property
+reads and confirms a subsequent node edit is observed:
+
+    python -m pytest tests/test_pre_fem_edit.py -k quality_reads_native_nodes
+
+Root separately reported actual installed contact-writer comparison and native
+export succeeded on 8d350ab for the meshed two-feet model with isotropic
+210000 MPa/0.3, Base Face5 Fixed and Bridge Face3 prescribed Z=-0.3 mm
+(X/Y zero). That run wrote the four frozen artifacts; it did not execute a
+solver and did not exercise the Force or stale-group corrections above.

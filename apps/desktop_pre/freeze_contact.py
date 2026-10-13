@@ -33,6 +33,20 @@ def _refs(obj, bodies, *, material=False):
     return rows
 
 
+def _native_force_table(node_load_table):
+    """FreeCAD's face integration already expresses these dimensionless Values in N.
+
+    get_force_obj_face_nodeload_table multiplies converted Force.Value by its
+    weights. Calling getValueAs('N') again would reject a valid native table.
+    """
+    table = {}
+    for _, values in node_load_table:
+        for node, value in values.items():
+            node = int(node)
+            table[node] = table.get(node, 0.) + number(value.Value)
+    return table
+
+
 def collect(analysis, solver, fem):
     import FreeCAD as App
     from femtools import membertools
@@ -168,10 +182,7 @@ def collect(analysis, solver, fem):
                     continue
                 getter.member.cons_force = [dict(member)]
                 getter.get_constraints_force_nodeloads()
-                table = {}
-                for _, values in getter.member.cons_force[0]['NodeLoadTable']:
-                    for n, value in values.items():
-                        table[int(n)] = table.get(int(n), 0.) + number(value.getValueAs('N').Value)
+                table = _native_force_table(getter.member.cons_force[0]['NodeLoadTable'])
                 total = number(obj.Force.getValueAs('N').Value)
                 integrated = sum(table.values())
                 if not table or integrated == 0 or any(n not in nmap for n in table):
@@ -189,7 +200,9 @@ def collect(analysis, solver, fem):
             else:
                 if group_name == 'cons_displacement' and obj.EnableAmplitude:
                     raise ValueError('Contact displacement amplitudes are unsupported')
-                local = meshtools.get_femnodes_by_femobj_with_references(body['mesh'].FemMesh, member)
+                # Condition-name mesh groups may predate an explicit face rebind.
+                # Resolve the current references on this body, preserving all stored groups.
+                local = meshtools.get_femnodes_by_references(body['mesh'].FemMesh, obj.References)
                 if not local or any(int(n) not in nmap for n in local):
                     raise ValueError('Support needs exact body-local mesh nodes')
                 values = {axis: 0. for axis in (1, 2, 3)} if group_name == 'cons_fixed' else {

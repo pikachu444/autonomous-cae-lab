@@ -560,3 +560,35 @@ def test_contact_mesh_preparation_ignores_suppressed_alternatives_and_cancel_rem
     assert native.editor.dispatch('pre.contact.cancel_rebind', {'preview_id': 'Ptest'}, {})['cancelled']
     assert not native.editor.contact.previews
     native.editor._pending.clear()
+
+
+
+@pytest.mark.parametrize('scale,invalid', [(1., False), (.0001, False), (1., True)])
+def test_quality_reads_native_nodes_once_per_call_without_persistent_cache(native, scale, invalid):
+    mesh = Mesh(scale, invalid)
+    mesh.Volumes.append(74)
+    mesh.elements[74] = list(mesh.elements[73])
+    native.mesh.FemMesh = mesh
+    expected = submit(native, 'mesh_quality', {}, native.mesh)
+
+    class NativePropertyDouble:
+        """FreeCAD returns a new whole node dictionary for every Nodes access."""
+        reads = 0
+        @property
+        def Nodes(self):
+            self.reads += 1
+            return deepcopy(mesh.Nodes)
+        def __getattr__(self, key):
+            return getattr(mesh, key)
+
+    counted = NativePropertyDouble()
+    native.mesh.FemMesh = counted
+    actual = submit(native, 'mesh_quality', {}, native.mesh)
+    assert actual == expected
+    assert counted.reads == 1
+    mesh.Nodes[1].x += .01
+    changed = submit(native, 'mesh_quality', {}, native.mesh)
+    assert counted.reads == 2
+    assert changed['mesh_sha256'] != actual['mesh_sha256']
+    native.mesh.FemMesh = mesh
+    assert changed == submit(native, 'mesh_quality', {}, native.mesh)

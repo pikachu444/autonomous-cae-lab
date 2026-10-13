@@ -115,7 +115,7 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') == 'structure.calculix.frozen':
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact'}:
             result['retained_design_input_id'] = job['arguments']['settings']['data_id']
         if origin.get('kind') == 'pre':
             try:

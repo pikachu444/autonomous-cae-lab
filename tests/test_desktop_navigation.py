@@ -297,3 +297,50 @@ def test_post_document_activation_requires_explicit_native_owner_capability(clie
     with pytest.raises(ValueError, match='does not support live activation'):
         desktop.launch_tool(client, 'post', document_id='Ppost')
     assert client.commands == [] and processes == []
+
+
+
+@pytest.mark.parametrize('state', ['SUCCEEDED', 'FAILED', 'CANCELLED'])
+def test_contact_attempt_closed_origin_uses_exact_retained_design(client, processes, state, monkeypatch):
+    from caelab.desktop_links import DesktopLinks
+
+    def disconnected(identifier):
+        assert identifier == 'Pcontact'
+        raise KeyError(identifier)
+
+    links = DesktopLinks.__new__(DesktopLinks)
+    links.workbench = NS(native_commands=NS(read=disconnected))
+    job = {'id': 'Jcontact', 'state': state, 'result_refs': [],
+           'arguments': {'backend': 'structure.calculix.contact',
+                         'settings': {'data_id': 'Dcontact'},
+                         'origin': {'kind': 'pre', 'document_id': 'Pcontact',
+                                    'session_id': 'Sclosed', 'generation': 9}}}
+    links.job_record = lambda identifier: job if identifier == job['id'] else pytest.fail('Wrong job')
+    client.job_navigation = links.navigation
+    path = str(Path(client.context['repo_root']) / '한글 retained contact.FCStd')
+    reads = []
+    def retained(identifier):
+        reads.append(identifier)
+        return {'id': identifier, 'kind': 'frozen_contact', 'editable_path': path}
+    client.native_input = retained
+    navigation = links.navigation('Jcontact')
+    assert navigation['origin_document'] is None
+    assert navigation['retained_design_input_id'] == 'Dcontact'
+    assert navigation['frozen_origin'] == job['arguments']['origin']
+    assert navigation['post_input'] is None
+    result = desktop.open_origin(client, 'Jcontact')
+    assert result['status'] == 'LAUNCH_REQUESTED'
+    assert reads == ['Dcontact']
+    assert processes[0][0][-5:] == [
+        'pre', '--source', path, '--source-label', 'Retained design copy — Jcontact']
+    assert not client.commands
+    assert job['state'] == state
+
+
+def test_closed_origin_still_rejects_unrelated_native_receipt_kind(client, processes):
+    client.navigation.update(origin_document=None, retained_design_input_id='Dresult')
+    client.native_input = lambda identifier: {
+        'id': identifier, 'kind': 'external_result', 'editable_path': 'wrong.FCStd'}
+    with pytest.raises(ValueError, match='editable FEM copy'):
+        desktop.open_origin(client, 'Jcontact')
+    assert not processes and not client.commands
