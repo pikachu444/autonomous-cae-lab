@@ -30,5 +30,39 @@ The numerical engines, stores, scheduler and native CAD kernel already exist.
 Pro should challenge this proposed route if a smaller maintained mechanism
 completes the same user workflow. Shared schema/registry changes require Codex
 integration review, not a parallel second writer. CURRENT_STATE records the
-actual Pro dispatch. PRO-CAD-NUMERICAL-01 has been received in the existing real
-Pro conversation; implementation is assigned, not yet accepted or integrated.
+actual Pro dispatch. The original fixed-pose implementation is integrated;
+dated execution evidence remains in acceptance.md and CURRENT_STATE.
+
+## Joint-coordinate extension
+
+The next user outcome is to choose a native joint coordinate, evaluate distinct
+poses through the same Numerical pipeline, and open the calculated pose as an
+editable new design. Astra's independent source review used main 2a35104 and
+FreeCAD 1.1.4 Assembly sources. Later Expert-only commits do not alter those
+interfaces. Actual Pro remains the implementation author.
+
+1. Extend research_inputs and its existing picker with typed joint coordinates.
+   Reuse motion.py's native module, connector and grounding discovery. Native
+   Joint.Angle belongs to Angle joints, and Joint.Distance is not Slider travel.
+   Read enabled AngleMin/Max and LengthMin/Max limits, not Rotation* guesses.
+2. Reuse CommandCreateSimulation.Motion Angular/Linear and Assembly's simulation
+   API for candidate-owned scalar drives. Establish whether a drive is absolute
+   or relative by measuring both connector frames; convert rad/deg explicitly.
+   Preserve existing motion formulas. Do not add a kinematics solver or general
+   expression engine. Save/reopen must retain the solved editable pose.
+3. Capture the exact assembly, joint, connector, occurrence and FE targets in
+   candidate_recipe. Restore temporary motion preview before capturing the
+   saved input. Changed joint definitions, limits or references are stale inputs.
+4. In candidate_worker, apply ordinary typed inputs first, solve joint targets,
+   check actual pose, then use the existing correspondence/remesh/freeze path.
+   Reuse mesh_binding global placement and exact occurrence identity. Extending
+   rigid pose correspondence must not turn face proximity into identity.
+5. Keep a failure at the pose stage inspectable through existing job/candidate
+   records. The current process cancellation and new-design opener apply.
+   Reopen the actual retained candidate; do not regenerate it from the base.
+
+Implementation and focused unit checks belong to Pro. Codex integrates and
+performs limited native checks once the route exists; broad solver campaigns
+are not a prerequisite. Authoring scope is the existing Pre candidate/motion
+modules, related owner connections, tests and usage documentation. Root owns
+SPEC/current-state synchronization and reviews any shared schema changes.

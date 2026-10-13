@@ -1,7 +1,7 @@
 ---
 id: SPEC-CAD-NUMERICAL-001
 title: "User CAD candidates from native parameters to editable adopted designs"
-version: "0.1.0"
+version: "0.2.0"
 status: in-progress
 created: "2026-10-13"
 updated: "2026-10-13"
@@ -67,6 +67,39 @@ fixture optimisation or a second document store.
   method, candidate failures, selected result and editable design branches.
   Opening, comparing or choosing a candidate shall not start physics or adopt
   it automatically. Solver success shall not grant engineering approval.
+- REQ-CAD-NUMERICAL-001-009: The existing variable picker SHALL expose supported
+  native Assembly joint coordinates, including Revolute angle and Slider travel,
+  with the actual joint, moving occurrence, axis/sign/origin, measured value,
+  unit and enabled native limits. Model limits and Plan search bounds SHALL
+  remain separate. Unsupported topology, suppressed or externally driven joints
+  SHALL remain visible with actionable reasons; raw Placement components SHALL
+  NOT substitute for joint coordinates.
+- REQ-CAD-NUMERICAL-001-010: The isolated candidate SHALL apply geometry and FE
+  inputs, then drive the requested joint coordinates through the native Assembly
+  motion/solve mechanism. It SHALL measure the resulting relative coordinate
+  and check grounding, connectivity and remaining freedom before meshing.
+  Assigning Joint.Angle/Distance without proving their native meaning SHALL NOT
+  establish motion. Recompute, saved candidate and cold reopen SHALL preserve
+  the requested pose without changing the original model, fixing its joints or
+  permanently changing global recompute preferences.
+- REQ-CAD-NUMERICAL-001-011: The candidate recipe SHALL bind the exact moving
+  occurrence and joint connectors to its Analysis bodies, mesh and conditions.
+  Rigid pose correspondence SHALL preserve occurrence/shape/face identity and
+  the actual transform; multiple Links to one part SHALL NOT be collapsed.
+  Changed poses SHALL reach regenerated analysis meshes and retained results.
+  A moved display with unchanged analysis geometry SHALL fail before solving.
+- REQ-CAD-NUMERICAL-001-012: Joint coordinates SHALL define the analysis starting
+  geometry only. Grounding SHALL NOT create an FEM support, and pose travel
+  SHALL NOT create prescribed displacement, preload, torque or physical time.
+  Global loads SHALL retain their declared frame. The existing failed-attempt,
+  cancellation, editable candidate adoption and UNKNOWN contracts SHALL apply.
+
+The first joint-coordinate delivery covers a flat native Assembly with one
+grounded and one moving occurrence and one independently driven Revolute or
+Slider joint. This is an incremental delivery, not completion of all assembly
+requirements. Multiple/dependent joints, nested assemblies, loops, other joint
+types and changed assembly-reference recovery remain D2 follow-up work; the
+first delivery SHALL identify unsupported combinations rather than omit them.
 
 The first supported laws remain the current contact capability; broader laws,
 other native property types and coupled analyses remain full-product work.

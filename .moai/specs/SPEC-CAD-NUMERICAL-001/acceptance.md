@@ -1,5 +1,25 @@
 # User completion and bounded development checks
 
+Current assignment and support status are in CURRENT_STATE. Dated checkpoints
+below retain their original failures. The later binary-shape probe at
+`runs/product-development/20261013/binary-shape-probe-01/result/receipt.json`
+confirmed saved/cold-open shape identity and unchanged source for its model;
+the older failed retained candidate was not repaired or relabelled.
+
+## AC-N04 — joint pose candidates
+
+Choose a supported Revolute or Slider coordinate in native Research and create
+a Numerical Plan with explicit units/search bounds. Each advertised type must
+drive two distinct coordinates in a small real native assembly and retain the
+measured pose through recompute, save and fresh-process reopen. One small
+two-body analysis checks that moving occurrence geometry reaches remeshing,
+the physical deck, Post and the editable adopted design. API doubles alone do
+not establish native support. Unsupported structures show the reason and next
+action. Limited unit checks cover stale references/limits, conflicting drives,
+invalid or unachieved poses, failed-attempt retention and pose-stage cancellation.
+Do not repeat unchanged solver benchmarks. Multiple-joint/general assembly
+coverage remains open until separately implemented and exercised.
+
 ## AC-N01 — start from a saved user model
 
 Open and save a supported two-body CAD/FE model. Select a geometry dimension,

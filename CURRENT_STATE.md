@@ -7,8 +7,8 @@
 
 ## 현재 통합 중인 변경
 
-Expert 연결 코드와 교정을 로컬 main `4a952f5`까지 통합했다. 아직 원격에
-게시하지 않았다. 기존 원격 main은 `6f676f4`다. 연결/UI/config 검사 12개와 host 관련
+Expert 연결 코드와 교정, 한국어 사용법을 원격 main `8b1ec55`까지 게시하고
+원격 SHA 일치를 확인했다. 연결/UI/config 검사 12개와 host 관련
 7개는 통과했고 실제 `install-windows.ps1 -ResearchUI`의 Expert/MCP import도 통과했다.
 설정 적용 후 세 번째 실행에서 기존 서비스를 다시 찾지 못하던 문제는 Pro의 UTF-8
 읽기·쓰기 교정으로 해결했다. 실제 Windows에서 적용 후 재실행, 옛 BOM 없는 파일,
@@ -46,6 +46,14 @@ Numerical 문서로 열어 E=1000→1500 MPa로 수정하고 FELUPE 계산을 �
 기존 저장 명령으로 이어 진행했다. 모델·계산을 다시 수행하거나 거절 조건을 변경하지 않았다.
 이는 실제 OAuth/도구/계산/문서 저장 경로와 offscreen Qt 재열기 확인이며 OS 마우스
 조작, 취소/재개, Study 전체 수용은 남아 있다. MoAI t2를 완료 처리하지 않는다.
+
+다음 Pro 구현 요청 `PRO-ASSEMBLY-CANDIDATE-01` 전송 준비: 기준 main `8b1ec55`,
+같은 Pro 대화에서 D2의 관절 좌표 등록→native 자세 구동/저장→움직인 occurrence의
+메시·해석→새 편집 설계 채택을 한 묶음으로 맡긴다. Astra가 native 속성과 구동 API,
+저장 후 자세, 실제 FE 대상 연결을 독립 검토했으며 기존 CAD-NUMERICAL SPEC에 반영했다.
+첫 경로는 flat 조립의 고정부와 움직이는 occurrence 하나, Revolute/Slider 한 관절이다.
+복수·종속 관절, 중첩·루프와 참조 변경 복구는 D2 잔여이며 전체 요구에서 삭제하지 않는다.
+Expert의 남은 취소/복구·Study 수용은 유지하되 같은 검사 반복으로 D2 구현을 막지 않는다.
 
 ## 지금 받을 수 있는 것과 인도 계획
 
