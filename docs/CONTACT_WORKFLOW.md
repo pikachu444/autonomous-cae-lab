@@ -562,3 +562,10 @@ identical relocation, cold reopen without display replay and CSV writer options.
 The shared decoder tests include repinned, incompatible gap declarations and
 recipes. **These are authored checks, NOT_RUN in the disconnected Pro environment.**
 A source review is not native or Qt execution evidence.
+
+Independent Astra's bounded follow-up review at 5ea0355 closed those three
+product findings on source inspection. It identified a missing UpdatePipeline
+method in the CSV writer test double; the follow-up test fixture supplies that
+method and explicit no-conversion import doubles, without requiring a VTK
+installation in the Research interpreter. This does not change the product's
+native ParaView runtime or turn source review into an execution pass.
