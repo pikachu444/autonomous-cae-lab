@@ -385,7 +385,7 @@ class ExpertWindow(QMainWindow):
         form.addRow('이번 작업의 자료 검색 한도', self.tool_calls)
         form.addRow('이번 작업 제한 시간(초)', self.seconds)
         form.addRow(QLabel('운영자 상한이 함께 적용됩니다. 초기 조사는 한 번에 끝나지 않을 수 있습니다.'))
-        runtime_explanation = QLabel('Connection…에서 기존 OpenScience 설정을 선택합니다. 각 요청에는 별도 전송 허용이 적용됩니다.')
+        runtime_explanation = QLabel('연결 설정…에서 기존 OpenScience 설정을 선택합니다. 질문과 자료를 보낼 범위는 요청마다 확인합니다.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
         self.side.addTab(participant_tab, '참여 역할')
@@ -520,7 +520,7 @@ class ExpertWindow(QMainWindow):
             if missing:
                 self.message.setText('Expert 실행 패키지가 없습니다. scripts/start-windows.ps1 -InstallOnly -ResearchUI 로 준비할 수 있습니다. 초안과 저장한 대화는 계속 편집할 수 있습니다.')
             elif runtime.get('status')=='NOT_CONFIGURED':
-                self.message.setText('모델 미연결 — Connection…에서 연결할 수 있습니다.')
+                self.message.setText('모델이 연결되지 않았습니다. 연결 설정…에서 기존 설정을 선택하세요.')
         started = self._call(lambda: self.client.request('/api/workbench/assist',
             {'operation': 'experts.list', 'arguments': {}}), received, background=True)
         if not started:

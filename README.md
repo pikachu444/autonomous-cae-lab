@@ -21,7 +21,9 @@ Windows 10/11 x64를 사용합니다. 처음 설치할 때는 인터넷이 필�
 기본 설치는 전용 Python과 Research Qt 앱입니다.
 FreeCAD·ParaView·Gmsh·외부 솔버와 AI 연결은 별도로 준비합니다.
 
-다른 도구를 바로 열려면 소스 폴더의 PowerShell에서 실행하세요.
+Runner의 **도구** 메뉴에서 데이터·재료·수치 연구·전문가 토론 등 원하는 프로그램을
+열 수 있습니다. 각 프로그램은 별도 창에서 사용합니다. 다음부터 원하는 도구로 바로
+시작하려면 소스 폴더의 PowerShell에서 실행하세요.
 
 ```powershell
 .\Start-CAE-Lab.cmd -Tool numerical
