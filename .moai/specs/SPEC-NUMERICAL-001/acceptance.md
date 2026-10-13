@@ -60,3 +60,22 @@ solver, model provider or paid API was called.
 Follow-up UX: resolve worksheet response labels/units from saved metadata on
 reopen and make pending-result review more discoverable. Continue the other
 tools/connections instead of repeating unchanged Numerical campaigns.
+
+## Desktop layout checkpoint — 2026-10-14
+
+Sol's bounded layout change is integrated as `f5c6c82`. Normal and small windows
+retain two explicit areas for editable inputs and selected calculation results.
+Only advanced inputs scroll; collapsing them preserves the unsaved draft and
+selected result. Direct evaluation opens its actual response and hides empty
+candidate controls; candidate operations retain discoverable disabled actions
+until a candidate is selected. Display labels no longer serve as job identity.
+
+Seven affected Qt checks pass, covering editing/Undo, retained selection,
+partial input buffers, resize/collapse and actual-value/mask display. Offscreen
+renders at 1440×900 and 1100×780 reopen the existing ten-row Post observation and
+the retained Expert proposal's Plan without changing its source or draft and
+without new model/solver jobs. Astra reviewed the three small Numerical states
+alongside their source. `runs/product-development/20261014/numerical-layout/`
+holds the renders, source receipt and actual test output. Advanced model input
+is still the typed tree: this is not all-model form completion, native OS/DPI
+acceptance or a repeated numerical engine validation.

@@ -111,3 +111,28 @@ by rewriting targets. The new focused checks give 14 passed and one failed at
 the new test's fresh Workbench root selection; correction is assigned to Pro.
 Astra's bounded source review found no additional concrete retention/lifecycle
 defect, without claiming the native reopen issue is resolved.
+
+## Assembly execution checkpoint — 2026-10-14
+
+Pro's native Assembly source through `f7a0ddd` is integrated as `32480dd`.
+The changed Assembly unit checks pass (26). FreeCAD 1.1.4 creates both public
+two-occurrence examples and prepares/saves Revolute −5/+5 degrees and Slider
+−0.05/+0.05 mm after native Motion, ordinary solve and repeated binder evaluation.
+In a separate FreeCAD process, both Slider poses pass without new Motion;
+both Revolute poses fail the unchanged-target check during moving binder
+evaluation. Their failures remain failures. The latter does not admit a new
+geometry baseline on a retained read.
+
+One Slider −0.05 mm candidate passes actual native preparation, both Gmsh meshes,
+CalculiX contact and extraction of the requested final pair CFN/global-Z response
+(4405.068 N). The source stays unchanged. A separate fresh FreeCAD process opens
+the exact calculated editable project and verifies both mesh bindings, contacts
+and pose with no repair, remesh or solver execution. This is a public synthetic
+execution/retention check, not a reference-solution comparison, app GUI workflow
+acceptance or engineering qualification. `AC-N04` remains incomplete pending
+the actual app joint-authoring path and the Revolute cold-reopen correction.
+
+Evidence is under `runs/product-development/20261014/assembly-native/fixed/`:
+`prepare-result.json`, `reopen-result.json`, `slider-fe/receipt.json`,
+`slider-fe-cold/receipt.json`, and the original BRep/placement comparison in
+`rotation-trace3/`. Current ownership and next action remain in CURRENT_STATE.
