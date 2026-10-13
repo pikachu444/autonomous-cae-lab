@@ -341,3 +341,48 @@ def test_native_reopen_failed_spawn_releases_claim(tmp_path, monkeypatch):
     assert not (tmp_path / 'post.native-launch.json').exists()
     claim, _ = desktop._post_launch_claim(client, origin)
     claim.unlock()
+
+
+
+def test_import_continuation_survives_busy_document_poll_without_new_handoff():
+    """Native transport double only; the real bug is lost GUI poll intent."""
+    import threading
+    app = QApplication.instance() or QApplication([])
+    client = NativeClient()
+    calls, presented = [], []
+    pending = {'handoff_id': 'Hsame', 'command_id': 'Csame'}
+    started, released = threading.Event(), threading.Event()
+    def read_plan(**arguments):
+        calls.append(deepcopy(arguments))
+        return {'state': 'RUNNING' if len(calls) == 1 else 'OBSERVATION_READY'}
+    client.post_measurement_plan = read_plan
+    window = PostWindow(client, document_id='Dpost', auto_open=False, poll_interval=0)
+    window._show_document(client.document, initial=True)
+    window._measurement_handoff = pending
+    def received(payload, request):
+        assert request is pending
+        presented.append(payload)
+        window._measurement_handoff = None
+    window._present_observation = received
+    def blocked_refresh():
+        started.set()
+        assert released.wait(5)
+        return deepcopy(client.document)
+    try:
+        assert window._continue_measurement_handoff()
+        wait(app, lambda: len(calls) == 1 and not window._busy)
+        assert window._call(blocked_refresh, lambda document: window._show_document(document))
+        wait(app, started.is_set)
+        # The actual RUNNING singleShot fires while this read owns _busy.
+        wait(app, lambda: window._measurement_poll_pending is pending)
+        assert calls == [pending] and not presented
+        released.set()
+        wait(app, lambda: len(presented) == 1 and not window._busy)
+        assert calls == [pending, pending]
+        assert presented[0]['state'] == 'OBSERVATION_READY'
+        assert not client.execute_count  # No native command or replacement import.
+    finally:
+        released.set()
+        wait(app, lambda: not window._busy)
+        window._allow_close = True
+        window.close()
