@@ -70,6 +70,7 @@ for _suffix, _class in (("", "FenicsxPDEAdapter"), (".nonlinear", "FenicsxNonlin
              ("pde", "model") if _suffix=='.coupled' else ("pde",), native="FEniCSx")
 _builtin('pde.scipy.ode', 'adapters.dimensioned_ode', 'DimensionedODEAdapter', ('evaluation',), 'scipy')
 _builtin('pde.fenicsx.dimensioned', 'adapters.dimensioned_weak', 'DimensionedWeakAdapter', ('evaluation',), native='FEniCSx')
+_builtin('damage.rainflow', 'fatigue', 'FatigueAdapter', ('evaluation',))
 _builtin("scipy.latin_hypercube", "optimizers.scipy_lhs", "ScipyLatinHypercube", ("doe",), "scipy")
 _builtin('thermal.fenicsx.rectangle', 'adapters.thermoelastic_fenicsx', 'ThermalFenicsxAdapter', ('stage',), native='FEniCSx')
 _builtin('structural.fenicsx.thermoelastic_rectangle', 'adapters.thermoelastic_fenicsx', 'ThermoelasticFenicsxAdapter', ('stage',), native='FEniCSx')

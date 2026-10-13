@@ -38,3 +38,24 @@ def test_small_motion_editor_has_full_mode_and_visible_shift_z(monkeypatch):
     assert window.edited()['motions'][0]['velocity_mm_s']==[0.,0.,0.]
     assert not window.components[5].isEnabled() and window.components[14].isEnabled()
     window.reject()
+
+
+def test_cohesive_and_exact_response_editor_preserves_partial_cancel():
+    from examples.impact.cohesive_model import settings as cohesive_settings
+    from copy import deepcopy
+    app=QApplication.instance() or QApplication([])
+    original=cohesive_settings();saved=deepcopy(original);window=ImpactEditor(original)
+    window.damage.selectRow(0);app.processEvents()
+    window.damage_fields['mode_I_n_mm'].setText('1e')
+    # textEdited is the actual user path; setText alone is programmatic.
+    window.damage_fields['mode_I_n_mm'].textEdited.emit('1e')
+    window.responses.cellWidget(2,3).setCurrentIndex(window.responses.cellWidget(2,3).findData('xy'))
+    edited=window.edited()
+    assert edited['cohesive'][0]['mode_I_n_mm']=='1e'
+    assert edited['responses'][2]['component']=='xy' and edited['responses'][2]['identity']==3
+    window.reject()
+    assert original==saved
+    reopened=ImpactEditor(edited);reopened.damage.selectRow(0)
+    reopened.damage_fields['mode_I_n_mm'].textEdited.emit('0.02345678901234')
+    assert reopened.edited()['cohesive'][0]['mode_I_n_mm']==.02345678901234
+    reopened.reject()

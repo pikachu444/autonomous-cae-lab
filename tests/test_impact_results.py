@@ -60,8 +60,9 @@ def test_padding_mask_and_eroded_cell_raw_value_survive_vtu(tmp_path):
     from xml.etree import ElementTree as ET
     doc=ET.parse(tmp_path/'post/frame0000.vtu')
     values={a.get('Name'):a.text for a in doc.findall('.//CellData/DataArray')}
-    assert values['3DELEM_DAMAGE_Applicable']=='0 1'
-    assert values['EROSION_STATUS']=='1 0'
+    assert values['3DELEM_DAMAGE_Applicable']=='0'
+    assert values['EROSION_STATUS']=='1'
+    assert doc.find('.//Piece').get('NumberOfCells')=='1'
     assert '3DELEM_DAMAGE' not in values
     assert read_vtk(path)['CELLS']['3DELEM_DAMAGE']['values']==[0.,.75]
     assert metadata['time']['values']==[.25]
@@ -92,6 +93,6 @@ def test_native_element_identity_cannot_be_reassigned_by_membership_only(tmp_pat
     raw=read_vtk(path)
     raw['CELLS']['PART_ID']={'components':1,'values':[1.,2.]}
     model={'nodes':{i:[] for i in range(1,9)},
-           'elements':{11:{'nodes':[1,2]},12:{'nodes':[5,6,7,8]}}}
+           'elements':{11:{'type':'C3D4','nodes':[1,2,3,4]},12:{'type':'C3D4','nodes':[5,6,7,8]}}}
     with pytest.raises(ValueError,match='connectivity'):
         validate_frame_identity(raw,model,{'part_by_element':{'11':1,'12':2}})

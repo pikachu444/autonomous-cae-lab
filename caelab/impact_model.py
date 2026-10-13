@@ -12,14 +12,14 @@ NAME = re.compile(r'^[A-Za-z][A-Za-z0-9_]{0,63}$')
 OPTIONS = {
     'HEADING':set(), 'NODE':{'NSET'}, 'ELEMENT':{'TYPE','ELSET'},
     'NSET':{'NSET','GENERATE'}, 'ELSET':{'ELSET','GENERATE'},
-    'MATERIAL':{'NAME'}, 'DENSITY':set(), 'ELASTIC':set(), 'PLASTIC':set(),
-    'SOLID SECTION':{'ELSET','MATERIAL'}, 'SURFACE':{'NAME','TYPE'},
+    'MATERIAL':{'NAME'}, 'DENSITY':set(), 'ELASTIC':{'TYPE'}, 'PLASTIC':set(),
+    'SOLID SECTION':{'ELSET','MATERIAL'}, 'COHESIVE SECTION':{'ELSET','MATERIAL'}, 'SURFACE':{'NAME','TYPE'},
     'BOUNDARY':set(),
 }
-WIDTHS = {'C3D4':4, 'C3D8':8, 'C3D8R':8, 'C3D10':10}
+WIDTHS = {'C3D4':4, 'C3D8':8, 'C3D8R':8, 'C3D10':10, 'COH3D8':8}
 # Quadratic contact is the explicit converter's corner-faceted TYPE24, not
 # the native static penalty law. No automatic Kn/Kstick transfer.
-SURFACE_SIDES = {'C3D4':4,'C3D10':4,'C3D8':6,'C3D8R':6}
+SURFACE_SIDES = {'C3D4':4,'C3D10':4,'C3D8':6,'C3D8R':6, 'COH3D8':6}
 
 
 def number(value, label, positive=False):
@@ -36,7 +36,7 @@ def vector(value, label):
 
 def default_settings():
     return {'source':{'title':'', 'format':'INP','units':'Mg/mm/s','text':'','provenance':{}},
-        'motions':[], 'contacts':[], 'gravity_mm_s2':[0.,0.,0.],
+        'motions':[], 'contacts':[], 'cohesive':[], 'responses':[], 'gravity_mm_s2':[0.,0.,0.],
         'time':{'end_s':.001,'field_interval_s':.0001,'history_interval_s':.00001,
                 'scale':.9,'mass_scaling':False,'target_step_s':None},
         'qualification':'UNKNOWN'}
@@ -87,7 +87,7 @@ def parse_inp(text):
                 if 'NSET' in o: nsets.setdefault(name(o['NSET']),set()).add(ident)
         elif c=='ELEMENT':
             kind=o.get('TYPE')
-            if kind not in WIDTHS: raise ValueError('지원 솔리드 요소: C3D4, C3D8/R, C3D10')
+            if kind not in WIDTHS: raise ValueError('지원 요소: C3D4, C3D8/R, C3D10, COH3D8')
             for _,line in rows:
                 values=[p.strip() for p in line.split(',') if p.strip()]
                 if len(values)!=WIDTHS[kind]+1: raise ValueError('요소 연결은 한 행의 정확한 절점 순서가 필요합니다')
@@ -113,14 +113,20 @@ def parse_inp(text):
             if current is None or c in materials[current]: raise ValueError('재료 순서/중복 선언 확인')
             data=[[numeric(v) for v in line.split(',') if v.strip()] for _,line in rows]
             if c=='DENSITY' and (len(data)!=1 or len(data[0])!=1 or data[0][0]<=0): raise ValueError('밀도 [Mg/mm³]를 지정하세요')
-            if c=='ELASTIC' and (len(data)!=1 or len(data[0])!=2 or data[0][0]<=0 or not -1<data[0][1]<.5): raise ValueError('등방 탄성 E [MPa], ν를 확인하세요')
+            if c=='ELASTIC':
+                if o.get('TYPE')=='TRACTION':
+                    if len(data)!=1 or len(data[0])!=4 or min(data[0][:3])<=0 or data[0][1]!=data[0][2] or data[0][3]!=0:
+                        raise ValueError('응집 탄성은 EN, ET, ET [MPa/mm], 0의 한 행을 명시하세요')
+                    materials[current]['_elastic_type']='TRACTION'
+                elif o or len(data)!=1 or len(data[0])!=2 or data[0][0]<=0 or not -1<data[0][1]<.5:
+                    raise ValueError('등방 탄성 E [MPa], ν를 확인하세요')
             if c=='PLASTIC' and (not data or any(len(x)!=2 or x[0]<=0 or x[1]<0 for x in data) or
                 data[0][1]!=0 or any(b[1]<=a[1] or b[0]<a[0] for a,b in zip(data,data[1:]))):
                 raise ValueError('단조 경화 표: 응력 [MPa], 소성변형률 [1], 첫 소성변형률 0')
             materials[current][c]=data
-        elif c=='SOLID SECTION':
+        elif c in ('SOLID SECTION','COHESIVE SECTION'):
             if any(line.strip().strip(',').strip() for _,line in rows): raise ValueError('솔리드 section 추가 입력은 지원하지 않습니다')
-            sections.append((name(o.get('ELSET')),name(o.get('MATERIAL'))))
+            sections.append((name(o.get('ELSET')),name(o.get('MATERIAL')),c))
         elif c=='SURFACE':
             if o.get('TYPE')!='ELEMENT': raise ValueError('명시 ELEMENT 면 집합을 사용하세요')
             label=name(o.get('NAME'))
@@ -140,10 +146,14 @@ def parse_inp(text):
     for table,known in ((nsets,nodes),(elsets,elements)):
         if any(not ids or ids-known.keys() for ids in table.values()): raise ValueError('집합의 원본 번호를 확인하세요')
     assignment={}
-    for eset,mat in sections:
+    for eset,mat,kind in sections:
         if eset not in elsets or mat not in materials: raise ValueError('section의 요소/재료 집합이 없습니다')
         for eid in elsets[eset]:
             if eid in assignment: raise ValueError('요소에 재료가 중복 배정되었습니다')
+            cohesive=elements[eid]['type']=='COH3D8'
+            if cohesive!=(kind=='COHESIVE SECTION') or cohesive!=(materials[mat].get('_elastic_type')=='TRACTION'):
+                raise ValueError('응집 요소·section·traction 재료를 벌크와 분리하세요')
+            if cohesive and 'PLASTIC' in materials[mat]:raise ValueError('응집 LAW117에 벌크 소성을 중복 적용하지 않습니다')
             assignment[eid]=mat
     if set(assignment)!=set(elements) or any(not {'DENSITY','ELASTIC'}<=m.keys() for m in materials.values()):
         raise ValueError('모든 요소에 명시 밀도와 등방 재료가 필요합니다')
@@ -165,12 +175,16 @@ def parse_inp(text):
 
 
 def validate_settings(settings):
-    if not isinstance(settings,dict) or set(settings)!=set(default_settings()):
+    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses'}!=set(default_settings())-{'cohesive','responses'}:
         raise ValueError('충격 정의의 필수 항목을 확인하세요')
     source=settings['source']
     if source.get('format')!='INP' or source.get('units')!='Mg/mm/s':
         raise ValueError('이 경로는 명시적으로 Mg/mm/s/N/MPa로 작성한 평탄화 INP를 사용합니다')
     model=parse_inp(source.get('text'))
+    from .impact_damage import validate as validate_damage
+    validate_damage(model,settings.get('cohesive',[]))
+    from .impact_responses import validate as validate_responses
+    validate_responses(model,settings.get('responses',[]))
     t=settings['time']
     for key in ('end_s','field_interval_s','history_interval_s','scale'):
         number(t.get(key),key,True)
@@ -233,8 +247,12 @@ def render(settings):
             ids=sorted(members)
             lines.extend(','.join(map(str,ids[i:i+16])) for i in range(0,len(ids),16))
     for block in model['blocks']:
-        if block['card'] in ('MATERIAL','DENSITY','ELASTIC','PLASTIC','SOLID SECTION'):
-            lines.append('*'+block['card']+''.join(','+k+('' if v is True else '='+v) for k,v in block['options'].items()))
+        if block['card'] in ('MATERIAL','DENSITY','ELASTIC','PLASTIC','SOLID SECTION','COHESIVE SECTION'):
+            if block['card'] in ('SOLID SECTION','COHESIVE SECTION'):
+                o=block['options']
+                lines.append('*'+block['card']+',ELSET='+o['ELSET']+',MATERIAL='+o['MATERIAL'])
+            else:
+                lines.append('*'+block['card']+''.join(','+k+('' if v is True else '='+v) for k,v in block['options'].items()))
             lines.extend(line for _,line in block['rows'])
     for name,rows in model['surfaces'].items():
         lines.append('*SURFACE,NAME='+name+',TYPE=ELEMENT')
@@ -276,6 +294,6 @@ def engine_deck(settings, name='impact'):
            '/DT/NODA/CST/0' if t['mass_scaling'] else '/DT',
            f"{t['scale']:.17g} {t['target_step_s'] if t['mass_scaling'] else 0}",
            '/ANIM/DT',f"0 {t['field_interval_s']:.17g}",'/ANIM/VECT/DISP','/ANIM/VECT/VEL',
-           '/ANIM/VECT/ACC','/ANIM/BRICK/TENS/STRESS','/ANIM/BRICK/DAMA',
+           '/ANIM/VECT/ACC','/ANIM/VECT/CONT','/ANIM/BRICK/TENS/STRESS','/ANIM/BRICK/DAMA',
            '/ANIM/ELEM/DAMG','/TH/TITLE','/TFILE/4',format(t['history_interval_s'],'.17g'),'/STOP','0 0 0 1 1','']
     return '\n'.join(lines)

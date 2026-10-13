@@ -33,7 +33,11 @@ def run_domain(workbench, model, output):
         raise ValueError('An actual stage requires a fresh owned output directory')
     calculation = output / 'calculation'
     try:
-        result = evaluation.run(backend, settings, output=calculation)
+        execution_backend=backend
+        if backend=='damage.rainflow':
+            from .fatigue import resolved_adapter
+            execution_backend=resolved_adapter(workbench,settings)
+        result = evaluation.run(execution_backend, settings, output=calculation)
     except ExecutionCleanupFailed:
         raise
     except Exception as error:

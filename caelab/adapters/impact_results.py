@@ -88,12 +88,20 @@ def validate_frame_identity(frame, model, physics):
         raise ValueError('Native part identity missing')
     if set(node_ids)-model['nodes'].keys() or set(element_ids)-model['elements'].keys():
         raise ValueError('Animation has unrelated native identity')
-    for cell,eid,pid in zip(frame['cells'],element_ids,part['values']):
+    for cell,kind,eid,pid in zip(frame['cells'],frame['types'],element_ids,part['values']):
         if not math.isfinite(pid) or pid!=int(pid) or int(pid) not in (0,physics['part_by_element'][str(eid)]):
             raise ValueError('Animation part/element assignment differs')
         displayed=[node_ids[index] for index in cell]
         if len(set(displayed))!=len(displayed) or set(displayed)-set(model['elements'][eid]['nodes']):
             raise ValueError('Animation connectivity belongs to another source element')
+        source=model['elements'][eid];source_kind=source['type']
+        if source_kind=='C3D4':
+            valid=kind==10 and len(cell)==4 and set(displayed)==set(source['nodes'])
+        elif source_kind=='C3D10':
+            valid=kind==10 and len(cell)==4 and set(displayed)<=set(source['nodes'])
+        else:
+            valid=source_kind in ('C3D8','C3D8R','COH3D8') and kind==12 and displayed==source['nodes']
+        if not valid:raise ValueError('Animation connectivity/type differs from admitted source element')
     # Zero is the converter's unresolved part marker, never a real part.
     # An independently validated element membership supplies a separately named
     # input-projection array without changing native PART_ID.
@@ -177,19 +185,29 @@ def field_units(name,components,association):
     if key in ('NODE_ID','ELEMENT_ID','PART_ID','EROSION_STATUS'): return '1','native_identity_or_activity'
     if key=='SOURCEPARTID':return '1','frozen_input_part_projection'
     exact={'DISPLACEMENT':('mm','displacement'),'VELOCITY':('mm/s','velocity'),
-           'ACCELERATION':('mm/s^2','acceleration')}
+           'ACCELERATION':('mm/s^2','acceleration'),'CONTACT_FORCES':('N','all_contact_nodal_force')}
     if association=='POINTS' and components==3 and key in exact: return exact[key]
     if association=='CELLS' and key in ('3DELEM_STRESS','3DELEM_STRESSES') and components==9: return 'MPa','Cauchy_stress'
     # Preserve unknown names/values, but do not invent their units or law.
     return None
 
 
-def write_post(folder, frames):
+def write_post(folder, frames, *, damage=None):
     from apps.desktop_post.prepare import data_array
     folder=Path(folder); folder.mkdir()
     pvd=ET.Element('VTKFile',type='Collection',version='0.1',byte_order='LittleEndian')
     collection=ET.SubElement(pvd,'Collection'); times=[]; declared=None; observations=[]
     for index,(raw_path,raw) in enumerate(frames):
+        # Physical sampling cannot traverse an erased cell, including when it
+        # shares finite nodal values with a surviving neighbor.
+        from copy import deepcopy
+        source_raw=raw; raw=deepcopy(raw)
+        kept=[i for i,v in enumerate(raw['CELLS']['EROSION_STATUS']['values']) if v==1]
+        raw['cells']=[raw['cells'][i] for i in kept]
+        raw['types']=[raw['types'][i] for i in kept]
+        for item in raw['CELLS'].values():
+            width=item['components'];values=item['values']
+            item['values']=[x for i in kept for x in values[i*width:(i+1)*width]]
         t=raw['time']
         if times and t<=times[-1]: raise ValueError('Duplicate/out-of-order native animation time')
         times.append(t)
@@ -209,11 +227,15 @@ def write_post(folder, frames):
             for name,item in raw[association].items():
                 components=item['components']; values=item['values']
                 units=field_units(name,components,association)
+                cohesive_damage=name=='3DELEM_Damage' and association=='CELLS' and components==1 and damage is not None
+                if cohesive_damage:units=('1','LAW117_mean_damage')
                 identity=name in ('NODE_ID','ELEMENT_ID','PART_ID','SourcePartID','EROSION_STATUS')
                 applicable=None
                 if association=='CELLS' and name.startswith(('1DELEM_','2DELEM_','3DELEM_','SPHELEM_')):
                     kinds={'1DELEM':{3},'2DELEM':{5,9},'3DELEM':{10,12},'SPHELEM':{1}}[name.split('_')[0]]
                     applicable=[kind in kinds for kind in raw['types']]
+                if cohesive_damage:
+                    applicable=[str(int(e)) in damage.get('elements',{}) for e in raw['CELLS']['ELEMENT_ID']['values']]
                 if units and not identity:
                     # Only finite, applicable, active physical values enter the
                     # registered view. Original tokens remain in retained VTK.
@@ -237,6 +259,7 @@ def write_post(folder, frames):
                     kinds={'1DELEM':{3},'2DELEM':{5,9},'3DELEM':{10,12},'SPHELEM':{1}}[prefix]
                     mask=[int(kind in kinds and all(math.isfinite(x) for x in values[i*components:(i+1)*components]))
                           for i,kind in enumerate(raw['types'])]
+                    if cohesive_damage:mask=[int(bool(v) and applicable[i]) for i,v in enumerate(mask)]
                     mask_name=name+'_Applicable'
                     data_array(parent,mask_name,mask,integer=True); masks[name]=mask_name
                     metadata.append({'association':association,'name':mask_name,'components':1,'units':'1',
@@ -247,7 +270,8 @@ def write_post(folder, frames):
         ET.ElementTree(vtk).write(folder/filename,encoding='utf-8',xml_declaration=True)
         ET.SubElement(collection,'DataSet',timestep=format(t,'.17g'),group='',part='0',file=filename)
         observations.append({'time_s':t,'raw_vtk':str(raw_path.name),'raw_sha256':file_hash(raw_path),
-            'coverage':raw.get('coverage'),'field_applicability':masks,'active_mask':'EROSION_STATUS','cycle':'NOT_RECORDED_BY_CONVERTER',
+            'coverage':raw.get('coverage'),'active_display_source_cells':kept,
+            'removed_cell_count':len(source_raw['cells'])-len(kept),'field_applicability':masks,'active_mask':'EROSION_STATUS','cycle':'NOT_RECORDED_BY_CONVERTER',
             'element_identity':'source FE ID may occur in multiple display cells'})
     ET.ElementTree(pvd).write(folder/'impact.pvd',encoding='utf-8',xml_declaration=True)
     save_json(folder/'frames.json',observations)

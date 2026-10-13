@@ -56,6 +56,22 @@ class ImpactEditor(QDialog):
         contact_page=QWidget(); cl=QVBoxLayout(contact_page); cl.addWidget(self.contacts,1)
         self.buttons(cl,self.add_contact,lambda:self.contacts.removeRow(self.contacts.currentRow()))
         self.tabs.addTab(contact_page,'접촉')
+        self.damage=self.table(['응집 재료','혼합 모드','소실 적분점'])
+        damage_page=QWidget();dl=QVBoxLayout(damage_page);dl.addWidget(self.damage)
+        self.damage_fields={};damage_form=QFormLayout()
+        for key,label in (('normal_strength_mpa','법선 강도 [MPa]'),('shear_strength_mpa','전단 강도 [MPa]'),
+            ('mode_I_n_mm','모드 I 파괴 에너지 [N/mm]'),('mode_II_n_mm','모드 II 파괴 에너지 [N/mm]'),
+            ('power_exponent','거듭제곱 지수'),('bk_exponent','BK 지수'),('gamma','BK 가중 지수')):
+            field=QLineEdit();self.damage_fields[key]=field
+            field.textEdited.connect(lambda value,k=key:self.damage_value(k,value));damage_form.addRow(label,field)
+        dl.addLayout(damage_form)
+        dl.addWidget(QLabel('LAW117 / 양의 두께 / 체적 밀도. 소실 뒤 재접촉은 벌크 면의 접촉쌍으로 지정합니다.'))
+        self.damage.itemSelectionChanged.connect(self.show_damage)
+        self.tabs.addTab(damage_page,'응집 손상')
+        self.responses=self.table(['이름','물리량','원 절점 / 요소','성분'])
+        response_page=QWidget();rl=QVBoxLayout(response_page);rl.addWidget(self.responses,1)
+        self.buttons(rl,self.add_response,lambda:self.responses.removeRow(self.responses.currentRow()))
+        self.tabs.addTab(response_page,'결과 이력')
         timing=QWidget(); form=QFormLayout(timing); self.times={}
         for key,label in (('end_s','종료 [s]'),('field_interval_s','장 출력 간격 [s]'),
             ('history_interval_s','이력 간격 [s]'),('scale','안정 시간증분 계수'),('target_step_s','목표 증분 [s]')):
@@ -96,11 +112,24 @@ class ImpactEditor(QDialog):
 
     def populate(self):
         self.source_label.setText(self.value['source'].get('title') or '유한요소 메시를 선택하세요')
-        self.motion.setRowCount(0); self.contacts.setRowCount(0)
+        self.motion.setRowCount(0); self.contacts.setRowCount(0); self.responses.setRowCount(0)
+        for row in self.value.get('responses',[]):self.response_row(row)
         for m in self.value['motions']: self.motion_row(m)
         for c in self.value['contacts']: self.contact_row(c)
+        self.damage.setRowCount(0)
         try:
             model=parse_inp(self.value['source']['text'])
+            from caelab.impact_damage import default_law
+            old={law['material']:law for law in self.value.get('cohesive',[])}
+            names=sorted({model['assignment'][e] for e,row in model['elements'].items() if row['type']=='COH3D8'})
+            self.value['cohesive']=[deepcopy(old.get(name,default_law(name))) for name in names]
+            for index,law in enumerate(self.value['cohesive']):
+                self.damage.insertRow(index);item=QTableWidgetItem(law['material'])
+                item.setFlags(item.flags()&~Qt.ItemFlag.ItemIsEditable);self.damage.setItem(index,0,item)
+                self.damage.setCellWidget(index,1,self.combo({'POWER':'거듭제곱','BK':'Benzeggagh–Kenane'},law['criterion']))
+                self.damage.setCellWidget(index,2,self.combo({i:str(i)+'개' for i in range(1,5)},law['deletion_points']))
+            if self.damage.rowCount():self.damage.selectRow(0)
+            self.show_damage()
             self.message.setText(f"절점 {len(model['nodes']):,}개 / 요소 {len(model['elements']):,}개 — Mg, mm, s, N, MPa")
         except (ValueError,KeyError,TypeError) as error: self.message.setText(str(error))
 
@@ -147,6 +176,59 @@ class ImpactEditor(QDialog):
             for c in range(3,6):self.motion.item(row,c).setText('0')
         combo.setProperty('accepted_mode',selected);self.show_motion()
 
+    def damage_value(self,key,value):
+        index=self.damage.currentRow()
+        if 0<=index<len(self.value.get('cohesive',[])):self.value['cohesive'][index][key]=numeric(value)
+
+    def show_damage(self):
+        index=self.damage.currentRow()
+        laws=self.value.get('cohesive',[])
+        for key,field in self.damage_fields.items():
+            field.blockSignals(True);field.setText(text(laws[index][key]) if 0<=index<len(laws) else '')
+            field.setEnabled(0<=index<len(laws));field.blockSignals(False)
+
+    def response_row(self,row):
+        from caelab.impact_responses import QUANTITIES
+        index=self.responses.rowCount();self.responses.insertRow(index)
+        self.responses.setItem(index,0,QTableWidgetItem(row['name']))
+        self.responses.setItem(index,2,QTableWidgetItem(str(row['identity'])))
+        quantity=self.combo({k:v[0] for k,v in QUANTITIES.items()},row['quantity'])
+        self.responses.setCellWidget(index,1,quantity)
+        self.response_components(index,row['component'])
+        quantity.currentIndexChanged.connect(lambda:self.response_changed(quantity))
+
+    def response_components(self,index,selected=None):
+        from caelab.impact_responses import QUANTITIES
+        quantity=self.responses.cellWidget(index,1).currentData()
+        values=QUANTITIES.get(quantity,(None,None,None,None,('scalar',)))[4]
+        labels={'scalar':'값','normal':'법선','tangent1':'접선 1','tangent2':'접선 2'}
+        combo=self.combo({v:labels.get(v,v) for v in values},selected if selected is not None else values[0])
+        self.responses.setCellWidget(index,3,combo)
+        item=self.responses.item(index,2)
+        if item:item.setToolTip('원 절점 번호' if QUANTITIES.get(quantity,(None,'CELLS'))[1]=='POINTS' else '원 요소 번호')
+
+    def response_changed(self,combo):
+        index=next((i for i in range(self.responses.rowCount()) if self.responses.cellWidget(i,1) is combo),-1)
+        if index>=0:self.response_components(index)
+
+    def add_response(self):
+        from caelab.impact_responses import QUANTITIES
+        try:model=parse_inp(self.value['source']['text'])
+        except (ValueError,KeyError) as error:self.message.setText(str(error));return
+        labels=[v[0] for v in QUANTITIES.values()]
+        label,ok=QInputDialog.getItem(self,'결과 이력','물리량',labels,0,False)
+        if not ok:return
+        quantity=next(k for k,v in QUANTITIES.items() if v[0]==label);definition=QUANTITIES[quantity]
+        ids=list(model['nodes'] if definition[1]=='POINTS' else model['elements'])
+        if quantity.startswith('cohesive_'):ids=[e for e in ids if model['elements'][e]['type']=='COH3D8']
+        if not ids:self.message.setText('이 응답을 선택할 원 요소가 없습니다');return
+        value,ok=QInputDialog.getItem(self,'결과 이력','원 절점 번호' if definition[1]=='POINTS' else '원 요소 번호',[str(i) for i in ids],0,False)
+        if ok:
+            used={self.responses.item(i,0).text() for i in range(self.responses.rowCount())}
+            index=1
+            while quantity+'_'+str(index) in used:index+=1
+            self.response_row({'name':quantity+'_'+str(index),'quantity':quantity,'identity':int(value),'component':definition[4][0]})
+
     def contact_row(self,c):
         r=self.contacts.rowCount(); self.contacts.insertRow(r)
         for j,k in ((0,'a'),(1,'b'),(3,'friction')): self.contacts.setItem(r,j,QTableWidgetItem(text(c[k])))
@@ -179,7 +261,7 @@ class ImpactEditor(QDialog):
             if answer!=QMessageBox.StandardButton.Yes: return
             self.value['source']={'title':path.name,'format':'INP','units':'Mg/mm/s','text':source,
                 'provenance':{'filename':path.name,'sha256':hashlib.sha256(payload).hexdigest(),'units_declared_by_user':True}}
-            self.value['motions']=[]; self.value['contacts']=[]; self.populate()
+            self.value['motions']=[]; self.value['contacts']=[]; self.value['cohesive']=[]; self.value['responses']=[]; self.populate()
         except (ValueError,OSError,UnicodeError) as error: self.message.setText(str(error))
 
     def edited(self):
@@ -195,6 +277,17 @@ class ImpactEditor(QDialog):
             contacts.append({'a':cell(self.contacts,r,0),'b':cell(self.contacts,r,1),
                 'law':self.contacts.cellWidget(r,2).currentData(),'friction':numeric(cell(self.contacts,r,3))})
         value['motions']=motions; value['contacts']=contacts
+        value['responses']=[]
+        for i in range(self.responses.rowCount()):
+            ident=cell(self.responses,i,2)
+            try:ident=int(ident)
+            except ValueError:pass
+            value['responses'].append({'name':cell(self.responses,i,0),
+                'quantity':self.responses.cellWidget(i,1).currentData(),'identity':ident,
+                'component':self.responses.cellWidget(i,3).currentData()})
+        for i,law in enumerate(value.get('cohesive',[])):
+            law['criterion']=self.damage.cellWidget(i,1).currentData()
+            law['deletion_points']=self.damage.cellWidget(i,2).currentData()
         value['time']={k:numeric(w.text().strip()) for k,w in self.times.items()}
         if not self.times['target_step_s'].text().strip(): value['time']['target_step_s']=None
         value['time']['mass_scaling']=self.mass.isChecked()

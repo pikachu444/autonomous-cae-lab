@@ -5,6 +5,7 @@ upstream section targeting/skew construction does not preserve arbitrary XYZ.
 """
 from collections import Counter
 import math
+import re
 from pathlib import Path
 
 
@@ -38,14 +39,17 @@ def _same(actual, expected):
 
 def global_gravity(text, gravity):
     blocks=cards(text)
-    # Retain all other source cards. Unused upstream skew/function cards remain
-    # evidence; no effective load references their potentially oblique basis.
     removed=[k for k in blocks if k.startswith('/GRAV/')]
-    for k in removed: del blocks[k]
-    function_ids=[int(k.split('/')[-1]) for k in blocks if k.startswith('/FUNCT/')]
-    function=max(function_ids,default=0)+1
+    # Preserve the mandatory #RADIOSS STARTER first line and every untouched
+    # card byte. The semantic reader intentionally discards comments; it must
+    # never serve as a general native-deck serializer.
+    matches=list(re.finditer(r'(?m)^/[^\r\n]+',text))
+    spans=[(m.start(),matches[i+1].start() if i+1<len(matches) else len(text))
+           for i,m in enumerate(matches) if m.group(0).strip().startswith('/GRAV/')]
+    for start,stop in reversed(spans):text=text[:start]+text[stop:]
+    function=max((int(k.split('/')[-1]) for k in blocks if k.startswith('/FUNCT/')),default=0)+1
     rows=[]
-    def real(x): return f'{x:20.12e}'
+    def real(x):return f'{x:20.12e}'
     if any(gravity):
         rows += [f'/FUNCT/{function}','CAELab constant global gravity',
                  real(0)+real(1),real(1)+real(1)]
@@ -54,10 +58,36 @@ def global_gravity(text, gravity):
                 rows += [f'/GRAV/{i}','CAELab global '+ 'XYZ'[i-1],
                          f"{function:10d}{'XYZ'[i-1]:>10}{0:10d}{0:10d}{0:10d}{'':10}"+
                          real(1)+real(value)]
-    end=blocks.pop('/END',None)
-    output='\n'.join(line for key,data in blocks.items() for line in [key,*data])
-    return output+'\n'+'\n'.join(rows)+'\n/END\n',{'removed_gravity_cards':removed,
+    end=re.search(r'(?m)^/END\s*$',text)
+    if end is None:raise ValueError('Native Starter deck has no END card')
+    output=text[:end.start()]+'\n'.join(rows)+'\n'+text[end.start():]
+    return output,{'removed_gravity_cards':removed,
         'effective_global_mm_s2':list(gravity),'basis':'GLOBAL_XYZ','group':0}
+
+
+def normalize_contact_friction(text,settings):
+    """Repair only the pinned writer's width-10 spill into a width-20 field."""
+    lines=text.splitlines(keepends=True);matches={}
+    current=None
+    for i,line in enumerate(lines):
+        if line.startswith('/'):
+            current=line.strip() if line.startswith('/INTER/TYPE24/') else None
+            if current:matches[current]=[]
+        elif current and line.strip() and not line.lstrip().startswith('#'):
+            matches[current].append(i)
+    for indexes in matches.values():
+        if len(indexes)!=7:raise ValueError('Unexpected native contact layout')
+        title=lines[indexes[0]].strip()
+        known={f'IMPACT{i}':p for i,p in enumerate(settings['contacts'],1)}
+        if title not in known:raise ValueError('Unknown effective contact')
+        # Retain native pair IDs and every other option. Only field row4 is
+        # regenerated because the upstream width error displaces later zeros.
+        original=lines[indexes[4]].split()
+        if len(original)!=4 or _real(original[0])!=0 or any(_real(v) for v in original[2:]):
+            raise ValueError('Unrequested contact options')
+        _same(_real(original[1]),known[title]['friction'])
+        lines[indexes[4]]=f"{0:20d}{known[title]['friction']:20.12e}{'':20}{0:20d}{0:20d}\n"
+    return ''.join(lines)
 
 
 def validate_physics(text, model, initial, settings):
@@ -76,7 +106,7 @@ def validate_physics(text, model, initial, settings):
     if set(element_parts)!=set(model['elements']): raise ValueError('Physical part coverage differs')
     materials={}
     for key,rows in b.items():
-        if key.startswith(('/MAT/ELAST/','/MAT/PLAS_TAB/')):
+        if key.startswith(('/MAT/ELAST/','/MAT/PLAS_TAB/','/MAT/LAW59/')):
             ident=int(key.rsplit('/',1)[1])
             if ident in materials: raise ValueError('Duplicate material identity')
             materials[ident]=(key,rows)
@@ -84,7 +114,13 @@ def validate_physics(text, model, initial, settings):
     property_by_element={}
     for eid,part in element_parts.items():
         if part not in parts or len(parts[part])!=2:raise ValueError('Missing native part')
-        prop=_int(parts[part][1][:10]);r=properties.get(prop,[])[1:]
+        prop=_int(parts[part][1][:10])
+        if model['elements'][eid]['type']=='COH3D8':
+            r=b.get('/PROP/TYPE43/'+str(prop),[])[1:]
+            if len(r)!=1 or _int(r[0][:10])!=-1 or r[0][10:].strip():raise ValueError('Cohesive formulation changed')
+            property_by_element[str(eid)]=prop
+            continue
+        r=properties.get(prop,[])[1:]
         if len(r)!=4:raise ValueError('Missing effective solid formulation')
         if [_int(r[0][i:i+10]) for i in range(0,80,10)]!=[24,-1,0,-1,2,0,3,-1]:
             raise ValueError('Effective solid formulation changed')
@@ -106,6 +142,12 @@ def validate_physics(text, model, initial, settings):
         if rows[0].strip().upper()!=name: raise ValueError('Material title/assignment differs')
         if len(rows)<3: raise ValueError('Incomplete material')
         _same(_real(rows[1][:20]),m['DENSITY'][0][0])
+        if m.get('_elastic_type')=='TRACTION':
+            if '/LAW59/' not in key or len(rows)!=4:raise ValueError('Original cohesive law changed')
+            _same(_real(rows[2][:20]),m['ELASTIC'][0][0])
+            _same(_real(rows[2][20:40]),m['ELASTIC'][0][1])
+            if rows[2][40:].strip() or any(_real(v) for v in rows[3].split()):raise ValueError('Unexpected cohesive options')
+            continue
         _same(_real(rows[1][20:40]),0)
         _same(_real(rows[2][:20]),m['ELASTIC'][0][0])
         _same(_real(rows[2][20:40]),m['ELASTIC'][0][1])
@@ -154,7 +196,7 @@ def validate_physics(text, model, initial, settings):
         # All other template values are fixed by the admitted TYPE24 recipe.
         template=[
             f"{surface_names[pair['b']]:>10}{surface_names[pair['a']]:>10}         4                             0                   0",
-            "         0                             0                   0                   0                   0                   0",
+            "         0                             0                   0                   0                   0",
             "                   0                   0         0         0                   0",
             None,
             "       000                             5                   0",

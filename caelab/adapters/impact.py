@@ -12,7 +12,7 @@ from ..execution_control import run_owned_command,check_cancelled,ExecutionCance
 from ..storage import save_json,canonical_hash
 from .opencourant_runtime import runtime as selected_runtime
 from .impact_results import history,read_vtk,write_post,validate_frame_identity
-from .impact_admission import global_gravity,validate_physics
+from .impact_admission import global_gravity,validate_physics,normalize_contact_friction
 
 
 def converted_mesh(path, expected, input_nodes):
@@ -100,6 +100,13 @@ class ImpactAdapter:
                 rows.append({'id':f'motion_{i}_height','label':m['node_set']+' 높이','unit':'mm',
                     'value':m['height_mm'],'lower':1e-12,'upper':1e9,'settings_path':path,
                     'declaration_paths':[['model','settings',*path]]})
+        for i,law in enumerate(s.get('cohesive',[])):
+            for key,label,unit in (('normal_strength_mpa','법선 강도','MPa'),('shear_strength_mpa','전단 강도','MPa'),
+                                  ('mode_I_n_mm','모드 I 파괴 에너지','N/mm'),('mode_II_n_mm','모드 II 파괴 에너지','N/mm')):
+                path=['cohesive',i,key]
+                rows.append({'id':f'cohesive_{i}_{key}','label':law['material']+' '+label,'unit':unit,
+                    'value':law[key],'lower':1e-12,'upper':1e12,'settings_path':path,
+                    'declaration_paths':[['model','settings',*path]]})
         if not 1<=len(rows)<=32: raise ValueError('수치 연구에는 1~32개의 명시 초기 운동 성분이 필요합니다')
         return rows
 
@@ -135,8 +142,15 @@ class ImpactAdapter:
                 **converted_mesh(native/'impact_0000.rad',model,initial['nodes'])})
             starter=native/'impact_0000.rad'
             effective_gravity,gravity_receipt=global_gravity(starter.read_text(encoding='ascii'),s['gravity_mm_s2'])
+            effective_gravity=normalize_contact_friction(effective_gravity,s)
             starter.write_text(effective_gravity,encoding='ascii',newline='\n')
             physics=validate_physics(effective_gravity,model,initial,s)
+            from ..impact_damage import apply_laws,verify_laws
+            actual_model={**model,'nodes':initial['nodes']}
+            effective_gravity,damage_receipt=apply_laws(effective_gravity,actual_model,s.get('cohesive',[]))
+            verify_laws(effective_gravity,actual_model,s.get('cohesive',[]),damage_receipt)
+            starter.write_text(effective_gravity,encoding='ascii',newline='\n')
+            save_json(out/'damage_definition.json',damage_receipt)
             save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt})
             result['checks'].append({'name':'effective_physics','status':'PASS'})
             (native/'impact_0001.rad').write_text(domain.engine_deck(s),encoding='ascii',newline='\n')
@@ -188,7 +202,11 @@ class ImpactAdapter:
                     raw['coverage']=validate_frame_identity(raw,model,physics)
                     frames.append((target,raw))
                 if not frames: raise ValueError('No native animation frame was retained')
-                metadata=write_post(out/'post',frames)
+                from ..impact_responses import read_selected
+                chosen,selection_record=read_selected(frames,actual_model,s.get('responses',[]),damage_receipt)
+                result['responses'].update(chosen)
+                save_json(out/'selected_responses.json',selection_record)
+                metadata=write_post(out/'post',frames,damage=damage_receipt)
                 pvd=out/'post/impact.pvd'
                 result['post_artifacts']=[{'relative':'post/impact.pvd','sha256':file_hash(pvd),
                     'native_metadata':metadata,'response':'impact_fields',
@@ -204,6 +222,7 @@ class ImpactAdapter:
             physical_failure='UNKNOWN',partial_output=result['execution_status']!='SUCCEEDED',
             contact_scope='TYPE24 corner-faceted surfaces, no static penalty-law equivalence',
             limitations=['No inferred failure/life from solver termination','Unknown native arrays retained without invented units',
-                         'Native force/impulse group selection and coupled cohesive fatigue are not yet admitted'])
+                         'Selected nodal force is all-contact, not pair-specific; impulse is animation-sample quadrature',
+                         'Cohesive fatigue, arbitrary cyclic plasticity and general native RAD import remain unsupported'])
         save_json(out/'impact_execution.json',result)
         return result

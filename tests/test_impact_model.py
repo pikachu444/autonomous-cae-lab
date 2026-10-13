@@ -146,3 +146,25 @@ def test_repeated_lowercase_sets_preserve_full_fixed_union_in_native_cards(tmp_p
     assert proc.returncode==0,proc.stdout+proc.stderr
     native,_=global_gravity((tmp_path/'impact_0000.rad').read_text(encoding='ascii'),s['gravity_mm_s2'])
     assert validate_physics(native,parse_inp(s['source']['text']),initial,s)['fixed_dof_count']==6
+
+
+def test_contact_converter_admission_preserves_starter_header_and_precision(tmp_path):
+    from caelab.adapters.impact_admission import global_gravity,normalize_contact_friction,validate_physics
+    import caelab.adapters.inp2rad_worker as worker
+    s=settings()
+    s['source']['text']+='\n*SURFACE,NAME=SECOND_FACE,TYPE=ELEMENT\n1,S2\n'
+    model=parse_inp(s['source']['text'])
+    first=next(name for name in model['surfaces'] if name!='SECOND_FACE')
+    s['contacts']=[{'a':first,'b':'SECOND_FACE','law':'TYPE24','friction':.1234567890123}]
+    effective,initial=render(s)
+    path=tmp_path/'impact.inp';path.write_text(effective,encoding='ascii',newline='\n')
+    process=subprocess.run([sys.executable,worker.__file__,str(path)],capture_output=True,text=True,timeout=30)
+    assert process.returncode==0,process.stdout+process.stderr
+    raw=(tmp_path/'impact_0000.rad').read_text(encoding='ascii')
+    assert raw.startswith('#RADIOSS STARTER')
+    fixed,_=global_gravity(raw,s['gravity_mm_s2'])
+    fixed=normalize_contact_friction(fixed,s)
+    assert fixed.startswith('#RADIOSS STARTER')
+    assert validate_physics(fixed,model,initial,s)['contact_count']==1
+    # A no-gravity/no-contact edit preserves every non-GRAV source card.
+    assert '/BEGIN' in fixed and '/END' in fixed

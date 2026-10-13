@@ -10,8 +10,9 @@ from .material_document import MaterialDocuments
 
 
 CATALOG = {
+    'damage.rainflow': (None,None,'보존된 부호 있는 단축 응력과 명시 S–N 시험 범위. 평균응력 보정/외삽/연성 피로는 적용하지 않습니다.'),
     'explicit.opencourant.model': (None, None,
-        '사용자 솔리드 FE 메시, 명시 초기 운동과 TYPE24 접촉. Mg/mm/s 입력. 손상·수명 판정은 별도 범위.'),
+        '사용자 FE 메시, 초기 운동, TYPE24, 명시 LAW117 응집 손상. Mg/mm/s 입력. 수명·공학 승인은 별도입니다.'),
     'material.mfront.user': (None, None,
         '운영자가 원문 SHA로 허용한 사용자 법칙. generic 3차원 미소변형, Pa/1/s. FE export는 별도 미지원.'),
     'structure.calculix.design': (None, None,

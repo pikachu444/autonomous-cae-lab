@@ -16,7 +16,8 @@ from caelab.simulation_document import BACKENDS, default_draft, diagnostics, sup
 from .pde_window import PDEWindow, ROLE, display
 
 MODELS = {
-    'explicit.opencourant.model': ('사용자 FE 충격 (OpenCourant)', '원 메시·밀도·초기 운동과 명시 TYPE24 접촉. 결과의 손상·수명은 별도 판정합니다.'),
+    'damage.rainflow': ('반복하중과 S–N 누적', '저장된 단축 응력과 명시 시험 범위. 평균응력 보정·외삽 없음.'),
+    'explicit.opencourant.model': ('사용자 FE 충격 (OpenCourant)', '원 메시·밀도·초기 운동, TYPE24 접촉과 LAW117 응집 손상. 수명·공학 승인은 별도입니다.'),
     'structure.calculix.design': ('CAD 구조 해석 (CalculiX)', '저장한 Analysis의 편집 사본과 매핑된 참조를 사용합니다. 재메시 후 기존 CalculiX 계산으로 이어집니다.'),
     'structural.code_aster': ('단축 탄성 블록 (Code_Aster)', '지정한 3차원 탄성 블록의 치수·메시·인장 하중만 지원합니다. 임의 CAD 구조 해석이 아닙니다.'),
     'structural.code_aster.plasticity': ('J2 소성 블록 (Code_Aster)', '작은 변형률 J2 블록과 축방향 이력을 지원합니다. DP·손상·접촉은 지원하지 않습니다.'),
@@ -55,7 +56,8 @@ class _ModelChoice(QComboBox):
 
 
 _CAPTIONS = {
-    'motions':'초기 운동','contacts':'접촉','gravity_mm_s2':'중력',
+    'sn_curve':'S–N 시험 자료','calibration':'적용 시험 조건','temperature_k':'평가 온도 [K]',
+    'repeat_block':'반복 블록 가정','cohesive':'응집 손상','motions':'초기 운동','contacts':'접촉','gravity_mm_s2':'중력',
     'qualification':'계산 적용 범위','text':'입력 원문','provenance':'기술 출처',
     'end_s':'종료 시간 [s]','field_interval_s':'장 출력 간격 [s]','scale':'시간증분 계수',
     'mass_scaling':'질량 스케일링','target_step_s':'목표 증분 [s]',
@@ -179,6 +181,11 @@ class SimulationWindow(PDEWindow):
         self.impact_action = QAction('충격 조건…', self)
         self.impact_action.triggered.connect(lambda: __import__('apps.research.impact_editor', fromlist=['edit']).edit(self))
         research_menu.addAction(self.impact_action)
+        self.fatigue_action=QAction('반복하중 조건…',self)
+        self.fatigue_action.triggered.connect(lambda:__import__('apps.research.fatigue_editor',fromlist=['edit']).edit(self))
+        research_menu.addAction(self.fatigue_action)
+        self.cycles_action=QAction('사이클과 누적값…',self)
+        self.cycles_action.triggered.connect(self.read_fatigue_cycles);research_menu.addAction(self.cycles_action)
         self._update_actions()
 
     def inspect_runtime(self):
@@ -213,7 +220,7 @@ class SimulationWindow(PDEWindow):
         for path in (('settings', 'limits'), ('settings', 'validation'), ('settings', 'input_provenance')):
             node = self._nodes.get(path)
             if node: node.setExpanded(False)
-        if draft.get('backend')=='explicit.opencourant.model':
+        if draft.get('backend') in ('explicit.opencourant.model','damage.rainflow'):
             for path,node in self._nodes.items():
                 if len(path)>2 or path==('settings','qualification'):node.setHidden(True)
                 elif len(path)==2:node.setExpanded(False)
@@ -274,7 +281,7 @@ class SimulationWindow(PDEWindow):
             self._numeric_paths = getattr(self, '_numeric_paths', set())
             self._numeric_paths.add(path)
         if self._draft.get('backend') == 'explicit.opencourant.model':
-            if path[1:2] == ('source',) or len(path)>1 and path[1] in ('motions','contacts','time','gravity_mm_s2'):
+            if path[1:2] == ('source',) or len(path)>1 and path[1] in ('motions','contacts','cohesive','responses','time','gravity_mm_s2'):
                 if path == ('settings','source'):
                     source=self._draft['settings']['source']
                     form.addRow(QLabel(source.get('title') or '유한요소 모델 미선택'))
@@ -284,6 +291,10 @@ class SimulationWindow(PDEWindow):
                 button.clicked.connect(lambda: __import__('apps.research.impact_editor',fromlist=['edit']).edit(self))
                 form.addRow(button)
                 return
+        if self._draft.get('backend')=='damage.rainflow':
+            button=QPushButton('반복하중 조건…')
+            button.clicked.connect(lambda:__import__('apps.research.fatigue_editor',fromlist=['edit']).edit(self))
+            form.addRow(button);return
         choices = _CHOICES.get(path[-1])
         if choices and isinstance(value, str):
             field = _ModelChoice()
@@ -296,6 +307,17 @@ class SimulationWindow(PDEWindow):
             form.addRow(QLabel(self.field_label(path)), field)
         else:
             super()._add_fields(form, value, path)
+
+    def read_fatigue_cycles(self):
+        if not self.document or not self._selected_job:return
+        key=(self.document['id'],self._selected_job)
+        def accepted(result):
+            if not self.document or (self.document['id'],self._selected_job)!=key:return
+            if result.get('backend')!='damage.rainflow':
+                self.message.setText('반복하중 평가 결과를 선택하세요');return
+            from .fatigue_editor import show_cycles
+            show_cycles(self,result)
+        self._call(lambda:self.client.document_result(*key),accepted)
 
     def impact_details(self):
         from PySide6.QtWidgets import QDialog,QVBoxLayout,QDialogButtonBox
@@ -327,6 +349,9 @@ class SimulationWindow(PDEWindow):
                 self.model_splitter.setSizes(getattr(self, '_preview_graph_sizes', [205, 360, 835]))
         if hasattr(self, 'impact_action'):
             self.impact_action.setEnabled(not self._busy and self._draft.get('backend') == 'explicit.opencourant.model')
+        if hasattr(self,'fatigue_action'):
+            self.fatigue_action.setEnabled(not self._busy and self._draft.get('backend')=='damage.rainflow')
+            self.cycles_action.setEnabled(not self._busy and bool(self._selected_job))
         if hasattr(self, 'readiness_button'):
             self.readiness_button.setEnabled(not self._busy)
 
