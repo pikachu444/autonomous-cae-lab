@@ -185,9 +185,10 @@ def test_comparison_declarations_preview_apply_actual_sample_callbacks(app, wind
     window.read_samples()
     wait(app, lambda: window._samples is not None and window._pending is None and not window._busy)
     assert window.client.calls[-1][2]['point_index'] == 4
-    headers = [window.samples.horizontalHeaderItem(i).text() for i in range(window.samples.columnCount())]
-    assert window.samples.item(0, headers.index('b')).text() == 'null'
-    assert window.samples.item(0, headers.index('validity_reason')).text() == 'outside_domain'
+    headers = [window.samples.horizontalHeaderItem(i).toolTip() for i in range(window.samples.columnCount())]
+    assert window.samples.item(0, headers.index('b')).text() == '값 없음'
+    assert window._samples['rows'][0]['b'] is None
+    assert window.samples.item(0, headers.index('validity_reason')).toolTip() == 'outside_domain'
     assert all(count == 1 for count in window.client.execute_count.values())
 
 
@@ -351,7 +352,7 @@ def test_exact_native_view_selection_apply_show_overlay_source_and_disappeared_v
 def test_measurement_optional_declarations_stay_unknown_until_explicit_edit(app, window):
     from apps.research.post_window import MEASUREMENT_DECLARATIONS
     window.new_object('measurement')
-    assert window.view_selector.itemText(0) == 'Owned view / new appropriate view'
+    assert window.view_selector.itemText(0) == '현재 객체의 뷰'
     assert not any(key in window.edited_draft() for key in MEASUREMENT_DECLARATIONS)
     supplied = {'quantity': 'stress', 'units': 'MPa', 'measure': 'Cauchy', 'frame': 'lab',
                 'coordinate_units': 'mm', 'coordinate_frame': 'lab'}
@@ -412,7 +413,7 @@ def test_actual_http_native_command_queue_and_exact_proxy_inspection(app, tmp_pa
         wait(app, lambda: not window._busy and window._pending is None and bool(dispatched))
         assert len(dispatched) == 1
         assert window.array_table.item(0, 0).text() == 'CONTROLLED_ARRAY'
-        assert window.array_table.item(0, 3).text() == 'null'
+        assert window.array_table.item(0, 3).text() == '알 수 없음'
         assert client.command_status(dispatched[0]['command_id'])['state'] == 'SUCCEEDED'
     finally:
         window._allow_close = True

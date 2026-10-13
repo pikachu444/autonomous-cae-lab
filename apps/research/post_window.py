@@ -10,6 +10,7 @@ from copy import deepcopy
 import json
 import math
 import os
+import re
 import sys
 import uuid
 from urllib.error import HTTPError
@@ -19,9 +20,9 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QCheckBox, QComboBox, QFormLayout,
     QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
-    QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter,
+    QMenu, QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter,
     QTabWidget, QTableWidget, QTableWidgetItem, QToolBar, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget,
+    QTreeWidgetItem, QToolButton, QVBoxLayout, QWidget,
 )
 
 from apps.research.data_window import _Read, number_or_raw, integer_or_raw, display
@@ -47,15 +48,15 @@ SIDE_FIELDS = ('source_ref', 'array', 'association', 'quantity', 'units', 'measu
 VECTORS = {'origin', 'normal', 'offsets', 'values', 'point1', 'point2', 'point_indices'}
 BOOLEANS = {'triangulate', 'crinkle', 'invert'}
 NUMBERS = {'time', 'tolerance', 'scale_factor'}
-LABELS = {'source_ref': 'Exact source', 'array': 'Native array', 'association': 'Association',
-          'quantity': 'Physical quantity', 'units': 'Response unit', 'measure': 'Measure', 'frame': 'Response frame',
-          'coordinate_units': 'Coordinate unit', 'coordinate_frame': 'Coordinate frame',
-          'time': 'Exact native time (blank: none)', 'time_units': 'Clock unit (blank: none)',
-          'time_origin': 'Clock origin (blank: none)', 'point_indices': 'Original point indexes',
-          'origin': 'Plane origin [x, y, z]', 'normal': 'Plane normal [x, y, z]',
-          'point1': 'First endpoint [x, y, z]', 'point2': 'Second endpoint [x, y, z]',
-          'resolution': 'Line intervals', 'tolerance': 'Explicit native tolerance',
-          'offsets': 'Slice offsets', 'values': 'Contour isovalues', 'scale_factor': 'Vector scale factor'}
+LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 위치 (POINTS/CELLS)',
+          'quantity': '물리량', 'units': '응답 단위', 'measure': '물리적 정의', 'frame': '응답 좌표계',
+          'coordinate_units': '좌표 단위', 'coordinate_frame': '좌표계',
+          'time': '원 결과 시각 (없으면 비움)', 'time_units': '시간 단위',
+          'time_origin': '시간 기준', 'point_indices': '원본 점 번호',
+          'origin': '평면 원점 [x, y, z]', 'normal': '평면 법선 [x, y, z]',
+          'point1': '첫 점 [x, y, z]', 'point2': '끝 점 [x, y, z]',
+          'resolution': '선 구간 수', 'tolerance': '허용 오차',
+          'offsets': '단면 위치', 'values': '등고값', 'scale_factor': '벡터 배율'}
 
 
 def defaults(kind, source_ref=''):
@@ -112,6 +113,8 @@ def native_payload(command):
 class PostWindow(QMainWindow):
     def __init__(self, client, *, document_id, session_id=None, poll_interval=1500, auto_open=True):
         super().__init__()
+        from .appearance import apply_appearance
+        apply_appearance(QApplication.instance())
         self.client, self.document_id, self.session_id = client, document_id, session_id
         self.document = None
         self._busy = self._populating = self._allow_close = self.local_dirty = self.conflict = False
@@ -129,6 +132,7 @@ class PostWindow(QMainWindow):
         self._draft = defaults(self._kind)
         self._edit_serial = 0
         self._samples = None
+        self._sample_basis = None
         self._contact_dialog = None
         self._build_ui()
         self.timer = QTimer(self)
@@ -143,28 +147,27 @@ class PostWindow(QMainWindow):
             self.refresh_document(initial=True)
 
     def _build_ui(self):
-        self.resize(1440, 940)
+        self.resize(1440, 900)
         self.setMinimumSize(1060, 700)
-        toolbar = QToolBar('Native Post analysis')
+        toolbar = QToolBar('후처리')
         self.addToolBar(toolbar)
-        self.open_action = QAction('Open owner…', self, shortcut=QKeySequence.Open)
+        self.open_action = QAction('후처리 문서 열기…', self, shortcut=QKeySequence.Open)
         self.open_action.triggered.connect(self.choose_document)
-        self.save_action = QAction('Save analysis', self, shortcut=QKeySequence.Save)
+        self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
         self.save_action.triggered.connect(self.save_document)
         toolbar.addActions([self.open_action, self.save_action])
-        self.menuBar().addMenu('&File').addActions([self.open_action, self.save_action])
-        self.refresh_button = QPushButton('Refresh owner; keep draft')
+        self.menuBar().addMenu('파일(&F)').addActions([self.open_action, self.save_action])
+        self.refresh_button = QPushButton('새로고침')
         self.refresh_button.clicked.connect(lambda: self.refresh_document(explicit=True))
         toolbar.addWidget(self.refresh_button)
-        self.numerical_button = QPushButton('Use in Numerical…')
+        self.numerical_button = QPushButton('Numerical로 보내기…')
+        self.numerical_button.setProperty('appearanceRole', 'primary')
         self.numerical_button.setObjectName('useMeasurementInNumerical')
         self.numerical_button.clicked.connect(self.use_in_numerical)
-        toolbar.addWidget(self.numerical_button)
-        self.contact_button = QPushButton('Contact results…')
+        self.contact_button = QPushButton('접촉 결과…')
         self.contact_button.setObjectName('inspectContactResults')
         self.contact_button.clicked.connect(self.open_contact_inspector)
-        toolbar.addWidget(self.contact_button)
-        self.handoff_retry = QPushButton('Resume measurement import')
+        self.handoff_retry = QPushButton('곡선 전달 이어가기')
         self.handoff_retry.clicked.connect(self._continue_measurement_handoff)
         self.handoff_retry.setVisible(False)
         toolbar.addWidget(self.handoff_retry)
@@ -172,10 +175,11 @@ class PostWindow(QMainWindow):
         self._measurement_delivery = None
         self._measurement_dialog = None
         self.identity = QLabel()
-        toolbar.addWidget(self.identity)
         root = QWidget()
         outer = QVBoxLayout(root)
-        self.message = QLabel('Connect to the existing native Post document. ParaView retains its native render and plot views.')
+        self.identity.setProperty('appearanceRole', 'title')
+        outer.addWidget(self.identity)
+        self.message = QLabel('ParaView에서 후처리 문서를 열면 원 결과와 측정값을 선택할 수 있습니다.')
         self.message.setWordWrap(True)
         outer.addWidget(self.message)
         split = QSplitter(Qt.Orientation.Horizontal)
@@ -183,100 +187,126 @@ class PostWindow(QMainWindow):
         left = QWidget()
         left_layout = QVBoxLayout(left)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(['Original sources / analysis objects', 'State'])
-        self.tree.setColumnWidth(0, 260)
+        self.tree.setHeaderLabels(['원 결과와 분석', '상태'])
+        self.tree.setColumnWidth(0, 185)
         self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.tree.itemSelectionChanged.connect(self._tree_selected)
         left_layout.addWidget(self.tree, 1)
-        self.add_source_button = QPushButton('Add approved result…')
+        self.add_source_button = QPushButton('결과 파일 추가…')
         self.add_source_button.clicked.connect(lambda: self.choose_source(repair=False))
-        self.repair_button = QPushButton('Repair selected source…')
+        self.repair_button = QPushButton('원 파일 다시 연결…')
         self.repair_button.clicked.connect(lambda: self.choose_source(repair=True))
-        self.show_source_button = QPushButton('Show source in native view')
+        self.show_source_button = QPushButton('ParaView에서 보기')
         self.show_source_button.clicked.connect(self.show_source)
-        self.inspect_button = QPushButton('Inspect exact native arrays')
+        self.inspect_button = QPushButton('필드 정보 읽기')
         self.inspect_button.clicked.connect(self.inspect_source)
-        for button in (self.add_source_button, self.repair_button, self.show_source_button, self.inspect_button):
-            left_layout.addWidget(button)
+        left_layout.addWidget(self.add_source_button)
         self.array_table = QTableWidget(0, 5)
-        self.array_table.setHorizontalHeaderLabels(['Array', 'Association', 'Components', 'Unit', 'Declaration'])
+        self.array_table.setHorizontalHeaderLabels(['필드', '위치', '성분 수', '단위', '물리 의미'])
         self.array_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.array_table.setMaximumHeight(200)
-        self.array_table.horizontalHeader().setStretchLastSection(True)
-        left_layout.addWidget(self.array_table)
+        self.array_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        for col, width in ((1, 100), (2, 85), (3, 80), (4, 100)):
+            self.array_table.setColumnWidth(col, width)
         split.addWidget(left)
         center = QWidget()
         center_layout = QVBoxLayout(center)
-        new_buttons = QHBoxLayout()
+        new_button = QToolButton()
+        new_button.setText('분석 추가')
+        new_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        new_menu = QMenu(new_button)
         self.new_buttons = []
-        for kind in ('comparison', 'filter', 'measurement'):
-            button = QPushButton('New ' + kind)
-            button.clicked.connect(lambda checked=False, kind=kind: self.new_object(kind))
-            self.new_buttons.append(button)
-            new_buttons.addWidget(button)
-        center_layout.addLayout(new_buttons)
-        self.object_label = QLabel('New comparison · declarations are explicit')
+        for kind, label in (('comparison', '결과 비교'), ('filter', '필터'), ('measurement', '측정')):
+            action = new_menu.addAction(label + '…')
+            action.triggered.connect(lambda checked=False, kind=kind: self.new_object(kind))
+            self.new_buttons.append(action)
+        new_button.setMenu(new_menu)
+        toolbar.addWidget(new_button)
+        self.object_label = QLabel('새 결과 비교')
+        self.object_label.setProperty('appearanceRole', 'section')
         self.object_label.setWordWrap(True)
         center_layout.addWidget(self.object_label)
+        self.selection_meaning = QLabel()
+        self.selection_meaning.setWordWrap(True)
+        center_layout.addWidget(self.selection_meaning)
+        self.return_editor = QPushButton('보관 중인 편집으로 돌아가기')
+        self.return_editor.clicked.connect(self.return_to_editor)
+        self.return_editor.hide()
+        center_layout.addWidget(self.return_editor)
+        self.editor_toggle = QPushButton('설정 접기')
+        self.editor_toggle.setCheckable(True)
+        self.editor_toggle.setChecked(True)
+        self.editor_toggle.toggled.connect(self._toggle_editor)
+        center_layout.addWidget(self.editor_toggle, 0, Qt.AlignmentFlag.AlignLeft)
+        self.editor_area = QWidget()
+        editor_layout = QVBoxLayout(self.editor_area)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
         self.tabs = QTabWidget()
+        self.tabs.tabBar().hide()
         self._pages, self._forms, self.fields = {}, {}, {}
         for kind in ('comparison', 'filter', 'measurement'):
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
             page = QWidget()
             form = QFormLayout(page)
+            form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
+            form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
             scroll.setWidget(page)
             self._pages[kind], self._forms[kind] = page, form
-            self.tabs.addTab(scroll, kind.title())
+            self.tabs.addTab(scroll, {'comparison': '결과 비교', 'filter': '필터', 'measurement': '측정'}[kind])
         self.tabs.currentChanged.connect(self._tab_changed)
-        center_layout.addWidget(self.tabs, 1)
+        editor_layout.addWidget(self.tabs, 1)
+        self.editor_area.setMaximumHeight(290)
+        self.editor_area.setMinimumHeight(240)
         controls = QHBoxLayout()
-        self.edit_button = QPushButton('Keep draft')
+        self.edit_button = QPushButton('초안 보관')
         self.edit_button.clicked.connect(self.store_draft)
-        self.preview_button = QPushButton('Preview')
+        self.preview_button = QPushButton('미리보기')
         self.preview_button.clicked.connect(self.preview)
-        self.apply_button = QPushButton('Apply to native view')
+        self.apply_button = QPushButton('적용')
+        self.apply_button.setProperty('appearanceRole', 'primary')
         self.apply_button.clicked.connect(lambda: self.object_command('post.apply'))
-        self.reset_button = QPushButton('Reset draft')
+        self.reset_button = QPushButton('편집 되돌리기')
         self.reset_button.clicked.connect(self.reset_draft)
         for button in (self.edit_button, self.preview_button, self.apply_button, self.reset_button):
             controls.addWidget(button)
-        center_layout.addLayout(controls)
+        editor_layout.addLayout(controls)
+        center_layout.addWidget(self.editor_area)
         display_controls = QHBoxLayout()
-        display_controls.addWidget(QLabel('Native display view'))
+        display_controls.addWidget(QLabel('ParaView 뷰'))
         self.view_selector = QComboBox()
         self.view_selector.setObjectName('postNativeView')
-        self.view_selector.addItem('Owned view / new appropriate view', None)
+        self.view_selector.addItem('현재 객체의 뷰', None)
         display_controls.addWidget(self.view_selector, 1)
-        self.show_applied_button = QPushButton('Show applied result')
+        self.show_applied_button = QPushButton('적용 결과 보기')
         self.show_applied_button.clicked.connect(lambda: self.object_command('post.show_analysis'))
         display_controls.addWidget(self.show_applied_button)
+        display_controls.addWidget(self.show_source_button)
+        display_controls.addWidget(self.contact_button)
         center_layout.addLayout(display_controls)
         history = QHBoxLayout()
-        self.undo_button, self.redo_button = QPushButton('Undo application'), QPushButton('Redo application')
-        self.undo_button.clicked.connect(lambda: self.object_command('post.undo'))
-        self.redo_button.clicked.connect(lambda: self.object_command('post.redo'))
+        edit_menu = self.menuBar().addMenu('편집(&E)')
+        self.undo_button, self.redo_button = QAction('적용 취소', self), QAction('다시 적용', self)
+        self.undo_button.triggered.connect(lambda: self.object_command('post.undo'))
+        self.redo_button.triggered.connect(lambda: self.object_command('post.redo'))
+        edit_menu.addActions([self.undo_button, self.redo_button])
         self.export_format = QComboBox()
         self.export_format.addItems(['vtu', 'csv', 'png'])
-        self.export_button = QPushButton('Export selected result')
+        self.export_button = QPushButton('결과 내보내기')
         self.export_button.clicked.connect(lambda: self.object_command('post.export', {'format': self.export_format.currentText()}))
-        for widget in (self.undo_button, self.redo_button, self.export_format, self.export_button):
-            history.addWidget(widget)
-        center_layout.addLayout(history)
-        scope = QLabel('These controls edit the selected analysis recipe. ParaView Properties, camera, field display and animation remain native. Preview does not apply or export a result.')
-        scope.setWordWrap(True)
-        center_layout.addWidget(scope)
-        split.addWidget(center)
-        right = QWidget()
-        right_layout = QVBoxLayout(right)
-        self.progress = QLabel('No native command in progress.')
+        history.addWidget(self.repair_button)
+        history.addWidget(self.inspect_button)
+        self.source_tools = QWidget()
+        self.source_tools.setLayout(history)
+        center_layout.addWidget(self.source_tools)
+        center_layout.addWidget(self.array_table, 1)
+        self.progress = QLabel('요청 대기 중')
         self.progress.setWordWrap(True)
-        right_layout.addWidget(self.progress)
-        self.retry_button = QPushButton('Recover same request')
+        self.statusBar().addWidget(self.progress, 1)
+        self.retry_button = QPushButton('같은 요청 다시 확인')
         self.retry_button.clicked.connect(self.recover_request)
-        right_layout.addWidget(self.retry_button)
+        self.statusBar().addPermanentWidget(self.retry_button)
         sample_controls = QFormLayout()
-        self.sample_preview = QCheckBox('Read validated preview (unchecked: applied result)')
+        self.sample_preview = QCheckBox('적용 전 미리보기 값 읽기')
         self.sample_preview.setChecked(True)
         sample_controls.addRow(self.sample_preview)
         self.offset = QSpinBox()
@@ -285,32 +315,128 @@ class PostWindow(QMainWindow):
         self.limit.setRange(1, 1000)
         self.limit.setValue(100)
         self.point_index = QLineEdit()
-        self.point_index.setPlaceholderText('blank: bounded page')
-        sample_controls.addRow('Sample offset', self.offset)
-        sample_controls.addRow('Page limit', self.limit)
-        sample_controls.addRow('Exact original point index', self.point_index)
-        right_layout.addLayout(sample_controls)
-        self.sample_button = QPushButton('Read actual samples')
+        self.point_index.setPlaceholderText('비워 두면 표 구간 읽기')
+        sample_controls.addRow('시작 행', self.offset)
+        sample_controls.addRow('읽을 행 수', self.limit)
+        sample_controls.addRow('원본 절점 번호', self.point_index)
+        sample_options = QWidget()
+        sample_options.setLayout(sample_controls)
+        sample_options.hide()
+        self.sample_controls = sample_options
+        self.read_options = QPushButton('조회 범위')
+        self.read_options.setCheckable(True)
+        self.read_options.toggled.connect(sample_options.setVisible)
+        self.sample_button = QPushButton('측정값 읽기')
         self.sample_button.clicked.connect(self.read_samples)
-        right_layout.addWidget(self.sample_button)
+        sample_row = QHBoxLayout()
+        for widget in (self.sample_button, self.read_options):
+            sample_row.addWidget(widget)
+        sample_row.addStretch()
+        sample_row.addWidget(self.export_format)
+        sample_row.addWidget(self.export_button)
+        sample_row.addWidget(self.numerical_button)
+        self.sample_tools = QWidget()
+        self.sample_tools.setLayout(sample_row)
+        center_layout.addWidget(self.sample_tools)
+        center_layout.addWidget(sample_options)
+        self.sample_context = QLabel('아직 읽은 값이 없습니다.')
+        self.sample_context.setWordWrap(True)
+        center_layout.addWidget(self.sample_context)
         self.samples = QTableWidget(0, 0)
         self.samples.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.samples.setAlternatingRowColors(True)
         self.samples.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.samples.horizontalHeader().setStretchLastSection(True)
-        right_layout.addWidget(self.samples, 1)
+        center_layout.addWidget(self.samples, 1)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         self.details.setMaximumHeight(280)
-        right_layout.addWidget(self.details)
-        split.addWidget(right)
-        split.setSizes([340, 650, 450])
+        self.details.hide()
+        view_menu = self.menuBar().addMenu('보기(&V)')
+        self.details_action = view_menu.addAction('기술 상세')
+        self.details_action.setCheckable(True)
+        self.details_action.toggled.connect(self.details.setVisible)
+        center_layout.addWidget(self.details)
+        split.addWidget(center)
+        split.setSizes([260, 1180])
         self.setCentralWidget(root)
         self._populate_editor()
         self._update_actions()
 
+    def _toggle_editor(self, opened):
+        self.editor_area.setVisible(opened)
+        self.editor_toggle.setText('설정 접기' if opened else '설정 편집')
+
+    def return_to_editor(self):
+        self._tree_selection = ('object', self._object_ref) if self._object_ref else None
+        self._restore_tree_selection()
+        self._update_actions()
+
+    def _restore_tree_selection(self):
+        self.tree.blockSignals(True)
+        self.tree.setCurrentItem(None)
+        for root_index in range(self.tree.topLevelItemCount()):
+            group = self.tree.topLevelItem(root_index)
+            for index in range(group.childCount()):
+                item = group.child(index)
+                if item.data(0, Qt.ItemDataRole.UserRole) == self._tree_selection:
+                    self.tree.setCurrentItem(item)
+        self.tree.blockSignals(False)
+
     def _analysis(self, document=None):
         return (document or self.document or {}).get('state', {}).get('analysis', {})
+
+    @staticmethod
+    def source_title(source):
+        label = source.get('label') or source.get('reader_name') or '원 결과'
+        generated = re.fullmatch(r'Result \| (.+) \| [0-9a-f]{8}', label)
+        return generated.group(1) if generated else label
+
+    def _recipe_meaning(self, draft):
+        if not isinstance(draft, dict):
+            return '저장된 설정을 확인하세요.'
+        def original(ref):
+            source = next((row for row in self._sources() if row['source_ref'] == ref), None)
+            return self.source_title(source) if source else '원 자료 미지정' if not ref else '다시 연결할 원 자료'
+        def field_meaning(values):
+            if not isinstance(values, dict):
+                return '형식이 맞지 않은 설정입니다. 기술 상세에서 원문을 확인하세요.'
+            time = ('저장 시각의 이력' if values.get('measurement') == 'time' else
+                    '시각 미지정' if values.get('time') is None else
+                    '시각 ' + str(values['time']) + ' [' + str(values.get('time_units') or '단위 미지정') + ']')
+            location = ('점 번호 ' + field_text(values['point_indices']) if values.get('point_indices') else
+                        '선 ' + field_text(values.get('point1')) + ' → ' + field_text(values.get('point2'))
+                        if values.get('measurement') == 'path' else str(values.get('association') or '위치 미지정'))
+            return (original(values.get('source_ref')) + ': ' + str(values.get('array') or '필드 미지정') +
+                    ' [' + str(values.get('units') or '단위 미지정') + '], ' + location + ', ' + time +
+                    ', ' + str(values.get('frame') or '좌표계 미지정'))
+        if draft.get('measurement') == 'contact_force':
+            component = draft.get('component', 0)
+            axis = 'XYZ'[component] if isinstance(component, int) and 0 <= component < 3 else str(component)
+            return (original(draft.get('source_ref')) + ': ' + str(draft.get('quantity', '')) + ' 문서 전체 ' + axis +
+                    ' 성분, A 면의 합력 [N]. 축: 정적 하중 계수 λ [1].')
+        if 'a' in draft and 'b' in draft:
+            return '\n'.join(side.upper() + ': ' + field_meaning(draft[side]) for side in ('a', 'b'))
+        if 'filter' in draft:
+            return original(draft.get('source_ref')) + ': ' + str(draft['filter'])
+        return field_meaning(draft)
+
+    @staticmethod
+    def operation_label(operation):
+        return {'document.save': '저장', 'post.sample': '측정값 조회', 'post.inspect': '필드 조회',
+                'post.mapping_validate': '미리보기', 'post.apply': '적용', 'post.show_analysis': '적용 결과 표시',
+                'post.contact_inspect': '접촉 결과 조회', 'post.measurement_snapshot': '측정 확인',
+                'post.export': '내보내기', 'post.undo': '적용 취소', 'post.redo': '다시 적용',
+                'post.measurement_edit': '측정 초안 보관', 'post.filter_edit': '필터 초안 보관',
+                'post.comparison_edit': '비교 초안 보관'}.get(operation, '후처리 작업')
+
+    def _command_progress(self, command):
+        operation = command.get('operation') or (self._pending or {}).get('request', {}).get('operation', '')
+        state = command.get('state')
+        self.progress.setText(self.operation_label(operation) + ': ' +
+            {'SUCCEEDED': '완료', 'FAILED': '실패', 'CANCELLED': '취소됨', 'INTERRUPTED': '중단됨',
+             'RUNNING': '처리 중', 'QUEUED': '대기 중'}.get(state, '확인 중'))
+        self.progress.setToolTip(json.dumps(command, ensure_ascii=False))
 
     def _sources(self):
         return self._analysis().get('sources', [])
@@ -404,20 +530,20 @@ class PostWindow(QMainWindow):
             self._tree_selection = ('object', self._object_ref) if self._object_ref else self._tree_selection
         self.tree.blockSignals(True)
         self.tree.clear()
-        sources = QTreeWidgetItem(['Original sources', ''])
-        objects = QTreeWidgetItem(['Analysis objects', ''])
+        sources = QTreeWidgetItem(['원 결과', ''])
+        objects = QTreeWidgetItem(['분석과 측정', ''])
         self.tree.addTopLevelItems([sources, objects])
         selected = None
         for record in self._sources():
             ref = record['source_ref']
-            item = QTreeWidgetItem([record.get('label', ref), 'Available' if record.get('available') else 'Repair required'])
+            item = QTreeWidgetItem([self.source_title(record), '연결됨' if record.get('available') else '파일 필요'])
             item.setData(0, Qt.ItemDataRole.UserRole, ('source', ref))
             item.setToolTip(0, ref)
             sources.addChild(item)
             if self._tree_selection == ('source', ref):
                 selected = item
         for obj in self._objects():
-            item = QTreeWidgetItem([obj.get('title', obj['kind']), obj['kind'] + ' · ' + ('Preview' if obj.get('preview') else 'Applied' if obj.get('position', -1) >= 0 else 'Draft')])
+            item = QTreeWidgetItem([obj.get('title', obj['kind']), '미리보기' if obj.get('preview') else '적용됨' if obj.get('position', -1) >= 0 else '초안'])
             item.setData(0, Qt.ItemDataRole.UserRole, ('object', obj['id']))
             item.setToolTip(0, obj['id'])
             objects.addChild(item)
@@ -434,11 +560,12 @@ class PostWindow(QMainWindow):
             self._populate_editor()
         elif not preserve_buffer:
             self._populate_editor()
-        self.object_label.setText((obj.get('title', self._kind.title()) + ' · ' + obj['id']) if obj else 'New ' + self._kind + ' · explicit editable recipe')
-        self.identity.setText(f"{document['id']} · g{document['generation']} · {'connected' if document.get('connected') else 'disconnected'}")
-        self.identity.setToolTip('Exact owner session: ' + document['session_id'])
+        self.identity.setText(document.get('title', '후처리 문서'))
+        self.identity.setToolTip(f"{document['id']} / {document['session_id']} / generation {document['generation']}")
+        if initial:
+            self.editor_toggle.setChecked(not bool(obj and obj.get('position', -1) >= 0))
         self._populate_views()
-        self.setWindowTitle('Post Analysis — ' + document.get('title', document['id']) + (' *' if self.local_dirty else ''))
+        self.setWindowTitle('후처리 — ' + document.get('title', '문서') + (' *' if self.local_dirty else ''))
         self._show_arrays()
         self._show_details()
         self._update_actions()
@@ -451,7 +578,8 @@ class PostWindow(QMainWindow):
         if not selected:
             return
         if self.local_dirty and selected[0] == 'object':
-            self.message.setText('Keep or Reset the edited recipe before selecting another analysis object. Current edits remain here.')
+            self.message.setText('현재 편집을 초안으로 보관하거나 되돌린 뒤 다른 분석을 선택하세요.')
+            self._restore_tree_selection()
             return
         self._tree_selection = selected
         kind, ref = selected
@@ -463,9 +591,10 @@ class PostWindow(QMainWindow):
             obj = self._object()
             self._kind, self._draft = obj['kind'], deepcopy(obj['draft'])
             self._populate_editor()
-            self.object_label.setText(obj.get('title', obj['kind']) + ' · ' + ref)
             self._samples = None
+            self._sample_basis = None
             self.samples.setRowCount(0)
+            self.samples.setColumnCount(0)
         self._update_actions()
         self._show_details()
 
@@ -475,10 +604,10 @@ class PostWindow(QMainWindow):
             field.setEditable(True)
             field.addItem('', '')
             for source in self._sources():
-                field.addItem(source.get('label', source['source_ref']) + ' · ' + source['source_ref'], source['source_ref'])
+                field.addItem(self.source_title(source), source['source_ref'])
             for obj in self._objects():
                 if obj.get('position', -1) >= 0:
-                    field.addItem(obj.get('title', obj['id']) + ' · ' + obj['id'], obj['id'])
+                    field.addItem(obj.get('title', obj['kind']), obj['id'])
             index = field.findData(value)
             field.setCurrentIndex(index if index >= 0 else 0)
             if index < 0 and value:
@@ -560,10 +689,15 @@ class PostWindow(QMainWindow):
             form.addRow(table)
             self.method = QComboBox()
             self.method.setEditable(True)
-            self.method.addItems(['same_mesh', 'linear_tetra_b_to_a'])
-            self.method.setCurrentText(draft.get('method', 'same_mesh'))
+            self.method.addItem('같은 메시의 점 대응', 'same_mesh')
+            self.method.addItem('B를 A에 선형 사면체 보간', 'linear_tetra_b_to_a')
+            method = draft.get('method', 'same_mesh')
+            index = self.method.findData(method)
+            self.method.setCurrentIndex(index)
+            if index < 0:
+                self.method.setEditText(str(method))
             self.method.currentTextChanged.connect(self._edited)
-            form.addRow('Correspondence method', self.method)
+            form.addRow('대응 방법', self.method)
             self._form_field(form, 'tolerance', draft.get('tolerance', ''), ('tolerance',))
             declarations = QHBoxLayout()
             for side in ('a', 'b'):
@@ -579,7 +713,7 @@ class PostWindow(QMainWindow):
                 self.filter_kind.addItem(display(draft.get('filter')))
             self.filter_kind.setCurrentText(draft.get('filter', 'Slice'))
             self.filter_kind.currentTextChanged.connect(self._filter_changed)
-            form.addRow('Native filter', self.filter_kind)
+            form.addRow('필터', self.filter_kind)
             settings = draft.get('settings', {})
             if isinstance(settings, dict):
                 for key in FILTER_FIELDS.get(draft.get('filter'), ()):
@@ -588,11 +722,10 @@ class PostWindow(QMainWindow):
             else:
                 form.addRow(QLabel('Malformed filter settings retained in Details.'))
         elif draft.get('measurement') == 'contact_force':
-            title = QLabel(draft.get('quantity', '') + ' global ' +
-                'XYZ'[draft.get('component', 0)] + ' on A [N]')
+            title = QLabel(self._recipe_meaning(draft))
+            title.setWordWrap(True)
             form.addRow(title)
-            form.addRow(QLabel('Load parameter [1]'))
-            button = QPushButton('Inspect contact pair…')
+            button = QPushButton('접촉 쌍 조회…')
             button.clicked.connect(self.open_contact_inspector)
             form.addRow(button)
         else:
@@ -602,7 +735,7 @@ class PostWindow(QMainWindow):
                 self.measurement_kind.addItem(display(draft.get('measurement')))
             self.measurement_kind.setCurrentText(draft.get('measurement', 'point'))
             self.measurement_kind.currentTextChanged.connect(self._measurement_changed)
-            form.addRow('Measurement', self.measurement_kind)
+            form.addRow('측정 방식 (point/path/time)', self.measurement_kind)
             for key in MEASUREMENT_FIELDS.get(draft.get('measurement'), ()):
                 self._form_field(form, key, draft.get(key, None if key in ('time', 'time_units', 'time_origin') else 'POINTS' if key == 'association' else ''), (key,))
                 if key in MEASUREMENT_DECLARATIONS:
@@ -641,8 +774,11 @@ class PostWindow(QMainWindow):
             # Displaying an absent default does not rewrite a saved invalid recipe.
             if path[-1] in parent or value != original:
                 parent[path[-1]] = value
-        if self._kind == 'comparison' and self.method.currentText() != draft.get('method'):
-            draft['method'] = self.method.currentText()
+        if self._kind == 'comparison':
+            text = self.method.currentText()
+            method = self.method.currentData() if self.method.currentIndex() >= 0 and text == self.method.itemText(self.method.currentIndex()) else text
+            if method != draft.get('method'):
+                draft['method'] = method
         return draft
 
     def _edited(self, *_):
@@ -693,11 +829,19 @@ class PostWindow(QMainWindow):
             self.tabs.blockSignals(False)
             return False
         self._kind, self._object_ref = kind, None
+        self._tree_selection = None
+        self._restore_tree_selection()
+        self._samples = self._sample_basis = None
+        self.samples.setRowCount(0)
+        self.samples.setColumnCount(0)
         self._draft = defaults(kind, self._source_ref or '')
         self.local_dirty = True
         self._edit_serial += 1
         self._populate_editor()
-        self.object_label.setText('New ' + kind + ' · explicit editable recipe')
+        self.editor_toggle.setChecked(True)
+        self.message.setText('새 ' + {'comparison': '결과 비교', 'filter': '필터', 'measurement': '측정'}[kind] +
+                             ' 설정을 편집하세요. 초안 보관과 미리보기 후 적용할 수 있습니다.')
+        self._update_actions()
         return True
 
     def use_declarations(self, side=None):
@@ -740,7 +884,7 @@ class PostWindow(QMainWindow):
             'operation': operation, 'arguments': deepcopy(arguments)}
         pending = self._pending = {'request': request, 'accepted': accepted, 'edit_serial': self._edit_serial,
             'buffer': self.edited_draft(), 'object_ref': self._object_ref, 'kind': self._kind, 'phase': 'preflight'}
-        self.progress.setText(operation + ' · checking exact owner generation')
+        self.progress.setText(self.operation_label(operation) + ': 현재 문서 확인 중')
         def submit():
             remote = self.client.document_read(request['document_id'])
             if not remote.get('connected') or remote.get('session_id') != request['session_id']:
@@ -755,7 +899,7 @@ class PostWindow(QMainWindow):
                 return
             pending['command'] = command
             self._last_command = deepcopy(command)
-            self.progress.setText(operation + ' · ' + command.get('state', 'QUEUED') + ' · ' + request['command_id'])
+            self._command_progress(command)
             self.command_timer.start()
             QTimer.singleShot(0, self.poll_command)
         def failed(error):
@@ -788,7 +932,7 @@ class PostWindow(QMainWindow):
         if self._pending is not pending:
             return
         self._last_command = deepcopy(command)
-        self.progress.setText(pending['request']['operation'] + ' · ' + command['state'] + ' · ' + command['command_id'])
+        self._command_progress(command)
         if command['state'] not in TERMINAL:
             return
         self.command_timer.stop()
@@ -815,11 +959,15 @@ class PostWindow(QMainWindow):
                 callback = pending.get('accepted')
                 if callback:
                     callback(payload)
-            self.message.setText('Native owner completed ' + pending['request']['operation'] + ('; newer edits remain unapplied.' if late_edit else '.'))
+            self.message.setText(self.operation_label(pending['request']['operation']) + ' 완료.' +
+                                 (' 새 편집은 아직 적용하지 않았습니다.' if late_edit else ''))
         else:
             self._show_document(remote, preserve_buffer=True)
             error = command.get('outcome', {}).get('error', command.get('error', {}))
-            self.message.setText('Native command ' + command['state'] + '; draft retained. ' + display(error))
+            self.message.setText('요청을 완료하지 못했습니다. 편집은 보관했습니다. ' +
+                                 str(error.get('message', error) if isinstance(error, dict) else error))
+            if pending['request']['operation'] == 'post.sample' and self._sample_basis:
+                self._sample_basis['failed'] = True
         self._show_details()
         self._update_actions()
 
@@ -922,14 +1070,55 @@ class PostWindow(QMainWindow):
 
     def _show_samples(self, payload):
         self._samples = deepcopy(payload)
+        obj = self._object()
+        preview = payload.get('preview', self.sample_preview.isChecked())
+        revision = next((row for row in (obj or {}).get('history', []) if row.get('id') == payload.get('revision')), None)
+        if revision is None:
+            if preview:
+                revision = (obj or {}).get('preview')
+            else:
+                history, position = (obj or {}).get('history', []), (obj or {}).get('position', -1)
+                revision = history[position] if 0 <= position < len(history) else None
+        self._sample_basis = {'object_ref': self._object_ref, 'title': obj.get('title', '측정') if obj else '분석',
+                              'preview': preview, 'revision': payload.get('revision'),
+                              'draft': deepcopy((revision or {}).get('recipe', (obj or {}).get('draft', self._draft)))}
         rows = payload.get('rows', [])[:1000]
-        headers = list(dict.fromkeys(key for row in rows for key in row))
+        def columns(row):
+            values = {}
+            for key, value in row.items():
+                if key == 'block' and not value:
+                    continue
+                if key in ('values', 'validity') and isinstance(value, dict):
+                    for name, item in value.items():
+                        if isinstance(item, list):
+                            for component, number in enumerate(item):
+                                values[name + '[' + str(component) + ']'] = number
+                        else:
+                            values[name + (' 유효성' if key == 'validity' else '')] = item
+                else:
+                    values[key] = value
+            return values
+        flat_rows = [columns(row) for row in rows]
+        headers = list(dict.fromkeys(key for row in flat_rows for key in row))
         self.samples.setColumnCount(len(headers))
-        self.samples.setHorizontalHeaderLabels(headers)
+        labels = {'row': '원본 행', 'point_index': '원본 점 번호', 'block': '자료 블록',
+                  'load_parameter': '하중 계수 λ [1]', 'step': '단계', 'increment': '증분',
+                  'valid': '유효 여부', 'validity_reason': '유효성 이유', 'a': 'A', 'b': 'B', 'vtkValidMask': '유효 마스크'}
+        labels.update({key: key.removesuffix(' 유효성') + ' 유효성' for key in headers if key.endswith(' 유효성')})
+        self.samples.setHorizontalHeaderLabels([labels.get(key, key) for key in headers])
+        for column, key in enumerate(headers):
+            self.samples.horizontalHeaderItem(column).setToolTip(key)
         self.samples.setRowCount(len(rows))
-        for row, values in enumerate(rows):
+        for row, values in enumerate(flat_rows):
             for column, key in enumerate(headers):
-                self.samples.setItem(row, column, QTableWidgetItem(display(values.get(key))))
+                value = values.get(key)
+                states = {'valid': '유효', 'outside_domain': '대응 영역 밖', 'unknown': '알 수 없음'}
+                text = '값 없음' if value is None else states.get(value, value) if isinstance(value, str) else display(value)
+                item = QTableWidgetItem(text)
+                item.setToolTip(display(value))
+                self.samples.setItem(row, column, item)
+                self.samples.setColumnWidth(column, max(100, min(180, len(key) * 9)))
+        self._update_actions()
         self._show_details()
 
     def capture_selection(self):
@@ -957,14 +1146,14 @@ class PostWindow(QMainWindow):
         selected = self.view_selector.currentData()
         self.view_selector.blockSignals(True)
         self.view_selector.clear()
-        self.view_selector.addItem('Owned view / new appropriate view', None)
+        self.view_selector.addItem('현재 객체의 뷰', None)
         for view in (self.document or {}).get('state', {}).get('views', []):
             identifier = view.get('view_id')
             if isinstance(identifier, str) and identifier:
-                self.view_selector.addItem(view.get('type', 'Native view') + ' · ' + identifier, identifier)
+                self.view_selector.addItem(view.get('type', 'ParaView 뷰') + ' ' + str(self.view_selector.count()), identifier)
         index = self.view_selector.findData(selected)
         if index < 0 and selected is not None:
-            self.view_selector.addItem('Unavailable native view · ' + selected, selected)
+            self.view_selector.addItem('사용할 수 없는 뷰', selected)
             index = self.view_selector.count() - 1
         self.view_selector.setCurrentIndex(max(0, index))
         self.view_selector.blockSignals(False)
@@ -1003,9 +1192,11 @@ class PostWindow(QMainWindow):
         self.array_table.setRowCount(len(arrays))
         for row, item in enumerate(arrays):
             values = [item.get(key) for key in ('name', 'association', 'components', 'units')]
+            values[1] = {'POINTS': '점 (POINTS)', 'CELLS': '셀 (CELLS)'}.get(values[1], values[1])
             values.append(item.get('metadata_status', 'explicit' if item.get('units') is not None else 'unknown'))
+            values[-1] = {'explicit': '명시됨', 'unknown': '미지정', 'UNKNOWN': '미지정'}.get(values[-1], values[-1])
             for column, value in enumerate(values):
-                self.array_table.setItem(row, column, QTableWidgetItem(display(value)))
+                self.array_table.setItem(row, column, QTableWidgetItem('알 수 없음' if value is None else display(value)))
 
     def _show_arrays(self):
         source = next((item for item in self._sources() if item['source_ref'] == self._source_ref), None)
@@ -1245,6 +1436,46 @@ class PostWindow(QMainWindow):
         self.sample_button.setEnabled(enabled and bool(self._object_ref) and not self.local_dirty)
         for button in self.new_buttons:
             button.setEnabled(enabled and not self.local_dirty)
+        browsing = bool(self._tree_selection and self._tree_selection[0] == 'source')
+        self.array_table.setVisible(browsing)
+        self.source_tools.setVisible(browsing)
+        self.show_source_button.setVisible(browsing)
+        self.show_applied_button.setVisible(not browsing)
+        self.editor_toggle.setVisible(not browsing)
+        self.editor_area.setVisible(not browsing and self.editor_toggle.isChecked())
+        self.sample_tools.setVisible(not browsing)
+        self.sample_controls.setVisible(not browsing and self.read_options.isChecked())
+        self.samples.setVisible(not browsing)
+        self.sample_context.setVisible(not browsing)
+        self.return_editor.setVisible(browsing and bool(self.local_dirty or self._object_ref))
+        if browsing:
+            source = next((row for row in self._sources() if row['source_ref'] == self._source_ref), {})
+            self.object_label.setText(self.source_title(source))
+            self.selection_meaning.setText('선택한 원 결과의 필드 정보입니다. 표시할 필드와 시각은 ParaView에서 선택합니다.')
+            if self.local_dirty:
+                self.return_editor.setText('보관 중인 ' + ((obj or {}).get('title') or '새 분석') + ' 편집으로 돌아가기')
+            else:
+                self.return_editor.setText('선택한 측정으로 돌아가기')
+        else:
+            self.object_label.setText((obj or {}).get('title') or '새 ' + {'comparison': '결과 비교', 'filter': '필터', 'measurement': '측정'}[self._kind])
+            self.selection_meaning.setText(self._recipe_meaning(self.edited_draft()))
+            self.selection_meaning.setToolTip(json.dumps(self.edited_draft(), ensure_ascii=False))
+        if self._sample_basis:
+            basis = self._sample_basis
+            target = (obj or {}).get('preview') if basis['preview'] else None
+            if not basis['preview']:
+                history, position = (obj or {}).get('history', []), (obj or {}).get('position', -1)
+                target = history[position] if 0 <= position < len(history) else None
+            stale = basis['draft'] != self.edited_draft() or bool(basis.get('revision') and
+                basis['revision'] != (target or {}).get('id'))
+            self.sample_context.setText(basis['title'] + ': ' + ('적용 전 미리보기' if basis['preview'] else '적용 결과') +
+                (' — 현재 편집은 미적용입니다.' if self.local_dirty else '') + '\n' + self._recipe_meaning(basis['draft']))
+            if stale:
+                self.sample_context.setText('이전 조회 값입니다. 설정이나 적용 결과가 바뀌었으므로 다시 조회하세요.\n' + self.sample_context.text())
+            if basis.get('failed'):
+                self.sample_context.setText('최근 조회 실패. 아래 표는 마지막 성공 조회입니다.\n' + self.sample_context.text())
+        else:
+            self.sample_context.setText('아직 읽은 값이 없습니다. 설정을 확인하고 측정값을 읽으세요.')
         if hasattr(self, 'capture_button'):
             try:
                 self.capture_button.setEnabled(enabled)
@@ -1261,8 +1492,8 @@ class PostWindow(QMainWindow):
             if not documents:
                 self.message.setText('No existing native Post owners are connected. Open the saved analysis in ParaView first.')
                 return
-            labels = [doc.get('title', doc['id']) + ' · ' + doc['id'] for doc in documents]
-            label, accepted = QInputDialog.getItem(self, 'Open existing Post owner', 'Exact native document', labels, editable=False)
+            labels = [doc.get('title', '후처리 문서') + ' (' + str(index + 1) + ')' for index, doc in enumerate(documents)]
+            label, accepted = QInputDialog.getItem(self, '후처리 문서 열기', 'ParaView에서 열린 문서', labels, editable=False)
             if accepted and token == self._context_token():
                 selected = documents[labels.index(label)]
                 self.document_id, self.session_id = selected['id'], selected['session_id']

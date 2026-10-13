@@ -19,35 +19,40 @@ class ContactDialog(QDialog):
         self.saved_object = None
         self._loading = False
         self._serial = 0
-        self.setWindowTitle('Contact results')
-        self.resize(1180, 800)
+        self.setWindowTitle('접촉면과 힘 이력')
+        self.resize(1440, 900)
+        self.setMinimumSize(1020, 700)
         outer = QVBoxLayout(self)
         controls = QHBoxLayout()
         self.pair, self.side, self.frame, self.field = [QComboBox() for _ in range(4)]
-        for label, combo, name in [('Pair', self.pair, 'contactPair'), ('Faces', self.side, 'contactSide'),
-                                   ('Increment', self.frame, 'contactIncrement'), ('Field', self.field, 'contactField')]:
+        for label, combo, name in [('접촉 쌍', self.pair, 'contactPair'), ('면', self.side, 'contactSide'),
+                                   ('증분', self.frame, 'contactIncrement')]:
             controls.addWidget(QLabel(label))
             combo.setObjectName(name)
             controls.addWidget(combo, 2 if name in ('contactPair', 'contactIncrement') else 1)
-        for label, value in [('A — slave', 'a'), ('B — master', 'b'), ('A + B', 'both')]:
+        for label, value in [('A 면 (slave)', 'a'), ('B 면 (master)', 'b'), ('A + B', 'both')]:
             self.side.addItem(label, value)
-        self.show_button = QPushButton('Show faces')
+        self.show_button = QPushButton('ParaView에서 면 보기')
         self.show_button.clicked.connect(lambda: self.read(show=True))
-        controls.addWidget(self.show_button)
         outer.addLayout(controls)
         self.faces = QLabel()
         self.faces.setWordWrap(True)
         outer.addWidget(self.faces)
-        self.meaning = QLabel('Shared nodal fields; DAT force on A. Active state: UNKNOWN.')
+        self.meaning = QLabel('절점 투영 필드와 DAT의 A 면 합력을 별도로 읽습니다. 접촉 활성 여부는 확인되지 않았습니다.')
         self.meaning.setWordWrap(True)
         outer.addWidget(self.meaning)
         split = QSplitter(Qt.Orientation.Horizontal)
         left = QWidget()
         column = QVBoxLayout(left)
-        self.field_table = self.table(['Node', 'Value', 'State / reason'], 'contactFieldRows')
+        surface_controls = QHBoxLayout()
+        surface_controls.addWidget(QLabel('접촉면 필드'))
+        surface_controls.addWidget(self.field, 1)
+        surface_controls.addWidget(self.show_button)
+        column.addLayout(surface_controls)
+        self.field_table = self.table(['절점', '값', '유효성'], 'contactFieldRows')
         column.addWidget(self.field_table, 1)
         paging = QHBoxLayout()
-        self.back_page, self.next_page = QPushButton('Previous rows'), QPushButton('Next rows')
+        self.back_page, self.next_page = QPushButton('이전 구간'), QPushButton('다음 구간')
         self.back_page.clicked.connect(lambda: self.read(offset=max(0, self.payload.get('offset', 0)-500)))
         self.next_page.clicked.connect(lambda: self.read(offset=self.payload.get('next_offset') or 0))
         paging.addWidget(self.back_page)
@@ -57,25 +62,27 @@ class ContactDialog(QDialog):
         right = QWidget()
         layout = QVBoxLayout(right)
         force = QHBoxLayout()
-        force.addWidget(QLabel('Force on A'))
+        force.addWidget(QLabel('A 면 합력'))
         self.quantity, self.component = QComboBox(), QComboBox()
         self.quantity.setObjectName('contactForceQuantity')
         self.component.setObjectName('contactForceComponent')
-        for label, value in [('CF — total', 'CF'), ('CFN — normal part', 'CFN'), ('CFS — tangential part', 'CFS')]:
+        for label, value in [('전체 힘 (CF)', 'CF'), ('법선 힘 (CFN)', 'CFN'), ('접선 힘 (CFS)', 'CFS')]:
             self.quantity.addItem(label, value)
-        for index, label in enumerate(('Global X', 'Global Y', 'Global Z')):
+        for index, label in enumerate(('문서 전체 X', '문서 전체 Y', '문서 전체 Z')):
             self.component.addItem(label, index)
         force.addWidget(self.quantity, 2)
         force.addWidget(self.component, 1)
-        self.read_button = QPushButton('Read selection')
+        self.read_button = QPushButton('선택 조회')
+        self.read_button.setProperty('appearanceRole', 'primary')
         self.read_button.clicked.connect(lambda: self.read())
         force.addWidget(self.read_button)
         layout.addLayout(force)
         self.figure = Figure(figsize=(6, 3.5))
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.mpl_connect('pick_event', self.picked)
+        self.canvas.mpl_connect('resize_event', self.fit_plot)
         layout.addWidget(self.canvas, 2)
-        self.history = self.table(['Step / increment', 'Load parameter [1]', 'Force on A [N]', 'State'], 'contactForceHistory')
+        self.history = self.table(['단계 / 증분', '하중 계수 λ [1]', 'A 면 합력 [N]', '유효성'], 'contactForceHistory')
         self.history.itemSelectionChanged.connect(self.history_selected)
         layout.addWidget(self.history, 1)
         split.addWidget(right)
@@ -85,15 +92,19 @@ class ContactDialog(QDialog):
         self.status.setWordWrap(True)
         outer.addWidget(self.status)
         actions = QHBoxLayout()
-        self.save_selection = QPushButton('Save inspection')
+        self.save_selection = QPushButton('현재 면과 증분 저장')
         self.save_selection.clicked.connect(self.save_inspection)
-        self.save_measurement = QPushButton('Save force measurement')
+        self.save_measurement = QPushButton('힘 이력 측정 저장')
         self.save_measurement.clicked.connect(self.create_measurement)
-        self.numerical = QPushButton('Use in Numerical…')
+        self.numerical = QPushButton('Numerical로 보내기…')
+        self.numerical.setMinimumWidth(165)
+        self.numerical.setProperty('appearanceRole', 'primary')
         self.numerical.clicked.connect(self.use_numerical)
-        close = QPushButton('Close')
+        close = QPushButton('닫기')
         close.clicked.connect(self.close)
-        for button in (self.save_selection, self.save_measurement, self.numerical, close):
+        actions.addWidget(self.save_selection)
+        actions.addStretch()
+        for button in (self.save_measurement, self.numerical, close):
             actions.addWidget(button)
         outer.addLayout(actions)
         for combo in (self.pair, self.side, self.frame, self.field, self.quantity, self.component):
@@ -131,7 +142,7 @@ class ContactDialog(QDialog):
             return
         self._serial += 1
         self.saved_object = None
-        self.status.setText('Selection changed. Read selection or Show faces.')
+        self.status.setText('선택을 바꿨습니다. 표와 곡선은 이전 조회입니다. 선택 조회 후 측정을 저장하세요.')
         self.sync()
 
     def sync(self):
@@ -139,11 +150,17 @@ class ContactDialog(QDialog):
         for combo in (self.pair, self.side, self.frame, self.field, self.quantity, self.component):
             combo.setEnabled(idle)
         ready = idle and self.payload is not None
+        last = self.post._last_command or {}
+        failed = last.get('state') in {'FAILED', 'REJECTED', 'INTERRUPTED'} and last.get('operation') == 'post.contact_inspect'
+        if failed:
+            self.status.setText('접촉 조회 실패. ' + ('표와 곡선은 마지막 성공 조회입니다. ' if self.payload else
+                '선택 조회로 다시 시도하세요. ') + self.post.message.text())
+        matches = ready and all(self.payload['selection'].get(key) == value for key, value in self.selection().items())
         self.show_button.setEnabled(ready)
-        self.read_button.setEnabled(ready)
+        self.read_button.setEnabled(idle)
         self.save_selection.setEnabled(ready)
-        self.save_measurement.setEnabled(ready and not self.post.local_dirty)
-        self.numerical.setEnabled(ready and bool(self.saved_object) and not self.post.local_dirty)
+        self.save_measurement.setEnabled(matches and not failed and not self.post.local_dirty)
+        self.numerical.setEnabled(matches and not failed and bool(self.saved_object) and not self.post.local_dirty)
         self.back_page.setEnabled(ready and bool(self.payload.get('offset')) if self.payload else False)
         self.next_page.setEnabled(ready and self.payload.get('next_offset') is not None if self.payload else False)
 
@@ -151,6 +168,7 @@ class ContactDialog(QDialog):
         if not self.same_owner():
             self.status.setText('The Post document changed. Reopen Contact results for the selected source.')
             return False
+        initial = initial or self.payload is None
         token = self.token()
         args = {'source_ref': self.source_ref} if initial else self.selection()
         args.update(show=show, offset=offset, limit=500)
@@ -185,16 +203,16 @@ class ContactDialog(QDialog):
         def side_text(key):
             faces = pair[key]['faces']
             return pair[key]['body'] + ' ' + ', '.join(row['face'] for row in faces)
-        self.faces.setText('A: ' + side_text('a') + '    B: ' + side_text('b') + '    Orange A / cyan B')
+        self.faces.setText('A: ' + side_text('a') + '    B: ' + side_text('b') + '    A 주황 / B 청록')
         self.faces.setToolTip(str(pair))
         self.meaning.setText(
-            'Geometric gap: deformed face approximation; surface colour is the unambiguous nodal projection. Active state: UNKNOWN.'
+            '형상 간극은 변형된 면의 근사값입니다. 면 색상은 절점 투영값이며 접촉 활성 여부는 확인되지 않았습니다.'
             if selected['field'] == 'GeomGap_mm' else
-            'Shared nodal projection; selecting a pair does not separate its pressure/slip contribution. Active state: UNKNOWN.')
-        self.field_table.setHorizontalHeaderLabels(['Node', payload['field'] + ' [' + payload['unit'] + ']', 'State / reason'])
+            '공유 절점에 투영한 값입니다. 접촉 쌍을 선택해도 그 쌍의 압력·미끄럼 기여만 분리되지 않습니다. 접촉 활성 여부는 확인되지 않았습니다.')
+        self.field_table.setHorizontalHeaderLabels(['절점', payload['field'] + ' [' + payload['unit'] + ']', '유효성'])
         self.field_table.setRowCount(len(payload['rows']))
         for index, row in enumerate(payload['rows']):
-            for column, value in enumerate((row['node_id'], self.number(row['value']), 'Available' if row['valid'] else row['reason'])):
+            for column, value in enumerate((row['node_id'], self.number(row['value']), '유효' if row['valid'] else row['reason'])):
                 item = QTableWidgetItem(str(value))
                 item.setToolTip(str(row) if column == 0 else str(value))
                 self.field_table.setItem(index, column, item)
@@ -204,7 +222,7 @@ class ContactDialog(QDialog):
         for index, row in enumerate(rows):
             static = row['static']
             values = (str(static['step']) + ' / ' + str(static['increment']), self.number(static['load_parameter']),
-                      self.number(row['value']), 'Available' if row['valid'] else row['reason'])
+                      self.number(row['value']), '유효' if row['valid'] else row['reason'])
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
                 item.setToolTip(row.get('raw_text') or str(value))
@@ -219,19 +237,24 @@ class ContactDialog(QDialog):
         index = selected['frame_index']
         if rows[index]['valid']:
             self.axes.plot([x[index]], [y[index]], 'o', color='#c55b28', markersize=8)
-        self.axes.set_xlabel('Load parameter [1]')
+        self.axes.set_xlabel('Load parameter λ [1]')
         self.axes.set_ylabel(selected['quantity'] + ' global ' + 'XYZ'[selected['component']] + ' on A [N]')
         self.axes.grid(True, alpha=.2)
         self.figure.tight_layout()
         self.canvas.draw_idle()
-        self.status.setText(('Faces displayed. ' if payload['displayed'] else '') +
-            str(payload['total_rows']) + ' surface nodes; ' + str(len(rows)) + ' retained increments.')
+        self.status.setText(('ParaView에 면을 표시했습니다. ' if payload['displayed'] else '') +
+            str(payload['total_rows']) + '개 표면 절점, ' + str(len(rows)) + '개 저장 증분을 조회했습니다.')
         self._loading = False
         self.sync()
 
     @staticmethod
     def number(value):
-        return 'Unavailable' if value is None else format(value, '.10g')
+        return '값 없음' if value is None else format(value, '.10g')
+
+    def fit_plot(self, _event=None):
+        if hasattr(self, 'axes'):
+            self.figure.tight_layout()
+            self.canvas.draw_idle()
 
     def history_selected(self):
         row = self.history.currentRow()
@@ -269,7 +292,9 @@ class ContactDialog(QDialog):
         return True
 
     def create_measurement(self):
-        if not self.same_owner() or self.post.local_dirty:
+        if not self.same_owner() or self.post.local_dirty or not self.payload or not all(
+                self.payload['selection'].get(key) == value for key, value in self.selection().items()):
+            self.status.setText('현재 표와 곡선은 이전 조회입니다. 선택한 힘 성분을 먼저 조회한 뒤 측정을 저장하세요.')
             return False
         selected, token = self.selection(), self.token()
         def created(payload):
@@ -288,7 +313,8 @@ class ContactDialog(QDialog):
             {key: selected[key] for key in ('source_ref', 'pair_id', 'quantity', 'component')}, accepted=created)
 
     def use_numerical(self):
-        if self.saved_object and self.select_object(self.saved_object):
+        if self.saved_object and self.payload and all(self.payload['selection'].get(key) == value
+                for key, value in self.selection().items()) and self.select_object(self.saved_object):
             self.hide()
             return self.post.use_in_numerical()
         return False

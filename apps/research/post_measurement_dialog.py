@@ -20,14 +20,14 @@ class MeasurementDialog(QDialog):
         self.selection = None
         self._last_axis = None
         self.projected = None
-        self.setWindowTitle('Use measured curve in Numerical')
+        self.setWindowTitle('측정 곡선을 계산 계획으로 보내기')
         self.resize(1100, 780)
         outer = QVBoxLayout(self)
-        self.summary = QLabel('Saved ' + str(snapshot['summary'].get('measurement', '')) +
-            ' measurement. Select the actual native column and axis.')
+        self.summary = QLabel('저장된 측정에서 응답 열과 곡선의 축을 선택하세요.')
+        self.summary.setProperty('appearanceRole', 'section')
         if snapshot['summary'].get('measurement') == 'contact_force':
             self.summary.setText(snapshot['summary'].get('location', '').split(' / ')[0] +
-                ' — ' + snapshot['summary'].get('component_label', '') + ' on A [N]')
+                ': ' + snapshot['summary'].get('component_label', '') + ' A 면 합력 [N]')
         outer.addWidget(self.summary)
         forms = QHBoxLayout()
         left, right = QFormLayout(), QFormLayout()
@@ -38,39 +38,42 @@ class MeasurementDialog(QDialog):
         measured = measurement_columns(snapshot)
         self.block, self.value_column, self.axis_column = QComboBox(), QComboBox(), QComboBox()
         for block in available['blocks']:
-            self.block.addItem('Block ' + str(block) if block else 'Point dataset', block)
+            self.block.addItem('자료 블록 ' + str(block) if block else '점 자료', block)
         for combo in (self.value_column, self.axis_column):
             combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-            combo.setMinimumContentsLength(28)
-            combo.addItem('Choose actual column…', None)
+            combo.setMinimumContentsLength(22)
+            combo.addItem('열 선택…', None)
         for name, count in available['arrays'].items():
             components = range(count) if count > 1 else [None]
             for component in components:
-                label = name + (' [component ' + str(component) + ']' if component is not None else ' [scalar]')
+                label = name + (' [성분 ' + str(component) + ']' if component is not None else '')
                 if name in measured:
                     self.value_column.addItem(label, {'name': name, 'component': component})
                 measurement = snapshot['summary'].get('measurement')
                 if name == {'time': 'Time', 'path': 'arc_length', 'contact_force': 'load_parameter'}.get(measurement) and component is None:
                     self.axis_column.addItem(label, {'kind': 'array', 'name': name, 'component': component})
         if available['coordinates'] and snapshot['summary'].get('measurement') != 'time':
-            for component, label in enumerate(('X coordinate', 'Y coordinate', 'Z coordinate')):
+            for component, label in enumerate(('X 좌표', 'Y 좌표', 'Z 좌표')):
                 self.axis_column.addItem(label, {'kind': 'coordinate', 'component': component})
         if available['point_index'] and snapshot['summary'].get('measurement') != 'time':
-            self.axis_column.addItem('Native output point index', {'kind': 'point_index'})
+            self.axis_column.addItem('원 결과 점 번호', {'kind': 'point_index'})
         self.role = QComboBox()
-        self.role.addItem('Fit observation', 'fit')
-        self.role.addItem('Holdout baseline', 'holdout')
+        self.role.addItem('피팅 관측값', 'fit')
+        self.role.addItem('검증용 관측값', 'holdout')
         self.destination = QComboBox()
         self.destination.setObjectName('measurementDestination')
-        self.destination.addItem('New Numerical Plan', None)
+        self.destination.addItem('새 계산 계획', None)
         for plan in plans:
             self.destination.addItem(plan['title'], plan['id'])
         self.destination.currentIndexChanged.connect(self.update_preview)
-        left.addRow('Plan', self.destination)
-        left.addRow('Native block', self.block)
-        left.addRow('Value / component / statistic', self.value_column)
-        left.addRow('Axis', self.axis_column)
-        left.addRow('Use as', self.role)
+        left.addRow('계산 계획', self.destination)
+        left.addRow('자료 블록', self.block)
+        left.addRow('응답 열과 성분', self.value_column)
+        left.addRow('곡선의 축', self.axis_column)
+        left.addRow('사용 목적', self.role)
+        if len(available['blocks']) == 1:
+            self.block.hide()
+            left.labelForField(self.block).hide()
         self.fields = {}
         summary = snapshot['summary']
         defaults = {'unit': summary.get('units'), 'frame': summary.get('frame'),
@@ -78,9 +81,9 @@ class MeasurementDialog(QDialog):
                     'axis_name': summary.get('axis_name') or ('time' if summary.get('measurement') == 'time' else ''),
                     'axis_unit': summary.get('axis_unit') or (summary.get('time_units') if summary.get('measurement') == 'time' else summary.get('coordinate_units')),
                     'component_label': summary.get('component_label', ''), 'location': summary.get('location', '')}
-        labels = {'unit': 'Response unit', 'component_label': 'Physical component / statistic',
-                  'location': 'Measured location', 'frame': 'Response frame', 'measure': 'Physical measure',
-                  'axis_name': 'Axis name', 'axis_unit': 'Axis unit'}
+        labels = {'unit': '응답 단위', 'component_label': '물리 성분 또는 통계량',
+                  'location': '측정 위치', 'frame': '응답 좌표계', 'measure': '물리적 정의',
+                  'axis_name': '축 이름', 'axis_unit': '축 단위'}
         for key, label in labels.items():
             edit = QLineEdit(defaults.get(key) or '', self)
             edit.setObjectName('measurement_' + key)
@@ -96,7 +99,7 @@ class MeasurementDialog(QDialog):
         self.declarations = QLabel()
         self.declarations.setWordWrap(True)
         right.addRow(self.declarations)
-        self.exclude_invalid = QCheckBox('Exclude invalid rows from calculation; keep all rows visible')
+        self.exclude_invalid = QCheckBox('무효 행은 계산에서 제외 (원본 행은 모두 표시)')
         self.exclude_invalid.setObjectName('excludeInvalidMeasurementRows')
         outer.addWidget(self.exclude_invalid)
         self.notice = QLabel()
@@ -105,7 +108,8 @@ class MeasurementDialog(QDialog):
         split = QSplitter(Qt.Orientation.Horizontal)
         self.table = QTableWidget(0, 5)
         self.table.setObjectName('measuredSamples')
-        self.table.setHorizontalHeaderLabels(['Native row', 'Axis', 'Value', 'State', 'Reason'])
+        self.table.setHorizontalHeaderLabels(['원본 행', '축', '측정값', '유효성', '이유'])
+        self.table.verticalHeader().hide()
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
@@ -120,7 +124,9 @@ class MeasurementDialog(QDialog):
         split.setSizes([540, 540])
         outer.addWidget(split, 1)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Create new Plan')
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText('새 계획 만들기')
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setProperty('appearanceRole', 'primary')
+        self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         outer.addWidget(self.buttons)
@@ -174,20 +180,22 @@ class MeasurementDialog(QDialog):
                 field.blockSignals(False)
             self._last_axis = deepcopy(axis)
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(
-            'Review append in Plan' if self.destination.currentData() else 'Create new Plan')
-        self.declarations.setText(' / '.join(
-            str(self.fields[key].text()) for key in ('unit', 'frame', 'measure') if self.fields[key].text()) +
-            '\nAxis: ' + self.fields['axis_name'].text() + ' [' + self.fields['axis_unit'].text() + ']')
+            '계획에서 추가 검토' if self.destination.currentData() else '새 계획 만들기')
+        names = {'FREECAD_DOCUMENT_GLOBAL': '문서 전체 좌표계',
+                 'contact_pair_force_resultant': '접촉 쌍의 합력'}
+        self.declarations.setText(', '.join(names.get(self.fields[key].text(), self.fields[key].text())
+            for key in ('unit', 'frame', 'measure') if self.fields[key].text()) +
+            '\n축: ' + self.fields['axis_name'].text() + ' [' + self.fields['axis_unit'].text() + ']')
         try:
             selection = self.selected_mapping()
             projection = project_samples(self.snapshot, selection)
             self.selection, self.projected = selection, projection
-            self.notice.setText(str(len(projection['rows'])) + ' actual samples; ' +
-                str(len(projection['invalid_rows'])) + ' invalid. No resampling or unit conversion.')
+            self.notice.setText(str(len(projection['rows'])) + '개 원본 행, 무효 ' +
+                str(len(projection['invalid_rows'])) + '개. 재표본화와 단위 변환 없이 전달합니다.')
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(projection['importable'])
             rows = projection['rows']
             self.table.setColumnCount(5)
-            self.table.setHorizontalHeaderLabels(['Row', 'Axis', 'Value', 'State', 'Reason'])
+            self.table.setHorizontalHeaderLabels(['원본 행', '축', '측정값', '유효성', '이유'])
         except (ValueError, TypeError, KeyError) as error:
             self.notice.setText(str(error))
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
@@ -217,7 +225,7 @@ class MeasurementDialog(QDialog):
         for index, row in enumerate(rows):
             identity = row['native']
             for column, value in enumerate((identity.get('row', identity.get('point_index')), row['axis'], row['value'],
-                                            'Valid' if row['valid'] else 'Invalid' if row['valid'] is False else 'Unmapped',
+                                            '유효' if row['valid'] else '무효' if row['valid'] is False else '미지정',
                                             row['reason'])):
                 text = json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else '' if value is None else str(value)
                 item = QTableWidgetItem(text)
