@@ -193,6 +193,8 @@ class DiscussionDocuments(MaterialDocuments):
         snapshot = round_record['draft']
         composer = snapshot['composer']
         context = deepcopy(snapshot['context'])
+        if 'knowledge_sources' in round_record:
+            context['selected_sources'] = deepcopy(round_record['knowledge_sources'])
         result_ids = [item['job_id'] for item in composer['evidence'] if 'job_id' in item]
         context['selected_result_ids'] = list(dict.fromkeys(context.get('selected_result_ids', []) + result_ids))
         context['discussion'] = {'document_id': document['id'], 'round_id': round_record['id'],
@@ -233,6 +235,9 @@ class DiscussionDocuments(MaterialDocuments):
         arguments = round_record.get('prepared_arguments')
         if job is None:
             try:
+                if ('knowledge_sources' not in round_record
+                        and 'selected_sources' not in round_record['draft']['context']):
+                    raise ValueError('Legacy round source scope is unresolved; start a new round after reviewing Sources')
                 self._validate_sources(round_record['draft']['context'])
             except (ValueError, PermissionError, OSError) as error:
                 # Preserve frozen legacy/revoked rounds and already completed roles.
@@ -288,8 +293,8 @@ class DiscussionDocuments(MaterialDocuments):
                 'created_utc': utc_now(), 'input_generation': round_record['input_generation'],
                 'input_revision': round_record['input_revision'], 'input_sha256': canonical_hash(round_record['draft']),
                 'evidence': deepcopy(composer['evidence']), 'response': deepcopy(response),
-                'knowledge_sources': deepcopy(round_record['draft']['context'].get('selected_sources',
-                    None if round_record['draft']['context'].get('selected_document_ids') else []))})
+                'knowledge_sources': deepcopy(round_record.get('knowledge_sources',
+                    round_record['draft']['context'].get('selected_sources')))})
         round_record.update(active_job_id=None, next_index=round_record['next_index'] + 1)
         # Failure stops this round; resume never silently retries a failed role.
         if state != 'SUCCEEDED' or response.get('status') in {'FAILED', 'NOT_CONFIGURED', 'STOPPED'}:
@@ -355,7 +360,9 @@ class DiscussionDocuments(MaterialDocuments):
                         'user_turn_id': turn['id'], 'roles': deepcopy(document['draft']['participants']),
                         'sessions': {role: 'E' + uuid.uuid4().hex for role in document['draft']['participants']},
                         'next_index': 0, 'active_job_id': None, 'status': 'READY',
-                        'draft': deepcopy(document['draft']), 'input_generation': document['generation'],
+                        'draft': deepcopy(document['draft']),
+                        'knowledge_sources': selected_source_refs(document['draft']['context']),
+                        'input_generation': document['generation'],
                         'input_revision': document['input_revision'], 'history': deepcopy(state['turns'])}
                     state['rounds'].append(active)
                     self._changed(document)

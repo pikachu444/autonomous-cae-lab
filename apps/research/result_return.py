@@ -319,7 +319,7 @@ class PendingResultReview(QObject):
         return (not window.document or window.conflict or window._busy or getattr(window, '_callbacks', 0)
                 or getattr(window, '_draft_problem', None) or getattr(window, '_raw_mode', False)
                 or getattr(window, '_allow_close', False) or getattr(window, '_view_error', None)
-                or getattr(window, '_pending_adoption', None))
+                or getattr(window, '_pending_adoption', None) or getattr(window, '_source_choosing', False))
 
     def review_next(self):
         if not self.pending or self.reviewing or self._blocked():

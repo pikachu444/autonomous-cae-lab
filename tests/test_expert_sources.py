@@ -10,6 +10,7 @@ from caelab.assist.experts import ExpertRuntime, RuntimeConfig
 from caelab.discussion_document import default_draft
 from caelab.workbench import Workbench
 from test_workbench_assist import store, ingest, mock_generator, runtime_for
+from test_discussion_documents import runtime_owner
 
 
 def pins(*documents):
@@ -170,3 +171,29 @@ def test_managed_import_and_discussion_freeze_local_save_and_legacy_block(tmp_pa
         assert saved['turns'][0]['status'] == 'AUTHORED'
     finally:
         reopened.shutdown()
+
+
+def test_harvested_legacy_answer_is_unknown_not_empty_history(runtime_owner, tmp_path):
+    # Reuse the controlled provider boundary; this models an already-submitted old job.
+    runtime, manager, owner = runtime_owner
+    from test_discussion_documents import command, draft_document, terminal
+    runtime.release.clear()
+    doc = draft_document(owner, roles=('material',))
+    dispatched = command(owner, doc, 'expert.ask')
+    internal = owner._documents[doc['id']]
+    record = internal['discussion']['rounds'][0]
+    assert record['knowledge_sources'] == []  # New no-source rounds are explicit.
+    record.pop('knowledge_sources')  # Old persisted running-round format.
+    record['draft']['context'].pop('selected_sources', None)
+    owner._persist_draft(internal)
+    runtime.release.set()
+    terminal(manager, dispatched['job']['id'])
+    harvested = owner.read(doc['id'])
+    reply = harvested['turns'][-1]
+    assert reply['text'] == 'CONTROLLED RUNTIME TEST RECORD'
+    assert reply['knowledge_sources'] is None
+    knowledge, reader = runtime_for(tmp_path / 'reader', mock_generator([]))
+    context, _ = reader._knowledge_context({'selected_sources': [], 'discussion': {
+        'turns': [reply], 'evidence': []}}, 'alpha', ['materials'])
+    assert context['discussion']['turns'] == []
+    assert owner.read(doc['id'])['turns'][-1]['text'] == reply['text']

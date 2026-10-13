@@ -62,6 +62,8 @@ class ExpertWindow(QMainWindow):
         self._buffer = None
         self._draft_problem = None
         self._control_initial = {}
+        self._source_choosing = False
+        self._source_titles, self._source_collections = {}, {}
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -201,6 +203,32 @@ class ExpertWindow(QMainWindow):
         conversation.addWidget(self.editor)
         splitter.addWidget(center)
         self.side = QTabWidget()
+        from .expert_sources import SourcePreview
+        self.source_tab = QWidget()
+        source_layout = QVBoxLayout(self.source_tab)
+        buttons = QHBoxLayout()
+        self.source_file = QPushButton('Add file…')
+        self.source_library = QPushButton('Library…')
+        self.source_file.clicked.connect(lambda: self.choose_sources(add_file=True))
+        self.source_library.clicked.connect(self.choose_sources)
+        buttons.addWidget(self.source_file)
+        buttons.addWidget(self.source_library)
+        source_layout.addLayout(buttons)
+        self.selected_sources = QListWidget()
+        self.selected_sources.setObjectName('selectedResearchSources')
+        self.selected_sources.setMaximumHeight(140)
+        self.selected_sources.currentRowChanged.connect(self._update_actions)
+        source_layout.addWidget(self.selected_sources)
+        actions = QHBoxLayout()
+        self.source_open, self.source_remove = QPushButton('Read source'), QPushButton('Remove')
+        self.source_open.clicked.connect(self.read_selected_source)
+        self.source_remove.clicked.connect(self.remove_source)
+        actions.addWidget(self.source_open)
+        actions.addWidget(self.source_remove)
+        source_layout.addLayout(actions)
+        self.source_preview = SourcePreview()
+        source_layout.addWidget(self.source_preview, 1)
+        self.side.addTab(self.source_tab, 'Sources')
         evidence_tab = QWidget()
         evidence_layout = QVBoxLayout(evidence_tab)
         self.sources = QListWidget()
@@ -231,6 +259,10 @@ class ExpertWindow(QMainWindow):
         self.allow_question.setToolTip('Permit question transmission for this request within the existing workspace/provider authorization.')
         self.allow_public = QCheckBox('Public literature searches')
         self.allow_public.setToolTip('Permit public literature searches within the existing workspace search authorization.')
+        self.allow_sources = QCheckBox('Transmit selected sources')
+        self.allow_sources.setToolTip('An explicit grant for the currently selected revisions, within the existing provider policy.')
+        self.allow_sources.toggled.connect(self._source_permission_toggled)
+        form.addRow(self.allow_sources)
         self.allow_results = QCheckBox('Transmit attached results')
         self.allow_results.setToolTip('New attachments do not grant result access. Clear and check this option to explicitly include the currently attached results within existing provider authorization.')
         self.allow_results.toggled.connect(self._result_permission_toggled)
@@ -255,7 +287,7 @@ class ExpertWindow(QMainWindow):
         self._update_actions()
 
     def _call(self, function, success, *, background=False):
-        if self._busy or getattr(self, '_incoming_review', False):
+        if self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return False
         self._busy = True
         self._foreground_busy = not background
@@ -300,6 +332,8 @@ class ExpertWindow(QMainWindow):
         def received(payload):
             self._registry = payload.get('experts', [])
             self._populate_roles(self.edited_draft()['participants'] if self.document else [])
+            if self._buffer and self._buffer.get('context', {}).get('selected_sources'):
+                QTimer.singleShot(0, self.refresh_source_titles)
             packages=payload.get('packages',{})
             missing=[row for row in packages.get('missing_dependencies',[]) if row.get('extra')=='assist-core']
             runtime=payload.get('runtime',{})
@@ -355,6 +389,7 @@ class ExpertWindow(QMainWindow):
             self.allow_question.setChecked(scope.get('allow_question', False))
             self.allow_public.setChecked(scope.get('allow_public_search', False))
             self.allow_results.setChecked(bool(scope.get('result_ids')))
+            self.allow_sources.setChecked(bool(scope.get('source_refs')))
             budget = draft.get('budget', {})
             self.model_calls.setValue(budget.get('model_calls', 4))
             self.tool_calls.setValue(budget.get('tool_calls', 8))
@@ -370,6 +405,7 @@ class ExpertWindow(QMainWindow):
         self._populate_turns()
         self._populate_reply()
         self._update_evidence_label()
+        self._populate_sources()
         self._update_actions()
 
     def _populate_topics(self):
@@ -542,7 +578,7 @@ class ExpertWindow(QMainWindow):
             command_id='C' + uuid.uuid4().hex), received)
 
     def refresh_document(self):
-        if not self.document or self._busy or getattr(self, '_incoming_review', False):
+        if not self.document or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return
         identifier, session = self.document['id'], self.document['session_id']
         def received(remote):
@@ -600,7 +636,11 @@ class ExpertWindow(QMainWindow):
                                      'input_revision': turn.get('input_revision'),
                                      'input_sha256': turn.get('input_sha256'), 'selection': []})
         for reference in self._references:
-            self.sources.addItem(json.dumps(reference, ensure_ascii=False))
+            label = ('Result' if 'job_id' in reference else 'Literature source' if 'paper_id' in reference
+                     else self._source_titles.get(reference.get('document_id'), 'Research source'))
+            item = QListWidgetItem(label)
+            item.setToolTip(json.dumps(reference, ensure_ascii=False))
+            self.sources.addItem(item)
         self._plans = turn.get('response', {}).get('proposed_actions', [])
         for index, proposal in enumerate(self._plans):
             plan = proposal.get('plan', {}) if isinstance(proposal, dict) else {}
@@ -649,6 +689,170 @@ class ExpertWindow(QMainWindow):
             del self._buffer['composer']['evidence'][row]
             self._update_evidence_label()
             self._edited()
+
+
+    def _populate_sources(self):
+        if not hasattr(self, 'selected_sources'):
+            return
+        context = (self._buffer or {}).get('context', {})
+        refs = context.get('selected_sources')
+        if not isinstance(refs, list):
+            refs = [{'document_id': identifier, 'revision': None}
+                    for identifier in context.get('selected_document_ids', []) if isinstance(identifier, str)]
+        self.selected_sources.clear()
+        for index, reference in enumerate(refs):
+            if not isinstance(reference, dict):
+                continue
+            title = self._source_titles.get(reference.get('document_id'), 'Source ' + str(index + 1))
+            if reference.get('revision') is None:
+                title += ' — review version'
+            item = QListWidgetItem(title)
+            item.setData(Qt.ItemDataRole.UserRole, deepcopy(reference))
+            item.setToolTip(json.dumps(reference, ensure_ascii=False))
+            self.selected_sources.addItem(item)
+        grants = context.get('transmission_scope', {}).get('source_refs', [])
+        self.allow_sources.blockSignals(True)
+        self.allow_sources.setChecked(bool(refs) and all(reference in grants for reference in refs))
+        self.allow_sources.blockSignals(False)
+
+    def refresh_source_titles(self):
+        if not self.document:
+            return False
+        from .expert_sources import assist
+        owner = (self.document['id'], self.document['session_id'])
+        def received(payload):
+            if not self.document or (self.document['id'], self.document['session_id']) != owner:
+                return
+            for source in payload['documents']:
+                self._source_titles[source['document_id']] = source['title']
+                self._source_collections[source['document_id']] = source['collection']
+            self._populate_sources()
+        return self._call(lambda: assist(self.client, 'knowledge.list'), received, background=True)
+
+    def choose_sources(self, _checked=False, *, add_file=False):
+        if not self.document or self._busy or self.conflict or self._draft_problem or getattr(self, '_incoming_review', False):
+            return False
+        from .expert_sources import SourceDialog
+        owner = (self.document['id'], self.document['session_id'])
+        owner_hash = canonical_hash(self.document['draft'])
+        collections = [name for role in self._registry for name in role.get('collections', [])]
+        self._source_choosing = True
+        self._update_actions()
+        dialog = self._source_dialog = SourceDialog(self.client, self.edited_draft()['context'],
+                                                     collections=collections, parent=self)
+        if add_file:
+            # Wait for initial library loading so file selection does not race it.
+            def open_file():
+                if dialog._closed:
+                    return
+                if dialog._busy:
+                    QTimer.singleShot(25, open_file)
+                else:
+                    dialog.choose_file()
+            QTimer.singleShot(0, open_file)
+        try:
+            accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        finally:
+            self._source_choosing = False
+            self._update_actions()
+        if not accepted:
+            return False
+        references = deepcopy(dialog.references)
+        def checked(remote):
+            if (not self.document or (self.document['id'], self.document['session_id']) != owner
+                    or self.conflict or self._draft_problem):
+                self.message.setText('Source selection was not attached: the current discussion changed.')
+                return
+            if (remote['session_id'] != owner[1] or canonical_hash(remote['draft']) != owner_hash):
+                self.conflict = True
+                self.message.setText('The saved discussion changed during source selection. Current edits are retained; reconcile before attaching.')
+                return
+            current = self.edited_draft()
+            current['context']['selected_sources'] = references
+            current['context']['selected_document_ids'] = [ref['document_id'] for ref in references]
+            self._buffer = current
+            self._source_titles.update(dialog.titles)
+            for source in dialog.records.values():
+                self._source_collections[source['document_id']] = source['collection']
+            self._populate_sources()
+            self._edited()
+            self.side.setCurrentWidget(self.source_tab)
+            if dialog.records:
+                self.source_preview.set_payload(next(iter(dialog.records.values())))
+            else:
+                self.source_preview.show_error('No source selected.')
+            self.message.setText('Sources attached to the local question. Apply or Save when ready.')
+        return self._call(lambda: self.client.document_read(owner[0]), checked)
+
+    def remove_source(self):
+        row = self.selected_sources.currentRow()
+        if row < 0 or not self._buffer or self._draft_problem:
+            return
+        current = self.edited_draft()
+        context = current['context']
+        if isinstance(context.get('selected_sources'), list):
+            del context['selected_sources'][row]
+            context['selected_document_ids'] = [ref['document_id'] for ref in context['selected_sources']]
+        else:
+            del context['selected_document_ids'][row]
+        self._buffer = current
+        self._populate_sources()
+        self.source_preview.show_error('Select another source to read.')
+        self._edited()
+
+    def read_selected_source(self):
+        item = self.selected_sources.currentItem()
+        if item is None:
+            return False
+        reference = deepcopy(item.data(Qt.ItemDataRole.UserRole))
+        if type(reference.get('revision')) is not int:
+            self.message.setText('Open Library to preview and pin this earlier selection explicitly.')
+            return False
+        from .expert_sources import assist
+        owner = (self.document['id'], self.document['session_id'])
+        def received(payload):
+            if self.document and (self.document['id'], self.document['session_id']) == owner:
+                selected = self.selected_sources.currentItem()
+                if selected and selected.data(Qt.ItemDataRole.UserRole) == reference:
+                    self.source_preview.set_payload(payload)
+                    self.side.setCurrentWidget(self.source_tab)
+        self.source_preview.show_error('Reading selected source…')
+        return self._call(lambda: assist(self.client, 'knowledge.source', reference), received)
+
+    def _source_permission_toggled(self, checked):
+        if self._populating or not self.document or self._draft_problem:
+            return
+        current = self.edited_draft()
+        if not checked:
+            current['context'].setdefault('transmission_scope', {})['source_refs'] = []
+            self._buffer = current
+            self._edited()
+            return
+        from .expert_sources import assist
+        from caelab.assist.knowledge import selected_source_refs
+        try:
+            references = selected_source_refs(current['context'])
+        except ValueError as error:
+            self.message.setText(str(error))
+            self._populate_sources()
+            return
+        owner = (self.document['id'], self.document['session_id'])
+        def read():
+            return [assist(self.client, 'knowledge.source', reference) for reference in references]
+        def received(records):
+            if not self.document or (self.document['id'], self.document['session_id']) != owner or self.conflict:
+                return
+            latest = self.edited_draft()
+            if selected_source_refs(latest['context']) != references or not self.allow_sources.isChecked():
+                self.message.setText('Source selection changed. Review transmission permission for the current sources.')
+                return
+            scope = latest['context'].setdefault('transmission_scope', {})
+            scope['source_refs'] = deepcopy(references)
+            scope['collections'] = list(dict.fromkeys(scope.get('collections', []) +
+                [record['collection'] for record in records]))
+            self._buffer = latest
+            self._edited()
+        return self._call(read, received)
 
     def attach_result(self):
         def listed(payload):
@@ -701,7 +905,7 @@ class ExpertWindow(QMainWindow):
 
     def _update_actions(self, *_):
         present = self.document is not None
-        enabled = present and not self._busy and not self.conflict and not getattr(self, '_incoming_review', False)
+        enabled = present and not self._busy and not self._source_choosing and not self.conflict and not getattr(self, '_incoming_review', False)
         self.editor.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.roles.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.topics.setEnabled(present and not self._draft_problem and not self._foreground_busy)
@@ -717,6 +921,11 @@ class ExpertWindow(QMainWindow):
         self.copy_button.setVisible(self.conflict)
         self.reload_button.setEnabled(not self._busy)
         self.copy_button.setEnabled(not self._busy)
+        source_enabled = enabled and not self._draft_problem
+        for button in (self.source_file, self.source_library, self.allow_sources):
+            button.setEnabled(source_enabled)
+        self.source_remove.setEnabled(source_enabled and self.selected_sources.currentRow() >= 0)
+        self.source_open.setEnabled(source_enabled and self.selected_sources.currentRow() >= 0)
         self.reference_button.setEnabled(not self._busy and self.open_reference is not None and self.sources.currentRow() >= 0)
         proposal = self._plans[self.plans.currentRow()] if 0 <= self.plans.currentRow() < len(self._plans) else None
         self.plan_button.setEnabled(not self._busy and not self.conflict and self.open_plan is not None and isinstance(proposal, dict) and
@@ -806,8 +1015,8 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
     def received(payload):
         if isinstance(payload, dict) and payload.get('status') == 'SOURCE_READ':
             window.message.setText('Read the exact indexed source returned by the existing source service.')
-            window.details.setPlainText(json.dumps(payload.get('source'), ensure_ascii=False, indent=2))
-            window.side.setCurrentIndex(0)
+            window.source_preview.set_payload(payload.get('source') or {})
+            window.side.setCurrentWidget(window.source_tab)
             return
         if isinstance(payload, dict) and payload.get('status') == 'LAUNCH_REQUESTED':
             window.message.setText('Requested the existing document/editor launch. Review its inputs before executing calculations.')

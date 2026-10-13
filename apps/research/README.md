@@ -341,3 +341,8 @@ does not complete or re-qualify those workflows.
 ## Native Post observations
 
 A saved native Post point/path/time measurement can now enter a generic Numerical fit Plan through **Use in Numerical…** in the existing Post controls. The dialog selects an actual native column/component/statistic and axis, previews its table/curve, and lets the user choose a new or compatible existing Plan through the shared Data importer. Existing Plan delivery opens a pending Review/Cancel/Append action in its live editor, preserving unapplied edits; it does not create another Plan. Numerical shows the retained observation, editable fit/holdout/weight/scale and missing model binding; **Open in Post** returns to the exact saved native measurement. See [Post measurement workflow](POST_NUMERICAL.md) for steps, source boundaries and verification scope.
+
+
+## Local research sources in Expert
+
+Open Expert directly, then use **Sources → Add file…** or **Library…** to read and attach actual archived PDF/Markdown/text/CSV content. The selection pins exact source revisions through Save/reopen and actual retrieval. Sources can be edited without a configured model; attachment does not grant transmission or create a reply. See [Expert source workflow](EXPERT_SOURCES.md) for native steps, permission and legacy-repair behavior, focused checks and execution limits.
