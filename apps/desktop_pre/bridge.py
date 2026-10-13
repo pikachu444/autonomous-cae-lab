@@ -20,6 +20,7 @@ from apps.desktop_pre.parameters import Parameters, OPERATIONS as PARAMETER_OPER
 from apps.desktop_pre.projects import Project, OPERATIONS as PROJECT_OPERATIONS
 from apps.desktop_pre.motion import Motion, OPERATIONS as MOTION_OPERATIONS
 from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
+from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
 
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze',
