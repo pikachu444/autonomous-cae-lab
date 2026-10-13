@@ -31,6 +31,11 @@ Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이�
 요청 원문은 `pde-coupling-workflows/pro-request.md`다. Sol의 Evaluation 화면 두 파일
 소유권과 실제 기존 실행 환경을 함께 전달했다. 전송/작성 시작은 구현 완료가 아니다.
 
+후속 D8 충격·손상은 기존 네 작업과 현재 Simulation/OpenRadioss의 실제 지원 범위를
+대조해 [SPEC-IMPACT-001](.moai/specs/SPEC-IMPACT-001/spec.md)에 연결했다. 일반 모델의
+초기조건·회전·접촉·손상/피로는 기존 강체 예제와 구별해 요구로 유지한다. 추가 솔버 실행,
+설치나 Pro D8 배정은 하지 않았으며 D7 다음 인계 준비다.
+
 - Data→Material 피팅: Pro의 두 교정본 `637f089`, `1f477ea`를 로컬 `07b5474`,
   `7aa740e`로 통합했다. 응력 선택·시험 구별·이전 미리보기/요약 제거·측정 변형률 축·
   차트 폭/한글을 고쳤다. 변경 검사 17개 통과 뒤 나타난 종료 오류는 별도 수명 교정으로
