@@ -302,3 +302,29 @@ def test_prepared_model_cold_read_requires_original_contacts_mesh_and_values(tmp
         assert [value for kind, value in calls if kind == 'mesh'] == [
             row['object_id'] for row in declaration['meshes']]
     assert source.read_bytes() == b'exact retained archive test double'
+
+
+@pytest.mark.parametrize('prior', [None, False, True])
+@pytest.mark.parametrize('fails', [False, True])
+def test_native_exact_save_restores_preference_presence_and_value(tmp_path, monkeypatch, prior, fails):
+    from apps.desktop_pre import projects
+    values = {} if prior is None else {'SaveBinaryBrep': prior}
+    values['KeepUnrelated'] = False
+    group = NS(GetContents=lambda: [('Boolean', k, v) for k, v in values.items()],
+               SetBool=lambda k, v: values.update({k: v}), RemBool=lambda k: values.pop(k, None))
+    app = NS(ParamGet=lambda path: group)
+    original = dict(values)
+    def save_copy(path):
+        assert values['SaveBinaryBrep'] is True
+        if fails:
+            raise OSError('native save refused')
+        Path(path).write_bytes(b'explicit binary-native writer double')
+    monkeypatch.setattr(projects, '_native_copy_uses_short_path', lambda _: False)
+    path = tmp_path / 'model.FCStd'
+    if fails:
+        with pytest.raises(OSError, match='native save refused'):
+            projects.save_native_copy(NS(saveCopy=save_copy), path, App=app)
+    else:
+        projects.save_native_copy(NS(saveCopy=save_copy), path, App=app)
+        assert path.read_bytes() == b'explicit binary-native writer double'
+    assert values == original
