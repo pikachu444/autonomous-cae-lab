@@ -21,5 +21,19 @@ company documents or credentials. No model call is required to check source work
    navigation. Otherwise record live inference as not run, retain the requirement,
    and continue other product work.
 
-Implementation and execution evidence are pending. This SPEC does not claim
-whole Expert/Co-STORM completion or engineering approval.
+## Backend checkpoint — 2026-10-13
+
+Actual Pro authored `7090d1c`, integrated as `c409665`. Codex ran
+`python -m pytest tests/test_expert_sources.py -q` in the owned Windows runtime:
+4 passed in 5.42s. Existing archive/BM25/JobManager paths were exercised; model
+generators and OpenScience host were explicit doubles, with no live inference.
+The tests cover exact source revisions, exclusion of unselected content from
+retrieval/history/delegation, explicit transmission scope, import, saved draft
+reopen and blocked legacy-round recovery. Astra/xhigh independently reviewed the
+eight changed files and found no actionable source defect; it ran no UI or tests.
+
+This partially addresses AC-EX02/03 and the source boundary behind AC-EX04.
+Native chooser/content preview/attach are still being authored by the same Pro.
+AC-EX01 and the complete GUI workflow remain pending; neither this checkpoint
+nor a scripted response establishes whole Expert/Co-STORM completion or
+engineering approval.
