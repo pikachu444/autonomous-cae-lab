@@ -2,7 +2,7 @@
 id: SPEC-DESKTOP-002
 title: "Independent desktop entry with connected document workflows"
 version: "0.1.0"
-status: in_progress
+status: completed
 created: 2026-10-13
 updated: 2026-10-13
 author: "Actual ChatGPT Pro implementation; Codex orchestration/integration"

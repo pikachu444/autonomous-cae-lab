@@ -37,9 +37,10 @@ Pro `5b9ae1c`의 DESIGN/README 교정을 확인해 통합했다. 내용은 독�
 설명이며 추가 결함 찾기나 별도 재설계 과제가 아니다. Qt 소스·시안·기능/작업표·조작
 검사 상태는 유지했다. MoAI SPEC 조회와 실제 Pro 연결을 다시 확인했다.
 
-현재 첫 제품 작업은 `PRO-IMPL-DESKTOP-20261013-01`의 Windows 기본 데스크톱 진입과
-기존 문서·서비스를 사용하는 독립 도구 실행이다. 기존 root 시작이 browser Workbench를
-열던 부분을 native Qt 진입으로 바꾸며 CLI/direct native Pre/Post와 공유 저장소를 재사용한다.
+첫 제품 작업 `PRO-IMPL-DESKTOP-20261013-01`의 Windows 기본 데스크톱 진입과 기존
+문서·서비스를 사용하는 독립 도구 실행을 구현·검증했다. 기본 browser Workbench
+진입을 기존 native Qt Runner로 바꾸고 각 Research 도구에 직접 들어간다. CLI/direct
+native Pre/Post와 공유 저장소를 재사용하며 새 문서·서비스를 강제로 만들지 않는다.
 Luna는 시작·서비스 수명, Sol은 Numerical/Expert의 실제 명령 연결을 읽기 전용 조사했다.
 실제 Pro가 제품 코드·테스트를 주작성하고 Astra가 독립 설계·코드 검토를 맡는다.
 다음 기능 단위는 기존 Numerical Plan의 변수·응답·방법 중심 편집과 Expert/Study의
@@ -52,7 +53,7 @@ Luna는 시작·서비스 수명, Sol은 Numerical/Expert의 실제 명령 연�
 참고 이미지를 사용자에게 요청하지 않는다. 세부 화면 시안은 검토용 제안이며 사용자 결정과 구별한다.
 
 첫 구현 전 제품 source는 `9a6e3083037630b45694b812b135dc1cd63cf95a`, upstream은 아래 핀이다.
-첫 제품 코드·테스트는 실제 Pro가 작성 중이며 아직 통합·Windows 실행을 확인하지 않았다.
+첫 제품 코드·테스트는 실제 Pro `9d6d780`을 통합해 Windows에서 확인했다.
 solver/provider 실행은 시작하지 않았다. 사용자
 `.codex-remote-attachments/`와 기존 설정·AGENTS를 보존한다.
 
@@ -132,11 +133,16 @@ MoAI `3.2.0-dev.2aab5f7`의 공식 Codex 초기화를 분리해 확인한 뒤 �
 map 호환 오류는 read-only 검사에만 임시 override를 사용했고 사용자 설정을 덮어쓰지 않았다.
 첫 제품 구현은 [SPEC-DESKTOP-002](.moai/specs/SPEC-DESKTOP-002/spec.md)에 연결했다.
 Astra의 독립 검토에서 모드별 서비스 준비/UI 억제, PrepareOnly 실패의 비대화형 처리,
-새 runtime의 ResearchUI 설치를 명시했고 같은 Pro에 전달했다. 실제 코드를 확인한 뒤
-Windows의 선택 문서/작업 전달·공유 서비스·실패 처리를 검증한다.
+새 runtime의 ResearchUI 설치를 명시했다. CMD pause·축약 옵션·환경 경계와 실제
+WinPS 5.1 readiness 인수 손상을 같은 Pro가 교정했다. 실제 기본 CMD의 native Runner
+창, 저장된 Data ID의 native 창과 같은 서비스 PID 재사용을 확인했다. 관련 진입·
+Windows 경로·native argv 검사가 통과했고 source guard가 기존 서비스를 유지하는
+오류 경로도 확인했다. 정확한 소스·대역/실제 실행·잔여 한계는
+[진입 기능의 검증 기록](.moai/specs/SPEC-DESKTOP-002/acceptance.md)에 있다.
 
 기존 사용자 Python3.13에는 PySide6 6.9.1·Matplotlib3.10.1·Designer와 Qt SVG가 있다.
-별도 Research runtime에는 PySide6가 없다. 새 D1 Qt 프로세스/접근성 구조는 확인했지만
+앞선 기존 Research runtime의 PySide6 미설치와 별도로 이번 진입 검증용 private
+runtime에 프로젝트의 Qt 의존성을 설치했다. 새 D1 Qt 프로세스/접근성 구조는 확인했지만
 창 활성화 실패와 검은 캡처 때문에 native 입력을 중단했다. Segoe UI offscreen 렌더링·
 QTest의 범위만 기록한다. 이전 [Qt spike 검토](docs/design/20261012-desktop-planning/QT_REVIEW.md)의
 CSV/저장 chooser·선택·채택·Undo/Redo·dock Float·새 프로세스 재열기 근거가 새 D1을 대신하지 않는다.
@@ -158,9 +164,11 @@ Penpot은 계정이 없어 제외하라는 사용자 결정으로 닫고 무시�
 
 ### 이어서 할 작업
 
-Pro의 첫 제품 변경을 회수해 Astra 독립 코드 검토와 Windows 집중 실행을 수행하고,
-구체적인 실패는 같은 Pro에게 교정받아 통합한다. 이어서 기존 Numerical Plan의 의미별
-편집과 Expert/Study 결과 왕복을 같은 역할 분담으로 구현한다. 첫 통합 경로는
+첫 진입 기능의 검토·실행·교정을 마쳤다. 이어서 실제 Pro가 기존 Numerical Plan의
+변수·응답·방법별 편집과 같은 Expert/Study로 결과를 돌려주는 기능을 주작성하며,
+Codex가 공유 경계·Windows 실행·통합, Astra가 독립 설계/코드 검토를 맡는다. 열린
+원 창의 미적용 편집을 보존하고 pending 결과를 사용자 확인 후 추가해야 한다.
+같은 문서를 새로 열거나 새 X/S를 만들며 왕복 완료로 표시하지 않는다. 첫 통합 경로는
 CAD/FE→Simulation→Runner→native Post→최적화와 Expert→Numerical→결과→Study이며
 Data/Material/PDE는 독립 병행한다. 별도의 개발 시작 문구를 기다리지 않는다.
 사용자는 [검토 안내](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)의 화면과
