@@ -190,6 +190,8 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
     if (native_metadata or {}).get('contact_inspection') is not None:
         from .contact_inspection import load
         bundle = load(source, native_metadata['contact_inspection'])
+        if bundle['manifest']['native_metadata'] != {k: v for k, v in native_metadata.items() if k != 'contact_inspection'}:
+            raise ValueError('Contact field declarations differ from the pinned bundle')
         paths = list(dict.fromkeys([*paths, *[_within_root(path, root) for path in bundle['paths']]]))
     return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
                          root_id=root_id, relative=relative, limit=limit,

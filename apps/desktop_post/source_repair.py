@@ -53,6 +53,9 @@ def partial_state(state, document, issues, output):
     collection = server.find("ProxyCollection[@name='sources']")
     registrations = {} if collection is None else {item.get('name'): item.get('id') for item in collection.findall('Item')}
     bad = {registrations[row['reader_name']] for row in issues if row['reader_name'] in registrations}
+    contact = document.get('analysis', {}).get('contact_selection') or {}
+    if contact.get('source_ref') in {row['source_ref'] for row in issues}:
+        bad.update(registrations[name] for name in contact.get('overlay_names', []) if name in registrations)
     proxies = {item.get('id'): item for item in server.findall('Proxy')}
     containers = {'views', 'layouts', 'timekeeper', 'animation'}
     changed = True
@@ -99,7 +102,7 @@ def partial_state(state, document, issues, output):
         name for name, identifier in registrations.items() if identifier not in bad)}
 
 
-def _rewrite_reader_paths(state, sources):
+def _rewrite_reader_paths(state, sources, native_readers=()):
     """Change only admitted source reader FileName entries, not arbitrary XML text."""
     tree = ET.parse(state)
     root = tree.getroot()
@@ -122,6 +125,20 @@ def _rewrite_reader_paths(state, sources):
         elements[0].set('value', record['entry_path'])
         # Domain/FileList may contain informational old paths. Only actual file
         # properties are modified; the reader rebuilds domains from admitted input.
+    source_names = {row['reader_name'] for row in sources.values()}
+    for record in native_readers:
+        if record['reader_name'] in source_names:
+            continue
+        identifier = registrations.get(record['reader_name'])
+        proxy = server.find("Proxy[@id='%s']" % identifier) if identifier else None
+        if proxy is None or proxy.get('type') != record['reader_type']:
+            raise ValueError('Saved auxiliary reader identity changed')
+        prop = proxy.find("Property[@name='FileName']")
+        elements = [] if prop is None else prop.findall('Element')
+        if len(elements) != len(record['input_paths']):
+            raise ValueError('Saved auxiliary reader file count changed')
+        for element, path in zip(elements, record['input_paths']):
+            element.set('value', path)
     return tree
 
 
@@ -159,13 +176,33 @@ def repair_source(owner, source_ref, input_id, receipt):
         original = previous_source.FileName
         statuses = {key: getattr(previous_source, key) for key in ('PointArrayStatus', 'CellArrayStatus', 'PointArrays', 'CellArrays', 'FieldArrays')
                     if key in previous_source.ListProperties()}
+        overlay_changes = []
+        contact = document.get('analysis', {}).get('contact_selection') or {}
+        if contact.get('source_ref') == source_ref:
+            for name in contact.get('overlay_names', []):
+                proxy = p.FindSource(name)
+                if proxy is None or proxy.GetXMLName() != 'XMLUnstructuredGridReader':
+                    continue
+                _, pending_overlay = owner.native_properties(proxy)
+                if pending_overlay:
+                    raise ValueError('BUSY_EDIT: Apply/Reset pending contact surface reader properties first')
+                original_paths = list(proxy.FileName)
+                replacement_files = [native_paths.get(path, path) for path in original_paths]
+                if replacement_files != original_paths:
+                    overlay_changes.append((proxy, original_paths, replacement_files))
         try:
+            for proxy, _, replacement_files in overlay_changes:
+                proxy.FileName = replacement_files
+                proxy.UpdatePipeline()
             previous_source.FileName = [replacement['entry_path']] if receipt['format'] == 'vtu' else replacement['entry_path']
             previous_source.UpdatePipeline()
             for key, value in statuses.items():
                 setattr(previous_source, key, value)
             external.verify_readers({'sources': {source_ref: replacement}})
         except BaseException:
+            for proxy, original_paths, _ in overlay_changes:
+                proxy.FileName = original_paths
+                proxy.UpdatePipeline()
             previous_source.FileName = original
             for key, value in statuses.items():
                 setattr(previous_source, key, value)
@@ -204,7 +241,7 @@ def repair_source(owner, source_ref, input_id, receipt):
     if external.sha(state) != document['workspace_sha256']:
         raise ValueError('Saved native state changed; source repair cannot replace it')
     verify_analysis_files(proposed)
-    tree = _rewrite_reader_paths(state, proposed['sources'])
+    tree = _rewrite_reader_paths(state, proposed['sources'], proposed.get('native_readers', []))
     folder = Path(document['project_root']) / 'repairs' / ('R' + uuid.uuid4().hex)
     folder.mkdir(parents=True, exist_ok=False)
     output = folder / 'analysis.pvsm'

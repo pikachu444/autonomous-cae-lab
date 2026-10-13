@@ -8,6 +8,7 @@ from copy import deepcopy
 import hashlib
 import json
 import math
+import re
 from pathlib import Path, PurePosixPath
 import xml.etree.ElementTree as ET
 
@@ -69,6 +70,18 @@ def load(entry, declaration):
     manifest, manifest_path = _read(root, descriptor(declaration), json_data=True)
     if manifest.get('kind') != KIND or manifest.get('version') != 1:
         raise ValueError('Unsupported contact inspection bundle')
+    source = manifest.get('source')
+    source_keys = {'snapshot_id', 'snapshot_sha256', 'raw_frd_sha256', 'raw_dat_sha256', 'model_sha256'}
+    if (not isinstance(source, dict) or not source_keys <= set(source)
+            or set(source) - source_keys - {'source_record_sha256'}
+            or not isinstance(source['snapshot_id'], str) or not re.fullmatch(r'F[A-Za-z0-9_-]{1,127}', source['snapshot_id'])
+            or any(not isinstance(v, str) or not re.fullmatch(r'[a-f0-9]{64}', v)
+                   for k, v in source.items() if k != 'snapshot_id')):
+        raise ValueError('Contact inspection requires exact retained input/raw-output identities')
+    if (manifest.get('force_unit') != 'N' or manifest.get('force_frame') != 'FREECAD_DOCUMENT_GLOBAL'
+            or manifest.get('clock') != {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'}
+            or manifest.get('active_state') != 'UNKNOWN'):
+        raise ValueError('Unsupported contact physical declaration; no unit/clock conversion is performed')
     pvd, bound_entry = _read(root, manifest['entry'])
     if bound_entry != entry or b'<!DOCTYPE' in pvd.upper() or b'<!ENTITY' in pvd.upper():
         raise ValueError('Contact inspection belongs to a different collection')
@@ -76,6 +89,20 @@ def load(entry, declaration):
     frames = manifest.get('frames', [])
     if not 1 <= len(frames) <= 1024 or len(frames) != len(datasets):
         raise ValueError('Contact inspection frame set differs from the collection')
+    physical = manifest.get('native_metadata', {})
+    if (physical.get('coordinate_units') != 'mm' or physical.get('coordinate_frame') != 'FREECAD_DOCUMENT_GLOBAL'
+            or physical.get('static') is not None
+            or physical.get('time') != {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER',
+                                        'values': [row['static']['load_parameter'] for row in frames]}
+            or 'contact_inspection' in physical):
+        raise ValueError('Unsupported contact native field physical declaration')
+    declarations = {(r['association'], r['name']): r for r in physical.get('arrays', [])}
+    for index, channel in enumerate(CHANNELS):
+        declared = declarations.get(('POINTS', channel), {})
+        if (declared.get('components') != 1 or declared.get('units') != ('mm' if index < 3 else 'MPa')
+                or declared.get('measure') != 'solver_exported_nodal_contact_' + channel
+                or declared.get('frame') != 'CalculiX master-face local normal/tangents; projected nodal values; exact basis vectors not exported'):
+            raise ValueError('Unsupported contact native channel physical declaration')
     topology, topology_path = _read(root, manifest['topology'], json_data=True)
     _, surfaces_path = _read(root, manifest['surfaces'])
     _, body_path = _read(root, manifest['body_map'], json_data=True)
@@ -123,6 +150,14 @@ def load(entry, declaration):
                 or current.get('static') != static or current.get('channels') != list(CHANNELS)):
             raise ValueError('Contact frame does not match its exact PVD increment')
         previous = value
+        if (current.get('active_state') != 'UNKNOWN'
+                or current.get('basis') != 'CalculiX master-face local normal/tangents; projected nodal values; exact basis vectors not exported'
+                or current.get('nodal_projection') != 'native_slave_face_projection_and_shared_node_average'
+                or current.get('gap', {}).get('kind') != 'derived_geometric_signed_gap'
+                or current['gap'].get('static') != static
+                or current['gap'].get('recipe', {}).get('solver_clearance') is not False
+                or current['gap']['recipe'].get('solver_active_state') != 'UNKNOWN'):
+            raise ValueError('Unsupported contact projection/gap physical declaration')
         contact = current.get('contact', [])
         if len(contact) != len(nodes) or {r['node_id'] for r in contact} != set(nodes):
             raise ValueError('Contact nodal coverage changed')
@@ -216,6 +251,18 @@ def force_history(bundle, pair_id, quantity, component):
                      'reason': reason, 'raw_text': raw.get('raw_text') if raw else None})
     return {'pair_id': pair_id, 'quantity': quantity, 'component': component,
             'array': quantity + '_' + 'XYZ'[component] + '_N', 'unit': 'N',
-            'frame': 'FREECAD_DOCUMENT_GLOBAL', 'measure': 'contact_pair_force_resultant',
+            'frame': 'FREECAD_DOCUMENT_GLOBAL', 'measure': 'contact_pair_force_resultant', 'force_on': 'slave_A',
             'axis': {'name': 'load_parameter', 'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'},
             'rows': rows}
+
+
+def explicit_manifest(path):
+    """Chosen manifest only; this never searches beside an arbitrary PVD."""
+    path = Path(path).resolve(strict=True)
+    declaration = file_pin(path, path.parent)
+    manifest, _ = _read(path.parent, declaration, json_data=True)
+    entry = _path(path.parent, manifest['entry']['relative'])
+    bundle = load(entry, declaration)
+    metadata = deepcopy(bundle['manifest']['native_metadata'])
+    metadata['contact_inspection'] = declaration
+    return entry, metadata

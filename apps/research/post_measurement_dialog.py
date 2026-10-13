@@ -25,6 +25,9 @@ class MeasurementDialog(QDialog):
         outer = QVBoxLayout(self)
         self.summary = QLabel('Saved ' + str(snapshot['summary'].get('measurement', '')) +
             ' measurement. Select the actual native column and axis.')
+        if snapshot['summary'].get('measurement') == 'contact_force':
+            self.summary.setText(snapshot['summary'].get('location', '').split(' / ')[0] +
+                ' — ' + snapshot['summary'].get('component_label', '') + ' on A [N]')
         outer.addWidget(self.summary)
         forms = QHBoxLayout()
         left, right = QFormLayout(), QFormLayout()
@@ -47,7 +50,7 @@ class MeasurementDialog(QDialog):
                 if name in measured:
                     self.value_column.addItem(label, {'name': name, 'component': component})
                 measurement = snapshot['summary'].get('measurement')
-                if name == {'time': 'Time', 'path': 'arc_length'}.get(measurement) and component is None:
+                if name == {'time': 'Time', 'path': 'arc_length', 'contact_force': 'load_parameter'}.get(measurement) and component is None:
                     self.axis_column.addItem(label, {'kind': 'array', 'name': name, 'component': component})
         if available['coordinates'] and snapshot['summary'].get('measurement') != 'time':
             for component, label in enumerate(('X coordinate', 'Y coordinate', 'Z coordinate')):
@@ -72,9 +75,9 @@ class MeasurementDialog(QDialog):
         summary = snapshot['summary']
         defaults = {'unit': summary.get('units'), 'frame': summary.get('frame'),
                     'measure': summary.get('measure'),
-                    'axis_name': 'time' if summary.get('measurement') == 'time' else '',
-                    'axis_unit': summary.get('time_units') if summary.get('measurement') == 'time' else summary.get('coordinate_units'),
-                    'component_label': '', 'location': ''}
+                    'axis_name': summary.get('axis_name') or ('time' if summary.get('measurement') == 'time' else ''),
+                    'axis_unit': summary.get('axis_unit') or (summary.get('time_units') if summary.get('measurement') == 'time' else summary.get('coordinate_units')),
+                    'component_label': summary.get('component_label', ''), 'location': summary.get('location', '')}
         labels = {'unit': 'Response unit', 'component_label': 'Physical component / statistic',
                   'location': 'Measured location', 'frame': 'Response frame', 'measure': 'Physical measure',
                   'axis_name': 'Axis name', 'axis_unit': 'Axis unit'}
@@ -83,7 +86,8 @@ class MeasurementDialog(QDialog):
             edit.setObjectName('measurement_' + key)
             edit.textChanged.connect(self.update_preview)
             self.fields[key] = edit
-            known = key in ('unit', 'frame', 'measure', 'axis_unit', 'axis_name') and bool(defaults.get(key))
+            known = (key in ('unit', 'frame', 'measure', 'axis_unit', 'axis_name') or
+                     summary.get('measurement') == 'contact_force' and key in ('component_label', 'location')) and bool(defaults.get(key))
             edit.setReadOnly(known)
             if known:
                 edit.hide()
@@ -124,6 +128,10 @@ class MeasurementDialog(QDialog):
             combo.currentIndexChanged.connect(self.update_preview)
         self.exclude_invalid.toggled.connect(self.update_preview)
         self.canvas.mpl_connect('pick_event', self.picked)
+        if summary.get('measurement') == 'contact_force':
+            # This applied measurement already names one explicit pair component.
+            self.value_column.setCurrentIndex(1)
+            self.axis_column.setCurrentIndex(1)
         self.update_preview()
 
     def selected_mapping(self):
@@ -148,6 +156,8 @@ class MeasurementDialog(QDialog):
                 declarations = {'axis_name': ('X', 'Y', 'Z')[axis['component']], 'axis_unit': summary.get('coordinate_units') or ''}
             elif axis.get('name') == 'Time':
                 declarations = {'axis_name': 'time', 'axis_unit': summary.get('time_units') or ''}
+            elif axis.get('name') == 'load_parameter' and summary.get('measurement') == 'contact_force':
+                declarations = {'axis_name': 'load_parameter', 'axis_unit': '1'}
             elif axis.get('name') == 'arc_length':
                 declarations = {'axis_name': 'arc length', 'axis_unit': summary.get('coordinate_units') or ''}
             else:

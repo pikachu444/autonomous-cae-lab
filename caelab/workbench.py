@@ -336,6 +336,11 @@ class Workbench:
         limit=self.config.get('local_input_max_bytes',2*1024**3)
         if type(limit) is not int or limit<1:
             raise ValueError('local_input_max_bytes must be a positive integer')
+        if source.name == 'contact-inspection.json':
+            from .contact_inspection import explicit_manifest
+            entry, metadata = explicit_manifest(source)
+            return register_native_input(self.root, roots[root_id], entry, 'D'+uuid.uuid4().hex,
+                root_id=root_id, relative=relative, limit=limit, native_metadata=metadata)
         if source.suffix.lower() in NATIVE_EXTENSIONS:
             return register_native_input(self.root, roots[root_id], source, 'D'+uuid.uuid4().hex,
                 root_id=root_id, relative=relative, limit=limit)
