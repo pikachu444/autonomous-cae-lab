@@ -79,7 +79,7 @@ def test_sidecar_tamper_and_exact_relocation(bundle_files, tmp_path):
     manifest = json.loads(manifest_path.read_text())
     manifest['frames'][0]['static']['load_parameter'] = .7
     manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
-    with pytest.raises(ValueError, match='increment'):
+    with pytest.raises(ValueError, match='increment|physical declaration'):
         load(folder/'contact.pvd', file_pin(manifest_path, folder))
 
 
@@ -172,3 +172,36 @@ def test_force_projection_exact_axis_raw_quality_and_explicit_manifest(bundle_fi
     for edit in ({'axis_unit': 's'}, {'component_label': 'CFN global Y'}, {'location': 'Master B'}):
         with pytest.raises(ValueError, match='saved pair'):
             project_samples(snapshot, dict(selected, **edit))
+
+
+@pytest.mark.parametrize('edit', ['missing', 'units', 'frame', 'measure', 'components'])
+def test_geometric_gap_declaration_cannot_be_relabelled(bundle_files, edit):
+    folder, _ = bundle_files
+    path = folder/'contact-inspection.json'
+    manifest = json.loads(path.read_text())
+    arrays = manifest['native_metadata']['arrays']
+    gap = next(row for row in arrays if row['name'] == 'GeomGap_mm')
+    if edit == 'missing':
+        arrays.remove(gap)
+    else:
+        gap[edit] = {'units': 'm', 'frame': 'GLOBAL', 'measure': 'solver_clearance', 'components': 3}[edit]
+    path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='geometric gap native physical declaration'):
+        load(folder/'contact.pvd', file_pin(path, folder))
+
+
+@pytest.mark.parametrize('key,value', [('method', 'nearest_node_distance'),
+    ('sign', 'positive_penetration'), ('deformed_mesh', False), ('subdivisions_per_edge', 0)])
+def test_geometric_gap_recipe_requires_supported_meaning(bundle_files, key, value):
+    folder, _ = bundle_files
+    path = folder/'contact-inspection.json'
+    manifest = json.loads(path.read_text())
+    pin = manifest['frames'][0]['inspection']
+    frame_path = folder/pin['relative']
+    frame = json.loads(frame_path.read_text())
+    frame['gap']['recipe'][key] = value
+    frame_path.write_text(json.dumps(frame), encoding='utf-8')
+    manifest['frames'][0]['inspection'] = file_pin(frame_path, folder)
+    path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='projection/gap physical declaration'):
+        load(folder/'contact.pvd', file_pin(path, folder))

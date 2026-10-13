@@ -454,7 +454,9 @@ this change.
    A future model protocol/response binding remains editable and required; an
    observed contact force is not invented as a solver response selector.
 6. Reopen the ordinary saved Post project in a new native process. Pair/side,
-   exact field/increment, face overlay and applied force table/curve are retained.
+   last explicit contact selection, face overlay and applied force table/curve are retained.
+   The native PVSM preserves any later field, increment, visibility or view choices;
+   reopening does not replay an earlier Show command over those choices.
    A saved Numerical observation keeps its existing **Open Post source** route
    to that exact measurement.
 
@@ -511,7 +513,7 @@ attempts, old Post output and old registered receipts remain unchanged.
 
 Focused portable and Qt checks (existing research runtime):
 
-    python -m pytest tests/test_contact_inspection.py tests/test_contact_inspection_ui.py
+    python -m pytest tests/test_contact_inspection.py tests/test_contact_inspection_ui.py tests/test_contact_inspection_native_guards.py
 
 The pure fixtures are explicitly authored synthetic output bytes. The Qt check
 doubles only native transport/display/save, then uses actual Data and Numerical
@@ -535,3 +537,28 @@ Pending execution remains bounded: Root/Codex should run these changed paths
 against the already retained native result. Native mouse/keyboard/DPI,
 Runner submission, broader contact laws and engineering qualification remain
 separate; this source delivery does not claim those passes.
+
+
+### Bounded source-review corrections
+
+Independent Astra source review identified three follow-up issues in ef78835:
+replacing a native overlay without checking edits/consumers, replaying Show on
+cold reopen, and incomplete validation of the derived-gap declaration. The
+follow-up source checks the owned overlay graph and pending properties before
+replacement, refuses to remove branches with other native consumers, and
+validates/reuses the saved graph on reopen without field/time/display changes.
+A modified branch remains in the native Pipeline with a specific diagnostic.
+An explicit rename/removal of the complete old overlay releases it from managed
+replacement; partially missing branches are not silently deleted.
+
+The admitted GeomGap declaration and recipe now require the producer's actual
+millimetre, master-normal, deformed-mesh, outward-separation meaning. Re-pinning
+a differently labelled input does not make it the supported profile. The force
+vtkTable CSV writer explicitly uses Row Data, 17-digit precision and no added
+physical Time/TimeStep columns; the original dimensionless axis remains a column.
+
+The added proxy-double checks exercise modified/pending/downstream branches,
+identical relocation, cold reopen without display replay and CSV writer options.
+The shared decoder tests include repinned, incompatible gap declarations and
+recipes. **These are authored checks, NOT_RUN in the disconnected Pro environment.**
+A source review is not native or Qt execution evidence.

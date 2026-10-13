@@ -52,6 +52,64 @@ def inspect(workspace, *, source_ref, pair_id=None, side='both', frame_index=0,
             'displayed': show}
 
 
+def _overlay_graph(proxies, bundle):
+    """Path-independent identity only after checking the exact pinned reader."""
+    graph = analysis.graph_signature({'source': proxies[-1], 'proxies': proxies})
+    graph.pop('sha256', None)
+    readers = [proxy for proxy in proxies if proxy.GetXMLName() == 'XMLUnstructuredGridReader']
+    if len(readers) != 1 or [str(Path(path).resolve()) for path in readers[0].FileName] != [
+            str(Path(bundle['surfaces_path']).resolve())]:
+        raise ValueError('Contact face reader no longer uses the pinned surface input')
+    for node in graph['nodes']:
+        if node['type'] == 'XMLUnstructuredGridReader':
+            # An identical input relocation changes only FileName. Its current
+            # path is checked above; all other native properties stay bound.
+            node['properties'].pop('FileName', None)
+    return graph
+
+
+def _owned_overlay(workspace, selected, bundle, *, replacing):
+    names = selected.get('overlay_names', [])
+    if not names or len(names) != len(set(names)):
+        raise ValueError('Saved contact surface names are unavailable or ambiguous')
+    proxies = [p.FindSource(name) for name in names]
+    if all(proxy is None for proxy in proxies) and replacing:
+        # Explicitly removed/renamed native branches are never reclaimed by name.
+        return []
+    if any(proxy is None for proxy in proxies):
+        raise ValueError('Contact surface branch changed; preserve it or remove/rename the complete old overlay before Show faces')
+    for proxy in proxies:
+        _, pending = workspace.owner.native_properties(proxy)
+        if pending:
+            raise ValueError('BUSY_EDIT: Apply/Reset pending contact surface properties before Show faces')
+    if _overlay_graph(proxies, bundle) != selected.get('overlay_graph'):
+        raise ValueError('Contact surface properties changed; keep or rename this native branch before Show faces again')
+    if replacing:
+        # Never delete an owned input from under a user's Clip, extraction or
+        # other downstream native pipeline. No source-name heuristic grants this.
+        for candidate in p.GetSources().values():
+            if any(external._same_proxy(candidate, proxy) for proxy in proxies):
+                continue
+            for name in candidate.ListProperties():
+                prop = candidate.GetProperty(name)
+                if prop is None or not callable(getattr(prop, 'GetData', None)):
+                    continue
+                value = prop.GetData()
+                values = value if isinstance(value, (tuple, list)) else [value]
+                if any(hasattr(item, 'SMProxy') and any(external._same_proxy(item, proxy)
+                       for proxy in proxies) for item in values):
+                    raise ValueError('Contact surface has a native dependent filter; keep or rename the branch before Show faces again')
+        for _, view in workspace._views():
+            for display in getattr(view, 'Representations', []):
+                inputs = getattr(display, 'Input', [])
+                inputs = inputs if isinstance(inputs, (list, tuple)) else [inputs]
+                if any(any(external._same_proxy(item, proxy) for proxy in proxies) for item in inputs):
+                    _, pending = workspace.owner.native_properties(display)
+                    if pending:
+                        raise ValueError('BUSY_EDIT: Apply/Reset the contact surface display before Show faces')
+    return proxies
+
+
 def _show(workspace, bundle, selection, view_id=None):
     source = workspace.resolve(selection['source_ref'])
     views = [(name, view) for name, view in workspace._views() if view.GetXMLName() == 'RenderView']
@@ -63,6 +121,12 @@ def _show(workspace, bundle, selection, view_id=None):
     pair = bundle['pairs'][selection['pair_id']]
     previous_source, previous_view = p.GetActiveSource(), p.GetActiveView()
     old = workspace.state.get('contact_selection', {})
+    retired = []
+    if old:
+        previous_bundle = bundle if old['source_ref'] == selection['source_ref'] else read(workspace, old['source_ref'])
+        if previous_bundle['descriptor']['sha256'] != old['inspection_sha256']:
+            raise ValueError('Previous contact surface input changed; its native branch is preserved')
+        retired = _owned_overlay(workspace, old, previous_bundle, replacing=True)
     created = []
     namespace = 'Contact faces ' + uuid.uuid4().hex[:10]
     try:
@@ -100,16 +164,15 @@ def _show(workspace, bundle, selection, view_id=None):
         p.Render(view)
         names = [next(name for (name, _), item in p.GetSources().items()
                       if external._same_proxy(item, proxy)) for proxy in created]
-        # Only retire the previous overlay made by this command, never user filters.
-        for name in reversed(old.get('overlay_names', [])):
-            proxy = p.FindSource(name)
-            if proxy is not None:
-                p.Delete(proxy)
+        graph = _overlay_graph(created, bundle)
+        # The earlier guard checked both native edits and downstream consumers.
+        for proxy in reversed(retired):
+            p.Delete(proxy)
         if 'native_readers' in workspace.document:
             workspace.document['native_readers'] = [r for r in workspace.document['native_readers']
                 if r['reader_name'] not in old.get('overlay_names', [])]
         workspace.state['contact_selection'] = {
-            **deepcopy(selection), 'overlay_names': names,
+            **deepcopy(selection), 'overlay_names': names, 'overlay_graph': graph,
             'view_name': next(name for name, candidate in views if external._same_proxy(candidate, view))}
     except BaseException:
         for proxy in reversed(created):
@@ -130,14 +193,11 @@ def restore(workspace):
         view = next((v for name, v in workspace._views() if name == selected.get('view_name')), None)
         if view is None:
             raise ValueError('Saved contact Render View is unavailable')
-        # Validate semantic selection before rebuilding only the owned highlight.
         external.contact_api().inspect(bundle, *[selected[k] for k in
             ('pair_id', 'side', 'frame_index', 'field', 'quantity', 'component')])
-        previous_source, previous_view = p.GetActiveSource(), p.GetActiveView()
-        _show(workspace, bundle, selected, workspace.owner.proxy_id(view))
-        if previous_source is not None and any(external._same_proxy(previous_source, proxy) for proxy in p.GetSources().values()):
-            p.SetActiveSource(previous_source)
-        p.SetActiveView(previous_view)
+        _owned_overlay(workspace, selected, bundle, replacing=False)
+        # PVSM already restored the exact display/time/visibility and any later
+        # native edits. Opening a project must not replay an earlier Show action.
         return True
     except (ValueError, RuntimeError, OSError, KeyError) as error:
         workspace.restore_issues.append({'source_ref': selected.get('source_ref'),

@@ -241,7 +241,13 @@ def save_native_data(source, folder, stem):
         raise ValueError('No managed native writer for ' + data.GetClassName())
     folder.mkdir(parents=True, exist_ok=False)
     path = folder / (stem + extension)
-    p.SaveData(str(path), proxy=source)
+    if data.GetClassName() == 'vtkTable':
+        # Table association and round-trip Float64 precision are explicit; the
+        # contact load parameter is a column, not a native physical Time field.
+        p.SaveData(str(path), proxy=source, FieldAssociation='Row Data', Precision=17,
+                   AddTime=0, AddTimeStep=0)
+    else:
+        p.SaveData(str(path), proxy=source)
     if not path.is_file() or not path.stat().st_size:
         raise RuntimeError('Native writer produced no result')
     files = [file for file in folder.rglob('*') if file.is_file()]
