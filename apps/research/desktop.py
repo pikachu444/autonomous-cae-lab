@@ -537,8 +537,8 @@ def _post(client, args):
         try:
             process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
                                         '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
-        except BaseException:
-            # Popen failed before returning a process: this claim has no native child.
+        except OSError:
+            # Confirmed process-creation failure. Interrupts remain ambiguous.
             if marker is not None:
                 marker.unlink(missing_ok=True)
             raise
