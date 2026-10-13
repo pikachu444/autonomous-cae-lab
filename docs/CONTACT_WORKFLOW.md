@@ -569,3 +569,61 @@ method in the CSV writer test double; the follow-up test fixture supplies that
 method and explicit no-conversion import doubles, without requiring a VTK
 installation in the Research interpreter. This does not change the product's
 native ParaView runtime or turn source review into an execution pass.
+
+
+## PRO-CONTACT-INSPECT-FIX-01: native initialization and partial recovery
+
+Codex reported the 50c7340 integration at local main 0ddd758 passed the four
+focused Windows pytest files (33 passed, 24.75 s). Rebuilding/registering the
+inspection bundle from retained FRD/DAT and opening the native project also
+succeeded, without another solver run. The actual ParaView 6.2 Show faces then
+failed because a new outline's default ColorArrayName association was NONE.
+
+A diagnostic-only runtime substitution in Codex's ignored helper allowed faces,
+the ten-row force measurement and Save to proceed. Its cold reopen then exposed
+two Threshold SelectedComponent values changing from empty defaults to 0. These
+diagnostic runs are not product acceptance of either workaround.
+
+The product correction now initializes each outline to POINTS with an empty
+color array before ColorBy(None), and explicitly selects component 0 of the
+scalar ContactSurfaceIndex before updating the Threshold. The property remains
+part of graph identity verification; no native property or change guard is
+ignored.
+
+Astra separately identified that partial PVSM recovery removed a missing
+contact input and its surface reader, while the live reader-verification list
+still required that surface reader. Partial restore now filters auxiliary
+readers by the exact healthy_source_names returned from PVSM pruning. It also
+keeps the exact removed source names as temporary in-memory recovery bookkeeping
+so partial restore -> Save and exact source repair -> Save work without
+automatically recreating the surface display. That bookkeeping is not published
+as a saved reader exemption. A reader that is present again still undergoes
+normal type/path verification. Original source records, pins and the saved
+contact selection remain available for explicit repair; no name-prefix rule
+is used.
+
+The no-contact partial_state path continues to accept legacy issue entries
+containing reader_name only. Contact-associated issues retain their exact
+source_ref relationship.
+
+Focused new/changed checks:
+
+    python -m pytest tests/test_contact_inspection_native_guards.py -k "show_faces_initial_none or partial_contact_restore"
+
+These exercise NONE -> explicit association ordering, component initialization,
+explicit Show after removed overlays, missing-input partial restore -> Save,
+and identical input repair -> Save without Show. Real file hashes and PVSM
+pruning are used with clearly labelled native load/admission doubles. The
+installed-ParaView probe also checks component 0, empty POINTS coloring and
+Wireframe on the actual new displays.
+
+To resume the native check, use the previously opened registered result project
+and a NEW receipt path with tests/check_contact_inspection_native.py, followed
+by its --reopen-receipt mode in a fresh pvpython process (commands above).
+Recreate only Show/measurement/Save from the retained input for this check: the
+older diagnostic save captured empty SelectedComponent defaults and is not
+silently migrated by weakening graph verification. No solver rerun is needed.
+
+Pro remote compilation, pytest and native execution of this correction remain
+NOT_RUN. Codex's baseline Windows checks and diagnostic native results above
+are attributed to Codex, not to a remote execution pass.

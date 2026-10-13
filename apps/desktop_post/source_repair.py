@@ -54,7 +54,7 @@ def partial_state(state, document, issues, output):
     registrations = {} if collection is None else {item.get('name'): item.get('id') for item in collection.findall('Item')}
     bad = {registrations[row['reader_name']] for row in issues if row['reader_name'] in registrations}
     contact = document.get('analysis', {}).get('contact_selection') or {}
-    if contact.get('source_ref') in {row['source_ref'] for row in issues}:
+    if contact and contact.get('source_ref') in {row['source_ref'] for row in issues}:
         bad.update(registrations[name] for name in contact.get('overlay_names', []) if name in registrations)
     proxies = {item.get('id'): item for item in server.findall('Proxy')}
     containers = {'views', 'layouts', 'timekeeper', 'animation'}
@@ -98,7 +98,9 @@ def partial_state(state, document, issues, output):
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     tree.write(output, encoding='utf-8', xml_declaration=True)
-    return {'removed_proxy_ids': sorted(bad), 'healthy_source_names': sorted(
+    return {'removed_proxy_ids': sorted(bad),
+            'removed_source_names': sorted(name for name, identifier in registrations.items() if identifier in bad),
+            'healthy_source_names': sorted(
         name for name, identifier in registrations.items() if identifier not in bad)}
 
 
