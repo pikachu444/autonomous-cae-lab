@@ -35,8 +35,10 @@ def test_actual_pinned_conversion_and_spin_keep_original_mesh(tmp_path):
 def test_height_modes_and_converter_omissions_blocked():
     s=settings();s['gravity_mm_s2']=[0.,0.,-10000.]
     m=s['motions'][0];m.update(mode='release_height',height_mm=20.)
+    with pytest.raises(ValueError,match='병진 속도'):render(s)
+    m['velocity_mm_s']=[0.,0.,0.]
     _,released=render(s);assert released['nodes'][1][2]==20.
-    assert released['velocities_mm_s'][1][2]==-100.
+    assert released['velocities_mm_s'][1][2]==0.
     m.update(mode='impact_height',velocity_mm_s=[0.,0.,0.])
     _,impact=render(s)
     assert impact['nodes'][1][2]==0 and impact['velocities_mm_s'][1][2]==pytest.approx(-632.4555320336759)
@@ -90,3 +92,57 @@ def test_installed_user_fe_starter_engine_post_and_saved_result(tmp_path):
         publish_fields(wb,result,tmp_path/'attempt')
         assert result['post_input']['format']=='pvd'
     finally:wb.shutdown()
+
+
+def test_starter_actual_declared_units_and_scale_both_required(tmp_path):
+    from caelab.adapters.impact import starter_admission
+    model=parse_inp(settings()['source']['text'])
+    text=('NORMAL TERMINATION\nNO SYNTAX ERROR DETECTED\n0 ERROR(S)\n0 WARNING(S)\nNUMNOD: 4\n'
+          'WORK UNIT SYSTEM . . . ( Mg , mm , s   ) 1.0000000000000E+03 1.0000000000000E-03 1.0000000000000E+00\n'
+          'INPUT UNIT SYSTEM . . ( Mg , mm , s   ) 1.0000000000000E+03 1.0000000000000E-03 1.0000000000000E+00\n')
+    path=tmp_path/'starter.out';path.write_text(text,encoding='ascii')
+    assert starter_admission(path,model)['status']=='PASS'
+    for changed in (text.replace('Mg','kg'),text.replace('1.0000000000000E-03','1.0000000000000E+00')):
+        path.write_text(changed,encoding='ascii')
+        with pytest.raises(ValueError,match='units'):starter_admission(path,model)
+
+
+def test_two_sections_oblique_gravity_and_physical_postflight(tmp_path):
+    from caelab.adapters.impact_admission import global_gravity,validate_physics,cards
+    import caelab.adapters.inp2rad_worker as worker
+    s=settings()
+    # Two nonintersecting tetrahedra with different material properties.
+    s['source']['text']+='\n*NODE\n5,20,0,0\n6,30,0,0\n7,20,10,0\n8,20,0,10\n'
+    s['source']['text']+='*ELEMENT,TYPE=C3D4,ELSET=SECOND\n2,5,6,7,8\n*MATERIAL,NAME=SECOND_MAT\n*DENSITY\n2.7e-9\n*ELASTIC\n70000,.3\n*SOLID SECTION,ELSET=SECOND,MATERIAL=SECOND_MAT\n'
+    s['gravity_mm_s2']=[1000.,2000.,-3000.]
+    text,initial=render(s)
+    assert text.count(',GRAV,')==1
+    path=tmp_path/'impact.inp';path.write_text(text,encoding='ascii',newline='\n')
+    proc=subprocess.run([sys.executable,worker.__file__,str(path)],capture_output=True,text=True,timeout=30)
+    assert proc.returncode==0,proc.stdout+proc.stderr
+    original=(tmp_path/'impact_0000.rad').read_text(encoding='ascii')
+    fixed,receipt=global_gravity(original,s['gravity_mm_s2'])
+    admission=validate_physics(fixed,parse_inp(s['source']['text']),initial,s)
+    assert admission['global_gravity_mm_s2']==s['gravity_mm_s2']
+    assert len(admission['material_by_element'])==2
+    assert len([k for k in cards(fixed) if k.startswith('/GRAV/')])==3
+    # Changing only physics while keeping valid geometry must be rejected.
+    blocks=cards(fixed)
+    key=next(k for k,v in blocks.items() if k.startswith('/MAT/ELAST/') and v[0].strip()=='SECOND_MAT')
+    blocks[key][2]=f'{71000:20.8e}'+blocks[key][2][20:]
+    corrupt='\n'.join(line for key,rows in blocks.items() for line in [key,*rows])
+    with pytest.raises(ValueError,match='physical value'):validate_physics(corrupt,parse_inp(s['source']['text']),initial,s)
+
+
+def test_repeated_lowercase_sets_preserve_full_fixed_union_in_native_cards(tmp_path):
+    from caelab.adapters.impact_admission import global_gravity,validate_physics
+    import caelab.adapters.inp2rad_worker as worker
+    s=settings()
+    s['source']['text']+='\n*NSET,NSET=fixed\n1\n*NSET,NSET=fixed\n2\n*BOUNDARY\nfixed,1,3\n'
+    text,initial=render(s)
+    assert text.count('*NSET,NSET=FIXED')==1 and 'fixed' not in text
+    path=tmp_path/'impact.inp';path.write_text(text,encoding='ascii',newline='\n')
+    proc=subprocess.run([sys.executable,worker.__file__,str(path)],capture_output=True,text=True,timeout=30)
+    assert proc.returncode==0,proc.stdout+proc.stderr
+    native,_=global_gravity((tmp_path/'impact_0000.rad').read_text(encoding='ascii'),s['gravity_mm_s2'])
+    assert validate_physics(native,parse_inp(s['source']['text']),initial,s)['fixed_dof_count']==6

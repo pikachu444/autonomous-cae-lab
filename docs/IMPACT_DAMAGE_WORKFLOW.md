@@ -20,7 +20,8 @@ JobManager, 결과 보존, Numerical의 선언 입력 바인딩으로 실행합�
    원 파일을 수정하지 않습니다.
 3. **초기 운동**에서 절점 집합을 추가해 병진 속도, 각속도, 회전 중심과 초기 위치를 입력합니다.
    각속도는 rad/s이며 초기 절점 속도 v+ω×r로 반영합니다.
-   '높이에서 놓기'는 중력 반대 방향으로 시작 위치를 옮깁니다.
+   '높이에서 놓기'는 병진 속도 0에서 중력 반대 방향으로 시작 위치를 옮깁니다.
+   비영 속도가 있으면 방식 전환 시 0으로 바꿀지 직접 확인하며 취소하면 원 속도와 방식을 보존합니다.
    '높이를 충돌 속도로 환산'은 시작 위치를 옮기지 않고 sqrt(2gh)를 적용합니다.
    두 경우 중력 방향·크기가 필수입니다. 높이와 속도를 몰래 중복하지 않습니다.
 4. **접촉**에서 면 A/B와 TYPE24, 마찰계수를 명시합니다.
@@ -81,7 +82,13 @@ python -m pytest tests/test_impact_model.py -k installed_user_fe -q
   원 CLI의 pause/실패 exit0 문제는 owned child wrapper로 처리합니다.
   tkinter만 optional import로 수정하고 원 고지와 출처를 보존했습니다.
 - 입력 카드와 하위 옵션을 검사한 뒤 변환합니다. raw 변환 deck과 실제 적용 engine deck을 둘 다 보존합니다.
-  Node/ordered connectivity/Starter unit과 오류 기록을 비교합니다.
+  Node/ordered connectivity뿐 아니라 요소별 part/material/property, 밀도·탄성/소성 표,
+  고정 자유도, 명시 초기속도와 방향 있는 접촉면을 독립적으로 대조합니다.
+  중복 NSET/ELSET은 원 선언의 합집합을 한 번만 내보냅니다.
+  원 변환기의 GRAV는 실제 실행본에서 전역 X/Y/Z 성분 카드로 교체해 중복/방향 손실을 막습니다.
+  원 변환본과 유효 deck은 별도로 보존합니다. Starter의 Mg/mm/s 선언과 SI 환산계수도 함께 검사합니다.
+  effective SOLID24 / Itetra4=3 / Itetra10=2 / distortion control=1을 기록하며
+  원 Abaqus 요소의 integration formulation과 동등하다고 주장하지 않습니다.
 - Windows는 기존 owned_tree=True Job 제어를 사용합니다. 다른 서비스나 프로세스 이름을 종료하지 않습니다.
   취소 뒤 추가 변환 프로세스를 실행하지 않고 원 partial 파일을 남깁니다.
 - Post는 기존 immutable native input registrar를 사용합니다. 별도 결과 store는 없습니다.
@@ -102,3 +109,18 @@ python -m pytest tests/test_impact_model.py -k installed_user_fe -q
 | FN-17-02 반복·수명 | 단조 결과를 수명으로 바꾸지 않음 | 실측/원응력 이력의 rainflow+보정 S-N/Miner와 UI 연결, cyclic constitutive/cohesive fatigue 후속 |
 
 남은 항목은 문서만으로 완료 처리하지 않습니다. 실제 코드와 실행 근거를 이어서 추가합니다.
+
+## 교정 인도와 실행 구분
+
+Codex가 cfdb9639의 Windows 기본 경로 7통과/1실패/1native skip 및 실제 Starter 정상종료,
+0오류/0경고를 전달했습니다. 당시 Engine은 단위 문자열 검사에서 차단되었으므로
+Engine/Post 성공은 아직 아닙니다. 이번 교정 소스의 작성자 실행은 NOT_RUN입니다.
+
+초기 운동 표에서 집합·방식·높이를 고르고, 아래 XYZ 네 행에서 병진·각속도·중심·위치 이동을
+편집합니다. 작은 창에서도 ΔZ를 가로 스크롤 없이 수정합니다. 원문/내부 출처는
+원본의 **원문과 출처…** 에 있습니다. 값 정밀도와 미완성 숫자 초안은 유지합니다.
+
+에너지 이력의 비유한 행은 원 토큰과 quality를 남기고 그래프 구간을 끊습니다.
+비활성/해당 없는 native 장은 등록 Post에 NaN으로 보내며 원 VTK의 실제 값은 그대로 보존합니다.
+PVD와 모든 VTU의 hash를 등록 전후 확인합니다. 원 ELEMENT_ID와 해당 요소의 연결을 대조한 뒤
+입력 part 역매핑은 별도 SourcePartID로 표시하며, converter PART_ID=0을 진짜 part라고 해석하지 않습니다.

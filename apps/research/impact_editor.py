@@ -6,7 +6,7 @@ import math
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog,QDialogButtonBox,QVBoxLayout,QHBoxLayout,QLabel,
     QPushButton,QFileDialog,QMessageBox,QTabWidget,QWidget,QTableWidget,QTableWidgetItem,
-    QComboBox,QFormLayout,QLineEdit,QCheckBox,QInputDialog,QHeaderView)
+    QComboBox,QFormLayout,QLineEdit,QCheckBox,QInputDialog,QHeaderView,QGridLayout)
 from caelab.impact_model import parse_inp,default_settings
 
 MODES={'velocity':'입력 속도','release_height':'높이에서 놓기','impact_height':'높이를 충돌 속도로 환산'}
@@ -35,6 +35,21 @@ class ImpactEditor(QDialog):
         self.motion=self.table(['절점 집합','방식','높이 [mm]','Vx [mm/s]','Vy','Vz',
             'ωx [rad/s]','ωy','ωz','중심 X [mm]','Y','Z','위치 ΔX [mm]','ΔY','ΔZ'])
         motion_page=QWidget(); ml=QVBoxLayout(motion_page); ml.addWidget(self.motion,1)
+        self.motion.setMaximumHeight(220)
+        for col in range(3,15): self.motion.setColumnHidden(col,True)
+        self.motion.horizontalHeader().setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch)
+        self.motion.setColumnWidth(0,160); self.motion.setColumnWidth(2,140)
+        grid=QGridLayout(); self.components={}
+        for col,axis in enumerate('XYZ',1): grid.addWidget(QLabel(axis),0,col)
+        for row,(start,label) in enumerate(((3,'병진 속도 [mm/s]'),(6,'각속도 [rad/s]'),
+                (9,'회전 중심 [mm]'),(12,'위치 이동 [mm]')),1):
+            grid.addWidget(QLabel(label),row,0)
+            for col in range(3):
+                field=QLineEdit();field.setMinimumWidth(100);self.components[start+col]=field
+                field.textEdited.connect(lambda value,c=start+col:self.set_component(c,value))
+                grid.addWidget(field,row,col+1)
+        ml.addLayout(grid)
+        self.motion.itemSelectionChanged.connect(self.show_motion)
         self.buttons(ml,self.add_motion,lambda:self.motion.removeRow(self.motion.currentRow()))
         self.tabs.addTab(motion_page,'초기 운동')
         self.contacts=self.table(['면 A','면 B','접촉 법칙','마찰계수'])
@@ -58,6 +73,7 @@ class ImpactEditor(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
         self.populate()
+        if self.motion.rowCount(): self.motion.selectRow(0)
 
     def table(self,headers):
         table=QTableWidget(0,len(headers)); table.setHorizontalHeaderLabels(headers)
@@ -91,9 +107,45 @@ class ImpactEditor(QDialog):
     def motion_row(self,m):
         r=self.motion.rowCount(); self.motion.insertRow(r)
         self.motion.setItem(r,0,QTableWidgetItem(m['node_set']))
-        self.motion.setCellWidget(r,1,self.combo(MODES,m['mode']))
+        mode=self.combo(MODES,m['mode']);mode.setMinimumContentsLength(20)
+        mode.setProperty('accepted_mode',m['mode'])
+        self.motion.setCellWidget(r,1,mode)
         values=[m.get('height_mm'),*m['velocity_mm_s'],*m['omega_rad_s'],*m['center_mm'],*m['translation_mm']]
         for c,value in enumerate(values,2): self.motion.setItem(r,c,QTableWidgetItem(text(value)))
+        mode.currentIndexChanged.connect(lambda:self.change_mode(mode))
+        self.motion.selectRow(r)
+        self.show_motion()
+
+    def set_component(self,column,value):
+        row=self.motion.currentRow()
+        if row>=0 and self.motion.item(row,column):
+            self.motion.item(row,column).setText(value)
+
+    def show_motion(self):
+        row=self.motion.currentRow()
+        mode=self.motion.cellWidget(row,1) if row>=0 else None
+        complete=mode is not None and all(self.motion.item(row,c) is not None for c in range(2,15))
+        nonzero=any(numeric(self.motion.item(row,c).text())!=0 for c in range(3,6)) if complete else False
+        for col,field in self.components.items():
+            item=self.motion.item(row,col) if complete else None
+            field.blockSignals(True);field.setText(item.text() if item else '');field.blockSignals(False)
+            field.setEnabled(bool(item) and (col>=6 or mode.currentData()=='velocity' or nonzero))
+        if complete:
+            height=self.motion.item(row,2);flags=height.flags()
+            height.setFlags(flags|Qt.ItemFlag.ItemIsEditable if mode.currentData()!='velocity' else flags&~Qt.ItemFlag.ItemIsEditable)
+
+    def change_mode(self,combo):
+        row=next((r for r in range(self.motion.rowCount()) if self.motion.cellWidget(r,1) is combo),-1)
+        if row<0:return
+        selected=combo.currentData(); previous=combo.property('accepted_mode')
+        nonzero=any(numeric(self.motion.item(row,c).text())!=0 for c in range(3,6))
+        if selected!='velocity' and nonzero:
+            answer=QMessageBox.question(self,'높이 조건','높이 조건은 병진 초기속도 0에서 시작합니다. 현재 속도를 0으로 바꿀까요?',
+                QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel)
+            if answer!=QMessageBox.StandardButton.Yes:
+                combo.blockSignals(True);combo.setCurrentIndex(combo.findData(previous));combo.blockSignals(False);return
+            for c in range(3,6):self.motion.item(row,c).setText('0')
+        combo.setProperty('accepted_mode',selected);self.show_motion()
 
     def contact_row(self,c):
         r=self.contacts.rowCount(); self.contacts.insertRow(r)

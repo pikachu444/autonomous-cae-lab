@@ -1030,7 +1030,15 @@ class PDEWindow(QMainWindow):
             values = response.get('value')
             axis = next((item for item in response.get('axes', []) if isinstance(item.get('values'), list)), None)
             if response.get('kind') == 'series' and isinstance(values, list) and axis:
-                axes.plot(axis['values'], values, label=name)
+                if response.get('has_calculation_gaps'):
+                    # Native/data missing rows are disconnected, never interpolated.
+                    for index,segment in enumerate(response.get('segments',[])):
+                        start,stop=segment['rows']
+                        axes.plot(axis['values'][start:stop],values[start:stop],marker='o',
+                                  label=name if index==0 else None)
+                    axes.set_title('누락 구간은 연결하지 않습니다')
+                else:
+                    axes.plot(axis['values'], values, label=name)
                 axes.set_xlabel(axis.get('name', '') + ' [' + axis.get('unit', '') + ']')
                 axes.set_ylabel(name + ' [' + response.get('unit', '') + ']')
                 axes.legend()

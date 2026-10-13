@@ -192,7 +192,7 @@ def validate_settings(settings):
         if m['mode']!='velocity':
             h=number(m['height_mm'],'높이',True)
             if not math.hypot(*gravity): raise ValueError('높이 조건에는 중력 방향과 크기가 필요합니다')
-            if m['mode']=='impact_height' and any(m['velocity_mm_s']): raise ValueError('높이 환산 속도와 입력 속도를 중복 적용하지 않습니다')
+            if any(m['velocity_mm_s']): raise ValueError('높이 조건에서는 초기 병진 속도를 0으로 두세요. 낙하와 환산 속도를 중복 적용하지 않습니다')
     pairs=set()
     for pair in settings['contacts']:
         a,b=pair['a'],pair['b']
@@ -221,14 +221,39 @@ def render(settings):
             spin=[w[1]*r[2]-w[2]*r[1],w[2]*r[0]-w[0]*r[2],w[0]*r[1]-w[1]*r[0]]
             velocities[n]=[v+s for v,s in zip(velocity,spin)]
             nodes[n]=[x+s for x,s in zip(nodes[n],shift)]
-    lines=['** CAELab explicit canonical Mg/mm/s input']
-    for b in model['blocks']:
-        card='*'+b['card']+''.join(','+k+('' if v is True else '='+v) for k,v in b['options'].items())
-        lines.append(card)
-        for _,line in b['rows']:
-            if b['card']=='NODE':
-                n=int(line.split(',')[0]); line=str(n)+','+','.join(format(x,'.17g') for x in nodes[n])
-            lines.append(line)
+    lines=['** CAELab explicit canonical Mg/mm/s input','*NODE']
+    lines.extend(str(n)+','+','.join(format(x,'.17g') for x in xyz) for n,xyz in sorted(nodes.items()))
+    for kind in sorted({row['type'] for row in model['elements'].values()}):
+        lines.append('*ELEMENT,TYPE='+kind)
+        lines.extend(str(eid)+','+','.join(map(str,row['nodes'])) for eid,row in sorted(model['elements'].items()) if row['type']==kind)
+    # The vendor overwrites repeated sets; publish our validated union once.
+    for card,table in (('NSET',model['nsets']),('ELSET',model['elsets'])):
+        for name,members in sorted(table.items()):
+            lines.append('*'+card+','+card+'='+name)
+            ids=sorted(members)
+            lines.extend(','.join(map(str,ids[i:i+16])) for i in range(0,len(ids),16))
+    for block in model['blocks']:
+        if block['card'] in ('MATERIAL','DENSITY','ELASTIC','PLASTIC','SOLID SECTION'):
+            lines.append('*'+block['card']+''.join(','+k+('' if v is True else '='+v) for k,v in block['options'].items()))
+            lines.extend(line for _,line in block['rows'])
+    for name,rows in model['surfaces'].items():
+        lines.append('*SURFACE,NAME='+name+',TYPE=ELEMENT')
+        face_rows=set()
+        for target,side in rows:
+            eids=[int(target)] if target.isdigit() else model['elsets'][target]
+            face_rows.update((eid,side) for eid in eids)
+        lines.extend(str(eid)+','+side for eid,side in sorted(face_rows))
+    fixed=set()
+    for block in model['blocks']:
+        if block['card']=='BOUNDARY':
+            for _,line in block['rows']:
+                values=[v.strip().upper() for v in line.split(',')]
+                ids=[int(values[0])] if values[0].isdigit() else model['nsets'][values[0]]
+                lo=int(values[1]);hi=int(values[2]) if len(values)>2 and values[2] else lo
+                fixed.update((n,d) for n in ids for d in range(lo,hi+1))
+    if fixed:
+        lines.append('*BOUNDARY')
+        lines.extend(f'{n},{d},{d},0' for n,d in sorted(fixed))
     lines.extend(['*INITIAL CONDITIONS,TYPE=VELOCITY'])
     for n,values in sorted(velocities.items()):
         lines.extend(f'{n},{i+1},{v:.17g}' for i,v in enumerate(values))
@@ -237,11 +262,9 @@ def render(settings):
                       f'*CONTACT PAIR,INTERACTION=IMPACT{i},TYPE=SURFACE TO SURFACE',p['a']+','+p['b']])
     lines.extend(['*STEP','*DYNAMIC,EXPLICIT',','+format(settings['time']['end_s'],'.17g')])
     if g:
-        # DLOAD targets each disjoint section once, never per contact face.
+        # Pinned converter maps GRAV to global nodes; emit it exactly once.
         lines.append('*DLOAD')
-        for b in model['blocks']:
-            if b['card']=='SOLID SECTION':
-                lines.append(b['options']['ELSET']+',GRAV,'+format(g,'.17g')+','+','.join(format(a/g,'.17g') for a in gravity))
+        lines.append(',GRAV,'+format(g,'.17g')+','+','.join(format(a/g,'.17g') for a in gravity))
     lines.extend(['*END STEP',''])
     return '\n'.join(lines), {'nodes':nodes,'velocities_mm_s':velocities,
         'units':'Mg/mm/s/N/MPa','contact_geometry':'corner_facets','active_state':'UNKNOWN'}
@@ -250,9 +273,9 @@ def render(settings):
 def engine_deck(settings, name='impact'):
     t=settings['time']
     lines=[f'/RUN/{name}/1',format(t['end_s'],'.17g'),'/PRINT/-100/50','/PARITH/OFF',
-           '/DT/NODA/CST/0' if t['mass_scaling'] else '/DT/NODA/STOP',
+           '/DT/NODA/CST/0' if t['mass_scaling'] else '/DT',
            f"{t['scale']:.17g} {t['target_step_s'] if t['mass_scaling'] else 0}",
            '/ANIM/DT',f"0 {t['field_interval_s']:.17g}",'/ANIM/VECT/DISP','/ANIM/VECT/VEL',
            '/ANIM/VECT/ACC','/ANIM/BRICK/TENS/STRESS','/ANIM/BRICK/DAMA',
-           '/ANIM/ELEM/DAMG','/TFILE/4',format(t['history_interval_s'],'.17g'),'/STOP','']
+           '/ANIM/ELEM/DAMG','/TH/TITLE','/TFILE/4',format(t['history_interval_s'],'.17g'),'/STOP','0 0 0 1 1','']
     return '\n'.join(lines)

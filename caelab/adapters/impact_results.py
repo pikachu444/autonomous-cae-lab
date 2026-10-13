@@ -50,12 +50,59 @@ def history(path):
                 'value':[r['values'][i]*factor for r in selected],
                 'axes':[{'name':'time','unit':'s','values':[r['values'][0] for r in selected]}],
                 'component':'scalar','location':'whole_model','reduction':'none',
+                **continuity(raw,i,factor),
                 'metadata':{'label':label,'native_name':name,'native_variable':i,'source_rows':[r['source_row'] for r in selected],
                     'invalid_source_rows':[r['source_row'] for r in raw if r['values'][i] is None],
                     'source_artifact':Path(path).name,'source_sha256':file_hash(path),
                     'value_scale_from_Mg_mm_s':factor,'clock':'NATIVE_PHYSICAL_TIME'}}
     return responses,{'header':header,'rows':raw,'unmapped_columns':header[24:],
         'force_note':'Converter may differentiate impulses. Unmapped group columns are retained without a native-force claim.'}
+
+
+
+def continuity(rows, column, factor=1.):
+    selected=[]; segments=[]; current=[]
+    for row in rows:
+        if row['values'][column] is None:
+            if current: segments.append(current); current=[]
+        else:
+            selected.append(row['source_row']);current.append(row['source_row'])
+    if current: segments.append(current)
+    lookup={row:i for i,row in enumerate(selected)}
+    valid=[row['values'][column] is not None for row in rows]
+    return {'source_rows':selected,'has_calculation_gaps':not all(valid),
+        'segments':[{'source_rows':block,'rows':[lookup[block[0]],lookup[block[-1]]+1]} for block in segments],
+        'raw_samples':{'source_rows':[r['source_row'] for r in rows],
+            'transformed_axis':[r['values'][0] for r in rows],
+            'transformed_values':[r['values'][column]*factor if ok else None for r,ok in zip(rows,valid)],
+            'raw_values':[r['tokens'][column] for r in rows],
+            'quality_valid':valid,'calculation_valid':valid,
+            'quality_reasons':['' if ok else 'Native history value is nonfinite or missing' for ok in valid]}}
+
+
+def validate_frame_identity(frame, model, physics):
+    node_ids=[int(v) for v in frame['POINTS']['NODE_ID']['values']]
+    element_ids=[int(v) for v in frame['CELLS']['ELEMENT_ID']['values']]
+    part=frame['CELLS'].get('PART_ID')
+    if not part or part['components']!=1 or len(part['values'])!=len(element_ids):
+        raise ValueError('Native part identity missing')
+    if set(node_ids)-model['nodes'].keys() or set(element_ids)-model['elements'].keys():
+        raise ValueError('Animation has unrelated native identity')
+    for cell,eid,pid in zip(frame['cells'],element_ids,part['values']):
+        if not math.isfinite(pid) or pid!=int(pid) or int(pid) not in (0,physics['part_by_element'][str(eid)]):
+            raise ValueError('Animation part/element assignment differs')
+        displayed=[node_ids[index] for index in cell]
+        if len(set(displayed))!=len(displayed) or set(displayed)-set(model['elements'][eid]['nodes']):
+            raise ValueError('Animation connectivity belongs to another source element')
+    # Zero is the converter's unresolved part marker, never a real part.
+    # An independently validated element membership supplies a separately named
+    # input-projection array without changing native PART_ID.
+    frame['CELLS']['SourcePartID']={'components':1,
+        'values':[physics['part_by_element'][str(e)] for e in element_ids]}
+    return {'node_ids':sorted(set(node_ids)),'element_ids':sorted(set(element_ids)),
+        'missing_source_nodes':sorted(model['nodes'].keys()-set(node_ids)),
+        'missing_source_elements':sorted(model['elements'].keys()-set(element_ids)),
+        'display_cell_count':len(element_ids),'native_element_count':len(set(element_ids))}
 
 
 def read_vtk(path):
@@ -128,6 +175,7 @@ def read_vtk(path):
 def field_units(name,components,association):
     key=name.upper()
     if key in ('NODE_ID','ELEMENT_ID','PART_ID','EROSION_STATUS'): return '1','native_identity_or_activity'
+    if key=='SOURCEPARTID':return '1','frozen_input_part_projection'
     exact={'DISPLACEMENT':('mm','displacement'),'VELOCITY':('mm/s','velocity'),
            'ACCELERATION':('mm/s^2','acceleration')}
     if association=='POINTS' and components==3 and key in exact: return exact[key]
@@ -154,12 +202,33 @@ def write_post(folder, frames):
         data_array(cells,'connectivity',(n for row in raw['cells'] for n in row),integer=True)
         data_array(cells,'offsets',offsets,integer=True); data_array(cells,'types',raw['types'],integer=True)
         metadata=[]; masks={}
+        active=raw['CELLS']['EROSION_STATUS']['values']
+        active_nodes={n for state,cell in zip(active,raw['cells']) if state==1 for n in cell}
         for association,tag in (('POINTS','PointData'),('CELLS','CellData')):
             parent=ET.SubElement(piece,tag)
             for name,item in raw[association].items():
                 components=item['components']; values=item['values']
-                data_array(parent,name,values,components)
                 units=field_units(name,components,association)
+                identity=name in ('NODE_ID','ELEMENT_ID','PART_ID','SourcePartID','EROSION_STATUS')
+                applicable=None
+                if association=='CELLS' and name.startswith(('1DELEM_','2DELEM_','3DELEM_','SPHELEM_')):
+                    kinds={'1DELEM':{3},'2DELEM':{5,9},'3DELEM':{10,12},'SPHELEM':{1}}[name.split('_')[0]]
+                    applicable=[kind in kinds for kind in raw['types']]
+                if units and not identity:
+                    # Only finite, applicable, active physical values enter the
+                    # registered view. Original tokens remain in retained VTK.
+                    projected=[]
+                    for i in range(len(values)//components):
+                        valid=(i in active_nodes if association=='POINTS' else
+                               active[i]==1 and (applicable is None or applicable[i]))
+                        row=values[i*components:(i+1)*components]
+                        valid=valid and all(math.isfinite(v) for v in row)
+                        projected.extend(row if valid else [math.nan]*components)
+                    data_array(parent,name,projected,components)
+                elif identity:
+                    data_array(parent,name,values,components)
+                # Unmapped quantities stay in raw VTK, not a unitless physical
+                # Post array that could be mistaken for an admitted response.
                 if units:
                     metadata.append({'association':association,'name':name,'components':components,
                         'units':units[0],'frame':'MODEL_GLOBAL','measure':units[1]})
@@ -178,7 +247,7 @@ def write_post(folder, frames):
         ET.ElementTree(vtk).write(folder/filename,encoding='utf-8',xml_declaration=True)
         ET.SubElement(collection,'DataSet',timestep=format(t,'.17g'),group='',part='0',file=filename)
         observations.append({'time_s':t,'raw_vtk':str(raw_path.name),'raw_sha256':file_hash(raw_path),
-            'field_applicability':masks,'active_mask':'EROSION_STATUS','cycle':'NOT_RECORDED_BY_CONVERTER',
+            'coverage':raw.get('coverage'),'field_applicability':masks,'active_mask':'EROSION_STATUS','cycle':'NOT_RECORDED_BY_CONVERTER',
             'element_identity':'source FE ID may occur in multiple display cells'})
     ET.ElementTree(pvd).write(folder/'impact.pvd',encoding='utf-8',xml_declaration=True)
     save_json(folder/'frames.json',observations)

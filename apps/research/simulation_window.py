@@ -55,6 +55,10 @@ class _ModelChoice(QComboBox):
 
 
 _CAPTIONS = {
+    'motions':'초기 운동','contacts':'접촉','gravity_mm_s2':'중력',
+    'qualification':'계산 적용 범위','text':'입력 원문','provenance':'기술 출처',
+    'end_s':'종료 시간 [s]','field_interval_s':'장 출력 간격 [s]','scale':'시간증분 계수',
+    'mass_scaling':'질량 스케일링','target_step_s':'목표 증분 [s]',
     'case':'모델 종류', 'domain':'영역', 'geometry':'형상', 'type':'종류', 'unit':'단위',
     'dimensions_mm':'치수 [mm]', 'mesh_sizes_mm':'메시 크기 [mm]', 'lengths':'영역 길이',
     'cell_counts':'메시 분할 수', 'degree':'함수 공간 차수', 'origin':'원점', 'value':'값',
@@ -209,6 +213,10 @@ class SimulationWindow(PDEWindow):
         for path in (('settings', 'limits'), ('settings', 'validation'), ('settings', 'input_provenance')):
             node = self._nodes.get(path)
             if node: node.setExpanded(False)
+        if draft.get('backend')=='explicit.opencourant.model':
+            for path,node in self._nodes.items():
+                if len(path)>2 or path==('settings','qualification'):node.setHidden(True)
+                elif len(path)==2:node.setExpanded(False)
         selected = self.tree.currentItem()
         if selected:
             self.settings_title.setText('속성 — ' + selected.text(0))
@@ -270,6 +278,8 @@ class SimulationWindow(PDEWindow):
                 if path == ('settings','source'):
                     source=self._draft['settings']['source']
                     form.addRow(QLabel(source.get('title') or '유한요소 모델 미선택'))
+                    details=QPushButton('원문과 출처…')
+                    details.clicked.connect(self.impact_details);form.addRow(details)
                 button=QPushButton('충격 조건…')
                 button.clicked.connect(lambda: __import__('apps.research.impact_editor',fromlist=['edit']).edit(self))
                 form.addRow(button)
@@ -286,6 +296,15 @@ class SimulationWindow(PDEWindow):
             form.addRow(QLabel(self.field_label(path)), field)
         else:
             super()._add_fields(form, value, path)
+
+    def impact_details(self):
+        from PySide6.QtWidgets import QDialog,QVBoxLayout,QDialogButtonBox
+        source=self.edited_draft()['settings']['source']
+        dialog=QDialog(self);dialog.setWindowTitle('유한요소 원문과 출처');dialog.resize(760,560)
+        layout=QVBoxLayout(dialog);view=QPlainTextEdit();view.setReadOnly(True)
+        view.setPlainText(source.get('text','')+'\n\n'+display(source.get('provenance',{})))
+        layout.addWidget(view);buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(dialog.reject);layout.addWidget(buttons);dialog.exec()
 
     def _update_actions(self):
         super()._update_actions()

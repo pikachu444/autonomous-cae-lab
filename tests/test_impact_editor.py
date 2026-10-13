@@ -21,3 +21,20 @@ def test_cancel_precise_and_partial_motion_edit_are_local():
     assert reopened.edited()['motions'][0]['velocity_mm_s'][2]==-125.123456789012
     assert reopened.motion.cellWidget(0,1).currentData()=='velocity'
     reopened.reject()
+
+
+def test_small_motion_editor_has_full_mode_and_visible_shift_z(monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+    app=QApplication.instance() or QApplication([])
+    window=ImpactEditor(settings());window.resize(1060,700);window.show();app.processEvents()
+    assert not window.components[14].isHidden() and window.components[14].width()>=100
+    combo=window.motion.cellWidget(0,1)
+    assert combo.width()>200
+    monkeypatch.setattr(QMessageBox,'question',lambda *a,**k:QMessageBox.StandardButton.Cancel)
+    combo.setCurrentIndex(combo.findData('release_height'))
+    assert combo.currentData()=='velocity' and window.edited()['motions'][0]['velocity_mm_s'][2]==-100.
+    monkeypatch.setattr(QMessageBox,'question',lambda *a,**k:QMessageBox.StandardButton.Yes)
+    combo.setCurrentIndex(combo.findData('release_height'))
+    assert window.edited()['motions'][0]['velocity_mm_s']==[0.,0.,0.]
+    assert not window.components[5].isEnabled() and window.components[14].isEnabled()
+    window.reject()

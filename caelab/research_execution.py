@@ -94,8 +94,19 @@ def publish_fields(workbench, result, output):
             raise ValueError('Native Post artifact escapes this calculation')
         if evaluation.file_hash(source) != entry.get('sha256'):
             raise ValueError('Native Post artifact changed before registration')
+        from xml.etree import ElementTree as ET
+        dependencies=entry.get('dependencies')
+        named=[node.get('file') for node in ET.parse(source).findall('.//DataSet')]
+        if not isinstance(dependencies,dict) or set(named)!=set(dependencies):
+            raise ValueError('Native Post dependency manifest differs')
+        for name,digest in dependencies.items():
+            if Path(name).name!=name or not name.endswith('.vtu'):
+                raise ValueError('Native Post dependency must be a sibling VTU')
+            child=source.parent/name
+            if child.is_symlink() or evaluation.file_hash(child)!=digest:
+                raise ValueError('Native Post field changed before registration')
         sets.append({'path': source, 'native_metadata': entry['native_metadata'],
-                     'response': entry.get('response')})
+                     'response': entry.get('response'),'dependencies':dependencies})
     if not sets:
         return
     result['post_inputs'] = []
@@ -105,6 +116,9 @@ def publish_fields(workbench, result, output):
             root_id='research-result', relative=source.relative_to(output).as_posix(),
             limit=workbench.config.get('local_input_max_bytes', 2 * 1024**3),
             native_metadata=entry['native_metadata'])
+        for name,digest in entry.get('dependencies',{}).items():
+            if evaluation.file_hash(source.parent/name)!=digest:
+                raise ValueError('Native Post field changed during registration')
         result['post_inputs'].append({'id': receipt['id'], 'format': receipt['format'],
             'sha256': receipt['sha256'], 'study_index': entry.get('study_index', index),
             'response': entry.get('response')})
