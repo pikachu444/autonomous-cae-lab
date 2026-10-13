@@ -200,3 +200,34 @@ def test_surface_fixed_slots_preserve_orientation_and_reject_blank_or_shifted_no
     original=next(rows[1] for key,rows in before.items() if key.startswith('/SURF/SEG/'))
     with pytest.raises(ValueError,match='surface'):
         normalize_surfaces(raw.replace(original,f'{"":10}{1:10d}{2:10d}{3:10d}'),model)
+
+
+@pytest.mark.parametrize('newline',['\n','\r\n'])
+@pytest.mark.parametrize('final_newline',[False,True])
+def test_zero_gravity_preserves_physical_surface_rows_exactly(newline,final_newline):
+    from caelab.adapters.impact_admission import global_gravity,normalize_surfaces,validate_physics
+    s=settings();model=parse_inp(s['source']['text']);_,initial=render(s)
+    name=next(iter(model['surfaces']))
+    segment=f'{1:10d}{1:10d}{3:10d}{2:10d}{2:10d}'
+    raw=newline.join(['#RADIOSS STARTER', '/SURF/SEG/1',name,segment,
+                      '# retained end comment','# second comment','# third comment','/END'])
+    if final_newline:raw+=newline
+    unchanged,receipt=global_gravity(raw,[0.,0.,0.])
+    assert unchanged==raw and receipt['removed_gravity_cards']==[]
+    assert normalize_surfaces(raw,model)[0]==raw
+    # Reproduce the old writer's one additional physical line. Semantic split
+    # parsing must not discard this row: native Starter reads zero node IDs.
+    bad=raw.replace('/END',newline+'/END')
+    with pytest.raises(ValueError,match='Blank physical surface row'):
+        normalize_surfaces(bad,model)
+    with pytest.raises(ValueError,match='Blank physical surface row'):
+        validate_physics(bad,model,initial,s)
+    with_gravity,_=global_gravity(raw,[1000.,2000.,0.])
+    assert with_gravity.startswith(raw[:raw.index('/END')])
+    assert with_gravity.endswith('/END'+(newline if final_newline else ''))
+    assert newline+newline not in with_gravity
+    assert len([row for row in with_gravity.splitlines() if row.startswith('/GRAV/')])==2
+    # Removing previously generated gravity also must not create a blank row.
+    removed,receipt=global_gravity(with_gravity,[0.,0.,0.])
+    assert len(receipt['removed_gravity_cards'])==2
+    assert newline+newline not in removed

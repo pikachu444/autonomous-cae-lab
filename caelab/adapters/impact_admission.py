@@ -60,7 +60,12 @@ def global_gravity(text, gravity):
                          real(1)+real(value)]
     end=re.search(r'(?m)^/END\s*$',text)
     if end is None:raise ValueError('Native Starter deck has no END card')
-    output=text[:end.start()]+'\n'.join(rows)+'\n'+text[end.start():]
+    # Blank physical lines are data in native cards (SURF reads them as zero
+    # nodes). No replacement cards means no insertion, not an empty row.
+    output=text
+    if rows:
+        newline='\r\n' if '\r\n' in text else '\n'
+        output=text[:end.start()]+newline.join(rows)+newline+text[end.start():]
     return output,{'removed_gravity_cards':removed,
         'effective_global_mm_s2':list(gravity),'basis':'GLOBAL_XYZ','group':0}
 
@@ -118,20 +123,29 @@ def _segment_nodes(row):
     raise ValueError('Surface segment has an invalid repeated-node pattern')
 
 
-def normalize_surfaces(text,model):
-    """Correct only pinned converter SEG rows; original converted deck is retained.
-
-    radioss110/SETS/surf.cfg declares SEGid,N1,N2,N3,N4 at width10.
-    hm_read_surf repeats N3 for triangular N4=0. Write that repetition explicitly.
-    """
-    lines=text.splitlines(keepends=True);entries={};current=None
+def _surface_entries(lines):
+    """Read physical surface rows; whitespace is not an ignorable comment."""
+    entries={};current=None
     for index,line in enumerate(lines):
         if line.startswith('/'):
             current=line.strip() if line.startswith('/SURF/SEG/') else None
             if current:
                 if current in entries:raise ValueError('Duplicate native surface')
                 entries[current]=[]
-        elif current and line.strip() and not line.lstrip().startswith('#'):entries[current].append(index)
+        elif current:
+            if not line.strip():
+                raise ValueError('Blank physical surface row would define zero nodes')
+            if not line.lstrip().startswith('#'):entries[current].append(index)
+    return entries
+
+
+def normalize_surfaces(text,model):
+    """Correct only pinned converter SEG rows; original converted deck is retained.
+
+    radioss110/SETS/surf.cfg declares SEGid,N1,N2,N3,N4 at width10.
+    hm_read_surf repeats N3 for triangular N4=0. Write that repetition explicitly.
+    """
+    lines=text.splitlines(keepends=True);entries=_surface_entries(lines)
     seen=set();receipt={}
     for key,indexes in entries.items():
         if len(indexes)<2:raise ValueError('Empty native surface')
@@ -165,6 +179,7 @@ def normalize_surfaces(text,model):
 
 
 def validate_physics(text, model, initial, settings):
+    _surface_entries(text.splitlines())
     b=cards(text)
     def family(prefix):
         return {int(key.rsplit('/',1)[1]):data for key,data in b.items() if key.startswith(prefix)}
