@@ -18,8 +18,8 @@ that lacks the required package. This does not configure or invoke a provider.
 
 1. Open Expert directly: Start-CAE-Lab.cmd -Tool expert. You can already write
    a question, import/read local sources and save a discussion without a model.
-2. Choose **Connection…**. Select the existing owned OpenScience profile and
-   its installed pinned runtime. **Browse…** selects existing directories;
+2. Choose **Connection… → 기존 OpenScience 설정 사용**. Select the existing
+   owned OpenScience profile and its installed pinned runtime. **Browse…** selects existing directories;
    nothing is downloaded, installed or signed in by this dialog.
 3. Choose the configured model hint or enter its exact openai-codex/model name.
    The model remains **UNVERIFIED** until an actual authorized request succeeds.
@@ -27,7 +27,9 @@ that lacks the required package. This does not configure or invoke a provider.
    subscription as product inference entitlement.
 4. If there are no roles, choose **Use example roles** or **Choose roles…**.
    These load the existing editable role-definition format. The role table
-   permits an explicit model override on the same subscription route.
+   permits an explicit model override on the existing ChatGPT login route.
+   Select a row and choose **역할 상세…** to read its actual instructions,
+   source collection names, configured tools and selected model.
 5. In **Transmission**, explicitly allow question transmission if desired.
    Sources require individually allowed collections and the discussion's exact
    selected revision grants; results require both operator permission and the
@@ -46,10 +48,31 @@ local file verification, authentication, model entitlement and inference are
 separate rows. Missing authentication/entitlement remains UNVERIFIED; an
 unavailable runtime is not replaced by a paid API or another provider.
 
-The existing supported route uses OpenScience 2.0.146 and openai-codex.
+OpenScience is the open-source execution tool, not a separate subscription
+being requested by this checkbox. This supported setup uses the existing
+ChatGPT login route through OpenScience 2.0.146 and openai-codex. Authentication
+and access to a particular model still depend on that existing account.
 No API key field, API fallback, account change or subscription purchase is added.
 The profile's credential store is not read by setup. Its auth-only configuration
 and binary pin retain the existing host's checks.
+
+## What a displayed role contains
+
+The materials/testing entries supplied in examples/workbench_experts.json are
+editable examples: short instructions, collection names, tool choices and answer
+sections. Their names do not establish trained expertise, an included specialist
+corpus or a passed domain evaluation. The shipped definitions are unchanged.
+
+The Connection table marks a definition as **예제** only when the whole selected
+definition matches a shipped example; an ID/name alone is insufficient.
+The main Expert participant list marks the same examples and offers
+**역할 상세…** beside **Refresh roles**. Double-clicking a role also opens details.
+The view shows the actual instruction text and lists collection names under
+**자료 분류 (내용 미확인)**. Use **Sources** to inspect actual attached material.
+The tool list is the role's configured list; request authorization and budgets
+still govern use. The Connection detail uses the pending model override/default;
+the main window reads the current service's role model. Neither action applies
+settings, checks entitlement, submits a round nor changes the question.
 
 ## What Apply changes
 
@@ -86,7 +109,10 @@ service session and the exact in-memory applied file hash on every reuse.
 This also rejects restoring an older file on disk without applying it, even
 when that older file matches the launch receipt. A file merely saved on disk
 does not satisfy that check. First launch binds the operator file path
-even when it is initially absent.
+even when it is initially absent. Windows receipt readers explicitly decode
+UTF-8, including older receipts without a BOM; the rewritten launch receipt
+matches the initial Windows PowerShell UTF-8 BOM format. Identity checks remain
+exact after the second and third launcher invocation.
 
 ## Native Windows host
 
@@ -118,9 +144,36 @@ preservation, pending work, question-buffer preservation, explicit permissions
 and role/model selection. Existing Plan/Study workflows are reused.
 
 Pro remote compilation, pytest, Qt, Windows PowerShell and live inference:
-**NOT_RUN** (executor disconnected). Root's later Windows checks must be
-recorded separately. This feature does not claim full Co-STORM acceptance,
-model entitlement, an actual AI answer, or engineering approval.
+**NOT_RUN** (executor disconnected). Codex's Windows execution is separate
+from source authoring. Neither setup nor role details establishes domain
+expertise, full Co-STORM acceptance or engineering approval.
+
+### Latest bounded integration report — 2026-10-13
+
+Codex reported that the 81aa048 UTF-8 correction passed the three focused
+Windows PowerShell checks: applied-config three-phase reuse, an older BOM-free
+receipt and rejection of a loaded-config mismatch (5.13 seconds). The observed
+cause was different default-versus-UTF-8 decoding of Korean store/source/config
+paths. Existing identity checks remain in force.
+
+Codex also reported one actual ExpertRuntime response through the existing
+OAuth profile and openai-codex/gpt-6-astra: ANSWERED in 40.359 seconds, one host
+call and zero tool calls, with session/result saved. The question concerned
+checks before tensile fitting when units, section area and instrumentation
+were unclear; no company data, source or result attachment was sent. This is
+a reported live basic-response result, not a Pro remote run, a domain
+qualification, GUI-wide acceptance, retry/cancel coverage or completion of E6.
+
+The role-detail correction adds two focused Qt tests for the actual selected
+definition/model, read-only Cancel, retained live question and selection across
+polling. These new tests remain NOT_RUN by Pro. For this change only:
+
+~~~powershell
+python -m pytest tests/test_expert_connection_ui.py -k role_details -q
+~~~
+
+The E1–E4 table below is the earlier source-handoff snapshot; its then-pending
+execution entries do not supersede this separately attributed integration report.
 
 
 ## E1–E4 source handoff — 2026-10-13

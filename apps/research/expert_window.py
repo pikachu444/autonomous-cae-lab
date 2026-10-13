@@ -163,10 +163,17 @@ class ExpertWindow(QMainWindow):
         self.roles = QListWidget()
         self.roles.setObjectName('discussionRoles')
         self.roles.itemChanged.connect(self._edited)
+        self.roles.currentRowChanged.connect(self._update_actions)
+        self.roles.itemDoubleClicked.connect(lambda *_: self.show_role_details())
         nav.addWidget(self.roles, 2)
-        registry = QPushButton('Refresh registered roles')
+        registry = QPushButton('Refresh roles')
         registry.clicked.connect(self.refresh_registry)
-        nav.addWidget(registry)
+        role_actions = QHBoxLayout()
+        role_actions.addWidget(registry)
+        self.role_details = QPushButton('역할 상세…')
+        self.role_details.clicked.connect(self.show_role_details)
+        role_actions.addWidget(self.role_details)
+        nav.addLayout(role_actions)
         splitter.addWidget(left)
         center = QWidget()
         conversation = QVBoxLayout(center)
@@ -298,7 +305,7 @@ class ExpertWindow(QMainWindow):
         form.addRow('Model calls per role', self.model_calls)
         form.addRow('Tool calls per role', self.tool_calls)
         form.addRow('Seconds per role', self.seconds)
-        runtime_explanation = QLabel('Connection… selects the local subscription setup; each request keeps these permissions.')
+        runtime_explanation = QLabel('Connection…에서 기존 OpenScience 설정을 선택합니다. 각 요청에는 별도 전송 허용이 적용됩니다.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
         self.side.addTab(settings, 'Request scope')
@@ -387,18 +394,51 @@ class ExpertWindow(QMainWindow):
         return self._call(lambda: self.client.request('/api/workbench/assist',
             {'operation': 'experts.list', 'arguments': {}}), received, background=True)
 
+    def show_role_details(self):
+        current = self.roles.currentItem()
+        if current is None:
+            return False
+        identifier = current.data(Qt.ItemDataRole.UserRole)
+        definition = next((deepcopy(row) for row in self._registry if row['id'] == identifier), None)
+        if definition is None:
+            self.message.setText('선택한 역할 정의를 사용할 수 없습니다. 역할 목록을 새로 고치세요.')
+            return False
+        def received(connection):
+            selected = next((row for row in connection.get('roles', []) if row['id'] == identifier), None)
+            if selected is None:
+                self.message.setText('역할 설정이 변경되었습니다. 역할 목록을 새로 고치세요.')
+                return
+            from .expert_connection_dialog import RoleDetailsDialog
+            self._source_choosing = True
+            self._update_actions()
+            try:
+                dialog = self._role_dialog = RoleDetailsDialog(definition, model=selected.get('model'),
+                    provider=connection.get('provider'), parent=self)
+                dialog.exec()
+            finally:
+                self._source_choosing = False
+                if not self._closed:
+                    self._update_actions()
+        return self._call(self.client.expert_connection, received)
+
     def _populate_roles(self, selected):
+        from .expert_connection_dialog import is_example_role
+        current = self.roles.currentItem()
+        current_id = current.data(Qt.ItemDataRole.UserRole) if current else None
         self._populating = True
         self.roles.clear()
         by_id = {entry['id']: entry for entry in self._registry}
         for identifier in list(by_id) + [role for role in selected if role not in by_id]:
             definition = by_id.get(identifier, {})
             item = QListWidgetItem(definition.get('label', definition.get('name', definition.get('title', identifier))) +
-                (' · unavailable in registry' if identifier not in by_id else ''))
+                (' · unavailable in registry' if identifier not in by_id else
+                 ' (예제)' if is_example_role(definition) else ''))
             item.setData(Qt.ItemDataRole.UserRole, identifier)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Checked if identifier in selected else Qt.CheckState.Unchecked)
             self.roles.addItem(item)
+            if identifier == current_id:
+                self.roles.setCurrentItem(item)
         self.registry_status.setText('No registered roles' if not by_id else '')
         self.registry_status.setToolTip('Configure expert definitions in the existing workbench service. No role or provider response is inferred from an empty registry.')
         self.registry_status.setVisible(not by_id)
@@ -1009,6 +1049,9 @@ class ExpertWindow(QMainWindow):
             QTimer.singleShot(0, self.refresh_source_titles)
         self.editor.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.roles.setEnabled(present and not self._draft_problem and not self._foreground_busy)
+        current_role = self.roles.currentItem()
+        self.role_details.setEnabled(enabled and current_role is not None and
+            any(row['id'] == current_role.data(Qt.ItemDataRole.UserRole) for row in self._registry))
         self.topics.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         for button in (self.ask_button, self.intervene_button, self.apply_button, self.attach_button):
             button.setEnabled(enabled and not self._draft_problem)
@@ -1104,6 +1147,9 @@ class ExpertWindow(QMainWindow):
             connection = getattr(self, '_connection_dialog', None)
             if connection is not None and not connection._closed:
                 connection.reject()
+            role_dialog = getattr(self, '_role_dialog', None)
+            if role_dialog is not None:
+                role_dialog.reject()
             self.timer.stop()
             event.accept()
             return

@@ -132,7 +132,7 @@ def validate_runtime(value):
     if (runtime.provider != 'openscience' or not isinstance(runtime.model, str)
             or not MODEL.fullmatch(runtime.model) or runtime.generator is not None
             or runtime.api_base_url or runtime.credential_env or not runtime.external_model):
-        raise ValueError('Connection supports only the explicit existing OpenScience subscription route')
+        raise ValueError('Select existing OpenScience settings for the ChatGPT login route')
     for override in (runtime.expert_models or {}).values():
         if (not isinstance(override, dict) or set(override) - {'model', 'provider'}
                 or override.get('provider', 'openscience') != 'openscience'

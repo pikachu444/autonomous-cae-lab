@@ -2,6 +2,8 @@
 import os
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 from copy import deepcopy
+import json
+from pathlib import Path
 import time
 
 import pytest
@@ -11,7 +13,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QDialogButtonBox
 
 from apps.research.expert_window import ExpertWindow
-from apps.research.expert_connection_dialog import ConnectionDialog
+from apps.research.expert_connection_dialog import ConnectionDialog, RoleDetailsDialog, is_example_role
 from caelab import expert_connection as setup
 from caelab.storage import save_json
 from test_expert_connection import transport, public_installation, definitions
@@ -152,3 +154,109 @@ def test_connection_can_replace_missing_legacy_roles_without_inference(tmp_path)
         finally:
             dialog.reject()
             wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))
+
+
+def _example_definitions():
+    path = Path(__file__).resolve().parents[1] / 'examples/workbench_experts.json'
+    return json.loads(path.read_text(encoding='utf-8'))['experts']
+
+
+def _capture_role_details(monkeypatch):
+    """Run the actual modal event loop, then close without editing anything."""
+    snapshots = []
+    original_exec = RoleDetailsDialog.exec
+    def execute(dialog):
+        snapshots.append({
+            'definition': deepcopy(dialog.definition),
+            'kind': dialog.definition_kind.text(),
+            'instructions': dialog.instructions.toPlainText(),
+            'collections': [dialog.collections.item(i).text() for i in range(dialog.collections.count())],
+            'tools': [dialog.tools.item(i).text() for i in range(dialog.tools.count())],
+            'model': dialog.model_label.text(),
+        })
+        QTimer.singleShot(0, dialog.reject)
+        return original_exec(dialog)
+    monkeypatch.setattr(RoleDetailsDialog, 'exec', execute)
+    return snapshots
+
+
+def test_connection_example_role_details_show_actual_draft_without_apply(tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    setup.save_local(config, None, {'runtime': None})
+    unchanged = config.read_bytes()
+    examples = _example_definitions()
+    snapshots = _capture_role_details(monkeypatch)
+    with transport(tmp_path, config) as (client, wb):
+        dialog = ConnectionDialog(client, config_path=config)
+        try:
+            dialog.show()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            assert dialog.enabled.text() == '기존 OpenScience 설정 사용'
+            dialog.example_roles()
+            index = next(i for i, row in enumerate(dialog.definitions) if row['id'] == 'testing')
+            actual = examples[index]
+            assert dialog.roles.item(index, 2).text() == '예제'
+            dialog.roles.setCurrentCell(index, 0)
+            dialog.enabled.setChecked(True)
+            dialog.model.setEditText('openai-codex/draft-default')
+            dialog.roles.cellWidget(index, 1).setEditText('openai-codex/draft-role')
+            QTest.mouseClick(dialog.role_details, Qt.MouseButton.LeftButton)
+            assert len(snapshots) == 1
+            selected = snapshots[0]
+            assert selected['definition'] == actual
+            assert selected['instructions'] == actual['instructions']
+            assert selected['collections'] == actual['collections']
+            assert selected['tools'] == actual['tools']
+            assert selected['model'] == 'openai-codex/draft-role'
+            assert selected['kind'] == '프로젝트 예제 역할 정의'
+            edited = deepcopy(actual)
+            edited['instructions'] = 'Use my explicitly supplied method.'
+            assert not is_example_role(edited)  # Same ID/name is not example identity.
+            assert config.read_bytes() == unchanged
+            assert wb.config == {'runtime': None} and wb.manager.list() == []
+        finally:
+            dialog.reject()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))
+
+
+def test_registered_role_details_keep_selection_question_and_actual_model(tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    examples = _example_definitions()
+    initial = {'experts': examples, 'runtime': {
+        'provider': 'openscience', 'model': 'openai-codex/default',
+        'credential_env': '', 'expert_models': {'testing': {'model': 'openai-codex/registered-role'}}}}
+    setup.save_local(config, None, initial)
+    snapshots = _capture_role_details(monkeypatch)
+    with transport(tmp_path, config) as (client, wb):
+        window = ExpertWindow(client, poll_interval=20)
+        try:
+            window.show()
+            wait(app, lambda: window.document is not None and len(window._registry) == 2 and not window._busy)
+            index = next(i for i in range(window.roles.count())
+                         if window.roles.item(i).data(Qt.ItemDataRole.UserRole) == 'testing')
+            window.roles.setCurrentRow(index)
+            assert '(예제)' in window.roles.currentItem().text()
+            populated = []
+            original_populate = window._populate_roles
+            def observed(selected):
+                original_populate(selected)
+                populated.append(True)
+            monkeypatch.setattr(window, '_populate_roles', observed)
+            # A real clean-document poll rebuilds roles; preserve exact selection.
+            wait(app, lambda: bool(populated) and not window._busy)
+            assert window.roles.currentItem().data(Qt.ItemDataRole.UserRole) == 'testing'
+            window.question.setPlainText('Keep my unsaved question while reading this role.')
+            before = deepcopy(window.edited_draft())
+            remote = deepcopy(wb.document_read(window.document['id'])['draft'])
+            QTest.mouseClick(window.role_details, Qt.MouseButton.LeftButton)
+            wait(app, lambda: bool(snapshots) and not window._busy and not window._source_choosing)
+            assert snapshots[0]['definition'] == examples[index]
+            assert snapshots[0]['model'] == 'openai-codex/registered-role'
+            assert snapshots[0]['collections'] == examples[index]['collections']
+            assert window.edited_draft() == before and window.local_dirty
+            assert wb.document_read(window.document['id'])['draft'] == remote
+            assert wb.config == initial and wb.manager.list() == []
+        finally:
+            drain_closed(app, window)
