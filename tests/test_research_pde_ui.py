@@ -173,7 +173,8 @@ def test_exact_field_components_nodes_time_and_post_study(window, app):
     app.processEvents()
     assert 'Node 900' in window.point_label.text() and 'value 20' in window.point_label.text()
     assert 'model time 0.25 [1]' in window.point_label.text()
-    assert 'b'*64 in window.point_label.text()
+    assert 'b'*64 not in window.point_label.text()
+    assert 'b'*64 in window.point_label.toolTip()
     assert len(window.result_figure.axes) == 2  # One field axes and one colorbar; no accumulated colorbars.
     window.open_post()
     assert opened == [((window.document['id'], 'Jretained'), {'study_index': 2})]

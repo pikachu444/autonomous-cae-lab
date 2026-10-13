@@ -17,7 +17,7 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel,
-    QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit, QScrollArea,
+    QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit, QScrollArea, QSizePolicy,
     QSplitter, QTabWidget, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -38,6 +38,8 @@ def typed_value(text, original, path):
     """Untouched invalid JSON stays exact; edited invalid numbers remain draft text."""
     if text == display(original):
         return deepcopy(original)
+    if original is None and text == '':
+        return None
     numeric = type(original) in (int, float) or path[-1] in {
         'degree', 'diffusion', 'reaction', 'alpha', 'lame_lambda', 'lame_mu', 'start', 'end',
         'fraction', 'axis', 'max_l2_error', 'min_l2_rate', 'max_h1_seminorm_error',
@@ -72,21 +74,21 @@ def set_path(value, path, replacement):
 
 def setting_label(path):
     """Readable form captions; the exact adapter path remains in the tooltip."""
-    names = {'rhs': 'Right-hand side expression', 'degree': 'Function space degree',
-             'diffusion': 'Diffusion coefficient', 'reaction': 'Reaction coefficient',
+    names = {'rhs': '우변 식', 'degree': '함수 공간 차수',
+             'diffusion': '확산 계수', 'reaction': '반응 계수',
              'lame_lambda': 'Lamé lambda', 'lame_mu': 'Lamé mu',
-             'dirichlet': 'Dirichlet expression', 'solution': 'Solution expression',
+             'dirichlet': 'Dirichlet 식', 'solution': '해 표현식',
              'sha256': 'Content SHA-256', 'data': 'Exact mesh source data'}
     if path[-2:] == ('domain', 'type'):
-        return 'Domain type'
+        return '영역 형상'
     if 'lengths' in path and isinstance(path[-1], int):
         axis = ('x', 'y', 'z')[path[-1]] if path[-1] < 3 else str(path[-1] + 1)
-        return axis + ' length [1]'
+        return axis + ' 길이 [1]'
     for collection, caption in (('cell_counts', 'Mesh cell count'), ('step_counts', 'Time step count')):
         if collection in path:
             indexes = path[path.index(collection) + 1:]
-            return caption + (' · level ' + str(indexes[0] + 1) if indexes and isinstance(indexes[0], int) else '') + (
-                ' · ' + ('x', 'y', 'z')[indexes[1]] if len(indexes) > 1 and isinstance(indexes[1], int) and indexes[1] < 3 else '')
+            return caption + (' (level ' + str(indexes[0] + 1) + ')' if indexes and isinstance(indexes[0], int) else '') + (
+                ' ' + ('x', 'y', 'z')[indexes[1]] if len(indexes) > 1 and isinstance(indexes[1], int) and indexes[1] < 3 else '')
     if isinstance(path[-1], int):
         key_index = next((index for index in range(len(path) - 1, -1, -1)
                           if isinstance(path[index], str)), 0)
@@ -100,7 +102,7 @@ def setting_label(path):
     caption = str(key).replace('_', ' ').capitalize()
     context = next((str(key).replace('_', ' ') for key in reversed(path[1:-1])
                     if isinstance(key, str) and key not in ('problem', 'settings')), '')
-    return context.capitalize() + ' · ' + caption if context else caption
+    return context.capitalize() + ': ' + caption if context else caption
 
 
 class _Signals(QObject):
@@ -140,6 +142,8 @@ class PDEWindow(QMainWindow):
     def __init__(self, client, *, document_id=None, poll_interval=2000,
                  auto_open=True, runner_open=None, result_open=None, plan_open=None):
         super().__init__()
+        from .appearance import apply_appearance
+        apply_appearance(QApplication.instance())
         self.client, self.document = client, None
         self.runner_open, self.result_open = runner_open, result_open
         self.plan_open = plan_open
@@ -163,14 +167,14 @@ class PDEWindow(QMainWindow):
             self.open_document(document_id=document_id)
 
     def _build_ui(self):
-        self.resize(1440, 940)
+        self.resize(1440, 900)
         self.setMinimumSize(1000, 680)
-        files, edit = self.menuBar().addMenu('&File'), self.menuBar().addMenu('&Edit')
-        self.new_action = QAction('&New PDE document…', self, shortcut=QKeySequence.New)
-        self.open_action = QAction('&Open PDE document…', self, shortcut=QKeySequence.Open)
-        self.save_action = QAction('&Save', self, shortcut=QKeySequence.Save)
-        self.undo_action = QAction('&Undo model edit', self, shortcut=QKeySequence.Undo)
-        self.redo_action = QAction('&Redo model edit', self, shortcut=QKeySequence.Redo)
+        files, edit = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
+        self.new_action = QAction('새 모델…', self, shortcut=QKeySequence.New)
+        self.open_action = QAction('모델 열기…', self, shortcut=QKeySequence.Open)
+        self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
+        self.undo_action = QAction('되돌리기', self, shortcut=QKeySequence.Undo)
+        self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
@@ -178,25 +182,26 @@ class PDEWindow(QMainWindow):
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
         files.addActions([self.new_action, self.open_action, self.save_action])
         edit.addActions([self.undo_action, self.redo_action])
-        research = self.menuBar().addMenu('&Research')
-        self.plan_action = QAction('Open &Numerical Plan', self)
+        research = self.menuBar().addMenu('연구(&R)')
+        self.plan_action = QAction('수치 계산 계획 열기', self)
         self.plan_action.triggered.connect(self.open_numerical_plan)
         research.addAction(self.plan_action)
-        self.compare_action = QAction('Compare retained curves…', self)
+        self.compare_action = QAction('보존 곡선 비교…', self)
         self.compare_action.triggered.connect(self.open_curve_comparison)
         research.addAction(self.compare_action)
         toolbar = QToolBar('PDE commands')
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         toolbar.addActions([self.new_action, self.open_action, self.save_action, self.undo_action, self.redo_action])
-        self.apply_button = QPushButton('Apply model')
-        self.validate_button = QPushButton('Check expressions / support')
-        self.evaluate_button = QPushButton('Evaluate once')
-        self.plan_button = QPushButton('Numerical Plan')
+        self.apply_button = QPushButton('변경 적용')
+        self.validate_button = QPushButton('입력 검사')
+        self.evaluate_button = QPushButton('모델 평가')
+        self.evaluate_button.setProperty('appearanceRole', 'primary')
+        self.plan_button = QPushButton('수치 계산 계획')
         self.plan_button.setObjectName('pdeNumericalPlan')
         self.plan_button.setToolTip('Apply the model first. Open a frozen Numerical request without running a solver.')
-        self.runner_button = QPushButton('Open Runner')
-        self.post_button = QPushButton('Open exact result in Post')
+        self.runner_button = QPushButton('실행 작업')
+        self.post_button = QPushButton('Post에서 열기')
         for button, callback in ((self.apply_button, self.apply_inputs),
                                  (self.validate_button, self.validate_inputs),
                                  (self.evaluate_button, self.evaluate),
@@ -204,14 +209,23 @@ class PDEWindow(QMainWindow):
                                  (self.runner_button, self.open_runner),
                                  (self.post_button, self.open_post)):
             button.clicked.connect(callback)
-            toolbar.addWidget(button)
+            if button not in (self.runner_button, self.post_button):
+                toolbar.addWidget(button)
         root = QWidget()
         layout = QVBoxLayout(root)
-        self.identity = QLabel('Opening PDE document…')
-        self.message = QLabel('Edit/save works without the native runtime. Evaluation checks runtime separately.')
+        self.identity = QLabel('모델을 여는 중…')
+        self.identity.setProperty('appearanceRole', 'title')
+        self.message = QLabel()
         self.message.setWordWrap(True)
         layout.addWidget(self.identity)
         layout.addWidget(self.message)
+        self.issue_summary = QLabel()
+        self.issue_summary.setWordWrap(True)
+        self.issue_summary.setStyleSheet('color: #9a3412;')
+        self.issue_summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.issue_summary)
+        self.save_state = QLabel()
+        self.statusBar().addPermanentWidget(self.save_state)
         conflicts = QHBoxLayout()
         self.reload_button = QPushButton('Reload service version')
         self.copy_button = QPushButton('Keep edits as a new document')
@@ -221,23 +235,28 @@ class PDEWindow(QMainWindow):
         conflicts.addWidget(self.copy_button)
         conflicts.addStretch()
         layout.addLayout(conflicts)
-        vertical = QSplitter(Qt.Orientation.Vertical)
-        horizontal = QSplitter(Qt.Orientation.Horizontal)
+        vertical = self.workspace_splitter = QSplitter(Qt.Orientation.Vertical)
+        horizontal = self.model_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel('Model Builder')
+        self.tree.setHeaderLabel('모델')
+        self.tree.setMinimumWidth(150)
         self.tree.setObjectName('pdeModelBuilder')
         self.tree.currentItemChanged.connect(self._selection_changed)
         horizontal.addWidget(self.tree)
-        settings = QWidget()
+        settings = self.settings_panel = QWidget()
+        settings.setMinimumWidth(240)
         settings_layout = QVBoxLayout(settings)
-        self.settings_title = QLabel('Settings')
+        self.settings_title = QLabel('속성')
+        self.settings_title.setProperty('appearanceRole', 'section')
         settings_layout.addWidget(self.settings_title)
         self.backend = QComboBox()
         self.backend.setObjectName('pdeBackend')
         self.backend.setEditable(True)
         self.backend.addItems(self.model_backends)
         self.backend.currentTextChanged.connect(self._backend_changed)
-        settings_layout.addWidget(QLabel('Declared adapter (change does not translate the model)'))
+        backend_note = QLabel('계산 방법 선택은 모델을 자동 변환하지 않습니다.')
+        backend_note.setWordWrap(True)
+        settings_layout.addWidget(backend_note)
         settings_layout.addWidget(self.backend)
         self.equation = QLabel()
         self.equation.setWordWrap(True)
@@ -247,6 +266,7 @@ class PDEWindow(QMainWindow):
         settings_layout.addWidget(self.space)
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         settings_layout.addWidget(self.scroll, 1)
         self.support = QLabel()
         self.support.setWordWrap(True)
@@ -261,51 +281,118 @@ class PDEWindow(QMainWindow):
         self.result_figure = Figure(constrained_layout=True)
         self.result_canvas = FigureCanvasQTAgg(self.result_figure)
         self.result_axes = self.result_figure.add_subplot(111)
-        self.graph_tabs.addTab(self.domain_canvas, 'Domain / boundary target')
-        self.graph_tabs.addTab(self.result_canvas, 'Retained field / curve')
+        self.graph_tabs.addTab(self.domain_canvas, '모델 영역')
+        self.graph_tabs.addTab(self.result_canvas, '계산 결과')
+        self.graph_tabs.currentChanged.connect(self._update_actions)
         graph_layout.addWidget(self.graph_tabs, 1)
         self.result_selector = QComboBox()
         self.result_selector.currentIndexChanged.connect(self._result_selection_changed)
         graph_layout.addWidget(self.result_selector)
-        point_row = QHBoxLayout()
+        self.point_controls = QWidget()
+        point_row = QHBoxLayout(self.point_controls)
+        point_row.setContentsMargins(0, 0, 0, 0)
         self.field_node = QComboBox()
         self.field_node.setObjectName('pdeRetainedNode')
         self.field_node.currentIndexChanged.connect(self._draw_result)
-        point_row.addWidget(QLabel('Exact retained node ID'))
+        point_row.addWidget(QLabel('절점'))
         point_row.addWidget(self.field_node)
-        graph_layout.addLayout(point_row)
+        graph_layout.addWidget(self.point_controls)
         self.point_label = QLabel()
         self.point_label.setWordWrap(True)
         graph_layout.addWidget(self.point_label)
-        channel_row = QHBoxLayout()
+        self.history_controls = QWidget()
+        channel_row = QHBoxLayout(self.history_controls)
+        channel_row.setContentsMargins(0, 0, 0, 0)
         self.channel = QComboBox()
         self.node = QComboBox()
         self.channel.currentIndexChanged.connect(self._channel_changed)
         self.node.currentIndexChanged.connect(self._update_actions)
-        self.read_curve_button = QPushButton('Read selected native history')
+        self.read_curve_button = QPushButton('선택 이력 읽기')
         self.read_curve_button.clicked.connect(self.read_native_curve)
         channel_row.addWidget(self.channel)
         channel_row.addWidget(self.node)
         channel_row.addWidget(self.read_curve_button)
-        graph_layout.addLayout(channel_row)
-        self.compare_button = QPushButton('Compare / reopen saved curve analysis…')
+        graph_layout.addWidget(self.history_controls)
+        self.compare_button = QPushButton('곡선 비교…')
         self.compare_button.setObjectName('compareRetainedResearchCurves')
         self.compare_button.clicked.connect(self.open_curve_comparison)
-        graph_layout.addWidget(self.compare_button)
+        result_actions = QHBoxLayout()
+        result_actions.addWidget(self.runner_button)
+        result_actions.addWidget(self.post_button)
+        result_actions.addWidget(self.compare_button)
+        graph_layout.addLayout(result_actions)
         self.result_label = QLabel('No retained evaluation selected')
         self.result_label.setWordWrap(True)
         graph_layout.addWidget(self.result_label)
         horizontal.addWidget(graphics)
-        horizontal.setSizes([250, 400, 735])
+        horizontal.setSizes([210, 345, 835])
+        horizontal.setStretchFactor(0, 0)
+        horizontal.setStretchFactor(1, 0)
+        horizontal.setStretchFactor(2, 1)
         vertical.addWidget(horizontal)
         self.messages = QPlainTextEdit()
         self.messages.setReadOnly(True)
         self.messages.setObjectName('pdeDiagnostics')
         vertical.addWidget(self.messages)
         vertical.setSizes([710, 160])
+        self.messages.hide()
         layout.addWidget(vertical, 1)
+        self.details_action = QAction('기술 상세 표시', self, checkable=True)
+        self.details_action.toggled.connect(self._details_toggled)
+        self.menuBar().addMenu('보기(&V)').addAction(self.details_action)
+        details_row = QHBoxLayout()
+        details_row.addStretch()
+        self.details_button = QPushButton('기술 상세')
+        self.details_button.setCheckable(True)
+        self.details_button.toggled.connect(self.details_action.setChecked)
+        self.details_action.toggled.connect(self.details_button.setChecked)
+        details_row.addWidget(self.details_button)
+        layout.addLayout(details_row)
         self.setCentralWidget(root)
         self._update_actions()
+
+    def _details_toggled(self, visible):
+        self.messages.setVisible(visible)
+        if visible:
+            self.workspace_splitter.setSizes([650, 150])
+
+    def _refresh_issue_summary(self):
+        checks = getattr(self, '_input_checks', [])
+        text = '\n'.join(str(row.get('message', '')) for row in checks)
+        result = self._result or {}
+        state = result.get('execution_status', result.get('status'))
+        if state in {'FAILED', 'REJECTED', 'INTERRUPTED', 'PARTIAL_FAILURE'}:
+            failure = result.get('failure') or result.get('diagnostics', {}).get('reason')
+            if isinstance(failure, dict):
+                failure = failure.get('message') or failure.get('reason')
+            text += ('\n' if text else '') + str(failure or '계산이 완료되지 않았습니다. 기술 상세에서 원인을 확인하세요.')
+        delivery_error = result.get('diagnostics', {}).get('field_delivery_error')
+        if delivery_error:
+            text += ('\n' if text else '') + '필드를 읽지 못했습니다. 기술 상세에서 원인을 확인하세요.'
+        self.issue_summary.setText(text)
+        self.issue_summary.setVisible(bool(text))
+
+    def _refresh_result_caption(self):
+        runs = self.document.get('runs', []) if self.document else []
+        run = next((row for row in runs if row['job_id'] == self._selected_job), {})
+        for index, row in enumerate(runs):
+            node = getattr(self, '_run_nodes', {}).get(row['job_id'])
+            if node:
+                relation = '편집 전 입력' if row.get('is_current_input') and self.local_dirty else (
+                    '현재 입력' if row.get('is_current_input') else '이전 입력')
+                node.setText(0, '계산 ' + str(index + 1) + ' (' + relation + ')')
+        if not self._selected_job:
+            self.result_label.setText('계산 결과를 선택하세요.')
+        elif not self._result:
+            self.result_label.setText('선택한 계산 결과를 읽는 중…')
+        else:
+            state = self._result.get('execution_status', self._result.get('status', 'UNKNOWN'))
+            status = {'SUCCEEDED': '완료', 'COMPLETED': '완료', 'FAILED': '실패', 'REJECTED': '실행 불가',
+                      'CANCELLED': '취소', 'INTERRUPTED': '중단', 'PARTIAL_FAILURE': '일부 실패'}.get(state, str(state))
+            relation = (' (편집 전 입력)' if self.local_dirty else ' (현재 입력)') if run.get('is_current_input') else (
+                ' (이전 입력)' if run else '')
+            self.result_label.setText('보존 결과: ' + status + relation)
+            self.result_label.setToolTip(display(run))
 
     def _call(self, function, accepted):
         if self._busy:
@@ -337,7 +424,7 @@ class PDEWindow(QMainWindow):
         self._result_key = self._result = None
         self._selected_job = document.get('runs', [{}])[-1].get('job_id') if document.get('runs') else None
         self._show_document(document)
-        self.message.setText('Connected. Edit settings, check support, apply model, then evaluate once.')
+        self.message.setText('모델을 열었습니다.')
         self._accept_result({})
         if self._selected_job:
             QTimer.singleShot(0, self.refresh_result)
@@ -347,6 +434,7 @@ class PDEWindow(QMainWindow):
         old = selected.data(0, ROLE) if selected else None
         self.document = deepcopy(document)
         self._draft = deepcopy(document['draft'] if preserve_draft is None else preserve_draft)
+        self._input_checks = deepcopy(document.get('diagnostics', []))
         self.fields = {}
         self._populating = True
         self.backend.setCurrentText(display(self._draft.get('backend', '')))
@@ -354,19 +442,19 @@ class PDEWindow(QMainWindow):
         self._nodes = {}
         self._run_nodes = {}
         definitions = self.settings_sections or [
-            ('Domain', ('settings', 'problem', 'domain')),
-            ('Field / function space', ('settings', 'mesh', 'degree')),
-            ('Coefficients / equation', ('settings', 'problem', 'weak_form')),
-            ('Boundary conditions', ('settings', 'problem', 'boundaries')),
+            ('영역', ('settings', 'problem', 'domain')),
+            ('함수 공간', ('settings', 'mesh', 'degree')),
+            ('방정식', ('settings', 'problem', 'weak_form')),
+            ('경계 조건', ('settings', 'problem', 'boundaries')),
             ('Dirichlet — whole boundary', ('settings', 'problem', 'dirichlet')),
-            ('Initial conditions', ('settings', 'problem', 'initial')),
-            ('Reference solution', ('settings', 'problem', 'reference')),
-            ('Mesh / exact source levels', ('settings', 'mesh')),
-            ('Time discretization', ('settings', 'time')),
-            ('Refinement axis', ('settings', 'refinement_axis')),
-            ('Evaluation mode', ('settings', 'mode')),
-            ('Input provenance', ('settings', 'input_provenance')),
-            ('Solver / numerical checks', ('settings', 'validation')),
+            ('초기 조건', ('settings', 'problem', 'initial')),
+            ('기준해', ('settings', 'problem', 'reference')),
+            ('메시', ('settings', 'mesh')),
+            ('시간 이산화', ('settings', 'time')),
+            ('세분화 방향', ('settings', 'refinement_axis')),
+            ('평가 방법', ('settings', 'mode')),
+            ('입력 출처', ('settings', 'input_provenance')),
+            ('수치 허용값', ('settings', 'validation')),
         ]
         covered = set()
         for label, path in definitions:
@@ -401,10 +489,10 @@ class PDEWindow(QMainWindow):
                         item = QTreeWidgetItem(self.tree, ['Unsupported problem setting: ' + str(key)])
                         item.setData(0, ROLE, {'path': path, 'label': str(key)})
                         self._nodes[path] = item
-        results = QTreeWidgetItem(self.tree, ['Evaluations / retained results'])
+        results = QTreeWidgetItem(self.tree, ['계산 결과'])
         results.setData(0, ROLE, {'label': 'Evaluations', 'path': None})
-        for run in document.get('runs', []):
-            item = QTreeWidgetItem(results, [run['job_id'] + (' — current input' if run.get('is_current_input') else ' — previous input')])
+        for index, run in enumerate(document.get('runs', [])):
+            item = QTreeWidgetItem(results, ['계산 ' + str(index + 1) + (' (현재 입력)' if run.get('is_current_input') else ' (이전 입력)')])
             item.setData(0, ROLE, {'job_id': run['job_id'], 'label': 'Retained evaluation', 'path': None})
             self._run_nodes[run['job_id']] = item
         self.tree.expandToDepth(0)
@@ -412,7 +500,8 @@ class PDEWindow(QMainWindow):
                   self._nodes.get(tuple(old.get('path') or ())) if old else None)
         self._populating = False
         self.tree.setCurrentItem(target or self.tree.topLevelItem(0))
-        self.identity.setText(f"{document['title']} · {document['id']} · generation {document['generation']} · saved {document.get('saved_revision') or 'unsaved'}")
+        self.identity.setText(document['title'])
+        self.identity.setToolTip(document['id'] + ' / generation ' + str(document['generation']))
         self.setWindowTitle(document['title'] + ' — ' + self.tool_label + ' Research')
         self._show_support()
         self._update_actions()
@@ -434,9 +523,13 @@ class PDEWindow(QMainWindow):
             return
         self._capture_settings()
         data = current.data(0, ROLE) or {}
-        self.settings_title.setText('Settings — ' + data.get('label', ''))
+        self.settings_title.setText('속성 — ' + data.get('label', ''))
         widget = QWidget()
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         form = QFormLayout(widget)
+        form.setAlignment(Qt.AlignmentFlag.AlignTop)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         path = data.get('path')
         if path:
             try:
@@ -479,16 +572,20 @@ class PDEWindow(QMainWindow):
                 form.addRow(buttons)
             return
         label = QLabel(self.field_label(path))
+        label.setWordWrap(True)
+        label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         adapter_path = '.'.join(str(key) for key in path[1:])
         label.setToolTip(adapter_path)
         if isinstance(value, str) and ('\n' in value or path[-1] in ('data', 'rhs', 'solution', 'source')):
-            field = QPlainTextEdit(display(value))
-            field.setMaximumHeight(130 if path[-1] == 'data' else 90)
+            field = QPlainTextEdit('' if value is None else display(value))
+            field.setFixedHeight(130 if path[-1] == 'data' else 90)
             field.textChanged.connect(self._edited)
         else:
-            field = QLineEdit(display(value))
+            field = QLineEdit('' if value is None else display(value))
             field.textEdited.connect(self._edited)
         field.setObjectName('pde.' + '.'.join(map(str, path)))
+        if value is None:
+            field.setPlaceholderText('미지정')
         field.setToolTip(adapter_path + '\nNumbers are parsed without evaluating expressions. Invalid text can be saved.')
         if path[-1] == 'sha256':
             field.setToolTip(adapter_path + '\nExact mesh source content SHA-256. Editing bytes does not silently recompute or replace this identity.')
@@ -526,6 +623,7 @@ class PDEWindow(QMainWindow):
 
         def accepted(result):
             checks, details = result
+            self._input_checks = deepcopy(checks)
             self._show_support(draft, checks, details)
             self.message.setText('Input check failed; draft remains saveable.' if checks else
                                  'Declared model/expression checks passed. Native availability and physical qualification are separate.')
@@ -552,10 +650,9 @@ class PDEWindow(QMainWindow):
             'pde.fenicsx.coupled': '−div(K(region) ∇U) + C U = F; two scalar fields, region matrices',
         }
         self.equation.setText(equations.get(backend, '−div(k ∇u) + c u = f; a(u,v)=∫(k∇u·∇v+cuv), L(v)=∫fv + Neumann terms'))
-        self.space.setText(('Fields u[0], u[1]; blocked vector Lagrange P1 triangles. ' if backend in ('pde.fenicsx.vector', 'pde.fenicsx.coupled') else
-                            'Field u; scalar Lagrange P1 triangles. ') +
-                           'Coordinates / field unit: 1 (dimensionless); degree edits checked against actual adapter limits.')
-        self.support.setText('Solver policy is fixed by this adapter. Convergence acceptance, mesh and time settings are editable; arbitrary solver options, ODE and general UFL forms are not supported.')
+        self.space.setText(('u[0], u[1]: vector Lagrange P1. ' if backend in ('pde.fenicsx.vector', 'pde.fenicsx.coupled') else
+                            'u: scalar Lagrange P1. ') + '좌표 단위와 장 단위: 1 (무차원).')
+        self.support.setText('solver 정책은 고정입니다. 임의 solver 옵션과 일반 UFL, ODE는 지원하지 않습니다.')
         policy = {}
         if backend == 'pde.fenicsx.nonlinear':
             from caelab.adapters.fenicsx_nonlinear_worker import NATIVE_OPTIONS
@@ -568,6 +665,8 @@ class PDEWindow(QMainWindow):
                 details.get('units', ''), details.get('expression_language', ''),
                 'Fixed native solver policy: ' + display(policy)]
         self.messages.setPlainText('\n'.join(text))
+        self._input_checks = deepcopy(checks)
+        self._refresh_issue_summary()
 
     def command(self, operation, arguments=None, *, after=None):
         if not self.document or self.conflict:
@@ -673,7 +772,7 @@ class PDEWindow(QMainWindow):
             field = entry.get('field', entry)
             components = field.get('components', ['u'])
             for component in range(len(components)):
-                self.result_selector.addItem(str(entry.get('name', entry.get('artifact', 'Native field ' + str(index)))) + ' · ' + components[component],
+                self.result_selector.addItem(str(entry.get('name', 'Native field ' + str(index + 1))) + ' (' + components[component] + ')',
                                              ('field', index, component))
         self.result_selector.blockSignals(False)
         self.channel.blockSignals(True)
@@ -689,15 +788,6 @@ class PDEWindow(QMainWindow):
             node_index = self.node.findData(selected_node)
             if node_index >= 0:
                 self.node.setCurrentIndex(node_index)
-        run = next((item for item in self.document.get('runs', []) if item['job_id'] == self._selected_job), {})
-        if not self._selected_job:
-            self.result_label.setText('No retained evaluation selected')
-        elif not result:
-            self.result_label.setText('Reading the selected retained evaluation: ' + self._selected_job)
-        else:
-            self.result_label.setText(f"Retained {self._selected_job}: {result.get('execution_status', result.get('status', 'UNKNOWN'))}. "
-                                      f"Submitted generation {run.get('input_generation', 'unknown')}, input revision {run.get('input_revision', 'unknown')}. "
-                                      'Previous-input results remain labelled in Model Builder. No recomputation occurs on open.')
         self.graph_tabs.setCurrentIndex(1 if self._selected_job and result else 0)
         self._result_selection_changed()
         self._update_actions()
@@ -800,7 +890,7 @@ class PDEWindow(QMainWindow):
         self.point_label.clear()
         selected = self.result_selector.currentData()
         if not self._result or not selected:
-            axes.text(.5, .5, 'No retained field/curve available.\nRun metadata and failures remain visible in Messages.',
+            axes.text(.5, .5, 'No retained result selected.',
                       ha='center', va='center', transform=axes.transAxes)
         elif selected[0] == 'response':
             name = selected[1]
@@ -842,11 +932,9 @@ class PDEWindow(QMainWindow):
                     self.point_label.setText('Node ' + str(selected_node) + ' at ' + display(xy) +
                         ' [' + field.get('coordinates_unit', '1') + ']; value ' + display(scalar[index]) +
                         ' [' + field.get('field_unit', '1') + ']; ' +
-                        ('static field' if instant is None else 'model time ' + display(instant) + ' [1]') +
-                        '; study ' + str(entry.get('study_index', 'unknown')) +
-                        '; step ' + str(entry.get('step_index', 'none')) +
-                        '; artifact ' + str(source.get('artifact', 'retained source')) +
-                        '; SHA-256 ' + str(source.get('sha256', 'unavailable')))
+                        ('static field' if instant is None else 'model time ' + display(instant) + ' [1]'))
+                    self.point_label.setToolTip(display({'source': source, 'study_index': entry.get('study_index'),
+                                                       'step_index': entry.get('step_index')}))
         if self._result:
             native = self._result.get('diagnostics', {}).get('native_outcome', {})
             self.messages.setPlainText(self.messages.toPlainText().split('\nRetained result:')[0] + '\nRetained result:\n' +
@@ -859,6 +947,7 @@ class PDEWindow(QMainWindow):
                          'error_type': self._result.get('diagnostics', {}).get('error_type'),
                          'field_delivery_error': self._result.get('diagnostics', {}).get('field_delivery_error')}))
         self.result_canvas.draw_idle()
+        self._update_actions()
 
     def _draw_domain(self, path=None):
         axes = self.domain_axes
@@ -878,7 +967,7 @@ class PDEWindow(QMainWindow):
                         xy = [nodes[node] for node in edge['node_ids']]
                         axes.plot([point[0] for point in xy], [point[1] for point in xy],
                                   color='#dd6b20' if name == side else '#334155', linewidth=3 if name == side else 1)
-                axes.set_title('Exact imported mesh boundary groups · sha256 ' + mesh['source_sha256'][:12])
+                axes.set_title('Imported mesh boundary groups')
             else:
                 lengths = domain.get('lengths') if isinstance(domain, dict) else [1, 1] if domain == 'unit_square' else None
                 if not isinstance(lengths, list) or len(lengths) != 2 or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in lengths):
@@ -895,7 +984,7 @@ class PDEWindow(QMainWindow):
                         axes.plot([lx*fraction]*2, [0, ly], '--', color='#2563eb')
                 axes.set_xlim(-lx*.1, lx*1.1)
                 axes.set_ylim(-ly*.1, ly*1.1)
-                axes.set_title('Declared mathematical domain; solution shown only from retained results')
+                axes.set_title('Declared domain')
             axes.set_aspect('equal')
             axes.set_xlabel('x [1]')
             axes.set_ylabel('y [1]')
@@ -926,6 +1015,19 @@ class PDEWindow(QMainWindow):
         can_compare = bool(self.document) and bool(self._selected_job) and not self._busy
         self.compare_button.setEnabled(can_compare)
         self.compare_action.setEnabled(can_compare)
+        showing_result = self.graph_tabs.currentWidget() is self.result_canvas
+        self.result_selector.setVisible(showing_result and self.result_selector.count() > 0)
+        self.point_controls.setVisible(showing_result and self.field_node.count() > 0)
+        self.point_label.setVisible(showing_result and bool(self.point_label.text()))
+        self.history_controls.setVisible(showing_result and self.channel.count() > 0)
+        self.compare_button.setVisible(showing_result and bool(self._result))
+        self.result_label.setVisible(showing_result)
+        self.runner_button.setToolTip('보존 계산을 선택하면 실행 상태를 열 수 있습니다.')
+        self.post_button.setToolTip('선택한 계산에 등록된 native 결과 파일을 엽니다.')
+        self.save_state.setText('변경 적용 전' if self.local_dirty else '저장됨'
+                               if self.document and not self.document.get('dirty') else '저장 전')
+        self._refresh_issue_summary()
+        self._refresh_result_caption()
 
     def open_numerical_plan(self):
         if not self.document or self._busy or self.conflict:
