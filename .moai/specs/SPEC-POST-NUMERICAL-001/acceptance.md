@@ -65,3 +65,9 @@ Astra/xhigh found a source-meaning gap in this first checkpoint: arbitrary nativ
 columns and user frame/measure labels can inherit the selected measurement's unit
 without verifying the column's physical meaning. Codex sent the finding to Pro
 for correction alongside the Qt work. Basic execution above does not close it.
+
+The second Astra finding is that finite native-mask failures are mapped only to
+calculation exclusion; existing Data quality defaults then report them as quality
+valid. Pro was asked to preserve native invalidity with existing `quality_rows`
+and `quality_reasons`, separately from explicit exclusion and without changing
+raw values. This correction is pending with the Qt checkpoint as well.
