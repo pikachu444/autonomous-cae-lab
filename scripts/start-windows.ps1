@@ -104,16 +104,16 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
                 @($install.installed_extras | Where-Object { $_ -notin $launch.installed_extras }).Count -ne 0) {
                 throw "Port $Port is running a different store, source, operator configuration or optional dependency set. Stop that owned server explicitly or choose another -Port."
             }
+            # Check loaded settings on EVERY reuse: receipt A -> applied B ->
+            # saved A is still an unapplied change, even though receipt == disk.
+            $connection = Invoke-RestMethod -Uri "$url/api/workbench/expert-connection" -TimeoutSec 3
+            if (-not $launch.service_session_id -or
+                $connection.service_session_id -ne $launch.service_session_id -or
+                $connection.operator_config_path -ne $operatorConfig -or
+                [string]$connection.config_sha256 -ne [string]$configSha) {
+                throw 'Saved operator settings are not active. Apply them in Expert Connection after current jobs finish.'
+            }
             if ($launch.config_sha256 -ne $configSha) {
-                # The same owned service may have explicitly loaded a local Expert
-                # change. Other source/store/extras/ownership guards above still apply.
-                $connection = Invoke-RestMethod -Uri "$url/api/workbench/expert-connection" -TimeoutSec 3
-                if (-not $launch.service_session_id -or
-                    $connection.service_session_id -ne $launch.service_session_id -or
-                    $connection.operator_config_path -ne $operatorConfig -or
-                    $connection.config_sha256 -ne $configSha) {
-                    throw 'Saved operator settings are not active. Apply them in Expert Connection after current jobs finish.'
-                }
                 $launch.config_sha256 = $configSha
                 $receiptTemp = $launchPath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
                 try {

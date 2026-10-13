@@ -561,7 +561,9 @@ def test_openscience_host_cancellation_requires_confirmed_owned_child_cleanup(
                                            ExecutionCleanupFailed, cancellation_scope)
     token = CancellationToken()
     observed = []
-    monkeypatch.setattr(host.subprocess, 'check_output', lambda *_args, **_kwargs: 'C:\\host.ps1\n')
+    from caelab import expert_connection as connection
+    monkeypatch.setattr(connection, 'powershell_command',
+                        lambda _script: ['pwsh.exe', '-NoProfile', '-File', 'C:\\host.ps1'])
     class FakeProcess:
         def __init__(self, *_args, **_kwargs):
             self.turn = 0
@@ -592,7 +594,9 @@ def test_openscience_host_uses_utf8_for_unicode_request_and_response(monkeypatch
     import mcp.server.lowlevel  # Import before replacing subprocess.Popen in this test.
     prompt = '검토: 항복강도 σy와 길이 10 μm'
     answer = '검토 완료: σy=210 MPa, 길이 10 μm'
-    monkeypatch.setattr(host.subprocess, 'check_output', lambda *_args, **_kwargs: 'C:\\host.ps1\n')
+    from caelab import expert_connection as connection
+    monkeypatch.setattr(connection, 'powershell_command',
+                        lambda _script: ['pwsh.exe', '-NoProfile', '-File', 'C:\\host.ps1'])
     class FakeProcess:
         returncode = 0
         def __init__(self, *_args, **kwargs):
@@ -617,7 +621,9 @@ def test_openscience_remote_mcp_handshake_auth_scope_and_invocation(monkeypatch)
     import caelab.assist.openscience_host as host
 
     observed = []
-    monkeypatch.setattr(host.subprocess, 'check_output', lambda *_args, **_kwargs: 'C:\\host.ps1\n')
+    from caelab import expert_connection as connection
+    monkeypatch.setattr(connection, 'powershell_command',
+                        lambda _script: ['pwsh.exe', '-NoProfile', '-File', 'C:\\host.ps1'])
 
     class FakeProcess:
         returncode = 0
@@ -668,7 +674,9 @@ def test_remote_mcp_callbacks_share_owner_token_and_reject_after_cancellation(mo
                                            _current, cancellation_scope)
     owner = CancellationToken()
     callbacks = []
-    monkeypatch.setattr(host.subprocess, 'check_output', lambda *_args, **_kwargs: 'C:\\host.ps1\n')
+    from caelab import expert_connection as connection
+    monkeypatch.setattr(connection, 'powershell_command',
+                        lambda _script: ['pwsh.exe', '-NoProfile', '-File', 'C:\\host.ps1'])
 
     class FakeProcess:
         returncode = 0
@@ -733,9 +741,10 @@ def test_plain_final_answer_gets_one_no_tool_format_repair_and_keeps_tool_plan(t
 
 def test_openscience_step_reservation_bounds_nested_consultation_and_repair(tmp_path, monkeypatch):
     import caelab.assist.openscience_host as host
-    steps = []
+    steps, models = [], []
     def fake_host(_prompt, tools, _budget, _model, *, max_steps, **_kwargs):
         steps.append(max_steps)
+        models.append(_model)
         if len(steps) == 1:
             nested = tools['experts_consult']['call'](expert_id='testing', question='Check this?')
             assert nested['status'] == 'ANSWERED'
@@ -749,12 +758,17 @@ def test_openscience_step_reservation_bounds_nested_consultation_and_repair(tmp_
     monkeypatch.setattr(host, 'run_openscience', fake_host)
     runtime = ExpertRuntime(store(tmp_path), Literature(), experts=definitions(['experts.consult']),
         runtime=RuntimeConfig(provider='openscience', model='openai-codex/gpt-5.6-sol',
+            expert_models={'materials': {'model': 'openai-codex/parent-role'},
+                           'testing': {'model': 'openai-codex/nested-role'}},
             max_model_calls=6, max_consultations=1,
             transmission={'allow_external_model': True, 'allow_question': True}))
     result = runtime.ask('materials', 'Review', {'consult_experts': ['testing'],
         'transmission_scope': {'allow_question': True}}, workspace_id='alpha')
     assert result['status'] == 'ANSWERED', result
     assert steps == [3, 2, 1]
+    assert models == ['openai-codex/parent-role', 'openai-codex/nested-role',
+                      'openai-codex/parent-role']
+    assert runtime.runtime.model == 'openai-codex/gpt-5.6-sol'
     assert result['budget_used']['model_calls'] == 6
     assert result['budget_used']['model_host_invocations'] == 3
 

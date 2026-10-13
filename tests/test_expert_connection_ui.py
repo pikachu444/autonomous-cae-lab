@@ -93,3 +93,62 @@ def test_connection_cancel_or_apply_keeps_live_question_and_scope(tmp_path, monk
                 reopened.reject()
                 wait(app, lambda: all(w.completed.is_set() for w in reopened._workers))
             drain_closed(app, window)
+
+
+def test_rejected_config_path_cannot_apply_previous_file_contents(tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    config, other = tmp_path / 'operator.json', tmp_path / 'identical copy.json'
+    setup.save_local(config, None, {'experts': definitions(), 'runtime': None})
+    other.write_bytes(config.read_bytes())
+    before = other.read_bytes()
+    with transport(tmp_path, config) as (client, wb):
+        dialog = ConnectionDialog(client, config_path=config)
+        try:
+            dialog.show()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            monkeypatch.setattr(QFileDialog, 'getOpenFileName',
+                                lambda *a, **k: (str(other), 'Operator config'))
+            dialog.choose_config()
+            wait(app, lambda: not dialog._busy)
+            assert 'this service' in dialog.message.text()
+            assert not dialog.loaded
+            assert not dialog.buttons.button(QDialogButtonBox.StandardButton.Apply).isEnabled()
+            assert dialog.apply() is None
+            assert other.read_bytes() == before
+            assert config.read_bytes() == before
+            # Returning to the actual file obtains a new destination/content/hash.
+            monkeypatch.setattr(QFileDialog, 'getOpenFileName',
+                                lambda *a, **k: (str(config), 'Operator config'))
+            dialog.choose_config()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            assert dialog.path == config and dialog.expected_sha == setup.digest(config)
+            assert dialog.buttons.button(QDialogButtonBox.StandardButton.Apply).isEnabled()
+            assert wb.manager.list() == []
+        finally:
+            dialog.reject()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))
+
+
+def test_connection_can_replace_missing_legacy_roles_without_inference(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    setup.save_local(config, None, {'experts': str(tmp_path / 'missing roles.json')})
+    with transport(tmp_path, config) as (client, wb):
+        dialog = ConnectionDialog(client, config_path=config)
+        try:
+            dialog.show()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            assert 'replacement roles' in dialog.message.text()
+            assert dialog.roles.rowCount() == 0
+            role_file = tmp_path / 'chosen roles.json'
+            save_json(role_file, {'experts': definitions()})
+            dialog._read_roles(role_file)
+            assert dialog.roles.rowCount() == 1
+            QTest.mouseClick(dialog.buttons.button(QDialogButtonBox.StandardButton.Apply),
+                             Qt.MouseButton.LeftButton)
+            wait(app, lambda: not dialog._busy and 'Connection applied' in dialog.message.text())
+            assert wb.config['experts'] == definitions()
+            assert wb.config['runtime'] is None and wb.manager.list() == []
+        finally:
+            dialog.reject()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))

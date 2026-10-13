@@ -202,3 +202,23 @@ def test_selected_role_runtime_does_not_expand_transmission_or_fall_back():
     assert runtime.model == 'openai-codex/default'
     runtime.expert_models['testing']['provider'] = 'other'
     assert runtime.selected_generator('testing') is None
+
+
+def test_uninitialized_legacy_config_can_be_replaced_without_opening_missing_roles(tmp_path):
+    path = tmp_path / 'operator.json'
+    original = {'experts': str(tmp_path / 'removed roles.json'), 'workers': 1}
+    sha = setup.save_local(path, None, original)
+    wb = Workbench(tmp_path / 'store', configuration=original, operator_config_path=path)
+    try:
+        assert wb._assistance is None
+        session = wb.session_id
+        assert setup.status(wb)['roles'] == []
+        changed = {**original, 'experts': definitions(), 'runtime': None}
+        saved = setup.save_local(path, sha, changed)
+        assert setup.reload_local(wb, saved)['status'] == 'APPLIED'
+        assert list(wb.assistance().experts.definitions) == ['testing']
+        assert wb.assistance().experts.runtime.model is None
+        assert wb.assistance().experts.list()['runtime']['status'] == 'NOT_CONFIGURED'
+        assert wb.session_id == session and wb.manager.list() == []
+    finally:
+        wb.shutdown()

@@ -582,21 +582,25 @@ class Workbench:
 
     def _get_assistance(self):
         if self._assistance is None:
-            from .assist import Assistance
-            from .assist.experts import RuntimeConfig
-            runtime=RuntimeConfig(**self.config['runtime']) if self.config.get('runtime') else None
-            callbacks={'calculations.inputs':self.describe_inputs,
-                       'calculations.resources':lambda request:self.resource_request(request.get('inputs',request),request.get('resources')),
-                       'calculations.submit':self._proposed_submit,
-                       'calculations.status':lambda request:self.manager.status(request['job_id']),
-                       'results.read':lambda request:self.result(request.get('result_id',request.get('job_id',request.get('run_id'))),selection=request.get('selection',{'metadata_only':True})),
-                       'numerical.doe':lambda request:self._numerical_submit('doe',request),
-                       'numerical.analyze':lambda request:self._execute('analyze',request,'read'),
-                       'numerical.fit':lambda request:self._numerical_submit('fit',request),
-                       'numerical.optimize':lambda request:self._numerical_submit('optimize',request)}
-            self._assistance=Assistance(self.root/'assistance',experts=self.config.get('experts'),runtime=runtime,
-                                       callbacks=callbacks,source_roots=[self.root])
+            self._assistance = self._create_assistance(self.config)
         return self._assistance
+
+    def _create_assistance(self, configuration):
+        """Build from one approved configuration; publish only after validation."""
+        from .assist import Assistance
+        from .assist.experts import RuntimeConfig
+        runtime=RuntimeConfig(**configuration['runtime']) if configuration.get('runtime') else None
+        callbacks={'calculations.inputs':self.describe_inputs,
+                   'calculations.resources':lambda request:self.resource_request(request.get('inputs',request),request.get('resources')),
+                   'calculations.submit':self._proposed_submit,
+                   'calculations.status':lambda request:self.manager.status(request['job_id']),
+                   'results.read':lambda request:self.result(request.get('result_id',request.get('job_id',request.get('run_id'))),selection=request.get('selection',{'metadata_only':True})),
+                   'numerical.doe':lambda request:self._numerical_submit('doe',request),
+                   'numerical.analyze':lambda request:self._execute('analyze',request,'read'),
+                   'numerical.fit':lambda request:self._numerical_submit('fit',request),
+                   'numerical.optimize':lambda request:self._numerical_submit('optimize',request)}
+        return Assistance(self.root/'assistance',experts=configuration.get('experts'),runtime=runtime,
+                                   callbacks=callbacks,source_roots=[self.root])
 
     @staticmethod
     def _numerical_arguments(operation, request):

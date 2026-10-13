@@ -249,13 +249,20 @@ def reload_local(workbench, expected_sha256):
             return {**status(workbench), 'status': 'DEFERRED', 'reason': 'Wait for current jobs/requests to finish'}
         definitions = roles(value.get('experts', []))
         runtime = validate_runtime(value.get('runtime'))
-        assistance = workbench.assistance()
-        replacement = ExpertRuntime(assistance.knowledge, assistance.literature,
-            experts=definitions, runtime=runtime, callbacks=assistance.experts.callbacks,
-            session_root=assistance.experts.session_root)
+        assistance = workbench._assistance
+        if assistance is None:
+            # The replacement may repair a missing legacy roles file/runtime.
+            # Do not initialize the old, unapplied configuration first.
+            assistance = workbench._create_assistance(value)
+            replacement = assistance.experts
+        else:
+            replacement = ExpertRuntime(assistance.knowledge, assistance.literature,
+                experts=definitions, runtime=runtime, callbacks=assistance.experts.callbacks,
+                session_root=assistance.experts.session_root)
         if digest(workbench._operator_config_path) != sha:
             raise ValueError('Operator file changed during activation')
         assistance.experts = replacement
+        workbench._assistance = assistance
         for key in FIELDS:
             if key in value:
                 workbench.config[key] = deepcopy(value[key])

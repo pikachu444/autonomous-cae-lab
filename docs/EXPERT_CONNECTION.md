@@ -53,7 +53,11 @@ Only the Expert runtime and inline role definitions are changed. Other operator
 settings are preserved. The replacement ExpertRuntime reuses the existing
 KnowledgeStore, literature store, callbacks and saved sessions. All document
 owners, the Workbench session, unsaved Qt question buffers and existing jobs
-remain. Role availability is refreshed without reopening the discussion.
+remain. Role availability is refreshed without reopening the discussion. If a legacy
+roles file is missing, Connection still lets you explicitly choose replacement
+roles. Initial activation builds the replacement without trying to open that
+missing old file. A rejected configuration-file choice disables Apply until
+the actual service file has been read successfully again.
 
 A service-side reload request accepts only the hash of the already saved,
 CLI-bound local file. It accepts no runtime, model, policy, executable or path.
@@ -68,8 +72,10 @@ reload. Active queued/running jobs are deferred, not cancelled.
 
 The launcher still checks process/listener/store/source/dependency ownership.
 After a hot apply it can reconcile only the config hash, requiring the same
-service session and the exact in-memory applied file hash. A file merely saved
-on disk does not satisfy that check. First launch binds the operator file path
+service session and the exact in-memory applied file hash on every reuse.
+This also rejects restoring an older file on disk without applying it, even
+when that older file matches the launch receipt. A file merely saved on disk
+does not satisfy that check. First launch binds the operator file path
 even when it is initially absent.
 
 ## Native Windows host
@@ -91,7 +97,8 @@ Commands for the existing runtime:
 ~~~powershell
 python -m pytest tests/test_expert_connection.py tests/test_expert_connection_ui.py -q
 python -m pytest tests/test_server_config_encoding.py -q
-python -m pytest tests/test_windows_desktop_launcher.py -k "applied_expert_config or conflicting_owned_service" -q
+python -m pytest tests/test_windows_desktop_launcher.py -k "applied_expert_config or reuse_checks_loaded_config or conflicting_owned_service" -q
+python -m pytest tests/test_workbench_assist.py -k "openscience_step_reservation or openscience_host_cancellation or openscience_host_uses_utf8" -q
 ~~~
 
 Tests use public pinned-file doubles, actual shared owners/HTTP/Qt where stated,
