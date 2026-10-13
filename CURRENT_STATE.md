@@ -273,20 +273,20 @@ userMessage `01a133bc-eb27-77f4-98b1-455457d0f371`의 본문에서 수신을 확
 현재 Expert 교정을 게시한 뒤 추가 승인을 기다리지 않고 사용자 모델의 접촉 편집·메시·
 해석/Runner·Post 연결을 작성하도록 맡긴다. 새 작성 브랜치는
 `codex/contact-workflow-20261013`; Pro가 제품 코드·관련 검사/사용 안내를 쓰고 Codex는
-공유 계약 통합·CURRENT_STATE/SPEC/Windows 실행을 소유한다. 아직 접촉 코드가 작성된
-것으로 보고하지 않는다. 같은 Pro는 Expert 교정 게시 후 접촉의 기존 native 코드 읽기에
-착수했다. 첫 접촉 편집/분리 메시 준비 코드 `e916a32`를 로컬 main `d5fdcb5`에 통합했다.
-새 접촉/owner 검사 3건과 영향받는 기존 FEM Qt 패널 검사 4건은 통과했다. 실제 FreeCAD
-객체로 새 다중면 접촉을 만들 때, 형상 편집 없이 A/B 참조가 UNRESOLVED로 바뀌는 문제가
-나왔다. 발생 지점은 저장/재열기 전, 유효한 값을 Apply한 직후다. 이 때문에 실제 접촉
-저장/재열기·메시 준비 확인은 아직 통과하지 않았다. GUI 존재 여부만 대역이고 형상·접촉·
-메타데이터는 실제 native 객체인 제한 검사다. FreeCADCmd의 exit 0을 통과로 해석하지 않는다.
-추가 최소 재현에서 `ContactEditor.snapshot`만 호출해도 원본 BRep의 topology flag가
-바뀌는 것을 확인했다. 기하를 수정한 사용자 동작 없이 preview가 참조를 무효화한다.
-`PRO-CONTACT-FIX-01`을 같은 Pro에 전송했다(전송 도구 수락, 대화 본문 수신 확인은 대기).
-이 원본 변경 문제와 Astra의 세 지적(Show faces/Preview Cancel 시 미적용 편집 유실,
-법선 비교 누락, suppressed 메시를 활성 후보로 세는 문제)을 교정하도록 전달했다.
-Pro의 export/Runner/Post 작성은 계속한다. 수정 전 접촉 편집은 미완료 상태다.
+공유 계약 통합·CURRENT_STATE/SPEC/Windows 실행을 소유한다. 첫 접촉 편집/분리 메시
+준비 코드 `e916a32`를 main `d5fdcb5`에 통합했다. 실제 FreeCAD 검사에서 preview가 원본
+형상의 내부 상태를 바꿔 참조를 무효화하는 문제를 재현했고, Astra가 입력 보존·법선 비교·
+suppressed 메시 처리의 세 문제를 찾았다. 같은 Pro의 `PRO-CONTACT-FIX-01` 교정
+`37916e8`을 `71f3e03`으로 통합했다. FreeCAD의 형상 복사 API를 사용해 preview를 만들고
+표시/취소 때 편집 중인 값을 보존한다. 수정된 접촉/Qt 검사 6건은 통과했다.
+실제 FreeCAD 1.1.4에서는 공개 두 발 모델의 여러 면 선택→잘못된 초안 보존→값 수정→
+두 물체의 빈 native Gmsh 객체 준비→접촉 저장/재열기까지 통과했다. 형상·접촉·메타데이터는
+실제 native 객체이며 GUI 존재/선택 조회만 대역이다. 메시 생성·solver·실제 창 입력 검사는
+아직 하지 않았다. 해당 기록은 `runs/product-development/20261013/contact-editor-9e3f7ed8/receipt.json`.
+Pro는 export/Runner/Post 연결을 계속 작성한다. 편집 단계의 확인을 접촉 계산 완료로 보지 않는다.
+사용자 추가 지시에 따라 기존 오픈소스 전후처리기·solver 연동 코드와 이슈를 병행 조사해
+현재 구현에 적용한다. FreeCAD 공식 소스/문서와 PrePoMax·CalculiX→ParaView 경로를
+우선 확인하며 조사 때문에 제품 작성을 중단하지 않는다.
 
 접촉 구현의 실제 입력으로 [두 발 CAD 예제](examples/contact/README.md)를 추가했다.
 FreeCAD의 편집 가능한 Boolean 형상이며 두 접촉면·0.2 mm 간극·받침을 저장/재열기했다.

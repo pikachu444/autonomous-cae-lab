@@ -87,3 +87,10 @@ alternatives. Transient Cancel remains available during mesh work.
 Added focused double/Qt checks cover these cases, including actual modal
 Cancel. Author remote execution remains NOT_RUN; Root's earlier 3 owner and
 4 existing FEM panel checks passed on e916a32, before these corrections.
+
+Codex ran the six changed contact/Qt checks on the correction: PASS. With real
+FreeCAD 1.1.4 and the public two-foot model, native named faces, invalid-to-valid
+contact edits, two empty Gmsh objects and FCStd save/reopen also passed. The
+native owner used an absent-GUI/selection-query stub; this is not an interactive
+window check. No mesh generation or solver was run. The receipt is
+`runs/product-development/20261013/contact-editor-9e3f7ed8/receipt.json`.
