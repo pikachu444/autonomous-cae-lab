@@ -56,3 +56,22 @@ stand in for FreeCAD, Gmsh, CalculiX, Windows input or engineering validation.
 Pro remote execution: **NOT_RUN** (executor disconnected). Root/Codex owns the
 Windows execution/integration record. No solver or provider was run by this
 authoring checkpoint.
+
+
+## Editor correction checkpoint
+
+Preview geometry is copied with FreeCAD 1.1.4's positional
+`TopoShape.copy(True, False)` before validity/tessellation queries. The live
+BRep and exact face hashes are still compared. This addresses Root's native
+reproduction in which preview tessellation changed topology serialization
+flags without a user geometry edit; native confirmation remains Root-owned.
+
+Show faces and Cancel preserve the current form buffer. First-Apply receipt
+selection blocks form reload when a newer edit or another pair selection
+exists. Rebind compares old/new face normal vectors as well as count, area and
+center. Separate-mesh preparation uses active Gmsh meshes and keeps suppressed
+alternatives. Transient Cancel remains available during mesh work.
+
+Added focused double/Qt checks cover these cases, including actual modal
+Cancel. Author remote execution remains NOT_RUN; Root's earlier 3 owner and
+4 existing FEM panel checks passed on e916a32, before these corrections.

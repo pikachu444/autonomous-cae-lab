@@ -242,7 +242,7 @@ class Owner:
                         payload['constraints'] = [{'index': i, 'type': value.Type, 'value': value.Value}
                                                   for i, value in enumerate(obj.Constraints)]
             else:
-                if operation != 'document.activate':
+                if operation not in {'document.activate', 'pre.contact.cancel_rebind'}:
                     self._idle()
                 readonly = {'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',

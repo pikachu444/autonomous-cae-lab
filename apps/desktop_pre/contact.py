@@ -36,14 +36,17 @@ class ContactEditor:
 
     def snapshot(self, source, names, *, region_id=None):
         from .fem_edit import _target
-        from femmesh.meshtools import sub_shape_at_global_placement
         if (not names or len(names) > 256 or any(not name.startswith('Face') for name in names)
-                or not source.Shape.isValid() or len(source.Shape.Solids) != 1):
+                or not source.Shape.copy(True, False).isValid() or len(source.Shape.Solids) != 1):
             raise ValueError('Select nonempty faces on one valid solid body per side')
         target = _target(source, names)
         faces = []
         for name in names:
-            face = sub_shape_at_global_placement(source, name)
+            # OCC tessellation/validity caches can change shared TopoDS flags.
+            # FreeCAD 1.1.4 copy(True, False) deep-copies geometry without mesh.
+            # Do this before any display geometry query; never tessellate a partner.
+            face = source.getSubObject(name).copy(True, False)
+            face.Placement = source.getGlobalPlacement() * source.Placement.inverse() * face.Placement
             center = face.CenterOfMass
             uv = face.Surface.parameter(center)
             normal = face.normalAt(*uv)
@@ -55,6 +58,8 @@ class ContactEditor:
                 'center_normal': [float(normal.x), float(normal.y), float(normal.z)],
                 'preview_points_mm': [[float(p.x), float(p.y), float(p.z)] for p in points],
                 'preview_triangles': [list(row) for row in triangles]})
+        if _target(source, names) != target:
+            raise ValueError('INPUT_CHANGED: native source changed while preparing its independent preview')
         return {'region_id': region_id, 'label': source.Label, 'target': target, 'faces': faces}
 
     def _from_region(self, identifier):
@@ -167,7 +172,7 @@ class ContactEditor:
                     raise ValueError('Contact requires explicit solid faces')
                 if _target(obj, names) != target:
                     raise ValueError('UNRESOLVED: geometry changed; Preview and explicitly Apply a rebind')
-                if not obj.Shape.isValid() or len(obj.Shape.Solids) != 1:
+                if not obj.Shape.copy(True, False).isValid() or len(obj.Shape.Solids) != 1:
                     raise ValueError('Contact side requires one valid solid')
             except Exception as error:
                 fail(side, str(error))
@@ -292,9 +297,14 @@ class ContactEditor:
             import ObjectsFem
             for identifier in ids:
                 body = self.owner._object(identifier)
-                if not body.Shape.isValid() or len(body.Shape.Solids) != 1:
+                if not body.Shape.copy(True, False).isValid() or len(body.Shape.Solids) != 1:
                     raise ValueError('Body mesh requires one valid solid')
-                existing = [mesh for mesh in analysis.Group if hasattr(mesh, 'FemMesh') and getattr(mesh, 'Shape', None) is body]
+                existing = [mesh for mesh in analysis.Group if not getattr(mesh, 'Suppressed', False)
+                            and _native_type(mesh) == 'Fem::FemMeshGmsh' and getattr(mesh, 'Shape', None) is body]
+                foreign = [mesh for mesh in analysis.Group if not getattr(mesh, 'Suppressed', False)
+                           and hasattr(mesh, 'FemMesh') and getattr(mesh, 'Shape', None) is body and mesh not in existing]
+                if foreign:
+                    raise ValueError('This body has an active unsupported mesh type; explicitly choose a Gmsh mesh')
                 if len(existing) > 1:
                     raise ValueError('Choose one active mesh per body; duplicate body meshes are ambiguous')
                 mesh = existing[0] if existing else ObjectsFem.makeMeshGmsh(self.owner.doc)
@@ -313,13 +323,14 @@ class ContactEditor:
             if args or target:
                 raise ValueError('Contact inspection takes no arguments')
             return self.descriptor()
-        self.fem._assert_idle()
         if operation == 'pre.contact.cancel_rebind':
             if set(args) != {'preview_id'} or target:
                 raise ValueError('Cancel needs only the preview identity')
             self.previews.pop(args['preview_id'], None)
             self._clear_overlay()
             return {'cancelled': True, 'applied': False}
+        if operation != 'pre.contact.highlight':
+            self.fem._assert_idle()
         obj = self.fem._object(target)
         if operation == 'pre.contact.set':
             return self.set(obj, args)

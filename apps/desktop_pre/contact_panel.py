@@ -141,11 +141,17 @@ def add_contact_page(panel, W, C):
             identifier = self.pair.currentData() or panel.analysis.currentData()
             if not identifier:
                 raise ValueError('Create or choose a native FEM Analysis')
+            submitted_pair, serial = self.pair.currentData(), panel._edit_serial
             def done(record):
+                same_selection = self.pair.currentData() == submitted_pair
+                untouched = panel._edit_serial == serial
                 panel.refresh(load_forms=False)
-                self.pair.setCurrentIndex(self.pair.findData(record['object_id']))
-                if panel._completion_serial == panel._edit_serial:
-                    self.load_pair()
+                if same_selection:
+                    blocked = self.pair.blockSignals(True)
+                    self.pair.setCurrentIndex(self.pair.findData(record['object_id']))
+                    self.pair.blockSignals(blocked)
+                    if untouched:
+                        self.load_pair()
                 panel.status.setPlainText('Contact draft applied. Save uses the native project; Run checks faces, mesh and effective law.')
             panel._send('pre.contact.set', {'draft': self.draft()}, identifier, on_done=done)
 
@@ -166,7 +172,8 @@ def add_contact_page(panel, W, C):
         def action(self, operation):
             if not self.pair.currentData():
                 raise ValueError('Choose an existing contact pair')
-            panel._send('pre.contact.' + operation, {}, self.pair.currentData(), on_done=panel._refresh_after)
+            callback = (lambda result: panel.status.setPlainText('Contact faces selected in the native view.')) if operation == 'highlight' else panel._refresh_after
+            panel._send('pre.contact.' + operation, {}, self.pair.currentData(), on_done=callback)
 
         def prepare(self):
             selected = self.selected()
@@ -188,16 +195,17 @@ def add_contact_page(panel, W, C):
                 dialog = W.QDialog(self)
                 dialog.setWindowTitle('Rebind ' + side.upper())
                 layout = W.QVBoxLayout(dialog)
-                table = W.QTableWidget(3, 3)
+                table = W.QTableWidget(4, 3)
                 table.setHorizontalHeaderLabels(['Measure', 'Saved faces', 'Selected faces'])
                 for index, (key, label) in enumerate([('face_count', 'Faces'), ('area_mm2', 'Area (mm²)'),
-                                                     ('centroid_mm', 'Center (mm)')]):
+                                                     ('centroid_mm', 'Center (mm)'), ('face_normals', 'Face normals (x,y,z)')]):
                     values = [label, result['old'][key], result['new'][key]]
                     for column, value in enumerate(values):
                         table.setItem(index, column, W.QTableWidgetItem(str(value)))
                 table.setEditTriggers(W.QAbstractItemView.EditTrigger.NoEditTriggers)
                 table.resizeColumnsToContents()
                 layout.addWidget(table)
+                dialog.resize(660, 300)
                 buttons = W.QDialogButtonBox(W.QDialogButtonBox.StandardButton.Apply |
                                              W.QDialogButtonBox.StandardButton.Cancel)
                 buttons.button(W.QDialogButtonBox.StandardButton.Apply).clicked.connect(dialog.accept)
@@ -206,7 +214,8 @@ def add_contact_page(panel, W, C):
                 accepted = dialog.exec() == W.QDialog.DialogCode.Accepted
                 operation = 'apply_rebind' if accepted else 'cancel_rebind'
                 panel._send('pre.contact.' + operation, {'preview_id': result['preview_id']},
-                            identifier if accepted else None, on_done=panel._refresh_after)
+                            identifier if accepted else None, on_done=panel._refresh_after if accepted else
+                            lambda result: panel.status.setPlainText('Rebind cancelled. Current contact edits retained.'))
             panel._send('pre.contact.preview_rebind', {'side': side,
                 'selection': {'object_id': object_id, 'subelements': names}}, identifier, on_done=ready)
 

@@ -122,3 +122,48 @@ def test_late_condition_selection_stops_dependent_repair_and_keeps_prepared_regi
     assert len(panel.test_calls) == 1 and not panel.test_pending
     assert len(native.metadata['regions']) == 1 and not native.metadata.get('conditions')
     assert 'STALE_SELECTION' in panel.status.toPlainText()
+
+
+def test_contact_read_cancel_and_late_first_apply_preserve_edit_buffer(panel, native, monkeypatch):
+    from test_pre_fem_edit import Object, Quantity
+    import ObjectsFem
+    def make_contact(doc):
+        return Object(doc, 'Contact', 'Fem::ConstraintContact', References=[],
+            SurfaceBehavior='Linear', Slope=Quantity('0 MPa/mm'), Friction=False,
+            FrictionCoefficient=0, StickSlope=Quantity('0 MPa/mm'), Adjust=Quantity('0 mm'),
+            EnableThermalContact=False)
+    monkeypatch.setattr(ObjectsFem, 'makeConstraintContact', make_contact, raising=False)
+    page = panel.contact_page
+    page.fields['normal_stiffness_MPa_per_mm'].setText('1e')
+    page.apply()
+    page.fields['normal_stiffness_MPa_per_mm'].setText('2e')
+    page.fields['normal_stiffness_MPa_per_mm'].textEdited.emit('2e')
+    panel.test_complete()
+    assert page.pair.currentData() == 'Contact'
+    assert page.fields['normal_stiffness_MPa_per_mm'].text() == '2e'
+    assert native.metadata['contacts'][0]['draft']['normal_stiffness_MPa_per_mm'] == '1e'
+    page.action('highlight')
+    panel.test_complete()
+    assert page.fields['normal_stiffness_MPa_per_mm'].text() == '2e'
+    native.selection = [NS(Object=native.shape, SubElementNames=['Face1'])]
+    original = native.editor.contact.preview
+    def preview(obj, args):
+        native.editor.contact.previews['Ptest'] = {}
+        return {'preview_id': 'Ptest', 'old': {'face_count': 1, 'area_mm2': 1.,
+            'centroid_mm': [0, 0, 0], 'face_normals': [[0, 0, 1]]},
+            'new': {'face_count': 1, 'area_mm2': 1.,
+            'centroid_mm': [0, 0, 0], 'face_normals': [[0, 0, -1]]}}
+    monkeypatch.setattr(native.editor.contact, 'preview', preview)
+    page.preview('a')
+    def cancel():
+        dialog = QtWidgets.QApplication.activeModalWidget()
+        assert dialog is not None
+        table = dialog.findChild(QtWidgets.QTableWidget)
+        assert table.rowCount() == 4 and '-1' in table.item(3, 2).text()
+        dialog.reject()
+    QtCore.QTimer.singleShot(0, cancel)
+    panel.test_complete()
+    assert panel.test_calls[-1][0] == 'pre.contact.cancel_rebind'
+    panel.test_complete()
+    assert page.fields['normal_stiffness_MPa_per_mm'].text() == '2e'
+    assert not native.editor.contact.previews
