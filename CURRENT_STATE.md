@@ -88,7 +88,11 @@ Pro에 함께 전달했다. Pro는 같은 작성 턴에서 교정 중임을 확�
 Sol은 기존 Ubuntu WSL의 FEniCSx와 기존 SIF의 TFEL 5.0.0/MGIS 3.0을 버전/설치
 조회로 확인했다(설치·새 계산 없음). 이어 별도 공개 store/loopback service로 Windows
 Qt와 WSL 문서의 저장/재열기 연결을 맡았으며 제품 코드와 기존 서비스를 변경하지 않는다.
-이 연결은 아직 인도 전이다. 조사 원본은 위 reuse-map의 runtime 절이다.
+이 연결은 인도받았다. 별도 WSL 서비스와 Windows Qt에서 PDE 식 편집·저장 후
+서비스/창을 모두 닫고 같은 문서를 재열었다. 문서와 저장 내용은 같고 새 session이며
+job은 0개다. 별도 보존 공개 장 자료 49,862 bytes도 HTTP로 읽었다. 이는 새 문서의
+계산 결과가 아니다. 소유한 두 서비스만 종료했고 두 포트 종료도 확인했다.
+기록은 `pde-coupling-workflows/bridge.md`, `bridge-receipt.json`이다.
 이후 Sol은 `evaluation_window.py`와 관련 UI 검사에 한해 연성 단계 창의 배치/사람말
 표시를 구현한다. Astra가 두 배치 대안과 실제 화면을 직접 논의·검토하며 root가 일반
 문서와 통합을 맡는다. 기록은 `evaluation-layout/`다. Pro에 파일 소유권을 알렸고
@@ -98,6 +102,15 @@ D6 작성 파일/Core/engine을 중복 수정하지 않는다. MoAI t7은 이 �
 이어 확인했다. 원 training Material과 E=1100 좌표/평가예산 1을 유지하고 새 job은 0이다.
 명시 확인 응답은 시험 대역이며 OS 클릭 확인은 아니다. `retained-first/receipt.json`과
 `confirmation-plan.png`에 기록했다. 계획 생성과 실제 실행은 구별한다.
+
+D6 교정 `f62c37b`는 로컬 `0051f1c`로 통합했다(아직 미게시). 새 관련 검사는
+17개 통과, 1개 실패(32.06초)다. 작은 창 배치, 상관/목표 한계값 보존, 한국어 선택,
+Expert/Study 반환처와 모델 선택 분리, 예측/실제 비교 경로는 통과했다. 실패는 실제
+FELUPE 후보의 원 재료 반영 검토에서 순수 입력 binding이 빠진 문제이며 Pro에 전달했다.
+Astra가 같은 응답의 다른 축약 목적을 고를 때 표시명이 겹치는 문제도 찾아 함께
+교정을 요청했다. 실제 보존 FELUPE를 Qt/HTTP로 읽은 `retained-corrected`는 요청한
+1100×780 크기를 유지하고 차트 높이 250~275px다. 같은 예측점의 새 확인 계획 저장도
+이어 확인했으며 새 job은 0이다. 원래 실패와 첫 화면은 보존한다.
 
 Space 공동 댓글의 최신 요약 전송은 `page_limit_exceeded`로 거절됐다. 댓글 목록에서
 새 글 부재를 확인했으며 게시 성공으로 기록하지 않는다. 기존 기록은 삭제하지 않았다.
