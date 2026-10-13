@@ -71,3 +71,37 @@ calculation exclusion; existing Data quality defaults then report them as qualit
 valid. Pro was asked to preserve native invalidity with existing `quality_rows`
 and `quality_reasons`, separately from explicit exclusion and without changing
 raw values. This correction is pending with the Qt checkpoint as well.
+
+## Qt new-Plan path and corrections
+
+Pro `1456e29` added the Qt measurement dialog, actual retained observation view,
+editable fit/holdout trial and saved native return route. Its generated selector
+regex was corrupted by literal replacement, causing a SyntaxError at collection.
+Codex reported the exact source corruption; Pro `4563ec8` restored the function
+and the intended physical/quality guards. Local integration is `7325175`.
+
+Root Windows execution on that corrected source:
+
+- `pytest tests/test_post_numerical.py tests/test_post_numerical_ui.py -q`:
+  **6 passed in 5.84s**. Includes the actual Data owner, explicit native transport
+  double, Qt Post action→new Plan→retained curve, precision editing and Cancel.
+- Rendered the real MeasurementDialog using the previously extracted native PVD
+  snapshot at 1100×780, with Windows Segoe UI loaded into Qt offscreen. Three
+  numeric rows, physical axes, curve and selected-point marker were inspected.
+  The helper's first render lacked offscreen font registration and showed missing
+  glyphs; registering the existing font corrected that rendering setup without
+  changing product code. No native OS/DPI input claim.
+- Local helper/image: `runs/product-development/20261013/render_post_measurement.py`
+  and `native-post-handoff/post-measurement.png`. The input is publicly authored
+  synthetic native data, not a solver result or an engineering comparison.
+
+Astra/xhigh's narrow read-only follow-up closed the two original source findings
+on `4563ec8` and found no immediately failing native-return branch. That source
+review does not replace actual native return execution.
+
+Remaining required UI behavior: direct selection of a compatible existing Plan
+from the same dialog, pending review/Cancel/Append preserving live draft edits,
+without first creating an unwanted new Plan. Codex requested this from Pro; the
+existing separate observation picker is useful reuse, not fulfillment of AC-PN02.
+Short row labels should replace raw native JSON in the main table. SPEC stays
+in progress; no additional solver/provider or broad campaign was run.

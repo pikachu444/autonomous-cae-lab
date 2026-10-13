@@ -158,6 +158,11 @@ FreeCAD1.1.4와 ParaView6.2.0을 찾았다. 새 설치 없이 ParaView의 실제
 명시적으로 고른 `avg(U (2))`는 0/1/2mm다. 이 자료는 새 Post→Numerical 연결 확인용이며
 solver 계산·native 마우스 조작·공학적 검증이 아니다. FreeCAD는 실행 파일 존재만 확인했다.
 정확한 경로·재사용 자료는 [Post 연결 실행 준비](.moai/specs/SPEC-POST-NUMERICAL-001/acceptance.md#native-input-prepared-on-windows)에 있다.
+이 실행 파일 둘을 기존에 없던 사용자 `LOCALAPPDATA/AutonomousCAELab/workbench-config.json`의
+desktop 설정에 연결했다. 다음 서비스 시작부터 적용하며 열린 서비스/문서는 중단하지 않았다.
+소유한 개발 runtime에는 기존 `install-windows.ps1 -ResearchUI -Documents`로 프로젝트에
+고정된 pypdf6.10.0을 추가해 PDF reader import를 확인했다. BSD 라이선스 원문을 확인했으며
+provider 설정·인증·추가 비용은 없다. 실제 Expert 파일 가져오기는 다음 구현에서 연결한다.
 
 draw.io Desktop32.4.1의 기존 portable 무료 도구로 Codex의 소유권·상태 도면을 열기/export했다.
 Pro 계약에서 작성한 [전체 연결 원본](docs/design/20261012-desktop-planning/research.drawio)은
@@ -200,15 +205,15 @@ Numerical 교정 커밋 후 `codex/post-numerical-20261013`을 만들고 저장�
 미적용 편집을 보존하며 새 후보 계산과 측정값 가져오기를 구별한다. shared Core 변경은
 Codex가 통합하며 같은 소스의 작성자는 Pro 한 명이다. 범위는
 [SPEC-POST-NUMERICAL-001](.moai/specs/SPEC-POST-NUMERICAL-001/spec.md)에 연결했다.
-첫 backend 체크포인트 Pro `f313bb1`을 로컬 `d41af3e`로 통합했다. 실제 Data 가져오기·
-보존·재시도·Plan 재열기 등 기본 단위 검사 3개와 기존 ParaView6.2의 저장 측정 추출을
-확인했다. 선택한 시간/성분 값은 그대로였다. native owner 직접 실행이며 GUI/broker
-전체 왕복 확인은 아니다. Pro는 계속 Qt 선택·미리보기·관측 화면과 기존 Plan 연결을 작성한다.
-이 체크포인트를 Post→Numerical 전체 완료로 표시하지 않는다.
-Astra가 선택 열과 저장된 단위·frame·measure의 의미 일치 검사가 부족한 부분을 찾았다.
-같은 Pro에 Qt 연결과 함께 교정을 요청했으며 기본 실행 통과로 이 지적을 닫지 않는다.
-native 무효 행의 품질 표시를 일반 계산 제외와 구별해 Data에 전달하는 추가 교정도
-같은 Pro에 맡겼다. 두 교정은 기존 스키마를 사용하며 넓은 검증을 기다리지 않는다.
+Pro `f313bb1`의 backend와 `1456e29`의 Qt 선택·관측 화면, 문자열 손상을 고친 `4563ec8`을
+로컬 `7325175`까지 통합했다. 처음 UI 소스는 문법 오류로 collection 실패했고 같은 Pro가
+즉시 교정했다. 변경 경로 검사 6개가 통과했고 실제 native 자료를 넣은 1100×780 Qt
+대화상자의 표·곡선·선택 연동을 렌더로 확인했다. 앞선 ParaView6.2 owner의 실제 측정 추출과
+UI의 native transport 대역은 구별한다. Astra가 지적한 물리 선언·무효 행 품질 두 문제도
+교정 소스에서 해소됐다. 확인 범위와 원 실패는 SPEC의 acceptance에 남긴다.
+남은 필수 경로는 같은 대화상자에서 기존 Plan을 직접 선택하고 미적용 편집에 관측값만
+검토 후 추가하는 것이다. 새 Plan을 먼저 만들고 다른 picker로 우회하는 방식은 수용하지
+않았다. Pro가 이 경로와 짧은 행 표시를 이어 작성한다. 전체 Post 연결 완료는 아직 아니다.
 MoAI MCP의 실제 SPEC 조회와 CLI의 상태 갱신·해당 SPEC lint를 사용했다. lint의 구조
 오류는 수정했으며 표에 연결한 수용 조건을 인식하지 못한 coverage 등 경고는 남아 있다.
 문서 lint 결과를 실제 제품 기능이나 테스트 통과로 바꾸지 않는다.

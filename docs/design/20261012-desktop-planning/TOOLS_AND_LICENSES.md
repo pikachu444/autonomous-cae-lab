@@ -17,6 +17,7 @@
 | Qt Designer | 기존 PySide6 bundled `designer.exe`와 editable `.ui`, 새 유료 Qt account 설치 없음 | `.ui` 원본은 repository에 남긴다. Designer 사용과 Qt library 배포 의무는 별도 |
 | Matplotlib | 이미 있는 **3.10.1**의 QtAgg 그래프·plot selection. repo optional dependency pin3.10.8과 구별 | [공식 license](https://matplotlib.org/stable/project/license.html): PSF 기반/BSD-compatible, notice 보존. installed package license 원문과 version은 runtime evidence에 귀속 |
 | Python/Numpy | 이미 설치된 interpreter/수치 자료 처리. demo는 stdlib+Qt+Matplotlib, 새 numerical engine 없음 | dependency license/notice는 package exact version inventory로 추적. mock data/고정 계수는 SIMULATED UI |
+| pypdf | 2026-10-13 소유한 Windows 개발 runtime에 기존 `assist-pdf` pin **6.10.0**을 설치해 PDF reader import 확인. 기존 KnowledgeStore의 로컬 PDF 텍스트 추출에 사용 | [해당 태그의 BSD 3-Clause 원문](https://github.com/py-pdf/pypdf/blob/6.10.0/LICENSE). 소스/바이너리 배포 시 저작권·조건·면책 고지 보존. OCR이나 표·수식·그림의 정확성 보증은 없음. 유료 서비스/API 연결 없음 |
 | FreeCAD | 2026-10-13 과거 작업 폴더에서 기존 1.1.4 portable 실행 파일 확인. native Sketcher/PartDesign/Assembly/FEM·FCStd 경로 재사용 | [공식 LGPL 안내](https://github.com/FreeCAD/FreeCAD/blob/main/LICENSE). bundled OCCT/Qt 등 별도 notices·version 필요. 이번 확인에서 FreeCAD 실행·CAD 변경·solver 계산 없음 |
 | ParaView | 같은 폴더의 기존6.2.0 pvpython을 재사용해 공개 합성 PVD의 실제 native 시간 측정과 저장 실행. 새 다운로드·설치 없음 | [공식 BSD license](https://www.paraview.org/license/). VTK/Qt bundled notices 필요. 연결용 합성 자료이며 solver/공학 검증·OS 조작·전체 format 지원을 뜻하지 않음 |
 | 글꼴 | 로컬 설치된 Malgun Gothic/Segoe UI를 참조해 Windows/Qt 텍스트 렌더링. 폰트 파일은 배포하지 않음 | font binary를 저장소/ZIP에 복사하지 않음. 다른 OS에서는 이용 가능한 font로 명시 대체 |
