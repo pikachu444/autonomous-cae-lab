@@ -19,7 +19,8 @@ DOMAINS = {
     'pde.fenicsx.coupled': 'pde_coupled',
     'pde.fenicsx.imported': 'pde_imported',
 }
-BACKENDS = ('pde.fenicsx', *DOMAINS)
+from . import dimensioned_models
+BACKENDS = ('pde.fenicsx', *DOMAINS, *dimensioned_models.BACKENDS)
 
 
 def domain_module(backend):
@@ -28,6 +29,8 @@ def domain_module(backend):
 
 def default_draft(backend='pde.fenicsx.rectangle'):
     """Create real adapter settings; selected rectangle needs no reference solve."""
+    if backend in dimensioned_models.BACKENDS:
+        return {'backend': backend, 'settings': dimensioned_models.default_settings(backend)}
     if backend == 'pde.fenicsx.rectangle':
         settings = domain_module(backend).selected_settings()
     elif backend == 'pde.fenicsx.coupled':
@@ -60,6 +63,8 @@ def validate_draft(draft):
         raise ValueError('Choose a supported declared PDE adapter; arbitrary Python/ODE execution is not registered here')
     if not isinstance(settings, dict):
         raise ValueError('PDE settings must be an object')
+    if backend in dimensioned_models.BACKENDS:
+        return dimensioned_models.validate_settings(backend, settings)
     if backend == 'pde.fenicsx':
         from .adapters.fenicsx_worker import validate_settings
         return validate_settings(deepcopy(settings))
@@ -82,7 +87,8 @@ def _diagnostics_cached(serialized):
     try:
         validate_draft(draft)
     except (ValueError, TypeError, KeyError, IndexError, OverflowError, ArithmeticError) as error:
-        return [{'severity': 'error', 'path': 'settings', 'message': str(error), 'blocks_evaluation': True}]
+        return [{'severity': 'error', 'path': getattr(error, 'path', 'settings'), 'message': str(error),
+                 'line': getattr(error, 'line', None), 'column': getattr(error, 'column', None), 'blocks_evaluation': True}]
     return []
 
 
@@ -97,6 +103,12 @@ def _support_cached(serialized):
     backend = draft.get('backend')
     if not isinstance(backend, str) or backend not in BACKENDS:
         return {'limitations': ['No executable adapter is declared for this draft.'], 'declaration': None}
+    if backend in dimensioned_models.BACKENDS:
+        return {'declaration': None if diagnostics(draft) else dimensioned_models.model_declaration(backend, draft['settings']),
+                'limitations': ['명시한 SI 단위의 수치입니다. 자동 단위 변환은 하지 않습니다.',
+                    '상태 ODE 초기값 문제' if backend == dimensioned_models.ODE else '직사각형 스칼라 선형 체적 약형식, P1, Dirichlet/자연 경계'],
+                'units': '선언된 SI 단위', 'expression_language': '차원 검사 AST; Python/UFL 코드 실행 없음',
+                'runtime': '실행 시 선택한 SciPy/FEniCSx 환경을 사용합니다.'}
     if backend == 'pde.fenicsx':
         from .adapters.fenicsx_pde import _LIMITATIONS
         limits = _LIMITATIONS

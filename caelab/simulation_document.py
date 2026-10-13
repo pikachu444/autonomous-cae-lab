@@ -10,6 +10,8 @@ from .material_document import MaterialDocuments
 
 
 CATALOG = {
+    'material.mfront.user': (None, None,
+        '운영자가 원문 SHA로 허용한 사용자 법칙. generic 3차원 미소변형, Pa/1/s. FE export는 별도 미지원.'),
     'structure.calculix.design': (None, None,
         'Saved native Analysis candidates: independent editable copy, mapped references, remesh and existing CalculiX execution.'),
     'structural.code_aster': ('plugins.elasticity.reference', 'native_doctor_settings',

@@ -169,6 +169,9 @@ class MaterialWindow(QMainWindow):
         self.numerical_action = QAction("재료 피팅…", self)
         self.numerical_action.triggered.connect(self.open_numerical)
         windows.addAction(self.numerical_action)
+        self.constitutive_action=QAction('구성식 증분…',self)
+        self.constitutive_action.triggered.connect(self.open_constitutive)
+        windows.addAction(self.constitutive_action)
         toolbar = QToolBar("Material commands", self)
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -804,6 +807,14 @@ class MaterialWindow(QMainWindow):
             if accepted and title.strip():
                 self.open_document(title=title.strip())
         self._leave(create)
+
+    def open_constitutive(self):
+        jobs=self._selected_jobs()
+        if not self.document or len(jobs)!=1:
+            self.message.setText('계산 결과 하나를 선택하세요.');return
+        from .constitutive_inspection_window import ConstitutiveInspectionWindow
+        window=ConstitutiveInspectionWindow(self.client,self.document['id'],jobs[0],self)
+        self._native_material_windows.append(window);window.show()
 
     def new_native_law(self):
         from caelab.material_document import NATIVE_LAWS

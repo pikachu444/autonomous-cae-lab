@@ -42,6 +42,14 @@ def validate_settings(settings, *, parameters=True):
         raise ValueError(f'{model} requires parameters {sorted(names)}')
     if parameters:
         validate_parameters(model, settings['parameters'])
+    probe=settings.get('tangent_probe')
+    if probe is not None:
+        if (not isinstance(probe,dict) or set(probe)!={'increment','input_component','steps'}
+                or type(probe['increment']) is not int or not 0<=probe['increment']<len(time)
+                or probe['input_component'] not in [a+b for a in 'xyz' for b in 'xyz']
+                or not isinstance(probe['steps'],list) or not 1<=len(probe['steps'])<=5
+                or any(type(h) not in (int,float) or not np.isfinite(h) or h<=0 for h in probe['steps'])):
+            raise ValueError('Tangent probe requires a retained increment, F component and 1–5 positive steps')
     return model, time, gradients
 
 
@@ -122,10 +130,28 @@ class FelupeMaterialAdapter:
                 responses['energy'] = {'kind': 'series', 'value': np.asarray(material.function([F, state])[0]).reshape(-1),
                                        'unit': unit, 'component': 'energy_per_reference_volume',
                                        'location': 'material_point', 'reduction': 'none', 'axes': deepcopy(axes)}
+            probes=[]
+            if settings.get('tangent_probe') is not None:
+                spec=settings['tangent_probe'];index=spec['increment']
+                k,l=('xyz'.index(axis) for axis in spec['input_component'])
+                for h in spec['steps']:
+                    signed={}
+                    for sign in (-1,1):
+                        perturbed=fixed_gradients[index].copy()
+                        perturbed[k,l]+=sign*h
+                        if np.linalg.det(perturbed)<=0: raise ValueError('Perturbation produces nonpositive det(F)')
+                        independent=(felupe.LinearElastic(**p) if model=='linear_elastic' else felupe.NeoHookeCompressible(**p))
+                        measured=independent.gradient([perturbed[:,:,None,None],np.zeros((0,1,1))])[0][:,:,0,0]
+                        signed[sign]=measured.copy()
+                    probes.append({'increment':index,'input_component':spec['input_component'],'h':h,
+                        'minus':signed[-1].tolist(),'plus':signed[1].tolist(),
+                        'finite_difference':((signed[1]-signed[-1])/(2*h)).tolist(),
+                        'analytic':tangent[:,:,k,l,index].tolist(),'unit':unit,
+                        'baseline':'independent ZERO_ELASTIC_STATE for each signed probe'})
             return {'execution_status': 'SUCCEEDED', 'responses': responses,
                     'checks': [{'name': 'physical_calibration', 'status': 'NOT_ASSESSED'}],
                     'diagnostics': {'library': 'felupe', 'version': felupe.__version__, 'model': model,
-                                    'parameters': p, 'initial_state': 'ZERO_ELASTIC_STATE',
+                                    'parameters': p, 'initial_state': 'ZERO_ELASTIC_STATE', 'tangent_probes': probes,
                                     'limitations': ['Prescribed material-point kinematics, no FE boundary solve',
                                                    'Fitted synthetic data is not physical validation']}}
         return PreparedEvaluation(calculate, settings)

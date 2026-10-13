@@ -187,6 +187,14 @@ class Workbench:
         return response_locations(result, channel, start=start, count=count, search=search) | {
             'document_id': identifier, 'job_id': job_id}
 
+    def constitutive_inspect(self, document_id, job_id, increment=0):
+        from .constitutive_inspection import inspect_constitutive
+        return inspect_constitutive(self, document_id, job_id, increment)
+
+    def evaluation_transfer(self, document_id, job_id, transfer_id=None, iteration=None, *, start=0, count=256):
+        from .transfer_inspection import inspect_transfer
+        return inspect_transfer(self, document_id, job_id, transfer_id, iteration, start=start, count=count)
+
     def evaluation_inspect(self, identifier):
         return self.evaluation_documents.inspect_definition(identifier)
 

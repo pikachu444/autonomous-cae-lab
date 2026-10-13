@@ -50,6 +50,7 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("structural.code_aster.contact_patch", "codeaster_contact", "CodeAsterContactPatchAdapter", ("model",), None, "Code_Aster"),
     ("structural.families.calculix", "structural_family_calculix", "StructuralFamilyCalculiXAdapter", ("model",), None, "Gmsh/CalculiX"),
     ("structural.families.code_aster", "structural_family_codeaster", "StructuralFamilyCodeAsterAdapter", ("model",), None, "Code_Aster"),
+    ("material.mfront.user", "user_mfront", "UserMFrontAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront", "mfront_material", "MFrontMaterialAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.inverse", "mfront_inverse", "MFrontInverseAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.hyperelastic", "mfront_hyperelastic", "MFrontHyperelasticAdapter", ("model",), None, "MFront/MGIS"),
@@ -66,6 +67,8 @@ for _suffix, _class in (("", "FenicsxPDEAdapter"), (".nonlinear", "FenicsxNonlin
                         (".imported", "FenicsxImportedPDEAdapter")):
     _builtin("pde.fenicsx" + _suffix, "adapters.fenicsx_" + (_suffix[1:] or "pde"), _class,
              ("pde", "model") if _suffix=='.coupled' else ("pde",), native="FEniCSx")
+_builtin('pde.scipy.ode', 'adapters.dimensioned_ode', 'DimensionedODEAdapter', ('pde', 'model'), 'scipy')
+_builtin('pde.fenicsx.dimensioned', 'adapters.dimensioned_weak', 'DimensionedWeakAdapter', ('pde', 'model'), native='FEniCSx')
 _builtin("scipy.latin_hypercube", "optimizers.scipy_lhs", "ScipyLatinHypercube", ("doe",), "scipy")
 _builtin('thermal.fenicsx.rectangle', 'adapters.thermoelastic_fenicsx', 'ThermalFenicsxAdapter', ('stage',), native='FEniCSx')
 _builtin('structural.fenicsx.thermoelastic_rectangle', 'adapters.thermoelastic_fenicsx', 'ThermoelasticFenicsxAdapter', ('stage',), native='FEniCSx')

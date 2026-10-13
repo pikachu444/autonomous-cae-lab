@@ -97,6 +97,13 @@ class Client:
         from .storage import check_id
         from urllib.parse import urlencode
         return self.request('/api/workbench/documents/'+check_id(identifier)+'/comparisons/'+check_id(comparison_id)+'?'+urlencode({'start':start,'count':count}))
+    def constitutive_inspect(self, document_id, job_id, increment=0):
+        return self.request('/api/workbench/constitutive-inspect', dict(document_id=document_id, job_id=job_id, increment=increment))
+
+    def evaluation_transfer(self, document_id, job_id, transfer_id=None, iteration=None, *, start=0, count=256):
+        return self.request('/api/workbench/evaluation-transfer', dict(document_id=document_id, job_id=job_id,
+            transfer_id=transfer_id, iteration=iteration, start=start, count=count))
+
     def evaluation_inspect(self, identifier):
         from .storage import check_id
         return self.request('/api/workbench/evaluations/'+check_id(identifier)+'/inspect')

@@ -13,7 +13,7 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 
 OPERATIONS = {'material.update', 'material.evaluate', 'document.undo', 'document.redo', 'document.save'}
-NATIVE_LAWS = ('material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic')
+NATIVE_LAWS = ('material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic', 'material.mfront.user')
 
 
 def default_draft():
@@ -35,7 +35,7 @@ def diagnostics(draft):
             raise ValueError('This editor supports the registered FELUPE material-point adapter')
         if not isinstance(draft.get('settings'), dict):
             raise ValueError('Material settings must be an object')
-        if set(draft['settings']) != {'model', 'stress_unit', 'time_unit', 'parameters', 'time', 'deformation_gradient'}:
+        if set(draft['settings']) - {'tangent_probe'} != {'model', 'stress_unit', 'time_unit', 'parameters', 'time', 'deformation_gradient'}:
             raise ValueError('Material settings require model, parameters, time, deformation_gradient and both units')
         validate_settings(draft['settings'])
     except (ValueError, TypeError, KeyError, OverflowError) as error:

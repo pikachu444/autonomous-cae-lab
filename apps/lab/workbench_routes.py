@@ -30,6 +30,14 @@ def handle(handler,method,path,query):
             if set(body)!={'backend'}:
                 raise ServiceError(400,'Dependency discovery accepts a registered backend only; no execution/configuration arguments')
             return handler._json(200,workbench.backend_readiness(body['backend']))
+        if path=='/api/workbench/constitutive-inspect':
+            if set(body)-{'document_id','job_id','increment'} or not {'document_id','job_id'} <= set(body):
+                raise ServiceError(400,'재료 계산과 증분을 선택하세요.')
+            return handler._json(200,workbench.constitutive_inspect(**body))
+        if path=='/api/workbench/evaluation-transfer':
+            if set(body)-{'document_id','job_id','transfer_id','iteration','start','count'} or not {'document_id','job_id'} <= set(body):
+                raise ServiceError(400,'정확한 연성 결과와 전달을 선택하세요.')
+            return handler._json(200,workbench.evaluation_transfer(**body))
         if path=='/api/workbench/research-reference':
             if set(body)!={'reference'}:
                 raise ServiceError(400,'Select the exact saved evidence reference')
@@ -164,6 +172,11 @@ def handle(handler,method,path,query):
                 raise ServiceError(400,'Unknown local input field')
             return handler._json(201,workbench.register_local_input(body['root_id'],body['relative']))
         raise ServiceError(404,'Unknown workbench route')
+    if path == '/api/workbench/material-build-context':
+        if query:
+            raise ServiceError(400, 'Build context takes no arguments')
+        from caelab.material_build_permission import context
+        return handler._json(200, {**context(), 'service_session_id': workbench.session_id})
     if path == '/api/workbench/expert-connection':
         if query:
             raise ServiceError(400, 'Connection status takes no arguments')

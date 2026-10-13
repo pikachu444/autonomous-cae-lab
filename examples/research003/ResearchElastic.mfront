@@ -1,0 +1,15 @@
+@Behaviour ResearchElastic;
+@ModellingHypotheses {"Tridimensional"};
+@ProvidesSymmetricTangentOperator;
+@MaterialProperty stress young;
+young.setGlossaryName("YoungModulus");
+@MaterialProperty real nu;
+nu.setGlossaryName("PoissonRatio");
+@Integrator{
+  const auto lambda = young*nu/((1+nu)*(1-2*nu));
+  const auto mu = young/(2*(1+nu));
+  sig = lambda*trace(eto+deto)*StrainStensor::Id()+2*mu*(eto+deto);
+  if(computeTangentOperator_){
+    Dt = lambda*Stensor4::IxI()+2*mu*Stensor4::Id();
+  }
+}
