@@ -264,6 +264,15 @@ def test_reorganized_current_map_does_not_resurrect_retained_topics(tmp_path, sc
         window._topic_clicked(new_item)
         assert window.turns.currentItem().data(Qt.ItemDataRole.UserRole) == turn['id']
         assert window.topics.currentItem().data(0, Qt.ItemDataRole.UserRole) == new['id']
+        unmapped = next(row for row in after['turns']
+                        if row.get('protocol') == 'costorm' and row['id'] != turn['id'])
+        composer_topic = window.edited_draft()['composer']['topic_id']
+        for row in range(window.turns.count()):
+            if window.turns.item(row).data(Qt.ItemDataRole.UserRole) == unmapped['id']:
+                window.turns.setCurrentRow(row)
+                break
+        assert window.topics.currentItem() is None
+        assert window.edited_draft()['composer']['topic_id'] == composer_topic
         stale_item = QTreeWidgetItem([old['title']])
         stale_item.setData(0, Qt.ItemDataRole.UserRole, old['id'])
         selected = window.edited_draft()['composer']['topic_id']

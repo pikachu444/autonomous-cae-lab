@@ -1137,6 +1137,9 @@ class ExpertWindow(QMainWindow):
                 if node.data(0, Qt.ItemDataRole.UserRole) in linked_topics), None)
             if selected_topic:
                 self.topics.setCurrentItem(selected_topic)
+            else:
+                self.topics.setCurrentItem(None)
+                self.topics.clearSelection()
         self.details.setPlainText(json.dumps(turn, ensure_ascii=False, indent=2))
         self._references = deepcopy(turn.get('evidence', [])) + deepcopy(turn.get('response', {}).get('sources', []))
         if turn.get('job_id'):
