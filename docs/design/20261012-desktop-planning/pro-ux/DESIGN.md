@@ -1,5 +1,46 @@
 # Desktop UX design — engineering work first
 
+## 두 화면의 역할과 도구 간 연결
+
+**CAD Features는 형상을 편집하는 화면이고, Numerical MOO는 목표·제약에 따라 설계 후보를 비교하는 화면이다. 각 도구에서 독립적으로 일을 시작할 수 있으며, 함께 사용할 때는 같은 모델·결과·응답을 다음 작업으로 전달한다.**
+
+| 제출 화면 | 단독으로 시작하는 작업 | 전체 연구에서 이어지는 작업 |
+|---|---|---|
+| [CAD Features](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/cad-features.png) | 클램프의 두께 16, 폭 90, 높이 32 mm와 구멍을 편집하는 상태다. CAD에서 직접 형상을 만들고 스케치·피처·조립·메시·조건을 다룬다. | 저장한 형상을 Use in Simulation 또는 Update geometry…로 해석 설정에 가져온다. 최적화에서 후보를 골라 명시 적용하면 CAD에서 변경된 설계를 계속 편집할 수 있다. |
+| [Numerical MOO](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/numerical-moo.png) | 평가기·설계변수·목표·제약을 정하고 후보를 비교하는 독립 연구 도구다. 이 화면은 Mass/Gauge error를 줄이면서 변위 ≤0.35 mm, 간극 ≥0.10 mm인 후보를 비교한다. p19는 0.42 kg, 2.1%, 변위 0.31 mm, 간극 0.12 mm로 선택돼 있다. | Post 측정을 응답으로 가져와 목표·제약에 사용할 수 있다. 선택 후보는 CAD 또는 Material처럼 해당 변수를 소유한 문서에 명시 Apply/Save하여 설계 작업으로 되돌린다. |
+
+두 화면은 편집 가능한 Qt 시제품의 상태다. 표 편집·선택·저장·창 사이 전달은 실제 Qt 조작이며, 형상은 Qt가 그린 illustration, 곡선·후보 수치는 미리 작성해 불러오는 합성 예시다. 현재 입력으로 FreeCAD/ParaView나 solver·optimizer를 실행한 결과를 보여 주는 것은 아니다. 같은 후보의 지배·제약 관계에 대한 설명은 §6을 따른다.
+
+### 모델에서 해석·측정·설계 적용까지
+
+| 작업 도구 | 사용자가 하는 일 | 다음 도구에 이어지는 대상 |
+|---|---|---|
+| CAD / FE | 형상을 만들고 치수·자세·메시를 바꾼다. 선택 면에 하중·구속·접촉을 적용한다. | 사용자가 저장해 선택한 형상과 조건을 Simulation에서 사용한다. |
+| Simulation → Runner | solver·해석 종류·step·하중·출력을 정하고 Run analysis…를 누른다. Runner에서 작업의 진행·수렴·실패와 결과를 살핀다. | 해당 해석 작업의 결과를 Post로 연다. Runner에서 domain 설정을 다시 만드는 구조는 아니다. |
+| Post | 같은 결과의 field·시각·단면·곡선을 보고 두 점 gauge 등을 측정한다. Register response…를 사용한다. | 선택한 위치·시각의 quantity와 단위를 가진 응답을 Numerical에서 목표·제약으로 편집한다. |
+| Numerical | 두께 같은 변수의 범위와 질량·오차 목표, 변위·간극 제약을 정한다. 후보의 형상·응답을 비교해 선택한다. | 사용자가 선택한 설계 값만 해당 CAD/Material 문서에 명시 적용한다. 후보 선택 자체가 원 설계를 바꾸지는 않는다. |
+| CAD / Material | Apply한 값을 확인하고 Save한다. 변경된 형상이나 물성을 계속 편집한다. | 후속 해석·연구를 준비하거나 해당 도구의 독립 작업을 이어간다. Material은 필요한 변수가 있을 때 연결하며 모든 작업의 선행조건이 아니다. |
+
+시제품에서 Run analysis…/Run study…는 검토 입력의 PREPARED 작업을 만든다. 이후 Review → Load retained result fixture로 결과 예시를 명시적으로 불러온다. 이 단계 구분을 유지한 채 도구 전달을 조작한다. 실제 계산과 입력에 따라 새 결과를 만드는 제품 연결은 기존 개발 범위다.
+
+이 흐름의 기존 상태는 `cad-features`/`cad-conditions`/`cad-contact`, `simulation-implicit`, `runner-convergence`, `post-field`/`post-gauge`/`post-compare`, `numerical-moo`/`candidate-partial-save`다. 각각의 상태를 같은 연구에서 연결하는 조작은 아래 도구별 절과 [기존 검토 안내](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)를 따른다.
+
+### 독립 질문에서 연구 결과와 후속 논의까지
+
+Expert는 자기 질문과 논점으로 시작한다. 논점 지도에서 발언을 선택하고 사용자 reply를 작성한 뒤, 명시적으로 Plan을 열어 Numerical의 평가기·변수·응답·방법을 편집한다. Study도 자체 질문과 경쟁 가설로 독립적으로 시작할 수 있다.
+
+그 연구의 Runner 작업에서 방법에 맞는 결과 예시를 열고, 예를 들어 DOE의 d2 행을 선택해 Discuss selection을 누르면 같은 질문의 후속 논의로 돌아온다. 선택 결과를 보면서 사용자 reply를 남기거나 Use as Study evidence…로 가설과 Support/Refute/Neutral을 고른다. Study의 판단·이유·다음 연구는 사용자가 명시적으로 작성한다. 저장한 뒤에도 같은 질문과 결과 선택을 열어 작업을 이어간다.
+
+연결 상태는 `expert-discussion` → `numerical-doe`/`result-doe` → `expert-followup`/`study-judgment`다. DOE는 한 사례이며 다른 방법은 §6의 해당 입력·결과를 사용한다. 작성된 다자 발언은 합성 예시이고 실제 provider 발언은 아니다. provider가 미연결이어도 질문·사용자 reply·Plan·Study의 로컬 편집은 가능하다. Plan과 Study 판단을 자동 채택하지 않는다.
+
+### 독립 도구와 전체 연계의 관계
+
+독립 사용은 각 도구가 자기 작업을 직접 열고 끝낼 수 있다는 뜻이다. 연계 사용은 다른 도구가 만든 모델·자료·측정·연구 결과를 사용자가 다음 작업에 명시적으로 가져온다는 뜻이다. Data·Material·PDE 등도 이 원칙을 따른다. 모든 도구를 반드시 차례대로 거칠 필요는 없다.
+
+Workbench는 필요할 때 연결을 살펴보고 해당 독립 도구를 여는 선택적 보기다. 이 작업 경로의 강제 진입점이 아니며, 전체 도구를 한 창에 합치는 설계도 아니다. 이번 시제품에서 여러 도구의 전달을 이어 보려면 **Window 메뉴로 같은 ReviewSession의 창을 연다.** 별도 명령으로 실행한 프로세스는 각각 별도 검토 세션이다. 이는 현재 시제품의 실행 방법이며 제품의 독립 사용·연계 범위를 축소하는 결정이 아니다.
+
+이 설명은 [원 사용자 요구](https://github.com/pikachu444/autonomous-cae-lab/blob/313679843813b63dee44409de5c5abc43c8a373b/docs/design/20261012-desktop-planning/USER_DESIGN_REQUIREMENTS.md)와 기존 시제품의 역할을 풀어 쓴 것이다. “이게 뭘 보여준거야?”를 설계 거절이나 재설계 지시로 해석하지 않는다. 이전 Codex의 불충분·완료 보고 철회 판단은 사용자 판단이 아니다. 이번 중립 설명 교정으로 기존 35기능·74작업, Qt QA, 사용자 수용과 기술 범위의 상태를 변경하지 않는다.
+
 ## 1. 결정과 범위
 
 주 작업은 **형상을 만들고 조건을 주어 해석을 검토한 뒤, 결과에서 설계를 판단하는 것**이다. CAD/FE → Simulation → Runner → Post → Numerical을 첫 번째 완결 경로로 작성했다. Expert/Study는 독립적인 질문·논의·판단 경로다. Data/Material/PDE는 병행 연구 도구다. 어느 하나의 완료를 다른 모든 도구의 선행조건으로 두지 않는다.
