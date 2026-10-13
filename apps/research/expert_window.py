@@ -23,6 +23,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDia
 from caelab.discussion_document import diagnostics as discussion_diagnostics
 from caelab.storage import canonical_hash
 from caelab.workbench_client import Client
+from .discussion_view import ConversationList
+from .reference_content import ReferenceContent
 
 
 class _Signals(QObject):
@@ -85,6 +87,7 @@ class ExpertWindow(QMainWindow):
         self._source_titles, self._source_collections = {}, {}
         self._source_titles_pending = False
         self._source_preview_binding = None
+        self._topics_snapshot = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -115,9 +118,9 @@ class ExpertWindow(QMainWindow):
         bar = QToolBar('Discussion', self)
         bar.setMovable(False)
         self.addToolBar(bar)
-        bar.addActions([self.new_action, self.open_action, self.save_action, self.undo_action, self.redo_action])
-        self.pause_button = QPushButton('Pause discussion')
-        self.resume_button = QPushButton('Continue round')
+        bar.addActions([self.save_action, self.undo_action, self.redo_action])
+        self.pause_button = QPushButton('Pause')
+        self.resume_button = QPushButton('Continue')
         self.pause_button.clicked.connect(self.pause_discussion)
         self.resume_button.clicked.connect(self.resume_discussion)
         bar.addWidget(self.pause_button)
@@ -129,9 +132,9 @@ class ExpertWindow(QMainWindow):
         bar.addWidget(self.identity)
         root = QWidget()
         outer = QVBoxLayout(root)
-        self.message = QLabel('Open a discussion, edit the question, and select registered roles.')
+        self.message = QLabel('')
         self.message.setWordWrap(True)
-        outer.addWidget(self.message)
+        self.statusBar().addWidget(self.message, 1)
         conflict = QHBoxLayout()
         self.reload_button, self.copy_button = QPushButton('Reload service version'), QPushButton('Keep edits as new discussion')
         self.reload_button.clicked.connect(self.reload_remote)
@@ -144,7 +147,14 @@ class ExpertWindow(QMainWindow):
         outer.addWidget(splitter, 1)
         left = QWidget()
         nav = QVBoxLayout(left)
-        nav.addWidget(QLabel('Topics · click to move to related turns'))
+        conversations = QHBoxLayout()
+        new = QPushButton('New')
+        opened = QPushButton('My conversations')
+        new.clicked.connect(self.new_document)
+        opened.clicked.connect(self.choose_document)
+        conversations.addWidget(new); conversations.addWidget(opened)
+        nav.addLayout(conversations)
+        nav.addWidget(QLabel('Topics'))
         self.topics = QTreeWidget()
         self.topics.setHeaderHidden(True)
         self.topics.setObjectName('discussionTopics')
@@ -157,17 +167,19 @@ class ExpertWindow(QMainWindow):
         topic_row.addWidget(add_topic)
         topic_row.addWidget(rename_topic)
         nav.addLayout(topic_row)
-        nav.addWidget(QLabel('Participants · existing registered roles'))
+        participant_tab = QWidget()
+        participant_layout = QVBoxLayout(participant_tab)
+        participant_layout.addWidget(QLabel('Participants'))
         self.registry_status = QLabel()
         self.registry_status.setWordWrap(True)
         self.registry_status.hide()
-        nav.addWidget(self.registry_status)
+        participant_layout.addWidget(self.registry_status)
         self.roles = QListWidget()
         self.roles.setObjectName('discussionRoles')
         self.roles.itemChanged.connect(self._edited)
         self.roles.currentRowChanged.connect(self._update_actions)
         self.roles.itemDoubleClicked.connect(lambda *_: self.show_role_details())
-        nav.addWidget(self.roles, 2)
+        participant_layout.addWidget(self.roles, 1)
         registry = QPushButton('Refresh roles')
         registry.clicked.connect(self.refresh_registry)
         role_actions = QHBoxLayout()
@@ -175,13 +187,18 @@ class ExpertWindow(QMainWindow):
         self.role_details = QPushButton('역할 상세…')
         self.role_details.clicked.connect(self.show_role_details)
         role_actions.addWidget(self.role_details)
-        nav.addLayout(role_actions)
+        participant_layout.addLayout(role_actions)
         splitter.addWidget(left)
         center = QWidget()
         conversation = QVBoxLayout(center)
-        conversation.addWidget(QLabel('Actual authored turns · click for reply linkage and evidence'))
-        self.turns = QListWidget()
-        self.turns.setWordWrap(True)
+        self.discussion_title = QLabel('Conversation')
+        self.discussion_title.setWordWrap(True)
+        heading_font = self.discussion_title.font(); heading_font.setPointSize(heading_font.pointSize() + 2)
+        heading_font.setBold(True); self.discussion_title.setFont(heading_font)
+        conversation.addWidget(self.discussion_title)
+        self.turns = ConversationList()
+        self.turns.citation_requested.connect(self.open_turn_citation)
+        self.turns.reply_requested.connect(self.reply_to_turn)
         self.turns.setObjectName('discussionTurns')
         self.turns.currentItemChanged.connect(self._turn_selected)
         conversation.addWidget(self.turns, 1)
@@ -201,8 +218,9 @@ class ExpertWindow(QMainWindow):
         composer.addLayout(selector)
         self.question = QPlainTextEdit()
         self.question.setObjectName('discussionQuestion')
-        self.question.setPlaceholderText('Question, counterargument or new observation. Apply preserves the draft; request a round invokes the selected roles.')
-        self.question.setMaximumHeight(155)
+        self.question.setPlaceholderText('Join the conversation…')
+        self.question.setMaximumHeight(110)
+        self.question.setMinimumHeight(72)
         self.question.textChanged.connect(self._edited)
         composer.addWidget(self.question)
         self.evidence_label = QLabel('No attached result evidence')
@@ -212,7 +230,7 @@ class ExpertWindow(QMainWindow):
         self.composer_evidence.setObjectName('discussionAttachments')
         self.composer_evidence.setMaximumHeight(75)
         composer.addWidget(self.composer_evidence)
-        remove_evidence = QPushButton('Remove selected attachment')
+        self.remove_evidence_button = remove_evidence = QPushButton('Remove attachment')
         remove_evidence.clicked.connect(self.remove_evidence)
         composer.addWidget(remove_evidence)
         actions = QHBoxLayout()
@@ -220,9 +238,9 @@ class ExpertWindow(QMainWindow):
         self.attach_button.clicked.connect(self.attach_result)
         self.apply_button = QPushButton('Apply edits')
         self.apply_button.clicked.connect(self.apply_inputs)
-        self.intervene_button = QPushButton('Add intervention')
+        self.intervene_button = QPushButton('Send')
         self.intervene_button.clicked.connect(self.intervene)
-        self.ask_button = QPushButton('Request round')
+        self.ask_button = QPushButton('Start discussion')
         self.ask_button.clicked.connect(self.ask)
         self.attach_button.setToolTip('Attach an exact retained document job and selected response channels.')
         self.apply_button.setToolTip('Apply the edited question, topic, participants and request settings to the shared owner.')
@@ -234,6 +252,7 @@ class ExpertWindow(QMainWindow):
         conversation.addWidget(self.editor)
         splitter.addWidget(center)
         self.side = QTabWidget()
+        self.side.setMinimumWidth(300)
         from .expert_sources import SourcePreview
         self.source_tab = QWidget()
         source_layout = QVBoxLayout(self.source_tab)
@@ -263,15 +282,23 @@ class ExpertWindow(QMainWindow):
         evidence_tab = QWidget()
         evidence_layout = QVBoxLayout(evidence_tab)
         self.sources = QListWidget()
+        self.sources.setMaximumHeight(130)
         self.sources.currentRowChanged.connect(self._update_actions)
         evidence_layout.addWidget(self.sources)
+        self.result_preview = ReferenceContent()
+        self.result_preview.hide()
+        evidence_layout.addWidget(self.result_preview, 1)
         self.reference_button = QPushButton('Open exact source / result')
         self.reference_button.clicked.connect(self.open_selected_reference)
         evidence_layout.addWidget(self.reference_button)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
-        evidence_layout.addWidget(self.details, 2)
-        self.side.addTab(evidence_tab, 'Evidence / status')
+        self.details.hide()
+        technical = QPushButton('Technical details…')
+        technical.clicked.connect(self.show_technical_details)
+        evidence_layout.addWidget(technical)
+        evidence_layout.addStretch()
+        self.side.addTab(evidence_tab, 'Citations')
         plan_tab = QWidget()
         plan_layout = QVBoxLayout(plan_tab)
         self.plans = QListWidget()
@@ -280,10 +307,10 @@ class ExpertWindow(QMainWindow):
         self.plan_button = QPushButton('Open editable Numerical Plan')
         self.plan_button.clicked.connect(self.open_selected_plan)
         plan_layout.addWidget(self.plan_button)
-        proposal_explanation = QLabel('A proposal is an editable draft. This action does not execute calculations.')
+        proposal_explanation = QLabel('')
         proposal_explanation.setWordWrap(True)
         plan_layout.addWidget(proposal_explanation)
-        self.side.addTab(plan_tab, 'Plan proposals')
+        self.side.addTab(plan_tab, 'Plans')
         settings = QWidget()
         form = QFormLayout(settings)
         self.allow_question = QCheckBox('Transmit question')
@@ -310,9 +337,20 @@ class ExpertWindow(QMainWindow):
         runtime_explanation = QLabel('Connection…에서 기존 OpenScience 설정을 선택합니다. 각 요청에는 별도 전송 허용이 적용됩니다.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
+        self.side.addTab(participant_tab, 'Participants')
         self.side.addTab(settings, 'Request scope')
         splitter.addWidget(self.side)
-        splitter.setSizes([260, 870, 310])
+        left.setMinimumWidth(230); left.setMaximumWidth(300)
+        splitter.setSizes([270, 830, 340])
+        self.side.hide()
+        for label, tab in (('Sources', self.source_tab), ('Plans', plan_tab),
+                           ('Participants', participant_tab), ('Request scope', settings)):
+            action = QAction(label, self)
+            action.triggered.connect(lambda checked=False, tab=tab: self.show_side(tab))
+            bar.addAction(action)
+        hide_side = QPushButton('Close')
+        hide_side.clicked.connect(self.side.hide)
+        self.side.setCornerWidget(hide_side)
         splitter.setStretchFactor(1, 1)
         self.setCentralWidget(root)
         self._update_actions()
@@ -380,7 +418,7 @@ class ExpertWindow(QMainWindow):
         self.local_dirty = self.conflict = self._round_started_here = False
         self._auto_round_id = None
         self._show_document(document)
-        self.message.setText('Discussion opened. Saved turns and question drafts do not invoke a model. Continue explicitly to request further replies.')
+        self.message.setText('')
         self.refresh_registry()
         context = (self._buffer or {}).get('context', {})
         self._source_titles_pending = bool(context.get('selected_sources') or context.get('selected_document_ids'))
@@ -412,6 +450,8 @@ class ExpertWindow(QMainWindow):
         def received(payload):
             self._registry = payload.get('experts', [])
             self._populate_roles(self.edited_draft()['participants'] if self.document else [])
+            if self.document:
+                self._populate_turns()
             if self._buffer and self._buffer.get('context', {}).get('selected_sources'):
                 self._source_titles_pending = any(ref.get('document_id') not in self._source_titles
                     for ref in self._buffer['context']['selected_sources'] if isinstance(ref, dict))
@@ -421,7 +461,7 @@ class ExpertWindow(QMainWindow):
             if missing:
                 self.message.setText('Expert 실행 패키지가 없습니다. scripts/start-windows.ps1 -InstallOnly -ResearchUI 로 준비할 수 있습니다. 초안과 저장한 대화는 계속 편집할 수 있습니다.')
             elif runtime.get('status')=='NOT_CONFIGURED':
-                self.message.setText('Expert 모델은 NOT_CONFIGURED입니다. 초안·논점·저장한 대화는 사용할 수 있으며, Ask 실패는 계산이나 다음 발언을 시작하지 않습니다.')
+                self.message.setText('모델 미연결 — Connection…에서 연결할 수 있습니다.')
         started = self._call(lambda: self.client.request('/api/workbench/assist',
             {'operation': 'experts.list', 'arguments': {}}), received, background=True)
         if not started:
@@ -482,6 +522,8 @@ class ExpertWindow(QMainWindow):
         previous_owner = (self.document['id'], self.document['session_id']) if self.document else None
         if previous_owner != (document['id'], document['session_id']):
             self._clear_source_preview()
+            self.result_preview.clear()
+            self.result_preview.hide()
         receiver = getattr(self, '_result_return', None)
         if (receiver and not preserve_buffer and receiver.target
                 and receiver.target[0] == document['id'] and receiver.target[1] != document['session_id']):
@@ -530,13 +572,21 @@ class ExpertWindow(QMainWindow):
         self._update_actions()
 
     def _populate_topics(self):
-        self._populating = True
-        self.topics.clear()
         topics = deepcopy(self._buffer.get('topics', []))
         for turn in self.document.get('turns', []):
             topic = turn.get('topic')
             if topic and not any(item['id'] == topic['id'] for item in topics):
-                topics.append({**deepcopy(topic), 'title': topic['title'] + ' · retained topic'})
+                topics.append(deepcopy(topic))
+        snapshot = ((self.document['id'], self.document['session_id']), topics)
+        if snapshot == self._topics_snapshot:
+            return
+        current_item = self.topics.currentItem()
+        selected = current_item.data(0, Qt.ItemDataRole.UserRole) if current_item else None
+        if not self._topics_snapshot or self._topics_snapshot[0] != snapshot[0]:
+            selected = self._buffer.get('composer', {}).get('topic_id')
+        self._topics_snapshot = deepcopy(snapshot)
+        self._populating = True
+        self.topics.clear()
         nodes = {topic['id']: QTreeWidgetItem([topic['title']]) for topic in topics}
         for topic in topics:
             node = nodes[topic['id']]
@@ -547,28 +597,57 @@ class ExpertWindow(QMainWindow):
             else:
                 self.topics.addTopLevelItem(node)
         self.topics.expandAll()
-        current = nodes.get(self._buffer.get('composer', {}).get('topic_id'))
+        current = nodes.get(selected) or nodes.get(self._buffer.get('composer', {}).get('topic_id'))
         if current:
             self.topics.setCurrentItem(current)
         self._populating = False
 
     def _populate_turns(self):
-        selected = self.turns.currentItem()
-        identifier = selected.data(Qt.ItemDataRole.UserRole) if selected else None
-        self.turns.clear()
-        for turn in self.document.get('turns', self.document.get('discussion', {}).get('turns', [])):
-            text = turn.get('text')
-            response = turn.get('response', {})
-            if text is None:
-                text = response.get('reason', response.get('error', 'No authored answer was returned.'))
-            item = QListWidgetItem(f"{turn['author']} · {turn.get('classification', '')} · {turn['status']}\n"
-                f"Topic {turn.get('topic_id')} · reply {turn.get('reply_to') or 'none'}\n{text}")
-            item.setData(Qt.ItemDataRole.UserRole, turn['id'])
-            self.turns.addItem(item)
-            if turn['id'] == identifier:
-                self.turns.setCurrentItem(item)
-        if not self.turns.currentItem() and self.turns.count():
-            self.turns.setCurrentRow(self.turns.count() - 1)
+        turns = self.document.get('turns', self.document.get('discussion', {}).get('turns', []))
+        self.turns.set_turns(turns, self._registry)
+        self.discussion_title.setText(self.document.get('title') or 'Conversation')
+        self.ask_button.setText('Send and discuss' if turns else 'Start discussion')
+
+    def show_side(self, widget):
+        self.side.setCurrentWidget(widget)
+        self.side.show()
+
+    def show_technical_details(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Turn details')
+        dialog.resize(760, 560)
+        layout = QVBoxLayout(dialog)
+        text = QPlainTextEdit(self.details.toPlainText())
+        text.setReadOnly(True)
+        layout.addWidget(text)
+        close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        close.rejected.connect(dialog.reject)
+        layout.addWidget(close)
+        dialog.exec()
+
+    def reply_to_turn(self, identifier):
+        index = self.reply.findData(identifier)
+        if index >= 0:
+            self.reply.setCurrentIndex(index)
+            self.question.setFocus()
+        for row in range(self.turns.count()):
+            if self.turns.item(row).data(Qt.ItemDataRole.UserRole) == identifier:
+                self.turns.setCurrentRow(row)
+                break
+
+    def open_turn_citation(self, identifier, index):
+        for row in range(self.turns.count()):
+            if self.turns.item(row).data(Qt.ItemDataRole.UserRole) == identifier:
+                self.turns.setCurrentRow(row)
+                break
+        turn = next((row for row in self.document.get('turns', []) if row['id'] == identifier), None)
+        if turn is None:
+            return
+        source_index = len(turn.get('evidence', [])) + index
+        if 0 <= source_index < len(self._references):
+            self.sources.setCurrentRow(source_index)
+            self.show_side(self.sources.parentWidget())
+            self.open_selected_reference()
 
     def _populate_reply(self):
         target = self.reply.currentData() if self.local_dirty else self._buffer.get('composer', {}).get('reply_to')
@@ -746,6 +825,8 @@ class ExpertWindow(QMainWindow):
     def _turn_selected(self, current, *_):
         self.sources.clear()
         self.plans.clear()
+        self.result_preview.clear()
+        self.result_preview.hide()
         self._references, self._plans = [], []
         if not current or not self.document:
             return
@@ -761,7 +842,7 @@ class ExpertWindow(QMainWindow):
                                      'input_revision': turn.get('input_revision'),
                                      'input_sha256': turn.get('input_sha256'), 'selection': []})
         for reference in self._references:
-            label = ('Result' if 'job_id' in reference else 'Literature source' if 'paper_id' in reference
+            label = ('Result' if 'job_id' in reference or 'run_id' in reference else 'Literature source' if 'paper_id' in reference
                      else self._source_titles.get(reference.get('document_id'), 'Research source'))
             item = QListWidgetItem(label)
             item.setToolTip(json.dumps(reference, ensure_ascii=False))
@@ -803,10 +884,19 @@ class ExpertWindow(QMainWindow):
 
     def _update_evidence_label(self):
         refs = self._buffer.get('composer', {}).get('evidence', []) if self._buffer else []
-        self.evidence_label.setText(f'{len(refs)} attached references · select one to remove it' if refs else 'No attached result evidence')
+        self.evidence_label.setText('Attachments' if refs else '')
+        self.evidence_label.setVisible(bool(refs))
+        self.composer_evidence.setVisible(bool(refs))
+        self.remove_evidence_button.setVisible(bool(refs))
         self.composer_evidence.clear()
-        for ref in refs:
-            self.composer_evidence.addItem(f"{ref.get('document_id', ref.get('paper_id'))} / {ref.get('job_id', 'source')} / {ref.get('selection', [])}")
+        for index, ref in enumerate(refs):
+            channels = ref.get('selection', ref.get('response_selection', []))
+            label = ('Result' if 'job_id' in ref or 'run_id' in ref else 'Source') + ' ' + str(index + 1)
+            if isinstance(channels, list) and channels:
+                label += ' — ' + ', '.join(channels)
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, deepcopy(ref))
+            self.composer_evidence.addItem(item)
 
     def remove_evidence(self):
         row = self.composer_evidence.currentRow()
@@ -821,6 +911,8 @@ class ExpertWindow(QMainWindow):
         self.source_preview.show_error(message)
 
     def _set_source_preview(self, payload, reference, *, historical=False):
+        self.side.show()
+        self.side.setCurrentWidget(self.source_tab)
         self._source_preview_binding = {
             'owner': (self.document['id'], self.document['session_id']),
             'reference': deepcopy(reference), 'historical': historical}
@@ -1115,7 +1207,12 @@ class ExpertWindow(QMainWindow):
         if present:
             paused = self.document.get('discussion', {}).get('paused', False)
             state = 'Paused; active calculations are independent' if paused else 'Discussion ready'
-            self.identity.setText(f"{state} · g{self.document['generation']}")
+            active = next((row for row in self.document.get('discussion', {}).get('rounds', [])
+                           if row.get('status') in {'READY', 'RUNNING'}), None)
+            state = ('Pausing after current response' if paused and active and active.get('active_job_id')
+                     else 'Paused' if paused else 'Responding…' if active and active.get('active_job_id')
+                     else 'Ready to continue' if active else 'Ready')
+            self.identity.setText(state)
             self.setWindowTitle(f"Expert — {self.document['title']}" + (' *' if self.local_dirty or self.document.get('dirty') else ''))
         # A modal release or worker completion makes retained refresh work ready.
         # Queue it so an accepted source selection can start its owner check first.
@@ -1162,7 +1259,7 @@ class ExpertWindow(QMainWindow):
         def choose():
             def listed(payload):
                 documents = [doc for doc in payload['documents'] if doc.get('kind') == 'expert']
-                labels = [f"{doc['title']} · {doc['id']}" for doc in documents]
+                labels = [str(index + 1) + ". " + doc["title"] for index, doc in enumerate(documents)]
                 if not labels:
                     self.message.setText('No saved or working discussions are available.')
                     return
@@ -1210,8 +1307,17 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
     window._plan_transfer_commands = {}
 
     def received(payload, source_reference=None):
+        if isinstance(payload, dict) and payload.get('status') == 'RESULT_READ':
+            window.result_preview.set_payload(payload['payload'], label='Cited result')
+            # Runtime markers carry channel names, not an original row/time slice.
+            # Browse only these returned channels; no implicit new result read.
+            window.result_preview.read.hide()
+            window.result_preview.show()
+            window.show_side(window.sources.parentWidget())
+            window.message.setText('Saved result channels' if source_reference.get('response_selection') else 'Calculation status')
+            return
         if isinstance(payload, dict) and payload.get('status') == 'SOURCE_READ':
-            window.message.setText('Read the exact indexed source returned by the existing source service.')
+            window.message.setText('Saved source')
             source = payload.get('source') or {}
             window._set_source_preview(source, source_reference or
                 {key: source[key] for key in ('document_id', 'revision')}, historical=True)
@@ -1227,8 +1333,13 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
     def reference(reference):
         frozen = deepcopy(reference)
         owner = (window.document['id'], window.document['session_id'])
+        item = window.turns.currentItem()
+        turn_id = item.data(Qt.ItemDataRole.UserRole) if item else None
         def read(payload):
-            if window.document and (window.document['id'], window.document['session_id']) == owner:
+            selected = window.turns.currentItem()
+            selected_id = selected.data(Qt.ItemDataRole.UserRole) if selected else None
+            if (window.document and (window.document['id'], window.document['session_id']) == owner
+                    and selected_id == turn_id):
                 received(payload, frozen)
         return window._call(lambda: evidence_opener(client, frozen), read)
 
