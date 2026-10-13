@@ -116,6 +116,9 @@ class PostWindow(QMainWindow):
         self.document = None
         self._busy = self._populating = self._allow_close = self.local_dirty = self.conflict = False
         self._workers = []
+        self._closed = False
+        self._measurement_poll_pending = None
+        self._measurement_poll_queued = False
         self._accepting = False
         self._callback_calls = []
         self._pending = None
@@ -335,6 +338,8 @@ class PostWindow(QMainWindow):
                 self.message.setText('Owner or selected source changed; the earlier chooser continuation was not applied.')
 
     def _call(self, function, accepted, *, failed=None, relevant=None, background=False):
+        if self._closed:
+            return False
         if self._busy:
             if self._accepting and not background:
                 return self._defer_callback(lambda: self._call(function, accepted, failed=failed, relevant=relevant))
@@ -345,6 +350,9 @@ class PostWindow(QMainWindow):
         self._workers.append(worker)
         def finished(value, error):
             self._workers.remove(worker)
+            if self._closed:
+                self._busy = False
+                return
             self._accepting = True
             try:
                 if relevant is None or relevant():
@@ -364,6 +372,9 @@ class PostWindow(QMainWindow):
         return True
 
     def refresh_document(self, *, initial=False, explicit=False):
+        if self._measurement_poll_pending is not None and not (initial or explicit):
+            self._schedule_measurement_poll()
+            return False
         if (self._busy and not (self._accepting and (initial or explicit))) or self._pending:
             return False
         identifier = self.document_id
@@ -1113,10 +1124,32 @@ class PostWindow(QMainWindow):
             self._call(read_preview, previewed, relevant=lambda: token == self._context_token())
         return self.queue_command('post.measurement_snapshot', {'object_ref': obj['id']}, accepted=extracted)
 
+    def _schedule_measurement_poll(self):
+        if (self._closed or self._measurement_poll_pending is None or
+                self._measurement_poll_queued or self._busy or self._pending is not None):
+            return
+        self._measurement_poll_queued = True
+        QTimer.singleShot(0, self._drain_measurement_poll)
+
+    def _drain_measurement_poll(self):
+        self._measurement_poll_queued = False
+        pending = self._measurement_poll_pending
+        if pending is not None and pending is self._measurement_handoff:
+            self._continue_measurement_handoff()
+        else:
+            self._measurement_poll_pending = None
+
     def _continue_measurement_handoff(self):
         pending = self._measurement_handoff
-        if pending is None:
+        if self._closed or pending is None:
+            self._measurement_poll_pending = None
             return False
+        # Keep one intent across an overlapping document/native refresh. This
+        # polls the same handoff; it must not start another import or Plan.
+        if self._busy or self._pending is not None:
+            self._measurement_poll_pending = pending
+            return False
+        self._measurement_poll_pending = None
         def received(payload):
             if self._measurement_handoff is not pending:
                 return
@@ -1138,7 +1171,10 @@ class PostWindow(QMainWindow):
             else:
                 self.message.setText('Importing measured samples: ' + state)
                 QTimer.singleShot(250, self._continue_measurement_handoff)
-        return self._call(lambda: self.client.post_measurement_plan(**deepcopy(pending)), received)
+        started = self._call(lambda: self.client.post_measurement_plan(**deepcopy(pending)), received)
+        if not started:
+            self._measurement_poll_pending = pending
+        return started
 
     def _present_observation(self, payload, pending):
         from .result_return import observation_message, verify_result, receive_local, deliver_result
@@ -1172,6 +1208,7 @@ class PostWindow(QMainWindow):
         return self._call(lambda: verify_result(self.client, message), verified)
 
     def _update_actions(self):
+        self._schedule_measurement_poll()
         present = self.document is not None
         idle = not self._busy and self._pending is None
         enabled = present and idle and not self.conflict and self.document.get('connected', False)
@@ -1248,6 +1285,8 @@ class PostWindow(QMainWindow):
             if answer != QMessageBox.StandardButton.Discard:
                 event.ignore()
                 return
+        self._closed = True
+        self._measurement_poll_pending = None
         self.timer.stop()
         self.command_timer.stop()
         event.accept()
