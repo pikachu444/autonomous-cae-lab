@@ -20,12 +20,16 @@ Astra가 모델 재선택, 목적 선택, 계산 조건이 다른 예측 비교�
 다시 읽었으며 새 계산은 없다. `numerical-workflows/actual-confirmation`과
 `actual-confirmation-checked`에 기록했다. OS 직접 입력 수용이나 전체 D6 완료는 아니다.
 11개 작업의 이산/종속 변수, gradient/adjoint, 넓은 MDO 등 잔여는
-`docs/NUMERICAL_WORKFLOW_STATUS.csv`에 유지한다. 원격 게시 확인은 다음 줄에서 갱신한다.
+`docs/NUMERICAL_WORKFLOW_STATUS.csv`에 유지한다. 이 제품 변경과 사용 안내는
+원격 main `b0a433ffbf4a34bddf1009cb5031702428b120de`에 게시했고 원격 일치를 확인했다.
 
 **현재 병렬 작업:** Sol은 기존 Evaluation 창의 단계 편집·결과 배치와 한국어 표시를
 구현하고 Astra와 직접 대안을 논의했다. root는 독립/연계 도구 연결과 통합을 맡는다.
-다음 Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이며 요청을
-`pde-coupling-workflows/pro-request.md`에 준비했다. 이 준비 파일은 전송 완료가 아니다.
+Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이다.
+`PRO-PDE-COUPLED-RESEARCH-01`을 같은 실제 Pro 대화에 기준 `b0a433f`로 전달했고
+새 작성 턴 `01a136eb-4507-7284-afa2-633336bb4492`가 시작된 것을 확인했다.
+요청 원문은 `pde-coupling-workflows/pro-request.md`다. Sol의 Evaluation 화면 두 파일
+소유권과 실제 기존 실행 환경을 함께 전달했다. 전송/작성 시작은 구현 완료가 아니다.
 
 - Data→Material 피팅: Pro의 두 교정본 `637f089`, `1f477ea`를 로컬 `07b5474`,
   `7aa740e`로 통합했다. 응력 선택·시험 구별·이전 미리보기/요약 제거·측정 변형률 축·

@@ -2,12 +2,12 @@
 id: SPEC-RESEARCH-003
 title: "Independent constitutive, PDE and coupled research"
 version: "0.1.0"
-status: planned
+status: in-progress
 created: 2026-10-14
 updated: 2026-10-14
 author: "Codex scope; actual ChatGPT Pro implementation"
 priority: "P1 High"
-phase: plan
+phase: implementation
 module: "Material, PDE, Evaluation"
 lifecycle: spec-anchored
 tier: L
