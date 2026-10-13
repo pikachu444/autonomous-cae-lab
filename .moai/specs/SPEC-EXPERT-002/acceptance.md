@@ -61,3 +61,20 @@ Development checks cover model-message conversion, selected-source retrieval,
 intervention/retry persistence and report/citation round-trips as one feature
 unit. One bounded real run establishes the actual integration; doubles do not
 prove real Co-STORM execution. Do not repeat unrelated solver campaigns.
+
+### Windows integration, 2026-10-14
+
+The Pro-authored runner/Qt/report source is integrated. Nine core checks and
+three Qt checks pass with scripted generation. A separate existing-login run
+used one explicitly synthetic elastic source: initialization took 20 model
+calls/407 seconds, intervention and next step took six/126 seconds, and report
+generation took three/76 seconds. These are observations, not general budget
+guarantees. A fresh Qt/HTTP process reopened the same saved report, four cited
+references and twelve displayed turns, and exported Markdown/HTML with no new
+jobs. Local records: `runs/product-development/20261014/costorm-live-01/`.
+
+This establishes the bounded actual login/source-to-report route, not physical
+material qualification or complete GUI acceptance. Astra identified lost-update
+retry input preservation and obsolete automatic-topic revival defects; Pro has
+submitted a correction for integration. Raw Markdown/math display and the initial
+budget presentation also remain. E7–E10 are not collectively marked complete.
