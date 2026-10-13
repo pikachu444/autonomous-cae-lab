@@ -152,8 +152,12 @@ runtime에 프로젝트의 Qt 의존성을 설치했다. 새 D1 Qt 프로세스/
 창 활성화 실패와 검은 캡처 때문에 native 입력을 중단했다. Segoe UI offscreen 렌더링·
 QTest의 범위만 기록한다. 이전 [Qt spike 검토](docs/design/20261012-desktop-planning/QT_REVIEW.md)의
 CSV/저장 chooser·선택·채택·Undo/Redo·dock Float·새 프로세스 재열기 근거가 새 D1을 대신하지 않는다.
-FreeCAD/ParaView exe는 Program Files·사용자 AutonomousCAELab·현재 runs/tools에서 찾지 못했다.
-이 검색 범위의 미발견을 설치 부재로 확대하지 않는다. 이전 버전/실행 기록을 새 실행으로 표시하지 않는다.
+앞선 제한된 경로 검색 이후 `runs/prepost-session-20261008-01/tools`에서 기존 portable
+FreeCAD1.1.4와 ParaView6.2.0을 찾았다. 새 설치 없이 ParaView의 실제 pvpython으로 공개
+합성 3시각 자료의 한 점 시간 측정을 Apply·sample·저장했다. 실제 표의 Time은 0/.5/1s,
+명시적으로 고른 `avg(U (2))`는 0/1/2mm다. 이 자료는 새 Post→Numerical 연결 확인용이며
+solver 계산·native 마우스 조작·공학적 검증이 아니다. FreeCAD는 실행 파일 존재만 확인했다.
+정확한 경로·재사용 자료는 [Post 연결 실행 준비](.moai/specs/SPEC-POST-NUMERICAL-001/acceptance.md#native-input-prepared-on-windows)에 있다.
 
 draw.io Desktop32.4.1의 기존 portable 무료 도구로 Codex의 소유권·상태 도면을 열기/export했다.
 Pro 계약에서 작성한 [전체 연결 원본](docs/design/20261012-desktop-planning/research.drawio)은
@@ -261,14 +265,14 @@ F05 진단을 전체 제품 개발의 우선 과제 또는 선행조건으로 �
 | Expert | 역할·논점·reply·개입·pause/resume·근거·Plan, 실제 provider/callback 기반. 이전 웹 화면의 실제 연구 왕복 기록 | 새 독립 Qt 화면의 자료/모델 설정부터 실제 대화→계획→계산→결과 후속 논의까지 연결·확인 |
 | Study / 선택 Workbench | 질문·가설·근거·판단과 참조/도구 이동 | 별도로 계획한 문서·연결 그래프, 개정·변경 영향 화면. 기존 서비스 이름은 이 UI의 완성 근거가 아님 |
 | 공통 GUI/CLI/Python/MCP | 같은 HTTP 서비스·문서 owner·명령·결과, native 명령 경로 | 실제 열린 native GUI와의 교차 작업, 지원 기능 노출과 클라이언트 사용 |
-| 설치/독립 실행 | Windows private runtime, 서비스 재사용, 도구별 실행 helper | 기본 시작이 옛 웹 Workbench로 향함. 도구별 직접 진입·파일 열기·종료 후 재실행을 제품 구성에 맞춰 완성 |
+| 설치/독립 실행 | 기본 CMD의 native Qt Runner 진입, Research 도구별 직접 실행, 저장 문서와 같은 서비스 재사용을 구현·확인 | 전체 배포 패키징, 모든 파일 연결·복구와 여러 창의 종료/재실행 사용성 |
 
 코드 위치는 `apps/desktop_pre`, `apps/desktop_post`, `apps/research`,
 `caelab/workbench*`, `caelab/adapters`, `scripts/start_cae_research.ps1` 및 기존
 설치/실행 스크립트다. [실행 기록](docs/WORKBENCH_PROGRESS.md)의 S1/S2와 후속 교정에서
 이미 고친 Pre/Post Save, 초안, 선택·응답 읽기 결함을 새 미해결 과제로 복사하지 않는다.
 
-## 승인 후 이어갈 제품 구현 방향
+## 진행 중인 제품 구현 방향
 
 **목표:** 사용자가 원하는 독립 도구에서 자기 자료·모델을 열고 주요 편집과 필요한 계산을
 수행하며, 같은 개정·결과를 다른 도구에서 이어 보고, 저장·종료 후 다시 연구를 계속한다.

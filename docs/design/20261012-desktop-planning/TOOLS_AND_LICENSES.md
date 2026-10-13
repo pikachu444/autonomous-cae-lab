@@ -17,8 +17,8 @@
 | Qt Designer | 기존 PySide6 bundled `designer.exe`와 editable `.ui`, 새 유료 Qt account 설치 없음 | `.ui` 원본은 repository에 남긴다. Designer 사용과 Qt library 배포 의무는 별도 |
 | Matplotlib | 이미 있는 **3.10.1**의 QtAgg 그래프·plot selection. repo optional dependency pin3.10.8과 구별 | [공식 license](https://matplotlib.org/stable/project/license.html): PSF 기반/BSD-compatible, notice 보존. installed package license 원문과 version은 runtime evidence에 귀속 |
 | Python/Numpy | 이미 설치된 interpreter/수치 자료 처리. demo는 stdlib+Qt+Matplotlib, 새 numerical engine 없음 | dependency license/notice는 package exact version inventory로 추적. mock data/고정 계수는 SIMULATED UI |
-| FreeCAD | 기존 1.1.4 native Sketcher/PartDesign/Assembly/FEM·FCStd 경로 재사용 계획 | [공식 LGPL 안내](https://github.com/FreeCAD/FreeCAD/blob/main/LICENSE). bundled OCCT/Qt 등 별도 notices·version 필요. 이번에 user native CAD/solver를 변경/계산하지 않음 |
-| ParaView | 기존6.2.0 native reader/pipeline/3D/filter와 exact source refs 재사용 계획 | [공식 BSD license](https://www.paraview.org/license/). VTK/Qt bundled notices 필요. 모든 filter/format/Windows user workflow 완료를 뜻하지 않음 |
+| FreeCAD | 2026-10-13 과거 작업 폴더에서 기존 1.1.4 portable 실행 파일 확인. native Sketcher/PartDesign/Assembly/FEM·FCStd 경로 재사용 | [공식 LGPL 안내](https://github.com/FreeCAD/FreeCAD/blob/main/LICENSE). bundled OCCT/Qt 등 별도 notices·version 필요. 이번 확인에서 FreeCAD 실행·CAD 변경·solver 계산 없음 |
+| ParaView | 같은 폴더의 기존6.2.0 pvpython을 재사용해 공개 합성 PVD의 실제 native 시간 측정과 저장 실행. 새 다운로드·설치 없음 | [공식 BSD license](https://www.paraview.org/license/). VTK/Qt bundled notices 필요. 연결용 합성 자료이며 solver/공학 검증·OS 조작·전체 format 지원을 뜻하지 않음 |
 | 글꼴 | 로컬 설치된 Malgun Gothic/Segoe UI를 참조해 Windows/Qt 텍스트 렌더링. 폰트 파일은 배포하지 않음 | font binary를 저장소/ZIP에 복사하지 않음. 다른 OS에서는 이용 가능한 font로 명시 대체 |
 | Qt 보고서 출력 | 기존 QtGui의 QPdfWriter/QPainter로 검토용 PDF를 출력한다. QtPdf·QtWebEngine·유료 보고서 엔진을 추가하지 않음 | 기존 PySide6/QtGui 오픈소스 사용 범위를 따른다. 실제 제품 보고서·근거 연결은 관련 구현 완료 뒤 검증하며, 시안 출력은 합성 자료 |
 | Poppler pdftoppm | Codex bundled **26.07.0**을 PDF 출력의 읽기 전용 시각 검사에 사용. 추가 설치·제품 번들링 없음 | [공식 해당 소스](https://poppler.freedesktop.org/poppler-26.07.0.tar.xz)의 COPYING에서 GPLv2 원문을 확인했다. 검토 도구이며 제품 실행 의존성에 넣지 않음 |
