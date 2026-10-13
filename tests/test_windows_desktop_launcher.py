@@ -27,7 +27,7 @@ Write-TestEvent @{kind='install';ResearchUI=[bool]$ResearchUI;Expert=[bool]$Expe
 $receiptPath = Join-Path $RuntimeRoot 'install-receipt.json'
 $extras = @('numerical','material')
 if (Test-Path -LiteralPath $receiptPath) {
-    $extras += @((Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json).installed_extras)
+    $extras += @((Get-Content -LiteralPath $receiptPath -Encoding UTF8 -Raw | ConvertFrom-Json).installed_extras)
 }
 if ($ResearchUI) { $extras += @('research-ui','assist-core') }
 if ($Expert) { $extras += 'assist-core' }
@@ -54,7 +54,7 @@ raise SystemExit(int(os.environ.get("CAE_LAUNCH_TEST_EXIT", "0")))
 HARNESS = r"""
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
-$spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Raw | ConvertFrom-Json
+$spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Encoding UTF8 -Raw | ConvertFrom-Json
 $global:CaeLauncherTest = @{spec=$spec;started=$false;processId=42421;
     python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command='';ownedProcess=$true;ownedListener=$true;
     loadedHash=$null;session='Sfixture'}
@@ -138,9 +138,13 @@ try {
                 'listener_owner' { $global:CaeLauncherTest.ownedListener = $false }
                 'process_store' { $global:CaeLauncherTest.command = 'apps.lab.server --port ' + $spec.port + ' --store "different"' }
                 'missing_receipt' { Remove-Item -LiteralPath $launchPath }
+                'receipt_no_bom' {
+                    $text = [IO.File]::ReadAllText($launchPath, [Text.Encoding]::UTF8)
+                    [IO.File]::WriteAllText($launchPath, $text, [Text.UTF8Encoding]::new($false))
+                }
                 'source' { Add-Content -LiteralPath (Join-Path $spec.source 'caelab\__init__.py') -Value '# changed source' }
                 'receipt_pid' {
-                    $receipt = Get-Content -LiteralPath $launchPath -Raw | ConvertFrom-Json
+                    $receipt = Get-Content -LiteralPath $launchPath -Encoding UTF8 -Raw | ConvertFrom-Json
                     $receipt.pid += 1
                     $receipt | ConvertTo-Json | Set-Content -LiteralPath $launchPath -Encoding UTF8
                 }
@@ -277,6 +281,8 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         self.assertEqual(len(self.events_of(events, "server")), 1)
         self.assertEqual(self.events_of(events, "desktop"), [])
         receipt_path = self.runtime / ("server-" + str(spec["port"]) + ".launch.json")
+        self.assertTrue(receipt_path.read_bytes().startswith(b"\xef\xbb\xbf"),
+                        "WinPS rewritten receipt must retain its initial UTF-8 BOM format")
         receipt = json.loads(receipt_path.read_text(encoding="utf-8-sig"))
         config = Path(spec["source"]) / "test appdata/AutonomousCAELab/workbench-config.json"
         self.assertEqual(receipt["config_sha256"], hashlib.sha256(config.read_bytes()).hexdigest())
@@ -289,6 +295,19 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         self.assertEqual(len(receipt["source_fingerprint"]), 64)
         self.assertEqual(list(self.runtime.glob(receipt_path.name + ".*")), [],
                          "Successful reconciliation left a temporary receipt or backup")
+
+    def test_previous_bomless_utf8_receipt_keeps_korean_paths_on_reuse(self):
+        result, events, spec = self.run_case([
+            self.phase(NoBrowser=True, ResearchUI=True),
+            self.phase(NoBrowser=True, ResearchUI=True)], mutate="receipt_no_bom")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(self.events_of(events, "server")), 1)
+        self.assertEqual(self.events_of(events, "desktop"), [])
+        receipt_path = self.runtime / ("server-" + str(spec["port"]) + ".launch.json")
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        self.assertEqual(receipt["store"], spec["store"])
+        self.assertEqual(receipt["source_root"], spec["source"])
+        self.assertEqual(receipt["service_session_id"], "Sfixture")
 
     def test_reuse_checks_loaded_config_and_session_even_when_receipt_matches_disk(self):
         for mutation in ('config_aba', 'service_session'):

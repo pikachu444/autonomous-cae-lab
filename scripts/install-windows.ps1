@@ -105,7 +105,7 @@ if ($MCP -or $ResearchUI -or $Expert) { $extras += 'mcp' }
 if ($Sensitivity) { $extras += 'sensitivity' }
 if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
     try {
-        $old = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+        $old = Get-Content -LiteralPath $receiptPath -Encoding UTF8 -Raw | ConvertFrom-Json
         $installed = $old.source_root -eq $sourceRoot -and $old.project_sha256 -eq $projectSha -and
                      $old.uv_version -eq $uvVersion -and $old.python_version -eq $pyVersion -and
                      @($extras | Where-Object { $_ -notin $old.installed_extras }).Count -eq 0
