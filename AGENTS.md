@@ -48,6 +48,21 @@ unresolved user choice or genuinely missing authority; continue independent work
 Do not start unassigned provider calls, native runs or unrelated implementation
 merely because an old prompt says to do so.
 
+## User-facing desktop interaction
+
+Use familiar engineering application menus and natural task language. Users should
+be able to open their data/model, select or edit it, run the intended operation,
+inspect the result and save/reopen without understanding our internal architecture.
+Keep internal IDs, hashes, schema names, raw JSON and developer status codes in
+optional diagnostic details, not the primary work area. Preserve necessary physical
+terms, units, limitations and actionable errors; do not hide them with vague labels.
+Follow the adopted application references in PRODUCT_PLAN. Do not replace working
+selection/editing flows with helper paragraphs, long forms or decorative summaries.
+Use concise names without appended revision tokens or bullet separators. Review
+the actual rendered window and task flow before claiming GUI completion, including
+readable Korean fonts, focus/selection and recovery. Apply this to every GUI change;
+the user must not have to repeat this requirement in each task.
+
 ## Technical boundaries
 
 - OpenScience/Expert plans, asks, retrieves and interprets; deterministic numerical

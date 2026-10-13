@@ -451,6 +451,10 @@ this change.
    choose a new Plan. Review the actual curve in the live existing editor, then
    **Append observation** or **Cancel**. Its unapplied purpose, variables,
    responses and method edits remain. Apply/Save in Numerical are still explicit.
+   If import remains at **RUNNING**, keep Post open and choose **Resume measurement
+   import** after the current native command or refresh finishes. This continues
+   the same saved measurement, handoff and Data job without a solver calculation.
+   Review the retained observation before appending it to the existing Plan.
    A future model protocol/response binding remains editable and required; an
    observed contact force is not invented as a solver response selector.
 6. Reopen the ordinary saved Post project in a new native process. Pair/side,
