@@ -87,6 +87,15 @@ function Invoke-WebRequest {
     $token = if ($state.spec.missing_token) { '' } else { 'synthetic-test-token' }
     return [pscustomobject]@{StatusCode=200;Content=(@{token=$token} | ConvertTo-Json)}
 }
+function Invoke-RestMethod {
+    [CmdletBinding()] param([string]$Uri,[int]$TimeoutSec)
+    if ($Uri -notlike '*/api/workbench/expert-connection') { throw 'Unexpected connection request' }
+    $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
+    $hash = if ($global:CaeLauncherTest.spec.mutate -eq 'applied_config' -and (Test-Path -LiteralPath $config)) {
+        (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash.ToLowerInvariant()
+    } else { $null }
+    return [pscustomobject]@{service_session_id='Sfixture';operator_config_path=$config;config_sha256=$hash}
+}
 function Start-Process {
     [CmdletBinding()]
     param([string]$FilePath,[string[]]$ArgumentList,[string]$WorkingDirectory,
@@ -123,6 +132,11 @@ try {
                     $receipt = Get-Content -LiteralPath $launchPath -Raw | ConvertFrom-Json
                     $receipt.pid += 1
                     $receipt | ConvertTo-Json | Set-Content -LiteralPath $launchPath -Encoding UTF8
+                }
+                'applied_config' {
+                    $configFolder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
+                    New-Item -ItemType Directory -Path $configFolder -Force | Out-Null
+                    '{"runtime":null,"experts":[]}' | Set-Content -LiteralPath (Join-Path $configFolder 'workbench-config.json') -Encoding UTF8
                 }
                 'config' {
                     $configFolder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
@@ -231,6 +245,14 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
     @staticmethod
     def events_of(events, kind):
         return [event for event in events if event["kind"] == kind]
+
+    def test_explicitly_applied_expert_config_reuses_same_service(self):
+        result, events, spec = self.run_case([
+            self.phase(NoBrowser=True, ResearchUI=True),
+            self.phase(NoBrowser=True, ResearchUI=True)], mutate="applied_config")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(self.events_of(events, "server")), 1)
+        self.assertEqual(self.events_of(events, "desktop"), [])
 
     def test_installer_readiness_preserves_native_python_argv(self):
         folder, environment = self.case()
@@ -429,7 +451,10 @@ foreach ($command in $commands) {
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(len(self.events_of(events, "server")), 1)
                 self.assertEqual(self.events_of(events, "desktop"), [])
-                self.assertIn("stop", result.stderr.lower())
+                if mutation == "config":
+                    self.assertIn("not active", result.stderr.lower())
+                else:
+                    self.assertIn("stop", result.stderr.lower())
 
     def test_adding_qt_to_a_running_base_service_requires_explicit_restart(self):
         result, events, _ = self.run_case([self.phase(NoBrowser=True), self.phase()])

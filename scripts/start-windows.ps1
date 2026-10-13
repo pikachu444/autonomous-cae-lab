@@ -40,8 +40,7 @@ $launchPath = Join-Path $runtime ("server-$Port.launch.json")
 $url = "http://127.0.0.1:$Port"
 $health = "http://127.0.0.1:$Port/api/overview"
 $operatorConfig = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
-if (-not (Test-Path -LiteralPath $operatorConfig -PathType Leaf)) { $operatorConfig = '' }
-$configSha = if ($operatorConfig) { (Get-FileHash -LiteralPath $operatorConfig -Algorithm SHA256).Hash.ToLowerInvariant() } else { '' }
+$configSha = if (Test-Path -LiteralPath $operatorConfig -PathType Leaf) { (Get-FileHash -LiteralPath $operatorConfig -Algorithm SHA256).Hash.ToLowerInvariant() } else { '' }
 $install = Get-Content -LiteralPath (Join-Path $runtime 'install-receipt.json') -Raw | ConvertFrom-Json
 $sourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $install.source_root 'caelab'),(Join-Path $install.source_root 'apps'),(Join-Path $install.source_root 'schemas'),(Join-Path $install.source_root 'plugins') -Recurse -File |
     Where-Object { $_.Extension -in @('.py','.html','.js','.css','.json') } | Sort-Object FullName)
@@ -101,9 +100,26 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
             if ($launch.pid -ne $oldPid -or $launch.store -ne $storePath -or
                 $launch.source_root -ne $install.source_root -or $launch.project_sha256 -ne $install.project_sha256 -or
                 $launch.source_fingerprint -ne $sourceFingerprint -or
-                $launch.config_path -ne $operatorConfig -or $launch.config_sha256 -ne $configSha -or
+                $launch.config_path -ne $operatorConfig -or
                 @($install.installed_extras | Where-Object { $_ -notin $launch.installed_extras }).Count -ne 0) {
                 throw "Port $Port is running a different store, source, operator configuration or optional dependency set. Stop that owned server explicitly or choose another -Port."
+            }
+            if ($launch.config_sha256 -ne $configSha) {
+                # The same owned service may have explicitly loaded a local Expert
+                # change. Other source/store/extras/ownership guards above still apply.
+                $connection = Invoke-RestMethod -Uri "$url/api/workbench/expert-connection" -TimeoutSec 3
+                if (-not $launch.service_session_id -or
+                    $connection.service_session_id -ne $launch.service_session_id -or
+                    $connection.operator_config_path -ne $operatorConfig -or
+                    $connection.config_sha256 -ne $configSha) {
+                    throw 'Saved operator settings are not active. Apply them in Expert Connection after current jobs finish.'
+                }
+                $launch.config_sha256 = $configSha
+                $receiptTemp = $launchPath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+                try {
+                    [IO.File]::WriteAllText($receiptTemp, ($launch | ConvertTo-Json -Depth 3), [Text.UTF8Encoding]::new($false))
+                    [IO.File]::Replace($receiptTemp, $launchPath, $null)
+                } finally { if (Test-Path -LiteralPath $receiptTemp) { Remove-Item -LiteralPath $receiptTemp } }
             }
             $reuse = $true
         }
@@ -131,7 +147,9 @@ if (-not $reuse) {
         $tail = if (Test-Path -LiteralPath $stderr) { (Get-Content -LiteralPath $stderr -Tail 20) -join [Environment]::NewLine } else { '' }
         throw "Lab server did not become ready at $health. $tail"
     }
+    $serviceConnection = Invoke-RestMethod -Uri "$url/api/workbench/expert-connection" -TimeoutSec 3
     [ordered]@{pid=$process.Id;port=$Port;store=$storePath;source_root=$install.source_root;
+        service_session_id=$serviceConnection.service_session_id;
         project_sha256=$install.project_sha256;
         source_fingerprint=$sourceFingerprint;config_path=$operatorConfig;config_sha256=$configSha;installed_extras=$install.installed_extras;
         launched_utc=[DateTime]::UtcNow.ToString('o')} |

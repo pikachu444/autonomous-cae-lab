@@ -294,14 +294,26 @@ class RuntimeConfig:
     openscience_profile: str | None = None
     openscience_runtime_prefix: str | None = None
 
+    def for_expert(self, expert_id=None):
+        override = (self.expert_models or {}).get(expert_id) or {}
+        allowed = {'generator', 'model', 'provider', 'api_base_url', 'credential_env'}
+        if set(override) - allowed:
+            raise ValueError('Per-expert model settings cannot override authorization or budgets')
+        from dataclasses import replace
+        return replace(self, expert_models=None, **override)
+
+    def selected_generator(self, expert_id=None):
+        selected = self.for_expert(expert_id)
+        if selected.provider == 'openscience' and selected.model:
+            from ..expert_connection import MODEL
+            if not MODEL.fullmatch(selected.model):
+                raise ValueError('Choose an explicit openai-codex model')
+            return 'openscience'
+        return selected.configured_generator()
+
     def configured_generator(self, expert_id=None):
-        override = (self.expert_models or {}).get(expert_id)
-        if override:
-            allowed = {'generator', 'model', 'provider', 'api_base_url', 'credential_env'}
-            if set(override) - allowed:
-                raise ValueError('Per-expert model settings cannot override authorization or budgets')
-            from dataclasses import replace
-            return replace(self, expert_models=None, **override).configured_generator()
+        if expert_id is not None:
+            return self.for_expert(expert_id).configured_generator()
         if self.generator is not None:
             return self.generator
         if not self.model or self.provider != 'openai-compatible':
@@ -505,7 +517,7 @@ class ExpertRuntime:
         base = {'expert_id': expert_id, 'session_id': session['session_id'], 'sources': [], 'assumptions': [],
                 'tool_events': [], 'proposed_actions': []}
         try:
-            generator = 'openscience' if self.runtime.provider == 'openscience' and self.runtime.model else self.runtime.configured_generator(expert_id)
+            generator = self.runtime.selected_generator(expert_id)
             if generator is not None:
                 from .readiness import require_features
                 require_features('expert_agent')
@@ -524,6 +536,7 @@ class ExpertRuntime:
         from haystack.components.agents import Agent
         from haystack.dataclasses import ChatMessage
         from haystack.tools import Tool
+        selected_runtime = self.runtime.for_expert(definition['id'])
         sources, events, actions, tool_evidence = [], [], [], []
         collections = definition.get('collections', [])
         context, snippets = self._knowledge_context(context, workspace_id, collections)
@@ -617,7 +630,7 @@ class ExpertRuntime:
                     raise PermissionError('Expert is outside the approved consultation scope')
                 budget.consume('consultation')
                 other = self.describe(target)
-                target_generator = 'openscience' if self.runtime.provider == 'openscience' and self.runtime.model else self.runtime.configured_generator(target)
+                target_generator = self.runtime.selected_generator(target)
                 if target_generator is None:
                     raise ValueError('Consulted expert model is not configured')
                 delegated = deepcopy(context)
@@ -845,7 +858,7 @@ class ExpertRuntime:
                     raise ValueError('Agent context exceeds the approved transmission bound')
                 recheck_sources()
                 max_steps = budget.reserve_provider_steps(allowed_consultations=allowed_consultations)
-                text = run_openscience(prompt, scoped_calls, budget, self.runtime.model, max_steps=max_steps,
+                text = run_openscience(prompt, scoped_calls, budget, selected_runtime.model, max_steps=max_steps,
                                        profile_path=self.runtime.openscience_profile,
                                        runtime_prefix=self.runtime.openscience_runtime_prefix)
                 output = {'last_message': ChatMessage.from_assistant(text), 'exit_reason': 'text'}
@@ -934,7 +947,7 @@ class ExpertRuntime:
                     if generator == 'openscience':
                         recheck_sources()
                         repair_steps = budget.reserve_provider_steps(correction=True)
-                        repaired_text = run_openscience(repair_prompt, {}, budget, self.runtime.model,
+                        repaired_text = run_openscience(repair_prompt, {}, budget, selected_runtime.model,
                             max_steps=repair_steps,
                             profile_path=self.runtime.openscience_profile,
                             runtime_prefix=self.runtime.openscience_runtime_prefix)
@@ -978,7 +991,7 @@ class ExpertRuntime:
                         'sources': approved, 'assumptions': structured.get('assumptions', []), 'tool_events': events,
                         'proposed_actions': actions,
                         'exit_reason': output.get('exit_reason'),
-                        'model': (self.runtime.expert_models or {}).get(definition['id'], {}).get('model', self.runtime.model),
+                        'model': selected_runtime.model,
                         'budget_used': {'model_calls': budget.used_models,
                                         'model_call_accounting': 'reserved_cli_agent_steps' if generator == 'openscience' else 'observed_agent_inferences',
                                         'provider_auxiliary_requests_counted': generator != 'openscience',

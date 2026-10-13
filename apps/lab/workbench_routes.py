@@ -17,6 +17,11 @@ def handle(handler,method,path,query):
                 name=unquote(name,encoding='utf-8',errors='strict')
             return handler._json(201,workbench.upload(name,payload))
         body=handler._json_body()
+        if path == '/api/workbench/expert-connection/reload':
+            if set(body) != {'expected_sha256'}:
+                raise ServiceError(400, 'Reload accepts only the saved local operator-file hash')
+            from caelab.expert_connection import reload_local
+            return handler._json(200, reload_local(workbench, body['expected_sha256']))
         if path=='/api/workbench/backend-readiness':
             if set(body)!={'backend'}:
                 raise ServiceError(400,'Dependency discovery accepts a registered backend only; no execution/configuration arguments')
@@ -146,6 +151,11 @@ def handle(handler,method,path,query):
                 raise ServiceError(400,'Unknown local input field')
             return handler._json(201,workbench.register_local_input(body['root_id'],body['relative']))
         raise ServiceError(404,'Unknown workbench route')
+    if path == '/api/workbench/expert-connection':
+        if query:
+            raise ServiceError(400, 'Connection status takes no arguments')
+        from caelab.expert_connection import status
+        return handler._json(200, status(workbench))
     if path=='/api/workbench':
         return handler._json(200,workbench.overview())
     match=re.fullmatch(r'/api/workbench/numerical/([^/]+)/jobs/([^/]+)/candidates/([^/]+)/evaluations',path)
