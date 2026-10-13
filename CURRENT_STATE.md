@@ -28,9 +28,16 @@ Astra가 최종 소유권 교정과 실제 설치 파일 목록을 확인했고 
 해결됐다. 일반 모델의 실제 계산과 전체 D8 완료 판정은 남아 있다.
 선택 설치와 한글 안내는 원격 main `53356e0311f91f81484ceb0b9e6929c32c00f47f`에
 게시했고 원격 일치를 확인했다. Pro D8는 같은 작성 턴에서 진행 중이다.
-Luna/high 보조 담당 `experiment_report_reuse`는 다음 D9의 네 작업에 대한 기존
-교정·Study·보고서 연결점만 읽는다. 산출물은 `experiment-report-workflows/reuse-map.md`이며
-제품 코드를 쓰거나 현재 Pro 소유 파일을 바꾸지 않는다. D9 구현 착수 기록은 아니다.
+Luna/high 보조 담당 `experiment_report_reuse`가 다음 D9 네 작업의 기존 교정·Study·
+보고서 연결점을 정리했다. CSV 등록·보존·재열기는 이미 구현되어 있어 재작성 대상에서
+제외했다. [SPEC-EXPERIMENT-001](.moai/specs/SPEC-EXPERIMENT-001/spec.md)에 교정·관측 비교,
+미식별 계수·다음 시험, 편집 가능한 보고서, 수집 설정의 인계를 준비했다. Astra의
+단위/영점·불확실성·fit/holdout·보고서 선택 시점·GUI 역할 지적을 반영했다.
+MoAI lint는 frontmatter phase의 잘못된 작업 단계 값을 제거한 뒤 오류 0이며,
+외부 AC 연결·형식 경고 10개가 남는다. 별도 acceptance.md의 실제 요구 연결과 구분한다.
+준비 자료는 `experiment-report-workflows`다. D9 제품 구현을 시작한 기록은 아니다.
+현재 Sol은 설치 안내용 Runner 첫 화면과 도구 메뉴를 실제 Qt로 렌더하고 root가 한글
+안내를 갱신한다. D8 Pro 소유 파일은 동시에 수정하지 않는다.
 
 **최신 환경 요구:** 사용자가 WSL을 쓰지 못하는 경우도 지원하도록 지시했다.
 기본 `Start-CAE-Lab.cmd`는 이미 Windows 경로다. root가 고급 실행 스크립트의 Auto도
