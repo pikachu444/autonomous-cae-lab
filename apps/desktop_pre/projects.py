@@ -50,9 +50,11 @@ def save_native_copy(doc, destination):
         doc.saveCopy(str(native))
         if not native.is_file():
             raise OSError('Native saveCopy produced no file')
-        shutil.copyfile(native, destination)
-        if native_cad.sha(native) != native_cad.sha(destination):
+        staged = destination.with_name('.copy-' + uuid.uuid4().hex + '.FCStd')
+        shutil.copyfile(native, staged)
+        if native_cad.sha(native) != native_cad.sha(staged):
             raise OSError('Retained native copy differs from short staging')
+        os.replace(staged, destination)
     except Exception as error:
         raise OSError('Native copy failed; short staging retained at ' + str(folder) + ': ' + str(error)) from error
     shutil.rmtree(folder)

@@ -645,7 +645,7 @@ class FEMEditor:
         errors = self._refinement_errors(mesh)
         if errors:
             raise ValueError(errors[0])
-        if not mesh.Shape.Shape.isValid() or len(mesh.Shape.Shape.Solids) != 1:
+        if not mesh.Shape.Shape.copy(True, False).isValid() or len(mesh.Shape.Shape.Solids) != 1:
             raise ValueError('Generation requires one valid solid; run remains C3D10 static linear')
         from femmesh.gmshtools import GmshTools
         identifier = 'G' + uuid.uuid4().hex
@@ -820,7 +820,7 @@ class FEMEditor:
         mesh, data = meshes[0], self._metadata()
         try:
             self.owner.mesh_bindings.validate(mesh)
-            if mesh.Shape.Document is not self.owner.doc or not mesh.Shape.Shape.isValid() or len(mesh.Shape.Shape.Solids) != 1:
+            if mesh.Shape.Document is not self.owner.doc or not mesh.Shape.Shape.copy(True, False).isValid() or len(mesh.Shape.Shape.Solids) != 1:
                 fail('mesh', 'Execution requires one valid exact source solid')
             quality = self.quality(mesh, limit=1)
             if not quality['total_elements'] or quality['bad_element_count']:
