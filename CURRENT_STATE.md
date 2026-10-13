@@ -283,7 +283,18 @@ suppressed 메시 처리의 세 문제를 찾았다. 같은 Pro의 `PRO-CONTACT-
 두 물체의 빈 native Gmsh 객체 준비→접촉 저장/재열기까지 통과했다. 형상·접촉·메타데이터는
 실제 native 객체이며 GUI 존재/선택 조회만 대역이다. 메시 생성·solver·실제 창 입력 검사는
 아직 하지 않았다. 해당 기록은 `runs/product-development/20261013/contact-editor-9e3f7ed8/receipt.json`.
-Pro는 export/Runner/Post 연결을 계속 작성한다. 편집 단계의 확인을 접촉 계산 완료로 보지 않는다.
+Pro의 export/Runner/Post 연결 `8d350ab`을 로컬 `bdc9fb9`에 통합했다. 기존 native 면/하중
+매핑·접촉 writer, JobManager와 FRD/VTU 경로를 확장한다. 첫 집중 검사16건은 통과했고
+3건은 테스트 fixture가 Windows CRLF를 써서 실패했다. 실제 export는 LF를 명시한다.
+Astra가 찾은 원 native 세션 종료 뒤 원본 열기 누락과 Force 표의 이중 단위 변환 문제를
+`PRO-CONTACT-EXEC-FIX-01`로 같은 Pro에 전달했다. 교정·native export 확인을 계속하며
+접촉 solver/Post 실제 계산은 아직 확인하지 않았다.
+
+편집 단계 이후 실제 FreeCAD GUI에서 기존 `pre.fem.mesh_generate`를 호출해 두 물체의
+Gmsh 메시를 생성·저장했다. Base1147절점/532요소, Bridge2256절점/1122요소이고 접촉
+참조 진단은 비어 있다. `runs/product-development/20261013/contact-mesh-350b4d63/receipt.json`과
+`contact-meshed.FCStd`에 남겼다. 마우스·키보드 입력이나 solver 검사가 아니다. 앞선
+FreeCADCmd 시도는 Qt 비동기 대기와 없는 ViewObject 때문에 실패했고 GUI 경로로 확인했다.
 사용자 추가 지시에 따라 기존 오픈소스 전후처리기·solver 연동 코드와 이슈를 병행 조사해
 현재 구현에 적용한다. [기존 연동 코드·이슈 조사](docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md)에
 PrePoMax의 면/접촉 법칙 분리와 writer, ccx2paraview의 시간 이력 변환과 누락값·NaN을

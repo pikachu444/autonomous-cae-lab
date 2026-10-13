@@ -213,3 +213,19 @@ correction passed changed Qt/owner checks and actual FreeCAD 1.1.4 multi-face
 draft repair and FCStd save/reopen. That evidence does not cover the new
 export/solver/Post source checkpoint. Broad native OS, solver campaign and
 engineering acceptance remain separate; no such run was made by this author.
+
+Codex's first Windows run of the new source produced 16 passing focused tests
+and three failures in the snapshot fixture's Windows line endings. The actual
+export explicitly writes LF. Corrections for this fixture, closed-session
+Runner source reopening and native Force table units were requested from Pro.
+These findings remain open at this checkpoint; the new execution path is not
+yet claimed to run a contact solver successfully.
+
+Separately, FreeCAD GUI ran the existing product mesh commands on the two-foot
+example: Base 1,147 nodes/532 C3D10 volumes and Bridge 2,256 nodes/1,122 volumes.
+Both meshes were saved and the contact reference diagnostics remained empty.
+Evidence is `runs/product-development/20261013/contact-mesh-350b4d63/receipt.json`.
+No human input or solver execution occurred. The preceding headless attempt
+failed because the product's mesh-history display accesses ViewObject; a native
+GUI run provides those real view objects and completed. The original CAD input
+and earlier failed attempts were retained.

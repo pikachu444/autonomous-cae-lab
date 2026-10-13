@@ -45,5 +45,18 @@ from display projections. Missing contact rows must not fabricate gap or zero fo
 Final connected verification includes at least two user-model geometries and independent numerical references
 with original tolerances; model execution alone is not engineering approval.
 
-All product scenarios remain unimplemented at this draft. Native factory
-save/reopen evidence is recorded in research.md and does not close these criteria.
+## Implementation evidence and remaining work
+
+The editor and native save/reopen portion of AC-C01/C02 is implemented and has
+focused Qt/owner checks plus a real FreeCAD multi-face example. Native GUI mesh
+generation now produced separate Base (1,147 nodes/532 volumes) and Bridge
+(2,256 nodes/1,122 volumes) meshes while retaining the contact references. This
+was programmatic execution in FreeCAD, not mouse/keyboard usability acceptance.
+
+Pro `8d350ab` adds the AC-C03/C04 export, Runner and retained Post source path.
+At its first Windows checkpoint, 16 contact/output tests passed and three
+snapshot tests failed because their fixture used Windows line endings. Astra
+also identified Force table unit conversion and closed-session source reopening
+defects; corrections are pending. No actual contact solver/result claim is made.
+The current task and subsequent correction status live in CURRENT_STATE rather
+than turning these partial checks into full scenario acceptance.
