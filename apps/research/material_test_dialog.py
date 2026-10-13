@@ -1,0 +1,208 @@
+"""Compact editors for existing Data mappings and Material-bound experiments."""
+from copy import deepcopy
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QComboBox, QFormLayout,
+    QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
+    QTableWidgetItem, QVBoxLayout, QWidget)
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+from caelab.material_test import column_mapping, measured_protocol
+
+
+def combo(items):
+    widget = QComboBox()
+    for label, value in items:
+        widget.addItem(label, value)
+    return widget
+
+
+def numeric(text):
+    try:
+        value = float(text)
+        return value
+    except ValueError:
+        return text
+
+
+class TestColumnsDialog(QDialog):
+    """Only explicit column choices compile existing affine Data mappings."""
+    def __init__(self, preview, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('시험 열 설정')
+        self.resize(960, 670)
+        self.result_mapping = None
+        self.preview = preview
+        root = QVBoxLayout(self)
+        split = QSplitter()
+        root.addWidget(split, 1)
+        inputs = QWidget()
+        form = QFormLayout(inputs)
+        split.addWidget(inputs)
+        columns = [('선택…', None)] + [(str(name), index) for index, name in enumerate(preview.get('headers', []))]
+        self.time_column, self.response_column, self.drive_column = [combo(columns) for _ in range(3)]
+        self.time_unit = combo([(v, v) for v in ('s', 'ms', 'min')])
+        self.response_kind = combo([('응력', 'stress'), ('힘 / 초기 단면적', 'force')])
+        self.response_unit = combo([(v, v) for v in ('MPa', 'Pa', 'kPa', 'GPa', 'N', 'kN')])
+        self.stress_unit = combo([(v, v) for v in ('MPa', 'Pa', 'kPa', 'GPa')])
+        self.measure = combo([('선택…', None), ('미소변형 Cauchy', 'infinitesimal_Cauchy'), ('공칭 응력 P', 'first_Piola')])
+        self.component = combo([(v, v) for v in ('xx', 'yy', 'zz', 'xy', 'xz', 'yz')])
+        self.drive_kind = combo([('공학 변형률', 'engineering_strain'), ('신장비', 'stretch'),
+                                 ('변위 / 초기 표점 거리', 'displacement'), ('단순 전단량 γ12', 'simple_shear')])
+        self.drive_unit = combo([(v, v) for v in ('1', '%', 'mm', 'm', 'um')])
+        self.area, self.gauge = QLineEdit(), QLineEdit()
+        self.area_unit, self.gauge_unit = combo([(v+'²', v) for v in ('mm','m','um')]), combo([(v,v) for v in ('mm','m','um')])
+        for label, widget in [('시간 열',self.time_column), ('시간 단위',self.time_unit), ('관측 열',self.response_column),
+            ('관측 물리량',self.response_kind), ('원본 단위',self.response_unit), ('사용할 응력 단위',self.stress_unit),
+            ('응력 정의',self.measure), ('응력 성분',self.component), ('초기 단면적',self.area), ('면적 단위',self.area_unit),
+            ('변형 이력 열',self.drive_column), ('변형 물리량',self.drive_kind), ('변형 원본 단위',self.drive_unit),
+            ('초기 표점 거리',self.gauge), ('길이 단위',self.gauge_unit)]:
+            form.addRow(label,widget)
+        table = QTableWidget(len(preview.get('rows', [])), len(preview.get('headers', [])))
+        table.setHorizontalHeaderLabels(preview.get('headers', []))
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        for row, values in enumerate(preview.get('rows', [])):
+            for column, value in enumerate(values):
+                table.setItem(row,column,QTableWidgetItem(str(value)))
+        split.addWidget(table)
+        split.setSizes([350,580])
+        self.message = QLabel('열과 물리량을 직접 선택하세요. 원본 열은 그대로 보존됩니다.')
+        self.message.setWordWrap(True)
+        root.addWidget(self.message)
+        self.response_kind.currentIndexChanged.connect(self._visibility)
+        self.drive_kind.currentIndexChanged.connect(self._visibility)
+        self._visibility()
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self._accept); buttons.rejected.connect(self.reject)
+        root.addWidget(buttons)
+
+    def _visibility(self):
+        def units(widget,values):
+            previous=widget.currentData()
+            widget.clear()
+            for value in values: widget.addItem(value,value)
+            index=widget.findData(previous)
+            widget.setCurrentIndex(max(0,index))
+        units(self.response_unit,('N','kN') if self.response_kind.currentData()=='force' else ('MPa','Pa','kPa','GPa'))
+        units(self.drive_unit,('mm','m','um') if self.drive_kind.currentData()=='displacement' else ('1',) if self.drive_kind.currentData()=='stretch' else ('1','%'))
+        self.area.setEnabled(self.response_kind.currentData()=='force')
+        self.area_unit.setEnabled(self.area.isEnabled())
+        self.gauge.setEnabled(self.drive_kind.currentData()=='displacement')
+        self.gauge_unit.setEnabled(self.gauge.isEnabled())
+
+    def _accept(self):
+        try:
+            if any(widget.currentData() is None for widget in (self.time_column,self.response_column,self.drive_column)):
+                raise ValueError('시간·관측·변형 이력 열을 모두 선택하세요.')
+            columns=column_mapping(time_column=self.time_column.currentData(),time_unit=self.time_unit.currentData(),
+                response_column=self.response_column.currentData(),response_kind=self.response_kind.currentData(),
+                response_unit=self.response_unit.currentData(),stress_unit=self.stress_unit.currentData(),
+                measure=self.measure.currentData(),component=self.component.currentData(),
+                drive_column=self.drive_column.currentData(),drive_kind=self.drive_kind.currentData(),drive_unit=self.drive_unit.currentData(),
+                area=numeric(self.area.text()),area_unit=self.area_unit.currentData(),
+                gauge=numeric(self.gauge.text()),gauge_unit=self.gauge_unit.currentData())
+            self.result_mapping={'delimiter':self.preview.get('delimiter',','),
+                'skip_header':self.preview.get('skip_rows',1),'columns':columns}
+        except (ValueError,KeyError,TypeError) as error:
+            self.message.setText(str(error)); return
+        self.accept()
+
+
+class ExperimentDialog(QDialog):
+    """One retained import, observation, role and measured protocol in one review."""
+    def __init__(self, settings, result, parent=None, *, experiment=None, selected=None):
+        super().__init__(parent)
+        self.setWindowTitle('시험 조건')
+        self.resize(1050, 700)
+        self.settings, self.imported = deepcopy(settings), deepcopy(result)
+        self.recipe = deepcopy((experiment or {}).get('kinematics'))
+        self.value = None
+        self.explicit = deepcopy(settings)
+        root=QVBoxLayout(self)
+        split=QSplitter(); root.addWidget(split,1)
+        left=QWidget(); form=QFormLayout(left); split.addWidget(left)
+        responses=result.get('responses',{})
+        self.observed=combo([(name,name) for name,row in responses.items()
+            if row.get('measure') in ('infinitesimal_Cauchy','first_Piola')])
+        self.role=combo([('피팅','fit'),('검증 (holdout)','holdout')])
+        self.model_response=combo([(name,name) for name in ('stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz')])
+        self.protocol=combo([('전체 변형구배 편집','explicit'),('측정 변형 이력 사용','measured')])
+        self.driver=combo([('선택…',None)]+[(name,name) for name,row in responses.items()
+            if row.get('measure') in ('engineering_strain','stretch','simple_shear')])
+        self.lateral_22, self.lateral_33=QLineEdit(),QLineEdit()
+        self.weight, self.scale=QLineEdit('1'),QLineEdit('1')
+        self.tensor=QPushButton('변형구배 편집…'); self.tensor.clicked.connect(self._tensor)
+        for label,widget in [('관측',self.observed),('용도',self.role),('모델 응답',self.model_response),
+            ('변형 조건',self.protocol),('변형 채널',self.driver),('지정 F22',self.lateral_22),
+            ('지정 F33',self.lateral_33),('시험 가중치',self.weight),('오차 기준값',self.scale)]:
+            form.addRow(label,widget)
+        form.addRow(self.tensor)
+        self.condition=QLabel('F22/F33는 지정값입니다. 자유 횡수축을 계산하지 않습니다.')
+        self.condition.setWordWrap(True); form.addRow(self.condition)
+        self.figure=Figure(constrained_layout=True)
+        self.canvas=FigureCanvasQTAgg(self.figure); split.addWidget(self.canvas)
+        split.setSizes([310,710])
+        self.message=QLabel(); self.message.setWordWrap(True); root.addWidget(self.message)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self._accept); buttons.rejected.connect(self.reject); root.addWidget(buttons)
+        if experiment:
+            selected=experiment['source']['response']
+            self.role.setCurrentIndex(self.role.findData(experiment['role']))
+            self.model_response.setCurrentIndex(self.model_response.findData(experiment['response']))
+            self.weight.setText(str(experiment['weight'])); self.scale.setText(str(experiment['scale']))
+        if selected and self.observed.findData(selected)>=0:
+            self.observed.setCurrentIndex(self.observed.findData(selected))
+        if self.recipe:
+            self.protocol.setCurrentIndex(1)
+            self.driver.setCurrentIndex(self.driver.findData(self.recipe['channel']))
+            self.lateral_22.setText(str(self.recipe['lateral_22']))
+            self.lateral_33.setText(str(self.recipe['lateral_33']))
+        for widget in (self.observed,self.protocol,self.driver):
+            widget.currentIndexChanged.connect(self._preview)
+        self._preview()
+
+    def _tensor(self):
+        from .numerical_window import ProtocolDialog
+        dialog=ProtocolDialog(self.explicit,self)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            self.explicit=dialog.draft_settings()
+            self.protocol.setCurrentIndex(0)
+            self._preview()
+
+    def _preview(self):
+        measured=self.protocol.currentData()=='measured'
+        for widget in (self.driver,self.lateral_22,self.lateral_33):
+            widget.setEnabled(measured)
+        self.tensor.setEnabled(not measured)
+        self.figure.clear()
+        axes=self.figure.subplots(2,1)
+        for ax,name in zip(axes,(self.observed.currentData(), self.driver.currentData())):
+            response=self.imported.get('responses',{}).get(name,{})
+            axis=response.get('axes',[{}])[0]
+            x,y=axis.get('values',[]),response.get('value',[])
+            if len(x)==len(y) and len(x):
+                ax.plot(x,y,'o-',markersize=3)
+            ax.set_ylabel(str(name or '변형 채널 선택')+' ['+str(response.get('unit',''))+']')
+            ax.set_xlabel(str(axis.get('name',''))+' ['+str(axis.get('unit',''))+']')
+        self.canvas.draw_idle()
+        response=self.imported.get('responses',{}).get(self.observed.currentData(),{})
+        if response and not self.value:
+            index=self.model_response.findData('stress_'+str(response.get('component')))
+            if index>=0: self.model_response.setCurrentIndex(index)
+
+    def _accept(self):
+        try:
+            name=self.observed.currentData()
+            if not name: raise ValueError('응력 관측 채널을 선택하세요.')
+            settings=deepcopy(self.explicit); recipe=None
+            if self.protocol.currentData()=='measured':
+                channel=self.driver.currentData()
+                measure=self.imported.get('responses',{}).get(channel,{}).get('measure')
+                recipe=dict(channel=channel,kind=measure,
+                    lateral_22=numeric(self.lateral_22.text()),lateral_33=numeric(self.lateral_33.text()))
+                settings=measured_protocol(settings,self.imported,recipe)
+            # Draft protocol/weight may be incomplete; save remains possible.
+            self.value=dict(name=name,role=self.role.currentData(),response=self.model_response.currentData(),
+                settings=settings,weight=numeric(self.weight.text()),scale=numeric(self.scale.text()),kinematics=recipe)
+        except (ValueError,KeyError,TypeError) as error:
+            self.message.setText(str(error)); return
+        self.accept()

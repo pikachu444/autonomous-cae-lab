@@ -10,10 +10,10 @@ from time import monotonic
 import sys
 import uuid
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal, QItemSelectionModel
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
-    QApplication, QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QInputDialog,
+    QApplication, QAbstractItemView, QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit,
     QScrollArea, QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
@@ -155,7 +155,14 @@ class DataWindow(QMainWindow):
         self.apply_button = QPushButton('설정 적용')
         self.import_button = QPushButton('가져오기')
         self.import_button.setProperty('appearanceRole', 'primary')
-        self.source_button.clicked.connect(self.choose_source)
+        self.source_button.setText('CSV 열기…')
+        self.source_button.clicked.connect(self.choose_local_csv)
+        browse = QAction('서비스 원본 선택…', self)
+        browse.triggered.connect(self.choose_source)
+        files.addAction(browse)
+        self.test_columns_action = QAction('시험 열 설정…', self)
+        self.test_columns_action.triggered.connect(self.configure_test_columns)
+        edit.addAction(self.test_columns_action)
         self.apply_button.clicked.connect(self.apply_inputs)
         self.import_button.clicked.connect(self.import_table)
         for button in (self.source_button, self.settings_button, self.apply_button, self.import_button):
@@ -210,6 +217,9 @@ class DataWindow(QMainWindow):
         self.skip_header.setMaximumWidth(90)
         self.layout_button = QPushButton('원본의 열 구성 사용')
         self.layout_button.clicked.connect(self.use_preview_layout)
+        test_columns = QPushButton('시험 열 설정…')
+        test_columns.clicked.connect(self.configure_test_columns)
+        parsing.addWidget(test_columns)
         parsing.addWidget(QLabel('구분 문자'))
         parsing.addWidget(self.delimiter)
         parsing.addWidget(QLabel('건너뛸 머리글 행'))
@@ -278,7 +288,17 @@ class DataWindow(QMainWindow):
         self.sheets = QTabWidget()
         self.sheets.setMinimumHeight(100)
         self.preview_table = self._table(['Original row'])
-        self.values = self._table(['Original row', 'Axis', 'Response', 'Calculation', 'Raw quality', 'Display', 'Reason'])
+        self.values = self._table(['원본 행', '축', '관측', '계산 포함', '원본 품질', '화면 표시', '이유'])
+        self.values.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.values.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.values.itemSelectionChanged.connect(self.highlight_rows)
+        self.values.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
+        for label, mode in [('선택 구간만 사용', 'include'), ('계산에서 제외', 'exclude'),
+                            ('선택 행 제외 해제', 'restore'), ('피팅 구간으로 복제', 'fit'),
+                            ('검증 구간으로 복제', 'holdout')]:
+            action=QAction(label,self.values)
+            action.triggered.connect(lambda checked=False, mode=mode:self.select_calculation_rows(mode))
+            self.values.addAction(action)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         self.sheets.addTab(self.preview_table, '원본 미리보기')
@@ -713,6 +733,49 @@ class DataWindow(QMainWindow):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) == QMessageBox.StandardButton.Yes:
             self._call(lambda: self.client.document_read(self.document['id']), self._opened)
 
+
+    def choose_local_csv(self):
+        if not self.document or self._busy or self.conflict: return
+        path,_=QFileDialog.getOpenFileName(self,'시험 CSV 열기','','표 파일 (*.csv *.txt *.dat);;모든 파일 (*)')
+        if not path: return
+        from pathlib import Path
+        document_id=self.document['id']
+        def upload():
+            source=Path(path)
+            if source.stat().st_size>16*1024*1024: raise ValueError('16 MiB 이하의 표 파일을 선택하세요.')
+            receipt=self.client.upload(source.name,source.read_bytes())
+            return receipt
+        def registered(receipt):
+            self._source_id=receipt['data_id'] if 'data_id' in receipt else receipt['id']
+            self._preview_key=None; self._preview_retry=0
+            self._edited()
+            self.source_label.setText('원본: '+Path(path).name)
+            QTimer.singleShot(0,self.refresh_preview)
+        self._call(upload,registered,relevant=lambda:self.document and self.document['id']==document_id)
+
+    def configure_test_columns(self):
+        if not self.document or self._busy or self.conflict: return
+        preview=(self._preview or {}).get('table_preview')
+        if not preview:
+            self.message.setText('먼저 CSV를 열고 원본 미리보기를 읽으세요.'); return
+        from .material_test_dialog import TestColumnsDialog
+        dialog=TestColumnsDialog(preview,self)
+        if dialog.exec()!=QDialog.DialogCode.Accepted: return
+        draft=self.edited_draft()
+        # This explicit command replaces the mapping, never the uploaded bytes.
+        if len(draft['mapping']['columns'])>1 and QMessageBox.question(self,'시험 열 설정',
+            '현재 채널 설정을 선택한 시험 열로 바꾸시겠습니까?',
+            QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes: return
+        draft['mapping']=dialog.result_mapping
+        draft.setdefault('test_metadata',{})['protocol']=(
+            '관측 '+dialog.response_kind.currentText()+' ['+dialog.response_unit.currentText()+']; '+
+            '변형 '+dialog.drive_kind.currentText()+' ['+dialog.drive_unit.currentText()+']; '+
+            'A0='+dialog.area.text()+' '+dialog.area_unit.currentText()+'; L0='+dialog.gauge.text()+' '+dialog.gauge_unit.currentText())
+        self._show_document({**self.document,'draft':draft})
+        self.local_dirty=True; self._update_actions()
+        self.message.setText('열 설정을 확인하고 적용 후 가져오기를 실행하세요.')
+
     def choose_source(self):
         def roots(payload):
             choices = [item['id'] for item in payload['roots']]
@@ -987,13 +1050,18 @@ class DataWindow(QMainWindow):
             create()
         else:
             def choose(payload):
-                documents=[row for row in payload['documents'] if row.get('kind')=='material']
-                if not documents:
-                    self.message.setText('Open a Material model and edit its protocol, then select it here. Data remains independent.')
-                    return
-                names=[row['title']+' — '+row['id'] for row in documents]
-                selected,accepted=QInputDialog.getItem(self,'Identification model','Explicit Material model and load history',names,editable=False)
-                if accepted and token == self._source_token(): create(documents[names.index(selected)]['id'])
+                documents=[row for row in payload['documents'] if row.get('kind')=='material' and row.get('draft',{}).get('backend')=='material.felupe']
+                names=['새 선형 탄성 재료…','새 Neo-Hooke 재료…']+[str(index+1)+'. '+row['title'] for index,row in enumerate(documents)]
+                selected,accepted=QInputDialog.getItem(self,'피팅할 재료','재료 법칙 또는 기존 재료',names,editable=False)
+                if not accepted or token != self._source_token(): return
+                index=names.index(selected)
+                if index>=2: create(documents[index-2]['id']); return
+                from caelab.material_document import default_draft
+                draft=default_draft()
+                if index==1:
+                    draft['settings'].update(model='neo_hooke',parameters={'mu':1.0,'lmbda':2.0})
+                self._call(lambda:self.client.document_open(kind='material',title='시험 재료',draft=draft),
+                    lambda model:create(model['id']),relevant=lambda:token==self._source_token())
             self._call(self.client.documents,choose, relevant=lambda: token == self._source_token())
 
     def choose_prediction(self):
@@ -1136,11 +1204,13 @@ class DataWindow(QMainWindow):
             raw_indexes = list(range(len(raw['source_rows'])))[offset:offset + self.row_count.value()]
             self.values.setRowCount(len(raw_indexes))
             for row, index in enumerate(raw_indexes):
-                cells = [raw['source_rows'][index], raw.get('axis', [None] * len(raw['source_rows']))[index] if raw.get('axis') is not None else '',
-                    raw['value'][index], raw['calculation_valid'][index], raw['quality_valid'][index], raw['display_visible'][index],
+                cells = [raw['source_rows'][index], (raw.get('transformed_axis') or raw.get('axis') or [None]*len(raw['source_rows']))[index],
+                    raw.get('transformed_value',raw['value'])[index], raw['calculation_valid'][index], raw['quality_valid'][index], raw['display_visible'][index],
                     '; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason)]
                 for column, cell in enumerate(cells):
                     self.values.setItem(row, column, QTableWidgetItem(display(cell)))
+                self.values.item(row,2).setToolTip('원본 값: '+display(raw['value'][index]))
+                self.values.item(row,1).setToolTip('원본 축: '+display((raw.get('axis') or [None]*len(raw['source_rows']))[index]))
         try:
             x, y = [float(value) for value in axis['values']], [float(value) for value in values]
             if not all(math.isfinite(value) for value in x + y) or response.get('valid') is False:
@@ -1199,7 +1269,98 @@ class DataWindow(QMainWindow):
         self.axes.grid(True, alpha=.25)
         self.canvas.draw_idle()
         self.result_label.setText(self.result_label.text() + f' / 표본 {start}부터 {len(values)}개')
+        self._selection_points = {row:point for row,point in zip(original_rows,zip(x,y)) if row not in hidden}
+        if isinstance(raw,dict):
+            excluded=[]
+            for row,a,b,used,visible in zip(raw.get('source_rows',[]),raw.get('transformed_axis',[]) or [],
+                    raw.get('transformed_value',[]),raw.get('calculation_valid',[]),raw.get('display_visible',[])):
+                if visible and not used and type(a) in (int,float) and type(b) in (int,float) and math.isfinite(a) and math.isfinite(b):
+                    excluded.append((a,b));self._selection_points[row]=(a,b)
+            if excluded:
+                self.axes.scatter([p[0] for p in excluded],[p[1] for p in excluded],marker='x',c='gray',label='계산 제외')
+        if hasattr(self,'_span_selector'):
+            self._span_selector.disconnect_events()
+        from matplotlib.widgets import SpanSelector
+        self._span_selector=SpanSelector(self.axes,self._select_curve_interval,'horizontal',
+                useblit=False,props={'alpha':.15,'facecolor':'tab:blue'},button=1,minspan=0)
+        self._selection_artist = None
         self._show_details()
+
+    def _select_curve_interval(self, first, last):
+        wanted={row for row,(x,y) in getattr(self,'_selection_points',{}).items() if first<=x<=last}
+        selection=self.values.selectionModel()
+        self.values.blockSignals(True); self.values.clearSelection()
+        for row in range(self.values.rowCount()):
+            try: source=int(self.values.item(row,0).text())
+            except (ValueError,AttributeError): continue
+            if source in wanted:
+                selection.select(self.values.model().index(row,0),QItemSelectionModel.SelectionFlag.Select|QItemSelectionModel.SelectionFlag.Rows)
+        self.values.blockSignals(False);self.highlight_rows()
+
+    def highlight_rows(self):
+        artist=getattr(self,'_selection_artist',None)
+        if artist is not None:
+            try: artist.remove()
+            except (ValueError,NotImplementedError): pass
+        selected=[]
+        for row in sorted({item.row() for item in self.values.selectedIndexes()}):
+            item=self.values.item(row,0)
+            try: source=int(item.text())
+            except (ValueError,AttributeError): continue
+            point=getattr(self,'_selection_points',{}).get(source)
+            if point is not None: selected.append(point)
+        self._selection_artist=(self.axes.scatter([p[0] for p in selected],[p[1] for p in selected],
+            s=48,facecolors='none',edgecolors='tab:red',zorder=5) if selected else None)
+        self.canvas.draw_idle()
+
+    def select_calculation_rows(self, mode):
+        if not self.document or self._busy or self.conflict or self._view_error:
+            return
+        rows=[]
+        for row in sorted({item.row() for item in self.values.selectedIndexes()}):
+            try: rows.append(int(self.values.item(row,0).text()))
+            except (ValueError,AttributeError): return
+        if not rows: return
+        # Edit the channel actually displayed, using its original row identities.
+        name=self.result_channel.currentText()
+        draft=self.edited_draft()
+        columns=draft['mapping']['columns']
+        if name not in columns or self._source_id != self.document['draft'].get('data_id'):
+            self.message.setText('현재 원본의 같은 채널을 선택한 뒤 구간을 편집하세요.'); return
+        run=next((r for r in self.document['runs'] if r['job_id']==self._selected_job),{})
+        if run.get('input_sha256') != __import__('caelab.storage',fromlist=['canonical_hash']).canonical_hash(self.document['draft']):
+            self.message.setText('이전 설정의 결과입니다. 현재 설정을 가져온 뒤 구간을 선택하세요.'); return
+        selected=deepcopy(columns[name].get('row_selection',{}))
+        if mode in ('fit','holdout'):
+            target=name+('_fit' if mode=='fit' else '_holdout')
+            if target in columns:
+                self.message.setText('같은 구간 채널이 있습니다. 그 채널의 구간을 편집하거나 이름을 바꾸세요.'); return
+            columns[target]=deepcopy(columns[name]); name=target
+        if mode in ('include','fit','holdout'):
+            selected['include_ranges']=[[value,value] for value in sorted(set(rows))]
+        elif mode=='exclude':
+            selected['exclude_rows']=sorted(set(selected.get('exclude_rows',[]))|set(rows))
+        elif mode=='restore':
+            selected['exclude_rows']=[value for value in selected.get('exclude_rows',[]) if value not in rows]
+            # Split existing ranges precisely; retain other rows and their reasons.
+            ranges=[]
+            for first,last in selected.get('exclude_ranges',[]):
+                remaining=[v for v in rows if first<=v<=last]
+                start=first
+                for v in sorted(set(remaining)):
+                    if start<v: ranges.append([start,v-1])
+                    start=v+1
+                if start<=last: ranges.append([start,last])
+            selected['exclude_ranges']=ranges
+        columns[name]['row_selection']=selected
+        self._working_draft=draft; self._channel_name=name
+        self._populating=True
+        self.channel_selector.blockSignals(True); self.channel_selector.clear()
+        self.channel_selector.addItems(list(columns)); self.channel_selector.setCurrentText(name)
+        self.channel_selector.blockSignals(False)
+        self._populate_mapping(); self._populating=False
+        self._edited()
+        self.message.setText('구간을 변경했습니다. 설정 적용 후 가져오기를 실행하세요. 이전 결과는 그대로 유지됩니다.')
 
     def _show_details(self):
         self.details.setPlainText(json.dumps({'document': self.document, 'view_diagnostic': self._view_error,

@@ -179,7 +179,7 @@ def diagnostics(draft):
         seen = set()
         for experiment in draft['experiments']:
             required = {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'}
-            if not isinstance(experiment, dict) or set(experiment) != required:
+            if not isinstance(experiment, dict) or not required <= set(experiment) or set(experiment) - required - {'kinematics'}:
                 raise ValueError('Experiments require observation source, explicit model protocol, role, weight and scale')
             identifier = check_id(experiment['id'])
             if identifier in seen:
@@ -196,6 +196,9 @@ def diagnostics(draft):
                 raise ValueError('Select a retained Data response')
             if not isinstance(source['input_sha256'], str) or len(source['input_sha256']) != 64:
                 raise ValueError('Observation source requires its submitted input hash')
+            if 'kinematics' in experiment:
+                from .material_test import validate_kinematics
+                validate_kinematics(experiment['kinematics'])
             protocol = experiment['settings']
             if not isinstance(protocol, dict) or set(protocol) != set(settings):
                 raise ValueError('Experiment protocol requires exactly the visible Material settings')
@@ -440,6 +443,7 @@ class NumericalDocuments(MaterialDocuments):
             args = request['inputs']
         else:
             experiments = []
+            role_rows = {'fit': set(), 'holdout': set()}
             for item in draft['experiments']:
                 source = item['source']
                 document = self.resolve_document(source['document_id'])
@@ -447,15 +451,39 @@ class NumericalDocuments(MaterialDocuments):
                 if (document.get('kind') != 'data' or run is None or run.get('input_revision') != source['input_revision']
                         or run.get('input_sha256') != source['input_sha256']):
                     raise ValueError('Observation source differs from the retained Data import')
-                result = self.resolve_result(source['document_id'], source['job_id'], selection=[source['response']])
+                channels = [source['response']]
+                if 'kinematics' in item:
+                    channels.append(item['kinematics']['channel'])
+                result = self.resolve_result(source['document_id'], source['job_id'], selection=list(dict.fromkeys(channels)))
                 if result.get('execution_status') != 'SUCCEEDED':
                     raise ValueError('Observation import did not succeed')
+                if 'kinematics' in item:
+                    from .material_test import measured_protocol
+                    expected = measured_protocol(item['settings'], result, item['kinematics'])
+                    if canonical_hash(expected) != canonical_hash(item['settings']):
+                        raise ValueError('시험 조건이 저장된 변형 이력과 다릅니다. 조건 편집에서 다시 확인하세요.')
                 observation = deepcopy(result['responses'][source['response']])
+                if 'kinematics' in item:
+                    driver=result['responses'][item['kinematics']['channel']]
+                    observed_rows=observation.get('source_rows',[])
+                    driver_rows=driver.get('source_rows',[])
+                    driver_times=dict(zip(driver_rows,driver['axes'][0]['values']))
+                    observed_times=observation.get('axes',[{}])[0].get('values',[])
+                    if (len(observed_rows)!=len(observed_times) or not observed_rows
+                            or len(set(driver_rows))!=len(driver_rows)
+                            or any(row not in driver_times or driver_times[row]!=time for row,time in zip(observed_rows,observed_times))):
+                        raise ValueError('관측과 변형 이력의 원본 행/시간이 다릅니다. 같은 가져오기의 정확한 표본을 선택하세요.')
                 self._validate_observation(observation, item, settings)
-                experiment = {k: deepcopy(v) for k, v in item.items() if k != 'source'}
+                experiment = {k: deepcopy(v) for k, v in item.items() if k not in ('source', 'kinematics')}
                 experiment['observations'] = observation
                 experiment['settings']['parameters'] = deepcopy(settings['parameters'])
+                column=observation.get('mapping',{}).get('column')
+                if column is not None:
+                    role_rows[item['role']].update((source['document_id'],source['job_id'],str(column),
+                        observation.get('component'),row) for row in observation.get('source_rows',[]))
                 experiments.append(experiment)
+            if role_rows['fit'] & role_rows['holdout']:
+                raise ValueError('피팅과 검증에 같은 원본 표본이 포함되었습니다. Data에서 겹치지 않는 구간을 선택하세요.')
             options = {'failure_penalty': draft['failure_penalty']} if draft['failure_penalty'] is not None else {}
             if draft['method'] == 'differential_evolution':
                 options['seed'] = draft['seed']

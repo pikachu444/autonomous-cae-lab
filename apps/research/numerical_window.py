@@ -12,7 +12,7 @@ from time import monotonic
 from PySide6.QtCore import QThreadPool, QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QAbstractItemView, QComboBox, QDialog,
-    QDialogButtonBox, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow,
+    QDialogButtonBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow,
     QMessageBox, QPushButton, QPlainTextEdit, QSplitter, QTableWidget,
     QTableWidgetItem, QTabWidget, QToolBar, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -207,164 +207,129 @@ class NumericalWindow(QMainWindow):
             self.open_document(document_id=document_id, draft=from_material_document(material_document) if material_document and not document_id else None)
 
     def _build_ui(self):
-        self.resize(1440, 940)
-        toolbar = QToolBar('Numerical Plan')
-        self.addToolBar(toolbar)
-        self.new_action = QAction('New plan', self, shortcut=QKeySequence.New)
-        self.request_action = QAction('New calculation request', self)
-        self.request_action.triggered.connect(lambda: self.open_request_document())
-        toolbar.addAction(self.request_action)
-        self.open_action = QAction('Open plan', self, shortcut=QKeySequence.Open)
-        self.save_action = QAction('Save', self, shortcut=QKeySequence.Save)
-        self.undo_action = QAction('Undo', self, shortcut=QKeySequence.Undo)
-        self.redo_action = QAction('Redo', self, shortcut=QKeySequence.Redo)
-        for action, handler in ((self.new_action, self.new_document), (self.open_action, self.choose_document),
-                                (self.save_action, self.save_document), (self.undo_action, lambda: self.command('document.undo')),
-                                (self.redo_action, lambda: self.command('document.redo'))):
+        self.resize(1440, 900)
+        self.setMinimumSize(960, 700)
+        toolbar=QToolBar('재료 피팅'); toolbar.setMovable(False); self.addToolBar(toolbar)
+        files=self.menuBar().addMenu('파일(&F)')
+        edits=self.menuBar().addMenu('편집(&E)')
+        view=self.menuBar().addMenu('보기(&V)')
+        self.new_action=QAction('새 피팅 계획',self,shortcut=QKeySequence.New)
+        self.open_action=QAction('열기…',self,shortcut=QKeySequence.Open)
+        self.save_action=QAction('저장',self,shortcut=QKeySequence.Save)
+        self.undo_action=QAction('실행 취소',self,shortcut=QKeySequence.Undo)
+        self.redo_action=QAction('다시 실행',self,shortcut=QKeySequence.Redo)
+        self.request_action=QAction('일반 수치 계획…',self)
+        for action,handler in ((self.new_action,self.new_document),(self.open_action,self.choose_document),
+            (self.save_action,self.save_document),(self.undo_action,lambda:self.command('document.undo')),
+            (self.redo_action,lambda:self.command('document.redo')),(self.request_action,lambda:self.open_request_document())):
             action.triggered.connect(handler)
-            toolbar.addAction(action)
-        self.apply_button, self.run_button = QPushButton('Apply plan'), QPushButton('Run plan')
-        self.apply_button.clicked.connect(self.apply_inputs)
-        self.run_button.clicked.connect(lambda: self.command('numerical.run'))
-        toolbar.addWidget(self.apply_button)
-        toolbar.addWidget(self.run_button)
-        self.identity = QLabel()
-        toolbar.addWidget(self.identity)
-        root = QWidget()
-        layout = QVBoxLayout(root)
-        self.message = QLabel('Opening Numerical Plan…')
-        self.message.setWordWrap(True)
-        layout.addWidget(self.message)
-        conflicts = QHBoxLayout()
-        self.reload_button, self.copy_button = QPushButton('Reload service version'), QPushButton('Keep edits as a new plan')
-        self.reload_button.clicked.connect(lambda: self.reload_remote())
-        self.copy_button.clicked.connect(lambda: self.open_document(draft=self.edited_draft(), title=self.document['title'] + ' — edits'))
-        conflicts.addWidget(self.reload_button)
-        conflicts.addWidget(self.copy_button)
-        layout.addLayout(conflicts)
-        panels = QHBoxLayout()
-        self.inputs_panel_button = QPushButton('Hide inputs')
-        self.results_panel_button = QPushButton('Hide results')
-        self.inputs_panel_button.clicked.connect(lambda: self._toggle_panel('inputs'))
-        self.results_panel_button.clicked.connect(lambda: self._toggle_panel('results'))
-        panels.addWidget(self.inputs_panel_button)
-        panels.addWidget(self.results_panel_button)
-        panels.addWidget(QLabel('Drag the dividers to resize or collapse panels.'), 1)
-        layout.addLayout(panels)
-        self.study_splitter = QSplitter(Qt.Orientation.Vertical)
-        self.study_splitter.setObjectName('numericalStudyPanels')
-        layout.addWidget(self.study_splitter, 1)
-        self.editor = QWidget()
-        edit = QVBoxLayout(self.editor)
-        model = QHBoxLayout()
-        self.material_button = QPushButton('Select Material document…')
-        self.material_button.clicked.connect(self.choose_material)
-        self.material_label = QLabel('No model selected')
-        self.material_label.setWordWrap(True)
-        model.addWidget(self.material_button)
-        model.addWidget(self.material_label, 1)
-        edit.addLayout(model)
-        opts = QHBoxLayout()
-        self.mode = QComboBox()
-        self.mode.addItems(['fit', 'doe', 'optimize', 'uq', 'epsilon'])
-        self.method = QComboBox()
-        self.method.addItems(['least_squares', 'differential_evolution'])
-        self.budget, self.count, self.seed, self.penalty = [QLineEdit() for _ in range(4)]
-        for label, widget in [('Mode', self.mode), ('Fit method', self.method), ('Total model-call budget', self.budget), ('DOE count', self.count), ('Seed', self.seed), ('Failure penalty (null = none)', self.penalty)]:
-            opts.addWidget(QLabel(label))
-            opts.addWidget(widget)
-            if isinstance(widget, QLineEdit):
-                widget.setMaximumWidth(90)
-                widget.textEdited.connect(self._edited)
-            else:
-                widget.currentTextChanged.connect(self._edited)
+        files.addActions([self.new_action,self.open_action,self.save_action,self.request_action])
+        material_action=QAction('재료 열기 / 저장…',self)
+        material_action.triggered.connect(self.open_material); files.addAction(material_action)
+        edits.addActions([self.undo_action,self.redo_action])
+        toolbar.addActions([self.open_action,self.save_action,self.undo_action,self.redo_action])
+        self.apply_button=QPushButton('계획 적용'); self.apply_button.clicked.connect(self.apply_inputs)
+        self.run_button=QPushButton('피팅 실행'); self.run_button.setProperty('appearanceRole','primary')
+        self.run_button.clicked.connect(self.run_plan)
+        self.stop_button=QPushButton('실행 취소'); self.stop_button.clicked.connect(self.cancel_run)
+        for widget in (self.apply_button,self.run_button,self.stop_button): toolbar.addWidget(widget)
+        self.identity=QLabel(); toolbar.addWidget(self.identity)
+        root=QWidget(); layout=QVBoxLayout(root)
+        self.message=QLabel('재료와 시험을 선택하세요.'); self.message.setWordWrap(True); layout.addWidget(self.message)
+        conflict=QHBoxLayout()
+        self.reload_button=QPushButton('서버 입력 다시 읽기')
+        self.copy_button=QPushButton('편집을 새 계획으로 보관')
+        self.reload_button.clicked.connect(self.reload_remote)
+        self.copy_button.clicked.connect(lambda:self.open_document(draft=self.edited_draft(),title=self.document['title']+' 편집'))
+        conflict.addWidget(self.reload_button); conflict.addWidget(self.copy_button); layout.addLayout(conflict)
+        self.inputs_panel_button=QPushButton('입력 접기'); self.inputs_panel_button.hide()
+        self.results_panel_button=QPushButton('결과 접기'); self.results_panel_button.hide()
+        self.inputs_panel_button.clicked.connect(lambda:self._toggle_panel('inputs'))
+        self.results_panel_button.clicked.connect(lambda:self._toggle_panel('results'))
+        for label,name in [('입력 표시/접기','inputs'),('결과 표시/접기','results')]:
+            action=QAction(label,self); action.triggered.connect(lambda checked=False,name=name:self._toggle_panel(name)); view.addAction(action)
+        self.study_splitter=QSplitter(Qt.Orientation.Horizontal); layout.addWidget(self.study_splitter,1)
+        self.editor=QWidget(); edit=QVBoxLayout(self.editor); edit.setContentsMargins(0,0,0,0)
+        model=QHBoxLayout()
+        self.material_button=QPushButton('재료 선택…'); self.material_button.clicked.connect(self.choose_material)
+        self.material_label=QLabel('재료 선택'); self.material_label.setWordWrap(True)
+        model.addWidget(self.material_button); model.addWidget(self.material_label,1); edit.addLayout(model)
+        self.mode=QComboBox(); self.mode.addItems(['fit','doe','optimize','uq','epsilon'])
+        self.method=QComboBox(); self.method.addItems(['least_squares','differential_evolution'])
+        self.budget,self.count,self.seed,self.penalty=[QLineEdit() for _ in range(4)]
+        settings=QWidget(); form=QFormLayout(settings); form.setContentsMargins(0,0,0,0)
+        for label,widget in [('연구 방법',self.mode),('피팅 알고리즘',self.method),('최대 모델 호출',self.budget),
+                             ('표본 수',self.count),('난수 seed',self.seed),('실패 벌점 (null = 중지)',self.penalty)]:
+            form.addRow(label,widget)
+            if isinstance(widget,QLineEdit): widget.textEdited.connect(self._edited)
+            else: widget.currentTextChanged.connect(self._edited)
         self.mode.currentTextChanged.connect(self._mode_changed)
-        edit.addLayout(opts)
-        self.variables = QTableWidget(0, 7)
-        self.variables.setObjectName('numericalVariables')
-        self.variables.setHorizontalHeaderLabels(['Coefficient', 'Unit', 'Current', 'Lower', 'Upper', 'Free', 'Transform'])
+        self.settings_toggle=QPushButton('방법 설정'); self.settings_toggle.setCheckable(True)
+        self.settings_toggle.toggled.connect(settings.setVisible); settings.hide()
+        edit.addWidget(self.settings_toggle); edit.addWidget(settings)
+        self.input_splitter=QSplitter(Qt.Orientation.Vertical); edit.addWidget(self.input_splitter,1)
+        self.variables=QTableWidget(0,7); self.variables.setObjectName('numericalVariables')
+        self.variables.setHorizontalHeaderLabels(['계수','단위','시작값','하한','상한','조정','좌표'])
         self.variables.itemChanged.connect(self._edited)
-        self.input_splitter = QSplitter(Qt.Orientation.Vertical)
-        self.input_splitter.setObjectName('numericalInputPanels')
+        self.variables.horizontalHeader().setDefaultSectionSize(65)
+        self.variables.setToolTip('현재 재료와 별개인 계획 시작값과 탐색 범위입니다.')
         self.input_splitter.addWidget(self.variables)
-        edit.addWidget(self.input_splitter, 1)
-        self.experiments_panel = QWidget()
-        experiment_layout = QVBoxLayout(self.experiments_panel)
-        experiment_layout.setContentsMargins(0, 0, 0, 0)
-        buttons = QHBoxLayout()
-        self.add_experiment = QPushButton('Add Data observation…')
-        self.edit_protocol = QPushButton('Edit selected protocol…')
-        self.remove_experiment = QPushButton('Remove selected experiments')
-        self.add_experiment.clicked.connect(self.choose_observation)
-        self.edit_protocol.clicked.connect(self.change_protocol)
-        self.remove_experiment.clicked.connect(self.remove_experiments)
-        for button in (self.add_experiment, self.edit_protocol, self.remove_experiment):
-            buttons.addWidget(button)
-        experiment_layout.addLayout(buttons)
-        self.experiments = QTableWidget(0, 8)
-        self.experiments.setObjectName('numericalExperiments')
-        self.experiments.setHorizontalHeaderLabels(['Experiment', 'Role (fit / holdout)', 'Data import', 'Observed response', 'Model response', 'Weight', 'Error scale', 'Explicit protocol'])
+        self.experiments_panel=QWidget(); el=QVBoxLayout(self.experiments_panel); el.setContentsMargins(0,0,0,0)
+        buttons=QHBoxLayout()
+        self.add_experiment=QPushButton('시험 추가…'); self.add_experiment.clicked.connect(self.choose_observation)
+        self.edit_protocol=QPushButton('조건…'); self.edit_protocol.clicked.connect(self.change_protocol)
+        self.remove_experiment=QPushButton('제거'); self.remove_experiment.clicked.connect(self.remove_experiments)
+        for button in (self.add_experiment,self.edit_protocol,self.remove_experiment): buttons.addWidget(button)
+        el.addLayout(buttons)
+        self.experiments=QTableWidget(0,8); self.experiments.setObjectName('numericalExperiments')
+        self.experiments.setHorizontalHeaderLabels(['시험','용도','가져오기','관측','모델 응답','가중치','오차 기준','조건'])
+        self.experiments.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.experiments.itemChanged.connect(self._edited)
-        experiment_layout.addWidget(self.experiments, 1)
+        self.experiments.setColumnHidden(0,True); self.experiments.setColumnHidden(2,True); self.experiments.setColumnHidden(4,True)
+        self.experiments.setColumnHidden(7,True); self.experiments.horizontalHeader().setDefaultSectionSize(78)
+        el.addWidget(self.experiments,1)
         self.input_splitter.addWidget(self.experiments_panel)
-        self.operation_options = _OperationOptions(self)
-        self.input_splitter.addWidget(self.operation_options)
-        self.input_splitter.setStretchFactor(0, 1)
-        self.input_splitter.setStretchFactor(1, 2)
-        self.input_splitter.setStretchFactor(2, 3)
-        note = QLabel('Fit and holdout are separate histories. DOE, optimization, UQ and epsilon searches evaluate the selected Material protocol with the visible free coefficients and total model-call budget. Objectives use explicit stress/energy reductions. UQ input laws and their source are declarations; epsilon thresholds apply to the listed secondary objectives. Candidate adoption is a separate Material edit.')
-        note.setWordWrap(True)
-        edit.addWidget(note)
+        self.operation_options=_OperationOptions(self); self.input_splitter.addWidget(self.operation_options)
+        self.input_splitter.setSizes([180,300,0])
         self.study_splitter.addWidget(self.editor)
-        self.results_panel = QWidget()
-        results_layout = QVBoxLayout(self.results_panel)
-        results_layout.setContentsMargins(0, 0, 0, 0)
-        self.result_splitter = QSplitter(Qt.Orientation.Vertical)
-        self.result_splitter.setObjectName('numericalResultPanels')
-        results_layout.addWidget(self.result_splitter, 1)
-        run_panel = QWidget()
-        run_layout = QVBoxLayout(run_panel)
-        run_layout.setContentsMargins(0, 0, 0, 0)
-        self.runs = QTableWidget(0, 4)
-        self.runs.setHorizontalHeaderLabels(['Plan job', 'State', 'Submitted input', 'Ownership'])
+        self.results_panel=QWidget(); rl=QVBoxLayout(self.results_panel); rl.setContentsMargins(0,0,0,0)
+        self.result_splitter=QSplitter(Qt.Orientation.Vertical); rl.addWidget(self.result_splitter,1)
+        run_panel=QWidget(); run_layout=QVBoxLayout(run_panel); run_layout.setContentsMargins(0,0,0,0)
+        self.runs=QTableWidget(0,4)
+        self.runs.setHorizontalHeaderLabels(['실행','상태','입력','계획'])
+        self.runs.setColumnHidden(2,True)
         self.runs.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.runs.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.runs.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.runs.itemSelectionChanged.connect(self._selection_changed)
-        run_layout.addWidget(self.runs, 1)
-        actions = QHBoxLayout()
-        self.read_button, self.adopt_button, self.analysis_button = QPushButton('Read / retry selected run'), QPushButton('Adopt selected candidate into Material'), QPushButton('Analyze DOE response…')
-        self.read_button.clicked.connect(self.retry_result)
-        self.adopt_button.clicked.connect(self.adopt_candidate)
-        self.analysis_button.clicked.connect(self.analyze_result)
-        for button in (self.read_button, self.adopt_button, self.analysis_button):
-            actions.addWidget(button)
-        run_layout.addLayout(actions)
-        self._build_adoption_receipt_ui(run_layout)
+        run_layout.addWidget(self.runs,1)
+        actions=QHBoxLayout()
+        self.read_button=QPushButton('결과 다시 읽기'); self.read_button.clicked.connect(self.retry_result)
+        self.adopt_button=QPushButton('계수를 재료에 적용…'); self.adopt_button.clicked.connect(self.adopt_candidate)
+        self.analysis_button=QPushButton('응답 분석…'); self.analysis_button.clicked.connect(self.analyze_result)
+        for button in (self.read_button,self.adopt_button,self.analysis_button): actions.addWidget(button)
+        run_layout.addLayout(actions); self._build_adoption_receipt_ui(run_layout)
         self.result_splitter.addWidget(run_panel)
-        self.tabs = QTabWidget()
-        self.candidates = QTableWidget(0, 5)
-        self.candidates.setHorizontalHeaderLabels(['Candidate', 'Status', 'Coefficients', 'Actual objective', 'Failure'])
+        self.tabs=QTabWidget()
+        self.candidates=QTableWidget(0,5)
+        self.candidates.setHorizontalHeaderLabels(['후보','상태','계수','목적함수','실패 이유'])
         self.candidates.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.candidates.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.candidates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tabs.addTab(self.candidates, 'Actual candidates')
-        self.figure = Figure(constrained_layout=True)
-        self.canvas = FigureCanvasQTAgg(self.figure)
-        self.tabs.addTab(self.canvas, 'Actual curves / study summary')
-        self.details = QPlainTextEdit()
-        self.details.setReadOnly(True)
-        self.tabs.addTab(self.details, 'Diagnostics / retained input')
+        self.figure=Figure(constrained_layout=True); self.canvas=FigureCanvasQTAgg(self.figure)
+        plot=QWidget(); pl=QVBoxLayout(plot); pl.setContentsMargins(0,0,0,0)
+        self.curve_selector=QComboBox(); self.curve_selector.currentIndexChanged.connect(self._curve_changed)
+        self.curve_summary=QLabel(); self.curve_summary.setWordWrap(True)
+        pl.addWidget(self.curve_selector); pl.addWidget(self.canvas,1); pl.addWidget(self.curve_summary)
+        self.tabs.addTab(plot,'관측과 최종 예측'); self.tabs.addTab(self.candidates,'평가한 후보')
+        self.details=QPlainTextEdit(); self.details.setReadOnly(True); self.tabs.addTab(self.details,'진단 상세')
         self.result_splitter.addWidget(self.tabs)
-        self.result_splitter.setStretchFactor(0, 1)
-        self.result_splitter.setStretchFactor(1, 4)
-        self.result_splitter.setSizes([120, 420])
+        self.result_splitter.setStretchFactor(0,0); self.result_splitter.setStretchFactor(1,1)
+        self.result_splitter.setSizes([160,580])
         self.study_splitter.addWidget(self.results_panel)
-        self.study_splitter.setStretchFactor(0, 1)
-        self.study_splitter.setStretchFactor(1, 2)
-        self.study_splitter.setSizes([340, 540])
-        self.setCentralWidget(root)
-        self._update_actions()
+        self.study_splitter.setStretchFactor(0,0); self.study_splitter.setStretchFactor(1,1)
+        self.study_splitter.setSizes([430,940])
+        self.setCentralWidget(root); self._update_actions()
 
     def _toggle_panel(self, name):
         panel = self.editor if name == 'inputs' else self.results_panel
@@ -504,7 +469,7 @@ class NumericalWindow(QMainWindow):
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
         self._show_document(document)
-        self.message.setText('Select Material, choose the operation, edit free coefficients and explicit response/distribution definitions, Apply plan, then Run. Fit requires Data observations. Adoption is a separate Material command.')
+        self.message.setText('시험 조건과 조정할 계수를 확인하세요. 적용 후 피팅을 실행할 수 있습니다.')
 
     def open_request_document(self, document_id=None):
         from .request_plan_window import RequestPlanWindow
@@ -527,7 +492,7 @@ class NumericalWindow(QMainWindow):
                 raise ValueError('Unsupported visible plan shape')
             if not isinstance(draft['variables'], list) or any(set(v) != {'id', 'unit', 'value', 'lower', 'upper', 'free', 'transform'} for v in draft['variables']):
                 raise ValueError('Unsupported coefficient shape')
-            if not isinstance(draft['experiments'], list) or any(set(e) != {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'} for e in draft['experiments']):
+            if not isinstance(draft['experiments'], list) or any(set(e) - {'kinematics'} != {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'} for e in draft['experiments']):
                 raise ValueError('Unsupported experiment shape')
             self._material = deepcopy(draft['material'])
             self._experiments = deepcopy(draft['experiments'])
@@ -548,7 +513,9 @@ class NumericalWindow(QMainWindow):
         except (KeyError, TypeError, AttributeError, ValueError):
             self._view_error = 'This raw draft cannot fit the table editor; its complete content is preserved in Details and can be saved/undone.'
         self._populating = False
-        self.material_label.setText(f"{self._material['document_id']} · g{self._material['generation']} · input {self._material['input_revision']}" if isinstance(self._material, dict) and {'document_id', 'generation', 'input_revision'} <= set(self._material) else 'No complete Material reference selected')
+        settings=self._material.get('draft',{}).get('settings',{}) if isinstance(self._material,dict) else {}
+        self.material_label.setText(str(settings.get('model','재료 선택'))+' ['+str(settings.get('stress_unit',''))+']')
+        self.material_label.setToolTip(str(self._material.get('document_id','')) if isinstance(self._material,dict) else '')
         self._populate_runs(prefer_job)
         self._draw_result()
         self._update_actions()
@@ -783,8 +750,18 @@ class NumericalWindow(QMainWindow):
             self.message.setText('Apply edited plan first; commands use an exact service generation.')
             return False
         document = deepcopy(self.document)
+        submitted = self.edited_draft()
         def accepted(receipt):
-            self.local_dirty = self.conflict = False
+            late = self.edited_draft() != submitted
+            self.conflict = False
+            if late:
+                self.document=deepcopy(receipt['document'])
+                self.local_dirty=True
+                self._populate_runs(receipt.get('job',{}).get('id'))
+                self._update_actions()
+                self.message.setText('제출 뒤 편집한 입력을 유지했습니다. 새 입력을 적용한 뒤 계속하세요.')
+                return
+            self.local_dirty = False
             self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
             self.message.setText('Applied through the Numerical document owner: ' + operation)
             if after:
@@ -824,56 +801,65 @@ class NumericalWindow(QMainWindow):
         self._list_select('material', chosen)
 
     def choose_observation(self):
-        if not isinstance(self._material, dict) or 'draft' not in self._material or material_diagnostics(self._material['draft']):
-            self.message.setText('Select a valid Material model before defining a measured protocol.')
-            return
+        if not isinstance(self._material,dict) or material_diagnostics(self._material.get('draft',{})):
+            self.message.setText('먼저 유효한 재료를 선택하세요.'); return
         def data_chosen(document):
-            runs = document.get('runs', [])
+            runs=document.get('runs',[])
             if not runs:
-                self.message.setText('The selected Data document has no retained import. Import its mapping first.')
-                return
-            labels = [run['job_id'] + ' · input g' + str(run['input_generation']) for run in runs]
-            label, ok = QInputDialog.getItem(self, 'Select Data import', 'Exact import job', labels, editable=False)
-            if not ok:
-                return
-            run = runs[labels.index(label)]
+                self.message.setText('Data에서 열 설정을 적용하고 가져오기를 실행하세요.'); return
+            labels=['가져오기 '+str(i+1) for i in range(len(runs))]
+            label,ok=QInputDialog.getItem(self,'시험 추가',document['title'],labels,len(labels)-1,False)
+            if not ok:return
+            run=runs[labels.index(label)]
+            token=(self.document['id'],self.document['session_id'])
             def inspected(result):
-                if result.get('execution_status') != 'SUCCEEDED' or not result.get('responses'):
-                    self.message.setText('Selected import has no successful response.')
-                    return
-                names = list(result['responses'])
-                name, ok = QInputDialog.getItem(self, 'Select observed response', 'Imported channel', names, editable=False)
-                if not ok:
-                    return
-                response, ok = QInputDialog.getItem(self, 'Select model response', 'No conversion is inferred', ['stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz'], editable=False)
-                if not ok:
-                    return
-                dialog = ProtocolDialog(self._material['draft']['settings'], self)
-                if dialog.exec() != QDialog.DialogCode.Accepted:
-                    return
-                self._experiments = self.edited_draft()['experiments']
-                self._experiments.append({'id': 'E'+uuid.uuid4().hex[:12], 'role': 'fit', 'source': {'document_id': document['id'], 'job_id': run['job_id'], 'response': name, 'input_revision': run['input_revision'], 'input_sha256': run['input_sha256']}, 'response': response, 'settings': dialog.draft_settings(), 'weight': 1, 'scale': 1})
-                self._populating = True
-                self._populate_experiments()
-                self._populating = False
+                if result.get('execution_status')!='SUCCEEDED':
+                    self.message.setText('선택한 가져오기에 성공한 관측이 없습니다.');return
+                from .material_test_dialog import ExperimentDialog
+                dialog=ExperimentDialog(self._material['draft']['settings'],result,self)
+                if dialog.exec()!=QDialog.DialogCode.Accepted:return
+                if token!=(self.document['id'],self.document['session_id']):return
+                value=dialog.value
+                self._experiments=self.edited_draft()['experiments']
+                index=1
+                while 'Test'+str(index) in {e['id'] for e in self._experiments}: index+=1
+                experiment={'id':'Test'+str(index),'role':value['role'],'source':{
+                    'document_id':document['id'],'job_id':run['job_id'],'response':value['name'],
+                    'input_revision':run['input_revision'],'input_sha256':run['input_sha256']},
+                    'response':value['response'],'settings':value['settings'],'weight':value['weight'],'scale':value['scale']}
+                if value['kinematics'] is not None:experiment['kinematics']=value['kinematics']
+                self._experiments.append(experiment)
+                self._populating=True; self._populate_experiments();self._populating=False
                 self._edited()
-            self._call(lambda: self.client.document_result(document['id'], run['job_id'], selection={'metadata_only': True}), inspected)
-        self._list_select('data', data_chosen)
+            self._call(lambda:self.client.document_result(document['id'],run['job_id']),inspected,
+                relevant=lambda:token==(self.document['id'],self.document['session_id']))
+        self._list_select('data',data_chosen)
 
     def change_protocol(self):
-        rows = sorted({item.row() for item in self.experiments.selectedIndexes()})
-        if len(rows) != 1:
-            self.message.setText('Select one experiment protocol to edit.')
-            return
-        self._experiments = self.edited_draft()['experiments']
-        row = rows[0]
-        dialog = ProtocolDialog(self._experiments[row]['settings'], self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self._experiments[row]['settings'] = dialog.draft_settings()
-            self._populating = True
-            self._populate_experiments()
-            self._populating = False
+        rows=sorted({item.row() for item in self.experiments.selectedIndexes()})
+        if len(rows)!=1:
+            self.message.setText('조건을 편집할 시험 하나를 선택하세요.'); return
+        row=rows[0]; experiments=self.edited_draft()['experiments']
+        experiment=deepcopy(experiments[row]); source=experiment['source']
+        token=(self.document['id'],self.document['session_id'])
+        def inspected(result):
+            from .material_test_dialog import ExperimentDialog
+            dialog=ExperimentDialog(experiment['settings'],result,self,experiment=experiment)
+            if dialog.exec()!=QDialog.DialogCode.Accepted:return
+            current=self.edited_draft()['experiments']
+            if token!=(self.document['id'],self.document['session_id']) or row>=len(current) or current[row]!=experiment:
+                self.message.setText('선택 시험이 변경되었습니다. 조건을 다시 여세요.');return
+            value=dialog.value
+            current[row].update(settings=value['settings'],role=value['role'],response=value['response'],
+                weight=value['weight'],scale=value['scale'])
+            current[row]['source']['response']=value['name']
+            if value['kinematics'] is None:current[row].pop('kinematics',None)
+            else:current[row]['kinematics']=value['kinematics']
+            self._experiments=current
+            self._populating=True;self._populate_experiments();self._populating=False
             self._edited()
+        self._call(lambda:self.client.document_result(source['document_id'],source['job_id']),inspected,
+            relevant=lambda:token==(self.document['id'],self.document['session_id']))
 
     def remove_experiments(self):
         rows = {item.row() for item in self.experiments.selectedIndexes()}
@@ -885,7 +871,7 @@ class NumericalWindow(QMainWindow):
 
     def selected_job(self):
         rows = sorted({item.row() for item in self.runs.selectedIndexes()})
-        return self.runs.item(rows[0], 0).text() if len(rows) == 1 else None
+        return (self.runs.item(rows[0],0).data(Qt.ItemDataRole.UserRole) or self.runs.item(rows[0],0).text()) if len(rows)==1 else None
 
     def _populate_runs(self, prefer_job=None):
         selected = prefer_job or self.selected_job()
@@ -898,6 +884,8 @@ class NumericalWindow(QMainWindow):
             values = [run['job_id'], self._statuses.get(run['job_id'], {}).get('state', run.get('retained_state', 'Awaiting status')), f"g{run['input_generation']} / {run.get('input_revision')}", 'current plan' if run.get('is_current_input') and not self.local_dirty else 'earlier input']
             for col, value in enumerate(values):
                 self._set_cell(self.runs, row, col, value, False)
+            self.runs.item(row,0).setText('실행 '+str(row+1))
+            self.runs.item(row,0).setToolTip(run['job_id'])
             if run['job_id'] == selected:
                 self.runs.selectRow(row)
         self.runs.blockSignals(False)
@@ -973,29 +961,90 @@ class NumericalWindow(QMainWindow):
             values = [candidate['candidate_id'], candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('failure_reason')]
             for col, value in enumerate(values):
                 self._set_cell(self.candidates, row, col, value, False)
+            self.candidates.item(row,0).setText('후보 '+str(row+1))
+            self.candidates.item(row,0).setToolTip(candidate['candidate_id'])
+            self.candidates.item(row,2).setText(', '.join(str(k)+'='+str(v) for k,v in (candidate.get('values') or {}).items()))
             if candidate['candidate_id'] == selected:
                 self.candidates.selectRow(row)
         self.figure.clear()
         curves = result.get('curves', [])
+        if hasattr(self,'curve_selector'):
+            previous=self.curve_selector.currentData()
+            self.curve_selector.blockSignals(True); self.curve_selector.clear()
+            for curve in curves:
+                run=next((r for r in self.document.get('runs',[]) if r['job_id']==job),{})
+                trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==curve.get('experiment_id')), {})
+                label=('검증' if curve.get('role')=='holdout' else '피팅')+' / '+str(trial.get('source',{}).get('response') or '시험 '+str(self.curve_selector.count()+1))
+                self.curve_selector.addItem(label,curve.get('experiment_id'))
+            selected_index=self.curve_selector.findData(previous)
+            self.curve_selector.setCurrentIndex(max(0,selected_index))
+            self.curve_selector.blockSignals(False)
         if curves:
-            axes = self.figure.subplots(len(curves), 1, squeeze=False)
-            for ax, curve in zip(axes[:, 0], curves):
-                obs = curve.get('observations', {})
-                x = obs.get('axes', [{}])[0].get('values', [])
-                y, predicted = obs.get('value', []), curve.get('prediction', [])
-                if len(x) == len(y):
-                    ax.plot(x, y, 'o', label='observed', markersize=3)
-                if isinstance(predicted, list) and len(x) == len(predicted):
-                    ax.plot(x, predicted, label='actual model prediction')
-                ax.set_title(f"{curve.get('role')} · {curve.get('experiment_id')} · {curve.get('execution_status')} · RMSE {curve.get('rmse', 'unknown')}", fontsize=9)
-                ax.set_xlabel('time ['+obs.get('axes', [{}])[0].get('unit', '?')+']')
-                ax.set_ylabel(obs.get('component', '?')+' ['+obs.get('unit', '?')+']')
-                if ax.lines:
-                    ax.legend(fontsize=7)
+            self._draw_fit_curve(result)
         else:
             self._draw_study_summary(result, job)
         self.canvas.draw_idle()
         self.details.setPlainText(json.dumps({'document': self.document, 'view_error': self._view_error, 'selected_status': self._statuses.get(job), 'read_error': self._result_errors.get(job), 'selected_result': result}, indent=2, ensure_ascii=False))
+
+    def _curve_changed(self, *_):
+        if self._populating: return
+        result=self._result_cache.get(self.selected_job(),{})
+        if result.get('curves'):
+            self.figure.clear(); self._draw_fit_curve(result); self.canvas.draw_idle()
+
+    def _draw_fit_curve(self,result):
+        from caelab.material_test import physical_residual
+        curves=result.get('curves',[])
+        index=max(0,self.curve_selector.currentIndex())
+        if index>=len(curves):return
+        curve=curves[index]
+        obs=curve.get('observations',{})
+        axes=obs.get('axes',[{}]); axis=axes[0] if axes else {}
+        x,y=axis.get('values',[]),obs.get('value',[])
+        prediction=curve.get('prediction',[])
+        top,bottom=self.figure.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
+        # Preserve explicit gaps; never join separated observed intervals.
+        segments=obs.get('segments') or [{'rows':[0,len(x)]}]
+        for segment in segments:
+            first,last=segment.get('rows',[0,len(x)])
+            if len(x)==len(y):
+                top.plot(x[first:last],y[first:last],'o',markersize=3,label='관측' if first==0 else None)
+            if isinstance(prediction,list) and len(prediction)==len(x):
+                top.plot(x[first:last],prediction[first:last],label='최종 예측' if first==0 else None)
+        rx,residual=physical_residual(curve)
+        for segment in segments:
+            first,last=segment.get('rows',[0,len(rx)])
+            bottom.plot(rx[first:last],residual[first:last],'o-',markersize=2)
+        bottom.axhline(0,color='gray',linewidth=.7)
+        unit=obs.get('unit','?')
+        top.set_ylabel(str(obs.get('component',''))+' ['+unit+']')
+        bottom.set_ylabel('예측−관측\n['+unit+']')
+        bottom.set_xlabel(str(axis.get('name','time'))+' ['+str(axis.get('unit','?'))+']')
+        if top.lines:top.legend(fontsize=9)
+        status=curve.get('execution_status','UNKNOWN')
+        top.set_title(('검증' if curve.get('role')=='holdout' else '피팅')+' / '+status,fontsize=11)
+        self.curve_summary.setText('최종 계수: '+', '.join(str(k)+'='+str(v) for k,v in result.get('parameters',{}).items())+
+            '    RMSE '+str(curve.get('rmse','없음'))+' '+unit+
+            ('    '+str(curve.get('failure_reason','')) if status!='SUCCEEDED' else ''))
+        for ax in (top,bottom):ax.grid(True,alpha=.2)
+
+    def run_plan(self):
+        if self.local_dirty:
+            return self.apply_inputs(after=lambda:self.command('numerical.run'))
+        return self.command('numerical.run')
+
+    def cancel_run(self):
+        job=self.selected_job()
+        if job and self._statuses.get(job,{}).get('state') in ('QUEUED','RUNNING'):
+            return self._call(lambda:self.client.cancel(job),
+                lambda _:self.message.setText('취소를 요청했습니다. 이미 계산한 후보와 이전 결과는 유지됩니다.'))
+
+    def open_material(self):
+        if not self._material:return
+        from .material_window import MaterialWindow
+        window=MaterialWindow(self.client,document_id=self._material['document_id'])
+        self.__dict__.setdefault('_material_windows',[]).append(window);window.show()
+        return window
 
     def _draw_study_summary(self, result, job):
         ax = self.figure.add_subplot(111)
@@ -1052,7 +1101,7 @@ class NumericalWindow(QMainWindow):
     def selected_candidate(self):
         rows = sorted({item.row() for item in self.candidates.selectedIndexes()})
         item = self.candidates.item(rows[0], 0) if len(rows) == 1 else None
-        return item.text() if item is not None else None
+        return (item.data(Qt.ItemDataRole.UserRole) or item.text()) if item is not None else None
 
     def adopt_candidate(self):
         if self._adoption_receipt is not None:
@@ -1089,13 +1138,21 @@ class NumericalWindow(QMainWindow):
             if target.get('id') != reference['document_id'] or target.get('session_id') != document_session:
                 self.message.setText('Original Material identity/session changed. No adoption was submitted.')
                 return
-            if QMessageBox.question(self, 'Adopt candidate', 'Apply '+candidate+' coefficients to Material '+target['title']+' as one undoable Material edit?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Yes:
+            from caelab.numerical_document import adopted_draft
+            try:
+                proposed=adopted_draft(run,self._result_cache[job],candidate)
+            except (ValueError,KeyError,TypeError) as error:
+                self.message.setText(str(error)); return
+            old=target['draft']['settings']['parameters']
+            changes='\n'.join(str(name)+': '+str(old.get(name,'?'))+' → '+str(value)+' '+('1' if name=='nu' else target['draft']['settings']['stress_unit'])
+                for name,value in proposed['settings']['parameters'].items())
+            if QMessageBox.question(self, '계수를 재료에 적용', target['title']+'\n\n'+changes+'\n\n적용 후 재료 창에서 별도로 저장할 수 있습니다.', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Yes:
                 self.message.setText('Adoption cancelled; no Material coefficients changed.')
                 return
             if not same_selection():
                 return
             def adopted(receipt):
-                self.message.setText('Adopted selected evaluated coefficients through the Material owner. Material Undo can restore the prior coefficients.')
+                self.message.setText('계수를 적용했습니다. 파일 → 재료 열기 / 저장에서 확인하고 저장하세요. 재료의 실행 취소로 되돌릴 수 있습니다.')
             request = dict(document_id=document_id, job_id=job, candidate_id=candidate,
                 material_document_id=target['id'], session_id=target['session_id'],
                 expected_generation=target['generation'], command_id='C'+uuid.uuid4().hex)
@@ -1202,7 +1259,12 @@ class NumericalWindow(QMainWindow):
         self.copy_button.setVisible(self.conflict)
         if present:
             self.setWindowTitle('Numerical Plan — '+self.document['title']+(' *' if self.local_dirty or self.document.get('dirty') else ''))
-            self.identity.setText('g'+str(self.document['generation'])+(' · unapplied edits' if self.local_dirty else ''))
+            self.identity.setText('적용할 변경 있음' if self.local_dirty else '입력 오류' if blocked else '저장할 변경 있음' if self.document.get('dirty') else '')
+            self.identity.setToolTip(self.document['id'])
+            if hasattr(self,'stop_button'):
+                job=self.selected_job()
+                self.stop_button.setEnabled(enabled and self._statuses.get(job,{}).get('state') in ('QUEUED','RUNNING'))
+                self.run_button.setText('피팅 실행' if self.mode.currentText()=='fit' else '연구 실행')
 
     def _leave(self, continuation):
         self._commit_editor()

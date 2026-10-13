@@ -164,7 +164,7 @@ class MaterialWindow(QMainWindow):
         self.runner_action = QAction("실행 관리…", self)
         self.runner_action.triggered.connect(self.open_runner)
         windows.addAction(self.runner_action)
-        self.numerical_action = QAction("수치 연구…", self)
+        self.numerical_action = QAction("재료 피팅…", self)
         self.numerical_action.triggered.connect(self.open_numerical)
         windows.addAction(self.numerical_action)
         toolbar = QToolBar("Material commands", self)
@@ -537,7 +537,7 @@ class MaterialWindow(QMainWindow):
     def open_numerical(self):
         self._commit_cell_editor()
         if self.local_dirty or self.conflict:
-            self.message.setText("Apply Material edits and resolve conflicts before capturing a Numerical Plan reference.")
+            self.message.setText("재료 편집을 적용한 뒤 피팅을 여세요. 계획의 시작값과 범위는 재료 계수와 별도로 편집합니다.")
             return
         if self.document:
             from .numerical_window import NumericalWindow
@@ -545,6 +545,7 @@ class MaterialWindow(QMainWindow):
             self._numerical_windows.append(window)
             window.show()
             window.raise_()
+            return window
 
     def open_runner(self):
         from .runner_window import RunnerWindow

@@ -502,6 +502,15 @@ class RequestPlanWindow(NumericalWindow):
         if root is None or self._sheet_populating:
             return
         value = self._input_value(root)
+        # Read the CURRENT typed buffer. These are display fallbacks only:
+        # a later manual response selection wins, and no draft leaf is rewritten.
+        settings=value.get('settings',{})
+        recipe=settings.get('recipe',{}) if isinstance(settings,dict) else {}
+        recipe=recipe if isinstance(recipe,dict) else {}
+        declared_labels={row['id']:row.get('label',row['id']) for row in recipe.get('variables',[])
+            if isinstance(row,dict) and isinstance(row.get('id'),str)} if isinstance(recipe.get('variables',[]),list) else {}
+        declared_responses={row['id']:deepcopy(row) for row in recipe.get('responses',[])
+            if isinstance(row,dict) and isinstance(row.get('id'),str)} if isinstance(recipe.get('responses',[]),list) else {}
         self._sheet_populating = True
         try:
             variables = value.get('variables', [])
@@ -511,7 +520,7 @@ class RequestPlanWindow(NumericalWindow):
                 if not isinstance(variable, dict):
                     variable = {}
                 identifier = variable.get('id')
-                label = self._worksheet_labels.get(identifier, identifier) if isinstance(identifier, str) else value_text(identifier)
+                label = self._worksheet_labels.get(identifier, declared_labels.get(identifier, identifier)) if isinstance(identifier, str) else value_text(identifier)
                 self._sheet_cell(self.variable_sheet, index, 0, label or 'Unsupported row', entry=('variables', index))
                 self._sheet_cell(self.variable_sheet, index, 1, identifier)
                 for col, key in enumerate(('value', 'lower', 'upper', 'unit', 'transform'), 2):
@@ -523,7 +532,7 @@ class RequestPlanWindow(NumericalWindow):
             operation = self.operation.currentData()
             if operation == 'doe':
                 for index, response in enumerate(value.get('responses', []) if isinstance(value.get('responses', []), list) else []):
-                    definition = self._worksheet_responses.get(response, {}) if isinstance(response, str) else {}
+                    definition = self._worksheet_responses.get(response, declared_responses.get(response, {})) if isinstance(response, str) else {}
                     rows.append(('Response', response, definition, ('responses', index)))
             elif operation == 'optimize':
                 if 'objective' in value:
