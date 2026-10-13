@@ -23,7 +23,7 @@ from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
 
 
-OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze',
+OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
               'pre.workbench', 'pre.export_native_copy', 'pre.validate') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + RESEARCH_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
@@ -275,6 +275,11 @@ class Owner:
                         window.raise_()
                         window.activateWindow()
                     payload = {**self.descriptor(), **({'save': payload} if operation == 'document.save' else {})}
+                elif operation == 'pre.impact.capture':
+                    if set(args) != {'analysis_id', 'solver_id'} or target:
+                        raise ValueError('Choose an exact Analysis and mesh-reference solver')
+                    from .impact_capture import capture
+                    payload = capture(self, args['analysis_id'], args['solver_id'])
                 elif operation in RESEARCH_OPERATIONS:
                     payload = self.research.dispatch(operation, args, target)
                 elif operation in PARAMETER_OPERATIONS:

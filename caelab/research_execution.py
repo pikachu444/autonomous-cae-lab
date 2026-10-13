@@ -83,6 +83,19 @@ def publish_fields(workbench, result, output):
             continue
         from .physical_fields import write_field
         sets.append(write_field(name, response, output / ('post-' + check_id(name))))
+    # Adapter-produced mixed native FE fields use the same immutable registrar.
+    # No arbitrary caller path; only a contained, hashed artifact of this run.
+    for entry in result.get('post_artifacts', []):
+        relative = entry.get('relative')
+        if not isinstance(relative, str) or Path(relative).is_absolute():
+            raise ValueError('Native Post artifact must be relative to its calculation')
+        source = (output / 'calculation' / relative).resolve(strict=True)
+        if not source.is_relative_to((output / 'calculation').resolve()) or source.is_symlink():
+            raise ValueError('Native Post artifact escapes this calculation')
+        if evaluation.file_hash(source) != entry.get('sha256'):
+            raise ValueError('Native Post artifact changed before registration')
+        sets.append({'path': source, 'native_metadata': entry['native_metadata'],
+                     'response': entry.get('response')})
     if not sets:
         return
     result['post_inputs'] = []

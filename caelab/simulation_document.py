@@ -10,6 +10,8 @@ from .material_document import MaterialDocuments
 
 
 CATALOG = {
+    'explicit.opencourant.model': (None, None,
+        '사용자 솔리드 FE 메시, 명시 초기 운동과 TYPE24 접촉. Mg/mm/s 입력. 손상·수명 판정은 별도 범위.'),
     'material.mfront.user': (None, None,
         '운영자가 원문 SHA로 허용한 사용자 법칙. generic 3차원 미소변형, Pa/1/s. FE export는 별도 미지원.'),
     'structure.calculix.design': (None, None,

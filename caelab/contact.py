@@ -66,7 +66,7 @@ def law_errors(draft):
     return errors
 
 
-def separate_meshes(bodies):
+def separate_meshes(bodies, *, minimum_bodies=2):
     """Remap each body's local IDs independently, including coincident coordinates.
 
     Input rows use native C3D10 connectivity; the explicit pinned permutation
@@ -75,7 +75,7 @@ def separate_meshes(bodies):
     """
     from apps.desktop_pre.freeze_analysis import CCX_FROM_NATIVE_TET10
     known, nodes, elements, mappings = set(), [], [], {}
-    if not isinstance(bodies, list) or len(bodies) < 2:
+    if minimum_bodies not in (1, 2) or not isinstance(bodies, list) or len(bodies) < minimum_bodies:
         raise ValueError('Contact needs at least two separately meshed bodies')
     for body in bodies:
         identifier = body['body_id']

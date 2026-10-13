@@ -16,6 +16,7 @@ from caelab.simulation_document import BACKENDS, default_draft, diagnostics, sup
 from .pde_window import PDEWindow, ROLE, display
 
 MODELS = {
+    'explicit.opencourant.model': ('사용자 FE 충격 (OpenCourant)', '원 메시·밀도·초기 운동과 명시 TYPE24 접촉. 결과의 손상·수명은 별도 판정합니다.'),
     'structure.calculix.design': ('CAD 구조 해석 (CalculiX)', '저장한 Analysis의 편집 사본과 매핑된 참조를 사용합니다. 재메시 후 기존 CalculiX 계산으로 이어집니다.'),
     'structural.code_aster': ('단축 탄성 블록 (Code_Aster)', '지정한 3차원 탄성 블록의 치수·메시·인장 하중만 지원합니다. 임의 CAD 구조 해석이 아닙니다.'),
     'structural.code_aster.plasticity': ('J2 소성 블록 (Code_Aster)', '작은 변형률 J2 블록과 축방향 이력을 지원합니다. DP·손상·접촉은 지원하지 않습니다.'),
@@ -171,6 +172,9 @@ class SimulationWindow(PDEWindow):
         choice.currentTextChanged.connect(self._backend_changed)
         self.reload_button.setText('저장 버전 다시 읽기')
         self.copy_button.setText('편집본을 새 모델로 보관')
+        self.impact_action = QAction('충격 조건…', self)
+        self.impact_action.triggered.connect(lambda: __import__('apps.research.impact_editor', fromlist=['edit']).edit(self))
+        research_menu.addAction(self.impact_action)
         self._update_actions()
 
     def inspect_runtime(self):
@@ -261,6 +265,15 @@ class SimulationWindow(PDEWindow):
         if type(value) in (int, float):
             self._numeric_paths = getattr(self, '_numeric_paths', set())
             self._numeric_paths.add(path)
+        if self._draft.get('backend') == 'explicit.opencourant.model':
+            if path[1:2] == ('source',) or len(path)>1 and path[1] in ('motions','contacts','time','gravity_mm_s2'):
+                if path == ('settings','source'):
+                    source=self._draft['settings']['source']
+                    form.addRow(QLabel(source.get('title') or '유한요소 모델 미선택'))
+                button=QPushButton('충격 조건…')
+                button.clicked.connect(lambda: __import__('apps.research.impact_editor',fromlist=['edit']).edit(self))
+                form.addRow(button)
+                return
         choices = _CHOICES.get(path[-1])
         if choices and isinstance(value, str):
             field = _ModelChoice()
@@ -293,6 +306,8 @@ class SimulationWindow(PDEWindow):
             elif show and was_hidden:
                 graph.show()
                 self.model_splitter.setSizes(getattr(self, '_preview_graph_sizes', [205, 360, 835]))
+        if hasattr(self, 'impact_action'):
+            self.impact_action.setEnabled(not self._busy and self._draft.get('backend') == 'explicit.opencourant.model')
         if hasattr(self, 'readiness_button'):
             self.readiness_button.setEnabled(not self._busy)
 
@@ -377,6 +392,19 @@ class SimulationWindow(PDEWindow):
         settings = self.edited_draft().get('settings', {})
         domain = settings.get('domain', {}) if isinstance(settings, dict) else {}
         lengths = domain.get('lengths') if isinstance(domain, dict) else None
+        if self._draft.get('backend') == 'explicit.opencourant.model':
+            try:
+                from caelab.impact_model import parse_inp
+                model=parse_inp(settings['source']['text'])
+                points=list(model['nodes'].values())
+                stride=max(1,len(points)//10000); points=points[::stride]
+                axes.scatter([p[0] for p in points],[p[2] for p in points],s=4,color='#2563eb')
+                axes.set_aspect('equal'); axes.set_xlabel('X [mm]'); axes.set_ylabel('Z [mm]')
+                axes.set_title('원 입력 메시 / XZ 투영')
+                self._model_graph_available=True
+            except (ValueError,KeyError,TypeError):
+                axes.set_axis_off(); axes.text(.5,.5,'충격 조건에서 유한요소 메시를 선택하세요',ha='center',va='center',transform=axes.transAxes)
+            self.domain_canvas.draw_idle(); self._update_actions(); return
         if isinstance(lengths, list) and len(lengths) == 2 and all(type(x) in (int, float) and math.isfinite(x) and x > 0 for x in lengths):
             x, y = lengths
             axes.plot([0, x, x, 0, 0], [0, 0, y, y, 0], color='#334155')
