@@ -53,3 +53,24 @@ candidate solving and opening a calculated new design remain unverified.
 The packaged root FreeCAD launcher exits before its real bin child; runtime
 selection and Windows child-process cancellation require correction before
 claiming candidate lifecycle completion.
+
+Pro 213347c, integrated as 875ae72, resolves duplicate native targets and
+checks original contact definitions before writes, with typed response choices
+and recovery of interrupted Plan initialization. Sixteen affected unit/Qt
+checks pass; Astra confirmed the earlier three source findings are resolved.
+The actual geometry candidate reaches mapped-face resolution and regeneration
+of both meshes, but fails at native project saving before any solver execution.
+Both attempts preserve the source and failed editable candidate. Native saveCopy
+separately saves a 105-character path and rejects a 277-character path; the
+candidate also fails around 245 characters, so a raw MAX_PATH check is insufficient.
+Short native staging and Windows process lifecycle fixes remain assigned to Pro.
+
+Pro b9f2a29 is integrated as a2b37db. The new candidate/Windows process checks
+pass (11); affected execution checks pass (16 with 7 platform skips) and project
+bundle checks pass (7). Actual standard-library Windows child cancellation,
+unrelated-process survival and descendant completion are covered; actual Gmsh
+cancellation is not. Native short staging saves, but copying to the 277-character
+destination still fails in FreeCAD's embedded Python. The short recovery copy is
+preserved and the failure is assigned back to Pro before native re-execution.
+Actual FreeCAD Qt 6.8.3 renders the variable worksheet and accepts a CPRESS/MPa
+response; this uses direct native owner commands, not OS input or broker transport.

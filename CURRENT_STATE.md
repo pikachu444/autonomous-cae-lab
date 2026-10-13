@@ -390,6 +390,35 @@ Windows의 패키지 루트 FreeCAD.exe가 즉시 종료하고 bin/freecad.exe �
 Windows 자식 Gmsh 취소 범위도 Pro에 교정 검토 요청했다. 기존 종료 helper의
 Windows 경로는 leader만 종료하므로 전체 process tree 취소 통과로 표시하지 않는다.
 원격 main 확인값은 `b423e37`이다. 첫 소스 회수와 사용 가능한 구현 완료를 구별한다.
+후속 Pro `213347c`를 `875ae72`로 통합했다. 등록 이름 변경 시 같은 속성의 기존 등록을
+교체하고, 원본 접촉 정의를 변수 적용 전에 검사하며 응답을 종류·단위에 맞는 선택
+대화상자로 편집한다. Plan 초기화 중단 후 재시도에서도 사용자 편집을 보존한다.
+관련 단위/Qt 검사16건이 11.06초에 통과했고 Astra가 기존 세 지적의 해결과 추가 중요한
+회귀 없음으로 읽기 전용 검토했다. 실제 후보 계산은 아직 완료되지 않았다.
+첫 실제 후보에서 Stock.Length20→22mm 변경, Bridge의 세 면 대응, 두 body Gmsh
+재메시까지 진행됐으나 native 저장 경로에서 실패했다. 후보/편집 사본/실패 결과와
+원본 보존은 `runs/product-development/20261013/cad-candidate-e310c69d/receipt.json`에
+남겼다. 213 교정본의 짧은 출력 루트 재시도도 freeze에서 같은 실패이며
+`runs/cad-candidate-2df98a5f/receipt.json`에 보존했다. solver는 시작되지 않았다.
+동일 native 문서의105글자 경로 저장은 성공하고277글자는 OSError로 실패함을 별도로
+확인했다(`runs/product-development/20261013/native-save-path-efe074ee/receipt.json`).
+후보의 약245글자 경로에서도 실패해 단순260글자 검사만으로는 충분하지 않다.
+짧은 native staging과 원래 저장소로의 정확한 보존·Windows 자식 취소 교정을 같은
+Pro가 작성 중이다. 이 원인으로 메시/솔버를 반복하지 않고 교정본을 통합한다.
+Pro `b9f2a29`를 `a2b37db`로 통합해 실제 bin 실행 파일 선택과 Windows Job 기반
+후보 자식 프로세스 수명을 연결했다. 새 검사11건, 영향받은 기존 실행 검사16건
+(플랫폼 조건7건 제외), 기존 프로젝트 저장 검사7건이 통과했다. Windows의 실제
+표준 Python 자식 취소/무관 프로세스 보존/정상 종료 대기는 확인했으며 Gmsh 취소
+실행 자체는 아직 하지 않았다. native 짧은 임시 저장 뒤 긴 목적지로 복사하는 교정은
+277글자 목적지에서 embedded Python copyfile이 실패했다. 실제 복구용 임시 사본과
+`runs/product-development/20261013/native-save-path-aa145181/receipt.json`을 보존하고
+Pro에 교정을 요청했다. 이 상태를 긴 경로 지원 완료로 표시하지 않는다.
+실제 FreeCAD Qt6.8.3에서 변수 표와 접촉 압력 응답 선택을 열고 선택값·MPa 단위를
+확인했다. `runs/product-development/20261013/native-research-view-ca195863/`에 창
+렌더와 receipt를 남겼다. 직접 native 명령 연결이며 OS 입력/전체 broker 왕복은 아니다.
+Astra는 `a2b37db`의 Windows Job 소유권·정리 실패 보존·기존 실행 호환·저장 실패
+복구를 읽기 전용 검토했고 추가 구체적 지적은 없었다. root가 실제로 확인한 긴 경로
+복사 실패는 여전히 미해결이며 독립 소스 검토로 실행 통과를 대신하지 않는다.
 별도 native Post→Qt 실제 broker 연결 시도는
 `runs/product-development/20261013/contact-handoff-83394326/receipt.json`에 실패로
 남겼다. ParaView의 restore 진입 이후 60초 안에 broker 등록이 없어 중단했으며
