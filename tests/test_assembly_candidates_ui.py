@@ -23,7 +23,7 @@ def test_coordinate_selection_units_cancel_and_explicit_registration(monkeypatch
     row = {'target': target, 'key': 'joint_coordinate:Joint:travel', 'label': '직선 이동',
            'value': 2.5, 'unit': 'mm', 'writable': True, 'diagnostic': None,
            'joint_description': {'moving': '슬라이더', 'ground': '받침', 'occurrence_id': 'Moving',
-                                'axis': {'axis_direction': [0., 0., 1.]},
+                                'axis': {'axis_direction': [0., 0., 1.], 'axis_origin_mm': [5., -2., 3.2]},
                                 'native_limits': {'min': -3., 'max': 3.}}}
     state = {'source_stamp': 'test-state', 'candidates': [row],
              'registered': [{'id': 'travel', 'target': target, 'value': .0025,
@@ -42,7 +42,9 @@ def test_coordinate_selection_units_cancel_and_explicit_registration(monkeypatch
         assert panel.table.item(0, 1).text() == '0.0025'
         assert panel.table.item(0, 2).text() == 'm'
         assert '슬라이더' in panel.coordinate_context.text()
-        assert 'JCS1 +Z' in panel.coordinate_context.text()
+        assert '양의 축 방향 (0, 0, 1)' in panel.coordinate_context.text()
+        assert '축 원점 (5, -2, 3.2) mm' in panel.coordinate_context.text()
+        assert '문서 전체 좌표' in panel.coordinate_context.text()
         before = list(calls)
         monkeypatch.setattr(QtWidgets.QInputDialog, 'getItem', lambda *_: ('조립', False))
         panel.connect_assembly()

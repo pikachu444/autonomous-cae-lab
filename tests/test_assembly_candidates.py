@@ -24,6 +24,8 @@ class Quantity:
     def getValueAs(self, unit):
         if (self.unit in {'rad', 'deg'}) != (unit in {'rad', 'deg'}):
             raise ValueError('unit family')
+        if unit == self.unit:
+            return NS(Value=self.Value)
         return NS(Value=self.Value * self.scales[self.unit] / self.scales[unit])
 
 

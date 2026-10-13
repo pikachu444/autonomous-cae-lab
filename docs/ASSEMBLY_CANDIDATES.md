@@ -26,6 +26,18 @@ without an explicit physical contact pair currently cannot use this execution
 recipe; the editor reports that limitation before creating the Plan. It does not
 invent contact, FEM supports or force transmission for the Assembly joint.
 
+**Windows integration check, 2026-10-14: not yet usable end to end.** After
+correcting the example's solver factory capitalization and a shadowed bounds
+variable, both public fixtures were created with FreeCAD 1.1.4. The supplied
+four pose checks reached the post-Motion geometry check and all stopped because
+the retained binder shape differed from its native Support evaluation. This is
+being corrected; cold reopening, remeshing and FE execution have not passed for
+this new route. The related 28 Python/Qt checks passed after correcting the
+same-unit Quantity test double; product thresholds were unchanged. An additional
+axis-origin display check passed. Two occurrences of the same original part
+remain unverified in the native execution. Local execution records are under
+`runs/product-development/20261014/assembly-native/`.
+
 Multiple/dependent/nested/loop assemblies, other joints, external or scaled
 occurrences, link arrays, multi-turn rotation, automatic repair of ambiguous
 references and other constitutive/contact physics remain D2 follow-up scope.

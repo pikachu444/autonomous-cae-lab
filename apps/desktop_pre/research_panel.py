@@ -253,14 +253,17 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                 return
             axis = detail['axis']
             xyz = ', '.join(format(v, '.6g') for v in axis['axis_direction'])
+            origin = ', '.join(format(v, '.6g') for v in axis['axis_origin_mm'])
             limits = detail['native_limits']
             low = '없음' if limits.get('min') is None else format(limits['min'], '.8g')
             high = '없음' if limits.get('max') is None else format(limits['max'], '.8g')
             self.coordinate_context.setText(
                 detail['moving'] + ' / 기준 ' + detail['ground'] +
-                '   JCS1 +Z (' + xyz + ')   관절 제한 ' + low + ' … ' + high + ' ' + selected['unit'])
+                '\n축 원점 (' + origin + ') mm (문서 전체 좌표)' +
+                '\n양의 축 방향 (' + xyz + ')   관절 제한 ' + low + ' … ' + high + ' ' + selected['unit'])
             self.coordinate_context.setToolTip(
-                'JCS1에 대한 JCS2의 절대 좌표입니다. 회전은 오른손 방향이며 이동은 +Z 방향입니다. '
+                '첫 번째 관절 좌표계(JCS1)에 대한 두 번째 좌표계의 상대 각도 또는 이동량입니다. '
+                '원점과 양의 축은 문서 전체 좌표로 표시합니다. 회전은 오른손 방향이며 이동은 JCS1 +Z 방향입니다. '
                 '해석 초기 자세이고 FEM 하중이나 변위 조건이 아닙니다.')
 
         def selected(self):
