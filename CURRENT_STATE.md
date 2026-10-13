@@ -367,6 +367,12 @@ Pro가 `codex/cad-numerical-20261013`을 접촉 교정본 `5cb083c`에서 만들
 변수→후보 준비/해석→실제 후보 모델의 새 분기 열기를 작성한다. Pro는 제품·관련
 검사/사용 안내, root는 현재 상태·SPEC·공통
 계약 통합·실행, Astra는 중요한 후보/참조/취소/채택 경계의 독립 검토를 맡는다.
+Luna가 설치된 FreeCADCmd1.1.4에서 공개 모델 사본의 mapped-element API를 확인했다.
+Bridge의 치수/Notch 위치 변경과 저장·재열기에서 두 mapped face가 유지됐고, 사라진 면과
+분할 면은 `?Face`/lookup 실패 또는 다중 후손으로 구별됐다. primitive Box에는 map이
+없어 FaceN 반환을 이력으로 오인하면 안 된다. 이 실제 관측과 정확한 API를 Pro에
+전달했고 [기존 연동 조사](docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md#native-face-correspondence-for-cad-candidates)에
+통합했다. 후보 실행기의 완료가 아니며 메시·solver를 돌리지 않았다.
 Pro의 별도 실행 전 검사 수정
 `1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
 않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.

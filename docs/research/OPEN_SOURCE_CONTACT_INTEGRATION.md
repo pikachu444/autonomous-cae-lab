@@ -35,3 +35,47 @@ The [FreeCAD 1.1.4 `TopoShapePyImp.cpp`](https://github.com/FreeCAD/FreeCAD/blob
 ## Decision and limits
 
 Keep a face-set union as region membership, preserve body/mesh/node identity, and keep pair/law/time/unit data separate in the common result model. Do not use a mesher's single-mesh restriction as a reason to mutate physical geometry or silently merge nodes. No FreeCAD, PrePoMax, solver, or ParaView code was installed or run for this note; source references establish design behavior and limitations only.
+
+## Native face correspondence for CAD candidates
+
+The following is a later bounded **native execution** check, distinct from the
+source review above. On 2026-10-13, Luna/high used the already installed Windows
+FreeCADCmd 1.1.4 (`4fd3bf320`) on a copy of the public two-foot fixture. No mesh,
+solver, GUI interaction or new dependency was involved. Codex reviewed the
+returned receipts and supplied the findings to the actual Pro author of
+PRO-CAD-NUMERICAL-01; this does not establish candidate-evaluator completion.
+
+The pinned [DocumentObjectPyImp.cpp implementation](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/App/DocumentObjectPyImp.cpp#L3803-L3842)
+defines `object.resolveSubElement(subname, append=False, type=0)` returning
+`(object, newName, oldName)`. On the fixture's `Bridge` Part::Cut, initial Face5
+and Face9 produced mapped names beginning `;Face5;:M;CUT` and `;Face5;:M2;CUT`.
+The complete returned names are kept in the receipts, not reconstructed from
+these display abbreviations. `Shape.getElement(newName)` resolves the native
+face for a valid mapped name.
+
+| Native change | Observed correspondence |
+|---|---|
+| `Stock.Length = 22` | Both saved mapped names resolved to valid faces; the changed candidate retained map size 50 and both identities after save/close/reopen. |
+| `Notch.Placement.Base.x = 9` | Both mapped names resolved; the actual face areas became 40 and 60 mm². |
+| `Notch.Width = 8` | The second reference returned `?Face9`; mapped lookup raised `Mapped element not found`. |
+| A second Cut splitting the original Face5 | Resolver returned `?Face5`; history/reverse-map inspection identified two descendant faces, with areas 35 and 5 mm². This is one constructed split case, not a general one-to-many resolution guarantee. |
+
+The fixture's primitive `Base` Part::Box had an element-map version string but
+map size zero, empty forward/reverse maps and no Face6 history. Its resolver
+returned `(Base, '', 'Face6')` both before and after changing Length to 31.
+An unchanged face number or nonempty map-version string therefore does not
+prove correspondence after a shape change. A changed referenced owner needs
+supported history, actual face resolution and unambiguous ownership; unresolved
+`?` names, missing maps and multiple descendants must remain failed editable
+candidates. Exact validation of an unchanged owner is a separate case. Mesh
+regeneration remains necessary when its geometry changes.
+
+The original FCStd was not overwritten. Native macros, returned JSON and the
+separately saved candidate are local under
+`runs/product-development/20261013/native-map-probe-20261013-01/`, notably
+`remap-cases.json`, `resolved-shapes.json`, `unmapped-box.json` and
+`split-ambiguity.json`. Each macro runs as an argument to the installed
+`runs/prepost-session-20261008-01/tools/FreeCAD_1.1.4-Windows-x86_64-py311/FreeCADCmd.exe`.
+These observations support a limited native-history policy; they do not justify
+face-index, proximity or fingerprint replacement as identity repair, nor claim
+general geometry-search or engineering qualification.
