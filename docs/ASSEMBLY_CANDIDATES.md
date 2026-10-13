@@ -34,8 +34,10 @@ the retained binder shape differed from its native Support evaluation. This is
 being corrected; cold reopening, remeshing and FE execution have not passed for
 this new route. The related 28 Python/Qt checks passed after correcting the
 same-unit Quantity test double; product thresholds were unchanged. An additional
-axis-origin display check passed. Two occurrences of the same original part
-remain unverified in the native execution. Local execution records are under
+axis-origin display check passed. A separate native same-source check confirmed
+two distinct occurrence binders, mesh objects, Support paths and face histories
+at different positions. Motion, cold reopening and FE for that same-source case
+remain unverified. Local execution records are under
 `runs/product-development/20261014/assembly-native/`.
 
 Multiple/dependent/nested/loop assemblies, other joints, external or scaled
