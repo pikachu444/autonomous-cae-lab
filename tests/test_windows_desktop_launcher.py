@@ -101,7 +101,10 @@ function Start-Process {
     $state.command = $ArgumentList -join ' '
     return [pscustomobject]@{Id=$state.processId;HasExited=$false}
 }
-function Stop-Process { throw 'The launcher must not stop any process' }
+function Stop-Process {
+    Write-TestEvent @{kind='forbidden_stop'}
+    throw 'Forbidden process termination in launcher test'
+}
 function Start-Sleep { param([int]$Milliseconds) }
 
 try {
@@ -214,6 +217,8 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         events_path = Path(environment["CAE_LAUNCH_TEST_EVENTS"])
         events = ([json.loads(line) for line in events_path.read_text(
             encoding="utf-8-sig").splitlines() if line.strip()] if events_path.exists() else [])
+        self.assertFalse(any(event["kind"] == "forbidden_stop" for event in events),
+                         "Launcher attempted a forbidden process termination")
         return result, events, spec
 
     @staticmethod
