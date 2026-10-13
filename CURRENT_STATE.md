@@ -349,7 +349,8 @@ Pro 교정 `6e22066`을 로컬 `193845a`로 통합했다. 실제 Show faces의 C
 `checked-enum-inspection.json`과 그 saved 프로젝트다. 기존 실패·진단 저장본은 보존한다.
 Astra의 이 공통 속성 처리 변경에 대한 읽기 전용 독립 검토는 추가 구체적 결함을
 찾지 않았다. 실행 통과는 root의 결과이며 Astra 실행 주장과 구별한다. 이번 묶음은
-검토·실행 확인을 마쳤고 main에 직접 게시한다. 강제 push나 PR 우회는 사용하지 않는다.
+`e7c9b32`로 원격 main에 직접 게시했고 원격 SHA 일치를 확인했다. Space의 현행 안내도
+이 통합과 다음 CAD/Numerical 배정으로 갱신·재조회했다. 강제 push나 PR 우회는 없다.
 
 병행 조사에서 다음 연결의 실제 빈틈도 확인했다. 현재 Pre 변수 등록은 길이 치수에
 한정되고, 접촉 adapter는 이미 고정된 snapshot만 실행한다. 기존 Numerical 후보 저장과
