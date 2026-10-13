@@ -186,6 +186,21 @@ def test_managed_contact_adapter_retains_exact_outputs_and_series_without_physic
     assert cancelled['execution_status']=='CANCELLED' and cancelled['responses']=={}
     assert (tmp_path/'cancelled/frozen_input/contact.inp').exists()
     assert (tmp_path/'run/contact_execution.json').exists()
+    # Rebuild only the view from already retained/pinned raw outputs. The now-
+    # cancelling process double must not be called by this operation.
+    attempt = tmp_path/'run'
+    original = {p.relative_to(attempt): p.read_bytes() for p in attempt.rglob('*') if p.is_file()}
+    rebuilt = contact_fem.regenerate_post(attempt, tmp_path/'rebuilt-post')
+    assert rebuilt['solver_execution'] == 'NOT_PERFORMED' and rebuilt['frame_count'] == 2
+    assert rebuilt['post_artifact']['native_metadata'] == metadata
+    assert (tmp_path/'rebuilt-post/contact.pvd').is_file()
+    assert original == {p.relative_to(attempt): p.read_bytes() for p in attempt.rglob('*') if p.is_file()}
+    with pytest.raises(ValueError, match='new Post directory'):
+        contact_fem.regenerate_post(attempt, tmp_path/'rebuilt-post')
+    (attempt/'solver/contact.dat').write_text(dat + ' altered', encoding='ascii')
+    with pytest.raises(ValueError, match='differs from the attempt'):
+        contact_fem.regenerate_post(attempt, tmp_path/'refused-post')
+    assert not (tmp_path/'refused-post').exists()
 
 
 def test_contact_snapshot_reuses_registered_native_input_and_keeps_original_files(snapshot,tmp_path):

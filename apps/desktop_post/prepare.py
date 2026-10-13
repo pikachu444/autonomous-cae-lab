@@ -7,12 +7,14 @@ lossless VTK view of its recorded displacement and quadratic-tetra connectivity.
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import hashlib
 import json
 import math
 from pathlib import Path
 import sys
+import struct
 from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -88,15 +90,30 @@ def data_array(parent, name, values, components=1, integer=False):
     attrs = {"type": "Int64" if integer else "Float64", "Name": name, "format": "ascii"}
     if components != 1:
         attrs["NumberOfComponents"] = str(components)
+    if integer:
+        text = " ".join(str(v) for v in values)
+    else:
+        numbers = [float(v) for v in values]
+        if any(not math.isfinite(v) for v in numbers):
+            # VTK's ASCII extraction can reject its own nan/inf spellings.
+            # Inline uncompressed binary: UInt32 byte count + Float64 payload,
+            # both little-endian, encoded as one contiguous base64 stream.
+            if len(numbers) > 0xffffffff // 8:
+                raise ValueError("VTK inline array exceeds the UInt32 byte-length header")
+            payload = struct.pack("<" + str(len(numbers)) + "d", *numbers)
+            text = base64.b64encode(struct.pack("<I", len(payload)) + payload).decode("ascii")
+            attrs["format"] = "binary"
+        else:
+            text = " ".join(format(v, ".17g") for v in numbers)
     child = ET.SubElement(parent, "DataArray", attrs)
-    child.text = " ".join(str(v) if integer else format(float(v), ".17g") for v in values)
+    child.text = text
     return child
 
 
 def write_vtu(path, raw, extra=None):
     nodes = raw["nodes"]
     index = {row["node_id"]: i for i, row in enumerate(nodes)}
-    vtk = ET.Element("VTKFile", type="UnstructuredGrid", version="0.1", byte_order="LittleEndian")
+    vtk = ET.Element("VTKFile", type="UnstructuredGrid", version="0.1", byte_order="LittleEndian", header_type="UInt32")
     grid = ET.SubElement(vtk, "UnstructuredGrid")
     piece = ET.SubElement(grid, "Piece", NumberOfPoints=str(len(nodes)), NumberOfCells=str(len(raw["elements"])))
     points = ET.SubElement(piece, "Points")

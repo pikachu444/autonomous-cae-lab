@@ -189,3 +189,74 @@ class ContactFemCalculixAdapter:
                                for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()]
         save_json(output / 'contact_execution.json', result)
         return result
+
+
+
+def regenerate_post(attempt, output):
+    """Reparse pinned retained outputs into a new Post directory; never execute ccx."""
+    attempt = Path(attempt).resolve(strict=True)
+    output = Path(output).resolve()
+    if output.exists() or output == attempt or output.is_relative_to(attempt):
+        raise ValueError('Choose a new Post directory outside the retained attempt')
+    record_path = attempt / 'contact_execution.json'
+    record_bytes = _read(record_path)
+    record = json.loads(record_bytes)
+    if record.get('execution_status') != 'SUCCEEDED':
+        raise ValueError('Post regeneration requires an already parsed successful contact attempt')
+    manifest, model, input_pins, _ = validate_snapshot(attempt / 'frozen_input' / 'snapshot.json')
+    entries = {row['relative']: row for row in record['artifacts']}
+    required = ['frozen_input/' + name for name in input_pins] + ['solver/contact.frd', 'solver/contact.dat']
+    source_pins = {}
+    for relative in required:
+        pin = entries.get(relative)
+        data = _read(attempt / relative)
+        if (pin is None or len(data) != pin['bytes'] or
+                hashlib.sha256(data).hexdigest() != pin['sha256']):
+            raise ValueError('Retained contact source differs from the attempt: ' + relative)
+        source_pins[relative] = {'bytes': pin['bytes'], 'sha256': pin['sha256']}
+    nodes, elements, bodies = validate_model(model)
+    indices = {body: index for index, body in enumerate(sorted(bodies), 1)}
+    materials = {'names': ['M' + str(i) for i in indices.values()] +
+                           ['INT' + pair['object_id'].upper() for pair in model['contacts']],
+                 'elements': {row['element_id']: 'M' + str(indices[row['body_id']])
+                              for row in model['elements']}}
+    observed = read_frd(attempt / 'solver/contact.frd', nodes, elements, contact_materials=materials)
+    if not _printed_close(observed['load_parameter_token'], model['step']['period']):
+        raise ValueError('Retained contact result has not reached its final load parameter')
+    frames = observed['frames']
+    pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    metadata = write_post(output, model, frames, pairs)
+    for relative, pin in source_pins.items():
+        if _sha(attempt / relative) != pin['sha256']:
+            raise ValueError('Retained source changed during Post regeneration')
+    if _read(record_path) != record_bytes:
+        raise ValueError('Attempt record changed during Post regeneration')
+    artifact = output / 'contact.pvd'
+    receipt = {'kind': 'contact_post_regeneration', 'source_attempt': str(attempt),
+        'snapshot_id': manifest['id'], 'source_record_sha256': hashlib.sha256(record_bytes).hexdigest(),
+        'source_pins': source_pins, 'solver_execution': 'NOT_PERFORMED',
+        'frame_count': len(frames), 'native_version': observed['native_version'],
+        'post_artifact': {'relative': 'contact.pvd', 'bytes': artifact.stat().st_size,
+                          'sha256': _sha(artifact), 'native_metadata': metadata},
+        'qualification': 'UNKNOWN', 'decision': 'NOT_RELEASED'}
+    save_json(output / 'post_regeneration.json', receipt)
+    return receipt
+
+
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Rebuild contact Post files from an existing retained attempt; no solver execution.',
+        allow_abbrev=False)
+    parser.add_argument('--rebuild-post-from', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args(argv)
+    receipt = regenerate_post(args.rebuild_post_from, args.output)
+    print(json.dumps({'output': str(args.output.resolve()), 'frame_count': receipt['frame_count'],
+                      'solver_execution': receipt['solver_execution']}, allow_nan=False))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

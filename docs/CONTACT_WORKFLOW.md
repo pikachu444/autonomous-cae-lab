@@ -262,3 +262,60 @@ execution. An invalid contact input remains a diagnostic with Run blocked;
 contact-free validation keeps its existing path. The native API contract test
 covers valid two-body Check and an invalid displacement through this branch.
 Author execution remains NOT_RUN.
+
+
+## Nonfinite Post arrays and rebuilding an existing attempt
+
+Root/Codex executed the retained two-body input with bundled CalculiX 2.22:
+the direct product adapter completed and parsed ten load-parameter frames
+(0.1 through 1.0), six CONTACT fields, displacement and nine CF/CFN/CFS force
+series. This was adapter execution, not Runner UI acceptance. The initial
+ParaView 6.2 reader then rejected an ASCII GeomGap array containing NaNs.
+Changing token case did not fix the installed reader. Root separately confirmed
+native uncompressed binary preserved NaN, positive infinity and negative infinity.
+
+The existing VTU writer now uses uncompressed inline binary only for Float64
+arrays containing nonfinite values. Finite arrays and Int64 arrays retain
+their ASCII representation. The explicit little-endian UInt32 header stores
+the payload byte count; header and Float64 payload are base64 encoded together.
+No compressor, VTK installation or numerical replacement is introduced.
+NaNs, infinities, actual zero, component order and existing validity masks stay
+distinct. The standard format was checked against the official
+[VTK XML writer](https://github.com/Kitware/VTK/blob/v9.5.2/IO/XML/vtkXMLWriter.cxx)
+and [base64 stream](https://github.com/Kitware/VTK/blob/v9.5.2/IO/Core/vtkBase64OutputStream.cxx).
+This follows their format; it does not copy their implementation.
+
+Focused portable serialization test:
+
+    python -m pytest tests/test_post_serialization.py
+
+To regenerate an already successful attempt, run from the repository using its
+existing research Python. Substitute actual paths; the destination must be new
+and outside the retained attempt:
+
+    python -m caelab.adapters.contact_fem --rebuild-post-from "C:\path\attempt" --output "C:\path\contact-post-rebuilt"
+
+This command verifies the frozen input and the attempt's pinned FRD/DAT,
+reparses those exact outputs and writes new VTU/PVD/frame files plus
+post_regeneration.json. It never invokes a solver. Original raw outputs, old
+Post files, logs, attempt record and registered inputs remain unchanged.
+The receipt contains source pins and the regenerated artifact's native_metadata
+for the existing explicit registered-input route. It does not silently replace
+an old job result or registry receipt.
+
+With the already installed ParaView pvpython, verify native reading of every
+regenerated frame and every PointData value:
+
+    & "C:\path\ParaView\bin\pvpython.exe" tests/test_post_serialization.py --native-file "C:\path\contact-post-rebuilt\contact.pvd"
+
+That command imports only stdlib and the selected interpreter's existing VTK.
+It checks reader errors, point/cell counts, array components, finite values,
+NaN/Inf positions and signed zeros, returning a JSON summary. It is not an OS
+interaction or engineering acceptance check. Native source metadata and project
+opening continue through the existing register_native_input/open_result route,
+using the receipt's exact native_metadata rather than inventing a physical clock.
+
+The existing contact execution test also exercises regeneration with a process
+double that would fail if called, refuses changed raw outputs and checks that
+the original attempt's bytes stay unchanged. Pro remote execution of this
+correction remains **NOT_RUN**; Root owns Windows/ParaView execution.
