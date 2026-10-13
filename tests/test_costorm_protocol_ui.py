@@ -97,7 +97,7 @@ def test_qt_start_intervene_next_map_report_export_and_reopen(tmp_path, scripted
         window.report_view.export_to(path)
         exported = path.read_text(encoding='utf-8')
         assert source['document_id'] in exported and '저장본 1' in exported
-        assert report['references'][0]['source']['locator'] in exported
+        assert str(report['references'][0]['source']['locator']) in exported
         window.report_view.export_to(tmp_path / 'report.html', html=True)
         count = len(scripted)
         window.save_document()

@@ -36,7 +36,7 @@ class _TurnCard(QFrame):
         self.view, self.item, self.identifier = view, item, turn['id']
         self.setObjectName('turnCard')
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet('#turnCard { border: 1px solid #ddddE5; border-radius: 6px; background: palette(base); }')
+        self.setStyleSheet('#turnCard { border: 1px solid #ccd8e4; border-radius: 6px; background: palette(base); }')
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 12)
         heading = QHBoxLayout()
@@ -130,8 +130,8 @@ class _TurnCard(QFrame):
         self.item.setSizeHint(QSize(width, self.sizeHint().height() + 8))
 
     def selected(self, yes):
-        self.setStyleSheet('#turnCard { border: 2px solid #b5a1dd; border-radius: 6px; background: #faf7ff; }'
-                           if yes else '#turnCard { border: 1px solid #ddddE5; border-radius: 6px; background: palette(base); }')
+        self.setStyleSheet('#turnCard { border: 2px solid #7196bb; border-radius: 6px; background: #f4f8fd; }'
+                           if yes else '#turnCard { border: 1px solid #ccd8e4; border-radius: 6px; background: palette(base); }')
 
 
 class ConversationList(QListWidget):

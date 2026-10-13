@@ -20,6 +20,11 @@ def test_research_entrypoint_preserves_service_and_typed_selection(monkeypatch, 
     identifier = "Jexact_02" if tool == "runner" else "Dexact_02"
     calls = []
     monkeypatch.setattr(desktop, "Client", lambda service: SimpleNamespace(url=service))
+    application = object()
+    monkeypatch.setitem(sys.modules, 'PySide6.QtWidgets',
+                        SimpleNamespace(QApplication=SimpleNamespace(instance=lambda: application)))
+    monkeypatch.setitem(sys.modules, 'apps.research.appearance',
+                        SimpleNamespace(apply_appearance=lambda app: calls.append(('appearance', app))))
 
     def load_window(name):
         calls.append(("module", name))
@@ -34,6 +39,7 @@ def test_research_entrypoint_preserves_service_and_typed_selection(monkeypatch, 
     selection = [flag, identifier] if selected else []
     assert desktop.main(["--service", url, tool, *selection]) == 23
     assert calls == [
+        ("appearance", application),
         ("module", "apps.research." + tool + "_window"),
         ("arguments", ["--service", url, *selection]),
     ]

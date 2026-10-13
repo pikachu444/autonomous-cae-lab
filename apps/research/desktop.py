@@ -624,6 +624,10 @@ def main(argv=None):
         identifier = args.job_id if args.tool == 'runner' else args.document_id
         if identifier:
             arguments += ['--job-id' if args.tool == 'runner' else '--document-id', check_id(identifier)]
+        from PySide6.QtWidgets import QApplication
+        from .appearance import apply_appearance
+        application = QApplication.instance() or QApplication(sys.argv[:1])
+        apply_appearance(application)
         return import_module('apps.research.' + args.tool + '_window').main(arguments)
     print(json.dumps(result, ensure_ascii=False))
     return 0
