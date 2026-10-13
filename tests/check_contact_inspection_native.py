@@ -62,6 +62,13 @@ def main(argv=None):
     overlay = workspace.state['contact_selection']['overlay_names']
     assert len(overlay) == 3
     assert all(p.FindSource(name) is not None for name in overlay)
+    render_view = next(view for name, view in workspace._views()
+                       if name == workspace.state['contact_selection']['view_name'])
+    for name in overlay[1:]:
+        assert p.FindSource(name).SelectedComponent == 0
+        display = p.GetDisplayProperties(p.FindSource(name), render_view)
+        assert list(display.ColorArrayName) == ['POINTS', '']
+        assert display.Representation == 'Wireframe'
     created = workspace.dispatch('post.contact_measurement', {
         'source_ref': args.source, 'pair_id': selection['pair_id'], 'quantity': 'CFN', 'component': 2})
     object_ref = created['object_ref']

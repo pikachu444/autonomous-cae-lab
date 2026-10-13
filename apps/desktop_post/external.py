@@ -367,7 +367,14 @@ def save_project(path, doc, *, prepare=None):
     missing = {row['source_ref'] for row in issues}
     healthy = {**doc, 'sources': {ref: record for ref, record in doc['sources'].items() if ref not in missing}}
     missing_readers = {row['reader_name'] for row in issues}
-    healthy['native_readers'] = [row for row in doc.get('native_readers', []) if row['reader_name'] not in missing_readers]
+    # A partial native load intentionally removed these exact saved branches.
+    # Keep their original source/pin records repairable. A present/replaced reader
+    # still undergoes normal name/type/path checks; absence alone grants nothing.
+    removed = set(doc.get('_partial_removed_source_names', [])) if doc.get('partial_workspace') else set()
+    live_names = {name for name, _ in p.GetSources()}
+    absent_removed = removed - live_names
+    healthy['native_readers'] = [row for row in doc.get('native_readers', [])
+        if row['reader_name'] not in missing_readers and row['reader_name'] not in absent_removed]
     verify_sources(path, healthy)
     verify_readers(healthy)
     _verify_metadata_records(healthy, live=True)
@@ -376,6 +383,9 @@ def save_project(path, doc, *, prepare=None):
     # The native owner adds only its analysis records/files in this unpublished
     # revision. A failed filter/export/state write never replaces the last save.
     doc = deepcopy(doc)
+    # The new PVSM/native_readers below describe only the live graph. This
+    # partial-load bookkeeping is not a new persisted reader exemption.
+    doc.pop('_partial_removed_source_names', None)
     doc['repair'] = issues
     if prepare is not None:
         doc = prepare(doc, output)
@@ -437,12 +447,14 @@ def restore_workspace(path, doc, *, allow_repair=False):
         p.LoadState(str(partial))
         missing = {row['source_ref'] for row in issues}
         healthy = {**doc, 'sources': {ref: row for ref, row in doc['sources'].items() if ref not in missing}}
-        missing_readers = {row['reader_name'] for row in issues}
-        healthy['native_readers'] = [row for row in doc.get('native_readers', []) if row['reader_name'] not in missing_readers]
+        available_names = set(selection['healthy_source_names'])
+        healthy['native_readers'] = [row for row in doc.get('native_readers', [])
+            if row['reader_name'] in available_names]
         verify_readers(healthy)
         _verify_metadata_records(healthy, live=True)
         restore_selection(healthy)
         doc['partial_workspace'] = True
+        doc['_partial_removed_source_names'] = selection['removed_source_names']
         print('PARTIAL RESTORE: healthy sources and retained analysis remain available; missing-input branches require explicit repair.')
         return {'state': 'PARTIAL_RESTORE', 'issues': issues, **selection}
     for file, expected in doc.get("native_reader_files", {}).items():

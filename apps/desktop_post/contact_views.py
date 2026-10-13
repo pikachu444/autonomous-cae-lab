@@ -140,6 +140,9 @@ def _show(workspace, bundle, selection, view_id=None):
             face = p.Threshold(registrationName=namespace + ' ' + side.upper(), Input=reader)
             created.append(face)
             face.Scalars = ['CELLS', 'ContactSurfaceIndex']
+            # The surface index is scalar. ParaView 6.2 otherwise reports an
+            # empty default here before Save and component 0 after PVSM reload.
+            face.SelectedComponent = 0
             face.ThresholdMethod = 'Between'
             face.LowerThreshold = identifier
             face.UpperThreshold = identifier
@@ -147,6 +150,9 @@ def _show(workspace, bundle, selection, view_id=None):
             if not face.GetDataInformation().GetNumberOfCells():
                 raise ValueError('The selected frozen contact surface has no native cells')
             display = p.Show(face, view)
+            # ParaView 6.2 can initialize a new outline with association NONE;
+            # ColorBy(None) still resolves that association before disabling it.
+            display.ColorArrayName = ['POINTS', '']
             p.ColorBy(display, None)
             display.Representation = 'Wireframe'
             display.DiffuseColor = color
