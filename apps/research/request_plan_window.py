@@ -898,7 +898,8 @@ class RequestPlanWindow(NumericalWindow):
         def document_read(document):
             runs = [row for row in document.get('runs', []) if row.get('retention_complete') and row.get('retained_result')]
             if model:
-                runs = [row for row in runs if row.get('backend', row.get('draft', {}).get('backend')) == backend]
+                runs = [row for row in runs if row.get('backend', row.get('draft', {}).get('backend')) == backend
+                        or document.get('kind') == 'evaluation' and backend == 'evaluation.definition']
             if not runs:
                 self.message.setText('Select a saved successful source run. Unsupported or missing runtimes still allow editing/saving the Plan.')
                 return
@@ -936,7 +937,7 @@ class RequestPlanWindow(NumericalWindow):
             self._call(describe, described, relevant=relevant)
 
         def listed(payload):
-            documents = [row for row in payload['documents'] if row.get('kind') in {'data', 'material', 'pde', 'simulation'}]
+            documents = [row for row in payload['documents'] if row.get('kind') in {'data', 'material', 'pde', 'simulation', 'evaluation'}]
             labels = [row['title'] + ' · ' + row['id'] for row in documents]
             if not labels:
                 self.message.setText('No retained source document is available. Import/evaluate and save its result first.')
@@ -946,7 +947,7 @@ class RequestPlanWindow(NumericalWindow):
                 self._call(lambda: self.client.document_read(documents[labels.index(label)]['id']), document_read, relevant=relevant)
         def begin():
             if not relevant(): return
-            if model and source_id and (source.get('kind') in {'material', 'simulation', 'pde'} or source.get('pde_document_id')):
+            if model and source_id and (source.get('kind') in {'material', 'simulation', 'pde', 'evaluation'} or source.get('pde_document_id')):
                 self._call(lambda: self.client.document_read(source_id), document_read, relevant=relevant)
             else:
                 self._call(self.client.documents, listed, relevant=relevant)

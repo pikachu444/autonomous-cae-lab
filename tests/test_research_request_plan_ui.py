@@ -591,6 +591,11 @@ def test_generic_doe_actual_candidate_scalar_pick_and_retained_curve(app, workbe
     line = window.figure.axes[0].lines[0]
     assert list(line.get_xdata()) == [0., .25, 2.]
     assert list(line.get_ydata()) == [.8, 1.6, 3.2]
+    retained_curve = result['candidates'][2]['responses']['trace']
+    assert list(line.get_xdata()) == retained_curve['axes'][0]['values']
+    assert list(line.get_ydata()) == retained_curve['value']
+    assert window.figure.axes[0].get_xlabel() == 'time [s]'
+    assert window.figure.axes[0].get_ylabel() == 'trace [MPa]'
     window.candidates.selectRow(1)
     assert not window.figure.axes[0].lines
     assert window._selected_actual_candidate()['candidate_id'] == 'Cfailed'

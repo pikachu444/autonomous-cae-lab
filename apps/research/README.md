@@ -219,7 +219,8 @@ python -m pytest tests/test_research_expert_ui.py tests/test_research_study_ui.p
 The added tests use the actual Numerical owner/JobManager/DOE and optimisation
 engines with explicitly labelled cheap algebraic evaluators; the Expert proposal
 fixture controls the provider response boundary. They cover text precision and
-invalid repair, real candidate/curve correlation, original X/S return,
+invalid repair, real candidate/curve correlation, the worksheet return action for
+original X/S and independent Plans, exact earlier-run/channel selection,
 Cancel/Attach/Undo/Save, a fresh Python/Qt/store reopen, permission preservation,
 malformed/stale delivery, and live/cold separate-process routes. These are tests
 to execute, not recorded passes.

@@ -28,6 +28,7 @@ from apps.research.result_return import (result_message, verify_result, deliver_
 from caelab.backends import Backend, _registry
 from caelab.storage import canonical_hash
 from caelab.study_document import default_draft as study_draft
+from caelab.numerical_document import request_draft
 from test_discussion_plan_integration import loopback, command, controlled_proposal_reply, terminal
 def wait(app, predicate):
     deadline = time.monotonic() + 15
@@ -82,7 +83,8 @@ def retained_plan(loopback, monkeypatch, kind):
         context = {'study_id': origin['id'], 'saved_revision': origin['saved_revision'],
                    'input_revision': origin['input_revision'], 'input_sha256': canonical_hash(origin['draft']),
                    'selected_kind': None, 'selected_id': None}
-        plan = client.study_followup(context, 'numerical', session_id=origin['session_id'], command_id='Cstudyplan')['document']
+        plan = (client.document_open(kind='numerical', draft=request_draft()) if kind == 'independent' else
+                client.study_followup(context, 'numerical', session_id=origin['session_id'], command_id='Cstudyplan')['document'])
     def model(values, settings):
         x = values['x']
         return {'execution_status': 'SUCCEEDED', 'responses': {
@@ -307,10 +309,20 @@ def test_ipc_malformed_frame_disconnect_and_stale_session_no_fallback(app, loopb
         socket = QLocalSocket()
         socket.connectToServer(name)
         assert socket.waitForConnected(1000)
-        socket.write(frame)
-        socket.flush()
-        socket.waitForReadyRead(1000)
-        socket.abort()
+        try:
+            socket.write(frame)
+            socket.flush()
+            received = bytearray()
+            deadline = time.monotonic() + 2  # Shorter than the server's 3s idle timeout.
+            while socket.state() != QLocalSocket.LocalSocketState.UnconnectedState and time.monotonic() < deadline:
+                socket.waitForReadyRead(100)
+                received.extend(bytes(socket.readAll()))
+            received.extend(bytes(socket.readAll()))
+            assert socket.state() == QLocalSocket.LocalSocketState.UnconnectedState, 'Server must reject and disconnect malformed input'
+            if len(frame) <= MAX_FRAME:
+                assert json.loads(bytes(received).decode('utf-8'))['status'] == 'REJECTED'
+        finally:
+            socket.abort()
     for frame in (b'[' * 1500 + b'0' + b']' * 1500 + b'\n', b'x' * (MAX_FRAME + 1)):
         worker(app, lambda frame=frame: malformed(frame))
         wait(app, lambda: not window._result_return.connections)
@@ -399,3 +411,98 @@ def test_separate_process_live_reuse_and_closed_origin(app, loopback, monkeypatc
                 process.terminate()
                 process.wait(timeout=5)
             process.communicate()
+
+
+@pytest.mark.parametrize('kind', ['expert', 'study', 'independent'])
+def test_plan_return_button_original_and_independent_selection(app, loopback, monkeypatch, windows, kind):
+    from PySide6.QtWidgets import QInputDialog
+    origin, plan, reference, provider_calls = retained_plan(loopback, monkeypatch, kind)
+    client, wb = loopback.client, loopback.server.workbench
+    target = open_origin(app, client, origin, windows)
+    target.question.setPlainText('Keep live research edits when returning from the worksheet')
+    before = deepcopy(target.edited_draft())
+    source = RequestPlanWindow(client, auto_open=False, poll_interval=0)
+    windows.append(source)
+    source.open_document(document_id=plan['id'])
+    wait(app, lambda: source.document is not None and not source._busy)
+    source.runs.selectRow(next(row for row in range(source.runs.rowCount())
+                              if source.runs.item(row, 0).text() == reference['job_id']))
+    wait(app, lambda: not source._busy and not source._callbacks)
+    counts = (len(client.documents()['documents']), len(wb.manager.list()), len(provider_calls))
+    assert origin_id(source.document['runs'][0]) == (None if kind == 'independent' else origin['id'])
+    monkeypatch.setattr(source, '_select_return_channels', lambda result: None)
+    assert source.return_result()
+    wait(app, lambda: not source._busy and not source._callbacks)
+    assert not target._result_return.pending and target.edited_draft() == before
+
+    chosen = []
+    def choose_existing(parent, title, label, choices, **kwargs):
+        chosen.append(title)
+        assert kind == 'independent' and title == 'Attach to existing research'
+        return next(item for item in choices if origin['id'] in item), True
+    monkeypatch.setattr(QInputDialog, 'getItem', choose_existing)
+    monkeypatch.setattr(source, '_select_return_channels', lambda result: [])
+    assert source.return_result()
+    wait(app, lambda: not source._busy and bool(source._return_receipts))
+    pending = next(iter(target._result_return.pending.values()))
+    assert pending['target_id'] == origin['id'] and pending['reference'] == reference and pending['selection'] == []
+    assert len(chosen) == (1 if kind == 'independent' else 0)
+    assert target.edited_draft() == before
+    monkeypatch.setattr(target._result_return, 'confirm', lambda *args: True)
+    target._result_return.review_next()
+    wait(app, lambda: not target._result_return.reviewing)
+    source.check_return_status()
+    wait(app, lambda: not source._busy)
+    assert source._return_receipts[pending['delivery_id']]['status'] == 'ATTACHED'
+    after = target.edited_draft()
+    evidence = after['composer']['evidence'][-1] if kind == 'expert' else after['evidence'][-1]['reference']
+    assert {key: evidence[key] for key in reference} == reference and evidence['selection'] == []
+    expected = deepcopy(before)
+    if kind == 'expert':
+        expected['composer']['evidence'] = after['composer']['evidence']
+    else:
+        expected['evidence'] = after['evidence']
+    assert after == expected
+    assert (len(client.documents()['documents']), len(wb.manager.list()), len(provider_calls)) == counts
+
+
+def test_return_selected_earlier_run_and_real_top_level_channel(app, loopback, monkeypatch, windows):
+    origin, plan, _, _ = retained_plan(loopback, monkeypatch, 'study')
+    client = loopback.client
+    references = []
+    for x in (.3, .7):
+        draft = deepcopy(plan['draft'])
+        draft['request'] = {'purpose': 'Explicit actual scalar evaluation', 'operation': 'evaluate',
+            'inputs': {'backend': 'test.return.numeric', 'settings': {}, 'values': {'x': x}},
+            'budget': {'evaluations': 1}}
+        plan = command(client, plan, 'numerical.update', {'draft': draft})['document']
+        assert not plan['diagnostics']
+        job = command(client, plan, 'numerical.run')['job']['id']
+        assert terminal(client, job)['state'] == 'SUCCEEDED'
+        plan = command(client, client.document_read(plan['id']), 'document.save')['document']
+        references.append(client.document_result_reference(plan['id'], job))
+    reference = references[0]
+    assert reference['result_sha256'] != references[1]['result_sha256']
+    target = open_origin(app, client, origin, windows)
+    source = RequestPlanWindow(client, auto_open=False, poll_interval=0)
+    windows.append(source)
+    source.open_document(document_id=plan['id'])
+    wait(app, lambda: source.document is not None and not source._busy)
+    source.runs.selectRow(next(row for row in range(source.runs.rowCount())
+                              if source.runs.item(row, 0).text() == reference['job_id']))
+    wait(app, lambda: not source._busy and not source._callbacks)
+    def select_channel(result):
+        assert set(result['responses']) == {'cost'}
+        return ['cost']
+    monkeypatch.setattr(source, '_select_return_channels', select_channel)
+    assert source.return_result()
+    wait(app, lambda: not source._busy and bool(source._return_receipts))
+    message = next(iter(target._result_return.pending.values()))
+    assert message['reference'] == reference and message['selection'] == ['cost']
+    monkeypatch.setattr(target._result_return, 'confirm', lambda *args: True)
+    target._result_return.review_next()
+    wait(app, lambda: not target._result_return.reviewing)
+    evidence = target.edited_draft()['evidence'][-1]['reference']
+    assert evidence == {'kind': 'result', **reference, 'selection': ['cost']}
+    exact = client.document_result(evidence['document_id'], evidence['job_id'], selection={'responses': evidence['selection']})
+    assert exact['responses']['cost']['value'] == pytest.approx(.3*.3)
