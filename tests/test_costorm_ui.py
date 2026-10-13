@@ -101,7 +101,7 @@ def test_study_reads_values_units_and_turn_before_raw_reference_without_adoption
     original = deepcopy(window.edited_draft())
     try:
         wait(app, lambda: not window._busy and window.reading.values.rowCount() == 3)
-        assert window.tabs.currentWidget() is window.reading
+        assert window.content_splitter.indexOf(window.reading_page) == 0 and window.editor.isHidden()
         assert window.reading.values.item(1, 1).text() == '12.5'
         assert window.reading.values.item(1, 2).text() == 'MPa'
         y = window.reading.axes.lines[0].get_ydata()
@@ -246,12 +246,12 @@ def test_study_read_note_judgment_explicit_relation_and_saved_followup(app, tmp_
         wait(app, lambda: not window._busy and window.reading.values.rowCount() == 3)
         assert window.raw.isHidden()
         window.note_button.click()
-        assert window.tabs.currentWidget() is window.editor
+        assert not window.editor.isHidden() and not window.reading_page.isHidden()
         window.detail_text.setPlainText('Check the excluded middle measurement.')
         assert window.edited_draft()['evidence'][0]['note'] == 'Check the excluded middle measurement.'
         window.add_entry('decisions')
         judgment_id = window._selected[1]
-        assert window.tabs.currentWidget() is window.editor
+        assert not window.editor.isHidden() and not window.reading_page.isHidden()
         row = window._row()
         assert row['supporting'] == row['conflicting'] == []
         assert row['status'] == 'UNKNOWN'
@@ -288,7 +288,7 @@ def test_study_read_note_judgment_explicit_relation_and_saved_followup(app, tmp_
         window.add_entry('next_observations')
         assert window._row()['evidence_ids'] == ['Eresult']
         assert window._row()['status'] == 'UNKNOWN'
-        assert window.tabs.currentWidget() is window.editor
+        assert not window.editor.isHidden() and not window.reading_page.isHidden()
     finally:
         close(app, window, client)
 
