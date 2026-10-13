@@ -295,7 +295,7 @@ def test_partial_contact_restore_save_and_exact_repair_preserve_auxiliary_contra
     assert document['sources'] == original_records['sources']
     assert document['native_readers'] == original_records['native_readers']
     assert state.read_bytes() == original_state
-    saved = json.loads(external.save_project(project, document).read_text())
+    saved = json.loads(external.save_project(project, document).read_text(encoding='utf-8'))
     assert saved['sources']['SB'] == missing
     assert saved['analysis']['contact_selection'] == document['analysis']['contact_selection']
     assert '_partial_removed_source_names' not in saved
@@ -330,7 +330,7 @@ def test_partial_contact_restore_save_and_exact_repair_preserve_auxiliary_contra
     assert fixed['content_changed'] is False and fixed['remaining'] == []
     assert fixed['retained_branches_recomputed'] is False
     assert native.FindSource(outline_name) is None
-    saved = json.loads(external.save_project(project, document).read_text())
+    saved = json.loads(external.save_project(project, document).read_text(encoding='utf-8'))
     assert saved['sources']['SB']['entry_path'] == str(replacement_path)
     assert saved['sources']['SB']['source_pins'] == receipt['source_pins']
     assert '_partial_removed_source_names' not in saved
