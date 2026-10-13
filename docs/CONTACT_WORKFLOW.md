@@ -627,3 +627,44 @@ silently migrated by weakening graph verification. No solver rerun is needed.
 Pro remote compilation, pytest and native execution of this correction remain
 NOT_RUN. Codex's baseline Windows checks and diagnostic native results above
 are attributed to Codex, not to a remote execution pass.
+
+
+### Checked enum values for contact overlay identity
+
+Codex subsequently reported the ten native guard tests passing on Windows, and
+actual product Show faces / ten-row CFN Z measurement / Save succeeding. The
+fresh-process reopen still differed at SelectedComponent: the saved Python
+wrapper value was empty while the restored value was 0. Raw vtkSM values were
+0 on both sides. Those are Codex observations; Pro did not execute this path.
+
+The cause is consistent with the pinned
+[ParaView 6.2 EnumerationProperty implementation](https://github.com/Kitware/ParaView/blob/v6.2.0/Wrapping/Python/paraview/servermanager.py):
+GetData calls an enum GetElement which may substitute the domain entry text.
+That display text is not a stable native identity.
+
+The graph extractor now offers an explicit raw_ints mode. Contact overlays
+alone opt into it, marked property_encoding=vtk-sm-int-v1. It reads checked
+vtkSMIntVectorProperty.GetElement values before any wrapper GetData call,
+preserves scalar/repeatable/vector shape, and handles nested properties.
+String/array/proxy properties retain their typed interface. Changing a raw
+integer still changes the graph and is rejected by the existing edit guard.
+
+Ordinary comparison, measurement and retained analysis graph calls keep their
+default legacy encoding. This correction does not globally rewrite their saved
+enum strings. Existing contact overlays with legacy label snapshots are not
+silently translated from current native state; create a fresh explicit Show/
+Save from the retained result for the corrected capture. Existing records stay
+untouched. No blank-to-zero rule, skipped property or bypassed restore guard is
+introduced.
+
+The native probe now reads SMProxy.GetProperty('SelectedComponent').GetElement(0)
+and checks the element count. The focused unit checks vary only labels at equal
+raw values, then change raw values at equal blank labels, including a nested
+property; they also verify that default graph encoding remains unchanged.
+
+    python -m pytest tests/test_contact_inspection_native_guards.py -k "contact_raw_integer"
+
+After that, run the existing native project/save probe and a fresh-process
+--reopen-receipt against the same retained input. No solver rerun is needed.
+Compilation, focused tests and native execution of this correction remain
+Pro NOT_RUN until Codex supplies execution evidence.

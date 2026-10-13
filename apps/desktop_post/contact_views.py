@@ -54,7 +54,7 @@ def inspect(workspace, *, source_ref, pair_id=None, side='both', frame_index=0,
 
 def _overlay_graph(proxies, bundle):
     """Path-independent identity only after checking the exact pinned reader."""
-    graph = analysis.graph_signature({'source': proxies[-1], 'proxies': proxies})
+    graph = analysis.graph_signature({'source': proxies[-1], 'proxies': proxies}, raw_ints=True)
     graph.pop('sha256', None)
     readers = [proxy for proxy in proxies if proxy.GetXMLName() == 'XMLUnstructuredGridReader']
     if len(readers) != 1 or [str(Path(path).resolve()) for path in readers[0].FileName] != [

@@ -335,3 +335,73 @@ def test_partial_contact_restore_save_and_exact_repair_preserve_auxiliary_contra
     assert saved['sources']['SB']['source_pins'] == receipt['source_pins']
     assert '_partial_removed_source_names' not in saved
     assert {row['reader_name'] for row in saved['native_readers']} == {healthy_name, 'B'}
+
+
+class RawIntVector:
+    """Checked vtkSM integer values, independent of the Python enum label."""
+    def __init__(self, values, repeatable=False):
+        self.values, self.repeatable = list(values), repeatable
+    def IsA(self, kind):
+        return kind in ('vtkSMProperty', 'vtkSMIntVectorProperty')
+    def GetNumberOfElements(self):
+        return len(self.values)
+    def GetElement(self, index):
+        return self.values[index]
+    def GetRepeatable(self):
+        return self.repeatable
+    def GetInformationOnly(self):
+        return False
+    def GetIsInternal(self):
+        return False
+
+
+class EnumLabelProperty:
+    def __init__(self, values, label, repeatable=False):
+        self.SMProperty = RawIntVector(values, repeatable)
+        self.label = label
+    def GetData(self):
+        return self.label
+
+
+def test_contact_raw_integer_graph_ignores_label_only_changes_and_detects_real_edits(post_modules):
+    module, native = post_modules.analysis, post_modules.native
+    component = EnumLabelProperty([0], '')
+    method = EnumLabelProperty([0], 'Between')
+    nested = EnumLabelProperty([3], 'Three')
+    properties = {'SelectedComponent': component, 'ThresholdMethod': method,
+                  'Nested': Property([nested]), 'Scalars': Property(['CELLS', 'ContactSurfaceIndex'])}
+    output = SimpleNamespace(ListProperties=lambda: list(properties),
+        GetProperty=lambda name: properties[name], GetXMLName=lambda: 'Threshold')
+    native.sources = {('Contact A', 0): output}
+    bundle = {'source': output, 'proxies': [output]}
+    legacy = module.graph_signature(bundle)
+    captured = module.graph_signature(bundle, raw_ints=True)
+    assert 'property_encoding' not in legacy
+    assert legacy['nodes'][0]['properties']['SelectedComponent'] == ''
+    assert legacy['nodes'][0]['properties']['ThresholdMethod'] == 'Between'
+    assert captured['property_encoding'] == 'vtk-sm-int-v1'
+    assert captured['nodes'][0]['properties'] == {
+        'SelectedComponent': 0, 'ThresholdMethod': 0, 'Nested': [3],
+        'Scalars': ['CELLS', 'ContactSurfaceIndex']}
+    # Raw capture is opt-in and must not rewrite default/retained graph encoding.
+    assert module.graph_signature(bundle) == legacy
+    component.label, method.label, nested.label = 0, '', 'Trois'
+    assert module.graph_signature(bundle, raw_ints=True) == captured
+    assert module.graph_signature(bundle) != legacy
+    component.label = ''
+    component.SMProperty.values[0] = 1
+    assert module.graph_signature(bundle, raw_ints=True)['sha256'] != captured['sha256']
+    component.SMProperty.values[0] = 0
+    nested.SMProperty.values[0] = 4
+    assert module.graph_signature(bundle, raw_ints=True)['sha256'] != captured['sha256']
+
+
+@pytest.mark.parametrize('values,repeatable,expected', [
+    ([], False, None), ([], True, []), ([0], False, 0),
+    ([0], True, [0]), ([0, 2], False, [0, 2]), ([-1], False, -1)])
+def test_contact_raw_integer_property_retains_scalar_and_vector_shape(post_modules, values, repeatable, expected):
+    prop = EnumLabelProperty(values, 'display-only', repeatable)
+    module = post_modules.analysis
+    assert module._property_value(prop, {}, raw_ints=True) == expected
+    assert module._property_value(prop.SMProperty, {}, raw_ints=True) == expected
+    assert module._property_value(Property(['POINTS', 'CPRESS']), {}, raw_ints=True) == ['POINTS', 'CPRESS']
