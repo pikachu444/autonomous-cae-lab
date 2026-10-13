@@ -2,9 +2,15 @@
 
 ## 현재 인도 범위
 
-이 브랜치는 D8 구현 중간 인도입니다. FN16/17 전체 완료나 공학적 승인이 아닙니다.
-작성 환경의 Python/Qt/FreeCAD/OpenCourant 실행은 **NOT_RUN**입니다.
-Windows runtime 버전 확인은 Codex가 전달한 별도 근거이며 이 소스의 실행 근거가 아닙니다.
+2026-10-14 main에 사용자 FE 입력, 충격 조건 편집, 응집 손상과 반복하중 평가를
+통합했습니다. Windows에서 공개 응집 시편을 실제 계산하고 ParaView로 결과를 열어
+21개 시각을 확인했습니다. 계산 문서와 후처리 프로젝트의 저장·재열기도 확인했습니다.
+실제 결과 화면은 [한글 사용 안내](USER_GUIDE_KO.md#유한요소-모델에-충격-조건-넣기)에 있습니다.
+
+Pro 작성 환경에서 실행하지 못했던 항목은 Codex의 Windows 확인과 구별해 기록했습니다.
+위 확인은 공개 예제의 실행 범위입니다. 일반 CAD에서 시작하는 모든 충돌·파괴 해석이나
+FN16/17 전체 완료를 뜻하지 않습니다. 예제의 계면 손상값은 0이며 재료 시험값에 맞춘
+모델이 아닙니다. 앞선 단일 사면체 예제의 에너지 발산도 해결된 것으로 처리하지 않습니다.
 
 기존 고정 explicit.openradioss 모델과 원 검사 기준은 유지합니다.
 새 explicit.opencourant.model은 사용자가 선택한 평탄화 FE 메시를 기존 Simulation 문서,
@@ -67,7 +73,9 @@ Start-CAE-Lab.cmd -Tool simulation -DocumentId <출력된 문서> -Port 18767 -S
 실제 실행은 창의 계산 또는 예제의 명시 --run으로 제출합니다. 출력 ID는 복사할 때만 필요하며
 주 작업 화면에서는 문서명·모델·값·단위를 사용합니다. 기존 서비스의 정확한 Store/Port를 유지하세요.
 
-변경 경로 검사(작성자 실행 NOT_RUN):
+개발자가 관련 동작을 확인할 때 쓰는 명령입니다. 원 작성자의 실행은 NOT_RUN이었으며,
+후속 Windows 실행·교정 결과는 [현재 상태](../CURRENT_STATE.md)에 기록했습니다.
+사용자가 예제를 여는 데 아래 검사를 먼저 실행할 필요는 없습니다.
 
 ```powershell
 python -m pytest tests/test_impact_model.py tests/test_impact_results.py tests/test_impact_editor.py -q
