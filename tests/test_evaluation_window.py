@@ -13,7 +13,8 @@ import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QInputDialog
+from PySide6.QtWidgets import QApplication, QInputDialog, QLineEdit
+from PySide6.QtTest import QTest
 
 from apps.research.evaluation_window import EvaluationWindow
 from caelab.evaluation_definition import (EvaluationDocuments, compile_definition, default_draft,
@@ -207,14 +208,14 @@ def test_real_stage_retention_explicit_retry_reuses_only_successful_prefix(edito
     wait(application, lambda: client.manager.status(job_id)['state'] in TERMINAL)
     window.refresh_document(); wait(application, lambda: not window._busy)
     window.refresh_progress(); wait(application, lambda: not window._busy and window.attempts.rowCount() == 2)
-    assert [window.attempts.item(row, 3).text() for row in range(2)] == ['SUCCEEDED', 'FAILED']
+    assert [window.attempts.item(row, 3).data(Qt.ItemDataRole.UserRole) for row in range(2)] == ['SUCCEEDED', 'FAILED']
     assert len(client.stage_calls) == 2
     window.attempts.selectRow(0)
     wait(application, lambda: not window._busy and window.channels.rowCount() == 1)
     assert window.channels.item(0, 0).text() == 'cost' and window.channels.item(0, 5).text() == '2.0'
-    assert window.channels.item(0, 6).text() == 'SUCCEEDED'
+    assert window.channels.item(0, 6).data(Qt.ItemDataRole.UserRole) == 'SUCCEEDED'
     window.prepare_retry()
-    assert 'Save the completed run' in window.message.text()
+    assert '완료된 계산을 먼저 저장' in window.message.text()
     window.save_document(); wait(application, lambda: not window._busy)
     monkeypatch.setattr(QInputDialog, 'getInt', lambda *args, **kwargs: (1, True))
     window.prepare_retry(); wait(application, lambda: not window._busy and window.local_dirty)
@@ -323,14 +324,70 @@ def test_forward_transfer_and_explicit_feedback_use_real_stage_ports(editor, app
     catalogs = [ThermalFenicsxAdapter(), ThermoelasticFenicsxAdapter()]
     window._inspection['stages'] = [{'id': stage['id'], 'ports': adapter.describe_ports(adapter.default_settings()), 'inputs': []}
         for stage, adapter in zip(window.edited_draft()['stages'], catalogs)]
-    answers = iter(['First controlled stage · Sone', 'temperature', 'Second controlled stage · Stwo', 'temperature', '0 · current iteration'])
+    answers = iter(['1. First controlled stage', 'temperature', '2. Second controlled stage', 'temperature', '현재 반복 (0)'])
     monkeypatch.setattr(QInputDialog, 'getItem', lambda *args, **kwargs: (next(answers), True))
     window.add_transfer()
     first = window.edited_draft()['transfers'][0]
     assert (first['from_stage'], first['to_stage'], first['mapping'], first['lag']) == ('Sone', 'Stwo', 'exact_same_mesh', 0)
-    answers = iter(['First controlled stage · Sone', 'temperature', 'First controlled stage · Sone', 'linearization_temperature', '1 · previous iteration / feedback'])
+    answers = iter(['1. First controlled stage', 'temperature', '1. First controlled stage', 'linearization_temperature', '이전 반복 (1)'])
     window.add_transfer()
     assert window.edited_draft()['transfers'][1]['lag'] == 1 and not window.run_button.isEnabled()
     window.iteration_enabled.setChecked(True)
     assert window.edited_draft()['iteration']['enabled'] is True
     assert not client.stage_calls  # Real adapter declarations, no native evaluation.
+
+
+def test_partial_editor_focus_and_second_edit_preserve_unapplied_value(editor, application):
+    window, client, _ = editor
+    draft = window.edited_draft()
+    draft['iteration']['checks'] = [{'stage':'Sone','response':'cost','unit':'MPa',
+                                    'absolute':.123456789123,'relative':.01,'scale':1.}]
+    window._replace_draft(draft)
+    window.show(); window.activateWindow()
+    window.tabs.setCurrentIndex(4)
+    application.processEvents()
+    table = window.tables['checks']
+    item = table.item(0, 3)
+    table.setCurrentItem(item)
+    table.editItem(item)
+    application.processEvents()
+    active = QApplication.focusWidget()
+    assert isinstance(active, QLineEdit) and active.text() == '0.123456789123'
+    active.selectAll(); QTest.keyClicks(active, '1e')
+    assert active.text() == '1e' and window.edited_draft()['iteration']['checks'][0]['absolute'] == '1e'
+    window.refresh_document(); wait(application, lambda:not window._busy)
+    window._update_actions()
+    assert QApplication.focusWidget() is active and active.text() == '1e'
+    QTest.keyClicks(active, '2')
+    window._commit_editor(); application.processEvents()
+    assert window.edited_draft()['iteration']['checks'][0]['absolute'] == 100.
+    table.editItem(item); application.processEvents()
+    again = QApplication.focusWidget()
+    assert isinstance(again, QLineEdit) and again.text() == '1e2'
+    again.selectAll(); QTest.keyClicks(again, '.002')
+    window._commit_editor(); application.processEvents()
+    assert window.edited_draft()['iteration']['checks'][0]['absolute'] == .002
+    window.iteration_maximum.setFocus(); window.iteration_maximum.selectAll()
+    QTest.keyClicks(window.iteration_maximum, '1e')
+    window._update_actions()
+    assert QApplication.focusWidget() is window.iteration_maximum and window.iteration_maximum.text() == '1e'
+    assert not client.stage_calls
+
+
+def test_display_names_preserve_raw_definition_and_frozen_attempt_meaning(editor, application):
+    window, client, _ = editor
+    original = window.edited_draft()
+    assert window.tables['stages'].isColumnHidden(0)
+    assert window.tables['stages'].item(0, 2).text() == 'Actual saved Material source'
+    assert window.edited_draft() == original
+    window.run_once(); wait(application, lambda:not window._busy and bool(window.document['runs']))
+    job = window.document['runs'][-1]['job_id']
+    wait(application, lambda:client.manager.status(job)['state'] in TERMINAL)
+    window.refresh_progress(); wait(application, lambda:not window._busy and window.attempts.rowCount()==2)
+    window.tables['stages'].item(0, 1).setText('Unapplied new name')
+    assert window.stage_list.item(0).text() == 'Unapplied new name'
+    assert window.attempts.item(0, 1).text() == original['stages'][0]['name']
+    assert window.attempts.item(0, 1).data(Qt.ItemDataRole.UserRole) == 'Sone'
+    assert '실패' in window.runs.currentText()
+    window._show_document(client.owner.open(title='Different owner', draft=original))
+    assert window.attempts.rowCount()==0 and window.channels.rowCount()==0 and window._result is None

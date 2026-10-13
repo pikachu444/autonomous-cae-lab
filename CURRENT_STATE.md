@@ -23,8 +23,20 @@ Astra가 모델 재선택, 목적 선택, 계산 조건이 다른 예측 비교�
 `docs/NUMERICAL_WORKFLOW_STATUS.csv`에 유지한다. 이 제품 변경과 사용 안내는
 원격 main `b0a433ffbf4a34bddf1009cb5031702428b120de`에 게시했고 원격 일치를 확인했다.
 
-**현재 병렬 작업:** Sol은 기존 Evaluation 창의 단계 편집·결과 배치와 한국어 표시를
-구현하고 Astra와 직접 대안을 논의했다. root는 독립/연계 도구 연결과 통합을 맡는다.
+**화면 인도:** Sol과 Astra가 기존 Evaluation 창의 두 배치 대안을 직접 논의해
+상하 분할을 유지한 **계산 절차** 창을 완성했다. 단계 원본은 제목으로, 현재 편집명과
+과거 실행명은 각각의 입력에서 읽는다. 파일/편집/연구 메뉴와 가까운 단계 작업을
+정리했고 미완성 숫자·재편집·배경 조회의 focus를 보존했다. 관련 11개 검사(6.22초),
+1100×780/1440×900 실제 Qt 화면, Ctrl+S 저장을 확인했다. root도 최종 작은 창과
+소스를 읽었고 한국어 사용 안내를 추가했다. 실제 owner/JobManager에 공개 대역 단계
+응답을 연결한 GUI 확인이며 물리 solver/provider 호출은 0이다. 기록은
+`evaluation-layout/design.md`, `review.md`, `tests-final.txt`, `final`이다.
+실제 전달 장을 조사하는 새 기능이나 전체 D7 완료로 확대하지 않는다.
+
+**현재 병렬 작업:** Sol은 `simulation_window.py`와 별도 UI 검사만 맡아 독립 해석
+창의 기존 조건/결과 배치를 정리하고 Astra가 읽기 전용으로 검토한다. Pro 소유인
+PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain은 수정하지 않는다.
+상속 접점은 유지하고 변경 필요 시 Pro와 조율한다. root는 일반 문서·연결·통합을 맡는다.
 Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이다.
 `PRO-PDE-COUPLED-RESEARCH-01`을 같은 실제 Pro 대화에 기준 `b0a433f`로 전달했고
 새 작성 턴 `01a136eb-4507-7284-afa2-633336bb4492`가 시작된 것을 확인했다.
