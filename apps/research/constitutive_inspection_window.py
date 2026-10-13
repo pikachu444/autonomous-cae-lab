@@ -122,6 +122,8 @@ class ConstitutiveInspectionWindow(QDialog):
         self.probes.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.probes.currentCellChanged.connect(self._probe_selected)
         self.probe_states=QTreeWidget();self.probe_states.setHeaderLabels(['시작 상태와 원자료','보존값'])
+        self.probe_states.header().setSectionResizeMode(0,QHeaderView.ResizeMode.Interactive)
+        self.probe_states.setColumnWidth(0,230)
         evidence.addWidget(self.probes);evidence.addWidget(self.probe_states);evidence.setSizes([220,350])
         tabs.addTab(evidence,'섭동 원자료')
         self.build=QTableWidget(0,2);self.build.setHorizontalHeaderLabels(['빌드 항목','값'])
@@ -189,6 +191,8 @@ class ConstitutiveInspectionWindow(QDialog):
         self._plot()
 
     def _plot(self):
+        import math
+        from matplotlib.ticker import FuncFormatter,MaxNLocator
         self.figure.clear();ax=self.figure.add_subplot(111)
         if not self._data:self.canvas.draw_idle();return
         data=self._data;i=self.tangent.currentRow();j=self.tangent.currentColumn()
@@ -219,7 +223,24 @@ class ConstitutiveInspectionWindow(QDialog):
         ax.axhline(exact,label='기록된 접선',color='#2563eb')
         if points:
             ax.plot([p[0] for p in points],[p[1] for p in points],'o-',label='독립 중앙차분');ax.set_xscale('log')
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda value,_:format(value,'.0e')))
+            ax.xaxis.set_minor_formatter(FuncFormatter(lambda *_:''))
+            errors=[abs(value-exact) for _,value in points if type(value) in (int,float) and math.isfinite(value)]
+            if errors:
+                ax.text(.02,.97,'최대 |중앙차분 - 접선| = '+format(max(errors),'.12g')+' '+data['tangent_unit'],
+                    va='top',transform=ax.transAxes,fontsize=9)
         else:ax.text(.5,.15,'선택 성분의 독립 섭동 기록 없음',ha='center',transform=ax.transAxes)
+        values=[exact]+[value for _,value in points if type(value) in (int,float) and math.isfinite(value)]
+        scale=max(abs(value) for value in values)
+        if exact==0:
+            scale=max(scale,max((abs(value) for row in matrix for value in row),default=0))
+        low,high=min(values),max(values);span=max(high-low,scale*.05)
+        if span==0:span=1.0  # Display range only when every retained value is zero.
+        center=low+(high-low)/2
+        ax.set_ylim(center-span*.55,center+span*.55)
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=6))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda value,_:format(value,'.7g')))
+        ax.grid(axis='y',alpha=.2)
         ax.set_xlabel('섭동 크기 h');ax.set_ylabel(data['tangent_unit'])
         ax.set_title(data['components'][i]+' / '+data['components'][j]);ax.legend();self.canvas.draw_idle()
 

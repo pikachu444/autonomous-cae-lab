@@ -21,7 +21,10 @@ Windows Qt에서 WSL 서비스의 자료를 열 때 자식 연구 창은 Windows
 `pde-coupling-workflows/tests-no-wsl.txt`에 기록했다. native Pre/Post 교차 호스트
 전환이나 모든 솔버의 Windows 이식을 완료한 것은 아니다.
 Pro에게도 최신 요구를 전달했다. D8 SPEC과 미전송 요청에는 공식 OpenCourant Windows
-배포를 이용한 실제 계산→Post 경로를 추가했으며 아직 설치/실행 전이다. 현재 Linux에만
+배포를 이용한 실제 계산→Post 경로를 추가했다. 이어 root가 공식 Windows 20261011을
+별도 runtime 폴더에 내려받아 추출하고 Starter/Engine 버전 명령의 정상 종료를 확인했다.
+모델 계산/변환기/제품 adapter 실행은 아직 전이다. `impact-workflows/windows-runtime`
+및 Sol의 `windows-path.md`에 기록했으며 새 Pro 요청에 연결했다. 현재 Linux에만
 연결된 FEniCSx/MFront 등의 계산을 Windows에서도 지원한다고 표시하지 않는다.
 
 **최신 인도:** D6 수치 연구의 방법별 편집·저장 모델 예측·명시 실제 확인과 원 모델
@@ -99,9 +102,11 @@ native 옵트인 2개 건너뜀(32.70초). 이후 변경된 사용자 MFront 경
 오프스크린 한글 글꼴 경고가 나와 해당 검사를 화면 품질 통과로 표시하지 않는다.
 Astra가 기존 R2/R3/R5/R6의 소스 해결을 확인했다. 실제 Windows FELUPE 공개 재료점
 한 번으로 새 구성식 창 두 크기를 렌더해 root/Astra가 읽었다. F/응력 18행은 읽히지만
-접선 그래프의 지나친 축 확대와 원자료 트리의 좁은 열은 후속 화면 교정으로 남았다.
-자료는 `constitutive-render`에 보존했다. Sol이 해당 창의 그래프 표시/트리 열만 맡고
-동일 결과를 다시 읽어 교정한다. 새 계산과 Core 변경은 하지 않는다. 전체 D7 잔여는 유지한다.
+접선 그래프의 지나친 축 확대와 원자료 트리의 좁은 열을 찾아 Sol이 표시만 고쳤다.
+동일 결과를 다시 읽은 두 크기에서 절대 접선과 작은 차이를 따로 읽을 수 있고 열 너비를
+사용자가 바꾼 뒤에도 유지된다. Astra 검토와 root 작은 창 확인을 마쳤다. 원 자료는
+`constitutive-render`, 교정 전후는 `constitutive-display`에 있다. 새 계산/Core 변경은
+없고 원값·작업 목록이 같다. 전체 D7 잔여는 유지한다.
 
 **연결 화면 인도:** Sol의 `reference_window.py`와 전용 검사, 한국어 사용 안내를
 `4701046`으로 통합했다. 자료 종류별 제목, 원 도구 열기, F5 재시도와 실패 복구를
@@ -109,8 +114,10 @@ Astra가 기존 R2/R3/R5/R6의 소스 해결을 확인했다. 실제 Windows FEL
 7개 검사 통과(3.56초). Sol/Astra가 직접 논의하고 실제 Qt 두 크기의 문서·그래프·표·
 실패·읽는 중 화면을 확인했다. root도 작은 문서/그래프/표를 읽었다.
 `reference-layout/design.md`, `review.md`, `final`에 기록했다. 물리 계산과 OS 직접
-조작은 수행하지 않았다. Sol은 이어 WSL 없는 충격 해석의 Windows native 연결점을
-`impact-workflows/windows-path.md`에 조사하며 제품/Core 파일은 수정하지 않는다.
+조작은 수행하지 않았다. Sol은 WSL 없는 충격 해석의 Windows native 연결점을
+`impact-workflows/windows-path.md`에 인도했다. 이어 선택 설치용
+`scripts/install-opencourant-windows.ps1`과 좁은 설치 확인만 맡는다. 공식 무료 archive,
+오프라인 파일과 기존 설치 보존을 지원하며 Core/adapter는 Pro, 문서/통합은 root 소유다.
 
 **현재 핵심 작업:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain을
 다른 작성자가 동시에 변경하지 않는다. root가 상속 접점·일반 문서·연결·통합을 맡는다.
