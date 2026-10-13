@@ -6,6 +6,7 @@ Recorded CAD is passed to cae_prep, which makes an editable working copy.
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -150,6 +151,27 @@ def open_evidence_reference(client, reference):
     """Resolve the selected source identity without widening its access scope."""
     if not isinstance(reference,dict):
         raise ValueError('Choose an explicit retained reference')
+    if reference.get('paper_id'):
+        locator = reference.get('locator')
+        if not isinstance(locator, dict) or not locator.get('archive_id'):
+            raise ValueError('This citation has no retained literature archive; no replacement source was fetched')
+        payload = client.request('/api/workbench/assist', {'operation': 'literature.read',
+            'arguments': {'paper_id': reference['paper_id'], 'locator': deepcopy(locator)}})
+        source = deepcopy(payload)
+        source['title'] = (source.get('paper') or {}).get('title') or 'Literature source'
+        return {'status': 'SOURCE_READ', 'source': source}
+    if reference.get('run_id'):
+        selection = reference.get('response_selection')
+        if (not isinstance(selection, list) or any(not isinstance(name, str) or not name for name in selection)):
+            raise ValueError('Select the stored result citation and its explicit response channels')
+        identifier = check_id(reference['run_id'])
+        if not selection:
+            job = client.request('/api/workbench/jobs/' + identifier)
+            return {'status': 'RESULT_READ', 'reference': deepcopy(reference),
+                    'payload': {'status': 'AVAILABLE', 'kind': 'job', 'job': job}}
+        result = client.result(identifier, selection={'responses': selection, 'rows': [0, 256]})
+        return {'status': 'RESULT_READ', 'reference': deepcopy(reference),
+                'payload': {'status': 'AVAILABLE', 'kind': 'result', 'result': result}}
     job_id = reference.get('job_id')
     if job_id:
         document = client.document_read(check_id(reference['document_id']))

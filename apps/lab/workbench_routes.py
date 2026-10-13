@@ -141,7 +141,16 @@ def handle(handler,method,path,query):
             return handler._json(200,workbench.manager.cancel(match.group(1)))
         if path=='/api/workbench/assist':
             operation=body['operation']
-            if operation not in {'knowledge.list','knowledge.search','knowledge.source','experts.list','experts.describe','calculations.plan'}:
+            if operation == 'literature.read':
+                # Opening a retained citation is local archive reading only.
+                # An absent locator must never turn this into a network fetch.
+                arguments = body.get('arguments')
+                locator = arguments.get('locator') if isinstance(arguments, dict) else None
+                archive = locator.get('archive_id') if isinstance(locator, dict) else None
+                if (set(arguments or {}) != {'paper_id', 'locator'} or not isinstance(archive, str)
+                        or not re.fullmatch(r'[a-f0-9]{64}', archive)):
+                    raise ServiceError(400, 'Select an exact archived literature citation; new reads require a managed job')
+            elif operation not in {'knowledge.list','knowledge.search','knowledge.source','experts.list','experts.describe','calculations.plan'}:
                 raise ServiceError(400,'Use a managed job for long-running assistance')
             return handler._json(200,workbench.assistance_call(operation,body.get('arguments',{})))
         if path=='/api/workbench/inputs/describe':

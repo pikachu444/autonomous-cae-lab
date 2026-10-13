@@ -160,6 +160,8 @@ class StudyDocuments(MaterialDocuments):
                     if not isinstance(metadata, dict):
                         raise ValueError('Reference resolver must return descriptive validation metadata')
                     check.update(deepcopy(metadata))
+                    if metadata.get('status') == 'AVAILABLE':
+                        check['message'] = metadata.get('message') or 'Exact saved source is available'
                     check['evidence_id'] = row.get('id')
                 except (Exception) as failure:
                     check.update(status='UNAVAILABLE', message=str(failure))

@@ -46,6 +46,10 @@ class SourcePreview(QWidget):
     def set_payload(self, payload):
         self.payload = deepcopy(payload)
         self.title.setText(payload.get('title') or 'Archived source')
+        scope = {'abstract_only': 'Abstract only', 'metadata_only': 'Bibliographic record only',
+                 'fulltext': 'Extracted full text', 'access_unavailable': 'Source unavailable'}.get(payload.get('status'))
+        if scope:
+            self.title.setText(self.title.text() + ' — ' + scope)
         self.segment.blockSignals(True)
         self.segment.clear()
         for index, row in enumerate(payload.get('segments', [])):

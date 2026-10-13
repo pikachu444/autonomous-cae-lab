@@ -18,6 +18,7 @@ from caelab.storage import canonical_hash
 from caelab.workbench_client import Client
 from .numerical_window import NumericalWindow
 from .runner_window import readonly_table
+from .reference_content import ReferenceContent
 
 
 DATA = Qt.ItemDataRole.UserRole
@@ -45,10 +46,14 @@ class StudyWindow(NumericalWindow):
         self._navigation = {'reference': reference_open, 'discussion': discussion_open, 'plan': plan_open}
         self._detail_original = None
         self._raw_mode = False
+        self._content_key = None
+        self._content_reference = None
+        self._content_pending = None
+        self._content_queued = False
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
 
     def _build_ui(self):
-        self.resize(1440, 940)
+        self.resize(1440, 900)
         bar = QToolBar('Study document', self)
         self.addToolBar(bar)
         self.new_action = QAction('New Study', self, shortcut=QKeySequence.New)
@@ -68,9 +73,9 @@ class StudyWindow(NumericalWindow):
         bar.addWidget(self.identity)
         root = QWidget()
         outer = QVBoxLayout(root)
-        self.message = QLabel('Study records explicit research judgments. Its engineering status remains NOT_RELEASED.')
+        self.message = QLabel('')
         self.message.setWordWrap(True)
-        outer.addWidget(self.message)
+        self.statusBar().addWidget(self.message, 1)
         conflict = QHBoxLayout()
         self.reload_button = QPushButton('Reload owner version')
         self.copy_button = QPushButton('Keep edits as a new Study')
@@ -89,28 +94,34 @@ class StudyWindow(NumericalWindow):
         self.question.setMaximumHeight(150)
         self.question.textChanged.connect(self._question_edited)
         left_layout.addWidget(self.question)
-        left_layout.addWidget(QLabel('Competing hypotheses · decisions · next observations'))
+        left_layout.addWidget(QLabel('Research'))
         self.issues = QTreeWidget()
         self.issues.setObjectName('studyIssues')
         self.issues.setHeaderLabels(['Research entry', 'Status'])
-        self.issues.setColumnWidth(0, 270)
+        self.issues.setColumnWidth(0, 190)
         self.issues.itemSelectionChanged.connect(self._issue_selected)
         left_layout.addWidget(self.issues, 1)
-        add = QHBoxLayout()
+        add = QVBoxLayout()
         self.add_buttons = []
-        for label, kind in (('Hypothesis +', 'hypotheses'), ('Decision +', 'decisions'), ('Observation +', 'next_observations')):
+        for label, kind in (('Add hypothesis', 'hypotheses'), ('Add judgment', 'decisions'), ('Add next observation', 'next_observations')):
             button = QPushButton(label)
             button.clicked.connect(lambda checked=False, kind=kind: self.add_entry(kind))
             add.addWidget(button)
             self.add_buttons.append(button)
         left_layout.addLayout(add)
-        self.remove_button = QPushButton('Remove selected entry · keep unresolved links visible')
+        self.remove_button = QPushButton('Remove entry')
         self.remove_button.clicked.connect(self.remove_entry)
         left_layout.addWidget(self.remove_button)
         split.addWidget(left)
         right = QWidget()
         right_layout = QVBoxLayout(right)
         self.tabs = QTabWidget()
+        self.reading = ReferenceContent()
+        self.reading.response_requested.connect(self.read_response)
+        self.tabs.addTab(self.reading, 'Evidence')
+        self.pin_response = QPushButton('Keep this response selection')
+        self.pin_response.clicked.connect(self.keep_response_selection)
+        self.reading.layout().addWidget(self.pin_response)
         self.editor = QWidget()
         detail = QVBoxLayout(self.editor)
         self.detail_identity = QLabel('Select a hypothesis, decision, observation or evidence row')
@@ -147,32 +158,32 @@ class StudyWindow(NumericalWindow):
         self.reference_detail = QPlainTextEdit()
         self.reference_detail.setReadOnly(True)
         self.reference_detail.setMaximumHeight(150)
-        detail.addWidget(self.reference_detail)
-        self.tabs.addTab(self.editor, 'Selected research entry')
+        self.reference_detail.hide()
+        self.tabs.addTab(self.editor, 'Judgment / notes')
         self.raw = QPlainTextEdit()
         self.raw.setObjectName('studyRawDraft')
         self.raw.textChanged.connect(self._raw_edited)
-        self.tabs.addTab(self.raw, 'Original draft / diagnostics')
+        self.tabs.addTab(self.raw, 'Technical draft')
         right_layout.addWidget(self.tabs, 1)
-        right_layout.addWidget(QLabel('Exact linked evidence · saved input/result/Expert turn; copying a link never adopts a judgment'))
-        self.evidence = readonly_table(['Evidence', 'Source kind', 'Original document / job / turn', 'Reference check'])
+        right_layout.addWidget(QLabel('Sources and results'))
+        self.evidence = readonly_table(['Evidence', 'Type', 'Selection', 'Availability'])
         self.evidence.setObjectName('studyEvidence')
-        self.evidence.setMaximumHeight(220)
+        self.evidence.setMaximumHeight(180)
         self.evidence.itemSelectionChanged.connect(self._evidence_selected)
         right_layout.addWidget(self.evidence)
         links = QHBoxLayout()
         self.evidence_buttons = []
-        for label, kind in (('Link saved domain…', 'document'), ('Link retained result…', 'result'), ('Link saved Expert turn…', 'expert_turn')):
+        for label, kind in (('Add document…', 'document'), ('Add result…', 'result'), ('Add discussion turn…', 'expert_turn')):
             button = QPushButton(label)
             button.clicked.connect(lambda checked=False, kind=kind: self.choose_evidence(kind))
             links.addWidget(button)
             self.evidence_buttons.append(button)
         right_layout.addLayout(links)
         navigation = QHBoxLayout()
-        self.reference_button = QPushButton('Open exact selected source')
-        self.check_button = QPushButton('Check exact references')
-        self.discussion_button = QPushButton('Discuss selected issue…')
-        self.plan_button = QPushButton('Open / create follow-up Plan…')
+        self.reference_button = QPushButton('Open original tool')
+        self.check_button = QPushButton('Refresh sources')
+        self.discussion_button = QPushButton('Discuss…')
+        self.plan_button = QPushButton('Next research…')
         self.reference_button.clicked.connect(self.open_reference)
         self.check_button.clicked.connect(self.check_references)
         self.discussion_button.clicked.connect(lambda: self.request_followup('discussion'))
@@ -181,7 +192,8 @@ class StudyWindow(NumericalWindow):
             navigation.addWidget(button)
         right_layout.addLayout(navigation)
         split.addWidget(right)
-        split.setSizes([420, 1020])
+        left.setMinimumWidth(260); left.setMaximumWidth(350)
+        split.setSizes([310, 1130])
         self.setCentralWidget(root)
         self._update_actions()
 
@@ -261,11 +273,12 @@ class StudyWindow(NumericalWindow):
         if not bind_receiver(self, document):
             return
         self.local_dirty = self.conflict = False
-        self._selected = None
+        evidence = document.get('draft', {}).get('evidence', [])
+        self._selected = ('evidence', evidence[0]['id']) if isinstance(evidence, list) and evidence and isinstance(evidence[0], dict) and evidence[0].get('id') else None
         self._selection_serial += 1
         self._reference_checks.clear()
         self._show_document(document)
-        self.message.setText('Study opened. Exact source links and explicit judgments are retained; no calculation or inference starts.')
+        self.message.setText('')
 
     def _populate_entries(self):
         self.issues.blockSignals(True)
@@ -290,10 +303,14 @@ class StudyWindow(NumericalWindow):
         self.evidence.setRowCount(len(rows))
         for index, row in enumerate(rows):
             ref = row.get('reference') if isinstance(row.get('reference'), dict) else {}
-            identity = str(ref.get('document_id', ref.get('discussion_id', '?'))) + ' / ' + str(ref.get('job_id', ref.get('turn_id', ref.get('saved_revision', '?'))))
+            selection = ref.get('selection', {})
+            channels = selection.get('responses', []) if isinstance(selection, dict) else selection
+            identity = ', '.join(channels) if isinstance(channels, list) else ''
+            identity = identity or ref.get('response') or ('Authored turn' if row['kind'] == 'expert_turn' else 'Saved source')
             check = self._reference_checks.get(row['id'], {})
-            message = str(check.get('status', 'UNKNOWN')) + ' · ' + str(check.get('message', 'Not checked'))
-            for column, value in enumerate((row['label'], row['kind'], identity, message)):
+            message = {'AVAILABLE': 'Available', 'UNKNOWN': 'Not read', 'STALE': 'STALE',
+                       'UNAVAILABLE': 'Unavailable', 'INVALID': 'Invalid'}.get(check.get('status'), 'Not read')
+            for column, value in enumerate((self._evidence_label(row), {'expert_turn': 'Discussion', 'result': 'Result', 'document': 'Document'}.get(row['kind'], row['kind']), identity, message)):
                 self._set_cell(self.evidence, index, column, value, False)
             if self._selected == ('evidence', row['id']):
                 self.evidence.selectRow(index)
@@ -327,12 +344,13 @@ class StudyWindow(NumericalWindow):
             self.issues.clearSelection()
             self.issues.blockSignals(False)
             self._select(('evidence', self._buffer['evidence'][rows[0].row()]['id']))
+            self.tabs.setCurrentWidget(self.reading)
 
     def _show_detail(self):
         prior, self._populating = self._populating, True
         row = self._row()
         self._detail_original = deepcopy(row)
-        self.detail_identity.setText(('Selected ' + self._selected[0] + ' · ' + row['id']) if row else 'Select a research entry or evidence row')
+        self.detail_identity.setText({'hypotheses': 'Hypothesis', 'decisions': 'Judgment', 'next_observations': 'Next observation', 'evidence': 'Evidence note'}.get(self._selected[0], '') if row else 'Select a research entry')
         self.detail_title.setText(str(row.get('title', row.get('question', row.get('label', '')))) if row else '')
         self.detail_text.setPlainText(str(row.get('statement', row.get('note', ''))) if row else '')
         self.detail_status.clear()
@@ -354,7 +372,7 @@ class StudyWindow(NumericalWindow):
             entries = [(item['id'], item.get('title', item.get('label', ''))) for item in options]
             entries += [(identifier, 'MISSING linked entry') for identifier in selected if isinstance(identifier, str) and identifier not in ids]
             for identifier, label in entries:
-                item = QListWidgetItem(str(label) + ' · ' + identifier)
+                item = QListWidgetItem(str(label))
                 item.setData(DATA, identifier)
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(Qt.CheckState.Checked if identifier in selected else Qt.CheckState.Unchecked)
@@ -362,6 +380,109 @@ class StudyWindow(NumericalWindow):
         self.reference_detail.setPlainText(json.dumps({'reference': row.get('reference'), 'check': self._reference_checks.get(row['id'])}, ensure_ascii=False, indent=2) if row and self._selected[0] == 'evidence' else
             '\n'.join(issue['path'] + ': ' + issue['message'] for issue in diagnostics(self._buffer)))
         self._populating = prior
+        self._sync_evidence_content()
+
+    @staticmethod
+    def _evidence_label(row):
+        label = str(row.get('label', 'Evidence'))
+        # Old generated captions appended identities. Change presentation only;
+        # never rename a user file or modify the saved evidence label.
+        for key in ('job_id', 'turn_id'):
+            value = (row.get('reference') or {}).get(key)
+            if value and label.endswith(' · ' + value):
+                label = label[:-len(' · ' + value)]
+        return label
+
+    def _sync_evidence_content(self):
+        row = self._row()
+        evidence = None
+        if row and self._selected[0] == 'evidence':
+            evidence = row
+        elif row:
+            ids = row.get('supporting', []) + row.get('conflicting', []) + row.get('evidence_ids', [])
+            evidence = next((item for item in self._buffer.get('evidence', []) if item['id'] in ids), None)
+        if evidence is None:
+            self._content_key = self._content_reference = self._content_pending = None
+            self.reading.clear('Select a linked discussion turn or calculated result.')
+            self.pin_response.setEnabled(False)
+            return
+        reference = deepcopy(evidence['reference'])
+        key = (self._context(selection=True), evidence['id'], canonical_hash(reference))
+        if key == self._content_key:
+            return
+        self._content_key = key
+        if isinstance(reference.get('response'), str) and reference['response']:
+            reference['selection'] = {'responses': [reference.pop('response')], 'rows': [0, 256]}
+        self._content_reference = reference
+        self._content_label = self._evidence_label(evidence)
+        self.reading.clear('Reading source…')
+        self._content_pending = (key, deepcopy(reference))
+        self.pin_response.setEnabled(False)
+        self._schedule_content_read()
+
+    def _schedule_content_read(self):
+        if (not self._content_pending or self._content_queued or self._busy or self._callbacks
+                or getattr(self, '_incoming_review', False) or getattr(self, '_allow_close', False)):
+            return
+        self._content_queued = True
+        QTimer.singleShot(0, self._read_content)
+
+    def _read_content(self):
+        self._content_queued = False
+        if (not self._content_pending or self._busy or self._callbacks
+                or getattr(self, '_incoming_review', False) or getattr(self, '_allow_close', False)):
+            return False
+        key, reference = self._content_pending
+        method = getattr(self.client, 'research_reference', None)
+        self._content_pending = None
+        if not callable(method):
+            self.reading.clear('Source content reader is unavailable on this service.')
+            return False
+        def relevant():
+            return self._content_key == key and self._content_reference == reference
+        def received(payload):
+            # Content reads update only availability, never research judgment.
+            evidence_id = key[1]
+            self._reference_checks[evidence_id] = {
+                'status': payload.get('status', 'UNKNOWN'), 'message': payload.get('message', '')}
+            self._populate_evidence()
+            self.reading.set_payload(payload, label=self._content_label)
+            self.pin_response.setEnabled(reference.get('kind') == 'result' and
+                self._selected is not None and self._selected[0] == 'evidence' and 'selection' in reference)
+            # Legacy evidence with no channel selection gets a bounded, visible
+            # first-channel preview. The saved reference changes only on Keep.
+            if (reference.get('kind') == 'result' and 'selection' not in reference
+                    and 'response' not in reference and self.reading.channel.count()):
+                self.read_response(str(self.reading.channel.itemData(0)))
+        def rejected(error):
+            self._reference_checks[key[1]] = {'status': 'UNAVAILABLE', 'message': str(error)}
+            self._populate_evidence()
+            self.reading.clear('Source unavailable: ' + str(error))
+        started = self._call(lambda: method(reference), received, relevant=relevant, rejected=rejected)
+        if not started:
+            self._content_pending = (key, reference)
+        return started
+
+    def read_response(self, name):
+        if not self._content_reference or self._content_reference.get('kind') != 'result':
+            return
+        reference = deepcopy(self._content_reference)
+        reference.pop('response', None)
+        reference['selection'] = {'responses': [name], 'rows': [0, 256]}
+        self._content_reference = reference
+        self.reading.clear('Reading ' + name + '…')
+        self._content_pending = (self._content_key, reference)
+        self._schedule_content_read()
+
+    def keep_response_selection(self):
+        row = self._row()
+        if (not row or self._selected[0] != 'evidence' or not self._content_reference
+                or self._content_reference.get('kind') != 'result' or self._busy):
+            return
+        row['reference'] = deepcopy(self._content_reference)
+        self._edited()
+        self._populate_evidence()
+        self._sync_evidence_content()
 
     def _detail_edited(self, *_):
         if self._populating or not self._row():
@@ -502,7 +623,7 @@ class StudyWindow(NumericalWindow):
             context = self._context()
             def listed(payload):
                 rows = [row for row in payload['documents'] if row.get('kind') == 'study']
-                labels = [row['title'] + ' · ' + row['id'] for row in rows]
+                labels = [str(index + 1) + '. ' + row['title'] for index, row in enumerate(rows)]
                 if not labels:
                     self.message.setText('No Study documents are available. Create one independently of calculations.')
                     return
@@ -561,7 +682,7 @@ class StudyWindow(NumericalWindow):
                      'input_sha256': canonical_hash(source['draft'])}, source['title'])
             elif kind == 'result':
                 rows = [row for row in source.get('runs', []) if row.get('retained_result') and row.get('retention_complete')]
-                labels = [row['job_id'] + ' · ' + str(row.get('retained_state', 'UNKNOWN')) for row in rows]
+                labels = ['Run ' + str(index + 1) + ' — ' + str(row.get('retained_state', 'UNKNOWN')) for index, row in enumerate(rows)]
                 if not rows:
                     self.message.setText('No exact retained result is available. Save completed results in their original editor first.')
                     return
@@ -569,13 +690,13 @@ class StudyWindow(NumericalWindow):
                 if accepted and relevant():
                     job = rows[labels.index(chosen)]['job_id']
                     self._call(lambda: self.client.document_result_reference(source['id'], job),
-                               lambda reference: pin({'kind': kind, **reference}, source['title'] + ' · ' + job), relevant=relevant)
+                               lambda reference: pin({'kind': kind, **reference}, source['title']), relevant=relevant)
             else:
                 if source.get('kind') != 'expert' or not source.get('saved_revision') or source.get('dirty'):
                     self.message.setText('Select a saved, unchanged Discussion. Study cannot silently save or copy pending Expert output.')
                     return
                 turns = source.get('discussion', {}).get('turns', [])
-                labels = [str(turn['id']) + ' · ' + str(turn.get('role', turn.get('classification', 'turn'))) + ' · ' + str(turn.get('text', ''))[:90] for turn in turns]
+                labels = [str(index + 1) + '. ' + str(turn.get('author', turn.get('role', 'Participant'))) + ': ' + str(turn.get('text') or turn.get('status', ''))[:90] for index, turn in enumerate(turns)]
                 if not labels:
                     self.message.setText('This saved Discussion has no actual retained turns to select.')
                     return
@@ -583,10 +704,10 @@ class StudyWindow(NumericalWindow):
                 if accepted and relevant():
                     turn = turns[labels.index(chosen)]
                     pin({'kind': kind, 'discussion_id': source['id'], 'saved_revision': source['saved_revision'],
-                         'turn_id': turn['id'], 'turn_sha256': canonical_hash(turn)}, source['title'] + ' · ' + turn['id'])
+                         'turn_id': turn['id'], 'turn_sha256': canonical_hash(turn)}, source['title'] + ' — ' + str(turn.get('author', turn.get('role', 'Participant'))))
         def listed(payload):
             rows = [row for row in payload['documents'] if row.get('kind') != 'study' and (kind != 'expert_turn' or row.get('kind') == 'expert')]
-            labels = [row['title'] + ' · ' + row['kind'] + ' · ' + row['id'] for row in rows]
+            labels = [str(index + 1) + '. ' + row['title'] + ' (' + row['kind'] + ')' for index, row in enumerate(rows)]
             if not labels:
                 self.message.setText('No original documents are available for this evidence type.')
                 return
@@ -651,8 +772,9 @@ class StudyWindow(NumericalWindow):
 
     def open_reference(self):
         row = self._row()
-        if row and self._selected[0] == 'evidence' and not reference_error(row.get('reference')):
-            return self._navigate('reference', row['reference'])
+        reference = self._content_reference if self._content_reference else (row or {}).get('reference')
+        if reference and not reference_error(reference):
+            return self._navigate('reference', reference)
 
     def request_followup(self, kind):
         if kind not in {'discussion', 'plan'} or self._busy or self._callbacks or self._raw_mode:
@@ -687,7 +809,8 @@ class StudyWindow(NumericalWindow):
         self.copy_button.setEnabled(available)
         if present:
             self.setWindowTitle('Study — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
-            self.identity.setText('g' + str(self.document['generation']) + ' · ' + self.document['id'] + ' · NOT_RELEASED')
+            self.identity.setText('Unreleased')
+        self._schedule_content_read()
 
 
 def main(argv=None):
