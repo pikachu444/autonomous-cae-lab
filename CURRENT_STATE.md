@@ -203,6 +203,11 @@ Codex가 통합하며 같은 소스의 작성자는 Pro 한 명이다. 범위는
 MoAI MCP의 실제 SPEC 조회와 CLI의 상태 갱신·해당 SPEC lint를 사용했다. lint의 구조
 오류는 수정했으며 표에 연결한 수용 조건을 인식하지 못한 coverage 등 경고는 남아 있다.
 문서 lint 결과를 실제 제품 기능이나 테스트 통과로 바꾸지 않는다.
+이어지는 Expert 작업은 [SPEC-EXPERT-001](.moai/specs/SPEC-EXPERT-001/spec.md)의 로컬
+자료 가져오기·선택·본문/인용 열기다. Luna/high가 기존 역할·개입·저장·Plan 연결을 확인했고,
+Codex가 첫 파일 가져오기까지 범위를 보완했다. 현재 Pro의 Post 작성은 계속하며 이 작업은
+그 다음에 맡긴다. 이미 있는 KnowledgeStore와 문서 owner를 재사용하고 무료 inference가
+실제로 가능한지는 별도 확인한다. 자료 선택·저장은 provider 연결을 기다리지 않는다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와
 Expert→Numerical→결과→Study이며
 Data/Material/PDE는 독립 병행한다. 별도의 개발 시작 문구를 기다리지 않는다.
