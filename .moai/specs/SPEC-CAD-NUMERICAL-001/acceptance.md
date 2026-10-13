@@ -145,5 +145,12 @@ process's strict reopen without repair, remesh or solver. The first long-path
 helper attempt failed at Windows file copying; rerunning the helper in the
 documented short workspace passed. Both attempts remain recorded under
 `assembly-native/authoring/`; the short working archives are also preserved there.
-The separate 5-degree FE candidate is in progress. This resolves the diagnosed
-reopen defect; it does not complete the whole GUI/adoption/search acceptance.
+The separate 5-degree candidate created through the app joint command also
+completed native preparation, two Gmsh meshes and CalculiX contact. Its final
+pair CFN/global-Z response is 3295.312 N; the source remained unchanged. A fresh
+FreeCAD process reopened the exact calculated editable file and verified both
+mesh bindings, contact and pose without repair, remesh or solver execution.
+Records: `authoring/revolute-fe/receipt.json` and
+`authoring/revolute-fe-cold/receipt.json`. This resolves the diagnosed reopen
+defect and verifies the bounded execution/retention path; it does not complete
+the whole GUI/adoption/search acceptance or establish numerical qualification.
