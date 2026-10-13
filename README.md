@@ -34,6 +34,10 @@ FreeCAD·ParaView·Gmsh·외부 솔버와 AI 연결은 별도로 준비합니다
 `Start-CAE-Lab.cmd`를 더블클릭하면 기존 방식대로 Runner를 엽니다.
 설치 후에도 소스 폴더는 남겨 두세요. 저장 위치와 바로가기 복구는 [설치 안내](docs/INSTALL_KO.md)에 있습니다.
 
+FreeCAD·ParaView가 설치되어 있다면 시작 메뉴의 **전처리**, **후처리** 또는
+`Start-CAE-Pre.cmd`, `Start-CAE-Post.cmd`로 엽니다. 처음에는 설치된 실행 파일을
+선택해야 할 수 있습니다. 후처리는 열 결과 파일도 선택합니다.
+
 ## 무엇부터 해볼 수 있나요?
 
 | 해볼 작업 | 필요한 준비 | 얻는 결과 |

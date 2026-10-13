@@ -12,7 +12,9 @@ SCRIPT = ROOT / 'scripts/install-desktop-shortcuts.ps1'
 PS = str(Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe')
 TOOLS = {'runner': '실행 관리', 'data': '데이터', 'material': '재료', 'pde': '방정식',
          'numerical': '수치 연구', 'expert': '전문가 토론', 'simulation': '해석',
-         'evaluation': '계산 절차', 'study': '연구 기록'}
+         'evaluation': '계산 절차', 'study': '연구 기록',
+         'pre': '전처리', 'post': '후처리'}
+NATIVE_LAUNCHERS = {'pre': 'Start-CAE-Pre.cmd', 'post': 'Start-CAE-Post.cmd'}
 
 
 def quote(value):
@@ -32,6 +34,8 @@ def source(tmp_path, name="공학 앱 & 개인 모델's source"):
     folder = tmp_path / name
     folder.mkdir()
     (folder / 'Start-CAE-Lab.cmd').write_text('@echo off\nexit /b 99\n', encoding='ascii')
+    for name in NATIVE_LAUNCHERS.values():
+        (folder / name).write_text('@echo off\nexit /b 99\n', encoding='ascii')
     return folder
 
 
@@ -41,12 +45,12 @@ def install(tmp_path, origin, destination):
         ' | ConvertTo-Json -Depth 3')
 
 
-def test_real_com_nine_shortcuts_and_exact_repeat(tmp_path):
+def test_real_com_shortcuts_and_exact_repeat(tmp_path):
     origin = source(tmp_path)
     destination = tmp_path / '격리 시작 메뉴'
     first = install(tmp_path, origin, destination)
     assert first.returncode == 0, first.stderr
-    assert len(json.loads(first.stdout)) == 9
+    assert len(json.loads(first.stdout)) == len(TOOLS)
     before = {path.name: path.read_bytes() for path in destination.glob('*.lnk')}
     body = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)\n$s=New-Object -ComObject WScript.Shell\n" + (
         'Get-ChildItem -LiteralPath ' + quote(destination) + " -Filter '*.lnk' | ForEach-Object {\n"
@@ -58,8 +62,8 @@ def test_real_com_nine_shortcuts_and_exact_repeat(tmp_path):
     actual = {row['Name']: row for row in json.loads(read.stdout)}
     for tool, name in TOOLS.items():
         row = actual[name]
-        assert Path(row['Target']) == origin / 'Start-CAE-Lab.cmd'
-        assert row['Arguments'] == f'-Tool {tool} -DesktopShortcut'
+        assert Path(row['Target']) == origin / NATIVE_LAUNCHERS.get(tool, 'Start-CAE-Lab.cmd')
+        assert row['Arguments'] == ('' if tool in NATIVE_LAUNCHERS else f'-Tool {tool} -DesktopShortcut')
         assert Path(row['WorkingDirectory']) == origin
         assert row['WindowStyle'] == 1
         assert str(origin) in row['Description']
@@ -107,6 +111,34 @@ def test_missing_source_cannot_create_start_menu_entries(tmp_path):
     assert failed.returncode != 0
     assert 'not found' in failed.stderr
     assert not destination.exists()
+
+
+def test_missing_native_launcher_leaves_all_existing_shortcuts_unchanged(tmp_path):
+    origin = source(tmp_path)
+    destination = tmp_path/'links'
+    assert install(tmp_path, origin, destination).returncode == 0
+    (destination/'데이터.lnk').unlink()
+    before = {p.name: p.read_bytes() for p in destination.glob('*.lnk')}
+    (origin/'Start-CAE-Post.cmd').unlink()
+    failed = install(tmp_path, origin, destination)
+    assert failed.returncode != 0
+    assert 'Launcher was not found' in failed.stderr
+    assert before == {p.name: p.read_bytes() for p in destination.glob('*.lnk')}
+
+
+def test_direct_file_invocation_resolves_its_own_source_root(tmp_path):
+    destination = tmp_path/'직접 실행'
+    env = os.environ.copy()
+    env.pop('PSModulePath', None)
+    result = subprocess.run([PS, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+        str(SCRIPT), '-Destination', str(destination)], capture_output=True,
+        text=True, errors='replace', env=env, timeout=20)
+    assert result.returncode == 0, result.stdout + result.stderr
+    read = powershell(tmp_path, "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)\n"
+        "$s=New-Object -ComObject WScript.Shell\n$l=$s.CreateShortcut(" +
+        quote(destination/'전처리.lnk') + ")\nWrite-Output $l.TargetPath")
+    assert read.returncode == 0, read.stderr
+    assert Path(read.stdout.strip()) == ROOT/'Start-CAE-Pre.cmd'
 
 
 @pytest.mark.parametrize('arguments', ['-Tool data', '-PrepareOnly', '-InstallOnly'])
