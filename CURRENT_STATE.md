@@ -433,6 +433,12 @@ geometry changed 오류가 발생한다. `runs/cad-reopen-e0feb6fe/receipt.json`
 내부 workbench root를 다시 전달한 위치로, Pro에 교정 요청했으며 통과로 계산하지 않는다.
 Astra의 `37ac470` 읽기 전용 검토에는 추가 데이터 손실·실행 경로 지적이 없었다.
 후보의 저장·재열기 수용, 실제 Plan/broker 전체 왕복은 여전히 미완료다.
+Pro `6b274ec`·`300b803`을 `2e85a14`·`96ce9fc`로 통합했고 변경 단위26개가
+통과했다. reopen 검사의 workspace 인자 오류를 고쳤고, 실제 보존 모델의 접촉·메시·
+변수를 다시 읽어 확인한 뒤 계산한다. 후보 관련 managed 저장에는 FreeCAD binary
+BREP를 한시적으로 사용하고 사용자 옵션을 원상 복구한다. 이는 기존 불일치 원인을
+확정하거나 과거 실패 모델을 수리한 주장이 아니다. Luna가 보존 사본의 저장 표현을
+비교 중이며 실제 native 재열기 수용은 확인 결과로 따로 갱신한다.
 별도 native Post→Qt 실제 broker 연결 시도는
 `runs/product-development/20261013/contact-handoff-83394326/receipt.json`에 실패로
 남겼다. ParaView의 restore 진입 이후 60초 안에 broker 등록이 없어 중단했으며
@@ -502,6 +508,10 @@ Windows의 기존 OpenScience profile marker/config와 runtime binary는 존재�
 인증·구독 사용 가능 여부는 별도이며 설정 확인만으로 모델을 실행하지 않는다.
 Pro는 제품·관련 테스트·사용 안내를 작성하고 Codex는 SPEC·실행·통합을 소유한다.
 현재 CAD 전달과 같은 대화에서 순차 작성하며 공유 파일에 병행 작성자를 두지 않는다.
+Pro는 `300b803`에서 `codex/expert-connection-20261013`을 만들고 연결 UI 작성에
+착수했다. Astra가 확인한 native Windows의 `wslpath` 의존, 질문 전송의 별도 operator
+허용, cached assistance/config 변경의 실제 적용 문제도 같은 Pro에 전달해 SPEC에
+포함했다. 파일 저장이나 모델명 선택만으로 연결 완료 처리하지 않는다.
 
 ### 앞선 통합 기록
 

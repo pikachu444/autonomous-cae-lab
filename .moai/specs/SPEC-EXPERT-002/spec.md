@@ -42,6 +42,8 @@ this work closes the missing user-facing connection/setup path.
   the UI SHALL make the next action executable without killing active work.
   Remote model/tool requests SHALL NOT gain permission to change host commands,
   credentials, executable paths or the operator's authorization policy.
+  Saving a file alone is insufficient: cached assistance and the launch config
+  identity must observe the applied configuration without losing active work.
 - REQ-EXPERT-002-005: With no registered roles, the UI SHALL offer explicit
   installation/selection of the project's existing editable role definitions,
   without silently assigning unavailable models. Role selection and discussion
@@ -50,9 +52,14 @@ this work closes the missing user-facing connection/setup path.
   An explicit bounded research round SHALL use the existing source selection,
   transmission scope, tools, cancellation and shared budget. Connection failure
   or usage limit SHALL retain the draft and offer retry through the same route.
+  Local operator permission to transmit a question SHALL be explicit; connecting
+  a profile SHALL NOT grant unrestricted document/result transmission.
 - REQ-EXPERT-002-007: A real returned proposal SHALL continue into the existing
   editable Numerical Plan and return actual selected results to the original
   discussion/Study. No canned reply or fake model shall establish completion.
+- REQ-EXPERT-002-008: Native Windows SHALL invoke the existing PowerShell host
+  through native paths without requiring WSL or `wslpath`. Supported other host
+  environments retain their appropriate path handling.
 
 ## Reuse and delivery
 

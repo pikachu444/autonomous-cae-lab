@@ -9,6 +9,8 @@
 3. Missing installation, unavailable login, unsupported model and usage limit
    present distinct actionable states. Saved sources and discussion stay usable.
    No paid fallback or provider call occurs during setup/status checks.
+   The Windows host invocation can be constructed and reached without WSL;
+   local question authorization and per-round source scope stay distinct.
 4. A bounded explicit real round, when entitlement/authentication are verified,
    retains the actual reply and citations. Existing Plan/result-return code is
    reused. Unit doubles prove only their stated configuration/UI behavior.
