@@ -10,6 +10,7 @@ from copy import deepcopy
 import json
 import os
 import sys
+import threading
 import uuid
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
@@ -32,19 +33,35 @@ class _Call(QRunnable):
     def __init__(self, function):
         super().__init__()
         self.function, self.signals = function, _Signals()
+        self.completed = threading.Event()
+        self._delivery_lock = threading.Lock()
+        self._abandoned = False
+
+    def abandon(self):
+        # Closing a view stops delivery, not an already requested library job.
+        with self._delivery_lock:
+            self._abandoned = True
 
     def run(self):
+        result, failure = None, None
         try:
-            result = self.function()
-        except Exception as error:
-            if hasattr(error, 'read'):
-                try:
-                    error = error.read().decode('utf-8')
-                except (OSError, UnicodeError):
-                    pass
-            self.signals.finished.emit(None, str(error))
-        else:
-            self.signals.finished.emit(result, None)
+            with self._delivery_lock:
+                if self._abandoned:
+                    return
+            try:
+                result = self.function()
+            except Exception as error:
+                if hasattr(error, 'read'):
+                    try:
+                        error = error.read().decode('utf-8')
+                    except (OSError, UnicodeError):
+                        pass
+                failure = str(error)
+            with self._delivery_lock:
+                if not self._abandoned:
+                    self.signals.finished.emit(result, failure)
+        finally:
+            self.completed.set()
 
 
 class ExpertWindow(QMainWindow):
@@ -62,8 +79,10 @@ class ExpertWindow(QMainWindow):
         self._buffer = None
         self._draft_problem = None
         self._control_initial = {}
-        self._source_choosing = False
+        self._source_choosing = self._closed = False
         self._source_titles, self._source_collections = {}, {}
+        self._source_titles_pending = False
+        self._source_preview_binding = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -287,7 +306,7 @@ class ExpertWindow(QMainWindow):
         self._update_actions()
 
     def _call(self, function, success, *, background=False):
-        if self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
+        if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return False
         self._busy = True
         self._foreground_busy = not background
@@ -298,6 +317,8 @@ class ExpertWindow(QMainWindow):
             self._workers.remove(worker)
             self._busy = False
             self._foreground_busy = False
+            if self._closed:
+                return
             if error:
                 self.message.setText('Service request failed; question and evidence retained. ' + error)
                 if not background:
@@ -327,13 +348,16 @@ class ExpertWindow(QMainWindow):
         self._show_document(document)
         self.message.setText('Discussion opened. Saved turns and question drafts do not invoke a model. Continue explicitly to request further replies.')
         QTimer.singleShot(0, self.refresh_registry)
+        context = (self._buffer or {}).get('context', {})
+        self._source_titles_pending = bool(context.get('selected_sources') or context.get('selected_document_ids'))
 
     def refresh_registry(self):
         def received(payload):
             self._registry = payload.get('experts', [])
             self._populate_roles(self.edited_draft()['participants'] if self.document else [])
             if self._buffer and self._buffer.get('context', {}).get('selected_sources'):
-                QTimer.singleShot(0, self.refresh_source_titles)
+                self._source_titles_pending = any(ref.get('document_id') not in self._source_titles
+                    for ref in self._buffer['context']['selected_sources'] if isinstance(ref, dict))
             packages=payload.get('packages',{})
             missing=[row for row in packages.get('missing_dependencies',[]) if row.get('extra')=='assist-core']
             runtime=payload.get('runtime',{})
@@ -362,6 +386,9 @@ class ExpertWindow(QMainWindow):
         self._populating = False
 
     def _show_document(self, document, *, preserve_buffer=False):
+        previous_owner = (self.document['id'], self.document['session_id']) if self.document else None
+        if previous_owner != (document['id'], document['session_id']):
+            self._clear_source_preview()
         receiver = getattr(self, '_result_return', None)
         if (receiver and not preserve_buffer and receiver.target
                 and receiver.target[0] == document['id'] and receiver.target[1] != document['session_id']):
@@ -406,6 +433,7 @@ class ExpertWindow(QMainWindow):
         self._populate_reply()
         self._update_evidence_label()
         self._populate_sources()
+        self._sync_source_preview()
         self._update_actions()
 
     def _populate_topics(self):
@@ -578,7 +606,7 @@ class ExpertWindow(QMainWindow):
             command_id='C' + uuid.uuid4().hex), received)
 
     def refresh_document(self):
-        if not self.document or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
+        if self._closed or not self.document or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return
         identifier, session = self.document['id'], self.document['session_id']
         def received(remote):
@@ -691,33 +719,75 @@ class ExpertWindow(QMainWindow):
             self._edited()
 
 
+    def _clear_source_preview(self, message='Select a source to read.'):
+        self._source_preview_binding = None
+        self.source_preview.show_error(message)
+
+    def _set_source_preview(self, payload, reference, *, historical=False):
+        self._source_preview_binding = {
+            'owner': (self.document['id'], self.document['session_id']),
+            'reference': deepcopy(reference), 'historical': historical}
+        self.source_preview.set_payload(payload)
+        self._sync_source_preview()
+
+    def _sync_source_preview(self):
+        binding = self._source_preview_binding
+        if not binding:
+            return
+        owner = (self.document['id'], self.document['session_id']) if self.document else None
+        if binding['owner'] != owner:
+            self._clear_source_preview()
+            return
+        if not binding['historical']:
+            refs = (self._buffer or {}).get('context', {}).get('selected_sources', [])
+            ref = {key: binding['reference'].get(key) for key in ('document_id', 'revision')}
+            if not isinstance(refs, list) or ref not in refs:
+                self._clear_source_preview()
+
     def _populate_sources(self):
         if not hasattr(self, 'selected_sources'):
             return
         context = (self._buffer or {}).get('context', {})
         refs = context.get('selected_sources')
         if not isinstance(refs, list):
+            identifiers = context.get('selected_document_ids', [])
             refs = [{'document_id': identifier, 'revision': None}
-                    for identifier in context.get('selected_document_ids', []) if isinstance(identifier, str)]
-        self.selected_sources.clear()
+                    for identifier in (identifiers if isinstance(identifiers, list) else [])
+                    if isinstance(identifier, str)]
+        rows = []
         for index, reference in enumerate(refs):
             if not isinstance(reference, dict):
                 continue
             title = self._source_titles.get(reference.get('document_id'), 'Source ' + str(index + 1))
             if reference.get('revision') is None:
                 title += ' — review version'
-            item = QListWidgetItem(title)
-            item.setData(Qt.ItemDataRole.UserRole, deepcopy(reference))
-            item.setToolTip(json.dumps(reference, ensure_ascii=False))
-            self.selected_sources.addItem(item)
+            rows.append((title, deepcopy(reference)))
+        existing = [(self.selected_sources.item(index).text(),
+                     self.selected_sources.item(index).data(Qt.ItemDataRole.UserRole))
+                    for index in range(self.selected_sources.count())]
+        if existing != rows:
+            selected = self.selected_sources.currentItem()
+            selected = deepcopy(selected.data(Qt.ItemDataRole.UserRole)) if selected else None
+            self.selected_sources.blockSignals(True)
+            self.selected_sources.clear()
+            for title, reference in rows:
+                item = QListWidgetItem(title)
+                item.setData(Qt.ItemDataRole.UserRole, reference)
+                item.setToolTip(json.dumps(reference, ensure_ascii=False))
+                self.selected_sources.addItem(item)
+                if reference == selected:
+                    self.selected_sources.setCurrentItem(item)
+            self.selected_sources.blockSignals(False)
         grants = context.get('transmission_scope', {}).get('source_refs', [])
+        grants = grants if isinstance(grants, list) else []
         self.allow_sources.blockSignals(True)
         self.allow_sources.setChecked(bool(refs) and all(reference in grants for reference in refs))
         self.allow_sources.blockSignals(False)
 
     def refresh_source_titles(self):
-        if not self.document:
+        if self._closed or not self.document:
             return False
+        self._source_titles_pending = False
         from .expert_sources import assist
         owner = (self.document['id'], self.document['session_id'])
         def received(payload):
@@ -727,7 +797,11 @@ class ExpertWindow(QMainWindow):
                 self._source_titles[source['document_id']] = source['title']
                 self._source_collections[source['document_id']] = source['collection']
             self._populate_sources()
-        return self._call(lambda: assist(self.client, 'knowledge.list'), received, background=True)
+        started = self._call(lambda: assist(self.client, 'knowledge.list'), received, background=True)
+        # A foreground read may win the initial queued prefetch. Retry on its
+        # completion or modal release; a completed failed request is not looped.
+        self._source_titles_pending = not started
+        return started
 
     def choose_sources(self, _checked=False, *, add_file=False):
         if not self.document or self._busy or self.conflict or self._draft_problem or getattr(self, '_incoming_review', False):
@@ -738,19 +812,19 @@ class ExpertWindow(QMainWindow):
         collections = [name for role in self._registry for name in role.get('collections', [])]
         self._source_choosing = True
         self._update_actions()
-        dialog = self._source_dialog = SourceDialog(self.client, self.edited_draft()['context'],
-                                                     collections=collections, parent=self)
-        if add_file:
-            # Wait for initial library loading so file selection does not race it.
-            def open_file():
-                if dialog._closed:
-                    return
-                if dialog._busy:
-                    QTimer.singleShot(25, open_file)
-                else:
-                    dialog.choose_file()
-            QTimer.singleShot(0, open_file)
         try:
+            dialog = self._source_dialog = SourceDialog(self.client, self.edited_draft()['context'],
+                                                         collections=collections, parent=self)
+            if add_file:
+                # Wait for initial library loading so file selection does not race it.
+                def open_file():
+                    if dialog._closed:
+                        return
+                    if dialog._busy:
+                        QTimer.singleShot(25, open_file)
+                    else:
+                        dialog.choose_file()
+                QTimer.singleShot(0, open_file)
             accepted = dialog.exec() == QDialog.DialogCode.Accepted
         finally:
             self._source_choosing = False
@@ -778,9 +852,10 @@ class ExpertWindow(QMainWindow):
             self._edited()
             self.side.setCurrentWidget(self.source_tab)
             if dialog.records:
-                self.source_preview.set_payload(next(iter(dialog.records.values())))
+                payload = next(iter(dialog.records.values()))
+                self._set_source_preview(payload, {key: payload[key] for key in ('document_id', 'revision')})
             else:
-                self.source_preview.show_error('No source selected.')
+                self._clear_source_preview('No source selected.')
             self.message.setText('Sources attached to the local question. Apply or Save when ready.')
         return self._call(lambda: self.client.document_read(owner[0]), checked)
 
@@ -797,7 +872,7 @@ class ExpertWindow(QMainWindow):
             del context['selected_document_ids'][row]
         self._buffer = current
         self._populate_sources()
-        self.source_preview.show_error('Select another source to read.')
+        self._sync_source_preview()
         self._edited()
 
     def read_selected_source(self):
@@ -814,9 +889,11 @@ class ExpertWindow(QMainWindow):
             if self.document and (self.document['id'], self.document['session_id']) == owner:
                 selected = self.selected_sources.currentItem()
                 if selected and selected.data(Qt.ItemDataRole.UserRole) == reference:
-                    self.source_preview.set_payload(payload)
+                    self._set_source_preview(payload, reference)
+                    self._source_titles[reference['document_id']] = payload.get('title') or selected.text()
+                    self._populate_sources()
                     self.side.setCurrentWidget(self.source_tab)
-        self.source_preview.show_error('Reading selected source…')
+        self._clear_source_preview('Reading selected source…')
         return self._call(lambda: assist(self.client, 'knowledge.source', reference), received)
 
     def _source_permission_toggled(self, checked):
@@ -904,8 +981,13 @@ class ExpertWindow(QMainWindow):
             self.open_plan(self.document['id'], self.turns.currentItem().data(Qt.ItemDataRole.UserRole), row)
 
     def _update_actions(self, *_):
+        if self._closed:
+            return
         present = self.document is not None
         enabled = present and not self._busy and not self._source_choosing and not self.conflict and not getattr(self, '_incoming_review', False)
+        if enabled and self._source_titles_pending:
+            self._source_titles_pending = False
+            QTimer.singleShot(0, self.refresh_source_titles)
         self.editor.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.roles.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.topics.setEnabled(present and not self._draft_problem and not self._foreground_busy)
@@ -992,6 +1074,12 @@ class ExpertWindow(QMainWindow):
             event.ignore()
             return
         if self._allow_close:
+            self._closed = True
+            for worker in self._workers:
+                worker.abandon()
+            source_dialog = getattr(self, '_source_dialog', None)
+            if source_dialog is not None and not source_dialog._closed:
+                source_dialog.reject()
             if getattr(self, '_result_return', None):
                 self._result_return.close()
             self.timer.stop()
@@ -1012,10 +1100,12 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
         plan_opener = plan_opener or open_discussion_plan
     window._plan_transfer_commands = {}
 
-    def received(payload):
+    def received(payload, source_reference=None):
         if isinstance(payload, dict) and payload.get('status') == 'SOURCE_READ':
             window.message.setText('Read the exact indexed source returned by the existing source service.')
-            window.source_preview.set_payload(payload.get('source') or {})
+            source = payload.get('source') or {}
+            window._set_source_preview(source, source_reference or
+                {key: source[key] for key in ('document_id', 'revision')}, historical=True)
             window.side.setCurrentWidget(window.source_tab)
             return
         if isinstance(payload, dict) and payload.get('status') == 'LAUNCH_REQUESTED':
@@ -1027,7 +1117,11 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
 
     def reference(reference):
         frozen = deepcopy(reference)
-        return window._call(lambda: evidence_opener(client, frozen), received)
+        owner = (window.document['id'], window.document['session_id'])
+        def read(payload):
+            if window.document and (window.document['id'], window.document['session_id']) == owner:
+                received(payload, frozen)
+        return window._call(lambda: evidence_opener(client, frozen), read)
 
     def plan(discussion_id, turn_id, proposal_index):
         selection = (discussion_id, turn_id, proposal_index)

@@ -37,7 +37,11 @@ Selecting/importing a source grants no model transmission. External transmission
 
 The backend checkpoint is **7090d1c**. The following Qt checkpoint adds file/library selection, actual text preview, removal, explicit permission and source-citation display. Independent source review identified a legacy-history edge: old running rounds had previously been able to search without selected IDs. Their harvested provenance must remain unknown. The correction stamps new rounds' validated scope outside their unchanged frozen draft and keeps old missing scope unknown; old displayed turns and input hashes are preserved.
 
-Pro remote Python/Qt execution: **NOT_RUN** (executor disconnected). The tests are authored for Codex's focused Windows run:
+Codex's reported Windows checks are separate from author execution: backend `7090d1c` passed its four focused checks; the legacy-harvest regression at `5037e46` passed separately. At `5037e46`, the four Qt checks completed, but teardown emitted a late worker/signal error. Codex also reproduced skipped filename prefetch, and its Astra review identified selection loss during normal polling.
+
+The follow-up stops requests/delivery after a view closes, drains only that view's existing workers in fixture cleanup before service shutdown, retries a deferred filename read after competing foreground work, and keeps identical source-list items/selection during polling. A preview is bound to its discussion/session and either the attached source or a deliberately opened historical citation. Switching discussion clears it; deselecting/Undo clears an attached-source preview; ordinary polling preserves a still-valid view. The existing reopen case now leaves polling active for Read/Remove checks. The stale-token assignment moved into the native chooser test so it exercises the binary upload request itself. Malformed old source IDs remain repairable without rewriting the draft on Cancel. These follow-up changes await Codex's Windows execution.
+
+Pro remote Python/Qt execution: **NOT_RUN** (executor disconnected). Focused run commands:
 
 ```powershell
 python -m pytest tests/test_expert_sources.py tests/test_expert_sources_ui.py -q
