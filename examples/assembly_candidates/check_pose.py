@@ -11,6 +11,7 @@ import json
 def prepare(fixture_path, value, output):
     import FreeCAD as App
     import FreeCADGui as Gui
+    Gui.activateWorkbench('AssemblyWorkbench')
     from apps.desktop_pre.bridge import Owner
     from apps.desktop_pre.assembly_candidates import validate_source, drive, verify
     from apps.desktop_pre.candidate_correspondence import apply, validate_original_contacts
@@ -56,6 +57,7 @@ def prepare(fixture_path, value, output):
 def reopen(receipt_path, output):
     import FreeCAD as App
     import FreeCADGui as Gui
+    Gui.activateWorkbench('AssemblyWorkbench')
     from apps.desktop_pre.bridge import Owner
     from apps.desktop_pre.assembly_candidates import verify
     from apps.desktop_pre.candidate_correspondence import validate_original_contacts

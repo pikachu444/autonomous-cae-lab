@@ -214,3 +214,12 @@ def test_motion_cleanup_and_final_measurement_are_explicit(monkeypatch):
         ('remove', 'CandidateJointDrive'), ('remove', 'CandidatePosePath')]
     assert objects['CandidatePosePath'].Group == []
     assert not hasattr(joint, 'Angle') and not hasattr(joint, 'Distance')
+
+
+def test_whole_solid_support_does_not_invent_a_solid_element_map(monkeypatch):
+    source, body = NS(Shape=NS(Solids=[object()])), NS(Shape=NS(Solids=[object()]))
+    monkeypatch.setattr(occurrence, 'validate_body', lambda *_: (object(), body, source))
+    assert occurrence.element_pairs(None, None, {}, 'Solid') == {'Solid1': 'Solid1'}
+    body.Shape.Solids.append(object())
+    with pytest.raises(ValueError, match='exactly one'):
+        occurrence.element_pairs(None, None, {}, 'Solid')

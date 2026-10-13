@@ -84,6 +84,10 @@ class CandidateWorker:
         try:
             settings = self.config['settings']
             self.recipe = settings['recipe']
+            if self.recipe.get('assembly'):
+                # Candidate GUI has its own user/system configuration files.
+                # Load the installed native joint proxies before restoring them.
+                self.Gui.activateWorkbench('AssemblyWorkbench')
             manifest, entry = unpack_project(self.config['source'], self.folder / 'working')
             if manifest.get('unavailable_dependencies'):
                 raise ValueError('Saved design has unavailable external dependencies')

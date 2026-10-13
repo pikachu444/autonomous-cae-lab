@@ -10,6 +10,7 @@ import json
 def create(kind, directory):
     import FreeCAD as App
     import FreeCADGui as Gui
+    Gui.activateWorkbench('AssemblyWorkbench')
     import ObjectsFem
     import JointObject
     from apps.desktop_pre.bridge import Owner

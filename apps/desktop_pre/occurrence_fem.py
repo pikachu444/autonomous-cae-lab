@@ -70,7 +70,13 @@ def element_pairs(owner, assembly, row, family='Face'):
     identity (isSame/isPartner) is therefore not a persisted correspondence.
     """
     occurrence, body, source = validate_body(owner, assembly, row)
-    plural = {'Face': 'Faces', 'Edge': 'Edges', 'Solid': 'Solids'}[family]
+    if family == 'Solid':
+        # Whole support of one admitted solid, not an invented Solid element map.
+        # FreeCAD's mapped element histories cover faces/edges/vertices.
+        if len(body.Shape.Solids) != 1 or len(source.Shape.Solids) != 1:
+            raise ValueError('Whole occurrence region requires exactly one native solid')
+        return {'Solid1': 'Solid1'}
+    plural = {'Face': 'Faces', 'Edge': 'Edges'}[family]
     originals = getattr(source.Shape, plural)
     result = {}
     for index, actual in enumerate(getattr(body.Shape, plural), 1):
@@ -227,7 +233,11 @@ def resolve_element(owner, saved):
     _, body, source = validate_body(owner, assembly, row)
     old = saved['source_target']
     names = [item['name'] for item in saved['elements']]
-    if _target(source, names) == old:
+    if names == ['Solid1']:
+        if len(source.Shape.Solids) != 1:
+            raise ValueError('Whole occurrence source is no longer one solid')
+        local_names, method = names, 'native_occurrence_whole_support'
+    elif _target(source, names) == old:
         local_names, method = names, 'native_occurrence_rigid'
     else:
         from .candidate_correspondence import resolve
