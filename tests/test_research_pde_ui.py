@@ -89,7 +89,7 @@ def test_actual_typed_equation_invalid_save_undo_reopen(window, app):
     edit(window, ('settings', 'problem', 'weak_form', 'rhs'), 'sin(')
     window.validate_inputs()
     settle(app, window)
-    assert window.local_dirty and 'failed' in window.message.text()
+    assert window.local_dirty and '오류' in window.message.text()
     window.save_document()
     settle(app, window, lambda: bool(window.document['saved_revision']))
     identifier = window.document['id']
@@ -248,7 +248,7 @@ def test_numerical_plan_requires_applied_generation_and_retries_same_creation(wi
     edit(window, ('settings', 'problem', 'weak_form', 'diffusion'), '3')
     assert not window.plan_button.isEnabled()
     assert window.open_numerical_plan() is False
-    assert 'Apply' in window.message.text() and calls == []
+    assert '변경 적용' in window.message.text() and calls == []
     window.apply_inputs()
     settle(app, window)
     assert window.document['generation'] == 1 and window.plan_button.isEnabled()
@@ -262,6 +262,8 @@ def test_numerical_plan_requires_applied_generation_and_retries_same_creation(wi
     assert identifier == window.document['id']
     assert options['session_id'] == window.document['session_id'] and options['expected_generation'] == 1
     assert options['command_id'].startswith('C')
-    assert 'Nfrozenrequest' in window.message.text() and 'no evaluation' in window.message.text()
+    assert '계산은 아직 시작하지 않았습니다' in window.message.text()
+    assert 'Nfrozenrequest' not in window.message.text()
+    assert 'Nfrozenrequest' in window.messages.toPlainText()
     assert window.document['runs'] == []
     assert not any(operation == 'pde.evaluate' for operation, _ in window.client.calls)

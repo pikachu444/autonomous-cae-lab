@@ -78,16 +78,23 @@ def setting_label(path):
              'diffusion': '확산 계수', 'reaction': '반응 계수',
              'lame_lambda': 'Lamé lambda', 'lame_mu': 'Lamé mu',
              'dirichlet': 'Dirichlet 식', 'solution': '해 표현식',
-             'sha256': 'Content SHA-256', 'data': 'Exact mesh source data'}
+             'sha256': '원본 확인값', 'data': '원본 메시 데이터',
+             'lengths': '길이', 'type': '종류', 'value': '값', 'expression': '식',
+             'alpha': '비선형 계수', 'start': '시작', 'end': '끝',
+             'max_residual_relative': '상대 잔차 허용값',
+             'max_l2_error': 'L2 오차 허용값', 'min_l2_rate': '최소 L2 수렴률',
+             'max_h1_seminorm_error': 'H1 반노름 오차 허용값'}
     if path[-2:] == ('domain', 'type'):
         return '영역 형상'
+    if len(path) >= 2 and path[-2] == 'boundaries' and path[-1] in {'xmin', 'xmax', 'ymin', 'ymax', 'zmin', 'zmax'}:
+        return path[-1][0] + (' 최소 경계' if path[-1].endswith('min') else ' 최대 경계')
     if 'lengths' in path and isinstance(path[-1], int):
         axis = ('x', 'y', 'z')[path[-1]] if path[-1] < 3 else str(path[-1] + 1)
         return axis + ' 길이 [1]'
-    for collection, caption in (('cell_counts', 'Mesh cell count'), ('step_counts', 'Time step count')):
+    for collection, caption in (('cell_counts', '메시 분할 수'), ('step_counts', '시간 단계 수')):
         if collection in path:
             indexes = path[path.index(collection) + 1:]
-            return caption + (' (level ' + str(indexes[0] + 1) + ')' if indexes and isinstance(indexes[0], int) else '') + (
+            return caption + (' (수준 ' + str(indexes[0] + 1) + ')' if indexes and isinstance(indexes[0], int) else '') + (
                 ' ' + ('x', 'y', 'z')[indexes[1]] if len(indexes) > 1 and isinstance(indexes[1], int) and indexes[1] < 3 else '')
     if isinstance(path[-1], int):
         key_index = next((index for index in range(len(path) - 1, -1, -1)
@@ -469,8 +476,10 @@ class PDEWindow(QMainWindow):
             if isinstance(value, dict):
                 for key in value:
                     child_path = (*path, key)
-                    child = QTreeWidgetItem(item, [str(key)])
-                    child.setData(0, ROLE, {'path': child_path, 'label': str(key)})
+                    caption = self.field_label(child_path) if self.document_kind == 'pde' else str(key)
+                    child = QTreeWidgetItem(item, [caption])
+                    child.setToolTip(0, str(key))
+                    child.setData(0, ROLE, {'path': child_path, 'label': caption})
                     self._nodes[child_path] = child
         # Every raw setting remains visible and saveable, including unsupported keys.
         known_settings = {path[1] for path in covered}
@@ -625,8 +634,8 @@ class PDEWindow(QMainWindow):
             checks, details = result
             self._input_checks = deepcopy(checks)
             self._show_support(draft, checks, details)
-            self.message.setText('Input check failed; draft remains saveable.' if checks else
-                                 'Declared model/expression checks passed. Native availability and physical qualification are separate.')
+            self.message.setText('입력을 확인해 주세요. 오류가 있는 초안도 저장할 수 있습니다.' if checks else
+                                 '입력 검사를 통과했습니다. 계산 환경은 실행할 때 확인합니다.')
             item = self.tree.currentItem()
             self._draw_domain((item.data(0, ROLE) or {}).get('path') if item else None)
 
@@ -672,7 +681,7 @@ class PDEWindow(QMainWindow):
         if not self.document or self.conflict:
             return False
         if self.local_dirty and operation != self.document_kind + '.update':
-            self.message.setText('Apply edited model inputs first so the exact submitted generation is visible.')
+            self.message.setText('편집한 내용을 먼저 변경 적용해 주세요.')
             return False
         document = deepcopy(self.document)
         submitted_buffer = self.edited_draft()
@@ -687,8 +696,10 @@ class PDEWindow(QMainWindow):
             self.local_dirty, self.conflict = late_edit, False
             self._show_document(receipt['document'], preserve_draft=current_buffer if late_edit else None)
             job = receipt.get('job')
-            self.message.setText('Applied earlier inputs through the PDE owner; newer edits remain unapplied. Apply them before Save or Evaluate.' if late_edit else
-                                 'Applied through the PDE owner: ' + operation)
+            self.message.setText('요청한 내용은 적용했습니다. 그동안 편집한 내용은 아직 적용 전입니다.' if late_edit else
+                                 {'update': '변경을 적용했습니다.', 'save': '저장했습니다.',
+                                  'undo': '이전 상태로 되돌렸습니다.', 'redo': '변경을 다시 적용했습니다.',
+                                  'evaluate': '계산을 요청했습니다.'}.get(operation.rsplit('.', 1)[-1], '작업을 반영했습니다.'))
             if job:
                 self._selected_job = job.get('id', job.get('job_id'))
                 self._result_key = None
@@ -1033,10 +1044,10 @@ class PDEWindow(QMainWindow):
         if not self.document or self._busy or self.conflict:
             return False
         if self.local_dirty:
-            self.message.setText('Apply the edited PDE model first; Numerical Plan freezes the visible owner generation.')
+            self.message.setText('수치 계산 계획을 만들기 전에 편집한 내용을 변경 적용해 주세요.')
             return False
         if self.document.get('diagnostics'):
-            self.message.setText('Repair and apply the PDE model before opening its Numerical Plan. Invalid drafts remain saveable.')
+            self.message.setText('입력 오류를 고친 뒤 변경 적용해 주세요. 현재 초안은 저장할 수 있습니다.')
             return False
         document = deepcopy(self.document)
         key = (document['id'], document['session_id'], document['generation'])
@@ -1055,8 +1066,8 @@ class PDEWindow(QMainWindow):
                 self.message.setText('The Plan opener returned an unconfirmed creation response; inspect it before retrying.')
                 return
             target = receipt.get('document_id') or receipt.get('document', {}).get('id', 'Numerical request')
-            self.message.setText('Opened ' + target + ' from PDE generation ' + str(document['generation']) +
-                                 '. Its backend/settings are frozen; no evaluation was submitted.')
+            self.message.setText('현재 모델로 수치 계산 계획을 열었습니다. 계산은 아직 시작하지 않았습니다.')
+            self.messages.appendPlainText('Numerical: ' + target + '\nSource generation: ' + str(document['generation']))
 
         return self._call(opened, accepted)
 
