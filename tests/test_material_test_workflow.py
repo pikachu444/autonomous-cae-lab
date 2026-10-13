@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import time
 import pytest
-from caelab.material_test import column_mapping, measured_protocol, physical_residual
+from caelab.material_test import column_mapping, measured_protocol, physical_residual, deformation_plot_axis
 from caelab.material_document import default_draft
 from caelab.numerical_document import from_material_document
 from caelab.workbench import Workbench
@@ -71,6 +71,16 @@ def test_csv_two_coefficients_holdout_exact_protocol_and_adoption_reopen(tmp_pat
                 'input_revision':run['input_revision'],'input_sha256':run['input_sha256']},
                 'response':'stress_xy' if shear else 'stress_xx','settings':settings,'weight':1.,'scale':1.,
                 'kinematics':recipe})
+        # Re-importing the same physical samples is not independent holdout evidence.
+        first=draft['experiments'][0]['source']
+        original_data=wb.document_read(first['document_id'])
+        reimport=command(original_data,'data.import');completed(wb,reimport['job'])
+        duplicate=deepcopy(draft)
+        alias=deepcopy(draft['experiments'][0]);alias.update(id='Alias',role='holdout')
+        alias['source']['job_id']=reimport['job']['id']
+        duplicate['experiments'].append(alias)
+        with pytest.raises(ValueError,match='같은 원본 표본'):
+            wb.numerical_documents.job_arguments(duplicate)
         plan=wb.document_open(kind='numerical',title='시편 피팅',draft=draft)
         bad=deepcopy(draft); bad['experiments'][0]['kinematics']['lateral_22']='1e'
         plan=command(plan,'numerical.update',{'draft':bad})['document']
@@ -116,3 +126,19 @@ def test_derived_protocol_rejects_wrong_physics_and_missing_driver():
     for patch in ({'measure':'log_strain'},{'has_calculation_gaps':True},{'axes':[dict(name='strain',unit='1',values=[0,1])]}):
         wrong=deepcopy(result);wrong['responses']['driver'].update(patch)
         with pytest.raises(ValueError): measured_protocol(settings,wrong,recipe)
+
+
+def test_measured_plot_axis_joins_original_rows_and_time_without_sorting():
+    driver=dict(kind='series',unit='1',measure='simple_shear',component='xy',frame='material_cartesian',
+        location='material_point',reduction='none',source_rows=[4,5,6,7],
+        axes=[dict(name='time',unit='s',values=[0,1,2,3])],value=[0,.2,.1,-.1])
+    result={'execution_status':'SUCCEEDED','responses':{'deformation':driver}}
+    observed={'axes':[dict(name='time',unit='s',values=[0,2,3])],'source_rows':[4,6,7],'value':[0,48,-48]}
+    recipe=dict(channel='deformation',kind='simple_shear',lateral_22=1,lateral_33=1)
+    axis=deformation_plot_axis(observed,result,recipe)
+    assert axis==dict(name='측정 전단량',unit='1',values=[0,.1,-.1])
+    for patch in ({'source_rows':[4,8,7]},{'axes':[dict(name='time',unit='s',values=[0,1.99,3])]},
+                  {'source_rows':[4,4,7]}):
+        with pytest.raises(ValueError):
+            deformation_plot_axis({**deepcopy(observed),**patch},result,recipe)
+    assert driver['value']==[0,.2,.1,-.1]  # Display selection never edits its source.

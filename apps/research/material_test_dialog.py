@@ -1,5 +1,6 @@
 """Compact editors for existing Data mappings and Material-bound experiments."""
 from copy import deepcopy
+import math
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QComboBox, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
@@ -19,13 +20,14 @@ def combo(items):
 def numeric(text):
     try:
         value = float(text)
-        return value
+        return value if math.isfinite(value) else text
     except ValueError:
         return text
 
 
 class TestColumnsDialog(QDialog):
     """Only explicit column choices compile existing affine Data mappings."""
+    __test__ = False
     def __init__(self, preview, parent=None):
         super().__init__(parent)
         self.setWindowTitle('시험 열 설정')
@@ -111,6 +113,8 @@ class ExperimentDialog(QDialog):
     """One retained import, observation, role and measured protocol in one review."""
     def __init__(self, settings, result, parent=None, *, experiment=None, selected=None):
         super().__init__(parent)
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.setWindowTitle('시험 조건')
         self.resize(1050, 700)
         self.settings, self.imported = deepcopy(settings), deepcopy(result)

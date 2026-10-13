@@ -122,7 +122,13 @@ def test_channel_add_clone_remove_and_explicit_followups(app, monkeypatch):
         def document_read(self, identifier):
             return deepcopy(document)
         def documents(self):
-            return {'documents': [{'id': 'Mmodel', 'kind': 'material', 'title': 'Explicit model'}]}
+            return {'documents': [{'id': 'Mmodel', 'kind': 'material', 'title': 'Explicit model',
+                'draft': {'backend':'material.felupe'}}]}
+        def document_result(self, identifier, job_id, *, selection=None):
+            assert (identifier,job_id)==('Tdata','Jactual')
+            return {'execution_status':'SUCCEEDED','responses': {'response': {
+                'kind':'series','unit':'MPa','component':'xx','measure':'infinitesimal_Cauchy',
+                'axes':[{'name':'time','unit':'s'}]}}}
         def data_followup(self, source, kind, **kwargs):
             return {'executed': False, 'document': {'id': 'Followup-' + kind, 'title': kind}}
     client = ComparisonClient()
@@ -132,7 +138,8 @@ def test_channel_add_clone_remove_and_explicit_followups(app, monkeypatch):
         'runs': [{'job_id': 'Jactual', 'input_generation': 0, 'input_revision': 'Iactual', 'input_sha256': 'a' * 64}]}
     try:
         monkeypatch.setattr('apps.research.desktop.launch_tool', lambda *args, **kwargs: None)
-        monkeypatch.setattr(QInputDialog, 'getItem', lambda *args, **kwargs: ('Explicit model — Mmodel', True))
+        monkeypatch.setattr(QInputDialog, 'getItem',
+            lambda parent,title,label,choices,*args,**kwargs: (choices[-1] if title=='피팅할 재료' else choices[0],True))
         window._show_document(document)
         monkeypatch.setattr(QInputDialog, 'getText', lambda *args, **kwargs: ('copied', True))
         window.edit_channels('clone')

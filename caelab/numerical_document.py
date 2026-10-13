@@ -479,7 +479,8 @@ class NumericalDocuments(MaterialDocuments):
                 experiment['settings']['parameters'] = deepcopy(settings['parameters'])
                 column=observation.get('mapping',{}).get('column')
                 if column is not None:
-                    role_rows[item['role']].update((source['document_id'],source['job_id'],str(column),
+                    source_identity=result.get('diagnostics',{}).get('source_sha256') or (source['document_id'],source['job_id'])
+                    role_rows[item['role']].update((source_identity,str(column),
                         observation.get('component'),row) for row in observation.get('source_rows',[]))
                 experiments.append(experiment)
             if role_rows['fit'] & role_rows['holdout']:

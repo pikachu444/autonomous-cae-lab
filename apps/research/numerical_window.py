@@ -13,7 +13,7 @@ from PySide6.QtCore import QThreadPool, QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QAbstractItemView, QComboBox, QDialog,
     QDialogButtonBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow,
-    QMessageBox, QPushButton, QPlainTextEdit, QSplitter, QTableWidget,
+    QMessageBox, QPushButton, QPlainTextEdit, QSizePolicy, QSplitter, QTableWidget,
     QTableWidgetItem, QTabWidget, QToolBar, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -28,7 +28,7 @@ from .runner_window import candidate_state, actual_candidate
 def number_or_raw(text):
     try:
         value = json.loads(text)
-        return value if not isinstance(value, (dict, list)) else text
+        return value if not isinstance(value, (dict, list)) and not (type(value) is float and not math.isfinite(value)) else text
     except ValueError:
         return text
 
@@ -195,6 +195,8 @@ class NumericalWindow(QMainWindow):
         self._analysis_job = None
         self._material = None
         self._experiments = []
+        self._trial_sources, self._trial_source_errors = {}, {}
+        self._trial_source_queue = {}
         self._operation_options_by_mode = {}
         self._shown_operation_mode = 'fit'
         self._build_ui()
@@ -207,6 +209,8 @@ class NumericalWindow(QMainWindow):
             self.open_document(document_id=document_id, draft=from_material_document(material_document) if material_document and not document_id else None)
 
     def _build_ui(self):
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.resize(1440, 900)
         self.setMinimumSize(960, 700)
         toolbar=QToolBar('재료 피팅'); toolbar.setMovable(False); self.addToolBar(toolbar)
@@ -227,6 +231,7 @@ class NumericalWindow(QMainWindow):
         material_action=QAction('재료 열기 / 저장…',self)
         material_action.triggered.connect(self.open_material); files.addAction(material_action)
         edits.addActions([self.undo_action,self.redo_action])
+        check=QAction('입력 확인',self); check.triggered.connect(self.locate_input_error); edits.addAction(check)
         toolbar.addActions([self.open_action,self.save_action,self.undo_action,self.redo_action])
         self.apply_button=QPushButton('계획 적용'); self.apply_button.clicked.connect(self.apply_inputs)
         self.run_button=QPushButton('피팅 실행'); self.run_button.setProperty('appearanceRole','primary')
@@ -282,17 +287,23 @@ class NumericalWindow(QMainWindow):
         for button in (self.add_experiment,self.edit_protocol,self.remove_experiment): buttons.addWidget(button)
         el.addLayout(buttons)
         self.experiments=QTableWidget(0,8); self.experiments.setObjectName('numericalExperiments')
-        self.experiments.setHorizontalHeaderLabels(['시험','용도','가져오기','관측','모델 응답','가중치','오차 기준','조건'])
+        self.experiments.setHorizontalHeaderLabels(['식별자','용도','시험','관측','모델 응답','가중치','오차 기준','조건'])
         self.experiments.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.experiments.itemChanged.connect(self._edited)
-        self.experiments.setColumnHidden(0,True); self.experiments.setColumnHidden(2,True); self.experiments.setColumnHidden(4,True)
+        self.experiments.setColumnHidden(0,True); self.experiments.setColumnHidden(4,True)
         self.experiments.setColumnHidden(7,True); self.experiments.horizontalHeader().setDefaultSectionSize(78)
+        self.experiments.horizontalHeader().moveSection(2,0)
+        for column,width in ((1,55),(2,120),(3,85),(5,60),(6,75)):
+            self.experiments.setColumnWidth(column,width)
         el.addWidget(self.experiments,1)
         self.input_splitter.addWidget(self.experiments_panel)
         self.operation_options=_OperationOptions(self); self.input_splitter.addWidget(self.operation_options)
         self.input_splitter.setSizes([180,300,0])
+        self.editor.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Preferred)
+        self.editor.setMinimumWidth(320)
+        self.editor.setMaximumWidth(480)
         self.study_splitter.addWidget(self.editor)
-        self.results_panel=QWidget(); rl=QVBoxLayout(self.results_panel); rl.setContentsMargins(0,0,0,0)
+        self.results_panel=QWidget(); self.results_panel.setMinimumWidth(500); rl=QVBoxLayout(self.results_panel); rl.setContentsMargins(0,0,0,0)
         self.result_splitter=QSplitter(Qt.Orientation.Vertical); rl.addWidget(self.result_splitter,1)
         run_panel=QWidget(); run_layout=QVBoxLayout(run_panel); run_layout.setContentsMargins(0,0,0,0)
         self.runs=QTableWidget(0,4)
@@ -317,11 +328,18 @@ class NumericalWindow(QMainWindow):
         self.candidates.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.candidates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.figure=Figure(constrained_layout=True); self.canvas=FigureCanvasQTAgg(self.figure)
-        plot=QWidget(); pl=QVBoxLayout(plot); pl.setContentsMargins(0,0,0,0)
+        self.canvas.setMinimumSize(430,250)
         self.curve_selector=QComboBox(); self.curve_selector.currentIndexChanged.connect(self._curve_changed)
         self.curve_summary=QLabel(); self.curve_summary.setWordWrap(True)
-        pl.addWidget(self.curve_selector); pl.addWidget(self.canvas,1); pl.addWidget(self.curve_summary)
-        self.tabs.addTab(plot,'관측과 최종 예측'); self.tabs.addTab(self.candidates,'평가한 후보')
+        self.plot_axis=QComboBox(); self.plot_axis.addItem('시간','time')
+        self.plot_axis.addItem('측정 변형','measured'); self.plot_axis.currentIndexChanged.connect(self._curve_changed)
+        curve_controls=QWidget(); controls=QHBoxLayout(curve_controls); controls.setContentsMargins(0,0,0,0)
+        self.curve_selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.curve_selector.setMinimumContentsLength(12)
+        self.curve_selector.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Fixed)
+        controls.addWidget(self.curve_selector,1); controls.addWidget(self.plot_axis)
+        rl.insertWidget(0,curve_controls); rl.addWidget(self.curve_summary)
+        self.tabs.addTab(self.canvas,'관측과 최종 예측'); self.tabs.addTab(self.candidates,'평가한 후보')
         self.details=QPlainTextEdit(); self.details.setReadOnly(True); self.tabs.addTab(self.details,'진단 상세')
         self.result_splitter.addWidget(self.tabs)
         self.result_splitter.setStretchFactor(0,0); self.result_splitter.setStretchFactor(1,1)
@@ -375,6 +393,8 @@ class NumericalWindow(QMainWindow):
             finally:
                 self._callbacks -= 1
                 self._update_actions()
+                if getattr(self,'_trial_source_queue',None):
+                    QTimer.singleShot(0,self._drain_trial_sources)
         worker.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
         return True
@@ -539,7 +559,99 @@ class NumericalWindow(QMainWindow):
             source = experiment['source']
             values = [experiment['id'], experiment['role'], source['job_id'], source['response'], experiment['response'], experiment['weight'], experiment['scale'], str(len(experiment['settings'].get('time', []))) + ' states']
             for col, value in enumerate(values):
-                self._set_cell(self.experiments, row, col, value, editable=col in (0, 1, 4, 5, 6))
+                self._set_cell(self.experiments, row, col, value, editable=col in (1, 4, 5, 6))
+        self._refresh_experiment_labels()
+        self._queue_trial_sources(self._experiments)
+
+
+    @staticmethod
+    def _trial_source_key(trial):
+        source=trial.get('source',{})
+        keys=('document_id','job_id','input_revision','input_sha256')
+        return tuple(source.get(key) for key in keys)
+
+    def _trial_label(self, trial, observed=None, index=1):
+        cached=self._trial_sources.get(self._trial_source_key(trial),{})
+        obs=observed or cached.get('result',{}).get('responses',{}).get(trial.get('source',{}).get('response'),{})
+        filename=str(obs.get('source_selector',{}).get('file',''))
+        title=cached.get('filename') or cached.get('title') or (filename if filename and not filename.startswith('source.') else '') or ('시험 '+str(index))
+        component=obs.get('component') or str(trial.get('response','')).removeprefix('stress_')
+        return str(title)+' / '+str(component or trial.get('source',{}).get('response',''))
+
+    def _refresh_experiment_labels(self):
+        # Only readonly display cells change; never repopulate edited weights,
+        # roles or coefficients when a late title/driver read finishes.
+        old=self._populating; self._populating=True
+        try:
+            for row,trial in enumerate(self._experiments):
+                if row>=self.experiments.rowCount(): break
+                cached=self._trial_sources.get(self._trial_source_key(trial),{})
+                obs=cached.get('result',{}).get('responses',{}).get(trial.get('source',{}).get('response'),{})
+                title=self._trial_label(trial,obs,row+1)
+                item=self.experiments.item(row,2); item.setText(title); item.setToolTip(title)
+                component=obs.get('component') or str(trial.get('response','')).removeprefix('stress_')
+                unit=obs.get('unit',trial.get('settings',{}).get('stress_unit',''))
+                self.experiments.item(row,3).setText(str(component)+' ['+str(unit)+']')
+                self.experiments.item(row,3).setToolTip(str(trial.get('source',{}).get('response','')))
+        finally:
+            self._populating=old
+
+    def _queue_trial_sources(self, trials):
+        if self.client is None or self._allow_close or not self.document: return
+        owner=(self.document['id'],self.document['session_id'])
+        for trial in trials:
+            key=self._trial_source_key(trial)
+            if all(key) and key not in self._trial_sources and key not in self._trial_source_errors:
+                self._trial_source_queue[key]=owner
+        if self._trial_source_queue: QTimer.singleShot(0,self._drain_trial_sources)
+
+    def _drain_trial_sources(self):
+        if self._busy or self._callbacks or self._pending_adoption or self._allow_close or not self.document: return
+        owner=(self.document['id'],self.document['session_id'])
+        active=list(self._experiments)
+        run=next((r for r in self.document.get('runs',[]) if r['job_id']==self.selected_job()),{})
+        active+=run.get('draft',{}).get('experiments',[])
+        keys={self._trial_source_key(trial) for trial in active}
+        for key,queued_owner in list(self._trial_source_queue.items()):
+            if queued_owner!=owner or key not in keys or key in self._trial_sources or key in self._trial_source_errors:
+                self._trial_source_queue.pop(key,None); continue
+            self._trial_source_queue.pop(key,None)
+            def read(key=key):
+                identifier,job,revision,digest=key
+                doc=self.client.document_read(identifier)
+                source_run=next((r for r in doc.get('runs',[]) if r['job_id']==job),None)
+                if (doc.get('kind')!='data' or source_run is None
+                        or source_run.get('input_revision')!=revision or source_run.get('input_sha256')!=digest):
+                    raise ValueError('선택 시험의 저장된 Data 입력이 다릅니다.')
+                result=self.client.document_result(identifier,job)
+                if result.get('execution_status')!='SUCCEEDED':
+                    raise ValueError('선택 시험의 가져오기가 완료되지 않았습니다.')
+                filename=''
+                data_id=source_run.get('draft',{}).get('data_id')
+                # Registration names, unlike private storage basenames, retain
+                # the user's filename. Preview is bounded and never recomputes.
+                try:
+                    try:
+                        preview=self.client.input_preview(data_id)
+                    except Exception:
+                        if doc.get('draft',{}).get('data_id')!=data_id: raise
+                        preview=self.client.document_source_preview(identifier)
+                    if preview.get('sha256')==result.get('diagnostics',{}).get('source_sha256') and preview.get('sha256'):
+                        filename=str(preview.get('name',''))
+                except Exception:
+                    pass  # A title failure must not hide an intact retained curve.
+                return {'title':doc.get('title',''), 'filename':filename, 'result':result}
+            def received(payload,key=key):
+                self._trial_sources[key]=payload
+                self._refresh_experiment_labels()
+                self._draw_result()
+            def failed(error,key=key):
+                self._trial_source_errors[key]=str(error)
+                self._curve_changed()
+            self._call(read,received,background=True,rejected=failed,
+                relevant=lambda: not self._allow_close and self.document is not None
+                and owner==(self.document['id'],self.document['session_id']))
+            return
 
     def _edited(self, *_):
         if not self._populating:
@@ -583,8 +695,22 @@ class NumericalWindow(QMainWindow):
 
     def _show_operation_options(self, mode):
         active = mode in ('optimize', 'uq', 'epsilon')
+        self.editor.setMaximumWidth(480 if mode=='fit' else 16777215)
+        self.editor.setSizePolicy(QSizePolicy.Policy.Ignored if mode=='fit' else QSizePolicy.Policy.Preferred,
+                                  QSizePolicy.Policy.Preferred)
+        orientation=Qt.Orientation.Horizontal if mode=='fit' else Qt.Orientation.Vertical
+        if self.study_splitter.orientation()!=orientation:
+            self.study_splitter.setOrientation(orientation)
+            self.study_splitter.setSizes([430,940] if mode=='fit' else [340,540])
+        self.curve_selector.setVisible(mode=='fit')
+        self.plot_axis.setVisible(mode=='fit')
+        self.curve_summary.setVisible(mode=='fit')
         self.experiments_panel.setVisible(mode == 'fit')
         self.operation_options.setVisible(active)
+        if active and self.input_splitter.sizes()[-1]==0:
+            self.input_splitter.setSizes([120,0,240])
+        elif mode=='fit' and self.input_splitter.sizes()[1]==0:
+            self.input_splitter.setSizes([180,300,0])
         self.method.setEnabled(mode == 'fit')
         self.penalty.setEnabled(mode == 'fit')
         self.count.setEnabled(mode in ('doe', 'uq'))
@@ -764,6 +890,8 @@ class NumericalWindow(QMainWindow):
             self.local_dirty = False
             self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
             self.message.setText('Applied through the Numerical document owner: ' + operation)
+            if type(self) is NumericalWindow and self.document.get('diagnostics'):
+                self.locate_input_error()
             if after:
                 after()
             elif receipt.get('job'):
@@ -901,6 +1029,8 @@ class NumericalWindow(QMainWindow):
             return self.refresh_analysis()
         if self._busy or not self.document:
             return
+        if getattr(self,'_trial_source_queue',None):
+            return self._drain_trial_sources()
         identifier = self.document['id']
         def received(remote):
             changed = (remote['session_id'], remote['generation']) != (self.document['session_id'], self.document['generation'])
@@ -919,6 +1049,7 @@ class NumericalWindow(QMainWindow):
         if self._busy or self._callbacks or self._pending_adoption or not job or job in self._result_cache or monotonic() < self._result_after.get(job, 0):
             return
         document_id = self.document['id']
+        session_id = self.document['session_id']
         run = next(item for item in self.document['runs'] if item['job_id'] == job)
         self._result_after[job] = monotonic() + max(1, self.timer.interval()/1000)
         def read():
@@ -939,14 +1070,18 @@ class NumericalWindow(QMainWindow):
                 self._result_errors[job] = error
             else:
                 self._result_errors.pop(job, None)
-            self._populate_runs(job)
+            current_job=self.selected_job()
+            self._populate_runs(current_job)
             self._draw_result()
-        self._call(read, received, relevant=lambda: self.document['id'] == document_id, background=True)
+        self._call(read, received, relevant=lambda: not self._allow_close and self.document is not None
+            and (self.document['id'],self.document['session_id'])==(document_id,session_id), background=True)
 
     def retry_result(self):
         job = self.selected_job()
         self._result_after.pop(job, None)
         self._result_cache.pop(job, None)
+        self._trial_source_errors.clear()
+        self._draw_result()
         self.refresh_result()
 
     def _draw_result(self):
@@ -967,6 +1102,7 @@ class NumericalWindow(QMainWindow):
             if candidate['candidate_id'] == selected:
                 self.candidates.selectRow(row)
         self.figure.clear()
+        if hasattr(self,'curve_summary'): self.curve_summary.clear()
         curves = result.get('curves', [])
         if hasattr(self,'curve_selector'):
             previous=self.curve_selector.currentData()
@@ -974,26 +1110,30 @@ class NumericalWindow(QMainWindow):
             for curve in curves:
                 run=next((r for r in self.document.get('runs',[]) if r['job_id']==job),{})
                 trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==curve.get('experiment_id')), {})
-                label=('검증' if curve.get('role')=='holdout' else '피팅')+' / '+str(trial.get('source',{}).get('response') or '시험 '+str(self.curve_selector.count()+1))
+                label=('검증' if curve.get('role')=='holdout' else '피팅')+' / '+self._trial_label(trial,curve.get('observations',{}),self.curve_selector.count()+1)
                 self.curve_selector.addItem(label,curve.get('experiment_id'))
             selected_index=self.curve_selector.findData(previous)
             self.curve_selector.setCurrentIndex(max(0,selected_index))
             self.curve_selector.blockSignals(False)
         if curves:
+            run=next((r for r in self.document.get('runs',[]) if r['job_id']==job),{})
+            self._queue_trial_sources(run.get('draft',{}).get('experiments',[]))
             self._draw_fit_curve(result)
         else:
+            if hasattr(self,'plot_axis'): self.plot_axis.setEnabled(False)
             self._draw_study_summary(result, job)
         self.canvas.draw_idle()
         self.details.setPlainText(json.dumps({'document': self.document, 'view_error': self._view_error, 'selected_status': self._statuses.get(job), 'read_error': self._result_errors.get(job), 'selected_result': result}, indent=2, ensure_ascii=False))
 
     def _curve_changed(self, *_):
         if self._populating: return
+        self.curve_selector.setToolTip(self.curve_selector.currentText())
         result=self._result_cache.get(self.selected_job(),{})
         if result.get('curves'):
             self.figure.clear(); self._draw_fit_curve(result); self.canvas.draw_idle()
 
     def _draw_fit_curve(self,result):
-        from caelab.material_test import physical_residual
+        from caelab.material_test import physical_residual, deformation_plot_axis
         curves=result.get('curves',[])
         index=max(0,self.curve_selector.currentIndex())
         if index>=len(curves):return
@@ -1001,6 +1141,25 @@ class NumericalWindow(QMainWindow):
         obs=curve.get('observations',{})
         axes=obs.get('axes',[{}]); axis=axes[0] if axes else {}
         x,y=axis.get('values',[]),obs.get('value',[])
+        run=next((r for r in self.document.get('runs',[]) if r['job_id']==self.selected_job()),{})
+        trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==curve.get('experiment_id')), {})
+        recipe=trial.get('kinematics')
+        self.plot_axis.setEnabled(bool(recipe))
+        if not recipe:
+            self.plot_axis.blockSignals(True); self.plot_axis.setCurrentIndex(0); self.plot_axis.blockSignals(False)
+        self.plot_axis.setToolTip('같은 원본 행과 시간의 측정값' if recipe else '이 시험은 측정 변형 채널을 연결하지 않았습니다.')
+        if recipe and self.plot_axis.currentData()=='measured':
+            key=self._trial_source_key(trial)
+            retained=self._trial_sources.get(key)
+            try:
+                if retained is None:
+                    raise ValueError(self._trial_source_errors.get(key,'저장된 변형 이력을 읽는 중입니다.'))
+                axis=deformation_plot_axis(obs,retained['result'],recipe)
+                x=axis['values']
+            except (ValueError,KeyError,TypeError) as error:
+                self.figure.add_subplot(111).set_title('측정 변형축을 표시할 수 없습니다.',fontsize=11)
+                self.curve_summary.setText(str(error)+' 시간축은 계속 사용할 수 있습니다.')
+                return
         prediction=curve.get('prediction',[])
         top,bottom=self.figure.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
         # Preserve explicit gaps; never join separated observed intervals.
@@ -1011,7 +1170,8 @@ class NumericalWindow(QMainWindow):
                 top.plot(x[first:last],y[first:last],'o',markersize=3,label='관측' if first==0 else None)
             if isinstance(prediction,list) and len(prediction)==len(x):
                 top.plot(x[first:last],prediction[first:last],label='최종 예측' if first==0 else None)
-        rx,residual=physical_residual(curve)
+        _,residual=physical_residual(curve)
+        rx=x if len(residual)==len(x) else []
         for segment in segments:
             first,last=segment.get('rows',[0,len(rx)])
             bottom.plot(rx[first:last],residual[first:last],'o-',markersize=2)
@@ -1022,11 +1182,35 @@ class NumericalWindow(QMainWindow):
         bottom.set_xlabel(str(axis.get('name','time'))+' ['+str(axis.get('unit','?'))+']')
         if top.lines:top.legend(fontsize=9)
         status=curve.get('execution_status','UNKNOWN')
-        top.set_title(('검증' if curve.get('role')=='holdout' else '피팅')+' / '+status,fontsize=11)
+        top.set_title(('검증' if curve.get('role')=='holdout' else '피팅')+' / '+str(obs.get('component',''))+' / '+status,fontsize=11)
         self.curve_summary.setText('최종 계수: '+', '.join(str(k)+'='+str(v) for k,v in result.get('parameters',{}).items())+
             '    RMSE '+str(curve.get('rmse','없음'))+' '+unit+
             ('    '+str(curve.get('failure_reason','')) if status!='SUCCEEDED' else ''))
         for ax in (top,bottom):ax.grid(True,alpha=.2)
+
+    def locate_input_error(self):
+        if not self.document or self._view_error:return
+        from caelab.numerical_document import diagnostics
+        draft=self.edited_draft()
+        errors=diagnostics(draft)
+        self.message.setText(errors[0]['message'] if errors else '입력 형식이 유효합니다. 실행 시 정확한 관측과 재료를 다시 확인합니다.')
+        for row,variable in enumerate(draft.get('variables',[])):
+            columns=[]
+            for key,col in (('value',2),('lower',3),('upper',4)):
+                value=variable.get(key)
+                if (key=='value' or variable.get('free') is True) and (type(value) not in (int,float) or not math.isfinite(value)):
+                    columns.append(col)
+            if not columns and variable.get('free') is True:
+                if not variable['lower']<variable['upper'] or not variable['lower']<=variable['value']<=variable['upper']:
+                    columns=[3]
+            if columns:
+                self.variables.setCurrentCell(row,columns[0]);self.variables.scrollToItem(self.variables.currentItem())
+                self.variables.setFocus();return
+        if draft.get('mode')=='fit':
+            if not draft.get('experiments'):
+                self.add_experiment.setFocus();return
+            if errors:
+                self.experiments.selectRow(0);self.edit_protocol.setFocus()
 
     def run_plan(self):
         if self.local_dirty:
@@ -1299,6 +1483,7 @@ class NumericalWindow(QMainWindow):
     def closeEvent(self, event):
         if self._allow_close:
             self.timer.stop()
+            self._trial_source_queue.clear()
             event.accept()
         else:
             event.ignore()

@@ -4,11 +4,12 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from copy import deepcopy
 import time
 import threading
+import warnings
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QFileDialog, QInputDialog
 from apps.research.data_window import DataWindow
 from apps.research.numerical_window import NumericalWindow
 from apps.research.material_test_dialog import ExperimentDialog, TestColumnsDialog
@@ -58,9 +59,24 @@ def test_fit_layout_physical_residual_selection_and_precise_draft(app):
     window.variables.item(0,3).setText('1e')
     for width,height in ((1100,780),(1440,900)):
         window.resize(width,height);window.show();app.processEvents()
-        assert window.canvas.width()>400 and window.canvas.height()>200
+        assert window.width()==width and window.height()==height
+        assert window.editor.width()<=480 and window.canvas.width()>400 and window.canvas.height()>200
+        assert window.canvas.width()>window.editor.width()
+        with warnings.catch_warnings(record=True) as observed_warnings:
+            warnings.simplefilter('always')
+            window.canvas.draw()
+        from apps.research.appearance import configure_plot_fonts
+        family=configure_plot_fonts()
+        if os.name=='nt':
+            assert family, 'Windows chart requires an existing installed Korean font'
+        if family:
+            assert not [warning for warning in observed_warnings if 'Glyph' in str(warning.message)]
         assert window.edited_draft()['variables'][0]['lower']=='1e'
         assert window.study_splitter.orientation()==Qt.Orientation.Horizontal
+    window.variables.item(0,3).setText('NaN')
+    import json
+    json.dumps(window.edited_draft(),allow_nan=False)
+    assert window.edited_draft()['variables'][0]['lower']=='NaN'
     window._allow_close=True;window.close()
 
 
@@ -86,6 +102,11 @@ def test_curve_interval_uses_original_rows_and_separate_masks(app):
     assert selection['exclude_rows']==[7,8]
     assert selection['quality_rows']==[8] and selection['display_hidden_rows']==[9]
     assert doc['draft']==draft
+    window.row_fields['exclude_rows'].setText('1e')
+    window._select_curve_interval(.5,2.5)
+    before=deepcopy(window.edited_draft())
+    window.select_calculation_rows('exclude')
+    assert window.edited_draft()==before and '미완성' in window.message.text()
     window._allow_close=True;window.close()
 
 
@@ -106,6 +127,10 @@ def test_protocol_cancel_and_explicit_driver_use(app):
     assert dialog.value['role']=='holdout'
     assert dialog.value['settings']['deformation_gradient'][1][0][0]==1.01
     assert settings==before
+    dialog.weight.setText('nan');dialog.scale.setText('inf');dialog._accept()
+    import json
+    json.dumps(dialog.value,allow_nan=False)
+    assert dialog.value['weight']=='nan' and dialog.value['scale']=='inf'
 
 
 def test_update_receipt_preserves_late_edits(app):
@@ -144,4 +169,142 @@ def test_saved_cad_declarations_are_display_fallbacks_not_draft_mutations(app):
     assert window.response_sheet.item(0,5).text()=='kN'
     assert window.variable_sheet.item(0,0).text()=='선택한 길이'
     assert window.edited_draft()==before
+    window._allow_close=True;window.close()
+
+
+def test_new_upload_clears_old_columns_when_preview_fails(app,tmp_path,monkeypatch):
+    from caelab.data_document import default_draft as data_draft
+    class Client:
+        preview_calls=0
+        def upload(self,name,payload):
+            assert name=='new.csv'
+            return {'id':'Dnew','name':name}
+        def input_preview(self,identifier):
+            assert identifier=='Dnew'
+            self.preview_calls+=1
+            raise ValueError('new source preview unavailable')
+    source=tmp_path/'new.csv';source.write_text('t,x\n0,1\n',encoding='utf-8')
+    client=Client();window=DataWindow(client,auto_open=False,poll_interval=0)
+    draft=data_draft();draft['data_id']='Dold'
+    doc=dict(id='Ttest',session_id='Sowner',generation=0,input_revision='Id',title='시험',
+        draft=draft,runs=[],diagnostics=[],dirty=False)
+    window._show_document(doc)
+    window._preview={'table_preview':{'headers':['OLD'],'rows':[['7']]}}
+    window._preview_key=('Ttest','Dold',None);window.preview_table.setRowCount(1)
+    monkeypatch.setattr(QFileDialog,'getOpenFileName',lambda *args: (str(source),''))
+    window.choose_local_csv()
+    wait(app,lambda:client.preview_calls==1 and not window._busy)
+    assert window._source_id=='Dnew' and window._preview is None and window.preview_table.rowCount()==0
+    before=deepcopy(window.edited_draft())
+    window.configure_test_columns()
+    assert window.edited_draft()==before and '현재 CSV' in window.message.text()
+    window._allow_close=True;window.close()
+
+
+def test_fit_names_measured_axis_and_old_summary_never_cross_runs(app):
+    settings=default_draft()['settings']
+    trial=lambda i,component,kind: dict(id='Test'+str(i),role='fit',source={
+        'document_id':'T'+str(i),'job_id':'J'+str(i),'input_revision':'I'+str(i),'input_sha256':str(i)*64,'response':'stress'},
+        response='stress_'+component,settings=deepcopy(settings),weight=1.,scale=1.,
+        kinematics=dict(channel='deformation',kind=kind,lateral_22=1,lateral_33=1))
+    doc=document()
+    frozen=[trial(1,'xx','engineering_strain'),trial(2,'xy','simple_shear')]
+    doc['draft']['experiments']=deepcopy(frozen)
+    run=dict(job_id='Jfit',input_generation=0,input_revision='In',draft=deepcopy(doc['draft']))
+    doc['runs']=[run,dict(job_id='Jfailed',input_generation=0,input_revision='In',draft=deepcopy(doc['draft']))]
+    window=NumericalWindow(None,auto_open=False,poll_interval=0);window._show_document(doc)
+    curves=[]
+    for item,filename,drive in zip(frozen,['axial.csv','shear.csv'],[[0,.002,.001],[0,.01,-.005]]):
+        component=item['response'].removeprefix('stress_')
+        obs=dict(kind='series',unit='MPa',component=component,value=[0,1,2],source_rows=[4,7,8],
+            axes=[dict(name='time',unit='s',values=[0,1,2])],source_selector={'file':'source.csv'})
+        driver=dict(kind='series',unit='1',measure=item['kinematics']['kind'],component=component,
+            frame='material_cartesian',location='material_point',reduction='none',source_rows=[4,7,8],
+            axes=[dict(name='time',unit='s',values=[0,1,2])],value=drive)
+        window._trial_sources[window._trial_source_key(item)]={'filename':filename,'title':filename,
+            'result':dict(execution_status='SUCCEEDED',responses={'stress':obs,'deformation':driver})}
+        curves.append(dict(experiment_id=item['id'],role='fit',execution_status='SUCCEEDED',
+            observations=obs,prediction=[0,1.2,1.8],rmse=.2))
+    window._refresh_experiment_labels()
+    assert window.experiments.item(0,2).text()=='axial.csv / xx'
+    assert window.experiments.item(1,2).text()=='shear.csv / xy'
+    window._result_cache['Jfit']=dict(kind='fit',parameters={'E':1200,'nu':.25},curves=curves)
+    window._result_cache['Jfailed']=dict(kind='fit',execution_status='FAILED',error='retained failure')
+    window._populate_runs('Jfit');window._draw_result()
+    assert 'axial.csv / xx' in window.curve_selector.itemText(0)
+    assert 'shear.csv / xy' in window.curve_selector.itemText(1)
+    # Current unsent protocol is deliberately different; old result uses frozen run.
+    window._experiments[1]['kinematics']['channel']='not-the-retained-driver'
+    window.curve_selector.setCurrentIndex(1);window.plot_axis.setCurrentIndex(1)
+    top,bottom=window.figure.axes
+    assert list(top.lines[0].get_xdata())==[0,.01,-.005]
+    assert list(top.lines[1].get_xdata())==[0,.01,-.005]
+    assert list(bottom.lines[0].get_xdata())==[0,.01,-.005]
+    assert list(bottom.lines[0].get_ydata())==pytest.approx([0,.2,-.2])
+    assert '전단량' in bottom.get_xlabel() and '1200' in window.curve_summary.text()
+    # Selecting an unread result / failure clears both curve and coefficient summary.
+    window._populate_runs('Jfailed');window._draw_result()
+    assert window.curve_summary.text()=='' and window.curve_selector.count()==0
+    window._result_cache.pop('Jfailed');window._draw_result()
+    assert window.curve_summary.text()==''
+    window._allow_close=True;window.close()
+
+
+def test_deformation_display_does_not_bind_deformation_as_stress(app,monkeypatch):
+    from caelab.data_document import default_draft as data_draft
+    import apps.research.desktop
+    stress=dict(kind='series',measure='infinitesimal_Cauchy',component='xx',unit='MPa',
+        axes=[dict(name='time',unit='s')])
+    class Client:
+        calls=[]
+        def document_result(self,identifier,job,*,selection=None):
+            return {'execution_status':'SUCCEEDED','responses':{
+                'deformation':{**stress,'measure':'engineering_strain','unit':'1'},'stress':stress}}
+        def documents(self):
+            return {'documents':[dict(id='Mtest',kind='material',title='저장된 재료',draft=default_draft())]}
+        def data_followup(self,source,kind,**kw):
+            self.calls.append(deepcopy(source))
+            assert source['response']=='stress' and kw['material_document_id']=='Mtest'
+            return {'executed':False,'document':{'id':'Ncreated','title':'피팅'}}
+    client=Client();window=DataWindow(client,auto_open=False,poll_interval=0)
+    monkeypatch.setattr(window,'refresh_result',lambda:None)
+    draft=data_draft();draft['data_id']='Dtest'
+    doc=dict(id='Ttest',session_id='Sowner',generation=0,input_revision='Id',title='시험',
+        draft=draft,runs=[dict(job_id='Jtest',input_generation=0,input_revision='Id',input_sha256='a'*64)],diagnostics=[],dirty=False)
+    window._show_document(doc);window.result_channel.blockSignals(True)
+    window.result_channel.addItem('deformation');window.result_channel.blockSignals(False)
+    window._selected_job='Jtest';window._result_channel='deformation'
+    # Cancel at observation selection must not create a Material or Plan.
+    monkeypatch.setattr(QInputDialog,'getItem',lambda *a,**kw: ('',False))
+    window.request_followup('numerical');wait(app,lambda:not window._busy)
+    assert client.calls==[] and window.document['draft']==draft
+    def choose(parent,title,label,choices,*args,**kwargs):
+        return (choices[-1],True)
+    monkeypatch.setattr(QInputDialog,'getItem',choose)
+    monkeypatch.setattr(apps.research.desktop,'launch_tool',lambda *a,**kw: None)
+    # Command-path double models the explicit chooser/owner calls, not polling.
+    receipts=[];window.numerical_requested.connect(receipts.append)
+    window.request_followup('numerical')
+    wait(app,lambda:bool(receipts) and not window._busy)
+    assert receipts[0]['source']['response']=='stress' and window.document['draft']==draft
+    assert window.result_channel.currentText()=='deformation'
+    window._allow_close=True;window.close()
+
+
+def test_delayed_run_read_keeps_new_selection_and_summary(app):
+    release=threading.Event()
+    doc=document()
+    doc['runs']=[dict(job_id=job,input_generation=0,input_revision='In',draft=deepcopy(doc['draft']))
+                 for job in ('Jold','Jnew')]
+    class Client:
+        def status(self,job):
+            release.wait(2);return {'state':'SUCCEEDED','result_refs':[1]}
+        def document_result(self,identifier,job):
+            return {'kind':'fit','parameters':{'E':999},'curves':[]}
+    window=NumericalWindow(Client(),auto_open=False,poll_interval=0);window._show_document(doc)
+    window._populate_runs('Jold');window.refresh_result()
+    window._populate_runs('Jnew');window._draw_result();release.set()
+    wait(app,lambda:not window._busy)
+    assert window.selected_job()=='Jnew' and window.curve_summary.text()==''
+    assert 'Jold' in window._result_cache
     window._allow_close=True;window.close()

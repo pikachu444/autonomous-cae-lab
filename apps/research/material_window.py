@@ -137,6 +137,8 @@ class MaterialWindow(QMainWindow):
             self.open_document(document_id=document_id, title=title)
 
     def _build_ui(self):
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.setWindowTitle("Material Research")
         self.resize(1440, 900)
         self.setMinimumSize(840, 600)

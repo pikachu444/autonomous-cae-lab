@@ -126,6 +126,8 @@ class DataWindow(QMainWindow):
             self.open_document(document_id=document_id)
 
     def _build_ui(self):
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.resize(1440, 940)
         self.setMinimumSize(960, 690)
         files, edit = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
@@ -329,7 +331,7 @@ class DataWindow(QMainWindow):
         followup = QHBoxLayout()
         self.compare_button = QPushButton('예측 결과와 비교…')
         self.compare_button.clicked.connect(self.choose_prediction)
-        self.plan_button = QPushButton('수치 연구…')
+        self.plan_button = QPushButton('재료 피팅…')
         self.plan_button.clicked.connect(lambda: self.request_followup('numerical'))
         self.expert_button = QPushButton('전문가에게 질문…')
         self.expert_button.clicked.connect(lambda: self.request_followup('expert'))
@@ -748,6 +750,8 @@ class DataWindow(QMainWindow):
         def registered(receipt):
             self._source_id=receipt['data_id'] if 'data_id' in receipt else receipt['id']
             self._preview_key=None; self._preview_retry=0
+            self._preview=None; self.preview_table.setRowCount(0)
+            self.settings_button.setChecked(True); self.editor.setCurrentIndex(0)
             self._edited()
             self.source_label.setText('원본: '+Path(path).name)
             QTimer.singleShot(0,self.refresh_preview)
@@ -756,11 +760,14 @@ class DataWindow(QMainWindow):
     def configure_test_columns(self):
         if not self.document or self._busy or self.conflict: return
         preview=(self._preview or {}).get('table_preview')
-        if not preview:
-            self.message.setText('먼저 CSV를 열고 원본 미리보기를 읽으세요.'); return
+        token=(self.document['id'],self.document['session_id'],self._source_id)
+        if not preview or not self._preview_key or self._preview_key[:2]!=(token[0],token[2]):
+            self.message.setText('현재 CSV의 원본 미리보기를 먼저 읽으세요.'); return
         from .material_test_dialog import TestColumnsDialog
         dialog=TestColumnsDialog(preview,self)
         if dialog.exec()!=QDialog.DialogCode.Accepted: return
+        if token!=(self.document['id'],self.document['session_id'],self._source_id):
+            self.message.setText('원본이 바뀌었습니다. 현재 CSV의 열 설정을 다시 여세요.'); return
         draft=self.edited_draft()
         # This explicit command replaces the mapping, never the uploaded bytes.
         if len(draft['mapping']['columns'])>1 and QMessageBox.question(self,'시험 열 설정',
@@ -1049,20 +1056,50 @@ class DataWindow(QMainWindow):
         if kind=='expert':
             create()
         else:
-            def choose(payload):
-                documents=[row for row in payload['documents'] if row.get('kind')=='material' and row.get('draft',{}).get('backend')=='material.felupe']
-                names=['새 선형 탄성 재료…','새 Neo-Hooke 재료…']+[str(index+1)+'. '+row['title'] for index,row in enumerate(documents)]
-                selected,accepted=QInputDialog.getItem(self,'피팅할 재료','재료 법칙 또는 기존 재료',names,editable=False)
-                if not accepted or token != self._source_token(): return
-                index=names.index(selected)
-                if index>=2: create(documents[index-2]['id']); return
-                from caelab.material_document import default_draft
-                draft=default_draft()
-                if index==1:
-                    draft['settings'].update(model='neo_hooke',parameters={'mu':1.0,'lmbda':2.0})
-                self._call(lambda:self.client.document_open(kind='material',title='시험 재료',draft=draft),
-                    lambda model:create(model['id']),relevant=lambda:token==self._source_token())
-            self._call(self.client.documents,choose, relevant=lambda: token == self._source_token())
+            # The display channel may be deformation. Ask for an actual stress
+            # observation from this SAME retained import before choosing Material.
+            def inspected(metadata):
+                responses=metadata.get('responses',{})
+                choices=[(name,row) for name,row in responses.items()
+                    if row.get('kind')=='series' and row.get('measure') in ('infinitesimal_Cauchy','first_Piola')
+                    and row.get('component') in ('xx','yy','zz','xy','xz','yz')]
+                if not choices:
+                    self.message.setText('응력 관측이 없습니다. 시험 열 설정에서 응력 정의·성분·단위를 지정하고 다시 가져오세요.')
+                    return
+                labels=[name+' / '+str(row['component'])+' ['+str(row.get('unit','?'))+']' for name,row in choices]
+                default=next((i for i,(name,_) in enumerate(choices) if name==source['response']),0)
+                selected,ok=QInputDialog.getItem(self,'재료 피팅','관측할 응력 채널',labels,default,False)
+                if not ok or token!=self._source_token(): return
+                name,observation=choices[labels.index(selected)]
+                source['response']=name
+                payload['source']=deepcopy(source)
+                def choose(documents_receipt):
+                    documents=[row for row in documents_receipt['documents'] if row.get('kind')=='material'
+                        and row.get('draft',{}).get('backend')=='material.felupe']
+                    names=['새 선형 탄성 재료…','새 Neo-Hooke 재료…']+[str(index+1)+'. '+row['title'] for index,row in enumerate(documents)]
+                    selected,accepted=QInputDialog.getItem(self,'피팅할 재료','재료 법칙 또는 기존 재료',names,editable=False)
+                    if not accepted or token != self._source_token(): return
+                    index=names.index(selected)
+                    if index>=2: create(documents[index-2]['id']); return
+                    expected='infinitesimal_Cauchy' if index==0 else 'first_Piola'
+                    if observation.get('measure')!=expected:
+                        self.message.setText('선택 관측의 응력 정의가 이 법칙과 다릅니다. 관측 또는 재료 법칙을 다시 선택하세요.');return
+                    from caelab.material_document import default_draft, diagnostics
+                    draft=default_draft()
+                    axis=observation.get('axes',[])
+                    if len(axis)!=1 or axis[0].get('name')!='time':
+                        self.message.setText('피팅에는 명시한 시간 이력이 필요합니다. 시간 열 설정을 확인하세요.');return
+                    draft['settings'].update(stress_unit=observation.get('unit'),time_unit=axis[0].get('unit'))
+                    if index==1:
+                        draft['settings'].update(model='neo_hooke',parameters={'mu':1.0,'lmbda':2.0})
+                    errors=diagnostics(draft)
+                    if errors:
+                        self.message.setText(errors[0]['message']);return
+                    self._call(lambda:self.client.document_open(kind='material',title='시험 재료',draft=draft),
+                        lambda model:create(model['id']),relevant=lambda:token==self._source_token())
+                self._call(self.client.documents,choose,relevant=lambda:token==self._source_token())
+            self._call(lambda:self.client.document_result(source['document_id'],source['job_id'],
+                selection={'metadata_only':True}),inspected,relevant=lambda:token==self._source_token())
 
     def choose_prediction(self):
         try:
@@ -1155,6 +1192,8 @@ class DataWindow(QMainWindow):
             self._clear_result()
 
     def _clear_result(self):
+        self._selection_points={}
+        self._selection_artist=None
         self.values.setRowCount(0)
         self.axes.clear()
         self.axes.set_axis_off()
@@ -1331,6 +1370,12 @@ class DataWindow(QMainWindow):
         if run.get('input_sha256') != __import__('caelab.storage',fromlist=['canonical_hash']).canonical_hash(self.document['draft']):
             self.message.setText('이전 설정의 결과입니다. 현재 설정을 가져온 뒤 구간을 선택하세요.'); return
         selected=deepcopy(columns[name].get('row_selection',{}))
+        from caelab.adapters.file_table import validate_row_selection
+        try: validate_row_selection(selected)
+        except ValueError as error:
+            self.settings_button.setChecked(True); self.editor.setCurrentIndex(2)
+            self.message.setText('행 선택의 미완성 입력을 먼저 고치세요: '+str(error))
+            return
         if mode in ('fit','holdout'):
             target=name+('_fit' if mode=='fit' else '_holdout')
             if target in columns:

@@ -145,3 +145,41 @@ def apply_appearance(application):
     application.setPalette(palette)
     application.setStyleSheet(_STYLE)
     application.setProperty("caeAppearanceApplied", True)
+
+
+def configure_plot_fonts():
+    """Use an installed font with actual Korean glyph coverage for new figures.
+
+    Qt font fallback does not configure Matplotlib. This is lazy and per-process;
+    no font is downloaded, copied into the repository or installed on the host.
+    Returns the selected family, or None when no installed Korean font is found.
+    """
+    import os
+    from pathlib import Path
+    from matplotlib import font_manager, rcParams
+    cached=getattr(configure_plot_fonts,'_family',None)
+    if cached is not None:
+        rcParams['font.family']=[cached,'DejaVu Sans']
+        return cached
+    preferred=('Malgun Gothic','Noto Sans CJK KR','Noto Sans KR','NanumGothic','AppleGothic','Noto Sans CJK JP')
+    candidates=[]
+    if os.name=='nt':
+        candidates.append(str(Path(os.environ.get('WINDIR',r'C:\Windows'))/'Fonts'/'malgun.ttf'))
+    for family in preferred:
+        candidates.extend(entry.fname for entry in font_manager.fontManager.ttflist
+                          if entry.name==family and entry.style=='normal')
+    # Inspect installed files only. The family name is not evidence of glyphs.
+    needed=set(map(ord,'관측예측검증최종피팅시간응력잔차계수시험'))
+    for path in dict.fromkeys(candidates):
+        if not Path(path).is_file(): continue
+        try:
+            font=font_manager.get_font(path)
+            if not needed <= set(font.get_charmap()): continue
+            font_manager.fontManager.addfont(path)
+            family=font_manager.FontProperties(fname=path).get_name()
+        except (OSError,RuntimeError,ValueError):
+            continue
+        configure_plot_fonts._family=family
+        rcParams['font.family']=[family,'DejaVu Sans']
+        return family
+    return None
