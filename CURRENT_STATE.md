@@ -200,6 +200,13 @@ Numerical 교정 커밋 후 `codex/post-numerical-20261013`을 만들고 저장�
 미적용 편집을 보존하며 새 후보 계산과 측정값 가져오기를 구별한다. shared Core 변경은
 Codex가 통합하며 같은 소스의 작성자는 Pro 한 명이다. 범위는
 [SPEC-POST-NUMERICAL-001](.moai/specs/SPEC-POST-NUMERICAL-001/spec.md)에 연결했다.
+첫 backend 체크포인트 Pro `f313bb1`을 로컬 `d41af3e`로 통합했다. 실제 Data 가져오기·
+보존·재시도·Plan 재열기 등 기본 단위 검사 3개와 기존 ParaView6.2의 저장 측정 추출을
+확인했다. 선택한 시간/성분 값은 그대로였다. native owner 직접 실행이며 GUI/broker
+전체 왕복 확인은 아니다. Pro는 계속 Qt 선택·미리보기·관측 화면과 기존 Plan 연결을 작성한다.
+이 체크포인트를 Post→Numerical 전체 완료로 표시하지 않는다.
+Astra가 선택 열과 저장된 단위·frame·measure의 의미 일치 검사가 부족한 부분을 찾았다.
+같은 Pro에 Qt 연결과 함께 교정을 요청했으며 기본 실행 통과로 이 지적을 닫지 않는다.
 MoAI MCP의 실제 SPEC 조회와 CLI의 상태 갱신·해당 SPEC lint를 사용했다. lint의 구조
 오류는 수정했으며 표에 연결한 수용 조건을 인식하지 못한 coverage 등 경고는 남아 있다.
 문서 lint 결과를 실제 제품 기능이나 테스트 통과로 바꾸지 않는다.

@@ -39,3 +39,29 @@ keeps those declarations on the measurement; no input ID or receipt was invented
 This prepares an actual native input for the pending feature check. It does not
 verify the new Post→Numerical command, which Pro is still writing. No solver,
 provider, FreeCAD run, OS input/DPI check or engineering qualification was performed.
+
+## First implementation checkpoint
+
+Actual Pro source `f313bb1` was integrated as `d41af3e` on 2026-10-13. This is the
+native extraction and existing Data→generic Plan backend; the Qt selection and
+observation workspace are still being written. The SPEC remains in progress.
+
+- Root's Windows runtime ran `pytest tests/test_post_numerical.py -q`:
+  **3 passed in 1.91s**. The owner check runs the real Data import, retention,
+  idempotent retry and cold reopen; its native transport is an explicit double.
+- Actual ParaView 6.2.0 reopened the prepared saved project and executed the new
+  `measurement_snapshot` on the native owner, followed by explicit projection of
+  `Time` and `avg(U (2))`. The three times 0/.5/1 and values 0/1/2 were preserved,
+  with all rows valid. Exit 0. No resampling or unit conversion.
+- Local helper `runs/product-development/20261013/check_post_snapshot.py` and
+  `native-post-handoff/snapshot-check.json` retain that second check. It bypasses
+  the command broker by calling the actual owner directly; it is not a broker,
+  native GUI input or whole Post→Numerical UI completion claim.
+
+Pro remote execution is NOT_RUN. No solver/provider was invoked in either Root
+check. Future model bindings remain missing/editable and prevent a candidate run.
+
+Astra/xhigh found a source-meaning gap in this first checkpoint: arbitrary native
+columns and user frame/measure labels can inherit the selected measurement's unit
+without verifying the column's physical meaning. Codex sent the finding to Pro
+for correction alongside the Qt work. Basic execution above does not close it.
