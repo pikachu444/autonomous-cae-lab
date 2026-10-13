@@ -12,12 +12,12 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
     QInputDialog, QLabel, QLineEdit, QPushButton, QPlainTextEdit, QSplitter,
-    QStyledItemDelegate, QTableWidget, QTabWidget, QToolBar, QTreeWidget,
+    QStyledItemDelegate, QTableWidget, QTableWidgetItem, QHeaderView, QTabWidget, QToolBar, QTreeWidget,
     QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from caelab.numerical_document import request_draft
 from caelab.storage import canonical_hash
-from .numerical_window import NumericalWindow
+from .numerical_window import NumericalWindow, number_or_raw
 from .runner_window import RunnerWindow, readonly_table, fill_tree, candidate_state
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -67,9 +67,38 @@ class _InputDelegate(QStyledItemDelegate):
         return super().createEditor(parent, option, index)
 
 
+class _WorksheetDelegate(QStyledItemDelegate):
+    """Text precision and incomplete numbers remain visible editable drafts."""
+    def createEditor(self, parent, option, index):
+        binding = index.data(DATA) or {}
+        if not binding.get('path'):
+            return None
+        if binding.get('choices'):
+            editor = QComboBox(parent)
+            editor.setEditable(True)  # Retain an existing unsupported value for repair.
+            editor.addItems(binding['choices'])
+            return editor
+        return QLineEdit(parent)
+
+    def setEditorData(self, editor, index):
+        if isinstance(editor, QComboBox):
+            editor.setCurrentText(index.data(Qt.ItemDataRole.DisplayRole) or '')
+        else:
+            editor.setText(index.data(Qt.ItemDataRole.DisplayRole) or '')
+            editor.selectAll()
+
+    def setModelData(self, editor, model, index):
+        text = editor.currentText() if isinstance(editor, QComboBox) else editor.text()
+        model.setData(index, text, Qt.ItemDataRole.EditRole)
+
+
 class RequestPlanWindow(NumericalWindow):
     """Reuse NumericalWindow's service commands, retained jobs, save and close flow."""
     def __init__(self, client, document_id=None, poll_interval=2000, auto_open=True):
+        self._worksheet_labels = {}
+        self._candidate_plot_names = set()
+        self._worksheet_responses = {}
+        self._sheet_populating = False
         self._request_buffer = None
         self._runner_windows = []
         self._candidate_result_windows = []
@@ -83,7 +112,7 @@ class RequestPlanWindow(NumericalWindow):
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
 
     def _build_ui(self):
-        self.resize(1440, 940)
+        self.resize(1440, 900)
         bar = QToolBar('Numerical request Plan', self)
         self.addToolBar(bar)
         self.new_action = QAction('New request Plan', self, shortcut=QKeySequence.New)
@@ -96,16 +125,16 @@ class RequestPlanWindow(NumericalWindow):
             (self.redo_action, lambda: self.command('document.redo'))):
             bar.addAction(action)
             action.triggered.connect(callback)
-        self.apply_button, self.run_button = QPushButton('Apply request'), QPushButton('Run explicit request')
+        self.apply_button, self.run_button = QPushButton('Apply'), QPushButton('Run study')
         self.apply_button.clicked.connect(self.apply_inputs)
         self.run_button.clicked.connect(lambda: self.command('numerical.run'))
         bar.addWidget(self.apply_button)
         bar.addWidget(self.run_button)
         self.identity = QLabel()
-        bar.addWidget(self.identity)
+        self.statusBar().addPermanentWidget(self.identity)
         root = QWidget()
         outer = QVBoxLayout(root)
-        self.message = QLabel('Edit the proposed request, Apply, then explicitly Run. Opening or saving never executes it.')
+        self.message = QLabel()
         self.message.setWordWrap(True)
         outer.addWidget(self.message)
         conflicts = QHBoxLayout()
@@ -119,28 +148,67 @@ class RequestPlanWindow(NumericalWindow):
         outer.addWidget(split, 1)
         self.editor = QWidget()
         inputs_layout = QVBoxLayout(self.editor)
+        self.input_tabs = QTabWidget()
+        self.sheet = QWidget()
+        self.sheet_layout = QVBoxLayout(self.sheet)
+        self.advanced = QWidget()
+        advanced_layout = QVBoxLayout(self.advanced)
         form = QFormLayout()
         self.purpose, self.backend, self.evaluations = QLineEdit(), QLineEdit(), QLineEdit()
         self.operation = QComboBox()
         for name in ('evaluate', 'fit', 'doe', 'optimize', 'uq', 'epsilon', 'sample_sensitivity', 'analyze', 'surrogate', 'sensitivity', 'batch_export', 'batch_import'):
             self.operation.addItem(name, name)
-        form.addRow('Research purpose', self.purpose)
-        form.addRow('Existing operation', self.operation)
-        form.addRow('Registered backend (when required)', self.backend)
+        self.purpose.setPlaceholderText('Research question or study name')
+        form.addRow('Study', self.purpose)
+        form.addRow('Method', self.operation)
+        model_row = QHBoxLayout()
+        model_row.addWidget(self.backend, 1)
+        self.model_button = QPushButton('Use model…')
+        self.model_button.clicked.connect(self.choose_model_document)
+        model_row.addWidget(self.model_button)
+        form.addRow('Evaluator', model_row)
         form.addRow('Evaluation budget', self.evaluations)
         inputs_layout.addLayout(form)
-        self.variables_button = QPushButton('Use declared model variables…')
+        self.variables_button = QPushButton('Add variables…')
         self.variables_button.setObjectName('useDeclaredModelVariables')
         self.variables_button.clicked.connect(self.choose_model_variables)
-        inputs_layout.addWidget(self.variables_button)
-        self.model_response_button = QPushButton('Use retained model response…')
+        variable_actions = QHBoxLayout()
+        variable_actions.addWidget(QLabel('Variables'), 1)
+        variable_actions.addWidget(self.variables_button)
+        self.remove_variable_button = QPushButton('Remove')
+        self.remove_variable_button.clicked.connect(self.remove_sheet_variables)
+        variable_actions.addWidget(self.remove_variable_button)
+        self.sheet_layout.addLayout(variable_actions)
+        self.variable_sheet = self._sheet_table('planVariables', ['Variable', 'ID', 'Start', 'Lower', 'Upper', 'Unit', 'Scale'])
+        self.sheet_layout.addWidget(self.variable_sheet, 2)
+        self.model_response_button = QPushButton('Add response…')
         self.model_response_button.setObjectName('useRetainedModelResponse')
         self.model_response_button.clicked.connect(self.choose_model_response)
-        inputs_layout.addWidget(self.model_response_button)
+        response_actions = QHBoxLayout()
+        response_actions.addWidget(QLabel('Responses'), 1)
+        response_actions.addWidget(self.model_response_button)
+        self.constraint_button = QPushButton('Add constraint…')
+        self.constraint_button.clicked.connect(lambda: self.choose_model_response(constraint=True))
+        response_actions.addWidget(self.constraint_button)
+        self.remove_response_button = QPushButton('Remove')
+        self.remove_response_button.clicked.connect(self.remove_sheet_responses)
+        response_actions.addWidget(self.remove_response_button)
+        self.sheet_layout.addLayout(response_actions)
+        self.response_sheet = self._sheet_table('planResponses', ['Role', 'Response', 'Reduction', 'Direction / relation', 'Limit', 'Unit'])
+        self.sheet_layout.addWidget(self.response_sheet, 2)
+        self.method_sheet = self._sheet_table('planMethod', ['Method setting', 'Value'])
+        self.sheet_layout.addWidget(self.method_sheet, 1)
+        self.input_tabs.addTab(self.sheet, 'Worksheet')
+        self.input_tabs.addTab(self.advanced, 'Model / advanced')
+        inputs_layout.addWidget(self.input_tabs, 1)
         self.observation_button = QPushButton('Attach saved fit / holdout observation…')
         self.observation_button.setObjectName('attachRetainedObservation')
         self.observation_button.clicked.connect(self.choose_fit_observation)
-        inputs_layout.addWidget(self.observation_button)
+        advanced_layout.addWidget(self.observation_button)
+        for label, callback in (('Declared variables…', self.choose_model_variables), ('Model response…', self.choose_model_response)):
+            button = QPushButton(label)
+            button.clicked.connect(callback)
+            advanced_layout.addWidget(button)
         self.backend.textEdited.connect(self._backend_edited)
         for field in (self.purpose, self.evaluations):
             field.textEdited.connect(self._edited)
@@ -154,17 +222,17 @@ class RequestPlanWindow(NumericalWindow):
         self.response_button.clicked.connect(self.choose_response_definition)
         for widget in (self.retained_role, self.pin_button, self.response_button):
             retained.addWidget(widget)
-        inputs_layout.addLayout(retained)
+        advanced_layout.addLayout(retained)
         self.pinned_sources = readonly_table(['Role', 'Original document / job', 'Input revision', 'Exact result hash'])
         self.pinned_sources.setMaximumHeight(110)
-        inputs_layout.addWidget(self.pinned_sources)
+        advanced_layout.addWidget(self.pinned_sources)
         self.declarations = readonly_table(['Physical response', 'Unit', 'Reduction', 'Component / location'])
         self.declarations.setMaximumHeight(105)
-        inputs_layout.addWidget(self.declarations)
+        advanced_layout.addWidget(self.declarations)
         self.operation_note = QLabel()
         self.operation_note.setWordWrap(True)
-        inputs_layout.addWidget(self.operation_note)
-        inputs_layout.addWidget(QLabel('Typed inputs · edit leaf values; add/remove object members and list entries explicitly'))
+        advanced_layout.addWidget(self.operation_note)
+        advanced_layout.addWidget(QLabel('Complete model and method inputs'))
         self.inputs = QTreeWidget()
         self.inputs.setObjectName('numericalRequestInputs')
         self.inputs.setHeaderLabels(['Input field / index', 'Value', 'Type'])
@@ -179,43 +247,45 @@ class RequestPlanWindow(NumericalWindow):
         self.remove_input_action.triggered.connect(self.remove_input)
         self.type_action.triggered.connect(self.change_type)
         self.inputs.addActions([self.add_input_action, self.remove_input_action, self.type_action])
-        inputs_layout.addWidget(self.inputs, 1)
+        advanced_layout.addWidget(self.inputs, 1)
         input_buttons = QHBoxLayout()
         for label, callback in (('Add member / entry…', self.add_input), ('Remove selected', self.remove_input), ('Change type…', self.change_type)):
             button = QPushButton(label)
             button.clicked.connect(callback)
             input_buttons.addWidget(button)
-        inputs_layout.addLayout(input_buttons)
-        inputs_layout.addWidget(QLabel('Original proposal/source · read-only identity'))
+        advanced_layout.addLayout(input_buttons)
+        advanced_layout.addWidget(QLabel('Source'))
         self.source = QPlainTextEdit()
         self.source.setReadOnly(True)
         self.source.setMaximumHeight(120)
-        inputs_layout.addWidget(self.source)
+        advanced_layout.addWidget(self.source)
         self.source_button = QPushButton('Open original source document')
         self.source_button.clicked.connect(self.open_source)
-        inputs_layout.addWidget(self.source_button)
+        advanced_layout.addWidget(self.source_button)
         split.addWidget(self.editor)
         right = QWidget()
         result_layout = QVBoxLayout(right)
-        result_layout.addWidget(QLabel('Actual retained jobs · selecting a job never repeats it'))
+        result_layout.addWidget(QLabel('Runs'))
         self.runs = readonly_table(['Job', 'State', 'Submitted input', 'Input relation'])
-        self.runs.setMaximumHeight(170)
+        self.runs.setMaximumHeight(115)
         self.runs.itemSelectionChanged.connect(self._selection_changed)
         result_layout.addWidget(self.runs)
         actions = QHBoxLayout()
-        self.read_button, self.runner_button = QPushButton('Read / retry exact result'), QPushButton('Open selected job in Runner')
+        self.read_button, self.runner_button = QPushButton('Read result'), QPushButton('Runner')
         self.read_button.clicked.connect(self.retry_result)
         self.runner_button.clicked.connect(self.open_runner)
         actions.addWidget(self.read_button)
         actions.addWidget(self.runner_button)
-        self.expert_button = QPushButton('Consult Expert with selected result…')
+        self.expert_button = QPushButton('New discussion…')
         self.expert_button.clicked.connect(self.consult_expert)
         actions.addWidget(self.expert_button)
         result_layout.addLayout(actions)
         self.tabs = QTabWidget()
-        self.candidates = readonly_table(['Candidate', 'Execution', 'Values', 'Objective', 'Failure'])
+        self.candidates = readonly_table(['Candidate', 'Execution', 'Values', 'Objective', 'Feasible', 'Failure'])
         self.candidates.itemSelectionChanged.connect(self._candidate_changed)
-        self.tabs.addTab(self.candidates, 'Actual candidates')
+        candidate_panel = QWidget()
+        candidate_layout = QVBoxLayout(candidate_panel)
+        self.tabs.addTab(candidate_panel, 'Candidates / plot')
         self.responses = QTreeWidget()
         self.responses.setHeaderLabels(['Response / metadata', 'Actual returned value'])
         self.tabs.addTab(self.responses, 'Responses')
@@ -227,7 +297,12 @@ class RequestPlanWindow(NumericalWindow):
         self.plot_response.currentIndexChanged.connect(self._plot_selected_result)
         plot_layout.addWidget(self.plot_response)
         plot_layout.addWidget(self.canvas)
-        self.tabs.addTab(plot_panel, 'Actual result plots')
+        result_split = QSplitter(Qt.Orientation.Vertical)
+        result_split.addWidget(self.candidates)
+        result_split.addWidget(plot_panel)
+        result_split.setSizes([260, 380])
+        candidate_layout.addWidget(result_split)
+        self.canvas.mpl_connect('pick_event', self._candidate_plot_picked)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         self.tabs.addTab(self.details, 'Diagnostics / submitted input')
@@ -242,9 +317,219 @@ class RequestPlanWindow(NumericalWindow):
         result_layout.addWidget(self.pde_adopt_button)
         self._build_adoption_receipt_ui(result_layout)
         split.addWidget(right)
-        split.setSizes([650, 790])
+        split.setSizes([640, 800])
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 1)
         self.setCentralWidget(root)
         self._update_actions()
+
+    def _sheet_table(self, name, headers):
+        table = QTableWidget(0, len(headers))
+        table.setObjectName(name)
+        table.setHorizontalHeaderLabels(headers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.EditKeyPressed)
+        table.setItemDelegate(_WorksheetDelegate(table))
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.verticalHeader().setVisible(False)
+        table.itemChanged.connect(self._sheet_changed)
+        widths = {'planVariables': [120, 100, 78, 78, 78, 60, 65],
+                  'planResponses': [90, 175, 80, 105, 80, 65],
+                  'planMethod': [220, 250]}
+        for column, width in enumerate(widths[name]):
+            table.setColumnWidth(column, width)
+        return table
+
+    def _sheet_cell(self, table, row, column, value, path=None, *, numeric=False, choices=(), entry=None):
+        text = '' if value is None else value_text(value)
+        item = QTableWidgetItem(text)
+        item.setToolTip(text)
+        item.setData(DATA, {'path': path, 'numeric': numeric, 'choices': list(choices),
+                            'shown': text, 'entry': entry})
+        if path is None:
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        table.setItem(row, column, item)
+
+    def _refresh_worksheet(self):
+        """Project the one typed-input buffer; never normalize unsupported fields."""
+        root = self.inputs.topLevelItem(0)
+        if root is None or self._sheet_populating:
+            return
+        value = self._input_value(root)
+        self._sheet_populating = True
+        try:
+            variables = value.get('variables', [])
+            variables = variables if isinstance(variables, list) else []
+            self.variable_sheet.setRowCount(len(variables))
+            for index, variable in enumerate(variables):
+                if not isinstance(variable, dict):
+                    variable = {}
+                identifier = variable.get('id')
+                label = self._worksheet_labels.get(identifier, identifier)
+                self._sheet_cell(self.variable_sheet, index, 0, label or 'Unsupported row', entry=('variables', index))
+                self._sheet_cell(self.variable_sheet, index, 1, identifier)
+                for col, key in enumerate(('value', 'lower', 'upper', 'unit', 'transform'), 2):
+                    self._sheet_cell(self.variable_sheet, index, col,
+                        variable.get(key, 'linear' if key == 'transform' else None),
+                        ('variables', index, key) if isinstance(variables[index], dict) else None,
+                        numeric=key in {'value', 'lower', 'upper'}, choices=('linear', 'log') if key == 'transform' else ())
+            rows = []
+            operation = self.operation.currentData()
+            if operation == 'doe':
+                for index, response in enumerate(value.get('responses', []) if isinstance(value.get('responses', []), list) else []):
+                    definition = self._worksheet_responses.get(response, {}) if isinstance(response, str) else {}
+                    rows.append(('Response', response, definition, ('responses', index)))
+            elif operation == 'optimize':
+                if 'objective' in value:
+                    definition = value['objective']
+                    rows.append(('Objective', definition.get('response') if isinstance(definition, dict) else None, definition, ('objective',)))
+                for index, definition in enumerate(value.get('constraints', []) if isinstance(value.get('constraints', []), list) else []):
+                    rows.append(('Constraint', definition.get('response') if isinstance(definition, dict) else None, definition, ('constraints', index)))
+            self.response_sheet.setRowCount(len(rows))
+            for row, (role, selector, definition, path) in enumerate(rows):
+                self._sheet_cell(self.response_sheet, row, 0, role, entry=path)
+                self._sheet_cell(self.response_sheet, row, 1, selector or 'Use actual response…')
+                definition = definition if isinstance(definition, dict) else {}
+                editable = role != 'Response' and isinstance(self._at_path(value, path), dict)
+                self._sheet_cell(self.response_sheet, row, 2, definition.get('reduction'),
+                    path + ('reduction',) if editable else None, choices=('none', 'max', 'min', 'mean', 'final', 'abs_max'))
+                key = 'operator' if role == 'Constraint' else 'direction'
+                self._sheet_cell(self.response_sheet, row, 3, definition.get(key),
+                    path + (key,) if editable else None,
+                    choices=('<=', '>=') if role == 'Constraint' else ('minimize', 'maximize'))
+                self._sheet_cell(self.response_sheet, row, 4, definition.get('limit'),
+                    path + ('limit',) if editable and role == 'Constraint' else None, numeric=True)
+                self._sheet_cell(self.response_sheet, row, 5, definition.get('unit', 'undeclared'))
+                self.response_sheet.item(row, 1).setToolTip(json.dumps(definition, ensure_ascii=False, indent=2))
+            settings = ([('Sample count', ('count',), 16, True, ()), ('Random seed', ('seed',), 0, True, ())]
+                if operation == 'doe' else [
+                    ('Generations', ('options', 'max_generations'), 40, True, ()),
+                    ('Population size', ('options', 'population_size'), 12, True, ()),
+                    ('Random seed', ('seed',), 0, True, ()),
+                    ('Retain responses', ('options', 'retain_responses'), 'summary', False, ('summary', 'all'))]
+                if operation == 'optimize' else [])
+            refs = value.get('result_refs', {})
+            if operation == 'doe' and ('candidates' in value or isinstance(refs, dict) and 'candidates' in refs):
+                settings = settings[1:]  # Exact supplied coordinates are not resampled.
+            self.method_sheet.setRowCount(len(settings))
+            for row, (label, path, default, numeric, choices) in enumerate(settings):
+                try:
+                    setting = self._at_path(value, path)
+                    implicit = False
+                except (KeyError, TypeError):
+                    setting, implicit = default, True
+                editable = not ('options' in path and 'options' in value and not isinstance(value['options'], dict))
+                self._sheet_cell(self.method_sheet, row, 0, label)
+                self._sheet_cell(self.method_sheet, row, 1, setting, path if editable else None, numeric=numeric, choices=choices)
+                if implicit:
+                    self.method_sheet.item(row, 1).setToolTip('Existing engine default; no field is written until edited.')
+        finally:
+            self._sheet_populating = False
+
+    def _sheet_changed(self, item):
+        if self._sheet_populating or self._populating or self._view_error:
+            return
+        binding = item.data(DATA) or {}
+        path = binding.get('path')
+        if not path or item.text() == binding.get('shown'):
+            return
+        text = item.text()
+        def change(value):
+            parent = value
+            for key in path[:-1]:
+                if isinstance(parent, dict) and key not in parent:
+                    parent[key] = {}
+                parent = parent[key]
+            parent[path[-1]] = number_or_raw(text) if binding.get('numeric') else text
+        # The tree remains the single authoritative buffer. Do not clear the
+        # live table editor during its delegate commit or round partial text.
+        value = self._input_value(self.inputs.topLevelItem(0))
+        try:
+            change(value)
+        except (ValueError, TypeError, KeyError, IndexError) as error:
+            self.message.setText('Repair the input structure in Model / advanced: ' + str(error))
+            return
+        self._sheet_populating = True
+        try:
+            self._populate_inputs(value)
+            binding['shown'] = text
+            item.setData(DATA, binding)
+            item.setToolTip(text)
+        finally:
+            self._sheet_populating = False
+        self._edited()
+
+    def _remove_sheet_entries(self, table):
+        entries = [table.item(index.row(), 0).data(DATA).get('entry')
+                   for index in table.selectionModel().selectedRows()]
+        def remove(value):
+            # Descending indices preserve the original selected rows.
+            for path in reversed(entries):
+                if path:
+                    self._at_path(value, path[:-1]).__delitem__(path[-1])
+        if entries:
+            entries.sort(key=lambda path: (str(path[0]), path[-1] if isinstance(path[-1], int) else -1))
+            self._edit_structure(remove)
+
+    def remove_sheet_variables(self):
+        self._remove_sheet_entries(self.variable_sheet)
+
+    def remove_sheet_responses(self):
+        self._remove_sheet_entries(self.response_sheet)
+
+    def choose_model_document(self):
+        if not self.document or self._busy or self._callbacks or self.conflict:
+            return False
+        context = self._request_context()
+        relevant = lambda: self._request_context() == context and not self.conflict
+        def read(document):
+            if not relevant():
+                return
+            if document.get('dirty') or not document.get('saved_revision') or document.get('diagnostics'):
+                self.message.setText('Save a valid model in its own tool before selecting it.')
+                return
+            if document['kind'] == 'evaluation':
+                inputs = {'backend': 'evaluation.definition', 'settings': {'definition_ref': {
+                    'document_id': document['id'], 'kind': 'evaluation', 'saved_revision': document['saved_revision'],
+                    'input_revision': document['input_revision'], 'input_sha256': canonical_hash(document['draft'])}}}
+            else:
+                inputs = document['draft']
+            if not isinstance(inputs, dict) or not isinstance(inputs.get('backend'), str) or not isinstance(inputs.get('settings'), dict):
+                self.message.setText('This saved model has no supported evaluator/settings declaration. Existing inputs remain.')
+                return
+            from PySide6.QtWidgets import QMessageBox
+            answer = QMessageBox.question(self, 'Use saved model', 'Use ' + document['title'] +
+                ' as the evaluator? Existing variable bounds, responses and method options will remain for review.')
+            if answer != QMessageBox.StandardButton.Yes or not relevant():
+                return
+            self._worksheet_labels.clear()
+            self._worksheet_responses.clear()
+            self._edit_structure(lambda value: value.update(backend=inputs['backend'], settings=deepcopy(inputs['settings'])))
+        def listed(payload):
+            documents = [row for row in payload['documents'] if row.get('kind') in {'material', 'pde', 'simulation', 'evaluation'}]
+            labels = [row['title'] + ' (' + row['kind'] + ') — ' + row['id'] for row in documents]
+            if not labels:
+                self.message.setText('No saved model is available. Enter a registered evaluator and its settings in Model / advanced.')
+                return
+            label, ok = QInputDialog.getItem(self, 'Use saved model', 'Model', labels, editable=False)
+            if ok and relevant():
+                self._call(lambda: self.client.document_read(documents[labels.index(label)]['id']), read, relevant=relevant)
+        return self._call(self.client.documents, listed, relevant=relevant)
+
+    def _candidate_plot_picked(self, event):
+        ids = getattr(event.artist, '_candidate_ids', [])
+        if not len(getattr(event, 'ind', [])):
+            return
+        index = int(event.ind[0])
+        if index >= len(ids):
+            return
+        for row in range(self.candidates.rowCount()):
+            if self.candidates.item(row, 0).text() == ids[index]:
+                self.candidates.selectRow(row)
+                self.candidates.scrollToItem(self.candidates.item(row, 0))
+                break
 
     def open_document(self, *, document_id=None, title='Numerical request Plan', draft=None):
         if document_id is None and draft is None:
@@ -318,6 +603,8 @@ class RequestPlanWindow(NumericalWindow):
         self._populating = prior
         if hasattr(self, 'pinned_sources'):
             self._refresh_input_summary()
+        if hasattr(self, 'variable_sheet'):
+            self._refresh_worksheet()
 
     def _backend_edited(self, text):
         if self._populating or self._view_error or not self.inputs.topLevelItem(0):
@@ -341,6 +628,7 @@ class RequestPlanWindow(NumericalWindow):
             self.backend.setText(item.text(1))
         self._edited()
         self._refresh_input_summary()
+        self._refresh_worksheet()
 
     def _operation_controls(self):
         operation = self.operation.currentData()
@@ -355,6 +643,9 @@ class RequestPlanWindow(NumericalWindow):
         self.backend.setEnabled(operation in MODEL_OPERATIONS)
         self.model_response_button.setVisible(operation in {'fit', 'doe', 'uq', 'optimize', 'epsilon'})
         self.observation_button.setVisible(operation == 'fit')
+        self.constraint_button.setVisible(operation == 'optimize')
+        self.sheet.setEnabled(operation in {'doe', 'optimize'})
+        self.input_tabs.setCurrentWidget(self.sheet if operation in {'doe', 'optimize'} else self.advanced)
         self.operation_note.setText({
             'analyze': 'Select the exact saved candidate table and declare each physical response/reduction. Failed rows remain exclusions.',
             'surrogate': 'Select separate retained training and holdout runs. Add physical response/reduction and typed points. Predictions remain PREDICTED; they cannot be adopted as evaluated coefficients.',
@@ -644,10 +935,11 @@ class RequestPlanWindow(NumericalWindow):
             begin()
         return True
 
-    def choose_model_response(self):
+    def choose_model_response(self, *, constraint=False):
         operation = self.operation.currentData()
         if operation not in {'doe', 'uq', 'fit', 'optimize', 'epsilon'}: return
         def selected(reference, selector, response, relevant):
+            self._worksheet_responses[selector] = deepcopy(response)
             declaration = {key: deepcopy(response[key]) for key in
                 ('unit', 'component', 'location', 'measure', 'frame', 'coordinate_system', 'coordinate_frame') if key in response}
             declaration['response'] = selector
@@ -655,12 +947,23 @@ class RequestPlanWindow(NumericalWindow):
                 reductions = ['none'] if response['kind'] == 'scalar' else ['max', 'min', 'mean', 'final', 'abs_max']
                 reduction, ok = QInputDialog.getItem(self, 'Response reduction', 'Scalar statistic', reductions, editable=False)
                 if not ok or not relevant(): return
-                direction, ok = QInputDialog.getItem(self, 'Objective direction', 'Research objective', ['minimize', 'maximize'], editable=False)
-                if not ok or not relevant(): return
-                declaration.update(reduction=reduction, direction=direction)
+                declaration['reduction'] = reduction
+                if constraint and operation == 'optimize':
+                    relation, ok = QInputDialog.getItem(self, 'Constraint', 'Relation', ['<=', '>='], editable=False)
+                    if not ok or not relevant(): return
+                    limit, ok = QInputDialog.getText(self, 'Constraint', 'Limit [' + str(response.get('unit', 'undeclared')) + ']')
+                    if not ok or not relevant(): return
+                    declaration.update(operator=relation, limit=number_or_raw(limit))
+                else:
+                    direction, ok = QInputDialog.getItem(self, 'Objective direction', 'Research objective', ['minimize', 'maximize'], editable=False)
+                    if not ok or not relevant(): return
+                    declaration['direction'] = direction
                 declaration['id'] = 'metric_' + canonical_hash({'response': selector, 'reduction': reduction})[:12]
                 if operation == 'optimize':
-                    self._edit_structure(lambda value: value.__setitem__('objective', declaration))
+                    if constraint:
+                        self._edit_structure(lambda value: value.setdefault('constraints', []).append(declaration))
+                    else:
+                        self._edit_structure(lambda value: value.__setitem__('objective', declaration))
                 else:
                     if not isinstance(self.edited_draft()['request']['inputs'].get('objectives', []), list):
                         self.message.setText('Objectives must be an editable list; the invalid draft is unchanged.')
@@ -727,7 +1030,7 @@ class RequestPlanWindow(NumericalWindow):
         dialog.resize(880, 440)
         layout = QVBoxLayout(dialog)
         note = QLabel('Select the variables to use. Values, units and bounds come from the registered model declaration. '
-                      'After selection, edit bounds in Typed inputs; no calculation is executed.')
+                      'Edit the selected bounds in the worksheet; no calculation is executed.')
         note.setWordWrap(True)
         layout.addWidget(note)
         table = readonly_table(['Variable ID', 'Label', 'Unit', 'Current value', 'Lower bound', 'Upper bound'])
@@ -773,8 +1076,15 @@ class RequestPlanWindow(NumericalWindow):
                 # the numerical request stores only its supported variable keys.
                 variables = [{key: deepcopy(row[key]) for key in ('id', 'unit', 'value', 'lower', 'upper')}
                              for row in selected]
-                self._edit_structure(lambda value: value.__setitem__('variables', variables))
-                self.message.setText('Selected declared variables added to Typed inputs. Review their bounds, then Apply; execution remains separate.')
+                self._worksheet_labels.update({row['id']: row['label'] for row in selected})
+                def append_variables(value):
+                    current = value.setdefault('variables', [])
+                    if not isinstance(current, list) or any(not isinstance(row, dict) for row in current):
+                        raise ValueError('Repair the variables list in Model / advanced before adding declarations.')
+                    ids = {row.get('id') for row in current}
+                    current.extend(row for row in variables if row['id'] not in ids)
+                self._edit_structure(append_variables)
+                self.message.setText('Variables added. Existing bounds and units were kept.')
         def begin():
             if relevant():
                 self._call(lambda: self.client.describe_inputs({'backend': inputs['backend'], 'settings': settings}),
@@ -806,6 +1116,7 @@ class RequestPlanWindow(NumericalWindow):
 
     def _candidate_changed(self):
         self._candidate_selection_serial += 1
+        self._plot_selected_result()
         self._update_actions()
 
     def _selected_pde_candidate(self):
@@ -946,6 +1257,32 @@ class RequestPlanWindow(NumericalWindow):
         begin()
         return True
 
+    def command(self, operation, arguments=None, *, after=None):
+        self._commit_editor()
+        if not self.document or self.conflict or self.local_dirty and operation != 'numerical.update':
+            self.message.setText('Apply edited study first; commands use the current service generation.')
+            return False
+        document, submitted = deepcopy(self.document), self.edited_draft()
+        context = (document['id'], document['session_id'])
+        def accepted(receipt):
+            late = self.edited_draft() != submitted
+            self.local_dirty = late
+            if late:
+                self.document = deepcopy(receipt['document'])
+                self._populate_runs(receipt.get('job', {}).get('id'))
+                self._draw_result()
+                self.message.setText('Earlier edits applied. Newer edits remain; Apply them before Save or Run.')
+            else:
+                self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
+                self.message.setText('Study ' + operation + ' acknowledged.')
+            if after and not late:
+                QTimer.singleShot(0, after)
+            elif receipt.get('job'):
+                QTimer.singleShot(0, self.refresh_result)
+        return self._call(lambda: self.client.document_command(document['id'], operation, deepcopy(arguments or {}),
+            session_id=document['session_id'], expected_generation=document['generation'], command_id='C' + uuid.uuid4().hex),
+            accepted, relevant=lambda: self.document and (self.document['id'], self.document['session_id']) == context)
+
     def edited_draft(self):
         self._commit_editor()
         draft = deepcopy(self._request_buffer)
@@ -971,7 +1308,7 @@ class RequestPlanWindow(NumericalWindow):
         return value
 
     def _edit_structure(self, callback):
-        if self._view_error or not self.document or self._busy:
+        if self._view_error or not self.document or self._busy and not self._busy_background:
             return
         draft = self.edited_draft()
         try:
@@ -1037,7 +1374,8 @@ class RequestPlanWindow(NumericalWindow):
             return
         identifier = self.document['id']
         def received(remote):
-            editing = self.local_dirty or self.inputs.state() == QAbstractItemView.State.EditingState
+            editing = self.local_dirty or any(view.state() == QAbstractItemView.State.EditingState
+                for view in (self.inputs, self.variable_sheet, self.response_sheet, self.method_sheet))
             changed = remote['session_id'] != self.document['session_id'] or canonical_hash(remote['draft']) != canonical_hash(self.document['draft'])
             if editing and changed:
                 self.conflict = True
@@ -1076,7 +1414,8 @@ class RequestPlanWindow(NumericalWindow):
         job = self.selected_job()
         result = self._result_cache.get(job, {})
         rows = result.get('candidates', result.get('predictions', []))
-        selected = self._selected_pde_candidate()
+        actual_selected = self._selected_actual_candidate()
+        selected = actual_selected.get('candidate_id') if actual_selected else None
         key = (self.document['id'], self.document['session_id'], job, canonical_hash(result)) if self.document else None
         unchanged = key == self._candidate_table_key
         self.candidates.blockSignals(True)
@@ -1084,7 +1423,7 @@ class RequestPlanWindow(NumericalWindow):
         self.candidates.setRowCount(0)
         self.candidates.setRowCount(len(rows))
         for row, candidate in enumerate(rows):
-            for column, value in enumerate((candidate.get('candidate_id'), candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('failure_reason'))):
+            for column, value in enumerate((candidate.get('candidate_id'), candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('feasible'), candidate.get('failure_reason'))):
                 self._set_cell(self.candidates, row, column, value, False)
             if unchanged and selected and candidate.get('candidate_id') == selected:
                 self.candidates.selectRow(row)
@@ -1099,6 +1438,12 @@ class RequestPlanWindow(NumericalWindow):
         self.plot_response.addItem('Study summary', None)
         for name, response in result.get('responses', {}).items():
             self.plot_response.addItem(name + ' [' + str(response.get('unit', 'undeclared')) + ']', name)
+        self._candidate_plot_names = {name for row in rows for name, response in row.get('responses', {}).items()
+                                      if isinstance(response, dict) and response.get('kind') in {'scalar', 'series'}}
+        self._candidate_plot_names.update(entry['response'] for row in rows for entry in row.get('response_reductions', [])
+                                          if isinstance(entry, dict) and isinstance(entry.get('response'), str))
+        for name in sorted(self._candidate_plot_names):
+            self.plot_response.addItem('Candidates: ' + name, {'candidate_response': name})
         index = self.plot_response.findData(previous)
         self.plot_response.setCurrentIndex(max(0, index))
         self.plot_response.blockSignals(False)
@@ -1114,6 +1459,10 @@ class RequestPlanWindow(NumericalWindow):
         result = self._result_cache.get(job, {})
         self.figure.clear()
         name = self.plot_response.currentData()
+        if isinstance(name, dict) and 'candidate_response' in name:
+            self._plot_candidate_response(result, name['candidate_response'])
+            self.canvas.draw_idle()
+            return
         response = result.get('responses', {}).get(name)
         if isinstance(response, dict):
             ax = self.figure.add_subplot(111)
@@ -1211,6 +1560,61 @@ class RequestPlanWindow(NumericalWindow):
             self._draw_study_summary(result, job)
         self.canvas.draw_idle()
 
+    def _plot_candidate_response(self, result, name):
+        ax = self.figure.add_subplot(111)
+        selected = self._selected_actual_candidate()
+        rows = result.get('candidates', [])
+        scalar_points, ids, units = [], [], set()
+        for index, row in enumerate(rows):
+            if row.get('execution_status') != 'SUCCEEDED' or row.get('prediction_status'):
+                continue
+            response = row.get('responses', {}).get(name)
+            if not isinstance(response, dict) or 'value' not in response:
+                reductions = [item for item in row.get('response_reductions', []) if item.get('response') == name]
+                # Different reductions are different quantities, not one curve.
+                response = reductions[0] if len(reductions) == 1 else None
+            if not isinstance(response, dict) or response.get('valid') is False:
+                continue
+            value = response.get('value')
+            if response.get('kind') == 'scalar' and type(value) in (int, float) and math.isfinite(value):
+                scalar_points.append((index, value))
+                ids.append(row['candidate_id'])
+                units.add((response.get('unit'), response.get('reduction', 'none'),
+                           response.get('component'), response.get('location'), response.get('frame'),
+                           response.get('measure'), response.get('coordinate_system'), response.get('coordinate_frame')))
+        if scalar_points and len(units) == 1:
+            artist = ax.scatter([point[0] for point in scalar_points], [point[1] for point in scalar_points], picker=5)
+            artist._candidate_ids = ids
+            if selected and selected['candidate_id'] in ids:
+                index = ids.index(selected['candidate_id'])
+                ax.scatter(*scalar_points[index], s=95, facecolors='none', edgecolors='#d56c22', linewidths=2)
+            unit, reduction, *_ = next(iter(units))
+            ax.set_xlabel('Original candidate order')
+            ax.set_ylabel(name + ' [' + str(unit) + '] / ' + str(reduction))
+        elif scalar_points:
+            ax.text(.5, .5, 'Candidate physical definitions differ; inspect each retained response.', ha='center', wrap=True, transform=ax.transAxes)
+        elif selected:
+            response = selected.get('responses', {}).get(name, {})
+            values, axes = response.get('value'), response.get('axes', [])
+            if (selected.get('execution_status') == 'SUCCEEDED' and response.get('valid') is not False
+                    and response.get('kind') == 'series' and isinstance(values, list) and len(axes) == 1):
+                coordinates, mask = axes[0].get('values'), response.get('mask')
+                finite = (isinstance(coordinates, list) and len(coordinates) == len(values)
+                    and all(type(value) in (int, float) and math.isfinite(value) for value in coordinates + values)
+                    and (mask is None or isinstance(mask, list) and len(mask) == len(values) and all(type(value) is bool for value in mask)))
+                if finite:
+                    ax.plot(coordinates, [value if mask is None or mask[index] else math.nan for index, value in enumerate(values)])
+                    ax.set_xlabel(str(axes[0].get('name')) + ' [' + str(axes[0].get('unit')) + ']')
+                    ax.set_ylabel(name + ' [' + str(response.get('unit')) + ']')
+                else:
+                    ax.text(.5, .5, 'No valid retained curve for this candidate.', ha='center', transform=ax.transAxes)
+            else:
+                ax.text(.5, .5, str(selected.get('failure_reason') or 'Curve not retained. Open candidate results to inspect available evaluations.'),
+                        ha='center', wrap=True, transform=ax.transAxes)
+        else:
+            ax.text(.5, .5, 'Select a candidate to inspect its retained curve.', ha='center', transform=ax.transAxes)
+        ax.set_title(str(selected['candidate_id']) if selected else 'Actual candidate responses')
+
     def consult_expert(self):
         job = self.selected_job()
         if not self.document or not job:
@@ -1262,14 +1666,15 @@ class RequestPlanWindow(NumericalWindow):
                                         and callable(getattr(self.client, 'pde_adopt' if target_kind == 'pde' else 'domain_candidate_adopt', None)))
         self._update_adoption_receipt_actions()
         source_id = source.get('discussion_id',source.get('pde_document_id',source.get('document_id'))) if isinstance(source,dict) else None
-        self.source_button.setEnabled(present and available and isinstance(source_id,str) and source_id.startswith(('X','Q','T','M','N','V','E')))
+        self.source_button.setEnabled(present and available and isinstance(source_id,str) and source_id.startswith(('X','S','Q','T','M','N','V','E')))
         self.reload_button.setVisible(self.conflict)
         self.copy_button.setVisible(self.conflict)
         self.reload_button.setEnabled(available)
         self.copy_button.setEnabled(available)
         if present:
             self.setWindowTitle('Numerical request Plan — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
-            self.identity.setText(f"g{self.document['generation']} · {self.document['id']}" + (' · unapplied edits' if self.local_dirty else ''))
+            self.identity.setText('Unapplied edits' if self.local_dirty else ('Saved' if not self.document.get('dirty') else 'Unsaved'))
+            self.identity.setToolTip(self.document['id'] + ' / generation ' + str(self.document['generation']))
 
     def open_runner(self):
         job = self.selected_job()
@@ -1281,13 +1686,13 @@ class RequestPlanWindow(NumericalWindow):
     def open_source(self):
         source = deepcopy(self.document['draft'].get('source'))
         identifier = source.get('discussion_id',source.get('pde_document_id',source.get('document_id'))) if isinstance(source,dict) else None
-        if not isinstance(identifier,str) or not identifier.startswith(('X','Q','T','M','N','V','E')):
+        if not isinstance(identifier,str) or not identifier.startswith(('X','S','Q','T','M','N','V','E')):
             self.message.setText('This request has no retained original source document.')
             return
         from .desktop import launch_tool
         def received(payload):
             self.message.setText('Requested the original source document: ' + str(payload.get('status', 'RETURNED')))
-        tool = {'X':'expert', 'Q':'pde', 'T':'data', 'M':'material', 'N':'numerical', 'V':'simulation', 'E':'evaluation'}[identifier[0]]
+        tool = {'X':'expert', 'S':'study', 'Q':'pde', 'T':'data', 'M':'material', 'N':'numerical', 'V':'simulation', 'E':'evaluation'}[identifier[0]]
         return self._call(lambda: launch_tool(self.client,tool,document_id=identifier),received)
 
     def choose_document(self):
