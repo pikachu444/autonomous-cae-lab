@@ -20,7 +20,7 @@ CAPABILITIES = {
     'pre': {'pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze',
             'document.save', 'document.undo', 'document.redo', 'document.activate',
             'pre.workbench', 'pre.export_native_copy', 'pre.validate',
-            'pre.research.discover', 'pre.research.register', 'pre.research.remove', 'pre.research.prepare',
+            'pre.research.discover', 'pre.research.register', 'pre.research.remove', 'pre.research.prepare', 'pre.research.connect_assembly',
             'pre.parameters.discover', 'pre.parameters.probe', 'pre.parameters.register',
             'pre.parameters.update', 'pre.parameters.remove', 'pre.parameters.preflight',
             'pre.project.inspect', 'pre.project.save', 'pre.project.open', 'pre.links.record',

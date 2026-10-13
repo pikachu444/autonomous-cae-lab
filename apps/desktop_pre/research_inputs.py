@@ -11,7 +11,7 @@ from caelab.storage import canonical_hash
 from .fem_edit import _native_type
 
 OPERATIONS = ('pre.research.discover', 'pre.research.register',
-              'pre.research.remove', 'pre.research.prepare')
+              'pre.research.remove', 'pre.research.prepare', 'pre.research.connect_assembly')
 GEOMETRY = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle'}
 LENGTH_NAMES = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1',
                 'Radius2', 'Angle', 'Angle2'}
@@ -128,6 +128,8 @@ def discover(owner, analysis):
             except (ValueError, TypeError):
                 value, reason = None, 'Repair the partial contact coefficient'
             rows.append(_row(obj, 'contact', field, value, unit, reason))
+    from .assembly_candidates import rows as assembly_rows
+    rows.extend(assembly_rows(owner, analysis))
     return rows
 
 
@@ -136,6 +138,9 @@ def value_at(owner, target, unit):
     if _native_type(obj) != target['native_type']:
         raise ValueError('Native variable object type changed')
     family, field = target['family'], target['field']
+    if family == 'joint_coordinate':
+        from .assembly_candidates import coordinate
+        return coordinate(owner, obj, unit)
     if family == 'contact':
         raw = getattr(obj, CONTACT_PROPERTIES[field])
         value = number(float(raw)) if unit == '1' else quantity_value(owner, raw, unit)[0]
@@ -183,6 +188,8 @@ def assign(owner, variable, value):
         raise ValueError((actual or {}).get('diagnostic') or 'Variable target is no longer advertised')
     obj = owner._object(target['object_id'])
     field, family = target['field'], target['family']
+    if family == 'joint_coordinate':
+        raise ValueError('Apply joint coordinates together after ordinary candidate inputs through native Motion')
     if family == 'contact':
         owner.fem.contact.set(obj, {'draft': {field: value}})
         actual_value = value_at(owner, target, unit)
@@ -254,6 +261,9 @@ class ResearchInputs:
                 raise ValueError('Enter a short variable label')
             value = value_at(self.owner, row['target'], args['unit'])
             lower, upper = validate_limits(row, args['lower'], args['upper'], value)
+            if row['target']['family'] == 'joint_coordinate':
+                from .assembly_candidates import validate_bound
+                validate_bound(self.owner, row, lower, upper, args['unit'])
             data = self.owner.read_metadata()
             rows = data.setdefault('research_inputs', [])
             if any(r['id'] == args['id'] and r['target'] != row['target'] for r in rows):
@@ -272,6 +282,12 @@ class ResearchInputs:
             data['research_inputs'] = [r for r in data.get('research_inputs', [])
                                       if (r['analysis_id'], r['id']) != (args['analysis_id'], args['id'])]
             self.owner._transaction('Remove Analysis variable', lambda: self.owner.write_metadata(data))
+            return self.descriptor(args['analysis_id'])
+        if operation == 'pre.research.connect_assembly':
+            if set(args) != {'analysis_id', 'assembly_id'}:
+                raise ValueError('Choose the Analysis and native Assembly')
+            from .occurrence_fem import connect
+            connect(self.owner, self.owner._object(args['analysis_id']), self.owner._object(args['assembly_id']))
             return self.descriptor(args['analysis_id'])
         if operation == 'pre.research.prepare':
             from .candidate_recipe import prepare_recipe

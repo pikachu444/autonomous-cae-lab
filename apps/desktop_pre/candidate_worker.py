@@ -39,14 +39,18 @@ def verify_saved_project(path, folder, recipe, values, App, Gui):
         validate_original_contacts(owner)
         for row in recipe['meshes']:
             owner.mesh_bindings.validate(owner._object(row['object_id']))
+        from .assembly_candidates import verify as verify_pose
+        pose = verify_pose(owner, recipe, values, solve=True)
         for row in recipe['variables']:
+            if row['target']['family'] == 'joint_coordinate':
+                continue  # Measured in the explicit angular/length tolerance above.
             if value_at(owner, row['target'], row['unit']) != values[row['id']]:
                 raise ValueError('Reopened candidate variable changed: ' + row['label'])
         if sha(path) != before:
             raise ValueError('Prepared project changed during read-only reopening')
         return {'state': 'VERIFIED', 'project_sha256': before,
                 'mesh_objects': [row['object_id'] for row in recipe['meshes']],
-                'contact_repair_performed': False}
+                'contact_repair_performed': False, 'assembly_pose': pose}
     finally:
         owner.close()
 
@@ -91,18 +95,31 @@ class CandidateWorker:
             self.owner.before_design_action('candidate binding')
             self.record_phase('binding')
             validate_original_contacts(self.owner)
+            from .assembly_candidates import validate_source, drive
+            validate_source(self.owner, self.recipe)
             for row in self.recipe['variables']:
                 current = value_at(self.owner, row['target'], row['unit'])
-                if current != row['value']:
+                equal = current == row['value']
+                if row['target']['family'] == 'joint_coordinate':
+                    from .assembly_candidates import _unit_value, ANGLE_TOLERANCE_RAD, LENGTH_TOLERANCE_MM
+                    unit = 'rad' if row['target']['field'] == 'angle' else 'mm'
+                    delta = _unit_value(self.owner, current - row['value'], row['unit'], unit)
+                    equal = abs(delta) <= (ANGLE_TOLERANCE_RAD if unit == 'rad' else LENGTH_TOLERANCE_MM)
+                if not equal:
                     raise ValueError('Saved typed variable differs from the frozen recipe: ' + row['label'])
             for row in self.recipe['variables']:
-                assign(self.owner, row, settings['values'][row['id']])
+                if row['target']['family'] != 'joint_coordinate':
+                    assign(self.owner, row, settings['values'][row['id']])
             self.document.recompute()
             self.retain_editable()
             self.record_phase('recompute')
             bad = [obj.Label for obj in self.document.Objects if set(obj.State) & {'Invalid', 'Error', 'Recompute'}]
             if bad:
                 raise ValueError('Native recompute failed: ' + ', '.join(bad))
+            if self.recipe.get('assembly'):
+                self.record_phase('pose')
+                self.record['assembly_pose'] = drive(self.owner, self.recipe, settings['values'])
+                self.retain_editable()
             self.record_phase('correspondence')
             self.record['correspondence'] = apply_correspondence(self.owner, self.recipe['correspondence'])
             self.retain_editable()
@@ -156,6 +173,11 @@ class CandidateWorker:
             self.fail(error)
 
     def freeze(self):
+        from .assembly_candidates import verify as verify_pose
+        self.record_phase('pose_after_mesh' if self.recipe.get('assembly') else 'freeze')
+        pose = verify_pose(self.owner, self.recipe, self.config['settings']['values'], solve=True)
+        if pose:
+            self.record['assembly_pose_after_mesh'] = pose
         self.record_phase('freeze')
         operation = 'pre.contact.freeze' if self.recipe['route'] == 'contact' else 'pre.freeze'
         request = {'command_id': 'C' + uuid.uuid4().hex, 'document_id': self.owner.document_id,

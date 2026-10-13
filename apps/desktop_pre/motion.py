@@ -163,7 +163,7 @@ class Motion:
                     row[key] = [ref[0].Document.Name, ref[0].Name, list(ref[1])] if ref else None
                 for key in ('Placement1', 'Placement2', 'Offset1', 'Offset2'):
                     if hasattr(joint, key): row[key] = plc(joint, key)
-                for key in ('Detach1', 'Detach2', 'Suppressed', 'Distance', 'Distance2', 'Angle', 'EnableLengthMin', 'EnableLengthMax', 'EnableRotationMin', 'EnableRotationMax', 'LengthMin', 'LengthMax', 'RotationMin', 'RotationMax'):
+                for key in ('Detach1', 'Detach2', 'Suppressed', 'Distance', 'Distance2', 'Angle', 'EnableLengthMin', 'EnableLengthMax', 'EnableAngleMin', 'EnableAngleMax', 'LengthMin', 'LengthMax', 'AngleMin', 'AngleMax'):
                     if hasattr(joint, key):
                         v = getattr(joint, key); row[key] = float(v.Value) if hasattr(v, 'Value') else v
             joints.append(row)

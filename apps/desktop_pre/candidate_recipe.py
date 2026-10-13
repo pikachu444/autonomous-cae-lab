@@ -42,6 +42,13 @@ def prepare_recipe(owner, args):
               'correspondence': capture(owner),
               'pairs': [{'id': row['object_id'], 'label': row['draft']['label']} for row in contacts],
               'qualification': 'UNKNOWN'}
+    from .assembly_candidates import capture as capture_assembly
+    assembly = capture_assembly(owner, analysis, variables)
+    if assembly:
+        if route != 'contact':
+            raise ValueError('Two-occurrence execution currently uses the supported contact Analysis; '
+                             'define its physical pair and FEM conditions before preparing this recipe')
+        recipe['assembly'] = assembly
     from caelab.adapters.cad_analysis import validate_recipe
     validate_recipe(recipe)
     data = owner.read_metadata()
