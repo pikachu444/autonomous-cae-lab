@@ -176,6 +176,15 @@ def test_completed_capture_opens_existing_owners_without_run_and_retries_preserv
         assert again['draft'] == edited['draft']
         wb.numerical_documents.command(plan['id'], 'document.save', {},
             session_id=wb.session_id, expected_generation=again['generation'])
-        assert wb.document_open(document_id=plan['id'])['draft'] == again['draft']
+        assert wb.document_open(kind='numerical', document_id=plan['id'])['draft'] == again['draft']
     finally:
         wb.shutdown()
+
+
+def test_native_bridge_and_candidate_worker_import_without_running_native():
+    import importlib
+    bridge = importlib.import_module('apps.desktop_pre.bridge')
+    worker = importlib.import_module('apps.desktop_pre.candidate_worker')
+    assert 'pre.research.prepare' in bridge.OPERATIONS
+    assert bridge.ResearchInputs is not None
+    assert callable(worker.start)
