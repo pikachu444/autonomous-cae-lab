@@ -187,7 +187,7 @@ def geometric_gaps(model, frame, *, subdivisions=4):
                        'solver_active_state': 'UNKNOWN', 'outside_or_ambiguous_projection': 'unavailable', 'triangle_edges': 'included_facet_normal'}}
 
 
-def write_post(folder, model, frames, pair_results):
+def write_post(folder, model, frames, pair_results, *, provenance=None):
     from apps.desktop_post.prepare import write_vtu, data_array
     from ..storage import save_json
     folder.mkdir()
@@ -264,4 +264,69 @@ def write_post(folder, model, frames, pair_results):
     return {'coordinate_units': 'mm', 'coordinate_frame': 'FREECAD_DOCUMENT_GLOBAL',
             'static': None, 'time': {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER',
                                      'values': [frame['static']['load_parameter'] for frame in frames]},
-            'arrays': arrays}
+            'arrays': arrays, 'contact_inspection': _inspection_bundle(folder, model, frames, provenance)}
+
+
+def _inspection_bundle(folder, model, frames, provenance):
+    """Retain exact quadratic A/B face unions, not volume-cell selections."""
+    from copy import deepcopy
+    import hashlib
+    import json
+    from ..contact_inspection import KIND, file_pin
+    from ..storage import save_json
+    from apps.desktop_post.prepare import data_array
+    nodes = sorted(model['nodes'], key=lambda row: row['node_id'])
+    indexes = {row['node_id']: index for index, row in enumerate(nodes)}
+    elements = {row['element_id']: row for row in model['elements']}
+    pairs, faces, surface_ids, element_ids, face_ids = [], [], [], [], []
+    for index, original in enumerate(model['contacts']):
+        pair = {'id': original['object_id'], 'label': original.get('draft', {}).get('label') or 'Contact ' + str(index + 1)}
+        for side_index, side in enumerate(('a', 'b')):
+            surface = deepcopy(original[side])
+            surface['surface_index'] = index * 2 + side_index + 1
+            surface['node_ids'] = surface_nodes(surface, {e: row['node_ids'] for e, row in elements.items()})
+            pair[side] = surface
+            for e, face in surface['element_faces']:
+                faces.append([indexes[elements[e]['node_ids'][slot]] for slot in FACES[face]])
+                surface_ids.append(surface['surface_index'])
+                element_ids.append(e)
+                face_ids.append(face)
+        pairs.append(pair)
+    root = ET.Element('VTKFile', type='UnstructuredGrid', version='0.1',
+                      byte_order='LittleEndian', header_type='UInt32')
+    piece = ET.SubElement(ET.SubElement(root, 'UnstructuredGrid'), 'Piece',
+                          NumberOfPoints=str(len(nodes)), NumberOfCells=str(len(faces)))
+    points = ET.SubElement(piece, 'Points')
+    data_array(points, 'Points', [value for row in nodes for value in row['position_mm']], components=3)
+    cells = ET.SubElement(piece, 'Cells')
+    data_array(cells, 'connectivity', [n for face in faces for n in face], integer=True)
+    data_array(cells, 'offsets', [6*(i+1) for i in range(len(faces))], integer=True)
+    data_array(cells, 'types', [22]*len(faces), integer=True)  # VTK_QUADRATIC_TRIANGLE
+    cell_data = ET.SubElement(piece, 'CellData')
+    for name, values in [('ContactSurfaceIndex', surface_ids), ('NativeElementId', element_ids), ('FaceNumber', face_ids)]:
+        data_array(cell_data, name, values, integer=True)
+    point_data = ET.SubElement(piece, 'PointData')
+    data_array(point_data, 'NativeNodeId', [row['node_id'] for row in nodes], integer=True)
+    surface_path = folder / 'contact-surfaces.vtu'
+    ET.ElementTree(root).write(surface_path, encoding='utf-8', xml_declaration=True)
+    topology = {'nodes': nodes, 'elements': model['elements'], 'pairs': pairs}
+    topology_path = folder / 'contact-topology.json'
+    save_json(topology_path, topology)
+    # Raw-input/output hashes identify the retained computation without a cycle
+    # through the final execution record which itself lists these new artifacts.
+    source = deepcopy(provenance or {})
+    source['model_sha256'] = hashlib.sha256(json.dumps(model, sort_keys=True, separators=(',', ':'),
+                                                       allow_nan=False).encode()).hexdigest()
+    manifest = {'kind': KIND, 'version': 1, 'entry': file_pin(folder / 'contact.pvd', folder),
+        'source': source, 'topology': file_pin(topology_path, folder),
+        'surfaces': file_pin(surface_path, folder), 'body_map': file_pin(folder / 'body_map.json', folder),
+        'frames': [{'static': deepcopy(frame['static']),
+                    'field': file_pin(folder / ('frame' + str(index+1).zfill(4) + '.vtu'), folder),
+                    'inspection': file_pin(folder / ('frame' + str(index+1).zfill(4) + '.json'), folder)}
+                   for index, frame in enumerate(frames)],
+        'force_unit': 'N', 'force_frame': 'FREECAD_DOCUMENT_GLOBAL',
+        'clock': {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'},
+        'active_state': 'UNKNOWN'}
+    path = folder / 'contact-inspection.json'
+    save_json(path, manifest)
+    return file_pin(path, folder)

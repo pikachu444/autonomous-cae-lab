@@ -155,6 +155,9 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         # The copied bytes must match the manifest too, including a change before copying.
         _frozen_files(Path(workbench_root) / entry['file'], folder.resolve(),
                       kind='freecad-contact-frozen' if kind == 'frozen_contact' else 'freecad-fem-frozen')
+    if kind == 'native_result' and (native_metadata or {}).get('contact_inspection') is not None:
+        from .contact_inspection import load
+        load(Path(workbench_root) / entry['file'], native_metadata['contact_inspection'])
     receipt = {'id': identifier, 'name': source.name, 'file': entry['file'],
                'bytes': entry['bytes'], 'sha256': entry['sha256'], 'created_utc': utc_now(),
                'kind': kind, 'format': format,
@@ -184,6 +187,10 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
             native_metadata={'kind': 'native_design_dependencies',
                 'original_locations': {path.relative_to(root).as_posix(): str(path) for path in paths}})
     paths, parsed_sha = _files(source, root)
+    if (native_metadata or {}).get('contact_inspection') is not None:
+        from .contact_inspection import load
+        bundle = load(source, native_metadata['contact_inspection'])
+        paths = list(dict.fromkeys([*paths, *[_within_root(path, root) for path in bundle['paths']]]))
     return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
                          root_id=root_id, relative=relative, limit=limit,
                          kind='native_result', format=source.suffix.lower()[1:], native_metadata=native_metadata)

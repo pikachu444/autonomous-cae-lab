@@ -192,7 +192,14 @@ def test_managed_contact_adapter_retains_exact_outputs_and_series_without_physic
     original = {p.relative_to(attempt): p.read_bytes() for p in attempt.rglob('*') if p.is_file()}
     rebuilt = contact_fem.regenerate_post(attempt, tmp_path/'rebuilt-post')
     assert rebuilt['solver_execution'] == 'NOT_PERFORMED' and rebuilt['frame_count'] == 2
-    assert rebuilt['post_artifact']['native_metadata'] == metadata
+    regenerated_metadata = rebuilt['post_artifact']['native_metadata']
+    assert {k: v for k, v in regenerated_metadata.items() if k != 'contact_inspection'} == {
+        k: v for k, v in metadata.items() if k != 'contact_inspection'}
+    from caelab.contact_inspection import load as load_contact
+    original_bundle = load_contact(attempt/'post/contact.pvd', metadata['contact_inspection'])
+    regenerated_bundle = load_contact(tmp_path/'rebuilt-post/contact.pvd', regenerated_metadata['contact_inspection'])
+    assert original_bundle['frames'] == regenerated_bundle['frames']
+    assert regenerated_bundle['manifest']['source']['source_record_sha256'] == rebuilt['source_record_sha256']
     assert (tmp_path/'rebuilt-post/contact.pvd').is_file()
     assert original == {p.relative_to(attempt): p.read_bytes() for p in attempt.rglob('*') if p.is_file()}
     with pytest.raises(ValueError, match='new Post directory'):
