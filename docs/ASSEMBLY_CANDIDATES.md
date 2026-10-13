@@ -119,7 +119,8 @@ meshed behind an apparently moving Link.
 Part::Feature.getElementHistory traces each binder element to its exact linked
 source object. This persists across saves; in-memory isSame/isPartner pointer
 identity does not. Native history and exact Support distinguish occurrences.
-Counts are completeness checks, not face identity. Before saved-boundary
+Counts are completeness checks, not face identity. A Solid1 region denotes the
+whole support of the one admitted solid; no Solid element history is invented. Before saved-boundary
 admission, the binder recomputes and must reproduce the same full BRep target;
 the comparison does not overwrite a fingerprint or make an old mesh current.
 
