@@ -136,7 +136,7 @@ def cancelled_outcome(folder, backend: str, error: ExecutionCancelled, namespace
             'provenance': {'execution_lifecycle': receipt}, 'raw_result': 'execution.json'}
 
 
-def run_owned_command(command, cwd, label, *, timeout=None, env=None):
+def run_owned_command(command, cwd, label, *, timeout=None, env=None, owned_tree=False):
     """Capture an adapter command using its live Popen ownership for cancellation.
 
     The adapter supplies all syntax and any existing budget. This helper does
@@ -170,7 +170,10 @@ def run_owned_command(command, cwd, label, *, timeout=None, env=None):
         except ExecutionCleanupFailed:
             state.update(status='CLEANUP_PENDING', return_code=process.returncode,
                          termination_reason=reason, cleanup_observed_utc=utc_now())
-            save_json(state_path, state)
+            try:
+                save_json(state_path, state)
+            except Exception:
+                pass  # Keep the cleanup error and live ownership, even if journaling failed.
             raise
     try:
         check_cancelled()
@@ -179,9 +182,17 @@ def run_owned_command(command, cwd, label, *, timeout=None, env=None):
         raise
     try:
         with (folder / state['stdout']).open('wb') as stdout, (folder / state['stderr']).open('wb') as stderr:
-            process = subprocess.Popen(command, cwd=folder.resolve(), stdout=stdout, stderr=stderr,
-                                       start_new_session=os.name == 'posix', env=env)
+            if owned_tree and os.name == 'nt':
+                from .windows_job import spawn_gated, release_gate
+                process, ready = spawn_gated(command, cwd=folder.resolve(), stdout=stdout,
+                                              stderr=stderr, env=env, label=label)
+            else:
+                process = subprocess.Popen(command, cwd=folder.resolve(), stdout=stdout, stderr=stderr,
+                                           start_new_session=os.name == 'posix', env=env)
             try:
+                if owned_tree and os.name == 'nt':
+                    release_gate(process, ready, check_cancelled)
+                    state['tree_ownership'] = 'WINDOWS_JOB'
                 state.update(status='RUNNING', pid=process.pid)
                 save_json(state_path, state)
                 wait_for_process(process, timeout=timeout)
@@ -209,6 +220,18 @@ def run_owned_command(command, cwd, label, *, timeout=None, env=None):
 def wait_for_process(process: subprocess.Popen, timeout: float | None = None) -> int:
     """Observe cancellation while waiting, without imposing a new wall budget."""
     token = _current.get()
+    job = getattr(process, '_caelab_windows_job', None)
+    if job is not None:
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while process.poll() is None or job.active():
+            if token is not None:
+                token.check()
+            if deadline is not None and time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired(process.args, timeout)
+            time.sleep(.02)
+        job.close()
+        process._caelab_windows_job = None
+        return process.returncode
     if token is None:
         return process.wait(timeout=timeout)
     deadline = None if timeout is None else time.monotonic() + timeout
@@ -226,8 +249,24 @@ def wait_for_process(process: subprocess.Popen, timeout: float | None = None) ->
 
 def stop_owned_process(process: subprocess.Popen, *, isolated_group: bool,
                        reap_timeout: float = 1.0) -> None:
-    """Reap only this Popen child and its explicitly isolated POSIX group."""
+    """Reap the live child and its isolated POSIX group or assigned Windows Job."""
     try:
+        job = getattr(process, '_caelab_windows_job', None)
+        if job is not None:
+            if process.stdin is not None and not process.stdin.closed:
+                process.stdin.close()  # An unreleased gate refuses EOF.
+            job.terminate()
+            if process.poll() is None:
+                process.kill()  # Also covers a gate whose Job assignment failed.
+            process.wait(timeout=reap_timeout)
+            deadline = time.monotonic() + reap_timeout
+            while job.active():
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('Owned Windows Job still has active descendants')
+                time.sleep(.02)
+            job.close()
+            process._caelab_windows_job = None
+            return
         if isolated_group and os.name == "posix":
             if process.returncode is not None:
                 # A wait interrupted by KeyboardInterrupt may have reaped the

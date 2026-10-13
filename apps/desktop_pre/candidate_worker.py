@@ -10,6 +10,7 @@ import uuid
 from caelab.storage import load_json, save_json
 from caelab.native_cad import unpack_project, sha
 from .bridge import Owner
+from .projects import save_native_copy
 from .research_inputs import assign, value_at
 from .candidate_correspondence import apply as apply_correspondence, validate_original_contacts
 
@@ -36,7 +37,7 @@ class CandidateWorker:
         # Preserve usable editable native bytes even when an ensuing step fails.
         # The already copied source/dependencies remain beside this raw fallback.
         path = self.folder / 'candidate-draft.FCStd'
-        self.owner.doc.saveCopy(str(path))
+        save_native_copy(self.owner.doc, path)
         self.record['editable_draft'] = str(path)
         self.record['editable_draft_sha256'] = sha(path)
         save_json(self.folder / 'candidate-preparation.json', self.record)

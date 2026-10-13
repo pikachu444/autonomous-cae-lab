@@ -31,6 +31,15 @@ def resolve_settings(wb, settings):
         raise ValueError('Plan recipe differs from the registered saved Analysis')
     runtime = wb.desktop.context()
     executable = runtime.get('freecad_executable')
+    if executable:
+        configured = Path(executable).expanduser()
+        # Official portable root FreeCAD.exe is a short-lived launcher. The
+        # same installation's bin executable owns the GUI/macros we must await.
+        native = configured.parent / 'bin' / 'FreeCAD.exe'
+        if configured.name.lower() == 'freecad.exe' and native.is_file():
+            executable = str(native.resolve())
+        else:
+            executable = str(configured.resolve())
     gmsh = None
     if executable:
         exe = Path(executable)

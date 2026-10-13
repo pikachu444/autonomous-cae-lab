@@ -244,7 +244,7 @@ class CADAnalysisAdapter:
             for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
                 environment.pop(key, None)
             prepared = run_owned_command([str(executable), '-u', str(folder / 'user.cfg'),
-                '-s', str(folder / 'system.cfg'), str(macro)], folder, 'freecad_candidate', env=environment)
+                '-s', str(folder / 'system.cfg'), str(macro)], folder, 'freecad_candidate', env=environment, owned_tree=True)
             receipt = load_json(folder / 'candidate-preparation.json')
             result['candidate_preparation'] = receipt
             if prepared.returncode or receipt.get('state') != 'PREPARED':
