@@ -7,6 +7,23 @@
 
 ## 현재 통합 중인 변경
 
+### 최신 사용자 우선순위: Co-STORM 원형에 따른 화면 교정
+
+사용자는 실제 Study 화면의 내부 ID/SHA/JSON과 빈 폼을 보고 사용하기 어렵다고 지적했고,
+이미 지정한 Co-STORM 원형을 따르라고 다시 요구했다. 기존 PRODUCT_PLAN의 지정 원형과
+PRODUCT_UI_MCP_PLAN §6.6은 그대로 유효하다. 요구가 불명확한 것이 아니라 화면 반영과
+사용자 확인이 부족했다. GUI 완료로 취급하지 않는다.
+
+같은 Pro에 `CO-STORM-UI-CORRECTION-01`을 전달했다. 조립 후보의 현재 작성분을
+보존할 checkpoint 후 화면 교정으로 우선 전환하도록 지시했다. 공식 논문 Figure15와
+§3, 공식 저장소를 전달했으며 논점 지도·중앙 다자 대화·하단 참여 입력·출처 보기와
+실제 reply/개입/pause/resume를 기존 native Qt/Runtime에 연결한다. 기본 화면의 내부
+식별자와 raw JSON은 기술 상세로 옮기고 실제 본문·계산값·그래프를 우선한다.
+Study의 모순 상태 설명과 연결 내용 읽기도 함께 교정한다. 새 인터뷰로 이미 답한
+방향을 되묻거나 문서/검사 통과를 사용자 GUI 수용으로 바꾸지 않는다.
+
+### 직전 통합과 실행 근거
+
 Expert 연결 코드와 교정, 한국어 사용법을 원격 main `8b1ec55`까지 게시하고
 원격 SHA 일치를 확인했다. 연결/UI/config 검사 12개와 host 관련
 7개는 통과했고 실제 `install-windows.ps1 -ResearchUI`의 Expert/MCP import도 통과했다.
@@ -57,8 +74,13 @@ D2의 관절 좌표 등록→native 자세 구동/저장→움직인 occurrence�
 Expert의 남은 취소/복구·Study 수용은 유지하되 같은 검사 반복으로 D2 구현을 막지 않는다.
 MoAI `todo next 3`으로 D2를 진행 상태로 옮겼다. 실제 `spec_audit`는 파일을 읽었으나
 옛 형식으로 분류해 형식 점검 범위만 확인했으며 구현/수용 통과로 간주하지 않는다.
-Codex는 저장된 E6 논의·계산을 Study에 연결하는 기존 경로를 조사·확인하고, Pro가
-소유한 조립 구현 파일과 겹치지 않게 통합을 준비한다.
+Codex는 저장된 E6 논의·계산을 실제 Study 창의 결과/발언 선택→Apply→Save→참조 확인으로
+연결하고 별도 프로세스에서 다시 열었다. 두 원본 연결은 AVAILABLE이며 새 job/AI/solver
+호출은 없었다. `runs/product-development/20261013/expert-plan-live-01/study-created.json`,
+`study-reopened.json`, `study-reopen.png`에 근거가 있다. 실제 Qt QTest/모달 선택과 HTTP
+owner 경로이며 OS 마우스 조작 전체 수용은 아니다. 화면에서 AVAILABLE 뒤에 미확인
+설명이 붙는 오류와 ID/JSON 중심 구성을 발견했다. Astra가 Study 내용 읽기·판단·후속
+연결의 빠진 동작을 최대 3개로 검토 중이며, 같은 Pro의 조립 구현을 중단하지 않는다.
 
 ## 지금 받을 수 있는 것과 인도 계획
 
