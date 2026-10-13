@@ -244,6 +244,7 @@ Pro의 첫 자료 연결 커밋 `7090d1c`를 `c409665`로 통합했다. 선택�
 교정 요청했다. 공개 Markdown/text PDF/CSV3개를 실제 import한 Qt 렌더에서도 원문과
 질문·자료3개가 보였다. 다만 재열기 직후 원문 읽기와 제목 조회가 겹쳐 Source1/2/3으로
 남는 문제, Astra가 찾은 주기 갱신 때 선택 해제도 같은 Pro가 교정 중이다.
+같은 Astra 검토가 찾은 다른 논의로 이동한 뒤 이전 원문이 남는 문제도 전달했다.
 `runs/product-development/20261013/expert-preview-63bea349`에 실제 화면/receipt가 있다.
 모델 미설정 상태의 로컬 자료 작업이며 실제 inference/OS 입력을 확인한 것은 아니다.
 첫 렌더 helper는 등록 역할이 반드시 있다고 잘못 가정해 대기했고, 그 가정만 제거한 뒤
@@ -262,6 +263,14 @@ Runner/Post 결과까지 연결한다. 별도 설정의 FreeCADCmd로 공개 합
 점을 보완했다. Luna는 접촉 압력/침투/마찰 변위의 FRD와 pair 힘의 DAT를 기존 parser에
 연결할 위치를 조사했다. 두 출력의 부호/association이 다르며 양수 gap은 FRD COPEN만으로
 얻을 수 없어 명세에 미해결 구현으로 남겼다. 넓은 수치 검증은 선행하지 않았다.
+다음 실제 Pro 요청 `PRO-IMPL-CONTACT-20261013-01`을 같은 대화에 전송했고 실제
+userMessage `01a133bc-eb27-77f4-98b1-455457d0f371`의 본문에서 수신을 확인했다.
+기준은 main `08ecb55`의 SPEC-CONTACT-001/FN-14/C05와 관련 기존 native 코드다.
+현재 Expert 교정을 게시한 뒤 추가 승인을 기다리지 않고 사용자 모델의 접촉 편집·메시·
+해석/Runner·Post 연결을 작성하도록 맡긴다. 새 작성 브랜치는
+`codex/contact-workflow-20261013`; Pro가 제품 코드·관련 검사/사용 안내를 쓰고 Codex는
+공유 계약 통합·CURRENT_STATE/SPEC/Windows 실행을 소유한다. 아직 접촉 코드가 작성된
+것으로 보고하지 않는다.
 실제 데스크톱 캡처는 Windows 잠금 화면이어서 해제를 요청했다. 창 입력 확인만 대기하며
 Pro 작성과 코드 통합은 계속한다. 공개 PDF/Markdown/CSV의 첫 자료 가져오기 예제도 준비했다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와
