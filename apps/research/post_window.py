@@ -152,6 +152,16 @@ class PostWindow(QMainWindow):
         self.refresh_button = QPushButton('Refresh owner; keep draft')
         self.refresh_button.clicked.connect(lambda: self.refresh_document(explicit=True))
         toolbar.addWidget(self.refresh_button)
+        self.numerical_button = QPushButton('Use in Numerical…')
+        self.numerical_button.setObjectName('useMeasurementInNumerical')
+        self.numerical_button.clicked.connect(self.use_in_numerical)
+        toolbar.addWidget(self.numerical_button)
+        self.handoff_retry = QPushButton('Resume measurement import')
+        self.handoff_retry.clicked.connect(self._continue_measurement_handoff)
+        self.handoff_retry.setVisible(False)
+        toolbar.addWidget(self.handoff_retry)
+        self._measurement_handoff = None
+        self._measurement_dialog = None
         self.identity = QLabel()
         toolbar.addWidget(self.identity)
         root = QWidget()
@@ -1035,6 +1045,61 @@ class PostWindow(QMainWindow):
             'draft': self.edited_draft(), 'object': self._object(), 'restore_issues': self._analysis().get('restore_issues', []),
             'repair': self._analysis().get('repair', []), 'command': self._last_command, 'samples': self._samples}, ensure_ascii=False, indent=2))
 
+    def use_in_numerical(self):
+        if self._measurement_handoff:
+            return self._continue_measurement_handoff()
+        obj = self._object()
+        if not obj or obj['kind'] != 'measurement' or self.local_dirty:
+            self.message.setText('Select an applied saved measurement; Apply and Save any recipe edits first.')
+            return False
+        def extracted(_payload):
+            command_id = self._last_command['command_id']
+            token = self._context_token()
+            def previewed(payload):
+                from .post_measurement_dialog import MeasurementDialog
+                from PySide6.QtWidgets import QDialog
+                dialog = self._measurement_dialog = MeasurementDialog(payload['snapshot'], self)
+                if dialog.exec() != QDialog.DialogCode.Accepted or token != self._context_token():
+                    return
+                selection = deepcopy(dialog.selection)
+                if selection is None:
+                    return
+                # Explicit New Plan never reopens/replaces another live Plan.
+                def context_ready(context):
+                    self._measurement_handoff = {'command_id': command_id, 'selection': selection,
+                        'session_id': context['service_session_id'], 'handoff_id': 'C' + uuid.uuid4().hex}
+                    self.handoff_retry.setVisible(True)
+                    self._continue_measurement_handoff()
+                self._call(self.client.desktop_context, context_ready)
+            self._call(lambda: self.client.post_measurement_preview(command_id), previewed,
+                       relevant=lambda: token == self._context_token())
+        return self.queue_command('post.measurement_snapshot', {'object_ref': obj['id']}, accepted=extracted)
+
+    def _continue_measurement_handoff(self):
+        pending = self._measurement_handoff
+        if pending is None:
+            return False
+        def received(payload):
+            if self._measurement_handoff is not pending:
+                return
+            state = payload['state']
+            if state == 'READY':
+                document_id = payload['document']['id']
+                from .desktop import launch_tool
+                def opened(_receipt):
+                    self._measurement_handoff = None
+                    self.handoff_retry.setVisible(False)
+                    self.message.setText('Measured curve opened in Numerical. Select the model, variables and predicted response before Run.')
+                self._call(lambda: launch_tool(self.client, 'numerical', document_id=document_id), opened)
+            elif state in {'FAILED', 'REJECTED', 'CANCELLED', 'INTERRUPTED'}:
+                identifier = payload['data_document']['id']
+                self.message.setText('Measurement import ' + state + '. Open Data ' + identifier +
+                    ' to repair the mapping. ' + str(payload.get('error') or ''))
+            else:
+                self.message.setText('Importing measured samples: ' + state)
+                QTimer.singleShot(250, self._continue_measurement_handoff)
+        return self._call(lambda: self.client.post_measurement_plan(**deepcopy(pending)), received)
+
     def _update_actions(self):
         present = self.document is not None
         idle = not self._busy and self._pending is None
@@ -1052,6 +1117,10 @@ class PostWindow(QMainWindow):
         self.edit_button.setEnabled(enabled)
         self.preview_button.setEnabled(enabled)
         obj = self._object()
+        self.numerical_button.setEnabled(enabled and bool(obj and obj['kind'] == 'measurement'
+            and obj.get('position', -1) >= 0) and not self.local_dirty
+            and 'post.measurement_snapshot' in self.document.get('capabilities', []))
+        self.handoff_retry.setEnabled(idle and self._measurement_handoff is not None)
         self.apply_button.setEnabled(enabled and bool(obj and obj.get('preview')) and not self.local_dirty)
         self.view_selector.setEnabled(enabled)
         self.show_applied_button.setEnabled(enabled and bool(obj and obj.get('position', -1) >= 0))

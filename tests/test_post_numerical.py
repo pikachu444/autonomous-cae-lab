@@ -34,7 +34,7 @@ def fixture_snapshot(tmp_path):
     origin = {'kind': 'post_measurement', 'document_id': 'Dpost', 'session_id': 'Snative', 'pid': 1234,
         'project': file_pin(path), 'workspace': file_pin(state), 'object_ref': 'Ameasure',
         'revision': record['id'], 'recipe_sha256': canonical_hash(recipe),
-        'result_files': record['result_files'], 'result_sha256': record['result_sha256']}
+        'result_files_sha256': canonical_hash(record['result_files']), 'result_sha256': record['result_sha256']}
     rows = [{'block': [0], 'row': index, 'values': {'Time': t, 'U': [u, 10 * u, 0],
                                                   'vtkValidPointMask': 1}}
             for index, (t, u) in enumerate([(0, 0), (.02, .2294), (.04, .31)])]
@@ -65,10 +65,26 @@ def test_exact_components_clock_rows_and_invalid_policy(tmp_path):
     assert completed_snapshot(command) == snapshot
     assert choices(snapshot)['arrays']['U'] == 3
     chosen = selection()
+    for auxiliary in ('Time', 'N', 'NativeNodeId', 'vtkValidPointMask'):
+        auxiliary_snapshot = deepcopy(snapshot)
+        for row in auxiliary_snapshot['rows']:
+            row['values'][auxiliary] = 1
+        with pytest.raises(ValueError, match='auxiliary'):
+            project_samples(auxiliary_snapshot, dict(chosen, value_array=auxiliary, value_component=None))
+    aggregate = deepcopy(snapshot)
+    for row in aggregate['rows']:
+        row['values']['avg(U (2))'] = row['values'].pop('U')[0]
+    selected = dict(chosen, value_array='avg(U (2))', value_component=None)
+    assert project_samples(aggregate, selected)['origin']['native_column'] == {
+        'array': 'U', 'component': 2, 'statistic': 'avg'}
     projected = project_samples(snapshot, chosen)
     assert [row['value'] for row in projected['rows']] == [0, .2294, .31]
     assert [row['axis'] for row in projected['rows']] == [0, .02, .04]
     assert projected['origin']['row_identity'][1]['native'] == {'block': [0], 'row': 1}
+    for key, changed in (('unit', 'm'), ('frame', 'local'), ('measure', 'strain')):
+        wrong = dict(chosen, **{key: changed})
+        with pytest.raises(ValueError, match='saved'):
+            project_samples(snapshot, wrong)
     chosen['value_component'] = None
     with pytest.raises(ValueError, match='explicit vector component'):
         project_samples(snapshot, chosen)
@@ -81,6 +97,14 @@ def test_exact_components_clock_rows_and_invalid_policy(tmp_path):
     result = project_samples(snapshot, chosen)
     assert result['mapping']['columns']['measured']['row_selection']['exclude_rows'] == [2]
     assert len(result['rows']) == 3
+    from caelab.adapters.file_table import read_table
+    source = tmp_path / 'masked.csv'
+    source.write_bytes(result['csv'])
+    retained = read_table(source, result['mapping'])['responses']['measured']['raw_samples']
+    assert retained['value'][1] == .2294
+    assert retained['source_rows'][1] == 2
+    assert retained['quality_valid'][1] is False and retained['calculation_valid'][1] is False
+    assert retained['quality_reasons'][1] == 'native_mask'
     chosen['axis']['name'] = 'vtkValidPointMask'
     with pytest.raises(ValueError):
         project_samples(snapshot, chosen)

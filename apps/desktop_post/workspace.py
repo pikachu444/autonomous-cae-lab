@@ -605,7 +605,7 @@ class Workspace:
             'workspace': file_pin(path.parent / project['workspace_file']),
             'object_ref': object_ref, 'revision': record['id'],
             'recipe_sha256': digest(saved['recipe']),
-            'result_files': deepcopy(saved['result_files']),
+            'result_files_sha256': digest(saved['result_files']),
             'result_sha256': saved['result_sha256']}
         verify_origin(origin)
         rows, total = [], None

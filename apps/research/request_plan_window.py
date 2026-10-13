@@ -105,6 +105,8 @@ class _WorksheetDelegate(QStyledItemDelegate):
 class RequestPlanWindow(NumericalWindow):
     """Reuse NumericalWindow's service commands, retained jobs, save and close flow."""
     def __init__(self, client, document_id=None, poll_interval=2000, auto_open=True):
+        self._post_observation = None
+        self._observation_key = None
         self._return_messages = {}
         self._return_receipts = {}
         self._last_return_message = None
@@ -326,6 +328,40 @@ class RequestPlanWindow(NumericalWindow):
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         self.tabs.addTab(self.details, 'Diagnostics / submitted input')
+        observation_panel = self.observation_panel = QWidget()
+        observation_layout = QVBoxLayout(observation_panel)
+        observation_actions = QHBoxLayout()
+        self.observed_trial = QComboBox()
+        self.observed_trial.setObjectName('observedTrial')
+        self.observed_trial.currentIndexChanged.connect(self._observation_trial_changed)
+        observation_actions.addWidget(self.observed_trial, 1)
+        self.observed_read = QPushButton('Read observation')
+        self.observed_read.clicked.connect(self.load_observation)
+        observation_actions.addWidget(self.observed_read)
+        self.observed_post = QPushButton('Open in Post')
+        self.observed_post.setObjectName('openObservedPost')
+        self.observed_post.clicked.connect(self.open_observed_post)
+        observation_actions.addWidget(self.observed_post)
+        observation_layout.addLayout(observation_actions)
+        self.observed_info = QLabel('Select a retained Post observation.')
+        self.observed_info.setWordWrap(True)
+        observation_layout.addWidget(self.observed_info)
+        observed_split = QSplitter(Qt.Orientation.Vertical)
+        self.observed_table = readonly_table(['Source row', 'Native location', 'Axis', 'Measured', 'State / reason'])
+        self.observed_table.setObjectName('observedPostSamples')
+        self.observed_table.setColumnWidth(0, 85)
+        self.observed_table.setColumnWidth(1, 170)
+        self.observed_table.setColumnWidth(2, 100)
+        self.observed_table.setColumnWidth(3, 100)
+        self.observed_table.itemSelectionChanged.connect(self._observation_pick)
+        observed_split.addWidget(self.observed_table)
+        self.observed_figure = Figure(figsize=(6, 3))
+        self.observed_canvas = FigureCanvasQTAgg(self.observed_figure)
+        self.observed_canvas.mpl_connect('pick_event', self._observation_plot_pick)
+        observed_split.addWidget(self.observed_canvas)
+        observed_split.setSizes([220, 330])
+        observation_layout.addWidget(observed_split, 1)
+        self.tabs.addTab(observation_panel, 'Observed curve')
         result_layout.addWidget(self.tabs, 1)
         self.candidate_results_button = QPushButton('Open retained candidate curves / fields / stages')
         self.candidate_results_button.setObjectName('openCandidateStageResults')
@@ -407,6 +443,7 @@ class RequestPlanWindow(NumericalWindow):
                     rows.append(('Objective', definition.get('response') if isinstance(definition, dict) else None, definition, ('objective',)))
                 for index, definition in enumerate(value.get('constraints', []) if isinstance(value.get('constraints', []), list) else []):
                     rows.append(('Constraint', definition.get('response') if isinstance(definition, dict) else None, definition, ('constraints', index)))
+            self.response_sheet.setHorizontalHeaderLabels(['Role', 'Response', 'Reduction', 'Direction / relation', 'Limit', 'Unit'])
             self.response_sheet.setRowCount(len(rows))
             for row, (role, selector, definition, path) in enumerate(rows):
                 self._sheet_cell(self.response_sheet, row, 0, role, entry=path)
@@ -430,6 +467,38 @@ class RequestPlanWindow(NumericalWindow):
                     ('Random seed', ('seed',), 0, True, ()),
                     ('Retain responses', ('options', 'retain_responses'), 'summary', False, ('summary', 'all'))]
                 if operation == 'optimize' else [])
+            if operation == 'fit':
+                self.response_sheet.setHorizontalHeaderLabels(['Trial', 'Model response', 'Role', 'Weight', 'Residual scale', 'Observed channel'])
+                trials = value.get('experiments', [])
+                trials = trials if isinstance(trials, list) else []
+                self.response_sheet.setRowCount(len(trials))
+                prior_trial = self.observed_trial.currentData()
+                self.observed_trial.blockSignals(True)
+                self.observed_trial.clear()
+                for index, trial in enumerate(trials):
+                    if not isinstance(trial, dict):
+                        continue
+                    path = ('experiments', index)
+                    observation = trial.get('observation_ref', {})
+                    observation = observation if isinstance(observation, dict) else {}
+                    self._sheet_cell(self.response_sheet, index, 0, trial.get('id'), path + ('id',), entry=path)
+                    self._sheet_cell(self.response_sheet, index, 1, trial.get('response') or 'Choose model response…')
+                    self._sheet_cell(self.response_sheet, index, 2, trial.get('role', 'fit'), path + ('role',), choices=('fit', 'holdout'))
+                    self._sheet_cell(self.response_sheet, index, 3, trial.get('weight', 1), path + ('weight',), numeric=True)
+                    self._sheet_cell(self.response_sheet, index, 4, trial.get('scale', 1), path + ('scale',), numeric=True)
+                    self._sheet_cell(self.response_sheet, index, 5, observation.get('response', 'unassigned'))
+                    if observation.get('result'):
+                        self.observed_trial.addItem(str(trial.get('id', index)), index)
+                prior_index = self.observed_trial.findData(prior_trial)
+                if prior_index >= 0:
+                    self.observed_trial.setCurrentIndex(prior_index)
+                self.observed_trial.blockSignals(False)
+                method = value.get('method', 'least_squares')
+                settings = [('Fit method', ('method',), 'least_squares', False, ('least_squares', 'differential_evolution'))]
+                settings += ([('Function evaluations', ('options', 'max_nfev'), 100, True, ())]
+                    if method == 'least_squares' else [
+                        ('Generations', ('options', 'max_generations'), 40, True, ()),
+                        ('Population size', ('options', 'population_size'), 12, True, ())])
             refs = value.get('result_refs', {})
             if operation == 'doe' and ('candidates' in value or isinstance(refs, dict) and 'candidates' in refs):
                 settings = [] if isinstance(refs, dict) and 'candidates' in refs else settings[1:]
@@ -526,7 +595,24 @@ class RequestPlanWindow(NumericalWindow):
                 return
             self._worksheet_labels.clear()
             self._worksheet_responses.clear()
-            self._edit_structure(lambda value: value.update(backend=inputs['backend'], settings=deepcopy(inputs['settings'])))
+            if self.operation.currentData() == 'fit':
+                trials = self.edited_draft()['request']['inputs'].get('experiments', [])
+                if not isinstance(trials, list) or not trials or any(not isinstance(row, dict) for row in trials):
+                    self.message.setText('Add a trial before choosing its model protocol.')
+                    return
+                selected = 0
+                if len(trials) > 1:
+                    labels = [str(index + 1) + ': ' + str(row.get('id')) for index, row in enumerate(trials)]
+                    label, ok = QInputDialog.getItem(self, 'Use model protocol', 'Trial', labels, editable=False)
+                    if not ok or not relevant():
+                        return
+                    selected = labels.index(label)
+                def bind_model(value):
+                    value['backend'] = inputs['backend']
+                    value['experiments'][selected]['settings'] = deepcopy(inputs['settings'])
+                self._edit_structure(bind_model)
+            else:
+                self._edit_structure(lambda value: value.update(backend=inputs['backend'], settings=deepcopy(inputs['settings'])))
         def listed(payload):
             documents = [row for row in payload['documents'] if row.get('kind') in {'material', 'pde', 'simulation', 'evaluation'}]
             labels = [row['title'] + ' (' + row['kind'] + ') — ' + row['id'] for row in documents]
@@ -563,6 +649,11 @@ class RequestPlanWindow(NumericalWindow):
         self._statuses.clear()
         self._show_document(document)
         self.message.setText('Request Plan opened. Source identity remains retained; edits and save do not execute a calculation.')
+        self._post_observation = None
+        self._observation_key = None
+        if self.operation.currentData() == 'fit' and self.observed_trial.count():
+            self.tabs.setCurrentWidget(self.observation_panel)
+            self.load_observation()
 
     @staticmethod
     def _shape_error(draft):
@@ -666,8 +757,9 @@ class RequestPlanWindow(NumericalWindow):
         self.model_response_button.setVisible(operation in {'fit', 'doe', 'uq', 'optimize', 'epsilon'})
         self.observation_button.setVisible(operation == 'fit')
         self.constraint_button.setVisible(operation == 'optimize')
-        self.sheet.setEnabled(operation in {'doe', 'optimize'})
-        self.input_tabs.setCurrentWidget(self.sheet if operation in {'doe', 'optimize'} else self.advanced)
+        self.sheet.setEnabled(operation in {'fit', 'doe', 'optimize'})
+        self.input_tabs.setCurrentWidget(self.sheet if operation in {'fit', 'doe', 'optimize'} else self.advanced)
+        self.tabs.setTabVisible(self.tabs.indexOf(self.observation_panel), operation == 'fit')
         self.operation_note.setText({
             'analyze': 'Select the exact saved candidate table and declare each physical response/reduction. Failed rows remain exclusions.',
             'surrogate': 'Select separate retained training and holdout runs. Add physical response/reduction and typed points. Predictions remain PREDICTED; they cannot be adopted as evaluated coefficients.',
@@ -1818,6 +1910,8 @@ class RequestPlanWindow(NumericalWindow):
                                         and callable(getattr(self.client, 'pde_candidate_preview' if target_kind == 'pde' else 'domain_candidate_preview', None))
                                         and callable(getattr(self.client, 'pde_adopt' if target_kind == 'pde' else 'domain_candidate_adopt', None)))
         self._update_adoption_receipt_actions()
+        self.observed_read.setEnabled(enabled and self.operation.currentData() == 'fit' and self.observed_trial.count() > 0)
+        self.observed_post.setEnabled(enabled and self._observation_matches() and bool(self._post_observation.get('source_available')))
         source_id = source.get('discussion_id',source.get('pde_document_id',source.get('document_id'))) if isinstance(source,dict) else None
         self.source_button.setEnabled(present and available and isinstance(source_id,str) and source_id.startswith(('X','S','Q','T','M','N','V','E')))
         self.reload_button.setVisible(self.conflict)
@@ -1835,6 +1929,118 @@ class RequestPlanWindow(NumericalWindow):
             runner = RunnerWindow(self.client, job_id=job)
             self._runner_windows.append(runner)
             runner.show()
+
+    def _selected_observation(self):
+        if not self.document or self._view_error or not self.inputs.topLevelItem(0):
+            return None
+        index = self.observed_trial.currentData()
+        if type(index) is not int:
+            return None
+        trials = self._input_value(self.inputs.topLevelItem(0)).get('experiments', [])
+        if not isinstance(trials, list) or not 0 <= index < len(trials):
+            return None
+        trial = trials[index]
+        observation = trial.get('observation_ref') if isinstance(trial, dict) else None
+        return deepcopy(observation) if isinstance(observation, dict) else None
+
+    def _observation_matches(self):
+        selected = self._selected_observation()
+        return bool(self._post_observation and selected and
+                    self._observation_key == canonical_hash(selected))
+
+    def _observation_trial_changed(self, *_):
+        if hasattr(self, 'observed_table'):
+            self._post_observation = None
+            self._observation_key = None
+            self.observed_table.setRowCount(0)
+            self.observed_figure.clear()
+            self.observed_canvas.draw_idle()
+            self.observed_info.setText('Read this trial’s exact retained observation.')
+            self._update_actions()
+
+    def load_observation(self):
+        selected = self._selected_observation()
+        if not selected or not callable(getattr(self.client, 'post_observation', None)):
+            return False
+        key = canonical_hash(selected)
+        owner = (self.document['id'], self.document['session_id'])
+        def relevant():
+            current = self._selected_observation()
+            return (self.document is not None and (self.document['id'], self.document['session_id']) == owner
+                    and current is not None and canonical_hash(current) == key)
+        def received(payload):
+            if selected.get('response') != 'measured' or payload['reference'] != selected['result']:
+                raise ValueError('Observation reader returned another selected response')
+            self._post_observation = payload
+            self._observation_key = key
+            response, origin = payload['response'], payload['origin']
+            axis = response['axes'][0]
+            raw = response.get('raw_samples')
+            if raw:
+                values, axes, source_rows = raw['value'], raw['axis'], raw['source_rows']
+                valid, reasons = raw['calculation_valid'], raw['exclusion_reasons']
+            else:
+                values, axes = response['value'], axis['values']
+                source_rows = response.get('source_rows', list(range(1, len(values) + 1)))
+                valid, reasons = [True] * len(values), [''] * len(values)
+            identities = {row['source_row']: row['native'] for row in origin['row_identity']}
+            self._observed_rows = list(zip(source_rows, axes, values, valid, reasons))
+            self.observed_table.setRowCount(len(values))
+            for index, (source_row, x, y, good, reason) in enumerate(self._observed_rows):
+                for column, value in enumerate((source_row, identities.get(source_row), x, y,
+                                                'Used' if good else 'Excluded: ' + reason)):
+                    self._set_cell(self.observed_table, index, column, value, False)
+            mapping = origin['selection']
+            self.observed_info.setText(mapping['value_array'] + ' / ' + response['component'] +
+                ' [' + response['unit'] + '] at ' + response['location'] +
+                ('\nOriginal Post unavailable: ' + str(payload['source_error']) if not payload['source_available'] else ''))
+            self.observed_figure.clear()
+            self._observed_axes = self.observed_figure.add_subplot(111)
+            self._observed_axes.plot([float(x) for x in axes],
+                [float(y) if good else math.nan for y, good in zip(values, valid)],
+                marker='o', markersize=4, picker=6)
+            self._observed_axes.set_xlabel(axis['name'] + ' [' + axis['unit'] + ']')
+            self._observed_axes.set_ylabel(response['component'] + ' [' + response['unit'] + ']')
+            self._observed_axes.grid(True, alpha=.2)
+            self._observed_marker = None
+            self.observed_figure.tight_layout()
+            self.observed_canvas.draw_idle()
+        def failed(error):
+            if relevant():
+                self._post_observation = None
+                self._observation_key = None
+                self.observed_info.setText('Observation unavailable: ' + error)
+        return self._call(lambda: self.client.post_observation(selected['result']),
+                          received, relevant=relevant, rejected=failed)
+
+    def _observation_pick(self):
+        if not self._observation_matches() or not hasattr(self, '_observed_axes'):
+            return
+        if self._observed_marker is not None:
+            self._observed_marker.remove()
+            self._observed_marker = None
+        index = self.observed_table.currentRow()
+        if 0 <= index < len(self._observed_rows):
+            _, x, y, valid, _ = self._observed_rows[index]
+            if valid:
+                self._observed_marker, = self._observed_axes.plot([float(x)], [float(y)], 'o',
+                                                                 color='#c55324', markersize=8)
+        self.observed_canvas.draw_idle()
+
+    def _observation_plot_pick(self, event):
+        if len(getattr(event, 'ind', [])):
+            row = int(event.ind[0])
+            self.observed_table.selectRow(row)
+            self.observed_table.scrollToItem(self.observed_table.item(row, 0))
+
+    def open_observed_post(self):
+        if not self._observation_matches():
+            self.observed_info.setText('Read the selected observation before opening its Post source.')
+            return False
+        reference = deepcopy(self._post_observation['reference'])
+        from .desktop import open_post_observation
+        return self._call(lambda: open_post_observation(self.client, reference),
+            lambda receipt: self.message.setText('Original Post: ' + str(receipt['status'])))
 
     def open_source(self):
         source = deepcopy(self.document['draft'].get('source'))

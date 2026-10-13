@@ -336,3 +336,8 @@ navigation on the same service. This first slice changes entry and preparation;
 the following assigned product work is the Numerical worksheet and the
 Expert → Plan → result → follow-up Discussion/Study command path. The launcher
 does not complete or re-qualify those workflows.
+
+
+## Native Post observations
+
+A saved native Post point/path/time measurement can now enter a generic Numerical fit Plan through **Use in Numerical…** in the existing Post controls. The dialog selects an actual native column/component/statistic and axis, previews its table/curve, and explicitly creates a new Plan through the shared Data importer. Numerical shows the retained observation, editable fit/holdout/weight/scale and missing model binding; **Open in Post** returns to the exact saved native measurement. See [Post measurement workflow](POST_NUMERICAL.md) for steps, source boundaries and verification scope.

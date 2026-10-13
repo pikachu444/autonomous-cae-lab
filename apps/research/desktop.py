@@ -255,6 +255,75 @@ def open_origin(client, job_id, parent=None):
                           'Retained design copy — ' + job_id])
 
 
+def _native_pid_alive(pid):
+    """Conservative local liveness; None means uncertain, never permission to launch."""
+    if type(pid) is not int or pid <= 0:
+        return None
+    if os.name == 'nt':
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+        kernel.WaitForSingleObject.restype = wintypes.DWORD
+        kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+        handle = kernel.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE, no process mutation.
+        if not handle:
+            return False if ctypes.get_last_error() == 87 else None
+        try:
+            state = kernel.WaitForSingleObject(handle, 0)
+            return False if state == 0 else True if state == 258 else None
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return None
+
+
+def open_post_observation(client, reference):
+    """Reuse exact live measurement or reopen its verified saved native project."""
+    payload = client.post_observation(reference)
+    if not payload['source_available']:
+        raise ValueError('Original Post is unavailable; the retained curve remains in Data. ' +
+                         str(payload['source_error']))
+    origin = payload['origin']
+    # Do not transport the per-row mapping in a native broker command.
+    source = {key: origin[key] for key in ('kind', 'document_id', 'session_id', 'pid',
+        'project', 'workspace', 'object_ref', 'revision', 'recipe_sha256', 'result_files_sha256', 'result_sha256')}
+    documents = client.documents()['documents']
+    matches = [doc for doc in documents if doc.get('kind') == 'post' and doc['id'] == origin['document_id']]
+    connected = [doc for doc in matches if doc.get('connected')]
+    if len(connected) > 1:
+        raise ValueError('More than one native owner claims this project; select/reconnect the original owner')
+    if connected:
+        native = connected[0]
+        receipt = client.document_command(native['id'], 'post.measurement_open', {'origin': source},
+            session_id=native['session_id'], expected_generation=native['generation'],
+            command_id='C' + uuid.uuid4().hex)
+        command = receipt.get('command', receipt)
+        identifier = command.get('command_id', command.get('id'))
+        deadline = time.monotonic() + 20
+        while command.get('state') not in {'SUCCEEDED', 'FAILED', 'CANCELLED', 'REJECTED', 'INTERRUPTED'}:
+            if time.monotonic() >= deadline:
+                raise RuntimeError('Native source selection is unconfirmed; reconnect before retrying')
+            time.sleep(.05)
+            command = client.command_status(identifier)
+        envelope = command.get('outcome', {}).get('result', {})
+        if command['state'] != 'SUCCEEDED' or envelope.get('status') != 'COMPLETED':
+            raise RuntimeError('The live Post source was not changed: ' +
+                               str(command.get('outcome', command.get('error'))))
+        return {'status': 'SHOWN', 'document_id': native['id'], 'command_id': identifier}
+    pids = {origin.get('pid'), *[doc.get('state', {}).get('pid') for doc in matches]}
+    if any(_native_pid_alive(pid) is not False for pid in pids):
+        raise ValueError('Original Post is disconnected or its closure is uncertain; reconnect that window first')
+    return _spawn(client, ['post', '--measurement-result', json.dumps(reference, ensure_ascii=False)])
+
+
 def _choose_file(title, filters):
     from PySide6.QtWidgets import QApplication, QFileDialog
     application = QApplication.instance() or QApplication(sys.argv[:1])
@@ -331,6 +400,15 @@ def _post(client, args):
     research_source = json.loads(source_text) if source_text is not None else None
     if research_source is not None and not args.job_id:
         raise ValueError('A stage source requires the exact parent job')
+    measurement_source = None
+    if getattr(args, 'measurement_result', None):
+        payload = client.post_observation(json.loads(args.measurement_result))
+        if not payload['source_available']:
+            raise ValueError('Saved Post source is unavailable: ' + str(payload['source_error']))
+        measurement_source = payload['origin']
+        if _native_pid_alive(measurement_source.get('pid')) is not False:
+            raise ValueError('Original Post closure is unconfirmed; reconnect its existing window')
+        args.project = measurement_source['project']['path']
     if args.project:
         project = Path(args.project).resolve(strict=True)
         folder = _folder(context, 'post', args.output)
@@ -385,6 +463,13 @@ def _post(client, args):
         CAELAB_DESKTOP_PYTHON=context['python'], CAELAB_REPO_ROOT=context['repo_root'])
     # Prevent an inherited Post origin from attaching itself to an unrelated input.
     environment.pop('CAELAB_ORIGIN_JOB_ID', None)
+    environment.pop('CAE_POST_MEASUREMENT', None)
+    if measurement_source is not None:
+        selection_path = folder / 'measurement.json'
+        save_json(selection_path, {key: measurement_source[key] for key in (
+            'kind', 'document_id', 'session_id', 'pid', 'project', 'workspace', 'object_ref',
+            'revision', 'recipe_sha256', 'result_files_sha256', 'result_sha256')})
+        environment['CAE_POST_MEASUREMENT'] = str(selection_path)
     if origin_job_id:
         environment['CAELAB_ORIGIN_JOB_ID'] = origin_job_id
     # Reopening a retained revision updates only the launch environment. Neither
@@ -403,6 +488,7 @@ def _arguments(argv=None):
     pre.add_argument('--input-id')
     post = sub.add_parser('post', allow_abbrev=False)
     choice = post.add_mutually_exclusive_group()
+    choice.add_argument('--measurement-result')
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
     origin = sub.add_parser('origin', allow_abbrev=False); origin.add_argument('--job-id', required=True)
     for name in sorted(TOOLS):

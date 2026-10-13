@@ -28,6 +28,12 @@ try:
             from bridge import start
             # Keep the native timer/owner alive for this actual application session.
             cae_post_bridge = start(os.environ["CAE_POST_SERVICE_URL"], log=log)
+            if os.environ.get("CAE_POST_MEASUREMENT"):
+                from caelab.post_observation import verify_origin
+                selected = json.loads(Path(os.environ["CAE_POST_MEASUREMENT"]).read_text(encoding="utf-8"))
+                verify_origin(selected)
+                cae_post_bridge[0].workspace.measurement_open(origin=selected)
+                log("measurement_restored", object_ref=selected["object_ref"], revision=selected["revision"])
             log("bridge_timer_installed", document_id=cae_post_bridge[0].document_id,
                 session_id=cae_post_bridge[0].session_id, gui_dispatch_verified=False)
         except Exception:
