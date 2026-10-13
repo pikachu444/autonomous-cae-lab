@@ -10,6 +10,7 @@ from copy import deepcopy
 import hashlib
 import json
 import math
+from pathlib import Path
 import re
 import sys
 import uuid
@@ -640,7 +641,7 @@ class FEMEditor:
         record.update(updates)
         self.owner.write_metadata(data)
 
-    def _generate(self, mesh):
+    def _generate(self, mesh, *, owned_directory=None):
         errors = self._refinement_errors(mesh)
         if errors:
             raise ValueError(errors[0])
@@ -659,7 +660,24 @@ class FEMEditor:
                 # Prevent unguarded native automatic replacement. The same native
                 # update_properties implementation is called in our completion txn.
                 tool.process.finished.disconnect(tool._process_finished)
-                tool.prepare()
+                if owned_directory is None:
+                    tool.prepare()
+                else:
+                    directory = Path(owned_directory).resolve(strict=True)
+                    if not directory.is_dir() or any(directory.iterdir()):
+                        raise ValueError('Candidate mesh requires a fresh owned directory')
+                    # Same FreeCAD 1.1.4 prepare steps; supply its supported path
+                    # argument instead of inheriting desktop meshing preferences.
+                    tool.load_properties()
+                    tool.update_mesh_data()
+                    tool.get_tmp_file_paths(str(directory))
+                    paths = [tool.working_dir, tool.temp_file_geometry,
+                             tool.temp_file_geo, tool.temp_file_mesh]
+                    if any(not Path(path).resolve().is_relative_to(directory) for path in paths):
+                        raise ValueError('Native meshing files escaped the candidate directory')
+                    tool.get_gmsh_command()
+                    tool.write_gmsh_input_files()
+                    pending['owned_directory'] = str(directory)
                 pending['stamp'] = self._generation_stamp(mesh)
                 data = self._metadata()
                 data['mesh_history'].append({'id': identifier, 'mesh_id': mesh.Name, 'state': 'RUNNING',

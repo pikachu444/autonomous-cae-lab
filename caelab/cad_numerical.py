@@ -87,19 +87,30 @@ def prepare_plan(wb, command_id, *, operation='doe'):
                         'simulation_id': 'V' + canonical_hash({'capture': command_id})[:32],
                         'title': result['label'][:160]}
             save_json(record, prepared)
+        recipe = prepared['settings']['recipe']
+        scalar = next((r for r in recipe['responses'] if r['reduction'] not in ('field', 'series')), None)
+        if operation == 'optimize' and scalar is None:
+            raise ValueError('Choose at least one scalar response for an objective')
         simulation = wb.simulation_documents
         identifier = prepared['simulation_id']
-        with simulation._lock(identifier):
-            if (simulation._folder(identifier) / 'working.json').exists() or simulation._manifest(identifier):
-                source = simulation.read(identifier)
-            else:
-                source = simulation.open(_new_id=identifier, title=prepared['title'],
-                                         draft={'backend': BACKEND, 'settings': prepared['settings']})
-        handoff = wb.desktop.domain_plan(identifier, session_id=wb.session_id,
-            expected_generation=source['generation'], command_id='C' + canonical_hash({'capture': command_id, 'step': 'plan'})[:32])
+        if 'handoff' not in prepared:
+            with simulation._lock(identifier):
+                if (simulation._folder(identifier) / 'working.json').exists() or simulation._manifest(identifier):
+                    source = simulation.read(identifier)
+                else:
+                    source = simulation.open(_new_id=identifier, title=prepared['title'],
+                                             draft={'backend': BACKEND, 'settings': prepared['settings']})
+                expected_draft = {'backend': BACKEND, 'settings': prepared['settings']}
+                if canonical_hash(source['draft']) != canonical_hash(expected_draft) or source['runs']:
+                    raise ValueError('Prepared Analysis recipe was edited; keep its edits and make a new capture')
+                prepared['handoff'] = {'document_id': identifier, 'session_id': wb.session_id,
+                    'expected_generation': source['generation'],
+                    'command_id': 'C' + canonical_hash({'capture': command_id, 'step': 'plan'})[:32]}
+                save_json(record, prepared)
+        handoff = wb.desktop.domain_plan(**prepared['handoff'])
         plan = handoff['document']
-        # Initialize exactly once. Retry returns its current edited owner, never
-        # resets a live Plan or replaces later user edits.
+        # Retain exact initialization arguments BEFORE applying. The existing
+        # owner command receipt handles replay; a retry never uses a newer generation.
         recipe = prepared['settings']['recipe']
         inputs = {'backend': BACKEND, 'settings': deepcopy(prepared['settings']),
                   'variables': [{'id': row['id'], 'value': row['value'], 'lower': row['lower'],
@@ -112,16 +123,28 @@ def prepare_plan(wb, command_id, *, operation='doe'):
             scalar = next((r for r in recipe['responses'] if r['reduction'] not in ('field', 'series')), None)
             if not scalar:
                 raise ValueError('Choose at least one scalar response for an objective')
-            inputs.update(objective={'response': scalar['id'], 'unit': scalar['unit'], 'reduction': 'none', 'direction': 'minimize'},
+            inputs.update(objective={'response': scalar['id'], 'unit': scalar['unit'], 'reduction': ('none' if scalar['reduction'] == 'value' else scalar['reduction']), 'direction': 'minimize'},
                           constraints=[], options={'population_size': 4, 'max_generations': 1})
             budget = 8
         draft = request_draft({'purpose': prepared['title'], 'operation': operation,
                                'inputs': inputs, 'budget': {'evaluations': budget}}, source=handoff['source'])
-        update_id = 'C' + canonical_hash({'capture': command_id, 'step': 'initialize'})[:32]
-        updated = wb.numerical_documents.command(plan['id'], 'numerical.update', {'draft': draft},
-            session_id=wb.session_id, expected_generation=plan['generation'], command_id=update_id)['document']
-        save_json(record, {**prepared, 'plan_id': updated['id'], 'source': handoff['source']})
-        return {'document': updated, 'source': handoff['source'], 'executed': False}
+        if 'initialization' not in prepared:
+            initial = request_draft({'purpose': prepared['title'], 'operation': 'evaluate',
+                'inputs': {'backend': BACKEND, 'settings': prepared['settings']},
+                'budget': {'evaluations': 1}}, source=handoff['source'])
+            if canonical_hash(plan['draft']) != canonical_hash(initial) or plan['runs']:
+                raise ValueError('New Plan was edited before initialization; its edits are retained')
+            prepared['initialization'] = {'identifier': plan['id'], 'operation': 'numerical.update',
+                'arguments': {'draft': draft}, 'session_id': wb.session_id,
+                'expected_generation': plan['generation'],
+                'command_id': 'C' + canonical_hash({'capture': command_id, 'step': 'initialize'})[:32]}
+            prepared['source'] = handoff['source']
+            save_json(record, prepared)
+        wb.numerical_documents.command(**prepared['initialization'])
+        # Read the current owner after replay: an earlier result may predate edits.
+        updated = wb.numerical_documents.read(prepared['initialization']['identifier'])
+        save_json(record, {**prepared, 'plan_id': updated['id']})
+        return {'document': updated, 'source': prepared['source'], 'executed': False}
 
 
 def open_candidate(wb, plan_id, job_id, candidate_id, evaluation_index):
@@ -135,11 +158,13 @@ def open_candidate(wb, plan_id, job_id, candidate_id, evaluation_index):
     if verified.get('backend') != BACKEND:
         raise ValueError('This candidate has no native saved-design evaluator')
     editable = verified.get('editable_design')
-    if not editable or not editable.get('calculated'):
+    if verified.get('execution_status') != 'SUCCEEDED' or not editable or not editable.get('calculated'):
         raise ValueError('No successfully calculated editable candidate; inspect retained failure files')
     parent, run = result_folder(wb, plan_id, job_id)
     result = read_result(parent, selection={'metadata_only': True})
     candidate = next(row for row in result['candidates'] if row['candidate_id'] == candidate_id)
+    if candidate.get('execution_status') != 'SUCCEEDED':
+        raise ValueError('Select a successful candidate; failed artifacts remain available for inspection')
     ref = candidate['evaluation_refs'][evaluation_index]
     folder = contained(parent, ref['relative'])
     project = contained(folder, editable['relative'])

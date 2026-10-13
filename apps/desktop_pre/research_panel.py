@@ -3,12 +3,125 @@ from copy import deepcopy
 import re
 
 
+def response_dialog(QtWidgets, pairs, definition=None, parent=None):
+    """Select an actual supported channel; dimensional units follow that channel."""
+    dialog = QtWidgets.QDialog(parent)
+    dialog.setWindowTitle('Response')
+    layout = QtWidgets.QVBoxLayout(dialog)
+    form = QtWidgets.QFormLayout()
+    name = QtWidgets.QLineEdit((definition or {}).get('id', 'response'))
+    name.setObjectName('responseName')
+    kind = QtWidgets.QComboBox(); kind.setObjectName('responseKind')
+    kind.addItem('Displacement', 'displacement')
+    if pairs:
+        kind.addItem('Pair force', 'pair')
+        kind.addItem('Contact field', 'contact_field')
+    pair = QtWidgets.QComboBox(); pair.setObjectName('responsePair')
+    for row in pairs:
+        pair.addItem(row['draft']['label'], row['object_id'])
+    field, component, reduction = (QtWidgets.QComboBox() for _ in range(3))
+    field.setObjectName('responseField'); component.setObjectName('responseComponent')
+    reduction.setObjectName('responseReduction')
+    frame = QtWidgets.QComboBox(); frame.addItems(['Final increment', 'Retained increment index'])
+    frame.setObjectName('responseFrame')
+    index = QtWidgets.QSpinBox(); index.setRange(0, 1000000); index.setObjectName('responseFrameIndex')
+    increment = QtWidgets.QWidget(); increment_layout = QtWidgets.QHBoxLayout(increment)
+    increment_layout.setContentsMargins(0, 0, 0, 0)
+    increment_layout.addWidget(frame); increment_layout.addWidget(index)
+    unit, scope = QtWidgets.QLabel(), QtWidgets.QLabel()
+    unit.setObjectName('responseUnit'); scope.setWordWrap(True)
+    for label, widget in [('Name', name), ('Response', kind), ('Pair', pair),
+                          ('Quantity', field), ('Selection', component), ('Increment', increment),
+                          ('Reduction', reduction), ('Unit', unit)]:
+        form.addRow(label, widget)
+    layout.addLayout(form); layout.addWidget(scope)
+    error = QtWidgets.QLabel(); error.setWordWrap(True); layout.addWidget(error)
+    def choices(widget, rows):
+        widget.clear()
+        for label, value in rows:
+            widget.addItem(label, value)
+    def set_value(widget, value):
+        found = widget.findData(value)
+        if found >= 0:
+            widget.setCurrentIndex(found)
+    def field_changed(*_):
+        selected = kind.currentData()
+        value = field.currentData()
+        unit.setText('N' if selected == 'pair' else
+                     'MPa' if value in ('CPRESS', 'CSHEAR1', 'CSHEAR2') else 'mm')
+    def changed(*_):
+        selected = kind.currentData()
+        pair.setEnabled(selected != 'displacement')
+        if selected == 'contact_field':
+            choices(field, [('Pressure', 'CPRESS'), ('Raw COPEN', 'COPEN'),
+                ('Slip 1', 'CSLIP1'), ('Slip 2', 'CSLIP2'), ('Shear 1', 'CSHEAR1'),
+                ('Shear 2', 'CSHEAR2'), ('Geometric gap', 'GeomGap_mm')])
+            choices(component, [('Side A', 'a'), ('Side B', 'b'), ('Both sides', 'both')])
+            choices(reduction, [('Maximum', 'max'), ('Minimum', 'min'), ('Mean', 'mean'), ('Nodal field', 'field')])
+            scope.setText('Shared nodal projection. Geometric gap is derived; raw COPEN is kept distinct.')
+        else:
+            choices(field, [('Normal force', 'CFN'), ('Total force', 'CF'), ('Shear force', 'CFS')]
+                    if selected == 'pair' else [('Displacement', 'displacement')])
+            choices(component, [(axis, axis) for axis in 'XYZ']); set_value(component, 'Z')
+            choices(reduction, [('Selected increment', 'value'), ('All retained increments', 'series')]
+                    if selected == 'pair' else [('Maximum', 'max'), ('Minimum', 'min'), ('Mean', 'mean'), ('Nodal field', 'field')])
+            scope.setText('Pair-specific DAT resultant on side A; global component. Load parameter is dimensionless.'
+                          if selected == 'pair' else 'Global nodal component at the retained final increment.')
+        frame.setEnabled(selected != 'displacement')
+        if selected == 'displacement':
+            frame.setCurrentIndex(0)
+        index.setEnabled(frame.currentIndex() == 1 and selected != 'displacement')
+        field_changed()
+    def frame_changed(*_):
+        index.setEnabled(frame.currentIndex() == 1 and kind.currentData() != 'displacement')
+    def reduction_changed(*_):
+        all_frames = reduction.currentData() == 'series'
+        frame.setEnabled(kind.currentData() != 'displacement' and not all_frames)
+        if all_frames:
+            frame.setCurrentIndex(0)
+        frame_changed()
+    kind.currentIndexChanged.connect(changed)
+    field.currentIndexChanged.connect(field_changed)
+    frame.currentIndexChanged.connect(frame_changed)
+    reduction.currentIndexChanged.connect(reduction_changed)
+    if definition:
+        set_value(kind, definition['kind'])
+    changed()
+    if definition:
+        set_value(pair, definition.get('pair_id'))
+        set_value(field, definition.get('quantity', definition.get('field', 'displacement')))
+        set_value(component, definition.get('component', definition.get('side')))
+        set_value(reduction, definition['reduction'])
+        if definition['increment'] != 'final':
+            frame.setCurrentIndex(1); index.setValue(definition['increment'])
+    result = {}
+    def accept():
+        identifier = name.text().strip()
+        if not re.fullmatch('[a-z][a-z0-9_]{0,47}', identifier):
+            error.setText('Use a short lower-case response name.')
+            return
+        selected = kind.currentData()
+        result.update(id=identifier, kind=selected, unit=unit.text(), reduction=reduction.currentData(),
+                      increment='final' if frame.currentIndex() == 0 else index.value())
+        if selected == 'pair':
+            result.update(pair_id=pair.currentData(), quantity=field.currentData(), component=component.currentData())
+        elif selected == 'contact_field':
+            result.update(pair_id=pair.currentData(), field=field.currentData(), side=component.currentData())
+        else:
+            result.update(component=component.currentData())
+        dialog.accept()
+    buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+    buttons.accepted.connect(accept); buttons.rejected.connect(dialog.reject); layout.addWidget(buttons)
+    return result if dialog.exec() == QtWidgets.QDialog.Accepted else None
+
+
 def make_panel(QtWidgets, QtCore, research, submit, create_plan):
     owner = research.owner
     class Panel(QtWidgets.QWidget):
         def __init__(self):
             super().__init__()
             self.info, self.busy, self.capture_id = None, False, None
+            self.response_defs = []
             layout = QtWidgets.QVBoxLayout(self)
             row = QtWidgets.QHBoxLayout()
             self.analysis, self.solver, self.method = QtWidgets.QComboBox(), QtWidgets.QComboBox(), QtWidgets.QComboBox()
@@ -35,14 +148,19 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             row.addStretch(); layout.addLayout(row)
             self.responses = QtWidgets.QTableWidget(0, 8)
             self.responses.setHorizontalHeaderLabels(['Response', 'Kind', 'Pair', 'Field / quantity', 'Side / component', 'Increment', 'Reduction', 'Unit'])
+            self.responses.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            self.responses.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+            self.responses.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+            self.responses.cellDoubleClicked.connect(lambda *_: self.edit_response())
             self.responses.horizontalHeader().setStretchLastSection(True)
             layout.addWidget(self.responses, 2)
             row = QtWidgets.QHBoxLayout()
             add = QtWidgets.QPushButton('Add response'); add.clicked.connect(self.add_response)
             remove = QtWidgets.QPushButton('Remove response')
-            remove.clicked.connect(lambda: self.responses.removeRow(self.responses.currentRow()) if self.responses.currentRow() >= 0 else None)
+            remove.clicked.connect(self.remove_response)
+            edit = QtWidgets.QPushButton('Edit response'); edit.clicked.connect(self.edit_response)
             self.prepare = QtWidgets.QPushButton('Create Numerical Plan…'); self.prepare.clicked.connect(self.plan)
-            row.addWidget(add); row.addWidget(remove); row.addStretch(); row.addWidget(self.method); row.addWidget(self.prepare)
+            row.addWidget(add); row.addWidget(edit); row.addWidget(remove); row.addStretch(); row.addWidget(self.method); row.addWidget(self.prepare)
             layout.addLayout(row)
             self.message = QtWidgets.QLabel(); self.message.setWordWrap(True); layout.addWidget(self.message)
             self.refresh()
@@ -88,13 +206,18 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                           row['diagnostic'] or ('Registered' if registered else 'Select model bounds')]
                 for col, value in enumerate(values):
                     cell = QtWidgets.QTableWidgetItem(str(value) if value is not None else '')
-                    if col in (0, 1, 6):
+                    if col in (0, 1, 6) or not row['writable']:
                         cell.setFlags(cell.flags() & ~QtCore.Qt.ItemIsEditable)
                     self.table.setItem(index, col, cell)
             self.table.resizeColumnsToContents()
             self.message.setText('Model limits are saved with CAD; search limits are edited in the Plan.')
             if not self.responses.rowCount():
-                self.add_response()
+                pairs = self.pairs()
+                self.response_defs = ([{'id': 'force_z', 'kind': 'pair', 'pair_id': pairs[0]['object_id'],
+                    'quantity': 'CFN', 'component': 'Z', 'increment': 'final', 'reduction': 'value', 'unit': 'N'}]
+                    if pairs else [{'id': 'u_z', 'kind': 'displacement', 'component': 'Z',
+                        'increment': 'final', 'reduction': 'max', 'unit': 'mm'}])
+                self.render_responses()
 
         def selected(self):
             index = self.table.currentRow()
@@ -128,35 +251,53 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             except Exception as error:
                 self.message.setText(str(error))
 
-        def add_response(self):
-            pairs = [r for r in owner.fem.contact._data()['contacts']
-                     if r['analysis_id'] == self.analysis.currentData()
-                     and not getattr(owner._object(r['object_id']), 'Suppressed', False)]
-            row = self.responses.rowCount(); self.responses.insertRow(row)
-            values = (['force_z_' + str(row + 1), 'pair', pairs[0]['object_id'], 'CFN', 'Z', 'final', 'value', 'N']
-                      if pairs else ['u_z_' + str(row + 1), 'displacement', '', 'displacement', 'Z', 'final', 'max', 'mm'])
-            for col, value in enumerate(values):
-                cell = QtWidgets.QTableWidgetItem(value)
-                if col == 2 and pairs:
-                    cell.setToolTip('\n'.join(r['object_id'] + ': ' + r['draft']['label'] for r in pairs))
-                self.responses.setItem(row, col, cell)
+        def pairs(self):
+            return [r for r in owner.fem.contact._data()['contacts']
+                    if r['analysis_id'] == self.analysis.currentData()
+                    and not getattr(owner._object(r['object_id']), 'Suppressed', False)]
+
+        def render_responses(self):
+            labels = {row['object_id']: row['draft']['label'] for row in self.pairs()}
+            self.responses.setRowCount(len(self.response_defs))
+            for row, definition in enumerate(self.response_defs):
+                values = [definition['id'],
+                    {'pair': 'Pair force', 'contact_field': 'Contact field', 'displacement': 'Displacement'}[definition['kind']],
+                    labels.get(definition.get('pair_id'), ''),
+                    definition.get('quantity', definition.get('field', 'Displacement')),
+                    definition.get('component', {'a': 'A', 'b': 'B', 'both': 'A + B'}.get(definition.get('side'))),
+                    'Final' if definition['increment'] == 'final' else str(definition['increment']),
+                    definition['reduction'], definition['unit']]
+                for col, value in enumerate(values):
+                    cell = QtWidgets.QTableWidgetItem(str(value or ''))
+                    if col == 2:
+                        cell.setToolTip(definition.get('pair_id', 'Whole model'))
+                    self.responses.setItem(row, col, cell)
             self.responses.resizeColumnsToContents()
 
+        def add_response(self):
+            value = response_dialog(QtWidgets, self.pairs(), parent=self)
+            if value:
+                if any(row['id'] == value['id'] for row in self.response_defs):
+                    self.message.setText('Response name is already used.'); return
+                self.response_defs.append(value); self.render_responses()
+
+        def edit_response(self):
+            index = self.responses.currentRow()
+            if index < 0:
+                return
+            value = response_dialog(QtWidgets, self.pairs(), self.response_defs[index], self)
+            if value:
+                if any(row['id'] == value['id'] for i, row in enumerate(self.response_defs) if i != index):
+                    self.message.setText('Response name is already used.'); return
+                self.response_defs[index] = value; self.render_responses()
+
+        def remove_response(self):
+            index = self.responses.currentRow()
+            if index >= 0:
+                self.response_defs.pop(index); self.render_responses()
+
         def definitions(self):
-            result = []
-            for row in range(self.responses.rowCount()):
-                cells = [self.responses.item(row, col).text().strip() for col in range(8)]
-                name, kind, pair, field, component, increment, reduction, unit = cells
-                item = {'id': name, 'kind': kind, 'increment': 'final' if increment == 'final' else int(increment),
-                        'reduction': reduction, 'unit': unit}
-                if kind == 'pair':
-                    item.update(pair_id=pair, quantity=field, component=component)
-                elif kind == 'contact_field':
-                    item.update(pair_id=pair, field=field, side=component)
-                else:
-                    item.update(component=component)
-                result.append(item)
-            return result
+            return deepcopy(self.response_defs)
 
         def plan(self):
             try:

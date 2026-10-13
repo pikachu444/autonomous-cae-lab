@@ -38,6 +38,20 @@ def anchor(obj, name):
             'history': _history(shape, mapped)}
 
 
+def validate_original_contacts(owner, analysis_id=None):
+    """Before any candidate write: never normalize an externally edited pair."""
+    for record in owner.fem.contact._data()['contacts']:
+        if analysis_id is not None and record['analysis_id'] != analysis_id:
+            continue
+        obj = owner._object(record['object_id'])
+        if getattr(obj, 'Suppressed', False):
+            # Suppressed definitions remain untouched by candidate preparation.
+            continue
+        errors = owner.fem.contact.errors(record)
+        if errors:
+            raise ValueError('Repair contact ' + obj.Label + ': ' + errors[0]['message'])
+
+
 def capture(owner):
     data, targets = owner.fem._metadata(), {}
     def add(target):
@@ -56,6 +70,9 @@ def capture(owner):
         targets[key] = {'target': deepcopy(target), 'elements': identities,
                         'history_unavailable': unavailable}
         return key
+    validate_original_contacts(owner)
+    for row in data.get('mesh_local_sizes', []):
+        add(row['target'])
     for row in data['regions']:
         add(row['target'])
     for row in data['conditions']:
@@ -159,6 +176,14 @@ def apply(owner, saved):
         for region in data['regions']:
             obj, names, _ = resolved[canonical_hash(region['target'])]
             region['target'] = _target(obj, names)
+        for sizing in data.get('mesh_local_sizes', []):
+            prior = deepcopy(sizing['target'])
+            obj, names, method = resolved[canonical_hash(prior)]
+            sizing['target'] = _target(obj, names)
+            if sizing['target'] != prior:
+                data.setdefault('candidate_reference_history', []).append({
+                    'object_id': sizing['object_id'], 'prior_target': prior,
+                    'target': deepcopy(sizing['target']), 'method': method})
         owner.write_metadata(data)
     owner._transaction('Candidate native correspondence', change)
     for row in list(owner.fem._metadata()['conditions']):
@@ -166,6 +191,8 @@ def apply(owner, saved):
         owner._transaction('Record mapped condition',
             lambda obj=obj, row=row: owner.fem._record_condition(obj, row.get('region_id'), row.get('direction_region_id')))
     for old in list(owner.fem.contact._data()['contacts']):
+        if getattr(owner._object(old['object_id']), 'Suppressed', False):
+            continue
         record = deepcopy(old)
         for side in ('a', 'b'):
             if not old.get(side):
