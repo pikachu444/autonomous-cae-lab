@@ -58,14 +58,29 @@ class NativeEvaluationFactory:
                 raise ValueError('Prepared native output directories are controller-owned')
             return adapter.prepare({**deepcopy(settings),
                 'output_root':str(Path(self.output)/('prepared-'+uuid.uuid4().hex))},runtime=runtime)
-        if not all(callable(getattr(adapter, name, None)) for name in ('solve', 'describe_inputs', 'bind_inputs', 'describe_model')):
+        if (not any(callable(getattr(adapter, name, None)) for name in ('solve', 'run')) or
+                not all(callable(getattr(adapter, name, None)) for name in ('describe_inputs', 'bind_inputs', 'describe_model'))):
             raise CapabilityUnavailable(f'{self.backend}: native numerical studies require declared input binding')
         template = deepcopy(settings)
         adapter.describe_inputs(template)
         def candidate(values):
-            bound = bind(adapter, template, values)
             folder = Path(self.output)/('candidate-'+uuid.uuid4().hex)
+            # Reserve the attempt identity before binding, including rejected
+            # assignments. run() still owns creation of its result directory.
+            folder.parent.mkdir(parents=True, exist_ok=True)
+            attempt = folder.with_suffix('.request.json')
+            request = {'attempt_id': folder.name, 'backend': self.backend,
+                       'template_sha256': canonical_hash(template), 'values': deepcopy(values),
+                       'state': 'BINDING', 'phase': 'binding'}
+            save_json(attempt, request)
+            bound, phase = deepcopy(template), 'binding'
             try:
+                from ..execution_control import check_cancelled
+                check_cancelled()
+                bound = bind(adapter, template, values)
+                phase = 'evaluation'
+                save_json(attempt, {**request, 'state': 'RUNNING', 'phase': phase,
+                                   'bound_sha256': canonical_hash(bound)})
                 result = run(adapter, bound, output=folder, selection=self.response_selection)
             except Exception as error:
                 from ..execution_control import ExecutionCleanupFailed, ExecutionCancelled
@@ -77,9 +92,11 @@ class NativeEvaluationFactory:
                 result = {'execution_status': 'CANCELLED' if isinstance(error, ExecutionCancelled) else 'FAILED',
                           'responses': {}, 'checks': [],
                           'backend': self.backend, 'settings': deepcopy(bound),
-                          'diagnostics': {'reason': str(error), 'error_type': type(error).__name__}}
+                          'diagnostics': {'phase': phase, 'reason': str(error), 'error_type': type(error).__name__}}
                 if not (folder / 'result.json').exists():
                     save_evaluation(result, folder, existing=folder.exists())
+            save_json(attempt, {**request, 'state': result['execution_status'], 'phase': phase,
+                               'bound_sha256': canonical_hash(bound)})
             result.setdefault('diagnostics', {})['evaluation_mode'] = 'FILE_BASED_NATIVE'
             result['diagnostics']['candidate_values'] = deepcopy(values)
             if self.retained_root:

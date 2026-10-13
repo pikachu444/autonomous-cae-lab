@@ -395,6 +395,8 @@ class Workbench:
                                  'bytes': item['bytes'], 'sha256': item['sha256']}
                                 for item in receipt['files']]}
         result['registration_origin'] = deepcopy(receipt.get('origin'))
+        if receipt.get('candidate_branch'):
+            result['candidate_branch'] = deepcopy(receipt['candidate_branch'])
         if receipt['kind'] in {'frozen_fem', 'frozen_contact'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
@@ -520,6 +522,12 @@ class Workbench:
                     raise ValueError('Evaluation arguments differ from the selected owner input/session/generation')
                 requested=self.resource_request(arguments,resources)
                 return self.manager.submit(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
+        if arguments.get('backend') == 'structure.calculix.design':
+            execution = arguments.get('execution', {})
+            if execution.get('mode', 'serial') != 'serial' or execution.get('workers', 1) != 1:
+                raise ValueError('Native CAD candidates currently run serially with one worker')
+            if '_native_context' in arguments.get('settings', {}):
+                raise ValueError('Native execution context is service-owned')
         requested=self.resource_request(arguments,resources)
         return self.manager.submit(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
 
@@ -671,6 +679,9 @@ class Workbench:
 
     def _settings(self, backend, settings):
         settings=deepcopy(settings)
+        if backend == 'structure.calculix.design':
+            from .cad_numerical import resolve_settings
+            return resolve_settings(self, settings)
         if backend in {'structure.calculix.frozen', 'structure.calculix.contact'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')

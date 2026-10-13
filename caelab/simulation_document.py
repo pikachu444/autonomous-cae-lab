@@ -10,6 +10,8 @@ from .material_document import MaterialDocuments
 
 
 CATALOG = {
+    'structure.calculix.design': (None, None,
+        'Saved native Analysis candidates: independent editable copy, mapped references, remesh and existing CalculiX execution.'),
     'structural.code_aster': ('plugins.elasticity.reference', 'native_doctor_settings',
         'Existing affine uniaxial 3D elasticity block; exact declared dimensions, mesh and traction, not arbitrary CAD elasticity.'),
     'structural.code_aster.plasticity': ('plugins.elasticity.plasticity_reference', 'selected_settings',

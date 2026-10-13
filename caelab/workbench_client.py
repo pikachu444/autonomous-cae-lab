@@ -186,6 +186,17 @@ class Client:
         return self.request('/api/workbench/jobs/'+check_id(identifier))
     def desktop_context(self):
         return self.request('/api/workbench/desktop')
+    def cad_numerical_plan(self, command_id, *, operation='doe'):
+        return self.request('/api/workbench/cad-numerical-plan', {'command_id': command_id, 'operation': operation})
+
+    def cad_candidate_post(self, plan_id, job_id, candidate_id, evaluation_index):
+        return self.request('/api/workbench/cad-candidate-post', dict(plan_id=plan_id, job_id=job_id,
+            candidate_id=candidate_id, evaluation_index=evaluation_index))
+
+    def cad_candidate_open(self, plan_id, job_id, candidate_id, evaluation_index):
+        return self.request('/api/workbench/cad-candidate-open', dict(plan_id=plan_id, job_id=job_id,
+            candidate_id=candidate_id, evaluation_index=evaluation_index))
+
     def native_submit(self, command_id):
         return self.request('/api/workbench/native-submit', {'command_id':command_id})
     def job_navigation(self, identifier):

@@ -39,7 +39,7 @@ class Project:
         opened = OPENED.pop(self.owner.doc.Name, None)
         if opened and opened[0] is self.owner.doc:
             manifest, source = opened[1:]
-            if manifest.get('kind') == native_cad.KIND:
+            if manifest.get('kind') == native_cad.KIND and not manifest.get('new_design_branch'):
                 self.last_save = {'revision': manifest['revision'], 'opened_source': source,
                                   'unavailable_dependencies': manifest.get('unavailable_dependencies', [])}
                 self.owner.saved_generation = self.owner.generation
@@ -255,6 +255,13 @@ class Project:
             manifest, entry = native_cad.working_copy(source, folder, registered=registered, original_locations=original)
         doc = self.owner.App.openDocument(str(entry))
         doc.UndoMode = 1
+        branch = receipt.get('candidate_branch')
+        if branch:
+            from . import metadata
+            data = metadata.read(doc)
+            data.update(document_id='P' + uuid.uuid4().hex, candidate_branch=deepcopy(branch))
+            metadata.write(doc, data)
+            manifest = {**deepcopy(manifest), 'new_design_branch': True}
         remember_open(doc, manifest, source)
         # The connection creates a distinct native owner for the new document;
         # it never switches a current owner's document pointer behind the GUI.

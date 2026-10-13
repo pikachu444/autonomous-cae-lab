@@ -57,6 +57,21 @@ def handle(handler,method,path,query):
             if set(body)-{'source_ref','kind','session_id','command_id','request'}:
                 raise ServiceError(400,'Unknown result follow-up field')
             return handler._json(200,workbench.desktop.result_followup(**body))
+        if path == '/api/workbench/cad-numerical-plan':
+            if set(body) != {'command_id', 'operation'}:
+                raise ServiceError(400, 'Choose a completed native capture and DOE/optimization')
+            from caelab.cad_numerical import prepare_plan
+            return handler._json(200, prepare_plan(workbench, **body))
+        if path == '/api/workbench/cad-candidate-post':
+            if set(body) != {'plan_id', 'job_id', 'candidate_id', 'evaluation_index'}:
+                raise ServiceError(400, 'Choose the actual retained candidate field')
+            from caelab.cad_numerical import candidate_post
+            return handler._json(200, candidate_post(workbench, **body))
+        if path == '/api/workbench/cad-candidate-open':
+            if set(body) != {'plan_id', 'job_id', 'candidate_id', 'evaluation_index'}:
+                raise ServiceError(400, 'Choose the actual retained candidate evaluation')
+            from caelab.cad_numerical import open_candidate
+            return handler._json(200, open_candidate(workbench, **body))
         if path=='/api/workbench/native-submit':
             if set(body)!={'command_id'}:
                 raise ServiceError(400,'Native submit requires the exact completed export command_id')
