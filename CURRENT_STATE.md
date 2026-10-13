@@ -154,8 +154,14 @@ Astra는 재시도 중 새 입력 손실과 정리된 옛 자동 논점이 지�
 로컬 `1e06dc8`로 통합했다. 해당 경로를 포함한 Qt 검사 5개가 통과했고 Astra도
 두 소스 결함의 교정을 확인했다. 검토 원본은 `runs/product-development/20261014/costorm-review.md`다.
 Codex가 다른 독립 도구 7개의 빈 문서 창도 열었다(새 작업 0). Data의 과도한 입력 폼,
-Numerical의 최소 높이, Material의 기본 진단 표시가 남았다. `independent-appearance/`의
-캡처를 GUI 담당에게 전달했으며 Study 교정 뒤 같은 기준으로 개선한다.
+Numerical의 최소 높이, Material의 기본 진단 표시를 확인했다. `independent-appearance/`의
+캡처를 GUI 담당에게 전달했다. Codex는 Material의 첫 화면을 계산값 우선으로 바꾸고
+주요 메뉴·실행·저장 상태를 한국어로 정리했다. 계산 목록과 범례는 계산 순서로 표시하며
+원래 실행 참조는 그대로 유지한다. 읽기·중첩 표시 실패와 실행을 막는 입력 문제는
+진단 탭이 닫혀 있어도 화면에 알린다. 기존 편집·재열기·결과 검사 19개와 숨겨진 진단의
+읽기 실패 알림 검사 1개가 통과했고
+같은 빈 문서를 1440×900/1100×780에서 다시 열었다(`material-display/`, 새 작업 0).
+이 변경은 D5 피팅 작업 전체나 모든 Material 화면의 번역 완료가 아니다.
 다음 Pro 요청 `PRO-ASSEMBLY-CONTINUE-02` 전송 확인: 같은 실제 Pro 대화에 원격
 main `8c5ff47`과 기존 `373000b` 조립 조사 checkpoint를 전달한다. 기존
 SPEC-CAD-NUMERICAL-001의 관절 좌표 등록→독립 후보 계산→계산한 편집 모델 재열기를

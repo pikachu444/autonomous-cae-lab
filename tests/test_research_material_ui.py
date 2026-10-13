@@ -152,6 +152,8 @@ def test_direct_new_document_has_complete_editable_history_and_no_fake_plot(wind
     assert editor.history.item(1, 1).text() == "1.001"
     assert editor.coefficients.item(0, 1).text() == "1000"
     assert not editor.axes.lines
+    assert editor.result_tabs.currentWidget() is editor.values
+    assert editor.identity_label.text() == "저장됨"
     assert "Constrained lateral strain" in editor.protocol_label.text()
     assert not client.commands
     assert all(identifier != threading.get_ident() for identifier in client.call_threads)
@@ -244,6 +246,20 @@ def test_failed_run_does_not_make_a_curve(window, app):
     assert not editor.axes.lines
     assert not client.results_read
     assert "TEST_ONLY_FAILURE" in editor.diagnostics.toPlainText()
+
+
+def test_unreadable_result_is_explained_without_opening_diagnostics(window, app):
+    editor, client = window
+    client.result_fixture['responses']['stress_xx']['axes'][0]['values'] = [0]
+    editor.evaluate()
+    until(app, lambda: bool(editor._result_cache) and not editor._busy)
+    assert not editor.axes.lines
+    assert editor.result_tabs.currentWidget() is editor.values
+    assert not editor.result_notice.isHidden()
+    assert '진단 상세' in editor.result_notice.text()
+    assert editor._selected_jobs() == ['J1']
+    assert editor.runs.item(0, 0).text() == '계산 1'
+    assert [item[1] for item in client.commands] == ['material.evaluate']
 
 
 def test_saved_document_curve_reopens_without_original_job(window, app):
