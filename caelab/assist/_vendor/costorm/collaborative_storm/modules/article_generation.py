@@ -103,6 +103,12 @@ class ArticleGenerationModule(dspy.Module):
             return to_return
 
         to_return = []
+        # A small selected library may keep all evidence under root after empty
+        # leaf cleanup. Preserve its actual generated paragraph as the introduction.
+        root_path = " -> ".join(knowledge_base.root.get_path_from_root())
+        root_text = node_to_paragraph.get(root_path, "")
+        if root_text.strip():
+            to_return.append(root_text)
         for child in knowledge_base.root.children:
             to_return.extend(helper(child, level=1))
 

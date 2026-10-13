@@ -84,10 +84,10 @@ def configured(tmp_path):
     config = {'experts': roles, 'runtime': {'provider': 'openscience', 'model': 'openai-codex/test-double',
         'external_model': False, 'max_model_calls': 100, 'max_tool_calls': 100, 'max_seconds': 60}}
     wb = Workbench(tmp_path, configuration=config)
-    path = tmp_path / 'source.md'
+    path = wb.root / 'source.md'
     path.write_text('# ALPHA\nALPHA stress is 17 MPa. Check the measured area.', encoding='utf-8')
     source = wb.assistance().knowledge.ingest(str(path), collection='research')
-    other = tmp_path / 'unselected.md'
+    other = wb.root / 'unselected.md'
     other.write_text('# ALPHA\nUNSELECTED-B 99999 SECRET.', encoding='utf-8')
     wb.assistance().knowledge.ingest(str(other), collection='research')
     draft = default_draft()
@@ -251,3 +251,34 @@ def test_role_without_source_tool_cannot_bypass_permissions(tmp_path, scripted):
         assert not scripted
     finally:
         wb.shutdown()
+
+
+def test_source_preflight_failure_does_not_reject_prior_valid_completion():
+    from types import SimpleNamespace
+    from caelab.assist.costorm import Completion
+    prompting.last_completion_key.set('earlier-valid-key')
+    def changed_source():
+        raise ValueError('Selected retained result changed')
+    completion = Completion(None, SimpleNamespace(max_output_tokens=100), {}, 'local',
+                            [], None, [], '', changed_source)
+    with pytest.raises(ValueError, match='retained result'):
+        completion('Next task')
+    assert prompting.last_completion_key.get() is None
+
+
+def test_root_only_evidence_generates_readable_report(scripted):
+    from caelab.assist.costorm import _restore, _new_state
+    from caelab.assist._vendor.costorm.interface import Information
+    from caelab.assist._vendor.costorm.prompting import Prediction
+    from caelab.assist._vendor.costorm.vectors import LocalEncoder
+    from caelab.assist._vendor.costorm.dataclass import KnowledgeBase
+    class LM:
+        kwargs = {}
+        def __call__(self, prompt, **kwargs):
+            return [prompt.split('\nTEST_SIGNATURE\n', 1)[1]]
+    kb = KnowledgeBase('ALPHA', LM(), 6, LocalEncoder())
+    info = Information('source:exact', 'Retained source', ['ALPHA is 17 MPa'], 'Source',
+                       meta={'question': 'What was measured?', 'query': 'ALPHA'})
+    kb.insert_information(path='root', information=info)
+    report = kb.to_report()
+    assert '17 MPa' in report and '[' in report

@@ -138,3 +138,44 @@ def test_global_citation_numbers_are_not_source_positions_and_missing_is_visible
         'references': [{'number': '23', 'source': None}]})
     assert '[23] 원자료를 확인할 수 없음' in missing
     view.close()
+
+
+def test_lost_intervention_reply_retries_same_command_and_keeps_late_composer(tmp_path, scripted):
+    from test_costorm_protocol import command, finished
+    app = QApplication.instance() or QApplication([])
+    wb, document, _, _ = configured(tmp_path)
+    document, _ = finished(wb, document, command(wb, document, 'expert.ask'))
+    class LostReply(LocalClient):
+        lost = False
+        submitted = []
+        def document_command(self, identifier, operation, arguments, **kwargs):
+            result = super().document_command(identifier, operation, arguments, **kwargs)
+            if operation == 'expert.intervene':
+                self.submitted.append((identifier, deepcopy(arguments), deepcopy(kwargs)))
+                if not self.lost:
+                    self.lost = True
+                    raise OSError('Explicit transport test: committed reply lost')
+            return result
+    client = LostReply(wb)
+    window = ExpertWindow(client, document_id=document['id'], poll_interval=20)
+    try:
+        window.show()
+        wait(app, lambda: window.document and window.roles.count() == 2 and not window._busy, window)
+        window.question.setPlainText('Check measured area next.')
+        window.ask_button.click()
+        wait(app, lambda: bool(window._protocol_delivery) and not window._busy, window)
+        retained = wb.document_read(document['id'])
+        assert sum(turn.get('text') == 'Check measured area next.' for turn in retained['turns']) == 1
+        window.question.setPlainText('Keep this newer unsent comment.')
+        window.retry_protocol()
+        wait(app, lambda: len(client.submitted) == 2 and not window._busy
+             and not window._protocol_steps and not window._protocol_delivery, window)
+        assert client.submitted[0] == client.submitted[1]
+        assert window.question.toPlainText() == 'Keep this newer unsent comment.'
+        assert window.local_dirty
+        retained = wb.document_read(document['id'])
+        assert sum(turn.get('text') == 'Check measured area next.' for turn in retained['turns']) == 1
+        assert all(turn.get('text') != 'Keep this newer unsent comment.' for turn in retained['turns'])
+    finally:
+        close(app, window)
+        wb.shutdown()

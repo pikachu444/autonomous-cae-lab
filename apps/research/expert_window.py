@@ -91,6 +91,8 @@ class ExpertWindow(QMainWindow):
         self._protocol_steps = []
         self._protocol_owner = None
         self._protocol_delivery = None
+        self._protocol_after = None
+        self._protocol_notice = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -461,8 +463,10 @@ class ExpertWindow(QMainWindow):
         self._protocol_steps = []
         self._protocol_delivery = None
         self._protocol_owner = None
-        self._show_document(document)
+        self._protocol_after = None
+        self._protocol_notice = None
         self.message.setText('')
+        self._show_document(document)
         self.refresh_registry()
         context = (self._buffer or {}).get('context', {})
         self._source_titles_pending = bool(context.get('selected_sources') or context.get('selected_document_ids'))
@@ -613,8 +617,13 @@ class ExpertWindow(QMainWindow):
             self._populate_topics()
         self._populate_topics()
         self._populate_turns()
-        self.report_view.set_report(document.get('discussion', {}).get('costorm', {}).get('report'),
-                                    document.get('title') or '토론 보고서')
+        protocol = document.get('discussion', {}).get('costorm', {})
+        self.report_view.set_report(protocol.get('report'), document.get('title') or '토론 보고서')
+        notice = (document['id'], protocol.get('job_id'))
+        if notice != self._protocol_notice:
+            self._protocol_notice = notice
+            if protocol.get('reason'):
+                self.message.setText('토론이 중단되었습니다: ' + str(protocol['reason']))
         self._populate_reply()
         self._update_evidence_label()
         self._populate_sources()
@@ -793,6 +802,8 @@ class ExpertWindow(QMainWindow):
         return self.command('expert.update', {'draft': self.edited_draft()}, after=after)
 
     def save_document(self, *, after=None):
+        if self.protocol_mode.currentData() == 'costorm':
+            return self.protocol_action('document.save', after=after)
         if self.local_dirty:
             return self.apply_inputs(after=lambda: self.save_document(after=after))
         return self.command('document.save', after=after)
@@ -824,12 +835,13 @@ class ExpertWindow(QMainWindow):
                 and bool(self.question.toPlainText().strip()) and not self._protocol_steps
                 and not self._protocol_delivery and (bool(rounds) or not discussion.get('paused')))
             self.next_button.setEnabled(enabled and bool(state.get('ready')) and not active
-                and not discussion.get('paused') and not state.get('can_retry') and not self._protocol_steps)
+                and not discussion.get('paused') and not state.get('can_retry') and not self._protocol_steps
+                and not self._protocol_delivery)
             self.retry_button.setEnabled(enabled and not active and not discussion.get('paused')
                                          and not self._protocol_steps)
         self.report_view.generate.setEnabled(enabled and mode and bool(state.get('ready'))
             and not active and not state.get('can_retry') and not discussion.get('paused')
-            and not self._protocol_steps)
+            and not self._protocol_steps and not self._protocol_delivery)
         self.report_view.generate.setText('보고서 다시 작성' if state.get('report') else '보고서 작성')
         self.cancel_response.setEnabled(enabled and bool(active and active.get('active_job_id')))
         if mode and not active and state.get('can_retry'):
@@ -846,7 +858,7 @@ class ExpertWindow(QMainWindow):
             self.next_button.setEnabled(False)
             self.report_view.generate.setEnabled(False)
 
-    def protocol_action(self, operation, *, participate=False):
+    def protocol_action(self, operation, *, participate=False, after=None):
         if (not self.document or self._closed or self.conflict or self._draft_problem
                 or self._protocol_steps or self._protocol_delivery):
             return False
@@ -871,6 +883,7 @@ class ExpertWindow(QMainWindow):
         if operation:
             steps.append({'operation': operation, 'arguments': {}})
         self._protocol_steps = steps
+        self._protocol_after = after
         self._drain_protocol()
         return True
 
@@ -900,6 +913,10 @@ class ExpertWindow(QMainWindow):
             self.local_dirty = late
             self._show_document(payload['document'], preserve_buffer=late)
             self._protocol_delivery = None
+            if not self._protocol_steps and self._protocol_after:
+                after, self._protocol_after = self._protocol_after, None
+                if not late:
+                    QTimer.singleShot(0, after)
             if request['operation'] == 'expert.intervene':
                 self.message.setText('내 발언을 남겼습니다. 다음 발언에 반영됩니다.')
             elif request['operation'] in {'expert.ask', 'expert.advance', 'expert.report', 'expert.retry'}:
@@ -1479,6 +1496,9 @@ class ExpertWindow(QMainWindow):
         return self.open_document(title=self.document['title'] + ' (question copy)', draft=self.edited_draft())
 
     def _leave(self, continuation):
+        if self._protocol_steps:
+            self.message.setText('요청을 전달하고 있습니다. 전송이 끝난 뒤 대화를 바꾸세요.')
+            return
         if self._busy:
             self.message.setText('Wait for the current service request before leaving.')
             return
@@ -1531,6 +1551,7 @@ class ExpertWindow(QMainWindow):
             self._closed = True
             self._protocol_steps = []
             self._protocol_delivery = None
+            self._protocol_after = None
             for worker in self._workers:
                 worker.abandon()
             source_dialog = getattr(self, '_source_dialog', None)
