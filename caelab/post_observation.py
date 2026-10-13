@@ -156,11 +156,10 @@ def choices(snapshot):
 
 
 def measurement_columns(snapshot):
-    """Recognize only actual columns belonging to the saved measured array.
+    """Select actual columns of the saved field; never relabel auxiliary arrays.
 
     PlotSelectionOverTime names components/statistics explicitly. These names
     select an already-produced native column; this function computes neither.
-    Auxiliary Time/N/IDs/masks are never given the measured field's physics.
     """
     array = snapshot.get('recipe', {}).get('array')
     if not isinstance(array, str) or not array:
@@ -168,7 +167,22 @@ def measurement_columns(snapshot):
     available = choices(snapshot)['arrays']
     columns = {}
     component = r'(?: \((?P<component>\d+|Magnitude)\))?'
-    plain = re.compile(r'^' + re.escape(array) + component + r'
+    plain = re.compile(r'^' + re.escape(array) + component + r'$')
+    aggregate = re.compile(r'^(?P<statistic>min|q1|med|q3|max|avg|std|sum)\(' +
+                           re.escape(array) + component + r'\)$')
+    for name in available:
+        match = plain.fullmatch(name) or aggregate.fullmatch(name)
+        if match is None:
+            continue
+        groups = match.groupdict()
+        native_component = groups.get('component')
+        columns[name] = {'array': array,
+            'component': int(native_component) if native_component and native_component.isdigit() else native_component,
+            'statistic': groups.get('statistic') or 'none'}
+    return columns
+
+
+def project_samples(snapshot, selection):
     required = {'block', 'value_array', 'value_component', 'axis', 'unit', 'axis_name',
                 'axis_unit', 'component_label', 'location', 'frame', 'measure',
                 'role', 'exclude_invalid'}
@@ -271,210 +285,3 @@ def measurement_columns(snapshot):
             'origin': {**deepcopy(snapshot['origin']), 'selection': deepcopy(selection),
                        'row_identity': identities, 'summary': deepcopy(summary),
                        'native_column': deepcopy(measured[selection['value_array']])}}
-)
-    aggregate = re.compile(r'^(?P<statistic>min|q1|med|q3|max|avg|std|sum)\(' +
-                           re.escape(array) + component + r'\)
-    required = {'block', 'value_array', 'value_component', 'axis', 'unit', 'axis_name',
-                'axis_unit', 'component_label', 'location', 'frame', 'measure',
-                'role', 'exclude_invalid'}
-    if not isinstance(selection, dict) or set(selection) != required:
-        raise ValueError('Choose the component, axis, units, location and observation role')
-    if selection['role'] not in ('fit', 'holdout') or type(selection['exclude_invalid']) is not bool:
-        raise ValueError('Choose Fit observation or Holdout baseline and an explicit invalid-row policy')
-    for key in ('unit', 'axis_name', 'axis_unit', 'component_label', 'location', 'frame', 'measure'):
-        if not isinstance(selection[key], str) or not selection[key].strip():
-            raise ValueError('Declare ' + key.replace('_', ' ') + '; no physical meaning is inferred')
-    available = choices(snapshot)
-    if selection['block'] not in available['blocks']:
-        raise ValueError('Choose an exact native table block')
-    if selection['value_array'] not in available['arrays']:
-        raise ValueError('The selected native value array is absent')
-    declared_unit = snapshot.get('summary', {}).get('units')
-    if declared_unit and selection['unit'] != declared_unit:
-        raise ValueError('Use the saved measurement unit; this handoff performs no conversion')
-    for key in ('frame', 'measure'):
-        declared = snapshot.get('summary', {}).get(key)
-        if declared and selection[key] != declared:
-            raise ValueError('Use the saved measurement ' + key + '; no physical projection is performed')
-    axis = selection['axis']
-    if not isinstance(axis, dict) or axis.get('kind') not in ('array', 'coordinate', 'point_index'):
-        raise ValueError('Choose an actual native array, coordinate or point-index axis')
-    if axis['kind'] == 'array' and set(axis) != {'kind', 'name', 'component'}:
-        raise ValueError('Array axis requires its exact name and scalar/component choice')
-    if axis['kind'] == 'coordinate' and (set(axis) != {'kind', 'component'} or axis['component'] not in (0, 1, 2)):
-        raise ValueError('Coordinate axis requires X, Y or Z')
-    if axis['kind'] == 'point_index' and (set(axis) != {'kind'} or selection['axis_unit'] != '1'):
-        raise ValueError('Original point index is dimensionless; it is not a physical clock')
-    summary = snapshot.get('summary', {})
-    coordinate_axis = axis['kind'] == 'coordinate' or axis.get('name') == 'arc_length'
-    if coordinate_axis and summary.get('coordinate_units') and selection['axis_unit'] != summary['coordinate_units']:
-        raise ValueError('Use the saved coordinate unit; no length conversion is performed')
-    if summary.get('measurement') == 'time' and (axis['kind'] != 'array'
-            or selection['axis_unit'] != summary.get('time_units')):
-        raise ValueError('Time measurements require their actual native clock and saved time unit')
-    output, invalid, identities, projected = io.StringIO(newline=''), [], [], []
-    writer = csv.writer(output)
-    writer.writerow(['axis', 'measured', 'valid'])
-    previous = None
-    for row in snapshot['rows']:
-        if row.get('block', []) != selection['block']:
-            continue
-        values = row.get('values', {})
-        y = _component(values.get(selection['value_array']), selection['value_component'])
-        if axis['kind'] == 'array':
-            if axis['name'] not in values:
-                raise ValueError('Selected axis array is absent in a native row')
-            x = _component(values[axis['name']], axis['component'])
-        elif axis['kind'] == 'coordinate':
-            coordinates = row.get('coordinates')
-            if not isinstance(coordinates, list) or len(coordinates) != 3:
-                raise ValueError('This native table has no physical coordinates')
-            x = coordinates[axis['component']]
-        else:
-            x = row.get('point_index')
-        reason = row.get('validity', {}).get(selection['value_array'], 'valid')
-        if reason == 'valid':
-            for mask in ('vtkValidPointMask', 'vtkValidMask'):
-                if mask in values and values[mask] != 1:
-                    reason = 'native_mask'
-        if not _finite(x) or not _finite(y):
-            reason = 'nonfinite_axis_or_value' if reason == 'valid' else reason
-        line = len(projected) + 1  # Header is physical source line zero.
-        identity = ({'block': row['block'], 'row': row['row']} if 'block' in row
-                    else {'point_index': row.get('point_index')})
-        identities.append({'source_row': line, 'native': identity, 'reason': reason})
-        valid = reason == 'valid'
-        if not valid:
-            invalid.append(line)
-        if valid:
-            if previous is not None and x <= previous:
-                raise ValueError('Selected axis must increase strictly; choose another block/axis without sorting or interpolation')
-            previous = x
-        projected.append({'source_row': line, 'native': identity, 'axis': x, 'value': y, 'valid': valid, 'reason': reason})
-        writer.writerow([repr(x) if _finite(x) else 'nan', repr(y) if _finite(y) else 'nan', int(valid)])
-    if not projected or len(invalid) == len(projected):
-        raise ValueError('This selection has no valid measured samples')
-    if summary.get('measurement') == 'time':
-        actual = [row['axis'] for row in projected]
-        if actual != summary.get('time_values'):
-            raise ValueError('Selected axis is not the exact saved native clock; no clock interpolation is permitted')
-    response = {'column': 1, 'unit': selection['unit'], 'component': selection['component_label'],
-                'location': selection['location'], 'measure': selection['measure'], 'frame': selection['frame'],
-                'axis': {'column': 0, 'name': selection['axis_name'], 'unit': selection['axis_unit']}}
-    if invalid:
-        response['row_selection'] = {'exclude_rows': invalid if selection['exclude_invalid'] else [],
-            'reasons': {str(row['source_row']): row['reason'] for row in identities if row['reason'] != 'valid'}}
-    return {'csv': output.getvalue().encode('utf-8'), 'rows': projected, 'invalid_rows': invalid,
-            'importable': not invalid or selection['exclude_invalid'],
-            'mapping': {'delimiter': ',', 'skip_header': 1, 'columns': {'measured': response}},
-            'origin': {**deepcopy(snapshot['origin']), 'selection': deepcopy(selection),
-                       'row_identity': identities, 'summary': deepcopy(summary)}}
-)
-    for name in available:
-        match = plain.fullmatch(name) or aggregate.fullmatch(name)
-        if match is None:
-            continue
-        groups = match.groupdict()
-        native_component = groups.get('component')
-        columns[name] = {'array': array,
-            'component': int(native_component) if native_component and native_component.isdigit() else native_component,
-            'statistic': groups.get('statistic') or 'none'}
-    return columns
-
-
-def project_samples(snapshot, selection):
-    required = {'block', 'value_array', 'value_component', 'axis', 'unit', 'axis_name',
-                'axis_unit', 'component_label', 'location', 'frame', 'measure',
-                'role', 'exclude_invalid'}
-    if not isinstance(selection, dict) or set(selection) != required:
-        raise ValueError('Choose the component, axis, units, location and observation role')
-    if selection['role'] not in ('fit', 'holdout') or type(selection['exclude_invalid']) is not bool:
-        raise ValueError('Choose Fit observation or Holdout baseline and an explicit invalid-row policy')
-    for key in ('unit', 'axis_name', 'axis_unit', 'component_label', 'location', 'frame', 'measure'):
-        if not isinstance(selection[key], str) or not selection[key].strip():
-            raise ValueError('Declare ' + key.replace('_', ' ') + '; no physical meaning is inferred')
-    available = choices(snapshot)
-    if selection['block'] not in available['blocks']:
-        raise ValueError('Choose an exact native table block')
-    if selection['value_array'] not in available['arrays']:
-        raise ValueError('The selected native value array is absent')
-    declared_unit = snapshot.get('summary', {}).get('units')
-    if declared_unit and selection['unit'] != declared_unit:
-        raise ValueError('Use the saved measurement unit; this handoff performs no conversion')
-    for key in ('frame', 'measure'):
-        declared = snapshot.get('summary', {}).get(key)
-        if declared and selection[key] != declared:
-            raise ValueError('Use the saved measurement ' + key + '; no physical projection is performed')
-    axis = selection['axis']
-    if not isinstance(axis, dict) or axis.get('kind') not in ('array', 'coordinate', 'point_index'):
-        raise ValueError('Choose an actual native array, coordinate or point-index axis')
-    if axis['kind'] == 'array' and set(axis) != {'kind', 'name', 'component'}:
-        raise ValueError('Array axis requires its exact name and scalar/component choice')
-    if axis['kind'] == 'coordinate' and (set(axis) != {'kind', 'component'} or axis['component'] not in (0, 1, 2)):
-        raise ValueError('Coordinate axis requires X, Y or Z')
-    if axis['kind'] == 'point_index' and (set(axis) != {'kind'} or selection['axis_unit'] != '1'):
-        raise ValueError('Original point index is dimensionless; it is not a physical clock')
-    summary = snapshot.get('summary', {})
-    coordinate_axis = axis['kind'] == 'coordinate' or axis.get('name') == 'arc_length'
-    if coordinate_axis and summary.get('coordinate_units') and selection['axis_unit'] != summary['coordinate_units']:
-        raise ValueError('Use the saved coordinate unit; no length conversion is performed')
-    if summary.get('measurement') == 'time' and (axis['kind'] != 'array'
-            or selection['axis_unit'] != summary.get('time_units')):
-        raise ValueError('Time measurements require their actual native clock and saved time unit')
-    output, invalid, identities, projected = io.StringIO(newline=''), [], [], []
-    writer = csv.writer(output)
-    writer.writerow(['axis', 'measured', 'valid'])
-    previous = None
-    for row in snapshot['rows']:
-        if row.get('block', []) != selection['block']:
-            continue
-        values = row.get('values', {})
-        y = _component(values.get(selection['value_array']), selection['value_component'])
-        if axis['kind'] == 'array':
-            if axis['name'] not in values:
-                raise ValueError('Selected axis array is absent in a native row')
-            x = _component(values[axis['name']], axis['component'])
-        elif axis['kind'] == 'coordinate':
-            coordinates = row.get('coordinates')
-            if not isinstance(coordinates, list) or len(coordinates) != 3:
-                raise ValueError('This native table has no physical coordinates')
-            x = coordinates[axis['component']]
-        else:
-            x = row.get('point_index')
-        reason = row.get('validity', {}).get(selection['value_array'], 'valid')
-        if reason == 'valid':
-            for mask in ('vtkValidPointMask', 'vtkValidMask'):
-                if mask in values and values[mask] != 1:
-                    reason = 'native_mask'
-        if not _finite(x) or not _finite(y):
-            reason = 'nonfinite_axis_or_value' if reason == 'valid' else reason
-        line = len(projected) + 1  # Header is physical source line zero.
-        identity = ({'block': row['block'], 'row': row['row']} if 'block' in row
-                    else {'point_index': row.get('point_index')})
-        identities.append({'source_row': line, 'native': identity, 'reason': reason})
-        valid = reason == 'valid'
-        if not valid:
-            invalid.append(line)
-        if valid:
-            if previous is not None and x <= previous:
-                raise ValueError('Selected axis must increase strictly; choose another block/axis without sorting or interpolation')
-            previous = x
-        projected.append({'source_row': line, 'native': identity, 'axis': x, 'value': y, 'valid': valid, 'reason': reason})
-        writer.writerow([repr(x) if _finite(x) else 'nan', repr(y) if _finite(y) else 'nan', int(valid)])
-    if not projected or len(invalid) == len(projected):
-        raise ValueError('This selection has no valid measured samples')
-    if summary.get('measurement') == 'time':
-        actual = [row['axis'] for row in projected]
-        if actual != summary.get('time_values'):
-            raise ValueError('Selected axis is not the exact saved native clock; no clock interpolation is permitted')
-    response = {'column': 1, 'unit': selection['unit'], 'component': selection['component_label'],
-                'location': selection['location'], 'measure': selection['measure'], 'frame': selection['frame'],
-                'axis': {'column': 0, 'name': selection['axis_name'], 'unit': selection['axis_unit']}}
-    if invalid:
-        response['row_selection'] = {'exclude_rows': invalid if selection['exclude_invalid'] else [],
-            'reasons': {str(row['source_row']): row['reason'] for row in identities if row['reason'] != 'valid'}}
-    return {'csv': output.getvalue().encode('utf-8'), 'rows': projected, 'invalid_rows': invalid,
-            'importable': not invalid or selection['exclude_invalid'],
-            'mapping': {'delimiter': ',', 'skip_header': 1, 'columns': {'measured': response}},
-            'origin': {**deepcopy(snapshot['origin']), 'selection': deepcopy(selection),
-                       'row_identity': identities, 'summary': deepcopy(summary)}}
