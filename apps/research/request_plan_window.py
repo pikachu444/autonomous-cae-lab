@@ -121,10 +121,14 @@ class RequestPlanWindow(NumericalWindow):
         self._shown_operation = None
         self._source_metadata = {}
         self._queued_result_retry = None
+        self._queued_observation_read = None
         self._candidate_table_key = None
         self._candidate_selection_serial = 0
         self._pde_adoption_request = None
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
+        self._observation_read_timer = QTimer(self)
+        self._observation_read_timer.setSingleShot(True)
+        self._observation_read_timer.timeout.connect(self._dispatch_observation_read)
 
     def _build_ui(self):
         self.resize(1440, 900)
@@ -1977,10 +1981,18 @@ class RequestPlanWindow(NumericalWindow):
 
     def load_observation(self):
         selected = self._selected_observation()
-        if not selected or not callable(getattr(self.client, 'post_observation', None)):
+        if self._allow_close or not selected or not callable(getattr(self.client, 'post_observation', None)):
             return False
         key = canonical_hash(selected)
         owner = (self.document['id'], self.document['session_id'])
+        if self._busy or self._callbacks or self._pending_adoption or getattr(self, '_incoming_review', False):
+            # Attaching a Post measurement can finish while an ordinary refresh
+            # is in flight. Retain this read without replacing an adoption action.
+            self._queued_observation_read = (*owner, key)
+            self._observation_read_timer.start(25)
+            return True
+        self._queued_observation_read = None
+        self._observation_read_timer.stop()
         def relevant():
             current = self._selected_observation()
             return (self.document is not None and (self.document['id'], self.document['session_id']) == owner
@@ -2039,6 +2051,14 @@ class RequestPlanWindow(NumericalWindow):
                 self.observed_info.setText('Observation unavailable: ' + error)
         return self._call(lambda: self.client.post_observation(selected['result']),
                           received, relevant=relevant, rejected=failed)
+
+    def _dispatch_observation_read(self):
+        pending, self._queued_observation_read = self._queued_observation_read, None
+        selected = self._selected_observation()
+        if (self._allow_close or not self.document or not selected or
+                pending != (self.document['id'], self.document['session_id'], canonical_hash(selected))):
+            return
+        self.load_observation()
 
     def _observation_pick(self):
         if not self._observation_matches() or not hasattr(self, '_observed_axes'):

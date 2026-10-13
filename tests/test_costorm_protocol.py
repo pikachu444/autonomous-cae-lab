@@ -84,10 +84,10 @@ def configured(tmp_path):
     config = {'experts': roles, 'runtime': {'provider': 'openscience', 'model': 'openai-codex/test-double',
         'external_model': False, 'max_model_calls': 100, 'max_tool_calls': 100, 'max_seconds': 60}}
     wb = Workbench(tmp_path, configuration=config)
-    path = tmp_path / 'source.md'
+    path = wb.root / 'source.md'
     path.write_text('# ALPHA\nALPHA stress is 17 MPa. Check the measured area.', encoding='utf-8')
     source = wb.assistance().knowledge.ingest(str(path), collection='research')
-    other = tmp_path / 'unselected.md'
+    other = wb.root / 'unselected.md'
     other.write_text('# ALPHA\nUNSELECTED-B 99999 SECRET.', encoding='utf-8')
     wb.assistance().knowledge.ingest(str(other), collection='research')
     draft = default_draft()
