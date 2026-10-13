@@ -12,6 +12,11 @@ from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QLabel,
 def author_label(turn, roles=()):
     if turn.get('author') == 'user':
         return '사용자'
+    protocol_labels = {'Default Background Researcher': '배경 조사',
+        'Background discussion moderator': '진행자', 'Background discussion expert': '배경 토론',
+        'General Knowledge Provider': '자료 검토', 'Moderator': '진행자'}
+    if turn.get('protocol') == 'costorm' and turn.get('author') in protocol_labels:
+        return protocol_labels[turn['author']]
     role = next((row for row in roles if row.get('id') == turn.get('author')), {})
     return str(role.get('label', role.get('name', role.get('title', turn.get('author', 'Participant')))))
 
@@ -61,19 +66,42 @@ class _TurnCard(QFrame):
         self.body.viewport().installEventFilter(self)
         self.sources = deepcopy((turn.get('response') or {}).get('sources') or [])
         text = escape(turn_text(turn))
-        # Legacy answer [n] markers have no validated sentence/source mapping.
-        # Only the explicit source buttons below address verified references.
+        declared = (turn.get('response') or {}).get('citations')
+        if isinstance(declared, list):
+            # Co-STORM uses global KB citation numbers. They are not source-list
+            # positions; preserve the explicit number -> exact source mapping.
+            citation_rows, lookup = [], {}
+            source_index = 0
+            for row in declared:
+                number = str(row['number'])
+                available = bool(row.get('source'))
+                index = source_index if available else None
+                if available:
+                    source_index += 1
+                lookup[number] = index
+                citation_rows.append((number, index))
+            def marker(match):
+                number = match.group(1)
+                index = lookup.get(number)
+                return ('<a href="citation:' + str(index) + '">[' + number + ']</a>'
+                        if index is not None else '[' + number + '] (원자료 없음)')
+            text = re.sub(r'\[(\d+)\]', marker, text)
+        else:
+            # Legacy answers have no validated sentence/source number mapping.
+            citation_rows = [(str(index + 1), index) for index in range(len(self.sources))]
         self.body.setHtml('<div style="line-height:145%">' + text.replace('\n', '<br>') + '</div>')
         self.body.anchorClicked.connect(self._citation)
         layout.addWidget(self.body)
-        if self.sources:
+        if citation_rows:
             citations = QHBoxLayout()
-            for index in range(len(self.sources)):
-                button = QPushButton('[' + str(index + 1) + ']')
+            for number, index in citation_rows:
+                button = QPushButton('[' + number + ']' + (' 원자료 없음' if index is None else ''))
                 button.setFlat(True)
-                button.setToolTip('출처 읽기 ' + str(index + 1))
-                button.clicked.connect(lambda checked=False, index=index:
-                                       view.citation_requested.emit(self.identifier, index))
+                button.setEnabled(index is not None)
+                button.setToolTip('출처 읽기 ' + number if index is not None else '확인된 원자료가 없습니다.')
+                if index is not None:
+                    button.clicked.connect(lambda checked=False, index=index:
+                                           view.citation_requested.emit(self.identifier, index))
                 citations.addWidget(button)
             citations.addStretch()
             layout.addLayout(citations)

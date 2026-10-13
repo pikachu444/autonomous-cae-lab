@@ -88,6 +88,9 @@ class ExpertWindow(QMainWindow):
         self._source_titles_pending = False
         self._source_preview_binding = None
         self._topics_snapshot = None
+        self._protocol_steps = []
+        self._protocol_owner = None
+        self._protocol_delivery = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -191,6 +194,12 @@ class ExpertWindow(QMainWindow):
         splitter.addWidget(left)
         center = QWidget()
         conversation = QVBoxLayout(center)
+        self.protocol_mode = QComboBox()
+        self.protocol_mode.setObjectName('discussionMode')
+        self.protocol_mode.addItem('역할별 답변', 'sequential')
+        self.protocol_mode.addItem('자료 토론 (Co-STORM)', 'costorm')
+        self.protocol_mode.currentIndexChanged.connect(self._edited)
+        conversation.addWidget(self.protocol_mode)
         self.discussion_title = QLabel('대화')
         self.discussion_title.setWordWrap(True)
         heading_font = self.discussion_title.font(); heading_font.setPointSize(heading_font.pointSize() + 2)
@@ -210,7 +219,14 @@ class ExpertWindow(QMainWindow):
         self.turns.reply_requested.connect(self.reply_to_turn)
         self.turns.setObjectName('discussionTurns')
         self.turns.currentItemChanged.connect(self._turn_selected)
-        conversation.addWidget(self.turns, 1)
+        self.conversation_pages = QTabWidget()
+        self.conversation_pages.addTab(self.turns, '대화')
+        from .costorm_report import ReportView
+        self.report_view = ReportView()
+        self.report_view.generate_requested.connect(lambda: self.protocol_action('expert.report'))
+        self.report_view.source_requested.connect(self.open_report_reference)
+        self.conversation_pages.addTab(self.report_view, '보고서')
+        conversation.addWidget(self.conversation_pages, 1)
         self.editor = QWidget()
         composer = QVBoxLayout(self.editor)
         composer.setContentsMargins(0, 4, 0, 0)
@@ -255,11 +271,21 @@ class ExpertWindow(QMainWindow):
         self.intervene_button.clicked.connect(self.intervene)
         self.ask_button = QPushButton('토론 시작')
         self.ask_button.clicked.connect(self.ask)
+        self.next_button = QPushButton('다음 발언')
+        self.next_button.clicked.connect(lambda: self.protocol_action('expert.advance'))
+        self.retry_button = QPushButton('다시 시도')
+        self.retry_button.clicked.connect(self.retry_protocol)
+        self.cancel_response = QAction('현재 응답 취소', self)
+        self.cancel_response.triggered.connect(self.cancel_protocol_response)
+        discussion_menu = self.menuBar().addMenu('토론')
+        discussion_menu.addAction(self.cancel_response)
+        self.pause_button.setToolTip('작성 중인 응답은 받되 그 다음 발언은 진행하지 않습니다.')
+        self.resume_button.setToolTip('일시 정지를 해제합니다. 다음 발언은 별도로 요청합니다.')
         self.attach_button.setToolTip('저장된 계산 결과에서 첨부할 값을 선택합니다.')
         self.apply_button.setToolTip('현재 질문과 대화 설정을 적용합니다.')
         self.intervene_button.setToolTip('내 발언을 대화에 남깁니다. AI 응답은 요청하지 않습니다.')
         self.ask_button.setToolTip('선택한 참여 역할에 현재 질문을 보냅니다.')
-        for button in (self.attach_button, self.apply_button, self.intervene_button, self.ask_button):
+        for button in (self.attach_button, self.apply_button, self.intervene_button, self.next_button, self.retry_button, self.ask_button):
             actions.addWidget(button)
         composer.addLayout(actions)
         conversation.addWidget(self.editor)
@@ -344,9 +370,9 @@ class ExpertWindow(QMainWindow):
         for field, maximum in ((self.model_calls, 100), (self.tool_calls, 100), (self.seconds, 3600)):
             field.setRange(1 if field != self.tool_calls else 0, maximum)
             field.valueChanged.connect(self._edited)
-        form.addRow('역할별 응답 요청 수', self.model_calls)
-        form.addRow('역할별 도구 사용 횟수', self.tool_calls)
-        form.addRow('역할별 제한 시간(초)', self.seconds)
+        form.addRow('이번 작업의 모델 호출 한도', self.model_calls)
+        form.addRow('이번 작업의 자료 검색 한도', self.tool_calls)
+        form.addRow('이번 작업 제한 시간(초)', self.seconds)
         runtime_explanation = QLabel('Connection…에서 기존 OpenScience 설정을 선택합니다. 각 요청에는 별도 전송 허용이 적용됩니다.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
@@ -384,7 +410,7 @@ class ExpertWindow(QMainWindow):
                 self.refresh_registry()
         return True
 
-    def _call(self, function, success, *, background=False):
+    def _call(self, function, success, *, background=False, failure=None):
         if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return False
         self._busy = True
@@ -401,6 +427,8 @@ class ExpertWindow(QMainWindow):
             self._handling_reply = True
             try:
                 if error:
+                    if failure:
+                        failure(error)
                     self.message.setText('Service request failed; question and evidence retained. ' + error)
                     if not background:
                         self._round_started_here = False
@@ -430,6 +458,9 @@ class ExpertWindow(QMainWindow):
             return
         self.local_dirty = self.conflict = self._round_started_here = False
         self._auto_round_id = None
+        self._protocol_steps = []
+        self._protocol_delivery = None
+        self._protocol_owner = None
         self._show_document(document)
         self.message.setText('')
         self.refresh_registry()
@@ -560,6 +591,8 @@ class ExpertWindow(QMainWindow):
             composer = draft.get('composer', {})
             self.question.setPlainText(composer.get('text', ''))
             self.classification.setCurrentIndex(self.classification.findData(composer.get('classification')))
+            mode = draft.get('context', {}).get('discussion_mode', 'sequential')
+            self.protocol_mode.setCurrentIndex(max(0, self.protocol_mode.findData(mode)))
             scope = draft.get('context', {}).get('transmission_scope', {})
             self.allow_question.setChecked(scope.get('allow_question', False))
             self.allow_public.setChecked(scope.get('allow_public_search', False))
@@ -573,11 +606,15 @@ class ExpertWindow(QMainWindow):
                 'allow_question': self.allow_question.isChecked(), 'allow_public_search': self.allow_public.isChecked(),
                 'allow_results': self.allow_results.isChecked(), 'model_calls': self.model_calls.value(),
                 'tool_calls': self.tool_calls.value(), 'seconds': self.seconds.value(),
-                'classification': self.classification.currentData()}
+                'classification': self.classification.currentData(),
+                'discussion_mode': self.protocol_mode.currentData()}
             self._populating = False
             self._populate_roles(draft.get('participants', []))
             self._populate_topics()
+        self._populate_topics()
         self._populate_turns()
+        self.report_view.set_report(document.get('discussion', {}).get('costorm', {}).get('report'),
+                                    document.get('title') or '토론 보고서')
         self._populate_reply()
         self._update_evidence_label()
         self._populate_sources()
@@ -586,6 +623,12 @@ class ExpertWindow(QMainWindow):
 
     def _populate_topics(self):
         topics = deepcopy(self._buffer.get('topics', []))
+        automatic = self.document.get('discussion', {}).get('costorm', {}).get('topics', [])
+        if automatic:
+            automatic_ids = {row['id'] for row in automatic}
+            # Keep authored topics but show current upstream hierarchy only once.
+            topics = [row for row in topics if row['id'] not in automatic_ids and row['id'] != 'Qmain']
+            topics += deepcopy(automatic)
         for turn in self.document.get('turns', []):
             topic = turn.get('topic')
             if topic and not any(item['id'] == topic['id'] for item in topics):
@@ -617,6 +660,11 @@ class ExpertWindow(QMainWindow):
 
     def _populate_turns(self):
         turns = self.document.get('turns', self.document.get('discussion', {}).get('turns', []))
+        turns = deepcopy(turns)
+        topics_by_turn = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {})
+        for turn in turns:
+            if turn.get('protocol') == 'costorm':
+                turn['topic_ids'] = topics_by_turn.get(str(turn['protocol_index']), turn.get('topic_ids', []))
         self.turns.set_turns(turns, self._registry)
         self.discussion_title.setText(self.document.get('title') or '대화')
         self.ask_button.setText('질문 보내기' if turns else '토론 시작')
@@ -700,6 +748,8 @@ class ExpertWindow(QMainWindow):
         draft['composer'].update(text=self.question.toPlainText(), reply_to=self.reply.currentData())
         if self.classification.currentData() != self._control_initial.get('classification'):
             draft['composer']['classification'] = self.classification.currentData()
+        if self.protocol_mode.currentData() != self._control_initial.get('discussion_mode', 'sequential'):
+            draft['context']['discussion_mode'] = self.protocol_mode.currentData()
         draft['participants'] = [self.roles.item(row).data(Qt.ItemDataRole.UserRole) for row in range(self.roles.count())
                                 if self.roles.item(row).checkState() == Qt.CheckState.Checked]
         current = {'allow_question': self.allow_question.isChecked(),
@@ -747,7 +797,147 @@ class ExpertWindow(QMainWindow):
             return self.apply_inputs(after=lambda: self.save_document(after=after))
         return self.command('document.save', after=after)
 
+    def open_report_reference(self, reference):
+        if self.open_reference and self.document:
+            self.open_reference(deepcopy(reference))
+
+    def _protocol_state(self):
+        discussion = self.document.get('discussion', {}) if self.document else {}
+        rounds = [row for row in discussion.get('rounds', []) if row.get('protocol') == 'costorm']
+        active = next((row for row in rounds if row.get('status') in {'READY', 'RUNNING'}), None)
+        return discussion, rounds, active
+
+    def _update_protocol_actions(self, enabled):
+        mode = self.protocol_mode.currentData() == 'costorm'
+        discussion, rounds, active = self._protocol_state()
+        state = discussion.get('costorm', {})
+        self.protocol_mode.setEnabled(enabled and not discussion.get('rounds'))
+        self.conversation_pages.setTabVisible(1, mode or bool(state.get('report')))
+        self.next_button.setVisible(mode)
+        self.retry_button.setVisible(mode and bool(state.get('can_retry') or self._protocol_delivery))
+        self.intervene_button.setVisible(not mode)
+        if mode:
+            self.ask_button.setText('참여하기' if rounds else '토론 시작')
+            self.ask_button.setToolTip('내 의견을 기록하고 다음 발언에 반영합니다.' if rounds
+                                       else '선택 자료로 실제 배경 토론과 논점 지도를 만듭니다.')
+            self.ask_button.setEnabled(enabled and not self._draft_problem
+                and bool(self.question.toPlainText().strip()) and not self._protocol_steps
+                and not self._protocol_delivery and (bool(rounds) or not discussion.get('paused')))
+            self.next_button.setEnabled(enabled and bool(state.get('ready')) and not active
+                and not discussion.get('paused') and not state.get('can_retry') and not self._protocol_steps)
+            self.retry_button.setEnabled(enabled and not active and not discussion.get('paused')
+                                         and not self._protocol_steps)
+        self.report_view.generate.setEnabled(enabled and mode and bool(state.get('ready'))
+            and not active and not state.get('can_retry') and not discussion.get('paused')
+            and not self._protocol_steps)
+        self.report_view.generate.setText('보고서 다시 작성' if state.get('report') else '보고서 작성')
+        self.cancel_response.setEnabled(enabled and bool(active and active.get('active_job_id')))
+        if mode and not active and state.get('can_retry'):
+            self.identity.setText('중단됨 — 다시 시도할 수 있음')
+            if state.get('reason'):
+                self.identity.setToolTip(str(state['reason']))
+        else:
+            self.identity.setToolTip('')
+        if mode:
+            self.pause_button.setEnabled(enabled and not discussion.get('paused') and bool(rounds))
+            self.resume_button.setEnabled(enabled and bool(discussion.get('paused')))
+        if self._protocol_steps:
+            self.ask_button.setEnabled(False)
+            self.next_button.setEnabled(False)
+            self.report_view.generate.setEnabled(False)
+
+    def protocol_action(self, operation, *, participate=False):
+        if (not self.document or self._closed or self.conflict or self._draft_problem
+                or self._protocol_steps or self._protocol_delivery):
+            return False
+        discussion, rounds, active = self._protocol_state()
+        if operation in {'expert.advance', 'expert.report', 'expert.retry'} and not participate:
+            if active or discussion.get('paused'):
+                self.message.setText('현재 응답이 끝난 뒤 계속하세요.' if active else '먼저 일시 정지를 해제하세요.')
+                return False
+        draft = self.edited_draft()
+        self._protocol_owner = (self.document['id'], self.document['session_id'])
+        steps = []
+        if self.local_dirty:
+            steps.append({'operation': 'expert.update', 'arguments': {'draft': draft}})
+        if participate:
+            if not draft['composer']['text'].strip():
+                return False
+            steps.append({'operation': 'expert.intervene', 'arguments': {}})
+            # During a running step or pause, the authored intervention waits for
+            # the next explicit Continue; it cannot modify an in-flight request.
+            if active or discussion.get('paused') or discussion.get('costorm', {}).get('can_retry'):
+                operation = None
+        if operation:
+            steps.append({'operation': operation, 'arguments': {}})
+        self._protocol_steps = steps
+        self._drain_protocol()
+        return True
+
+    def _drain_protocol(self):
+        if (not self._protocol_steps or self._closed or self._busy or self._handling_reply
+                or self._source_choosing or getattr(self, '_incoming_review', False)):
+            return
+        owner = (self.document['id'], self.document['session_id']) if self.document else None
+        if owner != self._protocol_owner or self.conflict or self._draft_problem:
+            self._protocol_steps = []
+            return
+        step = self._protocol_steps.pop(0)
+        # Retrying an unconfirmed HTTP response uses exactly the same command,
+        # input generation and payload. It never duplicates the authored turn.
+        request = step.get('request') or {
+            'identifier': self.document['id'], 'operation': step['operation'],
+            'arguments': deepcopy(step['arguments']), 'session_id': self.document['session_id'],
+            'expected_generation': self.document['generation'], 'command_id': 'C' + uuid.uuid4().hex}
+        step['request'] = deepcopy(request)
+        submitted = self.edited_draft()
+        def received(payload):
+            if self._closed or not self.document or (
+                    self.document['id'], self.document['session_id']) != owner:
+                return
+            late = self.edited_draft() != submitted or (
+                self.local_dirty and request['operation'] != 'expert.update')
+            self.local_dirty = late
+            self._show_document(payload['document'], preserve_buffer=late)
+            self._protocol_delivery = None
+            if request['operation'] == 'expert.intervene':
+                self.message.setText('내 발언을 남겼습니다. 다음 발언에 반영됩니다.')
+            elif request['operation'] in {'expert.ask', 'expert.advance', 'expert.report', 'expert.retry'}:
+                self.message.setText('선택 자료로 응답을 작성하고 있습니다.')
+                if request['operation'] == 'expert.report':
+                    self.conversation_pages.setCurrentWidget(self.report_view)
+        def failed(error):
+            self._protocol_delivery = [step] + self._protocol_steps
+            self._protocol_steps = []
+        admitted = self._call(lambda: self.client.document_command(**request), received, failure=failed)
+        if not admitted:
+            self._protocol_steps.insert(0, step)
+
+    def retry_protocol(self):
+        if self._protocol_delivery:
+            if not self.document or self._protocol_owner != (self.document['id'], self.document['session_id']):
+                return False
+            self._protocol_steps = self._protocol_delivery
+            self._protocol_delivery = None
+            self._drain_protocol()
+            return True
+        return self.protocol_action('expert.retry')
+
+    def cancel_protocol_response(self):
+        _, _, active = self._protocol_state()
+        if not active or not active.get('active_job_id'):
+            return False
+        identifier = active['active_job_id']
+        # Cancellation belongs to the current JobManager job only.
+        return self._call(lambda: self.client.cancel(identifier),
+                          lambda _: self.message.setText('현재 응답 취소를 요청했습니다. 완료된 발언은 남습니다.'))
+
     def ask(self):
+        if self.protocol_mode.currentData() == 'costorm':
+            started = any(row.get('protocol') == 'costorm'
+                          for row in self.document.get('discussion', {}).get('rounds', []))
+            return self.protocol_action('expert.advance' if started else 'expert.ask',
+                                        participate=started)
         def request():
             self.command('expert.ask', after=self.refresh_document)
         if self.local_dirty:
@@ -765,6 +955,8 @@ class ExpertWindow(QMainWindow):
         return self._progress_command('expert.pause')
 
     def resume_discussion(self):
+        if self.protocol_mode.currentData() == 'costorm':
+            return self.protocol_action('expert.resume')
         return self._progress_command('expert.resume', after=self.refresh_document)
 
     def _progress_command(self, operation, *, after=None):
@@ -792,6 +984,9 @@ class ExpertWindow(QMainWindow):
             command_id='C' + uuid.uuid4().hex), received)
 
     def refresh_document(self):
+        if self._protocol_steps:
+            self._drain_protocol()
+            return
         if self._closed or not self.document or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return
         if getattr(self, '_citation_request', None):
@@ -828,15 +1023,29 @@ class ExpertWindow(QMainWindow):
         if self._populating or not self._buffer:
             return
         topic = item.data(0, Qt.ItemDataRole.UserRole)
+        automatic = self.document.get('discussion', {}).get('costorm', {}).get('topics', [])
+        lookup = {row['id']: row for row in automatic}
+        def retain_topic(identifier):
+            if identifier not in lookup or any(row['id'] == identifier for row in self._buffer['topics']):
+                return
+            row = lookup[identifier]
+            if row.get('parent_id'):
+                retain_topic(row['parent_id'])
+            self._buffer['topics'].append({key: row[key] for key in ('id', 'title', 'parent_id')})
+        retain_topic(topic)
         if any(row['id'] == topic for row in self._buffer['topics']):
             self._buffer['composer']['topic_id'] = topic
             self._edited()
-        related = next((turn for turn in self.document.get('turns', []) if turn.get('topic_id') == topic), None)
+        links = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {})
+        related = next((turn for turn in reversed(self.document.get('turns', []))
+            if topic in links.get(str(turn.get('protocol_index')), turn.get('topic_ids', []))
+            or turn.get('topic_id') == topic), None)
         if related:
             for row in range(self.turns.count()):
                 if self.turns.item(row).data(Qt.ItemDataRole.UserRole) == related['id']:
                     self.turns.setCurrentRow(row)
                     self.turns.scrollToItem(self.turns.item(row))
+                    self.topics.setCurrentItem(item)
                     break
 
     def _turn_selected(self, current, *_):
@@ -854,10 +1063,15 @@ class ExpertWindow(QMainWindow):
         from .discussion_view import author_label
         topic = (turn.get('topic') or {}).get('title', '')
         self.turn_context.setText(author_label(turn, self._registry) + (' — ' + topic if topic else ''))
+        linked_topics = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {}).get(
+            str(turn.get('protocol_index')), turn.get('topic_ids', [turn.get('topic_id')]))
         iterator = self.topics.findItems('', Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
-        for node in iterator:
-            if node.data(0, Qt.ItemDataRole.UserRole) == turn.get('topic_id'):
-                self.topics.setCurrentItem(node)
+        current_topic = self.topics.currentItem()
+        if not current_topic or current_topic.data(0, Qt.ItemDataRole.UserRole) not in linked_topics:
+            selected_topic = next((node for node in iterator
+                if node.data(0, Qt.ItemDataRole.UserRole) in linked_topics), None)
+            if selected_topic:
+                self.topics.setCurrentItem(selected_topic)
         self.details.setPlainText(json.dumps(turn, ensure_ascii=False, indent=2))
         self._references = deepcopy(turn.get('evidence', [])) + deepcopy(turn.get('response', {}).get('sources', []))
         if turn.get('job_id'):
@@ -1248,12 +1462,14 @@ class ExpertWindow(QMainWindow):
             self.identity.setText({'Pausing after current response': '현재 응답 뒤 일시 정지', 'Paused': '일시 정지',
                 'Responding…': '응답 작성 중…', 'Ready to continue': '계속할 수 있음', 'Ready': '대기'}.get(state, state))
             self.setWindowTitle(f"Expert — {self.document['title']}" + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+        self._update_protocol_actions(enabled)
         # Explicit citation selection gets the next idle worker before polling.
         schedule = getattr(self, '_schedule_citation', None)
         if schedule is not None:
             schedule()
         # A modal release or worker completion makes retained refresh work ready.
         # Queue it so an accepted source selection can start its owner check first.
+        self._drain_protocol()
         self._schedule_registry_refresh()
 
     def reload_remote(self):
@@ -1313,6 +1529,8 @@ class ExpertWindow(QMainWindow):
             return
         if self._allow_close:
             self._closed = True
+            self._protocol_steps = []
+            self._protocol_delivery = None
             for worker in self._workers:
                 worker.abandon()
             source_dialog = getattr(self, '_source_dialog', None)

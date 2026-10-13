@@ -191,3 +191,63 @@ def test_unknown_report_citations_remain_explicit():
     report = report_record('Claim.[9]', {'knowledge_base': {'info_uuid_to_info_dict': {}}})
     assert report['status'] == 'INCOMPLETE_CITATIONS'
     assert report['references'] == [{'number': '9', 'source': None, 'status': 'MISSING_SOURCE'}]
+
+
+def test_failed_worker_carries_exact_completion_before_later_success():
+    from caelab.assist._vendor.costorm.concurrency import ContextExecutor
+    from caelab.assist.costorm import _retry_journal
+    import threading
+    journal = []
+    release = threading.Event()
+    class LM:
+        def __call__(self, prompt, **kwargs):
+            good = 'good-section' in prompt
+            key = 'good-key' if good else 'bad-key'
+            if not good:
+                assert release.wait(3)
+            prompting.last_completion_key.set(key)
+            text = ('Question: Measured area?\n'
+                    'Now give engaging answer only with all inline citations from original text.\n'
+                    'Answer: Exact measurement.[3]') if good else 'Question: Missing answer field'
+            journal.append({'key': key, 'text': text, 'prompt': prompt})
+            return [text]
+    error = None
+    with prompting.settings.context(lm=LM()):
+        try:
+            with ContextExecutor() as executor:
+                predictor = prompting.Predict(SectionToConvTranscript)
+                bad = executor.submit(predictor, topic='bad-section', section_name='A', section_content='Data')
+                good = executor.submit(predictor, topic='good-section', section_name='B', section_content='Data')
+                release.set()
+                bad.result()
+        except ValueError as caught:
+            error = caught
+    assert good.result().answer == 'Exact measurement.[3]'
+    assert journal[-1]['key'] == 'good-key'
+    assert error.completion_key == 'bad-key'
+    retained = _retry_journal({'journal': journal, 'invalid_completion_key': error.completion_key})
+    assert [row['key'] for row in retained] == ['good-key']
+
+
+def test_unrevised_warmstart_is_displayed_once_without_dropping_new_turns():
+    from caelab.assist.costorm import presentation
+    turn = {'role': 'Testing', 'utterance': 'Measured value.[1]'}
+    state = {'warmstart_conv_archive': [turn], 'conversation_history': [turn, deepcopy(turn)]}
+    view = presentation(state)
+    assert [row['index'] for row in view['turns']] == [0, 1]
+
+
+def test_role_without_source_tool_cannot_bypass_permissions(tmp_path, scripted):
+    wb, doc, source, _ = configured(tmp_path)
+    try:
+        wb.assistance().experts.definitions['mechanics']['tools'] = []
+        response = command(wb, doc, 'expert.ask')
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and wb.manager.status(response['job']['id'])['state'] not in {'FAILED', 'SUCCEEDED'}:
+            time.sleep(.005)
+        assert wb.manager.status(response['job']['id'])['state'] == 'FAILED'
+        doc = wb.document_read(doc['id'])
+        assert doc['discussion']['costorm']['can_retry']
+        assert not scripted
+    finally:
+        wb.shutdown()

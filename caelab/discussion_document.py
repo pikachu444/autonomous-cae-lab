@@ -374,6 +374,7 @@ class DiscussionDocuments(MaterialDocuments):
                 changed = True
                 if operation == 'expert.ask' and costorm.enabled(document):
                     active = costorm.start_record(self, document, command_id, action='start', turn=turn)
+                    document['draft']['composer'].update(text='', reply_to=None)
                     self._changed(document)
                     self._persist_draft(document)
                     self._documents[identifier] = document
@@ -394,6 +395,9 @@ class DiscussionDocuments(MaterialDocuments):
                     self._documents[identifier] = document
                     job = self._submit_next(document, active)
                     changed = False  # generation already advanced before publishing dispatch
+                elif costorm.enabled(document):
+                    # The append-only authored turn retains the exact submitted text.
+                    document['draft']['composer'].update(text='', reply_to=None)
             elif (operation in costorm.OPERATIONS or
                   operation == 'expert.advance' and not active and costorm.records(document)):
                 if active:

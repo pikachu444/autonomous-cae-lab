@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import re
 
 _current = ContextVar('costorm_prompt_context', default={})
+last_completion_key = ContextVar('costorm_last_completion_key', default=None)
 
 
 class Field:
