@@ -75,6 +75,8 @@ jobs. Local records: `runs/product-development/20261014/costorm-live-01/`.
 
 This establishes the bounded actual login/source-to-report route, not physical
 material qualification or complete GUI acceptance. Astra identified lost-update
-retry input preservation and obsolete automatic-topic revival defects; Pro has
-submitted a correction for integration. Raw Markdown/math display and the initial
-budget presentation also remain. E7–E10 are not collectively marked complete.
+retry input preservation and obsolete automatic-topic revival defects. Pro's
+6696e61 correction is integrated as 1e06dc8; five focused Qt checks pass and Astra
+confirmed the two source corrections. The explicit budget summary is now in the
+start view. Raw Markdown/math display and overall reading layout remain.
+E7–E10 are not collectively marked complete.
