@@ -30,7 +30,7 @@ Save/reopen retains the ordinary Data input and result. Losing the original Post
 - Selection accepts only the saved measured array, its explicitly named component or recognized native statistic (min/q1/med/q3/max/avg/std/sum). Time, counts, IDs and masks remain auxiliary columns. An unrecognized naming convention stays unavailable instead of being guessed.
 - Native path interpolation belongs to the already-authored measurement. This bridge performs no interpolation, unit conversion, frame projection or reduction. Actual time measurements must use their exact saved clock.
 
-Native reopening also uses an exclusive transient launch lock through the startup gap. It rechecks for an existing owner before launching, records the actual registered native PID, and verifies the selected source before loading the saved workspace. An unconfirmed previous launch is reported for reconnection; it is not killed or silently replaced. This small launch marker contains no document, sample data or queued delivery.
+Native reopening also uses an exclusive transient launch lock through the startup gap. It rechecks for an existing owner before launching, records the actual registered native PID, and verifies the selected source before loading the saved workspace. An unconfirmed previous launch is reported for reconnection; it is not killed or silently replaced. A known pre-spawn failure releases the claim. Successfully reusing the exact late native owner records its actual PID, allowing another reopen once that process is confirmed closed. This small launch marker contains no document, sample data or queued delivery.
 
 ## Focused verification and limits
 
@@ -45,6 +45,6 @@ Codex reported these Windows checks, separately from Pro authorship:
 
 Run only the new focused Qt cases while integrating this checkpoint:
 
-    python -m pytest tests/test_post_numerical_ui.py -k "direct_existing or preview_cancel or unknown_coordinate" -q
+    python -m pytest tests/test_post_numerical_ui.py -k "direct_existing or preview_cancel or unknown_coordinate or native_reopen" -q
 
-The tests use an explicitly labelled native transport double and the real Data owner/import. Existing-target tests check no new Plan/process, unchanged owner and local edits until confirmation, cancel, exact curve append, duplicate delivery, and explicit save. The converter test already covers a finite mask-zero sample through the actual file-table reader. Native OS input/DPI, a full native broker round trip, actual new model evaluation from this measured trial and broad product acceptance remain separate. No solver/provider ran and no numerical campaign is required by these tests.
+The tests use an explicitly labelled native transport double and the real Data owner/import. Existing-target tests operate the actual Review dialog while ordinary polling runs, and check no new Plan/process, unchanged owner and local edits until confirmation, cancel, exact curve append, duplicate delivery, and explicit save. The converter test already covers a finite mask-zero sample through the actual file-table reader. Native OS input/DPI, a full native broker round trip, actual new model evaluation from this measured trial and broad product acceptance remain separate. No solver/provider ran and no numerical campaign is required by these tests.

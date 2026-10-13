@@ -317,13 +317,34 @@ def open_post_observation(client, reference, *, launch_closed=True):
         if command['state'] != 'SUCCEEDED' or envelope.get('status') != 'COMPLETED':
             raise RuntimeError('The live Post source was not changed: ' +
                                str(command.get('outcome', command.get('error'))))
-        return {'status': 'SHOWN', 'document_id': native['id'], 'command_id': identifier}
+        actual_pid = native.get('state', {}).get('pid')
+        _confirm_post_launch(client, origin, actual_pid)
+        return {'status': 'SHOWN', 'document_id': native['id'], 'command_id': identifier,
+                'native_pid': actual_pid}
     pids = {origin.get('pid'), *[doc.get('state', {}).get('pid') for doc in matches]}
     if any(_native_pid_alive(pid) is not False for pid in pids):
         raise ValueError('Original Post is disconnected or its closure is uncertain; reconnect that window first')
     if not launch_closed:
         return None
     return _spawn(client, ['post', '--measurement-result', json.dumps(reference, ensure_ascii=False)])
+
+
+def _confirm_post_launch(client, origin, native_pid):
+    """A successful exact native command also reconciles a previously slow launch."""
+    if type(native_pid) is not int or native_pid <= 0:
+        return
+    from .result_return import _route, _lock, service_identity
+    _, path = _route(service_identity(client.url), 'post-launch-' + origin['document_id'])
+    lock = _lock(path)
+    if not lock.tryLock(0):
+        return  # The launch helper holding this lock records its own confirmation.
+    try:
+        marker = path.with_suffix('.native-launch.json')
+        if marker.exists():
+            save_json(marker, {'state': 'CONFIRMED', 'native_pid': native_pid,
+                               'project_sha256': origin['project']['sha256']})
+    finally:
+        lock.unlock()
 
 
 def _post_launch_claim(client, origin):
@@ -507,10 +528,20 @@ def _post(client, args):
         if measurement_source is not None:
             existing = open_post_observation(client, reference, launch_closed=False)
             if existing is not None:
+                actual_pid = existing.get('native_pid')
+                if type(actual_pid) is int and actual_pid > 0:
+                    save_json(marker, {'state': 'CONFIRMED', 'native_pid': actual_pid,
+                                       'project_sha256': measurement_source['project']['sha256']})
                 return existing
             save_json(marker, {'state': 'STARTING', 'project_sha256': measurement_source['project']['sha256']})
-        process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
-                                    '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
+        try:
+            process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
+                                        '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
+        except BaseException:
+            # Popen failed before returning a process: this claim has no native child.
+            if marker is not None:
+                marker.unlink(missing_ok=True)
+            raise
         if marker is not None:
             save_json(marker, {'state': 'LAUNCH_REQUESTED', 'launcher_pid': process.pid,
                                'project_sha256': measurement_source['project']['sha256']})

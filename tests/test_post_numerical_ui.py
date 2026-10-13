@@ -10,7 +10,7 @@ pytest.importorskip('matplotlib')
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
-from apps.research.post_measurement_dialog import MeasurementDialog
+from apps.research.post_measurement_dialog import MeasurementDialog, ObservationReviewDialog
 from apps.research.post_window import PostWindow
 from apps.research.request_plan_window import RequestPlanWindow
 from caelab.workbench import Workbench
@@ -60,6 +60,10 @@ class PostClient(NativeClient):
         if command['state'] == 'SUCCEEDED':
             command['outcome']['result'].update(command_id=identifier, document_id='Dpost', session_id='Snative')
         return command
+    def document_read(self, identifier):
+        return super().document_read(identifier) if identifier == 'Dpost' else self.workbench.document_read(identifier)
+    def post_observation(self, reference):
+        return self.workbench.post_observation(reference)
     def documents(self):
         return self.workbench.documents()
     def desktop_context(self):
@@ -215,9 +219,24 @@ def test_direct_existing_plan_review_preserves_live_edits(accept, tmp_path, monk
         assert canonical_hash(wb.document_read(original['id'])['draft']) == owner_hash
         receiver = plan._result_return
         identifier = next(iter(receiver.pending))
-        monkeypatch.setattr(receiver, 'confirm', lambda *_: accept)
+        original_review = ObservationReviewDialog.exec
+        reviewed_values = []
+        def choose_review(dialog):
+            def click():
+                from PySide6.QtWidgets import QTableWidget
+                table = dialog.findChild(QTableWidget)
+                reviewed_values.append((table.rowCount(), table.item(1, 1).text()))
+                buttons = dialog.findChild(QDialogButtonBox)
+                choice = QDialogButtonBox.StandardButton.Ok if accept else QDialogButtonBox.StandardButton.Cancel
+                QTest.mouseClick(buttons.button(choice), Qt.MouseButton.LeftButton)
+            QTimer.singleShot(40, click)
+            return original_review(dialog)
+        monkeypatch.setattr(ObservationReviewDialog, 'exec', choose_review)
         assert receiver.review_next()
+        plan.timer.start(5)  # Exercise ordinary background polling during both reads and the modal.
         wait(app, lambda: not receiver.reviewing, lambda: plan.message.text())
+        plan.timer.stop()
+        assert reviewed_values == [(3, '0.2294')]
         assert receiver.receipts[identifier]['status'] == ('ATTACHED' if accept else 'CANCELLED')
         after = plan.edited_draft()
         assert after['request']['purpose'] == 'Unapplied research question'
@@ -278,7 +297,7 @@ def test_native_reopen_claim_blocks_duplicate_and_uncertain_launch(tmp_path, mon
     client = type('Client', (), {'url': 'http://127.0.0.1:18791'})()
     monkeypatch.setattr(result_return, '_route', lambda *args: ('test-post', tmp_path / 'post.lock'))
     monkeypatch.setattr(desktop, '_native_pid_alive', lambda pid: False if pid == 12 else None)
-    origin = {'document_id': 'Dpost'}
+    origin = {'document_id': 'Dpost', 'project': {'sha256': 'test-project'}}
     claim, marker = desktop._post_launch_claim(client, origin)
     try:
         with pytest.raises(ValueError, match='already opening'):
@@ -288,6 +307,37 @@ def test_native_reopen_claim_blocks_duplicate_and_uncertain_launch(tmp_path, mon
     marker.write_text(json.dumps({'state': 'LAUNCH_REQUESTED', 'launcher_pid': 12}))
     with pytest.raises(ValueError, match='unconfirmed'):
         desktop._post_launch_claim(client, origin)
-    marker.write_text(json.dumps({'state': 'CONFIRMED', 'native_pid': 12}))
+    # A delayed owner, subsequently verified by measurement_open, reconciles the marker.
+    desktop._confirm_post_launch(client, origin, 12)
+    assert json.loads(marker.read_text())['state'] == 'CONFIRMED'
+    claim, _ = desktop._post_launch_claim(client, origin)
+    claim.unlock()
+
+
+def test_native_reopen_failed_spawn_releases_claim(tmp_path, monkeypatch):
+    from apps.research import desktop, result_return
+    from types import SimpleNamespace
+    import json
+    import sys
+    snapshot, _ = fixture_snapshot(tmp_path)
+    origin = snapshot['origin']
+    launch_dir = tmp_path / 'launch'
+    launch_dir.mkdir()
+    client = SimpleNamespace(url='http://127.0.0.1:18791',
+        desktop_context=lambda: {'repo_root': str(tmp_path), 'python': sys.executable},
+        post_observation=lambda reference: {'source_available': True, 'origin': origin})
+    monkeypatch.setattr(result_return, '_route', lambda *args: ('test-post', tmp_path / 'post.lock'))
+    monkeypatch.setattr(desktop, '_native_pid_alive', lambda pid: False)
+    monkeypatch.setattr(desktop, '_executable', lambda *args: tmp_path / 'paraview.exe')
+    monkeypatch.setattr(desktop, '_folder', lambda *args: launch_dir)
+    monkeypatch.setattr(desktop, 'open_post_observation', lambda *args, **kwargs: None)
+    def failed(*args, **kwargs):
+        raise OSError('test executable unavailable')
+    monkeypatch.setattr(desktop.subprocess, 'Popen', failed)
+    args = SimpleNamespace(executable=None, prepare_only=False, research_source=None,
+        job_id=None, measurement_result=json.dumps({}), project=None, output=None)
+    with pytest.raises(OSError, match='test executable'):
+        desktop._post(client, args)
+    assert not (tmp_path / 'post.native-launch.json').exists()
     claim, _ = desktop._post_launch_claim(client, origin)
     claim.unlock()

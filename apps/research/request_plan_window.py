@@ -1495,6 +1495,14 @@ class RequestPlanWindow(NumericalWindow):
             value = {'string': '', 'number': 0, 'boolean': False, 'null': None, 'object': {}, 'list': []}[kind]
             self._edit_structure(lambda inputs: self._at_path(inputs, path[:-1]).__setitem__(path[-1], value))
 
+    def _call(self, function, accepted, *, background=False, relevant=None, rejected=None):
+        # The pending-review receiver owns its read workers and nested modal loop.
+        # Timers and other window actions must not compete with that interaction.
+        if getattr(self, '_incoming_review', False):
+            return False
+        return super()._call(function, accepted, background=background,
+                             relevant=relevant, rejected=rejected)
+
     def refresh_document(self):
         if not self.document or self._busy or self._callbacks:
             return
@@ -1902,7 +1910,7 @@ class RequestPlanWindow(NumericalWindow):
         self.expert_button.setEnabled(present and available and self.selected_job() is not None)
         self.return_button.setEnabled(present and available and self.selected_job() is not None)
         self.return_status_action.setEnabled(available and self._last_return_message is not None)
-        read_available = present and not self.conflict and not self._callbacks and not self._pending_adoption and (not self._busy or self._busy_background)
+        read_available = present and not getattr(self, '_incoming_review', False) and not self.conflict and not self._callbacks and not self._pending_adoption and (not self._busy or self._busy_background)
         self.candidate_results_button.setEnabled(read_available and bool(self._selected_actual_candidate())
             and callable(getattr(self.client, 'numerical_evaluation_result', None)))
         self.variables_button.setEnabled(read_available and not self._view_error and self.operation.currentData() in MODEL_OPERATIONS
