@@ -32,7 +32,7 @@ if (Test-Path -LiteralPath $receiptPath) {
 if ($ResearchUI) { $extras += @('research-ui','assist-core') }
 if ($Expert) { $extras += 'assist-core' }
 if ($Documents) { $extras += 'assist-pdf' }
-if ($MCP) { $extras += 'mcp' }
+if ($MCP -or $ResearchUI -or $Expert) { $extras += 'mcp' }
 if ($Sensitivity) { $extras += 'sensitivity' }
 @{source_root=$global:CaeLauncherTest.spec.source;project_sha256='test-project';
   installed_extras=@($extras | Sort-Object -Unique)} |
@@ -300,6 +300,89 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
                 self.assertIn('not active', result.stderr)
                 self.assertEqual(len(self.events_of(events, 'server')), 1)
                 self.assertEqual(self.events_of(events, 'desktop'), [])
+
+    def test_expert_modes_include_pinned_host_mcp_without_client_configuration(self):
+        folder, environment = self.case()
+        environment.update({
+            "CAE_INSTALLER_UNDER_TEST": str(ROOT / "scripts/install-windows.ps1"),
+            "CAE_INSTALLER_SELECTION": str(folder / "selected-extras.json"),
+        })
+        script = folder / "expert-extras.ps1"
+        script.write_text(r"""
+$ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) {
+    throw 'This regression requires actual Windows PowerShell 5.1'
+}
+$tokens = $null
+$errors = $null
+$ast = [System.Management.Automation.Language.Parser]::ParseFile(
+    $env:CAE_INSTALLER_UNDER_TEST, [ref]$tokens, [ref]$errors)
+if ($errors.Count) { throw 'Installer syntax error' }
+$statements = @($ast.EndBlock.Statements)
+$start = -1
+for ($i = 0; $i -lt $statements.Count; $i++) {
+    if ($statements[$i] -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+        $statements[$i].Left.Extent.Text -eq '$extras') { $start = $i; break }
+}
+if ($start -lt 0) { throw 'Missing production extras selection' }
+$selection = @($statements[$start].Extent.Text)
+for ($i = $start + 1; $i -lt $statements.Count; $i++) {
+    $statement = $statements[$i]
+    if ($statement -isnot [System.Management.Automation.Language.IfStatementAst] -or
+        $statement.Extent.Text -notmatch '^if \(\$(ResearchUI|Expert|Documents|MCP|Sensitivity)') { break }
+    $selection += $statement.Extent.Text
+}
+$hostCheck = @($ast.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.IfStatementAst] -and
+        $node.Extent.Text.Contains("require_features('mcp')")
+}, $true))
+if ($hostCheck.Count -ne 1) { throw 'Expected one guarded host readiness check' }
+function Invoke-Checked([string]$File, [string[]]$Arguments) {
+    if ($File -ne 'readiness-not-launched') { throw 'Unexpected executable' }
+    $script:checks += @{file=$File;arguments=@($Arguments)}
+}
+$python = 'readiness-not-launched'
+$results = @()
+foreach ($mode in @('base','Expert','ResearchUI','MCP')) {
+    $ResearchUI = $mode -eq 'ResearchUI'
+    $Expert = $mode -eq 'Expert'
+    $MCP = $mode -eq 'MCP'
+    $Documents = $false
+    $Sensitivity = $false
+    $script:checks = @()
+    # Execute the production selection/guard source, not recreated test rules.
+    . ([scriptblock]::Create(($selection -join [Environment]::NewLine)))
+    . ([scriptblock]::Create($hostCheck[0].Extent.Text))
+    $results += @{mode=$mode;extras=@($extras);host_checks=@($script:checks)}
+}
+ConvertTo-Json -InputObject @($results) -Depth 6 |
+    Set-Content -LiteralPath $env:CAE_INSTALLER_SELECTION -Encoding UTF8
+""", encoding="utf-8-sig")
+        result = subprocess.run(
+            [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-File", str(script)], cwd=folder, env=environment,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        rows = {row["mode"]: row for row in json.loads(
+            Path(environment["CAE_INSTALLER_SELECTION"]).read_text(encoding="utf-8-sig"))}
+        self.assertNotIn("mcp", rows["base"]["extras"])
+        self.assertEqual(rows["base"]["host_checks"], [])
+        for mode in ("Expert", "ResearchUI", "MCP"):
+            self.assertIn("mcp", rows[mode]["extras"])
+            self.assertEqual(rows[mode]["extras"].count("mcp"), 1)
+            self.assertEqual(len(rows[mode]["host_checks"]), 1)
+            arguments = rows[mode]["host_checks"][0]["arguments"]
+            self.assertEqual(arguments[0], "-c")
+            self.assertIn("require_features('mcp')", arguments[1])
+        for mode in ("Expert", "ResearchUI"):
+            self.assertIn("assist-core", rows[mode]["extras"])
+        self.assertIn("research-ui", rows["ResearchUI"]["extras"])
+        self.assertNotIn("research-ui", rows["Expert"]["extras"])
+        self.assertNotIn("assist-core", rows["MCP"]["extras"])
+        import tomllib
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        self.assertEqual(project["project"]["optional-dependencies"]["mcp"], ["mcp==1.30.0"])
 
     def test_installer_readiness_preserves_native_python_argv(self):
         folder, environment = self.case()

@@ -6,6 +6,16 @@ Numerical/Study return actions. It creates no model answer during setup.
 
 ## First connection
 
+The maintained Windows installer now includes the existing pinned MCP package
+with either -ResearchUI or -Expert, and checks its import. The supported
+OpenScience host needs that package internally; an ordinary MCP client
+registration is not required. -Expert prepares these packages without Qt;
+the native Expert window uses -ResearchUI (also prepared by its normal launcher).
+For an existing private runtime, rerun its normal installer with the same
+RuntimeRoot and -ResearchUI. The existing receipt/extras checks detect a runtime
+that lacks the required package. This does not configure or invoke a provider.
+
+
 1. Open Expert directly: Start-CAE-Lab.cmd -Tool expert. You can already write
    a question, import/read local sources and save a discussion without a model.
 2. Choose **Connection…**. Select the existing owned OpenScience profile and

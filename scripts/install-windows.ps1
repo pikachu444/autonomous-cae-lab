@@ -97,10 +97,11 @@ $projectSha = (Get-FileHash -LiteralPath $project -Algorithm SHA256).Hash.ToLowe
 $installed = $false
 $extras = @('numerical','material')
 if ($ResearchUI) { $extras += 'research-ui' }
-# The Research UI includes Expert. Import dependencies do not configure a model.
+# Expert uses the pinned MCP package for its local bounded OpenScience host.
+# Installing it does not register an MCP client or configure/invoke a model.
 if ($ResearchUI -or $Expert) { $extras += 'assist-core' }
 if ($Documents) { $extras += 'assist-pdf' }
-if ($MCP) { $extras += 'mcp' }
+if ($MCP -or $ResearchUI -or $Expert) { $extras += 'mcp' }
 if ($Sensitivity) { $extras += 'sensitivity' }
 if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
     try {
@@ -124,7 +125,7 @@ if ($ResearchUI -or $Expert) {
 if ($Documents) {
     Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('pdf_read'); print('PDF reader import OK')")
 }
-if ($MCP) { Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('mcp'); print('MCP package import OK; no client or credentials configured')") }
+if ($MCP -or $ResearchUI -or $Expert) { Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('mcp'); print('MCP package import OK; no client or credentials configured')") }
 if ($Sensitivity) { Invoke-Checked $python @('-c',"from SALib.sample import sobol; from SALib.analyze import sobol as analyze; print('Sobol sampling/analysis package imports OK; no study executed')") }
 Write-Host 'Base, numerical and material imports OK'
 $receipt = [ordered]@{
@@ -143,4 +144,4 @@ $receipt = [ordered]@{
 $receipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $receiptPath -Encoding UTF8
 Write-Host "Ready: $python"
 Write-Host "Receipt: $receiptPath"
-Write-Host 'Included: base workbench, numerical studies and FELUPE material-point calculations. -ResearchUI includes Expert runtime packages; -Expert installs them without Qt; -Documents adds PDF reading; -MCP adds the optional MCP server; -Sensitivity adds Sobol sampling/analysis. Native backends and expert model configuration remain separate.'
+Write-Host 'Included: base workbench, numerical studies and FELUPE material-point calculations. -ResearchUI includes Expert and its local host MCP package; -Expert installs those packages without Qt; -Documents adds PDF reading; -MCP installs the same optional MCP package separately (no client registration); -Sensitivity adds Sobol sampling/analysis. Native backends and expert model configuration remain separate.'
