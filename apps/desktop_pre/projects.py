@@ -1,6 +1,8 @@
 """Managed editable FCStd graph saving on the native document's GUI thread."""
 from copy import deepcopy
 import os
+import shutil
+import tempfile
 from pathlib import Path
 import uuid
 
@@ -22,6 +24,38 @@ def _linked(value):
     if isinstance(value, (list, tuple)):
         return [obj for item in value for obj in _linked(item)]
     return []
+
+
+
+def _native_copy_uses_short_path(path):
+    return os.name == 'nt'
+
+
+def save_native_copy(doc, destination):
+    """Keep native SaveCopy below legacy Win32 path limits, then retain bytes.
+
+    The actual project graph relocation still uses the live document/link
+    targets in Project.save. No user filename or native document is renamed.
+    A failed transfer keeps its short native copy for recovery.
+    """
+    destination = Path(destination)
+    if not _native_copy_uses_short_path(destination):
+        doc.saveCopy(str(destination))
+        return
+    folder = Path(tempfile.mkdtemp(prefix='cae-copy-'))
+    native = folder / 'model.FCStd'
+    if len(str(native)) >= 180:
+        raise OSError('Native temporary path is too long: ' + str(folder))
+    try:
+        doc.saveCopy(str(native))
+        if not native.is_file():
+            raise OSError('Native saveCopy produced no file')
+        shutil.copyfile(native, destination)
+        if native_cad.sha(native) != native_cad.sha(destination):
+            raise OSError('Retained native copy differs from short staging')
+    except Exception as error:
+        raise OSError('Native copy failed; short staging retained at ' + str(folder) + ': ' + str(error)) from error
+    shutil.rmtree(folder)
 
 
 class Project:
@@ -171,7 +205,7 @@ class Project:
                 if gdoc is not None and gdoc.getInEdit():
                     raise ValueError('BUSY_EDIT: finish/cancel the linked document task before saving')
                 native = stage / ('source-' + doc.Name + '.FCStd')
-                doc.saveCopy(str(native))
+                save_native_copy(doc, native)
                 if not native.is_file():
                     raise ValueError('Native saveCopy did not produce the editable document')
                 destination = stage / names[doc.Name]

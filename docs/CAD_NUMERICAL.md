@@ -145,3 +145,46 @@ Pro remote checks remain NOT_RUN. The newly added UI, retry, correspondence and
 binding checks are supplied for Root's focused execution. Windows executable
 launcher normalization and confirmed descendant-process cancellation are being
 completed separately; the earlier process-tree wording is not a Windows pass.
+
+
+## Windows candidate host and save boundary
+
+The configured official portable root FreeCAD.exe may exit after starting
+bin/FreeCAD.exe. Settings resolution now selects that existing executable in
+the same installation when present. It does not search for or install a different
+FreeCAD version.
+
+The CAD adapter opts into a Windows Job in the existing run_owned_command
+lifecycle. A stdlib-only base-Python gate starts with -I -S, reports its actual
+PID, and waits for one byte. Only after the live gate is assigned to an unnamed
+kill-on-close Job does FreeCAD start. Gmsh descendants inherit that Job;
+assignment failure refuses native launch. Normal completion and cancellation
+both require zero active Job processes. Unconfirmed cleanup retains the live
+handle in the existing CancellationToken cleanup list. Other adapters keep their
+existing launch behavior. This is an execution-boundary extension, not a new
+scheduler or persisted process registry.
+
+Primary API basis: Microsoft Win32 Job Objects, AssignProcessToJobObject,
+JOBOBJECT_EXTENDED_LIMIT_INFORMATION and JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION.
+Nested jobs can be denied by host policy; there is no uncontained fallback.
+Source references:
+https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
+https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-assignprocesstojobobject
+
+Root separately reproduced FreeCAD 1.1.4 SaveCopy succeeding at 105 path
+characters and failing at 277. Root also observed failure around 245 characters, so no 260-character
+cutoff is assumed. On Windows, Project.save now always saves native bytes into a fresh short
+temporary directory, then copies and checks their hash at the original retained
+location. Existing dependency-graph relocation still uses the actual live
+document links. User filenames and the original document are unchanged.
+A failed copy/transfer keeps the short native file and reports its location.
+The candidate's failure-draft capture uses the same boundary.
+
+Focused commands supplied for Root:
+~~~powershell
+python -m pytest tests/test_cad_candidate_execution.py -q
+python -m pytest tests/test_cad_windows_process.py -q
+~~~
+The latter runs only stdlib Windows test processes, including a child and
+grandchild and a separate unaffected process; no CAD, mesher or solver.
+Pro remote execution of these changes remains NOT_RUN.
