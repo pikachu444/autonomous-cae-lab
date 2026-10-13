@@ -3,26 +3,40 @@ from copy import deepcopy
 import re
 
 
+def _variable_label(row):
+    field = row['target'].get('field')
+    names = {'Length': '길이', 'Width': '폭', 'Height': '높이', 'Radius': '반지름',
+             'Diameter': '지름', 'Angle': '각도', 'YoungsModulus': '탄성계수',
+             'PoissonRatio': '푸아송 비', 'Force': '힘', 'xDisplacement': 'X 변위',
+             'yDisplacement': 'Y 변위', 'zDisplacement': 'Z 변위',
+             'normal_stiffness_MPa_per_mm': '법선 강성',
+             'stick_stiffness_MPa_per_mm': '접선 강성', 'friction_coefficient': '마찰계수'}
+    label = row['label']
+    if field in names and label.endswith(' / ' + field):
+        return label[:-len(field)] + names[field]
+    return label
+
+
 def response_dialog(QtWidgets, pairs, definition=None, parent=None):
     """Select an actual supported channel; dimensional units follow that channel."""
     dialog = QtWidgets.QDialog(parent)
-    dialog.setWindowTitle('Response')
+    dialog.setWindowTitle('해석 응답 선택')
     layout = QtWidgets.QVBoxLayout(dialog)
     form = QtWidgets.QFormLayout()
     name = QtWidgets.QLineEdit((definition or {}).get('id', 'response'))
     name.setObjectName('responseName')
     kind = QtWidgets.QComboBox(); kind.setObjectName('responseKind')
-    kind.addItem('Displacement', 'displacement')
+    kind.addItem('변위', 'displacement')
     if pairs:
-        kind.addItem('Pair force', 'pair')
-        kind.addItem('Contact field', 'contact_field')
+        kind.addItem('접촉 쌍의 힘', 'pair')
+        kind.addItem('접촉면 결과', 'contact_field')
     pair = QtWidgets.QComboBox(); pair.setObjectName('responsePair')
     for row in pairs:
         pair.addItem(row['draft']['label'], row['object_id'])
     field, component, reduction = (QtWidgets.QComboBox() for _ in range(3))
     field.setObjectName('responseField'); component.setObjectName('responseComponent')
     reduction.setObjectName('responseReduction')
-    frame = QtWidgets.QComboBox(); frame.addItems(['Final increment', 'Retained increment index'])
+    frame = QtWidgets.QComboBox(); frame.addItems(['마지막 증분', '저장된 증분 선택'])
     frame.setObjectName('responseFrame')
     index = QtWidgets.QSpinBox(); index.setRange(0, 1000000); index.setObjectName('responseFrameIndex')
     increment = QtWidgets.QWidget(); increment_layout = QtWidgets.QHBoxLayout(increment)
@@ -30,9 +44,10 @@ def response_dialog(QtWidgets, pairs, definition=None, parent=None):
     increment_layout.addWidget(frame); increment_layout.addWidget(index)
     unit, scope = QtWidgets.QLabel(), QtWidgets.QLabel()
     unit.setObjectName('responseUnit'); scope.setWordWrap(True)
-    for label, widget in [('Name', name), ('Response', kind), ('Pair', pair),
-                          ('Quantity', field), ('Selection', component), ('Increment', increment),
-                          ('Reduction', reduction), ('Unit', unit)]:
+    name.setToolTip('계산 계획에서 쓸 짧은 영문 이름입니다. 예: force_z, gap_max')
+    for label, widget in [('응답 이름', name), ('결과 종류', kind), ('접촉 쌍', pair),
+                          ('물리량', field), ('성분 또는 면', component), ('증분', increment),
+                          ('값 추출 방법', reduction), ('단위', unit)]:
         form.addRow(label, widget)
     layout.addLayout(form); layout.addWidget(scope)
     error = QtWidgets.QLabel(); error.setWordWrap(True); layout.addWidget(error)
@@ -53,20 +68,20 @@ def response_dialog(QtWidgets, pairs, definition=None, parent=None):
         selected = kind.currentData()
         pair.setEnabled(selected != 'displacement')
         if selected == 'contact_field':
-            choices(field, [('Pressure', 'CPRESS'), ('Raw COPEN', 'COPEN'),
-                ('Slip 1', 'CSLIP1'), ('Slip 2', 'CSLIP2'), ('Shear 1', 'CSHEAR1'),
-                ('Shear 2', 'CSHEAR2'), ('Geometric gap', 'GeomGap_mm')])
-            choices(component, [('Side A', 'a'), ('Side B', 'b'), ('Both sides', 'both')])
-            choices(reduction, [('Maximum', 'max'), ('Minimum', 'min'), ('Mean', 'mean'), ('Nodal field', 'field')])
-            scope.setText('Shared nodal projection. Geometric gap is derived; raw COPEN is kept distinct.')
+            choices(field, [('접촉 압력 (CPRESS)', 'CPRESS'), ('솔버 간극 (COPEN)', 'COPEN'),
+                ('미끄럼 1 (CSLIP1)', 'CSLIP1'), ('미끄럼 2 (CSLIP2)', 'CSLIP2'), ('전단 응력 1 (CSHEAR1)', 'CSHEAR1'),
+                ('전단 응력 2 (CSHEAR2)', 'CSHEAR2'), ('형상에서 구한 간극', 'GeomGap_mm')])
+            choices(component, [('A 면', 'a'), ('B 면', 'b'), ('양쪽 면', 'both')])
+            choices(reduction, [('최댓값', 'max'), ('최솟값', 'min'), ('평균', 'mean'), ('절점별 값', 'field')])
+            scope.setText('공통 절점에 투영한 값입니다. 형상에서 구한 간극과 솔버의 COPEN은 별도 결과입니다.')
         else:
-            choices(field, [('Normal force', 'CFN'), ('Total force', 'CF'), ('Shear force', 'CFS')]
-                    if selected == 'pair' else [('Displacement', 'displacement')])
+            choices(field, [('접촉력 (CFN)', 'CFN'), ('전체 힘 (CF)', 'CF'), ('전단력 (CFS)', 'CFS')]
+                    if selected == 'pair' else [('변위', 'displacement')])
             choices(component, [(axis, axis) for axis in 'XYZ']); set_value(component, 'Z')
-            choices(reduction, [('Selected increment', 'value'), ('All retained increments', 'series')]
-                    if selected == 'pair' else [('Maximum', 'max'), ('Minimum', 'min'), ('Mean', 'mean'), ('Nodal field', 'field')])
-            scope.setText('Pair-specific DAT resultant on side A; global component. Load parameter is dimensionless.'
-                          if selected == 'pair' else 'Global nodal component at the retained final increment.')
+            choices(reduction, [('선택한 증분의 값', 'value'), ('모든 저장 증분의 이력', 'series')]
+                    if selected == 'pair' else [('최댓값', 'max'), ('최솟값', 'min'), ('평균', 'mean'), ('절점별 값', 'field')])
+            scope.setText('A 면에 작용하는 접촉 쌍의 합력이며 문서 전체 좌표의 성분입니다. 하중 계수는 무차원입니다.'
+                          if selected == 'pair' else '마지막 저장 증분의 절점 변위를 문서 전체 좌표의 성분으로 읽습니다.')
         frame.setEnabled(selected != 'displacement')
         if selected == 'displacement':
             frame.setCurrentIndex(0)
@@ -98,7 +113,7 @@ def response_dialog(QtWidgets, pairs, definition=None, parent=None):
     def accept():
         identifier = name.text().strip()
         if not re.fullmatch('[a-z][a-z0-9_]{0,47}', identifier):
-            error.setText('Use a short lower-case response name.')
+            error.setText('영문 소문자로 시작하고 소문자, 숫자, 밑줄을 사용하세요. 최대 48자입니다.')
             return
         selected = kind.currentData()
         result.update(id=identifier, kind=selected, unit=unit.text(), reduction=reduction.currentData(),
@@ -125,7 +140,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             layout = QtWidgets.QVBoxLayout(self)
             row = QtWidgets.QHBoxLayout()
             self.analysis, self.solver, self.method = QtWidgets.QComboBox(), QtWidgets.QComboBox(), QtWidgets.QComboBox()
-            self.method.addItems(['DOE', 'Optimization'])
+            self.method.addItems(['실험계획 (DOE)', '최적화'])
             from .fem_edit import _native_type
             for obj in owner.doc.Objects:
                 if _native_type(obj) == 'Fem::FemAnalysis':
@@ -134,13 +149,16 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             connect.setObjectName('connectAssemblyAnalysis')
             connect.clicked.connect(self.connect_assembly)
             row.addWidget(connect)
-            refresh = QtWidgets.QPushButton('Refresh')
+            refresh = QtWidgets.QPushButton('새로고침')
             refresh.clicked.connect(self.refresh)
             self.analysis.currentIndexChanged.connect(self.refresh)
-            row.addWidget(self.analysis, 2); row.addWidget(self.solver, 1); row.addWidget(refresh)
+            row.addWidget(QtWidgets.QLabel('해석')); row.addWidget(self.analysis, 2)
+            row.addWidget(QtWidgets.QLabel('솔버')); row.addWidget(self.solver, 1); row.addWidget(refresh)
             layout.addLayout(row)
+            layout.addWidget(QtWidgets.QLabel('변경할 모델 변수'))
             self.table = QtWidgets.QTableWidget(0, 7)
-            self.table.setHorizontalHeaderLabels(['Variable', 'Current', 'Unit', 'Model lower', 'Model upper', 'Research name', 'Status'])
+            self.table.setHorizontalHeaderLabels(['모델 변수', '현재값', '단위', '허용 하한', '허용 상한', '계산 변수명', '등록 상태'])
+            self.table.verticalHeader().hide()
             self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
             self.table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
             self.table.horizontalHeader().setStretchLastSection(True)
@@ -152,12 +170,14 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             self.table.currentCellChanged.connect(self.show_coordinate)
             layout.addWidget(self.coordinate_context)
             row = QtWidgets.QHBoxLayout()
-            for text, callback in [('Select in CAD', self.highlight), ('Register / update bounds', self.register),
-                                   ('Remove registration', self.remove)]:
+            for text, callback in [('모델에서 선택', self.highlight), ('변수 등록 / 변경', self.register),
+                                   ('등록 해제', self.remove)]:
                 button = QtWidgets.QPushButton(text); button.clicked.connect(callback); row.addWidget(button)
             row.addStretch(); layout.addLayout(row)
+            layout.addWidget(QtWidgets.QLabel('비교할 해석 응답'))
             self.responses = QtWidgets.QTableWidget(0, 8)
-            self.responses.setHorizontalHeaderLabels(['Response', 'Kind', 'Pair', 'Field / quantity', 'Side / component', 'Increment', 'Reduction', 'Unit'])
+            self.responses.setHorizontalHeaderLabels(['응답 이름', '결과 종류', '접촉 쌍', '물리량', '성분 또는 면', '증분', '값 추출 방법', '단위'])
+            self.responses.verticalHeader().hide()
             self.responses.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             self.responses.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
             self.responses.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
@@ -165,11 +185,11 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             self.responses.horizontalHeader().setStretchLastSection(True)
             layout.addWidget(self.responses, 2)
             row = QtWidgets.QHBoxLayout()
-            add = QtWidgets.QPushButton('Add response'); add.clicked.connect(self.add_response)
-            remove = QtWidgets.QPushButton('Remove response')
+            add = QtWidgets.QPushButton('응답 추가…'); add.clicked.connect(self.add_response)
+            remove = QtWidgets.QPushButton('응답 제거')
             remove.clicked.connect(self.remove_response)
-            edit = QtWidgets.QPushButton('Edit response'); edit.clicked.connect(self.edit_response)
-            self.prepare = QtWidgets.QPushButton('Create Numerical Plan…'); self.prepare.clicked.connect(self.plan)
+            edit = QtWidgets.QPushButton('응답 편집…'); edit.clicked.connect(self.edit_response)
+            self.prepare = QtWidgets.QPushButton('계산 계획 만들기…'); self.prepare.clicked.connect(self.plan)
             row.addWidget(add); row.addWidget(edit); row.addWidget(remove); row.addStretch(); row.addWidget(self.method); row.addWidget(self.prepare)
             layout.addLayout(row)
             self.message = QtWidgets.QLabel(); self.message.setWordWrap(True); layout.addWidget(self.message)
@@ -182,7 +202,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             def done(result):
                 self.busy = False; self.setEnabled(True)
                 if result.get('status') == 'FAILED':
-                    self.message.setText(result.get('error', {}).get('message', 'Native command failed'))
+                    self.message.setText(result.get('error', {}).get('message', '요청을 완료하지 못했습니다.'))
                 else:
                     try:
                         accepted(result)
@@ -211,17 +231,19 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             for index, row in enumerate(info['candidates']):
                 registered = next((r for r in info['registered'] if r['target'] == row['target']), None)
                 item = registered or row
-                values = [row['label'], item.get('value', row['value']), item['unit'],
+                current = item.get('value', row['value'])
+                values = [_variable_label(row), format(current, '.12g') if isinstance(current, (int, float)) else current, item['unit'],
                           item.get('lower', ''), item.get('upper', ''), item.get('id', ''),
-                          row['diagnostic'] or ('Registered' if registered else 'Select model bounds')]
+                          row['diagnostic'] or ('등록됨' if registered else '하한과 상한 입력')]
                 for col, value in enumerate(values):
                     cell = QtWidgets.QTableWidgetItem(str(value) if value is not None else '')
+                    cell.setToolTip(str(current) if col == 1 else row['label'] if col == 0 else cell.text())
                     if col in (0, 1, 6) or not row['writable']:
                         cell.setFlags(cell.flags() & ~QtCore.Qt.ItemIsEditable)
                     self.table.setItem(index, col, cell)
             self.table.resizeColumnsToContents()
             self.show_coordinate()
-            self.message.setText('Model limits are saved with CAD; search limits are edited in the Plan.')
+            self.message.setText('허용 범위는 CAD와 함께 저장합니다. 이 범위 안의 탐색 조건은 계산 계획에서 정합니다.')
             if not self.responses.rowCount():
                 pairs = self.pairs()
                 self.response_defs = ([{'id': 'force_z', 'kind': 'pair', 'pair_id': pairs[0]['object_id'],
@@ -269,7 +291,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
         def selected(self):
             index = self.table.currentRow()
             if self.info is None or index < 0:
-                raise ValueError('Select a native variable')
+                raise ValueError('모델 변수 표에서 변경할 항목을 선택하세요.')
             return index, self.info['candidates'][index]
 
         def highlight(self):
@@ -312,12 +334,13 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             self.responses.setRowCount(len(self.response_defs))
             for row, definition in enumerate(self.response_defs):
                 values = [definition['id'],
-                    {'pair': 'Pair force', 'contact_field': 'Contact field', 'displacement': 'Displacement'}[definition['kind']],
+                    {'pair': '접촉 쌍의 힘', 'contact_field': '접촉면 결과', 'displacement': '변위'}[definition['kind']],
                     labels.get(definition.get('pair_id'), ''),
-                    definition.get('quantity', definition.get('field', 'Displacement')),
+                    definition.get('quantity', definition.get('field', '변위')),
                     definition.get('component', {'a': 'A', 'b': 'B', 'both': 'A + B'}.get(definition.get('side'))),
-                    'Final' if definition['increment'] == 'final' else str(definition['increment']),
-                    definition['reduction'], definition['unit']]
+                    '마지막' if definition['increment'] == 'final' else str(definition['increment']),
+                    {'max': '최댓값', 'min': '최솟값', 'mean': '평균', 'field': '절점별 값',
+                     'value': '선택 증분', 'series': '증분 이력'}.get(definition['reduction'], definition['reduction']), definition['unit']]
                 for col, value in enumerate(values):
                     cell = QtWidgets.QTableWidgetItem(str(value or ''))
                     if col == 2:
@@ -329,7 +352,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             value = response_dialog(QtWidgets, self.pairs(), parent=self)
             if value:
                 if any(row['id'] == value['id'] for row in self.response_defs):
-                    self.message.setText('Response name is already used.'); return
+                    self.message.setText('이미 사용 중인 응답 이름입니다.'); return
                 self.response_defs.append(value); self.render_responses()
 
         def edit_response(self):
@@ -339,7 +362,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             value = response_dialog(QtWidgets, self.pairs(), self.response_defs[index], self)
             if value:
                 if any(row['id'] == value['id'] for i, row in enumerate(self.response_defs) if i != index):
-                    self.message.setText('Response name is already used.'); return
+                    self.message.setText('이미 사용 중인 응답 이름입니다.'); return
                 self.response_defs[index] = value; self.render_responses()
 
         def remove_response(self):
@@ -358,7 +381,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                 operation = 'doe' if self.method.currentIndex() == 0 else 'optimize'
                 def prepared(result):
                     create_plan(self.capture_id, operation)
-                    self.message.setText('Opening the editable Numerical Plan. No candidate has run.')
+                    self.message.setText('계산 계획을 열었습니다. 입력을 확인한 뒤 계획 창에서 계산을 실행하세요.')
                 self.send('pre.research.prepare', args, prepared)
             except Exception as error:
                 self.message.setText(str(error))
