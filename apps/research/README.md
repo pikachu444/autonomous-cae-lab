@@ -83,8 +83,10 @@ service produces an error; it is not killed or silently replaced. Adding Qt extr
 to an already running base-only service can require an explicit restart. If a
 service-only bootstrap is intended for subsequent Qt use, request
 `-NoBrowser -ResearchUI` from the start. Closing a Qt window leaves the shared
-service running. Command-line failures return nonzero without waiting for input;
-only a failed no-argument double-click pauses to keep the diagnostic visible.
+service running. With arguments, the CMD wrapper adds no pause and preserves the
+child's exit code. Headless NoBrowser, PrepareOnly and InstallOnly modes remain
+noninteractive. An ordinary Qt launch failure can still display an error dialog.
+Only a failed no-argument double-click adds a CMD pause to keep diagnostics visible.
 
 The CMD wrapper clears the inherited `PSModulePath` only inside its existing
 `setlocal` scope. Windows PowerShell builds its own default module paths, including

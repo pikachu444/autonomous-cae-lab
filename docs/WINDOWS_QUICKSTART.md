@@ -74,8 +74,10 @@ Data의 표·채널, Numerical의 연구 계획, Expert의 논의, PDE의 모델
 .\Start-CAE-Lab.cmd -Tool numerical -DocumentId DOCUMENT_ID -PrepareOnly
 ```
 
-명령줄에 인수가 있으면 실패해도 입력을 기다리지 않고 오류 코드로 끝난다.
-인수 없이 더블클릭한 실행이 실패했을 때만 진단을 읽도록 키 입력을 기다린다.
+인수가 있는 CMD wrapper는 추가 pause를 하지 않고 자식의 종료 코드를 전달한다.
+NoBrowser·PrepareOnly·InstallOnly headless 모드는 비대화형이다.
+일반 Qt 시작 오류는 오류 창을 표시할 수 있다. 인수 없이 더블클릭한 실행이
+실패했을 때만 CMD가 진단 확인용 키 입력 대기를 추가한다.
 Python 직접 실행의 옵션은 `--prepare-only`처럼 전체 이름을 쓴다.
 
 ## 설치 범위와 도구별 실행환경
