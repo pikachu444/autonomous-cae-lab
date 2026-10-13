@@ -11,18 +11,26 @@ def preview(workbench, command_id):
     return {'command_id': command_id, 'snapshot': snapshot, 'choices': choices(snapshot)}
 
 
-def prepare(workbench, command_id, selection, *, session_id, handoff_id):
-    """Explicit New Plan action; repeated calls inspect/resume the same Data import.
+def prepare(workbench, command_id, selection, *, session_id, handoff_id, target_plan_id=None):
+    """Import once, then create a Plan or return an observation for explicit review.
 
-    Only the existing import_table job runs. No model, Numerical or provider job
-    is submitted. A new generic fit Plan remains editable with missing bindings.
+    Only the existing import_table job runs. Existing targets are read only;
+    their live editors append after confirmation. No model/provider job runs.
     """
     wb = workbench
     check_id(command_id)
     check_id(handoff_id)
     if session_id != wb.session_id:
         raise ValueError('Reconnect to the current service before creating the Plan')
-    signature = canonical_hash({'command_id': command_id, 'selection': selection})
+    target = None
+    if target_plan_id is not None:
+        target = wb.numerical_documents.read(check_id(target_plan_id))
+        if target.get('draft', {}).get('mode') != 'request' or target['draft'].get('request', {}).get('operation') != 'fit':
+            raise ValueError('Choose an existing generic fit Plan; no other method is replaced')
+    signature_fields = {'command_id': command_id, 'selection': selection}
+    if target_plan_id is not None:
+        signature_fields['target_plan_id'] = target_plan_id
+    signature = canonical_hash(signature_fields)
     path = wb.desktop.root / 'post_measurements' / (handoff_id + '.json')
     with wb.desktop._lock:
         if path.exists():
@@ -53,6 +61,11 @@ def prepare(workbench, command_id, selection, *, session_id, handoff_id):
                 expected_generation=document['generation'],
                 command_id='C' + canonical_hash({'handoff': handoff_id, 'step': suffix,
                                                 'session': wb.session_id})[:32])
+        if state['phase'] == 'OBSERVATION_READY':
+            wb.post_observation(state['result_reference'])
+            return {'state': 'OBSERVATION_READY', 'target_document': target,
+                    'reference': state['result_reference'], 'role': state['role'],
+                    'data_document': data_owner.read(state['data_id']), 'executed': False}
         if state['phase'] == 'READY':
             return {'state': 'READY', 'document': wb.numerical_documents.read(state['plan_id']),
                     'data_document': data_owner.read(state['data_id']), 'executed': False}
@@ -85,6 +98,12 @@ def prepare(workbench, command_id, selection, *, session_id, handoff_id):
         if not run.get('retention_complete') or not run.get('retained_result'):
             data = command(data_owner, data, 'document.save', 'retain-import')['document']
         reference = wb.document_result_reference(data['id'], state['job_id'])
+        if target is not None:
+            state.update(phase='OBSERVATION_READY', result_reference=reference)
+            save_json(path, state)
+            return {'state': 'OBSERVATION_READY', 'target_document': target,
+                    'reference': reference, 'role': state['role'],
+                    'data_document': data, 'executed': False}
         from .evaluation_definition import document_reference
         from .numerical_document import request_draft
         draft = request_draft({

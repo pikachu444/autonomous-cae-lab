@@ -14,10 +14,11 @@ from caelab.post_observation import choices, measurement_columns, project_sample
 
 
 class MeasurementDialog(QDialog):
-    def __init__(self, snapshot, parent=None):
+    def __init__(self, snapshot, parent=None, *, plans=()):
         super().__init__(parent)
         self.snapshot = deepcopy(snapshot)
         self.selection = None
+        self._last_axis = None
         self.projected = None
         self.setWindowTitle('Use measured curve in Numerical')
         self.resize(1100, 780)
@@ -56,6 +57,13 @@ class MeasurementDialog(QDialog):
         self.role = QComboBox()
         self.role.addItem('Fit observation', 'fit')
         self.role.addItem('Holdout baseline', 'holdout')
+        self.destination = QComboBox()
+        self.destination.setObjectName('measurementDestination')
+        self.destination.addItem('New Numerical Plan', None)
+        for plan in plans:
+            self.destination.addItem(plan['title'], plan['id'])
+        self.destination.currentIndexChanged.connect(self.update_preview)
+        left.addRow('Plan', self.destination)
         left.addRow('Native block', self.block)
         left.addRow('Value / component / statistic', self.value_column)
         left.addRow('Axis', self.axis_column)
@@ -144,12 +152,19 @@ class MeasurementDialog(QDialog):
                 declarations = {'axis_name': 'arc length', 'axis_unit': summary.get('coordinate_units') or ''}
             else:
                 declarations = {}
+            axis_changed = axis != self._last_axis
             for key, value in declarations.items():
-                if value:
-                    self.fields[key].blockSignals(True)
-                    self.fields[key].setText(value)
-                    self.fields[key].setReadOnly(True)
-                    self.fields[key].blockSignals(False)
+                field = self.fields[key]
+                field.blockSignals(True)
+                if value or axis_changed:
+                    field.setText(value)
+                field.setReadOnly(bool(value))
+                if not value:
+                    field.show()
+                field.blockSignals(False)
+            self._last_axis = deepcopy(axis)
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(
+            'Review append in Plan' if self.destination.currentData() else 'Create new Plan')
         self.declarations.setText(' / '.join(
             str(self.fields[key].text()) for key in ('unit', 'frame', 'measure') if self.fields[key].text()) +
             '\nAxis: ' + self.fields['axis_name'].text() + ' [' + self.fields['axis_unit'].text() + ']')
@@ -161,21 +176,42 @@ class MeasurementDialog(QDialog):
                 str(len(projection['invalid_rows'])) + ' invalid. No resampling or unit conversion.')
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(projection['importable'])
             rows = projection['rows']
+            self.table.setColumnCount(5)
+            self.table.setHorizontalHeaderLabels(['Row', 'Axis', 'Value', 'State', 'Reason'])
         except (ValueError, TypeError, KeyError) as error:
             self.notice.setText(str(error))
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
-            # Keep the actual native table visible while completing its mapping.
-            rows = [{'native': {'block': row.get('block'), 'row': row.get('row', row.get('point_index'))},
-                     'axis': None, 'value': row['values'], 'valid': None, 'reason': ''}
-                    for row in self.snapshot['rows'] if row.get('block', []) == self.block.currentData()]
+            # Show actual columns while the mapping is incomplete, not JSON in a cell.
+            native_rows = [row for row in self.snapshot['rows'] if row.get('block', []) == self.block.currentData()]
+            columns = [(name, component) for name, count in choices(self.snapshot)['arrays'].items()
+                       for component in (range(count) if count > 1 else [None])]
+            self.table.setColumnCount(len(columns) + 1)
+            self.table.setHorizontalHeaderLabels(['Row'] + [
+                name + (' [' + str(component) + ']' if component is not None else '') for name, component in columns])
+            self.table.setRowCount(len(native_rows))
+            for index, row in enumerate(native_rows):
+                identifier = row.get('row', row.get('point_index'))
+                values = [identifier]
+                for name, component in columns:
+                    value = row['values'].get(name)
+                    values.append(value[component] if isinstance(value, list) and component is not None else value)
+                for column, value in enumerate(values):
+                    item = QTableWidgetItem('' if value is None else str(value))
+                    item.setToolTip(json.dumps({'block': row.get('block'), 'row': identifier,
+                                                'object': self.snapshot['origin']['object_ref']}) if column == 0 else item.text())
+                    self.table.setItem(index, column, item)
+                    self.table.setColumnWidth(column, 70 if column == 0 else 140)
+            self.draw()
+            return
         self.table.setRowCount(len(rows))
         for index, row in enumerate(rows):
-            for column, value in enumerate((row['native'], row['axis'], row['value'],
+            identity = row['native']
+            for column, value in enumerate((identity.get('row', identity.get('point_index')), row['axis'], row['value'],
                                             'Valid' if row['valid'] else 'Invalid' if row['valid'] is False else 'Unmapped',
                                             row['reason'])):
                 text = json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else '' if value is None else str(value)
                 item = QTableWidgetItem(text)
-                item.setToolTip(text)
+                item.setToolTip(json.dumps({'native': identity, 'object': self.snapshot['origin']['object_ref']}) if column == 0 else text)
                 self.table.setItem(index, column, item)
         self.draw()
 
@@ -211,3 +247,56 @@ class MeasurementDialog(QDialog):
         if len(getattr(event, 'ind', [])):
             self.table.selectRow(int(event.ind[0]))
             self.table.scrollToItem(self.table.item(int(event.ind[0]), 0))
+
+
+class ObservationReviewDialog(QDialog):
+    """Review retained Data values before appending to a live Plan's local draft."""
+    def __init__(self, payload, title, role, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Append measured curve')
+        self.resize(850, 620)
+        layout = QVBoxLayout(self)
+        response = payload['response']
+        origin = payload['origin']
+        label = QLabel(origin['selection']['value_array'] + ' → ' + title + '\n' +
+            response['unit'] + ' / ' + response['frame'] + ' / ' + response['measure'] +
+            '\nAppend as ' + role + '. Existing variables, protocols and unapplied edits remain. '
+            'Assign the new trial’s model protocol and response before Run.')
+        label.setWordWrap(True)
+        layout.addWidget(label)
+        split = QSplitter(Qt.Orientation.Vertical)
+        table = QTableWidget(0, 3)
+        table.setHorizontalHeaderLabels(['Axis', 'Measured', 'State'])
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        raw, axis = response.get('raw_samples'), response['axes'][0]
+        values = raw['value'] if raw else response['value']
+        xvalues = raw['axis'] if raw else axis['values']
+        valid = raw['calculation_valid'] if raw else [True] * len(values)
+        table.setRowCount(len(values))
+        for row, (x, y, good) in enumerate(zip(xvalues, values, valid)):
+            for column, value in enumerate((x, y, 'Used' if good else 'Excluded')):
+                table.setItem(row, column, QTableWidgetItem(str(value)))
+        split.addWidget(table)
+        figure = Figure(figsize=(6, 3))
+        canvas = FigureCanvasQTAgg(figure)
+        axes = figure.add_subplot(111)
+        def number(value):
+            try:
+                result = float(value)
+                return result if math.isfinite(result) else math.nan
+            except (ValueError, TypeError):
+                return math.nan
+        axes.plot([number(value) for value in xvalues],
+                  [number(value) if good else math.nan for value, good in zip(values, valid)], marker='o')
+        axes.set_xlabel(axis['name'] + ' [' + axis['unit'] + ']')
+        axes.set_ylabel(response['component'] + ' [' + response['unit'] + ']')
+        figure.tight_layout()
+        split.addWidget(canvas)
+        split.setSizes([170, 300])
+        layout.addWidget(split, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Append observation')
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)

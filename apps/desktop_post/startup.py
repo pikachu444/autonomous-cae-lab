@@ -18,6 +18,13 @@ try:
     log("entered", executable=sys.executable, argv=sys.argv, project=str(project_path), app_home=os.environ.get("CAE_POST_HOME"))
     sys.path.insert(0, os.environ["CAE_POST_HOME"])
     sys.path.insert(0, str(Path(os.environ["CAE_POST_HOME"]).resolve().parents[1]))
+    selected = None
+    if os.environ.get("CAE_POST_MEASUREMENT"):
+        from caelab.post_observation import verify_origin
+        selected = json.loads(Path(os.environ["CAE_POST_MEASUREMENT"]).read_text(encoding="utf-8"))
+        verify_origin(selected)
+        if Path(selected["project"]["path"]).resolve() != project_path.resolve():
+            raise ValueError("Selected measurement belongs to another saved Post project")
     from commands import restore_workspace
     log("module_loaded", module=restore_workspace.__module__)
     restore_workspace(allow_repair=True)
@@ -28,9 +35,7 @@ try:
             from bridge import start
             # Keep the native timer/owner alive for this actual application session.
             cae_post_bridge = start(os.environ["CAE_POST_SERVICE_URL"], log=log)
-            if os.environ.get("CAE_POST_MEASUREMENT"):
-                from caelab.post_observation import verify_origin
-                selected = json.loads(Path(os.environ["CAE_POST_MEASUREMENT"]).read_text(encoding="utf-8"))
+            if selected is not None:
                 verify_origin(selected)
                 cae_post_bridge[0].workspace.measurement_open(origin=selected)
                 log("measurement_restored", object_ref=selected["object_ref"], revision=selected["revision"])

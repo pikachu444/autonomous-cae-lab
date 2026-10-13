@@ -53,25 +53,44 @@ def result_message(client, target_id, session_id, reference, selection, *, deliv
     return message
 
 
+def observation_message(client, target_id, session_id, reference, role, *, delivery_id=None):
+    message = {'version': 1, 'operation': 'observation', 'service': service_identity(client.url),
+        'target_id': target_id, 'session_id': session_id, 'reference': deepcopy(reference),
+        'selection': {'response': 'measured', 'role': role},
+        'delivery_id': delivery_id or 'D' + uuid.uuid4().hex}
+    validate_message(message)
+    return message
+
+
 def validate_message(message):
     common = {'version', 'operation', 'service', 'target_id', 'session_id'}
     if not isinstance(message, dict) or message.get('version') != 1:
         raise ValueError('Unsupported local result message.')
     operation = message.get('operation')
-    expected = common | ({'delivery_id', 'reference', 'selection'} if operation == 'result' else
+    expected = common | ({'delivery_id', 'reference', 'selection'} if operation in {'result', 'observation'} else
                          {'delivery_id'} if operation == 'status' else set())
-    if operation not in {'result', 'activate', 'status'} or set(message) != expected:
+    if operation not in {'result', 'observation', 'activate', 'status'} or set(message) != expected:
         raise ValueError('Unsupported local operation or fields.')
     identifier = check_id(message['target_id'])
-    if not identifier.startswith(('X', 'S')):
-        raise ValueError('Return target must be an existing Expert or Study.')
+    if not identifier.startswith(('X', 'S', 'N')):
+        raise ValueError('Return target must be an existing Expert, Study or Numerical Plan.')
     if not isinstance(message['session_id'], str) or not 1 <= len(message['session_id']) <= 160:
         raise ValueError('Missing service session.')
     if not isinstance(message['service'], str) or len(message['service']) > 200:
         raise ValueError('Invalid service identity.')
-    if operation in {'result', 'status'}:
+    if operation in {'result', 'observation', 'status'}:
         check_id(message['delivery_id'])
+    if operation == 'observation':
+        validate_result_reference(message['reference'])
+        if not identifier.startswith('N') or not message['reference']['document_id'].startswith('T'):
+            raise ValueError('A Post observation attaches a retained Data result to an existing Numerical Plan.')
+        if (not isinstance(message['selection'], dict) or set(message['selection']) != {'response', 'role'}
+                or message['selection']['response'] != 'measured'
+                or message['selection']['role'] not in {'fit', 'holdout'}):
+            raise ValueError('Choose the exact measured response and fit/holdout role.')
     if operation == 'result':
+        if not identifier.startswith(('X', 'S')):
+            raise ValueError('Numerical results return to Expert or Study.')
         validate_result_reference(message['reference'])
         if not message['reference']['document_id'].startswith('N'):
             raise ValueError('This route returns a retained Numerical run.')
@@ -103,6 +122,16 @@ def verify_result(client, message):
     validate_message(message)
     reference, target_id = message['reference'], message['target_id']
     target = client.document_read(target_id)
+    if message['operation'] == 'observation':
+        draft = target.get('draft', {})
+        if (target.get('id') != target_id or target.get('kind') != 'numerical'
+                or target.get('session_id') != message['session_id']
+                or draft.get('mode') != 'request' or draft.get('request', {}).get('operation') != 'fit'):
+            raise ValueError('Choose the same current generic fit Plan; no owner or method is replaced.')
+        payload = client.post_observation(reference)
+        if payload.get('reference') != reference:
+            raise ValueError('The retained observation reference changed.')
+        return {'target': target, 'title': 'Measured Post curve', 'observation': payload}
     expected_kind = 'expert' if target_id.startswith('X') else 'study'
     if target.get('id') != target_id or target.get('kind') != expected_kind or target.get('session_id') != message['session_id']:
         raise ValueError('The target owner/session changed. Reopen or reconcile it explicitly.')
@@ -275,19 +304,22 @@ class PendingResultReview(QObject):
             if oldest is None:
                 break
             del self.receipts[oldest]
-        self.action.setText('Review returned result… (' + str(len(self.pending)) + ')')
+        self.action.setText(('Review observation… (' if self.target and self.target[0].startswith('N')
+                             else 'Review returned result… (') + str(len(self.pending)) + ')')
         self.action.setVisible(True)
         window.showNormal()
         window.raise_()
         window.activateWindow()
-        window.message.setText('Numerical result ready for review. The current edits have not changed.')
+        window.message.setText('Measured curve ready for review. Current Plan edits have not changed.' if operation == 'observation'
+                               else 'Numerical result ready for review. The current edits have not changed.')
         return {**base, 'status': 'PRESENTED', 'delivery_id': identifier}
 
     def _blocked(self):
         window = self.window
         return (not window.document or window.conflict or window._busy or getattr(window, '_callbacks', 0)
                 or getattr(window, '_draft_problem', None) or getattr(window, '_raw_mode', False)
-                or getattr(window, '_allow_close', False))
+                or getattr(window, '_allow_close', False) or getattr(window, '_view_error', None)
+                or getattr(window, '_pending_adoption', None))
 
     def review_next(self):
         if not self.pending or self.reviewing or self._blocked():
@@ -318,7 +350,7 @@ class PendingResultReview(QObject):
                 self.receipts[identifier]['status'] = 'CANCELLED'
                 self.pending.pop(identifier, None)
                 self._finish()
-                self.window.message.setText('Return cancelled. Question, Study entries and evidence are unchanged.')
+                self.window.message.setText('Return cancelled. Current document edits are unchanged.')
                 return
             if not relevant():
                 failed('The original editor changed during review.')
@@ -333,8 +365,10 @@ class PendingResultReview(QObject):
             self.receipts[identifier]['status'] = status
             self.pending.pop(identifier, None)
             self._finish()
-            self.window.message.setText('Result evidence attached locally. Apply and Save remain explicit.' if status == 'ATTACHED'
-                                       else 'This exact result and channel selection is already attached.')
+            self.window.message.setText('Observation appended locally. Assign its model protocol/response, then Apply and Save.'
+                if status == 'ATTACHED' and message['operation'] == 'observation' else
+                'Result evidence attached locally. Apply and Save remain explicit.' if status == 'ATTACHED'
+                else 'This exact result and selection is already attached.')
         self._read(lambda: verify_result(self.window.client, message), checked, failed)
         return True
 
@@ -358,10 +392,16 @@ class PendingResultReview(QObject):
         self.reviewing = False
         self.window._incoming_review = False
         self.action.setVisible(bool(self.pending))
-        self.action.setText('Review returned result… (' + str(len(self.pending)) + ')')
+        self.action.setText(('Review observation… (' if self.target and self.target[0].startswith('N')
+                             else 'Review returned result… (') + str(len(self.pending)) + ')')
         self.window._update_actions()
 
     def confirm(self, message, payload):
+        if message['operation'] == 'observation':
+            from .post_measurement_dialog import ObservationReviewDialog
+            dialog = ObservationReviewDialog(payload['observation'], self.window.document['title'],
+                                              message['selection']['role'], self.window)
+            return dialog.exec() == QDialog.DialogCode.Accepted
         dialog = QDialog(self.window)
         dialog.setWindowTitle('Attach Numerical result')
         dialog.resize(660, 360)
@@ -386,6 +426,26 @@ class PendingResultReview(QObject):
     def append(self, message):
         window = self.window
         draft = window.edited_draft()
+        if message['operation'] == 'observation':
+            if (draft.get('mode') != 'request' or draft.get('request', {}).get('operation') != 'fit'
+                    or not isinstance(draft['request']['inputs'].get('experiments'), list)):
+                raise ValueError('The live Plan method or trial list changed; its edits were preserved.')
+            observation = {'result': deepcopy(message['reference']), 'response': 'measured'}
+            rows = draft['request']['inputs']['experiments']
+            role = message['selection']['role']
+            if any(isinstance(row, dict) and row.get('observation_ref') == observation
+                   and row.get('role', 'fit') == role for row in rows):
+                return 'ALREADY_ATTACHED'
+            rows.append({'id': 'post_' + canonical_hash({'observation': observation, 'role': role})[:16], 'role': role,
+                         'settings': {}, 'response': '', 'weight': 1.0, 'scale': 1.0,
+                         'observation_ref': observation})
+            window._request_buffer = draft
+            window._populate_inputs(draft['request']['inputs'])
+            window._edited()
+            window.observed_trial.setCurrentIndex(window.observed_trial.count() - 1)
+            window.tabs.setCurrentWidget(window.observation_panel)
+            QTimer.singleShot(0, window.load_observation)
+            return 'ATTACHED'
         reference = {**deepcopy(message['reference']), 'selection': deepcopy(message['selection'])}
         if window.document['kind'] == 'expert':
             rows = draft['composer']['evidence']
@@ -489,7 +549,7 @@ def deliver_result(client, message, *, launch=None, timeout=12):
         return receipt
     if launch is None:
         from .desktop import _spawn
-        launch = lambda: _spawn(client, ['expert' if message['target_id'].startswith('X') else 'study',
+        launch = lambda: _spawn(client, [{'X': 'expert', 'S': 'study', 'N': 'numerical'}[message['target_id'][0]],
                                          '--document-id', message['target_id']])
     launch()
     deadline = time.monotonic() + timeout

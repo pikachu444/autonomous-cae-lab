@@ -46,7 +46,7 @@ def handle(handler,method,path,query):
                 raise ServiceError(400,'Select the exact completed native measurement command')
             return handler._json(200,workbench.post_measurement_preview(**body))
         if path=='/api/workbench/post-measurement-plan':
-            if set(body) != {'command_id','selection','session_id','handoff_id'}:
+            if set(body) - {'target_plan_id'} != {'command_id','selection','session_id','handoff_id'}:
                 raise ServiceError(400,'Choose the measurement, mapping and explicit New Plan action')
             return handler._json(200,workbench.post_measurement_plan(**body))
         if path=='/api/workbench/post-observation':

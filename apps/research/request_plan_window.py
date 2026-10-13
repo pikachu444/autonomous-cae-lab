@@ -493,6 +493,8 @@ class RequestPlanWindow(NumericalWindow):
                 if prior_index >= 0:
                     self.observed_trial.setCurrentIndex(prior_index)
                 self.observed_trial.blockSignals(False)
+                if self._post_observation and not self._observation_matches():
+                    self._observation_trial_changed()
                 method = value.get('method', 'least_squares')
                 settings = [('Fit method', ('method',), 'least_squares', False, ('least_squares', 'differential_evolution'))]
                 settings += ([('Function evaluations', ('options', 'max_nfev'), 100, True, ())]
@@ -643,6 +645,9 @@ class RequestPlanWindow(NumericalWindow):
         return super().open_document(document_id=document_id, title=title, draft=draft)
 
     def _opened(self, document):
+        from .result_return import bind_receiver
+        if not bind_receiver(self, document):
+            return
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
         self._result_errors.clear()
@@ -670,6 +675,10 @@ class RequestPlanWindow(NumericalWindow):
         return None
 
     def _show_document(self, document, prefer_job=None):
+        receiver = getattr(self, '_result_return', None)
+        if (receiver and receiver.target and receiver.target[0] == document['id']
+                and receiver.target[1] != document['session_id']):
+            receiver.bind(document)
         self.document = deepcopy(document)
         self._request_buffer = deepcopy(document['draft'])
         self._view_error = self._shape_error(self._request_buffer)
@@ -1876,7 +1885,7 @@ class RequestPlanWindow(NumericalWindow):
 
     def _update_actions(self):
         present = self.document is not None
-        available = not (self._busy or self._callbacks or self._pending_adoption)
+        available = not (self._busy or self._callbacks or self._pending_adoption or getattr(self, '_incoming_review', False))
         enabled = present and available and not self.conflict
         # Background reads may finish while a cell editor is open. They preserve
         # local edits and never disable the editor or force its value to commit.
@@ -1987,17 +1996,27 @@ class RequestPlanWindow(NumericalWindow):
             self._observed_rows = list(zip(source_rows, axes, values, valid, reasons))
             self.observed_table.setRowCount(len(values))
             for index, (source_row, x, y, good, reason) in enumerate(self._observed_rows):
-                for column, value in enumerate((source_row, identities.get(source_row), x, y,
+                native = identities.get(source_row) or {}
+                short_row = native.get('row', native.get('point_index', ''))
+                for column, value in enumerate((source_row, short_row, x, y,
                                                 'Used' if good else 'Excluded: ' + reason)):
                     self._set_cell(self.observed_table, index, column, value, False)
+                self.observed_table.item(index, 1).setToolTip(json.dumps(
+                    {'native': native, 'object': origin['object_ref']}, ensure_ascii=False))
             mapping = origin['selection']
             self.observed_info.setText(mapping['value_array'] + ' / ' + response['component'] +
                 ' [' + response['unit'] + '] at ' + response['location'] +
                 ('\nOriginal Post unavailable: ' + str(payload['source_error']) if not payload['source_available'] else ''))
             self.observed_figure.clear()
             self._observed_axes = self.observed_figure.add_subplot(111)
-            self._observed_axes.plot([float(x) for x in axes],
-                [float(y) if good else math.nan for y, good in zip(values, valid)],
+            def finite_or_gap(value):
+                try:
+                    number = float(value)
+                    return number if math.isfinite(number) else math.nan
+                except (ValueError, TypeError):
+                    return math.nan
+            self._observed_axes.plot([finite_or_gap(x) for x in axes],
+                [finite_or_gap(y) if good else math.nan for y, good in zip(values, valid)],
                 marker='o', markersize=4, picker=6)
             self._observed_axes.set_xlabel(axis['name'] + ' [' + axis['unit'] + ']')
             self._observed_axes.set_ylabel(response['component'] + ' [' + response['unit'] + ']')
@@ -2041,6 +2060,16 @@ class RequestPlanWindow(NumericalWindow):
         from .desktop import open_post_observation
         return self._call(lambda: open_post_observation(self.client, reference),
             lambda receipt: self.message.setText('Original Post: ' + str(receipt['status'])))
+
+    def closeEvent(self, event):
+        receiver = getattr(self, '_result_return', None)
+        if receiver and receiver.reviewing:
+            self.message.setText('Finish or cancel observation review before closing.')
+            event.ignore()
+            return
+        super().closeEvent(event)
+        if event.isAccepted() and receiver:
+            receiver.close()
 
     def open_source(self):
         source = deepcopy(self.document['draft'].get('source'))

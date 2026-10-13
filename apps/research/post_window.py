@@ -161,6 +161,7 @@ class PostWindow(QMainWindow):
         self.handoff_retry.setVisible(False)
         toolbar.addWidget(self.handoff_retry)
         self._measurement_handoff = None
+        self._measurement_delivery = None
         self._measurement_dialog = None
         self.identity = QLabel()
         toolbar.addWidget(self.identity)
@@ -1058,21 +1059,27 @@ class PostWindow(QMainWindow):
             def previewed(payload):
                 from .post_measurement_dialog import MeasurementDialog
                 from PySide6.QtWidgets import QDialog
-                dialog = self._measurement_dialog = MeasurementDialog(payload['snapshot'], self)
+                dialog = self._measurement_dialog = MeasurementDialog(payload['snapshot'], self, plans=payload['plans'])
                 if dialog.exec() != QDialog.DialogCode.Accepted or token != self._context_token():
                     return
                 selection = deepcopy(dialog.selection)
                 if selection is None:
                     return
-                # Explicit New Plan never reopens/replaces another live Plan.
+                # Existing targets receive a pending review; their live editor is not reloaded.
                 def context_ready(context):
                     self._measurement_handoff = {'command_id': command_id, 'selection': selection,
-                        'session_id': context['service_session_id'], 'handoff_id': 'C' + uuid.uuid4().hex}
+                        'session_id': context['service_session_id'], 'handoff_id': 'C' + uuid.uuid4().hex,
+                        'target_plan_id': dialog.destination.currentData()}
                     self.handoff_retry.setVisible(True)
                     self._continue_measurement_handoff()
                 self._call(self.client.desktop_context, context_ready)
-            self._call(lambda: self.client.post_measurement_preview(command_id), previewed,
-                       relevant=lambda: token == self._context_token())
+            def read_preview():
+                payload = self.client.post_measurement_preview(command_id)
+                payload['plans'] = [doc for doc in self.client.documents()['documents']
+                    if doc.get('kind') == 'numerical' and doc.get('draft', {}).get('mode') == 'request'
+                    and doc['draft'].get('request', {}).get('operation') == 'fit']
+                return payload
+            self._call(read_preview, previewed, relevant=lambda: token == self._context_token())
         return self.queue_command('post.measurement_snapshot', {'object_ref': obj['id']}, accepted=extracted)
 
     def _continue_measurement_handoff(self):
@@ -1083,6 +1090,8 @@ class PostWindow(QMainWindow):
             if self._measurement_handoff is not pending:
                 return
             state = payload['state']
+            if state == 'OBSERVATION_READY':
+                return self._present_observation(payload, pending)
             if state == 'READY':
                 document_id = payload['document']['id']
                 from .desktop import launch_tool
@@ -1099,6 +1108,37 @@ class PostWindow(QMainWindow):
                 self.message.setText('Importing measured samples: ' + state)
                 QTimer.singleShot(250, self._continue_measurement_handoff)
         return self._call(lambda: self.client.post_measurement_plan(**deepcopy(pending)), received)
+
+    def _present_observation(self, payload, pending):
+        from .result_return import observation_message, verify_result, receive_local, deliver_result
+        if self._measurement_delivery is None:
+            self._measurement_delivery = observation_message(self.client, payload['target_document']['id'],
+                payload['target_document']['session_id'], payload['reference'], payload['role'])
+        message = deepcopy(self._measurement_delivery)
+        def received(receipt):
+            if self._measurement_handoff is not pending:
+                return
+            state = receipt.get('status')
+            if state in {'ATTACHED', 'ALREADY_ATTACHED', 'CANCELLED'}:
+                self._measurement_handoff = self._measurement_delivery = None
+                self.handoff_retry.setVisible(False)
+                self.message.setText('Observation ' + state.lower().replace('_', ' ') +
+                    '. Existing Plan edits were preserved; Apply and Save remain explicit.')
+            elif state == 'PRESENTED':
+                self.handoff_retry.setText('Check Plan review')
+                self.message.setText('Observation presented in the existing Plan. Review and Append or Cancel there.')
+            else:
+                if state == 'REJECTED':
+                    self._measurement_delivery = None
+                    self.handoff_retry.setText('Review in Plan again')
+                self.message.setText('Observation was not appended: ' + str(receipt))
+        def verified(_payload):
+            receipt = receive_local(message)
+            if receipt is not None:
+                received(receipt)
+            else:
+                self._call(lambda: deliver_result(self.client, message), received)
+        return self._call(lambda: verify_result(self.client, message), verified)
 
     def _update_actions(self):
         present = self.document is not None

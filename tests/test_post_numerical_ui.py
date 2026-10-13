@@ -29,6 +29,7 @@ def wait(app, predicate, detail=lambda: ''):
 
 
 class PlanClient:
+    url = 'http://127.0.0.1:18791'
     def __init__(self, workbench):
         self.workbench = workbench
     def __getattr__(self, name):
@@ -38,6 +39,7 @@ class PlanClient:
 
 
 class PostClient(NativeClient):
+    url = 'http://127.0.0.1:18791'
     def __init__(self, workbench, snapshot, command):
         super().__init__()
         self.workbench, self.snapshot, self.fixture_command = workbench, snapshot, command
@@ -58,6 +60,8 @@ class PostClient(NativeClient):
         if command['state'] == 'SUCCEEDED':
             command['outcome']['result'].update(command_id=identifier, document_id='Dpost', session_id='Snative')
         return command
+    def documents(self):
+        return self.workbench.documents()
     def desktop_context(self):
         return {'service_session_id': self.workbench.session_id}
     def post_measurement_preview(self, *args):
@@ -87,6 +91,9 @@ def test_actual_named_component_preview_cancel_leaves_snapshot(aggregate, tmp_pa
     original = deepcopy(snapshot)
     dialog = MeasurementDialog(snapshot)
     dialog.show()
+    assert dialog.table.item(1, 0).text() == '1'
+    assert 'block' in dialog.table.item(1, 0).toolTip()
+    assert 'Time' in [dialog.table.horizontalHeaderItem(i).text() for i in range(dialog.table.columnCount())]
     fill_dialog(dialog, aggregate=aggregate)
     app.processEvents()
     assert dialog.buttons.button(QDialogButtonBox.StandardButton.Ok).isEnabled()
@@ -162,3 +169,125 @@ def test_post_button_to_actual_retained_curve_and_editable_plan(tmp_path, monkey
         post._allow_close = True
         post.close()
         wb.shutdown()
+
+
+@pytest.mark.parametrize('accept', [False, True])
+def test_direct_existing_plan_review_preserves_live_edits(accept, tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    from caelab.numerical_document import request_draft
+    from caelab.storage import canonical_hash
+    wb = Workbench(tmp_path / 'store')
+    snapshot, native = fixture_snapshot(tmp_path)
+    client = PostClient(wb, snapshot, native)
+    original = wb.document_open(kind='numerical', title='Existing fit',
+        draft=request_draft({'purpose': 'Original task', 'operation': 'fit',
+            'budget': {'evaluations': 10},
+            'inputs': {'backend': '', 'variables': [], 'experiments': []}}))
+    before_ids = {doc['id'] for doc in wb.documents()['documents'] if doc['kind'] == 'numerical'}
+    plan = RequestPlanWindow(PlanClient(wb), document_id=original['id'], poll_interval=0)
+    post = PostWindow(client, document_id='Dpost', session_id='Snative', poll_interval=0)
+    launches = []
+    monkeypatch.setattr('apps.research.desktop._spawn', lambda *args: launches.append(args))
+    original_exec = MeasurementDialog.exec
+    def reviewed(dialog):
+        def choose():
+            fill_dialog(dialog)
+            dialog.destination.setCurrentIndex(dialog.destination.findData(original['id']))
+            assert dialog.destination.currentData() == original['id']
+            QTest.mouseClick(dialog.buttons.button(QDialogButtonBox.StandardButton.Ok), Qt.MouseButton.LeftButton)
+        QTimer.singleShot(0, choose)
+        return original_exec(dialog)
+    monkeypatch.setattr(MeasurementDialog, 'exec', reviewed)
+    try:
+        plan.show()
+        post.show()
+        wait(app, lambda: plan.document is not None and post.document is not None and not plan._busy and not post._busy)
+        plan.purpose.setText('Unapplied research question')
+        plan._edited()
+        edited = deepcopy(plan.edited_draft())
+        owner_hash = canonical_hash(wb.document_read(original['id'])['draft'])
+        QTest.mouseClick(post.numerical_button, Qt.MouseButton.LeftButton)
+        wait(app, lambda: bool(plan._result_return.pending) and not post._busy,
+             lambda: post.message.text())
+        assert not launches
+        assert plan.edited_draft() == edited
+        assert {doc['id'] for doc in wb.documents()['documents'] if doc['kind'] == 'numerical'} == before_ids
+        assert canonical_hash(wb.document_read(original['id'])['draft']) == owner_hash
+        receiver = plan._result_return
+        identifier = next(iter(receiver.pending))
+        monkeypatch.setattr(receiver, 'confirm', lambda *_: accept)
+        assert receiver.review_next()
+        wait(app, lambda: not receiver.reviewing, lambda: plan.message.text())
+        assert receiver.receipts[identifier]['status'] == ('ATTACHED' if accept else 'CANCELLED')
+        after = plan.edited_draft()
+        assert after['request']['purpose'] == 'Unapplied research question'
+        assert after['request']['inputs']['variables'] == edited['request']['inputs']['variables']
+        assert canonical_hash(wb.document_read(original['id'])['draft']) == owner_hash
+        if accept:
+            trial = after['request']['inputs']['experiments'][0]
+            assert trial['observation_ref']['response'] == 'measured'
+            assert trial['settings'] == {} and trial['response'] == ''
+            wait(app, lambda: plan._post_observation is not None and not plan._busy)
+            assert plan.observed_table.item(1, 3).text() == '0.2294'
+            # Duplicate delivery acknowledges the same attachment without another row.
+            receipt = receiver.receive(deepcopy(post._measurement_delivery))
+            assert receipt['status'] == 'ATTACHED'
+            assert len(plan.edited_draft()['request']['inputs']['experiments']) == 1
+            plan.save_document()
+            wait(app, lambda: not plan._busy and not plan.local_dirty)
+            saved = wb.document_read(original['id'])
+            assert saved['draft']['request']['purpose'] == 'Unapplied research question'
+            assert saved['draft']['request']['inputs']['experiments'][0]['observation_ref'] == trial['observation_ref']
+        else:
+            assert after == edited
+    finally:
+        for window in (plan, post):
+            window.local_dirty = False
+            window._allow_close = True
+            window.close()
+        wb.shutdown()
+
+
+def test_unknown_coordinate_unit_after_output_index(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    snapshot, _ = fixture_snapshot(tmp_path)
+    snapshot['summary']['measurement'] = snapshot['recipe']['measurement'] = 'point'
+    snapshot['summary'].pop('coordinate_units', None)
+    for i, row in enumerate(snapshot['rows']):
+        row.update(point_index=i, coordinates=[i, 0, 0])
+    dialog = MeasurementDialog(snapshot)
+    dialog.show()
+    try:
+        dialog.axis_column.setCurrentIndex(dialog.axis_column.findData({'kind': 'point_index'}))
+        assert dialog.fields['axis_unit'].text() == '1'
+        assert dialog.fields['axis_unit'].isReadOnly()
+        dialog.axis_column.setCurrentIndex(dialog.axis_column.findData({'kind': 'coordinate', 'component': 0}))
+        assert dialog.fields['axis_unit'].text() == ''
+        assert not dialog.fields['axis_unit'].isReadOnly()
+        dialog.fields['axis_unit'].setText('mm')
+        dialog.update_preview()
+        assert dialog.fields['axis_unit'].text() == 'mm'
+    finally:
+        dialog.reject()
+        app.processEvents()
+
+
+def test_native_reopen_claim_blocks_duplicate_and_uncertain_launch(tmp_path, monkeypatch):
+    from apps.research import desktop, result_return
+    import json
+    client = type('Client', (), {'url': 'http://127.0.0.1:18791'})()
+    monkeypatch.setattr(result_return, '_route', lambda *args: ('test-post', tmp_path / 'post.lock'))
+    monkeypatch.setattr(desktop, '_native_pid_alive', lambda pid: False if pid == 12 else None)
+    origin = {'document_id': 'Dpost'}
+    claim, marker = desktop._post_launch_claim(client, origin)
+    try:
+        with pytest.raises(ValueError, match='already opening'):
+            desktop._post_launch_claim(client, origin)
+    finally:
+        claim.unlock()
+    marker.write_text(json.dumps({'state': 'LAUNCH_REQUESTED', 'launcher_pid': 12}))
+    with pytest.raises(ValueError, match='unconfirmed'):
+        desktop._post_launch_claim(client, origin)
+    marker.write_text(json.dumps({'state': 'CONFIRMED', 'native_pid': 12}))
+    claim, _ = desktop._post_launch_claim(client, origin)
+    claim.unlock()

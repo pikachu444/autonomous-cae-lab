@@ -217,9 +217,9 @@ class Workbench:
         from .post_numerical import preview
         return preview(self, command_id)
 
-    def post_measurement_plan(self, command_id, selection, *, session_id, handoff_id):
+    def post_measurement_plan(self, command_id, selection, *, session_id, handoff_id, target_plan_id=None):
         from .post_numerical import prepare
-        return prepare(self, command_id, selection, session_id=session_id, handoff_id=handoff_id)
+        return prepare(self, command_id, selection, session_id=session_id, handoff_id=handoff_id, target_plan_id=target_plan_id)
 
     def post_observation(self, reference):
         from .post_numerical import observation

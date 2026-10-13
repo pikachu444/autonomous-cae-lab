@@ -285,7 +285,7 @@ def _native_pid_alive(pid):
         return None
 
 
-def open_post_observation(client, reference):
+def open_post_observation(client, reference, *, launch_closed=True):
     """Reuse exact live measurement or reopen its verified saved native project."""
     payload = client.post_observation(reference)
     if not payload['source_available']:
@@ -321,7 +321,29 @@ def open_post_observation(client, reference):
     pids = {origin.get('pid'), *[doc.get('state', {}).get('pid') for doc in matches]}
     if any(_native_pid_alive(pid) is not False for pid in pids):
         raise ValueError('Original Post is disconnected or its closure is uncertain; reconnect that window first')
+    if not launch_closed:
+        return None
     return _spawn(client, ['post', '--measurement-result', json.dumps(reference, ensure_ascii=False)])
+
+
+def _post_launch_claim(client, origin):
+    """Reuse the transient Qt lock mechanism for the native startup gap."""
+    from .result_return import _route, _lock, service_identity
+    _, path = _route(service_identity(client.url), 'post-launch-' + origin['document_id'])
+    lock = _lock(path)
+    if not lock.tryLock(0):
+        raise ValueError('This saved Post project is already opening; wait for that native window')
+    marker = path.with_suffix('.native-launch.json')
+    try:
+        if marker.exists():
+            previous = json.loads(marker.read_text(encoding='utf-8'))
+            alive = _native_pid_alive(previous.get('native_pid')) if previous.get('state') == 'CONFIRMED' else None
+            if alive is not False:
+                raise ValueError('A previous native launch is running or unconfirmed; reconnect it before another launch')
+        return lock, marker
+    except BaseException:
+        lock.unlock()
+        raise
 
 
 def _choose_file(title, filters):
@@ -474,9 +496,43 @@ def _post(client, args):
         environment['CAELAB_ORIGIN_JOB_ID'] = origin_job_id
     # Reopening a retained revision updates only the launch environment. Neither
     # runtime metadata nor startup logs are written into that saved revision.
-    process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
-                                '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
-    return {'status':'LAUNCHED', 'pid':process.pid, 'project':str(project), 'state':str(state)}
+    claim = marker = None
+    if measurement_source is not None:
+        reference = json.loads(args.measurement_result)
+        existing = open_post_observation(client, reference, launch_closed=False)
+        if existing is not None:
+            return existing
+        claim, marker = _post_launch_claim(client, measurement_source)
+    try:
+        if measurement_source is not None:
+            existing = open_post_observation(client, reference, launch_closed=False)
+            if existing is not None:
+                return existing
+            save_json(marker, {'state': 'STARTING', 'project_sha256': measurement_source['project']['sha256']})
+        process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
+                                    '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
+        if marker is not None:
+            save_json(marker, {'state': 'LAUNCH_REQUESTED', 'launcher_pid': process.pid,
+                               'project_sha256': measurement_source['project']['sha256']})
+            deadline = time.monotonic() + 20
+            while time.monotonic() < deadline:
+                documents = client.documents()['documents']
+                matches = [doc for doc in documents if doc.get('kind') == 'post'
+                    and doc.get('id') == measurement_source['document_id'] and doc.get('connected')]
+                if len(matches) == 1:
+                    actual_pid = matches[0].get('state', {}).get('pid')
+                    if type(actual_pid) is int and actual_pid > 0:
+                        save_json(marker, {'state': 'CONFIRMED', 'native_pid': actual_pid,
+                            'project_sha256': measurement_source['project']['sha256']})
+                        break
+                time.sleep(.1)
+            else:
+                raise RuntimeError('Native Post launch is unconfirmed; inspect ' +
+                    str(folder / 'native_startup.jsonl') + ' and reconnect it before retrying')
+        return {'status':'LAUNCHED', 'pid':process.pid, 'project':str(project), 'state':str(state)}
+    finally:
+        if claim is not None:
+            claim.unlock()
 
 
 def _arguments(argv=None):
