@@ -1,7 +1,11 @@
 # Windows 설치와 실행
 
-기본 Research 앱은 Windows 10/11 x64에서 실행합니다. CAD 전처리는 FreeCAD,
-후처리는 ParaView를 별도로 사용합니다. 현재 배포본은 개발 버전입니다.
+`Start-CAE-Lab.cmd`로 준비하는 기본 설치는 **전용 Python 실행 환경과 Research Qt 앱**입니다.
+Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버는 자동으로 설치하거나
+연결하지 않습니다.**
+
+현재는 개발 버전입니다. 자료·질문 저장과 포함된 수치 예제 실행을 확인했습니다.
+사용자 모델의 CAD 편집→해석→Post 작업을 바로 끝낼 수 있는 완성 배포본은 아닙니다.
 
 ## 처음 설치하기
 
@@ -60,6 +64,26 @@ git clone --recurse-submodules https://github.com/pikachu444/autonomous-cae-lab.
 ```
 
 이미 Git으로 받은 저장소에서는 `git submodule update --init --recursive`로 준비합니다.
+
+## 솔버와 재료 계산의 현재 지원 범위
+
+기본 Research 설치에는 FELUPE 재료점 계산이 포함됩니다. 외부 솔버는 별도로 설치하고
+연결해야 합니다.
+
+| 계산 도구 | 이 앱에서 연결한 범위와 실행 기록 | 설치 환경 |
+|---|---|---|
+| CalculiX | 구조 해석·접촉 계산 연결. 최근 Windows에서 CAD 변경 후 계산과 결과 회수 확인 | 별도 Windows 설치 필요 |
+| FELUPE | 선형 탄성·압축성 Neo-Hooke 재료점의 응력·접선 계산. 실제 계산 확인; 전체 FE 경계값 해석은 아님 | 기본 Research 설치에 포함 |
+| Code_Aster | 일부 구조 해석 예제 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
+| FEniCSx | 일부 PDE·연성 예제 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
+| MFront/MGIS | 일부 재료 법칙의 재료점 계산 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
+| OpenRadioss·OpenCourant | 제한된 강체 운동·접촉 예제의 WSL 실행 기록. 이상적 벽 충돌 검증은 미통과 | 별도 WSL/Linux 환경 필요 |
+
+FreeCAD는 CAD 전처리, Gmsh는 메시 생성, ParaView는 결과 후처리 도구입니다.
+위 실행 기록은 각 프로그램의 전체 기능 지원이나 실제 설계의 안전성 검증을 뜻하지 않습니다.
+WSL/Linux 계산 환경은 기본 Windows 설치에 포함되지 않습니다.
+[계산 환경과 실행 기록](LOCAL_EXECUTION.md),
+[OpenCourant 검증 범위와 남은 제한](OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md)을 참고하세요.
 
 ## Expert와 MCP
 
