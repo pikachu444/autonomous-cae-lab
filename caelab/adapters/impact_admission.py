@@ -90,6 +90,80 @@ def normalize_contact_friction(text,settings):
     return ''.join(lines)
 
 
+
+def _surface_faces(model,name):
+    """Source-oriented corner union, before native four-node padding."""
+    tet={1:(0,2,1),2:(0,1,3),3:(1,2,3),4:(2,0,3)}
+    hexa={1:(0,3,2,1),2:(7,4,5,6),3:(0,1,5,4),4:(1,2,6,5),5:(2,3,7,6),6:(3,0,4,7)}
+    if name not in model['surfaces']:raise ValueError('Unknown native surface')
+    result=set()
+    for target,side in model['surfaces'][name]:
+        eids=[int(target)] if target.isdigit() else model['elsets'][target]
+        for eid in eids:
+            element=model['elements'][eid]
+            order=(tet if element['type'] in ('C3D4','C3D10') else hexa)[int(side[1:])]
+            result.add(tuple(element['nodes'][index] for index in order))
+    return result
+
+
+def _segment_nodes(row):
+    """Strict effective native SEGid/N1/N2/N3/N4, five 10-wide integer fields."""
+    if len(row)!=50 or any(not re.fullmatch(r' *[0-9]+',row[i:i+10]) for i in range(0,50,10)):
+        raise ValueError('Surface segment requires five explicit 10-column integers')
+    values=[int(row[i:i+10]) for i in range(0,50,10)]
+    if any(v<=0 or v>2147483647 for v in values):raise ValueError('Surface segment identity is outside native integer range')
+    nodes=tuple(values[1:])
+    if nodes[2]==nodes[3] and len(set(nodes[:3]))==3:return values[0],nodes[:3]
+    if len(set(nodes))==4:return values[0],nodes
+    raise ValueError('Surface segment has an invalid repeated-node pattern')
+
+
+def normalize_surfaces(text,model):
+    """Correct only pinned converter SEG rows; original converted deck is retained.
+
+    radioss110/SETS/surf.cfg declares SEGid,N1,N2,N3,N4 at width10.
+    hm_read_surf repeats N3 for triangular N4=0. Write that repetition explicitly.
+    """
+    lines=text.splitlines(keepends=True);entries={};current=None
+    for index,line in enumerate(lines):
+        if line.startswith('/'):
+            current=line.strip() if line.startswith('/SURF/SEG/') else None
+            if current:
+                if current in entries:raise ValueError('Duplicate native surface')
+                entries[current]=[]
+        elif current and line.strip() and not line.lstrip().startswith('#'):entries[current].append(index)
+    seen=set();receipt={}
+    for key,indexes in entries.items():
+        if len(indexes)<2:raise ValueError('Empty native surface')
+        name=lines[indexes[0]].strip().upper()
+        if name in seen:raise ValueError('Duplicate native surface title')
+        seen.add(name);expected=_surface_faces(model,name);actual=[];replacements=[]
+        for ordinal,index in enumerate(indexes[1:],1):
+            raw=lines[index].rstrip('\r\n')
+            # The pinned writer leaves SEGid blank and emits either three or
+            # four corners. Inspect fixed slots, not whitespace-split tokens.
+            if len(raw) not in (40,50) or raw[:10].strip() and not raw[:10].strip().isdigit():
+                raise ValueError('Unrecognized converter surface layout')
+            slots=[raw[i:i+10] for i in range(10,len(raw),10)]
+            if any(not re.fullmatch(r' *[0-9]+',v) or int(v)<=0 for v in slots):
+                raise ValueError('Converted surface contains an empty/invalid corner')
+            nodes=tuple(int(v) for v in slots)
+            if len(nodes)==4 and nodes[-1]==nodes[-2]:nodes=nodes[:3]
+            if len(set(nodes))!=len(nodes) or len(nodes) not in (3,4):
+                raise ValueError('Converted surface corner multiplicity differs')
+            actual.append(nodes)
+            full=nodes if len(nodes)==4 else (*nodes,nodes[-1])
+            formatted=''.join(f'{v:10d}' for v in (ordinal,*full))
+            _,checked=_segment_nodes(formatted)
+            if checked!=nodes:raise ValueError('Surface serialization changed orientation')
+            replacements.append((index,formatted+('\r\n' if lines[index].endswith('\r\n') else '\n')))
+        if Counter(actual)!=Counter(expected):raise ValueError('Oriented converter surface differs from input')
+        for index,value in replacements:lines[index]=value
+        receipt[key]={'name':name,'segment_count':len(actual),'triangle_N4':'repeat_N3','layout':'5I10'}
+    if seen!=set(model['surfaces']):raise ValueError('Missing native surface')
+    return ''.join(lines),receipt
+
+
 def validate_physics(text, model, initial, settings):
     b=cards(text)
     def family(prefix):
@@ -168,21 +242,17 @@ def validate_physics(text, model, initial, settings):
                 _same(_real(row[:20]),strain); _same(_real(row[20:40]),stress)
         elif '/ELAST/' not in key or len(rows)!=3:
             raise ValueError('Unexpected material law')
-    tet={1:(0,2,1),2:(0,1,3),3:(1,2,3),4:(2,0,3)}
-    hexa={1:(0,3,2,1),2:(7,4,5,6),3:(0,1,5,4),4:(1,2,6,5),5:(2,3,7,6),6:(3,0,4,7)}
     surfaces=family('/SURF/SEG/'); surface_names={}
     for sid,rows in surfaces.items():
         name=rows[0].strip().upper()
-        if name not in model['surfaces'] or name in surface_names: raise ValueError('Unknown/duplicate surface')
-        surface_names[name]=sid; expected=[]
-        for target,side in model['surfaces'][name]:
-            eids=[int(target)] if target.isdigit() else sorted(model['elsets'][target])
-            for eid in eids:
-                element=model['elements'][eid]
-                order=(tet if element['type'].startswith('C3D4') or element['type']=='C3D10' else hexa)[int(side[1:])]
-                expected.append(tuple(element['nodes'][n] for n in order))
-        actual=[tuple(ids([row[10:]])) for row in rows[1:]]
-        if Counter(actual)!=Counter(set(expected)): raise ValueError('Oriented native contact faces differ')
+        if name not in model['surfaces'] or name in surface_names:raise ValueError('Unknown/duplicate surface')
+        surface_names[name]=sid;actual=[];segments=set()
+        for row in rows[1:]:
+            segment,nodes=_segment_nodes(row)
+            if segment in segments:raise ValueError('Duplicate native segment identity')
+            segments.add(segment);actual.append(nodes)
+            if any(n not in model['nodes'] for n in nodes):raise ValueError('Native surface node is absent')
+        if Counter(actual)!=Counter(_surface_faces(model,name)):raise ValueError('Oriented native contact faces differ')
     if set(surface_names)!=set(model['surfaces']): raise ValueError('Missing native surface')
     pairs=family('/INTER/TYPE24/')
     if len(pairs)!=len(settings['contacts']): raise ValueError('Native contact count differs')
@@ -217,7 +287,7 @@ def validate_physics(text, model, initial, settings):
         kind,values=groups[ident]
         if kind=='NODE': result=set(values)
         elif kind=='PART': result={n for e,p in element_parts.items() if p in values for n in model['elements'][e]['nodes']}
-        elif kind=='SURF': result={n for sid in values for row in surfaces[sid][1:] for n in ids([row[10:]])}
+        elif kind=='SURF': result={n for sid in values for row in surfaces[sid][1:] for n in _segment_nodes(row)[1]}
         elif kind=='GRNOD': result=set().union(*(group(v,(*trail,ident)) for v in values))
         elif kind=='GRBRIC': result={n for v in values for e in ids(brick_groups[v][1:]) for n in model['elements'][e]['nodes']}
         else: raise ValueError('Unsupported native node group '+kind)

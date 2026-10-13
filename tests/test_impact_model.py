@@ -108,7 +108,7 @@ def test_starter_actual_declared_units_and_scale_both_required(tmp_path):
 
 
 def test_two_sections_oblique_gravity_and_physical_postflight(tmp_path):
-    from caelab.adapters.impact_admission import global_gravity,validate_physics,cards
+    from caelab.adapters.impact_admission import global_gravity,normalize_surfaces,validate_physics,cards
     import caelab.adapters.inp2rad_worker as worker
     s=settings()
     # Two nonintersecting tetrahedra with different material properties.
@@ -122,6 +122,7 @@ def test_two_sections_oblique_gravity_and_physical_postflight(tmp_path):
     assert proc.returncode==0,proc.stdout+proc.stderr
     original=(tmp_path/'impact_0000.rad').read_text(encoding='ascii')
     fixed,receipt=global_gravity(original,s['gravity_mm_s2'])
+    fixed,_=normalize_surfaces(fixed,parse_inp(s['source']['text']))
     admission=validate_physics(fixed,parse_inp(s['source']['text']),initial,s)
     assert admission['global_gravity_mm_s2']==s['gravity_mm_s2']
     assert len(admission['material_by_element'])==2
@@ -135,7 +136,7 @@ def test_two_sections_oblique_gravity_and_physical_postflight(tmp_path):
 
 
 def test_repeated_lowercase_sets_preserve_full_fixed_union_in_native_cards(tmp_path):
-    from caelab.adapters.impact_admission import global_gravity,validate_physics
+    from caelab.adapters.impact_admission import global_gravity,normalize_surfaces,validate_physics
     import caelab.adapters.inp2rad_worker as worker
     s=settings()
     s['source']['text']+='\n*NSET,NSET=fixed\n1\n*NSET,NSET=fixed\n2\n*BOUNDARY\nfixed,1,3\n'
@@ -145,11 +146,12 @@ def test_repeated_lowercase_sets_preserve_full_fixed_union_in_native_cards(tmp_p
     proc=subprocess.run([sys.executable,worker.__file__,str(path)],capture_output=True,text=True,timeout=30)
     assert proc.returncode==0,proc.stdout+proc.stderr
     native,_=global_gravity((tmp_path/'impact_0000.rad').read_text(encoding='ascii'),s['gravity_mm_s2'])
+    native,_=normalize_surfaces(native,parse_inp(s['source']['text']))
     assert validate_physics(native,parse_inp(s['source']['text']),initial,s)['fixed_dof_count']==6
 
 
 def test_contact_converter_admission_preserves_starter_header_and_precision(tmp_path):
-    from caelab.adapters.impact_admission import global_gravity,normalize_contact_friction,validate_physics
+    from caelab.adapters.impact_admission import global_gravity,normalize_surfaces,normalize_contact_friction,validate_physics
     import caelab.adapters.inp2rad_worker as worker
     s=settings()
     s['source']['text']+='\n*SURFACE,NAME=SECOND_FACE,TYPE=ELEMENT\n1,S2\n'
@@ -164,7 +166,37 @@ def test_contact_converter_admission_preserves_starter_header_and_precision(tmp_
     assert raw.startswith('#RADIOSS STARTER')
     fixed,_=global_gravity(raw,s['gravity_mm_s2'])
     fixed=normalize_contact_friction(fixed,s)
+    fixed,_=normalize_surfaces(fixed,model)
     assert fixed.startswith('#RADIOSS STARTER')
     assert validate_physics(fixed,model,initial,s)['contact_count']==1
     # A no-gravity/no-contact edit preserves every non-GRAV source card.
     assert '/BEGIN' in fixed and '/END' in fixed
+
+
+def test_surface_fixed_slots_preserve_orientation_and_reject_blank_or_shifted_nodes(tmp_path):
+    from caelab.adapters.impact_admission import normalize_surfaces,_segment_nodes,global_gravity,validate_physics,cards
+    import caelab.adapters.inp2rad_worker as worker
+    s=settings();model=parse_inp(s['source']['text']);text,initial=render(s)
+    path=tmp_path/'impact.inp';path.write_text(text,encoding='ascii',newline='\n')
+    process=subprocess.run([sys.executable,worker.__file__,str(path)],capture_output=True,text=True,timeout=30)
+    assert process.returncode==0,process.stdout+process.stderr
+    raw=(tmp_path/'impact_0000.rad').read_text(encoding='ascii')
+    fixed,receipt=normalize_surfaces(raw,model)
+    assert fixed.startswith('#RADIOSS STARTER') and receipt
+    before,after=cards(raw),cards(fixed)
+    assert {k:v for k,v in before.items() if not k.startswith('/SURF/SEG/')}=={
+        k:v for k,v in after.items() if not k.startswith('/SURF/SEG/')}
+    row=next(rows[1] for key,rows in after.items() if key.startswith('/SURF/SEG/'))
+    ordinal,nodes=_segment_nodes(row)
+    assert ordinal==1 and nodes==(1,3,2)
+    assert row==f'{1:10d}{1:10d}{3:10d}{2:10d}{2:10d}'
+    effective,_=global_gravity(fixed,s['gravity_mm_s2'])
+    assert validate_physics(effective,model,initial,s)['fixed_dof_count']==0
+    for malformed in (' '*10+row[10:],row[:10]+' '*10+row[20:],row[10:],row+'         4',
+                      f'{1:10d}{1:10d}{3:10d}{2:10d}{1:10d}'):
+        with pytest.raises(ValueError,match='[Ss]urface'):
+            validate_physics(effective.replace(row,malformed),model,initial,s)
+    # A semantic corner change is rejected before reformatting, not repaired.
+    original=next(rows[1] for key,rows in before.items() if key.startswith('/SURF/SEG/'))
+    with pytest.raises(ValueError,match='surface'):
+        normalize_surfaces(raw.replace(original,f'{"":10}{1:10d}{2:10d}{3:10d}'),model)

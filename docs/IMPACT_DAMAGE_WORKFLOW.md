@@ -254,3 +254,20 @@ LAW117 실제 native 경로가 필요할 때만 별도 명시 opt-in:
 물리 측정 대상으로 고르지 않게 하는 필터입니다. 기존 appearance의 한글 plot font 함수를
 호출만 하며 스타일 framework를 추가하지 않았습니다.
 CURRENT_STATE/.moai/installer/바로가기 파일은 수정하지 않습니다.
+
+
+### SURF/SEG 고정폭 교정
+
+Root의 0681d19 실행에서 기본 24검사와 Data→rainflow→Study→cold reopen은 통과했습니다.
+실제 두 native 경로는 Starter ERROR78에서 멈췄으며 Engine 결과로 표시하지 않습니다.
+
+실행본의 각 SURF/SEG 행은 명시 segment 번호와 N1/N2/N3/N4의 10자리 정수 다섯 개로 씁니다.
+삼각면은 N4=N3, 사각면은 서로 다른 네 절점입니다. 먼저 변환기의 면 방향과 원 요소 면을
+대조한 뒤 해당 데이터 행만 교체합니다. 다른 카드·필수 헤더와 원 converted deck은 보존합니다.
+admission도 다섯 슬롯·존재하는 절점·중복 segment·삼각 반복 규칙을 직접 검사합니다.
+
+근거는 pinned radioss110/SETS/surf.cfg의 5I10과 hm_read_surf.F의 N1~N4 읽기입니다.
+**native reader는 N4=0도 N3로 해석합니다.** 따라서 원 ERROR78의 원인을 단순히
+“삼각면은 네 번째 절점이 필수”라고 단정하지 않습니다. 명시 형식은 모호함을 제거하는
+소스 교정이며 동일한 작은 실제 Starter 경로가 그 오류 해결을 확인해야 합니다.
+작성자 native 실행은 NOT_RUN입니다.

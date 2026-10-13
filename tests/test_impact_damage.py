@@ -8,7 +8,7 @@ import pytest
 from examples.impact.cohesive_model import settings
 from caelab.impact_model import render,parse_inp,validate_settings
 from caelab.impact_damage import apply_laws,verify_laws
-from caelab.adapters.impact_admission import global_gravity,validate_physics,cards
+from caelab.adapters.impact_admission import global_gravity,normalize_surfaces,validate_physics,cards
 from caelab.adapters.impact import converted_mesh
 
 
@@ -29,7 +29,14 @@ def test_pinned_cohesive_conversion_exact_law_and_model_binding(tmp_path):
     assert raw.startswith('#RADIOSS STARTER')
     converted_mesh(tmp_path/'impact_0000.rad',model,initial['nodes'])
     adjusted,_=global_gravity(raw,s['gravity_mm_s2'])
+    adjusted,surfaces=normalize_surfaces(adjusted,model)
     physical=validate_physics(adjusted,model,initial,s)
+    assert len(surfaces)==2
+    for key,rows in cards(adjusted).items():
+        if key.startswith('/SURF/SEG/'):
+            assert len(rows[1])==50
+            fields=[int(rows[1][i:i+10]) for i in range(0,50,10)]
+            assert fields[0]>0 and len(set(fields[1:]))==4
     effective,receipt=apply_laws(adjusted,{**model,'nodes':initial['nodes']},s['cohesive'])
     verify_laws(effective,model,s['cohesive'],receipt)
     assert set(receipt['elements'])=={'2'} and receipt['geometry']['2']['thickness_mm']==pytest.approx(.02)
