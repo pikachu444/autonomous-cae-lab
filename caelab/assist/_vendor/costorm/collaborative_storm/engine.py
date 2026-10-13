@@ -175,6 +175,281 @@ class RunnerArgument:
         return asdict(self)
 
     @classmethod
+    def from_dict(cls, data):
+        """
+        Constructs a RunnerArgument instance from a dictionary representation.
+
+        Args:
+            data (dict): The dictionary representation of the RunnerArgument.
+
+        Returns:
+            RunnerArgument: The constructed RunnerArgument instance.
+        """
+        return cls(**data)
+
+
+@dataclass
+class TurnPolicySpec:
+    """
+    Represents the policy specifications for determining the behavior of a conversation turn.
+
+    Attributes:
+        should_reorganize_knowledge_base (bool):
+            A flag that indicates whether the knowledge base should be reorganized after the current turn.
+
+        should_update_experts_list (bool):
+            A flag that indicates whether the list of experts should be updated based on the conversation context.
+
+        should_polish_utterance (bool):
+            A flag that indicates whether the generated utterance should be polished (e.g., refined or rephrased) before it is used in the conversation.
+
+        agent (Agent):
+            The `Agent` responsible for generating utterances or responses during the conversation turn.
+            This agent interacts with the knowledge base and the conversation history to produce responses.
+    """
+
+    should_reorganize_knowledge_base: bool = False
+    should_update_experts_list: bool = False
+    should_polish_utterance: bool = False
+    agent: Agent = None
+
+
+class DiscourseManager:
+    def __init__(
+        self,
+        logging_wrapper: LoggingWrapper,
+        lm_config: CollaborativeStormLMConfigs,
+        runner_argument: RunnerArgument,
+        rm: dspy.Retrieve,
+        encoder: Encoder,
+        callback_handler: BaseCallbackHandler,
+    ):
+        # parameter management
+        self.lm_config = lm_config
+        self.runner_argument = runner_argument
+        self.logging_wrapper = logging_wrapper
+        self.callback_handler = callback_handler
+        self.rm = rm
+        self.encoder = encoder
+        # role management
+        self.experts: List[CoStormExpert] = []
+        self.simulated_user: SimulatedUser = SimulatedUser(
+            topic=self.runner_argument.topic,
+            role_name="Guest",
+            role_description="",
+            intent=None,
+            lm_config=self.lm_config,
+            runner_argument=self.runner_argument,
+            logging_wrapper=self.logging_wrapper,
+            callback_handler=self.callback_handler,
+        )
+        self.pure_rag_agent: PureRAGAgent = PureRAGAgent(
+            topic=self.runner_argument.topic,
+            role_name="PureRAG",
+            role_description="",
+            lm_config=self.lm_config,
+            runner_argument=self.runner_argument,
+            logging_wrapper=self.logging_wrapper,
+            rm=self.rm,
+            callback_handler=self.callback_handler,
+        )
+        self.moderator: Moderator = Moderator(
+            topic=self.runner_argument.topic,
+            role_name="Moderator",
+            role_description="",
+            lm_config=self.lm_config,
+            runner_argument=self.runner_argument,
+            logging_wrapper=self.logging_wrapper,
+            encoder=self.encoder,
+            callback_handler=self.callback_handler,
+        )
+        self.general_knowledge_provider = CoStormExpert(
+            topic=self.runner_argument.topic,
+            role_name="General Knowledge Provider",
+            role_description="Focus on broadly covering the basic facts about the question.",
+            lm_config=self.lm_config,
+            runner_argument=self.runner_argument,
+            logging_wrapper=self.logging_wrapper,
+            rm=self.rm,
+            callback_handler=self.callback_handler,
+        )
+        self.generate_expert_module = GenerateExpertModule(
+            engine=self.lm_config.discourse_manage_lm
+        )
+        self.next_turn_moderator_override = False
+
+    def serialize_experts(self) -> List[Dict]:
+        return [
+            {
+                "topic": expert.topic,
+                "role_name": expert.role_name,
+                "role_description": expert.role_description,
+            }
+            for expert in self.experts
+        ]
+
+    def deserialize_experts(self, data: List[Dict]):
+        for expert_data in data:
+            self.experts.append(
+                CoStormExpert(
+                    topic=expert_data["topic"],
+                    role_name=expert_data["role_name"],
+                    role_description=expert_data["role_description"],
+                    lm_config=self.lm_config,
+                    runner_argument=self.runner_argument,
+                    logging_wrapper=self.logging_wrapper,
+                    rm=self.rm,
+                    callback_handler=self.callback_handler,
+                )
+            )
+
+    def _should_generate_question(
+        self, conversation_history: List[ConversationTurn]
+    ) -> bool:
+        consecutive_non_questioning_turn = 0
+        for conv_turn in reversed(conversation_history):
+            if conv_turn.utterance_type not in [
+                "Original Question",
+                "Information Request",
+            ]:
+                consecutive_non_questioning_turn += 1
+            else:
+                break
+        return (
+            consecutive_non_questioning_turn
+            >= self.runner_argument.moderator_override_N_consecutive_answering_turn
+        )
+
+    def _parse_expert_names_to_agent(self, expert_descriptions: Union[str, List[str]]):
+        if type(expert_descriptions) == str:
+            expert_descriptions = [expert_descriptions]
+        agents: CoStormExpert = []
+        for expert_name in expert_descriptions:
+            role_name, role_description = expert_name.split(":", 1)
+            role_name = role_name.strip()
+            role_description = role_description.strip()
+            new_costorm_expert = CoStormExpert(
+                topic=self.runner_argument.topic,
+                role_name=role_name,
+                role_description=role_description,
+                lm_config=self.lm_config,
+                runner_argument=self.runner_argument,
+                logging_wrapper=self.logging_wrapper,
+                rm=self.rm,
+                callback_handler=self.callback_handler,
+            )
+            agents.append(new_costorm_expert)
+        return agents
+
+    def _update_expert_list_from_utterance(self, focus: str, background_info: str):
+        expert_names = self.generate_expert_module(
+            topic=self.runner_argument.topic,
+            background_info=background_info,
+            focus=focus,
+            num_experts=self.runner_argument.max_num_round_table_experts,
+        ).experts
+        self.experts = self._parse_expert_names_to_agent(expert_names)
+
+    def _is_last_turn_questioning(self, conversation_history: List[ConversationTurn]):
+        return conversation_history and conversation_history[-1].utterance_type in [
+            "Original Question",
+            "Information Request",
+        ]
+
+    def get_next_turn_policy(
+        self,
+        conversation_history: List[ConversationTurn],
+        dry_run=False,
+        simulate_user=False,
+        simulate_user_intent: str = None,
+    ) -> TurnPolicySpec:
+        next_turn_policy = TurnPolicySpec()
+        if simulate_user:
+            self.simulated_user.intent = simulate_user_intent
+            next_turn_policy.agent = self.simulated_user
+        elif self.runner_argument.rag_only_baseline_mode:
+            assert self.conversation_history[-1].role == "Guest"
+            next_turn_policy.agent = self.pure_rag_agent
+        elif self.next_turn_moderator_override:
+            next_turn_policy.agent = self.moderator
+            if not dry_run:
+                self.next_turn_moderator_override = False
+        elif (
+            not self.runner_argument.disable_moderator
+            and self._should_generate_question(conversation_history)
+        ):
+            next_turn_policy.agent = self.moderator
+            next_turn_policy.should_reorganize_knowledge_base = True
+        # experts RAG gen
+        else:
+            next_turn_policy.agent = self.general_knowledge_provider
+            if (
+                not self._is_last_turn_questioning(conversation_history)
+                and not self.runner_argument.disable_multi_experts
+            ):
+                if dry_run:
+                    next_turn_policy.agent = self.experts[0]
+                else:
+                    next_turn_policy.agent = self.experts.pop(0)
+                    self.experts.append(next_turn_policy.agent)
+            next_turn_policy.should_update_experts_list = (
+                self._is_last_turn_questioning(conversation_history)
+                and not self.runner_argument.disable_multi_experts
+            )
+            next_turn_policy.should_polish_utterance = True
+        return next_turn_policy
+
+
+class CoStormRunner:
+    def __init__(
+        self,
+        lm_config: CollaborativeStormLMConfigs,
+        runner_argument: RunnerArgument,
+        logging_wrapper: LoggingWrapper,
+        rm: Optional[dspy.Retrieve] = None,
+        callback_handler: BaseCallbackHandler = None,
+        encoder=None,
+    ):
+        self.runner_argument = runner_argument
+        self.lm_config = lm_config
+        self.logging_wrapper = logging_wrapper
+        self.callback_handler = callback_handler
+        if rm is None or encoder is None:
+            raise ValueError("Explicit source retriever and local encoder are required")
+        self.rm = rm
+        self.encoder = encoder
+        self.conversation_history = []
+        self.warmstart_conv_archive = []
+        self.knowledge_base = KnowledgeBase(
+            topic=self.runner_argument.topic,
+            knowledge_base_lm=self.lm_config.knowledge_base_lm,
+            node_expansion_trigger_count=self.runner_argument.node_expansion_trigger_count,
+            encoder=self.encoder,
+        )
+        self.discourse_manager = DiscourseManager(
+            lm_config=self.lm_config,
+            runner_argument=self.runner_argument,
+            logging_wrapper=self.logging_wrapper,
+            rm=self.rm,
+            encoder=self.encoder,
+            callback_handler=callback_handler,
+        )
+
+    def to_dict(self):
+        return {
+            "runner_argument": self.runner_argument.to_dict(),
+            "lm_config": self.lm_config.to_dict(),
+            "conversation_history": [
+                turn.to_dict() for turn in self.conversation_history
+            ],
+            "warmstart_conv_archive": [
+                turn.to_dict() for turn in self.warmstart_conv_archive
+            ],
+            "experts": self.discourse_manager.serialize_experts(),
+            "knowledge_base": self.knowledge_base.to_dict(),
+        }
+
+    @classmethod
     def from_dict(cls, *args, **kwargs):
         raise ValueError("Restore through the application with explicit adapters")
 
