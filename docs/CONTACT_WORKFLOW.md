@@ -58,6 +58,18 @@ Pro remote execution: **NOT_RUN** (executor disconnected). Root/Codex owns the
 Windows execution/integration record. No solver or provider was run by this
 authoring checkpoint.
 
+Codex integrated e916a32 and ran the three new contact/owner checks and
+four affected FEM Qt panel checks on Windows; they passed. A bounded real
+FreeCAD 1.1.4 check found a native issue that the snapshot double did not cover:
+calling the preview snapshot alone changes live shape BRep flags and immediately
+invalidates the recorded A/B faces. No actual geometry edit is needed. Native
+save/reopen and mesh preparation acceptance were blocked at that checkpoint.
+
+Independent Astra source review also found unapplied form edits lost by Show
+faces/Preview Cancel, missing old/new normal comparison, and suppressed mesh
+alternatives counted as active. Pro's following correction addresses these
+findings while export/Runner/Post authoring continues. Supported contact
+execution remains unfinished.
 
 ## Editor correction checkpoint
 
@@ -77,6 +89,12 @@ Added focused double/Qt checks cover these cases, including actual modal
 Cancel. Author remote execution remains NOT_RUN; Root's earlier 3 owner and
 4 existing FEM panel checks passed on e916a32, before these corrections.
 
+Codex ran the six changed contact/Qt checks on the correction: PASS. With real
+FreeCAD 1.1.4 and the public two-foot model, native named faces, invalid-to-valid
+contact edits, two empty Gmsh objects and FCStd save/reopen also passed. The
+native owner used an absent-GUI/selection-query stub; this is not an interactive
+window check. No mesh generation or solver was run. The receipt is
+`runs/product-development/20261013/contact-editor-9e3f7ed8/receipt.json`.
 
 ## Contact execution and Post source checkpoint
 
@@ -196,6 +214,32 @@ draft repair and FCStd save/reopen. That evidence does not cover the new
 export/solver/Post source checkpoint. Broad native OS, solver campaign and
 engineering acceptance remain separate; no such run was made by this author.
 
+Codex's first Windows run of the new source produced 16 passing focused tests
+and three failures in the snapshot fixture's Windows line endings. The actual
+export explicitly writes LF. Corrections for this fixture, closed-session
+Runner source reopening and native Force table units were requested from Pro.
+These findings remain open at this checkpoint; the new execution path is not
+yet claimed to run a contact solver successfully.
+
+Separately, FreeCAD GUI ran the existing product mesh commands on the two-foot
+example: Base 1,147 nodes/532 C3D10 volumes and Bridge 2,256 nodes/1,122 volumes.
+Both meshes were saved and the contact reference diagnostics remained empty.
+Evidence is `runs/product-development/20261013/contact-mesh-350b4d63/receipt.json`.
+No human input or solver execution occurred. The preceding headless attempt
+failed because the product's mesh-history display accesses ViewObject; a native
+GUI run provides those real view objects and completed. The original CAD input
+and earlier failed attempts were retained.
+
+The new exporter then completed on that saved mesh with a shared isotropic
+elastic material, fixed base and prescribed top displacement (-0.3 mm).
+`runs/product-development/20261013/contact-export-bf12e0c8/receipt.json` points
+to the retained native editable copy, mesh, CalculiX deck and manifest. This
+checks the actual installed native writer and face mapping for the displacement
+branch; it does not close the Force-unit or stale-group findings or run a solver.
+The changed common FRD reader's 34 existing focused tests and four affected FEM
+Qt tests passed. Export took minutes; inspection found repeated full native
+node-table access in element quality. A local table per quality call was
+requested from Pro, preserving all thresholds and checks.
 
 ## Execution corrections after Windows integration
 
@@ -251,6 +295,16 @@ export succeeded on 8d350ab for the meshed two-feet model with isotropic
 (X/Y zero). That run wrote the four frozen artifacts; it did not execute a
 solver and did not exercise the Force or stale-group corrections above.
 
+Codex integrated correction `b19c8f1` as `6175e90`: 66 changed-path unit tests
+passed on Windows (9.14 s). A real FreeCAD export then used both Bridge foot
+faces for one 100 N Force, alongside the prescribed displacement. The retained
+CLOAD resultant was (0, 0, -100) N; native integrated weights totaled
+100.00000000000004 N. Export completed in 11.484 s, retaining the same quality
+criteria. This is a measured export duration, not a controlled speedup benchmark.
+The receipt is `runs/product-development/20261013/contact-export-402e8ca7/receipt.json`.
+The native Force unit correction is exercised; stale groups and disconnected
+Runner origins are covered by the focused doubles, not native GUI interaction.
+Solver and actual Post-result execution remain the next implementation check.
 
 ### Contact Check uses the same admission as export
 
@@ -263,6 +317,26 @@ contact-free validation keeps its existing path. The native API contract test
 covers valid two-body Check and an invalid displacement through this branch.
 Author execution remains NOT_RUN.
 
+## Actual solver and native Post checkpoint
+
+Codex ran the retained `contact-export-402e8ca7` input through the product
+adapter on source `0d3a4f8`: installed CalculiX 2.22 completed in 41.703 seconds.
+All ten increments were parsed, retaining displacement/contact fields and
+pair resultants. The receipt and raw FRD/DAT are under
+`runs/product-development/20261013/contact-run-0b93d1b2/`. This was direct
+adapter execution, not Runner UI submission or engineering qualification.
+
+The first real ParaView 6.2 opening failed: its native XML reader rejected the
+ASCII nonfinite `GeomGap_mm` array, then exact field admission failed. The
+retained attempt remains unchanged. A separate native VTK probe confirmed
+that changing `nan` to `NaN` still fails, while uncompressed inline binary
+Float64 preserves NaN/positive infinity/negative infinity when read back.
+Pro is correcting this serialization boundary; Post files can be regenerated
+from the retained FRD/DAT without rerunning CalculiX. Probe evidence is under
+`runs/product-development/20261013/contact-post-9c47657b/`.
+
+The separate contact Check correction `1b37942` was integrated as `02ed0ae`;
+its changed native API contract test passed on Windows (1 test, 0.76 s).
 
 ## Nonfinite Post arrays and rebuilding an existing attempt
 
@@ -319,3 +393,21 @@ The existing contact execution test also exercises regeneration with a process
 double that would fail if called, refuses changed raw outputs and checks that
 the original attempt's bytes stay unchanged. Pro remote execution of this
 correction remains **NOT_RUN**; Root owns Windows/ParaView execution.
+
+Codex integrated `5744079` as `b97ae6b`. Ten changed-path serialization/contact
+tests passed on Windows in 8.20 seconds. The public retained attempt was
+regenerated into `runs/product-development/20261013/contact-post-rebuilt-5744079`
+with `solver_execution=NOT_PERFORMED`. Installed ParaView 6.2 read all ten
+frames, comparing every PointData value and validity mask to its serialized
+value; each frame has 3,403 points. The first and last frames retain 3,209 NaNs
+for unavailable geometric gaps, rather than zero replacement.
+
+Through the product's registered native-input and external-result owner,
+Codex opened the regenerated PVD, selected CPRESS in MPa at static load parameter
+1.0, and saved a native project. A separate pvpython process restored the saved
+project, the selected field/time, 3,403 points and 1,654 cells. Receipts and
+rendered images are in `runs/product-development/20261013/contact-post-8096fa28`.
+The pressure range of this synthetic imposed-displacement input is 0 to
+4,560.77 MPa; this is recorded solver output, not a validated physical reference.
+The original attempt remains unchanged. These are programmatic native reader,
+selection and save/reopen checks, not mouse/keyboard usability acceptance.

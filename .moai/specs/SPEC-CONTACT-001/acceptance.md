@@ -45,5 +45,34 @@ from display projections. Missing contact rows must not fabricate gap or zero fo
 Final connected verification includes at least two user-model geometries and independent numerical references
 with original tolerances; model execution alone is not engineering approval.
 
-All product scenarios remain unimplemented at this draft. Native factory
-save/reopen evidence is recorded in research.md and does not close these criteria.
+## Implementation evidence and remaining work
+
+The editor and native save/reopen portion of AC-C01/C02 is implemented and has
+focused Qt/owner checks plus a real FreeCAD multi-face example. Native GUI mesh
+generation now produced separate Base (1,147 nodes/532 volumes) and Bridge
+(2,256 nodes/1,122 volumes) meshes while retaining the contact references. This
+was programmatic execution in FreeCAD, not mouse/keyboard usability acceptance.
+
+Pro `8d350ab` adds the AC-C03/C04 export, Runner and retained Post source path.
+At its first Windows checkpoint, 16 contact/output tests passed and three
+snapshot tests failed because their fixture used Windows line endings. Astra
+also identified Force table unit conversion, stale named support-group mapping
+and closed-session source reopening defects. Pro `b19c8f1` corrects these;
+66 changed-path unit tests passed on Windows. Real native multi-face Force
+export retained a 100 N resultant after correction (11.484 seconds). Real
+FreeCAD export completed for the two-body prescribed-displacement example,
+including comparison with the installed native contact writer and retained
+editable model/deck/manifest; the corrected run additionally exercised Force export.
+Subsequently, the actual installed CalculiX 2.22 completed this retained input
+through the product adapter in 41.703 seconds, with ten parsed increments.
+This is direct adapter execution, not Runner UI submission or qualification.
+Actual ParaView opening initially failed on ASCII nonfinite GeomGap values;
+raw FRD/DAT and the failed Post files remain retained. Pro's `5744079` correction
+was integrated as `b97ae6b`, with ten changed-path unit checks passing. Post-only
+regeneration and native reading of all ten frames succeeded without rerunning
+the solver. Exact registered input opened, CPRESS at static load parameter 1.0
+was selected and saved, and a new pvpython process restored that selection and
+3,403 points/1,654 cells. Pair-focused native interaction and the connected
+measurement/Numerical user workflow remain separate work; AC-C04 is not complete.
+The current task and subsequent correction status live in CURRENT_STATE rather
+than turning these partial checks into full scenario acceptance.

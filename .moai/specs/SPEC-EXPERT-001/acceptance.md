@@ -37,11 +37,22 @@ Native chooser/content preview/attach arrived in Pro `5037e46` (main `1170af4`).
 The new `tests/test_expert_sources_ui.py` checks passed 4/4 in 6.57s over actual
 Qt/local HTTP/archive, with only file-dialog path choice replaced. One additional
 legacy-harvest test passed in 1.75s. A shutdown worker exception occurred after
-the Qt assertions and is being corrected by Pro. Root also imported public
+the Qt assertions and was sent to Pro. Root also imported public
 Markdown/text PDF/CSV and rendered the actual chooser and saved discussion with
 three sources, an editable question and no configured provider. It exposed a
 reopen title-prefetch race; Astra found periodic refresh clearing selection.
-Both are assigned to the same Pro, so complete GUI acceptance remains pending.
-Neither this checkpoint
+Pro's correction `5d6b970` (main `e1903e6`) addresses worker delivery after close,
+title-prefetch retry, exact selection preservation during polling and preview
+ownership across discussion changes. The revised four Qt checks passed in 6.50s,
+with active polling, historical-citation reading after deselection, owner switch
+and late-worker cleanup; the shutdown exception did not recur. Root checked the
+actual three-file render after deferred title reads settled: all source names
+and the selected original text were visible. Source:
+`runs/product-development/20261013/expert-preview-886155b1/receipt.json`.
+
+The bounded local-source feature is implemented. Astra identified the two UI
+findings on the earlier source; Codex checked the corrections by source and
+execution, without claiming a second Astra pass. Complete OS/DPI usability and
+actual authorized inference remain unverified. Neither this checkpoint
 nor a scripted response establishes whole Expert/Co-STORM completion or
 engineering approval.

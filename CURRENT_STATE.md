@@ -243,7 +243,12 @@ Pro의 첫 자료 연결 커밋 `7090d1c`를 `c409665`로 통합했다. 선택�
 검사도 1 PASS/1.75s였다. 종료 후 남은 worker의 Signal source deleted 예외는 같은 Pro에
 교정 요청했다. 공개 Markdown/text PDF/CSV3개를 실제 import한 Qt 렌더에서도 원문과
 질문·자료3개가 보였다. 다만 재열기 직후 원문 읽기와 제목 조회가 겹쳐 Source1/2/3으로
-남는 문제, Astra가 찾은 주기 갱신 때 선택 해제도 같은 Pro가 교정 중이다.
+남는 문제, Astra가 찾은 주기 갱신 때 선택 해제와 다른 논의에 이전 원문이 남는 문제도
+같은 Pro에 전달했다. Pro `5d6b970`을 `e1903e6`로 통합했고 자동 갱신·원문/과거 인용·
+문서 전환·늦은 worker 종료를 포함한 수정 Qt 검사4개가 6.50s에 통과했다. 종료 예외도
+재발하지 않았다. 최신 `expert-preview-886155b1`의 실제 Qt 렌더에서 자료3개의 파일명과
+선택 원문을 확인했다. 교정 종료는 Codex의 소스/실행 확인이며 Astra 재통과 주장이 아니다.
+MoAI CLI로 로컬 자료 기능 SPEC은 implemented, 후속 접촉 SPEC은 in-progress로 갱신했다.
 `runs/product-development/20261013/expert-preview-63bea349`에 실제 화면/receipt가 있다.
 모델 미설정 상태의 로컬 자료 작업이며 실제 inference/OS 입력을 확인한 것은 아니다.
 첫 렌더 helper는 등록 역할이 반드시 있다고 잘못 가정해 대기했고, 그 가정만 제거한 뒤
@@ -262,6 +267,80 @@ Runner/Post 결과까지 연결한다. 별도 설정의 FreeCADCmd로 공개 합
 점을 보완했다. Luna는 접촉 압력/침투/마찰 변위의 FRD와 pair 힘의 DAT를 기존 parser에
 연결할 위치를 조사했다. 두 출력의 부호/association이 다르며 양수 gap은 FRD COPEN만으로
 얻을 수 없어 명세에 미해결 구현으로 남겼다. 넓은 수치 검증은 선행하지 않았다.
+다음 실제 Pro 요청 `PRO-IMPL-CONTACT-20261013-01`을 같은 대화에 전송했고 실제
+userMessage `01a133bc-eb27-77f4-98b1-455457d0f371`의 본문에서 수신을 확인했다.
+기준은 main `08ecb55`의 SPEC-CONTACT-001/FN-14/C05와 관련 기존 native 코드다.
+현재 Expert 교정을 게시한 뒤 추가 승인을 기다리지 않고 사용자 모델의 접촉 편집·메시·
+해석/Runner·Post 연결을 작성하도록 맡긴다. 새 작성 브랜치는
+`codex/contact-workflow-20261013`; Pro가 제품 코드·관련 검사/사용 안내를 쓰고 Codex는
+공유 계약 통합·CURRENT_STATE/SPEC/Windows 실행을 소유한다. 첫 접촉 편집/분리 메시
+준비 코드 `e916a32`를 main `d5fdcb5`에 통합했다. 실제 FreeCAD 검사에서 preview가 원본
+형상의 내부 상태를 바꿔 참조를 무효화하는 문제를 재현했고, Astra가 입력 보존·법선 비교·
+suppressed 메시 처리의 세 문제를 찾았다. 같은 Pro의 `PRO-CONTACT-FIX-01` 교정
+`37916e8`을 `71f3e03`으로 통합했다. FreeCAD의 형상 복사 API를 사용해 preview를 만들고
+표시/취소 때 편집 중인 값을 보존한다. 수정된 접촉/Qt 검사 6건은 통과했다.
+실제 FreeCAD 1.1.4에서는 공개 두 발 모델의 여러 면 선택→잘못된 초안 보존→값 수정→
+두 물체의 빈 native Gmsh 객체 준비→접촉 저장/재열기까지 통과했다. 형상·접촉·메타데이터는
+실제 native 객체이며 GUI 존재/선택 조회만 대역이다. 메시 생성·solver·실제 창 입력 검사는
+아직 하지 않았다. 해당 기록은 `runs/product-development/20261013/contact-editor-9e3f7ed8/receipt.json`.
+Pro의 export/Runner/Post 연결 `8d350ab`을 `bdc9fb9`에 통합하고 원격 main에 게시했다. 기존 native 면/하중
+매핑·접촉 writer, JobManager와 FRD/VTU 경로를 확장한다. 첫 집중 검사16건은 통과했고
+3건은 테스트 fixture가 Windows CRLF를 써서 실패했다. 실제 export는 LF를 명시한다.
+Astra가 찾은 원 native 세션 종료 뒤 원본 열기 누락, Force 표의 이중 단위 변환,
+구속면 변경 뒤 오래된 이름 기반 mesh group을 사용하는 문제를
+`PRO-CONTACT-EXEC-FIX-01`로 같은 Pro에 전달했다. 교정 `b19c8f1`을 `6175e90`으로
+통합했고 변경된 contact/native export/원본 이동/FEM 단위 검사66건이 통과했다. 실제
+FreeCAD의 두 면100N 하중을 내보낸 결과 합력이 -Z100N으로 보존됐고, export는11.484초에
+완료됐다. 근거는 `runs/product-development/20261013/contact-export-402e8ca7/receipt.json`.
+교정 확인은 Codex의 소스·실행 확인이며 Astra 재검토 통과 주장은 아니다.
+
+이 입력을 실제 CalculiX 2.22와 제품 adapter로 실행해 41.703초에 성공했다. 10개 증분의
+변위·접촉 응답과 pair 힘을 읽었고 원 FRD/DAT를
+`runs/product-development/20261013/contact-run-0b93d1b2/attempt/`에 보존했다.
+Runner 화면을 통한 제출이나 공학적 정확성 승인은 아니다. 실제 ParaView 열기에서는
+ASCII VTU의 비유한 GeomGap 값을 읽지 못하는 오류가 발생했다. 별도 native VTK 확인에서
+NaN 대소문자 변경은 실패하고, inline binary Float64는 NaN/±Inf를 그대로 읽었다.
+같은 Pro의 `PRO-CONTACT-POST-FIX-01` 교정 `5744079`를 `b97ae6b`로 통합했다.
+변경 경로 검사10건이 통과했고, 보존된 FRD/DAT에서 별도 Post 파일만 재생성했다.
+실제 ParaView는10개 프레임의 모든 PointData를 읽었으며 NaN과 유효성 배열도 보존됐다.
+접촉 압력(MPa)과 정적 하중 단계1.0을 선택해 프로젝트를 저장했고 새 pvpython 프로세스에서
+같은 선택과3403절점/1654요소를 복원했다. 근거는
+`runs/product-development/20261013/contact-post-8096fa28/receipt.json`과 `reopen-receipt.json`이다.
+원 계산과 실패한 VTU를 보존했고 솔버는 반복 실행하지 않았다. 마우스 입력이나 공학적
+정확성 승인은 아니다. 다음 기능은 이 결과에서 접촉쌍·면을 선택하고 힘/간극/압력 이력을
+살핀 뒤 기존 Post 측정과 Numerical로 이어가는 사용자 조작이다. Luna가 현재 native Post
+명령과 측정 연결만 읽기 전용 조사하며, Pro가 제품 코드를 계속 소유한다.
+Pro의 별도 실행 전 검사 수정
+`1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
+않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.
+
+편집 단계 이후 실제 FreeCAD GUI에서 기존 `pre.fem.mesh_generate`를 호출해 두 물체의
+Gmsh 메시를 생성·저장했다. Base1147절점/532요소, Bridge2256절점/1122요소이고 접촉
+참조 진단은 비어 있다. `runs/product-development/20261013/contact-mesh-350b4d63/receipt.json`과
+`contact-meshed.FCStd`에 남겼다. 마우스·키보드 입력이나 solver 검사가 아니다. 앞선
+FreeCADCmd 시도는 Qt 비동기 대기와 없는 ViewObject 때문에 실패했고 GUI 경로로 확인했다.
+그 실제 메시 사본에 재료·Base 지지·Bridge 상면의 -0.3mm 강제 변위를 적용해 새 native
+contact export도 완료했다. 설치된 writer와의 입력 비교, editable FCStd·mesh·deck·manifest를
+`runs/product-development/20261013/contact-export-bf12e0c8/`에 보존했다. 예제 설정이며 물리
+정확성·solver 실행의 증거가 아니다. 공통 FRD reader의 변경 영향 검사34건과 추가 FEM Qt
+4건도 통과했다. 첫 export는 수분이 걸렸으며 요소마다 native.Nodes 전체 사전을 반복해서
+읽는 기존 quality 경로를 확인했다. 같은 호출에서 절점표를 한 번 읽는 Pro 교정을
+통합해 위의11.484초 export를 확인했다. 원래 측정이 정밀한 성능 benchmark는 아니므로
+배율 개선을 주장하지 않는다. 수치 기준을 생략하거나 넓은 benchmark를 선행하지 않는다.
+사용자 추가 지시에 따라 기존 오픈소스 전후처리기·solver 연동 코드와 이슈를 병행 조사해
+현재 구현에 적용한다. [기존 연동 코드·이슈 조사](docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md)에
+PrePoMax의 면/접촉 법칙 분리와 writer, ccx2paraview의 시간 이력 변환과 누락값·NaN을
+0으로 만드는 처리, FreeCAD의 다중 메시 제약을 정리했다. 기존 converter의 재사용과
+현재 reader 확장을 비교해 실제 부족한 연결만 구현한다. GPL을 무료 재사용 배제 이유로
+삼지 않으며 배포 조건은 선택한 방식에 맞춘다. 조사 때문에 제품 작성을 중단하지 않는다.
+
+접촉 구현의 실제 입력으로 [두 발 CAD 예제](examples/contact/README.md)를 추가했다.
+FreeCAD의 편집 가능한 Boolean 형상이며 두 접촉면·0.2 mm 간극·받침을 저장/재열기했다.
+이 추적 예제 자체는 입력 형상이며 생성된 접촉 선언·메시·계산은 위의 실행 기록에 따로
+보존한다. 설치된 `ccx.exe -v`는 2.22를 반환했다.
+Pro는 물체별 메시를 생성하고 export에서 절점/요소 번호를 분리하는 구현 방향을 선택했다.
+Astra는 원본 물체 메시에서 면/하중을 먼저 매핑하고, 합칠 때 총하중·재료 배정과 역매핑을
+보존해야 한다고 검토했다. 이 조건을 Pro에게 전달했으며 별도 solver 검증을 선행시키지 않는다.
 실제 데스크톱 캡처는 Windows 잠금 화면이어서 해제를 요청했다. 창 입력 확인만 대기하며
 Pro 작성과 코드 통합은 계속한다. 공개 PDF/Markdown/CSV의 첫 자료 가져오기 예제도 준비했다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와

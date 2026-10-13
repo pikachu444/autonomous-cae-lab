@@ -111,12 +111,16 @@ class SourceDialog(QDialog):
         self._import_request = None
         self._focus = None
         self._catalog = {}
+        self._selection_error = None
         try:
             self.initial = selected_source_refs(context)
             self.legacy = []
-        except ValueError:
+        except ValueError as error:
             self.initial = []
-            self.legacy = list(context.get('selected_document_ids', []))
+            identifiers = context.get('selected_document_ids', [])
+            self.legacy = [item for item in (identifiers if isinstance(identifiers, list) else [])
+                           if isinstance(item, str)]
+            self._selection_error = str(error)
         self.setWindowTitle('Research sources')
         self.resize(1050, 760)
         layout = QVBoxLayout(self)
@@ -236,8 +240,8 @@ class SourceDialog(QDialog):
             self.library.resizeColumnToContents(0)
             self.library.setCurrentItem(chosen or self.library.topLevelItem(0))
             self.library.blockSignals(False)
-            if self.legacy:
-                self.message.setText('Earlier source selection has no pinned revisions. Preview and check the sources explicitly.')
+            if self._selection_error:
+                self.message.setText(self._selection_error + '. Preview and check the sources explicitly.')
             QTimer.singleShot(0, self.preview_selected)
         return self._call(lambda: assist(self.client, 'knowledge.list'), loaded)
 
@@ -370,4 +374,6 @@ class SourceDialog(QDialog):
     def done(self, result):
         self._closed = True
         self.poll.stop()
+        for worker in self._workers:
+            worker.abandon()
         super().done(result)
