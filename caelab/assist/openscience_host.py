@@ -8,6 +8,7 @@ from __future__ import annotations
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import json
+import os
 import secrets
 import socket
 import subprocess
@@ -22,6 +23,8 @@ def run_openscience(prompt, tools, budget, model, *, max_steps, profile_path=Non
         raise ValueError('OpenScience OAuth requires an explicit openai-codex model')
     if not isinstance(max_steps, int) or not 1 <= max_steps <= 32:
         raise ValueError('OpenScience model steps must be explicitly bounded')
+    from ..expert_connection import powershell_command
+    host_command = powershell_command(Path(__file__).with_name('openscience_host.ps1'))
     token = secrets.token_urlsafe(32)
     cancellation = _current.get()
     invocation_lock = threading.Lock()
@@ -105,15 +108,15 @@ def run_openscience(prompt, tools, budget, model, *, max_steps, profile_path=Non
             if not mcp_thread.is_alive() or time.monotonic() >= startup_deadline:
                 raise RuntimeError('Scoped MCP server did not start')
             time.sleep(.02)
-        script = Path(__file__).with_name('openscience_host.ps1')
-        windows_script = subprocess.check_output(['wslpath', '-w', str(script)], text=True).strip()
         request = {'prompt': prompt, 'model': model,
                    'bridge_url': f'http://127.0.0.1:{server.server_port}',
                    'mcp_url': f'http://127.0.0.1:{mcp_port}/mcp',
                    'bridge_token': token, 'deadline': max(1, int(budget.deadline - time.monotonic())),
                    'max_steps': max_steps, 'tool_names': list(tools),
                    'profile_path': profile_path, 'runtime_prefix': runtime_prefix}
-        process = subprocess.Popen(['pwsh.exe', '-NoProfile', '-File', windows_script],
+        # Do not inherit an incompatible WindowsPowerShell/PowerShell module path.
+        environment = {key: value for key, value in os.environ.items() if key.upper() != 'PSMODULEPATH'}
+        process = subprocess.Popen(host_command, env=environment,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, encoding='utf-8', errors='strict')
         payload = json.dumps(request, ensure_ascii=False)

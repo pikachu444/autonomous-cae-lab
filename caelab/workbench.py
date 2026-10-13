@@ -5,6 +5,7 @@ import base64
 import json
 import re
 import uuid
+import threading
 import io
 import hashlib
 import unicodedata
@@ -36,7 +37,7 @@ def contained(root, relative):
 
 
 class Workbench:
-    def __init__(self, workspace, *, configuration=None):
+    def __init__(self, workspace, *, configuration=None, operator_config_path=None):
         self.workspace=Path(workspace).resolve()
         self.root=self.workspace/'workbench'
         self.root.mkdir(parents=True,exist_ok=True)
@@ -46,6 +47,11 @@ class Workbench:
             raise ValueError('Workspace external backend IDs must not replace global registered backends')
         self.manager=JobManager(self.root,self._execute,workers=self.config.get('workers',2),cpu_budget=self.config.get('cpu_budget'))
         self._assistance=None
+        self._assist_config_lock = threading.RLock()
+        self._assistance_active = 0
+        self._assistance_cleanup_pending = False
+        from .expert_connection import bind_operator_config
+        bind_operator_config(self, operator_config_path)
         from .material_document import MaterialDocuments
         from .data_document import DataDocuments
         from .numerical_document import NumericalDocuments
@@ -502,6 +508,10 @@ class Workbench:
         return {'backend':backend,'input_mode':'native_settings','runtime':'Probe only the chosen backend',
                 'description':'Use the backend documented settings or registered external input declaration',**extras}
 
+    def _admit_job(self, *args, **kwargs):
+        with self._assist_config_lock:
+            return self.manager.submit(*args, **kwargs)
+
     def submit(self, operation, arguments, *, request_id=None, resources=None):
         if operation not in OPERATIONS or not isinstance(arguments,dict):
             raise ValueError('Select a registered operation with JSON arguments')
@@ -521,7 +531,7 @@ class Workbench:
                 if canonical_hash(arguments)!=canonical_hash(expected):
                     raise ValueError('Evaluation arguments differ from the selected owner input/session/generation')
                 requested=self.resource_request(arguments,resources)
-                return self.manager.submit(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
+                return self._admit_job(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
         if arguments.get('backend') == 'structure.calculix.design':
             execution = arguments.get('execution', {})
             if execution.get('mode', 'serial') != 'serial' or execution.get('workers', 1) != 1:
@@ -529,7 +539,7 @@ class Workbench:
             if '_native_context' in arguments.get('settings', {}):
                 raise ValueError('Native execution context is service-owned')
         requested=self.resource_request(arguments,resources)
-        return self.manager.submit(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
+        return self._admit_job(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
 
     def resource_request(self,arguments,resources=None):
         requested=deepcopy(resources or {})
@@ -567,6 +577,10 @@ class Workbench:
         return requested
 
     def assistance(self):
+        with self._assist_config_lock:
+            return self._get_assistance()
+
+    def _get_assistance(self):
         if self._assistance is None:
             from .assist import Assistance
             from .assist.experts import RuntimeConfig
@@ -675,7 +689,20 @@ class Workbench:
                 'experts.ask','calculations.plan'}
         if operation in scoped:
             args['workspace_id']=self.workspace_id
-        return self.assistance().call(operation,args)
+        with self._assist_config_lock:
+            assistance = self.assistance()
+            self._assistance_active += 1
+        try:
+            return assistance.call(operation,args)
+        except Exception as error:
+            from .execution_control import ExecutionCleanupFailed
+            if isinstance(error, ExecutionCleanupFailed):
+                with self._assist_config_lock:
+                    self._assistance_cleanup_pending = True
+            raise
+        finally:
+            with self._assist_config_lock:
+                self._assistance_active -= 1
 
     def _settings(self, backend, settings):
         settings=deepcopy(settings)

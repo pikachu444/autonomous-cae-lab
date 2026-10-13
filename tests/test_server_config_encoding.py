@@ -32,7 +32,8 @@ def test_operator_config_is_utf8_independent_of_windows_default(tmp_path, monkey
     monkeypatch.setattr(server, 'HTTPJobJournal', lambda *args: None)
 
     class LifetimeDouble:
-        def __init__(self, actual_service, port, *, workbench_config):
+        def __init__(self, actual_service, port, *, workbench_config, operator_config_path):
+            assert operator_config_path == path
             assert actual_service is service
             seen.append(workbench_config)
             self.service, self.server_port = actual_service, 0

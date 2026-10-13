@@ -160,6 +160,11 @@ class Client:
     def result_followup(self,source_ref,kind='expert',*,session_id,command_id,request=None):
         return self.request('/api/workbench/result-followup',dict(source_ref=source_ref,kind=kind,
             session_id=session_id,command_id=command_id,request=request))
+    def expert_connection(self):
+        return self.request('/api/workbench/expert-connection')
+    def reload_expert_connection(self, expected_sha256):
+        return self.request('/api/workbench/expert-connection/reload', {'expected_sha256': expected_sha256})
+
     def hosts(self):
         return self.request('/api/workbench/hosts')
     def command_status(self,identifier):

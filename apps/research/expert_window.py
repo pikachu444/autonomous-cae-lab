@@ -120,6 +120,9 @@ class ExpertWindow(QMainWindow):
         self.resume_button.clicked.connect(self.resume_discussion)
         bar.addWidget(self.pause_button)
         bar.addWidget(self.resume_button)
+        self.connection_button = QPushButton('Connection…')
+        self.connection_button.clicked.connect(self.open_connection)
+        bar.addWidget(self.connection_button)
         self.identity = QLabel()
         bar.addWidget(self.identity)
         root = QWidget()
@@ -295,7 +298,7 @@ class ExpertWindow(QMainWindow):
         form.addRow('Model calls per role', self.model_calls)
         form.addRow('Tool calls per role', self.tool_calls)
         form.addRow('Seconds per role', self.seconds)
-        runtime_explanation = QLabel('Runtime credentials and workspace permissions remain configured in the existing service.')
+        runtime_explanation = QLabel('Connection… selects the local subscription setup; each request keeps these permissions.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
         self.side.addTab(settings, 'Request scope')
@@ -304,6 +307,22 @@ class ExpertWindow(QMainWindow):
         splitter.setStretchFactor(1, 1)
         self.setCentralWidget(root)
         self._update_actions()
+
+    def open_connection(self):
+        if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
+            return False
+        from .expert_connection_dialog import ConnectionDialog
+        self._source_choosing = True
+        self._update_actions()
+        dialog = self._connection_dialog = ConnectionDialog(self.client, self)
+        try:
+            dialog.exec()
+        finally:
+            self._source_choosing = False
+            self._update_actions()
+            if not self._closed:
+                QTimer.singleShot(0, self.refresh_registry)
+        return True
 
     def _call(self, function, success, *, background=False):
         if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
@@ -374,7 +393,7 @@ class ExpertWindow(QMainWindow):
         by_id = {entry['id']: entry for entry in self._registry}
         for identifier in list(by_id) + [role for role in selected if role not in by_id]:
             definition = by_id.get(identifier, {})
-            item = QListWidgetItem(definition.get('name', definition.get('title', identifier)) +
+            item = QListWidgetItem(definition.get('label', definition.get('name', definition.get('title', identifier))) +
                 (' · unavailable in registry' if identifier not in by_id else ''))
             item.setData(Qt.ItemDataRole.UserRole, identifier)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
@@ -1082,6 +1101,9 @@ class ExpertWindow(QMainWindow):
                 source_dialog.reject()
             if getattr(self, '_result_return', None):
                 self._result_return.close()
+            connection = getattr(self, '_connection_dialog', None)
+            if connection is not None and not connection._closed:
+                connection.reject()
             self.timer.stop()
             event.accept()
             return

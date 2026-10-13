@@ -26,10 +26,11 @@ class LabHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, service: LabService, port: int = 8766, *, workbench_config=None):
+    def __init__(self, service: LabService, port: int = 8766, *, workbench_config=None, operator_config_path=None):
         self.service = service
         from caelab.workbench import Workbench
-        self.workbench = Workbench(service._stores["local"].path, configuration=workbench_config)
+        self.workbench = Workbench(service._stores["local"].path, configuration=workbench_config,
+                                   operator_config_path=operator_config_path)
         try:
             super().__init__(("127.0.0.1", port), LabHandler)
         except BaseException:
@@ -280,7 +281,10 @@ def main(argv=None):
     if args.assembly_mesh_config is not None:
         from caelab.adapters.assembly_operator import AssemblyOperator
         lab_factory = AssemblyOperator(args.assembly_mesh_config).lab
-    options = {'workbench_config': json.loads(args.workbench_config.read_text(encoding='utf-8-sig'))} if args.workbench_config else {}
+    from caelab.expert_connection import read_config, default_config_path
+    operator_path = args.workbench_config or default_config_path()
+    options = ({'workbench_config': read_config(operator_path)[0], 'operator_config_path': operator_path}
+               if operator_path is not None else {})
     server = LabHTTPServer(LabService(args.store, libraries=libraries, lab_factory=lab_factory,
                                      http_journal=HTTPJobJournal(args.store)), args.port, **options)
     print(f"Autonomous CAE Lab: http://127.0.0.1:{server.server_port}", flush=True)
