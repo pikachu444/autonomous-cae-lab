@@ -419,6 +419,20 @@ Pro에 교정을 요청했다. 이 상태를 긴 경로 지원 완료로 표시�
 Astra는 `a2b37db`의 Windows Job 소유권·정리 실패 보존·기존 실행 호환·저장 실패
 복구를 읽기 전용 검토했고 추가 구체적 지적은 없었다. root가 실제로 확인한 긴 경로
 복사 실패는 여전히 미해결이며 독립 소스 검토로 실행 통과를 대신하지 않는다.
+후속 Pro `37ac470`을 `a4555ce`로 통합했다. 후보 준비 전체를 짧은 native 작업
+폴더에서 수행한 뒤 서비스 Python이 결과를 보존한다. 실제 Windows 후보의 Stock
+길이를 20→22mm로 바꿔 메시·freeze·CalculiX 계산·접촉 반력 회수까지 85.782초에
+성공했다. 원본은 보존됐으며 [실행 기록](runs/product-development/20261013/cad-candidate-e4e6e508/receipt.json)의
+최종 CFN/Z는 324999.7N이다. 이는 실제 실행·응답 전달 확인이며 공학적 검증이 아니다.
+같은 계산 후보의 editable.caepre를 새 native 창에서 열면 여전히 Foot contact의
+geometry changed 오류가 발생한다. `runs/cad-reopen-e0feb6fe/receipt.json`에
+메시/solver 재실행 없이 확인한 실패를 보존하고 같은 Pro에 전달했다. 이전 실패
+모델의 별도 짧은 freeze와 target 비교도 `runs/cad-export-871b946b/receipt.json`,
+`runs/cad-target-f95ba258/receipt.json`에 남는다. 접촉 참조를 강제로 덮어쓰지 않는다.
+새 변경 단위 검사는 14 PASS/1 FAIL이다. 실패는 새 reopen 검사가 workspace 대신
+내부 workbench root를 다시 전달한 위치로, Pro에 교정 요청했으며 통과로 계산하지 않는다.
+Astra의 `37ac470` 읽기 전용 검토에는 추가 데이터 손실·실행 경로 지적이 없었다.
+후보의 저장·재열기 수용, 실제 Plan/broker 전체 왕복은 여전히 미완료다.
 별도 native Post→Qt 실제 broker 연결 시도는
 `runs/product-development/20261013/contact-handoff-83394326/receipt.json`에 실패로
 남겼다. ParaView의 restore 진입 이후 60초 안에 broker 등록이 없어 중단했으며
@@ -475,6 +489,19 @@ native OS/DPI·실제 FreeCAD/ParaView 연결·solver/provider/device는 미확�
 기획 요청의 원요구52개 추적표는 TRACED_NOT_IMPLEMENTED_BY_THIS_REQUEST를 보존한다.
 새 기능 구현 현황은 해당 SPEC과 실행 기록에서 판단하며 원요구 전체 완료로 확대하지 않는다.
 과거 수치 실패·UNKNOWN과 원 허용치는 그대로 유지한다.
+
+### 다음 Expert 구현 배정
+
+`PRO-EXPERT-CONNECTION-01` 전송·수신 확인: 같은 실제 Pro 대화에 CAD 교정 체크포인트 후
+독립 Expert의 연결·모델·기존 역할 선택 화면을 맡겼다. 수신 메시지는
+`01a1352f-67f8-73a0-b324-812c14c09616`이다. 기준은 Pro `37ac470`, 로컬
+`a4555ce`이며 [SPEC-EXPERT-002](.moai/specs/SPEC-EXPERT-002/spec.md)를 따른다.
+Luna의 읽기 전용 조사에서 Ask→기존 runtime, 제안→Numerical, 결과→원 Expert/Study는
+이미 연결돼 있었다. 이를 재구현하지 않고 아직 없는 native 설정 진입을 완성한다.
+Windows의 기존 OpenScience profile marker/config와 runtime binary는 존재한다.
+인증·구독 사용 가능 여부는 별도이며 설정 확인만으로 모델을 실행하지 않는다.
+Pro는 제품·관련 테스트·사용 안내를 작성하고 Codex는 SPEC·실행·통합을 소유한다.
+현재 CAD 전달과 같은 대화에서 순차 작성하며 공유 파일에 병행 작성자를 두지 않는다.
 
 ### 앞선 통합 기록
 

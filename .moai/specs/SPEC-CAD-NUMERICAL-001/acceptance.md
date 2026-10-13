@@ -74,3 +74,20 @@ destination still fails in FreeCAD's embedded Python. The short recovery copy is
 preserved and the failure is assigned back to Pro before native re-execution.
 Actual FreeCAD Qt 6.8.3 renders the variable worksheet and accepts a CPRESS/MPa
 response; this uses direct native owner commands, not OS input or broker transport.
+
+Pro 37ac470 is integrated as a4555ce. Whole short-workspace native preparation
+and service-side retention allow the actual 20→22 mm geometry candidate to
+complete meshing, freeze, CalculiX and response extraction in 85.782 seconds.
+The retained final CFN/Z response is 324999.7 N; the base is unchanged. Evidence:
+`runs/product-development/20261013/cad-candidate-e4e6e508/receipt.json`.
+This establishes a single native candidate path, not general physical accuracy,
+multi-candidate search, broker interaction or engineering qualification.
+
+Cold-opening that exact calculated editable project still fails original-contact
+validation with geometry-changed at Foot contact. This no-remesh/no-solver probe
+is retained in `runs/cad-reopen-e0feb6fe/receipt.json`. AC-N03 therefore remains
+incomplete. Older retained candidate failure evidence is kept rather than fixed
+by rewriting targets. The new focused checks give 14 passed and one failed at
+the new test's fresh Workbench root selection; correction is assigned to Pro.
+Astra's bounded source review found no additional concrete retention/lifecycle
+defect, without claiming the native reopen issue is resolved.
