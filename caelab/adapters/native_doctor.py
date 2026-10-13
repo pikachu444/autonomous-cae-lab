@@ -4,6 +4,39 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import subprocess
+import sys
+
+
+def service_platform():
+    """The service host, never the desktop client or a submitted setting."""
+    return sys.platform
+
+
+def execution_environment(backend, *, host):
+    """Cheap platform declaration only; no import, process, install or solve."""
+    key=backend if isinstance(backend,str) else ""
+    native=(key.startswith("pde.fenicsx") or key.startswith("material.mfront") or
+            key in {"thermal.fenicsx.rectangle","structural.fenicsx.thermoelastic_rectangle"})
+    local={"pde.scipy.ode":"SciPy","material.felupe":"FELUPE"}.get(key)
+    known=isinstance(host,str) and bool(host)
+    blocked=bool(native and known and not host.startswith("linux"))
+    runtime="MFront/MGIS" if key.startswith("material.mfront") else "FEniCSx" if native else local
+    return {"service_platform":host,"runtime":runtime,"requires_linux":native,
+            "blocked":blocked,"installation":"NOT_CHECKED","execution":"NOT_REQUESTED",
+            "label":("이 계산은 Linux 서비스 필요" if blocked else
+                     "Linux 계산 ("+runtime+")" if native and known else
+                     "계산 환경 확인 필요" if native else
+                     ("Windows" if host=="win32" else "현재 서비스")+" 계산 ("+local+")" if local else ""),
+            "message":("현재 서비스에서는 "+runtime+" 계산을 지원하지 않습니다. 편집·저장·보존 결과 읽기는 가능합니다. "
+                       "계산하려면 해당 도구가 설치된 Linux 서비스에 명시적으로 연결하세요. 자동 전환은 하지 않습니다."
+                       if blocked else
+                       runtime+" 설치와 실행 환경은 계산 전에 별도 확인해야 합니다." if runtime else "")}
+
+
+def require_execution_platform(backend):
+    state=execution_environment(backend,host=service_platform())
+    if state["blocked"]:raise RuntimeError(state["message"])
+    return state
 
 
 def _command(argv, *, environment=None):
@@ -15,6 +48,15 @@ def _command(argv, *, environment=None):
 
 
 def _discover(backend):
+    if backend in {"pde.scipy.ode","material.felupe"}:
+        from importlib.util import find_spec
+        from importlib.metadata import version, PackageNotFoundError
+        dependency="scipy" if backend=="pde.scipy.ode" else "felupe"
+        if find_spec(dependency) is None:raise RuntimeError(dependency+" 설치가 필요합니다.")
+        try:installed_version=version(dependency)
+        except PackageNotFoundError as error:raise RuntimeError(dependency+" 설치 정보를 확인하지 못했습니다.") from error
+        return {"python":sys.executable,"versions":{dependency:installed_version},
+                "kind":"service_python","calculation":"NOT_EXECUTED"}
     if backend.startswith("pde.fenicsx"):
         python = os.environ.get("CAELAB_FENICSX_PYTHON", "/usr/bin/python3")
         version = _command([python, "-c", "import dolfinx, petsc4py, ufl; "
@@ -80,6 +122,10 @@ def doctor_native_backend(backend, *, execute=False, output=None):
     """Return discovery, dependency and requested real-execution states separately."""
     row = {"backend": backend, "discovery": "NOT_SUPPORTED", "dependencies": "NOT_CHECKED",
            "execution": "NOT_REQUESTED"}
+    row["environment"]=execution_environment(backend,host=service_platform())
+    if row["environment"]["blocked"]:
+        row.update(discovery="UNAVAILABLE",dependencies="UNAVAILABLE",reason=row["environment"]["message"])
+        return row
     try:
         details = _discover(backend)
         if details is None:

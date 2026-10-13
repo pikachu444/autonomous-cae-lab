@@ -69,6 +69,8 @@ def _process(command, output, label, *, timeout=PROCESS_TIMEOUT_SECONDS):
 
 
 def _runtime_identity():
+    from .native_doctor import require_execution_platform
+    require_execution_platform("material.mfront")
     image_value = os.environ.get("CAELAB_MFRONT_IMAGE", os.environ.get("CAELAB_CODEASTER_IMAGE", ""))
     expected = os.environ.get("CAELAB_MFRONT_IMAGE_SHA256", os.environ.get("CAELAB_CODEASTER_IMAGE_SHA256", ""))
     if not image_value or not re.fullmatch(r"[0-9a-f]{64}", expected):

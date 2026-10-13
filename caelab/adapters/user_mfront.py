@@ -38,6 +38,8 @@ class UserMFrontAdapter:
         return self.validate_settings(s)
 
     def run(self,settings,*,output,runtime=None):
+        from .native_doctor import require_execution_platform
+        require_execution_platform(self.backend)
         if runtime and set(runtime)-{'threads','memory_mb'}:raise ValueError('법칙 입력은 실행 경로를 변경하지 못합니다.')
         s=self.validate_settings(settings);folder=Path(output)/'user_law';folder.mkdir(exist_ok=False)
         save_json(folder/'input.json',s)

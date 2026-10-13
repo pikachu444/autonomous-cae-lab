@@ -103,6 +103,7 @@ class NativeMaterialWindow(SimulationWindow):
 
     def evaluate(self):
         if not self.document or self._busy or self.conflict or self.local_dirty:return False
+        if not self._execution_allowed():return False
         draft=deepcopy(self.edited_draft())
         if draft.get('backend')!='material.mfront.user':return super().evaluate()
         if self.model_diagnostics(draft):return False

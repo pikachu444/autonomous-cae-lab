@@ -48,7 +48,7 @@ xx yy zz xy xz yz 및 시간 s를 지정한다.
 - **빌드만 실행 / 빌드하고 평가**를 누르면 원문 검토 창이 열린다. **이 버전 빌드**로 확인한 원문만 로컬 운영자 권한 파일에 등록되고 기존 Material 작업을 시작한다. 취소는 초안과 권한을 바꾸지 않는다. 해시 복사나 JSON/CLI 편집은 사용자 절차가 아니다.
 - Windows Qt는 같은 사용자의 Windows 권한 폴더 또는 WSL 배포판의 `wsl.localhost` 공유 폴더를 확인한다. 자동 확인이 안 되면 native 폴더 선택기로 현재 서비스의 권한 폴더를 선택할 수 있다. marker가 다른 폴더에는 쓰지 않는다. OS 권한이 없는 클라이언트는 빌드를 허용할 수 없으며 서비스 운영자가 같은 native 절차로 승인해야 한다.
 - 서비스의 읽기 전용 `material-build-context`는 고정 운영자 폴더의 일치 정보만 준다. HTTP/model 요청으로 소스 허용·파일 경로·실행 파일을 지정하는 API는 없다. 소스 수정 후에는 새 버전을 다시 확인해야 한다. 기존 명시적 환경변수 allowlist는 운영자/검사용 호환 경로로만 남긴다.
-- 기존 `CAELAB_MFRONT_IMAGE`, 정확한 image SHA 및 Singularity 설정을 재사용한다. Windows Qt는 이 실행 환경이 있는 WSL 서비스에 연결한다.
+- 기존 `CAELAB_MFRONT_IMAGE`, 정확한 image SHA 및 Singularity 설정을 재사용한다. 이 adapter의 계산은 해당 실행 환경을 갖춘 Linux 서비스가 필요하다. WSL은 가능한 Linux 실행 경로 하나이며, 앱의 시작·편집·저장에 필수인 것은 아니다.
 - 허용 목록은 native C++ 실행에 대한 운영자 권한이다. container 옵션을 임의 소스에 대한 보안 보장으로 해석하지 않는다.
 - 각 작업은 input/source/helper/worker, 컴파일 명령과 로그, Makefile/library hash, 실제 MGIS descriptor와 runtime을 보존한다.
 - 초기 응력/변형률은 0, 내부 상태는 명시 배열이다. scalar 물성/외부 변수를 actual descriptor와 대조한다.
@@ -127,6 +127,27 @@ self._transfer_windows.append(window)  # __init__에서 [] 생성
 python -m apps.research.transfer_inspection_window --service http://127.0.0.1:18767 --document-id <계산절차ID> --job-id <보존작업ID>
 ```
 
+## WSL 없이 Windows에서 사용하기
+
+Windows 서비스에서 **PDE 상태 방정식(SciPy)**과 **재료점(FELUPE)**을 편집·계산·저장하고 보존 결과를 다시 읽을 수 있다. 해당 Python 패키지는 기존 프로젝트 설치 경로를 사용한다. Linux용 계산기를 선택해도 문서 작성과 저장, 보존 결과 읽기, Numerical 계획 작성은 유지한다.
+
+| 선택한 계산 | Windows 서비스 | Linux 서비스 |
+|---|---|---|
+| 상태 방정식 / SciPy | 설치된 서비스 Python으로 계산 | 같은 Python 경로로 계산 |
+| 재료점 / FELUPE | 설치된 서비스 Python으로 계산 | 같은 Python 경로로 계산 |
+| FEniCSx PDE / 열·구조 | 현재 adapter의 계산 미지원; 편집·저장 가능 | 해당 FEniCSx 환경이 별도로 필요 |
+| MFront / 사용자 법칙 빌드 | 현재 adapter의 빌드·적분 미지원; 원문·입력 편집과 저장 가능 | 기존 TFEL/MGIS 이미지와 실행 환경, 원문 빌드 권한 필요 |
+
+1. 기본 Windows 실행에서 PDE의 **새 모델 → 상태 방정식** 또는 Material의 FELUPE 재료점으로 시작한다. 기존 ODE/FELUPE 실행 버튼을 그대로 사용한다.
+2. PDE의 **연구 → 계산 환경 확인**, Native Material의 **계산 환경 확인**은 현재 서비스의 설치를 읽는다. solver/컴파일/설치나 서비스 전환을 수행하지 않는다.
+3. Windows 서비스에서 Linux 전용 계산을 선택하면 상태줄에 **이 계산은 Linux 서비스 필요**가 표시되고 그 계산만 비활성화된다. 원문 검토·빌드 허용 창도 열기 전에 현재 서비스 조건을 확인한다.
+4. 이미 설치된 Linux 서비스에 명시적으로 연결한 Windows Qt는 **Linux 계산**으로 표시한다. 설치 발견과 실제 계산 성공은 별개다. WSL/다른 서비스/다른 Store로 자동 이동하지 않는다.
+5. 저장 결과를 읽을 때는 그 계산의 환경을 다시 실행하지 않는다. 서비스 OS 정보가 없는 옛 응답은 **계산 환경 확인 필요**로 표시하며, Qt가 실행 중인 PC의 OS로 추정하지 않는다.
+
+이 변경은 기존 서비스 응답에 현재 host를 표시하는 작은 추가 필드만 사용한다. 입력/개정 fingerprint와 saved document에는 포함하지 않는다. 같은 요청의 응답 영수증에는 표시 정보가 남을 수 있으며, 재시작 뒤에는 기존 session guard가 그대로 적용된다. 새 플랫폼 설정이나 실행 경로를 문서 입력으로 받지 않는다.
+
+D7 차원 약형식·사용자 MFront의 직접 실행 및 공통 MFront runtime 선택도 지원하지 않는 서비스 OS를 계산 전에 명확히 거절한다. 기존 모든 solver의 HTTP 제출을 통합한 새 admission 체계를 만든 것은 아니다.
+
 ## 작은 공개 실행 경로
 
 기존 서비스와 동일한 Store를 사용한다. 창은 같은 service/document에 연결한다.
@@ -198,3 +219,15 @@ ODE 채널 충돌/기준식 오류/수락된 부분 출력/rtol을 같은 교정
 - Codex 소유 Evaluation action: 실제 HTTP/owner + 명시적 제어 native-field 대역에서 1 passed (3.25 s), 미적용 초안 보존 및 새 작업 0. 1100×780/1440×900 렌더 보고. native 열·구조 물리 계산 또는 OS 입력 수용으로 확대하지 않는다.
 - 이번 후속은 실제/파생 응답 충돌의 양쪽 상태 순서, 미완성 숫자 수리·Undo/저장, 응력 9성분/F/독립 ±입력, 실제 descriptor 기반 초안 준비·취소, 소스 버전 불일치, 잘못된 단위 위치/구문 column, norm quadrature, 전달 원장 누락과 손상 구분을 검사에 포함했다.
 - 이 후속 소스의 Python/Qt/native author 실행은 **NOT_RUN**이다. 읽기 검토·괄호/문자열 확인은 compilation이나 테스트 PASS가 아니다.
+
+## WSL 불가 후속의 범위와 확인
+
+- 기준 소스 `46ea382`, 통합 main `d06cc85`를 실제 읽었다. Codex가 전달한 후속 실행은 Windows 29 통과 / native opt-in 2 건너뜀, 실제 MFront 빌드→선언→입력 준비→적분/FD/재읽기 1 통과다. 이는 이 플랫폼 후속 커밋 실행 결과가 아니다.
+- 플랫폼 후속은 service-host 표시, Linux 전용 계산 조건, 기존 읽기용 환경 확인, Windows SciPy/FELUPE 경로만 다룬다.
+- Root의 launcher/desktop/cross-host 검사, Sol의 구성식 그래프/원자료 열 배치, reference 창은 수정하지 않았다.
+- 아래 새 집중 검사는 native/WSL subprocess를 금지한 상태의 준비도 확인, Windows 서비스 host를 명시한 실제 SciPy/FELUPE 계산·저장·새 owner 읽기, Qt 편집/저장 유지와 remote Linux/미확인 host 표시를 다룬다. 테스트의 host 표시는 명시적 대역이며 실행 PC 자체가 Windows였다고 주장하지 않는다.
+- 작성자 Python/Qt/native 실행: **NOT_RUN — 원격 실행 환경 연결 안 됨**.
+
+```text
+python -m pytest -q tests/test_research_service_platform.py tests/test_research_service_platform_ui.py
+```

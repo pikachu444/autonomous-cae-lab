@@ -230,6 +230,9 @@ class PDEWindow(QMainWindow):
             self.mesh_study_action=QAction('메시와 오차 비교…',self)
             self.mesh_study_action.triggered.connect(self.open_mesh_study)
             research.addAction(self.mesh_study_action)
+            environment_action=QAction('계산 환경 확인',self)
+            environment_action.triggered.connect(self.inspect_execution_environment)
+            research.addAction(environment_action)
         toolbar = QToolBar('PDE commands')
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -267,6 +270,10 @@ class PDEWindow(QMainWindow):
         layout.addWidget(self.issue_summary)
         self.save_state = QLabel()
         self.statusBar().addPermanentWidget(self.save_state)
+        self.execution_hint=QLabel()
+        self.execution_hint.setMinimumWidth(0)
+        self.execution_hint.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Preferred)
+        self.statusBar().addWidget(self.execution_hint,1)
         conflicts = QHBoxLayout()
         self.reload_button = QPushButton('Reload service version')
         self.copy_button = QPushButton('Keep edits as a new document')
@@ -807,7 +814,33 @@ class PDEWindow(QMainWindow):
             return self.apply_inputs(after=lambda: self.command('document.save', after=after))
         return self.command('document.save', after=after)
 
+    def inspect_execution_environment(self):
+        backend=self._draft.get('backend')
+        owner=(self.document['id'],self.document['session_id']) if self.document else None
+        def accepted(result):
+            current=(self.document['id'],self.document['session_id']) if self.document else None
+            if current!=owner or self._draft.get('backend')!=backend:return
+            self.messages.appendPlainText('계산 환경 상세:\n'+display(result))
+            state=result.get('environment',{})
+            self.message.setText(state['message'] if state.get('blocked') else
+                '필요한 설치를 찾았습니다. 실제 계산은 실행하지 않았습니다.' if result.get('dependencies')=='READY' else
+                '계산 환경을 확인하지 못했습니다. 기술 상세를 확인하세요.')
+        return self._call(lambda:self.client.backend_readiness(backend),accepted)
+
+    def _execution_environment(self):
+        from caelab.adapters.native_doctor import execution_environment
+        return execution_environment(self._draft.get('backend'),
+            host=self.document.get('service_platform') if self.document else None)
+
+    def _execution_allowed(self):
+        state=self._execution_environment()
+        if state['blocked']:
+            self.message.setText(state['message'])
+            return False
+        return True
+
     def evaluate(self):
+        if not self._execution_allowed():return False
         return self.command(self.document_kind + '.evaluate')
 
     def refresh_document(self):
@@ -1119,7 +1152,11 @@ class PDEWindow(QMainWindow):
         self.redo_action.setEnabled(available and not self.local_dirty and bool(self.document.get('can_redo')))
         self.apply_button.setEnabled(available and self.local_dirty)
         self.validate_button.setEnabled(bool(self.document) and not self._busy)
-        self.evaluate_button.setEnabled(available and not self.local_dirty and not self.document.get('diagnostics'))
+        environment=self._execution_environment()
+        self.execution_hint.setText(environment['label'])
+        self.execution_hint.setToolTip(environment['message'])
+        self.evaluate_button.setToolTip(environment['message'])
+        self.evaluate_button.setEnabled(available and not self.local_dirty and not self.document.get('diagnostics') and not environment['blocked'])
         can_plan = available and not self.local_dirty and not self.document.get('diagnostics')
         self.plan_button.setEnabled(can_plan)
         self.plan_action.setEnabled(can_plan)

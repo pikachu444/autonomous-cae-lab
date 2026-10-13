@@ -24,6 +24,8 @@ class DimensionedWeakAdapter:
     def bind_inputs(self,settings,values): return domain.bind_inputs(self.backend,settings,values)
 
     def run(self,settings,*,output,runtime=None):
+        from .native_doctor import require_execution_platform
+        require_execution_platform(self.backend)
         if runtime and set(runtime)-{'threads','memory_mb'}: raise ValueError('지원하지 않는 실행 설정입니다.')
         settings=self.validate_settings(settings)
         folder=Path(output)/'pde';folder.mkdir(exist_ok=False)

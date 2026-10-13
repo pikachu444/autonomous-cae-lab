@@ -232,6 +232,9 @@ class MaterialDocuments(RetainedComparisons):
         result.update(diagnostics=self.diagnostics(document['draft']), can_undo=bool(document['_undo']),
                       can_redo=bool(document['_redo']), dirty=self._fingerprint(document) != document['_saved_fingerprint'],
                       capabilities=sorted(self.operations))
+        from .adapters.native_doctor import service_platform
+        # Public, live service context; never part of draft/revision fingerprints.
+        result['service_platform'] = service_platform()
         for run in result['runs']:
             run['is_current_input'] = run['input_sha256'] == canonical_hash(document['draft'])
         if self.kind == 'material' and document['draft'].get('backend') in NATIVE_LAWS:
