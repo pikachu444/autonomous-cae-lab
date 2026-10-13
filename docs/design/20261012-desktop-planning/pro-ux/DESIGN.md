@@ -1,55 +1,49 @@
 # Desktop UX design — engineering work first
 
-## 제출 화면과 남은 사용자 검토
+## 두 화면의 역할과 도구 간 연결
 
-**제출된 두 그림은 CAD 피처 편집과 MOO 후보 선택의 한 상태씩이다. 형상에서 조건·해석·측정을 거쳐 설계를 고르는 과정, 질문에서 연구 결과로 판단하는 과정은 이 두 장에 드러나지 않는다.**
+**CAD Features는 형상을 편집하는 화면이고, Numerical MOO는 목표·제약에 따라 설계 후보를 비교하는 화면이다. 각 도구에서 독립적으로 일을 시작할 수 있으며, 함께 사용할 때는 같은 모델·결과·응답을 다음 작업으로 전달한다.**
 
-| 제출 화면 | 실제로 보여 준 작업 | Qt 조작과 합성 예시의 구분 |
+| 제출 화면 | 단독으로 시작하는 작업 | 전체 연구에서 이어지는 작업 |
 |---|---|---|
-| [CAD Features](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/cad-features.png) | 클램프의 두께 16, 폭 90, 높이 32 mm와 구멍을 편집하는 자리. 선택 형상을 크게 본다. | 치수·구멍 편집과 선택은 Qt 조작이며, 형상은 Qt가 그리는 illustration이다. 이 정지 화면에는 편집 전후 변화가 없다. FreeCAD의 실제 feature/mesh 계산 화면은 아니다. |
-| [Numerical MOO](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/numerical-moo.png) | Mass와 Gauge error를 줄이되 변위 ≤0.35 mm, 간극 ≥0.10 mm인 후보를 비교한다. 선택된 p19는 0.42 kg, 2.1%, 변위 0.31 mm, 간극 0.12 mm다. | 응답 편집과 후보·그래프 연결 선택은 Qt 조작이다. 후보 수치는 작성된 예시를 불러온 것이며 현재 설계를 계산한 최적화 결과가 아니다. |
+| [CAD Features](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/cad-features.png) | 클램프의 두께 16, 폭 90, 높이 32 mm와 구멍을 편집하는 상태다. CAD에서 직접 형상을 만들고 스케치·피처·조립·메시·조건을 다룬다. | 저장한 형상을 Use in Simulation 또는 Update geometry…로 해석 설정에 가져온다. 최적화에서 후보를 골라 명시 적용하면 CAD에서 변경된 설계를 계속 편집할 수 있다. |
+| [Numerical MOO](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/numerical-moo.png) | 평가기·설계변수·목표·제약을 정하고 후보를 비교하는 독립 연구 도구다. 이 화면은 Mass/Gauge error를 줄이면서 변위 ≤0.35 mm, 간극 ≥0.10 mm인 후보를 비교한다. p19는 0.42 kg, 2.1%, 변위 0.31 mm, 간극 0.12 mm로 선택돼 있다. | Post 측정을 응답으로 가져와 목표·제약에 사용할 수 있다. 선택 후보는 CAD 또는 Material처럼 해당 변수를 소유한 문서에 명시 Apply/Save하여 설계 작업으로 되돌린다. |
 
-p19는 두 Minimize 목표에서 p04(0.49 kg, 2.9%)를 지배한다. 따라서 이 표본은 **제약과 지배 관계를 읽는 예시**다. 서로 양보가 필요한 여러 Pareto 후보를 비교한 사례로 설명하면 안 된다. p27은 제약 위반이고 p31은 실패하여 유효 수치가 없다.
+두 화면은 편집 가능한 Qt 시제품의 상태다. 표 편집·선택·저장·창 사이 전달은 실제 Qt 조작이며, 형상은 Qt가 그린 illustration, 곡선·후보 수치는 미리 작성해 불러오는 합성 예시다. 현재 입력으로 FreeCAD/ParaView나 solver·optimizer를 실행한 결과를 보여 주는 것은 아니다. 같은 후보의 지배·제약 관계에 대한 설명은 §6을 따른다.
 
-### 주작성자 Pro의 판단
+### 모델에서 해석·측정·설계 적용까지
 
-Codex가 “남은 4묶음 모두 끝 / 0개”를 전체 기획 완료 보고에서 철회한 것은 타당하다. 특정 결함의 조작 검사 통과와 사용자가 전체 작업을 이해하고 수용하는 것은 별도다. 이 문서의 종전 “첫 번째 완결 경로” 표현도 시제품의 조작 연결 범위로 한정한다.
-
-다만 두 장의 제출만으로 기존 설계 전체가 없거나 전부 메뉴와 그림뿐이라고 단정할 근거는 없다. 다른 상태 원본과 실제 Qt 편집 경로, [기존 검토 안내](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)가 있다. 합성 그림과 수치는 허용된 기획 수단이다. 부족한 것은 **사용자에게 이어서 보여 준 작업의 목적·변화·판단 결과**이며, 문서 링크와 검사 건수로 이를 대신한 제출 방식은 주작성자도 교정할 책임이 있다.
-
-시각적으로도 확인할 문제가 남는다. CAD의 큰 형상 배치는 확정 방향에 맞지만, 세 치수가 형상의 어느 길이인지와 주황 화살표의 조건이 이 Features 화면에서 직접 읽히지 않는다. Numerical은 응답·후보 수치를 읽을 수 있으나 제출 상태에서는 변수 값이 보이지 않고, 선택 후보의 형상과 Apply 후 바뀌는 설계가 제시되지 않았다. 큰 빈 표 영역도 실제 조작 전후 화면에서 정보 밀도와 함께 검토해야 한다. 이는 **Pro의 제출물 검토 의견**이며 새로운 사용자 선호를 확정한 것이 아니다.
-
-### 이어서 보여 줄 핵심 장면
-
-아래는 기존 상태와 Qt 조작으로 구성할 **다음 사용자 검토본에 대한 Pro 제안**이다. 각 상태를 별개로 나열하는 대신 같은 작업의 변경 전 → 조작 → 변경 후를 잇는다. 상태 원본의 존재와 이 연속 제시의 완료는 구별한다.
-
-| 장면과 기존 상태 | 실제로 보여 줄 조작 | 사용자가 볼 변화와 판단 |
+| 작업 도구 | 사용자가 하는 일 | 다음 도구에 이어지는 대상 |
 |---|---|---|
-| 형상 만들기 — `cad-sketch`, `cad-features`, `cad-motion`, `cad-mesh` | 선·폭·구멍을 바꾸고 선택 부품의 자세를 적용한다. 메시를 다시 만들고 불량 요소를 선택한다. | 어느 치수·부품이 바뀌었는지 전후 형상에서 식별한다. 메시 선택과 그림이 연결된다. 품질 수치는 합성 예시로 표시한다. |
-| 조건에서 해석 검토로 — `cad-conditions`, `cad-contact`, `simulation-implicit`, `runner-convergence` | 선택 면에 하중·구속·접촉을 적용하고 같은 형상을 Simulation에 가져온다. solver·step·출력을 확인해 Run analysis…를 누른다. | 면·방향·값/단위와 해석 대상이 이어진다. PREPARED 작업 생성 뒤 Review로 진행·수렴 예시를 불러오는 조작을 보인다. 입력을 실제 계산한 것으로 연결하지 않는다. |
-| 결과에서 측정하기 — `post-field`, `post-clip`, `post-gauge`, `post-unavailable` | 보유 결과를 명시적으로 열고 field/time·단면·두 점 gauge를 선택한다. 측정을 Numerical 응답으로 등록한다. | 같은 선택의 형상·범례·곡선·측정값을 함께 읽는다. 기본 Gauge의 0/0.02/0.04 s는 0/0.2294/0.31 mm, 없는 0.03 s는 unavailable이다. 측정이 어떤 응답이 되는지 보인다. |
-| 설계를 고르고 적용하기 — `numerical-moo`, `post-compare`, `candidate-partial-save` | 변수 탭의 필드·범위를 보여 주고 목표·제약으로 이동한다. p19/p04를 비교한 뒤 명시 Apply/Save한다. | 후보의 원 형상과 변위·질량·오차, 제외 이유를 함께 본다. CAD/Material의 어떤 값이 바뀌었는지 확인한다. 기존 후보 예시는 새 변수 입력의 계산 결과로 설명하지 않는다. |
-| 질문을 연구로 만들기 — `expert-discussion`, `expert-models`, `numerical-doe` | 논점·발언을 선택해 사용자 reply를 작성하고 Plan을 연다. 평가기·변수·응답·DOE 행렬을 편집한다. | 작성된 다자 발언 예시와 실제 사용자 입력을 구분한다. provider 미연결 상태에서도 질문이 구체적인 연구 정의로 이어진다. AI가 실제 발언하거나 계획을 자동 채택했다고 표시하지 않는다. |
-| 연구 결과로 논의·판단하기 — `result-doe`, `expert-followup`, `study-judgment` | 연구 attempt에서 해당 방법의 결과 예시를 명시적으로 불러온다. DOE d2를 선택해 Discuss selection으로 돌아가 reply하고, Study의 가설·Support/Refute·판단 이유를 작성한다. | 선택한 행의 표·곡선을 근거로 후속 질문과 판단이 어떻게 달라지는지 본다. 저장·재열기 뒤에도 같은 선택을 연다. 실제 엔진·provider 결과로 설명하지 않는다. |
+| CAD / FE | 형상을 만들고 치수·자세·메시를 바꾼다. 선택 면에 하중·구속·접촉을 적용한다. | 사용자가 저장해 선택한 형상과 조건을 Simulation에서 사용한다. |
+| Simulation → Runner | solver·해석 종류·step·하중·출력을 정하고 Run analysis…를 누른다. Runner에서 작업의 진행·수렴·실패와 결과를 살핀다. | 해당 해석 작업의 결과를 Post로 연다. Runner에서 domain 설정을 다시 만드는 구조는 아니다. |
+| Post | 같은 결과의 field·시각·단면·곡선을 보고 두 점 gauge 등을 측정한다. Register response…를 사용한다. | 선택한 위치·시각의 quantity와 단위를 가진 응답을 Numerical에서 목표·제약으로 편집한다. |
+| Numerical | 두께 같은 변수의 범위와 질량·오차 목표, 변위·간극 제약을 정한다. 후보의 형상·응답을 비교해 선택한다. | 사용자가 선택한 설계 값만 해당 CAD/Material 문서에 명시 적용한다. 후보 선택 자체가 원 설계를 바꾸지는 않는다. |
+| CAD / Material | Apply한 값을 확인하고 Save한다. 변경된 형상이나 물성을 계속 편집한다. | 후속 해석·연구를 준비하거나 해당 도구의 독립 작업을 이어간다. Material은 필요한 변수가 있을 때 연결하며 모든 작업의 선행조건이 아니다. |
 
-DOE는 두 번째 경로를 보여 주기 위한 한 사례다. Inverse/Optimization/Sobol/UQ/RBF/MDO의 입력·판단 차이는 §6과 각 방법의 기존 상태를 따른다. MOO 한 장으로 모든 연구 방법의 설계를 수용 처리하지 않는다.
+시제품에서 Run analysis…/Run study…는 검토 입력의 PREPARED 작업을 만든다. 이후 Review → Load retained result fixture로 결과 예시를 명시적으로 불러온다. 이 단계 구분을 유지한 채 도구 전달을 조작한다. 실제 계산과 입력에 따라 새 결과를 만드는 제품 연결은 기존 개발 범위다.
 
-### 현재 상태와 남은 일
+이 흐름의 기존 상태는 `cad-features`/`cad-conditions`/`cad-contact`, `simulation-implicit`, `runner-convergence`, `post-field`/`post-gauge`/`post-compare`, `numerical-moo`/`candidate-partial-save`다. 각각의 상태를 같은 연구에서 연결하는 조작은 아래 도구별 절과 [기존 검토 안내](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)를 따른다.
 
-| 구분 | 현재 근거와 한계 |
-|---|---|
-| 기능 범위·산출물 | 도구별 기획, 편집 가능한 Qt·상태 원본이 있다. 기존 전체 범위는 유지한다. 이번 시안을 본제품에 연결하는 구현은 미착수다. |
-| Qt 조작 검사 | 해당 checkpoint의 Windows offscreen 조작·저장·재열기 PASS는 전달된 검사 범위대로 유지한다. 이번 문서 교정에서 새 Qt 실행을 하지 않았다. 실제 OS 입력·native host·solver·provider 수용을 뜻하지 않는다. |
-| 시각적 상세설계·제시 | 여러 상태의 렌더와 개별 검토가 있다. 위 두 주작업의 전후 변화와 완료 결과가 직관적으로 읽히는 연속 제출본은 아직 충분히 제시되지 않았다. 그 제시와 필요한 배치·선택 표시 교정이 남는다. |
-| 사용자 수용 | 최신 사용자 발언은 “이게 뭘 보여준거야?”다. 전체 설계 수용이나 제품 개발 시작 지시를 받은 상태가 아니다. |
+### 독립 질문에서 연구 결과와 후속 논의까지
 
-남은 일은 위 두 경로를 실제 화면·조작·결과로 이어서 제시하고, 사용자가 작업과 판단을 읽기 어려운 부분을 교정해 검토받는 것이다. 이번 변경의 완료 범위는 **이 판단과 제출 설명의 문서 교정**이다. 연속 시연 제작이나 시각 교정까지 끝났다고 보고하지 않는다.
+Expert는 자기 질문과 논점으로 시작한다. 논점 지도에서 발언을 선택하고 사용자 reply를 작성한 뒤, 명시적으로 Plan을 열어 Numerical의 평가기·변수·응답·방법을 편집한다. Study도 자체 질문과 경쟁 가설로 독립적으로 시작할 수 있다.
 
-대조 근거는 [원 사용자 요구의 화면 설계·완료 기준](https://github.com/pikachu444/autonomous-cae-lab/blob/313679843813b63dee44409de5c5abc43c8a373b/docs/design/20261012-desktop-planning/USER_DESIGN_REQUIREMENTS.md), 위 두 제출 PNG와 기존 검토 안내다. Codex의 완료 보고 철회는 전달받은 판단이며, 위 비판·다음 제시안은 Pro의 판단이다. Windows native Qt/FreeCAD/ParaView, 비용 0, 공학 작업 중심이라는 사용자 확정 방향은 그대로다.
+그 연구의 Runner 작업에서 방법에 맞는 결과 예시를 열고, 예를 들어 DOE의 d2 행을 선택해 Discuss selection을 누르면 같은 질문의 후속 논의로 돌아온다. 선택 결과를 보면서 사용자 reply를 남기거나 Use as Study evidence…로 가설과 Support/Refute/Neutral을 고른다. Study의 판단·이유·다음 연구는 사용자가 명시적으로 작성한다. 저장한 뒤에도 같은 질문과 결과 선택을 열어 작업을 이어간다.
+
+연결 상태는 `expert-discussion` → `numerical-doe`/`result-doe` → `expert-followup`/`study-judgment`다. DOE는 한 사례이며 다른 방법은 §6의 해당 입력·결과를 사용한다. 작성된 다자 발언은 합성 예시이고 실제 provider 발언은 아니다. provider가 미연결이어도 질문·사용자 reply·Plan·Study의 로컬 편집은 가능하다. Plan과 Study 판단을 자동 채택하지 않는다.
+
+### 독립 도구와 전체 연계의 관계
+
+독립 사용은 각 도구가 자기 작업을 직접 열고 끝낼 수 있다는 뜻이다. 연계 사용은 다른 도구가 만든 모델·자료·측정·연구 결과를 사용자가 다음 작업에 명시적으로 가져온다는 뜻이다. Data·Material·PDE 등도 이 원칙을 따른다. 모든 도구를 반드시 차례대로 거칠 필요는 없다.
+
+Workbench는 필요할 때 연결을 살펴보고 해당 독립 도구를 여는 선택적 보기다. 이 작업 경로의 강제 진입점이 아니며, 전체 도구를 한 창에 합치는 설계도 아니다. 이번 시제품에서 여러 도구의 전달을 이어 보려면 **Window 메뉴로 같은 ReviewSession의 창을 연다.** 별도 명령으로 실행한 프로세스는 각각 별도 검토 세션이다. 이는 현재 시제품의 실행 방법이며 제품의 독립 사용·연계 범위를 축소하는 결정이 아니다.
+
+이 설명은 [원 사용자 요구](https://github.com/pikachu444/autonomous-cae-lab/blob/313679843813b63dee44409de5c5abc43c8a373b/docs/design/20261012-desktop-planning/USER_DESIGN_REQUIREMENTS.md)와 기존 시제품의 역할을 풀어 쓴 것이다. “이게 뭘 보여준거야?”를 설계 거절이나 재설계 지시로 해석하지 않는다. 이전 Codex의 불충분·완료 보고 철회 판단은 사용자 판단이 아니다. 이번 중립 설명 교정으로 기존 35기능·74작업, Qt QA, 사용자 수용과 기술 범위의 상태를 변경하지 않는다.
 
 ## 1. 결정과 범위
 
-주 작업은 **형상을 만들고 조건을 주어 해석을 검토한 뒤, 결과에서 설계를 판단하는 것**이다. CAD/FE → Simulation → Runner → Post → Numerical을 첫 번째 시제품 조작 경로로 작성했다. 작업 전체의 시각적 제시와 사용자 수용은 위 검토 상태에 따른다. Expert/Study는 독립적인 질문·논의·판단 경로다. Data/Material/PDE는 병행 연구 도구다. 어느 하나의 완료를 다른 모든 도구의 선행조건으로 두지 않는다.
+주 작업은 **형상을 만들고 조건을 주어 해석을 검토한 뒤, 결과에서 설계를 판단하는 것**이다. CAD/FE → Simulation → Runner → Post → Numerical을 첫 번째 완결 경로로 작성했다. Expert/Study는 독립적인 질문·논의·판단 경로다. Data/Material/PDE는 병행 연구 도구다. 어느 하나의 완료를 다른 모든 도구의 선행조건으로 두지 않는다.
 
 한 종류의 공통 폼이나 시작 wizard를 전 도구에 사용하지 않는다. 공통인 것은 File/Edit/Window와 숫자 편집·Undo·기본 저장 동작이며, 각 도구의 중심 대상은 아래처럼 다르다.
 
@@ -225,7 +219,7 @@ FN-35 실측 수집의 정확한 prior reference는 **DEVICE-PLAN**, **DATA-CALI
 
 `implementation_map.csv`의 기존 task ID와 dependencies가 기본이다. 공유 편집·정밀 수치·owner 연결과 각 도구 UI를 병렬로 진행하고, CAD→Simulation→Runner→Post 및 Expert→Numerical→결과→Study 두 경로를 통합한다. Data/Material/PDE를 전체 제품의 첫 번째 필수 마일스톤으로 강제하지 않는다. 기존 solver campaign을 UI 변경의 gate로 재실행하지 않는다.
 
-현재 산출물은 검토 가능한 planning source와 범위가 명시된 Qt offscreen 검사 기록이다. 주작업의 연속 화면 제시·필요한 시각 교정·사용자 수용은 남아 있다. 사용자가 산출물을 검토하고 **개발 시작을 지시한 뒤** 본제품 변경을 시작한다. MoAI 연결과 해당 acceptance 매핑은 `MOAI_HANDOFF.md`, 구체적 실제 검사와 한계는 `REVIEW.md`에 있다.
+현재 완료물은 검토 가능한 planning source와 실제 offscreen 확인이다. 사용자가 산출물을 검토하고 **개발 시작을 지시한 뒤** 본제품 변경을 시작한다. MoAI 연결과 해당 acceptance 매핑은 `MOAI_HANDOFF.md`, 구체적 실제 검사와 한계는 `REVIEW.md`에 있다.
 
 
 ## Report / Acquisition 전용 시안 — UX-COMPLETE-01

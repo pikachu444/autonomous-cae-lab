@@ -4,27 +4,22 @@
 
 요청 `PRO-DESKTOP-DESIGN-20261012-06`, UX-STEER-01 및 UX-FIX-01…06, UX-MAP-01/02, UX-VISUAL-01 및 UX-COMPLETE-01를 반영했습니다. 주 설계와 Qt·SVG 상태 작성은 ChatGPT Pro, 독립 검토는 Astra/xhigh, 제한 코드·Qt 검사는 Sol/high, 원본 조사는 Luna/high입니다. 다른 모델의 작업을 Pro 작성으로 표시하지 않습니다.
 
-## 두 그림이 보여 준 작업
+## 두 화면은 전체 도구군에서 무엇인가요?
 
-제출된 두 장은 **형상을 편집하는 곳**과 **설계 후보를 고르는 곳**을 보여 줍니다. 각 한 상태만 보여 주어, 앞뒤 조작과 사용자가 끝낼 공학 작업의 연결이 빠졌습니다.
+**CAD Features는 형상을 편집하는 곳이고, Numerical MOO는 목표·제약에 맞는 설계 후보를 비교하는 곳입니다. 각각 단독으로 작업을 시작할 수 있고, 같은 연구에서는 모델·결과·응답을 주고받습니다.**
 
-| 제출 그림 | 짧은 설명 |
-|---|---|
-| [CAD Features](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/cad-features.png) | 클램프 두께 16·폭 90·높이 32 mm와 구멍을 편집하는 Qt 화면입니다. 형상은 Qt가 그린 합성 그림이며, 이 캡처에는 변경 전후가 없습니다. |
-| [Numerical MOO](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/numerical-moo.png) | 질량·Gauge error를 줄이면서 변위·간극 조건을 만족하는 후보를 고르는 화면입니다. 선택된 p19는 0.42 kg, 2.1%, 변위 0.31 mm, 간극 0.12 mm입니다. 후보 수치는 미리 작성한 예시입니다. |
+| 제출 화면 | 단독 작업 | 다른 도구와의 연결 |
+|---|---|---|
+| [CAD Features](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/cad-features.png) | 클램프 두께 16·폭 90·높이 32 mm와 구멍을 편집하는 상태입니다. CAD에서 형상·조립·메시·면의 조건을 직접 다룹니다. | 저장한 형상을 Simulation으로 보내 해석을 준비합니다. 나중에 Numerical에서 명시 적용한 설계 값도 이 도구에서 계속 편집합니다. |
+| [Numerical MOO](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/numerical-moo.png) | 변수·목표·제약을 정하고 후보를 비교합니다. 그림은 p19의 질량 0.42 kg, Gauge error 2.1%, 변위 0.31 mm, 간극 0.12 mm를 선택한 상태입니다. | Post 측정을 응답으로 가져오고, 고른 설계 값을 해당 CAD/Material 문서에 명시 Apply/Save합니다. |
 
-표 편집·선택·파일 작업은 실제 Qt 조작입니다. 형상 그림과 곡선·후보 값은 기획용 합성 예시이며 실제 FreeCAD/ParaView 또는 solver·optimizer의 실행 결과가 아닙니다. p19가 p04를 두 목표에서 지배하므로 이 MOO 예시는 제약·지배 관계 비교를 보여 줍니다. 여러 비지배 후보의 절충안을 찾은 결과라고 설명하지 않습니다.
+표 편집·선택·파일 작업과 도구 전달은 실제 Qt 조작입니다. 형상은 Qt가 그린 그림이고, 곡선·후보 값은 미리 작성해 불러오는 합성 예시입니다. 실제 FreeCAD/ParaView나 solver·optimizer로 계산한 결과는 아닙니다.
 
-## 현재 검토 상태
+전체 연결은 **모델·조건 → Simulation의 해석 설정 → Runner → Post의 결과·측정 → Numerical의 변수·목표·제약 → 후보 비교 → 해당 설계에 Apply/Save**입니다. Expert에서는 **독립 질문·논점·reply → 편집 가능한 Plan → 연구 결과 선택 → 같은 질문의 후속 논의·Study 판단**으로 이어집니다. provider가 미연결이어도 로컬 질문·reply·계획 작업은 계속할 수 있습니다.
 
-- **기능과 산출물:** 기존 전체 기획 범위와 편집 가능한 시제품·상태 원본이 있습니다. 이번 시안을 본제품에 연결하는 구현은 시작하지 않았습니다.
-- **Qt 조작 검사:** Codex가 Windows에서 실행해 전달한 범위별 PASS는 유지합니다. 이번 문서 교정에 원격 재실행은 없습니다.
-- **시각적 상세설계:** 개별 화면과 검토 기록은 있으나, 두 장만으로 주작업의 목적·변화·판단 결과를 충분히 제시하지 못했습니다. 연속 화면 제시와 필요한 시각 교정이 남습니다.
-- **사용자 수용:** 아직 확인되지 않았습니다. 개발 시작 지시도 없습니다.
+시제품의 Run은 PREPARED 검토 작업을 만들고, 이후 Review 메뉴에서 합성 결과를 명시적으로 불러옵니다. 여러 도구를 이어 조작할 때는 **Window 메뉴로 같은 검토 세션의 창을 여세요.** 각 도구는 아래 `--tool` 명령으로 독립 시작할 수도 있습니다. Workbench는 선택적 연결 보기이며 필수 시작 화면이 아닙니다.
 
-“남은 4묶음 모두 끝 / 0개”를 전체 기획 완료 보고에서 철회한 Codex 판단에 주작성자 Pro도 동의합니다. 이미 동작하는 시제품과 해당 검사 성과는 그 범위대로 남습니다.
-
-다음 검토에서는 **CAD 치수 변경 → 면의 조건 → 해석 설정·작업 감시 → Post 측정 → 변수·목표·제약과 후보 적용**, **Expert 논점·reply → 연구 정의 → 선택 결과 → 후속 논의·Study 판단**을 같은 작업의 전후 화면으로 보여 줘야 합니다. 기존 상태로 구성할 구체적인 장면과 Pro의 비판은 [DESIGN의 제출 화면과 남은 사용자 검토](DESIGN.md#제출-화면과-남은-사용자-검토)에 적었습니다. 아래 실행 안내는 그 조작을 여는 방법이며 연속 제출본이나 사용자 수용을 대신하지 않습니다. 이번 게시물은 두 문서의 설명·상태 교정입니다.
+구체적인 역할과 전달 대상은 [DESIGN의 두 화면의 역할과 도구 간 연결](DESIGN.md#두-화면의-역할과-도구-간-연결)에 적었습니다. 이번 설명 교정은 사용자 질문의 의미와 전체 맥락을 답하는 작업이며, 새 재설계 요청이나 기존 QA·사용자 수용 상태의 변경으로 처리하지 않습니다.
 
 ## Windows에서 실행
 
