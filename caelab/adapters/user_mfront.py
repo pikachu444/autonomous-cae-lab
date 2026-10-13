@@ -27,6 +27,7 @@ class UserMFrontAdapter:
         self.validate_settings(settings);return {'inputs':{},'outputs':{}}
     def describe_inputs(self,settings):
         s=self.validate_settings(settings)
+        if s['action']=='build':return []
         return [{'id':r['name'],'label':r['name'],'unit':r['unit'],'value':r['value'],
             'lower':-1e100,'upper':1e100,'settings_path':['properties',i,'value'],
             'declaration_paths':[['model','properties',i,'value']]} for i,r in enumerate(s['properties'])]
@@ -58,6 +59,17 @@ class UserMFrontAdapter:
             '/bin/bash','--noprofile','--norc','-c',BOOTSTRAP]
         save_json(folder/'runtime_selection.json',{'image_sha256':image_sha,'image':str(image),
                     'source_sha256':digest,'action':s['action'],'scope':'owned process; admitted native source, not a C++ security sandbox'})
+        def retained_build():
+            path=folder/'build_identity.json'
+            if not path.is_file():return None
+            receipt=json.loads(path.read_text(encoding='utf-8'))
+            if (receipt['source_sha256']!=digest or
+                sha256(folder/'build'/(s['behaviour']+'.mfront'))!=digest or
+                receipt['library_sha256']!=sha256(folder/'build/src/libBehaviour.so') or
+                receipt['makefile_sha256']!=sha256(folder/'build/src/Makefile.mfront') or
+                receipt['descriptor']['behaviour']!=s['behaviour']):
+                raise RuntimeError('보존 빌드 선언과 원문/라이브러리가 다릅니다.')
+            return receipt
         try:
             _process(command,folder,'user_law',timeout=300)
         except ExecutionCleanupFailed:raise
@@ -66,7 +78,7 @@ class UserMFrontAdapter:
             path=folder/'history.partial.json'
             if path.is_file():partial=json.loads(path.read_text(encoding='utf-8'))
             return {'execution_status':'CANCELLED' if isinstance(error,ExecutionCancelled) else 'FAILED','responses':{},
-                    'checks':[],'diagnostics':{'reason':str(error),'constitutive':partial,'decision':'NOT_RELEASED'}}
+                    'checks':[],'diagnostics':{'reason':str(error),'constitutive':partial,'build':retained_build(),'decision':'NOT_RELEASED'}}
         if (sha256(image)!=image_sha or sha256(folder/'input.json')!=input_sha or sha256(folder/'sources.json')!=manifest_sha
             or any(sha256(folder/name)!=value or SOURCES[name].read_bytes()!=LOADED[name] for name,value in pins.items())):
             raise RuntimeError('빌드 입력/실행 코드/선택 runtime이 변경됐습니다.')

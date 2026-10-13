@@ -57,8 +57,7 @@ def parameters(settings):
         name=row['name']
         if not isinstance(name,str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,47}',name) or name in RESERVED or name in symbols:
             fail(path+'.name','고유한 영문 계수 이름을 입력하세요.')
-        try: dim=unit_dimension(row['unit'])
-        except ExpressionError as error: fail(path+'.unit',str(error))
+        dim=unit_dimension(row['unit'],path='settings.'+path+'.unit')
         symbols[name]=Meaning(dim); values[name]=number(row['value'],path+'.value')
         if abs(values[name])>1e100: fail(path+'.value','계수의 지원 범위는 ±1e100입니다.')
     return symbols,values
@@ -96,7 +95,8 @@ def validate_settings(backend,settings):
             name=row['name']
             if not isinstance(name,str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,47}',name) or name in symbols or name in RESERVED:
                 fail(path+'.name','고유한 상태 이름을 입력하세요.')
-            symbols[name]=Meaning(unit_dimension(row['unit']))
+            dim=unit_dimension(row['unit'],path='settings.'+path+'.unit')
+            symbols[name]=Meaning(dim)
             number(row['initial'],path+'.initial');number(row['atol'],path+'.atol',True)
             if not isinstance(row['label'],str) or not row['label'].strip(): fail(path+'.label','표시 이름을 입력하세요.')
         ref_symbols={k:v for k,v in symbols.items() if k not in {r['name'] for r in rows}}
@@ -109,7 +109,7 @@ def validate_settings(backend,settings):
         field=s['field']; domain=s['domain']
         if not isinstance(field,dict) or set(field)!={'name','label','unit'} or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,47}',str(field['name'])):
             fail('field','스칼라 장 이름·표시 이름·단위가 필요합니다.')
-        dim=unit_dimension(field['unit'])
+        dim=unit_dimension(field['unit'],path='settings.field.unit')
         if not isinstance(domain,dict) or set(domain)!={'width','height','unit'} or domain['unit']!='m': fail('domain','영역 길이는 m로 선언하세요.')
         number(domain['width'],'domain.width',True);number(domain['height'],'domain.height',True)
         if s['space']!={'family':'Lagrange','degree':1}: fail('space','현재 차원 약형식은 스칼라 Lagrange P1 삼각형입니다.')

@@ -65,9 +65,14 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
             reference_temperature=None,reference_temperature_unit=None,exact_values_match=False)
         return result
     if source is None:return missing('공급 단계가 아직 실행되지 않았습니다.')
+    # Verify the retained result before checking its catalog. Selecting a missing
+    # response directly would raise in the exact reader before we could explain
+    # this actual failed binding. Do not catch corrupt-result/hash errors here.
+    catalog=evaluation_stage_result(wb,document_id,job_id,source['attempt_id'],{'metadata_only':True})
+    if declaration['output'] not in catalog.get('responses',{}):
+        return missing('공급 결과에 선택한 장이 없습니다. 단계 실패와 원 결과를 확인하세요.')
     read=evaluation_stage_result(wb,document_id,job_id,source['attempt_id'],{'responses':[declaration['output']]})
-    supplied=read.get('responses',{}).get(declaration['output'])
-    if supplied is None:return missing('공급 결과에 선택한 장이 없습니다. 단계 실패와 원 결과를 확인하세요.')
+    supplied=read['responses'][declaration['output']]
     if receipt['receipt_recorded'] and canonical_hash(supplied)!=receipt['source_response_sha256']:
         raise ValueError('공급 장이 보존된 전달 기록과 다릅니다.')
     # Absence is shown only for an actually incomplete receiver attempt. A

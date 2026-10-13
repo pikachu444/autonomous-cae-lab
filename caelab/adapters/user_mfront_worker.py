@@ -93,8 +93,9 @@ def integrate(binding,b,s,output):
                 for sign in (-1,1):
                     probe=restored(baseline);start=snapshot(probe)
                     probe.s1.gradients[0,:]=nominal.s1.gradients[0,:];probe.s1.gradients[0,col]+=sign*h
+                    actual_input=probe.s1.gradients.reshape(6).tolist()
                     status=_integrate(binding,probe,dt)
-                    item={'sign':sign,'initial_state':start,**status}
+                    item={'sign':sign,'initial_state':start,'input_strain_kelvin':actual_input,**status}
                     if status['integration_return']==1:
                         item['state']=snapshot(probe);signed[sign]=probe.s1.thermodynamic_forces.reshape(6).copy()
                     evidence.append(item)
@@ -147,13 +148,16 @@ def main():
     runtime.update(mgis=package)
     b=binding.load(str(library),s['behaviour'],binding.Hypothesis.Tridimensional)
     descriptor=describe(binding,b)
-    for key,native in [('properties','material_properties'),('external','external_state_variables')]:
-        if {row['name'] for row in s[key]}!={row['name'] for row in descriptor[native]}:raise ValueError('Declared '+key+' differ from native descriptor')
     receipt={'source_sha256':sha(source),'library_sha256':sha(library),'makefile_sha256':sha(build/'src/Makefile.mfront'),
              'interface':'generic','hypothesis':'Tridimensional','generation_arguments':argv,
              'compiler_flags':flags,'compiler_commands':commands,'runtime':runtime,'descriptor':descriptor}
     save(out/'build_identity.json',receipt)
-    history=integrate(binding,b,s,out) if s['action']=='evaluate' else {'steps':[],'status':'BUILT_ONLY'}
+    if s['action']=='evaluate':
+        for key,native in [('properties','material_properties'),('external','external_state_variables')]:
+            if {row['name'] for row in s[key]}!={row['name'] for row in descriptor[native]}:
+                raise ValueError('Declared '+key+' differ from native descriptor; read the retained build declaration')
+        history=integrate(binding,b,s,out)
+    else:history={'steps':[],'status':'BUILT_ONLY'}
     save(out/'user_result.json',{'input_sha256':sha(out/'input.json'),'sources_sha256':sha(out/'sources.json'),
         'build':receipt,'constitutive':history,'source_sha256':sha(source),'library_sha256':sha(library)})
 

@@ -3,7 +3,7 @@ from copy import deepcopy
 import uuid
 from PySide6.QtCore import Qt,QThreadPool
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,QPushButton,
- QSplitter,QTabWidget,QTableWidget,QTableWidgetItem,QHeaderView,QInputDialog,QMessageBox)
+ QSplitter,QTabWidget,QTableWidget,QTableWidgetItem,QHeaderView,QInputDialog,QMessageBox,QTreeWidget,QTreeWidgetItem)
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from .pde_window import _Read
@@ -24,6 +24,72 @@ def leaves(value,prefix=''):
     else:yield prefix,value
 
 
+
+MEASURES={'deformation_gradient':'변형구배 F',
+ 'infinitesimal_Cauchy':'미소변형 Cauchy','first_Piola':'제1 Piola',
+ 'physical tensor strain (not engineering shear)':'물리 텐서 변형률',
+ 'physical infinitesimal Cauchy stress':'물리 텐서 Cauchy',
+ 'Kelvin strain (sqrt(2) shear)':'Kelvin 변형률 · 전단 ×√2',
+ 'Kelvin Cauchy stress (sqrt(2) shear)':'Kelvin 응력 · 전단 ×√2'}
+
+
+def component_value(values,index):
+    if not isinstance(values,list):return None
+    if len(values)==3 and all(isinstance(row,list) and len(row)==3 for row in values):
+        values=[value for row in values for value in row]
+    return values[index] if index<len(values) else None
+
+
+def selected_probes(data,i,j):
+    """Select the exact saved component order; no reconstruction of missing inputs/stress."""
+    rows=[]
+    for fd in data.get('finite_differences',[]):
+        backend=data['backend'];name=data['components'][j]
+        if backend=='material.felupe':
+            if fd.get('increment')!=data['increment'] or fd.get('input_component')!=name:continue
+            signed={sign:{'input':fd.get(key+'_input'),'stress':fd.get(key),
+                'initial_state':fd.get('initial_state'),'baseline':fd.get('baseline')}
+                for sign,key in ((-1,'minus'),(1,'plus'))}
+            values=fd.get('finite_difference');difference=component_value(values,i)
+        else:
+            if backend=='material.mfront.user' and fd.get('component')!=name:continue
+            actual=[p for p in fd.get('probes',[]) if backend=='material.mfront.user' or p.get('column')==j]
+            signed={}
+            for p in actual:
+                finite=backend=='material.mfront.hyperelastic';user=backend=='material.mfront.user'
+                state=p.get('state',{}).get('s1',{})
+                signed[p['sign']]={'input':p.get('deformation_gradient') if finite else
+                    p.get('input_strain_kelvin',state.get('gradients')) if user else p.get('gradients_kelvin'),
+                    'stress':p.get('pk1_stress_mpa') if finite else
+                    state.get('thermodynamic_forces') if user else p.get('stress_kelvin_mpa'),
+                    'initial_state':p.get('initial_state',p.get('initial_manager')),
+                    'final_state':p.get('state',p.get('final_state',p.get('final_manager'))),
+                    'integration_return':p.get('integration_return')}
+            matrix=fd.get('pk1_tangent_mpa',fd.get('tangent_kelvin_mpa',fd.get('tangent')))
+            difference=component_value(fd.get('column_values'),i) if backend=='material.mfront.user' else (
+                component_value(matrix[i],j) if isinstance(matrix,list) and i<len(matrix) else None)
+        minus=signed.get(-1,{});plus=signed.get(1,{})
+        rows.append({'h':fd['h'],'minus_input':component_value(minus.get('input'),j),
+            'plus_input':component_value(plus.get('input'),j),'minus_stress':component_value(minus.get('stress'),i),
+            'plus_stress':component_value(plus.get('stress'),i),'difference':difference,'signed':signed})
+    return rows
+
+
+def fill_tree(tree,value):
+    tree.clear()
+    labels={'initial_state':'독립 시작 상태','final_state':'적분 후 상태','input':'섭동한 입력',
+            'stress':'응력 원값','baseline':'시작 조건','integration_return':'적분 반환값',
+            's0':'초기','s1':'trial','parameters':'물성','deformation_gradient':'변형구배 F','internal_variables':'내부 변수'}
+    def add(parent,name,entry):
+        item=QTreeWidgetItem(parent,[labels.get(str(name),str(name)),'' if isinstance(entry,(list,dict)) else short(entry)])
+        if isinstance(entry,dict):
+            for key,part in entry.items():add(item,key,part)
+        elif isinstance(entry,list):
+            for index,part in enumerate(entry):add(item,str(index+1),part)
+    for key,item in value.items():add(tree,'− 섭동' if key==-1 else '+ 섭동',item)
+    tree.expandToDepth(1)
+
+
 class ConstitutiveInspectionWindow(QDialog):
     def __init__(self,client,document_id,job_id,parent=None):
         super().__init__(parent);configure_plot_fonts()
@@ -36,7 +102,7 @@ class ConstitutiveInspectionWindow(QDialog):
         row.addWidget(QLabel('증분'));row.addWidget(self.increment,1);row.addWidget(self.probe);layout.addLayout(row)
         self.status=QLabel('선택한 계산을 읽는 중…');self.status.setWordWrap(True);layout.addWidget(self.status)
         split=QSplitter(Qt.Orientation.Horizontal);layout.addWidget(split,1)
-        tabs=QTabWidget();split.addWidget(tabs)
+        tabs=self.tabs=QTabWidget();split.addWidget(tabs)
         self.tangent=QTableWidget();self.tangent.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tangent.currentCellChanged.connect(lambda *_:self._plot())
         tabs.addTab(self.tangent,'접선')
@@ -44,8 +110,20 @@ class ConstitutiveInspectionWindow(QDialog):
         self.states.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.states.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         tabs.addTab(self.states,'적분 상태')
-        self.stress=QTableWidget(0,2);self.stress.setHorizontalHeaderLabels(['성분','응력'])
-        self.stress.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers);tabs.addTab(self.stress,'응력')
+        self.stress=QTableWidget(0,6);self.stress.setHorizontalHeaderLabels(['물리량','성분','값','단위','측도','기준계'])
+        self.stress.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.stress.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        tabs.insertTab(0,self.stress,'변형과 응력')
+        evidence=QSplitter(Qt.Orientation.Vertical)
+        self.probes=QTableWidget(0,6)
+        self.probes.setHorizontalHeaderLabels(['h','− 입력 [1]','+ 입력 [1]','− 응력','+ 응력','중앙차분'])
+        self.probes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.probes.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.probes.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.probes.currentCellChanged.connect(self._probe_selected)
+        self.probe_states=QTreeWidget();self.probe_states.setHeaderLabels(['시작 상태와 원자료','보존값'])
+        evidence.addWidget(self.probes);evidence.addWidget(self.probe_states);evidence.setSizes([220,350])
+        tabs.addTab(evidence,'섭동 원자료')
         self.build=QTableWidget(0,2);self.build.setHorizontalHeaderLabels(['빌드 항목','값'])
         self.build.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.build.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -53,11 +131,14 @@ class ConstitutiveInspectionWindow(QDialog):
         self.figure=Figure(constrained_layout=True);self.canvas=FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumWidth(420);split.addWidget(self.canvas);split.setSizes([500,560])
         self.availability=QLabel();self.availability.setWordWrap(True);layout.addWidget(self.availability)
+        tabs.setCurrentIndex(0)
+        self._fd_rows=[]
         self._read(0)
 
     def _read(self,index):
         self._serial+=1;serial=self._serial;self._data=None
         self.tangent.setRowCount(0);self.states.setRowCount(0);self.stress.setRowCount(0)
+        self.build.setRowCount(0);self._fd_rows=[];self.probes.setRowCount(0);self.probe_states.clear()
         self.figure.clear();self.canvas.draw_idle();self.probe.setEnabled(False)
         work=_Read(lambda:self.client.constitutive_inspect(self.document_id,self.job_id,index));_READS.add(work)
         def done(data,error):
@@ -77,6 +158,7 @@ class ConstitutiveInspectionWindow(QDialog):
             self.increment.addItem(str(row['index']+1)+' / '+short(row['time'])+' ['+row['unit']+']',row['index'])
         self.increment.setCurrentIndex(self.increment.findData(data['increment']));self.increment.blockSignals(False)
         self.status.setText(data['pair']+' ['+data['tangent_unit']+']')
+        self.status.setToolTip(data.get('frame',''))
         matrix=data.get('tangent') or [];names=data['components']
         self.tangent.setColumnCount(len(names));self.tangent.setRowCount(len(matrix))
         self.tangent.setHorizontalHeaderLabels(names);self.tangent.setVerticalHeaderLabels(names)
@@ -88,9 +170,14 @@ class ConstitutiveInspectionWindow(QDialog):
         for i,key in enumerate(keys):
             for j,value in enumerate([key]+[state.get(key) for state in states]):
                 self.states.setItem(i,j,QTableWidgetItem(short(value)))
-        stress=list(leaves(data.get('stress')));self.stress.setRowCount(len(stress))
-        for i,(name,value) in enumerate(stress):
-            self.stress.setItem(i,0,QTableWidgetItem(name));self.stress.setItem(i,1,QTableWidgetItem(short(value)))
+        quantities=[(q,name,value) for q in data.get('quantities',[]) for name,value in zip(q['components'],q['values'])]
+        self.stress.setRowCount(len(quantities))
+        for i,(q,name,value) in enumerate(quantities):
+            frame='재료 직교 기준계' if q['frame']=='material_cartesian' else '재료 성분 / 공간 정렬 미확인'
+            entries=[q['name'],name,'미보존' if value is None else short(value),q['unit'],MEASURES.get(q['measure'],q['measure']),frame]
+            for j,label in enumerate(entries):
+                item=QTableWidgetItem(label);item.setToolTip(repr(value) if j==2 else q['frame'] if j==5 else q['measure'])
+                self.stress.setItem(i,j,item)
         build=list(leaves(data.get('build',{})))
         self.build.setRowCount(len(build))
         for i,(name,value) in enumerate(build):
@@ -108,6 +195,15 @@ class ConstitutiveInspectionWindow(QDialog):
         matrix=data.get('tangent') or []
         if i<0 or j<0 or i>=len(matrix) or j>=len(matrix[i]):
             self.canvas.draw_idle();return
+        self._fd_rows=selected_probes(data,i,j)
+        self.probes.setRowCount(len(self._fd_rows))
+        self.probes.setHorizontalHeaderLabels(['h','− '+data['components'][j]+' [1]','+ '+data['components'][j]+' [1]',
+            '− '+data['components'][i]+' ['+data['tangent_unit']+']','+ '+data['components'][i]+' ['+data['tangent_unit']+']','중앙차분'])
+        for row,values in enumerate(self._fd_rows):
+            for col,key in enumerate(('h','minus_input','plus_input','minus_stress','plus_stress','difference')):
+                item=QTableWidgetItem(short(values[key]));item.setToolTip(repr(values[key]));self.probes.setItem(row,col,item)
+        if self._fd_rows:self.probes.selectRow(0);self._probe_selected()
+        else:self.probe_states.clear()
         exact=matrix[i][j];points=[]
         for fd in data.get('finite_differences',[]):
             if data['backend']=='material.felupe':
@@ -126,6 +222,11 @@ class ConstitutiveInspectionWindow(QDialog):
         else:ax.text(.5,.15,'선택 성분의 독립 섭동 기록 없음',ha='center',transform=ax.transAxes)
         ax.set_xlabel('섭동 크기 h');ax.set_ylabel(data['tangent_unit'])
         ax.set_title(data['components'][i]+' / '+data['components'][j]);ax.legend();self.canvas.draw_idle()
+
+    def _probe_selected(self,*_):
+        row=self.probes.currentRow()
+        if 0<=row<len(self._fd_rows):fill_tree(self.probe_states,self._fd_rows[row]['signed'])
+        else:self.probe_states.clear()
 
     def request_probe(self):
         if not self._data or self._data['backend']!='material.felupe':return

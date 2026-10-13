@@ -105,7 +105,8 @@ def main(input_path):
         row={'cells_per_axis':n,'global_dofs':nodes,'relative_residual':relative,'ksp_convergence_reason':reason,
              'reference':settings['reference'],'l2_error':None,'h1_seminorm_error':None,
              'l2_unit':'('+settings['field']['unit']+')*m','h1_unit':settings['field']['unit'],
-             'norm_definition':'sqrt(integral(error^2) dx), sqrt(integral(grad(error)^2) dx); 2D SI measure'}
+             'norm_definition':'sqrt(integral(error^2) dx), sqrt(integral(grad(error)^2) dx); 2D SI measure; numerical quadrature degree 8',
+             'quadrature_degree':8,'norm_integration':'numerical quadrature of direct reference, not interpolated; not exact integration of arbitrary reference'}
         row['reference_status']='NOT_REQUESTED'
         studies.append(row)
         save(output/'progress.json',{'completed_levels':studies,'fields':fields})
@@ -124,7 +125,8 @@ def main(input_path):
     for name,unit in [('l2_error',finest['l2_unit']),('h1_seminorm_error',finest['h1_unit']),('relative_residual','1')]:
         if finest[name] is not None:
             responses[name]={'kind':'scalar','value':finest[name],'unit':unit,'component':name,
-                             'location':'domain','reduction':'native_integral' if name!='relative_residual' else 'algebraic_norm'}
+                             'location':'domain','reduction':'native_integral' if name!='relative_residual' else 'algebraic_norm',
+                             **({'quadrature_degree':8,'norm_definition':finest['norm_definition']} if name!='relative_residual' else {})}
     save(output/'worker_result.json',{'input_sha256':sha(input_path),'sources_sha256':sha(output/'sources.json'),
          'execution_status':'SUCCEEDED' if ok else 'REJECTED','responses':responses,
          'checks':[{'name':'relative_algebraic_residual','status':'PASS' if ok else 'FAIL',

@@ -34,13 +34,38 @@ def display(value):
     return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, allow_nan=False)
 
 
-def typed_value(text, original, path):
+def declared_number_kind(backend,path):
+    """Only declared leaves recover from invalid saved text; never guess units or expressions."""
+    path=tuple(path)
+    def matches(pattern):
+        return len(path)==len(pattern) and all(type(a) is int if b is int else a==b for a,b in zip(path,pattern))
+    definitions={
+        'pde.scipy.ode':{
+            int:[('settings','time','samples')],
+            float:[('settings','states',int,'initial'),('settings','states',int,'atol'),
+                   ('settings','parameters',int,'value'),('settings','time','start'),('settings','time','end'),
+                   ('settings','solver','rtol'),('settings','solver','max_step')]},
+        'pde.fenicsx.dimensioned':{
+            int:[('settings','space','degree'),('settings','mesh','levels',int)],
+            float:[('settings','domain','width'),('settings','domain','height'),
+                   ('settings','parameters',int,'value'),('settings','solver','residual_relative')]},
+        'material.mfront.user':{
+            int:[('settings','probe','increment')],
+            float:[('settings','properties',int,'value'),('settings','external',int,'value'),
+                   ('settings','history',int,'time'),('settings','history',int,'strain',int),
+                   ('settings','initial_internal',int),('settings','probe','steps',int)]}}
+    return next((kind for kind,patterns in definitions.get(backend,{}).items()
+                 if any(matches(pattern) for pattern in patterns)),None)
+
+
+def typed_value(text, original, path, backend=None):
     """Untouched invalid JSON stays exact; edited invalid numbers remain draft text."""
     if text == display(original):
         return deepcopy(original)
     if original is None and text == '':
         return None
-    numeric = type(original) in (int, float) or path[-1] in {
+    declared=declared_number_kind(backend,path)
+    numeric = declared is not None or type(original) in (int, float) or path[-1] in {
         'degree', 'diffusion', 'reaction', 'alpha', 'lame_lambda', 'lame_mu', 'start', 'end',
         'fraction', 'axis', 'max_l2_error', 'min_l2_rate', 'max_h1_seminorm_error',
         'min_h1_rate', 'max_residual_relative'} or any(key in path for key in (
@@ -50,7 +75,7 @@ def typed_value(text, original, path):
             value = float(text)
             if not math.isfinite(value):
                 return text
-            if type(original) is int or path[-1] in ('degree', 'axis') or 'cell_counts' in path or 'step_counts' in path:
+            if declared is int or declared is None and (type(original) is int or path[-1] in ('degree', 'axis') or 'cell_counts' in path or 'step_counts' in path):
                 return int(value) if value.is_integer() else value
             return value
         except (ValueError, OverflowError):
@@ -533,7 +558,7 @@ class PDEWindow(QMainWindow):
         draft = deepcopy(self._draft)
         for path, (widget, original) in self.fields.items():
             text = widget.toPlainText() if isinstance(widget, QPlainTextEdit) else widget.text()
-            set_path(draft, path, typed_value(text, original, path))
+            set_path(draft, path, typed_value(text, original, path, draft.get('backend')))
         return draft
 
     def _capture_settings(self):

@@ -48,6 +48,8 @@ class NativeMaterialWindow(SimulationWindow):
         law_menu=self.menuBar().addMenu('구성식');law_menu.addAction(self.constitutive_action)
         self.source_action=QAction('법칙 원문…',self)
         self.source_action.triggered.connect(self.edit_law_source);law_menu.addAction(self.source_action)
+        self.build_inputs_action=QAction('빌드 선언으로 입력 준비…',self)
+        self.build_inputs_action.triggered.connect(self.prepare_law_inputs);law_menu.addAction(self.build_inputs_action)
         if new_native:
             self.open_document(draft=self.model_default(NATIVE_LAWS[0]))
 
@@ -193,6 +195,39 @@ class NativeMaterialWindow(SimulationWindow):
                 self._update_actions()
         finally:
             if active:timer.start()
+
+    def prepare_law_inputs(self):
+        if not self.document or self._busy or not self._selected_job:
+            self.message.setText('완료된 빌드 결과를 선택하세요.');return
+        draft=deepcopy(self.edited_draft());opened=deepcopy(self.document);job=self._selected_job
+        if draft.get('backend')!='material.mfront.user':
+            self.message.setText('사용자 MFront 법칙에서 빌드 결과를 선택하세요.');return
+        def reviewed(view):
+            if (not self.document or (self.document['id'],self.document['session_id'])!=(opened['id'],opened['session_id'])
+                    or self._selected_job!=job or self.edited_draft()!=draft):return
+            from .material_law_inputs_dialog import MaterialLawInputsDialog
+            try:dialog=MaterialLawInputsDialog(draft['settings'],view.get('build'),self)
+            except ValueError as error:self.message.setText(str(error));return
+            timer=getattr(self,'timer',None);active=bool(timer and timer.isActive())
+            if timer:timer.stop()
+            try:
+                if dialog.exec()!=QDialog.DialogCode.Accepted:return
+                prepared=dialog.edited_settings();current=deepcopy(self.edited_draft())
+                keys=('source','behaviour','properties','external','initial_internal','action')
+                same=self.document and (self.document['id'],self.document['session_id'])==(opened['id'],opened['session_id'])
+                same=bool(same and current.get('backend')==draft['backend'] and all(
+                    current.get('settings',{}).get(k)==draft['settings'].get(k) for k in keys))
+                target=current if same else deepcopy(draft)
+                for key in ('properties','external','initial_internal','action'):target['settings'][key]=prepared[key]
+                self.local_dirty=True
+                if not same:self.conflict=True
+                self._show_document(self.document if same else opened,preserve_draft=target)
+                self.message.setText('입력 초안에 반영했습니다. 값·단위와 변형 이력을 확인한 뒤 적용하고 평가하세요.'
+                    if same else '다른 편집과 겹쳐 초안을 보관했습니다. 저장 버전과 비교하세요.')
+                self._update_actions()
+            finally:
+                if active:timer.start()
+        return self._call(lambda:self.client.constitutive_inspect(opened['id'],job,0),reviewed)
 
     def open_constitutive(self):
         if not self.document or not self._selected_job:

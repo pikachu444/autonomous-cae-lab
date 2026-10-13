@@ -60,6 +60,7 @@ def test_actual_ode_invalid_save_reopen_repair_and_result(service):
     result=client.document_result(doc['id'],job);assert result['execution_status']=='SUCCEEDED',result
     doc=change(client,client.document_read(doc['id']),'document.save')['document']
     from caelab.workbench import Workbench
+    assert wb.shutdown()['joined']
     fresh=Workbench(wb.workspace)
     try:
         again=fresh.document_open(kind='pde',document_id=doc['id'])
@@ -78,6 +79,7 @@ def test_installed_dimensioned_weak_reference_and_post(tmp_path):
     studies=result['diagnostics']['mesh_studies']
     assert len(studies)==2 and max(r['l2_error'] for r in studies)<1e-8
     assert max(r['h1_seminorm_error'] for r in studies)<1e-7
+    assert all(r['quadrature_degree']==8 and 'quadrature degree 8' in r['norm_definition'] for r in studies)
     assert studies[0]['l2_unit']=='(K)*m' and studies[0]['h1_unit']=='K'
     fields=result['diagnostics']['native_fields']
     assert all(f['field']['coordinates_unit']=='m' and f['field']['field_unit']=='K' for f in fields)
@@ -86,20 +88,26 @@ def test_installed_dimensioned_weak_reference_and_post(tmp_path):
 
 
 
-def test_ode_names_do_not_overwrite_actual_states_or_failed_reference(tmp_path):
+@pytest.mark.parametrize('reverse',[False,True])
+def test_ode_names_do_not_overwrite_actual_states_or_failed_reference(tmp_path,reverse):
     from caelab.evaluation import run
     s=domain.default_settings(domain.ODE)
     row=s['states'][0];row.update(name='q',rhs='-rate*(q-ambient)')
     other=deepcopy(row);other.update(name='q_reference',label='다른 온도',initial=305.,
         rhs='-rate*(q_reference-ambient)',reference='')
     s['states'].append(other)
+    error_state=deepcopy(other);error_state.update(name='q_error',label='세 번째 온도',initial=315.,rhs='-rate*(q_error-ambient)')
+    s['states'].append(error_state)
+    if reverse:s['states'].reverse()
     result=run(domain.ODE,s,output=tmp_path/'distinct')
     assert result['execution_status']=='SUCCEEDED'
     channels=result['diagnostics']['response_channels']['q']
     assert channels['reference']!='q_reference'
     assert result['responses']['q_reference']['value'][0]==305.
     assert result['responses'][channels['reference']]['value'][0]==300.
-    s['states'][0]['reference']='ambient*log(-1)'
+    assert result['responses']['q_error']['value'][0]==315.
+    assert channels['error']!='q_error'
+    next(r for r in s['states'] if r['name']=='q')['reference']='ambient*log(-1)'
     bad=run(domain.ODE,s,output=tmp_path/'bad-reference')
     assert bad['execution_status']=='SUCCEEDED'
     assert len(bad['responses']['q']['value'])==101
@@ -135,3 +143,18 @@ def test_ode_tolerance_and_operation_capabilities():
     rows={row['id']:row for row in list_backends()}
     for name in (domain.ODE,domain.WEAK,'material.mfront.user'):
         assert rows[name]['roles']==['evaluation'] # run owner/candidates, not legacy solve API
+
+
+def test_unit_error_locations_and_zero_based_syntax_column():
+    import ast
+    for backend,path in [(domain.ODE,('states',0,'unit')),(domain.WEAK,('field','unit'))]:
+        draft=default_draft(backend);target=draft['settings']
+        for key in path[:-1]:target=target[key]
+        target[path[-1]]='mm'
+        issue=diagnostics(draft)[0]
+        assert issue['path']=='settings.'+'.'.join(map(str,path))
+    text='rate + )'
+    try:ast.parse(text,mode='eval')
+    except SyntaxError as native:expected=max(0,native.offset-1)
+    with pytest.raises(ExpressionError) as caught:parse(text,{'rate':Meaning()},path='settings.states.0.rhs')
+    assert caught.value.column==expected and caught.value.line==1

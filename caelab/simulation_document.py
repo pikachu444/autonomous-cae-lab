@@ -85,7 +85,7 @@ def diagnostics(draft):
     try:
         validate_draft(draft)
     except (ValueError, TypeError, KeyError, OverflowError, ImportError) as error:
-        return [{'path': 'settings', 'severity': 'error', 'message': str(error), 'blocks_evaluation': True}]
+        return [{'path': getattr(error,'path','settings'), 'line':getattr(error,'line',None), 'column':getattr(error,'column',None), 'severity': 'error', 'message': str(error), 'blocks_evaluation': True}]
     return []
 
 

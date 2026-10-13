@@ -28,13 +28,23 @@ def add_dim(a, b, factor=1):
     return tuple(x + factor*y for x,y in zip(a,b))
 
 
-def unit_dimension(source):
+def unit_dimension(source, *, path='settings'):
+    try:return _unit_dimension(source)
+    except ExpressionError as error:
+        error.path=path
+        raise
+
+
+def _unit_dimension(source):
     if not isinstance(source, str) or not source or len(source) > 128:
         raise ExpressionError('단위를 입력하세요.')
     try:
         tree = ast.parse(source, mode='eval').body
     except (SyntaxError, ValueError, RecursionError) as error:
-        raise ExpressionError('단위는 SI 곱셈·나눗셈·정수 거듭제곱으로 입력하세요.') from error
+        err=ExpressionError('단위는 SI 곱셈·나눗셈·정수 거듭제곱으로 입력하세요.')
+        err.line=getattr(error,'lineno',None)
+        offset=getattr(error,'offset',None);err.column=max(0,offset-1) if offset is not None else None
+        raise err from error
     def read(node):
         if isinstance(node, ast.Name) and node.id in UNITS:
             return UNITS[node.id]
@@ -45,9 +55,9 @@ def unit_dimension(source):
         if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow):
             power = numeric_constant(node.right)
             if int(power) != power or abs(power) > 8:
-                raise ExpressionError('단위 지수는 -8~8 정수만 지원합니다.')
+                raise ExpressionError('단위 지수는 -8~8 정수만 지원합니다.',node=node.right)
             return tuple(x*int(power) for x in read(node.left))
-        raise ExpressionError('지원 단위: kg, m, s, K, Pa, N, J, W, Hz. 다른 단위로 자동 변환하지 않습니다.')
+        raise ExpressionError('지원 단위: kg, m, s, K, Pa, N, J, W, Hz. 다른 단위로 자동 변환하지 않습니다.',node=node)
     return read(tree)
 
 
@@ -76,7 +86,8 @@ def parse(source, symbols, *, path='settings', weak=False):
         tree=ast.parse(source, mode='eval').body
     except (SyntaxError, ValueError, RecursionError) as error:
         err=ExpressionError('식 문법을 확인하세요.', path=path)
-        err.line=getattr(error,'lineno',None); err.column=getattr(error,'offset',None)
+        err.line=getattr(error,'lineno',None)
+        offset=getattr(error,'offset',None);err.column=max(0,offset-1) if offset is not None else None
         raise err from error
     if len(list(ast.walk(tree)))>256:
         raise ExpressionError('식이 너무 복잡합니다.',path=path)

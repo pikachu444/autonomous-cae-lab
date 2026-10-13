@@ -54,17 +54,24 @@ def validate_settings(settings):
     for key,value in {'interface':'generic','hypothesis':'Tridimensional','stress_unit':'Pa','strain_unit':'1','time_unit':'s'}.items():
         if s[key]!=value:raise ValueError('현재 지원 선언: generic / 3차원 미소변형 / Pa, 1, s')
     if s['action'] not in ('build','evaluate'):raise ValueError('빌드만 또는 빌드하고 평가를 선택하세요.')
+    if s['action']=='build':
+        # Build discovers the source's actual descriptor. Numerical mapping and
+        # state values are not inputs to compilation and may still be a draft.
+        for key,limit in (('properties',32),('external',32),('history',32),('initial_internal',128)):
+            if not isinstance(s[key],list) or len(s[key])>limit:raise ValueError('입력 목록의 지원 크기를 확인하세요.')
+        if not isinstance(s['probe'],dict):raise ValueError('섭동 초안 형식을 확인하세요.')
+        return s
     for key in ('properties','external'):
         if not isinstance(s[key],list) or len(s[key])>32:raise ValueError('물성/외부 상태는 최대 32개입니다.')
         names=set()
-        for row in s[key]:
+        for index,row in enumerate(s[key]):
             if (not isinstance(row,dict) or set(row)!={'name','value','unit'} or
                 not isinstance(row['name'],str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',row['name']) or row['name'] in names):
                 raise ValueError('고유한 native 변수 이름, 값, 단위를 입력하세요.')
             names.add(row['name']);_number(row['value'])
             if abs(row['value'])>1e100:raise ValueError('계수 지원 범위는 ±1e100입니다.')
             from .dimensioned_expression import unit_dimension
-            unit_dimension(row['unit'])
+            unit_dimension(row['unit'],path=f'settings.{key}.{index}.unit')
     history=s['history']
     if not isinstance(history,list) or not 2<=len(history)<=32:raise ValueError('초기행을 포함해 2~32개 이력을 입력하세요.')
     previous=None
@@ -102,3 +109,31 @@ def model_declaration(settings):
             'pair':'dσKelvin/dεKelvin','initial_state':'zero strain/stress; explicit internal state',
             'field_units':'Pa / 1 / s','interface':'generic MGIS material point; no FE export',
             'qualification':'UNKNOWN'}
+
+
+
+def inputs_from_build(settings,build):
+    """Prepare a local editable mapping from the exact compiled descriptor.
+
+    Unreported units/values remain blank. No owner write, compile or integration.
+    """
+    s=deepcopy(settings)
+    if (not isinstance(build,dict) or build.get('source_sha256')!=source_hash(s['source'])
+            or build.get('descriptor',{}).get('behaviour')!=s['behaviour']):
+        raise ValueError('선택한 빌드와 현재 법칙 원문이 다릅니다. 현재 버전을 먼저 빌드하세요.')
+    descriptor=build['descriptor']
+    for key,native in (('properties','material_properties'),('external','external_state_variables')):
+        rows=descriptor.get(native)
+        if not isinstance(rows,list) or len(rows)>32 or any(r.get('size')!=1 for r in rows):
+            raise ValueError('선택한 선언의 물성/외부 상태 형식은 이 편집기가 지원하지 않습니다.')
+        old={r['name']:r for r in s[key] if isinstance(r,dict) and isinstance(r.get('name'),str)}
+        s[key]=[deepcopy(old[r['name']]) if r['name'] in old else
+                {'name':r['name'],'value':'','unit':''} for r in rows]
+    variables=descriptor.get('internal_state_variables',[])
+    if any(type(r.get('size')) is not int or r['size']<1 for r in variables):
+        raise ValueError('내부 상태 선언의 크기를 읽을 수 없습니다.')
+    count=sum(r['size'] for r in variables)
+    if count>128:raise ValueError('초기 내부 상태는 128성분까지 지원합니다.')
+    if len(s['initial_internal'])!=count:s['initial_internal']=['']*count
+    s['action']='evaluate'
+    return s

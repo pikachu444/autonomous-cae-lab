@@ -39,7 +39,7 @@ def diagnostics(draft):
             raise ValueError('Material settings require model, parameters, time, deformation_gradient and both units')
         validate_settings(draft['settings'])
     except (ValueError, TypeError, KeyError, OverflowError) as error:
-        return [{'severity': 'error', 'path': 'settings', 'message': str(error), 'blocks_evaluation': True}]
+        return [{'severity': 'error', 'path': getattr(error,'path','settings'), 'line':getattr(error,'line',None), 'column':getattr(error,'column',None), 'message': str(error), 'blocks_evaluation': True}]
     return []
 
 

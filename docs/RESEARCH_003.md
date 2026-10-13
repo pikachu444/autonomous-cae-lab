@@ -13,11 +13,11 @@
 | FN-08-02 | 사용자 원문 등록/편집, native 원문 검토·버전별 로컬 빌드 허용, 명시 빌드 또는 빌드+평가. 실제 MGIS descriptor와 library/source/runtime 보존. generic 3차원 미소변형 Kelvin6 | 다른 pair/finite strain 사용자 법칙, FE interface export·FE solver 삽입, 과거 binary 직접 재사용은 미지원. generic library를 FE 지원으로 표시하지 않음 |
 | FN-18-01 | 기존 영역/BC/결과 도구 재사용, 새 식의 오류 위치, 실제 장과 메시별 norm 표/그래프, 같은 Post/Numerical 진입 | 옛 adapter의 위치 없는 오류를 전부 새 parser로 교체하지 않음. 기존 adapter의 norm 표는 생산자별 추가 projection 필요 |
 | FN-18-02 | 독립 차원 ODE(initial/time/state별단위)와 스칼라 선형 체적 약형식, 실제 SciPy/FEniCSx 실행 | 임의 mixed/vector/nonlinear/transient 약형식, 사용자 공간/비직사각형/경계적분 DSL, DAE/events 미지원 |
-| FN-19-01 | 기존 계산 절차 창/owner/run/Plan 유지. 읽기용 새 창이 같은 frozen job을 사용 | Evaluation GUI 연결 한 곳은 해당 파일 소유자인 Codex가 아래 hook으로 통합 |
+| FN-19-01 | 기존 계산 절차 창/owner/run/Plan 유지. 읽기용 새 창이 같은 frozen job을 사용 | Codex가 선택 job의 전달값 action을 로컬 통합·실행했다고 보고. 해당 파일은 이 branch에서 변경하지 않음 |
 | FN-19-02 | 실제 공급 response와 수신 settings의 bound field를 exact mesh/node/time/unit로 대조. 구조 소유 Tref 별도 표시 | 다른 mesh projection, 단위 변환, 임의 mask 매핑은 미지원 |
 | FN-19-03 | 같은 결과의 실패 단계·전달·반복 잔차를 읽고 기존 성공 prefix 재사용 경로 유지 | 반복 중간 checkpoint 재개는 미지원. 새 job을 resume로 부르지 않음 |
 
-이 표는 D7 전체 수용 완료 선언이 아니다. 새 adapter의 실제 실행 및 GUI 수용은 제출 코드와 구분한다.
+이 표는 D7 전체 수용 완료 선언이 아니다. 새 adapter의 실제 실행 및 GUI 수용은 제출 코드와 구분한다. 아래 Root 실행 보고는 첫 게시본 f70c2aa 기준이며, 후속 교정본의 실행 증거로 확대하지 않는다.
 
 ## 재료점 상태와 접선
 
@@ -25,10 +25,13 @@
 2. 계산 하나를 선택해 **도구 → 구성식 증분…**을 연다. Native Material에서는 **구성식 → 구성식 증분…**이다.
 3. 증분을 선택하고 접선 행/열 성분을 고른다. 표와 곡선은 같은 성분을 읽는다.
 4. FELUPE의 **독립 섭동 계산…**에서 F 성분과 h 목록을 지정한다. 확인하면 선택한 frozen 입력의 새 Material 문서와 새 작업을 만든다. 원래 문서와 미적용 편집은 바꾸지 않는다.
-5. 새 계산을 저장한 뒤 같은 문서를 다시 열면 접선과 ±섭동 원값을 읽을 수 있다. 읽기 자체는 계산하지 않는다.
+5. **변형과 응력**에는 실제 F/변형률과 응력을 성분·측도·단위·기준계로 함께 표시한다. **섭동 원자료**에서 선택한 접선 성분의 ±입력·±응력과 독립 시작 상태를 확인한다.
+6. 새 계산을 저장한 뒤 같은 문서를 다시 열면 접선과 ±섭동 원값을 읽을 수 있다. 읽기 자체는 계산하지 않는다.
 
 FELUPE 선형 탄성은 dσ/dF, Neo-Hooke는 dP/dF이다. 비대각 F 성분 하나를 바꾸며 대칭 변형률을 몰래 가정하지 않는다.
 MFront 탄성/Maxwell은 Kelvin6 dσK/dεK, SVK는 실제 native 순서의 PK1/F 9×9이다.
+새 FELUPE 실행은 실제 3×3 응력과 F를 함께 보존한다. 기존 여섯 응력 selector는 유지하며, 과거 실행의 미보존 yx/zx/zy는 대칭으로 채우지 않는다.
+물리 텐서 전단, Kelvin 전단(√2 배율), F를 별도로 표시한다. 재료 성분과 실험 센서/공간 좌표의 정렬이 없는 native 기록은 UNKNOWN을 유지한다.
 Native FD는 이미 보존된 독립 초기 상태/두 부호를 읽는다. 없는 committed/residual/substep은 trial이나 상태코드로 대신하지 않는다.
 
 ## 사용자 MFront 법칙
@@ -38,7 +41,9 @@ Native FD는 이미 보존된 독립 초기 상태/두 부호를 읽는다. 없�
 물성/외부 변수의 실제 native 이름과 숫자 단위, 초기 내부 상태, 물리 텐서 변형률
 xx yy zz xy xz yz 및 시간 s를 지정한다.
 
-- **빌드만**: 새 owned 작업에서 컴파일하고 actual descriptor를 읽는다. 적분/응력 결과는 없다.
+- **빌드만**: 새 owned 작업에서 컴파일하고 actual descriptor를 읽는다. 물성 이름·값과 초기 상태가 미완성이어도 컴파일 입력과 분리한다. 적분/응력 결과는 없다.
+- 완료된 빌드 결과를 선택하고 **구성식 → 빌드 선언으로 입력 준비…**를 누른다. 실제 물성/외부 상태 이름과 초기 내부 상태 크기로 입력표를 준비한다. 같은 이름의 기존 값·단위는 표시해 유지하고, 새 입력은 빈칸으로 두어 원문에 맞게 사용자가 지정한다. **입력 초안에 반영 → 변경 적용 → 빌드하고 평가**로 이어진다. Cancel은 초안을 바꾸지 않는다. 이 동작도 계산하지 않는다.
+- 선택 빌드와 현재 source/behaviour가 다르면 적용하지 않는다. 평가의 실제 이름/상태 크기 검사에 실패해도 이미 성공한 빌드 receipt와 descriptor를 보존하여 입력을 고칠 수 있다.
 - **빌드하고 평가**: 해당 원문을 새 작업에서 다시 컴파일한 뒤 이력을 적분한다. 숨은 과거 binary 교체나 재사용은 없다.
 - **빌드만 실행 / 빌드하고 평가**를 누르면 원문 검토 창이 열린다. **이 버전 빌드**로 확인한 원문만 로컬 운영자 권한 파일에 등록되고 기존 Material 작업을 시작한다. 취소는 초안과 권한을 바꾸지 않는다. 해시 복사나 JSON/CLI 편집은 사용자 절차가 아니다.
 - Windows Qt는 같은 사용자의 Windows 권한 폴더 또는 WSL 배포판의 `wsl.localhost` 공유 폴더를 확인한다. 자동 확인이 안 되면 native 폴더 선택기로 현재 서비스의 권한 폴더를 선택할 수 있다. marker가 다른 폴더에는 쓰지 않는다. OS 권한이 없는 클라이언트는 빌드를 허용할 수 없으며 서비스 운영자가 같은 native 절차로 승인해야 한다.
@@ -65,7 +70,7 @@ PDE **새 모델**에서 다음 중 하나를 선택한다.
 기본 예제는 K 단위의 온도 초기값과 s 단위 시간, 1/s 감쇠계수이다.
 상태·계수 행을 추가/삭제할 수 있고 각 상태의 단위·초기값·미분식·독립 기준식·절대 허용치를 편집한다.
 예: `-rate*(temperature-ambient)`. `temperature+rate`처럼 차원이 맞지 않는 식은 실행을 차단한다.
-숫자의 미완성 입력과 오류 식도 저장한다. **입력 검사**는 순수 AST/차원 검사이며 solver를 실행하지 않는다.
+숫자의 미완성 입력과 오류 식도 저장한다. `1e`를 저장·재열기한 뒤 고치면 backend와 정확한 입력 경로에 따라 실수/정수로 복구한다. samples/mesh levels는 정수이며 분수값을 반올림하지 않는다. **입력 검사**는 순수 AST/차원 검사이며 solver를 실행하지 않는다.
 
 명시 평가 후 실제 SciPy 출력 시각/상태/사용자 기준식/차이를 같은 결과 선택에서 읽는다.
 출력은 실제 state series이며 가짜 공간 메시를 만들지 않는다.
@@ -86,7 +91,7 @@ SciPy가 수락한 단계의 dense output으로 선언한 출력 시각을 읽�
 
 메시 수준을 실제로 각각 계산하고 **연구 → 메시와 오차 비교…**에서 같은 기준식/정의의 norm을 읽는다.
 2차원 L2 오차 단위는 장 단위×m이고 H1 준노름은 장 단위다. 이를 응력/온도 자체와 혼동하지 않는다.
-기준식은 사용자가 선언한 비교식이며 공학 검증 승인이 아니다.
+기준식은 사용자가 선언한 비교식이며 공학 검증 승인이 아니다. 조립과 norm은 실제 quadrature degree 8의 수치 적분이며, 이 정책을 norm 정의·응답 metadata에 저장한다. 비다항 기준식의 해석적 정확 적분으로 표시하지 않는다.
 실제 P1 절점/삼각형/값은 기존 Post 등록과 정확한 study_index 선택을 재사용한다.
 
 ## 공급값과 수신값
@@ -179,3 +184,17 @@ NativeMaterial은 canonical backend/itemData, fields, result selector를 유지�
 ODE 채널 충돌/기준식 오류/수락된 부분 출력/rtol을 같은 교정 묶음에 반영했다. 실행 통과 기록은 아니다.
 새 세 adapter의 registry 역할은 `evaluation`이다. 기존 Material/PDE owner의 `evaluate`와 Numerical의 `run` 경로를 제공하며,
 `solve`를 요구하는 옛 Lab declared-model operation의 지원으로 광고하지 않는다.
+
+### 공급 장이 없는 실행의 읽기
+
+공급 단계가 성공 상태여도 선언한 장을 저장하지 않았다면, 전달 조사에는 미실행 수신 단계와 “공급 결과에 선택한 장이 없습니다”를 표시합니다. 먼저 보존 메타데이터와 자료 해시를 검증하므로 손상된 결과를 단순 누락으로 바꾸지 않습니다. 이 경로의 제어된 adapter 회귀 검사를 추가했으며 author 실행은 NOT_RUN입니다.
+
+
+## 이번 교정과 실행 근거의 구분
+
+- 첫 게시본: `f70c2aa`. 자체 읽기 교정: `10ab8e9`.
+- Codex 전달 실행(첫 게시본 기준): Windows 제출 검사 10 passed / 3 failed / 2 skipped. 실패는 controller 동시 취득 두 경로와 Tref 잘못된 경로였다. controller lock은 유지하고 기존 owner shutdown 후 새 owner를 열도록 검사 수명을 교정했다.
+- Codex 전달 native 실행: 기존 Ubuntu FEniCSx 차원 약형식/기준식/norm/Post 1 passed (8.20 s), 기존 SIF MFront 공개 기본법칙 compile/build-only/evaluate/FD/read 1 passed (28.06 s).
+- Codex 소유 Evaluation action: 실제 HTTP/owner + 명시적 제어 native-field 대역에서 1 passed (3.25 s), 미적용 초안 보존 및 새 작업 0. 1100×780/1440×900 렌더 보고. native 열·구조 물리 계산 또는 OS 입력 수용으로 확대하지 않는다.
+- 이번 후속은 실제/파생 응답 충돌의 양쪽 상태 순서, 미완성 숫자 수리·Undo/저장, 응력 9성분/F/독립 ±입력, 실제 descriptor 기반 초안 준비·취소, 소스 버전 불일치, 잘못된 단위 위치/구문 column, norm quadrature, 전달 원장 누락과 손상 구분을 검사에 포함했다.
+- 이 후속 소스의 Python/Qt/native author 실행은 **NOT_RUN**이다. 읽기 검토·괄호/문자열 확인은 compilation이나 테스트 PASS가 아니다.

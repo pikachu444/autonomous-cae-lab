@@ -135,16 +135,20 @@ class FelupeMaterialAdapter:
                 spec=settings['tangent_probe'];index=spec['increment']
                 k,l=('xyz'.index(axis) for axis in spec['input_component'])
                 for h in spec['steps']:
-                    signed={}
+                    signed={};signed_inputs={}
                     for sign in (-1,1):
                         perturbed=fixed_gradients[index].copy()
                         perturbed[k,l]+=sign*h
                         if np.linalg.det(perturbed)<=0: raise ValueError('Perturbation produces nonpositive det(F)')
                         independent=(felupe.LinearElastic(**p) if model=='linear_elastic' else felupe.NeoHookeCompressible(**p))
                         measured=independent.gradient([perturbed[:,:,None,None],np.zeros((0,1,1))])[0][:,:,0,0]
-                        signed[sign]=measured.copy()
+                        signed[sign]=measured.copy();signed_inputs[sign]=perturbed.copy()
                     probes.append({'increment':index,'input_component':spec['input_component'],'h':h,
                         'minus':signed[-1].tolist(),'plus':signed[1].tolist(),
+                        'minus_input':signed_inputs[-1].tolist(),'plus_input':signed_inputs[1].tolist(),
+                        'input_measure':'deformation_gradient','input_unit':'1','frame':'material_cartesian',
+                        'initial_state':{'internal_variables':[],'deformation_gradient':fixed_gradients[index].tolist(),
+                                         'parameters':deepcopy(p)},
                         'finite_difference':((signed[1]-signed[-1])/(2*h)).tolist(),
                         'analytic':tangent[:,:,k,l,index].tolist(),'unit':unit,
                         'baseline':'independent ZERO_ELASTIC_STATE for each signed probe'})
@@ -152,6 +156,11 @@ class FelupeMaterialAdapter:
                     'checks': [{'name': 'physical_calibration', 'status': 'NOT_ASSESSED'}],
                     'diagnostics': {'library': 'felupe', 'version': felupe.__version__, 'model': model,
                                     'parameters': p, 'initial_state': 'ZERO_ELASTIC_STATE', 'tangent_probes': probes,
+                                    'constitutive_increments':[{'increment':i,'time':float(t),'time_unit':settings.get('time_unit','s'),
+                                        'deformation_gradient':fixed_gradients[i].tolist(),'gradient_unit':'1',
+                                        'stress':stress[:,:,i].tolist(),'stress_unit':unit,
+                                        'stress_measure':'infinitesimal_Cauchy' if model=='linear_elastic' else 'first_Piola',
+                                        'frame':'material_cartesian'} for i,t in enumerate(fixed_time)],
                                     'limitations': ['Prescribed material-point kinematics, no FE boundary solve',
                                                    'Fitted synthetic data is not physical validation']}}
         return PreparedEvaluation(calculate, settings)
