@@ -77,6 +77,25 @@ def validate_recipe(recipe):
         raise ValueError('Contact outputs require an actual contact Analysis')
     if not recipe.get('meshes') or recipe.get('correspondence', {}).get('policy') != 'freecad-mapped-element-v1':
         raise ValueError('Choose native mesh settings and the mapped-element correspondence policy')
+    joints = [row for row in variables if row.get('target', {}).get('family') == 'joint_coordinate']
+    assembly = recipe.get('assembly')
+    if joints or assembly is not None:
+        if (len(joints) != 1 or not isinstance(assembly, dict)
+                or assembly.get('policy') != 'native-flat-joint-v1'
+                or assembly.get('variable_id') != joints[0]['id']
+                or assembly.get('unit') != joints[0]['unit']
+                or assembly.get('definition', {}).get('joint_type') not in ('Revolute', 'Slider')):
+            raise ValueError('Joint coordinate requires the exact supported Assembly recipe')
+        definition, connection = assembly['definition'], assembly.get('connection', {})
+        bodies = connection.get('bodies', [])
+        if (connection.get('assembly_id') != definition.get('assembly_id') or len(bodies) != 2
+                or len({row['occurrence_id'] for row in bodies}) != 2
+                or {row['mesh_id'] for row in bodies} != {row['object_id'] for row in recipe['meshes']}
+                or {row['body_id'] for row in bodies} != {row['body_id'] for row in recipe['meshes']}
+                or {row['occurrence_id'] for row in bodies} !=
+                   {definition.get('grounded_occurrence'), definition.get('moving_occurrence')}
+                or joints[0]['target']['object_id'] != definition.get('joint_id')):
+            raise ValueError('Assembly occurrence, analysis body and mesh bindings must be one-to-one')
     canonical_hash(recipe)
     return recipe
 
@@ -222,7 +241,9 @@ class CADAnalysisAdapter:
     backend, version = BACKEND, '1'
     input_source_files = [__file__, ROOT / 'apps/desktop_pre/research_inputs.py',
                           ROOT / 'apps/desktop_pre/candidate_correspondence.py',
-                          ROOT / 'apps/desktop_pre/candidate_worker.py']
+                          ROOT / 'apps/desktop_pre/candidate_worker.py',
+                          ROOT / 'apps/desktop_pre/assembly_candidates.py',
+                          ROOT / 'apps/desktop_pre/occurrence_fem.py']
 
     @staticmethod
     def input_runtime_identity():

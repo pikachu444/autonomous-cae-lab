@@ -67,8 +67,12 @@ def capture(owner):
             identities = [anchor(source, name) for name in names]
         except (ValueError, RuntimeError, AttributeError, TypeError) as error:
             unavailable = str(error)
+        from .occurrence_fem import capture_element
+        occurrence = capture_element(owner, source, names)
         targets[key] = {'target': deepcopy(target), 'elements': identities,
                         'history_unavailable': unavailable}
+        if occurrence:
+            targets[key]['occurrence'] = occurrence
         return key
     validate_original_contacts(owner)
     for row in data.get('mesh_local_sizes', []):
@@ -115,12 +119,20 @@ def resolve(owner, record):
         unchanged = _target(obj, names) == old
     except ValueError:
         unchanged = False
+    if record.get('occurrence'):
+        from .occurrence_fem import resolve_element
+        return resolve_element(owner, record['occurrence'])
     if unchanged:
         return obj, names, 'unchanged'
     if record['history_unavailable'] or len(record['elements']) != len(names):
         raise ValueError('REFERENCE_UNRESOLVED: ' + str(record['history_unavailable']))
+    return obj, resolve_names(obj, record['elements']), 'native_mapped_element'
+
+
+def resolve_names(obj, elements):
+    """Exact mapped native history, also used for Assembly connector vertices."""
     mapping, resolved = dict(obj.Shape.ElementMap), []
-    for item in record['elements']:
+    for item in elements:
         mapped = item['mapped']
         if mapped not in mapping:
             raise ValueError('REFERENCE_DELETED: mapped element no longer exists')
@@ -150,7 +162,7 @@ def resolve(owner, record):
         resolved.append(name)
     if len(set(resolved)) != len(resolved):
         raise ValueError('REFERENCE_MERGED: distinct selected elements resolve to the same native element')
-    return obj, resolved, 'native_mapped_element'
+    return resolved
 
 
 def apply(owner, saved):

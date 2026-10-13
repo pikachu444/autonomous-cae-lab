@@ -130,6 +130,10 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             for obj in owner.doc.Objects:
                 if _native_type(obj) == 'Fem::FemAnalysis':
                     self.analysis.addItem(obj.Label, obj.Name)
+            connect = QtWidgets.QPushButton('조립 형상 연결…')
+            connect.setObjectName('connectAssemblyAnalysis')
+            connect.clicked.connect(self.connect_assembly)
+            row.addWidget(connect)
             refresh = QtWidgets.QPushButton('Refresh')
             refresh.clicked.connect(self.refresh)
             self.analysis.currentIndexChanged.connect(self.refresh)
@@ -141,6 +145,12 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             self.table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
             self.table.horizontalHeader().setStretchLastSection(True)
             layout.addWidget(self.table, 3)
+            self.coordinate_context = QtWidgets.QLabel()
+            self.coordinate_context.setWordWrap(True)
+            self.coordinate_context.setObjectName('jointCoordinateContext')
+            self.coordinate_context.hide()
+            self.table.currentCellChanged.connect(self.show_coordinate)
+            layout.addWidget(self.coordinate_context)
             row = QtWidgets.QHBoxLayout()
             for text, callback in [('Select in CAD', self.highlight), ('Register / update bounds', self.register),
                                    ('Remove registration', self.remove)]:
@@ -201,7 +211,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             for index, row in enumerate(info['candidates']):
                 registered = next((r for r in info['registered'] if r['target'] == row['target']), None)
                 item = registered or row
-                values = [row['label'], row['value'], item['unit'],
+                values = [row['label'], item.get('value', row['value']), item['unit'],
                           item.get('lower', ''), item.get('upper', ''), item.get('id', ''),
                           row['diagnostic'] or ('Registered' if registered else 'Select model bounds')]
                 for col, value in enumerate(values):
@@ -210,6 +220,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                         cell.setFlags(cell.flags() & ~QtCore.Qt.ItemIsEditable)
                     self.table.setItem(index, col, cell)
             self.table.resizeColumnsToContents()
+            self.show_coordinate()
             self.message.setText('Model limits are saved with CAD; search limits are edited in the Plan.')
             if not self.responses.rowCount():
                 pairs = self.pairs()
@@ -218,6 +229,39 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                     if pairs else [{'id': 'u_z', 'kind': 'displacement', 'component': 'Z',
                         'increment': 'final', 'reduction': 'max', 'unit': 'mm'}])
                 self.render_responses()
+
+        def connect_assembly(self):
+            assemblies = [obj for obj in owner.doc.Objects if obj.isDerivedFrom('Assembly::AssemblyObject')]
+            if not assemblies:
+                self.message.setText('먼저 native Assembly에서 두 인스턴스와 관절을 만드세요.')
+                return
+            labels = [obj.Label + (' (' + str(i + 1) + ')' if sum(o.Label == obj.Label for o in assemblies) > 1 else '')
+                      for i, obj in enumerate(assemblies)]
+            label, accepted = QtWidgets.QInputDialog.getItem(self, '조립 형상 연결', '해석에 사용할 조립', labels, 0, False)
+            if accepted:
+                self.send('pre.research.connect_assembly', {'analysis_id': self.analysis.currentData(),
+                    'assembly_id': assemblies[labels.index(label)].Name}, self.populate)
+
+        def show_coordinate(self, *_):
+            index = self.table.currentRow()
+            row = (self.info or {}).get('candidates', [])
+            selected = row[index] if 0 <= index < len(row) else {}
+            detail = selected.get('joint_description')
+            self.coordinate_context.setVisible(selected.get('target', {}).get('family') == 'joint_coordinate')
+            if not detail:
+                self.coordinate_context.setText(selected.get('diagnostic') or '')
+                return
+            axis = detail['axis']
+            xyz = ', '.join(format(v, '.6g') for v in axis['axis_direction'])
+            limits = detail['native_limits']
+            low = '없음' if limits.get('min') is None else format(limits['min'], '.8g')
+            high = '없음' if limits.get('max') is None else format(limits['max'], '.8g')
+            self.coordinate_context.setText(
+                detail['moving'] + ' / 기준 ' + detail['ground'] +
+                '   JCS1 +Z (' + xyz + ')   관절 제한 ' + low + ' … ' + high + ' ' + selected['unit'])
+            self.coordinate_context.setToolTip(
+                'JCS1에 대한 JCS2의 절대 좌표입니다. 회전은 오른손 방향이며 이동은 +Z 방향입니다. '
+                '해석 초기 자세이고 FEM 하중이나 변위 조건이 아닙니다.')
 
         def selected(self):
             index = self.table.currentRow()
@@ -228,7 +272,11 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
         def highlight(self):
             try:
                 _, row = self.selected()
-                self.send('pre.select', {'objects': [{'object_id': row['target']['object_id']}]}, lambda _: None)
+                objects = [{'object_id': row['target']['object_id']}]
+                detail = row.get('joint_description')
+                if detail:
+                    objects.append({'object_id': detail['occurrence_id']})
+                self.send('pre.select', {'objects': objects}, lambda _: None)
             except Exception as error:
                 self.message.setText(str(error))
 
