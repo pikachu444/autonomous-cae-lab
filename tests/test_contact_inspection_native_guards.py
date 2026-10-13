@@ -12,6 +12,15 @@ import pytest
 from test_post_r3_repairs import post_modules, Property
 
 
+@pytest.fixture(autouse=True)
+def native_numpy_conversion_double(monkeypatch):
+    # Graph/CSV option checks never convert VTK arrays. Keep these unit tests
+    # runnable without installing VTK into the separate research interpreter.
+    support = ModuleType('paraview.numpy_support')
+    support.vtk_to_numpy = lambda value: value
+    monkeypatch.setitem(sys.modules, 'paraview.numpy_support', support)
+
+
 class Proxy:
     def __init__(self, name, kind, **properties):
         self.name, self.kind, self.properties = name, kind, properties
@@ -150,7 +159,7 @@ def test_retained_vtk_table_csv_uses_row_data_and_float64_precision(post_modules
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     data = SimpleNamespace(GetClassName=lambda: 'vtkTable')
-    source = SimpleNamespace(data=data)
+    source = SimpleNamespace(data=data, UpdatePipeline=lambda: None)
     writes = []
     def save(path, **kwargs):
         writes.append(kwargs)
