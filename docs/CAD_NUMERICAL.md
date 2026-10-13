@@ -188,3 +188,42 @@ python -m pytest tests/test_cad_windows_process.py -q
 The latter runs only stdlib Windows test processes, including a child and
 grandchild and a separate unaffected process; no CAD, mesher or solver.
 Pro remote execution of these changes remains NOT_RUN.
+
+
+## Whole native workspace retention (long embedded-Python paths)
+
+Root's later FreeCAD-embedded Python probe also failed while opening a 277-character
+copy destination. Short SaveCopy alone therefore was not a complete candidate
+path fix. Windows candidates now perform their entire native preparation in a
+fresh short owned temporary workspace: source copy, recompute, references, Gmsh,
+managed project save and freeze. After the owned process tree has definitely
+stopped, service Python copies that tree into the original attempt's native
+directory and verifies every file hash. Frozen decks, mesh files, FCStd/CAEPRE
+archives and the raw native receipt are copied byte-for-byte. Only a separate
+controller receipt resolves the known snapshot/editable/mesh-directory paths
+to their retained locations. Transfer failure keeps the short source tree;
+unconfirmed process cleanup does not transfer or seal mutable native output.
+
+This chooses a bounded native workspace rather than enabling global Windows
+long-path settings or passing an unverified extended path to native CAD APIs.
+Ordinary long-path capability outside this candidate workspace is not claimed.
+The Windows native-copy helper now publishes via a checked sibling file, so a
+failed transfer cannot truncate the preceding candidate draft.
+
+Root has reported b9f2a29's eleven focused candidate/Windows-process checks
+passed, including actual stdlib Job-tree cancellation. The native FreeCAD
+candidate itself had not reached a solve at that checkpoint. Its preserved
+changed Bridge also had a contact target mismatch after mesh/save/reopen.
+The two FEM validity reads now check detached native geometry copies; live
+target fingerprints and mapped identity checks are unchanged. This removes a
+mutable validation-read path, but is not yet claimed to close Root's native
+reopen finding. Native confirmation remains pending.
+
+Direct Python callers receiving ExecutionCleanupFailed can retain the exception's
+cleanup_token and use retry_cleanup; this exposes the same live handle ownership
+as JobManager even when no cancellation_scope was supplied.
+
+The selected-candidate test now runs the actual small DOE/owner/retention path
+with a clearly marked native evaluator double, preserves a failed candidate,
+cold-reopens its Plan, and registers the exact successful editable bytes.
+No native or engineering result is inferred from that test.

@@ -35,7 +35,8 @@ def test_owned_windows_cancel_stops_live_descendants_and_leaves_unrelated_proces
         "import json,os,subprocess,sys,time\n"
         "from pathlib import Path\n"
         "p=subprocess.Popen([sys.executable,'-I','-S','-c','import time;time.sleep(60)'])\n"
-        "Path(sys.argv[1]).write_text(json.dumps([os.getpid(),p.pid]),encoding='utf-8')\n"
+        "ready=Path(sys.argv[1]);temporary=ready.with_suffix('.tmp')\n"
+        "temporary.write_text(json.dumps([os.getpid(),p.pid]),encoding='utf-8');temporary.replace(ready)\n"
         "p.wait()\n", encoding='utf-8')
     token, errors = CancellationToken(), []
     def execute():

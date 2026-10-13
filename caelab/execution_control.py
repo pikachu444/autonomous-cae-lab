@@ -290,8 +290,11 @@ def stop_owned_process(process: subprocess.Popen, *, isolated_group: bool,
         # not a solver wall limit. Failure retains ownership and blocks writers.
         process.wait(timeout=reap_timeout)
     except BaseException as error:
-        token = _current.get()
-        if token is not None:
-            token._retain_cleanup(process, isolated_group)
-        raise ExecutionCleanupFailed(
-            f"Owned process cleanup UNKNOWN for PID {process.pid}: {type(error).__name__}") from error
+        token = _current.get() or CancellationToken()
+        token._retain_cleanup(process, isolated_group)
+        failure = ExecutionCleanupFailed(
+            f"Owned process cleanup UNKNOWN for PID {process.pid}: {type(error).__name__}")
+        # Direct Python callers have the same retry ownership as JobManager.
+        # No global registry or PID rediscovery is introduced.
+        failure.cleanup_token = token
+        raise failure from error

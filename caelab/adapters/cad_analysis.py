@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import Path
 import shutil
+import tempfile
 import uuid
 
 from ..storage import canonical_hash, load_json, save_json
@@ -167,6 +168,56 @@ def select_responses(result, folder, recipe):
     return selected
 
 
+
+def _native_workspace(folder):
+    """Native FreeCAD/embedded Python need short paths, not just short SaveCopy."""
+    if os.name != 'nt':
+        return folder
+    temporary = Path(tempfile.mkdtemp(prefix='cae-run-')).resolve()
+    if len(str(temporary)) > 100:
+        raise ValueError('Configured temporary directory is too long for native candidate preparation: ' + str(temporary))
+    save_json(folder / 'native-workspace.json', {'state': 'PREPARING',
+        'temporary': str(temporary), 'retained_relative': 'native'})
+    return temporary
+
+
+def _retain_workspace(folder, workspace):
+    """Called only after confirmed process-tree completion; never rewrite pins."""
+    if workspace == folder:
+        return
+    destination = folder / 'native'
+    if destination.exists():
+        raise ValueError('Native candidate retention refuses an existing destination')
+    # Service Python performs this transfer. FreeCAD's embedded interpreter
+    # never has to open long store paths. Failed transfers keep the short tree.
+    shutil.copytree(workspace, destination)
+    before = {p.relative_to(workspace).as_posix(): file_hash(p)
+              for p in workspace.rglob('*') if p.is_file()}
+    after = {p.relative_to(destination).as_posix(): file_hash(p)
+             for p in destination.rglob('*') if p.is_file()}
+    if before != after or any(p.is_symlink() for p in workspace.rglob('*')):
+        raise ValueError('Native workspace retention differs; short source tree is retained')
+    raw_receipt = destination / 'candidate-preparation.json'
+    if raw_receipt.is_file():
+        receipt = load_json(raw_receipt)
+        receipt['native_receipt_sha256'] = file_hash(raw_receipt)
+        def relocated(value):
+            original = Path(value).resolve()
+            if not original.is_relative_to(workspace):
+                raise ValueError('Native preparation receipt escaped its owned workspace')
+            return str(destination / original.relative_to(workspace))
+        for key in ('snapshot', 'editable_project', 'editable_draft'):
+            if receipt.get(key):
+                receipt[key] = relocated(receipt[key])
+        if 'mesh_directories' in receipt:
+            receipt['mesh_directories'] = [relocated(value) for value in receipt['mesh_directories']]
+        save_json(folder / 'candidate-preparation.json', receipt)
+    save_json(folder / 'native-workspace.json', {'state': 'RETAINED',
+        'temporary': str(workspace), 'retained_relative': 'native',
+        'files': [{'relative': key, 'sha256': value} for key, value in sorted(before.items())]})
+    shutil.rmtree(workspace)
+
+
 class CADAnalysisAdapter:
     backend, version = BACKEND, '1'
     input_source_files = [__file__, ROOT / 'apps/desktop_pre/research_inputs.py',
@@ -214,6 +265,7 @@ class CADAnalysisAdapter:
         result = {'execution_status': 'FAILED', 'responses': {}, 'checks': [],
                   'qualification': 'UNKNOWN', 'decision': 'NOT_RELEASED', 'diagnostics': {}}
         phase = 'copy'
+        workspace, cleanup_pending = folder, False
         try:
             context = settings.get('_native_context')
             if not context:
@@ -230,12 +282,19 @@ class CADAnalysisAdapter:
             shutil.copyfile(source, copied)
             if file_hash(copied) != settings['source_sha256']:
                 raise ValueError('Candidate copy differs from the saved design')
+            workspace = _native_workspace(folder)
+            native_source = copied
+            if workspace != folder:
+                native_source = workspace / 'base.caepre'
+                shutil.copyfile(copied, native_source)
+                if file_hash(native_source) != settings['source_sha256']:
+                    raise ValueError('Short native source copy differs from its retained input')
             executable = Path(context['freecad_executable']).resolve(strict=True)
-            config = {'source': str(copied), 'output': str(folder), 'settings': deepcopy(settings),
+            config = {'source': str(native_source), 'output': str(workspace), 'settings': deepcopy(settings),
                       'gmsh': context.get('gmsh')}
-            config_path = folder / 'candidate.json'
+            config_path = workspace / 'candidate.json'
             save_json(config_path, config)
-            macro = folder / 'candidate.FCMacro'
+            macro = workspace / 'candidate.FCMacro'
             macro.write_text('import sys\nsys.path.insert(0, ' + repr(str(ROOT)) +
                 ')\nfrom apps.desktop_pre.candidate_worker import start\nstart(' + repr(str(config_path)) + ')\n',
                 encoding='utf-8')
@@ -243,8 +302,10 @@ class CADAnalysisAdapter:
             environment = os.environ.copy()
             for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
                 environment.pop(key, None)
-            prepared = run_owned_command([str(executable), '-u', str(folder / 'user.cfg'),
-                '-s', str(folder / 'system.cfg'), str(macro)], folder, 'freecad_candidate', env=environment, owned_tree=True)
+            prepared = run_owned_command([str(executable), '-u', str(workspace / 'user.cfg'),
+                '-s', str(workspace / 'system.cfg'), str(macro)], workspace, 'freecad_candidate', env=environment, owned_tree=True)
+            _retain_workspace(folder, workspace)
+            workspace = folder
             receipt = load_json(folder / 'candidate-preparation.json')
             result['candidate_preparation'] = receipt
             if prepared.returncode or receipt.get('state') != 'PREPARED':
@@ -279,6 +340,7 @@ class CADAnalysisAdapter:
                 phase = 'response'
                 result['responses'] = select_responses(calculation, folder / 'calculation', settings['recipe'])
         except ExecutionCleanupFailed:
+            cleanup_pending = True
             raise
         except ExecutionCancelled as error:
             result.update(execution_status='CANCELLED', responses={},
@@ -286,6 +348,13 @@ class CADAnalysisAdapter:
         except Exception as error:
             result.update(execution_status='FAILED', responses={},
                           diagnostics={'phase': phase, 'reason': str(error), 'error_type': type(error).__name__})
+        if workspace != folder and not cleanup_pending:
+            try:
+                _retain_workspace(folder, workspace)
+            except Exception as error:
+                result.update(execution_status='FAILED', responses={})
+                result.setdefault('diagnostics', {}).update(retention_error=str(error),
+                    native_workspace=str(workspace))
         preparation = folder / 'candidate-preparation.json'
         if preparation.is_file() and 'candidate_preparation' not in result:
             result['candidate_preparation'] = load_json(preparation)

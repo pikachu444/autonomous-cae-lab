@@ -1068,7 +1068,7 @@ class RequestPlanWindow(NumericalWindow):
                 ('unit', 'component', 'location', 'measure', 'frame', 'coordinate_system', 'coordinate_frame') if key in response}
             declaration['response'] = selector
             if operation in {'optimize', 'epsilon'}:
-                reductions = ['none'] if response['kind'] == 'scalar' else ['max', 'min', 'mean', 'final', 'abs_max']
+                reductions = [response.get('reduction', 'none')] if response['kind'] == 'scalar' else ['max', 'min', 'mean', 'final', 'abs_max']
                 reduction, ok = QInputDialog.getItem(self, 'Response reduction', 'Scalar statistic', reductions, editable=False)
                 if not ok or not relevant(): return
                 declaration['reduction'] = reduction
