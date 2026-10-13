@@ -64,6 +64,19 @@ root는 기존 공식 설치 스크립트로 `sensitivity` pin SALib 1.5.2를 �
 인수 연결/제외 항목 파서 경고 10개가 남는다. 실제 연결은 acceptance.md에 명시했으며
 strict 통과라고 기록하지 않는다. 이 문서 파서 경고를 제품 구현의 선행조건으로 두지 않는다.
 
+D6 첫 소스 `3dd93ea`를 로컬 `6fbddec`로 통합했으나 아직 게시하지 않았다.
+Pro 턴은 계속 작성 중이며 Sobol 표본 역할과 예측/실제 비교를 보완한다. 첫 Windows
+실행은 새 검사 8개 중 7개 통과, 1개 실패(12.78초)다. 작은 창의 차트 높이가 119로
+부족했고 실제 appearance에서는 1100×780 요청 창이 1100×894로 늘어났다.
+해당 배치와 null/긴 실수 기본 표시를 같은 Pro에게 전달했으며 기준을 낮추지 않는다.
+실제 공개 FELUPE 예제는 학습 3점/검증 2점→RBF 저장→새 점 예측→같은 점 실제 평가가
+정상 종료했다. 저장 결과를 실제 Qt/HTTP에서 읽었고 새 작업은 0개다. 기록은
+`numerical-workflows/tests-first.txt`, `actual-felupe-first.txt`, `retained-first`다.
+Astra는 현재 소스와 수치 의미를 독립 검토 중이다. Pro 교정본 인도→해당 실패 검사와
+실제 작은 창 확인→통합/게시가 다음 행동이며 D6 전체 완료로 취급하지 않는다.
+Sol은 별도 D7의 FN08/18/19 코드 재사용과 실제 연결 누락을 읽기 전용으로 정리한다.
+소유 기록은 `pde-coupling-workflows/reuse-map.md`이며 Pro D6 제품 파일은 수정하지 않는다.
+
 Pro D6와 별개로 Sol GUI 담당은 Expert의 연결 설정 창을 맡았다. 기존 프로필·실행
 환경·모델·역할·자료 전송 범위·적용/실패 상태를 읽고 조작하는 화면 개선이며 새 인증이나
 모델 요청을 만들지 않는다. 소유 파일은 `expert_connection_dialog.py`와 해당 UI 검사다.
@@ -79,6 +92,7 @@ Astra는 배치 대안을 직접 논의하고 실제 Qt 화면·권한/정밀값
 새 provider/solver 요청은 없다. 최종 자료는 `expert-connection-layout/final`,
 `tests-final.txt`, `review.md`다. 한국어 사용법과 SPEC-EXPERT-002의 인수 의미를
 함께 갱신했다. 전체 Expert나 OS 입력 수용의 완료는 아니다.
+이 Expert 변경과 사용법은 원격 main `62b3030`에 게시했고 원격 일치를 확인했다.
 
 Windows 직접 입력 도구는 이번에 다시 연결해 창 목록을 조회했으나 캡처가 검정이고
 한 번의 재선택/활성화도 `failed to activate captured window`로 실패했다.
