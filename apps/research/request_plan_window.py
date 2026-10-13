@@ -6,13 +6,14 @@ and registered evaluators remain behind the shared service's numerical.run.
 from copy import deepcopy
 import json
 import math
+import re
 import uuid
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
     QInputDialog, QLabel, QLineEdit, QPushButton, QPlainTextEdit, QSplitter,
-    QStyledItemDelegate, QTableWidget, QTableWidgetItem, QHeaderView, QTabWidget, QToolBar, QTreeWidget,
+    QScrollArea, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QHeaderView, QTabWidget, QToolBar, QTreeWidget,
     QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from caelab.numerical_document import request_draft
@@ -132,19 +133,23 @@ class RequestPlanWindow(NumericalWindow):
 
     def _build_ui(self):
         self.resize(1440, 900)
-        bar = QToolBar('Numerical request Plan', self)
+        bar = QToolBar('계산 계획', self)
         self.addToolBar(bar)
-        self.new_action = QAction('New request Plan', self, shortcut=QKeySequence.New)
-        self.open_action = QAction('Open request Plan…', self, shortcut=QKeySequence.Open)
-        self.save_action = QAction('Save', self, shortcut=QKeySequence.Save)
-        self.undo_action = QAction('Undo request edit', self, shortcut=QKeySequence.Undo)
-        self.redo_action = QAction('Redo request edit', self, shortcut=QKeySequence.Redo)
+        self.new_action = QAction('새 계획', self, shortcut=QKeySequence.New)
+        self.open_action = QAction('계획 열기…', self, shortcut=QKeySequence.Open)
+        self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
+        self.undo_action = QAction('되돌리기', self, shortcut=QKeySequence.Undo)
+        self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
+        file_menu, edit_menu = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
+        file_menu.addActions([self.new_action, self.open_action, self.save_action])
+        edit_menu.addActions([self.undo_action, self.redo_action])
         for action, callback in ((self.new_action, self.new_document), (self.open_action, self.choose_document),
             (self.save_action, self.save_document), (self.undo_action, lambda: self.command('document.undo')),
             (self.redo_action, lambda: self.command('document.redo'))):
             bar.addAction(action)
             action.triggered.connect(callback)
-        self.apply_button, self.run_button = QPushButton('Apply'), QPushButton('Run study')
+        self.apply_button, self.run_button = QPushButton('변경 적용'), QPushButton('계산 실행')
+        self.run_button.setProperty('appearanceRole', 'primary')
         self.apply_button.clicked.connect(self.apply_inputs)
         self.run_button.clicked.connect(lambda: self.command('numerical.run'))
         bar.addWidget(self.apply_button)
@@ -163,9 +168,10 @@ class RequestPlanWindow(NumericalWindow):
         conflicts.addWidget(self.reload_button)
         conflicts.addWidget(self.copy_button)
         outer.addLayout(conflicts)
-        split = QSplitter(Qt.Orientation.Horizontal)
+        split = self.request_splitter = QSplitter(Qt.Orientation.Horizontal)
         outer.addWidget(split, 1)
         self.editor = QWidget()
+        self.editor.setMinimumWidth(0)
         inputs_layout = QVBoxLayout(self.editor)
         self.input_tabs = QTabWidget()
         self.sheet = QWidget()
@@ -175,59 +181,70 @@ class RequestPlanWindow(NumericalWindow):
         form = QFormLayout()
         self.purpose, self.backend, self.evaluations = QLineEdit(), QLineEdit(), QLineEdit()
         self.operation = QComboBox()
+        methods = {'evaluate': '모델 평가', 'fit': '동정', 'doe': '실험계획 (DOE)', 'optimize': '최적화',
+            'uq': '불확실성 분석', 'epsilon': '다목적 탐색', 'sample_sensitivity': '영향도 표본',
+            'analyze': '후보 분석', 'surrogate': '대리모델', 'sensitivity': '영향도 분석',
+            'batch_export': '계산 입력 내보내기', 'batch_import': '계산 결과 가져오기'}
         for name in ('evaluate', 'fit', 'doe', 'optimize', 'uq', 'epsilon', 'sample_sensitivity', 'analyze', 'surrogate', 'sensitivity', 'batch_export', 'batch_import'):
-            self.operation.addItem(name, name)
-        self.purpose.setPlaceholderText('Research question or study name')
-        form.addRow('Study', self.purpose)
-        form.addRow('Method', self.operation)
+            self.operation.addItem(methods[name], name)
+        self.purpose.setPlaceholderText('계산 목적이나 계획 이름')
+        form.addRow('계산 목적', self.purpose)
+        form.addRow('방법', self.operation)
         model_row = QHBoxLayout()
         model_row.addWidget(self.backend, 1)
-        self.model_button = QPushButton('Use model…')
+        self.model_button = QPushButton('모델 선택…')
         self.model_button.clicked.connect(self.choose_model_document)
         model_row.addWidget(self.model_button)
-        form.addRow('Evaluator', model_row)
-        form.addRow('Evaluation budget', self.evaluations)
+        form.addRow('계산 모델', model_row)
+        form.addRow('평가 횟수', self.evaluations)
         inputs_layout.addLayout(form)
-        self.variables_button = QPushButton('Add variables…')
+        self.variables_button = QPushButton('변수 추가…')
         self.variables_button.setObjectName('useDeclaredModelVariables')
         self.variables_button.clicked.connect(self.choose_model_variables)
         variable_actions = QHBoxLayout()
-        variable_actions.addWidget(QLabel('Variables'), 1)
+        variable_actions.addWidget(QLabel('변수'), 1)
         variable_actions.addWidget(self.variables_button)
-        self.remove_variable_button = QPushButton('Remove')
+        self.remove_variable_button = QPushButton('제거')
         self.remove_variable_button.clicked.connect(self.remove_sheet_variables)
         variable_actions.addWidget(self.remove_variable_button)
         self.sheet_layout.addLayout(variable_actions)
-        self.variable_sheet = self._sheet_table('planVariables', ['Variable', 'ID', 'Start', 'Lower', 'Upper', 'Unit', 'Scale'])
+        self.variable_sheet = self._sheet_table('planVariables', ['변수', '식별명', '시작값', '하한', '상한', '단위', '변환'])
+        self.variable_sheet.setColumnHidden(1, True)
         self.sheet_layout.addWidget(self.variable_sheet, 2)
-        self.model_response_button = QPushButton('Add response…')
+        self.model_response_button = QPushButton('응답 추가…')
         self.model_response_button.setObjectName('useRetainedModelResponse')
         self.model_response_button.clicked.connect(self.choose_model_response)
         response_actions = QHBoxLayout()
-        response_actions.addWidget(QLabel('Responses'), 1)
+        response_actions.addWidget(QLabel('응답'), 1)
         response_actions.addWidget(self.model_response_button)
-        self.constraint_button = QPushButton('Add constraint…')
+        self.constraint_button = QPushButton('제약 추가…')
         self.constraint_button.clicked.connect(lambda: self.choose_model_response(constraint=True))
         response_actions.addWidget(self.constraint_button)
-        self.remove_response_button = QPushButton('Remove')
+        self.remove_response_button = QPushButton('제거')
         self.remove_response_button.clicked.connect(self.remove_sheet_responses)
         response_actions.addWidget(self.remove_response_button)
         self.sheet_layout.addLayout(response_actions)
-        self.response_sheet = self._sheet_table('planResponses', ['Role', 'Response', 'Reduction', 'Direction / relation', 'Limit', 'Unit'])
+        self.response_sheet = self._sheet_table('planResponses', ['역할', '응답', '축약', '방향 또는 관계', '한계값', '단위'])
         self.sheet_layout.addWidget(self.response_sheet, 2)
-        self.method_sheet = self._sheet_table('planMethod', ['Method setting', 'Value'])
+        self.method_sheet = self._sheet_table('planMethod', ['방법 설정', '값'])
         self.sheet_layout.addWidget(self.method_sheet, 1)
-        self.input_tabs.addTab(self.sheet, 'Worksheet')
-        self.input_tabs.addTab(self.advanced, 'Model / advanced')
+        self.input_tabs.addTab(self.sheet, '작업 조건')
+        self.advanced_scroll = QScrollArea()
+        self.advanced_scroll.setWidgetResizable(True)
+        self.advanced_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.advanced_scroll.setWidget(self.advanced)
+        self.input_tabs.addTab(self.advanced_scroll, '고급 입력')
         inputs_layout.addWidget(self.input_tabs, 1)
-        self.observation_button = QPushButton('Attach saved fit / holdout observation…')
+        self.observation_button = QPushButton('저장 관찰 추가…')
         self.observation_button.setObjectName('attachRetainedObservation')
         self.observation_button.clicked.connect(self.choose_fit_observation)
         advanced_layout.addWidget(self.observation_button)
-        for label, callback in (('Declared variables…', self.choose_model_variables), ('Model response…', self.choose_model_response)):
+        model_actions = QHBoxLayout()
+        for label, callback in (('변수 선택…', self.choose_model_variables), ('응답 선택…', self.choose_model_response)):
             button = QPushButton(label)
             button.clicked.connect(callback)
-            advanced_layout.addWidget(button)
+            model_actions.addWidget(button)
+        advanced_layout.addLayout(model_actions)
         self.backend.textEdited.connect(self._backend_edited)
         for field in (self.purpose, self.evaluations):
             field.textEdited.connect(self._edited)
@@ -235,14 +252,17 @@ class RequestPlanWindow(NumericalWindow):
         self.operation.currentIndexChanged.connect(self._operation_changed)
         retained = QHBoxLayout()
         self.retained_role = QComboBox()
-        self.pin_button = QPushButton('Select exact retained result…')
+        self.pin_button = QPushButton('저장 결과 선택…')
         self.pin_button.clicked.connect(self.choose_retained_result)
-        self.response_button = QPushButton('Add declared response / reduction…')
+        self.response_button = QPushButton('응답 정의…')
         self.response_button.clicked.connect(self.choose_response_definition)
         for widget in (self.retained_role, self.pin_button, self.response_button):
             retained.addWidget(widget)
         advanced_layout.addLayout(retained)
         self.pinned_sources = readonly_table(['Role', 'Original document / job', 'Input revision', 'Exact result hash'])
+        self.pinned_sources.setHorizontalHeaderLabels(['용도', '저장 결과', '입력 저장본', '결과 해시'])
+        self.pinned_sources.setColumnHidden(2, True)
+        self.pinned_sources.setColumnHidden(3, True)
         self.pinned_sources.setMaximumHeight(110)
         advanced_layout.addWidget(self.pinned_sources)
         self.declarations = readonly_table(['Physical response', 'Unit', 'Reduction', 'Component / location'])
@@ -251,10 +271,11 @@ class RequestPlanWindow(NumericalWindow):
         self.operation_note = QLabel()
         self.operation_note.setWordWrap(True)
         advanced_layout.addWidget(self.operation_note)
-        advanced_layout.addWidget(QLabel('Complete model and method inputs'))
+        advanced_layout.addWidget(QLabel('모델과 방법의 상세 입력'))
         self.inputs = QTreeWidget()
         self.inputs.setObjectName('numericalRequestInputs')
-        self.inputs.setHeaderLabels(['Input field / index', 'Value', 'Type'])
+        self.inputs.setHeaderLabels(['입력 항목', '값', '형식'])
+        self.inputs.setMinimumHeight(230)
         self.inputs.setColumnWidth(0, 215)
         self.inputs.setColumnWidth(1, 230)
         self.inputs.setItemDelegate(_InputDelegate(self.inputs))
@@ -268,53 +289,72 @@ class RequestPlanWindow(NumericalWindow):
         self.inputs.addActions([self.add_input_action, self.remove_input_action, self.type_action])
         advanced_layout.addWidget(self.inputs, 1)
         input_buttons = QHBoxLayout()
-        for label, callback in (('Add member / entry…', self.add_input), ('Remove selected', self.remove_input), ('Change type…', self.change_type)):
+        for label, callback in (('항목 추가…', self.add_input), ('선택 제거', self.remove_input), ('형식 변경…', self.change_type)):
             button = QPushButton(label)
             button.clicked.connect(callback)
             input_buttons.addWidget(button)
         advanced_layout.addLayout(input_buttons)
-        advanced_layout.addWidget(QLabel('Source'))
+        self.source_dialog = QDialog(self)
+        self.source_dialog.setWindowTitle('연결 정보')
+        self.source_dialog.resize(720, 420)
+        source_layout = QVBoxLayout(self.source_dialog)
         self.source = QPlainTextEdit()
         self.source.setReadOnly(True)
-        self.source.setMaximumHeight(120)
-        advanced_layout.addWidget(self.source)
-        self.source_button = QPushButton('Open original source document')
+        source_layout.addWidget(self.source)
+        source_close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        source_close.rejected.connect(self.source_dialog.hide)
+        source_layout.addWidget(source_close)
+        self.source_context = QLabel()
+        self.source_button = QPushButton('원본 문서 열기')
         self.source_button.clicked.connect(self.open_source)
-        advanced_layout.addWidget(self.source_button)
+        source_row = QHBoxLayout()
+        source_row.addWidget(self.source_context, 1)
+        source_row.addWidget(self.source_button)
+        inputs_layout.addLayout(source_row)
         split.addWidget(self.editor)
-        right = QWidget()
+        right = self.results_panel = QWidget()
+        right.setMinimumWidth(0)
         result_layout = QVBoxLayout(right)
-        result_layout.addWidget(QLabel('Runs'))
-        self.runs = readonly_table(['Job', 'State', 'Submitted input', 'Input relation'])
+        result_layout.addWidget(QLabel('계산 이력'))
+        self.runs = readonly_table(['계산', '상태', '계산 입력', '현재 계획과 관계'])
+        self.runs.setColumnHidden(2, True)
         self.runs.setMaximumHeight(115)
         self.runs.itemSelectionChanged.connect(self._selection_changed)
         result_layout.addWidget(self.runs)
         actions = QHBoxLayout()
-        self.read_button, self.runner_button = QPushButton('Read result'), QPushButton('Runner')
+        self.read_button, self.runner_button = QPushButton('결과 읽기'), QPushButton('실행 작업')
         self.read_button.clicked.connect(self.retry_result)
         self.runner_button.clicked.connect(self.open_runner)
         actions.addWidget(self.read_button)
         actions.addWidget(self.runner_button)
-        self.expert_button = QPushButton('New discussion…')
+        self.expert_button = QPushButton('전문가와 논의…')
         self.expert_button.clicked.connect(self.consult_expert)
         actions.addWidget(self.expert_button)
-        self.return_button = QPushButton('Return result…')
+        self.return_button = QPushButton('결과 전달…')
         self.return_button.setObjectName('returnNumericalResult')
         self.return_button.clicked.connect(self.return_result)
         actions.addWidget(self.return_button)
-        self.return_status_action = QAction('Check result return', self)
+        self.return_status_action = QAction('전달 상태 확인', self)
         self.return_status_action.triggered.connect(self.check_return_status)
-        bar.addAction(self.return_status_action)
+        view_menu = self.menuBar().addMenu('보기(&V)')
+        self.input_panel_action = QAction('입력 접기', self, checkable=True, checked=True)
+        self.input_panel_action.toggled.connect(self._input_panel_toggled)
+        view_menu.addAction(self.input_panel_action)
+        bar.addAction(self.input_panel_action)
+        source_details = QAction('연결 정보…', self)
+        source_details.triggered.connect(self.show_source_details)
+        view_menu.addAction(source_details)
+        view_menu.addAction(self.return_status_action)
         result_layout.addLayout(actions)
         self.tabs = QTabWidget()
-        self.candidates = readonly_table(['Candidate', 'Execution', 'Values', 'Objective', 'Feasible', 'Failure'])
+        self.candidates = readonly_table(['후보', '실행 상태', '변수 값', '목적값', '조건 충족', '실패 이유'])
         self.candidates.itemSelectionChanged.connect(self._candidate_changed)
         candidate_panel = QWidget()
         candidate_layout = QVBoxLayout(candidate_panel)
-        self.tabs.addTab(candidate_panel, 'Candidates / plot')
+        self.tabs.addTab(candidate_panel, '계산 결과')
         self.responses = QTreeWidget()
-        self.responses.setHeaderLabels(['Response / metadata', 'Actual returned value'])
-        self.tabs.addTab(self.responses, 'Responses')
+        self.responses.setHeaderLabels(['응답 정보', '계산값'])
+        self.tabs.addTab(self.responses, '응답 값')
         self.figure = Figure(figsize=(7, 4))
         self.canvas = FigureCanvasQTAgg(self.figure)
         plot_panel = QWidget()
@@ -331,7 +371,7 @@ class RequestPlanWindow(NumericalWindow):
         self.canvas.mpl_connect('pick_event', self._candidate_plot_picked)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
-        self.tabs.addTab(self.details, 'Diagnostics / submitted input')
+        self.tabs.addTab(self.details, '기술 상세')
         observation_panel = self.observation_panel = QWidget()
         observation_layout = QVBoxLayout(observation_panel)
         observation_actions = QHBoxLayout()
@@ -339,22 +379,22 @@ class RequestPlanWindow(NumericalWindow):
         self.observed_trial.setObjectName('observedTrial')
         self.observed_trial.currentIndexChanged.connect(self._observation_trial_changed)
         observation_actions.addWidget(self.observed_trial, 1)
-        self.observed_read = QPushButton('Read observation')
+        self.observed_read = QPushButton('관찰 읽기')
         self.observed_read.clicked.connect(self.load_observation)
         observation_actions.addWidget(self.observed_read)
-        self.observed_post = QPushButton('Open in Post')
+        self.observed_post = QPushButton('Post에서 열기')
         self.observed_post.setObjectName('openObservedPost')
         self.observed_post.clicked.connect(self.open_observed_post)
         observation_actions.addWidget(self.observed_post)
         observation_layout.addLayout(observation_actions)
-        self.observed_info = QLabel('Select a retained Post observation.')
+        self.observed_info = QLabel('저장된 관찰을 선택하세요.')
         self.observed_info.setWordWrap(True)
         observation_layout.addWidget(self.observed_info)
         observed_split = QSplitter(Qt.Orientation.Vertical)
-        self.observed_table = readonly_table(['Source row', 'Native location', 'Axis', 'Measured', 'State / reason'])
+        self.observed_table = readonly_table(['자료 행', '원본 위치', '축 값', '관찰값', '사용 상태'])
         self.observed_table.setObjectName('observedPostSamples')
         self.observed_table.setColumnWidth(0, 85)
-        self.observed_table.setColumnWidth(1, 170)
+        self.observed_table.setColumnWidth(1, 100)
         self.observed_table.setColumnWidth(2, 100)
         self.observed_table.setColumnWidth(3, 100)
         self.observed_table.itemSelectionChanged.connect(self._observation_pick)
@@ -365,9 +405,9 @@ class RequestPlanWindow(NumericalWindow):
         observed_split.addWidget(self.observed_canvas)
         observed_split.setSizes([220, 330])
         observation_layout.addWidget(observed_split, 1)
-        self.tabs.addTab(observation_panel, 'Observed curve')
+        self.tabs.addTab(observation_panel, '관찰 곡선')
         result_layout.addWidget(self.tabs, 1)
-        self.candidate_results_button = QPushButton('Open retained candidate curves / fields / stages')
+        self.candidate_results_button = QPushButton('선택 후보 결과 열기')
         self.candidate_results_button.setObjectName('openCandidateStageResults')
         self.candidate_results_button.clicked.connect(self.open_candidate_results)
         result_layout.addWidget(self.candidate_results_button)
@@ -380,8 +420,52 @@ class RequestPlanWindow(NumericalWindow):
         split.setSizes([640, 800])
         split.setStretchFactor(0, 1)
         split.setStretchFactor(1, 1)
+        self.canvas.mpl_connect('resize_event', self._fit_plot_layout)
+        self.observed_canvas.mpl_connect('resize_event', self._fit_plot_layout)
         self.setCentralWidget(root)
         self._update_actions()
+
+    def _input_panel_toggled(self, visible):
+        self.input_panel_action.setText('입력 접기' if visible else '입력 펼치기')
+        if not visible:
+            self._input_panel_sizes = self.request_splitter.sizes()
+        self.editor.setVisible(visible)
+        if visible:
+            self.request_splitter.setSizes(getattr(self, '_input_panel_sizes', [640, 800]))
+
+    def show_source_details(self):
+        draft = self.edited_draft() if self.document else {}
+        draft = draft if isinstance(draft, dict) else {}
+        request = draft.get('request', {})
+        inputs = request.get('inputs', {}) if isinstance(request, dict) else {}
+        inputs = inputs if isinstance(inputs, dict) else {}
+        self.source.setPlainText(json.dumps({'source': draft.get('source'),
+            'result_refs': inputs.get('result_refs', {})},
+            ensure_ascii=False, indent=2))
+        self.source_dialog.show()
+        self.source_dialog.raise_()
+
+    def _fit_plot_layout(self, event):
+        if event.canvas.width() >= 240 and event.canvas.height() >= 160 and event.canvas.figure.axes:
+            event.canvas.figure.tight_layout()
+
+    def selected_job(self):
+        rows = sorted({item.row() for item in self.runs.selectedIndexes()})
+        item = self.runs.item(rows[0], 0) if len(rows) == 1 else None
+        return item.data(DATA) if item else None
+
+    def _populate_runs(self, prefer_job=None):
+        super()._populate_runs(prefer_job)
+        states = {'SUCCEEDED': '완료', 'PARTIAL_FAILURE': '일부 실패', 'FAILED': '실패',
+                  'REJECTED': '실행 불가', 'CANCELLED': '취소', 'RUNNING': '계산 중',
+                  'QUEUED': '대기 중', 'Awaiting status': '상태 확인 중'}
+        for row in range(self.runs.rowCount()):
+            self.runs.item(row, 0).setText('계산 ' + str(row + 1))
+            state = self.runs.item(row, 1)
+            state.setText(states.get(state.data(DATA), state.text()))
+            run = self.document['runs'][row]
+            self.runs.item(row, 2).setText('계산 당시 입력')
+            self.runs.item(row, 3).setText('현재 입력' if run.get('is_current_input') and not self.local_dirty else '이전 입력')
 
     def _sheet_table(self, name, headers):
         table = QTableWidget(0, len(headers))
@@ -395,15 +479,15 @@ class RequestPlanWindow(NumericalWindow):
         table.horizontalHeader().setStretchLastSection(True)
         table.verticalHeader().setVisible(False)
         table.itemChanged.connect(self._sheet_changed)
-        widths = {'planVariables': [120, 100, 78, 78, 78, 60, 65],
+        widths = {'planVariables': [120, 100, 66, 66, 66, 50, 58],
                   'planResponses': [90, 175, 80, 105, 80, 65],
                   'planMethod': [220, 250]}
         for column, width in enumerate(widths[name]):
             table.setColumnWidth(column, width)
         return table
 
-    def _sheet_cell(self, table, row, column, value, path=None, *, numeric=False, choices=(), entry=None):
-        text = '' if value is None else value_text(value)
+    def _sheet_cell(self, table, row, column, value, path=None, *, numeric=False, choices=(), entry=None, label=None):
+        text = label if label is not None else '' if value is None else value_text(value)
         item = QTableWidgetItem(text)
         item.setToolTip(text)
         item.setData(DATA, {'path': path, 'numeric': numeric, 'choices': list(choices),
@@ -472,7 +556,7 @@ class RequestPlanWindow(NumericalWindow):
                     ('Retain responses', ('options', 'retain_responses'), 'summary', False, ('summary', 'all'))]
                 if operation == 'optimize' else [])
             if operation == 'fit':
-                self.response_sheet.setHorizontalHeaderLabels(['Trial', 'Model response', 'Role', 'Weight', 'Residual scale', 'Observed channel'])
+                self.response_sheet.setHorizontalHeaderLabels(['관찰', '모델 응답', '역할', '가중치', '잔차 척도', '관찰 채널'])
                 trials = value.get('experiments', [])
                 trials = trials if isinstance(trials, list) else []
                 self.response_sheet.setRowCount(len(trials))
@@ -485,14 +569,17 @@ class RequestPlanWindow(NumericalWindow):
                     path = ('experiments', index)
                     observation = trial.get('observation_ref', {})
                     observation = observation if isinstance(observation, dict) else {}
-                    self._sheet_cell(self.response_sheet, index, 0, trial.get('id'), path + ('id',), entry=path)
+                    identifier = str(trial.get('id', ''))
+                    label = '관찰 ' + str(index + 1) if re.fullmatch(r'post_[0-9a-f]{16}', identifier) else identifier
+                    self._sheet_cell(self.response_sheet, index, 0, trial.get('id'), path + ('id',), entry=path, label=label)
+                    self.response_sheet.item(index, 0).setToolTip(identifier)
                     self._sheet_cell(self.response_sheet, index, 1, trial.get('response') or 'Choose model response…')
                     self._sheet_cell(self.response_sheet, index, 2, trial.get('role', 'fit'), path + ('role',), choices=('fit', 'holdout'))
                     self._sheet_cell(self.response_sheet, index, 3, trial.get('weight', 1), path + ('weight',), numeric=True)
                     self._sheet_cell(self.response_sheet, index, 4, trial.get('scale', 1), path + ('scale',), numeric=True)
                     self._sheet_cell(self.response_sheet, index, 5, observation.get('response', 'unassigned'))
                     if observation.get('result'):
-                        self.observed_trial.addItem(str(trial.get('id', index)), index)
+                        self.observed_trial.addItem(label + ' (' + str(observation.get('response', '')) + ')', index)
                 prior_index = self.observed_trial.findData(prior_trial)
                 if prior_index >= 0:
                     self.observed_trial.setCurrentIndex(prior_index)
@@ -657,7 +744,7 @@ class RequestPlanWindow(NumericalWindow):
         self._result_errors.clear()
         self._statuses.clear()
         self._show_document(document)
-        self.message.setText('Request Plan opened. Source identity remains retained; edits and save do not execute a calculation.')
+        self.message.setText('계산 계획을 열었습니다.')
         self._post_observation = None
         self._observation_key = None
         if self.operation.currentData() == 'fit' and self.observed_trial.count():
@@ -701,7 +788,12 @@ class RequestPlanWindow(NumericalWindow):
             self._operation_controls()
         else:
             self.inputs.clear()
-        self.source.setPlainText(json.dumps(document['draft'].get('source') if isinstance(document['draft'], dict) else None, ensure_ascii=False, indent=2))
+        source = document['draft'].get('source') if isinstance(document['draft'], dict) else None
+        self.source.setPlainText(json.dumps(source, ensure_ascii=False, indent=2) if source else '연결된 원본 문서가 없습니다.')
+        self.source_context.setText('전문가 제안에서 만든 계획' if isinstance(source, dict) and source.get('discussion_id')
+                                    else '연결된 원본 문서' if source else '')
+        self.source_context.setVisible(bool(source))
+        self.source_button.setVisible(bool(source))
         self._populating = False
         self._populate_runs(prefer_job)
         self._draw_result()
@@ -771,7 +863,7 @@ class RequestPlanWindow(NumericalWindow):
         self.observation_button.setVisible(operation == 'fit')
         self.constraint_button.setVisible(operation == 'optimize')
         self.sheet.setEnabled(operation in {'fit', 'doe', 'optimize'})
-        self.input_tabs.setCurrentWidget(self.sheet if operation in {'fit', 'doe', 'optimize'} else self.advanced)
+        self.input_tabs.setCurrentWidget(self.sheet if operation in {'fit', 'doe', 'optimize'} else self.advanced_scroll)
         self.tabs.setTabVisible(self.tabs.indexOf(self.observation_panel), operation == 'fit')
         self.operation_note.setText({
             'analyze': 'Select the exact saved candidate table and declare each physical response/reduction. Failed rows remain exclusions.',
@@ -782,7 +874,8 @@ class RequestPlanWindow(NumericalWindow):
             'batch_export': 'Select actual retained candidate coordinates and declare case_id. Export writes a file-exchange manifest; it performs no solver evaluation.',
             'batch_import': 'Select the retained batch manifest and exact actual imported result rows. Missing rows remain NOT_EVALUATED. Results may instead be entered as a typed results list.',
             'epsilon': 'Declare objectives, primary_index and physical threshold_grid explicitly. All child searches share the visible total evaluation budget.'
-        }.get(operation, 'Edit explicit registered model inputs and budget; Apply and Run are separate commands.'))
+        }.get(operation, ''))
+        self.operation_note.setVisible(bool(self.operation_note.text()))
 
     def _operation_changed(self, *_):
         if self._populating or not self.document or self._view_error:
@@ -836,6 +929,8 @@ class RequestPlanWindow(NumericalWindow):
                       reference.get('input_revision'), reference.get('result_sha256'))
             for column, value in enumerate(values):
                 self._set_cell(self.pinned_sources, row, column, value, False)
+            metadata = self._source_metadata.get(canonical_hash(reference), {})
+            self.pinned_sources.item(row, 1).setText(str(metadata.get('title') or '보존 결과 ' + str(row + 1)))
         declarations = inputs.get('responses', [inputs['response']] if 'response' in inputs else [])
         declarations = declarations if isinstance(declarations, list) else []
         self.declarations.setRowCount(len(declarations))
@@ -1560,6 +1655,7 @@ class RequestPlanWindow(NumericalWindow):
         self.candidates.clearSelection()
         self.candidates.setRowCount(0)
         self.candidates.setRowCount(len(rows))
+        self.candidates.setVisible(bool(rows) or not (result.get('responses') or result.get('curves')))
         for row, candidate in enumerate(rows):
             for column, value in enumerate((candidate.get('candidate_id'), candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('feasible'), candidate.get('failure_reason'))):
                 self._set_cell(self.candidates, row, column, value, False)
@@ -1573,7 +1669,7 @@ class RequestPlanWindow(NumericalWindow):
         previous = self.plot_response.currentData()
         self.plot_response.blockSignals(True)
         self.plot_response.clear()
-        self.plot_response.addItem('Study summary', None)
+        self.plot_response.addItem('계산 요약', None)
         for name, response in result.get('responses', {}).items():
             self.plot_response.addItem(name + ' [' + str(response.get('unit', 'undeclared')) + ']', name)
         self._candidate_plot_names = {name for row in rows for name, response in row.get('responses', {}).items()
@@ -1583,6 +1679,8 @@ class RequestPlanWindow(NumericalWindow):
         for name in sorted(self._candidate_plot_names):
             self.plot_response.addItem('Candidates: ' + name, {'candidate_response': name})
         index = self.plot_response.findData(previous)
+        if not unchanged and previous is None and not rows and result.get('responses'):
+            index = 1  # A direct evaluation opens its actual response, not an empty candidate summary.
         self.plot_response.setCurrentIndex(max(0, index))
         self.plot_response.blockSignals(False)
         self._plot_selected_result()
@@ -1595,6 +1693,7 @@ class RequestPlanWindow(NumericalWindow):
     def _plot_selected_result(self, *_):
         job = self.selected_job()
         result = self._result_cache.get(job, {})
+        rows = result.get('candidates', result.get('predictions', []))
         self.figure.clear()
         name = self.plot_response.currentData()
         if isinstance(name, dict) and 'candidate_response' in name:
@@ -1615,7 +1714,7 @@ class RequestPlanWindow(NumericalWindow):
                     ax.plot(coordinates, [value if mask is None or mask[index] else math.nan for index, value in enumerate(values)])
                     ax.set_xlabel(str(axes[0].get('name', 'undeclared axis')) + ' [' + str(axes[0].get('unit', 'undeclared')) + ']')
                     ax.set_ylabel(name + ' [' + str(response.get('unit', 'undeclared')) + ']')
-                    ax.set_title('Original retained response · ' + str(job))
+                    ax.set_title('Recorded response')
                 else:
                     ax.text(.5, .5, 'Invalid retained coordinates, values or mask; inspect Responses.', ha='center', transform=ax.transAxes)
             elif response.get('kind') == 'scalar':
@@ -1695,7 +1794,14 @@ class RequestPlanWindow(NumericalWindow):
                 ax = self.figure.add_subplot(111)
                 ax.text(.5, .5, 'No usable retained candidate statistics. Inspect original exclusions.', ha='center', transform=ax.transAxes)
         else:
-            self._draw_study_summary(result, job)
+            if result.get('kind') in {'uq', 'optimization', 'epsilon_optimization'}:
+                self._draw_study_summary(result, job)
+            else:
+                ax = self.figure.add_subplot(111)
+                ax.text(.5, .5, 'Select a response to plot.' if rows else 'No calculated result selected.',
+                        ha='center', va='center', wrap=True, transform=ax.transAxes)
+                ax.set_axis_off()
+        self.figure.tight_layout()
         self.canvas.draw_idle()
 
     def _plot_candidate_response(self, result, name):
@@ -1915,6 +2021,13 @@ class RequestPlanWindow(NumericalWindow):
         self.return_button.setEnabled(present and available and self.selected_job() is not None)
         self.return_status_action.setEnabled(available and self._last_return_message is not None)
         read_available = present and not getattr(self, '_incoming_review', False) and not self.conflict and not self._callbacks and not self._pending_adoption and (not self._busy or self._busy_background)
+        candidate_task = self.operation.currentData() in PDE_CANDIDATE_OPERATIONS or bool(
+            self._result_cache.get(self.selected_job(), {}).get('candidates'))
+        result = self._result_cache.get(self.selected_job(), {})
+        self.candidates.setVisible(candidate_task and not (result.get('responses') or result.get('curves'))
+                                   or bool(result.get('candidates', result.get('predictions', []))))
+        self.candidate_results_button.setVisible(candidate_task)
+        self.pde_adopt_button.setVisible(candidate_task)
         self.candidate_results_button.setEnabled(read_available and bool(self._selected_actual_candidate())
             and callable(getattr(self.client, 'numerical_evaluation_result', None)))
         self.variables_button.setEnabled(read_available and not self._view_error and self.operation.currentData() in MODEL_OPERATIONS
@@ -1923,7 +2036,7 @@ class RequestPlanWindow(NumericalWindow):
             button.setEnabled(read_available and not self._view_error and callable(getattr(self.client, 'document_result_metadata', None)))
         source = self.document['draft'].get('source') if present and isinstance(self.document['draft'], dict) else None
         target_kind, target_id = self._candidate_target(source)
-        self.pde_adopt_button.setText('Review / adopt candidate to PDE…' if target_kind == 'pde' else 'Review candidate in source…')
+        self.pde_adopt_button.setText('선택 후보를 PDE에 채택…' if target_kind == 'pde' else '선택 후보를 원본에 채택…')
         self.pde_adopt_button.setEnabled(read_available and not self._view_error and bool(target_id)
                                         and self._adoption_receipt is None
                                         and self.operation.currentData() in PDE_CANDIDATE_OPERATIONS
@@ -1940,8 +2053,8 @@ class RequestPlanWindow(NumericalWindow):
         self.reload_button.setEnabled(available)
         self.copy_button.setEnabled(available)
         if present:
-            self.setWindowTitle('Numerical request Plan — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
-            self.identity.setText('Unapplied edits' if self.local_dirty else ('Saved' if not self.document.get('dirty') else 'Unsaved'))
+            self.setWindowTitle('계산 계획 — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+            self.identity.setText('변경 적용 전' if self.local_dirty else ('저장됨' if not self.document.get('dirty') else '저장 전'))
             self.identity.setToolTip(self.document['id'] + ' / generation ' + str(self.document['generation']))
 
     def open_runner(self):
@@ -2019,7 +2132,7 @@ class RequestPlanWindow(NumericalWindow):
                 native = identities.get(source_row) or {}
                 short_row = native.get('row', native.get('point_index', ''))
                 for column, value in enumerate((source_row, short_row, x, y,
-                                                'Used' if good else 'Excluded: ' + reason)):
+                                                '사용' if good else '제외: ' + reason)):
                     self._set_cell(self.observed_table, index, column, value, False)
                 self.observed_table.item(index, 1).setToolTip(json.dumps(
                     {'native': native, 'object': origin['object_ref']}, ensure_ascii=False))
