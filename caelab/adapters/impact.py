@@ -13,6 +13,7 @@ from ..storage import save_json,canonical_hash
 from .opencourant_runtime import runtime as selected_runtime
 from .impact_results import history,read_vtk,write_post,validate_frame_identity
 from .impact_admission import global_gravity,validate_physics,normalize_contact_friction,normalize_surfaces
+from .impact_timing import engine_termination,history_inventory,sample_coverage,energy_observations
 
 
 def converted_mesh(path, expected, input_nodes):
@@ -72,7 +73,8 @@ def starter_admission(path, model):
 
 class ImpactAdapter:
     backend,version=domain.BACKEND,'1'
-    input_source_files=[__file__,domain.__file__,Path(__file__).with_name('impact_admission.py')]
+    input_source_files=[__file__,domain.__file__,Path(__file__).with_name('impact_admission.py'),
+                        Path(__file__).with_name('impact_timing.py')]
     default_settings=staticmethod(domain.default_settings)
     validate_settings=staticmethod(domain.validate_settings)
     input_runtime_identity=staticmethod(lambda:{'runtime':'explicit_selected_opencourant','qualification':'UNKNOWN'})
@@ -161,11 +163,10 @@ class ImpactAdapter:
             result['checks'].append(starter_admission(native/'impact_0000.out',model))
             phase='engine'
             process=command([names['engine'],'-i','impact_0001.rad','-nt','2'],'engine')
-            stdout=process.stdout.decode(errors='replace') if isinstance(process.stdout,bytes) else str(process.stdout)
-            if 'NORMAL TERMINATION' not in stdout:
-                # Some releases write termination only to the owned native out.
-                logs='\n'.join(p.read_text(encoding='ascii',errors='replace') for p in native.glob('impact_0001.out'))
-                if 'NORMAL TERMINATION' not in logs: raise ValueError('Engine normal termination was not recorded')
+            termination=engine_termination(native/'impact_0001.out',process.stdout,s['time']['end_s'])
+            result['diagnostics']['native_termination']=termination
+            if termination['status']!='NORMAL':
+                raise ValueError('Engine termination is '+termination['status']+'; native stop evidence retained')
             if any(file_hash(native/name)!=value for name,value in frozen.items()):
                 raise ValueError('Effective deck changed during execution')
             current=selected_runtime()[2]
@@ -188,9 +189,15 @@ class ImpactAdapter:
                 command([names['th_to_csv'],'impactT01','history'],'history_convert')
                 responses,table=history(native/'history.csv')
                 save_json(out/'history.json',table); result['responses']=responses
-                final=table['rows'][-1]['values'][0]
-                if not math.isclose(final,s['time']['end_s'],rel_tol=2e-5,abs_tol=1e-12):
-                    raise ValueError('Native history did not reach the declared end time')
+                integrity=history_inventory(th,table)
+                coverage=sample_coverage([r['values'][0] for r in table['rows']],
+                                        s['time']['end_s'],s['time']['history_interval_s'])
+                coverage['native_records']=integrity
+                coverage['converted_source']={'artifact':'history.csv','sha256':file_hash(native/'history.csv')}
+                result['diagnostics']['history_coverage']=coverage
+                result['diagnostics']['energy_observations']=energy_observations(table,native/'history.csv')
+                for response in responses.values():
+                    response['metadata']['sample_coverage']=deepcopy(coverage)
                 frames=[]
                 paths=sorted(native.glob('impactA[0-9]*'),key=lambda p:int(p.name.split('A')[-1]))
                 for index,path in enumerate(paths):
@@ -203,8 +210,13 @@ class ImpactAdapter:
                     raw['coverage']=validate_frame_identity(raw,model,physics)
                     frames.append((target,raw))
                 if not frames: raise ValueError('No native animation frame was retained')
+                frame_coverage=sample_coverage([raw['time'] for _,raw in frames],
+                                              s['time']['end_s'],s['time']['field_interval_s'])
+                result['diagnostics']['animation_coverage']=frame_coverage
                 from ..impact_responses import read_selected
                 chosen,selection_record=read_selected(frames,actual_model,s.get('responses',[]),damage_receipt)
+                for response in chosen.values():
+                    response.setdefault('metadata',{})['sample_coverage']=deepcopy(frame_coverage)
                 result['responses'].update(chosen)
                 save_json(out/'selected_responses.json',selection_record)
                 metadata=write_post(out/'post',frames,damage=damage_receipt)

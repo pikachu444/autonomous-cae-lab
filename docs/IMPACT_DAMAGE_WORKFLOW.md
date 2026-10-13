@@ -303,3 +303,47 @@ SURF admission은 주석과 빈 물리행을 구별하여 빈 행을 명시 거�
 5I10/면 방향 검사는 유지하되, **원 ERROR78의 확인된 원인은 이 추가 빈 행**입니다.
 회귀 검사는 LF/CRLF, 마지막 개행 유무, 중력 추가/제거와 빈 행 거절을 확인합니다.
 이번 소스의 작성자 Python/native 실행은 NOT_RUN이며 진단 성공은 Root의 별도 실행입니다.
+
+
+### Engine 종료와 저장 표본 범위
+
+Root의 4a3d9b8 실행에서 Starter 0오류/0경고와 Engine NORMAL TERMINATION이
+두 모델 모두 확인됐습니다. 기존 읽기는 마지막 TH 표본과 요청 종료 시각을 같다고
+가정해 Post 앞에서 막혔습니다. 보존 자료의 별도 읽기에서는 user 10개 ANIM,
+cohesive 21개 ANIM과 응답 4개/PVD 생성까지 확인됐습니다. 이 결과는 수치 정답이나
+공학 수용이 아닙니다.
+
+공식 pinned HIST2는 실제 증분 시각 TT에서 저장 조건을 검사합니다. 저장 후 시간이
+진행되고 종료 조건을 검사하며, 마지막 추가 ANIM 증분에서는 TH를 생략합니다.
+따라서 TH 끝값을 종료 시각으로 옮기거나, 마지막 간격을 임의 허용치로 확대하지 않습니다.
+- Engine NORMAL TERMINATION/총 증분 수와 USER BREAK·비정상 종료를 별도로 읽습니다.
+  USER BREAK도 exit0/정상 종료 문구를 남길 수 있어 성공 경로로 통과시키지 않습니다.
+- 로그 FINAL TIME은 요청값입니다. 이를 실제 달성 시각이라고 저장하지 않습니다.
+  실제 끝점이 입증되지 않으면 achieved_end_s와 달성 여부는 미정으로 남습니다.
+- TH와 ANIM의 첫/마지막 시각, 개수, 요청 간격, 끝점 전 미관측 구간을 각각 기록합니다.
+  final은 마지막 보존 표본이며, extrema/표본 적분도 보존된 범위만 의미합니다.
+- TH binary record의 길이·끝 표식과 CSV 행/시간을 대조합니다. 잘린 record나 변환 중
+  행 유실은 오류이며, variable timestep 전체의 미저장 증분 개수는 추정하지 않습니다.
+  CSV 시간 비교는 공식 변환기의 binary32→%e 표현을 사용하며 공학 허용치를 추가하지 않습니다.
+- 음의 내부 에너지와 비유한 값은 원 부호/토큰/quality로 남습니다. 음수/무효 행의
+  위치만 진단에 표시하고, 정상 종료를 물리 유효 판정으로 바꾸지 않습니다.
+
+공식 근거:
+[HIST2 저장 시각](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/th/hist2.F),
+[마지막 ANIM과 TH 분리](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/sortie_main.F),
+[USER BREAK 종료](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/system/arret.F),
+[HIST1 record 정의](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/th/hist1.F),
+[기존 CSV 변환기](https://github.com/OpenCourant/Tools/blob/beaf8a17c880242bb7ad43325a20bd589dc0f533/output_converters/th_to_csv/src/th_to_csv.c).
+
+보존 계산을 **solver/변환기 실행이나 파일 변경 없이** 확인:
+
+    python -m examples.impact.inspect_retained --calculation <보존 calculation 폴더>
+
+이미 별도 폴더에서 변환한 CSV를 쓰려면 --history-csv <그 CSV>를 추가합니다.
+출력은 새 시간값이나 성공 결과를 생성하지 않는 읽기 진단입니다.
+
+    python -m pytest tests/test_impact_timing.py -q
+
+포함된 adapter 검사는 실제 pinned INP 변환기를 쓰되 Starter/Engine/ANIM은 명시 대역입니다.
+작성자 Python/native 실행은 NOT_RUN입니다. 새 solver 캠페인 없이 기존 원본을 보존하여
+읽기 경로를 확인할 수 있습니다.
