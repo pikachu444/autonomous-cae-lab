@@ -305,3 +305,14 @@ The receipt is `runs/product-development/20261013/contact-export-402e8ca7/receip
 The native Force unit correction is exercised; stale groups and disconnected
 Runner origins are covered by the focused doubles, not native GUI interaction.
 Solver and actual Post-result execution remain the next implementation check.
+
+### Contact Check uses the same admission as export
+
+The existing pre.validate command now detects an active native contact and
+uses the contact collector's current body/mesh/law/material/condition admission.
+It no longer reports the single-mesh requirement for a contact Analysis.
+The check performs no save, artifact publication, mesh generation or solver
+execution. An invalid contact input remains a diagnostic with Run blocked;
+contact-free validation keeps its existing path. The native API contract test
+covers valid two-body Check and an invalid displacement through this branch.
+Author execution remains NOT_RUN.

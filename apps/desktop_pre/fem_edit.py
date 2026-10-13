@@ -780,6 +780,21 @@ class FEMEditor:
         if analysis.Document is not self.owner.doc or _native_type(analysis) != 'Fem::FemAnalysis':
             fail('analysis', 'Select the exact native Analysis in this document')
             return errors
+        if any(_native_type(obj) == 'Fem::ConstraintContact' and not getattr(obj, 'Suppressed', False)
+               for obj in analysis.Group):
+            solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
+                       and not getattr(obj, 'Suppressed', False)]
+            if len(solvers) != 1:
+                fail('solver', 'Contact requires one active native CalculiX solver')
+                return errors
+            try:
+                # Reuse the exact export admission without saving or exporting.
+                # collect performs body-local mappings and has no solver side effect.
+                from .freeze_contact import collect
+                collect(analysis, solvers[0], self)
+            except Exception as error:
+                fail('contact', str(error))
+            return errors
         meshes = [obj for obj in analysis.Group if hasattr(obj, 'FemMesh')]
         if len(meshes) != 1:
             fail('mesh', 'The admitted execution requires exactly one existing solid mesh')

@@ -7,6 +7,7 @@ import pytest
 
 from test_contact_execution import model
 from apps.desktop_pre import freeze_contact as exporter
+from apps.desktop_pre.fem_edit import FEMEditor
 
 
 def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch):
@@ -101,9 +102,9 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
         monkeypatch.setitem(sys.modules, name, module)
     monkeypatch.setattr(exporter, '_target', lambda source, names: {
         'object_id': source.Name, 'subelements': [{'name': name} for name in names]})
-    owner = NS(doc=doc, _object=objects.__getitem__,
+    owner = NS(doc=doc, assert_thread=lambda: None, _object=objects.__getitem__,
                mesh_bindings=NS(validate=lambda mesh: {'state': 'CURRENT_TEST_DOUBLE'}))
-    fem = NS(owner=owner, _assert_idle=lambda: None, _metadata=lambda: {},
+    fem = NS(owner=owner, _pending={}, _assert_idle=lambda: None, _metadata=lambda: {},
              _condition_errors=lambda *a: [], quality=lambda *a, **kw: {'bad_element_count': 0},
              contact=NS(_data=lambda: {'contacts': [record]}, errors=lambda record: []))
     actual, identity = exporter.collect(analysis, solver, fem)
@@ -117,3 +118,11 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
     assert len(reads) == 2 and len(identity) == 2
     assert meshes['Base'].FemMesh.groups == {'Fixed': [4], 'Displacement': [1]}
     assert meshes['Pad'].FemMesh.groups == {'Fixed': [4], 'Displacement': [1]}
+
+
+    # Check and export share the same real collector; Check does not publish files.
+    assert FEMEditor.validate_for_run(fem, analysis) == []
+    displacement.xDisplacement = Quantity('nan', 'mm')
+    diagnostics = FEMEditor.validate_for_run(fem, analysis)
+    assert diagnostics and diagnostics[0]['path'] == 'contact'
+    assert diagnostics[0]['blocks_evaluation']
