@@ -442,3 +442,59 @@ def test_closing_editor_terminates_only_its_native_mesh_process(native):
     assert native.tools[0].calls == ['prepare', 'compute', 'kill']
     native.tools[0].process.finished.emit(1, 1)
     assert native.metadata['mesh_history'][0]['state'] == 'CANCELLED'
+
+
+def test_contact_draft_rebind_cancel_and_stale_preview_use_existing_owner_transactions(native, monkeypatch):
+    """Native objects are explicit doubles; no FreeCAD mesh or solver is run."""
+    import ObjectsFem
+    from apps.desktop_pre.fem_edit import _target
+    editor = native.editor.contact
+    second = Object(native.doc, 'Base', 'Part::Feature', Shape=Shape('second body'))
+    def make_contact(doc):
+        return Object(doc, 'Contact', 'Fem::ConstraintContact', References=[],
+            SurfaceBehavior='Linear', Slope=Quantity('0 MPa/mm'), Friction=False,
+            FrictionCoefficient=0, StickSlope=Quantity('0 MPa/mm'), Adjust=Quantity('0 mm'),
+            EnableThermalContact=False)
+    monkeypatch.setattr(ObjectsFem, 'makeConstraintContact', make_contact, raising=False)
+    def snapshot(obj, names, *, region_id=None):
+        return {'region_id': region_id, 'label': obj.Label, 'target': _target(obj, names),
+                'faces': [{'name': name, 'area_mm2': 1., 'centroid_mm': [0., 0., 0.],
+                           'center_normal': [0., 0., 1.], 'preview_points_mm': [],
+                           'preview_triangles': []} for name in names]}
+    monkeypatch.setattr(editor, 'snapshot', snapshot)
+    monkeypatch.setattr(editor, '_overlay', lambda *args: None)
+    monkeypatch.setattr(native.Gui.Selection, 'addSelection', lambda *args: None)
+    a = region(native)
+    b = submit(native, 'region_set', {'label': 'Base faces', 'subelements': ['Face1', 'Face2']}, second)
+    def command(operation, args=None, obj=None):
+        return native.editor.dispatch('pre.contact.' + operation, args or {},
+                                      {'object_id': obj.Name} if obj else {})
+    record = command('set', {'draft': {'label': 'Pad contact', 'a_region_id': a['id'], 'b_region_id': b['id'],
+        'normal_law': 'linear', 'tangential_law': 'coulomb', 'normal_stiffness_MPa_per_mm': '1e',
+        'friction_coefficient': '.2', 'stick_stiffness_MPa_per_mm': '5e4'}}, native.analysis)
+    obj = native._object(record['object_id'])
+    assert record['draft']['normal_stiffness_MPa_per_mm'] == '1e'
+    assert editor.errors(record) and native.metadata['keep_other_owner_field']
+    record = command('set', {'draft': {'normal_stiffness_MPa_per_mm': '1e5'}}, obj)
+    assert not editor.errors(record)
+    before = deepcopy(native.metadata)
+    second.Shape.brep = 'changed base'
+    assert any(row['path'] == 'b' for row in editor.errors(record))
+    preview = command('preview_rebind', {'side': 'b',
+        'selection': {'object_id': second.Name, 'subelements': ['Face2']}}, obj)
+    assert native.metadata == before
+    command('cancel_rebind', {'preview_id': preview['preview_id']})
+    assert native.metadata == before
+    preview = command('preview_rebind', {'side': 'b',
+        'selection': {'object_id': second.Name, 'subelements': ['Face2']}}, obj)
+    second.Shape.brep = 'changed again'
+    with pytest.raises(ValueError, match='changed after Preview'):
+        command('apply_rebind', {'preview_id': preview['preview_id']}, obj)
+    assert native.metadata == before
+    preview = command('preview_rebind', {'side': 'b',
+        'selection': {'object_id': second.Name, 'subelements': ['Face2']}}, obj)
+    rebound = command('apply_rebind', {'preview_id': preview['preview_id']}, obj)
+    assert not editor.errors(rebound)
+    assert [row['name'] for row in rebound['b']['target']['subelements']] == ['Face2']
+    assert len(native.metadata['contact_history']) == 2
+    assert not editor.previews
