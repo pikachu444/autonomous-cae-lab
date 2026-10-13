@@ -47,13 +47,18 @@ Numerical 문서로 열어 E=1000→1500 MPa로 수정하고 FELUPE 계산을 �
 이는 실제 OAuth/도구/계산/문서 저장 경로와 offscreen Qt 재열기 확인이며 OS 마우스
 조작, 취소/재개, Study 전체 수용은 남아 있다. MoAI t2를 완료 처리하지 않는다.
 
-다음 Pro 구현 요청 `PRO-ASSEMBLY-CANDIDATE-01` 전송 준비: 기준 main `8b1ec55`,
-같은 Pro 대화에서 D2의 관절 좌표 등록→native 자세 구동/저장→움직인 occurrence의
-메시·해석→새 편집 설계 채택을 한 묶음으로 맡긴다. Astra가 native 속성과 구동 API,
+Pro 구현 요청 `PRO-ASSEMBLY-CANDIDATE-01` 전송 완료: 명세 포함 기준 main `27a5bad`,
+같은 Pro 대화의 실행 turn `01a1358d-1617-73e1-bf5c-64587928a618` 진행을 확인했다.
+D2의 관절 좌표 등록→native 자세 구동/저장→움직인 occurrence의 메시·해석→새 편집
+설계 채택을 한 묶음으로 맡겼다. Astra가 native 속성과 구동 API,
 저장 후 자세, 실제 FE 대상 연결을 독립 검토했으며 기존 CAD-NUMERICAL SPEC에 반영했다.
 첫 경로는 flat 조립의 고정부와 움직이는 occurrence 하나, Revolute/Slider 한 관절이다.
 복수·종속 관절, 중첩·루프와 참조 변경 복구는 D2 잔여이며 전체 요구에서 삭제하지 않는다.
 Expert의 남은 취소/복구·Study 수용은 유지하되 같은 검사 반복으로 D2 구현을 막지 않는다.
+MoAI `todo next 3`으로 D2를 진행 상태로 옮겼다. 실제 `spec_audit`는 파일을 읽었으나
+옛 형식으로 분류해 형식 점검 범위만 확인했으며 구현/수용 통과로 간주하지 않는다.
+Codex는 저장된 E6 논의·계산을 Study에 연결하는 기존 경로를 조사·확인하고, Pro가
+소유한 조립 구현 파일과 겹치지 않게 통합을 준비한다.
 
 ## 지금 받을 수 있는 것과 인도 계획
 
