@@ -51,6 +51,8 @@ def return_snapshot(source, target):
                    'document_id': (target.document or {}).get('id'),
                    'session_id': (target.document or {}).get('session_id'),
                    'receiver_target': receiver.target, 'route': receiver.route,
+                   'receiver_on_gui': receiver.thread() == QApplication.instance().thread(),
+                   'server_on_gui': bool(receiver.server and receiver.server.thread() == QApplication.instance().thread()),
                    'listening': bool(receiver.server and receiver.server.isListening()),
                    'connections': len(receiver.connections),
                    'pending': list(receiver.pending),
@@ -485,6 +487,19 @@ def test_plan_return_button_original_and_independent_selection(app, loopback, mo
     wait(app, lambda: not source._busy and not source._callbacks)
     assert not target._result_return.pending and target.edited_draft() == before
 
+    from PySide6.QtCore import QThread
+    from apps.research import result_return
+    received_threads = []
+    original_receive = target._result_return.receive
+    def receive_on_gui(message):
+        received_threads.append(QThread.currentThread())
+        return original_receive(message)
+    def no_self_socket(*args, **kwargs):
+        raise AssertionError('A same-process view must receive on the GUI thread, without a self socket round-trip')
+    monkeypatch.setattr(target._result_return, 'receive', receive_on_gui)
+    monkeypatch.setattr(result_return, 'send_message', no_self_socket)
+    assert target._result_return.thread() == app.thread()
+    assert target._result_return.server.thread() == app.thread()
     chosen = []
     def choose_existing(parent, title, label, choices, **kwargs):
         chosen.append(title)
@@ -504,6 +519,7 @@ def test_plan_return_button_original_and_independent_selection(app, loopback, mo
     source.check_return_status()
     wait(app, lambda: not source._busy)
     assert source._return_receipts[pending['delivery_id']]['status'] == 'ATTACHED'
+    assert len(received_threads) == 2 and all(thread == app.thread() for thread in received_threads)
     after = target.edited_draft()
     evidence = after['composer']['evidence'][-1] if kind == 'expert' else after['evidence'][-1]['reference']
     assert {key: evidence[key] for key in reference} == reference and evidence['selection'] == []

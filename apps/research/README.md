@@ -187,9 +187,10 @@ pending result for review after repair.
 
 ### Delivery implementation and verification boundary
 
-The existing service remains the sole document/job owner. A small Qt local
-socket endpoint routes only activation and pending-result references to an
-existing Expert/Study editor. A process-lifetime Qt lock prevents simultaneous
+The existing service remains the sole document/job owner. After background
+reference verification, a same-process Expert/Study receives the pending result
+on the application GUI thread through its existing receiver. Other processes use
+the Qt local socket endpoint for activation and pending-result references. A process-lifetime Qt lock prevents simultaneous
 Windows named-pipe listeners for the same service/document. Discovery is stable
 across service restarts and checks the session in each message. A timeout or stale
 live editor does not trigger a replacement window. When no editor exists, the
@@ -207,6 +208,16 @@ Qt, local IPC and numerical tests are **NOT_RUN by Pro**. Source review is separ
 from execution. Codex's successful Windows launcher acceptance belongs to
 SPEC-DESKTOP-002 and is not evidence that this new worksheet/return workflow has
 passed.
+
+Codex subsequently reported compilation, actual algebraic DOE candidate/curve
+selection, constrained optimisation, and a focused precision/partial-input
+save/reopen/repair check passing on Windows CPython 3.12.14/PySide6 6.9.1 at
+39c5fb0. An earlier cold-start fixture exceeded its existing five-second wait
+while DOE was still RUNNING; the focused rerun passed without changing result
+criteria. The same-process Expert return produced no local acknowledgment, and
+the separate-process attachment exposed a Windows venv redirector PID assumption.
+The subsequent GUI-local delivery and actual-child-identity corrections require
+their own Windows run; Pro remote execution remains NOT_RUN.
 
 Focused Windows checks with the existing runtime:
 

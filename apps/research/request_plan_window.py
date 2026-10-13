@@ -1670,7 +1670,7 @@ class RequestPlanWindow(NumericalWindow):
                 if channels.item(row).checkState() == Qt.CheckState.Checked]
 
     def return_result(self):
-        from .result_return import origin_id, result_message, deliver_result
+        from .result_return import origin_id, result_message, verify_result, receive_local, deliver_result
         job = self.selected_job()
         if not self.document or not job or self._busy or self._callbacks:
             return False
@@ -1704,7 +1704,24 @@ class RequestPlanWindow(NumericalWindow):
                 def received(receipt):
                     self._return_receipts[message['delivery_id']] = deepcopy(receipt)
                     self._return_message(receipt)
-                self._call(lambda: deliver_result(self.client, message), received)
+                def failed(error):
+                    self.message.setText('Result return failed; current edits retained. ' + str(error))
+                def verified(_payload):
+                    # Same-process windows are already known. Receive on the GUI
+                    # callback; never block a worker on a pipe back into this view.
+                    try:
+                        receipt = receive_local(message)
+                    except (ValueError, TypeError, KeyError, RuntimeError) as error:
+                        failed(error)
+                        return
+                    if receipt is not None:
+                        received(receipt)
+                    else:
+                        # Only the existing socket route can establish absence
+                        # in another process and open the exact closed origin.
+                        self._call(lambda: deliver_result(self.client, message), received, rejected=failed)
+                self._call(lambda: verify_result(self.client, message), verified,
+                           relevant=relevant, rejected=failed)
             if target_id:
                 self._call(lambda: self.client.document_read(target_id), present, relevant=relevant)
             else:
@@ -1732,13 +1749,21 @@ class RequestPlanWindow(NumericalWindow):
     def check_return_status(self):
         if not self._last_return_message or self._busy or self._callbacks:
             return False
-        from .result_return import send_message
+        from .result_return import receive_local, send_message
         original = deepcopy(self._last_return_message)
         message = {key: value for key, value in original.items() if key not in {'reference', 'selection'}}
         message['operation'] = 'status'
         def received(receipt):
             self._return_receipts[original['delivery_id']] = deepcopy(receipt)
             self._return_message(receipt)
+        try:
+            receipt = receive_local(message)
+        except (ValueError, TypeError, KeyError, RuntimeError) as error:
+            self.message.setText('Result return status unavailable. ' + str(error))
+            return False
+        if receipt is not None:
+            received(receipt)
+            return True
         return self._call(lambda: send_message(message), received)
 
     def consult_expert(self):

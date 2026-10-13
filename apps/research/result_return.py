@@ -422,6 +422,27 @@ def bind_receiver(window, document):
     return receiver.bind(document)
 
 
+
+def receive_local(message):
+    """Deliver to an existing same-process view, on its GUI thread only.
+
+    None means this process has no matching view; it does not mean another
+    process is absent. Other-process discovery still uses the bounded socket.
+    Result callers must verify the exact retained reference before this call.
+    """
+    validate_message(message)
+    app = QApplication.instance()
+    if app is None or QThread.currentThread() != app.thread():
+        raise RuntimeError('Local result delivery must run on the application GUI thread.')
+    name, _ = _route(message['service'], message['target_id'])
+    receiver = _ENDPOINTS.get(name)
+    if receiver is None:
+        return None
+    if receiver.thread() != app.thread() or receiver.window.thread() != app.thread():
+        raise RuntimeError('The original result receiver has an invalid GUI thread affinity.')
+    return receiver.receive(message)
+
+
 def send_message(message, *, timeout_ms=2500):
     """Blocking local socket exchange: call from a worker or before a UI exists."""
     validate_message(message)
