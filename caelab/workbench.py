@@ -389,6 +389,7 @@ class Workbench:
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
                                  'bytes': item['bytes'], 'sha256': item['sha256']}
                                 for item in receipt['files']]}
+        result['registration_origin'] = deepcopy(receipt.get('origin'))
         if receipt['kind'] in {'frozen_fem', 'frozen_contact'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))

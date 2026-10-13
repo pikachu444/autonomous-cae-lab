@@ -134,7 +134,9 @@ class ContactFemCalculixAdapter:
                     writer.writerow([row['pair_id'],row['quantity'],row['static']['step'],row['static']['increment'],
                         row['static']['load_parameter'], *['' if value is None else value for value in values],
                         'native_nonfinite' if any(value is None for value in values) else 'finite_raw'])
-            metadata = write_post(output / 'post', model, frames, pair_results)
+            metadata = write_post(output / 'post', model, frames, pair_results, provenance={
+                'snapshot_id': manifest['id'], 'snapshot_sha256': pins['snapshot.json']['sha256'],
+                'raw_frd_sha256': _sha(deck.with_suffix('.frd')), 'raw_dat_sha256': _sha(deck.with_suffix('.dat'))})
             final = frames[-1]
             ids = sorted(nodes)
             responses = {}
@@ -226,7 +228,11 @@ def regenerate_post(attempt, output):
     frames = observed['frames']
     pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames)
     output.parent.mkdir(parents=True, exist_ok=True)
-    metadata = write_post(output, model, frames, pairs)
+    metadata = write_post(output, model, frames, pairs, provenance={
+        'snapshot_id': manifest['id'], 'snapshot_sha256': input_pins['snapshot.json']['sha256'],
+        'raw_frd_sha256': source_pins['solver/contact.frd']['sha256'],
+        'raw_dat_sha256': source_pins['solver/contact.dat']['sha256'],
+        'source_record_sha256': hashlib.sha256(record_bytes).hexdigest()})
     for relative, pin in source_pins.items():
         if _sha(attempt / relative) != pin['sha256']:
             raise ValueError('Retained source changed during Post regeneration')

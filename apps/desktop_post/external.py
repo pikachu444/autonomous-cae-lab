@@ -31,7 +31,19 @@ def recovery_records():
     return deepcopy(_recovery)
 
 
-def source_files(entry):
+def contact_api():
+    # Native portable Python loads this file without installing the repository.
+    import sys
+    repository = str(Path(__file__).resolve().parents[2])
+    sys.path.insert(0, repository)
+    try:
+        from caelab import contact_inspection
+        return contact_inspection
+    finally:
+        sys.path.remove(repository)
+
+
+def source_files(entry, native_metadata=None):
     """Validate and enumerate a bounded, local PVD+VTU dependency set."""
     entry = Path(entry).resolve(strict=True)
     if not entry.is_file() or entry.suffix.lower() not in READERS:
@@ -81,6 +93,9 @@ def source_files(entry):
                 raise ValueError("PVD supports only contained VTU frame files")
             if frame not in files:
                 files.append(frame)
+    declaration = (native_metadata or {}).get("contact_inspection")
+    if declaration is not None:
+        files = list(dict.fromkeys([*files, *contact_api().load(entry, declaration)["paths"]]))
     return files
 
 
@@ -95,7 +110,7 @@ def verify_sources(path, doc):
             file = Path(pin["path"])
             if file.stat().st_size != pin["bytes"] or sha(file) != pin["sha256"]:
                 raise RuntimeError("Original retained data changed: " + str(file))
-        if set(map(str, source_files(record["entry_path"]))) != {pin["path"] for pin in recorded}:
+        if set(map(str, source_files(record["entry_path"], record.get("native_metadata")))) != {pin["path"] for pin in recorded}:
             raise RuntimeError("Result dependency set does not match its recorded source pins")
     return path, doc
 
@@ -143,8 +158,10 @@ def _metadata_hash(value):
 def validate_declared_metadata(source, metadata):
     """Validate an explicit source-owner declaration against exact native arrays."""
     required_keys = {"coordinate_units", "coordinate_frame", "static", "arrays"}
-    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time"}:
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection"}:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
+    if "contact_inspection" in metadata:
+        contact_api().descriptor(metadata["contact_inspection"])
     for key in ("coordinate_units", "coordinate_frame"):
         if not isinstance(metadata[key], str) or not metadata[key].strip():
             raise ValueError("Native coordinate units and frame must be explicitly declared")
@@ -452,13 +469,13 @@ def restore_selection(doc):
         if view is not None: p.SetActiveView(view)
 
 
-def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None):
+def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None, registration_origin=None):
     """Admit one immutable reader without creating a document, view or layout."""
     if input_id is not None and source_pins is None:
         raise ValueError("A registered input ID requires its complete verified source pins")
     if native_metadata is not None and (not input_id or source_pins is None):
         raise ValueError("Declared native metadata requires a verified registered input receipt")
-    files = source_files(input_path)
+    files = source_files(input_path, native_metadata)
     entry = files[0]
     pinned = pins(files)
     if source_pins is not None and pinned != source_pins:
@@ -493,14 +510,16 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
               "source_revision": _metadata_hash({"format": entry.suffix.lower(),
                   "files": sorted([{"relative": Path(pin["path"]).relative_to(entry.parent).as_posix(),
                              "sha256": pin["sha256"], "bytes": pin["bytes"]} for pin in pinned], key=lambda row: row['relative'])})}
+    if registration_origin is not None:
+        record['registration_origin'] = deepcopy(registration_origin)
     if declaration is not None:
         record.update(native_metadata=declaration, native_metadata_sha256=_metadata_hash(declaration))
     return source, record
 
 
-def open_result(input_path, project_directory, input_id=None, source_pins=None, native_metadata=None):
+def open_result(input_path, project_directory, input_id=None, source_pins=None, native_metadata=None, registration_origin=None):
     # Admission is also used by Add result in an already open analysis.
-    source, record = admit_result(input_path, input_id, source_pins, native_metadata)
+    source, record = admit_result(input_path, input_id, source_pins, native_metadata, registration_origin)
     folder = Path(project_directory).resolve()
     folder.mkdir(parents=True, exist_ok=False)
     scene = p.GetAnimationScene()
@@ -546,7 +565,7 @@ def open_registered(input_id, project_directory, service_url):
     if not isinstance(receipt.get("source_pins"), list) or not receipt["source_pins"]:
         raise ValueError("Registered native receipt needs its complete source pins")
     return open_result(entry, project_directory, input_id=receipt["id"], source_pins=receipt["source_pins"],
-                       native_metadata=receipt.get("native_metadata"))
+                       native_metadata=receipt.get("native_metadata"), registration_origin=receipt.get("registration_origin"))
 
 
 def main(argv=None):
