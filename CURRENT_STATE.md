@@ -237,8 +237,17 @@ Pro의 첫 자료 연결 커밋 `7090d1c`를 `c409665`로 통합했다. 선택�
 개정 읽기·검색, 논의 이력·하위 전문가·OpenScience의 같은 선택 범위와 파일 업로드
 클라이언트를 포함한다. Astra/xhigh는 변경 8개 파일을 독립 소스 검토해 실질적 결함을
 찾지 못했다. Codex의 `tests/test_expert_sources.py`는 Windows에서 4 PASS/5.42s였다.
-모델/호스트는 명시적 검사 대역이며 실제 inference는 실행하지 않았다. 파일 선택·본문
-미리보기·첨부 화면은 같은 Pro가 작성 중이다. 이 중간 통합으로 Expert 완료를 선언하지 않는다.
+모델/호스트는 명시적 검사 대역이며 실제 inference는 실행하지 않았다.
+이어 Pro `5037e46`의 파일 선택·본문 미리보기·첨부 화면을 `1170af4`로 통합했다.
+실제 loopback HTTP/자료 저장소를 쓰는 Qt 검사4개가 6.57s에 통과했고 새 legacy 이력
+검사도 1 PASS/1.75s였다. 종료 후 남은 worker의 Signal source deleted 예외는 같은 Pro에
+교정 요청했다. 공개 Markdown/text PDF/CSV3개를 실제 import한 Qt 렌더에서도 원문과
+질문·자료3개가 보였다. 다만 재열기 직후 원문 읽기와 제목 조회가 겹쳐 Source1/2/3으로
+남는 문제, Astra가 찾은 주기 갱신 때 선택 해제도 같은 Pro가 교정 중이다.
+`runs/product-development/20261013/expert-preview-63bea349`에 실제 화면/receipt가 있다.
+모델 미설정 상태의 로컬 자료 작업이며 실제 inference/OS 입력을 확인한 것은 아니다.
+첫 렌더 helper는 등록 역할이 반드시 있다고 잘못 가정해 대기했고, 그 가정만 제거한 뒤
+정상 렌더했다. 제품의 역할 목록을 가짜로 채우지 않았다. Expert 전체 완료는 아직이다.
 MoAI sync의 SPEC/코드 차이 대조와 관련 문서 갱신 절차를 적용했다. 전체 자동 sync나
 추가 모델 호출을 실행한 것으로 표시하지 않으며, 기존 사용자 지시대로 변경 경로만 확인한다.
 후속 CAD/FE 접촉 조사에서는 native 면 선택·참조 복구는 있으나 사용자 모델의 접촉쌍과
@@ -249,6 +258,10 @@ MoAI sync의 SPEC/코드 차이 대조와 관련 문서 갱신 절차를 적용�
 Runner/Post 결과까지 연결한다. 별도 설정의 FreeCADCmd로 공개 합성 두 박스의 접촉 객체를
 생성·FCStd 저장·재열기해 면 참조 보존을 확인했다. 메시·solver는 실행하지 않았으며
 제품 접촉 UI/계산 구현은 아직이다. 전체 작업표의 여섯 진행 상태만 실제 부분 구현에 맞췄다.
+후속 Astra 검토에서 두 body의 메시/재생성, 법선·sliding·step의 실제 deck 대응이 빠진
+점을 보완했다. Luna는 접촉 압력/침투/마찰 변위의 FRD와 pair 힘의 DAT를 기존 parser에
+연결할 위치를 조사했다. 두 출력의 부호/association이 다르며 양수 gap은 FRD COPEN만으로
+얻을 수 없어 명세에 미해결 구현으로 남겼다. 넓은 수치 검증은 선행하지 않았다.
 실제 데스크톱 캡처는 Windows 잠금 화면이어서 해제를 요청했다. 창 입력 확인만 대기하며
 Pro 작성과 코드 통합은 계속한다. 공개 PDF/Markdown/CSV의 첫 자료 가져오기 예제도 준비했다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와

@@ -33,7 +33,15 @@ reopen and blocked legacy-round recovery. Astra/xhigh independently reviewed the
 eight changed files and found no actionable source defect; it ran no UI or tests.
 
 This partially addresses AC-EX02/03 and the source boundary behind AC-EX04.
-Native chooser/content preview/attach are still being authored by the same Pro.
-AC-EX01 and the complete GUI workflow remain pending; neither this checkpoint
+Native chooser/content preview/attach arrived in Pro `5037e46` (main `1170af4`).
+The new `tests/test_expert_sources_ui.py` checks passed 4/4 in 6.57s over actual
+Qt/local HTTP/archive, with only file-dialog path choice replaced. One additional
+legacy-harvest test passed in 1.75s. A shutdown worker exception occurred after
+the Qt assertions and is being corrected by Pro. Root also imported public
+Markdown/text PDF/CSV and rendered the actual chooser and saved discussion with
+three sources, an editable question and no configured provider. It exposed a
+reopen title-prefetch race; Astra found periodic refresh clearing selection.
+Both are assigned to the same Pro, so complete GUI acceptance remains pending.
+Neither this checkpoint
 nor a scripted response establishes whole Expert/Co-STORM completion or
 engineering approval.

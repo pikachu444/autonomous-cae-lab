@@ -12,14 +12,21 @@ this draft exists; CURRENT_STATE controls that transition.
    face sets/3D inspection central. Save/reopen and explicit rebind are part of
    the feature, not a later generic infrastructure project.
 2. Add the contact-capable export/runner path alongside the existing contact-free
-   single-solid static route. Reuse FreeCAD's native contact object and CalculiX
-   writer/mesh-set services. First prove the existing single-face mapping; then
+   single-solid static route. Extend native mesh generation/admission for explicitly
+   separate bodies using the existing GmshTools and mesh binding. Preserve body,
+   material, support and load ownership and independent interface DOFs, including
+   initially touching bodies; a fused/shared-node interface is not separable contact.
+   Rebinding does not bypass stale-mesh checks. Reuse FreeCAD's native contact
+   object and CalculiX writer/mesh-set services. First prove the existing single-face mapping; then
    extend named multi-face sets as union surfaces without silently multiplying
    interactions or changing A/B roles. Keep unsupported drafts intact.
 3. Carry supported contact cards, actual requested outputs and complete immutable
    inputs through existing JobManager/Runner. Implement output parsing and native
    Post registration for the supported quantities; report unavailable quantities
-   precisely. User-model input and retained results must share the same attempt.
+   precisely. Missing request/parser work for a supported required quantity remains
+   unfinished, not a completed "unavailable" feature. Preserve original slave-node
+   or integration-point values separately from any display projection. User-model
+   input and retained results must share the same attempt.
 4. Connect the full author→run→inspect→change geometry→rebind→rerun/reopen workflow.
    A blocked draft checkpoint remains partial until supported execution/results
    exist. Other laws and coupled models stay in the full product backlog.

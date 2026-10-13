@@ -56,12 +56,17 @@ permanently blocked contact form. CURRENT_STATE owns assignment and order.
 - REQ-CONTACT-001-008: Saving or rebinding contact SHALL preserve older inputs,
   results and original numerical criteria. Execution success SHALL NOT imply
   engineering approval; unknown physical requirements remain UNKNOWN.
+- REQ-CONTACT-001-009: The contact route SHALL generate or explicitly admit a
+  mesh for the user's separate bodies, retaining body/material/load ownership
+  and independent interface degrees of freedom. Rebinding changed geometry
+  SHALL NOT make the previous mesh current; remesh or explicit mesh admission
+  must restore valid body-to-element and face-to-element-face mappings.
 
 ## Acceptance Criteria
 
 AC-C01 covers requirements 001/002: author, select, edit and reopen the user's pair.
 AC-C02 covers 003/008: compare a split/normal change, cancel safely and rebind.
-AC-C03 covers 004/005/006: submit the exact supported user-model contact through Runner.
+AC-C03 covers 004/005/006/009: mesh and submit the exact supported user-model contact through Runner.
 AC-C04 covers 007/008: inspect actual retained contact channels and reopen old results.
 
 ### Out of Scope — replacing existing systems
