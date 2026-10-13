@@ -63,6 +63,11 @@ export retained a 100 N resultant after correction (11.484 seconds). Real
 FreeCAD export completed for the two-body prescribed-displacement example,
 including comparison with the installed native contact writer and retained
 editable model/deck/manifest; the corrected run additionally exercised Force export.
-No actual contact solver/result claim is made.
+Subsequently, the actual installed CalculiX 2.22 completed this retained input
+through the product adapter in 41.703 seconds, with ten parsed increments.
+This is direct adapter execution, not Runner UI submission or qualification.
+Actual ParaView opening failed on ASCII nonfinite GeomGap values; raw FRD/DAT
+and the failed Post files remain retained. A serialization correction is in
+progress, with Post-only regeneration planned; no solver rerun is needed.
 The current task and subsequent correction status live in CURRENT_STATE rather
 than turning these partial checks into full scenario acceptance.

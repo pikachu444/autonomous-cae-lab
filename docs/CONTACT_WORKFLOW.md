@@ -316,3 +316,24 @@ execution. An invalid contact input remains a diagnostic with Run blocked;
 contact-free validation keeps its existing path. The native API contract test
 covers valid two-body Check and an invalid displacement through this branch.
 Author execution remains NOT_RUN.
+
+## Actual solver and native Post checkpoint
+
+Codex ran the retained `contact-export-402e8ca7` input through the product
+adapter on source `0d3a4f8`: installed CalculiX 2.22 completed in 41.703 seconds.
+All ten increments were parsed, retaining displacement/contact fields and
+pair resultants. The receipt and raw FRD/DAT are under
+`runs/product-development/20261013/contact-run-0b93d1b2/`. This was direct
+adapter execution, not Runner UI submission or engineering qualification.
+
+The first real ParaView 6.2 opening failed: its native XML reader rejected the
+ASCII nonfinite `GeomGap_mm` array, then exact field admission failed. The
+retained attempt remains unchanged. A separate native VTK probe confirmed
+that changing `nan` to `NaN` still fails, while uncompressed inline binary
+Float64 preserves NaN/positive infinity/negative infinity when read back.
+Pro is correcting this serialization boundary; Post files can be regenerated
+from the retained FRD/DAT without rerunning CalculiX. Probe evidence is under
+`runs/product-development/20261013/contact-post-9c47657b/`.
+
+The separate contact Check correction `1b37942` was integrated as `02ed0ae`;
+its changed native API contract test passed on Windows (1 test, 0.76 s).

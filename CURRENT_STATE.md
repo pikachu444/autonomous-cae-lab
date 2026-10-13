@@ -292,9 +292,19 @@ Astra가 찾은 원 native 세션 종료 뒤 원본 열기 누락, Force 표의 
 통합했고 변경된 contact/native export/원본 이동/FEM 단위 검사66건이 통과했다. 실제
 FreeCAD의 두 면100N 하중을 내보낸 결과 합력이 -Z100N으로 보존됐고, export는11.484초에
 완료됐다. 근거는 `runs/product-development/20261013/contact-export-402e8ca7/receipt.json`.
-교정 확인은 Codex의 소스·실행 확인이며 Astra 재검토 통과 주장은 아니다. 다음 행동은
-이 실제 입력의 지원 solver 실행과 Post 결과 연결이다. 접촉 solver/Post 실제 계산은
-아직 확인하지 않았다.
+교정 확인은 Codex의 소스·실행 확인이며 Astra 재검토 통과 주장은 아니다.
+
+이 입력을 실제 CalculiX 2.22와 제품 adapter로 실행해 41.703초에 성공했다. 10개 증분의
+변위·접촉 응답과 pair 힘을 읽었고 원 FRD/DAT를
+`runs/product-development/20261013/contact-run-0b93d1b2/attempt/`에 보존했다.
+Runner 화면을 통한 제출이나 공학적 정확성 승인은 아니다. 실제 ParaView 열기에서는
+ASCII VTU의 비유한 GeomGap 값을 읽지 못하는 오류가 발생했다. 별도 native VTK 확인에서
+NaN 대소문자 변경은 실패하고, inline binary Float64는 NaN/±Inf를 그대로 읽었다.
+같은 Pro에 `PRO-CONTACT-POST-FIX-01`로 교정을 맡겼으며 다음 행동은 수정 통합 후
+보존된 FRD/DAT에서 별도 Post 산출물만 재생성해 열기·저장을 확인하는 것이다. 원래 계산과
+실패한 VTU는 보존하고 솔버는 반복 실행하지 않는다. Pro의 별도 실행 전 검사 수정
+`1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
+않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.
 
 편집 단계 이후 실제 FreeCAD GUI에서 기존 `pre.fem.mesh_generate`를 호출해 두 물체의
 Gmsh 메시를 생성·저장했다. Base1147절점/532요소, Bridge2256절점/1122요소이고 접촉
@@ -318,7 +328,8 @@ PrePoMax의 면/접촉 법칙 분리와 writer, ccx2paraview의 시간 이력 �
 
 접촉 구현의 실제 입력으로 [두 발 CAD 예제](examples/contact/README.md)를 추가했다.
 FreeCAD의 편집 가능한 Boolean 형상이며 두 접촉면·0.2 mm 간극·받침을 저장/재열기했다.
-본제품 접촉 선언·메시·계산 결과는 아직 없다. 설치된 `ccx.exe -v`는 2.22를 반환했다.
+이 추적 예제 자체는 입력 형상이며 생성된 접촉 선언·메시·계산은 위의 실행 기록에 따로
+보존한다. 설치된 `ccx.exe -v`는 2.22를 반환했다.
 Pro는 물체별 메시를 생성하고 export에서 절점/요소 번호를 분리하는 구현 방향을 선택했다.
 Astra는 원본 물체 메시에서 면/하중을 먼저 매핑하고, 합칠 때 총하중·재료 배정과 역매핑을
 보존해야 한다고 검토했다. 이 조건을 Pro에게 전달했으며 별도 solver 검증을 선행시키지 않는다.
