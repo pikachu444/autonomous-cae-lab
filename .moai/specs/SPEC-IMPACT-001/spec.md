@@ -2,12 +2,12 @@
 id: SPEC-IMPACT-001
 title: "Independent impact and damage research"
 version: "0.1.0"
-status: planned
+status: in_progress
 created: 2026-10-14
 updated: 2026-10-14
 author: "Codex scope; actual ChatGPT Pro implementation"
 priority: "P1 High"
-phase: plan
+phase: run
 module: "Simulation, Material, Pre, Post"
 lifecycle: spec-anchored
 tier: L

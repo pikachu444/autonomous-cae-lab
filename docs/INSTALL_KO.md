@@ -97,7 +97,7 @@ git clone --recurse-submodules https://github.com/pikachu444/autonomous-cae-lab.
 | Code_Aster | 일부 구조 해석 예제 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
 | FEniCSx | 일부 PDE·연성 예제 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
 | MFront/MGIS | 일부 재료 법칙의 재료점 계산 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
-| OpenRadioss·OpenCourant | 제한된 강체 운동·접촉 예제의 WSL 실행 기록. 이상적 벽 충돌 검증은 미통과 | 별도 WSL/Linux 환경 필요 |
+| OpenRadioss·OpenCourant | 제한된 강체 운동·접촉 예제의 WSL 실행 기록. Windows 공식 패키지 설치와 버전 명령 확인; 일반 모델의 앱 연결은 개발 중. 이상적 벽 충돌 검증은 미통과 | Linux 계산 환경 또는 별도 Windows 패키지. 아래 선택 설치 참고 |
 
 FreeCAD는 CAD 전처리, Gmsh는 메시 생성, ParaView는 결과 후처리 도구입니다.
 위 실행 기록은 각 프로그램의 전체 기능 지원이나 실제 설계의 안전성 검증을 뜻하지 않습니다.
@@ -119,6 +119,39 @@ Data 편집, Material 피팅과 FELUPE 재료점 계산, SciPy ODE와 수치 연
 서비스가 끊겼을 때 다른 서비스나 작업 폴더로 몰래 전환하지는 않습니다. 기존 작업을
 종료·복구한 뒤 원하는 환경과 작업 폴더를 명시해서 다시 여세요. Linux에만 저장된 파일과
 native 실행 경로가 Windows에서 자동으로 바뀌는 것은 아닙니다.
+
+### Windows용 충격 솔버 준비하기
+
+WSL을 사용할 수 없는 PC에는 공식 OpenCourant Windows 패키지를 별도로 준비할 수
+있습니다. **현재는 설치 경로를 제공하는 단계이며, 일반 모델을 우리 앱에서 계산하는
+연결은 개발 중입니다.** 기본 Research 앱을 쓰기 위해 설치할 필요는 없습니다.
+
+소스 폴더의 PowerShell에서 다음 명령을 실행합니다. 공식 고정 버전의 약 350 MB ZIP을
+내려받아 사용자 폴더에 설치합니다. 관리자 권한이나 WSL은 필요하지 않습니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-opencourant-windows.ps1
+```
+
+인터넷이 없는 PC에서는 [공식 Windows ZIP](https://github.com/OpenCourant/OpenCourant/releases/download/latest-20261011/OpenCourant_win64.zip)을
+다른 PC에서 미리 받아 옮긴 뒤 파일 위치를 지정합니다. 솔버 패키지의 오프라인 설치이며,
+기본 Research 환경 전체의 오프라인 설치를 제공하는 것은 아닙니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-opencourant-windows.ps1 -Archive 'D:\Install\OpenCourant_win64.zip'
+```
+
+설치 위치는 `%LOCALAPPDATA%\AutonomousCAELab\runtimes\opencourant-windows-20261011\OpenCourant`입니다.
+다른 위치가 필요하면 `-RuntimeRoot 'C:\CAE\OpenCourant-20261011'`을 추가하세요.
+해당 폴더 아래에 `OpenCourant`가 생깁니다. 경로가 너무 길면 짧은 위치를 선택하세요.
+다시 실행하면 동일한 원본 파일을 재사용합니다. 기존 파일을 사용자가 수정했거나 일부가
+없으면 덮어쓰지 않고 중단하므로 새 설치 위치를 지정하거나 원본을 복구하세요.
+중단된 다운로드도 남겨 두며, 완전한 공식 ZIP을 `-Archive`로 지정해 이어갈 수 있습니다.
+
+설치는 시스템 PATH, 현재 계산 서비스와 기존 계산 자료를 바꾸지 않으며 해석을
+실행하지 않습니다. 원본 패키지의 저작권·허가문을 함께 보존합니다. OpenCourant 본체와
+Reader/H3D/Intel 구성요소는 허가 조건이 서로 다르므로 묶음 전체를 같은 라이선스로
+취급하지 않습니다. [라이선스 확인 기록](design/20261012-desktop-planning/TOOLS_AND_LICENSES.md)을 참고하세요.
 
 ### 이미 설치한 WSL 계산 환경에 연결하기
 

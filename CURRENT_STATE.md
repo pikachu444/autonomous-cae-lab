@@ -10,6 +10,23 @@
 2026-10-14 최신 체크포인트. 아래의 날짜별 서술은 앞선 실행 근거이며 이 절의
 현재 배정보다 우선하지 않는다. 전체 제품 Goal은 계속 진행 중이다.
 
+**현재 작성:** D7 Windows 후속과 구성식 표시 교정의 독립 검토를 마쳤다.
+D8 충격·손상 구현 요청 `PRO-IMPACT-DAMAGE-RESEARCH-01`은 실제 Pro 대화에 전달됐고,
+작성 턴 `01a13744-82bd-70c6-b963-a67f727b47d0`의 진행을 확인했다. Pro가 전체 인계를
+기존 코드와 대조하고 일반 FE 모델용 adapter를 기존 Simulation/JobManager에 연결하는
+작성을 시작했다. 요청 원본은 [구현 인계](.moai/specs/SPEC-IMPACT-001/plan.md)다.
+앞선 긴 전송의 미수신을 확인한 뒤 같은 ID와 게시된 원문 링크로 전송했고, 새 턴을
+확인했으므로 다시 보내지 않는다. 아직 D8 구현 제출이나 실제 모델 계산 성공은 아니다.
+Sol은 Windows 선택 설치를, root는 사용 안내와 통합을, Astra는 독립 검토를 맡는다.
+선택 설치는 공식 ZIP의 실제 첫 설치·동일 폴더 재사용을 Windows PowerShell 5.1에서
+확인했다. 기존·수정 파일과 오프라인 원본을 보존하며 추가 다운로드/solver 실행은 없다.
+Astra가 찾은 `.partial` 이름의 오프라인 원본 이동 문제도 교정했다. 마지막 소유권
+교정까지 관련 13개 검사가 통과했다(9.10초). 실제 설치는 교정 전, 마지막 차이는
+해당 경로 검사로 구분해 `impact-workflows/install-windows`에 남겼다. 사용 안내는
+[Windows용 충격 솔버 준비](docs/INSTALL_KO.md#windows용-충격-솔버-준비하기)에 있다.
+Astra가 최종 소유권 교정과 실제 설치 파일 목록을 확인했고 해당 설치 변경의 지적은
+해결됐다. 일반 모델의 실제 계산과 전체 D8 완료 판정은 남아 있다.
+
 **최신 환경 요구:** 사용자가 WSL을 쓰지 못하는 경우도 지원하도록 지시했다.
 기본 `Start-CAE-Lab.cmd`는 이미 Windows 경로다. root가 고급 실행 스크립트의 Auto도
 전용 Windows Python으로 바꾸고 Windows PowerShell의 저장 설정 읽기를 호환 처리했다.
@@ -33,8 +50,8 @@ Linux 전용 계산만 제한하고 입력 편집·저장·결과 읽기를 유�
 관련 검사 10통과/1실패/1건너뜀 뒤, 기존 무허가 빌드 검사의 지원 OS 조건을 명시했다.
 해당 권한 경계 1개가 통과했고 무허가 상태에서 runtime 조회까지 못 가는 것도 확인했다.
 새 Windows 계산 차단 검사는 따로 유지한다. `tests-service-platform.txt`와
-`tests-admission-platform.txt`에 원실패와 후속을 남겼다. Astra가 좁은 후속을 읽고 있으며
-Pro D7 작성 턴은 완료됐다. 다음 핵심 배정은 준비한 D8 충격/손상 요청이다.
+`tests-admission-platform.txt`에 원실패와 후속을 남겼다. Astra가 해당 후속과 권한 경계를
+검토했고 통합을 막는 지적은 없다. Pro D7 작성 턴은 완료됐고 D8 구현을 시작했다.
 
 **최신 인도:** D6 수치 연구의 방법별 편집·저장 모델 예측·명시 실제 확인과 원 모델
 채택 연결을 Pro가 작성했고 마지막 교정 `220caaf`를 로컬 `804c3a6`로 통합했다.
@@ -128,9 +145,9 @@ Astra가 기존 R2/R3/R5/R6의 소스 해결을 확인했다. 실제 Windows FEL
 `scripts/install-opencourant-windows.ps1`과 좁은 설치 확인만 맡는다. 공식 무료 archive,
 오프라인 파일과 기존 설치 보존을 지원하며 Core/adapter는 Pro, 문서/통합은 root 소유다.
 
-**현재 핵심 작업:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain을
-다른 작성자가 동시에 변경하지 않는다. root가 상속 접점·일반 문서·연결·통합을 맡는다.
-Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이다.
+**앞선 D7 배정 기록:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain과
+보조 작성자의 파일을 분리했다. root가 상속 접점·일반 문서·연결·통합을 맡았다.
+이 인도는 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업에 연결된다.
 `PRO-PDE-COUPLED-RESEARCH-01`을 같은 실제 Pro 대화에 기준 `b0a433f`로 전달했고
 새 작성 턴 `01a136eb-4507-7284-afa2-633336bb4492`가 시작된 것을 확인했다.
 요청 원문은 `pde-coupling-workflows/pro-request.md`다. Sol의 Evaluation 화면 두 파일
@@ -139,9 +156,9 @@ Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이�
 후속 D8 충격·손상은 기존 네 작업과 현재 Simulation/OpenRadioss의 실제 지원 범위를
 대조해 [SPEC-IMPACT-001](.moai/specs/SPEC-IMPACT-001/spec.md)에 연결했다. 일반 모델의
 초기조건·회전·접촉·손상/피로는 기존 강체 예제와 구별해 요구로 유지한다. 추가 솔버 실행,
-설치나 Pro D8 배정은 하지 않았으며 D7 다음 인계 준비다.
-요청 초안은 `runs/product-development/20261014/impact-workflows/pro-request.md`에
-미전송으로 보관했다. D7 통합 뒤 기준 소스와 파일 소유권을 갱신하고 전달한다.
+설치는 이 조사 당시 수행하지 않았다. D7 통합 뒤 기준 소스와 파일 소유권을 갱신해
+Pro에게 전달했고 현재 착수 상태는 위 최신 체크포인트를 따른다. 전달 기록은
+`runs/product-development/20261014/impact-workflows/pro-request.md`다.
 Sol/Astra가 실제 FreeCAD mesh/sets 추출과 MIT INP2RAD 소스를 대조하고 직접 토론했다.
 원 static 모델에 밀도·초기조건·시간 제어를 명시하고 별도 일반 explicit adapter로
 연결하는 경로를 SPEC에 반영했다. Mg/mm/s 변환, 원 includes 보존과 native Post 연결이
