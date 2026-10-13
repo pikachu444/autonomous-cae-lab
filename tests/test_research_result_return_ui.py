@@ -40,6 +40,37 @@ def wait(app, predicate):
     raise AssertionError('Qt/result delivery did not settle')
 
 
+def return_snapshot(source, target):
+    receiver = target._result_return
+    return {
+        'source': {'busy': source._busy, 'callbacks': source._callbacks,
+                   'message': source.message.text(), 'selected_job': source.selected_job(),
+                   'receipts': deepcopy(source._return_receipts),
+                   'delivery_id': (source._last_return_message or {}).get('delivery_id')},
+        'target': {'busy': target._busy, 'message': target.message.text(),
+                   'document_id': (target.document or {}).get('id'),
+                   'session_id': (target.document or {}).get('session_id'),
+                   'receiver_target': receiver.target, 'route': receiver.route,
+                   'listening': bool(receiver.server and receiver.server.isListening()),
+                   'connections': len(receiver.connections),
+                   'pending': list(receiver.pending),
+                   'receipts': deepcopy(receiver.receipts)}}
+
+
+def wait_for_return(app, source, target):
+    # A completed sender error is a failure now, not a 15s empty-receipt wait.
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        app.processEvents()
+        if not source._busy and not source._callbacks:
+            state = return_snapshot(source, target)
+            assert source._return_receipts, json.dumps(state, ensure_ascii=False, indent=2)
+            return
+        time.sleep(.005)
+    raise AssertionError('Result return did not settle: ' +
+                         json.dumps(return_snapshot(source, target), ensure_ascii=False, indent=2))
+
+
 @pytest.fixture
 def app():
     return QApplication.instance() or QApplication([])
@@ -334,7 +365,7 @@ def test_ipc_malformed_frame_disconnect_and_stale_session_no_fallback(app, loopb
 
 
 CHILD_WINDOW = r'''
-import json, os, sys
+import json, os, sys, uuid
 from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
@@ -345,20 +376,27 @@ client = Client(sys.argv[1])
 window = StudyWindow(client, document_id=sys.argv[2], poll_interval=0)
 window.show()
 report = Path(sys.argv[3])
+ready_report = report.with_name(report.stem + '-ready.json')
+window_token = uuid.uuid4().hex
 state = {'ready': False, 'finished': False}
+def identity():
+    return {'pid': os.getpid(), 'window_token': window_token,
+            'document_id': window.document['id'], 'session_id': window.document['session_id']}
 def pump():
     if not window.document or window._busy: return
     if not state['ready']:
         state['ready'] = True
         window.question.setPlainText('Live child unsaved text')
-        report.write_text(json.dumps({'pid': os.getpid(), 'status': 'READY'}), encoding='utf-8')
+        ready = json.dumps({**identity(), 'status': 'READY'})
+        ready_report.write_text(ready, encoding='utf-8')
+        report.write_text(ready, encoding='utf-8')
     receiver = window._result_return
     if receiver.pending and not receiver.reviewing and not state['finished']:
         receiver.confirm = lambda *args: sys.argv[4] == 'attach'
         receiver.review_next()
     if receiver.receipts and not receiver.pending and not receiver.reviewing and not state['finished']:
         state['finished'] = True
-        report.write_text(json.dumps({'pid': os.getpid(), 'status': next(iter(receiver.receipts.values()))['status'],
+        report.write_text(json.dumps({**identity(), 'status': next(iter(receiver.receipts.values()))['status'],
             'draft': window.edited_draft(), 'owner_draft': client.document_read(window.document['id'])['draft']}), encoding='utf-8')
         window._allow_close = True
         window.close()
@@ -376,27 +414,39 @@ def test_separate_process_live_reuse_and_closed_origin(app, loopback, monkeypatc
     origin, _, reference, _ = retained_plan(loopback, monkeypatch, 'study')
     client = loopback.client
     report = tmp_path / 'child-result.json'
+    ready_report = report.with_name(report.stem + '-ready.json')
     processes = []
     def launch():
         process = subprocess.Popen([sys.executable, '-c', CHILD_WINDOW, client.url, origin['id'], str(report), decision],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen', 'PYTHONIOENCODING': 'utf-8'})
         processes.append(process)
-    def state():
+    def state(path=report):
         try:
-            return json.loads(report.read_text(encoding='utf-8'))
+            return json.loads(path.read_text(encoding='utf-8'))
         except (FileNotFoundError, ValueError):
             return {}
     try:
         if preopen:
             launch()
-            wait(app, lambda: state().get('status') == 'READY')
+            wait(app, lambda: state(ready_report).get('status') == 'READY')
+        ready_before = state(ready_report) if preopen else None
         message = result_message(client, origin['id'], origin['session_id'], reference, [])
         receipt = worker(app, lambda: deliver_result(client, message, launch=launch))
         assert receipt['status'] == 'PRESENTED'
         wait(app, lambda: state().get('status') in {'ATTACHED', 'CANCELLED'})
         actual = state()
-        assert len(processes) == 1 and actual['pid'] == processes[0].pid
+        ready = state(ready_report)
+        assert len(processes) == 1  # No second interpreter or replacement window launch.
+        assert ready['status'] == 'READY' and type(ready['pid']) is int and ready['pid'] > 0
+        assert ready['pid'] != os.getpid() and ready['window_token']
+        assert ready['document_id'] == origin['id'] and ready['session_id'] == origin['session_id']
+        if preopen:
+            assert ready == ready_before
+        # A Windows venv Popen PID can belong to its redirector. Compare the
+        # actual Qt interpreter/window recorded before delivery with completion.
+        for key in ('pid', 'window_token', 'document_id', 'session_id'):
+            assert actual[key] == ready[key], (key, ready, actual)
         assert actual['draft']['question'] == 'Live child unsaved text'
         assert actual['owner_draft'] == client.document_read(origin['id'])['draft']
         assert actual['owner_draft']['evidence'] == []
@@ -443,7 +493,7 @@ def test_plan_return_button_original_and_independent_selection(app, loopback, mo
     monkeypatch.setattr(QInputDialog, 'getItem', choose_existing)
     monkeypatch.setattr(source, '_select_return_channels', lambda result: [])
     assert source.return_result()
-    wait(app, lambda: not source._busy and bool(source._return_receipts))
+    wait_for_return(app, source, target)
     pending = next(iter(target._result_return.pending.values()))
     assert pending['target_id'] == origin['id'] and pending['reference'] == reference and pending['selection'] == []
     assert len(chosen) == (1 if kind == 'independent' else 0)
@@ -496,7 +546,7 @@ def test_return_selected_earlier_run_and_real_top_level_channel(app, loopback, m
         return ['cost']
     monkeypatch.setattr(source, '_select_return_channels', select_channel)
     assert source.return_result()
-    wait(app, lambda: not source._busy and bool(source._return_receipts))
+    wait_for_return(app, source, target)
     message = next(iter(target._result_return.pending.values()))
     assert message['reference'] == reference and message['selection'] == ['cost']
     monkeypatch.setattr(target._result_return, 'confirm', lambda *args: True)
