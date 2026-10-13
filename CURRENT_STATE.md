@@ -16,7 +16,9 @@
 Windows Qt에서 WSL 서비스의 자료를 열 때 자식 연구 창은 Windows Python을 쓰도록
 연결했다. 서비스와 기존 작업 폴더는 자동 교체하지 않는다. 사용 안내는 INSTALL_KO의
 ‘WSL 없이 사용하기’에 있다. 실제 Windows 실행 및 교차 호스트 전달 검사는
-`pde-coupling-workflows/tests-no-wsl.txt`에 기록한다. native Pre/Post 교차 호스트
+7개가 통과했다(7.15초). Astra의 지적으로 기존 Linux 저장 경로를 Windows에서 다른
+폴더로 해석하는 것도 실행 전에 막았다. `f7fe9b9`와
+`pde-coupling-workflows/tests-no-wsl.txt`에 기록했다. native Pre/Post 교차 호스트
 전환이나 모든 솔버의 Windows 이식을 완료한 것은 아니다.
 Pro에게도 최신 요구를 전달했다. D8 SPEC과 미전송 요청에는 공식 OpenCourant Windows
 배포를 이용한 실제 계산→Post 경로를 추가했으며 아직 설치/실행 전이다. 현재 Linux에만
@@ -85,11 +87,28 @@ Astra/Sol의 확정 지적은 응답 이름 충돌, cold 숫자 복구, 응력/�
 `34bcd31`, 충격 모델 재사용 명세는 `53da053`에 저장했다.
 현재 D7 변경은 로컬 커밋이며 원격 main 게시 전이다. 전체 7개 작업 완료로 표시하지 않는다.
 
-**병렬 연결 화면:** Sol이 `apps/research/reference_window.py`와 새
-`tests/test_reference_window.py`를 맡는다. 여러 도구에서 저장된 자료를 여는 공통 창의
-합쳐진 제목·영어 상태·배치와 읽기 실패 재시도를 고친다. 기존 ReferenceContent와
-Core/Pro 파일은 변경하지 않는다. Astra가 Sol과 배치·복구를 직접 논의하고 읽기 검토하며
-`reference-layout`에 실제 Qt 화면과 결과를 남긴다. root가 연결·소스·실행을 통합한다.
+**D7 후속 교정:** Pro `46ea382`를 `a123f71`로 통합했다. 숫자 오류를 저장하고 새 창에서
+고친 값의 자료형 복구, 응력/변형구배 성분과 단위 표시, 빌드 선언 확인 뒤 입력 준비,
+단위 오류 위치와 약형식 적분 차수 표기가 포함됐다. 변경 관련 Windows 검사 29개 통과,
+native 옵트인 2개 건너뜀(32.70초). 이후 변경된 사용자 MFront 경로는 기존 Ubuntu에서
+빈 물성 목록·미완성 수치 초안으로 빌드→선언으로 입력 준비→실제 적분/FD→재읽기
+1개가 통과했다(26.77초). Windows native MFront 확인은 아니다.
+`tests-final-correction.txt`, `tests-user-native-corrected.txt`에 기록했다. Qt 검사에서
+오프스크린 한글 글꼴 경고가 나와 해당 검사를 화면 품질 통과로 표시하지 않는다.
+Astra가 기존 R2/R3/R5/R6의 소스 해결을 확인했다. 실제 Windows FELUPE 공개 재료점
+한 번으로 새 구성식 창 두 크기를 렌더해 root/Astra가 읽었다. F/응력 18행은 읽히지만
+접선 그래프의 지나친 축 확대와 원자료 트리의 좁은 열은 후속 화면 교정으로 남았다.
+자료는 `constitutive-render`에 보존했다. Sol이 해당 창의 그래프 표시/트리 열만 맡고
+동일 결과를 다시 읽어 교정한다. 새 계산과 Core 변경은 하지 않는다. 전체 D7 잔여는 유지한다.
+
+**연결 화면 인도:** Sol의 `reference_window.py`와 전용 검사, 한국어 사용 안내를
+`4701046`으로 통합했다. 자료 종류별 제목, 원 도구 열기, F5 재시도와 실패 복구를
+정리했다. 실제 저장본을 다시 읽어도 원 문서의 미저장 편집이 유지되는 것을 포함해
+7개 검사 통과(3.56초). Sol/Astra가 직접 논의하고 실제 Qt 두 크기의 문서·그래프·표·
+실패·읽는 중 화면을 확인했다. root도 작은 문서/그래프/표를 읽었다.
+`reference-layout/design.md`, `review.md`, `final`에 기록했다. 물리 계산과 OS 직접
+조작은 수행하지 않았다. Sol은 이어 WSL 없는 충격 해석의 Windows native 연결점을
+`impact-workflows/windows-path.md`에 조사하며 제품/Core 파일은 수정하지 않는다.
 
 **현재 핵심 작업:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain을
 다른 작성자가 동시에 변경하지 않는다. root가 상속 접점·일반 문서·연결·통합을 맡는다.
