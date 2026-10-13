@@ -168,8 +168,13 @@ Penpot은 계정이 없어 제외하라는 사용자 결정으로 닫고 무시�
 변수·응답·방법별 편집과 같은 Expert/Study로 결과를 돌려주는 기능을 주작성하며,
 Codex가 공유 경계·Windows 실행·통합, Astra가 독립 설계/코드 검토를 맡는다. 열린
 원 창의 미적용 편집을 보존하고 pending 결과를 사용자 확인 후 추가해야 한다.
-같은 문서를 새로 열거나 새 X/S를 만들며 왕복 완료로 표시하지 않는다. 첫 통합 경로는
-CAD/FE→Simulation→Runner→native Post→최적화와 Expert→Numerical→결과→Study이며
+같은 문서를 새로 열거나 새 X/S를 만들며 왕복 완료로 표시하지 않는다.
+현재 요청은 `PRO-IMPL-NUMERICAL-20261013-01`이며 같은 실제 Pro에 전달·수신을 확인했다.
+작성 브랜치는 `codex/numerical-workflow-20261013`, 기준 main은 `edcc1fb`다.
+범위와 완료 조건은 [SPEC-NUMERICAL-001](.moai/specs/SPEC-NUMERICAL-001/spec.md)에 연결한다.
+첫 진입 기능의 코드·검증 기록은 원격 main `edcc1fb` 게시 후 같은 SHA를 확인했다.
+첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와
+Expert→Numerical→결과→Study이며
 Data/Material/PDE는 독립 병행한다. 별도의 개발 시작 문구를 기다리지 않는다.
 사용자는 [검토 안내](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)의 화면과
 Qt 조작에 피드백을 줄 수 있다. 이를 반복 인터뷰나 과거 solver 전수 검증으로 바꾸지 않는다.
