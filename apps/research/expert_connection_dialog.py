@@ -132,16 +132,27 @@ class ConnectionDialog(QDialog):
         return True
 
     def refresh(self):
+        if self._closed or self._busy:
+            return False
+        # Destination, content and CAS hash must come from one verified read.
+        # Failed reads must never leave the previous file eligible for Apply.
+        self.loaded = False
+        self.original, self.expected_sha, self.definitions = {}, None, []
         path = self.path
         def read():
             service = self.client.expert_connection()
-            registry = self.client.request('/api/workbench/assist',
-                                           {'operation': 'experts.list', 'arguments': {}})
             if path is None:
                 raise ValueError('Choose the local configuration used by this service')
             if Path(service.get('operator_config_path') or '').resolve() != path.resolve():
                 raise ValueError('Choose this service’s local operator configuration; no file was changed')
             config, sha = setup.read_config(path)
+            try:
+                registry = self.client.request('/api/workbench/assist',
+                                               {'operation': 'experts.list', 'arguments': {}})
+            except Exception:
+                # Local replacement remains possible when old legacy roles or
+                # optional packages cannot initialize the current assistance.
+                registry = {'connection_setup_error': True}
             return service, registry, config, sha, setup.discover()
         def opened(payload):
             service, registry, config, sha, locations = payload
@@ -171,7 +182,9 @@ class ConnectionDialog(QDialog):
             self._populate_collections(policy.get('collections', []))
             self.config_label.setText(str(path))
             self.loaded = True
-            self.message.setText('Local setup only. Authentication and model entitlement have not been checked.')
+            self.message.setText('Choose replacement roles; current roles could not be loaded.'
+                                 if registry.get('connection_setup_error') else
+                                 'Local setup only. Authentication and model entitlement have not been checked.')
             self._show_status(service, registry)
         return self._call(read, opened)
 

@@ -55,7 +55,8 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Raw | ConvertFrom-Json
 $global:CaeLauncherTest = @{spec=$spec;started=$false;processId=42421;
-    python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command='';ownedProcess=$true;ownedListener=$true}
+    python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command='';ownedProcess=$true;ownedListener=$true;
+    loadedHash=$null;session='Sfixture'}
 $global:LASTEXITCODE = 0
 function Write-TestEvent($value) {
     ConvertTo-Json -InputObject $value -Compress -Depth 8 |
@@ -91,10 +92,8 @@ function Invoke-RestMethod {
     [CmdletBinding()] param([string]$Uri,[int]$TimeoutSec)
     if ($Uri -notlike '*/api/workbench/expert-connection') { throw 'Unexpected connection request' }
     $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
-    $hash = if ($global:CaeLauncherTest.spec.mutate -eq 'applied_config' -and (Test-Path -LiteralPath $config)) {
-        (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash.ToLowerInvariant()
-    } else { $null }
-    return [pscustomobject]@{service_session_id='Sfixture';operator_config_path=$config;config_sha256=$hash}
+    $state = $global:CaeLauncherTest
+    return [pscustomobject]@{service_session_id=$state.session;operator_config_path=$config;config_sha256=$state.loadedHash}
 }
 function Start-Process {
     [CmdletBinding()]
@@ -108,6 +107,10 @@ function Start-Process {
     Write-TestEvent @{kind='server';python=$FilePath;argv=$ArgumentList;cwd=$WorkingDirectory}
     $state.started = $true
     $state.command = $ArgumentList -join ' '
+    $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
+    $state.loadedHash = if (Test-Path -LiteralPath $config) {
+        (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash.ToLowerInvariant()
+    } else { $null }
     return [pscustomobject]@{Id=$state.processId;HasExited=$false}
 }
 function Stop-Process {
@@ -117,6 +120,13 @@ function Stop-Process {
 function Start-Sleep { param([int]$Milliseconds) }
 
 try {
+    # ABA starts with an actual file A, records A, then applies B but restores
+    # A on disk without applying it. Receipt == disk must not bypass status.
+    if ($spec.mutate -eq 'config_aba') {
+        $folder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+        '{}' | Set-Content -LiteralPath (Join-Path $folder 'workbench-config.json') -Encoding UTF8
+    }
     $phaseIndex = 0
     foreach ($phase in $spec.phases) {
         if ($phaseIndex -gt 0) {
@@ -137,7 +147,16 @@ try {
                     $configFolder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
                     New-Item -ItemType Directory -Path $configFolder -Force | Out-Null
                     '{"runtime":null,"experts":[]}' | Set-Content -LiteralPath (Join-Path $configFolder 'workbench-config.json') -Encoding UTF8
+                    $global:CaeLauncherTest.loadedHash = (Get-FileHash -LiteralPath (Join-Path $configFolder 'workbench-config.json') -Algorithm SHA256).Hash.ToLowerInvariant()
                 }
+                'config_aba' {
+                    $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
+                    $original = [IO.File]::ReadAllBytes($config)
+                    '{"runtime":null,"experts":[]}' | Set-Content -LiteralPath $config -Encoding UTF8
+                    $global:CaeLauncherTest.loadedHash = (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash.ToLowerInvariant()
+                    [IO.File]::WriteAllBytes($config, $original)
+                }
+                'service_session' { $global:CaeLauncherTest.session = 'Sdifferent' }
                 'config' {
                     $configFolder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
                     New-Item -ItemType Directory -Path $configFolder -Force | Out-Null
@@ -253,6 +272,17 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(self.events_of(events, "server")), 1)
         self.assertEqual(self.events_of(events, "desktop"), [])
+
+    def test_reuse_checks_loaded_config_and_session_even_when_receipt_matches_disk(self):
+        for mutation in ('config_aba', 'service_session'):
+            with self.subTest(mutation=mutation):
+                result, events, spec = self.run_case([
+                    self.phase(NoBrowser=True, ResearchUI=True),
+                    self.phase(NoBrowser=True, ResearchUI=True)], mutate=mutation)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('not active', result.stderr)
+                self.assertEqual(len(self.events_of(events, 'server')), 1)
+                self.assertEqual(self.events_of(events, 'desktop'), [])
 
     def test_installer_readiness_preserves_native_python_argv(self):
         folder, environment = self.case()
