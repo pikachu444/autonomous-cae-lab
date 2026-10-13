@@ -308,8 +308,15 @@ NaN 대소문자 변경은 실패하고, inline binary Float64는 NaN/±Inf를 �
 `runs/product-development/20261013/contact-post-8096fa28/receipt.json`과 `reopen-receipt.json`이다.
 원 계산과 실패한 VTU를 보존했고 솔버는 반복 실행하지 않았다. 마우스 입력이나 공학적
 정확성 승인은 아니다. 다음 기능은 이 결과에서 접촉쌍·면을 선택하고 힘/간극/압력 이력을
-살핀 뒤 기존 Post 측정과 Numerical로 이어가는 사용자 조작이다. Luna가 현재 native Post
-명령과 측정 연결만 읽기 전용 조사하며, Pro가 제품 코드를 계속 소유한다.
+살핀 뒤 기존 Post 측정과 Numerical로 이어가는 사용자 조작이다. Luna가 native Post의
+기존 `bridge.py`/`workspace.py`, Research 측정과 `post_numerical.py`의 Plan 검토/추가
+경로를 조사했다. 현재 whole-mesh PVD에는 pair별 선택이 없고 실제 pair 힘 sidecar도
+화면/측정에 연결되지 않았다. `PRO-CONTACT-INSPECT-01`을 같은 Pro 대화로 전송했고
+실제 사용자 메시지와 새 작업 턴 `01a1340a-8fc3-72ac-8a6e-fd2b2d7446f3`의 진행을 확인했다.
+기준은 원격 main `a2ae3f6`이며 Pro의 `5744079`를 포함한다. Pro는 기존 native Post 안에서
+pair/면/증분 선택과 압력·간극·힘 이력, 저장/재열기와 선택 응답의 기존 Numerical Plan
+추가를 소유한다. Codex는 공통 계약/등록 경계 검토, 최소 Windows 실행과 문서 통합을 맡고
+Astra는 산출물의 핵심 의미·사용자 흐름을 독립 검토한다. 새 solver 실행은 맡기지 않는다.
 Pro의 별도 실행 전 검사 수정
 `1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
 않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.
