@@ -4,9 +4,31 @@
 
 요청 `PRO-DESKTOP-DESIGN-20261012-06`, UX-STEER-01 및 UX-FIX-01…06, UX-MAP-01/02, UX-VISUAL-01 및 UX-COMPLETE-01를 반영했습니다. 주 설계와 Qt·SVG 상태 작성은 ChatGPT Pro, 독립 검토는 Astra/xhigh, 제한 코드·Qt 검사는 Sol/high, 원본 조사는 Luna/high입니다. 다른 모델의 작업을 Pro 작성으로 표시하지 않습니다.
 
+## 두 그림이 보여 준 작업
+
+제출된 두 장은 **형상을 편집하는 곳**과 **설계 후보를 고르는 곳**을 보여 줍니다. 각 한 상태만 보여 주어, 앞뒤 조작과 사용자가 끝낼 공학 작업의 연결이 빠졌습니다.
+
+| 제출 그림 | 짧은 설명 |
+|---|---|
+| [CAD Features](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/cad-features.png) | 클램프 두께 16·폭 90·높이 32 mm와 구멍을 편집하는 Qt 화면입니다. 형상은 Qt가 그린 합성 그림이며, 이 캡처에는 변경 전후가 없습니다. |
+| [Numerical MOO](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/preview/numerical-moo.png) | 질량·Gauge error를 줄이면서 변위·간극 조건을 만족하는 후보를 고르는 화면입니다. 선택된 p19는 0.42 kg, 2.1%, 변위 0.31 mm, 간극 0.12 mm입니다. 후보 수치는 미리 작성한 예시입니다. |
+
+표 편집·선택·파일 작업은 실제 Qt 조작입니다. 형상 그림과 곡선·후보 값은 기획용 합성 예시이며 실제 FreeCAD/ParaView 또는 solver·optimizer의 실행 결과가 아닙니다. p19가 p04를 두 목표에서 지배하므로 이 MOO 예시는 제약·지배 관계 비교를 보여 줍니다. 여러 비지배 후보의 절충안을 찾은 결과라고 설명하지 않습니다.
+
+## 현재 검토 상태
+
+- **기능과 산출물:** 기존 전체 기획 범위와 편집 가능한 시제품·상태 원본이 있습니다. 이번 시안을 본제품에 연결하는 구현은 시작하지 않았습니다.
+- **Qt 조작 검사:** Codex가 Windows에서 실행해 전달한 범위별 PASS는 유지합니다. 이번 문서 교정에 원격 재실행은 없습니다.
+- **시각적 상세설계:** 개별 화면과 검토 기록은 있으나, 두 장만으로 주작업의 목적·변화·판단 결과를 충분히 제시하지 못했습니다. 연속 화면 제시와 필요한 시각 교정이 남습니다.
+- **사용자 수용:** 아직 확인되지 않았습니다. 개발 시작 지시도 없습니다.
+
+“남은 4묶음 모두 끝 / 0개”를 전체 기획 완료 보고에서 철회한 Codex 판단에 주작성자 Pro도 동의합니다. 이미 동작하는 시제품과 해당 검사 성과는 그 범위대로 남습니다.
+
+다음 검토에서는 **CAD 치수 변경 → 면의 조건 → 해석 설정·작업 감시 → Post 측정 → 변수·목표·제약과 후보 적용**, **Expert 논점·reply → 연구 정의 → 선택 결과 → 후속 논의·Study 판단**을 같은 작업의 전후 화면으로 보여 줘야 합니다. 기존 상태로 구성할 구체적인 장면과 Pro의 비판은 [DESIGN의 제출 화면과 남은 사용자 검토](DESIGN.md#제출-화면과-남은-사용자-검토)에 적었습니다. 아래 실행 안내는 그 조작을 여는 방법이며 연속 제출본이나 사용자 수용을 대신하지 않습니다. 이번 게시물은 두 문서의 설명·상태 교정입니다.
+
 ## Windows에서 실행
 
-검토용 `design/product-ux-20261012` checkout에서 기존 Python/PySide6를 사용합니다. 설치 명령은 없습니다.
+이 시제품을 포함한 checkout에서 기존 Python/PySide6를 사용합니다. 설치 명령은 없습니다.
 
 ```powershell
 Set-Location C:\SourceCodes\autonomous-cae-lab\docs\design\20261012-desktop-planning\pro-ux
@@ -37,7 +59,7 @@ py -3.13 qt_prototype.py --tool acquisition
 py -3.13 export_screens.py --offscreen --state report-sections --state report-preview --state acquisition-channels --state acquisition-connection --output "$env:TEMP\caelab-completion-svg" --png-output "$env:TEMP\caelab-completion-png"
 ```
 
-**추가 4상태의 첫 소스 checkpoint:** 원격 Linux 실행 환경이 작성 중 연결을 잃어 새 창의 실행·SVG 렌더·PDF 출력은 아직 확인하지 못했습니다. 기존 049bbbc와 portablefont/Post 표의 Windows 확인은 Codex가 별도로 보고했습니다. 새 Report/Acquisition을 그 PASS에 포함하지 않습니다. 상태 원본과 같은 Qt view를 사용하는 exporter를 먼저 제공합니다.
+**추가 4상태 확인 이력:** 첫 소스 checkpoint는 원격 Linux 연결 단절로 미실행 상태로 전달했습니다. 이후 Report/Acquisition의 실제 Windows 확인은 아래 ‘Qt 기술 검사와 source 인계’에 기록되어 있습니다. 당시의 미실행 기록을 현재 Windows 미확인으로 읽거나, Windows PASS를 원격 실행으로 바꾸어 기록하지 않습니다.
 
 ## 먼저 조작할 경로
 
@@ -98,11 +120,11 @@ SVG는 **1440×900 Qt client 영역**입니다. OS 창틀은 포함하지 않습
 py -3.13 export_screens.py --offscreen --state post-compare --state expert-discussion --output "$env:TEMP\caelab-font-svg" --png-output "$env:TEMP\caelab-font-png"
 ```
 
-생성한 `render_manifest.json`의 `font_policy`에는 선택·실제 해석된 family와 기존 파일 로드 결과가 기록됩니다. 이 기록은 화면에 설명 띠를 추가하지 않습니다. 원격 Linux의 글꼴·렌더 확인과 Codex의 실제 Windows 확인은 별도입니다. 이 원격 Linux에는 Hangul 글꼴이 없으며, 한국어 glyph의 Windows 렌더 성공을 대신 검증하지 않습니다. 기존 `screens/`의 전체 SVG/manifest는 해당 파일에 기록된 이전 소스의 렌더이며, 최신 플랫폼별 결과는 위 명령으로 다시 생성합니다.
+생성한 `render_manifest.json`의 `font_policy`에는 선택·실제 해석된 family와 기존 파일 로드 결과가 기록됩니다. 이 기록은 화면에 설명 띠를 추가하지 않습니다. 원격 Linux의 글꼴·렌더 확인과 Codex의 실제 Windows 확인은 별도입니다. 이전 원격 Linux 확인은 한국어 glyph의 Windows 렌더 성공을 대신 검증하지 않습니다. [통합 검토본의 render_manifest.json](https://github.com/pikachu444/autonomous-cae-lab/blob/10985c09512f0861128bcdc83e5fb4120f2075cf/docs/design/20261012-desktop-planning/pro-ux/screens/render_manifest.json)은 win32, Segoe UI/Malgun Gothic과 해당 렌더의 소스를 기록합니다. 이를 원격 Linux에서 생성한 화면으로 표시하지 않습니다.
 
 ## 제한 기술 검사
 
-아래 스크립트는 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. `qt_complete_acceptance.py`는 Report/Acquisition용 3개 집중 경로이며 현재 원격에서는 미실행입니다. Windows 확인은 이 문서의 최종 확인 절을 따릅니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.
+아래 스크립트는 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. `qt_complete_acceptance.py`는 Report/Acquisition용 3개 집중 경로이며 현재 원격에서는 미실행입니다. Windows 확인은 이 문서의 Qt 기술 검사와 source 인계 절을 따릅니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.
 
 ```powershell
 py -3.13 qt_acceptance.py --source . --offscreen --output "$env:TEMP\caelab-check-base"
@@ -119,9 +141,9 @@ py -3.13 state_acceptance.py --source . --output "$env:TEMP\caelab-check-state"
 
 UX-REPORT-FIX-01/02 source correction: a supported structural locator selects its exact retained field and time in the report table and in Open source; an absent frame remains unavailable. Curve pages state that they contain all retained times and mark the selected frame. Preview paging follows the visible section. PDF and Markdown include a small Study/result/selection/review reference. Current Study checks remain NOT_EVALUATED / UNKNOWN / NOT_RELEASED; the unchanged historical F05 record is available only through an explicitly added Historical F05 check section. Use Study asks before replacing edited report sections. The Acquisition connection tab reserves room for all six connection/end rows. PDF text and table fit is checked using the active installed Qt font.
 
-These corrections were authored after the remote Linux environment disconnected. New execution is unverified here; the user’s Codex Windows reviewer runs the source with the existing Python 3.13.5 / PySide6 6.9.1 environment. Earlier reported Windows passes apply to their tested checkpoint, not automatically to this correction.
+These corrections were authored after the remote Linux environment disconnected and were initially handed off without remote execution. The later Codex Windows checks are recorded below for their tested source. No new remote Qt execution is claimed.
 
-## 최종 확인과 전달 — UX-FINAL-03
+## Qt 기술 검사와 source 인계 — UX-FINAL-03
 
 Qt core 3파일·fixture·exporter·상태 recipe는 `dd43015`에서 고정합니다. 마지막 test-only 패치는 채널 modal 후 목표 창을 활성화하고 셀을 스크롤한 다음 기존 F2 편집을 수행하는 두 줄입니다. Qt 본체나 delegate를 바꾸지 않습니다.
 
