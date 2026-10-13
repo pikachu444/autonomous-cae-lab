@@ -48,7 +48,7 @@ def test_connection_cancel_or_apply_keeps_live_question_and_scope(tmp_path, monk
                     return
                 QTest.mouseClick(dialog.buttons.button(QDialogButtonBox.StandardButton.Apply),
                                  Qt.MouseButton.LeftButton)
-            elif phase['edited'] and not dialog._busy and 'Connection applied' in dialog.message.text():
+            elif phase['edited'] and not dialog._busy and '연결 설정을 적용했습니다' in dialog.message.text():
                 observed.append(dialog.message.text())
                 dialog.reject()
                 return
@@ -89,8 +89,8 @@ def test_connection_cancel_or_apply_keeps_live_question_and_scope(tmp_path, monk
                 wait(app, lambda: reopened.loaded and not reopened._busy)
                 assert reopened.model.currentText() == 'openai-codex/test-model'
                 assert reopened.roles.rowCount() == 1
-                assert reopened.checks.item(3, 1).text() == 'UNVERIFIED'
-                assert reopened.checks.item(5, 1).text() == 'NOT_RUN'
+                assert reopened.checks.item(3, 1).data(Qt.ItemDataRole.UserRole) == 'UNVERIFIED'
+                assert reopened.checks.item(5, 1).data(Qt.ItemDataRole.UserRole) == 'NOT_RUN'
         finally:
             if reopened:
                 reopened.reject()
@@ -113,7 +113,7 @@ def test_rejected_config_path_cannot_apply_previous_file_contents(tmp_path, monk
                                 lambda *a, **k: (str(other), 'Operator config'))
             dialog.choose_config()
             wait(app, lambda: not dialog._busy)
-            assert 'this service' in dialog.message.text()
+            assert '현재 연결에서 사용하는 설정 파일' in dialog.message.text()
             assert not dialog.loaded
             assert not dialog.buttons.button(QDialogButtonBox.StandardButton.Apply).isEnabled()
             assert dialog.apply() is None
@@ -141,7 +141,7 @@ def test_connection_can_replace_missing_legacy_roles_without_inference(tmp_path)
         try:
             dialog.show()
             wait(app, lambda: dialog.loaded and not dialog._busy)
-            assert 'replacement roles' in dialog.message.text()
+            assert '역할 파일을 선택해 교체' in dialog.message.text()
             assert dialog.roles.rowCount() == 0
             role_file = tmp_path / 'chosen roles.json'
             save_json(role_file, {'experts': definitions()})
@@ -149,7 +149,7 @@ def test_connection_can_replace_missing_legacy_roles_without_inference(tmp_path)
             assert dialog.roles.rowCount() == 1
             QTest.mouseClick(dialog.buttons.button(QDialogButtonBox.StandardButton.Apply),
                              Qt.MouseButton.LeftButton)
-            wait(app, lambda: not dialog._busy and 'Connection applied' in dialog.message.text())
+            wait(app, lambda: not dialog._busy and '연결 설정을 적용했습니다' in dialog.message.text())
             assert wb.config['experts'] == definitions()
             assert wb.config['runtime'] is None and wb.manager.list() == []
         finally:
@@ -333,3 +333,133 @@ def test_busy_registry_refresh_coalesces_after_explicit_continuation(tmp_path, m
         finally:
             release.set()
             drain_closed(app, window)
+
+
+def test_connection_inherited_models_scope_and_details_keep_small_window(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    profile, runtime = public_installation(tmp_path)
+    initial = setup.proposal({}, enabled=True, profile=str(profile), runtime_prefix=str(runtime),
+                             model='openai-codex/default', definitions=_example_definitions(),
+                             role_models={'testing': 'openai-codex/override'}, allow_question=False)
+    setup.save_local(config, None, initial)
+    with transport(tmp_path, config) as (client, wb):
+        dialog = ConnectionDialog(client, config_path=config)
+        try:
+            dialog.show()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            original = config.read_bytes()
+            inherited = dialog.roles.cellWidget(0, 1)
+            overridden = dialog.roles.cellWidget(1, 1)
+            assert inherited.currentText() == ''
+            assert overridden.currentText() == 'openai-codex/override'
+            dialog.model.setEditText('openai-codex/changed')
+            assert 'openai-codex/changed' in inherited.lineEdit().placeholderText()
+            assert 'openai-codex/changed' in dialog.role_model_summary.text()
+            assert inherited.currentText() == '' and overridden.currentText() == 'openai-codex/override'
+            dialog.results.setChecked(True)
+            assert '첨부 결과' in dialog.permission_summary.text()
+            assert not dialog.question.isChecked() and not dialog.public.isChecked()
+            for expanded in (False, True):
+                dialog.details_toggle.setChecked(expanded)
+                for size in ((900, 650), (1100, 780)):
+                    dialog.resize(*size)
+                    app.processEvents()
+                    assert (dialog.width(), dialog.height()) == size
+                    assert dialog.buttons.geometry().bottom() <= dialog.height()
+            dialog.roles.setCurrentCell(1, 0)
+            dialog.enabled.setChecked(False)
+            assert not overridden.isEnabled() and overridden.currentText() == 'openai-codex/override'
+            assert '외부 전송도 사용하지 않습니다' in dialog.permission_summary.text()
+            assert config.read_bytes() == original and wb.manager.list() == []
+        finally:
+            dialog.reject()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))
+
+
+def test_connection_saved_pending_failure_and_retry_keep_exact_settings(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    setup.save_local(config, None, {'experts': definitions(), 'runtime': None})
+    with transport(tmp_path, config) as (client, wb):
+        dialog = ConnectionDialog(client, config_path=config)
+        try:
+            dialog.show()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            session = wb.session_id
+            dialog.example_roles()
+            wb._assistance_active = 1  # Existing active-request guard, no provider request.
+            dialog.apply()
+            wait(app, lambda: dialog.retry.isActive() and not dialog._busy)
+            saved, sha = config.read_bytes(), dialog._pending_sha
+            assert sha == dialog.expected_sha == setup.digest(config)
+            assert dialog.buttons.button(QDialogButtonBox.StandardButton.Cancel).text() == '닫기'
+            assert dialog.buttons.button(QDialogButtonBox.StandardButton.Apply).text() == '다시 적용'
+            assert '설정은 저장됐습니다' in dialog.message.text()
+            assert not dialog.tabs.isEnabled() and not dialog.reload_button.isEnabled()
+            dialog.retry.stop()
+            reopened = ConnectionDialog(client, config_path=config)
+            try:
+                reopened.show()
+                wait(app, lambda: reopened.loaded and not reopened._busy)
+                assert '저장된 설정이 현재 연결과 다릅니다' in reopened.message.text()
+                assert reopened.expected_sha == sha and wb.session_id == session
+            finally:
+                reopened.reject()
+                wait(app, lambda: all(w.completed.is_set() for w in reopened._workers))
+            config.write_text('{"external_edit": true}', encoding='utf-8')
+            dialog.activate_saved()
+            wait(app, lambda: not dialog._busy)
+            assert '설정은 저장됐지만' in dialog.message.text()
+            assert '닫고 연결 설정을 다시 열어' in dialog.message.text()
+            assert dialog._pending_sha == sha and dialog.expected_sha == sha
+            assert dialog.buttons.button(QDialogButtonBox.StandardButton.Apply).isEnabled()
+            config.write_bytes(saved)
+            wb._assistance_active = 0
+            dialog.apply()
+            wait(app, lambda: dialog._pending_sha is None and not dialog._busy)
+            assert '연결 설정을 적용했습니다' in dialog.message.text()
+            assert wb.session_id == session and wb.manager.list() == []
+            assert wb.config['runtime'] is None and wb.config['experts'] == _example_definitions()
+            assert dialog.checks.item(3, 1).data(Qt.ItemDataRole.UserRole) == 'UNVERIFIED'
+            dialog.question.setChecked(True)
+            assert '아직 적용하지 않았습니다' in dialog.message.text()
+            assert wb.config['runtime'] is None
+        finally:
+            wb._assistance_active = 0
+            dialog.reject()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))
+
+
+def test_connection_close_during_started_save_does_not_claim_rollback(tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    setup.save_local(config, None, {'experts': definitions(), 'runtime': None})
+    entered, release = threading.Event(), threading.Event()
+    save_local = setup.save_local
+    def held_save(*args):
+        entered.set()
+        if not release.wait(5):
+            raise RuntimeError('Test did not release local save')
+        return save_local(*args)
+    with transport(tmp_path, config) as (client, wb):
+        dialog = ConnectionDialog(client, config_path=config)
+        try:
+            dialog.show()
+            wait(app, lambda: dialog.loaded and not dialog._busy)
+            dialog.example_roles()
+            monkeypatch.setattr(setup, 'save_local', held_save)
+            assert dialog.apply()
+            wait(app, entered.is_set)
+            assert dialog.buttons.button(QDialogButtonBox.StandardButton.Cancel).text() == '닫기'
+            assert '닫아도 이미 시작한 저장은 계속됩니다' in dialog.message.text()
+            dialog.reject()
+            release.set()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))
+            assert setup.read_config(config)[0]['experts'] == _example_definitions()
+            assert wb.config['experts'] == definitions() and wb.manager.list() == []
+        finally:
+            release.set()
+            if not dialog._closed:
+                dialog.reject()
+            wait(app, lambda: all(w.completed.is_set() for w in dialog._workers))

@@ -4,7 +4,9 @@
 
 1. From independent Expert, open Connection, inspect the actual configured
    service/model/roles, and select an existing OpenScience installation/profile.
-   Cancel leaves the current document and operator settings unchanged.
+   Cancel before save leaves the current document and operator settings unchanged.
+   Once saving starts, Close must not imply rollback. A saved but deferred
+   configuration remains saved when closed and requires explicit apply on reopen.
    Role details show the selected definition and effective model. Example roles
    do not imply specialist training, populated collections or qualification.
 2. Save/apply the connection and explicit role selection through the maintained
@@ -80,3 +82,14 @@ retry input preservation and obsolete automatic-topic revival defects. Pro's
 confirmed the two source corrections. The explicit budget summary is now in the
 start view. Raw Markdown/math display and overall reading layout remain.
 E7–E10 are not collectively marked complete.
+
+### Connection editor, 2026-10-14
+
+The native connection editor separates connection, role and transmission controls.
+Inherited model names, local save, deferred application, unsaved edits and file
+conflicts are visible without expanding the technical details. Ten focused Qt/HTTP
+checks pass, including active question/scope preservation and closing during save.
+Small and wide offscreen Qt captures use synthetic local settings; no provider,
+solver or credential operation ran. Records are in
+`runs/product-development/20261014/expert-connection-layout/`. This bounded update
+does not establish operating-system input acceptance or complete E1–E10 acceptance.

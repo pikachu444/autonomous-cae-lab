@@ -71,7 +71,14 @@ Astra는 배치 대안을 직접 논의하고 실제 Qt 화면·권한/정밀값
 검토한다. root는 caller 안내와 한국어 사용법 및 통합을 맡는다. 기록은
 `runs/product-development/20261014/expert-connection-layout/`에 모으며 D6 파일을 중복
 수정하지 않는다. 사용자 로그인·회사 자료를 캡처하거나 예시 역할을 검증된 전문가로
-표시하지 않는다. 현재 작성 중이며 인도 완료가 아니다.
+표시하지 않는다. 해당 연결 창 교정은 인도받아 root가 소스와 작은 실제 Qt 렌더를
+확인했다. 연결 설정/역할/자료 전송을 분리하고 상속 모델·저장/적용 대기·파일 충돌·
+저장 후 닫기의 동작을 구별했다. 관련 검사 10개가 10.22초에 통과했고 Astra 최종
+독립 검토에서 이 변경의 차단 결함은 남지 않았다. 최초 실패 기록은 보존했다.
+900×650 및 1100×780 화면은 합성 로컬 설정을 사용한 offscreen Qt/HTTP 실행이며
+새 provider/solver 요청은 없다. 최종 자료는 `expert-connection-layout/final`,
+`tests-final.txt`, `review.md`다. 한국어 사용법과 SPEC-EXPERT-002의 인수 의미를
+함께 갱신했다. 전체 Expert나 OS 입력 수용의 완료는 아니다.
 
 Windows 직접 입력 도구는 이번에 다시 연결해 창 목록을 조회했으나 캡처가 검정이고
 한 번의 재선택/활성화도 `failed to activate captured window`로 실패했다.
