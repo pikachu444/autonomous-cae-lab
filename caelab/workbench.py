@@ -840,7 +840,14 @@ class Workbench:
                 args['source']=str(self.input_path(data_id))
                 receipt=load_json(self.root/'inputs'/data_id/'input.json')
                 args.setdefault('metadata',{}).setdefault('title',receipt['name'])
-            result=self.assistance_call(operation,args)
+            if operation == 'experts.ask' and args.get('context', {}).get('discussion_mode') == 'costorm':
+                from .discussion_costorm import authorize
+                from .assist.costorm import owner_step
+                trusted = authorize(self.discussion_documents, args, identifier)
+                with owner_step(trusted):
+                    result = self.assistance_call(operation, args)
+            else:
+                result=self.assistance_call(operation,args)
             if operation=='experts.ask' and result.get('status') in {'FAILED','NOT_CONFIGURED'}:
                 result['execution_status']='FAILED'
             return result
