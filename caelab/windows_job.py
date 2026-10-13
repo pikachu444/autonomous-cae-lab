@@ -111,14 +111,22 @@ def spawn_gated(command, *, cwd, stdout, stderr, env, label):
 def release_gate(process, ready, check_cancelled):
     """Verify actual Python identity before assigning and releasing the gate."""
     deadline = time.monotonic() + 10.0  # stdlib gate startup, not native/solver wall time.
-    while not ready.is_file():
+    while True:
         check_cancelled()
         if process.poll() is not None:
             raise RuntimeError('Candidate process gate exited before readiness')
         if time.monotonic() >= deadline:
             raise RuntimeError('Candidate process gate did not become ready')
+        if ready.is_file():
+            try:
+                value = json.loads(ready.read_text(encoding='utf-8'))
+            except PermissionError:
+                # Windows can expose a just-renamed file before its handle is
+                # readable. Keep the native child gated within the same deadline.
+                pass
+            else:
+                break
         time.sleep(.02)
-    value = json.loads(ready.read_text(encoding='utf-8'))
     if value != {'pid': process.pid}:
         raise RuntimeError('Configured Python launched a different gate process; native launch refused')
     process._caelab_windows_job.assign(process)
