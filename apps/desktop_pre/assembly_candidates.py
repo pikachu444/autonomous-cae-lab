@@ -142,6 +142,28 @@ def _definition(owner, assembly, joint, parts, ground, moving):
 
 
 
+def _face_edge_source_name(source, face_name, local_edge):
+    face = source.Shape.getElement(face_name)
+    edge = face.getElement(local_edge)
+    if face.isNull() or edge.isNull():
+        raise ValueError('Native face-local connector edge is unavailable')
+    matches = ['Edge' + str(i) for i, item in enumerate(source.Shape.Edges, 1) if edge.isSame(item)]
+    if len(matches) != 1:
+        raise ValueError('Native face-local connector edge has no unique source identity')
+    return matches[0]
+
+
+def _face_edge_local_name(source, face_name, source_edge):
+    face = source.Shape.getElement(face_name)
+    edge = source.Shape.getElement(source_edge)
+    if face.isNull() or edge.isNull():
+        raise ValueError('Mapped connector face or edge is unavailable')
+    matches = ['Edge' + str(i) for i, item in enumerate(face.Edges, 1) if edge.isSame(item)]
+    if len(matches) != 1:
+        raise ValueError('Mapped connector edge no longer belongs uniquely to its mapped face')
+    return matches[0]
+
+
 def _connector_capture(owner, joint):
     from .occurrence_fem import source_of
     from .candidate_correspondence import anchor
@@ -151,11 +173,18 @@ def _connector_capture(owner, joint):
         if len(paths) != 2:
             raise ValueError('Native joint connector needs both element and vertex slots; edit it explicitly')
         source = source_of(occurrence)
-        names, anchors = [], []
-        for path in paths:
+        names = list(paths)
+        for path in names:
             if path and not re.fullmatch(r'(Face|Edge|Vertex)[1-9][0-9]*', path):
                 raise ValueError('Joint connector requires a direct native face, edge, vertex or object origin')
-            names.append(path)
+        source_names = list(names)
+        face_edge = names[0].startswith('Face') and names[1].startswith('Edge')
+        if face_edge:
+            # Native second-slot EdgeN is local to this Face, while persisted
+            # history anchors belong to the linked source's full topology.
+            source_names[1] = _face_edge_source_name(source, names[0], names[1])
+        anchors = []
+        for path in source_names:
             if not path:
                 anchors.append(None)
                 continue
@@ -163,17 +192,22 @@ def _connector_capture(owner, joint):
                 anchors.append(anchor(source, path))
             except (ValueError, RuntimeError, AttributeError, TypeError):
                 anchors.append(None)
-        records.append({'occurrence_id': occurrence.Name, 'source_id': source.Name,
-                        'source_target': _target(source, []), 'names': names, 'anchors': anchors})
+        record = {'occurrence_id': occurrence.Name, 'source_id': source.Name,
+                  'source_target': _target(source, []), 'names': names, 'anchors': anchors}
+        if face_edge:
+            record['slot_source_names'] = source_names
+        records.append(record)
     return records
 
 
 def _connector_expected(owner, saved):
-    """Resolve geometry identity before replacing any native joint reference."""
+    """Resolve exact identities, then encode the native connector's two roles."""
     from .occurrence_fem import source_of
     from .candidate_correspondence import resolve_names
     result = []
     for record in saved['connectors']:
+        if len(record['names']) != 2 or len(record['anchors']) != 2:
+            raise ValueError('Native joint connector needs both element and vertex slots; prepare it explicitly')
         occurrence = owner._object(record['occurrence_id'])
         source = source_of(occurrence)
         if source.Name != record['source_id']:
@@ -181,22 +215,26 @@ def _connector_expected(owner, saved):
         if _target(source, []) == record['source_target']:
             names = list(record['names'])
         else:
-            # Object origin is an explicit native coordinate system, not FaceN.
+            face_edge = record['names'][0].startswith('Face') and record['names'][1].startswith('Edge')
+            if face_edge and 'slot_source_names' not in record:
+                raise ValueError('Prepare the Plan again to capture the native face-local connector edge identity')
+            source_names = record.get('slot_source_names', record['names'])
             names = []
-            for old, identity in zip(record['names'], record['anchors']):
+            for old, identity in zip(source_names, record['anchors']):
                 if not old:
-                    names.append('')
+                    names.append('')  # Explicit object coordinate system.
                 elif identity is None:
                     raise ValueError('Changed joint connector has no exact native element history')
                 else:
                     names.append(resolve_names(source, [identity])[0])
-            # Element and vertex are roles, not a set: native circle/vertex
-            # connectors legitimately repeat EdgeN/VertexN in both slots.
-            # Only distinct original entities collapsing to one is a merge.
-            for i, (old, new) in enumerate(zip(record['names'], names)):
-                for other_old, other_new in zip(record['names'][:i], names[:i]):
+            # Repeated center/vertex roles refer to one identity. Only distinct
+            # originals collapsing together (or one diverging) violate identity.
+            for i, (old, new) in enumerate(zip(source_names, names)):
+                for other_old, other_new in zip(source_names[:i], names[:i]):
                     if old and other_old and ((old == other_old) != (new == other_new)):
                         raise ValueError('Joint connector identities merged or diverged')
+            if face_edge:
+                names[1] = _face_edge_local_name(source, names[0], names[1])
         result.append([occurrence.Name, names])
     return result
 

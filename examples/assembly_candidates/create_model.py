@@ -12,7 +12,6 @@ def create(kind, directory):
     import FreeCADGui as Gui
     Gui.activateWorkbench('AssemblyWorkbench')
     import ObjectsFem
-    import JointObject
     from apps.desktop_pre.bridge import Owner
     from apps.desktop_pre.occurrence_fem import connect, element_pairs
     from apps.desktop_pre.candidate_recipe import prepare_recipe
@@ -44,18 +43,20 @@ def create(kind, directory):
     moving.setLink(moving_part)
     moving.Label = '이동 인스턴스'
     moving.Placement = App.Placement(App.Vector(5, 5, 3.2), App.Rotation())
-    anchored = group.newObject('App::FeaturePython', 'Grounded')
-    JointObject.GroundedJoint(anchored, ground)
-    JointObject.ViewProviderGroundedJoint(anchored.ViewObject)
-    joint = group.newObject('App::FeaturePython', 'Joint')
-    JointObject.Joint(joint, JointObject.JointTypes.index(kind))
+    owner = Owner(doc, folder / 'exchange', App=App, Gui=Gui)
+    target = {'assembly_id': assembly.Name}
+    # Exercise the real product authoring commands, not a fixture-only writer.
+    owner.motion.dispatch('pre.joint.create',
+                          {'type': 'Grounded', 'occurrence_id': ground.Name}, target)
+    created = owner.motion.dispatch('pre.joint.create', {'type': kind, 'connectors': [
+        {'object_id': ground.Name, 'subelement': '', 'placement': {
+            'translation': [5., 5., 3.2], 'quaternion': [0., 0., 0., 1.],
+            'unit': 'mm', 'frame': 'reference_local'}},
+        {'object_id': moving.Name, 'subelement': '', 'placement': {
+            'translation': [0., 0., 0.], 'quaternion': [0., 0., 0., 1.],
+            'unit': 'mm', 'frame': 'reference_local'}}]}, target)
+    joint = doc.getObject(created['joint_id'])
     joint.Label = '회전' if kind == 'Revolute' else '직선 이동'
-    # Explicit connector origins; no FaceN proxy for a joint coordinate.
-    joint.Detach1 = joint.Detach2 = True
-    joint.Reference1, joint.Reference2 = (ground, ['', '']), (moving, ['', ''])
-    joint.Placement1 = App.Placement(App.Vector(5, 5, 3.2), App.Rotation())
-    joint.Placement2 = App.Placement()
-    JointObject.ViewProviderJoint(joint.ViewObject)
     if kind == 'Revolute':
         joint.EnableAngleMin = joint.EnableAngleMax = True
         joint.AngleMin, joint.AngleMax = -30., 30.
@@ -68,7 +69,6 @@ def create(kind, directory):
     doc.recompute()
     if assembly.solve(False) != 0:
         raise ValueError('Native initial Assembly solve failed')
-    owner = Owner(doc, folder / 'exchange', App=App, Gui=Gui)
     analysis = ObjectsFem.makeAnalysis(doc)
     solver = ObjectsFem.makeSolverCalculiXCcxTools(doc)
     analysis.addObject(solver)
