@@ -229,3 +229,14 @@ No human input or solver execution occurred. The preceding headless attempt
 failed because the product's mesh-history display accesses ViewObject; a native
 GUI run provides those real view objects and completed. The original CAD input
 and earlier failed attempts were retained.
+
+The new exporter then completed on that saved mesh with a shared isotropic
+elastic material, fixed base and prescribed top displacement (-0.3 mm).
+`runs/product-development/20261013/contact-export-bf12e0c8/receipt.json` points
+to the retained native editable copy, mesh, CalculiX deck and manifest. This
+checks the actual installed native writer and face mapping for the displacement
+branch; it does not close the Force-unit or stale-group findings or run a solver.
+The changed common FRD reader's 34 existing focused tests and four affected FEM
+Qt tests passed. Export took minutes; inspection found repeated full native
+node-table access in element quality. A local table per quality call was
+requested from Pro, preserving all thresholds and checks.
