@@ -74,5 +74,21 @@ the solver. Exact registered input opened, CPRESS at static load parameter 1.0
 was selected and saved, and a new pvpython process restored that selection and
 3,403 points/1,654 cells. Pair-focused native interaction and the connected
 measurement/Numerical user workflow remain separate work; AC-C04 is not complete.
-The current task and subsequent correction status live in CURRENT_STATE rather
-than turning these partial checks into full scenario acceptance.
+Pro's pair/side/increment inspection and force measurement integration
+(`1edd036` through `5cb083c`, local product `b6dc2d6`) adds the native overlays,
+Qt result/force-history view, and existing Data/Numerical Plan handoff. The first
+four changed-path test files passed 33 checks; subsequent initialization and
+partial-repair corrections passed 17 focused guard checks in 0.82 seconds.
+Native reader/display initialization and enum-label differences were found and
+corrected without weakening the native-edit guard or rerunning physics.
+
+On the installed ParaView 6.2, the unmodified final product and native check
+selected the actual CPRESS contact surfaces at static load parameter 1.0,
+created a ten-row CFN Z measurement, saved, then reopened in a separate
+pvpython process with the same rows and no restore issues. The local receipt is
+`runs/product-development/20261013/contact-inspect-bb998593/checked-enum-inspection.json`.
+The Qt view was separately rendered with actual 194-node contact data and ten
+increments; its command transport was a labelled double. These results do not
+claim native mouse/keyboard/DPI acceptance, Runner UI submission, a complete
+native-to-Qt broker round trip, or the two-model engineering reference comparison.
+AC-C04 is consequently still partial. CURRENT_STATE owns the current assignment.
