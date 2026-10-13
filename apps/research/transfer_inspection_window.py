@@ -53,7 +53,7 @@ class TransferInspectionWindow(QDialog):
     def _catalog(self,payload):
         self.selector.blockSignals(True);self.selector.clear()
         for row in payload['transfers']:
-            self.selector.addItem(row['source_name']+' → '+row['target_name']+' / '+str(row['iteration']+1),
+            self.selector.addItem(row['source_name']+' → '+row['target_name']+' / '+str(row['iteration']+1)+(' (전달 확인 없음)' if not row.get('receipt_recorded',True) else ''),
                                   (row['id'],row['iteration']))
         desired=self.selector.findData(self._initial)
         if desired>=0:self.selector.setCurrentIndex(desired)
@@ -94,7 +94,7 @@ class TransferInspectionWindow(QDialog):
         self.status.setToolTip(str(data['metadata']))
         self.page.setText(f"{data['start']+1}–{data['start']+data['count']} / {data['total']}")
         self.previous.setEnabled(data['start']>0);self.next.setEnabled(data['start']+data['count']<data['total'])
-        if data.get('reference_temperature') is not None:self.status.setText(self.status.text()+' / 구조 기준온도 '+self._value(data['reference_temperature'])+' K')
+        if data.get('reference_temperature') is not None:self.status.setText(self.status.text()+' / 구조 기준온도 '+self._value(data['reference_temperature'])+' ['+str(data.get('reference_temperature_unit') or '?')+']')
         self._plot()
 
     def _plot(self):

@@ -26,9 +26,12 @@ def test_independent_felupe_probe_same_baseline_and_cold_inspection(service):
     before=client.document_read(doc['id']);assert before['draft']==draft
     saved=change(client,before,'document.save')['document']
     from caelab.workbench import Workbench
-    fresh=Workbench(wb.workspace);fresh.document_open(kind='material',document_id=saved['id'])
-    again=fresh.constitutive_inspect(doc['id'],job,1)
-    assert again['tangent']==view['tangent'] and again['source'] is not None
+    fresh=Workbench(wb.workspace)
+    try:
+        fresh.document_open(kind='material',document_id=saved['id'])
+        again=fresh.constitutive_inspect(doc['id'],job,1)
+        assert again['tangent']==view['tangent'] and again['source'] is not None
+    finally:fresh.shutdown()
     assert len(wb.manager.list())==1
 
 
@@ -48,12 +51,56 @@ def test_exact_transfer_rows_bound_values_failed_run_and_saved_read(service,cont
     assert view['exact_values_match'] and view['metadata']['unit']=='K'
     assert view['metadata']['coordinate_units']=='m' and len(view['rows'])==2
     assert all(row['available'] and row['required'] and row['difference']==0 for row in view['rows'])
-    assert view['reference_temperature']==draft.get('reference_temperature',original[1]['draft']['settings']['reference_temperature'])
+    assert view['reference_temperature']==original[1]['draft']['settings']['material']['reference_temperature']
+    assert view['reference_temperature_unit']=='K'
     for source in original:assert client.document_read(source['id'])['draft']==source['draft']
     saved=change(client,client.document_read(doc['id']),'document.save')['document']
     from caelab.workbench import Workbench
-    fresh=Workbench(wb.workspace);fresh.document_open(kind='evaluation',document_id=saved['id'])
-    assert fresh.evaluation_transfer(doc['id'],second,'TtoU',0,start=1,count=2)['rows']==view['rows']
+    fresh=Workbench(wb.workspace)
+    try:
+        fresh.document_open(kind='evaluation',document_id=saved['id'])
+        assert fresh.evaluation_transfer(doc['id'],second,'TtoU',0,start=1,count=2)['rows']==view['rows']
+    finally:fresh.shutdown()
     count=len(wb.manager.list())
     with pytest.raises(Exception):client.evaluation_transfer(doc['id'],second,'TtoU',9)
     assert len(wb.manager.list())==count
+
+
+
+def test_failed_binding_keeps_supplied_values_without_invented_receipt(service,controlled,monkeypatch):
+    from caelab.adapters.thermoelastic_fenicsx import ThermalFenicsxAdapter
+    from plugins.thermoelastic.reference import seal_field
+    actual=ThermalFenicsxAdapter.run
+    def wrong_clock(self,settings,*,output,runtime=None):
+        result=actual(self,settings,output=output,runtime=runtime)
+        response=deepcopy(result['responses']['temperature'])
+        response['time']+=1.
+        result['responses']['temperature']=seal_field(response)
+        return result
+    monkeypatch.setattr(ThermalFenicsxAdapter,'run',wrong_clock)
+    wb,client=service;_,draft=sources(client)
+    doc=client.document_open(kind='evaluation',draft=draft)
+    job=change(client,doc,'evaluation.run')['job']['id']
+    wait(lambda:client.status(job)['state'] in TERMINAL)
+    progress=client.evaluation_progress(doc['id'],job)
+    assert progress['stages'][-1]['state']=='FAILED' and not progress['stages'][-1]['dispatched']
+    assert not progress['transfers'] and controlled['calls']==['thermal']
+    catalog=client.evaluation_transfer(doc['id'],job)
+    assert catalog['transfers'][0]['receipt_recorded'] is False
+    view=client.evaluation_transfer(doc['id'],job,'TtoU',0)
+    assert view['transfer'] is None and view['transfer_confirmation']=='NOT_RECORDED'
+    assert view['unavailable'] and not view['exact_values_match']
+    assert all(row['supplied']==320. and row['received'] is None for row in view['rows'])
+    assert len(wb.manager.list())==1
+
+
+def test_exact_native_history_layouts():
+    from caelab.constitutive_inspection import native_steps
+    scalar={'time_s':1.,'tangent_kelvin_mpa':[[1.]],'nominal_after_update':{'s0':'actual'}}
+    svk={'time_s':2.,'pk1_tangent_mpa':[[float(i==j) for j in range(9)] for i in range(9)],
+         'nominal_after_update':{'s0':'actual finite strain'}}
+    assert native_steps('material.mfront',{'mgis':{'steps':[scalar]}})==[scalar]
+    assert native_steps('material.mfront.viscoelastic',{'mgis':{'steps':[scalar]}})==[scalar]
+    actual=native_steps('material.mfront.hyperelastic',{'steps':[svk]})[0]
+    assert actual['time_s']==2. and len(actual['pk1_tangent_mpa'])==9
+    assert actual['nominal_after_update']==svk['nominal_after_update']

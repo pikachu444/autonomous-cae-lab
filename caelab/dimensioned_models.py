@@ -84,6 +84,8 @@ def validate_settings(backend,settings):
         if not isinstance(solver,dict) or set(solver)!={'method','rtol','max_step'} or solver['method'] not in ('RK45','DOP853','Radau','BDF'):
             fail('solver','RK45, DOP853, Radau, BDF 중 선택하세요.')
         if not 0<number(solver['rtol'],'solver.rtol',True)<1: fail('solver.rtol','상대 허용치는 0과 1 사이입니다.')
+        if solver['rtol']<100*math.ulp(1.):
+            fail('solver.rtol','현재 SciPy float64 최소 상대 허용치보다 작습니다 (100 × 기계 정밀도).')
         number(solver['max_step'],'solver.max_step',True)
         if not isinstance(rows,list) or not 1<=len(rows)<=16: fail('states','상태는 1~16개입니다.')
         symbols['t']=Meaning(UNITS['s'])

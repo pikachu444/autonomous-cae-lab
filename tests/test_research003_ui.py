@@ -99,3 +99,39 @@ def test_user_source_review_cancel_then_local_permission_no_build(service,app,tm
     assert not wb.manager.list() # permission is not a hidden build/evaluation
     changed=dict(settings,source=settings['source']+'\n')
     assert not permission.is_admitted(changed['source'],changed['behaviour'])
+
+
+
+@pytest.mark.parametrize('accept',[False,True])
+def test_source_modal_preserves_other_window_property_and_exact_generation(service,app,monkeypatch,accept):
+    from PySide6.QtWidgets import QDialog,QPlainTextEdit
+    from apps.research.native_material_window import NativeMaterialWindow
+    from caelab.user_material import default_settings
+    from copy import deepcopy
+    client=service[1];draft={'backend':'material.mfront.user','settings':default_settings()}
+    doc=client.document_open(kind='material',draft=draft)
+    window=NativeMaterialWindow(client,document_id=doc['id'],poll_interval=0);window.show()
+    try:
+        wait(lambda:window.document and not window._busy,app)
+        def edit(dialog):
+            fresh=client.document_read(doc['id']);changed=deepcopy(fresh['draft'])
+            changed['settings']['properties'][0]['value']=2e9
+            updated=change(client,fresh,'material.update',{'draft':changed})['document']
+            # A queued document read may finish inside the nested modal loop.
+            window._show_document(updated)
+            dialog.findChild(QPlainTextEdit).setPlainText(draft['settings']['source']+'\n// reviewed version\n')
+            return QDialog.DialogCode.Accepted if accept else QDialog.DialogCode.Rejected
+        monkeypatch.setattr(QDialog,'exec',edit)
+        window.edit_law_source()
+        assert window.edited_draft()['settings']['properties'][0]['value']==2e9
+        if accept:
+            assert window.local_dirty and window.edited_draft()['settings']['source'].endswith('// reviewed version\n')
+            window.apply_inputs();wait(lambda:not window._busy,app)
+        else:
+            assert window.edited_draft()['settings']['source']==draft['settings']['source']
+            assert not window.local_dirty
+        current=client.document_read(doc['id'])
+        assert current['draft']['settings']['properties'][0]['value']==2e9
+        assert not service[0].manager.list()
+    finally:
+        window._allow_close=True;window.close();QThreadPool.globalInstance().waitForDone(5000);app.processEvents()

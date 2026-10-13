@@ -146,6 +146,7 @@ class NativeMaterialWindow(SimulationWindow):
     def edit_law_source(self):
         if not self.document or self._busy:return
         draft=deepcopy(self.edited_draft())
+        opened_document=deepcopy(self.document)
         if draft.get('backend')!='material.mfront.user':
             self.message.setText('새 구성식에서 사용자 MFront 법칙을 선택하세요.');return
         dialog=QDialog(self);dialog.setWindowTitle('법칙 원문');dialog.resize(850,650)
@@ -166,9 +167,32 @@ class NativeMaterialWindow(SimulationWindow):
         load.clicked.connect(choose)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
-        if dialog.exec()!=QDialog.DialogCode.Accepted:return
-        draft['settings']['source']=source.toPlainText();draft['settings']['behaviour']=name.text()
-        self.local_dirty=True;self._show_document(self.document,preserve_draft=draft)
+        # Keep the captured generation until its edit is resolved. Modal Qt
+        # loops still deliver queued HTTP replies, so pausing the timer alone
+        # is not the conflict guard.
+        timer=getattr(self,'timer',None);active=bool(timer and timer.isActive())
+        if timer:timer.stop()
+        try:
+            if dialog.exec()!=QDialog.DialogCode.Accepted:return
+            current=deepcopy(self.edited_draft())
+            old_settings=draft['settings'];current_settings=current.get('settings',{})
+            same_owner=self.document and (self.document['id'],self.document['session_id'])==(
+                opened_document['id'],opened_document['session_id'])
+            safe_merge=(same_owner and current.get('backend')=='material.mfront.user'
+                and all(current_settings.get(k)==old_settings.get(k) for k in ('source','behaviour')))
+            if safe_merge:
+                current['settings']['source']=source.toPlainText();current['settings']['behaviour']=name.text()
+                self.local_dirty=True;self._show_document(self.document,preserve_draft=current)
+            else:
+                # Retain this modal edit against its ORIGINAL generation.
+                # Existing reload/copy conflict operations decide what to keep.
+                draft['settings']['source']=source.toPlainText();draft['settings']['behaviour']=name.text()
+                self.local_dirty=True;self.conflict=True
+                self._show_document(opened_document,preserve_draft=draft)
+                self.message.setText('같은 원문이 다른 곳에서 바뀌었습니다. 편집본을 보관한 뒤 저장 버전과 비교하세요.')
+                self._update_actions()
+        finally:
+            if active:timer.start()
 
     def open_constitutive(self):
         if not self.document or not self._selected_job:

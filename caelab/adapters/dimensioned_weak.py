@@ -49,7 +49,8 @@ class DimensionedWeakAdapter:
             partial={}
             if (folder/'progress.json').exists(): partial=json.loads((folder/'progress.json').read_text(encoding='utf-8'))
             return {'execution_status':'CANCELLED' if isinstance(error,ExecutionCancelled) else 'FAILED',
-                    'responses':{},'checks':[],'diagnostics':{'reason':str(error),'partial_levels':partial,'decision':'NOT_RELEASED'}}
+                    'responses':{},'checks':[],'diagnostics':{'reason':str(error),'partial_levels':partial,'native_fields':partial.get('fields',[]),
+                        'mesh_studies':partial.get('completed_levels',[]),'decision':'NOT_RELEASED'}}
         if any(hashlib.sha256((folder/name).read_bytes()).hexdigest()!=digest for name,digest in pins.items()):
             raise RuntimeError('계산 중 보존 코드가 변경됐습니다.')
         raw=json.loads((folder/'worker_result.json').read_text(encoding='utf-8'),

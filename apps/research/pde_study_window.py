@@ -44,5 +44,6 @@ class PDEStudyWindow(QDialog):
             if groups:ax.legend()
         row=self.table.currentRow()
         if 0<=row<len(self.rows):
-            data=self.rows[row];self.detail.setText('기준식: '+data['reference']+' / '+data['norm_definition'])
+            data=self.rows[row];self.detail.setText('기준식: '+data['reference']+' / '+data['norm_definition']+
+                (' / 기준식 평가 실패: '+data['reference_error'] if data.get('reference_error') else ''))
         self.canvas.draw_idle()

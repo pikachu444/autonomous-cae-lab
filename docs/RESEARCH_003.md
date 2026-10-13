@@ -70,6 +70,9 @@ PDE **새 모델**에서 다음 중 하나를 선택한다.
 명시 평가 후 실제 SciPy 출력 시각/상태/사용자 기준식/차이를 같은 결과 선택에서 읽는다.
 출력은 실제 state series이며 가짜 공간 메시를 만들지 않는다.
 SciPy RK45/DOP853/Radau/BDF, 개별 atol, 명시 rtol/max_step을 사용한다.
+SciPy가 수락한 단계의 dense output으로 선언한 출력 시각을 읽는다. RHS의 시험 단계는 계산된 표본으로 기록하지 않는다.
+취소/실패 때 수락된 표본과 마지막 수락 상태를 보존한다. float64 최소 허용치보다 작은 rtol은 몰래 확대하지 않고 입력 오류로 표시한다.
+계산된 상태와 기준식 평가 상태는 분리한다. 기준식 오류는 실제 곡선을 지우지 않으며, 같은 이름의 상태/기준/오차도 서로 덮어쓰지 않는다.
 계산은 취소 신호를 RHS마다 확인하고 200000 RHS 호출 한도에서 중단한다.
 정규화된 성공 상태나 없는 출력점을 0으로 채우지 않는다.
 
@@ -95,6 +98,8 @@ SciPy RK45/DOP853/Radau/BDF, 개별 atol, 명시 rtol/max_step을 사용한다.
 
 같은 절점·좌표·단위·시각·메시일 때만 값/차이를 나란히 표시한다.
 수신 계산 실패와 전달값 일치는 동시에 가능하다. 실패 상태를 숨기지 않는다.
+binding이 실패해 검증된 전달 영수증이 없는 경우도 frozen 정의와 실제 실행 전 실패 단계를 목록에 표시한다.
+이때 공급 원값은 읽되, 수신값이나 전달 성공 영수증을 재구성하지 않는다.
 기존 SI 열→구조의 모든 P1 절점이 필수이며 원자료에 없는 native mask를 만들어내지 않는다.
 Kelvin 절대온도와 구조 Tref를 별도로 읽고 ΔT를 다시 적용하지 않는다.
 
@@ -167,3 +172,10 @@ CAELAB_RUN_USER_MFRONT_NATIVE=1 python -m pytest -q tests/test_user_material.py 
 Simulation 배치는 `876c825d56764b7ffb9f50102cca85b1f4f2b4b7`에서 실제 읽었다. 해당 파일은 변경하지 않았다.
 NativeMaterial은 canonical backend/itemData, fields, result selector를 유지한다. 전용 작업명/온도/시험 종류를 한국어로 표시하며
 사용자 법칙의 설명 영역은 base가 접은 뒤 명시적으로 표시하고, 실제 입력 이력만 그림으로 그린다.
+
+### 제출 뒤 읽기 교정
+
+읽기 전용 동료가 찾은 SVK 원기록 경로, 구조 Tref 경로, 전달 전 실패 목록, 원문 모달의 세대 충돌,
+ODE 채널 충돌/기준식 오류/수락된 부분 출력/rtol을 같은 교정 묶음에 반영했다. 실행 통과 기록은 아니다.
+새 세 adapter의 registry 역할은 `evaluation`이다. 기존 Material/PDE owner의 `evaluate`와 Numerical의 `run` 경로를 제공하며,
+`solve`를 요구하는 옛 Lab declared-model operation의 지원으로 광고하지 않는다.

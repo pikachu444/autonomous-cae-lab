@@ -61,9 +61,11 @@ def test_actual_ode_invalid_save_reopen_repair_and_result(service):
     doc=change(client,client.document_read(doc['id']),'document.save')['document']
     from caelab.workbench import Workbench
     fresh=Workbench(wb.workspace)
-    again=fresh.document_open(kind='pde',document_id=doc['id'])
-    assert again['draft']==repaired
-    assert canonical_hash(fresh.document_result(doc['id'],job))==canonical_hash(result)
+    try:
+        again=fresh.document_open(kind='pde',document_id=doc['id'])
+        assert again['draft']==repaired
+        assert canonical_hash(fresh.document_result(doc['id'],job))==canonical_hash(result)
+    finally:fresh.shutdown()
     assert len(wb.manager.list())==before+1
 
 
@@ -81,3 +83,55 @@ def test_installed_dimensioned_weak_reference_and_post(tmp_path):
     assert all(f['field']['coordinates_unit']=='m' and f['field']['field_unit']=='K' for f in fields)
     assert len(write_post_sets(fields,tmp_path/'post'))==2
     assert read_result(tmp_path/'weak',verify='all')['execution_status']=='SUCCEEDED'
+
+
+
+def test_ode_names_do_not_overwrite_actual_states_or_failed_reference(tmp_path):
+    from caelab.evaluation import run
+    s=domain.default_settings(domain.ODE)
+    row=s['states'][0];row.update(name='q',rhs='-rate*(q-ambient)')
+    other=deepcopy(row);other.update(name='q_reference',label='다른 온도',initial=305.,
+        rhs='-rate*(q_reference-ambient)',reference='')
+    s['states'].append(other)
+    result=run(domain.ODE,s,output=tmp_path/'distinct')
+    assert result['execution_status']=='SUCCEEDED'
+    channels=result['diagnostics']['response_channels']['q']
+    assert channels['reference']!='q_reference'
+    assert result['responses']['q_reference']['value'][0]==305.
+    assert result['responses'][channels['reference']]['value'][0]==300.
+    s['states'][0]['reference']='ambient*log(-1)'
+    bad=run(domain.ODE,s,output=tmp_path/'bad-reference')
+    assert bad['execution_status']=='SUCCEEDED'
+    assert len(bad['responses']['q']['value'])==101
+    assert bad['diagnostics']['reference_errors']['q']
+    assert bad['diagnostics']['response_channels']['q']=={'state':'q'}
+    assert bad['responses']['q_reference']['value'][0]==305.
+
+
+def test_actual_scipy_cancel_retains_accepted_clock_not_trial_rhs(tmp_path,monkeypatch):
+    from caelab.evaluation import run,read_result
+    from caelab.adapters import dimensioned_ode
+    from caelab.execution_control import ExecutionCancelled
+    calls=0
+    def cancel():
+        nonlocal calls
+        calls+=1
+        if calls>60:raise ExecutionCancelled('controlled cancellation of real SciPy')
+    monkeypatch.setattr(dimensioned_ode,'check_cancelled',cancel)
+    result=run(domain.ODE,domain.default_settings(domain.ODE),output=tmp_path/'cancel')
+    assert result['execution_status']=='CANCELLED'
+    clock=result['responses']['temperature']['axes'][0]['values']
+    assert 1<len(clock)<101 and list(clock)==sorted(clock)
+    assert clock[-1]<=result['diagnostics']['last_accepted']['time']
+    assert result['diagnostics']['accepted_steps']>0 and result['diagnostics']['partial_output']
+    import numpy as np
+    assert np.array_equal(read_result(tmp_path/'cancel',verify='all')['responses']['temperature']['value'],result['responses']['temperature']['value'])
+
+
+def test_ode_tolerance_and_operation_capabilities():
+    from caelab.backends import list_backends
+    draft=default_draft(domain.ODE);draft['settings']['solver']['rtol']=1e-25
+    assert diagnostics(draft)[0]['path']=='settings.solver.rtol'
+    rows={row['id']:row for row in list_backends()}
+    for name in (domain.ODE,domain.WEAK,'material.mfront.user'):
+        assert rows[name]['roles']==['evaluation'] # run owner/candidates, not legacy solve API

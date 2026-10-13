@@ -427,7 +427,7 @@ class PDEWindow(QMainWindow):
                 accepted(value)
             self._update_actions()
 
-        worker.signals.finished.connect(finished)
+        worker.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
         return True
 

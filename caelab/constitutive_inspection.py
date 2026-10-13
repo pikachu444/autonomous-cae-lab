@@ -5,6 +5,11 @@ from .research_workflows import result_folder
 from .evaluation import read_result
 
 
+def native_steps(backend,raw):
+    # Producer-owned schemas: SVK publishes the integrated history at root.
+    return raw['steps'] if backend=='material.mfront.hyperelastic' else raw['mgis']['steps']
+
+
 @revision_read_scope()
 def inspect_constitutive(wb,document_id,job_id,increment=0):
     if wb._document_owner(document_id) is not wb.material_documents:
@@ -46,7 +51,7 @@ def inspect_constitutive(wb,document_id,job_id,increment=0):
         catalog=reader.catalog(backend,outcome,location)
         if not catalog:
             raise ValueError('완료된 증분 없음. 실패한 native 원기록은 실행 작업에서 확인하세요.')
-        raw=reader._load(location,'native_raw.json');history=raw['mgis'];steps=history['steps']
+        raw=reader._load(location,'native_raw.json');steps=native_steps(backend,raw)
         if increment>=len(steps): raise ValueError('보존 이력에 없는 증분입니다.')
         step=deepcopy(steps[increment])
         is_finite=backend=='material.mfront.hyperelastic'

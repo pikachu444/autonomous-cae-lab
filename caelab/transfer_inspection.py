@@ -22,7 +22,21 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
         raise ValueError('선택 실행의 보존 정의가 다릅니다.')
     frozen=run['draft'];progress=evaluation_progress(wb,document_id,job_id)
     declarations=frozen.get('transfers',[])
-    records=progress.get('transfers',[])
+    records=deepcopy(progress.get('transfers',[]))
+    for record in records:record['receipt_recorded']=True
+    # Binding can fail BEFORE execute() appends its validated receipt. Expose
+    # the frozen intended edge and actual not-dispatched target, distinctly.
+    keys={(row['id'],row['iteration']) for row in records}
+    for target in progress.get('stages',[]):
+        if target.get('dispatched'):continue
+        for declared in declarations:
+            iteration_number=target['iteration']
+            if declared['to_stage']!=target['stage_id'] or (declared['lag'] and iteration_number==0):continue
+            if (declared['id'],iteration_number) in keys:continue
+            records.append({key:deepcopy(declared[key]) for key in ('id','from_stage','to_stage','input','mapping')} | {
+                'iteration':iteration_number,'source_iteration':iteration_number-declared['lag'],
+                'status':'NOT_RECORDED','receipt_recorded':False})
+            keys.add((declared['id'],iteration_number))
     names={row['id']:row.get('name',row['id']) for row in frozen.get('stages',[])}
     result={'document_id':document_id,'job_id':job_id,
             'transfers':[dict(row,source_name=names.get(row['from_stage'],row['from_stage']),
@@ -39,23 +53,39 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
     if declaration['mapping']!='exact_same_mesh':
         raise ValueError('현재 조사 화면은 선언된 동일 메시 전달만 지원합니다.')
     stages=progress.get('stages',[])
-    source=_one(stages,lambda row:row['stage_id']==receipt['from_stage'] and row['iteration']==receipt['source_iteration'],'공급 단계가 모호합니다.')
+    sources=[row for row in stages if row['stage_id']==receipt['from_stage'] and row['iteration']==receipt['source_iteration']]
+    if len(sources)>1:raise ValueError('공급 단계가 모호합니다.')
+    source=sources[0] if sources else None
     target=_one(stages,lambda row:row['stage_id']==receipt['to_stage'] and row['iteration']==iteration,'수신 단계가 모호합니다.')
+    def missing(message):
+        result.update(transfer=deepcopy(receipt) if receipt['receipt_recorded'] else None,
+            transfer_confirmation=receipt['status'],declaration=deepcopy(declaration),
+            source_attempt=source,target_attempt=target,metadata={},rows=[],start=0,count=0,total=0,
+            metadata_differences=[],coverage_policy=None,native_mask=None,unavailable=message,
+            reference_temperature=None,reference_temperature_unit=None,exact_values_match=False)
+        return result
+    if source is None:return missing('공급 단계가 아직 실행되지 않았습니다.')
     read=evaluation_stage_result(wb,document_id,job_id,source['attempt_id'],{'responses':[declaration['output']]})
-    supplied=read['responses'][declaration['output']]
-    if canonical_hash(supplied)!=receipt['source_response_sha256']:
+    supplied=read.get('responses',{}).get(declaration['output'])
+    if supplied is None:return missing('공급 결과에 선택한 장이 없습니다. 단계 실패와 원 결과를 확인하세요.')
+    if receipt['receipt_recorded'] and canonical_hash(supplied)!=receipt['source_response_sha256']:
         raise ValueError('공급 장이 보존된 전달 기록과 다릅니다.')
     # Absence is shown only for an actually incomplete receiver attempt. A
     # corrupted completed result must raise, not become "unavailable".
     received=None;settings={};unavailable=None
+    if not receipt['receipt_recorded']:
+        unavailable=str(target.get('error') or progress.get('diagnostics',{}).get('reason')
+                        or '수신 실행 전: 전달 확인 기록 없음')
     try:
+        if not receipt['receipt_recorded']:
+            raise ValueError('This stage has no completed retained result; inspect progress/failure')
         downstream=evaluation_stage_result(wb,document_id,job_id,target['attempt_id'],
                                           {'responses':[],'include_settings':True})
         settings=downstream.get('settings',{})
         received=settings.get(declaration['input'])
     except ValueError as error:
         if str(error)!='This stage has no completed retained result; inspect progress/failure': raise
-        unavailable=str(target.get('error') or '수신 입력 저장 없음: 단계 실행 전 실패 또는 취소')
+        unavailable=unavailable or str(target.get('error') or '수신 입력 저장 없음: 단계 실행 전 실패 또는 취소')
     if received is None and unavailable is None: unavailable='보존 수신 입력에 선택한 port 값이 없습니다.'
     metadata=('unit','quantity','component','association','frame','measure','coordinate_units','coordinate_frame',
               'mesh_sha256','node_ids','cell_node_ids','coordinates','time','time_units','time_origin')
@@ -76,12 +106,16 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
         rows.append({'row':i,'node':ids[i],'coordinates':deepcopy(coords[i]),'supplied':a,
                      'received':b,'difference':b-a if valid_a and valid_b else None,
                      'required':True,'available':valid_a and valid_b})
-    result.update(transfer=deepcopy(receipt),declaration=deepcopy(declaration),source_attempt=source,target_attempt=target,
+    result.update(transfer=deepcopy(receipt) if receipt['receipt_recorded'] else None,
+                  transfer_confirmation=receipt['status'],declaration=deepcopy(declaration),source_attempt=source,target_attempt=target,
                   metadata={key:deepcopy(supplied.get(key)) for key in metadata if key not in ('node_ids','coordinates','cell_node_ids')},
                   rows=rows,start=start,count=len(rows),total=len(values),metadata_differences=differences,
                   coverage_policy='ALL_P1_NODES_REQUIRED' if target['backend'] in (
                       'thermal.fenicsx.rectangle','structural.fenicsx.thermoelastic_rectangle') else 'DECLARED_COMPLETE_FIELD',
                   native_mask=supplied.get('valid_mask'),unavailable=unavailable,
-                  reference_temperature=deepcopy(settings.get('reference_temperature')),
+                  reference_temperature=deepcopy(settings.get('material',{}).get('reference_temperature'))
+                      if target['backend']=='structural.fenicsx.thermoelastic_rectangle' else None,
+                  reference_temperature_unit=settings.get('material',{}).get('reference_temperature_unit')
+                      if target['backend']=='structural.fenicsx.thermoelastic_rectangle' else None,
                   exact_values_match=received is not None and not differences and supplied.get('value')==received.get('value'))
     return result

@@ -819,10 +819,11 @@ class MaterialWindow(QMainWindow):
     def new_native_law(self):
         from caelab.material_document import NATIVE_LAWS
         from caelab.simulation_document import default_draft
-        backend, accepted = QInputDialog.getItem(self, 'Native Material document',
-            'Existing constitutive adapter', list(NATIVE_LAWS), 0, False)
+        labels=['탄성 재료점 (MFront)','유한변형 SVK','Maxwell 점탄성','사용자 MFront 법칙']
+        selected, accepted = QInputDialog.getItem(self, '새 구성식', '구성식', labels, 0, False)
         if accepted:
-            self._call(lambda: self.client.document_open(kind='material', title='Material — ' + backend,
+            backend=NATIVE_LAWS[labels.index(selected)]
+            self._call(lambda: self.client.document_open(kind='material', title=selected,
                        draft=default_draft(backend)), self._opened)
 
     def choose_document(self):

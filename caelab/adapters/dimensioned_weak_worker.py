@@ -106,12 +106,18 @@ def main(input_path):
              'reference':settings['reference'],'l2_error':None,'h1_seminorm_error':None,
              'l2_unit':'('+settings['field']['unit']+')*m','h1_unit':settings['field']['unit'],
              'norm_definition':'sqrt(integral(error^2) dx), sqrt(integral(grad(error)^2) dx); 2D SI measure'}
-        if settings['reference']:
-            ref=evaluate(parse(settings['reference'],basic)[0],{k:v for k,v in env.items() if k not in ('u','v')},functions)
-            error=solution-ref
-            row['l2_error']=math.sqrt(max(0.,finite(fem.assemble_scalar(fem.form(error*error*dx)))))
-            row['h1_seminorm_error']=math.sqrt(max(0.,finite(fem.assemble_scalar(fem.form(ufl.inner(ufl.grad(error),ufl.grad(error))*dx)))))
+        row['reference_status']='NOT_REQUESTED'
         studies.append(row)
+        save(output/'progress.json',{'completed_levels':studies,'fields':fields})
+        if settings['reference']:
+            try:
+                ref=evaluate(parse(settings['reference'],basic)[0],{k:v for k,v in env.items() if k not in ('u','v')},functions)
+                error=solution-ref
+                l2=math.sqrt(max(0.,finite(fem.assemble_scalar(fem.form(error*error*dx)))))
+                h1=math.sqrt(max(0.,finite(fem.assemble_scalar(fem.form(ufl.inner(ufl.grad(error),ufl.grad(error))*dx)))))
+                row.update(l2_error=l2,h1_seminorm_error=h1,reference_status='AVAILABLE')
+            except (ValueError,TypeError,RuntimeError,ArithmeticError) as error:
+                row.update(reference_status='FAILED',reference_error=str(error))
         save(output/'progress.json',{'completed_levels':studies,'fields':fields})
     ok=all(row['ksp_convergence_reason']>0 and row['relative_residual']<=settings['solver']['residual_relative'] for row in studies)
     finest=studies[-1]
@@ -124,6 +130,7 @@ def main(input_path):
          'checks':[{'name':'relative_algebraic_residual','status':'PASS' if ok else 'FAIL',
                     'observed':[r['relative_residual'] for r in studies],'limit':settings['solver']['residual_relative']}],
          'diagnostics':{'native_fields':fields,'mesh_studies':studies,'versions':{'dolfinx':dolfinx.__version__,'ufl':ufl.__version__},
+                        'reference_errors':[{'cells_per_axis':r['cells_per_axis'],'reason':r['reference_error']} for r in studies if r.get('reference_error')],
                         'decision':'NOT_RELEASED','reference_kind':'USER_DECLARED_NOT_QUALIFICATION'}})
 
 
