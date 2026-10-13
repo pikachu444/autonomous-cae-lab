@@ -50,6 +50,13 @@ merely because an old prompt says to do so.
 
 ## User-facing desktop interaction
 
+For GUI design and visual implementation, give the assigned desktop specialist
+the project skill [.agents/skills/cae-desktop-ux/SKILL.md](.agents/skills/cae-desktop-ux/SKILL.md).
+The specialist retrieves relevant official references, owns visual design and
+scoped Qt implementation, and inspects actual windows before the user has to
+identify obvious defects. Reuse the assigned specialist across related work;
+do not substitute a role name or a loaded skill for demonstrated design quality.
+
 Use familiar engineering application menus and natural task language. Users should
 be able to open their data/model, select or edit it, run the intended operation,
 inspect the result and save/reopen without understanding our internal architecture.

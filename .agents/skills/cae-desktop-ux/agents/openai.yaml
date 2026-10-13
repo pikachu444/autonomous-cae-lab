@@ -1,0 +1,4 @@
+interface:
+  display_name: "CAE desktop design"
+  short_description: "Polished Qt tools with visual and workflow design review"
+  default_prompt: "Use $cae-desktop-ux to improve the assigned native engineering window, implement its visual design and inspect the actual result."
