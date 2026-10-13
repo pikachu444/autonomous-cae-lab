@@ -77,6 +77,7 @@ class EvaluationWindow(QMainWindow):
         self._catalog_sources = {}
         self._source_titles = {}
         self._selected_job = None
+        self._transfer_windows = []
         self._selected_attempt = None
         self._progress = {}
         self._result = None
@@ -230,12 +231,15 @@ class EvaluationWindow(QMainWindow):
         self.refresh_button = QPushButton('진행 다시 읽기')
         self.retry_button = QPushButton('성공 단계 재사용…')
         self.result_button = QPushButton('선택 결과 열기')
+        self.transfer_button = QPushButton('전달값 보기…')
         self.refresh_button.clicked.connect(self.refresh_progress)
         self.retry_button.clicked.connect(self.prepare_retry)
         self.result_button.clicked.connect(self.open_stage_result)
+        self.transfer_button.clicked.connect(self.open_transfer_values)
         row.addWidget(QLabel('계산')); row.addWidget(self.runs, 1)
         row.addWidget(self.refresh_button)
         row.addWidget(self.result_button)
+        row.addWidget(self.transfer_button)
         result_menu = QMenu(self)
         retry_action = result_menu.addAction('같은 입력의 성공 단계 재사용…', self.retry_button.click)
         self._button_actions.append((self.retry_button, retry_action))
@@ -442,6 +446,7 @@ class EvaluationWindow(QMainWindow):
         self.refresh_button.setEnabled(exists and bool(self._selected_job) and not self._busy)
         self.retry_button.setEnabled(usable and bool(self._selected_job))
         self.result_button.setEnabled(bool(self._selected_attempt) and bool(self.result_open))
+        self.transfer_button.setEnabled(exists and bool(self._selected_job) and not self._busy)
         self.reload_button.setVisible(self.conflict); self.copy_button.setVisible(self.conflict)
         for button, action in self._button_actions:
             action.setEnabled(button.isEnabled())
@@ -802,6 +807,13 @@ class EvaluationWindow(QMainWindow):
             return self._call(lambda: self.result_open(*identity),
                 lambda result: self.message.setText('선택한 단계의 보존 결과를 Post에서 열었습니다.'),
                 relevant=lambda: self.document and (self.document['id'], self._selected_job, self._selected_attempt) == identity)
+
+    def open_transfer_values(self):
+        if not self.document or not self._selected_job or self._busy:
+            return
+        from .transfer_inspection_window import open_transfer_inspection
+        window = open_transfer_inspection(self.client, self.document['id'], self._selected_job, parent=self)
+        self._transfer_windows.append(window)
 
     def open_plan(self):
         if self.plan_open and self.document and not self.local_dirty:

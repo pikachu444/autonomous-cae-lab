@@ -46,6 +46,28 @@ root는 작은 창 3종을 직접 읽었고 사용법과 공개 입력 화면을
 신규 물리 지원을 완료했다고 하지 않는다. NativeMaterial의 남은 전용 문구와 구성식
 기능은 Pro D7 소유이며 base 변경을 전체 Material GUI 완료로 확대하지 않는다.
 
+**D7 통합 진행:** 실제 Pro의 첫 구현 `f70c2aa`를 로컬 `f17ee9d`로 받았고 자체 검토
+후속 `10ab8e9`도 통합했다. 차원 ODE/약형식, 증분/접선 읽기, 사용자 법칙 빌드,
+전달값 비교 소스가 있다. 첫 제출 검사 10통과/3실패/2건너뜀 중 cold 재열기 테스트의
+controller 중복 취득과 구조 기준온도 경로 오류를 확인했다. 원 lock은 유지한다.
+설치된 Ubuntu FEniCSx의 새 약형식 경로 1개(8.20초), 기존 SIF의 공개 사용자 법칙
+빌드만→실제 적분/FD/재읽기 경로 1개(28.06초)가 통과했다. 이 실행은 첫 제출본 기준이며
+후속 변경된 계산을 모두 재실행했다고 하지 않는다.
+
+root는 계산 절차의 **전달값 보기…**를 연결했다. 실제 HTTP/owner에서 미적용 편집을
+유지하며 선택한 과거 계산을 읽는 검사 1개가 통과했다(3.25초). 1100×780/1440×900
+Qt 화면의 한글과 버튼 배치도 읽었다. 전달 장은 명시한 대역이며 물리 해석 완료가 아니다.
+화면용 첫 실행은 fixture 활성화 누락으로 실패했고 기록을 남긴 뒤 harness만 바로잡았다.
+OS 직접 입력 수용은 미확인이다. 자료는 `pde-coupling-workflows`의 `tests-*.txt`,
+`transfer-render`, `review.md`, `user-law-review.md`에 있다.
+
+Astra/Sol의 확정 지적은 응답 이름 충돌, cold 숫자 복구, 응력/변형구배 성분 표시,
+구조 기준온도, 빌드만 수행할 때 선언 확인 순서다. 처음 제기한 행 추가 누락은 현 소스에
+이미 있어 철회했다. 실제 Pro 대화에 `PRO-PDE-COUPLED-RESEARCH-01-CORRECTION`이
+나타난 것을 확인했다. 같은 작성 턴에서 자체 검토와 묶어 교정 중이다. 후속 소스에는
+응답 이름/기준온도 교정이 포함돼 있으며 남은 지적과 실제 수명/GUI 경로를 확인한다.
+현재 D7 변경은 로컬 커밋이며 원격 main 게시 전이다. 전체 7개 작업 완료로 표시하지 않는다.
+
 **현재 핵심 작업:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain을
 다른 작성자가 동시에 변경하지 않는다. root가 상속 접점·일반 문서·연결·통합을 맡는다.
 Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이다.
@@ -60,6 +82,11 @@ Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이�
 설치나 Pro D8 배정은 하지 않았으며 D7 다음 인계 준비다.
 요청 초안은 `runs/product-development/20261014/impact-workflows/pro-request.md`에
 미전송으로 보관했다. D7 통합 뒤 기준 소스와 파일 소유권을 갱신하고 전달한다.
+Sol/Astra가 실제 FreeCAD mesh/sets 추출과 MIT INP2RAD 소스를 대조하고 직접 토론했다.
+원 static 모델에 밀도·초기조건·시간 제어를 명시하고 별도 일반 explicit adapter로
+연결하는 경로를 SPEC에 반영했다. Mg/mm/s 변환, 원 includes 보존과 native Post 연결이
+필요하며 기존 강체 제한을 느슨하게 하지 않는다. 조사 결과는 `impact-workflows/reuse-map.md`,
+`review.md`에 있다. 변환기 설치·실행이나 D8 구현 완료 기록은 아니다.
 
 - Data→Material 피팅: Pro의 두 교정본 `637f089`, `1f477ea`를 로컬 `07b5474`,
   `7aa740e`로 통합했다. 응력 선택·시험 구별·이전 미리보기/요약 제거·측정 변형률 축·
