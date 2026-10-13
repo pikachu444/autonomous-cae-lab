@@ -252,6 +252,9 @@ class StudyWindow(NumericalWindow):
         self._update_actions()
 
     def _opened(self, document):
+        from .result_return import bind_receiver
+        if not bind_receiver(self, document):
+            return
         self.local_dirty = self.conflict = False
         self._selected = None
         self._selection_serial += 1
@@ -404,6 +407,22 @@ class StudyWindow(NumericalWindow):
         self._populate_entries()
         self._populate_evidence()
         self._show_detail()
+
+    def receive_pending_result(self, message):
+        return self._result_return.receive(message)
+
+    def _call(self, function, accepted, *, background=False, relevant=None, rejected=None):
+        if getattr(self, '_incoming_review', False):
+            return False
+        return super()._call(function, accepted, background=background, relevant=relevant, rejected=rejected)
+
+    def closeEvent(self, event):
+        if getattr(self, '_incoming_review', False):
+            event.ignore()
+            return
+        if self._allow_close and getattr(self, '_result_return', None):
+            self._result_return.close()
+        super().closeEvent(event)
 
     def open_document(self, *, document_id=None, title='Research Study', draft=None):
         context = self._context()
@@ -639,7 +658,7 @@ class StudyWindow(NumericalWindow):
 
     def _update_actions(self):
         present = self.document is not None
-        available = not self._busy and not self._callbacks
+        available = not self._busy and not self._callbacks and not getattr(self, '_incoming_review', False)
         enabled = present and available and not self.conflict
         self.apply_button.setEnabled(enabled and self.local_dirty)
         self.save_action.setEnabled(enabled)
@@ -676,6 +695,10 @@ def main(argv=None):
     app = QApplication.instance() or QApplication(sys.argv[:1])
     from .desktop import open_saved_reference, open_study_followup
     client = Client(args.service)
+    if args.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client, args.document_id).get('status') == 'ACTIVATED':
+            return 0
     window = StudyWindow(client, document_id=args.document_id,
         reference_open=lambda reference: open_saved_reference(client,reference),
         discussion_open=lambda context: open_study_followup(client,context,'expert'),

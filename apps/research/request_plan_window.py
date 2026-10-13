@@ -95,6 +95,9 @@ class _WorksheetDelegate(QStyledItemDelegate):
 class RequestPlanWindow(NumericalWindow):
     """Reuse NumericalWindow's service commands, retained jobs, save and close flow."""
     def __init__(self, client, document_id=None, poll_interval=2000, auto_open=True):
+        self._return_messages = {}
+        self._return_receipts = {}
+        self._last_return_message = None
         self._worksheet_labels = {}
         self._candidate_plot_names = set()
         self._worksheet_responses = {}
@@ -279,6 +282,13 @@ class RequestPlanWindow(NumericalWindow):
         self.expert_button = QPushButton('New discussion…')
         self.expert_button.clicked.connect(self.consult_expert)
         actions.addWidget(self.expert_button)
+        self.return_button = QPushButton('Return result…')
+        self.return_button.setObjectName('returnNumericalResult')
+        self.return_button.clicked.connect(self.return_result)
+        actions.addWidget(self.return_button)
+        self.return_status_action = QAction('Check result return', self)
+        self.return_status_action.triggered.connect(self.check_return_status)
+        bar.addAction(self.return_status_action)
         result_layout.addLayout(actions)
         self.tabs = QTabWidget()
         self.candidates = readonly_table(['Candidate', 'Execution', 'Values', 'Objective', 'Feasible', 'Failure'])
@@ -367,7 +377,7 @@ class RequestPlanWindow(NumericalWindow):
                 if not isinstance(variable, dict):
                     variable = {}
                 identifier = variable.get('id')
-                label = self._worksheet_labels.get(identifier, identifier)
+                label = self._worksheet_labels.get(identifier, identifier) if isinstance(identifier, str) else value_text(identifier)
                 self._sheet_cell(self.variable_sheet, index, 0, label or 'Unsupported row', entry=('variables', index))
                 self._sheet_cell(self.variable_sheet, index, 1, identifier)
                 for col, key in enumerate(('value', 'lower', 'upper', 'unit', 'transform'), 2):
@@ -412,7 +422,7 @@ class RequestPlanWindow(NumericalWindow):
                 if operation == 'optimize' else [])
             refs = value.get('result_refs', {})
             if operation == 'doe' and ('candidates' in value or isinstance(refs, dict) and 'candidates' in refs):
-                settings = settings[1:]  # Exact supplied coordinates are not resampled.
+                settings = [] if isinstance(refs, dict) and 'candidates' in refs else settings[1:]
             self.method_sheet.setRowCount(len(settings))
             for row, (label, path, default, numeric, choices) in enumerate(settings):
                 try:
@@ -1081,7 +1091,9 @@ class RequestPlanWindow(NumericalWindow):
                     current = value.setdefault('variables', [])
                     if not isinstance(current, list) or any(not isinstance(row, dict) for row in current):
                         raise ValueError('Repair the variables list in Model / advanced before adding declarations.')
-                    ids = {row.get('id') for row in current}
+                    if any(not isinstance(row.get('id'), str) for row in current):
+                        raise ValueError('Repair variable IDs before adding declared variables.')
+                    ids = {row['id'] for row in current}
                     current.extend(row for row in variables if row['id'] not in ids)
                 self._edit_structure(append_variables)
                 self.message.setText('Variables added. Existing bounds and units were kept.')
@@ -1615,6 +1627,107 @@ class RequestPlanWindow(NumericalWindow):
             ax.text(.5, .5, 'Select a candidate to inspect its retained curve.', ha='center', transform=ax.transAxes)
         ax.set_title(str(selected['candidate_id']) if selected else 'Actual candidate responses')
 
+    def _select_return_channels(self, result):
+        from PySide6.QtWidgets import QListWidget, QListWidgetItem
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Return selected run')
+        dialog.resize(600, 380)
+        layout = QVBoxLayout(dialog)
+        label = QLabel('Attach this exact run and the checked top-level responses.\n'
+                       'Candidate records remain run evidence; a selected table row does not narrow the attachment.')
+        label.setWordWrap(True)
+        layout.addWidget(label)
+        channels = QListWidget()
+        for name in result.get('responses', {}):
+            item = QListWidgetItem(name)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
+            channels.addItem(item)
+        layout.addWidget(channels, 1)
+        if not channels.count():
+            layout.addWidget(QLabel('This run has no top-level channels. Its candidate records and diagnostics can still be reviewed.'))
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Present for review')
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return [channels.item(row).text() for row in range(channels.count())
+                if channels.item(row).checkState() == Qt.CheckState.Checked]
+
+    def return_result(self):
+        from .result_return import origin_id, result_message, deliver_result
+        job = self.selected_job()
+        if not self.document or not job or self._busy or self._callbacks:
+            return False
+        document_id, session_id = self.document['id'], self.document['session_id']
+        run = next((row for row in self.document.get('runs', []) if row['job_id'] == job), None)
+        if run is None:
+            return False
+        # The submitted run's source is immutable; newer Plan edits cannot redirect it.
+        target_id = origin_id(run)
+        def relevant():
+            return (self.document and (self.document['id'], self.document['session_id'], self.selected_job())
+                    == (document_id, session_id, job))
+        def read():
+            return (self.client.document_result_reference(document_id, job),
+                    self.client.document_result(document_id, job, selection={'metadata_only': True}))
+        def loaded(payload):
+            reference, result = payload
+            selection = self._select_return_channels(result)
+            if selection is None or not relevant():
+                return
+            def present(target):
+                if not relevant():
+                    return
+                message = result_message(self.client, target['id'], target['session_id'], reference, selection)
+                signature = canonical_hash({key: value for key, value in message.items() if key != 'delivery_id'})
+                prior = self._return_messages.get(signature)
+                if prior and self._return_receipts.get(prior['delivery_id'], {}).get('status') not in {'CANCELLED', 'REJECTED'}:
+                    message = prior
+                self._return_messages[signature] = deepcopy(message)
+                self._last_return_message = deepcopy(message)
+                def received(receipt):
+                    self._return_receipts[message['delivery_id']] = deepcopy(receipt)
+                    self._return_message(receipt)
+                self._call(lambda: deliver_result(self.client, message), received)
+            if target_id:
+                self._call(lambda: self.client.document_read(target_id), present, relevant=relevant)
+            else:
+                def listed(payload):
+                    documents = [row for row in payload['documents'] if row.get('kind') in {'expert', 'study'}]
+                    labels = [row['title'] + ' (' + row['kind'] + ') — ' + row['id'] for row in documents]
+                    if not labels:
+                        self.message.setText('No existing Expert or Study is available. New discussion remains a separate action.')
+                        return
+                    label, accepted = QInputDialog.getItem(self, 'Attach to existing research', 'Existing document', labels, editable=False)
+                    if accepted and relevant():
+                        self._call(lambda: self.client.document_read(documents[labels.index(label)]['id']), present, relevant=relevant)
+                self._call(self.client.documents, listed, relevant=relevant)
+        return self._call(read, loaded, relevant=relevant)
+
+    def _return_message(self, receipt):
+        status = receipt.get('status', 'UNCONFIRMED')
+        text = {'PRESENTED': 'Presented in the existing research window. Use Review returned result there to Attach or Cancel.',
+                'ATTACHED': 'Evidence attached to the original local draft. Apply and Save remain explicit.',
+                'ALREADY_ATTACHED': 'The exact run and channels are already in the original draft.',
+                'CANCELLED': 'Return cancelled in the original window; its draft was unchanged.',
+                'UNKNOWN': 'No retained delivery receipt in that window; inspect it before explicitly resending.'}.get(status)
+        self.message.setText(text or 'Result return ' + status + ': ' + str(receipt.get('reason', 'Inspect the original window.')))
+
+    def check_return_status(self):
+        if not self._last_return_message or self._busy or self._callbacks:
+            return False
+        from .result_return import send_message
+        original = deepcopy(self._last_return_message)
+        message = {key: value for key, value in original.items() if key not in {'reference', 'selection'}}
+        message['operation'] = 'status'
+        def received(receipt):
+            self._return_receipts[original['delivery_id']] = deepcopy(receipt)
+            self._return_message(receipt)
+        return self._call(lambda: send_message(message), received)
+
     def consult_expert(self):
         job = self.selected_job()
         if not self.document or not job:
@@ -1648,6 +1761,8 @@ class RequestPlanWindow(NumericalWindow):
         self.read_button.setEnabled(enabled and self.selected_job() is not None)
         self.runner_button.setEnabled(present and available and self.selected_job() is not None)
         self.expert_button.setEnabled(present and available and self.selected_job() is not None)
+        self.return_button.setEnabled(present and available and self.selected_job() is not None)
+        self.return_status_action.setEnabled(available and self._last_return_message is not None)
         read_available = present and not self.conflict and not self._callbacks and not self._pending_adoption and (not self._busy or self._busy_background)
         self.candidate_results_button.setEnabled(read_available and bool(self._selected_actual_candidate())
             and callable(getattr(self.client, 'numerical_evaluation_result', None)))

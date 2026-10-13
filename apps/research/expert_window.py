@@ -254,7 +254,7 @@ class ExpertWindow(QMainWindow):
         self._update_actions()
 
     def _call(self, function, success, *, background=False):
-        if self._busy:
+        if self._busy or getattr(self, '_incoming_review', False):
             return False
         self._busy = True
         self._foreground_busy = not background
@@ -278,11 +278,17 @@ class ExpertWindow(QMainWindow):
         QThreadPool.globalInstance().start(worker)
         return True
 
+    def receive_pending_result(self, message):
+        return self._result_return.receive(message)
+
     def open_document(self, *, document_id=None, title='Expert discussion', draft=None):
         return self._call(lambda: self.client.document_open(kind='expert', title=title, draft=draft,
                          document_id=document_id), self._opened)
 
     def _opened(self, document):
+        from .result_return import bind_receiver
+        if not bind_receiver(self, document):
+            return
         self.local_dirty = self.conflict = self._round_started_here = False
         self._auto_round_id = None
         self._show_document(document)
@@ -434,7 +440,9 @@ class ExpertWindow(QMainWindow):
         for key, value in current.items():
             if value != self._control_initial.get(key):
                 draft['context'].setdefault('transmission_scope', {})[key] = value
-        result_ids = [item['job_id'] for item in draft['composer'].get('evidence', []) if 'job_id' in item]
+        explicit_permission_change = self.allow_results.isChecked() != self._control_initial.get('allow_results')
+        result_ids = [item['job_id'] for item in draft['composer'].get('evidence', []) if 'job_id' in item
+                      and (explicit_permission_change or canonical_hash(item) not in getattr(self, '_review_only_evidence', set()))]
         if self.allow_results.isChecked() != self._control_initial.get('allow_results') or (
                 self.allow_results.isChecked() and draft['composer']['evidence'] != self.document['draft']['composer']['evidence']):
             scope = draft['context'].setdefault('transmission_scope', {})
@@ -524,7 +532,7 @@ class ExpertWindow(QMainWindow):
             command_id='C' + uuid.uuid4().hex), received)
 
     def refresh_document(self):
-        if not self.document or self._busy:
+        if not self.document or self._busy or getattr(self, '_incoming_review', False):
             return
         identifier, session = self.document['id'], self.document['session_id']
         def received(remote):
@@ -683,7 +691,7 @@ class ExpertWindow(QMainWindow):
 
     def _update_actions(self, *_):
         present = self.document is not None
-        enabled = present and not self._busy and not self.conflict
+        enabled = present and not self._busy and not self.conflict and not getattr(self, '_incoming_review', False)
         self.editor.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.roles.setEnabled(present and not self._draft_problem and not self._foreground_busy)
         self.topics.setEnabled(present and not self._draft_problem and not self._foreground_busy)
@@ -761,7 +769,12 @@ class ExpertWindow(QMainWindow):
         self._leave(choose)
 
     def closeEvent(self, event):
+        if getattr(self, '_incoming_review', False):
+            event.ignore()
+            return
         if self._allow_close:
+            if getattr(self, '_result_return', None):
+                self._result_return.close()
             self.timer.stop()
             event.accept()
             return
@@ -821,6 +834,10 @@ def main(argv=None):
         parser.error('--service or CAELAB_SERVICE_URL must identify an existing local service')
     app = QApplication.instance() or QApplication(sys.argv[:1])
     client = Client(args.service)
+    if args.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client, args.document_id).get('status') == 'ACTIVATED':
+            return 0
     window = ExpertWindow(client, document_id=args.document_id, title=args.title)
     connect_desktop_actions(window, client)
     window.show()

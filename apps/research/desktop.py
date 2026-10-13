@@ -201,6 +201,11 @@ def launch_tool(client, tool, job_id=None, document_id=None, parent=None):
         raise ValueError('Choose an independently supported research editor or Runner')
     if (tool == 'runner' and document_id) or (tool != 'runner' and job_id):
         raise ValueError('Runner selects a job; research editors select a document')
+    if tool in {'expert', 'study'} and document_id:
+        from .result_return import activate_existing
+        receipt = activate_existing(client, check_id(document_id))
+        if receipt.get('status') == 'ACTIVATED':
+            return receipt
     arguments = [tool]
     if job_id:
         arguments += ['--job-id', check_id(job_id)]
