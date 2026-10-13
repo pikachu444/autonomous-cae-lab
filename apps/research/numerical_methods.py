@@ -64,6 +64,10 @@ def objective_label(row):
     response=str(row.get('response') or '응답 미지정')
     component=row.get('component')
     if component and component!='scalar':response+=' '+str(component)
+    reduction=row.get('reduction')
+    if reduction and reduction!='none':response+=' '+CHOICE_LABELS.get(reduction,str(reduction))
+    location=row.get('location')
+    if isinstance(location,str) and location and location!='model':response+=' ('+location+')'
     return response+' ['+str(row.get('unit') or '단위 미지정')+'] '+CHOICE_LABELS.get(row.get('direction','minimize'),str(row.get('direction')))
 
 
@@ -124,7 +128,7 @@ class MethodDialog(QDialog):
             shown=choice_label(text,choices) if choices else value_text(text)
             item=QTableWidgetItem(shown)
             item.setToolTip(value_text(text))
-            item.setData(DATA,dict(path=path,numeric=numeric,choices=choices,shown=shown))
+            item.setData(DATA,dict(path=path,numeric=numeric,choices=choices,shown=shown,value=deepcopy(text)))
             if path is None:item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             t.setItem(row,col,item)
         if operation=='uq':
@@ -231,9 +235,12 @@ class MethodDialog(QDialog):
             for i in range(t.rowCount()):
                 for j in range(t.columnCount()):
                     item=t.item(i,j);meta=item.data(DATA) or {}
-                    if meta.get('path') and item.text()!=meta['shown']:
-                        # Empty text is retained if edited; invalid drafts remain repairable.
-                        parsed=choice_value(item.text(),meta.get('choices',()))
+                    from .request_plan_window import CHOICE_DATA
+                    selected=item.data(CHOICE_DATA)
+                    explicit=isinstance(selected,dict) and selected.get('label')==item.text()
+                    if meta.get('path') and (item.text()!=meta['shown'] or explicit):
+                        # Exact combo itemData is separate from typed unknown text.
+                        parsed=deepcopy(selected['value']) if explicit else choice_value(item.text(),meta.get('choices',()))
                         patch(result,meta['path'],number(parsed) if meta['numeric'] and isinstance(parsed,str) else parsed)
                         if meta['path'][0]=='distributions':
                             law=result['distributions'][meta['path'][1]]

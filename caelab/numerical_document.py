@@ -21,7 +21,7 @@ def request_draft(request=None, *, source=None):
 
 def request_diagnostics(draft):
     try:
-        if set(draft) - {'method_inputs', 'model_source'} != {'mode', 'request', 'source'}:
+        if set(draft) - {'method_inputs', 'model_source', 'method_model_sources'} != {'mode', 'request', 'source'}:
             raise ValueError('Request Plan requires mode, editable request and source reference')
         if 'method_inputs' in draft:
             from .assist.experts import _PLAN_INPUTS
@@ -43,6 +43,14 @@ def request_diagnostics(draft):
         if 'model_source' in draft:
             from .evaluation_definition import check_reference
             check_reference(draft['model_source'],{'material':'M','pde':'Q','simulation':'V','evaluation':'E'})
+        if 'method_model_sources' in draft:
+            from .assist.experts import _PLAN_INPUTS
+            from .evaluation_definition import check_reference
+            models=draft['method_model_sources']
+            if not isinstance(models,dict) or set(models)-set(draft.get('method_inputs',{})) or set(models)-set(_PLAN_INPUTS):
+                raise ValueError('Saved method model references must match the retained alternative methods')
+            for reference in models.values():
+                if reference is not None:check_reference(reference,{'material':'M','pde':'Q','simulation':'V','evaluation':'E'})
         source = draft['source']
         if source is not None:
             if isinstance(source, dict) and 'document_id' in source:

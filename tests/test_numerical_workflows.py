@@ -188,3 +188,27 @@ def test_confirmation_reads_exact_saved_point_and_preserves_failure(monkeypatch)
     assert row['actual'] is None and row['difference'] is None and row['reason']
     with pytest.raises(ValueError,match='coordinates differ'):
         confirmation_values(prediction,dict(actual,values={'x':.36}),{'x':.35})
+
+
+
+@pytest.mark.parametrize('law,values',[('linear_elastic',{'E':1500.,'nu':.27}),
+                                     ('neo_hooke',{'mu':400.,'lmbda':600.})])
+def test_material_binding_reuses_owner_contract_without_calculation(monkeypatch,law,values):
+    from caelab.adapters.felupe_material import FelupeMaterialAdapter
+    from caelab.material_document import default_draft
+    from caelab.evaluation_definition import bind_values
+    original=default_draft()
+    original['settings']['model']=law
+    if law=='neo_hooke':original['settings']['parameters']={'mu':300.,'lmbda':500.}
+    before=deepcopy(original)
+    monkeypatch.setattr(FelupeMaterialAdapter,'prepare',lambda *a,**k:pytest.fail('Binding executed a model'))
+    adapter=FelupeMaterialAdapter()
+    bound=adapter.bind_inputs(original['settings'],values)
+    assert bound==bind_values(original,values)['settings']
+    assert original==before and bound['parameters']==values
+    assert {k:v for k,v in bound.items() if k!='parameters'}=={k:v for k,v in before['settings'].items() if k!='parameters'}
+    with pytest.raises(ValueError,match='Unknown Material coefficient'):
+        adapter.bind_inputs(original['settings'],{'invented':1.})
+    with pytest.raises(ValueError):
+        adapter.bind_inputs(original['settings'],{'E':-1.} if law=='linear_elastic' else {'mu':-1.})
+    assert original==before

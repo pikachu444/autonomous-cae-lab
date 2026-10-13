@@ -25,6 +25,7 @@ from matplotlib.figure import Figure
 
 
 DATA = Qt.ItemDataRole.UserRole
+CHOICE_DATA = int(Qt.ItemDataRole.UserRole) + 1
 RETAINED_ROLES = {'doe': ('candidates',), 'analyze': ('table',), 'surrogate': ('training', 'holdout', 'model'),
                   'sensitivity': ('table', 'plan'), 'batch_export': ('candidates',),
                   'batch_import': ('batch', 'results')}
@@ -93,16 +94,41 @@ class _WorksheetDelegate(QStyledItemDelegate):
         return QLineEdit(parent)
 
     def setEditorData(self, editor, index):
+        shown=index.data(Qt.ItemDataRole.DisplayRole) or ''
         if isinstance(editor, QComboBox):
-            editor.setCurrentText(index.data(Qt.ItemDataRole.DisplayRole) or '')
+            binding=index.data(DATA) or {}
+            selected=index.data(CHOICE_DATA)
+            if isinstance(selected,dict) and selected.get('label')==shown:
+                value=selected['value']
+            elif shown==binding.get('shown'):
+                value=binding.get('value')
+            else:
+                from .numerical_methods import choice_value
+                value=choice_value(shown,binding.get('choices',()))
+            current=editor.findData(value)
+            if current>=0:editor.setCurrentIndex(current)
+            else:editor.setEditText(shown)
         else:
-            editor.setText(index.data(Qt.ItemDataRole.DisplayRole) or '')
+            editor.setText(shown)
             editor.selectAll()
 
     def setModelData(self, editor, model, index):
-        text = editor.currentText() if isinstance(editor, QComboBox) else editor.text()
-        # The visible label is decoded by the sheet/local dialog, not stored as schema data.
-        model.setData(index, text, Qt.ItemDataRole.EditRole)
+        selected=None
+        if isinstance(editor,QComboBox):
+            text=editor.currentText()
+            i=editor.currentIndex()
+            if i>=0 and text==editor.itemText(i):
+                selected={'label':text,'value':deepcopy(editor.itemData(i))}
+        else:text=editor.text()
+        # Commit label + exact canonical selection together, including two
+        # different objectives whose visible labels happen to be identical.
+        blocked=model.blockSignals(True)
+        try:
+            model.setData(index,selected,CHOICE_DATA)
+            model.setData(index,text,Qt.ItemDataRole.EditRole)
+        finally:model.blockSignals(blocked)
+        if not blocked:
+            model.dataChanged.emit(index,index,[int(Qt.ItemDataRole.EditRole),CHOICE_DATA])
 
 
 class RequestPlanWindow(NumericalWindow):
@@ -770,7 +796,7 @@ class RequestPlanWindow(NumericalWindow):
         item = QTableWidgetItem(text)
         item.setToolTip(text)
         item.setData(DATA, {'path': path, 'numeric': numeric, 'choices': list(choices),
-                            'shown': text, 'entry': entry})
+                            'shown': text, 'value':deepcopy(value), 'entry': entry})
         if path is None:
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         table.setItem(row, column, item)
@@ -919,7 +945,9 @@ class RequestPlanWindow(NumericalWindow):
             return
         binding = item.data(DATA) or {}
         path = binding.get('path')
-        if not path or item.text() == binding.get('shown'):
+        selected=item.data(CHOICE_DATA)
+        explicit=isinstance(selected,dict) and selected.get('label')==item.text()
+        if not path or item.text() == binding.get('shown') and not explicit:
             return
         text = item.text()
         def change(value):
@@ -929,7 +957,7 @@ class RequestPlanWindow(NumericalWindow):
                     parent[key] = {}
                 parent = parent[key]
             from .numerical_methods import choice_value
-            parsed=choice_value(text,binding.get('choices',()))
+            parsed=deepcopy(selected['value']) if explicit else choice_value(text,binding.get('choices',()))
             # Programmatic/raw edits retain the same bool contract as the advanced editor.
             if path==('second_order',) and parsed in ('true','false'):parsed=parsed=='true'
             parent[path[-1]] = numeric_text(parsed) if binding.get('numeric') and isinstance(parsed,str) else parsed
@@ -952,7 +980,9 @@ class RequestPlanWindow(NumericalWindow):
             current=self._at_path(value,path)
             shown=choice_label(current,binding.get('choices',()))
             binding['shown'] = shown
+            binding['value']=deepcopy(current)
             item.setData(DATA, binding)
+            item.setData(CHOICE_DATA,None)
             item.setText(shown)
             item.setToolTip(value_text(current))
         finally:
@@ -1073,11 +1103,14 @@ class RequestPlanWindow(NumericalWindow):
 
     @staticmethod
     def _shape_error(draft):
-        if not isinstance(draft, dict) or set(draft) - {'method_inputs', 'model_source'} != {'mode', 'request', 'source'} or draft.get('mode') != 'request':
+        if not isinstance(draft, dict) or set(draft) - {'method_inputs', 'model_source', 'method_model_sources'} != {'mode', 'request', 'source'} or draft.get('mode') != 'request':
             return 'This document is not a request Plan. Its original draft is retained; use its own editor or Undo.'
         if 'method_inputs' in draft and (not isinstance(draft['method_inputs'], dict)
                 or any(not isinstance(value, dict) for value in draft['method_inputs'].values())):
             return 'Saved method inputs must be named editable objects. The invalid draft is preserved.'
+        models=draft.get('method_model_sources',{})
+        if not isinstance(models,dict) or any(value is not None and not isinstance(value,dict) for value in models.values()):
+            return '방법별 모델 참조를 읽을 수 없습니다. 원래 초안은 보존됩니다.'
         request = draft['request']
         if (not isinstance(request, dict) or set(request) != {'purpose', 'operation', 'inputs', 'budget'} or
             not isinstance(request['inputs'], dict) or not isinstance(request['budget'], dict) or
@@ -1104,6 +1137,11 @@ class RequestPlanWindow(NumericalWindow):
             self._shown_operation = self.operation.currentData()
             self._operation_inputs = {**deepcopy(document['draft'].get('method_inputs', {})),
                                       self._shown_operation: deepcopy(request['inputs'])}
+            current_model=self._model_reference(document['draft'])
+            self._operation_model_sources=deepcopy(document['draft'].get('method_model_sources',{}))
+            for name in self._operation_inputs:
+                self._operation_model_sources.setdefault(name,deepcopy(current_model) if 'model_source' not in document['draft'] else None)
+            self._operation_model_sources[self._shown_operation]=deepcopy(current_model)
             self._populate_inputs(request['inputs'])
             self._operation_controls()
         else:
@@ -1219,6 +1257,8 @@ class RequestPlanWindow(NumericalWindow):
         self._commit_editor()
         if self._shown_operation is not None and self.inputs.topLevelItem(0):
             self._operation_inputs[self._shown_operation] = self._input_value(self.inputs.topLevelItem(0))
+            self._operation_model_sources[self._shown_operation]=deepcopy(self._model_reference(self._request_buffer))
+        previous_model=deepcopy(self._operation_model_sources.get(self._shown_operation))
         previous = self._operation_inputs.get(self._shown_operation, {})
         operation = self.operation.currentData()
         templates = {'analyze': {'result_refs': {}, 'responses': []},
@@ -1232,8 +1272,11 @@ class RequestPlanWindow(NumericalWindow):
             value = deepcopy(templates.get(operation, {}))
             if operation in MODEL_OPERATIONS:
                 if 'backend' not in previous:
-                    previous = next((entry for name, entry in reversed(list(self._operation_inputs.items()))
-                                     if name in MODEL_OPERATIONS and 'backend' in entry), previous)
+                    fallback=next(((name,entry) for name,entry in reversed(list(self._operation_inputs.items()))
+                                   if name in MODEL_OPERATIONS and 'backend' in entry),None)
+                    if fallback:
+                        name,previous=fallback
+                        previous_model=deepcopy(self._operation_model_sources.get(name))
                 # The source model remains the same when choosing a research
                 # method. Each method still keeps its own later edits.
                 for key in ('backend', 'variables'):
@@ -1251,6 +1294,8 @@ class RequestPlanWindow(NumericalWindow):
             if operation == 'uq':
                 value.update(distributions={}, independence='', source={'origin':'','reference':''}, thresholds=[])
             self._operation_inputs[operation] = value
+            self._operation_model_sources[operation]=deepcopy(previous_model)
+        self._set_model_reference(self._request_buffer,self._operation_model_sources.get(operation))
         value = deepcopy(self._operation_inputs[operation])
         self._populate_inputs(value)
         self.backend.setText(value_text(value.get('backend', '')))
@@ -1891,6 +1936,10 @@ class RequestPlanWindow(NumericalWindow):
                         if key != request['operation']}
         if alternatives or 'method_inputs' in draft:
             draft['method_inputs'] = alternatives
+        model_alternatives={name:deepcopy(reference) for name,reference in getattr(self,'_operation_model_sources',{}).items()
+                            if name!=request['operation'] and name in alternatives}
+        if model_alternatives or 'method_model_sources' in draft:
+            draft['method_model_sources']=model_alternatives
         original_budget = draft['request']['budget']['evaluations']
         request['budget']['evaluations'] = deepcopy(original_budget) if self.evaluations.text() == value_text(original_budget) else leaf_value(self.evaluations.text(), 0)
         return draft
@@ -1900,6 +1949,25 @@ class RequestPlanWindow(NumericalWindow):
         for part in path:
             value = value[part]
         return value
+
+    @classmethod
+    def _model_reference(cls,draft):
+        if draft.get('model_source') is not None:return deepcopy(draft['model_source'])
+        source=draft.get('source')
+        if cls._candidate_target(source)[1]:
+            if 'pde_document_id' in source:
+                return {**{key:deepcopy(value) for key,value in source.items() if key!='pde_document_id'},
+                        'kind':'pde','document_id':source['pde_document_id']}
+            return deepcopy(source)
+        return None
+
+    @classmethod
+    def _set_model_reference(cls,draft,reference):
+        if reference is None:draft.pop('model_source',None)
+        else:draft['model_source']=deepcopy(reference)
+        prior=draft.get('source')
+        if prior is None or cls._candidate_target(prior)[1]:
+            draft['source']=deepcopy(reference)
 
     def _edit_structure(self, callback, *, model_source=None):
         if self._view_error or not self.document or self._busy and not self._busy_background:
@@ -1912,10 +1980,8 @@ class RequestPlanWindow(NumericalWindow):
                 from .numerical_methods import remap_thresholds
                 remap_thresholds(before,draft['request']['inputs'])
             if model_source is not None:
-                draft['model_source']=deepcopy(model_source)
-                prior=draft.get('source')
-                if prior is None or prior.get('kind') in {'material','pde','simulation','evaluation'} or 'pde_document_id' in prior:
-                    draft['source']=deepcopy(model_source)
+                self._set_model_reference(draft,model_source)
+                self._operation_model_sources[self.operation.currentData()]=deepcopy(model_source)
         except (ValueError, TypeError, KeyError, IndexError, AttributeError) as error:
             self.message.setText('Input edit was not applied; the current draft is retained. ' + str(error))
             return False

@@ -218,6 +218,22 @@ def test_independent_plan_selects_real_saved_material_and_runs_existing_adapter(
     assert reopened.document['runs'][-1]['job_id']==job
     assert reopened.edited_draft()['model_source']['document_id']==model['id']
     assert wb.document_read(model['id'])['draft']==model_before
+    # Explicit adoption uses the same reviewed actual B candidate; no new solve.
+    reopened.retry_result();wait(app,lambda:not reopened._busy and job in reopened._result_cache,reopened)
+    reopened.candidates.selectRow(0);app.processEvents()
+    monkeypatch.setattr(reopened,'_review_pde_changes',lambda preview:True)
+    jobs=len(wb.manager.list())
+    reopened.review_pde_candidate()
+    expected=deepcopy(model_before)
+    expected['settings']['parameters'].update(result['candidates'][0]['values'])
+    wait(app,lambda:not reopened._busy and wb.document_read(model['id'])['draft']==expected,reopened)
+    assert wb.document_read(first['id'])['draft']==model_before
+    adopted=wb.document_read(model['id'])
+    assert adopted['input_revision']!=model['input_revision'] and adopted['dirty']
+    adopted=wb.document_command(adopted['id'],'document.save',{},session_id=adopted['session_id'],
+        expected_generation=adopted['generation'])['document']
+    assert adopted['saved_revision']!=model['saved_revision'] and not adopted['dirty']
+    assert len(wb.manager.list())==jobs
 
 
 def test_changed_variable_list_cannot_relabel_retained_correlation(environment):
@@ -385,3 +401,79 @@ def test_saved_prediction_to_explicit_actual_confirmation_and_paired_read(enviro
     assert dialogs[0][1]=='0.16'
     assert len(wb.manager.list())==jobs
     assert wb.document_result(original_id,mjob)==original
+
+
+
+def test_canonical_combo_selection_survives_duplicate_labels_and_reopen(environment,monkeypatch):
+    app,wb,open_window=environment
+    from apps.research import numerical_methods
+    # Physical objectives differ by reduction/location. Force a label collision
+    # too: canonical itemData must remain authoritative even then.
+    objectives=[dict(response='stress_xx',unit='MPa',component='xx',direction='minimize',
+        reduction=reduction,location=location) for reduction,location in (('max','gage A'),('final','gage B'))]
+    assert numerical_methods.objective_label(objectives[0])!=numerical_methods.objective_label(objectives[1])
+    monkeypatch.setattr(numerical_methods,'objective_label',lambda row:'같은 표시명')
+    value={'backend':'test.d6.ui','settings':{},'variables':inputs()['variables'],
+        'objectives':objectives,'primary_index':0,'threshold_grid':[[10.]],'total_evaluation_budget':10}
+    w=open_window(request('epsilon',value,10))
+    index=w.method_sheet.model().index(0,1)
+    delegate=w.method_sheet.itemDelegate()
+    editor=delegate.createEditor(w.method_sheet,QStyleOptionViewItem(),index)
+    delegate.setEditorData(editor,index)
+    assert editor.currentData()==0
+    editor.setCurrentIndex(1)
+    delegate.setModelData(editor,w.method_sheet.model(),index)
+    app.processEvents()
+    assert w.edited_draft()['request']['inputs']['primary_index']==1
+    assert w.edited_draft()['request']['inputs']['threshold_grid']==[[]]
+    save(app,w)
+    reopened=open_window(identifier=w.document['id'])
+    index=reopened.method_sheet.model().index(0,1)
+    editor=delegate.createEditor(reopened.method_sheet,QStyleOptionViewItem(),index)
+    delegate.setEditorData(editor,index)
+    assert editor.currentData()==1
+    editor.setEditText('미지원 선택')
+    delegate.setModelData(editor,reopened.method_sheet.model(),index)
+    assert reopened.edited_draft()['request']['inputs']['primary_index']=='미지원 선택'
+    assert wb.manager.list()==[]
+
+
+def test_method_switch_restores_exact_model_with_its_edited_inputs(environment,monkeypatch):
+    app,wb,open_window=environment
+    models=[]
+    for title,coefficient in (('모델 A',1000.),('모델 B',2000.)):
+        draft=default_draft();draft['settings']['parameters']['E']=coefficient
+        model=wb.document_open(kind='material',title=title,draft=draft)
+        model=wb.document_command(model['id'],'document.save',{},session_id=model['session_id'],
+            expected_generation=model['generation'])['document']
+        models.append(model)
+    selected=[models[0]['title']]
+    monkeypatch.setattr(QInputDialog,'getItem',lambda parent,title,label,items,**kwargs:
+        (next(item for item in items if selected[0] in item),True))
+    monkeypatch.setattr(QMessageBox,'question',lambda *a,**k:QMessageBox.StandardButton.Yes)
+    w=open_window(request('doe',{'backend':'','settings':{},'variables':[],'count':2},2))
+    w.choose_model_document()
+    wait(app,lambda:not w._busy and w.edited_draft().get('model_source',{}).get('document_id')==models[0]['id'],w)
+    w.operation.setCurrentIndex(w.operation.findData('uq'))
+    selected[0]=models[1]['title']
+    w.choose_model_document()
+    wait(app,lambda:not w._busy and w.edited_draft().get('model_source',{}).get('document_id')==models[1]['id'],w)
+    save(app,w)
+    reopened=open_window(identifier=w.document['id'])
+    from apps.research import desktop
+    opened=[]
+    monkeypatch.setattr(desktop,'launch_tool',lambda client,tool,**kwargs:
+        (opened.append(kwargs['document_id']) or {'status':'OPENED'}))
+    for method,model in (('doe',models[0]),('uq',models[1]),('doe',models[0])):
+        reopened.operation.setCurrentIndex(reopened.operation.findData(method))
+        draft=reopened.edited_draft()
+        assert draft['request']['inputs']['settings']==model['draft']['settings']
+        assert draft['model_source']['document_id']==draft['source']['document_id']==model['id']
+        reopened.open_model_source()
+        wait(app,lambda:not reopened._busy and opened and opened[-1]==model['id'],reopened)
+    save(app,reopened)
+    again=open_window(identifier=reopened.document['id'])
+    again.operation.setCurrentIndex(again.operation.findData('uq'))
+    assert again.edited_draft()['model_source']['document_id']==models[1]['id']
+    assert again.edited_draft()['request']['inputs']['settings']==models[1]['draft']['settings']
+    assert wb.manager.list()==[]

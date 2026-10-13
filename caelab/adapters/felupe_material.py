@@ -65,6 +65,19 @@ class FelupeMaterialAdapter:
                          'value':value,'lower':low,'upper':high,'path':['parameters',name]})
         return rows
 
+    def bind_inputs(self, settings, values):
+        """Pure coefficient binding through the existing Material domain contract.
+
+        Units, deformation/time histories and unselected coefficients are copied
+        unchanged. No FELUPE calculation, document edit or adoption occurs here.
+        """
+        if not isinstance(values,dict):
+            raise ValueError('Material assignments require named coefficients')
+        validate_settings(settings)
+        from ..evaluation_definition import bind_values
+        return bind_values({'backend':self.backend,'settings':deepcopy(settings)},
+                           deepcopy(values))['settings']
+
     def prepare(self, settings, *, runtime=None):
         import felupe
         if runtime and set(runtime)-{'threads','memory_mb'}:
