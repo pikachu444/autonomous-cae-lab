@@ -26,6 +26,11 @@ Astra가 찾은 `.partial` 이름의 오프라인 원본 이동 문제도 교정
 [Windows용 충격 솔버 준비](docs/INSTALL_KO.md#windows용-충격-솔버-준비하기)에 있다.
 Astra가 최종 소유권 교정과 실제 설치 파일 목록을 확인했고 해당 설치 변경의 지적은
 해결됐다. 일반 모델의 실제 계산과 전체 D8 완료 판정은 남아 있다.
+선택 설치와 한글 안내는 원격 main `53356e0311f91f81484ceb0b9e6929c32c00f47f`에
+게시했고 원격 일치를 확인했다. Pro D8는 같은 작성 턴에서 진행 중이다.
+Luna/high 보조 담당 `experiment_report_reuse`는 다음 D9의 네 작업에 대한 기존
+교정·Study·보고서 연결점만 읽는다. 산출물은 `experiment-report-workflows/reuse-map.md`이며
+제품 코드를 쓰거나 현재 Pro 소유 파일을 바꾸지 않는다. D9 구현 착수 기록은 아니다.
 
 **최신 환경 요구:** 사용자가 WSL을 쓰지 못하는 경우도 지원하도록 지시했다.
 기본 `Start-CAE-Lab.cmd`는 이미 Windows 경로다. root가 고급 실행 스크립트의 Auto도
