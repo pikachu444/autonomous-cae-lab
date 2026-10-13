@@ -322,9 +322,13 @@ Astra는 산출물의 핵심 의미·사용자 흐름을 독립 검토한다. �
 한정되고, 접촉 adapter는 이미 고정된 snapshot만 실행한다. 기존 Numerical 후보 저장과
 JobManager는 재사용할 수 있지만 사용자 CAD의 후보별 형상/메시/조건 생성과 편집 가능한
 FreeCAD 문서로의 명시적 채택이 아직 없다. Astra가 이 후속 설계의 단위·참조 복구·재메시·
-실패/취소·원본 보존 경계를 읽기 전용 검토한다. 형상뿐 아니라 하중·변위·재료·접촉 계수의
-typed 변수도 전체 구현 범위로 유지하며, 지금 등록기가 길이만 받는다는 이유로 삭제하지
-않는다. 후속 제품 작성은 현재 Post 기능 통합 뒤 같은 Pro에 맡긴다.
+실패/취소·원본 보존 경계를 읽기 전용 검토했다. 권고를
+[사용자 CAD 후보 계산·채택 명세](.moai/specs/SPEC-CAD-NUMERICAL-001/spec.md)에 반영했다.
+형상뿐 아니라 하중·변위·재료·접촉 계수의 typed 변수, 후보별 면 대응/재메시,
+binding 실패 이전의 시도 보존, 계산 당시 editable 모델에서 새 분기 열기를 포함한다.
+기존 Simulation recipe·Numerical·JobManager·native opener를 재사용하고 pinned worker의
+단일 fixture 전체 생성 경로를 일반 사용자 모델로 간주하지 않는다. 이 SPEC은 draft이며
+아직 Pro 구현에 착수한 것으로 표시하지 않는다. 후속 작성은 현재 Post 기능 통합 뒤 맡긴다.
 Pro의 별도 실행 전 검사 수정
 `1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
 않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.
