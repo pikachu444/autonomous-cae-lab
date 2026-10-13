@@ -144,7 +144,7 @@ class Owner:
             try:
                 state = self.fem.descriptor()
                 state = {name: state.get(name) for name in ('regions', 'conditions', 'meshes', 'mesh_history',
-                         'mesh_local_sizes', 'mesh_busy', 'active_mesh_generations', 'execution_scope')}
+                         'mesh_local_sizes', 'mesh_busy', 'active_mesh_generations', 'execution_scope', 'contact')}
             except Exception as error:
                 state = {'inspection_error': str(error), 'mesh_busy': bool(self.fem._pending)}
             self._fem_cache = key, state
@@ -245,7 +245,8 @@ class Owner:
                 if operation != 'document.activate':
                     self._idle()
                 readonly = {'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
-                            'pre.motion.inspect', 'pre.motion.path', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
+                            'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
+                            'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
                     raise ValueError('MESH_BUSY: finish/cancel this native mesh generation before another design command')
                 if (operation not in readonly and operation not in MOTION_OPERATIONS

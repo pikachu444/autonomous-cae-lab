@@ -14,6 +14,7 @@ import re
 import sys
 import uuid
 
+from .contact import ContactEditor, OPERATIONS as CONTACT_OPERATIONS
 from .freeze_analysis import CCX_FROM_NATIVE_TET10
 from .mesh_binding import PROPERTY_NAME, global_placement
 
@@ -23,7 +24,7 @@ OPERATIONS = (
     'pre.fem.mesh_cancel', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight',
     'pre.fem.region_set', 'pre.fem.region_remove', 'pre.fem.condition_set',
     'pre.fem.condition_repair', 'pre.fem.material_set', 'pre.fem.task_edit',
-)
+) + CONTACT_OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
 NORMALIZED_JACOBIAN_FLOOR = 256 * sys.float_info.epsilon
 _MESH_FIELDS = {'CharacteristicLengthMin', 'CharacteristicLengthMax', 'ElementOrder',
@@ -160,10 +161,12 @@ class FEMEditor:
         self.owner = owner
         self._pending = {}
         self._outcome_errors = {}
+        self.contact = ContactEditor(self)
 
     def close(self):
         """Call before discarding the native owner; terminate only owned mesh work."""
         self.owner.assert_thread()
+        self.contact.close()
         for pending in list(self._pending.values()):
             pending['cancelled'] = True
             if pending['tool'] is not None:
@@ -289,7 +292,7 @@ class FEMEditor:
                                direction=str(obj.Direction), amplitude=bool(obj.EnableAmplitude))
             except Exception:
                 pass  # Missing targets remain editable unresolved records.
-        return {**data, 'mesh_busy': bool(self._pending),
+        return {**data, 'contact': self.contact.descriptor(), 'mesh_busy': bool(self._pending),
             'meshes': [{'object_id': obj.Name, 'settings': self._mesh_settings(obj),
                 'element_orders': list(obj.getEnumerationsOfProperty('ElementOrder')),
                 'element_dimensions': list(obj.getEnumerationsOfProperty('ElementDimension')),
@@ -333,6 +336,8 @@ class FEMEditor:
         if operation not in OPERATIONS or not isinstance(arguments, dict):
             raise ValueError('Unsupported typed FEM operation')
         args = deepcopy(arguments)
+        if operation in CONTACT_OPERATIONS:
+            return self.contact.dispatch(operation, args, target)
         if operation == 'pre.fem.mesh_quality':
             if set(args) - {'offset', 'limit'}:
                 raise ValueError('Quality accepts only offset and limit')
