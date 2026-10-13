@@ -243,8 +243,12 @@ Pro의 첫 자료 연결 커밋 `7090d1c`를 `c409665`로 통합했다. 선택�
 검사도 1 PASS/1.75s였다. 종료 후 남은 worker의 Signal source deleted 예외는 같은 Pro에
 교정 요청했다. 공개 Markdown/text PDF/CSV3개를 실제 import한 Qt 렌더에서도 원문과
 질문·자료3개가 보였다. 다만 재열기 직후 원문 읽기와 제목 조회가 겹쳐 Source1/2/3으로
-남는 문제, Astra가 찾은 주기 갱신 때 선택 해제도 같은 Pro가 교정 중이다.
-같은 Astra 검토가 찾은 다른 논의로 이동한 뒤 이전 원문이 남는 문제도 전달했다.
+남는 문제, Astra가 찾은 주기 갱신 때 선택 해제와 다른 논의에 이전 원문이 남는 문제도
+같은 Pro에 전달했다. Pro `5d6b970`을 `e1903e6`로 통합했고 자동 갱신·원문/과거 인용·
+문서 전환·늦은 worker 종료를 포함한 수정 Qt 검사4개가 6.50s에 통과했다. 종료 예외도
+재발하지 않았다. 최신 `expert-preview-886155b1`의 실제 Qt 렌더에서 자료3개의 파일명과
+선택 원문을 확인했다. 교정 종료는 Codex의 소스/실행 확인이며 Astra 재통과 주장이 아니다.
+MoAI CLI로 로컬 자료 기능 SPEC은 implemented, 후속 접촉 SPEC은 in-progress로 갱신했다.
 `runs/product-development/20261013/expert-preview-63bea349`에 실제 화면/receipt가 있다.
 모델 미설정 상태의 로컬 자료 작업이며 실제 inference/OS 입력을 확인한 것은 아니다.
 첫 렌더 helper는 등록 역할이 반드시 있다고 잘못 가정해 대기했고, 그 가정만 제거한 뒤
@@ -270,7 +274,8 @@ userMessage `01a133bc-eb27-77f4-98b1-455457d0f371`의 본문에서 수신을 확
 해석/Runner·Post 연결을 작성하도록 맡긴다. 새 작성 브랜치는
 `codex/contact-workflow-20261013`; Pro가 제품 코드·관련 검사/사용 안내를 쓰고 Codex는
 공유 계약 통합·CURRENT_STATE/SPEC/Windows 실행을 소유한다. 아직 접촉 코드가 작성된
-것으로 보고하지 않는다.
+것으로 보고하지 않는다. 같은 Pro는 Expert 교정 게시 후 접촉의 기존 native 코드 읽기에
+착수했다. 현재 접촉 구현 산출물은 아직 회수되지 않았다.
 실제 데스크톱 캡처는 Windows 잠금 화면이어서 해제를 요청했다. 창 입력 확인만 대기하며
 Pro 작성과 코드 통합은 계속한다. 공개 PDF/Markdown/CSV의 첫 자료 가져오기 예제도 준비했다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와

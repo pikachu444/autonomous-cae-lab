@@ -2,7 +2,7 @@
 id: SPEC-EXPERT-001
 title: "Local research sources in the native Expert discussion"
 version: "0.1.0"
-status: in-progress
+status: implemented
 created: 2026-10-13
 updated: 2026-10-13
 author: "Actual ChatGPT Pro implementation; Codex integration"
@@ -59,9 +59,9 @@ draft buffer. Reuse `KnowledgeStore`, registered upload inputs and job execution
 `workbench.js` demonstrates existing knowledge operations. Do not copy its long
 title suffixes or make a second source index, document owner or provider stack.
 
-Current runtime selection uses `context.selected_document_ids` and resolves latest
-revisions at Ask. Pro must close that gap with a bounded revision-aware extension
-coordinated by Codex, preserving old saved documents. Exact revisions belong in
+At assignment, runtime selection used `context.selected_document_ids` and resolved
+latest revisions at Ask. Pro closed that gap with the bounded revision-aware
+extension recorded in acceptance, preserving old saved documents. Exact revisions belong in
 details and citations; the main view stays centered on the question and sources.
 
 ## Out of Scope

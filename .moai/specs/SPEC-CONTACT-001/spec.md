@@ -2,7 +2,7 @@
 id: SPEC-CONTACT-001
 title: "User-model contact from native faces to retained results"
 version: "0.1.0"
-status: draft
+status: in-progress
 created: 2026-10-13
 updated: 2026-10-13
 author: "Codex implementation packet; actual ChatGPT Pro product author"
