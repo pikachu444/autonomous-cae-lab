@@ -12,6 +12,6 @@ workflow:
     auto_cleanup: false
   autonomy:
     mode: manual
-# No automatic run/goal/loop/provider/merge transition. User has authorized planning,
-# independent review, separate Qt prototype, limited technical checks and Git records.
-# Full implementation requires the user's later development-start instruction.
+# No automatic provider/model/merge transition. Codex uses MoAI as a tool and
+# dispatches authorized implementation after the user's work-progress direction.
+# Shared-source writing and independent review retain explicitly assigned owners.

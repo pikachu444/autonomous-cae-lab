@@ -7,8 +7,10 @@
 
 ## 현재 결정과 맡긴 작업
 
-**상세 기획·GUI 설계와 별도 Qt 시제품을 먼저 완성해 사용자 검토에 제출한다.
-제품 본구현은 이후 사용자가 개발 시작을 지시한 뒤 진행한다.** 전체 배정은 운영 지침의
+**기획·Qt 시제품을 바탕으로 본제품의 기능 단위 구현에 착수한다.** 사용자의
+“왜 말만 하고 아무것도 안 하고 있는 것처럼 보이지?”와 시작 주체에 대한 후속 지시를
+작업 진행 권한으로 받아 다음 별도 문구를 기다리지 않는다. 제가 과제를 배정·시작·검증·
+통합하며 MoAI는 제가 사용하는 SPEC·작업 관리 도구다. 기존 전체 배정은 운영 지침의
 충돌 정리, 전체 개발 명세·작업 목록, 편집 가능한 작업/화면/상태 설계와 상호작용 시안,
 Qt 조작 확인, 실제 Pro 작성과 Astra 독립 검토다. Windows 로컬 Qt/PySide6·FreeCAD·
 ParaView와 추가 지출0원을 유지한다. 과거 문서의 기획 완료·다음 구현은 이번 수용 근거가 아니다.
@@ -21,19 +23,27 @@ Expert/Study·선택 Workbench와 넓은 물리·수치 범위는 그대로 유�
 이전 설명문·보조 기능이 많은 Qt 폼은 **사용성 미수용 초안**으로 보존했다. 새 Qt 시안은
 모델·표·곡선과 선택한 작업을 중심으로 교정해 **사용자 검토본**으로 통합했다.
 [화면과 시제품 검토](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)에서 시작한다.
-설계 작성·통합과 사용자 수용은 구별하며 본제품 개발 시작 지시는 아직 받지 않았다.
+설계 작성·통합, 사용자 화면 수용과 제품 구현 완료는 구별한다. 사용자 화면 피드백은
+구현 중에도 반영하며 시제품을 본제품으로 복사하거나 합성 계산을 실제 계산으로 바꾸지 않는다.
 최신 사용자 설명: **“그냥 물어본건데 혼자서 잘못한걸 찾네. 제발 전체 과제 맥락에서
 유기적으로 생각해. 독립 프로그램으로도 사용가능하지만 전체 시스템에서 연계도 되어야해.”**
 Codex는 앞선 중립 질문을 결함·재설계 요구로 확대해석한 것을 바로잡았다. 현재 목표는
 각 독립 도구의 직접 사용과 모델→해석/Runner→Post→응답→최적화→설계 적용,
 Expert→계획→결과 근거→후속 논의/Study의 전체 연결을 함께 설명·설계하는 것이다.
 Workbench는 선택적 연결 보기이며 강제 진입점이 아니다. 기존 시제품·조작 검사·기능
-명세를 재사용한다. 사용자 수용과 본제품 개발 시작 지시는 아직 받지 않았다.
+명세를 재사용한다. 독립 사용과 전체 연결을 함께 구현한다.
 같은 실제 Pro의 `UX-REVIEW-CLARITY-01`에 최신 사용자 원문과 해석 교정을 전달했다.
 Pro `5b9ae1c`의 DESIGN/README 교정을 확인해 통합했다. 내용은 독립+전체 연계의 맥락
 설명이며 추가 결함 찾기나 별도 재설계 과제가 아니다. Qt 소스·시안·기능/작업표·조작
-검사 상태는 유지했다. MoAI SPEC 조회와 실제 Pro 연결을 다시 확인했으며 본제품
-개발 시작 지시는 아직 받지 않았다.
+검사 상태는 유지했다. MoAI SPEC 조회와 실제 Pro 연결을 다시 확인했다.
+
+현재 첫 제품 작업은 `PRO-IMPL-DESKTOP-20261013-01`의 Windows 기본 데스크톱 진입과
+기존 문서·서비스를 사용하는 독립 도구 실행이다. 기존 root 시작이 browser Workbench를
+열던 부분을 native Qt 진입으로 바꾸며 CLI/direct native Pre/Post와 공유 저장소를 재사용한다.
+Luna는 시작·서비스 수명, Sol은 Numerical/Expert의 실제 명령 연결을 읽기 전용 조사했다.
+실제 Pro가 제품 코드·테스트를 주작성하고 Astra가 독립 설계·코드 검토를 맡는다.
+다음 기능 단위는 기존 Numerical Plan의 변수·응답·방법 중심 편집과 Expert/Study의
+정확한 결과 왕복이다. 전체 제품을 첫 진입 기능으로 완료 처리하지 않는다.
 사용자는 긴 제목·파일명에
 `• r2` 등 내부 접미사를 이어 붙이는 표시를 싫어한다. 주 화면은 짧은 작업명·값·단위·선택·
 상태·다음 조작을 보여주고, 정확한 원본/개정/실패는 이력·근거·진단에서 조회한다.
@@ -41,8 +51,9 @@ Pro `5b9ae1c`의 DESIGN/README 교정을 확인해 통합했다. 내용은 독�
 [PRODUCT_PLAN §3](docs/PRODUCT_PLAN.md#3-화면마다-주-기준을-고정한다)을 따른다.
 참고 이미지를 사용자에게 요청하지 않는다. 세부 화면 시안은 검토용 제안이며 사용자 결정과 구별한다.
 
-기준 제품 source는 `9a6e3083037630b45694b812b135dc1cd63cf95a`, upstream은 아래 핀이다.
-제품 코드·solver/provider 실행은 이번 배정에서 시작하지 않았다. 사용자
+첫 구현 전 제품 source는 `9a6e3083037630b45694b812b135dc1cd63cf95a`, upstream은 아래 핀이다.
+첫 제품 코드·테스트는 실제 Pro가 작성 중이며 아직 통합·Windows 실행을 확인하지 않았다.
+solver/provider 실행은 시작하지 않았다. 사용자
 `.codex-remote-attachments/`와 기존 설정·AGENTS를 보존한다.
 
 ### 실제 Pro 원고와 검토
@@ -51,9 +62,11 @@ Pro `5b9ae1c`의 DESIGN/README 교정을 확인해 통합했다. 내용은 독�
 [원 D1 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5)의
 [기능·구현 명세](docs/design/20261012-desktop-planning/pro-authored/README.md)를 회수했다.
 이 원고는 전체 제품 설계의 자료이며 새 GUI 수용을 대신하지 않는다.
-현재 주 작성은 최신 사용자 지시를 전달한
-[새 실제 Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a)의 요청06이다.
-소유권은 `pro-ux/`, 작성 브랜치는 `design/product-ux-20261012`다.
+같은 [실제 Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a)에 첫 제품
+구현 요청 `PRO-IMPL-DESKTOP-20261013-01`을 전달하고 수신을 확인했다. 작성 브랜치는
+`codex/desktop-tools-20261013`, 기준은 `c2e506b`다. Pro는 시작 스크립트·최소 desktop
+진입 연결·관련 테스트/사용 안내를 소유하고 Codex는 현황/SPEC/통합을 소유한다.
+앞선 기획 요청06의 소유권은 `pro-ux/`, 작성 브랜치는 `design/product-ux-20261012`였다.
 
 최종 Qt view와 상태/도면 연결은 Pro `dd43015`다. Report/Acquisition 추가 `600f9f8`,
 문서/작업 대응 `a2e20b8`, scatter 교정 `0b9da54`, 정확 선택/출력 교정 `9e313e5`를 포함한다.
@@ -113,10 +126,14 @@ Space 제품 입구에도 GUI/우선순위 결정과 같은 Pro/Qt 링크를 반
 
 MoAI `3.2.0-dev.2aab5f7`의 공식 Codex 초기화를 분리해 확인한 뒤 필요한 설정만 병합했다.
 실제 skill catalog의 MoAI5개, local stdio initialize/tools와 현재 host MCP4개를 확인했고
-이번 재개에서도 `spec_progress`로 draft SPEC을 조회했다. [MoAI SPEC](.moai/specs/SPEC-DESKTOP-001/spec.md)은
+이번 재개에서도 `spec_progress`로 SPEC을 조회했다. [기획 SPEC](.moai/specs/SPEC-DESKTOP-001/spec.md)은
 기능·화면·작업표·수용 조건에 연결하며 현재 큐를 중복하지 않는다. strict lint는 구조 검사이며
 사용성 통과가 아니다. hook trust는 미확인이다. CLI0.146.1의 기존 global context_management
 map 호환 오류는 read-only 검사에만 임시 override를 사용했고 사용자 설정을 덮어쓰지 않았다.
+첫 제품 구현은 [SPEC-DESKTOP-002](.moai/specs/SPEC-DESKTOP-002/spec.md)에 연결했다.
+Astra의 독립 검토에서 모드별 서비스 준비/UI 억제, PrepareOnly 실패의 비대화형 처리,
+새 runtime의 ResearchUI 설치를 명시했고 같은 Pro에 전달했다. 실제 코드를 확인한 뒤
+Windows의 선택 문서/작업 전달·공유 서비스·실패 처리를 검증한다.
 
 기존 사용자 Python3.13에는 PySide6 6.9.1·Matplotlib3.10.1·Designer와 Qt SVG가 있다.
 별도 Research runtime에는 PySide6가 없다. 새 D1 Qt 프로세스/접근성 구조는 확인했지만
@@ -141,13 +158,15 @@ Penpot은 계정이 없어 제외하라는 사용자 결정으로 닫고 무시�
 
 ### 이어서 할 작업
 
-사용자가 [검토 안내](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)의 실제 화면과
-Qt 조작을 검토한다. 피드백은 현재 Pro 원고에 교정하며 별도의 반복 인터뷰나 과거 solver
-전수 검증으로 바꾸지 않는다. **사용자의 개발 시작 지시 후** 아래 독립 도구군의 구현을
-기존 MoAI SPEC/작업표로 이어간다. 첫 통합 경로는 CAD/FE→Simulation→Runner→native
-Post→최적화와 Expert→Numerical→결과→Study이며 Data/Material/PDE는 독립 병행한다.
-남은 사용자 결정은 화면 수용과 개발 착수다. 지원 backend/장비/Expert 무료 연결은
-해당 제품 구현에 연결된 기술·검증 대상으로 남는다.
+Pro의 첫 제품 변경을 회수해 Astra 독립 코드 검토와 Windows 집중 실행을 수행하고,
+구체적인 실패는 같은 Pro에게 교정받아 통합한다. 이어서 기존 Numerical Plan의 의미별
+편집과 Expert/Study 결과 왕복을 같은 역할 분담으로 구현한다. 첫 통합 경로는
+CAD/FE→Simulation→Runner→native Post→최적화와 Expert→Numerical→결과→Study이며
+Data/Material/PDE는 독립 병행한다. 별도의 개발 시작 문구를 기다리지 않는다.
+사용자는 [검토 안내](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)의 화면과
+Qt 조작에 피드백을 줄 수 있다. 이를 반복 인터뷰나 과거 solver 전수 검증으로 바꾸지 않는다.
+화면 수용과 지원 backend/장비/Expert 무료 연결은 해당 기능의 사용자 검토·기술 확인에
+연결된 미완료 항목으로 유지한다.
 현재 시제품은 정밀 입력·저장·재열기·선택·도킹 등 Qt 조작을 확인한 planning source다.
 native OS/DPI·실제 FreeCAD/ParaView 연결·solver/provider/device는 미확인으로 남는다.
 원요구52개 ID는 TRACED_NOT_IMPLEMENTED_BY_THIS_REQUEST이며 설계 작성으로 완료 처리하지 않았다.
@@ -161,7 +180,8 @@ native OS/DPI·실제 FreeCAD/ParaView 연결·solver/provider/device는 미확�
 문서 통합 커밋 `6b0c2ed14f9d61204cabfe3c47288f2438202798`을 원격 main에 게시하고
 같은 SHA를 확인했다. 관련 Space 6개 Page의 갱신·본문 재조회·기존 첨부 보존도 확인했다.
 앞선 통합에 남은 문서 승인이나 제안 확정 단계는 없다. 아래 제품 방향의 본구현은
-최신 사용자 지시에 따라 이번 상세 기획 검토와 개발 시작 지시를 기다린다.
+2026-10-12 당시 상세 기획 검토와 개발 시작 지시를 기다렸으며, 현재 배정은 위의
+2026-10-13 기능 단위 구현이다.
 
 다음 제품 작업은 아래 **독립 도구군의 실제 작업 완성**으로 확정한다. 특정 C3D10 메시나
 F05 진단을 전체 제품 개발의 우선 과제 또는 선행조건으로 두지 않는다. 제품 구현 자체를
