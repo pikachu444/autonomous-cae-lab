@@ -249,3 +249,39 @@ The new cold-service test passed the workbench subdirectory back as the workspac
 creating a second workbench level. It now uses the original workspace while
 keeping the same saved Plan/result and exact candidate-byte assertions.
 Pro remote tests/native execution remain NOT_RUN.
+
+
+## Candidate shape serialization
+
+Root subsequently reported one 37ac470 native 20→22 mm candidate SUCCEEDED,
+including Gmsh, freeze, CalculiX and the actual DAT pair CFN/Z response.
+The base remained unchanged. Root's separate cold-open of that exact retained
+candidate still rejected its Bridge contact target. This is not an engineering
+acceptance or a successful editable-model reopen.
+
+For managed designs with candidate_recipe or candidate_branch, Project.save
+now uses FreeCAD's existing binary BREP serialization during saveCopy.
+Candidate failure drafts use the same writer. The native preference's original
+presence/value is restored in finally; no preference file is saved. Other
+ordinary project saves keep their existing format. No target hash, face identity,
+mesh stamp, law or saved result is rewritten.
+
+This is a bounded serialization choice, not an established diagnosis of the old
+Bridge difference. FreeCAD 1.1.4's ASCII writer uses BREP v1, while its native
+binary writer uses version 3; the reviewed OCCT v1 read path can normalize shape
+flags. The exact saved-project gate still rejects any difference. Old failed
+artifacts are not automatically repaired or reapproved.
+
+Primary source:
+- https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/App/Document.cpp
+- https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Part/App/PropertyTopoShape.cpp
+- https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Part/App/TopoShape.cpp
+- https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Base/ParameterPy.cpp
+- https://github.com/Open-Cascade-SAS/OCCT/blob/V7_8_1/src/TopTools/TopTools_ShapeSet.cxx
+
+tests/check_cad_shape_roundtrip.py provides a native read/save/cold-read probe
+without recompute, contact repair, mesh generation or solver. From a native macro,
+load it with runpy.run_path and call run(project, fresh_short_output,
+['Bridge', 'Base'], App). Its receipt compares live-before/save/after-open exact
+targets and retains BREP text in the separate output. It does not claim to recover
+the older file's pre-serialization shape. Pro execution remains NOT_RUN.

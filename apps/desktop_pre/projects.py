@@ -1,5 +1,6 @@
 """Managed editable FCStd graph saving on the native document's GUI thread."""
 from copy import deepcopy
+from contextlib import contextmanager
 import os
 import shutil
 import tempfile
@@ -31,13 +32,38 @@ def _native_copy_uses_short_path(path):
     return os.name == 'nt'
 
 
-def save_native_copy(doc, destination):
+
+@contextmanager
+def exact_shape_serialization(App):
+    """Use the native binary BREP writer only during this managed save.
+
+    FreeCAD 1.1.4's ASCII writer uses BREP v1; its reader can normalize
+    topology flags. Binary BREP preserves the native shape representation.
+    Restore presence as well as value; never save user preferences here.
+    """
+    group = App.ParamGet('User parameter:BaseApp/Preferences/Document')
+    old = next((row[2] for row in (group.GetContents() or [])
+                if row[0] == 'Boolean' and row[1] == 'SaveBinaryBrep'), None)
+    try:
+        group.SetBool('SaveBinaryBrep', True)
+        yield
+    finally:
+        if old is None:
+            group.RemBool('SaveBinaryBrep')
+        else:
+            group.SetBool('SaveBinaryBrep', old)
+
+
+def save_native_copy(doc, destination, *, App=None):
     """Keep native SaveCopy below legacy Win32 path limits, then retain bytes.
 
     The actual project graph relocation still uses the live document/link
     targets in Project.save. No user filename or native document is renamed.
     A failed transfer keeps its short native copy for recovery.
     """
+    if App is not None:
+        with exact_shape_serialization(App):
+            return save_native_copy(doc, destination)
     destination = Path(destination)
     if not _native_copy_uses_short_path(destination):
         doc.saveCopy(str(destination))
@@ -207,7 +233,8 @@ class Project:
                 if gdoc is not None and gdoc.getInEdit():
                     raise ValueError('BUSY_EDIT: finish/cancel the linked document task before saving')
                 native = stage / ('source-' + doc.Name + '.FCStd')
-                save_native_copy(doc, native)
+                exact_shape = bool(metadata.get('candidate_recipe') or metadata.get('candidate_branch'))
+                save_native_copy(doc, native, App=owner.App if exact_shape else None)
                 if not native.is_file():
                     raise ValueError('Native saveCopy did not produce the editable document')
                 destination = stage / names[doc.Name]

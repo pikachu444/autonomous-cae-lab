@@ -71,7 +71,7 @@ class CandidateWorker:
         # Preserve usable editable native bytes even when an ensuing step fails.
         # The already copied source/dependencies remain beside this raw fallback.
         path = self.folder / 'candidate-draft.FCStd'
-        save_native_copy(self.owner.doc, path)
+        save_native_copy(self.owner.doc, path, App=self.App)
         self.record['editable_draft'] = str(path)
         self.record['editable_draft_sha256'] = sha(path)
         save_json(self.folder / 'candidate-preparation.json', self.record)
