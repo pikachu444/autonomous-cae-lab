@@ -61,7 +61,16 @@ this work closes the missing user-facing connection/setup path.
   through native paths without requiring WSL or `wslpath`. Supported other host
   environments retain their appropriate path handling.
 
-## Reuse and delivery
+## Acceptance Criteria
+
+- [ ] E1–E2: From the native Expert window, inspect readiness and select the existing subscription/profile/model/roles; cancellation preserves prior settings.
+- [ ] E3–E4: Apply authorized local settings without losing jobs or drafts, and preserve separate operator and per-question transmission permissions.
+- [ ] E5–E6: Receive a real bounded reply, edit its Plan, run an existing numerical calculation, return the exact result to the discussion/Study and reopen it.
+
+The detailed checks are in `acceptance.md`; the fixed implementation tasks are
+in `tasks.md`. Actual status and the next action remain in CURRENT_STATE.
+
+## Reuse and delivery details
 
 Reuse `apps/research/expert_window.py`, `caelab/assist/experts.py`,
 `caelab/assist/readiness.py`, `caelab/assist/openscience_host.py`, the current

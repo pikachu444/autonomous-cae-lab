@@ -5,7 +5,174 @@
 [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), 역할·갱신 규칙은
 [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md)를 따른다.
 
-## 현재 결정과 맡긴 작업
+## 지금 받을 수 있는 것과 인도 계획
+
+2026-10-13 저녁 기준 제품 코드는 `b1a2aa9`까지 원격 main에 반영됐다. 이후 문서 변경은
+아래 첫 사용본 인도로 진행한다. 아래 표가 현행 순서이며 뒤의 날짜별 서술은 기존 근거다.
+
+**첫 사용본 목표는 10월 14일 오전 출근 전**이다. 한국어 설치·사용 안내를 따라
+기존 CAD 예제를 열어 치수를 바꾸고 저장하거나, CAD 없이 포함된 수치 예제로 결과 파일을
+만드는 범위다. AI 토론·전체 자동 해석을 이 첫 사용본의 완성 기능으로 광고하지 않는다.
+README, 별도 설치법·사용법을 작성하고 humanize-korean Fast 윤문과 명령 대조를 마쳤다.
+수치 예제는 10.64초에 끝났고 피팅 그림과 8개 결과 폴더·summary/result.json을 생성했다.
+D1의 실행 범위는 인도 가능하며 Git 게시 확인 후 제공한다. 사용자 PC에서의 확인은 아직이다.
+
+### 끝낼 단위와 예상 기간
+
+Codex가 책임지는 최초 개발 견적이다. 작업일은 실제 구현·검토·통합에 쓰는 날이며,
+대기 시간까지 측정한 확정 납기와 다르다. D2·D3 첫 인도 결과로 후속 견적을 보정하되
+변경 이유·남은 작업·새 날짜를 먼저 기록한다. 전체를 끝내기 전에 각 인도본을 사용할 수 있게 낸다.
+
+| 인도 | 사용자가 끝낼 일 | 현재 상태 / 바로 남은 작업 | 목표 또는 남은 작업일 |
+|---|---|---|---|
+| D1 첫 사용본 | 설치→독립 창 실행, 공개 CAD 치수 변경/저장 또는 실제 수치 예제→결과 파일 | 진입 기능 확인, 한국어 안내·실제 수치 예제 재현 완료. 게시 확인 단계 | 10/13 인도, 10/14 사용 가능 범위 |
+| D2 설계와 해석 | CAD 치수·조립/자세·재료·하중·접촉→메시→Runner→Post→변수 후보 계산→새 편집 설계 채택 | 기존 native 계산·후보 기능 있음. 새 저장 표현 확인, 실제 화면의 왕복과 실패/취소·참조 복구 인도 | 첫 지원 경로 10/16 목표, 넓은 명세 잔여 3–5일 |
+| D3 연구 토론 | 기존 구독 연결→자료/질문→실제 전문가 토론→Plan 편집→계산 결과로 후속 논의·Study 저장 | Pro가 SPEC-EXPERT-002 구현 중. E1–E6을 고정한 작업표로 회수·검토·Windows 실행 | 10/15 목표, 인증/사용 한도 지연은 별도 보고 |
+| D4 후처리 | 외부 결과 열기→필드·위치·시각 선택→측정·서로 다른 결과 비교→저장·재열기 | 기존 reader/측정 재사용. 비교 입력·오류 복구·native 화면 흐름 완성 | D2 이후 2–3일 |
+| D5 데이터와 재료 | 시험 파일 열/단위 지정→구간 선택→지원 법칙 피팅→잔차/holdout 비교→계수 채택·저장 | 기존 Data/Material/fit 재사용. 각 조작과 데이터 전달의 누락 보완 | 3–5일 |
+| D6 수치 연구 | DOE·최적화·역해석·UQ·대리모델·다목적 각각 계획 편집→실제 계산→결과 해석·채택 | 기존 엔진/Plan 있음. 방법별 화면, 중단/재개, 실패 후보, domain 채택 완성 | 3–5일 |
+| D7 방정식·구성식·연성 | CAD 없이 식·영역·조건→실제 해/기준 비교, 구성식 상태·접선, 단계 간 장 전달 | 기존 지원 adapter 있음. FN-08/18/19의 명세별 미지원 조합·계산 연결 보완 | 4–7일 |
+| D8 충격·손상 | 초기조건·접촉 지정→explicit 실행→에너지/힘/시간 결과 확인; 파괴·계면·피로 지원 경로 | explicit 제품 흐름 미확인. 기존 OpenRadioss/손상 관련 자산 조사 후 adapter·화면 연결 | 4–7일, 불확실성 큼 |
+| D9 실험과 보고 | 측정·교정·시편 조건→예측/관측 비교→다음 시험·보고서 저장 | 파일 기반 기존 자료 재사용. 실제 장비 연결은 장비·권한·공개 자료가 있는 범위에서 별도 확인 | 소프트웨어 3–5일, 실제 장비 일정은 미확정 |
+| D10 배포와 전체 연결 | 각 독립 도구 설치·재실행, 파일 이동·복구, 선택 Workbench와 GUI/CLI/Python/MCP, 외부 batch/SSH 경로 | 기존 launcher/owner/MCP 재사용. 지원표 확정·통합·배포 안내·새 환경 확인 | 3–5일 |
+
+후속 D2–D10의 최초 합산 견적은 **27–45 작업일**이다(D3 2–3일 포함, 병행 단축 미반영).
+이는 전체 연구 소프트웨어 지원 범위를 구현하는 초기 견적이며 실제 장비 실험·물리적 승인
+일정을 뜻하지 않는다. 무료 실행 경로가 확인되지 않은 조합은 해당 인도에 미해결로 남기고
+다른 조합의 완료로 대체하지 않는다. FN-01–35/기존 74작업은 아래와 같이 전부 연결한다.
+D1은 기존 기능을 먼저 쓰기 위한 인도이며 전체 공통 설치 요구를 대신하지 않는다.
+
+[74개 세부 작업표](docs/design/20261012-desktop-planning/pro-ux/implementation_map.csv)의
+`delivery_id`가 각 작업을 위 인도에 연결한다. 기존 `implementation_status`는 기획 당시
+상태이므로 현재 제품 완료 수로 집계하지 않는다. 각 행의 입력·구현 위치·의존·완료 조건을
+유지한다. 새 기능 아이디어는 현재 인도의 성공을 막는 결함이 아니면 후속 항목으로 분리한다.
+D2의 10/16 목표는 첫 접촉·후보 왕복이며 조립·비선형 전체 15개 세부 작업의 완료 날짜가 아니다.
+D3의 E1–E6 뒤에는 독립 Study의 가설·판단·후속 연구(FN-29) 수용이 남는다.
+D10에 연결한 공통 저장·충돌·동일 문서 유지 요구도 각 앞선 인도의 해당 조작에서 확인한다.
+모든 인도는 실제 조작·계산/결과·저장/재열기·해당 실패 복구·사용 안내를 갖춰야 완료다.
+개별 수치 정확성 검증과 실제 장비/공학 승인은 별도로 표시한다.
+
+### 이번 배정과 MoAI 적용
+
+- Codex: D1 문서·재현·게시와 현황 관리. MoAI `todo` t1에 등록했다.
+- 실제 Pro: D3 연결 제품 코드·관련 검사. MoAI t2와
+  [E1–E6 구현 작업](.moai/specs/SPEC-EXPERT-002/tasks.md)에 연결한다.
+  Pro가 기존 서비스를 안전하게 다시 읽는 적용 경로를 `eab4216`으로 게시했다.
+  현재 Astra가 해당 제품 변경을 검토 중이며 main 통합·Windows 확인은 아직이다.
+- Astra: 핵심 연결·권한·사용 흐름 독립 검토. Sol: 한국어 안내의 사실 보존 윤문.
+  Luna: 기존 예제 실제 실행과 브랜치 현황 조사. 같은 파일의 동시 작성은 하지 않는다.
+- MoAI MCP `spec_progress`, `spec_audit`, `spec_drift`, `todo_list`를 실제 호출했다.
+  audit/drift는 lifecycle 검사이며 코드·명세 전체 의미 일치를 증명하지 않는다.
+  CLI spec view는 현재 문서의 기준 항목을 추출하지 못했다. 이 기능의 연결은 미완료이며
+  사람이 읽는 tasks/acceptance와 실행 근거를 완료 판정에 사용한다.
+  8개 SPEC 중 7개가 progress 파일 부재로 legacy로 분류됐고 기존 todo는 비어 있었다.
+  과거에 전체 MoAI 구현 절차가 실행됐다고 소급 표시하지 않는다.
+- 설치된 MoAI run의 기존 코드 분석·동작 보존·수정·관련 검사 절차를 현재 Pro 작업에 적용하고,
+  sync의 명세/실제 변경 대조·문서 갱신·게시를 Codex가 수행한다. 전용 manager-develop은
+  현재 Codex agent catalog에 없으므로 실행했다고 주장하지 않는다. 지정된 Pro 작성자와
+  Astra 검토를 유지하며 유료 모델 연결·전수 재검증을 추가하지 않는다.
+
+### 작업 공간 정리와 새 실행 확인
+
+브랜치 조사 당시 원격 25개(main 포함), 로컬 14개, 등록 worktree 13개였다. main에
+완전히 포함되고 worktree가 없는 `codex/ui-interaction-design-20261010`,
+`codex/workbench-local-integration`, `redesign/research-workbench-20261007` 원격 브랜치를
+삭제했고 앞의 두 로컬 브랜치도 정리했다. 따라서 원격 22개·로컬 12개가 남는다.
+Pro의 Expert/CAD 브랜치, 미반영 source와 로컬 변경이 있는 worktree는 보존했다.
+`runs` 약 23.5 GB에는 실행 도구·설치물·계산 근거가 섞여 있어 일괄 삭제하지 않았다.
+
+실제 첫 사용 예제에서 현재 private runtime의 matplotlib 누락을 발견했다.
+기존 `install-windows.ps1 -ResearchUI`가 지정 의존성을 복구하고 import 검사를 통과했다.
+기본 설치 명세 자체에서 빠진 패키지는 아니었다. 이어 예제의 batch 결과에 exchange_id가
+빠진 결함을 찾아 Codex가 사용 안내 통합 범위에서 예제 한 줄을 고쳤다.
+제품 importer의 정확한 입력 검사는 유지했다. 수정 후 실행은 exit 0 / 10.635초이며
+피팅 그림·8개 결과 폴더·summary/result.json을 만들었다. 외부 교환 예제는 실제 결과 1개를
+읽고 미계산 후보 1개를 미계산으로 유지했다. 상세 실행은
+`runs/first-use-20261013-complete/run-receipt.json`이며 외부 solver/provider를 사용하지 않았다.
+
+Luna의 실제 FreeCAD binary 저장/새 프로세스 재열기 검사는 새 저장본의 전체 형상·면
+식별이 유지됨을 확인했다. 근거는 `runs/product-development/20261013/binary-shape-probe-01/result/receipt.json`.
+과거 파일에 이미 저장된 낡은 접촉 참조를 고쳤다는 뜻은 아니며 solver를 다시 돌리지 않았다.
+
+MoAI todo는 t1(D1), t2(D3), t3(D2), t4–t10(D4–D10)으로 등록했다.
+이 목록은 CURRENT_STATE와 기존 작업표를 가리키며 별도 요구 범위를 만들지 않는다.
+Astra는 74작업/35기능의 인도 연결과 explicit·손상·HPC·실험 범위 보존을 확인했다.
+D2 첫 지원 경로와 전체 수용, D3 독립 Study 잔여, 모든 인도의 공통 저장 요구를 구별하도록 교정했다.
+
+### 요구 52항목의 실제 상태
+
+코드·현황·요구 효력·상세 작업표를 대조한 2026-10-13 감사다. **부분 구현 29,
+미착수·미확인 3, 개발·운영·조사·역사 기준 20, 요구 전체 완료 근거 0**이다.
+52항목은 전부 아래에 남기며 운영 기준을 제품 완료로 세지 않는다. 부분 구현은 기능이
+존재하지만 해당 행 전체 업무가 끝나지 않았다는 뜻이다. 구체적인 진척은 위 인도와
+기존 SPEC의 확인된 결과로 함께 보고한다.
+
+<details>
+<summary>52항목별 남은 작업과 근거</summary>
+
+
+
+`남은 결과 / 근거`는 각 행을 지금 분류한 이유와 끝내야 할 구체 결과를 함께 적는다. 기능 행에는 기능 결과를 계속 표시하며 과거 단계로 돌리지 않았다.
+
+| ID | 상태 | 남은 결과 / 근거 |
+|---|---|---|
+| R01 | 부분 구현 | CAD/FE, implicit·explicit, failure, constitutive/PDE·연성, numerical과 physical loop를 각 독립 지원 범위로 연결하고 미지원 조합은 분명히 남긴다; [PRODUCT_PLAN §1–2](docs/PRODUCT_PLAN.md), [FUNCTION_SPEC FN-06–24](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R02 | 부분 구현 | 같은 문서·명령·근거를 OpenScience 없이 GUI/CLI/Python에서 쓰고 필요한 AI 왕복을 선택 연결로 확인한다; [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md), [SPEC-EXPERT-002](.moai/specs/SPEC-EXPERT-002/spec.md). |
+| R03 | 부분 구현 | 실제 대화와 deterministic 후보/solver 결과가 별개 owner·실행으로 보이는 전체 Expert→Plan→결과 장면을 확인한다; [FUNCTION_SPEC FN-20–30](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [SPEC-EXPERT-002](.moai/specs/SPEC-EXPERT-002/spec.md). |
+| R04 | 운영·조사·역사 기준 | pinned fixture 자산을 재사용할 adapter 경계와 나머지 일반 CAD 기능을 구별해 유지한다; pinned source SHA와 사용 위치는 [CURRENT_STATE](CURRENT_STATE.md), `plugins/fixture_design/upstream`이다. |
+| R05 | 부분 구현 | Core/domain/plugin 경계가 코드와 사용자 문서에서 일관되고 신규 도메인 입력이 기존 owner를 재사용함을 확인한다; [ARCHITECTURE](ARCHITECTURE.md), [FUNCTION_SPEC §2–3](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R06 | 부분 구현 | 길이 외 CAD/FE 변수, typed region/load/material/contact parameter와 native binding·source가 보존되는 Registry 흐름을 완성한다; [SPEC-CAD-NUMERICAL-001](.moai/specs/SPEC-CAD-NUMERICAL-001/spec.md), [CURRENT_STATE](CURRENT_STATE.md). |
+| R07 | 부분 구현 | 다양한 사용자 모델의 발견→명시 선택/등록→의미 변경·새로고침·저장 흐름을 확인한다; [FUNCTION_SPEC FN-10](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [implementation_map.csv](docs/design/20261012-desktop-planning/pro-ux/implementation_map.csv). |
+| R08 | 부분 구현 | invalid draft는 저장 가능하고 해당 export/evaluation만 오류 위치와 함께 차단되는 경로를 각 owner에서 끝낸다; [PROJECT_SCOPE 상세 acceptance](PROJECT_SCOPE.md), [FUNCTION_SPEC §4](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R09 | 부분 구현 | validator·threshold·revision·evidence가 검사별 상태로 남고 UNKNOWN/NOT_RELEASED가 실제 제품 결과까지 유지됨을 확인한다; [PROJECT_SCOPE 상세 acceptance](PROJECT_SCOPE.md), [REQUIREMENTS_VALIDITY_REVIEW Appendix A](docs/REQUIREMENTS_VALIDITY_REVIEW.md). |
+| R10 | 부분 구현 | 원 field/곡선/메시/시험/교정/사진·보고를 해당 판단·revision에 따라 다시 여는 사용자 흐름을 마친다; [FUNCTION_SPEC FN-03–05, FN-27–32](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R11 | 부분 구현 | CAD 없는 Data/PDE/외부 결과도 가짜 CAD 선행 없이 source→result→evidence→decision으로 재개됨을 확인한다; [FUNCTION_SPEC FN-01, FN-18–19, FN-27–32](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R12 | 부분 구현 | 지정 원본·native 입력·실패 응답·중간 결과가 정확한 저장/보존 범위와 함께 재열기됨을 확인한다; [PROJECT_SCOPE 상세 acceptance](PROJECT_SCOPE.md), 각 기능 acceptance. |
+| R13 | 부분 구현 | 실제 엔지니어 GUI와 headless CLI/Python/선택 MCP가 같은 owner와 최신 문서를 다루고 교차 변경·복구되는지 확인한다; [FUNCTION_SPEC FN-01, FN-34](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R14 | 부분 구현 | 역할별 Code_Aster/SALOME-MECA·CalculiX/PrePoMax 지원표와 독립 기준을 실제 선택 경로로 제한해 완성한다; [PROJECT_SCOPE R14](PROJECT_SCOPE.md), [CURRENT_STATE 접촉 기록](CURRENT_STATE.md), `docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md`. |
+| R15 | 미착수·미확인 | OpenRadioss impact/drop 사용자 입력·전처리·실행·에너지/접촉 응답·실패 검증을 제품 경로로 수용하지 않았다; [FUNCTION_SPEC FN-16](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R15](PROJECT_SCOPE.md). |
+| R16 | 부분 구현 | 사용자 방정식·비선형/연성·AD/PETSc·mesh/HPC 필요별 PDE 지원 matrix와 reference 결과를 확정한다; [FUNCTION_SPEC FN-18–19](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R16](PROJECT_SCOPE.md). |
+| R17 | 부분 구현 | law별 상태·tangent·유한변형·코드생성·identifier 및 실제 solver interface 조합을 검증한다; [FUNCTION_SPEC FN-06–09](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R17](PROJECT_SCOPE.md). |
+| R18 | 부분 구현 | DOE/optimization/UQ/sensitivity/surrogate/MOO별 지원 method와 실패·resume·후보 adoption을 사용자 UI에서 구별한다; [FUNCTION_SPEC FN-20–24](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R19 | 부분 구현 | 공통 study/experiment 상위 envelope와 typed adapter extension이 실제 domain owner·저장 revision을 통해 호환되는지 확인한다; [PROJECT_SCOPE 상세 common schemas](PROJECT_SCOPE.md), [FUNCTION_SPEC §2](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R20 | 부분 구현 | 실제 결과에 units/validity/reason/raw reference와 solver quality가 빠짐없이 표시되고 invalid/missing값을 usable number로 만들지 않음을 확인한다; [PROJECT_SCOPE detailed acceptance](PROJECT_SCOPE.md), [FUNCTION_SPEC §4](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R21 | 부분 구현 | 전체 광고 기능을 GUI·CLI·Python·선택 MCP에서 동일 Core operation으로 제공하거나 unavailable capability로 명확히 보고한다; [FUNCTION_SPEC FN-34](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R21](PROJECT_SCOPE.md). |
+| R22 | 운영·조사·역사 기준 | 큰 신규 기반을 추가하기 전 기존 reader/engine/JobManager/native owner의 재사용·확장·폐기 근거를 기록한다; [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md), [FUNCTION_SPEC §3](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R23 | 운영·조사·역사 기준 | 옛 Phase 0 선형 순서는 종료 기준에서 제외하고 실제 연결에 필요한 최소 계약만 유지한다; 적용된 순서 규칙은 [REQUIREMENTS_VALIDITY_REVIEW Appendix A](docs/REQUIREMENTS_VALIDITY_REVIEW.md), 새 작업 증거는 [CURRENT_STATE](CURRENT_STATE.md). |
+| R24 | 운영·조사·역사 기준 | 중대한 계약 변경 때에만 이유·대안·요구 영향·필요 시험을 ADR에 남긴다; 문서 소유/범위는 [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md), 기존 판정은 [ADR_APPLICABILITY](docs/ADR_APPLICABILITY.md). |
+| R25 | 부분 구현 | 새 독립 Expert 화면에서 실제 대화→편집 가능한 Plan→native 계산→결과 근거→후속 논의를 잇는다; [SPEC-EXPERT-001](.moai/specs/SPEC-EXPERT-001/spec.md), [SPEC-EXPERT-002](.moai/specs/SPEC-EXPERT-002/spec.md). |
+| R26 | 부분 구현 | 사용자 CAD의 editable 조립·접촉·실제 mesh/implicit response를 기준 비교·설계 개정까지 연결한다; [SPEC-CONTACT-001](.moai/specs/SPEC-CONTACT-001/spec.md), [CURRENT_STATE](CURRENT_STATE.md). |
+| R27 | 부분 구현 | frozen input·실패 응답·optimizer state를 보존하면서 계산 후보를 정확히 비교/재개/명시 채택한다; [SPEC-NUMERICAL-001](.moai/specs/SPEC-NUMERICAL-001/spec.md), [SPEC-CAD-NUMERICAL-001](.moai/specs/SPEC-CAD-NUMERICAL-001/spec.md). |
+| R28 | 부분 구현 | CAD 없이 식/약형식/ODE/PDE를 직접 바꾸고 지원 adapter reference와 비교한다; [FUNCTION_SPEC FN-18](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R28](PROJECT_SCOPE.md). |
+| R29 | 부분 구현 | 지원표에 올린 선형·기하/재료 비선형·contact·hyperelastic·viscoelastic의 각 독립 기준 비교를 둔다; [PROJECT_SCOPE R29](PROJECT_SCOPE.md), [FUNCTION_SPEC FN-14–15](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R30 | 미착수·미확인 | 실제 explicit impact/drop의 초기속도·중력·접촉·힘/가속도·에너지·시간 증분·failure를 새 결과에서 검증한다; [FUNCTION_SPEC FN-16](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R30](PROJECT_SCOPE.md). |
+| R31 | 부분 구현 | inverse/UQ/sensitivity/surrogate/MOO, multiphysics와 remote/HPC/physical 연계의 지원 범위를 각 실제 선행과 함께 끝낸다; [FUNCTION_SPEC FN-19–26, FN-35](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R32 | 미착수·미확인 | 시편·장착·장비·교정·측정·내구 raw evidence로 model/Plan을 갱신하고 다음 실험을 저장한다; [FUNCTION_SPEC FN-05, FN-35](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md), [PROJECT_SCOPE R32](PROJECT_SCOPE.md). |
+| R33 | 부분 구현 | Design/Simulation/Explore/Results/Research 작업을 browser 시안에 한정하지 않고 각 선택 native/desktop 도구에서 완료한다; [PRODUCT_PLAN §1–3](docs/PRODUCT_PLAN.md), [FUNCTION_SPEC](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R34 | 부분 구현 | 지원된 CAD invalid gating·linear/nonlinear/contact/explicit/PDE/DOE/optimization의 기준·저장/GUI regression과 physical approval 경계를 증명한다; [PROJECT_SCOPE R34](PROJECT_SCOPE.md), [FUNCTION_SPEC VERIFICATION PLAN references](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R35 | 부분 구현 | 채택·배포할 dependency별 license/link/redistribution, supported OS/runtime 및 자료·telemetry 경계를 사용자 설치 경로와 함께 확인한다; [PROJECT_SCOPE R35](PROJECT_SCOPE.md), [FUNCTION_SPEC FN-33](docs/design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md). |
+| R36 | 운영·조사·역사 기준 | private-repo 시도/기존 저장소 관계는 역사 참조만 유지하고 요구행 충족을 위해 저장소를 다시 옮기지 않는다; 출처/현재 upstream은 [PROJECT_SCOPE R36](PROJECT_SCOPE.md), [CURRENT_STATE](CURRENT_STATE.md). |
+| R37 | 운영·조사·역사 기준 | 분리 가능한 구현·검토만 병행하고 shared interface owner를 두며 agent 수를 제품 진척으로 세지 않는다; [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md), 현재 배정은 [CURRENT_STATE](CURRENT_STATE.md). |
+| R38 | 운영·조사·역사 기준 | Root가 공통 계약/registry/provenance 통합과 개발 판정을 맡고 사용자·공학 수용을 대신한다고 주장하지 않는다; [AGENTS](AGENTS.md), [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R39 | 운영·조사·역사 기준 | 실제 backend 선택의 의사결정에 필요한 공식 자료·지원 한계를 조사하고 조사 자체를 매 작업 선행으로 만들지 않는다; 활성 자료는 [OPEN_SOURCE_CONTACT_INTEGRATION](docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md), 기준은 [PROJECT_SCOPE R39](PROJECT_SCOPE.md). |
+| R40 | 운영·조사·역사 기준 | optimizer 후보 순위표 대신 R18의 실제 문제 유형/역할과 기존 비교 근거를 합쳐 사용한다; [PROJECT_SCOPE R18/R40](PROJECT_SCOPE.md), [REQUIREMENTS_VALIDITY_REVIEW Appendix A](docs/REQUIREMENTS_VALIDITY_REVIEW.md). |
+| R41 | 운영·조사·역사 기준 | fixture upstream의 실제 adapter·테스트·CI 재사용 접점을 변경 영향 때만 재확인한다; pinned SHA/접점은 [CURRENT_STATE](CURRENT_STATE.md), [PROJECT_SCOPE R41](PROJECT_SCOPE.md). |
+| R42 | 운영·조사·역사 기준 | 연구/Pro 구현/Astra 독립 검토/Codex 통합 역할을 실제 작업과 근거에 표시한다; [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R43 | 운영·조사·역사 기준 | 공통 adapter/API/parser/optimizer/validation 등 영향 큰 계약만 독립 검토를 거친다; [AGENTS](AGENTS.md), [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R44 | 운영·조사·역사 기준 | 공유 schema/Core/registry/artifact migration의 단일 소유와 동시수정 조정을 적용한다; [AGENTS](AGENTS.md), [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R45 | 운영·조사·역사 기준 | 각 통합에서 실제 GUI/headless, feasibility, evidence, security/license와 현재 사용자 결정을 범위대로 점검한다; [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md), [CURRENT_STATE](CURRENT_STATE.md). |
+| R46 | 운영·조사·역사 기준 | 논점 난이도에 맞는 조사·검토와 정확한 실행 근거를 적용하되 모델명/agent count를 완료 지표로 쓰지 않는다; [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R47 | 운영·조사·역사 기준 | 중요한 독립 질문·근거·교정·채택/기각 사유를 정확한 코드/run/문서에 기록한다; [CURRENT_STATE](CURRENT_STATE.md), dated acceptance records. |
+| R48 | 운영·조사·역사 기준 | 기능 추가 전에 필요한 경로에서 실제 실행/실패 복구를 확인하고 같은 suite/native campaign을 이유 없이 반복하지 않는다; [AGENTS](AGENTS.md), [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R49 | 운영·조사·역사 기준 | 새 세션은 CURRENT_STATE와 source/run 존재를 확인하고 초기 구축/옛 R 단계부터 재시작하지 않는다; [CURRENT_STATE](CURRENT_STATE.md), [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R50 | 부분 구현 | 기존 CAD–Runner–Post 계산 근거를 새 CAD 변수/FE 후보·결과 기반 설계 채택으로 이어 사용자 모델에서 다시 연다; [SPEC-CAD-NUMERICAL-001](.moai/specs/SPEC-CAD-NUMERICAL-001/spec.md), [SPEC-CONTACT-001](.moai/specs/SPEC-CONTACT-001/spec.md). |
+| R51 | 운영·조사·역사 기준 | 중요 architecture/interface 변경의 이유·대안·요구 영향과 필요한 검증만 기록한다; [ADR_APPLICABILITY](docs/ADR_APPLICABILITY.md), [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md). |
+| R52 | 운영·조사·역사 기준 | 진척 지표를 요구행 개수 대신 아래 8개 고정 사용자 업무 묶음의 완료 조건으로 관리한다; [REQUIREMENTS_VALIDITY_REVIEW §7](docs/REQUIREMENTS_VALIDITY_REVIEW.md), [PRODUCT_PLAN](docs/PRODUCT_PLAN.md). |
+
+
+</details>
+
+## 기존 결정과 구현 근거
 
 **기획·Qt 시제품을 바탕으로 본제품의 기능 단위 구현에 착수한다.** 사용자의
 “왜 말만 하고 아무것도 안 하고 있는 것처럼 보이지?”와 시작 주체에 대한 후속 지시를

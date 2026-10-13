@@ -16,8 +16,9 @@ Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 �
 Expert의 실제 연구 흐름이다. 특정 C3D10 메시나 F05 진단은 전체 제품 개발의 선행조건이 아니다.
 기존 요구 기록과 [ADR0060](../ADR/0060-independent-research-workspaces.md)의
 독립 문서 경계를 유지한다. 요구 항목 수는 누락 점검용 기록이며 제품 범위의 상한이나
-완성 판정 기준이 아니다. 사용자의 실제 연구를 끝내는 데 필요한 기능은 목록 밖이어도
-추가한다. 이 계획은 다음 구현의 기준이며 제품 구현 완료 기록이 아니다.
+완성 판정 기준이 아니다. 사용자의 실제 연구를 끝내는 데 필요한 기능은 목록 밖이어도 누락하지 않는다.
+다만 현재 인도의 범위를 임의로 늘리지 않고, 기존 업무의 성공을 막는 결함인지
+후속 확장인지 구분해 CURRENT_STATE의 인도 계획에 배정한다. 이 계획은 다음 구현의 기준이며 제품 구현 완료 기록이 아니다.
 
 전체 기능·상태 계약과 구현 작업은 [새 전체 개발 명세](design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md),
 [현재 화면·Qt 시제품](design/20261012-desktop-planning/REVIEW_GUIDE.md),

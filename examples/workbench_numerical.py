@@ -169,7 +169,7 @@ def main():
     # candidate remains unevaluated, rather than receiving a surrogate value.
     manifest = export_batch(variables, [{'x': .1, 'y': .2}, {'x': .3, 'y': .4}], output / 'exchange', case_id='math-case')
     actual = mathematical_model({'x': .1, 'y': .2}, {})
-    actual.update(candidate_id='C000000', case_id='math-case', values={'x': .1, 'y': .2})
+    actual.update(candidate_id='C000000', case_id='math-case', exchange_id=manifest['exchange_id'], values={'x': .1, 'y': .2})
     imported = import_batch(manifest, [actual])
     points = [{'E': float(e), 'nu': float(n)} for e, n in zip(np.linspace(1000., 2000., 24), np.linspace(.1, .35, 24))]
     material_benchmark = benchmark_material(material_variables, points, material_history('axial'), output)

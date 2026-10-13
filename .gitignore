@@ -16,3 +16,6 @@ build/
 .moai/temp/
 .moai/memory/
 .moai/reports/plan-html/
+
+# Local Korean editing inputs and review outputs; published docs live in docs/.
+_workspace/
