@@ -11,6 +11,7 @@ phase: implementation
 module: "Numerical research"
 lifecycle: spec-anchored
 tier: L
+tags: "numerical, desktop, research"
 ---
 
 # 수치 연구의 방법별 작업 완성
@@ -61,3 +62,8 @@ Pro owns meaningful method editor/engine connection/result/test/usage implementa
 Codex owns common boundary decisions, local execution, integration and current records.
 Astra independently reviews scientific meaning and actual user paths. Small unrelated
 UI work has separate ownership; no simultaneous writer changes the same interface.
+
+## Out of Scope
+
+- Unchanged full solver campaigns and replacing native CAD/Post viewers. All D6
+  method requirements remain in scope; unavailable paths retain explicit status.

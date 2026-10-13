@@ -15,3 +15,15 @@
 작은 기존 실제 평가기를 사용한 실행과 관련 단위 검사로 확인한다. 대역만 실행한
 경로는 표시한다. 수치 참조 비교는 관련 기능의 의미에 맞게 제한하며 화면 검사 통과를
 공학 승인으로 확대하지 않는다. FN-20~24 미지원 요구와 전체 D6 잔여를 따로 보고한다.
+
+## 요구와 인수 경로 연결
+
+- AC-NUMERICAL-002-001: REQ-NUMERICAL-002-001 — 독립 진입과 방법별 계획 편집.
+- AC-NUMERICAL-002-002: REQ-NUMERICAL-002-002 — 명시 실행, 정확한 단위/예산 및 오류 위치.
+- AC-NUMERICAL-002-003: REQ-NUMERICAL-002-003 — 같은 행/점/원 평가 조회와 계산 없는 재열기.
+- AC-NUMERICAL-002-004: REQ-NUMERICAL-002-004 — UQ 실패 수·조건부 통계와 가정.
+- AC-NUMERICAL-002-005: REQ-NUMERICAL-002-005 — 일반 영향도와 Sobol 설계 구별.
+- AC-NUMERICAL-002-006: REQ-NUMERICAL-002-006 — 저장 모델·독립 holdout·명시 확인 평가.
+- AC-NUMERICAL-002-007: REQ-NUMERICAL-002-007 — 실제 목적/제약/실패 및 정확한 후보 채택.
+- AC-NUMERICAL-002-008: REQ-NUMERICAL-002-008 — 취소·지원 재개·새 실행 구별.
+- AC-NUMERICAL-002-009: REQ-NUMERICAL-002-009 — 기존 무료 실행 경로와 방법별 지원 상태.

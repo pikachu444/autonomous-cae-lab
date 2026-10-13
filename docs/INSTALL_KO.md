@@ -38,6 +38,13 @@ Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버�
 .\Start-CAE-Lab.cmd -InstallOnly -ResearchUI
 ```
 
+Sobol 민감도 분석에는 선택 패키지가 필요합니다. 다음 명령으로 기존 무료 패키지
+SALib를 추가할 수 있습니다. 일반 DOE와 최적화에는 이 옵션이 필요하지 않습니다.
+
+```powershell
+.\Start-CAE-Lab.cmd -InstallOnly -ResearchUI -Sensitivity
+```
+
 ## CAD와 후처리 열기
 
 기본 설치에는 FreeCAD, ParaView, Gmsh, CalculiX가 포함되지 않습니다.

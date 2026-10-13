@@ -52,6 +52,18 @@ D6 요청 `PRO-NUMERICAL-WORKFLOWS-01`은 전송했고 실제 작성 턴
 조건을 연결했고 MoAI t6를 진행으로 바꿨다. 전송은 구현 완료가 아니며 인도·실행·Astra
 검토를 이어 수행한다. 유료 연결은 추가하지 않는다.
 
+D6 준비에서 Sol과 Astra는 작은 실제 수학 평가기·방법별 의미를 직접 논의했다.
+UQ의 성공 조건부 분모, Sobol 원 표본 순서, 독립 holdout와 명시 확인 평가,
+Pareto 목적 방향·모든 child의 총 평가 예산을 Pro에게 전달했다. 순수 Python 평가기
+실행은 제품 Plan/Qt 연결 완료와 다르며 독립 진입에서 이 차이를 해소하도록 맡겼다.
+root는 기존 공식 설치 스크립트로 `sensitivity` pin SALib 1.5.2를 추가했다.
+설치/import가 정상 종료했고 작은 기존 Sobol 실제 평가/분석·실패 행 거절 검사 1개가
+통과했다(3.69초). 기존 NumPy/SciPy는 변경하지 않았다. 새 D6 GUI 검사는 아니다.
+기록은 `numerical-workflows/sensitivity-install.log`, `sobol-runtime-test.log`와
+담당자의 `runtime-map.md`, `review-focus.md`다. MoAI SPEC lint는 오류 0이나
+인수 연결/제외 항목 파서 경고 10개가 남는다. 실제 연결은 acceptance.md에 명시했으며
+strict 통과라고 기록하지 않는다. 이 문서 파서 경고를 제품 구현의 선행조건으로 두지 않는다.
+
 ## 앞선 구현과 실행 기록
 
 ### 최신 사용자 우선순위: Co-STORM 원형에 따른 화면 교정
