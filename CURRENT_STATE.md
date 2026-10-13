@@ -5,6 +5,48 @@
 [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), 역할·갱신 규칙은
 [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md)를 따른다.
 
+## 현재 통합 중인 변경
+
+Expert 연결 코드와 교정을 로컬 main `4a952f5`까지 통합했다. 아직 원격에
+게시하지 않았다. 기존 원격 main은 `6f676f4`다. 연결/UI/config 검사 12개와 host 관련
+7개는 통과했고 실제 `install-windows.ps1 -ResearchUI`의 Expert/MCP import도 통과했다.
+설정 적용 후 세 번째 실행에서 기존 서비스를 다시 찾지 못하던 문제는 Pro의 UTF-8
+읽기·쓰기 교정으로 해결했다. 실제 Windows에서 적용 후 재실행, 옛 BOM 없는 파일,
+저장 설정과 실행 중 설정 불일치 검사 3개가 통과했다. 이어 역할 상세 UI를 통합했으며
+처음 6개 UI 검사 중 초기 역할 조회 1개가 실패했다. 자동 문서 조회와 역할 조회가
+겹치면 초기 요청이 사라지던 문제는 Pro 요청 `EXPERT-INITIAL-ROLES-03`의 `167da66`으로
+교정했다. 기존 worker가 바쁜 동안 역할 조회 의도를 유지하고, 명시적 저장/질문 후속
+작업이 끝난 뒤 중복 없이 읽는다. 로컬에서 초기 polling 경합과 명시적 후속 작업 검사가
+각각 통과했다(2개, 5.93초). 대기 시간을 늘리거나 모델 호출을 추가하지 않았다.
+
+사용자는 화면의 `Use existing OpenScience subscription profile` 문구가 OpenScience
+자체 구독을 요구하는 것처럼 보인다고 지적했다. 실제 표시는 `기존 OpenScience 설정 사용`으로
+바꾸고 AI 제공자 로그인/이용권과 분리한다. 화면에 보인 두 역할은
+`examples/workbench_experts.json`의 예시 지시·자료 분류·도구 설정이다. 분야별 학습,
+전문 자료집 구축 또는 전문성 평가를 완료한 모델이 아니다. 예시 역할의 실제 구성과
+준비 상태를 확인할 수 있게 하며, 이름만으로 전문성 또는 추론 가능 상태를 주장하지 않는다.
+
+Pro 후속 요청 `EXPERT-WINDOWS-UX-02` 회수·통합 완료: 같은
+[Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a),
+Pro 제출 `81aa048`·`392fa76`, 로컬 통합 `a72fed0`·`2a35104`. Windows 경로 읽기 오류와
+위 사용자 피드백을 같은 기존 브랜치에서 교정했다. Codex가 관련 검사·화면을 확인했다.
+E5의 첫 실제 질문은 기존 OAuth 로그인과 `openai-codex/gpt-6-astra`로 응답을 받았다.
+저장된 `runs/product-development/20261013/expert-live-round-01/result.json`은
+ANSWERED / 40.359초 / 실제 host 호출 1회다. 회사 자료·외부 자료·계산은 사용하지 않았다.
+질문은 단축 인장시험의 단위·단면적·변위 계측이 미확인일 때 피팅 전 필요한 정보를 묻는다.
+제품의 실제 Expert 서비스와 기존 로그인 경로를 호출했으며, 예시 역할의 전문성 평가나
+GUI 질문·취소·재개 전체 완료를 뜻하지 않는다. 실행 보조 스크립트의 마지막 콘솔 출력은
+Windows cp949 문자 오류로 실패했으나 그 전에 UTF-8 결과와 실제 세션 저장은 완료됐다.
+E6의 실제 서비스 흐름도 진행했다. AI가 `calculations.plan`으로 만든 제안을 기존
+Numerical 문서로 열어 E=1000→1500 MPa로 수정하고 FELUPE 계산을 실행했다. 선택 결과를
+원 논의에 첨부·전송 허용한 후 같은 AI가 `results.read`를 호출해 실제 응력과 조건 차이를
+설명했다. 원 논의 4개 발언과 계산 1개를 저장하고 새 프로세스의 Qt 창에서 다시 열었다.
+근거는 `runs/product-development/20261013/expert-plan-live-01/continued-result.json`과
+`reopen.json`이다. 첫 보조 스크립트는 계산 뒤 저장을 빠뜨려 결과 참조 요청이 거절됐으며,
+기존 저장 명령으로 이어 진행했다. 모델·계산을 다시 수행하거나 거절 조건을 변경하지 않았다.
+이는 실제 OAuth/도구/계산/문서 저장 경로와 offscreen Qt 재열기 확인이며 OS 마우스
+조작, 취소/재개, Study 전체 수용은 남아 있다. MoAI t2를 완료 처리하지 않는다.
+
 ## 지금 받을 수 있는 것과 인도 계획
 
 2026-10-13 저녁 기준 제품 코드는 `b1a2aa9`까지 원격 main에 반영됐다. 한국어 안내·예제 수정·인도 계획은 `fbf37b3`으로 원격 main에 게시하고 같은 SHA를 확인했다. 아래 표가 현행 순서이며 뒤의 날짜별 서술은 기존 근거다.

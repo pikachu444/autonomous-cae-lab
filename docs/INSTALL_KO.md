@@ -64,18 +64,22 @@ git clone --recurse-submodules https://github.com/pikachu444/autonomous-cae-lab.
 ## Expert와 MCP
 
 Expert 창에서 자료와 질문을 저장할 때와 실제 AI 응답을 받을 때는 필요한 준비가 다릅니다.
-기본 설치만으로 AI가 연결되지는 않습니다. 기존 구독을 사용하는 native 연결 화면은
-개발 중이며, 추가 유료 API로 우회하지 않습니다.
+기본 설치만으로 AI가 연결되지는 않습니다. Expert의 **Connection…**에서 기존
+OpenScience 설치와 프로필, 사용할 모델을 연결합니다. OpenScience 자체는 무료
+오픈소스이며 별도 구독이 필요하지 않습니다. AI 모델의 로그인·이용 조건은 별개입니다.
+이 프로젝트에서는 이미 보유한 ChatGPT 이용권 경로를 사용하며 추가 유료 API로 우회하지 않습니다.
 
-PDF 읽기와 MCP 패키지가 필요하면 선택해서 설치합니다.
+Research 설치에는 Expert 실행에 필요한 MCP 패키지도 포함됩니다. Expert를 쓰기 위해
+별도 MCP 클라이언트를 설정할 필요는 없습니다. PDF를 읽으려면 `-Documents`를 추가합니다.
 
 ```powershell
-.\Start-CAE-Lab.cmd -InstallOnly -ResearchUI -Documents -MCP
-.\Start-CAE-Lab.cmd -NoBrowser -ResearchUI -Documents -MCP
+.\Start-CAE-Lab.cmd -InstallOnly -ResearchUI -Documents
+.\Start-CAE-Lab.cmd -Tool expert -Documents
 ```
 
-이후 MCP 클라이언트에 [연결 설정 예시](../openscience/workbench.json.example)를 등록해야
-합니다. 예시의 `python`은 아래 전용 환경의 실행 파일로 바꾸고, 작업 폴더는 저장소
+외부 AI 도구에서 우리 앱의 MCP를 호출하려는 경우에만 해당 클라이언트에
+[연결 설정 예시](../openscience/workbench.json.example)를 등록합니다.
+예시의 `python`은 아래 전용 환경의 실행 파일로 바꾸고, 작업 폴더는 저장소
 루트로 지정합니다. 설치 명령을 실행해도 클라이언트에 자동으로 연결되지는 않습니다.
 
 ## 파일이 저장되는 곳

@@ -28,7 +28,7 @@ this work closes the missing user-facing connection/setup path.
   roles and selected model, with separate package/configuration/authentication/
   actual-inference states. Presence of a binary or profile is not login proof.
 - REQ-EXPERT-002-002: The user SHALL be able to select and connect an existing
-  supported OpenScience subscription profile/runtime and its supported model,
+  supported OpenScience profile/runtime and its supported model,
   using the maintained host and operator configuration. No raw JSON editing
   SHALL be required for this supported setup. Native file/directory choosers
   and actionable repair states SHALL cover missing or mismatched installations.
@@ -48,6 +48,11 @@ this work closes the missing user-facing connection/setup path.
   installation/selection of the project's existing editable role definitions,
   without silently assigning unavailable models. Role selection and discussion
   editing SHALL remain independent of inference availability.
+  Selecting a role SHALL expose its actual instructions, model, source collections
+  and tools. Example roles SHALL be identified as examples, not trained or
+  independently qualified specialists. A collection name SHALL NOT imply that
+  a populated knowledge base is installed. OpenScience setup labels SHALL NOT
+  imply that the open-source application requires its own subscription.
 - REQ-EXPERT-002-006: Setup and readiness inspection SHALL NOT submit a question.
   An explicit bounded research round SHALL use the existing source selection,
   transmission scope, tools, cancellation and shared budget. Connection failure
