@@ -34,9 +34,37 @@ MAX_SERIES_ROWS = 2000
 MAX_LEDGER_ROWS = 200
 
 
+def operation_label(operation):
+    return {"evaluate": "계산", "fit": "재료 피팅", "doe": "실험계획",
+            "optimize": "최적화", "uq": "불확실성 분석", "sensitivity": "민감도 분석",
+            "surrogate": "대리모델", "epsilon": "다목적 최적화", "experts.ask": "전문가 질문",
+            "experts.discuss": "전문가 토론", "data.import": "데이터 가져오기"}.get(operation, operation or "기록 없음")
+
+
+def timestamp_label(value):
+    if not value:
+        return "기록 없음"
+    try:
+        stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if stamp.tzinfo is None:
+            return value  # Do not invent a timezone for an old record.
+        return stamp.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def resource_label(resources):
+    if not resources:
+        return "기록 없음"
+    if not isinstance(resources, dict):
+        return text_value(resources)
+    names = {"threads": "CPU 스레드", "memory_mb": "메모리(MB)"}
+    return ", ".join(f"{names.get(key, key)} {value}" for key, value in resources.items())
+
+
 def text_value(value):
     if value is None:
-        return "Not recorded"
+        return "기록 없음"
     if isinstance(value, str):
         return value
     return json.dumps(value, ensure_ascii=False)
@@ -71,22 +99,22 @@ def request_error(error):
 def state_description(job):
     state = job.get("state", job.get("status", "UNKNOWN"))
     descriptions = {
-        "QUEUED": "Queued",
-        "RUNNING": "Running",
-        "CANCEL_REQUESTED": "Cancellation requested — waiting for a safe stop",
-        "CLEANUP_PENDING": "Cleanup pending — termination is unconfirmed",
-        "CANCELLED": "Cancelled — terminal receipt recorded by the service",
-        "INTERRUPTED": "Interrupted — controller tracking was lost; process termination is unconfirmed",
-        "PARTIAL_FAILURE": "Finished with partial failures",
-        "SUCCEEDED": "Succeeded",
-        "FAILED": "Failed",
-        "REJECTED": "Rejected",
+        "QUEUED": "대기 중",
+        "RUNNING": "실행 중",
+        "CANCEL_REQUESTED": "취소 요청됨 — 안전하게 멈출 수 있는 지점까지 대기 중",
+        "CLEANUP_PENDING": "종료 처리 중 — 프로세스 종료 미확인",
+        "CANCELLED": "취소 완료 — 실행 서비스에서 종료를 확인했습니다",
+        "INTERRUPTED": "추적 중단 — 프로세스 종료 미확인",
+        "PARTIAL_FAILURE": "일부 계산 실패",
+        "SUCCEEDED": "완료",
+        "FAILED": "실패",
+        "REJECTED": "실행 거절",
     }
     description = descriptions.get(state, state)
     if job.get("cleanup_unconfirmed") and state not in {"CLEANUP_PENDING", "INTERRUPTED"}:
-        description += " — cleanup is unconfirmed"
+        description += " — 프로세스 종료 미확인"
     if job.get("cancel_requested") and state in {"SUCCEEDED", "FAILED", "PARTIAL_FAILURE"}:
-        description += "; a cancellation request was recorded"
+        description += " (실행 중 취소 요청이 있었습니다)"
     return description
 
 
@@ -202,56 +230,57 @@ class RunnerWindow(QMainWindow):
         self.refresh()
 
     def _build_ui(self):
-        self.setWindowTitle("Runner — existing executions")
-        self.resize(1420, 940)
+        self.setWindowTitle("Runner — 실행 관리")
+        self.resize(1420, 900)
         self.setMinimumSize(900, 650)
-        tools = self.menuBar().addMenu("&Tools")
-        for kind, label in (("pre", "CAD/FE — FreeCAD…"), ("post", "Post — external result…"),
-                            ("data", "Data…"), ("material", "Material…"), ("numerical", "Numerical Plan…"),
-                            ("pde", "PDE…"), ("simulation", "Simulation…"), ("evaluation", "Evaluation definition…"),
-                            ("study", "Study…"), ("expert", "Expert discussion…")):
+        tools = self.menuBar().addMenu("도구(&T)")
+        for kind, label in (("pre", "CAD 및 전처리…"), ("post", "후처리…"),
+                            ("data", "데이터…"), ("material", "재료…"), ("numerical", "수치 연구…"),
+                            ("pde", "방정식…"), ("simulation", "해석…"), ("evaluation", "계산 절차…"),
+                            ("study", "연구 기록…"), ("expert", "전문가 토론…")):
             action = QAction(label, self)
             action.triggered.connect(lambda checked=False, tool=kind: self.open_tool(tool))
             tools.addAction(action)
-        toolbar = QToolBar("Execution records")
+        toolbar = QToolBar("실행 작업")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
-        self.refresh_action = QAction("Refresh", self, shortcut=QKeySequence.Refresh)
+        self.refresh_action = QAction("새로 고침", self, shortcut=QKeySequence.Refresh)
         self.refresh_action.triggered.connect(self.refresh)
         toolbar.addAction(self.refresh_action)
-        self.result_button = QPushButton("Read retained result")
+        self.result_button = QPushButton("결과 보기")
         self.result_button.clicked.connect(self.read_result)
         toolbar.addWidget(self.result_button)
-        self.cancel_button = QPushButton("Request cancellation")
+        self.cancel_button = QPushButton("실행 취소")
         self.cancel_button.clicked.connect(self.cancel_selected)
         toolbar.addWidget(self.cancel_button)
-        self.origin_button = QPushButton("Open source document")
+        self.origin_button = QPushButton("입력 문서 열기")
         self.origin_button.clicked.connect(self.open_selected_origin)
         toolbar.addWidget(self.origin_button)
-        self.post_button = QPushButton("Open retained field in Post")
+        self.post_button = QPushButton("후처리에서 열기")
         self.post_button.clicked.connect(self.open_selected_post)
         toolbar.addWidget(self.post_button)
 
-        self.study_button = QPushButton('Use selected result in Study')
+        self.study_button = QPushButton('연구 기록에 추가…')
         self.study_button.clicked.connect(self.open_selected_study)
         toolbar.addWidget(self.study_button)
         root = QWidget()
         layout = QVBoxLayout(root)
-        self.message = QLabel("Reading existing service jobs…")
+        self.message = QLabel("실행 목록을 읽고 있습니다…")
         self.message.setWordWrap(True)
         layout.addWidget(self.message)
         split = QSplitter(Qt.Orientation.Vertical)
-        self.job_table = readonly_table(["Name", "Job ID", "Operation / backend", "State", "Started (UTC)", "Wall time", "Resources", "Results"])
+        self.job_table = readonly_table(["작업", "실행 ID", "계산 방법", "상태", "시작 (UTC)", "경과 시간", "자원", "결과"])
         self.job_table.setObjectName("runnerJobs")
-        for column, width in enumerate((160, 240, 230, 160, 185, 130, 140, 100)):
+        for column, width in enumerate((190, 240, 200, 110, 185, 100, 140, 85)):
             self.job_table.setColumnWidth(column, width)
+        self.job_table.setColumnHidden(1, True)
         self.job_table.itemSelectionChanged.connect(self._table_selected)
         split.addWidget(self.job_table)
         self.tabs = QTabWidget()
 
         monitor = QWidget()
         monitor_layout = QVBoxLayout(monitor)
-        self.state_label = QLabel("Select an existing job")
+        self.state_label = QLabel("위 목록에서 작업을 선택하세요.")
         self.state_label.setWordWrap(True)
         self.state_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         monitor_layout.addWidget(self.state_label)
@@ -259,17 +288,32 @@ class RunnerWindow(QMainWindow):
         self.scope_label.setWordWrap(True)
         monitor_layout.addWidget(self.scope_label)
         grid = QGridLayout()
+        technical_grid = QGridLayout()
+        technical_panel = self.technical_panel = QWidget()
+        technical_layout = QVBoxLayout(technical_panel)
+        technical_layout.addLayout(technical_grid)
         self.monitor_fields = {}
         fields = ("Job ID", "Operation", "Backend", "Phase", "Created UTC", "Started UTC", "Finished UTC", "Wall time",
                   "Resources", "Enforcement", "Host", "Attempt", "Source request", "Input hash", "Result references")
-        for index, name in enumerate(fields):
+        captions = dict(zip(fields, ("실행 ID", "작업 종류", "계산 엔진", "진행 단계", "등록 (UTC)",
+            "시작 (UTC)", "종료 (UTC)", "경과 시간", "자원", "자원 제한 적용", "실행 컴퓨터",
+            "실행 회차", "입력 요청", "입력 식별값", "저장 결과 참조")))
+        technical = {"Job ID", "Enforcement", "Source request", "Input hash", "Result references"}
+        normal_index = technical_index = 0
+        for name in fields:
+            destination = technical_grid if name in technical else grid
+            index = technical_index if name in technical else normal_index
             row, pair = divmod(index, 2)
             label = QLabel()
             label.setWordWrap(True)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            grid.addWidget(QLabel(name), row, pair * 2)
-            grid.addWidget(label, row, pair * 2 + 1)
+            destination.addWidget(QLabel(captions[name]), row, pair * 2)
+            destination.addWidget(label, row, pair * 2 + 1)
             self.monitor_fields[name] = label
+            if name in technical:
+                technical_index += 1
+            else:
+                normal_index += 1
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
         monitor_layout.addLayout(grid)
@@ -278,33 +322,33 @@ class RunnerWindow(QMainWindow):
         self.error_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         monitor_layout.addWidget(self.error_label)
         monitor_layout.addStretch()
-        self.tabs.addTab(monitor, "Monitor")
+        self.tabs.addTab(monitor, "진행 상황")
 
         self.inputs = QTreeWidget()
-        self.inputs.setHeaderLabels(["Frozen input", "Recorded value"])
+        self.inputs.setHeaderLabels(["실행에 사용한 입력", "저장된 값"])
         self.inputs.setColumnWidth(0, 320)
-        self.tabs.addTab(self.inputs, "Inputs")
+        self.tabs.addTab(self.inputs, "입력")
         self.result_panel = QWidget()
         result_layout = QVBoxLayout(self.result_panel)
-        self.result_summary = QLabel("Use Read retained result to inspect this job's original output.")
+        self.result_summary = QLabel("결과 보기를 누르면 선택한 실행의 저장 결과를 읽습니다.")
         self.result_summary.setWordWrap(True)
         result_layout.addWidget(self.result_summary)
         controls = QHBoxLayout()
         self.responses = QComboBox()
         self.responses.setMinimumContentsLength(24)
         self.responses.currentIndexChanged.connect(self._response_changed)
-        controls.addWidget(QLabel("Response"))
+        controls.addWidget(QLabel("결과 항목"))
         controls.addWidget(self.responses, 1)
         self.row_start = QSpinBox()
         self.row_start.setRange(0, 2_000_000_000)
         self.row_count = QSpinBox()
         self.row_count.setRange(1, MAX_SERIES_ROWS)
         self.row_count.setValue(MAX_SERIES_ROWS)
-        controls.addWidget(QLabel("First row"))
+        controls.addWidget(QLabel("시작 행"))
         controls.addWidget(self.row_start)
-        controls.addWidget(QLabel("Count"))
+        controls.addWidget(QLabel("행 수"))
         controls.addWidget(self.row_count)
-        self.read_rows_button = QPushButton("Read rows")
+        self.read_rows_button = QPushButton("읽기")
         self.read_rows_button.clicked.connect(self.read_response)
         controls.addWidget(self.read_rows_button)
         result_layout.addLayout(controls)
@@ -315,14 +359,14 @@ class RunnerWindow(QMainWindow):
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.axes = self.figure.add_subplot(111)
-        self.result_views.addTab(self.canvas, "Plot")
-        self.values = readonly_table(["Original row", "Axis", "Value", "Mask"])
-        self.result_views.addTab(self.values, "Values")
+        self.result_views.addTab(self.canvas, "그래프")
+        self.values = readonly_table(["원본 행", "축", "값", "사용 여부"])
+        self.result_views.addTab(self.values, "계산값")
         self.response_details = QPlainTextEdit()
         self.response_details.setReadOnly(True)
-        self.result_views.addTab(self.response_details, "Response metadata / references")
+        self.result_views.addTab(self.response_details, "결과 상세")
         result_layout.addWidget(self.result_views, 1)
-        self.tabs.addTab(self.result_panel, "Result")
+        self.tabs.addTab(self.result_panel, "결과")
 
         self.ledger_panel = QWidget()
         ledger_layout = QVBoxLayout(self.ledger_panel)
@@ -344,7 +388,8 @@ class RunnerWindow(QMainWindow):
         ledger_layout.addWidget(self.ledger_details, 1)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
-        self.tabs.addTab(self.details, "Details")
+        technical_layout.addWidget(self.details, 1)
+        self.tabs.addTab(technical_panel, "기술 상세")
         split.addWidget(self.tabs)
         split.setSizes([400, 460])
         layout.addWidget(split, 1)
@@ -396,7 +441,8 @@ class RunnerWindow(QMainWindow):
                     self.select_job(desired)
             elif self.selected_job_id in self.jobs:
                 self._show_job(self.jobs[self.selected_job_id])
-            self.message.setText(f"{len(self.jobs)} recorded jobs. Selecting a job does not execute it.")
+            self.message.setText(f"저장된 실행 {len(self.jobs)}개" if self.jobs else
+                "아직 실행한 작업이 없습니다. 도구 메뉴에서 작업할 프로그램을 열어 계산을 시작하세요.")
         self._request("catalog", lambda: self.client.request("/api/workbench"), listed)
         if self.selected_job_id:
             self.refresh_selected()
@@ -411,11 +457,12 @@ class RunnerWindow(QMainWindow):
         for row, identifier in enumerate(self._ordered_ids()):
             job = self.jobs[identifier]
             arguments = job.get("arguments", {})
-            table_row(self.job_table, row, [arguments.get("label", job.get("operation", "")), identifier,
-                job.get("operation", "") + " / " + text_value(arguments.get("backend")), job.get("state", "UNKNOWN"),
-                job.get("started_utc"), wall_time(job), short_value(job.get("resources", {})),
-                "Retained" if job.get("result_refs") else "None recorded"])
+            table_row(self.job_table, row, [arguments.get("label") or operation_label(job.get("operation")), identifier,
+                arguments.get("backend") or operation_label(job.get("operation")), state_description(job),
+                timestamp_label(job.get("started_utc")), wall_time(job), resource_label(job.get("resources", {})),
+                "저장됨" if job.get("result_refs") else "없음"])
             self.job_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, identifier)
+            self.job_table.item(row, 0).setToolTip("실행 ID: " + identifier)
             self.job_table.item(row, 3).setToolTip(state_description(job))
             if identifier == self.selected_job_id:
                 selected_row = row
@@ -454,15 +501,17 @@ class RunnerWindow(QMainWindow):
 
     def _show_job(self, job):
         arguments = job.get("arguments", {})
-        self.state_label.setText(f"{job.get('id', self.selected_job_id)} · {state_description(job)}")
+        self.state_label.setText(state_description(job))
+        self.state_label.setToolTip("실행 ID: " + str(job.get('id', self.selected_job_id)))
         operation = job.get("operation")
         self.scope_label.setText(
-            f"Cancellation targets the whole selected {operation} execution. Candidate-level cancellation is unavailable."
+            "실행 취소는 선택한 전체 계산에 적용됩니다. 개별 후보만 취소할 수는 없습니다."
             if operation in PARENT_OPERATIONS else
-            "Cancellation targets this selected job. Independent jobs continue.")
-        values = {"Job ID": job.get("id"), "Operation": operation, "Backend": arguments.get("backend"),
-            "Phase": job.get("phase"), "Created UTC": job.get("created_utc"), "Started UTC": job.get("started_utc"),
-            "Finished UTC": job.get("finished_utc"), "Wall time": wall_time(job), "Resources": job.get("resources"),
+            "실행 취소는 선택한 작업에만 적용됩니다.")
+        values = {"Job ID": job.get("id"), "Operation": operation_label(operation), "Backend": arguments.get("backend"),
+            "Phase": {"FINISHED": "종료", "RUNNING": "실행 중", "QUEUED": "대기 중"}.get(job.get("phase"), job.get("phase")),
+            "Created UTC": timestamp_label(job.get("created_utc")), "Started UTC": timestamp_label(job.get("started_utc")),
+            "Finished UTC": timestamp_label(job.get("finished_utc")), "Wall time": wall_time(job), "Resources": resource_label(job.get("resources")),
             "Enforcement": job.get("resource_enforcement"), "Host": job.get("host"), "Attempt": job.get("attempt"),
             "Source request": job.get("request_id"), "Input hash": job.get("request_hash"), "Result references": job.get("result_refs")}
         for name, field in self.monitor_fields.items():
@@ -485,13 +534,13 @@ class RunnerWindow(QMainWindow):
         identifier = self.selected_job_id
         if not identifier or self.jobs.get(identifier, {}).get("state") not in {"QUEUED", "RUNNING", "CLEANUP_PENDING"}:
             return
-        self.message.setText(f"Sending cancellation request for {identifier}; completion is not yet confirmed.")
+        self.message.setText("선택한 작업의 취소를 요청하고 있습니다. 아직 종료가 확인되지 않았습니다.")
         def received(job, ticket):
             self._merge_job(job, ticket)
             self._draw_jobs()
             if self.selected_job_id == identifier:
                 self._show_job(self.jobs[identifier])
-            self.message.setText(identifier + " · " + state_description(job))
+            self.message.setText(state_description(job))
         self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received)
 
     def open_selected_origin(self):
@@ -562,9 +611,9 @@ class RunnerWindow(QMainWindow):
         self.post_button.setEnabled(bool(job.get("result_refs")) and not any(key.endswith(":" + str(self.selected_job_id)) and "post" in key for key in self._pending))
         self.cancel_button.setEnabled(state in {"QUEUED", "RUNNING", "CLEANUP_PENDING"} and "cancel:" + str(self.selected_job_id) not in self._pending)
         operation = job.get("operation")
-        self.cancel_button.setText("Cancellation requested" if state == "CANCEL_REQUESTED" else
-            "Request owned cleanup retry" if state == "CLEANUP_PENDING" else
-            f"Cancel entire {operation}" if operation in PARENT_OPERATIONS else "Request cancellation")
+        self.cancel_button.setText("취소 요청됨" if state == "CANCEL_REQUESTED" else
+            "종료 처리 다시 시도" if state == "CLEANUP_PENDING" else
+            "전체 계산 취소" if operation in PARENT_OPERATIONS else "실행 취소")
 
     def _clear_result(self):
         self.result_metadata = None
@@ -578,7 +627,7 @@ class RunnerWindow(QMainWindow):
         self.read_rows_button.setEnabled(False)
         self.row_start.setEnabled(False)
         self.row_count.setEnabled(False)
-        self.result_summary.setText("Use Read retained result to inspect this job's original output.")
+        self.result_summary.setText("결과 보기를 누르면 선택한 실행의 저장 결과를 읽습니다.")
         self._ledger, self._ledger_kind = [], None
         index = self.tabs.indexOf(self.ledger_panel)
         if index >= 0:
@@ -596,21 +645,24 @@ class RunnerWindow(QMainWindow):
         if not identifier or not self.jobs.get(identifier, {}).get("result_refs"):
             return
         self.tabs.setCurrentWidget(self.result_panel)
-        self.result_summary.setText(f"Reading retained result for {identifier}…")
+        self.result_summary.setText("선택한 실행의 저장 결과를 읽고 있습니다…")
         def received(result, _ticket):
             self.result_metadata = result
             state = result.get("execution_status", "Not recorded")
-            details = [f"{identifier} · result execution: {state}"]
+            job = self.jobs.get(identifier, {})
+            label = job.get('arguments', {}).get('label') or operation_label(job.get('operation'))
+            details = [label + ' 결과: ' + state_description({'state': state})]
+            self.result_summary.setToolTip('실행 ID: ' + identifier)
             for key in ("termination_reason", "failure_reason"):
                 if result.get(key):
                     details.append(f"{key}: {text_value(result[key])}")
             if state in {"FAILED", "PARTIAL_FAILURE", "REJECTED", "CANCELLED"}:
-                details.append("Retained values may be partial; this is not a successful full execution.")
+                details.append("일부 결과만 남아 있을 수 있습니다. 전체 계산이 완료된 결과가 아닙니다.")
             self.result_summary.setText("\n".join(details))
             self.responses.blockSignals(True)
             self.responses.clear()
             for name, response in result.get("responses", {}).items():
-                self.responses.addItem(f"{name} · {response.get('kind', 'unknown')} · {response.get('unit', 'unit not recorded')}", name)
+                self.responses.addItem(f"{name} [{response.get('unit', '단위 미기록')}]", name)
             self.responses.blockSignals(False)
             self._set_ledger(result)
             self._show_details()
@@ -666,12 +718,17 @@ class RunnerWindow(QMainWindow):
 
     def _draw_response(self, name, response, start):
         self.response_details.setPlainText(json.dumps(response, ensure_ascii=False, indent=2))
-        labels = [f"{key}: {text_value(response[key])}" for key in ("component", "location", "frame", "measure", "valid") if key in response]
+        captions = {'component': '성분', 'location': '위치', 'frame': '좌표계', 'measure': '물리량 정의', 'valid': '유효성'}
+        meanings = {'material_point': '재료점', 'material_cartesian': '재료 직교좌표',
+                    'laboratory': '실험실 좌표', 'infinitesimal_Cauchy': '미소변형 Cauchy 응력',
+                    'true': '유효', 'false': '유효하지 않음'}
+        labels = [captions[key] + ': ' + meanings.get(text_value(response[key]), text_value(response[key]))
+                  for key in captions if key in response]
         unit = response.get("unit", "unit not recorded")
         if response.get("kind") == "scalar":
             self.values.setRowCount(1)
             table_row(self.values, 0, ["scalar", "—", f"{text_value(response.get('value'))} {unit}", "—"])
-            self.response_label.setText(f"{name} = {text_value(response.get('value'))} {unit}" + (" · " + " · ".join(labels) if labels else ""))
+            self.response_label.setText(f"{name} = {text_value(response.get('value'))} {unit}" + ("\n" + ", ".join(labels) if labels else ""))
             self._blank_plot("Scalar value shown in Values")
             self.result_views.setCurrentWidget(self.values)
             return
@@ -687,7 +744,7 @@ class RunnerWindow(QMainWindow):
         for row, (coordinate, value) in enumerate(zip(axis["values"], values)):
             included = mask[row] if isinstance(mask, list) and row < len(mask) else "Not supplied"
             table_row(self.values, row, [start + row, f"{text_value(coordinate)} {axis.get('unit', 'unit not recorded')}", f"{text_value(value)} {unit}", included])
-        self.response_label.setText(f"{name} · original rows [{start}, {start + len(values)}) · {unit}" + (" · " + " · ".join(labels) if labels else ""))
+        self.response_label.setText(f"원본 행 {start} 이상 {start + len(values)} 미만 ({len(values)}행)" + ("\n" + ", ".join(labels) if labels else ""))
         try:
             x = [float(value) for value in axis["values"]]
             y = [float(value) for value in values]
@@ -705,7 +762,7 @@ class RunnerWindow(QMainWindow):
         self.axes.plot(x, [value if mask is None or mask[row] else math.nan for row, value in enumerate(y)], marker="o", markersize=3)
         self.axes.set_xlabel(f"{axis.get('name', 'axis name not recorded')} [{axis.get('unit', 'unit not recorded')}]")
         self.axes.set_ylabel(f"{name} [{unit}]")
-        self.axes.set_title(" · ".join(labels))
+        self.axes.set_title("")
         self.axes.grid(True, alpha=.25)
         self.canvas.draw_idle()
         self.result_views.setCurrentWidget(self.canvas)
@@ -716,7 +773,7 @@ class RunnerWindow(QMainWindow):
             return
         self._ledger = result[self._ledger_kind]
         if self.tabs.indexOf(self.ledger_panel) < 0:
-            self.tabs.insertTab(self.tabs.indexOf(self.details), self.ledger_panel, "Candidates" if self._ledger_kind == "candidates" else "History")
+            self.tabs.insertTab(self.tabs.indexOf(self.technical_panel), self.ledger_panel, "계산 후보" if self._ledger_kind == "candidates" else "계산 이력")
         self.ledger_start.blockSignals(True)
         self.ledger_start.setRange(0, max(0, len(self._ledger) - 1))
         self.ledger_start.setValue(0)

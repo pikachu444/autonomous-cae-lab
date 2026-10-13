@@ -139,7 +139,11 @@ def test_existing_selection_reads_frozen_inputs_and_bounded_original_rows(runner
     viewer, client, _ = runner
     assert viewer.monitor_fields["Input hash"].text() == "input-hash-JA"
     assert "HINT_ONLY" in viewer.monitor_fields["Enforcement"].text()
-    assert viewer.monitor_fields["Host"].text() == "Not recorded"
+    assert viewer.monitor_fields["Host"].text() == "기록 없음"
+    assert viewer.job_table.isColumnHidden(1)
+    assert viewer.monitor_fields["Input hash"].parentWidget() is viewer.technical_panel
+    assert viewer.monitor_fields["Started UTC"].text() == "2026-10-11 01:00:01"
+    assert viewer.monitor_fields["Resources"].text() == "CPU 스레드 2, 메모리(MB) 512"
     assert viewer.inputs.findItems("arguments", Qt.MatchFlag.MatchExactly)[0].child(2).child(0).child(0).text(1) == "1234"
     assert not [call for call in client.calls if call[0] in {"metadata", "response", "cancel"}]
     viewer.result_button.click()
@@ -153,7 +157,8 @@ def test_existing_selection_reads_frozen_inputs_and_bounded_original_rows(runner
     assert viewer.values.item(0, 2).text() == "2.0 MPa"
     assert list(viewer.axes.lines[0].get_ydata()) == [2., 4.]
     assert viewer.axes.get_xlabel() == "time [s]"
-    assert "infinitesimal_Cauchy" in viewer.axes.get_title()
+    assert "미소변형 Cauchy 응력" in viewer.response_label.text()
+    assert "infinitesimal_Cauchy" in viewer.response_details.toPlainText()
     assert all(identifier != threading.get_ident() for identifier in client.thread_ids)
 
 
@@ -179,22 +184,22 @@ def test_parent_cancel_is_request_then_cleanup_then_terminal_and_other_job_stays
     viewer, client, _ = runner
     select_row(viewer, "JF")
     until(app, lambda: not viewer._pending)
-    assert viewer.cancel_button.text() == "Cancel entire fit"
-    assert "Candidate-level cancellation is unavailable" in viewer.scope_label.text()
+    assert viewer.cancel_button.text() == "전체 계산 취소"
+    assert "개별 후보만 취소할 수는 없습니다" in viewer.scope_label.text()
     viewer.cancel_button.click()
     until(app, lambda: not viewer._pending)
-    assert "Cancellation requested" in viewer.state_label.text()
+    assert "취소 요청됨" in viewer.state_label.text()
     assert not viewer.cancel_button.isEnabled()
     assert client.jobs["JB"]["state"] == "SUCCEEDED"
     client.jobs["JF"].update(state="CLEANUP_PENDING", cleanup_unconfirmed=True)
     viewer.refresh_action.trigger()
     until(app, lambda: not viewer._pending)
-    assert "termination is unconfirmed" in viewer.state_label.text()
-    assert viewer.cancel_button.text() == "Request owned cleanup retry"
+    assert "프로세스 종료 미확인" in viewer.state_label.text()
+    assert viewer.cancel_button.text() == "종료 처리 다시 시도"
     client.jobs["JF"].update(state="CANCELLED", cleanup_unconfirmed=False)
     viewer.refresh_action.trigger()
     until(app, lambda: not viewer._pending)
-    assert "terminal receipt recorded" in viewer.state_label.text()
+    assert "실행 서비스에서 종료를 확인했습니다" in viewer.state_label.text()
     assert not viewer.cancel_button.isEnabled()
     assert [call[1] for call in client.calls if call[0] == "cancel"] == ["JF"]
 
@@ -213,7 +218,7 @@ def test_partial_candidate_penalty_and_unsupported_field_remain_explicit(runner,
         ]}
     viewer.result_button.click()
     until(app, lambda: viewer.ledger_table.rowCount() == 3 and not viewer._pending)
-    assert "not a successful full execution" in viewer.result_summary.text()
+    assert "전체 계산이 완료된 결과가 아닙니다" in viewer.result_summary.text()
     assert viewer.ledger_table.item(0, 3).text() == "0.25"
     assert viewer.ledger_table.item(1, 3).text() == "—"
     assert viewer.ledger_table.item(1, 4).text() == "1000000.0"
@@ -243,7 +248,7 @@ def test_refresh_and_close_reopen_preserve_selection_and_origin_without_submit(r
     viewer.close()
     client.jobs["JB"]["state"] = "INTERRUPTED"
     viewer.show()
-    until(app, lambda: not viewer._pending and "Interrupted" in viewer.state_label.text())
+    until(app, lambda: not viewer._pending and "추적 중단" in viewer.state_label.text())
     assert viewer.selected_job_id == "JB"
-    assert "process termination is unconfirmed" in viewer.state_label.text()
+    assert "프로세스 종료 미확인" in viewer.state_label.text()
     assert not any(call[0] == "cancel" for call in client.calls)
