@@ -181,7 +181,15 @@ python -m examples.numerical_workflows --store runs\d6-example-run --run
 ~~~
 
 학습 3점과 별도 검증 2점 → RBF 저장 → 새 점 예측 → 같은 점 실제 평가입니다.
-stdout의 Plan ID를 Start-CAE-Lab.cmd -Tool numerical -DocumentId ...로 엽니다.
+출력된 문서 ID를 복사해 예제와 **같은 작업 폴더**에서 엽니다. 기본 서비스와
+겹치지 않도록 별도 포트를 사용하는 예입니다.
+
+~~~powershell
+.\Start-CAE-Lab.cmd -Tool numerical -Store runs\d6-example-run -Port 8768 -DocumentId <출력된 문서 ID>
+~~~
+
+`<출력된 문서 ID>` 전체를 실제 ID로 바꿉니다. 문서만 준비한 경우에는
+`-Store runs\d6-example`을 사용합니다. 작업 폴더가 다르면 해당 문서가 열리지 않습니다.
 새 결과를 과거 실행의 resume라고 부르지 않습니다.
 공개 교육 예제이며 공학 수용 근거가 아닙니다.
 

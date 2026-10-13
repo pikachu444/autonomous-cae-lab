@@ -105,6 +105,33 @@ WSL/Linux 계산 환경은 기본 Windows 설치에 포함되지 않습니다.
 [계산 환경과 실행 기록](LOCAL_EXECUTION.md),
 [OpenCourant 검증 범위와 남은 제한](OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md)을 참고하세요.
 
+### 이미 설치한 WSL 계산 환경에 연결하기
+
+기존 Ubuntu 환경에 FEniCSx나 MFront를 준비해 둔 개발 환경에서는 계산 서비스를
+WSL에서 실행하고, 화면은 Windows Research 앱으로 열 수 있습니다. 새 WSL 환경을
+설치하는 명령은 아닙니다. 저장소 폴더의 PowerShell에서 실행합니다.
+
+```powershell
+.\scripts\cae-research-local.ps1 -Execution WSL -Distribution Ubuntu -Port 8767 -Store runs\research-wsl
+```
+
+이 창을 열어 둔 채 다른 PowerShell에서 같은 저장소 폴더로 이동해 PDE 창을 엽니다.
+
+```powershell
+$caePython = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime\venv\Scripts\python.exe'
+& $caePython -m apps.research.desktop --service http://127.0.0.1:8767 pde
+```
+
+마지막 `pde`를 `material`, `evaluation`, `numerical`, `runner`로 바꾸면 같은
+작업 폴더를 사용하는 다른 도구가 열립니다. 종료하려면 실행 중인 계산을 먼저 확인한
+뒤 서비스를 시작한 창에서 Ctrl+C를 누릅니다. 기본 Windows 서비스와 작업 폴더가
+다르므로 기존 문서가 이 목록에 자동으로 나타나지는 않습니다.
+
+현재 개발 환경에서는 이 연결 방식의 식 편집·저장·서비스 종료 후 재열기와 보존
+결과 파일 읽기를 확인했습니다. 개별 솔버의 설치와 새 계산 성공은 별도로 확인해야
+합니다. WSL 서비스의 결과를 Windows FreeCAD·ParaView로 여는 경로 전체는 아직
+확인하지 않았습니다.
+
 ## Expert와 MCP
 
 Expert 창에서 자료와 질문을 저장할 때와 실제 AI 응답을 받을 때는 필요한 준비가 다릅니다.
