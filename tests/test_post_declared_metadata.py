@@ -138,3 +138,17 @@ def test_changed_metadata_or_reader_is_not_silently_reused(result_reader,tmp_pat
         commands.save_project()
     with pytest.raises(ValueError,match='component count'):
         external.select_array(fake.active,'POINTS','U_mm')
+
+
+def test_static_contact_increment_collection_is_dimensionless_not_seconds(result_reader):
+    fake,commands,external=result_reader
+    source=Source('PVDReader',['contact.pvd'],temporal=True)
+    source.TimestepValues=[.5,1.]
+    source.PointData={'U_mm':NamedVector(3),'NativeNodeId':Array()}
+    source.CellData={'NativeElementId':Array()}
+    metadata=declared()
+    metadata.update(static=None,time={'unit':'1','semantics':'STATIC_LOAD_PARAMETER','values':[.5,1.]})
+    assert external.validate_declared_metadata(source,metadata)['time']['unit']=='1'
+    metadata['time']['values']=[0.,1.]
+    with pytest.raises(ValueError,match='timesteps'):
+        external.validate_declared_metadata(source,metadata)

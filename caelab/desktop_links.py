@@ -36,8 +36,8 @@ class DesktopLinks:
         command_id = check_id(command_id)
         with self._lock:
             command = wb.native_commands.status(command_id)
-            if command['operation'] != 'pre.freeze' or command['state'] != 'SUCCEEDED':
-                raise ValueError('A completed native pre.freeze command is required')
+            if command['operation'] not in {'pre.freeze', 'pre.contact.freeze'} or command['state'] != 'SUCCEEDED':
+                raise ValueError('A completed native FEM/contact freeze command is required')
             envelope = command.get('outcome', {}).get('result', {})
             result = envelope.get('result', {})
             if envelope.get('status') != 'COMPLETED':
@@ -59,10 +59,13 @@ class DesktopLinks:
                     root_id='native-owner:' + command['document_id'], relative=relative,
                     limit=wb.config.get('local_input_max_bytes', 2 * 1024 ** 3))
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
+            contact = command['operation'] == 'pre.contact.freeze'
+            if receipt.get('kind') != ('frozen_contact' if contact else 'frozen_fem'):
+                raise ValueError('Registered snapshot kind differs from the completed export operation')
             origin = {'kind': 'pre', 'document_id': command['document_id'],
                       'session_id': command['session_id'], 'generation': command.get('final_generation', command['expected_generation']),
                       'command_id': command_id, 'input_id': receipt['id']}
-            job = wb.submit('run', {'backend': 'structure.calculix.frozen',
+            job = wb.submit('run', {'backend': 'structure.calculix.contact' if contact else 'structure.calculix.frozen',
                 'settings': {'data_id': receipt['id']}, 'origin': origin,
                 'label': result.get('label', 'FreeCAD FEM analysis')[:160]},
                 request_id='native-frozen:' + command_id)

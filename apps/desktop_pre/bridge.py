@@ -22,7 +22,7 @@ from apps.desktop_pre.motion import Motion, OPERATIONS as MOTION_OPERATIONS
 from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 
 
-OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze',
+OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
               'pre.workbench', 'pre.export_native_copy', 'pre.validate') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
@@ -301,18 +301,24 @@ class Owner:
                         raise ValueError('Choose an exact native Analysis')
                     diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
                     payload = {'diagnostics': diagnostics, 'can_freeze': not diagnostics, 'engineering_release': 'UNKNOWN'}
-                elif operation == 'pre.freeze':
+                elif operation in {'pre.freeze', 'pre.contact.freeze'}:
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
                     from apps.desktop_pre.freeze_analysis import freeze_analysis
-                    diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
+                    diagnostics = (self.fem.validate_for_run(self._object(args['analysis_id']))
+                                   if operation == 'pre.freeze' else [])
                     if diagnostics:
                         raise ValueError('FEM_INPUT_INVALID: ' + '; '.join(item['path'] + ': ' + item['message'] for item in diagnostics))
                     saved = self.project.save()
                     frozen_generation = self.generation
-                    manifest = freeze_analysis(self._object(args['analysis_id']), self._object(args['solver_id']),
-                                               self.export_root / self.document_id,
-                                               binding_validator=self.mesh_bindings.validate)
+                    if operation == 'pre.contact.freeze':
+                        from apps.desktop_pre.freeze_contact import freeze_contact
+                        manifest = freeze_contact(self._object(args['analysis_id']), self._object(args['solver_id']),
+                                                  self.export_root / self.document_id, fem=self.fem)
+                    else:
+                        manifest = freeze_analysis(self._object(args['analysis_id']), self._object(args['solver_id']),
+                                                   self.export_root / self.document_id,
+                                                   binding_validator=self.mesh_bindings.validate)
                     if self.generation != frozen_generation:
                         raise ValueError('INPUT_CHANGED: design changed during native export; the prepared files remain and no run was submitted')
                     from caelab.storage import load_json
