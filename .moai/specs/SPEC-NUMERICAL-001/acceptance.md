@@ -23,3 +23,40 @@
 Reuse and narrowly extend the existing request-plan, numerical-operations,
 Expert/Study UI, discussion-plan and connected evaluation tests. Keep the
 existing new-discussion follow-up behavior and tests as a separate feature.
+
+## Implementation checkpoint — 2026-10-13
+
+Actual Pro authored `39c5fb0`, the Windows child-identity test correction `43ef92f`
+and same-process GUI-thread delivery fix `433d681`; Codex integrated through
+`d010303`. Astra/xhigh reviewed the initial feature source independently and found
+no new blocking/data-loss issue. Codex reviewed the narrow corrections and ran the
+following focused Windows checks with CPython 3.12.14 / PySide6 6.9.1:
+
+- Changed product modules compile. Real independent desktop dispatch opens
+  `RequestPlanWindow` against an isolated local service; the generic worksheet
+  renders at 1440×900 using the installed Segoe UI font (Qt offscreen).
+- Actual existing DOE and constrained optimization engines pass the new algebraic
+  evaluator cases, including failed-candidate retention and point/curve selection.
+- Precision/partial invalid input Save/reopen/repair and method-option preservation
+  pass. The first run exceeded the existing fixture's 5-second wait with a job
+  still RUNNING; the same source passed a focused rerun. No physical threshold or
+  expected response changed, and the first error is not reclassified as a pass.
+- The initial Expert return failed after HTTP verification with a connected socket
+  but no received frame. Pro changed same-process delivery to the GUI-thread local
+  receiver; all four Plan action cases (Expert, Study, independent selection and
+  earlier-run/channel choice) pass after the correction.
+- The separate-process live Study Attach case passes after correcting the Windows
+  venv redirector PID assumption. The same actual Qt child/window identity is
+  checked from READY through ATTACHED; launch count and draft preservation remain
+  asserted. The initial PID assertion failure is retained as a test failure.
+
+These focused runs occurred at their stated source checkpoints, not as one final
+whole-suite pass. Pro's remote execution remains NOT_RUN. Broader IPC/error/cold
+reopen matrix, native OS input/DPI and full integration remain for the later
+integration pass. This checkpoint supports implementation and basic execution,
+not whole-product usability acceptance or engineering qualification. No native
+solver, model provider or paid API was called.
+
+Follow-up UX: resolve worksheet response labels/units from saved metadata on
+reopen and make pending-result review more discoverable. Continue the other
+tools/connections instead of repeating unchanged Numerical campaigns.

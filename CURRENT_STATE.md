@@ -15,6 +15,12 @@
 Qt 조작 확인, 실제 Pro 작성과 Astra 독립 검토다. Windows 로컬 Qt/PySide6·FreeCAD·
 ParaView와 추가 지출0원을 유지한다. 과거 문서의 기획 완료·다음 구현은 이번 수용 근거가 아니다.
 
+2026-10-13 사용자가 전체 명세에 따른 독립 도구·전체 연계 구현과 통합을 지속 목표로
+등록했다. 각 도구는 데스크톱앱이며 이를 묶는 선택적 연결 화면은 웹 또는 데스크톱으로
+제공할 수 있다. 기능 개발이 우선이고 개별 도구는 실행 가능 여부와 필요한 단위 검사만
+확인한다. 넓은 통합·수치 검증은 관련 구현 이후다. 미완료 기능이 있으면 같은 작업을
+계속하며, 작은 검토·교정마다 재승인이나 전체 solver 검증을 기다리지 않는다.
+
 최근 사용자 지시는 CAD/전처리→solver/Runner→native Post→최적화와 Co-STORM 연구의
 독립 작업·도구 연결을 중심으로 완성하는 것이다. Material 예시를 전체 우선순위로 확대하지
 않으며 그 교정이 다른 도구를 기다리게 하지 않는다. Data/Material/PDE/Numerical/Runner/
@@ -164,15 +170,35 @@ Penpot은 계정이 없어 제외하라는 사용자 결정으로 닫고 무시�
 
 ### 이어서 할 작업
 
-첫 진입 기능의 검토·실행·교정을 마쳤다. 이어서 실제 Pro가 기존 Numerical Plan의
-변수·응답·방법별 편집과 같은 Expert/Study로 결과를 돌려주는 기능을 주작성하며,
-Codex가 공유 경계·Windows 실행·통합, Astra가 독립 설계/코드 검토를 맡는다. 열린
+첫 진입 기능은 원격 main에 반영했다. 실제 Pro `39c5fb0`의 Numerical 변수·응답·방법
+편집과 원래 Expert/Study 결과 전달, `43ef92f`·`433d681`의 교정을 로컬 `d010303`까지
+통합했다. 컴파일과 작은 실제 DOE·최적화, 정밀/부분 입력 저장·재열기를 확인했다.
+첫 fixture의 5초 제한 초과, Expert 소켓 응답 실패와 Windows venv PID 가정 오류는
+보존했다. Pro가 같은 프로세스의 결과 전달을 GUI 스레드에서 처리하도록 고쳤고
+Expert/Study/독립 대상 선택/이전 결과 선택 4개 단위 검사가 통과했다. 별도 프로세스의
+실제 Qt 창에 Attach하고 기존 편집을 보존하는 검사도 통과했다. 실제 desktop 진입에서
+1440×900 generic worksheet Qt 렌더를 확인했다. 검사별 소스·한계는
+[Numerical 구현 기록](.moai/specs/SPEC-NUMERICAL-001/acceptance.md)에 둔다.
+이 단위의 기본 실행을 확인했으며 전체 제품 수용·넓은 통합 검증은 아직 남아 있다.
+Astra/xhigh의 좁은 소스 검토에는 새 blocking/data-loss 지적이 없었다. 실행 결과와는
+별개이며 표시 개선 두 건은 후속 UX로 남긴다. Codex가 Windows 실행·통합을 맡는다. 열린
 원 창의 미적용 편집을 보존하고 pending 결과를 사용자 확인 후 추가해야 한다.
 같은 문서를 새로 열거나 새 X/S를 만들며 왕복 완료로 표시하지 않는다.
-현재 요청은 `PRO-IMPL-NUMERICAL-20261013-01`이며 같은 실제 Pro에 전달·수신을 확인했다.
-작성 브랜치는 `codex/numerical-workflow-20261013`, 기준 main은 `edcc1fb`다.
+원 구현 요청은 `PRO-IMPL-NUMERICAL-20261013-01`, 작성 브랜치는
+`codex/numerical-workflow-20261013`, 기준 main은 `edcc1fb`다.
 범위와 완료 조건은 [SPEC-NUMERICAL-001](.moai/specs/SPEC-NUMERICAL-001/spec.md)에 연결한다.
-첫 진입 기능의 코드·검증 기록은 원격 main `edcc1fb` 게시 후 같은 SHA를 확인했다.
+첫 진입 기능과 배정 기록은 원격 main `c6e7f2e` 게시 후 같은 SHA를 확인했다.
+Luna/high가 기존 native CAD/FE→Runner→Post 연결과 Post→Numerical의 빠진 연결을
+읽기 전용으로 조사했다. 같은 Pro에 `PRO-IMPL-POST-NUMERICAL-20261013-01`을 전달했다.
+Numerical 교정 커밋 후 `codex/post-numerical-20261013`을 만들고 저장된 Post 측정의
+실제 표·곡선을 Numerical 관측/응답으로 가져와 편집·저장·재열기하는 제품 기능을 작성한다.
+원래 native 편집기·JobManager·Data/evaluation/Numerical owner를 재사용한다. 기존 Plan의
+미적용 편집을 보존하며 새 후보 계산과 측정값 가져오기를 구별한다. shared Core 변경은
+Codex가 통합하며 같은 소스의 작성자는 Pro 한 명이다. 범위는
+[SPEC-POST-NUMERICAL-001](.moai/specs/SPEC-POST-NUMERICAL-001/spec.md)에 연결했다.
+MoAI MCP의 실제 SPEC 조회와 CLI의 상태 갱신·해당 SPEC lint를 사용했다. lint의 구조
+오류는 수정했으며 표에 연결한 수용 조건을 인식하지 못한 coverage 등 경고는 남아 있다.
+문서 lint 결과를 실제 제품 기능이나 테스트 통과로 바꾸지 않는다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와
 Expert→Numerical→결과→Study이며
 Data/Material/PDE는 독립 병행한다. 별도의 개발 시작 문구를 기다리지 않는다.
@@ -182,7 +208,8 @@ Qt 조작에 피드백을 줄 수 있다. 이를 반복 인터뷰나 과거 solv
 연결된 미완료 항목으로 유지한다.
 현재 시제품은 정밀 입력·저장·재열기·선택·도킹 등 Qt 조작을 확인한 planning source다.
 native OS/DPI·실제 FreeCAD/ParaView 연결·solver/provider/device는 미확인으로 남는다.
-원요구52개 ID는 TRACED_NOT_IMPLEMENTED_BY_THIS_REQUEST이며 설계 작성으로 완료 처리하지 않았다.
+기획 요청의 원요구52개 추적표는 TRACED_NOT_IMPLEMENTED_BY_THIS_REQUEST를 보존한다.
+새 기능 구현 현황은 해당 SPEC과 실행 기록에서 판단하며 원요구 전체 완료로 확대하지 않는다.
 과거 수치 실패·UNKNOWN과 원 허용치는 그대로 유지한다.
 
 ### 앞선 통합 기록

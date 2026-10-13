@@ -2,7 +2,7 @@
 id: SPEC-NUMERICAL-001
 title: "Numerical worksheet and return to the original research discussion"
 version: "0.1.0"
-status: in_progress
+status: implemented
 created: 2026-10-13
 updated: 2026-10-13
 author: "Actual ChatGPT Pro design/code; Codex integration"
