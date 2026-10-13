@@ -92,6 +92,10 @@ Sol/Astra가 실제 FreeCAD mesh/sets 추출과 MIT INP2RAD 소스를 대조하�
 연결하는 경로를 SPEC에 반영했다. Mg/mm/s 변환, 원 includes 보존과 native Post 연결이
 필요하며 기존 강체 제한을 느슨하게 하지 않는다. 조사 결과는 `impact-workflows/reuse-map.md`,
 `review.md`에 있다. 변환기 설치·실행이나 D8 구현 완료 기록은 아니다.
+실제 WSL Starter/Engine/animation·이력 변환기 파일과 실행 권한은 `runtime.md`에서
+별도로 확인했다. 현재 OpenCourant와 이전 OpenRadioss 설치를 구별해 미전송 요청에
+반영했다. 버전 명령이나 일반 모델 실행은 하지 않았다. 한국어 PDE 사용 안내는
+`bbd9874`에 온도 ODE와 단위 약형식의 입력→계산→비교→저장 순서로 보완했다.
 
 - Data→Material 피팅: Pro의 두 교정본 `637f089`, `1f477ea`를 로컬 `07b5474`,
   `7aa740e`로 통합했다. 응력 선택·시험 구별·이전 미리보기/요약 제거·측정 변형률 축·
