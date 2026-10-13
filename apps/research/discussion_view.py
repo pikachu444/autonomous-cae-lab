@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QLabel,
 
 def author_label(turn, roles=()):
     if turn.get('author') == 'user':
-        return 'You'
+        return '사용자'
     role = next((row for row in roles if row.get('id') == turn.get('author')), {})
     return str(role.get('label', role.get('name', role.get('title', turn.get('author', 'Participant')))))
 
@@ -45,7 +45,7 @@ class _TurnCard(QFrame):
             name.setToolTip(topic)
             name.setWordWrap(True)
             heading.addWidget(name)
-        self.reply = QPushButton('Reply')
+        self.reply = QPushButton('답글')
         self.reply.setFlat(True)
         self.reply.clicked.connect(lambda: view.reply_requested.emit(self.identifier))
         heading.addWidget(self.reply)
@@ -71,7 +71,7 @@ class _TurnCard(QFrame):
             for index in range(len(self.sources)):
                 button = QPushButton('[' + str(index + 1) + ']')
                 button.setFlat(True)
-                button.setToolTip('Read cited source ' + str(index + 1))
+                button.setToolTip('출처 읽기 ' + str(index + 1))
                 button.clicked.connect(lambda checked=False, index=index:
                                        view.citation_requested.emit(self.identifier, index))
                 citations.addWidget(button)
@@ -126,6 +126,7 @@ class ConversationList(QListWidget):
         current = self.currentItem()
         selected = current.data(Qt.ItemDataRole.UserRole) if current else None
         scroll = self.verticalScrollBar()
+        previous_ids = set(self._cards)
         following = not self.count() or scroll.value() >= scroll.maximum() - 24
         position = scroll.value()
         self._snapshot = deepcopy(snapshot)
@@ -143,9 +144,21 @@ class ConversationList(QListWidget):
             if turn['id'] == selected:
                 self.setCurrentItem(item)
         self._fit()
-        if not self.currentItem() and self.count():
+        added = bool(turns and turns[-1]['id'] not in previous_ids)
+        if self.count() and (not self.currentItem() or (following and added)):
             self.setCurrentRow(self.count() - 1)
-        QTimer.singleShot(0, lambda: scroll.setValue(scroll.maximum() if following else position))
+        # A long answer opens at its author, not at an anonymous last paragraph.
+        # Unchanged polls return above; ordinary reading retains its position.
+        target = self.currentItem().data(Qt.ItemDataRole.UserRole) if self.currentItem() else None
+        snapshot = self._snapshot
+        def restore_scroll():
+            if self._snapshot is not snapshot:
+                return
+            if following and added and target in self._cards:
+                self.scrollToItem(self._cards[target].item, QAbstractItemView.ScrollHint.PositionAtTop)
+            else:
+                scroll.setValue(position)
+        QTimer.singleShot(0, restore_scroll)
 
     def _selection_changed(self, current, previous):
         for item, selected in ((previous, False), (current, True)):

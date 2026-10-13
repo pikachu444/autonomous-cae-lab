@@ -68,7 +68,7 @@ class _Call(QRunnable):
 
 class ExpertWindow(QMainWindow):
     """A service view and local question buffer, never a provider/controller."""
-    def __init__(self, client, *, document_id=None, title='Expert discussion', poll_interval=1500,
+    def __init__(self, client, *, document_id=None, title='새 대화', poll_interval=1500,
                  auto_open=True, open_reference=None, open_plan=None):
         super().__init__()
         self.client, self.open_reference, self.open_plan = client, open_reference, open_plan
@@ -98,34 +98,34 @@ class ExpertWindow(QMainWindow):
             self.open_document(document_id=document_id, title=title)
 
     def _build_ui(self):
-        self.setWindowTitle('Expert discussion')
+        self.setWindowTitle('새 대화')
         self.resize(1440, 900)
         self.setMinimumSize(850, 650)
-        files = self.menuBar().addMenu('&File')
-        self.new_action = QAction('New discussion…', self, shortcut=QKeySequence.New)
-        self.open_action = QAction('Open discussion…', self, shortcut=QKeySequence.Open)
-        self.save_action = QAction('Save discussion', self, shortcut=QKeySequence.Save)
+        files = self.menuBar().addMenu('파일(&F)')
+        self.new_action = QAction('새 대화…', self, shortcut=QKeySequence.New)
+        self.open_action = QAction('대화 열기…', self, shortcut=QKeySequence.Open)
+        self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
         files.addActions([self.new_action, self.open_action, self.save_action])
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
-        edit = self.menuBar().addMenu('&Edit')
-        self.undo_action = QAction('Undo question/topic edit', self, shortcut=QKeySequence.Undo)
-        self.redo_action = QAction('Redo question/topic edit', self, shortcut=QKeySequence.Redo)
+        edit = self.menuBar().addMenu('편집(&E)')
+        self.undo_action = QAction('실행 취소', self, shortcut=QKeySequence.Undo)
+        self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
         edit.addActions([self.undo_action, self.redo_action])
         self.undo_action.triggered.connect(lambda: self.command('document.undo'))
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
-        bar = QToolBar('Discussion', self)
+        bar = QToolBar('대화', self)
         bar.setMovable(False)
         self.addToolBar(bar)
         bar.addActions([self.save_action, self.undo_action, self.redo_action])
-        self.pause_button = QPushButton('Pause')
-        self.resume_button = QPushButton('Continue')
+        self.pause_button = QPushButton('일시 정지')
+        self.resume_button = QPushButton('계속')
         self.pause_button.clicked.connect(self.pause_discussion)
         self.resume_button.clicked.connect(self.resume_discussion)
         bar.addWidget(self.pause_button)
         bar.addWidget(self.resume_button)
-        self.connection_button = QPushButton('Connection…')
+        self.connection_button = QPushButton('연결 설정…')
         self.connection_button.clicked.connect(self.open_connection)
         bar.addWidget(self.connection_button)
         self.identity = QLabel()
@@ -136,7 +136,7 @@ class ExpertWindow(QMainWindow):
         self.message.setWordWrap(True)
         self.statusBar().addWidget(self.message, 1)
         conflict = QHBoxLayout()
-        self.reload_button, self.copy_button = QPushButton('Reload service version'), QPushButton('Keep edits as new discussion')
+        self.reload_button, self.copy_button = QPushButton('저장된 내용 다시 열기'), QPushButton('다른 이름으로 보관')
         self.reload_button.clicked.connect(self.reload_remote)
         self.copy_button.clicked.connect(self.copy_edits)
         conflict.addWidget(self.reload_button)
@@ -148,20 +148,20 @@ class ExpertWindow(QMainWindow):
         left = QWidget()
         nav = QVBoxLayout(left)
         conversations = QHBoxLayout()
-        new = QPushButton('New')
-        opened = QPushButton('My conversations')
+        new = QPushButton('새 대화')
+        opened = QPushButton('대화 열기')
         new.clicked.connect(self.new_document)
         opened.clicked.connect(self.choose_document)
         conversations.addWidget(new); conversations.addWidget(opened)
         nav.addLayout(conversations)
-        nav.addWidget(QLabel('Topics'))
+        nav.addWidget(QLabel('논점'))
         self.topics = QTreeWidget()
         self.topics.setHeaderHidden(True)
         self.topics.setObjectName('discussionTopics')
         self.topics.itemClicked.connect(self._topic_clicked)
         nav.addWidget(self.topics, 3)
         topic_row = QHBoxLayout()
-        add_topic, rename_topic = QPushButton('Add topic…'), QPushButton('Rename…')
+        add_topic, rename_topic = QPushButton('논점 추가…'), QPushButton('이름 바꾸기…')
         add_topic.clicked.connect(self.add_topic)
         rename_topic.clicked.connect(self.rename_topic)
         topic_row.addWidget(add_topic)
@@ -169,7 +169,7 @@ class ExpertWindow(QMainWindow):
         nav.addLayout(topic_row)
         participant_tab = QWidget()
         participant_layout = QVBoxLayout(participant_tab)
-        participant_layout.addWidget(QLabel('Participants'))
+        participant_layout.addWidget(QLabel('참여 역할'))
         self.registry_status = QLabel()
         self.registry_status.setWordWrap(True)
         self.registry_status.hide()
@@ -180,7 +180,7 @@ class ExpertWindow(QMainWindow):
         self.roles.currentRowChanged.connect(self._update_actions)
         self.roles.itemDoubleClicked.connect(lambda *_: self.show_role_details())
         participant_layout.addWidget(self.roles, 1)
-        registry = QPushButton('Refresh roles')
+        registry = QPushButton('역할 목록 새로고침')
         registry.clicked.connect(self.refresh_registry)
         role_actions = QHBoxLayout()
         role_actions.addWidget(registry)
@@ -191,11 +191,20 @@ class ExpertWindow(QMainWindow):
         splitter.addWidget(left)
         center = QWidget()
         conversation = QVBoxLayout(center)
-        self.discussion_title = QLabel('Conversation')
+        self.discussion_title = QLabel('대화')
         self.discussion_title.setWordWrap(True)
         heading_font = self.discussion_title.font(); heading_font.setPointSize(heading_font.pointSize() + 2)
         heading_font.setBold(True); self.discussion_title.setFont(heading_font)
         conversation.addWidget(self.discussion_title)
+        selected_turn = QHBoxLayout()
+        self.turn_context = QLabel('')
+        self.turn_context.setWordWrap(True)
+        self.selected_reply = QPushButton('답글')
+        self.selected_reply.clicked.connect(lambda: self.reply_to_turn(
+            self.turns.currentItem().data(Qt.ItemDataRole.UserRole)) if self.turns.currentItem() else None)
+        selected_turn.addWidget(self.turn_context, 1)
+        selected_turn.addWidget(self.selected_reply)
+        conversation.addLayout(selected_turn)
         self.turns = ConversationList()
         self.turns.citation_requested.connect(self.open_turn_citation)
         self.turns.reply_requested.connect(self.reply_to_turn)
@@ -204,48 +213,52 @@ class ExpertWindow(QMainWindow):
         conversation.addWidget(self.turns, 1)
         self.editor = QWidget()
         composer = QVBoxLayout(self.editor)
+        composer.setContentsMargins(0, 4, 0, 0)
+        composer.setSpacing(4)
         selector = QHBoxLayout()
         self.reply = QComboBox()
         self.reply.setObjectName('discussionReplyTarget')
         self.reply.currentIndexChanged.connect(self._edited)
         self.classification = QComboBox()
-        for label in ('question', 'observation', 'assumption', 'challenge', 'unknown'):
-            self.classification.addItem(label, label)
+        for label, value in (('질문', 'question'), ('관찰', 'observation'), ('가정', 'assumption'), ('반론', 'challenge'), ('미확인', 'unknown')):
+            self.classification.addItem(label, value)
         self.classification.currentIndexChanged.connect(self._edited)
-        selector.addWidget(QLabel('Reply to'))
+        selector.addWidget(QLabel('답글 대상'))
         selector.addWidget(self.reply, 1)
         selector.addWidget(self.classification)
         composer.addLayout(selector)
         self.question = QPlainTextEdit()
         self.question.setObjectName('discussionQuestion')
-        self.question.setPlaceholderText('Join the conversation…')
-        self.question.setMaximumHeight(110)
-        self.question.setMinimumHeight(72)
+        self.question.setPlaceholderText('질문이나 의견을 입력하세요.')
+        self.question.setMaximumHeight(80)
+        self.question.setMinimumHeight(56)
         self.question.textChanged.connect(self._edited)
         composer.addWidget(self.question)
-        self.evidence_label = QLabel('No attached result evidence')
+        self.evidence_label = QLabel('첨부된 계산 결과 없음')
         self.evidence_label.setWordWrap(True)
-        composer.addWidget(self.evidence_label)
+        self.evidence_label.hide()  # Counts belong in the attachment row, not a separate banner.
         self.composer_evidence = QListWidget()
         self.composer_evidence.setObjectName('discussionAttachments')
-        self.composer_evidence.setMaximumHeight(75)
-        composer.addWidget(self.composer_evidence)
-        self.remove_evidence_button = remove_evidence = QPushButton('Remove attachment')
+        self.composer_evidence.setFixedHeight(38)
+        attachments = QHBoxLayout()
+        attachments.addWidget(self.composer_evidence, 1)
+        self.remove_evidence_button = remove_evidence = QPushButton('첨부 제거')
         remove_evidence.clicked.connect(self.remove_evidence)
-        composer.addWidget(remove_evidence)
+        attachments.addWidget(remove_evidence)
+        composer.addLayout(attachments)
         actions = QHBoxLayout()
-        self.attach_button = QPushButton('Attach result…')
+        self.attach_button = QPushButton('결과 첨부…')
         self.attach_button.clicked.connect(self.attach_result)
-        self.apply_button = QPushButton('Apply edits')
+        self.apply_button = QPushButton('편집 적용')
         self.apply_button.clicked.connect(self.apply_inputs)
-        self.intervene_button = QPushButton('Send')
+        self.intervene_button = QPushButton('발언 남기기')
         self.intervene_button.clicked.connect(self.intervene)
-        self.ask_button = QPushButton('Start discussion')
+        self.ask_button = QPushButton('토론 시작')
         self.ask_button.clicked.connect(self.ask)
-        self.attach_button.setToolTip('Attach an exact retained document job and selected response channels.')
-        self.apply_button.setToolTip('Apply the edited question, topic, participants and request settings to the shared owner.')
-        self.intervene_button.setToolTip('Add this user-authored question, observation or counterargument without requesting a provider reply.')
-        self.ask_button.setToolTip('Request one bounded round using the selected actual registered roles.')
+        self.attach_button.setToolTip('저장된 계산 결과에서 첨부할 값을 선택합니다.')
+        self.apply_button.setToolTip('현재 질문과 대화 설정을 적용합니다.')
+        self.intervene_button.setToolTip('내 발언을 대화에 남깁니다. AI 응답은 요청하지 않습니다.')
+        self.ask_button.setToolTip('선택한 참여 역할에 현재 질문을 보냅니다.')
         for button in (self.attach_button, self.apply_button, self.intervene_button, self.ask_button):
             actions.addWidget(button)
         composer.addLayout(actions)
@@ -257,8 +270,8 @@ class ExpertWindow(QMainWindow):
         self.source_tab = QWidget()
         source_layout = QVBoxLayout(self.source_tab)
         buttons = QHBoxLayout()
-        self.source_file = QPushButton('Add file…')
-        self.source_library = QPushButton('Library…')
+        self.source_file = QPushButton('파일 추가…')
+        self.source_library = QPushButton('저장 자료…')
         self.source_file.clicked.connect(lambda: self.choose_sources(add_file=True))
         self.source_library.clicked.connect(self.choose_sources)
         buttons.addWidget(self.source_file)
@@ -270,7 +283,7 @@ class ExpertWindow(QMainWindow):
         self.selected_sources.currentRowChanged.connect(self._update_actions)
         source_layout.addWidget(self.selected_sources)
         actions = QHBoxLayout()
-        self.source_open, self.source_remove = QPushButton('Read source'), QPushButton('Remove')
+        self.source_open, self.source_remove = QPushButton('원문 읽기'), QPushButton('제거')
         self.source_open.clicked.connect(self.read_selected_source)
         self.source_remove.clicked.connect(self.remove_source)
         actions.addWidget(self.source_open)
@@ -278,7 +291,7 @@ class ExpertWindow(QMainWindow):
         source_layout.addLayout(actions)
         self.source_preview = SourcePreview()
         source_layout.addWidget(self.source_preview, 1)
-        self.side.addTab(self.source_tab, 'Sources')
+        self.side.addTab(self.source_tab, '참고 자료')
         evidence_tab = QWidget()
         evidence_layout = QVBoxLayout(evidence_tab)
         self.sources = QListWidget()
@@ -288,40 +301,40 @@ class ExpertWindow(QMainWindow):
         self.result_preview = ReferenceContent()
         self.result_preview.hide()
         evidence_layout.addWidget(self.result_preview, 1)
-        self.reference_button = QPushButton('Open exact source / result')
+        self.reference_button = QPushButton('원문·결과 열기')
         self.reference_button.clicked.connect(self.open_selected_reference)
         evidence_layout.addWidget(self.reference_button)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         self.details.hide()
-        technical = QPushButton('Technical details…')
+        technical = QPushButton('진단 상세…')
         technical.clicked.connect(self.show_technical_details)
         evidence_layout.addWidget(technical)
         evidence_layout.addStretch()
-        self.side.addTab(evidence_tab, 'Citations')
+        self.side.addTab(evidence_tab, '인용 자료')
         plan_tab = QWidget()
         plan_layout = QVBoxLayout(plan_tab)
         self.plans = QListWidget()
         self.plans.currentRowChanged.connect(self._update_actions)
         plan_layout.addWidget(self.plans)
-        self.plan_button = QPushButton('Open editable Numerical Plan')
+        self.plan_button = QPushButton('계산 계획 열기')
         self.plan_button.clicked.connect(self.open_selected_plan)
         plan_layout.addWidget(self.plan_button)
         proposal_explanation = QLabel('')
         proposal_explanation.setWordWrap(True)
         plan_layout.addWidget(proposal_explanation)
-        self.side.addTab(plan_tab, 'Plans')
+        self.side.addTab(plan_tab, '계산 계획')
         settings = QWidget()
         form = QFormLayout(settings)
-        self.allow_question = QCheckBox('Transmit question')
+        self.allow_question = QCheckBox('질문 전송 허용')
         self.allow_question.setToolTip('Permit question transmission for this request within the existing workspace/provider authorization.')
-        self.allow_public = QCheckBox('Public literature searches')
+        self.allow_public = QCheckBox('공개 논문 검색 허용')
         self.allow_public.setToolTip('Permit public literature searches within the existing workspace search authorization.')
-        self.allow_sources = QCheckBox('Transmit selected sources')
+        self.allow_sources = QCheckBox('선택 자료 전송 허용')
         self.allow_sources.setToolTip('An explicit grant for the currently selected revisions, within the existing provider policy.')
         self.allow_sources.toggled.connect(self._source_permission_toggled)
         form.addRow(self.allow_sources)
-        self.allow_results = QCheckBox('Transmit attached results')
+        self.allow_results = QCheckBox('첨부 결과 전송 허용')
         self.allow_results.setToolTip('New attachments do not grant result access. Clear and check this option to explicitly include the currently attached results within existing provider authorization.')
         self.allow_results.toggled.connect(self._result_permission_toggled)
         for field in (self.allow_question, self.allow_public, self.allow_results):
@@ -331,24 +344,24 @@ class ExpertWindow(QMainWindow):
         for field, maximum in ((self.model_calls, 100), (self.tool_calls, 100), (self.seconds, 3600)):
             field.setRange(1 if field != self.tool_calls else 0, maximum)
             field.valueChanged.connect(self._edited)
-        form.addRow('Model calls per role', self.model_calls)
-        form.addRow('Tool calls per role', self.tool_calls)
-        form.addRow('Seconds per role', self.seconds)
+        form.addRow('역할별 응답 요청 수', self.model_calls)
+        form.addRow('역할별 도구 사용 횟수', self.tool_calls)
+        form.addRow('역할별 제한 시간(초)', self.seconds)
         runtime_explanation = QLabel('Connection…에서 기존 OpenScience 설정을 선택합니다. 각 요청에는 별도 전송 허용이 적용됩니다.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
-        self.side.addTab(participant_tab, 'Participants')
-        self.side.addTab(settings, 'Request scope')
+        self.side.addTab(participant_tab, '참여 역할')
+        self.side.addTab(settings, '전송 설정')
         splitter.addWidget(self.side)
         left.setMinimumWidth(230); left.setMaximumWidth(300)
         splitter.setSizes([270, 830, 340])
         self.side.hide()
-        for label, tab in (('Sources', self.source_tab), ('Plans', plan_tab),
-                           ('Participants', participant_tab), ('Request scope', settings)):
+        for label, tab in (('참고 자료', self.source_tab), ('계산 계획', plan_tab),
+                           ('참여 역할', participant_tab), ('전송 설정', settings)):
             action = QAction(label, self)
             action.triggered.connect(lambda checked=False, tab=tab: self.show_side(tab))
             bar.addAction(action)
-        hide_side = QPushButton('Close')
+        hide_side = QPushButton('닫기')
         hide_side.clicked.connect(self.side.hide)
         self.side.setCornerWidget(hide_side)
         splitter.setStretchFactor(1, 1)
@@ -407,7 +420,7 @@ class ExpertWindow(QMainWindow):
     def receive_pending_result(self, message):
         return self._result_return.receive(message)
 
-    def open_document(self, *, document_id=None, title='Expert discussion', draft=None):
+    def open_document(self, *, document_id=None, title='새 대화', draft=None):
         return self._call(lambda: self.client.document_open(kind='expert', title=title, draft=draft,
                          document_id=document_id), self._opened)
 
@@ -605,8 +618,8 @@ class ExpertWindow(QMainWindow):
     def _populate_turns(self):
         turns = self.document.get('turns', self.document.get('discussion', {}).get('turns', []))
         self.turns.set_turns(turns, self._registry)
-        self.discussion_title.setText(self.document.get('title') or 'Conversation')
-        self.ask_button.setText('Send and discuss' if turns else 'Start discussion')
+        self.discussion_title.setText(self.document.get('title') or '대화')
+        self.ask_button.setText('질문 보내기' if turns else '토론 시작')
 
     def show_side(self, widget):
         self.side.setCurrentWidget(widget)
@@ -614,7 +627,7 @@ class ExpertWindow(QMainWindow):
 
     def show_technical_details(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle('Turn details')
+        dialog.setWindowTitle('발언 진단 상세')
         dialog.resize(760, 560)
         layout = QVBoxLayout(dialog)
         text = QPlainTextEdit(self.details.toPlainText())
@@ -653,9 +666,10 @@ class ExpertWindow(QMainWindow):
         target = self.reply.currentData() if self.local_dirty else self._buffer.get('composer', {}).get('reply_to')
         self._populating = True
         self.reply.clear()
-        self.reply.addItem('New question / no reply target', None)
+        self.reply.addItem('새 질문', None)
         for turn in self.document.get('turns', []):
-            self.reply.addItem(f"{turn['author']} · {str(turn.get('text') or turn['status'])[:65]}", turn['id'])
+            from .discussion_view import author_label
+            self.reply.addItem(author_label(turn, self._registry) + ': ' + str(turn.get('text') or turn['status'])[:65], turn['id'])
         index = self.reply.findData(target)
         self.reply.setCurrentIndex(max(0, index))
         self._populating = False
@@ -832,9 +846,14 @@ class ExpertWindow(QMainWindow):
         self.result_preview.clear()
         self.result_preview.hide()
         self._references, self._plans = [], []
+        self.turn_context.clear()
+        self.selected_reply.setEnabled(bool(current and self.document))
         if not current or not self.document:
             return
         turn = next(row for row in self.document.get('turns', []) if row['id'] == current.data(Qt.ItemDataRole.UserRole))
+        from .discussion_view import author_label
+        topic = (turn.get('topic') or {}).get('title', '')
+        self.turn_context.setText(author_label(turn, self._registry) + (' — ' + topic if topic else ''))
         iterator = self.topics.findItems('', Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
         for node in iterator:
             if node.data(0, Qt.ItemDataRole.UserRole) == turn.get('topic_id'):
@@ -846,21 +865,21 @@ class ExpertWindow(QMainWindow):
                                      'input_revision': turn.get('input_revision'),
                                      'input_sha256': turn.get('input_sha256'), 'selection': []})
         for reference in self._references:
-            label = ('Result' if 'job_id' in reference or 'run_id' in reference else 'Literature source' if 'paper_id' in reference
-                     else self._source_titles.get(reference.get('document_id'), 'Research source'))
+            label = ('계산 결과' if 'job_id' in reference or 'run_id' in reference else '논문' if 'paper_id' in reference
+                     else self._source_titles.get(reference.get('document_id'), '참고 자료'))
             item = QListWidgetItem(label)
-            item.setToolTip(json.dumps(reference, ensure_ascii=False))
+            item.setToolTip('진단 상세에서 원본 식별 정보를 확인할 수 있습니다.')
             self.sources.addItem(item)
         self._plans = turn.get('response', {}).get('proposed_actions', [])
         for index, proposal in enumerate(self._plans):
             plan = proposal.get('plan', {}) if isinstance(proposal, dict) else {}
-            self.plans.addItem(f"{index + 1}. {proposal.get('status', 'PROPOSED') if isinstance(proposal, dict) else 'PROPOSED'} · {plan.get('purpose', str(proposal))}")
+            self.plans.addItem(str(index + 1) + '. ' + str(plan.get('purpose') or '계산 제안'))
         self._update_actions()
 
     def add_topic(self):
         if not self._buffer:
             return
-        title, accepted = QInputDialog.getText(self, 'Add topic', 'Topic title')
+        title, accepted = QInputDialog.getText(self, '논점 추가', '논점 제목')
         if accepted and title.strip():
             parent = self.topics.currentItem()
             identifier = 'Q' + uuid.uuid4().hex
@@ -880,7 +899,7 @@ class ExpertWindow(QMainWindow):
         if topic is None:
             self.message.setText('This topic belongs to a retained authored turn. Add a new current topic to continue it.')
             return
-        title, accepted = QInputDialog.getText(self, 'Rename topic', 'Title', text=topic['title'])
+        title, accepted = QInputDialog.getText(self, '논점 이름 바꾸기', '제목', text=topic['title'])
         if accepted and title.strip():
             topic['title'] = title.strip()
             self._populate_topics()
@@ -889,13 +908,13 @@ class ExpertWindow(QMainWindow):
     def _update_evidence_label(self):
         refs = self._buffer.get('composer', {}).get('evidence', []) if self._buffer else []
         self.evidence_label.setText('Attachments' if refs else '')
-        self.evidence_label.setVisible(bool(refs))
+        self.evidence_label.hide()
         self.composer_evidence.setVisible(bool(refs))
         self.remove_evidence_button.setVisible(bool(refs))
         self.composer_evidence.clear()
         for index, ref in enumerate(refs):
             channels = ref.get('selection', ref.get('response_selection', []))
-            label = ('Result' if 'job_id' in ref or 'run_id' in ref else 'Source') + ' ' + str(index + 1)
+            label = ('계산 결과' if 'job_id' in ref or 'run_id' in ref else '참고 자료') + ' ' + str(index + 1)
             if isinstance(channels, list) and channels:
                 label += ' — ' + ', '.join(channels)
             item = QListWidgetItem(label)
@@ -910,7 +929,7 @@ class ExpertWindow(QMainWindow):
             self._edited()
 
 
-    def _clear_source_preview(self, message='Select a source to read.'):
+    def _clear_source_preview(self, message='읽을 자료를 선택하세요.'):
         self._source_preview_binding = None
         self.source_preview.show_error(message)
 
@@ -951,9 +970,9 @@ class ExpertWindow(QMainWindow):
         for index, reference in enumerate(refs):
             if not isinstance(reference, dict):
                 continue
-            title = self._source_titles.get(reference.get('document_id'), 'Source ' + str(index + 1))
+            title = self._source_titles.get(reference.get('document_id'), '자료 ' + str(index + 1))
             if reference.get('revision') is None:
-                title += ' — review version'
+                title += ' — 저장본 선택 필요'
             rows.append((title, deepcopy(reference)))
         existing = [(self.selected_sources.item(index).text(),
                      self.selected_sources.item(index).data(Qt.ItemDataRole.UserRole))
@@ -966,7 +985,7 @@ class ExpertWindow(QMainWindow):
             for title, reference in rows:
                 item = QListWidgetItem(title)
                 item.setData(Qt.ItemDataRole.UserRole, reference)
-                item.setToolTip(json.dumps(reference, ensure_ascii=False))
+                item.setToolTip('저장된 원문을 읽습니다.')
                 self.selected_sources.addItem(item)
                 if reference == selected:
                     self.selected_sources.setCurrentItem(item)
@@ -1028,7 +1047,7 @@ class ExpertWindow(QMainWindow):
         def checked(remote):
             if (not self.document or (self.document['id'], self.document['session_id']) != owner
                     or self.conflict or self._draft_problem):
-                self.message.setText('Source selection was not attached: the current discussion changed.')
+                self.message.setText('대화가 변경되어 자료를 첨부하지 않았습니다.')
                 return
             if (remote['session_id'] != owner[1] or canonical_hash(remote['draft']) != owner_hash):
                 self.conflict = True
@@ -1048,8 +1067,8 @@ class ExpertWindow(QMainWindow):
                 payload = next(iter(dialog.records.values()))
                 self._set_source_preview(payload, {key: payload[key] for key in ('document_id', 'revision')})
             else:
-                self._clear_source_preview('No source selected.')
-            self.message.setText('Sources attached to the local question. Apply or Save when ready.')
+                self._clear_source_preview('선택한 자료가 없습니다.')
+            self.message.setText('선택한 자료를 첨부했습니다. 저장하면 다시 열 수 있습니다.')
         return self._call(lambda: self.client.document_read(owner[0]), checked)
 
     def remove_source(self):
@@ -1074,7 +1093,7 @@ class ExpertWindow(QMainWindow):
             return False
         reference = deepcopy(item.data(Qt.ItemDataRole.UserRole))
         if type(reference.get('revision')) is not int:
-            self.message.setText('Open Library to preview and pin this earlier selection explicitly.')
+            self.message.setText('저장 자료에서 사용할 원문을 확인하고 선택하세요.')
             return False
         from .expert_sources import assist
         owner = (self.document['id'], self.document['session_id'])
@@ -1086,7 +1105,7 @@ class ExpertWindow(QMainWindow):
                     self._source_titles[reference['document_id']] = payload.get('title') or selected.text()
                     self._populate_sources()
                     self.side.setCurrentWidget(self.source_tab)
-        self._clear_source_preview('Reading selected source…')
+        self._clear_source_preview('자료를 읽는 중…')
         return self._call(lambda: assist(self.client, 'knowledge.source', reference), received)
 
     def _source_permission_toggled(self, checked):
@@ -1114,7 +1133,7 @@ class ExpertWindow(QMainWindow):
                 return
             latest = self.edited_draft()
             if selected_source_refs(latest['context']) != references or not self.allow_sources.isChecked():
-                self.message.setText('Source selection changed. Review transmission permission for the current sources.')
+                self.message.setText('자료 선택이 변경되었습니다. 현재 자료의 전송 허용을 확인하세요.')
                 return
             scope = latest['context'].setdefault('transmission_scope', {})
             scope['source_refs'] = deepcopy(references)
@@ -1128,17 +1147,18 @@ class ExpertWindow(QMainWindow):
         def listed(payload):
             candidates = [(doc, run) for doc in payload['documents'] if doc.get('kind') != 'expert' for run in doc.get('runs', [])]
             if not candidates:
-                self.message.setText('No retained domain result jobs are available.')
+                self.message.setText('첨부할 계산 결과가 없습니다.')
                 return
-            labels = [f"{doc['title']} · {run['job_id']} · input {run.get('input_revision')}" for doc, run in candidates]
-            selected, accepted = QInputDialog.getItem(self, 'Attach exact result', 'Document / submitted job', labels, editable=False)
+            labels = [str(index + 1) + '. ' + doc['title'] + ' — 계산 ' + str(
+                1 + doc.get('runs', []).index(run)) for index, (doc, run) in enumerate(candidates)]
+            selected, accepted = QInputDialog.getItem(self, '계산 결과 첨부', '계산 선택', labels, editable=False)
             if not accepted:
                 return
             doc, run = candidates[labels.index(selected)]
             def read(result):
                 channels = list(result.get('responses', {}))
                 dialog = QDialog(self)
-                dialog.setWindowTitle('Select actual response channels')
+                dialog.setWindowTitle('첨부할 결과 선택')
                 layout = QVBoxLayout(dialog)
                 rows = QListWidget()
                 for channel in channels:
@@ -1146,7 +1166,7 @@ class ExpertWindow(QMainWindow):
                     item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                     item.setCheckState(Qt.CheckState.Unchecked)
                     rows.addItem(item)
-                layout.addWidget(QLabel('Unchecked channels remain outside this attachment; no selection attaches the whole returned result metadata.'))
+                layout.addWidget(QLabel('전달할 값을 선택하세요. 선택하지 않으면 계산 상태만 첨부합니다.'))
                 layout.addWidget(rows)
                 buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
                 buttons.accepted.connect(dialog.accept)
@@ -1167,7 +1187,7 @@ class ExpertWindow(QMainWindow):
         # A list click alone also invalidates an in-flight older citation read.
         self._citation_read_key = None
         if (self._source_preview_binding or {}).get('historical'):
-            self._clear_source_preview('Select a citation to read.')
+            self._clear_source_preview('읽을 인용 자료를 선택하세요.')
         self.result_preview.clear()
         self.result_preview.hide()
         self._update_actions()
@@ -1225,7 +1245,8 @@ class ExpertWindow(QMainWindow):
             state = ('Pausing after current response' if paused and active and active.get('active_job_id')
                      else 'Paused' if paused else 'Responding…' if active and active.get('active_job_id')
                      else 'Ready to continue' if active else 'Ready')
-            self.identity.setText(state)
+            self.identity.setText({'Pausing after current response': '현재 응답 뒤 일시 정지', 'Paused': '일시 정지',
+                'Responding…': '응답 작성 중…', 'Ready to continue': '계속할 수 있음', 'Ready': '대기'}.get(state, state))
             self.setWindowTitle(f"Expert — {self.document['title']}" + (' *' if self.local_dirty or self.document.get('dirty') else ''))
         # Explicit citation selection gets the next idle worker before polling.
         schedule = getattr(self, '_schedule_citation', None)
@@ -1249,10 +1270,10 @@ class ExpertWindow(QMainWindow):
             continuation()
             return
         question = QMessageBox(self)
-        question.setWindowTitle('Unsaved discussion')
-        question.setText('Save this discussion before leaving?')
-        save = question.addButton('Save', QMessageBox.ButtonRole.AcceptRole)
-        keep = question.addButton('Keep service draft', QMessageBox.ButtonRole.DestructiveRole)
+        question.setWindowTitle('저장하지 않은 변경')
+        question.setText('변경한 대화를 저장할까요?')
+        save = question.addButton('저장', QMessageBox.ButtonRole.AcceptRole)
+        keep = question.addButton('저장하지 않고 나가기', QMessageBox.ButtonRole.DestructiveRole)
         question.addButton(QMessageBox.StandardButton.Cancel)
         question.exec()
         if question.clickedButton() == save:
@@ -1267,7 +1288,7 @@ class ExpertWindow(QMainWindow):
 
     def new_document(self):
         def create():
-            title, accepted = QInputDialog.getText(self, 'New discussion', 'Title', text='Expert discussion')
+            title, accepted = QInputDialog.getText(self, '새 대화', '제목', text='새 대화')
             if accepted and title.strip():
                 self.open_document(title=title.strip())
         self._leave(create)
@@ -1280,7 +1301,7 @@ class ExpertWindow(QMainWindow):
                 if not labels:
                     self.message.setText('No saved or working discussions are available.')
                     return
-                label, accepted = QInputDialog.getItem(self, 'Open discussion', 'Discussion', labels, editable=False)
+                label, accepted = QInputDialog.getItem(self, '대화 열기', '대화', labels, editable=False)
                 if accepted:
                     self.open_document(document_id=documents[labels.index(label)]['id'])
             self._call(self.client.documents, listed)
@@ -1410,7 +1431,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--service', default=os.environ.get('CAELAB_SERVICE_URL'))
     parser.add_argument('--document-id')
-    parser.add_argument('--title', default='Expert discussion')
+    parser.add_argument('--title', default='새 대화')
     args = parser.parse_args(argv)
     if not args.service:
         parser.error('--service or CAELAB_SERVICE_URL must identify an existing local service')

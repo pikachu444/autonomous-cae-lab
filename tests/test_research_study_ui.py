@@ -90,7 +90,7 @@ def test_actual_qt_research_edit_support_conflict_save_undo_reopen(app, tmp_path
     try:
         window._select(('decisions', 'Ddecision'))
         window.detail_text.setPlainText('Authored competing interpretation')
-        window.detail_status.setCurrentText('PROVISIONAL')
+        window.detail_status.setCurrentIndex(window.detail_status.findData('PROVISIONAL'))
         assert window.edited_draft()['decisions'][0]['statement'] == 'Authored competing interpretation'
         assert window.edited_draft()['decisions'][0]['supporting'] == ['Eresult']
         assert window.edited_draft()['decisions'][0]['conflicting'] == ['Eturn']
@@ -127,7 +127,7 @@ def test_apply_late_question_edit_preserves_buffer_generation_and_blocks_save_co
         assert window.document['generation'] == 1
         assert window.document['draft']['question'] == 'Earlier submitted question'
         assert window.edited_draft()['question'] == 'Newer question while response pending'
-        assert window.local_dirty and 'newer local edits' in window.message.text()
+        assert window.local_dirty and window.question.toPlainText() == 'Newer question while response pending'
         assert [row[0] for row in client.calls] == ['study.update']
     finally:
         close(app, window, client)
@@ -160,14 +160,14 @@ def test_missing_evidence_is_explicit_and_reference_read_never_adopts_decision(a
     try:
         window.check_references()
         wait(app, lambda: not window._busy)
-        assert all('STALE' in window.evidence.item(row, 3).text() for row in range(3))
+        assert all(window.evidence.item(row, 3).text() == '원본 변경됨' for row in range(3))
         assert window.edited_draft()['decisions'][0]['status'] == 'UNKNOWN'
         window._select(('evidence', 'Eresult'))
         window.remove_entry()
         window._select(('decisions', 'Ddecision'))
         choices = window.link_lists['supporting']
         missing = next(choices.item(index) for index in range(choices.count()) if choices.item(index).data(Qt.ItemDataRole.UserRole) == 'Eresult')
-        assert missing.checkState() == Qt.CheckState.Checked and 'MISSING' in missing.text()
+        assert missing.checkState() == Qt.CheckState.Checked and '연결된 항목이 없습니다.' in missing.text()
         window.save_document()
         wait(app, lambda: not window._busy and not window.local_dirty)
         assert window.document['diagnostics'] and window.document['draft']['decisions'][0]['supporting'] == ['Eresult']

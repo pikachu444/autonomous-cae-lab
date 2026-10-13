@@ -72,6 +72,7 @@ class SourceClient(StudyClient):
         draft = research_draft()
         draft['evidence'] = draft['evidence'][1:]
         draft['evidence'][0]['reference']['response'] = 'stress'
+        draft['next_observations'][0]['evidence_ids'] = ['Eresult']
         self.doc = self.owner.open(draft=draft)
         self.reads = []
         self.delay_result = False
@@ -106,7 +107,7 @@ def test_study_reads_values_units_and_turn_before_raw_reference_without_adoption
         y = window.reading.axes.lines[0].get_ydata()
         assert y[0] == 0 and math.isnan(y[1]) and y[2] == 27
         assert client.reads[0]['selection'] == {'responses': ['stress'], 'rows': [0, 256]}
-        assert window.evidence.item(0, 3).text() == 'Available'
+        assert window.evidence.item(0, 3).text() == '읽기 완료'
         assert window.edited_draft() == original and not window.local_dirty
         window._select(('evidence', 'Eturn'))
         wait(app, lambda: not window._busy and 'does not establish' in window.reading.body.toPlainText())
@@ -162,7 +163,7 @@ def test_unloaded_channel_never_displays_other_channels_values(app):
     view.channel.setCurrentIndex(view.channel.findData('force'))
     assert view.values.rowCount() == 0
     assert view.result_views.isHidden()
-    assert 'not loaded' in view.body.toPlainText()
+    assert '아직 읽지 않았습니다' in view.body.toPlainText()
     assert view.title.text() == 'force'
     view.close()
 
@@ -206,3 +207,129 @@ def test_same_turn_new_citation_waits_for_busy_reader_and_discards_old_reply(app
         wait(app, lambda: not window._busy)
         window._allow_close = True
         window.close()
+
+
+
+def test_long_turn_reopens_at_author_and_unchanged_poll_keeps_reading_position(app):
+    from apps.research.discussion_view import ConversationList
+    view = ConversationList()
+    view.resize(730, 380)
+    turns = [{'id': 'B' + str(i), 'author': 'Reviewer', 'status': 'ANSWERED',
+              'text': ('Long reading fixture paragraph.\n' * 70 if i == 3 else 'Earlier discussion.'),
+              'topic': {'title': 'Measurement'}} for i in range(4)]
+    view.show()
+    view.set_turns(turns)
+    app.processEvents()
+    last = view.item(3)
+    rect = view.visualItemRect(last)
+    assert -12 <= rect.top() < view.viewport().height() - 40
+    assert view.itemWidget(last).author.text() == 'Reviewer'
+    view.verticalScrollBar().setValue(view.verticalScrollBar().value() + 150)
+    before = view.verticalScrollBar().value()
+    card = view.itemWidget(last)
+    view.set_turns(deepcopy(turns))
+    app.processEvents()
+    assert view.verticalScrollBar().value() == before and view.itemWidget(last) is card
+    view.close()
+
+
+def test_study_read_note_judgment_explicit_relation_and_saved_followup(app, tmp_path):
+    from caelab.study_document import StudyDocuments
+    from test_study_documents import NeverRun
+    client = SourceClient(tmp_path)
+    window = StudyWindow(client, auto_open=False, poll_interval=0)
+    window._opened(client.doc)
+    window.show()
+    sent = []
+    window.discussion_open_requested.connect(lambda value: sent.append(deepcopy(value)))
+    try:
+        wait(app, lambda: not window._busy and window.reading.values.rowCount() == 3)
+        assert window.raw.isHidden()
+        window.note_button.click()
+        assert window.tabs.currentWidget() is window.editor
+        window.detail_text.setPlainText('Check the excluded middle measurement.')
+        assert window.edited_draft()['evidence'][0]['note'] == 'Check the excluded middle measurement.'
+        window.add_entry('decisions')
+        judgment_id = window._selected[1]
+        assert window.tabs.currentWidget() is window.editor
+        row = window._row()
+        assert row['supporting'] == row['conflicting'] == []
+        assert row['status'] == 'UNKNOWN'
+        assert window.context_source.text() == '자료 보기: Original response'
+        wait(app, lambda: not window._busy and window.reading.values.rowCount() == 3)
+        window.detail_text.setPlainText('A provisional interpretation, authored by the user.')
+        choices = window.link_lists['supporting']
+        result = next(choices.item(i) for i in range(choices.count())
+                      if choices.item(i).data(Qt.ItemDataRole.UserRole) == 'Eresult')
+        result.setCheckState(Qt.CheckState.Checked)
+        window.detail_status.setCurrentIndex(window.detail_status.findData('PROVISIONAL'))
+        assert window._row()['supporting'] == ['Eresult']
+        assert window._row()['status'] == 'PROVISIONAL'
+        window.save_document()
+        wait(app, lambda: not window._busy and not window.local_dirty and not window.document['dirty'])
+        saved = deepcopy(window.edited_draft())
+        identifier = window.document['id']
+        client.owner = StudyDocuments(tmp_path, 'Sfresh', NeverRun(), NeverRun())
+        reopened = client.owner.open(document_id=identifier)
+        assert reopened['draft'] == saved
+        window._opened(reopened)
+        wait(app, lambda: not window._busy and window.reading.values.rowCount() == 3)
+        window._select(('decisions', judgment_id))
+        wait(app, lambda: not window._busy and window._content_pending is None)
+        window.request_followup('discussion')
+        assert len(sent) == 1
+        assert sent[0]['study_id'] == identifier
+        assert sent[0]['selected_id'] == judgment_id
+        assert sent[0]['selected_entry']['supporting'] == ['Eresult']
+        assert sent[0]['evidence'] == [saved['evidence'][0]['reference']]
+        assert saved['engineering_release'] == 'NOT_RELEASED'
+        window._select(('evidence', 'Eresult'))
+        wait(app, lambda: not window._busy and window._content_pending is None)
+        window.add_entry('next_observations')
+        assert window._row()['evidence_ids'] == ['Eresult']
+        assert window._row()['status'] == 'UNKNOWN'
+        assert window.tabs.currentWidget() is window.editor
+    finally:
+        close(app, window, client)
+
+
+def test_study_explicit_retry_recovers_same_source_without_reapplying_notes(app, tmp_path):
+    client = SourceClient(tmp_path)
+    original = client.research_reference
+    attempts = []
+    def fail_once(reference):
+        attempts.append(deepcopy(reference))
+        if len(attempts) == 1:
+            raise OSError('Controlled temporary source read failure')
+        return original(reference)
+    client.research_reference = fail_once
+    window = StudyWindow(client, auto_open=False, poll_interval=0)
+    window._opened(client.doc)
+    try:
+        wait(app, lambda: not window._busy and 'Controlled temporary' in window.reading.body.toPlainText())
+        key = window._content_key
+        before = deepcopy(window.edited_draft())
+        window.check_references()
+        wait(app, lambda: not window._busy and window.reading.values.rowCount() == 3)
+        assert window._content_key == key and attempts == [attempts[0], attempts[0]]
+        assert window.evidence.item(0, 3).text() == '읽기 완료'
+        window._show_document(deepcopy(window.document))
+        app.processEvents()
+        assert len(attempts) == 2 and window.edited_draft() == before
+        assert not client.calls and not window.local_dirty
+    finally:
+        close(app, window, client)
+
+
+def test_internal_tensor_identifiers_live_only_in_requested_details(app):
+    view = ReferenceContent()
+    payload = response_payload()
+    payload['result']['responses']['stress'].update(
+        frame='material_cartesian', measure='infinitesimal_Cauchy')
+    view.set_payload(payload)
+    assert 'MPa' in view.title.text() and 'xx' in view.title.text()
+    assert 'material_cartesian' not in view.title.text()
+    assert 'infinitesimal_Cauchy' not in view.title.text()
+    assert view.payload['result']['responses']['stress']['measure'] == 'infinitesimal_Cauchy'
+    assert float(view.values.item(2, 1).text()) == 27.0 and view.values.item(2, 2).text() == 'MPa'
+    view.close()

@@ -283,8 +283,10 @@ def test_choose_document_uses_client_documents_envelope(app, ui_owner, monkeypat
     other = owner.open(title='Another saved discussion')
     monkeypatch.setattr(window, '_leave', lambda continuation: continuation())
     from PySide6.QtWidgets import QInputDialog
-    monkeypatch.setattr(QInputDialog, 'getItem', lambda parent, title, label, choices, **kw:
-                        (next(text for text in choices if other['id'] in text), True))
+    def choose_title(parent, title, label, choices, **kw):
+        assert all(other['id'] not in text for text in choices)
+        return next(text for text in choices if 'Another saved discussion' in text), True
+    monkeypatch.setattr(QInputDialog, 'getItem', choose_title)
     window.choose_document()
     wait(app, lambda: window.document['id'] == other['id'] and not window._busy)
     assert window.document['title'] == 'Another saved discussion'
