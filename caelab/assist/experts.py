@@ -512,6 +512,10 @@ class ExpertRuntime:
         definition = self.describe(expert_id)
         context = deepcopy(context or {})
         selected_source_refs(context)  # Legacy selections need explicit local repair, not latest fallback.
+        if context.get('discussion_mode') == 'costorm':
+            from .costorm import run
+            session, path = self._session(session_id, workspace_id, expert_id)
+            return run(self, definition, question, context, session, path, workspace_id, _Budget(self.runtime, budget))
         context, _ = self._knowledge_context(context, workspace_id, definition.get('collections', []))
         session, path = self._session(session_id, workspace_id, expert_id)
         base = {'expert_id': expert_id, 'session_id': session['session_id'], 'sources': [], 'assumptions': [],

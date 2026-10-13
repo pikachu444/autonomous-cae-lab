@@ -7,13 +7,14 @@ from copy import deepcopy
 import uuid
 
 from .material_document import MaterialDocuments
+from . import discussion_costorm as costorm
 from .jobs import TERMINAL
 from .assist.knowledge import selected_source_refs
 from .evaluation import read_result
 from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 
-SPECIAL_OPERATIONS = {'expert.ask', 'expert.intervene', 'expert.pause', 'expert.resume', 'expert.advance'}
+SPECIAL_OPERATIONS = {'expert.ask', 'expert.intervene', 'expert.pause', 'expert.resume', 'expert.advance'} | costorm.OPERATIONS
 
 
 def default_draft():
@@ -190,6 +191,11 @@ class DiscussionDocuments(MaterialDocuments):
         return turn
 
     def _arguments(self, document, round_record, role):
+        if round_record.get("protocol") == "costorm":
+            return costorm.arguments(self, document, round_record, role)
+        return self._legacy_arguments(document, round_record, role)
+
+    def _legacy_arguments(self, document, round_record, role):
         snapshot = round_record['draft']
         composer = snapshot['composer']
         context = deepcopy(snapshot['context'])
@@ -281,6 +287,8 @@ class DiscussionDocuments(MaterialDocuments):
         except (ValueError, FileNotFoundError) as failure:
             response = {'status': state, 'answer': None, 'reason': (error or {}).get('message', str(failure)),
                         'error': deepcopy(error), 'sources': [], 'proposed_actions': []}
+        if round_record.get("protocol") == "costorm":
+            return costorm.collect(self, document, round_record, run, response, state)
         # One immutable event per actual job; repeat advance never duplicates it.
         if not any(turn.get('job_id') == job_id for turn in self._state(document)['turns']):
             composer = round_record['draft']['composer']
@@ -348,6 +356,15 @@ class DiscussionDocuments(MaterialDocuments):
                 self._validate_question(document, needs_roles=operation == 'expert.ask')
             if operation == 'expert.ask' and (state['paused'] or active):
                 raise ValueError('Resume the discussion or finish the active round before requesting another')
+            # Validate protocol progression before leaving an APPLYING command receipt.
+            if operation == 'expert.ask' and costorm.enabled(document):
+                costorm.start_record(self, deepcopy(document), command_id, action='start', turn={'id': 'Uvalidation'})
+            elif (operation in costorm.OPERATIONS or
+                  operation == 'expert.advance' and not active and costorm.records(document)):
+                if active:
+                    raise ValueError('현재 응답이 끝난 뒤 계속하세요.')
+                costorm.start_record(self, deepcopy(document), command_id,
+                    action={'expert.report': 'report', 'expert.retry': 'retry'}.get(operation, 'step'))
             save_json(receipt, {'request_hash': signature, 'operation': operation, 'state': 'APPLYING'})
             document.setdefault('_expert_applied_commands', []).append(command_id)
             job = None
@@ -355,7 +372,14 @@ class DiscussionDocuments(MaterialDocuments):
             if operation in {'expert.ask', 'expert.intervene'}:
                 turn = self._user_turn(document, command_id)
                 changed = True
-                if operation == 'expert.ask':
+                if operation == 'expert.ask' and costorm.enabled(document):
+                    active = costorm.start_record(self, document, command_id, action='start', turn=turn)
+                    self._changed(document)
+                    self._persist_draft(document)
+                    self._documents[identifier] = document
+                    job = self._submit_next(document, active)
+                    changed = False
+                elif operation == 'expert.ask':
                     active = {'id': 'B' + uuid.uuid4().hex, 'command_id': command_id,
                         'user_turn_id': turn['id'], 'roles': deepcopy(document['draft']['participants']),
                         'sessions': {role: 'E' + uuid.uuid4().hex for role in document['draft']['participants']},
@@ -370,6 +394,17 @@ class DiscussionDocuments(MaterialDocuments):
                     self._documents[identifier] = document
                     job = self._submit_next(document, active)
                     changed = False  # generation already advanced before publishing dispatch
+            elif (operation in costorm.OPERATIONS or
+                  operation == 'expert.advance' and not active and costorm.records(document)):
+                if active:
+                    raise ValueError('현재 응답이 끝난 뒤 계속하세요.')
+                action = {'expert.report': 'report', 'expert.retry': 'retry'}.get(operation, 'step')
+                active = costorm.start_record(self, document, command_id, action=action)
+                self._changed(document)
+                self._persist_draft(document)
+                self._documents[identifier] = document
+                job = self._submit_next(document, active)
+                changed = False
             elif operation in {'expert.pause', 'expert.resume'}:
                 paused = operation == 'expert.pause'
                 changed = state['paused'] != paused

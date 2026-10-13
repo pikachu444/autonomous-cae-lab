@@ -33,4 +33,5 @@ exclude = ["plugins.fixture_design.upstream.tests*", "plugins.fixture_design.ups
 schemas = ["*.json"]
 "apps.lab" = ["static/**/*"]
 "caelab.assist" = ["*.ps1"]
+"caelab.assist._vendor.costorm" = ["LICENSE", "NOTICE.md"]
 "plugins.fixture_design.upstream" = ["models/*", "fixturelab/*.js", "scripts/*"]
