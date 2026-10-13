@@ -42,13 +42,16 @@ def prepare(fixture_path, value, output):
     if value != 0. and before[body] == after[body]:
         raise ValueError('Pose did not change the actual FEM occurrence geometry')
     saved = owner.project.save()
+    after_save = {name: _target(owner._object(name), []) for name in after}
+    if after_save != after:
+        raise ValueError('Saving the candidate changed its verified occurrence geometry')
     project = owner.export_root / Path(saved['retained_project']) if not Path(saved['retained_project']).is_absolute() else Path(saved['retained_project'])
     if sha(source) != fixture['sha256']:
         raise ValueError('Original project changed')
     receipt = {'project': str(project), 'sha256': sha(project), 'source': str(source),
                'source_sha256': fixture['sha256'], 'recipe': deepcopy(recipe), 'values': values,
                'reached': reached, 'after_normal_solve': verified, 'correspondence': mapped,
-               'targets': after, 'mesh_execution': 'NOT_PERFORMED', 'solver_execution': 'NOT_PERFORMED'}
+               'targets': after, 'save_did_not_change_live_targets': True, 'mesh_execution': 'NOT_PERFORMED', 'solver_execution': 'NOT_PERFORMED'}
     path = folder / 'pose.json'
     path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')
     return owner, path

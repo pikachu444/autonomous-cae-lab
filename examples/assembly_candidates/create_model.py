@@ -52,7 +52,7 @@ def create(kind, directory):
     joint.Label = '회전' if kind == 'Revolute' else '직선 이동'
     # Explicit connector origins; no FaceN proxy for a joint coordinate.
     joint.Detach1 = joint.Detach2 = True
-    joint.Reference1, joint.Reference2 = (ground, ['']), (moving, [''])
+    joint.Reference1, joint.Reference2 = (ground, ['', '']), (moving, ['', ''])
     joint.Placement1 = App.Placement(App.Vector(5, 5, 3.2), App.Rotation())
     joint.Placement2 = App.Placement()
     JointObject.ViewProviderJoint(joint.ViewObject)
