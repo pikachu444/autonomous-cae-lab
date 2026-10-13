@@ -27,7 +27,7 @@ def register_backend(identifier, factory, *, roles=("model",), optional_dependen
     _registry[identifier] = Backend(identifier, tuple(roles), factory, optional_dependency, native_runtime,threads)
 
 def _builtin(identifier, module, name, roles, dependency=None, native=None):
-    threads=2 if identifier in {'explicit.openradioss','structural.code_aster',
+    threads=2 if identifier in {'explicit.openradioss','explicit.opencourant.model','structural.code_aster',
         'structural.code_aster.plasticity','structural.code_aster.geometric_nonlinearity',
         'structural.families.code_aster'} else 1
     register_backend(identifier, f"caelab.{module}:{name}", roles=roles,
@@ -56,6 +56,7 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("material.mfront.hyperelastic", "mfront_hyperelastic", "MFrontHyperelasticAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.viscoelastic", "mfront_viscoelastic", "MFrontViscoelasticAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.prepared", "mfront_prepared", "MFrontElasticityPreparedAdapter", ("prepared",), None, "MFront/MGIS"),
+    ("explicit.opencourant.model", "impact", "ImpactAdapter", ("evaluation",), None, "OpenCourant"),
     ("explicit.openradioss", "openradioss", "OpenRadiossAdapter", ("model",), None, "OpenRadioss"),
     ("material.felupe", "felupe_material", "FelupeMaterialAdapter", ("prepared",), "felupe", None),
     ("files.table", "file_table", "TableReaderAdapter", ("reader", "prepared"), "numpy", None),
@@ -69,6 +70,7 @@ for _suffix, _class in (("", "FenicsxPDEAdapter"), (".nonlinear", "FenicsxNonlin
              ("pde", "model") if _suffix=='.coupled' else ("pde",), native="FEniCSx")
 _builtin('pde.scipy.ode', 'adapters.dimensioned_ode', 'DimensionedODEAdapter', ('evaluation',), 'scipy')
 _builtin('pde.fenicsx.dimensioned', 'adapters.dimensioned_weak', 'DimensionedWeakAdapter', ('evaluation',), native='FEniCSx')
+_builtin('damage.rainflow', 'fatigue', 'FatigueAdapter', ('evaluation',))
 _builtin("scipy.latin_hypercube", "optimizers.scipy_lhs", "ScipyLatinHypercube", ("doe",), "scipy")
 _builtin('thermal.fenicsx.rectangle', 'adapters.thermoelastic_fenicsx', 'ThermalFenicsxAdapter', ('stage',), native='FEniCSx')
 _builtin('structural.fenicsx.thermoelastic_rectangle', 'adapters.thermoelastic_fenicsx', 'ThermoelasticFenicsxAdapter', ('stage',), native='FEniCSx')

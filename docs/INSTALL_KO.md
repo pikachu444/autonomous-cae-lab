@@ -133,7 +133,7 @@ git clone --recurse-submodules https://github.com/pikachu444/autonomous-cae-lab.
 | Code_Aster | 일부 구조 해석 예제 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
 | FEniCSx | 일부 PDE·연성 예제 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
 | MFront/MGIS | 일부 재료 법칙의 재료점 계산 연결. WSL/Linux 실행 기록 있음 | 별도 WSL/Linux 환경 필요 |
-| OpenRadioss·OpenCourant | 제한된 강체 운동·접촉 예제의 WSL 실행 기록. Windows 공식 패키지 설치와 버전 명령 확인; 일반 모델의 앱 연결은 개발 중. 이상적 벽 충돌 검증은 미통과 | Linux 계산 환경 또는 별도 Windows 패키지. 아래 선택 설치 참고 |
+| OpenRadioss·OpenCourant | 기존 강체 운동·접촉 예제와 제한된 사용자 FE 충격 모델. Windows에서 공개 응집 시편의 실제 계산·결과 변환·등록·저장 재열기 확인. 임의 모델의 물리 수용은 미확인, 기존 이상적 벽 충돌 검증은 미통과 | Linux 계산 환경 또는 별도 Windows 패키지. 아래 선택 설치 참고 |
 
 FreeCAD는 CAD 전처리, Gmsh는 메시 생성, ParaView는 결과 후처리 도구입니다.
 위 실행 기록은 각 프로그램의 전체 기능 지원이나 실제 설계의 안전성 검증을 뜻하지 않습니다.
@@ -159,8 +159,10 @@ native 실행 경로가 Windows에서 자동으로 바뀌는 것은 아닙니다
 ### Windows용 충격 솔버 준비하기
 
 WSL을 사용할 수 없는 PC에는 공식 OpenCourant Windows 패키지를 별도로 준비할 수
-있습니다. **현재는 설치 경로를 제공하는 단계이며, 일반 모델을 우리 앱에서 계산하는
-연결은 개발 중입니다.** 기본 Research 앱을 쓰기 위해 설치할 필요는 없습니다.
+있습니다. **사용자 FE 충격** 모델은 이 패키지로 계산합니다. 공개 응집 시편의 계산과
+결과 등록을 Windows에서 확인했으며, 지원 입력과 조작 순서는
+[충격 조건 사용법](USER_GUIDE_KO.md#유한요소-모델에-충격-조건-넣기)에 있습니다.
+데이터·재료 피팅·반복하중 평가 등 이 솔버를 쓰지 않는 작업에는 설치할 필요가 없습니다.
 
 소스 폴더의 PowerShell에서 다음 명령을 실행합니다. 공식 고정 버전의 약 350 MB ZIP을
 내려받아 사용자 폴더에 설치합니다. 관리자 권한이나 WSL은 필요하지 않습니다.

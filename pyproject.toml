@@ -35,3 +35,5 @@ schemas = ["*.json"]
 "caelab.assist" = ["*.ps1"]
 "caelab.assist._vendor.costorm" = ["LICENSE", "NOTICE.md"]
 "plugins.fixture_design.upstream" = ["models/*", "fixturelab/*.js", "scripts/*"]
+
+"caelab._vendor" = ["rainflow.LICENSE.txt", "rainflow.NOTICE.md"]

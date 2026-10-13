@@ -895,7 +895,7 @@ class PDEWindow(QMainWindow):
         self.result_selector.blockSignals(True)
         self.result_selector.clear()
         for name, response in result.get('responses', {}).items():
-            self.result_selector.addItem(name + ' [' + response.get('unit', '') + ']', ('response', name))
+            self.result_selector.addItem(self.response_caption(name, response) + ' [' + response.get('unit', '') + ']', ('response', name))
         native_fields = result.get('diagnostics', {}).get('native_fields', [])
         if isinstance(native_fields, dict):
             native_fields = [{'name': name, 'field': field} for name, field in native_fields.items()]
@@ -1015,6 +1015,16 @@ class PDEWindow(QMainWindow):
         self._comparison_windows.append(window)
         window.show()
 
+    @staticmethod
+    def response_caption(name, response):
+        metadata = response.get('metadata', {})
+        label = metadata.get('label') if isinstance(metadata, dict) else None
+        return label if isinstance(label, str) and label.strip() else name
+
+    @staticmethod
+    def axis_caption(axis):
+        return axis.get('name', '')
+
     def _draw_result(self, *_):
         self.result_figure.clear()
         self.result_axes = self.result_figure.add_subplot(111)
@@ -1027,15 +1037,24 @@ class PDEWindow(QMainWindow):
         elif selected[0] == 'response':
             name = selected[1]
             response = self._result['responses'][name]
+            caption = self.response_caption(name, response)
             values = response.get('value')
             axis = next((item for item in response.get('axes', []) if isinstance(item.get('values'), list)), None)
             if response.get('kind') == 'series' and isinstance(values, list) and axis:
-                axes.plot(axis['values'], values, label=name)
-                axes.set_xlabel(axis.get('name', '') + ' [' + axis.get('unit', '') + ']')
-                axes.set_ylabel(name + ' [' + response.get('unit', '') + ']')
+                if response.get('has_calculation_gaps'):
+                    # Native/data missing rows are disconnected, never interpolated.
+                    for index,segment in enumerate(response.get('segments',[])):
+                        start,stop=segment['rows']
+                        axes.plot(axis['values'][start:stop],values[start:stop],marker='o',
+                                  label=caption if index==0 else None)
+                    axes.set_title('누락 구간은 연결하지 않습니다')
+                else:
+                    axes.plot(axis['values'], values, label=caption)
+                axes.set_xlabel(self.axis_caption(axis) + ' [' + axis.get('unit', '') + ']')
+                axes.set_ylabel(caption + ' [' + response.get('unit', '') + ']')
                 axes.legend()
             elif type(values) in (int, float):
-                axes.text(.5, .5, name + '\n' + display(values) + ' [' + response.get('unit', '') + ']',
+                axes.text(.5, .5, caption + '\n' + display(values) + ' [' + response.get('unit', '') + ']',
                           ha='center', va='center', transform=axes.transAxes)
             else:
                 axes.text(.5, .5, 'This retained response has no supported 1D axis.\nOpen the exact native result in Post.',

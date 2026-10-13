@@ -333,7 +333,7 @@ def physical_input(source, arrays):
     identity = {"nativenodeid", "nativeelementid", "globalnodeid", "globalelementid", "vtkoriginalpointids", "vtkoriginalcellids", "globalids", "pedigreeids"}
     grouped = {"POINTS": [], "CELLS": []}
     for association, name in arrays:
-        if association not in grouped or name.lower().endswith("_input") or re.search(r"(?:^|_)ids?$|Ids?$|IDs?$", name) or name.lower() in identity:
+        if association not in grouped or name.lower().endswith(("_input","_applicable")) or name.lower() in {"erosion_status","vtkghosttype"} or re.search(r"(?:^|_)ids?$|Ids?$|IDs?$", name) or name.lower() in identity:
             raise ValueError("Identity/classification arrays cannot be spatially interpolated: " + name)
         data = source.PointData if association == "POINTS" else source.CellData
         if name not in data.keys():

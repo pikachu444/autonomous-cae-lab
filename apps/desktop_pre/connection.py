@@ -46,6 +46,8 @@ class Connection:
         self.retry_button.clicked.connect(self.retry)
         self.numerical_button = QtWidgets.QPushButton('Numerical…')
         self.numerical_button.clicked.connect(lambda: self.show_panel('research'))
+        self.impact_button = QtWidgets.QPushButton('충격 해석…')
+        self.impact_button.clicked.connect(self.open_impact)
         self.runner_button = QtWidgets.QPushButton('Runner…')
         self.runner_button.clicked.connect(lambda: self.open_runner())
         self.connect_button = QtWidgets.QPushButton('Reconnect')
@@ -53,7 +55,7 @@ class Connection:
         layout.addWidget(self.identity)
         controls = QtWidgets.QHBoxLayout()
         for widget in (self.run_button, self.cancel_button, self.retry_button,
-                       self.numerical_button, self.runner_button, self.connect_button):
+                       self.numerical_button, self.impact_button, self.runner_button, self.connect_button):
             controls.addWidget(widget)
         controls.addStretch()
         layout.addLayout(controls)
@@ -297,6 +299,35 @@ class Connection:
             self.submit()
         else:
             self.send_command()  # Exact command ID/session/generation; never an automatic new attempt.
+
+    def open_impact(self):
+        try:
+            from .fem_edit import _native_type
+            owner = self.active_owner()
+            analyses = [o for o in owner.doc.Objects if _native_type(o) == 'Fem::FemAnalysis']
+            labels = [str(i + 1) + '. ' + o.Label for i, o in enumerate(analyses)]
+            if not labels:
+                raise ValueError('먼저 native Analysis와 현재 물체 메시를 준비하세요')
+            selected, ok = self.QtWidgets.QInputDialog.getItem(self.dock, '충격 해석', 'Analysis', labels, 0, False)
+            if not ok: return
+            analysis = analyses[labels.index(selected)]
+            solvers = [o for o in analysis.Group if _native_type(o) == 'Fem::SolverCcxTools' and not getattr(o,'Suppressed',False)]
+            if len(solvers) != 1: raise ValueError('메시 참조용 CalculiX solver 하나를 선택하세요')
+            def captured(value):
+                if value.get('status') == 'FAILED': return
+                def opened(document):
+                    env = os.environ.copy()
+                    for key in ('PYTHONHOME','PYTHONPATH','QT_PLUGIN_PATH','QML2_IMPORT_PATH','LD_LIBRARY_PATH'):
+                        env.pop(key, None)
+                    subprocess.Popen([self.config['python'], '-m', 'apps.research.desktop', '--service',
+                        self.config['service_url'], 'simulation', '--document-id', document['id']],
+                        cwd=str(Path(__file__).resolve().parents[2]), env=env)
+                self.request('impact-document', lambda: self.client.document_open(kind='simulation',
+                    title=value['title'],draft=value['draft']), opened)
+            self.submit_native('pre.impact.capture', {'analysis_id':analysis.Name,'solver_id':solvers[0].Name},
+                on_done=captured,owner=owner)
+        except Exception as error:
+            self.message.setText(str(error))
 
     def create_numerical_plan(self, command_id, operation):
         def opened(value):
