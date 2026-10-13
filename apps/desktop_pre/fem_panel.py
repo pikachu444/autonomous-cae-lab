@@ -199,7 +199,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.condition = QtWidgets.QComboBox()
             self.condition.setObjectName('femExistingCondition')
             self.condition.currentIndexChanged.connect(self._load_condition)
-            form.addRow('Existing native Fixed / Force', self.condition)
+            form.addRow('Existing native boundary condition', self.condition)
             self.condition_region, self.direction_region = QtWidgets.QComboBox(), QtWidgets.QComboBox()
             form.addRow('Named condition face region', self.condition_region)
             form.addRow('Force direction', self.direction_region)
@@ -219,11 +219,11 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             layout.addLayout(row)
             form = QtWidgets.QFormLayout()
             self.analysis, self.new_condition = QtWidgets.QComboBox(), QtWidgets.QComboBox()
-            self.new_condition.addItems(['Fixed', 'Force'])
+            self.new_condition.addItems(['Fixed', 'Force', 'Displacement'])
             form.addRow('Actual analysis for new condition', self.analysis)
             form.addRow('New condition kind', self.new_condition)
             layout.addLayout(form)
-            self._button('Create explicitly selected Fixed / Force', self.create_condition, layout)
+            self._button('Create boundary condition', self.create_condition, layout)
             layout.addWidget(QtWidgets.QLabel('Changed BRep targets require explicit repair. Existing conditions are retained; target confirmation is not engineering release.'))
 
         def _material_tab(self):

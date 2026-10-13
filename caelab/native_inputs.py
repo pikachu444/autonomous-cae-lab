@@ -79,7 +79,7 @@ def _files(source, root):
     return paths, parsed_sha
 
 
-def _frozen_files(source, root):
+def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
     if source.stat().st_size > 8 * 1024 * 1024:
         raise ValueError('FEM snapshot manifest exceeds 8 MiB')
     with source.open('rb') as stream:
@@ -87,7 +87,7 @@ def _frozen_files(source, root):
     if len(payload) > 8 * 1024 * 1024:
         raise ValueError('FEM snapshot manifest exceeds 8 MiB')
     manifest = json.loads(payload)
-    if manifest.get('kind') != 'freecad-fem-frozen' or manifest.get('schema_version') != '1':
+    if manifest.get('kind') != kind or manifest.get('schema_version') != '1':
         raise ValueError('A completed FreeCAD FEM snapshot is required')
     entries = manifest.get('files', [])
     names = [entry.get('relative') for entry in entries]
@@ -151,9 +151,10 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         if _identity(path.stat()) != before[path] or file_hash(path) != entry['sha256']:
             raise ValueError('Source changed during native registration')
     entry = files[0]
-    if kind == 'frozen_fem':
+    if kind in {'frozen_fem', 'frozen_contact'}:
         # The copied bytes must match the manifest too, including a change before copying.
-        _frozen_files(Path(workbench_root) / entry['file'], folder.resolve())
+        _frozen_files(Path(workbench_root) / entry['file'], folder.resolve(),
+                      kind='freecad-contact-frozen' if kind == 'frozen_contact' else 'freecad-fem-frozen')
     receipt = {'id': identifier, 'name': source.name, 'file': entry['file'],
                'bytes': entry['bytes'], 'sha256': entry['sha256'], 'created_utc': utc_now(),
                'kind': kind, 'format': format,
@@ -191,7 +192,17 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
 def register_frozen_input(workbench_root, approved_root, source, identifier, *, root_id, relative, limit):
     root = Path(approved_root).resolve(strict=True)
     source = _within_root(source, root)
-    paths, parsed_sha = _frozen_files(source, root)
+    if source.stat().st_size > 8 * 1024 * 1024:
+        raise ValueError('FEM snapshot manifest exceeds 8 MiB')
+    with source.open('rb') as stream:
+        raw = stream.read(8 * 1024 * 1024 + 1)
+    if len(raw) > 8 * 1024 * 1024:
+        raise ValueError('FEM snapshot manifest exceeds 8 MiB')
+    kind = json.loads(raw).get('kind')
+    if kind not in {'freecad-fem-frozen', 'freecad-contact-frozen'}:
+        raise ValueError('Select an admitted native frozen snapshot kind')
+    paths, parsed_sha = _frozen_files(source, root, kind=kind)
     return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
                          root_id=root_id, relative=relative, limit=limit,
-                         kind='frozen_fem', format='freecad-fem')
+                         kind='frozen_contact' if kind == 'freecad-contact-frozen' else 'frozen_fem',
+                         format='freecad-contact' if kind == 'freecad-contact-frozen' else 'freecad-fem')

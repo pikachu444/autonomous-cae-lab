@@ -279,7 +279,7 @@ class FEMEditor:
             except Exception as error:
                 row['errors'] = [str(error)]
         for obj in self.owner.doc.Objects:
-            if (_native_type(obj) in ('Fem::ConstraintFixed', 'Fem::ConstraintForce')
+            if (_native_type(obj) in ('Fem::ConstraintFixed', 'Fem::ConstraintForce', 'Fem::ConstraintDisplacement')
                     and not any(row['object_id'] == obj.Name for row in data['conditions'])):
                 data['conditions'].append({'object_id': obj.Name, 'native_type': _native_type(obj),
                     'qualification': 'UNKNOWN', 'errors': self._condition_errors(obj, data)})
@@ -529,11 +529,11 @@ class FEMEditor:
         kind = _native_type(obj)
         creating = kind == 'Fem::FemAnalysis' and not repair
         if creating:
-            if args.get('kind') not in ('Fixed', 'Force'):
-                raise ValueError('Create only a native Fixed or Force condition in the selected Analysis')
+            if args.get('kind') not in ('Fixed', 'Force', 'Displacement'):
+                raise ValueError('Create only a native Fixed, Force or Displacement condition in the selected Analysis')
             kind = 'Fem::Constraint' + args['kind']
-        elif kind not in ('Fem::ConstraintFixed', 'Fem::ConstraintForce'):
-            raise ValueError('Select a native Fixed/Force condition, or its Analysis to create one')
+        elif kind not in ('Fem::ConstraintFixed', 'Fem::ConstraintForce', 'Fem::ConstraintDisplacement'):
+            raise ValueError('Select a native Fixed/Force/Displacement condition, or its Analysis to create one')
         if 'kind' in args and kind != 'Fem::Constraint' + args['kind']:
             raise ValueError('Condition kind differs from the selected native object')
         if 'analysis_id' in args and self.owner._object(args['analysis_id']) is not (obj if creating else obj.getParentGroup()):
@@ -547,8 +547,8 @@ class FEMEditor:
                 raise ValueError('Use a positive native force and explicit direction/reversal')
         if creating and kind == 'Fem::ConstraintForce' and force is None:
             raise ValueError('Creating Force requires an explicit force magnitude and unit')
-        if kind == 'Fem::ConstraintFixed' and set(args) & {'force', 'unit', 'direction_region_id', 'reversed'}:
-            raise ValueError('Fixed supports do not accept force settings')
+        if kind != 'Fem::ConstraintForce' and set(args) & {'force', 'unit', 'direction_region_id', 'reversed'}:
+            raise ValueError('This support does not accept force settings')
         if 'reversed' in args and type(args['reversed']) is not bool:
             raise ValueError('Native reversal must be boolean')
         direction = None
@@ -568,8 +568,12 @@ class FEMEditor:
             condition = obj
             if creating:
                 import ObjectsFem
-                condition = (ObjectsFem.makeConstraintFixed(self.owner.doc) if kind == 'Fem::ConstraintFixed'
-                             else ObjectsFem.makeConstraintForce(self.owner.doc))
+                factory = {'Fem::ConstraintFixed': ObjectsFem.makeConstraintFixed,
+                           'Fem::ConstraintForce': ObjectsFem.makeConstraintForce,
+                           'Fem::ConstraintDisplacement': getattr(ObjectsFem, 'makeConstraintDisplacement', None)}[kind]
+                if factory is None:
+                    raise ValueError('Installed native displacement factory is unavailable')
+                condition = factory(self.owner.doc)
                 obj.addObject(condition)
             condition.References = [(source, names)]
             if kind == 'Fem::ConstraintForce':
@@ -785,7 +789,7 @@ class FEMEditor:
         except Exception as error:
             fail('mesh', str(error))
         for obj in analysis.Group:
-            if _native_type(obj) in ('Fem::ConstraintFixed', 'Fem::ConstraintForce'):
+            if _native_type(obj) in ('Fem::ConstraintFixed', 'Fem::ConstraintForce', 'Fem::ConstraintDisplacement'):
                 for message in self._condition_errors(obj, data):
                     fail(obj.Name, message)
         return errors

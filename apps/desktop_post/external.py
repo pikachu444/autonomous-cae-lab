@@ -164,7 +164,7 @@ def validate_declared_metadata(source, metadata):
             raise ValueError("Declared non-temporal metadata requires its exact VTU reader")
     else:
         if (not isinstance(clock, dict) or set(clock) != {"unit", "semantics", "values"}
-                or not ((clock["unit"] == "1" and clock["semantics"] == "DIMENSIONLESS_MODEL_TIME")
+                or not ((clock["unit"] == "1" and clock["semantics"] in {"DIMENSIONLESS_MODEL_TIME", "STATIC_LOAD_PARAMETER"})
                         or (clock["unit"] == "s" and isinstance(clock["semantics"], str) and clock["semantics"].strip()))
                 or not isinstance(clock["values"], list) or not clock["values"]
                 or any(type(t) not in (int, float) or not math.isfinite(t) for t in clock["values"])

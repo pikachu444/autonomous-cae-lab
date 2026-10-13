@@ -113,7 +113,7 @@ def _mesh(mesh):
     return nodes, elements, fixed, loads
 
 
-def _gates(nodes, elements, fixed):
+def _jacobian_gates(nodes, elements):
     # Same C3D10 Gauss-point derivative rule as run_structural_screen, without
     # importing its optional CadQuery meshing dependency into a frozen-deck run.
     coords = np.asarray([[nodes[n] for n in ids] for ids in elements.values()])
@@ -141,6 +141,11 @@ def _gates(nodes, elements, fixed):
         raise ValueError("Sampled C3D10 Jacobian is nonfinite or at/below 1e-10 mm^3")
     if minimum_scaled <= 256 * np.finfo(float).eps:
         raise ValueError("Nonpositive or numerically singular sampled C3D10 Jacobian")
+    return {"minimum_sampled_jacobian_mm3": minimum, "minimum_scaled_sampled_jacobian": minimum_scaled}
+
+
+def _gates(nodes, elements, fixed):
+    quality = _jacobian_gates(nodes, elements)
     # Reuse native_structural_deck's six rigid-mode rows; gate each connected
     # mesh component so a detached unrestrained island cannot pass global rank.
     parent = {n: n for n in nodes}
@@ -165,7 +170,7 @@ def _gates(nodes, elements, fixed):
         rows.append(([1, 0, 0, 0, z, -y], [0, 1, 0, -z, 0, x], [0, 0, 1, y, -x, 0])[component - 1])
     if np.linalg.matrix_rank(np.asarray(rows)) != 6:
         raise ValueError("Frozen Fixed DOFs leave unrestrained rigid-body modes")
-    return {"minimum_sampled_jacobian_mm3": minimum, "minimum_scaled_sampled_jacobian": minimum_scaled, "rigid_body_constraint_rank": 6,
+    return {**quality, "rigid_body_constraint_rank": 6,
             "limitation": "Four C3D10 Gauss-point samples are not a proof over the entire element"}
 
 
@@ -225,7 +230,7 @@ def validate_snapshot(path):
     return manifest, mesh, pins, _gates(nodes, elements, fixed)
 
 
-def read_frd(path, nodes, elements):
+def read_frd(path, nodes, elements, *, contact_materials=None):
     """Read native ASCII geometry and the last complete static displacement.
 
     Fixed-column records and component labels follow CalculiX 2.21 frd.c and
@@ -240,11 +245,26 @@ def read_frd(path, nodes, elements):
     if "\r" in text or "\x00" in text:
         raise ValueError("Malformed ASCII FRD line encoding")
     lines, xyz, topology, fields = text.splitlines(), {}, {}, {}
+    labels_by_name = dict(_FRD_LABELS)
+    if contact_materials is not None:
+        labels_by_name["CONTACT"] = tuple(name + " 1 1 0 0" for name in
+            ("COPEN", "CSLIP1", "CSLIP2", "CPRESS", "CSHEAR1", "CSHEAR2"))
+    frames, material_names, contact_tokens = [], {}, {}
+    field_coverage = None
+    def retain_frame():
+        if contact_materials is not None:
+            if "DISP" not in fields or "CONTACT" not in fields:
+                raise ValueError("Incomplete contact frame: displacement and CONTACT are both required")
+            frames.append({"static": {"step": 1, "increment": increment, "load_parameter": parameter},
+                           "load_parameter_token": parameter_token, "fields": fields,
+                           "contact_tokens": contact_tokens})
     i, pending, header, ended = 0, None, None, False
     counter, increment, kode, parameter, parameter_token = 0, None, None, None, None
     versions = [line.strip() for line in lines if line.strip().startswith("1UVERSION")]
     if len(versions) != 1 or not re.fullmatch(r"1UVERSION\s+Version 2\.\d+", versions[0]):
         raise ValueError("Missing or unsupported native CalculiX version metadata")
+    if contact_materials is not None and versions[0].split("Version ")[1] != "2.22":
+        raise ValueError("The contact reader profile requires CalculiX 2.22; raw output is retained")
     field_count = 0
     while i < len(lines):
         line = lines[i].rstrip()
@@ -254,7 +274,14 @@ def read_frd(path, nodes, elements):
             continue
         if ended:
             raise ValueError("Trailing FRD content after end marker")
-        if parts[0] in ("2C", "3C"):
+        if line[4:9] == "1UMAT" and contact_materials is not None:
+            material_index = _identifier(line[9:14].strip())
+            material_name = line[14:72].strip()
+            if (xyz or material_index in material_names or not material_name or
+                    material_name not in contact_materials["names"]):
+                raise ValueError("Invalid/duplicate native material identity")
+            material_names[material_index] = material_name
+        elif parts[0] in ("2C", "3C"):
             if len(parts) != 3 or parts[2] != "1":
                 raise ValueError("Only native ASCII FRD geometry is supported")
             count = _identifier(parts[1])
@@ -274,9 +301,16 @@ def read_frd(path, nodes, elements):
                     raise ValueError("Duplicate/incomplete FRD elements")
                 while i < len(lines) and lines[i].strip() != "-3":
                     row = lines[i].rstrip()
-                    if row[:3] != " -1" or len(row) != 28 or [row[a:b].strip() for a, b in ((13,18),(18,23),(23,28))] != ["6","0","1"]:
+                    if (row[:3] != " -1" or len(row) != 28 or
+                            [row[a:b].strip() for a, b in ((13,18),(18,23))] != ["6","0"] or
+                            (contact_materials is None and row[23:28].strip() != "1")):
                         raise ValueError("Only native FRD TET10 material1 is supported")
                     e = _identifier(row[3:13].strip())
+                    if contact_materials is not None:
+                        material_index = _identifier(row[23:28].strip())
+                        if (set(material_names.values()) != set(contact_materials["names"]) or
+                                material_names.get(material_index) != contact_materials["elements"].get(e)):
+                            raise ValueError("FRD element material differs from retained body section")
                     if e in topology or e not in elements or i + 1 >= len(lines):
                         raise ValueError("Foreign/duplicate/truncated FRD element")
                     row = lines[i + 1].rstrip()
@@ -304,8 +338,16 @@ def read_frd(path, nodes, elements):
             if pending is None or header is not None or len(line) != 75:
                 raise ValueError("Malformed FRD static field header")
             output_inc = _identifier(line[58:63].strip())
+            count_token = line[24:36].strip()
+            if contact_materials is not None:
+                if not re.fullmatch(r"0|[1-9][0-9]*", count_token):
+                    raise ValueError("Invalid declared native field coverage")
+                field_coverage = int(count_token)
+            else:
+                field_coverage = _identifier(count_token)
             if (line[7:12].strip() != str(100 + output_inc)
-                    or _identifier(line[24:36].strip()) != len(nodes) or line[36:58].strip() != "0"
+                    or not 0 <= field_coverage <= len(nodes)
+                    or (contact_materials is None and field_coverage != len(nodes)) or line[36:58].strip() != "0"
                     or line[63:74].strip() or line[74] != "1"):
                 raise ValueError("FRD static mode/coverage/encoding differs")
             token = line[12:24].strip()
@@ -320,13 +362,16 @@ def read_frd(path, nodes, elements):
                 elif output_inc <= kode or value <= parameter or "DISP" not in fields:
                     raise ValueError("Incomplete or unordered static FRD output increments")
             if inc != increment:
+                if increment is not None:
+                    retain_frame()
                 fields = {}
+                contact_tokens = {}
             increment, kode, parameter, parameter_token = inc, output_inc, value, token
             header = True
         elif parts[0] == "-4":
-            if header is None or len(parts) != 4 or parts[1] not in _FRD_LABELS or parts[1] in fields:
+            if header is None or len(parts) != 4 or parts[1] not in labels_by_name or parts[1] in fields:
                 raise ValueError("Unexpected or duplicate FRD field")
-            name, labels = parts[1], _FRD_LABELS[parts[1]]
+            name, labels = parts[1], labels_by_name[parts[1]]
             if parts[2:] != [str(len(labels)), "1"]:
                 raise ValueError("Malformed FRD field definition")
             for label in labels:
@@ -334,15 +379,32 @@ def read_frd(path, nodes, elements):
                     raise ValueError("FRD component meaning/order differs")
                 i += 1
             records = {}
-            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "ERROR":1}[name]
+            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "ERROR":1, "CONTACT":6}[name]
             while i < len(lines) and lines[i].strip() != "-3":
-                n, values, tokens = _frd_record(lines[i].rstrip(), width)
+                raw_record = lines[i].rstrip()
+                if name == "CONTACT":
+                    if raw_record[:3] != " -1" or len(raw_record) != 13 + 12*width:
+                        raise ValueError("Malformed native CONTACT record")
+                    n = _identifier(raw_record[3:13].strip())
+                    tokens = [raw_record[13+12*j:25+12*j].strip() for j in range(width)]
+                    values = []
+                    for token in tokens:
+                        try:
+                            values.append(_number(token))
+                        except ValueError:
+                            if not re.fullmatch(r"[-+]?([Nn][Aa][Nn]|[Ii][Nn][Ff](inity)?)|\*+", token):
+                                raise ValueError("Malformed CONTACT value")
+                            values.append(None)  # Raw token retained; never a synthetic zero.
+                    contact_tokens[n] = tokens
+                else:
+                    n, values, tokens = _frd_record(raw_record, width)
                 if n in records or n not in nodes:
                     raise ValueError("Foreign or duplicate FRD field node")
                 records[n] = values
                 i += 1
-            if i == len(lines) or set(records) != set(nodes):
-                raise ValueError("Incomplete all-node FRD field")
+            if (i == len(lines) or len(records) != field_coverage or
+                    (name != "CONTACT" and set(records) != set(nodes))):
+                raise ValueError("Incomplete FRD field relative to declared coverage")
             fields[name] = records
             i += 1
             counter, field_count = pending[0], field_count + 1
@@ -355,7 +417,8 @@ def read_frd(path, nodes, elements):
             raise ValueError("Unexpected native FRD content")
     if not ended or "DISP" not in fields:
         raise ValueError("Missing complete final FRD displacement/end marker")
-    return {"displacements": fields["DISP"], "frd_coordinates_mm": xyz,
+    retain_frame()
+    return {**({"frames": frames} if contact_materials is not None else {}), "displacements": fields["DISP"], "frd_coordinates_mm": xyz,
             "elements": topology, "static": {"step":1, "increment":increment, "load_parameter":parameter},
             "load_parameter_token":parameter_token, "final_fields":sorted(fields), "field_count":field_count,
             "native_version": versions[0].split("Version ")[1]}

@@ -368,7 +368,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem'}:
+        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -383,13 +383,13 @@ class Workbench:
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem'}:
+        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact'}:
             raise ValueError('Select a registered native result or FEM snapshot')
         result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
                                  'bytes': item['bytes'], 'sha256': item['sha256']}
                                 for item in receipt['files']]}
-        if receipt['kind'] == 'frozen_fem':
+        if receipt['kind'] in {'frozen_fem', 'frozen_contact'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
         if receipt['kind'] == 'native_design':
@@ -405,8 +405,8 @@ class Workbench:
     def input_preview(self,identifier):
         path=self.input_path(identifier)
         receipt=load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') == 'frozen_fem':
-            return {'id':identifier,'kind':'frozen_fem','format':receipt['format'],
+        if receipt.get('kind') in {'frozen_fem', 'frozen_contact'}:
+            return {'id':identifier,'kind':receipt['kind'],'format':receipt['format'],
                     'name':receipt['name'],'file_count':len(receipt['files']),
                     'bytes':receipt['total_bytes'],'sha256':receipt['sha256'],
                     'preview':'Frozen editable CAD, existing FEM mesh and native solver input'}
@@ -665,13 +665,13 @@ class Workbench:
 
     def _settings(self, backend, settings):
         settings=deepcopy(settings)
-        if backend=='structure.calculix.frozen':
+        if backend in {'structure.calculix.frozen', 'structure.calculix.contact'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')
             identifier=settings['data_id']
             path=self.input_path(identifier)
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
-            if receipt.get('kind')!='frozen_fem':
+            if receipt.get('kind') != ('frozen_contact' if backend == 'structure.calculix.contact' else 'frozen_fem'):
                 raise ValueError('Select a registered frozen FEM snapshot')
             return {'data_id':identifier,'snapshot_path':str(path)}
         if backend=='files.table':
@@ -752,8 +752,9 @@ class Workbench:
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
             result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
-            if backend=='structure.calculix.frozen' and result.get('execution_status')=='SUCCEEDED':
-                result['origin_input']={'id':arguments['settings']['data_id'],'kind':'frozen_fem'}
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact'} and result.get('execution_status')=='SUCCEEDED':
+                result['origin_input']={'id':arguments['settings']['data_id'],
+                    'kind':'frozen_contact' if backend=='structure.calculix.contact' else 'frozen_fem'}
                 try:
                     artifact=result['post_artifact']
                     source=contained(output,artifact['relative'])

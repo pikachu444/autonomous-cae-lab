@@ -224,15 +224,18 @@ class Connection:
             owner.refresh()
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
                 'document_id': owner.document_id, 'session_id': owner.session_id,
-                'generation': owner.generation, 'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
+                'generation': owner.generation,
+                'operation': 'pre.contact.freeze' if any(femutils.type_of_obj(obj) == 'Fem::ConstraintContact'
+                    and not getattr(obj, 'Suppressed', False) for obj in selected.Group) else 'pre.freeze',
+                'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
             self.send_command()
         except Exception as exc:
             self.message.setText(str(exc))
 
     def send_command(self):
         request = dict(self.pending)
-        self.message.setText('Freezing the selected existing mesh and native input…')
-        self.request('command', lambda: self.client.document_command(request['document_id'], 'pre.freeze', request['arguments'],
+        self.message.setText('Preparing the selected analysis and current body meshes…')
+        self.request('command', lambda: self.client.document_command(request['document_id'], request.get('operation', 'pre.freeze'), request['arguments'],
             session_id=request['session_id'], expected_generation=request['generation'], command_id=request['command_id']),
             self.command_status)
 
