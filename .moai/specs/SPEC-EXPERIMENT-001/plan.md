@@ -65,6 +65,21 @@ Lab 보고서는 기존 experiment의 HTML/JSON/ZIP 묶음이고, campaign 보�
 
 ## 역할과 인도
 
+### 구현에 반영할 Qt 배치
+
+Sol의 [교정·보고서 Qt 원본](gui/layout_proposal.py)과 [조작·연결 인계](gui/handoff.md)를
+적용한다. [교정 화면](gui/calibration-small.png)은 같은 원행과 단위별 두 그래프를,
+[보고서 화면](gui/report-small.png)은 페이지 본문과 선택 섹션 편집을 중심으로 한다.
+Astra와 root가 실제 렌더를 확인했고, 보고서에서 교정 상태가 빠지는 문제와 미적용
+설명의 취소 동선을 수정했다. 숫자는 합성 자료이며 제품 계산·저장·내보내기는 Pro 연결 대상이다.
+`python .moai/specs/SPEC-EXPERIMENT-001/gui/layout_proposal.py --show`로 조작용 두 창을 연다.
+기본 실행은 offscreen 렌더다. GUI 원본의 마지막 경로/실행 모드 변경은 문법 확인만 했다.
+
+독립 보고서 도구 이름은 `report`로 맞춘다. Pro는 Python 메뉴·서비스·owner·ReportWindow를,
+root는 `scripts/start-windows.ps1`, `scripts/start_cae_research.ps1`,
+`scripts/install-desktop-shortcuts.ps1`과 해당 Windows 진입 검사를 단독 작성한다.
+Windows 진입은 구현·격리 검사까지 진행했으며 제품 창이 연결된 뒤 함께 게시한다.
+
 실제 Pro가 Data/보고서/수집 설정의 도메인·owner와 주요 기능·관련 검사·사용법을 작성한다.
 기존 desktop specialist에게 프로젝트 `.agents/skills/cae-desktop-ux/SKILL.md`와 해당
 참고 자료를 전달해 시각 설계·범위가 정해진 Qt 구현·실제 창 확인을 맡긴다. Pro와 Qt

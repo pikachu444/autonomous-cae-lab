@@ -4,7 +4,8 @@
 > 상태별 실제 화면과 상호작용 시안, Qt 조작 확인, Pro/Astra 검토는
 > [새 검토 패키지](design/20261012-desktop-planning/REVIEW_GUIDE.md)에서 확인한다.
 > 이전 기획 완료·다음 구현 표현이 새 사용자 검토와 개발 시작 지시를 대신하지 않는다.
-> 본구현은 아직 승인되지 않았다. 현재 배정/연결 장애는 CURRENT_STATE에 둔다.
+> 2026-10-13 사용자가 전체 명세의 구현·통합을 지시해 본구현이 진행 중이다.
+> 현재 배정·구현 상태는 CURRENT_STATE에 둔다. 이전의 기획 전용 지시는 당시 기록이다.
 > [새 설계 자료](design/20261012-desktop-planning/README.md)와
 > [ADR 적용 기준](ADR_APPLICABILITY.md)을 참조한다.
 

@@ -57,6 +57,15 @@ Codex는 통합·사용 안내·실행, Sol은 별도 사본/디자인 검토, A
 `https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a`다.
 Sol/Astra는 동일 D9의 교정·보고서 두 화면만 별도 사본으로 설계·직접 토론하며,
 Pro가 공유 제품 파일을 작성한다. 보조 원본은 `experiment-report-workflows/gui`다.
+Pro가 독립 도구 이름 `report`와 Python 메뉴·owner·서비스·ReportWindow 작성을 확인했다.
+root는 Windows launcher 두 파일과 바로가기 설치만 분리해 `-Tool report`/‘보고서’를
+추가했다. 실제 PowerShell·COM을 쓰는 격리 검사 2개가 통과했다(6.38초). 보고서 Qt 창은
+대역이므로 제품 창 실행 성공으로 세지 않으며 Pro 구현을 받기 전 이 진입 변경은 게시하지 않는다.
+Sol/Astra의 별도 Qt 사본은 교정 전후 두 단위 축과 같은 원행 표, 본문 중심 보고서와
+선택 섹션 편집을 실제 크기로 비교한다. 합성 시안이며 제품 저장·계산·출력 연결은 아직 없다.
+같은 사본의 편집 가능한 원본·상태 화면·연결 인계를 `.moai/specs/SPEC-EXPERIMENT-001/gui`
+에 보관한다. 보고서의 행별 교정 범위 밖/포화 상태와 미적용 설명 취소를 peer 검토에서
+교정했다. Astra와 root가 화면을 직접 읽었으며, 실제 제품 구현에 전달할 배치 기준이다.
 MoAI t8은 대표 기능 게시/전체 잔여로 갱신하고 t9를 SPEC-EXPERIMENT-001에 연결해
 작업 중으로 전환했다. Space 제품 입구의 기존 요약도 같은 상태로 수정했다(sequence 88).
 앞선 댓글 용량 제한과 달리 이번 기존 문단 수정은 실제 적용됐다.
