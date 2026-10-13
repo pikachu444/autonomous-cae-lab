@@ -250,3 +250,15 @@ export succeeded on 8d350ab for the meshed two-feet model with isotropic
 210000 MPa/0.3, Base Face5 Fixed and Bridge Face3 prescribed Z=-0.3 mm
 (X/Y zero). That run wrote the four frozen artifacts; it did not execute a
 solver and did not exercise the Force or stale-group corrections above.
+
+
+### Contact Check uses the same admission as export
+
+The existing pre.validate command now detects an active native contact and
+uses the contact collector's current body/mesh/law/material/condition admission.
+It no longer reports the single-mesh requirement for a contact Analysis.
+The check performs no save, artifact publication, mesh generation or solver
+execution. An invalid contact input remains a diagnostic with Run blocked;
+contact-free validation keeps its existing path. The native API contract test
+covers valid two-body Check and an invalid displacement through this branch.
+Author execution remains NOT_RUN.
