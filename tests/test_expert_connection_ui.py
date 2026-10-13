@@ -5,6 +5,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import time
+import threading
 
 import pytest
 pytest.importorskip('PySide6')
@@ -229,11 +230,30 @@ def test_registered_role_details_keep_selection_question_and_actual_model(tmp_pa
         'credential_env': '', 'expert_models': {'testing': {'model': 'openai-codex/registered-role'}}}}
     setup.save_local(config, None, initial)
     snapshots = _capture_role_details(monkeypatch)
+    initial_order = []
+    original_opened = ExpertWindow._opened
+    def opened_with_competing_poll(window, document):
+        original_opened(window, document)
+        # Deterministically offer the document poll the initial idle slot.
+        # A fire-and-forget registry callback used to be dropped here.
+        window.refresh_document()
+    monkeypatch.setattr(ExpertWindow, '_opened', opened_with_competing_poll)
     with transport(tmp_path, config) as (client, wb):
+        original_request, original_read = client.request, client.document_read
+        def request(path, payload=None, **kwargs):
+            if path == '/api/workbench/assist' and (payload or {}).get('operation') == 'experts.list':
+                initial_order.append('roles')
+            return original_request(path, payload, **kwargs)
+        def read(identifier):
+            initial_order.append('poll')
+            return original_read(identifier)
+        monkeypatch.setattr(client, 'request', request)
+        monkeypatch.setattr(client, 'document_read', read)
         window = ExpertWindow(client, poll_interval=20)
         try:
             window.show()
             wait(app, lambda: window.document is not None and len(window._registry) == 2 and not window._busy)
+            assert initial_order[0] == 'roles'
             index = next(i for i in range(window.roles.count())
                          if window.roles.item(i).data(Qt.ItemDataRole.UserRole) == 'testing')
             window.roles.setCurrentRow(index)
@@ -259,4 +279,57 @@ def test_registered_role_details_keep_selection_question_and_actual_model(tmp_pa
             assert wb.document_read(window.document['id'])['draft'] == remote
             assert wb.config == initial and wb.manager.list() == []
         finally:
+            drain_closed(app, window)
+
+
+def test_busy_registry_refresh_coalesces_after_explicit_continuation(tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    config = tmp_path / 'operator.json'
+    setup.save_local(config, None, {'experts': _example_definitions(), 'runtime': None})
+    with transport(tmp_path, config) as (client, wb):
+        window = ExpertWindow(client, poll_interval=0)
+        entered, release = threading.Event(), threading.Event()
+        order, continued = [], []
+        try:
+            window.show()
+            wait(app, lambda: window.document is not None and len(window._registry) == 2 and not window._busy)
+            window.question.setPlainText('Retain this question during a delayed role refresh.')
+            before = deepcopy(window.edited_draft())
+            remote = deepcopy(wb.document_read(window.document['id'])['draft'])
+            original_request = client.request
+            def request(path, payload=None, **kwargs):
+                if path == '/api/workbench/assist' and (payload or {}).get('operation') == 'experts.list':
+                    order.append('roles')
+                return original_request(path, payload, **kwargs)
+            monkeypatch.setattr(client, 'request', request)
+            def held_read():
+                entered.set()
+                if not release.wait(5):
+                    raise RuntimeError('Test did not release the held read')
+                return client.document_read(window.document['id'])
+            def after_read(document):
+                # Match command.received: update the view before queuing Save/Ask.
+                window._show_document(document, preserve_buffer=True)
+                def continuation():
+                    order.append('continuation')
+                    continued.append(window._call(
+                        lambda: client.document_read(document['id']),
+                        lambda payload: order.append('continuation completed')))
+                QTimer.singleShot(0, continuation)
+            assert window._call(held_read, after_read, background=True)
+            wait(app, entered.is_set)
+            assert window.refresh_registry()
+            assert window.refresh_registry()  # One retained intent, not two requests.
+            assert window._registry_refresh_pending
+            assert order == []
+            release.set()
+            wait(app, lambda: order.count('roles') == 1 and not window._busy
+                 and not window._registry_refresh_pending and not window._registry_refresh_queued)
+            assert continued == [True]
+            assert order == ['continuation', 'continuation completed', 'roles']
+            assert window.edited_draft() == before and window.local_dirty
+            assert wb.document_read(window.document['id'])['draft'] == remote
+            assert wb.manager.list() == []
+        finally:
+            release.set()
             drain_closed(app, window)

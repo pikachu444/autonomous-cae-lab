@@ -172,6 +172,36 @@ polling. These new tests remain NOT_RUN by Pro. For this change only:
 python -m pytest tests/test_expert_connection_ui.py -k role_details -q
 ~~~
 
+### Initial role loading correction
+
+The initial registry request is retained when another worker or modal is busy.
+Document polling yields to that pending read. A single queued callback drains
+it after the current response has scheduled any explicit Save/Ask continuation;
+it does not create a general request queue or repeatedly scan profiles.
+Repeated waiting requests coalesce. A completed HTTP error stays visible and
+does not cause an automatic retry loop.
+
+The focused role-details test keeps 20 ms polling active and deliberately offers
+the document poll the startup slot. An additional held-read test checks that a
+pending registry read follows an explicit foreground continuation, occurs once,
+and preserves the unapplied question. Existing wait limits are unchanged.
+
+~~~powershell
+python -m pytest tests/test_expert_connection_ui.py -k "registered_role_details or busy_registry_refresh" -q
+~~~
+
+Execution of this correction remains NOT_RUN in Pro's disconnected environment.
+
+### Subsequent E6 execution reported by Codex
+
+Codex reported an actual OAuth calculations.plan proposal, an editable Numerical
+document changed from E=1000 to E=1500, a real FELUPE run, attachment of that
+result to the original discussion, and an AI results.read call with an authored
+stress explanation. Saving and opening a separate Qt process recovered four
+turns and one run. The route used API helpers and offscreen Qt. It does not
+establish OS-input acceptance, the complete Study path, cancellation coverage
+or engineering qualification. This report is distinct from Pro remote execution.
+
 The E1–E4 table below is the earlier source-handoff snapshot; its then-pending
 execution entries do not supersede this separately attributed integration report.
 

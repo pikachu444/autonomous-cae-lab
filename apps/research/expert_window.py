@@ -76,6 +76,8 @@ class ExpertWindow(QMainWindow):
         self._auto_round_id = None
         self._foreground_busy = False
         self._registry, self._workers, self._references, self._plans = [], [], [], []
+        self._registry_refresh_pending = self._registry_refresh_queued = False
+        self._handling_reply = False
         self._buffer = None
         self._draft_problem = None
         self._control_initial = {}
@@ -328,7 +330,7 @@ class ExpertWindow(QMainWindow):
             self._source_choosing = False
             self._update_actions()
             if not self._closed:
-                QTimer.singleShot(0, self.refresh_registry)
+                self.refresh_registry()
         return True
 
     def _call(self, function, success, *, background=False):
@@ -345,15 +347,21 @@ class ExpertWindow(QMainWindow):
             self._foreground_busy = False
             if self._closed:
                 return
-            if error:
-                self.message.setText('Service request failed; question and evidence retained. ' + error)
-                if not background:
-                    self._round_started_here = False
-                    self._auto_round_id = None
-                    QTimer.singleShot(0, self.refresh_document)
-            else:
-                success(payload)
-            self._update_actions()
+            self._handling_reply = True
+            try:
+                if error:
+                    self.message.setText('Service request failed; question and evidence retained. ' + error)
+                    if not background:
+                        self._round_started_here = False
+                        self._auto_round_id = None
+                        QTimer.singleShot(0, self.refresh_document)
+                else:
+                    success(payload)
+            finally:
+                self._handling_reply = False
+                # Success may have queued an explicit Save/Ask continuation.
+                # Schedule the registry only after that callback has returned.
+                self._update_actions()
         worker.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
         return True
@@ -373,11 +381,34 @@ class ExpertWindow(QMainWindow):
         self._auto_round_id = None
         self._show_document(document)
         self.message.setText('Discussion opened. Saved turns and question drafts do not invoke a model. Continue explicitly to request further replies.')
-        QTimer.singleShot(0, self.refresh_registry)
+        self.refresh_registry()
         context = (self._buffer or {}).get('context', {})
         self._source_titles_pending = bool(context.get('selected_sources') or context.get('selected_document_ids'))
 
     def refresh_registry(self):
+        if self._closed:
+            return False
+        # A busy worker/modal delays this intent; it must not discard it.
+        # Repeated requests coalesce, and a completed HTTP error does not retry.
+        self._registry_refresh_pending = True
+        self._schedule_registry_refresh()
+        return True
+
+    def _schedule_registry_refresh(self):
+        if (not self._registry_refresh_pending or self._registry_refresh_queued
+                or self._closed or self._busy or self._handling_reply
+                or self._source_choosing or getattr(self, '_incoming_review', False)):
+            return
+        self._registry_refresh_queued = True
+        QTimer.singleShot(0, self._flush_registry_refresh)
+
+    def _flush_registry_refresh(self):
+        self._registry_refresh_queued = False
+        if (not self._registry_refresh_pending or self._closed or self._busy
+                or self._handling_reply or self._source_choosing
+                or getattr(self, '_incoming_review', False)):
+            return False
+        self._registry_refresh_pending = False
         def received(payload):
             self._registry = payload.get('experts', [])
             self._populate_roles(self.edited_draft()['participants'] if self.document else [])
@@ -391,8 +422,11 @@ class ExpertWindow(QMainWindow):
                 self.message.setText('Expert 실행 패키지가 없습니다. scripts/start-windows.ps1 -InstallOnly -ResearchUI 로 준비할 수 있습니다. 초안과 저장한 대화는 계속 편집할 수 있습니다.')
             elif runtime.get('status')=='NOT_CONFIGURED':
                 self.message.setText('Expert 모델은 NOT_CONFIGURED입니다. 초안·논점·저장한 대화는 사용할 수 있으며, Ask 실패는 계산이나 다음 발언을 시작하지 않습니다.')
-        return self._call(lambda: self.client.request('/api/workbench/assist',
+        started = self._call(lambda: self.client.request('/api/workbench/assist',
             {'operation': 'experts.list', 'arguments': {}}), received, background=True)
+        if not started:
+            self._registry_refresh_pending = True
+        return started
 
     def show_role_details(self):
         current = self.roles.currentItem()
@@ -666,6 +700,10 @@ class ExpertWindow(QMainWindow):
 
     def refresh_document(self):
         if self._closed or not self.document or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
+            return
+        if self._registry_refresh_pending:
+            # Polling cannot repeatedly take the idle slot reserved for roles.
+            self._schedule_registry_refresh()
             return
         identifier, session = self.document['id'], self.document['session_id']
         def received(remote):
@@ -1079,6 +1117,9 @@ class ExpertWindow(QMainWindow):
             state = 'Paused; active calculations are independent' if paused else 'Discussion ready'
             self.identity.setText(f"{state} · g{self.document['generation']}")
             self.setWindowTitle(f"Expert — {self.document['title']}" + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+        # A modal release or worker completion makes retained refresh work ready.
+        # Queue it so an accepted source selection can start its owner check first.
+        self._schedule_registry_refresh()
 
     def reload_remote(self):
         return self._call(lambda: self.client.document_read(self.document['id']), self._opened)
