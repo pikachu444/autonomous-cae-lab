@@ -103,6 +103,11 @@ def load(entry, declaration):
                 or declared.get('measure') != 'solver_exported_nodal_contact_' + channel
                 or declared.get('frame') != 'CalculiX master-face local normal/tangents; projected nodal values; exact basis vectors not exported'):
             raise ValueError('Unsupported contact native channel physical declaration')
+    gap_declaration = declarations.get(('POINTS', 'GeomGap_mm'), {})
+    if (gap_declaration.get('components') != 1 or gap_declaration.get('units') != 'mm'
+            or gap_declaration.get('measure') != 'derived_piecewise_linear_geometric_gap'
+            or gap_declaration.get('frame') != 'master_normal'):
+        raise ValueError('Unsupported geometric gap native physical declaration')
     topology, topology_path = _read(root, manifest['topology'], json_data=True)
     _, surfaces_path = _read(root, manifest['surfaces'])
     _, body_path = _read(root, manifest['body_map'], json_data=True)
@@ -156,7 +161,12 @@ def load(entry, declaration):
                 or current.get('gap', {}).get('kind') != 'derived_geometric_signed_gap'
                 or current['gap'].get('static') != static
                 or current['gap'].get('recipe', {}).get('solver_clearance') is not False
-                or current['gap']['recipe'].get('solver_active_state') != 'UNKNOWN'):
+                or current['gap']['recipe'].get('solver_active_state') != 'UNKNOWN'
+                or current['gap']['recipe'].get('method') != 'normal_projection_to_linear_subdivision_of_quadratic_master'
+                or current['gap']['recipe'].get('sign') != 'positive_outward_master_separation'
+                or current['gap']['recipe'].get('deformed_mesh') is not True
+                or type(current['gap']['recipe'].get('subdivisions_per_edge')) is not int
+                or current['gap']['recipe']['subdivisions_per_edge'] < 1):
             raise ValueError('Unsupported contact projection/gap physical declaration')
         contact = current.get('contact', [])
         if len(contact) != len(nodes) or {r['node_id'] for r in contact} != set(nodes):
