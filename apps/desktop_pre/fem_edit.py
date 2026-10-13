@@ -81,9 +81,10 @@ def _references(obj):
             for source, names in obj.References]
 
 
-def _mesh_hash(native):
+def _mesh_hash(native, *, node_table=None):
     nodes = []
-    for key, point in sorted(native.Nodes.items()):
+    node_table = native.Nodes if node_table is None else node_table
+    for key, point in sorted(node_table.items()):
         nodes.append([_positive_id(key), [_number(float(v)) for v in (point.x, point.y, point.z)]])
     elements = {family: [[_positive_id(key), list(native.getElementNodes(key))]
                          for key in sorted(getattr(native, family))]
@@ -97,17 +98,18 @@ def _det(a):
             + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]))
 
 
-def _element_quality(native, identifier):
+def _element_quality(native, identifier, *, node_table=None):
     """Same four C3D10 samples/floors as frozen_fem._gates, native mm/order."""
+    node_table = native.Nodes if node_table is None else node_table
     ids = [_positive_id(key) for key in native.getElementNodes(identifier)]
     row = {'element_id': identifier, 'node_ids': ids, 'node_count': len(ids),
            'element_type': {4: 'C3D4', 10: 'C3D10'}.get(len(ids), 'UNSUPPORTED'), 'errors': []}
     if len(ids) != 10:
         row['errors'].append('UNSUPPORTED_RUN_ELEMENT_TYPE')
-    if len(ids) not in (4, 10) or len(set(ids)) != len(ids) or any(key not in native.Nodes for key in ids):
+    if len(ids) not in (4, 10) or len(set(ids)) != len(ids) or any(key not in node_table for key in ids):
         row['errors'].append('INVALID_OR_UNSUPPORTED_CONNECTIVITY')
         return row
-    points = [[float(v) for v in (native.Nodes[key].x, native.Nodes[key].y, native.Nodes[key].z)]
+    points = [[float(v) for v in (node_table[key].x, node_table[key].y, node_table[key].z)]
               for key in (ids[slot] for slot in (CCX_FROM_NATIVE_TET10 if len(ids) == 10 else (1, 0, 2, 3)))]
     if any(not math.isfinite(v) for point in points for v in point):
         row['errors'].append('NONFINITE_NATIVE_COORDINATES')
@@ -308,9 +310,13 @@ class FEMEditor:
         if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 4096:
             raise ValueError('Quality table needs offset>=0 and 1<=limit<=4096')
         rows, bad, absolute, scaled = [], [], [], []
-        volumes = sorted(mesh.FemMesh.Volumes)
+        native = mesh.FemMesh
+        # FreeCAD materializes the entire node dictionary on each property read.
+        # Keep one local snapshot for this synchronous quality/hash call only.
+        node_table = native.Nodes
+        volumes = sorted(native.Volumes)
         for index, identifier in enumerate(volumes):
-            row = _element_quality(mesh.FemMesh, _positive_id(identifier))
+            row = _element_quality(native, _positive_id(identifier), node_table=node_table)
             if row['errors']:
                 bad.append(identifier)
             for key, values in (('minimum_sampled_jacobian_mm3', absolute), ('minimum_scaled_sampled_jacobian', scaled)):
@@ -319,7 +325,7 @@ class FEMEditor:
             if offset <= index < offset + limit:
                 rows.append(row)
         try:
-            mesh_hash = _mesh_hash(mesh.FemMesh)
+            mesh_hash = _mesh_hash(native, node_table=node_table)
         except ValueError:
             mesh_hash = None  # Preserve quality rows/reasons even for invalid native coordinates.
         return {'mesh_id': mesh.Name, 'mesh_sha256': mesh_hash, 'offset': offset,

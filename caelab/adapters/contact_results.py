@@ -62,7 +62,8 @@ def read_dat(path, pairs, frames):
         if slave.upper() != ('DEP' + pair_id).upper() or master.upper() != ('IND' + pair_id).upper():
             raise ValueError('DAT pair/order differs from frozen CONTACT PRINT requests')
         frame = next((row for row in frames if row['static']['step'] == step and row['static']['increment'] == increment), None)
-        if frame is None or not _printed_close(token, frame['static']['load_parameter']):
+        if frame is None or not _printed_close(token, frame['static']['load_parameter'],
+                                               reference_token=frame['load_parameter_token']):
             raise ValueError('DAT pair result does not match an actual FRD frame')
         values, quality = [], []
         raw_rows = [line]

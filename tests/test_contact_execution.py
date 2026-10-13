@@ -51,7 +51,7 @@ def snapshot(model,tmp_path):
     folder.mkdir()
     (folder/'editable.FCStd').write_bytes(b'EXPLICIT_TEST_DOUBLE_NOT_NATIVE')
     (folder/'mesh.json').write_text(json.dumps(model),encoding='utf-8')
-    (folder/'contact.inp').write_text(render(model),encoding='ascii')
+    (folder/'contact.inp').write_text(render(model),encoding='ascii',newline='\n')
     manifest={'kind':'freecad-contact-frozen','schema_version':'1','id':'Fcontact',
               'input_file':'contact.inp','bodies':[{'body_id':name} for name in ('Pad','Base')],
               'files':[{'relative':p.name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
@@ -226,3 +226,45 @@ def test_contact_coverage_and_invalid_tokens_remain_distinct_from_measured_zero(
     path.write_text('\n'.join(lines)+'\n')
     with pytest.raises(ValueError,match='coverage'):
         read_frd(path,nodes,elements,contact_materials=materials)
+
+
+
+def test_native_face_force_table_values_are_already_newtons():
+    from apps.desktop_pre.freeze_contact import _native_force_table
+
+    class ConvertedQuantity:
+        """Explicit FreeCAD getValueAs result double: Value has no unit."""
+        def __init__(self, value):
+            self.Value = value
+
+        def getValueAs(self, unit):
+            pytest.fail('Native integrated nodal forces must not be converted twice')
+
+    table = [('Face1', {1: ConvertedQuantity(2.), 2: ConvertedQuantity(3.)}),
+             ('Face9', {1: ConvertedQuantity(1.), 3: ConvertedQuantity(4.)})]
+    assert _native_force_table(table) == {1: 3., 2: 3., 3: 4.}
+    assert sum(_native_force_table(table).values()) == 10.
+    assert _native_force_table([('Face1', {1: ConvertedQuantity(-2.)})]) == {1: -2.}
+    with pytest.raises(ValueError):
+        _native_force_table([('Face1', {1: ConvertedQuantity(float('nan'))})])
+
+
+
+def test_dat_frame_match_uses_both_native_print_precisions(model, tmp_path):
+    frd, dat, materials = native_outputs(model)
+    # Official formats print the same physical increment at different precision.
+    frd = frd.replace(f'{.5:12.9f}', ' 1.23457E-01')
+    dat = dat.replace('5.0000000E-01', '0.1234568E+00')
+    f, d = tmp_path/'contact.frd', tmp_path/'contact.dat'
+    f.write_text(frd, encoding='ascii')
+    d.write_text(dat, encoding='ascii')
+    nodes, elements, _ = validate_model(model)
+    frames = read_frd(f, nodes, elements, contact_materials=materials)['frames']
+    rows = read_dat(d, model['contacts'], frames)
+    assert len(rows) == 6
+    assert rows[0]['static'] == frames[0]['static']
+    assert '0.1234568E+00' in rows[0]['raw_text']
+    # Adjacent wrong increments remain rejected, rather than using a broad tolerance.
+    d.write_text(dat.replace('0.1234568E+00', '0.1234588E+00'), encoding='ascii')
+    with pytest.raises(ValueError, match='actual FRD frame'):
+        read_dat(d, model['contacts'], frames)

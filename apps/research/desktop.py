@@ -249,7 +249,7 @@ def open_origin(client, job_id, parent=None):
     if not retained:
         raise ValueError('This job has no available source document or retained design copy')
     native = client.native_input(check_id(retained))
-    if native.get('id') != retained or native.get('kind') != 'frozen_fem' or not native.get('editable_path'):
+    if native.get('id') != retained or native.get('kind') not in {'frozen_fem', 'frozen_contact'} or not native.get('editable_path'):
         raise ValueError('The retained design receipt does not identify an editable FEM copy')
     return _spawn(client, ['pre', '--source', native['editable_path'], '--source-label',
                           'Retained design copy — ' + job_id])
