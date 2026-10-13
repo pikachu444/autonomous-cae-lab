@@ -34,6 +34,22 @@ once the new candidate route exists. Wider multi-model numerical comparisons
 and engineering reference qualification follow feature completion; they are
 not a prerequisite for writing the variable picker or candidate/adoption path.
 
-Status: requirements and independent design review prepared; implementation
-assigned to actual Pro as PRO-CAD-NUMERICAL-01. No product implementation or
-acceptance completion is claimed by this packet.
+Status: actual Pro first source checkpoint 4beca42 is integrated locally as
+0ff9c5e, pending correction before publication. Focused unit checks: six passed,
+two reopen assertions failed because their call omitted the numerical kind.
+Actual bridge import fails from a missing research import. Astra also found
+duplicate registrations of the same native target and stale contact definitions
+being reapplied before candidate consistency checks. Corrections are assigned to
+the same Pro as FIX-01/FIX-02. Native capture, candidate execution, cancellation
+and new-design workflow acceptance are not yet established by this checkpoint.
+
+The Pro import/reopen correction 945a61e is integrated as c22c0c2. All nine
+changed-unit checks pass. Actual FreeCAD GUI-owner capture registers geometry,
+force, prescribed displacement, E and contact normal stiffness, then saves the
+native recipe/CAEPRE while preserving the original example. Evidence:
+`runs/product-development/20261013/cad-capture-ad346f8e/receipt.json`.
+This is direct native command execution, not OS-input or broker acceptance;
+candidate solving and opening a calculated new design remain unverified.
+The packaged root FreeCAD launcher exits before its real bin child; runtime
+selection and Windows child-process cancellation require correction before
+claiming candidate lifecycle completion.

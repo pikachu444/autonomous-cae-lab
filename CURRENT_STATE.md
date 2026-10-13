@@ -367,6 +367,34 @@ Pro가 `codex/cad-numerical-20261013`을 접촉 교정본 `5cb083c`에서 만들
 변수→후보 준비/해석→실제 후보 모델의 새 분기 열기를 작성한다. Pro는 제품·관련
 검사/사용 안내, root는 현재 상태·SPEC·공통
 계약 통합·실행, Astra는 중요한 후보/참조/취소/채택 경계의 독립 검토를 맡는다.
+Pro의 첫 구현 `4beca42`를 로컬 `0ff9c5e`로 회수했다. 아직 원격 main에 게시하지
+않았다. 변경 단위 검사에서 6건 통과·2건 실패이며 실패는 재열기 검사 호출의
+`kind='numerical'` 누락이다. 별도로 실제 Python import에서 Pre bridge의
+`RESEARCH_OPERATIONS`/`ResearchInputs` import 누락으로 시작이 실패했다.
+`PRO-CAD-NUMERICAL-FIX-01` 교정 요청을 같은 Pro 대화에 전송했고 Astra에
+이 첫 구현의 후보·참조·취소·새 설계 채택 경계를 읽기 전용 검토 배정했다.
+독립 검토는 시작 import 누락 외에 같은 native target의 이름 변경/중복 등록으로
+두 변수가 같은 값을 덮어쓰는 문제와 native FEM에서 바꾼 접촉 정의를 후보가
+이전 metadata로 되돌리는 문제를 찾았다. 근거를 확인해 같은 Pro에
+`PRO-CAD-NUMERICAL-FIX-02`로 전송했다. FIX-01의 교정 소스는 아래와 같이 회수했고
+FIX-02는 공식 전송 도구 접수 후 교정본을 기다린다. 기존 응답을 중단하거나
+중복 재전송하지 않는다. MoAI spec_progress도 구현 진행 상태로 다시 조회했다.
+Pro의 시작 교정 `945a61e`를 로컬 `c22c0c2`로 통합했고 관련 단위 검사9건이
+2.48초에 통과했다. 실제 FreeCAD GUI owner에서 공개 모델 사본의 치수·하중·강제변위·
+탄성계수·접촉 강성을 등록하고 `pre.research.prepare`로 CAEPRE 저장까지 확인했다.
+`runs/product-development/20261013/cad-capture-ad346f8e/receipt.json`에 성공과 원본
+보존을 남겼다. OS 입력·broker·후보 계산·solver 실행·새 설계 채택의 증거는 아니다.
+첫 capture 실패는 root helper가 Force 없는 옛 예제를 참조한 것으로 입력을 교정했다.
+Windows의 패키지 루트 FreeCAD.exe가 즉시 종료하고 bin/freecad.exe 자식이 남는 것을
+확인했다. bin 실행으로 위 capture를 마쳤고, 후보 adapter의 실제 실행 파일 선택과
+Windows 자식 Gmsh 취소 범위도 Pro에 교정 검토 요청했다. 기존 종료 helper의
+Windows 경로는 leader만 종료하므로 전체 process tree 취소 통과로 표시하지 않는다.
+원격 main 확인값은 `b423e37`이다. 첫 소스 회수와 사용 가능한 구현 완료를 구별한다.
+별도 native Post→Qt 실제 broker 연결 시도는
+`runs/product-development/20261013/contact-handoff-83394326/receipt.json`에 실패로
+남겼다. ParaView의 restore 진입 이후 60초 안에 broker 등록이 없어 중단했으며
+실제 Qt 왕복 통과로 기록하지 않는다. 기존 pvpython 저장·재열기 통과는 유지하고
+이 연결 진단이 CAD 기능 작성을 기다리게 하지 않는다.
 Luna가 설치된 FreeCADCmd1.1.4에서 공개 모델 사본의 mapped-element API를 확인했다.
 Bridge의 치수/Notch 위치 변경과 저장·재열기에서 두 mapped face가 유지됐고, 사라진 면과
 분할 면은 `?Face`/lookup 실패 또는 다중 후손으로 구별됐다. primitive Box에는 map이
