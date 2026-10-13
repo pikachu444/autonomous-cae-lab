@@ -8,7 +8,7 @@ import uuid
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QHBoxLayout, QInputDialog,
+from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QInputDialog,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QPlainTextEdit,
     QSplitter, QTabWidget, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
@@ -22,6 +22,9 @@ from .reference_content import ReferenceContent
 
 
 DATA = Qt.ItemDataRole.UserRole
+STATUS_LABELS = {'UNKNOWN': '미판단', 'PROVISIONAL': '잠정 판단', 'SUPPORTED': '지지 자료 있음',
+    'CONFLICTED': '자료가 상충함', 'REFUTED': '반증됨', 'REJECTED': '기각',
+    'NOT_RELEASED': '미승인', 'PLANNED': '확인 예정', 'OBSERVED': '관찰 기록됨'}
 
 
 class StudyWindow(NumericalWindow):
@@ -50,35 +53,42 @@ class StudyWindow(NumericalWindow):
         self._content_reference = None
         self._content_pending = None
         self._content_queued = False
+        self._entry_read_context = {}
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
 
     def _build_ui(self):
         self.resize(1440, 900)
-        bar = QToolBar('Study document', self)
+        bar = QToolBar('연구 기록', self)
         self.addToolBar(bar)
-        self.new_action = QAction('New Study', self, shortcut=QKeySequence.New)
-        self.open_action = QAction('Open Study…', self, shortcut=QKeySequence.Open)
-        self.save_action = QAction('Save', self, shortcut=QKeySequence.Save)
-        self.undo_action = QAction('Undo Study edit', self, shortcut=QKeySequence.Undo)
-        self.redo_action = QAction('Redo Study edit', self, shortcut=QKeySequence.Redo)
+        self.new_action = QAction('새 연구 기록', self, shortcut=QKeySequence.New)
+        self.open_action = QAction('연구 기록 열기…', self, shortcut=QKeySequence.Open)
+        self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
+        self.undo_action = QAction('실행 취소', self, shortcut=QKeySequence.Undo)
+        self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
         for action, callback in ((self.new_action, self.new_document), (self.open_action, self.choose_document),
                 (self.save_action, self.save_document), (self.undo_action, lambda: self.command('document.undo')),
                 (self.redo_action, lambda: self.command('document.redo'))):
             bar.addAction(action)
             action.triggered.connect(callback)
-        self.apply_button = QPushButton('Apply Study edits')
+        self.apply_button = QPushButton('편집 적용')
         self.apply_button.clicked.connect(self.apply_inputs)
         bar.addWidget(self.apply_button)
         self.identity = QLabel()
-        bar.addWidget(self.identity)
+        self.identity.hide()
+        files = self.menuBar().addMenu('파일(&F)')
+        files.addActions([self.new_action, self.open_action, self.save_action])
+        tools = self.menuBar().addMenu('도구(&T)')
+        self.details_action = QAction('진단 상세…', self)
+        self.details_action.triggered.connect(self.show_diagnostics)
+        tools.addAction(self.details_action)
         root = QWidget()
         outer = QVBoxLayout(root)
         self.message = QLabel('')
         self.message.setWordWrap(True)
         self.statusBar().addWidget(self.message, 1)
         conflict = QHBoxLayout()
-        self.reload_button = QPushButton('Reload owner version')
-        self.copy_button = QPushButton('Keep edits as a new Study')
+        self.reload_button = QPushButton('저장된 내용 다시 열기')
+        self.copy_button = QPushButton('다른 이름으로 보관')
         self.reload_button.clicked.connect(self.reload_remote)
         self.copy_button.clicked.connect(lambda: self.open_document(draft=self.edited_draft(), title=self.document['title'] + ' (copy)'))
         conflict.addWidget(self.reload_button)
@@ -88,28 +98,28 @@ class StudyWindow(NumericalWindow):
         outer.addWidget(split, 1)
         left = QWidget()
         left_layout = QVBoxLayout(left)
-        left_layout.addWidget(QLabel('Research question'))
+        left_layout.addWidget(QLabel('연구 질문'))
         self.question = QPlainTextEdit()
         self.question.setObjectName('studyQuestion')
         self.question.setMaximumHeight(150)
         self.question.textChanged.connect(self._question_edited)
         left_layout.addWidget(self.question)
-        left_layout.addWidget(QLabel('Research'))
+        left_layout.addWidget(QLabel('연구 내용'))
         self.issues = QTreeWidget()
         self.issues.setObjectName('studyIssues')
-        self.issues.setHeaderLabels(['Research entry', 'Status'])
+        self.issues.setHeaderLabels(['내용', '상태'])
         self.issues.setColumnWidth(0, 190)
         self.issues.itemSelectionChanged.connect(self._issue_selected)
         left_layout.addWidget(self.issues, 1)
         add = QVBoxLayout()
         self.add_buttons = []
-        for label, kind in (('Add hypothesis', 'hypotheses'), ('Add judgment', 'decisions'), ('Add next observation', 'next_observations')):
+        for label, kind in (('가설 추가', 'hypotheses'), ('판단 작성', 'decisions'), ('다음 확인사항', 'next_observations')):
             button = QPushButton(label)
             button.clicked.connect(lambda checked=False, kind=kind: self.add_entry(kind))
             add.addWidget(button)
             self.add_buttons.append(button)
         left_layout.addLayout(add)
-        self.remove_button = QPushButton('Remove entry')
+        self.remove_button = QPushButton('선택 항목 삭제')
         self.remove_button.clicked.connect(self.remove_entry)
         left_layout.addWidget(self.remove_button)
         split.addWidget(left)
@@ -118,14 +128,24 @@ class StudyWindow(NumericalWindow):
         self.tabs = QTabWidget()
         self.reading = ReferenceContent()
         self.reading.response_requested.connect(self.read_response)
-        self.tabs.addTab(self.reading, 'Evidence')
-        self.pin_response = QPushButton('Keep this response selection')
+        self.tabs.addTab(self.reading, '자료·결과')
+        self.pin_response = QPushButton('선택한 결과로 바꾸기')
         self.pin_response.clicked.connect(self.keep_response_selection)
-        self.reading.layout().addWidget(self.pin_response)
+        reading_actions = QHBoxLayout()
+        self.note_button = QPushButton('메모 작성')
+        self.note_button.clicked.connect(self.edit_evidence_note)
+        reading_actions.addWidget(self.note_button)
+        reading_actions.addWidget(self.pin_response)
+        reading_actions.addStretch()
+        self.reading.layout().addLayout(reading_actions)
         self.editor = QWidget()
         detail = QVBoxLayout(self.editor)
-        self.detail_identity = QLabel('Select a hypothesis, decision, observation or evidence row')
+        self.detail_identity = QLabel('편집할 내용을 선택하세요.')
         detail.addWidget(self.detail_identity)
+        self.context_source = QPushButton()
+        self.context_source.clicked.connect(lambda: self.tabs.setCurrentWidget(self.reading))
+        self.context_source.hide()
+        detail.addWidget(self.context_source)
         form = QFormLayout()
         self.detail_title = QLineEdit()
         self.detail_title.setObjectName('studyEntryTitle')
@@ -133,17 +153,17 @@ class StudyWindow(NumericalWindow):
         self.detail_text.setObjectName('studyEntryStatement')
         self.detail_text.setMaximumHeight(200)
         self.detail_status = QComboBox()
-        form.addRow('Title / observation / evidence label', self.detail_title)
-        form.addRow('Statement / evidence note', self.detail_text)
-        form.addRow('Explicit research status', self.detail_status)
+        form.addRow('제목', self.detail_title)
+        form.addRow('내용·메모', self.detail_text)
+        form.addRow('판단 상태', self.detail_status)
         detail.addLayout(form)
         self.detail_title.textEdited.connect(self._detail_edited)
         self.detail_text.textChanged.connect(self._detail_edited)
         self.detail_status.currentIndexChanged.connect(self._detail_edited)
         refs = QHBoxLayout()
         self.link_lists, self.link_panels = {}, {}
-        for key, label in (('hypothesis_ids', 'Related hypotheses'), ('supporting', 'Supporting evidence'),
-                           ('conflicting', 'Conflicting evidence'), ('evidence_ids', 'Observation evidence')):
+        for key, label in (('hypothesis_ids', '관련 가설'), ('supporting', '지지하는 자료'),
+                           ('conflicting', '반박하는 자료'), ('evidence_ids', '참고 자료')):
             panel = QWidget()
             column = QVBoxLayout(panel)
             column.setContentsMargins(0, 0, 0, 0)
@@ -159,31 +179,31 @@ class StudyWindow(NumericalWindow):
         self.reference_detail.setReadOnly(True)
         self.reference_detail.setMaximumHeight(150)
         self.reference_detail.hide()
-        self.tabs.addTab(self.editor, 'Judgment / notes')
-        self.raw = QPlainTextEdit()
+        self.tabs.addTab(self.editor, '메모·판단')
+        self.raw = QPlainTextEdit(self)
         self.raw.setObjectName('studyRawDraft')
         self.raw.textChanged.connect(self._raw_edited)
-        self.tabs.addTab(self.raw, 'Technical draft')
+        self.raw.hide()  # Open only through the explicit diagnostics action.
         right_layout.addWidget(self.tabs, 1)
-        right_layout.addWidget(QLabel('Sources and results'))
-        self.evidence = readonly_table(['Evidence', 'Type', 'Selection', 'Availability'])
+        right_layout.addWidget(QLabel('자료와 계산 결과'))
+        self.evidence = readonly_table(['자료·결과', '종류', '선택한 내용', '읽기 상태'])
         self.evidence.setObjectName('studyEvidence')
         self.evidence.setMaximumHeight(180)
         self.evidence.itemSelectionChanged.connect(self._evidence_selected)
         right_layout.addWidget(self.evidence)
         links = QHBoxLayout()
         self.evidence_buttons = []
-        for label, kind in (('Add document…', 'document'), ('Add result…', 'result'), ('Add discussion turn…', 'expert_turn')):
+        for label, kind in (('문서 추가…', 'document'), ('계산 결과 추가…', 'result'), ('대화 발언 추가…', 'expert_turn')):
             button = QPushButton(label)
             button.clicked.connect(lambda checked=False, kind=kind: self.choose_evidence(kind))
             links.addWidget(button)
             self.evidence_buttons.append(button)
         right_layout.addLayout(links)
         navigation = QHBoxLayout()
-        self.reference_button = QPushButton('Open original tool')
-        self.check_button = QPushButton('Refresh sources')
-        self.discussion_button = QPushButton('Discuss…')
-        self.plan_button = QPushButton('Next research…')
+        self.reference_button = QPushButton('원래 프로그램에서 열기')
+        self.check_button = QPushButton('다시 읽기')
+        self.discussion_button = QPushButton('추가 질문…')
+        self.plan_button = QPushButton('다음 계산…')
         self.reference_button.clicked.connect(self.open_reference)
         self.check_button.clicked.connect(self.check_references)
         self.discussion_button.clicked.connect(lambda: self.request_followup('discussion'))
@@ -265,7 +285,7 @@ class StudyWindow(NumericalWindow):
         self._show_detail()
         self._populating = False
         if self._raw_mode:
-            self.tabs.setCurrentWidget(self.raw)
+            self.message.setText('이 문서에는 현재 편집 화면에서 지원하지 않는 항목이 있습니다. 도구 → 진단 상세에서 원본을 확인할 수 있습니다.')
         self._update_actions()
 
     def _opened(self, document):
@@ -277,6 +297,7 @@ class StudyWindow(NumericalWindow):
         self._selected = ('evidence', evidence[0]['id']) if isinstance(evidence, list) and evidence and isinstance(evidence[0], dict) and evidence[0].get('id') else None
         self._selection_serial += 1
         self._reference_checks.clear()
+        self._entry_read_context.clear()
         self._show_document(document)
         self.message.setText('')
 
@@ -284,11 +305,11 @@ class StudyWindow(NumericalWindow):
         self.issues.blockSignals(True)
         self.issues.clear()
         if not self._raw_mode:
-            for kind, title in (('hypotheses', 'Competing hypotheses'), ('decisions', 'Research decisions'), ('next_observations', 'Next observations')):
+            for kind, title in (('hypotheses', '가설'), ('decisions', '판단'), ('next_observations', '다음 확인사항')):
                 parent = QTreeWidgetItem([title, ''])
                 self.issues.addTopLevelItem(parent)
                 for row in self._buffer[kind]:
-                    child = QTreeWidgetItem([str(row.get('title', row.get('question', ''))), str(row.get('status'))])
+                    child = QTreeWidgetItem([str(row.get('title', row.get('question', ''))), STATUS_LABELS.get(row.get('status'), str(row.get('status')))])
                     child.setData(0, DATA, (kind, row['id']))
                     parent.addChild(child)
                     if self._selected == (kind, row['id']):
@@ -306,11 +327,11 @@ class StudyWindow(NumericalWindow):
             selection = ref.get('selection', {})
             channels = selection.get('responses', []) if isinstance(selection, dict) else selection
             identity = ', '.join(channels) if isinstance(channels, list) else ''
-            identity = identity or ref.get('response') or ('Authored turn' if row['kind'] == 'expert_turn' else 'Saved source')
+            identity = identity or ref.get('response') or ('발언 본문' if row['kind'] == 'expert_turn' else '저장 자료')
             check = self._reference_checks.get(row['id'], {})
-            message = {'AVAILABLE': 'Available', 'UNKNOWN': 'Not read', 'STALE': 'STALE',
-                       'UNAVAILABLE': 'Unavailable', 'INVALID': 'Invalid'}.get(check.get('status'), 'Not read')
-            for column, value in enumerate((self._evidence_label(row), {'expert_turn': 'Discussion', 'result': 'Result', 'document': 'Document'}.get(row['kind'], row['kind']), identity, message)):
+            message = {'AVAILABLE': '읽기 완료', 'UNKNOWN': '읽기 전', 'STALE': '원본 변경됨',
+                       'UNAVAILABLE': '읽을 수 없음', 'INVALID': '잘못된 참조'}.get(check.get('status'), '읽기 전')
+            for column, value in enumerate((self._evidence_label(row), {'expert_turn': '대화', 'result': '계산 결과', 'document': '문서'}.get(row['kind'], row['kind']), identity, message)):
                 self._set_cell(self.evidence, index, column, value, False)
             if self._selected == ('evidence', row['id']):
                 self.evidence.selectRow(index)
@@ -336,6 +357,8 @@ class StudyWindow(NumericalWindow):
             self.evidence.clearSelection()
             self.evidence.blockSignals(False)
             self._select(item.data(0, DATA))
+            self.tabs.setCurrentWidget(self.editor)
+            self.detail_text.setFocus()
 
     def _evidence_selected(self):
         rows = self.evidence.selectionModel().selectedRows()
@@ -350,16 +373,21 @@ class StudyWindow(NumericalWindow):
         prior, self._populating = self._populating, True
         row = self._row()
         self._detail_original = deepcopy(row)
-        self.detail_identity.setText({'hypotheses': 'Hypothesis', 'decisions': 'Judgment', 'next_observations': 'Next observation', 'evidence': 'Evidence note'}.get(self._selected[0], '') if row else 'Select a research entry')
-        self.detail_title.setText(str(row.get('title', row.get('question', row.get('label', '')))) if row else '')
-        self.detail_text.setPlainText(str(row.get('statement', row.get('note', ''))) if row else '')
+        self.detail_identity.setText({'hypotheses': '가설', 'decisions': '판단', 'next_observations': '다음 확인사항', 'evidence': '자료 메모'}.get(self._selected[0], '') if row else '편집할 내용을 선택하세요.')
+        title = str(row.get('title', row.get('question', row.get('label', '')))) if row else ''
+        text = str(row.get('statement', row.get('note', ''))) if row else ''
+        if self.detail_title.text() != title:
+            self.detail_title.setText(title)
+        if self.detail_text.toPlainText() != text:
+            self.detail_text.setPlainText(text)
         self.detail_status.clear()
         statuses = {'hypotheses': HYPOTHESIS_STATUSES, 'decisions': DECISION_STATUSES, 'next_observations': OBSERVATION_STATUSES}
         if row and 'status' in row:
-            self.detail_status.addItems(statuses[self._selected[0]])
-            if self.detail_status.findText(str(row['status'])) < 0:
-                self.detail_status.addItem(str(row['status']))
-            self.detail_status.setCurrentText(str(row['status']))
+            for value in statuses[self._selected[0]]:
+                self.detail_status.addItem(STATUS_LABELS.get(value, value), value)
+            if self.detail_status.findData(row['status']) < 0:
+                self.detail_status.addItem(str(row['status']), row['status'])
+            self.detail_status.setCurrentIndex(self.detail_status.findData(row['status']))
         self.detail_status.setVisible(bool(row and 'status' in row))
         for key, choices in self.link_lists.items():
             self.link_panels[key].setVisible(bool(row and key in row))
@@ -370,7 +398,7 @@ class StudyWindow(NumericalWindow):
             options = self._buffer['hypotheses' if key == 'hypothesis_ids' else 'evidence']
             ids = {item['id'] for item in options}
             entries = [(item['id'], item.get('title', item.get('label', ''))) for item in options]
-            entries += [(identifier, 'MISSING linked entry') for identifier in selected if isinstance(identifier, str) and identifier not in ids]
+            entries += [(identifier, '연결된 항목이 없습니다.') for identifier in selected if isinstance(identifier, str) and identifier not in ids]
             for identifier, label in entries:
                 item = QListWidgetItem(str(label))
                 item.setData(DATA, identifier)
@@ -384,7 +412,7 @@ class StudyWindow(NumericalWindow):
 
     @staticmethod
     def _evidence_label(row):
-        label = str(row.get('label', 'Evidence'))
+        label = str(row.get('label', '자료·결과'))
         # Old generated captions appended identities. Change presentation only;
         # never rename a user file or modify the saved evidence label.
         for key in ('job_id', 'turn_id'):
@@ -401,9 +429,16 @@ class StudyWindow(NumericalWindow):
         elif row:
             ids = row.get('supporting', []) + row.get('conflicting', []) + row.get('evidence_ids', [])
             evidence = next((item for item in self._buffer.get('evidence', []) if item['id'] in ids), None)
+            if evidence is None:
+                selected_id = self._entry_read_context.get((self._context(), row['id']))
+                evidence = next((item for item in self._buffer.get('evidence', []) if item['id'] == selected_id), None)
+        self.context_source.setVisible(evidence is not None)
+        if evidence is not None:
+            self.context_source.setText('자료 보기: ' + self._evidence_label(evidence))
+        self.note_button.setEnabled(evidence is not None and not self._raw_mode)
         if evidence is None:
             self._content_key = self._content_reference = self._content_pending = None
-            self.reading.clear('Select a linked discussion turn or calculated result.')
+            self.reading.clear('자료 목록에서 대화 발언이나 계산 결과를 선택하세요.')
             self.pin_response.setEnabled(False)
             return
         reference = deepcopy(evidence['reference'])
@@ -415,7 +450,7 @@ class StudyWindow(NumericalWindow):
             reference['selection'] = {'responses': [reference.pop('response')], 'rows': [0, 256]}
         self._content_reference = reference
         self._content_label = self._evidence_label(evidence)
-        self.reading.clear('Reading source…')
+        self.reading.clear('자료를 읽는 중…')
         self._content_pending = (key, deepcopy(reference))
         self.pin_response.setEnabled(False)
         self._schedule_content_read()
@@ -436,7 +471,7 @@ class StudyWindow(NumericalWindow):
         method = getattr(self.client, 'research_reference', None)
         self._content_pending = None
         if not callable(method):
-            self.reading.clear('Source content reader is unavailable on this service.')
+            self.reading.clear('현재 연결에서는 자료 본문을 읽을 수 없습니다.')
             return False
         def relevant():
             return self._content_key == key and self._content_reference == reference
@@ -457,7 +492,7 @@ class StudyWindow(NumericalWindow):
         def rejected(error):
             self._reference_checks[key[1]] = {'status': 'UNAVAILABLE', 'message': str(error)}
             self._populate_evidence()
-            self.reading.clear('Source unavailable: ' + str(error))
+            self.reading.clear('자료 읽기 실패: ' + str(error))
         started = self._call(lambda: method(reference), received, relevant=relevant, rejected=rejected)
         if not started:
             self._content_pending = (key, reference)
@@ -494,7 +529,7 @@ class StudyWindow(NumericalWindow):
         row[title_key] = deepcopy(original[title_key]) if self.detail_title.text() == str(original[title_key]) else self.detail_title.text()
         row[text_key] = deepcopy(original[text_key]) if self.detail_text.toPlainText() == str(original[text_key]) else self.detail_text.toPlainText()
         if 'status' in row:
-            row['status'] = deepcopy(original['status']) if self.detail_status.currentText() == str(original['status']) else self.detail_status.currentText()
+            row['status'] = deepcopy(self.detail_status.currentData())
         for key, choices in self.link_lists.items():
             if key in row:
                 values = [choices.item(index).data(DATA) for index in range(choices.count())
@@ -503,24 +538,40 @@ class StudyWindow(NumericalWindow):
         self._edited()
         self._populate_entries()
         self._populate_evidence()
+        self._sync_evidence_content()
 
     def add_entry(self, kind):
         if not self.document or self._raw_mode or self._busy or self._callbacks:
             return
+        selected = self._row()
+        evidence_id = self._selected[1] if self._selected and self._selected[0] == 'evidence' else None
+        hypothesis_ids = ([self._selected[1]] if self._selected and self._selected[0] == 'hypotheses'
+                          else deepcopy((selected or {}).get('hypothesis_ids', [])))
         identifier = {'hypotheses': 'H', 'decisions': 'J', 'next_observations': 'O'}[kind] + uuid.uuid4().hex
         if kind == 'hypotheses':
-            row = {'id': identifier, 'title': 'New competing hypothesis', 'statement': '', 'status': 'UNKNOWN'}
+            row = {'id': identifier, 'title': '새 가설', 'statement': '', 'status': 'UNKNOWN'}
         elif kind == 'decisions':
-            row = {'id': identifier, 'title': 'New research decision', 'statement': '', 'hypothesis_ids': [],
+            row = {'id': identifier, 'title': '새 판단', 'statement': '', 'hypothesis_ids': [],
                    'supporting': [], 'conflicting': [], 'status': 'UNKNOWN'}
         else:
-            row = {'id': identifier, 'question': 'Next observation', 'hypothesis_ids': [], 'evidence_ids': [], 'status': 'UNKNOWN', 'note': ''}
+            row = {'id': identifier, 'question': '다음 확인사항', 'hypothesis_ids': [], 'evidence_ids': [], 'status': 'UNKNOWN', 'note': ''}
+        if 'hypothesis_ids' in row:
+            row['hypothesis_ids'] = hypothesis_ids
+        if evidence_id:
+            if kind == 'next_observations':
+                row['evidence_ids'] = [evidence_id]
+            # A judgment has no neutral stored evidence relation. Keep the
+            # reading context; supporting/conflicting remain an explicit choice.
+            self._entry_read_context[(self._context(), identifier)] = evidence_id
         self._buffer[kind].append(row)
         self._selected = (kind, identifier)
         self._selection_serial += 1
         self._edited()
         self._populate_entries()
         self._show_detail()
+        self._update_actions()
+        self.tabs.setCurrentWidget(self.editor)
+        self.detail_text.setFocus()
 
     def remove_entry(self):
         if not self._row() or self._busy or self._callbacks:
@@ -550,7 +601,7 @@ class StudyWindow(NumericalWindow):
             self._result_return.close()
         super().closeEvent(event)
 
-    def open_document(self, *, document_id=None, title='Research Study', draft=None):
+    def open_document(self, *, document_id=None, title='새 연구 기록', draft=None):
         context = self._context()
         return self._call(lambda: self.client.document_open(kind='study', title=title, draft=draft,
             document_id=document_id), self._opened, relevant=lambda: self._context() == context)
@@ -573,9 +624,9 @@ class StudyWindow(NumericalWindow):
             self.local_dirty = late
             self._show_document(receipt['document'], preserve_buffer=late)
             if late:
-                self.message.setText('Earlier Study edits were applied; newer local edits remain unapplied. Apply them before Save.')
+                self.message.setText('이전 편집을 적용했습니다. 그동안 입력한 내용은 그대로 남아 있습니다.')
             else:
-                self.message.setText('Study ' + operation + ' acknowledged. Research judgments remain NOT_RELEASED.')
+                self.message.setText('저장했습니다.' if operation == 'document.save' else '편집을 적용했습니다.')
             if after and not late:
                 QTimer.singleShot(0, after)
         return self._call(lambda: self.client.document_command(document['id'], operation, deepcopy(arguments or {}),
@@ -625,9 +676,9 @@ class StudyWindow(NumericalWindow):
                 rows = [row for row in payload['documents'] if row.get('kind') == 'study']
                 labels = [str(index + 1) + '. ' + row['title'] for index, row in enumerate(rows)]
                 if not labels:
-                    self.message.setText('No Study documents are available. Create one independently of calculations.')
+                    self.message.setText('저장된 연구 기록이 없습니다. 새 연구 기록을 만들 수 있습니다.')
                     return
-                chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, 'Open Study', 'Study document', labels, editable=False))
+                chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, '연구 기록 열기', '연구 기록', labels, editable=False))
                 if accepted and self._context() == context:
                     self.open_document(document_id=rows[labels.index(chosen)]['id'])
             self._call(self.client.documents, listed, relevant=lambda: self._context() == context)
@@ -638,12 +689,12 @@ class StudyWindow(NumericalWindow):
 
     def _leave(self, continuation):
         if self._busy or self._callbacks:
-            self.message.setText('Wait for the current Study request before leaving.')
+            self.message.setText('현재 작업이 끝난 뒤 다른 문서를 열어 주세요.')
             return
         if not self.document or not (self.local_dirty or self.document.get('dirty')):
             continuation()
             return
-        answer = self._modal(lambda: QMessageBox.question(self, 'Unsaved Study', 'Save this Study before leaving?',
+        answer = self._modal(lambda: QMessageBox.question(self, '저장하지 않은 변경', '변경한 내용을 저장할까요?',
             QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel))
         if answer == QMessageBox.StandardButton.Save:
@@ -671,7 +722,7 @@ class StudyWindow(NumericalWindow):
             self._edited()
             self._populate_evidence()
             self._show_detail()
-            self.message.setText('Linked the exact saved source. No hypothesis or decision was automatically adopted.')
+            self.message.setText('선택한 자료를 추가했습니다.')
         def read(source):
             if kind == 'document':
                 if not source.get('saved_revision') or source.get('dirty') or not {'id', 'kind', 'input_revision', 'draft', 'title'} <= source.keys():
@@ -682,11 +733,11 @@ class StudyWindow(NumericalWindow):
                      'input_sha256': canonical_hash(source['draft'])}, source['title'])
             elif kind == 'result':
                 rows = [row for row in source.get('runs', []) if row.get('retained_result') and row.get('retention_complete')]
-                labels = ['Run ' + str(index + 1) + ' — ' + str(row.get('retained_state', 'UNKNOWN')) for index, row in enumerate(rows)]
+                labels = ['계산 ' + str(index + 1) + ' — ' + str(row.get('retained_state', 'UNKNOWN')) for index, row in enumerate(rows)]
                 if not rows:
                     self.message.setText('No exact retained result is available. Save completed results in their original editor first.')
                     return
-                chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, 'Link retained result', 'Exact original job', labels, editable=False))
+                chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, '계산 결과 추가', '계산 선택', labels, editable=False))
                 if accepted and relevant():
                     job = rows[labels.index(chosen)]['job_id']
                     self._call(lambda: self.client.document_result_reference(source['id'], job),
@@ -698,30 +749,65 @@ class StudyWindow(NumericalWindow):
                 turns = source.get('discussion', {}).get('turns', [])
                 labels = [str(index + 1) + '. ' + str(turn.get('author', turn.get('role', 'Participant'))) + ': ' + str(turn.get('text') or turn.get('status', ''))[:90] for index, turn in enumerate(turns)]
                 if not labels:
-                    self.message.setText('This saved Discussion has no actual retained turns to select.')
+                    self.message.setText('이 대화에는 저장된 발언이 없습니다.')
                     return
-                chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, 'Link saved Expert turn', 'Actual original turn', labels, editable=False))
+                chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, '대화 발언 추가', '발언 선택', labels, editable=False))
                 if accepted and relevant():
                     turn = turns[labels.index(chosen)]
                     pin({'kind': kind, 'discussion_id': source['id'], 'saved_revision': source['saved_revision'],
-                         'turn_id': turn['id'], 'turn_sha256': canonical_hash(turn)}, source['title'] + ' — ' + str(turn.get('author', turn.get('role', 'Participant'))))
+                         'turn_id': turn['id'], 'turn_sha256': canonical_hash(turn)}, source['title'] + ' — ' + str(turn.get('author', turn.get('role', 'Participant'))) + ': ' + ' '.join(str(turn.get('text') or turn.get('status', '')).split())[:70])
         def listed(payload):
             rows = [row for row in payload['documents'] if row.get('kind') != 'study' and (kind != 'expert_turn' or row.get('kind') == 'expert')]
             labels = [str(index + 1) + '. ' + row['title'] + ' (' + row['kind'] + ')' for index, row in enumerate(rows)]
             if not labels:
-                self.message.setText('No original documents are available for this evidence type.')
+                self.message.setText('추가할 수 있는 문서가 없습니다.')
                 return
-            chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, 'Link exact evidence', 'Original owner document', labels, editable=False))
+            chosen, accepted = self._modal(lambda: QInputDialog.getItem(self, '자료 추가', '문서 선택', labels, editable=False))
             if accepted and relevant():
                 self._call(lambda: self.client.document_read(rows[labels.index(chosen)]['id']), read, relevant=relevant)
         return self._call(self.client.documents, listed, relevant=relevant)
+
+    def edit_evidence_note(self):
+        if self._busy or self._callbacks or self._raw_mode:
+            return False
+        evidence_id = self._content_key[1] if self._content_key else None
+        if evidence_id and any(row['id'] == evidence_id for row in self._buffer['evidence']):
+            self._select(('evidence', evidence_id))
+            self.tabs.setCurrentWidget(self.editor)
+            self.detail_text.setFocus()
+            return True
+        return False
+
+    def show_diagnostics(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle('연구 문서 진단 상세')
+        dialog.resize(800, 600)
+        layout = QVBoxLayout(dialog)
+        # Preserve the same raw editor and its partial text across modal close.
+        layout.addWidget(self.raw)
+        self.raw.show()
+        close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        close.rejected.connect(dialog.reject)
+        layout.addWidget(close)
+        self._modal(dialog.exec)
+        layout.removeWidget(self.raw)
+        self.raw.setParent(self)
+        self.raw.hide()
+
+    def retry_content(self):
+        if not self._content_key or not self._content_reference:
+            return False
+        self.reading.clear('자료를 다시 읽는 중…')
+        self._content_pending = (self._content_key, deepcopy(self._content_reference))
+        self._schedule_content_read()
+        return True
 
     def check_references(self):
         if not self.document or self._busy or self._callbacks:
             return False
         if self.local_dirty:
-            self.message.setText('Apply Study links before checking their exact source identities.')
-            return False
+            # Re-read this exact selection without applying or discarding notes.
+            return self.retry_content()
         method = getattr(self.client, 'study_references', None)
         if not callable(method):
             self.message.setText('Reference resolution is unavailable on this service. Existing exact links remain editable and saveable.')
@@ -731,12 +817,13 @@ class StudyWindow(NumericalWindow):
             self._reference_checks = {row['evidence_id']: row for row in payload['references']}
             self._populate_evidence()
             self._show_detail()
+            self.retry_content()
         return self._call(lambda: method(self.document['id']), received,
             relevant=lambda: self._context() == context and canonical_hash(self.edited_draft()) == draft_hash)
 
     def _navigation_context(self):
         if not self.document or self.local_dirty or self.document.get('dirty') or not self.document.get('saved_revision'):
-            self.message.setText('Apply and Save this Study before opening an exact discussion or follow-up Plan.')
+            self.message.setText('변경 내용을 저장한 뒤 이어갈 수 있습니다.')
             return None
         if diagnostics(self._buffer):
             self.message.setText('Study has unresolved structural diagnostics. Edit or retain its draft before selecting a follow-up basis.')
@@ -779,6 +866,20 @@ class StudyWindow(NumericalWindow):
     def request_followup(self, kind):
         if kind not in {'discussion', 'plan'} or self._busy or self._callbacks or self._raw_mode:
             return False
+        if self.document and (self.local_dirty or self.document.get('dirty') or not self.document.get('saved_revision')):
+            answer = self._modal(lambda: QMessageBox.question(self, '변경 내용 저장',
+                '현재 내용을 저장하고 이어갈까요?',
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save))
+            if answer != QMessageBox.StandardButton.Save:
+                return False
+            selected = self._context(selection=True)
+            def continue_saved():
+                if self._context(selection=True) == selected:
+                    self.request_followup(kind)
+                else:
+                    self.message.setText('선택이 변경되었습니다. 이어갈 항목을 확인하고 다시 눌러 주세요.')
+            return self.save_document(after=continue_saved)
         context = self._navigation_context()
         if context is not None:
             return self._navigate(kind, context)
@@ -799,8 +900,9 @@ class StudyWindow(NumericalWindow):
         for button in self.add_buttons + self.evidence_buttons:
             button.setEnabled(enabled and not self._raw_mode)
         self.remove_button.setEnabled(enabled and self._row() is not None)
-        self.reference_button.setEnabled(enabled and self._selected is not None and self._selected[0] == 'evidence')
-        self.check_button.setEnabled(enabled and not self.local_dirty)
+        self.reference_button.setEnabled(enabled and bool(self._content_reference))
+        self.note_button.setEnabled(enabled and bool(self._content_reference) and not self._raw_mode)
+        self.check_button.setEnabled(enabled and bool(self._content_reference))
         for button in (self.discussion_button, self.plan_button):
             button.setEnabled(enabled and not self._raw_mode)
         self.reload_button.setVisible(self.conflict)
@@ -809,7 +911,7 @@ class StudyWindow(NumericalWindow):
         self.copy_button.setEnabled(available)
         if present:
             self.setWindowTitle('Study — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
-            self.identity.setText('Unreleased')
+            self.identity.setText('')
         self._schedule_content_read()
 
 

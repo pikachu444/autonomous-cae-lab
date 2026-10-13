@@ -16,7 +16,7 @@ class ReferenceWindow(QMainWindow):
         self.client, self.reference = client, deepcopy(reference)
         self._workers, self._busy, self._closed = [], False, False
         self.resize(1050, 750)
-        self.setWindowTitle('Research source')
+        self.setWindowTitle('자료·계산 결과')
         root=QWidget(); layout=QVBoxLayout(root)
         self.message=QLabel('Reading source…')
         self.message.setWordWrap(True); layout.addWidget(self.message)
@@ -25,10 +25,10 @@ class ReferenceWindow(QMainWindow):
         self.content = ReferenceContent()
         self.content.response_requested.connect(self.read_response)
         layout.addWidget(self.content, 1)
-        details = QPushButton('Technical details…')
+        details = QPushButton('진단 상세…')
         details.clicked.connect(self.show_details)
         layout.addWidget(details)
-        self.open_button=QPushButton('Open original working editor')
+        self.open_button=QPushButton('원래 프로그램에서 열기')
         self.open_button.setEnabled(False); self.open_button.clicked.connect(self.open_owner)
         layout.addWidget(self.open_button); self.setCentralWidget(root)
         self._read(reference)
@@ -93,7 +93,7 @@ class ReferenceWindow(QMainWindow):
 
     def show_details(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle('Source details')
+        dialog.setWindowTitle('자료 진단 상세')
         dialog.resize(850, 600)
         layout = QVBoxLayout(dialog)
         layout.addWidget(self.tree)
