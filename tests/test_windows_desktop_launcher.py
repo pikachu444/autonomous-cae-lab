@@ -4,6 +4,7 @@ Uses only unittest, a standard-library venv and Windows PowerShell. No package
 download, listening service, Qt window, solver, provider or native application.
 These are launcher contract checks, not actual Windows GUI acceptance.
 """
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -266,12 +267,28 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         return [event for event in events if event["kind"] == kind]
 
     def test_explicitly_applied_expert_config_reuses_same_service(self):
+        # Real Windows PowerShell executes the production File.Replace call.
+        # Phase 2 reconciles the receipt; phase 3 reuses that saved receipt.
         result, events, spec = self.run_case([
+            self.phase(NoBrowser=True, ResearchUI=True),
             self.phase(NoBrowser=True, ResearchUI=True),
             self.phase(NoBrowser=True, ResearchUI=True)], mutate="applied_config")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(self.events_of(events, "server")), 1)
         self.assertEqual(self.events_of(events, "desktop"), [])
+        receipt_path = self.runtime / ("server-" + str(spec["port"]) + ".launch.json")
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8-sig"))
+        config = Path(spec["source"]) / "test appdata/AutonomousCAELab/workbench-config.json"
+        self.assertEqual(receipt["config_sha256"], hashlib.sha256(config.read_bytes()).hexdigest())
+        self.assertEqual(receipt["service_session_id"], "Sfixture")
+        self.assertEqual(receipt["pid"], 42421)
+        self.assertEqual(receipt["store"], spec["store"])
+        self.assertEqual(receipt["source_root"], spec["source"])
+        self.assertEqual(receipt["project_sha256"], "test-project")
+        self.assertEqual(receipt["config_path"], str(config))
+        self.assertEqual(len(receipt["source_fingerprint"]), 64)
+        self.assertEqual(list(self.runtime.glob(receipt_path.name + ".*")), [],
+                         "Successful reconciliation left a temporary receipt or backup")
 
     def test_reuse_checks_loaded_config_and_session_even_when_receipt_matches_disk(self):
         for mutation in ('config_aba', 'service_session'):

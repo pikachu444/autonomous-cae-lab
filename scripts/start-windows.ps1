@@ -116,10 +116,23 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
             if ($launch.config_sha256 -ne $configSha) {
                 $launch.config_sha256 = $configSha
                 $receiptTemp = $launchPath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+                $receiptBackup = $receiptTemp + '.bak'
+                $receiptReplaced = $false
                 try {
                     [IO.File]::WriteAllText($receiptTemp, ($launch | ConvertTo-Json -Depth 3), [Text.UTF8Encoding]::new($false))
-                    [IO.File]::Replace($receiptTemp, $launchPath, $null)
-                } finally { if (Test-Path -LiteralPath $receiptTemp) { Remove-Item -LiteralPath $receiptTemp } }
+                    # WinPS 5.1 can bind $null to an empty backup-path string.
+                    # An explicit sibling backup keeps File.Replace atomic.
+                    [IO.File]::Replace($receiptTemp, $launchPath, $receiptBackup)
+                    $receiptReplaced = $true
+                } finally {
+                    if (Test-Path -LiteralPath $receiptTemp) { Remove-Item -LiteralPath $receiptTemp }
+                    # If replacement failed, retain any backup for recovery.
+                    if ($receiptReplaced -and (Test-Path -LiteralPath $receiptBackup)) {
+                        try { Remove-Item -LiteralPath $receiptBackup } catch {
+                            Write-Warning "Launch receipt updated; backup cleanup failed: $receiptBackup"
+                        }
+                    }
+                }
             }
             $reuse = $true
         }
