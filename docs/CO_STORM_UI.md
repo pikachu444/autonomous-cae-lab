@@ -44,7 +44,11 @@ the actual verified source list. No citations or utterances are fabricated.
 calculated result. Series have a curve and Values table with units; scalar values
 remain scalar. Invalid/masked samples leave gaps and retain their raw table
 values. Failed candidates remain failed, with their reason, rather than zeroes.
-The adjacent Judgment / notes tab retains the user's hypothesis/support/conflict/
+For nested DOE/search results, the exact verified candidate records are read as
+candidate records; their channel names are not passed to the top-level result
+selector. Candidate identity, failure, unit, mask and the selected sample rows
+are preserved. An unloaded channel clears the prior view instead of substituting
+another channel. The adjacent Judgment / notes tab retains the user's hypothesis/support/conflict/
 decision controls. Technical draft remains available for unsupported authored
 draft fields, without taking over ordinary reading.
 
@@ -129,3 +133,9 @@ render, screenshot, native OS input, inference or user acceptance is claimed.
 Root Codex performs Windows compilation/Qt rendering with the existing saved
 four-turn/one-calculation material, reports the actual scope, and integrates.
 Source publication precedes that execution so it can proceed immediately.
+
+The first read-only source review identified a nested-candidate selector mismatch,
+a fallback that could display another channel, and same-turn citation switching
+during a pending read. The follow-up source corrects those paths and adds a real
+packed-result reader test plus a delayed A-to-B citation test. Those checks are
+provided for Windows execution; they are not recorded as author runtime PASS.

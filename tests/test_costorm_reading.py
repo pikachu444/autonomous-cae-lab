@@ -68,3 +68,42 @@ def test_sync_literature_route_requires_exact_archive_and_preserves_locator():
         with pytest.raises(ServiceError):
             handle(handler, 'POST', '/api/workbench/assist', {})
     assert len(calls) == 1
+
+
+def test_actual_packed_candidate_reference_reads_nested_values_and_masks(tmp_path):
+    pytest.importorskip('numpy')
+    from caelab.evaluation import save_evaluation, read_result
+    from caelab.research_workflows import resolve_reference
+    from caelab.storage import canonical_hash
+    result = {'kind': 'doe', 'candidates': [
+        {'candidate_id': 'Csuccess', 'execution_status': 'SUCCEEDED', 'responses': {
+            'stress': {'kind': 'series', 'unit': 'MPa', 'value': [0, 2, 3],
+                'axes': [{'name': 'strain', 'unit': '1', 'values': [0, .1, .2]}],
+                'mask': [True, False, True], 'source_rows': [11, 12, 13]}}},
+        {'candidate_id': 'Cfailed', 'execution_status': 'FAILED', 'failure_reason': 'Binding failed', 'responses': {}}]}
+    folder = tmp_path / 'retained'
+    save_evaluation(result, folder)
+    actual = read_result(folder, verify='all')
+    reference = {'kind': 'result', 'document_id': 'Noriginal', 'job_id': 'Jactual',
+        'input_revision': 'Isaved', 'input_sha256': 'a' * 64, 'result_sha256': canonical_hash(actual),
+        'selection': {'responses': ['stress'], 'rows': [1, 3]}}
+    reads = []
+    def read(document_id, job_id, selection=None):
+        assert (document_id, job_id) == ('Noriginal', 'Jactual')
+        reads.append(deepcopy(selection))
+        return read_result(folder, verify='all', selection=selection)
+    wb = SimpleNamespace(
+        document_read=lambda identifier: {'id': identifier, 'runs': [{'job_id': 'Jactual',
+            'input_revision': 'Isaved', 'input_sha256': 'a' * 64,
+            'retention_complete': True, 'retained_result': {'revision': 'Rresult'}}]},
+        document_result=read)
+    opened = resolve_reference(wb, reference)
+    response = opened['result']['candidates'][0]['responses']['stress']
+    assert response['value'] == [2, 3] and response['mask'] == [False, True]
+    assert response['axes'][0]['values'] == [.1, .2] and response['source_rows'] == [12, 13]
+    assert response['unit'] == 'MPa'
+    assert opened['result']['candidates'][1] == actual['candidates'][1]
+    assert opened['reference'] == reference and reads == [None]
+    assert canonical_hash(read_result(folder, verify='all')) == reference['result_sha256']
+    with pytest.raises(ValueError, match='Unknown candidate'):
+        resolve_reference(wb, {**reference, 'selection': {'responses': ['missing']}})

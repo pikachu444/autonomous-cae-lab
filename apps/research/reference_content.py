@@ -114,6 +114,9 @@ class ReferenceContent(QWidget):
             for name, response in (row.get('responses') or {}).items():
                 if self.channel.findData(name) < 0:
                     self.channel.addItem(name + ' [' + str(response.get('unit', 'unit unavailable')) + ']', name)
+        available = (self._rows[0].get('responses') or {}) if self._rows else (result.get('responses') or {})
+        if available:
+            self.channel.setCurrentIndex(self.channel.findData(next(iter(available))))
         self.channel.blockSignals(False)
         self.channel.setVisible(self.channel.count() > 0)
         self.read.setVisible(self.channel.count() > 0)
@@ -139,7 +142,13 @@ class ReferenceContent(QWidget):
         # A previously selected exact response remains the displayed response.
         name = self.channel.currentData()
         if name not in responses:
-            name = next(iter(responses))
+            self.values.setRowCount(0)
+            self.axes.clear()
+            self.canvas.draw_idle()
+            self.title.setText(str(name or 'Response'))
+            self.body.setPlainText('Selected response is not loaded for this record. Read response or open the original result.')
+            self.body.show(); self.result_views.hide()
+            return
         response = responses[name]
         unit = str(response.get('unit', 'unit unavailable'))
         labels = [str(response[key]) for key in ('component', 'frame', 'measure')
