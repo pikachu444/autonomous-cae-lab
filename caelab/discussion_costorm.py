@@ -84,7 +84,10 @@ def start_record(owner, document, command_id, *, action, turn=None):
     consumed = set((last or {}).get('consumed_user_ids', []))
     initial_user = source['user_turn_id'] if source else turn['id']
     interventions = [{'id': item['id'], 'text': item['text'],
-                      'topic_id': item['topic_id'], 'reply_to': item.get('reply_to')}
+                      'topic_id': item['topic_id'], 'topic_title': (item.get('topic') or {}).get('title'),
+                      'reply_to': item.get('reply_to'),
+                      'reply_text': next((turn.get('text') for turn in document['discussion']['turns']
+                                          if turn['id'] == item.get('reply_to')), None)}
         for item in document['discussion']['turns'] if item.get('author') == 'user'
         and item['id'] != initial_user and item['id'] not in consumed]
     role = frozen['participants'][0]

@@ -90,6 +90,8 @@ class Completion:
             key = canonical_hash({'prompt': full, 'model': self.config.model, 'format': VERSION})
             prior = next((row for row in self.journal if row['key'] == key), None)
             if prior is not None:
+                from ._vendor.costorm.prompting import last_completion_key
+                last_completion_key.set(key)
                 self.cache_hits += 1
                 return [prior['text']]
             if len(self.journal) >= 256:
@@ -104,6 +106,8 @@ class Completion:
             # Actual raw replies remain in the existing job result on partial failure.
             self.journal.append({'key': key, 'text': text, 'prompt': full})
             self.history.append({'prompt': full, 'response': text})
+            from ._vendor.costorm.prompting import last_completion_key
+            last_completion_key.set(key)
             check_cancelled()
             return [text]
 
@@ -158,14 +162,27 @@ def presentation(state):
         path = (*path, node['name'])
         identifier = 'Q' + canonical_hash(path)[:24]
         citations = [str(value) for value in node.get('content', [])]
-        nodes.append({'id': identifier, 'title': node['name'], 'parent_id': parent,
+        title = state.get('runner_argument', {}).get('topic', node['name']) if parent is None else node['name']
+        nodes.append({'id': identifier, 'title': title, 'parent_id': parent,
                       'citations': citations})
         for child in node.get('children', []):
             visit(child, identifier, path)
     if kb.get('tree'):
         visit(kb['tree'])
     turns = []
-    history = [('warm:' + str(i), turn) for i, turn in enumerate(state.get('warmstart_conv_archive', []))]
+    # With no revised catch-up transcript upstream reuses the archive verbatim.
+    # Keep those turns once; separate genuinely revised catch-up turns stay visible.
+    available = {}
+    for turn in state.get('conversation_history', []):
+        key = canonical_hash(turn)
+        available[key] = available.get(key, 0) + 1
+    history = []
+    for index, turn in enumerate(state.get('warmstart_conv_archive', [])):
+        key = canonical_hash(turn)
+        if available.get(key, 0):
+            available[key] -= 1
+        else:
+            history.append(('warm:' + str(index), turn))
     history += [(i, turn) for i, turn in enumerate(state.get('conversation_history', []))]
     for index, turn in history:
         if turn.get('role') == 'Guest':
@@ -189,6 +206,11 @@ def report_record(text, state):
             'status': 'DRAFT' if numbers and all(row['source'] for row in references) else 'INCOMPLETE_CITATIONS'}
 
 
+def _retry_journal(retry):
+    rejected = retry.get('invalid_completion_key')
+    return [deepcopy(row) for row in retry['journal'] if not rejected or row['key'] != rejected]
+
+
 def run(runtime, definition, question, context, session, path, workspace_id, budget):
     trusted = _TRUSTED.get()
     if not isinstance(trusted, dict):
@@ -202,11 +224,16 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
                 'reason': '연결에서 기존 OpenScience 설정과 사용 가능한 ChatGPT 모델을 선택하세요.',
                 'sources': [], 'proposed_actions': [], 'inference_performed': False}
     roles = [runtime.describe(role) for role in spec['roles']]
+    required = {'knowledge.search', 'knowledge.source'}
+    if any(not required.issubset(set(role.get('tools', []))) for role in roles):
+        raise PermissionError('참여 역할 모두에 선택 자료 검색·원문 읽기 권한이 필요합니다.')
     collections = sorted(set.intersection(*(set(role.get('collections', [])) for role in roles)))
     pins = selected_source_refs(context)
     if not pins:
         raise ValueError('Co-STORM 토론에 사용할 자료를 선택하세요.')
     grants = []
+    if spec.get('evidence') and any('results.read' not in role.get('tools', []) for role in roles):
+        raise PermissionError('선택한 계산 결과를 읽을 참여 역할 권한이 필요합니다.')
     result_sources = trusted.get('read_results', lambda: [])()
     for result in result_sources:
         runtime._transmission_check({**result['reference'], 'data': result['payload']}, context)
@@ -233,11 +260,9 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         action = prior['retry']['action']
         inputs = prior['retry']['interventions']
         base = prior['retry']['base']
-        journal = deepcopy(prior['retry']['journal'])
-        # A malformed model reply can be requested again explicitly. Budget/cancel
-        # retries replay all completed calls without spending them twice.
-        if prior['retry'].get('invalid_completion') and journal:
-            journal.pop()
+        # Only the exact rejected reply is requested again; valid later queued
+        # completions remain reusable too.
+        journal = _retry_journal(prior['retry'])
     else:
         base = deepcopy(prior.get('state')) or _new_state(question)
         inputs = deepcopy(spec.get('interventions', []))
@@ -267,6 +292,8 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
     started = time.monotonic()
     outcome, reason, report = 'ANSWERED', None, deepcopy(prior.get('report'))
     retry = None
+    from ._vendor.costorm.prompting import last_completion_key
+    last_completion_key.set(None)
     try:
         if action == 'start':
             runner.warm_start()
@@ -274,7 +301,12 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
             if not runner.conversation_history:
                 raise ValueError('먼저 자료 토론을 시작하세요.')
             for item in inputs:
-                runner.step(user_utterance=item['text'])
+                context_text = ''
+                if item.get('topic_title'):
+                    context_text += '\nSelected discussion topic: ' + item['topic_title']
+                if item.get('reply_text'):
+                    context_text += '\nReplying to this earlier utterance:\n' + item['reply_text']
+                runner.step(user_utterance=item['text'] + context_text)
             if action == 'step':
                 runner.step()
             elif action == 'report':
@@ -293,7 +325,9 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         reason = str(error)
         committed = deepcopy(base)
         retry = {'action': action, 'base': deepcopy(base), 'interventions': deepcopy(inputs),
-                 'journal': deepcopy(journal), 'invalid_completion': isinstance(error, ValueError)}
+                 'journal': deepcopy(journal),
+                 'invalid_completion_key': (getattr(error, 'completion_key', last_completion_key.get())
+                    if isinstance(error, ValueError) else None)}
         cancelled = isinstance(error, ExecutionCancelled)
     else:
         cancelled = False
