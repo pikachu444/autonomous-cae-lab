@@ -117,14 +117,15 @@ if (-not $installed) {
 }
 Invoke-Checked $python @('-c','import apps.lab.server, caelab, scipy, felupe')
 if ($ResearchUI) { Invoke-Checked $python @('-c','import PySide6, matplotlib, apps.research.material_window') }
+# Python literals use single quotes so Windows PowerShell 5.1 preserves native -c arguments.
 if ($ResearchUI -or $Expert) {
-    Invoke-Checked $python @('-c','from caelab.assist.readiness import require_features; require_features("expert_agent", "openai_compatible_generator", "knowledge_index"); print("Expert dependency imports OK; model/credentials and inference are not checked")')
+    Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('expert_agent', 'openai_compatible_generator', 'knowledge_index'); print('Expert dependency imports OK; model/credentials and inference are not checked')")
 }
 if ($Documents) {
-    Invoke-Checked $python @('-c','from caelab.assist.readiness import require_features; require_features("pdf_read"); print("PDF reader import OK")')
+    Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('pdf_read'); print('PDF reader import OK')")
 }
-if ($MCP) { Invoke-Checked $python @('-c','from caelab.assist.readiness import require_features; require_features("mcp"); print("MCP package import OK; no client or credentials configured")') }
-if ($Sensitivity) { Invoke-Checked $python @('-c','from SALib.sample import sobol; from SALib.analyze import sobol as analyze; print("Sobol sampling/analysis package imports OK; no study executed")') }
+if ($MCP) { Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('mcp'); print('MCP package import OK; no client or credentials configured')") }
+if ($Sensitivity) { Invoke-Checked $python @('-c',"from SALib.sample import sobol; from SALib.analyze import sobol as analyze; print('Sobol sampling/analysis package imports OK; no study executed')") }
 Write-Host 'Base, numerical and material imports OK'
 $receipt = [ordered]@{
     source_root = $sourceRoot
