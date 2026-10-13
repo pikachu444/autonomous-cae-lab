@@ -76,6 +76,13 @@ Astra는 현재 소스와 수치 의미를 독립 검토 중이다. Pro 교정�
 실제 작은 창 확인→통합/게시가 다음 행동이며 D6 전체 완료로 취급하지 않는다.
 Sol은 별도 D7의 FN08/18/19 코드 재사용과 실제 연결 누락을 읽기 전용으로 정리한다.
 소유 기록은 `pde-coupling-workflows/reuse-map.md`이며 Pro D6 제품 파일은 수정하지 않는다.
+해당 조사는 인도받았다. [SPEC-RESEARCH-003](.moai/specs/SPEC-RESEARCH-003/spec.md)에
+기존 7개 작업의 요구/완료 조건을 연결해 다음 Pro 구현을 준비했다. 아직 Pro에 배정하지
+않았으며 새 일반식·법칙·mapping capability를 inspector 구현으로 완료 처리하지 않는다.
+D6의 기존 분석/대리모델 선택/DOE/제약 최적화 관련 검사 4개도 10.11초에 통과했다.
+`retained-regression-first.txt`에 저장했다. 추가 Astra 검토에서 독립 Plan의 모델 A→B
+재선택 후 source가 A에 남는 문제를 찾아 Pro에 교정을 전달했다. 이전 Expert/Study의
+반환처를 보존하면서 선택한 모델 원본을 정확히 구별해야 한다.
 
 Pro D6와 별개로 Sol GUI 담당은 Expert의 연결 설정 창을 맡았다. 기존 프로필·실행
 환경·모델·역할·자료 전송 범위·적용/실패 상태를 읽고 조작하는 화면 개선이며 새 인증이나
