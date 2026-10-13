@@ -56,3 +56,16 @@ stand in for FreeCAD, Gmsh, CalculiX, Windows input or engineering validation.
 Pro remote execution: **NOT_RUN** (executor disconnected). Root/Codex owns the
 Windows execution/integration record. No solver or provider was run by this
 authoring checkpoint.
+
+Codex integrated this checkpoint and ran the three new contact/owner checks and
+four affected FEM Qt panel checks on Windows; they passed. A bounded real
+FreeCAD 1.1.4 check found a native issue that the snapshot double did not cover:
+calling the preview snapshot alone changes live shape BRep flags and immediately
+invalidates the recorded A/B faces. No actual geometry edit is needed. Native
+save/reopen and mesh preparation acceptance therefore remain open.
+
+Independent Astra source review also found unapplied form edits lost by Show
+faces/Preview Cancel, missing old/new normal comparison, and suppressed mesh
+alternatives counted as active. These corrections are requested from Pro while
+export/Runner/Post authoring continues. This partial source checkpoint is not
+ready for a supported contact run.

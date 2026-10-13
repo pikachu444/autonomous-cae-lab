@@ -275,7 +275,18 @@ userMessage `01a133bc-eb27-77f4-98b1-455457d0f371`의 본문에서 수신을 확
 `codex/contact-workflow-20261013`; Pro가 제품 코드·관련 검사/사용 안내를 쓰고 Codex는
 공유 계약 통합·CURRENT_STATE/SPEC/Windows 실행을 소유한다. 아직 접촉 코드가 작성된
 것으로 보고하지 않는다. 같은 Pro는 Expert 교정 게시 후 접촉의 기존 native 코드 읽기에
-착수했다. 현재 접촉 구현 산출물은 아직 회수되지 않았다.
+착수했다. 첫 접촉 편집/분리 메시 준비 코드 `e916a32`를 로컬 main `d5fdcb5`에 통합했다.
+새 접촉/owner 검사 3건과 영향받는 기존 FEM Qt 패널 검사 4건은 통과했다. 실제 FreeCAD
+객체로 새 다중면 접촉을 만들 때, 형상 편집 없이 A/B 참조가 UNRESOLVED로 바뀌는 문제가
+나왔다. 발생 지점은 저장/재열기 전, 유효한 값을 Apply한 직후다. 이 때문에 실제 접촉
+저장/재열기·메시 준비 확인은 아직 통과하지 않았다. GUI 존재 여부만 대역이고 형상·접촉·
+메타데이터는 실제 native 객체인 제한 검사다. FreeCADCmd의 exit 0을 통과로 해석하지 않는다.
+추가 최소 재현에서 `ContactEditor.snapshot`만 호출해도 원본 BRep의 topology flag가
+바뀌는 것을 확인했다. 기하를 수정한 사용자 동작 없이 preview가 참조를 무효화한다.
+`PRO-CONTACT-FIX-01`을 같은 Pro에 전송했다(전송 도구 수락, 대화 본문 수신 확인은 대기).
+이 원본 변경 문제와 Astra의 세 지적(Show faces/Preview Cancel 시 미적용 편집 유실,
+법선 비교 누락, suppressed 메시를 활성 후보로 세는 문제)을 교정하도록 전달했다.
+Pro의 export/Runner/Post 작성은 계속한다. 수정 전 접촉 편집은 미완료 상태다.
 
 접촉 구현의 실제 입력으로 [두 발 CAD 예제](examples/contact/README.md)를 추가했다.
 FreeCAD의 편집 가능한 Boolean 형상이며 두 접촉면·0.2 mm 간극·받침을 저장/재열기했다.
