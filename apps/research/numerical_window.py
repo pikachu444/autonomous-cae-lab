@@ -14,7 +14,7 @@ from shiboken6 import isValid
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QAbstractItemView, QComboBox, QDialog,
     QDialogButtonBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow,
-    QMessageBox, QPushButton, QPlainTextEdit, QSizePolicy, QSplitter, QTableWidget,
+    QMessageBox, QPushButton, QPlainTextEdit, QSizePolicy, QSplitter, QStyledItemDelegate, QTableWidget,
     QTableWidgetItem, QTabWidget, QToolBar, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -42,6 +42,15 @@ def cell_value(table, row, column):
     if item.text() == display(original):
         return deepcopy(original)
     return number_or_raw(item.text())
+
+
+class _CoefficientDisplay(QStyledItemDelegate):
+    """Compact painted values; the model and editor retain the exact input text."""
+    def displayText(self, value, locale):
+        parsed = number_or_raw(str(value))
+        if type(parsed) in (int, float) and math.isfinite(parsed):
+            return format(parsed, '.6g')
+        return str(value)
 
 
 class ProtocolDialog(QDialog):
@@ -278,6 +287,9 @@ class NumericalWindow(QMainWindow):
         self.variables.setHorizontalHeaderLabels(['계수','단위','시작값','하한','상한','조정','좌표'])
         self.variables.itemChanged.connect(self._edited)
         self.variables.horizontalHeader().setDefaultSectionSize(65)
+        self._coefficient_display = _CoefficientDisplay(self.variables)
+        for column in (2, 3, 4):
+            self.variables.setItemDelegateForColumn(column, self._coefficient_display)
         self.variables.setToolTip('현재 재료와 별개인 계획 시작값과 탐색 범위입니다.')
         self.input_splitter.addWidget(self.variables)
         self.experiments_panel=QWidget(); el=QVBoxLayout(self.experiments_panel); el.setContentsMargins(0,0,0,0)
@@ -546,6 +558,7 @@ class NumericalWindow(QMainWindow):
 
     def _set_cell(self, table, row, col, value, editable=True):
         item = QTableWidgetItem(display(value))
+        item.setToolTip(display(value))
         item.setData(Qt.ItemDataRole.UserRole, deepcopy(value))
         if not editable:
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -660,6 +673,10 @@ class NumericalWindow(QMainWindow):
             return
 
     def _edited(self, *_):
+        if _ and isinstance(_[0], QTableWidgetItem) and _[0].tableWidget() is self.variables:
+            blocked = self.variables.blockSignals(True)
+            _[0].setToolTip(_[0].text())
+            self.variables.blockSignals(blocked)
         if not self._populating:
             self.local_dirty = True
             self._update_actions()

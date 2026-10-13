@@ -7,9 +7,9 @@ import math
 import uuid
 
 from PySide6.QtCore import QThreadPool, QTimer, Qt
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QLabel,
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QLabel, QHeaderView,
     QMainWindow, QPushButton, QPlainTextEdit, QSpinBox, QSplitter, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget)
+    QTableWidgetItem, QVBoxLayout, QWidget, QSizePolicy)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
@@ -48,56 +48,79 @@ class CurveComparisonWindow(QMainWindow):
         self._serial = 0
         self._comparison = None
         self._save_request = None
+        self._document_names, self._run_names = {}, {}
         self._build()
         QTimer.singleShot(0, self.refresh)
 
     def _build(self):
-        self.setWindowTitle('Retained curve comparison — ' + self.source['response'])
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
+        self.setWindowTitle('곡선 비교')
         self.resize(1320, 900)
         root = QWidget(); layout = QVBoxLayout(root)
-        self.source_label = QLabel('A · ' + json.dumps(self.source, ensure_ascii=False))
+        self.source_label = QLabel('기준 곡선을 읽고 있습니다.')
+        self.source_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.source_label.setProperty('appearanceRole', 'section')
         self.source_label.setWordWrap(True); layout.addWidget(self.source_label)
         row = QHBoxLayout()
         self.documents = QComboBox(); self.documents.setObjectName('comparison_document_b')
         self.jobs = QComboBox(); self.jobs.setObjectName('comparison_job_b')
         self.responses = QComboBox(); self.responses.setObjectName('comparison_response_b')
-        for label, widget in [('B document', self.documents), ('Retained job', self.jobs), ('Response', self.responses)]:
+        for label, widget in [('새 비교 자료', self.documents), ('계산 결과', self.jobs), ('물리량', self.responses)]:
+            widget.setMinimumContentsLength(12)
+            widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
             row.addWidget(QLabel(label)); row.addWidget(widget, 1)
-        self.location_button = QPushButton('Select exact location…')
+        self.location_button = QPushButton('위치 선택…')
         self.location_button.clicked.connect(self.choose_response_location)
         row.addWidget(self.location_button)
         layout.addLayout(row)
         row = QHBoxLayout()
-        self.refresh_button = QPushButton('Refresh retained sources')
-        self.compare_button = QPushButton('Compare selected curves')
-        self.save_button = QPushButton('Save analysis in A document')
-        self.retry_save = QPushButton('Retry Save receipt'); self.retry_save.hide()
+        self.refresh_button = QPushButton('자료 새로 고침')
+        self.compare_button = QPushButton('곡선 비교')
+        self.compare_button.setProperty('appearanceRole', 'primary')
+        self.save_button = QPushButton('비교 저장')
+        self.save_button.setToolTip('기준 곡선의 문서에 비교 결과를 저장합니다.')
+        self.retry_save = QPushButton('저장 다시 확인'); self.retry_save.hide()
         for button in (self.refresh_button, self.compare_button, self.save_button, self.retry_save):
             row.addWidget(button)
         layout.addLayout(row)
         row = QHBoxLayout()
         self.saved = QComboBox(); self.saved.setObjectName('retained_comparisons')
-        row.addWidget(QLabel('Retained comparisons')); row.addWidget(self.saved, 1)
+        self.saved.setMinimumContentsLength(12)
+        self.saved.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.saved.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        row.addWidget(QLabel('비교 기록')); row.addWidget(self.saved, 1)
         self.start = QSpinBox(); self.start.setRange(0, 2_000_000_000); self.start.setObjectName('comparison_page_start')
         self.count = QSpinBox(); self.count.setRange(1, 4096); self.count.setValue(512)
         self.count.setObjectName('comparison_page_count')
-        self.page_button = QPushButton('Read page')
-        self.previous = QPushButton('Previous'); self.next = QPushButton('Next')
-        for label, widget in [('Start', self.start), ('Count', self.count)]:
+        self.page_button = QPushButton('행 보기')
+        self.previous = QPushButton('이전'); self.next = QPushButton('다음')
+        for label, widget in [('시작 행', self.start), ('표시 행 수', self.count)]:
             row.addWidget(QLabel(label)); row.addWidget(widget)
         for button in (self.previous, self.next, self.page_button): row.addWidget(button)
         layout.addLayout(row)
+        self.summary = QLabel('비교할 곡선을 선택하세요.')
+        self.summary.setTextFormat(Qt.TextFormat.PlainText)
+        self.summary.setWordWrap(True); layout.addWidget(self.summary)
+        self.details_button = QPushButton('기술 상세')
+        self.details_button.setCheckable(True)
+        self.details_button.setFlat(True)
+        layout.addWidget(self.details_button, alignment=Qt.AlignmentFlag.AlignRight)
         self.detail = QPlainTextEdit(); self.detail.setReadOnly(True); self.detail.setMaximumHeight(160)
-        layout.addWidget(self.detail)
+        self.detail.setPlainText(json.dumps({'source': self.source}, ensure_ascii=False, indent=2))
+        self.detail.hide(); layout.addWidget(self.detail)
+        self.details_button.toggled.connect(self.detail.setVisible)
         split = QSplitter(Qt.Orientation.Vertical)
-        figure = Figure(); self.axes = figure.add_subplot(111)
+        figure = Figure(constrained_layout=True); self.axes = figure.add_subplot(111)
         self.canvas = FigureCanvasQTAgg(figure); split.addWidget(self.canvas)
         self.values = QTableWidget(0, 7)
-        self.values.setHorizontalHeaderLabels(['Comparison index', 'Original A row', 'Axis', 'A value', 'Aligned B', 'Comparable', 'B − A'])
+        self.values.setHorizontalHeaderLabels(['비교 행', '원본 행', '좌표', '기준 값', '비교 값 (축 정렬)', '비교 가능', '차이 (B − A)'])
         self.values.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.values.setAlternatingRowColors(True); self.values.horizontalHeader().setStretchLastSection(True)
+        self.values.setAlternatingRowColors(True)
+        self.values.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         split.addWidget(self.values); split.setSizes([420, 240]); layout.addWidget(split, 1)
-        self.message = QLabel('Reading retained source A…'); self.message.setWordWrap(True); layout.addWidget(self.message)
+        self.message = QLabel('기준 곡선을 읽고 있습니다.'); self.message.setWordWrap(True); layout.addWidget(self.message)
         self.setCentralWidget(root)
         self.refresh_button.clicked.connect(self.refresh)
         self.documents.currentIndexChanged.connect(self._document_selected)
@@ -135,9 +158,9 @@ class CurveComparisonWindow(QMainWindow):
         if self._busy:
             if self._accepting:
                 self._queue.append((function, accepted, relevant)); return True
-            self.message.setText('A retained-data request is in progress. Wait for its receipt.'); return False
+            self.message.setText('자료를 읽고 있습니다. 조회가 끝난 뒤 다시 시도하세요.'); return False
         if not self._valid():
-            self.message.setText('The originating document or result selection changed. Open a comparison from the current result.'); return False
+            self.message.setText('원래 창의 자료 선택이 바뀌었습니다. 현재 결과에서 비교 창을 다시 여세요.'); return False
         if relevant is not None and not relevant(): return False
         self._busy = True; self._actions()
         worker = self._worker = _Read(function)
@@ -145,7 +168,7 @@ class CurveComparisonWindow(QMainWindow):
             self._accepting = True
             try:
                 if self._valid() and (relevant is None or relevant()):
-                    if error: self.message.setText('Request failed; retained data and selections preserved. ' + error)
+                    if error: self.message.setText('처리하지 못했습니다. 선택과 기존 자료는 유지됩니다. ' + error)
                     else: accepted(value)
             finally:
                 self._accepting = False; self._busy = False; self._worker = None
@@ -165,17 +188,34 @@ class CurveComparisonWindow(QMainWindow):
         if run is None or any(key in self.source and run.get(key) != self.source[key] for key in ('input_revision', 'input_sha256')):
             self.message.setText('Exact source A run no longer matches this comparison window.'); return False
         self._session = document['session_id']; self.document = deepcopy(document)
+        self._remember_document(document)
+        self.source_label.setText('기준 곡선: ' + self._source_name(self.source))
+        self.source_label.setToolTip(json.dumps(self.source, ensure_ascii=False, indent=2))
         selected = self.saved.currentData()
         self.saved.blockSignals(True); self.saved.clear()
         for item in document.get('comparisons', []):
             binding = item.get('binding', {})
             if not _matches(binding.get('source'), self.source): continue
-            b = binding.get('prediction_source', {}); metrics = item.get('metrics', {})
-            self.saved.addItem(f"{b.get('document_id')} / {b.get('job_id')} / {b.get('response')} · RMSE {metrics.get('rmse', '?')} {metrics.get('unit', '?')}" + (' · saved' if item.get('retained_revision') else ' · unsaved'), item['id'])
+            b = binding.get('prediction_source', {})
+            state = '저장됨' if item.get('retained_revision') else '미저장'
+            self.saved.addItem(f"비교 {self.saved.count()+1}: {self._source_name(b)} ({state})", item['id'])
+            self.saved.setItemData(self.saved.count()-1, json.dumps(binding, ensure_ascii=False, indent=2), Qt.ItemDataRole.ToolTipRole)
         index = self.saved.findData(selected)
         if index >= 0: self.saved.setCurrentIndex(index)
         self.saved.blockSignals(False)
         return True
+
+    def _remember_document(self, document):
+        identifier = document['id']
+        self._document_names[identifier] = document.get('title') or '이름 없는 자료'
+        for index, run in enumerate(document.get('runs', []), 1):
+            self._run_names[(identifier, run['job_id'])] = f'결과 {index}'
+
+    def _source_name(self, source):
+        identifier, job = source.get('document_id'), source.get('job_id')
+        name = self._document_names.get(identifier, '보관 자료')
+        run = self._run_names.get((identifier, job), '보관 결과')
+        return f"{name} / {run} / {source.get('response', '물리량')}"
 
     def refresh(self):
         key = self._key()
@@ -183,12 +223,15 @@ class CurveComparisonWindow(QMainWindow):
         selected_choice = deepcopy(self.responses.currentData(Qt.ItemDataRole.UserRole + 1))
         def accepted(payload):
             document, listing = payload
+            for row in listing['documents']:
+                self._remember_document(row)
             if not self._accept_owner(document): return
             selected = self.documents.currentData()
             self.documents.blockSignals(True); self.documents.clear()
             for row in listing['documents']:
                 if row.get('kind') in KINDS:
-                    self.documents.addItem(row.get('title', row['id']) + ' · ' + row['id'], row['id'])
+                    self.documents.addItem(row.get('title') or '이름 없는 자료', row['id'])
+                    self.documents.setItemData(self.documents.count()-1, row['id'], Qt.ItemDataRole.ToolTipRole)
             index = self.documents.findData(selected)
             if index >= 0: self.documents.setCurrentIndex(index)
             elif selected is not None: self.documents.setCurrentIndex(-1)
@@ -197,7 +240,7 @@ class CurveComparisonWindow(QMainWindow):
                 self._document_selected()
                 self.message.setText('The explicitly selected B document is no longer available. Select a retained source again.')
                 return
-            self.message.setText('Choose an exact B curve, or reopen a retained comparison. No calculation is submitted.')
+            self.message.setText('비교 자료와 물리량을 선택한 뒤 곡선 비교를 누르세요.')
             # Reopen A's retained view before checking B so an old comparison
             # cannot overwrite a later refusal of a changed B identity.
             if self.saved.currentData() is not None: self.read_page()
@@ -218,10 +261,12 @@ class CurveComparisonWindow(QMainWindow):
         def accepted(document):
             if document.get('id') != identifier or document.get('session_id') != self._session:
                 self.message.setText('B document identity/session changed; refresh sources.'); return
+            self._remember_document(document)
             self.jobs.blockSignals(True)
             for run in document.get('runs', []):
                 # The result metadata performs the final actual-status check.
-                self.jobs.addItem(run['job_id'] + ' · ' + run.get('input_revision', ''), run['job_id'])
+                self.jobs.addItem(self._run_names[(identifier, run['job_id'])], run['job_id'])
+                self.jobs.setItemData(self.jobs.count()-1, run['job_id'] + '\n' + run.get('input_revision', ''), Qt.ItemDataRole.ToolTipRole)
                 self.jobs.setItemData(self.jobs.count()-1, {'document_id': identifier,
                     'session_id': document['session_id'], 'job_id': run['job_id'],
                     **{name: run.get(name) for name in ('input_revision', 'input_sha256')}}, Qt.ItemDataRole.UserRole + 1)
@@ -327,7 +372,7 @@ class CurveComparisonWindow(QMainWindow):
             def owner_read(document):
                 if self._accept_owner(document):
                     self.saved.blockSignals(True); self.saved.setCurrentIndex(self.saved.findData(payload['id'])); self.saved.blockSignals(False)
-                    self.message.setText('Actual comparison retained in A. Save analysis to publish it with this document.')
+                    self.message.setText('비교 결과를 만들었습니다. 비교 저장을 눌러 기준 자료와 함께 저장하세요.')
                     self.start.setValue(0); self.read_page()
             self._call(lambda: self.client.document_read(source['document_id']), owner_read, relevant=lambda: self._key() == key)
         session = self._session
@@ -374,6 +419,13 @@ class CurveComparisonWindow(QMainWindow):
         if len(a_mask) != size:
             self.message.setText('Original A validity mask does not match the comparison page; previous view preserved.'); return
         self._comparison = deepcopy(payload)
+        unit = str(comparison.get('unit', observation.get('unit', '')))
+        rmse = comparison.get('rmse')
+        error = format(rmse, '.6g') if _number(rmse) else '계산 안 됨'
+        shown = (f"표시 행 {page['start']}–{page['start'] + size - 1}" if size else
+                 '표시할 행이 없습니다. 시작 행을 바꾸세요.')
+        self.summary.setText('표시 중인 비교: ' + self._source_name(payload['binding'].get('prediction_source', {})) +
+            f"\nRMSE {error} {unit}    비교 가능 {comparison.get('count', '?')}개    {shown}")
         self.detail.setPlainText(json.dumps({'comparison_id': payload['id'], 'binding': payload['binding'],
             'method': comparison.get('method'), 'alignment_policy': comparison.get('alignment_policy'),
             'unit': comparison.get('unit'), 'rmse': comparison.get('rmse'), 'count': comparison.get('count'),
@@ -384,10 +436,14 @@ class CurveComparisonWindow(QMainWindow):
             delta = b[i] - a[i] if mask[i] and _number(a[i]) and _number(b[i]) else None
             entries = [page['start'] + i, rows[i] if rows else None, x[i], a[i], b[i], bool(mask[i]), delta]
             for column, value in enumerate(entries):
-                self.values.setItem(i, column, QTableWidgetItem('—' if value is None else str(value)))
+                text = ('—' if value is None else ('가능' if value else '제외') if column == 5 else
+                        format(value, '.8g') if _number(value) else str(value))
+                item = QTableWidgetItem(text)
+                item.setToolTip(str(value) if value is not None else '값 없음')
+                self.values.setItem(i, column, item)
         self.axes.clear()
         segments = comparison.get('observation_segments') or observation.get('segments') or [{'rows': [page['start'], page['start'] + size]}]
-        for series, values, valid, color in [('A retained values', a, a_mask, 'C0'), ('B aligned to A', b, mask, 'C1')]:
+        for series, values, valid, color in [('기준 곡선 A', a, a_mask, 'C0'), ('기준축에 맞춘 B', b, mask, 'C1')]:
             labelled = False
             for segment in segments:
                 low, high = segment['rows']; low = max(0, low - page['start']); high = min(size, high - page['start'])
@@ -399,7 +455,7 @@ class CurveComparisonWindow(QMainWindow):
         self.axes.set_ylabel('[' + str(observation.get('unit', '?')) + ']')
         if self.axes.lines: self.axes.legend()
         self.axes.grid(True, alpha=.2); self.canvas.draw_idle()
-        self.message.setText(f"Retained comparison · samples {page['start']}–{page['start'] + size} of {page['total']}. Gaps remain gaps; B − A is shown only for comparable samples.")
+        self.message.setText(f"전체 {page['total']}행 중 {size}행을 표시합니다. 차이는 비교 가능한 표본에서만 계산합니다.")
 
     def save(self):
         if self._save_request is not None: return
@@ -417,7 +473,7 @@ class CurveComparisonWindow(QMainWindow):
             if receipt.get('command_id') != request['command_id'] or not self._accept_owner(receipt.get('document', {})):
                 self.message.setText('Save receipt identity is unconfirmed. The exact pending request is retained.'); return
             self._save_request = None
-            self.message.setText('Comparison analysis saved in the original A document. Reopening reads retained curves without calculation.')
+            self.message.setText('기준 자료에 비교를 저장했습니다. 다시 열면 계산 없이 같은 곡선을 읽습니다.')
         return self._call(lambda: self.client.document_command(**request), accepted)
 
     def retry_save_receipt(self):

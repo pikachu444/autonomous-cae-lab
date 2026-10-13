@@ -91,6 +91,27 @@ def test_fit_layout_physical_residual_selection_and_precise_draft(app):
     window._allow_close=True;window.close()
 
 
+def test_coefficient_display_keeps_exact_editor_and_partial_input(app):
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QLineEdit
+    window=NumericalWindow(None,auto_open=False,poll_interval=0)
+    doc=document()
+    value=1199.9999999999853
+    doc['draft']['variables'][0].update(value=value,lower=value/10,upper=value*10)
+    window._show_document(doc);window.show();app.processEvents()
+    item=window.variables.item(0,2)
+    assert window.edited_draft()['variables'][0]['value']==value
+    assert item.toolTip()==repr(value)
+    assert window.variables.itemDelegateForColumn(2).displayText(item.text(),window.locale())=='1200'
+    window.variables.editItem(item);app.processEvents()
+    editor=window.variables.findChild(QLineEdit)
+    assert editor is not None and editor.text()==repr(value)
+    editor.setText('1e');QTest.keyClick(editor,Qt.Key.Key_Tab);app.processEvents()
+    assert window.edited_draft()['variables'][0]['value']=='1e'
+    assert window.variables.item(0,2).toolTip()=='1e'
+    window._allow_close=True;window.close()
+
+
 def test_curve_interval_uses_original_rows_and_separate_masks(app):
     from caelab.data_document import default_draft as data_draft
     draft=data_draft();draft['data_id']='Dtest'
