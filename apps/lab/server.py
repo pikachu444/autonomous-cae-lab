@@ -17,6 +17,9 @@ from .native_input import MIN_NATIVE_BYTES, MAX_NATIVE_BYTES
 
 
 MAX_BODY = 128 * 1024
+# Native completion includes bounded measurement rows plus document descriptors.
+# Keep every ordinary command on MAX_BODY; never accept unbounded native JSON.
+MAX_NATIVE_EVENT_BODY = 2 * 1024 * 1024
 STATIC = Path(__file__).resolve().parent / "static"
 UPSTREAM_VIEWER = (Path(__file__).resolve().parents[2] /
                    "plugins/fixture_design/upstream/fixturelab/surface_viewer.js")
@@ -84,8 +87,8 @@ class LabHandler(BaseHTTPRequestHandler):
             raise ServiceError(400, "Incomplete request body")
         return payload
 
-    def _json_body(self) -> dict:
-        payload = self._bytes_body("application/json", MAX_BODY)
+    def _json_body(self, *, maximum=MAX_BODY) -> dict:
+        payload = self._bytes_body("application/json", maximum)
 
         def object_pairs(pairs):
             value = {}

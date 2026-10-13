@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import os
 import shutil
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import uuid
 
 from caelab import native_cad
@@ -16,6 +16,7 @@ OPENED = {}
 
 def remember_open(doc, manifest, source):
     """Only the actual native opener can attach the verified restored context."""
+    restore_document_labels(doc, manifest)
     OPENED[doc.Name] = (doc, deepcopy(manifest), str(source))
 
 
@@ -26,6 +27,45 @@ def _linked(value):
         return [obj for item in value for obj in _linked(item)]
     return []
 
+
+
+def restore_document_labels(doc, manifest):
+    """Restore labels by the verified bundle's exact working file paths.
+
+    Native open may replace Document.Label with its working-file basename.
+    Both Project.open and the native file chooser call remember_open after
+    unpack_project/working_copy has verified this manifest. Native document
+    names, links, geometry and mesh bindings are not rewritten here.
+    """
+    if manifest.get('kind') != native_cad.KIND:
+        return
+    entry = PurePosixPath(manifest['entry'])
+    if entry.is_absolute() or '..' in entry.parts or '\\' in str(entry):
+        raise ValueError('Invalid native project entry')
+    root = Path(doc.FileName).resolve().parents[len(entry.parts) - 1]
+    labels = {}
+    for row in manifest.get('documents', []):
+        relative = PurePosixPath(row['file'])
+        if relative.is_absolute() or '..' in relative.parts or '\\' in str(relative):
+            raise ValueError('Invalid native project document path')
+        if isinstance(row.get('label'), str):
+            labels[(root / row['file']).resolve()] = row['label']
+    seen, pending = [], [doc]
+    while pending:
+        current = pending.pop(0)
+        if any(current is prior for prior in seen):
+            continue
+        seen.append(current)
+        if len(seen) > native_cad.MAX_FILES:
+            raise ValueError('Native project dependency graph exceeds 1024 documents')
+        filename = getattr(current, 'FileName', '')
+        if filename and Path(filename).resolve() in labels:
+            current.Label = labels[Path(filename).resolve()]
+        pending.extend(list(getattr(current, 'OutList', [])))
+        for obj in getattr(current, 'Objects', []):
+            for name in obj.PropertiesList:
+                if 'PropertyXLink' in obj.getTypeIdOfProperty(name):
+                    pending.extend(link.Document for link in _linked(getattr(obj, name)))
 
 
 def _native_copy_uses_short_path(path):
