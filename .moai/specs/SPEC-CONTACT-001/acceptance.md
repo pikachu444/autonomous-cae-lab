@@ -66,8 +66,13 @@ editable model/deck/manifest; the corrected run additionally exercised Force exp
 Subsequently, the actual installed CalculiX 2.22 completed this retained input
 through the product adapter in 41.703 seconds, with ten parsed increments.
 This is direct adapter execution, not Runner UI submission or qualification.
-Actual ParaView opening failed on ASCII nonfinite GeomGap values; raw FRD/DAT
-and the failed Post files remain retained. A serialization correction is in
-progress, with Post-only regeneration planned; no solver rerun is needed.
+Actual ParaView opening initially failed on ASCII nonfinite GeomGap values;
+raw FRD/DAT and the failed Post files remain retained. Pro's `5744079` correction
+was integrated as `b97ae6b`, with ten changed-path unit checks passing. Post-only
+regeneration and native reading of all ten frames succeeded without rerunning
+the solver. Exact registered input opened, CPRESS at static load parameter 1.0
+was selected and saved, and a new pvpython process restored that selection and
+3,403 points/1,654 cells. Pair-focused native interaction and the connected
+measurement/Numerical user workflow remain separate work; AC-C04 is not complete.
 The current task and subsequent correction status live in CURRENT_STATE rather
 than turning these partial checks into full scenario acceptance.

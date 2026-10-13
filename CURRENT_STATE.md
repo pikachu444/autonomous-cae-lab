@@ -300,9 +300,17 @@ FreeCAD의 두 면100N 하중을 내보낸 결과 합력이 -Z100N으로 보존�
 Runner 화면을 통한 제출이나 공학적 정확성 승인은 아니다. 실제 ParaView 열기에서는
 ASCII VTU의 비유한 GeomGap 값을 읽지 못하는 오류가 발생했다. 별도 native VTK 확인에서
 NaN 대소문자 변경은 실패하고, inline binary Float64는 NaN/±Inf를 그대로 읽었다.
-같은 Pro에 `PRO-CONTACT-POST-FIX-01`로 교정을 맡겼으며 다음 행동은 수정 통합 후
-보존된 FRD/DAT에서 별도 Post 산출물만 재생성해 열기·저장을 확인하는 것이다. 원래 계산과
-실패한 VTU는 보존하고 솔버는 반복 실행하지 않는다. Pro의 별도 실행 전 검사 수정
+같은 Pro의 `PRO-CONTACT-POST-FIX-01` 교정 `5744079`를 `b97ae6b`로 통합했다.
+변경 경로 검사10건이 통과했고, 보존된 FRD/DAT에서 별도 Post 파일만 재생성했다.
+실제 ParaView는10개 프레임의 모든 PointData를 읽었으며 NaN과 유효성 배열도 보존됐다.
+접촉 압력(MPa)과 정적 하중 단계1.0을 선택해 프로젝트를 저장했고 새 pvpython 프로세스에서
+같은 선택과3403절점/1654요소를 복원했다. 근거는
+`runs/product-development/20261013/contact-post-8096fa28/receipt.json`과 `reopen-receipt.json`이다.
+원 계산과 실패한 VTU를 보존했고 솔버는 반복 실행하지 않았다. 마우스 입력이나 공학적
+정확성 승인은 아니다. 다음 기능은 이 결과에서 접촉쌍·면을 선택하고 힘/간극/압력 이력을
+살핀 뒤 기존 Post 측정과 Numerical로 이어가는 사용자 조작이다. Luna가 현재 native Post
+명령과 측정 연결만 읽기 전용 조사하며, Pro가 제품 코드를 계속 소유한다.
+Pro의 별도 실행 전 검사 수정
 `1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
 않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.
 

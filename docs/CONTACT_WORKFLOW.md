@@ -393,3 +393,21 @@ The existing contact execution test also exercises regeneration with a process
 double that would fail if called, refuses changed raw outputs and checks that
 the original attempt's bytes stay unchanged. Pro remote execution of this
 correction remains **NOT_RUN**; Root owns Windows/ParaView execution.
+
+Codex integrated `5744079` as `b97ae6b`. Ten changed-path serialization/contact
+tests passed on Windows in 8.20 seconds. The public retained attempt was
+regenerated into `runs/product-development/20261013/contact-post-rebuilt-5744079`
+with `solver_execution=NOT_PERFORMED`. Installed ParaView 6.2 read all ten
+frames, comparing every PointData value and validity mask to its serialized
+value; each frame has 3,403 points. The first and last frames retain 3,209 NaNs
+for unavailable geometric gaps, rather than zero replacement.
+
+Through the product's registered native-input and external-result owner,
+Codex opened the regenerated PVD, selected CPRESS in MPa at static load parameter
+1.0, and saved a native project. A separate pvpython process restored the saved
+project, the selected field/time, 3,403 points and 1,654 cells. Receipts and
+rendered images are in `runs/product-development/20261013/contact-post-8096fa28`.
+The pressure range of this synthetic imposed-displacement input is 0 to
+4,560.77 MPa; this is recorded solver output, not a validated physical reference.
+The original attempt remains unchanged. These are programmatic native reader,
+selection and save/reopen checks, not mouse/keyboard usability acceptance.
