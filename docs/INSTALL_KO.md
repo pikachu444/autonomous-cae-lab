@@ -56,6 +56,18 @@ FreeCAD portable 설치라면 `bin` 폴더의 실행 파일을 지정합니다.
 경로는 사용자가 가진 파일의 경로로 바꾸세요. 실제 메시 생성과 해석에는 해당 backend 설정도
 필요합니다. [첫 사용 예제](USER_GUIDE_KO.md)와 [접촉 작업 안내](CONTACT_WORKFLOW.md)를 참고하세요.
 
+저장한 후처리 프로젝트를 다시 열 때는 원 결과 파일 대신 프로젝트의 `project.json`을
+지정합니다. 아래 경로도 실제 저장 위치로 바꾸세요.
+
+```powershell
+.\scripts\start_cae_post.ps1 -ParaViewExe 'C:\Tools\ParaView\bin\paraview.exe' -Project 'C:\MyResults\study\project.json'
+```
+
+ParaView의 **Macros → CAE Analysis controls**를 누르면 현재 프로젝트의 분석 창을
+엽니다. 형상·필드·시각은 ParaView에서 보고, 분석 창에서는 측정 설정·값 조회·수치 연구
+전달을 이어갑니다. [접촉 힘 이력 예제](USER_GUIDE_KO.md#접촉-결과의-힘-이력을-비교하고-계산-계획에-쓰기)에
+현재 화면과 조작 순서를 정리했습니다.
+
 일부 native 기능은 고정된 upstream 소스를 사용합니다. ZIP에는 submodule 내용이
 포함되지 않으므로 해당 기능을 개발하거나 실행할 때는 Git으로 받습니다.
 

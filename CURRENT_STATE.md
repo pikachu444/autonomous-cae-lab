@@ -38,16 +38,19 @@ OS 입력 전체의 수용을 의미하지 않는다. 모든 공개 시험은 �
 Request Plan을 재사용하여 방법별 입력→실제 실행→후보/그래프→실패·제약 해석→
 도구 간 활용→저장/재열기를 완성한다. 기존 SPEC-NUMERICAL-001의 제한된 완료를
 D6 전체 완료로 취급하지 않는다. 미지원 상관/이산/gradient 등 요구도 지우지 않는다.
-검토된 통합본을 게시한 뒤 같은 실제 Pro 대화에 맡긴다. Pro는 핵심 구현, Sol은 분리된
-화면 작업, Astra는 독립 검토, Codex는 연결·실행·통합을 담당한다. 아직 D6 전송 전이다.
+검토된 통합본을 게시한 뒤 같은 실제 Pro 대화에 맡겼다. Pro는 핵심 구현, Sol은 분리된
+화면 작업, Astra는 독립 검토, Codex는 연결·실행·통합을 담당한다.
 위 제품 변경은 원격 main `23b6ff497a4c947c310d7f961b678daa61fc3ce6`에 게시했고
 같은 원격 커밋을 확인했다. Astra가 종료 오류·계수 정밀 표시와 비교 최종 라벨까지
 확인했다. 전체 GUI 완료 판정은 아니다.
 
-D6 요청 `PRO-NUMERICAL-WORKFLOWS-01`은 전송 준비 상태다. 대상은 기존 실제 Pro
+D6 요청 `PRO-NUMERICAL-WORKFLOWS-01`은 전송했고 실제 작성 턴
+`01a136b5-1557-7362-92e1-68cecf9a0676`의 진행을 확인했다. 대상은 기존 실제 Pro
 대화 `https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a`이며 이전 D5 턴의
-완료·idle 상태를 확인했다. [SPEC-NUMERICAL-002](.moai/specs/SPEC-NUMERICAL-002/spec.md)에
-기존 전체 명세·인수 조건을 연결했고 MoAI t6를 진행으로 바꿨다. 유료 연결은 추가하지 않는다.
+완료 후 기준 main `59a42f1`을 전달했다.
+[SPEC-NUMERICAL-002](.moai/specs/SPEC-NUMERICAL-002/spec.md)에 기존 전체 명세·인수
+조건을 연결했고 MoAI t6를 진행으로 바꿨다. 전송은 구현 완료가 아니며 인도·실행·Astra
+검토를 이어 수행한다. 유료 연결은 추가하지 않는다.
 
 ## 앞선 구현과 실행 기록
 
