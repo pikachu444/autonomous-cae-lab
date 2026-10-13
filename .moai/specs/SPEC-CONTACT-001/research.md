@@ -18,8 +18,9 @@ Source inspected at product main `497b4b3`; pinned upstream remains
   gap/slip output and retained product readers are not established by this fact.
   The inspected output hook requests CF/CFN/CFS, while the ordinary DAT/FRD
   readers do not provide the required contact-specific product channel contract.
-- Local `bin/ccx.exe` exists. Its existence is not solver execution, capability
-  qualification or a numerical pass. FreeCAD's example/writer source is LGPL;
+- Local `bin/ccx.exe -v` returned `This is Version 2.22` with exit code 0.
+  This version-only check is not a model execution, capability qualification
+  or numerical pass. FreeCAD's example/writer source is LGPL;
   reuse the installed native program without copying or relicensing its source.
 - `caelab/adapters/codeaster_contact.py` remains the specific SSNP121A research
   model; it is not a general user CAD exporter.
@@ -31,6 +32,13 @@ It passed with `Pad.Face5` and `Base.Face6`, Linear/frictionless native properti
 Receipt and source: `runs/product-development/20261013/native-contact-probe/receipt.json`
 and `probe_native_contact.py`. No mesh generation, GUI input or solver ran. This
 proves native object persistence only, not the proposed product contact feature.
+
+The public [two-foot CAD input](../../../examples/contact/README.md) adds one
+editable Boolean bridge with two separate lower faces over a base. Its 0.2 mm
+clearance and 100 mm² total A area provide a concrete multi-face authoring input.
+FreeCADCmd save/reopen preserved the Stock/Notch Boolean links and both selected
+faces. The model and generator are tracked; it has no product contact declaration,
+mesh or result. This preparation does not close any contact acceptance criterion.
 
 ## Concrete output/reader work
 
