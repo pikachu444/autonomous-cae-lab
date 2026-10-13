@@ -146,6 +146,52 @@ def execute_definition(wb, arguments, job_id):
         lambda model, output: run_domain(wb, model, output), reuse_result=retained, reuse_folder=folder)
 
 
+def _candidate_reference_view(result, selection):
+    """Select actual nested candidate responses after full exact-result verification.
+
+    This is a read view of existing candidate records, not a new result schema
+    or evaluation. Advanced native location/time selection stays with the
+    existing candidate evaluation/stage reader and original result tool.
+    """
+    if isinstance(selection, list):
+        selection = {'responses': selection}
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows'}:
+        raise ValueError('Candidate evidence preview accepts response names and rows; open the original result for advanced selection')
+    names = selection.get('responses')
+    if names is not None and (not isinstance(names, list) or any(not isinstance(name, str) for name in names)):
+        raise ValueError('Response selection must be a list of names')
+    bounds = selection.get('rows')
+    if bounds is not None and (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+            or any(type(value) is not int for value in bounds)):
+        raise ValueError('Candidate response rows require an integer start and stop')
+    key = 'candidates' if isinstance(result.get('candidates'), list) else 'predictions'
+    rows = result[key]
+    available = {name for row in rows for name in (row.get('responses') or {})}
+    if names is not None and any(name not in available for name in names):
+        raise ValueError('Unknown candidate response selection')
+    actual = deepcopy(result)
+    for row in actual[key]:
+        responses = row.get('responses') or {}
+        row['responses'] = {name: response for name, response in responses.items() if names is None or name in names}
+        for response in row['responses'].values():
+            if bounds is None or response.get('kind') != 'series':
+                continue
+            values = response.get('value')
+            axes = response.get('axes') or []
+            if (not isinstance(values, list) or len(axes) != 1
+                    or not isinstance(axes[0].get('values'), list) or len(axes[0]['values']) != len(values)):
+                raise ValueError('Candidate series does not have one matching saved axis')
+            selected = slice(*bounds)
+            response['value'] = values[selected]
+            axes[0]['values'] = axes[0]['values'][selected]
+            for field in ('mask', 'source_rows'):
+                if response.get(field) is not None:
+                    if not isinstance(response[field], list) or len(response[field]) != len(values):
+                        raise ValueError('Candidate series ' + field + ' does not match its values')
+                    response[field] = response[field][selected]
+    return actual
+
+
 def resolve_reference(wb, reference):
     """Read the requested immutable evidence, never the current draft instead."""
     from .study_document import reference_error
@@ -168,7 +214,10 @@ def resolve_reference(wb, reference):
         exact = {key: reference[key] for key in RESULT_REF_KEYS}
         result = _resolve(exact, wb.document_read, wb.document_result)
         selection = reference.get('selection', [reference['response']] if reference.get('response') else {'metadata_only': True})
-        actual = wb.document_result(exact['document_id'], exact['job_id'], selection=selection)
+        nested = isinstance(result.get('candidates'), list) or isinstance(result.get('predictions'), list)
+        metadata_only = isinstance(selection, dict) and selection.get('metadata_only')
+        actual = (_candidate_reference_view(result, selection) if nested and not metadata_only else
+                  wb.document_result(exact['document_id'], exact['job_id'], selection=selection))
         return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
                 'metadata': result_metadata(result), 'result': actual}
     owner = wb.discussion_documents

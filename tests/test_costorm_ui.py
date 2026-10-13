@@ -152,3 +152,57 @@ def test_result_channels_switch_without_relabelling_values_or_failure_to_zero(ap
     view.candidate.setCurrentIndex(1)
     assert view.body.toPlainText() == 'Mesh unavailable' and view.result_views.isHidden()
     view.close()
+
+
+def test_unloaded_channel_never_displays_other_channels_values(app):
+    view = ReferenceContent()
+    payload = response_payload()
+    payload['metadata']['responses'].append({'response': 'force', 'kind': 'scalar', 'unit': 'N'})
+    view.set_payload(payload)
+    view.channel.setCurrentIndex(view.channel.findData('force'))
+    assert view.values.rowCount() == 0
+    assert view.result_views.isHidden()
+    assert 'not loaded' in view.body.toPlainText()
+    assert view.title.text() == 'force'
+    view.close()
+
+
+def test_same_turn_new_citation_waits_for_busy_reader_and_discards_old_reply(app, ui_owner):
+    from apps.research.expert_window import connect_desktop_actions
+    owner, manager, calls, release = ui_owner
+    window = open_window(app, owner)
+    started, ready = threading.Event(), threading.Event()
+    read_calls = []
+    first = {'document_id': 'Kfirst', 'revision': 1, 'locator': {'line_start': 1}}
+    second = {'document_id': 'Ksecond', 'revision': 1, 'locator': {'line_start': 1}}
+    def read(client, reference):
+        read_calls.append(deepcopy(reference))
+        if reference == first:
+            started.set()
+            assert ready.wait(5)
+        label = 'First archived source' if reference == first else 'Second archived source'
+        return {'status': 'SOURCE_READ', 'source': {'title': label, 'segments': [
+            {'locator': {'line_start': 1, 'line_end': 1}, 'text': label}]}}
+    connect_desktop_actions(window, window.client, evidence_opener=read, plan_opener=lambda *args, **kwargs: None)
+    # Explicit saved-turn display fixture; no artificial provider response claim.
+    displayed = deepcopy(window.document)
+    displayed['turns'] = [{'id': 'Bcitation', 'author': 'material', 'status': 'ANSWERED',
+        'text': 'Citation navigation fixture', 'topic_id': 'Qmain', 'evidence': [],
+        'response': {'sources': [first, second], 'proposed_actions': []}}]
+    window._show_document(displayed)
+    try:
+        window.open_turn_citation('Bcitation', 0)
+        wait(app, started.is_set)
+        window.open_turn_citation('Bcitation', 1)
+        ready.set()
+        wait(app, lambda: not window._busy and len(read_calls) == 2 and
+             window.source_preview.title.text() == 'Second archived source')
+        assert read_calls == [first, second]
+        assert window._source_preview_binding['reference'] == second
+        assert window.sources.currentRow() == 1
+        assert calls == [] and manager.list() == []
+    finally:
+        ready.set()
+        wait(app, lambda: not window._busy)
+        window._allow_close = True
+        window.close()

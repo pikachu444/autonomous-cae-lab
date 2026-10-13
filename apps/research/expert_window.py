@@ -283,7 +283,7 @@ class ExpertWindow(QMainWindow):
         evidence_layout = QVBoxLayout(evidence_tab)
         self.sources = QListWidget()
         self.sources.setMaximumHeight(130)
-        self.sources.currentRowChanged.connect(self._update_actions)
+        self.sources.currentRowChanged.connect(self._citation_selected)
         evidence_layout.addWidget(self.sources)
         self.result_preview = ReferenceContent()
         self.result_preview.hide()
@@ -780,6 +780,9 @@ class ExpertWindow(QMainWindow):
     def refresh_document(self):
         if self._closed or not self.document or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return
+        if getattr(self, '_citation_request', None):
+            self._schedule_citation()
+            return
         if self._registry_refresh_pending:
             # Polling cannot repeatedly take the idle slot reserved for roles.
             self._schedule_registry_refresh()
@@ -823,6 +826,7 @@ class ExpertWindow(QMainWindow):
                     break
 
     def _turn_selected(self, current, *_):
+        self._citation_read_key = None
         self.sources.clear()
         self.plans.clear()
         self.result_preview.clear()
@@ -1159,6 +1163,15 @@ class ExpertWindow(QMainWindow):
                 selection={'metadata_only': True}), read))
         return self._call(self.client.documents, listed)
 
+    def _citation_selected(self, *_):
+        # A list click alone also invalidates an in-flight older citation read.
+        self._citation_read_key = None
+        if (self._source_preview_binding or {}).get('historical'):
+            self._clear_source_preview('Select a citation to read.')
+        self.result_preview.clear()
+        self.result_preview.hide()
+        self._update_actions()
+
     def open_selected_reference(self):
         row = self.sources.currentRow()
         if self.open_reference and 0 <= row < len(self._references):
@@ -1214,6 +1227,10 @@ class ExpertWindow(QMainWindow):
                      else 'Ready to continue' if active else 'Ready')
             self.identity.setText(state)
             self.setWindowTitle(f"Expert — {self.document['title']}" + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+        # Explicit citation selection gets the next idle worker before polling.
+        schedule = getattr(self, '_schedule_citation', None)
+        if schedule is not None:
+            schedule()
         # A modal release or worker completion makes retained refresh work ready.
         # Queue it so an accepted source selection can start its owner check first.
         self._schedule_registry_refresh()
@@ -1330,18 +1347,50 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
             window.message.setText('Source / Numerical Plan action returned: ' + status)
         window.details.appendPlainText(json.dumps(payload, ensure_ascii=False, indent=2))
 
+    window._citation_request = None
+    window._citation_dispatch_queued = False
+    window._citation_read_key = None
+
+    def available():
+        return not (window._closed or window._busy or window._handling_reply or window._source_choosing
+                    or getattr(window, '_incoming_review', False))
+
+    def dispatch_reference():
+        window._citation_dispatch_queued = False
+        if not window._citation_request or not available():
+            return
+        key, frozen = window._citation_request
+        window._citation_request = None
+        def relevant():
+            return (window.document and (window.document['id'], window.document['session_id']) == key[0]
+                    and window._citation_read_key == key)
+        if not relevant():
+            return
+        def read(payload):
+            if relevant():
+                received(payload, frozen)
+        if not window._call(lambda: evidence_opener(client, frozen), read):
+            window._citation_request = (key, frozen)
+
+    def schedule_reference():
+        if window._citation_request and not window._citation_dispatch_queued and available():
+            window._citation_dispatch_queued = True
+            QTimer.singleShot(0, dispatch_reference)
+
+    window._schedule_citation = schedule_reference
+
     def reference(reference):
         frozen = deepcopy(reference)
         owner = (window.document['id'], window.document['session_id'])
         item = window.turns.currentItem()
         turn_id = item.data(Qt.ItemDataRole.UserRole) if item else None
-        def read(payload):
-            selected = window.turns.currentItem()
-            selected_id = selected.data(Qt.ItemDataRole.UserRole) if selected else None
-            if (window.document and (window.document['id'], window.document['session_id']) == owner
-                    and selected_id == turn_id):
-                received(payload, frozen)
-        return window._call(lambda: evidence_opener(client, frozen), read)
+        key = (owner, turn_id, canonical_hash(frozen))
+        window._citation_read_key = key
+        window._citation_request = (key, frozen)  # One latest explicit selection.
+        window._clear_source_preview('Reading selected citation…')
+        window.result_preview.clear('Reading selected citation…')
+        schedule_reference()
+        return True
 
     def plan(discussion_id, turn_id, proposal_index):
         selection = (discussion_id, turn_id, proposal_index)
