@@ -181,7 +181,7 @@ def test_exact_successful_candidate_branch_survives_plan_reopen(tmp_path, monkey
             session_id=wb.session_id, expected_generation=current['generation'])
         assert source.read_bytes() == base_bytes
         expected = next(data for value, data in captured if value == successful['values']['width'])
-        store = wb.root
+        store = wb.workspace
     finally:
         wb.shutdown()
     # A fresh service owner follows the saved result, not a live base document.
@@ -260,3 +260,45 @@ def test_meshing_validation_never_checks_the_live_shape(native, monkeypatch):
     editor._generate(native.mesh)
     assert _target(native.shape, ['Face1']) == before
     assert native.tools[-1].calls == ['prepare', 'compute']
+
+
+@pytest.mark.parametrize('failure', [None, 'contact', 'mesh', 'value', 'binding'])
+def test_prepared_model_cold_read_requires_original_contacts_mesh_and_values(tmp_path, monkeypatch, failure):
+    from apps.desktop_pre import candidate_worker as worker
+    source = tmp_path / 'editable.caepre'
+    source.write_bytes(b'exact retained archive test double')
+    calls = []
+    from apps.desktop_pre.mesh_binding import PROPERTY_NAME
+    mesh = NS(Name='Mesh', Shape=NS(Name='Stock'),
+              PropertiesList=[] if failure == 'binding' else [PROPERTY_NAME])
+    analysis = NS(Group=[mesh])
+    doc = NS(Name='ColdCandidate',
+             getObject=lambda name: {'Mesh': mesh, 'Analysis': analysis}.get(name))
+    owner = NS(_object=lambda name: name,
+               mesh_bindings=NS(validate=lambda name: check('mesh', name)),
+               close=lambda: calls.append(('close', None)))
+    def check(kind, value=None):
+        calls.append((kind, value))
+        if failure == kind:
+            raise ValueError(kind + ' changed after reopening')
+    monkeypatch.setattr(worker, 'unpack_project',
+                        lambda path, folder: ({}, folder / 'model.FCStd'))
+    monkeypatch.setattr(worker, 'Owner', lambda *args, **kwargs: owner)
+    monkeypatch.setattr(worker, 'validate_original_contacts', lambda own: check('contact'))
+    monkeypatch.setattr(worker, 'value_at', lambda *args: .03 if failure == 'value' else .02)
+    app = NS(openDocument=lambda path: (calls.append(('open', path)) or doc))
+    declaration = recipe()
+    if failure:
+        with pytest.raises(ValueError, match='changed'):
+            worker.verify_saved_project(source, tmp_path / 'cold', declaration,
+                                        {'width': .02}, app, NS())
+    else:
+        receipt = worker.verify_saved_project(source, tmp_path / 'cold', declaration,
+                                             {'width': .02}, app, NS())
+        assert receipt['state'] == 'VERIFIED'
+        assert receipt['project_sha256'] == file_hash(source)
+        assert receipt['contact_repair_performed'] is False
+        assert any(kind == 'open' for kind, _ in calls)
+        assert [value for kind, value in calls if kind == 'mesh'] == [
+            row['object_id'] for row in declaration['meshes']]
+    assert source.read_bytes() == b'exact retained archive test double'
