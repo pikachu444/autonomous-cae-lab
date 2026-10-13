@@ -13,17 +13,17 @@ FreeCAD 기반 전처리, ParaView 기반 후처리와 독립 Qt 연구 앱을 �
 ## 설치하고 열기
 
 1. [소스 ZIP](https://github.com/pikachu444/autonomous-cae-lab/archive/refs/heads/main.zip)을 내려받아 압축을 풉니다.
-2. 폴더 안의 **Start-CAE-Lab.cmd**를 더블클릭합니다.
-3. 처음에는 전용 실행 환경을 설치한 뒤 **Runner** 창을 엽니다. 아직 계산한 작업이 없으면 목록은 비어 있습니다.
+2. 폴더 안의 **Install-CAE-Lab.cmd**를 더블클릭해 전용 실행 환경을 설치합니다.
+3. Windows 시작 메뉴의 **Autonomous CAE Lab**에서 **데이터**, **재료**, **수치 연구** 등 사용할 프로그램을 엽니다.
 
 Windows 10/11 x64를 사용합니다. 처음 설치할 때는 인터넷이 필요합니다.
 기본 Research 앱에는 관리자 권한, 시스템 Python, Git, WSL이 필요하지 않습니다.
 기본 설치는 전용 Python과 Research Qt 앱입니다.
 FreeCAD·ParaView·Gmsh·외부 솔버와 AI 연결은 별도로 준비합니다.
 
-Runner의 **도구** 메뉴에서 데이터·재료·수치 연구·전문가 토론 등 원하는 프로그램을
-열 수 있습니다. 각 프로그램은 별도 창에서 사용합니다. 다음부터 원하는 도구로 바로
-시작하려면 소스 폴더의 PowerShell에서 실행하세요.
+각 프로그램은 별도 창에서 사용하며 같은 작업 폴더의 자료를 이어 씁니다.
+계산 작업을 확인하려면 시작 메뉴에서 **실행 관리**를 여세요. Runner의 **도구** 메뉴로도
+다른 프로그램을 열 수 있습니다. 소스 폴더에서 직접 실행하는 명령도 유지합니다.
 
 ```powershell
 .\Start-CAE-Lab.cmd -Tool numerical
@@ -31,7 +31,8 @@ Runner의 **도구** 메뉴에서 데이터·재료·수치 연구·전문가 �
 .\Start-CAE-Lab.cmd -Tool data
 ```
 
-설치 후에도 소스 폴더는 남겨 두세요. 저장 위치와 오류 해결은 [설치 안내](docs/INSTALL_KO.md)에 있습니다.
+`Start-CAE-Lab.cmd`를 더블클릭하면 기존 방식대로 Runner를 엽니다.
+설치 후에도 소스 폴더는 남겨 두세요. 저장 위치와 바로가기 복구는 [설치 안내](docs/INSTALL_KO.md)에 있습니다.
 
 ## 무엇부터 해볼 수 있나요?
 

@@ -52,3 +52,26 @@ Local raw checks and Qt renders are under ignored
 `runs/product-development/20261013/`. Native window creation and Qt offscreen
 rendering do not claim OS interaction/DPI, whole-product usability, actual
 FreeCAD/ParaView operation, numerical qualification, or engineering release.
+
+## Windows Start menu addition — 2026-10-14
+
+The existing direct-tool, shared-service and argument/error requirements now also
+have a double-click setup entry and current-user shortcuts. Sol authored
+`Install-CAE-Lab.cmd`, `scripts/install-desktop-shortcuts.ps1`, the bounded Start
+wrapper branch and focused tests; Codex owns usage docs and integration. Existing
+runtime and service launchers are reused without modification.
+
+Real Windows COM created/read nine links in an isolated directory. Same links
+remain byte-identical on repeat; edited links and other source locations are
+refused without overwriting existing entries. Real CMD tests with stub installers
+cover ordering, first-stage failure, shortcut-stage failure, Unicode/space paths,
+visible errors and preserved nonzero exit. Existing noninteractive launch modes
+remain unchanged. These tests do not install dependencies or execute solvers.
+
+The focused new and existing launcher checks passed 28 cases. Astra's subsequent
+extra-argument finding is handled by restricting the shortcut branch to its fixed
+form; four relevant cases passed after this correction (3.53 seconds). The
+original and final checks and review are retained in
+`runs/product-development/20261014/start-menu`. This extends desktop entry;
+clean-PC installation, Explorer interaction and the whole D10 delivery remain
+separate acceptance work. Current status is in CURRENT_STATE.

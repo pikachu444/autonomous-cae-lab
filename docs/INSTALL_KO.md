@@ -1,6 +1,6 @@
 # Windows 설치와 실행
 
-`Start-CAE-Lab.cmd`로 준비하는 기본 설치는 **전용 Python 실행 환경과 Research Qt 앱**입니다.
+`Install-CAE-Lab.cmd`로 준비하는 기본 설치는 **전용 Python 실행 환경과 Research Qt 앱**입니다.
 Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버는 자동으로 설치하거나
 연결하지 않습니다.**
 
@@ -11,19 +11,22 @@ Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버�
 
 1. [소스 ZIP](https://github.com/pikachu444/autonomous-cae-lab/archive/refs/heads/main.zip)을 내려받습니다.
 2. 쓰기 권한이 있는 폴더에 압축을 풉니다. ZIP 안에서 실행하지 마세요.
-3. 압축을 푼 폴더의 `Start-CAE-Lab.cmd`를 더블클릭합니다.
+3. 압축을 푼 폴더의 `Install-CAE-Lab.cmd`를 더블클릭합니다.
+4. 설치가 끝나면 Windows 시작 메뉴의 **Autonomous CAE Lab**에서 사용할 프로그램을 엽니다.
 
-처음 실행하면 전용 Python과 필요한 패키지를 준비한 뒤 **Runner** 창을 엽니다.
-아직 계산한 작업이 없으면 목록이 비어 있습니다. 설치 중에는 인터넷이
+설치 파일은 전용 Python과 필요한 패키지를 준비하고 현재 사용자의 시작 메뉴에
+프로그램별 바로가기를 만듭니다. 설치 중에는 인터넷이
 필요합니다. 기본 Research 실행에는 관리자 권한, Git, 시스템 Python, WSL이 필요하지
 않습니다. 설치 후에도 압축을 푼 소스 폴더는 남겨 두세요.
 
-다음 실행부터는 같은 파일을 더블클릭하면 됩니다. Runner의 **도구** 메뉴에서
-데이터·재료·수치 연구·전문가 토론 등 원하는 프로그램을 별도 창으로 열 수 있습니다.
+다음 실행부터는 시작 메뉴에서 원하는 프로그램을 바로 여세요. **데이터**, **재료**,
+**방정식**, **수치 연구**, **전문가 토론**, **해석**, **계산 절차**, **연구 기록**을
+각각 실행합니다. **실행 관리**는 제출한 계산을 살펴보는 Runner 창입니다.
+각 바로가기는 기존 실행 환경과 같은 작업 폴더를 사용합니다.
 
-처음 열리는 창은 **Runner**입니다. 아직 계산을 실행하지 않았다면 작업 목록이 비어
-있는 것이 정상입니다. 이 목록에서 모델을 만드는 대신, 왼쪽 위 **도구** 메뉴로
-필요한 프로그램을 여세요.
+`Start-CAE-Lab.cmd`를 더블클릭하는 기존 방법도 유지합니다. 이때는 **Runner**가
+열립니다. 아직 계산을 실행하지 않았다면 작업 목록이 비어 있는 것이 정상입니다.
+왼쪽 위 **도구** 메뉴에서 필요한 프로그램을 별도 창으로 여세요.
 
 ![처음 사용할 때의 빈 Runner 작업 목록](images/start-runner.png)
 
@@ -37,7 +40,7 @@ Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버�
 [한글 사용 안내](USER_GUIDE_KO.md), CSV 피팅은 [재료 피팅 예제](DATA_MATERIAL_WORKFLOW.md)를
 따라가세요.
 
-Runner를 거치지 않고 바로 시작하려면 소스 폴더의 PowerShell에서 다음과 같이 실행합니다.
+명령어로 시작하려면 소스 폴더의 PowerShell에서 다음과 같이 실행합니다.
 
 ```powershell
 .\Start-CAE-Lab.cmd -Tool numerical
@@ -54,6 +57,22 @@ Runner를 거치지 않고 바로 시작하려면 소스 폴더의 PowerShell에
 
 ```powershell
 .\Start-CAE-Lab.cmd -InstallOnly -ResearchUI
+```
+
+이 명령은 실행 환경만 준비합니다. 이미 설치한 환경에 시작 메뉴만 추가하려면 다음을 실행합니다.
+
+```powershell
+.\scripts\install-desktop-shortcuts.ps1
+```
+
+동일한 바로가기가 있으면 그대로 사용합니다. 사용자가 바꾼 바로가기나 다른 소스 폴더를
+가리키는 바로가기는 덮어쓰지 않고 해당 경로를 알려 줍니다. 소스 폴더를 옮겼다면
+Windows 시작 메뉴의 기존 **Autonomous CAE Lab** 바로가기 폴더를 확인해 필요 없는
+바로가기만 직접 지운 뒤 새 위치에서 다시 만드세요. 연구 자료를 지울 필요는 없습니다.
+기존 바로가기를 남기려면 다른 폴더를 지정합니다.
+
+```powershell
+.\scripts\install-desktop-shortcuts.ps1 -Destination "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\CAE Lab 새 위치"
 ```
 
 Sobol 민감도 분석에는 선택 패키지가 필요합니다. 다음 명령으로 기존 무료 패키지
