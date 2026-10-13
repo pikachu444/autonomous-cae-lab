@@ -24,6 +24,7 @@ OPERATIONS = (
     'post.source_add', 'post.source_select', 'post.source_repair',
     'post.comparison_edit', 'post.mapping_validate', 'post.sample',
     'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
+    'post.measurement_snapshot', 'post.measurement_open',
     'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export',
 )
 
@@ -422,6 +423,8 @@ class Workspace:
             'post.source_repair': self.repair_source, 'post.comparison_edit': self.edit_comparison,
             'post.mapping_validate': self.validate, 'post.sample': self.sample,
             'post.filter_edit': self.edit_filter, 'post.measurement_edit': self.edit_measurement,
+            'post.measurement_snapshot': self.measurement_snapshot,
+            'post.measurement_open': self.measurement_open,
             'post.measurement_capture': self.capture_selection, 'post.apply': self.apply,
             'post.show_analysis': self.show_analysis,
             'post.reset': self.reset, 'post.undo': self.undo, 'post.redo': self.redo,
@@ -578,6 +581,79 @@ class Workspace:
         bundle = self.bundles[record['id']]
         self._verify_record(obj, record, bundle)
         return record, bundle
+
+    def measurement_snapshot(self, *, object_ref):
+        """Export all rows of one applied SAVED measurement, without changing it."""
+        from caelab.post_observation import MAX_BYTES, MAX_ROWS, file_pin, saved_record, verify_origin
+        import os
+        self.owner.assert_thread()
+        obj = self.object(object_ref)
+        record, bundle = self._bundle(obj)
+        if obj['kind'] != 'measurement' or record['recipe'] != obj.get('draft'):
+            raise ValueError('Apply and save the selected measurement before using it in Numerical')
+        path = self.owner.project_path.resolve(strict=True)
+        project_pin = file_pin(path)
+        if project_pin['bytes'] > MAX_BYTES:
+            raise ValueError('Saved Post manifest exceeds the bounded handoff size')
+        project = json.loads(path.read_text(encoding='utf-8-sig'))
+        _, saved = saved_record(project, object_ref, record['id'])
+        if saved['recipe'] != record['recipe']:
+            raise ValueError('Save this exact applied measurement before handing it off')
+        origin = {'kind': 'post_measurement', 'document_id': self.owner.document_id,
+            'session_id': self.owner.session_id, 'pid': os.getpid(),
+            'project': project_pin,
+            'workspace': file_pin(path.parent / project['workspace_file']),
+            'object_ref': object_ref, 'revision': record['id'],
+            'recipe_sha256': digest(saved['recipe']),
+            'result_files': deepcopy(saved['result_files']),
+            'result_sha256': saved['result_sha256']}
+        verify_origin(origin)
+        rows, total = [], None
+        while total is None or len(rows) < total:
+            page = measurements.sample_data(bundle['source'], offset=len(rows), limit=1000)
+            count = page.get('total', page.get('count'))
+            if type(count) is not int or not 1 <= count <= MAX_ROWS:
+                raise ValueError('Use a measurement with 1–20000 saved rows; no partial curve is handed off')
+            if total is not None and count != total:
+                raise ValueError('Native measurement size changed while reading')
+            total = count
+            chunk = page.get('rows', [])
+            if not chunk or len(rows) + len(chunk) > total:
+                raise ValueError('Native measurement returned an incomplete page')
+            rows.extend(chunk)
+            if len(json.dumps(rows, ensure_ascii=False, allow_nan=False).encode('utf-8')) > MAX_BYTES:
+                raise ValueError('Native measurement exceeds the bounded extraction size')
+        self._verify_record(obj, record, bundle)
+        verify_origin(origin)
+        snapshot = {'complete': True, 'origin': origin, 'recipe': deepcopy(saved['recipe']),
+                    'summary': deepcopy(saved['summary']), 'rows': rows}
+        data = json.dumps(snapshot, ensure_ascii=False, allow_nan=False).encode('utf-8')
+        if len(data) > MAX_BYTES:
+            raise ValueError('Native measurement exceeds the bounded extraction size')
+        folder = Path(project['project_root']) / 'exports'
+        folder.mkdir(parents=True, exist_ok=True)
+        output = folder / ('measurement-' + uuid.uuid4().hex + '.json')
+        with output.open('xb') as stream:
+            stream.write(data)
+        # Only a small receipt travels through the existing native command broker.
+        return {'origin': origin, 'snapshot': file_pin(output), 'rows': total}
+
+    def measurement_open(self, *, origin):
+        """Show the pinned measurement only in its unchanged live saved project."""
+        from caelab.post_observation import verify_origin, check_pin
+        _, _, saved = verify_origin(origin)
+        if (origin['document_id'] != self.owner.document_id
+                or self.owner.project_path.resolve() != check_pin(origin['project'])):
+            raise ValueError('The live Post window is on another saved project; its edits were preserved')
+        obj = self.object(origin['object_ref'])
+        record, bundle = self._bundle(obj)
+        if record['id'] != origin['revision'] or record['recipe'] != saved['recipe']:
+            raise ValueError('The live measurement moved to another revision; its edits were preserved')
+        self.show(obj, record, bundle)
+        self.state['active_object'] = obj['id']
+        self.restore_selection()
+        self._touch()
+        return {'status': 'SHOWN', 'object_ref': obj['id'], 'revision': record['id']}
 
     def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None):
         obj = self.object(object_ref)

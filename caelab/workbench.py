@@ -213,6 +213,18 @@ class Workbench:
         from .research_workflows import resolve_reference
         return resolve_reference(self,reference)
 
+    def post_measurement_preview(self, command_id):
+        from .post_numerical import preview
+        return preview(self, command_id)
+
+    def post_measurement_plan(self, command_id, selection, *, session_id, handoff_id):
+        from .post_numerical import prepare
+        return prepare(self, command_id, selection, session_id=session_id, handoff_id=handoff_id)
+
+    def post_observation(self, reference):
+        from .post_numerical import observation
+        return observation(self, reference)
+
     def document_source_preview(self, identifier):
         if self._document_owner(identifier) is not self.data_documents:
             raise ValueError('Source preview belongs to a Data document')

@@ -15,6 +15,7 @@ CAPABILITIES = {
              'post.source_add', 'post.source_select', 'post.source_repair',
              'post.comparison_edit', 'post.mapping_validate', 'post.sample',
              'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
+             'post.measurement_snapshot', 'post.measurement_open',
              'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export'},
     'pre': {'pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze',
             'document.save', 'document.undo', 'document.redo', 'document.activate',

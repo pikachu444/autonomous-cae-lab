@@ -41,6 +41,18 @@ def handle(handler,method,path,query):
             if set(body)-{'source','kind','session_id','command_id','material_document_id'}:
                 raise ServiceError(400,'Unknown follow-up field')
             return handler._json(200,workbench.desktop.data_followup(**body))
+        if path=='/api/workbench/post-measurement-preview':
+            if set(body) != {'command_id'}:
+                raise ServiceError(400,'Select the exact completed native measurement command')
+            return handler._json(200,workbench.post_measurement_preview(**body))
+        if path=='/api/workbench/post-measurement-plan':
+            if set(body) != {'command_id','selection','session_id','handoff_id'}:
+                raise ServiceError(400,'Choose the measurement, mapping and explicit New Plan action')
+            return handler._json(200,workbench.post_measurement_plan(**body))
+        if path=='/api/workbench/post-observation':
+            if set(body) != {'reference'}:
+                raise ServiceError(400,'Select the exact retained Data result reference')
+            return handler._json(200,workbench.post_observation(**body))
         if path=='/api/workbench/result-followup':
             if set(body)-{'source_ref','kind','session_id','command_id','request'}:
                 raise ServiceError(400,'Unknown result follow-up field')

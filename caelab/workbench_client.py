@@ -123,6 +123,13 @@ class Client:
         from urllib.parse import urlencode
         query = urlencode(dict(channel=channel, start=start, count=count, search=search))
         return self.request('/api/workbench/documents/'+check_id(identifier)+'/response-locations/'+check_id(job_id)+'?'+query)
+    def post_measurement_preview(self, command_id):
+        return self.request('/api/workbench/post-measurement-preview', {'command_id': command_id})
+    def post_measurement_plan(self, command_id, selection, *, session_id, handoff_id):
+        return self.request('/api/workbench/post-measurement-plan', dict(command_id=command_id,
+            selection=selection, session_id=session_id, handoff_id=handoff_id))
+    def post_observation(self, reference):
+        return self.request('/api/workbench/post-observation', {'reference': reference})
     def result_followup(self,source_ref,kind='expert',*,session_id,command_id,request=None):
         return self.request('/api/workbench/result-followup',dict(source_ref=source_ref,kind=kind,
             session_id=session_id,command_id=command_id,request=request))

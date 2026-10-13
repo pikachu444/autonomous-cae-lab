@@ -1,0 +1,235 @@
+"""Saved native Post samples projected onto the existing Data input contract.
+
+No native IDs are research result references. This module performs no solver,
+unit conversion, resampling, interpolation, reduction or document mutation.
+"""
+from copy import deepcopy
+import csv
+import hashlib
+import io
+import json
+import math
+from pathlib import Path
+
+from .storage import canonical_hash
+
+MAX_ROWS = 20000
+MAX_BYTES = 16 * 1024 * 1024
+
+
+def file_pin(path):
+    path = Path(path).resolve(strict=True)
+    return {'path': str(path), 'bytes': path.stat().st_size,
+            'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
+def check_pin(pin):
+    if not isinstance(pin, dict) or set(pin) != {'path', 'bytes', 'sha256'}:
+        raise ValueError('Saved Post file pin is incomplete')
+    path = Path(pin['path']).resolve(strict=True)
+    if not path.is_file() or path.stat().st_size != pin['bytes']:
+        raise ValueError('Saved Post file is missing or its length changed: ' + path.name)
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    if digest.hexdigest() != pin['sha256']:
+        raise ValueError('Saved Post file changed: ' + path.name)
+    return path
+
+
+def saved_record(project, object_ref, revision):
+    obj = project.get('analysis', {}).get('objects', {}).get(object_ref)
+    if not isinstance(obj, dict) or obj.get('kind') != 'measurement':
+        raise ValueError('Select a saved point, path or time measurement')
+    history, position = obj.get('history', []), obj.get('position', -1)
+    if type(position) is not int or not 0 <= position < len(history):
+        raise ValueError('Apply and save this measurement first')
+    record = history[position]
+    if record.get('id') != revision:
+        raise ValueError('The selected applied measurement is not this saved revision')
+    if not record.get('result_files') or not record.get('result_file'):
+        raise ValueError('This measurement has no saved native sample artifact')
+    return obj, record
+
+
+def verify_origin(origin):
+    if not isinstance(origin, dict) or origin.get('kind') != 'post_measurement':
+        raise ValueError('Select a retained native Post measurement')
+    path = check_pin(origin['project'])
+    if path.stat().st_size > MAX_BYTES:
+        raise ValueError('Saved Post manifest exceeds the bounded handoff size')
+    project = json.loads(path.read_text(encoding='utf-8-sig'))
+    if project.get('document_id') != origin['document_id']:
+        raise ValueError('Saved Post project identity changed')
+    workspace = check_pin(origin['workspace'])
+    if ((path.parent / project['workspace_file']).resolve() != workspace
+            or project.get('workspace_sha256') != origin['workspace']['sha256']):
+        raise ValueError('Saved Post workspace differs from the measurement source')
+    obj, record = saved_record(project, origin['object_ref'], origin['revision'])
+    if (canonical_hash(record['recipe']) != origin['recipe_sha256']
+            or record['result_files'] != origin['result_files']
+            or record['result_sha256'] != origin['result_sha256']):
+        raise ValueError('Saved measurement recipe or sample dependencies changed')
+    for pin in record['result_files']:
+        check_pin(pin)
+    entry = next((pin for pin in record['result_files']
+                  if Path(pin['path']).resolve() == Path(record['result_file']).resolve()), None)
+    if entry is None or entry['sha256'] != record['result_sha256']:
+        raise ValueError('Saved measurement entry is not pinned')
+    return project, obj, record
+
+
+def completed_snapshot(command):
+    """Only consume a stored, successful native owner command, never caller rows."""
+    if (command.get('state') != 'SUCCEEDED'
+            or command.get('operation') != 'post.measurement_snapshot'
+            or command.get('outcome', {}).get('state') != 'SUCCEEDED'):
+        raise ValueError('Complete the saved native measurement snapshot first')
+    envelope = command['outcome'].get('result', {})
+    if envelope.get('status') != 'COMPLETED' or any(
+            envelope.get(key) != command.get(key) for key in ('command_id', 'document_id', 'session_id')):
+        raise ValueError('Native snapshot completion belongs to a different request')
+    receipt = envelope.get('result', {})
+    origin = receipt.get('origin', {})
+    if (origin.get('document_id') != command.get('document_id')
+            or origin.get('session_id') != command.get('session_id')
+            or origin.get('object_ref') != command.get('arguments', {}).get('object_ref')):
+        raise ValueError('Native snapshot source differs from the selected measurement')
+    project, _, _ = verify_origin(origin)
+    pin = receipt.get('snapshot', {})
+    path = Path(pin.get('path', '')).resolve()
+    export_root = (Path(project['project_root']) / 'exports').resolve()
+    if not path.is_relative_to(export_root) or path.suffix != '.json':
+        raise ValueError('Snapshot must be the native owner export inside this project')
+    if type(pin.get('bytes')) is not int or not 0 < pin['bytes'] <= MAX_BYTES:
+        raise ValueError('Native measurement snapshot exceeds the handoff limit')
+    check_pin(pin)
+    snapshot = json.loads(path.read_text(encoding='utf-8'))
+    if snapshot.get('origin') != origin or snapshot.get('complete') is not True:
+        raise ValueError('The native measurement snapshot is incomplete or changed')
+    rows = snapshot.get('rows')
+    if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_ROWS:
+        raise ValueError('Use a saved measurement containing 1–20000 rows')
+    return snapshot
+
+
+def _finite(value):
+    return type(value) in (int, float) and math.isfinite(value)
+
+
+def _component(value, component):
+    if isinstance(value, list):
+        if type(component) is not int or not 0 <= component < len(value):
+            raise ValueError('Choose an explicit vector component; no magnitude is inferred')
+        return value[component]
+    if component is not None:
+        raise ValueError('A scalar array requires the Scalar component selection')
+    return value
+
+
+def choices(snapshot):
+    """Describe actual output columns/blocks; display names are not model selectors."""
+    arrays, blocks = {}, set()
+    for row in snapshot['rows']:
+        block = tuple(row.get('block', []))
+        blocks.add(block)
+        for name, value in row.get('values', {}).items():
+            count = len(value) if isinstance(value, list) else 1
+            if name in arrays and arrays[name] != count:
+                raise ValueError('Native array component count changes between rows')
+            arrays[name] = count
+    return {'arrays': arrays, 'blocks': [list(block) for block in sorted(blocks)],
+            'coordinates': any('coordinates' in row for row in snapshot['rows']),
+            'point_index': any('point_index' in row for row in snapshot['rows'])}
+
+
+def project_samples(snapshot, selection):
+    required = {'block', 'value_array', 'value_component', 'axis', 'unit', 'axis_name',
+                'axis_unit', 'component_label', 'location', 'frame', 'measure',
+                'role', 'exclude_invalid'}
+    if not isinstance(selection, dict) or set(selection) != required:
+        raise ValueError('Choose the component, axis, units, location and observation role')
+    if selection['role'] not in ('fit', 'holdout') or type(selection['exclude_invalid']) is not bool:
+        raise ValueError('Choose Fit observation or Holdout baseline and an explicit invalid-row policy')
+    for key in ('unit', 'axis_name', 'axis_unit', 'component_label', 'location', 'frame', 'measure'):
+        if not isinstance(selection[key], str) or not selection[key].strip():
+            raise ValueError('Declare ' + key.replace('_', ' ') + '; no physical meaning is inferred')
+    available = choices(snapshot)
+    if selection['block'] not in available['blocks']:
+        raise ValueError('Choose an exact native table block')
+    if selection['value_array'] not in available['arrays']:
+        raise ValueError('The selected native value array is absent')
+    declared_unit = snapshot.get('summary', {}).get('units')
+    if declared_unit and selection['unit'] != declared_unit:
+        raise ValueError('Use the saved measurement unit; this handoff performs no conversion')
+    axis = selection['axis']
+    if not isinstance(axis, dict) or axis.get('kind') not in ('array', 'coordinate', 'point_index'):
+        raise ValueError('Choose an actual native array, coordinate or point-index axis')
+    if axis['kind'] == 'array' and set(axis) != {'kind', 'name', 'component'}:
+        raise ValueError('Array axis requires its exact name and scalar/component choice')
+    if axis['kind'] == 'coordinate' and (set(axis) != {'kind', 'component'} or axis['component'] not in (0, 1, 2)):
+        raise ValueError('Coordinate axis requires X, Y or Z')
+    if axis['kind'] == 'point_index' and (set(axis) != {'kind'} or selection['axis_unit'] != '1'):
+        raise ValueError('Original point index is dimensionless; it is not a physical clock')
+    summary = snapshot.get('summary', {})
+    if summary.get('measurement') == 'time' and (axis['kind'] != 'array'
+            or selection['axis_unit'] != summary.get('time_units')):
+        raise ValueError('Time measurements require their actual native clock and saved time unit')
+    output, invalid, identities, projected = io.StringIO(newline=''), [], [], []
+    writer = csv.writer(output)
+    writer.writerow(['axis', 'measured', 'valid'])
+    previous = None
+    for row in snapshot['rows']:
+        if row.get('block', []) != selection['block']:
+            continue
+        values = row.get('values', {})
+        y = _component(values.get(selection['value_array']), selection['value_component'])
+        if axis['kind'] == 'array':
+            if axis['name'] not in values:
+                raise ValueError('Selected axis array is absent in a native row')
+            x = _component(values[axis['name']], axis['component'])
+        elif axis['kind'] == 'coordinate':
+            coordinates = row.get('coordinates')
+            if not isinstance(coordinates, list) or len(coordinates) != 3:
+                raise ValueError('This native table has no physical coordinates')
+            x = coordinates[axis['component']]
+        else:
+            x = row.get('point_index')
+        reason = row.get('validity', {}).get(selection['value_array'], 'valid')
+        if reason == 'valid':
+            for mask in ('vtkValidPointMask', 'vtkValidMask'):
+                if mask in values and values[mask] != 1:
+                    reason = 'native_mask'
+        if not _finite(x) or not _finite(y):
+            reason = 'nonfinite_axis_or_value' if reason == 'valid' else reason
+        line = len(projected) + 1  # Header is physical source line zero.
+        identity = ({'block': row['block'], 'row': row['row']} if 'block' in row
+                    else {'point_index': row.get('point_index')})
+        identities.append({'source_row': line, 'native': identity, 'reason': reason})
+        valid = reason == 'valid'
+        if not valid:
+            invalid.append(line)
+        if valid:
+            if previous is not None and x <= previous:
+                raise ValueError('Selected axis must increase strictly; choose another block/axis without sorting or interpolation')
+            previous = x
+        projected.append({'source_row': line, 'native': identity, 'axis': x, 'value': y, 'valid': valid, 'reason': reason})
+        writer.writerow([repr(x) if _finite(x) else 'nan', repr(y) if _finite(y) else 'nan', int(valid)])
+    if not projected or len(invalid) == len(projected):
+        raise ValueError('This selection has no valid measured samples')
+    if summary.get('measurement') == 'time':
+        actual = [row['axis'] for row in projected]
+        if actual != summary.get('time_values'):
+            raise ValueError('Selected axis is not the exact saved native clock; no clock interpolation is permitted')
+    response = {'column': 1, 'unit': selection['unit'], 'component': selection['component_label'],
+                'location': selection['location'], 'measure': selection['measure'], 'frame': selection['frame'],
+                'axis': {'column': 0, 'name': selection['axis_name'], 'unit': selection['axis_unit']}}
+    if invalid:
+        response['row_selection'] = {'exclude_rows': invalid if selection['exclude_invalid'] else [],
+            'reasons': {str(row['source_row']): row['reason'] for row in identities if row['reason'] != 'valid'}}
+    return {'csv': output.getvalue().encode('utf-8'), 'rows': projected, 'invalid_rows': invalid,
+            'importable': not invalid or selection['exclude_invalid'],
+            'mapping': {'delimiter': ',', 'skip_header': 1, 'columns': {'measured': response}},
+            'origin': {**deepcopy(snapshot['origin']), 'selection': deepcopy(selection),
+                       'row_identity': identities, 'summary': deepcopy(summary)}}
