@@ -318,6 +318,23 @@ pair/면/증분 선택과 압력·간극·힘 이력, 저장/재열기와 선택
 추가를 소유한다. Codex는 공통 계약/등록 경계 검토, 최소 Windows 실행과 문서 통합을 맡고
 Astra는 산출물의 핵심 의미·사용자 흐름을 독립 검토한다. 새 solver 실행은 맡기지 않는다.
 
+Pro 접촉 검사 산출물 `1edd036`~`50c7340`을 로컬 `7f27e12`~`0ddd758`로 통합했다.
+변경된 contact inspection/Qt/native guard/execution 검사33건이24.75초에 통과했다.
+기존 FRD/DAT에서 새 inspection bundle25개 파일을 생성·등록하고 native 프로젝트를 열었다.
+실제 Show faces에서는 ParaView6.2의 `ColorBy(display, None)`가 초기 association `NONE`을
+거부해 실패했다. 별도 native 확인에서 명시적인 empty POINTS association 또는
+`SetScalarColoring(None, 0)`는 동작했다. Astra는 bundle 누락 시 partial restore가
+제거된 overlay reader를 healthy로 검사해 복구창 진입을 막는 소스 결함도 찾았다.
+같은 Pro에 `PRO-CONTACT-INSPECT-FIX-01`로 두 교정을 전송했고 진행을 확인했다.
+ColorBy 오류만 우회한 별도 진단에서는 실제 접촉면·10행 힘 측정·저장이 성공했다.
+제품 통과로 표시하지 않는다. 새 프로세스 재열기에서 두 Threshold의 SelectedComponent가
+저장 전 빈 문자열에서0으로 바뀌는 실제 default 정규화를 추가 확인해 같은 Pro에 전달했다.
+다른 graph 차이는 없었으며 생성 시 명시적 설정 등 국소 교정을 요청했다. 실제 결과를
+넣은 Qt 결과 창의194개 접촉면 절점·10개 증분 표/곡선도 렌더했다. native 통신은 이 렌더의
+검사 범위가 아니며 원본은 `runs/product-development/20261013/contact-inspect-bb998593/`이다.
+새 제품 코드의
+원격 main 푸시는 교정 확인 뒤이며, 기존 원격 main은 `8720891`이다.
+
 병행 조사에서 다음 연결의 실제 빈틈도 확인했다. 현재 Pre 변수 등록은 길이 치수에
 한정되고, 접촉 adapter는 이미 고정된 snapshot만 실행한다. 기존 Numerical 후보 저장과
 JobManager는 재사용할 수 있지만 사용자 CAD의 후보별 형상/메시/조건 생성과 편집 가능한
