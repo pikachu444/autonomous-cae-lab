@@ -227,8 +227,8 @@ Gmsh 두 메시와 CalculiX 접촉 해석을 끝냈다. 요청한 최종 CFN/전
 Astra가 찾은 축 원점 누락은 Codex가 기존 측정값과 mm/문서 전체 좌표 표시를 추가해
 고쳤으며 해당 GUI 검사가 통과했다. Pro 조립 교정과 관련 GUI 변경을 검토해 원격
 게시를 진행한다. 게시 확인 전의 원격 main 기준은 Expert 읽기 개선 `c3dbd19`다.
-원격 main `483ac29` 게시와 서버의 같은 커밋을 확인했다. 현재 조립 변경, Numerical·
-Runner·PDE·native 연구 패널 교정과 사용 안내가 포함된다. 다음 CAD 패널 개선은 별도 작성 중이다.
+원격 main `682f8c7` 게시와 서버의 같은 커밋을 확인했다. 현재 조립 변경, Numerical·
+Runner·PDE·native 연구 패널 교정과 실제 화면을 포함한 한국어 사용 안내가 포함된다.
 다음 실제 Pro 요청은 `PRO-DATA-MATERIAL-WORKFLOW-01`이며, `d048a31` 기준의
 Data→Material/기존 Numerical 피팅→잔차·holdout→계수 채택·저장/재열기를 하나의
 사용자 작업으로 완성하도록 맡긴다. 새 작성 브랜치는 `codex/data-material-workflow-20261014`다.
@@ -278,6 +278,13 @@ Sol GUI 담당과 Astra가 FreeCAD 연구 패널의 표 중심 배치와 범위 
 초기 캡처의 스크롤 반영 전 표시는 helper를 고쳐 보존된 중간본과 구별했다. 실제 상속
 글꼴과 Qt 6.8.3에서 확인했으며 OS 입력이나 새 계산을 완료했다는 주장은 아니다.
 Pro는 Data/Material 피팅 기능, root는 통합과 실행을 소유하며 같은 파일을 동시에 수정하지 않는다.
+CAD 패널 인도 후 GUI 담당과 Astra는 D4의 Post 분석 패널을 맡았다. 실제 ParaView 결과
+선택→필드/위치/시간→측정→곡선→Numerical 전달의 배치와 표현을 직접 논의한다.
+작성 범위는 `post_window.py`와 관련 측정/접촉 대화상자 및 GUI 검사이며, Pro D5의
+Data/Material/Numerical 파일이나 Core/adapter를 동시에 바꾸지 않는다. 기존 접촉 전달
+자료를 재사용하며, 새 계산 없이 원 결과·초안·Apply/Undo·재시도 의미를 유지한다.
+MoAI D4 카드는 진행 상태다. 작업 기록은 `runs/product-development/20261014/post-layout/`로
+모으고 전체 D4 비교·원본 복구 기능의 완료와 이번 화면 인도를 구별한다.
 Codex는 Runner의 기본 실행 목록·메뉴·취소 상태를 한국어로 정리하고 실행 ID/입력
 식별값을 기술 상세로 옮겼다. 저장 결과의 성분·위치·좌표계·물리량 정의는 읽을 수 있는
 표현으로 유지하며 원문은 결과 상세에 남긴다. 관련 기존 검사 6개가 통과했고 실제
