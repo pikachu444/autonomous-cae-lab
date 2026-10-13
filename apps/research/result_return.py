@@ -230,7 +230,7 @@ class PendingResultReview(QObject):
                 try:
                     message = json.loads(bytes(buffer).decode('utf-8'))
                     receipt = self.receive(message)
-                except (ValueError, TypeError, KeyError, UnicodeError) as error:
+                except (ValueError, TypeError, KeyError, UnicodeError, RecursionError) as error:
                     receipt = {'status': 'REJECTED', 'reason': str(error)}
                 socket.write((json.dumps(receipt, ensure_ascii=False) + '\n').encode('utf-8'))
                 socket.flush()
@@ -305,6 +305,9 @@ class PendingResultReview(QObject):
             return (document and (document['id'], document['session_id'], canonical_hash(document['draft'])) == context
                     and not self._blocked() and identifier in self.pending)
         def failed(error):
+            if identifier in self.receipts:
+                self.receipts[identifier].update(status='REJECTED', reason=str(error))
+            self.pending.pop(identifier, None)
             self._finish()
             self.window.message.setText('Result not attached; current edits retained. ' + error)
         def checked(payload):
@@ -389,7 +392,6 @@ class PendingResultReview(QObject):
             if reference in rows:
                 return 'ALREADY_ATTACHED'
             rows.append(reference)
-            window._review_only_evidence.add(canonical_hash(reference))
             window._buffer = draft
             window._update_evidence_label()
         else:
@@ -406,7 +408,6 @@ class PendingResultReview(QObject):
 
 def install_receiver(window):
     window._incoming_review = False
-    window._review_only_evidence = set()
     window._result_return = PendingResultReview(window)
 
 
@@ -426,6 +427,7 @@ def send_message(message, *, timeout_ms=2500):
     validate_message(message)
     name, path = _route(message['service'], message['target_id'])
     socket = QLocalSocket()
+    socket.setReadBufferSize(MAX_FRAME + 1)
     socket.connectToServer(name)
     if not socket.waitForConnected(timeout_ms):
         error = socket.error()

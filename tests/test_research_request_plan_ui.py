@@ -449,3 +449,185 @@ def test_request_chooser_uses_envelope_filters_material_bound_plans(app, workben
     window.choose_document()
     wait(app, lambda: not window._busy and window.document['id'] == other['id'])
     assert window.document['title'] == 'Exact request target'
+
+
+def _edit_sheet_cell(app, table, row, column, text):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QLineEdit
+    table.window().show()
+    table.window().raise_()
+    table.window().activateWindow()
+    app.processEvents()
+    table.scrollToItem(table.item(row, column))
+    table.setCurrentCell(row, column)
+    table.setFocus()
+    QTest.keyClick(table, Qt.Key.Key_F2)
+    app.processEvents()
+    editor = QApplication.focusWidget()
+    assert isinstance(editor, QLineEdit), type(editor)
+    editor.selectAll()
+    QTest.keyClicks(editor, text)
+    QTest.keyClick(editor, Qt.Key.Key_Return)
+    app.processEvents()
+
+
+def test_generic_worksheet_precision_invalid_save_reopen_repair_and_method_options(app, workbench, retained_studies):
+    original, _ = retained_studies[0]
+    window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    window.open_document(document_id=original['id'])
+    wait(app, lambda: window.document is not None and not window._busy)
+    assert window.input_tabs.currentWidget() is window.sheet
+    assert window.variable_sheet.rowCount() == 1
+    for raw in ('NaN', 'Infinity', '1e309', '1e'):
+        _edit_sheet_cell(app, window.variable_sheet, 0, 2, raw)
+        assert window.edited_draft()['request']['inputs']['variables'][0]['value'] == raw
+        assert window._request_context() is not None  # Invalid values stay serializable.
+    window.save_document()
+    wait(app, lambda: not window._busy and not window.local_dirty and not window.document['dirty'])
+    assert window.document['diagnostics'] and not window.run_button.isEnabled()
+    other = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    other.open_document(document_id=window.document['id'])
+    wait(app, lambda: other.document is not None and not other._busy)
+    assert other.variable_sheet.item(0, 2).text() == '1e'
+    _edit_sheet_cell(app, other.variable_sheet, 0, 2, '1.2e-5')
+    other.apply_inputs()
+    wait(app, lambda: not other._busy and not other.local_dirty)
+    assert other.edited_draft()['request']['inputs']['variables'][0]['value'] == 1.2e-5
+    assert other.run_button.isEnabled()
+    other.undo_action.trigger()
+    wait(app, lambda: not other._busy and other.variable_sheet.item(0, 2).text() == '1e')
+    assert not other.run_button.isEnabled()
+    other.redo_action.trigger()
+    wait(app, lambda: not other._busy and other.edited_draft()['request']['inputs']['variables'][0]['value'] == 1.2e-5)
+    other.operation.setCurrentIndex(other.operation.findData('optimize'))
+    other._edit_structure(lambda value: value.update(
+        objective={'response': 'cost', 'unit': 'MPa', 'reduction': 'none', 'direction': 'minimize'},
+        constraints=[{'response': 'cost', 'unit': 'MPa', 'reduction': 'none', 'operator': '<=', 'limit': .5}],
+        options={'max_generations': 2, 'population_size': 5, 'future_option': {'authored': 'preserve'}}))
+    _edit_sheet_cell(app, other.response_sheet, 1, 4, '-1.2e-5')
+    assert other.edited_draft()['request']['inputs']['constraints'][0]['limit'] == -1.2e-5
+    other.operation.setCurrentIndex(other.operation.findData('doe'))
+    assert other.variable_sheet.item(0, 2).text() == '1.2e-05'
+    other.operation.setCurrentIndex(other.operation.findData('optimize'))
+    assert other.edited_draft()['request']['inputs']['options']['future_option'] == {'authored': 'preserve'}
+    assert other.response_sheet.item(1, 4).text() == '-1.2e-05'
+    other.variable_sheet.selectRow(0)
+    other.remove_sheet_variables()
+    assert other.edited_draft()['request']['inputs']['variables'] == []
+    for view in (window, other):
+        view._allow_close = True
+        view.close()
+
+
+def test_generic_worksheet_malformed_ids_and_retained_doe_controls(app, workbench, retained_studies):
+    from caelab.storage import canonical_hash
+    document, job = retained_studies[0]
+    window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    draft = deepcopy(document['draft'])
+    draft['request']['inputs']['variables'][0]['id'] = {'invalid': ['preserve']}
+    window.open_document(draft=draft)
+    wait(app, lambda: window.document is not None and not window._busy)
+    assert not window._populating
+    assert window.edited_draft() == draft
+    assert not window.run_button.isEnabled()
+    reference = workbench.document_result_reference(document['id'], job)
+    valid = deepcopy(document['draft']['request']['inputs'])
+    valid.pop('candidates', None)
+    valid.pop('count', None)
+    valid.pop('seed', None)
+    valid['result_refs'] = {'candidates': reference}
+    window._edit_structure(lambda value: (value.clear(), value.update(valid)))
+    assert window.method_sheet.rowCount() == 0
+    assert canonical_hash(window.edited_draft())
+    window.apply_inputs()
+    wait(app, lambda: not window._busy)
+    assert not window.document['diagnostics']
+    window._allow_close = True
+    window.close()
+
+
+def test_generic_doe_actual_candidate_scalar_pick_and_retained_curve(app, workbench, monkeypatch):
+    from types import SimpleNamespace
+    from caelab.backends import Backend, _registry
+    calls = []
+    def model(values, settings):
+        x = values['x']
+        calls.append(x)
+        if x > .9:
+            return {'execution_status': 'FAILED', 'responses': {}, 'diagnostics': {'failure_reason': 'Declared test domain'}}
+        identity = {'unit': 'MPa', 'component': 'scalar', 'location': 'model', 'frame': 'test_frame', 'measure': 'test_response'}
+        return {'execution_status': 'SUCCEEDED', 'responses': {
+            'cost': {'kind': 'scalar', 'value': x*x, **identity},
+            'trace': {'kind': 'series', 'value': [x, 2*x, 4*x], **identity,
+                      'axes': [{'name': 'time', 'unit': 's', 'values': [0., .25, 2.]}]}}}
+    monkeypatch.setitem(_registry, 'test.worksheet.numeric', Backend('test.worksheet.numeric', ('prepared',), lambda: model))
+    draft = request_draft({'purpose': 'Actual small DOE engine / algebraic test evaluator', 'operation': 'doe',
+        'inputs': {'backend': 'test.worksheet.numeric',
+                   'variables': [{'id': 'x', 'unit': '1', 'value': .5, 'lower': 0., 'upper': 1.}],
+                   'candidates': [{'candidate_id': 'Cfirst', 'values': {'x': .2}},
+                                  {'candidate_id': 'Cfailed', 'values': {'x': .95}},
+                                  {'candidate_id': 'Clast', 'values': {'x': .8}}]},
+        'budget': {'evaluations': 3}})
+    window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    window.open_document(draft=draft)
+    wait(app, lambda: window.document is not None and not window._busy)
+    window.run_button.click()
+    wait(app, lambda: not window._busy and window.selected_job() is not None)
+    job = window.selected_job()
+    wait(app, lambda: workbench.manager.status(job)['state'] in {'SUCCEEDED', 'PARTIAL_FAILURE', 'FAILED'})
+    window.retry_result()
+    wait(app, lambda: not window._busy and job in window._result_cache)
+    assert calls == [.2, .95, .8]
+    result = window._result_cache[job]
+    assert [row['candidate_id'] for row in result['candidates']] == ['Cfirst', 'Cfailed', 'Clast']
+    assert result['candidates'][1]['execution_status'] == 'FAILED'
+    window.plot_response.setCurrentIndex(window.plot_response.findData({'candidate_response': 'cost'}))
+    artist = window.figure.axes[0].collections[0]
+    assert artist.get_offsets().tolist() == [[0., .2*.2], [2., .8*.8]]
+    window._candidate_plot_picked(SimpleNamespace(artist=artist, ind=[1]))
+    assert window._selected_actual_candidate()['candidate_id'] == 'Clast'
+    window.plot_response.setCurrentIndex(window.plot_response.findData({'candidate_response': 'trace'}))
+    line = window.figure.axes[0].lines[0]
+    assert list(line.get_xdata()) == [0., .25, 2.]
+    assert list(line.get_ydata()) == [.8, 1.6, 3.2]
+    window.candidates.selectRow(1)
+    assert not window.figure.axes[0].lines
+    assert window._selected_actual_candidate()['candidate_id'] == 'Cfailed'
+    window.save_document()
+    wait(app, lambda: not window._busy and window.document['runs'][0].get('retention_complete'))
+    assert workbench.document_result_reference(window.document['id'], job)['result_sha256']
+    window._allow_close = True
+    window.close()
+
+
+def test_generic_optimize_worksheet_runs_existing_engine_with_physical_constraint(app, workbench, retained_studies):
+    document, _ = retained_studies[0]
+    draft = deepcopy(document['draft'])
+    inputs = draft['request']['inputs']
+    inputs.pop('candidates', None)
+    inputs.pop('count', None)
+    inputs.update(objective={'response': 'cost', 'unit': 'MPa', 'component': 'scalar', 'location': 'model',
+                             'reduction': 'none', 'direction': 'minimize'},
+                  constraints=[{'response': 'cost', 'unit': 'MPa', 'component': 'scalar', 'location': 'model',
+                                'reduction': 'none', 'operator': '<=', 'limit': .7}],
+                  options={'max_generations': 1, 'population_size': 5, 'retain_responses': 'all'})
+    draft['request']['operation'] = 'optimize'
+    draft['request']['budget']['evaluations'] = 20
+    window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    window.open_document(draft=draft)
+    wait(app, lambda: window.document is not None and not window._busy)
+    assert window.response_sheet.rowCount() == 2 and window.method_sheet.rowCount() == 4
+    _edit_sheet_cell(app, window.response_sheet, 1, 4, '6e-1')
+    _, result = run_edited_request(app, workbench, window)
+    assert result['kind'] == 'optimization'
+    assert result['constraint_definitions'][0]['limit'] == .6
+    assert 0 < len(result['candidates']) <= 20
+    for row in result['candidates']:
+        if row['execution_status'] == 'SUCCEEDED':
+            assert row['objective'] == pytest.approx(row['values']['x'] ** 2)
+        else:
+            assert row.get('objective') is None
+    assert result['best']['feasible']
+    window._allow_close = True
+    window.close()

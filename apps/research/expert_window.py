@@ -232,7 +232,8 @@ class ExpertWindow(QMainWindow):
         self.allow_public = QCheckBox('Public literature searches')
         self.allow_public.setToolTip('Permit public literature searches within the existing workspace search authorization.')
         self.allow_results = QCheckBox('Transmit attached results')
-        self.allow_results.setToolTip('Permit transmission of explicitly attached result identities within the existing workspace/provider authorization.')
+        self.allow_results.setToolTip('New attachments do not grant result access. Clear and check this option to explicitly include the currently attached results within existing provider authorization.')
+        self.allow_results.toggled.connect(self._result_permission_toggled)
         for field in (self.allow_question, self.allow_public, self.allow_results):
             field.toggled.connect(self._edited)
             form.addRow(field)
@@ -327,6 +328,11 @@ class ExpertWindow(QMainWindow):
         self._populating = False
 
     def _show_document(self, document, *, preserve_buffer=False):
+        receiver = getattr(self, '_result_return', None)
+        if (receiver and not preserve_buffer and receiver.target
+                and receiver.target[0] == document['id'] and receiver.target[1] != document['session_id']):
+            # Only a reconciled clean view accepts a fresh service session.
+            receiver.bind(document)
         self.document = deepcopy(document)
         if not preserve_buffer:
             self._buffer = deepcopy(document['draft'])
@@ -423,6 +429,17 @@ class ExpertWindow(QMainWindow):
             self.local_dirty = True
             self._update_actions()
 
+    def _result_permission_toggled(self, checked):
+        if self._populating or not self._buffer or self._draft_problem:
+            return
+        # A deliberate toggle grants only the attachments visible at this moment.
+        # Later returns/manual attachments, including after cold reopen, do not
+        # silently expand this persisted explicit scope.
+        scope = self._buffer.setdefault('context', {}).setdefault('transmission_scope', {})
+        ids = [item['job_id'] for item in self._buffer['composer']['evidence'] if 'job_id' in item]
+        scope['result_ids'] = list(dict.fromkeys(scope.get('result_ids', []) + ids)) if checked else []
+        self._edited()
+
     def edited_draft(self):
         if self._buffer is None:
             return {}
@@ -440,13 +457,6 @@ class ExpertWindow(QMainWindow):
         for key, value in current.items():
             if value != self._control_initial.get(key):
                 draft['context'].setdefault('transmission_scope', {})[key] = value
-        explicit_permission_change = self.allow_results.isChecked() != self._control_initial.get('allow_results')
-        result_ids = [item['job_id'] for item in draft['composer'].get('evidence', []) if 'job_id' in item
-                      and (explicit_permission_change or canonical_hash(item) not in getattr(self, '_review_only_evidence', set()))]
-        if self.allow_results.isChecked() != self._control_initial.get('allow_results') or (
-                self.allow_results.isChecked() and draft['composer']['evidence'] != self.document['draft']['composer']['evidence']):
-            scope = draft['context'].setdefault('transmission_scope', {})
-            scope['result_ids'] = list(dict.fromkeys(scope.get('result_ids', []) + result_ids)) if self.allow_results.isChecked() else []
         for key, field in (('model_calls', self.model_calls), ('tool_calls', self.tool_calls), ('seconds', self.seconds)):
             if field.value() != self._control_initial.get(key):
                 draft['budget'][key] = field.value()

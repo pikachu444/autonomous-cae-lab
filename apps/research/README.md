@@ -118,6 +118,116 @@ Ordinary editing and existing-result reading do not require an AI login. Expert
 inference requires the configured actual provider and its permitted tool scope.
 Do not combine this Qt/Python environment with FreeCAD's or ParaView's bundles.
 
+## Numerical worksheet and returning a result
+
+Direct Numerical entry without a document ID opens the generic Request Plan.
+An existing Material-bound Plan still opens in its own existing editor. Start
+from Numerical, an exact Expert proposal, or a saved Study; Material and native
+CAD applications are not prerequisites.
+
+1. Enter the study question and choose **DOE** or **optimize**. **Use model…**
+   selects a valid saved Material, PDE, Simulation or Evaluation model. You can
+   also edit a registered evaluator and its settings in **Model / advanced**.
+   The original Expert/Study source stays with the Plan when you change its model.
+2. **Add variables…** reads the evaluator's existing declared descriptors. Select
+   variables, then edit Start, Lower, Upper, Unit and Scale in the worksheet.
+   Existing selected bounds remain intact when adding another declaration.
+   Remove operates on the selected rows. Cancel in a picker changes no input.
+3. **Add response…** selects an actual retained model response and its native
+   location where supported. DOE retains exact response strings; optimisation
+   retains the existing objective definition. **Add constraint…** selects a
+   response, reduction, relation and physical limit. Full response identity is
+   available on the response cell's tooltip and in the advanced inputs.
+4. Set sample count/seed or the existing differential-evolution options and the
+   evaluation budget. Exact retained DOE coordinates have no resampling controls.
+   All other existing operations remain selectable in **Model / advanced**:
+   evaluation, fit/inverse, UQ, epsilon multiobjective search, sampling and
+   sensitivity, retained analysis, surrogate, and file batch export/import.
+   Their current backend support and validation remain authoritative.
+5. **Apply**, then **Run study**, explicitly submits through the existing
+   Numerical owner and JobManager. Save never runs it. Invalid and incomplete
+   input such as 1e, NaN or unsupported fields stays editable/saveable and
+   blocks Run through existing diagnostics. Numeric cells use text precision;
+   repairing them does not change numerical thresholds.
+6. Select a retained run and inspect **Candidates / plot**. Failed candidates
+   keep their actual failure and absent values. A scalar point selects its
+   original candidate row; a candidate response curve uses that row's retained
+   coordinates, units and mask. If detailed output was not retained, use the
+   existing candidate-results inspector; selection does not recalculate it.
+
+**Return result…** takes the source of the *selected submitted run*, not a newer
+edited Plan source. It presents the exact retained run in its original Expert
+or Study. For an independent Plan without an X/S origin, it lets you select an
+existing research document. **New discussion…** is the separate existing action
+that creates a new Expert discussion.
+
+The return chooser lists actual top-level response channels. A Numerical
+candidate-only channel is not silently promoted into one. The current result
+reader filters top-level channels, while candidate records remain part of the
+run evidence; this attachment is not a projection of a single selected candidate.
+A run without top-level channels can still return its exact candidate records and
+diagnostics with an empty channel selection.
+
+The original window receives **Review returned result…**. Its existing question,
+reply, hypothesis and unapplied edits remain open. Review verifies retained
+input/result hashes and the destination session before and after confirmation.
+**Cancel** leaves the authored draft and evidence unchanged. **Attach evidence**
+adds only an evidence reference to the latest local buffer; Apply and Save remain
+explicit. It does not ask a provider, grant result transmission permission,
+execute a job, adopt a model or change a Study judgment. In Expert, result access
+changes only through a deliberate transmission control action; new attachments
+do not expand saved permissions, including after reopening.
+
+The sender distinguishes **PRESENTED** (awaiting review), **ATTACHED** (local draft
+only), **CANCELLED**, **REJECTED** and unconfirmed delivery. Use **Check result
+return** to inspect the receipt. Exact retries reuse the delivery ID. A failed
+validation rejects that item without trapping later pending results; resend is an
+explicit action after repair. Busy/conflicted/unsupported raw drafts retain the
+pending result for review after repair.
+
+### Delivery implementation and verification boundary
+
+The existing service remains the sole document/job owner. A small Qt local
+socket endpoint routes only activation and pending-result references to an
+existing Expert/Study editor. A process-lifetime Qt lock prevents simultaneous
+Windows named-pipe listeners for the same service/document. Discovery is stable
+across service restarts and checks the session in each message. A timeout or stale
+live editor does not trigger a replacement window. When no editor exists, the
+existing ID is opened and the same transient message is delivered.
+
+No persisted mailbox, alternate result store, controller or research schema is
+introduced. Same-user socket access, frame/connection/pending bounds and exact
+reference checks apply. The lock contains only transient process ownership, not
+research content. Closing a view releases its route; ordinary document storage
+and Undo/Redo still use existing owners.
+
+This implementation is Pro-authored source on codex/numerical-workflow-20261013,
+based on edcc1fb2. The remote author runtime is disconnected: Python compilation,
+Qt, local IPC and numerical tests are **NOT_RUN by Pro**. Source review is separate
+from execution. Codex's successful Windows launcher acceptance belongs to
+SPEC-DESKTOP-002 and is not evidence that this new worksheet/return workflow has
+passed.
+
+Focused Windows checks with the existing runtime:
+
+```powershell
+python -m pytest tests/test_research_request_plan_ui.py -q
+python -m pytest tests/test_research_result_return_ui.py -q
+python -m pytest tests/test_research_expert_ui.py tests/test_research_study_ui.py tests/test_desktop_navigation.py -q
+```
+
+The added tests use the actual Numerical owner/JobManager/DOE and optimisation
+engines with explicitly labelled cheap algebraic evaluators; the Expert proposal
+fixture controls the provider response boundary. They cover text precision and
+invalid repair, real candidate/curve correlation, original X/S return,
+Cancel/Attach/Undo/Save, a fresh Python/Qt/store reopen, permission preservation,
+malformed/stale delivery, and live/cold separate-process routes. These are tests
+to execute, not recorded passes.
+
+Native Post measurement → Plan remains a separate unimplemented boundary.
+This slice does not establish native OS input/DPI acceptance, provider/model
+readiness, whole-product completion or engineering qualification.
+
 ## Current tool responsibilities
 
 | Tool | Existing document and actions |

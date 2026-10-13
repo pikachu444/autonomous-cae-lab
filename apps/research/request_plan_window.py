@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
 
 from caelab.numerical_document import request_draft
 from caelab.storage import canonical_hash
-from .numerical_window import NumericalWindow, number_or_raw
+from .numerical_window import NumericalWindow
 from .runner_window import RunnerWindow, readonly_table, fill_tree, candidate_state
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -39,6 +39,16 @@ def value_kind(value):
     return ('object' if isinstance(value, dict) else 'list' if isinstance(value, list) else
             'boolean' if type(value) is bool else 'number' if type(value) in (int, float) else
             'null' if value is None else 'string')
+
+
+def numeric_text(text):
+    try:
+        value = json.loads(text)
+        if type(value) in (int, float) and math.isfinite(value):
+            return value
+    except (ValueError, OverflowError):
+        pass
+    return text
 
 
 def leaf_value(text, original):
@@ -452,7 +462,7 @@ class RequestPlanWindow(NumericalWindow):
                 if isinstance(parent, dict) and key not in parent:
                     parent[key] = {}
                 parent = parent[key]
-            parent[path[-1]] = number_or_raw(text) if binding.get('numeric') else text
+            parent[path[-1]] = numeric_text(text) if binding.get('numeric') else text
         # The tree remains the single authoritative buffer. Do not clear the
         # live table editor during its delegate commit or round partial text.
         value = self._input_value(self.inputs.topLevelItem(0))
@@ -622,6 +632,8 @@ class RequestPlanWindow(NumericalWindow):
         inputs = self._input_value(self.inputs.topLevelItem(0))
         if self.operation.currentData() not in MODEL_OPERATIONS:
             return
+        self._worksheet_labels.clear()
+        self._worksheet_responses.clear()
         if text:
             inputs['backend'] = text
         else:
@@ -963,7 +975,7 @@ class RequestPlanWindow(NumericalWindow):
                     if not ok or not relevant(): return
                     limit, ok = QInputDialog.getText(self, 'Constraint', 'Limit [' + str(response.get('unit', 'undeclared')) + ']')
                     if not ok or not relevant(): return
-                    declaration.update(operator=relation, limit=number_or_raw(limit))
+                    declaration.update(operator=relation, limit=numeric_text(limit))
                 else:
                     direction, ok = QInputDialog.getItem(self, 'Objective direction', 'Research objective', ['minimize', 'maximize'], editable=False)
                     if not ok or not relevant(): return
@@ -1095,8 +1107,8 @@ class RequestPlanWindow(NumericalWindow):
                         raise ValueError('Repair variable IDs before adding declared variables.')
                     ids = {row['id'] for row in current}
                     current.extend(row for row in variables if row['id'] not in ids)
-                self._edit_structure(append_variables)
-                self.message.setText('Variables added. Existing bounds and units were kept.')
+                if self._edit_structure(append_variables):
+                    self.message.setText('Variables added. Existing bounds and units were kept.')
         def begin():
             if relevant():
                 self._call(lambda: self.client.describe_inputs({'backend': inputs['backend'], 'settings': settings}),

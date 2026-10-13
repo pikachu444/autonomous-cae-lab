@@ -229,6 +229,11 @@ class StudyWindow(NumericalWindow):
             and isinstance(row.get('id'), str) for row in draft[key]) for key, fields in specs.items())
 
     def _show_document(self, document, *, preserve_buffer=False):
+        receiver = getattr(self, '_result_return', None)
+        if (receiver and not preserve_buffer and receiver.target
+                and receiver.target[0] == document['id'] and receiver.target[1] != document['session_id']):
+            # Only a reconciled clean view accepts a fresh service session.
+            receiver.bind(document)
         pending_raw = self.raw.toPlainText() if preserve_buffer and self._raw_mode else None
         if preserve_buffer:
             self._buffer = self.edited_draft()
