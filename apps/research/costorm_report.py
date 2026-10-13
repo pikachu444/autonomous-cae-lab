@@ -4,9 +4,10 @@ from html import escape
 from pathlib import Path
 
 from PySide6.QtCore import Signal
-from PySide6.QtGui import QTextDocument
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QLabel, QPushButton,
-                               QTextBrowser, QVBoxLayout, QWidget)
+                               QVBoxLayout, QWidget)
+from apps.research.readable_text import ReadingBrowser, markdown_document, show_markdown
 
 
 def source_note(reference):
@@ -42,6 +43,7 @@ def report_markdown(report, title='토론 보고서'):
 class ReportView(QWidget):
     source_requested = Signal(object)
     generate_requested = Signal()
+    return_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -54,11 +56,14 @@ class ReportView(QWidget):
         self.generate.clicked.connect(self.generate_requested)
         self.export = QPushButton('내보내기…')
         self.export.clicked.connect(self.choose_export)
+        self.back = QPushButton('대화로 돌아가기')
+        self.back.clicked.connect(self.return_requested)
         row.addWidget(self.status, 1)
         row.addWidget(self.generate)
         row.addWidget(self.export)
+        row.addWidget(self.back)
         layout.addLayout(row)
-        self.body = QTextBrowser()
+        self.body = ReadingBrowser()
         self.body.setObjectName('discussionReport')
         self.body.setOpenLinks(False)
         self.body.setOpenExternalLinks(False)
@@ -77,9 +82,9 @@ class ReportView(QWidget):
             self.body.clear()
             self.status.setText('토론 내용을 보고서로 작성할 수 있습니다.')
             return
-        document = QTextDocument()
-        document.setMarkdown(str(report.get('text', '')))
-        html = document.toHtml()
+        links = {str(row['number']): 'source:' + str(index)
+                 for index, row in enumerate(report.get('references', [])) if row.get('source')}
+        document = show_markdown(self.body, str(report.get('text', '')), links=links)
         # Generated URLs never initiate navigation; only our explicit exact-reference
         # anchors below are actionable in this view.
         citations = '<h2>인용 자료</h2><ol>'
@@ -90,8 +95,9 @@ class ReportView(QWidget):
                 citations += '<li><a href="source:' + str(index) + '">' + escape(label) + '</a></li>'
             else:
                 citations += '<li>' + escape(label) + ' — 원자료 없음</li>'
-        html = html.replace('</body>', citations + '</ol></body>')
-        self.body.setHtml(html)
+        cursor = QTextCursor(document)
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertHtml(citations + '</ol>')
         self.status.setText('토론 보고서' if report.get('status') == 'DRAFT'
                             else '확인되지 않은 인용이 있습니다.')
 
@@ -113,8 +119,7 @@ class ReportView(QWidget):
             raise ValueError('작성된 보고서가 없습니다.')
         text = report_markdown(self._report, self._title)
         if html:
-            document = QTextDocument()
-            document.setMarkdown(text)
+            document = markdown_document(text, self.body.font(), math_images=False)
             text = document.toHtml()
         Path(path).write_text(text, encoding='utf-8')
         return str(path)

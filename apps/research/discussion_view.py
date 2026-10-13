@@ -1,12 +1,11 @@
 """Readable native discussion turns; identities remain item data, not prose."""
 from copy import deepcopy
-from html import escape
 import math
-import re
 
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QLabel,
-    QListWidget, QListWidgetItem, QPushButton, QSizePolicy, QTextBrowser, QVBoxLayout)
+    QListWidget, QListWidgetItem, QPushButton, QSizePolicy, QVBoxLayout)
+from apps.research.readable_text import ReadingBrowser, show_markdown
 
 
 def author_label(turn, roles=()):
@@ -55,7 +54,7 @@ class _TurnCard(QFrame):
         self.reply.clicked.connect(lambda: view.reply_requested.emit(self.identifier))
         heading.addWidget(self.reply)
         layout.addLayout(heading)
-        self.body = QTextBrowser()
+        self.body = ReadingBrowser()
         self.body.setObjectName('turnBody')
         self.body.setFrameShape(QFrame.Shape.NoFrame)
         self.body.setOpenLinks(False)
@@ -65,12 +64,12 @@ class _TurnCard(QFrame):
         self.body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.body.viewport().installEventFilter(self)
         self.sources = deepcopy((turn.get('response') or {}).get('sources') or [])
-        text = escape(turn_text(turn))
+        links = {}
         declared = (turn.get('response') or {}).get('citations')
         if isinstance(declared, list):
             # Co-STORM uses global KB citation numbers. They are not source-list
             # positions; preserve the explicit number -> exact source mapping.
-            citation_rows, lookup = [], {}
+            citation_rows = []
             source_index = 0
             for row in declared:
                 number = str(row['number'])
@@ -78,18 +77,13 @@ class _TurnCard(QFrame):
                 index = source_index if available else None
                 if available:
                     source_index += 1
-                lookup[number] = index
+                links[number] = 'citation:' + str(index) if index is not None else None
                 citation_rows.append((number, index))
-            def marker(match):
-                number = match.group(1)
-                index = lookup.get(number)
-                return ('<a href="citation:' + str(index) + '">[' + number + ']</a>'
-                        if index is not None else '[' + number + '] (원자료 없음)')
-            text = re.sub(r'\[(\d+)\]', marker, text)
         else:
             # Legacy answers have no validated sentence/source number mapping.
             citation_rows = [(str(index + 1), index) for index in range(len(self.sources))]
-        self.body.setHtml('<div style="line-height:145%">' + text.replace('\n', '<br>') + '</div>')
+        self._citation_indices = {index for _, index in citation_rows if index is not None}
+        show_markdown(self.body, turn_text(turn), links=links)
         self.body.anchorClicked.connect(self._citation)
         layout.addWidget(self.body)
         if citation_rows:
@@ -116,14 +110,22 @@ class _TurnCard(QFrame):
         return super().eventFilter(watched, event)
 
     def _citation(self, url):
-        if url.scheme() == 'citation':
-            self.view.citation_requested.emit(self.identifier, int(url.path()))
+        if url.scheme() != 'citation':
+            return
+        try:
+            index = int(url.path())
+        except ValueError:
+            return
+        if index in self._citation_indices and 0 <= index < len(self.sources):
+            self.view.citation_requested.emit(self.identifier, index)
 
     def fit_width(self, width):
         # One transcript scrollbar, full body text. Refit on ordinary resize.
         width = max(220, width)
         self.setFixedWidth(width)
-        self.body.document().setTextWidth(max(160, width - 36))
+        document = self.body.document()
+        document.setTextWidth(max(160, width - 36))
+        document.fit_math_width(max(128, width - 68))
         height = math.ceil(self.body.document().size().height()) + 8
         self.body.setFixedHeight(max(36, height))
         self.layout().activate()

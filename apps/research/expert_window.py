@@ -298,6 +298,8 @@ class ExpertWindow(QMainWindow):
         self.protocol_budget.clicked.connect(lambda: self.show_side(self.transmission_settings))
         composer.addWidget(self.protocol_budget, 0, Qt.AlignmentFlag.AlignRight)
         conversation.addWidget(self.editor)
+        self.conversation_pages.currentChanged.connect(self._conversation_page_changed)
+        self.report_view.return_requested.connect(lambda: self.conversation_pages.setCurrentWidget(self.turns))
         splitter.addWidget(center)
         self.side = QTabWidget()
         self.side.setMinimumWidth(300)
@@ -848,6 +850,21 @@ class ExpertWindow(QMainWindow):
         rounds = [row for row in discussion.get('rounds', []) if row.get('protocol') == 'costorm']
         active = next((row for row in rounds if row.get('status') in {'READY', 'RUNNING'}), None)
         return discussion, rounds, active
+
+    def _conversation_page_changed(self, index):
+        reading_report = self.conversation_pages.currentWidget() is self.report_view
+        if reading_report:
+            self._report_reading_position = (self.turns._snapshot, self.turns.verticalScrollBar().value())
+        self.turn_context.setVisible(not reading_report)
+        self.selected_reply.setVisible(not reading_report)
+        self.editor.setVisible(not reading_report)
+        if not reading_report and hasattr(self, '_report_reading_position'):
+            snapshot, position = self._report_reading_position
+            del self._report_reading_position
+            def restore():
+                if self.turns._snapshot is snapshot:
+                    self.turns.verticalScrollBar().setValue(position)
+            QTimer.singleShot(0, restore)
 
     def _update_protocol_actions(self, enabled):
         mode = self.protocol_mode.currentData() == 'costorm'
