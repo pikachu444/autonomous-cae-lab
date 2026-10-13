@@ -57,10 +57,12 @@ Pro `8d350ab` adds the AC-C03/C04 export, Runner and retained Post source path.
 At its first Windows checkpoint, 16 contact/output tests passed and three
 snapshot tests failed because their fixture used Windows line endings. Astra
 also identified Force table unit conversion, stale named support-group mapping
-and closed-session source reopening defects; corrections are pending. Real
+and closed-session source reopening defects. Pro `b19c8f1` corrects these;
+66 changed-path unit tests passed on Windows. Real native multi-face Force
+export retained a 100 N resultant after correction (11.484 seconds). Real
 FreeCAD export completed for the two-body prescribed-displacement example,
 including comparison with the installed native contact writer and retained
-editable model/deck/manifest. This does not exercise the faulty Force branch.
+editable model/deck/manifest; the corrected run additionally exercised Force export.
 No actual contact solver/result claim is made.
 The current task and subsequent correction status live in CURRENT_STATE rather
 than turning these partial checks into full scenario acceptance.

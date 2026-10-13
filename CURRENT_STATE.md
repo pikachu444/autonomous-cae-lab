@@ -288,8 +288,13 @@ Pro의 export/Runner/Post 연결 `8d350ab`을 `bdc9fb9`에 통합하고 원격 m
 3건은 테스트 fixture가 Windows CRLF를 써서 실패했다. 실제 export는 LF를 명시한다.
 Astra가 찾은 원 native 세션 종료 뒤 원본 열기 누락, Force 표의 이중 단위 변환,
 구속면 변경 뒤 오래된 이름 기반 mesh group을 사용하는 문제를
-`PRO-CONTACT-EXEC-FIX-01`로 같은 Pro에 전달했다. 교정·native export 확인을 계속하며
-접촉 solver/Post 실제 계산은 아직 확인하지 않았다.
+`PRO-CONTACT-EXEC-FIX-01`로 같은 Pro에 전달했다. 교정 `b19c8f1`을 `6175e90`으로
+통합했고 변경된 contact/native export/원본 이동/FEM 단위 검사66건이 통과했다. 실제
+FreeCAD의 두 면100N 하중을 내보낸 결과 합력이 -Z100N으로 보존됐고, export는11.484초에
+완료됐다. 근거는 `runs/product-development/20261013/contact-export-402e8ca7/receipt.json`.
+교정 확인은 Codex의 소스·실행 확인이며 Astra 재검토 통과 주장은 아니다. 다음 행동은
+이 실제 입력의 지원 solver 실행과 Post 결과 연결이다. 접촉 solver/Post 실제 계산은
+아직 확인하지 않았다.
 
 편집 단계 이후 실제 FreeCAD GUI에서 기존 `pre.fem.mesh_generate`를 호출해 두 물체의
 Gmsh 메시를 생성·저장했다. Base1147절점/532요소, Bridge2256절점/1122요소이고 접촉
@@ -301,8 +306,9 @@ contact export도 완료했다. 설치된 writer와의 입력 비교, editable F
 `runs/product-development/20261013/contact-export-bf12e0c8/`에 보존했다. 예제 설정이며 물리
 정확성·solver 실행의 증거가 아니다. 공통 FRD reader의 변경 영향 검사34건과 추가 FEM Qt
 4건도 통과했다. 첫 export는 수분이 걸렸으며 요소마다 native.Nodes 전체 사전을 반복해서
-읽는 기존 quality 경로를 확인했다. 같은 호출에서 절점표를 한 번 읽는 작은 교정을 Pro에
-맡겼다. 수치 기준을 생략하거나 넓은 benchmark를 선행하지 않는다.
+읽는 기존 quality 경로를 확인했다. 같은 호출에서 절점표를 한 번 읽는 Pro 교정을
+통합해 위의11.484초 export를 확인했다. 원래 측정이 정밀한 성능 benchmark는 아니므로
+배율 개선을 주장하지 않는다. 수치 기준을 생략하거나 넓은 benchmark를 선행하지 않는다.
 사용자 추가 지시에 따라 기존 오픈소스 전후처리기·solver 연동 코드와 이슈를 병행 조사해
 현재 구현에 적용한다. [기존 연동 코드·이슈 조사](docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md)에
 PrePoMax의 면/접촉 법칙 분리와 writer, ccx2paraview의 시간 이력 변환과 누락값·NaN을

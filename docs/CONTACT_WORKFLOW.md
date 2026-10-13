@@ -294,3 +294,14 @@ export succeeded on 8d350ab for the meshed two-feet model with isotropic
 210000 MPa/0.3, Base Face5 Fixed and Bridge Face3 prescribed Z=-0.3 mm
 (X/Y zero). That run wrote the four frozen artifacts; it did not execute a
 solver and did not exercise the Force or stale-group corrections above.
+
+Codex integrated correction `b19c8f1` as `6175e90`: 66 changed-path unit tests
+passed on Windows (9.14 s). A real FreeCAD export then used both Bridge foot
+faces for one 100 N Force, alongside the prescribed displacement. The retained
+CLOAD resultant was (0, 0, -100) N; native integrated weights totaled
+100.00000000000004 N. Export completed in 11.484 s, retaining the same quality
+criteria. This is a measured export duration, not a controlled speedup benchmark.
+The receipt is `runs/product-development/20261013/contact-export-402e8ca7/receipt.json`.
+The native Force unit correction is exercised; stale groups and disconnected
+Runner origins are covered by the focused doubles, not native GUI interaction.
+Solver and actual Post-result execution remain the next implementation check.
