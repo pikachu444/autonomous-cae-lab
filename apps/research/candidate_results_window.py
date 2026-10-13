@@ -140,7 +140,9 @@ class CandidateResultsWindow(QMainWindow):
     def _update_actions(self, *_):
         current = self._current()
         self.refresh_button.setEnabled(current and not self._busy)
-        self.design_button.setEnabled(current and not self._busy and bool((self._composite or {}).get('editable_design', {}).get('calculated')))
+        self.design_button.setEnabled(current and not self._busy and
+            (self._composite or {}).get('execution_status') == 'SUCCEEDED' and
+            bool((self._composite or {}).get('editable_design', {}).get('calculated')))
         self.post_button.setEnabled(current and not self._busy and self.fields.currentData() is not None)
         self.curve_read.setEnabled(current and not self._busy and self._evaluation_index is not None
                                    and self.native_location.currentData() is not None)
@@ -273,7 +275,7 @@ class CandidateResultsWindow(QMainWindow):
         for name, response in result.get('responses', {}).items():
             if response.get('kind') == 'series':
                 self._native_catalog.setdefault(name, {'unit': response.get('unit'),
-                    'selectors': [name], 'axes': deepcopy(response.get('axes', []))})
+                    'selectors': [{'selector': name, 'label': name}], 'axes': deepcopy(response.get('axes', []))})
         self.native_channel.blockSignals(True); self.native_channel.clear()
         for name, descriptor in self._native_catalog.items():
             self.native_channel.addItem(name + ' [' + str(descriptor.get('unit', 'undeclared')) + ']', name)

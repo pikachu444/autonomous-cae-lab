@@ -32,7 +32,7 @@ def validate_recipe(recipe):
     variables = recipe.get('variables')
     if not isinstance(variables, list) or not 1 <= len(variables) <= 32:
         raise ValueError('Register 1..32 native variables')
-    ids = set()
+    ids, targets = set(), set()
     from ..registry import ID
     for row in variables:
         if (not ID.fullmatch(row['id']) or row['id'] in ids or
@@ -40,6 +40,10 @@ def validate_recipe(recipe):
                 not row['lower'] <= row['value'] <= row['upper'] or row['lower'] >= row['upper'] or
                 not row.get('unit') or row.get('analysis_id') != recipe['analysis_id']):
             raise ValueError('Native model variable declaration is invalid')
+        target = canonical_hash({'analysis_id': row['analysis_id'], 'target': row['target']})
+        if target in targets:
+            raise ValueError('A native target may have only one research variable')
+        targets.add(target)
         ids.add(row['id'])
     responses = recipe.get('responses')
     if not isinstance(responses, list) or not 1 <= len(responses) <= 32:
@@ -156,7 +160,8 @@ def select_responses(result, folder, recipe):
                         'value': _reduce(values, definition['reduction'])}
             metadata.update(field.get('metadata', {}), scope='global_nodal_displacement')
         response.update(unit=definition['unit'], component=definition.get('component', definition.get('field')),
-                        location=definition.get('pair_id', 'native_model'), reduction=definition['reduction'],
+                        location=definition.get('pair_id', 'native_model'),
+                        reduction='none' if definition['reduction'] == 'value' else definition['reduction'],
                         metadata=metadata)
         selected[name], details[name] = response, metadata
     return selected
@@ -281,6 +286,11 @@ class CADAnalysisAdapter:
         except Exception as error:
             result.update(execution_status='FAILED', responses={},
                           diagnostics={'phase': phase, 'reason': str(error), 'error_type': type(error).__name__})
+        preparation = folder / 'candidate-preparation.json'
+        if preparation.is_file() and 'candidate_preparation' not in result:
+            result['candidate_preparation'] = load_json(preparation)
+        if result['execution_status'] != 'SUCCEEDED' and result.get('candidate_preparation'):
+            result['diagnostics']['native_phase'] = result['candidate_preparation'].get('phase')
         result['artifacts'] = [{'path': p.relative_to(folder).as_posix(), 'sha256': file_hash(p)}
                                for p in sorted(folder.rglob('*')) if p.is_file() and not p.is_symlink()]
         return result

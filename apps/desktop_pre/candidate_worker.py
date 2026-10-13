@@ -11,7 +11,7 @@ from caelab.storage import load_json, save_json
 from caelab.native_cad import unpack_project, sha
 from .bridge import Owner
 from .research_inputs import assign, value_at
-from .candidate_correspondence import apply as apply_correspondence
+from .candidate_correspondence import apply as apply_correspondence, validate_original_contacts
 
 _active = None
 
@@ -55,6 +55,7 @@ class CandidateWorker:
                                document_id='P' + uuid.uuid4().hex)
             self.owner.before_design_action('candidate binding')
             self.record_phase('binding')
+            validate_original_contacts(self.owner)
             for row in self.recipe['variables']:
                 current = value_at(self.owner, row['target'], row['unit'])
                 if current != row['value']:
@@ -95,7 +96,10 @@ class CandidateWorker:
             self.freeze()
             return
         self.current_mesh = self.mesh_queue.pop(0)
-        receipt = self.owner.fem._generate(self.current_mesh)
+        directory = self.folder / 'meshes' / self.current_mesh.Name
+        directory.mkdir(parents=True, exist_ok=False)
+        receipt = self.owner.fem._generate(self.current_mesh, owned_directory=directory)
+        self.record.setdefault('mesh_directories', []).append(str(directory))
         self.record['mesh_history_id'] = receipt['history_id']
         self.record['mesh_object_id'] = self.current_mesh.Name
         self.record_phase('mesh')

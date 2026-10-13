@@ -108,3 +108,40 @@ Primary API source: FreeCAD 1.1.4 DocumentObjectPyImp.cpp, GeoFeature.cpp,
 ComplexGeoDataPyImp.cpp, and PartFeaturePyImp.cpp. See
 [open source integration research](research/OPEN_SOURCE_CONTACT_INTEGRATION.md)
 for the independently observed mapped-face cases.
+
+
+## Focused corrections after the first source checkpoint
+
+The native bridge import and Numerical-owner reopen were corrected in 945a61e.
+Root reports nine focused Windows checks passed, and an actual FreeCAD 1.1.4
+GUI capture registered length, force, prescribed displacement, Young's modulus
+and contact stiffness and saved the retained CAEPRE. That is capture evidence;
+it does not establish a candidate mesh/solve/response/adoption pass.
+
+The response editor now offers supported pair/field/component/side/reduction
+choices and exact retained increment selection. Units follow the chosen channel.
+The Numerical Plan remains the place to choose the objective direction,
+constraints, search bounds and method options before an explicit Run.
+
+Renaming a native research target replaces its registration; recipes reject
+duplicate native targets. Original effective contact settings are checked before
+capture and before any candidate assignment. External edits require explicit
+contact repair. Mapped local-refinement targets are updated by the same checked
+correspondence, while mesh bindings still require regeneration and admission.
+Contact expression/read-only state and actual coefficient unit round-trip are
+checked.
+
+Plan initialization retains its exact owner command before applying it. Retrying
+an interrupted handoff does not authorize overwriting intervening Plan edits.
+Scalar response reductions and the generated optimization objective now agree.
+Opening a calculated design requires a successful selected evaluation and
+candidate. Response failures retain their editable artifacts for inspection.
+
+Candidate meshing uses the existing FreeCAD 1.1.4 Gmsh preparation operations,
+with its supported explicit working-directory argument, retaining BREP/GEO/UNV
+under each candidate/body directory. Ordinary interactive meshing is unchanged.
+
+Pro remote checks remain NOT_RUN. The newly added UI, retry, correspondence and
+binding checks are supplied for Root's focused execution. Windows executable
+launcher normalization and confirmed descendant-process cancellation are being
+completed separately; the earlier process-tree wording is not a Windows pass.

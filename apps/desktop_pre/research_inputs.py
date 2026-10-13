@@ -19,6 +19,10 @@ CONTACT_FIELDS = {'normal_stiffness_MPa_per_mm': ('Normal stiffness', 'MPa/mm'),
                   'stick_stiffness_MPa_per_mm': ('Stick stiffness', 'MPa/mm'),
                   'friction_coefficient': ('Friction coefficient', '1')}
 
+CONTACT_PROPERTIES = {'normal_stiffness_MPa_per_mm': 'Slope',
+                      'stick_stiffness_MPa_per_mm': 'StickSlope',
+                      'friction_coefficient': 'FrictionCoefficient'}
+
 
 def number(value):
     if type(value) not in (int, float) or not math.isfinite(value):
@@ -112,7 +116,7 @@ def discover(owner, analysis):
             continue
         obj = owner._object(record['object_id'])
         for field, (label, unit) in CONTACT_FIELDS.items():
-            reason = 'Suppressed in this Analysis' if getattr(obj, 'Suppressed', False) else None
+            reason = _writable(obj, CONTACT_PROPERTIES[field])
             if record['draft'].get('normal_law') != 'linear':
                 reason = 'Only the supported linear normal law is bound'
             if field != 'normal_stiffness_MPa_per_mm' and record['draft'].get('tangential_law') != 'coulomb':
@@ -133,8 +137,8 @@ def value_at(owner, target, unit):
         raise ValueError('Native variable object type changed')
     family, field = target['family'], target['field']
     if family == 'contact':
-        raw = owner.fem.contact._pair(obj.Name)['draft'][field]
-        value = number(float(raw))
+        raw = getattr(obj, CONTACT_PROPERTIES[field])
+        value = number(float(raw)) if unit == '1' else quantity_value(owner, raw, unit)[0]
         if unit != CONTACT_FIELDS[field][1]:
             raise ValueError('Contact coefficient unit differs from its native declaration')
         return value
@@ -181,6 +185,10 @@ def assign(owner, variable, value):
     field, family = target['field'], target['family']
     if family == 'contact':
         owner.fem.contact.set(obj, {'draft': {field: value}})
+        actual_value = value_at(owner, target, unit)
+        draft_value = float(owner.fem.contact._pair(obj.Name)['draft'][field])
+        if not math.isclose(actual_value, value, rel_tol=1e-12, abs_tol=0.) or draft_value != value:
+            raise ValueError('Native contact coefficient did not round-trip in its declared unit')
         return
     q = None if unit == '1' else owner.App.Units.Quantity(repr(value) + ' ' + unit)
     def change():
@@ -253,7 +261,8 @@ class ResearchInputs:
             item = {'id': args['id'], 'label': args['label'].strip(), 'target': row['target'],
                     'analysis_id': args['analysis_id'], 'unit': args['unit'],
                     'lower': lower, 'upper': upper, 'value': value}
-            data['research_inputs'] = [r for r in rows if r['id'] != item['id']] + [item]
+            data['research_inputs'] = [r for r in rows if r['id'] != item['id'] and
+                (r['analysis_id'], r['target']) != (item['analysis_id'], item['target'])] + [item]
             self.owner._transaction('Register Analysis variable', lambda: self.owner.write_metadata(data))
             return self.descriptor(args['analysis_id'])
         if operation == 'pre.research.remove':

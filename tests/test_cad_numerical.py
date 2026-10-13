@@ -188,3 +188,106 @@ def test_native_bridge_and_candidate_worker_import_without_running_native():
     assert 'pre.research.prepare' in bridge.OPERATIONS
     assert bridge.ResearchInputs is not None
     assert callable(worker.start)
+
+
+
+def test_same_target_rename_replaces_registration_and_duplicate_recipe_is_blocked(monkeypatch):
+    from apps.desktop_pre.research_inputs import ResearchInputs
+    from caelab.adapters.cad_analysis import validate_recipe
+    row = deepcopy(recipe()['variables'][0])
+    data = {'research_inputs': [row]}
+    quantity = NS(getValueAs=lambda unit: NS(Value=.02))
+    obj = NS(Name='Stock', TypeId='Part::Box', Width=quantity)
+    owner = NS(_object=lambda _: obj, read_metadata=lambda: deepcopy(data),
+               write_metadata=lambda value: data.update(value),
+               _transaction=lambda title, action: action())
+    editor = ResearchInputs(owner)
+    candidate = dict(row, key='geometry:Stock:Width', writable=True, diagnostic=None)
+    monkeypatch.setattr(editor, 'descriptor', lambda _: {'source_stamp': 'same',
+        'candidates': [candidate], 'registered': deepcopy(data['research_inputs'])})
+    editor.dispatch('pre.research.register', {'analysis_id': 'Analysis', 'source_stamp': 'same',
+        'key': candidate['key'], 'id': 'w', 'label': 'Width', 'unit': 'm', 'lower': .01, 'upper': .03}, {})
+    assert [r['id'] for r in data['research_inputs']] == ['w']
+    duplicate = recipe()
+    duplicate['variables'].append({**deepcopy(row), 'id': 'w'})
+    with pytest.raises(ValueError, match='only one'):
+        validate_recipe(duplicate)
+
+
+def test_external_contact_edit_blocks_before_correspondence_or_assignment():
+    from apps.desktop_pre.candidate_correspondence import validate_original_contacts
+    pair = {'object_id': 'Contact', 'analysis_id': 'Analysis'}
+    obj = NS(Name='Contact', Label='Contact', Suppressed=False)
+    owner = NS(_object=lambda _: obj, fem=NS(contact=NS(
+        _data=lambda: {'contacts': [pair]},
+        errors=lambda _: [{'message': 'Native contact changed outside this definition'}])))
+    with pytest.raises(ValueError, match='Native contact changed'):
+        validate_original_contacts(owner)
+
+
+def test_local_refinement_target_uses_same_checked_correspondence(monkeypatch):
+    from apps.desktop_pre import candidate_correspondence as module
+    from caelab.storage import canonical_hash
+    prior = {'object_id': 'Bridge', 'subelements': [{'name': 'Face5'}], 'shape': 'old'}
+    current = {'object_id': 'Bridge', 'subelements': [{'name': 'Face7'}], 'shape': 'new'}
+    data = {'regions': [{'id': 'A', 'target': deepcopy(prior)}], 'conditions': [],
+            'mesh_local_sizes': [{'object_id': 'Refinement', 'region_id': 'A', 'target': deepcopy(prior)}]}
+    obj = NS(Name='Bridge')
+    owner = NS(_object=lambda _: obj, _transaction=lambda title, action: action(),
+               write_metadata=lambda value: data.update(value))
+    owner.fem = NS(_metadata=lambda: deepcopy(data), contact=NS(_data=lambda: {'contacts': []}))
+    monkeypatch.setattr(module, 'resolve', lambda owner, row: (obj, ['Face7'], 'native_mapped_element'))
+    monkeypatch.setattr(module, '_target', lambda obj, names: deepcopy(current))
+    module.apply(owner, {'policy': 'freecad-mapped-element-v1',
+        'targets': {canonical_hash(prior): {'target': prior}}, 'links': []})
+    assert data['regions'][0]['target'] == data['mesh_local_sizes'][0]['target'] == current
+    assert data['candidate_reference_history'][0]['prior_target'] == prior
+    assert 'mesh_bindings' not in data
+
+
+def test_optimization_scalar_contract_consumes_actual_selected_reduction():
+    from caelab.numerical import _scalar
+    selected = select_responses({'responses': {'displacement': {'value': [[0, 0, -.2], [0, 0, -.1]]}}},
+                                Path('.'), recipe())
+    assert _scalar({'execution_status': 'SUCCEEDED', 'responses': selected},
+                   {'response': 'uz_max', 'unit': 'mm', 'reduction': 'max'}) == -.1
+
+
+@pytest.mark.parametrize('interruption', ['before_initialize', 'after_initialize'])
+def test_plan_initialization_interruption_retains_intervening_edits(tmp_path, monkeypatch, interruption):
+    from caelab import cad_numerical as module
+    wb = Workbench(tmp_path / 'store')
+    try:
+        project = wb.desktop.root / 'Pbase' / 'project_staging' / 'Rbase' / 'retained.caepre'
+        saved = archive(project, recipe())
+        command = {'operation': 'pre.research.prepare', 'state': 'SUCCEEDED', 'document_id': 'Pbase',
+            'request_hash': 'b' * 64, 'outcome': {'result': {'status': 'COMPLETED', 'result': {
+                'project_relative': project.relative_to(wb.desktop.root).as_posix(),
+                'project_sha256': saved['sha256'], 'recipe': recipe(), 'revision': 'Rbase', 'label': 'Model'}}}}
+        monkeypatch.setattr(wb.native_commands, 'status', lambda _: deepcopy(command))
+        original = module.save_json
+        tripped = []
+        def interrupt(path, data):
+            stop = ('initialization' in data and 'plan_id' not in data if interruption == 'before_initialize'
+                    else 'plan_id' in data)
+            if Path(path).parent.name == 'cad_plans' and stop and not tripped:
+                tripped.append(True)
+                raise OSError('explicit interrupted receipt publication')
+            return original(path, data)
+        monkeypatch.setattr(module, 'save_json', interrupt)
+        with pytest.raises(OSError):
+            module.prepare_plan(wb, 'Cinterrupted', operation='optimize')
+        plan = wb.numerical_documents.list()[0]
+        draft = deepcopy(plan['draft'])
+        draft['request']['purpose'] = 'User work after interrupted handoff'
+        edited = wb.numerical_documents.command(plan['id'], 'numerical.update', {'draft': draft},
+            session_id=wb.session_id, expected_generation=plan['generation'])['document']
+        if interruption == 'before_initialize':
+            with pytest.raises(ValueError, match='edited before initialization'):
+                module.prepare_plan(wb, 'Cinterrupted', operation='optimize')
+        else:
+            assert module.prepare_plan(wb, 'Cinterrupted', operation='optimize')['document']['draft'] == edited['draft']
+        assert wb.numerical_documents.read(plan['id'])['draft'] == edited['draft']
+        assert len(wb.numerical_documents.list()) == 1
+    finally:
+        wb.shutdown()
