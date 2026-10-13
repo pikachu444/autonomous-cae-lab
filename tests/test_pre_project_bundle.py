@@ -222,6 +222,7 @@ def test_registered_dependency_tamper_rejects_before_native_open(tmp_path):
 
 def test_registered_managed_bundle_reopens_as_new_working_owner_and_resaves_without_changing_source(tmp_path):
     root, main, dependency, a, b = graph(tmp_path)
+    a.Label, b.Label = 'Selected candidate — 새 설계', 'Moving component — 부품'
     original_owner = native_owner(tmp_path / 'first_owner', a)
     saved = original_owner.project.save()
     source = Path(saved['path'])
@@ -244,6 +245,9 @@ def test_registered_managed_bundle_reopens_as_new_working_owner_and_resaves_with
     original_owner.App.openDocument = open_native
     opened = original_owner.project.open(receipt)
     restored, component = opened_docs
+    assert restored.Label == 'Selected candidate — 새 설계'
+    assert component.Label == 'Moving component — 부품'
+    assert restored.Name == 'RestoredAssembly' and component.Name == 'RestoredComponent'
     restored_owner = native_owner(tmp_path / 'second_owner', restored)
     restored_owner.project.attach_opened()
     assert restored_owner.saved_generation == restored_owner.generation
@@ -260,3 +264,22 @@ def test_registered_managed_bundle_reopens_as_new_working_owner_and_resaves_with
     assert Path(receipt['path']).read_bytes() == source_bytes
     assert restored.FileName == opened['working_file']
     assert component.FileName.startswith(str(original_owner.export_root / 'editable_imports'))
+
+
+def test_native_file_chooser_remember_open_restores_only_exact_bundle_paths(tmp_path):
+    from apps.desktop_pre.projects import remember_open
+    root = tmp_path / 'private'
+    main = NativeDoc('Opened', fcstd(root / 'documents' / 'Assembly.FCStd'))
+    child = NativeDoc('OpenedChild', fcstd(root / 'documents' / 'Child.FCStd'))
+    unrelated = NativeDoc('Unrelated', fcstd(tmp_path / 'elsewhere' / 'Child.FCStd'))
+    main.OutList = [child, unrelated]
+    manifest = {'kind': native_cad.KIND, 'entry': 'documents/Assembly.FCStd',
+        'documents': [{'file': 'documents/Assembly.FCStd', 'label': 'Saved main'},
+                      {'file': 'documents/Child.FCStd', 'label': 'Saved child'}]}
+    remember_open(main, manifest, tmp_path / 'selected.caepre')
+    try:
+        assert (main.Label, child.Label, unrelated.Label) == ('Saved main', 'Saved child', 'Unrelated')
+        assert main.Name == 'Opened' and main.FileName.endswith('Assembly.FCStd')
+        assert OPENED[main.Name][1] == manifest
+    finally:
+        OPENED.pop(main.Name, None)

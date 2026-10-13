@@ -16,7 +16,11 @@ def handle(handler,method,path,query):
             if handler.headers.get('X-File-Name-Encoding')=='percent-utf8':
                 name=unquote(name,encoding='utf-8',errors='strict')
             return handler._json(201,workbench.upload(name,payload))
-        body=handler._json_body()
+        if re.fullmatch(r'/api/workbench/hosts/[^/]+/events', path):
+            from .server import MAX_NATIVE_EVENT_BODY
+            body = handler._json_body(maximum=MAX_NATIVE_EVENT_BODY)
+        else:
+            body = handler._json_body()
         if path == '/api/workbench/expert-connection/reload':
             if set(body) != {'expected_sha256'}:
                 raise ServiceError(400, 'Reload accepts only the saved local operator-file hash')
