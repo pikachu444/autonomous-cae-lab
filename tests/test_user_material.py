@@ -38,6 +38,13 @@ def test_local_review_permission_exact_source_and_readonly_http(service):
 
 
 def test_user_law_edit_save_does_not_build_and_remote_cannot_grant_authority(service,monkeypatch):
+    from caelab.adapters import native_doctor, user_mfront
+    # Exercise source admission on a supported service; Windows platform refusal
+    # is tested separately and must not hide this permission boundary.
+    monkeypatch.setattr(native_doctor,'service_platform',lambda:'linux')
+    def forbidden_runtime():
+        raise AssertionError('Unapproved source must not reach native runtime discovery')
+    monkeypatch.setattr(user_mfront,'_runtime_identity',forbidden_runtime)
     wb,client=service;monkeypatch.delenv('CAELAB_MFRONT_ALLOWED_SOURCE_SHA256',raising=False)
     source=domain.default_settings();draft={'backend':domain.BACKEND,'settings':source}
     assert diagnostics(draft)==[]
