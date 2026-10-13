@@ -1,0 +1,79 @@
+"""Research entry-point routing without Qt, native apps, or a live service."""
+import builtins
+import importlib
+from pathlib import Path
+import runpy
+import sys
+from types import SimpleNamespace
+
+import pytest
+
+from apps.research import desktop
+import caelab.workbench_client as workbench_client
+
+
+@pytest.mark.parametrize("tool", sorted(desktop.TOOLS))
+@pytest.mark.parametrize("selected", [False, True])
+def test_research_entrypoint_preserves_service_and_typed_selection(monkeypatch, tool, selected):
+    url = "http://127.0.0.1:8877"
+    flag = "--job-id" if tool == "runner" else "--document-id"
+    identifier = "Jexact_02" if tool == "runner" else "Dexact_02"
+    calls = []
+    monkeypatch.setattr(desktop, "Client", lambda service: SimpleNamespace(url=service))
+
+    def load_window(name):
+        calls.append(("module", name))
+
+        def main(arguments):
+            calls.append(("arguments", arguments))
+            return 23
+
+        return SimpleNamespace(main=main)
+
+    monkeypatch.setattr(importlib, "import_module", load_window)
+    selection = [flag, identifier] if selected else []
+    assert desktop.main(["--service", url, tool, *selection]) == 23
+    assert calls == [
+        ("module", "apps.research." + tool + "_window"),
+        ("arguments", ["--service", url, *selection]),
+    ]
+
+
+@pytest.mark.parametrize("tool,flag", [("runner", "--job-id"), ("numerical", "--document-id")])
+def test_invalid_identifier_never_imports_a_window(monkeypatch, tool, flag):
+    monkeypatch.setattr(desktop, "Client", lambda service: SimpleNamespace(url=service))
+    monkeypatch.setattr(importlib, "import_module",
+                        lambda name: pytest.fail("An invalid selection must not open a window"))
+    with pytest.raises(ValueError):
+        desktop.main(["--service", "http://127.0.0.1:8877", tool, flag, "../invalid"])
+
+
+@pytest.mark.parametrize("tool", ["pre", "post"])
+def test_prepare_failure_is_stderr_nonzero_without_importing_qt(monkeypatch, capsys, tool):
+    class UnavailableService:
+        def __init__(self, url):
+            self.url = url
+
+        def desktop_context(self):
+            raise RuntimeError("Preparation context is unavailable")
+
+    monkeypatch.setattr(workbench_client, "Client", UnavailableService)
+    original_import = builtins.__import__
+
+    def no_qt_import(name, *args, **kwargs):
+        if name == "PySide6" or name.startswith("PySide6."):
+            pytest.fail("Headless preparation must not import Qt or create a message box")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_qt_import)
+    monkeypatch.setattr(sys, "argv", [
+        str(Path(desktop.__file__)),
+        "--service", "http://127.0.0.1:8877", tool, "--prepare-only",
+    ])
+    # Exercise the real executable block, including its exception handler.
+    with pytest.raises(SystemExit) as stopped:
+        runpy.run_path(desktop.__file__, run_name="__main__")
+    assert stopped.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Desktop launch failed: Preparation context is unavailable" in captured.err

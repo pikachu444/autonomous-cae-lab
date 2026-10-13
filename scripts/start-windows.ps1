@@ -1,4 +1,4 @@
-# Private Windows launcher. Runs the loopback server and opens the workbench.
+# Private Windows launcher. Verifies the shared local service, then opens a Qt tool.
 [CmdletBinding()]
 param(
     [switch]$NoBrowser,
@@ -10,9 +10,18 @@ param(
     [switch]$Sensitivity,
     [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
     [ValidateRange(1024,65535)][int]$Port = 8766,
-    [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store')
+    [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store'),
+    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study')][string]$Tool = 'runner',
+    [string]$DocumentId,
+    [string]$JobId,
+    [switch]$PrepareOnly
 )
 $ErrorActionPreference = 'Stop'
+if ($Tool -eq 'runner' -and $DocumentId) { throw 'Use -JobId to select a Runner job.' }
+if ($Tool -ne 'runner' -and $JobId) { throw 'Use -DocumentId to select a research document.' }
+# The normal desktop and Research PrepareOnly paths prepare Qt automatically.
+# NoBrowser and InstallOnly retain their explicitly requested optional extras.
+$installResearchUI = $ResearchUI -or (-not $NoBrowser -and -not $InstallOnly)
 function Normalize-Directory([string]$Path) {
     $full = [IO.Path]::GetFullPath($Path)
     $root = [IO.Path]::GetPathRoot($full)
@@ -21,14 +30,14 @@ function Normalize-Directory([string]$Path) {
 }
 $runtime = Normalize-Directory $RuntimeRoot
 $storePath = Normalize-Directory $Store
-& (Join-Path $PSScriptRoot 'install-windows.ps1') -RuntimeRoot $runtime -ResearchUI:$ResearchUI -Expert:$Expert -Documents:$Documents -MCP:$MCP -Sensitivity:$Sensitivity
+& (Join-Path $PSScriptRoot 'install-windows.ps1') -RuntimeRoot $runtime -ResearchUI:$installResearchUI -Expert:$Expert -Documents:$Documents -MCP:$MCP -Sensitivity:$Sensitivity
 if (-not $?) { throw 'Private Python installation failed.' }
 if ($InstallOnly) { return }
 New-Item -ItemType Directory -Force -Path $storePath | Out-Null
 $python = Join-Path $runtime 'venv\Scripts\python.exe'
 $pidPath = Join-Path $runtime ("server-$Port.pid")
 $launchPath = Join-Path $runtime ("server-$Port.launch.json")
-$url = "http://127.0.0.1:$Port/workbench"
+$url = "http://127.0.0.1:$Port"
 $health = "http://127.0.0.1:$Port/api/overview"
 $operatorConfig = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
 if (-not (Test-Path -LiteralPath $operatorConfig -PathType Leaf)) { $operatorConfig = '' }
@@ -130,4 +139,23 @@ if (-not $reuse) {
 }
 Write-Host "Autonomous CAE Lab is ready: $url"
 Write-Host "Research store: $storePath"
-if (-not $NoBrowser) { Start-Process -FilePath $url }
+if ($PrepareOnly) {
+    Write-Output ([pscustomobject]@{ServiceUrl=$url;Python=$python;Tool=$Tool;DocumentId=$DocumentId;JobId=$JobId})
+    return
+}
+# Native Pre/Post and Research helpers use NoBrowser for bootstrap only.
+if ($NoBrowser) { return }
+# Do not call start_cae_research here: it already bootstraps through this script.
+$desktopTool = $Tool.ToLowerInvariant()
+$arguments = @('-m','apps.research.desktop','--service',$url,$desktopTool)
+if ($DocumentId) { $arguments += @('--document-id',$DocumentId) }
+if ($JobId) { $arguments += @('--job-id',$JobId) }
+Push-Location -LiteralPath $install.source_root
+try {
+    & $python @arguments
+    $desktopExitCode = $LASTEXITCODE
+} finally { Pop-Location }
+if ($desktopExitCode -ne 0) {
+    Write-Error "$Tool desktop exited with code $desktopExitCode." -ErrorAction Continue
+}
+exit $desktopExitCode

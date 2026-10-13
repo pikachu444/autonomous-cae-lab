@@ -24,11 +24,16 @@ if ($PrepareOnly) {
     Write-Output ([pscustomobject]@{ServiceUrl=$url;Python=$python;Tool=$Tool;DocumentId=$DocumentId;JobId=$JobId})
     return
 }
-$arguments = @('-m','apps.research.desktop','--service',$url,$Tool)
+$desktopTool = $Tool.ToLowerInvariant()
+$arguments = @('-m','apps.research.desktop','--service',$url,$desktopTool)
 if ($DocumentId) { $arguments += @('--document-id',$DocumentId) }
 if ($JobId) { $arguments += @('--job-id',$JobId) }
 Push-Location -LiteralPath $installation.source_root
 try {
     & $python @arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Tool launch helper exited with code $LASTEXITCODE" }
+    $desktopExitCode = $LASTEXITCODE
 } finally { Pop-Location }
+if ($desktopExitCode -ne 0) {
+    Write-Error "$Tool desktop exited with code $desktopExitCode." -ErrorAction Continue
+}
+exit $desktopExitCode

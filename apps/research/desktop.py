@@ -434,7 +434,9 @@ if __name__ == '__main__':
         raise SystemExit(main())
     except Exception as error:
         print('Desktop launch failed: ' + str(error), file=sys.stderr)
-        from PySide6.QtWidgets import QApplication, QMessageBox
-        application = QApplication.instance() or QApplication(sys.argv[:1])
-        QMessageBox.critical(None, 'Desktop launch failed', str(error))
+        # Native preparation is also used from headless launch helpers.
+        if '--prepare-only' not in sys.argv[1:]:
+            from PySide6.QtWidgets import QApplication, QMessageBox
+            application = QApplication.instance() or QApplication(sys.argv[:1])
+            QMessageBox.critical(None, 'Desktop launch failed', str(error))
         raise SystemExit(1)
