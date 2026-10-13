@@ -30,4 +30,5 @@ The numerical engines, stores, scheduler and native CAD kernel already exist.
 Pro should challenge this proposed route if a smaller maintained mechanism
 completes the same user workflow. Shared schema/registry changes require Codex
 integration review, not a parallel second writer. CURRENT_STATE records the
-actual Pro dispatch; this prepared packet does not claim implementation started.
+actual Pro dispatch. PRO-CAD-NUMERICAL-01 has been received in the existing real
+Pro conversation; implementation is assigned, not yet accepted or integrated.

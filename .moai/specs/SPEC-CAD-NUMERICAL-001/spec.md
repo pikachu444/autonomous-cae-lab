@@ -2,12 +2,12 @@
 id: SPEC-CAD-NUMERICAL-001
 title: "User CAD candidates from native parameters to editable adopted designs"
 version: "0.1.0"
-status: draft
+status: in-progress
 created: "2026-10-13"
 updated: "2026-10-13"
 author: "Codex integration packet with Astra independent design review; Pro product author"
 priority: "P1 High"
-phase: implementation-preparation
+phase: implementation
 module: "native Pre, existing Simulation/Numerical owners, native evaluation adapter"
 lifecycle: spec-anchored
 tier: L

@@ -34,5 +34,6 @@ once the new candidate route exists. Wider multi-model numerical comparisons
 and engineering reference qualification follow feature completion; they are
 not a prerequisite for writing the variable picker or candidate/adoption path.
 
-Status: prepared implementation requirements and independent design review;
-no product implementation or acceptance completion claimed by this packet.
+Status: requirements and independent design review prepared; implementation
+assigned to actual Pro as PRO-CAD-NUMERICAL-01. No product implementation or
+acceptance completion is claimed by this packet.

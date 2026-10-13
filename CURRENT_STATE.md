@@ -332,8 +332,18 @@ ColorBy 오류만 우회한 별도 진단에서는 실제 접촉면·10행 힘 �
 다른 graph 차이는 없었으며 생성 시 명시적 설정 등 국소 교정을 요청했다. 실제 결과를
 넣은 Qt 결과 창의194개 접촉면 절점·10개 증분 표/곡선도 렌더했다. native 통신은 이 렌더의
 검사 범위가 아니며 원본은 `runs/product-development/20261013/contact-inspect-bb998593/`이다.
-새 제품 코드의
-원격 main 푸시는 교정 확인 뒤이며, 기존 원격 main은 `8720891`이다.
+Pro 교정 `6e22066`을 로컬 `193845a`로 통합했다. 실제 Show faces의 ColorBy 예외는
+해소됐으나 native 검사 자체가 ParaView EnumerationProperty를 정수와 직접 비교해
+중단됐다. 별도 native 조회에서는 SelectedComponent의 실제 원시 값이0이었다.
+수정된 guard 검사9건은 통과했고 새 partial restore 검사는 UTF-8 저장 파일을 Windows
+기본 cp949로 읽어 실패했다. 같은 요청의 후속으로 두 검사 코드 교정을 Pro에 전달했다.
+검사 교정 `26d3b55`를 `c4fc7b4`로 통합했고 guard10건이0.68초에 통과했다.
+제품을 바꾸지 않고 검사 assertion만 원시 native 속성 조회로 바꾼 root helper에서는
+접촉면·10행 힘 측정·저장이 성공했다. 새 프로세스 재열기는 여전히 두 SelectedComponent의
+저장 전 빈 문자열/복원0 차이로 거부됐다. native 원시 값과 enum label 표현 차이를
+안정적으로 기록하도록 같은 Pro에 추가 교정을 요청했다. 입력/솔버 재실행은 없다.
+수정 후 저장·재열기를 확인할 때까지 이번 제품 묶음은 로컬에 유지한다. 원격 main은
+`8720891`이며 PR 생성/병합 없이 검토된 변경을 직접 main에 게시해 왔다.
 
 병행 조사에서 다음 연결의 실제 빈틈도 확인했다. 현재 Pre 변수 등록은 길이 치수에
 한정되고, 접촉 adapter는 이미 고정된 snapshot만 실행한다. 기존 Numerical 후보 저장과
@@ -344,8 +354,12 @@ FreeCAD 문서로의 명시적 채택이 아직 없다. Astra가 이 후속 설�
 형상뿐 아니라 하중·변위·재료·접촉 계수의 typed 변수, 후보별 면 대응/재메시,
 binding 실패 이전의 시도 보존, 계산 당시 editable 모델에서 새 분기 열기를 포함한다.
 기존 Simulation recipe·Numerical·JobManager·native opener를 재사용하고 pinned worker의
-단일 fixture 전체 생성 경로를 일반 사용자 모델로 간주하지 않는다. 이 SPEC은 draft이며
-아직 Pro 구현에 착수한 것으로 표시하지 않는다. 후속 작성은 현재 Post 기능 통합 뒤 맡긴다.
+단일 fixture 전체 생성 경로를 일반 사용자 모델로 간주하지 않는다.
+`PRO-CAD-NUMERICAL-01`을 같은 실제 Pro에 전송했고 본문과 끝 경계의 수신을 확인했다.
+접촉 재열기 국소 수정의 게시 뒤
+root 실행 확인을 기다리지 않고 사용자 CAD 변수→후보 준비/해석→실제 후보 모델의 새 분기
+열기를 작성하도록 맡긴다. Pro는 제품·관련 검사/사용 안내, root는 현재 상태·SPEC·공통
+계약 통합·실행, Astra는 중요한 후보/참조/취소/채택 경계의 독립 검토를 맡는다.
 Pro의 별도 실행 전 검사 수정
 `1b37942`는 `02ed0ae`로 통합했다. 두-body contact를 단일 메시 조건으로 잘못 거부하지
 않고 기존 export 검사 경로를 재사용한다. 변경된 native API 단위 검사1건이 통과했다.
