@@ -135,18 +135,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-windows.p
 CMD는 자신의 `setlocal` 범위에서만 상속된 `PSModulePath`를 비워,
 PS7/Python 부모에서 시작해도 Windows PowerShell이 표준 모듈 경로를 구성하도록
 한다. 호출자 환경은 반환 시 복원되며 사용자·전역 환경 설정은 쓰지 않는다.
-기존 설치기와 해시·소유권 검사는 그대로다.
+설치기의 readiness Python 문자열은 Windows PowerShell 5.1에서도 따옴표가
+보존되도록 교정했다. 기존 의존성 선택과 해시·설치 기록·소유권 검사는 유지한다.
 
-초기 `111a36f`의 Python 진입·이동, 충돌 서비스 거절, Qt 의존성 준비와
-PrepareOnly 반환은 Codex의 Windows 실행 보고로 확인했다.
-`0b22ccc`의 축약 옵션 거절도 확인됐고, 격리한 자식 환경의 launcher
-검사에서는 exit 17과 dispatch가 맞았으며 남은 오류는 진단 줄바꿈 assertion이었다.
-이번 소스에서 그 assertion과 CMD 환경 경계를 교정했다.
+이전 소스의 진입·이동·headless 검사와 서비스 18766의 실제 Qt Runner 및
+저장된 Data 문서 offscreen 생성·렌더는 Codex의 Windows 실행 근거다.
+이후 실제 기본 CMD 실행에서는 WinPS 5.1의 Python readiness 인수 손상이
+발견됐으며, 이번 소스에서 문자열을 교정하고 실제 native 인수 전달 검사를 추가했다.
+**WinPS 5.1 기본 CMD 전체 경로의 수용은 교정본으로 Codex가 다시 확인한다.**
 
-서비스 18766의 실제 Qt Runner와 저장된 Data 문서 생성·렌더는
-**Codex Windows offscreen 확인**이다. OS 입력·DPI는 **NOT_RUN**이며,
-이번 추가 교정의 **Pro 원격 실행도 NOT_RUN**이다. 최종 반환 커밋의 실행·통합은
-Codex가 수행한다. 검사 명령과 대역의 범위는
+OS 입력·DPI와 이번 교정의 **Pro 원격 실행은 NOT_RUN**이다.
+검사 명령과 대역·실제 native 호출의 범위는
 [Research 안내](../apps/research/README.md#verify-this-launcher-change)에 있다.
 
 Python 설치·의존성 관리는 기존 [uv 설치](https://docs.astral.sh/uv/getting-started/installation/)와

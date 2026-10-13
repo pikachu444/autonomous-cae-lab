@@ -232,6 +232,117 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
     def events_of(events, kind):
         return [event for event in events if event["kind"] == kind]
 
+    def test_installer_readiness_preserves_native_python_argv(self):
+        folder, environment = self.case()
+        environment.update({
+            "CAE_INSTALLER_UNDER_TEST": str(ROOT / "scripts/install-windows.ps1"),
+            "CAE_READINESS_PYTHON": str(self.runtime / "venv/Scripts/python.exe"),
+            "CAE_READINESS_EXPECTED": str(folder / "readiness-expected.json"),
+            "PYTHONPATH": str(folder),
+        })
+        assist = folder / "caelab/assist"
+        assist.mkdir()
+        (assist / "__init__.py").write_text("", encoding="utf-8")
+        (assist / "readiness.py").write_text(r"""
+import json
+import os
+from pathlib import Path
+import sys
+
+def record(kind, values):
+    with Path(os.environ["CAE_LAUNCH_TEST_EVENTS"]).open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps({"kind": kind, "values": list(values),
+                                 "argv": sys.orig_argv[1:]}) + "\n")
+
+def require_features(*features):
+    record("features", features)
+""", encoding="utf-8")
+        salib = folder / "SALib"
+        salib.mkdir()
+        (salib / "__init__.py").write_text("", encoding="utf-8")
+        for part in ("sample", "analyze"):
+            package = salib / part
+            package.mkdir()
+            (package / "__init__.py").write_text("", encoding="utf-8")
+            (package / "sobol.py").write_text(
+                "from caelab.assist.readiness import record\n"
+                + "record('import', ['SALib." + part + ".sobol'])\n", encoding="utf-8")
+        script = folder / "native-readiness.ps1"
+        script.write_text(r"""
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
+if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) {
+    throw 'This regression requires actual Windows PowerShell 5.1'
+}
+$parseTokens = $null
+$parseErrors = $null
+$ast = [System.Management.Automation.Language.Parser]::ParseFile(
+    $env:CAE_INSTALLER_UNDER_TEST, [ref]$parseTokens, [ref]$parseErrors)
+if ($parseErrors.Count -ne 0) { throw 'Installer source has PowerShell parse errors' }
+$definitions = @($ast.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+        $node.Name -eq 'Invoke-Checked'
+}, $true))
+if ($definitions.Count -ne 1) { throw 'Expected the actual Invoke-Checked function' }
+$commands = @($ast.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.CommandAst] -and
+        $node.GetCommandName() -eq 'Invoke-Checked' -and
+        $node.CommandElements.Count -eq 3 -and
+        $node.CommandElements[1].Extent.Text -eq '$python' -and
+        $node.Extent.Text -match 'require_features|from SALib\.sample'
+}, $true) | Sort-Object { $_.Extent.StartOffset })
+if ($commands.Count -ne 4) { throw 'Expected all four optional readiness calls' }
+$expected = @()
+foreach ($command in $commands) {
+    $code = @($command.FindAll({
+        param($node)
+        ($node -is [System.Management.Automation.Language.StringConstantExpressionAst] -or
+         $node -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) -and
+            $node.Value -match '^from (caelab\.assist\.readiness|SALib\.sample) '
+    }, $true))
+    if ($code.Count -ne 1) { throw 'Expected one Python code string per readiness call' }
+    $expected += $code[0].Value
+}
+# Serialize the intended AST values without another native quoting boundary.
+ConvertTo-Json -InputObject $expected |
+    Set-Content -LiteralPath $env:CAE_READINESS_EXPECTED -Encoding UTF8
+$python = $env:CAE_READINESS_PYTHON
+# Execute the production function and command source, not reconstructed test commands.
+. ([scriptblock]::Create($definitions[0].Extent.Text))
+foreach ($command in $commands) {
+    & ([scriptblock]::Create($command.Extent.Text))
+}
+""", encoding="utf-8-sig")
+        result = subprocess.run(
+            [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+            cwd=folder, env=environment, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=45,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        expected = json.loads(Path(environment["CAE_READINESS_EXPECTED"]).read_text(
+            encoding="utf-8-sig"))
+        self.assertEqual(len(expected), 4)
+        events = [json.loads(line) for line in Path(
+            environment["CAE_LAUNCH_TEST_EVENTS"]).read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([(event["kind"], event["values"]) for event in events], [
+            ("features", ["expert_agent", "openai_compatible_generator", "knowledge_index"]),
+            ("features", ["pdf_read"]),
+            ("features", ["mcp"]),
+            ("import", ["SALib.sample.sobol"]),
+            ("import", ["SALib.analyze.sobol"]),
+        ])
+        for event, code in zip(events, [*expected[:3], expected[3], expected[3]]):
+            self.assertEqual(event["argv"], ["-c", code])
+        output = "".join(result.stdout.split())
+        for message in (
+                "Expert dependency imports OK; model/credentials and inference are not checked",
+                "PDF reader import OK",
+                "MCP package import OK; no client or credentials configured",
+                "Sobol sampling/analysis package imports OK; no study executed"):
+            self.assertIn("".join(message.split()), output)
+
     def test_default_prepares_qt_before_one_service_and_runner(self):
         result, events, spec = self.run_case([self.phase()])
         self.assertEqual(result.returncode, 0, result.stderr)

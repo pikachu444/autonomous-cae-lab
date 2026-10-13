@@ -92,8 +92,8 @@ The CMD wrapper clears the inherited `PSModulePath` only inside its existing
 `setlocal` scope. Windows PowerShell builds its own default module paths, including
 its standard hash commands, even when the parent is PowerShell 7 via Python/CMD.
 The caller's environment is restored when the batch returns; no user/machine
-environment variable, profile or settings file is written. The installer and
-all existing hash/ownership checks remain unchanged. An external Python program
+environment variable, profile or settings file is written. Existing hash and
+ownership checks remain unchanged. An external Python program
 that directly starts a PowerShell helper should likewise remove this key only
 from its child environment; the CMD wrapper cannot intercept that separate caller.
 This follows Microsoft's
@@ -182,21 +182,30 @@ nothing and starts no actual server or Qt window. On other platforms it is skipp
 The Python entry-point tests require the existing test dependencies and check the
 actual executable error boundary, including rejected abbreviated preparation flags.
 
+The native-argv regression also extracts the checked-in installer's actual
+`Invoke-Checked` function and optional readiness calls with the PowerShell AST.
+It executes that source through real Windows PowerShell 5.1 and native Python,
+then compares `sys.orig_argv` with the intended AST code strings. Local fixture
+modules record the Expert/PDF/MCP feature names and both Sobol imports, so no
+provider or numerical engine is called and no dependency is downloaded.
+The installer uses Python single-quoted literals within PowerShell double-quoted
+strings for these checks; their import targets and conditions remain the same.
+
 Execution evidence is separate from this source:
-- Codex reported the initial `111a36f` Windows entry/navigation checks,
-  source-mismatch refusal, private-runtime Qt installation/imports and root
-  PrepareOnly context. At `0b22ccc`, the entry-point tests also passed the
-  abbreviated preparation-option rejection with no Qt import.
-- With `PSMODULEPATH` removed from the Windows test child environment, Codex
-  reported the launcher cases passing except for an assertion on a wrapped
-  `Write-Error` message. Exact exit 17 and one desktop dispatch already matched;
-  this update makes that diagnostic assertion independent of console line wrapping.
-- Codex also reported real Qt Runner and saved Data document construction/rendering
-  against service 18766 in offscreen mode. OS input and DPI acceptance remain
-  **NOT_RUN**.
-- Pro's environment remains disconnected: this update's CMD-local environment
-  correction, module/hash/caller-environment regression and diagnostic assertion
-  are **NOT_RUN by Pro**. They require execution against the returned commit.
+- Codex reported Windows entry/navigation and headless checks on earlier
+  checkpoints, including abbreviated-option rejection at `0b22ccc`. At
+  `0e08502`, the real CMD probe passed its hash, exit, Windows version and
+  caller-environment checks; the erroneous ModuleBase assertion was then
+  corrected to exact manifest/script paths in `6caf6b4`.
+- Codex's actual default CMD run under Windows PowerShell 5.1 then exposed
+  damaged Python readiness arguments in the installer. The earlier PowerShell 7
+  installation/import checks and launcher doubles did not exercise that boundary.
+  This source corrects those literals and adds the actual native-argv regression.
+  Final default-CMD acceptance remains pending Codex's run of the corrected source.
+- Qt Runner and an existing saved Data document were constructed/rendered by
+  Codex in Windows offscreen mode against service 18766. OS input and DPI remain
+  **NOT_RUN**. Pro's disconnected environment also leaves the current corrections
+  and regression **NOT_RUN by Pro**.
 
 Codex performs the current Windows execution and integration against the returned
 commit. A real GUI check should open the chosen tool through the root CMD, then
