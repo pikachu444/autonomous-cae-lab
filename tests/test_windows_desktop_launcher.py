@@ -408,7 +408,8 @@ param([switch]$InstallOnly)
 $ErrorActionPreference = 'Stop'
 $hash = (Get-FileHash -LiteralPath $env:CAE_LAUNCH_TEST_HASH_INPUT -Algorithm SHA256).Hash
 $command = Get-Command Get-FileHash -ErrorAction Stop
-@{sha256=$hash.ToLowerInvariant();module=$command.Module.ModuleBase;
+@{sha256=$hash.ToLowerInvariant();source=$command.Source;
+  module_path=$command.Module.Path;script_file=$command.ScriptBlock.File;
   pshome=$PSHOME;major=$PSVersionTable.PSVersion.Major} |
     ConvertTo-Json -Compress |
     Set-Content -LiteralPath $env:CAE_LAUNCH_TEST_EVENTS -Encoding UTF8
@@ -427,8 +428,13 @@ exit /b %CAE_TEST_CHILD_EXIT%
         self.assertEqual(actual["sha256"],
                          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
         self.assertEqual(actual["major"], 5)
-        self.assertEqual(os.path.normcase(actual["module"]), os.path.normcase(
-            str(Path(actual["pshome"]) / "Modules/Microsoft.PowerShell.Utility")))
+        # Windows PowerShell 5 reports ModuleBase as PSHOME; verify the files.
+        self.assertEqual(actual["source"], "Microsoft.PowerShell.Utility")
+        utility_folder = Path(actual["pshome"]) / "Modules/Microsoft.PowerShell.Utility"
+        self.assertEqual(os.path.normcase(actual["module_path"]), os.path.normcase(
+            str(utility_folder / "Microsoft.PowerShell.Utility.psd1")))
+        self.assertEqual(os.path.normcase(actual["script_file"]), os.path.normcase(
+            str(utility_folder / "Microsoft.PowerShell.Utility.psm1")))
 
     def test_cmd_preserves_quoted_paths_selectors_and_failure_code(self):
         for code in (0, 17):
