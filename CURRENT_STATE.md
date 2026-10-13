@@ -285,8 +285,11 @@ suppressed 메시 처리의 세 문제를 찾았다. 같은 Pro의 `PRO-CONTACT-
 아직 하지 않았다. 해당 기록은 `runs/product-development/20261013/contact-editor-9e3f7ed8/receipt.json`.
 Pro는 export/Runner/Post 연결을 계속 작성한다. 편집 단계의 확인을 접촉 계산 완료로 보지 않는다.
 사용자 추가 지시에 따라 기존 오픈소스 전후처리기·solver 연동 코드와 이슈를 병행 조사해
-현재 구현에 적용한다. FreeCAD 공식 소스/문서와 PrePoMax·CalculiX→ParaView 경로를
-우선 확인하며 조사 때문에 제품 작성을 중단하지 않는다.
+현재 구현에 적용한다. [기존 연동 코드·이슈 조사](docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md)에
+PrePoMax의 면/접촉 법칙 분리와 writer, ccx2paraview의 시간 이력 변환과 누락값·NaN을
+0으로 만드는 처리, FreeCAD의 다중 메시 제약을 정리했다. 기존 converter의 재사용과
+현재 reader 확장을 비교해 실제 부족한 연결만 구현한다. GPL을 무료 재사용 배제 이유로
+삼지 않으며 배포 조건은 선택한 방식에 맞춘다. 조사 때문에 제품 작성을 중단하지 않는다.
 
 접촉 구현의 실제 입력으로 [두 발 CAD 예제](examples/contact/README.md)를 추가했다.
 FreeCAD의 편집 가능한 Boolean 형상이며 두 접촉면·0.2 mm 간극·받침을 저장/재열기했다.

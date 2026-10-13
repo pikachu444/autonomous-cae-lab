@@ -87,3 +87,13 @@ Astra's bounded design review added the missing two-body mesh/remesh path and
 effective normal/sliding/step mapping to plan/design/acceptance. Luna's output
 inventory supplies the above reader seams. These are implementation inputs,
 not solver or engineering verification; no additional execution was performed.
+
+## Existing open-source integration paths
+
+The user's request to inspect working community integrations is captured in
+[the PrePoMax, ccx2paraview and FreeCAD source/issue review](../../../docs/research/OPEN_SOURCE_CONTACT_INTEGRATION.md).
+Reuse candidates include separated contact-law/pair writers and FRD-to-VTK/PVD
+conversion. Preserve missing/invalid results: the inspected converter fills
+missing rows and replaces nonfinite values with zero. Compare adapting reusable
+parts with extending the current reader; do not presume a complete rewrite.
+This research informs the assigned export/Runner/Post work, not a new gate.
