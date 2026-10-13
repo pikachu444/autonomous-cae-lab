@@ -19,7 +19,7 @@ if ($Tool -ne 'runner' -and $JobId) { throw 'Use -DocumentId to select a researc
 if (-not $?) { throw 'The shared research service could not be started or verified.' }
 $python = Join-Path ([IO.Path]::GetFullPath($RuntimeRoot)) 'venv\Scripts\python.exe'
 $url = "http://127.0.0.1:$Port"
-$installation = Get-Content -Raw -LiteralPath (Join-Path $RuntimeRoot 'install-receipt.json') | ConvertFrom-Json
+$installation = Get-Content -Encoding UTF8 -Raw -LiteralPath (Join-Path $RuntimeRoot 'install-receipt.json') | ConvertFrom-Json
 if ($PrepareOnly) {
     Write-Output ([pscustomobject]@{ServiceUrl=$url;Python=$python;Tool=$Tool;DocumentId=$DocumentId;JobId=$JobId})
     return

@@ -41,7 +41,7 @@ $url = "http://127.0.0.1:$Port"
 $health = "http://127.0.0.1:$Port/api/overview"
 $operatorConfig = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
 $configSha = if (Test-Path -LiteralPath $operatorConfig -PathType Leaf) { (Get-FileHash -LiteralPath $operatorConfig -Algorithm SHA256).Hash.ToLowerInvariant() } else { '' }
-$install = Get-Content -LiteralPath (Join-Path $runtime 'install-receipt.json') -Raw | ConvertFrom-Json
+$install = Get-Content -LiteralPath (Join-Path $runtime 'install-receipt.json') -Encoding UTF8 -Raw | ConvertFrom-Json
 $sourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $install.source_root 'caelab'),(Join-Path $install.source_root 'apps'),(Join-Path $install.source_root 'schemas'),(Join-Path $install.source_root 'plugins') -Recurse -File |
     Where-Object { $_.Extension -in @('.py','.html','.js','.css','.json') } | Sort-Object FullName)
 $fingerprintText = ($sourceFiles | ForEach-Object { $_.FullName.Substring($install.source_root.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }) -join "`n"
@@ -96,7 +96,7 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
             if (-not (Test-Path -LiteralPath $launchPath -PathType Leaf)) {
                 throw "An older owned server is already running on port $Port without a verified launch receipt. Stop it explicitly before changing its workspace."
             }
-            $launch = Get-Content -LiteralPath $launchPath -Raw | ConvertFrom-Json
+            $launch = Get-Content -LiteralPath $launchPath -Encoding UTF8 -Raw | ConvertFrom-Json
             if ($launch.pid -ne $oldPid -or $launch.store -ne $storePath -or
                 $launch.source_root -ne $install.source_root -or $launch.project_sha256 -ne $install.project_sha256 -or
                 $launch.source_fingerprint -ne $sourceFingerprint -or
@@ -119,7 +119,9 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
                 $receiptBackup = $receiptTemp + '.bak'
                 $receiptReplaced = $false
                 try {
-                    [IO.File]::WriteAllText($receiptTemp, ($launch | ConvertTo-Json -Depth 3), [Text.UTF8Encoding]::new($false))
+                    # Match WinPS Set-Content UTF8's initial receipt encoding.
+                    # Readers also specify UTF8, accepting previous BOM-less receipts.
+                    [IO.File]::WriteAllText($receiptTemp, ($launch | ConvertTo-Json -Depth 3), [Text.UTF8Encoding]::new($true))
                     # WinPS 5.1 can bind $null to an empty backup-path string.
                     # An explicit sibling backup keeps File.Replace atomic.
                     [IO.File]::Replace($receiptTemp, $launchPath, $receiptBackup)

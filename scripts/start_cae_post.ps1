@@ -33,7 +33,7 @@ if (-not $ServiceUrl) {
 }
 if (-not $Python) {
     $Python = Join-Path ([IO.Path]::GetFullPath($RuntimeRoot)) 'venv\Scripts\python.exe'
-    $installation = Get-Content -Raw -LiteralPath (Join-Path $RuntimeRoot 'install-receipt.json') | ConvertFrom-Json
+    $installation = Get-Content -Encoding UTF8 -Raw -LiteralPath (Join-Path $RuntimeRoot 'install-receipt.json') | ConvertFrom-Json
     $repository = $installation.source_root
 }
 $arguments = @('-m','apps.research.desktop','--service',$ServiceUrl,'post')

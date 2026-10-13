@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $pidPath -PathType Leaf) -or
     -not (Test-Path -LiteralPath $launchPath -PathType Leaf)) { throw "No verified launcher receipt for port $Port." }
 $processId = 0
 if (-not [int]::TryParse((Get-Content -LiteralPath $pidPath -Raw).Trim(),[ref]$processId)) { throw 'Invalid launcher PID.' }
-$launch = Get-Content -LiteralPath $launchPath -Raw | ConvertFrom-Json
+$launch = Get-Content -LiteralPath $launchPath -Encoding UTF8 -Raw | ConvertFrom-Json
 $python = Join-Path $runtime 'venv\Scripts\python.exe'
 $process = Get-CimInstance Win32_Process -Filter "ProcessId=$processId" -ErrorAction Stop
 $expectedStore = '--store "' + $launch.store + '"'
