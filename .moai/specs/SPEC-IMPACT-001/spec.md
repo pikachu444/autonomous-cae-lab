@@ -73,3 +73,31 @@ result reader를 확장한다. 이미 있는 Material 법칙과 native Pre 할�
 무료 구현과 native 도구를 사용한다. LS-OPT나 유료 전처리기를 필수 경로로 추가하지 않는다.
 기존 설치 유무는 실행 전 해당 환경에서 확인하며 소스의 pin만으로 설치됐다고 가정하지 않는다.
 완료 조건은 [acceptance.md](acceptance.md)에 연결한다.
+
+## 사용자 모델 연결의 구현 경로
+
+Sol과 Astra의 소스 조사 및 직접 토론 결과, 기존 FreeCAD FEM의 mesh/sets/재료와
+접촉 face 추출을 재사용하고 별도 명시적 충격 정의를 거쳐 변환한다. 기존 static
+freeze의 허용 카드에는 density가 없으므로 static deck 자체를 동적 입력으로 간주하지
+않는다. 일반 모델용 adapter와 결과 reader를 추가하며 기존 강체 예제의 엄격한
+topology·단위·회전 제한은 유지한다.
+
+우선 검토한 무료 변환기는 [OpenCourant Tools의 INP2RAD](https://github.com/OpenCourant/Tools/blob/beaf8a17c880242bb7ad43325a20bd589dc0f533/input_converters/inp2rad/inp2rad/inp2rad.py)다.
+검토 소스 `beaf8a17c880242bb7ad43325a20bd589dc0f533`의 MIT 허가문을 재배포물에
+포함한다. 실제 설치·실행 수용은 아직 하지 않았다. Qt 내부로 tkinter와 전역 상태를
+가져오지 않고 기존 소유 subprocess 경로에서 호출하는 안을 우선한다. converter가
+지원하지 않는 카드의 직접 작성은 해당 차이를 확인한 뒤 한정한다.
+
+변환 출력의 Mg/mm/s를 기존 kg/m/s와 혼동하지 않는다. 원 mesh/part/material/set,
+밀도와 총질량·COM·관성, 초기 자세·속도·각속도, 시간 제어를 전후 대조한다. 누락 시
+converter가 넣는 기본 시간 간격과 종료 시간을 사용자가 정한 조건으로 채택하지 않는다.
+원 INP/includes와 합쳐진 변환 deck을 함께 보존하고 카드별 지원 여부를 표시한다.
+
+높이 모드는 출발 위치에서 v=0과 중력을 적분하는 경우와 충돌 직전 위치에 유도 속도를
+주는 경우를 구별한다. 같은 낙하 구간을 두 번 적용하지 않되 중력 on/off만으로 모드를
+판별하지 않는다. 회전 초기값은 COM·기준계와 일관된 절점 속도로 연결한다.
+
+공식 ANIM→VTK 변환 자산을 기존 ParaView 결과 등록에 연결하는 경로도 재사용한다.
+실제 시각·절점/요소·배열 단위·삭제 상태를 보존해야 하며 H3D를 ANIM처럼 읽지 않는다.
+CAD 없이 원 Radioss 입력 묶음을 여는 독립 경로도 유지한다. converter의 cohesive나
+손상 시작 지원 목록만으로 혼합 모드·재닫힘·반복 손상·피로 수명을 완료하지 않는다.
