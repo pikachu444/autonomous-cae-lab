@@ -316,7 +316,7 @@ class DataWindow(QMainWindow):
         self.values = self._table(['원본 행', '축', '관측', '계산 포함', '원본 품질', '화면 표시', '이유'])
         self.values.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.values.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.values.itemSelectionChanged.connect(self.highlight_rows)
+        self.values.itemSelectionChanged.connect(self._table_selection_changed)
         self.values.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
         for label, mode in [('선택 구간만 사용', 'include'), ('계산에서 제외', 'exclude'),
                             ('선택 행 제외 해제', 'restore'), ('피팅 구간으로 복제', 'fit'),
@@ -1229,7 +1229,17 @@ class DataWindow(QMainWindow):
             self._clear_result()
 
     def _clear_result(self):
+        for connection in getattr(self, '_point_connections', []):
+            self.canvas.mpl_disconnect(connection)
+        self._point_connections = []
+        selector = getattr(self, '_span_selector', None)
+        if selector is not None:
+            selector.disconnect_events()
+        self._point_press = None
+        self._point_table_page = None
+        self._drawn_result_key = None
         self._selection_points={}
+        self._point_visible_rows = set()
         self._selection_artist=None
         self.values.setRowCount(0)
         self.axes.clear()
@@ -1239,7 +1249,13 @@ class DataWindow(QMainWindow):
         self.result_label.setText('No imported response selected.')
 
     def _draw_result(self, receipt, key):
+        same_page = key == getattr(self, '_drawn_result_key', None)
+        selected = self._selected_original_rows() if same_page else set()
+        try: current_source = int(self.values.item(self.values.currentRow(), 0).text()) if same_page else None
+        except (ValueError, AttributeError): current_source = None
+        point_table = getattr(self, '_point_table_page', None) if same_page else None
         self._clear_result()
+        self._drawn_result_key = key
         _, identifier, start, _, _ = key
         run = next(item for item in self.document['runs'] if item['job_id'] == identifier)
         stale = self.local_dirty or not run.get('is_current_input', run['input_generation'] == self.document['generation'])
@@ -1275,18 +1291,10 @@ class DataWindow(QMainWindow):
             for column, value in enumerate([response.get('source_rows', [])[row] if row < len(response.get('source_rows', [])) else f'sample {start + row}', f"{display(x)} {axis.get('unit', 'unknown')}", f"{display(y)} {response.get('unit', 'unknown')}"]):
                 self.values.setItem(row, column, QTableWidgetItem(str(value)))
         raw = response.get('raw_samples')
+        self._point_raw_total = raw.get('total_count', len(raw.get('source_rows', []))) if isinstance(raw, dict) else 0
+        self._point_row_kind = response.get('source_row_kind')
         if isinstance(raw, dict) and isinstance(raw.get('source_rows'), list):
-            offset=0 if 'page_start' in raw else start
-            raw_indexes = list(range(len(raw['source_rows'])))[offset:offset + self.row_count.value()]
-            self.values.setRowCount(len(raw_indexes))
-            for row, index in enumerate(raw_indexes):
-                cells = [raw['source_rows'][index], (raw.get('transformed_axis') or raw.get('axis') or [None]*len(raw['source_rows']))[index],
-                    raw.get('transformed_value',raw['value'])[index], raw['calculation_valid'][index], raw['quality_valid'][index], raw['display_visible'][index],
-                    '; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason)]
-                for column, cell in enumerate(cells):
-                    self.values.setItem(row, column, QTableWidgetItem(display(cell)))
-                self.values.item(row,2).setToolTip('원본 값: '+display(raw['value'][index]))
-                self.values.item(row,1).setToolTip('원본 축: '+display((raw.get('axis') or [None]*len(raw['source_rows']))[index]))
+            self._show_raw_rows(raw, start)
         try:
             x, y = [float(value) for value in axis['values']], [float(value) for value in values]
             if not all(math.isfinite(value) for value in x + y) or response.get('valid') is False:
@@ -1314,6 +1322,7 @@ class DataWindow(QMainWindow):
         if original_rows:
             for segment in segments:
                 keep = set(segment.get('source_rows', []))
+                self._point_visible_rows.update(row for row in original_rows if row in keep and row not in hidden)
                 points = [(a, float('nan') if source in hidden else b) for source, a, b in zip(original_rows, x, y) if source in keep]
                 if points:
                     self.axes.plot([a for a, _ in points], [b for _, b in points], marker='o', markersize=3)
@@ -1352,17 +1361,145 @@ class DataWindow(QMainWindow):
                     raw.get('transformed_value',[]),raw.get('calculation_valid',[]),raw.get('display_visible',[])):
                 if visible and not used and type(a) in (int,float) and type(b) in (int,float) and math.isfinite(a) and math.isfinite(b):
                     excluded.append((a,b));self._selection_points[row]=(a,b)
+                    self._point_visible_rows.add(row)
             if excluded:
                 self.axes.scatter([p[0] for p in excluded],[p[1] for p in excluded],marker='x',c='gray',label='계산 제외')
-        if hasattr(self,'_span_selector'):
-            self._span_selector.disconnect_events()
         from matplotlib.widgets import SpanSelector
         self._span_selector=SpanSelector(self.axes,self._select_curve_interval,'horizontal',
                 useblit=False,props={'alpha':.15,'facecolor':'tab:blue'},button=1,minspan=0)
+        # Connect after the selector: click-sized spans must not erase the pick.
+        self._point_connections = [self.canvas.mpl_connect(name, callback) for name, callback in (
+            ('button_press_event', self._curve_press), ('motion_notify_event', self._curve_motion),
+            ('button_release_event', self._curve_release))]
         self._selection_artist = None
+        if point_table is not None:
+            self._show_raw_rows(point_table)
+            self._point_table_page = point_table
+        if selected:
+            self._select_original_rows(selected, scroll_to=current_source)
         self._show_details()
 
+    def _show_raw_rows(self, raw, start=0):
+        offset = 0 if 'page_start' in raw else start
+        indexes = range(offset, min(len(raw['source_rows']), offset + self.row_count.value()))
+        blocked = self.values.blockSignals(True)
+        try:
+            self.values.setRowCount(len(indexes))
+            for row, index in enumerate(indexes):
+                cells = [raw['source_rows'][index], (raw.get('transformed_axis') or raw.get('axis') or [None]*len(raw['source_rows']))[index],
+                    raw.get('transformed_value',raw['value'])[index], raw['calculation_valid'][index], raw['quality_valid'][index], raw['display_visible'][index],
+                    '; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason)]
+                for column, cell in enumerate(cells):
+                    self.values.setItem(row, column, QTableWidgetItem(display(cell)))
+                self.values.item(row,2).setToolTip('원본 값: '+display(raw['value'][index]))
+                self.values.item(row,1).setToolTip('원본 축: '+display((raw.get('axis') or [None]*len(raw['source_rows']))[index]))
+        finally:
+            self.values.blockSignals(blocked)
+
+    def _selected_original_rows(self):
+        rows = set()
+        for index in self.values.selectionModel().selectedRows():
+            try: rows.add(int(self.values.item(index.row(), 0).text()))
+            except (ValueError, AttributeError): pass
+        return rows
+
+    def _select_original_rows(self, sources, *, additive=False, scroll_to=None):
+        selection = self.values.selectionModel()
+        blocked = self.values.blockSignals(True)
+        try:
+            if not additive: self.values.clearSelection()
+            for row in range(self.values.rowCount()):
+                item = self.values.item(row, 0)
+                try: source = int(item.text())
+                except (ValueError, AttributeError): continue
+                if source in sources:
+                    index = self.values.model().index(row, 0)
+                    selection.select(index, QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
+                if source == scroll_to:
+                    selection.setCurrentIndex(self.values.model().index(row, 0), QItemSelectionModel.SelectionFlag.NoUpdate)
+                    self.values.scrollToItem(item)
+        finally:
+            self.values.blockSignals(blocked)
+        self.highlight_rows()
+
+    def _curve_press(self, event):
+        self._point_press = None
+        if event.button == 1 and event.inaxes is self.axes and not self.axes.get_navigate_mode():
+            self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
+            self._point_press = (event.x, event.y)
+            self._point_dragged = False
+
+    def _curve_motion(self, event):
+        if self._point_press is not None:
+            self._point_dragged |= math.dist(self._point_press, (event.x, event.y)) > 4 * self.canvas.device_pixel_ratio
+
+    def _curve_release(self, event):
+        if self._point_press is None: return
+        self._curve_motion(event)
+        click = not self._point_dragged and event.button == 1 and event.inaxes is self.axes
+        self._point_press = None
+        if not click or self.axes.get_navigate_mode(): return
+        selected = self._selected_original_rows()
+        candidates = []
+        for order, (source, point) in enumerate(self._selection_points.items()):
+            if source not in self._point_visible_rows or type(source) is not int or not all(math.isfinite(value) for value in point): continue
+            pixel = self.axes.transData.transform(point)
+            distance = math.dist(pixel, (event.x, event.y))
+            if self.axes.bbox.contains(*pixel) and distance <= 6 * self.canvas.device_pixel_ratio:
+                candidates.append((distance, source not in selected, order, source))
+        if not candidates: return
+        source = min(candidates)[-1]
+        additive = 'ctrl' in (event.key or '') or 'control' in (event.key or '')
+        self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
+        if any(self.values.item(row, 0).text() == str(source) for row in range(self.values.rowCount())):
+            self.sheets.setCurrentWidget(self.values)
+            self._select_original_rows({source}, additive=additive, scroll_to=source)
+            self.message.setText('원본 행 ' + str(source) + '을 선택했습니다.')
+        else:
+            self._read_point_row(source, additive)
+
+    def _read_point_row(self, source, additive):
+        if self._point_row_kind not in ('physical_line', 'array_index') or type(self._point_raw_total) is not int or self._point_raw_total <= 0:
+            self.message.setText('이 점의 원본 행을 현재 표에서 찾을 수 없습니다. 구간을 다시 읽어 주세요.')
+            return
+        token, key, draft = self._source_token(), self._result_key(), deepcopy(self.edited_draft())
+        serial, count, total = self._point_lookup_serial, self.row_count.value(), self._point_raw_total
+        channel = self.result_channel.currentText()
+        def read():
+            lower, upper = 0, total - 1
+            bounds = (-1, math.inf)
+            # file_table retains enumerate physical lines or range array indices,
+            # both strictly increasing; never infer a raw offset from a row ID.
+            while lower <= upper:
+                middle = (lower + upper) // 2
+                result = self.client.document_result(key[0], key[1], selection={'responses':[channel], 'rows':[middle, middle+1]})
+                raw = result['responses'][channel].get('raw_samples', {})
+                rows = raw.get('source_rows', [])
+                if len(rows) != 1 or type(rows[0]) is not int or not bounds[0] < rows[0] < bounds[1]: break
+                if rows[0] == source:
+                    first = middle // count * count
+                    result = self.client.document_result(key[0], key[1], selection={'responses':[channel], 'rows':[first, first+count]})
+                    page = result['responses'][channel].get('raw_samples', {})
+                    if source in page.get('source_rows', []): return page
+                    break
+                if rows[0] < source:
+                    lower, bounds = middle+1, (rows[0], bounds[1])
+                else:
+                    upper, bounds = middle-1, (bounds[0], rows[0])
+            raise ValueError('선택한 원본 행을 저장 자료에서 확인할 수 없습니다.')
+        def accepted(raw):
+            self._show_raw_rows(raw)
+            self._point_table_page = raw
+            self.sheets.setCurrentWidget(self.values)
+            self._select_original_rows({source}, scroll_to=source)
+            self.message.setText('원본 행 ' + str(source) + '을 선택했습니다.' +
+                (' 다른 표 구간으로 이동해 이전 선택을 바꿨습니다.' if additive else ''))
+        self._call(read, accepted, background=True, relevant=lambda: token == self._source_token() and
+                   key == self._result_key() and serial == self._point_lookup_serial and draft == self.edited_draft())
+
     def _select_curve_interval(self, first, last):
+        if self._point_press is not None and not self._point_dragged: return
+        self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
         wanted={row for row,(x,y) in getattr(self,'_selection_points',{}).items() if first<=x<=last}
         selection=self.values.selectionModel()
         self.values.blockSignals(True); self.values.clearSelection()
@@ -1372,6 +1509,10 @@ class DataWindow(QMainWindow):
             if source in wanted:
                 selection.select(self.values.model().index(row,0),QItemSelectionModel.SelectionFlag.Select|QItemSelectionModel.SelectionFlag.Rows)
         self.values.blockSignals(False);self.highlight_rows()
+
+    def _table_selection_changed(self):
+        self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
+        self.highlight_rows()
 
     def highlight_rows(self):
         artist=getattr(self,'_selection_artist',None)
