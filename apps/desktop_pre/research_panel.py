@@ -3,6 +3,37 @@ from copy import deepcopy
 import re
 
 
+PANEL_STYLE = """
+QWidget#caeResearchPanel { background: #f2f4f7; color: #202d3c; }
+QWidget#caeResearchPanel QLabel { color: #263548; }
+QWidget#caeResearchPanel QLabel[section="true"] { font-weight: 600; }
+QWidget#caeResearchPanel QTableWidget { background: #ffffff; color: #202d3c;
+    border: 1px solid #cbd3de; selection-background-color: #dbeafe;
+    selection-color: #163a63; }
+QWidget#caeResearchPanel QTableWidget::item { padding: 3px 6px; border-bottom: 1px solid #e7ebf0; }
+QWidget#caeResearchPanel QTableWidget::item:hover { background: #eff5fc; }
+QWidget#caeResearchPanel QTableWidget::item:selected { background: #dbeafe; color: #163a63; }
+QWidget#caeResearchPanel QTableWidget::item:focus { border: 1px solid #3977b8; }
+QWidget#caeResearchPanel QHeaderView::section { background: #e9eef4; color: #263548;
+    border: none; border-bottom: 1px solid #cbd3de; padding: 5px 6px; font-weight: 600; }
+QWidget#caeResearchPanel QPushButton { background: #ffffff; color: #263548;
+    border: 1px solid #bcc8d6; border-radius: 3px; padding: 5px 10px; }
+QWidget#caeResearchPanel QPushButton:hover { background: #edf3fa; border-color: #6d91b9; }
+QWidget#caeResearchPanel QPushButton:pressed { background: #dae6f4; }
+QWidget#caeResearchPanel QPushButton:focus { border: 2px solid #3977b8; padding: 4px 9px; }
+QWidget#caeResearchPanel QPushButton[primary="true"] { background: #2563a6; color: #ffffff; border-color: #2563a6; }
+QWidget#caeResearchPanel QPushButton[primary="true"]:hover { background: #1f568f; }
+QWidget#caeResearchPanel QPushButton[primary="true"]:pressed { background: #194572; }
+QWidget#caeResearchPanel QPushButton:disabled { background: #eef1f4; color: #7b8795; border-color: #d7dfe7; }
+QWidget#caeResearchPanel QComboBox { background: #ffffff; color: #263548;
+    border: 1px solid #bcc8d6; border-radius: 3px; padding: 4px 8px; }
+QWidget#caeResearchPanel QComboBox:focus { border-color: #3977b8; }
+QWidget#caeResearchPanel QComboBox:disabled { background: #eef1f4; color: #7b8795; }
+QWidget#caeResearchPanel QLineEdit { background: #ffffff; color: #202d3c; border: 1px solid #3977b8; padding: 3px; }
+QWidget#caeResearchPanel QSplitter::handle { background: #dce3ec; }
+"""
+
+
 def _variable_label(row):
     field = row['target'].get('field')
     names = {'Length': '길이', 'Width': '폭', 'Height': '높이', 'Radius': '반지름',
@@ -135,9 +166,16 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
     class Panel(QtWidgets.QWidget):
         def __init__(self):
             super().__init__()
+            self.setObjectName('caeResearchPanel')
+            self.setStyleSheet(PANEL_STYLE)
             self.info, self.busy, self.capture_id = None, False, None
             self.response_defs = []
+            self.responses_by_analysis = {}
+            self.range_drafts, self.cell_baseline, self.populated_analysis = {}, {}, None
+            self.range_labels = {}
             layout = QtWidgets.QVBoxLayout(self)
+            layout.setContentsMargins(12, 12, 12, 12)
+            layout.setSpacing(10)
             row = QtWidgets.QHBoxLayout()
             self.analysis, self.solver, self.method = QtWidgets.QComboBox(), QtWidgets.QComboBox(), QtWidgets.QComboBox()
             self.method.addItems(['실험계획 (DOE)', '최적화'])
@@ -148,33 +186,76 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             connect = QtWidgets.QPushButton('조립 형상 연결…')
             connect.setObjectName('connectAssemblyAnalysis')
             connect.clicked.connect(self.connect_assembly)
-            row.addWidget(connect)
             refresh = QtWidgets.QPushButton('새로고침')
             refresh.clicked.connect(self.refresh)
             self.analysis.currentIndexChanged.connect(self.refresh)
             row.addWidget(QtWidgets.QLabel('해석')); row.addWidget(self.analysis, 2)
-            row.addWidget(QtWidgets.QLabel('솔버')); row.addWidget(self.solver, 1); row.addWidget(refresh)
+            row.addWidget(QtWidgets.QLabel('솔버')); row.addWidget(self.solver, 1)
+            row.addWidget(refresh); row.addWidget(connect)
             layout.addLayout(row)
-            layout.addWidget(QtWidgets.QLabel('변경할 모델 변수'))
+            self.worksheet = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+            self.worksheet.setChildrenCollapsible(False)
+            variables = QtWidgets.QWidget()
+            variable_layout = QtWidgets.QVBoxLayout(variables)
+            variable_layout.setContentsMargins(0, 0, 0, 0)
+            variable_layout.setSpacing(6)
+            title = QtWidgets.QLabel('모델 변수')
+            title.setProperty('section', True)
+            variable_layout.addWidget(title)
             self.table = QtWidgets.QTableWidget(0, 7)
             self.table.setHorizontalHeaderLabels(['모델 변수', '현재값', '단위', '허용 하한', '허용 상한', '계산 변수명', '등록 상태'])
             self.table.verticalHeader().hide()
             self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
             self.table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-            self.table.horizontalHeader().setStretchLastSection(True)
-            layout.addWidget(self.table, 3)
+            self.table.setShowGrid(False)
+            self.table.setWordWrap(False)
+            self.table.verticalHeader().setDefaultSectionSize(30)
+            self.table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+            for col, width in enumerate((0, 80, 78, 90, 90, 110, 115)):
+                if col:
+                    self.table.setColumnWidth(col, width)
+            variable_layout.addWidget(self.table, 1)
             self.coordinate_context = QtWidgets.QLabel()
             self.coordinate_context.setWordWrap(True)
             self.coordinate_context.setObjectName('jointCoordinateContext')
             self.coordinate_context.hide()
             self.table.currentCellChanged.connect(self.show_coordinate)
-            layout.addWidget(self.coordinate_context)
+            self.table.itemChanged.connect(self.range_changed)
+            self.coordinate_context.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+            variable_layout.addWidget(self.coordinate_context)
+            self.variable_issue = QtWidgets.QLabel()
+            self.variable_issue.setWordWrap(True)
+            self.variable_issue.hide()
+            variable_layout.addWidget(self.variable_issue)
+            self.range_warning = QtWidgets.QLabel()
+            self.range_warning.setWordWrap(True)
+            self.range_warning.hide()
+            variable_layout.addWidget(self.range_warning)
             row = QtWidgets.QHBoxLayout()
-            for text, callback in [('모델에서 선택', self.highlight), ('변수 등록 / 변경', self.register),
-                                   ('등록 해제', self.remove)]:
-                button = QtWidgets.QPushButton(text); button.clicked.connect(callback); row.addWidget(button)
-            row.addStretch(); layout.addLayout(row)
-            layout.addWidget(QtWidgets.QLabel('비교할 해석 응답'))
+            self.highlight_button = QtWidgets.QPushButton('모델에서 선택')
+            self.register_button = QtWidgets.QPushButton('범위 등록')
+            self.remove_button = QtWidgets.QPushButton('등록 해제')
+            for button, callback in ((self.highlight_button, self.highlight),
+                                     (self.register_button, self.register), (self.remove_button, self.remove)):
+                button.clicked.connect(callback); row.addWidget(button)
+            row.addStretch(); variable_layout.addLayout(row)
+            self.worksheet.addWidget(variables)
+            responses = QtWidgets.QWidget()
+            response_layout = QtWidgets.QVBoxLayout(responses)
+            response_layout.setContentsMargins(0, 0, 0, 0)
+            response_layout.setSpacing(6)
+            row = QtWidgets.QHBoxLayout()
+            title = QtWidgets.QLabel('해석 응답')
+            title.setProperty('section', True)
+            row.addWidget(title); row.addStretch()
+            add = QtWidgets.QPushButton('응답 추가…'); add.clicked.connect(self.add_response)
+            self.edit_response_button = QtWidgets.QPushButton('편집…')
+            self.edit_response_button.clicked.connect(self.edit_response)
+            self.remove_response_button = QtWidgets.QPushButton('제거')
+            self.remove_response_button.clicked.connect(self.remove_response)
+            for button in (add, self.edit_response_button, self.remove_response_button):
+                row.addWidget(button)
+            response_layout.addLayout(row)
             self.responses = QtWidgets.QTableWidget(0, 8)
             self.responses.setHorizontalHeaderLabels(['응답 이름', '결과 종류', '접촉 쌍', '물리량', '성분 또는 면', '증분', '값 추출 방법', '단위'])
             self.responses.verticalHeader().hide()
@@ -182,18 +263,34 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             self.responses.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
             self.responses.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
             self.responses.cellDoubleClicked.connect(lambda *_: self.edit_response())
-            self.responses.horizontalHeader().setStretchLastSection(True)
-            layout.addWidget(self.responses, 2)
+            self.responses.setShowGrid(False)
+            self.responses.setWordWrap(False)
+            self.responses.verticalHeader().setDefaultSectionSize(30)
+            for col, width in enumerate((140, 130, 180, 100, 90, 65, 108, 55)):
+                self.responses.setColumnWidth(col, width)
+            self.responses.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+            self.responses.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+            self.responses.currentCellChanged.connect(self.update_actions)
+            response_layout.addWidget(self.responses, 1)
+            self.response_issue = QtWidgets.QLabel()
+            self.response_issue.setWordWrap(True)
+            self.response_issue.hide()
+            response_layout.addWidget(self.response_issue)
+            self.worksheet.addWidget(responses)
+            self.worksheet.setStretchFactor(0, 1)
+            self.worksheet.setStretchFactor(1, 0)
+            self.worksheet.setSizes([520, 160])
+            layout.addWidget(self.worksheet, 1)
             row = QtWidgets.QHBoxLayout()
-            add = QtWidgets.QPushButton('응답 추가…'); add.clicked.connect(self.add_response)
-            remove = QtWidgets.QPushButton('응답 제거')
-            remove.clicked.connect(self.remove_response)
-            edit = QtWidgets.QPushButton('응답 편집…'); edit.clicked.connect(self.edit_response)
+            self.plan_summary = QtWidgets.QLabel()
+            row.addWidget(self.plan_summary); row.addStretch()
             self.prepare = QtWidgets.QPushButton('계산 계획 만들기…'); self.prepare.clicked.connect(self.plan)
-            row.addWidget(add); row.addWidget(edit); row.addWidget(remove); row.addStretch(); row.addWidget(self.method); row.addWidget(self.prepare)
+            self.prepare.setProperty('primary', True)
+            row.addWidget(self.method); row.addWidget(self.prepare)
             layout.addLayout(row)
             self.message = QtWidgets.QLabel(); self.message.setWordWrap(True); layout.addWidget(self.message)
             self.refresh()
+            self.update_actions()
 
         def send(self, operation, arguments, accepted):
             if self.busy:
@@ -225,8 +322,51 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                     self.solver.addItem(obj.Label, obj.Name)
             self.send('pre.research.discover', {'analysis_id': analysis.Name}, self.populate)
 
-        def populate(self, info):
+        def pending_ranges(self):
+            pending = self.range_drafts.setdefault(self.populated_analysis, {})
+            for index, row in enumerate((self.info or {}).get('candidates', [])):
+                self.range_labels[row['key']] = _variable_label(row)
+                if not row['writable']:
+                    continue
+                changes = {col: self.table.item(index, col).text() for col in (2, 3, 4, 5)
+                           if self.table.item(index, col).text() != self.cell_baseline.get((row['key'], col))}
+                if changes:
+                    pending[row['key']] = changes
+                else:
+                    pending.pop(row['key'], None)
+            active = {row['key'] for row in (self.info or {}).get('candidates', []) if row['writable']}
+            return {key: values for key, values in pending.items() if key in active}
+
+        def range_changed(self, item):
+            if item.column() not in (2, 3, 4, 5):
+                return
+            self.pending_ranges()
+            row = self.info['candidates'][item.row()]
+            if row['key'] in self.range_drafts[self.populated_analysis]:
+                self.table.item(item.row(), 6).setText('변경 미등록')
+            else:
+                registered = any(value['target'] == row['target'] for value in self.info['registered'])
+                self.table.item(item.row(), 6).setText('수정 필요' if row['diagnostic'] else '등록됨' if registered else '미등록')
+
+        def populate(self, info, accepted_key=None):
+            self.pending_ranges()
+            prior_analysis = self.populated_analysis
+            analysis_changed = prior_analysis != self.analysis.currentData()
+            if analysis_changed:
+                self.responses_by_analysis[prior_analysis] = deepcopy(self.response_defs)
+                self.response_defs = deepcopy(self.responses_by_analysis.get(self.analysis.currentData(), []))
+            previous_key = None
+            previous_row = self.table.currentRow()
+            if self.info and 0 <= previous_row < len(self.info['candidates']):
+                previous_key = self.info['candidates'][previous_row]['key']
+            scroll = self.table.verticalScrollBar().value()
+            self.populated_analysis = self.analysis.currentData()
+            pending = self.range_drafts.setdefault(self.populated_analysis, {})
+            if accepted_key:
+                pending.pop(accepted_key, None)
             self.info = info
+            self.cell_baseline = {}
+            self.table.blockSignals(True)
             self.table.setRowCount(len(info['candidates']))
             for index, row in enumerate(info['candidates']):
                 registered = next((r for r in info['registered'] if r['target'] == row['target']), None)
@@ -234,23 +374,40 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                 current = item.get('value', row['value'])
                 values = [_variable_label(row), format(current, '.12g') if isinstance(current, (int, float)) else current, item['unit'],
                           item.get('lower', ''), item.get('upper', ''), item.get('id', ''),
-                          row['diagnostic'] or ('등록됨' if registered else '하한과 상한 입력')]
+                          '변경 미등록' if row['writable'] and row['key'] in pending else '수정 필요' if row['diagnostic'] else ('등록됨' if registered else '미등록')]
                 for col, value in enumerate(values):
                     cell = QtWidgets.QTableWidgetItem(str(value) if value is not None else '')
+                    self.cell_baseline[(row['key'], col)] = cell.text()
+                    if row['writable'] and col in pending.get(row['key'], {}):
+                        cell.setText(pending[row['key']][col])
                     cell.setToolTip(str(current) if col == 1 else row['label'] if col == 0 else cell.text())
+                    if col in (1, 3, 4):
+                        cell.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                     if col in (0, 1, 6) or not row['writable']:
                         cell.setFlags(cell.flags() & ~QtCore.Qt.ItemIsEditable)
                     self.table.setItem(index, col, cell)
-            self.table.resizeColumnsToContents()
+                if row['key'] == previous_key:
+                    self.table.selectRow(index)
+            self.table.verticalScrollBar().setValue(scroll)
+            self.table.blockSignals(False)
+            active = {row['key'] for row in info['candidates'] if row['writable']}
+            unavailable = {key: values for key, values in pending.items() if key not in active}
+            self.range_warning.setVisible(bool(unavailable))
+            self.range_warning.setText('현재 모델에서 등록할 수 없는 미등록 편집 ' + str(len(unavailable)) +
+                                       '개를 보관했습니다. 모델을 복구하면 다시 표시합니다.')
+            headings = {2: '단위', 3: '허용 하한', 4: '허용 상한', 5: '계산 변수명'}
+            self.range_warning.setToolTip('\n'.join(self.range_labels.get(key, '모델 변수') + ': ' +
+                ', '.join(headings[col] + ' ' + text for col, text in values.items()) for key, values in unavailable.items()))
             self.show_coordinate()
             self.message.setText('허용 범위는 CAD와 함께 저장합니다. 이 범위 안의 탐색 조건은 계산 계획에서 정합니다.')
-            if not self.responses.rowCount():
+            if not self.response_defs:
                 pairs = self.pairs()
                 self.response_defs = ([{'id': 'force_z', 'kind': 'pair', 'pair_id': pairs[0]['object_id'],
                     'quantity': 'CFN', 'component': 'Z', 'increment': 'final', 'reduction': 'value', 'unit': 'N'}]
                     if pairs else [{'id': 'u_z', 'kind': 'displacement', 'component': 'Z',
                         'increment': 'final', 'reduction': 'max', 'unit': 'mm'}])
-                self.render_responses()
+            self.render_responses()
+            self.update_actions()
 
         def connect_assembly(self):
             assemblies = [obj for obj in owner.doc.Objects if obj.isDerivedFrom('Assembly::AssemblyObject')]
@@ -269,6 +426,9 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             row = (self.info or {}).get('candidates', [])
             selected = row[index] if 0 <= index < len(row) else {}
             detail = selected.get('joint_description')
+            self.variable_issue.setVisible(bool(selected.get('diagnostic')))
+            self.variable_issue.setText(selected.get('diagnostic') or '')
+            self.update_actions()
             self.coordinate_context.setVisible(selected.get('target', {}).get('family') == 'joint_coordinate')
             if not detail:
                 self.coordinate_context.setText(selected.get('diagnostic') or '')
@@ -312,15 +472,18 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                         'key': row['key'], 'id': self.table.item(index, 5).text().strip(),
                         'label': row['label'], 'unit': self.table.item(index, 2).text().strip(),
                         'lower': float(self.table.item(index, 3).text()), 'upper': float(self.table.item(index, 4).text())}
-                self.send('pre.research.register', args, self.populate)
+                self.send('pre.research.register', args, lambda info: self.populate(info, row['key']))
             except Exception as error:
                 self.message.setText(str(error))
 
         def remove(self):
             try:
-                index, row = self.selected()
+                _, row = self.selected()
+                registered = next((item for item in self.info['registered'] if item['target'] == row['target']), None)
+                if registered is None:
+                    raise ValueError('등록된 변수를 선택하세요.')
                 self.send('pre.research.remove', {'analysis_id': self.analysis.currentData(),
-                          'id': self.table.item(index, 5).text()}, self.populate)
+                          'id': registered['id']}, lambda info: self.populate(info, row['key']))
             except Exception as error:
                 self.message.setText(str(error))
 
@@ -335,7 +498,7 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
             for row, definition in enumerate(self.response_defs):
                 values = [definition['id'],
                     {'pair': '접촉 쌍의 힘', 'contact_field': '접촉면 결과', 'displacement': '변위'}[definition['kind']],
-                    labels.get(definition.get('pair_id'), ''),
+                    labels.get(definition.get('pair_id'), '접촉 쌍 없음' if definition.get('pair_id') else ''),
                     definition.get('quantity', definition.get('field', '변위')),
                     definition.get('component', {'a': 'A', 'b': 'B', 'both': 'A + B'}.get(definition.get('side'))),
                     '마지막' if definition['increment'] == 'final' else str(definition['increment']),
@@ -346,7 +509,28 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
                     if col == 2:
                         cell.setToolTip(definition.get('pair_id', 'Whole model'))
                     self.responses.setItem(row, col, cell)
-            self.responses.resizeColumnsToContents()
+            self.update_actions()
+
+        def update_actions(self, *_):
+            index = self.table.currentRow()
+            candidates = (self.info or {}).get('candidates', [])
+            selected = candidates[index] if 0 <= index < len(candidates) else None
+            registered = bool(selected and any(row['target'] == selected['target']
+                              for row in (self.info or {}).get('registered', [])))
+            self.highlight_button.setEnabled(bool(selected))
+            self.register_button.setEnabled(bool(selected and selected['writable']))
+            self.register_button.setText('범위 변경 등록' if registered else '범위 등록')
+            self.remove_button.setEnabled(registered)
+            self.edit_response_button.setEnabled(self.responses.currentRow() >= 0)
+            self.remove_response_button.setEnabled(self.responses.currentRow() >= 0)
+            count = len((self.info or {}).get('registered', []))
+            self.plan_summary.setText('등록 변수 ' + str(count) + '개, 응답 ' + str(len(self.response_defs)) + '개')
+            pairs = {row['object_id'] for row in self.pairs()}
+            invalid = [row['id'] for row in self.response_defs if row.get('pair_id') and row['pair_id'] not in pairs]
+            self.response_issue.setVisible(bool(invalid))
+            self.response_issue.setText('현재 해석에 없는 접촉 쌍입니다. 응답을 편집하세요: ' + ', '.join(invalid) if invalid else '')
+            self.prepare.setEnabled(bool(count and self.response_defs and self.solver.currentData() and not invalid))
+            self.prepare.setToolTip('CAD 허용 범위 안의 탐색 조건을 Numerical 계산 계획에서 정합니다.')
 
         def add_response(self):
             value = response_dialog(QtWidgets, self.pairs(), parent=self)
@@ -375,6 +559,16 @@ def make_panel(QtWidgets, QtCore, research, submit, create_plan):
 
         def plan(self):
             try:
+                pending = self.pending_ranges()
+                if pending:
+                    for index, row in enumerate(self.info['candidates']):
+                        if row['key'] in pending:
+                            self.table.selectRow(index)
+                            break
+                    raise ValueError('아직 등록하지 않은 범위 변경이 있습니다. 선택한 행의 범위를 먼저 등록하세요.')
+                pairs = {row['object_id'] for row in self.pairs()}
+                if any(row.get('pair_id') and row['pair_id'] not in pairs for row in self.response_defs):
+                    raise ValueError('현재 해석에 없는 접촉 응답을 먼저 편집하세요.')
                 identifiers = [r['id'] for r in self.info['registered']]
                 args = {'analysis_id': self.analysis.currentData(), 'solver_id': self.solver.currentData(),
                         'variable_ids': identifiers, 'responses': self.definitions()}
