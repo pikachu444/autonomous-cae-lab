@@ -105,3 +105,40 @@ without first creating an unwanted new Plan. Codex requested this from Pro; the
 existing separate observation picker is useful reuse, not fulfillment of AC-PN02.
 Short row labels should replace raw native JSON in the main table. SPEC stays
 in progress; no additional solver/provider or broad campaign was run.
+
+## Existing Plan implementation and focused Windows confirmation
+
+Pro `3d730ff` adds a compatible target directly to the measurement dialog and
+uses the existing local review receiver to append to the live generic fit Plan.
+No intermediate unwanted Plan is created. Raw row dictionaries moved to tooltips;
+the main table uses short rows and real columns even before mapping is complete.
+
+Initial new-path execution was **2 passed, 2 failed**: the explicit PostClient
+transport double asserted that Numerical document IDs were native `Dpost`.
+An ignored diagnostic adapter delegating those reads to the real Workbench proved
+both Cancel/Append cases. Pro `f015825` publishes the proper test-double fix.
+Astra's independent delta review also identified background refresh racing with
+the modal review and a known failed native spawn leaving an unrecoverable marker.
+Pro `f015825/f966b52` correct both, preserving already-spawned/ambiguous launches.
+Codex inspected the guards and ran the affected tests; this is Codex's closure
+evidence, not an unperformed second Astra review.
+
+At local integrated `0759f86`, Windows CPython3.12/PySide6 offscreen:
+
+    python -m pytest tests/test_post_numerical_ui.py -q -k "direct_existing or native_reopen"
+
+**4 passed in 6.24s**: actual modal Cancel/Append with a 5ms background polling
+timer; existing unapplied purpose/variables and owner state preserved; exact
+retained curve appended once; explicit Save retains the same purpose/reference;
+native launch duplication/uncertainty protected, late confirmation recovered,
+and process-creation OSError permits a retry. Native transport and process-creation
+failure are explicit doubles; Data owner/import and Qt review controls are real.
+The unchanged earlier converter/new-Plan suite was not rerun.
+
+The real product MeasurementDialog was rendered again with the previously
+extracted public synthetic native data at 1100×780; short row labels, curve and
+selected point were inspected. Pro execution remains NOT_RUN. Native OS/DPI,
+full broker/ParaView reopen, real future-model evaluation and broad product
+acceptance remain later checks. No solver/provider/engineering approval claim.
+Implementation status is now **implemented**, distinct from whole-product
+completion or completion of those broader acceptance checks.

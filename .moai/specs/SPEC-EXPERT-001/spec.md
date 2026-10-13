@@ -2,7 +2,7 @@
 id: SPEC-EXPERT-001
 title: "Local research sources in the native Expert discussion"
 version: "0.1.0"
-status: planned
+status: in-progress
 created: 2026-10-13
 updated: 2026-10-13
 author: "Actual ChatGPT Pro implementation; Codex integration"

@@ -2,7 +2,7 @@
 id: SPEC-POST-NUMERICAL-001
 title: "Use saved native Post measurements in Numerical research"
 version: "0.1.0"
-status: in-progress
+status: implemented
 created: 2026-10-13
 updated: 2026-10-13
 author: "Actual ChatGPT Pro implementation; Codex integration"

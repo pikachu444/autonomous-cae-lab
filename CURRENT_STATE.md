@@ -211,17 +211,31 @@ Pro `f313bb1`의 backend와 `1456e29`의 Qt 선택·관측 화면, 문자열 손
 대화상자의 표·곡선·선택 연동을 렌더로 확인했다. 앞선 ParaView6.2 owner의 실제 측정 추출과
 UI의 native transport 대역은 구별한다. Astra가 지적한 물리 선언·무효 행 품질 두 문제도
 교정 소스에서 해소됐다. 확인 범위와 원 실패는 SPEC의 acceptance에 남긴다.
-남은 필수 경로는 같은 대화상자에서 기존 Plan을 직접 선택하고 미적용 편집에 관측값만
-검토 후 추가하는 것이다. 새 Plan을 먼저 만들고 다른 picker로 우회하는 방식은 수용하지
-않았다. Pro가 이 경로와 짧은 행 표시를 이어 작성한다. 전체 Post 연결 완료는 아직 아니다.
+같은 대화상자에서 기존 Plan을 직접 선택하고 미적용 편집에 관측값만 검토 후 추가하는
+경로도 Pro `3d730ff/f015825/f966b52`를 로컬 `0759f86`까지 통합했다. 처음 테스트 대역이
+Numerical 문서 읽기를 잘못 거절했으나 Pro가 실제 Workbench 위임으로 교정했다.
+Astra가 찾은 검토창 중 자동 갱신 경합과 프로세스 생성 전 실패 뒤 재시도 차단도
+교정했다. Root의 최신 변경 경로 4개 검사는 6.24초에 통과했다. 실제 Qt 검토창에서
+자동 갱신 중 Cancel/Append, 기존 편집·명시 저장·중복 전달, 실행 실패 후 재시도를
+확인했다. native transport는 명시적 대역이며 실제 OS 입력/전체 native 왕복은 아직이다.
+짧은 행 표시의 제품 Qt 렌더도 확인했다. SPEC은 implemented이며 전체 제품/공학 수용은
+아니다. 기존 실패와 정확한 확인 범위는 acceptance에 보존했다.
 MoAI MCP의 실제 SPEC 조회와 CLI의 상태 갱신·해당 SPEC lint를 사용했다. lint의 구조
 오류는 수정했으며 표에 연결한 수용 조건을 인식하지 못한 coverage 등 경고는 남아 있다.
 문서 lint 결과를 실제 제품 기능이나 테스트 통과로 바꾸지 않는다.
+추가 MoAI `ast-grep` 호출은 실행기와 검사 규칙이 없어 실제 scan NOT_RUN이었다.
+도구 목록의 존재를 검사 실행으로 기록하지 않으며 개발을 멈추는 조건으로 삼지 않는다.
 이어지는 Expert 작업은 [SPEC-EXPERT-001](.moai/specs/SPEC-EXPERT-001/spec.md)의 로컬
 자료 가져오기·선택·본문/인용 열기다. Luna/high가 기존 역할·개입·저장·Plan 연결을 확인했고,
-Codex가 첫 파일 가져오기까지 범위를 보완했다. 현재 Pro의 Post 작성은 계속하며 이 작업은
-그 다음에 맡긴다. 이미 있는 KnowledgeStore와 문서 owner를 재사용하고 무료 inference가
+Codex가 첫 파일 가져오기와 선택한 문서/개정의 검색·위임 경계까지 범위를 보완했다.
+`PRO-IMPL-EXPERT-20261013-01`을 같은 실제 Pro 대화에 전달했고 실제 userMessage
+`01a1339c-bc53-773b-b783-4d0c7729cf5e`에서 수신을 확인했다. Post 교정 커밋 후
+별도 재승인 없이 Expert를 작성하도록 맡겼다. SPEC은 in-progress이며 작성 브랜치는
+`codex/expert-sources-20261013`이다. 기존 KnowledgeStore와 문서 owner를 재사용하고 무료 inference가
 실제로 가능한지는 별도 확인한다. 자료 선택·저장은 provider 연결을 기다리지 않는다.
+후속 CAD/FE 접촉 조사에서는 native 면 선택·참조 복구는 있으나 사용자 모델의 접촉쌍과
+일반 solver 전달이 없는 점을 확인했다. 고정된 Code_Aster 기준 예제를 사용자 모델 경로로
+대체하지 않는다. FN-14의 접촉 편집부터 solver/Post 결과까지 전체 요구는 계속 미완료다.
 첫 통합 경로는 CAD/FE→Simulation→Runner→native Post→최적화와
 Expert→Numerical→결과→Study이며
 Data/Material/PDE는 독립 병행한다. 별도의 개발 시작 문구를 기다리지 않는다.
