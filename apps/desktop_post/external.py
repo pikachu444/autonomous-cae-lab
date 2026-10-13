@@ -95,7 +95,10 @@ def source_files(entry, native_metadata=None):
                 files.append(frame)
     declaration = (native_metadata or {}).get("contact_inspection")
     if declaration is not None:
-        files = list(dict.fromkeys([*files, *contact_api().load(entry, declaration)["paths"]]))
+        bundle = contact_api().load(entry, declaration)
+        if bundle['manifest']['native_metadata'] != {k: v for k, v in native_metadata.items() if k != 'contact_inspection'}:
+            raise ValueError('Contact field declarations differ from the pinned bundle')
+        files = list(dict.fromkeys([*files, *bundle["paths"]]))
     return files
 
 

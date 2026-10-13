@@ -126,6 +126,7 @@ class PostWindow(QMainWindow):
         self._draft = defaults(self._kind)
         self._edit_serial = 0
         self._samples = None
+        self._contact_dialog = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(max(1, poll_interval))
@@ -156,6 +157,10 @@ class PostWindow(QMainWindow):
         self.numerical_button.setObjectName('useMeasurementInNumerical')
         self.numerical_button.clicked.connect(self.use_in_numerical)
         toolbar.addWidget(self.numerical_button)
+        self.contact_button = QPushButton('Contact results…')
+        self.contact_button.setObjectName('inspectContactResults')
+        self.contact_button.clicked.connect(self.open_contact_inspector)
+        toolbar.addWidget(self.contact_button)
         self.handoff_retry = QPushButton('Resume measurement import')
         self.handoff_retry.clicked.connect(self._continue_measurement_handoff)
         self.handoff_retry.setVisible(False)
@@ -571,6 +576,14 @@ class PostWindow(QMainWindow):
                     self._form_field(form, key, settings.get(key, default), ('settings', key))
             else:
                 form.addRow(QLabel('Malformed filter settings retained in Details.'))
+        elif draft.get('measurement') == 'contact_force':
+            title = QLabel(draft.get('quantity', '') + ' global ' +
+                'XYZ'[draft.get('component', 0)] + ' on A [N]')
+            form.addRow(title)
+            form.addRow(QLabel('Load parameter [1]'))
+            button = QPushButton('Inspect contact pair…')
+            button.clicked.connect(self.open_contact_inspector)
+            form.addRow(button)
         else:
             self.measurement_kind = QComboBox()
             self.measurement_kind.addItems(['point', 'path', 'time'])
@@ -1011,7 +1024,7 @@ class PostWindow(QMainWindow):
         def listed(payload):
             choices = [('.. parent folder', 'parent')] if relative else []
             choices += [(('[Folder] ' if item['directory'] else '') + item['name'], item) for item in payload['entries']
-                        if item['directory'] or item['name'].lower().endswith(('.vtu', '.pvd'))]
+                        if item['directory'] or item['name'].lower().endswith(('.vtu', '.pvd')) or item['name'] == 'contact-inspection.json']
             if payload.get('next_cursor') is not None:
                 choices.append(('More files…', 'next'))
             if not choices:
@@ -1045,6 +1058,24 @@ class PostWindow(QMainWindow):
         self.details.setPlainText(json.dumps({'selected_source': self._source_ref, 'selected_object': self._object_ref,
             'draft': self.edited_draft(), 'object': self._object(), 'restore_issues': self._analysis().get('restore_issues', []),
             'repair': self._analysis().get('repair', []), 'command': self._last_command, 'samples': self._samples}, ensure_ascii=False, indent=2))
+
+    def contact_source(self):
+        obj = self._object()
+        ref = self._source_ref if self._tree_selection and self._tree_selection[0] == 'source' else (
+            obj.get('draft', {}).get('source_ref') if obj else self._source_ref)
+        return next((row for row in self._sources() if row['source_ref'] == ref), None)
+
+    def open_contact_inspector(self):
+        record = self.contact_source()
+        if not record or not (record.get('native_metadata') or {}).get('contact_inspection'):
+            self.message.setText('Select an original result with a registered contact inspection bundle.')
+            return False
+        from .post_contact_dialog import ContactDialog
+        if self._contact_dialog is not None:
+            self._contact_dialog.close()
+        self._contact_dialog = ContactDialog(self, record['source_ref'])
+        self._contact_dialog.show()
+        return True
 
     def use_in_numerical(self):
         if self._measurement_handoff:
@@ -1154,6 +1185,12 @@ class PostWindow(QMainWindow):
         self.repair_button.setEnabled(enabled and bool(self._source_ref))
         self.show_source_button.setEnabled(enabled and bool(self._source_ref))
         self.inspect_button.setEnabled(enabled and bool(self._source_ref))
+        source = self.contact_source()
+        self.contact_button.setEnabled(enabled and bool(source and
+            (source.get('native_metadata') or {}).get('contact_inspection'))
+            and 'post.contact_inspect' in self.document.get('capabilities', []))
+        if self._contact_dialog is not None:
+            self._contact_dialog.sync()
         self.edit_button.setEnabled(enabled)
         self.preview_button.setEnabled(enabled)
         obj = self._object()

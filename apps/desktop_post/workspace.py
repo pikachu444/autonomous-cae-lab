@@ -14,17 +14,18 @@ import xml.etree.ElementTree as ET
 from paraview import simple as p
 
 try:
-    from . import external, analysis, measurements
+    from . import external, analysis, measurements, contact_views
 except ImportError:
     import external
     import analysis
     import measurements
+    import contact_views
 
 OPERATIONS = (
     'post.source_add', 'post.source_select', 'post.source_repair',
     'post.comparison_edit', 'post.mapping_validate', 'post.sample',
     'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
-    'post.measurement_snapshot', 'post.measurement_open',
+    'post.measurement_snapshot', 'post.measurement_open', 'post.contact_inspect', 'post.contact_measurement',
     'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export',
 )
 
@@ -160,7 +161,8 @@ class Workspace:
                 except (ValueError, RuntimeError, OSError):
                     obj['current_inputs_differ'] = True
         return {'sources': sources, 'objects': objects,
-                'active_object': self.state.get('active_object'), 'restore_issues': deepcopy(self.restore_issues),
+                'active_object': self.state.get('active_object'), 'contact_selection': deepcopy(self.state.get('contact_selection')),
+                'restore_issues': deepcopy(self.restore_issues),
                 'repair': deepcopy(self.document.get('repair', [])), 'scope': 'Selected analysis object only; native source/view properties are separate'}
 
     def resolve(self, ref, revision_id=None):
@@ -425,6 +427,8 @@ class Workspace:
             'post.filter_edit': self.edit_filter, 'post.measurement_edit': self.edit_measurement,
             'post.measurement_snapshot': self.measurement_snapshot,
             'post.measurement_open': self.measurement_open,
+            'post.contact_inspect': lambda **args: contact_views.inspect(self, **args),
+            'post.contact_measurement': lambda **args: contact_views.create_measurement(self, **args),
             'post.measurement_capture': self.capture_selection, 'post.apply': self.apply,
             'post.show_analysis': self.show_analysis,
             'post.reset': self.reset, 'post.undo': self.undo, 'post.redo': self.redo,
@@ -437,7 +441,7 @@ class Workspace:
             raise ValueError('Registered reader receipt differs from the requested input')
         if label_text is not None and (not isinstance(label_text, str) or len(label_text) > 256):
             raise ValueError('Use a short source display name')
-        source, record = external.admit_result(receipt['path'], input_id, receipt['source_pins'], receipt.get('native_metadata'))
+        source, record = external.admit_result(receipt['path'], input_id, receipt['source_pins'], receipt.get('native_metadata'), receipt.get('registration_origin'))
         ref = 'S' + uuid.uuid4().hex
         record.update(source_ref=ref, label=label_text or Path(receipt['path']).name)
         self.document['sources'][ref] = record
@@ -502,6 +506,8 @@ class Workspace:
                 bundle = analysis.build_comparison(self.resolve(draft['a']['source_ref']), self.resolve(draft['b']['source_ref']), draft, name)
             elif obj['kind'] == 'filter':
                 bundle = analysis.create_filter(self.resolve(draft['source_ref']), draft['filter'], draft.get('settings', {}), name)
+            elif draft.get('measurement') == 'contact_force':
+                bundle = contact_views.build_measurement(self, draft, name)
             else:
                 self._declared_measurement(draft)
                 bundle = measurements.build_measurement(self.resolve(draft['source_ref']), draft, name)
@@ -610,7 +616,7 @@ class Workspace:
         verify_origin(origin)
         rows, total = [], None
         while total is None or len(rows) < total:
-            page = measurements.sample_data(bundle['source'], offset=len(rows), limit=1000)
+            page = contact_views.annotate(measurements.sample_data(bundle['source'], offset=len(rows), limit=1000), saved['summary'])
             count = page.get('total', page.get('count'))
             if type(count) is not int or not 1 <= count <= MAX_ROWS:
                 raise ValueError('Use a measurement with 1–20000 saved rows; no partial curve is handed off')
@@ -664,6 +670,7 @@ class Workspace:
             result = analysis.sample_page(bundle, offset=offset, limit=limit, point_index=point_index)
         else:
             result = measurements.sample_data(bundle['source'], offset=offset, limit=limit, point_index=point_index)
+        result = contact_views.annotate(result, record.get('summary', {}))
         if point_index is not None:
             # An explicit point query selects this exact output only. Preview
             # selection never creates a view or displays a hidden pipeline.
@@ -676,6 +683,7 @@ class Workspace:
 
     def restore_selection(self):
         """Restore the active applied pick only after checking its actual row."""
+        contact_views.restore(self)
         obj = self.state['objects'].get(self.state.get('active_object'))
         if obj is None:
             return False
@@ -734,7 +742,7 @@ class Workspace:
 
     @staticmethod
     def view_type(obj, record):
-        if (obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('time', 'path')
+        if (obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('time', 'path', 'contact_force')
                 or obj['kind'] == 'filter' and record['recipe'].get('filter') == 'PlotOverLine'):
             return 'XYChartView'
         return 'SpreadSheetView' if obj['kind'] == 'measurement' else 'RenderView'
@@ -778,7 +786,10 @@ class Workspace:
             display = p.Show(source, view, 'SpreadSheetRepresentation') if view.GetXMLName() == 'SpreadSheetView' else p.Show(source, view)
             if view.GetXMLName() == 'XYChartView':
                 display.UseIndexForXAxis = 0
-                display.XArrayName = 'Time' if record['recipe'].get('measurement') == 'time' else 'arc_length'
+                measurement = record['recipe'].get('measurement')
+                display.XArrayName = {'time': 'Time', 'contact_force': 'load_parameter'}.get(measurement, 'arc_length')
+                if measurement == 'contact_force':
+                    display.AttributeType = 'Row Data'
                 array = record['recipe'].get('array') or record['recipe'].get('settings', {}).get('array')
                 if array:
                     display.SeriesVisibility = [array]

@@ -411,3 +411,127 @@ The pressure range of this synthetic imposed-displacement input is 0 to
 4,560.77 MPa; this is recorded solver output, not a validated physical reference.
 The original attempt remains unchanged. These are programmatic native reader,
 selection and save/reopen checks, not mouse/keyboard usability acceptance.
+
+
+## Pair inspection and a retained force observation
+
+The product source now connects the contact input/result bundle to the existing
+native Post workspace and its Qt companion controls. This is the AC-C04
+pair-inspection slice; it does not complete all contact physics or whole-product
+acceptance. The earlier Codex Windows results above remain evidence for their
+stated commits. **Pro remote execution of the changes in this section is
+NOT_RUN**, including compilation, pytest, Qt and ParaView. No solver was run for
+this change.
+
+### User path
+
+1. Open the exact registered contact result through Runner's existing Post
+   action, or independently add the explicitly selected
+   **contact-inspection.json** through Post's **Add approved result…** command.
+   That selected manifest declares the PVD and every inspection member. Merely
+   opening a PVD does not attach similarly named neighbouring files.
+2. Select the original result and choose **Contact results…**. Choose the pair,
+   A / B / both, the exact step/increment and CPRESS, raw COPEN, slip/shear or
+   derived geometric gap. **Show faces** colours the original field in an
+   existing ParaView Render View and outlines the actual frozen quadratic face
+   unions: orange A, cyan B. The node table shows the selected faces' available
+   values and missing reasons; long identities/raw tokens stay in tooltips.
+3. Choose CF, CFN or CFS and an explicit global X/Y/Z component. The curve and
+   table use the retained DAT pair resultants. Clicking a curve/table row selects
+   that exact increment and updates the native field/face view. Its axis is
+   **load parameter [1]**, never seconds. The force is **on A (slave)** even while
+   B is highlighted; no opposite sign or magnitude is inferred.
+4. **Save inspection** saves the selection with the existing managed project.
+   **Save force measurement** explicitly creates and applies a normal Post
+   measurement, opens its native XY chart, and saves the project. Existing
+   analysis recipe edits must first be kept or reset; this action does not
+   replace another edited measurement.
+5. **Use in Numerical…** reuses the existing saved-measurement snapshot and
+   actual Data import. Select **an existing generic fit Plan** or explicitly
+   choose a new Plan. Review the actual curve in the live existing editor, then
+   **Append observation** or **Cancel**. Its unapplied purpose, variables,
+   responses and method edits remain. Apply/Save in Numerical are still explicit.
+   A future model protocol/response binding remains editable and required; an
+   observed contact force is not invented as a solver response selector.
+6. Reopen the ordinary saved Post project in a new native process. Pair/side,
+   exact field/increment, face overlay and applied force table/curve are retained.
+   A saved Numerical observation keeps its existing **Open Post source** route
+   to that exact measurement.
+
+A CFN global component is the global XYZ component of the DAT normal-force
+resultant. It is not the scalar normal projection printed in the last DAT row.
+Raw signs remain unchanged. FRD pressure/slip remains a **shared nodal projection**;
+pair selection does not split a shared node's contributions. The pair geometric
+gap table uses the separately retained derivation; the whole-mesh GeomGap colour
+contains only the existing unambiguous nodal projection. Geometry outlines use
+the frozen input coordinates. The geometric-gap calculation uses the retained
+deformed mesh and stays explicitly approximate. None of zero, missing pressure,
+COPEN, or that derived distance establishes active state: **UNKNOWN** remains.
+
+### Minimal contract extension
+
+The existing native metadata carries one optional **contact_inspection** pin.
+It points to a versioned manifest inside the PVD folder. The manifest pins its
+PVD, exact frame/VTU correspondence, per-frame JSON, body map, frozen A/B topology
+and quadratic surface VTU. It retains input snapshot and raw FRD/DAT hashes;
+Post-only regeneration additionally identifies its source execution record.
+There is no second result store, document owner, scheduler or mailbox.
+
+The registry copies this complete declared set, validates the copied bundle and
+publishes its existing input receipt. Workbench returns the receipt's original
+registration context; Post retains it in its source record. Managed run
+registration still carries the exact job root. Standalone registration uses its
+explicit approved root and retained raw-output identity, without inventing a
+job ID. The reader rechecks the same set on use/save/reopen/identical relocation.
+Changed sidecars are changed results. Unsupported physical/profile declarations
+are rejected rather than relabelled.
+
+The new commands are **post.contact_inspect** and **post.contact_measurement**,
+dispatched by the existing native owner. The latter uses the existing measurement
+object/history, apply, native save, sample snapshot and Data/Numerical handoff.
+Its native vtkTable materializes only verified retained numeric rows through a
+generated ProgrammableSource. Save State retains the literal table pipeline;
+normal native exports retain its values and masks. Missing resultants remain
+missing, with quality reasons distinct from a user's calculation exclusions.
+No physics is recomputed by that table.
+
+This keeps the native writer/reader path already used by this repository. Face
+unions come from the frozen exporter rather than inferred volume selections.
+The existing ccx2paraview reuse assessment remains in
+[OPEN_SOURCE_CONTACT_INTEGRATION.md](research/OPEN_SOURCE_CONTACT_INTEGRATION.md);
+no additional VTK package or converter runtime is installed.
+
+### Existing attempts and focused execution
+
+An already registered older PVD has no retroactive contact bundle. Rebuild into
+a new folder from its existing retained FRD/DAT using the command in the previous
+section; this is **Post-only regeneration**. Explicitly select the generated
+contact-inspection.json in an approved input folder to register it. Original
+attempts, old Post output and old registered receipts remain unchanged.
+
+Focused portable and Qt checks (existing research runtime):
+
+    python -m pytest tests/test_contact_inspection.py tests/test_contact_inspection_ui.py
+
+The pure fixtures are explicitly authored synthetic output bytes. The Qt check
+doubles only native transport/display/save, then uses actual Data and Numerical
+owners for the existing Plan pending review and Cancel/Append. It is not native
+ParaView or OS input acceptance.
+
+For an already admitted and saved project containing the new bundle, use the
+installed ParaView interpreter. The first command creates one measurement and a
+new ordinary managed save; the second verifies that save in a separate process:
+
+    & "C:\path\ParaView\bin\pvpython.exe" tests/check_contact_inspection_native.py --project "C:\path\project.json" --source result --frame-index 9 --receipt "C:\path\new-contact-inspection-receipt.json"
+    & "C:\path\ParaView\bin\pvpython.exe" tests/check_contact_inspection_native.py --reopen-receipt "C:\path\new-contact-inspection-receipt.json"
+
+Use the actual source reference from the saved project, and an existing frame
+index (9 is only for a ten-frame result). The probe checks pair/face proxies,
+CPRESS increment, actual CFN Z rows, saved snapshot pins and cold reopening.
+It never invokes CalculiX. Its labelled command envelope tests the decoder,
+not the service broker transport.
+
+Pending execution remains bounded: Root/Codex should run these changed paths
+against the already retained native result. Native mouse/keyboard/DPI,
+Runner submission, broader contact laws and engineering qualification remain
+separate; this source delivery does not claim those passes.

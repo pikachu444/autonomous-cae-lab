@@ -261,13 +261,16 @@ def write_post(folder, model, frames, pair_results, *, provenance=None):
     ET.ElementTree(collection).write(folder / 'contact.pvd', encoding='utf-8', xml_declaration=True)
     save_json(folder / 'body_map.json', {'body_indices': body_numbers, 'native_ids': model['body_maps'],
                                        'contact_membership': membership})
-    return {'coordinate_units': 'mm', 'coordinate_frame': 'FREECAD_DOCUMENT_GLOBAL',
+    metadata = {'coordinate_units': 'mm', 'coordinate_frame': 'FREECAD_DOCUMENT_GLOBAL',
             'static': None, 'time': {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER',
                                      'values': [frame['static']['load_parameter'] for frame in frames]},
-            'arrays': arrays, 'contact_inspection': _inspection_bundle(folder, model, frames, provenance)}
+            'arrays': arrays}
+    if provenance is not None:
+        metadata['contact_inspection'] = _inspection_bundle(folder, model, frames, provenance, metadata)
+    return metadata
 
 
-def _inspection_bundle(folder, model, frames, provenance):
+def _inspection_bundle(folder, model, frames, provenance, metadata):
     """Retain exact quadratic A/B face unions, not volume-cell selections."""
     from copy import deepcopy
     import hashlib
@@ -318,7 +321,7 @@ def _inspection_bundle(folder, model, frames, provenance):
     source['model_sha256'] = hashlib.sha256(json.dumps(model, sort_keys=True, separators=(',', ':'),
                                                        allow_nan=False).encode()).hexdigest()
     manifest = {'kind': KIND, 'version': 1, 'entry': file_pin(folder / 'contact.pvd', folder),
-        'source': source, 'topology': file_pin(topology_path, folder),
+        'source': source, 'native_metadata': deepcopy(metadata), 'topology': file_pin(topology_path, folder),
         'surfaces': file_pin(surface_path, folder), 'body_map': file_pin(folder / 'body_map.json', folder),
         'frames': [{'static': deepcopy(frame['static']),
                     'field': file_pin(folder / ('frame' + str(index+1).zfill(4) + '.vtu'), folder),

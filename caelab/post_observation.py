@@ -214,7 +214,7 @@ def project_samples(snapshot, selection):
     if axis['kind'] == 'coordinate' and (set(axis) != {'kind', 'component'} or axis['component'] not in (0, 1, 2)):
         raise ValueError('Coordinate axis requires X, Y or Z')
     measurement = snapshot.get('summary', {}).get('measurement')
-    if axis['kind'] == 'array' and axis.get('name') != {'time': 'Time', 'path': 'arc_length'}.get(measurement):
+    if axis['kind'] == 'array' and axis.get('name') != {'time': 'Time', 'path': 'arc_length', 'contact_force': 'load_parameter'}.get(measurement):
         raise ValueError('Use the actual time/path axis or an explicit spatial coordinate/index')
     if axis['kind'] == 'point_index' and (set(axis) != {'kind'} or selection['axis_unit'] != '1'):
         raise ValueError('Original point index is dimensionless; it is not a physical clock')
@@ -225,6 +225,12 @@ def project_samples(snapshot, selection):
     if summary.get('measurement') == 'time' and (axis['kind'] != 'array' or axis.get('name') != 'Time'
             or axis.get('component') is not None or selection['axis_unit'] != summary.get('time_units')):
         raise ValueError('Time measurements require their actual native clock and saved time unit')
+    if measurement == 'contact_force':
+        if (axis != {'kind': 'array', 'name': 'load_parameter', 'component': None}
+                or selection['axis_name'] != 'load_parameter' or selection['axis_unit'] != '1'
+                or selection['component_label'] != summary.get('component_label')
+                or selection['location'] != summary.get('location')):
+            raise ValueError('Use the saved pair force component/location and dimensionless load_parameter; no physical clock is inferred')
     output, invalid, identities, projected = io.StringIO(newline=''), [], [], []
     writer = csv.writer(output)
     writer.writerow(['axis', 'measured', 'valid'])
@@ -271,6 +277,8 @@ def project_samples(snapshot, selection):
         actual = [row['axis'] for row in projected]
         if actual != summary.get('time_values'):
             raise ValueError('Selected axis is not the exact saved native clock; no clock interpolation is permitted')
+    if measurement == 'contact_force' and [r['axis'] for r in projected] != summary.get('axis_values'):
+        raise ValueError('Contact force rows differ from the exact retained load increments')
     response = {'column': 1, 'unit': selection['unit'], 'component': selection['component_label'],
                 'location': selection['location'], 'measure': selection['measure'], 'frame': selection['frame'],
                 'axis': {'column': 0, 'name': selection['axis_name'], 'unit': selection['axis_unit']}}
