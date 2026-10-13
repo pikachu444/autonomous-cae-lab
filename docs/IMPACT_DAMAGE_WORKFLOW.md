@@ -192,7 +192,7 @@ Numerical의 명시 응답/축약 선택과 Study의 정확한 결과 읽기에 
 | FN-16-01 초기조건·실행 | 사용자 FE import/native capture, 병진·spin·두 높이 방식, TYPE24, 시간·질량 scaling, owned 실행과 native 물리 admission | Engine/Post 실제 실행 확인, 자동 COM/관성, 일반 INCLUDE/native RAD 등록, 더 넓은 동적 하중/법칙 |
 | FN-16-02 결과 판단·연결 | 실제 global 에너지/질량, 선택 위치의 변위·속도·가속도·응력·접촉력, 명시 표본 충격량, raw/mask Post, Numerical/Study/저장 | 접촉쌍별 힘·정확 solver-step impulse, 취소/실패 raw의 명시 재후처리, balance/sensitivity 비교와 공학 판단 |
 | FN-17-01 손상·재닫힘 | 사용자 COH3D8/LAW117 작성·검사·실행 연결, native 손상/파생 분리·접선 이력, 명시 벌크 TYPE24 재접촉 선택 | 새 LAW117의 실제 native 실행/재닫힘 확인, JC/다른 벌크 손상, 요소별 분산 에너지, mesh objectivity/물성 보정 |
-| FN-17-02 반복·수명 | 정확한 보존 단축 응력 → 실제 MIT rainflow → 시험 범위별 S–N/Miner, 선택 곡선/사이클, 저장/Study/재열기 | 실제 창·owner 실행 확인, 다축·일반 ε–N/평균응력 보정, 사이클 의존 소성/응집 피로의 실제 연성 |
+| FN-17-02 반복·수명 | 정확한 보존 단축 응력 → 실제 MIT rainflow → 시험 범위별 S–N/Miner, 선택 곡선/사이클, 저장/Study/재열기 | native 응력 선택의 실제 연결 확인, 다축·일반 ε–N/평균응력 보정, 사이클 의존 소성/응집 피로의 실제 연성 |
 
 새 engine/store/controller를 만들지 않았습니다. FN17 반복하중은 기존 Simulation backend 하나와
 research_execution.run_domain의 정확한 source 읽기 접점만 추가합니다. 원본의 보존 결과를
@@ -271,6 +271,20 @@ admission도 다섯 슬롯·존재하는 절점·중복 segment·삼각 반복 �
 “삼각면은 네 번째 절점이 필수”라고 단정하지 않습니다. 명시 형식은 모호함을 제거하는
 소스 교정이며 동일한 작은 실제 Starter 경로가 그 오류 해결을 확인해야 합니다.
 작성자 native 실행은 NOT_RUN입니다.
+
+
+### 기존 native 응력과 설치 패키지
+
+반복하중 읽기는 Data 선언 외에 기존 MFront 탄성/Maxwell의 보존 물리 응력 성분,
+Code_Aster J2의 정확한 Gauss 위치 SIXX/SIYY/SIZZ 선언도 해석합니다.
+원 measure/coordinate_frame/성분명과 정확한 결과 참조는 바꾸지 않습니다.
+계산 기록에 사용한 의미 대응만 별도로 남기며, 평균 응력장·PK1·전단·미지원 기준계를
+단축 응력으로 재표기하지 않습니다. sensor/world 정렬은 계속 미확인입니다.
+
+rainflow 원 구현은 설치되는 caelab._vendor 패키지로 옮기고 MIT 원문·NOTICE도
+package-data에 포함했습니다. 원 함수 소스는 변경하지 않았습니다. pyproject의 이 데이터
+포함 항목만 공통 설치 계약의 변경이며 새 의존성이나 자동 설치는 없습니다.
+이 설치 패키지 및 native 메타데이터 검사는 작성자 실행 NOT_RUN입니다.
 
 
 ### Starter의 빈 물리행 교정

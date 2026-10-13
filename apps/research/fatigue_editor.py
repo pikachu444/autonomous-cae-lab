@@ -9,7 +9,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from .pde_window import _Read
 from .impact_editor import numeric,text
 from .response_selection import response_choices,choose_location
-from caelab.fatigue import stress_history
+from caelab.fatigue import stress_history,stress_definition
 
 
 class _LocalRead(_Read):
@@ -121,13 +121,27 @@ class FatigueEditor(QDialog):
             return response
         def done(response):
             self.value['source']=deepcopy(source)
+            definition=stress_definition(response)
             location=response['location']
-            location_label=('절점 ' if location.get('kind')=='node' else '요소 ')+str(location.get('id','')) if isinstance(location,dict) else str(location)
-            self.source.setText(source['title']+' / '+str(response['component'])+' ['+response['unit']+'] / '+location_label)
+            if isinstance(location,dict):
+                if all(key in location for key in ('element_id','point','subpoint')):
+                    location_label='요소 '+str(location['element_id'])+' / 적분점 '+str(location['point'])+' / 하위점 '+str(location['subpoint'])
+                else:location_label=('절점 ' if location.get('kind')=='node' else '요소 ')+str(location.get('id',''))
+            elif definition['mapping'].startswith(('material.mfront:', 'material.mfront.viscoelastic:')):
+                location_label='재료점'
+            elif definition['mapping'].startswith('structural.code_aster.plasticity:'):
+                selected=response['source']['exact_selection']
+                location_label='요소 '+str(selected['element_id'])+' / 적분점 '+str(selected['point'])+' / 하위점 '+str(selected['subpoint'])
+            else:location_label=str(location)
+            self.source.setText(source['title']+' / '+str(definition['component'])+' ['+response['unit']+'] / '+location_label)
             self.draw(response)
             measure={'infinitesimal_Cauchy':'미소변형 Cauchy 응력','Cauchy_stress':'Cauchy 응력',
-                     'cauchy_stress':'Cauchy 응력','engineering_stress':'공칭 응력','nominal_stress':'공칭 응력'}[response['measure']]
-            self.message.setText(measure+' / 기준계 '+str(response['frame'])+' / 원 행 '+str(len(response['value']))+'개')
+                     'cauchy_stress':'Cauchy 응력','engineering_stress':'공칭 응력','nominal_stress':'공칭 응력'}[definition['measure']]
+            frame={'Tridimensional model component basis; sensor/world alignment UNKNOWN':'재료 성분 기준계 (세계 좌표 정렬 미확인)',
+                   'global Cartesian model; sensor/world alignment UNKNOWN':'모델 전역 기준계 (실측 좌표 정렬 미확인)'}.get(definition['frame'],definition['frame'])
+            self.message.setText(measure+' / '+frame+' / 원 행 '+str(len(response['value']))+'개')
+            self.source.setToolTip(str(response['location']))
+            self.message.setToolTip(str(response.get('measure'))+' / '+str(definition['frame']))
         self.call(read,done)
 
     def draw(self,response):

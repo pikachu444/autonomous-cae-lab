@@ -101,3 +101,49 @@ def test_actual_data_import_fatigue_save_study_and_cold_reopen(tmp_path):
     finally:
         if fresh:fresh.shutdown()
         else:wb.shutdown()
+
+
+def test_known_native_stress_metadata_is_interpreted_without_rewriting_source(tmp_path):
+    from caelab.adapters.retained_law_responses import _channel_descriptor
+    (tmp_path/'native_raw.json').write_text('{"explicit_test_double":true}',encoding='ascii')
+    original=response()
+    channel={'id':'mgis-stress-xx','label':'MGIS Cauchy stress xx','quantity':'stress','component':'xx',
+        'measure':'infinitesimal Cauchy stress; physical tensor components','location':'single homogeneous material point',
+        'unit':'MPa','coordinate_frame':'Tridimensional model component basis; sensor/world alignment UNKNOWN',
+        'axis':{'unit':'s'},'initial_state':{'kind':'UNPREPARED_INITIAL_CONDITION','index':0},
+        'origin':{'kind':'NATIVE','driver':'mgis','native_field':'stress_physical_mpa'}}
+    descriptor=_channel_descriptor(channel,'material.mfront','a'*64,tmp_path)
+    descriptor.update(value=original['value'],axes=original['axes'])
+    before=deepcopy(descriptor)
+    result=fatigue.analyze(settings(),descriptor)
+    assert descriptor==before and 'frame' not in descriptor
+    assert result['responses']['stress_history']['measure']==channel['measure']
+    assert result['diagnostics']['stress_interpretation']['component']=='xx'
+    assert result['responses']['miner_damage']['value']==pytest.approx(1e-6)
+    j2=deepcopy(descriptor)
+    j2.update(component='SIEF_ELGA.SIXX',measure='small-strain Cauchy stress at native Gauss point',
+        coordinate_frame='global Cartesian model; sensor/world alignment UNKNOWN',
+        location={'element_id':1,'point':1,'subpoint':1})
+    j2['source'].update(backend='structural.code_aster.plasticity',
+        exact_selection={'kind':'fe_gauss','component':'SIEF_ELGA.SIXX','element_id':1,'point':1,'subpoint':1})
+    assert fatigue.stress_definition(j2)['component']=='xx'
+    for key,value in (('component','SIEF_ELGA.SIXY'),('measure','PK1'),('coordinate_frame','unknown local frame'),
+                      ('reduction','unweighted_arithmetic_mean'),('frame','specimen_rotating')):
+        broken=deepcopy(j2);broken[key]=value
+        with pytest.raises(ValueError):fatigue.stress_history(broken)
+
+
+def test_counter_is_in_the_installable_package_with_mit_notice():
+    from importlib.resources import files
+    from caelab._vendor import rainflow
+    import tomllib
+    from pathlib import Path
+    assert rainflow.__version__=='3.2.0'
+    assert list(rainflow.extract_cycles([100.,-100.,100.]))
+    root=Path(__file__).resolve().parents[1]
+    manifest=tomllib.loads((root/'pyproject.toml').read_text(encoding='utf-8'))
+    assert 'caelab*' in manifest['tool']['setuptools']['packages']['find']['include']
+    data=manifest['tool']['setuptools']['package-data']['caelab._vendor']
+    for name in ('rainflow.LICENSE.txt','rainflow.NOTICE.md'):
+        assert name in data and files('caelab._vendor').joinpath(name).is_file()
+    assert 'Permission is hereby granted' in files('caelab._vendor').joinpath('rainflow.LICENSE.txt').read_text(encoding='utf-8')

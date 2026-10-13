@@ -1,6 +1,5 @@
 """Finite signed stress histories, explicit S-N calibration and retained cycle rows."""
 from copy import deepcopy
-import importlib.util
 import math
 from pathlib import Path
 from .storage import canonical_hash
@@ -55,17 +54,52 @@ def validate_settings(settings):
     return deepcopy(settings)
 
 
+
+def stress_definition(response):
+    """Admit known retained metadata without editing its original declaration."""
+    if not isinstance(response,dict):raise ValueError('보존 응력 선언이 필요합니다')
+    component=response.get('component');measure=response.get('measure');frame=response.get('frame')
+    source=response.get('source',{});backend=source.get('backend') if isinstance(source,dict) else None
+    mapping='declared_response'
+    if backend in ('material.mfront','material.mfront.viscoelastic'):
+        expected=('infinitesimal Cauchy stress; physical tensor components' if backend=='material.mfront'
+                  else 'infinitesimal Cauchy stress')
+        origin=source.get('native_origin',{})
+        if not isinstance(origin,dict):raise ValueError('원 응력의 native 출처가 손상되었습니다')
+        if (response.get('quantity')=='stress' and measure==expected and component in ('xx','yy','zz') and
+            origin.get('native_field')=='stress_physical_mpa' and
+            response.get('coordinate_frame')=='Tridimensional model component basis; sensor/world alignment UNKNOWN'):
+            if frame not in (None,response['coordinate_frame']):raise ValueError('원 응력의 두 기준계 선언이 다릅니다')
+            frame=response['coordinate_frame'];measure='infinitesimal_Cauchy'
+            mapping=backend+': retained physical normal stress, original metadata preserved'
+    elif backend=='structural.code_aster.plasticity':
+        normal={'SIEF_ELGA.SIXX':'xx','SIEF_ELGA.SIYY':'yy','SIEF_ELGA.SIZZ':'zz'}
+        selection=source.get('exact_selection',{})
+        if not isinstance(selection,dict):raise ValueError('원 응력의 정확한 위치 선택이 손상되었습니다')
+        if (component in normal and response.get('quantity')=='stress' and
+            measure=='small-strain Cauchy stress at native Gauss point' and
+            response.get('coordinate_frame')=='global Cartesian model; sensor/world alignment UNKNOWN' and
+            selection.get('kind')=='fe_gauss' and selection.get('component')==component and
+            all(type(selection.get(k)) is int and selection[k]>0 for k in ('element_id','point','subpoint'))):
+            if frame not in (None,response['coordinate_frame']):raise ValueError('원 응력의 두 기준계 선언이 다릅니다')
+            frame=response['coordinate_frame'];measure='infinitesimal_Cauchy';component=normal[component]
+            mapping=backend+': exact native Gauss normal component, no projection'
+    if response.get('unit') not in ('Pa','MPa') or component not in ('xx','yy','zz','11','22','33'):
+        raise ValueError('Pa/MPa의 명시 수직 응력 성분이 필요합니다. 등가응력/절댓값/전단은 이 경로의 수명으로 환산하지 않습니다')
+    if measure not in ('Cauchy_stress','cauchy_stress','infinitesimal_Cauchy','engineering_stress','nominal_stress'):
+        raise ValueError('지원되는 원 응력 측도를 확인하세요. PK1/등가응력/미지원 native 선언을 바꾸어 해석하지 않습니다')
+    if not isinstance(frame,str) or not frame or frame.upper().startswith('UNKNOWN') or not response.get('location'):
+        raise ValueError('원 응력의 고정 기준계와 위치를 명시하세요')
+    return {'unit':response['unit'],'component':component,'measure':measure,'frame':frame,
+            'mapping':mapping,'location':deepcopy(response['location'])}
+
+
 def stress_history(response):
     if not isinstance(response,dict) or response.get('kind')!='series':
         raise ValueError('공간 최대값이 아닌 한 위치의 부호 있는 응력 이력을 선택하세요')
-    if response.get('unit') not in ('Pa','MPa') or response.get('component') not in ('xx','yy','zz','11','22','33'):
-        raise ValueError('Pa/MPa의 명시 수직 응력 성분이 필요합니다. 등가응력/절댓값/전단은 이 경로의 수명으로 환산하지 않습니다')
+    definition=stress_definition(response)
     if response.get('reduction','none') not in ('none','NONE',None):
         raise ValueError('축약하지 않은 원 응력 이력을 선택하세요')
-    if response.get('measure') not in ('Cauchy_stress','cauchy_stress','infinitesimal_Cauchy','engineering_stress','nominal_stress'):
-        raise ValueError('원 Data/모델에서 응력 측도를 명시하고 저장하세요')
-    if not response.get('frame') or str(response['frame']).upper().startswith('UNKNOWN') or not response.get('location'):
-        raise ValueError('원 응력의 고정 기준계와 위치를 명시하세요')
     values=response.get('value');axes=response.get('axes',[])
     if not isinstance(values,list) or not 3<=len(values)<=1000000 or len(axes)!=1:
         raise ValueError('하나의 실제 시간축과 3점 이상의 응력이 필요합니다')
@@ -101,10 +135,8 @@ def resolved_adapter(workbench,settings):
 
 
 def _counter():
-    path=Path(__file__).resolve().parents[1]/'third_party/rainflow/rainflow.py'
-    spec=importlib.util.spec_from_file_location('caelab_pinned_rainflow',path)
-    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-    return module.extract_cycles
+    from ._vendor.rainflow import extract_cycles
+    return extract_cycles
 
 
 def analyze(settings,response):
@@ -157,7 +189,7 @@ def analyze(settings,response):
         'diagnostics':{'assessment':'CALCULATED' if total is not None else 'UNKNOWN',
             'life_status':'ASSUMPTION_DEPENDENT' if blocks is not None else 'UNKNOWN','life_reason':life_reason,
             'unknown_cycle_count':unknown,'mean_stress_correction':'NONE','sn_interpolation':'log amplitude/log cycles, no extrapolation',
-            'stress_to_mpa':factor,'source':deepcopy(s['source']),'source_response_sha256':canonical_hash(response),
+            'stress_to_mpa':factor,'stress_interpretation':stress_definition(response),'source':deepcopy(s['source']),'source_response_sha256':canonical_hash(response),
             'assumed_temperature_k':s['temperature_k'],'calibration':deepcopy(c),'decision':'NOT_RELEASED',
             'limitations':['Signed uniaxial S-N only','No sequence interaction or coupled cyclic plasticity/cohesive fatigue']}}
 
