@@ -1,0 +1,12 @@
+task_id,source_delivery,residual,verification
+FN-20-01,"DOE explicit matrix; exact case table/plot; retained regression Plan; saved model picker","Histogram/richer multiresponse comparative view remains; render pending",AUTHOR_NOT_RUN
+FN-20-02,"Matched Sobol sampling/evaluation/analysis transitions; S1/ST/CI; nullable S2","Convergence-series UI and sample block role display remain; optional SALib execution pending",AUTHOR_NOT_RUN
+FN-20-03,"Explicit numeric candidate matrix reuses unchanged continuous variable contract","Integer/discrete/category/dependent domain generation and model capability binding NOT_IMPLEMENTED",AUTHOR_NOT_RUN
+FN-21-01,"Existing objective/constraint and inverse retained trials; full-width workspace and exact selection","Generic multi-trial residual/holdout presentation needs extension; D5 specialized fit retained",AUTHOR_NOT_RUN
+FN-21-02,"Existing derivative-free search unchanged","Gradient/adjoint capability+adapter+engine method and FD/adjoint checks NOT_IMPLEMENTED",AUTHOR_NOT_RUN
+FN-22-01,"Marginal editor; assumptions; conditional CDF/quantiles/failure fraction; exact sample","Histogram/bin selection remains; render/engine check pending",AUTHOR_NOT_RUN
+FN-22-02,"Physical correlated normal sampler; ordered symmetric PSD correlation; sample correlation","Other joint distributions/copulas and dimensional covariance editing NOT_IMPLEMENTED",AUTHOR_NOT_RUN
+FN-23-01,"Train/holdout exact sources; same-point rejection; errors/support/point selection","Local-neighbor stored prediction contract excluded explicitly",AUTHOR_NOT_RUN
+FN-23-02,"Numeric global RBF artifact; no-refit restore/predict; explicit new evaluator confirmation Plan","Paired prediction/actual comparison UI and legacy-training evaluator reselection remain",AUTHOR_NOT_RUN
+FN-24-01,"Threshold grid; all candidates/feasible nondominated; child status and actual dispatch budget","More-than-two-axis inspection and native adoption execution pending",AUTHOR_NOT_RUN
+FN-24-02,"Existing Evaluation selection; exact candidate stage/result/adoption reuse","Coupled iterative MDO/gradient/design synchronization NOT_IMPLEMENTED",AUTHOR_NOT_RUN

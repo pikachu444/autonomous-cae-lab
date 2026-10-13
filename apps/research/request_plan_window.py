@@ -25,7 +25,7 @@ from matplotlib.figure import Figure
 
 
 DATA = Qt.ItemDataRole.UserRole
-RETAINED_ROLES = {'doe': ('candidates',), 'analyze': ('table',), 'surrogate': ('training', 'holdout'),
+RETAINED_ROLES = {'doe': ('candidates',), 'analyze': ('table',), 'surrogate': ('training', 'holdout', 'model'),
                   'sensitivity': ('table', 'plan'), 'batch_export': ('candidates',),
                   'batch_import': ('batch', 'results')}
 MODEL_OPERATIONS = {'evaluate', 'fit', 'doe', 'optimize', 'uq', 'epsilon'}
@@ -169,7 +169,8 @@ class RequestPlanWindow(NumericalWindow):
         conflicts.addWidget(self.copy_button)
         outer.addLayout(conflicts)
         split = self.request_splitter = QSplitter(Qt.Orientation.Horizontal)
-        outer.addWidget(split, 1)
+        self.work_pages = QTabWidget()
+        outer.addWidget(self.work_pages, 1)
         self.editor = QWidget()
         self.editor.setMinimumWidth(0)
         inputs_layout = QVBoxLayout(self.editor)
@@ -228,6 +229,14 @@ class RequestPlanWindow(NumericalWindow):
         self.sheet_layout.addWidget(self.response_sheet, 2)
         self.method_sheet = self._sheet_table('planMethod', ['방법 설정', '값'])
         self.sheet_layout.addWidget(self.method_sheet, 1)
+        method_row = QHBoxLayout()
+        self.method_summary = QLabel()
+        self.method_summary.setWordWrap(True)
+        self.method_edit = QPushButton('방법 설정…')
+        self.method_edit.clicked.connect(self.edit_method)
+        method_row.addWidget(self.method_summary, 1)
+        method_row.addWidget(self.method_edit)
+        self.sheet_layout.addLayout(method_row)
         self.input_tabs.addTab(self.sheet, '작업 조건')
         self.advanced_scroll = QScrollArea()
         self.advanced_scroll.setWidgetResizable(True)
@@ -238,7 +247,7 @@ class RequestPlanWindow(NumericalWindow):
         self.observation_button = QPushButton('저장 관찰 추가…')
         self.observation_button.setObjectName('attachRetainedObservation')
         self.observation_button.clicked.connect(self.choose_fit_observation)
-        advanced_layout.addWidget(self.observation_button)
+        self.sheet_layout.addWidget(self.observation_button)
         model_actions = QHBoxLayout()
         for label, callback in (('변수 선택…', self.choose_model_variables), ('응답 선택…', self.choose_model_response)):
             button = QPushButton(label)
@@ -258,13 +267,13 @@ class RequestPlanWindow(NumericalWindow):
         self.response_button.clicked.connect(self.choose_response_definition)
         for widget in (self.retained_role, self.pin_button, self.response_button):
             retained.addWidget(widget)
-        advanced_layout.addLayout(retained)
+        self.sheet_layout.addLayout(retained)
         self.pinned_sources = readonly_table(['Role', 'Original document / job', 'Input revision', 'Exact result hash'])
         self.pinned_sources.setHorizontalHeaderLabels(['용도', '저장 결과', '입력 저장본', '결과 해시'])
         self.pinned_sources.setColumnHidden(2, True)
         self.pinned_sources.setColumnHidden(3, True)
         self.pinned_sources.setMaximumHeight(110)
-        advanced_layout.addWidget(self.pinned_sources)
+        self.sheet_layout.addWidget(self.pinned_sources)
         self.declarations = readonly_table(['Physical response', 'Unit', 'Reduction', 'Component / location'])
         self.declarations.setMaximumHeight(105)
         advanced_layout.addWidget(self.declarations)
@@ -311,7 +320,7 @@ class RequestPlanWindow(NumericalWindow):
         source_row.addWidget(self.source_context, 1)
         source_row.addWidget(self.source_button)
         inputs_layout.addLayout(source_row)
-        split.addWidget(self.editor)
+        self.work_pages.addTab(self.editor, '계획')
         right = self.results_panel = QWidget()
         right.setMinimumWidth(0)
         result_layout = QVBoxLayout(right)
@@ -355,6 +364,8 @@ class RequestPlanWindow(NumericalWindow):
         self.responses = QTreeWidget()
         self.responses.setHeaderLabels(['응답 정보', '계산값'])
         self.tabs.addTab(self.responses, '응답 값')
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.figure = Figure(figsize=(7, 4))
         self.canvas = FigureCanvasQTAgg(self.figure)
         plot_panel = QWidget()
@@ -406,6 +417,25 @@ class RequestPlanWindow(NumericalWindow):
         observed_split.setSizes([220, 330])
         observation_layout.addWidget(observed_split, 1)
         self.tabs.addTab(observation_panel, '관찰 곡선')
+        self.method_response = QComboBox()
+        self.method_response.currentIndexChanged.connect(self._plot_selected_result)
+        self.result_summary = QLabel()
+        self.result_summary.setWordWrap(True)
+        self.result_summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        result_layout.addWidget(self.method_response)
+        result_layout.addWidget(self.result_summary)
+        workflow_row = QHBoxLayout()
+        self.next_method = QComboBox()
+        for label, name in [('회귀 영향도', 'analyze'), ('Sobol 표본 평가', 'doe'),
+                            ('Sobol 분석', 'sensitivity'), ('대리모델 학습', 'surrogate'),
+                            ('저장 모델로 예측', 'predict'), ('예측점 실제 평가', 'confirm')]:
+            self.next_method.addItem(label, name)
+        self.next_method_button = QPushButton('이 결과로 계획 만들기…')
+        self.next_method_button.clicked.connect(self.plan_from_result)
+        workflow_row.addWidget(self.next_method)
+        workflow_row.addWidget(self.next_method_button)
+        workflow_row.addStretch()
+        result_layout.addLayout(workflow_row)
         result_layout.addWidget(self.tabs, 1)
         self.candidate_results_button = QPushButton('선택 후보 결과 열기')
         self.candidate_results_button.setObjectName('openCandidateStageResults')
@@ -416,14 +446,182 @@ class RequestPlanWindow(NumericalWindow):
         self.pde_adopt_button.clicked.connect(self.review_pde_candidate)
         result_layout.addWidget(self.pde_adopt_button)
         self._build_adoption_receipt_ui(result_layout)
-        split.addWidget(right)
-        split.setSizes([640, 800])
-        split.setStretchFactor(0, 1)
-        split.setStretchFactor(1, 1)
+        self.work_pages.addTab(right, '결과')
+        self.request_splitter.hide()
+        self.input_panel_action.setVisible(False)
+        self.run_button.setText('현재 계획 실행')
         self.canvas.mpl_connect('resize_event', self._fit_plot_layout)
         self.observed_canvas.mpl_connect('resize_event', self._fit_plot_layout)
         self.setCentralWidget(root)
         self._update_actions()
+
+    def edit_method(self):
+        from .numerical_methods import edit_method
+        if self.operation.currentData() == 'surrogate':
+            inputs = self.edited_draft()['request']['inputs']
+            refs = inputs.get('result_refs', {})
+            ref = refs.get('model', refs.get('training')) if isinstance(refs, dict) else None
+            if ref and canonical_hash(ref) not in self._source_metadata:
+                context = self._request_context()
+                def accepted(metadata):
+                    self._source_metadata[canonical_hash(ref)] = metadata
+                    edit_method(self)
+                self._call(lambda: self.client.document_result_metadata(ref['document_id'], ref['job_id']),
+                    accepted, relevant=lambda: self._request_context() == context)
+                return
+        edit_method(self)
+
+    def plan_from_result(self):
+        """Explicit derived Plan; never execute, adopt or relabel the selected run."""
+        from .numerical_methods import selected_row
+        result = self._result_cache.get(self.selected_job())
+        if not self.document or not result:
+            self.message.setText('먼저 사용할 저장 결과를 읽으세요.')
+            return
+        action = self.next_method.currentData()
+        document = deepcopy(self.document)
+        job = self.selected_job()
+        run = next((row for row in document.get('runs',[]) if row['job_id']==job), None)
+        if not run or not run.get('retention_complete'):
+            self.message.setText('먼저 이 계획과 결과를 저장하세요.')
+            return
+        chosen = deepcopy(selected_row(self,result))
+        identity = (document['id'],document['session_id'],job,self._candidate_selection_serial)
+        current = self.edited_draft()
+        def relevant():
+            return (self.document is not None and identity == (self.document['id'],self.document['session_id'],
+                self.selected_job(),self._candidate_selection_serial) and current == self.edited_draft())
+        def prepare():
+            ref = self.client.document_result_reference(document['id'],job)
+            frozen = deepcopy(run.get('draft',{}))
+            return ref, frozen
+        def ready(payload):
+            ref, frozen = payload
+            source = deepcopy(frozen.get('source'))
+            previous = frozen.get('request',{}).get('inputs',{})
+            if action == 'analyze':
+                inputs = {'result_refs':{'table':ref},'responses':[]}
+                operation, title = 'analyze', '회귀 영향도'
+            elif action == 'doe':
+                if result.get('sampling',{}).get('method') != 'SALib.sobol':
+                    self.message.setText('실제 Sobol 표본 결과를 선택하세요. 일반 DOE를 Sobol로 바꾸지 않습니다.');return
+                inputs = {'result_refs':{'candidates':ref},'variables':deepcopy(result.get('variables',[])),
+                          'backend':'','settings':{}}
+                operation, title = 'doe', 'Sobol 표본 평가'
+            elif action == 'sensitivity':
+                inputs = {'result_refs':{'table':ref},'response':{}}
+                sampling_ref = previous.get('result_refs',{}).get('candidates')
+                if sampling_ref:inputs['result_refs']['plan']=deepcopy(sampling_ref)
+                operation, title = 'sensitivity', 'Sobol 분석'
+            elif action == 'surrogate':
+                if not result.get('candidates'):
+                    self.message.setText('학습에 사용할 실제 평가 자료를 선택하세요.');return
+                inputs = {'result_refs':{'training':ref},'response':{},'points':[],'options':{}}
+                operation, title = 'surrogate', '대리모델 학습'
+            elif action == 'predict':
+                if result.get('model_artifact',{}).get('status') != 'AVAILABLE':
+                    self.message.setText('이 결과에는 재학습 없이 사용할 저장 모델이 없습니다.');return
+                inputs = {'result_refs':{'model':ref},'points':[]}
+                operation, title = 'surrogate', '저장 모델 예측'
+            else:
+                if not chosen or chosen.get('execution_status') != 'PREDICTED':
+                    self.message.setText('실제 평가로 확인할 예측점 한 행을 선택하세요.');return
+                self._prepare_confirmation(ref,result,chosen,current,relevant)
+                return
+            budget = max(1,len(result.get('candidates',[]))) if action == 'doe' else 1
+            draft = request_draft({'purpose':title,'operation':operation,'inputs':inputs,'budget':{'evaluations':budget}},source=source)
+            self._leave(lambda:self.open_document(title=title,draft=draft))
+        self._call(prepare,ready,relevant=relevant)
+
+    def _prepare_confirmation(self, reference, result, chosen, before, relevant):
+        # Follow the frozen training request, never today's editable draft.
+        def read_model():
+            ref = deepcopy(reference)
+            seen = set()
+            for _ in range(16):
+                key = (ref['document_id'],ref['job_id'])
+                if key in seen:raise ValueError('Stored model source loop')
+                seen.add(key)
+                exact = self.client.document_result_reference(*key)
+                if exact != ref:raise ValueError('Stored model reference changed')
+                doc = self.client.document_read(key[0])
+                run = next(row for row in doc['runs'] if row['job_id']==key[1])
+                inputs = run['draft']['request']['inputs']
+                refs = inputs.get('result_refs',{})
+                if 'model' in refs:
+                    ref = refs['model'];continue
+                training = refs.get('training')
+                if training is None:raise ValueError('Actual training evaluator is not recorded; choose an explicit model in a new DOE Plan')
+                actual = self.client.document_result_reference(training['document_id'],training['job_id'])
+                if actual != training:raise ValueError('Training reference changed')
+                origin = self.client.document_read(training['document_id'])
+                original = next(row for row in origin['runs'] if row['job_id']==training['job_id'])['draft']
+                engine = original.get('request',{}).get('inputs',{})
+                if not engine.get('backend') or not isinstance(engine.get('settings',{}),dict):
+                    raise ValueError('Training source has no reusable evaluator settings')
+                return deepcopy(original),deepcopy(engine)
+            raise ValueError('Stored model reference chain is too deep')
+        def received(payload):
+            if not relevant():return
+            original,engine=payload
+            from PySide6.QtWidgets import QMessageBox
+            if QMessageBox.question(self,'예측점 실제 평가','같은 좌표를 '+engine['backend']+'의 새 평가 계획으로 만드시겠습니까?') != QMessageBox.StandardButton.Yes:return
+            if not relevant():return
+            inputs={key:deepcopy(engine[key]) for key in ('backend','settings','variables','responses') if key in engine}
+            inputs['candidates']=[{'candidate_id':'Confirmation','values':deepcopy(chosen['values'])}]
+            draft=request_draft({'purpose':'대리 예측 실제 확인','operation':'doe','inputs':inputs,
+                                 'budget':{'evaluations':1}},source=deepcopy(original.get('source')))
+            draft['method_inputs']={'surrogate':{'result_refs':{'model':reference},'points':[deepcopy(chosen['values'])]}}
+            self._leave(lambda:self.open_document(title='대리 예측 실제 확인',draft=draft))
+        self._call(read_model,received,relevant=relevant)
+
+    def _method_result_view(self, result):
+        from .numerical_methods import STATE
+        rows=result.get('candidates',result.get('predictions',[]))
+        variables=result.get('variables',[])
+        variables=variables if isinstance(variables,list) else []
+        names=[row['id'] for row in variables if isinstance(row,dict) and isinstance(row.get('id'),str)]
+        channels={}
+        for row in rows:
+            for name,resp in row.get('responses',{}).items():
+                if isinstance(resp,dict) and resp.get('kind')=='scalar':
+                    channels.setdefault(name,set()).add(str(resp.get('unit','')))
+        channels={name:next(iter(units)) for name,units in channels.items() if len(units)==1}
+        picked=self.candidates.currentRow()
+        self.candidates.blockSignals(True)
+        headers=['후보','상태']+[name+' ['+str(v.get('unit',''))+']' for name,v in zip(names,variables)]
+        objective_definition=result.get('objective_definition',{})
+        objective_label=('잔차 제곱합 [1]' if result.get('kind')=='fit' else
+            '목적값 ['+str(objective_definition.get('unit','단위 상세'))+']')
+        headers += [name+' ['+unit+']' for name,unit in channels.items()]+[objective_label,'조건','실패 이유']
+        self.candidates.setColumnCount(len(headers));self.candidates.setHorizontalHeaderLabels(headers)
+        self.candidates.setRowCount(len(rows))
+        for i,row in enumerate(rows):
+            objective=row.get('objective')
+            if row.get('penalty_applied') or row.get('execution_status')!='SUCCEEDED':objective=None
+            values=[row.get('candidate_id'),STATE.get(row.get('execution_status'),row.get('execution_status','미평가'))]
+            values += [row.get('values',{}).get(name) for name in names]
+            values += [row.get('responses',{}).get(name,{}).get('value') for name in channels]
+            values += [objective,'범위 밖' if row.get('out_of_range') else '충족' if row.get('feasible') is True else '위반' if row.get('feasible') is False else '미판정',row.get('failure_reason','')]
+            for j,value in enumerate(values):self._set_cell(self.candidates,i,j,value,False)
+        if 0<=picked<len(rows):self.candidates.selectRow(picked)
+        self.candidates.resizeColumnsToContents()
+        self.candidates.blockSignals(False)
+        prior=self.method_response.currentData()
+        self.method_response.blockSignals(True);self.method_response.clear()
+        for i,row in enumerate(result.get('probability_statistics',[])):
+            self.method_response.addItem(str(row.get('response',''))+' ['+str(row.get('unit',''))+']',i)
+        for i,row in enumerate(result.get('sensitivity',[])):
+            self.method_response.addItem(str(row.get('metric','')),i)
+        if result.get('kind')=='surrogate':
+            self.method_response.addItem('예측할 점','points')
+            self.method_response.addItem('독립 검증 오차','holdout')
+        index=self.method_response.findData(prior)
+        self.method_response.setCurrentIndex(max(0,index));self.method_response.blockSignals(False)
+        self.method_response.setVisible(self.method_response.count()>0)
+        self.result_summary.clear()
+        self.next_method_button.setEnabled(bool(result) and not self._busy)
+        self._plot_selected_result()
 
     def _input_panel_toggled(self, visible):
         self.input_panel_action.setText('입력 접기' if visible else '입력 펼치기')
@@ -534,35 +732,48 @@ class RequestPlanWindow(NumericalWindow):
                 for index, response in enumerate(value.get('responses', []) if isinstance(value.get('responses', []), list) else []):
                     definition = self._worksheet_responses.get(response, declared_responses.get(response, {})) if isinstance(response, str) else {}
                     rows.append(('Response', response, definition, ('responses', index)))
-            elif operation == 'optimize':
-                if 'objective' in value:
+            elif operation in {'optimize', 'epsilon'}:
+                if operation == 'epsilon':
+                    for index, definition in enumerate(value.get('objectives', []) if isinstance(value.get('objectives', []), list) else []):
+                        rows.append(('Objective', definition.get('response') if isinstance(definition, dict) else None, definition, ('objectives', index)))
+                if operation == 'optimize' and 'objective' in value:
                     definition = value['objective']
                     rows.append(('Objective', definition.get('response') if isinstance(definition, dict) else None, definition, ('objective',)))
                 for index, definition in enumerate(value.get('constraints', []) if isinstance(value.get('constraints', []), list) else []):
                     rows.append(('Constraint', definition.get('response') if isinstance(definition, dict) else None, definition, ('constraints', index)))
-            self.response_sheet.setHorizontalHeaderLabels(['Role', 'Response', 'Reduction', 'Direction / relation', 'Limit', 'Unit'])
+            if operation in {'uq', 'analyze', 'sensitivity', 'surrogate'}:
+                key = 'thresholds' if operation == 'uq' else 'responses' if operation == 'analyze' else 'response'
+                definitions = value.get(key, [] if key != 'response' else {})
+                entries = enumerate(definitions) if isinstance(definitions,list) else [(None, definitions)]
+                for index, definition in entries:
+                    if not isinstance(definition,dict) or not definition:
+                        continue
+                    path = (key,index) if index is not None else (key,)
+                    rows.append(('Threshold' if operation == 'uq' else 'Analysis', definition.get('response'), definition,path))
+            self.response_sheet.setHorizontalHeaderLabels(['역할', '응답', '축약', '방향 또는 관계', '한계값', '단위'])
             self.response_sheet.setRowCount(len(rows))
             for row, (role, selector, definition, path) in enumerate(rows):
-                self._sheet_cell(self.response_sheet, row, 0, role, entry=path)
-                self._sheet_cell(self.response_sheet, row, 1, selector or 'Use actual response…')
+                self._sheet_cell(self.response_sheet, row, 0,
+                    {'Response':'응답','Objective':'목표','Constraint':'제약','Threshold':'판단 기준','Analysis':'분석 응답'}.get(role,role), entry=path)
+                self._sheet_cell(self.response_sheet, row, 1, selector or '응답 선택…')
                 definition = definition if isinstance(definition, dict) else {}
                 editable = role != 'Response' and isinstance(self._at_path(value, path), dict)
                 self._sheet_cell(self.response_sheet, row, 2, definition.get('reduction'),
                     path + ('reduction',) if editable else None, choices=('none', 'max', 'min', 'mean', 'final', 'abs_max'))
-                key = 'operator' if role == 'Constraint' else 'direction'
+                key = 'operator' if role in {'Constraint','Threshold'} else 'direction'
                 self._sheet_cell(self.response_sheet, row, 3, definition.get(key),
-                    path + (key,) if editable else None,
-                    choices=('<=', '>=') if role == 'Constraint' else ('minimize', 'maximize'))
+                    path + (key,) if editable and role in {'Objective','Constraint','Threshold'} else None,
+                    choices=('<', '<=', '>', '>=') if role == 'Threshold' else ('<=', '>=') if role == 'Constraint' else ('minimize', 'maximize'))
                 self._sheet_cell(self.response_sheet, row, 4, definition.get('limit'),
-                    path + ('limit',) if editable and role == 'Constraint' else None, numeric=True)
-                self._sheet_cell(self.response_sheet, row, 5, definition.get('unit', 'undeclared'))
+                    path + ('limit',) if editable and role in {'Constraint','Threshold'} else None, numeric=True)
+                self._sheet_cell(self.response_sheet, row, 5, definition.get('unit', '단위 미지정'))
                 self.response_sheet.item(row, 1).setToolTip(json.dumps(definition, ensure_ascii=False, indent=2))
-            settings = ([('Sample count', ('count',), 16, True, ()), ('Random seed', ('seed',), 0, True, ())]
+            settings = ([('표본 수', ('count',), 16, True, ()), ('난수 시드', ('seed',), 0, True, ())]
                 if operation == 'doe' else [
-                    ('Generations', ('options', 'max_generations'), 40, True, ()),
-                    ('Population size', ('options', 'population_size'), 12, True, ()),
-                    ('Random seed', ('seed',), 0, True, ()),
-                    ('Retain responses', ('options', 'retain_responses'), 'summary', False, ('summary', 'all'))]
+                    ('세대 수', ('options', 'max_generations'), 40, True, ()),
+                    ('집단 크기', ('options', 'population_size'), 12, True, ()),
+                    ('난수 시드', ('seed',), 0, True, ()),
+                    ('응답 보존', ('options', 'retain_responses'), 'summary', False, ('summary', 'all'))]
                 if operation == 'optimize' else [])
             if operation == 'fit':
                 self.response_sheet.setHorizontalHeaderLabels(['관찰', '모델 응답', '역할', '가중치', '잔차 척도', '관찰 채널'])
@@ -582,7 +793,7 @@ class RequestPlanWindow(NumericalWindow):
                     label = '관찰 ' + str(index + 1) if re.fullmatch(r'post_[0-9a-f]{16}', identifier) else identifier
                     self._sheet_cell(self.response_sheet, index, 0, trial.get('id'), path + ('id',), entry=path, label=label)
                     self.response_sheet.item(index, 0).setToolTip(identifier)
-                    self._sheet_cell(self.response_sheet, index, 1, trial.get('response') or 'Choose model response…')
+                    self._sheet_cell(self.response_sheet, index, 1, trial.get('response') or '모델 응답 선택…')
                     self._sheet_cell(self.response_sheet, index, 2, trial.get('role', 'fit'), path + ('role',), choices=('fit', 'holdout'))
                     self._sheet_cell(self.response_sheet, index, 3, trial.get('weight', 1), path + ('weight',), numeric=True)
                     self._sheet_cell(self.response_sheet, index, 4, trial.get('scale', 1), path + ('scale',), numeric=True)
@@ -596,11 +807,11 @@ class RequestPlanWindow(NumericalWindow):
                 if self._post_observation and not self._observation_matches():
                     self._observation_trial_changed()
                 method = value.get('method', 'least_squares')
-                settings = [('Fit method', ('method',), 'least_squares', False, ('least_squares', 'differential_evolution'))]
-                settings += ([('Function evaluations', ('options', 'max_nfev'), 100, True, ())]
+                settings = [('피팅 방법', ('method',), 'least_squares', False, ('least_squares', 'differential_evolution'))]
+                settings += ([('최대 함수 평가', ('options', 'max_nfev'), 100, True, ())]
                     if method == 'least_squares' else [
-                        ('Generations', ('options', 'max_generations'), 40, True, ()),
-                        ('Population size', ('options', 'population_size'), 12, True, ())])
+                        ('세대 수', ('options', 'max_generations'), 40, True, ()),
+                        ('집단 크기', ('options', 'population_size'), 12, True, ())])
             refs = value.get('result_refs', {})
             if operation == 'doe' and ('candidates' in value or isinstance(refs, dict) and 'candidates' in refs):
                 settings = [] if isinstance(refs, dict) and 'candidates' in refs else settings[1:]
@@ -616,6 +827,8 @@ class RequestPlanWindow(NumericalWindow):
                 self._sheet_cell(self.method_sheet, row, 1, setting, path if editable else None, numeric=numeric, choices=choices)
                 if implicit:
                     self.method_sheet.item(row, 1).setToolTip('Existing engine default; no field is written until edited.')
+            from .numerical_methods import refresh_extra
+            refresh_extra(self, value, operation)
         finally:
             self._sheet_populating = False
 
@@ -633,7 +846,8 @@ class RequestPlanWindow(NumericalWindow):
                 if isinstance(parent, dict) and key not in parent:
                     parent[key] = {}
                 parent = parent[key]
-            parent[path[-1]] = numeric_text(text) if binding.get('numeric') else text
+            parent[path[-1]] = (text == 'true' if path == ('second_order',) and text in {'true','false'}
+                                  else numeric_text(text) if binding.get('numeric') else text)
         # The tree remains the single authoritative buffer. Do not clear the
         # live table editor during its delegate commit or round partial text.
         value = self._input_value(self.inputs.topLevelItem(0))
@@ -697,6 +911,12 @@ class RequestPlanWindow(NumericalWindow):
                 return
             self._worksheet_labels.clear()
             self._worksheet_responses.clear()
+            # An independent Plan records its selected model source; existing
+            # Expert/Study/other origin remains its own return destination.
+            if self._request_buffer.get('source') is None:
+                self._request_buffer['source'] = {'document_id':document['id'],'kind':document['kind'],
+                    'saved_revision':document['saved_revision'],'input_revision':document['input_revision'],
+                    'input_sha256':canonical_hash(document['draft'])}
             if self.operation.currentData() == 'fit':
                 trials = self.edited_draft()['request']['inputs'].get('experiments', [])
                 if not isinstance(trials, list) or not trials or any(not isinstance(row, dict) for row in trials):
@@ -717,7 +937,7 @@ class RequestPlanWindow(NumericalWindow):
                 self._edit_structure(lambda value: value.update(backend=inputs['backend'], settings=deepcopy(inputs['settings'])))
         def listed(payload):
             documents = [row for row in payload['documents'] if row.get('kind') in {'material', 'pde', 'simulation', 'evaluation'}]
-            labels = [row['title'] + ' (' + row['kind'] + ') — ' + row['id'] for row in documents]
+            labels = [str(i+1)+'. '+row['title']+' ('+row['kind']+')' for i,row in enumerate(documents)]
             if not labels:
                 self.message.setText('No saved model is available. Enter a registered evaluator and its settings in Model / advanced.')
                 return
@@ -753,6 +973,7 @@ class RequestPlanWindow(NumericalWindow):
         self._result_errors.clear()
         self._statuses.clear()
         self._show_document(document)
+        self.work_pages.setCurrentWidget(self.results_panel if document.get('runs') else self.editor)
         self.message.setText('계산 계획을 열었습니다.')
         self._post_observation = None
         self._observation_key = None
@@ -859,20 +1080,29 @@ class RequestPlanWindow(NumericalWindow):
 
     def _operation_controls(self):
         operation = self.operation.currentData()
+        prior_role = self.retained_role.currentData()
         self.retained_role.clear()
         self.retained_role.addItems(RETAINED_ROLES.get(operation, ()))
         active = operation in RETAINED_ROLES
         self.retained_role.setVisible(active)
         self.pin_button.setVisible(active)
         self.pinned_sources.setVisible(active)
-        self.response_button.setVisible(operation in {'analyze', 'surrogate', 'sensitivity'})
+        self.response_button.setVisible(operation in {'analyze', 'surrogate', 'sensitivity'}
+            and not (operation == 'surrogate' and 'model' in self.edited_draft()['request']['inputs'].get('result_refs', {})))
         self.declarations.setVisible(operation in {'analyze', 'surrogate', 'sensitivity'})
         self.backend.setEnabled(operation in MODEL_OPERATIONS)
         self.model_response_button.setVisible(operation in {'fit', 'doe', 'uq', 'optimize', 'epsilon'})
         self.observation_button.setVisible(operation == 'fit')
-        self.constraint_button.setVisible(operation == 'optimize')
-        self.sheet.setEnabled(operation in {'fit', 'doe', 'optimize'})
-        self.input_tabs.setCurrentWidget(self.sheet if operation in {'fit', 'doe', 'optimize'} else self.advanced_scroll)
+        self.constraint_button.setVisible(operation in {'optimize', 'epsilon', 'uq'})
+        self.constraint_button.setText('기준 추가…' if operation == 'uq' else '제약 추가…')
+        from .numerical_methods import METHODS, ROLES
+        self.sheet.setEnabled(operation in METHODS or operation == 'evaluate')
+        for index in range(self.retained_role.count()):
+            role = self.retained_role.itemText(index)
+            self.retained_role.setItemData(index, role)
+            self.retained_role.setItemText(index, ROLES.get(role, role))
+        prior_index = self.retained_role.findData(prior_role)
+        if prior_index >= 0:self.retained_role.setCurrentIndex(prior_index)
         self.tabs.setTabVisible(self.tabs.indexOf(self.observation_panel), operation == 'fit')
         self.operation_note.setText({
             'analyze': 'Select the exact saved candidate table and declare each physical response/reduction. Failed rows remain exclusions.',
@@ -919,6 +1149,10 @@ class RequestPlanWindow(NumericalWindow):
                                                  'response': '', 'weight': 1., 'scale': 1.}]
                     else:
                         value['settings'] = settings
+            if operation == 'sample_sensitivity':
+                value['variables'] = deepcopy(previous.get('variables', []))
+            if operation == 'uq':
+                value.update(distributions={}, independence='', source={'origin':'','reference':''}, thresholds=[])
             self._operation_inputs[operation] = value
         value = deepcopy(self._operation_inputs[operation])
         self._populate_inputs(value)
@@ -951,7 +1185,7 @@ class RequestPlanWindow(NumericalWindow):
                 self._set_cell(self.declarations, row, column, value, False)
 
     def choose_retained_result(self):
-        operation, role = self.operation.currentData(), self.retained_role.currentText()
+        operation, role = self.operation.currentData(), self.retained_role.currentData()
         if operation not in RETAINED_ROLES or role not in RETAINED_ROLES[operation]:
             return
         self._commit_editor()
@@ -987,6 +1221,9 @@ class RequestPlanWindow(NumericalWindow):
             reference, metadata = payload
             from caelab.research_operations import validate_result_reference
             validate_result_reference(reference)
+            if role == 'model' and not metadata.get('model_available'):
+                self.message.setText('보존된 전역 RBF 모델을 선택하세요. 이 결과에는 재학습 없는 모델이 없습니다.')
+                return
             if role == 'plan' and metadata.get('sampling', {}).get('method') != 'SALib.sobol':
                 self.message.setText('Select the actual matched SALib Sobol sampling plan; ordinary DOE is incompatible.')
                 return
@@ -1004,7 +1241,7 @@ class RequestPlanWindow(NumericalWindow):
             if not isinstance(refs, dict):
                 self.message.setText('result_refs must remain a typed object. Its existing content was preserved.')
                 return
-            if operation == 'surrogate':
+            if operation == 'surrogate' and role != 'model':
                 other = refs.get('holdout' if role == 'training' else 'training', {})
                 if (other.get('document_id'), other.get('job_id')) == (reference['document_id'], reference['job_id']) or other.get('result_sha256') == reference['result_sha256']:
                     self.message.setText('Training and holdout require distinct retained runs and results.')
@@ -1016,10 +1253,17 @@ class RequestPlanWindow(NumericalWindow):
                     value.pop(role, None)
                 if operation == 'doe':
                     value.pop('count', None)
-                value.setdefault('result_refs', {})[role] = reference
+                if operation == 'surrogate' and role == 'model':
+                    points = value.get('points', [])
+                    value.clear()
+                    value.update(points=points, result_refs={'model': reference})
+                else:
+                    if operation == 'surrogate':
+                        value.setdefault('result_refs', {}).pop('model', None)
+                    value.setdefault('result_refs', {})[role] = reference
             self._source_metadata[canonical_hash(reference)] = metadata
             self._edit_structure(edit)
-            self.message.setText('Pinned ' + role + ' to ' + reference['job_id'] + '. Its exact submitted input and result hash are verified again at execution.')
+            self.message.setText('선택한 저장 자료를 연결했습니다. 실행 전 변수와 응답을 확인하세요.')
             if metadata.get('diagnostics'):
                 self.operation_note.setText(self.operation_note.text() + '\nRecorded source diagnostics: ' + '; '.join(metadata['diagnostics']))
         self._call(self.client.documents, listed, relevant=relevant)
@@ -1175,12 +1419,12 @@ class RequestPlanWindow(NumericalWindow):
             declaration = {key: deepcopy(response[key]) for key in
                 ('unit', 'component', 'location', 'measure', 'frame', 'coordinate_system', 'coordinate_frame') if key in response}
             declaration['response'] = selector
-            if operation in {'optimize', 'epsilon'}:
+            if operation in {'optimize', 'epsilon', 'uq'}:
                 reductions = [response.get('reduction', 'none')] if response['kind'] == 'scalar' else ['max', 'min', 'mean', 'final', 'abs_max']
                 reduction, ok = QInputDialog.getItem(self, 'Response reduction', 'Scalar statistic', reductions, editable=False)
                 if not ok or not relevant(): return
                 declaration['reduction'] = reduction
-                if constraint and operation == 'optimize':
+                if operation == 'uq' or constraint:
                     relation, ok = QInputDialog.getItem(self, 'Constraint', 'Relation', ['<=', '>='], editable=False)
                     if not ok or not relevant(): return
                     limit, ok = QInputDialog.getText(self, 'Constraint', 'Limit [' + str(response.get('unit', 'undeclared')) + ']')
@@ -1191,7 +1435,11 @@ class RequestPlanWindow(NumericalWindow):
                     if not ok or not relevant(): return
                     declaration['direction'] = direction
                 declaration['id'] = 'metric_' + canonical_hash({'response': selector, 'reduction': reduction})[:12]
-                if operation == 'optimize':
+                if operation == 'uq':
+                    self._edit_structure(lambda value: value.setdefault('thresholds', []).append(declaration))
+                elif operation == 'epsilon' and constraint:
+                    self._edit_structure(lambda value: value.setdefault('constraints', []).append(declaration))
+                elif operation == 'optimize':
                     if constraint:
                         self._edit_structure(lambda value: value.setdefault('constraints', []).append(declaration))
                     else:
@@ -1287,6 +1535,18 @@ class RequestPlanWindow(NumericalWindow):
     def choose_model_variables(self):
         if (not self.document or self._view_error or self._callbacks or self._pending_adoption
                 or self._busy and not self._busy_background):
+            return
+        if self.operation.currentData() == 'sample_sensitivity':
+            name, ok = QInputDialog.getText(self, 'Sobol 변수', '변수 이름')
+            if not ok or not name.strip(): return
+            unit, ok = QInputDialog.getText(self, 'Sobol 변수', '단위')
+            if not ok or not unit.strip(): return
+            def add(value):
+                rows = value.setdefault('variables', [])
+                if any(row.get('id') == name.strip() for row in rows):
+                    raise ValueError('같은 변수 이름이 있습니다.')
+                rows.append({'id':name.strip(),'unit':unit.strip(),'value':'','lower':'','upper':'','transform':'linear'})
+            self._edit_structure(add)
             return
         context = self._request_context()
         inputs = self.edited_draft()['request']['inputs']
@@ -1656,8 +1916,9 @@ class RequestPlanWindow(NumericalWindow):
         job = self.selected_job()
         result = self._result_cache.get(job, {})
         rows = result.get('candidates', result.get('predictions', []))
-        actual_selected = self._selected_actual_candidate()
-        selected = actual_selected.get('candidate_id') if actual_selected else None
+        # Both predicted and evaluated selections survive reads of this exact result.
+        selected = self.candidates.item(self.candidates.currentRow(),0)
+        selected = selected.text() if selected and self.candidates.selectionModel().selectedRows() else None
         key = (self.document['id'], self.document['session_id'], job, canonical_hash(result)) if self.document else None
         unchanged = key == self._candidate_table_key
         self.candidates.blockSignals(True)
@@ -1665,6 +1926,7 @@ class RequestPlanWindow(NumericalWindow):
         self.candidates.setRowCount(0)
         self.candidates.setRowCount(len(rows))
         self.candidates.setVisible(bool(rows) or not (result.get('responses') or result.get('curves')))
+        self.candidates.setColumnCount(6)
         for row, candidate in enumerate(rows):
             for column, value in enumerate((candidate.get('candidate_id'), candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('feasible'), candidate.get('failure_reason'))):
                 self._set_cell(self.candidates, row, column, value, False)
@@ -1692,7 +1954,7 @@ class RequestPlanWindow(NumericalWindow):
             index = 1  # A direct evaluation opens its actual response, not an empty candidate summary.
         self.plot_response.setCurrentIndex(max(0, index))
         self.plot_response.blockSignals(False)
-        self._plot_selected_result()
+        self._method_result_view(result)
         self.details.setPlainText(json.dumps({'document_diagnostics': self.document.get('diagnostics') if self.document else [],
             'view_error': self._view_error, 'selected_status': self._statuses.get(job),
             'result_read_error': self._result_errors.get(job), 'submitted_run': next((run for run in self.document.get('runs', []) if run['job_id'] == job), None) if self.document else None,
@@ -1704,7 +1966,16 @@ class RequestPlanWindow(NumericalWindow):
         result = self._result_cache.get(job, {})
         rows = result.get('candidates', result.get('predictions', []))
         self.figure.clear()
+        self.result_summary.clear()
         name = self.plot_response.currentData()
+        if name is None:
+            from .numerical_methods import plot
+            run = next((row for row in self.document.get('runs',[]) if row['job_id']==job),{}) if self.document else {}
+            submitted = run.get('draft',{}).get('request',{}).get('inputs',{})
+            if plot(self,result,submitted):
+                self.figure.tight_layout()
+                self.canvas.draw_idle()
+                return
         if isinstance(name, dict) and 'candidate_response' in name:
             self._plot_candidate_response(result, name['candidate_response'])
             self.canvas.draw_idle()
@@ -1745,12 +2016,12 @@ class RequestPlanWindow(NumericalWindow):
                     return (isinstance(values, list) and len(values) == len(coordinates)
                             and all(value is None or type(value) in (int, float) and math.isfinite(value) for value in values))
                 if finite_axis and recorded_values(observed):
-                    ax.plot(coordinates, [math.nan if value is None else value for value in observed], 'o', label='recorded observation', markersize=3)
+                    ax.plot(coordinates, [math.nan if value is None else value for value in observed], 'o', label='관측', markersize=3)
                 if finite_axis and recorded_values(predicted):
-                    ax.plot(coordinates, [math.nan if value is None else value for value in predicted], label='actual evaluated model response')
+                    ax.plot(coordinates, [math.nan if value is None else value for value in predicted], label='실제 계산')
                 ax.set_xlabel(str(source_axis.get('name', 'undeclared axis')) + ' [' + str(source_axis.get('unit', 'undeclared')) + ']')
                 ax.set_ylabel(str(observation.get('component', 'response')) + ' [' + str(observation.get('unit', 'undeclared')) + ']')
-                ax.set_title(str(curve.get('experiment_id', 'experiment')) + ' · ' + str(curve.get('execution_status', 'unknown')) + ' · RMSE ' + str(curve.get('rmse', 'unknown')), fontsize=9)
+                ax.set_title(str(curve.get('experiment_id', '시험')) + '  RMSE ' + str(curve.get('rmse', '미계산')), fontsize=9)
                 if ax.lines:
                     ax.legend(fontsize=7)
         elif result.get('kind') == 'surrogate':
@@ -1807,7 +2078,7 @@ class RequestPlanWindow(NumericalWindow):
                 self._draw_study_summary(result, job)
             else:
                 ax = self.figure.add_subplot(111)
-                ax.text(.5, .5, 'Select a response to plot.' if rows else 'No calculated result selected.',
+                ax.text(.5, .5, '응답 또는 후보를 선택하세요.' if rows else '아직 선택한 계산 결과가 없습니다.',
                         ha='center', va='center', wrap=True, transform=ax.transAxes)
                 ax.set_axis_off()
         self.figure.tight_layout()
@@ -1842,7 +2113,7 @@ class RequestPlanWindow(NumericalWindow):
                 index = ids.index(selected['candidate_id'])
                 ax.scatter(*scalar_points[index], s=95, facecolors='none', edgecolors='#d56c22', linewidths=2)
             unit, reduction, *_ = next(iter(units))
-            ax.set_xlabel('Original candidate order')
+            ax.set_xlabel('후보 순서')
             ax.set_ylabel(name + ' [' + str(unit) + '] / ' + str(reduction))
         elif scalar_points:
             ax.text(.5, .5, 'Candidate physical definitions differ; inspect each retained response.', ha='center', wrap=True, transform=ax.transAxes)
@@ -1865,8 +2136,8 @@ class RequestPlanWindow(NumericalWindow):
                 ax.text(.5, .5, str(selected.get('failure_reason') or 'Curve not retained. Open candidate results to inspect available evaluations.'),
                         ha='center', wrap=True, transform=ax.transAxes)
         else:
-            ax.text(.5, .5, 'Select a candidate to inspect its retained curve.', ha='center', transform=ax.transAxes)
-        ax.set_title(str(selected['candidate_id']) if selected else 'Actual candidate responses')
+            ax.text(.5, .5, '곡선을 볼 후보를 선택하세요.', ha='center', transform=ax.transAxes)
+        ax.set_title(str(selected['candidate_id']) if selected else '계산된 후보 응답')
 
     def _select_return_channels(self, result):
         from PySide6.QtWidgets import QListWidget, QListWidgetItem
@@ -2033,14 +2304,15 @@ class RequestPlanWindow(NumericalWindow):
         candidate_task = self.operation.currentData() in PDE_CANDIDATE_OPERATIONS or bool(
             self._result_cache.get(self.selected_job(), {}).get('candidates'))
         result = self._result_cache.get(self.selected_job(), {})
+        self.next_method_button.setEnabled(available and bool(result))
         self.candidates.setVisible(candidate_task and not (result.get('responses') or result.get('curves'))
                                    or bool(result.get('candidates', result.get('predictions', []))))
         self.candidate_results_button.setVisible(candidate_task)
         self.pde_adopt_button.setVisible(candidate_task)
         self.candidate_results_button.setEnabled(read_available and bool(self._selected_actual_candidate())
             and callable(getattr(self.client, 'numerical_evaluation_result', None)))
-        self.variables_button.setEnabled(read_available and not self._view_error and self.operation.currentData() in MODEL_OPERATIONS
-                                         and callable(getattr(self.client, 'describe_inputs', None)))
+        self.variables_button.setEnabled(read_available and not self._view_error and self.operation.currentData() in MODEL_OPERATIONS | {'sample_sensitivity'}
+                                         and (self.operation.currentData() == 'sample_sensitivity' or callable(getattr(self.client, 'describe_inputs', None))))
         for button in (self.model_response_button, self.observation_button):
             button.setEnabled(read_available and not self._view_error and callable(getattr(self.client, 'document_result_metadata', None)))
         source = self.document['draft'].get('source') if present and isinstance(self.document['draft'], dict) else None

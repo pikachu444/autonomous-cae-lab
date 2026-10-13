@@ -49,6 +49,22 @@ class FelupeMaterialAdapter:
     backend = 'material.felupe'
     version = '1'
 
+    def describe_inputs(self, settings):
+        """Declare current coefficients without importing/running FELUPE.
+
+        Bounds are editable search suggestions, not proof that every combined
+        coefficient set satisfies the material law.
+        """
+        validate_settings(settings)
+        labels={'E':'탄성계수','nu':'푸아송비','mu':'전단계수','lmbda':'Lamé 계수'}
+        rows=[]
+        for name,value in settings['parameters'].items():
+            low,high=((-0.99,0.49) if name=='nu' else
+                      (value*.1,value*10.) if value>0 else (value-abs(value or 1.),value+abs(value or 1.)))
+            rows.append({'id':name,'label':labels[name],'unit':'1' if name=='nu' else settings['stress_unit'],
+                         'value':value,'lower':low,'upper':high,'path':['parameters',name]})
+        return rows
+
     def prepare(self, settings, *, runtime=None):
         import felupe
         if runtime and set(runtime)-{'threads','memory_mb'}:

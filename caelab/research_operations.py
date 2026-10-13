@@ -86,7 +86,8 @@ def result_metadata(result):
             'responses':list(catalog.values()), 'candidate_count':len(candidates),
             'native_channels': native,
             'execution_counts':counts,'sampling':sampling,'diagnostics':diagnostics,
-            'manifest_kind':result.get('manifest',{}).get('kind')}
+            'manifest_kind':result.get('manifest',{}).get('kind'),
+            'model_available':result.get('model_artifact',{}).get('status') == 'AVAILABLE'}
 
 
 def response_locations(result, channel, *, start=0, count=128, search=''):
@@ -172,6 +173,8 @@ def validate_result_refs(operation, inputs):
     alternatives = [roles]
     if operation == 'sensitivity':
         alternatives.append({'table', 'plan'})
+    elif operation == 'surrogate':
+        alternatives.append({'model'})
     elif operation == 'batch_import':
         alternatives.append({'batch', 'results'})
     if roles is None or not isinstance(references, dict) or set(references) not in alternatives:
@@ -187,7 +190,7 @@ def validate_result_refs(operation, inputs):
         raise ValueError('Pinned result references cannot be mixed with replacement tables or unpinned job IDs')
     for reference in references.values():
         validate_result_reference(reference)
-    if operation == 'surrogate':
+    if operation == 'surrogate' and 'model' not in references:
         training, holdout = references['training'], references['holdout']
         if (training['document_id'], training['job_id']) == (holdout['document_id'], holdout['job_id']):
             raise ValueError('Training and holdout must be separate retained runs')
@@ -228,7 +231,10 @@ def resolve_request_inputs(operation, inputs, *, resolve_document, resolve_resul
         if operation == 'sensitivity' and 'plan' in resolved:
             result['plan'] = resolved['plan']
     elif operation == 'surrogate':
-        result.update(training=resolved['training'], holdout=resolved['holdout'])
+        if 'model' in resolved:
+            result['retained_model'] = resolved['model']
+        else:
+            result.update(training=resolved['training'], holdout=resolved['holdout'])
     elif operation in {'batch_export','doe'}:
         table = resolved['candidates']
         if not isinstance(table.get('candidates'), list) or not isinstance(table.get('variables'), list):
@@ -291,7 +297,10 @@ def surrogate_result(training, holdout, response, points, *, variables=None, opt
     train, excluded_train = usable(training)
     test, excluded_test = usable(holdout)
     model = fit_surrogate(train, test, response, variables=variables, options=options)
+    from .surrogate_archive import archive
     return {'kind': 'surrogate', 'execution_status': 'SUCCEEDED', 'predictions': model.predict(points),
+            'variables': deepcopy(model.variables), 'response': deepcopy(model.response),
+            'model_artifact': archive(model), 'training_performed': True, 'solver_execution': 'NOT_PERFORMED',
             'validation': {**model.validation, 'exclusions': {'training': excluded_train, 'holdout': excluded_test},
                            'training_count': len(training.get('candidates', [])),
                            'holdout_count': len(holdout.get('candidates', []))},

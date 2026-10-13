@@ -486,7 +486,10 @@ class Workbench:
             return {'backend':backend, 'inputs':compiled['inputs'], 'responses':compiled['definition']['responses'],
                     'readiness':'NOT_PROBED', 'execution':'serial existing stage adapters'}
         if backend=='material.felupe':
-            return {'backend':backend,'models':['linear_elastic','neo_hooke'],
+            from .adapters.felupe_material import FelupeMaterialAdapter
+            settings=request.get('settings',request.get('inputs',{}).get('settings',{}))
+            descriptors=FelupeMaterialAdapter().describe_inputs(settings) if settings else []
+            return {'inputs':descriptors, 'backend':backend,'models':['linear_elastic','neo_hooke'],
                     'parameters':{'linear_elastic':['E','nu'],'neo_hooke':['mu','lmbda']},
                     'required':['time','deformation_gradient','stress_unit','parameters'],
                     'axis':'time','outputs':['stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz','tangent']}
@@ -981,6 +984,9 @@ class Workbench:
                 plan=self.result(args['batch_job'])['manifest']
             return numerical.import_batch(plan,args['results'])
         if operation=='surrogate':
+            if 'retained_model' in args:
+                from .surrogate_archive import predict
+                return predict(args['retained_model'], args['points'])
             from .research_operations import surrogate_result
             training=args.get('training')
             holdout=args.get('holdout')

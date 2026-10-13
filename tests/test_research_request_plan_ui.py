@@ -218,7 +218,8 @@ def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, r
     result = other._result_cache[analysis_job]
     assert result['candidate_count'] == 6 and result['failure_count'] == 1
     assert result['statistics'][0]['count'] == 5
-    assert other.figure.axes[0].get_ylabel() == 'mean ± sample std [MPa]'
+    assert other.figure.axes[0].get_ylabel() == '표준화 회귀계수 [1]'
+    assert result['statistics'][0]['unit'] == 'MPa'
 
 
 def test_surrogate_picker_requires_disjoint_retained_roles_and_keeps_typed_points(app,workbench,retained_studies,monkeypatch):
@@ -228,7 +229,7 @@ def test_surrogate_picker_requires_disjoint_retained_roles_and_keeps_typed_point
     choose_source(monkeypatch,training)
     window.choose_retained_result()
     wait(app,lambda:not window._busy and 'training' in window.edited_draft()['request']['inputs']['result_refs'])
-    window.retained_role.setCurrentText('holdout')
+    window.retained_role.setCurrentIndex(window.retained_role.findData('holdout'))
     window.choose_retained_result()
     wait(app,lambda:not window._busy)
     assert 'holdout' not in window.edited_draft()['request']['inputs']['result_refs']
@@ -257,7 +258,8 @@ def test_surrogate_picker_requires_disjoint_retained_roles_and_keeps_typed_point
     result = window._result_cache[job]
     assert all(row['execution_status'] == 'PREDICTED' for row in result['predictions'])
     assert len(result['validation']['exclusions']['training']) == 1
-    assert window.candidates.rowCount() == 2 and 'PREDICTED' in window.figure.axes[0].get_ylabel()
+    assert window.candidates.rowCount() == 2 and '예측' in window.figure.axes[0].get_ylabel()
+    assert window.candidates.item(0,1).text() == '예측'
     assert not hasattr(window,'adopt_button')
 
 

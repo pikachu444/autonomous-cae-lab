@@ -129,7 +129,7 @@ _PLAN_INPUTS = {
     'uq': _object({'backend': _STRING, 'settings': _OBJECT, 'variables': _VARIABLES,
                    'responses': _STRINGS,
                    'distributions': _OBJECT, 'count': _POSITIVE, 'seed': {'type': 'integer'},
-                   'source': _OBJECT, 'independence': _STRING, 'execution': _EXECUTION,
+                   'source': _OBJECT, 'independence': _STRING, 'correlation': _OBJECT, 'execution': _EXECUTION,
                    'thresholds': {'type': 'array', 'items': _object({**_SCALAR_REFERENCE['properties'],
                        'limit': _NUMBER, 'operator': {'enum': ['<=', '>=', '<', '>']}}, _SCALAR_REFERENCE['required'])}},
                   ['backend', 'variables', 'distributions', 'source', 'independence']),
@@ -176,7 +176,9 @@ _PLAN_INPUTS['surrogate'] = {'oneOf': [
             ['training_job', 'holdout_job', 'response', 'points']),
     _object({'result_refs': _retained_roles('training', 'holdout'), 'response': _SCALAR_REFERENCE,
              'points': {'type': 'array', 'items': _OBJECT}, 'variables': _VARIABLES, 'options': _OBJECT},
-            ['result_refs', 'response', 'points'])]}
+            ['result_refs', 'response', 'points']),
+    _object({'result_refs': _retained_roles('model'), 'points': {'type': 'array', 'items': _OBJECT}},
+            ['result_refs', 'points'])]}
 _PLAN_INPUTS['sensitivity'] = {'oneOf': [
     _object({'job_id': _STRING, 'plan': _OBJECT, 'response': _SCALAR_REFERENCE}, ['job_id', 'plan', 'response']),
     _object({'result_refs': _retained_roles('table'), 'plan': _OBJECT, 'response': _SCALAR_REFERENCE},

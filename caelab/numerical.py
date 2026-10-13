@@ -1213,17 +1213,38 @@ def analyze_candidates(table, responses, *, seed=13):
 
 
 def run_uq(evaluator_or_factory, variables, distributions, *, settings=None, count=128, seed=0,
-           independence='INDEPENDENT_USER_DECLARED', source=None, thresholds=None, execution=None, record=None):
+           independence='INDEPENDENT_USER_DECLARED', source=None, thresholds=None, correlation=None, execution=None, record=None):
     """Declared independent input laws; optimization populations are never reused."""
     variables = _variables(variables)
-    if independence != 'INDEPENDENT_USER_DECLARED' or not isinstance(source, dict) or source.get('origin') not in ('ASSUMED', 'MEASURED_REPORTED', 'PUBLISHED_REFERENCE', 'SYNTHETIC') or not source.get('reference'):
-        raise ValueError("Declare independent marginals and their distribution source")
+    if independence not in {'INDEPENDENT_USER_DECLARED', 'CORRELATED_NORMAL_USER_DECLARED'} or not isinstance(source, dict) or source.get('origin') not in ('ASSUMED', 'MEASURED_REPORTED', 'PUBLISHED_REFERENCE', 'SYNTHETIC') or not source.get('reference'):
+        raise ValueError("Declare the joint assumption and distribution source")
+    if independence == 'INDEPENDENT_USER_DECLARED' and correlation is not None:
+        raise ValueError("Correlation cannot be ignored in independent UQ")
+    correlated = independence == 'CORRELATED_NORMAL_USER_DECLARED'
     if type(count) is not int or count < 2 or type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError("UQ requires count >=2 and an unsigned seed")
     if set(distributions) != {v['id'] for v in variables}:
         raise ValueError("Declare one distribution for every variable")
     uniform = qmc.LatinHypercube(len(variables), rng=np.random.default_rng(seed)).random(count)
     points = np.empty_like(uniform)
+    normal_scores = None
+    if correlated:
+        names = [v['id'] for v in variables]
+        if (not isinstance(correlation, dict) or set(correlation) != {'variables', 'matrix'}
+                or correlation['variables'] != names):
+            raise ValueError("Correlation requires the exact ordered variable names and matrix")
+        matrix = np.asarray(correlation['matrix'], dtype=float)
+        if (matrix.shape != (len(names), len(names)) or not np.all(np.isfinite(matrix))
+                or not np.array_equal(matrix, matrix.T) or not np.all(np.diag(matrix) == 1)
+                or np.any(abs(matrix) > 1)):
+            raise ValueError("Correlation must be finite, symmetric, unit diagonal and within [-1, 1]")
+        eig, axes = np.linalg.eigh(matrix)
+        if np.min(eig) < -1e-12:
+            raise ValueError("Correlation matrix is not positive semidefinite")
+        if any(distributions[name].get('distribution') != 'normal' for name in names):
+            raise ValueError("Correlated mode currently supports physical normal marginals only; no implicit copula")
+        # Roundoff treatment of a PSD eigensystem is not clipping distribution tails.
+        normal_scores = norm.ppf(uniform) @ (axes * np.sqrt(np.maximum(eig, 0))).T
     for index, v in enumerate(variables):
         law = distributions[v['id']]
         if law.get('unit', v['unit']) != v['unit']:
@@ -1241,7 +1262,8 @@ def run_uq(evaluator_or_factory, variables, distributions, *, settings=None, cou
             if std <= 0:
                 raise ValueError("Distribution std must be positive")
             if kind == 'normal':
-                points[:, index] = norm.ppf(uniform[:, index], loc=mean, scale=std)
+                points[:, index] = (mean + std * normal_scores[:, index] if correlated
+                                    else norm.ppf(uniform[:, index], loc=mean, scale=std))
             elif kind == 'truncnorm':
                 points[:, index] = truncnorm.ppf(uniform[:, index], (v['lower'] - mean) / std, (v['upper'] - mean) / std, loc=mean, scale=std)
             else:
@@ -1255,8 +1277,11 @@ def run_uq(evaluator_or_factory, variables, distributions, *, settings=None, cou
             raise ValueError("Supported distributions: uniform, normal, truncnorm, lognormal")
     candidates = [dict(zip([v['id'] for v in variables], point)) for point in points]
     table = run_doe(evaluator_or_factory, variables, settings=settings, candidates=candidates, execution=execution)
-    table.update(kind='uq', sampling={'method': 'independent_lhs_inverse_cdf', 'seed': seed, 'count': count,
-                                     'independence': independence, 'source': deepcopy(source), 'distributions': deepcopy(distributions)})
+    table.update(kind='uq', sampling={'method': 'correlated_normal_lhs' if correlated else 'independent_lhs_inverse_cdf',
+        'seed': seed, 'count': count, 'independence': independence, 'source': deepcopy(source),
+        'distributions': deepcopy(distributions), 'correlation': deepcopy(correlation),
+        'variable_order': [v['id'] for v in variables], 'coordinates': 'physical',
+        'sample_correlation': _nullable(np.atleast_2d(np.corrcoef(points, rowvar=False)).tolist()) if correlated else None})
     statistics = []
     if thresholds is None:
         inferred = {}
@@ -1298,6 +1323,10 @@ class Surrogate:
 
     def predict(self, candidates):
         names = [v['id'] for v in self.variables]
+        if not candidates:
+            return []
+        if any(set(row) != set(names) for row in candidates):
+            raise ValueError("Prediction points require exactly the stored model variables")
         x = np.asarray([[_number(row[name], name) for name in names] for row in candidates])
         low, high = np.asarray([v['lower'] for v in self.variables]), np.asarray([v['upper'] for v in self.variables])
         normalized = (x - low) / (high - low)
@@ -1323,6 +1352,8 @@ def fit_surrogate(training, holdout, response, *, variables=None, options=None):
     names = [v['id'] for v in variables]
     train_x = np.asarray([[row['values'][name] for name in names] for row in train], dtype=float)
     test_x = np.asarray([[row['values'][name] for name in names] for row in test], dtype=float)
+    if len({tuple(row) for row in train_x}) != len(train_x):
+        raise ValueError("Duplicate training parameter points are not independent observations")
     if {tuple(row) for row in train_x} & {tuple(row) for row in test_x}:
         raise ValueError("Training and holdout parameter points overlap")
     low, high = np.asarray([v['lower'] for v in variables]), np.asarray([v['upper'] for v in variables])
@@ -1340,7 +1371,9 @@ def fit_surrogate(training, holdout, response, *, variables=None, options=None):
     validation = {'method': 'scipy.interpolate.RBFInterpolator', 'options': opts,
                   'train_ids': [r['candidate_id'] for r in train], 'holdout_ids': [r['candidate_id'] for r in test],
                   'identity_scope': 'IDs are local to the separately supplied training and holdout tables',
-                  'holdout_prediction': predictions.tolist(), 'mae': float(np.mean(abs(error))),
+                  'holdout_prediction': predictions.tolist(), 'holdout_observed': test_y.tolist(),
+                  'holdout_values': test_x.tolist(), 'holdout_residual': error.tolist(),
+                  'mae': float(np.mean(abs(error))),
                   'rmse': float(np.sqrt(np.mean(error ** 2))), 'max_error': float(np.max(abs(error))),
                   'unit': response['unit'], 'range': deepcopy(variables),
                   'training_support_bounds': [support[0].tolist(), support[1].tolist()],
@@ -1382,7 +1415,12 @@ def analyze_sensitivity(plan, table, response):
         raise ValueError("Sobol analysis requires complete finite nonconstant model outputs")
     result = analyze(sampling['problem'], y, calc_second_order=sampling['second_order'], seed=sampling['seed'])
     return {'method': 'SALib.sobol', 'sampling': deepcopy(sampling), 'response': deepcopy(response),
-            'indices': {key: np.asarray(value).tolist() for key, value in result.items()},
+            'indices': {key: _nullable(np.asarray(value).tolist()) for key, value in result.items()},
+            'undefined_indices': 'null: undefined estimates or unused S2 diagonal/lower triangle; never zero',
+            'second_order_pairs': [{'first': sampling['problem']['names'][i], 'second': sampling['problem']['names'][j],
+                'value': _nullable(float(result['S2'][i, j])), 'confidence': _nullable(float(result['S2_conf'][i, j]))}
+                for i in range(len(sampling['problem']['names'])) for j in range(i + 1, len(sampling['problem']['names']))]
+                if sampling['second_order'] else [],
             'candidate_ids': [row['candidate_id'] for row in rows]}
 
 
@@ -1420,7 +1458,10 @@ def epsilon_optimize(evaluator_or_factory, variables, objectives, *, threshold_g
             row['candidate_id'] = f'E{index:04d}_{row["candidate_id"]}'
         all_rows.extend(child['candidates'])
         children.append({'child_id': f'E{index:04d}', 'thresholds': list(limits), 'termination_reason': child['termination_reason'],
-                         'evaluation_count': len(child['candidates'])})
+                         'evaluation_count': len(child['candidates']),
+                         'dispatched_evaluations_total': child['timing']['dispatched_evaluations_total'],
+                         'execution_status': child['execution_status'],
+                         'feasible_count': sum(bool(row.get('feasible')) for row in child['candidates'])})
         remaining -= child['timing']['dispatched_evaluations_total']
         if child['execution_status'] in ('CANCELLED', 'REJECTED'):
             stopped = child['termination_reason']
