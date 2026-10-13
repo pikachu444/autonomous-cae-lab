@@ -24,7 +24,7 @@ from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + RESEARCH_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -56,6 +56,7 @@ class Owner:
         self.project = Project(self)
         self.motion = Motion(self)
         self.fem = FEMEditor(self)
+        self.research = ResearchInputs(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
             if hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None:
@@ -244,7 +245,7 @@ class Owner:
             else:
                 if operation not in {'document.activate', 'pre.contact.cancel_rebind'}:
                     self._idle()
-                readonly = {'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
+                readonly = {'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
@@ -273,6 +274,8 @@ class Owner:
                         window.raise_()
                         window.activateWindow()
                     payload = {**self.descriptor(), **({'save': payload} if operation == 'document.save' else {})}
+                elif operation in RESEARCH_OPERATIONS:
+                    payload = self.research.dispatch(operation, args, target)
                 elif operation in PARAMETER_OPERATIONS:
                     payload = self.parameters.dispatch(operation, args, target)
                 elif operation in PROJECT_OPERATIONS:

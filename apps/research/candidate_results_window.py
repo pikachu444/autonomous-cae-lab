@@ -116,9 +116,11 @@ class CandidateResultsWindow(QMainWindow):
         row = QHBoxLayout(); self.fields = QComboBox()
         self.fields.setObjectName('candidateRetainedFields')
         self.fields.currentIndexChanged.connect(self._update_actions)
+        self.design_button = QPushButton('Open as new design…')
+        self.design_button.clicked.connect(self.open_design)
         self.post_button = QPushButton('Open selected retained field in Post')
         self.post_button.clicked.connect(self.open_post)
-        row.addWidget(self.fields, 1); row.addWidget(self.post_button); layout.addLayout(row)
+        row.addWidget(self.fields, 1); row.addWidget(self.post_button); row.addWidget(self.design_button); layout.addLayout(row)
         self.setCentralWidget(root)
         self._update_actions()
         self.refresh_catalog()
@@ -138,6 +140,7 @@ class CandidateResultsWindow(QMainWindow):
     def _update_actions(self, *_):
         current = self._current()
         self.refresh_button.setEnabled(current and not self._busy)
+        self.design_button.setEnabled(current and not self._busy and bool((self._composite or {}).get('editable_design', {}).get('calculated')))
         self.post_button.setEnabled(current and not self._busy and self.fields.currentData() is not None)
         self.curve_read.setEnabled(current and not self._busy and self._evaluation_index is not None
                                    and self.native_location.currentData() is not None)
@@ -264,7 +267,13 @@ class CandidateResultsWindow(QMainWindow):
             if not isinstance(field, dict) or not field.get('id') or field['id'] in seen: continue
             seen.add(field['id'])
             self.fields.addItem(field['id'] + ' · ' + str(field.get('format', 'field')) + ' · ' + str(field.get('sha256', ''))[:12], deepcopy(field))
+        if result.get('backend') == 'structure.calculix.design' and result.get('post_artifact'):
+            self.fields.addItem('Calculated native fields', {'native_candidate': True})
         self._native_catalog = deepcopy(result.get('native_channels', {}))
+        for name, response in result.get('responses', {}).items():
+            if response.get('kind') == 'series':
+                self._native_catalog.setdefault(name, {'unit': response.get('unit'),
+                    'selectors': [name], 'axes': deepcopy(response.get('axes', []))})
         self.native_channel.blockSignals(True); self.native_channel.clear()
         for name, descriptor in self._native_catalog.items():
             self.native_channel.addItem(name + ' [' + str(descriptor.get('unit', 'undeclared')) + ']', name)
@@ -385,18 +394,39 @@ class CandidateResultsWindow(QMainWindow):
             options['attempt_id'] = attempt
         self._call(lambda: self.client.numerical_evaluation_result(document, job, candidate, **options), accepted, self._serial)
 
+    def open_design(self):
+        if not self._current() or self._busy or self._evaluation_index is None:
+            return
+        from PySide6.QtWidgets import QMessageBox
+        answer = QMessageBox.question(self, 'Open calculated design',
+            'Open this calculated candidate as a separate editable CAD design?',
+            QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if answer != QMessageBox.StandardButton.Open:
+            return
+        document, _, job, candidate = self.identity
+        index = self._evaluation_index
+        def launch():
+            receipt = self.client.cad_candidate_open(document, job, candidate, index)
+            from .desktop import _spawn
+            return _spawn(self.client, ['pre', '--input-id', receipt['input_id']])
+        self._call(launch, lambda _: self.message.setText('Opened the retained calculated candidate as a new design.'), self._serial)
+
     def open_post(self):
         field = self.fields.currentData()
         if not field or not self._current(): return
         document, _, job, candidate = self.identity
         source = {'document_id': document, 'candidate_id': candidate, 'evaluation_index': self._evaluation_index, 'attempt_id': self._attempt_id}
         def launch():
-            native = self.client.native_input(field['id'])
-            if not field.get('sha256') or native.get('sha256') != field['sha256']:
+            selected = field
+            if field.get('native_candidate'):
+                selected = self.client.cad_candidate_post(document, job, candidate, source['evaluation_index'])
+            native = self.client.native_input(selected['id'])
+            if not selected.get('sha256') or native.get('sha256') != selected['sha256']:
                 raise ValueError('Registered field differs from this retained stage result')
-            if self.post_open: return self.post_open(deepcopy(field), deepcopy(source))
+            if self.post_open: return self.post_open(deepcopy(selected), deepcopy(source))
             from .desktop import launch_post
-            return launch_post(self.client, field['id'], job_id=job, research_source=source)
+            return launch_post(self.client, selected['id'], job_id=job, research_source=source)
         self._call(launch, lambda _: self.message.setText('Requested Post for the exact retained field and parent Plan job.'), self._serial)
 
     def closeEvent(self, event):

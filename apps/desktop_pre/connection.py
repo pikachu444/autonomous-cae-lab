@@ -44,6 +44,8 @@ class Connection:
         self.cancel_button.clicked.connect(self.cancel)
         self.retry_button = QtWidgets.QPushButton('Retry request')
         self.retry_button.clicked.connect(self.retry)
+        self.numerical_button = QtWidgets.QPushButton('Numerical…')
+        self.numerical_button.clicked.connect(lambda: self.show_panel('research'))
         self.runner_button = QtWidgets.QPushButton('Runner…')
         self.runner_button.clicked.connect(lambda: self.open_runner())
         self.connect_button = QtWidgets.QPushButton('Reconnect')
@@ -51,7 +53,7 @@ class Connection:
         layout.addWidget(self.identity)
         controls = QtWidgets.QHBoxLayout()
         for widget in (self.run_button, self.cancel_button, self.retry_button,
-                       self.runner_button, self.connect_button):
+                       self.numerical_button, self.runner_button, self.connect_button):
             controls.addWidget(widget)
         controls.addStretch()
         layout.addLayout(controls)
@@ -296,6 +298,18 @@ class Connection:
         else:
             self.send_command()  # Exact command ID/session/generation; never an automatic new attempt.
 
+    def create_numerical_plan(self, command_id, operation):
+        def opened(value):
+            document = value['document']
+            command = [self.config['python'], '-m', 'apps.research.desktop', '--service',
+                       self.config['service_url'], 'numerical', '--document-id', document['id']]
+            environment = os.environ.copy()
+            for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
+                environment.pop(key, None)
+            subprocess.Popen(command, cwd=str(Path(__file__).resolve().parents[2]), env=environment)
+        self.request('cad-plan:' + command_id,
+            lambda: self.client.cad_numerical_plan(command_id, operation=operation), opened)
+
     def open_runner(self, identifier=None):
         command = [self.config['python'], '-m', 'apps.research.runner_window', '--service', self.config['service_url']]
         if identifier:
@@ -326,7 +340,12 @@ class Connection:
             modules = {'parameters': ('parameter_panel', owner.parameters, 'Research variables'),
                        'motion': ('motion_panel', owner.motion, 'Assembly motion'),
                        'fem': ('fem_panel', owner.fem, 'Mesh, regions and conditions')}
-            if kind == 'project':
+            if kind == 'research':
+                from .research_panel import make_panel
+                submit = lambda operation, args, target=None, on_done=None: self.submit_native(operation, args, target, on_done, owner=owner)
+                widget = make_panel(self.QtWidgets, self.QtCore, owner.research, submit, self.create_numerical_plan)
+                title = 'Analysis research'
+            elif kind == 'project':
                 from .native_controls import project_panel
                 widget = project_panel(self, owner)
                 title = 'Project and calculations'
