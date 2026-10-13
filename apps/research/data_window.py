@@ -15,7 +15,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit,
-    QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
+    QScrollArea, QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -128,13 +128,13 @@ class DataWindow(QMainWindow):
     def _build_ui(self):
         self.resize(1440, 940)
         self.setMinimumSize(960, 690)
-        files, edit = self.menuBar().addMenu('&File'), self.menuBar().addMenu('&Edit')
-        self.new_action = QAction('&New data document…', self, shortcut=QKeySequence.New)
-        self.open_action = QAction('&Open data document…', self, shortcut=QKeySequence.Open)
-        self.save_action = QAction('&Save', self, shortcut=QKeySequence.Save)
-        self.undo_action = QAction('&Undo mapping', self, shortcut=QKeySequence.Undo)
-        self.redo_action = QAction('&Redo mapping', self, shortcut=QKeySequence.Redo)
-        close = QAction('&Close', self, shortcut=QKeySequence.Close)
+        files, edit = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
+        self.new_action = QAction('새 데이터…', self, shortcut=QKeySequence.New)
+        self.open_action = QAction('열기…', self, shortcut=QKeySequence.Open)
+        self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
+        self.undo_action = QAction('실행 취소', self, shortcut=QKeySequence.Undo)
+        self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
+        close = QAction('닫기', self, shortcut=QKeySequence.Close)
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
@@ -147,13 +147,18 @@ class DataWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         toolbar.addActions([self.new_action, self.open_action, self.save_action, self.undo_action, self.redo_action])
-        self.source_button = QPushButton('Choose approved source…')
-        self.apply_button = QPushButton('Apply mapping')
-        self.import_button = QPushButton('Import table')
+        self.source_button = QPushButton('원본 선택…')
+        self.settings_button = QPushButton('가져오기 설정')
+        self.settings_button.setCheckable(True)
+        self.settings_button.setChecked(True)
+        self.settings_button.toggled.connect(lambda visible: self.editor.setVisible(visible))
+        self.apply_button = QPushButton('설정 적용')
+        self.import_button = QPushButton('가져오기')
+        self.import_button.setProperty('appearanceRole', 'primary')
         self.source_button.clicked.connect(self.choose_source)
         self.apply_button.clicked.connect(self.apply_inputs)
         self.import_button.clicked.connect(self.import_table)
-        for button in (self.source_button, self.apply_button, self.import_button):
+        for button in (self.source_button, self.settings_button, self.apply_button, self.import_button):
             toolbar.addWidget(button)
         self.identity = QLabel()
         toolbar.addWidget(self.identity)
@@ -173,28 +178,41 @@ class DataWindow(QMainWindow):
         layout.addLayout(conflict)
         horizontal = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel('Source and retained imports')
+        self.tree.setHeaderLabel('데이터 목록')
         self.tree.itemSelectionChanged.connect(self._selection_changed)
         horizontal.addWidget(self.tree)
         center = QWidget()
         central = QVBoxLayout(center)
-        self.source_label = QLabel('Choose an original numeric table from an approved source folder.')
+        self.source_label = QLabel('원본 선택에서 가져올 표 파일을 고르세요.')
         self.source_label.setWordWrap(True)
         central.addWidget(self.source_label)
-        self.editor = QWidget()
-        editor = QVBoxLayout(self.editor)
-        editor.setContentsMargins(0, 0, 0, 0)
+        self.editor = QTabWidget()
+        self.editor.setMaximumHeight(220)
+        self.editor.setMinimumHeight(150)
+        setting_pages = []
+        for title in ('열 및 단위', '시험 조건', '행 선택'):
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+            page = QWidget()
+            page_layout = QVBoxLayout(page)
+            page_layout.setContentsMargins(6, 6, 6, 6)
+            page_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+            scroll.setWidget(page)
+            self.editor.addTab(scroll, title)
+            setting_pages.append(page_layout)
+        editor, test_settings, row_settings = setting_pages
         parsing = QHBoxLayout()
         self.delimiter = QLineEdit(',')
         self.delimiter.setMaximumWidth(130)
         self.delimiter.setPlaceholderText(',  tab  space')
         self.skip_header = QLineEdit('0')
         self.skip_header.setMaximumWidth(90)
-        self.layout_button = QPushButton('Use preview column layout')
+        self.layout_button = QPushButton('원본의 열 구성 사용')
         self.layout_button.clicked.connect(self.use_preview_layout)
-        parsing.addWidget(QLabel('Delimiter'))
+        parsing.addWidget(QLabel('구분 문자'))
         parsing.addWidget(self.delimiter)
-        parsing.addWidget(QLabel('Skip header rows'))
+        parsing.addWidget(QLabel('건너뛸 머리글 행'))
         parsing.addWidget(self.skip_header)
         parsing.addWidget(self.layout_button)
         parsing.addStretch()
@@ -202,66 +220,70 @@ class DataWindow(QMainWindow):
         channel_controls = QHBoxLayout()
         self.channel_selector = QComboBox()
         self.channel_selector.currentTextChanged.connect(self._channel_changed)
-        channel_controls.addWidget(QLabel('Edit channel'))
+        channel_controls.addWidget(QLabel('편집할 채널'))
         channel_controls.addWidget(self.channel_selector, 1)
-        for title, mode in (('Add channel', 'add'), ('Clone channel', 'clone'), ('Remove channel', 'remove')):
+        for title, mode in (('추가', 'add'), ('복제', 'clone'), ('삭제', 'remove')):
             button = QPushButton(title)
             button.clicked.connect(lambda checked=False, mode=mode: self.edit_channels(mode))
             channel_controls.addWidget(button)
         editor.addLayout(channel_controls)
         self.mapping = QTableWidget(2, 10)
         self.mapping.setObjectName('dataMapping')
-        self.mapping.setHorizontalHeaderLabels(['Role', 'Channel / axis name', 'Source column', 'Unit', 'Component', 'Location', 'Measure', 'Frame', 'Scale', 'Offset'])
-        self.mapping.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.mapping.setHorizontalHeaderLabels(['역할', '채널 또는 축 이름', '원본 열', '단위', '성분', '위치', '물리량 정의', '좌표계', '배율', '보정값'])
+        self.mapping.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.mapping.horizontalHeader().setDefaultSectionSize(90)
+        self.mapping.setColumnWidth(1, 150)
         self.mapping.horizontalHeaderItem(3).setToolTip('Unit of the imported value after Scale and Offset. A label change does not convert values.')
         self.mapping.horizontalHeaderItem(8).setToolTip('Imported value = original value * Scale + Offset. Applied independently to axis and response; default Scale is 1.')
         self.mapping.horizontalHeaderItem(9).setToolTip('Added after scaling, in the declared imported unit; default Offset is 0.')
         self.mapping.verticalHeader().hide()
         self.mapping.setMaximumHeight(116)
+        self.mapping.setMinimumHeight(100)
         self.mapping.itemChanged.connect(self._mapping_item_edited)
         self.delimiter.textEdited.connect(self._edited)
         self.skip_header.textEdited.connect(self._edited)
         editor.addWidget(self.mapping)
-        example = QLabel('Column indexes start at 0; named columns use the exact header. For each row: imported value = original value * Scale + Offset (defaults: 1 and 0). Unit labels do not convert values. Original source values are preserved; no unit or frame conversion is inferred.')
+        example = QLabel('열 번호는 0부터 시작합니다. 가져올 값 = 원본 값 × 배율 + 보정값입니다. 단위 이름만 바꿔서는 값이 변환되지 않습니다.')
         example.setWordWrap(True)
         editor.addWidget(example)
         self.test_fields = {}
-        metadata = QHBoxLayout()
-        for key, label in (('test_id', 'Test ID'), ('specimen', 'Specimen'), ('protocol', 'Protocol'), ('temperature', 'Temperature / unit')):
+        for key, label in (('test_id', '시험 이름'), ('specimen', '시편'), ('protocol', '시험 방법'), ('temperature', '온도와 단위')):
+            metadata = QHBoxLayout()
             field = self.test_fields[key] = QLineEdit()
             field.textEdited.connect(self._edited)
             metadata.addWidget(QLabel(label))
             metadata.addWidget(field)
-        editor.addLayout(metadata)
+            test_settings.addLayout(metadata)
         self.row_fields = {}
         for key, label, placeholder in (
-            ('include_ranges', 'Calculation intervals', 'original row intervals: 3:20, 30:40; blank = all'),
-            ('exclude_rows', 'Calculation exclusions', 'original row IDs: 5, 8'),
-            ('exclude_ranges', 'Excluded intervals', 'original row intervals: 10:15'),
-            ('quality_rows', 'Raw quality invalid', 'original row IDs; does not exclude calculations'),
-            ('display_hidden_rows', 'Display hidden rows', 'original row IDs; does not exclude calculations'),
-            ('reasons', 'Exclusion reasons', 'row: reason; row: reason'),
-            ('quality_reasons', 'Quality reasons', 'row: reason; row: reason')):
+            ('include_ranges', '계산에 포함할 구간', '예: 3:20, 30:40 / 비우면 전체'),
+            ('exclude_rows', '계산에서 제외할 행', '예: 5, 8'),
+            ('exclude_ranges', '계산에서 제외할 구간', '예: 10:15'),
+            ('quality_rows', '품질이 불량한 행', '원본 행 번호 / 계산에서는 제외하지 않음'),
+            ('display_hidden_rows', '화면에서 숨길 행', '원본 행 번호 / 계산에서는 제외하지 않음'),
+            ('reasons', '계산 제외 이유', '행: 이유; 행: 이유'),
+            ('quality_reasons', '품질 불량 이유', '행: 이유; 행: 이유')):
             line = QHBoxLayout()
             field = self.row_fields[key] = QLineEdit()
             field.setPlaceholderText(placeholder)
             field.textEdited.connect(self._edited)
             line.addWidget(QLabel(label))
             line.addWidget(field)
-            editor.addLayout(line)
-        note = QLabel('Row IDs are zero-based original physical lines (NPZ: array indexes). Intervals include both endpoints. Raw quality, calculation selection and display hiding are independent. Fit / holdout roles belong to the Numerical Plan.')
+            row_settings.addLayout(line)
+        note = QLabel('원본 행 번호는 0부터 시작하며 구간은 양 끝을 포함합니다(NPZ는 배열 인덱스). 계산 제외, 품질 표시, 화면 숨김은 각각 독립적입니다. 피팅용과 검증용 자료는 수치 연구에서 나눕니다.')
         note.setWordWrap(True)
-        editor.addWidget(note)
+        row_settings.addWidget(note)
         central.addWidget(self.editor)
         vertical = QSplitter(Qt.Orientation.Vertical)
         self.sheets = QTabWidget()
+        self.sheets.setMinimumHeight(100)
         self.preview_table = self._table(['Original row'])
         self.values = self._table(['Original row', 'Axis', 'Response', 'Calculation', 'Raw quality', 'Display', 'Reason'])
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
-        self.sheets.addTab(self.preview_table, 'Original source preview')
-        self.sheets.addTab(self.values, 'Imported values')
-        self.sheets.addTab(self.details, 'Details / diagnostics')
+        self.sheets.addTab(self.preview_table, '원본 미리보기')
+        self.sheets.addTab(self.values, '가져온 값')
+        self.sheets.addTab(self.details, '진단 상세')
         vertical.addWidget(self.sheets)
         graph = QWidget()
         graph_layout = QVBoxLayout(graph)
@@ -271,31 +293,31 @@ class DataWindow(QMainWindow):
         self.row_count = QSpinBox()
         self.row_count.setRange(1, MAX_ROWS)
         self.row_count.setValue(MAX_ROWS)
-        self.read_button = QPushButton('Read selected rows')
+        self.read_button = QPushButton('구간 읽기')
         self.read_button.clicked.connect(self.retry_result)
-        rows.addWidget(QLabel('First response sample'))
+        rows.addWidget(QLabel('첫 표본'))
         rows.addWidget(self.row_start)
-        rows.addWidget(QLabel('Count'))
+        rows.addWidget(QLabel('개수'))
         rows.addWidget(self.row_count)
         rows.addWidget(self.read_button)
         self.result_channel = QComboBox()
         self.result_channel.currentTextChanged.connect(self._result_channel_changed)
-        rows.addWidget(QLabel('Imported channel'))
+        rows.addWidget(QLabel('채널'))
         rows.addWidget(self.result_channel)
         rows.addStretch()
         graph_layout.addLayout(rows)
         followup = QHBoxLayout()
-        self.compare_button = QPushButton('Compare retained prediction…')
+        self.compare_button = QPushButton('예측 결과와 비교…')
         self.compare_button.clicked.connect(self.choose_prediction)
-        self.plan_button = QPushButton('Open / create Numerical Plan…')
+        self.plan_button = QPushButton('수치 연구…')
         self.plan_button.clicked.connect(lambda: self.request_followup('numerical'))
-        self.expert_button = QPushButton('Consult Expert with selected result…')
+        self.expert_button = QPushButton('전문가에게 질문…')
         self.expert_button.clicked.connect(lambda: self.request_followup('expert'))
         for button in (self.compare_button, self.plan_button, self.expert_button):
             followup.addWidget(button)
         graph_layout.addLayout(followup)
         saved_comparisons = QHBoxLayout()
-        saved_comparisons.addWidget(QLabel('Retained comparison'))
+        saved_comparisons.addWidget(QLabel('저장한 비교'))
         self.comparison_selector = QComboBox()
         self.comparison_selector.setObjectName('dataSavedComparison')
         self.comparison_selector.currentIndexChanged.connect(self._comparison_changed)
@@ -306,10 +328,11 @@ class DataWindow(QMainWindow):
         graph_layout.addWidget(self.result_label)
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas.setMinimumHeight(140)
         self.axes = self.figure.add_subplot(111)
         graph_layout.addWidget(self.canvas, 1)
         vertical.addWidget(graph)
-        vertical.setSizes([330, 310])
+        vertical.setSizes([220, 420])
         central.addWidget(vertical, 1)
         horizontal.addWidget(center)
         horizontal.setSizes([225, 1190])
@@ -379,7 +402,11 @@ class DataWindow(QMainWindow):
         self._preview = None
         self.preview_table.setRowCount(0)
         self._show_document(document)
-        self.message.setText('Map the original axis and response, Apply mapping, then Import table. Opening a document never imports it again.')
+        self.settings_button.setChecked(not bool(document.get('runs')))
+        self.editor.setCurrentIndex(0)
+        self.sheets.setCurrentWidget(self.values if document.get('runs') else self.preview_table)
+        self.message.setText('저장한 데이터를 읽었습니다. 내용을 바꾸려면 가져오기 설정을 여세요.' if document.get('runs') else
+                             '원본의 열과 단위를 지정하고 설정 적용 후 가져오기를 누르세요.')
         QTimer.singleShot(0, self.refresh_preview)
 
     def _show_document(self, document, *, prefer_job=None):
@@ -519,16 +546,16 @@ class DataWindow(QMainWindow):
     def _populate_tree(self, prefer_job=None):
         self.tree.blockSignals(True)
         self.tree.clear()
-        source = QTreeWidgetItem(['Original source'])
+        source = QTreeWidgetItem(['원본 파일'])
         source.setToolTip(0, str(self._source_id))
         self.tree.addTopLevelItem(source)
-        imports = QTreeWidgetItem(['Retained imports'])
+        imports = QTreeWidgetItem(['가져온 데이터'])
         self.tree.addTopLevelItem(imports)
         self._selected_job = prefer_job or self._selected_job
         if self._selected_job is None and self.document['runs']:
             self._selected_job = self.document['runs'][-1]['job_id']
         for index, run in enumerate(self.document['runs']):
-            text = f"Import {index + 1} · input g{run['input_generation']}"
+            text = f"데이터 {index + 1}"
             item = QTreeWidgetItem([text])
             item.setData(0, Qt.ItemDataRole.UserRole, run['job_id'])
             item.setToolTip(0, run['job_id'])
@@ -729,7 +756,9 @@ class DataWindow(QMainWindow):
             self._preview_retry = 0
             self.preview_table.setRowCount(0)
             self._edited()
-            self.source_label.setText('Selected original: ' + receipt['name'] + ' · unapplied source change')
+            self.settings_button.setChecked(True)
+            self.editor.setCurrentIndex(0)
+            self.source_label.setText('선택한 원본: ' + receipt['name'] + ' (설정 적용 필요)')
             QTimer.singleShot(0, self.refresh_preview)
         return self._call(lambda: self.client.register_local_input(root, relative), registered)
 
@@ -752,8 +781,8 @@ class DataWindow(QMainWindow):
             for row, values in enumerate(table.get('rows', [])):
                 for column, value in enumerate([table.get('row_numbers', [])[row] if row < len(table.get('row_numbers', [])) else 'unknown'] + values):
                     self.preview_table.setItem(row, column, QTableWidgetItem(str(value)))
-            self.source_label.setText(('Retained original: ' if preview.get('retained') else 'Registered original: ') +
-                preview.get('name', self._source_id) + (' · bounded preview' if table else ' · ' + preview.get('preview', 'No simple table preview; mapping remains explicit.')))
+            self.source_label.setText('원본: ' + preview.get('name', self._source_id) +
+                (' (일부 행 미리보기)' if table else ' (미리보기 없음, 열 구성을 직접 지정하세요.)'))
             self._show_details()
             self._update_actions()
         method = (lambda: self.client.document_source_preview(self.document['id'])) if applied else (lambda: self.client.input_preview(self._source_id))
@@ -784,6 +813,7 @@ class DataWindow(QMainWindow):
             self.row_start.setValue(0)
             self._clear_result()
         if identifier:
+            self.sheets.setCurrentWidget(self.values)
             self.refresh_result()
         else:
             self.sheets.setCurrentWidget(self.preview_table)
@@ -869,19 +899,20 @@ class DataWindow(QMainWindow):
         selector = self.comparison_selector
         selector.blockSignals(True)
         selector.clear()
-        selector.addItem('No comparison overlay', None)
+        selector.addItem('비교 없음', None)
         records = list((self.document or {}).get('comparisons', []))
         current = (self._comparison or {}).get('result', {})
         if current.get('id') and not any(row['id'] == current['id'] for row in records):
             records.append({'id': current['id'], 'binding': current.get('binding', {}), 'metrics': current.get('comparison', {})})
-        for record in records:
+        for number, record in enumerate(records, 1):
             binding = record.get('binding', {})
             if not self._matches_source(binding.get('source')):
                 continue
             prediction = binding.get('prediction_source', {})
             metrics = record.get('metrics', {})
-            label = f"{prediction.get('response', '?')} · {prediction.get('document_id', '?')} / {prediction.get('job_id', '?')} · RMSE {metrics.get('rmse', '?')} {metrics.get('unit', '')}"
+            label = f"비교 {number}: {prediction.get('response', '?')} / RMSE {metrics.get('rmse', '?')} {metrics.get('unit', '')}"
             selector.addItem(label, record['id'])
+            selector.setItemData(selector.count() - 1, f"{prediction.get('document_id', '?')} / {prediction.get('job_id', '?')}", Qt.ItemDataRole.ToolTipRole)
         index = selector.findData(self._comparison_id)
         selector.setCurrentIndex(max(0, index))
         if index < 0 and self._comparison_id is not None:
@@ -1068,7 +1099,10 @@ class DataWindow(QMainWindow):
         _, identifier, start, _, _ = key
         run = next(item for item in self.document['runs'] if item['job_id'] == identifier)
         stale = self.local_dirty or not run.get('is_current_input', run['input_generation'] == self.document['generation'])
-        self.result_label.setText(f"Import g{run['input_generation']} · {receipt['status']['state']}" + (' · earlier mapping/source' if stale else ' · current applied input'))
+        state = receipt['status']['state']
+        state = {'SUCCEEDED': '가져오기 완료', 'FAILED': '가져오기 실패', 'RUNNING': '가져오는 중',
+                 'QUEUED': '대기 중', 'CANCELLED': '취소됨', 'SAVED': '저장된 데이터'}.get(state, state)
+        self.result_label.setText(state + (' / 이전 원본 또는 설정의 데이터' if stale else ' / 현재 적용된 설정'))
         responses = receipt.get('result', {}).get('responses', {})
         if not responses:
             error = receipt['status'].get('error')
@@ -1160,10 +1194,11 @@ class DataWindow(QMainWindow):
                 self.axes.legend()
         self.axes.set_xlabel(f"{axis.get('name', 'unknown')} [{axis.get('unit', 'unknown')}]")
         self.axes.set_ylabel(f"{name} [{response.get('unit', 'unknown')}]")
-        self.axes.set_title(' · '.join(f'{key}: {response.get(key, "UNSPECIFIED")}' for key in ('component', 'location', 'measure', 'frame')), fontsize=9)
+        self.axes.set_title(str(response.get('measure', 'UNSPECIFIED')) + ' (' +
+            ', '.join(str(response.get(key, 'UNSPECIFIED')) for key in ('component', 'location', 'frame')) + ')', fontsize=9)
         self.axes.grid(True, alpha=.25)
         self.canvas.draw_idle()
-        self.result_label.setText(self.result_label.text() + f' · response samples [{start}, {start + len(values)})')
+        self.result_label.setText(self.result_label.text() + f' / 표본 {start}부터 {len(values)}개')
         self._show_details()
 
     def _show_details(self):
@@ -1195,7 +1230,8 @@ class DataWindow(QMainWindow):
         self.copy_button.setEnabled(not self._busy)
         if present:
             self.setWindowTitle('Data — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
-            self.identity.setText(f"  g{self.document['generation']}" + (' · unapplied edits' if self.local_dirty else ''))
+            self.identity.setText('설정 적용 필요' if self.local_dirty else '입력 오류' if blocked or self._view_error else
+                '저장하지 않은 변경' if self.document.get('dirty') else '저장됨' if self.document.get('saved_revision') is not None else '새 문서')
             self.identity.setToolTip(f"Document: {self.document['id']}\nSession: {self.document['session_id']}\nSaved: {self.document.get('saved_revision')}")
 
     def _leave(self, continuation):
