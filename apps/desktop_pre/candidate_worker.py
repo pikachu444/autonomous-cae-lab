@@ -17,6 +17,40 @@ from .candidate_correspondence import apply as apply_correspondence, validate_or
 _active = None
 
 
+
+def verify_saved_project(path, folder, recipe, values, App, Gui):
+    """Read the exact retained model; never rebind or update its fingerprints."""
+    from .mesh_binding import PROPERTY_NAME
+    before = sha(path)
+    manifest, entry = unpack_project(path, folder)
+    if manifest.get('unavailable_dependencies'):
+        raise ValueError('Prepared design has unavailable saved dependencies')
+    doc = App.openDocument(str(entry))
+    analysis = doc.getObject(recipe['analysis_id'])
+    for row in recipe['meshes']:
+        mesh = doc.getObject(row['object_id'])
+        if (mesh is None or analysis is None or mesh not in analysis.Group
+                or getattr(mesh, 'Suppressed', False)
+                or getattr(getattr(mesh, 'Shape', None), 'Name', None) != row['body_id']
+                or PROPERTY_NAME not in mesh.PropertiesList):
+            raise ValueError('Reopened candidate mesh binding is missing or changed')
+    owner = Owner(doc, Path(folder) / 'inspection', App=App, Gui=Gui)
+    try:
+        validate_original_contacts(owner)
+        for row in recipe['meshes']:
+            owner.mesh_bindings.validate(owner._object(row['object_id']))
+        for row in recipe['variables']:
+            if value_at(owner, row['target'], row['unit']) != values[row['id']]:
+                raise ValueError('Reopened candidate variable changed: ' + row['label'])
+        if sha(path) != before:
+            raise ValueError('Prepared project changed during read-only reopening')
+        return {'state': 'VERIFIED', 'project_sha256': before,
+                'mesh_objects': [row['object_id'] for row in recipe['meshes']],
+                'contact_repair_performed': False}
+    finally:
+        owner.close()
+
+
 class CandidateWorker:
     def __init__(self, config, App, Gui, QtCore):
         self.config, self.App, self.Gui, self.QtCore = config, App, Gui, QtCore
@@ -134,9 +168,20 @@ class CandidateWorker:
         snapshot = self.owner.export_root / result['result']['snapshot_relative']
         manifest = load_json(snapshot)
         editable = snapshot.parent / manifest['editable_project']
-        self.record.update(state='PREPARED', phase='prepared', snapshot=str(snapshot),
-                           editable_project=str(editable), editable_sha256=sha(editable),
-                           solver_execution='NOT_PERFORMED')
+        self.record.update(snapshot=str(snapshot), editable_project=str(editable),
+                           editable_sha256=sha(editable), solver_execution='NOT_PERFORMED')
+        self.record_phase('saved_reopen')
+        # The native process owns all these transient documents. Release the
+        # live originals so the check reads saved bytes, not an open document.
+        self.owner.close()
+        self.owner = None
+        self.document = None
+        for doc in list(self.App.listDocuments().values()):
+            self.App.closeDocument(doc.Name)
+        self.record['saved_reopen'] = verify_saved_project(
+            editable, self.folder / 'saved-check', self.recipe,
+            self.config['settings']['values'], self.App, self.Gui)
+        self.record.update(state='PREPARED', phase='prepared')
         save_json(self.folder / 'candidate-preparation.json', self.record)
         self.finish(0)
 

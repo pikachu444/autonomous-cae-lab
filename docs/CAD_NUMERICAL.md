@@ -227,3 +227,25 @@ The selected-candidate test now runs the actual small DOE/owner/retention path
 with a clearly marked native evaluator double, preserves a failed candidate,
 cold-reopens its Plan, and registers the exact successful editable bytes.
 No native or engineering result is inferred from that test.
+
+
+## Saved-model gate before calculation
+
+The candidate worker now closes its transient native documents and opens the
+exact frozen editable CAEPRE again before returning PREPARED. It reads the
+existing contact definitions, strict mesh bindings and typed candidate values.
+It performs no correspondence repair, fingerprint rewrite or recompute in
+this check. A mismatch leaves a failed attempt at saved_reopen with the earlier
+draft, frozen project and diagnostics retained; no solver is started for it.
+
+Root reported 37ac470 reached PREPARED in an actual native candidate preparation;
+that report did not yet establish a cold-reopen pass. Older retained Bridge
+models have a confirmed saved/live target mismatch. The new gate detects this
+boundary; it is not a claim that the older model has been repaired. No binary
+serialization change or BREP equivalence rule has been inferred from that
+observation.
+
+The new cold-service test passed the workbench subdirectory back as the workspace,
+creating a second workbench level. It now uses the original workspace while
+keeping the same saved Plan/result and exact candidate-byte assertions.
+Pro remote tests/native execution remain NOT_RUN.
