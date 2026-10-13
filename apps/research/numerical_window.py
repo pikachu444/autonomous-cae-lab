@@ -10,6 +10,7 @@ import uuid
 from time import monotonic
 
 from PySide6.QtCore import QThreadPool, QTimer, Qt
+from shiboken6 import isValid
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QAbstractItemView, QComboBox, QDialog,
     QDialogButtonBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow,
@@ -187,7 +188,7 @@ class NumericalWindow(QMainWindow):
         self._pending_adoption = None
         self._adoption_receipt = None
         self._drawn_result_job = None
-        self._allow_close = False
+        self._allow_close = self._closed = False
         self._worker = None
         self._result_cache, self._result_errors, self._statuses = {}, {}, {}
         self._result_after = {}
@@ -366,13 +367,15 @@ class NumericalWindow(QMainWindow):
         # A confirmation dialog runs a nested Qt event loop. Its timer must not
         # start a background read between a foreground callback and its next
         # request (for example Material read -> confirm -> adopt).
-        if self._busy or background and self._callbacks:
+        if self._closed or not isValid(self) or self._busy or background and self._callbacks:
             return False
         self._busy = True
         self._busy_background = background
         self._update_actions()
         self._worker = worker = _Read(function)
         def finished(value, error):
+            if self._closed or not isValid(self) or self._worker is not worker:
+                return
             self._busy, self._worker = False, None
             self._busy_background = False
             self._callbacks += 1
@@ -388,13 +391,14 @@ class NumericalWindow(QMainWindow):
                 # One explicit adoption click may wait for a read already in
                 # flight. Dispatch it before another timer can claim _busy.
                 pending, self._pending_adoption = self._pending_adoption, None
-                if pending:
+                if pending and not self._closed:
                     pending()
             finally:
                 self._callbacks -= 1
-                self._update_actions()
-                if getattr(self,'_trial_source_queue',None):
-                    QTimer.singleShot(0,self._drain_trial_sources)
+                if not self._closed and isValid(self):
+                    self._update_actions()
+                    if getattr(self,'_trial_source_queue',None):
+                        QTimer.singleShot(0,self._drain_trial_sources)
         worker.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
         return True
@@ -597,7 +601,7 @@ class NumericalWindow(QMainWindow):
             self._populating=old
 
     def _queue_trial_sources(self, trials):
-        if self.client is None or self._allow_close or not self.document: return
+        if self._closed or not isValid(self) or self.client is None or self._allow_close or not self.document: return
         owner=(self.document['id'],self.document['session_id'])
         for trial in trials:
             key=self._trial_source_key(trial)
@@ -606,6 +610,8 @@ class NumericalWindow(QMainWindow):
         if self._trial_source_queue: QTimer.singleShot(0,self._drain_trial_sources)
 
     def _drain_trial_sources(self):
+        if self._closed or not isValid(self):
+            return
         if self._busy or self._callbacks or self._pending_adoption or self._allow_close or not self.document: return
         owner=(self.document['id'],self.document['session_id'])
         active=list(self._experiments)
@@ -1023,6 +1029,8 @@ class NumericalWindow(QMainWindow):
         self.refresh_result()
 
     def refresh_document(self):
+        if self._closed or not isValid(self):
+            return
         if self._callbacks or self._pending_adoption:
             return
         if self._analysis_job and not self._busy:
@@ -1045,6 +1053,8 @@ class NumericalWindow(QMainWindow):
         self._call(lambda: self.client.document_read(identifier), received, background=True)
 
     def refresh_result(self):
+        if self._closed or not isValid(self):
+            return
         job = self.selected_job()
         if self._busy or self._callbacks or self._pending_adoption or not job or job in self._result_cache or monotonic() < self._result_after.get(job, 0):
             return
@@ -1400,6 +1410,8 @@ class NumericalWindow(QMainWindow):
         self._call(lambda: self.client.submit('analyze', {'result_refs': {'table': reference}, 'responses': [declaration]}), analyzed)
 
     def refresh_analysis(self):
+        if self._closed or not isValid(self):
+            return
         job = self._analysis_job
         if not job or self._busy or self._callbacks or self._pending_adoption:
             return
@@ -1482,8 +1494,14 @@ class NumericalWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            self._closed = True
             self.timer.stop()
             self._trial_source_queue.clear()
+            self._pending_adoption = None
+            if self._worker is not None:
+                self._worker.abandon()
+            self._worker = None
+            self._busy = self._busy_background = False
             event.accept()
         else:
             event.ignore()

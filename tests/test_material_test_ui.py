@@ -8,7 +8,7 @@ import warnings
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QFileDialog, QInputDialog
 from apps.research.data_window import DataWindow
 from apps.research.numerical_window import NumericalWindow
@@ -21,7 +21,18 @@ from caelab.storage import canonical_hash
 
 @pytest.fixture
 def app():
-    return QApplication.instance() or QApplication([])
+    application=QApplication.instance() or QApplication([])
+    previous=set(application.topLevelWidgets())
+    yield application
+    # Includes assertion-failure cleanup: never leave a read scheduled against
+    # a later test's dead service or a disappearing QApplication.
+    for window in set(application.topLevelWidgets())-previous:
+        if isinstance(window,(DataWindow,NumericalWindow)):
+            window._allow_close=True
+            window.close()
+    application.processEvents()
+    assert QThreadPool.globalInstance().waitForDone(5000), 'D5 read workers did not drain'
+    application.processEvents()
 
 
 def wait(app,condition):

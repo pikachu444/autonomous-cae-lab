@@ -8,6 +8,7 @@ import time
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
+from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication, QInputDialog
 
 from apps.lab.server import LabHTTPServer
@@ -106,9 +107,16 @@ def test_actual_http_mask_metadata_channel_edit_save_import_undo(app, tmp_path):
         wait(app, lambda: not window._busy)
         window._allow_close = True
         window.close()
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
+        try:
+            # Keep the HTTP service alive until queued GUI continuations are
+            # gated by close and the existing QRunnables have returned.
+            app.processEvents()
+            assert QThreadPool.globalInstance().waitForDone(5000), 'Data HTTP reads did not drain'
+            app.processEvents()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
 
 def test_channel_add_clone_remove_and_explicit_followups(app, monkeypatch):

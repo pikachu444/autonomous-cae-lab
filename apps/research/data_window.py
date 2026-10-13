@@ -8,9 +8,11 @@ import math
 import os
 from time import monotonic
 import sys
+import threading
 import uuid
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal, QItemSelectionModel
+from shiboken6 import isValid
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog,
@@ -71,21 +73,42 @@ class _Read(QRunnable):
     def __init__(self, function):
         super().__init__()
         self.function, self.signals = function, _Signals()
+        self.completed = threading.Event()
+        self._delivery_lock = threading.Lock()
+        self._abandoned = False
+
+    def abandon(self):
+        # View lifetime only: never cancel an already submitted owner job.
+        with self._delivery_lock:
+            self._abandoned = True
 
     def run(self):
+        value, message = None, None
         try:
-            value = self.function()
-        except Exception as error:
-            if hasattr(error, 'read'):
-                try:
-                    message = error.read().decode('utf-8')
-                except (OSError, UnicodeError):
+            with self._delivery_lock:
+                if self._abandoned:
+                    return
+            try:
+                value = self.function()
+            except Exception as error:
+                if hasattr(error, 'read'):
+                    try:
+                        message = error.read().decode('utf-8')
+                    except (OSError, UnicodeError):
+                        message = str(error)
+                else:
                     message = str(error)
-            else:
-                message = str(error)
-            self.signals.finished.emit(None, message)
-        else:
-            self.signals.finished.emit(value, None)
+            with self._delivery_lock:
+                if not self._abandoned and isValid(self.signals):
+                    try:
+                        self.signals.finished.emit(value, message)
+                    except RuntimeError:
+                        # QApplication teardown can delete the C++ sender after
+                        # the validity check. Other live-sender errors still fail.
+                        if isValid(self.signals):
+                            raise
+        finally:
+            self.completed.set()
 
 
 class DataWindow(QMainWindow):
@@ -96,7 +119,7 @@ class DataWindow(QMainWindow):
         super().__init__()
         self.client, self.document = client, None
         self.local_dirty = self.conflict = self._busy = self._populating = False
-        self._allow_close = False
+        self._allow_close = self._closed = False
         self._worker = None
         self._accepting = False
         self._callback_calls = []
@@ -375,6 +398,8 @@ class DataWindow(QMainWindow):
         return table
 
     def _call(self, function, accepted, *, relevant=None, background=False, settled=None):
+        if self._closed or not isValid(self):
+            return False
         if self._busy:
             if self._accepting and not background:
                 self._callback_calls.append((function, accepted, relevant, settled))
@@ -386,6 +411,8 @@ class DataWindow(QMainWindow):
         self._update_actions()
         worker = self._worker = _Read(function)
         def finished(value, error):
+            if self._closed or not isValid(self) or self._worker is not worker:
+                return
             # Modal choosers process timer events. Keep the request lock until
             # their callback finishes, then start its explicit continuation.
             self._accepting = True
@@ -400,6 +427,8 @@ class DataWindow(QMainWindow):
             finally:
                 self._accepting = False
                 self._busy, self._worker = False, None
+            if self._closed or not isValid(self):
+                return
             self._update_actions()
             if self._callback_calls:
                 next_function, next_accepted, next_relevant, next_settled = self._callback_calls.pop(0)
@@ -711,6 +740,8 @@ class DataWindow(QMainWindow):
         return self.command('data.import')
 
     def refresh_document(self):
+        if self._closed or not isValid(self):
+            return
         if not self.document or self._busy:
             return
         identifier = self.document['id']
@@ -833,6 +864,8 @@ class DataWindow(QMainWindow):
         return self._call(lambda: self.client.register_local_input(root, relative), registered)
 
     def refresh_preview(self):
+        if self._closed or not isValid(self):
+            return
         if not self.document or not self._source_id or self._busy:
             return
         key = (self.document['id'], self._source_id, self.document.get('saved_revision'))
@@ -892,6 +925,8 @@ class DataWindow(QMainWindow):
         return (self.document['id'], self._selected_job, self.row_start.value(), self.row_count.value(), self._result_channel) if self.document else None
 
     def refresh_result(self):
+        if self._closed or not isValid(self):
+            return
         if not self.document or not self._selected_job or self._busy:
             return
         key = self._result_key()
@@ -1001,6 +1036,8 @@ class DataWindow(QMainWindow):
             self._show_details()
 
     def refresh_comparison(self):
+        if self._closed or not isValid(self):
+            return
         method = getattr(self.client, 'document_comparison', None)
         if not self.document or not self._comparison_id or method is None or self._busy:
             return False
@@ -1489,7 +1526,14 @@ class DataWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            self._closed = True
             self.timer.stop()
+            self._callback_calls.clear()
+            if self._worker is not None:
+                self._worker.abandon()
+            self._worker = None
+            self._busy = self._accepting = False
+            self._result_pending.clear()
             event.accept()
             return
         event.ignore()
@@ -1499,7 +1543,7 @@ class DataWindow(QMainWindow):
         self._leave(leave)
 
     def showEvent(self, event):
-        self._allow_close = False
+        self._allow_close = self._closed = False
         if self.timer.interval() > 0:
             self.timer.start()
         super().showEvent(event)

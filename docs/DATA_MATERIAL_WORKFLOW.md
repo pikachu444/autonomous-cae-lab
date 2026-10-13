@@ -178,3 +178,30 @@ python -m pytest tests/test_material_test_ui.py tests/test_material_test_workflo
 원본 교체·명시 응력 채널 선택·CAD 표시 fallback 경계를 다룹니다.
 기존 연결 검사 대역은 새로운 관측 선택에 필요한 실제 metadata API와 재료 backend를 반환하도록 맞췄습니다.
 GUI 사용자 수용과 공학 검증은 코드 작성/단위 확인과 구별합니다.
+
+
+### 637f089 수용과 종료 경로 후속
+
+Root는 Windows에서 `test_material_test_workflow.py`,
+`test_material_test_ui.py`, `test_data_multichannel_ui.py`의 **17개 검사를
+12.42초에 통과**시켰습니다. 이후 서비스 종료 뒤 Data HTTP 읽기의 연결 거절과
+삭제된 Qt signal sender의 traceback이 관찰됐습니다.
+이는 기능 assertion 실패와 별개의 종료 수명 문제이며, 그 기록을 지우지 않습니다.
+
+후속 소스는 닫힌 Data/Numerical 창의 예약 조회와 새 요청을 차단합니다.
+진행 중 읽기는 서비스 호출의 반환을 기다리되 닫힌 화면으로 전달하지 않습니다.
+이미 제출한 계산/가져오기/채택 명령이나 JobManager 작업은 창 종료 때문에 취소하지 않습니다.
+열린 창의 연결 실패는 기존 오류 경로로 표시하고,
+Qt sender가 실제로 삭제된 경우에만 종료 중 재발하는 signal 예외를 처리합니다.
+
+시험 자료의 다음 읽기 대기열과 GUI 후속 호출도 닫을 때 정리합니다.
+제품 GUI에서 전체 QThreadPool을 기다리거나 종료하지 않습니다.
+테스트는 창 닫기 → 예약 콜백 처리 → 작업 pool 종료 확인 → HTTP 서비스 종료 순서입니다.
+새 lifecycle 검사는 예약 조회, 늦은 실패/전달, sender 삭제를 다루며 새 solver 실행은 없습니다.
+
+작성 환경의 이 후속 Python/Qt 실행은 **NOT_RUN**입니다.
+변경 종료 경로만 먼저 확인하려면 다음을 실행합니다.
+
+```powershell
+python -m pytest tests/test_data_read_lifetime.py tests/test_data_multichannel_ui.py::test_actual_http_mask_metadata_channel_edit_save_import_undo -q
+```
