@@ -41,6 +41,12 @@ def verify_saved_project(path, folder, recipe, values, App, Gui):
             owner.mesh_bindings.validate(owner._object(row['object_id']))
         from .assembly_candidates import verify as verify_pose
         pose = verify_pose(owner, recipe, values, solve=True)
+        # Assembly solve/native binder evaluation must not invalidate the
+        # retained mesh or conditions after their initial readback checks.
+        if pose:
+            validate_original_contacts(owner)
+            for row in recipe['meshes']:
+                owner.mesh_bindings.validate(owner._object(row['object_id']))
         for row in recipe['variables']:
             if row['target']['family'] == 'joint_coordinate':
                 continue  # Measured in the explicit angular/length tolerance above.

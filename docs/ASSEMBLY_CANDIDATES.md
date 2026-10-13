@@ -30,6 +30,52 @@ Multiple/dependent/nested/loop assemblies, other joints, external or scaled
 occurrences, link arrays, multi-turn rotation, automatic repair of ambiguous
 references and other constitutive/contact physics remain D2 follow-up scope.
 
+
+### Native pose correction (PRO-ASSEMBLY-NATIVE-FIX-01)
+
+Codex reports real FreeCAD 1.1.4 creation of both public examples after correcting
+the installed CalculiX factory name and the example's numeric upper-bound
+variable. The four native attempts (Revolute −5/+5 deg, Slider −.05/+.05 mm)
+reached the requested Motion coordinate, then failed at the old unchanged-binder
+guard. They did **not** reach cold reopen, meshing or FE execution. Codex also
+reports 28 focused checks passing with its fixture/test-double corrections.
+These are integration reports, not author execution.
+
+This correction separates explicit pose creation from retained-geometry reads:
+
+1. Motion reaches the requested coordinate; the normal native solve settles it.
+2. The candidate explicitly evaluates its two registered occurrence supports.
+   This is the only pose-stage pass allowed to change the binders.
+3. Another evaluation must reproduce exactly the same body targets, and the
+   requested coordinate must still be present. Continually changing geometry
+   is rejected rather than repeatedly accepted as a new baseline.
+4. Existing correspondence proves the exact source faces. Only actual remeshing
+   can update the old mesh association; this pose update does not alter it.
+5. Post-mesh and cold-read checks snapshot **all** bodies before any solve,
+   check exact geometry through evaluation, then recheck contact definitions
+   and mesh associations. No Motion or reference repair runs during cold read.
+
+The receipt's occurrence_update.changed_bodies lists bodies changed specifically
+by the permitted Support evaluation; it is not a list of every occurrence that
+moved earlier during Motion. A previously already-evaluated binder may be absent.
+
+The original fixture wrote one-slot origin references. FreeCAD's
+[restore migration](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Assembly/JointObject.py#L580-L607)
+reads both element and vertex slots, explaining the reported IndexError warning.
+New fixtures write two empty slots. Native center/vertex connectors may repeat
+the same EdgeN/VertexN in their two roles; remapping preserves that pairing and
+still rejects distinct original entities merging. Malformed saved references
+are rejected, never padded or silently repaired on read. The long
+Analysis/Mesh/Binder prefix came from native
+[getContext's reverse dependency walk](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Assembly/JointObject.py#L153-L164);
+it is a diagnostic path, not evidence of nested geometric ownership.
+
+**This corrected source is NOT_RUN by its author.** The disconnected environment
+cannot compile or execute these Python/native checks. The supplied tests and
+native prepare/reopen scripts still need the integrator's bounded execution.
+Preserve the old failing examples. Create each corrected fixture in a fresh
+directory; do not reinterpret an old one-slot recipe as an accepted new source.
+
 ## Use from the desktop
 
 1. In FreeCAD, create/open the native Assembly and FEM Analysis. Solve the
@@ -101,11 +147,14 @@ only its own temporary Simulation/Motion objects for a continuous sweep from
 the measured coordinate to the requested coordinate. Five-degree angular
 sampling avoids one large rotational branch jump. It checks native return status
 and the measured final coordinate, removes only these temporary objects, and
-checks ordinary solve/recompute again. It never changes the joint to Fixed or
+checks ordinary solve/recompute again. It then explicitly evaluates the registered
+native supports and requires a second evaluation to leave their exact geometry
+unchanged, before existing correspondence and remeshing. It never changes the joint to Fixed or
 disables a global solving preference. An existing expression or Motion drive is
 an explicit conflict, not overwritten.
 
-The exact saved project is opened again without re-driving it. Requested versus
+The exact saved project is opened again without re-driving it. All occurrence
+targets are captured before normal solve or any binder recompute. Requested versus
 measured coordinate is checked **before** ordinary solve, and again afterward.
 A lost coordinate, changed binding or failed mesh remains a failed candidate.
 
@@ -148,7 +197,9 @@ Use the existing project environment, without package installation:
     python -m pytest tests/test_assembly_candidates.py tests/test_assembly_candidates_ui.py -q
 
 Those tests use explicit native doubles for measurement, limits, typed binding,
-history ambiguity, lost cold pose, temporary Motion cleanup and Qt commands.
+history ambiguity, native connector role pairing, lazy Support evaluation,
+repeated-evaluation instability, stale mesh retention with the real association
+owner, lost cold pose, temporary Motion cleanup and Qt commands.
 They do not claim FreeCAD/CalculiX execution.
 
 For actual native checks, use the installed FreeCAD GUI's Python console with
@@ -211,3 +262,9 @@ Planned/actual author scope: native Research picker/registration, optional recip
 existing candidate preparation/correspondence, source identity, related checks,
 public example and this feature guide. No Expert/Study/appearance/desktop.py,
 CURRENT_STATE, .moai, general Korean guide or upstream pin edits.
+
+
+Correction scope: assembly_candidates.py, occurrence_fem.py, candidate_worker.py,
+the public create/pose scripts, the focused contract tests and this guide.
+The Root-owned research_panel axis-origin display and Expert/Study/Numerical
+presentation files are not changed by this correction.

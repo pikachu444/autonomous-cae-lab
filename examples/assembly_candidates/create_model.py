@@ -52,7 +52,7 @@ def create(kind, directory):
     joint.Label = '회전' if kind == 'Revolute' else '직선 이동'
     # Explicit connector origins; no FaceN proxy for a joint coordinate.
     joint.Detach1 = joint.Detach2 = True
-    joint.Reference1, joint.Reference2 = (ground, ['']), (moving, [''])
+    joint.Reference1, joint.Reference2 = (ground, ['', '']), (moving, ['', ''])
     joint.Placement1 = App.Placement(App.Vector(5, 5, 3.2), App.Rotation())
     joint.Placement2 = App.Placement()
     JointObject.ViewProviderJoint(joint.ViewObject)
@@ -70,7 +70,7 @@ def create(kind, directory):
         raise ValueError('Native initial Assembly solve failed')
     owner = Owner(doc, folder / 'exchange', App=App, Gui=Gui)
     analysis = ObjectsFem.makeAnalysis(doc)
-    solver = ObjectsFem.makeSolverCalculixCcxTools(doc)
+    solver = ObjectsFem.makeSolverCalculiXCcxTools(doc)
     analysis.addObject(solver)
     solver.AnalysisType, solver.ModelSpace = 'static', '3D'
     solver.MaterialNonlinearity, solver.GeometricalNonlinearity = 'linear', 'nonlinear'
@@ -101,18 +101,18 @@ def create(kind, directory):
                                      {'label': label, 'subelements': names})
 
     support = region(rows[0], 'Face5', '받침 아래')
-    upper = region(rows[1], 'Face6', '이동 부품 위')
+    upper_region = region(rows[1], 'Face6', '이동 부품 위')
     slave = region(rows[1], 'Face5', '이동 접촉면')
     master = region(rows[0], 'Face6', '받침 접촉면')
     owner.fem._condition(analysis, {'region_id': support['id'], 'kind': 'Fixed'}, repair=False)
-    displacement = owner.fem._condition(analysis, {'region_id': upper['id'], 'kind': 'Displacement'}, repair=False)
+    displacement = owner.fem._condition(analysis, {'region_id': upper_region['id'], 'kind': 'Displacement'}, repair=False)
     condition = doc.getObject(displacement['object_id'])
     def prescribe():
         condition.xFree = condition.yFree = condition.zFree = False
         condition.xDisplacement = condition.yDisplacement = 0.
         condition.zDisplacement = -.35
         condition.EnableAmplitude = False
-        owner.fem._record_condition(condition, upper['id'])
+        owner.fem._record_condition(condition, upper_region['id'])
     owner._transaction('Public prescribed displacement', prescribe)
     contact = owner.fem.contact.set(analysis, {'draft': {
         'label': '부품과 받침', 'a_region_id': slave['id'], 'b_region_id': master['id'],

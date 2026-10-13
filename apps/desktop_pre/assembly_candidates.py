@@ -50,9 +50,9 @@ def structure(owner, assembly, joint=None):
         if not hasattr(candidate, 'JointType'):
             continue
         refs = [getattr(candidate, key, None) for key in ('Reference1', 'Reference2')]
-        if (any(not ref or ref[0] not in parts or not ref[1] for ref in refs)
+        if (any(not ref or ref[0] not in parts or len(ref[1]) != 2 for ref in refs)
                 or refs[0][0] is refs[1][0]):
-            raise ValueError('Repair incomplete joint references before native connectivity inspection')
+            raise ValueError('Repair native joint references (element and vertex slots) before connectivity inspection')
     actual = active[0]
     if joint is not None and actual is not joint:
         raise ValueError('Selected joint is suppressed or is not the independent coordinate')
@@ -60,7 +60,7 @@ def structure(owner, assembly, joint=None):
     if str(joint.JointType) not in {'Revolute', 'Slider'}:
         raise ValueError('This study supports Revolute angle and Slider travel; other joint types remain separate work')
     refs = [getattr(joint, name, None) for name in ('Reference1', 'Reference2')]
-    if (any(not ref or ref[0] not in parts or not ref[1] for ref in refs)
+    if (any(not ref or ref[0] not in parts or len(ref[1]) != 2 for ref in refs)
             or refs[0][0] is refs[1][0]
             or any('?' in str(name) for ref in refs for name in ref[1])):
         raise ValueError('Repair the exact two native joint connectors before a pose study')
@@ -148,6 +148,8 @@ def _connector_capture(owner, joint):
     records = []
     for side in ('1', '2'):
         occurrence, paths = getattr(joint, 'Reference' + side)
+        if len(paths) != 2:
+            raise ValueError('Native joint connector needs both element and vertex slots; edit it explicitly')
         source = source_of(occurrence)
         names, anchors = [], []
         for path in paths:
@@ -188,8 +190,13 @@ def _connector_expected(owner, saved):
                     raise ValueError('Changed joint connector has no exact native element history')
                 else:
                     names.append(resolve_names(source, [identity])[0])
-            if len([name for name in names if name]) != len(set(name for name in names if name)):
-                raise ValueError('Joint connector elements merged')
+            # Element and vertex are roles, not a set: native circle/vertex
+            # connectors legitimately repeat EdgeN/VertexN in both slots.
+            # Only distinct original entities collapsing to one is a merge.
+            for i, (old, new) in enumerate(zip(record['names'], names)):
+                for other_old, other_new in zip(record['names'][:i], names[:i]):
+                    if old and other_old and ((old == other_old) != (new == other_new)):
+                        raise ValueError('Joint connector identities merged or diverged')
         result.append([occurrence.Name, names])
     return result
 
@@ -301,7 +308,7 @@ def validate_definition(owner, saved):
     return assembly, joint
 
 
-def verify(owner, recipe, values, *, solve=False):
+def _verify_coordinate(owner, recipe, values, *, solve=False):
     saved = recipe.get('assembly')
     if not saved:
         return None
@@ -323,10 +330,29 @@ def verify(owner, recipe, values, *, solve=False):
         owner.doc.recompute()
         actual = measure(owner, joint)
         check(actual)
-    from .occurrence_fem import refresh_bindings
-    refresh_bindings(owner, owner._object(recipe['analysis_id']), saved['connection'], require_unchanged=True)
     return {'requested': target, 'measured': actual, 'source': 'native_relative_JCS',
             'before_solve': before, 'physics': 'initial_geometry_only', 'qualification': 'UNKNOWN'}
+
+
+def verify(owner, recipe, values, *, solve=False):
+    """Frozen boundary: no geometry refresh may repair a retained candidate."""
+    saved = recipe.get('assembly')
+    if not saved:
+        return None
+    from .occurrence_fem import binding_targets, refresh_bindings
+    analysis = owner._object(recipe['analysis_id'])
+    before = binding_targets(owner, analysis, saved['connection'])
+    result = _verify_coordinate(owner, recipe, values, solve=solve)
+    if binding_targets(owner, analysis, saved['connection']) != before:
+        raise ValueError('Retained occurrence geometry changed during native pose solve')
+    refresh_bindings(owner, analysis, saved['connection'], require_unchanged=True)
+    if binding_targets(owner, analysis, saved['connection']) != before:
+        raise ValueError('Retained occurrence geometry changed during native Support evaluation')
+    # Binder/document evaluation can itself trigger native work. Verify the
+    # final coordinate too, without another Motion or corrective solve.
+    final = _verify_coordinate(owner, recipe, values)
+    final['before_solve'] = result['before_solve']
+    return final
 
 
 def drive(owner, recipe, values):
@@ -377,4 +403,20 @@ def drive(owner, recipe, values):
         if simulation is not None:
             owner.doc.removeObject(simulation.Name)
     owner.doc.recompute()
-    return verify(owner, recipe, values, solve=True)
+    # A new candidate is the explicit write boundary. Native Motion moves the
+    # occurrence; a synchronized SubShapeBinder may still contain its old pose.
+    # Settle normal native solve first, then evaluate both exact supports.
+    settled = _verify_coordinate(owner, recipe, values, solve=True)
+    from .occurrence_fem import binding_targets, refresh_bindings
+    analysis = owner._object(recipe['analysis_id'])
+    before = binding_targets(owner, analysis, saved['connection'])
+    refresh_bindings(owner, analysis, saved['connection'], require_unchanged=False)
+    after = binding_targets(owner, analysis, saved['connection'])
+    # A second evaluation must now be stable. Repeatedly changing BRep/targets
+    # are a failure, not an excuse to update the baseline on every read.
+    result = verify(owner, recipe, values)
+    result['before_solve'] = settled['before_solve']
+    result['occurrence_update'] = {
+        'changed_bodies': [name for name in before if before[name] != after[name]],
+        'repeat_evaluation': 'UNCHANGED', 'mesh_rebound': False}
+    return result

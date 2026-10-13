@@ -102,28 +102,39 @@ def element_pairs(owner, assembly, row, family='Face'):
     return result
 
 
-def refresh_bindings(owner, analysis, expected=None, *, require_unchanged):
-    """Execute only the native binders, with an exact saved-geometry guard.
-
-    This checks native Support evaluation, not a hand-built transformed copy.
-    No preference change, mesh admission, fingerprint replacement or file save.
-    """
+def _bound_bodies(owner, analysis, expected):
     record = binding(owner, analysis.Name)
     if expected is not None and record != expected:
         raise ValueError('Saved Assembly-to-Analysis association changed')
     assembly = owner._object(record['assembly_id'])
-    before = {}
-    for row in record['bodies']:
-        _, body, _ = validate_body(owner, assembly, row)
-        before[body.Name] = _target(body, [])
+    bodies = [validate_body(owner, assembly, row)[1] for row in record['bodies']]
+    return bodies
+
+
+def binding_targets(owner, analysis, expected=None):
+    """Read every exact body target before any solve or binder evaluation."""
+    return {body.Name: _target(body, []) for body in _bound_bodies(owner, analysis, expected)}
+
+
+def refresh_bindings(owner, analysis, expected=None, *, require_unchanged):
+    """Evaluate exact native supports; only a new pose permits geometry change.
+
+    All targets are captured first: a native callback evaluating one body can
+    touch another. Frozen boundaries may not take a new baseline mid-refresh.
+    No mesh assignment, mesh admission, fingerprint replacement or file save.
+    """
+    bodies = _bound_bodies(owner, analysis, expected)
+    before = {body.Name: _target(body, []) for body in bodies}
+    for body in bodies:
         if body.recompute() is not True:
             raise ValueError('Native occurrence analysis geometry failed to recompute')
-        if require_unchanged and _target(body, []) != before[body.Name]:
-            raise ValueError('Retained occurrence geometry differs from native Support evaluation; recompute and remesh')
+        if require_unchanged:
+            for checked in bodies:
+                if _target(checked, []) != before[checked.Name]:
+                    raise ValueError('Retained occurrence geometry differs from native Support evaluation; recompute and remesh')
     owner.doc.recompute()
     if require_unchanged:
-        for row in record['bodies']:
-            body = owner._object(row['body_id'])
+        for body in bodies:
             if _target(body, []) != before[body.Name]:
                 raise ValueError('Occurrence geometry changed during native recompute')
     return inspect_bindings(owner, analysis, expected)
