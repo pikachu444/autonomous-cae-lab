@@ -57,15 +57,33 @@ Pro remote execution: **NOT_RUN** (executor disconnected). Root/Codex owns the
 Windows execution/integration record. No solver or provider was run by this
 authoring checkpoint.
 
-Codex integrated this checkpoint and ran the three new contact/owner checks and
+Codex integrated e916a32 and ran the three new contact/owner checks and
 four affected FEM Qt panel checks on Windows; they passed. A bounded real
 FreeCAD 1.1.4 check found a native issue that the snapshot double did not cover:
 calling the preview snapshot alone changes live shape BRep flags and immediately
 invalidates the recorded A/B faces. No actual geometry edit is needed. Native
-save/reopen and mesh preparation acceptance therefore remain open.
+save/reopen and mesh preparation acceptance were blocked at that checkpoint.
 
 Independent Astra source review also found unapplied form edits lost by Show
 faces/Preview Cancel, missing old/new normal comparison, and suppressed mesh
-alternatives counted as active. These corrections are requested from Pro while
-export/Runner/Post authoring continues. This partial source checkpoint is not
-ready for a supported contact run.
+alternatives counted as active. Pro's following correction addresses these
+findings while export/Runner/Post authoring continues. Supported contact
+execution remains unfinished.
+
+## Editor correction checkpoint
+
+Preview geometry is copied with FreeCAD 1.1.4's positional
+`TopoShape.copy(True, False)` before validity/tessellation queries. The live
+BRep and exact face hashes are still compared. This addresses Root's native
+reproduction in which preview tessellation changed topology serialization
+flags without a user geometry edit; native confirmation remains Root-owned.
+
+Show faces and Cancel preserve the current form buffer. First-Apply receipt
+selection blocks form reload when a newer edit or another pair selection
+exists. Rebind compares old/new face normal vectors as well as count, area and
+center. Separate-mesh preparation uses active Gmsh meshes and keeps suppressed
+alternatives. Transient Cancel remains available during mesh work.
+
+Added focused double/Qt checks cover these cases, including actual modal
+Cancel. Author remote execution remains NOT_RUN; Root's earlier 3 owner and
+4 existing FEM panel checks passed on e916a32, before these corrections.

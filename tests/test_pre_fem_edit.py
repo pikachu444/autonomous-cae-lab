@@ -23,6 +23,9 @@ class Shape:
     def isValid(self):
         return True
 
+    def copy(self, geometry=True, mesh=False):
+        return deepcopy(self)
+
 
 class Quantity:
     def __init__(self, text):
@@ -498,3 +501,62 @@ def test_contact_draft_rebind_cancel_and_stale_preview_use_existing_owner_transa
     assert [row['name'] for row in rebound['b']['target']['subelements']] == ['Face2']
     assert len(native.metadata['contact_history']) == 2
     assert not editor.previews
+
+
+def test_contact_preview_tessellates_independent_geometry_not_live_face(native, monkeypatch):
+    from apps.desktop_pre.fem_edit import _target
+    class PreviewPose:
+        Base, Rotation = NS(x=0, y=0, z=0), NS(Q=[0, 0, 0, 1])
+        def inverse(self):
+            return self
+        def __mul__(self, other):
+            return other
+    class Face(Shape):
+        Area = 2.
+        Placement = PreviewPose()
+        CenterOfMass = NS(x=0., y=0., z=0.)
+        BoundBox = NS(DiagonalLength=1.)
+        Surface = NS(parameter=lambda point: (0., 0.))
+        def normalAt(self, *uv):
+            return NS(x=0., y=0., z=1.)
+        def tessellate(self, tolerance):
+            self.brep = 'changed tessellation topology flags'
+            return [NS(x=0., y=0., z=0.), NS(x=1., y=0., z=0.), NS(x=0., y=1., z=0.)], [(0, 1, 2)]
+    # Explicit OCC-shaped double: read-only tessellation can mutate face state.
+    native.shape.Shape.Faces = [Face('saved face', False)]
+    native.shape.Placement = PreviewPose()
+    monkeypatch.setattr(native.shape, 'getGlobalPlacement', lambda: PreviewPose())
+    monkeypatch.setattr(native.shape, 'getSubObject', lambda name: native.shape.Shape.Faces[int(name[4:]) - 1], raising=False)
+    before = _target(native.shape, ['Face1'])
+    record = native.editor.contact.snapshot(native.shape, ['Face1'])
+    assert record['faces'][0]['preview_triangles'] == [[0, 1, 2]]
+    assert record['target'] == before == _target(native.shape, ['Face1'])
+    native.shape.Shape.Faces[0].brep = 'real geometry edit'
+    assert _target(native.shape, ['Face1']) != before
+
+
+def test_contact_mesh_preparation_ignores_suppressed_alternatives_and_cancel_remains_available(native, monkeypatch):
+    import ObjectsFem
+    from apps.desktop_pre.fem_edit import _target
+    second = Object(native.doc, 'Base', 'Part::Feature', Shape=Shape('base'))
+    def row(obj):
+        return {'target': _target(obj, ['Face1'])}
+    native.metadata['contacts'] = [{'analysis_id': native.analysis.Name, 'a': row(native.shape), 'b': row(second)}]
+    suppressed = Object(native.doc, 'SuppressedMesh', 'Fem::FemMeshObjectPython',
+        Proxy=NS(Type='Fem::FemMeshGmsh'), Shape=native.shape, FemMesh=Mesh(), Suppressed=True)
+    only_suppressed = Object(native.doc, 'SuppressedBase', 'Fem::FemMeshObjectPython',
+        Proxy=NS(Type='Fem::FemMeshGmsh'), Shape=second, FemMesh=Mesh(), Suppressed=True)
+    native.analysis.addObject(suppressed)
+    native.analysis.addObject(only_suppressed)
+    def make_mesh(doc):
+        return Object(doc, 'NewBaseMesh', 'Fem::FemMeshObjectPython',
+                      Proxy=NS(Type='Fem::FemMeshGmsh'), FemMesh=Mesh())
+    monkeypatch.setattr(ObjectsFem, 'makeMeshGmsh', make_mesh, raising=False)
+    result = native.editor.contact.prepare_meshes(native.analysis)
+    assert {r['mesh_id'] for r in result['meshes']} == {native.mesh.Name, 'NewBaseMesh'}
+    assert suppressed in native.analysis.Group and only_suppressed in native.analysis.Group
+    native.editor.contact.previews['Ptest'] = {}
+    native.editor._pending['Busy'] = {}
+    assert native.editor.dispatch('pre.contact.cancel_rebind', {'preview_id': 'Ptest'}, {})['cancelled']
+    assert not native.editor.contact.previews
+    native.editor._pending.clear()
