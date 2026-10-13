@@ -14,7 +14,8 @@ def prepare(fixture_path, value, output):
     Gui.activateWorkbench('AssemblyWorkbench')
     from apps.desktop_pre.bridge import Owner
     from apps.desktop_pre.assembly_candidates import validate_source, drive, verify
-    from apps.desktop_pre.candidate_correspondence import apply, validate_original_contacts
+    from apps.desktop_pre.candidate_correspondence import validate_original_contacts
+    from apps.desktop_pre.candidate_worker import prepare_saved_pose
     from apps.desktop_pre.fem_edit import _target
     from caelab.native_cad import unpack_project, sha
 
@@ -33,7 +34,12 @@ def prepare(fixture_path, value, output):
     before = {row['body_id']: _target(owner._object(row['body_id']), [])
               for row in recipe['assembly']['connection']['bodies']}
     reached = drive(owner, recipe, values)
-    mapped = apply(owner, recipe['correspondence'])
+    def adopt_owner(value):
+        nonlocal owner
+        owner = value
+    owner, stabilization = prepare_saved_pose(
+        owner, recipe, values, folder, adopt_owner=adopt_owner)
+    mapped = stabilization['correspondence']
     validate_original_contacts(owner)
     verified = verify(owner, recipe, values, solve=True)
     after = {row['body_id']: _target(owner._object(row['body_id']), []) for row in recipe['assembly']['connection']['bodies']}
@@ -50,7 +56,7 @@ def prepare(fixture_path, value, output):
         raise ValueError('Original project changed')
     receipt = {'project': str(project), 'sha256': sha(project), 'source': str(source),
                'source_sha256': fixture['sha256'], 'recipe': deepcopy(recipe), 'values': values,
-               'reached': reached, 'after_normal_solve': verified, 'correspondence': mapped,
+               'reached': reached, 'serialization': stabilization, 'after_normal_solve': verified, 'correspondence': mapped,
                'targets': after, 'save_did_not_change_live_targets': True, 'mesh_execution': 'NOT_PERFORMED', 'solver_execution': 'NOT_PERFORMED'}
     path = folder / 'pose.json'
     path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')

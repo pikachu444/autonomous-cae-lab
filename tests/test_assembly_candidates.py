@@ -146,9 +146,9 @@ def test_connector_origin_is_explicit_but_changed_mapless_face_is_not(monkeypatc
     monkeypatch.setattr(occurrence, 'source_of', lambda obj: source)
     monkeypatch.setattr(pose, '_target', lambda *_: {'shape': 'changed'})
     saved = {'connectors': [{'occurrence_id': 'Moving', 'source_id': 'Part',
-        'source_target': {'shape': 'old'}, 'names': [''], 'anchors': [None]}]}
-    assert pose._connector_expected(owner, saved) == [['Moving', ['']]]
-    saved['connectors'][0]['names'] = ['Face1']
+        'source_target': {'shape': 'old'}, 'names': ['', ''], 'anchors': [None, None]}]}
+    assert pose._connector_expected(owner, saved) == [['Moving', ['', '']]]
+    saved['connectors'][0]['names'] = ['Face1', 'Face1']
     with pytest.raises(ValueError, match='exact native element history'):
         pose._connector_expected(owner, saved)
 
@@ -413,3 +413,46 @@ def test_saved_pose_revalidates_retained_contacts_and_mesh_after_native_solve(tm
         assert calls[:-1] == [('contact', False), ('mesh', False), ('contact', True), ('mesh', True)]
     assert calls[-1] == ('close', True)
     assert path.read_bytes() == before
+
+
+def test_face_local_connector_edge_captures_source_identity_not_same_global_index(monkeypatch):
+    from apps.desktop_pre import candidate_correspondence
+    edge = NS(isNull=lambda: False, isSame=lambda other: other is edge)
+    unrelated = NS(isSame=lambda other: other is unrelated)
+    face = NS(isNull=lambda: False, getElement=lambda name: edge if name == 'Edge1' else None)
+    source = NS(Name='Part', Shape=NS(Edges=[unrelated, edge], getElement=lambda name: face))
+    link = NS(Name='Moving')
+    joint = NS(Reference1=(link, ['Face3', 'Edge1']), Reference2=(link, ['', '']))
+    monkeypatch.setattr(occurrence, 'source_of', lambda _: source)
+    monkeypatch.setattr(pose, '_target', lambda *_: {'shape': 'source'})
+    monkeypatch.setattr(candidate_correspondence, 'anchor',
+                        lambda obj, name: {'identity': name})
+    result = pose._connector_capture(None, joint)[0]
+    assert result['names'] == ['Face3', 'Edge1']
+    assert result['slot_source_names'] == ['Face3', 'Edge2']
+    assert result['anchors'] == [{'identity': 'Face3'}, {'identity': 'Edge2'}]
+
+
+def test_changed_face_local_anchor_uses_exact_source_history_then_current_local_slot(monkeypatch):
+    from apps.desktop_pre import candidate_correspondence
+    edge = NS(isNull=lambda: False, isSame=lambda other: other is edge)
+    unrelated = NS(isSame=lambda other: other is unrelated)
+    face = NS(isNull=lambda: False, Edges=[unrelated, edge])
+    source = NS(Name='Part', Shape=NS(
+        getElement=lambda name: {'Face7': face, 'Edge9': edge}[name]))
+    link = NS(Name='Moving')
+    owner = NS(_object=lambda _: link)
+    monkeypatch.setattr(occurrence, 'source_of', lambda _: source)
+    monkeypatch.setattr(pose, '_target', lambda *_: {'shape': 'changed'})
+    monkeypatch.setattr(candidate_correspondence, 'resolve_names',
+                        lambda obj, anchors: [anchors[0]['current']])
+    saved = {'connectors': [{'occurrence_id': 'Moving', 'source_id': 'Part',
+        'source_target': {'shape': 'old'}, 'names': ['Face3', 'Edge1'],
+        'slot_source_names': ['Face3', 'Edge2'],
+        'anchors': [{'current': 'Face7'}, {'current': 'Edge9'}]}]}
+    original = deepcopy(saved)
+    assert pose._connector_expected(owner, saved) == [['Moving', ['Face7', 'Edge2']]]
+    assert saved == original
+    face.Edges = [unrelated]
+    with pytest.raises(ValueError, match='unique'):
+        pose._connector_expected(owner, saved)

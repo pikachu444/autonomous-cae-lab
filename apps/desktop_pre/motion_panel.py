@@ -51,7 +51,7 @@ class MotionPanel:
         self.joint_type.addItems(['Grounded', *JOINT_TYPES])
         self.connector_a, self.connector_b = QtWidgets.QComboBox(), QtWidgets.QComboBox()
         self.subelement_a, self.subelement_b = QtWidgets.QLineEdit(), QtWidgets.QLineEdit()
-        for field in (self.subelement_a, self.subelement_b): field.setPlaceholderText('Face1 / Edge1 / Vertex1; empty = occurrence origin')
+        for field in (self.subelement_a, self.subelement_b): field.setPlaceholderText('Face/Edge: native center; Vertex: point; empty: origin')
         form.addRow('Existing joint', self.joint); form.addRow('Joint type', self.joint_type)
         form.addRow('Occurrence A / grounded', self.connector_a); form.addRow('Native subelement A', self.subelement_a)
         form.addRow('Occurrence B', self.connector_b); form.addRow('Native subelement B', self.subelement_b)
@@ -254,7 +254,12 @@ class MotionPanel:
         if joint.get('grounded_occurrence'):
             self.connector_a.setCurrentIndex(self.connector_a.findData(joint['grounded_occurrence']))
         for ref, combo, field in zip(joint.get('references', []), (self.connector_a, self.connector_b), (self.subelement_a, self.subelement_b)):
-            if ref: combo.setCurrentIndex(combo.findData(ref[0])); field.setText(ref[1][0] if ref[1] else '')
+            if ref:
+                combo.setCurrentIndex(combo.findData(ref[0]))
+                field.setText(ref[1][0] if ref[1] else '')
+                field.setToolTip(('연결 위치: ' + (ref[1][1] or '인스턴스 원점') +
+                    '\n같은 형상을 유지하면 이 위치도 유지됩니다.') if len(ref[1]) == 2
+                    else '이전 형식의 참조입니다. 위치를 확인하고 명시적으로 수정하세요.')
 
     def _edit_joint(self, operation):
         kind = self.joint_type.currentText()

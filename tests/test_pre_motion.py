@@ -35,7 +35,10 @@ class Shape:
     def exportBrepToString(self): return self.brep
     def getElement(self, name):
         if name not in ('Face1', 'Edge1', 'Vertex1'): raise ValueError('missing native topology')
-        return Shape(name)
+        element = Shape(name)
+        if name.startswith('Edge'):
+            element.Curve = NS(TypeId='Part::GeomLine')
+        return element
 
 
 class Object:
@@ -100,7 +103,15 @@ class Preferences:
 
 class JointProxy:
     def setJointType(self, obj, kind): obj.JointType = kind
-    def setJointConnectors(self, obj, refs): obj.Reference1, obj.Reference2 = refs
+    def setJointConnectors(self, obj, refs):
+        obj.Document.calls.append(('setJointConnectors', obj.Name))
+        obj.Reference1, obj.Reference2 = refs
+    def updateJCSPlacements(self, obj):
+        obj.Document.calls.append(('updateJCSPlacements', obj.Name))
+    def preSolve(self, obj):
+        obj.Document.calls.append(('preSolve', obj.Name, _pose(obj.Placement1), _pose(obj.Placement2)))
+    def preventParallel(self, obj):
+        obj.Document.calls.append(('preventParallel', obj.Name))
 
 
 class Timer:
@@ -157,7 +168,10 @@ def native_modules():
                getJointGroup=lambda a: group(a, 'Assembly::JointGroup', 'Joints'),
                getSimulationGroup=lambda a: group(a, 'Assembly::SimulationGroup', 'Simulations'),
                getGlobalPlacement=lambda ref, obj: obj.Placement)
-    return utils, NS(Joint=joint, GroundedJoint=grounded, JointTypes=list(JOINT_TYPES)), NS(Simulation=simulation, Motion=motion)
+    return utils, NS(Joint=joint, GroundedJoint=grounded, JointTypes=list(JOINT_TYPES),
+        JointUsingPreSolve=['Fixed', 'Revolute', 'Cylindrical', 'Slider', 'Ball'],
+        JointParallelForbidden=['Angle', 'Perpendicular'],
+        solveIfAllowed=lambda assembly, storePrev=False: assembly.Document.calls.append(('jointSolve', storePrev))), NS(Simulation=simulation, Motion=motion)
 
 
 @pytest.fixture
@@ -452,3 +466,119 @@ def test_empty_native_assembly_can_be_inspected():
     owner = Owner(); motion = Motion(owner); motion._modules = native_modules()
     target = motion.dispatch('pre.assembly.create', {'label': 'New native assembly'}, {})
     assert motion.dispatch('pre.motion.inspect', {}, target)['occurrences'] == []
+
+
+@pytest.mark.parametrize('subelement', ['', 'Face1', 'Edge1', 'Vertex1'])
+def test_app_joint_create_writes_native_element_and_position_roles(setup, subelement):
+    owner, motion, target, definition = setup
+    original = owner._object(definition['drives'][0]['joint_id'])
+    first, second = original.Reference1[0], original.Reference2[0]
+    result = motion.dispatch('pre.joint.create', {'type': 'Slider', 'connectors': [
+        {'object_id': first.Name, 'subelement': subelement},
+        {'object_id': second.Name, 'subelement': ''}]}, target)
+    joint = owner._object(result['joint_id'])
+    assert joint.Reference1 == (first, [subelement, subelement])
+    assert joint.Reference2 == (second, ['', ''])
+    assert not joint.Detach1 and not joint.Detach2
+
+
+@pytest.mark.parametrize('curve', ['Part::GeomCircle', 'Part::GeomLine', 'Part::GeomEllipse'])
+def test_edge_native_center_supported_types_and_explicit_detached_override(setup, curve):
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id'])
+    obj = joint.Reference1[0]
+    edge = NS(isNull=lambda: False, Curve=NS(TypeId=curve))
+    obj.Shape = NS(getElement=lambda _: edge)
+    value = {'object_id': obj.Name, 'subelement': 'Edge1'}
+    if curve == 'Part::GeomEllipse':
+        with pytest.raises(ValueError, match='no supported native center'):
+            motion._connector(owner._object(target['assembly_id']), value)
+    else:
+        ref, plc = motion._connector(owner._object(target['assembly_id']), value)
+        assert ref == (obj, ['Edge1', 'Edge1']) and plc is None
+    value['placement'] = {'translation': [3, 4, 5], 'quaternion': [0, 0, 0, 1],
+                          'unit': 'mm', 'frame': 'reference_local'}
+    ref, plc = motion._connector(owner._object(target['assembly_id']), value)
+    assert ref == (obj, ['Edge1', 'Edge1']) and _pose(plc)[:3] == [3, 4, 5]
+
+
+@pytest.mark.parametrize('anchor', ['Vertex2', 'Edge2'])
+def test_parameter_update_keeps_existing_native_anchor_and_detached_frames(setup, anchor):
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id'])
+    first, second = joint.Reference1[0], joint.Reference2[0]
+    vertex = NS(isNull=lambda: False, isSame=lambda other: other is vertex)
+    face_edge = NS(isNull=lambda: False, Curve=NS(TypeId='Part::GeomCircle'))
+    face = NS(isNull=lambda: False, Vertexes=[vertex],
+              getElement=lambda name: face_edge if name == 'Edge2' else None)
+    # Edge2 belongs to the selected FACE, not to the global shape namespace.
+    first.Shape = NS(getElement=lambda name: {'Face1': face, 'Vertex2': vertex}[name])
+    joint.Reference1 = (first, ['Face1', anchor])
+    joint.Reference2 = (second, ['', ''])
+    joint.Detach1 = joint.Detach2 = True
+    joint.Placement1, joint.Placement2 = Placement(Vector(1, 2, 3)), Placement(Vector(4, 5, 6))
+    refs = [(r[0], list(r[1])) for r in (joint.Reference1, joint.Reference2)]
+    placements = [_pose(joint.Placement1), _pose(joint.Placement2)]
+    calls_before = len(owner.doc.calls)
+    motion.dispatch('pre.joint.update', {'type': 'Slider', 'connectors': [
+        {'object_id': first.Name, 'subelement': 'Face1'},
+        {'object_id': second.Name, 'subelement': ''}],
+        'parameters': {'Distance': {'value': 4, 'unit': 'mm'}}},
+        {**target, 'joint_id': joint.Name})
+    assert [joint.Reference1, joint.Reference2] == refs
+    assert [_pose(joint.Placement1), _pose(joint.Placement2)] == placements
+    assert joint.Detach1 and joint.Detach2 and joint.Distance == 4
+    assert not any(call[0] in {'setJointConnectors', 'preSolve', 'jointSolve'}
+                   for call in owner.doc.calls[calls_before:])
+
+
+def test_explicit_detached_create_installs_both_jcs_before_native_presolve(setup):
+    owner, motion, target, definition = setup
+    old = owner._object(definition['drives'][0]['joint_id'])
+    result = motion.dispatch('pre.joint.create', {'type': 'Revolute', 'connectors': [
+        {'object_id': old.Reference1[0].Name, 'subelement': '', 'placement': {
+            'translation': [2, 3, 4], 'quaternion': [0, 0, 0, 1], 'unit': 'mm', 'frame': 'reference_local'}},
+        {'object_id': old.Reference2[0].Name, 'subelement': '', 'placement': {
+            'translation': [5, 6, 7], 'quaternion': [0, 0, 0, 1], 'unit': 'mm', 'frame': 'reference_local'}}]}, target)
+    joint = owner._object(result['joint_id'])
+    presolve = next(row for row in owner.doc.calls if row[0] == 'preSolve' and row[1] == joint.Name)
+    assert presolve[2][:3] == [2, 3, 4] and presolve[3][:3] == [5, 6, 7]
+    assert joint.Detach1 and joint.Detach2
+    assert not any(row[:2] == ('setJointConnectors', joint.Name) for row in owner.doc.calls)
+
+
+def test_legacy_one_slot_is_read_unchanged_until_explicit_update(setup):
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id'])
+    first, second = joint.Reference1[0], joint.Reference2[0]
+    joint.Reference1, joint.Reference2 = (first, ['Face1']), (second, [''])
+    generation = owner.generation
+    value = motion.dispatch('pre.motion.inspect', {}, target)
+    shown = next(row for row in value['joints'] if row['id'] == joint.Name)
+    assert shown['references'] == [[first.Name, ['Face1']], [second.Name, ['']]]
+    assert owner.generation == generation
+    motion.dispatch('pre.joint.update', {'type': 'Revolute', 'connectors': [
+        {'object_id': first.Name, 'subelement': 'Face1'},
+        {'object_id': second.Name, 'subelement': ''}]}, {**target, 'joint_id': joint.Name})
+    assert joint.Reference1 == (first, ['Face1', 'Face1'])
+    assert joint.Reference2 == (second, ['', ''])
+
+
+def test_injected_qt_parameter_update_preserves_hidden_second_role(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id'])
+    first = joint.Reference1[0]
+    vertex = NS(isNull=lambda: False, isSame=lambda other: other is vertex)
+    face = NS(isNull=lambda: False, Vertexes=[vertex])
+    first.Shape = NS(getElement=lambda name: {'Face1': face, 'Vertex2': vertex}[name])
+    joint.Reference1 = (first, ['Face1', 'Vertex2'])
+    panel._inspect_value(motion.dispatch('pre.motion.inspect', {}, target))
+    panel.joint.setCurrentIndex(panel.joint.findData(joint.Name))
+    assert panel.subelement_a.text() == 'Face1'
+    assert 'Vertex2' in panel.subelement_a.toolTip()
+    panel.joint_parameters['Distance'][0].setText('4')
+    panel._edit_joint('pre.joint.update')
+    op, args, selected, done = queued[-1]
+    done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
+    assert joint.Reference1 == (first, ['Face1', 'Vertex2']) and joint.Distance == 4

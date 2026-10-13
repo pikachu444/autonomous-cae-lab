@@ -113,8 +113,15 @@ class Motion:
             raise ValueError('Connector quaternion must already be normalized')
         return self.owner.App.Placement(self.owner.App.Vector(*xyz), self.owner.App.Rotation(*q))
 
-    def _connector(self, assembly, value):
-        if not isinstance(value, dict) or set(value) - {'object_id', 'subelement', 'placement'} or not {'object_id', 'subelement'} <= set(value):
+    def _connector(self, assembly, value, previous=None):
+        """Explicit create/update only; never normalize a restored reference.
+
+        Native slots mean (orientation element, position selector). The compact
+        single-element editor chooses the native center for new selections.
+        An unchanged selection retains an existing explicit second role/JCS.
+        """
+        if (not isinstance(value, dict) or set(value) - {'object_id', 'subelement', 'anchor', 'placement'}
+                or not {'object_id', 'subelement'} <= set(value)):
             raise ValueError('Connector requires explicit occurrence object_id and subelement')
         obj = self.owner._object(value['object_id'])
         if obj not in self._parts(assembly):
@@ -122,11 +129,51 @@ class Motion:
         sub = value['subelement']
         if not isinstance(sub, str) or sub and not re.fullmatch(r'(Face|Edge|Vertex)[1-9][0-9]*', sub):
             raise ValueError('Select an exact native Face/Edge/Vertex or empty occurrence origin')
-        if sub:
-            shape = obj.Shape.getElement(sub)
-            if shape.isNull(): raise ValueError('Selected native connector topology no longer exists')
-        placement = self._placement(value['placement']) if 'placement' in value else None
-        return (obj, [sub]), placement
+        old = previous['reference'] if previous else None
+        same_element = bool(old and old[0] is obj and len(old[1]) == 2 and old[1][0] == sub)
+        anchor = value.get('anchor', old[1][1] if same_element else sub)
+        if not isinstance(anchor, str) or anchor and not re.fullmatch(r'(Face|Edge|Vertex)[1-9][0-9]*', anchor):
+            raise ValueError('Select an exact native connector position')
+        ref = (obj, [sub, anchor])
+        same_ref = same_element and list(old[1]) == ref[1]
+        if 'placement' in value:
+            # null explicitly reattaches; omission preserves an unchanged JCS.
+            placement = self._placement(value['placement']) if value['placement'] is not None else None
+        elif same_ref and previous['detached']:
+            placement = _copy_pose(previous['placement'])
+        else:
+            placement = None
+        if not sub:
+            if anchor:
+                raise ValueError('Occurrence origin requires an empty native position')
+            return ref, placement
+        shape = obj.Shape.getElement(sub)
+        if shape.isNull():
+            raise ValueError('Selected native connector topology no longer exists')
+        if sub.startswith('Vertex'):
+            if anchor != sub:
+                raise ValueError('A vertex connector uses that same vertex as its position')
+        elif anchor == sub:
+            if (sub.startswith('Edge') and placement is None
+                    and getattr(getattr(shape, 'Curve', None), 'TypeId', None) not in
+                        {'Part::GeomLine', 'Part::GeomCircle'}):
+                raise ValueError('This edge has no supported native center; select a vertex or explicitly set a detached connector')
+        elif anchor.startswith('Vertex'):
+            vertex = obj.Shape.getElement(anchor)
+            if vertex.isNull() or not any(vertex.isSame(v) for v in shape.Vertexes):
+                raise ValueError('Connector position vertex must belong to the selected element')
+        elif sub.startswith('Face') and anchor.startswith('Edge'):
+            # Native findElementClosestVertex/findPlacement use a FACE-LOCAL
+            # edge index here. Never reinterpret it as obj.Shape.EdgeN.
+            edge = shape.getElement(anchor)
+            curve = getattr(getattr(edge, 'Curve', None), 'TypeId', None)
+            cylinder_intersection = (curve == 'Part::GeomBSplineCurve'
+                and getattr(getattr(shape, 'Surface', None), 'TypeId', None) == 'Part::GeomCylinder')
+            if edge.isNull() or placement is None and curve != 'Part::GeomCircle' and not cylinder_intersection:
+                raise ValueError('Select a supported native face-local edge center or a face vertex')
+        else:
+            raise ValueError('Connector position must be its native center or an exact supported element point')
+        return ref, placement
 
     def _metadata(self, assembly):
         value = deepcopy(self.owner.read_metadata().get('motion'))
@@ -520,6 +567,9 @@ class Motion:
             return {'removed_joint_id': joint.Name}
         if set(args) - {'type', 'connectors', 'parameters', 'occurrence_id'} or 'type' not in args: raise ValueError('Joint requires explicit type and connectors or grounded occurrence')
         kind = args['type']
+        joint = self._joint(assembly, target['joint_id']) if operation == 'pre.joint.update' and 'joint_id' in target else None
+        if operation == 'pre.joint.update' and (joint is None or hasattr(joint, 'ObjectToGround')):
+            raise ValueError('Select an existing non-grounded native joint')
         refs = None
         if kind == 'Grounded':
             if set(args) != {'type', 'occurrence_id'} or operation != 'pre.joint.create': raise ValueError('Grounded joint creation requires occurrence_id; remove its exact joint to unground')
@@ -529,15 +579,17 @@ class Motion:
         else:
             if kind not in JOINT_TYPES or set(args) - {'type', 'connectors', 'parameters'}: raise ValueError('Unsupported native joint kind')
             if not isinstance(args.get('connectors'), list) or len(args['connectors']) != 2: raise ValueError('Joint requires two explicit native connectors')
-            refs = [self._connector(assembly, c) for c in args['connectors']]
+            previous = [{'reference': getattr(joint, 'Reference' + str(i)),
+                         'detached': bool(getattr(joint, 'Detach' + str(i))),
+                         'placement': getattr(joint, 'Placement' + str(i))}
+                        if joint is not None else None for i in (1, 2)]
+            refs = [self._connector(assembly, c, old) for c, old in zip(args['connectors'], previous)]
             if refs[0][0][0] is refs[1][0][0]: raise ValueError('Joint connects two distinct native occurrences')
         parameters = args.get('parameters', {})
         if not isinstance(parameters, dict) or set(parameters) - {'Distance', 'Distance2', 'Angle'}: raise ValueError('Supported explicit joint parameters are Distance/Distance2/Angle')
         for key, value in parameters.items():
             if not isinstance(value, dict) or set(value) != {'value', 'unit'} or value['unit'] != ('deg' if key == 'Angle' else 'mm'): raise ValueError('Joint parameter needs its declared native unit')
             _number(value['value'], key)
-        joint = self._joint(assembly, target['joint_id']) if operation == 'pre.joint.update' and 'joint_id' in target else None
-        if operation == 'pre.joint.update' and (joint is None or hasattr(joint, 'ObjectToGround')): raise ValueError('Select an existing non-grounded native joint')
         self.before_design_action('edit joint'); result = {}
         def change():
             obj = joint or utils.getJointGroup(assembly).newObject('App::FeaturePython', 'GroundedJoint' if kind == 'Grounded' else 'Joint')
@@ -549,10 +601,33 @@ class Motion:
                     native.Joint(obj, native.JointTypes.index(kind))
                     if self.owner.App.GuiUp: native.ViewProviderJoint(obj.ViewObject)
                 else: obj.Proxy.setJointType(obj, kind)
-                obj.Proxy.setJointConnectors(obj, [ref for ref, _ in refs])
-                for index, (_, placement) in enumerate(refs, 1):
-                    setattr(obj, 'Detach' + str(index), placement is not None)
-                    if placement is not None: setattr(obj, 'Placement' + str(index), placement)
+                def unchanged(index, ref, placement):
+                    old_ref = getattr(obj, 'Reference' + str(index))
+                    return (old_ref and old_ref[0] is ref[0] and list(old_ref[1]) == ref[1]
+                        and bool(getattr(obj, 'Detach' + str(index))) == (placement is not None)
+                        and (placement is None or _pose(getattr(obj, 'Placement' + str(index))) == _pose(placement)))
+                if not all(unchanged(i, ref, plc) for i, (ref, plc) in enumerate(refs, 1)):
+                    if all(plc is None for _, plc in refs):
+                        # Explicit attached selection: let the native editor
+                        # compute the chosen centers/points and solve normally.
+                        obj.Detach1 = obj.Detach2 = False
+                        obj.Proxy.setJointConnectors(obj, [ref for ref, _ in refs])
+                    else:
+                        # The native setter presolves immediately from implicit
+                        # placements. Install explicit JCS first, then use its
+                        # normal refresh/presolve/solve with those actual frames.
+                        for i, (_, plc) in enumerate(refs, 1):
+                            setattr(obj, 'Detach' + str(i), plc is not None)
+                            if plc is not None:
+                                setattr(obj, 'Placement' + str(i), plc)
+                        for i, (ref, _) in enumerate(refs, 1):
+                            setattr(obj, 'Reference' + str(i), ref)
+                        obj.Proxy.updateJCSPlacements(obj)
+                        if obj.JointType in native.JointUsingPreSolve:
+                            obj.Proxy.preSolve(obj)
+                        elif obj.JointType in native.JointParallelForbidden:
+                            obj.Proxy.preventParallel(obj)
+                        native.solveIfAllowed(assembly, True)
                 for key, value in parameters.items(): setattr(obj, key, value['value'])
             result['joint_id'] = obj.Name
         self.owner._transaction('Edit native Assembly joint', change)

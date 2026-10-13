@@ -61,6 +61,131 @@ def verify_saved_project(path, folder, recipe, values, App, Gui):
         owner.close()
 
 
+def prepare_saved_pose(owner, recipe, values, folder, *, adopt_owner):
+    """Candidate-only, bounded native Placement roundtrip before any meshing.
+
+    FreeCAD 1.1.4 restores Placement from its saved axis/angle, not the saved
+    quaternion. Evaluate occurrence Supports from that restored placement once,
+    map ORIGINAL FEM targets to the stable geometry once, then prove another
+    save/reopen is unchanged. Frozen/retained-result readers never call this.
+    """
+    from .assembly_candidates import _verify_coordinate, verify
+    from .occurrence_fem import binding_targets, refresh_bindings
+    from .mesh_binding import PROPERTY_NAME
+    from .projects import exact_shape_serialization, remember_open
+
+    folder = Path(folder).resolve()
+    stage = folder / 'pose-save'
+    stage.mkdir(parents=True, exist_ok=False)
+    saved = recipe['assembly']
+    report = {'state': 'PREPARING', 'phase': 'placement_save',
+              'mesh_execution': 'NOT_PERFORMED', 'solver_execution': 'NOT_PERFORMED',
+              'mesh_rebound': False, 'archives': []}
+
+    def targets():
+        return binding_targets(owner, owner._object(recipe['analysis_id']), saved['connection'])
+
+    def mesh_stamps():
+        return {row['object_id']: getattr(owner._object(row['object_id']), PROPERTY_NAME, None)
+                for row in recipe['meshes']}
+
+    original_stamps = mesh_stamps()
+    def unchanged_stamps():
+        if mesh_stamps() != original_stamps:
+            raise ValueError('Pose serialization changed a retained mesh association')
+
+    def checkpoint(phase):
+        report['phase'] = phase
+        save_json(stage / 'receipt.json', report)
+
+    def private_documents():
+        # This function is only for a candidate-owned copied project graph.
+        # Never close or save a dependency still pointing to a user's source.
+        documents = list(owner.project._documents())
+        for doc in documents:
+            if not doc.FileName or not Path(doc.FileName).resolve().is_relative_to(folder):
+                raise ValueError('Pose staging requires candidate-owned document copies')
+        return documents
+
+    def roundtrip(label):
+        nonlocal owner
+        documents = private_documents()
+        before = targets()
+        archive = stage / (label + '.caepre')
+        with exact_shape_serialization(owner.App):
+            result = owner.project.save(archive)
+        if result.get('unavailable_dependencies'):
+            raise ValueError('Pose staging has unavailable saved dependencies')
+        if targets() != before:
+            raise ValueError('Saving the candidate changed its occurrence geometry')
+        unchanged_stamps()
+        digest = sha(archive)
+        report['archives'].append({'path': str(archive), 'sha256': digest,
+                                   'retained_project': result.get('retained_project')})
+        checkpoint(label + '_reopen')
+        App, Gui = owner.App, owner.Gui
+        owner.close()  # Stop observers before disposing of their native objects.
+        owner = None
+        adopt_owner(None)
+        for doc in documents:
+            App.closeDocument(doc.Name)
+        manifest, entry = unpack_project(archive, stage / label)
+        if manifest.get('unavailable_dependencies') or sha(archive) != digest:
+            raise ValueError('Saved pose archive is unavailable or changed')
+        existing = list(App.listDocuments().values())
+        document = App.openDocument(str(entry))
+        if any(document is other for other in existing) or Path(document.FileName).resolve() != entry.resolve():
+            raise ValueError('Pose reopen reused an unrelated native document')
+        document.UndoMode = 1
+        App.setActiveDocument(document.Name)
+        remember_open(document, manifest, archive)
+        owner = Owner(document, stage / (label + '-exchange'), App=App, Gui=Gui)
+        adopt_owner(owner)
+        private_documents()
+        # Binary BREP must survive the read itself. Only the FIRST subsequent
+        # native Support evaluation is an explicit pre-mesh write boundary.
+        if targets() != before:
+            raise ValueError('Saved occurrence geometry changed during native restoration')
+        unchanged_stamps()
+
+    try:
+        checkpoint('placement_save')
+        roundtrip('placement')
+        checkpoint('restored_support')
+        _verify_coordinate(owner, recipe, values, solve=True)
+        before = targets()
+        refresh_bindings(owner, owner._object(recipe['analysis_id']),
+                         saved['connection'], require_unchanged=False)
+        after = targets()
+        report['updated_bodies'] = [name for name in before if before[name] != after[name]]
+        report['after_refresh'] = verify(owner, recipe, values, solve=True)
+        unchanged_stamps()
+
+        # No earlier apply/recapture: region/contact/local-size metadata still
+        # carries the original keys, now resolved against the FINAL geometry.
+        checkpoint('correspondence')
+        report['correspondence'] = apply_correspondence(owner, recipe['correspondence'])
+        validate_original_contacts(owner)
+        report['after_correspondence'] = verify(owner, recipe, values, solve=True)
+        unchanged_stamps()
+
+        checkpoint('stable_save')
+        roundtrip('stable')
+        checkpoint('strict_reopen')
+        report['verified'] = verify(owner, recipe, values, solve=True)
+        validate_original_contacts(owner)
+        unchanged_stamps()
+        report.update(state='STABLE', phase='complete')
+        save_json(stage / 'receipt.json', report)
+        return owner, report
+    except Exception as error:
+        report.update(state='FAILED', error=str(error), error_type=type(error).__name__)
+        save_json(stage / 'receipt.json', report)
+        # Both archives and the latest live copied document are retained.
+        # The worker captures the current editable fallback through adopt_owner.
+        raise
+
+
 class CandidateWorker:
     def __init__(self, config, App, Gui, QtCore):
         self.config, self.App, self.Gui, self.QtCore = config, App, Gui, QtCore
@@ -130,8 +255,15 @@ class CandidateWorker:
                 self.record_phase('pose')
                 self.record['assembly_pose'] = drive(self.owner, self.recipe, settings['values'])
                 self.retain_editable()
-            self.record_phase('correspondence')
-            self.record['correspondence'] = apply_correspondence(self.owner, self.recipe['correspondence'])
+                self.record_phase('pose_serialization')
+                self.owner, stabilization = prepare_saved_pose(
+                    self.owner, self.recipe, settings['values'], self.folder,
+                    adopt_owner=self.adopt_working_owner)
+                self.record['pose_serialization'] = stabilization
+                self.record['correspondence'] = stabilization['correspondence']
+            else:
+                self.record_phase('correspondence')
+                self.record['correspondence'] = apply_correspondence(self.owner, self.recipe['correspondence'])
             self.retain_editable()
             analysis = self.owner._object(self.recipe['analysis_id'])
             if self.recipe['route'] == 'contact':
@@ -152,6 +284,12 @@ class CandidateWorker:
             self.next_mesh()
         except Exception as error:
             self.fail(error)
+
+    def adopt_working_owner(self, owner):
+        self.owner = owner
+        self.document = owner.doc if owner is not None else None
+        # Every downstream Analysis/mesh lookup is through this fresh owner.
+        self.mesh_queue, self.current_mesh = [], None
 
     def next_mesh(self):
         if not self.mesh_queue:
