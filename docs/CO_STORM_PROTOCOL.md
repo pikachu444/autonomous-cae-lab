@@ -119,3 +119,14 @@ python -m pytest tests/test_costorm_protocol.py tests/test_costorm_protocol_ui.p
 result_return.py 수정은 최신 역할 배분에 따라 Root/Sol 소유입니다.
 이 묶음은 그 두 파일과 Root의 CURRENT_STATE, SPEC, 한국어 일반 사용법을
 수정하지 않습니다. Study의 작은 표시/배치 수정도 포함하지 않았습니다.
+
+
+### 전달받은 Windows 실행 결과
+
+Root가21a8340+c31e536의 초기 backend 검사를 실행했습니다.
+KnowledgeStore 허용 범위 밖에 둔 두 테스트 자료를 Workbench.root 안으로
+옮긴 뒤 초기4경로가6.98초에 통과했다는 결과를 전달받았습니다.
+이는 실제 Windows의 scripted-generation 검사이며 OAuth/AI 실행 결과가
+아닙니다. 동일 fixture 경로 교정을 작성 브랜치에도 반영했습니다.
+743e3d8 이후 Qt 연결 및 추가 중단/재시도 검사는 이 이전 PASS에 포함되지
+않으며, Pro 원격 실행 NOT_RUN도 그대로입니다.

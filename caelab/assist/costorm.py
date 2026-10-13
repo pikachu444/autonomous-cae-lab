@@ -81,6 +81,8 @@ class Completion:
 
     def __call__(self, prompt, **kwargs):
         with self.lock:
+            from ._vendor.costorm.prompting import last_completion_key
+            last_completion_key.set(None)
             check_cancelled()
             self.verify()  # Recheck revocation/access, including replayed work.
             full = ('Answer in the language of the research question. Preserve every required output label. '
@@ -198,6 +200,8 @@ def presentation(state):
 
 
 def report_record(text, state):
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError('No report text was returned; the prior report is retained')
     view = presentation(state)
     numbers = list(dict.fromkeys(re.findall(r'\[(\d+)\]', text)))
     references = [{'number': key, 'source': view['sources'].get(key),
@@ -314,6 +318,8 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
                 report = report_record(runner.generate_report(), _snapshot(runner))
             else:
                 raise ValueError('Unknown Co-STORM action')
+        # Access/config/result verification is not a rejection of model text.
+        last_completion_key.set(None)
         verify()
         committed = _snapshot(runner)
         if action == 'start' and not committed['conversation_history']:

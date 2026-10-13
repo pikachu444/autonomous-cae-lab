@@ -23,3 +23,10 @@ in logging/warm-start/insertion propagate instead of silently dropping failed wo
 Unresolved generated citations are refused before remapping. Archived source text
 is not rewritten. Explicit input formatting fixes the upstream section path list.
 No default provider, simulated user, key loader or public search is invoked.
+
+
+Additional retained-source adaptation: a root-only knowledge tree keeps its generated
+root paragraph as the report introduction. The upstream child-only report traversal
+otherwise drops all evidence when reorganization removes the empty child sections.
+Rejected completion keys are carried across worker boundaries; non-model preflight
+failures do not invalidate a previously valid completion.
