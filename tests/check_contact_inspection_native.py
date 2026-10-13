@@ -65,7 +65,9 @@ def main(argv=None):
     render_view = next(view for name, view in workspace._views()
                        if name == workspace.state['contact_selection']['view_name'])
     for name in overlay[1:]:
-        assert p.FindSource(name).GetProperty('SelectedComponent').GetData() == 0
+        component = p.FindSource(name).SMProxy.GetProperty('SelectedComponent')
+        assert component.GetNumberOfElements() == 1
+        assert component.GetElement(0) == 0
         display = p.GetDisplayProperties(p.FindSource(name), render_view)
         assert list(display.ColorArrayName) == ['POINTS', '']
         assert display.Representation == 'Wireframe'

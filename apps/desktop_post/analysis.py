@@ -370,7 +370,30 @@ def _label(proxy, registered):
     return labels[0]
 
 
-def _property_value(value, registered, depth=0):
+def _property_data(value, *, raw_ints=False):
+    """Read checked native values without enum-domain display-label substitution."""
+    native = getattr(value, 'SMProperty', None)
+    if native is None:
+        native = value
+    if (raw_ints and callable(getattr(native, 'IsA', None))
+            and native.IsA('vtkSMIntVectorProperty')):
+        # EnumerationProperty.GetData uses its domain's text, which may be
+        # empty before PVSM Save and numeric after reload. Read checked values;
+        # pending/unchecked edits still belong to the existing owner guards.
+        values = [native.GetElement(i) for i in range(native.GetNumberOfElements())]
+        if native.GetRepeatable() or len(values) > 1:
+            return values
+        return values[0] if values else None
+    if callable(getattr(value, 'GetData', None)):
+        return value.GetData()
+    if callable(getattr(native, 'GetNumberOfElements', None)) and callable(getattr(native, 'GetElement', None)):
+        return [native.GetElement(i) for i in range(native.GetNumberOfElements())]
+    if callable(getattr(native, 'GetNumberOfProxies', None)):
+        return [servermanager._getPyProxy(native.GetProxy(i)) for i in range(native.GetNumberOfProxies())]
+    raise RuntimeError('Unsupported native property data: ' + type(value).__name__)
+
+
+def _property_value(value, registered, depth=0, *, raw_ints=False):
     if depth > 8:
         raise RuntimeError("Native graph property nesting exceeds eight levels")
     if value is None or type(value) in (str, bool, int):
@@ -382,31 +405,21 @@ def _property_value(value, registered, depth=0):
     sm_property = getattr(value, 'SMProperty', None)
     is_property = sm_property is not None or (callable(getattr(value, 'IsA', None)) and value.IsA('vtkSMProperty'))
     if is_property:
-        if callable(getattr(value, 'GetData', None)):
-            data = value.GetData()
-        else:
-            prop = sm_property if sm_property is not None else value
-            if callable(getattr(prop, 'GetNumberOfElements', None)) and callable(getattr(prop, 'GetElement', None)):
-                data = [prop.GetElement(i) for i in range(prop.GetNumberOfElements())]
-            elif callable(getattr(prop, 'GetNumberOfProxies', None)):
-                from paraview import servermanager
-                data = [servermanager._getPyProxy(prop.GetProxy(i)) for i in range(prop.GetNumberOfProxies())]
-            else:
-                raise RuntimeError('Unsupported native property data: ' + type(value).__name__)
+        data = _property_data(value, raw_ints=raw_ints)
         if data is value:
             raise RuntimeError('Native property returned itself instead of typed data')
-        return _property_value(data, registered, depth + 1)
+        return _property_value(data, registered, depth + 1, raw_ints=raw_ints)
     if callable(getattr(value, 'ListProperties', None)) and callable(getattr(value, 'GetXMLName', None)):
         labels = [label for (label, _), proxy in registered.items() if proxy == value]
         if labels:
             return {"source_label": _label(value, registered), "port": int(getattr(value, "Port", 0))}
-        return {"proxy_type": value.GetXMLName(), "properties": _properties(value, registered, depth + 1)}
+        return {"proxy_type": value.GetXMLName(), "properties": _properties(value, registered, depth + 1, raw_ints=raw_ints)}
     if isinstance(value, (tuple, list)) or hasattr(value, "__iter__"):
-        return [_property_value(item, registered, depth + 1) for item in value]
+        return [_property_value(item, registered, depth + 1, raw_ints=raw_ints) for item in value]
     raise RuntimeError("Unsupported native graph property value: " + type(value).__name__)
 
 
-def _properties(proxy, registered, depth=0):
+def _properties(proxy, registered, depth=0, *, raw_ints=False):
     result = {}
     for key in sorted(proxy.ListProperties()):
         prop = proxy.GetProperty(key)
@@ -417,21 +430,26 @@ def _properties(proxy, registered, depth=0):
             continue
         if callable(getattr(smprop, "GetIsInternal", None)) and smprop.GetIsInternal():
             continue
-        # Generic SelectionProxy wrappers advertise properties which are not
-        # Python attributes (for example Assembly in ParaView 6.2). Read the
-        # actual property, retaining its typed scalar/list/proxy data.
-        value = prop.GetData() if callable(getattr(prop, 'GetData', None)) else prop
-        result[key] = _property_value(value, registered, depth + 1)
+        # Keep array-selection/string/proxy wrappers' typed interfaces. The raw
+        # mode changes only native integer vectors, before any enum GetData.
+        value = _property_data(prop, raw_ints=raw_ints)
+        result[key] = _property_value(value, registered, depth + 1, raw_ints=raw_ints)
     return result
 
 
-def graph_signature(bundle):
-    """Native properties and input links bound by labels, surviving PVSM reload."""
+def graph_signature(bundle, *, raw_ints=False):
+    """Native properties and input links bound by labels, surviving PVSM reload.
+
+    Existing analysis histories retain their legacy encoding by default.
+    Contact overlays explicitly opt into stable checked vtkSM integer values.
+    """
     registered = p.GetSources()
     nodes = [{"label": _label(proxy, registered), "type": proxy.GetXMLName(),
-              "properties": _properties(proxy, registered)} for proxy in bundle.get("proxies", [])]
+              "properties": _properties(proxy, registered, raw_ints=raw_ints)} for proxy in bundle.get("proxies", [])]
     nodes.sort(key=lambda row: row["label"])
     graph = {"nodes": nodes, "output_label": _label(bundle["source"], registered)}
+    if raw_ints:
+        graph["property_encoding"] = "vtk-sm-int-v1"
     return {**graph, "sha256": _digest(graph)}
 
 
