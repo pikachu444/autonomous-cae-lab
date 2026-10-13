@@ -227,8 +227,8 @@ Gmsh 두 메시와 CalculiX 접촉 해석을 끝냈다. 요청한 최종 CFN/전
 Astra가 찾은 축 원점 누락은 Codex가 기존 측정값과 mm/문서 전체 좌표 표시를 추가해
 고쳤으며 해당 GUI 검사가 통과했다. Pro 조립 교정과 관련 GUI 변경을 검토해 원격
 게시를 진행한다. 게시 확인 전의 원격 main 기준은 Expert 읽기 개선 `c3dbd19`다.
-원격 main `d048a31` 게시와 서버의 같은 커밋을 확인했다. 현재 조립 변경, Numerical·
-Runner·native 연구 패널 교정과 사용 안내가 포함된다. PDE 배치 개선본은 로컬 통합 중이다.
+원격 main `483ac29` 게시와 서버의 같은 커밋을 확인했다. 현재 조립 변경, Numerical·
+Runner·PDE·native 연구 패널 교정과 사용 안내가 포함된다. 다음 CAD 패널 개선은 별도 작성 중이다.
 다음 실제 Pro 요청은 `PRO-DATA-MATERIAL-WORKFLOW-01`이며, `d048a31` 기준의
 Data→Material/기존 Numerical 피팅→잔차·holdout→계수 채택·저장/재열기를 하나의
 사용자 작업으로 완성하도록 맡긴다. 새 작성 브랜치는 `codex/data-material-workflow-20261014`다.
