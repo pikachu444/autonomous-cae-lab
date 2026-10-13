@@ -136,3 +136,14 @@ Evidence is under `runs/product-development/20261014/assembly-native/fixed/`:
 `prepare-result.json`, `reopen-result.json`, `slider-fe/receipt.json`,
 `slider-fe-cold/receipt.json`, and the original BRep/placement comparison in
 `rotation-trace3/`. Current ownership and next action remain in CURRENT_STATE.
+
+Pro correction `c261abf`, integrated as `9a8de4b`, passes 72 affected unit checks
+and Astra's source review. Actual `pre.joint.create` now creates both public
+Revolute and Slider examples. After the candidate-only pre-mesh serialization
+step, both retained Revolute poses (−5/+5 degrees) pass preparation and a fresh
+process's strict reopen without repair, remesh or solver. The first long-path
+helper attempt failed at Windows file copying; rerunning the helper in the
+documented short workspace passed. Both attempts remain recorded under
+`assembly-native/authoring/`; the short working archives are also preserved there.
+The separate 5-degree FE candidate is in progress. This resolves the diagnosed
+reopen defect; it does not complete the whole GUI/adoption/search acceptance.
