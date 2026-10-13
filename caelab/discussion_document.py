@@ -8,6 +8,7 @@ import uuid
 
 from .material_document import MaterialDocuments
 from .jobs import TERMINAL
+from .assist.knowledge import selected_source_refs
 from .evaluation import read_result
 from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
@@ -85,10 +86,11 @@ class DiscussionDocuments(MaterialDocuments):
         return {self.update_operation, 'document.undo', 'document.redo', 'document.save'} | SPECIAL_OPERATIONS
 
     def __init__(self, root, session_id, submit, manager, *, list_experts,
-                 resolve_document=None, resolve_result=None):
+                 resolve_document=None, resolve_result=None, resolve_knowledge=None):
         super().__init__(root, session_id, submit, manager)
         self.list_experts = list_experts
         self.resolve_document, self.resolve_result = resolve_document, resolve_result
+        self.resolve_knowledge = resolve_knowledge
 
     @staticmethod
     def _state(document):
@@ -121,6 +123,16 @@ class DiscussionDocuments(MaterialDocuments):
         result['turns'] = deepcopy(document['discussion']['turns'])
         return result
 
+    def _validate_sources(self, context):
+        references = selected_source_refs(context)
+        for reference in references:
+            if self.resolve_knowledge is None:
+                raise ValueError('Source reader unavailable; preserve the draft and reconnect the existing service')
+            payload = self.resolve_knowledge(reference)
+            if payload.get('revision') != reference['revision'] or not payload.get('segments'):
+                raise ValueError('Selected source revision has no readable content; inspect it in Sources')
+        return references
+
     def _validate_question(self, document, *, needs_roles):
         draft = document['draft']
         errors = self.diagnostics(draft)
@@ -133,6 +145,7 @@ class DiscussionDocuments(MaterialDocuments):
         if target and not any(turn['id'] == target for turn in turns):
             raise ValueError('Reply target does not belong to this discussion')
         if needs_roles:
+            self._validate_sources(draft['context'])
             registry = self.list_experts()
             registered = {item['id'] for item in (registry['experts'] if isinstance(registry, dict) else registry)}
             if not draft['participants'] or not set(draft['participants']).issubset(registered):
@@ -169,6 +182,10 @@ class DiscussionDocuments(MaterialDocuments):
                 'command_id': command_id, 'created_utc': utc_now(),
                 'input_generation': document['generation'], 'input_revision': document['input_revision'],
                 'input_sha256': canonical_hash(document['draft']), 'topic': deepcopy(topic), **composer}
+        try:
+            turn['knowledge_sources'] = selected_source_refs(document['draft']['context'])
+        except ValueError:
+            turn['knowledge_sources'] = None  # Legacy/unresolved source work remains an authored local turn.
         self._state(document)['turns'].append(turn)
         return turn
 
@@ -186,7 +203,7 @@ class DiscussionDocuments(MaterialDocuments):
         history = round_record['history'] + [turn for turn in self._state(document)['turns']
             if turn.get('round_id') == round_record['id'] and turn.get('author') != 'user']
         context['discussion']['turns'] = [{key: deepcopy(turn.get(key)) for key in
-            ('id', 'author', 'text', 'status', 'topic_id', 'reply_to', 'classification')} for turn in history]
+            ('id', 'author', 'text', 'status', 'topic_id', 'reply_to', 'classification', 'knowledge_sources')} for turn in history]
         return {'expert_id': role, 'question': composer['text'], 'context': context,
                 'session_id': round_record['sessions'][role], 'budget': deepcopy(snapshot['budget'])}
 
@@ -211,14 +228,23 @@ class DiscussionDocuments(MaterialDocuments):
             round_record['status'] = 'COMPLETED'
             return None
         role = round_record['roles'][index]
+        request_id = self._request_id(document, round_record)
+        job = next((item for item in self.manager.list() if item.get('request_id') == request_id), None)
         arguments = round_record.get('prepared_arguments')
+        if job is None:
+            try:
+                self._validate_sources(round_record['draft']['context'])
+            except (ValueError, PermissionError, OSError) as error:
+                # Preserve frozen legacy/revoked rounds and already completed roles.
+                # A later explicit Ask may use the user's repaired current draft.
+                round_record.update(status='BLOCKED_SOURCES', source_error=str(error), dispatch_pending=False)
+                self._persist_draft(document)
+                return None
         if arguments is None:
             arguments = self._arguments(document, round_record, role)
             round_record['prepared_arguments'] = arguments
             round_record['dispatch_pending'] = True
             self._persist_draft(document)
-        request_id = self._request_id(document, round_record)
-        job = next((item for item in self.manager.list() if item.get('request_id') == request_id), None)
         if job is None:
             job = self.submit('experts.ask', arguments, request_id=request_id)
         self._attach_job(document, round_record, job, arguments)
@@ -261,7 +287,9 @@ class DiscussionDocuments(MaterialDocuments):
                 'text': response.get('answer'), 'classification': 'expert_reply',
                 'created_utc': utc_now(), 'input_generation': round_record['input_generation'],
                 'input_revision': round_record['input_revision'], 'input_sha256': canonical_hash(round_record['draft']),
-                'evidence': deepcopy(composer['evidence']), 'response': deepcopy(response)})
+                'evidence': deepcopy(composer['evidence']), 'response': deepcopy(response),
+                'knowledge_sources': deepcopy(round_record['draft']['context'].get('selected_sources',
+                    None if round_record['draft']['context'].get('selected_document_ids') else []))})
         round_record.update(active_job_id=None, next_index=round_record['next_index'] + 1)
         # Failure stops this round; resume never silently retries a failed role.
         if state != 'SUCCEEDED' or response.get('status') in {'FAILED', 'NOT_CONFIGURED', 'STOPPED'}:

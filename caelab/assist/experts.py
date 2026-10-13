@@ -11,6 +11,7 @@ import time
 import uuid
 
 from ..execution_control import ExecutionCancelled, ExecutionCleanupFailed
+from .knowledge import selected_source_refs
 
 
 def _object(properties, required=()):
@@ -397,6 +398,54 @@ class ExpertRuntime:
             raise ValueError('Unknown expert ID')
         return deepcopy(self.definitions[expert_id])
 
+
+    def _knowledge_context(self, context, workspace_id, collections):
+        """Intersect selected immutable revisions with this role; never select latest."""
+        context = deepcopy(context)
+        selected, snippets = [], []
+        for reference in selected_source_refs(context):
+            archive = self.knowledge.source(**reference, workspace_id=workspace_id)
+            if archive['collection'] not in collections:
+                continue
+            if not archive['segments']:
+                raise ValueError('Selected source has no readable segments; inspect extraction before requesting a round')
+            selected.append(reference)
+            snippets.extend(archive['segments'])
+        context['selected_sources'] = selected
+        context['selected_document_ids'] = [ref['document_id'] for ref in selected]
+        permitted = {(ref['document_id'], ref['revision']) for ref in selected}
+
+        def permits(references):
+            if not isinstance(references, list):
+                return False  # Legacy unknown provenance remains visible locally, not replayed.
+            try:
+                refs = selected_source_refs({'selected_sources': references})
+                if any((ref['document_id'], ref['revision']) not in permitted for ref in refs):
+                    return False
+                for ref in refs:
+                    self.knowledge.source(**ref, workspace_id=workspace_id, collections=collections)
+                return True
+            except (ValueError, PermissionError, OSError):
+                return False
+
+        discussion = context.get('discussion')
+        if isinstance(discussion, dict):
+            discussion['turns'] = [turn for turn in discussion.get('turns', [])
+                                   if isinstance(turn, dict) and permits(turn.get('knowledge_sources'))]
+            discussion['evidence'] = [reference for reference in discussion.get('evidence', [])
+                if isinstance(reference, dict) and ('job_id' in reference or 'paper_id' in reference
+                    or (reference.get('document_id'), reference.get('revision')) in permitted)]
+        return context, snippets
+
+    def _check_knowledge(self, source, context, workspace_id, collections):
+        pins = {ref['document_id']: ref['revision'] for ref in selected_source_refs(context)}
+        identifier = source.get('document_id')
+        revision = source.get('revision', pins.get(identifier))
+        if identifier not in pins or revision != pins[identifier]:
+            raise PermissionError('Knowledge source/revision is outside the selected research scope')
+        return self.knowledge.source(identifier, revision, source.get('locator'),
+                                     workspace_id=workspace_id, collections=collections)
+
     def _transmission_check(self, value, context, *, generated_result_ids=()):
         if not self.runtime.external_model:
             return
@@ -407,6 +456,12 @@ class ExpertRuntime:
         def check(item):
             if isinstance(item, dict):
                 if 'collection' in item:
+                    pins = {(ref['document_id'], ref['revision']) for ref in selected_source_refs(context)}
+                    if (item.get('document_id'), item.get('revision')) not in pins:
+                        raise PermissionError('Unselected source cannot enter model context')
+                    grants = scope.get('source_refs', [])
+                    if {'document_id': item.get('document_id'), 'revision': item.get('revision')} not in grants:
+                        raise PermissionError('Selected source transmission requires an explicit revision grant')
                     if item['collection'] not in policy.get('collections', []) or item['collection'] not in scope.get('collections', []):
                         raise PermissionError('Collection is outside the approved model transmission scope')
                 if any(key in item for key in ('run_id', 'result_id', 'job_id')):
@@ -444,6 +499,8 @@ class ExpertRuntime:
             raise ValueError('A nonempty question is required')
         definition = self.describe(expert_id)
         context = deepcopy(context or {})
+        selected_source_refs(context)  # Legacy selections need explicit local repair, not latest fallback.
+        context, _ = self._knowledge_context(context, workspace_id, definition.get('collections', []))
         session, path = self._session(session_id, workspace_id, expert_id)
         base = {'expert_id': expert_id, 'session_id': session['session_id'], 'sources': [], 'assumptions': [],
                 'tool_events': [], 'proposed_actions': []}
@@ -469,7 +526,8 @@ class ExpertRuntime:
         from haystack.tools import Tool
         sources, events, actions, tool_evidence = [], [], [], []
         collections = definition.get('collections', [])
-        selected = context.get('selected_document_ids', [])
+        context, snippets = self._knowledge_context(context, workspace_id, collections)
+        selected = selected_source_refs(context)
         selected_results = context.get('selected_result_ids', [])
         allowed_result_ids = set(selected_results)
         created_result_ids = set()
@@ -497,25 +555,23 @@ class ExpertRuntime:
                 for child in value:
                     references.update(referenced_results(child))
             return references
-        snippets = []
-        for identifier in selected:
-            snippets.extend(self.knowledge.source(identifier, workspace_id=workspace_id, collections=collections)['segments'])
         sources.extend(snippets)
         self._transmission_check(snippets, context)
         if snippets:
             tool_evidence.append({'tool': 'selected.source_segments', 'returned': snippets})
         safe_history = []
         for turn in session['turns'][-10:]:
+            if 'read_sources' not in turn:
+                continue
             try:
                 for source in turn.get('read_sources', turn['response'].get('sources', [])):
                     if 'document_id' in source:
-                        self.knowledge.source(source['document_id'], source['revision'], source['locator'],
-                                              workspace_id=workspace_id, collections=collections)
+                        self._check_knowledge(source, context, workspace_id, collections)
                     if 'run_id' in source and source['run_id'] not in allowed_result_ids:
                         raise PermissionError('Historical result is no longer selected')
                 self._transmission_check(turn.get('read_sources', turn['response'].get('sources', [])), context,
                                          generated_result_ids=created_result_ids)
-            except PermissionError:
+            except (PermissionError, ValueError, OSError):
                 continue
             safe_history.extend([ChatMessage.from_user(turn['question']),
                                  ChatMessage.from_assistant(turn['response'].get('answer') or '')])
@@ -527,13 +583,15 @@ class ExpertRuntime:
                 requested_collections = request.get('collections', collections)
                 if not set(requested_collections).issubset(collections):
                     raise PermissionError('Expert cannot expand its collections')
+                references = [ref for ref in selected if self.knowledge.source(
+                    **ref, workspace_id=workspace_id, collections=collections)['collection'] in requested_collections]
                 result = self.knowledge.search(request['query'], requested_collections,
-                    request.get('filters'), request.get('top_k', 5), workspace_id=workspace_id)
+                    request.get('filters'), request.get('top_k', 5), workspace_id=workspace_id,
+                    source_refs=references)
                 self._transmission_check(result, context)
                 sources.extend(result['hits'])
             elif name == 'knowledge.source':
-                result = self.knowledge.source(request['document_id'], request.get('revision'), request.get('locator'),
-                                               workspace_id=workspace_id, collections=collections)
+                result = self._check_knowledge(request, context, workspace_id, collections)
                 self._transmission_check(result, context)
                 sources.extend(result['segments'])
             elif name.startswith('literature.'):
@@ -563,8 +621,12 @@ class ExpertRuntime:
                 if target_generator is None:
                     raise ValueError('Consulted expert model is not configured')
                 delegated = deepcopy(context)
-                delegated['selected_document_ids'] = [key for key in selected if
-                    self.knowledge._data['documents'][key]['collection'] in other.get('collections', [])]
+                # The generated consultation question may quote any parent evidence.
+                # Reject a narrower recipient rather than merely hiding its source list.
+                for reference in selected:
+                    self.knowledge.source(**reference, workspace_id=workspace_id,
+                                          collections=other.get('collections', []))
+                delegated, _ = self._knowledge_context(delegated, workspace_id, other.get('collections', []))
                 transient = {'session_id': session['session_id'], 'turns': []}
                 result = self._ask(other, target_generator, request['question'], delegated, transient, None,
                                    workspace_id, budget, visited + [target])
@@ -743,8 +805,15 @@ class ExpertRuntime:
             tools.append(Tool(name=name.replace('.', '_'),
                               description='Use ' + name + ' with the named fields. Invalid fields return INVALID_TOOL_INPUT for correction.',
                               parameters=schema, function=call))
+        def recheck_sources():
+            for source in sources:
+                if 'document_id' in source:
+                    self._check_knowledge(source, context, workspace_id, collections)
+            self._transmission_check(sources, context, generated_result_ids=created_result_ids)
+
         class BeforeModel:
             def run(self, state):
+                recheck_sources()
                 budget.consume('model')
                 # Bound the cumulative tool/context transmission before every actual inference.
                 size = sum(len(str(message.to_dict()).encode()) for message in state.data['messages'])
@@ -774,6 +843,7 @@ class ExpertRuntime:
                     'question': question, 'context': context, 'source_segments': snippets}, ensure_ascii=False)
                 if len(prompt.encode()) > self.runtime.max_payload_bytes:
                     raise ValueError('Agent context exceeds the approved transmission bound')
+                recheck_sources()
                 max_steps = budget.reserve_provider_steps(allowed_consultations=allowed_consultations)
                 text = run_openscience(prompt, scoped_calls, budget, self.runtime.model, max_steps=max_steps,
                                        profile_path=self.runtime.openscience_profile,
@@ -805,8 +875,7 @@ class ExpertRuntime:
                         unverified.append(citation)
                         continue
                     if 'document_id' in citation:
-                        self.knowledge.source(citation['document_id'], citation['revision'], citation['locator'],
-                                              workspace_id=workspace_id, collections=collections)
+                        self._check_knowledge(citation, context, workspace_id, collections)
                     approved.append(citation)
                 if unverified:
                     raise _UnverifiedCitation(unverified)
@@ -863,6 +932,7 @@ class ExpertRuntime:
                     raise
                 try:
                     if generator == 'openscience':
+                        recheck_sources()
                         repair_steps = budget.reserve_provider_steps(correction=True)
                         repaired_text = run_openscience(repair_prompt, {}, budget, self.runtime.model,
                             max_steps=repair_steps,

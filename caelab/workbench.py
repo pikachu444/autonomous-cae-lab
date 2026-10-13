@@ -69,7 +69,8 @@ class Workbench:
         self.pde_documents=PDEDocuments(self.root,self.session_id,self.submit,self.manager)
         self.discussion_documents=DiscussionDocuments(self.root,self.session_id,self.submit,self.manager,
             list_experts=lambda:self.assistance_call('experts.list',{}),
-            resolve_document=self.document_read,resolve_result=self.document_result)
+            resolve_document=self.document_read,resolve_result=self.document_result,
+            resolve_knowledge=lambda reference:self.assistance_call('knowledge.source',reference))
         self.simulation_documents=SimulationDocuments(self.root,self.session_id,self.submit,self.manager)
         self.evaluation_documents=EvaluationDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision))

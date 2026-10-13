@@ -162,11 +162,12 @@ def test_mock_agent_real_search_citation_and_session_followup(tmp_path):
     generator.script = [('knowledge_search', {'query': 'ASTM-D638'}),
                         {'answer': 'The source describes measurement at 25 C.', 'sources': [citation], 'assumptions': []},
                         {'answer': 'A follow-up needs another measured condition.', 'sources': [citation]}]
-    answer = runtime.ask('materials', 'What condition?', workspace_id='alpha')
+    selection = {'selected_sources': [{'document_id': document['document_id'], 'revision': 1}]}
+    answer = runtime.ask('materials', 'What condition?', selection, workspace_id='alpha')
     assert answer['status'] == 'ANSWERED', answer
     assert answer['tool_events'][0]['tool'] == 'knowledge.search'
     assert answer['sources'] == [citation]
-    followup = runtime.ask('materials', 'What next?', {'selected_document_ids': [document['document_id']]},
+    followup = runtime.ask('materials', 'What next?', {'selected_sources': [{'document_id': document['document_id'], 'revision': 1}]},
                            answer['session_id'], workspace_id='alpha')
     assert followup['status'] == 'ANSWERED'
     assert len(generator.calls[-1]) >= 3
@@ -199,7 +200,7 @@ def test_model_transmission_and_tool_scope_cannot_be_expanded(tmp_path):
         runtime.ask('materials', 'private question', workspace_id='alpha')
     doc = ingest(knowledge, tmp_path, '# Private\nCompany measurement.')
     with pytest.raises(PermissionError):
-        runtime.ask('materials', 'review', {'selected_document_ids': [doc['document_id']],
+        runtime.ask('materials', 'review', {'selected_sources': [{'document_id': doc['document_id'], 'revision': doc['revision']}],
                     'transmission_scope': {'allow_question': True, 'collections': ['materials']}}, workspace_id='alpha')
     assert generator.calls == []
     generator.script = [('knowledge_search', {'query': 'Company', 'collections': ['secret']})]
@@ -331,7 +332,7 @@ def test_revoked_history_does_not_enter_later_model_context(tmp_path):
                                 {'answer': 'No retained source is accessible.', 'sources': []}])
     knowledge, runtime = runtime_for(tmp_path, generator)
     doc = ingest(knowledge, tmp_path, '# Private\nSECRET-MEASUREMENT')
-    first = runtime.ask('materials', 'review', {'selected_document_ids': [doc['document_id']]}, workspace_id='alpha')
+    first = runtime.ask('materials', 'review', {'selected_sources': [{'document_id': doc['document_id'], 'revision': doc['revision']}]}, workspace_id='alpha')
     knowledge.revoke(doc['document_id'], workspace_id='alpha')
     followup = runtime.ask('materials', 'followup', session_id=first['session_id'], workspace_id='alpha')
     assert followup['status'] == 'ANSWERED'
@@ -482,8 +483,9 @@ def test_citation_repair_uses_only_read_markers_and_preserves_actions(tmp_path, 
         runtime=RuntimeConfig(provider='openscience', model='openai-codex/gpt-5.6-sol',
             transmission={'allow_external_model': True, 'allow_question': True,
                           'collections': ['materials']}))
-    answer = runtime.ask('materials', 'Use the evidence', {'transmission_scope': {
-        'allow_question': True, 'collections': ['materials']}}, workspace_id='alpha')
+    reference = {'document_id': document['document_id'], 'revision': 1}
+    answer = runtime.ask('materials', 'Use the evidence', {'selected_sources': [reference], 'transmission_scope': {
+        'allow_question': True, 'collections': ['materials'], 'source_refs': [reference]}}, workspace_id='alpha')
     assert answer['status'] == 'ANSWERED', answer
     assert answer['sources'] == [marker]
     assert answer['proposed_actions'][0]['proposal'] == 'Keep the bounded study editable.'

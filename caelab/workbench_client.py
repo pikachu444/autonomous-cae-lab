@@ -50,6 +50,33 @@ class Client:
             if isinstance(message, str) and message.strip():
                 raise WorkbenchHTTPError(error, payload, message) from error
             raise error
+
+    def upload(self, name, payload, *, _retry_auth=True):
+        """Register explicitly selected local bytes through the existing bounded endpoint."""
+        from urllib.parse import quote
+        if not isinstance(payload, bytes) or not 1 <= len(payload) <= 16 * 1024 * 1024:
+            raise ValueError('Choose a nonempty file no larger than 16 MiB')
+        if self.token is None:
+            self.token = self.request('/api/overview')['token']
+        headers = {'Content-Type': 'application/octet-stream', 'X-CAE-Token': self.token,
+                   'X-File-Name': quote(name, safe=''), 'X-File-Name-Encoding': 'percent-utf8'}
+        try:
+            with urlopen(Request(self.url + '/api/workbench/upload', data=payload, headers=headers), timeout=30) as response:
+                return json.load(response)
+        except HTTPError as error:
+            body = error.read()
+            error.fp = io.BytesIO(body)
+            try:
+                refusal = json.loads(body)
+            except (ValueError, UnicodeError):
+                raise error
+            if error.code == 403 and _retry_auth and refusal == {'error': 'A valid X-CAE-Token is required'}:
+                self.token = None
+                return self.upload(name, payload, _retry_auth=False)
+            if isinstance(refusal, dict) and isinstance(refusal.get('error'), str):
+                raise WorkbenchHTTPError(error, body, refusal['error']) from error
+            raise error
+
     def submit(self,operation,arguments,*,request_id=None,resources=None):
         return self.request('/api/workbench/jobs',{'operation':operation,'arguments':arguments,'request_id':request_id,'resources':resources})
     def backend_readiness(self, backend):

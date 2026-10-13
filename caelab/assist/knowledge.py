@@ -9,6 +9,35 @@ import threading
 import uuid
 
 
+def selected_source_refs(context):
+    """Exact source pins for a new request; saved legacy drafts remain readable."""
+    identifiers = context.get('selected_document_ids', [])
+    if (not isinstance(identifiers, list) or len(identifiers) > 32
+            or any(not isinstance(item, str) for item in identifiers)
+            or len(set(identifiers)) != len(identifiers)):
+        raise ValueError('Select at most 32 distinct local sources')
+    references = context.get('selected_sources')
+    if references is None:
+        if identifiers:
+            raise ValueError('Review and pin the selected source revisions before a new round')
+        return []
+    if not isinstance(references, list) or len(references) > 32:
+        raise ValueError('Select at most 32 exact local source revisions')
+    seen, result = set(), []
+    for reference in references:
+        if (not isinstance(reference, dict) or set(reference) != {'document_id', 'revision'}
+                or not isinstance(reference['document_id'], str)
+                or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', reference['document_id'])
+                or type(reference['revision']) is not int or reference['revision'] < 1
+                or reference['document_id'] in seen):
+            raise ValueError('Each selected source requires a distinct document and positive exact revision')
+        seen.add(reference['document_id'])
+        result.append(deepcopy(reference))
+    if 'selected_document_ids' in context and set(identifiers) != seen:
+        raise ValueError('Selected source identities and revisions differ; review the Sources selection')
+    return result
+
+
 def read_segments(path):
     """Extract supported source text; PDF pages retain extraction limitations."""
     path = Path(path)
@@ -121,7 +150,9 @@ class KnowledgeStore:
             if locator:
                 rows = [r for r in rows if all(r['locator'].get(k) == v for k, v in locator.items())]
             return {'status': 'AVAILABLE' if rows else 'NO_MATCHING_SEGMENTS', 'document_id': document_id, 'revision': revision,
-                    'segments': rows, 'failed_segments': archive['failed_segments']}
+                    'segments': rows, 'failed_segments': archive['failed_segments'],
+                    'title': rows[0]['title'] if rows else document['title'],
+                    'collection': document['collection'], 'sha256': archive['sha256']}
 
     def list(self, *, workspace_id='local', collections=None):
         with self._lock:
@@ -156,7 +187,7 @@ class KnowledgeStore:
             self._store = store
         return {'status': 'INDEXED', 'segments_indexed': len(documents), 'method': 'Haystack BM25L'}
 
-    def search(self, query, collections=None, filters=None, top_k=10, *, workspace_id='local'):
+    def search(self, query, collections=None, filters=None, top_k=10, *, workspace_id='local', source_refs=None):
         from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
         if not isinstance(query, str) or not query.strip():
             raise ValueError('A nonempty query is required')
@@ -171,12 +202,35 @@ class KnowledgeStore:
                        ('document_ids' not in filters or key in filters['document_ids'])]
             if not allowed:
                 return {'status': 'OK', 'hits': [], 'method': 'Haystack BM25L'}
-            if self._store is None:
-                self.rebuild()
+            if source_refs is None:
+                if self._store is None:
+                    self.rebuild()
+                selected_store = self._store
+            else:
+                # Reuse the same BM25 implementation for these immutable archived
+                # revisions. This temporary view is never a second persisted index.
+                from haystack import Document
+                from haystack.document_stores.in_memory import InMemoryDocumentStore
+                references = selected_source_refs({'selected_sources': source_refs})
+                selected_store = InMemoryDocumentStore(bm25_algorithm='BM25L', shared=False,
+                    bm25_tokenization_regex=r'(?u)\b\w+\b')
+                rows = []
+                for reference in references:
+                    archive = self.source(**reference, workspace_id=workspace_id, collections=collections)
+                    if reference['document_id'] in allowed:
+                        rows.extend(archive['segments'])
+                if not rows:
+                    return {'status': 'OK', 'hits': [], 'method': 'Haystack BM25L'}
+                if sum(len(row['text'].encode('utf-8')) for row in rows) > 4 * 1024 * 1024:
+                    raise ValueError('Selected retrieval text exceeds 4 MiB; choose fewer sources')
+                selected_store.write_documents([Document(
+                    id=f"{row['document_id']}:{row['revision']}:{row['segment_id']}",
+                    content=row['text'], meta={key: value for key, value in row.items() if key != 'text'})
+                    for row in rows])
             conditions = [{'field': 'meta.document_id', 'operator': 'in', 'value': allowed}]
             if 'content_kind' in filters:
                 conditions.append({'field': 'meta.content_kind', 'operator': '==', 'value': filters['content_kind']})
-            found = InMemoryBM25Retriever(document_store=self._store, top_k=int(top_k)).run(
+            found = InMemoryBM25Retriever(document_store=selected_store, top_k=int(top_k)).run(
                 query=query, filters={'operator': 'AND', 'conditions': conditions})['documents']
             hits = [{**deepcopy(doc.meta), 'text': doc.content, 'score': doc.score} for doc in found if doc.score > 0]
         return {'status': 'OK', 'hits': hits, 'method': 'Haystack BM25L'}
