@@ -10,6 +10,18 @@
 2026-10-14 최신 체크포인트. 아래의 날짜별 서술은 앞선 실행 근거이며 이 절의
 현재 배정보다 우선하지 않는다. 전체 제품 Goal은 계속 진행 중이다.
 
+**최신 환경 요구:** 사용자가 WSL을 쓰지 못하는 경우도 지원하도록 지시했다.
+기본 `Start-CAE-Lab.cmd`는 이미 Windows 경로다. root가 고급 실행 스크립트의 Auto도
+전용 Windows Python으로 바꾸고 Windows PowerShell의 저장 설정 읽기를 호환 처리했다.
+Windows Qt에서 WSL 서비스의 자료를 열 때 자식 연구 창은 Windows Python을 쓰도록
+연결했다. 서비스와 기존 작업 폴더는 자동 교체하지 않는다. 사용 안내는 INSTALL_KO의
+‘WSL 없이 사용하기’에 있다. 실제 Windows 실행 및 교차 호스트 전달 검사는
+`pde-coupling-workflows/tests-no-wsl.txt`에 기록한다. native Pre/Post 교차 호스트
+전환이나 모든 솔버의 Windows 이식을 완료한 것은 아니다.
+Pro에게도 최신 요구를 전달했다. D8 SPEC과 미전송 요청에는 공식 OpenCourant Windows
+배포를 이용한 실제 계산→Post 경로를 추가했으며 아직 설치/실행 전이다. 현재 Linux에만
+연결된 FEniCSx/MFront 등의 계산을 Windows에서도 지원한다고 표시하지 않는다.
+
 **최신 인도:** D6 수치 연구의 방법별 편집·저장 모델 예측·명시 실제 확인과 원 모델
 채택 연결을 Pro가 작성했고 마지막 교정 `220caaf`를 로컬 `804c3a6`로 통합했다.
 Astra가 모델 재선택, 목적 선택, 계산 조건이 다른 예측 비교의 지적을 독립 재검토했다.
@@ -72,6 +84,12 @@ Astra/Sol의 확정 지적은 응답 이름 충돌, cold 숫자 복구, 응력/�
 빌드 후 선언 입력·controller 종료 교정을 계속하겠다고 답했다. root 연결 인도는
 `34bcd31`, 충격 모델 재사용 명세는 `53da053`에 저장했다.
 현재 D7 변경은 로컬 커밋이며 원격 main 게시 전이다. 전체 7개 작업 완료로 표시하지 않는다.
+
+**병렬 연결 화면:** Sol이 `apps/research/reference_window.py`와 새
+`tests/test_reference_window.py`를 맡는다. 여러 도구에서 저장된 자료를 여는 공통 창의
+합쳐진 제목·영어 상태·배치와 읽기 실패 재시도를 고친다. 기존 ReferenceContent와
+Core/Pro 파일은 변경하지 않는다. Astra가 Sol과 배치·복구를 직접 논의하고 읽기 검토하며
+`reference-layout`에 실제 Qt 화면과 결과를 남긴다. root가 연결·소스·실행을 통합한다.
 
 **현재 핵심 작업:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain을
 다른 작성자가 동시에 변경하지 않는다. root가 상속 접점·일반 문서·연결·통합을 맡는다.

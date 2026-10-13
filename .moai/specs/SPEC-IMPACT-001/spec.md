@@ -50,6 +50,11 @@ tags: "explicit, damage, desktop, native"
 - REQ-IMPACT-001-007: Each tool shall independently save/reopen its existing
   document and selected result, and transfer that exact selection to the existing
   Runner, Post, Numerical or Study path without starting a hidden calculation.
+- REQ-IMPACT-001-008: When WSL is unavailable, the Windows tools shall still open,
+  edit, save and read retained results. Explicit analysis shall have a Windows
+  native runtime path, with platform-specific executable/library discovery and
+  cancellation. Missing runtime dependencies shall block only affected runs.
+  The application shall not silently replace an active service or move its store.
 
 ## 이번 소스 조사에서 확인한 재사용과 차이
 
@@ -101,3 +106,10 @@ converter가 넣는 기본 시간 간격과 종료 시간을 사용자가 정한
 실제 시각·절점/요소·배열 단위·삭제 상태를 보존해야 하며 H3D를 ANIM처럼 읽지 않는다.
 CAD 없이 원 Radioss 입력 묶음을 여는 독립 경로도 유지한다. converter의 cohesive나
 손상 시작 지원 목록만으로 혼합 모드·재닫힘·반복 손상·피로 수명을 완료하지 않는다.
+
+2026-10-14 사용자 지시에 따라 WSL 없는 Windows 실행도 구현 대상으로 둔다.
+[OpenCourant 20261011 배포](https://github.com/OpenCourant/OpenCourant/releases/tag/latest-20261011)는
+Windows x86-64 패키지와 필요한 Intel runtime을 제공한다. 현재 로컬 WSL 설치를 유일한
+계산 경로로 고정하지 않고 Windows Starter/Engine 및 결과 변환기 연결을 구현한다.
+AGPL-3.0과 번들 reader/H3D/Intel runtime의 개별 허가문을 확인해 유지한다.
+공식 배포 존재 확인과 우리 adapter의 Windows 실행 완료는 구별한다. 아직 후자는 미완료다.

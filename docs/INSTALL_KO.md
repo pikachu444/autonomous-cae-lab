@@ -105,6 +105,20 @@ WSL/Linux 계산 환경은 기본 Windows 설치에 포함되지 않습니다.
 [계산 환경과 실행 기록](LOCAL_EXECUTION.md),
 [OpenCourant 검증 범위와 남은 제한](OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md)을 참고하세요.
 
+### WSL 없이 사용하기
+
+WSL을 사용할 수 없어도 `Start-CAE-Lab.cmd`의 기본 Windows 실행에는 영향이 없습니다.
+Data 편집, Material 피팅과 FELUPE 재료점 계산, SciPy ODE와 수치 연구, 저장된 결과
+읽기는 Windows에서 실행합니다. FreeCAD·ParaView와 CalculiX는 Windows용 별도 설치를
+연결할 수 있습니다. FEniCSx·MFront 등 현재 Linux에서만 연결한 계산은 해당 환경이
+준비될 때 실행하며, 그 모델의 입력 편집·저장을 전체 프로그램의 실행 조건으로 삼지 않습니다.
+
+고급 서비스 스크립트 `cae-research-local.ps1`의 `Auto`도 이제 전용 Windows Python을
+선택합니다. WSL은 아래처럼 `-Execution WSL`을 지정한 경우에만 사용합니다. 이미 실행 중인
+서비스가 끊겼을 때 다른 서비스나 작업 폴더로 몰래 전환하지는 않습니다. 기존 작업을
+종료·복구한 뒤 원하는 환경과 작업 폴더를 명시해서 다시 여세요. Linux에만 저장된 파일과
+native 실행 경로가 Windows에서 자동으로 바뀌는 것은 아닙니다.
+
 ### 이미 설치한 WSL 계산 환경에 연결하기
 
 기존 Ubuntu 환경에 FEniCSx나 MFront를 준비해 둔 개발 환경에서는 계산 서비스를

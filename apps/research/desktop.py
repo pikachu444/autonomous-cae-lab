@@ -22,8 +22,23 @@ from caelab.workbench_client import Client
 TOOLS = {'material', 'data', 'numerical', 'pde', 'expert', 'runner', 'simulation', 'evaluation', 'study'}
 
 
-def _spawn(client, arguments):
+def _research_context(client):
     context = client.desktop_context()
+    if os.name == 'nt' and str(context['python']).startswith('/'):
+        # The solver service can live in WSL while its research windows stay
+        # with this Windows client. Native preparation still uses the service.
+        python = Path(sys.executable)
+        repository = Path(__file__).resolve().parents[2]
+        if not python.stem.lower().startswith('python') or not python.is_file():
+            raise ValueError('Windows 연구 프로그램의 Python 환경에서 창을 열어 주세요.')
+        if not (repository / 'apps/research/desktop.py').is_file():
+            raise ValueError('Windows 연구 프로그램의 설치 폴더를 찾을 수 없습니다.')
+        context = dict(context, python=str(python), repo_root=str(repository))
+    return context
+
+
+def _spawn(client, arguments):
+    context = _research_context(client) if arguments and arguments[0] in TOOLS else client.desktop_context()
     python, repository = Path(context['python']), Path(context['repo_root'])
     if not python.is_file() or not repository.is_dir():
         raise ValueError('The service primary Python or repository is unavailable')
@@ -132,7 +147,7 @@ def open_saved_reference(client, reference):
     # Read exact ownership before launching a read-only reference view. Its
     # original owner draft remains editable and is never replaced by old input.
     client.research_reference(reference)
-    context=client.desktop_context()
+    context=_research_context(client)
     process=subprocess.Popen([context['python'],'-m','apps.research.reference_window',
         '--service',client.url,'--reference',json.dumps(reference,ensure_ascii=False)],cwd=context['repo_root'],
         env=dict(os.environ,CAELAB_SERVICE_URL=client.url))
