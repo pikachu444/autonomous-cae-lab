@@ -390,18 +390,18 @@ def _post(client, args):
 
 
 def _arguments(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--service', default=os.getenv('CAELAB_SERVICE_URL'))
     sub = parser.add_subparsers(dest='tool', required=True)
-    pre = sub.add_parser('pre')
+    pre = sub.add_parser('pre', allow_abbrev=False)
     pre.add_argument('--source'); pre.add_argument('--assembly'); pre.add_argument('--source-label'); pre.add_argument('--gmsh')
     pre.add_argument('--input-id')
-    post = sub.add_parser('post')
+    post = sub.add_parser('post', allow_abbrev=False)
     choice = post.add_mutually_exclusive_group()
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
-    origin = sub.add_parser('origin'); origin.add_argument('--job-id', required=True)
+    origin = sub.add_parser('origin', allow_abbrev=False); origin.add_argument('--job-id', required=True)
     for name in sorted(TOOLS):
-        tool = sub.add_parser(name)
+        tool = sub.add_parser(name, allow_abbrev=False)
         tool.add_argument('--job-id' if name == 'runner' else '--document-id')
     for tool in (pre, post):
         tool.add_argument('--executable'); tool.add_argument('--output'); tool.add_argument('--prepare-only', action='store_true')

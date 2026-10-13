@@ -1,98 +1,146 @@
-# Windows에서 설치하고 첫 계산하기
+# Windows에서 Research 데스크톱 시작하기
 
-이 안내의 기본 시작기는 기존 웹 Workbench를 연다. 독립 Data·Material·PDE·Numerical·
-Expert·Runner 등의 데스크톱 도구는 [Research 실행 안내](../apps/research/README.md)의
-`start_cae_research.ps1 -Tool ...` 경로를 사용한다. 설치 후 제품 진입과 재실행의 남은
-작업은 [CURRENT_STATE](../CURRENT_STATE.md)에서 관리한다.
+`Start-CAE-Lab.cmd`의 기본 진입은 **Qt Runner 창**이다. Numerical·Expert·Data·
+PDE 등 다른 도구도 `-Tool`로 직접 시작한다. 각 창은 같은 로컬 서비스의
+문서와 작업을 사용하므로, 따로 시작한 연구를 기존 도구 간 이동으로 이어갈 수 있다.
+[Research 실행 안내](../apps/research/README.md)에 전체 도구와 선택 인수가 있다.
 
 ## 시작
 
 1. 저장소의 **Code → Download ZIP**으로 내려받아 사용자 폴더에 압축을 푼다.
-2. **Start-CAE-Lab.cmd**를 더블클릭한다. 첫 실행은 인터넷에서 uv, 전용
-   Python 3.12와 수치·재료 패키지를 설치하므로 시간이 걸린다.
-3. 열린 브라우저에서 **시험·해석 파일 읽고 비교** 또는 **재료 동정·조건 탐색**을 고른다.
+2. **Start-CAE-Lab.cmd**를 더블클릭한다. 첫 실행은 기존 설치기를 통해 uv,
+   전용 Python 3.12, 수치·재료 패키지와 Qt Research 의존성을 준비한다.
+3. Runner에서 기존 작업을 열거나, 아래 명령으로 원하는 도구를 직접 연다.
 
-Windows 10/11 x64의 기본 Windows PowerShell 5.1을 사용한다. WSL, Git,
-미리 설치한 Python, 관리자 권한이 필요하지 않다. 설치에는 GitHub와 Python
-패키지·런타임 다운로드 서버에 대한 인터넷 접근이 필요하다. 회사의 실행·통신
-정책이 이를 막는 경우 해당 정책을 우회하지 않는다.
+Windows 10/11 x64의 기본 Windows PowerShell 5.1을 사용한다. 기본 Research
+진입에는 WSL, Git, 미리 설치한 Python, 관리자 권한이 필요하지 않다. 설치에는
+GitHub와 Python 패키지·런타임 다운로드 서버에 대한 인터넷 접근이 필요하다.
+압축을 푼 소스 폴더는 계속 보관한다. 설치된 환경이 그 코드를 사용한다.
 
-다시 더블클릭하면 동일한 설정으로 실행 중인 작업대를 다시 연다. 소스나 설정이
-바뀌면 이전 서버에 조용히 연결하지 않고 재시작이 필요하다고 알린다.
-압축을 푼 소스 폴더를 계속 보관해야 한다. 설치된 환경이 그 코드를 사용한다.
+저장소 폴더의 PowerShell에서:
 
-## 첫 작업
+```powershell
+.\Start-CAE-Lab.cmd -Tool numerical
+.\Start-CAE-Lab.cmd -Tool expert
+.\Start-CAE-Lab.cmd -Tool data
+.\Start-CAE-Lab.cmd -Tool pde
+.\Start-CAE-Lab.cmd -Tool simulation
+```
 
-**파일 비교:** CSV/TXT 파일 추가 → 표 미리보기에서 축·응답 열 확인 → 단위,
-성분, 위치 입력 → **지정한 열로 결과 읽기**. 두 번째 파일도 읽은 뒤 결과의
-**저장 곡선 두 개 비교**에서 파일명과 응답을 선택한다. 결과에는 중첩 곡선,
-RMSE와 평균절대오차가 표시된다. 원본 솔버를 다시 실행하지 않는다.
-NaN/Inf가 있는 수치 행은 머리글로 버리지 않고 오류로 남긴다.
+Runner는 기본 선택일 뿐이다. 연구를 Runner나 Material에서 먼저 만들 필요는 없다.
+Data의 표·채널, Numerical의 연구 계획, Expert의 논의, PDE의 모델 등 필요한
+도구에서 시작한다. FreeCAD CAD/FE와 ParaView Post는 기존
+`start_cae_pre.ps1` / `start_cae_post.ps1`와 각 도구의 이동 명령을 통해
+별도 네이티브 프로세스로 연다. Qt 창 안에 이 프로그램들을 합치지 않는다.
 
-**재료 계산:** 재료 법칙, E/ν와 시간별 변형구배를 편집 → **현재 조건 평가**.
-**합성 교육용 이력**은 조작을 익히기 위한 입력이며 실제 시험 자료가 아니다.
-이는 FELUPE 재료점 계산이다. 유한요소 경계조건 해석이나 실제 재료 적합성
-승인을 대신하지 않는다. 결과를 연 뒤 **연구 보고서 미리보기/저장**을 사용할 수 있다.
+## 저장한 문서나 작업으로 바로 들어가기
 
-연구 이름은 작업 기록에 남는다. 표의 단위·성분·위치는 자동으로 확정하지 않는다.
-결과 그래프를 일부 행으로 좁혀도 오차 지표는 전체 비교에 대한 기존 값이다.
-결과의 **완료 결과로 후속 질문**은 해당 결과를 전문가 상담에 선택한다.
-전문가를 별도로 설정하지 않은 설치에서는 **설정된 전문가 없음**이 표시된다.
+```powershell
+.\Start-CAE-Lab.cmd -Tool numerical -DocumentId DOCUMENT_ID
+.\Start-CAE-Lab.cmd -Tool expert -DocumentId DOCUMENT_ID
+.\Start-CAE-Lab.cmd -Tool runner -JobId JOB_ID
+```
 
-## 지금 설치되는 범위
+`DOCUMENT_ID`와 `JOB_ID`는 실제 저장한 ID로 바꾼다. ID를 생략하면 해당
+도구에 진입한다. Runner는 작업 ID, 나머지 Research 도구는 문서 ID를 받는다.
+파일명을 문서 ID로 바꾸거나 기존 파일을 자동으로 이름 변경하지 않는다.
 
-| 기능 | Windows 기본 설치 |
+같은 서비스에서 열면 기존 문서 소유자가 편집·저장·재열기를 처리한다. 선택한
+작업의 원본과 결과로 이동하는 명령도 기존 연결을 사용한다. 결과를 여는 것으로
+새 계산을 제출하지 않는다. 이 시작기 변경 자체가 모든 도구의 편집·해석·후속
+연구 경로를 완성했다는 뜻은 아니다.
+
+## 창 없이 준비하기
+
+| 실행 | 동작 |
 |---|---|
-| 파일 읽기·저장 결과 재열람·비교·HTML 보고서 | 포함, 실제 실행 확인 |
-| SciPy DOE·동정·최적화의 공통 수치 기능 | 포함; 계산할 모델은 별도 요구조건을 따른다 |
-| FELUPE 재료점 응력·탄젠트 | 포함, 실제 실행 확인 |
-| FreeCAD/CadQuery, Gmsh/CalculiX | 별도 네이티브 설치와 고정 upstream 필요; 이 설치 시험으로 Windows 전체 경로를 검증한 것은 아니다 |
-| Code_Aster, DOLFINx, MFront/MGIS, OpenCourant | 별도 실행환경 필요; 현재 Linux/WSL 실험 기록과 Windows 설치 지원을 혼동하지 않는다 |
-| OpenScience·자료 검색·LLM 전문가 | 선택 설치·계정 설정 필요; 기본 계산에는 필요하지 않다 |
+| `Start-CAE-Lab.cmd` / `-Tool …` | Qt 의존성 준비 → 서비스 시작 또는 확인 → 선택한 Qt 창 |
+| `-NoBrowser` | 명시한 선택 의존성만 준비하고 서비스 시작·확인; 창 없음 |
+| `-PrepareOnly` | Qt와 서비스 준비 후 도구·문서/작업 선택을 반환; 창 없음 |
+| `-InstallOnly` | 명시한 의존성 설치만 수행; 서비스·창 없음 |
 
-기존 CAD·구조 작업 화면은 시작 화면의 링크로 이동한다. GitHub ZIP에는
-submodule 내용이 없으므로 그 링크가 보이는 것만으로 CAD 실행 준비가 된 것은 아니다.
-Code_Aster 정준 반력 검증과 물리적·회사 배포 승인은 여전히 미완료다.
+`-InstallOnly -PrepareOnly`도 설치만 한다.
+`-NoBrowser -PrepareOnly`는 준비 결과를 반환하지만 Qt를 자동 추가하지 않는다.
+기존 Research helper의 `-PrepareOnly`는 계속 Qt를 준비한다.
 
-## 저장 위치와 운영
+```powershell
+# Qt를 포함하여 설치만 준비
+.\Start-CAE-Lab.cmd -InstallOnly -ResearchUI
+
+# 이후 Qt 창에서 사용할 서비스를 창 없이 준비
+.\Start-CAE-Lab.cmd -NoBrowser -ResearchUI
+
+# 이 도구와 문서 선택을 포함한 준비 결과 반환
+.\Start-CAE-Lab.cmd -Tool numerical -DocumentId DOCUMENT_ID -PrepareOnly
+```
+
+명령줄에 인수가 있으면 실패해도 입력을 기다리지 않고 오류 코드로 끝난다.
+인수 없이 더블클릭한 실행이 실패했을 때만 진단을 읽도록 키 입력을 기다린다.
+Python 직접 실행의 옵션은 `--prepare-only`처럼 전체 이름을 쓴다.
+
+## 설치 범위와 도구별 실행환경
+
+기본 Qt 실행은 기존 `research-ui` 의존성인 PySide6 6.9.1과
+Matplotlib 3.10.8을 자동 요청한다. 현재 설치 기록이 맞으면 기존 환경을 재사용한다.
+설치기는 개인 Python·로그 경로를 쓰며 시스템 Python/PATH나 개발용 Python
+환경을 바꾸지 않는다.
+
+| 기능 | 준비 범위 |
+|---|---|
+| Qt Research 창과 기존 문서·작업 연결 | 기본 실행에서 `research-ui` 준비 |
+| Data 파일 읽기와 저장 결과, SciPy 수치 기능 | 기존 기본·수치 패키지; 실제 계산에 필요한 모델 조건은 별도 |
+| FELUPE 재료점 응력·탄젠트 | 기존 material 패키지; 다른 도구를 시작하기 위한 작업 선행조건은 아님 |
+| FreeCAD/CadQuery, Gmsh/CalculiX | 별도 네이티브 설치와 해당 경로의 고정 upstream 필요 |
+| Code_Aster, DOLFINx, MFront/MGIS, OpenCourant | 각 실행환경 필요; 기존 Linux/WSL 근거를 Windows 검증으로 바꾸지 않음 |
+| Expert | 기존 ResearchUI 설치의 assist-core import 준비; 실제 추론은 설정된 공급자·모델 권한이 별도 |
+
+기본 실행은 모델 공급자를 호출하거나 계정을 변경하지 않는다. CAD·AI를 쓰지 않는
+문서 편집과 저장 결과 읽기에는 해당 프로그램 실행이나 AI 로그인을 요구하지 않는다.
+GitHub ZIP에는 submodule 내용이 없으므로 네이티브 CAD 경로는 필요한 소스를 별도로
+준비해야 한다. Qt 설치와 창 열기가 솔버 실행 가능성이나 공학적 승인까지 보증하지 않는다.
+
+## 저장 위치와 서비스 재사용
 
 - 전용 도구/Python/로그: `%LOCALAPPDATA%\AutonomousCAELab\windows-runtime`
 - 계산·원본·결과: `%LOCALAPPDATA%\AutonomousCAELab\research-store`
 - 선택적 운영자 설정: `%LOCALAPPDATA%\AutonomousCAELab\workbench-config.json`
 
-설치·서버 시작 기록은 전용 런타임 폴더에 남는다. 원본·실험을 덮어쓰거나
-시스템 Python/PATH를 변경하지 않는다. 서버는 127.0.0.1에만 연결한다.
-브라우저를 닫아도 계산 서버는 계속 실행된다.
-
-PowerShell에서 다른 포트·저장소를 선택할 수 있다:
+다른 위치를 쓸 때는 관련 도구에 같은 포트·저장소·런타임을 전달한다. 공백과
+한글 경로는 따옴표로 감싼다:
 
 ```powershell
-.\Start-CAE-Lab.cmd -Port 8770 -Store 'D:\CAE Research\runs'
-# 브라우저 없이 설치만 확인
-.\Start-CAE-Lab.cmd -InstallOnly -NoBrowser
+.\Start-CAE-Lab.cmd -Tool numerical -Port 8770 -Store 'D:\CAE 연구\실험 자료'
+.\Start-CAE-Lab.cmd -Tool data -Port 8770 -Store 'D:\CAE 연구\실험 자료'
 ```
 
-서버를 종료할 때는 작업 완료를 확인한 후 실행한다. 이 명령은 실행 중인 작업을
-중단할 수 있으며 이 시작 스크립트가 소유한 서버만 종료한다. 데이터는 보존한다.
+서비스는 127.0.0.1에 연결하며 Qt 창을 닫아도 계속 실행된다. 재실행할 때 기존
+프로세스와 리스너, 저장소, 소스, 설정, 의존성, 준비 상태가 맞으면 재사용한다.
+다른 소스나 설정의 서비스에는 조용히 연결하지 않으며 임의로 종료·교체하지 않는다.
+Qt 없이 시작한 서비스에 의존성을 추가하면 명시적인 재시작이 필요할 수 있다.
+
+서버를 종료할 때는 실행 중인 작업을 확인한 후 기존 종료 스크립트를 사용한다.
+이 명령은 해당 시작기가 소유한 서버만 종료하며 실행 중인 작업을 중단할 수 있다.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-windows.ps1 -Force
 ```
 
-다른 포트/런타임으로 시작했다면 종료 시에도 같은 `-Port`/`-RuntimeRoot`를 지정한다.
+다른 포트/런타임으로 시작했다면 종료 시에도 같은 `-Port` / `-RuntimeRoot`를
+지정한다. 새 시작기가 이 종료를 자동으로 실행하지는 않는다.
 
-## 선택 근거와 이후 확장
+## 이번 변경의 확인 범위
 
-Python 설치·패키지 의존성 관리는 기존 **uv**를 재사용한다. 직접 패키지 관리자를
-만들지 않았다. [uv 설치](https://docs.astral.sh/uv/getting-started/installation/)와
-[관리형 Python](https://docs.astral.sh/uv/guides/install-python/)의 공식 기능을
-전용 사용자 폴더에 연결한다. uv 실행파일은 고정 버전과 SHA-256으로 검사한다.
-uv는 MIT/Apache-2.0이며, 설치되는 각 수치 패키지의 라이선스는 별도로 적용된다.
+이 문서는 제품 시작 코드와 실행 인수를 설명한다. 초기 소스 `111a36f`의
+Python 진입·이동 테스트, 충돌 서비스 거절, 새 개인 런타임의 Qt 의존성
+설치/import, 준비 결과 반환은 **Codex의 Windows 실행 보고**로 확인했다.
+Pro 원격 환경에서는 실행하지 못했으며, 이후 CMD·축약 옵션 교정과 Windows
+격리 테스트의 Pro 실행 상태는 **NOT_RUN**이다. 실제 화면 열기와 도구 이동의
+최종 Windows 실행·통합은 Codex가 반환된 커밋으로 확인한다.
+검사 명령과 대역의 범위는 [Research 안내](../apps/research/README.md#verify-this-launcher-change)에 있다.
 
-2026-10-08 사용자 결정: **온라인 Windows 단독 실행을 먼저**, 이후 Windows
-화면과 Linux 계산 서버의 연결을 확장한다. Windows/Linux 각각 독립 실행은
-각 OS에 앱과 필요한 계산환경을 따로 설치한다는 뜻이다. 세 번째 별도 런타임이 아니다.
-Linux/WSL에서 검증한 솔버가 자동으로 Windows에서도 지원되는 것은 아니다.
-
-오프라인 배포는 향후 고정 의존성·플랫폼별 바이너리·라이선스·해시를 묶는
-방식으로 고려한다. **이번 작업에서는 오프라인 묶음을 구현하거나 배포하지 않았다.**
+Python 설치·의존성 관리는 기존 [uv 설치](https://docs.astral.sh/uv/getting-started/installation/)와
+[관리형 Python](https://docs.astral.sh/uv/guides/install-python/) 경로를 재사용한다.
+uv 고정 버전·SHA-256 검사와 각 패키지의 라이선스 적용은 그대로다.
+오프라인 배포 묶음, Linux 계산 서버 확장, 개별 솔버 검증은 이 시작기 변경에
+포함하지 않는다. 현재 전체 구현 과제와 다음 Numerical·Expert 작업은
+[CURRENT_STATE](../CURRENT_STATE.md)에서 관리한다.

@@ -55,7 +55,7 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Raw | ConvertFrom-Json
 $global:CaeLauncherTest = @{spec=$spec;started=$false;processId=42421;
-    python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command=''}
+    python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command='';ownedProcess=$true;ownedListener=$true}
 $global:LASTEXITCODE = 0
 function Write-TestEvent($value) {
     ConvertTo-Json -InputObject $value -Compress -Depth 8 |
@@ -65,14 +65,17 @@ function Get-CimInstance {
     [CmdletBinding()] param([string]$ClassName,[string]$Filter)
     $state = $global:CaeLauncherTest
     if ($state.started -and $Filter -eq "ProcessId=$($state.processId)") {
-        return [pscustomobject]@{ExecutablePath=$state.python;CommandLine=$state.command}
+        $executable = if ($state.ownedProcess) { $state.python } else { 'C:\unrelated\python.exe' }
+        return [pscustomobject]@{ExecutablePath=$executable;CommandLine=$state.command}
     }
     return $null
 }
 function Get-NetTCPConnection {
     [CmdletBinding()] param([string]$LocalAddress,[int]$LocalPort,[string]$State)
     if ($global:CaeLauncherTest.started) {
-        return [pscustomobject]@{OwningProcess=$global:CaeLauncherTest.processId}
+        $listenerState = $global:CaeLauncherTest
+        $owner = if ($listenerState.ownedListener) { $listenerState.processId } else { $listenerState.processId + 1 }
+        return [pscustomobject]@{OwningProcess=$owner}
     }
     throw 'No test listener'
 }
@@ -107,6 +110,9 @@ try {
         if ($phaseIndex -gt 0) {
             $launchPath = Join-Path $spec.runtime ("server-$($spec.port).launch.json")
             switch ($spec.mutate) {
+                'process_identity' { $global:CaeLauncherTest.ownedProcess = $false }
+                'process_command' { $global:CaeLauncherTest.command = 'unrelated.server --port ' + $spec.port }
+                'listener_owner' { $global:CaeLauncherTest.ownedListener = $false }
                 'process_store' { $global:CaeLauncherTest.command = 'apps.lab.server --port ' + $spec.port + ' --store "different"' }
                 'missing_receipt' { Remove-Item -LiteralPath $launchPath }
                 'source' { Add-Content -LiteralPath (Join-Path $spec.source 'caelab\__init__.py') -Value '# changed source' }
@@ -296,14 +302,15 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         self.assertEqual(len(self.events_of(events, "desktop")), 1)
 
     def test_conflicting_owned_service_is_not_restarted_or_opened(self):
-        for mutation in ("process_store", "missing_receipt", "source", "receipt_pid", "config"):
+        for mutation in ("process_store", "missing_receipt", "source", "receipt_pid", "config",
+                         "process_identity", "process_command", "listener_owner"):
             with self.subTest(mutation=mutation):
                 result, events, _ = self.run_case([
                     self.phase(NoBrowser=True, ResearchUI=True), self.phase()], mutate=mutation)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(len(self.events_of(events, "server")), 1)
                 self.assertEqual(self.events_of(events, "desktop"), [])
-                self.assertIn("Stop", result.stderr)
+                self.assertIn("stop", result.stderr.lower())
 
     def test_adding_qt_to_a_running_base_service_requires_explicit_restart(self):
         result, events, _ = self.run_case([self.phase(NoBrowser=True), self.phase()])

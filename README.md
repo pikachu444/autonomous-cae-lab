@@ -12,40 +12,63 @@ work: [CURRENT_STATE](CURRENT_STATE.md). Development roles and document updates:
 ## Install and start
 
 **Windows 10/11 x64, without WSL:** download and extract the repository ZIP,
-then double-click `Start-CAE-Lab.cmd`. It installs a private Python environment
-and opens the existing web workbench. Internet is required; system Python, Git and admin
-rights are not required for the base/numerical/material features. Keep the
-extracted source folder. Native CAD/solvers and expert accounts are separate.
-See the [Windows quick start and supported scope](docs/WINDOWS_QUICKSTART.md).
-For independent Data, Material, PDE, Numerical, Expert and related desktop tools,
-use [the Research launcher instructions](apps/research/README.md). Native CAD/FE
-and Post retain their separate applications and runtimes.
+then double-click `Start-CAE-Lab.cmd`. The maintained installer prepares a private
+Python environment and the Research UI dependencies; startup opens the existing
+**Qt Runner window**. Select another independent tool directly:
+
+```powershell
+.\Start-CAE-Lab.cmd -Tool numerical
+.\Start-CAE-Lab.cmd -Tool expert
+.\Start-CAE-Lab.cmd -Tool data
+.\Start-CAE-Lab.cmd -Tool pde
+.\Start-CAE-Lab.cmd -Tool runner -JobId JOB_ID
+```
+
+Other Research tools accept `-DocumentId DOCUMENT_ID`; omit the selection to
+enter the tool. These windows share the existing local service and its exact
+documents/jobs. Runner is a default selection, not a required start for a study.
+The launcher opens no browser. FreeCAD CAD/FE and ParaView Post retain their
+separate native applications, helpers and runtimes.
+
+Internet is required for missing runtime/packages; system Python, Git and admin
+rights are not required for basic Research startup. Keep the extracted source
+folder. Native CAD/solvers and actual expert-provider access remain separate.
+`-NoBrowser` prepares/verifies the service without UI, `-PrepareOnly` also
+returns the original tool/selection context, and `-InstallOnly` installs only.
+See the [Windows quick start](docs/WINDOWS_QUICKSTART.md) and
+[Research launcher instructions](apps/research/README.md) for optional dependency
+selection, service reuse, errors and the current execution evidence.
 
 For manual installation on Linux or Windows, Python 3.12+ is required.
 From a source checkout:
 
 ```bash
-git submodule update --init --recursive
 python -m venv .venv
 # Linux/macOS; on Windows use .venv\Scripts\Activate.ps1
 source .venv/bin/activate
-python -m pip install -e '.[numerical,material]'
-caelab doctor --backend material.felupe
+python -m pip install -e '.[numerical,material,research-ui,assist-core]'
 caelab serve --store ./runs/my-research --port 8766
 ```
 
-Open **http://127.0.0.1:8766/workbench**. Upload a table, declare its channels and
-units, edit a material loading history, fit independent experimental curves or
-run a DOE. The same page shows execution history, cancellation, actual response
-curves, comparisons and downloadable HTML reports. Synthetic teaching inputs are
-explicitly labeled. The original `/` interface remains available for existing
-CAD records and workflows.
+In a second terminal with the same environment, open the selected Qt tool:
+
+```bash
+python -m apps.research.desktop --service http://127.0.0.1:8766 numerical
+```
+
+The local HTTP service remains the shared command/store boundary. Its existing
+optional web interfaces at `/workbench` and `/` remain available; they are not
+the default product GUI. Initialize the pinned submodule with
+`git submodule update --init --recursive` when a selected native backend needs
+it, rather than as a prerequisite for ordinary independent Research entry.
 
 | Extra | Adds | Optional runtime/license consideration |
 | --- | --- | --- |
 | none | NumPy, direct API, retained-result reading, local service | No CAD/AI import on discovery |
 | `numerical` | SciPy fitting, DOE, search, statistics, RBF surrogate | BSD; no solver or model account |
 | `material` | FELUPE material-point laws and tangent responses | FELUPE GPL-3.0; review distribution obligations |
+| `research-ui` | PySide6 6.9.1 / Matplotlib 3.10.8 Research windows | Free OSS; native Pre/Post runtimes remain separate |
+| `assist-core` | Existing Expert/Haystack imports used by the maintained Research installer | No provider/model call or credential is configured by installation |
 | `cad` | Existing CadQuery fixture integration | Native FreeCAD remains separately installed |
 | `native-mechanics` | Gmsh Python dependency | CalculiX/other native solver runtimes installed separately |
 | `sensitivity` | SALib matched Sobol sampling/analysis | Separate from ordinary DOE regression influence |
