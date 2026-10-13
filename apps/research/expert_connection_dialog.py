@@ -6,9 +6,67 @@ import json
 from PySide6.QtCore import Qt, QTimer, QThreadPool
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QVBoxLayout, QHBoxLayout,
     QFormLayout, QLabel, QPushButton, QComboBox, QFileDialog, QCheckBox, QTableWidget,
-    QTableWidgetItem, QHeaderView, QTabWidget, QWidget, QListWidget, QListWidgetItem)
+    QTableWidgetItem, QHeaderView, QTabWidget, QWidget, QListWidget, QListWidgetItem, QPlainTextEdit)
 
 from caelab import expert_connection as setup
+
+
+def is_example_role(definition):
+    """Recognize the actual shipped definition, never an ID/name alone."""
+    try:
+        path = Path(__file__).resolve().parents[2] / 'examples' / 'workbench_experts.json'
+        examples = setup.roles(setup.read_config(path)[0])
+    except (OSError, ValueError):
+        return False
+    return any(definition == row for row in examples)
+
+
+class RoleDetailsDialog(QDialog):
+    """Read only the selected definition; no qualification or corpus is inferred."""
+    def __init__(self, definition, *, model=None, provider=None, parent=None):
+        super().__init__(parent)
+        self.definition = deepcopy(definition)
+        self.setWindowTitle('역할 상세')
+        self.resize(660, 520)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        name = QLabel(definition.get('label') or definition.get('id', ''))
+        name.setTextFormat(Qt.TextFormat.PlainText)
+        name.setWordWrap(True)
+        form.addRow('역할', name)
+        self.definition_kind = QLabel('프로젝트 예제 역할 정의' if is_example_role(definition)
+                                     else '선택한 역할 정의')
+        self.definition_kind.setToolTip('역할 지시와 자료 분류·도구 설정입니다. 전문자료집이나 분야 평가 결과를 포함하지 않습니다.')
+        form.addRow('정의', self.definition_kind)
+        self.model_label = QLabel(model or '미설정')
+        self.model_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.model_label.setWordWrap(True)
+        self.model_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.model_label.setToolTip('선택한 모델 설정입니다. 인증과 해당 모델 사용 권한은 별도 확인이 필요합니다.')
+        form.addRow('모델', self.model_label)
+        route = QLabel('OpenScience / 기존 ChatGPT 로그인 경로' if provider == 'openscience'
+                       else provider or '미연결')
+        route.setTextFormat(Qt.TextFormat.PlainText)
+        route.setWordWrap(True)
+        form.addRow('연결', route)
+        layout.addLayout(form)
+        layout.addWidget(QLabel('역할 지시'))
+        self.instructions = QPlainTextEdit()
+        self.instructions.setReadOnly(True)
+        self.instructions.setPlainText(definition.get('instructions', ''))
+        layout.addWidget(self.instructions, 2)
+        tabs = QTabWidget()
+        self.collections, self.tools = QListWidget(), QListWidget()
+        self.collections.addItems(definition.get('collections', []) or ['지정 없음'])
+        self.tools.addItems(definition.get('tools', []) or ['지정 없음'])
+        self.collections.setToolTip('분류명만 표시합니다. 실제 자료 내용은 Expert의 Sources에서 확인하세요.')
+        self.tools.setToolTip('역할에 설정된 도구 목록입니다. 실제 사용은 요청 권한과 예산에 따릅니다.')
+        tabs.addTab(self.collections, '자료 분류 (내용 미확인)')
+        tabs.addTab(self.tools, '허용 도구')
+        layout.addWidget(tabs, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
 
 
 class ConnectionDialog(QDialog):
@@ -33,7 +91,8 @@ class ConnectionDialog(QDialog):
         layout.addWidget(self.tabs, 1)
         connection = QWidget()
         form = QFormLayout(connection)
-        self.enabled = QCheckBox('Use existing OpenScience subscription profile')
+        self.enabled = QCheckBox('기존 OpenScience 설정 사용')
+        self.enabled.setToolTip('OpenScience는 오픈소스 실행 도구입니다. 기존 ChatGPT 로그인 경로를 사용하며, 인증과 모델 사용 권한은 별도로 확인합니다.')
         form.addRow(self.enabled)
         self.profile, self.runtime, self.model = QComboBox(), QComboBox(), QComboBox()
         for combo in (self.profile, self.runtime, self.model):
@@ -52,10 +111,15 @@ class ConnectionDialog(QDialog):
         check_files = QPushButton('Check local setup')
         check_files.clicked.connect(self.inspect_files)
         form.addRow(check_files)
-        self.roles = QTableWidget(0, 2)
-        self.roles.setHorizontalHeaderLabels(['Role', 'Model override'])
+        self.roles = QTableWidget(0, 3)
+        self.roles.setHorizontalHeaderLabels(['Role', 'Model override', '정의'])
+        self.roles.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.roles.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.roles.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.roles.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.roles.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.roles.itemSelectionChanged.connect(self._role_selection_changed)
+        self.roles.cellDoubleClicked.connect(lambda row, column: self.show_role_details() if column != 1 else None)
         form.addRow(self.roles)
         role_buttons = QHBoxLayout()
         choose = QPushButton('Choose roles…')
@@ -64,6 +128,10 @@ class ConnectionDialog(QDialog):
         example.clicked.connect(self.example_roles)
         role_buttons.addWidget(choose)
         role_buttons.addWidget(example)
+        self.role_details = QPushButton('역할 상세…')
+        self.role_details.setEnabled(False)
+        self.role_details.clicked.connect(self.show_role_details)
+        role_buttons.addWidget(self.role_details)
         role_buttons.addStretch()
         form.addRow(role_buttons)
         self.tabs.addTab(connection, 'Model and roles')
@@ -209,6 +277,9 @@ class ConnectionDialog(QDialog):
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             item.setToolTip(role.get('instructions', ''))
             self.roles.setItem(index, 0, item)
+            kind = QTableWidgetItem('예제' if is_example_role(role) else '선택한 정의')
+            kind.setFlags(kind.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.roles.setItem(index, 2, kind)
             combo = QComboBox()
             combo.setEditable(True)
             combo.addItem('')
@@ -216,6 +287,22 @@ class ConnectionDialog(QDialog):
             combo.setEditText(overrides.get(role['id'], {}).get('model', ''))
             combo.lineEdit().setPlaceholderText('Default model')
             self.roles.setCellWidget(index, 1, combo)
+        self._role_selection_changed()
+
+    def _role_selection_changed(self):
+        if hasattr(self, 'role_details'):
+            self.role_details.setEnabled(0 <= self.roles.currentRow() < len(self.definitions))
+
+    def show_role_details(self):
+        row = self.roles.currentRow()
+        if self._closed or self._busy or not 0 <= row < len(self.definitions):
+            return False
+        override = self.roles.cellWidget(row, 1).currentText().strip()
+        model = (override or self.model.currentText().strip()) if self.enabled.isChecked() else None
+        dialog = RoleDetailsDialog(self.definitions[row], model=model,
+                                   provider='openscience' if self.enabled.isChecked() else None, parent=self)
+        dialog.exec()
+        return True
 
     def _populate_collections(self, selected):
         self.collections.clear()
