@@ -88,6 +88,7 @@ class ExpertWindow(QMainWindow):
         self._source_titles_pending = False
         self._source_preview_binding = None
         self._topics_snapshot = None
+        self._automatic_topic_ids = set()
         self._protocol_steps = []
         self._protocol_owner = None
         self._protocol_delivery = None
@@ -292,6 +293,10 @@ class ExpertWindow(QMainWindow):
         for button in (self.attach_button, self.apply_button, self.intervene_button, self.next_button, self.retry_button, self.ask_button):
             actions.addWidget(button)
         composer.addLayout(actions)
+        self.protocol_budget = QPushButton()
+        self.protocol_budget.setObjectName('protocolBudget')
+        self.protocol_budget.clicked.connect(lambda: self.show_side(self.transmission_settings))
+        composer.addWidget(self.protocol_budget, 0, Qt.AlignmentFlag.AlignRight)
         conversation.addWidget(self.editor)
         splitter.addWidget(center)
         self.side = QTabWidget()
@@ -354,7 +359,7 @@ class ExpertWindow(QMainWindow):
         proposal_explanation.setWordWrap(True)
         plan_layout.addWidget(proposal_explanation)
         self.side.addTab(plan_tab, '계산 계획')
-        settings = QWidget()
+        settings = self.transmission_settings = QWidget()
         form = QFormLayout(settings)
         self.allow_question = QCheckBox('질문 전송 허용')
         self.allow_question.setToolTip('Permit question transmission for this request within the existing workspace/provider authorization.')
@@ -377,6 +382,7 @@ class ExpertWindow(QMainWindow):
         form.addRow('이번 작업의 모델 호출 한도', self.model_calls)
         form.addRow('이번 작업의 자료 검색 한도', self.tool_calls)
         form.addRow('이번 작업 제한 시간(초)', self.seconds)
+        form.addRow(QLabel('운영자 상한이 함께 적용됩니다. 초기 조사는 한 번에 끝나지 않을 수 있습니다.'))
         runtime_explanation = QLabel('Connection…에서 기존 OpenScience 설정을 선택합니다. 각 요청에는 별도 전송 허용이 적용됩니다.')
         runtime_explanation.setWordWrap(True)
         form.addRow(runtime_explanation)
@@ -467,6 +473,7 @@ class ExpertWindow(QMainWindow):
         self._protocol_owner = None
         self._protocol_after = None
         self._protocol_notice = None
+        self._automatic_topic_ids = set()
         self.message.setText('')
         self._show_document(document)
         self.refresh_registry()
@@ -633,36 +640,58 @@ class ExpertWindow(QMainWindow):
         self._update_actions()
 
     def _populate_topics(self):
-        topics = deepcopy(self._buffer.get('topics', []))
-        automatic = self.document.get('discussion', {}).get('costorm', {}).get('topics', [])
-        if automatic:
-            automatic_ids = {row['id'] for row in automatic}
-            # Keep authored topics but show current upstream hierarchy only once.
-            topics = [row for row in topics if row['id'] not in automatic_ids and row['id'] != 'Qmain']
-            topics += deepcopy(automatic)
+        protocol = self.document.get('discussion', {}).get('costorm', {})
+        automatic = deepcopy(protocol.get('topics', []))
+        owner = (self.document['id'], self.document['session_id'])
+        if not self._topics_snapshot or self._topics_snapshot[0] != owner:
+            self._automatic_topic_ids = set()
+        # Owner history includes parents that were copied into the composer in
+        # older steps. Keep those references saved, but never resurrect them as
+        # current KnowledgeBase nodes after reorganize/delete/merge.
+        known = set(protocol.get('topic_history_ids', []))
+        known.update(row['id'] for row in automatic)
         for turn in self.document.get('turns', []):
-            topic = turn.get('topic')
-            if topic and not any(item['id'] == topic['id'] for item in topics):
-                topics.append(deepcopy(topic))
-        snapshot = ((self.document['id'], self.document['session_id']), topics)
+            if turn.get('protocol') == 'costorm':
+                known.update(turn.get('topic_ids', []))
+                if turn.get('topic'):
+                    known.add(turn['topic']['id'])
+        self._automatic_topic_ids.update(known)
+        mode = bool(protocol) or self.protocol_mode.currentData() == 'costorm'
+        authored = [deepcopy(row) for row in self._buffer.get('topics', [])
+                    if row['id'] not in self._automatic_topic_ids
+                    and not (automatic and row['id'] == 'Qmain')]
+        if not mode:
+            for turn in self.document.get('turns', []):
+                topic = turn.get('topic')
+                if topic and not any(row['id'] == topic['id'] for row in authored):
+                    authored.append(deepcopy(topic))
+        snapshot = (owner, automatic, authored)
         if snapshot == self._topics_snapshot:
             return
         current_item = self.topics.currentItem()
         selected = current_item.data(0, Qt.ItemDataRole.UserRole) if current_item else None
-        if not self._topics_snapshot or self._topics_snapshot[0] != snapshot[0]:
+        if not self._topics_snapshot or self._topics_snapshot[0] != owner:
             selected = self._buffer.get('composer', {}).get('topic_id')
         self._topics_snapshot = deepcopy(snapshot)
         self._populating = True
         self.topics.clear()
-        nodes = {topic['id']: QTreeWidgetItem([topic['title']]) for topic in topics}
-        for topic in topics:
-            node = nodes[topic['id']]
-            node.setData(0, Qt.ItemDataRole.UserRole, topic['id'])
-            parent = nodes.get(topic.get('parent_id'))
-            if parent:
-                parent.addChild(node)
-            else:
-                self.topics.addTopLevelItem(node)
+        nodes = {}
+        for rows, label in ((automatic, None), (authored, '내 논점' if automatic else None)):
+            group = QTreeWidgetItem([label]) if label else None
+            if group:
+                self.topics.addTopLevelItem(group)
+            local = {row['id']: QTreeWidgetItem([row['title']]) for row in rows}
+            nodes.update(local)
+            for row in rows:
+                node = local[row['id']]
+                node.setData(0, Qt.ItemDataRole.UserRole, row['id'])
+                parent = local.get(row.get('parent_id'))
+                if parent:
+                    parent.addChild(node)
+                elif group:
+                    group.addChild(node)
+                else:
+                    self.topics.addTopLevelItem(node)
         self.topics.expandAll()
         current = nodes.get(selected) or nodes.get(self._buffer.get('composer', {}).get('topic_id'))
         if current:
@@ -675,7 +704,7 @@ class ExpertWindow(QMainWindow):
         topics_by_turn = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {})
         for turn in turns:
             if turn.get('protocol') == 'costorm':
-                turn['topic_ids'] = topics_by_turn.get(str(turn['protocol_index']), turn.get('topic_ids', []))
+                turn['topic_ids'] = topics_by_turn.get(str(turn['protocol_index']), [])
         self.turns.set_turns(turns, self._registry)
         self.discussion_title.setText(self.document.get('title') or '대화')
         self.ask_button.setText('질문 보내기' if turns else '토론 시작')
@@ -829,6 +858,12 @@ class ExpertWindow(QMainWindow):
         self.next_button.setVisible(mode)
         self.retry_button.setVisible(mode and bool(state.get('can_retry') or self._protocol_delivery))
         self.intervene_button.setVisible(not mode)
+        self.protocol_budget.setVisible(mode)
+        self.protocol_budget.setEnabled(bool(self.document) and not self._foreground_busy)
+        self.protocol_budget.setText(
+            f'이번 한도 {self.model_calls.value()}회 / {self.seconds.value()}초 — 설정…')
+        self.protocol_budget.setToolTip(
+            f'자료 검색 {self.tool_calls.value()}회. 운영자 상한도 적용되며 완료를 보장하는 호출 수는 아닙니다.')
         if mode:
             self.ask_button.setText('참여하기' if rounds else '토론 시작')
             self.ask_button.setToolTip('내 의견을 기록하고 다음 발언에 반영합니다.' if rounds
@@ -905,7 +940,9 @@ class ExpertWindow(QMainWindow):
             'arguments': deepcopy(step['arguments']), 'session_id': self.document['session_id'],
             'expected_generation': self.document['generation'], 'command_id': 'C' + uuid.uuid4().hex}
         step['request'] = deepcopy(request)
-        submitted = self.edited_draft()
+        if 'submitted_draft' not in step:
+            step['submitted_draft'] = deepcopy(self.edited_draft())
+        submitted = step['submitted_draft']
         def received(payload):
             if self._closed or not self.document or (
                     self.document['id'], self.document['session_id']) != owner:
@@ -1003,6 +1040,10 @@ class ExpertWindow(QMainWindow):
             command_id='C' + uuid.uuid4().hex), received)
 
     def refresh_document(self):
+        if self._protocol_delivery:
+            # Resolve our exact unconfirmed command before treating its own
+            # committed draft as an unrelated remote edit.
+            return
         if self._protocol_steps:
             self._drain_protocol()
             return
@@ -1042,8 +1083,12 @@ class ExpertWindow(QMainWindow):
         if self._populating or not self._buffer:
             return
         topic = item.data(0, Qt.ItemDataRole.UserRole)
+        if not topic:
+            return
         automatic = self.document.get('discussion', {}).get('costorm', {}).get('topics', [])
         lookup = {row['id']: row for row in automatic}
+        if topic in self._automatic_topic_ids and topic not in lookup:
+            return  # An old tree item cannot reinsert a removed automatic topic.
         def retain_topic(identifier):
             if identifier not in lookup or any(row['id'] == identifier for row in self._buffer['topics']):
                 return
@@ -1057,8 +1102,8 @@ class ExpertWindow(QMainWindow):
             self._edited()
         links = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {})
         related = next((turn for turn in reversed(self.document.get('turns', []))
-            if topic in links.get(str(turn.get('protocol_index')), turn.get('topic_ids', []))
-            or turn.get('topic_id') == topic), None)
+            if (topic in links.get(str(turn.get('protocol_index')), [])
+                if turn.get('protocol') == 'costorm' else turn.get('topic_id') == topic)), None)
         if related:
             for row in range(self.turns.count()):
                 if self.turns.item(row).data(Qt.ItemDataRole.UserRole) == related['id']:
@@ -1082,8 +1127,9 @@ class ExpertWindow(QMainWindow):
         from .discussion_view import author_label
         topic = (turn.get('topic') or {}).get('title', '')
         self.turn_context.setText(author_label(turn, self._registry) + (' — ' + topic if topic else ''))
-        linked_topics = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {}).get(
-            str(turn.get('protocol_index')), turn.get('topic_ids', [turn.get('topic_id')]))
+        links = self.document.get('discussion', {}).get('costorm', {}).get('turn_topics', {})
+        linked_topics = (links.get(str(turn.get('protocol_index')), [])
+                         if turn.get('protocol') == 'costorm' else [turn.get('topic_id')])
         iterator = self.topics.findItems('', Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
         current_topic = self.topics.currentItem()
         if not current_topic or current_topic.data(0, Qt.ItemDataRole.UserRole) not in linked_topics:
@@ -1127,6 +1173,9 @@ class ExpertWindow(QMainWindow):
     def rename_topic(self):
         current = self.topics.currentItem()
         if not current:
+            return
+        if current.data(0, Qt.ItemDataRole.UserRole) in self._automatic_topic_ids:
+            self.message.setText('자동 논점을 바꾸려면 참여하기로 의견을 남기거나 내 논점을 추가하세요.')
             return
         topic = next((row for row in self._buffer['topics'] if row['id'] == current.data(0, Qt.ItemDataRole.UserRole)), None)
         if topic is None:

@@ -179,3 +179,107 @@ def test_lost_intervention_reply_retries_same_command_and_keeps_late_composer(tm
     finally:
         close(app, window)
         wb.shutdown()
+
+
+
+def test_lost_update_reply_retries_original_editor_snapshot(tmp_path, scripted):
+    app = QApplication.instance() or QApplication([])
+    wb, document, _, _ = configured(tmp_path)
+    class LostUpdate(LocalClient):
+        def __init__(self, wb):
+            super().__init__(wb)
+            self.submitted = []
+        def document_command(self, identifier, operation, arguments, **kwargs):
+            result = super().document_command(identifier, operation, arguments, **kwargs)
+            if operation == 'expert.update':
+                self.submitted.append((identifier, deepcopy(arguments), deepcopy(kwargs)))
+                if len(self.submitted) == 1:
+                    raise OSError('Explicit transport double: committed update reply lost')
+            return result
+    client = LostUpdate(wb)
+    window = ExpertWindow(client, document_id=document['id'], poll_interval=20)
+    try:
+        window.show()
+        wait(app, lambda: window.document and window.roles.count() == 2 and not window._busy, window)
+        window.question.setPlainText('Submitted question A')
+        window.save_document()
+        wait(app, lambda: bool(window._protocol_delivery) and not window._busy, window)
+        assert wb.document_read(document['id'])['draft']['composer']['text'] == 'Submitted question A'
+        window.question.setPlainText('Unsent question B')
+        for _ in range(5):
+            window.refresh_document()
+            app.processEvents()
+        assert not window.conflict
+        window.retry_protocol()
+        wait(app, lambda: len(client.submitted) == 2 and not window._busy
+             and not window._protocol_steps and not window._protocol_delivery, window)
+        assert client.submitted[0] == client.submitted[1]
+        assert window.question.toPlainText() == 'Unsent question B'
+        assert window.edited_draft()['composer']['text'] == 'Unsent question B'
+        assert window.local_dirty
+        retained = wb.document_read(document['id'])
+        assert retained['draft']['composer']['text'] == 'Submitted question A'
+        assert not retained['turns']
+        assert not scripted  # Saving and resolving receipts did not infer.
+    finally:
+        close(app, window)
+        wb.shutdown()
+
+
+def test_reorganized_current_map_does_not_resurrect_retained_topics(tmp_path, scripted):
+    from test_costorm_protocol import command, finished
+    from PySide6.QtWidgets import QTreeWidgetItem
+    app = QApplication.instance() or QApplication([])
+    wb, document, _, _ = configured(tmp_path)
+    document, _ = finished(wb, document, command(wb, document, 'expert.ask'))
+    window = ExpertWindow(LocalClient(wb), auto_open=False, poll_interval=0)
+    try:
+        window.show()
+        # Explicit display fixtures describe before/after KnowledgeBase reorganize.
+        before = deepcopy(document)
+        turn = next(row for row in before['turns'] if row.get('protocol') == 'costorm')
+        old = {'id': 'Qold_leaf', 'title': '정리 전 논점', 'parent_id': None}
+        new = {'id': 'Qmerged', 'title': '정리된 논점', 'parent_id': None}
+        state = before['discussion']['costorm']
+        state.update(topics=[old], topic_history_ids=[old['id']],
+                     turn_topics={str(turn['protocol_index']): [old['id']]})
+        turn.update(topic=deepcopy(old), topic_id=old['id'], topic_ids=[old['id']])
+        window._show_document(before)
+        window._topic_clicked(window.topics.topLevelItem(0))
+        assert any(row['id'] == old['id'] for row in window._buffer['topics'])
+        after = deepcopy(before)
+        after['discussion']['costorm'].update(topics=[new],
+            topic_history_ids=[old['id'], new['id']],
+            turn_topics={str(turn['protocol_index']): [new['id']]})
+        # An authored topic may refer to an earlier automatic parent. Preserve it
+        # separately; it must not force that parent back into the current map.
+        window._buffer['topics'].append({'id': 'Qauthored', 'title': '내 질문', 'parent_id': old['id']})
+        window._show_document(after, preserve_buffer=True)
+        def nodes():
+            return window.topics.findItems('', Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
+        ids = {node.data(0, Qt.ItemDataRole.UserRole) for node in nodes()}
+        assert old['id'] not in ids and {new['id'], 'Qauthored'} <= ids
+        assert any(row['id'] == old['id'] for row in window._buffer['topics'])  # History not erased.
+        new_item = next(node for node in nodes() if node.data(0, Qt.ItemDataRole.UserRole) == new['id'])
+        window._topic_clicked(new_item)
+        assert window.turns.currentItem().data(Qt.ItemDataRole.UserRole) == turn['id']
+        assert window.topics.currentItem().data(0, Qt.ItemDataRole.UserRole) == new['id']
+        stale_item = QTreeWidgetItem([old['title']])
+        stale_item.setData(0, Qt.ItemDataRole.UserRole, old['id'])
+        selected = window.edited_draft()['composer']['topic_id']
+        window._topic_clicked(stale_item)
+        assert window.edited_draft()['composer']['topic_id'] == selected
+        # A cold UI read relies on the retained owner history, not a process cache.
+        after['draft'] = window.edited_draft()
+        window._topics_snapshot = None
+        window._automatic_topic_ids.clear()
+        window._show_document(after)
+        assert old['id'] not in {node.data(0, Qt.ItemDataRole.UserRole) for node in nodes()}
+        before_budget = window.edited_draft()['budget']
+        assert str(window.model_calls.value()) in window.protocol_budget.text()
+        window.protocol_budget.click()
+        assert window.side.currentWidget() is window.transmission_settings
+        assert window.edited_draft()['budget'] == before_budget
+    finally:
+        close(app, window)
+        wb.shutdown()

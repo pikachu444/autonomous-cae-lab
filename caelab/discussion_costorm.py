@@ -184,7 +184,12 @@ def collect(owner, document, record, run, response, state):
                 'citations': deepcopy(citations), 'proposed_actions': []}})
     record.update(active_job_id=None, completed_job_id=run['job_id'], next_index=1,
                   status='COMPLETED' if state == 'SUCCEEDED' and response.get('status') == 'ANSWERED' else 'FAILED')
+    prior = document['discussion'].get('costorm', {})
+    topic_history_ids = set(prior.get('topic_history_ids', []))
+    topic_history_ids.update(row['id'] for row in prior.get('topics', []))
+    topic_history_ids.update(row['id'] for row in view.get('topics', []))
     document['discussion']['costorm'] = {
+        'topic_history_ids': sorted(topic_history_ids),
         'topics': deepcopy(view.get('topics', [])), 'report': deepcopy(protocol.get('report')),
         'can_retry': bool(protocol.get('retry')) or response.get('status') != 'ANSWERED', 'ready': bool(protocol.get('state', {}).get('conversation_history')),
         'reason': response.get('reason'), 'usage': deepcopy(protocol.get('total_usage', {})),
