@@ -32,11 +32,22 @@ Astra가 모델 재선택, 목적 선택, 계산 조건이 다른 예측 비교�
 응답을 연결한 GUI 확인이며 물리 solver/provider 호출은 0이다. 기록은
 `evaluation-layout/design.md`, `review.md`, `tests-final.txt`, `final`이다.
 실제 전달 장을 조사하는 새 기능이나 전체 D7 완료로 확대하지 않는다.
+계산 절차 창과 사용 안내는 원격 main `f77a6d8400bfa9b2031de79c7a32ffb037575879`에
+게시했고 같은 원격 커밋을 확인했다.
 
-**현재 병렬 작업:** Sol은 `simulation_window.py`와 별도 UI 검사만 맡아 독립 해석
-창의 기존 조건/결과 배치를 정리하고 Astra가 읽기 전용으로 검토한다. Pro 소유인
-PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain은 수정하지 않는다.
-상속 접점은 유지하고 변경 필요 시 Pro와 조율한다. root는 일반 문서·연결·통합을 맡는다.
+**해석 창 후속 인도:** Sol이 `simulation_window.py`와 별도 UI 검사에서 한국어 모델명,
+단위와 짧은 작업 툴바를 정리했다. 실제 입력 이력을 그래프로 보여 주고 미완성 입력은
+그대로 고칠 수 있게 보존한다. 그림이 없으면 트리 폭을 유지하며 조건 편집 공간을 넓힌다.
+Astra와 root가 실제 화면에서 찾은 버튼 누락·이력 축 비율·빈 그림 배치를 함께 고쳤다.
+관련 4개 검사(5.16초), 1100×780/1440×900 Qt 렌더와 원 초안 저장·재열기를 확인했다.
+root는 작은 창 3종을 직접 읽었고 사용법과 공개 입력 화면을 README/한글 안내에 연결했다.
+`simulation-layout/review.md`, `tests-final.txt`, `final`에 기록했다.
+솔버/provider 호출은 없으며 결과 그래프의 대역은 표시 확인에만 썼다. OS 직접 조작이나
+신규 물리 지원을 완료했다고 하지 않는다. NativeMaterial의 남은 전용 문구와 구성식
+기능은 Pro D7 소유이며 base 변경을 전체 Material GUI 완료로 확대하지 않는다.
+
+**현재 핵심 작업:** Pro 소유인 PDEWindow/NativeMaterialWindow/새 inspector/Core/Domain을
+다른 작성자가 동시에 변경하지 않는다. root가 상속 접점·일반 문서·연결·통합을 맡는다.
 Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이다.
 `PRO-PDE-COUPLED-RESEARCH-01`을 같은 실제 Pro 대화에 기준 `b0a433f`로 전달했고
 새 작성 턴 `01a136eb-4507-7284-afa2-633336bb4492`가 시작된 것을 확인했다.
@@ -47,6 +58,8 @@ Pro 핵심 구현은 SPEC-RESEARCH-003의 구성식·PDE·연성 7개 작업이�
 대조해 [SPEC-IMPACT-001](.moai/specs/SPEC-IMPACT-001/spec.md)에 연결했다. 일반 모델의
 초기조건·회전·접촉·손상/피로는 기존 강체 예제와 구별해 요구로 유지한다. 추가 솔버 실행,
 설치나 Pro D8 배정은 하지 않았으며 D7 다음 인계 준비다.
+요청 초안은 `runs/product-development/20261014/impact-workflows/pro-request.md`에
+미전송으로 보관했다. D7 통합 뒤 기준 소스와 파일 소유권을 갱신하고 전달한다.
 
 - Data→Material 피팅: Pro의 두 교정본 `637f089`, `1f477ea`를 로컬 `07b5474`,
   `7aa740e`로 통합했다. 응력 선택·시험 구별·이전 미리보기/요약 제거·측정 변형률 축·
