@@ -16,7 +16,16 @@
    bounded question. If that route is unavailable, retain exact limitations
    while continuing other product work; no paid or alternate-provider fallback.
 
-Current branch target: `codex/expert-connection-20261013`, continuing Pro's CAD
-checkpoint. Pro owns product code/tests/usage; Codex owns SPEC/current status,
+The original connection delivery used `codex/expert-connection-20261013`.
+The continuing workflow and current branch are assigned in CURRENT_STATE.
+Pro owns product code/tests/usage; Codex owns SPEC/current status,
 environment integration and publication. The complete task packet and receipt
 are linked from CURRENT_STATE rather than duplicated as another work queue.
+
+The E7–E10 continuation reuses the official Co-STORM runner/knowledge/report
+objects behind the existing document, job, source and login boundaries. Its
+optional installation must be delivered with the feature rather than assumed.
+Implement the complete source-to-report workflow as one product unit, keeping
+legacy documents and Plan/result return usable. Runtime absence or unavailable
+login must not block reading saved research. Development checks stay focused on
+the changed unit; they are not a prerequisite campaign for every small edit.

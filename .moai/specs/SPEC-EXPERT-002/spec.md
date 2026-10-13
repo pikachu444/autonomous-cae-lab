@@ -1,10 +1,10 @@
 ---
 id: SPEC-EXPERT-002
-title: "Connect the independent Expert desktop to an existing subscription runtime"
-version: "0.1.0"
+title: "Independent Expert connection and source-grounded Co-STORM research"
+version: "0.2.0"
 status: in-progress
 created: 2026-10-13
-updated: 2026-10-13
+updated: 2026-10-14
 author: "Codex assignment; actual ChatGPT Pro implementation"
 priority: "P1 High"
 phase: implementation
@@ -20,6 +20,11 @@ Continue FN-30/C09 using the existing Expert, Numerical and Study owners.
 [CURRENT_STATE](../../../CURRENT_STATE.md) holds the assignment and actual status.
 The existing Ask, proposal-to-Plan and result-return routes are implemented;
 this work closes the missing user-facing connection/setup path.
+
+The 2026-10-14 continuation also covers the already requested Co-STORM
+workflow in PRODUCT_UI_MCP_PLAN §6.6. Connection-only delivery does not satisfy
+that workflow. The active implementation request is PRO-COSTORM-PROTOCOL-01;
+current assignment and source status remain solely in CURRENT_STATE.
 
 ## Requirements
 
@@ -66,11 +71,36 @@ this work closes the missing user-facing connection/setup path.
   through native paths without requiring WSL or `wslpath`. Supported other host
   environments retain their appropriate path handling.
 
+## Co-STORM workflow continuation
+
+- REQ-EXPERT-002-009: When a user starts source-grounded research, the Expert
+  integration shall run the pinned official Co-STORM collaboration and shared
+  knowledge/report workflow through the existing permitted login and selected
+  archived sources. It shall provide the required optional installation path,
+  preserve upstream license notices and never activate paid search/embedding/API
+  defaults. The existing sequential Expert mode is not proof of this behavior.
+- REQ-EXPERT-002-010: When the user intervenes in an active discussion, the next
+  undispatched step shall include that intervention and permit topic/speaker
+  redirection. Pause, cooperative cancellation and retry shall preserve completed
+  turns, pending input and partial knowledge state without duplicating finished
+  steps or changing the dispatched step's recorded input.
+- REQ-EXPERT-002-011: When the official workflow inserts or reorganizes knowledge,
+  the desktop shall display its actual topic structure linked to supporting
+  archived material and turns. Reopening a saved discussion shall retain it;
+  unavailable login shall not prevent reading already saved work.
+- REQ-EXPERT-002-012: When the user generates a report from a discussion, the
+  integration shall retain and display the actual generated report with its
+  discussion/map and source references, permit opening cited archived passages,
+  and save/reopen/export the report. Missing citations shall remain visible and
+  shall not be invented or silently replaced. Existing Plan/result return remains
+  usable; the report does not itself execute a physics calculation.
+
 ## Acceptance Criteria
 
 - [ ] E1–E2: From the native Expert window, inspect readiness and select the existing subscription/profile/model/roles; cancellation preserves prior settings.
 - [ ] E3–E4: Apply authorized local settings without losing jobs or drafts, and preserve separate operator and per-question transmission permissions.
 - [ ] E5–E6: Receive a real bounded reply, edit its Plan, run an existing numerical calculation, return the exact result to the discussion/Study and reopen it.
+- [ ] E7–E10: Select archived material, use the actual Co-STORM protocol, intervene in the next step, retain its automatic topic map and save/reopen/export a report whose citations open the original passages.
 
 The detailed checks are in `acceptance.md`; the fixed implementation tasks are
 in `tasks.md`. Actual status and the next action remain in CURRENT_STATE.

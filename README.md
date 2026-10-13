@@ -18,7 +18,8 @@ FreeCAD 기반 전처리, ParaView 기반 후처리와 독립 Qt 연구 앱을 �
 
 Windows 10/11 x64를 사용합니다. 처음 설치할 때는 인터넷이 필요합니다.
 기본 Research 앱에는 관리자 권한, 시스템 Python, Git, WSL이 필요하지 않습니다.
-FreeCAD·ParaView·외부 솔버와 AI 연결은 별도로 준비합니다.
+기본 설치는 전용 Python과 Research Qt 앱입니다.
+FreeCAD·ParaView·Gmsh·외부 솔버와 AI 연결은 별도로 준비합니다.
 
 다른 도구를 바로 열려면 소스 폴더의 PowerShell에서 실행하세요.
 
@@ -49,7 +50,7 @@ CAD 예제는 형상만 포함합니다. 재료·하중·접촉·메시는 사�
 |---|---|---|
 | CAD/해석/후처리 | native 편집·접촉 설정, 지원 계산, 결과 읽기와 일부 설계 후보 연결 | 실제 화면의 전체 작업과 형상 변경 후 복구를 끝까지 확인 |
 | Data·Material·PDE·Numerical | 기존 문서·수치 엔진과 Qt 편집 화면 | 도구별 편집·계산·저장·재개의 완결성 보완 |
-| Expert·Study | 자료 가져오기, 질문·논의·계획·결과 연결 | 기존 구독 연결 화면과 새 Qt 화면의 실제 AI 왕복 |
+| Expert·Study | 기존 로그인 연결과 실제 AI·계산 결과 전달, 한국어 메뉴·대화 읽기·Study 메모 | Co-STORM 진행자·자동 논점 지도·인용 보고서, 전체 화면 사용성 확인 |
 | 설치와 MCP | 기본 Research 시작 파일, 선택적 MCP 서버 | 전체 native 환경 배포와 클라이언트별 사용 확인 |
 
 개발 진행 상황과 인도 일정은 [CURRENT_STATE](CURRENT_STATE.md)에서 관리합니다.
