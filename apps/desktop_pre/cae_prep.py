@@ -272,7 +272,7 @@ class Inspector(QtWidgets.QDockWidget):
         record('selection', entries=[{'object': e.ObjectName, 'subelements': list(e.SubElementNames)} for e in entries[:32]])
 
 
-def compare_mesh_quality():
+def _quality_mesh():
     from apps.desktop_pre.fem_edit import _native_type
     if CONNECTION is None:
         raise ValueError('문서 연결이 준비된 뒤 메시를 선택하세요.')
@@ -282,15 +282,30 @@ def compare_mesh_quality():
         selected = [obj for obj in owner.doc.Objects if _native_type(obj) == 'Fem::FemMeshGmsh']
     if (len(selected) != 1 or selected[0].Document is not owner.doc
             or _native_type(selected[0]) != 'Fem::FemMeshGmsh'):
-        raise ValueError('모델 트리에서 비교할 현재 메시 하나를 선택하세요.')
+        raise ValueError('모델 트리에서 확인할 현재 메시 하나를 선택하세요.')
     mesh = owner.fem._mesh({'object_id': selected[0].Name})
-    from apps.desktop_pre.mesh_compare_panel import make_dialog
+    return owner, mesh
+
+
+def _open_quality_dialog(make_dialog):
+    owner, mesh = _quality_mesh()
     dialog = make_dialog(QtWidgets, QtCore, owner, mesh, Gui.getMainWindow())
     dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-    KEEP.append(dialog)
-    dialog.destroyed.connect(lambda *_: KEEP.remove(dialog) if dialog in KEEP else None)
+    if dialog not in KEEP:
+        KEEP.append(dialog)
+        dialog.destroyed.connect(lambda *_: KEEP.remove(dialog) if dialog in KEEP else None)
     dialog.show()
     return dialog
+
+
+def compare_mesh_quality():
+    from apps.desktop_pre.mesh_compare_panel import make_dialog
+    return _open_quality_dialog(make_dialog)
+
+
+def inspect_mesh_quality():
+    from apps.desktop_pre.mesh_element_panel import make_dialog
+    return _open_quality_dialog(make_dialog)
 
 
 def add_toolbar():
@@ -329,6 +344,9 @@ def add_toolbar():
         bar.addAction(action)
         menu.addAction(action)
     menu.addSeparator()
+    quality_action = menu.addAction('메시 품질 확인…')
+    quality_action.setObjectName('caeInspectMeshQuality')
+    quality_action.triggered.connect(guarded(inspect_mesh_quality))
     compare_action = menu.addAction('메시 품질 비교…')
     compare_action.setObjectName('caeCompareMeshQuality')
     compare_action.triggered.connect(guarded(compare_mesh_quality))

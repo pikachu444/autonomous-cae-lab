@@ -8,6 +8,7 @@ These checks establish routing and ownership, not native geometry acceptance.
 from copy import deepcopy
 from pathlib import Path
 import queue
+import sys
 import threading
 from types import SimpleNamespace as NS
 
@@ -138,6 +139,38 @@ def test_mesh_comparison_routes_without_design_change(native, monkeypatch):
     invalid = native.owner.dispatch(request(native, 'pre.fem.mesh_compare',
         {'history_id': 'Gprevious'}, {'object_id': mesh.Name}, command_id='Cinvalid'))
     assert invalid['status'] == 'FAILED' and len(calls) == 1
+
+
+def test_mesh_view_routes_without_design_edit_and_closes_with_owner(native, monkeypatch):
+    from caelab.native_commands import CAPABILITIES
+    calls = []
+    def dispatch(owner, arguments, target):
+        calls.append((owner, arguments, target))
+        return {'mesh_id': target['object_id'], 'element_ids': arguments['element_ids']}
+    monkeypatch.setitem(sys.modules, 'apps.desktop_pre.mesh_element_view', NS(dispatch=dispatch))
+    native.owner.before_design_action = lambda _: pytest.fail('Element view changed the design')
+    generation = native.owner.generation
+    args = {'mode': 'isolate', 'element_ids': [3, 17], 'mesh_sha256': 'a' * 64}
+    target = {'object_id': 'MeshGmsh'}
+    response = native.owner.dispatch(request(native, 'pre.fem.mesh_view', args, target))
+    assert 'pre.fem.mesh_view' in CAPABILITIES['pre']
+    assert response['status'] == 'COMPLETED', response
+    assert calls == [(native.owner, args, target)]
+    assert native.owner.generation == generation and native.doc.transactions == []
+    stale = native.owner.dispatch(request(native, 'pre.fem.mesh_view', args, target,
+        command_id='Cstale', expected_generation=generation + 1))
+    assert stale['status'] == 'FAILED' and len(calls) == 1
+    closed = []
+    native.owner._mesh_element_view = NS(close=lambda: closed.append(True))
+    native.owner.close()
+    assert closed == [True] and native.owner not in native.app.observers
+
+
+def test_design_action_restores_transient_element_view_before_native_edit(native):
+    calls = []
+    native.owner._mesh_element_view = NS(restore=lambda: calls.append('restore'), close=lambda: None)
+    native.owner.before_design_action('pre.fem.mesh_generate')
+    assert calls == ['restore'] and native.doc.transactions == []
 
 
 def test_human_changes_observer_lifecycle_and_saved_state(native):

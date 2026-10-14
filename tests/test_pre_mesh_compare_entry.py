@@ -13,8 +13,12 @@ QtCore = pytest.importorskip('PySide6.QtCore')
 QtGui = pytest.importorskip('PySide6.QtGui')
 
 
-def test_menu_comparison_selects_same_document_mesh_and_releases_closed_dialog(monkeypatch):
-    from apps.desktop_pre import mesh_compare_panel
+@pytest.mark.parametrize('entry,panel_name,action_name,title', [
+    ('compare_mesh_quality', 'mesh_compare_panel', 'caeCompareMeshQuality', '메시 품질 비교…'),
+    ('inspect_mesh_quality', 'mesh_element_panel', 'caeInspectMeshQuality', '메시 품질 확인…'),
+])
+def test_menu_quality_selects_same_document_mesh_and_releases_closed_dialog(monkeypatch, entry, panel_name, action_name, title):
+    panel = importlib.import_module('apps.desktop_pre.' + panel_name)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     main = QtWidgets.QMainWindow()
     document = NS(Objects=[])
@@ -37,8 +41,9 @@ def test_menu_comparison_selects_same_document_mesh_and_releases_closed_dialog(m
     def create(widgets, core, bound_owner, bound_mesh, parent):
         calls.append((bound_owner, bound_mesh))
         return widgets.QDialog(parent)
-    monkeypatch.setattr(mesh_compare_panel, 'make_dialog', create)
-    window = module.compare_mesh_quality()
+    monkeypatch.setattr(panel, 'make_dialog', create)
+    open_dialog = getattr(module, entry)
+    window = open_dialog()
     assert calls == [(owner, mesh)] and window.isVisible() and window in module.KEEP
     window.close()
     QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
@@ -47,22 +52,22 @@ def test_menu_comparison_selects_same_document_mesh_and_releases_closed_dialog(m
     foreign = NS(Name='Other', Document=NS(), TypeId='Fem::FemMeshGmsh')
     selection.append(foreign)
     with pytest.raises(ValueError, match='현재 메시 하나'):
-        module.compare_mesh_quality()
+        open_dialog()
     selection.clear()
     selection.append(NS(Name='Body', Document=document, TypeId='PartDesign::Body'))
     with pytest.raises(ValueError, match='현재 메시 하나'):
-        module.compare_mesh_quality()
+        open_dialog()
     selection.clear()
     document.Objects.append(NS(Name='Second', Document=document, TypeId='Fem::FemMeshGmsh'))
     with pytest.raises(ValueError, match='현재 메시 하나'):
-        module.compare_mesh_quality()
+        open_dialog()
     selection.append(mesh)
-    reopened = module.compare_mesh_quality()
+    reopened = open_dialog()
     assert calls == [(owner, mesh), (owner, mesh)]
     reopened.close()
     module.add_toolbar()
-    action = main.findChild(QtGui.QAction, 'caeCompareMeshQuality')
-    assert action is not None and action.text() == '메시 품질 비교…'
+    action = main.findChild(QtGui.QAction, action_name)
+    assert action is not None and action.text() == title
     action.trigger()
     assert calls == [(owner, mesh)] * 3
     main.close()
