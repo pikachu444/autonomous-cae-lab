@@ -94,12 +94,13 @@ class ConstitutiveInspectionWindow(QDialog):
     def __init__(self,client,document_id,job_id,parent=None):
         super().__init__(parent);configure_plot_fonts()
         self.client=client;self.document_id=document_id;self.job_id=job_id
-        self._serial=0;self._closed=False;self._data=None;self._children=[]
+        self._serial=0;self._closed=False;self._data=None;self._children=[];self._requested_increment=0
         self.setWindowTitle('구성식 증분');self.resize(1100,780)
         layout=QVBoxLayout(self);row=QHBoxLayout()
         self.increment=QComboBox();self.increment.currentIndexChanged.connect(self._select)
+        self.retry=QPushButton('결과 다시 읽기');self.retry.clicked.connect(lambda:self._read(self._requested_increment))
         self.probe=QPushButton('독립 섭동 계산…');self.probe.clicked.connect(self.request_probe)
-        row.addWidget(QLabel('증분'));row.addWidget(self.increment,1);row.addWidget(self.probe);layout.addLayout(row)
+        row.addWidget(QLabel('증분'));row.addWidget(self.increment,1);row.addWidget(self.retry);row.addWidget(self.probe);layout.addLayout(row)
         self.status=QLabel('선택한 계산을 읽는 중…');self.status.setWordWrap(True);layout.addWidget(self.status)
         split=QSplitter(Qt.Orientation.Horizontal);layout.addWidget(split,1)
         tabs=self.tabs=QTabWidget();split.addWidget(tabs)
@@ -138,7 +139,9 @@ class ConstitutiveInspectionWindow(QDialog):
         self._read(0)
 
     def _read(self,index):
-        self._serial+=1;serial=self._serial;self._data=None
+        self._serial+=1;serial=self._serial;self._data=None;self._requested_increment=index
+        self.status.setText('선택한 증분을 읽는 중…');self.status.setToolTip('')
+        self.availability.clear();self.availability.setToolTip('');self.retry.setEnabled(False)
         self.tangent.setRowCount(0);self.states.setRowCount(0);self.stress.setRowCount(0)
         self.build.setRowCount(0);self._fd_rows=[];self.probes.setRowCount(0);self.probe_states.clear()
         self.figure.clear();self.canvas.draw_idle();self.probe.setEnabled(False)
@@ -146,7 +149,10 @@ class ConstitutiveInspectionWindow(QDialog):
         def done(data,error):
             _READS.discard(work)
             if self._closed or serial!=self._serial:return
-            if error:self.status.setText(str(error));return
+            self.retry.setEnabled(True)
+            if error:
+                self.status.setText('증분 결과를 읽지 못했습니다. 결과 다시 읽기를 누르세요.')
+                self.status.setToolTip(str(error));return
             self._show(data)
         work.signals.finished.connect(done,Qt.ConnectionType.QueuedConnection);QThreadPool.globalInstance().start(work)
 
@@ -268,7 +274,7 @@ class ConstitutiveInspectionWindow(QDialog):
         if QMessageBox.question(self,'새 비교 계산','선택한 계산의 입력을 새 재료 문서로 복사해 독립 섭동을 실행할까요?')!=QMessageBox.StandardButton.Yes:return
         # Explicit new owner, original live edits never read/replaced. A lost
         # creation reply is reported unconfirmed; no automatic duplicate retry.
-        self.probe.setEnabled(False);serial=self._serial
+        self.probe.setEnabled(False);self.retry.setEnabled(False);self.increment.setEnabled(False);serial=self._serial
         command='C'+uuid.uuid4().hex
         def execute():
             document=self.client.document_open(kind='material',title='독립 접선 비교',draft=draft)
@@ -278,8 +284,10 @@ class ConstitutiveInspectionWindow(QDialog):
         def done(result,error):
             _READS.discard(work)
             if self._closed or serial!=self._serial:return
+            self.retry.setEnabled(True);self.increment.setEnabled(True)
             if error:
-                self.status.setText('비교 계산 응답 미확인: 새 재료 문서와 실행 작업을 확인하세요. '+str(error));return
+                self.status.setText('비교 계산 응답 미확인: 새 재료 문서와 실행 작업을 확인하세요.')
+                self.status.setToolTip(str(error));return
             document=result.get('document',result)
             from .material_window import MaterialWindow
             window=MaterialWindow(self.client,document_id=document['id']);self._children.append(window);window.show()
