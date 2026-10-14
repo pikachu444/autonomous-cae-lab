@@ -244,7 +244,7 @@ def test_two_windows_paste_and_local_undo_target_only_focused_material(window, a
         QApplication.clipboard().setText('wrong\t2200')
         first.coefficients.setCurrentCell(0, 0)
         assert not first.coefficients.paste_selection()
-        assert first.coefficients.item(0, 0).text() == 'E'
+        assert first.coefficients.item(0, 0).text() == '탄성계수 E'
         assert first.coefficients.item(0, 1).text() == '2100.0'
         first.save_document()
         until(app, lambda: not first._busy and not first.document['dirty'])

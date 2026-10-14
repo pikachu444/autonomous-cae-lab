@@ -30,6 +30,7 @@ from caelab.workbench_client import Client
 STRESS_COMPONENTS = tuple("stress_" + component for component in ("xx", "yy", "zz", "xy", "xz", "yz"))
 TERMINAL = {"SUCCEEDED", "FAILED", "REJECTED", "PARTIAL_FAILURE", "CANCELLED", "INTERRUPTED"}
 PARAMETERS = {"linear_elastic": ("E", "nu"), "neo_hooke": ("mu", "lmbda")}
+PARAMETER_LABELS = {'E': '탄성계수 E', 'nu': '포아송비 ν', 'mu': '전단계수 μ', 'lmbda': 'Lamé 계수 λ'}
 
 
 def edited_number(text):
@@ -413,9 +414,9 @@ class MaterialWindow(QMainWindow):
     def _populate_coefficients(self, values):
         self.coefficients.setRowCount(2)
         for row, name in enumerate(PARAMETERS[self.model.currentData()]):
-            for column, value in enumerate((name, values.get(name, ""), "1" if name == "nu" else self.stress_unit.text())):
+            for column, value in enumerate((PARAMETER_LABELS[name], values.get(name, ""), "1" if name == "nu" else self.stress_unit.text())):
                 item = QTableWidgetItem(display_value(value))
-                item.setData(Qt.ItemDataRole.UserRole, {"original": deepcopy(value)})
+                item.setData(Qt.ItemDataRole.UserRole, {"original": deepcopy(value), 'parameter': name})
                 if column != 1:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.coefficients.setItem(row, column, item)
@@ -490,7 +491,7 @@ class MaterialWindow(QMainWindow):
         for key, field in (("stress_unit", self.stress_unit), ("time_unit", self.time_unit)):
             if field.text() != display_value(settings[key]):
                 settings[key] = field.text()
-        settings["parameters"] = {self.coefficients.item(row, 0).text():
+        settings["parameters"] = {self.coefficients.item(row, 0).data(Qt.ItemDataRole.UserRole)['parameter']:
                                   edited_cell(self.coefficients, row, 1)
                                   for row in range(self.coefficients.rowCount())}
         settings["time"], settings["deformation_gradient"] = [], []
