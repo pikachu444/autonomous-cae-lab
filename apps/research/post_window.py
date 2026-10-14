@@ -61,6 +61,9 @@ LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 
 
 def defaults(kind, source_ref=''):
     if kind == 'comparison':
+        from .post_comparison_editor import default_recipe
+        return default_recipe()
+    if kind == 'legacy_comparison':
         side = {key: None if key in ('time', 'time_units', 'time_origin') else
                 'POINTS' if key == 'association' else '' for key in SIDE_FIELDS}
         return {'a': deepcopy(side), 'b': deepcopy(side), 'method': 'same_mesh', 'tolerance': ''}
@@ -278,7 +281,13 @@ class PostWindow(QMainWindow):
         self.view_selector.addItem('현재 객체의 뷰', None)
         display_controls.addWidget(self.view_selector, 1)
         self.show_applied_button = QPushButton('적용 결과 보기')
-        self.show_applied_button.clicked.connect(lambda: self.object_command('post.show_analysis'))
+        self.show_applied_button.clicked.connect(self.show_comparison_result)
+        self.comparison_display = QComboBox()
+        for title, role in [('차이', 'B_minus_A'), ('변환 A', 'A_original'), ('변환 B', 'B_at_A'),
+                            ('원 A 값', 'A_source_value'), ('대응 위치의 원 B 값', 'B_source_sampled'),
+                            ('유효 영역', 'comparison_valid'), ('변화율', 'percent_change')]:
+            self.comparison_display.addItem(title, role)
+        display_controls.addWidget(self.comparison_display)
         display_controls.addWidget(self.show_applied_button)
         display_controls.addWidget(self.show_source_button)
         display_controls.addWidget(self.contact_button)
@@ -659,6 +668,30 @@ class PostWindow(QMainWindow):
         draft = self._draft
         if not isinstance(draft, dict):
             form.addRow(QLabel('Malformed saved recipe remains in Details; Reset restores its last applied recipe.'))
+        elif self._kind == 'comparison' and draft.get('version') == 2:
+            from .post_comparison_editor import ComparisonEditor
+            sources = list(self._sources())
+            for obj in self._objects():
+                if obj.get('position', -1) >= 0 and obj.get('output_metadata'):
+                    sources.append({'source_ref': obj['id'], 'label': obj.get('title', '저장 측정'),
+                                    'metadata': obj['output_metadata'], 'native_metadata': obj['output_metadata']})
+                elif obj.get('position', -1) >= 0 and obj.get('kind') == 'measurement':
+                    history = obj['history'][obj['position']]
+                    original = history['recipe']
+                    if original.get('measurement') in ('point', 'path'):
+                        row = {key: original.get(key) for key in MEASUREMENT_DECLARATIONS}
+                        row.update(name=original.get('array'), association='POINTS')
+                        metadata = {'arrays': [row], 'time': {'unit': original.get('time_units'),
+                            'semantics': original.get('time_origin')} if original.get('time') is not None else None,
+                            'timesteps': [original['time']] if original.get('time') is not None else [],
+                            **{key: original.get(key) for key in ('coordinate_units', 'coordinate_frame')}}
+                        sources.append({'source_ref': obj['id'], 'label': obj.get('title', '저장 측정'),
+                                        'metadata': metadata, 'native_metadata': metadata})
+            self.comparison_editor = ComparisonEditor(draft, sources, self)
+            self.comparison_editor.changed.connect(self._edited)
+            self.comparison_editor.showSource.connect(self.show_comparison_source)
+            self.comparison_editor.showTogether.connect(self.show_comparison_originals)
+            form.addRow(self.comparison_editor)
         elif self._kind == 'comparison':
             self.comparison_table = QTableWidget(len(SIDE_FIELDS), 3)
             table = self.comparison_table
@@ -759,6 +792,8 @@ class PostWindow(QMainWindow):
         draft = deepcopy(self._draft)
         if not isinstance(draft, dict):
             return draft
+        if self._kind == 'comparison' and draft.get('version') == 2:
+            return self.comparison_editor.draft()
         for path, (field, original) in self.fields.items():
             if isinstance(field, QComboBox):
                 if path[-1] == 'source_ref':
@@ -1083,6 +1118,13 @@ class PostWindow(QMainWindow):
                               'preview': preview, 'revision': payload.get('revision'),
                               'draft': deepcopy((revision or {}).get('recipe', (obj or {}).get('draft', self._draft)))}
         rows = payload.get('rows', [])[:1000]
+        summary = (revision or {}).get('summary', {})
+        if summary.get('comparison_version') == 2:
+            counts = summary.get('finitecounts', {}).get('delta', {})
+            self.message.setText('비교 ' + str(summary.get('recipe', {}).get('target', {}).get('units', ''))
+                + '   유효 ' + str(counts.get('finite', counts.get('finite_count', '')))
+                + ' / ' + str(summary.get('point_count', '')))
+
         def columns(row):
             values = {}
             for key, value in row.items():
@@ -1103,7 +1145,12 @@ class PostWindow(QMainWindow):
         self.samples.setColumnCount(len(headers))
         labels = {'row': '원본 행', 'point_index': '원본 점 번호', 'block': '자료 블록',
                   'load_parameter': '하중 계수 λ [1]', 'step': '단계', 'increment': '증분',
-                  'valid': '유효 여부', 'validity_reason': '유효성 이유', 'a': 'A', 'b': 'B', 'vtkValidMask': '유효 마스크'}
+                  'valid': '유효 여부', 'validity_reason': '유효성 이유', 'a': '변환 A', 'b': '변환 B', 'delta': 'B − A',
+                  'percent': '변화율 [%]', 'percent_valid': '변화율 유효', 'percent_reason': '변화율 상태',
+                  'a_raw': '원 A', 'b_raw': 'A 위치의 원 B', 'coordinates': 'A 위치',
+                  'A_original_components': '원 A 성분', 'B_sampled_original_components': '대응 B 원성분',
+                  'A_common_components': '변환 A 전체 성분', 'B_common_components': '변환 B 전체 성분',
+                  'original_a_ids': '원본 식별', 'vtkValidMask': '유효 마스크'}
         labels.update({key: key.removesuffix(' 유효성') + ' 유효성' for key in headers if key.endswith(' 유효성')})
         self.samples.setHorizontalHeaderLabels([labels.get(key, key) for key in headers])
         for column, key in enumerate(headers):
@@ -1112,8 +1159,12 @@ class PostWindow(QMainWindow):
         for row, values in enumerate(flat_rows):
             for column, key in enumerate(headers):
                 value = values.get(key)
-                states = {'valid': '유효', 'outside_domain': '대응 영역 밖', 'unknown': '알 수 없음'}
-                text = '값 없음' if value is None else states.get(value, value) if isinstance(value, str) else display(value)
+                states = {'valid': '유효', 'outside_domain': '대응 영역 밖', 'outside_b_domain': 'B 영역 밖',
+                          'nonfinite_a': 'A 결측 / 무효', 'nonfinite_b': 'B 결측 / 무효',
+                          'nonfinite_difference': '차이 연산 범위 초과', 'zero_a': '기준값 0',
+                          'nonfinite_percent': '변화율 범위 초과', 'percent_disabled': '계산 안 함', 'unknown': '알 수 없음'}
+                text = ('값 없음' if value is None else ('유효' if value else '무효') if isinstance(value, bool)
+                        else states.get(value, value) if isinstance(value, str) else display(value))
                 item = QTableWidgetItem(text)
                 item.setToolTip(display(value))
                 self.samples.setItem(row, column, item)
@@ -1134,6 +1185,26 @@ class PostWindow(QMainWindow):
             self.local_dirty = False
             self._show_document(self.document, preserve_buffer=False)
         return self.queue_command('post.measurement_capture', {'source_ref': source, 'array': array}, accepted=accepted)
+
+    def show_comparison_originals(self, a, b):
+        if not a or not b:
+            self.message.setText('두 원 자료를 선택하세요.')
+            return False
+        return self.queue_command('post.source_select', {'source_ref': a, 'compare_with': b})
+
+    def show_comparison_result(self):
+        obj = self._object()
+        extra = {'array': self.comparison_display.currentData()} if obj and obj.get('kind') == 'comparison' and obj.get('draft', {}).get('version') == 2 else {}
+        return self.object_command('post.show_analysis', extra)
+
+    def show_comparison_source(self, source_ref):
+        if not source_ref:
+            self.message.setText('원 자료를 선택하세요.')
+            return False
+        view = self._view_arguments(source=True)
+        if view is None:
+            return False
+        return self.queue_command('post.source_select', {'source_ref': source_ref, **view})
 
     def show_source(self):
         if self._source_ref:

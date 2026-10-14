@@ -1,0 +1,128 @@
+# 다른 단위·좌표계·시각의 결과 비교
+
+## 제공하는 작업
+
+독립 Post에서 두 결과를 연 뒤 **새 비교**를 만듭니다. A는 기준 위치이고 B를
+그 위치에 대응시킵니다. 원본은 수정하지 않습니다. 원본 나란히 보기는 단위나
+물리 의미가 미확인인 상태에서도 사용할 수 있습니다.
+
+1. **기준 결과 A / 비교 결과 B**에서 저장된 자료와 실제 배열을 고릅니다.
+   점/셀 위치는 배열 선택에 붙어 표시됩니다.
+2. **물리량 확인…**에서 이미 저장된 단위·측도·기저를 확인합니다. 알려진
+   선언은 읽기 전용입니다. 파일에 없는 의미만 사용자가 지정합니다. 벡터는
+   실제 XYZ 순서, 텐서는 실제 6/9성분 순서와 전단 규약을 지정합니다.
+3. **변환 설정…**에서 필요한 작업을 고릅니다.
+   - 비교 응답 단위는 형상 길이 단위와 별개입니다.
+   - B 형상 축을 A 형상 축으로 회전하고, 이동량은 A 길이 단위로 지정합니다.
+   - 응답 기저 회전은 형상 정렬과 별도로 지정합니다.
+   - 시계열은 실제 저장 시각을 선택하거나, 연속한 두 저장 시각과 최대 허용
+     간격을 지정해 선형 보간합니다. 공통 시각·시간 단위·원점 이동을 기록합니다.
+   - 셀 값은 사용자가 **인접 셀 동일 가중 평균 → 점**을 선택해야 합니다.
+     이것은 원 절점값이나 보존적 FE 투영이 아닙니다.
+4. 성분 또는 크기를 고르고 **미리보기**를 누릅니다. A 원값, A 위치에 대응한
+   B 원값, 변환 A/B, 차이와 유효성 상태를 읽습니다. B 원본 자체는
+   **원본 보기 / 원본 나란히 보기**로 원래 형상에서 확인합니다.
+5. **적용** 후 표시 목록에서 차이·변환 A/B·원값·유효 영역·변화율을 골라
+   **적용 결과 보기**를 누릅니다. ParaView가 실제 3D 결과를 표시합니다.
+   표의 원본 점 조회는 기존 native 선택 연결을 유지합니다.
+6. 분석 프로젝트를 저장합니다. 새 Post owner에서 같은 프로젝트를 열면
+   같은 변환 정의·값·마스크를 읽습니다. 원본이 없어졌을 때 보존 결과를
+   읽는 것과 원본 수리 후 새로 미리보기 하는 것은 구분됩니다.
+
+현재 편집 중인 잘못된 숫자와 빈 선언도 초안으로 저장할 수 있습니다.
+미리보기 실패는 이전 적용 결과를 삭제하지 않습니다. 새 미리보기 이후 입력이나
+native 필터가 바뀌면 기존 stale 검사가 적용을 거절합니다.
+
+## 물리적 의미
+
+변환 순서는 버전 2 비교 recipe와 적용 결과에 저장합니다. 끝점 고정 → 원자료
+quality를 결측으로 반영 → 명시 셀 투영 → 시간 보간 → 형상 변환 → 응답
+단위·기저 변환 → 공간 대응 → 성분/크기 → 차이 순서입니다.
+
+- 형상은 `x_A = s R x_B + t`입니다. `s`는 m/mm 등 선언된 길이 단위의
+  비율이며 임의 크기 배율이 아닙니다.
+- 벡터는 응답 단위 비율과 회전만 적용합니다. 형상의 이동량이나 길이 배율을
+  힘 벡터에 넣지 않습니다.
+- 같은 직교 기저의 두 지표를 갖는 텐서는 `R T R^T`로 회전합니다. 공학
+  전단은 변형률에만 지원하며 tensor/Kelvin 규약을 구별합니다. 전단 순서는
+  배열 크기나 이름에서 추측하지 않습니다.
+- `|B| - |A|`와 `|B - A|`는 다른 선택입니다. 전체 성분의 시간/공간 보간
+  이후에 크기를 계산합니다.
+- 절대온도 °C/K 변환은 오프셋을 적용하고, 온도차에는 오프셋을 적용하지
+  않습니다. 절대온도 변화율은 명시한 Kelvin 분모만 허용하거나 끕니다.
+- static load parameter는 시간[s]이 아닙니다. 이 버전은 정적 결과의 정확
+  저장 증분 비교를 지원하며 정적 단계 사이 보간은 거절합니다.
+- quality 실패 원값은 원성분/원자료에 남습니다. 계산용 값은 NaN으로 유지하여
+  실패한 끝점/인접 셀을 보간으로 유효하게 만들지 않습니다. 공간 밖, A/B 결측,
+  차이 overflow, 0 분모, 변화율 비활성은 서로 다른 상태입니다. ID와 마스크
+  배열은 물리량과 함께 평균하거나 회전하지 않습니다.
+
+## 작은 공개 재현
+
+새 입력 폴더만 생성하며 solver를 실행하지 않습니다.
+
+```powershell
+python -m examples.post_comparison runs/post-comparison-input
+python -m pytest tests/test_post_comparison_physics.py tests/test_post_comparison_editor.py -q
+```
+
+`a.pvd`는 0.5 s의 2 N Y방향 힘, `b.pvd`는 0/1 s의 0.001/0.003 kN
+X방향 힘입니다. B 형상은 m 단위로 역회전되어 있습니다. B를 90° 회전하고
+0.5 s에서 보간하면 유효한 점의 차이는 0 N입니다. 한 점의 명시 quality가
+0이므로 원값은 남지만 차이는 무효입니다. pressure 배열은 2 MPa와 2,000,000 Pa입니다.
+모두 공개 합성 자료이며 실제 해석 결과나 공학 수용 자료가 아닙니다.
+
+설치된 ParaView의 pvpython으로 실제 owner/filter/저장과 별도 프로세스 재열기를
+확인하는 스크립트:
+
+```powershell
+& $pvpython tests/check_post_comparison_native.py --create runs/post-comparison-native
+& $pvpython tests/check_post_comparison_native.py --reopen runs/post-comparison-native/receipt.json
+```
+
+`$pvpython`은 이미 설치한 ParaView 6.2 실행파일입니다. 다른 Python/Qt를
+native runtime에 설치하지 않습니다. 이 확인은 local native admission과 owner
+직접 호출입니다. HTTP broker, 마우스 조작 또는 solver 검증으로 확대하지 않습니다.
+VTK가 있는 연구 실행 환경에서는 `tests/test_post_comparison_native.py`도 선택 실행할
+수 있습니다. 이것은 실제 VTK 단계 + 좁은 import 대역이며 ParaView 세션 검사가 아닙니다.
+
+## 구현 선택과 호환
+
+기존 Workspace의 draft/preview/apply/Undo/save/repair를 그대로 사용합니다.
+`analysis.version=1`이나 기존 scalar recipe를 마이그레이션하지 않습니다.
+새 비교만 `recipe.version=2`를 사용하고 출력 fingerprint가 해당 버전의 실제
+형상과 모든 배열을 검사합니다.
+
+새 순수 물리 함수는 기존 교정 단위 factor를 재사용합니다. native 변환은 소유된
+ProgrammableFilter와 기존 ResampleWithDataset입니다. geometry Transform의
+암묵 vector 배율을 피하기 위해 분리된 출력의 좌표만 바꾸고 응답은 명시적으로
+회전합니다. 셀 투영은 실제 vtkCellDataToPointData를 사용합니다.
+단일 local native dataset으로 한정하여 분산 piece의 불완전한 이웃 평균을
+지원한 것으로 표시하지 않습니다.
+
+기존 명령의 좁은 선택 인자만 확장했습니다: `post.show_analysis(array=...)`는 검증된
+보존 비교 배열의 표시 선택, `post.source_select(compare_with=...)`는 두 원본의
+native 분할 보기입니다. 실행 owner/registry/store를 새로 만들지 않았으며
+bridge 수명이나 native 창 닫기/저장 제어는 수정하지 않았습니다.
+
+## 범위와 남은 항목
+
+| 요구 | 이 소스의 구현 | 한계 / 후속 |
+|---|---|---|
+| PC-001 선택 | 실제 retained source/array, 점·셀, 성분 선언, 읽기 전용 알려진 의미 | 파일에 없는 의미는 명시 선언 필요 |
+| PC-002 단위 | 기존 곱셈 단위 + 절대/차분 °C/K, 원값/변환값 보존 | 미등록 서로 다른 단위는 변환 차단 |
+| PC-003 기저 | 독립 형상/응답 회전, vector, 6/9 tensor, tensor/engineering/Kelvin | PK1/F 두 점 텐서의 독립 두 기저 및 Cauchy↔Piola 변환은 미지원 |
+| PC-004 시각 | 실제 정확 시각, 단위/원점, 인접 bracket/최대 간격, 끝점 결측 보존 | moving/reordered topology, 외삽, 정적 단계 보간 차단 |
+| PC-005 위치 | 동일 순서/형상 대응, 기존 선형 tetra B→A, 명시 cell→point | IP 투영, 보존적 projection, 임의 고차요소 공간 transfer 미지원 |
+| PC-006 보기/저장 | 원본 분할 보기, 원값/변환/차이 표·3D 선택, owner 저장/재열기 | 새로운 표/곡선 전용 자료의 독립 축 대응은 아래 후속 |
+| PC-007 실패/복구 | 원본 보기 계속 허용, 이전 적용 결과·초안 보존, 기존 repair | unknown 의미를 자동 승인하지 않음 |
+| PC-008 경계 | 버전별 output fingerprint와 기존 key/graph/input guards | 실제 Windows native 및 GUI 크기 확인은 별도 실행 필요 |
+
+저장된 점/경로 측정은 검증된 applied revision의 물리 선언으로 비교에 연결합니다.
+시간 측정의 multiblock table 및 임의 시험 곡선의 축 대응은 이 메시 비교와 다른
+원행/시각 대응이 필요하며 현재 자동 변환하지 않습니다. 일반 polydata의 동일
+순서 대응은 지원하지만 서로 다른 path의 nearest 대응은 만들지 않습니다.
+
+작성 환경의 실행 서버가 연결되지 않아 이 인도에서 Python/pytest/VTK/Qt/ParaView
+실행은 **NOT_RUN**입니다. 위 스크립트와 검사는 실행 가능한 소스로 제공하며
+이 문서의 구현 범위를 실행 성공 또는 GUI 수용 완료로 표시하지 않습니다.

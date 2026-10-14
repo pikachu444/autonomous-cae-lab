@@ -156,6 +156,7 @@ class Workspace:
             if record:
                 bundle = self.bundles.get(record['id'], {})
                 obj['retained_values_only'] = bool(bundle.get('retained_only'))
+                obj['output_metadata'] = deepcopy(record.get('summary', {}).get('declarations'))
                 try:
                     obj['current_inputs_differ'] = self.source_stamps(self._refs(obj['kind'], record['recipe'])) != record['bindings']
                 except (ValueError, RuntimeError, OSError):
@@ -448,8 +449,29 @@ class Workspace:
         self._touch()
         return {'source_ref': ref, 'record': deepcopy(record), 'active_source_preserved': True}
 
-    def select_source(self, *, source_ref, view_id=None, show=True):
+    def select_source(self, *, source_ref, view_id=None, show=True, compare_with=None):
         source = self.resolve(source_ref)
+        if compare_with is not None:
+            other = self.resolve(compare_with)
+            previous = p.GetActiveSource(), p.GetActiveView()
+            layout, views = None, []
+            try:
+                layout = p.CreateLayout(name='원본 결과 비교')
+                first = p.CreateView('RenderView'); views.append(first)
+                p.AssignViewToLayout(view=first, layout=layout, hint=0)
+                layout.SplitHorizontal(0, 0.5)
+                second = p.CreateView('RenderView'); views.append(second)
+                p.AssignViewToLayout(view=second, layout=layout, hint=2)
+                for native, view in zip((source, other), views):
+                    p.Show(native, view); p.ResetCamera(view); p.Render(view)
+                self._touch()
+                return {'source_ref': source_ref, 'compare_with': compare_with, 'mode': 'original_side_by_side'}
+            except BaseException:
+                for view in reversed(views): p.Delete(view)
+                if layout is not None: p.RemoveLayout(layout)
+                raise
+            finally:
+                p.SetActiveSource(previous[0]); p.SetActiveView(previous[1])
         view = next((v for v in p.GetViews() if self.owner.proxy_id(v) == view_id), None) if view_id else p.GetActiveView()
         if show and (view is None or view.GetXMLName() != 'RenderView'):
             raise ValueError('Select a native Render View before displaying this source')
@@ -511,6 +533,9 @@ class Workspace:
             else:
                 self._declared_measurement(draft)
                 bundle = measurements.build_measurement(self.resolve(draft['source_ref']), draft, name)
+                if draft['source_ref'] not in self.document['sources']:
+                    bundle['summary']['sample_semantics'] = 'derived_values_at_saved_measurement_locations'
+                    bundle['summary']['input_declaration'] = self._output_declaration(draft['source_ref'])
             identifier = 'V' + uuid.uuid4().hex
             self.bundles[identifier] = bundle
             summary = clone(bundle.get('summary', {}))
@@ -536,21 +561,44 @@ class Workspace:
             p.SetActiveSource(previous_source)
             p.SetActiveView(previous_view)
 
+    def _output_declaration(self, ref):
+        if ref in self.document['sources']:
+            return deepcopy(self.document['sources'][ref].get('native_metadata'))
+        obj = self.object(ref)
+        record, bundle = self._bundle(obj)  # Exact applied graph/result, not arbitrary lineage.
+        summary = record.get('summary', {})
+        if summary.get('declarations'):
+            return deepcopy(summary['declarations'])
+        recipe = record['recipe']
+        if obj['kind'] != 'measurement' or recipe.get('measurement') not in ('point', 'path'):
+            raise ValueError('이 파생 자료에는 비교에 필요한 저장 물리 선언이 없습니다.')
+        row = {key: recipe.get(key) for key in ('quantity', 'units', 'measure', 'frame')}
+        row.update(name=recipe.get('array'), association='POINTS')
+        return {'arrays': [row], **{key: recipe.get(key) for key in ('coordinate_units', 'coordinate_frame')},
+                'time': {'unit': recipe.get('time_units'), 'semantics': recipe.get('time_origin')}
+                    if recipe.get('time') is not None else None,
+                'frozen_time': recipe.get('time'), 'derived_revision': record['id']}
+
     def _declared_side(self, side):
-        if side.get('source_ref') not in self.document['sources']:
-            raise ValueError('Comparison currently uses explicitly registered original readers')
-        metadata = self.document['sources'][side['source_ref']].get('native_metadata')
+        metadata = self._output_declaration(side.get('source_ref'))
         if metadata is None:
             return  # User must supply every meaning in the recipe; no guessed defaults.
         row = next((row for row in metadata['arrays'] if (row['association'], row['name']) == (side.get('association'), side.get('array'))), None)
         if row is None:
             raise ValueError('Chosen array has no matching declaration in its source receipt')
         for name in ('units', 'frame', 'measure', 'quantity'):
-            if name in row and row[name] != side.get(name):
+            if row.get(name) is not None and row[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
         for name in ('coordinate_units', 'coordinate_frame'):
-            if metadata[name] != side.get(name):
+            if metadata.get(name) is not None and metadata[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
+        for key in ('layout', 'temperature_kind', 'validity_masks'):
+            if key in row and row[key] is not None and row[key] != side.get(key):
+                raise ValueError('Comparison ' + key + ' conflicts with the retained source declaration')
+        if 'frozen_time' in metadata:
+            sampling = side.get('sampling', {'mode': 'exact', 'time': side.get('time')})
+            if sampling != {'mode': 'exact', 'time': metadata['frozen_time']}:
+                raise ValueError('저장 측정의 고정 시각을 다른 시각으로 바꿀 수 없습니다.')
         clock = metadata.get('time')
         if clock and clock['unit'] != side.get('time_units'):
             raise ValueError('Comparison clock unit conflicts with the source declaration')
@@ -562,8 +610,7 @@ class Workspace:
         for name in fields:
             if draft.get(name) is not None and not isinstance(draft[name], str):
                 raise ValueError('Measurement ' + name + ' must be explicit text or unknown')
-        record = self.document['sources'].get(draft.get('source_ref'))
-        metadata = record.get('native_metadata') if record is not None else None
+        metadata = self._output_declaration(draft.get('source_ref'))
         if metadata is None:
             return
         declaration = next((row for row in metadata['arrays']
@@ -747,15 +794,21 @@ class Workspace:
             return 'XYChartView'
         return 'SpreadSheetView' if obj['kind'] == 'measurement' else 'RenderView'
 
-    def show_analysis(self, *, object_ref, view_id=None):
+    def show_analysis(self, *, object_ref, view_id=None, array=None):
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj)
-        self.show(obj, record, bundle, view_id=view_id)
+        if array is not None:
+            allowed = set(record.get('summary', {}).get('arrays', {}).values())
+            if record.get('summary', {}).get('comparison_version') == 2:
+                allowed.update(('A_source_value', 'B_source_sampled'))
+            if obj['kind'] != 'comparison' or array not in allowed:
+                raise ValueError('이 보존 비교에서 읽을 실제 배열을 선택하세요.')
+        self.show(obj, record, bundle, view_id=view_id, array=array)
         self.state['active_object'] = object_ref
         self._touch()
         return deepcopy(record)
 
-    def show(self, obj, record, bundle, *, view_id=None):
+    def show(self, obj, record, bundle, *, view_id=None, array=None):
         source = bundle['source']
         before_source, before_view = p.GetActiveSource(), p.GetActiveView()
         before_name = record.get('view_name')
@@ -795,7 +848,7 @@ class Workspace:
                     display.SeriesVisibility = [array]
             if obj['kind'] == 'comparison' and view.GetXMLName() == 'RenderView':
                 arrays = bundle.get('summary', {}).get('arrays', {})
-                array = arrays.get('delta', 'CAE_delta') if isinstance(arrays, dict) else 'CAE_delta'
+                array = array or (arrays.get('delta', 'CAE_delta') if isinstance(arrays, dict) else 'CAE_delta')
                 if array in source.PointData.keys():
                     p.ColorBy(display, ('POINTS', array))
                     display.RescaleTransferFunctionToDataRange(True, False)
