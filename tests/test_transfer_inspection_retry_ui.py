@@ -63,6 +63,7 @@ def test_failed_page_hides_old_rows_then_retry_restores_same_selection():
         settle(app,lambda:window.status.text()=='Selected retained page unavailable')
         assert window.table.rowCount()==0 and not window._rows
         assert not window.previous.isEnabled() and not window.next.isEnabled() and window.page.text()==''
+        assert window.status.toolTip()==''
         assert window.retry.isEnabled()
         client.fail=False;window.retry.click();settle(app,lambda:len(window._rows)==1)
         assert client.calls[-2:]==[(('Eoriginal','Joriginal','F1',0),{'start':256})]*2
