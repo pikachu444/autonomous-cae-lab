@@ -224,27 +224,31 @@ def compare(a, b, recipe):
     except (ValueError, TypeError, KeyError) as error:
         result['blocked'] = str(error)
         return result
-    bx = [r['x'] * sx + shift if finite(r['x']) else None for r in b['rows']]
-    b_transformed = [r['y'] * sb + ob if finite(r['y']) else None for r in b['rows']]
-    a_transformed = [r['y'] * sa + oa if finite(r['y']) else None for r in a['rows']]
+    def convert(values, scale, offset):
+        return [numeric(v * scale + offset) if finite(v) else None for v in values]
+    bx = convert([r['x'] for r in b['rows']], sx, shift)
+    b_transformed = convert([r['y'] for r in b['rows']], sb, ob)
+    a_transformed = convert([r['y'] for r in a['rows']], sa, oa)
+    bad_axis = [finite(r['x']) and x is None for r, x in zip(b['rows'], bx)]
     result.update(b_axis=bx, a_values=a_transformed, b_values=b_transformed)
-    def groups(rows):
+    def groups(rows, values, axes):
         group = 0; previous = None; result = []
-        for row in rows:
-            usable = _usable(row)
+        for row, value, axis in zip(rows, values, axes):
+            usable = _usable(row) and finite(value) and finite(axis)
             if not usable or previous is None or previous != row['segment']:
                 group += 1
             result.append(group if usable else None)
             previous = row['segment'] if usable else None
         return result
-    ag, bg = groups(a['rows']), groups(b['rows'])
+    ag = groups(a['rows'], a_transformed, [r['x'] for r in a['rows']])
+    bg = groups(b['rows'], b_transformed, bx)
     finite_x = [(x, i) for i, x in enumerate(bx) if finite(x)]
     import bisect
     xs = [x for x, _ in finite_x]
     for i, row in enumerate(a['rows']):
         x, av = row['x'], a_transformed[i]
         out = {'row_index': i, 'a_row': deepcopy(row['identity']), 'x': x,
-            'a_raw': row['y'], 'a': av, 'a_valid': _usable(row), 'b': None, 'b_raw': None,
+            'a_raw': row['y'], 'a': av, 'a_valid': _usable(row) and finite(av), 'b': None, 'b_raw': None,
             'b_rows': [], 'weight': None, 'delta': None, 'percent': None,
             'valid': False, 'b_valid': False, 'a_segment': ag[i], 'b_segment': None,
             'reason': 'axis_missing', 'percent_reason': 'difference_unavailable'}
@@ -265,24 +269,31 @@ def compare(a, b, recipe):
             if 0 < k < len(finite_x):
                 lo, hi = finite_x[k-1][1], finite_x[k][1]
                 if hi != lo+1 or b['rows'][lo]['segment'] != b['rows'][hi]['segment']:
-                    out['reason'] = 'missing_segment'; continue
+                    out['reason'] = ('b_axis_conversion_overflow' if any(bad_axis[lo:hi+1]) else 'missing_segment'); continue
                 if bx[hi]-bx[lo] > gap:
                     out['reason'] = 'gap_exceeds_limit'; continue
                 endpoints, weight = [lo, hi], (x-bx[lo])/(bx[hi]-bx[lo])
         if not endpoints:
-            out['reason'] = 'outside_b_range' if not xs or x < xs[0] or x > xs[-1] else 'no_exact_sample'
+            out['reason'] = ('b_axis_conversion_overflow' if any(bad_axis) else
+                'outside_b_range' if not xs or x < xs[0] or x > xs[-1] else 'no_exact_sample')
             continue
         out.update(b_rows=[deepcopy(b['rows'][j]['identity']) for j in endpoints], weight=weight,
                    b_axis=[bx[j] for j in endpoints])
         if not all(_usable(b['rows'][j]) for j in endpoints):
             out['reason'] = 'b_excluded_or_missing'; continue
-        out.update(b_valid=True, b_segment=bg[endpoints[0]])
         values = [b_transformed[j] for j in endpoints]
+        if not all(finite(value) for value in values):
+            out['reason'] = 'b_value_conversion_overflow'; continue
         raws = [b['rows'][j]['y'] for j in endpoints]
-        out['b'] = values[0] if len(values) == 1 else (1-weight)*values[0]+weight*values[1]
-        out['b_raw'] = raws[0] if len(raws) == 1 else (1-weight)*raws[0]+weight*raws[1]
+        out['b'] = numeric(values[0] if len(values) == 1 else (1-weight)*values[0]+weight*values[1])
+        out['b_raw'] = numeric(raws[0] if len(raws) == 1 else (1-weight)*raws[0]+weight*raws[1])
+        if out['b'] is None:
+            out['reason'] = 'b_value_conversion_overflow'; continue
+        out.update(b_valid=True, b_segment=bg[endpoints[0]])
         if not _usable(row):
             out['reason'] = 'a_excluded_or_missing'; continue
+        if not finite(av):
+            out['reason'] = 'a_value_conversion_overflow'; continue
         delta = out['b']-av
         if not finite(delta):
             out['reason'] = 'nonfinite_difference'; continue
@@ -330,7 +341,9 @@ def load_curve(entry, metadata):
 
 def snapshot(workbench, reference, response):
     from .research_operations import _resolve
-    from .storage import save_json
+    from .storage import save_json, utc_now
+    import shutil
+    import uuid
     document = workbench.document_read(reference.get('document_id'))
     if document.get('kind') != 'data':
         raise ValueError('Data에 저장된 시험 채널을 선택하세요.')
@@ -344,19 +357,29 @@ def snapshot(workbench, reference, response):
     if canonical_hash(_resolve(reference, workbench.document_read, workbench.document_result)) != reference['result_sha256']:
         raise ValueError('곡선을 읽는 동안 저장 결과가 변경되었습니다.')
     payload = json.dumps(curve, ensure_ascii=False, allow_nan=False).encode('utf-8')
-    receipt = workbench.upload('curve.json', payload)
-    folder = workbench.root / 'inputs' / receipt['id']
-    (folder / 'source.json').rename(folder / 'curve.json')
-    path = folder / 'curve.vtt'
-    write_table(path, curve)
-    def pin(p):
-        return {'file': p.relative_to(workbench.root).as_posix(), 'relative': p.name,
-                'bytes': p.stat().st_size, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
-    files = [pin(path), pin(folder/'curve.json')]
-    metadata = {'curve': {'file': 'curve.json', 'sha256': files[1]['sha256']}}
-    receipt.update(name=curve['title'][:240], kind='native_curve', format='vtt', file=files[0]['file'],
-        bytes=files[0]['bytes'], sha256=files[0]['sha256'], files=files,
-        total_bytes=sum(p['bytes'] for p in files), native_metadata=metadata,
-        native_metadata_sha256=canonical_hash(metadata), origin=deepcopy(curve['origin']))
-    save_json(folder/'input.json', receipt)
-    return receipt
+    # Use the existing input namespace. Publish input.json only after both
+    # files are complete; readers never see a temporary plain-upload receipt.
+    identifier = 'D' + uuid.uuid4().hex
+    folder = workbench.root / 'inputs' / identifier
+    folder.mkdir(parents=True)
+    try:
+        with (folder/'curve.json').open('xb') as stream:
+            stream.write(payload)
+        path = folder / 'curve.vtt'
+        write_table(path, curve)
+        def pin(p):
+            return {'file': p.relative_to(workbench.root).as_posix(), 'relative': p.name,
+                    'bytes': p.stat().st_size, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
+        files = [pin(path), pin(folder/'curve.json')]
+        metadata = {'curve': {'file': 'curve.json', 'sha256': files[1]['sha256']}}
+        receipt = {'id': identifier, 'created_utc': utc_now(),
+            'name': curve['title'][:240], 'kind': 'native_curve', 'format': 'vtt', 'file': files[0]['file'],
+            'bytes': files[0]['bytes'], 'sha256': files[0]['sha256'], 'files': files,
+            'total_bytes': sum(p['bytes'] for p in files), 'native_metadata': metadata,
+            'native_metadata_sha256': canonical_hash(metadata), 'origin': deepcopy(curve['origin'])}
+        save_json(folder/'input.json', receipt)
+        return receipt
+    except BaseException:
+        # Only this unreturned new registration belongs to this operation.
+        shutil.rmtree(folder)
+        raise

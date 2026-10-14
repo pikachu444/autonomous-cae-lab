@@ -74,3 +74,24 @@ def test_snapshot_stale_result_and_ordinary_upload_not_admitted(tmp_path):
             wb.native_input(ordinary['id'])
     finally:
         wb.shutdown()
+
+
+def test_snapshot_write_failure_never_publishes_broken_input(tmp_path, monkeypatch):
+    import caelab.post_curves as module
+    wb = Workbench(tmp_path)
+    try:
+        ref, _ = imported(wb)
+        before = deepcopy(wb.inputs())
+        folders = set((wb.root/'inputs').iterdir())
+        def interrupted(path, curve):
+            # Registry readers see only complete earlier entries while writing.
+            assert wb.inputs() == before
+            path.write_bytes(b'partial')
+            raise OSError('controlled full disk')
+        monkeypatch.setattr(module, 'write_table', interrupted)
+        with pytest.raises(OSError, match='controlled'):
+            wb.post_curve_snapshot(ref, 'response')
+        assert wb.inputs() == before
+        assert set((wb.root/'inputs').iterdir()) == folders
+    finally:
+        wb.shutdown()

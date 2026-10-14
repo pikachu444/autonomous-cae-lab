@@ -30,6 +30,10 @@
 
 중복 축이나 하중/제하의 비단조 이력이 있으면 비교할 원행 가지를 선택합니다. 자동 정렬·중복 평균·외삽은 하지 않습니다. 해당 대응이 불가능해도 원곡선은 미리보기에서 계속 볼 수 있고 이전 적용 결과는 유지됩니다.
 
+변환 결과가 수치 범위를 넘으면 원값을 보존하고 그 대응값만 미정으로 표시합니다. 자료 가져오기는 표와 원행 파일을 완성한 뒤 등록하므로 실패한 중간 자료가 목록에 남지 않습니다.
+
+원자료를 옮겼거나 일부 파일을 잃어버린 경우에는 기존 Post의 복구 열기를 사용합니다. 저장한 곡선값은 확인된 보존 파일에서 읽을 수 있습니다. 같은 바이트의 자료를 명시적으로 다시 연결해도 이전 결과를 자동 재계산하지 않으며, 새 비교는 다시 미리보기·적용합니다.
+
 정적 하중 계수는 물리시간이 아닙니다. 액추에이터 변위를 시편 변형률로 환산하지 않습니다. 동일 차원의 단위 변환만 수행하고, 원점의 실제 의미는 사용자가 명시합니다.
 
 ## 공개 작은 예제와 실행 방법
@@ -40,7 +44,7 @@
 
 ~~~powershell
 python -m examples.post_curves C:\cae-tests\curve-example
-python -m pytest tests/test_post_curves.py tests/test_post_curve_snapshot.py tests/test_post_curve_editor.py -q
+python -m pytest tests/test_post_curves.py tests/test_post_curve_snapshot.py tests/test_post_curve_editor.py tests/test_post_curve_recovery.py -q
 ~~~
 
 설치된 ParaView 6.2의 Python으로 생성·저장:
@@ -53,6 +57,12 @@ python -m pytest tests/test_post_curves.py tests/test_post_curve_snapshot.py tes
 
 ~~~powershell
 & "C:\Program Files\ParaView 6.2.0\bin\pvpython.exe" tests/check_post_curves_native.py --reopen C:\cae-tests\curve-example\receipt.json
+~~~
+
+원자료 누락 시 보존 결과 읽기와 동일 바이트 위치 복구도 별도 프로세스로 확인할 수 있습니다. 공개 예제 사본에서만 실행합니다. 이 명령은 입력 sidecar 하나를 잠시 옮겼다가 종료 시 복구하며, 새 계산은 하지 않습니다.
+
+~~~powershell
+& "C:\Program Files\ParaView 6.2.0\bin\pvpython.exe" tests/check_post_curves_native.py --repair-retained C:\cae-tests\curve-example\receipt.json
 ~~~
 
 실제 설치 경로에 맞춰 실행 파일 경로만 바꿉니다. examples.post_curves가 출력한 input.json에는 Data의 별도 store 경로가 있습니다. GUI에서 그 Data를 다시 선택하려면 같은 store의 서비스를 사용합니다.
@@ -75,4 +85,4 @@ python -m pytest tests/test_post_curves.py tests/test_post_curve_snapshot.py tes
 | 남은 제한 | 시간별 서로 다른 위치 추적, 자동 시간 동기화, 비단조 가지 자동 분할, 확률/오차대역 전파, 주파수/위상 비교, 없던 물리량·벡터 재구성은 제공하지 않음 |
 | 크기 | 입력당 최대 20,000행/16 MiB, 결과 표는 페이지 단위로 읽기. 일부만 성공한 것처럼 잘라 저장하지 않음 |
 
-작성 환경의 실행 서버가 연결되지 않아 위 Python/Qt/ParaView 검사는 **NOT_RUN**입니다. 소스 작성과 문자 수준 점검을 실행 통과로 표시하지 않습니다. 설치 환경에서의 실제 확인은 별도 통합 결과로 기록해야 합니다。
+작성 환경의 실행 서버가 연결되지 않아 위 Python/Qt/ParaView 검사는 **NOT_RUN**입니다. 소스 작성과 문자 수준 점검을 실행 통과로 표시하지 않습니다. 설치 환경에서의 실제 확인은 별도 통합 결과로 기록해야 합니다.

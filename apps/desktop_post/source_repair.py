@@ -38,6 +38,52 @@ def verify_analysis_files(document):
                     raise ValueError('Retained analysis values/mask file is missing or changed: ' + str(file))
 
 
+def _unavailable_curve_names(document, issues):
+    """Materialized curve readers have semantic, not native Input links.
+
+    Follow each saved revision's exact bindings/dependencies. The current editor
+    cursor and display name are never substitutes for the frozen input revision.
+    """
+    import hashlib
+    missing = {row.get('source_ref') for row in issues if row.get('source_ref')}
+    originals = document.get('sources', {})
+    objects = document.get('analysis', {}).get('objects', {})
+    memo = {}
+    def affected(record, seen):
+        identifier = record['id']
+        if identifier in memo:
+            return memo[identifier]
+        if identifier in seen:
+            return True  # Invalid lineage may only open as verified retained data.
+        for ref, binding in record.get('bindings', {}).items():
+            if ref in missing:
+                memo[identifier] = True
+                return True
+            if ref in originals:
+                continue
+            expected = binding.get('revision')
+            candidates = []
+            for candidate in objects.get(ref, {}).get('history', []):
+                frozen = {k: candidate[k] for k in ('id', 'recipe', 'graph', 'bindings')}
+                digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(',', ':'),
+                    ensure_ascii=False, allow_nan=False).encode('utf-8')).hexdigest()
+                pinned = record.get('dependencies', {}).get(ref)
+                if digest == expected and (pinned is None or candidate['id'] == pinned):
+                    candidates.append(candidate)
+            if len(candidates) != 1 or affected(candidates[0], seen | {identifier}):
+                memo[identifier] = True
+                return True
+        memo[identifier] = False
+        return False
+    names = set()
+    for obj in objects.values():
+        for record in obj.get('history', []):
+            if (record.get('summary', {}).get('comparison_version') == 3
+                    and affected(record, set())):
+                names.update([record['source_name'], *record.get('proxy_names', [])])
+    return names
+
+
 def partial_state(state, document, issues, output):
     """Remove only unavailable reader branches from a copy of native PVSM.
 
@@ -56,6 +102,8 @@ def partial_state(state, document, issues, output):
     contact = document.get('analysis', {}).get('contact_selection') or {}
     if contact and contact.get('source_ref') in {row['source_ref'] for row in issues}:
         bad.update(registrations[name] for name in contact.get('overlay_names', []) if name in registrations)
+    semantic_names = _unavailable_curve_names(document, issues)
+    bad.update(registrations[name] for name in semantic_names if name in registrations)
     proxies = {item.get('id'): item for item in server.findall('Proxy')}
     containers = {'views', 'layouts', 'timekeeper', 'animation'}
     changed = True

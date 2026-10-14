@@ -25,6 +25,7 @@ except ImportError:
 KIND = "external-result"
 READERS = {".vtu": "XMLUnstructuredGridReader", ".pvd": "PVDReader", ".vtt": "XMLTableReader"}
 _recovery = []
+_recovery_state = None
 
 
 def recovery_records():
@@ -399,6 +400,13 @@ def save_project(path, doc, *, prepare=None):
     # Keep their original source/pin records repairable. A present/replaced reader
     # still undergoes normal name/type/path checks; absence alone grants nothing.
     removed = set(doc.get('_partial_removed_source_names', [])) if doc.get('partial_workspace') else set()
+    # Owner construction rereads the immutable manifest after native LoadState.
+    # Carry the exact removed set across that read without changing the file or
+    # exempting names in another project/earlier state.
+    if doc.get('partial_workspace') and _recovery_state is not None:
+        saved_state = str((Path(path).parent / doc['workspace_file']).resolve())
+        if (saved_state, doc.get('workspace_sha256')) == _recovery_state['state']:
+            removed.update(_recovery_state['removed_source_names'])
     live_names = {name for name, _ in p.GetSources()}
     absent_removed = removed - live_names
     healthy['native_readers'] = [row for row in doc.get('native_readers', [])
@@ -454,8 +462,9 @@ def save_project(path, doc, *, prepare=None):
 
 
 def restore_workspace(path, doc, *, allow_repair=False):
-    global _recovery
+    global _recovery, _recovery_state
     _recovery = []
+    _recovery_state = None
     _verify_metadata_records(doc)
     state = path.parent / doc["workspace_file"]
     if sha(state) != doc["workspace_sha256"]:
@@ -483,6 +492,8 @@ def restore_workspace(path, doc, *, allow_repair=False):
         restore_selection(healthy)
         doc['partial_workspace'] = True
         doc['_partial_removed_source_names'] = selection['removed_source_names']
+        _recovery_state = {'state': (str(state.resolve()), doc['workspace_sha256']),
+                           'removed_source_names': list(selection['removed_source_names'])}
         print('PARTIAL RESTORE: healthy sources and retained analysis remain available; missing-input branches require explicit repair.')
         return {'state': 'PARTIAL_RESTORE', 'issues': issues, **selection}
     for file, expected in doc.get("native_reader_files", {}).items():

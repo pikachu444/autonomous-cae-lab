@@ -12,7 +12,8 @@ REASONS = {'valid': '대응', 'outside_b_range': 'B 범위 밖', 'no_exact_sampl
     'b_excluded_or_missing': 'B 제외·결측', 'a_excluded_or_missing': 'A 제외·결측',
     'axis_missing': '축 결측', 'zero_a': '기준값 0', 'absolute_temperature_disabled': '절대온도 변화율 없음',
     'difference_unavailable': '차이 없음', 'nonfinite_difference': '연산 범위 초과',
-    'nonfinite_percent': '변화율 범위 초과'}
+    'nonfinite_percent': '변화율 범위 초과', 'b_axis_conversion_overflow': 'B 축 변환 범위 초과',
+    'a_value_conversion_overflow': 'A 단위 변환 범위 초과', 'b_value_conversion_overflow': 'B 단위 변환 범위 초과'}
 
 
 def text(value):
@@ -69,6 +70,7 @@ class CurvePlot(QDialog):
         self.fill('aligned', rows, [('row_index', '표본'), ('a_row', 'A 원행'), ('b_rows', 'B 원행'),
             ('x', '가로축'), ('a', 'A'), ('b', '대응 B'), ('delta', 'B − A'), ('percent', '변화율 [%]'),
             ('reason', '대응 상태'), ('percent_reason', '변화율 상태')])
+        self.points['aligned'] = []
         for key, name, color in (('a', '공통 단위 A', 'C0'), ('b', '대응 B', 'C1'), ('delta', 'B − A', 'C2')):
             grouped = []
             for r in rows:
@@ -77,11 +79,12 @@ class CurvePlot(QDialog):
                 grouped.append({'x': r['x'], 'y': r[key], 'quality': bool(valid), 'calculation': bool(valid),
                                 'visible': True, 'segment': segment})
             self.draw_segments(ax, grouped, 'x', 'y', color, name)
+            self.points['aligned'].extend((r['row_index'], r['x'], r[key]) for r in rows
+                if r.get('x') is not None and r.get(key) is not None)
         ax.set_xlabel(str(sources['a']['axis'].get('name','축'))+' ['+str(sources['a']['axis'].get('unit','?'))+']')
         ax.set_ylabel('['+str(summary['recipe'].get('target_unit','?'))+']')
         if rows: ax.legend()
         ax.grid(True, alpha=.2)
-        self.points['aligned'] = [(r['row_index'], r['x'], r['delta']) for r in rows if r.get('valid') and r.get('delta') is not None]
         self.canvas.mpl_connect('button_press_event', self.pick)
         self.canvas.draw_idle()
 
@@ -144,10 +147,11 @@ class CurvePlot(QDialog):
         if row < 0 or table.item(row, 0) is None:
             return
         index = table.item(row, 0).data(Qt.ItemDataRole.UserRole)
-        point = next((p for p in self.points.get(tag, []) if p[0] == index), None)
-        if point:
+        points = [p for p in self.points.get(tag, []) if p[0] == index]
+        if points:
             if tag in self.markers: self.markers[tag].remove()
-            self.markers[tag] = self.axes[tag].scatter([point[1]], [point[2]], s=85, facecolors='none', edgecolors='black')
+            self.markers[tag] = self.axes[tag].scatter([p[1] for p in points], [p[2] for p in points],
+                s=85, facecolors='none', edgecolors='black')
             self.canvas.draw_idle()
         if tag == 'aligned':
             self.rowSelected.emit(index)

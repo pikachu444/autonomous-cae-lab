@@ -16,10 +16,49 @@ def main(argv=None):
     modes=parser.add_mutually_exclusive_group(required=True)
     modes.add_argument('--create',type=Path,help='prepared examples.post_curves input.json')
     modes.add_argument('--reopen',type=Path,help='receipt.json from the first process')
+    modes.add_argument('--repair-retained',type=Path,help='receipt.json; temporarily hide one pinned input then repair a byte-identical copy')
     args=parser.parse_args(argv)
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
     from apps.desktop_post import external
     from apps.desktop_post.bridge import Owner
+    if args.repair_retained:
+        import shutil
+        import uuid
+        receipt=json.loads(args.repair_retained.read_text(encoding='utf-8'))
+        path=Path(receipt['project']);doc=json.loads(path.read_text(encoding='utf-8-sig'))
+        ref, source=next((k,v) for k,v in doc['sources'].items() if (v.get('native_metadata') or {}).get('curve'))
+        entry=Path(source['entry_path']);relocated=path.parent/('relocated-'+uuid.uuid4().hex)
+        relocated.mkdir()
+        pins=[]
+        for pin in source['source_pins']:
+            target=relocated/Path(pin['path']).name
+            shutil.copyfile(pin['path'],target)
+            pins.append({**pin,'path':str(target)})
+        sidecar=entry.parent/'curve.json'
+        held=sidecar.with_name('curve.json.held-'+uuid.uuid4().hex)
+        sidecar.rename(held)
+        try:
+            os.environ['CAE_POST_PROJECT']=str(path)
+            restored=external.restore_workspace(path,doc,allow_repair=True)
+            assert restored['state']=='PARTIAL_RESTORE'
+            owner=Owner();ws=owner.workspace
+            object_ref=receipt['object_ref'];record=ws.applied(ws.object(object_ref))
+            assert ws.bundles[record['id']]['retained_only']
+            assert ws.sample(object_ref=object_ref,preview=False,limit=1000)['rows']==receipt['rows']
+            # Saving retained values must not require the unavailable input.
+            owner.save_project()
+            repaired=ws.repair_source(source_ref=ref,input_id=source['input_id'],receipt={
+                'id':source['input_id'],'format':'vtt','path':str(relocated/entry.name),
+                'source_pins':pins,'native_metadata':source['native_metadata']})
+            assert repaired['content_changed'] is False
+            assert repaired['retained_branches_recomputed'] is False
+            assert ws.sample(object_ref=object_ref,preview=False,limit=1000)['rows']==receipt['rows']
+            assert ws.bundles[record['id']]['retained_only']
+            owner.save_project()
+            print('PASS missing source retained read/save and explicit byte-identical repair; no new calculation')
+        finally:
+            held.rename(sidecar)
+        return 0
     if args.reopen:
         receipt=json.loads(args.reopen.read_text(encoding='utf-8'))
         path=Path(receipt['project']);doc=json.loads(path.read_text(encoding='utf-8-sig'))
