@@ -20,6 +20,22 @@ S8R, 막(M3D8 등), 삼각형, 혼합 solid/shell, 다중 단면/재료, 적층,
 
 ## Windows에서 시작
 
+[Windows 설치 안내](INSTALL_KO.md)에 따라 설치를 마친 뒤
+`examples/shell/Open-Example.cmd`를 더블클릭합니다. 판재 형상과 S8 메시,
+재료·구속·압력 조건이 들어 있는 모델을 새 작업 사본으로 엽니다. 공개 원본과
+이전 작업은 그대로 남습니다. **판재 → 판재 셸…**에서 저장된 설정을 확인하세요.
+
+FreeCAD 경로를 직접 지정하려면 저장소 폴더의 PowerShell에서 다음 명령을 실행합니다.
+예시 경로는 실제 설치 위치로 바꾸세요.
+
+```powershell
+.\examples\shell\Open-Example.cmd -FreeCADExe 'C:\Tools\FreeCAD\bin\freecad.exe'
+```
+
+작업을 저장한 뒤 이어서 작업하려면 저장한 전처리 프로젝트를 여세요. 시작 파일을
+다시 실행하면 별도의 새 작업 사본이 열립니다. 다른 크기의 판재를 만드는 방법은
+아래 매크로 안내를 참고하세요.
+
 기존 Lab 서비스/설치 설정과 `CAELAB_FREECAD_EXE`, `CAELAB_PARAVIEW_EXE`, 기존 Python을 그대로 사용한다. `ccx.exe` 2.22가 **기존 서비스 프로세스의 PATH**에 있어야 한다. 모델 인자로 임의 실행 경로나 커맨드를 받지 않는다. 서비스용 기존 내부 연결은 유지하지만 제품 화면은 FreeCAD/ParaView/Qt이며, 브라우저 UI나 새 서버를 추가하지 않는다.
 
 기존 데스크톱의 **Pre 열기**로 FreeCAD를 연다. 기존에 설정한 서비스 주소가 환경에 있다면 다음 기존 진입도 사용할 수 있다.
