@@ -89,3 +89,21 @@ def test_qt_dependency_raw_edit_save_restore_and_apply_uses_relation(qt_panel):
     op,args,t,done=queued[-1]; assert op=='pre.motion.configure' and args['definition']['drives'][1]['dependency']['ratio']==2.
     done({'status':'COMPLETED','result':motion.dispatch(op,args,t)})
     assert owner.metadata['motion']['definition']['drives'][1]['dependency']['ratio_unit']=='mm/deg'
+
+
+def test_changing_dependency_source_preserves_physical_ratio_unit_and_blocks_mismatch(qt_panel):
+    import json
+    app,widget,panel,queued,descriptor,setup=qt_panel
+    owner,motion,target,d=relation_setup(setup)
+    panel._inspect_value(motion.dispatch('pre.motion.inspect',{},target))
+    panel._motion['joints'].append({'id':'OtherRotation','label':'새 기준 회전','type':'Revolute','issues':[]})
+    panel._loading=True; panel.drives.setRowCount(0)
+    for value in [*d['drives'],{'joint_id':'OtherRotation','type':'Angular','formula':'time','unit':'rad'}]: panel._drive_row(value)
+    panel._loading=False; panel.drives.selectRow(1); panel._drive_selected()
+    panel.drive_source.setCurrentIndex(panel.drive_source.findData(json.dumps(['OtherRotation','Angular'])))
+    raw=panel._drive_values(raw=True)[1]['dependency']
+    assert raw['joint_id']=='OtherRotation' and raw['ratio']=='2.0' and raw['ratio_unit']=='mm/deg'
+    assert raw['offset']=='1.0' and raw['offset_unit']=='mm' and '단위' in panel.definition_notice.text()
+    panel._configure(); assert not queued
+    panel.drive_source.setCurrentIndex(panel.drive_source.findData(json.dumps([d['drives'][0]['joint_id'],'Angular'])))
+    assert not panel._validate_drives() and panel._drive_values(raw=True)[1]['dependency']['ratio_unit']=='mm/deg'

@@ -636,7 +636,7 @@ class MotionPanel:
         if self.drive_mode.currentIndex()==1:
             source=tuple(json.loads(self.drive_source.currentData())) if self.drive_source.currentData() else (None,None)
             previous=options.get('dependency')
-            if previous is None or (previous.get('joint_id'),previous.get('type'))!=source:
+            if previous is None:
                 master=next((d for d in self._drive_values(raw=True) if (d['joint_id'],d['type'])==source),{})
                 self._loading_drive=True
                 self.drive_ratio_unit.setCurrentText(self.drive_unit.currentText()+'/'+master.get('unit',self.drive_unit.currentText()))
