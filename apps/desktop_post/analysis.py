@@ -26,7 +26,7 @@ OUTPUT_ARRAYS = {"a": "A_original", "b": "B_at_A", "delta": "B_minus_A",
                  "percent_valid": "percent_valid", "reason": "comparison_reason",
                  "percent_reason": "percent_reason"}
 REASONS = {0: "valid", 1: "outside_b_domain", 2: "nonfinite_a", 3: "nonfinite_b",
-           4: "nonfinite_difference", 5: "zero_a", 6: "nonfinite_percent", 7: "percent_disabled"}
+           4: "nonfinite_difference", 5: "zero_a", 6: "nonfinite_percent", 7: "percent_disabled", 8: "nonfinite_denominator"}
 DECLARATIONS = ("quantity", "units", "measure", "frame", "coordinate_units", "coordinate_frame")
 
 

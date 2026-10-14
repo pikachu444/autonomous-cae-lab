@@ -51,3 +51,44 @@ def test_same_label_source_identity_and_unknown_layout_remain_distinct(app):
     assert editor.draft()['b']['source_ref']=='Sb'
     assert editor.draft()['b']['layout'] is None
     editor.close()
+
+
+def test_curve_reads_same_rows_units_and_invalid_gaps_without_jobs(app):
+    pytest.importorskip('matplotlib')
+    from apps.research.post_comparison_plot import ComparisonPlot
+    draft=default_recipe(); draft['target']['units']='MPa'; draft['a']['coordinate_units']='mm'
+    rows=[{'point_index':5,'coordinates':[1,2,3],'a':2.,'b':3.,'delta':1.},
+          {'point_index':6,'coordinates':[2,2,3],'a':0.,'b':None,'delta':None}]
+    plot=ComparisonPlot({'rows':rows},{'draft':draft,'preview':False,'object_ref':'A','revision':'V'})
+    assert plot.rows==rows and len(plot.figure.axes)==2
+    assert 'MPa' in plot.figure.axes[0].get_ylabel()
+    assert list(plot.figure.axes[0].lines[0].get_xdata())==[5,6]
+    assert len(plot.figure.axes[1].lines[0].get_ydata())==2
+    plot.close()
+
+
+def test_clearing_field_clears_executable_selection(app):
+    editor=ComparisonEditor(default_recipe(),sources())
+    editor.change_source('a','Sa'); editor.change_field('a',['pressure','POINTS'])
+    notifications=[]; editor.changed.connect(lambda: notifications.append(True))
+    editor.change_field('a',None)
+    assert editor.draft()['a']['array']=='' and editor.draft()['a']['layout'] is None
+    assert notifications
+    editor.close()
+
+
+def test_known_derived_layout_and_independent_alignment_survive_dialog_ok(app,monkeypatch):
+    draft=default_recipe(); draft['a'].update(source_ref='Sa',array='pressure',units='MPa',
+        layout={'kind':'scalar','components':['scalar']})
+    draft['alignment'].update(geometry_declared=True,response_declared=False)
+    draft['a']['sampling']={'mode':'future_mode','retained_value':'1e'}
+    rows=sources(); rows[0]['native_metadata']['arrays'][0]['layout']=draft['a']['layout']
+    editor=ComparisonEditor(draft,rows)
+    monkeypatch.setattr(QDialog,'exec',lambda self: QDialog.DialogCode.Accepted)
+    editor.meaning('a')
+    assert editor.draft()['a']['layout']==draft['a']['layout']
+    editor.settings()
+    assert editor.draft()['a']['sampling']==draft['a']['sampling']
+    assert editor.draft()['alignment']['geometry_declared'] is True
+    assert editor.draft()['alignment']['response_declared'] is False
+    editor.close()

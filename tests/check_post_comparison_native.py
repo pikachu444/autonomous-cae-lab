@@ -27,6 +27,10 @@ def main(argv=None):
         owner=Owner(); workspace=owner.workspace
         rows=workspace.sample(object_ref=receipt['object_ref'],preview=False,limit=1000)['rows']
         assert rows==receipt['rows']
+        for retained in receipt.get('derived', []):
+            actual = workspace.sample(object_ref=retained['object_ref'], preview=False, limit=1000)['rows']
+            assert actual == retained['rows']
+            assert workspace._output_declaration(retained['object_ref']) == retained['declaration']
         assert not workspace.restore_issues, workspace.restore_issues
         print('PASS cold reopen, same original/transformed/difference/masks; no solver')
         return 0
@@ -51,10 +55,48 @@ def main(argv=None):
             assert abs(row['delta'])<1e-12 and abs(row['a']-2)<1e-12 and abs(row['b']-2)<1e-12
     workspace.apply(object_ref=obj['id'],show=True)
     workspace.undo(object_ref=obj['id']); workspace.redo(object_ref=obj['id'])
+    # Changed path: fixed-clock comparison -> exact point/path measurement ->
+    # comparison again. No time search on a retained single-sample output.
+    from copy import deepcopy
+    derived = []
+    declaration = workspace._output_declaration(obj['id'])
+    assert declaration['frozen_clock'] == {'value':.5, 'unit':'s', 'semantics':'physical_time'}
+    for kind in ('point', 'path'):
+        measured = {'source_ref':obj['id'], 'measurement':kind, 'array':'A_original',
+            'association':'POINTS', 'time':None, 'point_indices':[0,2],
+            'point1':[0.,0.,0.], 'point2':[0.,1.,0.], 'resolution':4, 'tolerance':0.}
+        measurement = workspace.edit_measurement(draft=measured, title='비교의 점' if kind=='point' else '비교의 경로')
+        workspace.validate(object_ref=measurement['id'])
+        workspace.apply(object_ref=measurement['id'], show=False)
+        declared = workspace._output_declaration(measurement['id'])
+        assert declared['frozen_clock'] == declaration['frozen_clock']
+        assert declared['arrays'][0]['layout']['scalar_semantics'] == 'component'
+        derived.append({'object_ref':measurement['id'],
+            'rows':workspace.sample(object_ref=measurement['id'],preview=False,limit=1000)['rows'],
+            'declaration':declared})
+        repeat = deepcopy(recipe)
+        selected = declared['arrays'][0]
+        for side in ('a','b'):
+            repeat[side] = {key:deepcopy(value) for key,value in selected.items() if key!='name'}
+            repeat[side].update(source_ref=measurement['id'],array=selected['name'],
+                coordinate_units=declared['coordinate_units'],coordinate_frame=declared['coordinate_frame'],
+                frozen_clock=deepcopy(declared['frozen_clock']),sampling={'mode':'exact','time':None},clock_offset=0.)
+        from caelab.post_comparison import IDENTITY
+        repeat.update(selection='scalar',difference='selected_difference',percent='disabled')
+        repeat['alignment'] = {'geometry_rotation':deepcopy(IDENTITY),'response_rotation':deepcopy(IDENTITY),
+                               'translation':[0.,0.,0.],'geometry_declared':False,'response_declared':False}
+        compared = workspace.edit_comparison(draft=repeat,title='저장 측정 비교')
+        workspace.validate(object_ref=compared['id'])
+        workspace.apply(object_ref=compared['id'],show=False)
+        rows = workspace.sample(object_ref=compared['id'],preview=False,limit=1000)['rows']
+        assert any(not row['valid'] for row in rows), 'upstream invalid values became valid'
+        assert all(row['delta'] == 0. for row in rows if row['valid'])
+        derived.append({'object_ref':compared['id'],'rows':rows,
+                        'declaration':workspace._output_declaration(compared['id'])})
     saved=owner.save_project()
     retained=workspace.sample(object_ref=obj['id'],preview=False,limit=1000)
     receipt={'project':str(saved),'object_ref':obj['id'],'rows':retained['rows'],
-             'solver_execution':'NOT_PERFORMED','broker':'NOT_EXERCISED'}
+             'derived':derived, 'solver_execution':'NOT_PERFORMED','broker':'NOT_EXERCISED'}
     with (root/'receipt.json').open('x',encoding='utf-8') as stream:
         json.dump(receipt,stream,ensure_ascii=False,allow_nan=False,indent=2)
     print('PASS native owner comparison/save; next use --reopen '+str(root/'receipt.json'))

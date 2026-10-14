@@ -112,3 +112,70 @@ def test_static_load_parameter_cannot_be_interpolated_or_renamed_seconds():
     side = recipe()['a']; side.update(time_units='1',time_origin='STATIC_LOAD_PARAMETER')
     side['sampling']={'mode':'linear','bracket':[0.,1.],'max_gap':1.}
     with pytest.raises(ValueError, match='정적'): c.time_plan(side,[0.,1.],{'value':.5,'unit':'1','semantics':'STATIC_LOAD_PARAMETER'})
+
+
+def test_exact_clock_has_no_epoch_relative_tolerance_and_requires_unique_sample():
+    side = recipe()['a']; side.update(time_units='s', time_origin='physical_time')
+    side['sampling'] = {'mode':'exact', 'time':1e9 + .0005}
+    clock = {'unit':'s', 'semantics':'physical_time', 'value':1e9}
+    with pytest.raises(ValueError, match='정확 시각'):
+        c.time_plan(side,[1e9 + .0005],clock)
+    clock['exact_tolerance']=.001
+    assert c.time_plan(side,[1e9 + .0005],clock)['exact_tolerance']==.001
+    with pytest.raises(ValueError, match='모호'):
+        c.time_plan(side,[1e9,1e9 + .0005],clock)
+
+
+def test_large_vector_norm_and_norm_relative_difference_use_full_baseline():
+    r=recipe(); r.update(selection='x',difference='norm_of_difference')
+    for side in ('a','b'): r[side]['layout']={'kind':'vector','components':['x','y','z']}
+    result=c.compare(np.array([[1e200,0,0.]]),np.array([[1e200,1,0.]]),r,[True])
+    assert result['delta'][0]==1. and result['percent_valid'][0]
+    assert result['percent'][0]==pytest.approx(1e-198)
+    result=c.compare(np.array([[0.,10,0]]),np.array([[0.,11,0]]),r,[True])
+    assert result['percent'][0]==pytest.approx(10.)
+
+
+
+def test_ordered_match_uses_declared_absolute_distance_without_rounding_coordinates():
+    a = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
+    s = math.sqrt(.5); rotation = np.array([[s,-s,0.],[s,s,0.],[0.,0.,1.]])
+    raw_b = a @ rotation
+    transformed = c.transform_points(raw_b, 'mm', 'mm', rotation, [0.,0.,0.])
+    cells = [(5, (0,1,2))]
+    assert not np.array_equal(a, transformed)
+    original = transformed.copy()
+    match = c.ordered_match(a, cells, transformed, cells, 1e-12)
+    assert 0 < match['maximum_distance'] <= 1e-12
+    np.testing.assert_array_equal(transformed, original)
+    with pytest.raises(ValueError, match='허용 오차'):
+        c.ordered_match(a, cells, transformed, cells, 0.)
+    with pytest.raises(ValueError, match='허용 오차'):
+        c.ordered_match(a, cells, transformed + [0.,0.,.001], cells, 1e-12)
+    with pytest.raises(ValueError, match='연결 순서'):
+        c.ordered_match(a, cells, transformed, [(5,(1,0,2))], 1.)
+    with pytest.raises(ValueError, match='셀 종류'):
+        c.ordered_match(a, cells, transformed, [(3,(0,1,2))], 1.)
+
+
+def test_retained_fixed_clock_is_physical_time_without_reader_frame_search():
+    side = recipe()['a']
+    side['frozen_clock'] = {'value': 500., 'unit':'ms', 'semantics':'physical_time'}
+    clock = {'value':.5, 'unit':'s', 'semantics':'physical_time'}
+    result = c.time_plan(side, [], clock)
+    assert result['times'] == [None] and result['common_time'] == .5
+    assert result['frozen_clock'] == side['frozen_clock']
+    with pytest.raises(ValueError, match='일치'):
+        c.time_plan(side, [], dict(clock,value=.6))
+    side['clock_offset'] = .1
+    assert c.time_plan(side, [], dict(clock,value=.6))['common_time'] == .6
+    side['sampling'] = {'mode':'exact','time':500.}
+    with pytest.raises(ValueError, match='고정'):
+        c.time_plan(side, [500.], clock)
+
+
+def test_timeless_data_cannot_be_relabelled_with_a_sample_clock():
+    r = recipe()
+    r['clock'] = {'value':2., 'unit':'s', 'semantics':'physical_time'}
+    with pytest.raises(ValueError, match='부여'):
+        c.validate(r, [], [])

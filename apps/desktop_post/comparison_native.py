@@ -45,13 +45,34 @@ def _values(data, name):
 def execute(inputs, output, stage, settings):
     """Called by saved native ProgrammableFilter; only detached outputs change."""
     from paraview import vtk
-    if stage == 'prepare':
+    if stage == 'frozen':
+        output.DeepCopy(inputs[0])
+        output.GetInformation().Remove(vtk.vtkDataObject.DATA_TIME_STEP())
+    elif stage == 'quality_only':
+        source = inputs[0]; output.DeepCopy(source)
+        values = _values(source, settings['array']).copy()
+        if len(values) != source.GetNumberOfPoints():
+            raise ValueError('파생 응답 행 수와 원 점 개수가 다릅니다.')
+        valid = np.isfinite(values).all(axis=1)
+        for name in settings['masks']:
+            mask = source.GetPointData().GetArray(name)
+            if mask is None or mask.GetNumberOfComponents() != 1 or mask.GetNumberOfTuples() != len(values):
+                raise ValueError('파생 응답의 원 품질 마스크를 확인할 수 없습니다: ' + name)
+            flags = vtk_to_numpy(mask)
+            valid &= np.isfinite(flags) & (flags != 0)
+        values[~valid] = np.nan
+        output.GetPointData().RemoveArray(settings['array'])
+        _put(output.GetPointData(), settings['array'], values)
+    elif stage == 'prepare':
         source = inputs[0]; side = settings
         geometry(source)
         attrs = source.GetPointData() if side['association'] == 'POINTS' else source.GetCellData()
         arr = attrs.GetArray(side['array'])
         if arr is None or arr.GetNumberOfComponents() != physical.layout_size(side['layout']):
             raise ValueError('선언한 원 배열/성분이 실제 자료와 다릅니다.')
+        expected = source.GetNumberOfPoints() if side['association'] == 'POINTS' else source.GetNumberOfCells()
+        if arr.GetNumberOfTuples() != expected:
+            raise ValueError('배열 행 수와 실제 점/셀 개수가 다릅니다.')
         from .analysis import _identity
         if _identity(side['array']) or side['array'].lower().endswith(('mask', '_valid', '_id')):
             raise ValueError('식별자·유효성 배열은 물리 응답으로 보간하지 않습니다.')
@@ -153,6 +174,7 @@ def execute(inputs, output, stage, settings):
             if source is b: component_values[~inside] = np.nan
             _put(output.GetPointData(), name, component_values)
         _put(output.GetPointData(), 'vtkValidPointMask', values['valid'].astype(np.uint8))
+        output.GetInformation().Remove(vtk.vtkDataObject.DATA_TIME_STEP())
     else:
         raise ValueError('Unknown comparison stage')
 
@@ -163,7 +185,22 @@ def _filter(inputs, stage, settings, namespace, proxies):
     script = ("import json\nfrom apps.desktop_post.comparison_native import execute\n"
               "execute([self.GetInputDataObject(0, i) for i in range(self.GetNumberOfInputConnections(0))], "
               "self.GetOutputDataObject(0), " + repr(stage) + ", json.loads(" + repr(encoded) + "))\n")
-    return analysis._program(inputs, script, namespace, stage, proxies)
+    if stage not in ('difference', 'frozen'):
+        return analysis._program(inputs, script, namespace, stage, proxies)
+    result = p.ProgrammableFilter(registrationName=analysis._name(namespace, stage), Input=inputs)
+    proxies.append(result)
+    result.Script = script
+    # The values are frozen, while their physical sample clock is retained in
+    # the owner declaration. Advertising upstream timesteps would invent data.
+    result.RequestInformationScript = (
+        "executive = self.GetExecutive()\n"
+        "info = executive.GetOutputInformation(0)\n"
+        "info.Remove(executive.TIME_STEPS())\n"
+        "info.Remove(executive.TIME_RANGE())\n")
+    result.UpdatePipeline()
+    if analysis._times(result):
+        raise ValueError('고정 결과가 원 reader의 시계열로 광고됩니다. 저장 측정으로 사용할 수 없습니다.')
+    return result
 
 
 def _side(source, side, plan, recipe, which, namespace, proxies):
@@ -202,13 +239,14 @@ def build(a, b, recipe, namespace):
             raise ValueError('이 비교는 로컬 단일 ParaView 프로세스 자료에서 지원합니다.')
         plans = physical.validate(recipe, analysis._times(a), analysis._times(b))
         af, original_a = _side(a, recipe['a'], plans[0], recipe, 'a', namespace, bundle['proxies'])
-        bf, _ = _side(b, recipe['b'], plans[1], recipe, 'b', namespace, bundle['proxies'])
+        bf, original_b = _side(b, recipe['b'], plans[1], recipe, 'b', namespace, bundle['proxies'])
         ad, bd = analysis._fetch(af), analysis._fetch(bf)
         ag, bg = geometry(ad), geometry(bd)
         sample = bf
+        correspondence = None
         if recipe['method'] == 'same_mesh':
-            if ag[2] != bg[2]:
-                raise ValueError('정렬 후에도 순서/좌표/위상이 다릅니다. 명시적 공간 보간을 선택하세요.')
+            correspondence = physical.ordered_match(ag[0], ag[1], bg[0], bg[1], recipe['tolerance'])
+            correspondence['coordinate_units'] = recipe['a']['coordinate_units']
         else:
             analysis._mesh(bd)  # The admitted spatial interpolator remains linear tetra only.
             sample = p.ResampleWithDataset(registrationName=analysis._name(namespace, 'mapped B'),
@@ -230,6 +268,9 @@ def build(a, b, recipe, namespace):
         for name in analysis.OUTPUT_ARRAYS.values(): analysis._scalar(data, name)
         summary = {'comparison_version': 2, 'recipe': deepcopy(recipe), 'arrays': deepcopy(analysis.OUTPUT_ARRAYS),
             'point_count': len(ag[0]), 'cell_count': len(ag[1]), 'mesh_hash_a': ag[2], 'mesh_hash_b': bg[2],
+            'ordered_correspondence': correspondence,
+            'source_geometry_hash_a': geometry(analysis._fetch(original_a))[2],
+            'source_geometry_hash_b': geometry(analysis._fetch(original_b))[2],
             'input_hash_a': analysis._values_hash(_values(ad, VALUE)),
             'input_hash_b': analysis._values_hash(_values(bd, VALUE)),
             'original_a_id_arrays': analysis._identity_arrays(analysis._fetch(original_a).GetPointData()),
@@ -257,11 +298,17 @@ def declarations(recipe):
     arrays = []
     for name in ('A_original', 'B_at_A', 'B_minus_A'):
         current = dict(row, name=name)
+        current['validity_masks'] = [{'A_original': 'A_finite', 'B_at_A': 'B_finite', 'B_minus_A': 'comparison_valid'}[name]]
+        current['layout'] = {'kind': 'scalar', 'components': ['scalar'], 'scalar_semantics':
+            ('invariant' if recipe['selection'] == 'magnitude' or name == 'B_minus_A' and recipe.get('difference') == 'norm_of_difference'
+             else a['layout'].get('scalar_semantics') if recipe['selection'] == 'scalar' else 'component')}
         if name == 'B_minus_A' and a.get('temperature_kind') == 'absolute':
             current['temperature_kind'] = 'difference'
         else:
             current['temperature_kind'] = a.get('temperature_kind')
         arrays.append(current)
+    clock = recipe.get('clock', {})
+    frozen_clock = {key: clock[key] for key in ('value', 'unit', 'semantics')} if clock.get('value') is not None else None
     return {'coordinate_units': a['coordinate_units'], 'coordinate_frame': a['coordinate_frame'],
-            'arrays': arrays, 'time': None, 'sample_clock': deepcopy(recipe.get('clock')),
+            'arrays': arrays, 'time': None, 'frozen_clock': frozen_clock, 'sample_clock': deepcopy(clock),
             'derivation': 'comparison_v2', 'selection': recipe['selection']}

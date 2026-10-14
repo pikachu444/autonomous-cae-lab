@@ -134,7 +134,12 @@ class ComparisonEditor(QWidget):
         self._refresh(); self.changed.emit()
 
     def change_field(self, side, selected):
-        if selected is None: return
+        if selected is None:
+            ref = self.value[side]['source_ref']
+            self.value[side] = default_recipe()[side]
+            self.value[side]['source_ref'] = ref
+            self._refresh(); self.changed.emit()
+            return
         current = self.value[side]; current['array'], current['association'] = selected
         metadata, declared = self.metadata(current['source_ref'])
         row = next((r for r in metadata.get('arrays', []) if [r['name'], r['association']] == selected), {})
@@ -146,6 +151,13 @@ class ComparisonEditor(QWidget):
             current[key] = metadata.get(key)
         current['time_origin'] = metadata.get('time_semantics')
         current['sampling'] = {'mode': 'exact', 'time': None}; current['time'] = None
+        current.pop('frozen_clock', None)
+        if 'frozen_clock' in declared:
+            current['frozen_clock'] = deepcopy(declared['frozen_clock'])
+            if declared['frozen_clock']:
+                current['time_units'] = declared['frozen_clock']['unit']
+                current['time_origin'] = declared['frozen_clock']['semantics']
+                if side == 'a': self.value['clock'] = deepcopy(declared['frozen_clock'])
         if side == 'a' and not self.value['target'].get('units'):
             self.value['target']['units'] = current.get('units')
         self._refresh(); self.changed.emit()
@@ -162,8 +174,9 @@ class ComparisonEditor(QWidget):
         for key, title in labels.items():
             field = line(current.get(key))
             known = declared.get(key) if key.startswith('coordinate_') else declaration.get(key)
-            if key in ('time_units', 'time_origin') and declared.get('time'):
-                known = declared['time'].get('unit' if key == 'time_units' else 'semantics')
+            if key in ('time_units', 'time_origin'):
+                clock = declared.get('frozen_clock') or declared.get('time')
+                if clock: known = clock.get('unit' if key == 'time_units' else 'semantics')
             if known is not None: field.setText(str(known)); field.setReadOnly(True)
             form.addRow(title, field); fields[key] = field
         layout = current.get('layout') or {}
@@ -177,7 +190,11 @@ class ComparisonEditor(QWidget):
         form.addRow('스칼라 의미', scalar_meaning); form.addRow('텐서 기저', tensor_indices)
         form.addRow('성분 종류', kind); form.addRow('배열의 성분 순서', components)
         form.addRow('텐서 전단 규약', shear); form.addRow('온도 의미', temperature)
+        if declaration.get('layout') is not None:
+            for field in (kind, components, shear, scalar_meaning, tensor_indices): field.setEnabled(False)
+        if declaration.get('temperature_kind') is not None: temperature.setEnabled(False)
         mask = QLineEdit(', '.join(current.get('validity_masks') or [])); form.addRow('원자료 유효성 배열', mask)
+        if declaration.get('validity_masks') is not None: mask.setReadOnly(True)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); form.addRow(buttons)
         if dialog.exec() != QDialog.DialogCode.Accepted: return
@@ -186,6 +203,7 @@ class ComparisonEditor(QWidget):
         if kind.currentData() == 'scalar':
             current['layout'].update(components=['scalar'], scalar_semantics=scalar_meaning.currentData())
         if kind.currentData() == 'tensor': current['layout'].update(shear=shear.currentData(), indices=tensor_indices.currentData())
+        if declaration.get('layout') is not None: current['layout'] = deepcopy(declaration['layout'])
         current['temperature_kind'] = temperature.currentData()
         current['validity_masks'] = [s.strip() for s in mask.text().split(',') if s.strip()]
         self.value[side] = current
@@ -214,12 +232,16 @@ class ComparisonEditor(QWidget):
             matrices[key] = table(draft['alignment'][key], ['X', 'Y', 'Z']); form2.addRow(label, matrices[key])
         translation = table([draft['alignment']['translation']], ['X', 'Y', 'Z'])
         form2.addRow('형상 이동 [A 길이 단위]', translation)
-        checked = QCheckBox('이 형상 정렬과 성분 기저 회전을 명시적으로 사용')
-        checked.setChecked(bool(draft['alignment'].get('geometry_declared') and draft['alignment'].get('response_declared')))
-        form2.addRow(checked)
+        geometry_checked = QCheckBox('이 형상 정렬을 명시적으로 사용')
+        response_checked = QCheckBox('이 성분 기저 회전을 명시적으로 사용')
+        geometry_checked.setChecked(bool(draft['alignment'].get('geometry_declared')))
+        response_checked.setChecked(bool(draft['alignment'].get('response_declared')))
+        form2.addRow(geometry_checked); form2.addRow(response_checked)
         time_page = QWidget(); timeform = QFormLayout(time_page); tabs.addTab(time_page, '시각')
         clock = draft.get('clock', {})
         common_time, common_unit, semantics = line(clock.get('value')), line(clock.get('unit')), line(clock.get('semantics'))
+        exact_tolerance = line(clock.get('exact_tolerance', 0.))
+        timeform.addRow('정확 시각 허용 오차 [비교 단위]', exact_tolerance)
         timeform.addRow('비교 시각', common_time); timeform.addRow('시간 단위', common_unit); timeform.addRow('시간 의미', semantics)
         time_controls = {}
         for side in ('a', 'b'):
@@ -232,9 +254,20 @@ class ComparisonEditor(QWidget):
             bracket = sample.get('bracket', [None, None])
             lo, hi = combo(items, bracket[0]), combo(items, bracket[1])
             maxgap, offset = line(sample.get('max_gap')), line(draft[side].get('clock_offset', 0.))
-            timeform.addRow(side.upper() + ' 방식', mode); timeform.addRow('저장 시각', exact)
+            if 'frozen_clock' in draft[side]:
+                fixed = draft[side]['frozen_clock']
+                label = '시각 없는 저장 측정' if fixed is None else display(fixed['value']) + ' ' + str(fixed['unit']) + ' (고정)'
+                timeform.addRow(side.upper() + ' 저장 표본', QLabel(label))
+                for field in (mode, exact, lo, hi, maxgap): field.setEnabled(False)
+            else:
+                timeform.addRow(side.upper() + ' 방식', mode); timeform.addRow('저장 시각', exact)
             pair = QWidget(); pair_layout = QHBoxLayout(pair); pair_layout.setContentsMargins(0,0,0,0); pair_layout.addWidget(lo); pair_layout.addWidget(hi)
-            timeform.addRow('보간 구간', pair); timeform.addRow('최대 간격 [비교 시간 단위]', maxgap)
+            if 'frozen_clock' not in draft[side]:
+                timeform.addRow('보간 구간', pair); timeform.addRow('최대 간격 [비교 시간 단위]', maxgap)
+            else:
+                pair.setParent(time_page); pair.hide()
+                maxgap.setParent(time_page); maxgap.hide()
+                mode.setParent(time_page); mode.hide(); exact.setParent(time_page); exact.hide()
             timeform.addRow('원점 이동 [비교 시간 단위]', offset)
             time_controls[side] = (mode, exact, lo, hi, maxgap, offset)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -245,12 +278,22 @@ class ComparisonEditor(QWidget):
         for side, field in projections.items(): draft[side]['projection'] = field.currentData()
         for key, field in matrices.items(): draft['alignment'][key] = table_values(field)
         draft['alignment']['translation'] = table_values(translation)[0]
-        draft['alignment'].update(geometry_declared=checked.isChecked(), response_declared=checked.isChecked())
+        draft['alignment'].update(geometry_declared=geometry_checked.isChecked(), response_declared=response_checked.isChecked())
         draft['clock'] = {'value': number_or_raw(common_time.text()) if common_time.text() else None,
-                          'unit': common_unit.text() or None, 'semantics': semantics.text() or None}
+                          'unit': common_unit.text() or None, 'semantics': semantics.text() or None,
+                          'exact_tolerance': number_or_raw(exact_tolerance.text())}
         for side, (mode, exact, lo, hi, gap, offset) in time_controls.items():
-            draft[side]['sampling'] = ({'mode': 'exact', 'time': exact.currentData()} if mode.currentData() == 'exact' else
-                {'mode': 'linear', 'bracket': [lo.currentData(), hi.currentData()], 'max_gap': number_or_raw(gap.text())})
-            draft[side]['time'] = exact.currentData() if mode.currentData() == 'exact' else None
+            if 'frozen_clock' in draft[side]:
+                # Preserve the known sample identity; only an explicit clock
+                # origin conversion may change its position on the common axis.
+                draft[side]['sampling'] = {'mode': 'exact', 'time': None}
+                draft[side]['time'] = None
+            elif mode.currentData() == 'exact':
+                draft[side]['sampling'] = {'mode': 'exact', 'time': exact.currentData()}
+                draft[side]['time'] = exact.currentData()
+            elif mode.currentData() == 'linear':
+                draft[side]['sampling'] = {'mode': 'linear', 'bracket': [lo.currentData(), hi.currentData()], 'max_gap': number_or_raw(gap.text())}
+                draft[side]['time'] = None
+            # Unknown saved sampling remains unchanged until the user selects a supported mode.
             draft[side]['clock_offset'] = number_or_raw(offset.text())
         self.value = draft; self._refresh(); self.changed.emit()
