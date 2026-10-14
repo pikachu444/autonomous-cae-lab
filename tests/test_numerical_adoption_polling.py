@@ -39,6 +39,16 @@ class RetainedClient:
                          'session_id': 'Sservice', 'generation': 0,
                          'input_revision': 'Imaterial', 'draft': default_draft()}
         draft = from_material_document(self.material)
+        # Retained fit candidates need the submitted observation/protocol too.
+        # No import or solve is performed by this controlled service boundary.
+        draft['experiments'] = [{
+            'id': 'Efixture', 'role': 'fit',
+            'source': {'document_id': 'Tfixture', 'job_id': 'Jimport',
+                       'response': 'measured_stress', 'input_revision': 'Idata',
+                       'input_sha256': 'a' * 64},
+            'response': 'stress_xx', 'settings': deepcopy(self.material['draft']['settings']),
+            'weight': 1., 'scale': 1.,
+        }]
         self.plan = {'id': 'Nplan', 'title': 'Retained Plan',
                      'session_id': 'Sservice', 'generation': 0, 'input_revision': 'Iplan',
                      'draft': draft, 'dirty': False, 'diagnostics': [],
@@ -59,11 +69,21 @@ class RetainedClient:
     def document_read(self, identifier):
         if identifier == self.material['id']:
             return deepcopy(self.material)
+        if identifier == 'Tfixture':
+            return {'id': identifier, 'kind': 'data', 'title': 'Retained test observations',
+                    'runs': [{'job_id': 'Jimport', 'input_revision': 'Idata',
+                              'input_sha256': 'a' * 64}]}
         assert identifier == self.plan['id']
         self.plan_reads += 1
         self.poll_entered.set()
         assert self.poll_release.wait(3), 'Test did not release its background read'
         return deepcopy(self.plan)
+
+    def document_result(self, identifier, job_id):
+        assert (identifier, job_id) == ('Tfixture', 'Jimport')
+        return {'execution_status': 'SUCCEEDED', 'responses': {'measured_stress': {
+            'kind': 'curve', 'unit': 'MPa', 'value': [0., 10.],
+            'axes': [{'name': 'time', 'unit': 's', 'values': [0., 1.]}]}}}
 
     def numerical_adopt(self, document_id, job_id, candidate_id, **options):
         args = (document_id, job_id, candidate_id, deepcopy(options))
@@ -73,7 +93,7 @@ class RetainedClient:
         assert options['material_document_id'] == self.material['id']
         self.adoptions.append(args)
         self.material['generation'] += 1
-        return {'document': deepcopy(self.material)}
+        return {'command_id': options['command_id'], 'document': deepcopy(self.material)}
 
 
 def make_window(client):
@@ -84,6 +104,7 @@ def make_window(client):
     window._draw_result()
     window.candidates.selectRow(0)
     window.show()
+    wait(QApplication.instance(), lambda: not window._busy and not window._trial_source_queue)
     return window
 
 
@@ -124,7 +145,7 @@ def test_adoption_survives_refresh_timer_during_real_confirmation(app, monkeypat
         assert window.adopt_button.isEnabled()
         window.adopt_button.click()
         wait(app, lambda: client.material['generation'] == 1, seconds=1.5)
-        assert len(seen) == 1 and 'C000015' in seen[0]
+        assert len(seen) == 1 and 'Target material' in seen[0] and '1234' in seen[0]
         assert len(client.adoption_attempts) == len(client.adoptions) == 1
         assert client.adoptions[0][:3] == ('Nplan', 'Jretained', 'C000015')
         assert client.adoptions[0][3]['expected_generation'] == 0
@@ -160,10 +181,10 @@ def test_click_during_background_read_is_retained_once(app, monkeypatch):
 def test_cancel_confirmation_does_not_adopt_and_polling_resumes(app, monkeypatch):
     client = RetainedClient()
     window = make_window(client)
-    dialog_answer(monkeypatch, window, answer=QMessageBox.StandardButton.Cancel)
+    seen = dialog_answer(monkeypatch, window, answer=QMessageBox.StandardButton.Cancel)
     try:
         window.adopt_button.click()
-        wait(app, lambda: 'Adoption cancelled;' in window.message.text())
+        wait(app, lambda: bool(seen) and not window._busy)
         assert client.material['generation'] == 0 and not client.adoption_attempts
         client.poll_release.set()
         wait(app, client.poll_entered.is_set)
@@ -189,11 +210,11 @@ def test_confirmation_never_applies_after_selection_or_edit_changes(app, monkeyp
             window.candidates.selectRow(0)  # Same candidate label, different immutable run.
         else:
             window.variables.item(0, 3).setText('unfinished bound')
-    dialog_answer(monkeypatch, window, answer=QMessageBox.StandardButton.Yes,
-                  in_dialog=alter_selection)
+    seen = dialog_answer(monkeypatch, window, answer=QMessageBox.StandardButton.Yes,
+                         in_dialog=alter_selection)
     try:
         window.adopt_button.click()
-        wait(app, lambda: 'adoption cancelled.' in window.message.text())
+        wait(app, lambda: bool(seen) and not window._busy)
         assert client.material['generation'] == 0 and not client.adoption_attempts
         assert client.plan['runs'][0]['job_id'] == 'Jretained'
         if change == 'local_edit':
@@ -210,7 +231,8 @@ def test_material_change_during_confirmation_uses_original_guard(app, monkeypatc
                   in_dialog=lambda: client.material.update(generation=1))
     try:
         window.adopt_button.click()
-        wait(app, lambda: 'Target Material generation changed' in window.message.text())
+        wait(app, lambda: bool(client.adoption_attempts) and not window._busy)
+        assert 'Target Material generation changed' in window.message.toolTip()
         assert client.material['generation'] == 1 and not client.adoptions
         assert len(client.adoption_attempts) == 1
         assert client.adoption_attempts[0][3]['expected_generation'] == 0
