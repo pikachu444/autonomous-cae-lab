@@ -58,7 +58,7 @@ class _ModelChoice(QComboBox):
 _CAPTIONS = {
     'sn_curve':'S–N 시험 자료','calibration':'적용 시험 조건','temperature_k':'평가 온도 [K]',
     'repeat_block':'반복 블록 가정','cohesive':'응집 손상','motions':'초기 운동','contacts':'접촉','gravity_mm_s2':'중력',
-    'qualification':'계산 적용 범위','text':'입력 원문','provenance':'기술 출처',
+    'generated_sets':'생성 집합','qualification':'계산 적용 범위','text':'입력 원문','provenance':'기술 출처',
     'end_s':'종료 시간 [s]','field_interval_s':'장 출력 간격 [s]','scale':'시간증분 계수',
     'mass_scaling':'질량 스케일링','target_step_s':'목표 증분 [s]',
     'case':'모델 종류', 'domain':'영역', 'geometry':'형상', 'type':'종류', 'unit':'단위',
@@ -281,7 +281,7 @@ class SimulationWindow(PDEWindow):
             self._numeric_paths = getattr(self, '_numeric_paths', set())
             self._numeric_paths.add(path)
         if self._draft.get('backend') == 'explicit.opencourant.model':
-            if path[1:2] == ('source',) or len(path)>1 and path[1] in ('motions','contacts','cohesive','responses','time','gravity_mm_s2'):
+            if path[1:2] == ('source',) or len(path)>1 and path[1] in ('motions','contacts','cohesive','responses','time','gravity_mm_s2','generated_sets'):
                 if path == ('settings','source'):
                     source=self._draft['settings']['source']
                     form.addRow(QLabel(source.get('title') or '유한요소 모델 미선택'))
@@ -449,8 +449,8 @@ class SimulationWindow(PDEWindow):
         lengths = domain.get('lengths') if isinstance(domain, dict) else None
         if self._draft.get('backend') == 'explicit.opencourant.model':
             try:
-                from caelab.impact_model import parse_inp
-                model=parse_inp(settings['source']['text'])
+                from caelab.impact_model import model_from_settings
+                model=model_from_settings(settings)
                 points=list(model['nodes'].values())
                 stride=max(1,len(points)//10000); points=points[::stride]
                 axes.scatter([p[0] for p in points],[p[2] for p in points],s=4,color='#2563eb')

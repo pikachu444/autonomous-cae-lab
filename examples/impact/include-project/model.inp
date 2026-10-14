@@ -1,0 +1,11 @@
+*HEADING
+Public two-body include project, Mg mm s N MPa. Synthetic values.
+*INCLUDE, INPUT="Mesh Parts/Base.inp"
+*INCLUDE, INPUT="Mesh Parts/Moving.inp"
+*INCLUDE, INPUT=Materials/Elastic.inp
+*SOLID SECTION, ELSET=BASE, MATERIAL=ELASTIC
+*SOLID SECTION, ELSET=MOVING, MATERIAL=ELASTIC
+*NSET, NSET=SUPPORT
+1,2,3,4
+*BOUNDARY
+SUPPORT,1,3,0

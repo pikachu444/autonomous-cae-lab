@@ -26,7 +26,7 @@ def test_cancel_precise_and_partial_motion_edit_are_local():
 def test_small_motion_editor_has_full_mode_and_visible_shift_z(monkeypatch):
     from PySide6.QtWidgets import QMessageBox
     app=QApplication.instance() or QApplication([])
-    window=ImpactEditor(settings());window.resize(1060,700);window.show();app.processEvents()
+    window=ImpactEditor(settings());window.tabs.setCurrentWidget(window.motion.parentWidget());window.resize(1060,700);window.show();app.processEvents()
     assert not window.components[14].isHidden() and window.components[14].width()>=100
     combo=window.motion.cellWidget(0,1)
     assert combo.width()>200
