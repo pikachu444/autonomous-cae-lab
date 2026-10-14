@@ -1,7 +1,7 @@
 """Windows session-local Save and window-close gates; no foreign Qt binding.
 
-Only the current ParaView GUI thread is hooked. Qt File/Exit calls close()
-directly and is outside the WM_CLOSE gate; use the window close button/Alt+F4.
+Only the current ParaView GUI thread is hooked. The optional SDK plugin handles
+Qt close events; without it File/Exit remains outside the Win32 fallback gate.
 """
 import ctypes
 from ctypes import wintypes as W
@@ -85,33 +85,18 @@ class Controls:
             return False
         if message != WM_CLOSE:
             return False
-        if self.in_action:
-            return True
-        if self.busy():
-            self.platform.error(self.main, '현재 작업이 끝난 뒤 창을 닫으세요.')
-            return True
-        self.in_action = True
-        try:
-            dirty, stamp = self._state()
-            if not dirty:
-                return False
-            choice = self.platform.ask_close(self.main)
-            if choice == 'cancel':
-                return True
-            if self._state()[1] != stamp:
-                self.platform.error(self.main, '닫기 선택 중 내용이 바뀌었습니다. 현재 창을 유지합니다. 다시 확인하세요.')
-                return True
-            if choice == 'discard':
-                return False
-            if choice != 'save' or not self._save():
-                return True
-            return self._state()[0]
-        except Exception as error:
-            self._log('native_close_failed', error=str(error))
-            self.platform.error(self.main, '현재 상태를 확인하지 못했습니다. 창을 유지합니다.')
-            return True
-        finally:
-            self.in_action = False
+        if getattr(self, 'qt_close_gate_active', False):
+            # Let Qt emit its QCloseEvent. The scoped native filter owns the
+            # same save decision; prompting here too would ask twice.
+            return False
+        return self.close_decision().decision != 'allow'
+
+    def close_decision(self):
+        if __package__:
+            from .native_exit_gate import decide
+        else:
+            from native_exit_gate import decide
+        return decide(self)
 
     def close(self):
         self.owner.assert_thread()

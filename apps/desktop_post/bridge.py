@@ -325,6 +325,7 @@ class GuiDispatch:
         self.broker_stop = None
         self.command_gate = DispatchGate()
         self.native_controls = None
+        self.native_exit = None
         self.closed = False
         self.broker_close = None
 
@@ -352,6 +353,15 @@ class GuiDispatch:
                                            on_closed=self.close)
         except Exception as error:
             print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
+        try:
+            if __package__:
+                from .native_exit import install as install_exit
+            else:
+                from native_exit import install as install_exit
+            self.native_exit = install_exit(self)
+        except Exception as error:
+            print('native 전체 종료 보호 설치 실패: File > Exit/Ctrl+Q는 보호되지 않습니다. '
+                  '기존 X/Alt+F4/저장 매크로를 사용하세요. '+str(error))
         return self
 
     def _tick(self, *_):
@@ -365,8 +375,9 @@ class GuiDispatch:
                 self.native_controls.close()
                 self.native_controls = None
                 print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
-        if self.native_controls is not None:
-            if self.native_controls.in_action:
+        if self.native_controls is not None or self.native_exit is not None:
+            if ((self.native_controls is not None and self.native_controls.in_action) or
+                    (self.native_exit is not None and self.native_exit.in_action)):
                 # Modal close/save choices keep transport alive but cannot run queued edits.
                 self.last_tick = time.monotonic()
                 if self.ready and self.last_tick - self._last_heartbeat >= 1:
@@ -418,6 +429,10 @@ class GuiDispatch:
             return
         if self.command_gate.executing:
             raise RuntimeError('BUSY_EDIT: native work is still running')
+        # Detach must succeed before publishing closure or retiring the owner.
+        # A live callback needs its unchanged owner and pending work for retry.
+        if self.native_exit is not None:
+            self.native_exit.close()
         self.closed = True
         # Keep the closed receipt on the existing broker; it reconciles queued
         # commands without pretending a native calculation was cancelled.
