@@ -1462,6 +1462,14 @@ class PostWindow(QMainWindow):
     def _fill_arrays(self, arrays):
         if isinstance(arrays, dict):
             arrays = [{**row, 'name': name} for name, row in arrays.items()]
+        selected = self.array_table.selectionModel().selectedRows()
+        previous = getattr(self, '_array_rows', [])
+        key = None
+        if selected and selected[0].row() < len(previous) and getattr(self, '_array_source_ref', None) == self._source_ref:
+            item = previous[selected[0].row()]
+            key = (item.get('association'), item.get('name'))
+        matches = [i for i, item in enumerate(arrays) if key == (item.get('association'), item.get('name'))] if key else []
+        self._array_source_ref = self._source_ref
         self._array_rows = deepcopy(arrays)
         self.array_table.clearSelection()
         self.array_table.setCurrentCell(-1, -1)
@@ -1475,6 +1483,8 @@ class PostWindow(QMainWindow):
                 cell.setToolTip(str(item.get('measure') or '물리적 정의 미지정') if column == 4 else
                                 str(item.get('association') or '') if column == 1 else cell.text())
                 self.array_table.setItem(row, column, cell)
+        if len(matches) == 1:
+            self.array_table.selectRow(matches[0])
         self._array_selected()
 
     @staticmethod

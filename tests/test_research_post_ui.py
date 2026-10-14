@@ -219,6 +219,40 @@ def test_field_meaning_unknown_and_source_refresh_clear_selection(app, window):
     assert window.array_description.toolTip() == ''
 
 
+def test_field_meaning_poll_keeps_exact_field_but_source_change_or_removal_clears(app, window):
+    doc = deepcopy(window.document)
+    arrays = [{'name': 'PEEQ_1', 'association': 'POINTS', 'units': '1',
+               'measure': 'equivalent_plastic_strain'}]
+    for source in doc['state']['analysis']['sources']:
+        source['native_metadata']['arrays'] = deepcopy(arrays)
+    window._source_ref = 'Sfirst'
+    window._tree_selection = ('source', 'Sfirst')
+    window._show_document(doc)
+    window.array_table.selectRow(0)
+    selected_text = window.array_description.text()
+    window._show_document(doc, preserve_buffer=True)
+    assert window.array_table.selectionModel().selectedRows()[0].row() == 0
+    assert window.array_description.text() == selected_text
+    # Updated metadata/reordering must refresh the explanation for the exact key.
+    window._fill_arrays([{'name': 'other', 'association': 'POINTS'},
+                        {**arrays[0], 'units': None}])
+    assert window.array_table.selectionModel().selectedRows()[0].row() == 1
+    assert '단위 미지정' in window.array_description.text()
+    window._source_ref = 'Ssecond'
+    window._tree_selection = ('source', 'Ssecond')
+    window._show_document(doc)
+    assert not window.array_table.selectionModel().selectedRows()
+    assert window.array_description.text().startswith('필드를 선택하면')
+    window.array_table.selectRow(0)
+    window._fill_arrays([{'name': 'other', 'association': 'POINTS'}])
+    assert not window.array_table.selectionModel().selectedRows()
+    assert window.array_description.text().startswith('필드를 선택하면')
+    window._fill_arrays(arrays)
+    window.array_table.selectRow(0)
+    window._fill_arrays(arrays + arrays)
+    assert not window.array_table.selectionModel().selectedRows()
+
+
 def test_comparison_declarations_preview_apply_actual_sample_callbacks(app, window):
     from apps.research.post_window import SIDE_FIELDS
     assert window.edited_draft() == defaults('comparison')
