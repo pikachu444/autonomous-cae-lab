@@ -36,3 +36,21 @@ native 끝 자세180→90mm/원설계 복원·저장/재열기 자료를 확인�
 비선형 관계식과 M2–M4는 남아 있다. 기존 경로의 출력격자 시간은 실제 frame
 시각으로 확인되지 않았으며 끝 자세의 성공을 시간 이력 정확성으로 확대하지 않는다.
 현재 진도와 실행 자료 위치는 CURRENT_STATE에 둔다.
+
+## 개별 합격 사례 보완
+
+사용자의 후속 요청에 따라 22개 개발 묶음에 직접 수행할 정상/오류/복구 사례를
+붙였다. Astra는 M1 시각 기준, M2 반복 부품의 좌표/선택 판별, NS1 출력 위치와
+실패 계산 보존, E1 요소/기준면/미완성 입력, Q2 품질 지표의 명시를 요구했다.
+acceptance의 개별 사례와 비교 위치에 반영했다. 개별 모델과 실행 조합을 모두
+확정한 것은 아니며 미확정 행은 plan의 착수 카드를 채운 뒤 구현 배정한다.
+
+MoAI MCP spec_audit를 실제 호출했고 strict lint는 오류0·경고0이었다.
+기존 lifecycle 형식과 과거 작성자 trailer 부재 INFO는 그대로 기록하며, 형식 검사
+성공을 기능 완료나 모든 실행 조합의 실현 가능성 검증으로 해석하지 않는다.
+
+NS1 첫 코드의 별도 의미 검토에서 Astra가 찾은 숫자20자 제한과 200점 초과 재보간은
+acceptance의 추가 조건으로 반영했다. 소스 근거는 CalculiX2.22
+[plastics.f](https://github.com/Dhondtguido/CalculiX/blob/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/plastics.f#L256)와
+[plcopy.f](https://github.com/Dhondtguido/CalculiX/blob/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/plcopy.f#L53)다.
+코드 수정과 재검토는 별도 진행이며 이 문서로 원 결함 해소를 주장하지 않는다.
