@@ -139,19 +139,24 @@ def test_peer_change_during_trial_preserves_proposed_protocol_and_blocks_apply(o
     assert client.document_read(first.document['id'])['draft']['settings']['parameters']['E'] == 1500
 
 
-def test_stress_targets_visible_and_prefix_failure_is_distinct(owners):
+@pytest.mark.parametrize('values', [[0., 1.], []])
+def test_stress_targets_visible_and_prefix_failure_is_distinct(owners, values):
     app, client, (first, _) = owners
     configure(app, first, control='stress')
     assert first.history.columnCount() == 13
     assert '목표 응력 xx' in first.history.horizontalHeaderItem(10).text()
     first.document['runs'] = [{'job_id': 'Jfixture', 'input_generation': 0, 'is_current_input': True}]
     first._result_cache['Jfixture'] = {'execution_status': 'FAILED', 'responses': {'stress_xx': {
-        'kind': 'series', 'value': [0., 1.], 'unit': 'MPa', 'component': 'xx',
+        'kind': 'series', 'value': values, 'unit': 'MPa', 'component': 'xx',
         'location': 'material_point', 'frame': 'material_cartesian', 'measure': 'infinitesimal_Cauchy',
-        'axes': [{'name': 'time', 'unit': 's', 'values': [0., 1.]}], 'partial': True, 'valid': False}},
+        'axes': [{'name': 'time', 'unit': 's', 'values': [float(i) for i in range(len(values))]}], 'partial': True, 'valid': False}},
         'diagnostics': {'fixture': 'Retained accepted prefix, no physics qualification'}}
     first._populate_runs(prefer_job='Jfixture')
     first._draw_results()
-    assert len(first.axes.lines) == 1
-    assert '실패 전 유효 구간' in first.axes.lines[0].get_label()
-    assert list(first.axes.lines[0].get_xdata()) == [0., 1.]
+    if values:
+        assert len(first.axes.lines) == 1
+        assert '실패 전 유효 구간' in first.axes.lines[0].get_label()
+        assert list(first.axes.lines[0].get_xdata()) == [0., 1.]
+    else:
+        assert not first.axes.lines
+        assert '유효한 계산 값이 없습니다' in first._plot_errors['Jfixture']

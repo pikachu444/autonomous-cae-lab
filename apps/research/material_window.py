@@ -823,6 +823,9 @@ class MaterialWindow(QMainWindow):
                 self._plot_errors[identifier] = '실패한 응답은 성공 곡선으로 그리지 않습니다.'
                 continue
             if partial:
+                if not values:
+                    self._plot_errors[identifier] = '실패 전 유효한 계산 값이 없습니다.'
+                    continue
                 label += ' (실패 전 유효 구간)'
             try:
                 times = [float(value) for value in axes[0]["values"]]
