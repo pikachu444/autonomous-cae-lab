@@ -128,7 +128,8 @@ class ExperimentDialog(QDialog):
         self.observed=combo([(name,name) for name,row in responses.items()
             if row.get('measure') in ('infinitesimal_Cauchy','first_Piola')])
         self.role=combo([('피팅','fit'),('검증 (holdout)','holdout')])
-        self.model_response=combo([(name,name) for name in ('stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz')])
+        self.model_response=combo([('응력 '+name.removeprefix('stress_'),name)
+            for name in ('stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz')])
         self.protocol=combo([('전체 변형구배 편집','explicit'),('측정 변형 이력 사용','measured')])
         self.driver=combo([('선택…',None)]+[(name,name) for name,row in responses.items()
             if row.get('measure') in ('engineering_strain','stretch','simple_shear')])
@@ -179,15 +180,32 @@ class ExperimentDialog(QDialog):
         self.tensor.setEnabled(not measured)
         self.figure.clear()
         axes=self.figure.subplots(2,1)
-        for ax,name in zip(axes,(self.observed.currentData(), self.driver.currentData())):
+        for index,(ax,name) in enumerate(zip(axes,(self.observed.currentData(), self.driver.currentData()))):
             response=self.imported.get('responses',{}).get(name,{})
-            axis=response.get('axes',[{}])[0]
+            if index == 1 and not measured:
+                times=self.explicit.get('time',[])
+                gradients=self.explicit.get('deformation_gradient',[])
+                try:
+                    values=[matrix[0][0] for matrix in gradients]
+                except (IndexError,TypeError):
+                    values=[]
+                response={'axes':[{'name':'시간','unit':self.explicit.get('time_unit',''),'values':times}],
+                          'value':values,'unit':'1'}
+                name='지정 F11'
+            declared_axes=response.get('axes',[])
+            axis=declared_axes[0] if isinstance(declared_axes,list) and len(declared_axes)==1 else {}
             x,y=axis.get('values',[]),response.get('value',[])
-            if len(x)==len(y) and len(x):
+            if (isinstance(x,list) and isinstance(y,list) and len(x)==len(y) and len(x) and
+                    all(type(value) in (int,float) and math.isfinite(value) for value in x+y)):
                 ax.plot(x,y,'o-',markersize=3)
+            else:
+                ax.text(.5,.5,'변형 이력 확인 필요' if index==1 and not measured else '선택한 채널의 곡선 없음',
+                        ha='center',va='center',transform=ax.transAxes)
+                ax.set_axis_off()
             ax.set_ylabel(str(name or '변형 채널 선택')+' ['+str(response.get('unit',''))+']')
             ax.set_xlabel(str(axis.get('name',''))+' ['+str(axis.get('unit',''))+']')
-        self.canvas.draw_idle()
+        # A cancelled modal preview can be destroyed before an idle Qt draw.
+        self.canvas.draw()
         response=self.imported.get('responses',{}).get(self.observed.currentData(),{})
         if response and not self.value:
             index=self.model_response.findData('stress_'+str(response.get('component')))

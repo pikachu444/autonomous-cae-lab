@@ -14,7 +14,7 @@ pytest.importorskip("PySide6")
 pytest.importorskip("matplotlib")
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMessageBox, QTableWidgetItem
+from PySide6.QtWidgets import QApplication, QLineEdit, QMessageBox, QTableWidgetItem
 
 from apps.research.material_window import MaterialWindow, edited_number
 
@@ -154,7 +154,7 @@ def test_direct_new_document_has_complete_editable_history_and_no_fake_plot(wind
     assert not editor.axes.lines
     assert editor.result_tabs.currentWidget() is editor.values
     assert editor.identity_label.text() == "저장됨"
-    assert "Constrained lateral strain" in editor.protocol_label.text()
+    assert '횡변형 고정' in editor.protocol_label.text()
     assert not client.commands
     assert all(identifier != threading.get_ident() for identifier in client.call_threads)
 
@@ -221,6 +221,81 @@ def test_undo_redo_and_save_are_service_commands_not_private_history(window, app
     assert len({item[4] for item in client.commands}) == 4
     assert not editor.document["dirty"]
     assert editor.document["saved_revision"] == 1
+
+
+def test_two_windows_paste_and_local_undo_target_only_focused_material(window, app):
+    first, client = window
+    second = MaterialWindow(client, poll_interval=0, title='Second material')
+    try:
+        until(app, lambda: second.document is not None and not second._busy)
+        first.show(); second.show(); app.processEvents()
+        first.coefficients.setCurrentCell(0, 1)
+        first.coefficients.setFocus()
+        QApplication.clipboard().setText('2100\n0.31')
+        QTest.keyClick(first.coefficients, Qt.Key.Key_V, Qt.KeyboardModifier.ControlModifier)
+        assert first.edited_draft()['settings']['parameters'] == {'E': 2100., 'nu': .31}
+        assert second.edited_draft()['settings']['parameters']['E'] == 1000
+        first.undo_action.trigger()
+        assert first.coefficients.item(0, 1).text() == '1000'
+        assert not first.local_dirty
+        first.redo_action.trigger()
+        assert first.coefficients.item(0, 1).text() == '2100.0'
+        assert not client.commands
+        QApplication.clipboard().setText('wrong\t2200')
+        first.coefficients.setCurrentCell(0, 0)
+        assert not first.coefficients.paste_selection()
+        assert first.coefficients.item(0, 0).text() == 'E'
+        assert first.coefficients.item(0, 1).text() == '2100.0'
+        first.save_document()
+        until(app, lambda: not first._busy and not first.document['dirty'])
+        assert client.docs[second.document['id']]['draft']['settings']['parameters']['E'] == 1000
+        assert [row[0] for row in client.commands] == [first.document['id']] * 2
+    finally:
+        until(app, lambda: not second._busy)
+        second._allow_close = True
+        second.close()
+
+
+def test_unchanged_poll_keeps_local_redo_after_undo_to_clean_input(window, app):
+    editor, client = window
+    editor.coefficients.item(0, 1).setText('1900')
+    editor.undo_inputs()
+    assert not editor.local_dirty and editor.redo_action.isEnabled()
+    editor.refresh_document()
+    until(app, lambda: not editor._busy)
+    assert editor.redo_action.isEnabled()
+    editor.redo_inputs()
+    assert editor.edited_draft()['settings']['parameters']['E'] == 1900.
+    assert not client.commands
+
+
+def test_enter_escape_and_apply_capture_live_cell_without_touching_other_window(window, app):
+    first, client = window
+    second = MaterialWindow(client, poll_interval=0)
+    try:
+        until(app, lambda: second.document is not None and not second._busy)
+        first.show(); second.show(); app.processEvents()
+        first.activateWindow(); first.coefficients.setFocus()
+        first.coefficients.setCurrentCell(0, 1)
+        QTest.keyClick(first.coefficients, Qt.Key.Key_Return)
+        cell = first.coefficients.findChild(QLineEdit)
+        assert cell is not None
+        cell.selectAll(); QTest.keyClicks(cell, '1e')
+        QTest.keyClick(cell, Qt.Key.Key_Escape)
+        app.processEvents()
+        assert first.coefficients.item(0, 1).text() == '1000'
+        assert not first.local_dirty and not client.commands
+        QTest.keyClick(first.coefficients, Qt.Key.Key_Return)
+        cell = QApplication.focusWidget()
+        cell.selectAll(); QTest.keyClicks(cell, '1e')
+        first.apply_inputs()
+        until(app, lambda: not first._busy and first.document['generation'] == 1)
+        assert client.commands[-1][2]['draft']['settings']['parameters']['E'] == '1e'
+        assert second.coefficients.item(0, 1).text() == '1000'
+    finally:
+        until(app, lambda: not second._busy)
+        second._allow_close = True
+        second.close()
 
 
 def test_result_plot_uses_retained_values_and_labels_earlier_inputs(window, app):

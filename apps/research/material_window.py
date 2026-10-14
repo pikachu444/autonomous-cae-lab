@@ -119,6 +119,9 @@ class MaterialWindow(QMainWindow):
         self._busy = False
         self._foreground_busy = False
         self._draft_problem = None
+        self._local_undo = []
+        self._local_redo = []
+        self._local_snapshot = None
         self._worker = None
         self._allow_close = False
         self._result_cache = {}
@@ -159,8 +162,10 @@ class MaterialWindow(QMainWindow):
         edit = self.menuBar().addMenu("편집(&E)")
         self.undo_action = QAction("실행 취소", self, shortcut=QKeySequence.Undo)
         self.redo_action = QAction("다시 실행", self, shortcut=QKeySequence.Redo)
-        self.undo_action.triggered.connect(lambda: self.command("document.undo"))
-        self.redo_action.triggered.connect(lambda: self.command("document.redo"))
+        self.undo_action.setIconText('실행 취소')
+        self.redo_action.setIconText('다시 실행')
+        self.undo_action.triggered.connect(self.undo_inputs)
+        self.redo_action.triggered.connect(self.redo_inputs)
         edit.addActions([self.undo_action, self.redo_action])
         windows = self.menuBar().addMenu("도구(&T)")
         self.runner_action = QAction("실행 관리…", self)
@@ -225,7 +230,8 @@ class MaterialWindow(QMainWindow):
         self.stress_unit.textEdited.connect(self._edited)
         self.time_unit.textEdited.connect(self._edited)
         left.addWidget(QLabel("변형 이력 (지정한 변형구배 F)"))
-        self.history = QTableWidget(0, 10)
+        from .material_editing import MaterialTable
+        self.history = MaterialTable(0, 10)
         self.history.setObjectName("materialHistory")
         self.history.setHorizontalHeaderLabels(["Time", "F11", "F12", "F13", "F21", "F22", "F23", "F31", "F32", "F33"])
         self.history.horizontalHeader().setDefaultSectionSize(68)
@@ -244,11 +250,14 @@ class MaterialWindow(QMainWindow):
         self.protocol_label.setWordWrap(True)
         left.addWidget(self.protocol_label)
         left.addWidget(QLabel("재료 계수"))
-        self.coefficients = QTableWidget(0, 3)
+        self.coefficients = MaterialTable(0, 3)
         self.coefficients.setObjectName("materialCoefficients")
         self.coefficients.setHorizontalHeaderLabels(["계수", "값", "단위"])
         self.coefficients.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.coefficients.itemChanged.connect(self._edited)
+        for table in (self.history, self.coefficients):
+            table.editBatchFinished.connect(self._edited)
+            table.pasteRejected.connect(self.message.setText)
         left.addWidget(self.coefficients, 2)
         main.addWidget(self.editor)
 
@@ -259,7 +268,8 @@ class MaterialWindow(QMainWindow):
         plot_controls = QHBoxLayout()
         plot_controls.addWidget(QLabel("응력 성분"))
         self.response = QComboBox()
-        self.response.addItems(STRESS_COMPONENTS)
+        for component in STRESS_COMPONENTS:
+            self.response.addItem('응력 ' + component.removeprefix('stress_'), component)
         self.response.currentTextChanged.connect(self._draw_results)
         plot_controls.addWidget(self.response)
         plot_controls.addStretch()
@@ -365,10 +375,11 @@ class MaterialWindow(QMainWindow):
         self.message.setText("재료 계수와 변형 이력을 입력하고, 입력 적용 후 계산 실행을 누르세요.")
         QTimer.singleShot(0, self.refresh_results)
 
-    def _show_document(self, document, *, prefer_job=None):
+    def _show_document(self, document, *, prefer_job=None, edit_draft=None, preserve_history=False):
         self.document = deepcopy(document)
+        draft = edit_draft if edit_draft is not None else document['draft']
         self._populating = True
-        self._draft_problem = draft_view_error(document["draft"])
+        self._draft_problem = draft_view_error(draft)
         if self._draft_problem:
             self.model.setCurrentIndex(-1)
             self.stress_unit.clear()
@@ -376,7 +387,7 @@ class MaterialWindow(QMainWindow):
             self.coefficients.setRowCount(0)
             self.history.setRowCount(0)
         else:
-            settings = document["draft"]["settings"]
+            settings = draft["settings"]
             self.model.setCurrentIndex(self.model.findData(settings["model"]))
             self.stress_unit.setText(display_value(settings["stress_unit"]))
             self.time_unit.setText(display_value(settings["time_unit"]))
@@ -389,6 +400,10 @@ class MaterialWindow(QMainWindow):
                     item.setData(Qt.ItemDataRole.UserRole, {"original": deepcopy(value)})
                     self.history.setItem(row, column, item)
         self._populating = False
+        self._local_snapshot = deepcopy(draft)
+        if edit_draft is None and not preserve_history:
+            self._local_undo.clear()
+            self._local_redo.clear()
         self._update_protocol_label()
         self._populate_runs(prefer_job=prefer_job)
         self._show_diagnostics()
@@ -417,10 +432,40 @@ class MaterialWindow(QMainWindow):
     def _edited(self, *_):
         if self._populating:
             return
-        self.local_dirty = True
+        draft = self.edited_draft()
+        if draft != self._local_snapshot:
+            self._local_undo.append(deepcopy(self._local_snapshot))
+            self._local_redo.clear()
+            self._local_snapshot = deepcopy(draft)
+        self.local_dirty = draft != self.document['draft']
         self._update_protocol_label()
         self._update_actions()
         self._draw_results()
+
+    def _restore_inputs(self, draft):
+        table = next((table for table in (self.history, self.coefficients) if table.hasFocus()), None)
+        cell = (table.currentRow(), table.currentColumn()) if table else None
+        self.local_dirty = draft != self.document['draft']
+        self._show_document(self.document, edit_draft=draft)
+        if table and cell:
+            table.setCurrentCell(*cell)
+            table.setFocus()
+
+    def undo_inputs(self):
+        self._commit_cell_editor()
+        if self._local_undo:
+            self._local_redo.append(deepcopy(self.edited_draft()))
+            self._restore_inputs(self._local_undo.pop())
+        elif not self.local_dirty:
+            return self.command('document.undo')
+
+    def redo_inputs(self):
+        self._commit_cell_editor()
+        if self._local_redo:
+            self._local_undo.append(deepcopy(self.edited_draft()))
+            self._restore_inputs(self._local_redo.pop())
+        elif not self.local_dirty:
+            return self.command('document.redo')
 
     def _update_protocol_label(self):
         if self._draft_problem:
@@ -432,9 +477,8 @@ class MaterialWindow(QMainWindow):
             for row in range(self.history.rowCount())
             for column, value in ((2, 0), (3, 0), (4, 0), (5, 1), (6, 0), (7, 0), (8, 0), (9, 1)))
         self.protocol_label.setText(
-            ("Constrained lateral strain: F22 = F33 = 1; shear components = 0. "
-             if fixed_lateral else "All nine deformation-gradient components are prescribed. ") +
-            "This is not a free tensile boundary solve or yield/physical qualification.")
+            ('횡변형 고정: F22 = F33 = 1, 전단 성분 = 0' if fixed_lateral
+             else '변형구배의 9개 성분을 모두 지정') + '\n자유 횡변형 계산 및 공학 승인은 지원 범위가 아닙니다.')
 
     def edited_draft(self):
         self._commit_cell_editor()
@@ -483,7 +527,9 @@ class MaterialWindow(QMainWindow):
             self.local_dirty = self.conflict = False
             job = receipt.get("job")
             self._show_document(receipt["document"], prefer_job=job.get("job_id", job.get("id")) if job else None)
-            self.message.setText("Applied through the document owner: " + operation)
+            self.message.setText({'material.update': '입력을 적용했습니다.', 'document.save': '저장했습니다.',
+                'document.undo': '적용한 변경을 취소했습니다.', 'document.redo': '변경을 다시 적용했습니다.',
+                'material.evaluate': '재료 계산을 시작했습니다.'}.get(operation, '처리했습니다.'))
             if after:
                 after()
             elif job:
@@ -494,6 +540,7 @@ class MaterialWindow(QMainWindow):
                          command_id="C" + uuid.uuid4().hex), accepted)
 
     def apply_inputs(self, *, after=None):
+        self._commit_cell_editor()
         return self.command("material.update", {"draft": self.edited_draft()}, after=after)
 
     def save_document(self, *, after=None):
@@ -519,7 +566,7 @@ class MaterialWindow(QMainWindow):
                 self.conflict = True
                 self.message.setText("Conflict: the service document changed while you were editing. Your cells are preserved. Reload the service version or keep these edits as a new document.")
             elif not self.conflict and not editing:
-                self._show_document(remote)
+                self._show_document(remote, preserve_history=not changed and remote['draft'] == self.document['draft'])
             self._update_actions()
             QTimer.singleShot(0, self.refresh_results)
 
@@ -533,6 +580,7 @@ class MaterialWindow(QMainWindow):
             self._call(lambda: self.client.document_read(self.document["id"]), self._opened)
 
     def copy_edits(self):
+        self._commit_cell_editor()
         self.open_document(title=self.document["title"] + " — local edits", draft=self.edited_draft())
 
     def _selected_jobs(self):
@@ -675,7 +723,7 @@ class MaterialWindow(QMainWindow):
         self.axes.clear()
         self._plot_errors = {}
         self.values.setRowCount(0)
-        component = self.response.currentText()
+        component = self.response.currentData()
         expected_axis = None
         for identifier in self._selected_jobs():
             result = self._result_cache.get(identifier, {})
@@ -715,12 +763,13 @@ class MaterialWindow(QMainWindow):
                     self.values.setItem(row, column, QTableWidgetItem(text))
         if self.axes.lines:
             self.axes.set_xlabel(f"{expected_axis[0]} [{expected_axis[1]}]")
-            self.axes.set_ylabel(f"{component} [{expected_axis[2]}]")
-            self.axes.set_title(expected_axis[3] or "Actual retained response")
+            self.axes.set_ylabel(f"{self.response.currentText()} [{expected_axis[2]}]")
+            self.axes.set_title({'infinitesimal_Cauchy': '미소변형 Cauchy 응력',
+                'first_Piola': '제1 Piola 응력'}.get(expected_axis[3], expected_axis[3] or '저장된 재료 응답'))
             self.axes.legend(fontsize=8)
             self.axes.grid(True, alpha=.25)
         else:
-            self.axes.text(.5, .5, "No retained response selected\nApply inputs and run once, or select an existing run.",
+            self.axes.text(.5, .5, '저장된 계산 결과 없음',
                            ha="center", va="center", transform=self.axes.transAxes)
             self.axes.set_axis_off()
         self.canvas.draw_idle()
@@ -754,8 +803,13 @@ class MaterialWindow(QMainWindow):
         blocked = present and any(item.get("blocks_evaluation") for item in self.document.get("diagnostics", []))
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._draft_problem and not blocked)
         self.save_action.setEnabled(enabled)
-        self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get("can_undo", False))
-        self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get("can_redo", False))
+        self.undo_action.setEnabled(present and not self._busy and (bool(self._local_undo) or
+            (enabled and not self.local_dirty and self.document.get("can_undo", False))))
+        self.redo_action.setEnabled(present and not self._busy and (bool(self._local_redo) or
+            (enabled and not self.local_dirty and self.document.get("can_redo", False))))
+        title = self.document['title'] if present else '재료'
+        self.undo_action.setText(f'{title}: 입력 편집 실행 취소' if self._local_undo else f'{title}: 적용한 변경 실행 취소')
+        self.redo_action.setText(f'{title}: 입력 편집 다시 실행' if self._local_redo else f'{title}: 적용한 변경 다시 실행')
         self.new_action.setEnabled(not self._busy)
         self.open_action.setEnabled(not self._busy)
         self.runner_button.setEnabled(len(self._selected_jobs()) == 1)

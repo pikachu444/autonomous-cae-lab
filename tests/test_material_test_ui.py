@@ -150,6 +150,8 @@ def test_protocol_cancel_and_explicit_driver_use(app):
     result={'execution_status':'SUCCEEDED','responses':{'strain':response,'stress':stress}}
     settings=default_draft()['settings'];before=deepcopy(settings)
     dialog=ExperimentDialog(settings,result)
+    assert dialog.figure.axes[1].get_ylabel() == '지정 F11 [1]'
+    assert list(dialog.figure.axes[1].lines[0].get_ydata()) == [row[0][0] for row in settings['deformation_gradient']]
     dialog.reject();assert dialog.value is None and settings==before
     dialog=ExperimentDialog(settings,result)
     dialog.protocol.setCurrentIndex(1);dialog.driver.setCurrentIndex(dialog.driver.findData('strain'))

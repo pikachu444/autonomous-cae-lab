@@ -121,10 +121,12 @@ class DataWindow(QMainWindow):
         super().__init__()
         self.client, self.document = client, None
         self.local_dirty = self.conflict = self._busy = self._populating = False
+        self._foreground_busy = False
         self._allow_close = self._closed = False
         self._worker = None
         self._accepting = False
         self._callback_calls = []
+        self._data_windows = []
         self._view_error = None
         self._working_draft = None
         self._channel_name = None
@@ -188,6 +190,9 @@ class DataWindow(QMainWindow):
         browse = QAction('서비스 원본 선택…', self)
         browse.triggered.connect(self.choose_source)
         files.addAction(browse)
+        self.open_tests_action = QAction('여러 시험 파일 열기…', self)
+        self.open_tests_action.triggered.connect(self.choose_test_files)
+        files.addAction(self.open_tests_action)
         self.test_columns_action = QAction('시험 열 설정…', self)
         self.test_columns_action.triggered.connect(self.configure_test_columns)
         edit.addAction(self.test_columns_action)
@@ -426,6 +431,7 @@ class DataWindow(QMainWindow):
                 self.message.setText('A document request is in progress. Your current edits are retained.')
             return False
         self._busy = True
+        self._foreground_busy = not background
         self._update_actions()
         worker = self._worker = _Read(function)
         def finished(value, error):
@@ -445,6 +451,7 @@ class DataWindow(QMainWindow):
             finally:
                 self._accepting = False
                 self._busy, self._worker = False, None
+                self._foreground_busy = False
             if self._closed or not isValid(self):
                 return
             self._update_actions()
@@ -768,10 +775,11 @@ class DataWindow(QMainWindow):
         session = self.document['session_id']
         def accepted(remote):
             changed = (remote['session_id'], remote['generation']) != (self.document['session_id'], self.document['generation'])
-            if changed and self.local_dirty:
+            editing = self.local_dirty or self.mapping.state() == QAbstractItemView.State.EditingState
+            if changed and editing:
                 self.conflict = True
                 self.message.setText('The shared document changed while you were editing. Reload it or keep these edits as a new document.')
-            elif not self.local_dirty and not self.conflict:
+            elif not editing and not self.conflict:
                 self._show_document(remote)
             self._update_actions()
         def refreshed(remote):
@@ -807,6 +815,43 @@ class DataWindow(QMainWindow):
             self.source_label.setText('원본: '+Path(path).name)
             QTimer.singleShot(0,self.refresh_preview)
         self._call(upload,registered,relevant=lambda:self.document and self.document['id']==document_id)
+
+    def choose_test_files(self):
+        if self._busy:
+            return
+        paths, _ = QFileDialog.getOpenFileNames(self, '시험 파일 열기', '',
+            '표 파일 (*.csv *.txt *.dat);;모든 파일 (*)')
+        if paths:
+            return self.open_test_files(paths)
+
+    def open_test_files(self, paths):
+        """Each raw file keeps its own existing Data owner and editable mapping."""
+        from pathlib import Path
+        from caelab.data_document import default_draft
+        def opened():
+            documents, failures = [], []
+            for path in paths:
+                source = Path(path)
+                try:
+                    if source.stat().st_size > 16 * 1024 * 1024:
+                        raise ValueError('16 MiB 이하의 표 파일을 선택하세요.')
+                    receipt = self.client.upload(source.name, source.read_bytes())
+                    draft = default_draft()
+                    draft['data_id'] = receipt.get('data_id', receipt.get('id'))
+                    documents.append(self.client.document_open(kind='data', title=source.stem, draft=draft))
+                except (OSError, ValueError) as error:
+                    failures.append(source.name + ': ' + str(error))
+            return documents, failures
+        def show(result):
+            documents, failures = result
+            for document in documents:
+                window = DataWindow(self.client, auto_open=False)
+                self._data_windows.append(window)
+                window._opened(document)
+                window.show()
+            self.message.setText(f'{len(documents)}개 시험 파일을 열었습니다.' +
+                ('\n열지 못한 파일: ' + '\n'.join(failures) if failures else ''))
+        return self._call(opened, show, background=True)
 
     def edit_calibration(self):
         if not self.document or self._busy or self.conflict or self._view_error:
@@ -1766,7 +1811,7 @@ class DataWindow(QMainWindow):
     def _update_actions(self):
         present = self.document is not None
         enabled = present and not self._busy and not self.conflict
-        self.editor.setEnabled(enabled and not self._view_error)
+        self.editor.setEnabled(present and not self._foreground_busy and not self._view_error)
         self.source_button.setEnabled(enabled and not self._view_error)
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
         blocked = present and any(item.get('blocks_evaluation') for item in self.document.get('diagnostics', []))
@@ -1776,6 +1821,7 @@ class DataWindow(QMainWindow):
         self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
         self.new_action.setEnabled(not self._busy)
         self.open_action.setEnabled(not self._busy)
+        self.open_tests_action.setEnabled(not self._busy)
         self.read_button.setEnabled(present and bool(self._selected_job) and not self._busy)
         for button in (self.compare_button, self.plan_button, self.expert_button):
             button.setEnabled(enabled and bool(self._selected_job) and not self.local_dirty)
