@@ -44,10 +44,21 @@ FE 편집 영향 범위의 추가132검사도 Windows에서 통과했다. 동일
 후속 교정 범위만 확인한다. Sol의 분리된 Windows 작업 및 M3 Pro 구현은 계속 진행한다.
 Sol의 실제 FreeCAD 첫 실행에서 잘못된 소성 표 초안 저장→FCStd 닫기→새 Owner 재열기→
 수정→J2/NLGEOM 적용을 확인했고 Codex가 `runs/ns1-native-check/applied-j2.png`와
-receipt를 읽었다. 이 경로는 조립 작업 폴더에 있다. 입력 생성은 새 고정·하중의
-영역 참조 명시 확인 단계에서 멈춰 기존 영역 지정 흐름으로 이어가는 중이다.
-아직 이 모델의 실제 솔버 계산을 했다는 뜻은 아니다. 실제 창의 한글 글꼴·곡선 대비와
-작은 창 배치를 Sol이 교정하고 Astra가 직접 화면 대안을 논의한다.
+receipt를 읽었다. 이 경로는 조립 작업 폴더에 있다. 기존 영역 지정/조건 복구로
+고정·하중 면을 확인한 뒤 native 입력 생성이 완료됐다. Codex는 이 공개 모델을
+Windows CalculiX 2.22의 기존 어댑터로 실제 실행했고 정상 종료와 10개 수렴 증분의
+U/RF/S/E/PEEQ를 확인했다. 원 계산은 한 번이며 GUI Runner 전체 조작의 확인은 아니다.
+실제 결과 등록 후 Post가 새 field_meanings/availability/recovery/shear 정보를 거절한
+연결 결함을 발견해 consumer의 제한된 계약을 맞췄다. 기존 등록 검사를 우회하거나
+원자료를 제거하지 않았다. 관련47검사와 실제 ParaView6.2의 PEEQ 선택·저장·새 프로세스
+재열기가 통과했고 Astra의 해당 변경 독립 검토에 추가 P1/P2는 없었다. 선택 결과의
+recovery 전달 검사도 추가해7검사가 통과했다. pvpython 렌더이며 OS 직접 조작은 아니다.
+자료는 `runs/product-development/20261014/nonlinear-user-model/native-single-solid/`,
+`native-post-receipt.json`과 `native-single-solid-post/`에 있다. 절점 PEEQ의 음수값도
+그대로 보존하며 수치 적합성/공학적 승인으로 처리하지 않는다. 공개 편집 예제와
+[실행 안내](examples/material-tests/ns1/README.md)를 추가했다. 아직 기본 설치/main 배포 전이다.
+실제 창의 한글 글꼴·곡선 대비와 작은 창 오류 상태는 Sol이 교정하고 Astra가 직접
+화면 대안을 논의한다. Pro의 두 핵심 수정 회수와 합친 뒤 다음 인도를 진행한다.
 
 **운동 시간 교정 통합:** Sol `5ea18c0`와 후속 `ad960ed`를 main `331d2fe`/`9630f5a`로
 통합했다. Astra가 찾은 native 시간 변경과 적용 정의 불일치는 계산 전에 차단하고,

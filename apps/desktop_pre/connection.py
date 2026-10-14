@@ -368,8 +368,13 @@ class Connection:
         elif state in {'FAILED', 'CANCELLED', 'INTERRUPTED'}:
             outcome = command.get('outcome', {})
             error = outcome.get('result', {}).get('error') or outcome.get('error') or command.get('error', {})
+            detail = error.get('message', '계산을 시작하지 않았습니다. 입력과 이전 결과는 남아 있습니다.')
+            # Keep the original diagnostic in the command receipt. The work
+            # area tells users how to reconnect the condition's selected face.
+            detail = detail.replace('UNTRACKED_TARGET: explicitly confirm/repair this condition target',
+                '적용 면을 확인하세요. ‘영역과 조건’ 탭에서 이 조건을 선택하고 면을 다시 지정하세요.')
             self.message.setText(command_status_text('pre.freeze', state) + ': ' +
-                error.get('message', '계산을 시작하지 않았습니다. 입력과 이전 결과는 남아 있습니다.'))
+                detail)
             self.pending = None
         else:
             self.message.setText(command_status_text('pre.freeze', state) +
