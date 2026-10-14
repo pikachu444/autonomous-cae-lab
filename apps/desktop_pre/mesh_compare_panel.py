@@ -25,7 +25,7 @@ def make_dialog(QtWidgets, QtCore, owner, mesh, parent=None):
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(16, 14, 16, 14)
             layout.setSpacing(10)
-            self.title = QtWidgets.QLabel('현재 메시: ' + mesh.Label)
+            self.title = QtWidgets.QLabel('현재 선택 메시: ' + mesh.Label)
             self.title.setWordWrap(True)
             self.title.setStyleSheet('font-weight: 600;')
             layout.addWidget(self.title)
@@ -37,6 +37,9 @@ def make_dialog(QtWidgets, QtCore, owner, mesh, parent=None):
             self.refresh_button = QtWidgets.QPushButton('다시 조회')
             row.addWidget(self.refresh_button)
             layout.addLayout(row)
+            self.source_status = QtWidgets.QLabel()
+            self.source_status.setWordWrap(True)
+            layout.addWidget(self.source_status)
             self.status = QtWidgets.QLabel()
             self.status.setWordWrap(True)
             layout.addWidget(self.status)
@@ -45,7 +48,7 @@ def make_dialog(QtWidgets, QtCore, owner, mesh, parent=None):
             self.summary.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
             self.tabs.addTab(self.summary, '비교 값')
             self.distributions = {}
-            for key, label in [('absolute_jacobian_mm3', '절대 Jacobian 분포'),
+            for key, label in [('absolute_jacobian_mm3', 'Jacobian 분포 [mm³]'),
                                ('normalized_jacobian', '정규화 Jacobian 분포')]:
                 page = QtWidgets.QWidget()
                 page_layout = QtWidgets.QVBoxLayout(page)
@@ -67,7 +70,7 @@ def make_dialog(QtWidgets, QtCore, owner, mesh, parent=None):
                 self.distributions[key] = (*tables, note)
                 self.tabs.addTab(page, label)
             layout.addWidget(self.tabs, 1)
-            scope = QtWidgets.QLabel('Jacobian 표본값을 비교합니다. 요소 전체의 품질 보증은 아닙니다.')
+            scope = QtWidgets.QLabel('각 요소의 최소 표본값을 모은 최소·최대와 분포입니다. Jacobian 부호를 유지하며, 요소 전체의 품질 보증은 아닙니다.')
             scope.setWordWrap(True)
             layout.addWidget(scope)
             footer = QtWidgets.QHBoxLayout()
@@ -115,6 +118,7 @@ def make_dialog(QtWidgets, QtCore, owner, mesh, parent=None):
 
         def _clear(self):
             self._result = None
+            self.source_status.clear()
             self.summary.setRowCount(0)
             for previous, current, note in self.distributions.values():
                 previous.setRowCount(0)
@@ -194,18 +198,25 @@ def make_dialog(QtWidgets, QtCore, owner, mesh, parent=None):
                 result = self._call('pre.fem.mesh_compare', {'history_id': self.history.currentData(),
                                                          'mesh_sha256': self._mesh_hash})
                 before, after, changes = result['previous'], result['current'], result['changes']
+                relationship = result.get('current_source_relationship', {})
+                confirmed = relationship.get('state') == 'MATCH'
+                self.source_status.setText('메시와 현재 형상의 연결이 일치합니다. 해석 적합성 판정은 별도입니다.' if confirmed else
+                    '현재 형상과 연결을 확인하지 못한 메시입니다. 값 비교는 가능하지만 현재 형상 해석에는 다시 메시를 생성하세요.')
+                self.source_status.setStyleSheet('' if confirmed else
+                    'font-weight: 600; color: #75440b; background: #fff2df; padding: 8px;')
                 rows = [[label, before[key], after[key], changes[key]] for key, label in
                         [('total_elements', '요소 수'), ('bad_element_count', '불량 요소 수')]]
-                for key, label in [('absolute_jacobian_mm3', '절대 Jacobian [mm³]'),
-                                   ('normalized_jacobian', '정규화 Jacobian')]:
+                for key, label in [('absolute_jacobian_mm3', '요소별 최소 Jacobian [mm³]'),
+                                   ('normalized_jacobian', '요소별 최소 정규화 Jacobian')]:
                     for statistic, name in [('minimum', '최소'), ('maximum', '최대')]:
                         rows.append([label + ' ' + name, before[key][statistic],
                                      after[key][statistic], changes[key][statistic]])
                     old_table, new_table, note = self.distributions[key]
                     for table, values in [(old_table, before[key]), (new_table, after[key])]:
                         self._fill(table, [[b['lower'], b['upper'], b['count']] for b in values['bins']])
-                    note.setText('구간 경계가 같습니다.' if changes[key]['bin_boundaries_equal'] else
-                                 '구간 경계가 서로 다릅니다. 각 분포를 별도로 표시합니다.')
+                    note.setText('각 요소의 최소 표본값을 모은 분포이며 부호를 유지합니다. ' +
+                                 ('구간 경계가 같습니다.' if changes[key]['bin_boundaries_equal'] else
+                                  '구간 경계가 서로 다릅니다. 각 분포를 별도로 표시합니다.'))
                 self._fill(self.summary, rows)
                 self._result = result
                 self._generation = self.owner.generation

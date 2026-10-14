@@ -26,6 +26,7 @@ def prepare(native):
     native.refresh = lambda: None
     native.mesh.Label = '브래킷 메시'
     native.mesh.FemMesh = Mesh(2)
+    native.mesh_bindings.slotChangedObject(native.mesh, 'FemMesh')
     native.metadata['mesh_history'] = []
     native.calls = []
     for index, size in [(1, 1), (2, 1.5)]:
@@ -119,3 +120,33 @@ def test_no_history_is_an_empty_actionable_window_without_quality_run(native, ap
     assert '보관된 이전 메시가 없습니다' in widget.status.text()
     assert native.calls == []
     widget.close()
+
+
+def test_signed_element_minimum_statistics_and_changed_cad_warning_survive_requery(panel, native):
+    assert '일치합니다' in panel.source_status.text()
+    assert panel.summary.item(2, 0).text() == '요소별 최소 Jacobian [mm³] 최소'
+    assert panel.summary.item(3, 0).text() == '요소별 최소 Jacobian [mm³] 최대'
+    assert '절대' not in panel.tabs.tabText(1)
+    assert '최소 표본값' in panel.distributions['absolute_jacobian_mm3'][2].text()
+    native.shape.Shape.brep = 'edited CAD, retained mesh is unchanged'
+    native.generation += 1
+    panel._check_changes()
+    assert not panel.source_status.text() and panel.summary.rowCount() == 0
+    saved = deepcopy(native.metadata), _mesh_hash(native.mesh.FemMesh)
+    panel.refresh()
+    assert panel._result is not None
+    assert panel._result['current_source_relationship']['state'] == 'UNCONFIRMED'
+    assert '현재 형상과 연결을 확인하지 못한 메시' in panel.source_status.text()
+    assert '다시 메시를 생성' in panel.source_status.text()
+    assert 'Source geometry' not in panel.source_status.text() and 'sha256' not in panel.source_status.text()
+    assert saved == (native.metadata, _mesh_hash(native.mesh.FemMesh))
+
+
+def test_negative_determinants_are_displayed_with_their_sign(panel, native):
+    for point in native.mesh.FemMesh.Nodes.values():
+        point.x = -point.x
+    panel.refresh()
+    assert panel._result['current']['bad_element_count'] == 1
+    assert panel.summary.item(2, 2).text() == '-8'
+    assert panel.summary.item(3, 2).text() == '-8'
+    assert panel.distributions['absolute_jacobian_mm3'][1].item(0, 0).text() == '-8'

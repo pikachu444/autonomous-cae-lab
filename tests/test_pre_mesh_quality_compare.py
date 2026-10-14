@@ -115,3 +115,22 @@ def test_replaced_current_mesh_is_rejected_by_identity(native):
     native.doc.Objects[native.doc.Objects.index(old)] = replacement
     with pytest.raises(ValueError, match='바뀌었습니다'):
         compare(native)
+
+
+@pytest.mark.parametrize('binding_case', ['match', 'changed_shape', 'missing_observer'])
+def test_source_relationship_is_read_only_and_never_assumed(native, binding_case):
+    from apps.desktop_pre.mesh_binding import PROPERTY_NAME
+    preserved(native)
+    native.mesh_bindings.slotChangedObject(native.mesh, 'FemMesh')
+    if binding_case == 'changed_shape':
+        native.shape.Shape.brep = 'changed CAD, original native mesh retained'
+    elif binding_case == 'missing_observer':
+        del native.mesh_bindings
+    saved = deepcopy(native.metadata), getattr(native.mesh, PROPERTY_NAME), _mesh_hash(native.mesh.FemMesh)
+    result = compare(native)
+    assert result['current_source_relationship']['state'] == ('MATCH' if binding_case == 'match' else 'UNCONFIRMED')
+    if binding_case != 'match':
+        assert '현재 형상 해석에는 다시 메시를 생성' in result['current_source_relationship']['message']
+    assert saved == (native.metadata, getattr(native.mesh, PROPERTY_NAME), _mesh_hash(native.mesh.FemMesh))
+    assert result['current']['total_elements'] == 1  # Stale source does not suppress reading retained mesh values.
+    assert native.transactions == [] and native.tools == []

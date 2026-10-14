@@ -31,6 +31,19 @@ def _distribution_change(previous, current):
     return result
 
 
+def _source_relationship(owner, mesh):
+    try:
+        binding = owner.mesh_bindings.validate(mesh)
+        if binding.get('binding_validation') != 'CURRENT_SOURCE_AND_MESH_MATCH':
+            raise ValueError('Native source relationship was not confirmed')
+        return {'state': 'MATCH',
+                'message': '메시와 현재 형상의 연결이 일치합니다. 해석 적합성 판정은 별도입니다.'}
+    except Exception as error:
+        return {'state': 'UNCONFIRMED',
+                'message': '현재 형상과 연결을 확인하지 못한 메시입니다. 값 비교는 가능하지만 현재 형상 해석에는 다시 메시를 생성하세요.',
+                'diagnostic': str(error)}
+
+
 def compare_mesh_quality(editor, mesh, history_id, expected_mesh_sha256):
     """Return previous/current statistics and current-minus-previous changes.
 
@@ -74,4 +87,5 @@ def compare_mesh_quality(editor, mesh, history_id, expected_mesh_sha256):
     changes.update({key: _distribution_change(before[key], after[key]) for key in _STATISTICS})
     return {'history_id': history_id, 'mesh_id': mesh.Name,
             'previous_mesh_object_id': previous_id, 'previous': before, 'current': after,
-            'changes': changes, 'element_correspondence': 'NOT_ASSUMED_AFTER_REMESH'}
+            'changes': changes, 'element_correspondence': 'NOT_ASSUMED_AFTER_REMESH',
+            'current_source_relationship': _source_relationship(owner, mesh)}
