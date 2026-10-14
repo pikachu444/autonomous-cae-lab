@@ -1,0 +1,138 @@
+name: NS1 bounded integration
+
+on:
+  push:
+    branches: [codex/nonlinear-user-model-20261014]
+    paths: ['handoff/ns1-20261014-connections.patch']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ns1-bounded-integration
+  cancel-in-progress: false
+
+jobs:
+  integrate-tested-patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: offscreen
+      NS1_RENDER_DIR: artifacts/qt
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Preserve both histories and the reviewed native pin
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git merge --no-ff --no-edit 2942e4dec81ae97c033660a2e364cdcb87b9b2e3
+          test "$(git ls-tree HEAD plugins/fixture_design/upstream | awk '{print $3}')" = 3e48bf6138f495299f45b1af254bfb4aaff307b8
+      - name: Verify exact before and after blobs; apply only 14 owned files
+        run: |
+          python - <<'PY'
+          import hashlib, re, subprocess
+          from pathlib import Path
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          path = Path('handoff/ns1-20261014-connections.patch')
+          data = path.read_bytes()
+          assert len(data) == 29620
+          assert hashlib.sha256(data).hexdigest() == '66c84459bda8c07c7ac999beb5559fe6b6ac646d25a2acd7b08035bc50804f7c'
+          allowed = {
+              'apps/desktop_pre/bridge.py', 'apps/desktop_pre/connection.py',
+              'apps/desktop_pre/fem_edit.py', 'apps/desktop_pre/fem_panel.py',
+              'apps/desktop_pre/freeze_contact.py', 'apps/research/contact_run_dialog.py',
+              'caelab/adapters/contact_fem.py', 'caelab/adapters/contact_results.py',
+              'caelab/adapters/frozen_fem.py', 'caelab/calculix_material.py',
+              'caelab/contact_deck.py', 'caelab/contact_status.py',
+              'caelab/contact_steps.py', 'caelab/native_commands.py'}
+          rows = re.findall(r'^diff --git a/(\S+) b/\1\nindex ([0-9a-f]{40})\.\.([0-9a-f]{40}) 100644$', data.decode('utf-8'), re.M)
+          assert len(rows) == 14 and {row[0] for row in rows} == allowed
+          published = {
+              'apps/desktop_pre/material_panel.py': 'dd585219f60a7cce2f6c42b4e17a5e6107fbfcc7',
+              'apps/desktop_pre/nonlinear_material.py': 'a62b890ba2f7ca0de2edf0305e21686577b27d07',
+              'docs/NS1_IMPLEMENTATION_STATUS.md': 'e597d3b6939e357edb18fa8ce3acf46db0d90432',
+              'docs/NS1_USER_MODEL_KO.md': 'd7c60302a43db5ff68f0a38cd36257fa100482cd',
+              'examples/material-tests/ns1/README.md': '6594e5371002c8ef9e49379f2e1f676b76c63a0f',
+              'examples/material-tests/ns1/create_single_solid.py': 'f41132ace3073dfcbac2b1c6d41b305c27c4b2a7',
+              'examples/material-tests/ns1/j2_example.tsv': '1e649e7d42f496c492945260d971c99cb134821d',
+              'tests/test_ns1_material_ui.py': '179d009eb166503c59114a3fb141d1d4c5a34897',
+              'tests/test_ns1_native_collect.py': '7fdcef170ce958e10f5908acf509044981ac660f',
+              'tests/test_ns1_native_edit.py': '9c6950bafdcc8c10ea52e6a276b3114a910071e1',
+              'tests/test_ns1_pipeline.py': '4023d706695acfb0b646421a7a3d57433f514a37',
+              'tests/test_ns1_runner_ui.py': 'ddb43f2cf99d763687b035d8c886adaa2ad8af74'}
+          for name, expected in published.items():
+              actual = git('hash-object', name)
+              assert actual == expected, (name, expected, actual)
+          for name, old, new in rows:
+              assert git('hash-object', name) == old, ('Concurrent change; refusing replacement', name)
+          subprocess.run(['git', 'apply', '--unidiff-zero', '--check', '--index', str(path)], check=True)
+          subprocess.run(['git', 'apply', '--unidiff-zero', '--index', str(path)], check=True)
+          for name, old, new in rows:
+              assert git('hash-object', name) == new, ('Applied source differs from locally tested source', name)
+          print('Verified 12 published files and exact before/after blobs for 14 connection files.')
+          PY
+      - run: python -m pip install numpy pytest jsonschema filelock matplotlib PySide6-Essentials==6.9.1 shiboken6==6.9.1
+      - name: Focused checks including real Fortran and real Qt
+        run: |
+          command -v gfortran
+          mkdir -p artifacts
+          python -m pytest tests/test_calculix_material.py tests/test_ns1_*.py tests/test_contact.py tests/test_contact_execution.py tests/test_contact_native_export.py tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_tie.py tests/test_frozen_fem.py tests/test_pre_fem_edit.py tests/test_pre_fem_panel_ui.py tests/test_contact_inspection.py -q --junitxml=artifacts/focused-tests.xml
+          git diff --check
+          git diff --cached --check
+      - name: Record status without replacing concurrent history
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root = ET.parse('artifacts/focused-tests.xml').getroot()
+          suites = [root] if root.tag == 'testsuite' else list(root)
+          counts = {key: sum(int(s.get(key, 0)) for s in suites) for key in ('tests', 'failures', 'errors', 'skipped')}
+          assert counts == {'tests': 195, 'failures': 0, 'errors': 0, 'skipped': 0}, counts
+          path = Path('CURRENT_STATE.md')
+          original = path.read_text(encoding='utf-8')
+          first, rest = original.split('\n', 1)
+          note = '''
+          ## 2026-10-14 NS1 사용자 모델 연결 제출
+
+          PRO-NS1-RESUME-20261014-02: 기존 비선형 브랜치에 main 2942e4d를 정상 merge하고
+          재료 표/초안/native J2, 단일 고체 및 기존 접촉 freeze/실행, S/E/PEEQ와 실패 결과
+          재열기 연결을 게시했다. 관련 195개 검사가 로컬 및 GitHub Ubuntu에서 통과했다.
+          Fortran F20.0 및 Qt 검사는 실제 실행했고 native CAD/계산 프로세스는 명시 대역이다.
+          Windows FreeCAD 1.1.4→CalculiX 2.22→ParaView 실제 계산과 Astra 독립 검토는 미실행이다.
+          따라서 NS1/AC-12·13 전체 완료가 아니다. Codex의 다음 확인 범위는
+          [한글 사용법](docs/NS1_USER_MODEL_KO.md), [제출 상태](docs/NS1_IMPLEMENTATION_STATUS.md)에 있다.
+          기존 motion/Data/Post/CAD 복구 변경과 native pin은 보존했다.
+
+          '''
+          path.write_text(first+'\n'+note+rest, encoding='utf-8')
+          PY
+          git add CURRENT_STATE.md
+          git rm handoff/ns1-20261014-connections.patch
+          git commit -m 'feat(ns1): connect native user-model plasticity, existing execution and retained results' -m 'Preserve main 2942e4d and both histories. Exact locally reviewed 14-file patch plus published material panels/tests/guide verified; 195 focused checks passed. Native Windows solver and independent acceptance remain unrun.'
+      - name: Publish only when the branch has not changed
+        run: |
+          remote_head="$(git ls-remote origin refs/heads/codex/nonlinear-user-model-20261014 | cut -f1)"
+          test "$remote_head" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/codex/nonlinear-user-model-20261014
+      - name: Retain exact checked source and reports
+        if: always()
+        run: |
+          mkdir -p artifacts
+          git rev-parse HEAD > artifacts/source-commit.txt
+          git status --porcelain > artifacts/worktree-status.txt
+          git archive --format=zip --output=artifacts/ns1-source.zip HEAD
+      - name: Publish review archive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ns1-integration-checked
+          path: artifacts/
+          retention-days: 1
+          if-no-files-found: error
