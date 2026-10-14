@@ -330,25 +330,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             layout.addWidget(scope)
 
         def _material_tab(self):
-            layout = self._page('재료')
-            self._section(layout, '등방성 탄성 물성')
-            form = QtWidgets.QFormLayout()
-            self.material = QtWidgets.QComboBox()
-            self.material.setObjectName('femMaterial')
-            self.material.currentIndexChanged.connect(self._load_material)
-            self.modulus = self._number('femYoungModulus', minimum=0, value=0)
-            self.modulus.setSpecialValueText('미입력')
-            self.poisson = self._number('femPoissonRatio', minimum=-1, maximum=.499999999, value=-1)
-            self.poisson.setSpecialValueText('미입력')
-            form.addRow('재료 선택', self.material)
-            form.addRow('탄성계수 [MPa]', self.modulus)
-            form.addRow('포아송비', self.poisson)
-            layout.addLayout(form)
-            row = QtWidgets.QHBoxLayout()
-            self._button('탄성 물성 적용', self.apply_material, row)
-            self._button('FreeCAD에서 재료 편집', lambda: self.native_task(self.material.currentData()), row)
-            layout.addLayout(row)
-            layout.addStretch(1)
+            from .material_panel import add_material_page
+            self.material_page = add_material_page(self, QtWidgets, QtCore)
 
         def _fill_combo(self, widget, entries):
             previous = widget.currentData()
@@ -374,7 +357,6 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             objs = self.editor.owner.doc.Objects
             def kind(obj):
                 return getattr(getattr(obj, 'Proxy', None), 'Type', obj.TypeId)
-            self._fill_combo(self.material, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::MaterialCommon' and obj.Category == 'Solid'])
             self._fill_combo(self.analysis, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::FemAnalysis'])
             regions = self._description['regions']
             entries = [(row['label'] + (' (대상 확인 필요)' if row['validation'] != 'EXACT_TARGET_MATCH' else ''), row['id']) for row in regions]
@@ -402,12 +384,13 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                 self.regions.addTopLevelItem(item)
                 if row['id'] == selected_id:
                     self.regions.setCurrentItem(item)
+            self.material_page.refresh(load_forms=load_forms)
             self.contact_page.refresh(load_forms=load_forms)
             self.steps_page.refresh(load_forms=load_forms)
             if load_forms:
                 self._load_mesh()
                 self._load_condition()
-                self._load_material()
+                if not self.material_page.elastic_pending(): self._load_material()
             self.poll()
 
         def poll(self):
@@ -420,6 +403,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     button.setEnabled(not self._command_busy)
                 for button in self._mutating:
                     button.setEnabled(not busy and not native_task and not self._command_busy)
+                self.material_page.sync_actions(busy or native_task)
                 self.cancel_button.setEnabled(busy and not self._command_busy)
                 histories = description['mesh_history']
                 stamp = repr(histories[-1]) if histories else None

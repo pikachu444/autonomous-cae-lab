@@ -13,7 +13,10 @@ STRESS_MEASURE = 'cauchy'
 STRAIN_MEASURE = 'equivalent_plastic_strain'
 STRESS_FACTORS = {'Pa': 1e-6, 'kPa': 1e-3, 'MPa': 1.0, 'GPa': 1e3}
 STRAIN_FACTORS = {'1': 1.0, '%': 0.01}
-MAX_YIELD_POINTS = 10000
+# CalculiX 2.22 plcopy.f resamples larger tables to 200 points. Do not opt in
+# silently: this is an execution limit, never a reason to discard an editing draft.
+MAX_YIELD_POINTS = 200
+NATIVE_PRECISION = '20-character fields; 13 significant digits; original curve retained'
 
 
 def finite(value):
@@ -54,8 +57,12 @@ def plasticity_errors(definition, path='plasticity'):
     if definition.get('strain_unit') not in STRAIN_FACTORS:
         fail('strain_unit', '소성변형률 단위는 무차원(1) 또는 %로 지정하세요.')
     rows = definition.get('yield_points')
-    if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_YIELD_POINTS:
-        fail('yield_points', '항복점 표는 1~10000행이어야 합니다. 첫 점의 소성변형률은 0입니다.')
+    if not isinstance(rows, list) or not rows:
+        fail('yield_points', '항복점 표를 입력하세요. 첫 점의 소성변형률은 0입니다.')
+        return errors
+    if len(rows) > MAX_YIELD_POINTS:
+        fail('yield_points.' + str(MAX_YIELD_POINTS),
+             '실행 곡선은 200점 이하입니다. 초안은 저장할 수 있지만 자동 단순화하지 않습니다.')
         return errors
     previous = None
     for index, row in enumerate(rows):
@@ -119,7 +126,20 @@ def native_plasticity(yield_points, hardening='isotropic hardening'):
 
 def native_yield_points(definition):
     normalized = normalize_plasticity(definition)
-    return [format(s, '.17g') + ', ' + format(e, '.17g') for s, e in normalized['yield_points']]
+    # Local import avoids a material/deck import cycle when the writer calls us.
+    from .adapters.native_structural_deck import native_number
+    rows = [native_number(s) + ', ' + native_number(e)
+            for s, e in normalized['yield_points']]
+    # Validate what plastics.f actually reads, not just the in-memory curve.
+    # A pair of very close abscissae must not collapse into duplicate strains.
+    serialized = deepcopy(normalized)
+    serialized['yield_points'] = [[float(token.strip()[:20]) for token in row.split(',')]
+                                  for row in rows]
+    errors = plasticity_errors(serialized)
+    if errors:
+        raise ValueError('13자리 native 출력에서 곡선이 유효하지 않습니다: ' +
+                         '; '.join(e['path'] + ': ' + e['message'] for e in errors))
+    return rows
 
 
 def material_errors(material, path='material'):
@@ -169,7 +189,8 @@ def has_plasticity(model):
 RESULT_MEANINGS = {
     'STRESS': {'quantity': 'stress', 'measure': 'cauchy', 'unit': 'MPa',
                'association': 'POINTS', 'recovery': 'native integration-point extrapolation and nodal averaging'},
-    'TOSTRAIN': {'quantity': 'total_strain', 'measure': 'green_lagrange', 'unit': '1',
+    'TOSTRAIN': {'quantity': 'total_strain', 'measure': None, 'unit': '1',
+                 'requires_step_context': True,
                  'association': 'POINTS', 'components': 'tensor shear, not engineering shear',
                  'scope': 'isotropic elasticity and incremental J2 plasticity'},
     'PE': {'quantity': 'equivalent_plastic_strain', 'measure': STRAIN_MEASURE, 'unit': '1',
@@ -179,3 +200,36 @@ RESULT_MEANINGS = {
     'FORC': {'quantity': 'nodal_force', 'unit': 'N', 'association': 'POINTS',
              'native_request': 'RF', 'note': 'Use restrained DOFs for reactions; do not label every nodal force a reaction.'},
 }
+
+
+def result_meanings(nlgeom=None):
+    """Meanings for one step; an external FRD alone does not establish NLGEOM.
+
+    None retains an unknown strain measure rather than guessing finite strain.
+    STATIC step time is a load parameter, not physical seconds; the result
+    reader supplies time-axis metadata separately from these field meanings.
+    """
+    if nlgeom is not None and type(nlgeom) is not bool:
+        raise ValueError('NLGEOM must be True, False or unknown (None).')
+    result = deepcopy(RESULT_MEANINGS)
+    if nlgeom is not None:
+        result['TOSTRAIN']['measure'] = 'green_lagrange' if nlgeom else 'infinitesimal'
+        result['TOSTRAIN']['requires_step_context'] = False
+    return result
+
+
+def ns1_enabled(model):
+    return has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static'
+
+
+def field_specifications(model):
+    """Shared native/Post/Runner quantities for the admitted common NLGEOM setting."""
+    geometry = model.get('step', {}).get('geometry')
+    meanings = result_meanings({'linear': False, 'nonlinear': True}.get(geometry))
+    return [
+        ('FORC', 'F', 'N', meanings['FORC']['quantity'], ('X', 'Y', 'Z')),
+        ('STRESS', 'S', 'MPa', 'cauchy_stress', ('XX', 'YY', 'ZZ', 'XY', 'YZ', 'ZX')),
+        ('TOSTRAIN', 'E', '1', meanings['TOSTRAIN']['measure'] or 'unknown_total_strain_measure',
+         ('XX', 'YY', 'ZZ', 'XY', 'YZ', 'ZX')),
+        ('PE', 'PEEQ', '1', 'equivalent_plastic_strain', ('',)),
+    ]

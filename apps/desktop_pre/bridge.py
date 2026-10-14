@@ -326,7 +326,8 @@ class Owner:
                         raise ValueError('FEM_INPUT_INVALID: ' + '; '.join(item['path'] + ': ' + item['message'] for item in diagnostics))
                     saved = self.project.save()
                     frozen_generation = self.generation
-                    if operation == 'pre.contact.freeze':
+                    from apps.desktop_pre.nonlinear_material import uses_solid_route
+                    if operation == 'pre.contact.freeze' or uses_solid_route(self._object(args['analysis_id']), self.fem._metadata()):
                         from apps.desktop_pre.freeze_contact import freeze_contact
                         manifest = freeze_contact(self._object(args['analysis_id']), self._object(args['solver_id']),
                                                   self.export_root / self.document_id, fem=self.fem)

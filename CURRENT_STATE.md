@@ -20,10 +20,28 @@ Goal 재개 후 최신 조회에서 `active`를 확인했다. 앞선 중단 원�
 main `0508b6d`, 기존 첫 모듈/작성 브랜치, NS1 전체 사용자 작업·숫자 출력/곡선 제한/
 변형률 정의 교정·파일 소유·무료 조건·GUI 지침과 Space 링크를 본문으로 전달했다.
 요청 ID와 전체 사용자 메시지 게시, Pro의 요청 수신 답변과 main/브랜치 조회 시작을
-확인했다. 새 코드 제출 완료는 아직 아니다. 준비 자료는
+확인했다. 이후 실제 UI의 최종 답변에서 코드 제출을 확인했다. 준비 자료는
 `runs/product-development/20261014/nonlinear-user-model/pro-new-session.md`, 수신 화면은
 같은 폴더의 `pro-new-session-sent.jpg`다. Space의 현재 작성 대화 링크도 갱신했다.
-진행 중 응답에 중복 요청을 끼우지 않고 실제 산출물을 회수한다.
+최종 제출은 [PR8](https://github.com/pikachu444/autonomous-cae-lab/pull/8)의
+`2ff3f6b`이며 제품 코드는 `fa7dfe0`와 같다. 마지막 차이는 사용이 끝난 일회성
+병합 workflow 삭제뿐이다. 재료 표·native J2·단일 고체/기존 접촉 입력·실행·
+S/E/PEEQ·실패 결과 재열기를 포함한다. Codex는 main `4bad73f`와 정상 병합 준비했고
+Astra가 핵심 코드를 독립 검토하며 Sol이 실제 FreeCAD 재료→입력 연결을 확인한다.
+Windows 통합본 첫 관련 검사는 80통과/1건너뜀/2실패였다. 두 실패는 좁은 Qt 창의
+최소 너비와 지수 문자열 표기 차이이며 Sol이 화면을 확인해 교정한다. 건너뜀은
+gfortran 부재다. 원격의 234통과와 이 Windows 결과를 구별한다. 전체 수치 캠페인을
+재실행하지 않으며 NS1/AC-12·13 전체 완료도 아니다.
+[사용자 흐름](docs/NS1_USER_MODEL_KO.md), [Pro 제출 범위](docs/NS1_IMPLEMENTATION_STATUS.md)를 따른다.
+독립 검토에서 적용 후 추가된 native 소성 객체가 옛 적용 상태를 우회하는 문제와,
+마지막 FRD 필드가 잘리면 앞선 정상 부분결과도 열리지 않는 문제를 확인했다.
+Codex가 해당 경계를 읽고 실제 Pro에 `PRO-NS1-CORRECTION-20261014-01`을 전송했으며
+요청 전문의 게시와 응답 중 상태를 확인했다. 같은 PR8에서 두 결함과 관련 검사를
+교정하도록 배정했다. 요청은 같은 준비 폴더의 `pro-correction-request.md`다.
+최종 교정 회수 전까지 main 원격에 NS1 병합을 게시하지 않는다. 로컬 통합 브랜치는
+`codex/ns1-integration`이며 원격 main은 `4bad73f`를 유지한다. 기존 접촉·동결·단계·
+FE 편집 영향 범위의 추가132검사도 Windows에서 통과했다. 동일 검사를 반복하지 않고
+후속 교정 범위만 확인한다. Sol의 분리된 Windows 작업 및 M3 Pro 구현은 계속 진행한다.
 
 **운동 시간 교정 통합:** Sol `5ea18c0`와 후속 `ad960ed`를 main `331d2fe`/`9630f5a`로
 통합했다. Astra가 찾은 native 시간 변경과 적용 정의 불일치는 계산 전에 차단하고,

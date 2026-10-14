@@ -23,7 +23,7 @@ from ..execution_control import run_owned_command, check_cancelled, ExecutionCan
 from ..storage import check_id, save_json
 
 MAX_BYTES = 256 * 1024 ** 2
-_FRD_LABELS = {**_LABELS, "TOSTRAIN": (
+_FRD_LABELS = {**_LABELS, "PE": ("PE 1 1 0 0",), "TOSTRAIN": (
     "EXX 1 4 1 1", "EYY 1 4 2 2", "EZZ 1 4 3 3",
     "EXY 1 4 1 2", "EYZ 1 4 2 3", "EZX 1 4 3 1"),
     "FORC": ("F1 1 2 1 0", "F2 1 2 2 0", "F3 1 2 3 0", "ALL 1 2 0 0 1ALL")}
@@ -387,7 +387,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
                     raise ValueError("FRD component meaning/order differs")
                 i += 1
             records = {}
-            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "ERROR":1, "CONTACT":6}[name]
+            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "PE":1, "ERROR":1, "CONTACT":6}[name]
             while i < len(lines) and lines[i].strip() != "-3":
                 raw_record = lines[i].rstrip()
                 if name == "CONTACT":
