@@ -68,3 +68,31 @@ def test_temporal_float_interpolation_and_topology_guard(native):
     np.testing.assert_equal(numpy_support.vtk_to_numpy(result.GetPointData().GetArray(native.RAW)),[2.5]*4)
     right.GetPoints().SetPoint(1,2,0,0)
     with pytest.raises(ValueError,match='대응'): run(native,'temporal',[left,right],{'weight':.25})
+
+
+
+def test_quality_is_applied_before_path_drops_upstream_arrays(native):
+    original = tetra()
+    add(original.GetPointData(), 'comparison_valid', [1,0,1,1])
+    result = run(native, 'quality_only', [original], {'array':'response', 'masks':['comparison_valid']})
+    assert np.isnan(numpy_support.vtk_to_numpy(result.GetPointData().GetArray('response'))[1])
+    assert numpy_support.vtk_to_numpy(original.GetPointData().GetArray('response'))[1] == 2.
+    assert numpy_support.vtk_to_numpy(result.GetPointData().GetArray('NativeNodeId')).tolist() == [10,11,12,13]
+
+
+def test_malformed_cell_tuple_count_never_becomes_a_projected_value(native):
+    source = tetra()
+    add(source.GetCellData(), 'bad_cells', [1.,2.])
+    side = recipe()['a']
+    side.update(array='bad_cells', association='CELLS', projection='cell_to_point_equal_incident')
+    with pytest.raises(ValueError, match='개수'):
+        run(native, 'prepare', [source], side)
+
+
+def test_derived_declaration_does_not_turn_scalar_component_into_invariant(native):
+    r = recipe()
+    r['a']['layout']['scalar_semantics'] = 'component'
+    r['b']['layout']['scalar_semantics'] = 'component'
+    rows = native.declarations(r)['arrays']
+    assert all(row['layout']['scalar_semantics'] == 'component' for row in rows)
+    assert [row['validity_masks'] for row in rows] == [['A_finite'],['B_finite'],['comparison_valid']]

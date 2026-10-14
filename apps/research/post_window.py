@@ -337,8 +337,10 @@ class PostWindow(QMainWindow):
         self.read_options.toggled.connect(sample_options.setVisible)
         self.sample_button = QPushButton('측정값 읽기')
         self.sample_button.clicked.connect(self.read_samples)
+        self.comparison_curve_button = QPushButton('비교 곡선…')
+        self.comparison_curve_button.clicked.connect(self.show_comparison_curve)
         sample_row = QHBoxLayout()
-        for widget in (self.sample_button, self.read_options):
+        for widget in (self.sample_button, self.read_options, self.comparison_curve_button):
             sample_row.addWidget(widget)
         sample_row.addStretch()
         sample_row.addWidget(self.export_format)
@@ -424,6 +426,12 @@ class PostWindow(QMainWindow):
             axis = 'XYZ'[component] if isinstance(component, int) and 0 <= component < 3 else str(component)
             return (original(draft.get('source_ref')) + ': ' + str(draft.get('quantity', '')) + ' 문서 전체 ' + axis +
                     ' 성분, A 면의 합력 [N]. 축: 정적 하중 계수 λ [1].')
+        if draft.get('version') == 2:
+            clock = draft.get('clock', {})
+            stamp = '시각 없는 자료' if clock.get('value') is None else '비교 시각 ' + str(clock['value']) + ' [' + str(clock.get('unit') or '미지정') + ']'
+            selection = {'scalar':'스칼라 값', 'magnitude':'크기'}.get(draft.get('selection'), str(draft.get('selection') or '성분 미지정').upper())
+            difference = '|B − A|' if draft.get('difference') == 'norm_of_difference' else 'B − A'
+            return selection + ' [' + str(draft.get('target', {}).get('units') or '단위 미지정') + ']   ' + difference + '   ' + stamp
         if 'a' in draft and 'b' in draft:
             return '\n'.join(side.upper() + ': ' + field_meaning(draft[side]) for side in ('a', 'b'))
         if 'filter' in draft:
@@ -683,7 +691,8 @@ class PostWindow(QMainWindow):
                         row.update(name=original.get('array'), association='POINTS')
                         metadata = {'arrays': [row], 'time': {'unit': original.get('time_units'),
                             'semantics': original.get('time_origin')} if original.get('time') is not None else None,
-                            'timesteps': [original['time']] if original.get('time') is not None else [],
+                            'timesteps': [], 'frozen_clock': {'value': original['time'], 'unit': original.get('time_units'),
+                                'semantics': original.get('time_origin')} if original.get('time') is not None else None,
                             **{key: original.get(key) for key in ('coordinate_units', 'coordinate_frame')}}
                         sources.append({'source_ref': obj['id'], 'label': obj.get('title', '저장 측정'),
                                         'metadata': metadata, 'native_metadata': metadata})
@@ -1096,6 +1105,32 @@ class PostWindow(QMainWindow):
             return self.store_draft(after=self.save_document)
         return self.queue_command('document.save', {})
 
+    def show_comparison_curve(self):
+        if not self._samples or not self._sample_basis or self._sample_basis['draft'].get('version') != 2:
+            self.message.setText('비교 값을 먼저 읽으세요.')
+            return
+        from .post_comparison_plot import ComparisonPlot
+        dialog = ComparisonPlot(self._samples, self._sample_basis, self)
+        dialog.pointSelected.connect(lambda index: self.select_comparison_point(index, dialog.basis))
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.show()
+
+    def select_comparison_point(self, index, basis):
+        if (self._object_ref != basis['object_ref'] or not self._sample_basis
+                or self._sample_basis.get('revision') != basis.get('revision')):
+            self.message.setText('선택한 곡선은 이전 조회입니다. 원 비교를 다시 열어 선택하세요.')
+            return False
+        token = (self._object_ref, basis.get('revision'))
+        def selected(payload):
+            if token != (self._object_ref, (self._sample_basis or {}).get('revision')):
+                return
+            for row, value in enumerate((self._samples or {}).get('rows', [])):
+                if value.get('point_index') == index:
+                    self.samples.selectRow(row)
+                    break
+        return self.queue_command('post.sample', {'object_ref': self._object_ref,
+            'preview': basis['preview'], 'point_index': index, 'limit': 1}, accepted=selected)
+
     def read_samples(self):
         arguments = {'preview': self.sample_preview.isChecked(), 'offset': self.offset.value(), 'limit': self.limit.value()}
         if self.point_index.text().strip():
@@ -1151,6 +1186,17 @@ class PostWindow(QMainWindow):
                   'A_original_components': '원 A 성분', 'B_sampled_original_components': '대응 B 원성분',
                   'A_common_components': '변환 A 전체 성분', 'B_common_components': '변환 B 전체 성분',
                   'original_a_ids': '원본 식별', 'vtkValidMask': '유효 마스크'}
+        if self._sample_basis['draft'].get('version') == 2:
+            recipe = self._sample_basis['draft']
+            for key in ('a', 'b', 'delta', 'A_common_components', 'B_common_components'):
+                labels[key] += ' [' + str(recipe['target']['units']) + ']'
+            for key in ('a_raw', 'A_original_components'):
+                labels[key] += ' [' + str(recipe['a']['units']) + ']'
+            for key in ('b_raw', 'B_sampled_original_components'):
+                labels[key] += ' [' + str(recipe['b']['units']) + ']'
+            labels['coordinates'] += ' [' + str(recipe['a']['coordinate_units']) + ']'
+            if recipe.get('difference') == 'norm_of_difference':
+                labels['delta'] = '|B − A| [' + str(recipe['target']['units']) + ']'
         labels.update({key: key.removesuffix(' 유효성') + ' 유효성' for key in headers if key.endswith(' 유효성')})
         self.samples.setHorizontalHeaderLabels([labels.get(key, key) for key in headers])
         for column, key in enumerate(headers):
@@ -1162,7 +1208,7 @@ class PostWindow(QMainWindow):
                 states = {'valid': '유효', 'outside_domain': '대응 영역 밖', 'outside_b_domain': 'B 영역 밖',
                           'nonfinite_a': 'A 결측 / 무효', 'nonfinite_b': 'B 결측 / 무효',
                           'nonfinite_difference': '차이 연산 범위 초과', 'zero_a': '기준값 0',
-                          'nonfinite_percent': '변화율 범위 초과', 'percent_disabled': '계산 안 함', 'unknown': '알 수 없음'}
+                          'nonfinite_percent': '변화율 범위 초과', 'nonfinite_denominator': '분모 범위 초과', 'percent_disabled': '계산 안 함', 'unknown': '알 수 없음'}
                 text = ('값 없음' if value is None else ('유효' if value else '무효') if isinstance(value, bool)
                         else states.get(value, value) if isinstance(value, str) else display(value))
                 item = QTableWidgetItem(text)
@@ -1505,6 +1551,9 @@ class PostWindow(QMainWindow):
         self.redo_button.setEnabled(enabled and bool(obj and (obj.get('redo_stack') or obj.get('redo'))) and not self.local_dirty)
         self.export_button.setEnabled(enabled and bool(obj and obj.get('position', -1) >= 0) and not self.local_dirty)
         self.sample_button.setEnabled(enabled and bool(self._object_ref) and not self.local_dirty)
+        self.comparison_curve_button.setEnabled(bool(self._samples and self._sample_basis and self._sample_basis['draft'].get('version') == 2))
+        self.comparison_curve_button.setVisible(self._kind == 'comparison')
+        self.comparison_display.setVisible(not bool(self._tree_selection and self._tree_selection[0] == 'source') and self._kind == 'comparison')
         for button in self.new_buttons:
             button.setEnabled(enabled and not self.local_dirty)
         browsing = bool(self._tree_selection and self._tree_selection[0] == 'source')

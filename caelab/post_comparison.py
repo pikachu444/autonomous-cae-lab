@@ -106,7 +106,7 @@ def scalar(values, kind, selection):
     values = np.asarray(values, dtype=np.float64)
     names = {'scalar': ['scalar'], 'vector': ['x', 'y', 'z'], 'tensor': COMPONENTS}[kind]
     if selection == 'magnitude' and kind in ('vector', 'tensor'):
-        return np.linalg.norm(values, axis=1)
+        return np.hypot.reduce(np.abs(values), axis=1)
     if selection not in names:
         raise ValueError('선택한 물리량의 실제 성분 또는 크기를 선택하세요.')
     return values[:, names.index(selection)]
@@ -121,8 +121,38 @@ def transform_points(points, source_unit, target_unit, matrix, translation):
     return np.asarray(points, dtype=np.float64) @ rotation(matrix).T * factor(source_unit, target_unit) + shift
 
 
+def ordered_match(points_a, cells_a, points_b, cells_b, tolerance):
+    """Exact topology/order, declared absolute Euclidean coordinate distance."""
+    a, b = np.asarray(points_a, dtype=np.float64), np.asarray(points_b, dtype=np.float64)
+    limit = number(tolerance, '공간 허용 오차')
+    if limit < 0 or a.shape != b.shape or a.ndim != 2 or a.shape[1] != 3 or cells_a != cells_b:
+        raise ValueError('점 순서·개수·셀 종류·연결 순서가 다릅니다. 동일 점 대응을 적용할 수 없습니다.')
+    if not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError('대응 좌표가 유한하지 않습니다.')
+    with np.errstate(over='ignore', invalid='ignore'):
+        distances = np.hypot.reduce(np.abs(b - a), axis=1)
+    maximum = float(np.max(distances)) if len(distances) else 0.
+    if not np.isfinite(distances).all() or maximum > limit:
+        raise ValueError('대응 점 거리가 명시한 공간 허용 오차를 넘습니다.')
+    return {'method': 'ordered_topology_absolute_distance', 'tolerance': limit,
+            'maximum_distance': maximum, 'point_count': len(a)}
+
+
 def time_plan(side, native_times, common):
     times = [number(value, '원 결과 시각') for value in native_times]
+    frozen = side.get('frozen_clock')
+    if 'frozen_clock' in side:
+        selection = side.get('sampling', {'mode': 'exact', 'time': side.get('time')})
+        if selection != {'mode': 'exact', 'time': None}:
+            raise ValueError('저장 측정은 고정된 한 시각의 값입니다. native 시각 탐색이나 보간을 적용하지 않습니다.')
+        if frozen is None:
+            return {'times': [None], 'weights': [1.], 'common_time': None, 'frozen_clock': None}
+        native_side = deepcopy(side); native_side.pop('frozen_clock')
+        native_side.update(time_units=frozen['unit'], time_origin=frozen['semantics'],
+                           sampling={'mode': 'exact', 'time': frozen['value']})
+        result = time_plan(native_side, [frozen['value']], common)
+        result.update(times=[None], frozen_clock=deepcopy(frozen))
+        return result
     selection = side.get('sampling', {'mode': 'exact', 'time': side.get('time')})
     if not times:
         if selection.get('time') is not None or selection.get('mode') != 'exact':
@@ -150,9 +180,14 @@ def time_plan(side, native_times, common):
     native_target = (target - offset) / scale
     if selection.get('mode') == 'exact':
         value = selection.get('time')
-        if value not in times or not math.isclose(value * scale + offset, target, abs_tol=1e-12, rel_tol=1e-12):
-            raise ValueError('정확 시각이 비교 시각과 일치하지 않습니다. 보간을 명시적으로 선택하세요.')
-        return {'times': [value], 'weights': [1.], 'common_time': target}
+        tolerance = number(common.get('exact_tolerance', 0.), '정확 시각 허용 오차')
+        if tolerance < 0:
+            raise ValueError('정확 시각 허용 오차는 음수일 수 없습니다.')
+        matches = [time for time in times if abs(time * scale + offset - target) <= tolerance]
+        if value not in times or matches != [value]:
+            raise ValueError('정확 시각이 비교 시각과 일치하지 않거나 모호합니다. 보간 또는 명시한 절대 허용 오차를 확인하세요.')
+        return {'times': [value], 'weights': [1.], 'common_time': target,
+                'difference': value * scale + offset - target, 'exact_tolerance': tolerance}
     if selection.get('mode') != 'linear':
         raise ValueError('정확 시각 또는 구간 내 선형 보간을 선택하세요.')
     endpoints = selection.get('bracket')
@@ -230,6 +265,8 @@ def validate(recipe, times_a, times_b):
     plans = [time_plan(a, times_a, recipe.get('clock', {})), time_plan(b, times_b, recipe.get('clock', {}))]
     if (plans[0]['common_time'] is None) != (plans[1]['common_time'] is None):
         raise ValueError('정적 자료와 시각 자료를 같은 증분이라고 가정하지 않습니다.')
+    if plans[0]['common_time'] is None and recipe.get('clock', {}).get('value') is not None:
+        raise ValueError('시각이 없는 두 자료에 실제 표본 시각을 새로 부여하지 않습니다.')
     return plans
 
 
@@ -242,14 +279,15 @@ def compare(a, b, recipe, inside):
     reason[(reason == 0) & ~valid_a] = 2
     reason[(reason == 0) & ~valid_b] = 3
     with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
-        delta = np.linalg.norm(b - a, axis=1) if recipe.get('difference') == 'norm_of_difference' else bv - av
+        delta = np.hypot.reduce(np.abs(b - a), axis=1) if recipe.get('difference') == 'norm_of_difference' else bv - av
         reason[(reason == 0) & ~np.isfinite(delta)] = 4
         delta[reason != 0] = np.nan
-        denominator = np.abs(av)
+        denominator = np.hypot.reduce(np.abs(a), axis=1) if recipe.get('difference') == 'norm_of_difference' else np.abs(av)
         if recipe.get('percent') == 'absolute_kelvin':
             scale, shift = affine_unit(recipe['target']['units'], 'K', 'temperature', 'absolute')
             denominator = np.abs(av * scale + shift)
         pr = reason.copy()
+        pr[(pr == 0) & ~np.isfinite(denominator)] = 8
         pr[(pr == 0) & (denominator == 0)] = 5
         percent = 100. * delta / denominator
         pr[(pr == 0) & ~np.isfinite(percent)] = 6

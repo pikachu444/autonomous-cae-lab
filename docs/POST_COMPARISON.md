@@ -17,6 +17,8 @@
    - 응답 기저 회전은 형상 정렬과 별도로 지정합니다.
    - 시계열은 실제 저장 시각을 선택하거나, 연속한 두 저장 시각과 최대 허용
      간격을 지정해 선형 보간합니다. 공통 시각·시간 단위·원점 이동을 기록합니다.
+     정확 시각은 기본 오차 0이며, 필요한 절대 시각 오차를 비교 시간 단위로
+     명시할 수 있습니다. 둘 이상의 원 표본이 허용 범위에 들어오면 거절합니다.
    - 셀 값은 사용자가 **인접 셀 동일 가중 평균 → 점**을 선택해야 합니다.
      이것은 원 절점값이나 보존적 FE 투영이 아닙니다.
 4. 성분 또는 크기를 고르고 **미리보기**를 누릅니다. A 원값, A 위치에 대응한
@@ -24,7 +26,10 @@
    **원본 보기 / 원본 나란히 보기**로 원래 형상에서 확인합니다.
 5. **적용** 후 표시 목록에서 차이·변환 A/B·원값·유효 영역·변화율을 골라
    **적용 결과 보기**를 누릅니다. ParaView가 실제 3D 결과를 표시합니다.
-   표의 원본 점 조회는 기존 native 선택 연결을 유지합니다.
+   **비교 곡선…**은 현재 표에서 읽은 같은 점의 A/B와 차이를 표시합니다.
+   원본 점 순서 또는 실제 X/Y/Z 좌표를 가로축으로 고릅니다. 그래프의 점을
+   누르면 동일 결과의 native 점과 표 행이 선택됩니다. 공간 점 순서를
+   연속 경로라고 가정해 선을 잇지 않습니다.
 6. 분석 프로젝트를 저장합니다. 새 Post owner에서 같은 프로젝트를 열면
    같은 변환 정의·값·마스크를 읽습니다. 원본이 없어졌을 때 보존 결과를
    읽는 것과 원본 수리 후 새로 미리보기 하는 것은 구분됩니다.
@@ -57,13 +62,26 @@ quality를 결측으로 반영 → 명시 셀 투영 → 시간 보간 → 형�
   차이 overflow, 0 분모, 변화율 비활성은 서로 다른 상태입니다. ID와 마스크
   배열은 물리량과 함께 평균하거나 회전하지 않습니다.
 
+동일 점 대응은 점 개수·셀 종류·연결 순서를 정확히 검사합니다. 좌표는
+**공간 허용 오차 [A 좌표 단위]**의 절대 유클리드 거리로 검사합니다.
+45° 회전의 부동소수점 왕복 오차도 이 명시한 값 안에 있어야 합니다.
+좌표를 반올림하거나 fingerprint를 바꾸지 않으며 원본/변환 형상 hash,
+최대 대응 거리, 적용 오차를 별도로 보존합니다.
+
+저장된 점/경로 또는 비교 결과는 이미 고정된 표본입니다. native 시계열로
+다시 탐색하지 않고 실제 표본 시각·단위·원점 의미를 검증합니다. 다른 시각의
+고정 결과를 시각 없는 값처럼 비교하지 않습니다. 점/경로를 더 측정해도
+알려진 성분 의미·절대온도/온도차와 유효성 선언을 승계합니다. 경로 필터가
+보조 배열을 제거하기 전에 원 품질 마스크를 물리값에 반영하므로 유효하지
+않았던 값이 후속 보간에서 다시 유효해지지 않습니다.
+
 ## 작은 공개 재현
 
 새 입력 폴더만 생성하며 solver를 실행하지 않습니다.
 
 ```powershell
 python -m examples.post_comparison runs/post-comparison-input
-python -m pytest tests/test_post_comparison_physics.py tests/test_post_comparison_editor.py -q
+python -m pytest tests/test_post_comparison_physics.py tests/test_post_comparison_editor.py tests/test_post_comparison_ownership.py -q
 ```
 
 `a.pvd`는 0.5 s의 2 N Y방향 힘, `b.pvd`는 0/1 s의 0.001/0.003 kN
@@ -83,6 +101,9 @@ X방향 힘입니다. B 형상은 m 단위로 역회전되어 있습니다. B를
 `$pvpython`은 이미 설치한 ParaView 6.2 실행파일입니다. 다른 Python/Qt를
 native runtime에 설치하지 않습니다. 이 확인은 local native admission과 owner
 직접 호출입니다. HTTP broker, 마우스 조작 또는 solver 검증으로 확대하지 않습니다.
+현재 스크립트는 비교 → 점/경로 측정 → 저장 측정 비교까지 이어서 만들고
+새 프로세스에서 각 값과 고정 시각/선언을 확인합니다. 첫 게시본만 확인하려면
+이미 통과한 이전 receipt를 보존하고, 후속 검사는 새 출력 폴더에서 실행합니다.
 VTK가 있는 연구 실행 환경에서는 `tests/test_post_comparison_native.py`도 선택 실행할
 수 있습니다. 이것은 실제 VTK 단계 + 좁은 import 대역이며 ParaView 세션 검사가 아닙니다.
 
@@ -114,7 +135,7 @@ bridge 수명이나 native 창 닫기/저장 제어는 수정하지 않았습니
 | PC-003 기저 | 독립 형상/응답 회전, vector, 6/9 tensor, tensor/engineering/Kelvin | PK1/F 두 점 텐서의 독립 두 기저 및 Cauchy↔Piola 변환은 미지원 |
 | PC-004 시각 | 실제 정확 시각, 단위/원점, 인접 bracket/최대 간격, 끝점 결측 보존 | moving/reordered topology, 외삽, 정적 단계 보간 차단 |
 | PC-005 위치 | 동일 순서/형상 대응, 기존 선형 tetra B→A, 명시 cell→point | IP 투영, 보존적 projection, 임의 고차요소 공간 transfer 미지원 |
-| PC-006 보기/저장 | 원본 분할 보기, 원값/변환/차이 표·3D 선택, owner 저장/재열기 | 새로운 표/곡선 전용 자료의 독립 축 대응은 아래 후속 |
+| PC-006 보기/저장 | 원본 분할 보기, 단위 표기 표·같은 행의 점 그래프·3D 선택, owner 저장/재열기 | 시간 표 전용 자료의 독립 축 대응은 아래 후속 |
 | PC-007 실패/복구 | 원본 보기 계속 허용, 이전 적용 결과·초안 보존, 기존 repair | unknown 의미를 자동 승인하지 않음 |
 | PC-008 경계 | 버전별 output fingerprint와 기존 key/graph/input guards | 실제 Windows native 및 GUI 크기 확인은 별도 실행 필요 |
 
@@ -126,3 +147,21 @@ bridge 수명이나 native 창 닫기/저장 제어는 수정하지 않았습니
 작성 환경의 실행 서버가 연결되지 않아 이 인도에서 Python/pytest/VTK/Qt/ParaView
 실행은 **NOT_RUN**입니다. 위 스크립트와 검사는 실행 가능한 소스로 제공하며
 이 문서의 구현 범위를 실행 성공 또는 GUI 수용 완료로 표시하지 않습니다.
+
+## 작성 및 통합 확인의 구분
+
+- 첫 게시본 `caaaa86`: 통합 담당자가 별도 worktree에서 physics/editor
+  14건 통과를 전달했습니다. 일반 Python의 VTK 모듈 검사는 1건 건너뛰었습니다.
+  설치 ParaView 6.2의 실제 `--create`와 별도 `--reopen`은 원값/변환/차이/
+  마스크 및 적용/Undo/Redo/저장까지 통과했다고 전달받았습니다. Solver 실행 0.
+- 현재 후속: 위 첫 실행 이후의 곡선 선택, 명시 공간/시각 오차, 큰 수치의
+  norm, 고정 시각과 측정 선언/품질 승계, UI 선택 보존을 함께 수정했습니다.
+  이 후속의 Python/Qt/native 실행은 작성 환경에서 **NOT_RUN**입니다.
+  기존 통과를 이번 변경의 통과로 확대하지 않습니다.
+- 작성자 자체 검토와 별도 동료의 읽기 전용 검토를 수행했습니다. 이 검토는
+  실제 native 실행 또는 사용자 GUI 수용을 대신하지 않습니다.
+
+고정 출력의 native 시계열 정보 처리는 ParaView의 공식
+[Programmable Filter RequestInformation 계약](https://docs.paraview.org/en/v6.2.0/ReferenceManual/pythonProgrammableFilter.html)을 사용합니다.
+원 물리 시각은 owner의 고정 표본 선언에 보존하며 upstream TIME_STEPS를
+새 표본이라고 광고하지 않습니다.

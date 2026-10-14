@@ -532,10 +532,40 @@ class Workspace:
                 bundle = contact_views.build_measurement(self, draft, name)
             else:
                 self._declared_measurement(draft)
-                bundle = measurements.build_measurement(self.resolve(draft['source_ref']), draft, name)
+                declaration = self._output_declaration(draft['source_ref'])
+                source = self.resolve(draft['source_ref'])
+                selected = next((row for row in (declaration or {}).get('arrays', [])
+                    if (row['name'], row['association']) == (draft.get('array'), draft.get('association'))), None)
+                prefix = []
+                try:
+                    if declaration and 'frozen_clock' in declaration:
+                        from .comparison_native import _filter
+                        source = _filter(source, 'frozen', {}, name, prefix)
+                    if selected and selected.get('validity_masks'):
+                        from .comparison_native import _filter
+                        source = _filter(source, 'quality_only', {'array': draft['array'],
+                            'masks': selected['validity_masks']}, name, prefix)
+                    bundle = measurements.build_measurement(source, draft, name)
+                    bundle['proxies'] = prefix + bundle['proxies']
+                except BaseException:
+                    analysis.cleanup({'proxies': prefix})
+                    raise
                 if draft['source_ref'] not in self.document['sources']:
                     bundle['summary']['sample_semantics'] = 'derived_values_at_saved_measurement_locations'
-                    bundle['summary']['input_declaration'] = self._output_declaration(draft['source_ref'])
+                    bundle['summary']['input_declaration'] = deepcopy(declaration)
+                if selected and draft.get('measurement') in ('point', 'path'):
+                    result_declaration = deepcopy(declaration)
+                    result_array = deepcopy(selected)
+                    if draft['measurement'] == 'path':
+                        # Quality was applied to the physical values BEFORE path
+                        # interpolation; removed mask arrays are not claimed as outputs.
+                        result_array['validity_masks'] = ['vtkValidPointMask']
+                    result_declaration['arrays'] = [result_array]
+                    result_declaration['frozen_clock'] = deepcopy(declaration.get('frozen_clock')) if 'frozen_clock' in declaration else (
+                        {'value': draft['time'], 'unit': draft.get('time_units'), 'semantics': draft.get('time_origin')}
+                        if draft.get('time') is not None else None)
+                    result_declaration['time'] = None
+                    bundle['summary']['declarations'] = result_declaration
             identifier = 'V' + uuid.uuid4().hex
             self.bundles[identifier] = bundle
             summary = clone(bundle.get('summary', {}))
@@ -571,16 +601,22 @@ class Workspace:
             return deepcopy(summary['declarations'])
         recipe = record['recipe']
         if obj['kind'] != 'measurement' or recipe.get('measurement') not in ('point', 'path'):
-            raise ValueError('이 파생 자료에는 비교에 필요한 저장 물리 선언이 없습니다.')
+            return None  # Verified legacy/arbitrary filter: meanings remain user-declared, never inherited by guess.
         row = {key: recipe.get(key) for key in ('quantity', 'units', 'measure', 'frame')}
         row.update(name=recipe.get('array'), association='POINTS')
         return {'arrays': [row], **{key: recipe.get(key) for key in ('coordinate_units', 'coordinate_frame')},
                 'time': {'unit': recipe.get('time_units'), 'semantics': recipe.get('time_origin')}
                     if recipe.get('time') is not None else None,
-                'frozen_time': recipe.get('time'), 'derived_revision': record['id']}
+                'frozen_clock': {'value': recipe['time'], 'unit': recipe.get('time_units'), 'semantics': recipe.get('time_origin')}
+                    if recipe.get('time') is not None else None, 'derived_revision': record['id']}
 
     def _declared_side(self, side):
         metadata = self._output_declaration(side.get('source_ref'))
+        if metadata and 'frozen_clock' in metadata:
+            if 'frozen_clock' not in side or side['frozen_clock'] != metadata['frozen_clock']:
+                raise ValueError('저장된 측정의 실제 고정 시각을 그대로 선택하세요.')
+        elif 'frozen_clock' in side:
+            raise ValueError('원 reader를 저장된 고정 측정으로 재표기할 수 없습니다.')
         if metadata is None:
             return  # User must supply every meaning in the recipe; no guessed defaults.
         row = next((row for row in metadata['arrays'] if (row['association'], row['name']) == (side.get('association'), side.get('array'))), None)
@@ -595,10 +631,10 @@ class Workspace:
         for key in ('layout', 'temperature_kind', 'validity_masks'):
             if key in row and row[key] is not None and row[key] != side.get(key):
                 raise ValueError('Comparison ' + key + ' conflicts with the retained source declaration')
-        if 'frozen_time' in metadata:
+        if 'frozen_clock' in metadata:
             sampling = side.get('sampling', {'mode': 'exact', 'time': side.get('time')})
-            if sampling != {'mode': 'exact', 'time': metadata['frozen_time']}:
-                raise ValueError('저장 측정의 고정 시각을 다른 시각으로 바꿀 수 없습니다.')
+            if sampling != {'mode': 'exact', 'time': None}:
+                raise ValueError('저장 측정의 고정 시각은 native 시간 탐색으로 바꿀 수 없습니다.')
         clock = metadata.get('time')
         if clock and clock['unit'] != side.get('time_units'):
             raise ValueError('Comparison clock unit conflicts with the source declaration')
@@ -613,11 +649,19 @@ class Workspace:
         metadata = self._output_declaration(draft.get('source_ref'))
         if metadata is None:
             return
+        if 'frozen_clock' in metadata:
+            if draft.get('measurement') == 'time' or draft.get('time') is not None:
+                raise ValueError('저장된 고정 결과에서는 점 또는 경로를 선택하세요. 원 표본 시각을 다시 지정하거나 시간 이력으로 늘리지 않습니다.')
+            clock = metadata['frozen_clock']
+            if clock:
+                for field, key in (('time_units', 'unit'), ('time_origin', 'semantics')):
+                    if draft.get(field) is not None and draft[field] != clock[key]:
+                        raise ValueError('저장된 고정 결과의 시각 의미와 측정 선언이 다릅니다.')
         declaration = next((row for row in metadata['arrays']
             if (row['association'], row['name']) == (draft.get('association'), draft.get('array'))), None)
         if declaration is None:
             raise ValueError('The selected source has no matching retained measurement declaration')
-        for name in fields:
+        for name in (*fields, 'layout', 'temperature_kind', 'validity_masks'):
             original = metadata.get(name) if name.startswith('coordinate_') else declaration.get(name)
             if draft.get(name) and original is not None and draft[name] != original:
                 raise ValueError('Measurement ' + name + ' conflicts with the retained source declaration')
