@@ -8,14 +8,45 @@ on_done=None) uses the shared asynchronous native command transport and returns
 
 
 def make_panel(QtWidgets, QtCore, editor, submit):
+    class TaskTabs(QtWidgets.QTabWidget):
+        def __init__(self):
+            super().__init__()
+            self._pages = {}
+
+        def addTab(self, page, label):
+            scroll = QtWidgets.QScrollArea()
+            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(page)
+            self._pages[page] = scroll
+            return super().addTab(scroll, label)
+
+        def setCurrentWidget(self, page):
+            super().setCurrentWidget(self._pages.get(page, page))
+
+        def indexOf(self, page):
+            return super().indexOf(self._pages.get(page, page))
+
+        def widget(self, index):
+            scroll = super().widget(index)
+            return scroll.widget() if scroll is not None else None
+
+        def currentWidget(self):
+            return self.widget(self.currentIndex())
+
     class Panel(QtWidgets.QWidget):
         def __init__(self):
             super().__init__()
             self.setObjectName('caelabFemPanel')
+            font = self.font()
+            font.setFamily('Malgun Gothic')
+            font.setPointSize(max(9, font.pointSize()))
+            self.setFont(font)
             self.editor, self.submit = editor, submit
             self._description, self._mutating, self._last_history = {}, [], None
             self._actions, self._command_busy, self._edit_serial = [], False, 0
             outer = QtWidgets.QVBoxLayout(self)
+            outer.setContentsMargins(6, 8, 6, 8)
             row = QtWidgets.QHBoxLayout()
             heading = QtWidgets.QLabel('해석 모델')
             heading.setWordWrap(True)
@@ -23,7 +54,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.refresh_button = self._button('새로 고침', self.refresh, row, mutate=False)
             self.cancel_button = self._button('메시 생성 취소', self.cancel_mesh, row, mutate=False)
             outer.addLayout(row)
-            self.tabs = QtWidgets.QTabWidget()
+            self.tabs = TaskTabs()
             outer.addWidget(self.tabs, 1)
             self._mesh_tab()
             self._region_tab()

@@ -14,6 +14,15 @@ from apps.desktop_pre import nonlinear_material as nm
 from caelab.calculix_material import J2
 
 
+@pytest.fixture(scope='module', autouse=True)
+def installed_korean_font(app):
+    # Windows offscreen has no system font database; read the same installed font
+    # used by the real native window without packaging or changing any font file.
+    path = Path(os.environ.get('WINDIR', 'C:/Windows'))/'Fonts/malgun.ttf'
+    if path.is_file() and 'Malgun Gothic' not in G.QFontDatabase.families():
+        G.QFontDatabase.addApplicationFont(str(path))
+
+
 def edit(page, app, points='250\t0\n270\t1.234567891234567e-5\n300\t.02'):
     page.law.setCurrentIndex(page.law.findData(J2)); page.confirm.setChecked(True)
     app.clipboard().setText(points)
@@ -92,6 +101,9 @@ def test_real_render_korean_narrow_width_and_keyboard_focus(panel,native,app,wid
     assert panel.width()==width and page.plot.width()>=190
     assert page.table.width()>=175 and page.apply_button.isVisible()
     assert page.apply_button.geometry().right()<=page.width()
+    assert panel.tabs.currentWidget() is page
+    assert panel.tabs.widget(panel.tabs.indexOf(page)) is page
+    assert page.parentWidget().parentWidget().horizontalScrollBar().maximum() == 0
     page.table.setCurrentCell(1,1); page.table.setFocus()
     T.QTest.keyClick(page.table,C.Qt.Key.Key_Tab)
     app.processEvents()
@@ -103,11 +115,32 @@ def test_real_render_korean_narrow_width_and_keyboard_focus(panel,native,app,wid
 
 
 def test_narrow_numeric_display_keeps_exponent_and_does_not_round_source(panel,app):
-    page=panel.material_page; edit(page,app)
+    page=panel.material_page
+    assert '현재 재료' in page.errors.text()
+    edit(page,app)
     index=page.table.model().index(1,1)
     option=W.QStyleOptionViewItem()
     option.rect=C.QRect(0,0,92,26)
     page.table.itemDelegate().initStyleOption(option,index)
-    assert 'e-05' in option.text
+    assert 'e' in option.text.lower() and int(option.text.lower().split('e')[1]) == -5
     assert float(option.text)==pytest.approx(1.234567891234567e-5,rel=.001)
     assert page.table.item(1,1).text()=='1.234567891234567e-5'
+
+
+def test_other_fem_pages_keep_selection_and_allow_scroll_instead_of_clipping(panel,app):
+    material=panel.material_page
+    panel.tabs.setCurrentWidget(panel.contact_page)
+    panel.resize(480,900); panel.show(); app.processEvents()
+    assert panel.tabs.currentWidget() is panel.contact_page
+    assert panel.tabs.indexOf(panel.contact_page)==3
+    assert panel.tabs.widget(3) is panel.contact_page
+    scroll=panel.contact_page.parentWidget().parentWidget()
+    assert isinstance(scroll,W.QScrollArea)
+    assert scroll.widget() is panel.contact_page
+    assert panel.contact_page.width() <= scroll.viewport().width()+scroll.horizontalScrollBar().maximum()
+    panel.tabs.setCurrentWidget(panel.steps_page)
+    assert panel.tabs.currentWidget() is panel.steps_page
+    panel.tabs.setCurrentIndex(0)
+    assert panel.tabs.widget(0).layout() is not None
+    panel.tabs.setCurrentWidget(material)
+    assert panel.tabs.currentWidget() is material

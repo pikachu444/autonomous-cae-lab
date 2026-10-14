@@ -54,7 +54,7 @@ def add_material_page(panel, W, C):
             if not valid:
                 painter.drawText(r, C.Qt.AlignmentFlag.AlignCenter, '표에 항복점을 입력하세요.')
                 return
-            pen = G.QPen(self.palette().highlight().color()); pen.setWidthF(1.8); painter.setPen(pen)
+            pen = G.QPen(G.QColor('#2468A2')); pen.setWidthF(2.0); painter.setPen(pen)
             previous = None
             for index, point in enumerate(points):
                 if point is None:
@@ -62,6 +62,7 @@ def add_material_page(panel, W, C):
                 x, y = point
                 p = C.QPointF(r.left()+(x-xmin)*r.width()/(xmax-xmin), r.bottom()-(y-ymin)*r.height()/(ymax-ymin))
                 if previous is not None: painter.drawLine(previous, p)
+                painter.setBrush(G.QBrush(pen.color()) if index == self.selected else G.QBrush(self.palette().base()))
                 painter.drawEllipse(p, 4.5 if index == self.selected else 2.7, 4.5 if index == self.selected else 2.7)
                 previous = p
 
@@ -106,6 +107,7 @@ def add_material_page(panel, W, C):
             self.scope = W.QLabel(); self.scope.setWordWrap(True); self.scope.setMinimumWidth(0)
             form.addRow('적용 영역', self.scope)
             layout.addLayout(form)
+            panel._section(layout, '탄성 물성')
             elastic = W.QHBoxLayout()
             panel.modulus = panel._number('femYoungModulus', minimum=0, value=0); panel.modulus.setSpecialValueText('미입력')
             panel.poisson = panel._number('femPoissonRatio', minimum=-1, maximum=.499999999, value=-1); panel.poisson.setSpecialValueText('미입력')
@@ -115,6 +117,7 @@ def add_material_page(panel, W, C):
             panel._button('탄성 적용', panel.apply_material, actions, name='femApplyMaterial')
             panel._button('선택 따라가기', self.follow_selection, actions, mutate=False)
             elastic.addLayout(actions); layout.addLayout(elastic)
+            panel._section(layout, '소성 곡선')
             row = W.QHBoxLayout(); self.law = W.QComboBox(); self.law.setObjectName('ns1MaterialLaw')
             self.law.addItem('등방 탄성', LINEAR); self.law.addItem('J2 등방 경화', J2); row.addWidget(self.law, 1)
             self.stress_unit, self.strain_unit = W.QComboBox(), W.QComboBox()
@@ -148,6 +151,8 @@ def add_material_page(panel, W, C):
             self.save_button = panel._button('초안 저장', lambda: self.send(False), buttons, name='ns1SaveDraft')
             self.save_button.setShortcut('Alt+S')
             self.apply_button = panel._button('재료 적용', lambda: self.send(True), buttons, name='ns1ApplyMaterial')
+            self.apply_button.setStyleSheet('QPushButton#ns1ApplyMaterial { background: #2468A2; color: white; font-weight: 600; } '
+                'QPushButton#ns1ApplyMaterial:disabled { background: #e1e5e9; color: #65717e; }')
             self.apply_button.setShortcut('Ctrl+Return')
             panel._button('저장본 읽기', self.discard, buttons, mutate=False)
             self.error_button = panel._button('오류 행', self.focus_error, buttons, mutate=False, name='ns1ErrorRow')
@@ -298,11 +303,13 @@ def add_material_page(panel, W, C):
                                 for j in columns:
                                     item = self.table.item(i, j)
                                     if item:
-                                        item.setBackground(self.palette().alternateBase()); item.setToolTip('오류: '+error['message'])
+                                        item.setBackground(G.QColor('#fff0ee')); item.setToolTip('오류: '+error['message'])
             finally:
                 self.table.blockSignals(False)
             prefix = str(self.table.rowCount())+'점 / 실행 최대 200점'
-            self.errors.setText(prefix+' — '+(errors[0]['message'] if errors else ('미저장 편집' if self.modified else ('적용됨' if self.info and self.info.get('applied') else '초안 / native 원본'))))
+            saved_state = ('적용됨' if self.info and self.info.get('applied') else
+                           '미적용 초안' if self.info and self.info.get('source') == 'saved_draft' else '현재 재료')
+            self.errors.setText(prefix+' — '+(errors[0]['message'] if errors else ('미저장 편집' if self.modified else saved_state)))
             self.errors.setToolTip('\n'.join(e['path']+': '+e['message'] for e in errors))
             self.sync_actions()
 
