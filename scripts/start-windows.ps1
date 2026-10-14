@@ -47,6 +47,16 @@ $sourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $install.source_root 'cae
 $fingerprintText = ($sourceFiles | ForEach-Object { $_.FullName.Substring($install.source_root.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }) -join "`n"
 $fingerprintBytes = [Text.Encoding]::UTF8.GetBytes($fingerprintText)
 $sourceFingerprint = ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($fingerprintBytes))).Replace('-','').ToLowerInvariant()
+function Test-OperatorConfigPath([string]$Candidate) {
+    if ([string]::IsNullOrWhiteSpace($Candidate)) { return $false }
+    if ($Candidate -eq $operatorConfig) { return $true }
+    # Packaged Windows apps may resolve the same file through LocalCache.
+    # Compare file identity, never merely equal contents or a guessed alias.
+    try {
+        $same = & $python -c 'import os,sys; print(int(os.path.samefile(sys.argv[1],sys.argv[2])))' $operatorConfig $Candidate 2>$null
+        return $LASTEXITCODE -eq 0 -and [string]$same -eq '1'
+    } catch { return $false }
+}
 function Test-Ready {
     try {
         $response = Invoke-WebRequest -Uri $health -UseBasicParsing -TimeoutSec 2
@@ -100,7 +110,7 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
             if ($launch.pid -ne $oldPid -or $launch.store -ne $storePath -or
                 $launch.source_root -ne $install.source_root -or $launch.project_sha256 -ne $install.project_sha256 -or
                 $launch.source_fingerprint -ne $sourceFingerprint -or
-                $launch.config_path -ne $operatorConfig -or
+                -not (Test-OperatorConfigPath $launch.config_path) -or
                 @($install.installed_extras | Where-Object { $_ -notin $launch.installed_extras }).Count -ne 0) {
                 throw "Port $Port is running a different store, source, operator configuration or optional dependency set. Stop that owned server explicitly or choose another -Port."
             }
@@ -109,7 +119,7 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
             $connection = Invoke-RestMethod -Uri "$url/api/workbench/expert-connection" -TimeoutSec 3
             if (-not $launch.service_session_id -or
                 $connection.service_session_id -ne $launch.service_session_id -or
-                $connection.operator_config_path -ne $operatorConfig -or
+                -not (Test-OperatorConfigPath $connection.operator_config_path) -or
                 [string]$connection.config_sha256 -ne [string]$configSha) {
                 throw 'Saved operator settings are not active. Apply them in Expert Connection after current jobs finish.'
             }

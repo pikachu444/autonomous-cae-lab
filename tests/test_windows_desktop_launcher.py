@@ -57,7 +57,7 @@ $ErrorActionPreference = 'Stop'
 $spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Encoding UTF8 -Raw | ConvertFrom-Json
 $global:CaeLauncherTest = @{spec=$spec;started=$false;processId=42421;
     python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command='';ownedProcess=$true;ownedListener=$true;
-    loadedHash=$null;session='Sfixture'}
+    loadedHash=$null;session='Sfixture';configAlias=$null}
 $global:LASTEXITCODE = 0
 function Write-TestEvent($value) {
     ConvertTo-Json -InputObject $value -Compress -Depth 8 |
@@ -94,6 +94,7 @@ function Invoke-RestMethod {
     if ($Uri -notlike '*/api/workbench/expert-connection') { throw 'Unexpected connection request' }
     $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
     $state = $global:CaeLauncherTest
+    if ($state.configAlias) { $config = $state.configAlias }
     return [pscustomobject]@{service_session_id=$state.session;operator_config_path=$config;config_sha256=$state.loadedHash}
 }
 function Start-Process {
@@ -123,7 +124,7 @@ function Start-Sleep { param([int]$Milliseconds) }
 try {
     # ABA starts with an actual file A, records A, then applies B but restores
     # A on disk without applying it. Receipt == disk must not bypass status.
-    if ($spec.mutate -eq 'config_aba') {
+    if ($spec.mutate -in @('config_aba', 'config_alias', 'config_copy', 'config_missing')) {
         $folder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
         New-Item -ItemType Directory -Path $folder -Force | Out-Null
         '{}' | Set-Content -LiteralPath (Join-Path $folder 'workbench-config.json') -Encoding UTF8
@@ -133,6 +134,19 @@ try {
         if ($phaseIndex -gt 0) {
             $launchPath = Join-Path $spec.runtime ("server-$($spec.port).launch.json")
             switch ($spec.mutate) {
+                { $_ -in @('config_alias', 'config_copy', 'config_missing') } {
+                    $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
+                    $alias = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\alternate-config.json'
+                    if ($spec.mutate -eq 'config_alias') {
+                        New-Item -ItemType HardLink -Path $alias -Target $config | Out-Null
+                    } elseif ($spec.mutate -eq 'config_copy') {
+                        Copy-Item -LiteralPath $config -Destination $alias
+                    }
+                    $global:CaeLauncherTest.configAlias = $alias
+                    $receipt = Get-Content -LiteralPath $launchPath -Encoding UTF8 -Raw | ConvertFrom-Json
+                    $receipt.config_path = $alias
+                    $receipt | ConvertTo-Json | Set-Content -LiteralPath $launchPath -Encoding UTF8
+                }
                 'process_identity' { $global:CaeLauncherTest.ownedProcess = $false }
                 'process_command' { $global:CaeLauncherTest.command = 'unrelated.server --port ' + $spec.port }
                 'listener_owner' { $global:CaeLauncherTest.ownedListener = $false }
@@ -317,6 +331,24 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
                     self.phase(NoBrowser=True, ResearchUI=True)], mutate=mutation)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('not active', result.stderr)
+                self.assertEqual(len(self.events_of(events, 'server')), 1)
+                self.assertEqual(self.events_of(events, 'desktop'), [])
+
+    def test_config_file_alias_reuses_service_without_changing_settings(self):
+        result, events, _ = self.run_case([
+            self.phase(NoBrowser=True, ResearchUI=True),
+            self.phase(NoBrowser=True, ResearchUI=True)], mutate='config_alias')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(self.events_of(events, 'server')), 1)
+        self.assertEqual(self.events_of(events, 'desktop'), [])
+
+    def test_distinct_or_missing_config_path_is_not_an_alias(self):
+        for mutation in ('config_copy', 'config_missing'):
+            with self.subTest(mutation=mutation):
+                result, events, _ = self.run_case([
+                    self.phase(NoBrowser=True, ResearchUI=True),
+                    self.phase(NoBrowser=True, ResearchUI=True)], mutate=mutation)
+                self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(len(self.events_of(events, 'server')), 1)
                 self.assertEqual(self.events_of(events, 'desktop'), [])
 
