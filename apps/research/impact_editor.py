@@ -311,11 +311,19 @@ class ImpactEditor(QDialog):
 
 
 def edit(window):
+    if window._busy:
+        window.message.setText('현재 요청이 끝난 뒤 충격 조건을 편집하세요.')
+        return
     draft=window.edited_draft()
     if draft.get('backend')!='explicit.opencourant.model': return
-    dialog=ImpactEditor(draft['settings'],window)
-    if dialog.exec()!=QDialog.DialogCode.Accepted: return
-    draft['settings']=dialog.edited()
-    window._show_document(window.document,preserve_draft=draft)
-    window.local_dirty=True
-    window._update_actions()
+    document=deepcopy(window.document)
+    polling=window.timer.isActive();window.timer.stop()
+    try:
+        dialog=ImpactEditor(draft['settings'],window)
+        if dialog.exec()!=QDialog.DialogCode.Accepted: return
+        draft['settings']=dialog.edited()
+        window._show_document(document,preserve_draft=draft)
+        window.local_dirty=True
+        window._update_actions()
+    finally:
+        if polling:window.timer.start()

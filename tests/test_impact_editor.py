@@ -59,3 +59,59 @@ def test_cohesive_and_exact_response_editor_preserves_partial_cancel():
     reopened.damage_fields['mode_I_n_mm'].textEdited.emit('0.02345678901234')
     assert reopened.edited()['cohesive'][0]['mode_I_n_mm']==.02345678901234
     reopened.reject()
+
+
+@pytest.mark.parametrize('accepted',[True,False])
+@pytest.mark.parametrize('width',[760,1060])
+def test_modal_edit_pauses_owner_refresh_and_restores_polling(accepted,width,monkeypatch):
+    from copy import deepcopy
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QDialog,QLabel,QWidget
+    from PySide6.QtTest import QTest
+    from apps.research.impact_editor import edit
+    app=QApplication.instance() or QApplication([])
+    class Owner(QWidget):
+        def __init__(self):
+            super().__init__();self._busy=False;self.local_dirty=False
+            self.document={'id':'Doriginal','session_id':'Soriginal','generation':1,
+                'draft':{'backend':'explicit.opencourant.model','settings':settings()}}
+            self.draft=deepcopy(self.document['draft']);self.message=QLabel(self);self.polls=0
+            self.timer=QTimer(self);self.timer.setInterval(5);self.timer.timeout.connect(self.refresh)
+        def refresh(self):
+            self.polls+=1;self.document['generation']+=1
+        def edited_draft(self):return deepcopy(self.draft)
+        def _show_document(self,document,*,preserve_draft):
+            self.document=deepcopy(document);self.draft=deepcopy(preserve_draft)
+        def _update_actions(self):pass
+    def modal(dialog):
+        dialog.resize(width,500 if width==760 else 700)
+        dialog.tabs.setCurrentIndex(dialog.tabs.count()-1)
+        field=dialog.times['end_s'];field.clear();field.setFocus();QTest.keyClicks(field,'1e')
+        capture=os.environ.get('IMPACT_MODAL_RENDER_DIR')
+        if capture:
+            from pathlib import Path
+            folder=Path(capture);folder.mkdir(parents=True,exist_ok=True)
+            QTimer.singleShot(20,lambda:dialog.grab().save(str(folder/f'impact-modal-{width}-{accepted}.png')))
+        QTimer.singleShot(40,dialog.accept if accepted else dialog.reject)
+        return QDialog.exec(dialog)
+    monkeypatch.setattr(ImpactEditor,'exec',modal)
+    owner=Owner();original=deepcopy(owner.document);owner.timer.start()
+    try:
+        edit(owner)
+        assert owner.polls==0 and owner.document==original
+        assert owner.timer.isActive()
+        assert owner.local_dirty is accepted
+        assert owner.draft['settings']['time']['end_s']==('1e' if accepted else original['draft']['settings']['time']['end_s'])
+    finally:
+        owner.timer.stop();owner.close();app.processEvents()
+
+
+def test_busy_owner_cannot_open_a_second_impact_edit(monkeypatch):
+    from types import SimpleNamespace
+    from PySide6.QtWidgets import QLabel
+    from apps.research.impact_editor import edit
+    app=QApplication.instance() or QApplication([])
+    def unexpected(*_):raise AssertionError('Busy owner must retain its pending request')
+    owner=SimpleNamespace(_busy=True,message=QLabel(),edited_draft=unexpected)
+    edit(owner)
+    assert '요청' in owner.message.text()
