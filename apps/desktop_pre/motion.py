@@ -15,6 +15,7 @@ import uuid
 
 OPERATIONS = ('pre.assembly.create', 'pre.assembly.link', 'pre.joint.create',
     'pre.joint.update', 'pre.joint.remove', 'pre.motion.inspect', 'pre.motion.configure',
+    'pre.motion.set_view',
     'pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.pause',
     'pre.motion.stop', 'pre.motion.cancel', 'pre.motion.path', 'pre.motion.adopt_pose')
 JOINT_TYPES = ('Fixed', 'Revolute', 'Cylindrical', 'Slider', 'Ball', 'Distance',
@@ -93,8 +94,16 @@ class Motion:
     def _joints(self, assembly):
         # Assembly.Joints invokes getJoints(false), excludes grounded/suppressed
         # joints and can DELETE incomplete joints. Read the native group instead.
-        joints = [obj for group in assembly.OutList if group.TypeId == 'Assembly::JointGroup'
-                  for obj in group.Group if hasattr(obj, 'JointType') or hasattr(obj, 'ObjectToGround')]
+        joints = []
+        pending, seen = [assembly], set()
+        while pending:
+            container = pending.pop()
+            if container.Name in seen: continue
+            seen.add(container.Name)
+            joints += [obj for group in container.OutList if group.TypeId == 'Assembly::JointGroup'
+                       for obj in group.Group if hasattr(obj, 'JointType') or hasattr(obj, 'ObjectToGround')]
+            pending += [obj for obj in getattr(container, 'Group', [])
+                        if obj.TypeId == 'Assembly::AssemblyLink' and not getattr(obj, 'Rigid', True)]
         if len(joints) > MAX_JOINTS: raise ValueError('Too many native joints for a bounded motion preview')
         return joints
 
@@ -127,12 +136,12 @@ class Motion:
         if obj not in self._parts(assembly):
             raise ValueError('Connector must select a movable occurrence in this assembly')
         sub = value['subelement']
-        if not isinstance(sub, str) or sub and not re.fullmatch(r'(Face|Edge|Vertex)[1-9][0-9]*', sub):
+        if not isinstance(sub, str) or sub and not re.fullmatch(r'(?:[A-Za-z_][A-Za-z0-9_]*\.)*(Face|Edge|Vertex)[1-9][0-9]*', sub):
             raise ValueError('Select an exact native Face/Edge/Vertex or empty occurrence origin')
         old = previous['reference'] if previous else None
         same_element = bool(old and old[0] is obj and len(old[1]) == 2 and old[1][0] == sub)
         anchor = value.get('anchor', old[1][1] if same_element else sub)
-        if not isinstance(anchor, str) or anchor and not re.fullmatch(r'(Face|Edge|Vertex)[1-9][0-9]*', anchor):
+        if not isinstance(anchor, str) or anchor and not re.fullmatch(r'(?:[A-Za-z_][A-Za-z0-9_]*\.)*(Face|Edge|Vertex)[1-9][0-9]*', anchor):
             raise ValueError('Select an exact native connector position')
         ref = (obj, [sub, anchor])
         same_ref = same_element and list(old[1]) == ref[1]
@@ -147,25 +156,26 @@ class Motion:
             if anchor:
                 raise ValueError('Occurrence origin requires an empty native position')
             return ref, placement
-        shape = obj.Shape.getElement(sub)
+        shape = self._element(obj, sub)
+        sub_kind, anchor_kind = sub.rsplit('.', 1)[-1], anchor.rsplit('.', 1)[-1]
         if shape.isNull():
             raise ValueError('Selected native connector topology no longer exists')
-        if sub.startswith('Vertex'):
+        if sub_kind.startswith('Vertex'):
             if anchor != sub:
                 raise ValueError('A vertex connector uses that same vertex as its position')
         elif anchor == sub:
-            if (sub.startswith('Edge') and placement is None
+            if (sub_kind.startswith('Edge') and placement is None
                     and getattr(getattr(shape, 'Curve', None), 'TypeId', None) not in
                         {'Part::GeomLine', 'Part::GeomCircle'}):
                 raise ValueError('This edge has no supported native center; select a vertex or explicitly set a detached connector')
-        elif anchor.startswith('Vertex'):
-            vertex = obj.Shape.getElement(anchor)
+        elif anchor_kind.startswith('Vertex'):
+            vertex = self._element(obj, anchor)
             if vertex.isNull() or not any(vertex.isSame(v) for v in shape.Vertexes):
                 raise ValueError('Connector position vertex must belong to the selected element')
-        elif sub.startswith('Face') and anchor.startswith('Edge'):
+        elif sub_kind.startswith('Face') and anchor_kind.startswith('Edge'):
             # Native findElementClosestVertex/findPlacement use a FACE-LOCAL
             # edge index here. Never reinterpret it as obj.Shape.EdgeN.
-            edge = shape.getElement(anchor)
+            edge = shape.getElement(anchor_kind)
             curve = getattr(getattr(edge, 'Curve', None), 'TypeId', None)
             cylinder_intersection = (curve == 'Part::GeomBSplineCurve'
                 and getattr(getattr(shape, 'Surface', None), 'TypeId', None) == 'Part::GeomCylinder')
@@ -174,6 +184,13 @@ class Motion:
         else:
             raise ValueError('Connector position must be its native center or an exact supported element point')
         return ref, placement
+
+    def _element(self, obj, name):
+        # Native paths are resolved by the occurrence, never by document ID lookup.
+        element = obj.getSubObject(name) if '.' in name or not hasattr(obj, 'Shape') else obj.Shape.getElement(name)
+        if element is None or not hasattr(element, 'isNull') or element.isNull():
+            raise ValueError('Selected native connector topology no longer exists')
+        return element
 
     def _metadata(self, assembly):
         value = deepcopy(self.owner.read_metadata().get('motion'))
@@ -299,7 +316,7 @@ class Motion:
     def descriptor(self):
         self.owner.assert_thread()
         assemblies = [obj for obj in self.owner.doc.Objects if obj.isDerivedFrom('Assembly::AssemblyObject')][:32]
-        return {'state': self._state, 'preview': self._preview, 'frame': self._frame, 'error': self._error,
+        value = {'state': self._state, 'preview': self._preview, 'frame': self._frame, 'error': self._error,
             'assemblies': [{'id': a.Name, 'label': a.Label, 'joint_count': len(self._joints(a))} for a in assemblies],
             'definition': deepcopy(self.owner.read_metadata().get('motion')),
             'calculation': deepcopy(self._calculation), 'physics': 'NATIVE_KINEMATICS_ONLY',
@@ -308,17 +325,64 @@ class Motion:
             'native_generation_interruptible': False, 'path_sampling_interruptible': False,
             'limits': {'parts': MAX_PARTS, 'frames': MAX_FRAMES, 'path_page': MAX_PAGE},
             'source': PINNED_SOURCE}
+        saved = value.get('definition') or {}
+        assembly = self.owner.doc.getObject(saved.get('assembly_id', ''))
+        if assembly is not None and assembly in assemblies:
+            try: return self._inspect(assembly, value)
+            except RuntimeError as error: value['inspection_error'] = str(error)
+        return value
 
-    def _inspect(self, assembly):
-        return {**self.descriptor(), 'occurrences': [{'id': obj.Name, 'label': obj.Label, 'type': obj.TypeId,
-            'placement': _pose(obj.Placement), 'linked_object': obj.getLinkedObject().Name if obj.isDerivedFrom('App::Link') else obj.Name} for obj in self._parts(assembly, allow_empty=True)],
-            'joints': [{'id': j.Name, 'label': j.Label, 'type': str(j.JointType) if hasattr(j, 'JointType') else 'Grounded',
+    def _inspect(self, assembly, descriptor=None):
+        parts = self._parts(assembly, allow_empty=True)
+        joints = self._joints(assembly)
+        rows = []
+        direct = [obj for group in assembly.OutList if group.TypeId == 'Assembly::JointGroup' for obj in group.Group]
+        selected = []
+        selection_api = getattr(self.owner.Gui, 'Selection', None)
+        normalizer = getattr(self._api()[0], 'getComponentReference', None)
+        if selection_api is not None:
+            for selection in selection_api.getSelectionEx(self.owner.doc.Name):
+                for sub in selection.SubElementNames or ('',):
+                    obj, relative = (selection.Object, sub) if selection.Object in parts else (None, '')
+                    if obj is None and normalizer is not None:
+                        obj, relative = normalizer(assembly, selection.Object, sub)
+                    if obj in parts: selected.append({'object_id': obj.Name, 'subelement': relative})
+        for j in joints:
+            refs = [getattr(j, 'Reference1', None), getattr(j, 'Reference2', None)]
+            issues = []
+            if hasattr(j, 'JointType'):
+                for index, ref in enumerate(refs, 1):
+                    if not ref or ref[0] is None or ref[0] not in parts:
+                        issues.append('연결 ' + str(index) + '의 부품을 다시 선택하세요.')
+                        continue
+                    try:
+                        if ref[1] and ref[1][0]:
+                            shape = self._element(ref[0], ref[1][0])
+                            if shape.isNull(): raise ValueError('missing')
+                    except Exception:
+                        issues.append('연결 ' + str(index) + '의 면·모서리·점을 다시 선택하세요.')
+                if all(refs) and refs[0][0] is refs[1][0]: issues.append('서로 다른 두 부품을 선택하세요.')
+            rows.append({'id': j.Name, 'label': j.Label,
+                'type': str(j.JointType) if hasattr(j, 'JointType') else 'Grounded',
                 'grounded_occurrence': j.ObjectToGround.Name if hasattr(j, 'ObjectToGround') and j.ObjectToGround else None,
-                'references': [[r[0].Name, list(r[1])] if r else None for r in (getattr(j, 'Reference1', None), getattr(j, 'Reference2', None))]}
-                for j in self._joints(assembly)], 'joint_types': ['Grounded', *JOINT_TYPES]}
+                'references': [[r[0].Name if r[0] else None, list(r[1])] if r else None for r in refs],
+                'parameters': {key: float(getattr(j, key).Value) if hasattr(getattr(j, key), 'Value') else float(getattr(j, key))
+                               for key in ('Distance', 'Distance2', 'Angle') if hasattr(j, key)},
+                'editable': j in direct, 'issues': issues})
+        return {**(descriptor if descriptor is not None else self.descriptor()), 'occurrences': [{'id': obj.Name, 'label': obj.Label, 'type': obj.TypeId,
+            'rigid': getattr(obj, 'Rigid', None),
+            'placement': _pose(obj.Placement), 'linked_object': obj.getLinkedObject().Name if obj.isDerivedFrom('App::Link') else obj.Name} for obj in parts],
+            'joints': rows, 'joint_types': ['Grounded', *JOINT_TYPES], 'inspection_assembly_id': assembly.Name,
+            'selection_connectors': selected}
 
     def _configure(self, assembly, args):
-        if set(args) != {'definition'}: raise ValueError('Configure requires one explicit motion definition')
+        if set(args) - {'definition', 'view'} or 'definition' not in args: raise ValueError('Configure requires one explicit motion definition')
+        view = deepcopy(args.get('view', {}))
+        if not isinstance(view, dict) or set(view) - {'joint_id', 'drive_row', 'trace_row'}:
+            raise ValueError('Motion view requires a selected joint and table rows')
+        if 'joint_id' in view and view['joint_id'] is not None: self._joint(assembly, view['joint_id'])
+        for key in ('drive_row', 'trace_row'):
+            if key in view and (type(view[key]) is not int or view[key] < -1): raise ValueError('Select an actual motion table row')
         definition = deepcopy(args['definition'])
         if not isinstance(definition, dict) or set(definition) != {'time', 'fps', 'native_error_tolerance', 'drives', 'traces'}:
             raise ValueError('Declare time, fps, native_error_tolerance, drives and traces')
@@ -361,6 +425,8 @@ class Motion:
             if not isinstance(trace['id'], str) or not trace['id'] or trace['id'] in trace_ids: raise ValueError('Tracked point IDs must be distinct')
             trace_ids.add(trace['id']); _vector(trace['point'], 'Tracked local point', 3)
             if self.owner._object(trace['occurrence_id']) not in self._parts(assembly): raise ValueError('Tracked point occurrence is outside this assembly')
+        for key, rows in (('drive_row', drives), ('trace_row', traces)):
+            if key in view and view[key] >= len(rows): raise ValueError('Select an actual motion table row')
         self.before_design_action('configure motion')
         result = {}
         def change():
@@ -385,11 +451,44 @@ class Motion:
             metadata = deepcopy(self.owner.read_metadata())
             metadata['motion'] = {'assembly_id': assembly.Name, 'simulation_id': simulation.Name, 'definition': definition,
                                   'source': PINNED_SOURCE, 'physics': 'NATIVE_KINEMATICS_ONLY'}
+            metadata['motion']['view'] = view
             if 'last_completed' in old: metadata['motion']['last_completed'] = old['last_completed']
             self.owner.write_metadata(metadata); result['simulation_id'] = simulation.Name
         self.owner._transaction('Configure native assembly motion', change)
         self._expected_generation = self.owner.generation
         return {**result, 'definition': definition, 'executed': False}
+
+    def _set_view(self, assembly, args):
+        if set(args) != {'view'}: raise ValueError('Motion selection requires one explicit view')
+        metadata, _ = self._metadata(assembly)
+        view = deepcopy(args['view'])
+        if not isinstance(view, dict) or set(view) != {'joint_id', 'drive_row', 'trace_row'}:
+            raise ValueError('Motion view requires a selected joint and table rows')
+        if view['joint_id'] is not None: self._joint(assembly, view['joint_id'])
+        for key, rows in (('drive_row', metadata['definition']['drives']), ('trace_row', metadata['definition']['traces'])):
+            if type(view[key]) is not int or not -1 <= view[key] < len(rows):
+                raise ValueError('Select an actual applied motion table row')
+        if metadata.get('view', {}) == view: return {'view': view, 'changed': False}
+        if self._calculation: self._validate_cache(assembly, self._calculation['id'])
+        preferences = self.owner.App.ParamGet('User parameter:BaseApp/Preferences/Mod/Assembly')
+        had_preference = 'SolveOnRecompute' in preferences.GetBools()
+        old_preference = preferences.GetBool('SolveOnRecompute', True)
+        try:
+            preferences.SetBool('SolveOnRecompute', False)
+            def change():
+                value = deepcopy(self.owner.read_metadata()); value['motion']['view'] = view
+                self.owner.write_metadata(value)
+            self.owner._transaction('Retain motion editor selection', change)
+            self._expected_generation = self.owner.generation
+        finally:
+            try:
+                if had_preference: preferences.SetBool('SolveOnRecompute', old_preference)
+                else: preferences.RemBool('SolveOnRecompute')
+            except Exception as error:
+                self._recovery_error = 'RECOVERY_REQUIRED: failed to restore native SolveOnRecompute preference: ' + str(error)
+                self._state = 'FAILED'; self._error = self._recovery_error
+                raise RuntimeError(self._recovery_error) from error
+        return {'view': view, 'changed': True}
 
     def _calculate(self, assembly):
         self.before_design_action('recalculate')
@@ -398,7 +497,7 @@ class Motion:
             raise ValueError('Native kinematics requires an explicitly grounded occurrence')
         parts = self._parts(assembly)
         if any((obj.getLinkedObject() if obj.isDerivedFrom('App::Link') else obj).isDerivedFrom('Assembly::AssemblyObject') for obj in parts):
-            raise ValueError('This bounded preview supports flat native occurrences, not nested native assemblies')
+            raise ValueError('일반 Link로 연결한 조립은 운동을 구성하지 않습니다. 원본 조립을 부품 배치로 추가하여 native 하위 조립을 사용하세요.')
         # Native getJoints() deletes incomplete connectors; reject before invoking
         # it so calculation cannot remove a design object outside a transaction.
         for joint in self._joints(assembly):
@@ -407,6 +506,19 @@ class Motion:
                 if (any(not ref or ref[0] not in parts for ref in refs)
                         or refs[0][0] is refs[1][0]):
                     raise ValueError('Repair incomplete native joint connectors before calculating: ' + joint.Name)
+                for index, ref in enumerate(refs, 1):
+                    try:
+                        self._connector(assembly, {'object_id': ref[0].Name, 'subelement': ref[1][0], 'anchor': ref[1][1]},
+                            {'reference': ref, 'detached': bool(getattr(joint, 'Detach'+str(index))),
+                             'placement': getattr(joint, 'Placement'+str(index))})
+                    except Exception as error:
+                        raise ValueError(joint.Label + ': 연결 ' + str(index) + '의 참조를 다시 선택하세요. ' + str(error)) from error
+        for drive in metadata['definition']['drives']:
+            try: joint = self._joint(assembly, drive['joint_id'])
+            except ValueError as error:
+                raise ValueError('구동 관절이 삭제되었습니다. 시간과 구동에서 관절을 다시 선택하여 적용하세요.') from error
+            if drive['type'] not in {'Revolute': {'Angular'}, 'Slider': {'Linear'}, 'Cylindrical': {'Angular', 'Linear'}}.get(getattr(joint, 'JointType', None), set()):
+                raise ValueError(joint.Label + ': 변경된 관절 종류에 맞는 회전·이동 구동을 다시 선택하세요.')
         self._capture(assembly)
         scene, native_definition = self._scene(assembly), self._native_definition(simulation)
         self._state = 'CALCULATING'; self._error = None
@@ -414,7 +526,10 @@ class Motion:
             with self.owner.preview_changes():
                 status = assembly.generateSimulation(simulation)
             self._remember()
-            if status != 0: raise RuntimeError('Native Assembly.generateSimulation failed with status ' + str(status))
+            if status != 0:
+                names = ', '.join(self._joint(assembly, d['joint_id']).Label for d in metadata['definition']['drives'])
+                raise RuntimeError('운동 계산 실패: ' + names + '. 종속 관절의 구동곡선·연결·고정을 확인하세요. '
+                                   'FreeCAD 계산 상태 ' + str(status) + '; 설계 자세를 복원했습니다.')
             count = assembly.numberOfFrames()
             if type(count) is not int or not 1 <= count <= MAX_FRAMES: raise ValueError('Native solver returned an invalid/unbounded frame count')
             self._calculation = {'id': 'K' + uuid.uuid4().hex, 'assembly_id': assembly.Name,
@@ -435,7 +550,8 @@ class Motion:
         if type(index) is not int or not 0 <= index < self._calculation['frame_count']: raise ValueError('Select an actual native frame index')
         try:
             with self.owner.preview_changes():
-                assembly.updateForFrame(index)
+                status = assembly.updateForFrame(index)
+                if isinstance(status, int) and status != 0: raise RuntimeError('FreeCAD 자세 갱신 실패: ' + str(status))
             self._preview = True; self._frame = index; self._remember()
         except Exception as error:
             self._remember(); self._restore(); self._calculation = None
@@ -492,17 +608,30 @@ class Motion:
             if args: raise ValueError('Inspect accepts no arguments')
             return self._inspect(assembly)
         if operation == 'pre.assembly.link':
-            if set(args) != {'source_id', 'label'} or not isinstance(args['label'], str): raise ValueError('Link needs an explicit source_id and label')
+            if set(args) - {'source_id', 'label', 'rigid'} or not {'source_id', 'label'} <= set(args) or not isinstance(args['label'], str): raise ValueError('Link needs an explicit source_id and label')
             source = self.owner._object(args['source_id'])
             if source is assembly or source in assembly.Group or not source.isDerivedFrom('App::GeoFeature'):
                 raise ValueError('Link a separate native geometric source object')
+            nested = source.isDerivedFrom('Assembly::AssemblyObject')
+            if 'rigid' in args and (not nested or type(args['rigid']) is not bool): raise ValueError('Rigid applies only to a native sub-assembly')
+            if nested and assembly in getattr(source, 'OutListRecursive', []): raise ValueError('조립이 자기 자신을 포함할 수 없습니다.')
             self.before_design_action('link occurrence'); result = {}
             def link():
-                obj = assembly.newObject('App::Link', 'Occurrence'); obj.setLink(source); obj.Label = args['label']; result['occurrence_id'] = obj.Name
+                obj = assembly.newObject('Assembly::AssemblyLink' if nested else 'App::Link', 'Occurrence')
+                if nested:
+                    obj.LinkedObject = source; obj.Rigid = args.get('rigid', True)
+                else: obj.setLink(source)
+                obj.Label = args['label']; result['occurrence_id'] = obj.Name
             self.owner._transaction('Link native assembly occurrence', link); return result
         if operation in ('pre.joint.create', 'pre.joint.update', 'pre.joint.remove'):
+            if 'joint_id' in target:
+                selected = self._joint(assembly, target['joint_id'])
+                direct = [obj for group in assembly.OutList if group.TypeId == 'Assembly::JointGroup' for obj in group.Group]
+                if selected not in direct:
+                    raise ValueError('하위 조립의 관절은 원본 조립을 선택하여 수정하세요. 참조 복사본은 재계산할 때 원본과 동기화됩니다.')
             return self._edit_joint(operation, assembly, args, target)
         if operation == 'pre.motion.configure': return self._configure(assembly, args)
+        if operation == 'pre.motion.set_view': return self._set_view(assembly, args)
         if operation == 'pre.motion.calculate':
             if args: raise ValueError('Calculate uses the persisted native definition')
             return self._calculate(assembly)
@@ -575,6 +704,8 @@ class Motion:
             if set(args) != {'type', 'occurrence_id'} or operation != 'pre.joint.create': raise ValueError('Grounded joint creation requires occurrence_id; remove its exact joint to unground')
             occurrence = self.owner._object(args['occurrence_id'])
             if occurrence not in self._parts(assembly): raise ValueError('Ground only a native movable occurrence')
+            if occurrence.TypeId == 'Assembly::AssemblyLink' and not occurrence.Rigid:
+                raise ValueError('가동 하위 조립 전체는 고정할 수 없습니다. 내부 부품을 선택하세요.')
             if any(getattr(j, 'ObjectToGround', None) is occurrence for j in self._joints(assembly)): raise ValueError('Occurrence is already grounded')
         else:
             if kind not in JOINT_TYPES or set(args) - {'type', 'connectors', 'parameters'}: raise ValueError('Unsupported native joint kind')

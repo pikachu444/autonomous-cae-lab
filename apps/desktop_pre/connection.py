@@ -76,7 +76,7 @@ class Connection:
             raise ValueError('Create/open the native document and wait for its connection')
         return self.owners[doc.Name][0]
 
-    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None):
+    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True):
         owner = owner or self.active_owner()
         owner.refresh()
         broker = self.owners[owner.doc.Name][2]
@@ -84,6 +84,31 @@ class Connection:
             raise ValueError('Native owner is disconnected; reconnect before submitting an edit')
         if any(row['document_id'] == owner.document_id for row in self.native_requests.values()):
             raise ValueError('An explicit command for this document is already pending')
+        if operation == 'document.save' and _capture_motion_view:
+            dock = getattr(self, 'panels', {}).get(owner.doc.Name, {}).get('motion')
+            controller = getattr(dock.widget(), 'motion_controller', None) if dock is not None else None
+            snapshot = deepcopy(controller.pending_view()) if controller is not None else None
+            if snapshot is not None:
+                saved_arguments, saved_target = deepcopy(arguments), deepcopy(target)
+                def saved(value):
+                    if value.get('status') != 'FAILED':
+                        controller.accept_saved_view(snapshot)
+                    if on_done:
+                        on_done(value)
+                def view_applied(value):
+                    if value.get('status') == 'FAILED':
+                        if on_done:
+                            on_done(value)
+                        return
+                    try:
+                        self.submit_native('document.save', saved_arguments, saved_target, saved,
+                                           owner=owner, _capture_motion_view=False)
+                    except Exception as error:
+                        if on_done:
+                            on_done({'status': 'FAILED', 'error': {'message': str(error)}})
+                        raise
+                return self.submit_native('pre.motion.set_view', {'view': snapshot['view']},
+                    {'assembly_id': snapshot['assembly_id']}, view_applied, owner=owner)
         identifier = 'C' + uuid.uuid4().hex
         self.native_requests[identifier] = {'command_id': identifier, 'document_id': owner.document_id,
             'session_id': owner.session_id, 'generation': owner.generation, 'operation': operation,

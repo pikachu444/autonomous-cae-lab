@@ -272,7 +272,7 @@ def test_human_pose_preserved_and_save_reports_stale(setup):
 def test_native_failure_restores_and_records_no_result(setup):
     owner, motion, target, _ = setup
     owner.doc.status = -1
-    with pytest.raises(RuntimeError, match='status -1'): motion.dispatch('pre.motion.calculate', {}, target)
+    with pytest.raises(RuntimeError, match='-1'): motion.dispatch('pre.motion.calculate', {}, target)
     assert motion.descriptor()['state'] == 'FAILED'
     assert motion.descriptor()['calculation'] is None and owner.doc.moving.Placement.Base.x == 0
 
@@ -383,7 +383,7 @@ def test_injected_qt_actual_frame_receipt_and_path(qt_panel):
     panel._send('pre.motion.calculate', {})
     op, args, selected, done = queued[-1]
     done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
-    assert panel.frame.maximum() == 2 and 'native frames: 3' in panel.status.text()
+    assert panel.frame.maximum() == 2 and '계산 프레임 3' in panel.status.text()
     panel.frame.setValue(2); panel._send('pre.motion.frame', panel._frame_args())
     op, args, selected, done = queued[-1]
     assert args['frame'] == 2 and args['calculation_id'] == motion.descriptor()['calculation']['id']
@@ -413,7 +413,7 @@ def test_injected_qt_units_survive_deleted_drive_row(qt_panel):
     panel._drive_row(setup[3]['drives'][0])
     kind = panel.drives.cellWidget(1, 1)
     panel.drives.removeRow(0)
-    kind.setCurrentText('Linear'); app.processEvents()
+    kind.setCurrentIndex(kind.findData('Linear')); app.processEvents()
     assert panel.drives.rowCount() == 1
     assert panel.drives.item(0, 3).text() == 'mm'
 
@@ -582,3 +582,167 @@ def test_injected_qt_parameter_update_preserves_hidden_second_role(qt_panel):
     op, args, selected, done = queued[-1]
     done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
     assert joint.Reference1 == (first, ['Face1', 'Vertex2']) and joint.Distance == 4
+
+
+def add_slider(setup):
+    owner, motion, target, definition = setup
+    source = owner.doc.getObject('Solid')
+    third = motion.dispatch('pre.assembly.link', {'source_id': source.Name, 'label': 'Carriage'}, target)['occurrence_id']
+    first = owner._object(definition['drives'][0]['joint_id']).Reference2[0].Name
+    joint = motion.dispatch('pre.joint.create', {'type': 'Slider', 'connectors': [
+        {'object_id': first, 'subelement': ''}, {'object_id': third, 'subelement': ''}]}, target)['joint_id']
+    return joint
+
+
+def test_multiple_native_drives_keep_types_units_and_saved_selection(setup):
+    owner, motion, target, definition = setup
+    slider = add_slider(setup)
+    definition['drives'].append({'joint_id': slider, 'type': 'Linear', 'formula': '2*time', 'unit': 'mm'})
+    view = {'joint_id': slider, 'drive_row': 1, 'trace_row': 0}
+    motion.dispatch('pre.motion.configure', {'definition': definition, 'view': view}, target)
+    assert owner.metadata['motion']['definition'] == definition
+    reopened = Motion(owner); reopened._modules = native_modules()
+    value = reopened.descriptor()
+    assert value['definition']['view'] == view and value['state'] == 'UNCOMPUTED'
+    sim = owner._object(owner.metadata['motion']['simulation_id'])
+    assert [(m.MotionType, m.Joint[0].Name) for m in sim.Group] == [('Angular', definition['drives'][0]['joint_id']), ('Linear', slider)]
+
+
+def test_deleted_drive_joint_is_recoverable_without_native_calculation(setup):
+    owner, motion, target, definition = setup
+    old = definition['drives'][0]['joint_id']
+    motion.dispatch('pre.joint.remove', {}, {**target, 'joint_id': old})
+    with pytest.raises(ValueError, match='삭제'):
+        motion.dispatch('pre.motion.calculate', {}, target)
+    assert owner.metadata['motion']['definition']['drives'][0]['joint_id'] == old
+    assert not any(c[0] == 'generateSimulation' for c in owner.doc.calls)
+
+
+def test_inspection_marks_missing_topology_without_deleting_joint(setup):
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id'])
+    joint.Reference1 = (joint.Reference1[0], ['Face99', 'Face99'])
+    value = motion.dispatch('pre.motion.inspect', {}, target)
+    row = next(j for j in value['joints'] if j['id'] == joint.Name)
+    assert row['issues'] and '연결 1' in row['issues'][0]
+    with pytest.raises(ValueError, match='참조를 다시 선택'):
+        motion.dispatch('pre.motion.calculate', {}, target)
+    assert owner.doc.getObject(joint.Name) is joint
+
+
+def test_qt_missing_reference_never_becomes_another_joint(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    old = definition['drives'][0]['joint_id']
+    slider = add_slider(setup)
+    motion.dispatch('pre.joint.remove', {}, {**target, 'joint_id': old})
+    panel._inspect_value(motion.dispatch('pre.motion.inspect', {}, target))
+    combo = panel.drives.cellWidget(0, 0)
+    assert combo.currentData() == old and '참조 없음' in combo.currentText()
+    panel._configure(); assert not queued
+    combo.setCurrentIndex(combo.findData(slider))
+    assert panel.drives.cellWidget(0, 1).currentData() == 'Linear'
+    assert panel.drives.item(0, 3).text() == 'mm'
+    panel.joint.setCurrentIndex(panel.joint.findData(slider))
+    panel._configure()
+    op, args, selected, done = queued[-1]
+    done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
+    assert owner.metadata['motion']['definition']['drives'][0]['joint_id'] == slider
+
+
+def test_qt_apply_receipt_preserves_later_edit_and_cancel_restores_saved(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    panel.time['end'].setText('4'); panel._mark_edited(); panel._configure()
+    op, args, selected, done = queued[-1]
+    owner, motion, target, definition = setup
+    result = motion.dispatch(op, args, selected)
+    panel.time['end'].setText('1e'); panel._mark_edited()
+    done({'status': 'COMPLETED', 'result': result})
+    assert panel.time['end'].text() == '1e' and panel._edited
+    count = len(queued); panel._send('pre.motion.calculate', {})
+    assert len(queued) == count
+    panel._cancel_definition()
+    assert panel.time['end'].text() == '4.0' and not panel._edited
+
+
+def test_qt_joint_cancel_restores_missing_connector_and_parameters(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id']); joint.Reference2 = None
+    joint.Distance = 3.
+    panel._inspect_value(motion.dispatch('pre.motion.inspect', {}, target))
+    panel.joint.setCurrentIndex(panel.joint.findData(joint.Name))
+    assert panel.connector_b.currentIndex() == -1
+    panel.connector_b.setCurrentIndex(0); panel.joint_parameters['Distance'][0].setText('1e'); panel._mark_joint_edited()
+    panel._cancel_joint()
+    assert panel.connector_b.currentIndex() == -1 and panel.joint_parameters['Distance'][0].text() == '3.0'
+    assert joint.Reference2 is None and joint.Distance == 3.
+
+
+def test_qt_fresh_owner_restores_multiple_drives_and_selection(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    slider = add_slider(setup)
+    definition['drives'].append({'joint_id': slider, 'type': 'Linear', 'formula': 'time', 'unit': 'mm'})
+    motion.dispatch('pre.motion.configure', {'definition': definition, 'view': {'joint_id': slider, 'drive_row': 1, 'trace_row': 0}}, target)
+    data = descriptor(); data['session_id'] = 'NewOwner'; widget.refresh(data)
+    assert panel.joint.currentData() == slider and panel.drives.currentRow() == 1
+    assert panel.drives.rowCount() == 2 and panel.drives.cellWidget(1, 0).currentData() == slider
+    assert panel.drives.cellWidget(1, 1).currentData() == 'Linear' and panel.drives.item(1, 3).text() == 'mm'
+
+
+def test_qt_duplicate_drive_blocks_apply_and_cancel_keeps_persisted_definition(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    panel._drive_row(setup[3]['drives'][0])
+    panel._configure()
+    assert not queued and '중복' in panel.definition_notice.text()
+    panel._cancel_definition()
+    assert panel.drives.rowCount() == 1 and not panel._edited
+
+
+def test_view_only_save_keeps_native_cache_hash_and_does_not_repeat_dirty(setup):
+    from apps.desktop_pre.motion import _hash
+    owner, motion, target, result = calculate(setup)
+    old = _hash(owner.metadata['motion']['definition'])
+    view = {'joint_id': owner.metadata['motion']['definition']['drives'][0]['joint_id'], 'drive_row': 0, 'trace_row': 0}
+    value = motion.dispatch('pre.motion.set_view', {'view': view}, target)
+    assert value['changed'] and _hash(owner.metadata['motion']['definition']) == old
+    count, generation = len(owner.transactions), owner.generation
+    assert not motion.dispatch('pre.motion.set_view', {'view': view}, target)['changed']
+    assert len(owner.transactions) == count and owner.generation == generation
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
+    assert owner.doc.moving.Placement.Base.x == 9 and not owner.preferences.values
+
+
+def test_qt_save_snapshot_does_not_erase_later_selection(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    panel.drives.selectRow(0)
+    snapshot = panel.pending_view()
+    assert snapshot['assembly_id'] == setup[2]['assembly_id'] and snapshot['view']['drive_row'] == 0
+    panel.accept_saved_view(snapshot)
+    assert panel.pending_view() is None
+    panel.traces.selectRow(0)
+    assert panel.pending_view()['view']['trace_row'] == 0
+    panel.accept_saved_view(snapshot)
+    assert panel.pending_view()['view']['trace_row'] == 0
+
+
+def test_qt_create_assembly_selects_created_owner_object(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    panel._send('pre.assembly.create', {'label': '새 기구'}, target={})
+    op, args, selected, done = queued[-1]
+    result = motion.dispatch(op, args, selected); done({'result': result})
+    assert panel.assembly.currentData() == result['assembly_id']
+    assert queued[-1][0] == 'pre.motion.inspect' and queued[-1][2]['assembly_id'] == result['assembly_id']
+
+
+def test_qt_native_root_selection_is_normalized_to_occurrence(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    obj = owner._object(definition['traces'][0]['occurrence_id'])
+    owner.Gui.Selection = NS(getSelectionEx=lambda name: [NS(Object=owner._object(target['assembly_id']), SubElementNames=['Occurrence.Face1'])])
+    motion._modules[0].getComponentReference = lambda assembly, root, sub: (obj, 'Face1')
+    panel._use_selection(panel.connector_b, panel.subelement_b)
+    assert panel.connector_b.currentData() == obj.Name and panel.subelement_b.text() == 'Face1'
+    assert panel._joint_edited
