@@ -301,11 +301,11 @@ class ProjectPage(QWidget):
         try:
             from caelab.impact_model import render
             frozen=deepcopy(self.editor.edited());deck,_=render(frozen);self.message.setText('입력 확인 완료. 계산은 실행하지 않았습니다.')
-            dialog=QDialog(self);dialog.setWindowTitle('실행 입력 확인');dialog.resize(800,600);layout=QVBoxLayout(dialog)
+            dialog=QDialog(self);dialog.setWindowTitle('변환 입력 확인');dialog.resize(800,600);layout=QVBoxLayout(dialog)
             view=QPlainTextEdit();view.setReadOnly(True);view.setPlainText(deck);layout.addWidget(view)
-            row=QHBoxLayout();save=QPushButton('INP 저장…');row.addWidget(save);close=QPushButton('닫기');row.addWidget(close);layout.addLayout(row)
+            row=QHBoxLayout();save=QPushButton('변환용 INP 저장…');row.addWidget(save);close=QPushButton('닫기');row.addWidget(close);layout.addLayout(row)
             def export():
-                path,_=QFileDialog.getSaveFileName(dialog,'실행 입력 저장','impact.inp','INP (*.inp)')
+                path,_=QFileDialog.getSaveFileName(dialog,'변환용 INP 저장','impact.inp','INP (*.inp)')
                 if path:
                     try:
                         from caelab.impact_source import export_effective
