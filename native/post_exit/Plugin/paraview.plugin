@@ -1,0 +1,6 @@
+NAME
+  CaePostExit
+DESCRIPTION
+  Scoped managed Post project close gate
+REQUIRES_MODULES
+  ParaView::pqApplicationComponents
