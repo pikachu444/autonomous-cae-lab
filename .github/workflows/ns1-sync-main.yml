@@ -1,0 +1,104 @@
+name: NS1 concurrent main integration
+
+on:
+  push:
+    branches: [codex/nonlinear-user-model-20261014]
+    paths: ['.github/workflows/ns1-sync-main.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  merge-and-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      QT_QPA_PLATFORM: offscreen
+      NS1_RENDER_DIR: artifacts/qt
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Merge known main; preserve both CURRENT_STATE additions
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True)
+          target = '9a63fe92ea57f698a7e90f7c119fc4b067f8f3f0'
+          subprocess.run(['git', 'merge-base', '--is-ancestor', '60fcf94ac3764b430327cdf710a27f5a450fe704', 'HEAD'], check=True)
+          ours = git('show', 'HEAD:CURRENT_STATE.md')
+          latest = git('show', target+':CURRENT_STATE.md')
+          marker = '## 2026-10-14 NS1 사용자 모델 연결 제출'
+          final = '기존 motion/Data/Post/CAD 복구 변경과 native pin은 보존했다.\n'
+          assert ours.count(marker) == 1 and marker not in latest
+          start = ours.index(marker)
+          end = ours.index(final, start) + len(final)
+          note = ours[start:end]
+          merged = subprocess.run(['git', 'merge', '--no-ff', '--no-commit', target])
+          conflicts = set(git('diff', '--name-only', '--diff-filter=U').splitlines())
+          assert conflicts <= {'CURRENT_STATE.md'}, ('Manual code reconciliation required', conflicts)
+          assert merged.returncode == 0 or conflicts == {'CURRENT_STATE.md'}
+          first, rest = latest.split('\n', 1)
+          Path('CURRENT_STATE.md').write_text(first+'\n\n'+note+'\n'+rest, encoding='utf-8')
+          subprocess.run(['git', 'add', 'CURRENT_STATE.md'], check=True)
+          assert not git('diff', '--name-only', '--diff-filter=U').strip()
+          pin = git('ls-tree', 'HEAD', 'plugins/fixture_design/upstream').split()[2]
+          assert pin == '3e48bf6138f495299f45b1af254bfb4aaff307b8'
+          assert git('ls-tree', target, 'plugins/fixture_design/upstream').split()[2] == pin
+          PY
+      - name: Install existing free Qt dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1 libopengl0 fonts-noto-cjk
+          python -m pip install numpy pytest jsonschema filelock matplotlib PySide6-Essentials==6.9.1 shiboken6==6.9.1
+      - name: Check NS1 and newly merged bridge/mesh-quality behavior
+        run: |
+          command -v gfortran
+          mkdir -p artifacts
+          python -m pytest tests/test_calculix_material.py tests/test_ns1_*.py tests/test_contact.py tests/test_contact_execution.py tests/test_contact_native_export.py tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_tie.py tests/test_frozen_fem.py tests/test_pre_fem_edit.py tests/test_pre_fem_panel_ui.py tests/test_contact_inspection.py tests/test_pre_bridge.py tests/test_pre_mesh_quality_compare.py -q --junitxml=artifacts/focused-tests.xml
+          git diff --cached --check
+      - name: Commit checked merge and publish without force
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          root = ET.parse('artifacts/focused-tests.xml').getroot()
+          suites = [root] if root.tag == 'testsuite' else list(root)
+          counts = {key: sum(int(s.get(key, 0)) for s in suites) for key in ('tests', 'failures', 'errors', 'skipped')}
+          assert counts['tests'] >= 195 and all(counts[key] == 0 for key in ('failures', 'errors', 'skipped')), counts
+          text = ('\n## 병렬 main 변경 최종 병합\n\n'
+                  'main 9a63fe92ea57f698a7e90f7c119fc4b067f8f3f0의 메시 품질 비교 변경을\n'
+                  '기존 NS1 제품 연결에 정상 병합했다. 공통 bridge/명령 목록은 Git의 3-way\n'
+                  '병합을 사용했고 CURRENT_STATE는 양쪽 추가 내용을 모두 보존했다.\n'
+                  'NS1 기존 195개 및 추가 bridge/메시 품질 검사를 합쳐 **'+str(counts['tests'])+' passed**.\n'
+                  '이 확인도 Windows native 해석이나 Astra 독립 검토를 대체하지 않는다.\n')
+          path = Path('docs/NS1_IMPLEMENTATION_STATUS.md')
+          path.write_text(path.read_text(encoding='utf-8')+text, encoding='utf-8')
+          PY
+          git add docs/NS1_IMPLEMENTATION_STATUS.md
+          git commit -m 'Merge main 9a63fe9 into NS1 while preserving both desktop owners' -m 'Retain mesh-quality bridge/commands and NS1 material/freeze routing. Preserve both CURRENT_STATE additions, native pin and original failures. Focused merged-source checks passed; native Windows and independent review remain unrun.'
+          test "$(git ls-remote origin refs/heads/codex/nonlinear-user-model-20261014 | cut -f1)" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/codex/nonlinear-user-model-20261014
+      - name: Retain checked source and reports
+        if: always()
+        run: |
+          mkdir -p artifacts
+          git rev-parse HEAD > artifacts/source-commit.txt
+          git status --porcelain > artifacts/worktree-status.txt
+          git archive --format=zip --output=artifacts/ns1-source.zip HEAD
+      - name: Publish review archive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ns1-main-integration
+          path: artifacts/
+          retention-days: 1
+          if-no-files-found: error
