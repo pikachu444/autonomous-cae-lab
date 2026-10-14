@@ -105,3 +105,52 @@ def test_stale_selection_error_is_not_overwritten_by_selected_number(dialog,app)
     d.table.selectRow(1)
     assert '바뀌었습니다' in d.status.text()
     assert not d.view.active
+
+
+def test_narrow_table_wraps_reasons_and_criteria_preserves_reader_gates(dialog,app):
+    d,n,_=dialog
+    original=n.owner.dispatch
+    def read(request):
+        result=original(request)
+        result['result']['rows'][1]['errors'].extend(['NORMALIZED_JACOBIAN_SINGULAR',
+            'INVALID_OR_UNSUPPORTED_CONNECTIVITY','NONFINITE_NATIVE_COORDINATES'])
+        result['result']['gates']={'absolute_jacobian_floor_mm3':1e-10,'normalized_jacobian_floor':1e-12}
+        return result
+    n.owner.dispatch=read
+    d.resize(600,460);d.refresh();app.processEvents()
+    assert d.width()==600 and not d.criteria_detail.isVisible()
+    assert d.table.horizontalHeader().sectionResizeMode(4)==W.QHeaderView.Stretch
+    assert all(d.table.horizontalHeader().sectionResizeMode(i)==W.QHeaderView.ResizeToContents for i in range(4))
+    assert d.table.rowHeight(1)>d.table.rowHeight(0)
+    assert d.table.textElideMode()==C.Qt.ElideNone
+    assert d.table.item(1,2).text()=='-1'
+    assert 'Jacobian 기준 미달' in d.table.item(1,4).text() and '정규화 Jacobian 특이' in d.table.item(1,4).text()
+    assert d.table.item(1,4).background()!=d.table.item(0,4).background()
+    d.criteria.click();app.processEvents()
+    assert d.criteria_detail.isVisible() and '1e-10 mm³' in d.criteria_detail.text()
+    assert '1e-12' in d.criteria_detail.text() and '품질 보증' in d.criteria_detail.text()
+    d.criteria.click();assert not d.criteria_detail.isVisible()
+    assert n.owner.metadata=={'original':True} and n.owner.generation==0
+
+
+def test_empty_read_error_and_stale_source_are_actionable_and_recoverable(dialog,app):
+    d,n,_=dialog;original=n.owner.dispatch
+    def empty(request):
+        result=original(request);result['result'].update(total_elements=0,bad_element_count=0,rows=[])
+        return result
+    n.owner.dispatch=empty;d.refresh()
+    assert d.contents.currentWidget() is d.empty and '입체 요소' in d.empty.text()
+    assert not any(b.isEnabled() for b in d.view_buttons)
+    n.owner.dispatch=lambda request:{'status':'FAILED'}
+    d.refresh()
+    assert '품질을 읽지 못했습니다' in d.empty.text() and not d._quality
+    assert not any(b.isEnabled() for b in d.view_buttons)
+    n.owner.dispatch=original
+    n.owner.mesh_bindings.validate=lambda mesh: {'binding_validation':'SOURCE_CHANGED'}
+    d.refresh();app.processEvents()
+    assert d.contents.currentWidget() is d.table and d.table.rowCount()==2
+    assert '현재 형상과 연결을 확인하지 못한' in d.source_status.text()
+    assert d.source_status.objectName()=='meshSourceWarning'
+    assert not d.criteria_detail.isVisible()
+    assert d._selection_text(list(range(200))).startswith('200개 (0, 1, 2, 3, 4 등)')
+    d.table.selectRow(1);assert all(b.isEnabled() for b in d.view_buttons)
