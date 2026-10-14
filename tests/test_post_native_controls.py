@@ -6,7 +6,7 @@ import os
 import threading
 from types import SimpleNamespace
 import pytest
-from apps.desktop_post.native_controls import Controls, WM_CLOSE, _Windows, _Message, WM_KEYDOWN, WM_NULL
+from apps.desktop_post.native_controls import Controls, WM_CLOSE, WM_NCDESTROY, _Windows, _Message, WM_KEYDOWN, WM_NULL
 from test_desktop_post_bridge import bridge, command
 
 
@@ -63,6 +63,31 @@ def test_current_save_busy_reentrancy_and_cleanup():
     busy[0]=False;controls.key_message();assert owner.saved==1
     controls.in_action=True;controls.key_message();assert owner.saved==1
     controls.close();controls.close();assert platform.closed==1
+
+
+def test_native_destroy_releases_session_but_uninstall_does_not_close_document():
+    owner=Owner();platform=Platform();released=[]
+    controls=Controls(owner,platform,on_closed=lambda:released.append(True))
+    controls.refresh()
+    assert controls.window_message(WM_CLOSE)
+    assert not released
+    assert controls.window_message(WM_NCDESTROY) is False
+    assert released==[True] and platform.closed==1
+    controls.window_message(WM_NCDESTROY)
+    assert released==[True]
+    controls=Controls(owner,Platform(),on_closed=lambda:released.append(True))
+    controls.close()
+    assert released==[True]
+
+
+def test_unknown_state_and_dirty_after_save_never_close_as_success():
+    owner=Owner();platform=Platform('save');controls=Controls(owner,platform)
+    owner.refresh=lambda:(_ for _ in ()).throw(RuntimeError('disconnected owner'))
+    assert controls.window_message(WM_CLOSE) and owner.saved==0
+    assert '상태를 확인하지' in platform.errors[-1]
+    owner.refresh=lambda:owner.snapshot
+    owner.save_project=lambda:None
+    assert controls.window_message(WM_CLOSE) and owner.dirty
 
 
 def test_modal_choices_keep_heartbeat_without_running_queued_edits(bridge):

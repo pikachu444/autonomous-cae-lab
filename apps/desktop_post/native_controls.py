@@ -14,8 +14,9 @@ _live_windows = set()  # Retain C callbacks even if native uninstall reports fai
 
 
 class Controls:
-    def __init__(self, owner, platform, *, busy=lambda: False, log=None):
+    def __init__(self, owner, platform, *, busy=lambda: False, log=None, on_closed=None):
         self.owner, self.platform, self.busy, self.log = owner, platform, busy, log
+        self.on_closed = on_closed
         self.main = None
         self.in_action = self.closed = False
 
@@ -76,7 +77,11 @@ class Controls:
         if self.closed:
             return False
         if message == WM_NCDESTROY:
-            self.close()
+            try:
+                self.close()
+            finally:
+                if self.on_closed is not None:
+                    self.on_closed()
             return False
         if message != WM_CLOSE:
             return False
@@ -249,7 +254,7 @@ class _Windows:
                 '변경 내용을 저장하고 닫을까요?\n\n예: 저장하고 닫기\n아니요: 저장하지 않고 닫기\n취소: 편집 계속',
                 '프로젝트 저장', 0x3 | 0x200)
             return {6:'save',7:'discard'}.get(choice,'cancel')
-        buttons = (_Button*3)(_Button(1001,'저장'),_Button(1002,'버리기'),_Button(2,'취소'))
+        buttons = (_Button*3)(_Button(1001,'저장'),_Button(1002,'저장 안 함'),_Button(2,'취소'))
         dialog = _Dialog(); dialog.size = ctypes.sizeof(dialog); dialog.parent = main
         dialog.flags = 8; dialog.title = '프로젝트 저장'; dialog.instruction = '변경 내용을 저장하고 닫을까요?'
         dialog.content = '현재 표시와 해석 설정을 같은 프로젝트에 저장합니다.'
@@ -276,11 +281,11 @@ class _Windows:
             _live_windows.discard(self)
 
 
-def install(owner, *, busy=lambda: False, log=None):
+def install(owner, *, busy=lambda: False, log=None, on_closed=None):
     owner.assert_thread()
     if os.name != 'nt':
         return None
-    controls = Controls(owner, _Windows(), busy=busy, log=log)
+    controls = Controls(owner, _Windows(), busy=busy, log=log, on_closed=on_closed)
     try:
         controls.refresh()
     except Exception:

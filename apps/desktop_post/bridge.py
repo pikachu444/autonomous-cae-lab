@@ -92,6 +92,7 @@ class Owner:
         self._content = None
         self._view = None
         self._observers = {}
+        self.closed = False
         self.completed = {}
         self.modified_events = 0
         self.workspace = None
@@ -126,6 +127,8 @@ class Owner:
 
     def refresh(self):
         self.assert_thread()
+        if self.closed:
+            raise RuntimeError('STALE_DOCUMENT: the native Post session is closed')
         sources = {}
         content = {}
         for (label, _), source in p.GetSources().items():
@@ -174,6 +177,8 @@ class Owner:
 
     def _modified(self, source):
         self.assert_thread()
+        if self.closed:
+            return
         self.modified_events += 1
         if self._content is not None:
             identifier = proxy_id(source)
@@ -182,6 +187,13 @@ class Owner:
                 # Observe each checked edit/Undo even if two edits happen between ticks.
                 self._content[identifier] = applied
                 self.generation += 1
+
+    def close(self):
+        self.assert_thread()
+        self.closed = True
+        for identifier, (native, tag) in list(self._observers.items()):
+            native.RemoveObserver(tag)
+            self._observers.pop(identifier)
 
     def descriptor(self):
         self.assert_thread()
@@ -313,6 +325,8 @@ class GuiDispatch:
         self.broker_stop = None
         self.command_gate = DispatchGate()
         self.native_controls = None
+        self.closed = False
+        self.broker_close = None
 
     def install(self, interval=100):
         self.owner.assert_thread()
@@ -327,19 +341,23 @@ class GuiDispatch:
         self.timer = interactor.CreateRepeatingTimer(interval)
         if not self.timer:
             interactor.RemoveObserver(self.observer)
+            self.observer = None
             raise RuntimeError("GUI_DISPATCH_UNAVAILABLE: native Qt interactor timer creation failed")
         try:
             if __package__:
                 from .native_controls import install
             else:
                 from native_controls import install
-            self.native_controls = install(self.owner, busy=lambda: self.command_gate.executing)
+            self.native_controls = install(self.owner, busy=lambda: self.command_gate.executing,
+                                           on_closed=self.close)
         except Exception as error:
             print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
         return self
 
     def _tick(self, *_):
         self.owner.assert_thread()
+        if self.closed:
+            return
         if self.native_controls is not None:
             try:
                 self.native_controls.refresh()
@@ -396,12 +414,38 @@ class GuiDispatch:
 
     def close(self):
         self.owner.assert_thread()
-        if self.native_controls is not None:
-            self.native_controls.close()
-        commands.clear_save_owner(self.owner)
-        if self.interactor is not None:
-            self.interactor.DestroyTimer(self.timer)
-            self.interactor.RemoveObserver(self.observer)
+        if self.closed:
+            return
+        if self.command_gate.executing:
+            raise RuntimeError('BUSY_EDIT: native work is still running')
+        self.closed = True
+        # Keep the closed receipt on the existing broker; it reconciles queued
+        # commands without pretending a native calculation was cancelled.
+        if self.broker_close is not None:
+            self.broker_close()
+        elif self.broker_stop is not None:
+            self.broker_stop.set()
+        self.command_gate.complete()
+        while not self.incoming.empty():
+            try:
+                self.incoming.get_nowait()
+            except queue.Empty:
+                break
+        try:
+            if self.native_controls is not None:
+                self.native_controls.close()
+        finally:
+            commands.clear_save_owner(self.owner)
+            try:
+                if self.interactor is not None:
+                    try:
+                        if self.timer:
+                            self.interactor.DestroyTimer(self.timer)
+                    finally:
+                        if self.observer is not None:
+                            self.interactor.RemoveObserver(self.observer)
+            finally:
+                self.owner.close()
 
 
 from caelab.native_transport import BrokerIO as _NativeBrokerIO
@@ -411,13 +455,19 @@ class BrokerIO(_NativeBrokerIO):
     def __init__(self, dispatcher, service_url, *, log=None, tick_timeout=30):
         super().__init__(dispatcher, service_url, application="paraview",
                          version=str(p.GetParaViewVersion()), log=log, tick_timeout=tick_timeout)
+        dispatcher.broker_close = self.close
 
 
 def start(service_url, *, log=None):
     owner = Owner()
-    dispatcher = GuiDispatch(owner).install()
-    broker = BrokerIO(dispatcher, service_url, log=log).start()
-    commands.set_save_owner(owner)
+    dispatcher = GuiDispatch(owner)
+    try:
+        dispatcher.install()
+        broker = BrokerIO(dispatcher, service_url, log=log).start()
+        commands.set_save_owner(owner)
+    except Exception:
+        dispatcher.close()
+        raise
     return owner, dispatcher, broker
 
 
