@@ -1,5 +1,77 @@
 # NS1 구현 제출 상태
 
+## 2026-10-14 반복 수렴 작업 연결 — 0548ee0 기준
+
+요청 **PRO-NS1-CONVERGENCE-20261014-03**. 아래 옛 제출 기록과 구별한다.
+입력 편집·동결·기존 adapter/JobManager 결과·Runner 반복 이력·실패 수정과 재열기를
+연결하는 코드/패치를 제출한다. CURRENT_STATE/HANDOFF, motion/shell/Q2 및
+material_panel.py는 수정하지 않았다. 공통 bridge/native_commands/connection는 별도 integration.patch다.
+원격 브랜치 게시나 main 병합은 이 제출에서 하지 않는다. 추가 workflow/solver/비용은 없다.
+
+### 이번 변경
+
+수렴 전용 native panel은 실제 해석/solver를 선택하여 FIELD, 기존 TIME 두 행,
+정적 면 penalty 접촉의 line search 배율을 편집한다. 잘못된 초안 저장·명시 적용,
+외부 native TIME 변경 감지, 지연 응답과 대상 전환을 처리한다. TIME은 기존 속성,
+FIELD/LINE SEARCH는 같은 native 문서 메타데이터와 Lab deck 경계로 연결한다.
+공유 저장 형식의 필수 필드는 변경하지 않는다. 보존 원문/이전 설정을 묵시적으로 바꾸지 않는다.
+
+CVG의 백분율과 stdout의 N/mm 원값·절점/DOF·native 판정을 키
+STEP/INC/ATT/ITER로 연결한다. stdout의 늦은 STEP 제목을 행 순서로 해석하지 않는다.
+입력 기준선은 판정과 별개이며 실제 1% 예외 사례도 유지한다. 결측·EOF·내부 손상·
+대응 충돌을 구분하고 극소 분모 표식은 실제 노름 곡선에 넣지 않는다.
+읽기 결과는 기존 실행 결과와 convergence_history.json에 저장한다.
+기존 저장 로그 재열기는 정확한 시도의 파일 핀과 검증된 바이트를 이용하며 계산하지 않는다.
+
+Runner는 선택한 시도의 표·그래프·원문·입력 기준, UI 선택 재열기를 제공한다.
+기존 조건 수정 동작으로 보존 입력을 새 설계로 열어 수정 후 명시 실행한다.
+다른 시도를 같은 정상 곡선으로 잇지 않고 원 실패/취소·원 입력을 유지한다.
+이전 J2 적용 스냅샷 교정과 frozen_fem/retained_prefix의 9/99/999 후속 교정은 그대로다.
+
+### 수행한 검사와 하지 않은 검사
+
+최종 서로 겹치지 않는 검사: **173개 기능/회귀 + 24개 실제 Qt/명령 연결 =
+197 passed, 0 failed, 0 skipped**. 각각 완료된 XML을 인도물에 포함한다.
+이 숫자는 과거의 195개나 native 해석 횟수가 아니다.
+
+기능 검사는 수렴 초안/카드/메타데이터, 제공 실제 로그 25반복/10증분,
+합성 EOF/내부 손상/거절/다단계, 단일 실패·접촉 실패·접촉 취소에서 조건 수정→
+새 입력/새 시도→원 파일 보존을 포함한다. 별도 Python 프로세스에서 solver 경로 없이
+원 로그를 재열었다. 기존 contact_steps/execution/native_export, NS1 재료/수집 및
+후속 종료마커를 포함한 partial_eof 회귀를 함께 실행했다.
+
+Qt는 Linux PySide6 6.9.1 offscreen의 실제 이벤트와 렌더다. native 설정 480/1100,
+Runner 740/1100, 키보드 입력·오류 복구·지연 응답·선택 복원, 기존 로그 버튼의
+다른 시도 거절 및 선택 보존을 검사했다. 변경 전 Runner도 같은 제공 로그/크기로
+렌더했다. Windows OS 입력·DPI·FreeCAD docking 또는 ParaView 실행 증거는 아니다.
+네이티브 객체와 solver 프로세스는 명시 대역이다. 물리 수렴을 새로 입증하지 않았다.
+
+제공 reference_native_run 원문은 fixture로 바이트 그대로 복사했다. 실제 native 실행은
+제공자(Codex)의 기록이며 작성자의 새 계산이 아니다. 이 변경에 대한 Astra 독립 검토와
+Codex Windows native 수용은 미실행이다. 옛 80pass/1skip/2UI fail과 Sol의 후속 수정은
+기준 소스에 보존했으며 이번 숫자로 다른 작업의 상태를 덮지 않는다.
+
+시험용 import 환경은 기존 fa7dfe0 전체 소스 아카이브에 제공된 0548ee0 ZIP 전체를
+덮어 구성했다. 공개 Git compare로 비첨부 Core/JobManager/storage 지원 모듈에
+두 버전 간 변경이 없음을 확인했다. 바뀐 비첨부 Post UI 등은 시험 대상이 아니다.
+정확한 전체 0548ee0 checkout에서 전체 suite를 통과했다고 주장하지 않는다.
+
+### 중요한 지원 경계
+
+2.22 매뉴얼 §7.24(438–442쪽)와 지정 source를 실제로 대조했다. 매뉴얼의
+LINE SEARCH 두 배율 위치는 실행 source와 반대여서 실제 nonlingeo 소비 위치
+(둘째=min, 셋째=max)을 사용한다. Windows 바이너리 확인은 인계 항목이다.
+FreeCAD 저장 TIME 기본값과 CCX 기본값도 별도로 표시한다.
+
+FIELD/LINE SEARCH 추가 카드는 Lab 입력 준비/실행에만 적용된다. FreeCAD 기본
+Run이 supplemental 메타데이터를 쓰는 것처럼 표시하지 않는다. CONTACT 전용
+itf2f 등의 추가 편집, 범용 Newton line search, STATIC,STABILIZE/정적 안정화 에너지,
+새 열/NS2 동적 제어, 실행 중 원파일 live tail은 이번 완료 범위가 아니다.
+기존 기계 동적 TIME 카드와 시간 의미를 보존한다. 전체 NS1/AC12·13의 Windows
+사용자 수용 완료는 별도 확인한다. [한글 사용법](NS1_CONVERGENCE_KO.md).
+
+## 이전 제출 기록
+
 ## 2026-10-14 자료무결성 교정 제출
 
 요청 **PRO-NS1-CORRECTION-20261014-01**. 기준 PR8 `2ff3f6b` (제품 `fa7dfe0`).
@@ -111,7 +183,8 @@ Codex 확인이 필요하다. 준비한 공개 입력과 따라 하기는 NS1_US
 
 최초 제출 당시 Astra 독립 검토는 미실행이었다. 이후 Codex가 전달한 독립 검토와
 이번 교정 상태는 위 자료무결성 교정 절을 따른다. 작성자 자체 검사는 독립 재검토가 아니다.
-stdout의 반복별 잔차 곡선 읽기와 새 범용 수렴 허용오차 편집기는 잔여다.
+당시에는 stdout 반복별 잔차 곡선 읽기와 수렴 허용오차 편집기가 잔여였다.
+현재 구현과 제한은 이 문서 최상단의 수렴 작업 연결 절을 따른다.
 STATIC,STABILIZE 및 범용 Newton line search는 이번 2.22 경로에서 지원하지 않는다.
 원 stdout, 지원하는 기존 두 행 제어, STA 반복/거절/관측 cutback은 보존한다.
 

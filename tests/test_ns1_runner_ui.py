@@ -39,7 +39,8 @@ def test_retained_material_attempts_and_missing_information_are_not_execution(ap
     assert '등가 소성변형률' in dialog.points.horizontalHeaderItem(0).text()
     assert '진응력' in dialog.points.horizontalHeaderItem(1).text()
     assert '거절 시도: 2' in dialog.summary.text() and '관측 증분 축소: 1' in dialog.summary.text()
-    assert 'STA에 없음' in dialog.summary.text()
+    assert '반복 기록 없음' in dialog.summary.text()
+    dialog.views.setCurrentWidget(dialog.input_page); app.processEvents()
     assert '누적 단계 진행값' in dialog.attempts.horizontalHeaderItem(4).text()
     assert dialog.attempts.item(1,5).text()=='0.25'
     assert calls==[] and result==original

@@ -257,6 +257,7 @@ class ContactFemCalculixAdapter:
                 'snapshot_id':manifest['id'],'axis':contact_axis(model),
                 'program':model.get('analysis_steps'), 'step':deepcopy(model['step']),
                 'materials':deepcopy(model['materials']),
+                'penalty_contact':any(p['draft']['normal_law']=='linear' for p in model['contacts']),
                 'unavailable_controls': ['STATIC,STABILIZE (CalculiX 2.22)', 'generic Newton line search'],
                 'conditions':[{'object_id':r['object_id'],'label':r.get('label',r['object_id']),
                                'type':r['type'],'body_id':r['body_id']} for r in model.get('conditions',[])]}
@@ -312,6 +313,10 @@ class ContactFemCalculixAdapter:
                         'sha256':_sha(artifact),'native_metadata':metadata}
                 except (ValueError,OSError,KeyError,TypeError,IndexError,UnicodeError) as error:
                     result.setdefault('diagnostics',{})['partial_readback']=str(error)
+        if result.get('executed_setup'):
+            from ..contact_status import iteration_history
+            result['convergence_history'] = iteration_history(output, result)
+            save_json(output / 'convergence_history.json', result['convergence_history'])
         result['limitations'] = [
             'Static steps use cumulative dimensionless load parameter; dynamic-only steps use seconds. Mixed procedures and within-step contact activation are not supported',
             'FRD contact is native projected/averaged nodal output, not pair-specific integration point output',

@@ -178,3 +178,15 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     destination.write_text(''.join(lines[:stop]).rstrip('\n') + '\n 9999\n',
                            encoding='ascii', newline='\n')
     return observed
+
+
+def iteration_history(attempt, execution):
+    """Separate diagnostic channel, after owned process termination.
+
+    Neither a CVG threshold nor stdout text upgrades the JobManager status.
+    FRD prefix admission continues to use the existing strict STA/FRD contract.
+    """
+    from .calculix_convergence import read_convergence
+    return read_convergence(attempt, execution['executed_setup'],
+                            execution.get('increment_history'),
+                            execution_status=execution.get('execution_status'))

@@ -239,8 +239,8 @@ def render_steps(model):
         lines.append(card+(',SOLVER='+solver if solver else '')+
                      ('' if model['step']['automatic'] else ',DIRECT'))
         lines.append(','.join(num(step[k]) for k in ('initial','duration','minimum','maximum')))
-        if model['step'].get('controls') is not None:
-            lines += ['*CONTROLS,PARAMETERS=TIME INCREMENTATION',*model['step']['controls']]
+        from .calculix_controls import cards as convergence_cards
+        lines += convergence_cards(model['step'])
         for mapping, card in ((step['boundary'],'*BOUNDARY'),(step['loads'],'*CLOAD')):
             groups = {}
             for key, points in sorted(mapping.items()):

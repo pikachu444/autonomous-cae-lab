@@ -317,6 +317,9 @@ class Connection:
             material_page = getattr(dock.widget(), 'material_page', None) if dock is not None else None
             if material_page is not None and material_page.pending_changes():
                 raise ValueError('재료 또는 기하 설정에 미적용 편집이 있습니다. 초안 저장/적용 또는 저장본 읽기 후 진행하세요.')
+            convergence_page = getattr(dock.widget(), 'convergence_page', None) if dock is not None else None
+            if convergence_page is not None and convergence_page.pending_changes(selected.Name, solvers[0].Name):
+                raise ValueError('수렴 설정에 미저장 편집이 있습니다. 초안을 저장하고 적용한 뒤 진행하세요.')
             owner.refresh()
             from .nonlinear_material import uses_solid_route
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,

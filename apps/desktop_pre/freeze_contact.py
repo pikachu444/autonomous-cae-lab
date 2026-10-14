@@ -270,6 +270,8 @@ def collect(analysis, solver, fem):
         axis_semantics='static_load_parameter_not_physical_seconds',
         controls=[solver.IterationsControlParameterIter, solver.IterationsControlParameterCutb]
                  if solver.IterationsControlParameterTimeUse else None)
+    from .convergence import effective as convergence_effective
+    model['step'].update(convergence_effective(fem, analysis, solver))
     if program is not None:
         model['analysis_steps'] = program
     has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])

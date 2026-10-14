@@ -163,7 +163,7 @@ def validate_model(model):
         dependent.update(slave)
     step = model['step']
     if set(step) - {'initial', 'period', 'minimum', 'maximum', 'increments', 'geometry',
-                    'automatic', 'matrix_solver', 'axis_semantics', 'controls'}:
+                    'automatic', 'matrix_solver', 'axis_semantics', 'controls', 'field_controls', 'line_search_controls'}:
         raise ValueError('Unsupported static controls: STABILIZE and generic line search are not generated.')
     times = [number(step[key]) for key in ('initial', 'period', 'minimum', 'maximum')]
     if any(value <= 0 for value in times) or not times[2] <= times[0] <= min(times[1], times[3]):
@@ -172,16 +172,9 @@ def validate_model(model):
         raise ValueError('Invalid native static step')
     if type(step['automatic']) is not bool or step['matrix_solver'] not in ('default', 'spooles', 'pastix', 'pardiso', 'iterativescaling', 'iterativecholesky'):
         raise ValueError('Unsupported native static solver')
-    controls = step.get('controls')
-    if controls is not None:
-        if not isinstance(controls, list) or len(controls) != 2:
-            raise ValueError('Time incrementation controls require the two native rows')
-        for row in controls:
-            if not isinstance(row, str) or '\n' in row or '\r' in row:
-                raise ValueError('Invalid native time control row')
-            for token in row.split(','):
-                if token.strip():
-                    number(token)
+    from .calculix_controls import validate_step_controls
+    validate_step_controls(step, procedure=model.get('analysis_steps', {}).get('procedure', 'static'),
+        penalty=any(p['draft']['normal_law'] == 'linear' for p in model['contacts']))
     if 'analysis_steps' in model:
         from .contact_steps import compile_program, validate_contributions
         validate_contributions(model)
@@ -226,8 +219,8 @@ def render(model):
         return '\n'.join(lines + render_steps(model) + [''])
     step = model['step']
     lines.append('*STEP,INC=' + str(step['increments']) + (',NLGEOM' if step['geometry'] == 'nonlinear' else ''))
-    if step.get('controls') is not None:
-        lines.extend(['*CONTROLS,PARAMETERS=TIME INCREMENTATION', *step['controls']])
+    from .calculix_controls import cards as convergence_cards
+    lines.extend(convergence_cards(step))
     solvers = {'default': '', 'spooles': 'SPOOLES', 'pastix': 'PASTIX', 'pardiso': 'PARDISO',
                'iterativescaling': 'ITERATIVE SCALING', 'iterativecholesky': 'ITERATIVE CHOLESKY'}
     selected = solvers[step['matrix_solver']]

@@ -153,3 +153,10 @@ docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_Detailed_Plan_v1.md -text
 docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_Detailed_Plan_v2.md -text whitespace=-blank-at-eol,-blank-at-eof
 docs/REQUIREMENTS_VALIDITY_REVIEW.md -text whitespace=-blank-at-eol,-blank-at-eof
 docs/design/20261011-product-ui-mcp/*.pdf binary
+
+# Native convergence logs retain their original bytes across checkouts.
+tests/fixtures/ns1_convergence_0548ee0/*.log -text
+tests/fixtures/ns1_convergence_0548ee0/*.cvg -text
+tests/fixtures/ns1_convergence_0548ee0/*.sta -text
+tests/fixtures/ns1_convergence_0548ee0/*.inp -text
+tests/fixtures/ns1_convergence_0548ee0/*.json -text

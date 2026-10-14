@@ -31,6 +31,7 @@ CAPABILITIES = {
             'pre.fem.mesh_cancel', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view',
             'pre.fem.region_set', 'pre.fem.region_remove', 'pre.fem.condition_set',
             'pre.fem.condition_repair', 'pre.fem.material_set', 'pre.fem.task_edit',
+            'pre.fem.convergence_read', 'pre.fem.convergence_save', 'pre.fem.convergence_apply',
             'pre.fem.plasticity_read', 'pre.fem.plasticity_save', 'pre.fem.plasticity_apply', 'pre.fem.nonlinear_settings',
             'pre.contact.set', 'pre.contact.remove', 'pre.contact.swap', 'pre.contact.highlight',
             'pre.contact.preview_rebind', 'pre.contact.apply_rebind', 'pre.contact.cancel_rebind',

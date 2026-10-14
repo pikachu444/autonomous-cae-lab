@@ -20,12 +20,13 @@ from apps.desktop_pre.parameters import Parameters, OPERATIONS as PARAMETER_OPER
 from apps.desktop_pre.projects import Project, OPERATIONS as PROJECT_OPERATIONS
 from apps.desktop_pre.motion import Motion, OPERATIONS as MOTION_OPERATIONS
 from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
+from apps.desktop_pre.convergence import OPERATIONS as CONVERGENCE_OPERATIONS
 from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
 
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + RESEARCH_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -249,7 +250,7 @@ class Owner:
             else:
                 if operation not in {'document.activate', 'pre.contact.cancel_rebind'}:
                     self._idle()
-                readonly = {'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
+                readonly = {'pre.fem.convergence_read', 'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
@@ -300,6 +301,9 @@ class Owner:
                     from .mesh_quality_compare import compare_mesh_quality
                     payload = compare_mesh_quality(self.fem, self._object(target['object_id']),
                                                    args['history_id'], args['mesh_sha256'])
+                elif operation in CONVERGENCE_OPERATIONS:
+                    from .convergence import dispatch as convergence_dispatch
+                    payload = convergence_dispatch(self.fem, operation, args, target)
                 elif operation in FEM_OPERATIONS:
                     payload = self.fem.dispatch(operation, args, target)
                 elif operation == 'pre.workbench':

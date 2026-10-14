@@ -36,7 +36,7 @@ def uses_solid_route(analysis, metadata=None):
            (getattr(obj, 'MaterialNonlinearity', 'linear') != 'linear' or
             getattr(obj, 'GeometricalNonlinearity', 'linear') != 'linear') for obj in active):
         return True
-    return any(row.get('analysis_id') == analysis.Name for key in ('plasticity_drafts', 'contact_programs')
+    return any(row.get('analysis_id') == analysis.Name for key in ('plasticity_drafts', 'contact_programs', 'convergence_drafts')
                for row in (metadata or {}).get(key, []))
 
 
