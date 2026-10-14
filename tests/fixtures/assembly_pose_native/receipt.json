@@ -1,0 +1,25 @@
+{
+  "solver_executed": false,
+  "gui_workflow_acceptance": false,
+  "scope": "Actual native motion and separate occurrence FE model preparation with Gmsh. Not a GUI action workflow or engineering approval.",
+  "selection": {
+    "assembly_id": "WorkingAssembly",
+    "calculation_id": "K78aa1897822c4c09a10537379a6ff1c9",
+    "frame": 5
+  },
+  "motion_duration_s": 14.202999999979511,
+  "success": false,
+  "error_type": "RuntimeError",
+  "message": "기구 기준 부품: 실제 해석 형상이 선택 자세와 다릅니다. 준비한 사본을 보존했습니다.",
+  "traceback": "Traceback (most recent call last):\n  File \"C:/SourceCodes/autonomous-cae-lab/runs/m4n2/check.FCMacro\", line 18, in <module>\n    start=time.monotonic();result=verify_selected(OUT/'candidate',**selection,with_mesh=True)\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\SourceCodes\\autonomous-cae-lab\\examples\\assembly-candidate\\native_check.py\", line 75, in verify_selected\n    if job.current['state']!='READY':raise RuntimeError(job.current['message'])\n                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: 기구 기준 부품: 실제 해석 형상이 선택 자세와 다릅니다. 준비한 사본을 보존했습니다.\n",
+  "freecad_version": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ]
+}

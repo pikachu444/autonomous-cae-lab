@@ -40,6 +40,8 @@ CAPABILITIES = {
 }
 from apps.desktop_pre.shell_edit import OPERATIONS as SHELL_OPERATIONS
 CAPABILITIES['pre'].update(SHELL_OPERATIONS)
+from apps.desktop_pre.assembly_pose_candidate import OPERATIONS as POSE_CANDIDATE_OPERATIONS
+CAPABILITIES['pre'].update(POSE_CANDIDATE_OPERATIONS)
 
 
 from .beam_model import OPERATIONS as BEAM_OPERATIONS

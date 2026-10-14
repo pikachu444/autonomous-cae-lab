@@ -17,7 +17,7 @@ import uuid
 
 from .contact import ContactEditor, OPERATIONS as CONTACT_OPERATIONS
 from . import nonlinear_material
-from .freeze_analysis import CCX_FROM_NATIVE_TET10
+from .freeze_analysis import CCX_FROM_NATIVE_TET10, require_ready_model
 from .mesh_binding import PROPERTY_NAME, global_placement
 
 
@@ -656,6 +656,7 @@ class FEMEditor:
         self.owner.write_metadata(data)
 
     def _generate(self, mesh, *, owned_directory=None):
+        require_ready_model(self.owner.doc, owner=self.owner)
         errors = self._refinement_errors(mesh)
         if errors:
             raise ValueError(errors[0])
@@ -739,6 +740,7 @@ class FEMEditor:
                 raise ValueError('Native Gmsh generation was cancelled; prior mesh retained')
             if code != 0 or getattr(status, 'value', status) != 0:
                 raise ValueError('Native Gmsh did not exit successfully')
+            require_ready_model(self.owner.doc, owner=self.owner)
             if self._generation_stamp(mesh) != pending['stamp']:
                 raise ValueError('STALE_GENERATION: source, mesh or settings changed; generated output not applied')
             def apply():
@@ -756,7 +758,7 @@ class FEMEditor:
                 # A generated invalid/unsupported mesh is an editable native draft.
                 # Preserve its predecessor in the same FCStd, outside Analysis.Group.
                 archive = self.owner.doc.addObject('Fem::FemMeshObject', 'CAELabMeshHistory' + pending['id'])
-                archive.Label = mesh.Label + ' — previous mesh ' + pending['id']
+                archive.Label = mesh.Label + ' 이전 메시'
                 archive.FemMesh = pending['old_mesh']
                 archive.ViewObject.Visibility = False
                 self._history(pending['id'], state='SUCCEEDED', mesh_sha256=quality['mesh_sha256'],
@@ -807,6 +809,11 @@ class FEMEditor:
         errors = []
         def fail(path, message):
             errors.append({'path': path, 'message': message, 'severity': 'error', 'blocks_evaluation': True})
+        try:
+            require_ready_model(self.owner.doc, owner=self.owner)
+        except Exception as error:
+            fail('assembly_pose_candidate', str(error))
+            return errors
         if self._pending:
             fail('mesh', 'Native mesh generation is still running')
         if analysis.Document is not self.owner.doc or _native_type(analysis) != 'Fem::FemAnalysis':

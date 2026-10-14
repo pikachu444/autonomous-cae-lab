@@ -1,0 +1,13 @@
+# Run in a new FreeCAD process with no documents open.
+import runpy
+from pathlib import Path
+import FreeCADGui as Gui
+from PySide import QtGui
+try:
+    from PySide import QtWidgets
+except ImportError:
+    QtWidgets=QtGui
+folder=QtWidgets.QFileDialog.getExistingDirectory(Gui.getMainWindow(),'edited.caepre가 있는 acceptance 폴더 선택')
+if folder:
+    code=runpy.run_path(str(Path(__file__).with_name('native_check.py')))
+    code['verify_cold'](Path(folder)/'edited.caepre',Path(folder)/'native-check.json')

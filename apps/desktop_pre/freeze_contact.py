@@ -12,7 +12,7 @@ import uuid
 
 from caelab.contact import separate_meshes, surface_union, number
 from caelab.contact_deck import UNITS, contact_cards, render, validate_model
-from .freeze_analysis import _json, _hash, _plain
+from .freeze_analysis import _json, _hash, _plain, require_ready_model
 from .fem_edit import _native_type, _target, _references
 from . import nonlinear_material
 from caelab.calculix_material import J2, has_plasticity
@@ -50,13 +50,14 @@ def _native_force_table(node_load_table):
 
 
 def collect(analysis, solver, fem):
+    if threading.current_thread() is not threading.main_thread():
+        raise ValueError('Contact export requires the native main thread')
+    owner, doc = fem.owner, analysis.Document
+    require_ready_model(doc, owner=owner)
     import FreeCAD as App
     from femtools import membertools
     from femmesh import meshtools
     from femmesh.meshsetsgetter import MeshSetsGetter
-    if threading.current_thread() is not threading.main_thread():
-        raise ValueError('Contact export requires the native main thread')
-    owner, doc = fem.owner, analysis.Document
     if doc is not owner.doc or _native_type(analysis) != 'Fem::FemAnalysis':
         raise ValueError('Select this document’s native Analysis')
     if solver not in analysis.Group or _native_type(solver) != 'Fem::SolverCcxTools':
@@ -289,9 +290,9 @@ def collect(analysis, solver, fem):
 
 
 def freeze_contact(analysis, solver, output_root, *, fem):
+    model, identity = collect(analysis, solver, fem)
     import FreeCAD as App
     from femsolver.calculix import write_constraint_contact
-    model, identity = collect(analysis, solver, fem)
     for material in model['materials']:
         nonlinear_material.verify_native_writer(fem, material)
     # The installed writer is authoritative for these contact cards. Compare its

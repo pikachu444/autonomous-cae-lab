@@ -1,0 +1,18 @@
+# Actual native Gmsh meshing through the existing FEM owner; no FEM solver run.
+import runpy
+from pathlib import Path
+import FreeCADGui as Gui
+from PySide import QtGui
+try:
+    from PySide import QtWidgets
+except ImportError:
+    QtWidgets=QtGui
+import sys
+root=Path(__file__).resolve().parents[2]
+if str(root) not in sys.path: sys.path.insert(0,str(root))
+from caelab.storage import load_json
+folder=QtWidgets.QFileDialog.getExistingDirectory(Gui.getMainWindow(),'예제 저장 폴더 선택')
+if folder:
+    selected=load_json(Path(folder)/'selected-frame.json')
+    code=runpy.run_path(str(Path(__file__).with_name('native_check.py')))
+    code['verify_selected'](Path(folder)/'acceptance',**selected,with_mesh=True)

@@ -11,6 +11,23 @@ import uuid
 CCX_FROM_NATIVE_TET10 = (1, 0, 2, 3, 4, 6, 5, 8, 7, 9)
 
 
+def require_ready_model(doc, *, owner=None):
+    """Admit managed pose candidates without repairing or refreshing their CAD."""
+    from . import metadata
+    reader = getattr(owner, 'read_metadata', None)
+    stored = reader() if reader else metadata.read(doc) if hasattr(doc, 'getObject') else {}
+    if 'assembly_pose_candidate' not in stored:
+        return
+    from .assembly_pose_candidate import require_valid
+    if owner is None:
+        from types import SimpleNamespace
+        owner = SimpleNamespace(doc=doc, read_metadata=lambda: metadata.read(doc))
+    report = require_valid(owner, exact=False)
+    if report['state'] != 'READY':
+        raise ValueError('선택 자세 모델의 준비가 끝나지 않았습니다. 보존한 원 조립에서 다시 만들거나 준비된 사본을 여세요.')
+    return report
+
+
 def _json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2,
                                allow_nan=False) + "\n", encoding="utf-8")
@@ -320,16 +337,16 @@ def freeze_analysis(analysis, solver, output_root, *, binding_validator=None):
     Must be called on FreeCAD's GUI/main thread after native editing/recompute.
     An incomplete export may remain for diagnosis; only snapshot.json publishes it.
     """
+    import threading
+    if threading.current_thread() is not threading.main_thread():
+        raise ValueError("Export requires the native main thread")
+    doc = analysis.Document
+    require_ready_model(doc)
     import FreeCAD as App
     from femtools import femutils, membertools, checksanalysis
     from femmesh import meshtools
     from femmesh.meshsetsgetter import MeshSetsGetter
     from femsolver.calculix.writer import FemInputWriterCcx
-
-    import threading
-    if threading.current_thread() is not threading.main_thread():
-        raise ValueError("Export requires the native main thread")
-    doc = analysis.Document
     if App.GuiUp:
         import FreeCADGui as Gui
         if Gui.Control.activeDialog() or (Gui.activeDocument() and Gui.activeDocument().getInEdit()):
@@ -397,6 +414,7 @@ def freeze_analysis(analysis, solver, output_root, *, binding_validator=None):
     settings = {name: _plain(getattr(solver, name)) for name in solver.PropertiesList if name != "Proxy"}
     native_material = _plain(material.Material)
     def native_state():
+        require_ready_model(doc)
         # Read live source again after the native writer, so its output cannot
         # be published against changed supports, force references or mesh data.
         shape_value = shape.Shape

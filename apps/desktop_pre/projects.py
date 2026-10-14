@@ -16,6 +16,8 @@ OPENED = {}
 
 def remember_open(doc, manifest, source):
     """Only the actual native opener can attach the verified restored context."""
+    from .assembly_pose_source import restore_retained_source
+    restore_retained_source(doc, manifest)
     restore_document_labels(doc, manifest)
     OPENED[doc.Name] = (doc, deepcopy(manifest), str(source))
 
@@ -277,7 +279,7 @@ class Project:
                 if gdoc is not None and gdoc.getInEdit():
                     raise ValueError('BUSY_EDIT: finish/cancel the linked document task before saving')
                 native = stage / ('source-' + doc.Name + '.FCStd')
-                exact_shape = bool(metadata.get('candidate_recipe') or metadata.get('candidate_branch'))
+                exact_shape = bool(metadata.get('candidate_recipe') or metadata.get('candidate_branch') or metadata.get('assembly_pose_candidate'))
                 save_native_copy(doc, native, App=owner.App if exact_shape else None)
                 if not native.is_file():
                     raise ValueError('Native saveCopy did not produce the editable document')

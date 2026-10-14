@@ -23,12 +23,13 @@ from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 from apps.desktop_pre.convergence import OPERATIONS as CONVERGENCE_OPERATIONS
 from apps.desktop_pre.beam_edit import BeamEditor, OPERATIONS as BEAM_OPERATIONS
 from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
+from apps.desktop_pre.assembly_pose_candidate import PoseCandidates, OPERATIONS as POSE_CANDIDATE_OPERATIONS, READ_ONLY as POSE_CANDIDATE_READ_ONLY
 from apps.desktop_pre.shell_edit import ShellEditor, OPERATIONS as SHELL_OPERATIONS, READ_ONLY as SHELL_READ_ONLY
 
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS + POSE_CANDIDATE_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -63,6 +64,7 @@ class Owner:
         self.beam = BeamEditor(self)
         self.research = ResearchInputs(self)
         self.shell = ShellEditor(self)
+        self.pose_candidates = PoseCandidates(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
             if (hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None
@@ -139,6 +141,8 @@ class Owner:
 
     def before_design_action(self, reason):
         self.assert_thread()
+        if self.pose_candidates.busy:
+            raise ValueError('선택 자세의 해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
         if self.fem._pending:
             raise ValueError('MESH_BUSY: finish/cancel the native mesh generation before ' + reason)
         if self.recovery_error:
@@ -195,6 +199,7 @@ class Owner:
                 'capabilities': list(OPERATIONS), 'objects': objects,
                 'object_count': len(self.doc.Objects), 'selection': self._selection,
                 'mesh_binding_diagnostics': dict(self.binding_diagnostics),
+                'assembly_candidate': self.pose_candidates.descriptor(),
                 'motion': motion, 'fem': self.fem_descriptor(), 'project': self.project.descriptor(),
                 'recovery_error': self.recovery_error,
                 'pending_edit': bool(self.Gui.Control.activeDialog() or
@@ -258,10 +263,12 @@ class Owner:
                 readonly = {'pre.fem.convergence_read', 'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.beam.inspect', 'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
-                readonly |= SHELL_READ_ONLY
+                readonly |= SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY
+                if self.pose_candidates.busy and operation not in readonly | {'pre.assembly_candidate.cancel', 'document.activate'}:
+                    raise ValueError('해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
                     raise ValueError('MESH_BUSY: finish/cancel this native mesh generation before another design command')
-                if (operation not in readonly and operation not in MOTION_OPERATIONS
+                if (operation not in readonly and operation not in MOTION_OPERATIONS and operation not in POSE_CANDIDATE_OPERATIONS
                         and operation not in {'document.activate', 'pre.fem.mesh_cancel', 'pre.links.record'}):
                     self.before_design_action(operation)
                 if operation in {'document.save', 'document.undo', 'document.redo', 'document.activate'}:
@@ -303,6 +310,8 @@ class Owner:
                     payload = self.parameters.dispatch(operation, args, target)
                 elif operation in PROJECT_OPERATIONS:
                     payload = self.project.dispatch(operation, args, target)
+                elif operation in POSE_CANDIDATE_OPERATIONS:
+                    payload = self.pose_candidates.dispatch(operation, args, target)
                 elif operation in MOTION_OPERATIONS:
                     payload = self.motion.dispatch(operation, args, target)
                 elif operation == 'pre.fem.mesh_view':
@@ -342,6 +351,8 @@ class Owner:
                 elif operation in {'pre.freeze', 'pre.contact.freeze'}:
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
+                    from apps.desktop_pre.freeze_analysis import require_ready_model
+                    require_ready_model(self.doc, owner=self)
                     from apps.desktop_pre.beam_menu import uses_beam
                     if uses_beam(self._object(args['analysis_id']), self.read_metadata()):
                         raise ValueError('빔 설정에서 입력을 생성하세요. 일반 FEM 입력으로 빔 끝 모멘트를 생략하지 않습니다.')
@@ -447,6 +458,7 @@ class Owner:
         mesh_view = getattr(self, '_mesh_element_view', None)
         if mesh_view is not None:
             mesh_view.close()
+        self.pose_candidates.close()
         self.fem.close()
         self.shell.close()
         if not self.closed:

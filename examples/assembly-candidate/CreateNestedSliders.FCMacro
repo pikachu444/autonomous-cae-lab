@@ -1,0 +1,4 @@
+# Run from this example directory in FreeCAD's Macro dialog.
+import runpy
+from pathlib import Path
+runpy.run_path(str(Path(__file__).with_name('create_nested_sliders.py')),run_name='__main__')

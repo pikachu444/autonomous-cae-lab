@@ -254,7 +254,10 @@ class Connection:
                     self.message.setText(str(exc))
                     self.log('response_failed', request=key, error=str(exc))
         documents = self.App.listDocuments()
+        from .assembly_pose_candidate import in_preparation
         for name, doc in documents.items():
+            if in_preparation(doc):
+                continue
             if name not in self.owners and 'reconnect' not in self.working:
                 previous = self.records.get(name, {})
                 identifier = previous.get('id') if doc.FileName and previous.get('working_file') == doc.FileName else None
@@ -562,6 +565,10 @@ class Connection:
                 submit = lambda operation, args, target=None, on_done=None: self.submit_native(operation, args, target, on_done, owner=owner)
                 widget = make_panel(self.QtWidgets, self.QtCore, owner.research, submit, self.create_numerical_plan)
                 title = '수치 연구'
+            elif kind == 'assembly_candidate':
+                from .assembly_pose_panel import make_panel
+                widget = make_panel(self, owner)
+                title = '선택 자세 해석'
             elif kind == 'project':
                 from .native_controls import project_panel
                 widget = project_panel(self, owner)
@@ -574,6 +581,8 @@ class Connection:
                     widget = factory(self.QtCore, self.QtWidgets, submit,
                                      read=lambda: dict(owner.descriptor(), session_id=owner.session_id),
                                      open_data=self.open_motion_data)
+                    from .assembly_pose_panel import attach_motion
+                    attach_motion(self, owner, widget.motion_controller)
                 else:
                     widget = factory(self.QtWidgets, self.QtCore, editor, submit)
                     if kind == 'shell': widget.shell_controller.attach(self)
@@ -587,6 +596,7 @@ class Connection:
             self.Gui.getMainWindow().addDockWidget(self.QtCore.Qt.RightDockWidgetArea, dock)
             panels[kind] = dock
         panels[kind].show(); panels[kind].raise_()
+        return panels[kind].widget()
 
     def reconnect(self):
         if self.pending or self.native_requests:
