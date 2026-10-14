@@ -131,7 +131,11 @@ def test_large_vector_norm_and_norm_relative_difference_use_full_baseline():
     for side in ('a','b'): r[side]['layout']={'kind':'vector','components':['x','y','z']}
     result=c.compare(np.array([[1e200,0,0.]]),np.array([[1e200,1,0.]]),r,[True])
     assert result['delta'][0]==1. and result['percent_valid'][0]
-    assert result['percent'][0]==pytest.approx(1e-198)
+    assert result['percent'][0] > 0.
+    assert result['percent'][0]==pytest.approx(1e-198, rel=1e-12, abs=0)
+    r['selection']='magnitude'
+    assert c.scalar(np.array([[1e200,0,0.]]),'vector','magnitude')[0] == 1e200
+    assert c.compare(np.array([[1e200,0,0.]]),np.array([[1e200,1,0.]]),r,[True])['percent'][0] > 0.
     result=c.compare(np.array([[0.,10,0]]),np.array([[0.,11,0]]),r,[True])
     assert result['percent'][0]==pytest.approx(10.)
 

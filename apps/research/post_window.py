@@ -408,7 +408,8 @@ class PostWindow(QMainWindow):
             return '저장된 설정을 확인하세요.'
         def original(ref):
             source = next((row for row in self._sources() if row['source_ref'] == ref), None)
-            return self.source_title(source) if source else '원 자료 미지정' if not ref else '다시 연결할 원 자료'
+            obj = next((row for row in self._objects() if row['id'] == ref), None)
+            return self.source_title(source) if source else obj.get('title', '저장 측정') if obj else '원 자료 미지정' if not ref else '다시 연결할 원 자료'
         def field_meaning(values):
             if not isinstance(values, dict):
                 return '형식이 맞지 않은 설정입니다. 기술 상세에서 원문을 확인하세요.'
@@ -615,6 +616,17 @@ class PostWindow(QMainWindow):
         self._update_actions()
         self._show_details()
 
+    def _source_choice_metadata(self, ref):
+        source = next((row for row in self._sources() if row['source_ref'] == ref), None)
+        if source:
+            return source.get('metadata') or source.get('native_metadata') or {}, source.get('native_metadata')
+        obj = next((row for row in self._objects() if row['id'] == ref), None)
+        if obj and obj.get('position', -1) >= 0:
+            declared = obj.get('output_metadata')
+            if declared:
+                return declared, declared
+        return {}, None
+
     def _form_field(self, form, key, value, path):
         if key == 'source_ref':
             field = QComboBox()
@@ -635,8 +647,7 @@ class PostWindow(QMainWindow):
             field = QComboBox()
             field.setEditable(True)
             side = self._draft.get(path[0], {}) if len(path) == 2 and path[0] in ('a', 'b') else self._draft
-            source = next((row for row in self._sources() if row['source_ref'] == side.get('source_ref')), None)
-            metadata = (source.get('metadata') or source.get('native_metadata') or {}) if source else {}
+            metadata, _ = self._source_choice_metadata(side.get('source_ref'))
             arrays = metadata.get('arrays', [])
             field.addItem('')
             field.addItems(list(dict.fromkeys(row['name'] for row in arrays if isinstance(row, dict) and row.get('name'))))
@@ -785,7 +796,7 @@ class PostWindow(QMainWindow):
             note = QLabel('Measurement meaning, units and frames are optional declarations. Blank remains unknown; native array names do not supply these meanings.')
             note.setWordWrap(True)
             form.addRow(note)
-            declarations_button = QPushButton('Use exact source declarations')
+            declarations_button = QPushButton('저장된 물리량 정보 사용')
             declarations_button.clicked.connect(lambda checked=False: self.use_declarations())
             form.addRow(declarations_button)
             self.capture_button = QPushButton('Capture original native point selection')
@@ -891,22 +902,26 @@ class PostWindow(QMainWindow):
     def use_declarations(self, side=None):
         draft = self.edited_draft()
         target = draft.get(side, {}) if side is not None else draft
-        source = next((source for source in self._sources() if source['source_ref'] == target.get('source_ref')), None)
-        metadata = source.get('native_metadata') if source else None
+        _, metadata = self._source_choice_metadata(target.get('source_ref'))
         if not isinstance(metadata, dict):
-            self.message.setText('This source has no retained physical declarations. Enter meaning, units and frames explicitly.')
+            self.message.setText('저장된 물리 선언이 없습니다. 필요한 단위와 물리 의미를 직접 지정하세요.')
             return
         declaration = next((row for row in metadata.get('arrays', []) if (row.get('name'), row.get('association')) == (target.get('array'), target.get('association'))), None)
         if not declaration:
-            self.message.setText('Select an exact array and association declared in this source receipt.')
+            self.message.setText('이 결과에 저장된 물리량과 점·셀 위치를 선택하세요.')
             return
-        for key in ('quantity', 'units', 'measure', 'frame'):
+        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks'):
             if key in declaration:
                 target[key] = deepcopy(declaration[key])
         for key in ('coordinate_units', 'coordinate_frame'):
             if key in metadata:
                 target[key] = deepcopy(metadata[key])
-        clock = metadata.get('time')
+        clock = metadata.get('frozen_clock') or metadata.get('time')
+        if 'frozen_clock' in metadata:
+            target['time'] = None
+            if side is not None:
+                target['frozen_clock'] = deepcopy(metadata['frozen_clock'])
+                target['sampling'] = {'mode':'exact', 'time':None}
         if isinstance(clock, dict):
             if 'unit' in clock:
                 target['time_units'] = clock['unit']
@@ -1115,21 +1130,32 @@ class PostWindow(QMainWindow):
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.show()
 
+    def _current_sample_revision(self, preview):
+        obj = self._object() or {}
+        if preview:
+            return (obj.get('preview') or {}).get('id')
+        history, position = obj.get('history', []), obj.get('position', -1)
+        return history[position]['id'] if 0 <= position < len(history) else None
+
     def select_comparison_point(self, index, basis):
         if (self._object_ref != basis['object_ref'] or not self._sample_basis
-                or self._sample_basis.get('revision') != basis.get('revision')):
+                or self._sample_basis.get('revision') != basis.get('revision')
+                or self._current_sample_revision(basis['preview']) != basis.get('revision')):
             self.message.setText('선택한 곡선은 이전 조회입니다. 원 비교를 다시 열어 선택하세요.')
             return False
         token = (self._object_ref, basis.get('revision'))
         def selected(payload):
-            if token != (self._object_ref, (self._sample_basis or {}).get('revision')):
+            if (token != (self._object_ref, (self._sample_basis or {}).get('revision'))
+                    or token != (payload.get('object_ref'), payload.get('revision'))
+                    or self._current_sample_revision(basis['preview']) != token[1]):
                 return
             for row, value in enumerate((self._samples or {}).get('rows', [])):
                 if value.get('point_index') == index:
                     self.samples.selectRow(row)
                     break
         return self.queue_command('post.sample', {'object_ref': self._object_ref,
-            'preview': basis['preview'], 'point_index': index, 'limit': 1}, accepted=selected)
+            'preview': basis['preview'], 'point_index': index, 'limit': 1,
+            'expected_revision': basis['revision']}, accepted=selected)
 
     def read_samples(self):
         arguments = {'preview': self.sample_preview.isChecked(), 'offset': self.offset.value(), 'limit': self.limit.value()}
