@@ -826,9 +826,15 @@ class Workbench:
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
             result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact'} and result.get('execution_status')=='SUCCEEDED':
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
                     'kind':'frozen_contact' if backend=='structure.calculix.contact' else 'frozen_fem'}
+            publish_contact_prefix = (backend=='structure.calculix.contact' and
+                result.get('partial_result',{}).get('status')=='CONVERGED_PREFIX' and
+                result.get('partial_result',{}).get('complete_analysis') is False)
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact'} and (
+                    result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix):
+                native_status=result.get('execution_status')
                 try:
                     artifact=result['post_artifact']
                     source=contained(output,artifact['relative'])
@@ -842,7 +848,7 @@ class Workbench:
                     # Preserve the already-computed responses and owned files if
                     # downstream publication fails. Never claim Post is ready or
                     # silently resubmit a costly native calculation to recover it.
-                    result.update(execution_status='FAILED', native_execution_status='SUCCEEDED',
+                    result.update(execution_status='FAILED', native_execution_status=native_status,
                                   post_registration={'status':'FAILED','type':type(error).__name__,'message':str(error)})
                     result.setdefault('diagnostics', {})['post_registration'] = str(error)
             return result

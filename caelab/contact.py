@@ -48,10 +48,17 @@ def law_errors(draft):
                 raise ValueError('Use a positive stiffness' if positive else 'Friction coefficient must be nonnegative')
         except ValueError as error:
             fail(field, str(error))
-    if draft.get('gap_policy') != 'geometry':
-        fail('gap_policy', 'Only the actual geometric gap is admitted. An independently prescribed clearance needs an effective solver mapping.')
-    if draft.get('nominal_gap_mm') not in ('', None):
-        fail('nominal_gap_mm', 'A typed nominal gap is not a mesh adjustment; clear it to use actual geometry.')
+    if draft.get('gap_policy') not in ('geometry', 'prescribed'):
+        fail('gap_policy', '실제 형상 또는 균일한 접촉 간극을 선택하세요')
+    if draft.get('gap_policy') == 'prescribed':
+        try:
+            value = number(draft.get('nominal_gap_mm'))
+            if 1.2357111316 < float(format(value, '.13G')) < 1.2357111318:
+                raise ValueError('This clearance is reserved by CalculiX 2.22; choose a representable value')
+        except ValueError as error:
+            fail('nominal_gap_mm', str(error))
+    elif draft.get('nominal_gap_mm') not in ('', None):
+        fail('nominal_gap_mm', '설정 간극을 비워 실제 형상을 사용하거나 균일 간극 정책을 선택하세요')
     try:
         if number(draft.get('adjustment_mm')) != 0:
             fail('adjustment_mm', 'This route uses unadjusted nodes. Native Adjust is a different operation, not a nominal gap.')
@@ -62,7 +69,7 @@ def law_errors(draft):
     if draft.get('sliding') != 'surface_to_surface':
         fail('sliding', 'The admitted native card is TYPE=SURFACE TO SURFACE; other formulations need a separate mapping.')
     if draft.get('step') != 'Step1' or draft.get('activation') != 'whole_step':
-        fail('step', 'The admitted route has one static Step1, contact active throughout. Interval activation is unsupported.')
+        fail('step', '접촉은 첫 단계부터 전체 해석 동안 유지됩니다. 단계 중간 활성화는 지원하지 않습니다.')
     return errors
 
 

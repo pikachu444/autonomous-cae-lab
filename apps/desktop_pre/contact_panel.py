@@ -12,36 +12,37 @@ def add_contact_page(panel, W, C):
             self.pair.currentIndexChanged.connect(self.load_pair)
             layout.addWidget(self.pair)
             form = W.QFormLayout()
-            self.label = W.QLineEdit('Contact')
+            self.label = W.QLineEdit('접촉')
             self.label.setObjectName('contactName')
-            form.addRow('Name', self.label)
+            form.addRow('이름', self.label)
             self.sides = {}
-            for side, label in [('a', 'A · slave'), ('b', 'B · master')]:
+            for side, label in [('a', 'A 면 (slave)'), ('b', 'B 면 (master)')]:
                 row = W.QHBoxLayout()
                 combo = W.QComboBox()
                 combo.setObjectName('contactSide' + side.upper())
                 row.addWidget(combo, 1)
-                panel._button('Use selected faces', lambda side=side: self.capture(side), row)
-                panel._button('Preview rebind', lambda side=side: self.preview(side), row)
+                panel._button('선택한 면 사용', lambda side=side: self.capture(side), row)
+                panel._button('면 재지정…', lambda side=side: self.preview(side), row)
                 form.addRow(label, row)
                 self.sides[side] = combo
                 combo.currentIndexChanged.connect(lambda *args: self.edited())
             self.fields = {}
             choices = {
-                'normal_law': [('Choose law', None), ('Linear pressure / overclosure', 'linear'),
-                               ('Hard — unsupported', 'hard'), ('Cohesive — unsupported', 'cohesive')],
-                'tangential_law': [('Choose law', None), ('Frictionless', 'frictionless'), ('Coulomb', 'coulomb')],
-                'gap_policy': [('Actual geometry', 'geometry'), ('Prescribed clearance — unsupported', 'prescribed')],
-                'normal': [('Outward solid surface', 'outward_solid'), ('Reverse — unsupported', 'reversed')],
-                'sliding': [('Surface to surface', 'surface_to_surface'), ('Small sliding — unsupported', 'small')],
-                'activation': [('Entire step', 'whole_step'), ('Interval — unsupported', 'interval')],
+                'normal_law': [('법칙 선택', None), ('선형 압력–침투', 'linear'),
+                               ('강체 접촉 (미지원)', 'hard'), ('응집 법칙 (미지원)', 'cohesive')],
+                'tangential_law': [('법칙 선택', None), ('마찰 없음', 'frictionless'), ('쿨롱 마찰', 'coulomb')],
+                'gap_policy': [('실제 형상', 'geometry'), ('균일한 설정 간극', 'prescribed')],
+                'normal': [('고체 바깥쪽 법선', 'outward_solid'), ('법선 반전 (미지원)', 'reversed')],
+                'sliding': [('면 대 면', 'surface_to_surface'), ('작은 미끄럼 (미지원)', 'small')],
+                'step': [('전체 단계', 'Step1')],
+                'activation': [('전체 단계 유지', 'whole_step'), ('단계 중간 활성화 (미지원)', 'interval')],
             }
-            labels = [('normal_law', 'Normal law'), ('normal_stiffness_MPa_per_mm', 'Stiffness (MPa/mm)'),
-                ('tangential_law', 'Tangential law'), ('friction_coefficient', 'Friction coefficient'),
-                ('stick_stiffness_MPa_per_mm', 'Stick stiffness (MPa/mm)'), ('gap_policy', 'Gap'),
-                ('nominal_gap_mm', 'Prescribed gap (mm)'), ('adjustment_mm', 'Mesh adjustment (mm)'),
-                ('normal', 'Normal'), ('sliding', 'Formulation'), ('step', 'Step'),
-                ('activation', 'Activation')]
+            labels = [('normal_law', '법선 법칙'), ('normal_stiffness_MPa_per_mm', '법선 강성 [MPa/mm]'),
+                ('tangential_law', '마찰 법칙'), ('friction_coefficient', '마찰계수'),
+                ('stick_stiffness_MPa_per_mm', '접선 강성 [MPa/mm]'), ('gap_policy', '간극 정책'),
+                ('nominal_gap_mm', '설정 간극 [mm]'), ('adjustment_mm', '절점 조정 [mm] (미지원)'),
+                ('normal', '법선'), ('sliding', '접촉 방식'), ('step', '작용 단계'),
+                ('activation', '활성화')]
             for key, label in labels:
                 if key in choices:
                     widget = W.QComboBox()
@@ -57,17 +58,18 @@ def add_contact_page(panel, W, C):
             self.label.textEdited.connect(panel._edited)
             layout.addLayout(form)
             row = W.QHBoxLayout()
-            panel._button('Apply draft', self.apply, row, name='contactApply')
-            panel._button('Swap A / B', lambda: self.action('swap'), row)
-            panel._button('Show faces', lambda: self.action('highlight'), row, mutate=False)
-            panel._button('Remove pair', lambda: self.action('remove'), row)
+            panel._button('접촉 적용', self.apply, row, name='contactApply')
+            panel._button('A/B 교환', lambda: self.action('swap'), row)
+            panel._button('면 보기', lambda: self.action('highlight'), row, mutate=False)
+            panel._button('방향과 거리…', self.inspect_geometry, row, mutate=False)
+            panel._button('접촉 삭제', lambda: self.action('remove'), row)
             layout.addLayout(row)
-            panel._button('Prepare separate body meshes', self.prepare, layout, name='contactPrepareMeshes')
+            panel._button('물체별 메시 준비', self.prepare, layout, name='contactPrepareMeshes')
             self.diagnostics = W.QListWidget()
             self.diagnostics.setObjectName('contactDiagnostics')
             self.diagnostics.itemActivated.connect(self.focus_error)
             layout.addWidget(self.diagnostics, 1)
-            panel.tabs.addTab(self, 'Contact')
+            panel.tabs.addTab(self, '접촉')
 
         def edited(self):
             if not self.loading:
@@ -78,7 +80,7 @@ def add_contact_page(panel, W, C):
 
         def refresh(self, *, load_forms):
             self.rows = panel.editor.contact.descriptor()['pairs']
-            panel._fill_combo(self.pair, [('New pair', None)] +
+            panel._fill_combo(self.pair, [('새 접촉', None)] +
                               [(row['draft']['label'], row['object_id']) for row in self.rows])
             for side, combo in self.sides.items():
                 regions = [(row['label'], row['id']) for row in panel._description['regions']
@@ -86,7 +88,7 @@ def add_contact_page(panel, W, C):
                            all(face['name'].startswith('Face') for face in row['target']['subelements'])]
                 selected = self.selected()
                 # Rebound faces may intentionally have no shared named region.
-                label = selected[side]['label'] if selected and selected.get(side) else 'Choose faces'
+                label = selected[side]['label'] if selected and selected.get(side) else '면 선택'
                 panel._fill_combo(combo, [(label, None)] + regions)
             if load_forms:
                 self.load_pair()
@@ -174,6 +176,32 @@ def add_contact_page(panel, W, C):
                 raise ValueError('Choose an existing contact pair')
             callback = (lambda result: panel.status.setPlainText('Contact faces selected in the native view.')) if operation == 'highlight' else panel._refresh_after
             panel._send('pre.contact.' + operation, {}, self.pair.currentData(), on_done=callback)
+
+        def inspect_geometry(self):
+            if not self.pair.currentData():
+                raise ValueError('접촉을 적용한 뒤 면 방향과 거리를 확인하세요')
+            def done(result):
+                dialog=W.QDialog(self); dialog.setWindowTitle('접촉면 방향과 거리')
+                layout=W.QVBoxLayout(dialog)
+                nearest=result['nearest']
+                layout.addWidget(W.QLabel('형상 최소 거리: '+format(nearest['distance_mm'],'.10g')+' mm'))
+                layout.addWidget(W.QLabel('부호 없는 면 사이 거리입니다. 침투량이나 설정 간극이 아닙니다.'))
+                table=W.QTableWidget(0,5)
+                table.setHorizontalHeaderLabels(['면 집합','면','면적 [mm²]','중심 [mm]','바깥 법선 XYZ'])
+                for side in ('a','b'):
+                    for face in result['sides'][side]['faces']:
+                        row=table.rowCount(); table.insertRow(row)
+                        values=[side.upper()+' '+result['sides'][side]['label'],face['name'],
+                            format(face['area_mm2'],'.8g'),
+                            ', '.join(format(v,'.6g') for v in face['centroid_mm']),
+                            ', '.join(format(v,'.6g') for v in face['center_normal'])]
+                        for j,v in enumerate(values): table.setItem(row,j,W.QTableWidgetItem(v))
+                table.setEditTriggers(W.QAbstractItemView.EditTrigger.NoEditTriggers)
+                table.resizeColumnsToContents(); layout.addWidget(table,1)
+                button=W.QDialogButtonBox(W.QDialogButtonBox.StandardButton.Close)
+                button.rejected.connect(dialog.reject); layout.addWidget(button)
+                dialog.resize(780,420); dialog.exec()
+            panel._send('pre.contact.geometry',{},self.pair.currentData(),on_done=done)
 
         def prepare(self):
             selected = self.selected()

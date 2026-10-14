@@ -28,6 +28,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._material_tab()
             from .contact_panel import add_contact_page
             self.contact_page = add_contact_page(self, QtWidgets, QtCore)
+            from .contact_steps_panel import add_steps_page
+            self.steps_page = add_steps_page(self, QtWidgets, QtCore)
             self.status = QtWidgets.QPlainTextEdit()
             self.status.setObjectName('femStatus')
             self.status.setReadOnly(True)
@@ -287,6 +289,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                 if row['id'] == selected_id:
                     self.regions.setCurrentItem(item)
             self.contact_page.refresh(load_forms=load_forms)
+            self.steps_page.refresh(load_forms=load_forms)
             if load_forms:
                 self._load_mesh()
                 self._load_condition()

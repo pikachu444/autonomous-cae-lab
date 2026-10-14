@@ -217,8 +217,8 @@ def recipe(workspace, source_ref, pair_id, quantity, component):
     return {'source_ref': source_ref, 'measurement': 'contact_force', 'association': 'ROWS',
             'pair_id': pair_id, 'quantity': quantity, 'component': component,
             'array': history['array'], 'units': 'N', 'frame': history['frame'],
-            'measure': history['measure'], 'axis_name': 'load_parameter', 'axis_unit': '1',
-            'time_units': '1', 'time_origin': 'STATIC_LOAD_PARAMETER',
+            'measure': history['measure'], 'axis_name': history['axis']['name'], 'axis_unit': history['axis']['unit'],
+            'time_units': history['axis']['unit'], 'time_origin': history['axis']['semantics'],
             'inspection_sha256': bundle['descriptor']['sha256']}
 
 
@@ -231,7 +231,7 @@ def build_measurement(workspace, draft, namespace):
     # ProgrammableSource materializes an actual vtkTable from verified retained
     # numeric rows. The generated literal contains no caller code or file lookup.
     # Native PVSM retains this script; its properties are verified by graph_signature.
-    values = {'load_parameter': [r['static']['load_parameter'] for r in history['rows']],
+    values = {draft['axis_name']: [r['static']['load_parameter'] for r in history['rows']],
               draft['array']: [r['value'] for r in history['rows']],
               'vtkValidMask': [int(r['valid']) for r in history['rows']],
               'step': [r['static']['step'] for r in history['rows']],
@@ -262,8 +262,8 @@ def build_measurement(workspace, draft, namespace):
             'frame': history['frame'], 'measure': history['measure'], 'quantity': draft['quantity'],
             'component_label': draft['quantity'] + ' global ' + 'XYZ'[draft['component']],
             'location': bundle['pairs'][draft['pair_id']]['label'] + ' / ' + draft['pair_id'],
-            'axis_name': 'load_parameter', 'axis_unit': '1',
-            'axis_values': values['load_parameter'], 'time_units': '1', 'time_origin': 'STATIC_LOAD_PARAMETER',
+            'axis_name': draft['axis_name'], 'axis_unit': draft['axis_unit'],
+            'axis_values': values[draft['axis_name']], 'time_units': draft['time_units'], 'time_origin': draft['time_origin'],
             'pair_id': draft['pair_id'], 'force_rows': history['rows'],
             'inspection_sha256': draft['inspection_sha256'], 'active_state': 'UNKNOWN'}
         return {'source': proxy, 'proxies': [proxy], 'summary': summary}
@@ -299,7 +299,7 @@ def annotate(page, summary):
         source = expected[index]
         values = row['values']
         value = values.get(array)
-        if (values.get('load_parameter') != source['static']['load_parameter']
+        if (values.get(summary.get('axis_name','load_parameter')) != source['static']['load_parameter']
                 or values.get('step') != source['static']['step']
                 or values.get('increment') != source['static']['increment']
                 or values.get('vtkValidMask') != int(source['valid'])

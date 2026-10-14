@@ -672,3 +672,142 @@ After that, run the existing native project/save probe and a fresh-process
 --reopen-receipt against the same retained input. No solver rerun is needed.
 Compilation, focused tests and native execution of this correction remain
 Pro NOT_RUN until Codex supplies execution evidence.
+
+
+## 2026-10-14 후속: 접촉 간격과 해석 단계
+
+이 절은 PRO-CONTACT-STEPS-02의 **신규 소스 구현** 사용법이다. 작성 환경의 실행 서버가
+연결되지 않아 새 Python/Qt/FreeCAD/CalculiX/ParaView 실행은 모두 **NOT_RUN**이다.
+위 기존 Windows 성공 기록을 새 다단계·동적 기능의 실행 증거로 합치지 않는다.
+
+### 두 단계로 가압하고 제하하기
+
+1. FreeCAD에서 자기 저장 CAD의 Analysis를 선택한다. 각 물체의 현재 메시, 재료,
+   고정 지지와 하중 또는 지정 변위를 준비한다. 기존 공개
+   [두발 모델](../examples/contact/create_model.py)을 작업 사본으로 사용해도 된다.
+   접촉 A는 종속면, B는 기준면이며 여러 면은 각 측의 합집합이다.
+2. FEM 패널의 **접촉**에서 면 집합과 법칙을 적용한다. **방향과 거리…**는 주황 A/파랑 B
+   면과 면 중심의 native 법선 화살표를 보여 준다. 최소 거리는 문서 전체 좌표의 실제 CAD
+   면 사이 **부호 없는 거리 [mm]**다. 0으로 관통량이나 활성 접촉을 판정하지 않는다.
+   A/B 교환은 실제 slave/master 교환이며 화살표만 뒤집지 않는다.
+3. 간극 정책을 **실제 형상** 또는 **균일 간극**으로 명시한다. 균일 간극은 실제
+   *CLEARANCE로 내보내며 형상 좌표를 움직이지 않는다. 메시 Adjust와는 다르다.
+   실제 형상 정책으로 돌아갈 때 설정 간극을 비운다.
+4. **해석 단계**에서 정적 또는 암시적 동적 해석을 고른다. 정적 단계의 길이/곡선 축은
+   무차원 진행값이다. 동적 단계의 시간은 s이며 모든 물체에 양의 밀도가 필요하다.
+   한 분석에서 두 절차를 섞지 않는다. 단계 표에서 이름·길이·초기/최소/최대 증분·최대 횟수·
+   출력 간격을 편집한다. 자동 증분/선형 해법/기하 비선형성/반복 제어는 기존 CalculiX 설정을
+   사용한다. 고정 증분에서는 native가 초기 증분을 사용하고 최소/최대는 독립 제어가 아니다.
+5. 첫 단계 이름을 가압, 길이를 1로 정한다. 원하는 힘을 선택하고 점 (0,0), (1,100)을
+   입력한다. 값은 조건 전체의 **총 힘 [N]**이다. 원 Force가 0 N이어도 현재 면과 방향의
+   native 면 적분 가중치로 배분한다. 여러 면의 총 힘이 면 개수만큼 늘어나지 않는다.
+6. **단계 추가**로 제하 단계를 만든다. 힘의 점을 (0,100), (1,0)으로 정한다. 지정 변위는
+   절대값 [mm]이며 이전 단계에 더하는 증분이 아니다. 곡선은 단계 시작 0과 단계 길이의
+   끝점을 포함해야 한다. 다른 조건은 유지/곡선/해제를 명시한다.
+7. **단계 적용** 후 프로젝트를 저장한다. 미적용 단계 수정이 있으면 입력 생성과 실행은
+   적용/취소를 먼저 요구한다. 적용 중 새로 입력한 글자는 이전 응답으로 덮지 않는다.
+   1e 같은 미완성 입력과 빈 단계 초안도 저장되며 실행은 수정 전까지 차단된다.
+   빈 초안은 단계 추가로 고칠 수 있다. Undo/Redo는 기존 FreeCAD 트랜잭션을 사용한다.
+8. 연결 패널의 **입력 파일 생성…**을 누른다. 검사된 모델·메시·조건과 editable 파일,
+   contact.inp를 별도 보존한다. 실제 INP를 읽고 **입력 사본 저장…** 또는
+   **입력 폴더 열기**를 사용한다. 이 동작은 JobManager나 솔버를 제출하지 않는다.
+9. 계산하려면 별도로 **계산 실행**을 누른다. 기존 freeze/JobManager/Runner 경로에서
+   새 실행으로 처리한다. 응답 유실 재시도는 같은 export 요청을 조회한다.
+
+### 유지, 0, 해제
+
+| 선택 | 지정 변위 | 힘 |
+|---|---|---|
+| 곡선 지정 | 절대 변위 [mm]의 구간 선형 이력 | 조건 전체 힘 [N] 이력 |
+| 이전 단계 끝값 유지 | 직전 지정 끝값 유지 | 직전 지정 힘 유지 |
+| 0 곡선 | 해당 자유도를 0 mm로 구속 | 해당 하중을 0 N으로 적용 |
+| 조건 해제 | 해당 SPC 제거 | 단계 전체에서 힘 0 |
+| 빈 칸/미완성 숫자 | 물리 조건으로 해석하지 않음 | 물리 조건으로 해석하지 않음 |
+
+고정 지지는 모든 단계에 다시 기록한다. 고정 지지의 단계별 해제는 이번 범위에 없다.
+직전 단계에서 해제한 변위를 “유지”하면 실제 계산 변위를 알 수 없어 거절한다.
+동적 지정 변위는 초기 0 및 단계 사이 연속을 요구하고 해제 후 재구속은 지원하지 않는다.
+초기 속도·초기 운동을 변위 곡선 시작값으로 만들지 않는다. 이번 동적 경로는 정지 초기 상태다.
+
+### 결과와 실패 증분에서 다시 수정
+
+Runner의 **계산 단계…**에서 실제 STA의 단계/증분/시도/반복, 도달 좌표, 수렴 여부와
+**계산 당시 조건 곡선**을 읽는다. 미수렴 U 행의 원 좌표는 시도 시작값이다.
+**이 계산의 조건 수정…**은 보존 editable 입력을 새 Pre 설계로 연다. 나중에 수정된
+live CAD에 이전 조건을 덮지 않는다. 표에서 확인한 단계/조건을 새 설계에서 선택해
+수정·저장하고 새로 실행한다. 실패 원인을 특정 조건으로 자동 판정하지 않는다.
+
+**저장된 접촉 결과 열기**는 기존 Post 등록 결과를 연다. 두 단계의 증분 1은 다른
+프레임이며 PVD는 원 native 누적 좌표를 사용한다. 정적은 누적 하중 계수 [1],
+동적은 누적 시간 [s]다. 출력 정밀도에서 시각이 겹치면 임의 시간을 만들지 않고 거절한다.
+
+실패/취소 시 STA가 수렴으로 확인한 연속 FRD 부분과 완전한 DAT CF/CFN/CFS만
+부분 Post로 등록한다. 원 FRD/DAT/STA는 그대로 보존된다. 미수렴 best-solution FRD를
+성공으로 올리지 않으며 실패 실행의 일반 응답은 비워 둔다. Post에는 실패·취소 실행의
+일부 증분임을 표시한다. 잘린 필드나 필수 출력 누락을 0이나 보간으로 채우지 않는다.
+
+Post에서 같은 쌍/면/증분의 CPRESS, raw COPEN, CSLIP, 파생 형상 간극을 구별한다.
+공유 절점 투영 압력·슬립은 쌍별 기여 분리가 아니다. CF/CFN/CFS는 DAT의 쌍별 합력으로
+전역 성분과 원 부호를 유지한다. 힘 이력을 측정으로 적용/저장한 뒤 기존
+**Use in Numerical**에서 새 계획 또는 기존 계획에 미리보기/추가/취소한다.
+동적 측정은 실제 s 축을 그대로 전달한다.
+
+### 작은 확장과 물리적 결정
+
+- 새 owner/store/scheduler 없이 FCStd의 Analysis별 contact_programs를 사용한다.
+  새 명령은 pre.contact.steps_read, pre.contact.steps_set, pre.contact.geometry다.
+- frozen mesh에 선택형 analysis_steps 및 조건별 force_weights/boundary_dofs를 추가한다.
+  기존 단일 단계는 기존 렌더링/default FRD reader를 유지하며 다단계/동적은 명시적
+  contact profile이 있을 때만 허용한다. 기존 일반 frozen FEM의 범위를 넓히지 않는다.
+- 조건별 면 적분 후 모든 입력 knot의 합집합에서 DOF별 구간 선형 함수를 합친다.
+  같은 면의 증가/감소 조건을 잃지 않는다. 결과 시각 보간과는 별개다.
+- 첫 BOUNDARY/CLOAD에 OP=NEW, 이후 같은 종류는 기본 수정 동작을 쓴다.
+  native 2.22는 명시 OP=MOD를 인식하지 않는다. 정적 OP=NEW만 쓰면 이전 힘을 단계
+  동안 제하할 수 있어, 해제된 자유도에도 명시 0 amplitude를 쓴다.
+- 접촉 카드는 단계 밖에 한 번 작성한다. 화면의 **전체 단계**가 실제 의미다.
+  13자리 입력 직렬화 뒤에도 knot가 증가해야 한다. 밀도 kg/m³→tonne/mm³는
+  mm/N/s 체계의 명시 변환이다. *DYNAMIC에 EXPLICIT를 넣지 않는다.
+- inspection v2는 단계명·단계 좌표·누적 시각을 검증한다. v1 saved 프로젝트는 유지한다.
+  partial scope는 pinned manifest에 보존하고 generic native_metadata 키 집합은 유지한다.
+- 절대 단계 곡선이 지배하는 native Force/Displacement 기준값을 Numerical 독립 변수로
+  등록하지 못하게 표시한다. 기하/재료/접촉 계수는 기존 경로다. 곡선 knot DOE는 잔여다.
+- WELSIM 공개 면 선택→단계 표/곡선→입력 확인→실행→결과 흐름을 참고했다.
+  유료 본체/자산/dependency를 도입하지 않았다. ada-py로 writer를 교체하지 않고
+  필요한 카드를 기존 CalculiX 경로에 한정해 추가했다.
+
+근거는 [CalculiX 2.22 manual](https://www.dhondt.de/ccx_2.22.pdf)과 공식 release
+[source cff1bb12](https://github.com/Dhondtguido/CalculiX/tree/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src)의
+amplitudes.f, boundarys.f, cloads.f, tempload.f, dynamics.f, clearances.f,
+frdheader.c, printoutcontact.f, writesta.f, writestadiv.f, checkconvergence.c다.
+작성자/동료의 소스 검토는 native 실행이나 공학적 검증을 대체하지 않는다.
+
+### 확인 명령과 남은 범위
+
+기존 프로젝트 Python/Qt 환경에서 변경 경로만 확인:
+
+~~~powershell
+python -m pytest tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_native_export.py -q
+~~~
+
+기본 단일 단계 FRD 호환은 tests/test_frozen_fem.py, Post 보존 계약은
+tests/test_contact_inspection.py다. 새 테스트의 solver/native 자료는 명시적 대역이다.
+examples/contact/steps.py의 apply_two_steps는 연결된 owner와 정확한 Analysis/Force 이름을
+받아 가압/제하 초안을 적용하며 메시/계산을 하지 않는다. 기본 CLI도 입력만 검사한다:
+
+~~~powershell
+python -m examples.contact.steps --snapshot "자기 입력 폴더/snapshot.json"
+~~~
+
+한 번의 실제 계산을 별도로 선택할 때만 --run --output "새 출력 폴더"를 붙인다.
+보통 사용자는 GUI의 **계산 실행**으로 기존 Runner를 쓴다. 성공 보존 결과는 기존
+contact_fem --rebuild-post-from으로 새 sibling 폴더에 읽을 수 있으며 새 솔버 실행은 없다.
+
+| 원 요구 | 이번 소스의 연결 | 남은 범위 |
+|---|---|---|
+| FN14-01 면/법칙/간극 | 정확 면 집합, 방향·거리, 역할 교환, linear/frictionless/Coulomb, CLEARANCE | hard/tie/cohesive, 물리 법선 반전, 메시 Adjust, 접촉 활성 구간 |
+| FN14-02 결과 | 단계/증분, 압력·raw COPEN·슬립·파생 간극·쌍 합력, 측정→Numerical | 활성 상태/정확 tangent basis, 일반 쌍별 integration-point field |
+| FN15-01 조건/실패 | 단계·곡선·invalid draft·입력-only·STA 시도·보존 입력 수정 | 자동 원인 판정, 범용 restart, 고정 지지 단계별 해제 |
+| FN15-02 실행 | 기존 executor의 동종 정적/암시적 동적 단계·밀도·완료 계약 | 혼합 절차, 초기 속도·회전, 재료 비선형/댐핑/열연성/다른 solver 조합 |
+
+FN14/FN15 전체 완료 선언은 아니다. 신규 테스트·native 작은 실행·1100×780 및
+1440×900 화면 확인은 작성 환경에서 NOT_RUN이며 Root 통합 결과와 구분해 기록한다.

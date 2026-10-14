@@ -185,13 +185,18 @@ class ContactDialog(QDialog):
         self.payload = deepcopy(payload)
         selected = payload['selection']
         catalog = payload['catalog']
+        axis_label = '시간 [s]' if catalog['axis']['unit']=='s' else '누적 하중 계수 [1]'
+        symbol = 't' if catalog['axis']['unit']=='s' else 'λ'
+        self.history.setHorizontalHeaderLabels(['단계 / 증분',axis_label,'A 면 합력 [N]','유효성'])
         if initial:
             self.pair.clear()
             for pair in catalog['pairs']:
                 self.pair.addItem(pair['label'], pair['id'])
             self.frame.clear()
             for index, frame in enumerate(catalog['frames']):
-                self.frame.addItem(f"{frame['step']} / {frame['increment']}   λ={frame['load_parameter']:.9g}", index)
+                location=(catalog.get('steps') or [None]*len(catalog['frames']))[index]
+                name=location['label'] if location else str(frame['step'])+'단계'
+                self.frame.addItem(f"{name} / 증분 {frame['increment']}   {symbol}={frame['load_parameter']:.9g}", index)
             self.field.clear()
             for field in catalog['fields']:
                 label = 'Geometric gap (derived)' if field['name'] == 'GeomGap_mm' else 'COPEN (raw)' if field['name'] == 'COPEN' else field['name']
@@ -209,6 +214,8 @@ class ContactDialog(QDialog):
             '형상 간극은 변형된 면의 근사값입니다. 면 색상은 절점 투영값이며 접촉 활성 여부는 확인되지 않았습니다.'
             if selected['field'] == 'GeomGap_mm' else
             '공유 절점에 투영한 값입니다. 접촉 쌍을 선택해도 그 쌍의 압력·미끄럼 기여만 분리되지 않습니다. 접촉 활성 여부는 확인되지 않았습니다.')
+        if catalog.get('execution',{}):
+            self.meaning.setText('실패·취소 실행의 수렴한 일부 증분입니다. 전체 해석 완료가 아닙니다. '+self.meaning.text())
         self.field_table.setHorizontalHeaderLabels(['절점', payload['field'] + ' [' + payload['unit'] + ']', '유효성'])
         self.field_table.setRowCount(len(payload['rows']))
         for index, row in enumerate(payload['rows']):
@@ -237,7 +244,7 @@ class ContactDialog(QDialog):
         index = selected['frame_index']
         if rows[index]['valid']:
             self.axes.plot([x[index]], [y[index]], 'o', color='#c55b28', markersize=8)
-        self.axes.set_xlabel('Load parameter λ [1]')
+        self.axes.set_xlabel(axis_label)
         self.axes.set_ylabel(selected['quantity'] + ' global ' + 'XYZ'[selected['component']] + ' on A [N]')
         self.axes.grid(True, alpha=.2)
         self.figure.tight_layout()

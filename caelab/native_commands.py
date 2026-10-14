@@ -33,7 +33,8 @@ CAPABILITIES = {
             'pre.fem.condition_repair', 'pre.fem.material_set', 'pre.fem.task_edit',
             'pre.contact.set', 'pre.contact.remove', 'pre.contact.swap', 'pre.contact.highlight',
             'pre.contact.preview_rebind', 'pre.contact.apply_rebind', 'pre.contact.cancel_rebind',
-            'pre.contact.prepare_meshes', 'pre.contact.inspect', 'pre.contact.freeze'},
+            'pre.contact.prepare_meshes', 'pre.contact.inspect', 'pre.contact.freeze',
+            'pre.contact.geometry', 'pre.contact.steps_read', 'pre.contact.steps_set'},
 }
 
 

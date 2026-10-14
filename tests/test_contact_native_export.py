@@ -10,7 +10,8 @@ from apps.desktop_pre import freeze_contact as exporter
 from apps.desktop_pre.fem_edit import FEMEditor
 
 
-def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch):
+@pytest.mark.parametrize('zero_force_program',[False,True])
+def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch,zero_force_program):
     class Quantity:
         def __init__(self, value, unit=None):
             self.Value = float(str(value).split()[0])
@@ -53,7 +54,7 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
         References=[(bodies['Pad'], ['Face2'])], EnableAmplitude=False,
         xFree=False, yFree=True, zFree=True, xDisplacement=Quantity(-.02, 'mm'))
     force = obj('Force', 'Fem::ConstraintForce', References=[(bodies['Pad'], ['Face4', 'Face9'])],
-        EnableAmplitude=False, Force=Quantity(10., 'N'), DirectionVector=NS(x=0., y=0., z=-1.))
+        EnableAmplitude=False, Force=Quantity(0. if zero_force_program else 10., 'N'), DirectionVector=NS(x=0., y=0., z=-1.))
     contact = obj('Contact', 'Fem::ConstraintContact')
     analysis = obj('Analysis', 'Fem::FemAnalysis',
                    Group=[solver, *meshes.values(), material, fixed, displacement, force, contact])
@@ -90,11 +91,19 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
         assert references == displacement.References and mesh is meshes['Pad'].FemMesh
         return [4]
 
+    def probe_table(mesh,elements,nodes,probe):
+        assert zero_force_program and force.Force.Value==0
+        assert probe is not force and probe.References==force.References
+        assert probe.Force.getValueAs('N').Value==1.
+        return [('Face4',{5:Quantity(.3)}),('Face9',{6:Quantity(.7)})]
+
     modules = {
-        'FreeCAD': NS(Units=NS(Quantity=lambda value: Quantity(value, 'MPa'))),
+        'FreeCAD': NS(Units=NS(Quantity=lambda value: Quantity(value, str(value).split()[-1]))),
         'femtools': NS(membertools=NS(AnalysisMember=members)),
         'femmesh': NS(meshtools=NS(get_ccx_elements=elements,
             get_femnodes_by_references=reference_nodes,
+            get_femelement_table=lambda mesh: 'EXPLICIT_ELEMENT_TABLE_DOUBLE',
+            get_force_obj_face_nodeload_table=lambda mesh,elements,nodes,probe: probe_table(mesh,elements,nodes,probe),
             get_femnodes_by_femobj_with_references=lambda *a: pytest.fail('Stale name group must not be used'))),
         'femmesh.meshsetsgetter': NS(MeshSetsGetter=Getter),
     }
@@ -107,13 +116,26 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
     fem = NS(owner=owner, _pending={}, _assert_idle=lambda: None, _metadata=lambda: {},
              _condition_errors=lambda *a: [], quality=lambda *a, **kw: {'bad_element_count': 0},
              contact=NS(_data=lambda: {'contacts': [record]}, errors=lambda record: []))
+    if zero_force_program:
+        from caelab.contact_steps import default_program
+        inputs=[{'object_id':force.Name,'type':force.TypeId,'total_force_N':0.},
+                {'object_id':fixed.Name,'type':fixed.TypeId},
+                {'object_id':displacement.Name,'type':displacement.TypeId,'components_mm':{1:-.02}}]
+        program=default_program(model['step'],inputs)
+        program['steps'][0]['curves'][0]['points']=[[0,0],[.5,100],[1.,0]]
+        fem._metadata=lambda:{'contact_programs':[{'analysis_id':analysis.Name,'draft':program}]}
     actual, identity = exporter.collect(analysis, solver, fem)
     nmap = actual['body_maps']
     fixed_nodes = {row['node_id'] for row in actual['boundary_dofs'] if row['value_mm'] == 0.}
     assert fixed_nodes == {nmap['Base']['nodes'][n] for n in (1, 2, 3)}
     assert {'node_id': nmap['Pad']['nodes'][4], 'component': 1, 'value_mm': -.02} in actual['boundary_dofs']
     assert not any(row['node_id'] == nmap['Pad']['nodes'][1] for row in actual['boundary_dofs'])
-    assert sum(row['force_N'] for row in actual['loads']) == -10.
+    assert sum(row['force_N'] for row in actual['loads']) == (0. if zero_force_program else -10.)
+    if zero_force_program:
+        from caelab.contact_steps import compile_program
+        mapped=compile_program(actual['analysis_steps'],actual['conditions'])[0]['loads']
+        assert sum(points[1][1] for points in mapped.values())==pytest.approx(-100.)
+        assert force.Force.Value==0.
     assert {row['node_id'] for row in actual['loads']} == {nmap['Pad']['nodes'][n] for n in (5, 6)}
     assert len(reads) == 2 and len(identity) == 2
     assert meshes['Base'].FemMesh.groups == {'Fixed': [4], 'Displacement': [1]}

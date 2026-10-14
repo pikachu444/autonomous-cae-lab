@@ -34,10 +34,11 @@ class Connection:
         layout = QtWidgets.QVBoxLayout(panel)
         self.identity = QtWidgets.QLabel('Connecting the active native document…')
         self.identity.setWordWrap(True)
-        self.message = QtWidgets.QLabel('Use the native FEM tree to select the Analysis and its existing mesh.\n'
-            'Connected adapter: one solid, C3D10, static linear elasticity, Fixed/Force. Other native studies remain editable.')
+        self.message = QtWidgets.QLabel('해석과 현재 메시를 선택하세요. 입력 파일 생성은 계산을 실행하지 않습니다.')
         self.message.setWordWrap(True)
-        self.run_button = QtWidgets.QPushButton('Run FEM')
+        self.run_button = QtWidgets.QPushButton('계산 실행')
+        self.export_button = QtWidgets.QPushButton('입력 파일 생성…')
+        self.export_button.clicked.connect(lambda: self.run(export_only=True))
         self.run_button.setToolTip('Freeze this Analysis with its existing mesh and native conditions, then submit through Runner')
         self.run_button.clicked.connect(self.run)
         self.cancel_button = QtWidgets.QPushButton('Cancel export')
@@ -54,7 +55,7 @@ class Connection:
         self.connect_button.clicked.connect(self.reconnect)
         layout.addWidget(self.identity)
         controls = QtWidgets.QHBoxLayout()
-        for widget in (self.run_button, self.cancel_button, self.retry_button,
+        for widget in (self.export_button, self.run_button, self.cancel_button, self.retry_button,
                        self.numerical_button, self.impact_button, self.runner_button, self.connect_button):
             controls.addWidget(widget)
         controls.addStretch()
@@ -195,6 +196,7 @@ class Connection:
             self.identity.setText('Create or open a native CAD document')
         waiting = self.pending is not None
         self.run_button.setEnabled(connected and not waiting)
+        self.export_button.setEnabled(connected and not waiting)
         self.cancel_button.setEnabled(waiting and self.pending['stage'] == 'command' and not self.pending.get('retry'))
         self.retry_button.setEnabled(not self.working and
             ((waiting and self.pending.get('retry', False)) or any(row['retry'] for row in self.native_requests.values())))
@@ -206,7 +208,7 @@ class Connection:
                 self.request(identifier, lambda identifier=identifier: self.client.command_status(identifier), self._native_status)
         if hasattr(self, 'guards'): self.guards.refresh()
 
-    def run(self):
+    def run(self, *, export_only=False):
         if self.pending:
             return
         try:
@@ -225,10 +227,14 @@ class Connection:
             if len(solvers) != 1:
                 raise ValueError('Select an Analysis with one native CalculiX solver')
             owner = self.owners[doc.Name][0]
+            dock = self.panels.get(doc.Name,{}).get('fem')
+            page = getattr(dock.widget(),'steps_page',None) if dock is not None else None
+            if page is not None and page.modified:
+                raise ValueError('해석 단계에 미적용 수정이 있습니다. 단계 적용 또는 수정 취소 후 진행하세요.')
             owner.refresh()
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
                 'document_id': owner.document_id, 'session_id': owner.session_id,
-                'generation': owner.generation,
+                'generation': owner.generation, 'export_only': bool(export_only),
                 'operation': 'pre.contact.freeze' if any(femutils.type_of_obj(obj) == 'Fem::ConstraintContact'
                     and not getattr(obj, 'Suppressed', False) for obj in selected.Group) else 'pre.freeze',
                 'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
@@ -248,6 +254,22 @@ class Connection:
             return
         state = command['state']
         if state == 'SUCCEEDED':
+            if self.pending.get('export_only'):
+                envelope=command.get('outcome',{}).get('result',{})
+                value=envelope.get('result',{})
+                relative=value.get('snapshot_relative')
+                owner=next((v[0] for v in self.owners.values() if v[0].document_id==self.pending['document_id']),None)
+                if not relative or owner is None:
+                    self.message.setText('입력 생성 완료. 원 문서 연결을 확인한 뒤 같은 요청을 다시 조회하세요.')
+                    self.pending['retry']=True
+                    return
+                path=(owner.export_root/relative).resolve(strict=True)
+                if not path.is_relative_to(owner.export_root.resolve()):
+                    raise ValueError('Export receipt is outside this owner')
+                self.pending=None
+                self.message.setText('입력 파일을 생성했습니다. 계산은 실행하지 않았습니다.\n'+str(path.parent))
+                self.show_export(path)
+                return
             self.pending.update(stage='submit', retry=False)
             self.submit()
         elif state == 'INTERRUPTED' and command.get('completion_recoverable'):
@@ -265,6 +287,10 @@ class Connection:
         else:
             self.message.setText('Native export: ' + command.get('phase', state) +
                 '\nCancellation is supported while queued; native export already applying must finish.')
+
+    def show_export(self, manifest):
+        from .contact_input_dialog import show_input
+        show_input(manifest,self.QtWidgets,self.QtCore,parent=self.Gui.getMainWindow())
 
     def submit(self):
         identifier = self.pending['command_id']

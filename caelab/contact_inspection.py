@@ -68,8 +68,13 @@ def load(entry, declaration):
         raise ValueError('Contact inspection belongs to its retained PVD collection')
     root = entry.parent
     manifest, manifest_path = _read(root, descriptor(declaration), json_data=True)
-    if manifest.get('kind') != KIND or manifest.get('version') != 1:
+    if manifest.get('kind') != KIND or manifest.get('version') not in (1,2):
         raise ValueError('Unsupported contact inspection bundle')
+    execution=manifest.get('execution')
+    if execution is not None and execution not in (
+            {'status':'FAILED','complete_analysis':False,'scope':'CONVERGED_PREFIX'},
+            {'status':'CANCELLED','complete_analysis':False,'scope':'CONVERGED_PREFIX'}):
+        raise ValueError('Unsupported retained contact execution scope')
     source = manifest.get('source')
     source_keys = {'snapshot_id', 'snapshot_sha256', 'raw_frd_sha256', 'raw_dat_sha256', 'model_sha256'}
     if (not isinstance(source, dict) or not source_keys <= set(source)
@@ -78,8 +83,30 @@ def load(entry, declaration):
             or any(not isinstance(v, str) or not re.fullmatch(r'[a-f0-9]{64}', v)
                    for k, v in source.items() if k != 'snapshot_id')):
         raise ValueError('Contact inspection requires exact retained input/raw-output identities')
+    clock = {'unit':'1','semantics':'STATIC_LOAD_PARAMETER'}
+    if manifest['version'] == 2:
+        p = manifest.get('analysis_profile',{})
+        a = p.get('axis')
+        if p.get('version') != 1 or a not in (
+                {'name':'load_parameter','unit':'1','semantics':'STATIC_LOAD_PARAMETER'},
+                {'name':'time','unit':'s','semantics':'PHYSICAL_TIME'}):
+            raise ValueError('Unsupported contact analysis clock')
+        clock = {k:a[k] for k in ('unit','semantics')}
+        elapsed = 0.
+        seen_ids = set()
+        rows = p.get('steps',[])
+        if not isinstance(rows,list) or not 1<=len(rows)<=100:
+            raise ValueError('Missing retained step schedule')
+        for index,row in enumerate(rows,1):
+            if (row.get('index') != index or row.get('id') in seen_ids or not isinstance(row.get('id'),str)
+                    or not isinstance(row.get('label'),str) or row.get('start') != elapsed
+                    or type(row.get('duration')) not in (int,float) or not math.isfinite(row['duration'])
+                    or row['duration'] <= 0 or row.get('end') != elapsed+row['duration']
+                    or row.get('procedure') != ('dynamic' if a['unit']=='s' else 'static')):
+                raise ValueError('Contact step schedule changed')
+            seen_ids.add(row['id']); elapsed=row['end']
     if (manifest.get('force_unit') != 'N' or manifest.get('force_frame') != 'FREECAD_DOCUMENT_GLOBAL'
-            or manifest.get('clock') != {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'}
+            or manifest.get('clock') != clock
             or manifest.get('active_state') != 'UNKNOWN'):
         raise ValueError('Unsupported contact physical declaration; no unit/clock conversion is performed')
     pvd, bound_entry = _read(root, manifest['entry'])
@@ -92,7 +119,7 @@ def load(entry, declaration):
     physical = manifest.get('native_metadata', {})
     if (physical.get('coordinate_units') != 'mm' or physical.get('coordinate_frame') != 'FREECAD_DOCUMENT_GLOBAL'
             or physical.get('static') is not None
-            or physical.get('time') != {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER',
+            or physical.get('time') != {**clock,
                                         'values': [row['static']['load_parameter'] for row in frames]}
             or 'contact_inspection' in physical):
         raise ValueError('Unsupported contact native field physical declaration')
@@ -154,6 +181,18 @@ def load(entry, declaration):
                 or float(dataset.get('timestep', 'nan')) != value
                 or current.get('static') != static or current.get('channels') != list(CHANNELS)):
             raise ValueError('Contact frame does not match its exact PVD increment')
+        if manifest['version'] == 2:
+            rows=manifest['analysis_profile']['steps']
+            if not 1<=static['step']<=len(rows):
+                raise ValueError('Contact frame step is outside the retained schedule')
+            step=rows[static['step']-1]
+            loc=current.get('step_location') or {}
+            if (loc.get('id')!=step['id'] or loc.get('label')!=step['label'] or
+                    loc.get('index')!=step['index'] or loc.get('axis')!=manifest['analysis_profile']['axis']
+                    or loc.get('coordinate')!=value-step['start']):
+                raise ValueError('Contact frame does not identify its retained step')
+            if loaded and (static['step'],static['increment']) <= (loaded[-1]['static']['step'],loaded[-1]['static']['increment']):
+                raise ValueError('Contact step/increment order changed')
         previous = value
         if (current.get('active_state') != 'UNKNOWN'
                 or current.get('basis') != 'CalculiX master-face local normal/tangents; projected nodal values; exact basis vectors not exported'
@@ -201,9 +240,11 @@ def describe(bundle):
                        'b': {'body': row['b']['body_id'], 'faces': row['b']['cad_faces']}}
                       for row in bundle['pairs'].values()],
             'frames': [deepcopy(row['static']) for row in bundle['frames']],
+            'steps': [deepcopy(row.get('step_location')) for row in bundle['frames']],
             'fields': [{'name': name, 'unit': 'mm' if name in CHANNELS[:3] or name == 'GeomGap_mm' else 'MPa'}
                        for name in (*CHANNELS, 'GeomGap_mm')],
-            'axis': {'name': 'load_parameter', 'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'},
+            'axis': bundle_axis(bundle),
+            'execution': deepcopy(bundle['manifest'].get('execution')),
             'active_state': 'UNKNOWN'}
 
 
@@ -262,7 +303,7 @@ def force_history(bundle, pair_id, quantity, component):
     return {'pair_id': pair_id, 'quantity': quantity, 'component': component,
             'array': quantity + '_' + 'XYZ'[component] + '_N', 'unit': 'N',
             'frame': 'FREECAD_DOCUMENT_GLOBAL', 'measure': 'contact_pair_force_resultant', 'force_on': 'slave_A',
-            'axis': {'name': 'load_parameter', 'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'},
+            'axis': bundle_axis(bundle),
             'rows': rows}
 
 
@@ -276,3 +317,8 @@ def explicit_manifest(path):
     metadata = deepcopy(bundle['manifest']['native_metadata'])
     metadata['contact_inspection'] = declaration
     return entry, metadata
+
+
+def bundle_axis(bundle):
+    clock=bundle['manifest']['clock']
+    return {'name':'time' if clock['unit']=='s' else 'load_parameter', **deepcopy(clock)}

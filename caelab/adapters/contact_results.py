@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 import numpy as np
 
 from ..contact_deck import FACES
+from ..contact_steps import axis, profile
 from .frozen_fem import _read, _number
 from .fixture_field import _printed_close
 
@@ -16,7 +17,7 @@ CHANNELS = ('COPEN', 'CSLIP1', 'CSLIP2', 'CPRESS', 'CSHEAR1', 'CSHEAR2')
 BASIS = 'CalculiX master-face local normal/tangents; projected nodal values; exact basis vectors not exported'
 
 
-def read_dat(path, pairs, frames):
+def read_dat(path, pairs, frames, *, prefix=False):
     """Read complete CF/CFN/CFS triples in frozen request order, retaining raw signs."""
     text = _read(path).decode('ascii').replace('\r\n', '\n')
     lines = text.splitlines()
@@ -51,11 +52,14 @@ def read_dat(path, pairs, frames):
             if ordinal % len(requests):
                 raise ValueError('DAT has an incomplete contact request sequence')
             increment = int(compact[9:])
+            if prefix and result and (step,increment) not in {
+                    (r['static']['step'],r['static']['increment']) for r in frames}:
+                break
         match = header.match(line)
         i += 1
         if not match:
             continue
-        if step != 1 or increment is None:
+        if step is None or step < 1 or increment is None:
             raise ValueError('DAT pair result lacks its exact step/increment')
         pair_id, quantity = requests[ordinal % len(requests)]
         slave, master, token = match.groups()
@@ -187,7 +191,7 @@ def geometric_gaps(model, frame, *, subdivisions=4):
                        'solver_active_state': 'UNKNOWN', 'outside_or_ambiguous_projection': 'unavailable', 'triangle_edges': 'included_facet_normal'}}
 
 
-def write_post(folder, model, frames, pair_results, *, provenance=None):
+def write_post(folder, model, frames, pair_results, *, provenance=None, execution=None):
     from apps.desktop_post.prepare import write_vtu, data_array
     from ..storage import save_json
     folder.mkdir()
@@ -252,6 +256,7 @@ def write_post(folder, model, frames, pair_results, *, provenance=None):
         tree.write(path, encoding='utf-8', xml_declaration=True)
         ET.SubElement(group, 'DataSet', timestep=format(frame['static']['load_parameter'], '.17g'), group='', part='0', file=path.name)
         save_json(folder / (path.stem + '.json'), {'static': frame['static'],
+            'step_location': frame.get('step_location'),
             'contact': [{'node_id': n, 'pair_membership': membership[n], 'values': frame['fields']['CONTACT'].get(n),
                          'raw_tokens': frame.get('contact_tokens', {}).get(n),
                          'record_present': n in frame['fields']['CONTACT']} for n in node_ids],
@@ -262,15 +267,15 @@ def write_post(folder, model, frames, pair_results, *, provenance=None):
     save_json(folder / 'body_map.json', {'body_indices': body_numbers, 'native_ids': model['body_maps'],
                                        'contact_membership': membership})
     metadata = {'coordinate_units': 'mm', 'coordinate_frame': 'FREECAD_DOCUMENT_GLOBAL',
-            'static': None, 'time': {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER',
+            'static': None, 'time': {'unit': axis(model)['unit'], 'semantics': axis(model)['semantics'],
                                      'values': [frame['static']['load_parameter'] for frame in frames]},
             'arrays': arrays}
     if provenance is not None:
-        metadata['contact_inspection'] = _inspection_bundle(folder, model, frames, provenance, metadata)
+        metadata['contact_inspection'] = _inspection_bundle(folder, model, frames, provenance, metadata, execution)
     return metadata
 
 
-def _inspection_bundle(folder, model, frames, provenance, metadata):
+def _inspection_bundle(folder, model, frames, provenance, metadata, execution):
     """Retain exact quadratic A/B face unions, not volume-cell selections."""
     from copy import deepcopy
     import hashlib
@@ -320,7 +325,7 @@ def _inspection_bundle(folder, model, frames, provenance, metadata):
     source = deepcopy(provenance or {})
     source['model_sha256'] = hashlib.sha256(json.dumps(model, sort_keys=True, separators=(',', ':'),
                                                        allow_nan=False).encode()).hexdigest()
-    manifest = {'kind': KIND, 'version': 1, 'entry': file_pin(folder / 'contact.pvd', folder),
+    manifest = {'kind': KIND, 'version': 2 if profile(model) else 1, 'entry': file_pin(folder / 'contact.pvd', folder),
         'source': source, 'native_metadata': deepcopy(metadata), 'topology': file_pin(topology_path, folder),
         'surfaces': file_pin(surface_path, folder), 'body_map': file_pin(folder / 'body_map.json', folder),
         'frames': [{'static': deepcopy(frame['static']),
@@ -328,8 +333,12 @@ def _inspection_bundle(folder, model, frames, provenance, metadata):
                     'inspection': file_pin(folder / ('frame' + str(index+1).zfill(4) + '.json'), folder)}
                    for index, frame in enumerate(frames)],
         'force_unit': 'N', 'force_frame': 'FREECAD_DOCUMENT_GLOBAL',
-        'clock': {'unit': '1', 'semantics': 'STATIC_LOAD_PARAMETER'},
+        'clock': {k:axis(model)[k] for k in ('unit','semantics')},
         'active_state': 'UNKNOWN'}
+    if execution is not None:
+        manifest['execution'] = deepcopy(execution)
+    if profile(model):
+        manifest['analysis_profile'] = profile(model)
     path = folder / 'contact-inspection.json'
     save_json(path, manifest)
     return file_pin(path, folder)

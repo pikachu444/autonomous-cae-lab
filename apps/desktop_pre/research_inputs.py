@@ -67,6 +67,8 @@ def discover(owner, analysis):
     if _native_type(analysis) != 'Fem::FemAnalysis':
         raise ValueError('Select a native FEM Analysis')
     rows = []
+    staged = any(r.get('analysis_id')==analysis.Name for r in owner.read_metadata().get('contact_programs',[]))
+    curve_reason = '해석 단계의 절대 곡선이 이 조건을 결정합니다. native 기준값은 연구 변수로 사용할 수 없습니다.' if staged else None
     for obj in owner.doc.Objects:
         if hasattr(obj, 'Shape'):
             for prop in obj.PropertiesList:
@@ -94,12 +96,12 @@ def discover(owner, analysis):
         kind = _native_type(obj)
         if kind == 'Fem::ConstraintForce':
             value, unit = quantity_value(owner, obj.Force)
-            rows.append(_row(obj, 'force', 'Force', value, unit, _writable(obj, 'Force')))
+            rows.append(_row(obj, 'force', 'Force', value, unit, curve_reason or _writable(obj, 'Force')))
         elif kind == 'Fem::ConstraintDisplacement':
             for axis in 'xyz':
                 field = axis + 'Displacement'
                 value, unit = quantity_value(owner, getattr(obj, field))
-                reason = _writable(obj, field)
+                reason = curve_reason or _writable(obj, field)
                 if getattr(obj, axis + 'Free'):
                     reason = 'Free component; prescribe it in native FEM first'
                 rows.append(_row(obj, 'displacement', field, value, unit, reason))

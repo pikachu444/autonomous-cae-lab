@@ -253,6 +253,9 @@ class RunnerWindow(QMainWindow):
         self.cancel_button = QPushButton("실행 취소")
         self.cancel_button.clicked.connect(self.cancel_selected)
         toolbar.addWidget(self.cancel_button)
+        self.contact_steps_button = QPushButton('계산 단계…')
+        self.contact_steps_button.clicked.connect(self.open_contact_steps)
+        toolbar.addWidget(self.contact_steps_button)
         self.origin_button = QPushButton("입력 문서 열기")
         self.origin_button.clicked.connect(self.open_selected_origin)
         toolbar.addWidget(self.origin_button)
@@ -542,6 +545,21 @@ class RunnerWindow(QMainWindow):
                 self._show_job(self.jobs[identifier])
             self.message.setText(state_description(job))
         self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received)
+
+    def open_contact_steps(self):
+        identifier,epoch=self.selected_job_id,self._selection_epoch
+        if not identifier: return
+        def done(result,ticket):
+            if not result.get('executed_setup'):
+                self.message.setText('선택한 실행에는 접촉 단계 기록이 없습니다.')
+                return
+            from .contact_run_dialog import ContactRunDialog
+            dialog=ContactRunDialog(self,identifier,result)
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            self._contact_run_dialog=dialog
+            dialog.show()
+        self._request('contact-steps:'+identifier,lambda:self.client.result(identifier,selection={'responses':[]}),
+            done,relevant=lambda:(identifier,epoch)==(self.selected_job_id,self._selection_epoch))
 
     def open_selected_origin(self):
         identifier, epoch = self.selected_job_id, self._selection_epoch

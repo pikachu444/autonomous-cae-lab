@@ -230,7 +230,7 @@ def validate_snapshot(path):
     return manifest, mesh, pins, _gates(nodes, elements, fixed)
 
 
-def read_frd(path, nodes, elements, *, contact_materials=None):
+def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=None):
     """Read native ASCII geometry and the last complete static displacement.
 
     Fixed-column records and component labels follow CalculiX 2.21 frd.c and
@@ -251,15 +251,19 @@ def read_frd(path, nodes, elements, *, contact_materials=None):
             ("COPEN", "CSLIP1", "CSLIP2", "CPRESS", "CSHEAR1", "CSHEAR2"))
     frames, material_names, contact_tokens = [], {}, {}
     field_coverage = None
+    if contact_profile is not None:
+        if contact_materials is None or contact_profile.get('version') != 1 or not contact_profile.get('steps'):
+            raise ValueError('Step-aware FRD requires the explicit retained contact profile')
     def retain_frame():
         if contact_materials is not None:
             if "DISP" not in fields or "CONTACT" not in fields:
                 raise ValueError("Incomplete contact frame: displacement and CONTACT are both required")
-            frames.append({"static": {"step": 1, "increment": increment, "load_parameter": parameter},
+            frames.append({"static": {"step": active_step, "increment": increment, "load_parameter": parameter},
                            "load_parameter_token": parameter_token, "fields": fields,
                            "contact_tokens": contact_tokens})
     i, pending, header, ended = 0, None, None, False
     counter, increment, kode, parameter, parameter_token = 0, None, None, None, None
+    active_step = None
     versions = [line.strip() for line in lines if line.strip().startswith("1UVERSION")]
     if len(versions) != 1 or not re.fullmatch(r"1UVERSION\s+Version 2\.\d+", versions[0]):
         raise ValueError("Missing or unsupported native CalculiX version metadata")
@@ -331,9 +335,12 @@ def read_frd(path, nodes, elements, *, contact_materials=None):
             if not topology or pending is not None or header is not None or len(line) > 70 or row[10:24].strip() or row[60:].strip():
                 raise ValueError("Malformed FRD step")
             count, inc, step = (_identifier(row[a:b].strip()) for a,b in ((24,36),(36,48),(48,60)))
-            if count != counter + 1 or step != 1 or (increment is not None and inc < increment):
-                raise ValueError("FRD requires ordered fields in one static step")
-            pending = (count, inc)
+            if (count != counter + 1 or
+                    (contact_profile is None and step != 1) or
+                    (contact_profile is not None and not 1 <= step <= len(contact_profile['steps'])) or
+                    (active_step is not None and (step, inc) < (active_step, increment))):
+                raise ValueError("FRD requires ordered fields in the retained steps")
+            pending = (count, inc, step)
         elif parts[0] == "100CL":
             if pending is None or header is not None or len(line) != 75:
                 raise ValueError("Malformed FRD static field header")
@@ -345,28 +352,29 @@ def read_frd(path, nodes, elements, *, contact_materials=None):
                 field_coverage = int(count_token)
             else:
                 field_coverage = _identifier(count_token)
+            mode = '1' if contact_profile is not None and contact_profile['steps'][pending[2]-1]['procedure']=='dynamic' else '0'
             if (line[7:12].strip() != str(100 + output_inc)
                     or not 0 <= field_coverage <= len(nodes)
-                    or (contact_materials is None and field_coverage != len(nodes)) or line[36:58].strip() != "0"
+                    or (contact_materials is None and field_coverage != len(nodes)) or line[36:58].strip() != mode
                     or line[63:74].strip() or line[74] != "1"):
                 raise ValueError("FRD static mode/coverage/encoding differs")
             token = line[12:24].strip()
             value = _number(token)
-            if value <= 0:
+            if value < 0 or value == 0 and mode != '1':
                 raise ValueError("Invalid static FRD load parameter")
-            inc = pending[1]
+            inc, native_step = pending[1], pending[2]
             if increment is not None:
-                if inc == increment:
+                if (native_step, inc) == (active_step, increment):
                     if output_inc != kode or value != parameter:
                         raise ValueError("FRD fields describe different load parameters within an increment")
                 elif output_inc <= kode or value <= parameter or "DISP" not in fields:
                     raise ValueError("Incomplete or unordered static FRD output increments")
-            if inc != increment:
+            if (native_step, inc) != (active_step, increment):
                 if increment is not None:
                     retain_frame()
                 fields = {}
                 contact_tokens = {}
-            increment, kode, parameter, parameter_token = inc, output_inc, value, token
+            active_step, increment, kode, parameter, parameter_token = native_step, inc, output_inc, value, token
             header = True
         elif parts[0] == "-4":
             if header is None or len(parts) != 4 or parts[1] not in labels_by_name or parts[1] in fields:
@@ -419,7 +427,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None):
         raise ValueError("Missing complete final FRD displacement/end marker")
     retain_frame()
     return {**({"frames": frames} if contact_materials is not None else {}), "displacements": fields["DISP"], "frd_coordinates_mm": xyz,
-            "elements": topology, "static": {"step":1, "increment":increment, "load_parameter":parameter},
+            "elements": topology, "static": {"step":active_step, "increment":increment, "load_parameter":parameter},
             "load_parameter_token":parameter_token, "final_fields":sorted(fields), "field_count":field_count,
             "native_version": versions[0].split("Version ")[1]}
 

@@ -133,7 +133,7 @@ def validate_model(model):
         if type(key[0]) is not int or type(key[1]) is not int or key[0] not in nodes or key[1] not in (1, 2, 3) or key in loads or key in boundaries and value != 0:
             raise ValueError('Force overlaps a prescribed displacement DOF or duplicates a load')
         loads[key] = value
-    if not boundaries or not (any(value != 0 for value in loads.values()) or any(value != 0 for value in boundaries.values())):
+    if not boundaries or ('analysis_steps' not in model and not (any(value != 0 for value in loads.values()) or any(value != 0 for value in boundaries.values()))):
         raise ValueError('Provide explicit restraints and a nonzero force or prescribed displacement')
     step = model['step']
     times = [number(step[key]) for key in ('initial', 'period', 'minimum', 'maximum')]
@@ -153,6 +153,14 @@ def validate_model(model):
             for token in row.split(','):
                 if token.strip():
                     number(token)
+    if 'analysis_steps' in model:
+        from .contact_steps import compile_program, validate_contributions
+        validate_contributions(model)
+        compile_program(model['analysis_steps'], model['conditions'])
+        if model['analysis_steps']['procedure'] == 'dynamic':
+            for material in model['materials']:
+                if number(material.get('density_tonne_per_mm3')) <= 0:
+                    raise ValueError('Implicit dynamics requires positive density for every body')
     return nodes, elements, bodies
 
 
@@ -167,8 +175,22 @@ def render(model):
         lines.extend(['*MATERIAL,NAME=M' + str(index), '*ELASTIC',
             num(material['young_modulus_MPa']) + ',' + num(material['poisson_ratio']),
             '*SOLID SECTION,ELSET=B' + str(index) + ',MATERIAL=M' + str(index)])
+    # Density is only effective in the explicitly selected dynamic capability.
+    if model.get('analysis_steps', {}).get('procedure') == 'dynamic':
+        # Insert inside each material definition, before its section.
+        for index, body in enumerate(sorted(bodies), 1):
+            material = next(r for r in model['materials'] if r['body_id'] == body)
+            at = lines.index('*SOLID SECTION,ELSET=B'+str(index)+',MATERIAL=M'+str(index))
+            lines[at:at] = ['*DENSITY', num(material['density_tonne_per_mm3'])]
     for pair in model['contacts']:
         lines.extend(contact_cards(pair).splitlines())
+        if pair['draft']['gap_policy'] == 'prescribed':
+            identifier = pair['object_id']
+            lines.append('*CLEARANCE,MASTER=IND'+identifier+',SLAVE=DEP'+identifier+
+                         ',VALUE='+num(pair['draft']['nominal_gap_mm']))
+    if 'analysis_steps' in model:
+        from .contact_steps import render_steps
+        return '\n'.join(lines + render_steps(model) + [''])
     step = model['step']
     lines.append('*STEP,INC=' + str(step['increments']) + (',NLGEOM' if step['geometry'] == 'nonlinear' else ''))
     if step.get('controls') is not None:

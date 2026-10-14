@@ -8,7 +8,8 @@ from caelab.contact import CONTACT_FIELDS, default_contact, law_errors, number
 
 OPERATIONS = ('pre.contact.set', 'pre.contact.remove', 'pre.contact.swap',
     'pre.contact.highlight', 'pre.contact.preview_rebind', 'pre.contact.apply_rebind',
-    'pre.contact.cancel_rebind', 'pre.contact.prepare_meshes', 'pre.contact.inspect')
+    'pre.contact.cancel_rebind', 'pre.contact.prepare_meshes', 'pre.contact.inspect',
+    'pre.contact.geometry', 'pre.contact.steps_read', 'pre.contact.steps_set')
 
 
 class ContactEditor:
@@ -201,7 +202,7 @@ class ContactEditor:
                         face.pop('preview_points_mm', None)
                         face.pop('preview_triangles', None)
             rows.append(row)
-        return {'pairs': rows, 'backend': 'structure.calculix.contact',
+        return {'pairs': rows, 'programs':deepcopy(self._data().get('contact_programs',[])), 'backend': 'structure.calculix.contact',
                 'engineering_release': 'NOT_RELEASED'}
 
     def _clear_overlay(self):
@@ -318,6 +319,122 @@ class ContactEditor:
         self.fem._transaction('separate contact body meshes', create)
         return {'meshes': result, 'generated': False, 'next': 'Generate each body with the existing Mesh tab'}
 
+    def step_inputs(self, analysis):
+        from .fem_edit import _native_type
+        from caelab.contact_steps import default_program, compile_program
+        if _native_type(analysis) != 'Fem::FemAnalysis':
+            raise ValueError('해석을 선택하세요')
+        solvers = [o for o in analysis.Group if _native_type(o) == 'Fem::SolverCcxTools' and not getattr(o,'Suppressed',False)]
+        if len(solvers) != 1:
+            raise ValueError('CalculiX 설정을 하나 선택하세요')
+        solver = solvers[0]
+        conditions = []
+        for obj in analysis.Group:
+            kind = _native_type(obj)
+            if getattr(obj, 'Suppressed', False) or kind not in ('Fem::ConstraintForce','Fem::ConstraintFixed','Fem::ConstraintDisplacement'):
+                continue
+            c = {'object_id':obj.Name,'label':obj.Label,'type':kind}
+            if kind == 'Fem::ConstraintForce':
+                c['total_force_N'] = number(obj.Force.getValueAs('N').Value)
+            else:
+                c['components_mm'] = {i:0. for i in (1,2,3)} if kind == 'Fem::ConstraintFixed' else {
+                    i:number(getattr(obj, a+'Displacement').getValueAs('mm').Value)
+                    for i,a in enumerate('xyz',1) if not getattr(obj,a+'Free')}
+            conditions.append(c)
+        step = {k:number(getattr(solver,a).getValueAs('s').Value) for k,a in (
+            ('period','TimePeriod'),('initial','TimeInitialIncrement'),('minimum','TimeMinimumIncrement'),('maximum','TimeMaximumIncrement'))}
+        step['increments'] = int(solver.IncrementsMaximum)
+        records = [r for r in self._data().get('contact_programs',[]) if r['analysis_id']==analysis.Name]
+        if len(records)>1:
+            raise ValueError('Duplicate Analysis programs')
+        draft = deepcopy(records[0]['draft']) if records else default_program(step,conditions)
+        return {'analysis_id':analysis.Name,'solver_id':solver.Name,'conditions':conditions,'draft':draft,
+                'applied':bool(records),'native_procedure':solver.AnalysisType,
+                'step_defaults':default_program(step,conditions)['steps'][0]}
+
+    def set_steps(self, analysis, args):
+        if set(args) != {'draft'} or not isinstance(args['draft'],dict):
+            raise ValueError('단계 초안을 지정하세요')
+        draft = deepcopy(args['draft'])
+        encoded = json.dumps(draft,allow_nan=False)
+        if len(encoded)>1024*1024 or not isinstance(draft.get('steps'),list) or len(draft['steps'])>100:
+            raise ValueError('단계 초안의 크기를 확인하세요')
+        info = self.step_inputs(analysis)
+        def change():
+            data = self._data()
+            old = [r for r in data.get('contact_programs',[]) if r['analysis_id']==analysis.Name]
+            data.setdefault('contact_program_history',[]).extend(deepcopy(old))
+            data['contact_programs'] = [r for r in data.get('contact_programs',[]) if r['analysis_id']!=analysis.Name]
+            data['contact_programs'].append({'analysis_id':analysis.Name,'draft':draft})
+            # The UI explicitly selects procedure. Partial numerical text remains raw.
+            if draft.get('procedure') in ('static','dynamic'):
+                self.owner._object(info['solver_id']).AnalysisType = draft['procedure']
+            self.owner.write_metadata(data)
+        self.fem._transaction('해석 단계 적용',change)
+        return self.step_inputs(analysis)
+
+    def geometry(self, obj):
+        from .fem_edit import _target
+        record = self._pair(obj.Name)
+        errors = [r for r in self.errors(record) if r['path'] in ('a','b','native')]
+        if errors:
+            raise ValueError('; '.join(r['message'] for r in errors))
+        sides, shapes = {}, {}
+        for side in ('a','b'):
+            saved = record[side]
+            source = self.owner._object(saved['target']['object_id'])
+            names = [v['name'] for v in saved['target']['subelements']]
+            sides[side] = self.snapshot(source,names)
+            shapes[side] = []
+            for name in names:
+                face = source.getSubObject(name).copy(True,False)
+                face.Placement = source.getGlobalPlacement()*source.Placement.inverse()*face.Placement
+                shapes[side].append(face)
+        nearest = None
+        for ia, a in enumerate(shapes['a']):
+            for ib, b in enumerate(shapes['b']):
+                distance, pairs, info = a.distToShape(b)
+                if nearest is None or distance < nearest['distance_mm']:
+                    nearest = {'distance_mm':float(distance),'a_face':sides['a']['faces'][ia]['name'],
+                        'b_face':sides['b']['faces'][ib]['name'],
+                        'points_mm': [[[float(v.x),float(v.y),float(v.z)] for v in pair] for pair in pairs[:16]]}
+        for side in ('a','b'):
+            target = record[side]['target']
+            if _target(self.owner._object(target['object_id']),[v['name'] for v in target['subelements']]) != target:
+                raise ValueError('INPUT_CHANGED: 형상 거리 조회 중 원본이 변경되었습니다')
+        self._clear_overlay()
+        self._overlay(sides['a'],(1.,.6,.15))
+        self._overlay(sides['b'],(.1,.6,1.))
+        self._normal_arrows(sides)
+        return {'nearest':nearest,'sides':{k:{'label':v['label'],'faces':[
+            {x:r[x] for x in ('name','area_mm2','centroid_mm','center_normal')} for r in v['faces']]} for k,v in sides.items()},
+            'distance_kind':'UNSIGNED_CAD_MINIMUM','penetration':'UNKNOWN','solver_execution':'NOT_PERFORMED'}
+
+    def _normal_arrows(self, sides):
+        if not getattr(self.owner.App,'GuiUp',False):
+            return
+        from pivy import coin
+        scene = self.owner.Gui.activeDocument().activeView().getSceneGraph()
+        root = coin.SoSeparator()
+        for side,color in (('a',(1.,.5,.1)),('b',(.1,.5,1.))):
+            for face in sides[side]['faces']:
+                p,n = face['centroid_mm'],face['center_normal']
+                length = max(math.sqrt(face['area_mm2'])*.25,1e-6)
+                tip = [p[i]+n[i]*length for i in range(3)]
+                basis = [1.,0.,0.] if abs(n[0])<.8 else [0.,1.,0.]
+                cross = [n[1]*basis[2]-n[2]*basis[1], n[2]*basis[0]-n[0]*basis[2], n[0]*basis[1]-n[1]*basis[0]]
+                norm = math.sqrt(sum(v*v for v in cross))
+                if not math.isfinite(norm) or norm == 0:
+                    continue
+                wings = [[tip[i]-.25*length*n[i]+sign*.12*length*cross[i]/norm for i in range(3)] for sign in (-1,1)]
+                part, mat, xyz, line = coin.SoSeparator(),coin.SoBaseColor(),coin.SoCoordinate3(),coin.SoIndexedLineSet()
+                mat.rgb = color
+                xyz.point.setValues(0,4,[p,tip,*wings])
+                line.coordIndex.setValues(0,8,[0,1,-1,2,1,3,-1,-1])
+                part.addChild(mat); part.addChild(xyz); part.addChild(line); root.addChild(part)
+        scene.addChild(root)
+        self._overlays.append((scene,root))
+
     def dispatch(self, operation, args, target):
         if operation == 'pre.contact.inspect':
             if args or target:
@@ -329,9 +446,19 @@ class ContactEditor:
             self.previews.pop(args['preview_id'], None)
             self._clear_overlay()
             return {'cancelled': True, 'applied': False}
-        if operation != 'pre.contact.highlight':
+        if operation not in ('pre.contact.highlight','pre.contact.geometry','pre.contact.steps_read'):
             self.fem._assert_idle()
         obj = self.fem._object(target)
+        if operation == 'pre.contact.steps_read':
+            if args:
+                raise ValueError('단계 조회는 해석 대상만 받습니다')
+            return self.step_inputs(obj)
+        if operation == 'pre.contact.steps_set':
+            return self.set_steps(obj,args)
+        if operation == 'pre.contact.geometry':
+            if args:
+                raise ValueError('면 간격 조회는 접촉 대상만 받습니다')
+            return self.geometry(obj)
         if operation == 'pre.contact.set':
             return self.set(obj, args)
         if operation == 'pre.contact.preview_rebind':

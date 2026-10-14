@@ -50,7 +50,7 @@ class MeasurementDialog(QDialog):
                 if name in measured:
                     self.value_column.addItem(label, {'name': name, 'component': component})
                 measurement = snapshot['summary'].get('measurement')
-                if name == {'time': 'Time', 'path': 'arc_length', 'contact_force': 'load_parameter'}.get(measurement) and component is None:
+                if name == {'time': 'Time', 'path': 'arc_length', 'contact_force': snapshot['summary'].get('axis_name','load_parameter')}.get(measurement) and component is None:
                     self.axis_column.addItem(label, {'kind': 'array', 'name': name, 'component': component})
         if available['coordinates'] and snapshot['summary'].get('measurement') != 'time':
             for component, label in enumerate(('X 좌표', 'Y 좌표', 'Z 좌표')):
@@ -162,8 +162,9 @@ class MeasurementDialog(QDialog):
                 declarations = {'axis_name': ('X', 'Y', 'Z')[axis['component']], 'axis_unit': summary.get('coordinate_units') or ''}
             elif axis.get('name') == 'Time':
                 declarations = {'axis_name': 'time', 'axis_unit': summary.get('time_units') or ''}
-            elif axis.get('name') == 'load_parameter' and summary.get('measurement') == 'contact_force':
-                declarations = {'axis_name': 'load_parameter', 'axis_unit': '1'}
+            elif summary.get('measurement') == 'contact_force' and axis.get('name') == summary.get('axis_name','load_parameter'):
+                declarations = {'axis_name': summary.get('axis_name','load_parameter'),
+                                'axis_unit': summary.get('axis_unit','1')}
             elif axis.get('name') == 'arc_length':
                 declarations = {'axis_name': 'arc length', 'axis_unit': summary.get('coordinate_units') or ''}
             else:

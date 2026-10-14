@@ -9,6 +9,7 @@ import subprocess
 
 from ..contact import BACKEND
 from ..contact_deck import render, validate_model
+from ..contact_steps import profile, axis as contact_axis, validate_frames
 from ..execution_control import run_owned_command, check_cancelled, ExecutionCancelled, ExecutionCleanupFailed
 from ..storage import check_id, save_json
 from .frozen_fem import _read, _relative, _sha, _jacobian_gates, read_frd
@@ -75,6 +76,7 @@ class ContactFemCalculixAdapter:
         result = {'execution_status': 'REJECTED', 'responses': {}, 'checks': [],
             'qualification': 'UNKNOWN', 'decision': 'NOT_RELEASED', 'engineering_valid': False,
             'diagnostics': {}, 'artifacts': []}
+        model = manifest = pins = None
         try:
             source = Path(settings['snapshot_path'])
             manifest, model, pins, gates = validate_snapshot(source)
@@ -116,14 +118,18 @@ class ContactFemCalculixAdapter:
             materials = {'names': ['M'+str(index) for index in material_indices.values()] +
                                    ['INT'+pair['object_id'].upper() for pair in model['contacts']],
                          'elements': {row['element_id']: 'M'+str(material_indices[row['body_id']]) for row in model['elements']}}
-            observed = read_frd(deck.with_suffix('.frd'), nodes, elements, contact_materials=materials)
-            if not _printed_close(observed['load_parameter_token'], model['step']['period']):
-                raise ValueError('Contact result has not reached the retained final load parameter')
+            observed = read_frd(deck.with_suffix('.frd'), nodes, elements, contact_materials=materials, contact_profile=profile(model))
+            validate_frames(model, observed)
             frames = observed['frames']
+            if profile(model):
+                from ..contact_status import read_status, require_converged
+                progress=read_status(deck.with_suffix('.sta'),model)
+                require_converged(frames,progress)
+                result['increment_history']=progress
             pair_results = read_dat(deck.with_suffix('.dat'), model['contacts'], frames)
             save_json(output / 'pair_resultants.json', {'snapshot_id': manifest['id'], 'rows': pair_results,
                 'request_order': ['CF', 'CFN', 'CFS'], 'force_units': 'N', 'moment_units': 'N mm',
-                'axis': 'static_load_parameter', 'area_units': 'mm^2'})
+                'axis': contact_axis(model), 'area_units': 'mm^2'})
             with (output / 'pair_resultants.csv').open('w', newline='', encoding='utf-8') as stream:
                 writer = csv.writer(stream)
                 writer.writerow(['pair', 'quantity', 'step', 'increment', 'load_parameter',
@@ -163,9 +169,9 @@ class ContactFemCalculixAdapter:
                         # Failed/nonfinite rows remain in raw table with reasons; never filled with zero.
                         responses[pair['object_id']+'.'+quantity+'.F'+component] = {
                             'kind':'series','unit':'N','value':[row['force_N'][axis] for row in valid],
-                            'axes':[{'name':'load_parameter','unit':'1','values':[row['static']['load_parameter'] for row in valid]}],
+                            'axes':[{'name':contact_axis(model)['name'],'unit':contact_axis(model)['unit'],'values':[row['static']['load_parameter'] for row in valid]}],
                             'component':'F'+component, 'location':pair['object_id'],'reduction':'none',
-                            'metadata':{'axis_semantics':'STATIC_LOAD_PARAMETER','quantity':quantity,
+                            'metadata':{'axis_semantics':contact_axis(model)['semantics'],'quantity':quantity,
                                 'frame':'FREECAD_DOCUMENT_GLOBAL','raw_rows':'pair_resultants.json',
                                 'excluded_nonfinite_rows':len(rows)-len(valid)}}
             artifact = output / 'post' / 'contact.pvd'
@@ -181,8 +187,57 @@ class ContactFemCalculixAdapter:
             result.update(execution_status='CANCELLED', responses={}, diagnostics={'reason':str(error)})
         except (ValueError, KeyError, TypeError, AttributeError, IndexError, OverflowError, OSError, RuntimeError, subprocess.TimeoutExpired) as error:
             result.update(responses={}, diagnostics={'type':type(error).__name__,'reason':str(error)})
+        if model is not None and manifest is not None:
+            result['executed_setup']={'analysis_id':manifest.get('analysis_id'), 'solver_id':manifest.get('solver_id'),
+                'snapshot_id':manifest['id'],'axis':contact_axis(model),
+                'program':model.get('analysis_steps'),
+                'conditions':[{'object_id':r['object_id'],'label':r.get('label',r['object_id']),
+                               'type':r['type'],'body_id':r['body_id']} for r in model.get('conditions',[])]}
+            status_path=output/'solver/contact.sta'
+            if status_path.is_file():
+                try:
+                    from ..contact_status import read_status
+                    progress=read_status(status_path,model)
+                    result['increment_history']=progress
+                    result['failure_location']=progress['failure_location']
+                except (ValueError,OSError,KeyError,UnicodeError) as error:
+                    result.setdefault('diagnostics',{})['increment_readback']=str(error)
+            if result['execution_status'] in ('FAILED','CANCELLED') and result.get('increment_history'):
+                try:
+                    # Owned process is terminal before this point. Read retained
+                    # committed increments only; no solver/retry/resume is invoked.
+                    from ..contact_status import retained_prefix
+                    if pins is None:
+                        raise ValueError('No admitted retained input')
+                    validate_snapshot(output/'frozen_input/snapshot.json')
+                    if any(_sha(output/'frozen_input'/name)!=pin['sha256'] for name,pin in pins.items()):
+                        raise ValueError('Frozen input changed before partial readback')
+                    if _sha(output/'solver/contact.inp')!=pins['contact.inp']['sha256']:
+                        raise ValueError('Executed deck changed before partial readback')
+                    if 'runtime' not in result or _sha(Path(result['runtime']['executable']))!=result['runtime']['sha256']:
+                        raise ValueError('Executed runtime changed before partial readback')
+                    nodes,elements,bodies=validate_model(model)
+                    indices={body:i for i,body in enumerate(sorted(bodies),1)}
+                    materials={'names':['M'+str(i) for i in indices.values()]+
+                        ['INT'+p['object_id'].upper() for p in model['contacts']],
+                        'elements':{r['element_id']:'M'+str(indices[r['body_id']]) for r in model['elements']}}
+                    observed=retained_prefix(output/'solver/contact.frd',output/'partial/committed.frd',
+                        nodes,elements,materials,model,result['increment_history'])
+                    frames=observed['frames']
+                    pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True)
+                    metadata=write_post(output/'partial/post',model,frames,pairs,
+                        execution={'status':result['execution_status'],'complete_analysis':False,'scope':'CONVERGED_PREFIX'},provenance={
+                        'snapshot_id':manifest['id'],'snapshot_sha256':pins['snapshot.json']['sha256'],
+                        'raw_frd_sha256':_sha(output/'solver/contact.frd'),'raw_dat_sha256':_sha(output/'solver/contact.dat')})
+                    artifact=output/'partial/post/contact.pvd'
+                    result['partial_result']={'status':'CONVERGED_PREFIX','frame_count':len(frames),
+                        'complete_analysis':False,'status_source':result['increment_history']['source']}
+                    result['post_artifact']={'relative':'partial/post/contact.pvd','bytes':artifact.stat().st_size,
+                        'sha256':_sha(artifact),'native_metadata':metadata}
+                except (ValueError,OSError,KeyError,TypeError,IndexError,UnicodeError) as error:
+                    result.setdefault('diagnostics',{})['partial_readback']=str(error)
         result['limitations'] = [
-            'Static load parameter is not physical seconds; one step, no prescribed activation interval',
+            'Static steps use cumulative dimensionless load parameter; dynamic-only steps use seconds. Mixed procedures and within-step contact activation are not supported',
             'FRD contact is native projected/averaged nodal output, not pair-specific integration point output',
             'Raw signs unchanged; zero/missing COPEN or pressure does not determine active contact',
             'GeomGap is a labelled linear subdivision of deformed quadratic faces, not solver-effective clearance',
@@ -208,6 +263,8 @@ def regenerate_post(attempt, output):
     manifest, model, input_pins, _ = validate_snapshot(attempt / 'frozen_input' / 'snapshot.json')
     entries = {row['relative']: row for row in record['artifacts']}
     required = ['frozen_input/' + name for name in input_pins] + ['solver/contact.frd', 'solver/contact.dat']
+    if profile(model):
+        required.append('solver/contact.sta')
     source_pins = {}
     for relative in required:
         pin = entries.get(relative)
@@ -222,10 +279,12 @@ def regenerate_post(attempt, output):
                            ['INT' + pair['object_id'].upper() for pair in model['contacts']],
                  'elements': {row['element_id']: 'M' + str(indices[row['body_id']])
                               for row in model['elements']}}
-    observed = read_frd(attempt / 'solver/contact.frd', nodes, elements, contact_materials=materials)
-    if not _printed_close(observed['load_parameter_token'], model['step']['period']):
-        raise ValueError('Retained contact result has not reached its final load parameter')
+    observed = read_frd(attempt / 'solver/contact.frd', nodes, elements, contact_materials=materials, contact_profile=profile(model))
+    validate_frames(model, observed)
     frames = observed['frames']
+    if profile(model):
+        from ..contact_status import read_status, require_converged
+        require_converged(frames, read_status(attempt / 'solver/contact.sta', model))
     pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames)
     output.parent.mkdir(parents=True, exist_ok=True)
     metadata = write_post(output, model, frames, pairs, provenance={

@@ -248,7 +248,7 @@ class Owner:
                     self._idle()
                 readonly = {'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
-                            'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
+                            'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
                     raise ValueError('MESH_BUSY: finish/cancel this native mesh generation before another design command')
                 if (operation not in readonly and operation not in MOTION_OPERATIONS

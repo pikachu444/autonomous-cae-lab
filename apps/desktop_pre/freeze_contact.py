@@ -62,9 +62,16 @@ def collect(analysis, solver, fem):
     fem._assert_idle()
     if doc.isTouched() or any(set(obj.State) & {'Touched', 'Invalid', 'Error', 'Recompute'} for obj in doc.Objects):
         raise ValueError('Recompute and repair the native document before Run')
-    expected = {'AnalysisType': 'static', 'ModelSpace': '3D', 'MaterialNonlinearity': 'linear', 'SplitInputWriter': False}
+    programs = [r for r in fem._metadata().get('contact_programs', []) if r['analysis_id'] == analysis.Name]
+    if len(programs) > 1:
+        raise ValueError('Duplicate Analysis step definitions')
+    program = deepcopy(programs[0]['draft']) if programs else None
+    procedure = program.get('procedure') if program else 'static'
+    if procedure not in ('static', 'dynamic'):
+        raise ValueError('Repair the Analysis procedure in the Steps page')
+    expected = {'AnalysisType': procedure, 'ModelSpace': '3D', 'MaterialNonlinearity': 'linear', 'SplitInputWriter': False}
     if any(getattr(solver, key) != value for key, value in expected.items()):
-        raise ValueError('Contact route requires unsplit 3D static isotropic elastic bodies')
+        raise ValueError('Contact route requires unsplit 3D isotropic elastic bodies and a solver procedure matching the Steps page')
     if solver.GeometricalNonlinearity not in ('linear', 'nonlinear'):
         raise ValueError('Unsupported native geometric formulation')
     records = [row for row in fem.contact._data()['contacts'] if row['analysis_id'] == analysis.Name
@@ -145,10 +152,13 @@ def collect(analysis, solver, fem):
             assigned = list(bodies)
         E = number(App.Units.Quantity(obj.Material['YoungsModulus']).getValueAs('MPa').Value)
         nu = number(obj.Material['PoissonRatio'])
+        density = {}
+        if procedure == 'dynamic':
+            density['density_tonne_per_mm3'] = number(App.Units.Quantity(obj.Material['Density']).getValueAs('kg/m^3').Value) * 1e-12
         for body in assigned:
             model['materials'].append({'body_id': body, 'object_id': obj.Name,
                 'law': 'isotropic_linear_elastic', 'young_modulus_MPa': E, 'poisson_ratio': nu,
-                'native_values': _plain(obj.Material)})
+                'native_values': _plain(obj.Material), **density})
     constraints, loads = {}, {}
     for group_name in ('cons_fixed', 'cons_displacement', 'cons_force'):
         for member in getattr(members, group_name):
@@ -166,23 +176,34 @@ def collect(analysis, solver, fem):
                     _, entries, is_sub = meshtools.get_ccx_elements(getter, (source, face))
                     if not is_sub or not entries:
                         raise ValueError(obj.Label + ': selected face has no mapped elements')
-            condition = {'object_id': obj.Name, 'type': _native_type(obj), 'body_id': body_id,
+            condition = {'object_id': obj.Name, 'label': obj.Label, 'type': _native_type(obj), 'body_id': body_id,
                          'targets': [_target(source, names) for source, names in refs]}
             if group_name == 'cons_force':
+                condition['force_weights'] = []
                 if obj.EnableAmplitude:
                     raise ValueError('Contact Force amplitudes require a separate effective mapping')
                 direction = [number(v) for v in (obj.DirectionVector.x, obj.DirectionVector.y, obj.DirectionVector.z)]
                 if not any(direction):
                     raise ValueError('Force direction is unresolved')
                 total = number(obj.Force.getValueAs('N').Value)
-                if total == 0:
+                if total == 0 and program is None:
                     condition.update(total_force_N=0., native_integrated_force_N=0.,
                         distribution='explicit_zero_force', direction=direction)
                     model['conditions'].append(condition)
                     continue
-                getter.member.cons_force = [dict(member)]
-                getter.get_constraints_force_nodeloads()
-                table = _native_force_table(getter.member.cons_force[0]['NodeLoadTable'])
+                if total == 0:
+                    # Native face quadrature is linear in Force. Read a detached 1 N
+                    # descriptor; never change the user's native Force or its signature.
+                    from types import SimpleNamespace
+                    probe = SimpleNamespace(References=obj.References, Force=App.Units.Quantity('1 N'), Name=obj.Name)
+                    table = _native_force_table(meshtools.get_force_obj_face_nodeload_table(
+                        body['mesh'].FemMesh, meshtools.get_femelement_table(body['mesh'].FemMesh),
+                        body['mesh'].FemMesh.Nodes, probe))
+                    condition['mapping_reference_force_N'] = 1.
+                else:
+                    getter.member.cons_force = [dict(member)]
+                    getter.get_constraints_force_nodeloads()
+                    table = _native_force_table(getter.member.cons_force[0]['NodeLoadTable'])
                 total = number(obj.Force.getValueAs('N').Value)
                 integrated = sum(table.values())
                 if not table or integrated == 0 or any(n not in nmap for n in table):
@@ -197,6 +218,8 @@ def collect(analysis, solver, fem):
                         if factor != 0:
                             key = (nmap[n], axis)
                             loads[key] = loads.get(key, 0.) + value * scale * factor
+                            condition['force_weights'].append({'node_id': key[0], 'component': axis,
+                                                               'weight': value / integrated * factor})
             else:
                 if group_name == 'cons_displacement' and obj.EnableAmplitude:
                     raise ValueError('Contact displacement amplitudes are unsupported')
@@ -211,12 +234,14 @@ def collect(analysis, solver, fem):
                 if not values:
                     raise ValueError('Displacement condition has no prescribed translational component')
                 condition['components_mm'] = values
+                condition['boundary_dofs'] = []
                 for n in local:
                     for axis, value in values.items():
                         key = (nmap[int(n)], axis)
                         if key in constraints and constraints[key] != value:
                             raise ValueError('Conflicting displacement values on the same body DOF')
                         constraints[key] = value
+                        condition['boundary_dofs'].append({'node_id': key[0], 'component': axis, 'value_mm': value})
             model['conditions'].append(condition)
     model['boundary_dofs'] = [{'node_id': n, 'component': d, 'value_mm': value}
                              for (n, d), value in sorted(constraints.items())]
@@ -229,6 +254,8 @@ def collect(analysis, solver, fem):
         axis_semantics='static_load_parameter_not_physical_seconds',
         controls=[solver.IterationsControlParameterIter, solver.IterationsControlParameterCutb]
                  if solver.IterationsControlParameterTimeUse else None)
+    if program is not None:
+        model['analysis_steps'] = program
     validate_model(model)
     identity = [{'body_id': identifier, 'mesh_id': row['mesh'].Name, 'target': row['target'],
                  'binding': row['binding']} for identifier, row in sorted(bodies.items())]
