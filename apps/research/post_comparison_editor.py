@@ -212,8 +212,11 @@ class ComparisonEditor(QWidget):
             invariant = observable_value('scalar', 'scalar', scalar_semantics='invariant')
             leaves.append(('회전에 무관한 스칼라 값', invariant))
             operand = observed.get('operand') if isinstance(observed, dict) and observed.get('operation') == 'difference' else observed
-            if isinstance(operand, dict) and operand.get('operation') == 'norm_of_difference':
-                operand = observable_value(operand['source_kind'], 'magnitude')
+            if isinstance(observed, dict) and observed.get('operation') == 'norm_of_difference':
+                operand = observable_value(observed['source_kind'], 'magnitude')
+            if isinstance(operand, dict) and operand != UNKNOWN_OBSERVABLE and not any(value == operand for _, value in leaves):
+                # A retained nested difference is not flattened by opening OK.
+                leaves.append((observable_label(operand), deepcopy(operand)))
             leaf_field = combo(leaves, operand if operand != UNKNOWN_OBSERVABLE else None)
             leaf_field.setObjectName('observable_value')
             operation = combo([('원 관측량', 'value'), ('선택값의 차이 B − A', 'difference'),
