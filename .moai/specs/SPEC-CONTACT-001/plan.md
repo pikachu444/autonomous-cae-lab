@@ -39,7 +39,9 @@ dependency is required. Check existing native writers/readers before adding code
 
 Actual Pro owns substantive product changes and related tests/usage details.
 Codex owns Windows integration, current-state/SPEC and general usage documents.
-Sol may own a bounded visual patch only after file ownership is separated.
+The user's subsequent parallel-development instruction also authorizes bounded
+Sol feature ownership in isolated branches. CURRENT_STATE records the exact
+assignment and shared-file exclusions; Pro remains the substantial product author.
 Astra reviews the integrated numerical meaning and user workflow. Basic
 changed-path tests accompany implementation; broader solver campaigns wait.
 
