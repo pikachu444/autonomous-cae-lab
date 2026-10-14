@@ -2,7 +2,7 @@
 id: SPEC-POST-COMPARE-001
 title: "Compare results across units, coordinates and time"
 version: "0.1.0"
-status: planned
+status: in_progress
 created: 2026-10-14
 updated: 2026-10-14
 author: "Codex integration; actual ChatGPT Pro implementation"
