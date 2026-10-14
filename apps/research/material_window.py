@@ -64,6 +64,13 @@ def draft_view_error(draft):
             or any(not isinstance(matrix, list) or len(matrix) != 3 or
                    any(not isinstance(row, list) or len(row) != 3 for row in matrix) for matrix in gradients)):
         return "This draft cannot fit the time and 3×3 history table."
+    if 'boundary_control' in settings:
+        boundary = settings['boundary_control']
+        targets = boundary.get('stress_components') if isinstance(boundary, dict) else None
+        if (not isinstance(targets, dict) or any(component not in
+                {a + b for a in 'xyz' for b in 'xyz'} or not isinstance(values, list)
+                for component, values in targets.items())):
+            return '응력 제어 입력 구조를 확인하세요. 원래 입력은 진단 상세에 보존됩니다.'
     return None
 
 
@@ -81,7 +88,10 @@ def error_message(error):
     if hasattr(error, "read"):
         try:
             payload = json.loads(error.read().decode("utf-8"))
-            return json.dumps(payload, ensure_ascii=False)
+            message = payload.get('message', payload.get('error')) if isinstance(payload, dict) else None
+            if isinstance(message, dict):
+                message = message.get('message')
+            return message if isinstance(message, str) else str(error)
         except (ValueError, OSError, UnicodeError):
             pass
     return str(error)
@@ -175,6 +185,9 @@ class MaterialWindow(QMainWindow):
         self.numerical_action = QAction("재료 피팅…", self)
         self.numerical_action.triggered.connect(self.open_numerical)
         windows.addAction(self.numerical_action)
+        self.trial_action = QAction('단축 시험 조건…', self)
+        self.trial_action.triggered.connect(self.configure_trial)
+        windows.addAction(self.trial_action)
         self.constitutive_action=QAction('구성식 증분…',self)
         self.constitutive_action.triggered.connect(self.open_constitutive)
         windows.addAction(self.constitutive_action)
@@ -230,7 +243,8 @@ class MaterialWindow(QMainWindow):
         self.model.currentIndexChanged.connect(self._model_changed)
         self.stress_unit.textEdited.connect(self._edited)
         self.time_unit.textEdited.connect(self._edited)
-        left.addWidget(QLabel("변형 이력 (지정한 변형구배 F)"))
+        self.history_label = QLabel("변형 이력 (지정한 변형구배 F)")
+        left.addWidget(self.history_label)
         from .material_editing import MaterialTable
         self.history = MaterialTable(0, 10)
         self.history.setObjectName("materialHistory")
@@ -393,10 +407,22 @@ class MaterialWindow(QMainWindow):
             self.stress_unit.setText(display_value(settings["stress_unit"]))
             self.time_unit.setText(display_value(settings["time_unit"]))
             self._populate_coefficients(settings["parameters"])
+            targets = settings.get('boundary_control', {}).get('stress_components', {})
+            self._target_components = list(targets)
+            unknown = {component: 'F' + str('xyz'.index(component[0]) + 1) + str('xyz'.index(component[1]) + 1)
+                       for component in targets}
+            headings = [f"시간 [{settings['time_unit']}]"] + [f'F{i}{j}' for i in range(1, 4) for j in range(1, 4)]
+            headings = [heading + '\n초기 추정' if heading in unknown.values() else heading for heading in headings]
+            headings += [f"목표 응력 {component}\n[{settings['stress_unit']}]" for component in targets]
+            self.history.setColumnCount(len(headings))
+            self.history.setHorizontalHeaderLabels(headings)
+            self.history_label.setText('지정한 변형 및 응력 / 미지 변형의 초기 추정' if targets else '변형 이력 (지정한 변형구배 F)')
             self.history.setRowCount(len(settings["time"]))
             for row, time in enumerate(settings["time"]):
                 gradient = settings["deformation_gradient"][row]
-                for column, value in enumerate([time] + [item for vector in gradient for item in vector]):
+                values = [time] + [item for vector in gradient for item in vector]
+                values += [targets[component][row] if row < len(targets[component]) else '' for component in targets]
+                for column, value in enumerate(values):
                     item = QTableWidgetItem(display_value(value))
                     item.setData(Qt.ItemDataRole.UserRole, {"original": deepcopy(value)})
                     self.history.setItem(row, column, item)
@@ -470,7 +496,16 @@ class MaterialWindow(QMainWindow):
 
     def _update_protocol_label(self):
         if self._draft_problem:
-            self.protocol_label.setText(self._draft_problem + " The original draft is preserved in Diagnostics. Save or use the owner's Undo/another client to repair it.")
+            self.protocol_label.setText(self._draft_problem)
+            return
+        controlled = (self._local_snapshot or self.document['draft']).get('settings', {}).get('boundary_control')
+        if controlled:
+            targets = controlled.get('stress_components', {})
+            self.protocol_label.setText('자유 횡변형: 목표 응력 yy = zz = 0'
+                if {'yy', 'zz'} <= targets.keys() and all(value == 0 for component in ('yy', 'zz') for value in targets[component])
+                else '지정 응력에 대한 변형 계산')
+            if 'xx' in targets:
+                self.protocol_label.setText(self.protocol_label.text() + ' / 축응력 제어')
             return
         fixed_lateral = self.history.rowCount() > 0 and all(
             self.history.item(row, column) is not None and
@@ -483,7 +518,7 @@ class MaterialWindow(QMainWindow):
 
     def edited_draft(self):
         self._commit_cell_editor()
-        draft = deepcopy(self.document["draft"])
+        draft = deepcopy(self._local_snapshot if self._local_snapshot is not None else self.document["draft"])
         if self._draft_problem:
             return draft
         settings = draft["settings"]
@@ -499,13 +534,18 @@ class MaterialWindow(QMainWindow):
             values = [edited_cell(self.history, row, column) for column in range(10)]
             settings["time"].append(values[0])
             settings["deformation_gradient"].append([values[1:4], values[4:7], values[7:10]])
+        if 'boundary_control' in settings:
+            settings['boundary_control']['stress_components'] = {
+                component: [edited_cell(self.history, row, 10 + index) for row in range(self.history.rowCount())]
+                for index, component in enumerate(self._target_components)}
         return draft
 
     def add_state(self):
         self._populating = True
         row = self.history.rowCount()
         self.history.insertRow(row)
-        for column, value in enumerate([""] + [1 if i == j else 0 for i in range(3) for j in range(3)]):
+        for column, value in enumerate([""] + [1 if i == j else 0 for i in range(3) for j in range(3)]
+                                       + [''] * (self.history.columnCount() - 10)):
             self.history.setItem(row, column, QTableWidgetItem(str(value)))
         self._populating = False
         self._edited()
@@ -600,6 +640,36 @@ class MaterialWindow(QMainWindow):
             window.show()
             window.raise_()
             return window
+
+    def configure_trial(self):
+        self._commit_cell_editor()
+        if not self.document or self._busy or self.conflict or self._draft_problem:
+            return
+        if not callable(getattr(self.client, 'data_material', None)):
+            self.message.setText('연결한 서비스에서 시험 조건 설정을 지원하지 않습니다.')
+            return
+        from .material_control_dialog import MaterialControlDialog
+        base_document = deepcopy(self.document)
+        before = self.edited_draft()
+        dialog = MaterialControlDialog(self.client, before['settings'], self)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        draft = deepcopy(before)
+        draft['settings'] = dialog.result_settings
+        identity = lambda document: (document['id'], document['session_id'], document['generation'])
+        if identity(self.document) != identity(base_document) or self.conflict:
+            self.document = base_document
+            self.conflict = True
+            self._local_undo.append(deepcopy(before))
+            self._local_redo.clear()
+            self._restore_inputs(draft)
+            self.message.setText('재료 문서가 바뀌었습니다. 설정한 시험 조건은 보존했습니다. 최신 내용을 다시 읽거나 새 문서로 보관하세요.')
+            return
+        if draft != before:
+            self._local_undo.append(deepcopy(before))
+            self._local_redo.clear()
+            self._restore_inputs(draft)
+        self.message.setText('시험 조건을 설정했습니다. 입력 적용 후 계산 실행을 누르세요.')
 
     def open_runner(self):
         from .runner_window import RunnerWindow
@@ -748,6 +818,12 @@ class MaterialWindow(QMainWindow):
             stale = self.local_dirty or not run.get("is_current_input", generation == self.document["generation"])
             number = next(index + 1 for index, item in enumerate(self.document['runs']) if item['job_id'] == identifier)
             label = f"Run {number}" + (" (earlier input)" if stale else "")
+            partial = response.get('partial') is True and result.get('execution_status') == 'FAILED'
+            if result.get('execution_status') != 'SUCCEEDED' and not partial:
+                self._plot_errors[identifier] = '실패한 응답은 성공 곡선으로 그리지 않습니다.'
+                continue
+            if partial:
+                label += ' (실패 전 유효 구간)'
             try:
                 times = [float(value) for value in axes[0]["values"]]
                 numbers = [float(value) for value in values]
@@ -756,7 +832,7 @@ class MaterialWindow(QMainWindow):
             except (ValueError, TypeError):
                 self._plot_errors[identifier] = "Invalid response values are not drawn as a successful curve."
                 continue
-            self.axes.plot(times, numbers, marker="o", markersize=3, label=label)
+            self.axes.plot(times, numbers, marker="o", markersize=3, label=label, linestyle='--' if partial else '-')
             for time, value in zip(times, numbers):
                 row = self.values.rowCount()
                 self.values.insertRow(row)
@@ -804,6 +880,7 @@ class MaterialWindow(QMainWindow):
         blocked = present and any(item.get("blocks_evaluation") for item in self.document.get("diagnostics", []))
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._draft_problem and not blocked)
         self.save_action.setEnabled(enabled)
+        self.trial_action.setEnabled(enabled and not self._draft_problem)
         self.undo_action.setEnabled(present and not self._busy and (bool(self._local_undo) or
             (enabled and not self.local_dirty and self.document.get("can_undo", False))))
         self.redo_action.setEnabled(present and not self._busy and (bool(self._local_redo) or
