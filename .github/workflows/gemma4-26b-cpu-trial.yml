@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   gemma-coding:
@@ -35,22 +36,29 @@ jobs:
           curl -fL --retry 3 --retry-all-errors --connect-timeout 30 --speed-limit 10000 --speed-time 180 --continue-at - 'https://huggingface.co/bartowski/google_gemma-4-26B-A4B-it-GGUF/resolve/main/google_gemma-4-26B-A4B-it-Q3_K_M.gguf?download=true' -o /tmp/gemma4-26b-Q3_K_M.gguf
           du -h /tmp/gemma4-26b-Q3_K_M.gguf
           head -c 65536 /tmp/gemma4-26b-Q3_K_M.gguf > /tmp/gemma_model_header.gguf
+      - name: Retrieve previous Gemma output for iterative correction
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/prior
+          gh run download 38499681098 --repo pikachu444/autonomous-cae-lab --name gemma-4-26b-cpu-coding-evidence --dir /tmp/prior
+          test -s /tmp/prior/gemma_raw.txt
       - name: Ask Gemma to patch existing storage integrity function
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          src=Path('caelab/storage.py').read_text()
-          begin=src.index('def check_artifacts(')
-          end=src.index('\n\ndef check_id(',begin)
-          original=src[begin:end]
-          prompt=('You are a coding assistant working on the following real Python project.\n'
-                  'Task: Replace the function below to fix a path traversal and symlink escape vulnerability.\n'
-                  'Keep the signature and original behavior: return a list of corrupted artifact path strings.\n'
-                  'Reject absolute paths, Windows drive paths, backslashes, \\u0000, paths with empty, "." or ".." components, and symlink paths escaping folder; do not read files outside folder.\n'
-                  'Preserve SHA256 verification for valid in-folder files. Use only pathlib Path and hashlib, already imported.\n'
-                  'Output ONLY complete Python replacement function, no markdown.\n\n'
-                  + original + '\n')
+          raw=Path('/tmp/prior/gemma_raw.txt').read_text(errors='replace')
+          start=raw.rfind('def check_artifacts(')
+          assert start>=0, 'Previous model patch not found'
+          previous=raw[start:].split('\n[ Prompt:')[0].strip()
+          prompt=(
+              'You are continuing your own previous Python coding patch, given below.\n'
+              'An independent test found a REAL REGRESSION: a valid existing file named measurement.csv at the artifact folder root is incorrectly reported corrupted, even with matching content hash.\n'
+              'The function must accept ordinary root-level files with extensions such as ok.txt, result.csv, and output.vtu, and valid nested paths.\n'
+              'Fix this problem WITHOUT losing path traversal defense, absolute/Windows drive/backslash/null-byte rejection, empty/dot/dotdot component rejection, symlink escapes, and SHA256 verification.\n'
+              'Do NOT treat dots in ordinary filenames as invalid. Return exactly one complete Python function definition, no comments outside it and no markdown. Use Path and hashlib already imported.\n\n'
+              + previous + '\n')
           Path('/tmp/gemma_prompt.txt').write_text(prompt)
           print('Prompt characters:',len(prompt))
           PY
@@ -73,7 +81,7 @@ jobs:
           # The model may quote the original function inside its reasoning; prefer the last complete replacement.
           p=raw.rfind('def check_artifacts(')
           if p<0:raise AssertionError('Model produced no Python function')
-          code=raw[p:]
+          code=raw[p:].split('\n[ Prompt:')[0].split('\n\n> ')[0]
           if '```' in code:code=code.split('```')[0]
           for suffix in ('llama_perf_context_print:', 'llama_perf_sampler_print:', 'llama_perf_print:'):
               if suffix in code:code=code.split(suffix)[0]
@@ -89,10 +97,15 @@ jobs:
           with tempfile.TemporaryDirectory() as temp:
               root=Path(temp);folder=root/'artifacts';folder.mkdir()
               good=folder/'ok.txt';good.write_bytes(b'ok')
+              nested=folder/'inner';nested.mkdir()
+              (nested/'force.csv').write_bytes(b'10,20')
+              (folder/'measurement.csv').write_bytes(b'1,2')
               outside=root/'outside.txt';outside.write_bytes(b'secret')
               digest=lambda b:hashlib.sha256(b).hexdigest()
               def record(name, data):return {'path':name,'sha256':digest(data)}
               assert s.check_artifacts(folder,[record('ok.txt',b'ok')]) == [], 'intact artifact'
+              assert s.check_artifacts(folder,[record('measurement.csv',b'1,2')]) == [], 'root-level filename with extension'
+              assert s.check_artifacts(folder,[record('inner/force.csv',b'10,20')]) == [], 'nested filename with extension'
               good.write_bytes(b'bad')
               assert s.check_artifacts(folder,[record('ok.txt',b'ok')]) == ['ok.txt'], 'tampering'
               traversal=record('../outside.txt',b'secret')
