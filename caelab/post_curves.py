@@ -231,17 +231,20 @@ def compare(a, b, recipe):
     a_transformed = convert([r['y'] for r in a['rows']], sa, oa)
     bad_axis = [finite(r['x']) and x is None for r, x in zip(b['rows'], bx)]
     result.update(b_axis=bx, a_values=a_transformed, b_values=b_transformed)
-    def groups(rows, values, axes):
-        group = 0; previous = None; result = []
+    def groups(rows, values, axes, max_gap=None):
+        group = 0; previous = None; previous_axis = None; result = []
         for row, value, axis in zip(rows, values, axes):
             usable = _usable(row) and finite(value) and finite(axis)
-            if not usable or previous is None or previous != row['segment']:
+            wide_gap = (usable and previous_axis is not None and max_gap is not None
+                        and axis - previous_axis > max_gap)
+            if not usable or previous is None or previous != row['segment'] or wide_gap:
                 group += 1
             result.append(group if usable else None)
             previous = row['segment'] if usable else None
+            previous_axis = axis if usable else None
         return result
     ag = groups(a['rows'], a_transformed, [r['x'] for r in a['rows']])
-    bg = groups(b['rows'], b_transformed, bx)
+    bg = groups(b['rows'], b_transformed, bx, gap if mode == 'bracket' else None)
     finite_x = [(x, i) for i, x in enumerate(bx) if finite(x)]
     import bisect
     xs = [x for x, _ in finite_x]

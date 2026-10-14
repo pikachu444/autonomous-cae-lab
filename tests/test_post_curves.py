@@ -54,6 +54,14 @@ def test_missing_excluded_hidden_and_gap_preserve_both_originals():
     assert compare(a,b,r)['rows'][2]['delta'] == 0.
     r['max_gap'] = .1
     assert compare(a,b,r)['rows'][1]['reason'] == 'gap_exceeds_limit'
+    # Exact endpoint samples stay valid, but the aligned plot cannot imply
+    # interpolation across an interval the user's maximum gap forbids.
+    endpoints = curve([0., 2.], [1., 3.])
+    r['max_gap'] = 1.
+    result = compare(endpoints, endpoints, r)
+    assert all(row['valid'] for row in result['rows'])
+    assert result['rows'][0]['b_segment'] != result['rows'][1]['b_segment']
+    assert result['b']['rows'] == endpoints['rows']
 
 
 @pytest.mark.parametrize('change', ['component','magnitude','measure','static_time','duplicate','reverse','unknown'])
