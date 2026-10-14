@@ -12,6 +12,8 @@
 대상은 자기 자료·모델·기존 해석 결과로 연구하는 사용자다.
 이 문서는 채택한 제품 방향이다. 구현 현황과 다음 작업은 [CURRENT_STATE](../CURRENT_STATE.md),
 Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 관리한다.
+남은 코드의 인도·병렬 의존·종료 조건은 [전체 제품 실행계획](IMPLEMENTATION_DELIVERIES.md)에
+연결했다. 현재 일곱 팀은 이 계획의 세부 인도를 나누어 개발하며 현황은 CURRENT_STATE에 둔다.
 현재 우선순위는 독립 도구군의 직접 진입·주요 편집·도구 간 연결·오류 복구·저장/재개와
 Expert의 실제 연구 흐름이다. 특정 C3D10 메시나 F05 진단은 전체 제품 개발의 선행조건이 아니다.
 기존 요구 기록과 [ADR0060](../ADR/0060-independent-research-workspaces.md)의
