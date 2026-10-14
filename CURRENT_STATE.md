@@ -19,7 +19,7 @@
 | 담당 / 작업 | 실제 구현 범위와 완료 조건 | 분리 브랜치 / 소유 |
 |---|---|---|
 | 실제 Pro / FN-28-02 | 서로 다른 단위·좌표·시각의 결과 비교, 벡터/텐서 변환, 미리보기·적용·저장 재열기 | `codex/post-comparison-20261014` 제출 요청. 후처리 analysis/workspace/external/measurements와 post_window |
-| Sol gui_usage_challenge / t13 | **접합 접촉(tie):** 두 면 선택→허용거리·절점 조정 지정→입력 생성→기존 Runner 실행 연결→변위·응력·반력 열기→저장 재열기. 실제 FreeCAD ConstraintTie/CalculiX TIE 재사용. 기존 선형·마찰 접촉 유지. 접촉 압력/미끄럼 출력으로 가장하지 않음 | `codex/contact-tie`, `C:/Users/pikac/.codex/worktrees/contact-tie/autonomous-cae-lab`. contact 도메인·deck, native contact/panel/freeze, 관련 검사·CONTACT_WORKFLOW. connection.py/fem_edit.py의 native 타입 분기만 추가 허용 |
+| Sol gui_usage_challenge / t13 | **접합 접촉(tie) 첫 인도 통합:** 두 면 선택→허용거리·원 절점 위치 유지→입력 생성→기존 Runner 실행 연결→변위·응력·절점 힘 열기→저장 재열기. 실제 FreeCAD ConstraintTie/CalculiX TIE 재사용. 기존 선형·마찰 접촉 유지. 접촉 압력/미끄럼 출력으로 가장하지 않음 | `codex/contact-tie`, `C:/Users/pikac/.codex/worktrees/contact-tie/autonomous-cae-lab`. `b57165b`를 main `dd081cd`로 통합. Astra 독립 검토 진행 |
 | Sol assembly_motion / t14 | **조립·운동:** 복수 관절의 회전/이동 구동 편집, 누락 관절 재지정·취소, 미리보기·자세 복구·채택, 정의와 선택 저장 재열기. 기존 1..32 구동/native 계산 유지. native AssemblyLink의 중첩 참조·좌표 복구 지원 검토·구현 | `codex/assembly-motion`, `C:/Users/pikac/.codex/worktrees/assembly-motion/autonomous-cae-lab`. motion.py/motion_panel.py, 전용 검사와 ASSEMBLY_WORKFLOW |
 
 두 Sol 담당자가 서로 직접 질문·반론을 주고받으며 공통 파일 변경은 Codex와 조정한다.
@@ -44,6 +44,21 @@
 FN-11-01은 부분 구현을 유지한다. **미적용 초안이 문서 닫기/재연결 때 경고 없이
 소실될 수 있어 저장·닫기 보호를 이어 개발해야 한다.** 여러 깊이/닫힌 기구 일반
 수용과 FE 후보의 기존 flat 제한 해제는 이번 인도에 포함되지 않았다.
+동일 Sol 담당에게 같은 작업 폴더에서 `59dbe9c`(통합 main 병합) 기준으로 초안
+저장·닫기·재연결 보호를 실제 개발하도록 이어 배정했다. motion 파일 외 이번에는
+connection.py의 save/reconnect와 native_controls.py의 save/close도 독점 소유한다.
+Codex는 동시에 이 파일을 수정하지 않는다. Astra가 발견한 관절 미적용 편집 상태의
+운동 실행은 root `a2e802b`로 차단했으며 독립 재검토에서 해당 지적 해소를 확인했다.
+
+**접합 접촉 첫 인도:** `b57165b`를 main `dd081cd`로 통합했다. 실제 FreeCAD 생성·
+Undo/Redo·저장 재열기·설치 writer 대조 원자료와 화면을 읽었다. 공개 모델의 실제
+간극0.2mm에 허용거리0.01mm로 실행한 실패는 보존했고, 사용자가 지정하는 입력을
+0.21mm로 바꾼 새 실행은 ccx2.22에서 성공했다. 변위·응력·절점 힘과 원 출력의
+Post 재읽기까지 담당자가 확인했다. 임의의 수치 판정 허용치를 바꾼 것이 아니다.
+통합 후 새 tie/UI/저장 연결 검사14개 통과. 실제 OS 클릭/새 ParaView 창 조작은
+이 인도의 확인 범위 밖이며 Astra 읽기 검토를 진행 중이다. 근거:
+`C:/Users/pikac/.codex/worktrees/contact-tie/autonomous-cae-lab/runs/product-development/20261014/contact-tie/handoff.md`.
+Adjust 투영·주기대칭·단계 중간 해제와 hard/cohesive는 남긴다. FN14 전체 완료가 아니다.
 
 **공통 전처리 연결 화면:** Codex가 계산 패널의 버튼을 두 줄로 나누고 실행·입력 생성·
 다시 확인·계산 목록을 한국어로 정리했다. 명령명·내부 세대 번호 대신 작업 상태를
@@ -80,6 +95,8 @@ Codex가 `builtins.all/any`를 명시해 검사 함수 충돌만 고쳤으며 �
 원 성분/불변량 정의 보존·측정 승계·호환성 검사와 좁은 회귀검사를 배정했다.
 교정 전 저장된 서로 다른 성분의 재비교는 신뢰할 수 없다. 기존 통과는 이 의미
 호환성의 완료 근거가 아니며 FN-28-02를 완료로 닫지 않는다.
+Astra 추가 P2도 Pro에게 함께 배정했다. B가 결측일 때 공통 유효성 마스크가 유효한
+A의 후속 측정도 지우므로 선택 배열의 유효성과 공간 밖/결측 사유를 분리해야 한다.
 FN-28-02는 미구현에서 **부분 구현**으로 바꾸며 전체 완료로 닫지 않는다.
 FN-28-02의 서로 다른 단위·좌표계·시간·벡터/텐서 결과 비교를 실제 Pro가 작성하고,
 Astra가 물리량·변환·보간 의미를 독립 검토한다. [SPEC-POST-COMPARE-001](.moai/specs/SPEC-POST-COMPARE-001/spec.md)에
@@ -1090,7 +1107,7 @@ D1은 이 실행 범위로 게시 완료했다. 사용자 PC에서의 확인은 
 | FN-12-02 | 다양한 해석 조건·요소 지원 | 부분 구현 | 셸·빔·넓은 차원·복합재·초기 체결 조건의 할당과 솔버 전달 |
 | FN-13-01 | 불량 메시 선택·수정·비교 | 확인 보류 | 품질 표·요소 강조·국소 크기 편집은 있음. 격리→재생성→비교 전체 동작 확인 |
 | FN-13-02 | 메시 생성 중 취소·입력 변경 처리 | 완료 | 취소와 종료 구분, 옛 입력으로 만든 메시의 잘못된 적용 차단 |
-| FN-14-01 | 접촉면·법칙·간극 설정 | 부분 구현 | 법선·CAD 거리·균일 간극 소스 연결. 일반 hard/tie/cohesive 법칙, 메시 Adjust와 native 전체 조작 확인이 남음 |
+| FN-14-01 | 접촉면·법칙·간극 설정 | 부분 구현 | 선형/마찰·법선·CAD 거리·균일 간극 및 ADJUST=NO 묶음 접촉 연결. hard/cohesive·메시 Adjust·주기대칭·단계별 묶음 해제와 전체 조작 확인이 남음 |
 | FN-14-02 | 접촉 계산과 결과 읽기 | 부분 구현 | 일반 접촉 조합과 압력·힘·간극·미끄럼 결과의 전체 연결 |
 | FN-14-03 | 형상 변경 후 접촉면 다시 지정 | 완료 | 새 면 미리보기·명시 적용·취소·오래된 선택 차단 |
 | FN-15-01 | 비선형 해석 설정·실패 위치 확인 | 부분 구현 | 단계·곡선·실패 당시 조건 열기 구현. 일반 재료 비선형·댐핑·혼합 절차와 native 전체 작업 확인이 남음 |
