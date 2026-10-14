@@ -18,6 +18,10 @@ widget.patchPreviewRequested.connect(review_explicit_owner_preview)
 `buffer_snapshot()`은 해당 위젯 안의 편집기만 확정하고 전체 Plan draft의 복사본을
 돌려준다. 어댑터나 위젯이 새 문서 owner를 만들지 않는다.
 
+호스트는 `document_snapshot()`으로 현재 연결된 정확한 문서 receipt의 복사본을 읽는다.
+이 accessor는 네트워크 재조회나 셀 확정을 하지 않으며 미확정 buffer의 원래 identity를
+관련 저장/닫기 복구와 연결하는 데 사용한다. 분리 상태에서는 `None`을 돌려준다.
+
 변수 이름·단위와 Request Plan의 탐색 여부는 읽기 전용이다. 현재 지원하는
 시작값·하한·상한·탐색 여부·선형/로그 변환은 기존 typed worksheet delegate와
 PlanTable 붙여넣기를 사용한다. 아직 지원하지 않는 이산/종속 변수 엔진의 구현을

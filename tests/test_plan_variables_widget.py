@@ -81,6 +81,21 @@ def test_keyboard_local_undo_redo_never_targets_other_owner(pair):
     assert first._adapter.calls==second._adapter.calls==[]
 
 
+def test_document_snapshot_is_exact_detached_and_does_not_commit_pending_editor(pair):
+    app,_,(first,_),_=pair
+    original=first.document_snapshot()
+    original_text=first.table.item(0,2).text()
+    first.table.setCurrentCell(0,2);first.table.editItem(first.table.item(0,2));app.processEvents()
+    editor=first.table.findChild(QLineEdit);assert editor is not None
+    editor.setText('2.6')
+    snapshot=first.document_snapshot()
+    assert snapshot==original and first.table.item(0,2).text()==original_text
+    snapshot['draft']['request']['inputs']['variables'][0]['value']=9.
+    assert first.document_snapshot()==original and first._adapter.calls==[]
+    QTest.keyClick(editor,Qt.Key.Key_Escape);app.processEvents()
+    first.detach_owner();assert first.document_snapshot() is None
+
+
 def test_block_paste_protects_units_and_is_one_local_undo(pair):
     app,_,(first,second),_=pair
     before=first.buffer_snapshot();peer=second.buffer_snapshot()
