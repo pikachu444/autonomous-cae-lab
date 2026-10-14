@@ -173,6 +173,11 @@ class DataWindow(QMainWindow):
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
         files.addActions([self.new_action, self.open_action, self.save_action, close])
         edit.addActions([self.undo_action, self.redo_action])
+        self.window_menu = self.menuBar().addMenu('창(&W)')
+        self.next_window_action = QAction('다음 자료 창', self, shortcut=QKeySequence('Ctrl+Tab'))
+        self.next_window_action.triggered.connect(self.next_data_window)
+        self.window_menu.aboutToShow.connect(self._populate_window_menu)
+        self.window_menu.addAction(self.next_window_action)
         toolbar = QToolBar('Data commands')
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -823,6 +828,33 @@ class DataWindow(QMainWindow):
             '표 파일 (*.csv *.txt *.dat);;모든 파일 (*)')
         if paths:
             return self.open_test_files(paths)
+
+    def _data_views(self):
+        return sorted((window for window in QApplication.topLevelWidgets()
+            if isinstance(window, DataWindow) and window.client is self.client and
+            window.document and window.isVisible() and not window._closed),
+            key=lambda window: window.document['title'])
+
+    @staticmethod
+    def _activate_data_window(window):
+        window.setWindowState(window.windowState() & ~Qt.WindowState.WindowMinimized)
+        window.show(); window.raise_(); window.activateWindow()
+
+    def _populate_window_menu(self):
+        self.window_menu.clear()
+        windows = self._data_views()
+        self.next_window_action.setEnabled(len(windows) > 1)
+        self.window_menu.addAction(self.next_window_action)
+        self.window_menu.addSeparator()
+        for window in windows:
+            action = self.window_menu.addAction(window.document['title'])
+            action.setCheckable(True); action.setChecked(window is self)
+            action.triggered.connect(lambda checked=False, target=window: self._activate_data_window(target))
+
+    def next_data_window(self):
+        windows = self._data_views()
+        if self in windows and len(windows) > 1:
+            self._activate_data_window(windows[(windows.index(self) + 1) % len(windows)])
 
     def open_test_files(self, paths):
         """Each raw file keeps its own existing Data owner and editable mapping."""

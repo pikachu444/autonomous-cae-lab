@@ -92,6 +92,13 @@ def test_multiple_test_files_open_independent_owners_and_preserve_partial_succes
         assert window.edited_draft() == before and window.local_dirty
         one, two = window._data_windows
         wait(lambda: not one._busy and not two._busy)
+        one._populate_window_menu()
+        actions = {action.text(): action for action in one.window_menu.actions()}
+        assert 'tensile_A' in actions and 'tensile_B' in actions
+        assert one.next_window_action.isEnabled()
+        before_switch = deepcopy(one.document)
+        actions['tensile_B'].trigger(); app.processEvents()
+        assert one.document == before_switch
         assert one.document['id'] != two.document['id'] != original['id']
         assert one.document['draft']['data_id'] != two.document['draft']['data_id']
         assert one.document['title'] == 'tensile_A' and two.document['title'] == 'tensile_B'
