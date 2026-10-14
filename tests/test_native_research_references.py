@@ -5,6 +5,7 @@ The existing controlled adapter boundary writes TEST_ONLY protocol records;
 the fit boundary only records the resolved inputs, without claiming a fit.
 """
 from copy import deepcopy
+import hashlib
 import pickle
 import shutil
 
@@ -158,6 +159,9 @@ def test_fit_resolves_saved_owned_observation_after_ephemeral_job_removal(tmp_pa
         with pytest.raises(KeyError):
             wb.manager.status(source_job)
         exact = {'result': ref, 'response': selector}
+        resolved_source = {**exact, 'source_sha256': (
+            hashlib.sha256(b't,x,y\n0,3,6\n1,nan,nan\n2,5,8\n').hexdigest()
+            if origin == 'data' else None)}
         inputs = {'backend': model['draft']['backend'],
                   'variables': [{'id': 'final_time_s', 'unit': 's', 'lower': 3., 'upper': 5., 'value': 3.}],
                   'experiments': [{'id': 'saved', 'role': 'fit', 'settings': deepcopy(model['draft']['settings']),
@@ -166,9 +170,9 @@ def test_fit_resolves_saved_owned_observation_after_ephemeral_job_removal(tmp_pa
         assert status['state'] == 'SUCCEEDED', status
         experiment, = supplied[0]
         assert experiment['observations'] == observation
-        assert experiment['observation_source'] == exact and 'observation_ref' not in experiment
+        assert experiment['observation_source'] == resolved_source and 'observation_ref' not in experiment
         result = wb.document_result(doc['id'], job)
-        assert result['curves'][0]['observation_source'] == exact
+        assert result['curves'][0]['observation_source'] == resolved_source
         assert result['curves'][0]['observations'] == observation
         assert len(controlled) == before_calls
         for alteration, message in [('hash', 'hash'), ('multiple', 'exactly one')]:
@@ -191,7 +195,7 @@ def test_fit_resolves_saved_owned_observation_after_ephemeral_job_removal(tmp_pa
         wb.document_open(kind='numerical', document_id=doc['id'])
         assert wb.document_result_reference(doc['id'], job) == fit_ref
         retained = wb.document_result(doc['id'], job)['curves'][0]
-        assert retained['observation_source'] == exact and retained['observations'] == observation
+        assert retained['observation_source'] == resolved_source and retained['observations'] == observation
         assert len(supplied) == 1 and len(controlled) == before_calls
     finally:
         assert wb.shutdown()['joined']

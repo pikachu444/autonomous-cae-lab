@@ -98,6 +98,6 @@ def test_existing_assist_extra_and_windows_flags_cover_core_and_explicit_pdf():
         assert '-' + flag + ':$' + flag in launch
     assert "if ($ResearchUI -or $Expert) { $extras += 'assist-core' }" in install
     assert "if ($Documents) { $extras += 'assist-pdf' }" in install
-    assert 'require_features("expert_agent", "openai_compatible_generator", "knowledge_index")' in install
+    assert "require_features('expert_agent', 'openai_compatible_generator', 'knowledge_index')" in install
     assert 'installed_extras=$install.installed_extras' in launch
     assert '$_ -notin $launch.installed_extras' in launch

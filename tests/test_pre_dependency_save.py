@@ -237,4 +237,4 @@ def test_dependency_edit_during_parent_discard_dialog_invalidates_close_choice(c
     monkeypatch.setattr(QtWidgets.QMessageBox, 'question', question)
     c.guards.replacements['Std_Close'][1].trigger()
     assert c.originals == [] and c.guards.approved_close == {}
-    assert 'changed while' in c.connection.message.text()
+    assert '편집이 바뀌었습니다' in c.connection.message.text()

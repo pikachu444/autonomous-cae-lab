@@ -14,7 +14,7 @@ BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "struct
 PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle", "pde.fenicsx.transient", "pde.fenicsx.vector", "pde.fenicsx.coupled", "pde.fenicsx.imported"}
 # Contact is registered for its source/native acceptance. Its GUI/Research
 # preset is admitted after actual native qualification, as a separate gate.
-DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch", "pde.fenicsx.coupled"}
+DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch", "pde.fenicsx.coupled", "structure.calculix.design"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):

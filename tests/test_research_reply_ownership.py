@@ -84,7 +84,7 @@ def test_pde_late_edit_retained_with_new_owner_generation_and_no_save_continuati
         assert window.document['generation'] == 1
         assert window.document['draft']['settings']['problem']['weak_form']['diffusion'] == 2
         assert window.edited_draft()['settings']['problem']['weak_form']['diffusion'] == 9
-        assert window.local_dirty and 'newer edits' in window.message.text()
+        assert window.local_dirty and '편집한 내용은 아직 적용 전' in window.message.text()
         assert [call[0] for call in client.calls] == ['pde.update']
     finally:
         client.release.set()
