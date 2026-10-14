@@ -146,6 +146,10 @@ class NumericalPlanVariablesWidget(QWidget):
     def buffer_snapshot(self):
         return self._buffer_snapshot(commit=True)
 
+    def document_snapshot(self):
+        """Return the exact bound receipt without reading or committing an editor."""
+        return deepcopy(self._document) if self._adapter is not None else None
+
     def _buffer_snapshot(self, *, commit=False):
         if self._document is None:return {}
         if commit:self._commit_editor()
