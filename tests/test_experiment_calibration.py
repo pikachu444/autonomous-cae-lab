@@ -100,3 +100,63 @@ def test_owner_retains_certificate_invalid_draft_original_rows_and_cold_open(tmp
         data=command(fresh,data,'document.undo')['document']
         assert data['draft']['mapping']['columns']['force']['calibration']['a']==2.
     finally:fresh.shutdown()
+
+
+def test_public_import_freezes_exact_certificate_closure_and_rejects_substitutes(tmp_path):
+    wb=Workbench(tmp_path/'store')
+    try:
+        raw=wb.upload('voltage.csv',RAW)
+        cert=wb.upload('calibration.txt',b'public calibration')
+        recipe=calibration({'data_id':cert['id'],'sha256':cert['sha256'],'name':cert['name']})
+        args={'data_id':raw['id'],'mapping':mapping(recipe)}
+        result=completed(wb,wb.submit('import_table',args))
+        frozen=result['diagnostics']['calibration_sources']
+        assert len(frozen)==1 and frozen[0]['data_id']==cert['id']
+        assert frozen[0]['sha256']==cert['sha256']
+        wrong=deepcopy(args);wrong['mapping']['columns']['force']['calibration']['source']['sha256']='a'*64
+        with pytest.raises(ValueError):wb.submit('import_table',wrong)
+        missing=deepcopy(args);missing['mapping']['columns']['force']['calibration']['source']['data_id']='Dabsent'
+        with pytest.raises((ValueError,FileNotFoundError)):wb.submit('import_table',missing)
+        with pytest.raises(ValueError):wb.submit('import_table',{**args,'calibration_sources':[]})
+        other=deepcopy(frozen);other[0]['data_id']=raw['id']
+        with pytest.raises(ValueError):wb.submit('import_table',{**args,'calibration_sources':other})
+        # Execution cannot bypass admission by omitting the frozen closure.
+        with pytest.raises(ValueError):wb._execute('import_table',args,'Jnot_submitted')
+    finally:wb.shutdown()
+
+
+def test_malformed_mapping_and_undo_remain_saveable(tmp_path):
+    wb=Workbench(tmp_path/'store')
+    try:
+        raw=wb.upload('voltage.csv',RAW)
+        doc=wb.document_open(kind='data',draft={'data_id':raw['id'],'mapping':'unfinished'})
+        doc=command(wb,doc,'document.save')['document']
+        assert doc['diagnostics'] and doc['draft']['mapping']=='unfinished'
+        with pytest.raises(ValueError):command(wb,doc,'data.import')
+        valid=mapping(calibration());valid['columns']['force'].pop('calibration')
+        valid['columns']['force'].update(unit='V',measure='voltage')
+        doc=command(wb,doc,'data.update',{'draft':{'data_id':raw['id'],'mapping':valid}})['document']
+        doc=command(wb,doc,'document.save')['document']
+        assert not doc['diagnostics']
+        doc=command(wb,doc,'document.undo')['document']
+        assert doc['draft']['mapping']=='unfinished'
+    finally:wb.shutdown()
+
+
+def test_acquisition_output_unit_must_match_processed_channel():
+    from caelab.experiment_calibration import default_acquisition,validate_acquisition
+    setup={**default_acquisition(),'name':'시험','sample_rate_hz':100.,'duration_s':2.,
+           'channels':[{'name':'force','unit':'N','role':'measurement','calibration':calibration()}]}
+    assert validate_acquisition(setup)==setup
+    setup['channels'][0]['unit']='mm'
+    with pytest.raises(ValueError):validate_acquisition(setup)
+
+
+@pytest.mark.parametrize('kind',[None,'UNKNOWN'])
+def test_partially_provided_uncertainty_does_not_invent_standard_or_block_calibration(kind):
+    recipe=calibration()
+    recipe['uncertainty'].update(kind=kind,k=None,correlation='UNKNOWN')
+    values,audit=calibrate([.002],recipe)
+    assert values.tolist()==[2.5]
+    assert audit['uncertainty']==recipe['uncertainty']
+    assert audit['calibration_valid']==[True]

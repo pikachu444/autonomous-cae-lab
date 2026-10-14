@@ -18,7 +18,7 @@ from caelab.storage import canonical_hash
 from caelab.workbench_client import Client
 from .data_window import _Read
 from .appearance import apply_appearance, configure_plot_fonts
-from .report_pages import compose, markdown, atomic_export, pdf_document
+from .report_pages import compose, markdown, atomic_export, pdf_document, value_text
 
 
 def section(title, *, text='', asset=None):
@@ -338,6 +338,10 @@ class ReportWindow(QMainWindow):
 
     def undo(self):
         if self._busy or self._pending:return
+        self.remember_editor()
+        if self._edit_buffers:
+            self.message.setText('설명 적용 또는 수정 취소 후 실행 취소하세요. 미적용 설명은 유지됩니다.');return
+        self._editing_section=None;self.section_editor.hide()
         if self._undo:
             self._redo.append(deepcopy(self.draft)); self.draft=self._undo.pop(); self.populate()
         elif self.document and self.document.get('can_undo'):
@@ -345,6 +349,10 @@ class ReportWindow(QMainWindow):
 
     def redo(self):
         if self._busy or self._pending:return
+        self.remember_editor()
+        if self._edit_buffers:
+            self.message.setText('설명 적용 또는 수정 취소 후 다시 실행하세요. 미적용 설명은 유지됩니다.');return
+        self._editing_section=None;self.section_editor.hide()
         if self._redo:
             self._undo.append(deepcopy(self.draft)); self.draft=self._redo.pop(); self.populate()
         elif self.document and self.document.get('can_redo'):
@@ -381,7 +389,20 @@ class ReportWindow(QMainWindow):
                        lambda pair:self._select_response(doc['title'],doc['id'],job,*pair))
         self._call(self.client.documents,listed)
 
-    def _select_response(self,title,identifier,job,reference,metadata):
+    def _select_response(self,title,identifier,job,reference,metadata,candidate_ids=None):
+        if metadata.get('candidate_count') and candidate_ids is None:
+            def choose_candidate(result):
+                from caelab.research_operations import result_metadata
+                rows=result.get('candidates',result.get('predictions',[]))
+                labels=[str(i+1)+'. '+', '.join(k+'='+value_text(v) for k,v in row.get('values',{}).items())+
+                    ' / '+str(row.get('execution_status',row.get('prediction_status','UNKNOWN'))) for i,row in enumerate(rows)]
+                label,ok=QInputDialog.getItem(self,'보고서에 넣을 후보','보존된 조건',labels,editable=False)
+                if not ok:return
+                row=rows[labels.index(label)]
+                self._select_response(title,identifier,job,reference,
+                    result_metadata({'candidates':[row]}),[row['candidate_id']])
+            self._call(lambda:self.client.document_result(identifier,job,selection={'metadata_only':True}),choose_candidate)
+            return
         descriptors = list(metadata.get('responses', []))
         descriptors += [{'response':name, **row, 'native':True}
                         for name,row in metadata.get('native_channels',{}).items()]
@@ -396,7 +417,9 @@ class ReportWindow(QMainWindow):
             self._call(lambda:self.client.document_result(identifier,job,selection={'rows':[0,256]}),fit_channels)
             return
         if not descriptors:
-            self.capture({'kind':'result',**reference,'selection':{'metadata_only':True}},title);return
+            selection={'metadata_only':True}
+            if candidate_ids is not None:selection['candidate_ids']=candidate_ids
+            self.capture({'kind':'result',**reference,'selection':selection},title);return
         labels=[str(i+1)+'. '+d['response']+' ['+str(d.get('unit','미확인'))+'] '+str(d.get('component',''))
                 +' '+str(d.get('location','')) for i,d in enumerate(descriptors)]
         label,ok=QInputDialog.getItem(self,'응답 선택','물리량 / 성분 / 위치',labels,editable=False)
@@ -410,11 +433,11 @@ class ReportWindow(QMainWindow):
                 if ok:self._response_interval(title,reference,rows[names.index(choice)]['selector'])
             search,ok=QInputDialog.getText(self,'측정 위치','위치 찾기 (비우면 첫 128개)')
             if ok:self._call(lambda:self.client.document_response_locations(identifier,job,item['response'],search=search),locations)
-        else:self._response_interval(title,reference,item['response'])
+        else:self._response_interval(title,reference,item['response'],candidate_ids=candidate_ids)
 
-    def _response_interval(self,title,reference,name):
+    def _response_interval(self,title,reference,name,*,candidate_ids=None):
         from .report_selection import ReportSelectionDialog
-        dialog=ReportSelectionDialog(self.client,reference,name,self)
+        dialog=ReportSelectionDialog(self.client,reference,name,self,candidate_ids=candidate_ids)
         if dialog.exec()==QDialog.DialogCode.Accepted:
             self.capture({'kind':'result',**reference,'selection':dialog.selection},title+' '+name)
 
@@ -428,6 +451,10 @@ class ReportWindow(QMainWindow):
         self._call(self.client.documents,listed)
 
     def use_study(self,study):
+        self.remember_editor()
+        if self._edit_buffers:
+            self.message.setText('현재 섹션의 설명을 적용하거나 수정 취소한 뒤 다른 연구를 적용하세요.')
+            return False
         if self.draft['sections'] and QMessageBox.question(self,'연구 적용',
             '현재 섹션을 선택한 저장 연구로 교체할까요? 실행 취소로 복구할 수 있습니다.',
             QMessageBox.StandardButton.Ok|QMessageBox.StandardButton.Cancel,
@@ -444,9 +471,11 @@ class ReportWindow(QMainWindow):
                     asset=self.client.report_capture(identifier,item['reference'])))
             return rows
         def accepted(rows):
-            if self.draft != proposed_base:
+            self.remember_editor()
+            if self.draft != proposed_base or self._edit_buffers:
                 self.message.setText('자료를 읽는 동안 보고서가 편집되었습니다. 현재 내용을 유지합니다. 연구 적용을 다시 선택하세요.')
                 return
+            self._editing_section=None;self.section_editor.hide()
             draft=deepcopy(self.draft);draft['sections']=rows;self.changed(draft);self.read_assets()
         self._call(capture,accepted)
 

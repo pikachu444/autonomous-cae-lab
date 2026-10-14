@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+from .experiment_labels import sample_reason
 import json
 import math
 import os
@@ -734,7 +735,9 @@ class DataWindow(QMainWindow):
             job = receipt.get('job')
             self._preview_key = None
             self._show_document(receipt['document'], prefer_job=job['id'] if job else None)
-            self.message.setText('Applied through the Data document owner: ' + operation)
+            self.message.setText({'document.save':'저장했습니다.','data.update':'입력을 적용했습니다.',
+                'data.import':'자료 가져오기를 시작했습니다.','document.undo':'실행을 취소했습니다.',
+                'document.redo':'다시 적용했습니다.'}.get(operation,'처리했습니다.'))
             if after:
                 after()
             else:
@@ -859,7 +862,7 @@ class DataWindow(QMainWindow):
             preview={'table_preview':{'headers':['원값'],'rows':[[v] for v in raw['value']],
                 'row_numbers':raw['source_rows']}}
             mapping={'column':0,'unit':response['unit'],'calibration':recipe}
-            dialog=CalibrationDialog(self.client,mapping,preview,self)
+            dialog=CalibrationDialog(self.client,mapping,preview,self,retained_response=response)
             dialog.setWindowTitle('교정 전후 결과')
             for widget in list(dialog.fields.values())+[dialog.role,dialog.provided,dialog.ukind,dialog.correlation,dialog.upload]:
                 widget.setEnabled(False)
@@ -1539,8 +1542,11 @@ class DataWindow(QMainWindow):
             self.values.setRowCount(len(indexes))
             for row, index in enumerate(indexes):
                 cells = [raw['source_rows'][index], (raw.get('transformed_axis') or raw.get('axis') or [None]*len(raw['source_rows']))[index],
-                    raw.get('transformed_value',raw['value'])[index], raw['calculation_valid'][index], raw['quality_valid'][index], raw['display_visible'][index],
-                    '; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason)]
+                    raw.get('transformed_value',raw['value'])[index],
+                    '포함' if raw['calculation_valid'][index] else '제외',
+                    '정상' if raw['quality_valid'][index] else '확인 필요',
+                    '표시' if raw['display_visible'][index] else '숨김',
+                    sample_reason('; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason))]
                 for column, cell in enumerate(cells):
                     self.values.setItem(row, column, QTableWidgetItem(display(cell)))
                 self.values.item(row,2).setToolTip('원본 값: '+display(raw['value'][index]))

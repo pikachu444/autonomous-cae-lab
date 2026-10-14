@@ -558,6 +558,12 @@ class Workbench:
                 raise ValueError('Native CAD candidates currently run serially with one worker')
             if '_native_context' in arguments.get('settings', {}):
                 raise ValueError('Native execution context is service-owned')
+        if operation == 'import_table':
+            arguments = deepcopy(arguments)
+            certificates = self.data_documents.calibration_sources(
+                arguments.get('mapping', {}), arguments.get('calibration_sources'))
+            if certificates or 'calibration_sources' in arguments:
+                arguments['calibration_sources'] = certificates
         requested=self.resource_request(arguments,resources)
         return self._admit_job(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
 
@@ -843,22 +849,17 @@ class Workbench:
         if operation=='import_table':
             mapping=args.get('mapping',{})
             reference=args.get('source_ref')
-            if reference is None:
-                # Existing result-only API calls retain their registered-input contract.
-                return evaluate('files.table',{**mapping,'path':str(self.input_path(args['data_id']))})
-            for certificate in args.get('calibration_sources', []):
-                self.data_documents.resolve_job_source(certificate['data_id'], certificate)
-            source, _ = self.data_documents.resolve_job_source(args['data_id'], reference)
+            certificates=self.data_documents.calibration_sources(
+                mapping,args.get('calibration_sources'),require_frozen=True)
+            source=(self.input_path(args['data_id']) if reference is None else
+                    self.data_documents.resolve_job_source(args['data_id'],reference)[0])
             result=evaluate('files.table',{**mapping,'path':str(source)})
-            # A queued import may start after the editor/source has changed.
-            # Verify the same pinned bytes and receipt after the actual reader,
-            # without consulting the current draft or repairing the registry.
-            self.data_documents.resolve_job_source(args['data_id'], reference)
-            for certificate in args.get('calibration_sources', []):
-                self.data_documents.resolve_job_source(certificate['data_id'], certificate)
-            result.setdefault('diagnostics',{})['source_ref']=deepcopy(reference)
-            result['diagnostics']['test_metadata'] = deepcopy(args.get('test_metadata', {}))
-            result['diagnostics']['calibration_sources'] = deepcopy(args.get('calibration_sources', []))
+            if reference is not None:
+                self.data_documents.resolve_job_source(args['data_id'],reference)
+                result.setdefault('diagnostics',{})['source_ref']=deepcopy(reference)
+            self.data_documents.calibration_sources(mapping,certificates,require_frozen=True)
+            result.setdefault('diagnostics',{})['test_metadata']=deepcopy(args.get('test_metadata',{}))
+            result['diagnostics']['calibration_sources']=deepcopy(certificates)
             return result
         if operation.startswith(('knowledge.','literature.','experts.')) or operation=='calculations.plan':
             if operation=='knowledge.ingest':
@@ -910,8 +911,11 @@ class Workbench:
                         _resolve(source, self.document_read, self.document_result)
                     elif 'observation_job' in experiment:
                         observation_response=experiment.pop('observation_response',experiment['response'])
-                        observation=self.result(experiment.pop('observation_job'),selection=[observation_response])
+                        observation_job=experiment.pop('observation_job')
+                        observation=self.result(observation_job,selection=[observation_response])
                         experiment['observations']=observation['responses'][observation_response]
+                        experiment['observation_source']={'job_id':observation_job,'response':observation_response,
+                            'source_sha256':observation.get('diagnostics',{}).get('source_sha256')}
             methods={'fit':numerical.fit_model,'doe':numerical.run_doe,'optimize':numerical.optimize,
                      'uq':numerical.run_uq,'epsilon':numerical.epsilon_optimize}
             execution=args.get('execution',{})

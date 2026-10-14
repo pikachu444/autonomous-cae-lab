@@ -133,7 +133,7 @@ class IdentificationWindow(QDialog):
             window=StudyWindow(self.client,document_id=self._study['id'])
             self._children=getattr(self,'_children',[])+[window];window.show()
             # Same UI text is one completed action, not a second submission.
-            if (self.question.text(),self.note.toPlainText())==submitted:
+            if (self.question.text(),self.note.toPlainText())==(question,note):
                 self.question.clear();self.note.clear()
             self.message.setText('다음 시험을 저장했습니다. 새 계산은 제출하지 않았습니다.')
         self._run(save,saved)

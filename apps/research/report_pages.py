@@ -9,6 +9,7 @@ import tempfile
 from PySide6.QtCore import QByteArray, QUrl, QSizeF
 from PySide6.QtGui import QFont, QImage, QTextCharFormat, QTextCursor, QTextDocument, QTextImageFormat, QTextTableFormat, QPageSize
 from PySide6.QtPrintSupport import QPrinter
+from .experiment_labels import sample_reason
 
 
 def value_text(value):
@@ -71,6 +72,30 @@ def blocks(content):
            ' / 물리 판정: ' + str(result.get('qualification', 'UNKNOWN')) + ' / 공학 승인: NOT_RELEASED')
     if result.get('failure_reason'):
         yield ('paragraph', str(result['failure_reason']))
+    checks=result.get('checks', [])
+    if isinstance(checks, dict):
+        checks=[dict(value, name=key) if isinstance(value, dict) else {'name':key,'status':value}
+                for key,value in checks.items()]
+    if 'converged' in result:
+        yield ('paragraph','수렴: '+('수렴' if result['converged'] is True else
+              '미수렴' if result['converged'] is False else '미확인'))
+    if result.get('termination_reason'):
+        yield ('paragraph','종료 이유: '+str(result['termination_reason']))
+    if checks:
+        yield ('table', (['확인 항목','판정','값','단위','기준','근거'],
+            [[c.get('name',c.get('id','확인')),
+              c.get('status', '통과' if c.get('passed') is True else '실패' if c.get('passed') is False else '미확인'),
+              c.get('value'),c.get('unit',''),
+              ' / '.join(label+' '+value_text(c[key]) for key,label in
+                  (('operator','비교'),('limit','한계'),('tolerance','허용차'),('minimum','하한'),
+                   ('maximum','상한'),('expected','기준값')) if key in c),
+              c.get('reason',c.get('message',''))] for c in checks if isinstance(c,dict)]))
+    for key in ('candidates','predictions'):
+        for index,row in enumerate(result.get(key,[])):
+            predicted=key=='predictions' or row.get('prediction_status')=='PREDICTED' or row.get('execution_status')=='PREDICTED'
+            yield ('paragraph', ('대리모델 예측 — 실제 계산 아님' if predicted else '선택한 실제 후보')+' '+str(index+1))
+            yield ('table', (['입력','값'], [[k,v] for k,v in row.get('values',{}).items()]))
+            yield from blocks({'kind':'result','result':row})
     for name, response in result.get('responses', {}).items():
         yield ('paragraph', name + ' [' + str(response.get('unit', '미확인')) + ']\n' +
                ' / '.join(str(response[k]) for k in ('measure', 'component', 'location', 'frame') if response.get(k)))
@@ -78,17 +103,23 @@ def blocks(content):
         if isinstance(values, list):
             coordinates = axes[0].get('values', []) if len(axes) == 1 else []
             rows = response.get('source_rows', list(range(len(values))))
+            supplied_mask=response.get('mask')
+            mask=[False if response.get('valid') is False else
+                  (supplied_mask[i] if isinstance(supplied_mask,list) and i<len(supplied_mask) else None)
+                  for i in range(len(values))]
+            if response.get('valid') is False or response.get('reason'):
+                yield ('paragraph', '응답 판정: '+('무효' if response.get('valid') is False else '미확인')+
+                       ' / '+str(response.get('reason',response.get('invalid_reason','원자료 확인 필요'))))
             if len(coordinates) == len(values) and not response.get('calibration'):
                 yield ('curve', {'x': coordinates, 'y': values, 'source_rows': rows,
-                    'mask': response.get('mask'), 'segments': response.get('segments'),
+                    'mask': mask, 'segments': response.get('segments'),
                     'x_label': axes[0].get('name', '') + ' [' + axes[0].get('unit', '') + ']',
                     'y_label': name + ' [' + response.get('unit', '') + ']'})
             headers = ['원행', axes[0].get('name', '축') + ' [' + axes[0].get('unit', '') + ']' if axes else '위치',
                        name + ' [' + response.get('unit', '') + ']', '유효']
-            mask = response.get('mask', [True]*len(values))
             yield ('table', (headers, [[rows[i] if i < len(rows) else i,
                 coordinates[i] if i < len(coordinates) else '', y,
-                '사용' if i < len(mask) and mask[i] else '제외'] for i, y in enumerate(values)]))
+                '유효' if mask[i] is True else ('무효/제외' if mask[i] is False else '행 판정 없음')] for i, y in enumerate(values)]))
             raw = response.get('raw_samples')
             if isinstance(raw, dict):
                 calibration = response.get('calibration') or {}
@@ -106,17 +137,26 @@ def blocks(content):
                         calibration['coefficient_input_unit']+'] × (x − '+value_text(calibration['x0'])+' ['+
                         calibration['x0_unit']+']) + '+value_text(calibration['b'])+' ['+calibration['output_unit']+']')
                     yield ('paragraph', ('제공 불확실성: '+value_text(u['value'])+' ['+u['unit']+'] / '+
-                        ('표준' if u['kind']=='standard' else '확장')+' / k='+value_text(u['k'])+' / '+
+                        {'standard':'표준','expanded':'확장'}.get(u['kind'],'종류 미확인')+' / k='+value_text(u['k'])+' / '+
                         {'UNKNOWN':'상관 미확인','independent_declared':'독립이라고 제공됨','correlated_declared':'상관이 있다고 제공됨'}[u['correlation']])
                         if u else '측정 불확실성: 미제공')
+                def sample(key, i, default=None):
+                    values=raw.get(key)
+                    return values[i] if isinstance(values,list) and i<len(values) else default
+                def state(value):
+                    return '예' if value is True else ('아니오' if value is False else '미확인')
                 yield ('table', (['원행', '원값 ['+str(calibration.get('input_unit','미확인'))+']',
-                    '교정값 ['+response.get('unit','')+']', '품질', '사유'],
-                    [[row, raw.get('value', [])[i], raw.get('transformed_value', [])[i],
-                      '유효' if raw.get('quality_valid', [])[i] else '확인 필요',
-                      raw.get('quality_reasons', ['']*len(raw['source_rows']))[i]]
+                    '교정값 ['+response.get('unit','')+']', '품질 유효', '계산 사용', '표시', '사유'],
+                    [[row, sample('value',i), sample('transformed_value',i),
+                      state(sample('quality_valid',i)),state(sample('calculation_valid',i)),
+                      state(sample('display_visible',i)),
+                      ' / '.join(sample_reason(sample(key,i)) for key in ('quality_reasons','exclusion_reasons')
+                                 if sample(key,i))]
                      for i, row in enumerate(raw.get('source_rows', []))]))
         elif values is not None:
-            yield ('table', (['응답', '값', '단위'], [[name, values, response.get('unit')]]))
+            yield ('table', (['응답', '값', '단위', '판정', '사유'], [[name, values, response.get('unit'),
+                '유효' if response.get('valid') is True else ('무효' if response.get('valid') is False else '미확인'),
+                response.get('reason',response.get('invalid_reason',''))]]))
     diagnosis = result.get('identification', {})
     if diagnosis:
         yield ('paragraph', '식별 진단: ' + str(diagnosis.get('status', 'UNKNOWN')) +
@@ -133,7 +173,8 @@ def plot_bytes(curve):
     FigureCanvasAgg(fig)
     ax = fig.subplots()
     x, y = curve['x'], curve['y']
-    mask = curve.get('mask') or [True]*len(y)
+    mask = curve.get('mask')
+    if mask is None: mask = [True]*len(y)
     yy = [v if i < len(mask) and mask[i] and type(v) in (int, float) and math.isfinite(v)
           else float('nan') for i, v in enumerate(y)]
     segments = curve.get('segments')
@@ -144,12 +185,16 @@ def plot_bytes(curve):
             ax.plot([x[i] for i in indices], [yy[i] for i in indices], 'o-', markersize=2)
     else:
         ax.plot(x, yy, 'o-', markersize=2)
+    unknown=[i for i,v in enumerate(y) if i<len(mask) and mask[i] is None
+             and type(v) in (int,float) and math.isfinite(v)]
+    if unknown:
+        ax.scatter([x[i] for i in unknown],[y[i] for i in unknown],marker='x',color='gray',label='행 판정 없음')
     for flag, marker, label in [('out_of_range','o','범위 밖'),('saturated','x','포화')]:
         indices=[i for i,value in enumerate(curve.get(flag,[])) if value and type(y[i]) in (int,float) and math.isfinite(y[i])]
         if indices:
             style={'facecolors':'none','edgecolors':'red'} if marker=='o' else {'color':'red'}
             ax.scatter([x[i] for i in indices],[y[i] for i in indices],marker=marker,label=label,**style)
-    if curve.get('out_of_range') or curve.get('saturated'): ax.legend()
+    if unknown or curve.get('out_of_range') or curve.get('saturated'): ax.legend()
     ax.set_xlabel(curve['x_label']); ax.set_ylabel(curve['y_label'])
     ax.grid(alpha=.2); fig.tight_layout()
     stream = BytesIO(); fig.savefig(stream, format='png')

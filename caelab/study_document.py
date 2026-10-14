@@ -41,7 +41,8 @@ def reference_error(reference):
             required = {'kind', 'document_id', 'revision', 'locator', 'source_sha256', 'content_sha256'}
             if set(reference) != required or type(reference['revision']) is not int or reference['revision'] < 1:
                 raise ValueError('문헌의 정확한 저장 개정과 원문 구간을 선택하세요.')
-            check_id(reference['document_id'])
+            if not isinstance(reference['document_id'], str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', reference['document_id']):
+                raise ValueError('문헌 저장소의 정확한 자료 식별자가 필요합니다.')
             if not isinstance(reference['locator'], dict):
                 raise ValueError('원문 위치를 명시하세요.')
             for key in ('source_sha256', 'content_sha256'):

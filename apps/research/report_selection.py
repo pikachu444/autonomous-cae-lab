@@ -9,9 +9,10 @@ from caelab.report_document import check_selection
 
 
 class ReportSelectionDialog(QDialog):
-    def __init__(self,client,reference,response,parent=None):
+    def __init__(self,client,reference,response,parent=None,*,candidate_ids=None):
         super().__init__(parent)
         self.client=client; self.reference=deepcopy(reference); self.response=response
+        self.candidate_ids=deepcopy(candidate_ids)
         self.selection=None; self._workers=[]; self._closed=False; self._serial=0
         self.setWindowTitle('보고서에 넣을 표본'); self.resize(950,700)
         layout=QVBoxLayout(self); form=QFormLayout()
@@ -28,6 +29,9 @@ class ReportSelectionDialog(QDialog):
         self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject);layout.addWidget(self.buttons)
         for widget in (self.first,self.last):widget.valueChanged.connect(self.invalidate)
         self.time.textChanged.connect(self.invalidate)
+        if self.candidate_ids is not None:
+            self.time.setEnabled(False)
+            self.time.setPlaceholderText('선택 후보에 보존된 표본 구간')
         self.refresh()
 
     def invalidate(self,*_):
@@ -43,6 +47,7 @@ class ReportSelectionDialog(QDialog):
             t=float(self.time.text())
             if not math.isfinite(t):raise ValueError('유효한 축 값을 입력하세요.')
             result.pop('rows');result['time_range']=[t,t]
+        if self.candidate_ids is not None:result['candidate_ids']=self.candidate_ids
         return result
 
     def refresh(self):

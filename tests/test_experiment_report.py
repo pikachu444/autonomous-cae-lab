@@ -57,12 +57,12 @@ def test_report_exact_absent_time_rejects_instead_of_nearest():
 def test_literature_only_study_is_freezable_without_model(tmp_path):
     # Explicit knowledge read double: archive/access behavior is tested by KnowledgeStore.
     root=tmp_path/'store';wb=Workbench(root)
-    source={'status':'AVAILABLE','document_id':'Karticle','revision':1,'sha256':'c'*64,
+    source={'status':'AVAILABLE','document_id':'7ab1c3d4e5f647829abcdef01234567890','revision':1,'sha256':'c'*64,
         'title':'공개 문헌','segments':[{'text':'실험 조건을 먼저 기록한다.','locator':{'page':1}}],
         'failed_segments':[],'collection':'local'}
     wb.assistance_call=lambda operation,args:deepcopy(source)
     try:
-        ref={'kind':'knowledge','document_id':'Karticle','revision':1,'locator':{},
+        ref={'kind':'knowledge','document_id':'7ab1c3d4e5f647829abcdef01234567890','revision':1,'locator':{},
              'source_sha256':'c'*64,'content_sha256':canonical_hash(source)}
         from caelab.study_document import default_draft as study_draft
         study=study_draft()
@@ -77,3 +77,42 @@ def test_literature_only_study_is_freezable_without_model(tmp_path):
         assert wb.report_content(report['id'],[asset])['assets'][0]['source_status']=='UNAVAILABLE'
         assert report['runs']==[]
     finally:wb.shutdown()
+
+
+def test_snapshot_numeric_scalars_nonfinite_and_legacy_response_preserve_values():
+    import json
+    import numpy as np
+    from caelab.report_document import compact_payload,snapshot_value
+    reference={'kind':'result','response':'force'}
+    payload={'kind':'result','reference':reference,'result':{'execution_status':'SUCCEEDED',
+        'responses':{'force':{'kind':'series','unit':'N','value':[np.float64(2.5)],
+            'source_rows':[np.int64(2)],'mask':[np.bool_(True)],
+            'axes':[{'name':'time','unit':'s','values':np.array([1.])}]}}}}
+    check_selection(reference,payload)
+    frozen=compact_payload(payload)
+    assert frozen['result']['responses']['force']['source_rows']==[2]
+    assert json.loads(json.dumps(frozen,allow_nan=False))==frozen
+    assert snapshot_value([np.nan,np.inf,-np.inf,None])==['nan','inf','-inf',None]
+
+
+@pytest.mark.parametrize('key,status',[('candidates','SUCCEEDED'),('predictions','PREDICTED')])
+def test_exact_nested_candidate_snapshot_and_absent_candidate_rejection(key,status):
+    from caelab.research_workflows import _candidate_reference_view
+    from caelab.report_document import compact_payload
+    def row(identifier,value):
+        return {'candidate_id':identifier,'values':{'E':value},'execution_status':status,
+            'responses':{'stress':{'kind':'scalar','value':value,'unit':'MPa','valid':True}}}
+    result={key:[row('Cfirst',1.),row('Csecond',2.)],'execution_status':'SUCCEEDED'}
+    selection={'candidate_ids':['Csecond'],'responses':['stress']}
+    selected=_candidate_reference_view(result,selection)
+    reference={'kind':'result','selection':selection}
+    payload={'kind':'result','reference':reference,'result':selected}
+    check_selection(reference,payload)
+    frozen=compact_payload(payload)['result']
+    assert len(frozen[key])==1 and frozen[key][0]['candidate_id']=='Csecond'
+    assert frozen[key][0]['responses']['stress']['value']==2.
+    assert result[key][0]['responses']['stress']['value']==1.
+    with pytest.raises(ValueError):
+        _candidate_reference_view(result,{**selection,'candidate_ids':['Cmissing']})
+    metadata=_candidate_reference_view(result,{'candidate_ids':['Csecond'],'metadata_only':True})
+    assert metadata[key][0]['values']=={'E':2.} and metadata[key][0]['responses']=={}

@@ -90,8 +90,8 @@ def validate_calibration(recipe, output_unit=None):
         if number(u['value'], '불확실성') < 0:
             raise ValueError('불확실성은 음수일 수 없습니다.')
         factor(u['unit'], recipe['output_unit'])
-        if u['kind'] not in ('standard', 'expanded'):
-            raise ValueError('표준 또는 확장 불확실성을 선택하세요.')
+        if u['kind'] not in (None, 'UNKNOWN', 'standard', 'expanded'):
+            raise ValueError('제공된 종류를 선택하거나 미확인으로 남기세요.')
         if u['k'] is not None and number(u['k'], '포함인자') <= 0:
             raise ValueError('포함인자는 양수여야 합니다.')
         if u['correlation'] not in ('UNKNOWN', 'independent_declared', 'correlated_declared'):
@@ -158,5 +158,5 @@ def validate_acquisition(setup):
         if not isinstance(row['unit'], str) or not row['unit']:
             raise ValueError('채널 단위를 명시하세요.')
         if row['calibration'] is not None:
-            validate_calibration(row['calibration'])
+            validate_calibration(row['calibration'], row['unit'])
     return setup

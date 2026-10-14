@@ -50,7 +50,9 @@ def test_calibration_unapplied_number_keeps_plot_and_ranges(app,size):
         assert '[N]' in window.figure.axes[1].get_ylabel()
         assert window.values.item(1,2).text()=='8.5'
         before=deepcopy(window.figure.axes[0].lines[0].get_ydata().tolist())
-        window.fields['a'].setText('1e');window.refresh_preview()
+        window.fields['a'].setText('1e');window.fields['a'].textEdited.emit('1e')
+        assert '미적용' in window.message.text()
+        window.refresh_preview()
         assert window.edited()['a']=='1e'
         assert window.figure.axes[0].lines[0].get_ydata().tolist()==before
         window.reject()
@@ -68,6 +70,16 @@ def test_report_native_pages_local_section_buffer_save_reopen_and_atomic_pdf(app
         window.show();wait(app,lambda:window.document and not window._busy,window)
         window.append_section(section('시험 목적',text='공개 자료의 비교'))
         window.append_section(section('다음 시험',text='반복 문단\n'*160))
+        for index in (0,1):
+            window.sections.setCurrentRow(index);window.edit_section()
+            window.section_text.setPlainText('미적용 '+str(index));window.close_editor()
+        assert len(window._edit_buffers)==2
+        before=deepcopy(window.draft)
+        assert window.use_study({}) is False
+        assert window.draft==before and len(window._edit_buffers)==2
+        for index in (0,1):
+            window.sections.setCurrentRow(index);window.edit_section();window.cancel_section();window.close_editor()
+        assert not window._edit_buffers
         window.sections.setCurrentRow(0);window.edit_section()
         window.section_text.setPlainText('미적용 메모 1e')
         window.close_editor();window.edit_section()
@@ -120,3 +132,81 @@ def test_acquisition_partial_draft_and_explicit_canonical_role(app):
         assert value['channels'][0]['calibration']['uncertainty']['k'] is None
         dialog.reject()
     finally:dialog.close()
+
+
+def test_retained_calibration_is_read_without_recalculation_and_unknown_kind_survives(app,monkeypatch):
+    from caelab.experiment_calibration import calibrate
+    import apps.research.experiment_dialogs as dialogs
+    recipe=calibration();recipe['uncertainty']['kind']=None
+    values,audit=calibrate([.001,.005],recipe)
+    response={'unit':'N','calibration':recipe,'raw_samples':{**audit,
+        'value':[.001,.005],'transformed_value':values.tolist(),'source_rows':[1,4]}}
+    monkeypatch.setattr(dialogs,'calibrate',lambda *args:(_ for _ in ()).throw(AssertionError('retained read recalculated')))
+    dialog=CalibrationDialog(None,mapping(recipe)['columns']['force'],None,retained_response=response)
+    try:
+        assert dialog.ukind.currentData() is None
+        assert dialog.edited()['uncertainty']['kind'] is None
+        assert dialog.values.item(1,2).text()=='8.5'
+        assert dialog.values.item(1,0).text()=='4'
+        assert '보존' in dialog.message.text()
+    finally:dialog.close()
+
+
+def test_report_invalid_unknown_values_checks_and_nonconvergence_are_visible(app):
+    from apps.research.report_pages import blocks
+    result={'execution_status':'SUCCEEDED','converged':False,'termination_reason':'MAX_ITERATIONS',
+        'checks':[{'name':'energy_balance','passed':False,'value':.23,'limit':.05,'unit':'1'}],
+        'responses':{
+            'invalid':{'kind':'series','value':[7.,8.],'unit':'N','valid':False,'reason':'sensor failed',
+                'axes':[{'name':'time','unit':'s','values':[0.,1.]}]},
+            'unknown':{'kind':'series','value':[3.],'unit':'N',
+                'axes':[{'name':'time','unit':'s','values':[0.]}]},
+            'scalar':{'kind':'scalar','value':5.,'unit':'N','valid':False,'reason':'inadmissible'}}}
+    content={'kind':'result','result':result}
+    output=list(blocks(content))
+    curves=[v for kind,v in output if kind=='curve']
+    assert curves[0]['mask']==[False,False] and curves[1]['mask']==[None]
+    assert curves[0]['y']==[7.,8.]
+    text=markdown({'title':'판정 보존','sections':[section('계산',asset={'id':'Acheck'})]},
+        {'Acheck':{'source_status':'AVAILABLE','content':content,'reference':{}}})
+    for evidence in ('미수렴','MAX_ITERATIONS','energy_balance','0.23','0.05','실패','sensor failed','행 판정 없음','inadmissible'):
+        assert evidence in text
+
+
+def test_identification_lost_save_reply_retry_keeps_new_question(app,monkeypatch):
+    from apps.research.identification_window import IdentificationWindow
+    import apps.research.study_window as study_module
+    monkeypatch.setattr(IdentificationWindow,'_read',lambda self:None)
+    class Child:
+        def __init__(self,*args,**kwargs):pass
+        def show(self):pass
+    monkeypatch.setattr(study_module,'StudyWindow',Child)
+    class SaveDouble:
+        def __init__(self):
+            from caelab.study_document import default_draft
+            self.doc={'id':'Sstudy','session_id':'Ssession','generation':0,'draft':default_draft()}
+            self.receipts={};self.fail=True
+        def document_read(self,identifier):return deepcopy(self.doc)
+        def document_command(self,identifier,operation,arguments,**kwargs):
+            key=kwargs['command_id']
+            if key not in self.receipts:
+                if operation=='study.update':self.doc['draft']=deepcopy(arguments['draft'])
+                self.doc['generation']+=1
+                self.receipts[key]={'document':deepcopy(self.doc)}
+            if operation=='document.save' and self.fail:
+                self.fail=False
+                raise OSError('reply lost after save')
+            return deepcopy(self.receipts[key])
+    client=SaveDouble();window=IdentificationWindow(client,'Nplan','Jfit')
+    try:
+        window._study=deepcopy(client.doc)
+        window._payload=({'session_id':'Ssession'},{},{},{'document_id':'Nplan','job_id':'Jfit'})
+        window._run=lambda fn,accepted:accepted(fn())
+        window.question.setText('시험 A');window.note.setPlainText('근거 A')
+        with pytest.raises(OSError):window.save_study()
+        window.question.setText('아직 전송하지 않은 B');window.note.setPlainText('근거 B')
+        window.save_study()
+        assert len(client.receipts)==2
+        assert [r['question'] for r in client.doc['draft']['next_observations']]==['시험 A']
+        assert window.question.text()=='아직 전송하지 않은 B' and window.note.toPlainText()=='근거 B'
+    finally:window.close()

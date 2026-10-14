@@ -155,7 +155,7 @@ def _candidate_reference_view(result, selection):
     """
     if isinstance(selection, list):
         selection = {'responses': selection}
-    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows'}:
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'candidate_ids', 'metadata_only'}:
         raise ValueError('Candidate evidence preview accepts response names and rows; open the original result for advanced selection')
     names = selection.get('responses')
     if names is not None and (not isinstance(names, list) or any(not isinstance(name, str) for name in names)):
@@ -166,13 +166,23 @@ def _candidate_reference_view(result, selection):
         raise ValueError('Candidate response rows require an integer start and stop')
     key = 'candidates' if isinstance(result.get('candidates'), list) else 'predictions'
     rows = result[key]
+    selected_ids = selection.get('candidate_ids')
+    if selected_ids is not None:
+        if (not isinstance(selected_ids, list) or not selected_ids or
+                any(not isinstance(v, str) for v in selected_ids) or len(set(selected_ids)) != len(selected_ids)):
+            raise ValueError('Choose distinct exact retained candidates')
+        if set(selected_ids) - {row.get('candidate_id') for row in rows}:
+            raise ValueError('Selected candidate is absent from this exact result')
+        rows = [row for row in rows if row.get('candidate_id') in selected_ids]
     available = {name for row in rows for name in (row.get('responses') or {})}
     if names is not None and any(name not in available for name in names):
         raise ValueError('Unknown candidate response selection')
     actual = deepcopy(result)
+    actual[key] = deepcopy(rows)
     for row in actual[key]:
         responses = row.get('responses') or {}
-        row['responses'] = {name: response for name, response in responses.items() if names is None or name in names}
+        row['responses'] = ({} if selection.get('metadata_only') else
+            {name: response for name, response in responses.items() if names is None or name in names})
         for response in row['responses'].values():
             if bounds is None or response.get('kind') != 'series':
                 continue
@@ -237,7 +247,7 @@ def resolve_reference(wb, reference):
         selection = reference.get('selection', [reference['response']] if reference.get('response') else {'metadata_only': True})
         nested = isinstance(result.get('candidates'), list) or isinstance(result.get('predictions'), list)
         metadata_only = isinstance(selection, dict) and selection.get('metadata_only')
-        actual = (_candidate_reference_view(result, selection) if nested and not metadata_only else
+        actual = (_candidate_reference_view(result, selection) if nested else
                   wb.document_result(exact['document_id'], exact['job_id'], selection=selection))
         return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
                 'metadata': result_metadata(result), 'result': actual}

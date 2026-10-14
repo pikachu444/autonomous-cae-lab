@@ -15,12 +15,14 @@ from caelab.experiment_calibration import (default_calibration, validate_calibra
 from .data_window import _Read, number_or_raw
 from .appearance import configure_plot_fonts
 from .report_pages import atomic_export, value_text
+from .experiment_labels import sample_reason
 
 
 class CalibrationDialog(QDialog):
-    def __init__(self, client, mapping, preview, parent=None):
+    def __init__(self, client, mapping, preview, parent=None, *, retained_response=None):
         super().__init__(parent)
         self.client=client;self.mapping=deepcopy(mapping);self.preview=deepcopy(preview)
+        self.retained_response=deepcopy(retained_response)
         self.recipe=deepcopy(mapping.get('calibration') or default_calibration(mapping.get('unit','N')))
         self._workers=[];self._closed=False;self.fields={}
         self.setWindowTitle('채널 교정');self.resize(1100,780)
@@ -58,7 +60,8 @@ class CalibrationDialog(QDialog):
         u=self.recipe.get('uncertainty') or {}
         self.provided=QCheckBox('제공된 불확실성 기록');self.provided.setChecked(bool(u))
         forms['불확실성'].addRow(self.provided)
-        self.ukind=QComboBox();self.ukind.addItem('표준 불확실성','standard');self.ukind.addItem('확장 불확실성','expanded')
+        self.ukind=QComboBox();self.ukind.addItem('미확인',u.get('kind') if u.get('kind') in (None,'UNKNOWN') else None)
+        self.ukind.addItem('표준 불확실성','standard');self.ukind.addItem('확장 불확실성','expanded')
         self.ukind.setCurrentIndex(max(0,self.ukind.findData(u.get('kind'))));forms['불확실성'].addRow('종류',self.ukind)
         for key,label in [('value','값'),('unit','단위'),('k','포함인자 k'),('note','출처 / 상관 설명')]:
             field('uncertainty/'+key,label,'불확실성',u.get(key,''))
@@ -82,6 +85,12 @@ class CalibrationDialog(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText('초안에 적용')
         buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);root.addWidget(buttons)
         self.refresh_preview()
+        for field in self.fields.values():field.textEdited.connect(self.mark_unapplied)
+        for combo in (self.role,self.ukind,self.correlation):combo.currentIndexChanged.connect(self.mark_unapplied)
+        self.provided.toggled.connect(self.mark_unapplied)
+
+    def mark_unapplied(self,*_):
+        self.message.setText('미적용 입력 — 교정 전후 보기로 확인하세요. 이전 곡선은 유지됩니다.')
 
     def edited(self):
         recipe=deepcopy(self.recipe)
@@ -124,23 +133,29 @@ class CalibrationDialog(QDialog):
         recipe=self.edited()
         axes = None
         try:
-            validate_calibration(recipe)
-            table=(self.preview or {}).get('table_preview',{})
-            column=self.mapping['column']
-            index=table.get('headers',[]).index(column) if isinstance(column,str) else column
-            raw=[float(row[index]) for row in table.get('rows',[])]
-            rows=table.get('row_numbers',[])
-            if not raw:raise ValueError('현재 원본의 숫자 미리보기가 없습니다. CSV 원본과 열을 확인하세요.')
-            transformed,audit=calibrate(raw,recipe)
+            if self.retained_response is not None:
+                recipe=self.retained_response['calibration']
+                audit=self.retained_response['raw_samples']
+                raw=audit['value'];rows=audit['source_rows']
+                transformed=audit['transformed_value']
+            else:
+                validate_calibration(recipe)
+                table=(self.preview or {}).get('table_preview',{})
+                column=self.mapping['column']
+                index=table.get('headers',[]).index(column) if isinstance(column,str) else column
+                raw=[float(row[index]) for row in table.get('rows',[])]
+                rows=table.get('row_numbers',[])
+                if not raw:raise ValueError('현재 원본의 숫자 미리보기가 없습니다. CSV 원본과 열을 확인하세요.')
+                transformed,audit=calibrate(raw,recipe)
             self.figure.clear(); axes=self.figure.subplots(2,1,sharex=True)
             self.values.setRowCount(0)
             self.values.setHorizontalHeaderLabels(['원행','원값 ['+recipe['input_unit']+']',
                 '교정값 ['+recipe['output_unit']+']','확인 사항'])
             self.values.setRowCount(len(raw))
             for i,(source,x,y,reason) in enumerate(zip(rows,raw,transformed,audit['calibration_reasons'])):
-                for j,v in enumerate((source,x,float(y),reason)):
+                for j,v in enumerate((source,x,float(y),sample_reason(reason))):
                     self.values.setItem(i,j,QTableWidgetItem(value_text(v)))
-            axes[0].plot(rows,raw,'o-');axes[0].set_ylabel('원값 ['+recipe['input_unit']+']')
+            axes[0].plot(rows,[float(v) for v in raw],'o-');axes[0].set_ylabel('원값 ['+recipe['input_unit']+']')
             valid=audit['calibration_valid']
             axes[1].plot(rows,[float(v) if ok else float('nan') for v,ok in zip(transformed,valid)],
                          'o-',label='교정값 (범위 내)')
@@ -152,7 +167,8 @@ class CalibrationDialog(QDialog):
             axes[1].legend()
             axes[1].set_ylabel('교정값 ['+recipe['output_unit']+']')
             axes[1].set_xlabel('원본 행')
-            self.message.setText('원본 앞부분 '+str(len(raw))+'행 미리보기. 전체 처리는 Data의 가져오기를 누르세요.')
+            self.message.setText('선택한 가져오기에 보존된 원값·교정값입니다. 다시 계산하지 않았습니다.' if self.retained_response is not None else
+                '원본 앞부분 '+str(len(raw))+'행 미리보기. 전체 처리는 Data의 가져오기를 누르세요.')
         except (ValueError,KeyError,TypeError,IndexError) as error:
             self.message.setText('미적용 입력: '+str(error)+' 이전 미리보기는 유지됩니다.')
         if axes is not None:
@@ -217,6 +233,15 @@ class AcquisitionDialog(QDialog):
             value['channels'].append({'name':name,'role':self.table.cellWidget(i,1).currentData(),
                 'unit':self.table.item(i,2).text(),'calibration':calibration})
         return value
+
+    def accept(self):
+        if self.reuse.isChecked():
+            try:
+                validate_acquisition(self.edited())
+            except ValueError as error:
+                self.message.setText('현재 채널에 적용하기 전 확인하세요: '+str(error))
+                return
+        super().accept()
 
     def check(self):
         try:validate_acquisition(self.edited());self.message.setText('파일 수집 설정이 유효합니다. 실장비 상태는 미확인입니다.')

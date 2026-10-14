@@ -49,7 +49,14 @@ def diagnose(jacobian, variables, experiments, parameter_values, *, loss='linear
     responses = []
     for e in experiments:
         obs = e['observations']
-        mask = np.asarray(e.get('_mask', e.get('mask', [True]*len(obs.get('value', [])))), dtype=bool)
+        if '_mask' in e:
+            retained_mask = e['_mask']
+        elif 'mask' in e:
+            retained_mask = e['mask']
+        else:
+            value = obs.get('value')
+            retained_mask = [obs.get('valid') is not False] * (len(value) if isinstance(value, (list, tuple, np.ndarray)) else 1)
+        mask = np.atleast_1d(np.asarray(retained_mask, dtype=bool))
         responses.append({'experiment_id': e['id'], 'response': e['response'],
             'unit': obs.get('unit'), 'component': obs.get('component'), 'measure': obs.get('measure'),
             'frame': obs.get('frame'), 'location': obs.get('location'),
@@ -77,7 +84,15 @@ def require_independent_rows(experiments):
         rows = obs.get('source_rows')
         if not digest or column is None or rows is None:
             continue  # Inline observations have no claimed raw provenance.
-        for row in rows:
+        retained_mask=e['_mask'] if '_mask' in e else e.get('mask')
+        if retained_mask is None:
+            retained_mask=np.ones(len(rows),dtype=bool)
+        retained_mask=np.asarray(retained_mask,dtype=bool)
+        if retained_mask.ndim!=1 or len(retained_mask)!=len(rows):
+            raise ValueError('관측의 원본 행과 피팅/검증 선택 길이가 다릅니다.')
+        for row, included in zip(rows,retained_mask):
+            if not included:
+                continue
             key = (digest, str(column), int(row))
             if key in owners and owners[key] != e['role']:
                 raise ValueError('피팅과 검증에 같은 원본 열/행이 포함되었습니다.')

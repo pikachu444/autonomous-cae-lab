@@ -132,6 +132,57 @@ class DataDocuments(MaterialDocuments):
         return {**self.job_arguments(draft), 'source_ref': reference,
                 **({'calibration_sources': certificates} if certificates else {})}
 
+    def calibration_sources(self, mapping, supplied=None, *, require_frozen=False):
+        """Derive the entire certificate closure from the actual submitted mapping."""
+        from .experiment_calibration import validate_calibration
+        required = {}
+        columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
+        for spec in (columns.values() if isinstance(columns, dict) else []):
+            if not isinstance(spec, dict) or 'calibration' not in spec:
+                continue
+            recipe = spec['calibration']
+            validate_calibration(recipe, spec.get('unit'))
+            source = recipe['source']
+            identifier = source['data_id']
+            if identifier in required and required[identifier] != source['sha256']:
+                raise ValueError('한 교정 원본에 서로 다른 버전이 지정되었습니다.')
+            required[identifier] = source['sha256']
+        if supplied is None:
+            if required and require_frozen:
+                raise ValueError('교정 원본의 제출 당시 기록이 없습니다.')
+            supplied = []
+            for identifier in sorted(required):
+                path, receipt = self.resolve_input(identifier)
+                self._check_source(identifier, Path(path), receipt)
+                supplied.append({'kind': 'registered_calibration', 'data_id': identifier,
+                    'sha256': receipt['sha256'], 'bytes': receipt['bytes'],
+                    'receipt_sha256': canonical_hash(receipt)})
+        if not isinstance(supplied, list):
+            raise ValueError('교정 원본 목록이 잘못되었습니다.')
+        verified = {}
+        for reference in supplied:
+            if not isinstance(reference, dict):
+                raise ValueError('교정 원본 기록이 잘못되었습니다.')
+            identifier = reference.get('data_id')
+            if identifier not in required or reference.get('sha256') != required[identifier]:
+                raise ValueError('교정식의 원본과 제출한 증빙이 다릅니다.')
+            if identifier in verified and verified[identifier] != reference:
+                raise ValueError('한 교정 원본에 서로 다른 보존 기록이 있습니다.')
+            if reference.get('kind') == 'registered_calibration':
+                if set(reference) != {'kind','data_id','sha256','bytes','receipt_sha256'}:
+                    raise ValueError('등록 교정 원본의 필드가 잘못되었습니다.')
+                path, receipt = self.resolve_input(identifier)
+                self._check_source(identifier, Path(path), receipt)
+                if (receipt['sha256'] != reference['sha256'] or receipt['bytes'] != reference['bytes']
+                        or canonical_hash(receipt) != reference['receipt_sha256']):
+                    raise ValueError('교정 원본 또는 등록 기록이 변경되었습니다.')
+            else:
+                self.resolve_job_source(identifier, reference)
+            verified[identifier] = deepcopy(reference)
+        if set(verified) != set(required):
+            raise ValueError('교정식에 필요한 원본 증빙이 빠졌습니다.')
+        return [verified[key] for key in sorted(verified)]
+
     def resolve_job_source(self, identifier, reference):
         """Resolve only a frozen service-owned reference, never a supplied file path."""
         required = {'kind', 'document_id', 'data_id', 'sha256', 'bytes', 'receipt_sha256'}
@@ -196,7 +247,8 @@ class DataDocuments(MaterialDocuments):
         for draft in drafts:
             if not isinstance(draft, dict):
                 continue
-            columns = draft.get('mapping', {}).get('columns', {})
+            mapping = draft.get('mapping')
+            columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
             specs = list(columns.values()) if isinstance(columns, dict) else []
             acquisition = draft.get('acquisition')
             if isinstance(acquisition, dict) and isinstance(acquisition.get('channels'), list):
@@ -223,7 +275,9 @@ class DataDocuments(MaterialDocuments):
         unresolved = []
         used = {run.get('draft', {}).get('data_id') for run in saved['runs']}
         for run in saved['runs']:
-            for spec in run.get('draft', {}).get('mapping', {}).get('columns', {}).values():
+            mapping = run.get('draft', {}).get('mapping')
+            columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
+            for spec in (columns.values() if isinstance(columns, dict) else []):
                 if isinstance(spec, dict) and isinstance(spec.get('calibration'), dict):
                     used.add((spec['calibration'].get('source') or {}).get('data_id'))
         for identifier in sorted(identifiers):

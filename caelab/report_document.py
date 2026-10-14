@@ -59,6 +59,30 @@ def diagnostics(draft):
     return errors
 
 
+def snapshot_value(value):
+    """JSON-safe exact real values; match file_table's retained nonfinite tokens."""
+    import math
+    import numpy as np
+    if isinstance(value, np.ndarray):
+        return snapshot_value(value.tolist())
+    if isinstance(value, np.generic):
+        return snapshot_value(value.item())
+    if isinstance(value, dict):
+        return {key: snapshot_value(item) for key,item in value.items()}
+    if isinstance(value, (list,tuple)):
+        return [snapshot_value(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)  # nan/inf/-inf stay distinct, never 0 or null.
+    return value
+
+
+def effective_selection(reference):
+    selection = reference.get('selection')
+    if selection is None:
+        return {'responses': [reference['response']]} if reference.get('response') else {'metadata_only': True}
+    return {'responses': selection} if isinstance(selection, list) else selection
+
+
 def compact_payload(payload):
     """Keep verified selected numeric/text content, never paths to mutable views."""
     result = {'kind': payload['kind']}
@@ -71,43 +95,53 @@ def compact_payload(payload):
              'parameter_units', 'curves', 'converged', 'termination_reason', 'failure_reason') if k in source}
         result['result']['qualification'] = deepcopy(source.get('diagnostics', {}).get('qualification', 'UNKNOWN'))
         result['result'].pop('curves', None)  # Curves are read through selected response views.
-        if isinstance(payload.get('reference', {}).get('selection', {}), dict) and payload.get('reference', {}).get('selection', {'metadata_only': True}).get('metadata_only'):
+        metadata_only = effective_selection(payload.get('reference', {})).get('metadata_only', False)
+        if metadata_only:
             result['result'].pop('responses', None)
+        for key in ('candidates', 'predictions'):
+            if isinstance(source.get(key), list):
+                result['result'][key] = [{k: deepcopy(v) for k, v in row.items()
+                    if k in {'candidate_id','values','execution_status','prediction_status','responses',
+                        'checks','failure_reason','error','feasible','objectives','penalty','constraints'}
+                    and (k != 'responses' or not metadata_only)} for row in source[key]]
     elif payload['kind'] == 'document':
         result['document'] = deepcopy(payload['document'])
     elif payload['kind'] == 'knowledge':
         result['source'] = deepcopy(payload['source'])
     else:
         result['turn'] = deepcopy(payload['turn'])
-    return result
+    return snapshot_value(result)
 
 
 def check_selection(reference, payload):
     if reference['kind'] != 'result':
         return
-    selection = reference.get('selection', {'metadata_only': True})
-    if isinstance(selection, list):
-        selection = {'responses': selection}
-    if 'selection' not in reference and 'response' in reference:
-        selection = {'responses': [reference['response']]}
-    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'time_range', 'component', 'location', 'metadata_only', 'source_rows'}:
+    selection = effective_selection(reference)
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'time_range', 'component', 'location', 'metadata_only', 'source_rows', 'candidate_ids'}:
         raise ValueError('보고서에 고정할 응답과 행/시각을 명시하세요.')
+    source = snapshot_value(payload.get('result', {}))
+    nested = source.get('candidates', source.get('predictions'))
+    sources = nested if isinstance(nested, list) else [source]
+    if selection.get('candidate_ids') is not None:
+        if not isinstance(nested, list) or {r.get('candidate_id') for r in nested} != set(selection['candidate_ids']):
+            raise ValueError('선택한 후보와 읽은 결과가 다릅니다.')
     if selection.get('metadata_only'):
         return
     names = selection.get('responses')
-    if not isinstance(names, list) or not names:
+    if not isinstance(names, list) or not names or not sources:
         raise ValueError('보고서에 포함할 실제 응답을 선택하세요.')
-    responses = payload.get('result', {}).get('responses', {})
-    for name in names:
-        response = responses.get(name)
-        if not isinstance(response, dict):
-            raise ValueError('요청한 응답/위치를 찾지 못했습니다: ' + name)
-        if response.get('kind') == 'series' and not len(response.get('value', [])) and not (response.get('raw_samples') or {}).get('source_rows'):
-            raise ValueError('선택한 시각/행에 원값이 없습니다. 인접 시각으로 대체하지 않습니다.')
-        if 'time_range' in selection and selection['time_range'][0] == selection['time_range'][1]:
-            axis = next((a for a in response.get('axes', []) if a.get('name') == 'time'), None)
-            if not axis or not axis.get('values') or any(t != selection['time_range'][0] for t in axis['values']):
-                raise ValueError('선택한 정확한 시각이 없습니다.')
+    for source in sources:
+        responses = source.get('responses', {})
+        for name in names:
+            response = responses.get(name)
+            if not isinstance(response, dict):
+                raise ValueError('요청한 응답/위치를 찾지 못했습니다: ' + name)
+            if response.get('kind') == 'series' and not len(response.get('value', [])) and not (response.get('raw_samples') or {}).get('source_rows'):
+                raise ValueError('선택한 시각/행에 원값이 없습니다. 인접 시각으로 대체하지 않습니다.')
+            if 'time_range' in selection and selection['time_range'][0] == selection['time_range'][1]:
+                axis = next((a for a in response.get('axes', []) if a.get('name') == 'time'), None)
+                if not axis or not axis.get('values') or any(t != selection['time_range'][0] for t in axis['values']):
+                    raise ValueError('선택한 정확한 시각이 없습니다.')
 
 
 class ReportDocuments(MaterialDocuments):
