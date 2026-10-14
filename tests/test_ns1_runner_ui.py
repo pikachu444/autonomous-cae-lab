@@ -43,6 +43,16 @@ def test_retained_material_attempts_and_missing_information_are_not_execution(ap
     assert '누적 단계 진행값' in dialog.attempts.horizontalHeaderItem(4).text()
     assert dialog.attempts.item(1,5).text()=='0.25'
     assert calls==[] and result==original
+    dialog.canvas.draw()
+    axes = dialog.figure.axes[0]
+    renderer = dialog.canvas.get_renderer()
+    frame = dialog.figure.bbox
+    for label in (axes.xaxis.label, axes.yaxis.label):
+        extent = label.get_window_extent(renderer)
+        assert extent.x0 >= frame.x0 and extent.y0 >= frame.y0
+        assert extent.x1 <= frame.x1 and extent.y1 <= frame.y1
+    extents = [label.get_window_extent(renderer) for label in axes.get_xticklabels() if label.get_visible()]
+    assert all(a.x1 + 2 <= b.x0 for a, b in zip(extents, extents[1:]))
     target=os.environ.get('NS1_RENDER_DIR')
     if target:
         folder=Path(target); folder.mkdir(parents=True,exist_ok=True)

@@ -2,9 +2,11 @@
 from copy import deepcopy
 import math
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,QTableWidget,
     QTableWidgetItem,QSplitter,QWidget,QPushButton,QAbstractItemView)
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 
 class ContactRunDialog(QDialog):
@@ -31,6 +33,11 @@ class ContactRunDialog(QDialog):
             for j,v in enumerate(values):
                 item=QTableWidgetItem(str(v)); item.setToolTip(r['raw']); self.attempts.setItem(i,j,item)
         self.attempts.resizeColumnsToContents()
+        header_font = self.attempts.horizontalHeader().font()
+        header_font.setBold(True)
+        metrics = QFontMetrics(header_font)
+        self.attempts.setColumnWidth(4, max(self.attempts.columnWidth(4),
+            max(metrics.horizontalAdvance(line) for line in label.splitlines()) + 24))
         self.attempts.horizontalHeader().setStretchLastSection(True)
         self.attempts.setMaximumHeight(min(230, max(100, self.attempts.horizontalHeader().height()+len(self.rows)*30+8)))
         layout.addWidget(self.attempts)
@@ -51,7 +58,7 @@ class ContactRunDialog(QDialog):
         split.addWidget(self.points)
         from .appearance import configure_plot_fonts
         configure_plot_fonts()
-        self.figure=Figure(); self.canvas=FigureCanvasQTAgg(self.figure); split.addWidget(self.canvas)
+        self.figure=Figure(layout='constrained'); self.canvas=FigureCanvasQTAgg(self.figure); split.addWidget(self.canvas)
         split.setSizes([250,750]); layout.addWidget(split,1)
         self.message=QLabel(); self.message.setWordWrap(True); layout.addWidget(self.message)
         row=QHBoxLayout()
@@ -108,7 +115,10 @@ class ContactRunDialog(QDialog):
         if points: ax.plot([float(p[0]) for p in points],[float(p[1]) for p in points],marker='o')
         else: ax.text(.5,.5,{'hold':'이전 단계 끝값 유지','release':'조건 해제'}.get(mode,'곡선 없음'),ha='center',transform=ax.transAxes)
         ax.set_xlabel(axis); ax.set_ylabel(ordinate); ax.grid(alpha=.2)
-        self.figure.tight_layout(); self.canvas.draw_idle()
+        # Re-layout after native Qt resize; do not clip units or crowd tick labels.
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=4, min_n_ticks=3))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=6, min_n_ticks=3))
+        self.canvas.draw_idle()
     def open_saved(self):
         def work():
             from .desktop import _spawn
