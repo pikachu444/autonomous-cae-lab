@@ -54,6 +54,14 @@ Keep native ParaView and the existing Qt controls; do not create another app or 
 - REQ-PC-008: The implementation shall reuse current same-mesh/linear-tetra comparison,
   native VTK filters, source owners and save/repair commands. Existing legacy recipes shall reopen.
   Added libraries, paid services, solver runs and native ABI hooks are not prerequisites.
+- REQ-PC-009: A user shall compare retained Post time-table measurements with another
+  retained measurement or an independently imported experimental Data curve. The user shall
+  select the exact block/location, response component and horizontal axis, declare compatible
+  units and clock origin, and preview original samples and B-to-A alignment without new physics.
+- REQ-PC-010: Curve comparison shall preserve missing segments, distinguish time from load
+  parameters, prohibit extrapolation and ambiguous duplicate-axis mappings, and retain source
+  rows, alignment settings and B-minus-A values through save/reopen. Existing Data/Numerical
+  curve comparison and document owners shall be reused rather than copied into a new store.
 
 Unsupported element families or physical measure conversions remain explicit requirements
 with named limitations, not silent scope deletions. Do not replace meaningful transforms with
