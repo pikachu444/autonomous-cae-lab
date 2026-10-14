@@ -316,6 +316,56 @@ def test_native_timer_drains_on_owner_thread_and_refuses_headless(bridge):
         bridge.module.GuiDispatch(owner).install()
 
 
+def test_close_releases_owned_observers_and_staged_work_without_late_apply(bridge, monkeypatch):
+    cleared=[]
+    monkeypatch.setattr(bridge.module.commands,'clear_save_owner',lambda owner:cleared.append(owner))
+    owner=bridge.module.Owner()
+    dispatcher=bridge.module.GuiDispatch(owner).install()
+    receipts=[];dispatcher.broker_close=lambda:receipts.append('closed')
+    dispatcher.incoming.put(command(owner,'document.save'))
+    dispatcher._tick()  # staged, not yet acknowledged or applied
+    assert dispatcher.command_gate.request is not None and bridge.source.observers
+    dispatcher.incoming.put(command(owner,'document.save',command_id='Ctwo'))
+    dispatcher.close();dispatcher.close();dispatcher._tick()
+    assert receipts==['closed'] and cleared==[owner]
+    assert dispatcher.closed and owner.closed and dispatcher.incoming.empty()
+    assert dispatcher.command_gate.request is None and not bridge.saved
+    assert not bridge.source.observers and not bridge.view.interactor.callbacks
+    with pytest.raises(RuntimeError,match='session is closed'):
+        owner.refresh()
+    # Another owner for the same native source gets exactly its own observer.
+    reopened=bridge.module.Owner()
+    assert len(bridge.source.observers)==1
+    bridge.source.edit('FileName','new.pvd')
+    assert reopened.modified_events==1 and owner.modified_events==0
+    reopened.close()
+
+
+def test_close_during_executing_command_keeps_timer_and_owner(bridge):
+    owner=bridge.module.Owner();dispatcher=bridge.module.GuiDispatch(owner).install()
+    dispatcher.command_gate.executing=True
+    with pytest.raises(RuntimeError,match='still running'):
+        dispatcher.close()
+    assert not dispatcher.closed and not owner.closed and bridge.view.interactor.callbacks
+    dispatcher.command_gate.executing=False
+    dispatcher.close()
+
+
+def test_failed_native_install_releases_observers_and_save_owner(bridge,monkeypatch):
+    bridge.view.interactor=Interactor(gui=False);cleared=[]
+    monkeypatch.setattr(bridge.module.commands,'clear_save_owner',lambda owner:cleared.append(owner))
+    with pytest.raises(RuntimeError,match='headless execution'):
+        bridge.module.start('http://127.0.0.1:8000')
+    assert len(cleared)==1 and cleared[0].closed and not bridge.source.observers
+
+
+def test_failed_timer_creation_keeps_original_error_and_cleans_owner(bridge,monkeypatch):
+    monkeypatch.setattr(bridge.view.interactor,'CreateRepeatingTimer',lambda interval:0)
+    with pytest.raises(RuntimeError,match='timer creation failed'):
+        bridge.module.start('http://127.0.0.1:8000')
+    assert not bridge.source.observers and not bridge.view.interactor.callbacks
+
+
 def test_broker_io_moves_only_json_while_timer_owns_proxy_dispatch(bridge, monkeypatch):
     from caelab.workbench_client import Client
     owner = bridge.module.Owner()
@@ -360,6 +410,25 @@ def test_broker_io_moves_only_json_while_timer_owns_proxy_dispatch(bridge, monke
     assert outcomes[0]["outcome"]["state"] == "SUCCEEDED"
     assert "host_token" not in outcomes[0]["outcome"]["result"]
     assert "registration_nonce" not in outcomes[0]["outcome"]["result"]
+
+
+def test_window_close_delivers_closed_receipt_and_stops_owned_broker(bridge,monkeypatch):
+    from caelab.workbench_client import Client
+    owner=bridge.module.Owner();dispatcher=bridge.module.GuiDispatch(owner).install()
+    broker=bridge.module.BrokerIO(dispatcher,'http://127.0.0.1:8000')
+    reports=[]
+    def request(client,path,body=None):
+        if path.endswith('/register'):return {'host_token':'test-owned-token'}
+        if path.endswith('/commands/next'):return {'command':None}
+        reports.append(body['event']);return {'accepted':True}
+    monkeypatch.setattr(Client,'request',request)
+    dispatcher._tick();broker.start()
+    assert broker.registered.wait(2)
+    dispatcher.incoming.put(command(owner,'document.save'))
+    dispatcher.close()
+    broker.worker.join(timeout=2)
+    assert reports==['closed'] and broker.stop.is_set() and not broker.worker.is_alive()
+    assert not bridge.saved and dispatcher.incoming.empty() and owner.closed
 
 
 def test_unchanged_owner_heartbeat_requires_actual_timer_ticks(bridge, monkeypatch):

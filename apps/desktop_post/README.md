@@ -15,12 +15,19 @@ the **CAE Save project** macro. It includes the current view and saved analysis
 settings. Native **File > Save Data** remains available for data export. Separate
 script editors and modal dialogs keep their own keyboard handling.
 
-The main window's X button and Alt+F4 ask **저장 / 버리기 / 취소** when changes
+The main window's X button and Alt+F4 ask **저장 / 저장 안 함 / 취소** when changes
 remain. Windows builds without TaskDialog use **예 / 아니요 / 취소**, with the
 save/discard meanings stated in the question. Cancel or a failed save leaves the
 window open. Unapplied Properties
 edits must first be applied or reset in ParaView; saving does not silently discard
 them. The connection runs on the existing GUI thread without another Qt binding.
+
+When this window is destroyed, its managed connection releases its save owner,
+source observers and GUI timer. Queued commands do not apply after close; the
+existing broker reports the session closure so the service can reconcile them.
+An executing native command keeps the close gate blocked until it finishes.
+These lifecycle paths have focused owner/Win32 checks; actual ParaView teardown
+acceptance remains pending.
 
 **File > Exit is not covered by this close confirmation.** Save explicitly before
 using that menu, or use X/Alt+F4. Unmanaged sessions, other platforms, and sessions
