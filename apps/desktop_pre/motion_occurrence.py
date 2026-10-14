@@ -37,11 +37,20 @@ def unique_path(assembly,obj,rows=None):
 
 
 def world_placement(assembly,obj):
-    row=unique_path(assembly,obj)
+    row={'path':[assembly.Name]} if obj is assembly else unique_path(assembly,obj)
     # Rooting at the actual occurrence hierarchy avoids the native helper's
     # ambiguous Parents fallback to a local placement. Never follow definitions.
     if hasattr(assembly,'getPlacementOf'):
-        return assembly.getPlacementOf('.'.join(row['path'][1:])+'.',obj)
+        root=assembly; prefix=''; parents=getattr(assembly,'Parents',None) or []
+        if parents:
+            if len(parents)!=1 or len(parents[0])!=2:
+                raise ValueError('선택한 조립의 상위 배치가 여러 위치입니다. 정확한 조립 배치를 다시 선택하세요.')
+            root,prefix=parents[0]
+            if (not isinstance(prefix,str) or not prefix.endswith(assembly.Name+'.')
+                    or not hasattr(root,'getSubObject') or root.getSubObject(prefix,1) is not assembly):
+                raise ValueError('선택한 조립의 상위 배치 경로를 확인할 수 없습니다. 조립 위치를 복구하세요.')
+        relative='.'.join(row['path'][1:])+'.' if obj is not assembly else ''
+        return root.getPlacementOf(prefix+relative,obj)
     return None  # API-shaped test fixtures may supply the existing utility.
 
 

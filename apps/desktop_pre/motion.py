@@ -257,8 +257,10 @@ class Motion:
             candidates=paths.get(row['id'],[])
             if any(len(candidate['path'])>2 for candidate in candidates):
                 row['occurrence_paths']=[candidate['path'] for candidate in candidates]
-        return _hash({'document': self.owner.doc.Name, 'assembly': assembly.Name,
-                      'assembly_pose': plc(assembly, 'Placement'), 'parts': rows, 'joints': joints})
+        scene={'document': self.owner.doc.Name, 'assembly': assembly.Name,
+            'assembly_pose': plc(assembly, 'Placement'), 'parts': rows, 'joints': joints}
+        if getattr(assembly,'Parents',None): scene['assembly_world_pose']=_pose(world_placement(assembly,assembly))
+        return _hash(scene)
 
     def _native_definition(self, simulation):
         def number(name):

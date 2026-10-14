@@ -51,6 +51,41 @@ def test_rigid_boundary_allows_whole_body_connector_and_leaf_trace_without_indiv
     assert unique_path(root,b)['path'][-1]==b.Name  # trace identity remains distinct
 
 
+def test_world_path_uses_exact_enclosing_native_parent_without_duplicate_root_placement(setup):
+    from types import SimpleNamespace
+    root,outer,inner,a,b=nested(setup);expected=object();calls=[]
+    parent=SimpleNamespace(getPlacementOf=lambda path,target:(calls.append((path,target)) or expected),
+        getSubObject=lambda path,kind:root)
+    root.Parents=[(parent,'Enclosing.'+root.Name+'.')]
+    root.getPlacementOf=lambda *args:pytest.fail('Selected assembly alone omits enclosing placement')
+    assert world_placement(root,b) is expected
+    assert calls==[('Enclosing.'+root.Name+'.Outer.Inner.'+b.Name+'.',b)]
+    assert world_placement(root,root) is expected and calls[-1]==('Enclosing.'+root.Name+'.',root)
+    root.Parents += [(parent,'Another.'+root.Name+'.')]
+    with pytest.raises(ValueError,match='여러 위치'):world_placement(root,b)
+    root.Parents=[(parent,'Missing.')]
+    with pytest.raises(ValueError,match='복구'):world_placement(root,b)
+    root.Parents=[(parent,'Enclosing.'+root.Name+'.')];parent.getSubObject=lambda path,kind:None
+    with pytest.raises(ValueError,match='복구'):world_placement(root,b)
+
+
+def test_enclosing_world_pose_changes_motion_source_hash_without_changing_local_assembly(setup,monkeypatch):
+    from apps.desktop_pre.motion import _pose,_hash
+    owner,motion,target,d=setup;root=owner._object(target['assembly_id']);local=root.Placement.copy()
+    world=root.Placement.copy();root.Parents=[('native parent','path')]
+    monkeypatch.setattr('apps.desktop_pre.motion.world_placement',lambda *args:world)
+    before=motion._scene(root)
+    original={'rows':[{'frame':0,'nominal_time':2.,'point':[1.,2.,3.]}]}
+    motion._pending_summary={'id':'retained','assembly_id':root.Name,'definition_sha256':_hash(d),
+        'scene_sha256':before,'paths':{'Tip':deepcopy(original)}}
+    assert motion._path_summaries()[0]['source_status']=='CURRENT'
+    world.Base.x+=10
+    assert motion._scene(root)!=before and _pose(root.Placement)==_pose(local)
+    owner.generation+=1
+    saved=motion._path_summaries()[0]
+    assert saved['source_status']=='STALE' and saved['paths']['Tip']==original
+
+
 def test_qt_exact_nested_selection_repair_cancel_preserves_prior_reference(qt_panel):
     app,widget,panel,queued,descriptor,setup=qt_panel;owner,motion,target,d=setup
     root,outer,inner,a,b=nested(setup)
