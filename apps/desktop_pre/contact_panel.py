@@ -12,6 +12,7 @@ def add_contact_page(panel, W, C):
             self.pair.currentIndexChanged.connect(self.load_pair)
             layout.addWidget(self.pair)
             form = W.QFormLayout()
+            form.setVerticalSpacing(3)
             self.label = W.QLineEdit('접촉')
             self.label.setObjectName('contactName')
             form.addRow('이름', self.label)

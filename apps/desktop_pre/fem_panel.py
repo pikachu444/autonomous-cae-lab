@@ -17,9 +17,11 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._actions, self._command_busy, self._edit_serial = [], False, 0
             outer = QtWidgets.QVBoxLayout(self)
             row = QtWidgets.QHBoxLayout()
-            row.addWidget(QtWidgets.QLabel('Native FEM — explicit mesh and target edits'))
-            self.refresh_button = self._button('Refresh actual document', self.refresh, row, mutate=False)
-            self.cancel_button = self._button('Cancel mesh generation', self.cancel_mesh, row, mutate=False)
+            heading = QtWidgets.QLabel('해석 모델')
+            heading.setWordWrap(True)
+            row.addWidget(heading, 1)
+            self.refresh_button = self._button('새로 고침', self.refresh, row, mutate=False)
+            self.cancel_button = self._button('메시 생성 취소', self.cancel_mesh, row, mutate=False)
             outer.addLayout(row)
             self.tabs = QtWidgets.QTabWidget()
             outer.addWidget(self.tabs, 1)
@@ -33,8 +35,29 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.status = QtWidgets.QPlainTextEdit()
             self.status.setObjectName('femStatus')
             self.status.setReadOnly(True)
-            self.status.setMaximumHeight(110)
-            outer.addWidget(self.status)
+            self.status.setVisible(False)
+            self.details_dialog = QtWidgets.QDialog(self)
+            self.details_dialog.setWindowTitle('처리 상세')
+            self.details_dialog.resize(720, 320)
+            details_layout = QtWidgets.QVBoxLayout(self.details_dialog)
+            details_layout.addWidget(self.status, 1)
+            close_details = QtWidgets.QPushButton('닫기')
+            close_details.clicked.connect(self.details_dialog.close)
+            details_layout.addWidget(close_details)
+            self.status_summary = QtWidgets.QLabel('모델 설정을 편집하세요.')
+            self.status_summary.setWordWrap(True)
+            status_row = QtWidgets.QHBoxLayout()
+            status_row.addWidget(self.status_summary, 1)
+            self.details_button = QtWidgets.QToolButton()
+            self.details_button.setText('상세')
+            self.details_button.setCheckable(True)
+            self.details_button.setEnabled(False)
+            self.details_button.toggled.connect(self._toggle_details)
+            self.details_dialog.finished.connect(lambda *_: self.details_button.setChecked(False))
+            status_row.addWidget(self.details_button)
+            outer.addLayout(status_row)
+            self.status.textChanged.connect(self._status_changed)
+            self.tabs.currentChanged.connect(self._condition_status)
             for field, signal in [(self.min_size, 'valueChanged'), (self.max_size, 'valueChanged'),
                     (self.order, 'currentIndexChanged'), (self.dimension, 'currentIndexChanged'),
                     (self.element_type, 'currentIndexChanged'), (self.local_size, 'valueChanged'),
@@ -70,9 +93,57 @@ def make_panel(QtWidgets, QtCore, editor, submit):
         def _edited(self, *unused):
             self._edit_serial += 1
 
+        def _status_changed(self):
+            text = self.status.toPlainText()
+            first = text.splitlines()[0] if text else '모델 설정을 편집하세요.'
+            messages = {
+                'STALE_SESSION:': '문서가 바뀌었습니다. 현재 모델을 다시 조회하세요.',
+                'STALE_SELECTION:': '선택이 바뀌었습니다. 선택 대상을 다시 조회하세요.',
+                'STALE_TARGET:': '적용 대상을 찾지 못했습니다. 3D 선택을 확인하세요.',
+                'Contact draft applied.': '접촉 설정을 적용했습니다. 프로젝트 저장과 계산 실행은 별도 동작입니다.',
+                'Separate body meshes prepared.': '물체별 메시를 준비했습니다. 크기를 정한 뒤 각 메시를 생성하세요.',
+                'Native mesh settings applied.': '메시 설정을 적용했습니다. 메시 생성은 별도로 실행하세요.',
+                'Native isotropic material values applied;': '탄성 물성을 적용했습니다. 다른 재료 설정은 유지됩니다.',
+                'Actual current condition targets selected': '적용 대상을 3D에서 표시했습니다. 선택한 면을 확인하세요.',
+                'Existing condition ': '조건의 적용 대상을 갱신했습니다.',
+                'Native material values are unresolved;': '재료 물성을 확인하지 못했습니다. 값을 입력하거나 FreeCAD에서 편집하세요.',
+                'Rebind cancelled.': '면 재지정을 취소했습니다. 현재 편집은 유지됩니다.',
+                'Contact faces selected': '접촉면을 3D에서 표시했습니다.',
+            }
+            for prefix, message in messages.items():
+                if first.startswith(prefix):
+                    first = message
+                    break
+            self.status_summary.setText(first)
+            self.status_summary.setToolTip(text)
+            self.details_button.setEnabled(bool(text))
+
+        def _toggle_details(self, checked):
+            self.status.setVisible(checked)
+            if checked:
+                self.details_dialog.show()
+                self.details_dialog.raise_()
+            else:
+                self.details_dialog.hide()
+
+        def _condition_status(self, *_):
+            if self.tabs.currentIndex() != 1:
+                return
+            row = next((r for r in self._description.get('conditions', [])
+                        if r['object_id'] == self.condition.currentData()), None)
+            errors = row['errors'] if row else []
+            self.condition_message.setText('적용 대상 확인이 필요합니다. 3D에서 면을 선택하고 선택한 면으로 변경을 누르세요.' if errors else '')
+            self.condition_message.setToolTip('\n'.join(str(e.get('message', e)) if isinstance(e, dict) else str(e) for e in errors))
+            self.condition_message.setVisible(bool(errors))
+
+        def _section(self, layout, text):
+            heading = QtWidgets.QLabel(text)
+            heading.setStyleSheet('font-weight: 600; margin-top: 4px;')
+            layout.addWidget(heading)
+
         def _send(self, operation, args=None, object_id=None, on_done=None):
             if self._command_busy:
-                raise ValueError('A foreground native command is pending; wait for its receipt')
+                raise ValueError('다른 명령을 처리 중입니다. 완료 후 다시 시도하세요.')
             owner, doc, serial = self.editor.owner, self.editor.owner.doc, self._edit_serial
             session = getattr(owner, 'session_id', None)
             self._command_busy = True
@@ -89,7 +160,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     if self.editor.owner is not owner or owner.doc is not doc or getattr(owner, 'closed', False) or getattr(owner, 'session_id', None) != session:
                         raise ValueError('STALE_SESSION: the native command receipt belongs to the earlier document/session')
                     if not isinstance(result, dict):
-                        raise ValueError('The native command returned no acknowledged result')
+                        raise ValueError('처리 결과를 확인하지 못했습니다. 같은 요청을 다시 조회하세요.')
                     if result.get('status') == 'FAILED':
                         error = result.get('error', {})
                         raise ValueError(error.get('message', str(error)))
@@ -127,124 +198,155 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             return field
 
         def _mesh_tab(self):
-            layout = self._page('Mesh and quality')
+            layout = self._page('메시')
+            self._section(layout, '요소 크기와 종류')
             form = QtWidgets.QFormLayout()
             self.mesh = QtWidgets.QComboBox()
             self.mesh.setObjectName('femMesh')
             self.mesh.currentIndexChanged.connect(self._load_mesh)
-            form.addRow('Actual native Gmsh mesh', self.mesh)
+            form.addRow('메시 선택', self.mesh)
             self.min_size = self._number('femMinimumSize')
             self.max_size = self._number('femMaximumSize')
-            form.addRow('Minimum size (mm; 0 automatic)', self.min_size)
-            form.addRow('Maximum size (mm; 0 unbounded)', self.max_size)
+            form.addRow('최소 요소 크기 [mm] (0: 자동)', self.min_size)
+            form.addRow('최대 요소 크기 [mm] (0: 제한 없음)', self.max_size)
             self.order, self.dimension = QtWidgets.QComboBox(), QtWidgets.QComboBox()
             self.order.setObjectName('femElementOrder')
             self.dimension.setObjectName('femElementDimension')
-            form.addRow('Native element order', self.order)
-            form.addRow('Native element dimension', self.dimension)
+            form.addRow('요소 차수', self.order)
+            form.addRow('요소 차원', self.dimension)
             self.element_type = QtWidgets.QComboBox()
-            self.element_type.addItem('Keep explicit native order/dimension', None)
-            self.element_type.addItem('C3D10 tetrahedron — supported execution', 'C3D10')
-            self.element_type.addItem('C3D4 tetrahedron — execution unsupported', 'C3D4')
-            form.addRow('Tetrahedral type declaration', self.element_type)
+            self.element_type.addItem('현재 차수와 차원 유지', None)
+            self.element_type.addItem('C3D10 2차 사면체 (실행 지원)', 'C3D10')
+            self.element_type.addItem('C3D4 1차 사면체 (실행 미지원)', 'C3D4')
+            form.addRow('요소 종류', self.element_type)
             layout.addLayout(form)
             row = QtWidgets.QHBoxLayout()
-            self._button('Apply mesh settings', self.apply_mesh_settings, row, name='femApplyMeshSettings')
-            self._button('Generate with native Gmsh', self.generate_mesh, row, name='femGenerateMesh')
-            self._button('Open native mesh Tasks', lambda: self.native_task(self.mesh.currentData()), row)
+            self._button('메시 설정 적용', self.apply_mesh_settings, row, name='femApplyMeshSettings')
+            self._button('메시 생성', self.generate_mesh, row, name='femGenerateMesh')
+            self._button('FreeCAD에서 메시 편집', lambda: self.native_task(self.mesh.currentData()), row)
             layout.addLayout(row)
+            self._section(layout, '국부 요소 크기')
             form = QtWidgets.QFormLayout()
             self.local_region, self.refinement = QtWidgets.QComboBox(), QtWidgets.QComboBox()
             self.local_size = self._number('femLocalSize', minimum=.000000001, value=1)
-            form.addRow('Named local region', self.local_region)
-            form.addRow('Native refinement', self.refinement)
-            form.addRow('Local size (mm)', self.local_size)
+            form.addRow('국부 크기 적용 영역', self.local_region)
+            form.addRow('국부 크기 설정', self.refinement)
+            form.addRow('국부 요소 크기 [mm]', self.local_size)
             layout.addLayout(form)
-            self._button('Apply local sizing', self.apply_local_size, layout)
+            self._button('국부 크기 적용', self.apply_local_size, layout)
+            self._section(layout, '메시 품질')
             row = QtWidgets.QHBoxLayout()
             self.offset = QtWidgets.QSpinBox()
             self.offset.setRange(0, 2147483647)
-            row.addWidget(QtWidgets.QLabel('Quality row offset'))
+            self.offset.setToolTip('앞에서 건너뛸 요소 수입니다. 0이면 첫 요소부터 조회합니다.')
+            row.addWidget(QtWidgets.QLabel('건너뛸 요소 수'))
             row.addWidget(self.offset)
-            self._button('Read actual quality table', self.read_quality, row, mutate=False, name='femReadQuality')
-            self._button('Highlight selected bad element / nodes', self.highlight_quality, row, mutate=False)
+            self._button('메시 품질 조회', self.read_quality, row, mutate=False, name='femReadQuality')
+            layout.addLayout(row)
+            row = QtWidgets.QHBoxLayout()
+            self._button('선택 요소 표시', self.highlight_quality, row, mutate=False)
+            row.addStretch()
             layout.addLayout(row)
             self.quality = QtWidgets.QTableWidget(0, 5)
             self.quality.setObjectName('femQualityTable')
-            self.quality.setHorizontalHeaderLabels(['Native element ID', 'Type', 'Minimum J (mm³)', 'Normalized J', 'Reasons'])
+            self.quality.setHorizontalHeaderLabels(['요소 번호', '요소 종류', '최소 표본 J [mm³]', '정규화 J', '확인 사항'])
             self.quality.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
             self.quality.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+            self.quality.horizontalHeader().setStretchLastSection(True)
+            self.quality.setColumnWidth(2, 140)
+            self.quality.setColumnWidth(3, 130)
             layout.addWidget(self.quality, 1)
             self.distribution = QtWidgets.QTableWidget(0, 4)
             self.distribution.setObjectName('femQualityDistribution')
-            self.distribution.setHorizontalHeaderLabels(['Measure', 'Lower bound', 'Upper bound', 'Element count'])
+            self.distribution.setHorizontalHeaderLabels(['품질 지표', '구간 하한', '구간 상한', '요소 수'])
             self.distribution.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
             self.distribution.setMaximumHeight(160)
+            self.distribution.horizontalHeader().setStretchLastSection(True)
+            self.distribution.setColumnWidth(0, 170)
+            self.distribution.setVisible(False)
             layout.addWidget(self.distribution)
-            layout.addWidget(QtWidgets.QLabel('Run: single-solid C3D10 static linear Fixed/Force. Four Jacobian samples do not prove quality everywhere.'))
+            scope = QtWidgets.QLabel('기본 해석: 단일 고체 C3D10, 정적 선형, 고정과 힘. 야코비안 4개 표본은 요소 전체의 품질을 보장하지 않습니다.')
+            scope.setWordWrap(True)
+            layout.addWidget(scope)
 
         def _region_tab(self):
-            layout = self._page('Regions and conditions')
+            layout = self._page('영역과 조건')
+            self._section(layout, '선택 영역')
             self.regions = QtWidgets.QTreeWidget()
             self.regions.setObjectName('femRegions')
-            self.regions.setHeaderLabels(['Name', 'Exact native target', 'Validation'])
+            self.regions.setHeaderLabels(['영역 이름', '적용 대상', '대상 상태'])
+            self.regions.setColumnWidth(0, 230)
+            self.regions.setColumnWidth(1, 420)
             layout.addWidget(self.regions, 1)
-            self.region_label = QtWidgets.QLineEdit('Selected native region')
+            self.region_label = QtWidgets.QLineEdit('선택 영역')
             self.region_label.setObjectName('femRegionLabel')
             layout.addWidget(self.region_label)
             row = QtWidgets.QHBoxLayout()
-            self._button('Capture new named region from 3D selection', self.capture_region, row)
-            self._button('Repair selected region from 3D selection', self.repair_region, row)
-            self._button('Remove selected region', self.remove_region, row)
+            self._button('선택을 영역으로 저장', self.capture_region, row)
+            self._button('선택 영역 다시 지정', self.repair_region, row)
             layout.addLayout(row)
+            row = QtWidgets.QHBoxLayout()
+            self._button('영역 삭제', self.remove_region, row)
+            row.addStretch()
+            layout.addLayout(row)
+            self._section(layout, '기존 조건')
             form = QtWidgets.QFormLayout()
             self.condition = QtWidgets.QComboBox()
             self.condition.setObjectName('femExistingCondition')
             self.condition.currentIndexChanged.connect(self._load_condition)
-            form.addRow('Existing native boundary condition', self.condition)
+            form.addRow('조건 선택', self.condition)
             self.condition_region, self.direction_region = QtWidgets.QComboBox(), QtWidgets.QComboBox()
-            form.addRow('Named condition face region', self.condition_region)
-            form.addRow('Force direction', self.direction_region)
+            form.addRow('적용 면 영역', self.condition_region)
+            form.addRow('힘 방향', self.direction_region)
             self.force = self._number('femForce', minimum=0, value=0)
-            self.reversed = QtWidgets.QCheckBox('Reverse native direction')
-            form.addRow('Force (N)', self.force)
+            self.reversed = QtWidgets.QCheckBox('힘 방향 반전')
+            form.addRow('힘 [N]', self.force)
             form.addRow('', self.reversed)
             layout.addLayout(form)
+            self.condition_message = QtWidgets.QLabel()
+            self.condition_message.setWordWrap(True)
+            self.condition_message.setVisible(False)
+            layout.addWidget(self.condition_message)
             row = QtWidgets.QHBoxLayout()
-            self._button('Highlight actual condition target', self.highlight_condition, row, mutate=False, name='femHighlightCondition')
-            self._button('Confirm / repair this condition from 3D selection', self.repair_condition,
+            self._button('3D에서 확인', self.highlight_condition, row, mutate=False, name='femHighlightCondition')
+            self._button('선택한 면으로 변경', self.repair_condition,
                          row, name='femRepairCondition')
             layout.addLayout(row)
             row = QtWidgets.QHBoxLayout()
-            self._button('Apply to selected existing condition', self.apply_condition, row)
-            self._button('Open native condition Tasks', lambda: self.native_task(self.condition.currentData()), row)
+            self._button('조건 적용', self.apply_condition, row)
+            self._button('FreeCAD에서 조건 편집', lambda: self.native_task(self.condition.currentData()), row)
             layout.addLayout(row)
             form = QtWidgets.QFormLayout()
             self.analysis, self.new_condition = QtWidgets.QComboBox(), QtWidgets.QComboBox()
-            self.new_condition.addItems(['Fixed', 'Force', 'Displacement'])
-            form.addRow('Actual analysis for new condition', self.analysis)
-            form.addRow('New condition kind', self.new_condition)
+            for label, kind in [('고정', 'Fixed'), ('힘', 'Force'), ('지정 변위', 'Displacement')]:
+                self.new_condition.addItem(label, kind)
+            self._section(layout, '새 조건')
+            form.addRow('해석 선택', self.analysis)
+            form.addRow('추가할 조건', self.new_condition)
             layout.addLayout(form)
-            self._button('Create boundary condition', self.create_condition, layout)
-            layout.addWidget(QtWidgets.QLabel('Changed BRep targets require explicit repair. Existing conditions are retained; target confirmation is not engineering release.'))
+            self._button('조건 추가', self.create_condition, layout)
+            scope = QtWidgets.QLabel('형상을 바꾼 뒤에는 적용 대상을 확인하고 필요한 영역을 다시 지정하세요. 기존 조건은 유지됩니다.')
+            scope.setWordWrap(True)
+            layout.addWidget(scope)
 
         def _material_tab(self):
-            layout = self._page('Native material')
+            layout = self._page('재료')
+            self._section(layout, '등방성 탄성 물성')
             form = QtWidgets.QFormLayout()
             self.material = QtWidgets.QComboBox()
             self.material.setObjectName('femMaterial')
             self.material.currentIndexChanged.connect(self._load_material)
             self.modulus = self._number('femYoungModulus', minimum=0, value=0)
-            self.modulus.setSpecialValueText('UNKNOWN — enter E')
+            self.modulus.setSpecialValueText('미입력')
             self.poisson = self._number('femPoissonRatio', minimum=-1, maximum=.499999999, value=-1)
-            self.poisson.setSpecialValueText('UNKNOWN — enter nu')
-            form.addRow('Existing native solid material', self.material)
-            form.addRow('Young modulus (MPa)', self.modulus)
-            form.addRow('Poisson ratio', self.poisson)
+            self.poisson.setSpecialValueText('미입력')
+            form.addRow('재료 선택', self.material)
+            form.addRow('탄성계수 [MPa]', self.modulus)
+            form.addRow('포아송비', self.poisson)
             layout.addLayout(form)
             row = QtWidgets.QHBoxLayout()
-            self._button('Apply isotropic elastic values', self.apply_material, row)
-            self._button('Open native material Tasks', lambda: self.native_task(self.material.currentData()), row)
+            self._button('탄성 물성 적용', self.apply_material, row)
+            self._button('FreeCAD에서 재료 편집', lambda: self.native_task(self.material.currentData()), row)
             layout.addLayout(row)
             layout.addStretch(1)
 
@@ -261,8 +363,13 @@ def make_panel(QtWidgets, QtCore, editor, submit):
 
         def refresh(self, *, load_forms=True):
             self._description = self.editor.descriptor()
-            self._fill_combo(self.mesh, [(row['object_id'], row['object_id']) for row in self._description['meshes']])
-            self._fill_combo(self.condition, [(row['object_id'] + (' — unresolved' if row['errors'] else ' — exact target'), row['object_id'])
+            def label(identifier):
+                try:
+                    return self.editor.owner._object(identifier).Label
+                except Exception:
+                    return identifier
+            self._fill_combo(self.mesh, [(label(row['object_id']), row['object_id']) for row in self._description['meshes']])
+            self._fill_combo(self.condition, [(label(row['object_id']) + (' (대상 확인 필요)' if row['errors'] else ''), row['object_id'])
                                             for row in self._description['conditions']])
             objs = self.editor.owner.doc.Objects
             def kind(obj):
@@ -270,21 +377,28 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._fill_combo(self.material, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::MaterialCommon' and obj.Category == 'Solid'])
             self._fill_combo(self.analysis, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::FemAnalysis'])
             regions = self._description['regions']
-            entries = [(row['label'] + (' — unresolved' if row['validation'] != 'EXACT_TARGET_MATCH' else ''), row['id']) for row in regions]
+            entries = [(row['label'] + (' (대상 확인 필요)' if row['validation'] != 'EXACT_TARGET_MATCH' else ''), row['id']) for row in regions]
             self._fill_combo(self.local_region, entries)
             self._fill_combo(self.condition_region, entries)
             edge_regions = [(row['label'], row['id']) for row in regions if len(row['target']['subelements']) == 1
                             and row['target']['subelements'][0]['name'].startswith('Edge')]
-            self._fill_combo(self.direction_region, [('Keep exact tracked native direction', '__keep'),
-                ('Explicit native reference normal', None)] + edge_regions)
+            self._fill_combo(self.direction_region, [('현재 힘 방향 유지', '__keep'),
+                ('선택 면의 법선 방향', None)] + edge_regions)
             selected = self.regions.currentItem()
             selected_id = selected.data(0, 256) if selected else None
             self.regions.clear()
             for row in regions:
                 target = row['target']
-                text = target['object_id'] + ':' + ', '.join(item['name'] for item in target['subelements'])
-                item = QtWidgets.QTreeWidgetItem([row['label'], text or 'Whole body', row['validation']])
+                names = [item['name'] for item in target['subelements']]
+                displayed = [next((word + name[len(prefix):] for prefix, word in
+                                  [('Face', '면 '), ('Edge', '모서리 '), ('Vertex', '꼭짓점 ')]
+                                  if name.startswith(prefix)), name) for name in names]
+                text = label(target['object_id']) + ': ' + (', '.join(displayed) if displayed else '물체 전체')
+                state = {'EXACT_TARGET_MATCH': '대상 확인됨', 'UNRESOLVED': '대상 확인 필요'}.get(row['validation'], '상태 미확인')
+                item = QtWidgets.QTreeWidgetItem([row['label'], text, state])
                 item.setData(0, 256, row['id'])
+                item.setToolTip(1, target['object_id'] + ': ' + ', '.join(names))
+                item.setToolTip(2, row.get('error') or row['validation'])
                 self.regions.addTopLevelItem(item)
                 if row['id'] == selected_id:
                     self.regions.setCurrentItem(item)
@@ -317,6 +431,9 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                             '\nRun admission: ' + row.get('run_admissibility', 'UNKNOWN') +
                             '\nPrevious native mesh: ' + row.get('previous_mesh_object_id', 'original mesh retained') +
                             '\n' + row.get('error', '') + '\n' + row.get('native_log', ''))
+                        state = {'QUEUED': '생성 대기', 'RUNNING': '생성 중', 'SUCCEEDED': '생성 완료',
+                                 'FAILED': '생성 실패', 'CANCELLED': '생성 취소', 'CANCEL_REQUESTED': '취소 요청 중'}.get(row['state'], '상태 미확인')
+                        self.status_summary.setText('메시 '+state+(' / 오류가 있습니다. 상세를 확인하세요.' if row.get('error') else ''))
             except Exception as error:
                 self.status.setPlainText(str(error))
 
@@ -327,11 +444,13 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             obj = self.editor.owner._object(identifier)
             self.min_size.setValue(float(obj.CharacteristicLengthMin.getValueAs('mm').Value))
             self.max_size.setValue(float(obj.CharacteristicLengthMax.getValueAs('mm').Value))
-            self._fill_combo(self.order, [(value, value) for value in obj.getEnumerationsOfProperty('ElementOrder')])
-            self._fill_combo(self.dimension, [(value, value) for value in obj.getEnumerationsOfProperty('ElementDimension')])
-            self.order.setCurrentText(obj.ElementOrder)
-            self.dimension.setCurrentText(obj.ElementDimension)
-            self._fill_combo(self.refinement, [('Create new native refinement', None)] + [(ref.Label, ref.Name) for ref in obj.MeshRegionList])
+            order_labels = {'1st': '1차', '2nd': '2차'}
+            dimension_labels = {'1D': '1차원', '2D': '2차원', '3D': '3차원'}
+            self._fill_combo(self.order, [(order_labels.get(value, value), value) for value in obj.getEnumerationsOfProperty('ElementOrder')])
+            self._fill_combo(self.dimension, [(dimension_labels.get(value, value), value) for value in obj.getEnumerationsOfProperty('ElementDimension')])
+            self.order.setCurrentIndex(self.order.findData(obj.ElementOrder))
+            self.dimension.setCurrentIndex(self.dimension.findData(obj.ElementDimension))
+            self._fill_combo(self.refinement, [('새 국부 크기 설정', None)] + [(ref.Label, ref.Name) for ref in obj.MeshRegionList])
 
         def _load_condition(self):
             identifier = self.condition.currentData()
@@ -356,6 +475,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             index = self.condition_region.findData(row.get('region_id'))
             if index >= 0:
                 self.condition_region.setCurrentIndex(index)
+            self._condition_status()
 
         def _load_material(self):
             identifier = self.material.currentData()
@@ -385,13 +505,14 @@ def make_panel(QtWidgets, QtCore, editor, submit):
 
         def generate_mesh(self):
             self._send('pre.fem.mesh_generate', {}, self.mesh.currentData(), on_done=lambda result:
-                self.status.setPlainText('Native Gmsh ' + result['state'] + '; receipt ' + result['history_id']))
+                self.status.setPlainText('메시 생성 상태: ' + {'QUEUED': '대기 중', 'RUNNING': '생성 중', 'SUCCEEDED': '완료',
+                    'FAILED': '실패', 'CANCELLED': '취소'}.get(result['state'], '미확인') + '\nNative Gmsh ' + result['state'] + '; receipt ' + result['history_id']))
 
         def cancel_mesh(self):
             description = self.editor.descriptor()
             rows = description['active_mesh_generations']
             if not rows:
-                raise ValueError('No active mesh generation')
+                raise ValueError('생성 중인 메시가 없습니다.')
             selected = next((row for row in rows if row['mesh_id'] == self.mesh.currentData()), rows[0])
             self._send('pre.fem.mesh_cancel', {'history_id': selected['history_id']}, selected['mesh_id'])
 
@@ -410,24 +531,36 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                 values = [row['element_id'], row['element_type'], row.get('minimum_sampled_jacobian_mm3'),
                           row.get('minimum_scaled_sampled_jacobian'), ', '.join(row['errors'])]
                 for j, value in enumerate(values):
-                    self.quality.setItem(i, j, QtWidgets.QTableWidgetItem('UNKNOWN' if value is None else str(value)))
+                    item = QtWidgets.QTableWidgetItem('미확인' if value is None else str(value))
+                    if j == 4:
+                        reasons = {'INVALID_OR_UNSUPPORTED_CONNECTIVITY': '절점 연결 또는 요소 종류 확인',
+                                   'JACOBIAN_AT_OR_BELOW_1E_10_MM3': '야코비안 1e-10 mm³ 이하',
+                                   'NORMALIZED_JACOBIAN_SINGULAR': '정규화 야코비안 특이'}
+                        item.setText(', '.join(reasons.get(v, '확인 필요') for v in row['errors']))
+                        item.setToolTip(', '.join(row['errors']))
+                    self.quality.setItem(i, j, item)
             distributions = []
-            for name, measure in [('Sampled J (mm³)', data['absolute_jacobian_mm3']), ('Normalized J', data['normalized_jacobian'])]:
+            for name, measure in [('표본 J [mm³]', data['absolute_jacobian_mm3']), ('정규화 J', data['normalized_jacobian'])]:
                 distributions.extend((name, row['lower'], row['upper'], row['count']) for row in measure['bins'])
             self.distribution.setRowCount(len(distributions))
             for i, values in enumerate(distributions):
                 for j, value in enumerate(values):
                     self.distribution.setItem(i, j, QtWidgets.QTableWidgetItem(str(value)))
-            self.quality.resizeColumnsToContents()
+            self.distribution.setVisible(bool(distributions))
+            self.quality.setColumnWidth(0, 100)
+            self.quality.setColumnWidth(1, 110)
+            self.quality.setColumnWidth(2, 180)
+            self.quality.setColumnWidth(3, 150)
             self.status.setPlainText(str(data['total_elements']) + ' native elements; ' + str(data['bad_element_count']) +
                 ' fail the preserved absolute/normalized Jacobian or C3D10 type gates. ' + data['limitation'])
+            self.status_summary.setText('요소 '+str(data['total_elements'])+'개를 조회했습니다. 확인이 필요한 요소는 '+str(data['bad_element_count'])+'개입니다.')
 
         def highlight_quality(self):
             if not hasattr(self, '_quality_data'):
-                raise ValueError('Read an actual quality table first')
+                raise ValueError('메시 품질을 먼저 조회하세요.')
             rows = sorted({index.row() for index in self.quality.selectedIndexes()})
             if not rows:
-                raise ValueError('Select explicit quality rows to highlight their native nodes')
+                raise ValueError('표에서 표시할 요소 행을 선택하세요.')
             data = self._quality_data
             args = {'element_ids': [data['rows'][index]['element_id'] for index in rows]}
             if data['mesh_sha256']:
@@ -437,10 +570,10 @@ def make_panel(QtWidgets, QtCore, editor, submit):
         def _selection(self):
             rows = self.editor.owner.Gui.Selection.getSelectionEx(self.editor.owner.doc.Name)
             if not rows or len({row.Object.Name for row in rows}) != 1:
-                raise ValueError('Select one exact native body, or its explicit faces/edges, in the 3D view')
+                raise ValueError('3D에서 한 물체 또는 그 물체의 면이나 모서리를 선택하세요.')
             obj = rows[0].Object
             if obj.Document is not self.editor.owner.doc:
-                raise ValueError('Selection belongs to another native document')
+                raise ValueError('선택한 대상이 다른 문서에 있습니다. 현재 문서에서 다시 선택하세요.')
             names = list(dict.fromkeys(name for row in rows for name in row.SubElementNames))
             return obj.Name, names
 
@@ -451,7 +584,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
         def repair_region(self):
             selected = self.regions.currentItem()
             if selected is None:
-                raise ValueError('Select the named region to repair')
+                raise ValueError('다시 지정할 영역을 목록에서 선택하세요.')
             row = next(row for row in self._description['regions'] if row['id'] == selected.data(0, 256))
             object_id, names = self._selection()
             self._send('pre.fem.region_set', {'region_id': row['id'], 'label': self.region_label.text(), 'subelements': names,
@@ -460,7 +593,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
         def remove_region(self):
             item = self.regions.currentItem()
             if item is None:
-                raise ValueError('Select the named region to remove')
+                raise ValueError('삭제할 영역을 목록에서 선택하세요.')
             self._send('pre.fem.region_remove', {'region_id': item.data(0, 256)}, on_done=self._refresh_after)
 
         def highlight_condition(self):
@@ -480,10 +613,10 @@ def make_panel(QtWidgets, QtCore, editor, submit):
         def repair_condition(self):
             condition_id = self.condition.currentData()
             if not condition_id:
-                raise ValueError('Select the existing native condition to repair')
+                raise ValueError('대상을 바꿀 조건을 선택하세요.')
             object_id, names = self._selection()
             if not names or any(not name.startswith('Face') for name in names):
-                raise ValueError('Explicitly select supported condition faces in the native 3D view')
+                raise ValueError('3D에서 이 조건을 적용할 면을 선택하세요.')
             obj = self.editor.owner._object(condition_id)
             direction_args = self._direction({}, obj.TypeId == 'Fem::ConstraintForce')
             initial_serial = self._edit_serial
@@ -495,7 +628,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     self._refresh_after()
                     self.status.setPlainText('Existing condition ' + condition_id + ' explicitly confirmed/repaired. Engineering release remains NOT_RELEASED.')
                 self._send('pre.fem.condition_repair', {**direction_args, 'region_id': region['id']}, condition_id, on_done=repaired)
-            self._send('pre.fem.region_set', {'label': (condition_id + ' confirmed target')[:160],
+            self._send('pre.fem.region_set', {'label': (obj.Label + ' 적용 면')[:160],
                 'subelements': names}, object_id, on_done=region_ready)
 
         def apply_condition(self):
@@ -507,7 +640,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._send('pre.fem.condition_set', self._direction(args, obj.TypeId == 'Fem::ConstraintForce'), identifier, on_done=self._refresh_after)
 
         def create_condition(self):
-            kind = self.new_condition.currentText()
+            kind = self.new_condition.currentData()
             args = {'kind': kind, 'region_id': self.condition_region.currentData()}
             if kind == 'Force':
                 args.update(force=self.force.value(), unit='N', reversed=self.reversed.isChecked())

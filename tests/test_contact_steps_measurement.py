@@ -95,7 +95,10 @@ def test_partial_execution_survives_saved_measurement_and_observation(
     response=read_table(csv,projected['mapping'])['responses']['measured']
     assert response['axes'][0]['unit']==axis(m)['unit']
     assert response['value']==[1.]
-    assert response['raw_samples']['quality_valid']==[True]
+    # Unmasked table imports retain the legacy response shape. Partial execution
+    # describes the run; it does not invent a sample exclusion or quality mask.
+    assert 'raw_samples' not in response
+    assert len(response['source_rows'])==1
 
 
 @pytest.mark.parametrize('axis_name',['load_parameter','time'])

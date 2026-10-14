@@ -103,7 +103,7 @@ def test_queued_continuation_preserves_late_form_edits_and_failure_releases_butt
     panel.region_label.setText('Late local region label')
     panel.test_complete()
     assert panel.min_size.value() == 9 and panel.region_label.text() == 'Late local region label'
-    assert native.metadata['regions'][0]['label'] == 'Selected native region'
+    assert native.metadata['regions'][0]['label'] == '선택 영역'
     panel.apply_mesh_settings()
     assert not panel.findChild(QtWidgets.QPushButton, 'femApplyMeshSettings').isEnabled()
     _, _, _, callback = panel.test_pending.pop(0)
@@ -122,6 +122,33 @@ def test_late_condition_selection_stops_dependent_repair_and_keeps_prepared_regi
     assert len(panel.test_calls) == 1 and not panel.test_pending
     assert len(native.metadata['regions']) == 1 and not native.metadata.get('conditions')
     assert 'STALE_SELECTION' in panel.status.toPlainText()
+
+
+def test_korean_choices_keep_native_values_and_details_preserve_latest_failure(panel, native, app):
+    panel.show()
+    app.processEvents()
+    assert panel.order.currentText() == '2차' and panel.order.currentData() == '2nd'
+    assert panel.dimension.currentText() == '3차원' and panel.dimension.currentData() == '3D'
+    panel.new_condition.setCurrentIndex(panel.new_condition.findData('Force'))
+    assert panel.new_condition.currentText() == '힘'
+    panel.force.setValue(12.123456789)
+    panel.create_condition()
+    assert panel.test_calls[-1][1]['kind'] == 'Force'
+    assert panel.test_calls[-1][1]['force'] == 12.123456789
+    panel.region_label.setText('사용자 지정 영역')
+    panel.status.setPlainText('메시 생성 실패\n원 진단과 기존 결과는 유지됩니다.')
+    before = panel.status.toPlainText()
+    panel.tabs.setCurrentIndex(1)
+    panel.condition.setCurrentIndex(panel.condition.findData(native.force.Name))
+    panel.poll()
+    assert panel.status.toPlainText() == before and panel.status_summary.text() == '메시 생성 실패'
+    assert panel.condition_message.isVisible() and '선택한 면으로 변경' in panel.condition_message.text()
+    assert panel.region_label.text() == '사용자 지정 영역'
+    assert not panel.status.isVisible()
+    panel.details_button.click()
+    assert panel.status.isVisible() and panel.status.toPlainText() == before
+    panel.details_button.click()
+    assert not panel.status.isVisible() and panel.status_summary.text() == '메시 생성 실패'
 
 
 def test_contact_read_cancel_and_late_first_apply_preserve_edit_buffer(panel, native, monkeypatch):
