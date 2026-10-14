@@ -34,6 +34,12 @@ using that menu, or use X/Alt+F4. Unmanaged sessions, other platforms, and sessi
 where the native connection cannot be installed continue to use the save macro.
 These remaining close paths are part of FN-27-02, not completed acceptance.
 
+An optional [native exit plugin source package](../../docs/post-native-exit/README_KO.md)
+connects the managed save gate to Qt close events. It requires a matching SDK-built
+artifact and an exact current-window registration. Windows plugin compilation and
+actual ParaView exit acceptance remain pending; the stock runtime alone does not
+enable this protection.
+
 ### Open a result
 
 The independent entry accepts an exact local VTU or a PVD collection with relative
