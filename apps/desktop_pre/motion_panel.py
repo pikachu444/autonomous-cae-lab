@@ -593,7 +593,7 @@ class MotionPanel:
         stored = self._motion.get('editors', {}).get(self.assembly.currentData())
         if stored is None:
             applied = (self._motion.get('definition') or {}).get('view', {})
-            if editor['joint_draft'] is None and editor['definition_draft'] is None and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
+            if editor['joint_draft'] is None and editor['definition_draft'] is None and 'path_view' not in editor and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
         elif editor == stored and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
         return self.editor_snapshot()
 
