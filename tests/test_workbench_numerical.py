@@ -293,6 +293,42 @@ def test_de_curve_fit_actual_objective():
     assert result['parameters'] == pytest.approx({'a': 2., 'b': 1.}, abs=.005)
 
 
+def test_plan_budget_uses_de_options_without_mutating_the_authored_request():
+    from copy import deepcopy
+    from caelab.workbench import Workbench
+
+    request = {'method': 'de', 'options': {'population_size': 5, 'max_generations': 8, 'seed': 4},
+               'budget': {'evaluations': 15}}
+    original = deepcopy(request)
+    args = Workbench._numerical_arguments('fit', request)
+    assert request == original
+    assert args['options'] == {'population_size': 5, 'max_generations': 2, 'seed': 4}
+    assert args['execution']['max_evaluations'] == 15
+    variables = [{'id': 'a', 'unit': 'MPa/s', 'lower': 0., 'upper': 3., 'value': 1.},
+                 {'id': 'b', 'unit': 'MPa', 'lower': 0., 'upper': 3., 'value': .5}]
+    result = fit_model(linear_curve, variables,
+                       [curve_experiment('curve', [0., 1., 2.], [1., 3., 5.])], **args)
+    assert result['candidates']
+    assert len(result['candidates']) <= 15
+    assert all(row['execution_status'] == 'SUCCEEDED' for row in result['candidates'])
+
+
+def test_plan_budget_preserves_least_squares_and_rejects_explicit_invalid_de_option():
+    from caelab.workbench import Workbench
+
+    args = Workbench._numerical_arguments('fit', {'options': {'max_nfev': 30},
+                                                'budget': {'evaluations': 7}})
+    assert args['options'] == {'max_nfev': 7}
+    invalid = Workbench._numerical_arguments('fit', {'method': 'de',
+        'options': {'max_nfev': 7, 'population_size': 5}, 'budget': {'evaluations': 15}})
+    assert invalid['options']['max_nfev'] == 7
+    variables = [{'id': 'a', 'unit': 'MPa/s', 'lower': 0., 'upper': 3., 'value': 1.},
+                 {'id': 'b', 'unit': 'MPa', 'lower': 0., 'upper': 3., 'value': .5}]
+    with pytest.raises(ValueError, match='Unknown differential-evolution fit options'):
+        fit_model(linear_curve, variables,
+                  [curve_experiment('curve', [0., 1., 2.], [1., 3., 5.])], **invalid)
+
+
 @pytest.mark.parametrize('mode', ['batch', 'process'])
 def test_least_squares_dispatches_finite_differences_to_prepared_workers(mode):
     variables = [{'id': 'a', 'unit': 'MPa/s', 'lower': 0., 'upper': 3., 'value': 1.},

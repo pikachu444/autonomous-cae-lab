@@ -666,7 +666,7 @@ class Workbench:
                     raise ValueError('Sampling exceeds the allowed evaluation budget')
             if operation in {'fit','optimize','epsilon'}:
                 options=args.setdefault('options',{})
-                if operation=='fit':
+                if operation=='fit' and args.get('method','least_squares')!='de':
                     options['max_nfev']=min(options.get('max_nfev',maximum),maximum)
                 elif operation=='epsilon':
                     import math
