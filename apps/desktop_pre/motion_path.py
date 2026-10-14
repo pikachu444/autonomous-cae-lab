@@ -48,7 +48,7 @@ def data_draft(path, data_id):
             'location': 'trace_point:' + path['trace_id'], 'measure': measure, 'frame': 'document_global',
             'axis': {'column': 1, 'name': 'nominal_time', 'unit': 's'}}
     return {'data_id': data_id, 'mapping': {'delimiter': ',', 'skip_header': 2, 'columns': columns},
-        'test_metadata': {'protocol': '조립 운동학 경로. nominal_time은 지정 출력 격자이며 native 실제 시각이 아닙니다. '
+        'test_metadata': {'protocol': '조립 운동학 경로. 시간은 설정한 출력 간격으로 환산한 값이며 실제 계산 시각 기록이 아닙니다. '
             + f"읽은 프레임 {len(path['rows'])}/{path['total_frames']}. 원 프레임과 출처는 CSV에 보존됩니다."}}
 
 
@@ -194,7 +194,7 @@ class PathBrowser:
             path = self.path_value; frames = {row['frame'] for row in rows}
             missing = path['total_frames']-len(frames)
             state = '모델·구동 변경 — 과거 원자료' if path['source_status'] == 'STALE' else '출처 확인 불가 — 보존 원자료' if path['source_status'] == 'UNKNOWN' else '계산된 원자료'
-            self.notice.setText(f"{state} / 읽은 프레임 {len(rows)}/{path['total_frames']}" + (f' / 미읽기·누락 {missing}' if missing else ' / 전체 경로') + '\n로컬 경로점을 세계 좌표 [mm]로 변환했습니다. 시간은 출력 격자이며 native 실제 시각은 제공되지 않습니다.')
+            self.notice.setText(f"{state} / 읽은 프레임 {len(rows)}/{path['total_frames']}" + (f' / 미읽기·누락 {missing}' if missing else ' / 전체 경로') + '\n위치는 세계 좌표 [mm]입니다. 시간은 설정한 출력 간격으로 환산한 값이며 실제 계산 시각 기록이 아닙니다.')
         else: self.notice.setText('아직 읽은 경로가 없습니다. 경로 읽기는 운동을 다시 계산하지 않습니다.')
         self._update_buttons()
 
