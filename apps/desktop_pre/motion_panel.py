@@ -36,6 +36,9 @@ class MotionPanel:
         self._active_assembly = None
         self._selected_joint = None
         self._pending_joint_id = None
+        self._editor_loaded = False
+        self._select_saved_assembly = True
+        self._initial_editor = None
         self._buttons = []
         layout = QtWidgets.QVBoxLayout(self.widget)
         row = QtWidgets.QHBoxLayout(); self.assembly = QtWidgets.QComboBox()
@@ -220,9 +223,12 @@ class MotionPanel:
         self._mark_joint_edited()
 
     def _cancel_joint(self):
+        before = self.current_editor()
         self._joint_edited = False; self._joint_selected(0)
+        self._persist_cancel('joint_draft', before)
 
     def _cancel_definition(self):
+        before = self.current_editor()
         self._edited = False; self._definition_stamp = None
         self.refresh(self.read() if self.read is not None else self._data)
         self._inspect_value(self._motion)
@@ -230,6 +236,16 @@ class MotionPanel:
             row = self._saved_view.get(key, -1)
             if 0 <= row < table.rowCount(): table.selectRow(row)
         self._validate_drives()
+        self._persist_cancel('definition_draft', before)
+
+    def _persist_cancel(self, field, before):
+        stored = self._motion.get('editors', {}).get(self.assembly.currentData())
+        if stored and stored.get(field) is not None:
+            editor = deepcopy(stored); editor[field] = None
+            cancelled = self.current_editor()
+            def failed():
+                if self.current_editor() == cancelled: self._restore_editor(before)
+            self._send('pre.motion.save_editor', {'editor': editor}, on_failure=failed)
 
     def _target(self, *, joint=False):
         target = {'assembly_id': self.assembly.currentData()}
@@ -243,9 +259,10 @@ class MotionPanel:
     def _frame_args(self):
         return {'calculation_id': self._calculation_id(), 'frame': self.frame.value()}
 
-    def _send(self, operation, args, *, target=None, inspect=False):
+    def _send(self, operation, args, *, target=None, inspect=False, on_failure=None):
         if self._busy: return
-        if (self._edited or self._joint_edited) and operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
+        editor = self._motion.get('editors', {}).get(self.assembly.currentData(), {})
+        if (self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None) and operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
             self.status.setText('관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.'); return
         target = self._target() if target is None else target
         edit_version, joint_version = self._edit_version, self._joint_version
@@ -260,8 +277,11 @@ class MotionPanel:
             if scope != (self._document, self._session, self.assembly.currentData()): return
             reply = reply or {}
             if reply.get('status') == 'FAILED' or reply.get('error'):
+                if on_failure is not None: on_failure()
                 error = reply.get('error', {}); self.status.setText(error.get('message', str(error)) if isinstance(error, dict) else str(error)); return
             value = reply.get('result', reply)
+            if operation == 'pre.motion.save_editor' and 'editor' in value:
+                self.accept_saved_editor({'assembly_id': target['assembly_id'], 'editor': value['editor']})
             if operation == 'pre.joint.create' and joint_version == self._joint_version: self._pending_joint_id = value.get('joint_id')
             if 'frame_count' in value and 'id' in value:
                 self._motion['calculation'] = deepcopy(value); self._motion.update(state='CALCULATED', preview=False, frame=None)
@@ -287,6 +307,7 @@ class MotionPanel:
             done({'status': 'FAILED', 'error': {'message': str(error)}})
 
     def _fill_combo(self, combo, rows, selected=None, *, preserve_missing=False):
+        keep_empty = preserve_missing and selected is None and combo.count() > 0 and combo.currentIndex() < 0
         old = combo.currentData() if selected is None else selected
         combo.blockSignals(True); combo.clear()
         for row in rows:
@@ -296,7 +317,7 @@ class MotionPanel:
         if index < 0 and old is not None and preserve_missing:
             combo.addItem('참조 없음 — 다시 선택', old); index = combo.count()-1
             combo.setItemData(index, str(old), self.QtCore.Qt.ToolTipRole)
-        combo.setCurrentIndex(index if index >= 0 else 0); combo.blockSignals(False)
+        combo.setCurrentIndex(-1 if keep_empty else index if index >= 0 else 0); combo.blockSignals(False)
 
     def refresh(self, descriptor):
         if not isinstance(descriptor, dict): return
@@ -305,6 +326,9 @@ class MotionPanel:
             self._serial += 1; self._busy = False; self._edited = False; self._definition_stamp = None
             self._joint_edited = False; self._view_loaded = False; self._active_assembly = None
             self._pending_joint_id = None; self._selected_joint = None
+            self._editor_loaded = False
+            self._select_saved_assembly = True
+            self._initial_editor = None
             for button in self._buttons: button.setEnabled(True)
             for combo in (self.joint, self.connector_a, self.connector_b): self._fill_combo(combo, [])
             self.path.setRowCount(0)
@@ -319,6 +343,13 @@ class MotionPanel:
         try:
             self._fill_combo(self.assembly, self._motion.get('assemblies', []))
             metadata = self._motion.get('definition') or {}
+            if not self._editor_loaded and self._select_saved_assembly:
+                drafts = [name for name, value in self._motion.get('editors', {}).items()
+                          if value.get('joint_draft') is not None or value.get('definition_draft') is not None]
+                selected = self._motion.get('editor_assembly_id') or (drafts[0] if drafts else None)
+                if selected:
+                    index = self.assembly.findData(selected)
+                    if index >= 0: self.assembly.setCurrentIndex(index); self._view_loaded = True
             if not self._view_loaded and metadata.get('assembly_id'):
                 index = self.assembly.findData(metadata['assembly_id'])
                 if index >= 0: self.assembly.setCurrentIndex(index)
@@ -350,8 +381,15 @@ class MotionPanel:
             self._show_runtime()
             if self._motion.get('path'): self._show_path(self._motion['path'])
         finally: self._loading = False
+        if not self._editor_loaded:
+            self._editor_loaded = True
+            self._select_saved_assembly = False
+            editor = self._motion.get('editors', {}).get(self.assembly.currentData())
+            if editor: self._restore_editor(editor)
         if not self._joint_edited: self._joint_selected(0)
         self._validate_drives()
+        if self._initial_editor is None: self._initial_editor = self.current_editor()
+        self._show_runtime()
 
     def _show_runtime(self):
         calculation = self._motion.get('calculation') or {}
@@ -364,15 +402,19 @@ class MotionPanel:
                 (' / 미리보기 자세' if self._motion.get('preview') else ' / 설계 자세') +
                 ' / 계산 프레임 ' + str(calculation.get('frame_count', 0)) +
                 (' / ' + str(self._motion['error']) if self._motion.get('error') else ''))
+            if self._edited or self._joint_edited:
+                self.status.setText(self.status.text() + (' / 미적용 편집 (미저장)' if self.has_unsaved_editor() else ' / 미적용 편집 (저장됨)'))
 
     def _assembly_changed(self, index):
         if self._loading: return
-        if self._edited or self._joint_edited:
+        if self._busy or self._edited or self._joint_edited:
             self.assembly.blockSignals(True); self.assembly.setCurrentIndex(self.assembly.findData(self._active_assembly)); self.assembly.blockSignals(False)
             self.status.setText('현재 조립의 편집을 적용하거나 취소한 뒤 다른 조립을 선택하세요.'); return
         self._edited = False; self._definition_stamp = None
-        self.refresh(self._data)
+        self._editor_loaded = False
+        self._select_saved_assembly = False
         for combo in (self.joint, self.connector_a, self.connector_b): self._fill_combo(combo, [])
+        self.refresh(self._data)
         self.path.setRowCount(0)
         self._send('pre.motion.inspect', {}, inspect=True)
 
@@ -391,10 +433,11 @@ class MotionPanel:
         finally: self._loading = False
         if not self._joint_edited: self._joint_selected(0)
         self._validate_drives()
+        self._show_runtime()
 
     def _joint_selected(self, index):
         if self._loading: return
-        if self._joint_edited and self.joint.currentData() != self._selected_joint:
+        if (self._busy or self._joint_edited) and self.joint.currentData() != self._selected_joint:
             self.joint.blockSignals(True); self.joint.setCurrentIndex(self.joint.findData(self._selected_joint)); self.joint.blockSignals(False)
             self.joint_notice.setText('현재 관절 편집을 적용하거나 취소한 뒤 다른 관절을 선택하세요.'); return
         self._selected_joint = self.joint.currentData()
@@ -499,6 +542,92 @@ class MotionPanel:
         joint = self.joint.currentData()
         if not any(j['id'] == joint for j in self._motion.get('joints', [])): joint = None
         return {'joint_id': joint, 'drive_row': self.drives.currentRow(), 'trace_row': self.traces.currentRow()}
+
+    def current_editor(self):
+        def cell(table, row, column):
+            item = table.item(row, column); return item.text() if item else ''
+        joint = None
+        if self._joint_edited:
+            joint = {'joint_id': self.joint.currentData(), 'type': self.joint_type.currentData(),
+                'connectors': [{'object_id': combo.currentData(), 'subelement': field.text()} for combo, field in
+                    ((self.connector_a, self.subelement_a), (self.connector_b, self.subelement_b))],
+                'parameters': {name: field.text() for name, (field, unit) in self.joint_parameters.items()}}
+        definition = None
+        if self._edited:
+            definition = {'time': {name: field.text() for name, field in self.time.items()},
+                'fps': self.fps.value(), 'tolerance': self.tolerance.text(),
+                'drives': [{'joint_id': self.drives.cellWidget(row, 0).currentData(),
+                    'type': self.drives.cellWidget(row, 1).currentData(), 'formula': cell(self.drives, row, 2),
+                    'unit': cell(self.drives, row, 3)} for row in range(self.drives.rowCount())],
+                'traces': [{'id': cell(self.traces, row, 0), 'occurrence_id': self.traces.cellWidget(row, 1).currentData(),
+                    'point': [cell(self.traces, row, c) for c in (2, 3, 4)]} for row in range(self.traces.rowCount())]}
+        return {'view': self.current_view(), 'joint_draft': joint, 'definition_draft': definition}
+
+    def editor_token(self):
+        return self._document, self._session, self.assembly.currentData(), self._edit_version, self._joint_version, json.dumps(self.current_editor(), sort_keys=True)
+
+    def editor_snapshot(self):
+        return {'assembly_id': self.assembly.currentData(), 'editor': self.current_editor(),
+                'document_id': self._document, 'session_id': self._session}
+
+    def pending_editor(self):
+        if self.assembly.currentData() is None: return None
+        editor = self.current_editor()
+        stored = self._motion.get('editors', {}).get(self.assembly.currentData())
+        if stored is None:
+            applied = (self._motion.get('definition') or {}).get('view', {})
+            if editor['joint_draft'] is None and editor['definition_draft'] is None and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
+        elif editor == stored and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
+        return self.editor_snapshot()
+
+    def has_unsaved_editor(self):
+        if self.assembly.currentData() not in self._motion.get('editors', {}):
+            return self.current_editor() != self._initial_editor or self._motion.get('editor_assembly_id') not in (None, self.assembly.currentData())
+        return self.pending_editor() is not None
+
+    def accept_saved_editor(self, snapshot):
+        if snapshot.get('session_id', self._session) != self._session or snapshot.get('document_id', self._document) != self._document: return
+        self._motion.setdefault('editors', {})[snapshot['assembly_id']] = deepcopy(snapshot['editor'])
+        self._motion['editor_assembly_id'] = snapshot['assembly_id']
+        self._data.setdefault('motion', {}).setdefault('editors', {})[snapshot['assembly_id']] = deepcopy(snapshot['editor'])
+
+    def _restore_editor(self, editor):
+        self._loading = True
+        try:
+            view = editor.get('view', {})
+            joint = editor.get('joint_draft')
+            if joint is not None:
+                self._fill_combo(self.joint, self._motion.get('joints', []), joint.get('joint_id'), preserve_missing=True)
+                if joint.get('joint_id') is None: self.joint.setCurrentIndex(-1)
+                self._selected_joint = self.joint.currentData()
+                self.joint_type.setCurrentIndex(self.joint_type.findData(joint.get('type')))
+                for ref, combo, field in zip(joint.get('connectors', []), (self.connector_a, self.connector_b), (self.subelement_a, self.subelement_b)):
+                    self._fill_combo(combo, self._motion.get('occurrences', []), ref.get('object_id'), preserve_missing=True)
+                    if ref.get('object_id') is None: combo.setCurrentIndex(-1)
+                    field.setText(ref.get('subelement', ''))
+                for name, (field, unit) in self.joint_parameters.items(): field.setText(joint.get('parameters', {}).get(name, ''))
+            definition = editor.get('definition_draft')
+            if definition is not None:
+                for name, field in self.time.items(): field.setText(definition.get('time', {}).get(name, ''))
+                self.fps.setValue(definition.get('fps', 30)); self.tolerance.setText(definition.get('tolerance', ''))
+                self.drives.setRowCount(0); self.traces.setRowCount(0)
+                for value in definition.get('drives', []):
+                    self._drive_row(value)
+                    self._item(self.drives, self.drives.rowCount()-1, 3, value.get('unit', ''), readonly=True)
+                    if value.get('joint_id') is None: self.drives.cellWidget(self.drives.rowCount()-1, 0).setCurrentIndex(-1)
+                for value in definition.get('traces', []):
+                    self._trace_row(value)
+                    if value.get('occurrence_id') is None: self.traces.cellWidget(self.traces.rowCount()-1, 1).setCurrentIndex(-1)
+            if joint is None:
+                self._fill_combo(self.joint, self._motion.get('joints', []), view.get('joint_id'), preserve_missing=True)
+                if view.get('joint_id') is None: self.joint.setCurrentIndex(-1)
+            for table, key in ((self.drives, 'drive_row'), (self.traces, 'trace_row')):
+                row = view.get(key, -1)
+                if 0 <= row < table.rowCount(): table.selectRow(row)
+                else: table.setCurrentCell(-1, -1); table.clearSelection()
+            self._joint_edited = joint is not None; self._edited = definition is not None
+        finally: self._loading = False
+        self._joint_controls()
 
     def pending_view(self):
         """Save adapter flushes this selection before its existing document save."""

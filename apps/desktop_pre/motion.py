@@ -15,7 +15,7 @@ import uuid
 
 OPERATIONS = ('pre.assembly.create', 'pre.assembly.link', 'pre.joint.create',
     'pre.joint.update', 'pre.joint.remove', 'pre.motion.inspect', 'pre.motion.configure',
-    'pre.motion.set_view',
+    'pre.motion.set_view', 'pre.motion.save_editor',
     'pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.pause',
     'pre.motion.stop', 'pre.motion.cancel', 'pre.motion.path', 'pre.motion.adopt_pose')
 JOINT_TYPES = ('Fixed', 'Revolute', 'Cylindrical', 'Slider', 'Ball', 'Distance',
@@ -317,6 +317,7 @@ class Motion:
         self.owner.assert_thread()
         assemblies = [obj for obj in self.owner.doc.Objects if obj.isDerivedFrom('Assembly::AssemblyObject')][:32]
         value = {'state': self._state, 'preview': self._preview, 'frame': self._frame, 'error': self._error,
+            'editors': deepcopy(self.owner.read_metadata().get('motion_editors', {})),
             'assemblies': [{'id': a.Name, 'label': a.Label, 'joint_count': len(self._joints(a))} for a in assemblies],
             'definition': deepcopy(self.owner.read_metadata().get('motion')),
             'calculation': deepcopy(self._calculation), 'physics': 'NATIVE_KINEMATICS_ONLY',
@@ -326,7 +327,12 @@ class Motion:
             'limits': {'parts': MAX_PARTS, 'frames': MAX_FRAMES, 'path_page': MAX_PAGE},
             'source': PINNED_SOURCE}
         saved = value.get('definition') or {}
-        assembly = self.owner.doc.getObject(saved.get('assembly_id', ''))
+        metadata = self.owner.read_metadata()
+        drafts = [name for name, editor in value['editors'].items()
+                  if editor.get('joint_draft') is not None or editor.get('definition_draft') is not None]
+        selected = metadata.get('motion_editor_assembly_id') or (drafts[0] if drafts else saved.get('assembly_id', ''))
+        value['editor_assembly_id'] = selected or None
+        assembly = self.owner.doc.getObject(selected)
         if assembly is not None and assembly in assemblies:
             try: return self._inspect(assembly, value)
             except RuntimeError as error: value['inspection_error'] = str(error)
@@ -453,6 +459,7 @@ class Motion:
                                   'source': PINNED_SOURCE, 'physics': 'NATIVE_KINEMATICS_ONLY'}
             metadata['motion']['view'] = view
             if 'last_completed' in old: metadata['motion']['last_completed'] = old['last_completed']
+            self._clear_editor_draft(assembly, 'definition_draft', metadata)
             self.owner.write_metadata(metadata); result['simulation_id'] = simulation.Name
         self.owner._transaction('Configure native assembly motion', change)
         self._expected_generation = self.owner.generation
@@ -489,6 +496,88 @@ class Motion:
                 self._state = 'FAILED'; self._error = self._recovery_error
                 raise RuntimeError(self._recovery_error) from error
         return {'view': view, 'changed': True}
+
+    def _save_editor(self, assembly, args):
+        if set(args) != {'editor'}: raise ValueError('Declare one assembly editor snapshot')
+        editor = deepcopy(args['editor'])
+        if (not isinstance(editor, dict) or set(editor) != {'view', 'joint_draft', 'definition_draft'}
+                or not isinstance(editor['view'], dict)
+                or any(value is not None and not isinstance(value, dict) for value in (editor['joint_draft'], editor['definition_draft']))):
+            raise ValueError('Invalid assembly editor snapshot structure')
+        view = editor['view']
+        def identifier(value): return value is None or isinstance(value, str)
+        if (set(view) != {'joint_id', 'drive_row', 'trace_row'} or not identifier(view['joint_id'])
+                or any(type(view[key]) is not int or view[key] < -1 for key in ('drive_row', 'trace_row'))):
+            raise ValueError('Invalid editor selection structure')
+        joint = editor['joint_draft']
+        if joint is not None:
+            if (set(joint) != {'joint_id', 'type', 'connectors', 'parameters'}
+                    or not identifier(joint['joint_id']) or not identifier(joint['type'])
+                    or not isinstance(joint['connectors'], list) or len(joint['connectors']) != 2
+                    or any(not isinstance(ref, dict) or set(ref) != {'object_id', 'subelement'}
+                           or not identifier(ref['object_id']) or not isinstance(ref['subelement'], str) for ref in joint['connectors'])
+                    or not isinstance(joint['parameters'], dict) or set(joint['parameters']) != {'Distance', 'Distance2', 'Angle'}
+                    or any(not isinstance(value, str) for value in joint['parameters'].values())):
+                raise ValueError('Invalid raw joint editor structure')
+        definition = editor['definition_draft']
+        if definition is not None:
+            if (set(definition) != {'time', 'fps', 'tolerance', 'drives', 'traces'}
+                    or not isinstance(definition['time'], dict) or set(definition['time']) != {'start', 'end', 'step'}
+                    or any(not isinstance(value, str) for value in definition['time'].values())
+                    or type(definition['fps']) is not int or not isinstance(definition['tolerance'], str)
+                    or not isinstance(definition['drives'], list) or not isinstance(definition['traces'], list)):
+                raise ValueError('Invalid raw motion editor structure')
+            for drive in definition['drives']:
+                if (not isinstance(drive, dict) or set(drive) != {'joint_id', 'type', 'formula', 'unit'}
+                        or not identifier(drive['joint_id']) or not identifier(drive['type'])
+                        or not isinstance(drive['formula'], str) or not isinstance(drive['unit'], str)):
+                    raise ValueError('Invalid raw drive row structure')
+            for trace in definition['traces']:
+                if (not isinstance(trace, dict) or set(trace) != {'id', 'occurrence_id', 'point'}
+                        or not isinstance(trace['id'], str) or not identifier(trace['occurrence_id'])
+                        or not isinstance(trace['point'], list) or len(trace['point']) != 3
+                        or any(not isinstance(value, str) for value in trace['point'])):
+                    raise ValueError('Invalid raw trace row structure')
+        try: text = json.dumps(editor, allow_nan=False, ensure_ascii=False)
+        except (TypeError, ValueError) as error: raise ValueError('Editor snapshot must be JSON-safe') from error
+        if len(text.encode('utf-8')) > 128*1024: raise ValueError('Assembly editor snapshot exceeds 128 KiB')
+        metadata = self.owner.read_metadata()
+        if metadata.get('motion_editors', {}).get(assembly.Name) == editor and metadata.get('motion_editor_assembly_id') == assembly.Name:
+            return {'editor': editor, 'changed': False}
+        drafts = editor['joint_draft'] is not None or editor['definition_draft'] is not None
+        if drafts: self.before_design_action('retain assembly editor draft')
+        elif self._calculation:
+            self._validate_cache(self.owner._object(self._calculation['assembly_id']), self._calculation['id'])
+        preferences = self.owner.App.ParamGet('User parameter:BaseApp/Preferences/Mod/Assembly')
+        had_preference = 'SolveOnRecompute' in preferences.GetBools()
+        old_preference = preferences.GetBool('SolveOnRecompute', True)
+        try:
+            preferences.SetBool('SolveOnRecompute', False)
+            def change():
+                value = deepcopy(self.owner.read_metadata())
+                value.setdefault('motion_editors', {})[assembly.Name] = editor
+                value['motion_editor_assembly_id'] = assembly.Name
+                self.owner.write_metadata(value)
+            self.owner._transaction('Retain assembly editor draft and selection', change)
+            self._expected_generation = self.owner.generation
+        finally:
+            try:
+                if had_preference: preferences.SetBool('SolveOnRecompute', old_preference)
+                else: preferences.RemBool('SolveOnRecompute')
+            except Exception as error:
+                self._recovery_error = 'RECOVERY_REQUIRED: failed to restore native SolveOnRecompute preference: ' + str(error)
+                self._state = 'FAILED'; self._error = self._recovery_error
+                raise RuntimeError(self._recovery_error) from error
+        return {'editor': editor, 'changed': True}
+
+    def _clear_editor_draft(self, assembly, name, metadata):
+        editor = metadata.get('motion_editors', {}).get(assembly.Name)
+        if isinstance(editor, dict): editor[name] = None
+
+    def _assert_editor_applied(self, assembly):
+        editor = self.owner.read_metadata().get('motion_editors', {}).get(assembly.Name, {})
+        if editor.get('joint_draft') is not None or editor.get('definition_draft') is not None:
+            raise ValueError('관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.')
 
     def _calculate(self, assembly):
         self.before_design_action('recalculate')
@@ -604,6 +693,8 @@ class Motion:
             if args: raise ValueError('Inspect accepts no arguments')
             return self.descriptor()
         assembly = self._assembly(target)
+        if operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
+            self._assert_editor_applied(assembly)
         if operation == 'pre.motion.inspect':
             if args: raise ValueError('Inspect accepts no arguments')
             return self._inspect(assembly)
@@ -632,6 +723,7 @@ class Motion:
             return self._edit_joint(operation, assembly, args, target)
         if operation == 'pre.motion.configure': return self._configure(assembly, args)
         if operation == 'pre.motion.set_view': return self._set_view(assembly, args)
+        if operation == 'pre.motion.save_editor': return self._save_editor(assembly, args)
         if operation == 'pre.motion.calculate':
             if args: raise ValueError('Calculate uses the persisted native definition')
             return self._calculate(assembly)
@@ -761,6 +853,9 @@ class Motion:
                         native.solveIfAllowed(assembly, True)
                 for key, value in parameters.items(): setattr(obj, key, value['value'])
             result['joint_id'] = obj.Name
+            metadata = deepcopy(self.owner.read_metadata())
+            self._clear_editor_draft(assembly, 'joint_draft', metadata)
+            self.owner.write_metadata(metadata)
         self.owner._transaction('Edit native Assembly joint', change)
         return result
 

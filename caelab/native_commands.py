@@ -25,7 +25,7 @@ CAPABILITIES = {
             'pre.parameters.update', 'pre.parameters.remove', 'pre.parameters.preflight',
             'pre.project.inspect', 'pre.project.save', 'pre.project.open', 'pre.links.record',
             'pre.assembly.create', 'pre.assembly.link', 'pre.joint.create', 'pre.joint.update', 'pre.joint.remove',
-            'pre.motion.inspect', 'pre.motion.configure', 'pre.motion.set_view', 'pre.motion.calculate', 'pre.motion.frame',
+            'pre.motion.inspect', 'pre.motion.configure', 'pre.motion.set_view', 'pre.motion.save_editor', 'pre.motion.calculate', 'pre.motion.frame',
             'pre.motion.play', 'pre.motion.pause', 'pre.motion.stop', 'pre.motion.cancel', 'pre.motion.path', 'pre.motion.adopt_pose',
             'pre.fem.mesh_settings', 'pre.fem.mesh_local_size', 'pre.fem.mesh_generate',
             'pre.fem.mesh_cancel', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight',
