@@ -198,7 +198,7 @@ class PostWindow(QMainWindow):
         left_layout.addWidget(self.tree, 1)
         self.add_source_button = QPushButton('결과 파일 추가…')
         self.add_source_button.clicked.connect(lambda: self.choose_source(repair=False))
-        self.repair_button = QPushButton('같은 내용의 위치 수리…')
+        self.repair_button = QPushButton('원파일 다시 연결…')
         self.repair_button.clicked.connect(lambda: self.choose_source(repair=True))
         self.changed_source_button = QPushButton('변경 자료로 새 프로젝트…')
         self.changed_source_button.clicked.connect(self.open_changed_source)

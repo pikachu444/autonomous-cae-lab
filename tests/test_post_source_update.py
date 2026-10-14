@@ -135,6 +135,32 @@ def test_approved_folder_picker_uses_service_listing_without_os_root_path(app, w
     dialog.reject()
 
 
+def test_repreview_failure_invalidates_old_snapshot_until_new_preview_succeeds(app, window, tmp_path, monkeypatch):
+    source = original_source(); window._sources()[0].update(source); window._source_ref = source['source_ref']
+    window.client.local_roots = lambda: {'roots': [{'id': 'approved'}]}
+    window.client.desktop_context = lambda: {'export_root': str(tmp_path)}
+    window.client.register_local_input = lambda *args: {'id': 'Dnew'}
+    attempts = []
+    def inspect(*args):
+        attempts.append(True)
+        if len(attempts) == 2: raise ValueError('controlled second read failure')
+        preview = replacement(tmp_path); preview['input_id'] = 'Dfirst' if len(attempts) == 1 else 'Dlatest'
+        return preview
+    monkeypatch.setattr(dialogs, 'inspect_replacement', inspect)
+    dialog = dialogs.SourceUpdateDialog(window, source); dialog.show()
+    wait(app, lambda: not dialog._busy and dialog.roots.count() == 1)
+    dialog.file.setText('new.pvd')
+    dialog.preview_button.click(); wait(app, lambda: not dialog._busy)
+    assert dialog.preview['input_id'] == 'Dfirst' and dialog.apply_button.isEnabled()
+    dialog.preview_button.click()
+    assert dialog.preview is None and dialog.files.rowCount() == 0 and dialog.arrays.rowCount() == 0 and not dialog.time.text()
+    wait(app, lambda: not dialog._busy)
+    assert dialog.preview is None and not dialog.apply_button.isEnabled()
+    dialog.preview_button.click(); wait(app, lambda: not dialog._busy)
+    assert dialog.preview['input_id'] == 'Dlatest' and dialog.apply_button.isEnabled()
+    dialog.reject()
+
+
 def test_cancel_during_preview_ignores_late_native_read_without_changing_old_document(app, window, tmp_path, monkeypatch):
     import threading
     source = original_source(); window._sources()[0].update(source); window._source_ref = source['source_ref']
