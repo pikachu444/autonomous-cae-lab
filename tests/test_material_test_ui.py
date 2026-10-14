@@ -167,6 +167,20 @@ def test_protocol_cancel_and_explicit_driver_use(app):
     assert dialog.value['weight']=='nan' and dialog.value['scale']=='inf'
 
 
+def test_invalid_explicit_tensor_stays_editable_without_preview_curve(app):
+    settings = default_draft()['settings']
+    settings['deformation_gradient'][1] = {'unfinished': '1e'}
+    before = deepcopy(settings)
+    dialog = ExperimentDialog(settings, {'responses': {'stress': {
+        'measure': 'infinitesimal_Cauchy', 'component': 'xx', 'unit': 'MPa',
+        'axes': [{'name': 'time', 'unit': 's', 'values': [0, 1]}], 'value': [0, 12]}}})
+    assert not dialog.figure.axes[1].lines
+    dialog._accept()
+    assert dialog.value['settings'] == before
+    assert settings == before
+    dialog.reject()
+
+
 def test_update_receipt_preserves_late_edits(app):
     release=threading.Event()
     original=document()

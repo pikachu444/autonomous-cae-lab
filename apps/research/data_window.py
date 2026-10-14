@@ -865,6 +865,8 @@ class DataWindow(QMainWindow):
             for path in paths:
                 source = Path(path)
                 try:
+                    if source.suffix.lower() not in TABLE_EXTENSIONS:
+                        raise ValueError('지원되는 표 파일은 CSV, TXT, DAT, ASC, NPZ입니다.')
                     if source.stat().st_size > 16 * 1024 * 1024:
                         raise ValueError('16 MiB 이하의 표 파일을 선택하세요.')
                     receipt = self.client.upload(source.name, source.read_bytes())
