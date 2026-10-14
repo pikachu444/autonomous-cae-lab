@@ -107,6 +107,27 @@ def test_pre_config_has_service_export_primary_python_and_no_fixture_defaults(cl
     assert '-u' in processes[0][0] and '-s' in processes[0][0]
 
 
+@pytest.mark.parametrize('entry', ['FreeCAD.exe', 'bin/FreeCAD.exe', 'bin/freecad'])
+@pytest.mark.parametrize('explicit_mesher', [False, True])
+def test_pre_finds_bundled_mesher_and_preserves_explicit_choice(client, processes, tmp_path, entry, explicit_mesher):
+    installation = tmp_path / '공학 도구 & FreeCAD'
+    (installation / 'bin').mkdir(parents=True)
+    executable = installation / entry
+    executable.write_bytes(b'TEST_ONLY')
+    bundled = installation / 'bin' / ('gmsh' if entry == 'bin/freecad' else 'gmsh.exe')
+    bundled.write_bytes(b'TEST_ONLY')
+    chosen = tmp_path / 'chosen gmsh.exe'
+    chosen.write_bytes(b'TEST_ONLY')
+    client.context['freecad_executable'] = str(executable)
+    arguments = ['--service', client.url, 'pre', '--prepare-only']
+    if explicit_mesher:
+        arguments += ['--gmsh', str(chosen)]
+    result = desktop._pre(client, desktop._arguments(arguments))
+    config = json.loads(Path(result['config']).read_text(encoding='utf-8'))
+    assert Path(config['gmsh']) == (chosen if explicit_mesher else bundled).resolve()
+    assert result['status'] == 'PREPARED' and not processes
+
+
 def test_pre_recorded_source_is_handed_to_copying_loader_not_opened_in_place(client, processes, tmp_path):
     executable = tmp_path / 'FreeCAD.exe'; executable.write_bytes(b'TEST_ONLY')
     retained = tmp_path / 'source.FCStd'; retained.write_bytes(b'original')

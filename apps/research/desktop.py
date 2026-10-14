@@ -459,8 +459,12 @@ def _pre(client, args):
     if args.gmsh:
         config['gmsh'] = str(Path(args.gmsh).resolve(strict=True))
     else:
-        gmsh = executable.parent / 'bin' / 'gmsh.exe'
-        if gmsh.is_file(): config['gmsh'] = str(gmsh)
+        # Portable root launchers and bin/FreeCAD.exe share the same bundled mesher.
+        for gmsh in (executable.parent / 'gmsh.exe', executable.parent / 'bin' / 'gmsh.exe',
+                     executable.parent / 'gmsh'):
+            if gmsh.is_file():
+                config['gmsh'] = str(gmsh.resolve())
+                break
     config_path = folder / 'config.json'
     config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     module = str(Path(context['repo_root']) / 'apps/desktop_pre')

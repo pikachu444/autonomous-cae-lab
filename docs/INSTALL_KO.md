@@ -98,6 +98,8 @@ CAD 예제나 저장한 후처리 프로젝트를 직접 지정하려면 아래 
 
 아래 `C:\Tools\...`는 예시입니다. **실제로 설치한 실행 파일 경로로 바꾸세요.**
 FreeCAD portable 설치라면 `bin` 폴더의 실행 파일을 지정합니다.
+같은 설치의 `bin` 폴더에 Gmsh가 있으면 자동으로 연결합니다. 별도로 설치한 Gmsh를
+사용하려면 전처리 실행 명령에 `-Gmsh 'C:\Tools\Gmsh\gmsh.exe'`를 덧붙이세요.
 
 ```powershell
 .\scripts\start_cae_pre.ps1 -FreeCADExe 'C:\Tools\FreeCAD\bin\freecad.exe' -Source '.\examples\contact\two-feet.FCStd'
