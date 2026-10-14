@@ -312,6 +312,7 @@ class GuiDispatch:
         self._last_heartbeat = None
         self.broker_stop = None
         self.command_gate = DispatchGate()
+        self.native_controls = None
 
     def install(self, interval=100):
         self.owner.assert_thread()
@@ -327,10 +328,33 @@ class GuiDispatch:
         if not self.timer:
             interactor.RemoveObserver(self.observer)
             raise RuntimeError("GUI_DISPATCH_UNAVAILABLE: native Qt interactor timer creation failed")
+        try:
+            if __package__:
+                from .native_controls import install
+            else:
+                from native_controls import install
+            self.native_controls = install(self.owner, busy=lambda: self.command_gate.executing)
+        except Exception as error:
+            print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
         return self
 
     def _tick(self, *_):
         self.owner.assert_thread()
+        if self.native_controls is not None:
+            try:
+                self.native_controls.refresh()
+            except Exception as error:
+                self.native_controls.close()
+                self.native_controls = None
+                print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
+        if self.native_controls is not None:
+            if self.native_controls.in_action:
+                # Modal close/save choices keep transport alive but cannot run queued edits.
+                self.last_tick = time.monotonic()
+                if self.ready and self.last_tick - self._last_heartbeat >= 1:
+                    self.outgoing.put({'event':'heartbeat','documents':[self.owner.descriptor()]})
+                    self._last_heartbeat = self.last_tick
+                return
         if self.command_gate.executing:
             return
         if self.broker_stop is not None and self.broker_stop.is_set():
@@ -372,6 +396,8 @@ class GuiDispatch:
 
     def close(self):
         self.owner.assert_thread()
+        if self.native_controls is not None:
+            self.native_controls.close()
         commands.clear_save_owner(self.owner)
         if self.interactor is not None:
             self.interactor.DestroyTimer(self.timer)

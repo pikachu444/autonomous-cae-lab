@@ -7,6 +7,28 @@ application shell. Root performs the visible Windows GUI acceptance separately.
 
 ## Independent external-result analysis
 
+### Windows project save and window close
+
+In a Windows managed session opened through `Start-CAE-Post.cmd` or the Research
+launcher, Ctrl+S in the main ParaView window saves the same analysis project as
+the **CAE Save project** macro. It includes the current view and saved analysis
+settings. Native **File > Save Data** remains available for data export. Separate
+script editors and modal dialogs keep their own keyboard handling.
+
+The main window's X button and Alt+F4 ask **저장 / 버리기 / 취소** when changes
+remain. Windows builds without TaskDialog use **예 / 아니요 / 취소**, with the
+save/discard meanings stated in the question. Cancel or a failed save leaves the
+window open. Unapplied Properties
+edits must first be applied or reset in ParaView; saving does not silently discard
+them. The connection runs on the existing GUI thread without another Qt binding.
+
+**File > Exit is not covered by this close confirmation.** Save explicitly before
+using that menu, or use X/Alt+F4. Unmanaged sessions, other platforms, and sessions
+where the native connection cannot be installed continue to use the save macro.
+These remaining close paths are part of FN-27-02, not completed acceptance.
+
+### Open a result
+
 The independent entry accepts an exact local VTU or a PVD collection with relative
 VTU dependencies. It opens a native reader in one Render View, without retained
 A/B experiments, CAD, the original solver, a service, or an AI provider:
@@ -69,8 +91,9 @@ arrays. Arbitrary native filters created directly are still the user's pipeline.
 Save records the PVSM and every native reader input hash, including PVD frames;
 reopen validates dependencies and the restored reader paths. A changed or missing
 dependency is an error. Relocation repair, pending native edit persistence,
-native command bridging/Undo, managed Ctrl+S and other file formats remain outside
-this bounded entry. Analysis manifests reference existing files and are not a
+native command bridging/Undo and managed Ctrl+S are not supplied by this standalone
+entry. The Windows managed launcher adds the controls described above. Other file
+formats remain outside this bounded entry. Analysis manifests reference existing files and are not a
 portable data bundle.
 
 The fresh local synthetic verification checks actual VTU/PVD data, an independent
@@ -141,10 +164,10 @@ still points to its declared input. A native FileName edit under the old label
 blocks those commands. Other native reader inputs are discovered through
 ParaView's file-property metadata (including FileNames) and pinned on save.
 
-**Ctrl+S remains ParaView's native Save Data export in this prototype.** Use the
+**In this retained A/B prototype, Ctrl+S remains ParaView's native Save Data export.** Use the
 CAE Save project macro for the project, or native File > Save State for an explicit
-state-only export. Unified custom-shell shortcuts and dirty/close dialogs remain
-unimplemented; the prototype does not claim their acceptance.
+state-only export. The Windows managed external-result controls described above
+do not extend this old experiment workspace's acceptance.
 
 ## Evidence and retained limitations
 
