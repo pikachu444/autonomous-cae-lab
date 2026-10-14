@@ -94,7 +94,7 @@ class ContactEditor:
         if not law_errors(draft) and tied == (draft['normal_law'] == 'tie'):
             if tied:
                 obj.Tolerance = self.owner.App.Units.Quantity(str(number(draft['tie_tolerance_mm'])) + ' mm')
-                obj.Adjust = False
+                obj.Adjust = draft.get('tie_adjust', False)
                 obj.CyclicSymmetry = False
             else:
                 self._native_contact(obj, draft)

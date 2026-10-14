@@ -45,8 +45,8 @@ def law_errors(draft):
                 raise ValueError('묶음 허용거리는 1e-10 mm보다 크게 지정하세요. 자동 거리로 대체하지 않습니다.')
         except ValueError as error:
             fail('tie_tolerance_mm', str(error))
-        if draft.get('tie_adjust', False) is not False:
-            fail('tie_adjust', '절점을 투영하는 Adjust는 이 경로에서 지원하지 않습니다. 원래 절점 위치를 유지하세요.')
+        if type(draft.get('tie_adjust', False)) is not bool:
+            fail('tie_adjust', '원래 위치 유지 또는 계산 시 면에 맞춤을 선택하세요.')
         if draft.get('gap_policy') != 'geometry':
             fail('gap_policy', '묶음 접촉에는 설정 간극을 적용하지 않습니다. 허용거리는 절점을 연결할 거리입니다.')
     elif draft.get('tangential_law') not in {'frictionless', 'coulomb'}:

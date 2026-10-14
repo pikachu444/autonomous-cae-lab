@@ -70,6 +70,19 @@ def _check_tie_connections(native):
             raise ValueError('묶음 구속 생성이 누락됐습니다. 면 또는 허용거리를 수정하세요. 원 출력은 보존됩니다.')
 
 
+def _observed_adjustment(observed,receipt,original,elements):
+    if receipt is None:
+        return None,None
+    receipt=deepcopy(receipt)
+    adjusted={r['node_id'] for r in receipt['rows']}
+    coordinates={n:list(observed['frd_coordinates_mm'][n] if n in adjusted else xyz) for n,xyz in original.items()}
+    receipt['observed_quality']=_jacobian_gates(coordinates,elements)
+    for row in receipt['rows']:
+        row['observed_mm']=coordinates[row['node_id']]
+        row['initial_adjustment_mm']=[a-b for a,b in zip(row['observed_mm'],row['original_mm'])]
+    return coordinates,receipt
+
+
 class ContactFemCalculixAdapter:
     backend, version = BACKEND, '1'
 
@@ -89,6 +102,7 @@ class ContactFemCalculixAdapter:
             'qualification': 'UNKNOWN', 'decision': 'NOT_RELEASED', 'engineering_valid': False,
             'diagnostics': {}, 'artifacts': []}
         model = manifest = pins = None
+        read_nodes = adjustment = None
         tie_connected = True
         try:
             source = Path(settings['snapshot_path'])
@@ -103,6 +117,9 @@ class ContactFemCalculixAdapter:
                 if target.stat().st_size != pin['bytes'] or _sha(target) != pin['sha256']:
                     raise ValueError('Contact input changed during capture')
             validate_snapshot(retained / 'snapshot.json')
+            nodes,elements,_=validate_model(model)
+            from .tie_adjustment import expected_coordinates
+            read_nodes,adjustment=expected_coordinates(model,nodes,elements,output/'tie_projection')
             result.update(snapshot_id=manifest['id'], data_id=settings.get('data_id'), input_pins=pins,
                           checks=[{'name': 'contact_mesh_and_deck', 'status': 'PASS', **gates}])
             result['execution_status'] = 'FAILED'
@@ -137,10 +154,11 @@ class ContactFemCalculixAdapter:
             materials = {'names': ['M'+str(index) for index in material_indices.values()] +
                                    ['INT'+pair['object_id'].upper() for pair in contact_pairs],
                          'elements': {row['element_id']: 'M'+str(material_indices[row['body_id']]) for row in model['elements']}}
-            observed = read_frd(deck.with_suffix('.frd'), nodes, elements, contact_materials=materials,
+            observed = read_frd(deck.with_suffix('.frd'), read_nodes, elements, contact_materials=materials,
                                 contact_profile=profile(model), require_contact=bool(contact_pairs))
             validate_frames(model, observed)
             frames = observed['frames']
+            coordinates,adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
             if has_tie and any(not {'DISP', 'STRESS', 'FORC'} <= set(frame['fields']) for frame in frames):
                 raise ValueError('묶음 접촉의 변위·응력·절점 힘 출력이 누락됐습니다. 원 출력은 보존됩니다.')
             if profile(model):
@@ -163,7 +181,7 @@ class ContactFemCalculixAdapter:
                     writer.writerow([row['pair_id'],row['quantity'],row['static']['step'],row['static']['increment'],
                         row['static']['load_parameter'], *['' if value is None else value for value in values],
                         'native_nonfinite' if any(value is None for value in values) else 'finite_raw'])
-            metadata = write_post(output / 'post', model, frames, pair_results, provenance={
+            metadata = write_post(output / 'post', model, frames, pair_results, solver_coordinates=coordinates, adjustment=adjustment, provenance={
                 'snapshot_id': manifest['id'], 'snapshot_sha256': pins['snapshot.json']['sha256'],
                 'raw_frd_sha256': _sha(deck.with_suffix('.frd')), 'raw_dat_sha256': _sha(deck.with_suffix('.dat')) if deck.with_suffix('.dat').is_file() else None})
             final = frames[-1]
@@ -263,13 +281,14 @@ class ContactFemCalculixAdapter:
                         ['INT'+p['object_id'].upper() for p in model['contacts'] if p['draft']['normal_law'] != 'tie'],
                         'elements':{r['element_id']:'M'+str(indices[r['body_id']]) for r in model['elements']}}
                     observed=retained_prefix(output/'solver/contact.frd',output/'partial/committed.frd',
-                        nodes,elements,materials,model,result['increment_history'])
+                        read_nodes if read_nodes is not None else nodes,elements,materials,model,result['increment_history'])
+                    coordinates,partial_adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
                     frames=observed['frames']
                     pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True)
-                    metadata=write_post(output/'partial/post',model,frames,pairs,
+                    metadata=write_post(output/'partial/post',model,frames,pairs,solver_coordinates=coordinates,adjustment=partial_adjustment,
                         execution={'status':result['execution_status'],'complete_analysis':False,'scope':'CONVERGED_PREFIX'},provenance={
                         'snapshot_id':manifest['id'],'snapshot_sha256':pins['snapshot.json']['sha256'],
-                        'raw_frd_sha256':_sha(output/'solver/contact.frd'),'raw_dat_sha256':_sha(output/'solver/contact.dat')})
+                        'raw_frd_sha256':_sha(output/'solver/contact.frd'),'raw_dat_sha256':_sha(output/'solver/contact.dat') if (output/'solver/contact.dat').is_file() else None})
                     artifact=output/'partial/post/contact.pvd'
                     result['partial_result']={'status':'CONVERGED_PREFIX','frame_count':len(frames),
                         'complete_analysis':False,'status_source':result['increment_history']['source']}
@@ -304,6 +323,9 @@ def regenerate_post(attempt, output):
     manifest, model, input_pins, _ = validate_snapshot(attempt / 'frozen_input' / 'snapshot.json')
     entries = {row['relative']: row for row in record['artifacts']}
     required = ['frozen_input/' + name for name in input_pins] + ['solver/contact.frd']
+    has_adjustment=any(p['draft']['normal_law']=='tie' and p['draft'].get('tie_adjust',False) for p in model['contacts'])
+    if has_adjustment:
+        required += ['tie_projection/expected.json','tie_projection/points.json','tie_projection/projected.json']
     if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']) or 'solver/contact.dat' in entries:
         required.append('solver/contact.dat')
     if profile(model):
@@ -317,21 +339,24 @@ def regenerate_post(attempt, output):
             raise ValueError('Retained contact source differs from the attempt: ' + relative)
         source_pins[relative] = {'bytes': pin['bytes'], 'sha256': pin['sha256']}
     nodes, elements, bodies = validate_model(model)
+    from .tie_adjustment import retained_coordinates
+    read_nodes,adjustment=retained_coordinates(model,nodes,elements,attempt/'tie_projection') if has_adjustment else (nodes,None)
     indices = {body: index for index, body in enumerate(sorted(bodies), 1)}
     materials = {'names': ['M' + str(i) for i in indices.values()] +
                            ['INT' + pair['object_id'].upper() for pair in model['contacts'] if pair['draft']['normal_law'] != 'tie'],
                  'elements': {row['element_id']: 'M' + str(indices[row['body_id']])
                               for row in model['elements']}}
-    observed = read_frd(attempt / 'solver/contact.frd', nodes, elements, contact_materials=materials,
+    observed = read_frd(attempt / 'solver/contact.frd', read_nodes, elements, contact_materials=materials,
                         contact_profile=profile(model), require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
     validate_frames(model, observed)
     frames = observed['frames']
+    coordinates,adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
     if profile(model):
         from ..contact_status import read_status, require_converged
         require_converged(frames, read_status(attempt / 'solver/contact.sta', model))
     pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames)
     output.parent.mkdir(parents=True, exist_ok=True)
-    metadata = write_post(output, model, frames, pairs, provenance={
+    metadata = write_post(output, model, frames, pairs, solver_coordinates=coordinates,adjustment=adjustment,provenance={
         'snapshot_id': manifest['id'], 'snapshot_sha256': input_pins['snapshot.json']['sha256'],
         'raw_frd_sha256': source_pins['solver/contact.frd']['sha256'],
         'raw_dat_sha256': source_pins.get('solver/contact.dat', {}).get('sha256'),
