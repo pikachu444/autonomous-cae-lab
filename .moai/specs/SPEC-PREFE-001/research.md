@@ -83,3 +83,14 @@ Jacobian을 증명한다고 확대하지 않는다. `pre.fem.mesh_highlight`는 
 메시 생성·품질·보관을 재사용할 근거이며 불량 요소 수정의 전체 완료 증거는 아니다.
 기존 품질 계산·국부 크기·메시 생성기를 다시 만들지 않는다. Pro가 재료 연결을 작성 중인
 `fem_edit.py`/`fem_panel.py`의 소유 범위와 조정한 뒤 실제 비교/뷰 동작을 배정한다.
+
+Luna의 FreeCAD 1.1.4 공식 소스 후속 조회에서 FEM 면 이름은
+`Elem<volume_id>F<face_number>`이며 native `ViewObject.partialRender`,
+`getBoundingBox(subname)`와 `Std_ViewFitSelection`을 재사용할 후보로 확인했다.
+근거는 공식 tag의 `src/Mod/Fem/Gui/ViewProviderFemMesh.cpp`,
+`src/Gui/ViewProviderPyImp.cpp`, `src/Gui/CommandView.cpp`다. 실제 FEM 요소의
+격리와 카메라 범위가 맞는지는 아직 확인 전이다. `fitAll()`을 선택 확대의
+대용으로 처리하지 않는다. 내부 면 표시 `ShowInner`에는 면 수 제한이 있으므로
+기존 값을 보존하고 격리 해제/창 닫기/문서 변경 시 화면 상태를 복구해야 한다.
+Sol에게 보관된 공개 메시를 재사용하는 좁은 native 확인만 배정했다. 확인 결과에
+따라 기존 native 뷰를 우선 사용하고 불필요한 임시 형상/새 표시 엔진은 추가하지 않는다.
