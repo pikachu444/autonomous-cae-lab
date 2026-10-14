@@ -1,0 +1,21 @@
+add_executable(cae_exit_transaction test_transaction.cxx)
+target_include_directories(cae_exit_transaction PRIVATE ../Plugin)
+add_test(NAME cae_exit_transaction COMMAND cae_exit_transaction)
+add_library(cae_exit_abi_fixture SHARED abi_fixture.c)
+target_include_directories(cae_exit_abi_fixture PRIVATE ../Plugin)
+target_compile_definitions(cae_exit_abi_fixture PRIVATE CAE_POST_EXIT_BUILD)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+add_test(NAME cae_exit_c_python_abi
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_abi_roundtrip.py"
+    "$<TARGET_FILE:cae_exit_abi_fixture>")
+if(NOT CAE_EXIT_CORE_ONLY)
+  add_executable(cae_exit_qt test_qt_close_gate.cxx ../Plugin/CloseGate.cxx ../Plugin/CloseGate.h
+    ../Plugin/NativeDraft.cxx ../Plugin/NativeDraft.h)
+  target_include_directories(cae_exit_qt PRIVATE ../Plugin)
+  target_compile_definitions(cae_exit_qt PRIVATE CAE_POST_EXIT_BUILD)
+  target_link_libraries(cae_exit_qt PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+  if(MSVC)
+    target_compile_options(cae_exit_qt PRIVATE /utf-8)
+  endif()
+  add_test(NAME cae_exit_qt COMMAND cae_exit_qt)
+endif()

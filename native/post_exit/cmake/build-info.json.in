@@ -1,0 +1,11 @@
+{
+  "schema": "cae.post-exit-build/1",
+  "abi": 1,
+  "paraview": "@ParaView_VERSION@",
+  "qt": "@Qt6Core_VERSION@",
+  "pointer_bits": 64,
+  "configuration": "Release",
+  "compiler_id": "@CMAKE_CXX_COMPILER_ID@",
+  "compiler_version": "@CMAKE_CXX_COMPILER_VERSION@",
+  "native_acceptance": "NOT_RUN"
+}
