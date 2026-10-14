@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from pathlib import Path, PureWindowsPath
 import re
 import shutil
@@ -38,10 +39,18 @@ def _read(path, limit=MAX_BYTES):
     path = Path(path)
     if any(p.is_symlink() for p in (path, *path.parents)) or not path.is_file():
         raise ValueError("Frozen input must be a regular local file")
-    if path.stat().st_size > limit:
+    size = path.stat().st_size
+    if size > limit:
         raise ValueError("Frozen source exceeds admission size limit")
     with path.open("rb") as stream:
-        data = stream.read(limit + 1)
+        if os.fstat(stream.fileno()).st_size != size:
+            raise ValueError("Frozen source changed or exceeds size limit")
+        # A small retained file must not reserve the whole 256 MiB allowance.
+        # The extra byte still detects growth; shrinking and mid-read changes
+        # are rejected before publishing the bytes to an engineering reader.
+        data = stream.read(size + 1)
+        if len(data) != size or os.fstat(stream.fileno()).st_size != size:
+            raise ValueError("Frozen source changed or exceeds size limit")
     if len(data) > limit:
         raise ValueError("Frozen source changed or exceeds size limit")
     if any(p.is_symlink() for p in (path, *path.parents)):
