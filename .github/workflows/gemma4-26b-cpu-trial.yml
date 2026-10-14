@@ -1,0 +1,117 @@
+name: Gemma 4 26B CPU coding trial
+
+on:
+  push:
+    branches: [ci/gemma4-26b-cpu-trial-20261014]
+
+permissions:
+  contents: read
+
+jobs:
+  gemma-coding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report runner resources
+        run: |
+          nproc
+          free -h
+          df -h /
+      - name: Free scratch disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          df -h /
+      - name: Obtain CPU llama.cpp
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/llama
+          curl -fL --retry 3 --connect-timeout 25 https://github.com/ggml-org/llama.cpp/releases/download/b11609/llama-b11609-bin-ubuntu-x64.tar.gz -o /tmp/llama.tar.gz
+          tar -xzf /tmp/llama.tar.gz -C /tmp/llama
+          find /tmp/llama -name llama-cli -type f -print
+      - name: Download Gemma 4 26B Q3_K_M GGUF from Hugging Face
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-all-errors --connect-timeout 30 --speed-limit 10000 --speed-time 180 --continue-at - 'https://huggingface.co/bartowski/google_gemma-4-26B-A4B-it-GGUF/resolve/main/google_gemma-4-26B-A4B-it-Q3_K_M.gguf?download=true' -o /tmp/gemma4-26b-Q3_K_M.gguf
+          du -h /tmp/gemma4-26b-Q3_K_M.gguf
+      - name: Ask Gemma to patch existing storage integrity function
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          src=Path('caelab/storage.py').read_text()
+          begin=src.index('def check_artifacts(')
+          end=src.index('\n\ndef check_id(',begin)
+          original=src[begin:end]
+          prompt=('You are a coding assistant working on the following real Python project.\n'
+                  'Task: Replace the function below to fix a path traversal and symlink escape vulnerability.\n'
+                  'Keep the signature and original behavior: return a list of corrupted artifact path strings.\n'
+                  'Reject absolute paths, Windows drive paths, backslashes, \\u0000, paths with empty, "." or ".." components, and symlink paths escaping folder; do not read files outside folder.\n'
+                  'Preserve SHA256 verification for valid in-folder files. Use only pathlib Path and hashlib, already imported.\n'
+                  'Output ONLY complete Python replacement function, no markdown.\n\n'
+                  + original + '\n')
+          Path('/tmp/gemma_prompt.txt').write_text(prompt)
+          print('Prompt characters:',len(prompt))
+          PY
+          BIN=$(find /tmp/llama -name llama-cli -type f -print -quit)
+          chmod +x "$BIN"
+          export LD_LIBRARY_PATH="$(dirname "$BIN"):${LD_LIBRARY_PATH:-}"
+          set +e
+          timeout 1200 "$BIN" -m /tmp/gemma4-26b-Q3_K_M.gguf -c 4096 -t 4 -n 620 --temp 0.1 --no-display-prompt --simple-io -p "$(cat /tmp/gemma_prompt.txt)" > /tmp/gemma_raw.txt 2>&1
+          code=$?
+          set -e
+          echo "llama_exit_status=$code"
+          tail -c 5000 /tmp/gemma_raw.txt
+          if [ "$code" -ne 0 ]; then exit "$code"; fi
+      - name: Apply generated patch to runner copy and test
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast,hashlib,tempfile,importlib
+          raw=Path('/tmp/gemma_raw.txt').read_text(errors='replace')
+          p=raw.find('def check_artifacts(')
+          if p<0:raise AssertionError('Model produced no Python function')
+          code=raw[p:]
+          if '```' in code:code=code.split('```')[0]
+          for suffix in ('llama_perf_context_print:', 'llama_perf_sampler_print:', 'llama_perf_print:'):
+              if suffix in code:code=code.split(suffix)[0]
+          code=code.strip()
+          parsed=ast.parse(code)
+          assert len(parsed.body)==1 and isinstance(parsed.body[0],ast.FunctionDef) and parsed.body[0].name=='check_artifacts', 'Must return one function'
+          path=Path('caelab/storage.py')
+          source=path.read_text()
+          start=source.index('def check_artifacts(')
+          end=source.index('\n\ndef check_id(',start)
+          path.write_text(source[:start]+code+source[end:])
+          import caelab.storage as s
+          with tempfile.TemporaryDirectory() as temp:
+              root=Path(temp);folder=root/'artifacts';folder.mkdir()
+              good=folder/'ok.txt';good.write_bytes(b'ok')
+              outside=root/'outside.txt';outside.write_bytes(b'secret')
+              digest=lambda b:hashlib.sha256(b).hexdigest()
+              def record(name, data):return {'path':name,'sha256':digest(data)}
+              assert s.check_artifacts(folder,[record('ok.txt',b'ok')]) == [], 'intact artifact'
+              good.write_bytes(b'bad')
+              assert s.check_artifacts(folder,[record('ok.txt',b'ok')]) == ['ok.txt'], 'tampering'
+              traversal=record('../outside.txt',b'secret')
+              assert s.check_artifacts(folder,[traversal]) == ['../outside.txt'], 'path traversal'
+              try:
+                  (folder/'link.txt').symlink_to(outside)
+              except OSError:
+                  print('Symlink test skipped due to file system')
+              else:
+                  assert s.check_artifacts(folder,[record('link.txt',b'secret')]) == ['link.txt'], 'symlink escape'
+          print('GEMMA PATCH EXECUTED: 4 checks passed')
+          Path('/tmp/gemma_generated_patch.py').write_text(code+'\n')
+          PY
+      - name: Upload model output and patch
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemma-4-26b-cpu-coding-evidence
+          path: |
+            /tmp/gemma_prompt.txt
+            /tmp/gemma_raw.txt
+            /tmp/gemma_generated_patch.py
+          if-no-files-found: warn
+          retention-days: 7
