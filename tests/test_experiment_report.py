@@ -116,3 +116,27 @@ def test_exact_nested_candidate_snapshot_and_absent_candidate_rejection(key,stat
         _candidate_reference_view(result,{**selection,'candidate_ids':['Cmissing']})
     metadata=_candidate_reference_view(result,{'candidate_ids':['Csecond'],'metadata_only':True})
     assert metadata[key][0]['values']=={'E':2.} and metadata[key][0]['responses']=={}
+
+
+def test_saved_optimization_reduction_identity_is_distinct_from_full_curve():
+    from caelab.research_workflows import _candidate_reference_view
+    from caelab.report_document import compact_payload
+    reductions=[{'response':'stress','kind':'scalar','original_kind':'series','value':value,
+        'unit':'MPa','component':'xx','location':'gauge','measure':'Cauchy','frame':'lab','reduction':method}
+        for method,value in [('max',8.),('final',3.)]]
+    result={'execution_status':'SUCCEEDED','candidates':[{'candidate_id':'Csummary','values':{'E':1000.},
+        'execution_status':'SUCCEEDED','responses':{},'response_reductions':reductions,
+        'objective':8.,'constraint_residuals':[-.2],'feasible':True}]}
+    selection={'candidate_ids':['Csummary'],'responses':['stress'],'reduction_index':1}
+    chosen=_candidate_reference_view(result,selection)
+    ref={'kind':'result','selection':selection}
+    payload={'kind':'result','reference':ref,'result':chosen}
+    check_selection(ref,payload)
+    frozen=compact_payload(payload)['result']['candidates'][0]
+    assert frozen['response_reductions']==[reductions[1]]
+    assert frozen['selected_reduction_index']==1 and frozen['responses']=={}
+    assert frozen['objective']==8. and frozen['constraint_residuals']==[-.2]
+    with pytest.raises(ValueError):
+        _candidate_reference_view(result,{**selection,'reduction_index':2})
+    with pytest.raises(ValueError):
+        _candidate_reference_view(result,{**selection,'rows':[0,10]})

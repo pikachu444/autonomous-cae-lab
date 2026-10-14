@@ -19,6 +19,7 @@ from caelab.workbench_client import Client
 from .data_window import _Read
 from .appearance import apply_appearance, configure_plot_fonts
 from .report_pages import compose, markdown, atomic_export, pdf_document, value_text
+from .experiment_labels import REDUCTIONS
 
 
 def section(title, *, text='', asset=None):
@@ -399,8 +400,10 @@ class ReportWindow(QMainWindow):
                 label,ok=QInputDialog.getItem(self,'보고서에 넣을 후보','보존된 조건',labels,editable=False)
                 if not ok:return
                 row=rows[labels.index(label)]
-                self._select_response(title,identifier,job,reference,
-                    result_metadata({'candidates':[row]}),[row['candidate_id']])
+                catalog=result_metadata({'responses':row.get('responses',{})})
+                catalog['responses'] += [{**entry,'reduction_index':i} for i,entry in
+                    enumerate(row.get('response_reductions',[]))]
+                self._select_response(title,identifier,job,reference,catalog,[row['candidate_id']])
             self._call(lambda:self.client.document_result(identifier,job,selection={'metadata_only':True}),choose_candidate)
             return
         descriptors = list(metadata.get('responses', []))
@@ -421,7 +424,9 @@ class ReportWindow(QMainWindow):
             if candidate_ids is not None:selection['candidate_ids']=candidate_ids
             self.capture({'kind':'result',**reference,'selection':selection},title);return
         labels=[str(i+1)+'. '+d['response']+' ['+str(d.get('unit','미확인'))+'] '+str(d.get('component',''))
-                +' '+str(d.get('location','')) for i,d in enumerate(descriptors)]
+                +' '+str(d.get('location',''))+
+                (' / 저장된 '+REDUCTIONS.get(d.get('reduction'),str(d.get('reduction'))) if 'reduction_index' in d else '')
+                for i,d in enumerate(descriptors)]
         label,ok=QInputDialog.getItem(self,'응답 선택','물리량 / 성분 / 위치',labels,editable=False)
         if not ok:return
         item=descriptors[labels.index(label)]
@@ -433,11 +438,12 @@ class ReportWindow(QMainWindow):
                 if ok:self._response_interval(title,reference,rows[names.index(choice)]['selector'])
             search,ok=QInputDialog.getText(self,'측정 위치','위치 찾기 (비우면 첫 128개)')
             if ok:self._call(lambda:self.client.document_response_locations(identifier,job,item['response'],search=search),locations)
-        else:self._response_interval(title,reference,item['response'],candidate_ids=candidate_ids)
+        else:self._response_interval(title,reference,item['response'],candidate_ids=candidate_ids,
+            reduction_index=item.get('reduction_index'))
 
-    def _response_interval(self,title,reference,name,*,candidate_ids=None):
+    def _response_interval(self,title,reference,name,*,candidate_ids=None,reduction_index=None):
         from .report_selection import ReportSelectionDialog
-        dialog=ReportSelectionDialog(self.client,reference,name,self,candidate_ids=candidate_ids)
+        dialog=ReportSelectionDialog(self.client,reference,name,self,candidate_ids=candidate_ids,reduction_index=reduction_index)
         if dialog.exec()==QDialog.DialogCode.Accepted:
             self.capture({'kind':'result',**reference,'selection':dialog.selection},title+' '+name)
 

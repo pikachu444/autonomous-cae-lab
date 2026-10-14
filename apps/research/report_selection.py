@@ -9,10 +9,10 @@ from caelab.report_document import check_selection
 
 
 class ReportSelectionDialog(QDialog):
-    def __init__(self,client,reference,response,parent=None,*,candidate_ids=None):
+    def __init__(self,client,reference,response,parent=None,*,candidate_ids=None,reduction_index=None):
         super().__init__(parent)
         self.client=client; self.reference=deepcopy(reference); self.response=response
-        self.candidate_ids=deepcopy(candidate_ids)
+        self.candidate_ids=deepcopy(candidate_ids);self.reduction_index=reduction_index
         self.selection=None; self._workers=[]; self._closed=False; self._serial=0
         self.setWindowTitle('보고서에 넣을 표본'); self.resize(950,700)
         layout=QVBoxLayout(self); form=QFormLayout()
@@ -32,6 +32,9 @@ class ReportSelectionDialog(QDialog):
         if self.candidate_ids is not None:
             self.time.setEnabled(False)
             self.time.setPlaceholderText('선택 후보에 보존된 표본 구간')
+        if self.reduction_index is not None:
+            for widget in (self.first,self.last,self.time):widget.setEnabled(False)
+            self.setWindowTitle('보고서에 넣을 축약값')
         self.refresh()
 
     def invalidate(self,*_):
@@ -40,6 +43,9 @@ class ReportSelectionDialog(QDialog):
         self.message.setText('바뀐 구간을 읽은 뒤 추가하세요.')
 
     def requested(self):
+        if self.reduction_index is not None:
+            return {'responses':[self.response],'candidate_ids':self.candidate_ids,
+                    'reduction_index':self.reduction_index}
         if self.first.value()>self.last.value():raise ValueError('첫 표본과 마지막 표본의 순서를 확인하세요.')
         result={'responses':[self.response],'rows':[self.first.value()-1,self.last.value()]}
         if self.time.text().strip():

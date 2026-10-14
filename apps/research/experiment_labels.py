@@ -15,3 +15,6 @@ REASONS = {
 def sample_reason(value):
     return '; '.join(REASONS.get(part.strip(), part.strip())
                      for part in str(value or '').split(';') if part.strip())
+
+REDUCTIONS = {'max':'최댓값','min':'최솟값','mean':'평균','final':'최종값',
+              'abs_max':'절댓값 최댓값','none':'원값'}

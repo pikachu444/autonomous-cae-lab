@@ -129,6 +129,8 @@ class DataDocuments(MaterialDocuments):
             if prepared['sha256'] != cert['sha256']:
                 raise ValueError('교정 원본이 변경되었습니다. 새 버전을 명시적으로 선택하세요.')
             certificates.append(prepared)
+        # The command receipt must freeze exactly the arguments that admission stores.
+        certificates = self.calibration_sources(draft['mapping'], certificates)
         return {**self.job_arguments(draft), 'source_ref': reference,
                 **({'calibration_sources': certificates} if certificates else {})}
 

@@ -210,3 +210,28 @@ def test_identification_lost_save_reply_retry_keeps_new_question(app,monkeypatch
         assert [r['question'] for r in client.doc['draft']['next_observations']]==['시험 A']
         assert window.question.text()=='아직 전송하지 않은 B' and window.note.toPlainText()=='근거 B'
     finally:window.close()
+
+
+def test_summary_reduction_dialog_reads_exact_final_value_without_curve(app):
+    from apps.research.report_selection import ReportSelectionDialog
+    from caelab.research_workflows import _candidate_reference_view
+    result={'execution_status':'SUCCEEDED','candidates':[{'candidate_id':'Cselected','values':{'E':1000.},
+        'execution_status':'SUCCEEDED','responses':{},'response_reductions':[
+            {'response':'stress','kind':'scalar','original_kind':'series','reduction':'max','value':8.,'unit':'MPa'},
+            {'response':'stress','kind':'scalar','original_kind':'series','reduction':'final','value':3.,'unit':'MPa'}]}]}
+    class ReadDouble:
+        def research_reference(self,reference):
+            return {'kind':'result','status':'AVAILABLE','reference':reference,
+                'result':_candidate_reference_view(result,reference['selection'])}
+    dialog=ReportSelectionDialog(ReadDouble(),{'document_id':'Nsaved'},'stress',
+        candidate_ids=['Cselected'],reduction_index=1)
+    try:
+        dialog.show();wait(app,lambda:dialog.selection is not None,dialog)
+        assert dialog.selection=={'responses':['stress'],'candidate_ids':['Cselected'],'reduction_index':1}
+        assert not dialog.time.isEnabled() and not dialog.first.isEnabled()
+        assert '최종값' in dialog.content.values.item(0,0).text()
+        assert float(dialog.content.values.item(0,1).text())==3.
+        assert dialog.content.values.item(0,2).text()=='MPa'
+        dialog.accept()
+    finally:
+        dialog.close();assert QThreadPool.globalInstance().waitForDone(5000)

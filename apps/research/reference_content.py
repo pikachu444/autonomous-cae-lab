@@ -156,6 +156,18 @@ class ReferenceContent(QWidget):
             return
         source = self._rows[max(0, self.candidate.currentIndex())] if self._rows else self._result
         responses = source.get('responses') or {}
+        if not responses and source.get('response_reductions'):
+            from .experiment_labels import REDUCTIONS
+            reductions=source['response_reductions']
+            self.values.setRowCount(len(reductions))
+            for index,row in enumerate(reductions):
+                table_row(self.values,index,[row['response']+' / '+
+                    REDUCTIONS.get(row.get('reduction'),str(row.get('reduction'))),
+                    text_value(row.get('value')),row.get('unit','미확인'),
+                    '보존된 축약값'])
+            self.body.setPlainText('선택 후보에 저장된 축약값입니다. 원 곡선은 이 선택에 포함되지 않습니다.')
+            self.body.show();self.result_views.show();self.result_views.setCurrentWidget(self.values)
+            return
         if not responses:
             reason = source.get('failure_reason') or source.get('error') or '계산 결과에서 읽을 값을 선택하세요.'
             self.body.setPlainText(str(reason))

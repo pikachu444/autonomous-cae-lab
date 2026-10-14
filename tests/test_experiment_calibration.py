@@ -160,3 +160,42 @@ def test_partially_provided_uncertainty_does_not_invent_standard_or_block_calibr
     assert values.tolist()==[2.5]
     assert audit['uncertainty']==recipe['uncertainty']
     assert audit['calibration_valid']==[True]
+
+
+@pytest.mark.parametrize('shared_certificate',[True,False])
+def test_multichannel_certificate_closure_recovers_lost_admission_reply(tmp_path,monkeypatch,shared_certificate):
+    root=tmp_path/'store';wb=Workbench(root)
+    try:
+        raw=wb.upload('voltage.csv',RAW)
+        certificates=[wb.upload('cert-a.txt',b'public A'),wb.upload('cert-b.txt',b'public B')]
+        certificates=sorted(certificates,key=lambda r:r['id'],reverse=True)
+        if shared_certificate:certificates[1]=certificates[0]
+        columns={}
+        for i,cert in enumerate(certificates):
+            recipe=calibration({'data_id':cert['id'],'sha256':cert['sha256'],'name':cert['name']})
+            columns['force'+str(i)]=mapping(recipe)['columns']['force']
+        doc=wb.document_open(kind='data',draft={'data_id':raw['id'],
+            'mapping':{'delimiter':',','skip_header':1,'columns':columns}})
+        owner=wb.data_documents;submit=owner.submit
+        def lost(*args,**kwargs):
+            submit(*args,**kwargs)
+            raise OSError('reply lost after job admission')
+        monkeypatch.setattr(owner,'submit',lost)
+        with pytest.raises(OSError):
+            command(wb,doc,'data.import',command_id='Cimport')
+        recovered=wb.document_read(doc['id'])
+        assert len(recovered['runs'])==1
+        job=wb.manager.status(recovered['runs'][0]['job_id'])
+        assert len(job['arguments']['calibration_sources'])==(1 if shared_certificate else 2)
+        completed(wb,job)
+        receipt=command(wb,doc,'data.import',command_id='Cimport')
+        assert receipt['job']['id']==job['id']
+        assert len(wb.manager.list())==1
+        saved=command(wb,wb.document_read(doc['id']),'document.save')['document']
+    finally:wb.shutdown()
+    fresh=Workbench(root)
+    try:
+        restored=fresh.document_open(kind='data',document_id=saved['id'])
+        assert len(restored['runs'])==1
+        assert fresh.document_result(restored['id'],job['id'])['responses']['force0']['value']==[.5,2.5,6.5]
+    finally:fresh.shutdown()

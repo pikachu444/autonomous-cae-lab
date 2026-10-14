@@ -102,7 +102,8 @@ def compact_payload(payload):
             if isinstance(source.get(key), list):
                 result['result'][key] = [{k: deepcopy(v) for k, v in row.items()
                     if k in {'candidate_id','values','execution_status','prediction_status','responses',
-                        'checks','failure_reason','error','feasible','objectives','penalty','constraints'}
+                        'checks','failure_reason','error','feasible','objective','objectives','penalty','constraints',
+                        'constraint_residuals','response_reductions','selected_reduction_index','converged','termination_reason'}
                     and (k != 'responses' or not metadata_only)} for row in source[key]]
     elif payload['kind'] == 'document':
         result['document'] = deepcopy(payload['document'])
@@ -117,7 +118,7 @@ def check_selection(reference, payload):
     if reference['kind'] != 'result':
         return
     selection = effective_selection(reference)
-    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'time_range', 'component', 'location', 'metadata_only', 'source_rows', 'candidate_ids'}:
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'time_range', 'component', 'location', 'metadata_only', 'source_rows', 'candidate_ids', 'reduction_index'}:
         raise ValueError('보고서에 고정할 응답과 행/시각을 명시하세요.')
     source = snapshot_value(payload.get('result', {}))
     nested = source.get('candidates', source.get('predictions'))
@@ -126,6 +127,13 @@ def check_selection(reference, payload):
         if not isinstance(nested, list) or {r.get('candidate_id') for r in nested} != set(selection['candidate_ids']):
             raise ValueError('선택한 후보와 읽은 결과가 다릅니다.')
     if selection.get('metadata_only'):
+        return
+    if 'reduction_index' in selection:
+        if (not isinstance(nested,list) or len(nested)!=1 or
+                nested[0].get('selected_reduction_index')!=selection['reduction_index'] or
+                len(nested[0].get('response_reductions',[]))!=1 or
+                [nested[0]['response_reductions'][0]['response']]!=selection.get('responses')):
+            raise ValueError('선택한 후보의 정확한 축약값이 없습니다.')
         return
     names = selection.get('responses')
     if not isinstance(names, list) or not names or not sources:

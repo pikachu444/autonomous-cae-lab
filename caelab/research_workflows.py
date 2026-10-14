@@ -155,7 +155,7 @@ def _candidate_reference_view(result, selection):
     """
     if isinstance(selection, list):
         selection = {'responses': selection}
-    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'candidate_ids', 'metadata_only'}:
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'candidate_ids', 'metadata_only', 'reduction_index'}:
         raise ValueError('Candidate evidence preview accepts response names and rows; open the original result for advanced selection')
     names = selection.get('responses')
     if names is not None and (not isinstance(names, list) or any(not isinstance(name, str) for name in names)):
@@ -174,6 +174,20 @@ def _candidate_reference_view(result, selection):
         if set(selected_ids) - {row.get('candidate_id') for row in rows}:
             raise ValueError('Selected candidate is absent from this exact result')
         rows = [row for row in rows if row.get('candidate_id') in selected_ids]
+    reduction_index=selection.get('reduction_index')
+    if reduction_index is not None:
+        if (type(reduction_index) is not int or selected_ids is None or len(rows)!=1
+                or not 0<=reduction_index<len(rows[0].get('response_reductions',[]))
+                or set(selection)-{'candidate_ids','responses','reduction_index'}):
+            raise ValueError('Select one exact saved candidate reduction, without curve rows or times')
+        reduced=rows[0]['response_reductions'][reduction_index]
+        if names != [reduced['response']]:
+            raise ValueError('Saved reduction and requested response differ')
+        actual=deepcopy(result);actual[key]=deepcopy(rows)
+        actual[key][0]['responses']={}
+        actual[key][0]['response_reductions']=[deepcopy(reduced)]
+        actual[key][0]['selected_reduction_index']=reduction_index
+        return actual
     available = {name for row in rows for name in (row.get('responses') or {})}
     if names is not None and any(name not in available for name in names):
         raise ValueError('Unknown candidate response selection')
@@ -183,6 +197,8 @@ def _candidate_reference_view(result, selection):
         responses = row.get('responses') or {}
         row['responses'] = ({} if selection.get('metadata_only') else
             {name: response for name, response in responses.items() if names is None or name in names})
+        if not selection.get('metadata_only'):
+            row.pop('response_reductions',None)
         for response in row['responses'].values():
             if bounds is None or response.get('kind') != 'series':
                 continue

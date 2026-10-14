@@ -9,7 +9,7 @@ import tempfile
 from PySide6.QtCore import QByteArray, QUrl, QSizeF
 from PySide6.QtGui import QFont, QImage, QTextCharFormat, QTextCursor, QTextDocument, QTextImageFormat, QTextTableFormat, QPageSize
 from PySide6.QtPrintSupport import QPrinter
-from .experiment_labels import sample_reason
+from .experiment_labels import sample_reason, REDUCTIONS
 
 
 def value_text(value):
@@ -96,6 +96,17 @@ def blocks(content):
             yield ('paragraph', ('대리모델 예측 — 실제 계산 아님' if predicted else '선택한 실제 후보')+' '+str(index+1))
             yield ('table', (['입력','값'], [[k,v] for k,v in row.get('values',{}).items()]))
             yield from blocks({'kind':'result','result':row})
+    if 'objective' in result:
+        yield ('table', (['저장된 목적값','제약 만족'],[[result['objective'],
+            '예' if result.get('feasible') is True else '아니오' if result.get('feasible') is False else '미확인']]))
+    if result.get('constraint_residuals'):
+        yield ('table', (['제약 순서','정규화 잔차'],[[i+1,v] for i,v in enumerate(result['constraint_residuals'])]))
+    if result.get('response_reductions'):
+        yield ('paragraph','저장된 축약값 — 원 곡선을 대신하지 않습니다.')
+        yield ('table', (['응답','축약','값','단위','성분','위치','정의','좌표계'],
+            [[r['response'],REDUCTIONS.get(r.get('reduction'),str(r.get('reduction'))),r.get('value'),
+              r.get('unit'),r.get('component'),r.get('location'),r.get('measure'),r.get('frame')]
+             for r in result['response_reductions']]))
     for name, response in result.get('responses', {}).items():
         yield ('paragraph', name + ' [' + str(response.get('unit', '미확인')) + ']\n' +
                ' / '.join(str(response[k]) for k in ('measure', 'component', 'location', 'frame') if response.get(k)))
