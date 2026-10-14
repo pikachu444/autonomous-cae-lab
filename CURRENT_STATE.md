@@ -36,7 +36,19 @@ Qt 렌더는 `runs/product-development/20261014/post-curves-final/`에 보존한
 Codex는 소스와 인도 기록을 검토했고 공통 native 명령 등록의 통합 회귀를 확인했다.
 `7955275`까지 원격 main 게시와 로컬/원격 일치를 확인했다. MoAI 작업 카드와
 Space 공동 대화방의 현황도 갱신했다. 다음 행동은 진행 중인 운동 경로/Data 인도와
-그에 대한 독립 검토·통합이다. Pro의 곡선 작성 턴은 완료됐으며 새 과제 배정 전이다.
+그에 대한 독립 검토·통합이다. Pro의 곡선 작성 턴은 완료됐다.
+
+**다음 충격 입력 인도 — 실제 Pro 작성 중:** `PRO-IMPACT-PROJECT-02`는 main `a0a95b4`를
+기준으로 사용자 INP/INCLUDE 파일 묶음 가져오기, 요소집합에서 운동·접촉 대상 만들기,
+대상 미리보기와 기존 실행/Post 연결을 맡긴다. 현재 단일 ASCII 파일과 기존 NSET/
+SURFACE만 선택할 수 있는 실제 사용 제한을 해소한다. 기존 adapter 실행기와 후처리는
+재사용한다. 원본 묶음과 사용자 집합을 구분하고, 포함 경로는 명시한 작업 루트 기준이다.
+Astra의 사전 검토에서 이 범위의 진행에 동의했다. Pro는 impact 입력/편집/adapter의
+입력 보존 연결을, Sol은 motion/connection의 운동 Data 연결을 분리 소유한다.
+같은 실제 Pro 대화 `https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a`에
+한 번 전송했다. 브라우저에서 Pro 파워5와 빈 입력란을 다시 확인했고, 공식 턴
+`01a1389d-56b2-7579-b798-5131ed662607`의 사용자 요청과 실행 중 상태를 확인했다.
+전달 원문은 `runs/product-development/20261014/impact-workflows/pro-project-request.md`다.
 
 **조립 편집 저장 후속 통합:** Sol `8b1f635`를 main `40f30d8`에 통합했다.
 미적용 관절·구동 입력을 같은 `.caepre`에 보존하며, 닫기/모두 닫기/재연결에서
