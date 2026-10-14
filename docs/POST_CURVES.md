@@ -85,4 +85,14 @@ python -m pytest tests/test_post_curves.py tests/test_post_curve_snapshot.py tes
 | 남은 제한 | 시간별 서로 다른 위치 추적, 자동 시간 동기화, 비단조 가지 자동 분할, 확률/오차대역 전파, 주파수/위상 비교, 없던 물리량·벡터 재구성은 제공하지 않음 |
 | 크기 | 입력당 최대 20,000행/16 MiB, 결과 표는 페이지 단위로 읽기. 일부만 성공한 것처럼 잘라 저장하지 않음 |
 
-작성 환경의 실행 서버가 연결되지 않아 위 Python/Qt/ParaView 검사는 **NOT_RUN**입니다. 소스 작성과 문자 수준 점검을 실행 통과로 표시하지 않습니다. 설치 환경에서의 실제 확인은 별도 통합 결과로 기록해야 합니다.
+Pro 작성 환경에서는 실행 서버 연결 불가로 검사가 **NOT_RUN**이었습니다.
+
+2026-10-14 Codex 통합 환경에서는 최종 제출의 Python/Qt 관련 26개와 설치된
+ParaView 6.2의 생성·저장, 새 프로세스 재열기, 원자료 누락 시 보존값 읽기/저장과
+같은 내용의 새 위치 복구를 확인했습니다. 원 실패에서 고정점 시간 측정이 통계로
+반환되어 Codex가 ID 선택으로 교정했습니다. ParaView의 쿼리 선택과 고정 선택의
+차이는 [공식 설명](https://docs.paraview.org/en/v5.11.2/UsersGuide/selectingData.html#plot-selection-over-time)을 따릅니다.
+실행 자료는 `runs/product-development/20261014/post-curves-final/`에 있습니다.
+저장된 실제 비교값으로 Qt 표와 그래프도 렌더해 확인했습니다. Astra가 지적한 허용
+간격 밖의 그래프 연결도 교정하고 관련 순수/Qt 검사로 확인했습니다. 이는 OS 입력
+수용이나 공학적 타당성 확인이 아니며 새 솔버와 모델 호출은 없었습니다.
