@@ -36,7 +36,8 @@ def test_native_connection_routes_tie_input_and_run_to_existing_contact_owner(na
     kind=lambda o:getattr(getattr(o,'Proxy',None),'Type',o.TypeId)
     monkeypatch.setitem(sys.modules,'FemGui',NS(getActiveAnalysis=lambda:native.analysis))
     monkeypatch.setitem(sys.modules,'femtools',NS(femutils=NS(type_of_obj=kind)))
-    owner=NS(document_id='Pfixture',session_id='Sfixture',generation=7,refresh=lambda:None)
+    owner=NS(document_id='Pfixture',session_id='Sfixture',generation=7,refresh=lambda:None,
+             read_metadata=lambda:deepcopy(native.metadata))
     calls=[]
     connection=NS(pending=None,App=native.App,owners={native.doc.Name:(owner,None,None)},panels={},
                   message=QLabel(),send_command=lambda:calls.append(deepcopy(connection.pending)))
