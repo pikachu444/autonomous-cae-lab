@@ -252,9 +252,8 @@ def render_steps(model):
                 lines += [str(n)+','+str(d)+(','+str(d) if card=='*BOUNDARY' else '')+',1' for n,d in keys]
         frequency = ',FREQUENCY='+str(step['output_frequency'])
         has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
-        lines += ['*NODE FILE'+frequency, 'U,RF' if has_tie else 'U']
-        if has_tie:
-            lines += ['*EL FILE'+frequency, 'S']
+        from .contact_deck import solid_output_cards
+        lines += solid_output_cards(model, frequency)
         contact_pairs = [p for p in model['contacts'] if p['draft']['normal_law'] != 'tie']
         if contact_pairs:
             lines += ['*CONTACT FILE'+frequency, 'CDIS,CSTR']
@@ -316,7 +315,8 @@ def validate_frames(model, observed, *, complete=True):
         if (value < row['start'] and not _printed_close(token,row['start']) or
                 value > row['end'] and not _printed_close(token,row['end'])):
             raise ValueError('FRD coordinate is outside its frozen step')
-        if p:
+        from .calculix_material import ns1_enabled
+        if p or ns1_enabled(model):
             frame['step_location']=step_location(model,index,value)
     if complete:
         for row in expected:

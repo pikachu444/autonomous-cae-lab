@@ -9,6 +9,7 @@ import shutil
 import subprocess
 
 from ..contact import BACKEND
+from ..calculix_material import ns1_enabled, has_plasticity, field_specifications
 from ..contact_deck import render, validate_model
 from ..contact_steps import profile, axis as contact_axis, validate_frames
 from ..execution_control import run_owned_command, check_cancelled, ExecutionCancelled, ExecutionCleanupFailed
@@ -158,10 +159,17 @@ class ContactFemCalculixAdapter:
                                 contact_profile=profile(model), require_contact=bool(contact_pairs))
             validate_frames(model, observed)
             frames = observed['frames']
+            if ns1_enabled(model):
+                if observed['native_version'] != '2.22':
+                    raise ValueError('NS1 requires CalculiX 2.22 result output.')
+                required = {'STRESS', 'TOSTRAIN', 'FORC'} | ({'PE'} if has_plasticity(model) else set())
+                missing = sorted({name for frame in frames for name in required - set(frame['fields'])})
+                if missing:
+                    raise ValueError('Requested NS1 fields were not output: ' + ', '.join(missing))
             coordinates,adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
             if has_tie and any(not {'DISP', 'STRESS', 'FORC'} <= set(frame['fields']) for frame in frames):
                 raise ValueError('묶음 접촉의 변위·응력·절점 힘 출력이 누락됐습니다. 원 출력은 보존됩니다.')
-            if profile(model):
+            if profile(model) or ns1_enabled(model):
                 from ..contact_status import read_status, require_converged
                 progress=read_status(deck.with_suffix('.sta'),model)
                 require_converged(frames,progress)
@@ -187,7 +195,7 @@ class ContactFemCalculixAdapter:
             final = frames[-1]
             ids = sorted(nodes)
             field_clock = ({'axis':contact_axis(model), 'coordinate':final['static']['load_parameter'],
-                            'step_location':deepcopy(final['step_location'])} if profile(model) else {})
+                            'step_location':deepcopy(final.get('step_location'))} if profile(model) or ns1_enabled(model) else {})
             responses = {}
             for j, key in enumerate(CHANNELS if contact_pairs else ()):
                 covered = [n for n in ids if n in final['fields']['CONTACT'] and final['fields']['CONTACT'][n][j] is not None]
@@ -204,16 +212,20 @@ class ContactFemCalculixAdapter:
                 'location':'calculix_export_nodes','reduction':'none',
                 'metadata':{'node_ids':ids,'association':'POINTS','static':final['static'], **field_clock,
                             'frame':'FREECAD_DOCUMENT_GLOBAL'}}
-            if has_tie:
-                for native, key, unit, components in [('FORC', 'nodal_force', 'N', ['X','Y','Z']),
-                                                      ('STRESS', 'stress', 'MPa', ['XX','YY','ZZ','XY','YZ','ZX'])]:
+            if has_tie or ns1_enabled(model):
+                for native, prefix, unit, measure, components in field_specifications(model):
+                    if native not in final['fields']:
+                        continue
+                    key = {'FORC': 'nodal_force', 'STRESS': 'stress', 'TOSTRAIN': 'total_strain', 'PE': 'PEEQ'}[native]
                     responses[key] = {'kind':'field', 'unit':unit,
-                        'value':[final['fields'][native][n] for n in ids],
-                        'component':'VECTOR' if native == 'FORC' else 'TENSOR',
+                        'value':[final['fields'][native][n][0] if native == 'PE' else final['fields'][native][n] for n in ids],
+                        'component': 'SCALAR' if native == 'PE' else ('VECTOR' if native == 'FORC' else 'TENSOR'),
                         'location':'calculix_export_nodes', 'reduction':'none',
                         'metadata':{'node_ids':ids, 'association':'POINTS', 'static':final['static'], **field_clock,
-                            'frame':'FREECAD_DOCUMENT_GLOBAL', 'component_names':components,
-                            'meaning':'native_RF_nodal_force_including_applied_loads' if native == 'FORC' else 'native_extrapolated_averaged_Cauchy_stress'}}
+                            'frame':'FREECAD_DOCUMENT_GLOBAL', 'component_names':list(components),
+                            'measure': measure, 'native_field': native,
+                            'meaning':'native_RF_nodal_force_including_applied_loads' if native == 'FORC' else measure,
+                            'shear_convention': 'tensor_shear_not_engineering_shear' if native == 'TOSTRAIN' else None}}
             for pair in contact_pairs:
                 for quantity in ('CF','CFN','CFS'):
                     rows = [row for row in pair_results if row['pair_id']==pair['object_id'] and row['quantity']==quantity]
@@ -243,7 +255,9 @@ class ContactFemCalculixAdapter:
         if model is not None and manifest is not None:
             result['executed_setup']={'analysis_id':manifest.get('analysis_id'), 'solver_id':manifest.get('solver_id'),
                 'snapshot_id':manifest['id'],'axis':contact_axis(model),
-                'program':model.get('analysis_steps'),
+                'program':model.get('analysis_steps'), 'step':deepcopy(model['step']),
+                'materials':deepcopy(model['materials']),
+                'unavailable_controls': ['STATIC,STABILIZE (CalculiX 2.22)', 'generic Newton line search'],
                 'conditions':[{'object_id':r['object_id'],'label':r.get('label',r['object_id']),
                                'type':r['type'],'body_id':r['body_id']} for r in model.get('conditions',[])]}
             status_path=output/'solver/contact.sta'
@@ -328,7 +342,7 @@ def regenerate_post(attempt, output):
         required += ['tie_projection/expected.json','tie_projection/points.json','tie_projection/projected.json']
     if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']) or 'solver/contact.dat' in entries:
         required.append('solver/contact.dat')
-    if profile(model):
+    if profile(model) or ns1_enabled(model):
         required.append('solver/contact.sta')
     source_pins = {}
     for relative in required:
@@ -351,7 +365,7 @@ def regenerate_post(attempt, output):
     validate_frames(model, observed)
     frames = observed['frames']
     coordinates,adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
-    if profile(model):
+    if profile(model) or ns1_enabled(model):
         from ..contact_status import read_status, require_converged
         require_converged(frames, read_status(attempt / 'solver/contact.sta', model))
     pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames)

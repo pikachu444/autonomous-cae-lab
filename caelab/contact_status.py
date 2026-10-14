@@ -44,7 +44,21 @@ def read_status(path, model):
     if not rows:
         raise ValueError('No native increment status rows')
     terminal=rows[-1]
+    cutbacks = []
+    for previous, current in zip(rows, rows[1:]):
+        if (not previous['converged'] and (previous['step'], previous['increment']) ==
+                (current['step'], current['increment']) and current['attempt'] > previous['attempt']
+                and current['increment_size'] < previous['increment_size']):
+            cutbacks.append({'step': current['step'], 'increment': current['increment'],
+                'from_attempt': previous['attempt'], 'to_attempt': current['attempt'],
+                'old_increment': previous['increment_size'], 'new_increment': current['increment_size'],
+                'source_lines': [previous['line'], current['line']],
+                'meaning': 'observed_reduction_between_recorded_attempts'})
     return {'kind':'calculix_increment_attempts','rows':rows,
+            'rejected_attempt_count': sum(not row['converged'] for row in rows),
+            'observed_cutbacks': cutbacks,
+            'residual': {'status': 'unavailable', 'reason': 'not recorded in STA; inspect retained solver stdout'},
+            'stabilization_energy': {'status': 'unavailable', 'reason': 'STATIC,STABILIZE is not supported by this 2.22 path'},
             'source':{'relative':'solver/contact.sta','sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw)},
             'last_converged':next((deepcopy(r) for r in reversed(rows) if r['converged']),None),
             'failure_location':deepcopy(terminal) if not terminal['converged'] else None}
@@ -93,6 +107,9 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     destination.write_text('\n'.join(prefix+[' 9999','']),encoding='ascii',newline='\n')
     observed=read_frd(destination,nodes,elements,contact_materials=materials,contact_profile=profile(model),
                       require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
+    from .calculix_material import ns1_enabled
+    if ns1_enabled(model) and observed['native_version'] != '2.22':
+        raise ValueError('NS1 partial readback requires CalculiX 2.22.')
     validate_frames(model,observed,complete=False)
     require_converged(observed['frames'],status)
     return observed

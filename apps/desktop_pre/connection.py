@@ -314,12 +314,15 @@ class Connection:
             page = getattr(dock.widget(),'steps_page',None) if dock is not None else None
             if page is not None and page.modified:
                 raise ValueError('해석 단계에 미적용 수정이 있습니다. 단계 적용 또는 수정 취소 후 진행하세요.')
+            material_page = getattr(dock.widget(), 'material_page', None) if dock is not None else None
+            if material_page is not None and material_page.pending_changes():
+                raise ValueError('재료 또는 기하 설정에 미적용 편집이 있습니다. 초안 저장/적용 또는 저장본 읽기 후 진행하세요.')
             owner.refresh()
+            from .nonlinear_material import uses_solid_route
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
                 'document_id': owner.document_id, 'session_id': owner.session_id,
                 'generation': owner.generation, 'export_only': bool(export_only),
-                'operation': 'pre.contact.freeze' if any(femutils.type_of_obj(obj) in ('Fem::ConstraintContact', 'Fem::ConstraintTie')
-                    and not getattr(obj, 'Suppressed', False) for obj in selected.Group) else 'pre.freeze',
+                'operation': 'pre.contact.freeze' if uses_solid_route(selected, owner.read_metadata()) else 'pre.freeze',
                 'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
             self.send_command()
         except Exception as exc:

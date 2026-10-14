@@ -216,3 +216,20 @@ def result_meanings(nlgeom=None):
         result['TOSTRAIN']['measure'] = 'green_lagrange' if nlgeom else 'infinitesimal'
         result['TOSTRAIN']['requires_step_context'] = False
     return result
+
+
+def ns1_enabled(model):
+    return has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static'
+
+
+def field_specifications(model):
+    """Shared native/Post/Runner quantities for the admitted common NLGEOM setting."""
+    geometry = model.get('step', {}).get('geometry')
+    meanings = result_meanings({'linear': False, 'nonlinear': True}.get(geometry))
+    return [
+        ('FORC', 'F', 'N', meanings['FORC']['quantity'], ('X', 'Y', 'Z')),
+        ('STRESS', 'S', 'MPa', 'cauchy_stress', ('XX', 'YY', 'ZZ', 'XY', 'YZ', 'ZX')),
+        ('TOSTRAIN', 'E', '1', meanings['TOSTRAIN']['measure'] or 'unknown_total_strain_measure',
+         ('XX', 'YY', 'ZZ', 'XY', 'YZ', 'ZX')),
+        ('PE', 'PEEQ', '1', 'equivalent_plastic_strain', ('',)),
+    ]

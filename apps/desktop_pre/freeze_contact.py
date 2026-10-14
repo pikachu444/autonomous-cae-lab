@@ -14,6 +14,8 @@ from caelab.contact import separate_meshes, surface_union, number
 from caelab.contact_deck import UNITS, contact_cards, render, validate_model
 from .freeze_analysis import _json, _hash, _plain
 from .fem_edit import _native_type, _target, _references
+from . import nonlinear_material
+from caelab.calculix_material import J2, has_plasticity
 
 
 def _refs(obj, bodies, *, material=False):
@@ -69,15 +71,15 @@ def collect(analysis, solver, fem):
     procedure = program.get('procedure') if program else 'static'
     if procedure not in ('static', 'dynamic'):
         raise ValueError('Repair the Analysis procedure in the Steps page')
-    expected = {'AnalysisType': 'static', 'ModelSpace': '3D', 'MaterialNonlinearity': 'linear', 'SplitInputWriter': False}
+    expected = {'AnalysisType': 'static', 'ModelSpace': '3D', 'SplitInputWriter': False}
     if any(getattr(solver, key) != value for key, value in expected.items()):
-        raise ValueError('Contact steps require a static-compatible native CalculiX settings object, unsplit 3D isotropic elastic bodies; the contact Steps page owns the static/dynamic procedure')
+        raise ValueError('Contact steps require a static-compatible native CalculiX settings object, unsplit 3D isotropic solid bodies; the contact Steps page owns the static/dynamic procedure')
     if solver.GeometricalNonlinearity not in ('linear', 'nonlinear'):
         raise ValueError('Unsupported native geometric formulation')
     records = [row for row in fem.contact._data()['contacts'] if row['analysis_id'] == analysis.Name
                and not getattr(owner._object(row['object_id']), 'Suppressed', False)]
-    if not records:
-        raise ValueError('Apply at least one explicit contact pair')
+    if not records and procedure != 'static':
+        raise ValueError('무접촉 단일 body의 첫 지원은 STATIC입니다.')
     for record in records:
         errors = fem.contact.errors(record)
         if errors:
@@ -85,7 +87,13 @@ def collect(analysis, solver, fem):
     members = membertools.AnalysisMember(analysis)
     active = [obj for obj in analysis.Group if not getattr(obj, 'Suppressed', False)]
     meshes = [obj for obj in active if hasattr(obj, 'FemMesh')]
-    allowed = [solver, *meshes, *[owner._object(row['object_id']) for row in records]]
+    nonlinear = nonlinear_material.native_objects(analysis)
+    base_materials = [row['Object'] for row in members.mats_linear]
+    if any(obj.LinearBaseMaterial not in base_materials for obj in nonlinear):
+        raise ValueError('소성 객체의 기본 재료가 이 해석의 활성 고체 재료가 아닙니다.')
+    if solver.MaterialNonlinearity != ('nonlinear' if nonlinear else 'linear'):
+        raise ValueError('재료 비선형 설정과 활성 소성 재료가 일치하지 않습니다. 재료를 명시 적용하세요.')
+    allowed = [solver, *meshes, *nonlinear, *[owner._object(row['object_id']) for row in records]]
     for group in (members.mats_linear, members.cons_fixed, members.cons_displacement, members.cons_force):
         allowed.extend(row['Object'] for row in group)
     if any(obj not in allowed for obj in active):
@@ -113,7 +121,9 @@ def collect(analysis, solver, fem):
         bodies[source.Name] = {'object': source, 'mesh': mesh, 'getter': getter, 'binding': binding,
                                'quality': quality, 'target': _target(source, ['Solid1'])}
         source_rows.append({'body_id': source.Name, 'nodes': nodes, 'elements': elements})
-    assembled = separate_meshes(source_rows)
+    if not records and len(source_rows) != 1:
+        raise ValueError('무접촉 첫 지원은 하나의 고체 body와 메시입니다.')
+    assembled = separate_meshes(source_rows, minimum_bodies=2 if records else 1)
     for row in assembled['nodes']:
         row['native_position_mm'] = row['position_mm']
         row['position_mm'] = [float(format(v, '.13G')) for v in row['position_mm']]
@@ -122,6 +132,8 @@ def collect(analysis, solver, fem):
     model = dict(assembled, kind='freecad-contact-mesh', schema_version='1', units=dict(UNITS),
                  materials=[], contacts=[], boundary_dofs=[], loads=[], conditions=[],
                  output={'frequency': 1, 'nodal': ['U', 'CDIS', 'CSTR'], 'pair': ['CF', 'CFN', 'CFS']})
+    if not records:
+        model['analysis_scope'] = 'single_solid_static'
     mappings = assembled['body_maps']
     for record in records:
         pair = {'object_id': record['object_id'], 'draft': deepcopy(record['draft']),
@@ -155,10 +167,11 @@ def collect(analysis, solver, fem):
         density = {}
         if procedure == 'dynamic':
             density['density_tonne_per_mm3'] = number(App.Units.Quantity(obj.Material['Density']).getValueAs('kg/m^3').Value) * 1e-12
+        constitutive = nonlinear_material.effective(fem, analysis, obj)
         for body in assigned:
             model['materials'].append({'body_id': body, 'object_id': obj.Name,
                 'law': 'isotropic_linear_elastic', 'young_modulus_MPa': E, 'poisson_ratio': nu,
-                'native_values': _plain(obj.Material), **density})
+                'native_values': _plain(obj.Material), **density, **constitutive})
     constraints, loads = {}, {}
     for group_name in ('cons_fixed', 'cons_displacement', 'cons_force'):
         for member in getattr(members, group_name):
@@ -264,6 +277,9 @@ def collect(analysis, solver, fem):
     if has_tie:
         model['output']['nodal'] = ['U', 'RF', 'S'] + (['CDIS', 'CSTR'] if has_contact else [])
         model['output']['pair'] = ['CF', 'CFN', 'CFS'] if has_contact else []
+    if has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static':
+        model['output']['nodal'] = ['U', 'RF', 'S', 'E'] + (['PEEQ'] if has_plasticity(model) else []) + (['CDIS', 'CSTR'] if has_contact else [])
+        model['output']['pair'] = ['CF', 'CFN', 'CFS'] if has_contact else []
     validate_model(model)
     identity = [{'body_id': identifier, 'mesh_id': row['mesh'].Name, 'target': row['target'],
                  'binding': row['binding']} for identifier, row in sorted(bodies.items())]
@@ -274,6 +290,8 @@ def freeze_contact(analysis, solver, output_root, *, fem):
     import FreeCAD as App
     from femsolver.calculix import write_constraint_contact
     model, identity = collect(analysis, solver, fem)
+    for material in model['materials']:
+        nonlinear_material.verify_native_writer(fem, material)
     # The installed writer is authoritative for these contact cards. Compare its
     # effective output to the bounded headless contract before admitting bytes.
     for pair in model['contacts']:

@@ -1,5 +1,17 @@
 # 현재 작업과 제품 상태
 
+## 2026-10-14 NS1 사용자 모델 연결 제출
+
+PRO-NS1-RESUME-20261014-02: 기존 비선형 브랜치에 main 2942e4d를 정상 merge하고
+재료 표/초안/native J2, 단일 고체 및 기존 접촉 freeze/실행, S/E/PEEQ와 실패 결과
+재열기 연결을 게시했다. 관련 195개 검사가 로컬 및 GitHub Ubuntu에서 통과했다.
+Fortran F20.0 및 Qt 검사는 실제 실행했고 native CAD/계산 프로세스는 명시 대역이다.
+Windows FreeCAD 1.1.4→CalculiX 2.22→ParaView 실제 계산과 Astra 독립 검토는 미실행이다.
+따라서 NS1/AC-12·13 전체 완료가 아니다. Codex의 다음 확인 범위는
+[한글 사용법](docs/NS1_USER_MODEL_KO.md), [제출 상태](docs/NS1_IMPLEMENTATION_STATUS.md)에 있다.
+기존 motion/Data/Post/CAD 복구 변경과 native pin은 보존했다.
+
+
 갱신: 2026-10-14. 이 파일이 현재 사실·맡긴 작업·다음 행동의 유일한 원본이다.
 제품 목표는 [PRODUCT_PLAN](docs/PRODUCT_PLAN.md), 상세 기능은
 [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), 역할·갱신 규칙은

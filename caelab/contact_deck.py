@@ -2,6 +2,7 @@
 import math
 import re
 from .contact import law_errors, number
+from .calculix_material import material_errors, plastic_cards, has_plasticity
 
 UNITS = {'position': 'mm', 'displacement': 'mm', 'force': 'N', 'stress': 'MPa'}
 # CalculiX C3D10 face order: corners followed by midside nodes in that orientation.
@@ -76,7 +77,10 @@ def validate_model(model):
         elements[identifier] = list(ids)
         native_elements.add((body, native))
         bodies[body]['elements'].add(identifier)
-    if len(bodies) < 2 or not elements or set(nodes) != {n for ids in elements.values() for n in ids}:
+    if model.get('analysis_scope') not in (None, 'single_solid_static'):
+        raise ValueError('Unsupported solid analysis scope')
+    single = model.get('analysis_scope') == 'single_solid_static'
+    if (single and len(bodies) != 1) or (not single and len(bodies) < 2) or not elements or set(nodes) != {n for ids in elements.values() for n in ids}:
         raise ValueError('Contact needs complete separate body meshes')
     from apps.desktop_pre.freeze_analysis import CCX_FROM_NATIVE_TET10
     if model.get('native_to_deck_slots') != list(CCX_FROM_NATIVE_TET10) or model.get('interface_policy') != 'independent_body_dofs':
@@ -105,10 +109,13 @@ def validate_model(model):
     materials = model['materials']
     if {row['body_id'] for row in materials} != set(bodies) or len(materials) != len(bodies):
         raise ValueError('Every body requires one explicit complete material/section assignment')
-    for row in materials:
-        E, nu = number(row['young_modulus_MPa']), number(row['poisson_ratio'])
-        if E <= 0 or not -1 < nu < .5 or row['law'] != 'isotropic_linear_elastic':
-            raise ValueError('Contact bodies require isotropic linear elastic materials')
+    for index, row in enumerate(materials):
+        errors = material_errors(row, 'materials.' + str(index))
+        if errors:
+            raise ValueError('; '.join(e['path'] + ': ' + e['message'] for e in errors))
+        plastic_cards(row)  # Check exact serialized curve, including the 200-point cap.
+    if (single or has_plasticity(model)) and model.get('analysis_steps', {}).get('procedure', 'static') != 'static':
+        raise ValueError('NS1 first support is STATIC; nonlinear dynamic material input is not admitted.')
     pair_ids = set()
     for pair in model['contacts']:
         if name(pair['object_id']).upper() in pair_ids or law_errors(pair['draft']):
@@ -129,8 +136,10 @@ def validate_model(model):
             if (mapped != {tuple(v) for v in rows} or not surface['cad_faces'] or
                     any(not cad['element_faces'] for cad in surface['cad_faces'])):
                 raise ValueError('A selected CAD face has no exact mapped union')
-    if not pair_ids:
+    if not pair_ids and not single:
         raise ValueError('This capability requires an explicit contact pair')
+    if single and pair_ids:
+        raise ValueError('A single-solid no-contact scope cannot contain a contact pair')
     boundaries, loads = {}, {}
     for row in model['boundary_dofs']:
         key, value = (row['node_id'], row['component']), number(row['value_mm'])
@@ -153,6 +162,9 @@ def validate_model(model):
             raise ValueError('묶음 A면의 절점은 다른 묶음의 종속 절점이나 변위 구속과 겹칠 수 없습니다. A/B 또는 구속 면을 다시 선택하세요.')
         dependent.update(slave)
     step = model['step']
+    if set(step) - {'initial', 'period', 'minimum', 'maximum', 'increments', 'geometry',
+                    'automatic', 'matrix_solver', 'axis_semantics', 'controls'}:
+        raise ValueError('Unsupported static controls: STABILIZE and generic line search are not generated.')
     times = [number(step[key]) for key in ('initial', 'period', 'minimum', 'maximum')]
     if any(value <= 0 for value in times) or not times[2] <= times[0] <= min(times[1], times[3]):
         raise ValueError('Invalid static increment settings')
@@ -194,6 +206,7 @@ def render(model):
         material = next(row for row in model['materials'] if row['body_id'] == body)
         lines.extend(['*MATERIAL,NAME=M' + str(index), '*ELASTIC',
             num(material['young_modulus_MPa']) + ',' + num(material['poisson_ratio']),
+            *plastic_cards(material),
             '*SOLID SECTION,ELSET=B' + str(index) + ',MATERIAL=M' + str(index)])
     # Density is only effective in the explicitly selected dynamic capability.
     if model.get('analysis_steps', {}).get('procedure') == 'dynamic':
@@ -227,9 +240,7 @@ def render(model):
         lines.append('*CLOAD')
         lines += [str(row['node_id']) + ',' + str(row['component']) + ',' + num(row['force_N']) for row in model['loads']]
     has_tie = any(pair['draft']['normal_law'] == 'tie' for pair in model['contacts'])
-    lines.extend(['*NODE FILE', 'U,RF' if has_tie else 'U'])
-    if has_tie:
-        lines.extend(['*EL FILE', 'S'])
+    lines.extend(solid_output_cards(model))
     contact_pairs = [pair for pair in model['contacts'] if pair['draft']['normal_law'] != 'tie']
     if contact_pairs:
         lines.extend(['*CONTACT FILE', 'CDIS,CSTR'])
@@ -239,3 +250,15 @@ def render(model):
         lines.extend(['*CONTACT PRINT,SLAVE=DEP' + identifier + ',MASTER=IND' + identifier, 'CF,CFN,CFS'])
     lines.extend(['*END STEP', ''])
     return '\n'.join(lines)
+
+
+def solid_output_cards(model, frequency=''):
+    """Request the real native nodal recovery; PE is the FRD name of scalar PEEQ."""
+    ns1 = has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static'
+    tie = any(pair['draft']['normal_law'] == 'tie' for pair in model['contacts'])
+    lines = ['*NODE FILE' + frequency, 'U,RF' if ns1 or tie else 'U']
+    if ns1:
+        lines += ['*EL FILE' + frequency, 'S,E,PEEQ' if has_plasticity(model) else 'S,E']
+    elif tie:
+        lines += ['*EL FILE' + frequency, 'S']
+    return lines

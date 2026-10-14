@@ -18,22 +18,35 @@ class ContactRunDialog(QDialog):
         layout.addWidget(heading)
         self.setup=result.get('executed_setup') or {}
         axis=self.setup.get('axis',{'unit':'1'})
-        label='시간 [s]' if axis['unit']=='s' else '누적 하중 계수 [1]'
-        self.attempts=QTableWidget(0,6)
-        self.attempts.setHorizontalHeaderLabels(['단계','증분','시도','반복','도달 '+label,'상태'])
+        label='물리시간\n[s]' if axis['unit']=='s' else '누적 단계 진행값\n[1]'
+        self.attempts=QTableWidget(0,7)
+        self.attempts.setHorizontalHeaderLabels(['단계','증분','시도','반복',label,'증분 크기','상태'])
         self.attempts.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.attempts.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.rows=(result.get('increment_history') or {}).get('rows',[])
         self.attempts.setRowCount(len(self.rows))
         for i,r in enumerate(self.rows):
             values=[r['step_location']['label'],r['increment'],r['attempt'],r['iterations'],
-                    format(r['total'],'.10g'),'수렴' if r['converged'] else '미수렴']
+                    format(r['total'],'.10g'),format(r['increment_size'],'.8g') if r.get('increment_size') is not None else '미기록','수렴' if r['converged'] else '미수렴']
             for j,v in enumerate(values):
                 item=QTableWidgetItem(str(v)); item.setToolTip(r['raw']); self.attempts.setItem(i,j,item)
-        self.attempts.setMaximumHeight(230); layout.addWidget(self.attempts)
+        self.attempts.resizeColumnsToContents()
+        self.attempts.horizontalHeader().setStretchLastSection(True)
+        self.attempts.setMaximumHeight(min(230, max(100, self.attempts.horizontalHeader().height()+len(self.rows)*30+8)))
+        layout.addWidget(self.attempts)
+        history = result.get('increment_history') or {}
+        self.summary = QLabel()
+        rejected = history.get('rejected_attempt_count')
+        cutbacks = history.get('observed_cutbacks')
+        self.summary.setText('거절 시도: '+(str(rejected) if rejected is not None else '미기록')+
+            ' / 관측 증분 축소: '+(str(len(cutbacks)) if cutbacks is not None else '미기록')+
+            ' / 잔차: STA에 없음')
+        self.summary.setWordWrap(True)
+        self.summary.setToolTip('증분 크기의 감소가 두 연속 시도에 실제 기록된 경우만 집계합니다. 실행 경과시간은 Runner의 작업 시각이며 이 표의 좌표가 아닙니다.')
+        layout.addWidget(self.summary)
         self.condition=QComboBox(); layout.addWidget(self.condition)
         split=QSplitter(Qt.Orientation.Horizontal)
-        self.points=QTableWidget(0,2)
+        self.points=QTableWidget(0,2); self.points.setMinimumWidth(250)
         self.points.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         split.addWidget(self.points)
         from .appearance import configure_plot_fonts
@@ -43,7 +56,7 @@ class ContactRunDialog(QDialog):
         self.message=QLabel(); self.message.setWordWrap(True); layout.addWidget(self.message)
         row=QHBoxLayout()
         source=QPushButton('이 계산의 조건 수정…'); source.clicked.connect(self.open_saved); row.addWidget(source)
-        post=QPushButton('저장된 접촉 결과 열기'); post.clicked.connect(self.open_post); row.addWidget(post)
+        post=QPushButton('저장된 결과 열기'); post.clicked.connect(self.open_post); row.addWidget(post)
         row.addStretch(); close=QPushButton('닫기'); close.clicked.connect(self.accept); row.addWidget(close)
         layout.addLayout(row)
         self.attempts.itemSelectionChanged.connect(self.select_step)
@@ -63,6 +76,12 @@ class ContactRunDialog(QDialog):
             for c in rows[step-1]['curves']:
                 component='하중' if c['component']==0 else '변위 '+'XYZ'[c['component']-1]
                 self.condition.addItem(names.get(c['condition_id'],'조건')+' / '+component+' ['+c['unit']+']',c)
+        for material in self.setup.get('materials', []):
+            if material.get('law') == 'j2_isotropic_hardening':
+                curve = material['plasticity']
+                self.condition.addItem(material.get('body_id', '물체')+' / J2 경화 곡선',
+                    {'kind':'material', 'unit':curve['stress_unit'], 'strain_unit':curve['strain_unit'],
+                     'points':[[row[1],row[0]] for row in curve['yield_points']]})
         self.condition.blockSignals(False); self.draw()
         if 0<=i<len(self.rows):
             r=self.rows[i]
@@ -76,13 +95,19 @@ class ContactRunDialog(QDialog):
         if mode!='curve': points=[]
         self.points.setRowCount(len(points))
         unit=c.get('unit','') if c else ''
-        axis='단계 시간 [s]' if self.setup.get('axis',{}).get('unit')=='s' else '단계 진행값 [1]'
-        self.points.setHorizontalHeaderLabels([axis,'조건값 ['+unit+']'])
+        material = c is not None and c.get('kind') == 'material'
+        axis=('등가 소성변형률 ['+c['strain_unit']+']') if material else ('단계 시간 [s]' if self.setup.get('axis',{}).get('unit')=='s' else '단계 진행값 [1]')
+        ordinate=('진응력' if material else '조건값')+' ['+unit+']'
+        self.points.setHorizontalHeaderLabels([axis.replace(' [','\n['),ordinate.replace(' [','\n[')])
+        for index,caption in enumerate((axis,ordinate)):
+            self.points.horizontalHeaderItem(index).setToolTip(caption)
         for i,p in enumerate(points):
             for j,v in enumerate(p): self.points.setItem(i,j,QTableWidgetItem(format(float(v),'.10g')))
+        self.points.resizeColumnsToContents()
+        self.points.horizontalHeader().setStretchLastSection(True)
         if points: ax.plot([float(p[0]) for p in points],[float(p[1]) for p in points],marker='o')
         else: ax.text(.5,.5,{'hold':'이전 단계 끝값 유지','release':'조건 해제'}.get(mode,'곡선 없음'),ha='center',transform=ax.transAxes)
-        ax.set_xlabel(axis); ax.set_ylabel(unit); ax.grid(alpha=.2)
+        ax.set_xlabel(axis); ax.set_ylabel(ordinate); ax.grid(alpha=.2)
         self.figure.tight_layout(); self.canvas.draw_idle()
     def open_saved(self):
         def work():
@@ -92,7 +117,7 @@ class ContactRunDialog(QDialog):
             if not identifier: raise ValueError('계산에 사용한 편집 가능 입력이 없습니다')
             native=self.runner.client.native_input(identifier)
             if native.get('id')!=identifier or native.get('kind')!='frozen_contact' or not native.get('editable_path'):
-                raise ValueError('이 접촉 계산의 보존 입력이 아닙니다')
+                raise ValueError('이 계산의 보존 입력이 아닙니다')
             return _spawn(self.runner.client,['pre','--source',native['editable_path'],'--source-label','계산 조건 수정'])
         self.runner._request('contact-source:'+self.job_id,work,
             lambda value,ticket:self.message.setText('계산 당시의 입력을 새 설계로 열었습니다. 해당 단계를 선택해 수정하고 새로 실행하세요.'),
@@ -102,8 +127,8 @@ class ContactRunDialog(QDialog):
             from .desktop import launch_post
             nav=self.runner.client.job_navigation(self.job_id)
             entry=nav.get('post_input') or {}
-            if not entry.get('id'): raise ValueError('수렴한 접촉 결과가 등록되지 않았습니다')
+            if not entry.get('id'): raise ValueError('수렴한 결과가 등록되지 않았습니다')
             return launch_post(self.runner.client,entry['id'],job_id=self.job_id)
         self.runner._request('contact-post:'+self.job_id,work,
-            lambda value,ticket:self.message.setText('보존된 접촉 결과를 열었습니다. 새 계산은 없습니다.'),
+            lambda value,ticket:self.message.setText('보존된 결과를 열었습니다. 새 계산은 없습니다.'),
             relevant=lambda:self.isVisible())
