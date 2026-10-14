@@ -81,8 +81,10 @@ Linux 전체 회귀 CI는 병합 이후 실패로 끝났다. 오래된 화면/�
 `0548ee0`과 실제 Windows 계산의 cvg/sta/stdout/inp를 전달했다. 요청과 자료는
 `runs/product-development/20261014/nonlinear-convergence/`에 있다. 수렴 전용 모듈과
 FE 설정/Runner 표시는 Pro, 공통 명령은 별도 패치로 Codex가 통합한다.
-Sol은 별도 작업 폴더에서 Post 비교 UI 및 PDE 채택의 낡은 회귀 계약을 두 테스트
-파일로 한정해 교정한다. Q2의 코드·한글 사용법은 원격 main `a82fc95`에 반영했다.
+Sol은 Post 비교 UI 및 PDE 채택의 낡은 회귀 계약을 두 테스트 파일에서 교정했다.
+관련 32검사와 이후 보강한 3사례가 통과했으며 제품 동작은 바꾸지 않았다. 원자료가
+계산 당시 입력에 귀속되는 계약과 미평가 후보 거절은 유지한다. Codex 검토·통합 후
+Q2 완료 상태·그림 사용법과 함께 원격 main `197cd68`에 반영했다.
 MoAI t3/t14/t16/t17/t18과 이 최상단 상태가 아래 옛 시점의 진행 기록보다 우선한다.
 
 **셸 모델 후속 구현 배정:** MoAI t17로 SPEC-PREFE-001 E1/AC06의 두께·offset·방향·
