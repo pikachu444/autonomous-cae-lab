@@ -690,12 +690,15 @@ Pro NOT_RUN until Codex supplies execution evidence.
    면과 면 중심의 native 법선 화살표를 보여 준다. 최소 거리는 문서 전체 좌표의 실제 CAD
    면 사이 **부호 없는 거리 [mm]**다. 0으로 관통량이나 활성 접촉을 판정하지 않는다.
    A/B 교환은 실제 slave/master 교환이며 화살표만 뒤집지 않는다.
-3. 간극 정책을 **실제 형상** 또는 **균일 간극**으로 명시한다. 균일 간극은 실제
+3. 간극 정책을 **실제 형상** 또는 **균일한 설정 간극**으로 명시한다. 균일 간극은 실제
    *CLEARANCE로 내보내며 형상 좌표를 움직이지 않는다. 메시 Adjust와는 다르다.
    실제 형상 정책으로 돌아갈 때 설정 간극을 비운다.
 4. **해석 단계**에서 정적 또는 암시적 동적 해석을 고른다. 정적 단계의 길이/곡선 축은
    무차원 진행값이다. 동적 단계의 시간은 s이며 모든 물체에 양의 밀도가 필요하다.
-   한 분석에서 두 절차를 섞지 않는다. 단계 표에서 이름·길이·초기/최소/최대 증분·최대 횟수·
+   한 분석에서 두 절차를 섞지 않는다. FreeCAD 1.1.4의 기존 Solver는 static 설정으로 둔다.
+   native Solver에는 dynamic 선택값이 없으므로 절차는 이 접촉 단계 정의가 소유하고
+   실제 입력 카드의 *STATIC/*DYNAMIC으로 적용한다. native enum을 임의로 추가하지 않는다.
+   단계 표에서 이름·길이·초기/최소/최대 증분·최대 횟수·
    출력 간격을 편집한다. 자동 증분/선형 해법/기하 비선형성/반복 제어는 기존 CalculiX 설정을
    사용한다. 고정 증분에서는 native가 초기 증분을 사용하고 최소/최대는 독립 제어가 아니다.
 5. 첫 단계 이름을 가압, 길이를 1로 정한다. 원하는 힘을 선택하고 점 (0,0), (1,100)을
@@ -708,6 +711,12 @@ Pro NOT_RUN until Codex supplies execution evidence.
    적용/취소를 먼저 요구한다. 적용 중 새로 입력한 글자는 이전 응답으로 덮지 않는다.
    1e 같은 미완성 입력과 빈 단계 초안도 저장되며 실행은 수정 전까지 차단된다.
    빈 초안은 단계 추가로 고칠 수 있다. Undo/Redo는 기존 FreeCAD 트랜잭션을 사용한다.
+   native Force/Displacement를 추가·삭제하거나 자유축을 바꿨으면 **조건 새로 읽기**를 누른다.
+   단계별 추가/정리 목록을 보고 확인한다. 취소하면 그대로이며 같은 조건·성분·단위의
+   곡선과 1e 초안은 보존한다. 새 조건은 첫 단계에 0→현재 기준값, 이후에 끝값 유지를
+   초안으로 넣는다. 자동 적용이나 계산은 없으므로 값을 검토하고 **단계 적용**한다.
+   접촉 단계가 저장됐지만 활성 접촉이 없는 Analysis는 Check/입력 생성에서 명확히
+   차단한다. 일반 단일 물체 경로로 조용히 실행하지 않는다.
 8. 연결 패널의 **입력 파일 생성…**을 누른다. 검사된 모델·메시·조건과 editable 파일,
    contact.inp를 별도 보존한다. 실제 INP를 읽고 **입력 사본 저장…** 또는
    **입력 폴더 열기**를 사용한다. 이 동작은 JobManager나 솔버를 제출하지 않는다.
@@ -725,6 +734,11 @@ Pro NOT_RUN until Codex supplies execution evidence.
 | 빈 칸/미완성 숫자 | 물리 조건으로 해석하지 않음 | 물리 조건으로 해석하지 않음 |
 
 고정 지지는 모든 단계에 다시 기록한다. 고정 지지의 단계별 해제는 이번 범위에 없다.
+단계가 있는 입력은 실제 단계 곡선으로 동시 충돌을 검사한다. 예를 들어 첫 단계에서
+지정 변위만 작용하고 다음 단계에서 이를 해제한 뒤 같은 자유도에 힘을 주는 입력을
+허용한다. 서로 다른 지정 변위도 같은 단계에 겹치면 거절하며, 단계 없는 기존 입력의
+기준값 충돌 검사는 유지한다. frozen 조건별 값과 면/DOF는 보존하고 unique aggregate는
+기준값 감사용으로만 사용한다. 단계 카드에는 aggregate 대신 compiled 곡선을 쓴다.
 직전 단계에서 해제한 변위를 “유지”하면 실제 계산 변위를 알 수 없어 거절한다.
 동적 지정 변위는 초기 0 및 단계 사이 연속을 요구하고 해제 후 재구속은 지원하지 않는다.
 초기 속도·초기 운동을 변위 곡선 시작값으로 만들지 않는다. 이번 동적 경로는 정지 초기 상태다.
@@ -750,7 +764,11 @@ Post에서 같은 쌍/면/증분의 CPRESS, raw COPEN, CSLIP, 파생 형상 간�
 공유 절점 투영 압력·슬립은 쌍별 기여 분리가 아니다. CF/CFN/CFS는 DAT의 쌍별 합력으로
 전역 성분과 원 부호를 유지한다. 힘 이력을 측정으로 적용/저장한 뒤 기존
 **Use in Numerical**에서 새 계획 또는 기존 계획에 미리보기/추가/취소한다.
-동적 측정은 실제 s 축을 그대로 전달한다.
+동적 측정은 실제 s 축을 그대로 전달한다. 실패/취소 실행의 수렴 부분이라는 표시는
+저장된 측정과 Numerical 관측값의 출처까지 보존하고, 전달 미리보기와 기존 계획의
+추가 검토에 표시한다. 그 안의 유효한 원행을 실패값으로 바꾸거나 실행 전체를 성공으로
+바꾸지 않는다. 동적 CSV의 축은 time_s이며 독립 field 응답에도 s 축/실제 단계 정보를
+남긴다. 기존 static 내부 호환 키를 물리 시간의 유일한 선언으로 사용하지 않는다.
 
 ### 작은 확장과 물리적 결정
 
@@ -765,10 +783,17 @@ Post에서 같은 쌍/면/증분의 CPRESS, raw COPEN, CSLIP, 파생 형상 간�
   native 2.22는 명시 OP=MOD를 인식하지 않는다. 정적 OP=NEW만 쓰면 이전 힘을 단계
   동안 제하할 수 있어, 해제된 자유도에도 명시 0 amplitude를 쓴다.
 - 접촉 카드는 단계 밖에 한 번 작성한다. 화면의 **전체 단계**가 실제 의미다.
-  13자리 입력 직렬화 뒤에도 knot가 증가해야 한다. 밀도 kg/m³→tonne/mm³는
+  조건을 합친 최종 amplitude도 13자리 입력 직렬화 뒤 knot가 증가해야 한다.
+  단계 시작/끝이 native FRD 출력 정밀도에서 같은 수가 되면 입력 생성 전에 거절한다.
+  이는 임의로 native 최소 증분을 확대하는 동작이 아니다. 적응 증분의 매우 짧은 마지막
+  증분이나 native 접촉 보정의 반복 끝시각까지 유일한 시각을 보장하지는 않는다.
+  실제 반복/같은 출력 시각은 현재 Post profile 밖이며 원 파일을 보존하고 읽기 실패로 남긴다.
+  밀도 kg/m³→tonne/mm³는
   mm/N/s 체계의 명시 변환이다. *DYNAMIC에 EXPLICIT를 넣지 않는다.
 - inspection v2는 단계명·단계 좌표·누적 시각을 검증한다. v1 saved 프로젝트는 유지한다.
-  partial scope는 pinned manifest에 보존하고 generic native_metadata 키 집합은 유지한다.
+  partial scope는 pinned manifest와 measurement summary/origin에 보존하고
+  generic native_metadata 키 집합은 유지한다. FRD 중간 종료 표식 뒤의 데이터를
+  지우거나 연결해서 유효한 부분 결과로 만들지 않는다.
 - 절대 단계 곡선이 지배하는 native Force/Displacement 기준값을 Numerical 독립 변수로
   등록하지 못하게 표시한다. 기하/재료/접촉 계수는 기존 경로다. 곡선 knot DOE는 잔여다.
 - WELSIM 공개 면 선택→단계 표/곡선→입력 확인→실행→결과 흐름을 참고했다.
@@ -786,7 +811,7 @@ frdheader.c, printoutcontact.f, writesta.f, writestadiv.f, checkconvergence.c다
 기존 프로젝트 Python/Qt 환경에서 변경 경로만 확인:
 
 ~~~powershell
-python -m pytest tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_native_export.py -q
+python -m pytest tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_steps_measurement.py tests/test_contact_native_export.py -q
 ~~~
 
 기본 단일 단계 FRD 호환은 tests/test_frozen_fem.py, Post 보존 계약은
@@ -811,3 +836,22 @@ contact_fem --rebuild-post-from으로 새 sibling 폴더에 읽을 수 있으며
 
 FN14/FN15 전체 완료 선언은 아니다. 신규 테스트·native 작은 실행·1100×780 및
 1440×900 화면 확인은 작성 환경에서 NOT_RUN이며 Root 통합 결과와 구분해 기록한다.
+
+
+### 제출과 실행 범위의 구분
+
+첫 소스 checkpoint는 `47335f6`이다. Codex가 전한 Windows 결과는 새 단계/UI/export
+14 pass / 1 fail(12.02 s), 기존 frozen_fem/contact_inspection 51 pass(25.86 s)이다.
+실패는 1100px 요청 창이 1568px로 커진 배치다. 이 기록은 Codex 실행 보고이며 작성자가
+원격에서 같은 환경을 실행한 결과가 아니다. 기존 숨은 FEM 탭의 폭은 Sol이 별도 수정한다.
+
+현재 후속은 단계별 실제 충돌/조건 재조정, native static enum 유지, 비접촉 우회 차단,
+partial 측정의 범위 보존, 동적 응답/CSV 단위, FRD 종료 표식과 최종 amplitude 정밀도를
+교정한다. 작성자의 Python compile/pytest/Qt/native 실행은 계속 **NOT_RUN**이다.
+새 전체 solver campaign은 요구하지 않는다. 단계 카드·reader 대역 검사를 먼저 확인하고,
+필요한 한 작은 native 가압/제하 또는 동적 입력을 명시 실행하여 새 기능만 확인한다.
+
+이번 source-only 검토의 기본 경계는 FreeCAD 1.1.4
+[solver_ccxtools.py](https://github.com/FreeCAD/FreeCAD/blob/1.1.4/src/Mod/Fem/femobjects/solver_ccxtools.py)와
+위 pinned CalculiX의 실제 카드/clock 구현이다. 세 동료의 read-only 검토와 작성자 교정을
+실행 PASS 또는 사용자 GUI 수용으로 대체하지 않는다.

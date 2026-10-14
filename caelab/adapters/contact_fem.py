@@ -1,4 +1,5 @@
 """Execute the retained separate-body contact capability through existing JobManager."""
+from copy import deepcopy
 from pathlib import Path
 import csv
 import hashlib
@@ -132,7 +133,8 @@ class ContactFemCalculixAdapter:
                 'axis': contact_axis(model), 'area_units': 'mm^2'})
             with (output / 'pair_resultants.csv').open('w', newline='', encoding='utf-8') as stream:
                 writer = csv.writer(stream)
-                writer.writerow(['pair', 'quantity', 'step', 'increment', 'load_parameter',
+                writer.writerow(['pair', 'quantity', 'step', 'increment',
+                    'time_s' if contact_axis(model)['unit']=='s' else 'load_parameter',
                     'Fx_N','Fy_N','Fz_N','Mx_Nmm','My_Nmm','Mz_Nmm','area_mm2','normal_projection_N','shear_size_N','quality'])
                 for row in pair_results:
                     values = [*row['force_N'], *row['moment_origin_Nmm'], row['area_mm2'],
@@ -145,13 +147,15 @@ class ContactFemCalculixAdapter:
                 'raw_frd_sha256': _sha(deck.with_suffix('.frd')), 'raw_dat_sha256': _sha(deck.with_suffix('.dat'))})
             final = frames[-1]
             ids = sorted(nodes)
+            field_clock = ({'axis':contact_axis(model), 'coordinate':final['static']['load_parameter'],
+                            'step_location':deepcopy(final['step_location'])} if profile(model) else {})
             responses = {}
             for j, key in enumerate(CHANNELS):
                 covered = [n for n in ids if n in final['fields']['CONTACT'] and final['fields']['CONTACT'][n][j] is not None]
                 responses[key] = {'kind':'field', 'unit':'mm' if j < 3 else 'MPa',
                     'value':[final['fields']['CONTACT'][n][j] for n in covered], 'component':key,
                     'location':'calculix_export_nodes', 'reduction':'none',
-                    'metadata': {'node_ids':covered, 'association':'POINTS', 'static':final['static'],
+                    'metadata': {'node_ids':covered, 'association':'POINTS', 'static':final['static'], **field_clock,
                         'missing_or_invalid_node_ids':[n for n in ids if n not in set(covered)],
                         'raw_frame':'post/frame'+str(len(frames)).zfill(4)+'.json',
                         'basis':BASIS, 'coverage':'actual_finite_native_rows', 'pair_scope':'shared_nodal_projection',
@@ -159,7 +163,7 @@ class ContactFemCalculixAdapter:
             responses['displacement'] = {'kind':'field','unit':'mm',
                 'value':[final['fields']['DISP'][n] for n in ids], 'component':'VECTOR',
                 'location':'calculix_export_nodes','reduction':'none',
-                'metadata':{'node_ids':ids,'association':'POINTS','static':final['static'],
+                'metadata':{'node_ids':ids,'association':'POINTS','static':final['static'], **field_clock,
                             'frame':'FREECAD_DOCUMENT_GLOBAL'}}
             for pair in model['contacts']:
                 for quantity in ('CF','CFN','CFS'):

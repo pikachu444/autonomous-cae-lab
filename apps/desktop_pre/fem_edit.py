@@ -813,6 +813,10 @@ class FEMEditor:
             except Exception as error:
                 fail('contact', str(error))
             return errors
+        if any(row.get('analysis_id') == analysis.Name
+               for row in self._metadata().get('contact_programs', [])):
+            fail('steps', '저장된 해석 단계는 활성 접촉 해석이 필요합니다. 접촉쌍을 적용한 뒤 다시 확인하세요')
+            return errors
         meshes = [obj for obj in analysis.Group if hasattr(obj, 'FemMesh')]
         if len(meshes) != 1:
             fail('mesh', 'The admitted execution requires exactly one existing solid mesh')

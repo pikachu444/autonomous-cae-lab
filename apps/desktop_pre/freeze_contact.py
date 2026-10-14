@@ -69,9 +69,9 @@ def collect(analysis, solver, fem):
     procedure = program.get('procedure') if program else 'static'
     if procedure not in ('static', 'dynamic'):
         raise ValueError('Repair the Analysis procedure in the Steps page')
-    expected = {'AnalysisType': procedure, 'ModelSpace': '3D', 'MaterialNonlinearity': 'linear', 'SplitInputWriter': False}
+    expected = {'AnalysisType': 'static', 'ModelSpace': '3D', 'MaterialNonlinearity': 'linear', 'SplitInputWriter': False}
     if any(getattr(solver, key) != value for key, value in expected.items()):
-        raise ValueError('Contact route requires unsplit 3D isotropic elastic bodies and a solver procedure matching the Steps page')
+        raise ValueError('Contact steps require a static-compatible native CalculiX settings object, unsplit 3D isotropic elastic bodies; the contact Steps page owns the static/dynamic procedure')
     if solver.GeometricalNonlinearity not in ('linear', 'nonlinear'):
         raise ValueError('Unsupported native geometric formulation')
     records = [row for row in fem.contact._data()['contacts'] if row['analysis_id'] == analysis.Name
@@ -238,9 +238,12 @@ def collect(analysis, solver, fem):
                 for n in local:
                     for axis, value in values.items():
                         key = (nmap[int(n)], axis)
-                        if key in constraints and constraints[key] != value:
+                        if key in constraints and constraints[key] != value and program is None:
                             raise ValueError('Conflicting displacement values on the same body DOF')
-                        constraints[key] = value
+                        # For a stage program, the unique aggregate is a baseline
+                        # audit only. Each condition below keeps its own value;
+                        # compile_program checks their actual concurrent curves.
+                        constraints.setdefault(key, value)
                         condition['boundary_dofs'].append({'node_id': key[0], 'component': axis, 'value_mm': value})
             model['conditions'].append(condition)
     model['boundary_dofs'] = [{'node_id': n, 'component': d, 'value_mm': value}

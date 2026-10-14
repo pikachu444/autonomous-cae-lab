@@ -787,7 +787,7 @@ class Workspace:
             if view.GetXMLName() == 'XYChartView':
                 display.UseIndexForXAxis = 0
                 measurement = record['recipe'].get('measurement')
-                display.XArrayName = {'time': 'Time', 'contact_force': 'load_parameter'}.get(measurement, 'arc_length')
+                display.XArrayName = {'time': 'Time', 'contact_force': record['recipe'].get('axis_name','load_parameter')}.get(measurement, 'arc_length')
                 if measurement == 'contact_force':
                     display.AttributeType = 'Row Data'
                 array = record['recipe'].get('array') or record['recipe'].get('settings', {}).get('array')

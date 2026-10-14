@@ -304,6 +304,7 @@ def force_history(bundle, pair_id, quantity, component):
             'array': quantity + '_' + 'XYZ'[component] + '_N', 'unit': 'N',
             'frame': 'FREECAD_DOCUMENT_GLOBAL', 'measure': 'contact_pair_force_resultant', 'force_on': 'slave_A',
             'axis': bundle_axis(bundle),
+            **({'execution':deepcopy(bundle['manifest']['execution'])} if 'execution' in bundle['manifest'] else {}),
             'rows': rows}
 
 

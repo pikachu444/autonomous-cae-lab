@@ -130,7 +130,7 @@ def validate_model(model):
         boundaries[key] = value
     for row in model['loads']:
         key, value = (row['node_id'], row['component']), number(row['force_N'])
-        if type(key[0]) is not int or type(key[1]) is not int or key[0] not in nodes or key[1] not in (1, 2, 3) or key in loads or key in boundaries and value != 0:
+        if type(key[0]) is not int or type(key[1]) is not int or key[0] not in nodes or key[1] not in (1, 2, 3) or key in loads or ('analysis_steps' not in model and key in boundaries and value != 0):
             raise ValueError('Force overlaps a prescribed displacement DOF or duplicates a load')
         loads[key] = value
     if not boundaries or ('analysis_steps' not in model and not (any(value != 0 for value in loads.values()) or any(value != 0 for value in boundaries.values()))):

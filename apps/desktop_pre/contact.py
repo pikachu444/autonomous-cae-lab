@@ -366,9 +366,9 @@ class ContactEditor:
             data.setdefault('contact_program_history',[]).extend(deepcopy(old))
             data['contact_programs'] = [r for r in data.get('contact_programs',[]) if r['analysis_id']!=analysis.Name]
             data['contact_programs'].append({'analysis_id':analysis.Name,'draft':draft})
-            # The UI explicitly selects procedure. Partial numerical text remains raw.
-            if draft.get('procedure') in ('static','dynamic'):
-                self.owner._object(info['solver_id']).AnalysisType = draft['procedure']
+            # FreeCAD 1.1.4 CcxTools has no dynamic AnalysisType enum.
+            # This owner stores the explicit procedure; native solver settings
+            # remain a static-compatible reference, checked by contact export.
             self.owner.write_metadata(data)
         self.fem._transaction('해석 단계 적용',change)
         return self.step_inputs(analysis)

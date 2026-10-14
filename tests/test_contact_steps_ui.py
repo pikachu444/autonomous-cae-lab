@@ -101,3 +101,57 @@ def test_exact_failed_input_opens_saved_copy_not_changed_live_source(model,app,m
     assert calls[1]==('post','Dpartial',{'job_id':'Jfailed'})
     assert dialog.canvas.height()>170 and dialog.width()==1100
     dialog.close(); runner.close(); app.processEvents()
+
+
+def test_native_enum_is_not_changed_and_noncontact_program_cannot_run(panel,native):
+    page=prepare_controls(panel,native)
+    base=type(native.solver)
+    class NativeEnum(base):
+        def __setattr__(self,key,value):
+            if key=='AnalysisType' and value not in ('static','frequency','thermomech','check','buckling'):
+                raise ValueError('Explicit FreeCAD 1.1.4 enumeration double')
+            super().__setattr__(key,value)
+    native.solver.__class__=NativeEnum
+    page.procedure.setCurrentIndex(page.procedure.findData('dynamic'))
+    page.apply(); panel.test_complete()
+    assert native.solver.AnalysisType=='static'
+    assert native.metadata['contact_programs'][0]['draft']['procedure']=='dynamic'
+    errors=native.editor.validate_for_run(native.analysis)
+    assert errors and errors[0]['path']=='steps' and errors[0]['blocks_evaluation']
+
+
+def test_changed_native_conditions_require_explicit_reconcile_and_preserve_raw_edit(panel,native,app):
+    from test_pre_fem_edit import Object, Quantity
+    page=prepare_controls(panel,native)
+    page.apply(); panel.test_complete()
+    page.points.item(1,1).setText('1e')
+    other=Object(native.doc,'OtherForce','Fem::ConstraintForce',Force=Quantity('12 N'))
+    travel=Object(native.doc,'Travel','Fem::ConstraintDisplacement',
+        xFree=False,yFree=True,zFree=True,xDisplacement=Quantity('.1 mm'))
+    native.analysis.Group.extend([other,travel])
+    before=deepcopy(page.buffer)
+    def reply(button):
+        def click():
+            dialog=app.activeModalWidget()
+            assert isinstance(dialog,W.QMessageBox)
+            assert '추가' in dialog.text() or '정리' in dialog.text()
+            dialog.button(button).click()
+        C.QTimer.singleShot(0,click)
+    reply(W.QMessageBox.StandardButton.Cancel); page.reconcile()
+    assert page.buffer==before and page.modified
+    reply(W.QMessageBox.StandardButton.Yes); page.reconcile()
+    rows=page.buffer['steps'][0]['curves']
+    assert {(r['condition_id'],r['component']) for r in rows}=={('Force',0),('OtherForce',0),('Travel',1)}
+    assert next(r for r in rows if r['condition_id']=='Force')['points'][1][1]=='1e'
+    assert not native.metadata['contact_programs'][0]['draft']['steps'][0]['curves'][0]['points'][1][1]=='1e'
+    page.apply(); panel.test_complete()
+    assert native.metadata['contact_programs'][0]['draft']==page.buffer
+    native.analysis.Group.remove(other)
+    travel.yFree=False; travel.yDisplacement=Quantity('.2 mm')
+    reply(W.QMessageBox.StandardButton.Yes); page.reconcile()
+    rows=page.buffer['steps'][0]['curves']
+    assert {(r['condition_id'],r['component']) for r in rows}=={('Force',0),('Travel',1),('Travel',2)}
+    assert next(r for r in rows if r['condition_id']=='Force')['points'][1][1]=='1e'
+    page.apply(); panel.test_complete()
+    from apps.desktop_pre.contact import ContactEditor
+    assert ContactEditor(native.editor).step_inputs(native.analysis)['draft']==page.buffer

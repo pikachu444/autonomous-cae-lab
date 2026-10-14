@@ -191,7 +191,9 @@ class MeasurementDialog(QDialog):
             selection = self.selected_mapping()
             projection = project_samples(self.snapshot, selection)
             self.selection, self.projected = selection, projection
-            self.notice.setText(str(len(projection['rows'])) + '개 원본 행, 무효 ' +
+            scope=self.snapshot['summary'].get('execution',{})
+            partial=('실패/취소 실행의 수렴한 일부 이력입니다. ' if scope.get('complete_analysis') is False else '')
+            self.notice.setText(partial + str(len(projection['rows'])) + '개 원본 행, 무효 ' +
                 str(len(projection['invalid_rows'])) + '개. 재표본화와 단위 변환 없이 전달합니다.')
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(projection['importable'])
             rows = projection['rows']
@@ -272,20 +274,23 @@ class ObservationReviewDialog(QDialog):
     """Review retained Data values before appending to a live Plan's local draft."""
     def __init__(self, payload, title, role, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Append measured curve')
+        self.setWindowTitle('관측 곡선 추가')
         self.resize(850, 620)
         layout = QVBoxLayout(self)
         response = payload['response']
         origin = payload['origin']
-        label = QLabel(origin['selection']['value_array'] + ' → ' + title + '\n' +
+        execution=origin.get('summary',{}).get('execution',{})
+        partial='실패/취소 실행의 수렴한 일부 이력입니다.\n' if execution.get('complete_analysis') is False else ''
+        label = QLabel(partial + origin['selection']['value_array'] + ' → ' + title + '\n' +
             response['unit'] + ' / ' + response['frame'] + ' / ' + response['measure'] +
-            '\nAppend as ' + role + '. Existing variables, protocols and unapplied edits remain. '
-            'Assign the new trial’s model protocol and response before Run.')
+            '\n' + ('피팅 관측값' if role=='fit' else '검증 관측값') +
+            '으로 추가합니다. 현재 수정은 유지됩니다.')
+        label.setObjectName('observationScope')
         label.setWordWrap(True)
         layout.addWidget(label)
         split = QSplitter(Qt.Orientation.Vertical)
         table = QTableWidget(0, 3)
-        table.setHorizontalHeaderLabels(['Axis', 'Measured', 'State'])
+        table.setHorizontalHeaderLabels(['축', '관측값', '사용 여부'])
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         raw, axis = response.get('raw_samples'), response['axes'][0]
@@ -294,7 +299,7 @@ class ObservationReviewDialog(QDialog):
         valid = raw['calculation_valid'] if raw else [True] * len(values)
         table.setRowCount(len(values))
         for row, (x, y, good) in enumerate(zip(xvalues, values, valid)):
-            for column, value in enumerate((x, y, 'Used' if good else 'Excluded')):
+            for column, value in enumerate((x, y, '사용' if good else '제외')):
                 table.setItem(row, column, QTableWidgetItem(str(value)))
         split.addWidget(table)
         figure = Figure(figsize=(6, 3))
@@ -315,7 +320,7 @@ class ObservationReviewDialog(QDialog):
         split.setSizes([170, 300])
         layout.addWidget(split, 1)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Append observation')
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('관측값 추가')
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

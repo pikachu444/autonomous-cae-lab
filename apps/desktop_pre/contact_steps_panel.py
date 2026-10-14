@@ -70,7 +70,12 @@ def add_steps_page(panel, W, C):
             self.condition = W.QComboBox()
             self.condition.setObjectName('contactStepCondition')
             self.condition.currentIndexChanged.connect(self.select_curve)
-            layout.addWidget(self.condition)
+            self.condition.setSizeAdjustPolicy(W.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            self.condition.setMinimumContentsLength(12)
+            condition_row = W.QHBoxLayout()
+            condition_row.addWidget(self.condition,1)
+            panel._button('조건 새로 읽기',self.reconcile,condition_row,name='contactStepsReconcile')
+            layout.addLayout(condition_row)
             self.mode = W.QComboBox()
             for label,value in [('곡선 지정','curve'),('이전 단계 끝값 유지','hold'),('조건 해제','release')]:
                 self.mode.addItem(label,value)
@@ -94,6 +99,9 @@ def add_steps_page(panel, W, C):
             panel._button('단계 적용',self.apply,actions,name='contactStepsApply')
             panel._button('수정 취소',self.discard,actions,mutate=False)
             self.state = W.QLabel()
+            self.state.setWordWrap(True)
+            self.state.setMinimumWidth(0)
+            self.state.setSizePolicy(W.QSizePolicy.Policy.Ignored,W.QSizePolicy.Policy.Preferred)
             actions.addWidget(self.state,1)
             layout.addLayout(actions)
             panel.tabs.addTab(self,'해석 단계')
@@ -203,6 +211,47 @@ def add_steps_page(panel, W, C):
             i=self.steps.currentRow()
             if self.buffer and 0<=i<len(self.buffer['steps']):
                 self.buffer['steps'].pop(i); self.mark(); self.populate(); self.state.setText('미적용')
+        def reconcile(self):
+            if self.buffer is None or panel.analysis.currentData()!=self.loaded_analysis:
+                self.state.setText('편집한 해석을 다시 선택하세요')
+                return
+            from caelab.contact_steps import reconcile_program
+            selected_step=self.current_step()
+            selected_id=selected_step.get('id') if selected_step else None
+            selected_curve=self.current_curve()
+            key=(selected_curve.get('condition_id'),selected_curve.get('component'),selected_curve.get('unit')) if selected_curve else None
+            try:
+                info=panel.editor.contact.step_inputs(panel.editor.owner._object(self.loaded_analysis))
+                updated=reconcile_program(self.buffer,info['conditions'])
+                names={r['object_id']:r['label'] for r in self.info.get('conditions',[])}
+                names.update({r['object_id']:r['label'] for r in info['conditions']})
+                differences=[]
+                for before,after in zip(self.buffer['steps'],updated['steps']):
+                    old={(c.get('condition_id'),c.get('component'),c.get('unit')) for c in before['curves']}
+                    new={(c.get('condition_id'),c.get('component'),c.get('unit')) for c in after['curves']}
+                    for action,keys in (('추가',new-old),('정리',old-new)):
+                        for cid,component,unit in sorted(keys,key=str):
+                            physical='하중' if component==0 else '변위 '+'XYZ'[component-1] if component in (1,2,3) else '성분'
+                            differences.append(str(before.get('label','단계'))+' / '+action+': '+names.get(cid,'삭제된 조건')+' '+physical+' ['+str(unit)+']')
+                if differences:
+                    message='\n'.join(differences)+'\n\n같은 조건의 곡선과 미완성 입력은 유지합니다. 현재 초안에 반영할까요?'
+                    yes=W.QMessageBox.StandardButton.Yes
+                    if W.QMessageBox.question(self,'조건 변경',message,yes|W.QMessageBox.StandardButton.Cancel,W.QMessageBox.StandardButton.Cancel)!=yes:
+                        return
+            except (ValueError,TypeError,KeyError) as error:
+                self.state.setText(str(error))
+                return
+            self.info=info; self.buffer=updated; self.populate()
+            for index,step in enumerate(updated['steps']):
+                if step.get('id')==selected_id:
+                    self.steps.selectRow(index)
+                    break
+            for index,row in enumerate((self.current_step() or {}).get('curves',[])):
+                if (row.get('condition_id'),row.get('component'),row.get('unit'))==key:
+                    self.condition.setCurrentIndex(index)
+                    break
+            self.mark()
+            self.state.setText('현재 조건을 읽었습니다 / 미적용')
         def discard(self):
             self.modified=False
             self.refresh(load_forms=True)

@@ -181,9 +181,10 @@ def test_unconverged_best_solution_is_not_a_committed_partial_frame(model,tmp_pa
     require_converged(parsed['frames'],resumed)
 
 
+@pytest.mark.parametrize('dynamic',[False,True])
 @pytest.mark.parametrize('outcome',['success','failure','cancel'])
-def test_owned_adapter_steps_retained_failure_and_no_fake_partial_responses(model,tmp_path,monkeypatch,outcome):
-    m=staged(model); snapshot=write_snapshot(m,tmp_path/'input')
+def test_owned_adapter_steps_retained_failure_and_no_fake_partial_responses(model,tmp_path,monkeypatch,outcome,dynamic):
+    m=staged(model,dynamic=dynamic); snapshot=write_snapshot(m,tmp_path/'input')
     frd,dat,_=two_step_outputs(m)
     exe=tmp_path/'ccx'; exe.write_bytes(b'EXPLICIT_PROCESS_DOUBLE')
     monkeypatch.setattr(contact_fem.shutil,'which',lambda _:str(exe))
@@ -203,7 +204,13 @@ def test_owned_adapter_steps_retained_failure_and_no_fake_partial_responses(mode
     assert result['executed_setup']['program']==m['analysis_steps']
     if outcome=='success':
         assert result['responses']['Contact.CFN.FZ']['value']==[1.,2.]
-        assert result['responses']['Contact.CFN.FZ']['axes'][0]['unit']=='1'
+        assert result['responses']['Contact.CFN.FZ']['axes'][0]['unit']==('s' if dynamic else '1')
+        header=(tmp_path/'run/pair_resultants.csv').read_text(encoding='utf-8').splitlines()[0].split(',')
+        assert header[4]==('time_s' if dynamic else 'load_parameter')
+        for name in ('CPRESS','displacement'):
+            metadata=result['responses'][name]['metadata']
+            assert metadata['axis']==axis(m)
+            assert metadata['coordinate']==1. and metadata['step_location']['index']==2
         receipt=contact_fem.regenerate_post(tmp_path/'run',tmp_path/'rebuilt')
         assert receipt['solver_execution']=='NOT_PERFORMED' and len(calls)==1
     else:
@@ -231,3 +238,114 @@ def test_serialized_knots_and_dynamic_displacement_continuity(model):
     m['analysis_steps']['steps'][1]['curves'][-1]['points'][0][1]=0
     with pytest.raises(ValueError,match='연속'):
         compile_program(m['analysis_steps'],m['conditions'])
+
+
+def test_stage_local_conflicts_release_and_legacy_guard(model):
+    m=staged(model)
+    n=m['loads'][0]['node_id']
+    travel={'object_id':'Travel','label':'누름','type':'Fem::ConstraintDisplacement',
+        'body_id':'Pad','components_mm':{3:.1},
+        'boundary_dofs':[{'node_id':n,'component':3,'value_mm':.1}]}
+    m['conditions'].append(travel)
+    m['boundary_dofs']+=deepcopy(travel['boundary_dofs'])
+    first,second=m['analysis_steps']['steps']
+    first['curves'][0]['mode']='release'
+    first['curves'].append({'condition_id':'Travel','component':3,'unit':'mm','points':[[0,0],[.5,.1]]})
+    second['curves'][0]['points']=[[0,0],[.5,10]]
+    second['curves'].append({'condition_id':'Travel','component':3,'unit':'mm','mode':'release','points':[]})
+    assert render(m).count('*STEP,')==2
+    legacy=deepcopy(m); legacy.pop('analysis_steps')
+    with pytest.raises(ValueError,match='overlaps'):
+        render(legacy)
+    simultaneous=deepcopy(m)
+    simultaneous['analysis_steps']['steps'][0]['curves'][0].pop('mode')
+    with pytest.raises(ValueError,match='겹칩니다'):
+        render(simultaneous)
+    # Different baseline SPC values can own the same DOF if never simultaneous.
+    other=deepcopy(travel); other.update(object_id='Other',components_mm={3:.2})
+    other['boundary_dofs'][0]['value_mm']=.2
+    m['conditions'].append(other)
+    first['curves'].append({'condition_id':'Other','component':3,'unit':'mm','mode':'release','points':[]})
+    second['curves'][0]['mode']='release'
+    second['curves'].append({'condition_id':'Other','component':3,'unit':'mm','points':[[0,.1],[.5,.2]]})
+    validate_contributions(m)
+    assert render(m).count('*BOUNDARY,OP=NEW')==2
+    first['curves'][-1].update(mode='curve',points=[[0,0],[.5,.2]])
+    with pytest.raises(ValueError,match='충돌'):
+        render(m)
+
+
+def test_compiled_union_integer_contributions_and_native_clock_admission(model):
+    m=staged(model)
+    original=deepcopy(m['conditions'][1]); original['object_id']='Other'
+    m['conditions'].append(original); m['loads'][0]['force_N']=-20.
+    for step in m['analysis_steps']['steps']:
+        step['curves'][0]['points']=[[0,0],[.25000000000001,1],[.5,0]]
+        step['curves'].append({'condition_id':'Other','component':0,'unit':'N',
+            'points':[[0,0],[.25000000000002,1],[.5,0]]})
+    with pytest.raises(ValueError,match='정밀도'):
+        render(m)
+    for kind in ('force_weights','boundary_dofs'):
+        bad=staged(model)
+        rows=bad['conditions'][1 if kind=='force_weights' else 0][kind]
+        rows[0]['node_id']=float(rows[0]['node_id'])
+        with pytest.raises(ValueError,match='owning body'):
+            render(bad)
+    tiny=staged(model)
+    first,second=tiny['analysis_steps']['steps']
+    first.update(duration=1.,maximum=1.)
+    first['curves'][0]['points']=[[0,0],[1.,10]]
+    second.update(duration=1e-10,initial=1e-10,minimum=1e-11,maximum=1e-10)
+    second['curves'][0]['points']=[[0,10],[1e-10,0]]
+    with pytest.raises(ValueError,match='출력 정밀도'):
+        render(tiny)
+
+
+@pytest.mark.parametrize('terminator',['interior','final','missing'])
+def test_partial_prefix_never_erases_native_end_markers(model,tmp_path,terminator):
+    m=staged(model); frd,_,materials=two_step_outputs(m)
+    lines=frd.splitlines()
+    if terminator=='interior':
+        index=next(i for i,line in enumerate(lines)
+            if line.split()[:1]==['1PSTEP'] and int(line[48:60])==2)
+        lines.insert(index,' 9999')
+    elif terminator=='missing':
+        lines=[line for line in lines if line.strip()!='9999']
+    fp=tmp_path/'native.frd'; fp.write_text('\n'.join(lines)+'\n',encoding='ascii',newline='\n')
+    sp=tmp_path/'native.sta'
+    sp.write_text(' 1 1 1 3 .5 .5 .5\n 2 1 1 3 1.0 .5 .5\n',encoding='ascii')
+    status=read_status(sp,m); nodes,elements,_=validate_model(m)
+    original=fp.read_bytes()
+    if terminator=='interior':
+        with pytest.raises(ValueError):
+            read_frd(fp,nodes,elements,contact_materials=materials,contact_profile=profile(m))
+        with pytest.raises(ValueError,match='end marker'):
+            retained_prefix(fp,tmp_path/'derived.frd',nodes,elements,materials,m,status)
+        assert not (tmp_path/'derived.frd').exists()
+    else:
+        parsed=retained_prefix(fp,tmp_path/'derived.frd',nodes,elements,materials,m,status)
+        assert len(parsed['frames'])==2
+    assert fp.read_bytes()==original
+
+
+def test_explicit_condition_reconcile_keeps_partial_text_and_restores_export(model):
+    from caelab.contact_steps import reconcile_program
+    m=staged(model)
+    m['analysis_steps']['steps'][0]['curves'][0]['points'][1][1]='1e'
+    other=deepcopy(m['conditions'][1]); other.update(object_id='Other',label='새 힘')
+    m['conditions'].append(other); m['loads'][0]['force_N']=-20.
+    before=deepcopy(m['analysis_steps'])
+    repaired=reconcile_program(before,m['conditions'])
+    assert before==m['analysis_steps'] and len(before['steps'][0]['curves'])==1
+    assert repaired['steps'][0]['curves'][0]['points'][1][1]=='1e'
+    assert repaired['steps'][0]['curves'][1]['points']==[[0,0],[.5,10.]]
+    assert repaired['steps'][1]['curves'][1]['mode']=='hold'
+    m['analysis_steps']=repaired
+    with pytest.raises(ValueError,match='complete finite'): render(m)
+    m['analysis_steps']['steps'][0]['curves'][0]['points'][1][1]='10'
+    assert render(m).count('*STEP,')==2
+    m['conditions']=m['conditions'][:1]+[other]
+    m['loads'][0]['force_N']=-10.
+    m['analysis_steps']=reconcile_program(m['analysis_steps'],m['conditions'])
+    assert all([c['condition_id'] for c in s['curves']]==['Other'] for s in m['analysis_steps']['steps'])
+    assert render(m).count('*STEP,')==2

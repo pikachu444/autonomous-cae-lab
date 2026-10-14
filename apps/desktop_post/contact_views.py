@@ -219,7 +219,8 @@ def recipe(workspace, source_ref, pair_id, quantity, component):
             'array': history['array'], 'units': 'N', 'frame': history['frame'],
             'measure': history['measure'], 'axis_name': history['axis']['name'], 'axis_unit': history['axis']['unit'],
             'time_units': history['axis']['unit'], 'time_origin': history['axis']['semantics'],
-            'inspection_sha256': bundle['descriptor']['sha256']}
+            'inspection_sha256': bundle['descriptor']['sha256'],
+            **({'execution':deepcopy(history['execution'])} if 'execution' in history else {})}
 
 
 def build_measurement(workspace, draft, namespace):
@@ -265,7 +266,8 @@ def build_measurement(workspace, draft, namespace):
             'axis_name': draft['axis_name'], 'axis_unit': draft['axis_unit'],
             'axis_values': values[draft['axis_name']], 'time_units': draft['time_units'], 'time_origin': draft['time_origin'],
             'pair_id': draft['pair_id'], 'force_rows': history['rows'],
-            'inspection_sha256': draft['inspection_sha256'], 'active_state': 'UNKNOWN'}
+            'inspection_sha256': draft['inspection_sha256'], 'active_state': 'UNKNOWN',
+            **({'execution':deepcopy(history['execution'])} if 'execution' in history else {})}
         return {'source': proxy, 'proxies': [proxy], 'summary': summary}
     except BaseException:
         if proxy is not None:

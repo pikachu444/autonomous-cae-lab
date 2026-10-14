@@ -69,6 +69,9 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     raw=Path(frd).read_bytes()
     text=raw.decode('ascii').replace('\r\n','\n')
     lines=text.splitlines()
+    endings=[i for i,line in enumerate(lines) if line.strip()=='9999']
+    if len(endings)>1 or (endings and any(line.strip() for line in lines[endings[0]+1:])):
+        raise ValueError('Native FRD contains content after its end marker')
     starts=[i for i,l in enumerate(lines) if l.split()[:1]==['1PSTEP']]
     committed={(r['step'],r['increment']) for r in status['rows'] if r['converged']}
     if not starts:
@@ -84,7 +87,7 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     if not included:
         raise ValueError('No converged field prefix')
     # A truncated final committed frame fails strict parsing; it is not filled.
-    prefix=[l for l in lines[:stop] if l.strip()!='9999']
+    prefix=lines[:min(stop,endings[0] if endings else len(lines))]
     destination=Path(destination)
     destination.parent.mkdir(parents=True,exist_ok=True)
     destination.write_text('\n'.join(prefix+[' 9999','']),encoding='ascii',newline='\n')

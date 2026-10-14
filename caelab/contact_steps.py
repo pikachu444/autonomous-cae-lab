@@ -60,6 +60,41 @@ def default_program(step, conditions):
          **{k: deepcopy(step[k]) for k in ('initial','minimum','maximum','increments')},
          'curves': curves, 'output_frequency': 1}]}
 
+def reconcile_program(program, conditions):
+    """Explicitly reconcile current native conditions without parsing edited text.
+
+    Matching physical condition/component/unit rows retain every authored value.
+    New rows ramp from zero in the first stage and hold their endpoint thereafter.
+    Deleted or changed-unit rows are replaced only on this user action.
+    """
+    result = deepcopy(program)
+    required = required_curves(conditions)
+    for index, step in enumerate(result['steps']):
+        old = {}
+        for row in step.get('curves', []):
+            key = row.get('condition_id'), row.get('component'), row.get('unit')
+            if key in old:
+                raise ValueError('중복된 조건 곡선을 먼저 정리하세요')
+            old[key] = row
+        rows = []
+        for (cid, component), (unit, value) in required.items():
+            key = cid, component, unit
+            rows.append(deepcopy(old[key]) if key in old else {
+                'condition_id': cid, 'component': component, 'unit': unit,
+                'mode': 'curve' if index == 0 else 'hold',
+                'points': [[0, 0], [step.get('duration', ''), value]]})
+        step['curves'] = rows
+    return result
+
+def _frd_clock(value):
+    # Exact 2.22 frdheader.c: ten decimal significant digits in [1,1e10),
+    # six exponential significant digits otherwise. This is an admission check,
+    # never a replacement for any retained native output coordinate.
+    if 1 <= value < 1e10:
+        places = 10 - math.floor(math.log10(value) + 1.)
+        return float(format(value, '.' + str(places) + 'f'))
+    return float(format(value, '.5E'))
+
 def compile_program(program, conditions):
     if not isinstance(program, dict) or program.get('schema_version') != '1':
         raise ValueError('지원되는 단계 정의가 아닙니다')
@@ -73,7 +108,7 @@ def compile_program(program, conditions):
     if len(known) != len(conditions):
         raise ValueError('Duplicate native condition')
     required = required_curves(conditions)
-    output, names, elapsed = [], set(), 0.
+    output, names, elapsed, written_elapsed = [], set(), 0., 0.
     preceding = {k:v for k,(unit,v) in required.items()}
     for index, raw in enumerate(raw_steps, 1):
         label, identifier = raw.get('label'), raw.get('id')
@@ -85,6 +120,12 @@ def compile_program(program, conditions):
         duration, initial, minimum, maximum = [number(raw.get(k)) for k in ('duration','initial','minimum','maximum')]
         if not 0 < minimum <= initial <= min(duration, maximum):
             raise ValueError(label + ': 최소/초기/최대 증분과 단계 길이를 확인하세요')
+        written_duration = float(format(duration,'.13G'))
+        written_end = written_elapsed + written_duration
+        if (not math.isfinite(written_end) or written_end <= written_elapsed
+                or _frd_clock(written_end) <= _frd_clock(written_elapsed)):
+            raise ValueError(label + ': 단계 시작과 끝을 CalculiX 출력 정밀도로 구분할 수 없습니다. 단계 길이를 확인하세요')
+        written_elapsed = written_end
         parsed = {}
         if not isinstance(raw.get('curves'), list):
             raise ValueError(label + ': 조건 곡선이 필요합니다')
@@ -149,6 +190,11 @@ def compile_program(program, conditions):
                 loads.setdefault((row['node_id'],row['component']),[[0.,0.],[duration,0.]])
         if not boundary:
             raise ValueError(label + ': 명시적인 구속이 필요합니다')
+        # Recheck the compiled union, not only each authored condition: distinct
+        # source knots can collapse when two conditions share a native DOF.
+        for mapping in (boundary, loads):
+            for points in mapping.values():
+                curve(points, duration, label)
         output.append(dict(id=identifier, label=label, index=index, procedure=procedure,
             start=elapsed, end=elapsed+duration, duration=duration, initial=initial,
             minimum=minimum, maximum=maximum, increments=integer(raw.get('increments'),label),
@@ -220,22 +266,24 @@ def validate_contributions(model):
         if c['type'] == 'Fem::ConstraintForce':
             for row in c.get('force_weights', []):
                 n, d = row['node_id'], row['component']
-                if nodes.get(n) != c['body_id'] or type(d) is not int or d not in (1,2,3):
+                if type(n) is not int or n<1 or nodes.get(n) != c['body_id'] or type(d) is not int or d not in (1,2,3):
                     raise ValueError('Condition force contribution lies outside its owning body')
                 key = n,d
                 forces[key] = forces.get(key,0.) + number(row['weight'])*number(c['total_force_N'])
         else:
             for row in c.get('boundary_dofs', []):
                 n,d,v = row['node_id'],row['component'],number(row['value_mm'])
-                if nodes.get(n) != c['body_id'] or type(d) is not int or d not in (1,2,3):
+                if type(n) is not int or n<1 or nodes.get(n) != c['body_id'] or type(d) is not int or d not in (1,2,3):
                     raise ValueError('Condition boundary contribution lies outside its owning body')
                 if c['type']=='Fem::ConstraintFixed' and v != 0:
                     raise ValueError('Fixed support is not a prescribed displacement')
                 if c['type']=='Fem::ConstraintDisplacement' and v != number(c['components_mm'].get(d,c['components_mm'].get(str(d)))):
                     raise ValueError('Boundary contribution differs from the native component')
-                if (n,d) in boundaries and boundaries[n,d] != v:
+                if (n,d) in boundaries and boundaries[n,d] != v and 'analysis_steps' not in model:
                     raise ValueError('Conflicting native boundary contributions')
-                boundaries[n,d] = v
+                # Match the collector's first-declared baseline without imposing
+                # that inactive native value on an explicit staged condition.
+                boundaries.setdefault((n,d), v)
     expected = {(r['node_id'],r['component']):number(r['value_mm']) for r in model['boundary_dofs']}
     loads = {(r['node_id'],r['component']):number(r['force_N']) for r in model['loads']}
     if boundaries != expected or set(forces) != set(loads):

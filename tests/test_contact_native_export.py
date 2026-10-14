@@ -10,8 +10,8 @@ from apps.desktop_pre import freeze_contact as exporter
 from apps.desktop_pre.fem_edit import FEMEditor
 
 
-@pytest.mark.parametrize('zero_force_program',[False,True])
-def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch,zero_force_program):
+@pytest.mark.parametrize('zero_force_program,dynamic',[(False,False),(True,False),(True,True)])
+def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch,zero_force_program,dynamic):
     class Quantity:
         def __init__(self, value, unit=None):
             self.Value = float(str(value).split()[0])
@@ -48,7 +48,7 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
         IncrementsMaximum=100, AutomaticIncrementation=True, MatrixSolverType='default',
         IterationsControlParameterTimeUse=False)
     material = obj('Material', 'Fem::MaterialCommon', Category='Solid', References=[],
-                   Material={'YoungsModulus': '1000 MPa', 'PoissonRatio': '.3'})
+                   Material={'YoungsModulus': '1000 MPa', 'PoissonRatio': '.3', 'Density':'7800 kg/m^3'})
     fixed = obj('Fixed', 'Fem::ConstraintFixed', References=[(bodies['Base'], ['Face3'])])
     displacement = obj('Displacement', 'Fem::ConstraintDisplacement',
         References=[(bodies['Pad'], ['Face2'])], EnableAmplitude=False,
@@ -63,10 +63,11 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
     for side, name in [('a', 'Pad'), ('b', 'Base')]:
         record[side] = {'target': {'object_id': name, 'subelements': [{'name': 'Face1'}]}}
     reads = []
+    extra_displacements = []
     def members(a):
         assert a is analysis
         return NS(mats_linear=[{'Object': material}], cons_fixed=[{'Object': fixed}],
-                  cons_displacement=[{'Object': displacement}], cons_force=[{'Object': force}])
+                  cons_displacement=[{'Object': displacement}, *[{'Object':o} for o in extra_displacements]], cons_force=[{'Object': force}])
 
     class Getter:
         def __init__(self, a, s, mesh, member):
@@ -122,9 +123,14 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
                 {'object_id':fixed.Name,'type':fixed.TypeId},
                 {'object_id':displacement.Name,'type':displacement.TypeId,'components_mm':{1:-.02}}]
         program=default_program(model['step'],inputs)
+        program['procedure']='dynamic' if dynamic else 'static'
         program['steps'][0]['curves'][0]['points']=[[0,0],[.5,100],[1.,0]]
         fem._metadata=lambda:{'contact_programs':[{'analysis_id':analysis.Name,'draft':program}]}
     actual, identity = exporter.collect(analysis, solver, fem)
+    assert solver.AnalysisType=='static'  # Pinned CcxTools has no dynamic enum.
+    if dynamic:
+        assert actual['analysis_steps']['procedure']=='dynamic'
+        assert all(row['density_tonne_per_mm3']==pytest.approx(7.8e-9) for row in actual['materials'])
     nmap = actual['body_maps']
     fixed_nodes = {row['node_id'] for row in actual['boundary_dofs'] if row['value_mm'] == 0.}
     assert fixed_nodes == {nmap['Base']['nodes'][n] for n in (1, 2, 3)}
@@ -144,6 +150,29 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
 
     # Check and export share the same real collector; Check does not publish files.
     assert FEMEditor.validate_for_run(fem, analysis) == []
+    if zero_force_program and not dynamic:
+        from caelab.contact_steps import default_program
+        second=obj('SecondTravel','Fem::ConstraintDisplacement',
+            References=displacement.References,EnableAmplitude=False,
+            xFree=False,yFree=True,zFree=True,xDisplacement=Quantity(-.04,'mm'))
+        analysis.Group.append(second); extra_displacements.append(second)
+        declarations=deepcopy(actual['conditions'])
+        added=deepcopy(next(c for c in declarations if c['object_id']==displacement.Name))
+        added.update(object_id=second.Name,components_mm={1:-.04})
+        for row in added['boundary_dofs']: row['value_mm']=-.04
+        declarations.append(added)
+        program=default_program(model['step'],declarations)
+        first=program['steps'][0]; last=deepcopy(first); last.update(id='Step2',label='다음 변위')
+        next(c for c in first['curves'] if c['condition_id']==second.Name)['mode']='release'
+        next(c for c in last['curves'] if c['condition_id']==displacement.Name)['mode']='release'
+        program['steps'].append(last)
+        fem._metadata=lambda:{'contact_programs':[{'analysis_id':analysis.Name,'draft':program}]}
+        changed,_=exporter.collect(analysis,solver,fem)
+        assert len(changed['analysis_steps']['steps'])==2
+        # Same values simultaneously are still rejected by the actual compiler.
+        next(c for c in first['curves'] if c['condition_id']==second.Name).pop('mode')
+        with pytest.raises(ValueError,match='충돌'):
+            exporter.collect(analysis,solver,fem)
     displacement.xDisplacement = Quantity('nan', 'mm')
     diagnostics = FEMEditor.validate_for_run(fem, analysis)
     assert diagnostics and diagnostics[0]['path'] == 'contact'
