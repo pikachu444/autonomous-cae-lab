@@ -23,7 +23,7 @@ def test_tie_requires_explicit_tolerance_and_no_contact_surrogates(model):
     for patch, field in [({'tie_tolerance_mm':'1e'},'tie_tolerance_mm'),
                          ({'tie_tolerance_mm':0},'tie_tolerance_mm'),
                          ({'tie_tolerance_mm':1e-10},'tie_tolerance_mm'),
-                         ({'tie_adjust':True},'tie_adjust'),
+                         ({'tie_adjust':'yes'},'tie_adjust'),
                          ({'tangential_law':'coulomb'},'tangential_law'),
                          ({'gap_policy':'prescribed','nominal_gap_mm':'.01'},'gap_policy')]:
         draft = dict(d, **patch); before = deepcopy(draft)
