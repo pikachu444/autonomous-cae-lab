@@ -138,7 +138,7 @@ def has_unsaved_editor(connection, owner):
     return panel is not None and panel.pending_changes()
 
 
-def flush_before_save(connection, owner, arguments, target, on_done, *, capture_motion=True):
+def flush_before_save(connection, owner, arguments, target, on_done, *, capture_motion=True, capture_beam=True):
     """Save raw shell fields before the existing document save, including offline.
 
     This is a Save action, not a numerical Apply. Invalid raw values are kept.
@@ -159,7 +159,7 @@ def flush_before_save(connection, owner, arguments, target, on_done, *, capture_
         if value.get('status')=='FAILED':finished(value);return
         try:
             connection.submit_native('document.save',deepcopy(arguments),deepcopy(target),finished,
-                owner=owner,_capture_motion_view=capture_motion,_capture_shell=False)
+                owner=owner,_capture_motion_view=capture_motion,_capture_shell=False,_capture_beam=capture_beam)
         except Exception as error:
             finished({'status':'FAILED','error':{'message':str(error)}})
     try:

@@ -86,7 +86,8 @@ def test_raw_editor_is_captured_before_save_and_late_edit_is_not_accepted(setup)
 
 
 @pytest.mark.parametrize('save_fails', [False, True])
-def test_shell_and_motion_edits_share_one_document_save(setup, save_fails):
+@pytest.mark.parametrize('with_beam', [False, True])
+def test_shell_and_motion_edits_share_one_document_save(setup, save_fails, with_beam):
     from apps.desktop_pre.shell_panel import DraftBuffer
     connection, owner, controller, pending, accepted, sent, completed = setup
     buffer = DraftBuffer()
@@ -95,14 +96,20 @@ def test_shell_and_motion_edits_share_one_document_save(setup, save_fails):
     shell = NS(buffer=buffer, busy=False, pending_changes=buffer.pending_changes,
                update_enabled=lambda: None, show_errors=lambda: None)
     connection.panels['Model']['shell'] = NS(widget=lambda: NS(shell_controller=shell))
+    if with_beam:
+        beam_draft = {'analysis_id': 'BeamAnalysis', 'section': {'width_mm': '1e'}}
+        beam = NS(pending_snapshot=lambda: beam_draft, accept_saved_snapshot=lambda *_: None)
+        connection.panels['Model']['beam'] = NS(widget=lambda: beam)
     connection.submit_native('document.save', {}, owner=owner, on_done=completed.append)
-    operations = []
-    for index, expected in enumerate(('pre.shell.save_draft', 'pre.motion.set_view', 'document.save')):
+    expected_operations = ['pre.shell.save_draft']
+    if with_beam:
+        expected_operations.append('pre.beam.draft')
+    expected_operations.extend(('pre.motion.set_view', 'document.save'))
+    for index, expected in enumerate(expected_operations):
         request = connection.native_requests[sent[index]]
-        operations.append(request['operation'])
         assert request['operation'] == expected
-        finish(connection, sent[index], failed=save_fails and index == 2)
-    assert len(sent) == 3 and len(completed) == 1 and not shell.busy
+        finish(connection, sent[index], failed=save_fails and expected == 'document.save')
+    assert len(sent) == len(expected_operations) and len(completed) == 1 and not shell.busy
     assert buffer.fields['thickness_mm'] == '1e'
     assert buffer.pending_changes() is save_fails
     assert bool(accepted) is not save_fails

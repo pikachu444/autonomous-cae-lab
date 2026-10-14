@@ -286,7 +286,7 @@ def open_origin(client, job_id, parent=None):
     if not retained:
         raise ValueError('This job has no available source document or retained design copy')
     native = client.native_input(check_id(retained))
-    if native.get('id') != retained or native.get('kind') not in {'frozen_fem', 'frozen_contact', 'frozen_shell'} or not native.get('editable_path'):
+    if native.get('id') != retained or native.get('kind') not in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'} or not native.get('editable_path'):
         raise ValueError('The retained design receipt does not identify an editable FEM copy')
     return _spawn(client, ['pre', '--source', native['editable_path'], '--source-label',
                           'Retained design copy — ' + job_id])
@@ -489,6 +489,45 @@ def _pre(client, args):
     return {'status':'LAUNCHED', 'pid':process.pid, 'output':str(folder), 'source_label':args.source_label}
 
 
+def _register_post_inspection(client, selected):
+    """Use approved folders and confirm the same selected manifest before opening."""
+    import hashlib
+    from PySide6.QtWidgets import QApplication, QInputDialog
+    app = QApplication.instance() or QApplication(sys.argv[:1])
+    key = {'contact-inspection.json':'contact_inspection','shell_inspection.json':'shell_inspection',
+           'beam_inspection.json':'beam_inspection'}[selected.name]
+    def pin():
+        digest=hashlib.sha256()
+        with selected.open('rb') as stream:
+            for chunk in iter(lambda:stream.read(1024*1024),b''):digest.update(chunk)
+        return {'relative':selected.name,'bytes':selected.stat().st_size,'sha256':digest.hexdigest()}
+    expected=pin();roots=client.local_roots().get('roots',[])
+    if not roots:raise ValueError('결과를 읽을 등록 폴더를 먼저 설정하세요.')
+    labels=[row.get('label',row['id']) for row in roots]
+    name,ok=QInputDialog.getItem(None,'해석 결과 등록','선택한 파일이 있는 등록 폴더',labels,editable=False)
+    if not ok:raise ValueError('결과 등록을 취소했습니다. 원파일은 그대로입니다.')
+    root=roots[labels.index(name)]['id'];relative='';cursor=0
+    while True:
+        payload=client.local_inputs(root,relative,cursor=cursor)
+        rows=[('상위 폴더','parent')] if relative else []
+        rows += [('폴더: '+row['name'] if row['directory'] else row['name'],row) for row in payload['entries']
+                 if row['directory'] or row['name']==selected.name]
+        if payload.get('next_cursor') is not None:rows.append(('다음 파일 목록…','next'))
+        if not rows:raise ValueError('선택한 결과 선언 파일을 이 등록 폴더에서 찾을 수 없습니다.')
+        name,ok=QInputDialog.getItem(None,'해석 결과 등록','선택한 선언 파일: '+selected.name+' / '+(relative or '최상위'),
+                                   [label for label,_ in rows],editable=False)
+        if not ok:raise ValueError('결과 등록을 취소했습니다. 원파일은 그대로입니다.')
+        row=next(item for label,item in rows if label==name)
+        if row=='parent':relative=relative.rpartition('/')[0];cursor=0
+        elif row=='next':cursor=payload['next_cursor']
+        elif row['directory']:relative=row['relative'];cursor=0
+        else:
+            receipt=client.register_local_input(root,row['relative'])
+            if pin()!=expected or (receipt.get('native_metadata') or {}).get(key)!=expected:
+                raise ValueError('등록한 자료가 처음 선택한 파일과 다릅니다. 원파일을 확인하고 다시 선택하세요.')
+            return check_id(receipt['id'])
+
+
 def _post(client, args):
     context = client.desktop_context()
     executable = _executable(context, 'paraview_executable', args.executable, not args.prepare_only)
@@ -511,10 +550,13 @@ def _post(client, args):
             raise ValueError('Specify a Post project or VTU/PVD result for headless preparation')
         selected = _choose_file('후처리 프로젝트 또는 결과 열기',
             '후처리 파일 (*.json *.vtu *.pvd);;저장한 프로젝트 (*.json);;해석 결과 (*.vtu *.pvd)')
-        if selected.suffix.lower() == '.json':
+        if selected.suffix.lower() == '.json' and selected.name not in ('contact-inspection.json','shell_inspection.json','beam_inspection.json'):
             args.project = str(selected)
         else:
             args.input_path = str(selected)
+    if args.input_path and Path(args.input_path).name in ('contact-inspection.json','shell_inspection.json','beam_inspection.json'):
+        if args.prepare_only:raise ValueError('준비 모드에서는 결과를 먼저 등록하고 --input-id로 지정하세요.')
+        args.input_id=_register_post_inspection(client,Path(args.input_path).resolve(strict=True))
     if args.project:
         project = Path(args.project).resolve(strict=True)
         folder = _folder(context, 'post', args.output)
@@ -540,6 +582,8 @@ def _post(client, args):
             raise RuntimeError('Native Post preparation failed; inspect ' + str(folder / 'prepare.stderr.log'))
         project = workspace / 'project.json'
     document = json.loads(project.read_text(encoding='utf-8-sig'))
+    if not isinstance(document.get('workspace_file'), str) or not document['workspace_file']:
+        raise ValueError('저장한 후처리 프로젝트를 선택하세요. 해석 결과 선언 파일은 결과로 등록해서 열어야 합니다.')
     state = (project.parent / document['workspace_file']).resolve(strict=True)
     if not state.is_file():
         raise ValueError('The selected Post project has no native workspace state')

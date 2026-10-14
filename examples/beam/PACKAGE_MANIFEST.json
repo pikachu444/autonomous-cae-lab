@@ -1,0 +1,137 @@
+{
+  "request_id": "PRO-E2-BEAM-20261014-01",
+  "baseline_supplied_commit": "f9788e7",
+  "entries": [
+    {
+      "path": "apps/desktop_pre/beam_edit.py",
+      "bytes": 13568,
+      "sha256": "ebd1a65811e570a987749510244cde0d87ae2ad414f8bcf4a498ae9e3d3a436d"
+    },
+    {
+      "path": "apps/desktop_pre/beam_menu.py",
+      "bytes": 5734,
+      "sha256": "6208c12535b4c1f334f24cd0336b65b2f3d042d32a149d84fa2d71de6403a3e4"
+    },
+    {
+      "path": "apps/desktop_pre/beam_native.py",
+      "bytes": 17543,
+      "sha256": "06b17d0a1ebef2a2ff9808463aee60028642cbdaf55696669a0de6046761132c"
+    },
+    {
+      "path": "apps/desktop_pre/beam_panel.py",
+      "bytes": 20624,
+      "sha256": "509727e8d7a33dea33e87d81ed7b12e959cd266f77d0a15559ea4b3bccc9b216"
+    },
+    {
+      "path": "apps/desktop_pre/beam_result_window.py",
+      "bytes": 9096,
+      "sha256": "143649ddde7690f797e8a6f8e9d006c15f90b9334b029bb76d578dc6ac37bb42"
+    },
+    {
+      "path": "apps/desktop_pre/beam_visuals.py",
+      "bytes": 5762,
+      "sha256": "5b77bd93bb02e0a20e69cec516515167f9f71d2dacb28f1c9066416a615d11d0"
+    },
+    {
+      "path": "caelab/adapters/beam_fem.py",
+      "bytes": 14070,
+      "sha256": "e84bf7ca9b50f2dad16f133da957c61b561fa108bf427bcd790e848f28d77eb8"
+    },
+    {
+      "path": "caelab/beam_cli.py",
+      "bytes": 2122,
+      "sha256": "e710bcf853a3bdce67b588f11898df8ca8ff33cb9ef0b452ad4ad8041af1f788"
+    },
+    {
+      "path": "caelab/beam_deck.py",
+      "bytes": 3064,
+      "sha256": "c3a53830a5f5e87bb1d20b1a22f2d000ddb26d7f2acc941b2454a99a5d65c0d6"
+    },
+    {
+      "path": "caelab/beam_model.py",
+      "bytes": 18087,
+      "sha256": "6375c0459e59f21b51027a4e3581db4deae597d410b09dfd0f092162d1ab911c"
+    },
+    {
+      "path": "caelab/beam_results.py",
+      "bytes": 20997,
+      "sha256": "8cde22ba25e02e6e1a1102f3874a08807738134b50e41752e620c142f37a8d4d"
+    },
+    {
+      "path": "docs/BEAM_WORKFLOW_KO.md",
+      "bytes": 22007,
+      "sha256": "3cdc0e67ae7b56ab1e0ebb4356314e961f909e197aa8e3f286f4d06c8f26bc25"
+    },
+    {
+      "path": "examples/beam/CreateBeam.FCMacro",
+      "bytes": 903,
+      "sha256": "84cce8a84c683770f0ee053bd384d2f7466d3f9c609160d142d8fdf232c0c3ad"
+    },
+    {
+      "path": "examples/beam/VERIFICATION.json",
+      "bytes": 4688,
+      "sha256": "7f08749ad9692d962ab2a91fc77d259e23fab7ea9763f1be4160769a93654b94"
+    },
+    {
+      "path": "examples/beam/VerifyBeam.FCMacro",
+      "bytes": 632,
+      "sha256": "cd9d300d9b399dac3975921bc1ce4b7dc47e8c43060ddd4b0cfc17f6c1900260"
+    },
+    {
+      "path": "examples/beam/beam_example.py",
+      "bytes": 5571,
+      "sha256": "8b81d1cc7534a864398f3dace8523bbf5d7440e86bc83873eb7f620ba42eff39"
+    },
+    {
+      "path": "examples/beam/beam_native_acceptance.py",
+      "bytes": 11690,
+      "sha256": "8359dc57aca1c8a877db8310beb6d3e36983b5b8202baa0a365c8602dd90cfa1"
+    },
+    {
+      "path": "tests/test_beam_adapter.py",
+      "bytes": 9674,
+      "sha256": "8e5d52540f702cae2e0954099c900703105b3cfeacf4dbde2a3b5cb05e651c4f"
+    },
+    {
+      "path": "tests/test_beam_editor.py",
+      "bytes": 5913,
+      "sha256": "9862be3fe3d57a66a0b3d179a43eddd66b9f5747826a36c057939b2082759d99"
+    },
+    {
+      "path": "tests/test_beam_integration.py",
+      "bytes": 3542,
+      "sha256": "790e4859ae0963d64de4ca2b08039f98f5b6db7c421b59b97c727181d07fc7e2"
+    },
+    {
+      "path": "tests/test_beam_model.py",
+      "bytes": 4875,
+      "sha256": "e43e396fb1d4c162d1cbbfdde446fa9224d4b9b2684faef75f46bbde4b1a466b"
+    },
+    {
+      "path": "tests/test_beam_native_runtime.py",
+      "bytes": 1543,
+      "sha256": "6651fd3f773c8d370b13d9995ccc0e8c109039dffe088bccf37cbf843b5299ab"
+    },
+    {
+      "path": "tests/test_beam_native_source.py",
+      "bytes": 2807,
+      "sha256": "44234ac8a7166737727a497052d7c5d0d64c1c113406d2be12653fa8c7717c8f"
+    },
+    {
+      "path": "tests/test_beam_results.py",
+      "bytes": 4883,
+      "sha256": "1898c5e98dee644bede72f473175e703e0a875f11deeb99601d4888baa4fcf09"
+    },
+    {
+      "path": "tests/test_beam_support.py",
+      "bytes": 4112,
+      "sha256": "eb1926d19b3cd5e88c59613bcafbc4f151fbeef1c2de80c9accec491a9db7c16"
+    },
+    {
+      "path": "integration.patch",
+      "bytes": 27726,
+      "sha256": "71c3076b19571d36c4f58eb21444896360ae3a65fa1aa9b131f51f5ba9038542"
+    }
+  ],
+  "self_not_hashed": "examples/beam/PACKAGE_MANIFEST.json"
+}

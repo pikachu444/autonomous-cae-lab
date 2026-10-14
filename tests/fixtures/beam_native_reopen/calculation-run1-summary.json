@@ -1,0 +1,17 @@
+{
+  "execution_status": "FAILED",
+  "diagnostics": {
+    "errors": [],
+    "warnings": [
+      "*WARNING reading *STATIC:"
+    ],
+    "has_unreviewed_native_diagnostic": true,
+    "type": "ValueError",
+    "reason": "Unexpected or duplicate beam field",
+    "partial_reader_error": "Unexpected or duplicate beam field"
+  },
+  "native_return_code": 0,
+  "responses": {},
+  "readable_frames": 0,
+  "saved_reader_error": "Unexpected or duplicate beam field"
+}

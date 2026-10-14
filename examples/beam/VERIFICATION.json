@@ -1,0 +1,112 @@
+{
+  "request_id": "PRO-E2-BEAM-20261014-01",
+  "schema_version": "1",
+  "delivery_status": "IMPLEMENTED_NATIVE_ACCEPTANCE_PENDING",
+  "baseline": {
+    "supplied_public_commit": "f9788e7",
+    "source_archive_name": "beam-source-f9788e7.zip",
+    "source_archive_sha256": "4ed5c0458cdaf1ec1a8f1228e5f6c91ab13eefae3864d665244fa78411fc07b6",
+    "request_sha256": "ec4db65fd9c1a562e071d46fde68b20a8e9b8f4786e69aa494f173ee3c7281b7",
+    "remote_head_updated": false,
+    "complete_repository_available": false
+  },
+  "environment": {
+    "system": "Linux",
+    "python": "3.13.5",
+    "numpy": "2.3.5",
+    "pytest": "9.0.2",
+    "vtk": "9.6.2",
+    "FreeCAD": "NOT_INSTALLED",
+    "CalculiX": "NOT_INSTALLED",
+    "Qt_bindings": "NOT_INSTALLED"
+  },
+  "focused_tests": {
+    "status": "PASS",
+    "passed": 124,
+    "skipped": 2,
+    "failed": 0,
+    "errors": 0,
+    "command": "python -m pytest -q tests/test_beam_*.py",
+    "fresh_baseline_plus_owned_files_and_patch": true,
+    "skips": [
+      {
+        "test": "test_real_freecad_export_and_fresh_owner",
+        "reason": "FreeCAD 1.1.4 is unavailable; run VerifyBeam.FCMacro on the real installation"
+      },
+      {
+        "test": "test_real_qt_widget_construction_and_narrow_layout",
+        "reason": "No Qt binding: widget layout and OS interactions not verified"
+      }
+    ]
+  },
+  "executed_checks": [
+    "23 new Python/macro files compiled",
+    "Original supplied common sources: git apply --check passed",
+    "Patch applied to fresh extraction of the supplied baseline and new owned files; 124 tests passed / 2 skipped",
+    "B32R connectivity, RECT dimensions and native source function comparison with numeric/vector test doubles",
+    "Global/local force and direct CLOAD moment, deg-to-rad boundary conversion, 90-degree section rotation and invalid admission gates",
+    "Synthetic strict ASCII FRD component/units/topology/partial EOF and corruption checks",
+    "Actual VTK XML reader opened generated quadratic-edge VTU and verified type/order/arrays",
+    "Existing registered backend and evaluation.run normalization/save/read_result verify=all with explicit solver-process doubles",
+    "Existing command owner/metadata/transaction and frozen source registrar with explicit document/protocol doubles",
+    "Failed/cancelled/raw-input-preserving attempts; no solver execution on saved result read"
+  ],
+  "not_executed": [
+    "FreeCAD 1.1.4 native object creation and installed writer execution",
+    "Real FCStd save/open and native Undo/Redo in a fresh Owner",
+    "CalculiX 2.22 beam calculations and numerical acceptance cases",
+    "Windows normal/narrow GUI appearance, focus, Korean text and interactions",
+    "Full existing JobManager/Workbench-to-Runner/ParaView GUI integration",
+    "Independent reproduction of upstream CalculiX issue #124",
+    "Independent Astra review of this implementation"
+  ],
+  "unavailable_outputs": [
+    "Native rotation result channel",
+    "Support reaction moment resultant",
+    "Support reaction force resultant",
+    "Expanded 3D stress in the SECTION FORCES output profile"
+  ],
+  "remaining_gates": {
+    "oblique_beams": "BLOCKED_BY_DEFAULT; explicit diagnostic execution remains FAILED with diagnostic_only, no accepted response fields",
+    "general_E2_release": "NOT_ACCEPTED; see guide support boundary and native acceptance macros"
+  },
+  "integration": {
+    "common_files": [
+      "apps/desktop_pre/bridge.py",
+      "apps/desktop_pre/cae_prep.py",
+      "apps/desktop_pre/connection.py",
+      "apps/desktop_pre/native_controls.py",
+      "caelab/backends.py",
+      "caelab/desktop_links.py",
+      "caelab/native_commands.py",
+      "caelab/native_inputs.py",
+      "caelab/workbench.py"
+    ],
+    "patch_sha256": "71c3076b19571d36c4f58eb21444896360ae3a65fa1aa9b131f51f5ba9038542",
+    "common_originals_restored_in_delivery_worktree": true,
+    "parallel_owner_files_modified": false,
+    "remote_branch_published": false,
+    "existing_evaluation_status_contract": [
+      "SUCCEEDED",
+      "FAILED",
+      "REJECTED",
+      "CANCELLED"
+    ]
+  },
+  "native_test_entries": [
+    "examples/beam/CreateBeam.FCMacro",
+    "examples/beam/VerifyBeam.FCMacro",
+    "examples/beam/beam_native_acceptance.py"
+  ],
+  "limits_declared_before_any_native_run": {
+    "tip_displacement_relative": 0.02,
+    "tip_displacement_absolute_mm": 1e-08,
+    "interior_section_moment_relative": 0.01,
+    "interior_section_moment_absolute_Nmm": 0.0001,
+    "interior_station_fraction": [
+      0.2,
+      0.8
+    ],
+    "meaning": "Initial diagnostic comparison only; not an engineering release tolerance; no native results were used to tune these limits."
+  }
+}

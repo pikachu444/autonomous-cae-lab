@@ -1,0 +1,17 @@
+# Actual native save/reopen/edit acceptance; no solver, no result-reader changes.
+import sys
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from PySide import QtGui
+try:
+    from PySide import QtWidgets as W
+except ImportError:
+    W = QtGui
+import FreeCADGui as Gui
+folder = W.QFileDialog.getExistingDirectory(Gui.getMainWindow(), '빔 저장·재열기 검사 폴더')
+if folder:
+    from examples.beam.beam_reopen_acceptance import run
+    result = run(folder)
+    W.QMessageBox.information(Gui.getMainWindow(), '빔 저장·재열기 검사 기록', str(result))

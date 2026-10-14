@@ -36,7 +36,7 @@ class DesktopLinks:
         command_id = check_id(command_id)
         with self._lock:
             command = wb.native_commands.status(command_id)
-            if command['operation'] not in {'pre.freeze', 'pre.contact.freeze', 'pre.shell.freeze'} or command['state'] != 'SUCCEEDED':
+            if command['operation'] not in {'pre.freeze', 'pre.contact.freeze', 'pre.shell.freeze', 'pre.beam.freeze'} or command['state'] != 'SUCCEEDED':
                 raise ValueError('A completed native FEM/contact freeze command is required')
             envelope = command.get('outcome', {}).get('result', {})
             result = envelope.get('result', {})
@@ -61,6 +61,7 @@ class DesktopLinks:
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
             receipt_kind, backend = {'pre.freeze':('frozen_fem','structure.calculix.frozen'),
                 'pre.contact.freeze':('frozen_contact','structure.calculix.contact'),
+                'pre.beam.freeze':('frozen_beam','structure.calculix.beam'),
                 'pre.shell.freeze':('frozen_shell','structure.calculix.shell')}[command['operation']]
             if receipt.get('kind') != receipt_kind:
                 raise ValueError('Registered snapshot kind differs from the completed export operation')
@@ -117,7 +118,7 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell'}:
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'}:
             result['retained_design_input_id'] = job['arguments']['settings']['data_id']
         if origin.get('kind') == 'pre':
             try:

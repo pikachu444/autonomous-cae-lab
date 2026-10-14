@@ -160,3 +160,6 @@ tests/fixtures/ns1_convergence_0548ee0/*.cvg -text
 tests/fixtures/ns1_convergence_0548ee0/*.sta -text
 tests/fixtures/ns1_convergence_0548ee0/*.inp -text
 tests/fixtures/ns1_convergence_0548ee0/*.json -text
+
+# Preserve the real native save/reopen fixture bytes on every host.
+tests/fixtures/beam_native_reopen/** -text -whitespace

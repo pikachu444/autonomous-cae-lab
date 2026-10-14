@@ -1,0 +1,14 @@
+# Real native export/save/reopen checks. Does NOT launch a solver or new job owner.
+import sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+from PySide import QtGui
+try:from PySide import QtWidgets as W
+except ImportError:W=QtGui
+import FreeCADGui as Gui
+folder=W.QFileDialog.getExistingDirectory(Gui.getMainWindow(),'native 검사 저장 폴더')
+if folder:
+    from examples.beam.beam_native_acceptance import export_and_reopen
+    report=export_and_reopen(folder)
+    W.QMessageBox.information(Gui.getMainWindow(),'native 검사 기록',str(report))

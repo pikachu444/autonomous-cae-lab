@@ -368,7 +368,8 @@ def test_post_document_activation_requires_explicit_native_owner_capability(clie
 
 
 @pytest.mark.parametrize('state', ['SUCCEEDED', 'FAILED', 'CANCELLED'])
-def test_contact_attempt_closed_origin_uses_exact_retained_design(client, processes, state, monkeypatch):
+@pytest.mark.parametrize('family', ['contact', 'shell', 'beam'])
+def test_attempt_closed_origin_uses_exact_retained_design(client, processes, state, monkeypatch, family):
     from caelab.desktop_links import DesktopLinks
 
     def disconnected(identifier):
@@ -378,7 +379,7 @@ def test_contact_attempt_closed_origin_uses_exact_retained_design(client, proces
     links = DesktopLinks.__new__(DesktopLinks)
     links.workbench = NS(native_commands=NS(read=disconnected))
     job = {'id': 'Jcontact', 'state': state, 'result_refs': [],
-           'arguments': {'backend': 'structure.calculix.contact',
+           'arguments': {'backend': 'structure.calculix.' + family,
                          'settings': {'data_id': 'Dcontact'},
                          'origin': {'kind': 'pre', 'document_id': 'Pcontact',
                                     'session_id': 'Sclosed', 'generation': 9}}}
@@ -388,7 +389,7 @@ def test_contact_attempt_closed_origin_uses_exact_retained_design(client, proces
     reads = []
     def retained(identifier):
         reads.append(identifier)
-        return {'id': identifier, 'kind': 'frozen_contact', 'editable_path': path}
+        return {'id': identifier, 'kind': 'frozen_' + family, 'editable_path': path}
     client.native_input = retained
     navigation = links.navigation('Jcontact')
     assert navigation['origin_document'] is None

@@ -21,13 +21,14 @@ from apps.desktop_pre.projects import Project, OPERATIONS as PROJECT_OPERATIONS
 from apps.desktop_pre.motion import Motion, OPERATIONS as MOTION_OPERATIONS
 from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 from apps.desktop_pre.convergence import OPERATIONS as CONVERGENCE_OPERATIONS
+from apps.desktop_pre.beam_edit import BeamEditor, OPERATIONS as BEAM_OPERATIONS
 from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
 from apps.desktop_pre.shell_edit import ShellEditor, OPERATIONS as SHELL_OPERATIONS, READ_ONLY as SHELL_READ_ONLY
 
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -59,11 +60,13 @@ class Owner:
         self.project = Project(self)
         self.motion = Motion(self)
         self.fem = FEMEditor(self)
+        self.beam = BeamEditor(self)
         self.research = ResearchInputs(self)
         self.shell = ShellEditor(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
-            if hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None:
+            if (hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None
+                    and not (obj.FemMesh.Edges and not obj.FemMesh.Faces and not obj.FemMesh.Volumes)):
                 try:
                     self.mesh_bindings.track(obj)
                 except Exception as error:
@@ -253,7 +256,7 @@ class Owner:
                 if operation not in {'document.activate', 'pre.contact.cancel_rebind'}:
                     self._idle()
                 readonly = {'pre.fem.convergence_read', 'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
-                            'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
+                            'pre.beam.inspect', 'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
                 readonly |= SHELL_READ_ONLY
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
@@ -271,6 +274,9 @@ class Owner:
                         if not count:
                             raise ValueError('No native edit is available to undo/redo')
                         getattr(self.doc, operation.split('.')[1])()
+                        # Native Undo restores values but leaves dependent FEM
+                        # objects Touched until recompute; finish before replying.
+                        self.doc.recompute()
                     else:
                         if self.descriptor()['pending_edit'] and getattr(self.App, 'ActiveDocument', None) is not self.doc:
                             raise ValueError('BUSY_EDIT: cannot switch away from another document’s native task')
@@ -289,6 +295,8 @@ class Owner:
                     payload = capture(self, args['analysis_id'], args['solver_id'])
                 elif operation in SHELL_OPERATIONS:
                     payload = self.shell.dispatch(operation, args, target)
+                elif operation in BEAM_OPERATIONS:
+                    payload = self.beam.dispatch(operation, args, target)
                 elif operation in RESEARCH_OPERATIONS:
                     payload = self.research.dispatch(operation, args, target)
                 elif operation in PARAMETER_OPERATIONS:
@@ -334,6 +342,9 @@ class Owner:
                 elif operation in {'pre.freeze', 'pre.contact.freeze'}:
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
+                    from apps.desktop_pre.beam_menu import uses_beam
+                    if uses_beam(self._object(args['analysis_id']), self.read_metadata()):
+                        raise ValueError('빔 설정에서 입력을 생성하세요. 일반 FEM 입력으로 빔 끝 모멘트를 생략하지 않습니다.')
                     from apps.desktop_pre.freeze_analysis import freeze_analysis
                     diagnostics = (self.fem.validate_for_run(self._object(args['analysis_id']))
                                    if operation == 'pre.freeze' else [])

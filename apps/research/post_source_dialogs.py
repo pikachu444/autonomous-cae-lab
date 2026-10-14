@@ -144,7 +144,7 @@ class SourceUpdateDialog(QDialog):
             if (self.roots.currentData() or {}).get('id') != root_id: return
             choices = [('상위 폴더', 'parent')] if relative else []
             choices += [(('폴더: ' if item['directory'] else '') + item['name'], item) for item in payload['entries']
-                if item['directory'] or item['name'].lower().endswith(('.vtu', '.pvd')) or item['name'] == 'contact-inspection.json']
+                if item['directory'] or item['name'].lower().endswith(('.vtu', '.pvd')) or item['name'] in ('contact-inspection.json','shell_inspection.json','beam_inspection.json')]
             if payload.get('next_cursor') is not None: choices.append(('다음 파일 목록…', 'next'))
             if not choices:
                 self.notice.setText('이 폴더에 읽을 후처리 파일이 없습니다.'); return

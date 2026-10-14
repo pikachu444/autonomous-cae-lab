@@ -1,0 +1,137 @@
+{
+  "request_id": "PRO-E2-POST-CORRECTION-20261014-02",
+  "basis": {
+    "primary_upload": "post-correction-source.zip",
+    "primary_sha256": "127ed4baef7e4835a95a04db12e315c59efcd27bacbfaaabd8488af8f9acf1b0",
+    "supporting_upload": "beam-source-f9788e7.zip",
+    "supporting_sha256": "4ed5c0458cdaf1ec1a8f1228e5f6c91ab13eefae3864d665244fa78411fc07b6",
+    "supplied_baseline_description": "Uploaded main2798500 plus uncommitted E1/E2 shared merge candidate; not a claim of current remote HEAD"
+  },
+  "verification": {
+    "test_paths": [
+      "tests/test_beam_model.py",
+      "tests/test_beam_results.py",
+      "tests/test_beam_adapter.py",
+      "tests/test_beam_native_source.py",
+      "tests/test_beam_analysis_membership.py",
+      "tests/test_beam_post_bundle.py",
+      "tests/test_beam_post_integration.py",
+      "tests/test_beam_native_runtime.py"
+    ],
+    "pytest_passed": 200,
+    "pytest_skipped": 2,
+    "pytest_failed": 0,
+    "pytest_errors": 0,
+    "clean_applied_tree_test_seconds": 17.836,
+    "clean_reconstruction_from_uploads": true,
+    "beam_owned_patch_apply_check": "PASS",
+    "common_integration_patch_apply_check": "PASS",
+    "applied_bytes_match_authored_files": true,
+    "evidence": "beam-post-targeted.xml and beam-post-tests.txt in delivery root"
+  },
+  "runtime": {
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+    "vtk": "9.6.2",
+    "available": {
+      "vtk": true,
+      "FreeCAD": false,
+      "paraview": false,
+      "PySide6": false,
+      "PySide2": false
+    }
+  },
+  "executed_scope": [
+    "Real beam model/deck/FRD parser and adapter publication with a clearly synthetic FRD and owned-runner double",
+    "Real installed VTK XML reader: quadratic edge topology, original IDs, U_mm component names, all 12 scalar arrays",
+    "Real Workbench registration/resolution methods and native_input store: raw companion/metadata copied and verified",
+    "Real Post external admission/select/save/restore code with explicitly doubled ParaView proxies, ColorBy and state boundary; state double is NOT native PVSM",
+    "Fresh Python subprocess loads registered copy after original run removal; no solver rerun",
+    "Rehashed raw/deck/source/basis/converted-value/topology/CSV/PVD/metadata manipulation rejection",
+    "Real collect/freeze gate using native-object/geometry doubles: unchanged property stamp cannot bypass current Analysis membership/type checks",
+    "Official FreeCAD function body numerical comparison uses vector doubles, not a FreeCAD native run"
+  ],
+  "not_executed": [
+    "FreeCAD 1.1.4 native document, GUI, current Analysis and save/reopen acceptance",
+    "CalculiX 2.22 solver execution/physical numerical verification",
+    "ParaView native PVD proxy, ColorBy/scalar bar rendering and native PVSM two-process acceptance",
+    "Qt widgets, Korean fonts, Windows OS interactions",
+    "Full Workbench construction/service boot and complete cross-tool Windows integration",
+    "Existing test_beam_editor.py/test_beam_integration.py: partial archive omits convergence.py and other shared dependencies",
+    "Existing shell Post regression: supplied archive omits its shell_fem.py and test_desktop_post_external.py dependencies"
+  ],
+  "preservation": {
+    "untouched_uploaded_files": [
+      "caelab/beam_cli.py",
+      "caelab/beam_deck.py",
+      "caelab/beam_model.py",
+      "tests/test_beam_adapter.py",
+      "tests/test_beam_editor.py",
+      "tests/test_beam_integration.py",
+      "tests/test_beam_model.py",
+      "tests/test_beam_native_runtime.py",
+      "tests/test_beam_native_source.py",
+      "tests/test_beam_results.py",
+      "apps/desktop_pre/beam_edit.py",
+      "apps/desktop_pre/beam_menu.py",
+      "apps/desktop_pre/beam_panel.py",
+      "apps/desktop_pre/beam_result_window.py",
+      "apps/desktop_pre/beam_visuals.py",
+      "examples/beam/beam_example.py",
+      "examples/beam/beam_native_acceptance.py",
+      "examples/beam/CreateBeam.FCMacro",
+      "examples/beam/PACKAGE_MANIFEST.json",
+      "examples/beam/VERIFICATION.json",
+      "examples/beam/VerifyBeam.FCMacro",
+      "apps/desktop_post/prepare.py",
+      "caelab/shell_inspection.py",
+      "caelab/contact_inspection.py",
+      "caelab/adapters/shell_post.py",
+      "caelab/adapters/shell_results.py",
+      "caelab/storage.py",
+      "caelab/execution_control.py",
+      "tests/test_shell_post_admission.py",
+      "tests/test_shell_support.py",
+      "caelab/backends.py",
+      "caelab/desktop_links.py",
+      "caelab/native_commands.py",
+      "apps/desktop_pre/bridge.py",
+      "apps/desktop_pre/cae_prep.py",
+      "apps/desktop_pre/connection.py",
+      "apps/desktop_pre/native_controls.py"
+    ],
+    "all_untouched_files_byte_identical": true,
+    "shared_changes_only": [
+      "apps/desktop_post/external.py",
+      "caelab/native_inputs.py",
+      "caelab/workbench.py"
+    ],
+    "windows_no_v_execution_block_byte_identical": true,
+    "native_invocation": "ccx -i beam once; test double asserts exactly one invocation",
+    "unchanged": [
+      "Real run must return rc0",
+      "FRD exact2.22",
+      "Executable and actual input identity checks",
+      "Existing Runner/process cleanup",
+      "Shell/NS1/M3 uploaded owner/menu/bridge integrations"
+    ]
+  },
+  "support_boundary": {
+    "native_rotation_result": "NOT_IMPLEMENTED",
+    "support_resultant_reaction_moment": "NOT_IMPLEMENTED",
+    "support_resultant_force": "NOT_IMPLEMENTED; original native RF channels only",
+    "non_axis_aligned_moment_rotation": "DIAGNOSTIC_ONLY; no upstream repair or general success claim",
+    "physical_engineering_approval": false,
+    "bundle_proof": "Internal semantic consistency/replay, not solver verification or cryptographic authentication of a wholly replaced coherent bundle",
+    "cad_project_proof": "Retained byte pins/source identity only in Post; no FreeCAD geometry reconstruction there"
+  },
+  "native_acceptance_script": {
+    "path": "examples/beam/beam_post_acceptance.py",
+    "operations": [
+      "write",
+      "reopen"
+    ],
+    "requires": "Actual installed pvpython, two separate processes, existing raw native beam result",
+    "executed_here": false,
+    "solver_execution": false
+  }
+}

@@ -1,0 +1,581 @@
+{
+  "axes": {
+    "local1": [
+      -0.0,
+      0.0,
+      1.0
+    ],
+    "local2": [
+      0.0,
+      -1.0,
+      0.0
+    ],
+    "tangent": [
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  "boundaries": [
+    {
+      "dof": 1,
+      "node": 101,
+      "unit": "mm",
+      "value": 0.0
+    },
+    {
+      "dof": 2,
+      "node": 101,
+      "unit": "mm",
+      "value": 0.0
+    },
+    {
+      "dof": 3,
+      "node": 101,
+      "unit": "mm",
+      "value": 0.0
+    },
+    {
+      "dof": 4,
+      "node": 101,
+      "unit": "rad",
+      "value": 0.0
+    },
+    {
+      "dof": 5,
+      "node": 101,
+      "unit": "rad",
+      "value": 0.0
+    },
+    {
+      "dof": 6,
+      "node": 101,
+      "unit": "rad",
+      "value": 0.0
+    }
+  ],
+  "draft": {
+    "analysis_id": "BeamAnalysis",
+    "diagnostic_oblique": false,
+    "edge": {
+      "object": "BeamLine",
+      "subelement": "Edge1"
+    },
+    "ends": [
+      {
+        "force_N": [
+          "0",
+          "0",
+          "0"
+        ],
+        "label": "끝 1",
+        "moment_Nmm": [
+          "0",
+          "0",
+          "0"
+        ],
+        "reference": {
+          "object": "BeamLine",
+          "subelement": "Vertex1"
+        },
+        "rotation_deg": [
+          "0",
+          "0",
+          "0"
+        ],
+        "system": "global",
+        "translation_mm": [
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "force_N": [
+          "0",
+          "0",
+          "0"
+        ],
+        "label": "끝 2",
+        "moment_Nmm": [
+          "0",
+          "1000",
+          "0"
+        ],
+        "reference": {
+          "object": "BeamLine",
+          "subelement": "Vertex2"
+        },
+        "rotation_deg": [
+          "",
+          "",
+          ""
+        ],
+        "system": "global",
+        "translation_mm": [
+          "",
+          "",
+          ""
+        ]
+      }
+    ],
+    "material": {
+      "object_id": "BeamMaterial",
+      "poisson": "0.3",
+      "young_MPa": "210000"
+    },
+    "mesh_id": "BeamMesh",
+    "section": {
+      "height_mm": "20",
+      "object_id": "BeamSection",
+      "rotation_deg": "90",
+      "rotation_id": "BeamRotation",
+      "width_mm": "10"
+    }
+  },
+  "edge_end_mm": [
+    1000.0,
+    0.0,
+    0.0
+  ],
+  "edge_start_mm": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "element": "B32R",
+  "elements": [
+    {
+      "ccx_nodes": [
+        101,
+        108,
+        115
+      ],
+      "id": 1001,
+      "native_nodes": [
+        101,
+        115,
+        108
+      ]
+    },
+    {
+      "ccx_nodes": [
+        115,
+        122,
+        129
+      ],
+      "id": 1012,
+      "native_nodes": [
+        115,
+        129,
+        122
+      ]
+    },
+    {
+      "ccx_nodes": [
+        129,
+        136,
+        143
+      ],
+      "id": 1023,
+      "native_nodes": [
+        129,
+        143,
+        136
+      ]
+    },
+    {
+      "ccx_nodes": [
+        143,
+        150,
+        157
+      ],
+      "id": 1034,
+      "native_nodes": [
+        143,
+        157,
+        150
+      ]
+    },
+    {
+      "ccx_nodes": [
+        157,
+        164,
+        171
+      ],
+      "id": 1045,
+      "native_nodes": [
+        157,
+        171,
+        164
+      ]
+    },
+    {
+      "ccx_nodes": [
+        171,
+        178,
+        185
+      ],
+      "id": 1056,
+      "native_nodes": [
+        171,
+        185,
+        178
+      ]
+    },
+    {
+      "ccx_nodes": [
+        185,
+        192,
+        199
+      ],
+      "id": 1067,
+      "native_nodes": [
+        185,
+        199,
+        192
+      ]
+    },
+    {
+      "ccx_nodes": [
+        199,
+        206,
+        213
+      ],
+      "id": 1078,
+      "native_nodes": [
+        199,
+        213,
+        206
+      ]
+    },
+    {
+      "ccx_nodes": [
+        213,
+        220,
+        227
+      ],
+      "id": 1089,
+      "native_nodes": [
+        213,
+        227,
+        220
+      ]
+    },
+    {
+      "ccx_nodes": [
+        227,
+        234,
+        241
+      ],
+      "id": 1100,
+      "native_nodes": [
+        227,
+        241,
+        234
+      ]
+    }
+  ],
+  "end_conditions": [
+    {
+      "global_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "global_moment_Nmm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "global_rotation_rad": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "global_translation_mm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "node": 101
+    },
+    {
+      "global_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "global_moment_Nmm": [
+        0.0,
+        1000.0,
+        0.0
+      ],
+      "global_rotation_rad": [
+        null,
+        null,
+        null
+      ],
+      "global_translation_mm": [
+        null,
+        null,
+        null
+      ],
+      "node": 241
+    }
+  ],
+  "end_node_ids": [
+    101,
+    241
+  ],
+  "length_mm": 1000.0,
+  "loads": [
+    {
+      "dof": 5,
+      "node": 241,
+      "unit": "Nmm",
+      "value": 1000.0
+    }
+  ],
+  "nodes": [
+    {
+      "id": 101,
+      "xyz_mm": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 108,
+      "xyz_mm": [
+        50.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 115,
+      "xyz_mm": [
+        100.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 122,
+      "xyz_mm": [
+        150.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 129,
+      "xyz_mm": [
+        200.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 136,
+      "xyz_mm": [
+        250.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 143,
+      "xyz_mm": [
+        300.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 150,
+      "xyz_mm": [
+        350.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 157,
+      "xyz_mm": [
+        400.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 164,
+      "xyz_mm": [
+        450.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 171,
+      "xyz_mm": [
+        500.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 178,
+      "xyz_mm": [
+        550.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 185,
+      "xyz_mm": [
+        600.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 192,
+      "xyz_mm": [
+        650.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 199,
+      "xyz_mm": [
+        700.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 206,
+      "xyz_mm": [
+        750.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 213,
+      "xyz_mm": [
+        800.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 220,
+      "xyz_mm": [
+        850.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 227,
+      "xyz_mm": [
+        900.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 234,
+      "xyz_mm": [
+        950.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 241,
+      "xyz_mm": [
+        1000.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "schema": "caelab-beam/1",
+  "section_type": "RECT",
+  "source": {
+    "analysis_id": "BeamAnalysis",
+    "binding": {
+      "edge": {
+        "brep_sha256": "ed33033ed97728d18ca61589273d8b83e09f1e44038f41a5de20bbdabf5dc45c",
+        "global_placement": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "object": "BeamLine",
+        "subelement": "Edge1",
+        "type": "Sketcher::SketchObject"
+      },
+      "ends": [
+        {
+          "brep_sha256": "ed33033ed97728d18ca61589273d8b83e09f1e44038f41a5de20bbdabf5dc45c",
+          "global_placement": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "object": "BeamLine",
+          "subelement": "Vertex1",
+          "type": "Sketcher::SketchObject"
+        },
+        {
+          "brep_sha256": "ed33033ed97728d18ca61589273d8b83e09f1e44038f41a5de20bbdabf5dc45c",
+          "global_placement": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "object": "BeamLine",
+          "subelement": "Vertex2",
+          "type": "Sketcher::SketchObject"
+        }
+      ],
+      "mesh_id": "BeamMesh",
+      "mesh_sha256": "8901d276cd8858eda789f1d82ac453e58deb736876b5eff512221a5db7b28214"
+    },
+    "document_id": "P6905f2bda4b4451395c44e11ec8acf26",
+    "end_object_ids": [
+      "BeamEnd",
+      "BeamEnd001"
+    ],
+    "mesh_id": "BeamMesh",
+    "native_document": "Beam_section_90_1ffbfa",
+    "solver_id": "BeamSolver"
+  },
+  "units": {
+    "elasticity": "MPa",
+    "force": "N",
+    "length": "mm",
+    "moment": "Nmm",
+    "rotation": "rad"
+  }
+}

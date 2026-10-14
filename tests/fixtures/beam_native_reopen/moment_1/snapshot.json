@@ -1,0 +1,51 @@
+{
+  "analysis_id": "BeamAnalysis",
+  "document_id": "P897446e3f0914c2b9eb57d8bcea4f677",
+  "editable_project": "editable.caepre",
+  "files": [
+    {
+      "bytes": 862,
+      "relative": "beam.inp",
+      "sha256": "374ef7ec9a5736cc061f7887432ea57663fa0b1e99146357a760d1a8199df819"
+    },
+    {
+      "bytes": 15918,
+      "relative": "editable.caepre",
+      "sha256": "d9cd785b6f0f7e208518f1a3846056f9559494c9c3386f3c06660b162ebcd143"
+    },
+    {
+      "bytes": 10669,
+      "relative": "editable.FCStd",
+      "sha256": "b986bb5d19313613bbd142af94d17b2ae242dfa281ab088d07b342c11868cfa5"
+    },
+    {
+      "bytes": 9294,
+      "relative": "mesh.json",
+      "sha256": "57c7e8e13c0d5dddcd767459349b8ebeed1e8c940e2736f4a71e624ed854c157"
+    }
+  ],
+  "id": "F735bee65c5a548f7a71496ea18cfef99",
+  "input_file": "beam.inp",
+  "kind": "freecad-beam-frozen",
+  "native_version": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "qualification": "UNKNOWN",
+  "schema_version": "1",
+  "writers": {
+    "mesh_writer": "FemMesh.writeABAQUS(edgeVariant=beam reduced)",
+    "mesh_writer_sha256": "febe86de496383c1f6fb0c76af5189e05c849cbde3b1649668697eeccbca588e",
+    "moment_route": "CLOAD DOF4..6; no rigid body; no force couples",
+    "output": "OUTPUT=2D / SECTION FORCES",
+    "rotation_route": "BOUNDARY DOF4..6; deg converted to rad",
+    "section_card": "*BEAM SECTION, ELSET=BEAM, MATERIAL=BEAMMAT, SECTION=RECT\n10,20\n0, 1, -0\n",
+    "section_writer": "femsolver.calculix.write_femelement_geometry"
+  }
+}

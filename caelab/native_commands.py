@@ -42,6 +42,10 @@ from apps.desktop_pre.shell_edit import OPERATIONS as SHELL_OPERATIONS
 CAPABILITIES['pre'].update(SHELL_OPERATIONS)
 
 
+from .beam_model import OPERATIONS as BEAM_OPERATIONS
+CAPABILITIES['pre'].update(BEAM_OPERATIONS)
+
+
 class NativeCommands:
     def __init__(self, root, service_session_id, *, heartbeat_timeout=30):
         self.root = Path(root) / 'native_commands'

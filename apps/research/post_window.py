@@ -15,7 +15,7 @@ import sys
 import uuid
 from urllib.error import HTTPError
 
-from PySide6.QtCore import QThreadPool, QTimer, Qt
+from PySide6.QtCore import QThreadPool, QTimer, QSignalBlocker, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QCheckBox, QComboBox, QFormLayout,
@@ -324,6 +324,17 @@ class PostWindow(QMainWindow):
         center_layout.addWidget(self.source_tools)
         center_layout.addWidget(self.array_table, 1)
         center_layout.addWidget(self.array_description)
+        self.array_controls = QWidget()
+        array_controls = QHBoxLayout(self.array_controls)
+        array_controls.setContentsMargins(0, 0, 0, 0)
+        array_controls.addWidget(QLabel('표시 성분'))
+        self.array_component = QComboBox()
+        self.array_component.setAccessibleName('선택 필드의 실제 성분')
+        array_controls.addWidget(self.array_component, 1)
+        self.select_array_button = QPushButton('선택 성분 보기')
+        self.select_array_button.clicked.connect(self.show_selected_array)
+        array_controls.addWidget(self.select_array_button)
+        center_layout.addWidget(self.array_controls)
         self.progress = QLabel('요청 대기 중')
         self.progress.setWordWrap(True)
         self.statusBar().addWidget(self.progress, 1)
@@ -461,7 +472,7 @@ class PostWindow(QMainWindow):
 
     @staticmethod
     def operation_label(operation):
-        return {'document.save': '저장', 'post.sample': '측정값 조회', 'post.inspect': '필드 조회',
+        return {'document.save': '저장', 'post.sample': '측정값 조회', 'post.inspect': '필드 조회', 'post.select_array': '성분 표시',
                 'post.mapping_validate': '미리보기', 'post.apply': '적용', 'post.show_analysis': '적용 결과 표시',
                 'post.contact_inspect': '접촉 결과 조회', 'post.measurement_snapshot': '측정 확인',
                 'post.export': '내보내기', 'post.undo': '적용 취소', 'post.redo': '다시 적용',
@@ -1456,6 +1467,7 @@ class PostWindow(QMainWindow):
             self.details.setPlainText(json.dumps({'native_inspection': payload, 'command': self._last_command}, ensure_ascii=False, indent=2))
             arrays = payload.get('data', {}).get('arrays')
             if arrays is not None:
+                self._inspected_array_context = (self.document_id, self.session_id, self.document['generation'], self._source_ref)
                 self._fill_arrays(arrays)
         return self.queue_command('post.inspect', {'target': {'source_id': target}}, accepted=accepted)
 
@@ -1471,6 +1483,7 @@ class PostWindow(QMainWindow):
         matches = [i for i, item in enumerate(arrays) if key == (item.get('association'), item.get('name'))] if key else []
         self._array_source_ref = self._source_ref
         self._array_rows = deepcopy(arrays)
+        blocker = QSignalBlocker(self.array_table)
         self.array_table.clearSelection()
         self.array_table.setCurrentCell(-1, -1)
         self.array_table.setRowCount(len(arrays))
@@ -1485,6 +1498,7 @@ class PostWindow(QMainWindow):
                 self.array_table.setItem(row, column, cell)
         if len(matches) == 1:
             self.array_table.selectRow(matches[0])
+        blocker.unblock()
         self._array_selected()
 
     @staticmethod
@@ -1492,6 +1506,8 @@ class PostWindow(QMainWindow):
         measure = item.get('measure')
         if not measure or measure in ('UNKNOWN', 'unknown'):
             return '미지정'
+        if measure in ('section_force','section_moment','native_nodal_force') and item.get('quantity'):
+            return str(item['quantity'])
         return {'displacement': '변위', 'cauchy_stress': 'Cauchy 응력', 'Cauchy': 'Cauchy 응력',
                 'green_lagrange': 'Green–Lagrange 전체변형률', 'infinitesimal': '미소 전체변형률',
                 'equivalent_plastic_strain': '등가 소성변형률', 'nodal_force': '절점힘'}.get(
@@ -1502,8 +1518,23 @@ class PostWindow(QMainWindow):
         if not rows or rows[0].row() >= len(getattr(self, '_array_rows', [])):
             self.array_description.setText('필드를 선택하면 출력 위치와 물리적 정의를 볼 수 있습니다.')
             self.array_description.setToolTip('')
+            self.array_component.clear()
+            self._component_array_key = None
+            self._update_actions()
             return
         item = self._array_rows[rows[0].row()]
+        key = (self._source_ref, item.get('association'), item.get('name'))
+        previous = self.array_component.currentData() if getattr(self, '_component_array_key', None) == key else None
+        self.array_component.clear()
+        if item.get('components') == 1:
+            self.array_component.addItem('값', None)
+        elif (isinstance(item.get('component_names'), list) and len(item['component_names']) == item.get('components')
+              and all(isinstance(name, str) and name for name in item['component_names'])):
+            self.array_component.addItem('크기 (ParaView)', 'Magnitude')
+            for name in item['component_names']: self.array_component.addItem(name, name)
+        index = self.array_component.findData(previous)
+        if index >= 0: self.array_component.setCurrentIndex(index)
+        self._component_array_key = key
         location = {'POINTS': '점 자료', 'CELLS': '셀 자료'}.get(item.get('association'), '출력 위치 미확인')
         units = '무차원 [1]' if item.get('units') == '1' else (str(item['units']) if item.get('units') else '단위 미지정')
         text = [str(item.get('name', '필드')) + ': ' + self._array_meaning(item) + ', ' + location + ', ' + units + '.']
@@ -1519,12 +1550,43 @@ class PostWindow(QMainWindow):
             text.append('전단 성분은 텐서 전단변형률이며 공학 전단변형률과 구별합니다.')
         self.array_description.setText(' '.join(text))
         self.array_description.setToolTip('\n'.join(str(item[key]) for key in ('measure', 'recovery', 'shear_convention') if item.get(key)))
+        if not self.array_component.count():
+            self.array_description.setText(self.array_description.text()+' 실제 성분 목록이 없습니다. 필드 정보 읽기로 확인하세요.')
+        self._update_actions()
+
+    def show_selected_array(self):
+        rows = self.array_table.selectionModel().selectedRows()
+        if not rows or not self.array_component.count(): return False
+        item = self._array_rows[rows[0].row()]
+        source = next((row for row in self._sources() if row['source_ref'] == self._source_ref), None)
+        state = (self.document or {}).get('state', {})
+        native = [row for row in state.get('sources', []) if source and row.get('label', row.get('name')) == source.get('reader_name')]
+        view_id = self.view_selector.currentData() or state.get('active_view_id')
+        view = next((row for row in state.get('views', []) if row.get('view_id') == view_id), None)
+        if len(native) != 1 or not (native[0].get('id') or native[0].get('source_id') or native[0].get('proxy_id')):
+            self.message.setText('선택한 원자료를 ParaView에서 찾을 수 없습니다. 원파일을 다시 연결하세요.'); return False
+        if not view or view.get('type') != 'RenderView':
+            self.message.setText('표시할 ParaView 3D 뷰를 선택하세요.'); return False
+        arguments = {'association':item['association'], 'array':item['name'],
+            'target':{'source_id':native[0].get('id') or native[0].get('source_id') or native[0].get('proxy_id'), 'view_id':view_id}}
+        component = self.array_component.currentData()
+        if component is not None: arguments['component'] = component
+        return self.queue_command('post.select_array', arguments)
 
     def _show_arrays(self):
         source = next((item for item in self._sources() if item['source_ref'] == self._source_ref), None)
         if source:
             metadata = source.get('native_metadata') or source.get('metadata') or {}
-            self._fill_arrays(metadata.get('arrays', []))
+            arrays = deepcopy(metadata.get('arrays', []))
+            if isinstance(arrays, dict): arrays = [{**row, 'name':name} for name,row in arrays.items()]
+            context = (self.document_id, self.session_id, self.document['generation'], self._source_ref)
+            if getattr(self, '_inspected_array_context', None) == context and getattr(self, '_array_source_ref', None) == self._source_ref:
+                observed = {(row.get('association'), row.get('name')):row for row in getattr(self, '_array_rows', [])}
+                for row in arrays:
+                    actual = observed.get((row.get('association'), row.get('name')), {})
+                    if 'component_names' not in row and row.get('components') == actual.get('components') and actual.get('component_names'):
+                        row['component_names'] = actual['component_names']
+            self._fill_arrays(arrays)
         else:
             self._fill_arrays([])
 
@@ -1556,7 +1618,7 @@ class PostWindow(QMainWindow):
         def listed(payload):
             choices = [('.. parent folder', 'parent')] if relative else []
             choices += [(('[Folder] ' if item['directory'] else '') + item['name'], item) for item in payload['entries']
-                        if item['directory'] or item['name'].lower().endswith(('.vtu', '.pvd')) or item['name'] == 'contact-inspection.json']
+                        if item['directory'] or item['name'].lower().endswith(('.vtu', '.pvd')) or item['name'] in ('contact-inspection.json','shell_inspection.json','beam_inspection.json')]
             if payload.get('next_cursor') is not None:
                 choices.append(('More files…', 'next'))
             if not choices:
@@ -1744,6 +1806,9 @@ class PostWindow(QMainWindow):
         self.changed_source_button.setEnabled(enabled and bool(self._source_ref))
         self.show_source_button.setEnabled(enabled and bool(self._source_ref))
         self.inspect_button.setEnabled(enabled and bool(self._source_ref))
+        self.select_array_button.setEnabled(enabled and bool(self.array_table.selectionModel().selectedRows())
+            and bool(self.array_component.count()) and 'post.select_array' in self.document.get('capabilities', []))
+        self.array_component.setEnabled(enabled and bool(self.array_component.count()))
         source = self.contact_source()
         self.contact_button.setEnabled(enabled and bool(source and
             (source.get('native_metadata') or {}).get('contact_inspection'))
@@ -1774,6 +1839,7 @@ class PostWindow(QMainWindow):
         browsing = bool(self._tree_selection and self._tree_selection[0] == 'source')
         self.array_table.setVisible(browsing)
         self.array_description.setVisible(browsing)
+        self.array_controls.setVisible(browsing)
         self.source_tools.setVisible(browsing)
         self.show_source_button.setVisible(browsing)
         self.show_applied_button.setVisible(not browsing)

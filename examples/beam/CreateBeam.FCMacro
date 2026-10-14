@@ -1,0 +1,19 @@
+# Open this macro from the checked-out repository: Macro > Macros > Execute.
+# The user selects an example. Opening/creating the model NEVER starts a solve.
+import sys
+from pathlib import Path
+try:
+    ROOT=Path(__file__).resolve().parents[2]
+except NameError:
+    import FreeCADGui as Gui
+    from PySide import QtGui
+    try:from PySide import QtWidgets as W
+    except ImportError:W=QtGui
+    folder=W.QFileDialog.getExistingDirectory(Gui.getMainWindow(),'Autonomous CAE Lab 저장소 폴더')
+    if not folder:raise RuntimeError('저장소 폴더 선택을 취소했습니다.')
+    ROOT=Path(folder)
+if not (ROOT/'apps'/'desktop_pre'/'beam_edit.py').is_file():
+    raise RuntimeError('빔 모듈과 integration.patch가 적용된 저장소에서 실행하세요.')
+if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+from examples.beam.beam_example import run_macro
+BEAM_EXAMPLE=run_macro()

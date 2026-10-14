@@ -390,6 +390,8 @@ def start(config_path):
                 from apps.desktop_pre.native_controls import install
                 CONNECTION = Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record)
                 CONNECTION.guards = install(CONNECTION, guarded(open_model))
+                from apps.desktop_pre.beam_menu import install as install_beam
+                install_beam(CONNECTION)
                 KEEP.append(CONNECTION)
                 if CONFIG.get('input_receipt'):
                     owner = CONNECTION.active_owner()
