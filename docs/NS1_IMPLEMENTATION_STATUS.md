@@ -62,3 +62,16 @@ STATIC,STABILIZE 및 범용 Newton line search는 이번 2.22 경로에서 지�
 원 stdout, 지원하는 기존 두 행 제어, STA 반복/거절/관측 cutback은 보존한다.
 
 한글 사용법: [NS1_USER_MODEL_KO.md](NS1_USER_MODEL_KO.md).
+
+## 병렬 main 변경 최종 병합
+
+main 9a63fe92ea57f698a7e90f7c119fc4b067f8f3f0의 메시 품질 비교 변경을
+기존 NS1 제품 연결에 정상 병합했다. 공통 bridge/명령 목록은 Git의 3-way
+병합을 사용했고 CURRENT_STATE는 양쪽 추가 내용을 모두 보존했다.
+NS1 기존 195개 및 추가 bridge/메시 품질 검사를 합쳐 **234 passed**.
+이 확인도 Windows native 해석이나 Astra 독립 검토를 대체하지 않는다.
+
+첫 확장 검사는 231 passed / 3 failed였다. 직접 재현한 원인은 기존 bridge
+검사 대역의 Analysis.Group 누락과 기존 export_button 누락이었다. 실제
+Analysis 구성과 UI에 맞춰 대역을 보완했고 실행 검증 제품 코드는 약화하지 않았다.
+동결 중 재전송 방지/문서 식별자/긴 작업의 started receipt 검사도 모두 재통과했다.

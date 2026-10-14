@@ -118,4 +118,16 @@ Codex가 `runs/q2-native-view/receipt.json`과 surface-isolated.png를 직접 �
 소스에 API가 존재한다는 것만으로 이 조합의 요소 격리를 지원한다고 하지 않는다.
 원메시/visibility/ShowInner/선택을 복구했고 원파일은 보존했다. 대안은 정확한
 선택 요소만 복사한 native 일시 미리보기이며, 원모델 저장에 섞이지 않는 연결을
-Sol이 `mesh_view.py`에서 작성한다. 새 솔버·메셔를 실행하지 않았다.
+Sol의 `mesh_view.py` 작성 범위로 배정했다. 새 솔버·메셔를 실행하지 않았다.
+후속 native viewer는 원문서를 활성 상태로 유지했지만 화면이 비었다. volume-only
+복사본의 ShowInner 누락을 고쳐도 같아서 미확인 helper를 제품에 넣지 않았다.
+후속 소스 조사 뒤 DisplayMode의 실제 switch가 기존3에서 명시적 Faces의0으로
+전환되는 것을 확인했지만 최종 캡처도 비었다. 표시 모드 누락을 원인으로 확정하지
+않으며 이 실패를 Q2 완료로 처리하지 않는다. 추가 native 표시 실험은 멈춘다.
+
+별도로 Sol의 `mesh_quality_compare.py`를 main `9de03e4`에 통합했다. 현재 메시와
+완료 기록의 보관 메시를 기존 `FEMEditor.quality`로 읽는다. 선택한 보관 기록은
+가장 최근 세대일 필요가 없으며 현재/보관 파일의 각각의 내용을 확인한다. 재메시 뒤
+요소 번호가 같은 위치를 뜻한다고 가정하지 않는다. 두 분포의 경계가 다르면 구간별
+차이를 계산하지 않는다. 읽기 전용 `pre.fem.mesh_compare` 연결과 관련16검사가
+통과했다. 비교 GUI와 격리/확대는 별도 잔여 작업이며 Q2 완료 수는 바꾸지 않는다.

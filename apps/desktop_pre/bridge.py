@@ -25,7 +25,7 @@ from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEA
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + RESEARCH_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + RESEARCH_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -248,7 +248,7 @@ class Owner:
                     self._idle()
                 readonly = {'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
-                            'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
+                            'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.select'}
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
                     raise ValueError('MESH_BUSY: finish/cancel this native mesh generation before another design command')
                 if (operation not in readonly and operation not in MOTION_OPERATIONS
@@ -288,6 +288,12 @@ class Owner:
                     payload = self.project.dispatch(operation, args, target)
                 elif operation in MOTION_OPERATIONS:
                     payload = self.motion.dispatch(operation, args, target)
+                elif operation == 'pre.fem.mesh_compare':
+                    if set(target) != {'object_id'} or set(args) != {'history_id', 'mesh_sha256'}:
+                        raise ValueError('비교할 현재 메시와 이전 메시를 선택하고 품질을 다시 조회하세요.')
+                    from .mesh_quality_compare import compare_mesh_quality
+                    payload = compare_mesh_quality(self.fem, self._object(target['object_id']),
+                                                   args['history_id'], args['mesh_sha256'])
                 elif operation in FEM_OPERATIONS:
                     payload = self.fem.dispatch(operation, args, target)
                 elif operation == 'pre.workbench':
