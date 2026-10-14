@@ -119,7 +119,8 @@ def install_tie(native, monkeypatch):
     return a,b
 
 
-def test_tie_adapter_execution_and_rebuild_preserve_only_requested_fields(model,tmp_path,monkeypatch):
+@pytest.mark.parametrize('has_dat',[False,True])
+def test_tie_adapter_execution_and_rebuild_preserve_only_requested_fields(model,tmp_path,monkeypatch,has_dat):
     from caelab.adapters import contact_fem
     from test_contact_steps import write_snapshot
     model['contacts'][0]['draft'] = tie_draft()
@@ -131,7 +132,8 @@ def test_tie_adapter_execution_and_rebuild_preserve_only_requested_fields(model,
     def command(argv,cwd,label):
         calls.append(argv)
         (cwd/'contact.frd').write_text(raw,encoding='ascii')
-        (cwd/'contact.dat').write_text('',encoding='ascii')
+        if has_dat:
+            (cwd/'contact.dat').write_text('',encoding='ascii')
         return NS(returncode=0)
     monkeypatch.setattr(contact_fem,'run_owned_command',command)
     result=contact_fem.ContactFemCalculixAdapter().run({'snapshot_path':str(snapshot)},output=tmp_path/'run')
@@ -143,6 +145,7 @@ def test_tie_adapter_execution_and_rebuild_preserve_only_requested_fields(model,
     monkeypatch.setattr(contact_fem,'run_owned_command',lambda *a:pytest.fail('Reopen must not solve'))
     receipt=contact_fem.regenerate_post(tmp_path/'run',tmp_path/'reopened-post')
     assert receipt['solver_execution']=='NOT_PERFORMED'
+    assert ('solver/contact.dat' in receipt['source_pins']) == has_dat
     assert not {a['name'] for a in receipt['post_artifact']['native_metadata']['arrays']}.intersection(CHANNELS)
     def missing(argv,cwd,label):
         command(argv,cwd,label)

@@ -16,6 +16,22 @@ from caelab.workbench_client import Client
 from apps.desktop_pre import bridge
 
 
+def command_status_text(operation, state):
+    action = {'document.save': '저장', 'document.undo': '실행 취소',
+              'document.redo': '다시 실행', 'document.activate': '문서 전환',
+              'pre.freeze': '입력 파일 생성', 'pre.contact.freeze': '접촉 입력 생성',
+              'pre.links.record': '계산 연결'}.get(operation)
+    if action is None:
+        family = operation.rsplit('.', 1)[0]
+        action = {'pre.motion': '운동 설정', 'pre.joint': '관절 편집',
+                  'pre.assembly': '조립 편집', 'pre.parameters': '설계 변수',
+                  'pre.fem': '해석 조건', 'pre.contact': '접촉 설정',
+                  'pre.project': '프로젝트', 'pre.impact': '충격 해석'}.get(family, '작업')
+    status = {'SUCCEEDED': '완료', 'FAILED': '실패', 'CANCELLED': '취소됨',
+              'INTERRUPTED': '중단됨', 'QUEUED': '대기 중'}.get(state, '진행 중')
+    return action + ': ' + status
+
+
 class Connection:
     def __init__(self, config, App, Gui, QtCore, QtWidgets, *, log=None):
         self.config, self.App, self.Gui = config, App, Gui
@@ -28,37 +44,42 @@ class Connection:
         self.closed = False
         self.project_path = Path(config['output']) / 'native_documents.json'
         self.records = load_json(self.project_path) if self.project_path.exists() else {}
-        self.dock = QtWidgets.QDockWidget('CAE calculation', Gui.getMainWindow())
+        self.dock = QtWidgets.QDockWidget('계산', Gui.getMainWindow())
         self.dock.setObjectName('CAELabCalculation')
         panel = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(panel)
-        self.identity = QtWidgets.QLabel('Connecting the active native document…')
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(8)
+        self.identity = QtWidgets.QLabel('현재 문서를 연결하는 중…')
         self.identity.setWordWrap(True)
         self.message = QtWidgets.QLabel('해석과 현재 메시를 선택하세요. 입력 파일 생성은 계산을 실행하지 않습니다.')
         self.message.setWordWrap(True)
         self.run_button = QtWidgets.QPushButton('계산 실행')
         self.export_button = QtWidgets.QPushButton('입력 파일 생성…')
         self.export_button.clicked.connect(lambda: self.run(export_only=True))
-        self.run_button.setToolTip('Freeze this Analysis with its existing mesh and native conditions, then submit through Runner')
+        self.run_button.setToolTip('선택한 해석의 현재 메시와 조건으로 계산을 시작합니다.')
         self.run_button.clicked.connect(self.run)
-        self.cancel_button = QtWidgets.QPushButton('Cancel export')
+        self.cancel_button = QtWidgets.QPushButton('생성 취소')
         self.cancel_button.clicked.connect(self.cancel)
-        self.retry_button = QtWidgets.QPushButton('Retry request')
+        self.retry_button = QtWidgets.QPushButton('다시 확인')
+        self.retry_button.setToolTip('응답이 끊긴 작업의 상태를 다시 확인합니다. 계산을 중복 실행하지 않습니다.')
         self.retry_button.clicked.connect(self.retry)
-        self.numerical_button = QtWidgets.QPushButton('Numerical…')
+        self.numerical_button = QtWidgets.QPushButton('수치 연구…')
         self.numerical_button.clicked.connect(lambda: self.show_panel('research'))
         self.impact_button = QtWidgets.QPushButton('충격 해석…')
         self.impact_button.clicked.connect(self.open_impact)
-        self.runner_button = QtWidgets.QPushButton('Runner…')
+        self.runner_button = QtWidgets.QPushButton('계산 목록…')
         self.runner_button.clicked.connect(lambda: self.open_runner())
-        self.connect_button = QtWidgets.QPushButton('Reconnect')
+        self.connect_button = QtWidgets.QPushButton('다시 연결')
         self.connect_button.clicked.connect(self.reconnect)
         layout.addWidget(self.identity)
-        controls = QtWidgets.QHBoxLayout()
-        for widget in (self.export_button, self.run_button, self.cancel_button, self.retry_button,
-                       self.numerical_button, self.impact_button, self.runner_button, self.connect_button):
-            controls.addWidget(widget)
-        controls.addStretch()
+        controls = QtWidgets.QGridLayout()
+        controls.setHorizontalSpacing(8)
+        controls.setVerticalSpacing(8)
+        for index, widget in enumerate((self.export_button, self.run_button, self.cancel_button, self.retry_button,
+                       self.numerical_button, self.impact_button, self.runner_button, self.connect_button)):
+            widget.setMinimumHeight(30)
+            controls.addWidget(widget, index // 4, index % 4)
         layout.addLayout(controls)
         layout.addWidget(self.message)
         self.dock.setWidget(panel)
@@ -73,17 +94,42 @@ class Connection:
     def active_owner(self):
         doc = self.App.ActiveDocument
         if doc is None or doc.Name not in self.owners:
-            raise ValueError('Create/open the native document and wait for its connection')
+            raise ValueError('CAD 문서를 만들거나 연 뒤 연결이 끝날 때까지 기다리세요.')
         return self.owners[doc.Name][0]
 
-    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None):
+    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True):
         owner = owner or self.active_owner()
         owner.refresh()
         broker = self.owners[owner.doc.Name][2]
         if broker.stop.is_set() or not broker.registered.is_set():
-            raise ValueError('Native owner is disconnected; reconnect before submitting an edit')
+            raise ValueError('문서 연결이 끊겼습니다. 다시 연결한 뒤 편집하세요.')
         if any(row['document_id'] == owner.document_id for row in self.native_requests.values()):
-            raise ValueError('An explicit command for this document is already pending')
+            raise ValueError('이 문서의 이전 작업이 아직 진행 중입니다.')
+        if operation == 'document.save' and _capture_motion_view:
+            dock = getattr(self, 'panels', {}).get(owner.doc.Name, {}).get('motion')
+            controller = getattr(dock.widget(), 'motion_controller', None) if dock is not None else None
+            snapshot = deepcopy(controller.pending_view()) if controller is not None else None
+            if snapshot is not None:
+                saved_arguments, saved_target = deepcopy(arguments), deepcopy(target)
+                def saved(value):
+                    if value.get('status') != 'FAILED':
+                        controller.accept_saved_view(snapshot)
+                    if on_done:
+                        on_done(value)
+                def view_applied(value):
+                    if value.get('status') == 'FAILED':
+                        if on_done:
+                            on_done(value)
+                        return
+                    try:
+                        self.submit_native('document.save', saved_arguments, saved_target, saved,
+                                           owner=owner, _capture_motion_view=False)
+                    except Exception as error:
+                        if on_done:
+                            on_done({'status': 'FAILED', 'error': {'message': str(error)}})
+                        raise
+                return self.submit_native('pre.motion.set_view', {'view': snapshot['view']},
+                    {'assembly_id': snapshot['assembly_id']}, view_applied, owner=owner)
         identifier = 'C' + uuid.uuid4().hex
         self.native_requests[identifier] = {'command_id': identifier, 'document_id': owner.document_id,
             'session_id': owner.session_id, 'generation': owner.generation, 'operation': operation,
@@ -103,11 +149,11 @@ class Connection:
         if row is None: return
         state = command['state']
         if state not in {'SUCCEEDED', 'FAILED', 'CANCELLED', 'INTERRUPTED'}:
-            self.message.setText(row['operation'] + ' · ' + command.get('phase', state))
+            self.message.setText(command_status_text(row['operation'], state))
             return
         if state == 'INTERRUPTED' and command.get('completion_recoverable'):
             row['retry'] = True
-            self.message.setText('Native completion is recoverable. Retry queries the same command; it does not repeat the edit.')
+            self.message.setText('작업 완료 응답이 끊겼습니다. ‘다시 확인’을 눌러 결과를 확인하세요.')
             return
         self.native_requests.pop(identifier)
         outcome = command.get('outcome', {})
@@ -118,7 +164,7 @@ class Connection:
             value = {'status': 'FAILED', 'error': error, 'command_id': identifier}
         if row['on_done']:
             row['on_done'](value)
-        self.message.setText(row['operation'] + ' · ' + state +
+        self.message.setText(command_status_text(row['operation'], state) +
             (': ' + value.get('error', {}).get('message', '') if value.get('status') == 'FAILED' else ''))
 
     def request(self, key, call, success):
@@ -145,7 +191,7 @@ class Connection:
             key, success, value, error = self.replies.get_nowait()
             self.working.discard(key)
             if error:
-                self.message.setText(error + '\nThe same request can be retried; no new calculation was silently submitted.')
+                self.message.setText('연결 오류: ' + error + '\n‘다시 확인’으로 이어갈 수 있습니다. 계산은 중복 실행하지 않습니다.')
                 if self.pending and key != 'cancel':
                     self.pending['retry'] = True
                 if key in self.native_requests:
@@ -176,24 +222,26 @@ class Connection:
                 for dock in self.panels.pop(name, {}).values(): dock.close(); dock.deleteLater()
             else:
                 self.records[name] = {'id': owner.document_id, 'working_file': owner.doc.FileName}
+                for dock in self.panels.get(name, {}).values():
+                    dock.document_label.setText('대상 문서: ' + str(owner.doc.Label))
         if self.records:
             # Small project identity record, not a copy of native CAD/mesh arrays.
             try:
                 if not self.project_path.exists() or load_json(self.project_path) != self.records:
                     save_json(self.project_path, self.records)
             except Exception as error:
-                self.message.setText('Native identity record could not be saved: ' + str(error) +
-                                     '\nThe editable CAD document and previous results are unchanged.')
+                self.message.setText('문서 연결 정보를 저장하지 못했습니다: ' + str(error) +
+                                     '\nCAD 문서와 이전 계산 결과는 그대로 남아 있습니다.')
         active = self.App.ActiveDocument
         binding = self.owners.get(active.Name) if active else None
         if binding:
             owner, _, broker = binding
             connected = broker.registered.is_set() and not broker.stop.is_set()
-            self.identity.setText(f'{active.Label} · input g{owner.generation}' +
-                (' · native owner connected' if connected else ' · connecting / stopped'))
+            self.identity.setText(str(active.Label) + '\n' +
+                ('연결됨' if connected else '문서 연결을 기다리는 중'))
         else:
             connected = False
-            self.identity.setText('Create or open a native CAD document')
+            self.identity.setText('CAD 문서를 만들거나 여세요.')
         waiting = self.pending is not None
         self.run_button.setEnabled(connected and not waiting)
         self.export_button.setEnabled(connected and not waiting)
@@ -216,16 +264,16 @@ class Connection:
             import FemGui
             doc = self.App.ActiveDocument
             if doc is None or doc.Name not in self.owners:
-                raise ValueError('Open a connected native CAD document first')
+                raise ValueError('먼저 CAD 문서를 열고 연결하세요.')
             selected = FemGui.getActiveAnalysis()
             if selected is None or selected.Document is not doc:
                 choices = [obj for obj in doc.Objects if femutils.type_of_obj(obj) == 'Fem::FemAnalysis']
                 if len(choices) != 1:
-                    raise ValueError('Activate the exact FEM Analysis in the native tree')
+                    raise ValueError('모델 트리에서 계산할 해석을 활성화하세요.')
                 selected = choices[0]
             solvers = [obj for obj in selected.Group if femutils.type_of_obj(obj) == 'Fem::SolverCcxTools']
             if len(solvers) != 1:
-                raise ValueError('Select an Analysis with one native CalculiX solver')
+                raise ValueError('CalculiX 솔버가 하나 지정된 해석을 선택하세요.')
             owner = self.owners[doc.Name][0]
             dock = self.panels.get(doc.Name,{}).get('fem')
             page = getattr(dock.widget(),'steps_page',None) if dock is not None else None
@@ -244,7 +292,7 @@ class Connection:
 
     def send_command(self):
         request = dict(self.pending)
-        self.message.setText('Preparing the selected analysis and current body meshes…')
+        self.message.setText('선택한 해석과 메시로 입력 파일을 준비하는 중…')
         self.request('command', lambda: self.client.document_command(request['document_id'], request.get('operation', 'pre.freeze'), request['arguments'],
             session_id=request['session_id'], expected_generation=request['generation'], command_id=request['command_id']),
             self.command_status)
@@ -265,7 +313,7 @@ class Connection:
                     return
                 path=(owner.export_root/relative).resolve(strict=True)
                 if not path.is_relative_to(owner.export_root.resolve()):
-                    raise ValueError('Export receipt is outside this owner')
+                    raise ValueError('생성된 입력 파일의 경로가 현재 문서의 저장 폴더를 벗어났습니다.')
                 self.pending=None
                 self.message.setText('입력 파일을 생성했습니다. 계산은 실행하지 않았습니다.\n'+str(path.parent))
                 self.show_export(path)
@@ -277,16 +325,17 @@ class Connection:
             # Preserve the acknowledged identity: retry can recover that
             # receipt, but must never freeze the edited document a second time.
             self.pending.update(stage='command', retry=True)
-            self.message.setText('Native export completion is unconfirmed. Retry checks this same export; '
-                                 'it does not repeat it or submit a new calculation.')
+            self.message.setText('입력 생성의 완료 응답이 끊겼습니다. ‘다시 확인’으로 결과를 확인하세요. '
+                                 '입력 생성과 계산을 중복 실행하지 않습니다.')
         elif state in {'FAILED', 'CANCELLED', 'INTERRUPTED'}:
             outcome = command.get('outcome', {})
             error = outcome.get('result', {}).get('error') or outcome.get('error') or command.get('error', {})
-            self.message.setText(state + ': ' + error.get('message', 'No calculation submitted. Input and previous results remain.'))
+            self.message.setText(command_status_text('pre.freeze', state) + ': ' +
+                error.get('message', '계산을 시작하지 않았습니다. 입력과 이전 결과는 남아 있습니다.'))
             self.pending = None
         else:
-            self.message.setText('Native export: ' + command.get('phase', state) +
-                '\nCancellation is supported while queued; native export already applying must finish.')
+            self.message.setText(command_status_text('pre.freeze', state) +
+                '\n대기 중에는 취소할 수 있습니다. 파일을 생성하기 시작한 뒤에는 완료될 때까지 기다리세요.')
 
     def show_export(self, manifest):
         from .contact_input_dialog import show_input
@@ -294,15 +343,15 @@ class Connection:
 
     def submit(self):
         identifier = self.pending['command_id']
-        self.message.setText('Submitting this exact frozen native input…')
+        self.message.setText('생성한 입력 파일로 계산을 시작하는 중…')
         def submitted(value):
             self.pending = None
-            self.message.setText('Submitted ' + value['job']['id'] + '. Further editing belongs to a new input; this job keeps its snapshot.')
+            self.message.setText('계산을 등록했습니다. 진행 상태는 계산 목록에서 확인하세요.')
             try:
                 owner = next(item[0] for item in self.owners.values() if item[0].document_id == value['origin']['document_id'])
                 self.submit_native('pre.links.record', {'job_id': value['job']['id']}, owner=owner)
             except Exception as error:
-                self.message.setText('Job submitted; design link needs explicit retry: ' + str(error))
+                self.message.setText('계산은 등록했지만 모델과 연결하지 못했습니다: ' + str(error))
             self.open_runner(value['job']['id'])
         self.request('submit', lambda: self.client.native_submit(identifier), submitted)
 
@@ -333,12 +382,12 @@ class Connection:
             analyses = [o for o in owner.doc.Objects if _native_type(o) == 'Fem::FemAnalysis']
             labels = [str(i + 1) + '. ' + o.Label for i, o in enumerate(analyses)]
             if not labels:
-                raise ValueError('먼저 native Analysis와 현재 물체 메시를 준비하세요')
-            selected, ok = self.QtWidgets.QInputDialog.getItem(self.dock, '충격 해석', 'Analysis', labels, 0, False)
+                raise ValueError('먼저 해석과 물체 메시를 준비하세요.')
+            selected, ok = self.QtWidgets.QInputDialog.getItem(self.dock, '충격 해석', '해석 선택', labels, 0, False)
             if not ok: return
             analysis = analyses[labels.index(selected)]
             solvers = [o for o in analysis.Group if _native_type(o) == 'Fem::SolverCcxTools' and not getattr(o,'Suppressed',False)]
-            if len(solvers) != 1: raise ValueError('메시 참조용 CalculiX solver 하나를 선택하세요')
+            if len(solvers) != 1: raise ValueError('메시를 가져올 CalculiX 솔버를 하나 선택하세요.')
             def captured(value):
                 if value.get('status') == 'FAILED': return
                 def opened(document):
@@ -380,7 +429,7 @@ class Connection:
         def resolved(value):
             post = value.get('post_input')
             if not post:
-                raise ValueError('This job has no completed registered Post field. Open its Runner diagnostics.')
+                raise ValueError('아직 열 수 있는 계산 결과가 없습니다. 계산 목록에서 진행 상태와 오류를 확인하세요.')
             command = [self.config['python'], '-m', 'apps.research.desktop', '--service', self.config['service_url'],
                        'post', '--input-id', post['id'], '--job-id', identifier]
             environment = os.environ.copy()
@@ -394,18 +443,18 @@ class Connection:
         panels = self.panels.setdefault(owner.doc.Name, {})
         if kind not in panels:
             from importlib import import_module
-            modules = {'parameters': ('parameter_panel', owner.parameters, 'Research variables'),
-                       'motion': ('motion_panel', owner.motion, 'Assembly motion'),
-                       'fem': ('fem_panel', owner.fem, 'Mesh, regions and conditions')}
+            modules = {'parameters': ('parameter_panel', owner.parameters, '설계 변수'),
+                       'motion': ('motion_panel', owner.motion, '조립 운동'),
+                       'fem': ('fem_panel', owner.fem, '해석 설정')}
             if kind == 'research':
                 from .research_panel import make_panel
                 submit = lambda operation, args, target=None, on_done=None: self.submit_native(operation, args, target, on_done, owner=owner)
                 widget = make_panel(self.QtWidgets, self.QtCore, owner.research, submit, self.create_numerical_plan)
-                title = 'Analysis research'
+                title = '수치 연구'
             elif kind == 'project':
                 from .native_controls import project_panel
                 widget = project_panel(self, owner)
-                title = 'Project and calculations'
+                title = '프로젝트'
             else:
                 module, editor, title = modules[kind]
                 factory = import_module('apps.desktop_pre.' + module).make_panel
@@ -415,7 +464,11 @@ class Connection:
                                      read=lambda: dict(owner.descriptor(), session_id=owner.session_id))
                 else:
                     widget = factory(self.QtWidgets, self.QtCore, editor, submit)
-            dock = self.QtWidgets.QDockWidget(title + ' · ' + owner.doc.Label, self.Gui.getMainWindow())
+            dock = self.QtWidgets.QDockWidget(title, self.Gui.getMainWindow())
+            dock.setToolTip(owner.doc.Label)
+            dock.document_label = self.QtWidgets.QLabel('대상 문서: ' + str(owner.doc.Label))
+            dock.document_label.setWordWrap(True)
+            widget.layout().insertWidget(0, dock.document_label)
             dock.setObjectName('CAELab-' + kind + '-' + owner.document_id)
             dock.setWidget(widget); dock.resize(720, 520)
             self.Gui.getMainWindow().addDockWidget(self.QtCore.Qt.RightDockWidgetArea, dock)
@@ -424,14 +477,14 @@ class Connection:
 
     def reconnect(self):
         if self.pending or self.native_requests:
-            self.message.setText('Resolve the pending command first. A disconnected applying command is not automatically replayed.')
+            self.message.setText('진행 중인 작업을 먼저 완료하거나 취소하세요. 응답이 끊겼다면 ‘다시 확인’을 누르세요.')
             return
         def connected(context):
             # Keep observing the live CAD while the context request is in
             # flight. A network failure must not discard its save destination
             # or leave dock controls pointing to a closed owner.
             if self.pending or self.native_requests:
-                self.message.setText('A command started while reconnecting. Resolve it before changing the owner session.')
+                self.message.setText('다시 연결하는 동안 작업이 시작됐습니다. 해당 작업이 끝난 뒤 다시 연결하세요.')
                 return
             previous = list(self.owners.items())
             for _, (owner, _, _) in previous:
@@ -465,7 +518,7 @@ class Connection:
                 if binding and binding[0].doc is doc:
                     for kind in visible:
                         self.show_panel(kind, owner=binding[0])
-            self.message.setText('New native owner session; previous session commands remain separate.')
+            self.message.setText('문서를 다시 연결했습니다.')
         self.request('reconnect', self.client.desktop_context, connected)
 
     def close(self):

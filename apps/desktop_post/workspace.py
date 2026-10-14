@@ -156,6 +156,7 @@ class Workspace:
             if record:
                 bundle = self.bundles.get(record['id'], {})
                 obj['retained_values_only'] = bool(bundle.get('retained_only'))
+                obj['output_metadata'] = deepcopy(record.get('summary', {}).get('declarations'))
                 try:
                     obj['current_inputs_differ'] = self.source_stamps(self._refs(obj['kind'], record['recipe'])) != record['bindings']
                 except (ValueError, RuntimeError, OSError):
@@ -448,8 +449,29 @@ class Workspace:
         self._touch()
         return {'source_ref': ref, 'record': deepcopy(record), 'active_source_preserved': True}
 
-    def select_source(self, *, source_ref, view_id=None, show=True):
+    def select_source(self, *, source_ref, view_id=None, show=True, compare_with=None):
         source = self.resolve(source_ref)
+        if compare_with is not None:
+            other = self.resolve(compare_with)
+            previous = p.GetActiveSource(), p.GetActiveView()
+            layout, views = None, []
+            try:
+                layout = p.CreateLayout(name='원본 결과 비교')
+                first = p.CreateView('RenderView'); views.append(first)
+                p.AssignViewToLayout(view=first, layout=layout, hint=0)
+                layout.SplitHorizontal(0, 0.5)
+                second = p.CreateView('RenderView'); views.append(second)
+                p.AssignViewToLayout(view=second, layout=layout, hint=2)
+                for native, view in zip((source, other), views):
+                    p.Show(native, view); p.ResetCamera(view); p.Render(view)
+                self._touch()
+                return {'source_ref': source_ref, 'compare_with': compare_with, 'mode': 'original_side_by_side'}
+            except BaseException:
+                for view in reversed(views): p.Delete(view)
+                if layout is not None: p.RemoveLayout(layout)
+                raise
+            finally:
+                p.SetActiveSource(previous[0]); p.SetActiveView(previous[1])
         view = next((v for v in p.GetViews() if self.owner.proxy_id(v) == view_id), None) if view_id else p.GetActiveView()
         if show and (view is None or view.GetXMLName() != 'RenderView'):
             raise ValueError('Select a native Render View before displaying this source')
@@ -510,7 +532,40 @@ class Workspace:
                 bundle = contact_views.build_measurement(self, draft, name)
             else:
                 self._declared_measurement(draft)
-                bundle = measurements.build_measurement(self.resolve(draft['source_ref']), draft, name)
+                declaration = self._output_declaration(draft['source_ref'])
+                source = self.resolve(draft['source_ref'])
+                selected = next((row for row in (declaration or {}).get('arrays', [])
+                    if (row['name'], row['association']) == (draft.get('array'), draft.get('association'))), None)
+                prefix = []
+                try:
+                    if declaration and 'frozen_clock' in declaration:
+                        from .comparison_native import _filter
+                        source = _filter(source, 'frozen', {}, name, prefix)
+                    if selected and selected.get('validity_masks'):
+                        from .comparison_native import _filter
+                        source = _filter(source, 'quality_only', {'array': draft['array'],
+                            'masks': selected['validity_masks']}, name, prefix)
+                    bundle = measurements.build_measurement(source, draft, name)
+                    bundle['proxies'] = prefix + bundle['proxies']
+                except BaseException:
+                    analysis.cleanup({'proxies': prefix})
+                    raise
+                if draft['source_ref'] not in self.document['sources']:
+                    bundle['summary']['sample_semantics'] = 'derived_values_at_saved_measurement_locations'
+                    bundle['summary']['input_declaration'] = deepcopy(declaration)
+                if selected and draft.get('measurement') in ('point', 'path'):
+                    result_declaration = deepcopy(declaration)
+                    result_array = deepcopy(selected)
+                    if draft['measurement'] == 'path':
+                        # Quality was applied to the physical values BEFORE path
+                        # interpolation; removed mask arrays are not claimed as outputs.
+                        result_array['validity_masks'] = ['vtkValidPointMask']
+                    result_declaration['arrays'] = [result_array]
+                    result_declaration['frozen_clock'] = deepcopy(declaration.get('frozen_clock')) if 'frozen_clock' in declaration else (
+                        {'value': draft['time'], 'unit': draft.get('time_units'), 'semantics': draft.get('time_origin')}
+                        if draft.get('time') is not None else None)
+                    result_declaration['time'] = None
+                    bundle['summary']['declarations'] = result_declaration
             identifier = 'V' + uuid.uuid4().hex
             self.bundles[identifier] = bundle
             summary = clone(bundle.get('summary', {}))
@@ -536,21 +591,50 @@ class Workspace:
             p.SetActiveSource(previous_source)
             p.SetActiveView(previous_view)
 
+    def _output_declaration(self, ref):
+        if ref in self.document['sources']:
+            return deepcopy(self.document['sources'][ref].get('native_metadata'))
+        obj = self.object(ref)
+        record, bundle = self._bundle(obj)  # Exact applied graph/result, not arbitrary lineage.
+        summary = record.get('summary', {})
+        if summary.get('declarations'):
+            return deepcopy(summary['declarations'])
+        recipe = record['recipe']
+        if obj['kind'] != 'measurement' or recipe.get('measurement') not in ('point', 'path'):
+            return None  # Verified legacy/arbitrary filter: meanings remain user-declared, never inherited by guess.
+        row = {key: recipe.get(key) for key in ('quantity', 'units', 'measure', 'frame')}
+        row.update(name=recipe.get('array'), association='POINTS')
+        return {'arrays': [row], **{key: recipe.get(key) for key in ('coordinate_units', 'coordinate_frame')},
+                'time': {'unit': recipe.get('time_units'), 'semantics': recipe.get('time_origin')}
+                    if recipe.get('time') is not None else None,
+                'frozen_clock': {'value': recipe['time'], 'unit': recipe.get('time_units'), 'semantics': recipe.get('time_origin')}
+                    if recipe.get('time') is not None else None, 'derived_revision': record['id']}
+
     def _declared_side(self, side):
-        if side.get('source_ref') not in self.document['sources']:
-            raise ValueError('Comparison currently uses explicitly registered original readers')
-        metadata = self.document['sources'][side['source_ref']].get('native_metadata')
+        metadata = self._output_declaration(side.get('source_ref'))
+        if metadata and 'frozen_clock' in metadata:
+            if 'frozen_clock' not in side or side['frozen_clock'] != metadata['frozen_clock']:
+                raise ValueError('저장된 측정의 실제 고정 시각을 그대로 선택하세요.')
+        elif 'frozen_clock' in side:
+            raise ValueError('원 reader를 저장된 고정 측정으로 재표기할 수 없습니다.')
         if metadata is None:
             return  # User must supply every meaning in the recipe; no guessed defaults.
         row = next((row for row in metadata['arrays'] if (row['association'], row['name']) == (side.get('association'), side.get('array'))), None)
         if row is None:
             raise ValueError('Chosen array has no matching declaration in its source receipt')
         for name in ('units', 'frame', 'measure', 'quantity'):
-            if name in row and row[name] != side.get(name):
+            if row.get(name) is not None and row[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
         for name in ('coordinate_units', 'coordinate_frame'):
-            if metadata[name] != side.get(name):
+            if metadata.get(name) is not None and metadata[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
+        for key in ('layout', 'temperature_kind', 'validity_masks'):
+            if key in row and row[key] is not None and row[key] != side.get(key):
+                raise ValueError('Comparison ' + key + ' conflicts with the retained source declaration')
+        if 'frozen_clock' in metadata:
+            sampling = side.get('sampling', {'mode': 'exact', 'time': side.get('time')})
+            if sampling != {'mode': 'exact', 'time': None}:
+                raise ValueError('저장 측정의 고정 시각은 native 시간 탐색으로 바꿀 수 없습니다.')
         clock = metadata.get('time')
         if clock and clock['unit'] != side.get('time_units'):
             raise ValueError('Comparison clock unit conflicts with the source declaration')
@@ -562,15 +646,22 @@ class Workspace:
         for name in fields:
             if draft.get(name) is not None and not isinstance(draft[name], str):
                 raise ValueError('Measurement ' + name + ' must be explicit text or unknown')
-        record = self.document['sources'].get(draft.get('source_ref'))
-        metadata = record.get('native_metadata') if record is not None else None
+        metadata = self._output_declaration(draft.get('source_ref'))
         if metadata is None:
             return
+        if 'frozen_clock' in metadata:
+            if draft.get('measurement') == 'time' or draft.get('time') is not None:
+                raise ValueError('저장된 고정 결과에서는 점 또는 경로를 선택하세요. 원 표본 시각을 다시 지정하거나 시간 이력으로 늘리지 않습니다.')
+            clock = metadata['frozen_clock']
+            if clock:
+                for field, key in (('time_units', 'unit'), ('time_origin', 'semantics')):
+                    if draft.get(field) is not None and draft[field] != clock[key]:
+                        raise ValueError('저장된 고정 결과의 시각 의미와 측정 선언이 다릅니다.')
         declaration = next((row for row in metadata['arrays']
             if (row['association'], row['name']) == (draft.get('association'), draft.get('array'))), None)
         if declaration is None:
             raise ValueError('The selected source has no matching retained measurement declaration')
-        for name in fields:
+        for name in (*fields, 'layout', 'temperature_kind', 'validity_masks'):
             original = metadata.get(name) if name.startswith('coordinate_') else declaration.get(name)
             if draft.get(name) and original is not None and draft[name] != original:
                 raise ValueError('Measurement ' + name + ' conflicts with the retained source declaration')
@@ -661,9 +752,11 @@ class Workspace:
         self._touch()
         return {'status': 'SHOWN', 'object_ref': obj['id'], 'revision': record['id']}
 
-    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None):
+    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None, expected_revision=None):
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj, preview=preview)
+        if expected_revision is not None and record['id'] != expected_revision:
+            raise ValueError('STALE_SAMPLE: 선택한 표·곡선 이후 결과가 바뀌었습니다. 현재 결과를 다시 읽으세요.')
         if preview and self._key(obj) != record['key']:
             raise ValueError('STALE_PREVIEW: input, clock or mapping settings changed; validate again')
         if obj['kind'] == 'comparison':
@@ -747,15 +840,21 @@ class Workspace:
             return 'XYChartView'
         return 'SpreadSheetView' if obj['kind'] == 'measurement' else 'RenderView'
 
-    def show_analysis(self, *, object_ref, view_id=None):
+    def show_analysis(self, *, object_ref, view_id=None, array=None):
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj)
-        self.show(obj, record, bundle, view_id=view_id)
+        if array is not None:
+            allowed = set(record.get('summary', {}).get('arrays', {}).values())
+            if record.get('summary', {}).get('comparison_version') == 2:
+                allowed.update(('A_source_value', 'B_source_sampled'))
+            if obj['kind'] != 'comparison' or array not in allowed:
+                raise ValueError('이 보존 비교에서 읽을 실제 배열을 선택하세요.')
+        self.show(obj, record, bundle, view_id=view_id, array=array)
         self.state['active_object'] = object_ref
         self._touch()
         return deepcopy(record)
 
-    def show(self, obj, record, bundle, *, view_id=None):
+    def show(self, obj, record, bundle, *, view_id=None, array=None):
         source = bundle['source']
         before_source, before_view = p.GetActiveSource(), p.GetActiveView()
         before_name = record.get('view_name')
@@ -795,7 +894,7 @@ class Workspace:
                     display.SeriesVisibility = [array]
             if obj['kind'] == 'comparison' and view.GetXMLName() == 'RenderView':
                 arrays = bundle.get('summary', {}).get('arrays', {})
-                array = arrays.get('delta', 'CAE_delta') if isinstance(arrays, dict) else 'CAE_delta'
+                array = array or (arrays.get('delta', 'CAE_delta') if isinstance(arrays, dict) else 'CAE_delta')
                 if array in source.PointData.keys():
                     p.ColorBy(display, ('POINTS', array))
                     display.RescaleTransferFunctionToDataRange(True, False)

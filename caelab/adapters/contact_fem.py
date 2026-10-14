@@ -303,7 +303,9 @@ def regenerate_post(attempt, output):
         raise ValueError('Post regeneration requires an already parsed successful contact attempt')
     manifest, model, input_pins, _ = validate_snapshot(attempt / 'frozen_input' / 'snapshot.json')
     entries = {row['relative']: row for row in record['artifacts']}
-    required = ['frozen_input/' + name for name in input_pins] + ['solver/contact.frd', 'solver/contact.dat']
+    required = ['frozen_input/' + name for name in input_pins] + ['solver/contact.frd']
+    if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']) or 'solver/contact.dat' in entries:
+        required.append('solver/contact.dat')
     if profile(model):
         required.append('solver/contact.sta')
     source_pins = {}
@@ -332,7 +334,7 @@ def regenerate_post(attempt, output):
     metadata = write_post(output, model, frames, pairs, provenance={
         'snapshot_id': manifest['id'], 'snapshot_sha256': input_pins['snapshot.json']['sha256'],
         'raw_frd_sha256': source_pins['solver/contact.frd']['sha256'],
-        'raw_dat_sha256': source_pins['solver/contact.dat']['sha256'],
+        'raw_dat_sha256': source_pins.get('solver/contact.dat', {}).get('sha256'),
         'source_record_sha256': hashlib.sha256(record_bytes).hexdigest()})
     for relative, pin in source_pins.items():
         if _sha(attempt / relative) != pin['sha256']:
