@@ -71,18 +71,14 @@ Linux 전체 회귀 CI는 병합 이후 실패로 끝났다. 오래된 화면/�
 원 로그는 `runs/product-development/20261014/pr9-core.log`다. 보호 우회나
 강제 push는 하지 않았다. 전체 NS1/제품 완료가 아니라 확인된 기능 묶음의 인도다.
 
-**병렬 후속:** 실제 Pro 세 대화에서 M3 닫힌 기구, E1 셸, NS1 수렴 설정·반복 이력을
-작성한다. NS1 후속은 `PRO-NS1-CONVERGENCE-20261014-03`으로 기준 `0548ee0`의 공개
-소스와 실제 Windows 계산의 cvg/sta/stdout/inp를 ZIP 첨부했다. Pro 파워5와 요청 전체
-게시·수신 답변·소스 조회를 확인했다. `runs/product-development/20261014/nonlinear-convergence/`
-에 요청·첨부·수신 화면이 있다. 수렴 전용 모듈/FE 설정/Runner 표시·관련 검사는 Pro,
-bridge/공통 명령은 별도 패치로 Codex가 통합한다. shell/motion 전용 파일과 겹치지 않는다.
-Sol/Astra는 기존 Q2의 문제 요소 선택·격리·확대 기능을 맡았다. 과거 Faces 모드에서도
-빈 화면이던 근거를 재사용해 원인을 좁히며 같은 native 실험과 전체 suite를 반복하지 않는다.
-기존 3D 장면에 native FEM 표시 노드를 연결하는 경로에서 요소 표시를 확인했고,
-Sol은 선택/격리/확대/원래 보기 복원을 구현 중이다. Codex의 공통 명령과 메뉴 연결은
-작업 폴더에 작성했으며 전용 모듈 제출을 받기 전에는 게시하지 않는다.
-이 배정은 MoAI t3/t14/t16/t17에 기록했고 아래 옛 시점의 미게시 상태보다 우선한다.
+**병렬 후속:** 실제 Pro 네 대화에서 M3 교정, E1 셸, E2 빔, NS1 수렴 설정·반복
+이력을 작성한다. NS1 요청은 `PRO-NS1-CONVERGENCE-20261014-03`이며 공개 기준
+`0548ee0`과 실제 Windows 계산의 cvg/sta/stdout/inp를 전달했다. 요청과 자료는
+`runs/product-development/20261014/nonlinear-convergence/`에 있다. 수렴 전용 모듈과
+FE 설정/Runner 표시는 Pro, 공통 명령은 별도 패치로 Codex가 통합한다.
+Sol은 별도 작업 폴더에서 Post 비교 UI 및 PDE 채택의 낡은 회귀 계약을 두 테스트
+파일로 한정해 교정한다. Q2의 코드·한글 사용법은 원격 main `a82fc95`에 반영했다.
+MoAI t3/t14/t16/t17/t18과 이 최상단 상태가 아래 옛 시점의 진행 기록보다 우선한다.
 
 **셸 모델 후속 구현 배정:** MoAI t17로 SPEC-PREFE-001 E1/AC06의 두께·offset·방향·
 압력 편집→입력·계산→상/하면 결과·재열기 구현을 분리했다. Astra가 최신 E1/AC06과
