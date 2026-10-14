@@ -187,7 +187,7 @@ class ExperimentDialog(QDialog):
                 gradients=self.explicit.get('deformation_gradient',[])
                 try:
                     values=[matrix[0][0] for matrix in gradients]
-                except (IndexError,TypeError):
+                except (IndexError,TypeError,KeyError):
                     values=[]
                 response={'axes':[{'name':'시간','unit':self.explicit.get('time_unit',''),'values':times}],
                           'value':values,'unit':'1'}

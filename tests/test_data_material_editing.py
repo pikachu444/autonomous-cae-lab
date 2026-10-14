@@ -86,9 +86,10 @@ def test_multiple_test_files_open_independent_owners_and_preserve_partial_succes
         window.row_fields['quality_rows'].setText('3')
         window.local_dirty = True
         before = deepcopy(window.edited_draft())
-        window.open_test_files([first, tmp_path / 'missing.csv', second])
+        window.open_test_files([first, tmp_path / 'missing.csv', tmp_path / 'unsupported.json', second])
         wait(lambda: not window._busy and len(window._data_windows) == 2)
         assert 'missing.csv' in window.message.text()
+        assert 'unsupported.json' in window.message.text() and '지원되는 표 파일' in window.message.text()
         assert window.edited_draft() == before and window.local_dirty
         one, two = window._data_windows
         wait(lambda: not one._busy and not two._busy)
