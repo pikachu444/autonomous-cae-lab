@@ -328,7 +328,7 @@ def test_independent_uq_distribution_and_failure_accounting():
     assert statistic['failure_fraction'] == .25
     assert statistic['valid_count'] == 24
     assert statistic['exceedance_fraction_valid'] == pytest.approx(1 / 3)
-    with pytest.raises(ValueError, match='independent'):
+    with pytest.raises(ValueError, match='distribution source'):
         run_uq(quadratic, VARIABLES, {'x': {'distribution': 'uniform'}}, source=None)
 
 
