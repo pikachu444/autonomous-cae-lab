@@ -1,0 +1,5 @@
+** This nested path is relative to the submission root, NOT this directory.
+*INCLUDE,
+ INPUT="Mesh Parts/Base nodes.inp"
+*ELEMENT, TYPE=C3D8, ELSET=BASE
+1,1,2,3,4,5,6,7,8

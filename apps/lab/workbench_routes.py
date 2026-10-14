@@ -19,6 +19,10 @@ def handle(handler,method,path,query):
         if re.fullmatch(r'/api/workbench/hosts/[^/]+/events', path):
             from .server import MAX_NATIVE_EVENT_BODY
             body = handler._json_body(maximum=MAX_NATIVE_EVENT_BODY)
+        elif path == '/api/workbench/documents/open' or re.fullmatch(r'/api/workbench/documents/[^/]+/commands',path):
+            # Existing document drafts are bounded at 8 MiB. Only their owner
+            # transport accepts that draft plus a bounded command envelope.
+            body = handler._json_body(maximum=8*1024*1024+64*1024)
         else:
             body = handler._json_body()
         if path == '/api/workbench/expert-connection/reload':

@@ -42,16 +42,28 @@ def default_settings():
         'qualification':'UNKNOWN'}
 
 
-def parse_inp(text):
+def parse_inp(text, source_map=()):
+    from .impact_source import SourceError, locate
+    context = {'line': 1}
+    try:
+        return _parse_inp(text, context)
+    except (ValueError, TypeError, KeyError, OverflowError) as error:
+        file, line = locate(source_map, context['line'])
+        raise SourceError(str(error), file or '입력', line) from error
+
+
+def _parse_inp(text, context):
     if not isinstance(text,str) or len(text.encode('utf-8'))>6*1024**2 or '\x00' in text:
         raise ValueError('유한요소 입력은 6 MiB 이하의 텍스트여야 합니다')
     text.encode('ascii')
     blocks=[]
     for line_no,line in enumerate(text.splitlines(),1):
+        context['line']=line_no
         line=line.strip()
         if not line or line.startswith('**'): continue
         if line.startswith('*'):
             parts=[p.strip().upper() for p in line[1:].split(',') if p.strip()]
+            if not parts: raise ValueError('빈 입력 카드입니다')
             card=parts[0]; options={}
             if card not in OPTIONS:
                 raise ValueError(f'{line_no}행: {card} 카드는 이 가져오기 경로에서 지원하지 않습니다')
@@ -65,6 +77,10 @@ def parse_inp(text):
         else: blocks[-1]['rows'].append((line_no,line))
     nodes={}; elements={}; nsets={}; elsets={}; surfaces={}; materials={}; sections=[]
     current=None
+    locations={k:{} for k in ('elements','nsets','elsets','surfaces','materials')}
+    section_lines=[]
+    member_lines={'nsets':{},'elsets':{}}
+    surface_lines={}
     def integer(token):
         if not re.fullmatch(r'[0-9]+',token.strip()) or int(token)<=0: raise ValueError('양의 원본 번호가 필요합니다')
         return int(token)
@@ -75,8 +91,14 @@ def parse_inp(text):
     def name(value):
         if not isinstance(value,str) or not NAME.fullmatch(value): raise ValueError('입력 집합 이름을 확인하세요')
         return value
+    class LocatedRows(list):
+        def __iter__(self):
+            for row in super().__iter__():
+                context['line']=row[0]
+                yield row
     for b in blocks:
-        c,o,rows=b['card'],b['options'],b['rows']
+        context['line']=b['line']
+        c,o,rows=b['card'],b['options'],LocatedRows(b['rows'])
         if c=='NODE':
             for _,line in rows:
                 values=[p.strip() for p in line.split(',')]
@@ -84,7 +106,10 @@ def parse_inp(text):
                 ident=integer(values[0])
                 if ident in nodes: raise ValueError('중복 절점 번호')
                 nodes[ident]=[numeric(x) for x in values[1:]]
-                if 'NSET' in o: nsets.setdefault(name(o['NSET']),set()).add(ident)
+                if 'NSET' in o:
+                    nsets.setdefault(name(o['NSET']),set()).add(ident)
+                    locations['nsets'][o['NSET']]=b['line']
+                    member_lines['nsets'].setdefault(o['NSET'],{})[ident]=context['line']
         elif c=='ELEMENT':
             kind=o.get('TYPE')
             if kind not in WIDTHS: raise ValueError('지원 요소: C3D4, C3D8/R, C3D10, COH3D8')
@@ -94,10 +119,17 @@ def parse_inp(text):
                 ident=integer(values[0]); conn=[integer(x) for x in values[1:]]
                 if ident in elements or len(set(conn))!=len(conn): raise ValueError('중복 요소/절점')
                 elements[ident]={'type':kind,'nodes':conn}
-                if 'ELSET' in o: elsets.setdefault(name(o['ELSET']),set()).add(ident)
+                locations['elements'][ident]=context['line']
+                if 'ELSET' in o:
+                    elsets.setdefault(name(o['ELSET']),set()).add(ident)
+                    locations['elsets'][o['ELSET']]=b['line']
+                    member_lines['elsets'].setdefault(o['ELSET'],{})[ident]=context['line']
         elif c in ('NSET','ELSET'):
             table=nsets if c=='NSET' else elsets
             target=table.setdefault(name(o.get(c)),set())
+            key='nsets' if c=='NSET' else 'elsets'
+            locations[key][o[c]]=b['line']
+            member_lines[key].setdefault(o[c],{})
             for _,line in rows:
                 values=[integer(p) for p in line.split(',') if p.strip()]
                 if o.get('GENERATE'):
@@ -105,10 +137,12 @@ def parse_inp(text):
                         raise ValueError('유한한 집합 범위를 지정하세요')
                     values=range(values[0],values[1]+1,values[2])
                 target.update(values)
+                for ident in values:member_lines[key][o[c]].setdefault(ident,context['line'])
         elif c=='MATERIAL':
             current=name(o.get('NAME'))
             if current in materials: raise ValueError('중복 재료')
             materials[current]={}
+            locations['materials'][current]=context['line']
         elif c in ('DENSITY','ELASTIC','PLASTIC'):
             if current is None or c in materials[current]: raise ValueError('재료 순서/중복 선언 확인')
             data=[[numeric(v) for v in line.split(',') if v.strip()] for _,line in rows]
@@ -127,11 +161,14 @@ def parse_inp(text):
         elif c in ('SOLID SECTION','COHESIVE SECTION'):
             if any(line.strip().strip(',').strip() for _,line in rows): raise ValueError('솔리드 section 추가 입력은 지원하지 않습니다')
             sections.append((name(o.get('ELSET')),name(o.get('MATERIAL')),c))
+            section_lines.append(b['line'])
         elif c=='SURFACE':
             if o.get('TYPE')!='ELEMENT': raise ValueError('명시 ELEMENT 면 집합을 사용하세요')
             label=name(o.get('NAME'))
             if label in surfaces: raise ValueError('중복 면 집합')
+            surface_lines[label]=b['line']
             surfaces[label]=[tuple(p.strip().upper() for p in line.split(',')) for _,line in rows]
+            locations['surfaces'][label]=[row[0] for row in b['rows']]
         elif c=='BOUNDARY':
             for _,line in rows:
                 values=[v.strip().upper() for v in line.split(',')]
@@ -141,12 +178,18 @@ def parse_inp(text):
                     raise ValueError('고정 병진 자유도만 직접 가져옵니다. 변위 이력은 별도 지원이 필요합니다')
     if not nodes or not elements: raise ValueError('자신의 절점·솔리드 메시를 먼저 가져오세요')
     if len(nodes)>1000000 or len(elements)>1000000: raise ValueError('이 문서 경로의 메시 크기를 초과합니다')
-    for row in elements.values():
+    for eid,row in elements.items():
+        context['line']=locations['elements'][eid]
         if set(row['nodes'])-nodes.keys(): raise ValueError('없는 절점을 참조하는 요소')
-    for table,known in ((nsets,nodes),(elsets,elements)):
-        if any(not ids or ids-known.keys() for ids in table.values()): raise ValueError('집합의 원본 번호를 확인하세요')
+    for key,table,known in (('nsets',nsets,nodes),('elsets',elsets,elements)):
+        for label,ids in table.items():
+            context['line']=locations[key][label]
+            missing=ids-known.keys()
+            if missing:context['line']=member_lines[key][label][min(missing)]
+            if not ids or missing: raise ValueError('집합의 원본 번호를 확인하세요')
     assignment={}
-    for eset,mat,kind in sections:
+    for index,(eset,mat,kind) in enumerate(sections):
+        context['line']=section_lines[index]
         if eset not in elsets or mat not in materials: raise ValueError('section의 요소/재료 집합이 없습니다')
         for eid in elsets[eset]:
             if eid in assignment: raise ValueError('요소에 재료가 중복 배정되었습니다')
@@ -155,11 +198,19 @@ def parse_inp(text):
                 raise ValueError('응집 요소·section·traction 재료를 벌크와 분리하세요')
             if cohesive and 'PLASTIC' in materials[mat]:raise ValueError('응집 LAW117에 벌크 소성을 중복 적용하지 않습니다')
             assignment[eid]=mat
-    if set(assignment)!=set(elements) or any(not {'DENSITY','ELASTIC'}<=m.keys() for m in materials.values()):
-        raise ValueError('모든 요소에 명시 밀도와 등방 재료가 필요합니다')
+    for eid in elements:
+        if eid not in assignment:
+            context['line']=locations['elements'][eid]
+            raise ValueError('모든 요소에 명시 밀도와 등방 재료가 필요합니다')
+    for label,material in materials.items():
+        if not {'DENSITY','ELASTIC'}<=material.keys():
+            context['line']=locations['materials'][label]
+            raise ValueError('모든 요소에 명시 밀도와 등방 재료가 필요합니다')
     for label,rows in surfaces.items():
+        context['line']=surface_lines[label]
         if not rows: raise ValueError('빈 접촉 면 집합')
-        for row in rows:
+        for index,row in enumerate(rows):
+            context['line']=locations['surfaces'][label][index]
             if len(row)!=2 or not re.fullmatch('S[1-6]',row[1]): raise ValueError('요소 면 번호를 확인하세요')
             ids={int(row[0])} if row[0].isdigit() else elsets.get(row[0],set())
             if not ids or any(e not in elements or int(row[1][1:])>SURFACE_SIDES[elements[e]['type']] for e in ids):
@@ -167,20 +218,29 @@ def parse_inp(text):
     # Validate boundary targets after all sets have been collected.
     for b in blocks:
         if b['card']=='BOUNDARY':
-            for _,line in b['rows']:
+            for line_no,line in b['rows']:
+                context['line']=line_no
                 target=line.split(',')[0].strip().upper()
                 if not (target.isdigit() and int(target) in nodes or target in nsets): raise ValueError('구속 절점 집합을 확인하세요')
     return {'nodes':nodes,'elements':elements,'nsets':nsets,'elsets':elsets,'surfaces':surfaces,
             'materials':materials,'assignment':assignment,'blocks':blocks}
 
 
+def model_from_settings(settings):
+    from .impact_source import resolve
+    from .impact_sets import apply
+    source=settings.get('source')
+    text,spans=resolve(source)
+    return apply(parse_inp(text,spans),source,settings.get('generated_sets',[]))
+
+
 def validate_settings(settings):
-    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses'}!=set(default_settings())-{'cohesive','responses'}:
+    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets'}!=set(default_settings())-{'cohesive','responses','generated_sets'}:
         raise ValueError('충격 정의의 필수 항목을 확인하세요')
     source=settings['source']
-    if source.get('format')!='INP' or source.get('units')!='Mg/mm/s':
-        raise ValueError('이 경로는 명시적으로 Mg/mm/s/N/MPa로 작성한 평탄화 INP를 사용합니다')
-    model=parse_inp(source.get('text'))
+    if not isinstance(source,dict) or source.get('format')!='INP' or source.get('units')!='Mg/mm/s':
+        raise ValueError('이 경로는 명시적으로 Mg/mm/s/N/MPa로 작성한 INP를 사용합니다')
+    model=model_from_settings(settings)
     from .impact_damage import validate as validate_damage
     validate_damage(model,settings.get('cohesive',[]))
     from .impact_responses import validate as validate_responses
@@ -220,7 +280,7 @@ def validate_settings(settings):
 
 def render(settings):
     validate_settings(settings)
-    model=parse_inp(settings['source']['text'])
+    model=model_from_settings(settings)
     nodes=deepcopy(model['nodes']); velocities={}
     gravity=settings['gravity_mm_s2']; g=math.hypot(*gravity)
     for m in settings['motions']:

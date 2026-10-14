@@ -1,13 +1,11 @@
 """Local, cancellable explicit settings editor; no calculation or model mutation."""
 from copy import deepcopy
-from pathlib import Path
-import hashlib
 import math
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog,QDialogButtonBox,QVBoxLayout,QHBoxLayout,QLabel,
-    QPushButton,QFileDialog,QMessageBox,QTabWidget,QWidget,QTableWidget,QTableWidgetItem,
+    QPushButton,QMessageBox,QTabWidget,QWidget,QTableWidget,QTableWidgetItem,
     QComboBox,QFormLayout,QLineEdit,QCheckBox,QInputDialog,QHeaderView,QGridLayout,QSizePolicy)
-from caelab.impact_model import parse_inp,default_settings
+from caelab.impact_model import model_from_settings
 
 MODES={'velocity':'입력 속도','release_height':'높이에서 놓기','impact_height':'높이를 충돌 속도로 환산'}
 
@@ -98,6 +96,10 @@ class ImpactEditor(QDialog):
         buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
         self.populate()
         if self.motion.rowCount(): self.motion.selectRow(0)
+        from .impact_project import ProjectPage
+        self.project=ProjectPage(self)
+        self.tabs.insertTab(0,self.project,'모델과 집합')
+        self.tabs.setCurrentIndex(0)
 
     def resize_motion_table(self,*_):
         header=self.motion.horizontalHeader().sizeHint().height()
@@ -131,7 +133,7 @@ class ImpactEditor(QDialog):
         for c in self.value['contacts']: self.contact_row(c)
         self.damage.setRowCount(0)
         try:
-            model=parse_inp(self.value['source']['text'])
+            model=model_from_settings(self.value)
             from caelab.impact_damage import default_law
             old={law['material']:law for law in self.value.get('cohesive',[])}
             names=sorted({model['assignment'][e] for e,row in model['elements'].items() if row['type']=='COH3D8'})
@@ -227,7 +229,7 @@ class ImpactEditor(QDialog):
 
     def add_response(self):
         from caelab.impact_responses import QUANTITIES
-        try:model=parse_inp(self.value['source']['text'])
+        try:model=model_from_settings(self.edited())
         except (ValueError,KeyError) as error:self.message.setText(str(error));return
         labels=[v[0] for v in QUANTITIES.values()]
         label,ok=QInputDialog.getItem(self,'결과 이력','물리량',labels,0,False)
@@ -249,14 +251,14 @@ class ImpactEditor(QDialog):
         self.contacts.setCellWidget(r,2,self.combo({'UNSELECTED':'법칙 선택','TYPE24':'TYPE24 / 면 접촉'},c['law']))
 
     def add_motion(self):
-        try: names=list(parse_inp(self.value['source']['text'])['nsets'])
+        try: names=list(model_from_settings(self.edited())['nsets'])
         except (ValueError,KeyError) as error: self.message.setText(str(error)); return
         name,ok=QInputDialog.getItem(self,'초기 운동','절점 집합',names,0,False)
         if ok: self.motion_row({'node_set':name,'mode':'velocity','height_mm':None,
             'velocity_mm_s':[0.,0.,0.],'omega_rad_s':[0.,0.,0.],'center_mm':[0.,0.,0.],'translation_mm':[0.,0.,0.]})
 
     def add_contact(self):
-        try: names=list(parse_inp(self.value['source']['text'])['surfaces'])
+        try: names=list(model_from_settings(self.edited())['surfaces'])
         except (ValueError,KeyError) as error: self.message.setText(str(error)); return
         a,ok=QInputDialog.getItem(self,'접촉','면 A',names,0,False)
         if not ok: return
@@ -264,19 +266,18 @@ class ImpactEditor(QDialog):
         if ok: self.contact_row({'a':a,'b':b,'law':'UNSELECTED','friction':0.})
 
     def choose_file(self):
-        filename,_=QFileDialog.getOpenFileName(self,'유한요소 파일','', '평탄화 솔리드 입력 (*.inp)')
-        if not filename: return
-        try:
-            path=Path(filename)
-            if path.stat().st_size>6*1024**2: raise ValueError('6 MiB 이하의 입력을 선택하세요')
-            payload=path.read_bytes(); source=payload.decode('ascii'); parse_inp(source)
-            answer=QMessageBox.question(self,'입력 단위','이 파일의 단위가 Mg, mm, s, N, MPa입니까? 기존 운동·접촉 선택은 새 메시 기준으로 비워집니다.',
+        from .impact_project import ImportDialog
+        dialog=ImportDialog(self)
+        if dialog.exec()!=QDialog.DialogCode.Accepted or dialog.source is None:return
+        if self.value['source'].get('text'):
+            answer=QMessageBox.question(self,'입력 교체',
+                '새 메시로 교체하고 기존 운동·접촉·생성 집합 선택을 비울까요? 시간과 중력 입력은 유지됩니다.',
                 QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel)
-            if answer!=QMessageBox.StandardButton.Yes: return
-            self.value['source']={'title':path.name,'format':'INP','units':'Mg/mm/s','text':source,
-                'provenance':{'filename':path.name,'sha256':hashlib.sha256(payload).hexdigest(),'units_declared_by_user':True}}
-            self.value['motions']=[]; self.value['contacts']=[]; self.value['cohesive']=[]; self.value['responses']=[]; self.populate()
-        except (ValueError,OSError,UnicodeError) as error: self.message.setText(str(error))
+            if answer!=QMessageBox.StandardButton.Yes:return
+        value=self.edited()
+        value['source']=deepcopy(dialog.source)
+        for key in ('motions','contacts','cohesive','responses','generated_sets'):value[key]=[]
+        self.value=value;self.populate();self.project.refresh();self.tabs.setCurrentWidget(self.project)
 
     def edited(self):
         value=deepcopy(self.value); motions=[]; contacts=[]

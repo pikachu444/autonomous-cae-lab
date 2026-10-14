@@ -74,7 +74,9 @@ def starter_admission(path, model):
 class ImpactAdapter:
     backend,version=domain.BACKEND,'1'
     input_source_files=[__file__,domain.__file__,Path(__file__).with_name('impact_admission.py'),
-                        Path(__file__).with_name('impact_timing.py')]
+                        Path(__file__).with_name('impact_timing.py'),
+                        Path(domain.__file__).with_name('impact_source.py'),
+                        Path(domain.__file__).with_name('impact_sets.py')]
     default_settings=staticmethod(domain.default_settings)
     validate_settings=staticmethod(domain.validate_settings)
     input_runtime_identity=staticmethod(lambda:{'runtime':'explicit_selected_opencourant','qualification':'UNKNOWN'})
@@ -118,9 +120,12 @@ class ImpactAdapter:
 
     def run(self,settings,*,output,runtime=None):
         if runtime and set(runtime)-{'threads','memory_mb'}: raise ValueError('Operator runtime cannot be changed by the model')
-        s=domain.validate_settings(settings); model=domain.parse_inp(s['source']['text'])
+        s=domain.validate_settings(settings); model=domain.model_from_settings(s)
         out=Path(output); native=out/'native'; native.mkdir()
         save_json(out/'input.json',s)
+        from ..impact_source import retain
+        retain(s['source'],out/'source_bundle')
+        save_json(out/'generated_sets.json',s.get('generated_sets',[]))
         (out/'original.inp').write_text(s['source']['text'],encoding='ascii',newline='\n')
         effective,initial=domain.render(s)
         (native/'impact.inp').write_text(effective,encoding='ascii',newline='\n')
