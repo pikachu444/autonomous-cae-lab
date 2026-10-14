@@ -19,9 +19,12 @@ def _motion_controller(connection, owner):
 
 
 def _close_version(owner, connection=None):
+    from .shell_controls import editor_token
     graph = getattr(owner.project, 'graph_version', None)
     controller = _motion_controller(connection, owner) if connection is not None else None
-    return owner.generation, graph() if graph is not None else None, controller.editor_token() if controller is not None else None
+    return (owner.generation, graph() if graph is not None else None,
+            controller.editor_token() if controller is not None else None,
+            editor_token(connection, owner) if connection is not None else None)
 
 
 def install(connection, open_model):
@@ -54,8 +57,10 @@ def install(connection, open_model):
             self.refresh()
 
         def saved(self, owner):
+            from .shell_controls import has_unsaved_editor
             controller = _motion_controller(connection, owner)
-            return _saved(owner) and (controller is None or not controller.has_unsaved_editor())
+            return (_saved(owner) and (controller is None or not controller.has_unsaved_editor())
+                    and not has_unsaved_editor(connection, owner))
 
         def invoke(self, callback):
             try: callback()
@@ -172,7 +177,9 @@ def install(connection, open_model):
                     self.closing = False; after(); return
                 owner = pending.pop(0)
                 controller = _motion_controller(connection, owner)
-                if controller is None or not controller.has_unsaved_editor(): advance(); return
+                from .shell_controls import has_unsaved_editor
+                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner):
+                    advance(); return
                 version = _close_version(owner, connection)
                 choice = QtWidgets.QMessageBox.question(main, '다시 연결하기 전에 편집을 저장하시겠습니까?',
                     owner.doc.Label + '\n저장하면 미완성 입력도 유지됩니다. 버리면 마지막 저장한 편집으로 돌아갑니다.',

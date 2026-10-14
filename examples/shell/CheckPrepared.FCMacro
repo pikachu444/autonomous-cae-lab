@@ -1,0 +1,25 @@
+# Read-only native-host check of an explicitly prepared input. This is not a solve.
+import sys
+from pathlib import Path
+import FreeCAD as App
+from PySide import QtGui
+try:
+    from PySide import QtWidgets as W
+except ImportError:
+    W=QtGui
+repo=W.QFileDialog.getExistingDirectory(None,'Autonomous CAE Lab 저장소 폴더')
+if repo:
+    sys.path.insert(0,repo)
+    source,_=W.QFileDialog.getOpenFileName(None,'준비된 셸 입력 선택','','셸 입력 (snapshot.json)')
+    if source:
+        from caelab.adapters.shell_deck import validate_snapshot
+        import json
+        manifest,model,mesh,pins=validate_snapshot(Path(source).resolve())
+        receipt={'check':'native_host_read_only_prepared_input','native_host_version':list(App.Version()),
+            'input_id':manifest['id'],'properties':mesh['section_values'],'elements':len(mesh['elements']),
+            'normal_rule':model['draft']['orientation'],'solver_execution':'NOT_PERFORMED',
+            'native_writer_execution_in_this_check':False,'engineering_valid':False}
+        App.Console.PrintMessage(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+        W.QMessageBox.information(None,'셸 입력 확인',
+            f"S8 {len(mesh['elements'])}개 / 두께 {mesh['section_values']['thickness_mm']} mm / "
+            f"offset {mesh['section_values']['offset']}\n입력의 원자료 연결과 카드가 일치합니다. 계산은 실행하지 않았습니다.")

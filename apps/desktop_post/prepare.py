@@ -21,7 +21,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from caelab.adapters.structural_response_fields import select_field_response
-from caelab.schema import validate
 from caelab.storage import canonical_hash
 
 DEFAULT_STORE = ROOT / "runs/cae-conditions-20261006-01/experiments"
@@ -40,6 +39,8 @@ def write_json(path, value):
 
 
 def read_source(folder):
+    from caelab.schema import validate
+
     folder = Path(folder).resolve(strict=True)
     result_path, proposal_path = folder / "result.json", folder / "proposal.json"
     initial = {str(p): sha(p) for p in (result_path, proposal_path)}

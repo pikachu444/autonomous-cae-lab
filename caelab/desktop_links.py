@@ -36,7 +36,7 @@ class DesktopLinks:
         command_id = check_id(command_id)
         with self._lock:
             command = wb.native_commands.status(command_id)
-            if command['operation'] not in {'pre.freeze', 'pre.contact.freeze'} or command['state'] != 'SUCCEEDED':
+            if command['operation'] not in {'pre.freeze', 'pre.contact.freeze', 'pre.shell.freeze'} or command['state'] != 'SUCCEEDED':
                 raise ValueError('A completed native FEM/contact freeze command is required')
             envelope = command.get('outcome', {}).get('result', {})
             result = envelope.get('result', {})
@@ -59,13 +59,15 @@ class DesktopLinks:
                     root_id='native-owner:' + command['document_id'], relative=relative,
                     limit=wb.config.get('local_input_max_bytes', 2 * 1024 ** 3))
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
-            contact = command['operation'] == 'pre.contact.freeze'
-            if receipt.get('kind') != ('frozen_contact' if contact else 'frozen_fem'):
+            receipt_kind, backend = {'pre.freeze':('frozen_fem','structure.calculix.frozen'),
+                'pre.contact.freeze':('frozen_contact','structure.calculix.contact'),
+                'pre.shell.freeze':('frozen_shell','structure.calculix.shell')}[command['operation']]
+            if receipt.get('kind') != receipt_kind:
                 raise ValueError('Registered snapshot kind differs from the completed export operation')
             origin = {'kind': 'pre', 'document_id': command['document_id'],
                       'session_id': command['session_id'], 'generation': command.get('final_generation', command['expected_generation']),
                       'command_id': command_id, 'input_id': receipt['id']}
-            job = wb.submit('run', {'backend': 'structure.calculix.contact' if contact else 'structure.calculix.frozen',
+            job = wb.submit('run', {'backend': backend,
                 'settings': {'data_id': receipt['id']}, 'origin': origin,
                 'label': result.get('label', 'FreeCAD FEM analysis')[:160]},
                 request_id='native-frozen:' + command_id)
@@ -115,7 +117,7 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact'}:
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell'}:
             result['retained_design_input_id'] = job['arguments']['settings']['data_id']
         if origin.get('kind') == 'pre':
             try:

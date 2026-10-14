@@ -1,0 +1,23 @@
+# Run inside the existing FreeCAD 1.1.4 GUI. It asks for the checked-out repository
+# and a new save location. No solver, server or secondary FreeCAD is started.
+import sys
+from pathlib import Path
+import FreeCAD as App
+import FreeCADGui as Gui
+from PySide import QtGui
+W = QtGui
+try:
+    from PySide import QtWidgets as W
+except ImportError:
+    pass
+repo = W.QFileDialog.getExistingDirectory(Gui.getMainWindow(), 'Autonomous CAE Lab 저장소 선택')
+if repo:
+    root = Path(repo)
+    if not (root / 'examples/shell/generate_plate.py').is_file():
+        raise ValueError('셸 구현이 포함된 저장소 폴더를 선택하세요.')
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    destination, _ = W.QFileDialog.getSaveFileName(Gui.getMainWindow(), '새 평판 예제 저장', 'ShellPlate.FCStd', 'FreeCAD (*.FCStd)')
+    if destination:
+        from examples.shell.generate_plate import create
+        create(destination)

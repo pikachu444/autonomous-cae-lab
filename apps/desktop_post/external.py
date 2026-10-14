@@ -44,6 +44,17 @@ def contact_api():
         sys.path.remove(repository)
 
 
+def shell_api():
+    import sys
+    repository = str(Path(__file__).resolve().parents[2])
+    sys.path.insert(0, repository)
+    try:
+        from caelab import shell_inspection
+        return shell_inspection
+    finally:
+        sys.path.remove(repository)
+
+
 def source_files(entry, native_metadata=None):
     """Validate and enumerate a bounded, local PVD+VTU dependency set."""
     entry = Path(entry).resolve(strict=True)
@@ -104,6 +115,12 @@ def source_files(entry, native_metadata=None):
         if bundle['manifest']['native_metadata'] != {k: v for k, v in native_metadata.items() if k != 'contact_inspection'}:
             raise ValueError('Contact field declarations differ from the pinned bundle')
         files = list(dict.fromkeys([*files, *bundle["paths"]]))
+    declaration = (native_metadata or {}).get("shell_inspection")
+    if declaration is not None:
+        bundle = shell_api().load(entry, declaration)
+        if bundle['manifest']['native_metadata'] != {k: v for k, v in native_metadata.items() if k != 'shell_inspection'}:
+            raise ValueError('Shell field declarations differ from the retained bundle')
+        files = list(dict.fromkeys([*files, *bundle['paths']]))
     return files
 
 
@@ -169,7 +186,6 @@ def validate_declared_metadata(source, metadata):
         if set(metadata) != {'curve'} or source.GetXMLName() != 'XMLTableReader':
             raise ValueError('Curve metadata belongs to its exact registered table reader')
         from caelab.post_curves import load_curve
-        from .commands import reader_input_files
         curve, _ = load_curve(reader_input_files(source)[0], metadata)
         data = servermanager.Fetch(source)
         if not data.IsA('vtkTable') or data.GetNumberOfRows() != len(curve['rows']):
@@ -184,7 +200,17 @@ def validate_declared_metadata(source, metadata):
                     raise ValueError('Native curve values differ from the exact Data snapshot')
         return deepcopy(metadata)
     required_keys = {"coordinate_units", "coordinate_frame", "static", "arrays"}
-    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings"}:
+    shell = isinstance(metadata, dict) and 'shell_inspection' in metadata
+    shell_keys = set()
+    if shell:
+        inputs = reader_input_files(source)
+        if len(inputs) != 1:
+            raise ValueError('Shell declaration requires its exact retained surface reader')
+        bundle = shell_api().load(inputs[0], metadata['shell_inspection'])
+        if bundle['manifest']['native_metadata'] != {k: v for k, v in metadata.items() if k != 'shell_inspection'}:
+            raise ValueError('Shell field declarations differ from the retained bundle')
+        shell_keys = set(bundle['manifest']['native_metadata']) | {'shell_inspection'}
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings"} - shell_keys:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
     if "contact_inspection" in metadata:
         contact_api().descriptor(metadata["contact_inspection"])
@@ -235,16 +261,19 @@ def validate_declared_metadata(source, metadata):
     seen = set()
     for declaration in arrays:
         required = {"association", "name", "components", "units", "frame", "measure"}
-        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"}:
+        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"} - ({'location'} if shell else set()):
             raise ValueError("Each declared array requires exact association/name/components and units/frame/measure")
         for key in ("name", "units", "frame", "measure"):
             if not isinstance(declaration[key], str) or not declaration[key].strip():
                 raise ValueError("Declared array meaning must be nonempty explicit text")
         if 'quantity' in declaration and (not isinstance(declaration['quantity'], str) or not declaration['quantity'].strip()):
             raise ValueError('Declared quantity must be explicit nonempty text')
+        shell_recovery = {'native_nodal_dof', 'magnitude_of_native_vector',
+                          'native_extrapolated_nodal_averaged',
+                          'basis_change_of_native_nodal_recovery'} if shell else set()
         if 'recovery' in declaration and (not isinstance(declaration['recovery'], str) or declaration['recovery'] not in {
                 'native nodal force; reactions only at restrained DOFs',
-                'native integration-point extrapolation and nodal averaging'}):
+                'native integration-point extrapolation and nodal averaging'} | shell_recovery):
             raise ValueError('Unsupported native field recovery declaration')
         if 'shear_convention' in declaration and declaration['shear_convention'] != 'tensor_shear_not_engineering_shear':
             raise ValueError('Unsupported native tensor shear convention')
@@ -372,6 +401,21 @@ def select_array(source, association, array, component=None, time=None, view=Non
     display.SetScalarBarVisibility(view, True)
     p.SetActiveSource(source)
     selected_metadata = next(row for row in metadata["arrays"] if row["association"] == association and row["name"] == array)
+    if native_metadata and 'shell_inspection' in native_metadata:
+        titles = {'U_mm': 'Displacement', 'U_magnitude_mm': 'Displacement magnitude',
+                  'S_surface_recovered': 'Surface stress (recovered)',
+                  'E_surface_recovered': 'Surface strain (recovered)',
+                  'S_surface_local': 'Local surface stress (recovered)',
+                  'E_surface_local': 'Local surface strain (recovered)',
+                  'ShellSide': 'Shell side', 'NativeElementId': 'Element number',
+                  'NativeNodeId': 'Expanded node number', 'ShellNodeId': 'Shell node number',
+                  'Normal_native': 'Surface normal'}
+        if array in titles:
+            transfer = p.GetColorTransferFunction(array)
+            p.UpdateScalarBarsComponentTitle(transfer, display)
+            bar = p.GetScalarBar(transfer, view)
+            unit = selected_metadata['units']
+            bar.Title = titles[array] + (' [' + unit + ']' if unit != '1' else '')
     return {"association": association, "array": array, "component": component,
             "time": metadata["time"], "time_units": metadata["time_units"], "time_semantics": metadata["time_semantics"],
             **{key: selected_metadata[key] for key in ("units", "frame", "measure", "metadata_status", "recovery", "shear_convention")},

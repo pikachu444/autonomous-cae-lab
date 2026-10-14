@@ -1,0 +1,161 @@
+{
+  "request_id": "PRO-E1-SHELL-20261014-01",
+  "base_revision": "bbffc70c0752ad39f0933d5c13bc8291a1da8855",
+  "fixture_upstream_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "branch": "codex/shell-user-model-20261014",
+  "product_commit": null,
+  "pull_request": null,
+  "git_write_status": "BLOCKED_BY_TOOL_SECURITY_STATE",
+  "branch_head_is_base_only": true,
+  "native_freecad_windows_execution": "NOT_PERFORMED",
+  "native_calculix_execution": "NOT_PERFORMED",
+  "native_paraview_gui": "NOT_PERFORMED",
+  "engineering_qualification": "UNKNOWN",
+  "exact_surface_integration_point_result": "UNSUPPORTED",
+  "surface_result_recovery": "NATIVE_EXTRAPOLATED_NODAL_AVERAGED",
+  "tests": {
+    "mode": "isolated_explicit_doubles_and_selected_baseline_helpers",
+    "passed": 64,
+    "failed": 0,
+    "skipped": 0
+  },
+  "python": "3.13.5",
+  "common_changes": "integration.patch only; not applied to common source files in this package",
+  "files": [
+    {
+      "relative": "apps/desktop_pre/shell_controls.py",
+      "bytes": 9293,
+      "sha256": "73c38751c3a554300cd0e5cdf9da51ca0d158e8b041a4a1799458682a7993052"
+    },
+    {
+      "relative": "apps/desktop_pre/shell_edit.py",
+      "bytes": 29469,
+      "sha256": "26fa06224967652a59e3ab7056ec4f292215faad57db13a72e43d225024b4400"
+    },
+    {
+      "relative": "apps/desktop_pre/shell_freeze.py",
+      "bytes": 7259,
+      "sha256": "b39320d4cf272723c597cd04b1932da501c994a9f2c3616b33470a8e77c85150"
+    },
+    {
+      "relative": "apps/desktop_pre/shell_input_dialog.py",
+      "bytes": 2220,
+      "sha256": "7a0f2b3fe1c0f286e072bb6cf806b183baa08711a4cb758dc5851f513b4dad11"
+    },
+    {
+      "relative": "apps/desktop_pre/shell_panel.py",
+      "bytes": 23703,
+      "sha256": "2e17a3ee3165848ae27d5796d88a93c7af90610ce47dc4ba3cee19de873364cc"
+    },
+    {
+      "relative": "apps/desktop_pre/shell_preview.py",
+      "bytes": 2388,
+      "sha256": "30aa65fd34d905f6d333ddb19676c638386f7b7d406e95cf1aa81d17252eab06"
+    },
+    {
+      "relative": "caelab/adapters/shell_deck.py",
+      "bytes": 14119,
+      "sha256": "4ec413cf387a9aef9bc1f46019254461980a6fd1fbf5233f0fa93a5c747ff5c0"
+    },
+    {
+      "relative": "caelab/adapters/shell_fem.py",
+      "bytes": 11318,
+      "sha256": "0a7222b61c38d47179abc1f52641c415a6417b9f98d3bda74461a9182e8adb03"
+    },
+    {
+      "relative": "caelab/adapters/shell_post.py",
+      "bytes": 7482,
+      "sha256": "ed74d9490c9ded1f88ec080fad8c213bb9e42a63f7c7de9940af7d82f5ab1270"
+    },
+    {
+      "relative": "caelab/adapters/shell_results.py",
+      "bytes": 16629,
+      "sha256": "7ca75fccd523fe7f72c42e199b00fdf15e71f15720451f50e7eab62842cbb4e2"
+    },
+    {
+      "relative": "caelab/shell_inspection.py",
+      "bytes": 9190,
+      "sha256": "afabaeba7b2ec85b50d5f06adf6208e35813ab8b5b262880ff6b27c3896979b6"
+    },
+    {
+      "relative": "caelab/shell_model.py",
+      "bytes": 11156,
+      "sha256": "1da382d02c293eac93a0429150e790caedb4f54f3e71e947de93d294421249ea"
+    },
+    {
+      "relative": "docs/SHELL_WORKFLOW_KO.md",
+      "bytes": 20141,
+      "sha256": "07dc9daa5c1b911e35459533da813295d27bc9c6ab542ba114f2b30563f8877e"
+    },
+    {
+      "relative": "examples/shell/CheckPrepared.FCMacro",
+      "bytes": 1445,
+      "sha256": "7e12d020679f4deae848d6d828fa4ca5f850236b541a5aba3ad8f1e3cd8bb5f2"
+    },
+    {
+      "relative": "examples/shell/OpenPlate.FCMacro",
+      "bytes": 958,
+      "sha256": "b387177c9ebdcc977e31703d89778e975ce69b41308dedb556d4765c9b946084"
+    },
+    {
+      "relative": "examples/shell/VERIFICATION.md",
+      "bytes": 4917,
+      "sha256": "ea0b77a674e627ec726f70f77fadff7530ae496e0a8534589175c2fe4380d2db"
+    },
+    {
+      "relative": "examples/shell/WINDOWS_CHECKLIST.md",
+      "bytes": 3975,
+      "sha256": "8710c566960b211971245bb466b31bc8e8b4e19d6b0c0a6f41488e34019de031"
+    },
+    {
+      "relative": "examples/shell/check_saved_result.py",
+      "bytes": 1378,
+      "sha256": "863b6a4c6ef468f61a22fca1fba310194c310c8eff18f3ed0ae759f523e4658b"
+    },
+    {
+      "relative": "examples/shell/generate_plate.py",
+      "bytes": 4293,
+      "sha256": "678e44656fb71bdbb205330df54600730aef43e7d6cb9d2060cf04aef636f4aa"
+    },
+    {
+      "relative": "integration.patch",
+      "bytes": 18340,
+      "sha256": "81b13e34cf3dcdb32fa23bd53ff0368f3d0c363f80cf6d18a2848328e2e8fd06"
+    },
+    {
+      "relative": "tests/test_shell_controls.py",
+      "bytes": 3277,
+      "sha256": "00ccb3431b25e92df727ff47f801c016109bb0037d7094dc792998781289d61f"
+    },
+    {
+      "relative": "tests/test_shell_edit.py",
+      "bytes": 4143,
+      "sha256": "44e810c2a83336c3fafcaf7126c8e69850306e8260cd21f410cbb9683d7f9894"
+    },
+    {
+      "relative": "tests/test_shell_execution.py",
+      "bytes": 2922,
+      "sha256": "4a6e72c2654e1a44cc285ce7eab8130b3fee9992c49a606e40a2e4af17c25d5d"
+    },
+    {
+      "relative": "tests/test_shell_model.py",
+      "bytes": 5089,
+      "sha256": "b68b3d0051d5e520511d03a5d040d300ff8c1589de2c20579caec8454522e49a"
+    },
+    {
+      "relative": "tests/test_shell_registration.py",
+      "bytes": 2300,
+      "sha256": "cd721eca094958e225a4cc3781cd2ba96b01535495f4f3bd0aa5810c40db29fd"
+    },
+    {
+      "relative": "tests/test_shell_results.py",
+      "bytes": 6579,
+      "sha256": "cfc860927da413d7357591775c1e7212f2341733cfc1217a8c39cb92445762fb"
+    },
+    {
+      "relative": "tests/test_shell_support.py",
+      "bytes": 6603,
+      "sha256": "f3b2d661d2639a6c491198a4b97c2343f8c4056cb236b0d6556dc9e20aa5ce3e"
+    }
+  ]
+}

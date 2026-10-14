@@ -89,6 +89,8 @@ class Connection:
         self.timer.timeout.connect(self.tick)
         self.timer.start()
         QtWidgets.QApplication.instance().aboutToQuit.connect(self.close)
+        from .shell_controls import install as install_shell_controls
+        install_shell_controls(self)
         self.tick()
 
     def active_owner(self):
@@ -97,8 +99,12 @@ class Connection:
             raise ValueError('CAD 문서를 만들거나 연 뒤 연결이 끝날 때까지 기다리세요.')
         return self.owners[doc.Name][0]
 
-    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True):
+    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True):
         owner = owner or self.active_owner()
+        if operation == 'document.save' and _capture_shell:
+            from .shell_controls import flush_before_save
+            captured = flush_before_save(self, owner, arguments, target, on_done, capture_motion=_capture_motion_view)
+            if captured is not None: return captured
         owner.refresh()
         broker = self.owners[owner.doc.Name][2]
         if any(row['document_id'] == owner.document_id for row in self.native_requests.values()):
@@ -157,7 +163,7 @@ class Connection:
                         return
                     try:
                         self.submit_native('document.save', saved_arguments, saved_target, saved,
-                                           owner=owner, _capture_motion_view=False)
+                                           owner=owner, _capture_motion_view=False, _capture_shell=_capture_shell)
                     except Exception as error:
                         if on_done:
                             on_done({'status': 'FAILED', 'error': {'message': str(error)}})
@@ -310,6 +316,14 @@ class Connection:
             if len(solvers) != 1:
                 raise ValueError('CalculiX 솔버가 하나 지정된 해석을 선택하세요.')
             owner = self.owners[doc.Name][0]
+            if selected.Name in owner.read_metadata().get('shells', {}):
+                # Shell Run always uses the exact explicitly prepared/reviewed command.
+                self.show_panel('shell', owner=owner)
+                panel = self.panels[doc.Name]['shell'].widget().shell_controller
+                if panel.buffer.analysis_id != selected.Name:
+                    panel.reload(selected=selected.Name)
+                panel.action('prepare' if export_only else 'run_prepared')
+                return
             dock = self.panels.get(doc.Name,{}).get('fem')
             page = getattr(dock.widget(),'steps_page',None) if dock is not None else None
             if page is not None and page.modified:
@@ -520,6 +534,7 @@ class Connection:
             from importlib import import_module
             modules = {'parameters': ('parameter_panel', owner.parameters, '설계 변수'),
                        'motion': ('motion_panel', owner.motion, '조립 운동'),
+                       'shell': ('shell_panel', owner.shell, '판재 셸'),
                        'fem': ('fem_panel', owner.fem, '해석 설정')}
             if kind == 'research':
                 from .research_panel import make_panel
@@ -540,6 +555,7 @@ class Connection:
                                      open_data=self.open_motion_data)
                 else:
                     widget = factory(self.QtWidgets, self.QtCore, editor, submit)
+                    if kind == 'shell': widget.shell_controller.attach(self)
             dock = self.QtWidgets.QDockWidget(title, self.Gui.getMainWindow())
             dock.setToolTip(owner.doc.Label)
             dock.document_label = self.QtWidgets.QLabel('대상 문서: ' + str(owner.doc.Label))

@@ -83,3 +83,26 @@ def test_raw_editor_is_captured_before_save_and_late_edit_is_not_accepted(setup)
     editor['editor']['definition_draft']['raw'] = '2e'
     finish(connection, sent[0]); finish(connection, sent[1])
     assert accepted == [before] and editor['editor']['definition_draft']['raw'] == '2e'
+
+
+@pytest.mark.parametrize('save_fails', [False, True])
+def test_shell_and_motion_edits_share_one_document_save(setup, save_fails):
+    from apps.desktop_pre.shell_panel import DraftBuffer
+    connection, owner, controller, pending, accepted, sent, completed = setup
+    buffer = DraftBuffer()
+    buffer.read('ShellAnalysis', {'thickness_mm': '3'})
+    buffer.fields['thickness_mm'] = '1e'
+    shell = NS(buffer=buffer, busy=False, pending_changes=buffer.pending_changes,
+               update_enabled=lambda: None, show_errors=lambda: None)
+    connection.panels['Model']['shell'] = NS(widget=lambda: NS(shell_controller=shell))
+    connection.submit_native('document.save', {}, owner=owner, on_done=completed.append)
+    operations = []
+    for index, expected in enumerate(('pre.shell.save_draft', 'pre.motion.set_view', 'document.save')):
+        request = connection.native_requests[sent[index]]
+        operations.append(request['operation'])
+        assert request['operation'] == expected
+        finish(connection, sent[index], failed=save_fails and index == 2)
+    assert len(sent) == 3 and len(completed) == 1 and not shell.busy
+    assert buffer.fields['thickness_mm'] == '1e'
+    assert buffer.pending_changes() is save_fails
+    assert bool(accepted) is not save_fails

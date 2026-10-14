@@ -80,6 +80,11 @@ def _files(source, root):
 
 
 def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
+    if kind == 'freecad-shell-frozen':
+        from .adapters.shell_deck import validate_snapshot
+        manifest, _, _, _ = validate_snapshot(source)
+        paths = [source] + [_within_root(source.parent / entry['relative'], root) for entry in manifest['files']]
+        return paths, file_hash(source)
     if source.stat().st_size > 8 * 1024 * 1024:
         raise ValueError('FEM snapshot manifest exceeds 8 MiB')
     with source.open('rb') as stream:
@@ -151,13 +156,17 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         if _identity(path.stat()) != before[path] or file_hash(path) != entry['sha256']:
             raise ValueError('Source changed during native registration')
     entry = files[0]
-    if kind in {'frozen_fem', 'frozen_contact'}:
+    if kind in {'frozen_fem', 'frozen_contact', 'frozen_shell'}:
         # The copied bytes must match the manifest too, including a change before copying.
         _frozen_files(Path(workbench_root) / entry['file'], folder.resolve(),
-                      kind='freecad-contact-frozen' if kind == 'frozen_contact' else 'freecad-fem-frozen')
+                      kind={'frozen_contact':'freecad-contact-frozen', 'frozen_shell':'freecad-shell-frozen',
+                            'frozen_fem':'freecad-fem-frozen'}[kind])
     if kind == 'native_result' and (native_metadata or {}).get('contact_inspection') is not None:
         from .contact_inspection import load
         load(Path(workbench_root) / entry['file'], native_metadata['contact_inspection'])
+    if kind == 'native_result' and (native_metadata or {}).get('shell_inspection') is not None:
+        from .shell_inspection import load
+        load(Path(workbench_root) / entry['file'], native_metadata['shell_inspection'])
     receipt = {'id': identifier, 'name': source.name, 'file': entry['file'],
                'bytes': entry['bytes'], 'sha256': entry['sha256'], 'created_utc': utc_now(),
                'kind': kind, 'format': format,
@@ -187,6 +196,12 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
             native_metadata={'kind': 'native_design_dependencies',
                 'original_locations': {path.relative_to(root).as_posix(): str(path) for path in paths}})
     paths, parsed_sha = _files(source, root)
+    if (native_metadata or {}).get('shell_inspection') is not None:
+        from .shell_inspection import load
+        bundle = load(source, native_metadata['shell_inspection'])
+        if bundle['manifest']['native_metadata'] != {k:v for k,v in native_metadata.items() if k != 'shell_inspection'}:
+            raise ValueError('Shell field declarations differ from their native pinned bundle')
+        paths = list(dict.fromkeys([*paths, *[_within_root(path, root) for path in bundle['paths']]]))
     if (native_metadata or {}).get('contact_inspection') is not None:
         from .contact_inspection import load
         bundle = load(source, native_metadata['contact_inspection'])
@@ -208,10 +223,12 @@ def register_frozen_input(workbench_root, approved_root, source, identifier, *, 
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError('FEM snapshot manifest exceeds 8 MiB')
     kind = json.loads(raw).get('kind')
-    if kind not in {'freecad-fem-frozen', 'freecad-contact-frozen'}:
+    if kind not in {'freecad-fem-frozen', 'freecad-contact-frozen', 'freecad-shell-frozen'}:
         raise ValueError('Select an admitted native frozen snapshot kind')
     paths, parsed_sha = _frozen_files(source, root, kind=kind)
+    receipt_kind, format_name = {'freecad-fem-frozen':('frozen_fem','freecad-fem'),
+        'freecad-contact-frozen':('frozen_contact','freecad-contact'),
+        'freecad-shell-frozen':('frozen_shell','freecad-shell')}[kind]
     return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
                          root_id=root_id, relative=relative, limit=limit,
-                         kind='frozen_contact' if kind == 'freecad-contact-frozen' else 'frozen_fem',
-                         format='freecad-contact' if kind == 'freecad-contact-frozen' else 'freecad-fem')
+                         kind=receipt_kind, format=format_name)

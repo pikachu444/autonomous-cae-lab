@@ -38,6 +38,8 @@ CAPABILITIES = {
             'pre.contact.prepare_meshes', 'pre.contact.inspect', 'pre.contact.freeze',
             'pre.contact.geometry', 'pre.contact.steps_read', 'pre.contact.steps_set'},
 }
+from apps.desktop_pre.shell_edit import OPERATIONS as SHELL_OPERATIONS
+CAPABILITIES['pre'].update(SHELL_OPERATIONS)
 
 
 class NativeCommands:
