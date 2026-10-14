@@ -19,7 +19,7 @@ from caelab.storage import check_id, save_json
 from caelab.workbench_client import Client
 
 
-TOOLS = {'material', 'data', 'numerical', 'pde', 'expert', 'runner', 'simulation', 'evaluation', 'study'}
+TOOLS = {'material', 'data', 'numerical', 'pde', 'expert', 'runner', 'simulation', 'evaluation', 'study', 'report'}
 
 
 def _research_context(client):

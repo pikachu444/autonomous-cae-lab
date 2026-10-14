@@ -495,12 +495,14 @@ class NumericalDocuments(MaterialDocuments):
                 self._validate_observation(observation, item, settings)
                 experiment = {k: deepcopy(v) for k, v in item.items() if k not in ('source', 'kinematics')}
                 experiment['observations'] = observation
+                experiment['observation_source'] = {'data_source': deepcopy(source),
+                    'source_sha256': result.get('diagnostics', {}).get('source_sha256')}
                 experiment['settings']['parameters'] = deepcopy(settings['parameters'])
-                column=observation.get('mapping',{}).get('column')
+                column=observation.get('source_column_identity', observation.get('mapping',{}).get('column'))
                 if column is not None:
                     source_identity=result.get('diagnostics',{}).get('source_sha256') or (source['document_id'],source['job_id'])
                     role_rows[item['role']].update((source_identity,str(column),
-                        observation.get('component'),row) for row in observation.get('source_rows',[]))
+                        row) for row in observation.get('source_rows',[]))
                 experiments.append(experiment)
             if role_rows['fit'] & role_rows['holdout']:
                 raise ValueError('피팅과 검증에 같은 원본 표본이 포함되었습니다. Data에서 겹치지 않는 구간을 선택하세요.')

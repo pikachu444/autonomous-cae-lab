@@ -77,6 +77,11 @@ class StudyWindow(NumericalWindow):
         self.identity.hide()
         files = self.menuBar().addMenu('파일(&F)')
         files.addActions([self.new_action, self.open_action, self.save_action])
+        report = files.addAction('보고서 만들기…')
+        report.triggered.connect(self.open_report)
+        literature = tools_literature = QAction('문헌 추가…', self)
+        literature.triggered.connect(self.choose_literature)
+        files.addAction(literature)
         tools = self.menuBar().addMenu('도구(&T)')
         self.details_action = QAction('진단 상세…', self)
         self.details_action.triggered.connect(self.show_diagnostics)
@@ -882,6 +887,39 @@ class StudyWindow(NumericalWindow):
             self.save_document(after=continuation)
         elif answer == QMessageBox.StandardButton.Discard:
             continuation()
+
+    def choose_literature(self):
+        if not self.document or self._raw_mode or self._busy or self._callbacks:
+            return False
+        from .experiment_sources import choose_knowledge
+        def selected(reference, label):
+            identifier = 'E' + uuid.uuid4().hex
+            self._buffer['evidence'].append({'id': identifier, 'label': label,
+                'kind': 'knowledge', 'reference': deepcopy(reference), 'note': ''})
+            self._selected = ('evidence', identifier)
+            self._selection_serial += 1
+            self._edited(); self._populate_evidence(); self._show_detail()
+        self._modal(lambda: choose_knowledge(self.client, self, selected))
+
+    def open_report(self):
+        if self.local_dirty or not self.document or self.document.get('dirty') or not self.document.get('saved_revision'):
+            self.message.setText('연구 기록을 저장한 뒤 보고서로 적용하세요.')
+            return False
+        from .report_window import ReportWindow
+        window = ReportWindow(self.client, auto_open=False)
+        self._report_windows = getattr(self, '_report_windows', []) + [window]
+        study = deepcopy(self.document)
+        def opened(document):
+            window._opened(document)
+            # No assets yet: schedule Study apply after the initial empty read settles.
+            def apply():
+                if window._busy:
+                    QTimer.singleShot(20, apply)
+                elif not window._closed:
+                    window.use_study(study)
+            QTimer.singleShot(0, apply)
+        window._call(lambda: self.client.document_open(kind='report'), opened)
+        window.show()
 
     def choose_evidence(self, kind):
         if not self.document or self._raw_mode or self._busy or self._callbacks:

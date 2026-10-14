@@ -83,12 +83,15 @@ class Workbench:
         from .research_workflows import reference_metadata
         self.study_documents=StudyDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_reference=lambda reference:reference_metadata(self,reference))
+        from .report_document import ReportDocuments
+        self.report_documents = ReportDocuments(self.root, self.session_id, self.submit, self.manager,
+            resolve_reference=lambda reference: self.research_reference(reference))
         self.desktop=DesktopLinks(self)
 
     def research_owners(self):
         return (self.material_documents,self.data_documents,self.numerical_documents,
                 self.pde_documents,self.discussion_documents,self.simulation_documents,
-                self.evaluation_documents,self.study_documents)
+                self.evaluation_documents,self.study_documents,self.report_documents)
 
     def documents(self):
         return {'service_session_id':self.session_id,
@@ -101,7 +104,7 @@ class Workbench:
         if title is None:
             title={'material':'Material research','data':'Data research','pde':'PDE research',
                    'numerical':'Numerical Plan','expert':'Expert discussion','simulation':'Simulation research',
-                   'evaluation':'Evaluation definition','study':'Study'}[kind]
+                   'evaluation':'Evaluation definition','study':'Study','report':'연구 보고서'}[kind]
         return owners[kind].open(title=title,draft=draft,document_id=document_id)
 
     def _document_owner(self, identifier):
@@ -223,6 +226,12 @@ class Workbench:
 
     def study_references(self, identifier):
         return self.study_documents.resolve_references(identifier)
+
+    def report_capture(self, document_id, reference):
+        return self.report_documents.capture(check_id(document_id), reference)
+
+    def report_content(self, document_id, assets):
+        return self.report_documents.content(check_id(document_id), assets)
 
     def research_reference(self, reference):
         from .research_workflows import resolve_reference
@@ -837,13 +846,19 @@ class Workbench:
             if reference is None:
                 # Existing result-only API calls retain their registered-input contract.
                 return evaluate('files.table',{**mapping,'path':str(self.input_path(args['data_id']))})
+            for certificate in args.get('calibration_sources', []):
+                self.data_documents.resolve_job_source(certificate['data_id'], certificate)
             source, _ = self.data_documents.resolve_job_source(args['data_id'], reference)
             result=evaluate('files.table',{**mapping,'path':str(source)})
             # A queued import may start after the editor/source has changed.
             # Verify the same pinned bytes and receipt after the actual reader,
             # without consulting the current draft or repairing the registry.
             self.data_documents.resolve_job_source(args['data_id'], reference)
+            for certificate in args.get('calibration_sources', []):
+                self.data_documents.resolve_job_source(certificate['data_id'], certificate)
             result.setdefault('diagnostics',{})['source_ref']=deepcopy(reference)
+            result['diagnostics']['test_metadata'] = deepcopy(args.get('test_metadata', {}))
+            result['diagnostics']['calibration_sources'] = deepcopy(args.get('calibration_sources', []))
             return result
         if operation.startswith(('knowledge.','literature.','experts.')) or operation=='calculations.plan':
             if operation=='knowledge.ingest':
@@ -890,7 +905,8 @@ class Workbench:
                         response = reference['response']
                         selected = self.document_result(source['document_id'], source['job_id'], selection=[response])
                         experiment['observations'] = selected['responses'][response]
-                        experiment['observation_source'] = deepcopy(reference)
+                        experiment['observation_source'] = {**deepcopy(reference),
+                            'source_sha256': selected.get('diagnostics', {}).get('source_sha256')}
                         _resolve(source, self.document_read, self.document_result)
                     elif 'observation_job' in experiment:
                         observation_response=experiment.pop('observation_response',experiment['response'])

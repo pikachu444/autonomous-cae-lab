@@ -76,6 +76,21 @@ class ReferenceContent(QWidget):
             self.body.setPlainText(str(payload.get('message') or '자료를 읽을 수 없습니다.'))
             return
         kind = payload.get('kind')
+        if kind == 'comparison':
+            from .report_pages import blocks,value_text
+            lines=[]
+            for block,value in blocks(payload):
+                if block=='paragraph':lines.append(value)
+                elif block=='table':
+                    headers,rows=value
+                    lines.append(' | '.join(headers))
+                    lines.extend(' | '.join(value_text(v) for v in row) for row in rows)
+            self.body.setPlainText('\n'.join(lines)); return
+        if kind == 'knowledge':
+            source = payload['source']
+            self.title.setText(source.get('title', label))
+            self.body.setPlainText('\n\n'.join(row.get('text', '') for row in source.get('segments', [])))
+            return
         if kind == 'expert_turn':
             turn = payload['turn']
             self.title.setText(author_label(turn) + ' — ' + str((turn.get('topic') or {}).get('title', label)))

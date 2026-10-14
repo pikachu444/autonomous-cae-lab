@@ -200,6 +200,27 @@ def resolve_reference(wb, reference):
     if error:
         raise ValueError(error)
     kind = reference['kind']
+    if kind == 'comparison':
+        owner=wb._document_owner(reference['document_id'])
+        if owner is wb.native_commands:raise ValueError('비교를 소유한 연구 문서를 선택하세요.')
+        saved=owner._verify_revision(reference['document_id'],reference['saved_revision'])
+        row=next((r for r in saved.get('comparisons',[]) if r['id']==reference['comparison_id']),None)
+        if saved['kind']!=reference['document_kind'] or row is None or row['result_sha256']!=reference['result_sha256']:
+            raise ValueError('저장된 비교의 정확한 참조가 다릅니다.')
+        current=owner.read(reference['document_id'])
+        current_row=next((r for r in current.get('comparisons',[]) if r['id']==reference['comparison_id']),None)
+        if current_row is None or current_row['result_sha256']!=row['result_sha256']:
+            raise ValueError('요청한 비교가 현재 소유자에서 읽히지 않습니다.')
+        comparison=owner.comparison(reference['document_id'],reference['comparison_id'],
+            start=reference['start'],count=reference['count'])
+        return {'status':'AVAILABLE','kind':kind,'reference':deepcopy(reference),'comparison':comparison}
+    if kind == 'knowledge':
+        source = wb.assistance_call('knowledge.source', {key: deepcopy(reference[key])
+            for key in ('document_id', 'revision', 'locator')})
+        if (source.get('status') != 'AVAILABLE' or source.get('sha256') != reference['source_sha256']
+                or canonical_hash(source) != reference['content_sha256']):
+            raise ValueError('선택한 문헌 개정/원문이 없거나 변경되었습니다.')
+        return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference), 'source': source}
     if kind == 'document':
         owner = wb._document_owner(reference['document_id'])
         if owner is wb.native_commands:
@@ -231,4 +252,5 @@ def resolve_reference(wb, reference):
 def reference_metadata(wb, reference):
     result = resolve_reference(wb, reference)
     result.pop('document', None); result.pop('result', None); result.pop('turn', None)
+    result.pop('source', None); result.pop('comparison', None)
     return result

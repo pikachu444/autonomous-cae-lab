@@ -1,0 +1,202 @@
+"""Nonexecuting report sections on the existing revision/Undo owner.
+
+Large frozen payloads are immutable report assets, not an inline draft or another
+result store. Sources are verified on capture; later availability is separate.
+"""
+from copy import deepcopy
+import json
+import shutil
+
+from .material_document import MaterialDocuments
+from .storage import canonical_hash, check_id, load_json, save_json
+from .evaluation import file_hash
+from .study_document import reference_error
+
+
+def default_draft():
+    return {'title': '연구 보고서', 'sections': [], 'engineering_release': 'NOT_RELEASED'}
+
+
+def diagnostics(draft):
+    errors = []
+    def error(path, message):
+        errors.append({'severity': 'error', 'path': path, 'message': message, 'blocks_export': True})
+    if not isinstance(draft, dict) or set(draft) != set(default_draft()):
+        error('draft', '제목과 섹션을 확인하세요.')
+        return errors
+    if not isinstance(draft['title'], str) or not draft['title'].strip():
+        error('title', '보고서 제목을 입력하세요.')
+    if draft['engineering_release'] != 'NOT_RELEASED':
+        error('engineering_release', '보고서 작성은 공학적 승인을 변경하지 않습니다.')
+    if not isinstance(draft['sections'], list) or len(draft['sections']) > 100:
+        error('sections', '섹션은 100개 이하로 구성하세요.')
+        return errors
+    seen = set()
+    for i, row in enumerate(draft['sections']):
+        path = 'sections/' + str(i)
+        if not isinstance(row, dict) or set(row) != {'id', 'title', 'text', 'include', 'table', 'curve', 'asset'}:
+            error(path, '섹션 제목, 설명, 표와 곡선 선택을 확인하세요.')
+            continue
+        try:
+            check_id(row['id'])
+            if row['id'] in seen:
+                raise ValueError('중복 섹션')
+            seen.add(row['id'])
+        except ValueError:
+            error(path, '섹션의 저장 식별자가 잘못되었습니다.')
+        if not all(isinstance(row[k], str) for k in ('title', 'text')):
+            error(path, '제목과 설명은 텍스트여야 합니다.')
+        if not all(type(row[k]) is bool for k in ('include', 'table', 'curve')):
+            error(path, '섹션 포함과 표시 선택을 확인하세요.')
+        asset = row['asset']
+        if asset is not None:
+            if not isinstance(asset, dict) or set(asset) != {'id', 'sha256', 'reference'}:
+                error(path, '원자료를 다시 선택하세요.')
+            else:
+                issue = reference_error(asset['reference'])
+                if issue:
+                    error(path, issue)
+    return errors
+
+
+def compact_payload(payload):
+    """Keep verified selected numeric/text content, never paths to mutable views."""
+    result = {'kind': payload['kind']}
+    if payload['kind'] == 'comparison':
+        result['comparison'] = deepcopy(payload['comparison'])
+    elif payload['kind'] == 'result':
+        source = payload['result']
+        result['result'] = {k: deepcopy(source[k]) for k in
+            ('kind', 'execution_status', 'responses', 'checks', 'identification', 'parameters',
+             'parameter_units', 'curves', 'converged', 'termination_reason', 'failure_reason') if k in source}
+        result['result']['qualification'] = deepcopy(source.get('diagnostics', {}).get('qualification', 'UNKNOWN'))
+        result['result'].pop('curves', None)  # Curves are read through selected response views.
+        if isinstance(payload.get('reference', {}).get('selection', {}), dict) and payload.get('reference', {}).get('selection', {'metadata_only': True}).get('metadata_only'):
+            result['result'].pop('responses', None)
+    elif payload['kind'] == 'document':
+        result['document'] = deepcopy(payload['document'])
+    elif payload['kind'] == 'knowledge':
+        result['source'] = deepcopy(payload['source'])
+    else:
+        result['turn'] = deepcopy(payload['turn'])
+    return result
+
+
+def check_selection(reference, payload):
+    if reference['kind'] != 'result':
+        return
+    selection = reference.get('selection', {'metadata_only': True})
+    if isinstance(selection, list):
+        selection = {'responses': selection}
+    if 'selection' not in reference and 'response' in reference:
+        selection = {'responses': [reference['response']]}
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'time_range', 'component', 'location', 'metadata_only', 'source_rows'}:
+        raise ValueError('보고서에 고정할 응답과 행/시각을 명시하세요.')
+    if selection.get('metadata_only'):
+        return
+    names = selection.get('responses')
+    if not isinstance(names, list) or not names:
+        raise ValueError('보고서에 포함할 실제 응답을 선택하세요.')
+    responses = payload.get('result', {}).get('responses', {})
+    for name in names:
+        response = responses.get(name)
+        if not isinstance(response, dict):
+            raise ValueError('요청한 응답/위치를 찾지 못했습니다: ' + name)
+        if response.get('kind') == 'series' and not len(response.get('value', [])) and not (response.get('raw_samples') or {}).get('source_rows'):
+            raise ValueError('선택한 시각/행에 원값이 없습니다. 인접 시각으로 대체하지 않습니다.')
+        if 'time_range' in selection and selection['time_range'][0] == selection['time_range'][1]:
+            axis = next((a for a in response.get('axes', []) if a.get('name') == 'time'), None)
+            if not axis or not axis.get('values') or any(t != selection['time_range'][0] for t in axis['values']):
+                raise ValueError('선택한 정확한 시각이 없습니다.')
+
+
+class ReportDocuments(MaterialDocuments):
+    kind, prefix = 'report', 'B'
+    update_operation, evaluate_operation = 'report.update', None
+    default_draft = staticmethod(default_draft)
+    diagnostics = staticmethod(diagnostics)
+
+    @property
+    def operations(self):
+        return {self.update_operation, 'document.undo', 'document.redo', 'document.save'}
+
+    def __init__(self, *args, resolve_reference, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.resolve_reference = resolve_reference
+
+    @staticmethod
+    def _changed(document):
+        MaterialDocuments._changed(document)
+        title = document.get('draft', {}).get('title')
+        if isinstance(title, str) and title.strip():
+            document['title'] = title[:160]
+
+    def _recover_evaluations(self, document):
+        return None
+
+    def capture(self, identifier, reference):
+        with self._lock(identifier):
+            self.read(identifier)
+            reference = deepcopy(reference)
+            payload = self.resolve_reference(reference)
+            check_selection(reference, payload)
+            frozen = {'reference': reference, 'content': compact_payload(payload)}
+            encoded = json.dumps(frozen, ensure_ascii=False, allow_nan=False).encode('utf-8')
+            if len(encoded) > 8 * 1024 * 1024:
+                raise ValueError('자료가 큽니다. 필요한 응답과 원행 구간을 선택하세요.')
+            digest = canonical_hash(frozen)
+            asset_id = 'A' + digest
+            path = self._folder(identifier) / 'assets' / (asset_id + '.json')
+            if not path.exists():
+                save_json(path, frozen)
+            elif canonical_hash(load_json(path)) != digest:
+                raise ValueError('보존된 보고서 자료가 변경되었습니다.')
+            return {'id': asset_id, 'sha256': digest, 'reference': reference}
+
+    def asset(self, identifier, binding):
+        asset_id = check_id(binding['id'])
+        if not asset_id.startswith('A') or asset_id[1:] != binding['sha256']:
+            raise ValueError('잘못된 보고서 자료 식별자')
+        document = self.read(identifier)
+        path = self._folder(identifier) / 'assets' / (asset_id + '.json')
+        if not path.exists() and document.get('saved_revision'):
+            path = self._folder(identifier) / 'revisions' / check_id(document['saved_revision']) / 'assets' / (asset_id + '.json')
+        frozen = load_json(path)
+        if canonical_hash(frozen) != binding['sha256'] or frozen['reference'] != binding['reference']:
+            raise ValueError('보고서 자료의 원값 또는 참조가 변경되었습니다.')
+        return frozen
+
+    def content(self, identifier, bindings):
+        if not isinstance(bindings, list) or len(bindings) > 100:
+            raise ValueError('보고서의 섹션 자료를 선택하세요.')
+        rows = []
+        for binding in bindings:
+            try:
+                frozen = self.asset(identifier, binding)
+                try:
+                    current = self.resolve_reference(binding['reference'])
+                    check_selection(binding['reference'], current)
+                    # The report always reads its snapshot; availability cannot replace it.
+                    if canonical_hash(compact_payload(current)) != canonical_hash(frozen['content']):
+                        raise ValueError('원자료 내용이 고정한 자료와 다릅니다.')
+                    state, message = 'AVAILABLE', ''
+                except Exception as error:
+                    state, message = 'UNAVAILABLE', str(error)
+                rows.append({'id': binding['id'], **frozen, 'source_status': state, 'message': message})
+            except Exception as error:
+                rows.append({'id': binding.get('id'), 'source_status': 'SNAPSHOT_UNAVAILABLE', 'message': str(error)})
+        return {'document_id': identifier, 'assets': rows}
+
+    def _retain_inputs(self, saved, folder):
+        bindings = {}
+        for draft in [saved['draft'], *saved.get('_undo', []), *saved.get('_redo', [])]:
+            if not isinstance(draft, dict):
+                continue
+            for row in draft.get('sections', []) if isinstance(draft.get('sections'), list) else []:
+                binding = row.get('asset') if isinstance(row, dict) else None
+                if isinstance(binding, dict) and {'id', 'sha256', 'reference'} <= binding.keys():
+                    bindings[binding['id']] = binding
+        for binding in bindings.values():
+            frozen = self.asset(saved['id'], binding)
+            save_json(folder / 'assets' / (check_id(binding['id']) + '.json'), frozen)
+        self._retain_comparisons(saved, folder)

@@ -99,7 +99,7 @@ class ReferenceWindow(QMainWindow):
         available = bool(self.value and self.value.get('status') == 'AVAILABLE')
         self.retry_action.setEnabled(not self._busy and not self._closed)
         self.content.read.setEnabled(not self._busy and not self._closed)
-        self.open_button.setEnabled(available and not self._busy and not self._closed)
+        self.open_button.setEnabled(available and self.reference.get('kind') != 'knowledge' and not self._busy and not self._closed)
         self.open_action.setEnabled(self.open_button.isEnabled())
 
     def _read(self, reference):

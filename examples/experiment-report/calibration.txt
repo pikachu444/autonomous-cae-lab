@@ -1,0 +1,7 @@
+PUBLIC SYNTHETIC EXAMPLE — not an instrument certificate.
+Force channel: input mV, a=2 N/mV, x0=0 mV, b=0 N.
+Separate synthetic stress channel: a=0.2 MPa/mV, x0=0 mV, b=0 MPa.
+These are two explicitly declared example transducers, not an automatic force-to-stress conversion.
+Calibration interval [0,18] mV; sensor interval [-1,24] mV.
+The last source row is retained as outside the calibration interval and saturated.
+No measurement uncertainty or engineering qualification is asserted.
