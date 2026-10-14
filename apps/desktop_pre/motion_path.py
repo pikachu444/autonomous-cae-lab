@@ -25,21 +25,37 @@ def merge_path(previous, page):
     return result
 
 
+def _csv_records(path):
+    records, gaps = [], []
+    previous = None
+    for sample in path['rows']:
+        if previous is not None and sample['frame'] > previous+1:
+            gaps.append({'csv_row': len(records)+2, 'after_frame': previous, 'before_frame': sample['frame'],
+                'unread_frames': [previous+1, sample['frame']-1]})
+            records.append(['nan']*5)
+        records.append([sample['frame'], sample['nominal_time'], *sample['point']])
+        previous = sample['frame']
+    return records, gaps
+
+
 def csv_payload(path):
     if not path.get('rows'): raise ValueError('먼저 계산된 경로를 읽으세요.')
+    records, gaps = _csv_records(path)
     stream = io.StringIO(newline='')
     source = {key: deepcopy(value) for key, value in path.items() if key != 'rows'}
     source['sampled_frames'] = [row['frame'] for row in path['rows']]
+    if gaps: source.update(gap_markers=gaps, csv_row_kind='physical_line_zero_based')
     # The existing Data preview refuses quotes even in comments. Keep the
     # lossless source JSON URL-encoded so the ordinary numeric preview works.
     stream.write('# motion_source_json_urlencoded=' + quote(json.dumps(source, ensure_ascii=False, separators=(',', ':'), allow_nan=False), safe='') + '\n')
     writer = csv.writer(stream)
     writer.writerow(['native_frame', 'nominal_time_s', 'world_x_mm', 'world_y_mm', 'world_z_mm'])
-    for row in path['rows']: writer.writerow([row['frame'], row['nominal_time'], *row['point']])
+    writer.writerows(records)
     return stream.getvalue().encode('utf-8')
 
 
 def data_draft(path, data_id):
+    _, gaps = _csv_records(path)
     columns = {}
     for name, column, unit, component, measure in [('X', 2, 'mm', 'x', 'position'),
             ('Y', 3, 'mm', 'y', 'position'), ('Z', 4, 'mm', 'z', 'position'),
@@ -47,6 +63,11 @@ def data_draft(path, data_id):
         columns[name] = {'column': column, 'unit': unit, 'component': component,
             'location': 'trace_point:' + path['trace_id'], 'measure': measure, 'frame': 'document_global',
             'axis': {'column': 1, 'name': 'nominal_time', 'unit': 's'}}
+        if gaps:
+            reasons = {str(gap['csv_row']): '미읽기 경로 구간: 프레임 ' + str(gap['unread_frames'][0])
+                + '–' + str(gap['unread_frames'][1]) + ' / 좌표·시간 측정 없음' for gap in gaps}
+            columns[name]['row_selection'] = {'exclude_rows': [gap['csv_row'] for gap in gaps],
+                'quality_rows': [gap['csv_row'] for gap in gaps], 'reasons': reasons, 'quality_reasons': deepcopy(reasons)}
     return {'data_id': data_id, 'mapping': {'delimiter': ',', 'skip_header': 2, 'columns': columns},
         'test_metadata': {'protocol': '조립 운동학 경로. nominal_time은 지정 출력 격자이며 native 실제 시각이 아닙니다. '
             + f"읽은 프레임 {len(path['rows'])}/{path['total_frames']}. 원 프레임과 출처는 CSV에 보존됩니다."}}
