@@ -1,0 +1,11 @@
+id: no-dynamic-eval
+language: Python
+severity: warning
+message: Review dynamic eval/exec use; untrusted input can execute arbitrary code.
+pattern: eval($$$ARGS)
+---
+id: no-dynamic-exec
+language: Python
+severity: warning
+message: Review dynamic eval/exec use; untrusted input can execute arbitrary code.
+pattern: exec($$$ARGS)

@@ -97,6 +97,10 @@ the user must not have to repeat this requirement in each task.
 Verify the behavior affected by the change, including real user workflows when
 claiming GUI completion and reference comparisons when claiming numerical validity.
 Do not rerun unchanged full suites or native campaigns without a concrete reason.
+Close FreeCAD, ParaView and other programs opened for tests when each check ends,
+including failures and timeouts. Track the exact launched process and clean it up
+in a finally block; do not accumulate test windows or kill unrelated user sessions.
+Keep a window open only when the user asked to inspect that particular result.
 Keep product implementation, actual execution, usability and engineering qualification
 as separate claims. C3D10/F05 work is not the default prerequisite for product work.
 

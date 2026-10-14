@@ -1,0 +1,29 @@
+id: no-subprocess-run-shell-true
+language: Python
+severity: warning
+message: Review subprocess.run with shell=True; pass an argument list with shell=False where possible.
+pattern: subprocess.run($$$ARGS, shell=True)
+---
+id: no-subprocess-popen-shell-true
+language: Python
+severity: warning
+message: Review subprocess.Popen with shell=True; pass an argument list with shell=False where possible.
+pattern: subprocess.Popen($$$ARGS, shell=True)
+---
+id: no-subprocess-call-shell-true
+language: Python
+severity: warning
+message: Review subprocess.call with shell=True; pass an argument list with shell=False where possible.
+pattern: subprocess.call($$$ARGS, shell=True)
+---
+id: no-subprocess-check-call-shell-true
+language: Python
+severity: warning
+message: Review subprocess.check_call with shell=True; pass an argument list with shell=False where possible.
+pattern: subprocess.check_call($$$ARGS, shell=True)
+---
+id: no-subprocess-check-output-shell-true
+language: Python
+severity: warning
+message: Review subprocess.check_output with shell=True; pass an argument list with shell=False where possible.
+pattern: subprocess.check_output($$$ARGS, shell=True)
