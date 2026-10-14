@@ -10,6 +10,30 @@
 2026-10-14 최신 체크포인트. 아래의 날짜별 서술은 앞선 실행 근거이며 이 절의
 현재 배정보다 우선하지 않는다. 전체 제품 Goal은 계속 진행 중이다.
 
+**기능별 병렬 개발(사용자 최신 지시):** 기능을 별도 작업 폴더·브랜치에서 구현하고,
+완성된 것부터 Codex가 병합·통합한다. Pro 한 명의 제출을 기다리며 보조 담당을 조사에만
+묶어 두지 않는다. MoAI run의 작업 분해·기존 기능 보존 절차를 적용하고 아래 두 개발
+항목을 기존 D2(t3)의 하위 작업 t13/t14로 등록·시작했다. 추가 지출은 없으며 검사 범위는
+실행 가능 여부와 변경된 기능의 최소 단위 검사다.
+
+| 담당 / 작업 | 실제 구현 범위와 완료 조건 | 분리 브랜치 / 소유 |
+|---|---|---|
+| 실제 Pro / FN-28-02 | 서로 다른 단위·좌표·시각의 결과 비교, 벡터/텐서 변환, 미리보기·적용·저장 재열기 | `codex/post-comparison-20261014` 제출 요청. 후처리 analysis/workspace/external/measurements와 post_window |
+| Sol gui_usage_challenge / t13 | **접합 접촉(tie):** 두 면 선택→허용거리·절점 조정 지정→입력 생성→기존 Runner 실행 연결→변위·응력·반력 열기→저장 재열기. 실제 FreeCAD ConstraintTie/CalculiX TIE 재사용. 기존 선형·마찰 접촉 유지. 접촉 압력/미끄럼 출력으로 가장하지 않음 | `codex/contact-tie`, `C:/Users/pikac/.codex/worktrees/contact-tie/autonomous-cae-lab`. contact 도메인·deck, native contact/panel/freeze, 관련 검사·CONTACT_WORKFLOW. connection.py/fem_edit.py의 native 타입 분기만 추가 허용 |
+| Sol assembly_motion / t14 | **조립·운동:** 복수 관절의 회전/이동 구동 편집, 누락 관절 재지정·취소, 미리보기·자세 복구·채택, 정의와 선택 저장 재열기. 기존 1..32 구동/native 계산 유지. native AssemblyLink의 중첩 참조·좌표 복구 지원 검토·구현 | `codex/assembly-motion`, `C:/Users/pikac/.codex/worktrees/assembly-motion/autonomous-cae-lab`. motion.py/motion_panel.py, 전용 검사와 ASSEMBLY_WORKFLOW |
+
+두 Sol 담당자가 서로 직접 질문·반론을 주고받으며 공통 파일 변경은 Codex와 조정한다.
+Astra는 구현 제출 순서대로 독립 검토한다. 현재 추가 검토 실행 요청은 아래 기존 세션
+한도로 거절됐으므로 아직 재개하지 않았고, 실행 중이라고 표시하지 않는다.
+
+**병렬 한도 교정:** 전역 `[agents].max_concurrent_threads_per_session`은 12였으나
+프로젝트 값은 2였다. 사용자 지시에 따라 프로젝트와 위 두 작업 폴더를 12로 맞췄고
+`cacb69b`를 원격 main에 게시·일치를 확인했다. 기존 제한은 2026-10-07 `e2a6512`에서
+처음 추가된 것으로 Git 이력에서 확인했다. 이 이력만으로 사용자가 결정한 값이라고
+단정하지 않는다. 현재 이미 실행 중인 세션은 추가 Astra 호출에 `agent thread limit reached`를
+반환했다. 설정 저장은 완료했지만 현재 세션의 한도 증가를 확인한 것은 아니다.
+기존 두 개발 담당과 외부 Pro는 중단하지 않는다.
+
 **현재 실제 작성:** `PRO-POST-COMPARE-01`, 제품 기준 `38b4c3f`, SPEC 추가 `80e3338`.
 FN-28-02의 서로 다른 단위·좌표계·시간·벡터/텐서 결과 비교를 실제 Pro가 작성하고,
 Astra가 물리량·변환·보간 의미를 독립 검토한다. [SPEC-POST-COMPARE-001](.moai/specs/SPEC-POST-COMPARE-001/spec.md)에
@@ -18,7 +42,7 @@ Astra가 물리량·변환·보간 의미를 독립 검토한다. [SPEC-POST-COM
 `01a1381d-cf8a-735e-bc22-60c7db1be3ce`에서 요청 ID가 담긴 userMessage와 inProgress를
 확인했다. 같은 Pro 대화의 모델 메뉴에서 Pro/파워 5를 다시 확인했다.
 Sol의 Windows 후처리 File > Exit 조사는 아래 한계를 확인해 인도했다. 이어
-Windows 전처리 설치 루트 경로의 직접 진입을 교정해 인도했다.
+Windows 전처리 설치 루트 경로의 직접 진입을 `050446b`로 교정·게시했다.
 Codex는 Windows 통합과 사용 안내·현황을 담당한다.
 Pro의 후처리 비교 파일과 소유권을 분리하며 기존 접촉 잔여도 유지한다.
 Pro의 작성 시작 응답과 `github.fetch_file` 작업 진행을 확인했다. MoAI SPEC lint는
