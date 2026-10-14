@@ -14,6 +14,17 @@ from .runner_window import candidate_state
 from .numerical_methods import STATE, CHOICE_LABELS
 
 
+def exclusion_label(row, definition, reason):
+    if row.get('prediction_status') == 'PREDICTED' or row.get('execution_status') == 'PREDICTED':
+        return '예측값 제외: 실제 계산 결과를 선택하세요.'
+    if 'response unit differs from the declared unit' in str(reason):
+        response = row.get('responses', {}).get(definition.get('response'), {})
+        return '응답 단위 불일치: 원값 ' + str(response.get('unit', '?')) + ' / 선언 ' + str(definition.get('unit', '?'))
+    if row.get('execution_status') in {'FAILED', 'REJECTED'}:
+        return '계산 실패: 실행 기록을 확인하세요.'
+    return reason
+
+
 class NumericalUQWindow(QDialog):
     def __init__(self, result, *, title='불확실성 분석', parent=None):
         super().__init__(parent, Qt.WindowType.Window)
@@ -95,13 +106,15 @@ class NumericalUQWindow(QDialog):
             except (EvaluationFailed, ValueError, KeyError, TypeError) as error:
                 reason = reason or str(error)
             cells = [f'후보 {index + 1}', STATE.get(status, '미확인'),
-                     format(self._values[index], '.17g') if index in self._values else '없음', reason]
+                     format(self._values[index], '.17g') if index in self._values else '없음',
+                     exclusion_label(row, definition, reason) if index not in self._values else reason]
             for column, value in enumerate(cells):
                 cell = QTableWidgetItem(str(value))
                 cell.setData(Qt.ItemDataRole.UserRole, row.get('candidate_id'))
                 self.table.setItem(index, column, cell)
             self.table.item(index, 0).setToolTip(str(row.get('candidate_id', '')))
             self.table.item(index, 1).setToolTip(candidate_state(row))
+            self.table.item(index, 3).setToolTip(str(reason))
         self.table.blockSignals(False)
         self.table.resizeColumnsToContents()
         self.unit.setText('[' + str(item.get('unit', '?')) + ']')
