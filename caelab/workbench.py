@@ -164,7 +164,8 @@ class Workbench:
             if not isinstance(arguments,dict) or set(arguments)-allowed or 'input_id' not in arguments:
                 raise ValueError('Post source commands require a registered input ID, never a caller-supplied path or receipt')
             arguments={**arguments,'receipt':self.native_input(arguments['input_id'])}
-            if arguments['receipt'].get('format') not in {'vtu','pvd'}:
+            if (arguments['receipt'].get('format') not in {'vtu','pvd'}
+                    and not (arguments['receipt'].get('format') == 'vtt' and arguments['receipt'].get('kind') == 'native_curve')):
                 raise ValueError('Post readers currently admit registered VTU/PVD result sets')
         method=owner.submit if owner is self.native_commands else owner.command
         return method(identifier,operation,arguments,session_id=session_id,
@@ -253,6 +254,11 @@ class Workbench:
         if self._document_owner(identifier) is not self.data_documents:
             raise ValueError('Source preview belongs to a Data document')
         return self.data_documents.source_preview(identifier)
+
+    def post_curve_snapshot(self, reference, response):
+        """Freeze a retained Data channel for the existing native Post owner."""
+        from .post_curves import snapshot
+        return snapshot(self, reference, response)
 
     def _curve_reference(self, reference):
         if (not isinstance(reference,dict) or not {'document_id','job_id','response'} <= set(reference)
@@ -396,7 +402,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact'}:
+        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'native_curve'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -411,7 +417,7 @@ class Workbench:
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact'}:
+        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'native_curve'}:
             raise ValueError('Select a registered native result or FEM snapshot')
         result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),

@@ -230,13 +230,13 @@ def sample_data(source, *, offset=0, limit=100, point_index=None, declarations=N
     return {'rows': rows, 'total': total, 'offset': offset, 'limit': limit, 'semantics': 'native_time_table'}
 
 
-def save_native_data(source, folder, stem):
+def save_native_data(source, folder, stem, *, table_xml=False):
     """Select the native writer from its actual VTK output type, retain dependencies."""
     data = analysis._fetch(source)
     extensions = {'vtkUnstructuredGrid': '.vtu', 'vtkPolyData': '.vtp', 'vtkTable': '.csv',
                   'vtkRectilinearGrid': '.vtr', 'vtkImageData': '.vti', 'vtkStructuredGrid': '.vts',
                   'vtkMultiBlockDataSet': '.vtm', 'vtkPartitionedDataSetCollection': '.vtpc'}
-    extension = extensions.get(data.GetClassName())
+    extension = '.vtt' if table_xml and data.IsA('vtkTable') else extensions.get(data.GetClassName())
     if extension is None:
         raise ValueError('No managed native writer for ' + data.GetClassName())
     folder.mkdir(parents=True, exist_ok=False)
@@ -244,8 +244,11 @@ def save_native_data(source, folder, stem):
     if data.GetClassName() == 'vtkTable':
         # Table association and round-trip Float64 precision are explicit; the
         # contact load parameter is a column, not a native physical Time field.
-        p.SaveData(str(path), proxy=source, FieldAssociation='Row Data', Precision=17,
-                   AddTime=0, AddTimeStep=0)
+        if table_xml:
+            p.SaveData(str(path), proxy=source, DataMode='Binary', CompressorType='None')
+        else:
+            p.SaveData(str(path), proxy=source, FieldAssociation='Row Data', Precision=17,
+                       AddTime=0, AddTimeStep=0)
     else:
         p.SaveData(str(path), proxy=source)
     if not path.is_file() or not path.stat().st_size:

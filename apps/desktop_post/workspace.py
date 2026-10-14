@@ -24,7 +24,7 @@ except ImportError:
 
 OPERATIONS = (
     'post.source_add', 'post.source_select', 'post.source_repair',
-    'post.comparison_edit', 'post.mapping_validate', 'post.sample',
+    'post.comparison_edit', 'post.curve_catalog', 'post.mapping_validate', 'post.sample',
     'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
     'post.measurement_snapshot', 'post.measurement_open', 'post.contact_inspect', 'post.contact_measurement',
     'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export',
@@ -363,7 +363,7 @@ class Workspace:
         selected = []
         visited = set()
         containers = {'.pvd', '.vtm', '.vtpc', '.vtpd', '.pvtu', '.pvtp', '.pvtr', '.pvti', '.pvts'}
-        leaves = {'.vtu', '.vtp', '.vtr', '.vti', '.vts', '.csv'}
+        leaves = {'.vtu', '.vtp', '.vtr', '.vti', '.vts', '.csv', '.vtt'}
         def visit(file, root, depth=0):
             path = str(file)
             if path in visited: return
@@ -425,6 +425,7 @@ class Workspace:
         handlers = {
             'post.source_add': self.add_source, 'post.source_select': self.select_source,
             'post.source_repair': self.repair_source, 'post.comparison_edit': self.edit_comparison,
+            'post.curve_catalog': self.curve_catalog,
             'post.mapping_validate': self.validate, 'post.sample': self.sample,
             'post.filter_edit': self.edit_filter, 'post.measurement_edit': self.edit_measurement,
             'post.measurement_snapshot': self.measurement_snapshot,
@@ -437,6 +438,10 @@ class Workspace:
             'post.export': self.export,
         }
         return handlers[operation](**arguments)
+
+    def curve_catalog(self):
+        from .curve_native import catalog
+        return catalog(self)
 
     def add_source(self, *, input_id, receipt, label_text=None):
         if receipt.get('id') != input_id:
@@ -452,6 +457,25 @@ class Workspace:
 
     def select_source(self, *, source_ref, view_id=None, show=True, compare_with=None):
         source = self.resolve(source_ref)
+        if (self.document['sources'].get(source_ref, {}).get('native_metadata') or {}).get('curve'):
+            if compare_with is not None:
+                raise ValueError('곡선 비교에서 두 원곡선을 선택하세요.')
+            view = next((v for v in p.GetViews() if self.owner.proxy_id(v) == view_id), None) if view_id else None
+            if view_id and (view is None or view.GetXMLName() != 'XYChartView'):
+                raise ValueError('시험 곡선에는 차트 뷰를 선택하세요.')
+            if show:
+                if view is None:
+                    layout = p.CreateLayout(name='시험 곡선')
+                    view = p.CreateView('XYChartView')
+                    p.AssignViewToLayout(view=view, layout=layout, hint=0)
+                display = p.Show(source, view)
+                display.AttributeType = 'Row Data'; display.UseIndexForXAxis = 0
+                display.XArrayName = 'axis'; display.SeriesVisibility = ['value']
+                display.SeriesLineStyle = ['value', '0']
+                display.SeriesMarkerStyle = ['value', '4']
+                p.Render(view)
+            p.SetActiveSource(source)
+            return {'source_ref': source_ref, 'native_name': label(source)}
         if compare_with is not None:
             other = self.resolve(compare_with)
             previous = p.GetActiveSource(), p.GetActiveView()
@@ -523,7 +547,10 @@ class Workspace:
             key = self._key(obj)
             draft = obj['draft']
             name = 'CAE ' + obj['kind'] + ' | ' + object_ref + ' | ' + uuid.uuid4().hex[:8]
-            if obj['kind'] == 'comparison':
+            if obj['kind'] == 'comparison' and draft.get('version') == 3:
+                from .curve_native import build
+                bundle = build(self, draft, name)
+            elif obj['kind'] == 'comparison':
                 for side in ('a', 'b'):
                     self._declared_side(draft[side])
                 if draft.get('version') != 2 and any(draft[side].get('observable') is not None for side in ('a', 'b')):
@@ -556,6 +583,8 @@ class Workspace:
                 if draft['source_ref'] not in self.document['sources']:
                     bundle['summary']['sample_semantics'] = 'derived_values_at_saved_measurement_locations'
                     bundle['summary']['input_declaration'] = deepcopy(declaration)
+                if selected:
+                    bundle['summary']['selected_declaration'] = deepcopy(selected)
                 if selected and draft.get('measurement') in ('point', 'path'):
                     result_declaration = deepcopy(declaration)
                     result_array = deepcopy(selected)
@@ -779,19 +808,29 @@ class Workspace:
         self._touch()
         return {'status': 'SHOWN', 'object_ref': obj['id'], 'revision': record['id']}
 
-    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None, expected_revision=None):
+    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None, row_index=None, expected_revision=None):
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj, preview=preview)
         if expected_revision is not None and record['id'] != expected_revision:
             raise ValueError('STALE_SAMPLE: 선택한 표·곡선 이후 결과가 바뀌었습니다. 현재 결과를 다시 읽으세요.')
         if preview and self._key(obj) != record['key']:
             raise ValueError('STALE_PREVIEW: input, clock or mapping settings changed; validate again')
-        if obj['kind'] == 'comparison':
+        if obj['kind'] == 'comparison' and record['recipe'].get('version') == 3:
+            from .curve_native import sample
+            result = sample(bundle, offset=offset, limit=limit, row_index=row_index, point_index=point_index)
+        elif row_index is not None:
+            raise ValueError('이 분석은 시간표 행 선택을 지원하지 않습니다.')
+        elif obj['kind'] == 'comparison':
             result = analysis.sample_page(bundle, offset=offset, limit=limit, point_index=point_index)
         else:
             result = measurements.sample_data(bundle['source'], offset=offset, limit=limit, point_index=point_index,
                                               declarations=record.get('summary', {}).get('declarations'))
         result = contact_views.annotate(result, record.get('summary', {}))
+        if row_index is not None:
+            obj['selection'] = deepcopy(result.get('rows', []))
+            obj['selection_revision'] = record['id']
+            obj['selection_hash'] = digest(obj['selection'])
+            self._touch()
         if point_index is not None:
             # An explicit point query selects this exact output only. Preview
             # selection never creates a view or displays a hidden pipeline.
@@ -810,6 +849,20 @@ class Workspace:
             return False
         record = self.applied(obj)
         rows = obj.get('selection')
+        if record and record['recipe'].get('version') == 3 and rows:
+            if (obj.get('selection_revision') != record['id'] or len(rows) != 1
+                    or type(rows[0].get('row_index')) is not int):
+                return False
+            try:
+                from .curve_native import sample
+                _, bundle = self._bundle(obj)
+                actual = sample(bundle, row_index=rows[0]['row_index'])
+                if digest(actual['rows']) != obj.get('selection_hash') or digest(rows) != obj.get('selection_hash'):
+                    raise ValueError('Saved curve row differs from retained values')
+                return True
+            except (ValueError, RuntimeError, OSError) as error:
+                self.restore_issues.append({'object_ref': obj['id'], 'message': str(error)})
+                return False
         if (record is None or obj.get('selection_revision') != record['id']
                 or not isinstance(rows, list) or len(rows) != 1
                 or not isinstance(rows[0], dict) or type(rows[0].get('point_index')) is not int
@@ -864,6 +917,8 @@ class Workspace:
 
     @staticmethod
     def view_type(obj, record):
+        if obj['kind'] == 'comparison' and record['recipe'].get('version') == 3:
+            return 'XYChartView'
         if (obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('time', 'path', 'contact_force')
                 or obj['kind'] == 'filter' and record['recipe'].get('filter') == 'PlotOverLine'):
             return 'XYChartView'
@@ -912,7 +967,19 @@ class Workspace:
                 p.AssignViewToLayout(view=view, layout=layout, hint=0)
                 record['view_name'] = next((name for name, item in self._views() if external._same_proxy(item, view)), None)
             display = p.Show(source, view, 'SpreadSheetRepresentation') if view.GetXMLName() == 'SpreadSheetView' else p.Show(source, view)
-            if view.GetXMLName() == 'XYChartView':
+            if view.GetXMLName() == 'XYChartView' and record['recipe'].get('version') == 3:
+                display.AttributeType = 'Row Data'
+                display.UseIndexForXAxis = 0
+                display.XArrayName = 'aligned_x'
+                display.SeriesVisibility = ['aligned_a', 'aligned_b', 'aligned_delta']
+                if record['summary'].get('blocked'):
+                    display.XArrayName = 'a_x'
+                    display.SeriesVisibility = ['a_y']
+                # Markers avoid inventing a line across missing source intervals.
+                visible = ['a_y'] if record['summary'].get('blocked') else ['aligned_a', 'aligned_b', 'aligned_delta']
+                display.SeriesLineStyle = [item for series in visible for item in (series, '0')]
+                display.SeriesMarkerStyle = [item for series in visible for item in (series, '4')]
+            elif view.GetXMLName() == 'XYChartView':
                 display.UseIndexForXAxis = 0
                 measurement = record['recipe'].get('measurement')
                 display.XArrayName = {'time': 'Time', 'contact_force': record['recipe'].get('axis_name','load_parameter')}.get(measurement, 'arc_length')
@@ -1066,7 +1133,8 @@ class Workspace:
                 if bundle is None:
                     raise ValueError('PIPELINE_CHANGED: restore or validate the edited analysis before saving')
                 reader_binding = self._verify_record(obj, record, bundle)
-                artifact = measurements.save_native_data(bundle['source'], folder / record['id'], 'result')
+                artifact = measurements.save_native_data(bundle['source'], folder / record['id'], 'result',
+                    **({'table_xml': True} if record['summary'].get('comparison_version') == 3 else {}))
                 record['result_file'] = artifact['entry']
                 record['result_files'] = artifact['files']
                 if reader_binding is not None:
