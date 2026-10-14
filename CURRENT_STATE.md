@@ -42,6 +42,12 @@ Codex가 해당 경계를 읽고 실제 Pro에 `PRO-NS1-CORRECTION-20261014-01`�
 `codex/ns1-integration`이며 원격 main은 `4bad73f`를 유지한다. 기존 접촉·동결·단계·
 FE 편집 영향 범위의 추가132검사도 Windows에서 통과했다. 동일 검사를 반복하지 않고
 후속 교정 범위만 확인한다. Sol의 분리된 Windows 작업 및 M3 Pro 구현은 계속 진행한다.
+Sol의 실제 FreeCAD 첫 실행에서 잘못된 소성 표 초안 저장→FCStd 닫기→새 Owner 재열기→
+수정→J2/NLGEOM 적용을 확인했고 Codex가 `runs/ns1-native-check/applied-j2.png`와
+receipt를 읽었다. 이 경로는 조립 작업 폴더에 있다. 입력 생성은 새 고정·하중의
+영역 참조 명시 확인 단계에서 멈춰 기존 영역 지정 흐름으로 이어가는 중이다.
+아직 이 모델의 실제 솔버 계산을 했다는 뜻은 아니다. 실제 창의 한글 글꼴·곡선 대비와
+작은 창 배치를 Sol이 교정하고 Astra가 직접 화면 대안을 논의한다.
 
 **운동 시간 교정 통합:** Sol `5ea18c0`와 후속 `ad960ed`를 main `331d2fe`/`9630f5a`로
 통합했다. Astra가 찾은 native 시간 변경과 적용 정의 불일치는 계산 전에 차단하고,
