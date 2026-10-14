@@ -396,6 +396,7 @@ class RequestPlanWindow(NumericalWindow):
         source_details.triggered.connect(self.show_source_details)
         view_menu.addAction(source_details)
         view_menu.addAction(self.return_status_action)
+        self._add_uq_distribution_action(view_menu)
         result_layout.addLayout(actions)
         self.tabs = QTabWidget()
         self.candidates = readonly_table(['후보', '실행 상태', '변수 값', '목적값', '조건 충족', '실패 이유'])
