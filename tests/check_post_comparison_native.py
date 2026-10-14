@@ -4,6 +4,7 @@ Never invokes a solver. --create requires a NEW directory. --reopen reads the
 saved receipt without regenerating fixtures or revalidating the comparison.
 """
 import argparse
+import builtins
 import json
 import os
 from pathlib import Path
@@ -89,8 +90,8 @@ def main(argv=None):
         workspace.validate(object_ref=compared['id'])
         workspace.apply(object_ref=compared['id'],show=False)
         rows = workspace.sample(object_ref=compared['id'],preview=False,limit=1000)['rows']
-        assert any(not row['valid'] for row in rows), 'upstream invalid values became valid'
-        assert all(row['delta'] == 0. for row in rows if row['valid'])
+        assert builtins.any(not row['valid'] for row in rows), 'upstream invalid values became valid'
+        assert builtins.all(row['delta'] == 0. for row in rows if row['valid'])
         derived.append({'object_ref':compared['id'],'rows':rows,
                         'declaration':workspace._output_declaration(compared['id'])})
     saved=owner.save_project()

@@ -161,6 +161,15 @@ bridge 수명이나 native 창 닫기/저장 제어는 수정하지 않았습니
 - 작성자 자체 검토와 별도 동료의 읽기 전용 검토를 수행했습니다. 이 검토는
   실제 native 실행 또는 사용자 GUI 수용을 대신하지 않습니다.
 
+통합 담당자는 후속 `e39f11c`까지 Python/Qt 검사27건을 실행해 통과를 확인했습니다.
+일반 Python의 VTK 검사 모듈1개는 건너뛰었으며, 대신 설치된 ParaView 6.2에서
+비교→점/경로 측정→저장 측정 비교→저장→새 프로세스 재열기를 수행해
+원값·변환값·차이·결측과 고정 시각이 보존됨을 확인했습니다. 솔버 실행은 없습니다.
+pvpython이 제공하는 `all`과 표준 함수의 이름 충돌은 검사 스크립트에서
+`builtins.all/any`를 명시해 해결했습니다. 비교 수치나 허용 기준은 바꾸지 않았습니다.
+기록은 `runs/product-development/20261014/post-compare-integrated-16a1ad6/receipt.json`이며
+전체 Windows 마우스 작업과 사용자 수용을 완료했다는 뜻은 아닙니다.
+
 고정 출력의 native 시계열 정보 처리는 ParaView의 공식
 [Programmable Filter RequestInformation 계약](https://docs.paraview.org/en/v6.2.0/ReferenceManual/pythonProgrammableFilter.html)을 사용합니다.
 원 물리 시각은 owner의 고정 표본 선언에 보존하며 upstream TIME_STEPS를
