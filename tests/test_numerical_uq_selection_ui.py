@@ -112,3 +112,15 @@ def test_request_menu_reads_selected_uq_without_client_execution():
         owner._allow_close = True
         owner.close()
         app.processEvents()
+
+
+def test_known_exclusions_have_korean_actions_and_keep_original_diagnostics(window):
+    _, view, original = window
+    assert view.table.item(4, 3).text() == '계산 실패: 실행 기록을 확인하세요.'
+    assert view.table.item(4, 3).toolTip() == 'solver failed'
+    assert view.table.item(5, 3).text() == '예측값 제외: 실제 계산 결과를 선택하세요.'
+    assert 'PREDICTED' in view.table.item(5, 3).toolTip()
+    assert view.table.item(6, 3).text() == '응답 단위 불일치: 원값 Pa / 선언 MPa'
+    assert view.table.item(6, 3).toolTip() == 'stress response unit differs from the declared unit'
+    assert original['candidates'][4]['failure_reason'] == view.result['candidates'][4]['failure_reason'] == 'solver failed'
+    assert original['candidates'][6]['responses']['stress']['unit'] == 'Pa'
