@@ -3,7 +3,7 @@ name: NS1 bounded integration
 on:
   push:
     branches: [codex/nonlinear-user-model-20261014]
-    paths: ['handoff/ns1-20261014-connections.patch']
+    paths: ['handoff/ns1-20261014-connections.patch', '.github/workflows/ns1-publish.yml']
 
 permissions:
   contents: write
@@ -78,6 +78,10 @@ jobs:
               assert git('hash-object', name) == new, ('Applied source differs from locally tested source', name)
           print('Verified 12 published files and exact before/after blobs for 14 connection files.')
           PY
+      - name: Install offscreen Qt system runtime and Korean fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1 libopengl0 fonts-noto-cjk
       - run: python -m pip install numpy pytest jsonschema filelock matplotlib PySide6-Essentials==6.9.1 shiboken6==6.9.1
       - name: Focused checks including real Fortran and real Qt
         run: |
