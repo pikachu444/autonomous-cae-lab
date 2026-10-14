@@ -64,3 +64,22 @@ Windows에 설치된 FreeCAD 1.1.4의 `Mod/Fem` 소스를 직접 읽었다. 새 
 재사용하고 이 입력 동결·실행·결과 연결을 확장하는 작업으로 배정한다.
 진행 중인 Pro NS1의 FE 편집·동결 파일과 겹치므로 해당 제출의 공통 변경을
 통합한 기준에서 작성 범위를 나눈다. 이번 조사에서는 메시 생성이나 솔버 실행을 하지 않았다.
+
+## Q2 메시 품질 수정 흐름의 실제 누락 — 2026-10-14
+
+Luna가 main `9630f5a`를 읽었고 Codex가 해당 명령과 화면 코드를 확인했다.
+`fem_edit.py::quality`는 C3D10의 네 Gauss 표본에서 최소 Jacobian(mm³)과 정규화
+Jacobian을 계산한다. 기존 두 기준과 전체 메시 분포를 재사용하며 요소 전체의 양의
+Jacobian을 증명한다고 확대하지 않는다. `pre.fem.mesh_highlight`는 선택 요소의
+실제 절점 ID를 native HighlightedNodes에 넣으며 표시 당시 메시가 바뀌면 거절한다.
+
+`fem_panel.py`에는 품질 조회와 선택 요소 표시만 있고 요소 격리/확대는 없다.
+`_local_size`의 native Fem::MeshRegion 생성·수정과 `_generate`/`_finish`의
+재메시·실패/취소 시 이전 메시 보존은 이미 구현돼 있다. 이전 메시를 FCStd에
+보관하지만 품질 화면이 그 보관본을 비교 대상으로 고를 수 없다. 따라서 Q2는
+실행 확인만 남은 작업이 아니라 격리/확대와 이전/새 메시 비교 조작의 추가 개발이다.
+
+기존 공개 실행 `runs/product-development/20261013/contact-mesh-350b4d63/receipt.json`은
+메시 생성·품질·보관을 재사용할 근거이며 불량 요소 수정의 전체 완료 증거는 아니다.
+기존 품질 계산·국부 크기·메시 생성기를 다시 만들지 않는다. Pro가 재료 연결을 작성 중인
+`fem_edit.py`/`fem_panel.py`의 소유 범위와 조정한 뒤 실제 비교/뷰 동작을 배정한다.
