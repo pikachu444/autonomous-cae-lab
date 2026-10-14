@@ -149,7 +149,7 @@ def repair_source(owner, source_ref, input_id, receipt):
     old = document.get('sources', {}).get(source_ref)
     if old is None:
         raise ValueError('Choose the exact missing source in this analysis')
-    if receipt.get('id') != input_id or receipt.get('format') not in ('vtu', 'pvd'):
+    if receipt.get('id') != input_id or receipt.get('format') not in ('vtu', 'pvd', 'vtt'):
         raise ValueError('Choose a verified registered VTU/PVD result set')
     replacement = dict(old, entry_path=receipt['path'], source_pins=deepcopy(receipt['source_pins']))
     if Path(old['entry_path']).suffix.lower() != '.' + receipt['format'] or content_set(old) != content_set(replacement):
@@ -196,7 +196,7 @@ def repair_source(owner, source_ref, input_id, receipt):
             for proxy, _, replacement_files in overlay_changes:
                 proxy.FileName = replacement_files
                 proxy.UpdatePipeline()
-            previous_source.FileName = [replacement['entry_path']] if receipt['format'] == 'vtu' else replacement['entry_path']
+            previous_source.FileName = [replacement['entry_path']] if receipt['format'] in ('vtu', 'vtt') else replacement['entry_path']
             previous_source.UpdatePipeline()
             for key, value in statuses.items():
                 setattr(previous_source, key, value)

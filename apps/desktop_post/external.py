@@ -23,7 +23,7 @@ except ImportError:
 
 
 KIND = "external-result"
-READERS = {".vtu": "XMLUnstructuredGridReader", ".pvd": "PVDReader"}
+READERS = {".vtu": "XMLUnstructuredGridReader", ".pvd": "PVDReader", ".vtt": "XMLTableReader"}
 _recovery = []
 
 
@@ -93,6 +93,10 @@ def source_files(entry, native_metadata=None):
                 raise ValueError("PVD supports only contained VTU frame files")
             if frame not in files:
                 files.append(frame)
+    if entry.suffix.lower() == ".vtt" and native_metadata is not None:
+        from caelab.post_curves import load_curve
+        _, sidecar = load_curve(entry, native_metadata)
+        files.append(sidecar)
     declaration = (native_metadata or {}).get("contact_inspection")
     if declaration is not None:
         bundle = contact_api().load(entry, declaration)
@@ -160,6 +164,24 @@ def _metadata_hash(value):
 
 def validate_declared_metadata(source, metadata):
     """Validate an explicit source-owner declaration against exact native arrays."""
+    if isinstance(metadata, dict) and 'curve' in metadata:
+        if set(metadata) != {'curve'} or source.GetXMLName() != 'XMLTableReader':
+            raise ValueError('Curve metadata belongs to its exact registered table reader')
+        from caelab.post_curves import load_curve
+        from .commands import reader_input_files
+        curve, _ = load_curve(reader_input_files(source)[0], metadata)
+        data = servermanager.Fetch(source)
+        if not data.IsA('vtkTable') or data.GetNumberOfRows() != len(curve['rows']):
+            raise ValueError('Native table differs from its pinned source rows')
+        for name, field in (('axis', 'x'), ('value', 'y')):
+            array = data.GetColumnByName(name)
+            if array is None or array.GetNumberOfComponents() != 1:
+                raise ValueError('Native curve column is missing')
+            for i, row in enumerate(curve['rows']):
+                actual, expected = array.GetTuple1(i), row[field]
+                if not (math.isnan(actual) if expected is None else actual == expected):
+                    raise ValueError('Native curve values differ from the exact Data snapshot')
+        return deepcopy(metadata)
     required_keys = {"coordinate_units", "coordinate_frame", "static", "arrays"}
     if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection"}:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
@@ -268,6 +290,12 @@ def inspect_result(source, time=None):
 def _inspect_result(source, time=None, native_metadata=None):
     selected = set_time(source, time)
     declaration = validate_declared_metadata(source, native_metadata) if native_metadata is not None else None
+    if declaration and 'curve' in declaration:
+        from caelab.post_curves import load_curve
+        curve, _ = load_curve(reader_input_files(source)[0], declaration)
+        return {'reader': source.GetXMLName(), 'points': 0, 'cells': 0, 'rows': len(curve['rows']),
+                'timesteps': [], 'arrays': [], 'curve': {'title': curve['title'],
+                'declaration': curve['declaration'], 'axis': curve['axis']}, 'qualification': 'UNKNOWN'}
     declared = {(row["association"], row["name"]): row for row in declaration["arrays"]} if declaration else {}
     info = source.GetDataInformation()
     arrays = []
@@ -501,14 +529,14 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
     previous_view = p.GetActiveView()
     previous_view_time = getattr(previous_view, "ViewTime", None)
     constructor = getattr(p, reader_type)
-    source = constructor(registrationName=name, FileName=[str(entry)] if entry.suffix.lower() == ".vtu" else str(entry))
+    source = constructor(registrationName=name, FileName=[str(entry)] if entry.suffix.lower() in (".vtu", ".vtt") else str(entry))
     scene = p.GetAnimationScene()
     previous_time = float(scene.AnimationTime)
     try:
         source.UpdatePipeline()
         declaration = validate_declared_metadata(source, native_metadata) if native_metadata is not None else None
         metadata = _inspect_result(source, native_metadata=declaration)
-        if not metadata["points"] and not metadata["cells"]:
+        if not metadata["points"] and not metadata["cells"] and not metadata.get("rows"):
             raise RuntimeError("Native reader returned no mesh data; inspect the reader error before retrying")
     except BaseException:
         if hasattr(p, "Delete"):
@@ -541,12 +569,18 @@ def open_result(input_path, project_directory, input_id=None, source_pins=None, 
     scene.UpdateAnimationUsingDataTimeSteps()
     set_time(source)
     layout = p.CreateLayout(name="Result inspection")
-    view = p.CreateView("RenderView")
+    view = p.CreateView("XYChartView" if record.get("metadata", {}).get("curve") else "RenderView")
     p.AssignViewToLayout(view=view, layout=layout, hint=0)
     p.SetActiveView(view)
-    p.Show(source, view)
+    display = p.Show(source, view)
     p.SetActiveSource(source)
-    p.ResetCamera(view)
+    if view.GetXMLName() == 'XYChartView':
+        display.AttributeType = 'Row Data'
+        display.UseIndexForXAxis = 0
+        display.XArrayName = 'axis'
+        display.SeriesVisibility = ['value']
+    else:
+        p.ResetCamera(view)
     doc = {"kind": KIND, "version": 1, "document_id": "D" + uuid.uuid4().hex,
            "project_root": str(folder), "sources": {"result": record}}
     # Publish the first manifest only after the native state and dependency checks succeed.
