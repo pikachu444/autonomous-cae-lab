@@ -22,7 +22,7 @@ CAPABILITIES = {
             'pre.workbench', 'pre.export_native_copy', 'pre.validate',
             'pre.research.discover', 'pre.research.register', 'pre.research.remove', 'pre.research.prepare', 'pre.research.connect_assembly',
             'pre.parameters.discover', 'pre.parameters.probe', 'pre.parameters.register',
-            'pre.parameters.update', 'pre.parameters.remove', 'pre.parameters.preflight',
+            'pre.parameters.update', 'pre.parameters.rebind', 'pre.parameters.remove', 'pre.parameters.preflight',
             'pre.project.inspect', 'pre.project.save', 'pre.project.open', 'pre.links.record',
             'pre.assembly.create', 'pre.assembly.link', 'pre.joint.create', 'pre.joint.update', 'pre.joint.remove',
             'pre.motion.inspect', 'pre.motion.configure', 'pre.motion.set_view', 'pre.motion.save_editor', 'pre.motion.calculate', 'pre.motion.frame',
