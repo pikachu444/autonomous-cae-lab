@@ -40,11 +40,16 @@ def add_convergence_page(panel, W, C):
             layout.addWidget(self.solver)
             row = W.QHBoxLayout()
             self.group = W.QComboBox()
+            self.group.setSizeAdjustPolicy(W.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            self.group.setMinimumContentsLength(8)
+            self.group.setMinimumWidth(0)
+            self.group.setSizePolicy(W.QSizePolicy.Expanding, W.QSizePolicy.Fixed)
             for caption, key in [('수렴 허용치', 'field'), ('반복 제한', 'iterations'),
                                  ('증분 조절', 'factors'), ('접촉 line search', 'line_search')]:
                 self.group.addItem(caption, key)
             row.addWidget(self.group, 1)
             self.enabled = W.QCheckBox('사용자 지정')
+            self.enabled.setSizePolicy(W.QSizePolicy.Fixed, W.QSizePolicy.Fixed)
             row.addWidget(self.enabled)
             layout.addLayout(row)
             scope = W.QLabel('FIELD / LINE SEARCH는 Lab 계산 입력에 적용')

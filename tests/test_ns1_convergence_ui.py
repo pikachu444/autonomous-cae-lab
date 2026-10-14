@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import json
 import pytest
-from PySide6 import QtCore as C, QtWidgets as W, QtTest as T
+from PySide6 import QtCore as C, QtWidgets as W, QtGui as G, QtTest as T
 from test_pre_fem_edit import native, Object
 from test_pre_fem_panel_ui import app
 from test_ns1_convergence_controls import draft
@@ -16,6 +16,15 @@ from apps.desktop_pre import convergence
 from apps.research.contact_run_dialog import ContactRunDialog
 from apps.research.convergence_view import metric_value, ConvergenceView
 from caelab.calculix_convergence import read_convergence, read_cvg, read_stdout, combine
+
+
+@pytest.fixture(scope='module',autouse=True)
+def installed_offscreen_font(app):
+    # Windows offscreen does not enumerate system fonts; normal Windows entry does.
+    path=Path('C:/Windows/Fonts/malgun.ttf')
+    identifier=G.QFontDatabase.addApplicationFont(str(path)) if app.platformName()=='offscreen' and path.is_file() else -1
+    yield
+    if identifier>=0:G.QFontDatabase.removeApplicationFont(identifier)
 
 
 @pytest.fixture
@@ -66,6 +75,11 @@ def test_native_convergence_table_save_invalid_repair_and_keyboard(pre,native,ap
     assert p.info['applied'] and native.solver.IterationsControlParameterIter==draft()['iterations']
     assert p.table.horizontalHeaderItem(3).text()=='단위'
     assert p.width()<=pre.width() and p.table.width()>300
+    scroll=p.parentWidget().parentWidget()
+    assert isinstance(scroll,W.QScrollArea)
+    origin=p.enabled.mapTo(scroll.viewport(),C.QPoint(0,0))
+    assert origin.x()>=0 and origin.x()+p.enabled.width()<=scroll.viewport().width()
+    assert p.enabled.width()>=p.enabled.sizeHint().width()
     root=os.environ.get('NS1_RENDER_DIR')
     if root:
         folder=Path(root);folder.mkdir(parents=True,exist_ok=True)
