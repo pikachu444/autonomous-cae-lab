@@ -24,6 +24,14 @@ Kitware 내부 경로이므로 접근이나 다운로드를 가정하지 않는�
 SDK/runtime의 실제 build 관계를 확인해야 하며, 같은 버전 문자열만으로 ABI
 호환이나 설치된 stock bundle과의 동일성을 인정하지 않는다.
 
+2026-10-15 Windows 검증에서는 PATH 밖에 설치된 VS2022 Community/MSVC 19.43,
+Windows SDK 10.0.22621, CMake 3.30.5를 실제로 찾았다. 공식 공개 Qt repository의
+6.9.0/MSVC2022 archive 네 개(qtbase, qttools, qtsvg, qt5compat)를 위 v6.2.0 CI의
+SHA256과 대조해 별도 개발 prefix에 풀었다. Core/Gui/Widgets runtime DLL은
+기존 stock ParaView DLL과 SHA256도 같았다. 이것은 Qt 일치 증거이며 ParaView
+include/import library의 일치 증거를 대신하지 않는다. 공식 ParaView 6.2.0 release
+source archive는 superbuild의 MD5와 대조했으며 별도 runtime/SDK 빌드에 사용한다.
+
 ## 무료 도구와 라이선스의 범위
 
 Microsoft의 공식 안내는 Visual Studio Build Tools로 OSS C/C++ 의존성을 빌드하는
@@ -84,6 +92,24 @@ open-source 배포를 선택하고 정확 6.9.0 개발 파일을 확보했는지
 
 ## plugin 빌드
 
+ParaView SDK를 준비하는 동안에는 같은 Qt 개발 파일로 종료 이벤트 하네스만
+분리해서 빌드할 수 있다. 이 모드는 ParaView plugin이나 SDK manifest를 만들지 않는다.
+
+```powershell
+cmake -S native/post_exit -B C:\cae-build\qt-harness-r01 -G Ninja `
+  -DCAE_EXIT_QT_HARNESS_ONLY=ON -DCMAKE_BUILD_TYPE=Release `
+  -DQt6_DIR=C:\cae-tools\qt-6.9.0\lib\cmake\Qt6
+cmake --build C:\cae-build\qt-harness-r01
+# 동일 Qt bin/platform plugin 경로를 설정한 후 기존 owned Job runner로 실행한다.
+python scripts/native_check.py --timeout 120 --output-dir C:\cae-checks\qt-r01 -- `
+  C:\cae-build\qt-harness-r01\tests\cae_exit_qt.exe
+```
+
+Windows 하네스는 Ctrl+Q 전달 전에 창 활성화를 기다리고, SC_CLOSE의 비동기
+닫기 전달을 기다린다. Alt+F4는 자기 HWND의 Windows system-key message 경로다.
+현재 UI thread의 keyboard-state snapshot만 잠시 바꿨다가 즉시 복원한다. 전역 입력이나
+다른 창의 keyboard state를 건드리지 않는다. 실제 사용자 키보드 입력 수용은 별도다.
+
 ```powershell
 # PATH에는 동일 Qt SDK bin, 동일 ParaView runtime bin을 먼저 둔다.
 $env:PATH = 'C:\cae-tools\qt-6.9.0\bin;C:\cae-tools\ParaView-6.2.0-matched\bin;' + $env:PATH
@@ -136,6 +162,10 @@ NOT_RUN으로 남으며 수용 검사 증거를 별도로 첨부해야 한다.
 
 Pro 작성 환경은 Linux/GCC/Python3.13이며 Qt/ParaView SDK가 없었다. 그 입력 ZIP에는
 `scripts/native_check.py`가 없었지만 현재 Windows 저장소에는 기존 실행기가 있다.
-Windows 통합본에서도 MSVC build, Qt6.9 harness, 실제 ParaView6.2 native check는
-아직 미실행이며 이 인도물에 Windows DLL을 넣지 않았다. exact SDK/runtime을
-준비한 뒤 ACCEPTANCE_KO.md의 실창 검사를 수행해야 한다.
+Windows 통합 검증에서는 dependency-free transaction executable과 C/Python ABI DLL을
+실제 MSVC로 빌드해 2개 검사를 통과했다. 실제 Qt6.9 C++ 하네스도 빌드했다. 최초
+12개 XML case 중 2개 입력 전달 검사가 실패했고, 위 하네스 동기화/메시지 교정 후
+그 두 검사만 재실행해 통과했다. 원 실패 로그를 보존했으며 각 실행의 Job은 비었다.
+한글 대화상자는 실제 QWidget grab으로 정상/좁은 부모 창 크기에서 확인했다.
+이 결과는 ParaView plugin의 컴파일이나 실제 ParaView6.2 종료 수용을 뜻하지 않는다.
+SDK/runtime을 완성한 뒤 ACCEPTANCE_KO.md의 실창 검사를 수행해야 한다.
