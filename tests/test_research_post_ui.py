@@ -11,8 +11,8 @@ import time
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QComboBox, QInputDialog
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QFormLayout, QInputDialog, QLineEdit
 
 from apps.research.post_window import PostWindow, defaults
 
@@ -130,6 +130,36 @@ class NativeClient:
 
 
 def edit(window, path, value):
+    if window._kind == 'comparison' and window.edited_draft().get('version') == 2:
+        editor = window.comparison_editor
+        if path[-1] in ('source_ref', 'array'):
+            source, array = editor.selectors[path[0]]
+            field = source if path[-1] == 'source_ref' else array
+            selected = value if path[-1] == 'source_ref' else [value, 'POINTS']
+            index = field.findData(selected)
+            assert index >= 0
+            field.setCurrentIndex(index)
+        else:
+            labels = {'units': '단위', 'frame': '성분 좌표계', 'measure': '측도',
+                      'tolerance': '공간 허용 오차 [A 좌표 단위]'}
+            errors = []
+            def enter():
+                dialog = next(w for w in editor.findChildren(QDialog) if w.isVisible())
+                try:
+                    fields = [f for form in dialog.findChildren(QFormLayout)
+                              for f in dialog.findChildren(QLineEdit)
+                              if form.labelForField(f) and form.labelForField(f).text() == labels[path[-1]]]
+                    assert len(fields) == 1 and not fields[0].isReadOnly()
+                    fields[0].setText(value)
+                    dialog.accept()
+                except BaseException as error:
+                    errors.append(error)
+                    dialog.reject()
+            QTimer.singleShot(0, enter)
+            editor.settings() if path == ('tolerance',) else editor.meaning(path[0])
+            if errors:
+                raise errors[0]
+        return
     field = window.fields[path][0]
     if isinstance(field, QComboBox):
         if path[-1] == 'source_ref':
@@ -254,19 +284,17 @@ def test_field_meaning_poll_keeps_exact_field_but_source_change_or_removal_clear
 
 
 def test_comparison_declarations_preview_apply_actual_sample_callbacks(app, window):
-    from apps.research.post_window import SIDE_FIELDS
     assert window.edited_draft() == defaults('comparison')
-    assert window.comparison_table.rowCount() == len(SIDE_FIELDS)
-    assert [window.comparison_table.horizontalHeaderItem(column).text() for column in range(3)] == ['Field', 'A', 'B']
-    for row, key in enumerate(SIDE_FIELDS):
-        for column, side in ((1, 'a'), (2, 'b')):
-            field = window.comparison_table.cellWidget(row, column)
-            assert field is window.fields[(side, key)][0]
-            assert field.objectName() == 'post.' + side + '.' + key
+    assert set(window.comparison_editor.selectors) == {'a', 'b'}
+    for source_choice, array_choice in window.comparison_editor.selectors.values():
+        assert source_choice.currentData() == '' and array_choice.currentData() is None
+        assert source_choice.findData('Sfirst') >= 0 and source_choice.findData('Ssecond') >= 0
     for side, ref in (('a', 'Sfirst'), ('b', 'Ssecond')):
         edit(window, (side, 'source_ref'), ref)
         edit(window, (side, 'array'), 'stress')
-        window.use_declarations(side)
+        assert window.edited_draft()[side]['source_ref'] == ref
+        assert window.edited_draft()[side]['array'] == 'stress'
+        assert window.edited_draft()[side]['association'] == 'POINTS'
     edit(window, ('tolerance',), '0.001')
     draft = window.edited_draft()
     assert draft['a']['units'] == draft['b']['units'] == 'MPa'

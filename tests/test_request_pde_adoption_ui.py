@@ -159,15 +159,36 @@ def test_late_descriptors_do_not_replace_new_settings(app, monkeypatch):
 
 
 @pytest.mark.parametrize('source', [None, {'kind': 'expert', 'document_id': 'Qoriginal'}, {'document_id': 'Qoriginal'}])
-def test_adoption_requires_explicit_pde_source_and_actual_candidate(app, source):
+def test_adoption_requires_explicit_pde_source_and_actual_candidate(app, monkeypatch, source):
     client = Client()
     client.plan['draft']['source'] = source
     window = setup(client)
     try:
         window.candidates.selectRow(0)
+        # Live edits cannot retarget a candidate computed from the retained run.
+        assert window.pde_adopt_button.isEnabled()
+        frozen = deepcopy(client.plan['runs'][0]['draft'])
+        assert window._candidate_target(frozen['source']) == ('pde', 'Qoriginal')
+        assert window.edited_draft()['source'] == source
+        assert not client.calls
+        reviewed = []
+        monkeypatch.setattr(window, '_review_pde_changes', lambda preview: reviewed.append(deepcopy(preview)) or False)
+        window.pde_adopt_button.click()
+        wait(app, lambda: bool(reviewed) and not window._busy)
+        assert reviewed[0]['source'] == frozen['source']
+        assert reviewed[0]['target_document_id'] == 'Qoriginal'
+        assert client.calls == [('preview', 'Nrequest', 'Jactual', 'Cactual'), ('read', 'Qoriginal')]
+        assert window.document['runs'][0]['draft'] == frozen
+        before_calls = deepcopy(client.calls)
+        # Missing/non-PDE provenance on the computed run must prevent adoption.
+        client.plan['runs'][0]['draft']['source'] = deepcopy(source)
+        window._show_document(deepcopy(client.plan))
+        assert window._selected_pde_candidate() == 'Cactual'
         assert not window.pde_adopt_button.isEnabled()
         window.review_pde_candidate()
-        assert not client.calls
+        assert client.calls == before_calls and len(reviewed) == 1
+        assert window.document['runs'][0]['draft']['source'] == source
+        assert client.target['generation'] == 4 and client.target['draft']['settings']['diffusion'] == 2
     finally:
         close(app, window, client)
 
