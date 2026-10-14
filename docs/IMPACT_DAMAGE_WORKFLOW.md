@@ -211,8 +211,12 @@ Start-CAE-Lab.cmd -Tool simulation -DocumentId <출력된 문서> -Port 18767 -S
 python -m pytest tests/test_impact_project.py tests/test_impact_project_ui.py -q
 # 설치된 OpenCourant에서 이 새 입력 한 건만 명시 실행:
 $env:CAELAB_RUN_IMPACT_PROJECT='1'
-python -m pytest tests/test_impact_project.py -k installed_include_model -q
+python -m pytest tests/test_impact_project.py -k installed_include_model -q -s
 ```
+
+
+명시 native 검사는 출력에 표시하는 `cae-impact-project-` 임시 폴더를 성공·실패 모두 남깁니다.
+통합 확인 뒤 필요한 원입력·변환 deck·로그·Post를 별도로 보존한 다음 운영자가 정리합니다.
 
 작성 환경에서는 bundle/위상/실제 pinned INP2RAD와 적용 물리 카드, 실제 offscreen Qt
 선택·취소·초안 보존을 실행했습니다. HTTP owner 저장·cold reopen은 기존 `filelock` /
@@ -220,6 +224,8 @@ python -m pytest tests/test_impact_project.py -k installed_include_model -q
 실제 HTTP와 새 Workbench로 실행하도록 포함했습니다. Windows Starter/Engine/Post도
 **NOT_RUN**이며 opt-in 검사를 제공합니다. 로컬 Qt에는 한글 글꼴이 없어 한글 렌더 수용은
 Windows에서 별도로 확인해야 합니다. 화면의 모델과 면 선택은 실제 예제 연결 정보를 사용했습니다.
+마지막 면 선택 복원·큰 메시 선택면 표시 교정 뒤에는 작성 executor가 연결 해제되어 추가 Qt 재실행은
+**NOT_RUN**입니다. 해당 두 회귀는 제출 검사에 포함하며, 앞선 실행 통과와 구별합니다.
 
 ### 구현 경계와 남은 범위
 

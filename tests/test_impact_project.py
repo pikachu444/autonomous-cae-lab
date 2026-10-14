@@ -233,19 +233,21 @@ class NativeProjectTests(unittest.TestCase):
         from caelab.evaluation import run,read_result
         from caelab.research_execution import publish_fields
         from caelab.workbench import Workbench
-        with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);s=settings();calculation=root/'attempt'/'calculation'
-            result=run(BACKEND,s,output=calculation)
-            self.assertEqual(result['execution_status'],'SUCCEEDED',result)
-            self.assertTrue(result['post_artifacts']);self.assertGreater(result['diagnostics']['frame_count'],0)
-            saved=read_result(calculation,verify='all');self.assertEqual(saved['settings'],s)
-            retained=calculation/'source_bundle'
-            self.assertEqual((retained/'files/model.inp').read_bytes(),(ROOT/'examples/impact/include-project/model.inp').read_bytes())
-            self.assertEqual(json.loads((calculation/'generated_sets.json').read_text(encoding='utf-8')),s['generated_sets'])
-            wb=Workbench(root/'store')
-            try:
-                publish_fields(wb,result,root/'attempt');self.assertEqual(result['post_input']['format'],'pvd')
-            finally:wb.shutdown()
+        # Retain even failed native attempts for integration diagnosis.
+        root=Path(tempfile.mkdtemp(prefix='cae-impact-project-'))
+        print('Retained native attempt:',root,flush=True)
+        s=settings();calculation=root/'attempt'/'calculation'
+        result=run(BACKEND,s,output=calculation)
+        self.assertEqual(result['execution_status'],'SUCCEEDED',result)
+        self.assertTrue(result['post_artifacts']);self.assertGreater(result['diagnostics']['frame_count'],0)
+        saved=read_result(calculation,verify='all');self.assertEqual(saved['settings'],s)
+        retained=calculation/'source_bundle'
+        self.assertEqual((retained/'files/model.inp').read_bytes(),(ROOT/'examples/impact/include-project/model.inp').read_bytes())
+        self.assertEqual(json.loads((calculation/'generated_sets.json').read_text(encoding='utf-8')),s['generated_sets'])
+        wb=Workbench(root/'store')
+        try:
+            publish_fields(wb,result,root/'attempt');self.assertEqual(result['post_input']['format'],'pvd')
+        finally:wb.shutdown()
 
 
 if __name__=='__main__':unittest.main()
