@@ -187,3 +187,18 @@ def test_legacy_observable_explicit_choice_cancel_and_reopen(app,monkeypatch):
     reopened=ComparisonEditor(editor.draft(),rows)
     assert reopened.draft()==editor.draft()
     editor.close();reopened.close()
+
+
+def test_explicit_legacy_nested_observable_is_not_flattened_by_dialog_ok(app,monkeypatch):
+    from copy import deepcopy
+    rows=sources();rows[0]['native_metadata']['derivation']='comparison_v2'
+    rows[0]['native_metadata']['arrays'][0]['layout']={'kind':'scalar','components':['scalar'],'scalar_semantics':'invariant'}
+    editor=ComparisonEditor(default_recipe(),rows)
+    editor.change_source('a','Sa');editor.change_field('a',['pressure','POINTS'])
+    nested={'version':1,'operation':'difference','operand':
+        {'version':1,'operation':'norm_of_difference','source_kind':'vector','norm':'euclidean'}}
+    editor.value['a']['observable']=deepcopy(nested)
+    monkeypatch.setattr(QDialog,'exec',lambda self:QDialog.DialogCode.Accepted)
+    editor.meaning('a')
+    assert editor.draft()['a']['observable']==nested
+    editor.close()
