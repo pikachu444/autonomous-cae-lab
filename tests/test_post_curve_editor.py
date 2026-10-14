@@ -29,7 +29,7 @@ def test_exact_choices_partial_edit_cancel_and_reopen(app,monkeypatch):
     select=editor.selectors['a'];select.setCurrentIndex(select.findData(identity(rows[1])))
     assert editor.draft()['a']['source_ref']=='Stwo'
     assert editor.draft()['a']['block']==[1]
-    draft=editor.draft();draft['max_gap']='1e';draft['a']['rows']=[0,'-']
+    draft=editor.draft();draft['max_gap']='1e';draft['a']['rows']=['1e','-']
     reopened=CurveEditor(draft,rows)
     monkeypatch.setattr(QDialog,'exec',lambda dialog: QDialog.DialogCode.Rejected)
     reopened.meaning('a');reopened.settings()
@@ -58,3 +58,82 @@ def test_retained_plot_preserves_gap_and_row_selection(app):
     assert selected[-1]==2
     assert dialog.tables['aligned'].item(2,1).text()=='7'
     dialog.close()
+
+
+def test_all_plotted_series_select_their_actual_row(app):
+    from types import SimpleNamespace
+    xs, av, bv = [0.,1.,100.], [1000.,1000.,1000.], [1100.,2000.,1100.]
+    source = {'title':'힘', 'axis':{'name':'시간','unit':'s'}, 'declaration':{'units':'N'}}
+    def original(values):
+        return [{'row_index':i,'identity':{'row':i+1},'x':x,'y':values[i],
+            'quality':True,'calculation':True,'visible':True,'segment':0} for i,x in enumerate(xs)]
+    rows = [{'row_index':i,'a_row':{'row':i+1},'b_rows':[{'row':i+1}], 'x':x,'a':av[i],'b':bv[i],
+        'delta':bv[i]-av[i],'percent':None,'valid':True,'a_valid':True,'b_valid':True,
+        'a_segment':0,'b_segment':0,'reason':'valid','percent_reason':'valid'} for i,x in enumerate(xs)]
+    dialog = CurvePlot({'rows':rows,'originals':{'a':original(av),'b':original(bv)},
+        'summary':{'sources':{'a':source,'b':source},'valid_count':3,'count_a':3,
+                   'recipe':{'target_unit':'N'}}}, {'revision':'R'})
+    selected=[];dialog.rowSelected.connect(selected.append)
+    dialog.show();app.processEvents();dialog.canvas.draw()
+    x,y = dialog.axes['aligned'].transData.transform((xs[0],av[0]))
+    dialog.pick(SimpleNamespace(inaxes=dialog.axes['aligned'],x=x,y=y))
+    assert selected[-1] == 0
+    assert dialog.tables['aligned'].currentRow() == 0
+    dialog.close()
+
+
+def test_earlier_curve_revision_cannot_select_current_table(app):
+    from types import SimpleNamespace
+    from apps.research.post_window import PostWindow
+    calls, selected = [], []
+    view = SimpleNamespace(_object_ref='C', _sample_basis={'revision':'R0'},
+        _current_sample_revision=lambda preview:'R1' if preview else 'R0',
+        message=SimpleNamespace(setText=lambda text:None),
+        _samples={'rows':[{'row_index':0}]}, samples=SimpleNamespace(selectRow=selected.append),
+        queue_command=lambda *args,**kw: calls.append((args,kw)) or True)
+    basis={'object_ref':'C','revision':'R1','preview':True}
+    assert PostWindow.select_curve_row(view,0,basis) is False
+    assert not calls and not selected
+    view._sample_basis={'revision':'R1'}
+    assert PostWindow.select_curve_row(view,0,basis) is True
+    view._sample_basis={'revision':'R0'}
+    calls[-1][1]['accepted']({'object_ref':'C','revision':'R1'})
+    assert not selected
+
+
+def test_changed_channel_discards_pending_exact_reference(app, monkeypatch):
+    import threading
+    import time
+    from types import SimpleNamespace
+    from PySide6.QtCore import QThreadPool
+    from apps.research.post_curve_editor import DataCurvePicker
+    started, release = threading.Event(), threading.Event()
+    def reference(*args):
+        started.set()
+        if not release.wait(3):
+            raise RuntimeError('test did not release controlled read')
+        return {'document_id':'D', 'job_id':'J'}
+    monkeypatch.setattr(DataCurvePicker, 'load', lambda self:None)
+    dialog = DataCurvePicker(SimpleNamespace(document_result_reference=reference))
+    try:
+        for combo, items in ((dialog.documents,[('자료','D')]),(dialog.jobs,[('저장','J')]),
+                             (dialog.responses,[('힘 X','x'),('힘 Y','y')])):
+            combo.blockSignals(True)
+            for label, value in items:
+                combo.addItem(label,value)
+            combo.blockSignals(False)
+        dialog.show();app.processEvents();dialog.pick()
+        assert started.wait(1)
+        dialog.responses.setCurrentIndex(1)
+        release.set()
+        end = time.monotonic()+3
+        while dialog._workers and time.monotonic()<end:
+            app.processEvents();time.sleep(.001)
+        app.processEvents()
+        assert not dialog._workers
+        assert dialog.selected is None and dialog.isVisible()
+        assert dialog.responses.currentData() == 'y'
+    finally:
+        release.set();dialog.close()
+        QThreadPool.globalInstance().waitForDone(3500)
+        app.processEvents()

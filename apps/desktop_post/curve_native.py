@@ -9,13 +9,13 @@ import numpy as np
 from paraview import simple as p, servermanager
 from caelab import post_curves as curves, post_comparison as physical
 from caelab.post_observation import choices, measurement_columns, saved_record
-from . import analysis, measurements, external
+from . import analysis, measurements, external, contact_views
 
 
-def _rows(source):
+def _rows(source, summary=None):
     rows, total = [], None
     while total is None or len(rows) < total:
-        page = measurements.sample_data(source, offset=len(rows), limit=1000)
+        page = contact_views.annotate(measurements.sample_data(source, offset=len(rows), limit=1000), summary or {})
         total = page['total']
         if not 1 <= total <= curves.MAX_ROWS or not page['rows']:
             raise ValueError('시간표는 1–20000개의 실제 저장 행이어야 합니다.')
@@ -54,11 +54,15 @@ def options(ws, ref):
             'row_count': len(curve['rows']), 'revision': record['source_revision']}]
     obj, record, bundle = _saved_measurement(ws, ref)
     recipe, summary = record['recipe'], record['summary']
-    rows = _rows(bundle['source'])
+    rows = _rows(bundle['source'], summary)
     snapshot = {'recipe': recipe, 'rows': rows}
     available, columns = choices(snapshot), measurement_columns(snapshot)
     declaration = deepcopy(summary.get('selected_declaration') or
                            {k: recipe.get(k) for k in ('units', 'quantity', 'frame', 'measure', 'observable', 'layout')})
+    if (recipe.get('measurement') == 'contact_force'
+            and recipe.get('quantity') in ('CF', 'CFN', 'CFS') and type(recipe.get('component')) is int
+            and 0 <= recipe['component'] < 3):
+        declaration['observable'] = physical.observable_value('vector', 'xyz'[recipe['component']])
     result = []
     for block in available['blocks']:
         blockrows = [row for row in rows if row['block'] == block]
@@ -124,18 +128,21 @@ def selected(ws, side):
         curve, _ = curves.load_curve(record['entry_path'], record['native_metadata'])
         return curve
     obj, record, bundle = _saved_measurement(ws, ref)
-    rawrows = [r for r in _rows(bundle['source']) if r['block'] == option['block']]
+    rawrows = [r for r in _rows(bundle['source'], record['summary']) if r['block'] == option['block']]
     rows = []
     for r in rawrows:
         values = r['values']; value = values[option['column']]
         value = value[option['component']] if isinstance(value, list) else value
         # Field-specific quality has already been applied before native time
         # sampling. Never substitute another curve's common comparison mask.
+        selected_quality = r.get('validity', {}).get(option['column'])
+        quality = curves.numeric(value) is not None and selected_quality in (None, 'valid')
         rows.append({'identity': {'block': r['block'], 'row': r['row']},
             'x': curves.numeric(values[option['axis_column']]), 'y': curves.numeric(value),
             'raw_x': values[option['axis_column']], 'raw_y': value,
-            'quality': True, 'calculation': True, 'visible': True,
-            'quality_reason': '', 'exclusion_reason': '', 'segment': 0})
+            'quality': quality, 'calculation': True, 'visible': True,
+            'quality_reason': '' if quality else selected_quality or 'selected_value_missing',
+            'exclusion_reason': '', 'segment': 0})
     return {'version': 1, 'kind': 'retained_curve', 'title': obj.get('title', '측정'),
         'origin': {'document_id': ws.owner.document_id, 'object_ref': ref, 'revision': record['id'],
                    'recipe': deepcopy(record['recipe']), 'result_sha256': record['result_sha256']},

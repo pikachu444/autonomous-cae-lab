@@ -1223,12 +1223,16 @@ class PostWindow(QMainWindow):
             'expected_revision': basis['revision']}, accepted=selected)
 
     def select_curve_row(self, index, basis):
-        if (basis['object_ref'] != self._object_ref or
-                self._current_sample_revision(basis['preview']) != basis['revision']):
+        if (basis['object_ref'] != self._object_ref or not self._sample_basis
+                or self._sample_basis.get('revision') != basis.get('revision')
+                or self._current_sample_revision(basis['preview']) != basis['revision']):
             self.message.setText('이전 곡선 조회입니다. 현재 결과를 다시 읽으세요.')
             return False
+        token = (self._object_ref, basis['revision'])
         def accepted(payload):
-            if self._current_sample_revision(basis['preview']) != payload.get('revision'):
+            if (token != (self._object_ref, (self._sample_basis or {}).get('revision'))
+                    or token != (payload.get('object_ref'), payload.get('revision'))
+                    or self._current_sample_revision(basis['preview']) != token[1]):
                 return
             for row, item in enumerate((self._samples or {}).get('rows', [])):
                 if item.get('row_index') == index:
@@ -1261,7 +1265,11 @@ class PostWindow(QMainWindow):
         rows = payload.get('rows', [])[:1000]
         if payload.get('semantics') == 'retained_curve_comparison' and not rows:
             rows = payload.get('originals', {}).get('a', [])[:1000]
-        summary = (revision or {}).get('summary', {})
+        summary = payload.get('summary') or (revision or {}).get('summary', {})
+        curve_table = payload.get('semantics') == 'retained_curve_comparison'
+        if curve_table:
+            self.message.setText(summary.get('blocked') or
+                ('대응 가능한 표본 ' + str(summary.get('valid_count', 0)) + '개 / ' + str(summary.get('count_a', 0)) + '개'))
         if summary.get('comparison_version') == 2:
             counts = summary.get('finitecounts', {}).get('delta', {})
             self.message.setText('비교 ' + str(summary.get('recipe', {}).get('target', {}).get('units', ''))
@@ -1285,6 +1293,9 @@ class PostWindow(QMainWindow):
             return values
         flat_rows = [columns(row) for row in rows]
         headers = list(dict.fromkeys(key for row in flat_rows for key in row))
+        if curve_table:
+            headers = (['row_index', 'a_row', 'b_rows', 'x', 'a', 'b', 'delta', 'percent', 'reason', 'percent_reason']
+                if payload.get('rows') else ['row_index', 'identity', 'x', 'y', 'quality', 'calculation', 'exclusion_reason'])
         self.samples.setColumnCount(len(headers))
         labels = {'row_index': '표본', 'a_row': 'A 원행', 'b_rows': 'B 원행',
                   'b_axis': 'B 양쪽 표본 좌표', 'weight': '보간 가중치', 'x': '가로축',
@@ -1308,6 +1319,14 @@ class PostWindow(QMainWindow):
             labels['coordinates'] += ' [' + str(recipe['a']['coordinate_units']) + ']'
             if recipe.get('difference') == 'norm_of_difference':
                 labels['delta'] = '|B − A| [' + str(recipe['target']['units']) + ']'
+        if curve_table:
+            unit = str(summary.get('recipe', {}).get('target_unit') or '?')
+            source = summary.get('sources', {}).get('a', {})
+            labels.update(identity='원행', y='원값 [' + str(source.get('declaration', {}).get('units') or '?') + ']',
+                quality='품질', calculation='계산 포함', exclusion_reason='제외 사유', reason='대응', percent_reason='변화율 상태')
+            labels['x'] += ' [' + str(source.get('axis', {}).get('unit') or '?') + ']'
+            for key in ('a', 'b', 'delta'):
+                labels[key] += ' [' + unit + ']'
         labels.update({key: key.removesuffix(' 유효성') + ' 유효성' for key in headers if key.endswith(' 유효성')})
         self.samples.setHorizontalHeaderLabels([labels.get(key, key) for key in headers])
         for column, key in enumerate(headers):
@@ -1322,6 +1341,15 @@ class PostWindow(QMainWindow):
                           'nonfinite_percent': '변화율 범위 초과', 'nonfinite_denominator': '분모 범위 초과', 'percent_disabled': '계산 안 함', 'unknown': '알 수 없음'}
                 text = ('값 없음' if value is None else ('유효' if value else '무효') if isinstance(value, bool)
                         else states.get(value, value) if isinstance(value, str) else display(value))
+                if curve_table:
+                    from .post_curve_plot import text as curve_text
+                    text = curve_text(value)
+                    if key == 'row_index':
+                        text = str(int(value)+1) if value is not None else '—'
+                    elif key in ('a_row', 'identity') and isinstance(value, dict):
+                        text = str(value.get('row', '—'))
+                    elif key == 'b_rows' and isinstance(value, list):
+                        text = ' → '.join(str(v.get('row', '—')) for v in value) or '—'
                 item = QTableWidgetItem(text)
                 item.setToolTip(display(value))
                 self.samples.setItem(row, column, item)

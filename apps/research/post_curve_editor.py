@@ -24,6 +24,7 @@ def identity(value):
 def title(option):
     d = option.get('declaration', {})
     return (option.get('label', '저장 곡선') + ' — ' + option.get('column', '값') +
+            ' / ' + observable_label(d.get('observable') or UNKNOWN_OBSERVABLE) +
             ' [' + str(d.get('units') or '?') + '] / 위치 ' + ('/'.join(str(i+1) for i in option.get('block', [])) or '전체') +
             ' / 축 ' + str(option.get('axis_column', '')))
 
@@ -84,10 +85,29 @@ class CurveEditor(QWidget):
         known = original.get('declaration', {})
         dialog = QDialog(self); dialog.setWindowTitle('곡선의 물리량'); form = QFormLayout(dialog)
         fields = {}
+        choices = {
+            'quantity': [('힘','force'),('응력','stress'),('변위','displacement'),('변형률','strain'),
+                ('온도','temperature'),('속도','velocity'),('가속도','acceleration'),('에너지','energy'),
+                ('접촉 합력','CF'),('접촉 법선력','CFN'),('접촉 전단력','CFS')],
+            'measure': [('힘','force'),('Cauchy 응력','cauchy'),('제1 Piola 응력','PK1'),
+                ('제2 Piola 응력','PK2'),('공학 변형률','engineering_strain'),
+                ('변위','displacement'),('온도','temperature')],
+            'frame': [('전역','global'),('월드 좌표계','world'),('국소','local')],
+            'reduction': [('축약 없음','none'),('평균','avg'),('합계','sum'),('최소','min'),
+                ('최대','max'),('중앙값','med'),('1사분위','q1'),('3사분위','q3'),('표준편차','std')]}
         for key, label in (('quantity', '물리량'), ('units', '단위'), ('measure', '측도'),
                            ('frame', '성분 좌표계'), ('location', '측정 위치'), ('reduction', '축약')):
-            field = QLineEdit(str(declaration.get(key) or ''))
-            field.setReadOnly(known.get(key) not in (None, '', 'UNKNOWN', 'UNSPECIFIED'))
+            fixed = known.get(key) not in (None, '', 'UNKNOWN', 'UNSPECIFIED')
+            if key in choices:
+                value = declaration.get(key) or ''
+                items = [('미확인','')] + choices[key]
+                if value not in [v for _,v in items]:
+                    items.append((str(value),value))
+                field = combo(items, value)
+                field.setEditable(not fixed); field.setEnabled(not fixed)
+            else:
+                field = QLineEdit(str(declaration.get(key) or ''))
+                field.setReadOnly(fixed)
             form.addRow(label, field); fields[key] = field
         leaves = [('미확인', UNKNOWN_OBSERVABLE)]
         for kind, names in (('scalar', ['scalar']), ('vector', ['x', 'y', 'z', 'magnitude']),
@@ -115,7 +135,11 @@ class CurveEditor(QWidget):
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); form.addRow(buttons)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        declaration.update({key: field.text() for key, field in fields.items()})
+        def field_value(field):
+            if isinstance(field, QComboBox):
+                return field.currentData() if field.currentText() == field.itemText(field.currentIndex()) else field.currentText()
+            return field.text()
+        declaration.update({key: field_value(field) for key, field in fields.items()})
         declaration.update(observable=deepcopy(observable.currentData()), temperature_kind=temperature.currentData())
         axis.update({key: field.text() for key, field in axis_fields.items()})
         self.value[side] = current; self.changed.emit()
@@ -142,7 +166,7 @@ class CurveEditor(QWidget):
             source = value[side]
             group = QWidget(); row = QFormLayout(group); row.setContentsMargins(0, 0, 0, 0)
             low, high = source.get('rows', [0, source.get('row_count', 0)])
-            first, last = QLineEdit(str(low+1)), QLineEdit(str(high))
+            first, last = QLineEdit(str(low+1) if type(low) is int else str(low)), QLineEdit(str(high))
             row.addRow('시작 행', first); row.addRow('마지막 행', last)
             form.addRow(side.upper()+' 원행 구간', group); bounds[side] = first, last
             origin = QLineEdit(value.get('axis_origins', {}).get(side, ''))
@@ -185,7 +209,7 @@ class DataCurvePicker(QDialog):
         self.buttons.accepted.connect(self.pick); self.buttons.rejected.connect(self.reject); layout.addRow(self.buttons)
         self.documents.currentIndexChanged.connect(self.document_changed)
         self.jobs.currentIndexChanged.connect(self.job_changed)
-        self.responses.currentIndexChanged.connect(lambda: self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.responses.currentData() is not None))
+        self.responses.currentIndexChanged.connect(self.response_changed)
         QTimer.singleShot(0, self.load)
 
     def call(self, function, accepted):
@@ -240,12 +264,19 @@ class DataCurvePicker(QDialog):
             self.message.setText('선택 채널의 보존 원행을 가져옵니다. 계산은 실행하지 않습니다.')
         self.call(lambda: self.client.document_result_metadata(document, job), accepted)
 
+    def response_changed(self, *_):
+        # A late reference reply belongs to the old channel, not the new label.
+        self._serial += 1
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.responses.currentData() is not None)
+
     def pick(self):
         document, job, response = self.documents.currentData(), self.jobs.currentData(), self.responses.currentData()
         if not all((document, job, response)):
             return
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
         def accepted(reference):
+            if (document, job, response) != (self.documents.currentData(), self.jobs.currentData(), self.responses.currentData()):
+                return
             self.selected = {'reference': reference, 'response': response}
             self.accept()
         self.call(lambda: self.client.document_result_reference(document, job), accepted)

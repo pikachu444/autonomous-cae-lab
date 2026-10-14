@@ -121,3 +121,30 @@ def test_source_definitions_cannot_be_overwritten_and_partial_input_survives():
     before=deepcopy(r)
     result=compare(a,b,r)
     assert result['blocked'] and r==before
+
+
+@pytest.mark.parametrize('side', ['a', 'b'])
+def test_response_conversion_overflow_keeps_originals_and_other_rows(side):
+    a, b, r = curve([0.,1.],[1.,2.]), curve([0.,1.],[1.,2.]), recipe()
+    source = a if side == 'a' else b
+    source['declaration']['units'] = 'kN'
+    source['rows'][1]['y'] = source['rows'][1]['raw_y'] = 1e308
+    result = compare(a, b, r)
+    json.dumps(result, allow_nan=False)
+    assert result[side]['rows'][1]['y'] == 1e308
+    assert result['rows'][0]['valid']
+    assert not result['rows'][1][side+'_valid']
+    assert result['rows'][1][side] is None
+    assert result['rows'][1]['reason'] == side+'_value_conversion_overflow'
+
+
+def test_axis_conversion_overflow_does_not_hide_raw_curve_or_invent_bracket():
+    a, b, r = curve([0.,1.],[1.,2.],axis_unit='us'), curve([0.,1e308],[1.,2.]), recipe()
+    r.update(alignment='bracket', max_gap=2.)
+    result = compare(a,b,r)
+    json.dumps(result,allow_nan=False)
+    assert result['b']['rows'][1]['x'] == 1e308
+    assert result['b_axis'][1] is None
+    assert result['rows'][0]['valid']
+    assert not result['rows'][1]['valid']
+    assert result['rows'][1]['reason'] == 'b_axis_conversion_overflow'
