@@ -64,6 +64,10 @@ def handle(handler,method,path,query):
             if set(body)-{'source','kind','session_id','command_id','material_document_id'}:
                 raise ServiceError(400,'Unknown follow-up field')
             return handler._json(200,workbench.desktop.data_followup(**body))
+        if path=='/api/workbench/post-curve-snapshot':
+            if set(body) != {'reference', 'response'}:
+                raise ServiceError(400, 'Choose an exact retained Data channel')
+            return handler._json(200, workbench.post_curve_snapshot(**body))
         if path=='/api/workbench/post-measurement-preview':
             if set(body) != {'command_id'}:
                 raise ServiceError(400,'Select the exact completed native measurement command')

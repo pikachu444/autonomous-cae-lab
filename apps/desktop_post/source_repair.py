@@ -38,6 +38,52 @@ def verify_analysis_files(document):
                     raise ValueError('Retained analysis values/mask file is missing or changed: ' + str(file))
 
 
+def _unavailable_curve_names(document, issues):
+    """Materialized curve readers have semantic, not native Input links.
+
+    Follow each saved revision's exact bindings/dependencies. The current editor
+    cursor and display name are never substitutes for the frozen input revision.
+    """
+    import hashlib
+    missing = {row.get('source_ref') for row in issues if row.get('source_ref')}
+    originals = document.get('sources', {})
+    objects = document.get('analysis', {}).get('objects', {})
+    memo = {}
+    def affected(record, seen):
+        identifier = record['id']
+        if identifier in memo:
+            return memo[identifier]
+        if identifier in seen:
+            return True  # Invalid lineage may only open as verified retained data.
+        for ref, binding in record.get('bindings', {}).items():
+            if ref in missing:
+                memo[identifier] = True
+                return True
+            if ref in originals:
+                continue
+            expected = binding.get('revision')
+            candidates = []
+            for candidate in objects.get(ref, {}).get('history', []):
+                frozen = {k: candidate[k] for k in ('id', 'recipe', 'graph', 'bindings')}
+                digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(',', ':'),
+                    ensure_ascii=False, allow_nan=False).encode('utf-8')).hexdigest()
+                pinned = record.get('dependencies', {}).get(ref)
+                if digest == expected and (pinned is None or candidate['id'] == pinned):
+                    candidates.append(candidate)
+            if len(candidates) != 1 or affected(candidates[0], seen | {identifier}):
+                memo[identifier] = True
+                return True
+        memo[identifier] = False
+        return False
+    names = set()
+    for obj in objects.values():
+        for record in obj.get('history', []):
+            if (record.get('summary', {}).get('comparison_version') == 3
+                    and affected(record, set())):
+                names.update([record['source_name'], *record.get('proxy_names', [])])
+    return names
+
+
 def partial_state(state, document, issues, output):
     """Remove only unavailable reader branches from a copy of native PVSM.
 
@@ -56,6 +102,8 @@ def partial_state(state, document, issues, output):
     contact = document.get('analysis', {}).get('contact_selection') or {}
     if contact and contact.get('source_ref') in {row['source_ref'] for row in issues}:
         bad.update(registrations[name] for name in contact.get('overlay_names', []) if name in registrations)
+    semantic_names = _unavailable_curve_names(document, issues)
+    bad.update(registrations[name] for name in semantic_names if name in registrations)
     proxies = {item.get('id'): item for item in server.findall('Proxy')}
     containers = {'views', 'layouts', 'timekeeper', 'animation'}
     changed = True
@@ -149,7 +197,7 @@ def repair_source(owner, source_ref, input_id, receipt):
     old = document.get('sources', {}).get(source_ref)
     if old is None:
         raise ValueError('Choose the exact missing source in this analysis')
-    if receipt.get('id') != input_id or receipt.get('format') not in ('vtu', 'pvd'):
+    if receipt.get('id') != input_id or receipt.get('format') not in ('vtu', 'pvd', 'vtt'):
         raise ValueError('Choose a verified registered VTU/PVD result set')
     replacement = dict(old, entry_path=receipt['path'], source_pins=deepcopy(receipt['source_pins']))
     if Path(old['entry_path']).suffix.lower() != '.' + receipt['format'] or content_set(old) != content_set(replacement):
@@ -196,7 +244,7 @@ def repair_source(owner, source_ref, input_id, receipt):
             for proxy, _, replacement_files in overlay_changes:
                 proxy.FileName = replacement_files
                 proxy.UpdatePipeline()
-            previous_source.FileName = [replacement['entry_path']] if receipt['format'] == 'vtu' else replacement['entry_path']
+            previous_source.FileName = [replacement['entry_path']] if receipt['format'] in ('vtu', 'vtt') else replacement['entry_path']
             previous_source.UpdatePipeline()
             for key, value in statuses.items():
                 setattr(previous_source, key, value)

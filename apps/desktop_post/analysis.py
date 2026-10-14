@@ -344,6 +344,9 @@ def output_fingerprint(bundle):
     Callers compare this with the validated summary before consuming an applied
     result. This detects changed upstream data even when its labels are stable.
     """
+    if bundle.get("summary", {}).get("comparison_version") == 3:
+        from .curve_native import fingerprint
+        return fingerprint(_fetch(bundle["source"]))
     return _comparison_fingerprint(_fetch(bundle["source"]), version=bundle.get("summary", {}).get("comparison_version", 1))
 
 

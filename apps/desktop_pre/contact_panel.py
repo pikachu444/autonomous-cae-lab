@@ -34,7 +34,7 @@ def add_contact_page(panel, W, C):
                                ('묶음 접촉', 'tie'),
                                ('비관통 접촉 (미지원)', 'hard'), ('응집 법칙 (미지원)', 'cohesive')],
                 'tangential_law': [('법칙 선택', None), ('마찰 없음', 'frictionless'), ('쿨롱 마찰', 'coulomb'), ('상대 미끄럼 구속', 'tied')],
-                'tie_adjust': [('원래 절점 위치 유지', False), ('절점 투영 (미지원)', True)],
+                'tie_adjust': [('원래 절점 위치 유지', False), ('계산 시 면에 맞춤', True)],
                 'gap_policy': [('실제 형상', 'geometry'), ('균일한 설정 간극', 'prescribed')],
                 'normal': [('고체 바깥쪽 법선', 'outward_solid'), ('법선 반전 (미지원)', 'reversed')],
                 'sliding': [('면 대 면', 'surface_to_surface'), ('작은 미끄럼 (미지원)', 'small')],
@@ -63,7 +63,7 @@ def add_contact_page(panel, W, C):
             self.fields['normal_law'].currentIndexChanged.connect(self.law_changed)
             self.fields['tangential_law'].currentIndexChanged.connect(self.dependencies)
             self.fields['tie_tolerance_mm'].setToolTip('A면의 절점을 B면에 연결할 최대 거리입니다. 초기 간극이나 절점 이동량이 아닙니다.')
-            self.fields['tie_adjust'].setToolTip('ADJUST=NO로 원래 절점 위치를 유지합니다. Adjust 투영과 주기대칭은 지원하지 않습니다.')
+            self.fields['tie_adjust'].setToolTip('원 CAD·메시는 그대로 두고 계산에서 A면 절점을 B면으로 맞춥니다. 평면 C3D10 접합만 지원합니다.')
             self.label.textEdited.connect(panel._edited)
             layout.addLayout(form)
             row = W.QHBoxLayout()
@@ -109,7 +109,7 @@ def add_contact_page(panel, W, C):
             self.form.labelForField(self.fields['tangential_law']).setText('상대 운동' if tied else '마찰 법칙')
             for key in ('step','activation'):
                 self.form.setRowVisible(self.fields[key], not tied)
-            self.fields['tie_adjust'].setToolTip('원래 절점 위치를 유지하고 모든 해석 단계에서 연결합니다. 절점 투영과 주기대칭은 지원하지 않습니다.')
+            self.fields['tie_adjust'].setToolTip('원 CAD·메시는 그대로 두고 계산에서 A면 절점을 B면으로 맞춥니다. 평면 C3D10 접합만 지원합니다. 변위는 조정 후 위치 기준입니다.')
             for key in ('friction_coefficient', 'stick_stiffness_MPa_per_mm'):
                 self.form.setRowVisible(self.fields[key], not tied)
                 self.fields[key].setEnabled(not tied and friction)

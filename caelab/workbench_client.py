@@ -91,6 +91,9 @@ class Client:
     def document_source_preview(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/documents/'+check_id(identifier)+'/source-preview')
+    def post_curve_snapshot(self, reference, response):
+        return self.request('/api/workbench/post-curve-snapshot', {'reference': reference, 'response': response})
+
     def document_compare(self,source,prediction_source):
         return self.request('/api/workbench/document-compare',{'source':source,'prediction_source':prediction_source})
     def document_comparison(self,identifier,comparison_id,*,start=0,count=4096):

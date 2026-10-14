@@ -37,3 +37,10 @@ schemas = ["*.json"]
 "plugins.fixture_design.upstream" = ["models/*", "fixturelab/*.js", "scripts/*"]
 
 "caelab._vendor" = ["rainflow.LICENSE.txt", "rainflow.NOTICE.md"]
+
+[tool.setuptools.data-files]
+"share/autonomous-cae-lab/calculix_projection" = [
+    "third_party/calculix_projection/projection.py",
+    "third_party/calculix_projection/NOTICE.md",
+    "third_party/calculix_projection/COPYING",
+]

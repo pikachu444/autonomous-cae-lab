@@ -30,8 +30,14 @@ def _indices(indices, size):
     return indices
 
 
-def _selection(indices, namespace):
+def _selection(indices, namespace, *, time_history=False):
     from paraview.selection import CreateSelection
+    if time_history:
+        # Query selections produce statistics over time even with statistics
+        # disabled. Fixed point IDs retain one history per selected point.
+        return CreateSelection('IDSelectionSource', _name(namespace, 'original point indexes'),
+                               FieldType='POINT', IDs=[item for index in indices for item in (-1, index)],
+                               ContainingCells=0, InsideOut=0)
     return CreateSelection('SelectionQuerySource', _name(namespace, 'original point indexes'),
                            ElementType=0, QueryString=' | '.join('(id == %d)' % value for value in indices), InsideOut=0)
 
@@ -161,7 +167,7 @@ def build_measurement(source, draft, namespace):
             if native_times and ('time' not in draft or draft['time'] not in native_times):
                 raise ValueError('Choose an exact native frame for the saved original-point measurement')
             selected_input = analysis._freeze(source, draft.get('time'), namespace, proxies)
-        selection = _selection(indices, namespace)
+        selection = _selection(indices, namespace, time_history=kind == 'time')
         # Selection sources live in the selection_sources group. Keep their
         # stable names separately; SaveState retains the actual selection proxy.
         extraction = (p.PlotSelectionOverTime(registrationName=_name(namespace, 'native point histories'), Input=selected_input, Selection=selection,
@@ -176,7 +182,8 @@ def build_measurement(source, draft, namespace):
                    'time_units': draft.get('time_units'), 'time_origin': draft.get('time_origin'),
                    'tracking': tracking if kind == 'time' else None,
                    **{key: draft.get(key) or None for key in ('quantity', 'units', 'frame', 'measure', 'coordinate_units', 'coordinate_frame')},
-                   'selection_type': 'SelectionQuerySource', 'selection_query': ' | '.join('(id == %d)' % value for value in indices)}
+                   'selection_type': 'IDSelectionSource' if kind == 'time' else 'SelectionQuerySource',
+                   'selection_query': None if kind == 'time' else ' | '.join('(id == %d)' % value for value in indices)}
         return {'source': extraction, 'proxies': proxies, 'selection_proxies': [selection], 'summary': summary}
     except BaseException:
         for proxy in reversed(proxies):
@@ -230,13 +237,13 @@ def sample_data(source, *, offset=0, limit=100, point_index=None, declarations=N
     return {'rows': rows, 'total': total, 'offset': offset, 'limit': limit, 'semantics': 'native_time_table'}
 
 
-def save_native_data(source, folder, stem):
+def save_native_data(source, folder, stem, *, table_xml=False):
     """Select the native writer from its actual VTK output type, retain dependencies."""
     data = analysis._fetch(source)
     extensions = {'vtkUnstructuredGrid': '.vtu', 'vtkPolyData': '.vtp', 'vtkTable': '.csv',
                   'vtkRectilinearGrid': '.vtr', 'vtkImageData': '.vti', 'vtkStructuredGrid': '.vts',
                   'vtkMultiBlockDataSet': '.vtm', 'vtkPartitionedDataSetCollection': '.vtpc'}
-    extension = extensions.get(data.GetClassName())
+    extension = '.vtt' if table_xml and data.IsA('vtkTable') else extensions.get(data.GetClassName())
     if extension is None:
         raise ValueError('No managed native writer for ' + data.GetClassName())
     folder.mkdir(parents=True, exist_ok=False)
@@ -244,8 +251,11 @@ def save_native_data(source, folder, stem):
     if data.GetClassName() == 'vtkTable':
         # Table association and round-trip Float64 precision are explicit; the
         # contact load parameter is a column, not a native physical Time field.
-        p.SaveData(str(path), proxy=source, FieldAssociation='Row Data', Precision=17,
-                   AddTime=0, AddTimeStep=0)
+        if table_xml:
+            p.SaveData(str(path), proxy=source, DataMode='Binary', CompressorType='None')
+        else:
+            p.SaveData(str(path), proxy=source, FieldAssociation='Row Data', Precision=17,
+                       AddTime=0, AddTimeStep=0)
     else:
         p.SaveData(str(path), proxy=source)
     if not path.is_file() or not path.stat().st_size:

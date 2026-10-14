@@ -31,7 +31,8 @@ def contact_cards(pair):
             lines.append('*SURFACE, NAME=' + prefix + identifier)
             lines.extend(str(element) + ',S' + str(face) for element, face in pair[side]['element_faces'])
         lines.extend(['*TIE, POSITION TOLERANCE=' + num(draft['tie_tolerance_mm']) +
-                      ', ADJUST=NO, NAME=TIE' + identifier, 'TIE_DEP' + identifier + ', TIE_IND' + identifier])
+                      ('' if draft.get('tie_adjust', False) else ', ADJUST=NO') +
+                      ', NAME=TIE' + identifier, 'TIE_DEP' + identifier + ', TIE_IND' + identifier])
         return '\n'.join(lines) + '\n'
     lines = []
     for side, prefix in [('a', 'DEP'), ('b', 'IND')]:
@@ -177,6 +178,9 @@ def validate_model(model):
             for material in model['materials']:
                 if number(material.get('density_tonne_per_mm3')) <= 0:
                     raise ValueError('Implicit dynamics requires positive density for every body')
+    if any(p['draft'].get('tie_adjust',False) and p['draft']['normal_law']=='tie' for p in model['contacts']):
+        from .adapters.tie_adjustment import cases
+        cases(model,nodes,elements)
     return nodes, elements, bodies
 
 

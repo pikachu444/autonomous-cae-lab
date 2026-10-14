@@ -196,9 +196,15 @@ def geometric_gaps(model, frame, *, subdivisions=4):
                        'solver_active_state': 'UNKNOWN', 'outside_or_ambiguous_projection': 'unavailable', 'triangle_edges': 'included_facet_normal'}}
 
 
-def write_post(folder, model, frames, pair_results, *, provenance=None, execution=None):
+def write_post(folder, model, frames, pair_results, *, provenance=None, execution=None, solver_coordinates=None, adjustment=None):
     from apps.desktop_post.prepare import write_vtu, data_array
     from ..storage import save_json
+    if solver_coordinates is not None:
+        from copy import deepcopy
+        original_rows=deepcopy(model['nodes'])
+        model=deepcopy(model)
+        for row in model['nodes']:
+            row['position_mm']=list(solver_coordinates[row['node_id']])
     folder.mkdir()
     node_rows = sorted(model['nodes'], key=lambda row: row['node_id'])
     node_ids = [row['node_id'] for row in node_rows]
@@ -218,6 +224,10 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
         arrays.append(row)
         return row
     declared('U_mm', 'mm', 'displacement', components=3)['component_names'] = ['UX','UY','UZ']
+    if solver_coordinates is not None:
+        for key in ('OriginalX_mm','OriginalY_mm','OriginalZ_mm','InitialAdjustmentX_mm',
+                    'InitialAdjustmentY_mm','InitialAdjustmentZ_mm','InitialAdjustmentMagnitude_mm'):
+            declared(key,'mm','original_input_coordinate' if key.startswith('Original') else 'initial_tie_adjustment')
     for key in ('UX_mm', 'UY_mm', 'UZ_mm', 'U_magnitude_mm'):
         declared(key, 'mm', 'displacement')
     for key, association, meaning in [('NativeNodeId','POINTS','calculix_export_node_identity'),
@@ -265,6 +275,13 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
                     extra[prefix+component+'_'+unit] = [frame['fields'][native][n][j] for n in node_ids]
         extra.update(SourceNodeId=[r['native_node_id'] for r in node_rows],
             BodyIndex=[body_numbers[r['body_id']] for r in node_rows])
+        if solver_coordinates is not None:
+            original={r['node_id']:r['position_mm'] for r in original_rows}
+            delta={n:[solver_coordinates[n][j]-original[n][j] for j in range(3)] for n in node_ids}
+            for j,component in enumerate('XYZ'):
+                extra['Original'+component+'_mm']=[original[n][j] for n in node_ids]
+                extra['InitialAdjustment'+component+'_mm']=[delta[n][j] for n in node_ids]
+            extra['InitialAdjustmentMagnitude_mm']=[math.hypot(*delta[n]) for n in node_ids]
         boundary = {(row['node_id'], row['component']) for row in model['boundary_dofs'] if row['value_mm'] == 0}
         raw = {'nodes': [{**row, 'displacement_mm': frame['fields']['DISP'][row['node_id']]} for row in node_rows],
             'elements': model['elements'], 'loads': model['loads'],
@@ -292,6 +309,13 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             'static': None, 'time': {'unit': axis(model)['unit'], 'semantics': axis(model)['semantics'],
                                      'values': [frame['static']['load_parameter'] for frame in frames]},
             'arrays': arrays}
+    if solver_coordinates is not None:
+        save_json(folder/'tie-adjustment.json',adjustment)
+        from ..contact_inspection import file_pin
+        metadata['geometry']={'basis':'verified_adjusted_solver_initial_coordinates',
+            'original_coordinates':'OriginalX_mm/OriginalY_mm/OriginalZ_mm',
+            'initial_adjustment_is_displacement':False,'displacement_reference':'adjusted_solver_initial_coordinates',
+            'adjustment':file_pin(folder/'tie-adjustment.json',folder)}
     if provenance is not None and has_contact:
         metadata['contact_inspection'] = _inspection_bundle(folder, model, frames, provenance, metadata, execution)
     return metadata

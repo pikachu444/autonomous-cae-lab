@@ -19,7 +19,7 @@ from PySide6.QtCore import QThreadPool, QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QCheckBox, QComboBox, QFormLayout,
-    QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
+    QDialog, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
     QMenu, QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter,
     QTabWidget, QTableWidget, QTableWidgetItem, QToolBar, QTreeWidget,
     QTreeWidgetItem, QToolButton, QVBoxLayout, QWidget,
@@ -137,6 +137,7 @@ class PostWindow(QMainWindow):
         self._samples = None
         self._sample_basis = None
         self._contact_dialog = None
+        self._curve_catalog = []
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(max(1, poll_interval))
@@ -222,6 +223,9 @@ class PostWindow(QMainWindow):
             action = new_menu.addAction(label + '…')
             action.triggered.connect(lambda checked=False, kind=kind: self.new_object(kind))
             self.new_buttons.append(action)
+        curve_action = new_menu.addAction('시간·시험 곡선 비교…')
+        curve_action.triggered.connect(self.new_curve_comparison)
+        self.new_buttons.append(curve_action)
         new_button.setMenu(new_menu)
         toolbar.addWidget(new_button)
         self.object_label = QLabel('새 결과 비교')
@@ -427,6 +431,10 @@ class PostWindow(QMainWindow):
             axis = 'XYZ'[component] if isinstance(component, int) and 0 <= component < 3 else str(component)
             return (original(draft.get('source_ref')) + ': ' + str(draft.get('quantity', '')) + ' 문서 전체 ' + axis +
                     ' 성분, A 면의 합력 [N]. 축: 정적 하중 계수 λ [1].')
+        if draft.get('version') == 3:
+            return ('기준: ' + original(draft.get('a', {}).get('source_ref')) +
+                    ' / 비교: ' + original(draft.get('b', {}).get('source_ref')) +
+                    '    B − A [' + str(draft.get('target_unit') or '단위 미지정') + ']')
         if draft.get('version') == 2:
             clock = draft.get('clock', {})
             stamp = '시각 없는 자료' if clock.get('value') is None else '비교 시각 ' + str(clock['value']) + ' [' + str(clock.get('unit') or '미지정') + ']'
@@ -687,6 +695,18 @@ class PostWindow(QMainWindow):
         draft = self._draft
         if not isinstance(draft, dict):
             form.addRow(QLabel('Malformed saved recipe remains in Details; Reset restores its last applied recipe.'))
+        elif self._kind == 'comparison' and draft.get('version') == 3:
+            from .post_curve_editor import CurveEditor, identity
+            catalog = deepcopy(self._curve_catalog)
+            for side in ('a', 'b'):
+                current = draft[side]
+                if current.get('source_ref') and not any(identity(o) == identity(current) for o in catalog):
+                    catalog.append(deepcopy(current))
+            self.comparison_editor = CurveEditor(draft, catalog, self)
+            self.comparison_editor.changed.connect(self._edited)
+            self.comparison_editor.refreshRequested.connect(self.refresh_curves)
+            self.comparison_editor.importRequested.connect(self.import_data_curve)
+            form.addRow(self.comparison_editor)
         elif self._kind == 'comparison' and draft.get('version') == 2:
             from .post_comparison_editor import ComparisonEditor
             sources = list(self._sources())
@@ -812,7 +832,7 @@ class PostWindow(QMainWindow):
         draft = deepcopy(self._draft)
         if not isinstance(draft, dict):
             return draft
-        if self._kind == 'comparison' and draft.get('version') == 2:
+        if self._kind == 'comparison' and draft.get('version') in (2, 3):
             return self.comparison_editor.draft()
         for path, (field, original) in self.fields.items():
             if isinstance(field, QComboBox):
@@ -898,6 +918,44 @@ class PostWindow(QMainWindow):
                              ' 설정을 편집하세요. 초안 보관과 미리보기 후 적용할 수 있습니다.')
         self._update_actions()
         return True
+
+    def new_curve_comparison(self):
+        if not self.new_object('comparison'):
+            return False
+        from .post_curve_editor import default_recipe
+        self._draft = default_recipe()
+        self._populate_editor()
+        return self.refresh_curves()
+
+    def refresh_curves(self):
+        token = self._context_token()
+        def accepted(payload):
+            if token != self._context_token():
+                return
+            draft = self.edited_draft()
+            self._curve_catalog = deepcopy(payload['curves'])
+            self._draft = draft
+            self._populate_editor()
+            if payload.get('issues'):
+                self.message.setText('저장 곡선 일부를 읽지 못했습니다. 해당 측정을 저장하거나 원자료를 다시 연결하세요.')
+                self.details.setPlainText(json.dumps(payload['issues'], ensure_ascii=False, indent=2))
+        return self.queue_command('post.curve_catalog', {}, accepted=accepted)
+
+    def import_data_curve(self):
+        if self._busy or self._pending:
+            return False
+        from .post_curve_editor import DataCurvePicker
+        token = self._context_token()
+        picker = DataCurvePicker(self.client, self)
+        if picker.exec() != QDialog.DialogCode.Accepted or picker.selected is None or token != self._context_token():
+            return False
+        selected = deepcopy(picker.selected)
+        def ready(receipt):
+            def added(payload):
+                self.refresh_curves()
+            self.queue_command('post.source_add', {'input_id': receipt['id'], 'label_text': receipt['name']}, accepted=added)
+        return self._call(lambda: self.client.post_curve_snapshot(**selected), ready,
+                          relevant=lambda: token == self._context_token())
 
     def use_declarations(self, side=None):
         draft = self.edited_draft()
@@ -1064,6 +1122,8 @@ class PostWindow(QMainWindow):
     def store_draft(self, *, after=None):
         operation = 'post.' + self._kind + '_edit'
         arguments = {'draft': self.edited_draft()}
+        if not self._object_ref and arguments['draft'].get('version') == 3:
+            arguments['title'] = '곡선 비교'
         if self._object_ref:
             arguments['object_ref'] = self._object_ref
         def stored(payload):
@@ -1121,12 +1181,17 @@ class PostWindow(QMainWindow):
         return self.queue_command('document.save', {})
 
     def show_comparison_curve(self):
-        if not self._samples or not self._sample_basis or self._sample_basis['draft'].get('version') != 2:
+        if not self._samples or not self._sample_basis or self._sample_basis['draft'].get('version') not in (2, 3):
             self.message.setText('비교 값을 먼저 읽으세요.')
             return
-        from .post_comparison_plot import ComparisonPlot
-        dialog = ComparisonPlot(self._samples, self._sample_basis, self)
-        dialog.pointSelected.connect(lambda index: self.select_comparison_point(index, dialog.basis))
+        if self._sample_basis['draft'].get('version') == 3:
+            from .post_curve_plot import CurvePlot
+            dialog = CurvePlot(self._samples, self._sample_basis, self)
+            dialog.rowSelected.connect(lambda index: self.select_curve_row(index, dialog.basis))
+        else:
+            from .post_comparison_plot import ComparisonPlot
+            dialog = ComparisonPlot(self._samples, self._sample_basis, self)
+            dialog.pointSelected.connect(lambda index: self.select_comparison_point(index, dialog.basis))
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.show()
 
@@ -1157,9 +1222,28 @@ class PostWindow(QMainWindow):
             'preview': basis['preview'], 'point_index': index, 'limit': 1,
             'expected_revision': basis['revision']}, accepted=selected)
 
+    def select_curve_row(self, index, basis):
+        if (basis['object_ref'] != self._object_ref or not self._sample_basis
+                or self._sample_basis.get('revision') != basis.get('revision')
+                or self._current_sample_revision(basis['preview']) != basis['revision']):
+            self.message.setText('이전 곡선 조회입니다. 현재 결과를 다시 읽으세요.')
+            return False
+        token = (self._object_ref, basis['revision'])
+        def accepted(payload):
+            if (token != (self._object_ref, (self._sample_basis or {}).get('revision'))
+                    or token != (payload.get('object_ref'), payload.get('revision'))
+                    or self._current_sample_revision(basis['preview']) != token[1]):
+                return
+            for row, item in enumerate((self._samples or {}).get('rows', [])):
+                if item.get('row_index') == index:
+                    self.samples.selectRow(row); break
+        return self.queue_command('post.sample', {'object_ref': self._object_ref,
+            'preview': basis['preview'], 'row_index': index, 'expected_revision': basis['revision']},
+            accepted=accepted)
+
     def read_samples(self):
         arguments = {'preview': self.sample_preview.isChecked(), 'offset': self.offset.value(), 'limit': self.limit.value()}
-        if self.point_index.text().strip():
+        if self.point_index.text().strip() and self.edited_draft().get('version') != 3:
             arguments['point_index'] = integer_or_raw(self.point_index.text())
         return self.object_command('post.sample', arguments) if not self._object_ref else self.queue_command('post.sample',
             {'object_ref': self._object_ref, **arguments}, accepted=self._show_samples)
@@ -1179,7 +1263,13 @@ class PostWindow(QMainWindow):
                               'preview': preview, 'revision': payload.get('revision'),
                               'draft': deepcopy((revision or {}).get('recipe', (obj or {}).get('draft', self._draft)))}
         rows = payload.get('rows', [])[:1000]
-        summary = (revision or {}).get('summary', {})
+        if payload.get('semantics') == 'retained_curve_comparison' and not rows:
+            rows = payload.get('originals', {}).get('a', [])[:1000]
+        summary = payload.get('summary') or (revision or {}).get('summary', {})
+        curve_table = payload.get('semantics') == 'retained_curve_comparison'
+        if curve_table:
+            self.message.setText(summary.get('blocked') or
+                ('대응 가능한 표본 ' + str(summary.get('valid_count', 0)) + '개 / ' + str(summary.get('count_a', 0)) + '개'))
         if summary.get('comparison_version') == 2:
             counts = summary.get('finitecounts', {}).get('delta', {})
             self.message.setText('비교 ' + str(summary.get('recipe', {}).get('target', {}).get('units', ''))
@@ -1203,8 +1293,14 @@ class PostWindow(QMainWindow):
             return values
         flat_rows = [columns(row) for row in rows]
         headers = list(dict.fromkeys(key for row in flat_rows for key in row))
+        if curve_table:
+            headers = (['row_index', 'a_row', 'b_rows', 'x', 'a', 'b', 'delta', 'percent', 'reason', 'percent_reason']
+                if payload.get('rows') else ['row_index', 'identity', 'x', 'y', 'quality', 'calculation', 'exclusion_reason'])
         self.samples.setColumnCount(len(headers))
-        labels = {'row': '원본 행', 'point_index': '원본 점 번호', 'block': '자료 블록',
+        labels = {'row_index': '표본', 'a_row': 'A 원행', 'b_rows': 'B 원행',
+                  'b_axis': 'B 양쪽 표본 좌표', 'weight': '보간 가중치', 'x': '가로축',
+                  'a_valid': 'A 유효', 'b_valid': 'B 유효', 'a_segment': 'A 구간', 'b_segment': 'B 구간',
+                  'reason': '대응 상태', 'row': '원본 행', 'point_index': '원본 점 번호', 'block': '자료 블록',
                   'load_parameter': '하중 계수 λ [1]', 'step': '단계', 'increment': '증분',
                   'valid': '유효 여부', 'validity_reason': '유효성 이유', 'a': '변환 A', 'b': '변환 B', 'delta': 'B − A',
                   'percent': '변화율 [%]', 'percent_valid': '변화율 유효', 'percent_reason': '변화율 상태',
@@ -1223,6 +1319,14 @@ class PostWindow(QMainWindow):
             labels['coordinates'] += ' [' + str(recipe['a']['coordinate_units']) + ']'
             if recipe.get('difference') == 'norm_of_difference':
                 labels['delta'] = '|B − A| [' + str(recipe['target']['units']) + ']'
+        if curve_table:
+            unit = str(summary.get('recipe', {}).get('target_unit') or '?')
+            source = summary.get('sources', {}).get('a', {})
+            labels.update(identity='원행', y='원값 [' + str(source.get('declaration', {}).get('units') or '?') + ']',
+                quality='품질', calculation='계산 포함', exclusion_reason='제외 사유', reason='대응', percent_reason='변화율 상태')
+            labels['x'] += ' [' + str(source.get('axis', {}).get('unit') or '?') + ']'
+            for key in ('a', 'b', 'delta'):
+                labels[key] += ' [' + unit + ']'
         labels.update({key: key.removesuffix(' 유효성') + ' 유효성' for key in headers if key.endswith(' 유효성')})
         self.samples.setHorizontalHeaderLabels([labels.get(key, key) for key in headers])
         for column, key in enumerate(headers):
@@ -1237,6 +1341,17 @@ class PostWindow(QMainWindow):
                           'nonfinite_percent': '변화율 범위 초과', 'nonfinite_denominator': '분모 범위 초과', 'percent_disabled': '계산 안 함', 'unknown': '알 수 없음'}
                 text = ('값 없음' if value is None else ('유효' if value else '무효') if isinstance(value, bool)
                         else states.get(value, value) if isinstance(value, str) else display(value))
+                if curve_table:
+                    from .post_curve_plot import text as curve_text
+                    text = curve_text(value)
+                    if key == 'row_index':
+                        text = str(int(value)+1) if value is not None else '—'
+                    elif key in ('a_row', 'identity') and isinstance(value, dict):
+                        text = str(value.get('row', '—'))
+                    elif key == 'b_rows' and isinstance(value, list):
+                        text = ' → '.join(str(v.get('row', '—')) for v in value) or '—'
+                    elif key in ('quality', 'calculation') and value in (0, 1):
+                        text = ('정상' if value else '결측·품질 실패') if key == 'quality' else ('포함' if value else '제외')
                 item = QTableWidgetItem(text)
                 item.setToolTip(display(value))
                 self.samples.setItem(row, column, item)
@@ -1310,9 +1425,12 @@ class PostWindow(QMainWindow):
         if view is None:
             self.message.setText('The exact selected native view is unavailable. Choose another view explicitly.')
             return None
-        if source and view.get('type') != 'RenderView':
-            self.message.setText('Choose an exact native RenderView to show this original source.')
-            return None
+        if source:
+            record = next((item for item in self._sources() if item['source_ref'] == self._source_ref), {})
+            required = 'XYChartView' if (record.get('native_metadata') or {}).get('curve') else 'RenderView'
+            if view.get('type') != required:
+                self.message.setText('원 자료에 맞는 ' + ('차트' if required == 'XYChartView' else '3D') + ' 뷰를 선택하세요.')
+                return None
         return {'view_id': identifier}
 
     def inspect_source(self):
@@ -1577,9 +1695,10 @@ class PostWindow(QMainWindow):
         self.redo_button.setEnabled(enabled and bool(obj and (obj.get('redo_stack') or obj.get('redo'))) and not self.local_dirty)
         self.export_button.setEnabled(enabled and bool(obj and obj.get('position', -1) >= 0) and not self.local_dirty)
         self.sample_button.setEnabled(enabled and bool(self._object_ref) and not self.local_dirty)
-        self.comparison_curve_button.setEnabled(bool(self._samples and self._sample_basis and self._sample_basis['draft'].get('version') == 2))
+        self.comparison_curve_button.setEnabled(bool(self._samples and self._sample_basis and self._sample_basis['draft'].get('version') in (2, 3)))
         self.comparison_curve_button.setVisible(self._kind == 'comparison')
-        self.comparison_display.setVisible(not bool(self._tree_selection and self._tree_selection[0] == 'source') and self._kind == 'comparison')
+        self.comparison_display.setVisible(not bool(self._tree_selection and self._tree_selection[0] == 'source') and self._kind == 'comparison' and self.edited_draft().get('version') != 3)
+        self.point_index.setEnabled(self.edited_draft().get('version') != 3)
         for button in self.new_buttons:
             button.setEnabled(enabled and not self.local_dirty)
         browsing = bool(self._tree_selection and self._tree_selection[0] == 'source')

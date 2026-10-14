@@ -1502,10 +1502,21 @@ class DataWindow(QMainWindow):
                     if points:
                         self.axes.plot([a for a, _ in points], [b for _, b in points], linestyle='--', marker='x', label='Retained prediction')
                 self.axes.legend()
-        self.axes.set_xlabel(f"{axis.get('name', 'unknown')} [{axis.get('unit', 'unknown')}]")
+        axis_name = axis.get('name', 'unknown')
+        title = str(response.get('measure', 'UNSPECIFIED')) + ' (' + ', '.join(
+            str(response.get(key, 'UNSPECIFIED')) for key in ('component', 'location', 'frame')) + ')'
+        location = response.get('location', '')
+        if (isinstance(location, str) and location.startswith('trace_point:')
+                and response.get('frame') == 'document_global'
+                and response.get('measure') in {'position', 'native_frame_index'}):
+            point_name = location.removeprefix('trace_point:')
+            title = (f'{point_name}의 {name} 경로 (세계 좌표)' if response['measure'] == 'position'
+                     else f'{point_name}의 기록된 프레임')
+            if axis_name == 'nominal_time':
+                axis_name = '출력 격자 시간'
+        self.axes.set_xlabel(f"{axis_name} [{axis.get('unit', 'unknown')}]")
         self.axes.set_ylabel(f"{name} [{response.get('unit', 'unknown')}]")
-        self.axes.set_title(str(response.get('measure', 'UNSPECIFIED')) + ' (' +
-            ', '.join(str(response.get(key, 'UNSPECIFIED')) for key in ('component', 'location', 'frame')) + ')', fontsize=9)
+        self.axes.set_title(title, fontsize=9)
         self.axes.grid(True, alpha=.25)
         self.canvas.draw_idle()
         self.result_label.setText(self.result_label.text() + f' / 표본 {start}부터 {len(values)}개')
