@@ -27,6 +27,16 @@ jobs:
           mkdir -p artifacts
           git rev-parse HEAD > artifacts/source-commit.txt
           git archive --format=zip --output=artifacts/ns1-source.zip HEAD
+      - name: Obtain existing Qt runtime and pinned native references for offline checks
+        run: |
+          python -m pip download --only-binary=:all: PySide6-Essentials==6.9.1 shiboken6==6.9.1 --dest artifacts/qt-wheels
+          mkdir -p artifacts/native-reference/ccx artifacts/native-reference/freecad
+          for file in plastics.f plcopy.f calctotstrain.f frd.c; do
+            curl --fail --location --retry 2 "https://raw.githubusercontent.com/Dhondtguido/CalculiX/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/$file" -o "artifacts/native-reference/ccx/$file"
+          done
+          for file in femsolver/calculix/write_materials.py femsolver/calculix/write_step_output.py femtools/membertools.py; do
+            curl --fail --location --retry 2 "https://raw.githubusercontent.com/FreeCAD/FreeCAD/1.1.4/src/Mod/Fem/$file" -o "artifacts/native-reference/freecad/$(basename "$file")"
+          done
       - run: python -m pip install numpy pytest
       - name: Check material execution boundaries only
         run: python -m pytest tests/test_calculix_material.py tests/test_ns1_material_limits.py -q --junitxml=artifacts/material-tests.xml
