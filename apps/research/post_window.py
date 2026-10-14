@@ -198,8 +198,10 @@ class PostWindow(QMainWindow):
         left_layout.addWidget(self.tree, 1)
         self.add_source_button = QPushButton('결과 파일 추가…')
         self.add_source_button.clicked.connect(lambda: self.choose_source(repair=False))
-        self.repair_button = QPushButton('원 파일 다시 연결…')
+        self.repair_button = QPushButton('같은 내용의 위치 수리…')
         self.repair_button.clicked.connect(lambda: self.choose_source(repair=True))
+        self.changed_source_button = QPushButton('변경 자료로 새 프로젝트…')
+        self.changed_source_button.clicked.connect(self.open_changed_source)
         self.show_source_button = QPushButton('ParaView에서 보기')
         self.show_source_button.clicked.connect(self.show_source)
         self.inspect_button = QPushButton('필드 정보 읽기')
@@ -307,6 +309,7 @@ class PostWindow(QMainWindow):
         self.export_button = QPushButton('결과 내보내기')
         self.export_button.clicked.connect(lambda: self.object_command('post.export', {'format': self.export_format.currentText()}))
         history.addWidget(self.repair_button)
+        history.addWidget(self.changed_source_button)
         history.addWidget(self.inspect_button)
         self.source_tools = QWidget()
         self.source_tools.setLayout(history)
@@ -1482,6 +1485,14 @@ class PostWindow(QMainWindow):
                 self._choose_directory(name, repair=repair, token=token)
         return self._call(self.client.local_roots, roots, relevant=lambda: token == self._context_token())
 
+    def open_changed_source(self):
+        source = next((row for row in self._sources() if row['source_ref'] == self._source_ref), None)
+        if source is None or not source.get('files'):
+            self.message.setText('원자료를 선택하세요. 원파일 정보가 없으면 후처리 문서를 다시 열어 읽으세요.'); return
+        from .post_source_dialogs import SourceUpdateDialog
+        self._source_update_dialog = SourceUpdateDialog(self, source)
+        self._source_update_dialog.show()
+
     def _choose_directory(self, root, relative='', cursor=0, *, repair=False, token=None):
         token = self._context_token() if token is None else token
         def listed(payload):
@@ -1672,6 +1683,7 @@ class PostWindow(QMainWindow):
         self.retry_button.setEnabled(not self._busy and self._pending is not None)
         self.add_source_button.setEnabled(enabled)
         self.repair_button.setEnabled(enabled and bool(self._source_ref))
+        self.changed_source_button.setEnabled(enabled and bool(self._source_ref))
         self.show_source_button.setEnabled(enabled and bool(self._source_ref))
         self.inspect_button.setEnabled(enabled and bool(self._source_ref))
         source = self.contact_source()
