@@ -34,6 +34,7 @@ jobs:
           set -euo pipefail
           curl -fL --retry 3 --retry-all-errors --connect-timeout 30 --speed-limit 10000 --speed-time 180 --continue-at - 'https://huggingface.co/bartowski/google_gemma-4-26B-A4B-it-GGUF/resolve/main/google_gemma-4-26B-A4B-it-Q3_K_M.gguf?download=true' -o /tmp/gemma4-26b-Q3_K_M.gguf
           du -h /tmp/gemma4-26b-Q3_K_M.gguf
+          head -c 65536 /tmp/gemma4-26b-Q3_K_M.gguf > /tmp/gemma_model_header.gguf
       - name: Ask Gemma to patch existing storage integrity function
         run: |
           set -euo pipefail
@@ -57,7 +58,7 @@ jobs:
           chmod +x "$BIN"
           export LD_LIBRARY_PATH="$(dirname "$BIN"):${LD_LIBRARY_PATH:-}"
           set +e
-          timeout 1200 "$BIN" -m /tmp/gemma4-26b-Q3_K_M.gguf -c 4096 -t 4 -n 620 --temp 0.1 --no-display-prompt --simple-io -p "$(cat /tmp/gemma_prompt.txt)" > /tmp/gemma_raw.txt 2>&1
+          timeout 1200 "$BIN" -m /tmp/gemma4-26b-Q3_K_M.gguf -c 4096 -t 4 -n 2400 --temp 0.1 --reasoning off --jinja --no-display-prompt --simple-io -p "$(cat /tmp/gemma_prompt.txt)" > /tmp/gemma_raw.txt 2>&1
           code=$?
           set -e
           echo "llama_exit_status=$code"
@@ -69,7 +70,8 @@ jobs:
           from pathlib import Path
           import ast,hashlib,tempfile,importlib
           raw=Path('/tmp/gemma_raw.txt').read_text(errors='replace')
-          p=raw.find('def check_artifacts(')
+          # The model may quote the original function inside its reasoning; prefer the last complete replacement.
+          p=raw.rfind('def check_artifacts(')
           if p<0:raise AssertionError('Model produced no Python function')
           code=raw[p:]
           if '```' in code:code=code.split('```')[0]
@@ -113,5 +115,6 @@ jobs:
             /tmp/gemma_prompt.txt
             /tmp/gemma_raw.txt
             /tmp/gemma_generated_patch.py
+            /tmp/gemma_model_header.gguf
           if-no-files-found: warn
           retention-days: 7
