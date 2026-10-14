@@ -18,7 +18,12 @@ param(
 $ErrorActionPreference = 'Stop'
 $repository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if ($FreeCADRoot -and $FreeCADExe) { throw 'Choose -FreeCADRoot or -FreeCADExe.' }
-if ($FreeCADRoot) { $FreeCADExe = Join-Path $FreeCADRoot 'FreeCAD.exe' }
+if ($FreeCADRoot) {
+    $installationRoot = [IO.Path]::GetFullPath($FreeCADRoot)
+    $candidates = @((Join-Path $installationRoot 'bin\FreeCAD.exe'), (Join-Path $installationRoot 'FreeCAD.exe'))
+    $FreeCADExe = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    if (-not $FreeCADExe) { throw "FreeCAD.exe was not found in '$installationRoot\bin' or '$installationRoot'. Choose -FreeCADRoot or an installed -FreeCADExe." }
+}
 if (-not $ServiceUrl) {
     & (Join-Path $PSScriptRoot 'start-windows.ps1') -NoBrowser -ResearchUI -RuntimeRoot $RuntimeRoot -Port $Port -Store $Store
     if (-not $?) { throw 'The shared research service could not be started or verified.' }
