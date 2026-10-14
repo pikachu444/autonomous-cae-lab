@@ -216,3 +216,53 @@ def test_unconfigured_saved_editor_is_readable_without_manual_inspect(qt_panel):
     data = descriptor(); data['session_id'] = 'ColdEditorOwner'; widget.refresh(data)
     assert panel.current_editor() == snapshot['editor'] and not panel.has_unsaved_editor()
     assert '편집 (저장됨)' in panel.status.text()
+
+
+@pytest.mark.parametrize('field', ['joint_draft', 'definition_draft'])
+def test_new_assembly_cannot_retarget_an_unapplied_editor(qt_panel, field):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    edit_invalid(panel, setup)
+    panel._joint_edited = field == 'joint_draft'; panel._edited = field == 'definition_draft'
+    before = panel.editor_snapshot(); objects = len(owner.doc.Objects); requests = len(queued)
+    panel._send('pre.assembly.create', {'label': 'Other'}, target={})
+    assert len(queued) == requests and len(owner.doc.Objects) == objects
+    assert panel.editor_snapshot() == before
+    assert '적용하거나 취소' in panel.status.text()
+
+
+def test_new_assembly_receipt_keeps_edits_started_during_creation_on_original_assembly(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    panel._send('pre.assembly.create', {'label': 'Other'}, target={})
+    op, args, selected, done = queued[-1]
+    before = edit_invalid(panel, setup)
+    result = motion.dispatch(op, args, selected); done({'result': result})
+    assert result['assembly_id'] != target['assembly_id']
+    assert panel.editor_snapshot() == before
+    assert panel.pending_editor()['assembly_id'] == target['assembly_id']
+
+
+@pytest.mark.parametrize('cancel_field', ['joint_draft', 'definition_draft'])
+@pytest.mark.parametrize('edit_cancelled_field', [False, True])
+def test_cancel_failure_restores_only_unchanged_cancelled_field(qt_panel, cancel_field, edit_cancelled_field):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    before = edit_invalid(panel, setup)['editor']
+    motion.dispatch('pre.motion.save_editor', {'editor': before}, target)
+    widget.refresh(descriptor())
+    (panel._cancel_joint if cancel_field == 'joint_draft' else panel._cancel_definition)()
+    op, args, selected, done = queued[-1]
+    assert args['editor'][cancel_field] is None
+    edit_field = cancel_field if edit_cancelled_field else ('definition_draft' if cancel_field == 'joint_draft' else 'joint_draft')
+    if edit_field == 'joint_draft':
+        panel.joint_parameters['Distance'][0].setText('NEW'); panel._mark_joint_edited()
+    else:
+        panel.time['end'].setText('NEW'); panel._mark_edited()
+    newest = panel.current_editor()
+    done({'status': 'FAILED', 'error': {'message': 'metadata write failed'}})
+    expected = deepcopy(newest)
+    if not edit_cancelled_field: expected[cancel_field] = before[cancel_field]
+    assert panel.current_editor() == expected
+    assert panel.pending_editor()['editor'] == expected
+    assert owner.metadata['motion_editors'][target['assembly_id']] == before

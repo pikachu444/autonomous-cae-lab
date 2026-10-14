@@ -243,8 +243,13 @@ class MotionPanel:
         if stored and stored.get(field) is not None:
             editor = deepcopy(stored); editor[field] = None
             cancelled = self.current_editor()
+            version_name = '_joint_version' if field == 'joint_draft' else '_edit_version'
+            version = getattr(self, version_name)
             def failed():
-                if self.current_editor() == cancelled: self._restore_editor(before)
+                current = self.current_editor()
+                if getattr(self, version_name) == version and current[field] == cancelled[field]:
+                    current[field] = deepcopy(before[field])
+                    self._restore_editor(current)
             self._send('pre.motion.save_editor', {'editor': editor}, on_failure=failed)
 
     def _target(self, *, joint=False):
@@ -262,8 +267,8 @@ class MotionPanel:
     def _send(self, operation, args, *, target=None, inspect=False, on_failure=None):
         if self._busy: return
         editor = self._motion.get('editors', {}).get(self.assembly.currentData(), {})
-        if (self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None) and operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
-            self.status.setText('관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.'); return
+        if (self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None) and operation in ('pre.assembly.create', 'pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
+            self.status.setText('관절과 구동 편집을 적용하거나 취소한 뒤 새 조립을 만드세요.' if operation == 'pre.assembly.create' else '관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.'); return
         target = self._target() if target is None else target
         edit_version, joint_version = self._edit_version, self._joint_version
         self._serial += 1; serial = self._serial; scope = (self._document, self._session, self.assembly.currentData())
@@ -292,7 +297,7 @@ class MotionPanel:
             if operation in ('pre.joint.create', 'pre.joint.update') and joint_version == self._joint_version: self._joint_edited = False
             if self.read is not None:
                 self.refresh(self.read())
-                if operation == 'pre.assembly.create' and value.get('assembly_id'):
+                if operation == 'pre.assembly.create' and value.get('assembly_id') and (edit_version, joint_version) == (self._edit_version, self._joint_version):
                     self.assembly.blockSignals(True); self.assembly.setCurrentIndex(self.assembly.findData(value['assembly_id'])); self.assembly.blockSignals(False)
                     self._view_loaded = True; self._definition_stamp = None; self.refresh(self.read())
             if inspect:
