@@ -5,7 +5,7 @@ No PySide6/FreeCAD import and no native object writes occur in this module.
 from copy import deepcopy
 import json
 
-from apps.desktop_pre.motion import JOINT_TYPES
+from apps.desktop_pre.motion import JOINT_TYPES,native_frame_times
 from apps.desktop_pre.motion_formula import compile_drives
 
 JOINT_LABELS = {'Grounded': '고정 부품', 'Fixed': '고정 연결', 'Revolute': '회전',
@@ -390,15 +390,15 @@ class MotionPanel:
         self._loading = True
         try:
             self._fill_combo(self.assembly, self._motion.get('assemblies', []))
-            metadata = self._motion.get('definition') or {}
+            metadata = self._motion.get('definition') or {}; selected=None
             if not self._editor_loaded and self._select_saved_assembly:
                 drafts = [name for name, value in self._motion.get('editors', {}).items()
                           if value.get('joint_draft') is not None or value.get('definition_draft') is not None]
                 selected = self._motion.get('editor_assembly_id') or (drafts[0] if drafts else None)
                 if selected:
                     index = self.assembly.findData(selected)
-                    if index >= 0: self.assembly.setCurrentIndex(index); self._view_loaded = True
-            if not self._view_loaded and metadata.get('assembly_id'):
+                    if index >= 0: self.assembly.setCurrentIndex(index)
+            if not self._view_loaded and not selected and metadata.get('assembly_id'):
                 index = self.assembly.findData(metadata['assembly_id'])
                 if index >= 0: self.assembly.setCurrentIndex(index)
             self._active_assembly = self.assembly.currentData()
@@ -451,6 +451,10 @@ class MotionPanel:
                 (' / 미리보기 자세' if self._motion.get('preview') else ' / 설계 자세') +
                 ' / 계산 프레임 ' + str(calculation.get('frame_count', 0)) +
                 (' / ' + str(self._motion['error']) if self._motion.get('error') else ''))
+            index=self._motion.get('frame'); times=calculation.get('frame_times',[])
+            if self._motion.get('preview') and index is not None and 0<=index<len(times):
+                self.status.setText(self.status.text()+(' / 설계 자세 (시각 없음)' if index==0 else
+                    ' / 시각 미확인' if times[index] is None else ' / 계산 시각 '+format(times[index],'.9g')+' s'))
             if self._edited or self._joint_edited:
                 self.status.setText(self.status.text() + (' / 미적용 편집 (미저장)' if self.has_unsaved_editor() else ' / 미적용 편집 (저장됨)'))
 
@@ -816,7 +820,9 @@ class MotionPanel:
             values=self._drive_values()
             joints={j['id']:j for j in self._motion.get('joints',[])}
             try:
-                _,problems=compile_drives(values,(float(self.time['start'].text()),float(self.time['end'].text())),joints)
+                interval=tuple(float(self.time[key].text()) for key in ('start','end'))
+                schedule=native_frame_times({key:self.time[key].text() for key in ('start','end','step')})
+                _,problems=compile_drives(values,(interval[0],max(interval[1],schedule[-1])),joints)
                 for row,messages in sorted(problems.items()):
                     for message in messages:
                         issue=(str(row+1)+'행: ' if row>=0 else '')+message

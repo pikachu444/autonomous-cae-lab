@@ -6,6 +6,22 @@ import json
 import math
 from importlib import import_module
 from urllib.parse import quote
+from .motion import NATIVE_CLOCK
+
+
+def sample_time(path,row):
+    return row.get('time') if path.get('clock')==NATIVE_CLOCK else row['nominal_time']
+
+
+def time_label(path):
+    return '계산 시각 [s]' if (path or {}).get('clock')==NATIVE_CLOCK else '출력격자 시간 [s]'
+
+
+def clock_notice(path):
+    if path.get('clock')==NATIVE_CLOCK and not path.get('clock_source',{}).get('complete',True):
+        return '계산 시각 미확인: '+str(path.get('clock_source',{}).get('reason','native 출력 시각을 확인할 수 없습니다.'))+' 원좌표는 보존됩니다.'
+    return ('운동 계산의 출력 시각입니다. 설계 자세에는 물리 시각이 없습니다. 끝 출력 시각은 설정 끝과 다를 수 있습니다.'
+        if path.get('clock')==NATIVE_CLOCK else '시간은 설정한 출력 간격으로 환산한 기존 기록이며 실제 계산 시각 기록이 아닙니다.')
 
 
 def merge_path(previous, page):
@@ -13,11 +29,19 @@ def merge_path(previous, page):
     result = deepcopy(page)
     same = previous and (previous['calculation_id'], previous['trace_id']) == (page['calculation_id'], page['trace_id'])
     if same and previous['total_frames'] != page['total_frames']: raise ValueError('같은 계산의 프레임 범위가 바뀌었습니다. 이전 자료는 남아 있습니다.')
+    if same and previous.get('clock')!=page.get('clock'): raise ValueError('같은 계산의 시각 기록 방식이 바뀌었습니다. 이전 자료는 남아 있습니다.')
     rows = {row['frame']: deepcopy(row) for row in previous['rows']} if same else {}
     for row in page['rows']:
         if type(row['frame']) is not int or not 0 <= row['frame'] < page['total_frames']:
             raise ValueError('경로의 프레임 번호가 계산 범위를 벗어났습니다.')
-        if len(row['point']) != 3 or not all(type(v) in (int, float) and math.isfinite(v) for v in [row['nominal_time'], *row['point']]):
+        time=sample_time(page,row)
+        design=page.get('clock')==NATIVE_CLOCK and ((row.get('frame_kind')=='design' and row['frame']==0)
+            or (row.get('frame_kind')=='unknown' and page.get('clock_source',{}).get('complete') is False))
+        if page.get('clock')==NATIVE_CLOCK and (row.get('frame_kind') not in ('design','simulation','unknown')
+                or (row.get('frame_kind')=='design' and (row['frame']!=0 or time is not None))):
+            raise ValueError('설계 자세와 계산 출력의 시각 종류를 확인할 수 없습니다. 이전 자료는 남아 있습니다.')
+        if (len(row['point']) != 3 or not all(type(v) in (int, float) and math.isfinite(v) for v in row['point'])
+                or (time is None and not design) or (time is not None and (type(time) not in (int,float) or not math.isfinite(time)))):
             raise ValueError('경로의 시간 또는 좌표가 유효하지 않습니다. 이전 자료는 남아 있습니다.')
         rows[row['frame']] = deepcopy(row)
     result['rows'] = [rows[index] for index in sorted(rows)]
@@ -26,50 +50,55 @@ def merge_path(previous, page):
 
 
 def _csv_records(path):
-    records, gaps = [], []
+    records, gaps, untimed = [], [], []
     previous = None
     for sample in path['rows']:
         if previous is not None and sample['frame'] > previous+1:
             gaps.append({'csv_row': len(records)+2, 'after_frame': previous, 'before_frame': sample['frame'],
                 'unread_frames': [previous+1, sample['frame']-1]})
             records.append(['nan']*5)
-        records.append([sample['frame'], sample['nominal_time'], *sample['point']])
+        time=sample_time(path,sample)
+        if time is None: untimed.append({'csv_row':len(records)+2,'frame':sample['frame'],'kind':sample.get('frame_kind')})
+        records.append([sample['frame'], 'nan' if time is None else time, *sample['point']])
         previous = sample['frame']
-    return records, gaps
+    return records, gaps, untimed
 
 
 def csv_payload(path):
     if not path.get('rows'): raise ValueError('먼저 계산된 경로를 읽으세요.')
-    records, gaps = _csv_records(path)
+    records, gaps, untimed = _csv_records(path)
     stream = io.StringIO(newline='')
     source = {key: deepcopy(value) for key, value in path.items() if key != 'rows'}
     source['sampled_frames'] = [row['frame'] for row in path['rows']]
     if gaps: source.update(gap_markers=gaps, csv_row_kind='physical_line_zero_based')
+    if untimed: source.update(non_time_frames=untimed, csv_row_kind='physical_line_zero_based')
     # The existing Data preview refuses quotes even in comments. Keep the
     # lossless source JSON URL-encoded so the ordinary numeric preview works.
     stream.write('# motion_source_json_urlencoded=' + quote(json.dumps(source, ensure_ascii=False, separators=(',', ':'), allow_nan=False), safe='') + '\n')
     writer = csv.writer(stream)
-    writer.writerow(['native_frame', 'nominal_time_s', 'world_x_mm', 'world_y_mm', 'world_z_mm'])
+    writer.writerow(['native_frame', 'time_s' if path.get('clock')==NATIVE_CLOCK else 'nominal_time_s', 'world_x_mm', 'world_y_mm', 'world_z_mm'])
     writer.writerows(records)
     return stream.getvalue().encode('utf-8')
 
 
 def data_draft(path, data_id):
-    _, gaps = _csv_records(path)
+    _, gaps, untimed = _csv_records(path)
     columns = {}
     for name, column, unit, component, measure in [('X', 2, 'mm', 'x', 'position'),
             ('Y', 3, 'mm', 'y', 'position'), ('Z', 4, 'mm', 'z', 'position'),
             ('프레임', 0, '1', 'frame_index', 'native_frame_index')]:
         columns[name] = {'column': column, 'unit': unit, 'component': component,
             'location': 'trace_point:' + path['trace_id'], 'measure': measure, 'frame': 'document_global',
-            'axis': {'column': 1, 'name': 'nominal_time', 'unit': 's'}}
-        if gaps:
+            'axis': {'column': 1, 'name': 'time' if path.get('clock')==NATIVE_CLOCK else 'nominal_time', 'unit': 's'}}
+        if gaps or untimed:
             reasons = {str(gap['csv_row']): '미읽기 경로 구간: 프레임 ' + str(gap['unread_frames'][0])
                 + '–' + str(gap['unread_frames'][1]) + ' / 좌표·시간 측정 없음' for gap in gaps}
-            columns[name]['row_selection'] = {'exclude_rows': [gap['csv_row'] for gap in gaps],
-                'quality_rows': [gap['csv_row'] for gap in gaps], 'reasons': reasons, 'quality_reasons': deepcopy(reasons)}
+            reasons.update({str(row['csv_row']):'설계 자세: 좌표는 보존되며 물리 시각은 없습니다.' if row['kind']=='design'
+                else '계산 시각 미확인: 원좌표는 보존되며 시간 분석에서 제외합니다.' for row in untimed})
+            columns[name]['row_selection'] = {'exclude_rows': [int(row) for row in reasons],
+                'quality_rows': [int(row) for row in reasons], 'reasons': reasons, 'quality_reasons': deepcopy(reasons)}
     return {'data_id': data_id, 'mapping': {'delimiter': ',', 'skip_header': 2, 'columns': columns},
-        'test_metadata': {'protocol': '조립 운동학 경로. 시간은 설정한 출력 간격으로 환산한 값이며 실제 계산 시각 기록이 아닙니다. '
+        'test_metadata': {'protocol': '조립 운동학 경로. '+clock_notice(path)+' '
             + f"읽은 프레임 {len(path['rows'])}/{path['total_frames']}. 원 프레임과 출처는 CSV에 보존됩니다."}}
 
 
@@ -90,7 +119,7 @@ def make_plot(QtCore, Q):
     class Plot(Q.QWidget):
         selected = QtCore.Signal(int)
         def __init__(self):
-            super().__init__(); self.rows = []; self.mode = 'time'; self.index = -1; self.points = []
+            super().__init__(); self.rows = []; self.path = {}; self.mode = 'time'; self.index = -1; self.points = []
             self.setMinimumHeight(230); self.setMouseTracking(True)
             self.setAccessibleName('점 경로 곡선. 곡선의 점을 누르면 같은 프레임 행을 선택합니다.')
         def paintEvent(self, event):
@@ -102,13 +131,16 @@ def make_plot(QtCore, Q):
             if not self.rows:
                 painter.setPen(Gui.QColor('#536373')); painter.drawText(area, QtCore.Qt.AlignCenter, '경로를 읽으면 곡선이 표시됩니다.'); return
             if self.mode == 'time':
-                series = [[(r['nominal_time'], r['point'][axis]) for r in self.rows] for axis in range(3)]
-                xlabel, ylabel = '출력격자 시간 [s]', '세계 좌표 [mm]'
+                series = [[(i,sample_time(self.path,r),r['point'][axis]) for i,r in enumerate(self.rows)
+                    if sample_time(self.path,r) is not None] for axis in range(3)]
+                xlabel, ylabel = time_label(self.path), '세계 좌표 [mm]'
             else:
                 a, b = {'xy': (0, 1), 'xz': (0, 2), 'yz': (1, 2)}[self.mode]
-                series = [[(r['point'][a], r['point'][b]) for r in self.rows]]
+                series = [[(i,r['point'][a],r['point'][b]) for i,r in enumerate(self.rows)]]
                 xlabel, ylabel = '세계 ' + 'xyz'[a] + ' [mm]', '세계 ' + 'xyz'[b] + ' [mm]'
-            xs = [p[0] for line in series for p in line]; ys = [p[1] for line in series for p in line]
+            xs = [p[1] for line in series for p in line]; ys = [p[2] for line in series for p in line]
+            if not xs:
+                painter.drawText(area,QtCore.Qt.AlignCenter,'물리 시각이 없는 자세입니다. 표 또는 공간 경로에서 확인하세요.'); return
             xmin, xmax, ymin, ymax = min(xs), max(xs), min(ys), max(ys)
             if xmin == xmax: xmin -= .5; xmax += .5
             if ymin == ymax: ymin -= .5; ymax += .5
@@ -129,13 +161,14 @@ def make_plot(QtCore, Q):
                 color = ['#246aa4', '#22805c', '#ba5736'][axis]
                 painter.setPen(Gui.QPen(Gui.QColor(color), 1.8))
                 previous = None
-                for index, (x, y) in enumerate(line):
+                for index, x, y in line:
                     point = QtCore.QPointF(area.left()+(x-xmin)/(xmax-xmin)*area.width(), area.bottom()-(y-ymin)/(ymax-ymin)*area.height())
-                    if previous is not None and self.rows[index]['frame'] == self.rows[index-1]['frame']+1: painter.drawLine(previous, point)
+                    if (previous is not None and self.rows[index]['frame'] == self.rows[prior_index]['frame']+1
+                            and self.rows[prior_index].get('frame_kind')!='design'): painter.drawLine(previous, point)
                     painter.drawEllipse(point, 2, 2); self.points.append((index, point))
                     if index == self.index:
                         painter.setBrush(Gui.QColor(color)); painter.drawEllipse(point, 5, 5); painter.setBrush(QtCore.Qt.NoBrush)
-                    previous = point
+                    previous = point; prior_index=index
                 if self.mode == 'time': painter.drawText(int(area.right()-135+45*axis), 23, 'xyz'[axis])
         def mousePressEvent(self, event):
             if self.points:
@@ -202,20 +235,21 @@ class PathBrowser:
         selected_frame = self.table.item(self.table.currentRow(), 0)
         frame = int(selected_frame.text()) if selected_frame else None
         self.path_value = self.datasets.get(self.results.currentData())
+        self.table.setHorizontalHeaderItem(1,self.Q.QTableWidgetItem(time_label(self.path_value)))
         rows = (self.path_value or {}).get('rows', []); self.table.blockSignals(True); self.table.setRowCount(len(rows))
         for index, row in enumerate(rows):
-            for column, value in enumerate([row['frame'], row['nominal_time'], *row['point']]):
-                text = str(value) if column == 0 else format(value, '.9g')
-                if column and '.' not in text and 'e' not in text: text += '.0'
+            for column, value in enumerate([row['frame'], sample_time(self.path_value,row), *row['point']]):
+                text = ('설계 자세' if row.get('frame_kind')=='design' else '시각 미확인') if value is None else str(value) if column == 0 else format(value, '.9g')
+                if value is not None and column and '.' not in text and 'e' not in text: text += '.0'
                 item = self.Q.QTableWidgetItem(text); item.setToolTip(str(value)); self.table.setItem(index, column, item)
-        self.table.blockSignals(False); self.plot.rows = rows
+        self.table.blockSignals(False); self.plot.rows = rows; self.plot.path=self.path_value or {}
         row = next((i for i, value in enumerate(rows) if value['frame'] == frame), 0 if rows else -1)
         self.table.setCurrentCell(row, 0); self._selected_row(row)
         if rows:
             path = self.path_value; frames = {row['frame'] for row in rows}
             missing = path['total_frames']-len(frames)
             state = '모델·구동 변경 — 과거 원자료' if path['source_status'] == 'STALE' else '출처 확인 불가 — 보존 원자료' if path['source_status'] == 'UNKNOWN' else '계산된 원자료'
-            self.notice.setText(f"{state} / 읽은 프레임 {len(rows)}/{path['total_frames']}" + (f' / 미읽기·누락 {missing}' if missing else ' / 전체 경로') + '\n위치는 세계 좌표 [mm]입니다. 시간은 설정한 출력 간격으로 환산한 값이며 실제 계산 시각 기록이 아닙니다.')
+            self.notice.setText(f"{state} / 읽은 프레임 {len(rows)}/{path['total_frames']}" + (f' / 미읽기·누락 {missing}' if missing else ' / 전체 경로') + '\n위치는 세계 좌표 [mm]입니다. '+clock_notice(path))
         else: self.notice.setText('아직 읽은 경로가 없습니다. 경로 읽기는 운동을 다시 계산하지 않습니다.')
         self._update_buttons()
 

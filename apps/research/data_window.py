@@ -25,6 +25,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from caelab.workbench_client import Client
+from caelab.workbench_cli import serializable
 
 
 TERMINAL = {'SUCCEEDED', 'FAILED', 'CANCELLED', 'PARTIAL_FAILURE', 'INTERRUPTED', 'REJECTED'}
@@ -33,7 +34,7 @@ MAX_ROWS = 2000
 
 
 def display(value):
-    return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+    return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=serializable)
 
 
 def integer_or_raw(text):
@@ -150,7 +151,8 @@ class DataWindow(QMainWindow):
             self.open_document(document_id=document_id)
 
     def _build_ui(self):
-        from .appearance import configure_plot_fonts
+        from .appearance import apply_appearance,configure_plot_fonts
+        apply_appearance(QApplication.instance())
         configure_plot_fonts()
         self.resize(1440, 940)
         self.setMinimumSize(960, 690)
@@ -1514,6 +1516,8 @@ class DataWindow(QMainWindow):
                      else f'{point_name}의 기록된 프레임')
             if axis_name == 'nominal_time':
                 axis_name = '출력 격자 시간'
+            elif axis_name == 'time':
+                axis_name = '계산 시각'
         self.axes.set_xlabel(f"{axis_name} [{axis.get('unit', 'unknown')}]")
         self.axes.set_ylabel(f"{name} [{response.get('unit', 'unknown')}]")
         self.axes.set_title(title, fontsize=9)
@@ -1757,7 +1761,7 @@ class DataWindow(QMainWindow):
     def _show_details(self):
         self.details.setPlainText(json.dumps({'document': self.document, 'view_diagnostic': self._view_error,
             'source_preview': self._preview, 'selected_result': self._results.get(self._result_key()),
-            'result_read_errors': list(self._result_errors.values()), 'comparison': self._comparison}, ensure_ascii=False, indent=2))
+            'result_read_errors': list(self._result_errors.values()), 'comparison': self._comparison}, ensure_ascii=False, indent=2, default=serializable))
 
     def _update_actions(self):
         present = self.document is not None
