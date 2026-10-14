@@ -13,20 +13,20 @@ JOINT_LABELS = {'Grounded': '고정 부품', 'Fixed': '고정 연결', 'Revolute
 DRIVE_TYPES = {'Revolute': ('Angular',), 'Slider': ('Linear',), 'Cylindrical': ('Angular', 'Linear')}
 
 
-def make_panel(QtCore, QtWidgets, submit, *, read=None):
+def make_panel(QtCore, QtWidgets, submit, *, read=None, open_data=None):
     """Return QWidget with refresh(descriptor); submit(op,args,target,on_done).
 
     read, when supplied, reads the active owner's small descriptor on the GUI
     thread. Command completion is asynchronous. The parent owns HTTP retries.
     """
-    controller = MotionPanel(QtCore, QtWidgets, submit, read=read)
+    controller = MotionPanel(QtCore, QtWidgets, submit, read=read, open_data=open_data)
     controller.widget.motion_controller = controller
     controller.widget.refresh = controller.refresh
     return controller.widget
 
 
 class MotionPanel:
-    def __init__(self, QtCore, QtWidgets, submit, *, read=None):
+    def __init__(self, QtCore, QtWidgets, submit, *, read=None, open_data=None):
         self.Q, self.QtCore, self.submit, self.read = QtWidgets, QtCore, submit, read
         self.widget = QtWidgets.QWidget()
         self._document = None; self._session = None; self._serial = 0; self._busy = False; self._loading = False
@@ -39,6 +39,7 @@ class MotionPanel:
         self._editor_loaded = False
         self._select_saved_assembly = True
         self._initial_editor = None
+        self._path_read_scope = None
         self._buttons = []
         layout = QtWidgets.QVBoxLayout(self.widget)
         row = QtWidgets.QHBoxLayout(); self.assembly = QtWidgets.QComboBox()
@@ -136,17 +137,21 @@ class MotionPanel:
             self._button(buttons, label, lambda op=operation, value=extra: self._send('pre.motion.' + op,
                 {'calculation_id': self._calculation_id(), **value} if value is not None else {}))
         frames_layout.addLayout(buttons)
+        _, path_layout = self._tab(tabs, '점 경로')
         row = QtWidgets.QHBoxLayout(); self.trace_select = QtWidgets.QComboBox()
         self.path_start, self.path_count = QtWidgets.QSpinBox(), QtWidgets.QSpinBox()
         self.path_start.setRange(0, 2000); self.path_count.setRange(1, 200); self.path_count.setValue(100)
-        row.addWidget(self.trace_select, 1); row.addWidget(self.path_start); row.addWidget(self.path_count)
-        self._button(row, '경로 읽기', lambda: self._send('pre.motion.path', {
-            'calculation_id': self._calculation_id(), 'trace_id': self.trace_select.currentData(),
-            'start': self.path_start.value(), 'count': self.path_count.value()}))
-        frames_layout.addLayout(row)
-        self.path = QtWidgets.QTableWidget(0, 5)
-        self.path.setHorizontalHeaderLabels(['프레임', '출력격자 시간 [s]', '전체 x [mm]', '전체 y [mm]', '전체 z [mm]'])
-        self.path.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers); frames_layout.addWidget(self.path)
+        row.addWidget(QtWidgets.QLabel('경로점')); row.addWidget(self.trace_select, 1)
+        self._button(row, '전체 경로 읽기', lambda: self._read_path(all_frames=True)); path_layout.addLayout(row)
+        row = QtWidgets.QHBoxLayout(); row.addWidget(QtWidgets.QLabel('시작 프레임')); row.addWidget(self.path_start)
+        row.addWidget(QtWidgets.QLabel('읽을 개수')); row.addWidget(self.path_count)
+        self._button(row, '구간 읽기', self._read_path)
+        stop = QtWidgets.QPushButton('읽기 중지'); stop.clicked.connect(lambda: setattr(self, '_path_read_scope', None)); row.addWidget(stop)
+        path_layout.addLayout(row)
+        from .motion_path import PathBrowser
+        self.path_browser = PathBrowser(QtCore, QtWidgets, path_layout,
+            lambda calculation, frame: self._send('pre.motion.frame', {'calculation_id': calculation, 'frame': frame}), open_data)
+        self.path = self.path_browser.table
         self.assembly.currentIndexChanged.connect(self._assembly_changed)
         self.joint.currentIndexChanged.connect(self._joint_selected)
         for field in (self.subelement_a, self.subelement_b, *[f for f, u in self.joint_parameters.values()]):
@@ -264,7 +269,7 @@ class MotionPanel:
     def _frame_args(self):
         return {'calculation_id': self._calculation_id(), 'frame': self.frame.value()}
 
-    def _send(self, operation, args, *, target=None, inspect=False, on_failure=None):
+    def _send(self, operation, args, *, target=None, inspect=False, on_failure=None, on_done=None):
         if self._busy: return
         editor = self._motion.get('editors', {}).get(self.assembly.currentData(), {})
         if (self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None) and operation in ('pre.assembly.create', 'pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
@@ -303,6 +308,7 @@ class MotionPanel:
             if inspect:
                 self._inspect_value(value)
             self._show_runtime()
+            if on_done is not None: on_done(value)
             if operation in ('pre.joint.create', 'pre.joint.update', 'pre.joint.remove', 'pre.assembly.link', 'pre.assembly.create'):
                 self._send('pre.motion.inspect', {}, inspect=True)
         try:
@@ -334,6 +340,8 @@ class MotionPanel:
             self._editor_loaded = False
             self._select_saved_assembly = True
             self._initial_editor = None
+            self._path_read_scope = None
+            self.path_browser.refresh([], None)
             for button in self._buttons: button.setEnabled(True)
             for combo in (self.joint, self.connector_a, self.connector_b): self._fill_combo(combo, [])
             self.path.setRowCount(0)
@@ -384,7 +392,7 @@ class MotionPanel:
                     self.tolerance.clear()
             self._fill_combo(self.trace_select, (definition or {}).get('traces', []))
             self._show_runtime()
-            if self._motion.get('path'): self._show_path(self._motion['path'])
+            self._refresh_paths()
         finally: self._loading = False
         if not self._editor_loaded:
             self._editor_loaded = True
@@ -395,6 +403,7 @@ class MotionPanel:
         self._validate_drives()
         if self._initial_editor is None: self._initial_editor = self.current_editor()
         self._show_runtime()
+        self._refresh_paths()
 
     def _show_runtime(self):
         calculation = self._motion.get('calculation') or {}
@@ -420,7 +429,7 @@ class MotionPanel:
         self._select_saved_assembly = False
         for combo in (self.joint, self.connector_a, self.connector_b): self._fill_combo(combo, [])
         self.refresh(self._data)
-        self.path.setRowCount(0)
+        self._refresh_paths()
         self._send('pre.motion.inspect', {}, inspect=True)
 
     def _inspect_value(self, value):
@@ -566,7 +575,10 @@ class MotionPanel:
                     'unit': cell(self.drives, row, 3)} for row in range(self.drives.rowCount())],
                 'traces': [{'id': cell(self.traces, row, 0), 'occurrence_id': self.traces.cellWidget(row, 1).currentData(),
                     'point': [cell(self.traces, row, c) for c in (2, 3, 4)]} for row in range(self.traces.rowCount())]}
-        return {'view': self.current_view(), 'joint_draft': joint, 'definition_draft': definition}
+        editor = {'view': self.current_view(), 'joint_draft': joint, 'definition_draft': definition}
+        path_view = self.path_browser.current_view()
+        if path_view is not None: editor['path_view'] = path_view
+        return editor
 
     def editor_token(self):
         return self._document, self._session, self.assembly.currentData(), self._edit_version, self._joint_version, json.dumps(self.current_editor(), sort_keys=True)
@@ -631,6 +643,7 @@ class MotionPanel:
                 if 0 <= row < table.rowCount(): table.selectRow(row)
                 else: table.setCurrentCell(-1, -1); table.clearSelection()
             self._joint_edited = joint is not None; self._edited = definition is not None
+            if editor.get('path_view'): self.path_browser.restore_view(editor['path_view'])
         finally: self._loading = False
         self._joint_controls()
 
@@ -667,6 +680,41 @@ class MotionPanel:
         return issues
 
     def _show_path(self, value):
-        self.path.setRowCount(len(value.get('rows', [])))
-        for row, sample in enumerate(value.get('rows', [])):
-            for column, number in enumerate([sample['frame'], sample['nominal_time'], *sample['point']]): self._item(self.path, row, column, number, readonly=True)
+        self._motion['path'] = deepcopy(value)
+        summary = next((s for s in self._motion.get('path_results', []) if s['id'] == value['calculation_id']), None)
+        if summary is None:
+            summary = {'id': value['calculation_id'], 'assembly_id': self.assembly.currentData(), 'paths': {}, 'source_status': 'CURRENT'}
+            self._motion.setdefault('path_results', []).append(summary)
+        summary['paths'][value['trace_id']] = deepcopy(value)
+        self._refresh_paths(latest=value)
+
+    def _refresh_paths(self, *, latest=None):
+        summaries = [s for s in self._motion.get('path_results', []) if s.get('assembly_id') == self.assembly.currentData()]
+        self.path_browser.refresh(summaries, self._calculation_id(), latest=latest,
+            can_preview=not (self._edited or self._joint_edited or self._busy))
+
+    def _read_path(self, *, all_frames=False):
+        calculation = self._motion.get('calculation') or {}
+        if not self._calculation_id() or not self.trace_select.currentData():
+            self.path_browser.notice.setText('현재 문서에 계산된 프레임이 없습니다. 보존 경로는 아래 표·곡선에서 읽을 수 있습니다.'); return
+        if self._edited or self._joint_edited:
+            self.path_browser.notice.setText('관절과 구동 편집을 적용하거나 취소한 뒤 계산된 경로를 읽으세요.'); return
+        scope = (self._document, self._session, self.assembly.currentData(), self._edit_version, self._joint_version)
+        self._path_read_scope = scope
+        trace = self.trace_select.currentData(); start = 0 if all_frames else self.path_start.value()
+        def page(index):
+            current = (self._document, self._session, self.assembly.currentData(), self._edit_version, self._joint_version)
+            if self._path_read_scope != scope or current != scope:
+                self._path_read_scope = None; return
+            count = min(200 if all_frames else self.path_count.value(), calculation['frame_count']-index)
+            if count <= 0:
+                self._path_read_scope = None; self.path_browser.notice.setText('시작 프레임이 계산 범위를 벗어났습니다.'); return
+            def completed(value):
+                if all_frames and index+count < calculation['frame_count']: page(index+count)
+                else: self._path_read_scope = None
+            def failed():
+                self._path_read_scope = None
+                self.path_browser._message('경로 읽기를 완료하지 못했습니다. 이미 읽은 원자료와 누락 프레임 수는 남아 있습니다.')
+            self._send('pre.motion.path', {'calculation_id': calculation['id'], 'trace_id': trace,
+                'start': index, 'count': count}, on_done=completed, on_failure=failed)
+        page(start)

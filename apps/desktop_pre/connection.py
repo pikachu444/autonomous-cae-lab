@@ -117,7 +117,7 @@ class Connection:
                 stored = owner.read_metadata().get('motion_editors', {}).get(assembly.Name)
                 editor = arguments.get('editor')
                 if (set(arguments) != {'editor'} or not isinstance(stored, dict) or not isinstance(editor, dict)
-                        or set(editor) != set(stored) or editor.get('view') != stored.get('view')
+                        or set(editor) != set(stored) or editor.get('view') != stored.get('view') or editor.get('path_view') != stored.get('path_view')
                         or any(editor.get(key) is not None and editor.get(key) != stored.get(key) for key in ('joint_draft', 'definition_draft'))
                         or not any(stored.get(key) is not None and editor.get(key) is None for key in ('joint_draft', 'definition_draft'))):
                     raise ValueError('연결이 끊긴 동안에는 저장 또는 명시적 편집 취소만 가능합니다.')
@@ -460,6 +460,35 @@ class Connection:
             environment.pop(key, None)
         subprocess.Popen(command, cwd=str(Path(__file__).resolve().parents[2]), env=environment)
 
+    def open_motion_data(self, path, on_done, document=None):
+        """Keep the exact sampled CSV and Data owner if save or launch fails."""
+        from copy import deepcopy
+        from .motion_path import save_data_document
+        config = deepcopy(self.config)
+        service_url = (document or {}).get('_motion_service_url', config['service_url'])
+        client = self.client if service_url == config['service_url'] else Client(service_url)
+        snapshot = deepcopy(path); retained = {'document': document}
+        def create():
+            try:
+                saved = save_data_document(client, snapshot, document=document,
+                    on_created=lambda value: retained.update(document=value))
+                return {'document': saved}
+            except Exception as error: return {**retained, 'error': str(error)}
+        def opened(reply):
+            if reply.get('document'): reply['document'] = {**reply['document'], '_motion_service_url': service_url}
+            if reply.get('error'):
+                on_done(reply); return
+            try:
+                environment = os.environ.copy()
+                for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
+                    environment.pop(key, None)
+                process = subprocess.Popen([config['python'], '-m', 'apps.research.desktop', '--service',
+                    service_url, 'data', '--document-id', reply['document']['id']],
+                    cwd=str(Path(__file__).resolve().parents[2]), env=environment)
+                on_done({**reply, 'status': 'LAUNCH_REQUESTED', 'pid': process.pid})
+            except Exception as error: on_done({**reply, 'error': str(error)})
+        self.request('motion-data:' + uuid.uuid4().hex, create, opened)
+
     def open_post(self, identifier):
         def resolved(value):
             post = value.get('post_input')
@@ -496,7 +525,8 @@ class Connection:
                 submit = lambda operation, args, target=None, on_done=None: self.submit_native(operation, args, target, on_done, owner=owner)
                 if kind == 'motion':
                     widget = factory(self.QtCore, self.QtWidgets, submit,
-                                     read=lambda: dict(owner.descriptor(), session_id=owner.session_id))
+                                     read=lambda: dict(owner.descriptor(), session_id=owner.session_id),
+                                     open_data=self.open_motion_data)
                 else:
                     widget = factory(self.QtWidgets, self.QtCore, editor, submit)
             dock = self.QtWidgets.QDockWidget(title, self.Gui.getMainWindow())
