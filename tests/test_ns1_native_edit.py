@@ -130,3 +130,121 @@ end program
     subprocess.run([compiler,str(source),'-o',str(binary)],check=True,capture_output=True,timeout=20)
     result=subprocess.run([str(binary)],input=token+'\n',text=True,check=True,capture_output=True,timeout=5)
     assert float(result.stdout)==pytest.approx(1.234567891234567e-5,rel=5e-13,abs=0)
+
+
+def test_saved_elastic_application_rejects_a_new_active_native_curve(nonlinear_factory):
+    """Astra: the unchanged suppressed object must not certify a different J2."""
+    n = nonlinear_factory
+    source = draft()
+    nm.apply(n.editor, n.material, n.analysis.Name, source)
+    old, = nm.native_objects(n.analysis)
+    elastic = dict(source, law=LINEAR)
+    nm.apply(n.editor, n.material, n.analysis.Name, elastic)
+    other = Object(n.doc, 'NewNativePlastic', 'Fem::FeaturePython', Proxy=NS(Type=nm.KIND),
+                   LinearBaseMaterial=n.material, MaterialModelNonlinearity='isotropic hardening',
+                   YieldPoints=['400,0', '450,.02'], Suppressed=False)
+    n.analysis.addObject(other)
+    n.solver.MaterialNonlinearity = 'nonlinear'
+    before = deepcopy(n.metadata)
+    assert old.Suppressed and nm.native_objects(n.analysis) == [other]
+    with pytest.raises(ValueError, match='native'):
+        nm.effective(n.editor, n.analysis, n.material)
+    restored = nm.read(n.editor, n.material, n.analysis.Name)
+    assert not restored['applied'] and restored['errors']
+    assert restored['draft'] == elastic and n.metadata == before
+
+
+@pytest.mark.parametrize('change', ['replace', 'suppress', 'remove', 'relink', 'duplicate'])
+def test_active_application_snapshot_rejects_native_set_changes(nonlinear_factory, change):
+    n = nonlinear_factory
+    nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    old, = nm.native_objects(n.analysis)
+    before = deepcopy(n.metadata)
+    if change == 'suppress':
+        old.Suppressed = True
+    elif change == 'remove':
+        n.analysis.Group.remove(old)
+    elif change == 'relink':
+        old.LinearBaseMaterial = NS(Name='AnotherBase')
+    else:
+        other = Object(n.doc, 'Replacement', 'Fem::FeaturePython', Proxy=NS(Type=nm.KIND),
+                       LinearBaseMaterial=n.material, MaterialModelNonlinearity='isotropic hardening',
+                       YieldPoints=list(old.YieldPoints), Suppressed=False)
+        n.analysis.addObject(other)
+        if change == 'replace':
+            n.analysis.Group.remove(old)
+    n.metadata = json.loads(json.dumps(n.metadata))
+    n.editor = FEMEditor(n)
+    with pytest.raises(ValueError):
+        nm.effective(n.editor, n.analysis, n.material)
+    assert not nm.read(n.editor, n.material, n.analysis.Name)['applied']
+    assert n.metadata == before
+
+
+@pytest.mark.parametrize('law', [LINEAR, J2])
+def test_applied_legacy_snapshot_and_other_base_objects_remain_compatible(nonlinear_factory, law):
+    n = nonlinear_factory
+    nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    value = dict(draft(), law=law)
+    nm.apply(n.editor, n.material, n.analysis.Name, value)
+    # This IS the existing saved schema: no active-set migration/new fields.
+    record, = n.metadata['plasticity_drafts']
+    assert set(record) == {'analysis_id', 'material_id', 'draft', 'applied_draft', 'applied_native'}
+    other = Object(n.doc, 'OtherBaseJ2', 'Fem::FeaturePython', Proxy=NS(Type=nm.KIND),
+                   LinearBaseMaterial=NS(Name='DifferentBase'), MaterialModelNonlinearity='isotropic hardening',
+                   YieldPoints=['500,0'], Suppressed=False)
+    n.analysis.addObject(other)
+    n.solver.MaterialNonlinearity = 'nonlinear'
+    n.metadata = json.loads(json.dumps(n.metadata)); n.editor = FEMEditor(n)
+    result = nm.effective(n.editor, n.analysis, n.material)
+    assert result['law'] == law and nm.read(n.editor, n.material, n.analysis.Name)['applied']
+    assert (result.get('source_curve') == value['plasticity']) is (law == J2)
+
+
+def test_reapply_to_explicitly_selected_replacement_does_not_misattribute_source(nonlinear_factory):
+    n = nonlinear_factory
+    nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    old, = nm.native_objects(n.analysis)
+    nm.apply(n.editor, n.material, n.analysis.Name, dict(draft(), law=LINEAR))
+    old_rows = list(old.YieldPoints)
+    other = Object(n.doc, 'Replacement', 'Fem::FeaturePython', Proxy=NS(Type=nm.KIND),
+                   LinearBaseMaterial=n.material, MaterialModelNonlinearity='isotropic hardening',
+                   YieldPoints=['400,0', '450,.02'], Suppressed=False)
+    n.analysis.addObject(other)
+    before = deepcopy(n.metadata)
+    with pytest.raises(ValueError): nm.effective(n.editor, n.analysis, n.material)
+    with pytest.raises(ValueError): nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    assert n.metadata == before and old.YieldPoints == old_rows
+    # Explicit native cleanup; no automatic deletion/selection of duplicates.
+    n.analysis.Group.remove(old)
+    chosen = draft(2); chosen['plasticity']['yield_points'] = [['400','0'], ['450','.02']]
+    nm.apply(n.editor, n.material, n.analysis.Name, chosen)
+    result = nm.effective(n.editor, n.analysis, n.material)
+    assert result['native_nonlinear_id'] == other.Name
+    assert result['source_curve'] == chosen['plasticity'] != before['plasticity_drafts'][0]['draft']['plasticity']
+    assert old.YieldPoints == old_rows and old.Suppressed
+
+
+# The complete collector/freeze admission, with explicit native-shaped doubles.
+from test_contact_execution import model
+
+
+@pytest.mark.parametrize('single', [False, True])
+def test_elastic_native_addition_is_blocked_at_collect_and_freeze(model, monkeypatch, single, tmp_path):
+    from test_ns1_native_collect import native_fixture
+    from apps.desktop_pre import freeze_contact as exporter
+    n = native_fixture(model, monkeypatch, single)
+    base = n.objects['PadMaterial']; old = n.plastic
+    old.Suppressed = True
+    value = dict(draft(), law=LINEAR)
+    n.metadata['plasticity_drafts'] = [{'analysis_id': n.analysis.Name, 'material_id': base.Name,
+        'draft': deepcopy(value), 'applied_draft': deepcopy(value), 'applied_native': nm._signature(old)}]
+    other = NS(**vars(old)); other.Name = 'AdditionalJ2'; other.Suppressed = False
+    other.YieldPoints = ['400,0', '450,.02']
+    n.analysis.Group.append(other); n.doc.Objects.append(other)
+    before = deepcopy(n.metadata)
+    with pytest.raises(ValueError, match='native'):
+        exporter.collect(n.analysis, n.solver, n.fem)
+    with pytest.raises(ValueError, match='native'):
+        exporter.freeze_contact(n.analysis, n.solver, tmp_path/'frozen', fem=n.fem)
+    assert n.metadata == before and not (tmp_path/'frozen').exists()

@@ -73,43 +73,106 @@ def require_converged(frames, status):
             raise ValueError('Contact field is not a uniquely converged native increment')
 
 def retained_prefix(frd, destination, nodes, elements, materials, model, status):
-    """Keep a contiguous committed prefix; never publish a diagnostic best solution.
+    """Derive only completely recorded, uniquely converged output increments.
 
-    The derived reading copy has an explicit terminator. Raw solver bytes and
-    truncation remain untouched. Strict geometry/field/component checks still run.
+    Only the strict reader's structural EOF signal permits dropping the final
+    increment. Arbitrary parsing errors, interior damage and explicit malformed
+    end markers are never repaired by shortening the file until it parses.
     """
-    from .adapters.frozen_fem import read_frd
+    from .adapters.frozen_fem import read_frd, FrdTruncatedEOF, _read
     from .contact_steps import validate_frames
-    raw=Path(frd).read_bytes()
-    text=raw.decode('ascii').replace('\r\n','\n')
-    lines=text.splitlines()
-    endings=[i for i,line in enumerate(lines) if line.strip()=='9999']
-    if len(endings)>1 or (endings and any(line.strip() for line in lines[endings[0]+1:])):
+    from .calculix_material import ns1_enabled, has_plasticity
+    frd, destination = Path(frd), Path(destination)
+    if destination.resolve() == frd.resolve():
+        raise ValueError('The derived FRD must not replace the raw solver output')
+    raw = _read(frd)
+    text = raw.decode('ascii').replace('\r\n', '\n')
+    if '\r' in text or '\x00' in text:
+        raise ValueError('Malformed ASCII FRD line encoding')
+    lines = text.splitlines(keepends=True)
+    endings = [i for i, line in enumerate(lines) if line.strip() == '9999']
+    if len(endings) > 1 or (endings and any(line.strip() for line in lines[endings[0]+1:])):
         raise ValueError('Native FRD contains content after its end marker')
-    starts=[i for i,l in enumerate(lines) if l.split()[:1]==['1PSTEP']]
-    committed={(r['step'],r['increment']) for r in status['rows'] if r['converged']}
+    starts = [i for i, line in enumerate(lines) if line.split()[:1] == ['1PSTEP']]
+    committed = {(r['step'], r['increment']) for r in status['rows'] if r['converged']}
     if not starts:
         raise ValueError('No native field output')
-    stop=len(lines); included=False
+    stop = endings[0] if endings else len(lines)
+    reason = 'complete_converged_output'
+    first_by_key = {}
     for i in starts:
-        line=lines[i].ljust(70)
-        key=(int(line[48:60]),int(line[36:48]))
+        line = lines[i].rstrip('\n').ljust(70)
+        try:
+            key = (int(line[48:60]), int(line[36:48]))
+        except ValueError:
+            # Let the strict reader distinguish a true EOF fragment from damage.
+            if i == len(lines)-1 and not text.endswith('\n') and not endings:
+                break
+            raise ValueError('Malformed native FRD increment identity') from None
+        first_by_key.setdefault(key, i)
         if key not in committed:
-            stop=i
+            stop, reason = i, 'first_nonconverged_increment'
             break
-        included=True
-    if not included:
-        raise ValueError('No converged field prefix')
-    # A truncated final committed frame fails strict parsing; it is not filled.
-    prefix=lines[:min(stop,endings[0] if endings else len(lines))]
-    destination=Path(destination)
-    destination.parent.mkdir(parents=True,exist_ok=True)
-    destination.write_text('\n'.join(prefix+[' 9999','']),encoding='ascii',newline='\n')
-    observed=read_frd(destination,nodes,elements,contact_materials=materials,contact_profile=profile(model),
-                      require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
-    from .calculix_material import ns1_enabled
+    physical_eof = not endings and stop == len(lines)
+
+    def parse(cut, *, eof=False):
+        reading = ''.join(lines[:cut])
+        if not eof:
+            reading = reading.rstrip('\n') + '\n 9999\n'
+        return read_frd(destination, nodes, elements, data=reading.encode('ascii'),
+                        allow_missing_end=eof, contact_materials=materials,
+                        contact_profile=profile(model),
+                        require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
+
+    recovered = False
+    try:
+        observed = parse(stop, eof=physical_eof)
+    except FrdTruncatedEOF as error:
+        if not physical_eof or error.prefix_lines is None:
+            raise
+        stop, reason, recovered = error.prefix_lines, 'incomplete_increment_at_eof', True
+        # Strictly reparse the complete prefix once, never repeatedly backtrack.
+        observed = parse(stop)
+
+    required = {'DISP'}
+    if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']):
+        required.add('CONTACT')
+    if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
+        required.update(('STRESS', 'FORC'))
+    if ns1_enabled(model):
+        required.update(('STRESS', 'TOSTRAIN', 'FORC'))
+        if has_plasticity(model):
+            required.add('PE')
+    for index, frame in enumerate(observed['frames']):
+        missing = required - set(frame['fields'])
+        if not missing:
+            continue
+        if physical_eof and not recovered and index == len(observed['frames'])-1:
+            # EOF can occur exactly BETWEEN output fields, with no short record.
+            # Missing requested channels do not make this a complete increment.
+            key = (frame['static']['step'], frame['static']['increment'])
+            stop, reason, recovered = first_by_key[key], 'incomplete_increment_at_eof', True
+            observed = parse(stop)
+            break
+        raise ValueError('Incomplete requested FRD fields: ' + ', '.join(sorted(missing)))
+    if any(required - set(frame['fields']) for frame in observed['frames']):
+        raise ValueError('Incomplete requested fields before the EOF increment')
     if ns1_enabled(model) and observed['native_version'] != '2.22':
         raise ValueError('NS1 partial readback requires CalculiX 2.22.')
-    validate_frames(model,observed,complete=False)
-    require_converged(observed['frames'],status)
+    validate_frames(model, observed, complete=False)
+    require_converged(observed['frames'], status)
+    observed['retention'] = {
+        'reason': reason, 'raw_sha256': hashlib.sha256(raw).hexdigest(), 'raw_bytes': len(raw),
+        'retained_line_count': stop,
+        'discarded_from_line': stop+1 if stop < (endings[0] if endings else len(lines)) else None,
+        'last_retained_increment': deepcopy(observed['frames'][-1]['static']),
+        'synthetic_end_marker': not endings or stop != endings[0],
+        'scope': 'complete_fields_of_converged_increments_only'}
+    # Publish only the validated derived bytes. Raw FRD/STA are never opened for
+    # writing, and no failed candidate copy is advertised as a committed prefix.
+    if any(path.is_symlink() for path in (destination, *destination.parents)):
+        raise ValueError('The derived FRD must be a regular local file')
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(''.join(lines[:stop]).rstrip('\n') + '\n 9999\n',
+                           encoding='ascii', newline='\n')
     return observed

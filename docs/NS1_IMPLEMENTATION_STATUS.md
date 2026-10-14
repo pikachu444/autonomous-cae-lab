@@ -1,5 +1,58 @@
 # NS1 구현 제출 상태
 
+## 2026-10-14 자료무결성 교정 제출
+
+요청 **PRO-NS1-CORRECTION-20261014-01**. 기준 PR8 `2ff3f6b` (제품 `fa7dfe0`).
+Codex가 전달한 Astra(xhigh)의 두 독립 검토 지적을 같은 PR 브랜치에서 교정했다.
+이 절이 이번 교정 상태이며 아래 최초 제출의 실행 기록은 역사로 보존한다.
+Codex의 main `4bad73f` 통합과 Sol의 Windows UI 교정은 이번 변경에 섞지 않았다.
+CURRENT_STATE, material_panel/fem_panel/test_ns1_material_ui, motion/Data 파일은 변경하지 않았다.
+새 workflow, solver, 실행 서비스 또는 추가 비용은 없다.
+
+**적용 상태:** 등방 탄성을 명시 적용한 뒤 같은 기본 재료에 native 활성 J2를 추가하면
+이전 억제 객체가 그대로 있어도 실행을 차단한다. 적용 법칙과 기본 재료별 활성 객체
+집합을 함께 대조한다. 기존 applied_draft/applied_native만으로 첫 지원의 0개/1개
+기대 집합을 결정하므로 저장 스키마 변경이나 묵시적 재적용은 없다. 읽기에서도
+적용 상태를 false와 오류로 표시하며, 옛 원곡선을 새 객체에 귀속하지 않는다.
+검사/거절은 원초안·단위·억제 객체·다른 기본 재료의 정상 상태를 수정하지 않는다.
+
+**부분결과:** strict FRD reader가 EOF의 부분기록을 별도 오류로 식별한다.
+retained_prefix는 이 경우 마지막 미완성 증분 전체를 제외한 사본을 한 번 재검사한다.
+필드 중간·행 중간·필드 사이·종료 표식 중간 EOF를 다루며, 닫힌 필드의 누락 행,
+중간 손상, 잘못된 숫자/라벨/절점, 잘못된 end marker는 EOF로 숨기지 않는다.
+STA에서 수렴한 증분과 파생 사본의 마지막 완전 증분을 구별해 기록한다.
+원 FRD/STA/입력/실패·취소 상태는 유지하며 S/E/PEEQ를 0이나 보간으로 채우지 않는다.
+완전한 첫 증분도 없으면 부분결과를 만들지 않는다. 접촉/tie/다단계 검사는 유지한다.
+
+### 이번에 실제 실행한 검사
+
+수정 전 두 제보 재현 검사는 각각 실패했다. 교정 후 다음 서로 겹치지 않는
+범위에서 **총 186 passed, 0 failed, 0 skipped**를 확인했다.
+
+- 교정/경계 검사 78개: test_ns1_native_edit + test_ns1_partial_eof의 adapter 4개 제외.
+  정상 J2/명시 탄성/옛 저장본, 추가·대체·억제·삭제·다른 기본 재료, collect/freeze 차단,
+  EOF 위치별 단일/접촉/tie/다단계 정적·기존 탄성 동적 파서, 중간 손상 거절을 포함한다.
+- adapter 실패/취소 4개: 원문 FRD/STA와 입력 보존, 완전 1증분만 Post에 연결,
+  마지막 STA 수렴과 실제 보존 증분의 구별. 대표 1개는 solver 경로를 제거한
+  별도 Python 프로세스에서 사본·저장 실패기록을 재열었다. 네 경로에서 이력을 확인한다.
+- 기존 호환 104개: test_contact_steps, test_contact_tie, test_frozen_fem,
+  test_contact_native_export, test_ns1_material_limits, test_ns1_native_collect,
+  test_calculix_material. 기존 순서/중복/단계/좌표/tie 경고 보호를 유지한다.
+
+Python 3.13.5 / pytest 9.0.2의 Linux 컨테이너 검사다. gfortran F20.0 검사는
+실제 컴파일·실행했다. native 객체와 solver는 명시 대역, FRD/STA는 합성 입력이다.
+전체 솔버 캠페인과 실제 FreeCAD/CalculiX/ParaView 또는 GUI는 실행하지 않았다.
+컨테이너 일괄 실행 중 도구 제한 시간으로 끝나지 않은 시도는 통과로 세지 않았다.
+최종 기록은 범위를 나눈 완료 XML 세 개이며, 판정·수치 허용치·20초 자식 프로세스
+제한은 완화하지 않았다. 같은 새 프로세스 재열기 반복은 대표 한 건으로 줄였다.
+
+Codex 전달 Windows 결과 **80 passed / 1 skipped / UI 2 failed**는 별도 기록이다.
+Windows gfortran 미설치 skip과 480 요청 시 608 최소폭·e-5/e-05 표시 차이는 Sol 소유로
+남겼다. 이전 원격 234 통과로 이 Windows UI 문제를 해소했다고 표시하지 않는다.
+이번 교정의 Astra 재검토, Codex의 Windows native 확인·main 통합은 아직 이 작성자가
+확인하지 않았다. 독립 최초 검토와 교정 후 재검토를 구분한다.
+
+
 요청 PRO-NS1-RESUME-20261014-02 / 2026-10-14.
 시작 코드: main 0508b6d, native upstream 3e48bf6138f495299f45b1af254bfb4aaff307b8.
 첫 재료 모듈은 중복 적용하지 않았다. 기존 NS1 브랜치에 main을 merge한 9b6c83f,
@@ -56,7 +109,8 @@ Windows native FreeCAD 1.1.4에서 native PLASTIC writer 대조, 실제 C3D10 �
 Codex 확인이 필요하다. 준비한 공개 입력과 따라 하기는 NS1_USER_MODEL_KO.md에 있다.
 이 검사가 없으므로 단일/접촉 전체 native 실행 또는 AC-12·13 완료를 주장하지 않는다.
 
-Astra 독립 검토는 아직 수행되지 않았다. 작성자의 자체 점검을 독립 검토라고 하지 않는다.
+최초 제출 당시 Astra 독립 검토는 미실행이었다. 이후 Codex가 전달한 독립 검토와
+이번 교정 상태는 위 자료무결성 교정 절을 따른다. 작성자 자체 검사는 독립 재검토가 아니다.
 stdout의 반복별 잔차 곡선 읽기와 새 범용 수렴 허용오차 편집기는 잔여다.
 STATIC,STABILIZE 및 범용 Newton line search는 이번 2.22 경로에서 지원하지 않는다.
 원 stdout, 지원하는 기존 두 행 제어, STA 반복/거절/관측 cutback은 보존한다.
