@@ -230,7 +230,7 @@ def validate_snapshot(path):
     return manifest, mesh, pins, _gates(nodes, elements, fixed)
 
 
-def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=None):
+def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=None, require_contact=True):
     """Read native ASCII geometry and the last complete static displacement.
 
     Fixed-column records and component labels follow CalculiX 2.21 frd.c and
@@ -256,7 +256,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
             raise ValueError('Step-aware FRD requires the explicit retained contact profile')
     def retain_frame():
         if contact_materials is not None:
-            if "DISP" not in fields or "CONTACT" not in fields:
+            if "DISP" not in fields or require_contact and "CONTACT" not in fields:
                 raise ValueError("Incomplete contact frame: displacement and CONTACT are both required")
             frames.append({"static": {"step": active_step, "increment": increment, "load_parameter": parameter},
                            "load_parameter_token": parameter_token, "fields": fields,

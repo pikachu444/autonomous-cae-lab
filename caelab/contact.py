@@ -5,7 +5,7 @@ BACKEND = 'structure.calculix.contact'
 CONTACT_FIELDS = {'label', 'normal_law', 'tangential_law', 'friction_coefficient',
     'normal_stiffness_MPa_per_mm', 'stick_stiffness_MPa_per_mm', 'gap_policy',
     'nominal_gap_mm', 'adjustment_mm', 'normal', 'sliding', 'step', 'activation',
-    'a_region_id', 'b_region_id'}
+    'a_region_id', 'b_region_id', 'tie_tolerance_mm', 'tie_adjust'}
 
 
 def default_contact():
@@ -14,7 +14,7 @@ def default_contact():
         'stick_stiffness_MPa_per_mm': '', 'gap_policy': 'geometry',
         'nominal_gap_mm': '', 'adjustment_mm': 0, 'normal': 'outward_solid',
         'sliding': 'surface_to_surface', 'step': 'Step1', 'activation': 'whole_step',
-        'a_region_id': None, 'b_region_id': None}
+        'a_region_id': None, 'b_region_id': None, 'tie_tolerance_mm': '', 'tie_adjust': False}
 
 
 def number(value):
@@ -34,12 +34,25 @@ def law_errors(draft):
     errors = []
     def fail(field, message):
         errors.append({'path': field, 'message': message, 'severity': 'error', 'blocks_evaluation': True})
-    if draft.get('normal_law') != 'linear':
-        fail('normal_law', 'This contact adapter requires explicit linear pressure-overclosure stiffness; hard, tie and cohesive remain unsupported choices.')
-    if draft.get('tangential_law') not in {'frictionless', 'coulomb'}:
+    tied = draft.get('normal_law') == 'tie'
+    if draft.get('normal_law') not in ('linear', 'tie'):
+        fail('normal_law', '선형 접촉 또는 묶음 접촉을 선택하세요. 비관통(hard) 접촉과 응집 법칙은 아직 지원하지 않습니다.')
+    if tied:
+        if draft.get('tangential_law') != 'tied':
+            fail('tangential_law', '묶음 접촉은 상대 미끄럼도 구속합니다. 마찰 법칙과 함께 사용할 수 없습니다.')
+        try:
+            if number(draft.get('tie_tolerance_mm')) <= 1e-10:
+                raise ValueError('묶음 허용거리는 1e-10 mm보다 크게 지정하세요. 자동 거리로 대체하지 않습니다.')
+        except ValueError as error:
+            fail('tie_tolerance_mm', str(error))
+        if draft.get('tie_adjust', False) is not False:
+            fail('tie_adjust', '절점을 투영하는 Adjust는 이 경로에서 지원하지 않습니다. 원래 절점 위치를 유지하세요.')
+        if draft.get('gap_policy') != 'geometry':
+            fail('gap_policy', '묶음 접촉에는 설정 간극을 적용하지 않습니다. 허용거리는 절점을 연결할 거리입니다.')
+    elif draft.get('tangential_law') not in {'frictionless', 'coulomb'}:
         fail('tangential_law', 'Select frictionless or Coulomb contact; no law is inferred.')
-    fields = [('normal_stiffness_MPa_per_mm', True)]
-    if draft.get('tangential_law') == 'coulomb':
+    fields = [] if tied else [('normal_stiffness_MPa_per_mm', True)]
+    if not tied and draft.get('tangential_law') == 'coulomb':
         fields += [('friction_coefficient', False), ('stick_stiffness_MPa_per_mm', True)]
     for field, positive in fields:
         try:

@@ -251,8 +251,14 @@ def render_steps(model):
                 lines.append(card+(',OP=NEW' if i==0 else '')+',AMPLITUDE='+name)
                 lines += [str(n)+','+str(d)+(','+str(d) if card=='*BOUNDARY' else '')+',1' for n,d in keys]
         frequency = ',FREQUENCY='+str(step['output_frequency'])
-        lines += ['*NODE FILE'+frequency,'U','*CONTACT FILE'+frequency,'CDIS,CSTR']
-        for pair in model['contacts']:
+        has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
+        lines += ['*NODE FILE'+frequency, 'U,RF' if has_tie else 'U']
+        if has_tie:
+            lines += ['*EL FILE'+frequency, 'S']
+        contact_pairs = [p for p in model['contacts'] if p['draft']['normal_law'] != 'tie']
+        if contact_pairs:
+            lines += ['*CONTACT FILE'+frequency, 'CDIS,CSTR']
+        for pair in contact_pairs:
             pid = pair['object_id']
             lines += ['*CONTACT PRINT,SLAVE=DEP'+pid+',MASTER=IND'+pid+frequency,'CF,CFN,CFS']
         lines.append('*END STEP')

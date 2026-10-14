@@ -798,7 +798,7 @@ class FEMEditor:
         if analysis.Document is not self.owner.doc or _native_type(analysis) != 'Fem::FemAnalysis':
             fail('analysis', 'Select the exact native Analysis in this document')
             return errors
-        if any(_native_type(obj) == 'Fem::ConstraintContact' and not getattr(obj, 'Suppressed', False)
+        if any(_native_type(obj) in ('Fem::ConstraintContact', 'Fem::ConstraintTie') and not getattr(obj, 'Suppressed', False)
                for obj in analysis.Group):
             solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
                        and not getattr(obj, 'Suppressed', False)]

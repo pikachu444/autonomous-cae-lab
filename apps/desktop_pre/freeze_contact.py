@@ -259,6 +259,11 @@ def collect(analysis, solver, fem):
                  if solver.IterationsControlParameterTimeUse else None)
     if program is not None:
         model['analysis_steps'] = program
+    has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
+    has_contact = any(p['draft']['normal_law'] != 'tie' for p in model['contacts'])
+    if has_tie:
+        model['output']['nodal'] = ['U', 'RF', 'S'] + (['CDIS', 'CSTR'] if has_contact else [])
+        model['output']['pair'] = ['CF', 'CFN', 'CFS'] if has_contact else []
     validate_model(model)
     identity = [{'body_id': identifier, 'mesh_id': row['mesh'].Name, 'target': row['target'],
                  'binding': row['binding']} for identifier, row in sorted(bodies.items())]
@@ -274,10 +279,15 @@ def freeze_contact(analysis, solver, output_root, *, fem):
     for pair in model['contacts']:
         native = fem.owner._object(pair['object_id'])
         stream = io.StringIO()
-        row = {'ContactSlaveFaces': [(None, [tuple(v) for v in pair['a']['element_faces']], True)],
-               'ContactMasterFaces': [(None, [tuple(v) for v in pair['b']['element_faces']], True)]}
-        write_constraint_contact.write_meshdata_constraint(stream, row, native, None)
-        write_constraint_contact.write_constraint(stream, row, native, None)
+        tied = pair['draft']['normal_law'] == 'tie'
+        if tied:
+            from femsolver.calculix import write_constraint_tie
+        prefix = 'Tie' if tied else 'Contact'
+        row = {prefix+'SlaveFaces': [(None, [tuple(v) for v in pair['a']['element_faces']], True)],
+               prefix+'MasterFaces': [(None, [tuple(v) for v in pair['b']['element_faces']], True)]}
+        writer = write_constraint_tie if tied else write_constraint_contact
+        writer.write_meshdata_constraint(stream, row, native, None)
+        writer.write_constraint(stream, row, native, None)
         if stream.getvalue() != contact_cards(pair):
             raise ValueError('Installed native contact writer differs from the admitted effective card contract')
     root = Path(output_root).resolve() / ('F' + uuid.uuid4().hex)

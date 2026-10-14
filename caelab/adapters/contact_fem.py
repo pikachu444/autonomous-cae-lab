@@ -59,6 +59,17 @@ def validate_snapshot(path):
     return manifest, model, pins, gates
 
 
+def _check_tie_connections(native):
+    """A converged solve with omitted tied nodes is not the requested model."""
+    warning = native / 'contact_WarnNodeMissTiedContact.nam'
+    if warning.is_file() and any(line.strip() and not line.lstrip().startswith('*')
+                                 for line in _read(warning).decode('ascii').splitlines()):
+        raise ValueError('묶음으로 연결되지 않은 A면 절점이 있습니다. 원 경고를 확인하고 면 또는 허용거리를 수정하세요.')
+    for log in native.glob('ccx_contact.*.log'):
+        if b'no tied MPC' in _read(log):
+            raise ValueError('묶음 구속 생성이 누락됐습니다. 면 또는 허용거리를 수정하세요. 원 출력은 보존됩니다.')
+
+
 class ContactFemCalculixAdapter:
     backend, version = BACKEND, '1'
 
@@ -78,9 +89,11 @@ class ContactFemCalculixAdapter:
             'qualification': 'UNKNOWN', 'decision': 'NOT_RELEASED', 'engineering_valid': False,
             'diagnostics': {}, 'artifacts': []}
         model = manifest = pins = None
+        tie_connected = True
         try:
             source = Path(settings['snapshot_path'])
             manifest, model, pins, gates = validate_snapshot(source)
+            tie_connected = not any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
             retained = output / 'frozen_input'
             retained.mkdir()
             for relative, pin in pins.items():
@@ -106,6 +119,9 @@ class ContactFemCalculixAdapter:
             deck = native / 'contact.inp'
             shutil.copyfile(retained / 'contact.inp', deck)
             solved = run_owned_command([str(executable), '-i', deck.stem], native, 'ccx_contact')
+            if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
+                _check_tie_connections(native)
+                tie_connected = True
             if solved.returncode:
                 raise RuntimeError('CalculiX contact failed; solver diagnostics and raw output retained')
             check_cancelled()
@@ -115,13 +131,18 @@ class ContactFemCalculixAdapter:
             if _sha(deck) != pins['contact.inp']['sha256'] or _sha(executable) != executable_sha:
                 raise ValueError('Contact executable/deck changed during the attempt')
             nodes, elements, bodies = validate_model(model)
+            contact_pairs = [p for p in model['contacts'] if p['draft']['normal_law'] != 'tie']
+            has_tie = len(contact_pairs) != len(model['contacts'])
             material_indices = {body: index for index, body in enumerate(sorted(bodies), 1)}
             materials = {'names': ['M'+str(index) for index in material_indices.values()] +
-                                   ['INT'+pair['object_id'].upper() for pair in model['contacts']],
+                                   ['INT'+pair['object_id'].upper() for pair in contact_pairs],
                          'elements': {row['element_id']: 'M'+str(material_indices[row['body_id']]) for row in model['elements']}}
-            observed = read_frd(deck.with_suffix('.frd'), nodes, elements, contact_materials=materials, contact_profile=profile(model))
+            observed = read_frd(deck.with_suffix('.frd'), nodes, elements, contact_materials=materials,
+                                contact_profile=profile(model), require_contact=bool(contact_pairs))
             validate_frames(model, observed)
             frames = observed['frames']
+            if has_tie and any(not {'DISP', 'STRESS', 'FORC'} <= set(frame['fields']) for frame in frames):
+                raise ValueError('묶음 접촉의 변위·응력·절점 힘 출력이 누락됐습니다. 원 출력은 보존됩니다.')
             if profile(model):
                 from ..contact_status import read_status, require_converged
                 progress=read_status(deck.with_suffix('.sta'),model)
@@ -144,13 +165,13 @@ class ContactFemCalculixAdapter:
                         'native_nonfinite' if any(value is None for value in values) else 'finite_raw'])
             metadata = write_post(output / 'post', model, frames, pair_results, provenance={
                 'snapshot_id': manifest['id'], 'snapshot_sha256': pins['snapshot.json']['sha256'],
-                'raw_frd_sha256': _sha(deck.with_suffix('.frd')), 'raw_dat_sha256': _sha(deck.with_suffix('.dat'))})
+                'raw_frd_sha256': _sha(deck.with_suffix('.frd')), 'raw_dat_sha256': _sha(deck.with_suffix('.dat')) if deck.with_suffix('.dat').is_file() else None})
             final = frames[-1]
             ids = sorted(nodes)
             field_clock = ({'axis':contact_axis(model), 'coordinate':final['static']['load_parameter'],
                             'step_location':deepcopy(final['step_location'])} if profile(model) else {})
             responses = {}
-            for j, key in enumerate(CHANNELS):
+            for j, key in enumerate(CHANNELS if contact_pairs else ()):
                 covered = [n for n in ids if n in final['fields']['CONTACT'] and final['fields']['CONTACT'][n][j] is not None]
                 responses[key] = {'kind':'field', 'unit':'mm' if j < 3 else 'MPa',
                     'value':[final['fields']['CONTACT'][n][j] for n in covered], 'component':key,
@@ -165,7 +186,17 @@ class ContactFemCalculixAdapter:
                 'location':'calculix_export_nodes','reduction':'none',
                 'metadata':{'node_ids':ids,'association':'POINTS','static':final['static'], **field_clock,
                             'frame':'FREECAD_DOCUMENT_GLOBAL'}}
-            for pair in model['contacts']:
+            if has_tie:
+                for native, key, unit, components in [('FORC', 'nodal_force', 'N', ['X','Y','Z']),
+                                                      ('STRESS', 'stress', 'MPa', ['XX','YY','ZZ','XY','YZ','ZX'])]:
+                    responses[key] = {'kind':'field', 'unit':unit,
+                        'value':[final['fields'][native][n] for n in ids],
+                        'component':'VECTOR' if native == 'FORC' else 'TENSOR',
+                        'location':'calculix_export_nodes', 'reduction':'none',
+                        'metadata':{'node_ids':ids, 'association':'POINTS', 'static':final['static'], **field_clock,
+                            'frame':'FREECAD_DOCUMENT_GLOBAL', 'component_names':components,
+                            'meaning':'native_RF_nodal_force_including_applied_loads' if native == 'FORC' else 'native_extrapolated_averaged_Cauchy_stress'}}
+            for pair in contact_pairs:
                 for quantity in ('CF','CFN','CFS'):
                     rows = [row for row in pair_results if row['pair_id']==pair['object_id'] and row['quantity']==quantity]
                     for axis, component in enumerate('XYZ'):
@@ -206,7 +237,13 @@ class ContactFemCalculixAdapter:
                     result['failure_location']=progress['failure_location']
                 except (ValueError,OSError,KeyError,UnicodeError) as error:
                     result.setdefault('diagnostics',{})['increment_readback']=str(error)
-            if result['execution_status'] in ('FAILED','CANCELLED') and result.get('increment_history'):
+            if not tie_connected and result.get('increment_history'):
+                try:
+                    _check_tie_connections(output/'solver')
+                    tie_connected = True
+                except (ValueError,OSError,UnicodeError) as error:
+                    result.setdefault('diagnostics',{})['tie_readback']=str(error)
+            if tie_connected and result['execution_status'] in ('FAILED','CANCELLED') and result.get('increment_history'):
                 try:
                     # Owned process is terminal before this point. Read retained
                     # committed increments only; no solver/retry/resume is invoked.
@@ -223,7 +260,7 @@ class ContactFemCalculixAdapter:
                     nodes,elements,bodies=validate_model(model)
                     indices={body:i for i,body in enumerate(sorted(bodies),1)}
                     materials={'names':['M'+str(i) for i in indices.values()]+
-                        ['INT'+p['object_id'].upper() for p in model['contacts']],
+                        ['INT'+p['object_id'].upper() for p in model['contacts'] if p['draft']['normal_law'] != 'tie'],
                         'elements':{r['element_id']:'M'+str(indices[r['body_id']]) for r in model['elements']}}
                     observed=retained_prefix(output/'solver/contact.frd',output/'partial/committed.frd',
                         nodes,elements,materials,model,result['increment_history'])
@@ -280,10 +317,11 @@ def regenerate_post(attempt, output):
     nodes, elements, bodies = validate_model(model)
     indices = {body: index for index, body in enumerate(sorted(bodies), 1)}
     materials = {'names': ['M' + str(i) for i in indices.values()] +
-                           ['INT' + pair['object_id'].upper() for pair in model['contacts']],
+                           ['INT' + pair['object_id'].upper() for pair in model['contacts'] if pair['draft']['normal_law'] != 'tie'],
                  'elements': {row['element_id']: 'M' + str(indices[row['body_id']])
                               for row in model['elements']}}
-    observed = read_frd(attempt / 'solver/contact.frd', nodes, elements, contact_materials=materials, contact_profile=profile(model))
+    observed = read_frd(attempt / 'solver/contact.frd', nodes, elements, contact_materials=materials,
+                        contact_profile=profile(model), require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
     validate_frames(model, observed)
     frames = observed['frames']
     if profile(model):

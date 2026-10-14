@@ -70,10 +70,11 @@ class ContactEditor:
         return result
 
     def _native_signature(self, obj):
-        from .fem_edit import _hash, _references
+        from .fem_edit import _hash, _references, _native_type
+        keys = ('Tolerance', 'Adjust', 'CyclicSymmetry') if _native_type(obj) == 'Fem::ConstraintTie' else (
+            'SurfaceBehavior', 'Slope', 'Friction', 'FrictionCoefficient', 'StickSlope', 'Adjust', 'EnableThermalContact')
         return _hash({'references': _references(obj),
-            **{key: str(getattr(obj, key)) for key in ('SurfaceBehavior', 'Slope', 'Friction',
-                'FrictionCoefficient', 'StickSlope', 'Adjust', 'EnableThermalContact')}})
+            **{key: str(getattr(obj, key)) for key in keys}})
 
     def _native(self, obj, record):
         """Update the effective native object when valid; raw invalid text stays saved."""
@@ -88,17 +89,27 @@ class ContactEditor:
                     pass
         obj.References = refs
         draft = record['draft']
-        if not law_errors(draft):
-            obj.SurfaceBehavior = 'Linear'
-            obj.Slope = self.owner.App.Units.Quantity(str(number(draft['normal_stiffness_MPa_per_mm'])) + ' MPa/mm')
-            obj.Friction = draft['tangential_law'] == 'coulomb'
-            if obj.Friction:
-                obj.FrictionCoefficient = number(draft['friction_coefficient'])
-                obj.StickSlope = self.owner.App.Units.Quantity(str(number(draft['stick_stiffness_MPa_per_mm'])) + ' MPa/mm')
-            obj.Adjust = self.owner.App.Units.Quantity('0 mm')
-            obj.EnableThermalContact = False
+        from .fem_edit import _native_type
+        tied = _native_type(obj) == 'Fem::ConstraintTie'
+        if not law_errors(draft) and tied == (draft['normal_law'] == 'tie'):
+            if tied:
+                obj.Tolerance = self.owner.App.Units.Quantity(str(number(draft['tie_tolerance_mm'])) + ' mm')
+                obj.Adjust = False
+                obj.CyclicSymmetry = False
+            else:
+                self._native_contact(obj, draft)
         obj.Label = draft['label']
         record['native_signature'] = self._native_signature(obj)
+
+    def _native_contact(self, obj, draft):
+        obj.SurfaceBehavior = 'Linear'
+        obj.Slope = self.owner.App.Units.Quantity(str(number(draft['normal_stiffness_MPa_per_mm'])) + ' MPa/mm')
+        obj.Friction = draft['tangential_law'] == 'coulomb'
+        if obj.Friction:
+            obj.FrictionCoefficient = number(draft['friction_coefficient'])
+            obj.StickSlope = self.owner.App.Units.Quantity(str(number(draft['stick_stiffness_MPa_per_mm'])) + ' MPa/mm')
+        obj.Adjust = self.owner.App.Units.Quantity('0 mm')
+        obj.EnableThermalContact = False
 
     def _persist(self, obj, record, title):
         from .fem_edit import _hash
@@ -141,7 +152,8 @@ class ContactEditor:
             result = {}
             def create():
                 import ObjectsFem
-                contact = ObjectsFem.makeConstraintContact(self.owner.doc)
+                factory = ObjectsFem.makeConstraintTie if draft['normal_law'] == 'tie' else ObjectsFem.makeConstraintContact
+                contact = factory(self.owner.doc)
                 obj.addObject(contact)
                 record['object_id'] = contact.Name
                 self._native(contact, record)
@@ -156,7 +168,7 @@ class ContactEditor:
         return self._persist(obj, record, 'contact settings')
 
     def errors(self, record):
-        from .fem_edit import _target
+        from .fem_edit import _target, _native_type
         errors = law_errors(record['draft'])
         def fail(path, message):
             errors.append({'path': path, 'message': message, 'severity': 'error', 'blocks_evaluation': True})
@@ -181,6 +193,8 @@ class ContactEditor:
             fail('b', 'This route requires separate bodies; self-contact is not admitted')
         try:
             obj = self.owner._object(record['object_id'])
+            if (_native_type(obj) == 'Fem::ConstraintTie') != (record['draft']['normal_law'] == 'tie'):
+                fail('normal_law', '기존 객체의 접촉 종류를 바꾸지 않았습니다. 새 접촉에서 묶음 또는 선형 법칙을 선택해 생성하세요.')
             analysis = self.owner._object(record['analysis_id'])
             if obj not in analysis.Group:
                 raise ValueError('Contact no longer belongs to the selected Analysis')
