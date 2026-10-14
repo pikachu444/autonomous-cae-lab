@@ -14,10 +14,10 @@ class PDEStudyWindow(QDialog):
         result=deepcopy(result);diagnostics=result.get('diagnostics',{})
         self.rows=diagnostics.get('mesh_studies',[])
         layout=QVBoxLayout(self)
-        layout.addWidget(QLabel('선택한 계산의 기준식과 norm. 다른 정의의 norm을 같은 곡선으로 합치지 않습니다.'))
+        layout.addWidget(QLabel('저장된 메시별 기준 오차'))
         split=QSplitter(Qt.Orientation.Vertical);layout.addWidget(split,1)
         self.figure=Figure(constrained_layout=True);self.canvas=FigureCanvasQTAgg(self.figure);self.canvas.setMinimumHeight(300);split.addWidget(self.canvas)
-        self.table=QTableWidget(len(self.rows),5);self.table.setHorizontalHeaderLabels(['한 축 셀 수','자유도','L2 오차','H1 준노름 오차','상대 대수 잔차'])
+        self.table=QTableWidget(len(self.rows),5);self.table.setHorizontalHeaderLabels(['한 축 셀 수','자유도','L2 오차','H1 반노름 오차','상대 대수 잔차'])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -29,17 +29,35 @@ class PDEStudyWindow(QDialog):
                 item=QTableWidgetItem(label);item.setToolTip(repr(value));self.table.setItem(i,j,item)
         split.addWidget(self.table);split.setSizes([440,210]);self.table.currentCellChanged.connect(lambda *_:self.draw())
         self.detail=QLabel('선택한 생산자에 메시 norm 표가 없습니다.' if not self.rows else '')
-        self.detail.setWordWrap(True);layout.addWidget(self.detail);self.draw()
+        self.detail.setWordWrap(True);layout.addWidget(self.detail)
+        self.canvas.mpl_connect('pick_event', self._point_picked)
+        if self.rows:self.table.selectRow(0)
+        self.draw()
+
+    def _point_picked(self,event):
+        rows=getattr(event.artist,'_study_rows',[])
+        if len(getattr(event,'ind',[])) and int(event.ind[0])<len(rows):
+            row=rows[int(event.ind[0])]
+            self.table.selectRow(row)
+            self.table.scrollToItem(self.table.item(row,0))
+
     def draw(self):
         self.figure.clear()
-        for index,(name,unitkey,label) in enumerate((('l2_error','l2_unit','L2'),('h1_seminorm_error','h1_unit','H1 준노름')),1):
+        selected=self.table.currentRow()
+        for index,(name,unitkey,label) in enumerate((('l2_error','l2_unit','L2'),('h1_seminorm_error','h1_unit','H1 반노름')),1):
             ax=self.figure.add_subplot(1,2,index)
             groups={}
-            for row in self.rows:
+            for row_index,row in enumerate(self.rows):
                 if row.get(name) is not None:
-                    groups.setdefault((row.get(unitkey),row.get('reference'),row.get('norm_definition')),[]).append(row)
+                    groups.setdefault((row.get(unitkey),row.get('reference'),row.get('norm_definition')),[]).append((row_index,row))
             for (unit,reference,definition),rows in groups.items():
-                ax.plot([r['global_dofs'] for r in rows],[r[name] for r in rows],'o-',label=label+' ['+str(unit)+']')
+                line,=ax.plot([r['global_dofs'] for _,r in rows],[r[name] for _,r in rows],'o-',
+                    picker=5,label=label+' ['+str(unit)+']'+(' / '+str(reference) if len(groups)>1 else ''))
+                line._study_rows=[i for i,_ in rows]
+                for row_index,row in rows:
+                    if row_index==selected:
+                        ax.scatter([row['global_dofs']],[row[name]],s=95,facecolors='none',
+                                   edgecolors='#d56c22',linewidths=2,zorder=3)
             ax.set_xlabel('실제 자유도');ax.set_ylabel(label+' 오차')
             if groups:ax.legend()
         row=self.table.currentRow()
