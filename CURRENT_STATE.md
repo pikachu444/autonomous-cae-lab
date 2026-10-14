@@ -38,21 +38,33 @@ Codex 병렬 실행 엔진으로 표시하지 않는다. 실제 병렬 실행은
 전송과 작성 중 상태를 확인했으며 계획 결과는 아직 회수 전이다. 새 대화:
 https://chatgpt.com/g/g-p-6abbcb200108819193174a8715322a59-autonomous-cae-lab/c/6acff512-97b8-83e8-b74d-71d20d681436
 원본과 요청은 `runs/product-development/20261015/system-delivery-pro-review/`에 있다.
-아래는 Codex의 배정 틀이며 Pro가 구체 항목/순서를 검토한다. 계획 대기는 개발 중단 사유가 아니다.
+사용자의 최신 지시에 따라 아래 7개 인도 단위마다 실제 개발 담당을 배정했다.
+각 담당은 첫 수정만 끝내는 것이 아니라 해당 인도의 잔여 작업을 이어서 맡는다.
+MoAI의 기존 작업 카드도 같은 7개 단위로 연결했다. 계획 대기는 개발 중단 사유가 아니다.
+실제 Pro는 큰 구현 단위의 주 작성자이고, Sol 담당들은 기존 구현의 GUI·연결을
+병렬로 완성하면서 핵심 추가 구현에 필요한 원자료와 요청을 Pro에 연결한다.
+어려운 엔진 기능을 Sol 작성으로 몰래 대체하거나 작은 수정 하나를 인도 완료로 세지 않는다.
 
 | 작업 묶음 | 끝낼 사용자 결과 | 현재 배정과 통합 경계 |
 |---|---|---|
-| CAD·조립·전처리 | 모델/조립 편집→선택 자세의 독립 해석 모델→부품별 메시·재료·실제 면 조건→저장·재개 | Pro M4 교정, Sol 메시 폼 연결, Astra 형상/참조 독립 검토. root가 공통 문서/명령 통합 |
-| 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | Pro 핵심 기능 작성. NS2/N3 소스 미회수는 미완료로 유지하고 전체 계획에 재배정. adapter/공통 실행 경계는 root |
-| 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | 기존 ParaView 명령 재사용. 제한된 연결/GUI는 Sol, 핵심 결과 의미는 Astra, native 실행 통합은 root |
-| Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | 기존 Data/Material/Plan 소유자 재사용. Pro가 잔여 기능 단위와 인터페이스를 정하고 별도 소유 파일로 배정 |
-| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 기존 수치 엔진/JobManager 재사용. 이산/종속 변수·MDO·mapping·지원 law/FE 조합 잔여를 단계별 배정 |
-| Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 실제 provider/출처/사용자 문서 연결. 전용 UI와 문헌 선택을 공통 연구 명령과 분리해 병렬 소유 |
-| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | root가 공통 schema/Core/registry와 게시 소유. 제한된 설치/파일 연결/테스트 정리는 Sol·Luna에 배정 |
+| CAD·조립·전처리 | 모델/조립 편집→선택 자세의 독립 해석 모델→부품별 메시·재료·실제 면 조건→저장·재개 | 실제 Pro M4 작성, `m4_fem_handoff` Sol이 FEM 폼·대상 전환·미적용 입력 보호 개발. t21. common Pre 연결은 root |
+| 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | `delivery_structure_impact` Sol이 Runner/Impact GUI·원입력 이동·늦은 응답 보호 개발. t20. NS2/N3 핵심은 실제 Pro 재작성, adapter/공통 실행은 root |
+| 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | `delivery_post` Sol이 Post GUI/bridge 저장·닫기·작업 수명 개발. t4. 기존 ParaView 명령 재사용, native File→Exit 연결 핵심은 Pro |
+| Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | `delivery_data_material` Sol이 Data/Material 전용 GUI 개발. t5. 첫 묶음은 복수 Material 문서의 편집·붙여넣기·미적용 Undo. 엔진 추가는 Pro |
+| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | `delivery_numerical_pde` Sol이 Numerical/Plan/PDE 전용 GUI 개발. t6(t7 연결). 첫 묶음은 Plan 편집·포커스. 이산/종속 변수·MDO·mapping 핵심은 Pro |
+| Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | `delivery_expert_study` Sol이 Expert/Study/Report 전용 GUI 개발. t2(t9 연결). 기존 knowledge 문헌 선택·명시 개정 복구부터 완성, 핵심 연구 동작은 Pro |
+| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | `delivery_install_connections` Sol이 Windows 설치/진입 scripts 개발. t10. root가 공통 schema/Core/registry/desktop dispatch와 게시 소유, 이동용 사본 핵심은 Pro |
 
 각 묶음은 원행/SPEC의 상세 완료 조건을 유지한다. 새로운 지원 조합은 현재 미지원의
 이름만 바꾸어 닫지 않는다. 실제 장비/원격 호스트가 필요한 항목은 입력 미정을 명시하고
 다른 독립 작업을 계속한다. 여러 담당자가 같은 공통 파일을 동시에 수정하지 않는다.
+
+Post·Data/Material·Numerical/PDE는 기존의 연결된 작업 트리 세 개를 재사용해 현재
+게시 소스에서 개발한다. 다른 네 팀은 main에서 지정한 서로 다른 파일만 변경하며
+공유 main의 staging/커밋은 root가 담당한다. 과거 분기 이력과 사용자 변경은 보존했다.
+팀들은 직접 메시지로 Material/Plan 편집, Pre→Runner→Post와 Windows 진입 경계를
+토론한다. Astra가 7개 인도의 범위 누락·파일 충돌·전체 연결과 종료 조건을 독립 검토한다.
+CURRENT_STATE가 계속 유일한 현황 원본이며 새 팀별 보고서를 경쟁 작업 큐로 만들지 않는다.
 
 **메시 품질 창 정돈:** 메시 요약과 요소 표를 중심에 놓고 표시·격리·확대·복원을
 짧은 버튼으로 정리했다. 긴 품질 기준은 접어서 열며, 오류 이유·단위·음수 원값과
