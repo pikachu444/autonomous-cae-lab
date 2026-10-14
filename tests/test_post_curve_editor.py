@@ -57,6 +57,8 @@ def test_retained_plot_preserves_gap_and_row_selection(app):
     dialog.tables['aligned'].selectRow(2);app.processEvents()
     assert selected[-1]==2
     assert dialog.tables['aligned'].item(2,1).text()=='7'
+    assert dialog.tables['a'].item(0,4).text()=='정상'
+    assert '대응 좌표 [s]' in dialog.tables['aligned'].item(2,2).toolTip()
     dialog.close()
 
 
