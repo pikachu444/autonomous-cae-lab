@@ -33,15 +33,15 @@ def install(connection, open_model):
             self.approved_close = {}
             self.old_workbench = None
             QtWidgets.QApplication.instance().installEventFilter(self)
-            self.toolbar = QtWidgets.QToolBar('CAE Lab native tools', main)
+            self.toolbar = QtWidgets.QToolBar('CAE Lab', main)
             self.toolbar.setObjectName('CAELabNativeTools')
             main.addToolBar(self.toolbar)
-            for title, callback in [('Open CAD/project', open_model), ('Save Lab project', self.save),
-                    ('Save Lab project as…', lambda: self.save(as_new=True)),
-                    ('Research variables', lambda: connection.show_panel('parameters')),
-                    ('Assembly motion', lambda: connection.show_panel('motion')),
-                    ('Mesh / regions', lambda: connection.show_panel('fem')),
-                    ('Project / results', lambda: connection.show_panel('project'))]:
+            for title, callback in [('모델 열기…', open_model), ('프로젝트 저장', self.save),
+                    ('다른 이름으로 저장…', lambda: self.save(as_new=True)),
+                    ('설계 변수', lambda: connection.show_panel('parameters')),
+                    ('조립 운동', lambda: connection.show_panel('motion')),
+                    ('해석 설정', lambda: connection.show_panel('fem')),
+                    ('프로젝트', lambda: connection.show_panel('project'))]:
                 action = self.toolbar.addAction(title)
                 action.triggered.connect(lambda checked=False, callback=callback: self.invoke(callback))
             self.refresh()
@@ -63,7 +63,7 @@ def install(connection, open_model):
                     proxy = QAction(action.icon(), action.text(), main)
                     proxy.setObjectName('CAELabManaged_' + name)
                     proxy.setShortcuts(action.shortcuts())
-                    proxy.setToolTip(action.toolTip() + '\nCAE Lab: restore design pose and preserve editable project dependencies')
+                    proxy.setToolTip(action.toolTip() + '\nCAE Lab 프로젝트와 연결된 편집 문서를 함께 저장합니다.')
                     proxy.triggered.connect(lambda checked=False, name=name: self.invoke(lambda: self.trigger(name)))
                 else:
                     proxy = previous[1]

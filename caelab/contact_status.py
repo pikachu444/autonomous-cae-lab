@@ -91,7 +91,8 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     destination=Path(destination)
     destination.parent.mkdir(parents=True,exist_ok=True)
     destination.write_text('\n'.join(prefix+[' 9999','']),encoding='ascii',newline='\n')
-    observed=read_frd(destination,nodes,elements,contact_materials=materials,contact_profile=profile(model))
+    observed=read_frd(destination,nodes,elements,contact_materials=materials,contact_profile=profile(model),
+                      require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
     validate_frames(model,observed,complete=False)
     require_converged(observed['frames'],status)
     return observed
