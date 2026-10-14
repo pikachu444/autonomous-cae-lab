@@ -54,3 +54,14 @@ acceptance의 추가 조건으로 반영했다. 소스 근거는 CalculiX2.22
 [plastics.f](https://github.com/Dhondtguido/CalculiX/blob/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/plastics.f#L256)와
 [plcopy.f](https://github.com/Dhondtguido/CalculiX/blob/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/plcopy.f#L53)다.
 코드 수정과 재검토는 별도 진행이며 이 문서로 원 결함 해소를 주장하지 않는다.
+
+## Q1 CAD 변수 복구 통합 검토
+
+Sol 작성분과 공통 서비스 명령을 통합한 `4e0f415`를 별도 Astra가 읽기 전용으로
+검토했다. 누락/중복 행의 편집 가능 조회, 명시 선택·최신 영향 확인·단위/범위 검증,
+native transaction과 기존 후보 생성의 엄격한 검사를 확인했고 명확한 P1/P2는 없었다.
+Codex의 관련29검사도 통과했다. Astra가 원 native 자료에서 지적한 복구 직후
+Undo/Redo와 재열기 후 실제 재편집의 확인 누락은 Codex가 보존 파일에서 추가 확인했다.
+두 모델 모두 15mm 재편집, 복구 Undo/Redo, 13mm 수정·저장·재열기가 성공했다.
+자료는 `runs/product-development/20261014/cad-repair-followup/receipt.json`에 있다.
+OS 입력·동일 이름 재생성의 원본 식별·Windows 긴 저장 경로는 확인 범위를 확대하지 않는다.

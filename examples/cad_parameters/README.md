@@ -5,6 +5,29 @@
 `property_solid(App)`는 Length 속성을 가진 직육면체를 만든다. 가져온 BRep에서
 스케치를 복원하는 예제는 아니다.
 
+FreeCAD의 **보기 → 패널 → Python 콘솔**에서 아래를 실행하면 두 파일을 만듭니다.
+저장소를 다른 곳에 설치했다면 첫 경로를 바꾸세요.
+
+```python
+import sys, pathlib, FreeCAD as App, Part, Sketcher
+sys.path.insert(0, r'C:\SourceCodes\autonomous-cae-lab')
+from examples.cad_parameters.public_models import sketch_solid, property_solid
+folder = pathlib.Path.home() / 'Documents' / 'CAE-examples'
+folder.mkdir(parents=True, exist_ok=True)
+doc, sketch, pad = sketch_solid(App, Part, Sketcher)
+doc.saveAs(str(folder / 'sketch-variable.FCStd'))
+boxdoc, box = property_solid(App)
+boxdoc.saveAs(str(folder / 'box-variable.FCStd'))
+```
+
+이미 같은 파일이 있다면 저장 이름을 바꿔 보존하세요. 만든 파일을 CAD/FE 앱에서
+열려면 저장소의 PowerShell에서 다음과 같이 실행합니다. FreeCAD 경로는 실제
+설치 위치에 맞춥니다.
+
+```powershell
+.\scripts\start_cae_pre.ps1 -FreeCADExe 'C:\Tools\FreeCAD\bin\freecad.exe' -Source "$env:USERPROFILE\Documents\CAE-examples\sketch-variable.FCStd"
+```
+
 1. CAD/FE의 연구 변수 패널에서 **치수 새로 찾기**를 누른다. 스케치 반지름 또는
    직육면체 Length를 선택하고 솔리드와 시험 값 12 mm를 지정한다.
 2. **형상 영향 확인**으로 원래 값 10 mm와 모델이 복원됐는지 확인한다. 이름과
