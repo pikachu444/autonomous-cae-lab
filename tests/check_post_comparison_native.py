@@ -4,6 +4,7 @@ Never invokes a solver. --create requires a NEW directory. --reopen reads the
 saved receipt without regenerating fixtures or revalidating the comparison.
 """
 import argparse
+import builtins
 import json
 import os
 from pathlib import Path
@@ -89,10 +90,64 @@ def main(argv=None):
         workspace.validate(object_ref=compared['id'])
         workspace.apply(object_ref=compared['id'],show=False)
         rows = workspace.sample(object_ref=compared['id'],preview=False,limit=1000)['rows']
-        assert any(not row['valid'] for row in rows), 'upstream invalid values became valid'
-        assert all(row['delta'] == 0. for row in rows if row['valid'])
+        assert builtins.any(not row['valid'] for row in rows), 'upstream invalid values became valid'
+        assert builtins.all(row['delta'] == 0. for row in rows if row['valid'])
         derived.append({'object_ref':compared['id'],'rows':rows,
                         'declaration':workspace._output_declaration(compared['id'])})
+
+    # B's missing row must not erase A's independent point/path values.
+    a_only = deepcopy(recipe)
+    a_only['a']['validity_masks'] = []
+    independent = workspace.edit_comparison(draft=a_only, title='A 유효성 분리')
+    workspace.validate(object_ref=independent['id'])
+    workspace.apply(object_ref=independent['id'], show=False)
+    independent_declaration = workspace._output_declaration(independent['id'])
+    for kind in ('point', 'path'):
+        draft = {'source_ref':independent['id'], 'measurement':kind, 'array':'A_original',
+            'association':'POINTS', 'time':None, 'point_indices':[0,2],
+            'point1':[0.,0.,0.], 'point2':[0.,1.,0.], 'resolution':4, 'tolerance':0.}
+        item = workspace.edit_measurement(draft=draft, title='A 원값 유지')
+        workspace.validate(object_ref=item['id']); workspace.apply(object_ref=item['id'], show=False)
+        metadata = workspace._output_declaration(item['id'])
+        rows = workspace.sample(object_ref=item['id'], preview=False, limit=1000)['rows']
+        assert builtins.all(row['values']['A_original'] is not None and abs(row['values']['A_original'] - 2.) < 1e-12 for row in rows), rows
+        assert metadata['arrays'][0]['observable'] == independent_declaration['arrays'][0]['observable']
+        derived.append({'object_ref':item['id'], 'rows':rows, 'declaration':metadata})
+        selected = metadata['arrays'][0]
+        repeat = deepcopy(recipe)
+        for side in ('a', 'b'):
+            repeat[side] = {key:deepcopy(value) for key,value in selected.items() if key!='name'}
+            repeat[side].update(source_ref=item['id'], array=selected['name'],
+                coordinate_units=metadata['coordinate_units'],coordinate_frame=metadata['coordinate_frame'],
+                frozen_clock=deepcopy(metadata['frozen_clock']),sampling={'mode':'exact','time':None},clock_offset=0.)
+        repeat.update(selection='scalar',difference='selected_difference',percent='disabled')
+        repeat['alignment'] = {'geometry_rotation':deepcopy(IDENTITY),'response_rotation':deepcopy(IDENTITY),
+                               'translation':[0.,0.,0.],'geometry_declared':False,'response_declared':False}
+        compared = workspace.edit_comparison(draft=repeat,title='유효한 A의 재비교')
+        workspace.validate(object_ref=compared['id']);workspace.apply(object_ref=compared['id'],show=False)
+        rows=workspace.sample(object_ref=compared['id'],preview=False,limit=1000)['rows']
+        assert builtins.all(row['valid'] and row['delta']==0. for row in rows), rows
+        derived.append({'object_ref':compared['id'], 'rows':rows,
+                        'declaration':workspace._output_declaration(compared['id'])})
+    # A same-number but different saved component cannot masquerade as agreement.
+    x_recipe=deepcopy(a_only);x_recipe['selection']='x'
+    x_object=workspace.edit_comparison(draft=x_recipe,title='X 성분')
+    workspace.validate(object_ref=x_object['id']);workspace.apply(object_ref=x_object['id'],show=False)
+    mismatch=deepcopy(repeat)
+    for side, reference in (('a',independent['id']),('b',x_object['id'])):
+        metadata=workspace._output_declaration(reference);selected=metadata['arrays'][0]
+        mismatch[side]={key:deepcopy(value) for key,value in selected.items() if key!='name'}
+        mismatch[side].update(source_ref=reference,array=selected['name'],
+            coordinate_units=metadata['coordinate_units'],coordinate_frame=metadata['coordinate_frame'],
+            frozen_clock=deepcopy(metadata['frozen_clock']),sampling={'mode':'exact','time':None})
+    blocked=workspace.edit_comparison(draft=mismatch,title='서로 다른 성분')
+    try:
+        workspace.validate(object_ref=blocked['id'])
+    except ValueError as error:
+        assert '관측량' in str(error), str(error)
+    else:
+        raise AssertionError('different saved components were compared')
+
     saved=owner.save_project()
     retained=workspace.sample(object_ref=obj['id'],preview=False,limit=1000)
     receipt={'project':str(saved),'object_ref':obj['id'],'rows':retained['rows'],

@@ -910,7 +910,7 @@ class PostWindow(QMainWindow):
         if not declaration:
             self.message.setText('이 결과에 저장된 물리량과 점·셀 위치를 선택하세요.')
             return
-        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks'):
+        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks', 'observable', 'validity_policy', 'spatial_mask'):
             if key in declaration:
                 target[key] = deepcopy(declaration[key])
         for key in ('coordinate_units', 'coordinate_frame'):

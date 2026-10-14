@@ -740,7 +740,7 @@ def sample_native_points(source, array, offset=0, limit=100, point_index=None):
             "rows": rows, "next_offset": None if point_index is not None or offset + limit >= count else offset + limit}
 
 
-def sample_data(source, offset=0, limit=100, point_index=None, association="POINTS"):
+def sample_data(source, offset=0, limit=100, point_index=None, association="POINTS", declarations=None):
     """Return bounded actual native rows, including line arc length if produced.
 
     Array names are retained. Unknown engineering metadata remains unknown.
@@ -768,6 +768,24 @@ def sample_data(source, offset=0, limit=100, point_index=None, association="POIN
         arrays.append({"name": arr.GetName(), "association": association, "components": arr.GetNumberOfComponents(),
                        "quantity": None, "units": None, "frame": None, "measure": None, "metadata_status": "UNKNOWN"})
         values[arr.GetName()] = np.asarray(vtk_to_numpy(arr))
+    declared = {row['name']: row for row in (declarations or {}).get('arrays', [])
+                if row.get('association') == association and row.get('validity_policy') == 'declared_array'}
+    mask_names = {'vtkValidPointMask', 'vtkGhostType'}
+    if declared:
+        mask_names.update(('comparison_valid', 'percent_valid', 'A_finite', 'B_finite', 'spatial_valid'))
+    declared_flags = {}
+    for name, declaration in declared.items():
+        if name not in values:
+            raise ValueError('Declared sample array is missing: ' + name)
+        masks = declaration.get('validity_masks', [])
+        spatial = declaration.get('spatial_mask')
+        for key in [*masks, *([spatial] if spatial else [])]:
+            flags = values.get(key)
+            if flags is None or np.asarray(flags).shape not in ((count,), (count, 1)):
+                raise ValueError('Declared sample mask is missing or has a different location: ' + key)
+            flat = np.asarray(flags).reshape(-1)
+            declared_flags[key] = np.isfinite(flat) & (flat != 0)
+            mask_names.add(key)
     rows = []
     for index in indices:
         row = {"point_index" if association == "POINTS" else "cell_index": index, "values": {}, "validity": {}}
@@ -776,17 +794,36 @@ def sample_data(source, offset=0, limit=100, point_index=None, association="POIN
         else:
             connectivity = data.GetCell(index).GetPointIds()
             row["point_indices"] = [connectivity.GetId(j) for j in range(connectivity.GetNumberOfIds())]
-        inside = "vtkValidPointMask" not in values or bool(values["vtkValidPointMask"][index])
+        if declared:
+            generic_mask = np.asarray(values["vtkValidPointMask"][index]).reshape(-1) if "vtkValidPointMask" in values else np.array([1])
+            inside = len(generic_mask) == 1 and bool(np.isfinite(generic_mask).all()) and bool(generic_mask[0])
+        else:
+            # Preserve legacy row bytes and saved selection hashes.
+            inside = "vtkValidPointMask" not in values or bool(values["vtkValidPointMask"][index])
         for name, native in values.items():
             raw = np.asarray(native[index]).reshape(-1)
             finite = bool(np.isfinite(raw).all())
             is_identity = _identity(name)
-            is_mask = name in ("vtkValidPointMask", "vtkGhostType", *OUTPUT_ARRAYS.values()) and native.dtype.kind in "iu"
-            valid = finite and (inside or is_identity or is_mask)
+            is_mask = name in mask_names or (name in OUTPUT_ARRAYS.values() and native.dtype.kind in "iu")
+            if name in declared and not is_identity and not is_mask:
+                declaration = declared[name]
+                spatial = declaration.get('spatial_mask')
+                in_domain = not spatial or bool(declared_flags[spatial][index])
+                quality = all(bool(declared_flags[key][index]) for key in declaration.get('validity_masks', []))
+                valid = finite and in_domain and quality
+                reason = ('valid' if valid else 'outside_domain' if not in_domain else
+                          'nonfinite' if not finite else 'source_invalid')
+            else:
+                valid = finite and (inside or is_identity or is_mask)
+                reason = "valid" if valid else ("outside_domain" if not inside and not is_identity and not is_mask else "nonfinite")
             converted = [(value.item() if native.dtype.kind in "iub" else float(value))
                          if valid and np.isfinite(value) else None for value in raw]
             row["values"][name] = converted[0] if len(converted) == 1 else converted
-            row["validity"][name] = "valid" if valid else ("outside_domain" if not inside and not is_identity else "nonfinite")
+            row["validity"][name] = reason
+            if declared:
+                retained = [(value.item() if native.dtype.kind in "iub" else float(value))
+                            if np.isfinite(value) else None for value in raw]
+                row.setdefault('raw_values', {})[name] = retained[0] if len(retained) == 1 else retained
         rows.append(row)
     return {"data_type": data.GetClassName(), "association": association, "count": count,
             "points": data.GetNumberOfPoints(), "cells": data.GetNumberOfCells(), "arrays": arrays,

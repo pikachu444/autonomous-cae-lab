@@ -189,10 +189,10 @@ def build_measurement(source, draft, namespace):
         p.SetActiveView(before[1])
 
 
-def sample_data(source, *, offset=0, limit=100, point_index=None):
+def sample_data(source, *, offset=0, limit=100, point_index=None, declarations=None):
     data = analysis._fetch(source)
     if hasattr(data, 'GetPointData'):
-        return analysis.sample_data(source, offset=offset, limit=limit, point_index=point_index)
+        return analysis.sample_data(source, offset=offset, limit=limit, point_index=point_index, declarations=declarations)
     if point_index is not None:
         raise ValueError('Time tables use result rows and block identity, not spatial point indexes')
     if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 1000:
