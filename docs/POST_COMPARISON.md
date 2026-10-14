@@ -165,3 +165,15 @@ bridge 수명이나 native 창 닫기/저장 제어는 수정하지 않았습니
 [Programmable Filter RequestInformation 계약](https://docs.paraview.org/en/v6.2.0/ReferenceManual/pythonProgrammableFilter.html)을 사용합니다.
 원 물리 시각은 owner의 고정 표본 선언에 보존하며 upstream TIME_STEPS를
 새 표본이라고 광고하지 않습니다.
+
+곡선의 점 선택에는 조회 당시의 정확한 revision을 함께 전송합니다.
+같은 비교에 새 미리보기/적용/Undo가 생겼으면 이전 곡선의 클릭을 거절하며,
+native owner도 highlight 전에 검사합니다. 늦은 응답이 다른 revision의 표 행을
+선택하지 않습니다. 이는 기존 `post.sample`의 선택적 `expected_revision` 인자로
+구현하고 기존 호출은 그대로 유지합니다.
+
+비교 결과에서 점·경로를 만들 때 기존 **측정** 화면의 입력 자료로 적용 결과를
+고릅니다. 배열 목록은 그 결과의 실제 선언을 표시하며
+**저장된 물리량 정보 사용**으로 단위/측도/성분/품질과 고정 시각을 가져옵니다.
+점 번호나 경로 좌표의 미완성 편집은 유지됩니다. **미리보기 → 적용 → 저장**
+뒤 그 측정을 새 비교의 A/B로 선택할 수 있습니다.

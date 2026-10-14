@@ -49,3 +49,17 @@ def test_fixed_sample_meaning_and_temperature_survive_derived_measurement(owner_
     saved = env.work.prepare_save(deepcopy(env.document), env.folder / 'declared-save')
     reopened = env.module.Workspace(env.owner, saved)
     assert reopened._output_declaration(obj['id']) == metadata
+
+
+
+def test_old_curve_revision_is_rejected_before_native_highlight(owner_workspace):
+    env = owner_workspace
+    obj = env.add_object('Aselected', revisions=2)
+    with pytest.raises(ValueError, match='STALE_SAMPLE'):
+        env.work.sample(object_ref=obj['id'], preview=False, point_index=3,
+                        expected_revision=obj['history'][0]['id'])
+    assert env.highlighted == []
+    result = env.work.sample(object_ref=obj['id'], preview=False, point_index=3,
+                             expected_revision=obj['history'][1]['id'])
+    assert result['revision'] == obj['history'][1]['id']
+    assert env.highlighted == [('Aselected-output-1',3)]

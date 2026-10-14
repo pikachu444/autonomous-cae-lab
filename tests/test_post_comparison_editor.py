@@ -92,3 +92,53 @@ def test_known_derived_layout_and_independent_alignment_survive_dialog_ok(app,mo
     assert editor.draft()['alignment']['geometry_declared'] is True
     assert editor.draft()['alignment']['response_declared'] is False
     editor.close()
+
+
+
+def test_old_plot_cannot_select_new_native_revision_or_a_late_table_row():
+    from types import SimpleNamespace
+    from apps.research.post_window import PostWindow
+    revision = ['V2']; commands = []; selected = []; messages = []
+    window = SimpleNamespace(_object_ref='A', _sample_basis={'revision':'V1'},
+        _current_sample_revision=lambda preview: revision[0],
+        _samples={'rows':[{'point_index':3}]},
+        samples=SimpleNamespace(selectRow=lambda row:selected.append(row)),
+        message=SimpleNamespace(setText=lambda text:messages.append(text)))
+    def queue(operation, arguments, accepted):
+        commands.append((operation, arguments, accepted)); return True
+    window.queue_command=queue
+    basis={'object_ref':'A','revision':'V1','preview':False}
+    assert PostWindow.select_comparison_point(window,3,basis) is False
+    assert not commands and not selected
+    revision[0]='V1'
+    assert PostWindow.select_comparison_point(window,3,basis) is True
+    assert commands[-1][1]['expected_revision']=='V1'
+    commands[-1][2]({'object_ref':'A','revision':'V2'})
+    assert selected==[]
+    commands[-1][2]({'object_ref':'A','revision':'V1'})
+    assert selected==[0]
+
+
+
+def test_saved_measurement_array_choices_and_declarations_preserve_partial_geometry():
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from apps.research.post_window import PostWindow
+    metadata = {'coordinate_units':'mm','coordinate_frame':'global','time':None,
+        'frozen_clock':{'value':.5,'unit':'s','semantics':'physical_time'},
+        'arrays':[{'name':'A_original','association':'POINTS','units':'degC',
+            'quantity':'temperature','measure':'temperature','frame':'global',
+            'temperature_kind':'absolute','layout':{'kind':'scalar','components':['scalar']},
+            'validity_masks':['A_finite']}]}
+    draft={'source_ref':'A','array':'A_original','association':'POINTS','measurement':'path',
+           'point1':['1e',0,0],'point2':[1,0,0],'resolution':'-'}
+    editor=SimpleNamespace(_sources=lambda:[], _objects=lambda:[{'id':'A','position':0,'output_metadata':metadata}],
+        edited_draft=lambda:deepcopy(draft), _populate_editor=lambda:None, _edited=lambda:None,
+        message=SimpleNamespace(setText=lambda text:None))
+    editor._source_choice_metadata=lambda ref:PostWindow._source_choice_metadata(editor,ref)
+    assert editor._source_choice_metadata('A')[0]['arrays'][0]['name']=='A_original'
+    PostWindow.use_declarations(editor)
+    assert editor._draft['point1']==['1e',0,0] and editor._draft['resolution']=='-'
+    assert editor._draft['temperature_kind']=='absolute'
+    assert editor._draft['validity_masks']==['A_finite']
+    assert editor._draft['time'] is None and editor._draft['time_units']=='s'

@@ -752,9 +752,11 @@ class Workspace:
         self._touch()
         return {'status': 'SHOWN', 'object_ref': obj['id'], 'revision': record['id']}
 
-    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None):
+    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None, expected_revision=None):
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj, preview=preview)
+        if expected_revision is not None and record['id'] != expected_revision:
+            raise ValueError('STALE_SAMPLE: 선택한 표·곡선 이후 결과가 바뀌었습니다. 현재 결과를 다시 읽으세요.')
         if preview and self._key(obj) != record['key']:
             raise ValueError('STALE_PREVIEW: input, clock or mapping settings changed; validate again')
         if obj['kind'] == 'comparison':
