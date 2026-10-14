@@ -270,6 +270,7 @@ class NumericalWindow(QMainWindow):
         self.results_panel_button.clicked.connect(lambda:self._toggle_panel('results'))
         for label,name in [('입력 표시/접기','inputs'),('결과 표시/접기','results')]:
             action=QAction(label,self); action.triggered.connect(lambda checked=False,name=name:self._toggle_panel(name)); view.addAction(action)
+        self._add_uq_distribution_action(view)
         self.study_splitter=QSplitter(Qt.Orientation.Horizontal); layout.addWidget(self.study_splitter,1)
         self.editor=QWidget(); edit=QVBoxLayout(self.editor); edit.setContentsMargins(0,0,0,0)
         model=QHBoxLayout()
@@ -1382,6 +1383,23 @@ class NumericalWindow(QMainWindow):
         ax.text(.5, .5, 'Actual candidate values and failures are retained in the table.\nSelect a study with curves, optimization objectives or declared UQ statistics to plot.',
                 ha='center', va='center', transform=ax.transAxes)
         ax.set_axis_off()
+
+    def _add_uq_distribution_action(self, menu):
+        action = QAction('분포와 구간…', self)
+        action.triggered.connect(self.open_uq_distribution)
+        menu.addAction(action)
+
+    def open_uq_distribution(self):
+        result = self._result_cache.get(self.selected_job(), {})
+        if result.get('kind') != 'uq' or not result.get('probability_statistics'):
+            self.message.setText('보존된 불확실성 분석 결과를 먼저 선택하세요.')
+            return None
+        from .numerical_uq_window import NumericalUQWindow
+        title = self.document.get('title', '불확실성 분석') if self.document else '불확실성 분석'
+        window = NumericalUQWindow(result, title=title, parent=self)
+        self.__dict__.setdefault('_uq_windows', []).append(window)
+        window.show()
+        return window
 
 
     def selected_candidate(self):
