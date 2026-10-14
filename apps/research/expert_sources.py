@@ -6,7 +6,7 @@ import uuid
 
 from PySide6.QtCore import Qt, QThreadPool, QTimer
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog,
-    QHBoxLayout, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QSplitter,
+    QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from caelab.assist.knowledge import selected_source_refs
@@ -25,12 +25,15 @@ class SourcePreview(QWidget):
         super().__init__(parent)
         self.payload = None
         layout = QVBoxLayout(self)
-        self.title = QLabel('Select a source')
+        self.title = QLabel('문헌을 선택하세요.')
+        self.title.setWordWrap(True)
+        self.title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.title.setProperty('appearanceRole', 'section')
         layout.addWidget(self.title)
         line = QHBoxLayout()
         self.segment = QComboBox()
         self.segment.currentIndexChanged.connect(self.show_segment)
-        self.details = QPushButton('Details…')
+        self.details = QPushButton('진단 상세…')
         self.details.clicked.connect(self.show_details)
         line.addWidget(self.segment, 1)
         line.addWidget(self.details)
@@ -45,27 +48,27 @@ class SourcePreview(QWidget):
 
     def set_payload(self, payload):
         self.payload = deepcopy(payload)
-        self.title.setText(payload.get('title') or 'Archived source')
-        scope = {'abstract_only': 'Abstract only', 'metadata_only': 'Bibliographic record only',
-                 'fulltext': 'Extracted full text', 'access_unavailable': 'Source unavailable'}.get(payload.get('status'))
+        self.title.setText(payload.get('title') or '보관된 문헌')
+        scope = {'abstract_only': '초록만 제공', 'metadata_only': '서지 정보만 제공',
+                 'fulltext': '추출한 본문', 'access_unavailable': '원문을 읽을 수 없음'}.get(payload.get('status'))
         if scope:
             self.title.setText(self.title.text() + ' — ' + scope)
         self.segment.blockSignals(True)
         self.segment.clear()
         for index, row in enumerate(payload.get('segments', [])):
             locator = row['locator']
-            label = ('Page ' + str(locator['page']) if 'page' in locator else
-                     locator.get('section') or 'Lines ' + str(locator.get('line_start', '')) +
+            label = ('쪽 ' + str(locator['page']) if 'page' in locator else
+                     locator.get('section') or '줄 ' + str(locator.get('line_start', '')) +
                      '–' + str(locator.get('line_end', '')))
-            self.segment.addItem(label or 'Segment ' + str(index + 1), index)
+            self.segment.addItem(label or '본문 ' + str(index + 1), index)
             self.segment.setItemData(index, json.dumps(locator, ensure_ascii=False), Qt.ItemDataRole.ToolTipRole)
         self.segment.blockSignals(False)
         failures = payload.get('failed_segments', [])
-        self.notice.setText('\n'.join(('Page ' + str(row.get('page', '?')) + ': ' +
-            str(row.get('reason', 'Extraction failed'))) for row in failures[:8]) +
-            ('\nAdditional extraction failures are in Details.' if len(failures) > 8 else ''))
+        self.notice.setText('\n'.join(('쪽 ' + str(row.get('page', '?')) + ': ' +
+            str(row.get('reason', '본문 추출 실패'))) for row in failures[:8]) +
+            ('\n나머지 추출 오류는 진단 상세에서 확인하세요.' if len(failures) > 8 else ''))
         if not payload.get('segments'):
-            self.text.setPlainText('No readable text was extracted. OCR was not performed; choose a readable source.')
+            self.text.setPlainText('읽을 수 있는 본문이 없습니다. OCR은 수행하지 않았습니다. 텍스트가 있는 원문을 선택하세요.')
         else:
             self.show_segment()
 
@@ -77,14 +80,14 @@ class SourcePreview(QWidget):
             return
         row = self.payload['segments'][index]
         content = row['text']
-        self.text.setPlainText(content[:200_000] + ('\n[Preview limited to 200,000 characters in this segment.]'
+        self.text.setPlainText(content[:200_000] + ('\n[이 본문은 200,000자까지 표시합니다.]'
                                                   if len(content) > 200_000 else ''))
         limits = row.get('limitations', [])
         self.text.setToolTip('\n'.join(limits))
 
     def show_error(self, message):
         self.payload = None
-        self.title.setText('Source unavailable')
+        self.title.setText('원문을 읽을 수 없음')
         self.segment.clear()
         self.text.setPlainText(str(message))
         self.notice.clear()
@@ -97,7 +100,7 @@ class SourcePreview(QWidget):
                 row = self.payload['segments'][index]
                 details['locator'] = row['locator']
                 details['limitations'] = row.get('limitations', [])
-            QMessageBox.information(self, 'Exact source', json.dumps(details, ensure_ascii=False, indent=2))
+            QMessageBox.information(self, '문헌 진단 상세', json.dumps(details, ensure_ascii=False, indent=2))
 
 
 class SourceDialog(QDialog):
@@ -125,36 +128,40 @@ class SourceDialog(QDialog):
             self.legacy = [item for item in (identifiers if isinstance(identifiers, list) else [])
                            if isinstance(item, str)]
             self._selection_error = str(error)
-        self.setWindowTitle('Research sources')
+        self.setWindowTitle('연구 문헌')
         self.resize(1050, 760)
+        self.setMinimumSize(720, 500)
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
-        self.add_file = QPushButton('Add file…')
+        self.add_file = QPushButton('파일 가져오기…')
         self.add_file.clicked.connect(self.choose_file)
         self.collection = QComboBox()
         self.collection.setEditable(True)
         self.collection.addItems(list(dict.fromkeys(collections)) or ['research'])
-        self.collection.setToolTip('Library collection; attaching does not authorize model transmission.')
-        self.refresh = QPushButton('Refresh library')
+        self.collection.setToolTip('문헌 보관함입니다. 연구에 연결하는 동작은 모델 전송을 허용하지 않습니다.')
+        self.refresh = QPushButton('목록 새로 고침')
         self.refresh.clicked.connect(self.load_library)
         top.addWidget(self.add_file)
-        top.addWidget(QLabel('Collection'))
+        top.addWidget(QLabel('보관함'))
         top.addWidget(self.collection, 1)
         top.addWidget(self.refresh)
-        self.retry_import = QPushButton('Resume import')
+        self.retry_import = QPushButton('가져오기 재시도')
         self.retry_import.clicked.connect(self.resume_import)
         self.retry_import.hide()
         top.addWidget(self.retry_import)
         layout.addLayout(top)
-        self.message = QLabel('Check the sources to attach. Existing revisions remain selected until explicitly changed.')
+        self.message = QLabel('연결할 문헌을 체크하세요. 보관된 원문은 직접 다시 선택하기 전까지 유지됩니다.')
         self.message.setWordWrap(True)
         layout.addWidget(self.message)
         split = QSplitter(Qt.Orientation.Horizontal)
         left = QWidget()
         column = QVBoxLayout(left)
         self.library = QTreeWidget()
-        self.library.setHeaderLabels(['Source', 'Collection'])
+        self.library.setHeaderLabels(['문헌', '보관함'])
         self.library.setObjectName('sourceLibrary')
+        self.library.setMinimumWidth(220)
+        self.library.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.library.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.library.currentItemChanged.connect(self.preview_selected)
         column.addWidget(self.library, 1)
         self.version = QComboBox()
@@ -163,10 +170,13 @@ class SourceDialog(QDialog):
         split.addWidget(left)
         self.preview = SourcePreview()
         split.addWidget(self.preview)
+        split.setChildrenCollapsible(False)
+        split.setStretchFactor(1, 1)
         split.setSizes([350, 700])
         layout.addWidget(split, 1)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Attach selected sources')
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText('선택한 문헌 연결')
+        self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         self.buttons.accepted.connect(self.verify_selection)
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
@@ -231,21 +241,20 @@ class SourceDialog(QDialog):
             for identifier in rows:
                 document = self._catalog.get(identifier, {})
                 ref = pinned.get(identifier) or {'document_id': identifier, 'revision': document['latest_revision']}
-                title = document.get('title') or 'Unavailable selected source'
+                title = document.get('title') or '읽을 수 없는 선택 문헌'
                 self.titles[identifier] = title
-                item = QTreeWidgetItem([title, document.get('collection', 'Unavailable')])
+                item = QTreeWidgetItem([title, document.get('collection', '없음')])
                 item.setData(0, DATA, deepcopy(ref))
-                item.setToolTip(0, json.dumps(ref, ensure_ascii=False))
+                item.setToolTip(0, title)
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(0, Qt.CheckState.Checked if identifier in pinned else Qt.CheckState.Unchecked)
                 self.library.addTopLevelItem(item)
                 if identifier == self._focus:
                     chosen = item
-            self.library.resizeColumnToContents(0)
             self.library.setCurrentItem(chosen or self.library.topLevelItem(0))
             self.library.blockSignals(False)
             if self._selection_error:
-                self.message.setText(self._selection_error + '. Preview and check the sources explicitly.')
+                self.message.setText(self._selection_error + '. 원문을 읽고 연결할 문헌을 직접 선택하세요.')
             QTimer.singleShot(0, self.preview_selected)
         return self._call(lambda: assist(self.client, 'knowledge.list'), loaded)
 
@@ -257,21 +266,21 @@ class SourceDialog(QDialog):
         catalog = self._catalog.get(reference['document_id'], {})
         self.version.blockSignals(True)
         self.version.clear()
-        self.version.addItem('Selected version', reference['revision'])
+        self.version.addItem('선택한 원문', reference['revision'])
         latest = catalog.get('latest_revision')
         if latest and latest != reference['revision']:
-            self.version.addItem('Current library version', latest)
+            self.version.addItem('보관함의 최신 원문', latest)
         original = next((ref for ref in self.initial if ref['document_id'] == reference['document_id']), None)
         if original and original['revision'] not in {reference['revision'], latest}:
-            self.version.addItem('Saved selection', original['revision'])
-        self.version.setToolTip('Exact selected revision: ' + str(reference['revision']))
+            self.version.addItem('이전에 연결한 원문', original['revision'])
+        self.version.setToolTip('선택한 원문의 개정: ' + str(reference['revision']))
         self.version.blockSignals(False)
         def loaded(payload):
             current = self.library.currentItem()
             if current and current.data(0, DATA) == reference:
                 self.preview.set_payload(payload)
                 self.records[(reference['document_id'], reference['revision'])] = payload
-        self.preview.show_error('Reading selected source…')
+        self.preview.show_error('선택한 원문을 읽는 중…')
         return self._call(lambda: assist(self.client, 'knowledge.source', reference), loaded,
                           rejected=self.preview.show_error)
 
@@ -281,25 +290,25 @@ class SourceDialog(QDialog):
             return
         reference = dict(item.data(0, DATA), revision=revision)
         item.setData(0, DATA, reference)
-        item.setToolTip(0, json.dumps(reference, ensure_ascii=False))
+        item.setToolTip(0, self.titles.get(reference['document_id'], '문헌'))
         self.preview_selected()
 
     def choose_file(self):
-        filename, _ = QFileDialog.getOpenFileName(self, 'Add research source', '',
-            'Research sources (*.pdf *.md *.txt *.csv)')
+        filename, _ = QFileDialog.getOpenFileName(self, '연구 문헌 가져오기', '',
+            '연구 문헌 (*.pdf *.md *.txt *.csv)')
         if filename:
             self.import_file(filename)
 
     def import_file(self, filename):
         collection = self.collection.currentText().strip()
         if not collection:
-            self.message.setText('Choose a library collection.')
+            self.message.setText('보관함 이름을 입력하세요.')
             return False
         path = Path(filename)
         if path.suffix.lower() not in {'.pdf', '.md', '.txt', '.csv'}:
-            self.message.setText('Choose PDF, Markdown (.md), UTF-8 text or CSV.')
+            self.message.setText('PDF, Markdown(.md), UTF-8 텍스트 또는 CSV를 선택하세요.')
             return False
-        self.message.setText('Importing ' + path.name + '…')
+        self.message.setText('가져오는 중: ' + path.name + '…')
         self._import_request = self._upload = None
         request_id = 'source-' + uuid.uuid4().hex
         def upload_and_submit():
@@ -313,7 +322,7 @@ class SourceDialog(QDialog):
         def submitted(job):
             self._import_job = job['id']
             self.poll.start()
-            self.message.setText('Extracting source text…')
+            self.message.setText('본문을 추출하는 중…')
         return self._call(upload_and_submit, submitted)
 
     def resume_import(self):
@@ -346,16 +355,16 @@ class SourceDialog(QDialog):
                     self.library.clear()
                     self.library.blockSignals(False)
                     self._focus = reference['document_id']
-                    self.message.setText('Imported. Read the extracted text, then Attach or Cancel.')
+                    self.message.setText('가져왔습니다. 추출한 본문을 읽고 문헌을 연결하거나 취소하세요.')
                     self.load_library()
                 self._call(lambda: self.client.result(identifier), imported)
             elif state in {'FAILED', 'REJECTED', 'CANCELLED', 'INTERRUPTED'}:
                 self.poll.stop()
                 self._import_job = None
                 self._import_request = None
-                self.message.setText('Source import ' + state.lower() + ': ' + str(payload.get('error') or 'No readable result'))
+                self.message.setText('문헌 가져오기 ' + state.lower() + ': ' + str(payload.get('error') or '읽을 수 있는 본문 없음'))
             else:
-                self.message.setText('Extracting source text: ' + state.lower())
+                self.message.setText('본문 추출 중: ' + state.lower())
         return self._call(lambda: self.client.status(identifier), status)
 
     def verify_selection(self):
@@ -366,7 +375,7 @@ class SourceDialog(QDialog):
             for reference in checked:
                 source = assist(self.client, 'knowledge.source', reference)
                 if source.get('revision') != reference['revision'] or not source.get('segments'):
-                    raise ValueError('Selected source has no readable text; inspect extraction or deselect it.')
+                    raise ValueError('선택한 원문에 읽을 수 있는 본문이 없습니다. 추출 상태를 확인하거나 선택을 해제하세요.')
                 records.append(source)
             return records
         def verified(records):

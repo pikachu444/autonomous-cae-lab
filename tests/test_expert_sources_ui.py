@@ -244,7 +244,7 @@ def test_blank_pdf_preview_reports_extraction_and_blocks_attach(tmp_path):
             assert 'OCR' in dialog.preview.notice.text()
             dialog.verify_selection()
             wait(app, lambda: not dialog._busy)
-            assert dialog.references is None and 'no readable text' in dialog.message.text()
+            assert dialog.references is None and '읽을 수 있는 본문이 없습니다' in dialog.message.text()
             assert all(job['operation'] == 'knowledge.ingest' for job in transport.server.workbench.manager.list())
         finally:
             drain_closed(app, dialog)

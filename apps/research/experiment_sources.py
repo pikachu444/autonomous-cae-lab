@@ -4,9 +4,10 @@ from PySide6.QtWidgets import QDialog, QInputDialog
 from caelab.storage import canonical_hash
 
 
-def choose_knowledge(client, parent, selected):
+def choose_knowledge(client, parent, selected, *, reference=None):
     from .expert_sources import SourceDialog
-    dialog = SourceDialog(client, {'selected_sources': []}, parent=parent)
+    initial = [{key: reference[key] for key in ('document_id', 'revision')}] if reference else []
+    dialog = SourceDialog(client, {'selected_sources': initial}, parent=parent)
     if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.references:
         return
     pins = dialog.references

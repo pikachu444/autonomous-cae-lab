@@ -7,7 +7,7 @@ import sys
 import uuid
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QFontMetrics, QKeySequence
 from PySide6.QtWidgets import (QApplication, QBoxLayout, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QPlainTextEdit,
     QScrollArea, QSizePolicy, QSplitter, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
@@ -79,9 +79,9 @@ class StudyWindow(NumericalWindow):
         files.addActions([self.new_action, self.open_action, self.save_action])
         report = files.addAction('보고서 만들기…')
         report.triggered.connect(self.open_report)
-        literature = tools_literature = QAction('문헌 추가…', self)
-        literature.triggered.connect(self.choose_literature)
-        files.addAction(literature)
+        self.literature_action = QAction('문헌 추가…', self)
+        self.literature_action.triggered.connect(self.choose_literature)
+        files.addAction(self.literature_action)
         tools = self.menuBar().addMenu('도구(&T)')
         self.details_action = QAction('진단 상세…', self)
         self.details_action.triggered.connect(self.show_diagnostics)
@@ -128,6 +128,8 @@ class StudyWindow(NumericalWindow):
         self.add_source_button = QPushButton('자료 추가…')
         self.source_menu = self.menuBar().addMenu('자료(&D)')
         self.evidence_buttons = []
+        self.source_menu.addAction(self.literature_action)
+        self.evidence_buttons.append(self.literature_action)
         for label, kind in (('문서 추가…', 'document'), ('계산 결과 추가…', 'result'), ('대화 발언 추가…', 'expert_turn')):
             action = self.source_menu.addAction(label)
             action.triggered.connect(lambda checked=False, kind=kind: self.choose_evidence(kind))
@@ -183,9 +185,18 @@ class StudyWindow(NumericalWindow):
         self.source_title.setWordWrap(True)
         self.source_title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.source_title.setProperty('appearanceRole', 'title')
-        right_layout.addWidget(self.source_kind)
+        source_heading = QHBoxLayout()
+        source_heading.addWidget(self.source_kind, 1)
+        self.replace_literature_button = QPushButton('문헌 다시 선택…')
+        self.replace_literature_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.replace_literature_button.clicked.connect(self.replace_literature)
+        source_heading.addWidget(self.replace_literature_button)
+        source_heading.addStretch(1)
+        self.replace_literature_button.hide()
+        right_layout.addLayout(source_heading)
         right_layout.addWidget(self.source_title)
         self.reading = ReferenceContent()
+        self.reading.details.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.reading.title.hide()
         self.reading.response_requested.connect(self.read_response)
         right_layout.addWidget(self.reading, 1)
@@ -350,8 +361,8 @@ class StudyWindow(NumericalWindow):
     def _update_source_title(self, compact=None):
         text = self.source_title.toolTip()
         compact = self.width() < 1200 and not self.editor.isHidden() if compact is None else compact
-        self.source_title.setText(self.source_title.fontMetrics().elidedText(text,
-            Qt.TextElideMode.ElideRight, max(100, self.reading_page.width() - 8)) if compact else text)
+        self.source_title.setText(QFontMetrics(self.source_title.font()).elidedText(text,
+            Qt.TextElideMode.ElideRight, max(100, self.source_title.width() - 16)) if compact else text)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -487,7 +498,7 @@ class StudyWindow(NumericalWindow):
                        'UNAVAILABLE': '읽을 수 없음', 'INVALID': '잘못된 참조'}.get(check.get('status'), '읽기 전')
             for column, value in enumerate((self._evidence_label(row), {'expert_turn': '대화', 'result': '계산 결과', 'document': '문서'}.get(row['kind'], row['kind']), identity, message)):
                 self._set_cell(self.evidence, index, column, value, False)
-                self.evidence.item(index, column).setToolTip(str(value))
+                self.evidence.item(index, column).setToolTip(str(check.get('message') or value) if column == 3 else str(value))
             if self._selected == ('evidence', row['id']) or self._reading_evidence_id == row['id']:
                 self.evidence.selectRow(index)
         self.evidence.blockSignals(False)
@@ -592,7 +603,8 @@ class StudyWindow(NumericalWindow):
             self.context_source.setText('자료 보기: ' + self._evidence_label(evidence))
             self.source_title.setToolTip(self._evidence_label(evidence))
             self._update_source_title()
-            self.source_kind.setText({'result': '계산 결과', 'expert_turn': '대화', 'document': '문서'}.get(evidence['kind'], '자료'))
+            self.source_kind.setText({'result': '계산 결과', 'expert_turn': '대화', 'document': '문서', 'knowledge': '문헌'}.get(evidence['kind'], '자료'))
+            self._update_reading_title()
         self.followup_basis.setText(('판단: ' if self._selected and self._selected[0] == 'decisions' else '') +
             str(row.get('title', row.get('question', row.get('label', '')))) if row and self._selected[0] != 'evidence' else '')
         self.followup_basis.setVisible(bool(self.followup_basis.text()))
@@ -889,7 +901,7 @@ class StudyWindow(NumericalWindow):
             continuation()
 
     def choose_literature(self):
-        if not self.document or self._raw_mode or self._busy or self._callbacks:
+        if not self.document or self._raw_mode or self._busy or self._callbacks or self.conflict:
             return False
         from .experiment_sources import choose_knowledge
         def selected(reference, label):
@@ -900,6 +912,22 @@ class StudyWindow(NumericalWindow):
             self._selection_serial += 1
             self._edited(); self._populate_evidence(); self._show_detail()
         self._modal(lambda: choose_knowledge(self.client, self, selected))
+
+    def replace_literature(self):
+        row = self._row()
+        if (not row or self._selected[0] != 'evidence' or row.get('kind') != 'knowledge'
+                or self._raw_mode or self._busy or self._callbacks or self.conflict):
+            return False
+        from .experiment_sources import choose_knowledge
+        context = self._context(selection=True)
+        def selected(reference, _label):
+            if self._context(selection=True) != context:
+                return
+            row['reference'] = deepcopy(reference)
+            self._reference_checks.pop(row['id'], None)
+            self._edited(); self._populate_evidence(); self._show_detail()
+            self.message.setText('문헌을 다시 연결했습니다. 메모와 판단은 유지됩니다. 내용을 확인하고 저장하세요.')
+        self._modal(lambda: choose_knowledge(self.client, self, selected, reference=deepcopy(row['reference'])))
 
     def open_report(self):
         if self.local_dirty or not self.document or self.document.get('dirty') or not self.document.get('saved_revision'):
@@ -1114,7 +1142,7 @@ class StudyWindow(NumericalWindow):
         self.new_action.setEnabled(available)
         self.open_action.setEnabled(available)
         self.question.setEnabled(present and not self._raw_mode)
-        self.reading.title.setVisible(self.reading.payload is not None)
+        self._update_reading_title()
         self.question_edit_button.setEnabled(present and not self._raw_mode)
         self.add_source_button.setEnabled(enabled and not self._raw_mode)
         self.editor.setEnabled(present and not self._raw_mode and self._row() is not None)
@@ -1125,6 +1153,10 @@ class StudyWindow(NumericalWindow):
         self.reference_button.setEnabled(enabled and bool(self._content_reference))
         self.note_button.setEnabled(enabled and bool(self._content_reference) and not self._raw_mode)
         self.check_button.setEnabled(enabled and bool(self._content_reference))
+        row = self._row()
+        literature = bool(row and self._selected[0] == 'evidence' and row.get('kind') == 'knowledge')
+        self.replace_literature_button.setVisible(literature)
+        self.replace_literature_button.setEnabled(enabled and literature and not self._raw_mode)
         for button in (self.discussion_button, self.plan_button):
             button.setEnabled(enabled and not self._raw_mode)
         self.reload_button.setVisible(self.conflict)
@@ -1135,6 +1167,11 @@ class StudyWindow(NumericalWindow):
             self.setWindowTitle('Study — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
             self.identity.setText('')
         self._schedule_content_read()
+
+    def _update_reading_title(self):
+        payload = self.reading.payload
+        self.reading.title.setVisible(payload is not None and
+            (payload.get('kind') != 'knowledge' or self.reading.title.text() != self.source_title.toolTip()))
 
 
 def main(argv=None):

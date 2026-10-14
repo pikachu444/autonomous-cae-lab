@@ -1,7 +1,6 @@
 """Native report reader/export of the actual retained Co-STORM article."""
 from copy import deepcopy
 from html import escape
-from pathlib import Path
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QTextCursor
@@ -97,6 +96,7 @@ class ReportView(QWidget):
                 citations += '<li>' + escape(label) + ' — 원자료 없음</li>'
         cursor = QTextCursor(document)
         cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertBlock()
         cursor.insertHtml(citations + '</ol>')
         self.status.setText('토론 보고서' if report.get('status') == 'DRAFT'
                             else '확인되지 않은 인용이 있습니다.')
@@ -121,7 +121,8 @@ class ReportView(QWidget):
         if html:
             document = markdown_document(text, self.body.font(), math_images=False)
             text = document.toHtml()
-        Path(path).write_text(text, encoding='utf-8')
+        from .report_pages import atomic_export
+        atomic_export(path, lambda temporary: temporary.write_text(text, encoding='utf-8'))
         return str(path)
 
     def choose_export(self):
@@ -134,4 +135,4 @@ class ReportView(QWidget):
         try:
             self.export_to(path, html='HTML' in selected)
         except (OSError, ValueError) as error:
-            self.status.setText('저장하지 못했습니다: ' + str(error))
+            self.status.setText('저장하지 못했습니다. 이전 파일은 유지됩니다: ' + str(error))

@@ -172,7 +172,8 @@ class CalibrationDialog(QDialog):
         except (ValueError,KeyError,TypeError,IndexError) as error:
             self.message.setText('미적용 입력: '+str(error)+' 이전 미리보기는 유지됩니다.')
         if axes is not None:
-            self.figure.tight_layout();self.canvas.draw_idle()
+            # A preview can be closed before its first event loop is entered.
+            self.figure.tight_layout();self.canvas.draw()
 
     def done(self,result):
         if self._workers:
