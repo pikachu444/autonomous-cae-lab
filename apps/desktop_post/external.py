@@ -574,6 +574,7 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
 def open_result(input_path, project_directory, input_id=None, source_pins=None, native_metadata=None, registration_origin=None):
     # Admission is also used by Add result in an already open analysis.
     source, record = admit_result(input_path, input_id, source_pins, native_metadata, registration_origin)
+    record['label'] = Path(input_path).name
     folder = Path(project_directory).resolve()
     folder.mkdir(parents=True, exist_ok=False)
     scene = p.GetAnimationScene()

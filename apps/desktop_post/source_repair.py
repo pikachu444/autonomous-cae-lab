@@ -8,14 +8,18 @@ import xml.etree.ElementTree as ET
 from paraview import simple as p
 try:
     from . import external
+    from .source_change import content_set
 except ImportError:
     import external
+    from source_change import content_set
 
 
-def content_set(record):
-    entry = Path(record['entry_path'])
-    return {Path(pin['path']).relative_to(entry.parent).as_posix(): (pin['bytes'], pin['sha256'])
-            for pin in record['source_pins']}
+def preview_registered(receipt):
+    """Read in a separate native process; never modify the existing owner."""
+    source, record = external.admit_result(receipt['path'], receipt['id'], receipt['source_pins'],
+        receipt.get('native_metadata'), receipt.get('registration_origin'))
+    try: return deepcopy(record['metadata'])
+    finally: p.Delete(source)
 
 
 def source_issues(document):
@@ -310,3 +314,11 @@ def repair_source(owner, source_ref, input_id, receipt):
     owner.workspace = Workspace(owner, document)
     owner.workspace.restore_selection()
     return {'source_ref': source_ref, 'input_id': input_id, 'content_changed': False, 'remaining': [], 'workspace_loaded': True}
+
+
+if __name__ == '__main__':
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    receipt = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+    result = preview_registered(receipt)
+    Path(sys.argv[2]).write_text(json.dumps(result, ensure_ascii=False, allow_nan=False), encoding='utf-8')

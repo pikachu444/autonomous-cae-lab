@@ -148,6 +148,9 @@ class Workspace:
         for ref, record in self.document.get('sources', {}).items():
             native = p.FindSource(record['reader_name'])
             sources.append({'source_ref': ref, 'input_id': record.get('input_id'),
+                'entry_name': Path(record['entry_path']).name,
+                'files': [{'relative': Path(pin['path']).relative_to(Path(record['entry_path']).parent).as_posix(),
+                    'bytes': pin['bytes'], 'sha256': pin['sha256']} for pin in record['source_pins']],
                 'label': record.get('label') or record['reader_name'], 'source_revision': record['source_revision'],
                 'reader_name': record['reader_name'], 'metadata': deepcopy(record.get('metadata', {})),
                 'native_metadata': deepcopy(record.get('native_metadata')), 'available': native is not None})
