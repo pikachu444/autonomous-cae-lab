@@ -272,6 +272,27 @@ class Inspector(QtWidgets.QDockWidget):
         record('selection', entries=[{'object': e.ObjectName, 'subelements': list(e.SubElementNames)} for e in entries[:32]])
 
 
+def compare_mesh_quality():
+    from apps.desktop_pre.fem_edit import _native_type
+    if CONNECTION is None:
+        raise ValueError('문서 연결이 준비된 뒤 메시를 선택하세요.')
+    owner = CONNECTION.active_owner()
+    selected = list(Gui.Selection.getSelection())
+    if not selected:
+        selected = [obj for obj in owner.doc.Objects if _native_type(obj) == 'Fem::FemMeshGmsh']
+    if (len(selected) != 1 or selected[0].Document is not owner.doc
+            or _native_type(selected[0]) != 'Fem::FemMeshGmsh'):
+        raise ValueError('모델 트리에서 비교할 현재 메시 하나를 선택하세요.')
+    mesh = owner.fem._mesh({'object_id': selected[0].Name})
+    from apps.desktop_pre.mesh_compare_panel import make_dialog
+    dialog = make_dialog(QtWidgets, QtCore, owner, mesh, Gui.getMainWindow())
+    dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+    KEEP.append(dialog)
+    dialog.destroyed.connect(lambda *_: KEEP.remove(dialog) if dialog in KEEP else None)
+    dialog.show()
+    return dialog
+
+
 def add_toolbar():
     main = Gui.getMainWindow()
     bar = QtWidgets.QToolBar('CAE 작업', main)
@@ -307,6 +328,10 @@ def add_toolbar():
         action.triggered.connect(guarded(fn))
         bar.addAction(action)
         menu.addAction(action)
+    menu.addSeparator()
+    compare_action = menu.addAction('메시 품질 비교…')
+    compare_action.setObjectName('caeCompareMeshQuality')
+    compare_action.triggered.connect(guarded(compare_mesh_quality))
     KEEP.append(bar)
 
 
