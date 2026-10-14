@@ -277,7 +277,7 @@ class ImpactEditor(QDialog):
         value=self.edited()
         value['source']=deepcopy(dialog.source)
         for key in ('motions','contacts','cohesive','responses','generated_sets'):value[key]=[]
-        self.value=value;self.populate();self.project.refresh();self.tabs.setCurrentWidget(self.project)
+        self.value=value;self.populate();self.project.refresh(selected_key=());self.tabs.setCurrentWidget(self.project)
 
     def edited(self):
         value=deepcopy(self.value); motions=[]; contacts=[]

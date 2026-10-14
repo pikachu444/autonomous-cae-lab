@@ -212,6 +212,7 @@ class RunnerWindow(QMainWindow):
         self._initial_job_id = job_id
         self._workers, self._pending, self._job_versions = {}, {}, {}
         self._ticket = self._selection_epoch = self._response_epoch = 0
+        self._window_epoch = 0
         self._closed = False
         self._poll_interval = poll_interval
         self._input_snapshot = None
@@ -405,14 +406,16 @@ class RunnerWindow(QMainWindow):
             return False
         self._ticket += 1
         ticket = self._ticket
+        window_epoch = self._window_epoch
         worker = _Read(function)
         self._workers[ticket] = worker
         self._pending[key] = ticket
         self._update_actions()
         def finished(value, error):
             self._workers.pop(ticket, None)
-            self._pending.pop(key, None)
-            if self._closed:
+            if self._pending.get(key) == ticket:
+                self._pending.pop(key, None)
+            if self._closed or window_epoch != self._window_epoch:
                 return
             if relevant is None or relevant():
                 if error:
@@ -488,6 +491,8 @@ class RunnerWindow(QMainWindow):
         self._clear_result()
         self._draw_jobs()
         self._show_job(self.jobs.get(identifier, {"id": identifier}))
+        self.message.setText("선택한 작업: " + (self.jobs.get(identifier, {}).get("arguments", {}).get("label")
+            or operation_label(self.jobs.get(identifier, {}).get("operation"))))
         self.job_selected.emit(identifier)
         self.refresh_selected()
 
@@ -522,7 +527,7 @@ class RunnerWindow(QMainWindow):
         error = job.get("error")
         messages = [job.get("message", "")]
         if error:
-            messages.append("Recorded error: " + text_value(error))
+            messages.append("실행 오류: " + text_value(error.get("message", error) if isinstance(error, dict) else error))
         self.error_label.setText("\n".join(message for message in messages if message))
         inputs = {"job_id": job.get("id", self.selected_job_id), "operation": operation,
                   "arguments": arguments, "resources": job.get("resources", {}),
@@ -534,7 +539,7 @@ class RunnerWindow(QMainWindow):
         self._update_actions()
 
     def cancel_selected(self):
-        identifier = self.selected_job_id
+        identifier, epoch = self.selected_job_id, self._selection_epoch
         if not identifier or self.jobs.get(identifier, {}).get("state") not in {"QUEUED", "RUNNING", "CLEANUP_PENDING"}:
             return
         self.message.setText("선택한 작업의 취소를 요청하고 있습니다. 아직 종료가 확인되지 않았습니다.")
@@ -544,7 +549,8 @@ class RunnerWindow(QMainWindow):
             if self.selected_job_id == identifier:
                 self._show_job(self.jobs[identifier])
             self.message.setText(state_description(job))
-        self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received)
+        self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received,
+                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
 
     def open_contact_steps(self):
         identifier,epoch=self.selected_job_id,self._selection_epoch
@@ -565,7 +571,7 @@ class RunnerWindow(QMainWindow):
         identifier, epoch = self.selected_job_id, self._selection_epoch
         if not identifier:
             return
-        self.message.setText("Finding the exact source document…")
+        self.message.setText("선택한 실행의 입력 문서를 찾고 있습니다…")
         def received(navigation, _ticket):
             origin = navigation.get("origin_document") or {}
             if origin.get("kind") == "material" and self._on_open_origin is not None:
@@ -574,9 +580,11 @@ class RunnerWindow(QMainWindow):
                 return
             from .desktop import open_origin
             def opened(receipt, _ticket):
-                self.message.setText("Source document: " + text_value(receipt.get("status")))
+                self.message.setText("선택한 실행의 입력 문서를 열었습니다." if receipt.get("status") in {"ACTIVATED", "SHOWN"}
+                    else "선택한 실행의 입력 문서 열기를 요청했습니다.")
             self._request("open-origin:" + identifier,
-                          lambda: open_origin(self.client, identifier), opened)
+                          lambda: open_origin(self.client, identifier), opened,
+                          relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
         self._request("navigation-origin:" + identifier, lambda: self.client.job_navigation(identifier), received,
                       relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
 
@@ -606,17 +614,18 @@ class RunnerWindow(QMainWindow):
         identifier, epoch = self.selected_job_id, self._selection_epoch
         if not identifier:
             return
-        self.message.setText("Finding this job's retained native field…")
+        self.message.setText("선택한 실행의 저장된 공간 결과를 찾고 있습니다…")
         def received(navigation, _ticket):
             post = navigation.get("post_input")
             if not post:
-                self.message.setText("This job has no retained VTU/PVD field for Post. Its original responses remain available here.")
+                self.message.setText("후처리로 열 수 있는 저장된 공간 결과가 없습니다. 원래 응답은 결과 보기에서 읽을 수 있습니다.")
                 return
             from .desktop import launch_post
             def launched(receipt, _ticket):
-                self.message.setText("Post preparation started in a separate helper; any native preparation error will be shown.")
+                self.message.setText("선택한 실행의 후처리 열기를 요청했습니다. 준비 중 오류는 별도 창에 표시됩니다.")
             self._request("open-post:" + identifier,
-                          lambda: launch_post(self.client, post["id"], job_id=identifier), launched)
+                          lambda: launch_post(self.client, post["id"], job_id=identifier), launched,
+                          relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
         self._request("navigation-post:" + identifier, lambda: self.client.job_navigation(identifier), received,
                       relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
 
@@ -834,6 +843,8 @@ class RunnerWindow(QMainWindow):
 
     def closeEvent(self, event):
         self._closed = True
+        self._window_epoch += 1
+        self._pending.clear()
         self.timer.stop()
         event.accept()
 

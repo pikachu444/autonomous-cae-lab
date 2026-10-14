@@ -252,3 +252,76 @@ def test_refresh_and_close_reopen_preserve_selection_and_origin_without_submit(r
     assert viewer.selected_job_id == "JB"
     assert "프로세스 종료 미확인" in viewer.state_label.text()
     assert not any(call[0] == "cancel" for call in client.calls)
+
+
+def test_late_cancel_does_not_replace_selected_job_message(runner, app):
+    viewer, client, _ = runner
+    select_row(viewer, "JF")
+    until(app, lambda: not viewer._pending)
+    gate = client.blockers[("cancel", "JF")] = threading.Event()
+    viewer.cancel_button.click()
+    until(app, lambda: any(call[:2] == ("cancel", "JF") for call in client.calls))
+    select_row(viewer, "JB")
+    until(app, lambda: not any(key.startswith("status:JB:") for key in viewer._pending))
+    message = viewer.message.text()
+    gate.set()
+    until(app, lambda: not viewer._pending)
+    assert viewer.message.text() == message
+    assert viewer.selected_job_id == "JB"
+    assert viewer.state_label.text() == "완료"
+    assert client.jobs["JF"]["state"] == "CANCEL_REQUESTED"
+
+
+def test_reopening_drops_prior_result_read_without_resubmitting(runner, app):
+    viewer, client, _ = runner
+    gate = client.blockers[("metadata", "JA")] = threading.Event()
+    viewer.read_result()
+    until(app, lambda: any(call[:2] == ("metadata", "JA") for call in client.calls))
+    viewer.close()
+    viewer.show()
+    gate.set()
+    until(app, lambda: not viewer._workers)
+    assert viewer.result_metadata is None
+    assert viewer.result_button.isEnabled()
+    viewer.read_result()
+    until(app, lambda: viewer.values.rowCount() == 4 and not viewer._pending)
+    assert viewer.selected_job_id == "JA"
+    assert not any(call[0] == "cancel" for call in client.calls)
+
+
+def test_late_origin_launch_receipt_does_not_replace_selected_job_message(runner, app, monkeypatch):
+    from apps.research import desktop
+    viewer, client, _ = runner
+    client.job_navigation = lambda identifier: {"origin_document": {"kind": "simulation", "id": "DA"}}
+    started, gate = threading.Event(), threading.Event()
+    launched = []
+    def open_origin(client, identifier):
+        launched.append(identifier)
+        started.set()
+        assert gate.wait(4)
+        return {"status": "launched"}
+    monkeypatch.setattr(desktop, "open_origin", open_origin)
+    viewer.origin_button.click()
+    until(app, started.is_set)
+    select_row(viewer, "JB")
+    until(app, lambda: not any(key.startswith("status:JB:") for key in viewer._pending))
+    message = viewer.message.text()
+    gate.set()
+    until(app, lambda: not viewer._pending)
+    assert launched == ["JA"]
+    assert viewer.message.text() == message
+    assert viewer.selected_job_id == "JB"
+
+
+@pytest.mark.parametrize("status, message", [
+    ("LAUNCH_REQUESTED", "선택한 실행의 입력 문서 열기를 요청했습니다."),
+    ("ACTIVATED", "선택한 실행의 입력 문서를 열었습니다."),
+])
+def test_origin_launch_request_is_distinct_from_shown_document(runner, app, monkeypatch, status, message):
+    from apps.research import desktop
+    viewer, client, _ = runner
+    client.job_navigation = lambda identifier: {"origin_document": {"kind": "simulation", "id": "DA"}}
+    monkeypatch.setattr(desktop, "open_origin", lambda client, identifier: {"status": status})
+    viewer.origin_button.click()
+    until(app, lambda: not viewer._pending)
+    assert viewer.message.text() == message

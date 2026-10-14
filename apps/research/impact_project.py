@@ -243,7 +243,9 @@ class ProjectPage(QWidget):
             b=QPushButton(label);b.clicked.connect(call);self.actions[key]=b;row.addWidget(b)
         row.addStretch();layout.addLayout(row);self.message=QLabel();self.message.setWordWrap(True);layout.addWidget(self.message)
         self.tree.currentItemChanged.connect(self.selected);self.refresh()
-    def refresh(self):
+    def refresh(self,selected_key=None):
+        selected_key=self.key() if selected_key is None else selected_key
+        self.tree.blockSignals(True)
         self.tree.clear();self.model=None
         try:
             self.model=model_from_settings(self.editor.edited());self.all_faces=sets.facets(self.model)
@@ -252,17 +254,24 @@ class ProjectPage(QWidget):
                 group=QTreeWidgetItem(self.tree,[label]);group.setExpanded(True)
                 for name in self.model[table]:
                     item=QTreeWidgetItem(group,[name,'사용자 생성' if (kind,name) in generated else '원 입력']);item.setData(0,Qt.ItemDataRole.UserRole,(kind,name))
+                    if (kind,name)==selected_key:self.tree.setCurrentItem(item)
             self.view.set_model(self.model,faces=self.all_faces);self.info.setText(bounds_label(self.model,self.model['nodes'],self.model['elements']))
             self.message.clear()
         except (ValueError,KeyError,TypeError) as error:self.view.model=None;self.view.update();self.info.clear();self.message.setText(str(error))
+        self.tree.blockSignals(False)
         self.tree.setColumnWidth(0,190);self.selected()
+        if self.tree.currentItem():self.tree.scrollToItem(self.tree.currentItem(),QAbstractItemView.ScrollHint.PositionAtCenter)
     def key(self):
         item=self.tree.currentItem();return item.data(0,Qt.ItemDataRole.UserRole) if item else None
     def selected(self,*_):
         key=self.key();generated=self.definition()
         for action in ('motion','surface'):self.actions[action].setEnabled(bool(key and key[0]=='elset'))
         for action in ('edit','delete'):self.actions[action].setEnabled(generated is not None)
-        if not key or self.model is None:return
+        if self.model is None:return
+        if not key:
+            self.view.set_model(self.model,faces=self.all_faces)
+            self.info.setText(bounds_label(self.model,self.model['nodes'],self.model['elements']))
+            return
         kind,name=key;elements=set();nodes=set();faces=[]
         if kind=='elset':elements=self.model['elsets'][name];nodes={n for e in elements for n in self.model['elements'][e]['nodes']}
         elif kind=='nset':nodes=self.model['nsets'][name]
@@ -284,7 +293,8 @@ class ProjectPage(QWidget):
         definitions=deepcopy(self.editor.value.get('generated_sets',[]))
         if definition:definitions[definitions.index(definition)]=dialog.result_definition
         else:definitions.append(dialog.result_definition)
-        self.editor.value['generated_sets']=definitions;self.refresh()
+        self.editor.value['generated_sets']=definitions
+        self.refresh((dialog.result_definition['kind'],dialog.result_definition['name']))
     def edit(self):
         definition=self.definition()
         if definition:self.create(definition['kind'],definition)

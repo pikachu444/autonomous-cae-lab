@@ -74,6 +74,60 @@ class ProjectUITests(unittest.TestCase):
         self.assertEqual(dialog.chosen(),[]);dialog.apply();self.assertIsNone(dialog.result_definition)
         dialog.select_face((1,'S2'));dialog.mode.setCurrentIndex(1)
         self.assertEqual(dialog.chosen(),[])
+    def test_refresh_keeps_exact_surface_and_partial_motion_draft(self):
+        window=ImpactEditor(settings());window.motion.item(0,5).setText('1e')
+        group=window.project.tree.topLevelItem(2)
+        item=next(group.child(i) for i in range(group.childCount()) if group.child(i).text(0)=='LOWER_CONTACT')
+        window.project.tree.setCurrentItem(item)
+        selected=set(window.project.view.selected);draft=window.edited()
+        window.project.refresh()
+        self.assertEqual(window.project.key(),('surface','LOWER_CONTACT'))
+        self.assertEqual(window.project.view.selected,selected)
+        self.assertEqual(window.edited(),draft)
+        self.assertTrue(window.project.actions['edit'].isEnabled())
+    def test_selecting_group_restores_model_overview_and_clears_target(self):
+        window=ImpactEditor(settings());group=window.project.tree.topLevelItem(2)
+        item=next(group.child(i) for i in range(group.childCount()) if group.child(i).text(0)=='LOWER_CONTACT')
+        window.project.tree.setCurrentItem(item)
+        self.assertTrue(window.project.view.selected)
+        window.project.tree.setCurrentItem(group)
+        self.assertEqual(window.project.view.selected,set())
+        self.assertEqual(window.project.view.nodes,set())
+        self.assertFalse(window.project.actions['edit'].isEnabled())
+        self.assertIn('절점 16개',window.project.info.text())
+    def test_new_surface_is_selected_for_followup_and_edit_keeps_it(self):
+        window=ImpactEditor(settings());group=window.project.tree.topLevelItem(0)
+        item=next(group.child(i) for i in range(group.childCount()) if group.child(i).text(0)=='MOVING')
+        window.project.tree.setCurrentItem(item)
+        def make_surface(dialog):
+            dialog.name.setText('SIDE_CONTACT');dialog.select_face((2,'S3'));dialog.apply()
+            return dialog.result()
+        with patch.object(TargetDialog,'exec',make_surface):window.project.create('surface')
+        self.assertEqual(window.project.key(),('surface','SIDE_CONTACT'))
+        self.assertEqual(window.project.view.selected,{(2,'S3')})
+        self.assertTrue(window.project.actions['edit'].isEnabled())
+        def modify_surface(dialog):
+            dialog.table.clearSelection();dialog.select_face((2,'S4'));dialog.apply()
+            return dialog.result()
+        with patch.object(TargetDialog,'exec',modify_surface):window.project.edit()
+        self.assertEqual(window.project.key(),('surface','SIDE_CONTACT'))
+        self.assertEqual(window.project.view.selected,{(2,'S4')})
+    def test_replacing_source_does_not_select_same_named_target_from_old_model(self):
+        original=settings();window=ImpactEditor(original);group=window.project.tree.topLevelItem(0)
+        item=next(group.child(i) for i in range(group.childCount()) if group.child(i).text(0)=='MOVING')
+        window.project.tree.setCurrentItem(item)
+        window.times['end_s'].setText('1e')
+        def imported(dialog):
+            dialog.source=deepcopy(original['source']);dialog.source['title']='replacement.inp'
+            return QDialog.DialogCode.Accepted
+        with patch.object(ImportDialog,'exec',imported),patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Yes):
+            window.choose_file()
+        self.assertIsNone(window.project.key())
+        self.assertEqual(window.project.view.nodes,set())
+        self.assertEqual(window.edited()['time']['end_s'],'1e')
+        self.assertEqual(window.edited()['motions'],[])
+        self.assertEqual(window.edited()['source']['title'],'replacement.inp')
+        self.assertEqual(original['motions'][0]['velocity_mm_s'][2],-10.)
     def test_large_mesh_context_sampling_keeps_selected_face_visible(self):
         from caelab import impact_sets as sets
         source=model_from_settings(settings());model={'nodes':{},'elements':{}}
