@@ -61,3 +61,18 @@ def test_freeze_recovery_keeps_exact_command_until_completion():
     assert not submissions and connection.pending['command_id'] == 'Cexact'
     Connection.command_status(connection, {'command_id': 'Cexact', 'state': 'SUCCEEDED'})
     assert submissions == ['submit'] and connection.pending['stage'] == 'submit'
+
+
+def test_new_raw_edit_during_reconnect_context_retains_same_owner_and_dock():
+    doc = NS(Name='Model'); state = {'token': 1}; events, callbacks = [], []
+    controller = NS(editor_token=lambda: state['token'])
+    dock = NS(widget=lambda: NS(motion_controller=controller))
+    owner = NS(doc=doc)
+    connection = NS(pending=None, native_requests={}, owners={doc.Name: (owner, NS(), NS())},
+        panels={doc.Name: {'motion': dock}}, client=NS(desktop_context=lambda: None),
+        message=NS(setText=events.append), request=lambda key, call, accepted: callbacks.append(accepted))
+    Connection.reconnect(connection)
+    state['token'] = 2
+    callbacks[0]({})
+    assert connection.owners[doc.Name][0] is owner and connection.panels[doc.Name]['motion'] is dock
+    assert '편집이 바뀌었습니다' in events[-1]

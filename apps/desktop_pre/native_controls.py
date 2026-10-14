@@ -12,9 +12,16 @@ def _saved(owner):
     return check() if check is not None else owner.saved_generation == owner.generation
 
 
-def _close_version(owner):
+def _motion_controller(connection, owner):
+    dock = getattr(connection, 'panels', {}).get(owner.doc.Name, {}).get('motion')
+    try: return getattr(dock.widget(), 'motion_controller', None) if dock is not None and hasattr(dock, 'widget') else None
+    except RuntimeError: return None  # The native dock may already have been destroyed.
+
+
+def _close_version(owner, connection=None):
     graph = getattr(owner.project, 'graph_version', None)
-    return owner.generation, graph() if graph is not None else None
+    controller = _motion_controller(connection, owner) if connection is not None else None
+    return owner.generation, graph() if graph is not None else None, controller.editor_token() if controller is not None else None
 
 
 def install(connection, open_model):
@@ -46,13 +53,17 @@ def install(connection, open_model):
                 action.triggered.connect(lambda checked=False, callback=callback: self.invoke(callback))
             self.refresh()
 
+        def saved(self, owner):
+            controller = _motion_controller(connection, owner)
+            return _saved(owner) and (controller is None or not controller.has_unsaved_editor())
+
         def invoke(self, callback):
             try: callback()
             except Exception as error: connection.message.setText(str(error))
 
         def refresh(self):
             self.approved_close = {owner.document_id: version for owner, _, _ in connection.owners.values()
-                                   if (version := self.approved_close.get(owner.document_id)) == _close_version(owner)}
+                                   if (version := self.approved_close.get(owner.document_id)) == _close_version(owner, connection)}
             # A native workbench may rebuild menus/toolbars. Replace only the
             # exact known QAction occurrences, preserving shortcuts/menu order.
             for action in main.findChildren(QAction):
@@ -89,27 +100,31 @@ def install(connection, open_model):
             owner = owner or connection.active_owner()
             if as_new or owner.project.path is None:
                 default = owner.project.path or owner.export_root / owner.document_id / (owner.doc.Name + '.caepre')
-                path, _ = QtWidgets.QFileDialog.getSaveFileName(main, 'Save editable Lab project and linked documents', str(default),
-                                                              'CAE editable project (*.caepre)')
+                path, _ = QtWidgets.QFileDialog.getSaveFileName(main, '프로젝트 저장', str(default),
+                                                              'CAE 프로젝트 (*.caepre)')
                 if not path: return False
                 if not path.lower().endswith('.caepre'): path += '.caepre'
                 previous = owner.project.path
                 owner.project.path = Path(path).resolve()
             else: previous = owner.project.path
             submitted_session = owner.session_id
+            controller = _motion_controller(connection, owner)
+            editor_version = controller.editor_token() if controller is not None else None
             def saved(value):
                 if value.get('status') == 'FAILED':
                     owner.project.path = previous
-                    connection.message.setText('Save failed. Previous project and current native edits remain. ' + value['error'].get('message', ''))
+                    connection.message.setText('저장하지 못했습니다. 이전 프로젝트와 현재 편집을 유지합니다. ' + value['error'].get('message', ''))
                     self.closing = False
                     return
                 # Native FCStd file paths did not change. The editable state is
                 # safely published in .caepre, so the native close prompt must
                 # not offer a second unbundled save of the same state.
-                if owner.closed or owner.session_id != submitted_session or not _saved(owner):
+                current = _motion_controller(connection, owner)
+                if (owner.closed or owner.session_id != submitted_session or not self.saved(owner)
+                        or (current.editor_token() if current is not None else None) != editor_version):
                     self.closing = False
-                    connection.message.setText('The requested project was saved, but this native document changed before '
-                        'the response arrived. Newer edits remain open; save them or choose close explicitly again.')
+                    connection.message.setText('요청한 내용은 저장했지만 대기 중 편집이 바뀌었습니다. '
+                        '새 편집은 열린 상태로 유지합니다. 다시 저장하거나 닫기를 선택하세요.')
                     return
                 Gui.getDocument(owner.doc.Name).Modified = False
                 if after: after()
@@ -145,6 +160,38 @@ def install(connection, open_model):
                         raise ValueError('Invalid/foreign selected geometry cannot be exported; the editable draft is retained')
                 self.replacements[name][0].trigger()
 
+        def prepare_reconnect(self, owners, after):
+            if self.closing: return
+            self.closing = True
+            pending, accepted = list(owners), []
+            def advance():
+                if not pending:
+                    if any(_close_version(owner, connection) != version for owner, version in accepted):
+                        self.closing = False
+                        connection.message.setText('다시 연결 준비 중 편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
+                    self.closing = False; after(); return
+                owner = pending.pop(0)
+                controller = _motion_controller(connection, owner)
+                if controller is None or not controller.has_unsaved_editor(): advance(); return
+                version = _close_version(owner, connection)
+                choice = QtWidgets.QMessageBox.question(main, '다시 연결하기 전에 편집을 저장하시겠습니까?',
+                    owner.doc.Label + '\n저장하면 미완성 입력도 유지됩니다. 버리면 마지막 저장한 편집으로 돌아갑니다.',
+                    QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel,
+                    QtWidgets.QMessageBox.Save)
+                if choice == QtWidgets.QMessageBox.Cancel:
+                    self.closing = False; return
+                if _close_version(owner, connection) != version:
+                    self.closing = False; connection.message.setText('편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
+                if choice == QtWidgets.QMessageBox.Discard:
+                    accepted.append((owner, version)); advance(); return
+                try:
+                    def saved_choice():
+                        accepted.append((owner, _close_version(owner, connection))); advance()
+                    if not self.save(owner=owner, after=saved_choice): self.closing = False
+                except Exception as error:
+                    self.closing = False; connection.message.setText(str(error))
+            advance()
+
         def close_owners(self, owners, after):
             if self.closing: return
             self.closing = True
@@ -152,13 +199,13 @@ def install(connection, open_model):
             accepted = []
             def unchanged(choice):
                 owner, session, version = choice
-                return not owner.closed and owner.session_id == session and _close_version(owner) == version
+                return not owner.closed and owner.session_id == session and _close_version(owner, connection) == version
             def advance():
                 if not pending:
                     if not all(unchanged(choice) for choice in accepted):
                         self.closing = False
-                        connection.message.setText('A native document changed after its close choice. '
-                            'All documents remain open; review the newer edits before closing again.')
+                        connection.message.setText('닫기 선택 후 편집이 바뀌었습니다. 모든 문서를 열어 둡니다. '
+                            '새 편집을 확인한 뒤 다시 닫으세요.')
                         return
                     for owner, _, version in accepted:
                         self.approved_close[owner.document_id] = version
@@ -170,20 +217,20 @@ def install(connection, open_model):
                 try: owner.before_design_action('close')
                 except Exception as error:
                     self.closing = False; connection.message.setText(str(error)); return
-                decision = (owner, owner.session_id, _close_version(owner))
-                if _saved(owner):
+                decision = (owner, owner.session_id, _close_version(owner, connection))
+                if self.saved(owner):
                     accepted.append(decision)
                     advance(); return
-                choice = QtWidgets.QMessageBox.question(main, 'Save editable Lab project?',
-                    owner.doc.Label + '\nSave linked documents, research definitions and calculation references before closing?',
+                choice = QtWidgets.QMessageBox.question(main, '프로젝트를 저장하시겠습니까?',
+                    owner.doc.Label + '\n관절과 운동의 미적용 편집을 포함해 저장한 뒤 닫으시겠습니까?',
                     QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel,
                     QtWidgets.QMessageBox.Save)
                 if choice == QtWidgets.QMessageBox.Cancel:
                     self.closing = False; return
                 if not unchanged(decision):
                     self.closing = False
-                    connection.message.setText('The native document changed while its close prompt was open. '
-                        'Newer edits remain open; review them before choosing again.')
+                    connection.message.setText('닫기 확인 중 편집이 바뀌었습니다. 새 편집을 열어 둡니다. '
+                        '현재 내용을 확인한 뒤 다시 선택하세요.')
                     return
                 if choice == QtWidgets.QMessageBox.Discard:
                     # Do not clear native dirty state if a later document's
@@ -192,7 +239,7 @@ def install(connection, open_model):
                     advance(); return
                 try:
                     def saved_choice():
-                        accepted.append((owner, owner.session_id, _close_version(owner)))
+                        accepted.append((owner, owner.session_id, _close_version(owner, connection)))
                         advance()
                     if not self.save(owner=owner, after=saved_choice): self.closing = False
                 except Exception as error:
@@ -212,7 +259,7 @@ def install(connection, open_model):
                         try: owners = [connection.active_owner()]
                         except ValueError: return False
                     else: owners = [item[0] for item in connection.owners.values()]
-                    if all(self.approved_close.get(owner.document_id) == _close_version(owner) for owner in owners):
+                    if all(self.approved_close.get(owner.document_id) == _close_version(owner, connection) for owner in owners):
                         return False
                     event.ignore()
                     def proceed():

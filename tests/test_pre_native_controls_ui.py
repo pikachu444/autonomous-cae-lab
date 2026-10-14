@@ -250,3 +250,54 @@ def test_fem_workbench_guard_failure_blocks_selector_change_and_shows_reason(con
     QTest.keyClick(selector, QtCore.Qt.Key_Down)
     assert selector.currentData() == 'PartWorkbench'
     assert 'MESH_BUSY' in c.connection.message.text() and c.owners[0].preview
+
+
+def attach_editor(c, owner, *, version=1):
+    state = {'version': version, 'saved': 0}
+    controller = NS(editor_token=lambda: state['version'], has_unsaved_editor=lambda: state['version'] != state['saved'])
+    if not hasattr(c.connection, 'panels'): c.connection.panels = {}
+    c.connection.panels[owner.doc.Name] = {'motion': NS(widget=lambda: NS(motion_controller=controller))}
+    return state
+
+
+def test_saved_native_document_with_local_raw_draft_still_prompts_before_close(controls, monkeypatch):
+    c = controls; owner = c.owners[0]; owner.saved_generation = owner.generation
+    state = attach_editor(c, owner)
+    seen = questions(monkeypatch, [QtWidgets.QMessageBox.Cancel])
+    c.guards.replacements['Std_Close'][1].trigger()
+    assert len(seen) == 1 and not c.originals and state['version'] == 1 and not c.guards.closing
+
+
+def test_close_all_cancel_preserves_distinct_local_editor_buffers(controls, monkeypatch):
+    c = controls
+    states = [attach_editor(c, owner, version=i+1) for i, owner in enumerate(c.owners)]
+    questions(monkeypatch, [QtWidgets.QMessageBox.Discard, QtWidgets.QMessageBox.Cancel])
+    c.guards.replacements['Std_CloseAll'][1].trigger()
+    assert [s['version'] for s in states] == [1, 2, 3]
+    assert not c.originals and not c.guards.approved_close
+
+
+def test_late_editor_edit_after_file_save_cannot_close_document(controls, monkeypatch):
+    c = controls; state = attach_editor(c, c.owners[0])
+    questions(monkeypatch, [QtWidgets.QMessageBox.Save])
+    c.guards.replacements['Std_Close'][1].trigger()
+    state.update(saved=1, version=2)
+    c.complete()
+    assert c.owners[0].saved_generation == c.owners[0].generation
+    assert not c.originals and not c.guards.closing and state['version'] == 2
+
+
+def test_reconnect_cancel_after_discard_preserves_every_editor(controls, monkeypatch):
+    c = controls; states = [attach_editor(c, owner, version=i+1) for i, owner in enumerate(c.owners)]
+    questions(monkeypatch, [QtWidgets.QMessageBox.Discard, QtWidgets.QMessageBox.Cancel])
+    completed = []
+    c.guards.prepare_reconnect(c.owners, lambda: completed.append(True))
+    assert not completed and not c.guards.closing and [s['version'] for s in states] == [1, 2, 3]
+
+
+def test_reconnect_save_failure_keeps_editor_and_old_owner(controls, monkeypatch):
+    c = controls; state = attach_editor(c, c.owners[0]); completed = []
+    questions(monkeypatch, [QtWidgets.QMessageBox.Save])
+    c.guards.prepare_reconnect(c.owners, lambda: completed.append(True)); c.complete(success=False)
+    assert not completed and not c.guards.closing and state['version'] == 1
+    assert c.connection.owners['One'][0] is c.owners[0]

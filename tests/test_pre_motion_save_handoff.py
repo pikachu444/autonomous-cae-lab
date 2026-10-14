@@ -67,3 +67,19 @@ def test_closed_panel_or_no_pending_selection_uses_original_save(setup):
     connection.panels = {}
     connection.submit_native('document.save', {}, owner=owner)
     assert connection.native_requests[sent[1]]['operation'] == 'document.save'
+
+
+def test_raw_editor_is_captured_before_save_and_late_edit_is_not_accepted(setup):
+    connection, owner, controller, pending, accepted, sent, completed = setup
+    editor = {'assembly_id': 'Assembly', 'editor': {'view': pending['view'],
+        'joint_draft': {'raw': 'Face99'}, 'definition_draft': {'raw': '1e'}}}
+    controller.pending_editor = lambda: editor
+    controller.accept_saved_editor = accepted.append
+    before = deepcopy(editor)
+    connection.submit_native('document.save', {}, on_done=completed.append, owner=owner)
+    first = connection.native_requests[sent[0]]
+    assert first['operation'] == 'pre.motion.save_editor'
+    assert first['arguments'] == {'editor': before['editor'], 'target': {'assembly_id': 'Assembly'}}
+    editor['editor']['definition_draft']['raw'] = '2e'
+    finish(connection, sent[0]); finish(connection, sent[1])
+    assert accepted == [before] and editor['editor']['definition_draft']['raw'] == '2e'

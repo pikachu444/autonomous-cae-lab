@@ -101,19 +101,53 @@ class Connection:
         owner = owner or self.active_owner()
         owner.refresh()
         broker = self.owners[owner.doc.Name][2]
-        if broker.stop.is_set() or not broker.registered.is_set():
-            raise ValueError('문서 연결이 끊겼습니다. 다시 연결한 뒤 편집하세요.')
         if any(row['document_id'] == owner.document_id for row in self.native_requests.values()):
             raise ValueError('이 문서의 이전 작업이 아직 진행 중입니다.')
+        disconnected = broker.stop.is_set() or not broker.registered.is_set()
+        if disconnected:
+            from .native_controls import _motion_controller
+            controller = _motion_controller(self, owner)
+            def apply_local(op, args, selected):
+                owner.refresh()
+                return owner.dispatch({'command_id': 'C'+uuid.uuid4().hex, 'document_id': owner.document_id,
+                    'session_id': owner.session_id, 'expected_generation': owner.generation,
+                    'operation': op, 'arguments': args, 'target': selected})
+            if operation == 'pre.motion.save_editor':
+                assembly = owner.motion._assembly(target or {})
+                stored = owner.read_metadata().get('motion_editors', {}).get(assembly.Name)
+                editor = arguments.get('editor')
+                if (set(arguments) != {'editor'} or not isinstance(stored, dict) or not isinstance(editor, dict)
+                        or set(editor) != set(stored) or editor.get('view') != stored.get('view')
+                        or any(editor.get(key) is not None and editor.get(key) != stored.get(key) for key in ('joint_draft', 'definition_draft'))
+                        or not any(stored.get(key) is not None and editor.get(key) is None for key in ('joint_draft', 'definition_draft'))):
+                    raise ValueError('연결이 끊긴 동안에는 저장 또는 명시적 편집 취소만 가능합니다.')
+                result = apply_local(operation, arguments, target)
+                value = result if result.get('status') == 'FAILED' else result.get('result', result)
+                if on_done: on_done(value)
+                return {'queued': True, 'completed': True, 'command_id': result.get('command_id')}
+            if operation != 'document.save': raise ValueError('문서 연결이 끊겼습니다. 다시 연결한 뒤 편집하세요.')
+            snapshot = deepcopy(controller.pending_editor()) if controller is not None else None
+            if snapshot is not None:
+                result = apply_local('pre.motion.save_editor', {'editor': snapshot['editor']}, {'assembly_id': snapshot['assembly_id']})
+                if result.get('status') == 'FAILED':
+                    if on_done: on_done(result)
+                    return {'queued': True, 'completed': True, 'command_id': result.get('command_id')}
+            result = apply_local('document.save', arguments, target or {})
+            value = result if result.get('status') == 'FAILED' else result.get('result', result)
+            if result.get('status') != 'FAILED' and snapshot is not None: controller.accept_saved_editor(snapshot)
+            if on_done: on_done(value)
+            return {'queued': True, 'completed': True, 'command_id': result.get('command_id')}
         if operation == 'document.save' and _capture_motion_view:
             dock = getattr(self, 'panels', {}).get(owner.doc.Name, {}).get('motion')
             controller = getattr(dock.widget(), 'motion_controller', None) if dock is not None else None
-            snapshot = deepcopy(controller.pending_view()) if controller is not None else None
+            editor_save = controller is not None and hasattr(controller, 'pending_editor')
+            snapshot = deepcopy(controller.pending_editor() if editor_save else controller.pending_view()) if controller is not None else None
             if snapshot is not None:
                 saved_arguments, saved_target = deepcopy(arguments), deepcopy(target)
                 def saved(value):
                     if value.get('status') != 'FAILED':
-                        controller.accept_saved_view(snapshot)
+                        if editor_save: controller.accept_saved_editor(snapshot)
+                        else: controller.accept_saved_view(snapshot)
                     if on_done:
                         on_done(value)
                 def view_applied(value):
@@ -128,7 +162,8 @@ class Connection:
                         if on_done:
                             on_done({'status': 'FAILED', 'error': {'message': str(error)}})
                         raise
-                return self.submit_native('pre.motion.set_view', {'view': snapshot['view']},
+                return self.submit_native('pre.motion.save_editor' if editor_save else 'pre.motion.set_view',
+                    {'editor': snapshot['editor']} if editor_save else {'view': snapshot['view']},
                     {'assembly_id': snapshot['assembly_id']}, view_applied, owner=owner)
         identifier = 'C' + uuid.uuid4().hex
         self.native_requests[identifier] = {'command_id': identifier, 'document_id': owner.document_id,
@@ -519,7 +554,21 @@ class Connection:
                     for kind in visible:
                         self.show_panel(kind, owner=binding[0])
             self.message.setText('문서를 다시 연결했습니다.')
-        self.request('reconnect', self.client.desktop_context, connected)
+        def request_context():
+            from .native_controls import _motion_controller
+            versions = {name: (controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None)
+                        for name, (owner, _, _) in self.owners.items()}
+            def accepted(context):
+                for name, (owner, _, _) in self.owners.items():
+                    controller = _motion_controller(self, owner)
+                    current = controller.editor_token() if controller is not None else None
+                    if name not in versions or current != versions[name]:
+                        self.message.setText('다시 연결하는 동안 편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
+                connected(context)
+            self.request('reconnect', self.client.desktop_context, accepted)
+        guards = getattr(self, 'guards', None)
+        if guards is not None: guards.prepare_reconnect([row[0] for row in self.owners.values()], request_context)
+        else: request_context()
 
     def close(self):
         if self.closed:
