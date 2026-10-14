@@ -33,6 +33,11 @@ computer-use 캡처는 검은 화면, 재시도의 activate_window는 시간 초
 Win32 경로 한도를 넘어 실패했다. Codex가 같은 폴더의 짧고 독점 생성된 임시 파일로
 바이트 복사·대조·원자 교체를 유지하도록 교정했다. 기존 저장본/실패 시 복구 원본
 보존과 해당 경로 회귀를 확인했다. 모든 임의 장경로를 지원했다고 주장하지 않는다.
+조립 담당이 실패 때 보존한 native 사본을 같은 깊이의 프로젝트 경로에 실제로
+재저장하여 교정을 확인했다. 운동 계산을 다시 실행하지 않았으며 원래 실패 기록은
+유지한다. 근거는 조립 작업 폴더의
+`runs/product-development/20261014/assembly-editor-drafts/corrected-save-receipt.json`이다.
+Codex가 만든 전처리 연결 확인용 FreeCAD/서비스 프로세스는 확인 후 종료했다.
 
 **기능별 병렬 개발(사용자 최신 지시):** 기능을 별도 작업 폴더·브랜치에서 구현하고,
 완성된 것부터 Codex가 병합·통합한다. Pro 한 명의 제출을 기다리며 보조 담당을 조사에만
@@ -42,14 +47,14 @@ Win32 경로 한도를 넘어 실패했다. Codex가 같은 폴더의 짧고 독
 
 | 담당 / 작업 | 실제 구현 범위와 완료 조건 | 분리 브랜치 / 소유 |
 |---|---|---|
-| 실제 Pro / FN-28-02 | 서로 다른 단위·좌표·시각의 결과 비교, 벡터/텐서 변환, 미리보기·적용·저장 재열기 | `codex/post-comparison-20261014` 제출 요청. 후처리 analysis/workspace/external/measurements와 post_window |
-| Sol gui_usage_challenge / t13 | **접합 접촉(tie) 첫 인도 통합:** 두 면 선택→허용거리·원 절점 위치 유지→입력 생성→기존 Runner 실행 연결→변위·응력·절점 힘 열기→저장 재열기. 실제 FreeCAD ConstraintTie/CalculiX TIE 재사용. 기존 선형·마찰 접촉 유지. 접촉 압력/미끄럼 출력으로 가장하지 않음 | `codex/contact-tie`, `C:/Users/pikac/.codex/worktrees/contact-tie/autonomous-cae-lab`. `b57165b`를 main `dd081cd`로 통합. Astra 독립 검토 진행 |
+| 실제 Pro / FN-28-02 | 공간 결과 비교의 성분·결측 교정은 통합. 현재는 보존된 시간 측정과 시험 Data 곡선의 축·단위 대응, 원곡선/차이 비교와 저장 재열기를 구현 | `codex/post-comparison-20261014`, `PRO-POST-CURVES-01`. 기존 Data/Numerical 비교와 Post 연결 |
+| Sol gui_usage_challenge / t13 | **접합 접촉(tie) 첫 인도 통합:** 두 면 선택→허용거리·원 절점 위치 유지→입력 생성→기존 Runner 실행 연결→변위·응력·절점 힘 열기→저장 재열기. 실제 FreeCAD ConstraintTie/CalculiX TIE 재사용. 기존 선형·마찰 접촉 유지. 접촉 압력/미끄럼 출력으로 가장하지 않음 | `codex/contact-tie`, `C:/Users/pikac/.codex/worktrees/contact-tie/autonomous-cae-lab`. `b57165b`를 main `dd081cd`로 통합, Astra 첫 인도 검토 완료. 현재 간극 조정 후속 구현 |
 | Sol assembly_motion / t14 | **조립·운동:** 복수 관절의 회전/이동 구동 편집, 누락 관절 재지정·취소, 미리보기·자세 복구·채택, 정의와 선택 저장 재열기. 기존 1..32 구동/native 계산 유지. native AssemblyLink의 중첩 참조·좌표 복구 지원 검토·구현 | `codex/assembly-motion`, `C:/Users/pikac/.codex/worktrees/assembly-motion/autonomous-cae-lab`. motion.py/motion_panel.py, 전용 검사와 ASSEMBLY_WORKFLOW |
 
 두 Sol 담당자가 서로 직접 질문·반론을 주고받으며 공통 파일 변경은 Codex와 조정한다.
 조립 담당이 첫 기능을 인도한 뒤 빈 실행 자리에 `astra_native_integration`을
-실제 `gpt-6-astra/xhigh`로 시작했다. 현재 조립·후처리 실제 제출 소스와 화면·실행
-자료를 독립 검토 중이며 통과 판정으로 앞서 표시하지 않는다.
+실제 `gpt-6-astra/xhigh`로 시작했다. 첫 조립·접합 제출과 후처리 교정은 검토를
+마쳤다. 다음 조립 편집 저장·접합 간극 조정 구현까지 통과한 것으로 확대하지 않는다.
 
 **병렬 한도 교정:** 전역 `[agents].max_concurrent_threads_per_session`은 12였으나
 프로젝트 값은 2였다. 사용자 지시에 따라 프로젝트와 위 두 작업 폴더를 12로 맞췄고
