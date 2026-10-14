@@ -34,7 +34,9 @@ Qt 렌더는 `runs/product-development/20261014/post-curves-final/`에 보존한
 인도 원자료는 접촉 작업 폴더의
 `runs/product-development/20261014/contact-tie-adjust/handoff.md`에 있다.
 Codex는 소스와 인도 기록을 검토했고 공통 native 명령 등록의 통합 회귀를 확인했다.
-다음 행동은 원격 게시 확인과 진행 중인 운동 경로/Data 인도다.
+`7955275`까지 원격 main 게시와 로컬/원격 일치를 확인했다. MoAI 작업 카드와
+Space 공동 대화방의 현황도 갱신했다. 다음 행동은 진행 중인 운동 경로/Data 인도와
+그에 대한 독립 검토·통합이다. Pro의 곡선 작성 턴은 완료됐으며 새 과제 배정 전이다.
 
 **조립 편집 저장 후속 통합:** Sol `8b1f635`를 main `40f30d8`에 통합했다.
 미적용 관절·구동 입력을 같은 `.caepre`에 보존하며, 닫기/모두 닫기/재연결에서
