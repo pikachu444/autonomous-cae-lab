@@ -7,6 +7,24 @@
 
 ## 지금 이어갈 작업
 
+**현재 배포:** [통합 PR9](https://github.com/pikachu444/autonomous-cae-lab/pull/9)를
+정상 병합해 원격 main `d7589f4`를 확인했고 이 작업 폴더도 main으로 fast-forward했다.
+Pro의 원 PR8도 GitHub에서 병합 상태다. 사용자 고체의 J2 편집·입력·실행·실패 결과
+복구, 재료/Post UI, 공개 FCStd 예제와 한글 사용법이 기본 브랜치에 들어갔다.
+Windows 설치·연구 기능 CI는 통과했고 변경 관련 Windows 검사는 아래 기록과 같다.
+Linux 전체 회귀 CI는 병합 시 진행 중이며 전체 통과를 주장하지 않는다. 보호 우회나
+강제 push는 하지 않았다. 전체 NS1/제품 완료가 아니라 확인된 기능 묶음의 인도다.
+
+**병렬 후속:** 실제 Pro 세 대화에서 M3 닫힌 기구, E1 셸, NS1 수렴 설정·반복 이력을
+작성한다. NS1 후속은 `PRO-NS1-CONVERGENCE-20261014-03`으로 기준 `0548ee0`의 공개
+소스와 실제 Windows 계산의 cvg/sta/stdout/inp를 ZIP 첨부했다. Pro 파워5와 요청 전체
+게시·수신 답변·소스 조회를 확인했다. `runs/product-development/20261014/nonlinear-convergence/`
+에 요청·첨부·수신 화면이 있다. 수렴 전용 모듈/FE 설정/Runner 표시·관련 검사는 Pro,
+bridge/공통 명령은 별도 패치로 Codex가 통합한다. shell/motion 전용 파일과 겹치지 않는다.
+Sol/Astra는 기존 Q2의 문제 요소 선택·격리·확대 기능을 맡았다. 과거 Faces 모드에서도
+빈 화면이던 근거를 재사용해 원인을 좁히며 같은 native 실험과 전체 suite를 반복하지 않는다.
+이 배정은 MoAI t3/t14/t16/t17에 기록했고 아래 옛 시점의 미게시 상태보다 우선한다.
+
 **셸 모델 후속 구현 배정:** MoAI t17로 SPEC-PREFE-001 E1/AC06의 두께·offset·방향·
 압력 편집→입력·계산→상/하면 결과·재열기 구현을 분리했다. Astra가 최신 E1/AC06과
 요청 전문을 대조해 범위 축소나 막는 누락이 없음을 확인했다. 기준은 통합 브랜치
