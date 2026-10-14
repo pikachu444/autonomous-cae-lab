@@ -416,14 +416,27 @@ def _choose_file(title, filters):
 def _executable(context, key, override=None, interactive=True):
     value = override or context.get(key)
     candidate = Path(value) if value else None
+    settings = None
+    if interactive and not value:
+        settings = _native_settings()
+        saved = settings.value(key, '', type=str)
+        candidate = Path(saved) if saved else None
     if override and not candidate.is_file():
         raise ValueError('The specified installed executable is unavailable: ' + str(candidate))
     if candidate is None or not candidate.is_file():
         if not interactive:
             raise ValueError('Configure ' + key + ' or pass its installed executable')
-        candidate = _choose_file('Choose installed ' + ('FreeCAD' if key == 'freecad_executable' else 'ParaView'),
+        candidate = _choose_file(('FreeCAD' if key == 'freecad_executable' else 'ParaView') + ' 실행 파일 선택',
                                  'Application (*.exe);;All files (*)')
+        settings = settings or _native_settings()
+        settings.setValue(key, str(candidate.resolve(strict=True)))
+        settings.sync()
     return candidate.resolve(strict=True)
+
+
+def _native_settings():
+    from PySide6.QtCore import QSettings
+    return QSettings('AutonomousCAELab', 'DesktopLaunchers')
 
 
 def _folder(context, tool, output=None):
