@@ -12,11 +12,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
-def launch(tmp_path):
+def launch_tool(tmp_path):
+    def make(tool):
+        return _launch(tmp_path / tool, tool)
+    return make
+
+
+@pytest.fixture
+def launch(launch_tool):
+    return launch_tool('pre')
+
+
+def _launch(tmp_path, tool):
     folder = tmp_path / '공학 프로그램 & 공백 경로'
     scripts = folder / 'scripts'
     scripts.mkdir(parents=True)
-    (scripts / 'start_cae_pre.ps1').write_bytes((ROOT / 'scripts/start_cae_pre.ps1').read_bytes())
+    script_name = f'start_cae_{tool}.ps1'
+    (scripts / script_name).write_bytes((ROOT / 'scripts' / script_name).read_bytes())
     for name in ('start-windows.ps1', 'install-windows.ps1'):
         (scripts / name).write_text("throw 'CAELAB_TEST_BOOTSTRAP_MUST_NOT_RUN'\n", encoding='utf-8')
     package = folder / 'apps' / 'research'
@@ -37,13 +49,57 @@ def launch(tmp_path):
         # Explicit Windows PowerShell executable, not PowerShell 7/pwsh.
         powershell = Path(os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
         command = [str(powershell), '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                   str(scripts / 'start_cae_pre.ps1'), *arguments]
+                   str(scripts / script_name), *arguments]
         if client:
             command += ['-ServiceUrl', 'http://127.0.0.1:18765', '-Python', sys.executable]
         result = subprocess.run(command, cwd=folder, env=env, capture_output=True, timeout=15)
         recorded = json.loads(receipt.read_text(encoding='utf-8')) if receipt.exists() else None
         return result, recorded
     return folder, run
+
+
+@pytest.mark.parametrize('tool,option', [
+    ('pre', '-FreeCADExe'), ('pre', '-Source'), ('pre', '-Assembly'), ('pre', '-Gmsh'),
+    ('post', '-ParaViewExe'), ('post', '-InputPath'), ('post', '-Project'),
+    ('pre', '-Python'), ('post', '-Python'),
+])
+@pytest.mark.parametrize('directory', [False, True])
+def test_explicit_missing_or_directory_input_is_rejected_before_bootstrap(launch_tool, tool, option, directory):
+    folder, run = launch_tool(tool)
+    path = folder / '이동한 파일 & 한글'
+    if directory:
+        path.mkdir()
+    result, args = run([option, str(path)], client=False)
+    assert result.returncode != 0 and args is None
+    assert b'file was not found' in result.stderr
+    assert b'CAELAB_TEST_BOOTSTRAP_MUST_NOT_RUN' not in result.stderr
+
+
+@pytest.mark.parametrize('layout,expected', [('bin', 'bin/paraview.exe'), ('root', 'paraview.exe'),
+                                           ('both', 'bin/paraview.exe')])
+def test_paraview_home_preserves_paths_and_file_selection(launch_tool, layout, expected):
+    folder, run = launch_tool('post')
+    installation = folder / 'ParaView 설치 & 도구'
+    (installation / 'bin').mkdir(parents=True)
+    if layout in ('bin', 'both'):
+        (installation / 'bin/paraview.exe').write_bytes(b'TEST_ONLY_NOT_EXECUTABLE')
+    if layout in ('root', 'both'):
+        (installation / 'paraview.exe').write_bytes(b'TEST_ONLY_NOT_EXECUTABLE')
+    project = folder / '공백 & 저장 project.json'
+    project.write_text('{}', encoding='utf-8')
+    result, args = run(['-ParaViewHome', str(installation), '-Project', str(project), '-PrepareOnly'])
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert args[args.index('--executable') + 1] == str(installation / expected)
+    assert args[args.index('--project') + 1] == str(project)
+    assert args[:3] == ['--service', 'http://127.0.0.1:18765', 'post']
+
+
+def test_missing_paraview_home_is_rejected_before_bootstrap(launch_tool):
+    folder, run = launch_tool('post')
+    result, args = run(['-ParaViewHome', str(folder / '없는 설치')], client=False)
+    assert result.returncode != 0 and args is None
+    assert b'paraview.exe was not found' in result.stderr
+    assert b'CAELAB_TEST_BOOTSTRAP_MUST_NOT_RUN' not in result.stderr
 
 
 @pytest.mark.parametrize('layout,expected', [('bin', 'bin/FreeCAD.exe'), ('root', 'FreeCAD.exe'),

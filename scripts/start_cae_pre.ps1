@@ -24,6 +24,12 @@ if ($FreeCADRoot) {
     $FreeCADExe = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
     if (-not $FreeCADExe) { throw "FreeCAD.exe was not found in '$installationRoot\bin' or '$installationRoot'. Choose -FreeCADRoot or an installed -FreeCADExe." }
 }
+# Reject explicit missing inputs before installing packages or starting a service.
+foreach ($entry in @(@('FreeCADExe',$FreeCADExe), @('Source',$Source), @('Assembly',$Assembly), @('Gmsh',$Gmsh), @('Python',$Python))) {
+    if ($entry[1] -and -not (Test-Path -LiteralPath $entry[1] -PathType Leaf)) {
+        throw "-$($entry[0]) file was not found: $($entry[1]). Check the moved file or choose its current installed location; no service was started."
+    }
+}
 if (-not $ServiceUrl) {
     & (Join-Path $PSScriptRoot 'start-windows.ps1') -NoBrowser -ResearchUI -RuntimeRoot $RuntimeRoot -Port $Port -Store $Store
     if (-not $?) { throw 'The shared research service could not be started or verified.' }

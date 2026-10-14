@@ -1,4 +1,4 @@
-# Windows x64 bootstrap for a source checkout or downloaded repository ZIP.
+﻿# Windows x64 bootstrap for a source checkout or downloaded repository ZIP.
 # All tools and Python packages stay under the current user's local profile.
 [CmdletBinding()]
 param(
@@ -145,3 +145,9 @@ $receipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $receiptPath -Enco
 Write-Host "Ready: $python"
 Write-Host "Receipt: $receiptPath"
 Write-Host 'Included: base workbench, numerical studies and FELUPE material-point calculations. -ResearchUI includes Expert and its local host MCP package; -Expert installs those packages without Qt; -Documents adds PDF reading; -MCP installs the same optional MCP package separately (no client registration); -Sensitivity adds Sobol sampling/analysis. Native backends and expert model configuration remain separate.'
+if ($ResearchUI) {
+    Write-Host 'FreeCAD·ParaView는 별도 무료 설치를 연결합니다. 아래는 실행 파일 위치 확인이며 GUI나 계산 성공 확인이 아닙니다.'
+    try { & (Join-Path $PSScriptRoot 'check-native-tools.ps1') | Format-Table Tool,Status,Path -AutoSize | Out-Host }
+    catch { Write-Warning '외부 도구 위치를 확인하지 못했습니다. Research 설치는 완료됐습니다. 실행할 도구에서 설치 경로를 선택하세요.' }
+    Write-Host '경로 복구·파일 버전·라이선스 안내: .\scripts\check-native-tools.ps1 | Format-List'
+}

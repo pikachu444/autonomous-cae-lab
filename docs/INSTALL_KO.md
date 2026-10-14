@@ -98,6 +98,21 @@ FreeCAD 1.1.4, ParaView 6.2.0입니다.
 다시 고를 필요가 없습니다. 파일을 옮기거나 삭제했으면 다시 선택합니다. 명령어의
 `-FreeCADExe`/`-ParaViewExe`와 서비스에 지정한 경로가 있으면 그 설정을 우선합니다.
 
+설치가 끝나면 FreeCAD·ParaView의 연결 위치를 함께 보여 줍니다. **실행 파일 있음**은
+파일이 있다는 뜻이며 CAD 편집·후처리·계산이 성공했다는 판정이 아닙니다. 자세한 위치,
+파일에 기록된 버전, 복구 방법과 공식 라이선스 안내는 다음 명령으로 확인합니다.
+이 명령은 프로그램 실행·추가 다운로드·설정 변경을 하지 않습니다. 버전 정보가 없는
+파일은 **미확인**으로 남깁니다.
+
+```powershell
+.\scripts\check-native-tools.ps1 | Format-List
+.\scripts\check-native-tools.ps1 -FreeCADExe 'C:\Tools\FreeCAD\FreeCAD.exe' -ParaViewExe 'C:\Tools\ParaView\bin\paraview.exe' | Format-List
+```
+
+**경로 복구 필요**가 나오면 옮긴 실행 파일의 새 위치를 확인하세요. 기존 도구가 없다면
+해당 도구의 공식 배포를 별도로 준비합니다. Research 앱 설치와 CSV·저장 연구 문서
+사용에는 FreeCAD·ParaView가 필요하지 않습니다.
+
 CAD 예제나 저장한 후처리 프로젝트를 직접 지정하려면 아래 명령을 사용하세요.
 
 아래 `C:\Tools\...`는 예시입니다. **실제로 설치한 실행 파일 경로로 바꾸세요.**
@@ -106,6 +121,11 @@ FreeCAD portable 설치라면 `bin` 폴더의 실행 파일을 지정합니다.
 이때 `bin\FreeCAD.exe`를 먼저 찾고, 없으면 폴더 바로 아래의 `FreeCAD.exe`를 사용합니다.
 같은 설치의 `bin` 폴더에 Gmsh가 있으면 자동으로 연결합니다. 별도로 설치한 Gmsh를
 사용하려면 전처리 실행 명령에 `-Gmsh 'C:\Tools\Gmsh\gmsh.exe'`를 덧붙이세요.
+
+ParaView는 `-ParaViewHome 'C:\Tools\ParaView'`로 폴더를 지정할 수 있습니다.
+`bin\paraview.exe`를 먼저 찾고 없으면 폴더 바로 아래의 `paraview.exe`를 사용합니다.
+명시한 실행 파일·모델·결과·프로젝트 파일이 없거나 폴더이면 새 설치나 서비스 시작 전에
+경로 오류를 알려 줍니다. 원본 자료를 지우지 말고 명령의 경로만 현재 위치로 고쳐 재시도하세요.
 
 ```powershell
 .\scripts\start_cae_pre.ps1 -FreeCADExe 'C:\Tools\FreeCAD\bin\freecad.exe' -Source '.\examples\contact\two-feet.FCStd'

@@ -20,7 +20,18 @@ $ErrorActionPreference = 'Stop'
 $repository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if (@($Project, $InputPath, $InputId).Where({ $_ }).Count -gt 1) { throw 'Choose one of -Project, -InputPath or -InputId.' }
 if ($ParaViewHome -and $ParaViewExe) { throw 'Choose -ParaViewHome or -ParaViewExe.' }
-if ($ParaViewHome) { $ParaViewExe = Join-Path $ParaViewHome 'bin\paraview.exe' }
+if ($ParaViewHome) {
+    $installationRoot = [IO.Path]::GetFullPath($ParaViewHome)
+    $candidates = @((Join-Path $installationRoot 'bin\paraview.exe'), (Join-Path $installationRoot 'paraview.exe'))
+    $ParaViewExe = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    if (-not $ParaViewExe) { throw "paraview.exe was not found in '$installationRoot\bin' or '$installationRoot'. Choose -ParaViewHome or an installed -ParaViewExe; no service was started." }
+}
+# Reject explicit missing inputs before installing packages or starting a service.
+foreach ($entry in @(@('ParaViewExe',$ParaViewExe), @('Project',$Project), @('InputPath',$InputPath), @('Python',$Python))) {
+    if ($entry[1] -and -not (Test-Path -LiteralPath $entry[1] -PathType Leaf)) {
+        throw "-$($entry[0]) file was not found: $($entry[1]). Check the moved file or choose its current installed location; no service was started."
+    }
+}
 if (-not $ServiceUrl) {
     & (Join-Path $PSScriptRoot 'start-windows.ps1') -NoBrowser -ResearchUI -RuntimeRoot $RuntimeRoot -Port $Port -Store $Store
     if (-not $?) { throw 'The shared research service could not be started or verified.' }
