@@ -234,12 +234,14 @@ class FrdTruncatedEOF(ValueError):
     """A syntactically valid field prefix ended at physical EOF, not corruption.
 
     prefix_lines excludes the WHOLE incomplete increment, not just its last
-    field. Only retained_prefix uses this signal to create a derived copy.
+    field, or only an EOF-truncated file terminator after complete fields.
+    Only retained_prefix uses this signal to create a derived copy.
     Strict callers still receive a ValueError and never receive partial fields.
     """
-    def __init__(self, message, prefix_lines):
+    def __init__(self, message, prefix_lines, *, reason="incomplete_increment_at_eof"):
         super().__init__(message)
         self.prefix_lines = prefix_lines
+        self.reason = reason
 
 
 def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=None, require_contact=True,
@@ -252,6 +254,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
     are checked and retained as source information, never qualified responses.
     data is a bounded in-memory reading copy. allow_missing_end admits ONLY an
     absent file terminator after complete fields; malformed fields remain errors.
+    A torn file terminator signals its own strict derived-copy cutoff.
     """
     try:
         raw = _read(path) if data is None else data
@@ -498,6 +501,13 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
             if pending is not None or header is not None:
                 raise ValueError("Incomplete FRD end marker")
             ended = True
+        elif last_fragment(i-1) and line.strip() in ("9", "99", "999"):
+            if pending is not None or header is not None:
+                raise ValueError("Incomplete FRD end marker")
+            # Derive a strict copy ending BEFORE the torn terminator, preserving
+            # all complete fields for the usual required-field/STA checks.
+            raise FrdTruncatedEOF("EOF within a native FRD file terminator", i-1,
+                                  reason="partial_end_marker_at_eof")
         elif xyz or not re.match(r"\s*1[CU]", line):
             if (last_fragment(i-1) and topology and any(marker.startswith(line.strip())
                     for marker in ("1PSTEP", "100CL", "-4", "9999"))):

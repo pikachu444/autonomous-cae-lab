@@ -75,9 +75,10 @@ def require_converged(frames, status):
 def retained_prefix(frd, destination, nodes, elements, materials, model, status):
     """Derive only completely recorded, uniquely converged output increments.
 
-    Only the strict reader's structural EOF signal permits dropping the final
-    increment. Arbitrary parsing errors, interior damage and explicit malformed
-    end markers are never repaired by shortening the file until it parses.
+    Only the strict reader's structural EOF signal permits dropping an incomplete
+    final increment or its torn file terminator. Arbitrary parsing errors, interior
+    damage and explicit malformed end markers are never repaired by shortening
+    the file until it parses.
     """
     from .adapters.frozen_fem import read_frd, FrdTruncatedEOF, _read
     from .contact_steps import validate_frames
@@ -130,8 +131,9 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     except FrdTruncatedEOF as error:
         if not physical_eof or error.prefix_lines is None:
             raise
-        stop, reason, recovered = error.prefix_lines, 'incomplete_increment_at_eof', True
-        # Strictly reparse the complete prefix once, never repeatedly backtrack.
+        stop, reason = error.prefix_lines, error.reason
+        recovered = reason != 'partial_end_marker_at_eof'
+        # Strictly reparse the reported cutoff, never search backwards for a pass.
         observed = parse(stop)
 
     required = {'DISP'}

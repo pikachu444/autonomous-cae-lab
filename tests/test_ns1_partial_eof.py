@@ -240,6 +240,74 @@ def test_end_of_file_and_end_markers_have_distinct_meanings(model, tmp_path, end
     assert frd.read_bytes() == text.encode('ascii')
 
 
+@pytest.mark.parametrize('marker', [' 9', ' 99', ' 999'])
+@pytest.mark.parametrize('increments', [1, 2])
+def test_eof_truncated_file_marker_keeps_every_complete_converged_increment(model, tmp_path, marker, increments):
+    from caelab.adapters.frozen_fem import read_frd
+    from caelab.contact_steps import profile, validate_frames
+    value = nonlinear_model(model, single=True)
+    text, _, materials = outputs(value)
+    if increments == 1:
+        lines = text.splitlines(keepends=True)
+        start = next(i for i, line in enumerate(lines) if line.split()[:1] == ['1PSTEP'] and int(line[36:48]) == 2)
+        text = ''.join(lines[:start]) + ' 9999\n'
+    nodes, elements, _ = validate_model(value)
+    options = dict(contact_materials=materials, contact_profile=profile(value), require_contact=False)
+    complete = read_frd(None, nodes, elements, data=text.encode('ascii'), **options)
+    validate_frames(value, complete, complete=False)
+    raw = text.replace(' 9999\n', marker).replace('\n', '\r\n').encode('ascii')
+    frd, sta, target = tmp_path/'native.frd', tmp_path/'native.sta', tmp_path/'derived.frd'
+    frd.write_bytes(raw); sta.write_text(status_text(), encoding='ascii')
+    status = read_status(sta, value); before = deepcopy(status)
+    with pytest.raises(ValueError, match='file terminator'):
+        read_frd(frd, nodes, elements, **options)
+    result = retained_prefix(frd, target, nodes, elements, materials, value, status)
+    assert len(result['frames']) == increments
+    assert result['frames'] == complete['frames']
+    assert result['retention']['reason'] == 'partial_end_marker_at_eof'
+    assert result['retention']['retained_line_count'] == len(raw.decode('ascii').splitlines()) - 1
+    assert result['retention']['synthetic_end_marker']
+    reread = read_frd(target, nodes, elements, **options)
+    validate_frames(value, reread, complete=False)
+    assert reread['frames'] == complete['frames']
+    assert frd.read_bytes() == raw and sta.read_text() == status_text() and status == before
+
+
+@pytest.mark.parametrize('incomplete', ['missing_pe', 'unconverged'])
+def test_torn_file_marker_does_not_admit_missing_required_field_or_unconverged_frame(model, tmp_path, incomplete):
+    value = nonlinear_model(model, single=True)
+    text, _, materials = outputs(value, omit=[(2, 'PE')] if incomplete == 'missing_pe' else ())
+    raw = text.replace(' 9999\n', ' 999').encode('ascii')
+    sta_text = status_text(failed=incomplete == 'unconverged')
+    frd, sta, target = tmp_path/'native.frd', tmp_path/'native.sta', tmp_path/'derived.frd'
+    frd.write_bytes(raw); sta.write_text(sta_text, encoding='ascii')
+    nodes, elements, _ = validate_model(value)
+    result = retained_prefix(frd, target, nodes, elements, materials, value, read_status(sta, value))
+    assert len(result['frames']) == 1
+    assert result['frames'][0]['static']['increment'] == 1
+    assert result['retention']['reason'] == ('incomplete_increment_at_eof' if incomplete == 'missing_pe' else 'first_nonconverged_increment')
+    assert frd.read_bytes() == raw and sta.read_text() == sta_text
+
+
+@pytest.mark.parametrize('damage', ['closed_marker', 'bad_marker', 'marker_midstream',
+                                    'trailing_complete_marker', 'partial_pe_marker'])
+def test_partial_file_marker_does_not_hide_field_or_interior_corruption(model, tmp_path, damage):
+    value = nonlinear_model(model, single=True)
+    text, _, materials = outputs(value)
+    if damage == 'closed_marker': text = text.replace(' 9999\n', ' 999\n')
+    elif damage == 'bad_marker': text = text.replace(' 9999\n', ' 999X')
+    elif damage == 'marker_midstream': text = text.replace('    1PSTEP', ' 999\n    1PSTEP', 1)
+    elif damage == 'trailing_complete_marker': text += ' 999'
+    else: text = cut_last_pe(text) + '\n 999'
+    raw = text.encode('ascii')
+    frd, sta, target = tmp_path/'native.frd', tmp_path/'native.sta', tmp_path/'derived.frd'
+    frd.write_bytes(raw); sta.write_text(status_text(), encoding='ascii')
+    nodes, elements, _ = validate_model(value)
+    with pytest.raises(ValueError):
+        retained_prefix(frd, target, nodes, elements, materials, value, read_status(sta, value))
+    assert not target.exists() and frd.read_bytes() == raw and sta.read_text() == status_text()
+
+
 def test_absent_tie_strain_and_pe_are_not_synthesized_as_zero(model, tmp_path):
     from caelab.adapters.contact_results import write_post
     import xml.etree.ElementTree as ET
