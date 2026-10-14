@@ -1909,12 +1909,12 @@ class DataWindow(QMainWindow):
             def listed(payload):
                 documents = [item for item in payload['documents'] if item.get('kind') == 'data']
                 if not documents:
-                    self.message.setText('No Data documents are available.')
+                    self.message.setText('열 수 있는 시험 데이터가 없습니다.')
                     return
-                labels = [f"{item['title']} — {item['id']}" for item in documents]
-                label, accepted = QInputDialog.getItem(self, 'Open Data document', 'Document', labels, editable=False)
-                if accepted:
-                    self.open_document(document_id=documents[labels.index(label)]['id'])
+                from .data_material_document_dialog import DataMaterialDocumentDialog
+                dialog = DataMaterialDocumentDialog(documents, kind='data', parent=self)
+                if dialog.exec() == dialog.DialogCode.Accepted:
+                    self.open_document(document_id=dialog.selected_document['id'])
             self._call(self.client.documents, listed)
         self._leave(choose)
 

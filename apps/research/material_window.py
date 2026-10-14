@@ -514,7 +514,7 @@ class MaterialWindow(QMainWindow):
             for column, value in ((2, 0), (3, 0), (4, 0), (5, 1), (6, 0), (7, 0), (8, 0), (9, 1)))
         self.protocol_label.setText(
             ('횡변형 고정: F22 = F33 = 1, 전단 성분 = 0' if fixed_lateral
-             else '변형구배의 9개 성분을 모두 지정') + '\n자유 횡변형 계산 및 공학 승인은 지원 범위가 아닙니다.')
+             else '변형구배의 9개 성분을 모두 지정'))
 
     def edited_draft(self):
         self._commit_cell_editor()
@@ -962,13 +962,13 @@ class MaterialWindow(QMainWindow):
         def choose():
             def listed(payload):
                 documents = [item for item in payload["documents"] if item.get("kind") == "material"]
-                labels = [f"{item['title']} — {item['id']}" for item in documents]
-                if not labels:
-                    self.message.setText("No saved material documents are available.")
+                if not documents:
+                    self.message.setText('열 수 있는 재료 문서가 없습니다.')
                     return
-                label, accepted = QInputDialog.getItem(self, "Open material document", "Document", labels, editable=False)
-                if accepted:
-                    self.open_document(document_id=documents[labels.index(label)]["id"])
+                from .data_material_document_dialog import DataMaterialDocumentDialog
+                dialog = DataMaterialDocumentDialog(documents, kind='material', parent=self)
+                if dialog.exec() == dialog.DialogCode.Accepted:
+                    self.open_document(document_id=dialog.selected_document['id'])
             self._call(self.client.documents, listed)
         self._leave(choose)
 
