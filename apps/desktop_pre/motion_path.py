@@ -70,6 +70,8 @@ def csv_payload(path):
     stream = io.StringIO(newline='')
     source = {key: deepcopy(value) for key, value in path.items() if key != 'rows'}
     source['sampled_frames'] = [row['frame'] for row in path['rows']]
+    invalid = _validation_rows(path, records)
+    if invalid: source.update(constraint_quality_rows=invalid, csv_row_kind='physical_line_zero_based')
     if gaps: source.update(gap_markers=gaps, csv_row_kind='physical_line_zero_based')
     if untimed: source.update(non_time_frames=untimed, csv_row_kind='physical_line_zero_based')
     # The existing Data preview refuses quotes even in comments. Keep the
@@ -82,7 +84,8 @@ def csv_payload(path):
 
 
 def data_draft(path, data_id):
-    _, gaps, untimed = _csv_records(path)
+    records, gaps, untimed = _csv_records(path)
+    invalid = _validation_rows(path, records)
     columns = {}
     for name, column, unit, component, measure in [('X', 2, 'mm', 'x', 'position'),
             ('Y', 3, 'mm', 'y', 'position'), ('Z', 4, 'mm', 'z', 'position'),
@@ -90,11 +93,13 @@ def data_draft(path, data_id):
         columns[name] = {'column': column, 'unit': unit, 'component': component,
             'location': 'trace_point:' + path['trace_id'], 'measure': measure, 'frame': 'document_global',
             'axis': {'column': 1, 'name': 'time' if path.get('clock')==NATIVE_CLOCK else 'nominal_time', 'unit': 's'}}
-        if gaps or untimed:
+        if gaps or untimed or invalid:
             reasons = {str(gap['csv_row']): '미읽기 경로 구간: 프레임 ' + str(gap['unread_frames'][0])
                 + '–' + str(gap['unread_frames'][1]) + ' / 좌표·시간 측정 없음' for gap in gaps}
             reasons.update({str(row['csv_row']):'설계 자세: 좌표는 보존되며 물리 시각은 없습니다.' if row['kind']=='design'
                 else '계산 시각 미확인: 원좌표는 보존되며 시간 분석에서 제외합니다.' for row in untimed})
+            reasons.update({str(row['csv_row']): '관절·구동 불일치 원자료' if row['state'] == 'FAILED'
+                else '관절·구동 충족 미확인 원자료' for row in invalid})
             columns[name]['row_selection'] = {'exclude_rows': [int(row) for row in reasons],
                 'quality_rows': [int(row) for row in reasons], 'reasons': reasons, 'quality_reasons': deepcopy(reasons)}
     return {'data_id': data_id, 'mapping': {'delimiter': ',', 'skip_header': 2, 'columns': columns},
@@ -112,6 +117,24 @@ def save_data_document(client, path, *, document=None, on_created=None):
     document = client.document_read(document['id'])
     return client.document_command(document['id'], 'document.save', {},
         session_id=document['session_id'], expected_generation=document['generation'])['document']
+
+
+def connect_samples(path, left, right):
+    """Never draw an unverified/violating interval as a valid motion curve."""
+    if right['frame'] != left['frame']+1 or left.get('frame_kind') == 'design': return False
+    if path.get('constraint_check') or 'validation' in left or 'validation' in right:
+        return left.get('validation') == right.get('validation') == 'PASSED'
+    return True
+
+
+def _validation_rows(path, records):
+    line_by_frame = {record[0]: index+2 for index, record in enumerate(records) if type(record[0]) is int}
+    rows = []
+    for row in path['rows']:
+        state = row.get('validation', 'UNKNOWN' if path.get('constraint_check') else None)
+        if state in ('FAILED', 'UNKNOWN'):
+            rows.append({'csv_row': line_by_frame[row['frame']], 'frame': row['frame'], 'state': state})
+    return rows
 
 
 def make_plot(QtCore, Q):
@@ -163,8 +186,8 @@ def make_plot(QtCore, Q):
                 previous = None
                 for index, x, y in line:
                     point = QtCore.QPointF(area.left()+(x-xmin)/(xmax-xmin)*area.width(), area.bottom()-(y-ymin)/(ymax-ymin)*area.height())
-                    if (previous is not None and self.rows[index]['frame'] == self.rows[prior_index]['frame']+1
-                            and self.rows[prior_index].get('frame_kind')!='design'): painter.drawLine(previous, point)
+                    if previous is not None and connect_samples(self.path, self.rows[prior_index], self.rows[index]):
+                        painter.drawLine(previous, point)
                     painter.drawEllipse(point, 2, 2); self.points.append((index, point))
                     if index == self.index:
                         painter.setBrush(Gui.QColor(color)); painter.drawEllipse(point, 5, 5); painter.setBrush(QtCore.Qt.NoBrush)
@@ -189,12 +212,12 @@ class PathBrowser:
         row.addWidget(self.mode); layout.addLayout(row)
         self.notice = Q.QLabel('경로점과 계산 결과를 선택하여 경로를 읽으세요.'); self.notice.setWordWrap(True); layout.addWidget(self.notice)
         self.plot = make_plot(QtCore, Q); layout.addWidget(self.plot)
-        self.table = Q.QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(['프레임', '출력격자 시간 [s]', '세계 X [mm]', '세계 Y [mm]', '세계 Z [mm]'])
+        self.table = Q.QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(['프레임', '출력격자 시간 [s]', '세계 X [mm]', '세계 Y [mm]', '세계 Z [mm]', '검사'])
         self.table.setEditTriggers(Q.QAbstractItemView.NoEditTriggers); self.table.setSelectionBehavior(Q.QAbstractItemView.SelectRows)
         self.table.setSelectionMode(Q.QAbstractItemView.SingleSelection); self.table.setMinimumHeight(190)
         self.table.verticalHeader().hide()
-        for column, width in enumerate((65, 160, 125, 125, 125)): self.table.setColumnWidth(column, width)
+        for column, width in enumerate((65, 160, 125, 125, 125, 88)): self.table.setColumnWidth(column, width)
         self.table.horizontalHeader().setStretchLastSection(True); self.table.setAlternatingRowColors(True); layout.addWidget(self.table)
         self.message = Q.QLabel(); self.message.setWordWrap(True); self.message.hide(); layout.addWidget(self.message)
         row = Q.QHBoxLayout(); self.pose_button = Q.QPushButton('선택 프레임의 3D 자세 보기')
@@ -217,8 +240,11 @@ class PathBrowser:
             for trace, path in summary.get('paths', {}).items():
                 key = (summary['id'], trace)
                 value = deepcopy(path); value['source_status'] = summary.get('source_status', 'UNKNOWN')
+                value['replay_available'] = summary.get('replay_available', False)
                 datasets[key] = value
-                labels.append((key, trace + (' / 현재 계산' if summary['id'] == live_id else ' / 보존 결과 '+str(number+1))))
+                labels.append((key, trace + (' / 불일치 원자료' if summary.get('constraint_check', {}).get('state') == 'FAILED' else
+                    ' / 충족 미확인' if summary.get('constraint_check', {}).get('state') == 'UNKNOWN' else
+                    ' / 현재 계산' if summary['id'] == live_id else ' / 보존 결과 '+str(number+1))))
         if datasets == self.datasets and selected == self.results.currentData() and [self.results.itemText(i) for i in range(self.results.count())] == [label for key, label in labels]:
             self._update_buttons(); return
         self.datasets = datasets
@@ -241,7 +267,11 @@ class PathBrowser:
             for column, value in enumerate([row['frame'], sample_time(self.path_value,row), *row['point']]):
                 text = ('설계 자세' if row.get('frame_kind')=='design' else '시각 미확인') if value is None else str(value) if column == 0 else format(value, '.9g')
                 if value is not None and column and '.' not in text and 'e' not in text: text += '.0'
-                item = self.Q.QTableWidgetItem(text); item.setToolTip(str(value)); self.table.setItem(index, column, item)
+                item = self.Q.QTableWidgetItem(text)
+                quality = {'FAILED': '관절·구동 불일치', 'UNKNOWN': '충족 미확인'}.get(row.get('validation'), '')
+                item.setToolTip(str(value)+(' / '+quality if quality else '')); self.table.setItem(index, column, item)
+            label = {'PASSED': '충족', 'FAILED': '불일치', 'UNKNOWN': '미확인', 'DESIGN': '설계'}.get(row.get('validation'), '—')
+            self.table.setItem(index, 5, self.Q.QTableWidgetItem(label))
         self.table.blockSignals(False); self.plot.rows = rows; self.plot.path=self.path_value or {}
         row = next((i for i, value in enumerate(rows) if value['frame'] == frame), 0 if rows else -1)
         self.table.setCurrentCell(row, 0); self._selected_row(row)
@@ -249,6 +279,9 @@ class PathBrowser:
             path = self.path_value; frames = {row['frame'] for row in rows}
             missing = path['total_frames']-len(frames)
             state = '모델·구동 변경 — 과거 원자료' if path['source_status'] == 'STALE' else '출처 확인 불가 — 보존 원자료' if path['source_status'] == 'UNKNOWN' else '계산된 원자료'
+            checked = path.get('constraint_check', {}).get('state')
+            if checked in ('FAILED', 'UNKNOWN'):
+                state = '관절·구동 불일치 원자료' if checked == 'FAILED' else '관절·구동 충족 미확인 원자료'
             self.notice.setText(f"{state} / 읽은 프레임 {len(rows)}/{path['total_frames']}" + (f' / 미읽기·누락 {missing}' if missing else ' / 전체 경로') + '\n위치는 세계 좌표 [mm]입니다. '+clock_notice(path))
         else: self.notice.setText('아직 읽은 경로가 없습니다. 경로 읽기는 운동을 다시 계산하지 않습니다.')
         self._update_buttons()
@@ -276,8 +309,9 @@ class PathBrowser:
         path = self.path_value or {}; ready = bool(path.get('rows'))
         self.csv_button.setEnabled(ready)
         self.data_button.setEnabled(ready and self.open_data is not None and not self._handoff_busy)
-        self.pose_button.setEnabled(ready and self.table.currentRow() >= 0 and path.get('calculation_id') == self.live_id and getattr(self, 'can_preview', True) and path.get('source_status') == 'CURRENT')
-        self.pose_button.setToolTip('보존 경로는 계산 없이 읽습니다. 3D 자세는 현재 문서에 같은 계산 프레임이 남아 있을 때만 볼 수 있습니다.')
+        self.pose_button.setEnabled(ready and self.table.currentRow() >= 0 and getattr(self, 'can_preview', True) and (path.get('replay_available') or
+            path.get('calculation_id') == self.live_id and path.get('source_status') == 'CURRENT'))
+        self.pose_button.setToolTip('계산 없이 보존 자세를 엽니다. 부품·형상·상위 배치가 달라지면 원모델에서 열어야 합니다.')
 
     def _pose(self):
         if self.pose_button.isEnabled(): self.show_pose(self.path_value['calculation_id'], self.path_value['rows'][self.table.currentRow()]['frame'])

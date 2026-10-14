@@ -1,0 +1,10 @@
+# Run in the installed FreeCAD 1.1.4 GUI. Opens editable CAD; does not calculate.
+from pathlib import Path
+import sys
+import runpy
+folder = Path(__file__).resolve().parent
+repository = folder.parent.parent
+if str(repository) not in sys.path:
+    sys.path.insert(0, str(repository))
+M3 = runpy.run_path(str(folder / 'create_four_bar.py'))['open_example']()
+print('4절 링크를 만들었습니다. CAE 작업의 조립 운동에서 시간과 구동을 확인하고 다시 계산을 누르세요.')

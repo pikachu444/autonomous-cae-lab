@@ -7,6 +7,7 @@ import json
 
 from apps.desktop_pre.motion import JOINT_TYPES,native_frame_times
 from apps.desktop_pre.motion_formula import compile_drives
+from apps.desktop_pre.motion_history import check_message
 
 JOINT_LABELS = {'Grounded': '고정 부품', 'Fixed': '고정 연결', 'Revolute': '회전',
     'Cylindrical': '원통 (회전·이동)', 'Slider': '직선 이동', 'Ball': '구면',
@@ -43,6 +44,10 @@ class MotionPanel:
         self._path_read_scope = None
         self._buttons = []
         self._loading_drive = False
+        self._preferred_result = None
+        self._result_stamp = None
+        self._attempt_rows = []
+        self._last_frame_stamp = None
         layout = QtWidgets.QVBoxLayout(self.widget)
         row = QtWidgets.QHBoxLayout(); self.assembly = QtWidgets.QComboBox()
         row.addWidget(QtWidgets.QLabel('조립')); row.addWidget(self.assembly, 1)
@@ -152,22 +157,54 @@ class MotionPanel:
         definition_layout.addLayout(buttons)
         self.definition_notice = QtWidgets.QLabel(); self.definition_notice.setWordWrap(True)
         definition_layout.addWidget(self.definition_notice)
-        _, frames_layout = self._tab(tabs, '운동 미리보기')
-        frames_layout.addWidget(QtWidgets.QLabel('운동학 미리보기입니다. 운동 계산은 시작 후 중단할 수 없습니다.\n'
-            '시간은 지정한 출력 격자이며 FreeCAD의 실제 프레임 시각은 제공되지 않습니다.\n'
-            '정지·취소·저장 시 설계 자세를 복원합니다.'))
+        _, frames_layout = self._tab(tabs, '운동 결과')
+        row = QtWidgets.QHBoxLayout(); row.addWidget(QtWidgets.QLabel('결과'))
+        self.result_select = QtWidgets.QComboBox(); row.addWidget(self.result_select, 1)
+        self.result_select.currentIndexChanged.connect(self._result_selected)
+        frames_layout.addLayout(row)
         buttons = QtWidgets.QHBoxLayout()
-        self._button(buttons, '운동 계산', lambda: self._send('pre.motion.calculate', {}))
+        calculate_button = self._button(buttons, '다시 계산', lambda: self._send('pre.motion.calculate', {}))
+        calculate_button.setToolTip('적용한 조건으로 새로 계산합니다. native 계산은 시작 후 중단할 수 없습니다.')
+        self._button(buttons, '설계 자세 복원', lambda: self._send('pre.motion.stop', {}))
+        self._button(buttons, '저장', lambda: self._send('document.save', {}, target={}))
+        frames_layout.addLayout(buttons)
+        buttons = QtWidgets.QHBoxLayout(); buttons.addWidget(QtWidgets.QLabel('프레임'))
         self.frame = QtWidgets.QSpinBox(); self.frame.setRange(0, 0); buttons.addWidget(self.frame)
+        self.frame_time = QtWidgets.QLabel('계산 전'); buttons.addWidget(self.frame_time, 1)
         self._button(buttons, '자세 보기', lambda: self._send('pre.motion.frame', self._frame_args()))
-        self._button(buttons, '현재 자세를 설계에 적용', lambda: self._send('pre.motion.adopt_pose', self._frame_args()))
         frames_layout.addLayout(buttons)
         buttons = QtWidgets.QHBoxLayout()
         for label, operation, extra in [('재생', 'play', {'direction': 1}), ('역재생', 'play', {'direction': -1}),
-                                         ('일시정지', 'pause', None), ('정지 및 자세 복원', 'stop', None), ('미리보기 취소', 'cancel', None)]:
+                                         ('일시정지', 'pause', None), ('미리보기 취소', 'cancel', None)]:
             self._button(buttons, label, lambda op=operation, value=extra: self._send('pre.motion.' + op,
                 {'calculation_id': self._calculation_id(), **value} if value is not None else {}))
         frames_layout.addLayout(buttons)
+        self.frame_table = QtWidgets.QTableWidget(0, 3)
+        self.frame_table.setHorizontalHeaderLabels(['프레임', '계산 시각 [s]', '검사'])
+        self.frame_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.frame_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.frame_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.frame_table.verticalHeader().hide(); self.frame_table.horizontalHeader().setStretchLastSection(True)
+        self.frame_table.setAlternatingRowColors(True); self.frame_table.setMinimumHeight(190)
+        self.frame_table.currentCellChanged.connect(lambda row, *args: self.frame.setValue(row) if row >= 0 else None)
+        self.frame.valueChanged.connect(self._frame_selected)
+        frames_layout.addWidget(self.frame_table, 2)
+        buttons = QtWidgets.QHBoxLayout()
+        self.adopt_button = self._button(buttons, '현재 자세를 설계에 적용', lambda: self._send('pre.motion.adopt_pose', self._frame_args()))
+        frames_layout.addLayout(buttons)
+        frames_layout.addWidget(QtWidgets.QLabel('계산 이력'))
+        self.attempt_table = QtWidgets.QTableWidget(0, 4)
+        self.attempt_table.setHorizontalHeaderLabels(['계산', '입력 시간 [s]', '상태', '확인 내용'])
+        self.attempt_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.attempt_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.attempt_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.attempt_table.verticalHeader().hide(); self.attempt_table.horizontalHeader().setStretchLastSection(True)
+        for col, width in enumerate((65, 115, 85, 85)): self.attempt_table.setColumnWidth(col, width)
+        self.attempt_table.setMinimumHeight(130); self.attempt_table.setAlternatingRowColors(True)
+        self.attempt_table.currentCellChanged.connect(self._attempt_selected)
+        frames_layout.addWidget(self.attempt_table, 1)
+        self.attempt_notice = QtWidgets.QLabel(); self.attempt_notice.setWordWrap(True)
+        frames_layout.addWidget(self.attempt_notice)
         _, path_layout = self._tab(tabs, '점 경로')
         row = QtWidgets.QHBoxLayout(); self.trace_select = QtWidgets.QComboBox()
         self.path_start, self.path_count = QtWidgets.QSpinBox(), QtWidgets.QSpinBox()
@@ -295,6 +332,8 @@ class MotionPanel:
         return target
 
     def _calculation_id(self):
+        if hasattr(self, 'result_select') and self.result_select.currentData():
+            return self.result_select.currentData()
         calculation = self._motion.get('calculation') or {}
         return calculation.get('id') if calculation.get('assembly_id') == self.assembly.currentData() else None
 
@@ -304,7 +343,13 @@ class MotionPanel:
     def _send(self, operation, args, *, target=None, inspect=False, on_failure=None, on_done=None):
         if self._busy: return
         editor = self._motion.get('editors', {}).get(self.assembly.currentData(), {})
-        if (self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None) and operation in ('pre.assembly.create', 'pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
+        requested_assembly = (self._target() if target is None else target).get('assembly_id')
+        stored_path = operation == 'pre.motion.path' and requested_assembly == self.assembly.currentData() and any(
+            row.get('persisted', False) and row.get('assembly_id') == requested_assembly
+            and row.get('id') == args.get('calculation_id') and args.get('trace_id') in row.get('paths', {})
+            for row in self._motion.get('path_results', []))
+        if (self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None) and (operation in ('pre.assembly.create', 'pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose')
+                or operation == 'pre.motion.path' and not stored_path):
             self.status.setText('관절과 구동 편집을 적용하거나 취소한 뒤 새 조립을 만드세요.' if operation == 'pre.assembly.create' else '관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.'); return
         target = self._target() if target is None else target
         edit_version, joint_version = self._edit_version, self._joint_version
@@ -320,15 +365,30 @@ class MotionPanel:
             reply = reply or {}
             if reply.get('status') == 'FAILED' or reply.get('error'):
                 if on_failure is not None: on_failure()
-                error = reply.get('error', {}); self.status.setText(error.get('message', str(error)) if isinstance(error, dict) else str(error)); return
+                # Refresh failure + last success together. Keep both raw editors
+                # and selected previous frame/path, not a phantom frame zero.
+                error = reply.get('error', {})
+                message = error.get('message', str(error)) if isinstance(error, dict) else str(error)
+                if self.read is not None:
+                    try: self.refresh(self.read())
+                    except Exception: pass  # Existing visible results remain readable.
+                self._show_runtime(); self._refresh_paths()
+                self.status.setToolTip(message)
+                self.status.setText(('계산 실패 — 보존 결과 유지' if operation == 'pre.motion.calculate' else '작업 실패')
+                                    if self._motion.get('path_results') else message)
+                if hasattr(self, 'attempt_notice') and operation != 'pre.motion.calculate': self.attempt_notice.setText(message)
+                return
             value = reply.get('result', reply)
             if operation == 'pre.motion.save_editor' and 'editor' in value:
                 self.accept_saved_editor({'assembly_id': target['assembly_id'], 'editor': value['editor']})
             if operation == 'pre.joint.create' and joint_version == self._joint_version: self._pending_joint_id = value.get('joint_id')
             if 'frame_count' in value and 'id' in value:
+                self._preferred_result = value['id']
                 self._motion['calculation'] = deepcopy(value); self._motion.update(state='CALCULATED', preview=False, frame=None)
             if 'calculation' in value: self._motion.update(deepcopy(value))
-            if 'calculation_id' in value and 'preview' in value: self._motion.update(preview=value['preview'], frame=value.get('frame'), state='PAUSED')
+            if 'calculation_id' in value and 'preview' in value:
+                self._preferred_result = value['calculation_id']
+                self._motion.update(preview=value['preview'], frame=value.get('frame'), state='PAUSED')
             if 'rows' in value and 'trace_id' in value: self._show_path(value)
             if operation.endswith('configure') and edit_version == self._edit_version: self._edited = False
             if operation in ('pre.joint.create', 'pre.joint.update') and joint_version == self._joint_version: self._joint_edited = False
@@ -376,6 +436,8 @@ class MotionPanel:
             self._select_saved_assembly = True
             self._initial_editor = None
             self._path_read_scope = None
+            self._preferred_result = None; self._result_stamp = None; self._last_frame_stamp = None
+            self.result_select.clear(); self.frame.setValue(0)
             self.path_browser.refresh([], None)
             for button in self._buttons: button.setEnabled(True)
             for combo in (self.joint, self.connector_a, self.connector_b): self._fill_combo(combo, [])
@@ -440,23 +502,115 @@ class MotionPanel:
         self._show_runtime()
         self._refresh_paths()
 
+    def _selected_calculation(self):
+        identifier = self._calculation_id()
+        saved = next((row for row in self._motion.get('path_results', [])
+                      if row.get('assembly_id') == self.assembly.currentData() and row['id'] == identifier), None)
+        live = self._motion.get('calculation') or {}
+        return {**(saved or {}), **live} if live.get('id') == identifier else saved or {}
+
+    def _result_selected(self, *args):
+        if self._loading: return
+        self._result_stamp = None
+        self._show_runtime()
+
+    def _frame_selected(self, *args):
+        calculation = self._selected_calculation()
+        index = self.frame.value(); times = calculation.get('frame_times', [])
+        time = times[index] if 0 <= index < len(times) else None
+        self.frame_time.setText('설계 자세 (시각 없음)' if calculation and index == 0 else
+                               '시각 미확인' if time is None else format(time, '.9g')+' s')
+        if self.frame_table.currentRow() != index and index < self.frame_table.rowCount():
+            self.frame_table.setCurrentCell(index, 0)
+
     def _show_runtime(self):
-        calculation = self._motion.get('calculation') or {}
+        values = [row for row in self._motion.get('path_results', []) if row.get('assembly_id') == self.assembly.currentData()]
+        live = self._motion.get('calculation') or {}
+        if live.get('assembly_id') == self.assembly.currentData() and not any(row['id'] == live['id'] for row in values): values.append(live)
+        preferred = self._preferred_result or self.result_select.currentData()
+        successes = [row for row in values if row.get('accepted', True)]
+        raw = [row for row in values if not row.get('accepted', True)]
+        rows = [{'id': row['id'], 'label': ('최근 성공' if i == len(successes)-1 else '이전 성공 '+str(i+1)) +
+                 (' / 현재 조건' if row.get('source_status') == 'CURRENT' else ' / 보존 결과')}
+                for i, row in reversed(list(enumerate(successes)))]
+        rows += [{'id': row['id'], 'label': ('불일치 원자료' if row.get('constraint_check', {}).get('state') == 'FAILED'
+                 else '충족 미확인 원자료')+' '+str(i+1)} for i, row in reversed(list(enumerate(raw)))]
+        self._fill_combo(self.result_select, rows, preferred)
+        self._preferred_result = None
+        calculation = self._selected_calculation()
+        retained_traces = (calculation.get('definition_snapshot') or {}).get('traces')
+        if retained_traces is None and calculation.get('paths'):
+            retained_traces = [path['trace'] for path in calculation['paths'].values()]
+        if retained_traces is not None:
+            self._fill_combo(self.trace_select, retained_traces)
         self.frame.setRange(0, max(0, calculation.get('frame_count', 1)-1))
-        if self._motion.get('frame') is not None: self.frame.setValue(self._motion['frame'])
+        frame_stamp = (live.get('id'), self._motion.get('frame'), self._motion.get('preview'))
+        if frame_stamp != self._last_frame_stamp and live.get('id') == self._calculation_id() and self._motion.get('frame') is not None:
+            self.frame.setValue(self._motion['frame'])
+        self._last_frame_stamp = frame_stamp
+        stamp = (calculation.get('id'), tuple(calculation.get('frame_times', [])),
+                 tuple(calculation.get('constraint_check', {}).get('frame_states', [])))
+        if stamp != self._result_stamp:
+            self._result_stamp = stamp
+            self.frame_table.blockSignals(True)
+            self.frame_table.setRowCount(calculation.get('frame_count', 0))
+            for row, time in enumerate(calculation.get('frame_times', [])):
+                self._item(self.frame_table, row, 0, row, readonly=True)
+                self._item(self.frame_table, row, 1, '설계 자세' if row == 0 else '미확인' if time is None else format(time, '.9g'), readonly=True)
+                states = calculation.get('constraint_check', {}).get('frame_states', [])
+                state = states[row] if row < len(states) else None
+                self._item(self.frame_table, row, 2, {'DESIGN': '설계', 'PASSED': '충족',
+                    'FAILED': '불일치', 'UNKNOWN': '미확인'}.get(state, '—'), readonly=True)
+            self.frame_table.blockSignals(False)
+        self._frame_selected()
+        editor = self._motion.get('editors', {}).get(self.assembly.currentData(), {})
+        unapplied = self._edited or self._joint_edited or editor.get('joint_draft') is not None or editor.get('definition_draft') is not None
+        self.adopt_button.setEnabled(not unapplied and not self._busy and not self._motion.get('retained_preview')
+            and self._motion.get('preview', False) and live.get('id') == self._calculation_id())
+        attempts = [row for row in self._motion.get('attempts', []) if row.get('assembly_id') == self.assembly.currentData()]
+        if attempts != self._attempt_rows:
+            old = self.attempt_table.currentRow(); self._attempt_rows = deepcopy(attempts)
+            self.attempt_table.blockSignals(True); self.attempt_table.setRowCount(len(attempts))
+            for row, attempt in enumerate(attempts):
+                time = (attempt.get('definition') or {}).get('time') or {}
+                interval = str(time.get('start', '?'))+'–'+str(time.get('end', '?'))
+                state = {'SUCCEEDED': '성공', 'FAILED': '실패', 'STARTED': '종료 미확인'}.get(attempt['state'], '미확인')
+                check = attempt.get('constraint_check', {})
+                cause = ('입력 오류' if (attempt.get('diagnostic') or {}).get('category') == 'INPUT' else
+                    '관절·구동 불일치' if check.get('state') == 'FAILED' else
+                    '충족 미확인' if check.get('state') == 'UNKNOWN' else '—' if state == '성공' else '미확인')
+                for col, value in enumerate((str(row+1), interval, state, cause)): self._item(self.attempt_table, row, col, value, readonly=True)
+            self.attempt_table.blockSignals(False)
+            self.attempt_table.setCurrentCell(len(attempts)-1 if attempts else -1, 0)
+            self._attempt_selected(self.attempt_table.currentRow())
         if not self._busy:
             states = {'UNCOMPUTED': '계산 전', 'CALCULATED': '계산 완료', 'PLAYING': '재생 중', 'PAUSED': '일시정지',
-                'CANCELLED': '미리보기 취소', 'COMPLETED': '재생 완료', 'ADOPTED': '설계 자세 적용', 'FAILED': '작업 실패', 'STALE': '모델 변경 — 재계산 필요'}
-            self.status.setText(states.get(self._motion.get('state'), '계산 전') +
-                (' / 미리보기 자세' if self._motion.get('preview') else ' / 설계 자세') +
-                ' / 계산 프레임 ' + str(calculation.get('frame_count', 0)) +
-                (' / ' + str(self._motion['error']) if self._motion.get('error') else ''))
-            index=self._motion.get('frame'); times=calculation.get('frame_times',[])
-            if self._motion.get('preview') and index is not None and 0<=index<len(times):
-                self.status.setText(self.status.text()+(' / 설계 자세 (시각 없음)' if index==0 else
-                    ' / 시각 미확인' if times[index] is None else ' / 계산 시각 '+format(times[index],'.9g')+' s'))
-            if self._edited or self._joint_edited:
-                self.status.setText(self.status.text() + (' / 미적용 편집 (미저장)' if self.has_unsaved_editor() else ' / 미적용 편집 (저장됨)'))
+                'CANCELLED': '미리보기 취소', 'COMPLETED': '재생 완료', 'ADOPTED': '설계 자세 적용', 'FAILED': '작업 실패', 'STALE': '모델 변경'}
+            latest_failed = bool(attempts and attempts[-1]['state'] == 'FAILED')
+            text = ('최근 계산 실패 — 성공 결과 보존' if successes else '계산 실패 — 원자료 보존') if latest_failed else states.get(self._motion.get('state'), '계산 전')
+            if calculation.get('accepted') is False: text += ' / 불일치 원자료' if calculation.get('constraint_check', {}).get('state') == 'FAILED' else ' / 충족 미확인'
+            text += ' / 보존 자세' if self._motion.get('preview') and self._motion.get('retained_preview') else ' / 미리보기 자세' if self._motion.get('preview') else ' / 설계 자세'
+            if self._data.get('dirty', not self._motion.get('result_saved', True)): text += ' / 미저장'
+            if self._edited or self._joint_edited: text += ' / 미적용 편집'
+            self.status.setText(text); self.status.setToolTip(str(self._motion.get('error') or ''))
+
+    def _attempt_selected(self, row, *args):
+        if not 0 <= row < len(self._attempt_rows): self.attempt_notice.clear(); return
+        attempt = self._attempt_rows[row]
+        if attempt['state'] == 'SUCCEEDED':
+            self.attempt_notice.setText('전체 자세와 경로 보존'); return
+        diagnostic = attempt.get('diagnostic') or {}
+        if attempt.get('stage') == 'CHECK':
+            text = check_message(attempt.get('constraint_check', {}))
+        elif diagnostic.get('category') == 'INPUT':
+            text = '입력 오류. 시간과 구동의 해당 행을 수정하세요.'
+        elif attempt.get('stage') in ('CAPTURE', 'STORE'):
+            text = '결과 보존 실패. 이전 성공 결과는 유지됩니다.'
+        elif attempt['state'] == 'STARTED':
+            text = '이 계산의 종료를 확인하지 못했습니다. 성공으로 처리하지 않습니다.'
+        else: text = '원인 관절 미확인 / 실패 시각 미확인'
+        if attempt.get('persistence') == 'UNSAVED': text += ' / 이력 미저장'
+        self.attempt_notice.setText(text); self.attempt_notice.setToolTip(attempt.get('error', ''))
 
     def _assembly_changed(self, index):
         if self._loading: return
@@ -718,6 +872,8 @@ class MotionPanel:
         editor = {'view': self.current_view(), 'joint_draft': joint, 'definition_draft': definition}
         path_view = self.path_browser.current_view()
         if path_view is not None: editor['path_view'] = path_view
+        if self._calculation_id() and any(row['id'] == self._calculation_id() for row in self._motion.get('path_results', [])):
+            editor['result_view'] = {'calculation_id': self._calculation_id(), 'frame': self.frame.value()}
         return editor
 
     def editor_token(self):
@@ -733,7 +889,7 @@ class MotionPanel:
         stored = self._motion.get('editors', {}).get(self.assembly.currentData())
         if stored is None:
             applied = (self._motion.get('definition') or {}).get('view', {})
-            if editor['joint_draft'] is None and editor['definition_draft'] is None and 'path_view' not in editor and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
+            if editor['joint_draft'] is None and editor['definition_draft'] is None and 'path_view' not in editor and 'result_view' not in editor and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
         elif editor == stored and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
         return self.editor_snapshot()
 
@@ -784,6 +940,10 @@ class MotionPanel:
                 else: table.setCurrentCell(-1, -1); table.clearSelection()
             self._joint_edited = joint is not None; self._edited = definition is not None
             if editor.get('path_view'): self.path_browser.restore_view(editor['path_view'])
+            if editor.get('result_view'):
+                self._preferred_result = editor['result_view']['calculation_id']
+                self._show_runtime()
+                self.frame.setValue(editor['result_view']['frame'])
         finally: self._loading = False
         self._joint_controls()
 
@@ -850,15 +1010,16 @@ class MotionPanel:
 
     def _refresh_paths(self, *, latest=None):
         summaries = [s for s in self._motion.get('path_results', []) if s.get('assembly_id') == self.assembly.currentData()]
-        self.path_browser.refresh(summaries, self._calculation_id(), latest=latest,
-            can_preview=not (self._edited or self._joint_edited or self._busy))
+        live = self._motion.get('calculation') or {}
+        editor = self._motion.get('editors', {}).get(self.assembly.currentData(), {})
+        self.path_browser.refresh(summaries, live.get('id'), latest=latest,
+            can_preview=not (self._edited or self._joint_edited or self._busy or
+                editor.get('joint_draft') is not None or editor.get('definition_draft') is not None))
 
     def _read_path(self, *, all_frames=False):
-        calculation = self._motion.get('calculation') or {}
+        calculation = self._selected_calculation()
         if not self._calculation_id() or not self.trace_select.currentData():
             self.path_browser.notice.setText('현재 문서에 계산된 프레임이 없습니다. 보존 경로는 아래 표·곡선에서 읽을 수 있습니다.'); return
-        if self._edited or self._joint_edited:
-            self.path_browser.notice.setText('관절과 구동 편집을 적용하거나 취소한 뒤 계산된 경로를 읽으세요.'); return
         scope = (self._document, self._session, self.assembly.currentData(), self._edit_version, self._joint_version)
         self._path_read_scope = scope
         trace = self.trace_select.currentData(); start = 0 if all_frames else self.path_start.value()

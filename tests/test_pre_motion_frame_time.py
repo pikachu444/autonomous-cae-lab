@@ -83,7 +83,7 @@ def test_qt_restored_design_does_not_display_previous_preview_time(qt_panel):
     app,widget,panel,queued,descriptor,setup=qt_panel
     calculate(setup);widget.refresh(descriptor())
     panel._motion.update(frame=2,preview=True);panel._show_runtime()
-    assert '계산 시각 2.5 s' in panel.status.text()
+    assert panel.frame_time.text() == '2.5 s' and '미리보기 자세' in panel.status.text()
     panel._motion.update(preview=False,state='CANCELLED');panel._show_runtime()
     assert '설계 자세' in panel.status.text() and '계산 시각' not in panel.status.text()
 

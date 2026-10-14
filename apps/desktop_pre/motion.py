@@ -7,6 +7,7 @@ Playback can stop between native frame updates; bounded path pages are synchrono
 """
 from copy import deepcopy
 from contextlib import contextmanager
+from datetime import datetime, timezone
 import hashlib
 import importlib
 import json
@@ -15,6 +16,11 @@ import re
 import uuid
 from apps.desktop_pre.motion_formula import compile_drives, native_limits, REQUIRED, OPTIONAL
 from apps.desktop_pre.motion_occurrence import hierarchy, unique_path, world_placement, native_scope, NestedRecoveryError
+
+from apps.desktop_pre.motion_history import (
+    POSE_SCHEMA, MotionInputError, pack_poses, unpack_poses, public_summary,
+    validate_pose, unknown_diagnostic, check_closed_motion, apply_check, check_message, MotionResultError,
+)
 
 OPERATIONS = ('pre.assembly.create', 'pre.assembly.link', 'pre.joint.create',
     'pre.joint.update', 'pre.joint.remove', 'pre.motion.inspect', 'pre.motion.configure',
@@ -97,7 +103,11 @@ class Motion:
         self._path_result = None
         self._pending_summary = None
         self._path_source_cache = {}
+        self._check_cache = {}
         self._recovery_error = None
+        self._replay = None
+        self._attempt = None
+        self._unsaved_attempts = []
 
     def _api(self):
         if self._modules is None:
@@ -279,7 +289,15 @@ class Motion:
                 row['occurrence_paths']=[candidate['path'] for candidate in candidates]
         scene={'document': self.owner.doc.Name, 'assembly': assembly.Name,
             'assembly_pose': plc(assembly, 'Placement'), 'parts': rows, 'joints': joints}
-        if getattr(assembly,'Parents',None): scene['assembly_world_pose']=_pose(world_placement(assembly,assembly))
+        if getattr(assembly,'Parents',None):
+            global_pose = world_placement(assembly,assembly)
+            design_pose = overrides.get((assembly.Name, 'Placement'))
+            if design_pose is not None and _pose(design_pose) != _pose(assembly.Placement):
+                # Saved-world replay may compensate a moved outer parent by
+                # moving the preview root. Compare the CURRENT design world,
+                # not that historical preview, when labelling source validity.
+                global_pose = global_pose.multiply(assembly.Placement.inverse()).multiply(design_pose)
+            scene['assembly_world_pose'] = _pose(global_pose)
         return _hash(scene)
 
     def _native_definition(self, simulation):
@@ -314,7 +332,12 @@ class Motion:
                 current = _pose(getattr(obj, prop))
                 if current != self._last.get((obj.Name, prop)):
                     changed.append(obj.Name); continue  # Preserve a human edit made during preview.
-                setattr(obj, prop, _copy_pose(placement))
+                try:
+                    setattr(obj, prop, _copy_pose(placement))
+                except Exception as error:
+                    self._recovery_error = '설계 자세 복구 실패. 저장과 전환을 중단했습니다. ' + obj.Label + ': ' + str(error)
+                    self._state = 'FAILED'; self._error = self._recovery_error
+                    raise RuntimeError(self._recovery_error) from error
         self._preview = False
         self._remember()
         if changed and strict:
@@ -324,6 +347,12 @@ class Motion:
     def _validate_cache(self, assembly, calculation_id):
         if not self._calculation or calculation_id != self._calculation['id'] or assembly.Name != self._calculation['assembly_id']:
             raise ValueError('STALE_FRAME: calculate and select this exact native motion result')
+        if self._replay is not None:
+            if (self.owner.generation != self._expected_generation
+                    or self._replay_identity(assembly) != self._replay['identity']):
+                self._restore(); self._calculation = None; self._replay = None; self._state = 'STALE'
+                raise ValueError('STALE_SCENE: 배치가 변경되었습니다. 보존 결과를 다시 선택하세요.')
+            return
         try:
             metadata, simulation = self._metadata(assembly)
             stale = (self.owner.generation != self._expected_generation
@@ -341,21 +370,23 @@ class Motion:
     def before_design_action(self, reason):
         self.owner.assert_thread()
         if self._recovery_error: raise RuntimeError(self._recovery_error)
+        if self._timer: self._timer.stop()
+        # Upgrade an in-memory legacy success BEFORE a recompute can discard its
+        # native frames. A cold legacy path is readable, but cannot invent poses.
+        if self._calculation and self._replay is None and not (self._pending_summary or {}).get('poses'):
+            assembly = self.owner._object(self._calculation['assembly_id'])
+            self._validate_cache(assembly, self._calculation['id'])
+            self._pending_summary = self._collect_native_result(assembly)
         if self._preview:
             self._restore()
-        if self._base:
-            self._base = []; self._last = {}; self._calculation = None
         if self._pending_summary is not None:
-            summary = deepcopy(self._pending_summary)
-            def persist():
-                metadata = deepcopy(self.owner.read_metadata())
-                if isinstance(metadata.get('motion'), dict) and metadata['motion'].get('assembly_id') == summary['assembly_id']:
-                    metadata['motion']['last_completed'] = summary
-                if summary.get('paths'):
-                    metadata.setdefault('motion_paths', {})[summary['id']] = summary
-                self.owner.write_metadata(metadata)
-            self.owner._transaction('Retain completed native motion summary', persist)
+            self._write_motion_records(summary=self._pending_summary)
             self._pending_summary = None
+        for attempt in list(self._unsaved_attempts):
+            self._write_motion_records(attempt=attempt)
+            self._unsaved_attempts.remove(attempt)
+        self._base = []; self._last = {}; self._calculation = None; self._replay = None
+        self._frame = None
         if self._state not in ('UNCOMPUTED', 'FAILED', 'STALE'): self._state = 'UNCOMPUTED'
         return {'restored': True, 'reason': str(reason)}
 
@@ -373,11 +404,18 @@ class Motion:
             'calculation': deepcopy(self._calculation), 'physics': 'NATIVE_KINEMATICS_ONLY',
             'path': deepcopy(self._path_result),
             'path_results': self._path_summaries(),
+            'attempts': self._attempt_summaries(),
+            'result_saved': self.owner.generation == getattr(self.owner, 'saved_generation', None),
+            'retained_preview': self._replay is not None,
             'recovery_error': self._recovery_error,
             'native_generation_interruptible': False, 'path_sampling_interruptible': False,
             'limits': {'parts': MAX_PARTS, 'frames': MAX_FRAMES, 'path_page': MAX_PAGE},
             'source': PINNED_SOURCE}
         saved = value.get('definition') or {}
+        if saved.get('last_completed'):
+            accepted = self._last_accepted_summary(saved.get('assembly_id'))
+            if accepted: saved['last_completed'] = accepted
+            else: saved.pop('last_completed', None)
         metadata = self.owner.read_metadata()
         drafts = [name for name, editor in value['editors'].items()
                   if editor.get('joint_draft') is not None or editor.get('definition_draft') is not None]
@@ -391,13 +429,14 @@ class Motion:
 
     def _path_summaries(self):
         metadata = self.owner.read_metadata()
-        summaries = deepcopy(metadata.get('motion_paths', {}))
+        summaries = {key: public_summary(self._assess_result(value)) for key, value in metadata.get('motion_paths', {}).items()}
         last = (metadata.get('motion') or {}).get('last_completed')
         for summary in (last, self._pending_summary):
-            if summary and (summary.get('paths') or summary.get('path')):
-                value = deepcopy(summary)
-                if not value.get('paths'): value['paths'] = {value['path']['trace_id']: value['path']}
-                summaries[value['id']] = value
+            if summary and (summary.get('paths') or summary.get('path') or summary.get('poses') or summary.get('replay_available')):
+                value = public_summary(self._assess_result(summary)) if summary.get('poses') else public_summary(summary)
+                if not value.get('paths') and value.get('path'): value['paths'] = {value['path']['trace_id']: value['path']}
+                if summary is self._pending_summary or value['id'] not in summaries:
+                    summaries[value['id']] = value
         values = []
         self._path_source_cache = {key: status for key, status in self._path_source_cache.items() if key[0] == self.owner.generation}
         for summary in summaries.values():
@@ -412,8 +451,10 @@ class Motion:
                         'CURRENT' if _hash(applied['definition']) == summary['definition_sha256'] and self._scene(assembly) == summary['scene_sha256'] and native_matches else 'STALE')
                 except Exception: status = 'UNKNOWN'
                 self._path_source_cache[key] = status
-            summary['source_status'] = self._path_source_cache[key]; values.append(summary)
-        return values
+            summary['source_status'] = self._path_source_cache[key]
+            summary['persisted'] = summary['id'] in metadata.get('motion_paths', {})
+            values.append(summary)
+        return sorted(values, key=lambda row: (row['id'] == (last or {}).get('id'), row.get('created_at', ''), row['id']))
 
     def _inspect(self, assembly, descriptor=None):
         parts = self._parts(assembly, allow_empty=True)
@@ -555,8 +596,12 @@ class Motion:
         formulas, issues = compile_drives(definition['drives'],
             (float(definition['time']['start']),max(float(definition['time']['end']),times[-1])), joints)
         if issues:
-            raise ValueError('\n'.join(('구동 '+str(row+1)+'행: ' if row >= 0 else '') + '; '.join(messages)
-                for row,messages in sorted(issues.items())))
+            raise MotionInputError('\n'.join(('구동 '+str(row+1)+'행: ' if row >= 0 else '') + '; '.join(messages)
+                for row,messages in sorted(issues.items())),
+                {'category': 'INPUT', 'stage': 'PREFLIGHT', 'cause_joints': [],
+                 'failure_time': None, 'time_status': 'NOT_EXECUTED', 'native_status': None,
+                 'input_rows': [{'row': row, 'joint_id': definition['drives'][row]['joint_id'] if row >= 0 else None,
+                                 'messages': messages} for row, messages in sorted(issues.items())]})
         return formulas
 
     def _set_view(self, assembly, args):
@@ -595,7 +640,7 @@ class Motion:
         if set(args) != {'editor'}: raise ValueError('Declare one assembly editor snapshot')
         editor = deepcopy(args['editor'])
         if (not isinstance(editor, dict) or not {'view', 'joint_draft', 'definition_draft'} <= set(editor)
-                or set(editor) - {'view', 'joint_draft', 'definition_draft', 'path_view'}
+                or set(editor) - {'view', 'joint_draft', 'definition_draft', 'path_view', 'result_view'}
                 or not isinstance(editor['view'], dict)
                 or any(value is not None and not isinstance(value, dict) for value in (editor['joint_draft'], editor['definition_draft']))):
             raise ValueError('Invalid assembly editor snapshot structure')
@@ -614,6 +659,14 @@ class Motion:
                          if summary['id'] == selected['calculation_id'] and summary['assembly_id'] == assembly.Name), None)
             if not path or not any(row['frame'] == selected['frame'] for row in path['rows']):
                 raise ValueError('Select a frame belonging to this assembly’s retained path')
+        if 'result_view' in editor:
+            selected = editor['result_view']
+            if (not isinstance(selected, dict) or set(selected) != {'calculation_id', 'frame'}
+                    or not isinstance(selected['calculation_id'], str) or type(selected['frame']) is not int):
+                raise ValueError('Invalid retained motion selection')
+            result = self._saved_result(assembly, selected['calculation_id'])
+            if not 0 <= selected['frame'] < result['frame_count']:
+                raise ValueError('Select an actual retained motion frame')
         joint = editor['joint_draft']
         if joint is not None:
             if (set(joint) != {'joint_id', 'type', 'connectors', 'parameters'}
@@ -696,12 +749,379 @@ class Motion:
         if editor.get('joint_draft') is not None or editor.get('definition_draft') is not None:
             raise ValueError('관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.')
 
+    def _last_accepted_summary(self, assembly_id, metadata=None):
+        metadata = self.owner.read_metadata() if metadata is None else metadata
+        results = [self._assess_result(row) for row in metadata.get('motion_paths', {}).values()
+                   if row.get('assembly_id') == assembly_id]
+        accepted = [row for row in results if row.get('accepted')]
+        last = (metadata.get('motion') or {}).get('last_completed') or {}
+        if not results: return last or None  # Legacy summary-only files remain readable.
+        selected = next((row for row in accepted if row['id'] == last.get('id')), None)
+        if selected is None and accepted:
+            selected = max(accepted, key=lambda row: (row.get('created_at', ''), row['id']))
+        return public_summary(selected) if selected else None
+
+    def _write_motion_records(self, *, summary=None, attempt=None):
+        """Use the existing native document transaction and save owner.
+
+        motion_paths is the only full output record (accepted OR rejected).
+        last_completed points only to an accepted output and keeps its
+        compatible path/clock summary; the large pose payload is NOT duplicated.
+        No automatic solve/recompute of the mechanism while recording results.
+        """
+        before = self.owner.read_metadata()
+        metadata = deepcopy(before)
+        if summary is not None:
+            metadata.setdefault('motion_paths', {})[summary['id']] = deepcopy(summary)
+            if summary.get('accepted', True) and (metadata.get('motion') or {}).get('assembly_id') == summary['assembly_id']:
+                metadata['motion']['last_completed'] = public_summary(summary)
+        if attempt is not None:
+            records = metadata.setdefault('motion_attempts', [])
+            index = next((i for i, row in enumerate(records) if row['id'] == attempt['id']), None)
+            if index is None: records.append(deepcopy(attempt))
+            else: records[index] = deepcopy(attempt)
+        motion = metadata.get('motion') or {}
+        last = motion.get('last_completed') or {}
+        if last.get('id') in metadata.get('motion_paths', {}):
+            accepted = self._last_accepted_summary(motion.get('assembly_id'), metadata)
+            if accepted: motion['last_completed'] = accepted
+            else: motion.pop('last_completed', None)
+        if metadata == before: return
+        preferences = self.owner.App.ParamGet('User parameter:BaseApp/Preferences/Mod/Assembly')
+        had = 'SolveOnRecompute' in preferences.GetBools()
+        previous = preferences.GetBool('SolveOnRecompute', True)
+        try:
+            preferences.SetBool('SolveOnRecompute', False)
+            self.owner._transaction('Retain native motion result and attempt',
+                                    lambda: self.owner.write_metadata(metadata))
+            self._expected_generation = self.owner.generation
+        finally:
+            try:
+                if had: preferences.SetBool('SolveOnRecompute', previous)
+                else: preferences.RemBool('SolveOnRecompute')
+            except Exception as error:
+                self._recovery_error = '계산 설정 복구 실패. 저장과 전환을 중단했습니다. ' + str(error)
+                self._state = 'FAILED'; self._error = self._recovery_error
+                raise RuntimeError(self._recovery_error) from error
+
+    def _attempt_summaries(self):
+        rows = {row['id']: deepcopy(row) for row in self.owner.read_metadata().get('motion_attempts', [])}
+        for row in self._unsaved_attempts:
+            rows[row['id']] = dict(deepcopy(row), persistence='UNSAVED')
+        results = self.owner.read_metadata().get('motion_paths', {})
+        for row in rows.values():
+            result = results.get(row.get('result_id') or row.get('raw_result_id'))
+            if result is not None:
+                check = self._assess_result(result)['constraint_check']
+                row['constraint_check'] = check
+                if row.get('state') == 'SUCCEEDED' and not check['accepted']:
+                    row['recorded_state'] = row['state']; row['state'] = 'FAILED'
+                    row['recorded_stage'] = row.get('stage'); row['stage'] = 'CHECK'
+                    row['diagnostic'] = unknown_diagnostic('CHECK', row.get('native_status'))
+                    row['raw_result_id'] = result['id']
+                    row['error'] = check_message(check)
+        # A pending STARTED record reopened after a process interruption is not a
+        # solver failure or success. Do not guess its exit status/time.
+        return sorted(rows.values(), key=lambda row: (row.get('started_at', ''), row['id']))
+
+    def _replay_geometry(self, shape):
+        """Compare the native persisted representation, not mutable ASCII flags.
+
+        The native BREP reader can normalize flags on first read. Round-trip a
+        COPY to a fixed representation; never heal/simplify/change the CAD. No
+        geometric tolerance or motion-solver tolerance is changed here.
+        """
+        local = shape.copy(); local.Placement = self.owner.App.Placement()
+        text = local.exportBrepToString()
+        reader = getattr(local, 'importBrepFromString', None)
+        if reader is not None:
+            for _ in range(3):
+                reader(text); local.Placement = self.owner.App.Placement()
+                following = local.exportBrepToString()
+                if following == text: break
+                text = following
+            else:
+                raise ValueError('형상의 저장 표현을 확인할 수 없습니다. 이전 결과는 보존됩니다.')
+        return hashlib.sha256(text.encode()).hexdigest()
+
+    def _replay_identity(self, assembly):
+        paths = hierarchy(assembly)
+        bindings = [{'id': assembly.Name, 'path': [assembly.Name], 'type': assembly.TypeId}]
+        for obj in sorted(self._parts(assembly), key=lambda obj: obj.Name):
+            row = unique_path(assembly, obj, paths)
+            linked = obj.getLinkedObject() if obj.isDerivedFrom('App::Link') else obj
+            shape = getattr(linked, 'Shape', None)
+            geometry = None
+            if shape is not None and not shape.isNull():
+                geometry = self._replay_geometry(shape)
+            binding = {'id': obj.Name, 'path': row['path'], 'type': obj.TypeId,
+                'rigid_owner': row['rigid_owner'], 'rigid': getattr(obj, 'Rigid', None),
+                'source': linked.Name, 'source_document': '$self' if linked.Document is self.owner.doc else linked.Document.Name,
+                'geometry': geometry}
+            if hasattr(obj, 'LinkTransform'): binding['link_transform'] = bool(obj.LinkTransform)
+            if hasattr(obj, 'ScaleVector'):
+                binding['scale'] = [float(getattr(obj.ScaleVector, key)) for key in ('x', 'y', 'z')]
+            bindings.append(binding)
+        parents = []
+        if getattr(assembly, 'Parents', None):
+            # Keep exact M2 outer identity, not noisy serialized rotations.
+            # Replay compensates the root against the current outer transform
+            # using the sampled native WORLD root pose; ancestors never move.
+            world_placement(assembly, assembly)
+            root, prefix = assembly.Parents[0]
+            pieces = prefix.rstrip('.').split('.')
+            ancestors = [root] + [root.getSubObject('.'.join(pieces[:i])+'.', 1)
+                                  for i in range(1, len(pieces))]
+            parents = [{'id': obj.Name, 'type': obj.TypeId}
+                       for obj in ancestors if obj is not assembly and hasattr(obj, 'Placement')]
+        return {'bindings': bindings, 'parents': parents}
+
+    def _attempt_model(self, assembly):
+        value = self._replay_identity(assembly)
+        value['design'] = [{'id': row['id'], 'pose': _pose(self.owner._object(row['id']).Placement)}
+                           for row in value['bindings']]
+        value['joints'] = self._joint_records(assembly)
+        return value
+
+    def _joint_records(self, assembly):
+        joints = []
+        for obj in self._joints(assembly):
+            row = {'id': obj.Name, 'label': obj.Label, 'path': unique_path(assembly, obj)['path'],
+                   'suppressed': bool(getattr(obj, 'Suppressed', False))}
+            if hasattr(obj, 'ObjectToGround'):
+                row['ground'] = obj.ObjectToGround.Name if obj.ObjectToGround else None
+            else:
+                row['type'] = str(obj.JointType)
+                for key in ('Reference1', 'Reference2'):
+                    ref = getattr(obj, key, None)
+                    row[key] = [ref[0].Name, list(ref[1])] if ref and ref[0] else None
+                for key in ('Placement1', 'Placement2', 'Offset1', 'Offset2'):
+                    if hasattr(obj, key): row[key] = _pose(getattr(obj, key))
+                for key in ('Detach1', 'Detach2'):
+                    if hasattr(obj, key): row[key] = bool(getattr(obj, key))
+                for key in ('Distance', 'Distance2', 'Angle'):
+                    if hasattr(obj, key): row[key] = float(getattr(obj, key))
+                row['limits'] = native_limits(obj)
+            joints.append(row)
+        return joints
+
     def _calculate(self, assembly):
         self.before_design_action('recalculate')
+        applied = deepcopy(self.owner.read_metadata().get('motion') or {})
+        self._attempt = {'id': 'A'+uuid.uuid4().hex, 'assembly_id': assembly.Name,
+            'started_at': datetime.now(timezone.utc).isoformat(), 'state': 'STARTED', 'stage': 'PREFLIGHT',
+            'definition': deepcopy(applied.get('definition')), 'native_status': None,
+            'previous_success_id': (self._last_accepted_summary(assembly.Name) or {}).get('id'),
+            'diagnostic': None}
+        try:
+            self._attempt['model'] = self._attempt_model(assembly)
+            self._attempt['native_definition'] = self._native_definition(self._metadata(assembly)[1])
+            self._write_motion_records(attempt=self._attempt)
+            result = self._generate(assembly)
+            completed = dict(self._attempt, state='SUCCEEDED', stage='COMPLETE', result_id=result['id'],
+                             finished_at=datetime.now(timezone.utc).isoformat())
+            self._attempt['stage'] = 'STORE'
+            self._write_motion_records(summary=self._pending_summary, attempt=completed)
+            return result
+        except Exception as error:
+            rejected = self._pending_summary if (self._pending_summary or {}).get('accepted') is False else None
+            # Neither a partial capture nor nonzero native return can replace
+            # last_completed. Old full frames and paths already live in FCStd.
+            self._pending_summary = None; self._calculation = None; self._replay = None
+            self._state = 'FAILED'; self._error = str(error); self._frame = None
+            self._attempt.update(state='FAILED', error=str(error), finished_at=datetime.now(timezone.utc).isoformat(),
+                diagnostic=deepcopy(getattr(error, 'diagnostic', None)) or
+                    unknown_diagnostic(self._attempt['stage'], self._attempt.get('native_status')))
+            try:
+                if self._recovery_error: raise RuntimeError(self._recovery_error)
+                self._write_motion_records(summary=rejected, attempt=self._attempt)
+            except Exception as persistence_error:
+                self._pending_summary = rejected  # Retry raw-result persistence; never publish as a success.
+                self._attempt['persistence_error'] = str(persistence_error)
+                self._unsaved_attempts.append(deepcopy(self._attempt))
+            raise
+        finally:
+            self._attempt = None
+
+    def _collect_native_result(self, assembly):
+        """Capture every native frame before any later solve can overwrite it.
+
+        updateForFrame and M2 native_scope are the sole source of motion. Stored
+        local placements are sampled AFTER M2 has restored ownership/coordinates.
+        World points use the same M1/M2 path routine, including outside parents.
+        """
+        metadata, simulation = self._metadata(assembly)
+        result = deepcopy(self._calculation)
+        definition = deepcopy(metadata['definition'])
+        identity = self._replay_identity(assembly)
+        objects = [self.owner._object(row['id']) for row in identity['bindings']]
+        originals = {(obj.Name, prop): plc for obj, prop, plc in self._base}
+        payload = {'schema': POSE_SCHEMA, 'calculation_id': result['id'], 'assembly_id': assembly.Name,
+            **identity, 'frame_times': result['frame_times'], 'clock': result['clock'],
+            'design': [_pose(originals[(obj.Name, 'Placement')]) for obj in objects],
+            'frames': [], 'world_roots': []}
+        traces = [(trace, self.owner._object(trace['occurrence_id']), self.owner.App.Vector(*trace['point']))
+                  for trace in definition['traces']]
+        paths = {trace['id']: {'calculation_id': result['id'], 'trace_id': trace['id'], 'coordinate_unit': 'mm',
+            'frame': 'document_global', 'clock': result['clock'], 'clock_source': deepcopy(result['clock_source']),
+            'total_frames': result['frame_count'], 'assembly_id': assembly.Name,
+            'trace': deepcopy(trace), 'document_id': getattr(self.owner, 'document_id', self.owner.doc.Name),
+            'scene_sha256': result['scene_sha256'], 'definition_sha256': result['definition_sha256'],
+            'preview_restored': True, 'rows': []} for trace, _, _ in traces}
+        try:
+            for index in range(result['frame_count']):
+                if self._attempt is not None: self._attempt['capture_frame'] = index
+                frame = self._show_frame(assembly, index)
+                payload['frames'].append([validate_pose(_pose(obj.Placement)) for obj in objects])
+                root_world = world_placement(assembly, assembly)
+                if root_world is None: root_world = assembly.Placement
+                payload['world_roots'].append(validate_pose(_pose(root_world)))
+                for trace, obj, point in traces:
+                    placement = world_placement(assembly, obj)
+                    if placement is None: placement = self._api()[0].getGlobalPlacement((obj, ['']), obj)
+                    position = placement.multVec(point)
+                    paths[trace['id']]['rows'].append({'frame': index, 'time': frame['time'],
+                        'frame_kind': frame['frame_kind'], 'point': [float(position.x), float(position.y), float(position.z)]})
+        finally:
+            self._restore(); self._frame = None
+        from .motion_path import merge_path
+        result['paths'] = {key: merge_path(None, path) for key, path in paths.items()}
+        result['poses'] = pack_poses(payload, result['frame_count'])
+        result['definition_snapshot'] = definition
+        result['native_definition'] = self._native_definition(simulation)
+        result['fps'] = definition['fps']
+        if self._attempt is not None:
+            result['attempt_id'] = self._attempt['id']; result['created_at'] = self._attempt['started_at']
+        if self._pending_summary and self._pending_summary.get('id') == result['id'] and self._pending_summary.get('path'):
+            result['path'] = deepcopy(self._pending_summary['path'])
+        return result
+
+    def _assess_result(self, result):
+        """Read-only recheck also covers files saved by the status-only version.
+
+        Raw FCStd records and poses are never rewritten just by opening them.
+        Only the small check is cached; there is no second retained-result store.
+        """
+        model = result.get('check_model')
+        if model is None:
+            attempts = self.owner.read_metadata().get('motion_attempts', [])
+            attempt = next((row for row in attempts if row.get('result_id') == result['id']
+                or row.get('raw_result_id') == result['id'] or row['id'] == result.get('attempt_id')), {})
+            model = ({'joints': attempt['effective_joints']} if 'effective_joints' in attempt
+                     else dict(deepcopy(attempt['model']), jcs_source='PREFLIGHT_ONLY') if attempt.get('model') else None)
+        # Include measurement inputs, not live mutable CAD or the claimed check.
+        # The pose digest is subsequently validated by unpack_poses on first read.
+        try:
+            key = _hash({'result': result['id'], 'poses': result.get('poses'), 'model': model,
+                'definition': result.get('definition_snapshot'), 'native': result.get('native_definition'),
+                'times': result.get('frame_times'), 'clock': result.get('clock'),
+                'clock_source': result.get('clock_source'), 'count': result.get('frame_count'),
+                'assembly': result.get('assembly_id')})
+            if key not in self._check_cache:
+                # Bound ephemeral checks; preserved results themselves stay in motion_paths.
+                if len(self._check_cache) >= 64: self._check_cache.clear()
+                self._check_cache[key] = check_closed_motion(result, model)
+            check = self._check_cache[key]
+        except (ValueError, TypeError, KeyError, IndexError, AttributeError, OverflowError, RecursionError) as error:
+            check = check_closed_motion(result, None)
+            check['unknowns'] = ['결과 검사를 완료하지 못했습니다 ('+type(error).__name__+'): '+str(error)]
+        return apply_check(result, check)
+
+    def _find_result(self, assembly, calculation_id, *, persisted_only=False):
+        if not isinstance(calculation_id, str): return None
+        result = self._pending_summary if not persisted_only and (self._pending_summary or {}).get('id') == calculation_id else (
+            self.owner.read_metadata().get('motion_paths', {}).get(calculation_id))
+        return self._assess_result(result) if result and result.get('assembly_id') == assembly.Name else None
+
+    def _saved_result(self, assembly, calculation_id):
+        result = self._find_result(assembly, calculation_id)
+        if not result:
+            raise ValueError('STALE_FRAME: 선택한 조립의 보존 결과가 없습니다.')
+        return result
+
+    def _select_retained(self, assembly, calculation_id):
+        result = self._saved_result(assembly, calculation_id)
+        if not result.get('poses'):
+            raise ValueError('기존 기록에는 3D 자세가 없습니다. 보존 경로는 표와 곡선에서 읽을 수 있습니다.')
+        payload = unpack_poses(result['poses'], result['frame_count'])
+        if (payload['calculation_id'] != calculation_id or payload['assembly_id'] != assembly.Name
+                or payload['frame_times'] != result['frame_times'] or payload['clock'] != result['clock']):
+            raise ValueError('저장 자세와 계산 시각의 대응이 손상되었습니다. 원자료는 보존됩니다.')
+        if self._preview: self._restore()
+        identity = self._replay_identity(assembly)
+        if identity != {'bindings': payload['bindings'], 'parents': payload['parents']}:
+            raise ValueError('보존 자세의 부품·형상·상위 배치가 현재 모델과 다릅니다. 원래 모델에서 자세를 여세요. 표와 원경로는 그대로 읽을 수 있습니다.')
+        self.before_design_action('select retained result')
+        self._capture(assembly)  # CURRENT design, not the old result's design.
+        self._replay = {'payload': payload, 'identity': identity, 'fps': result.get('fps', 30)}
+        self._calculation = public_summary({k: v for k, v in result.items()
+            if k not in ('path', 'paths', 'poses', 'definition_snapshot', 'native_definition')})
+        self._calculation['retained'] = True
+        self._state = 'CALCULATED'; self._frame = None
+
+    def _show_retained_frame(self, assembly, index):
+        payload = self._replay['payload']
+        # Resolve and convert ALL exact occurrence references before the first
+        # assignment. Never fall back from a missing Link to its source/sibling.
+        assignments = []
+        for binding, pose in zip(payload['bindings'], payload['frames'][index]):
+            obj = self.owner._object(binding['id'])
+            path = [assembly.Name] if obj is assembly else unique_path(assembly, obj)['path']
+            if path != binding['path']: raise ValueError('보존 자세의 배치 참조가 바뀌었습니다.')
+            validate_pose(pose)
+            placement = self.owner.App.Placement(self.owner.App.Vector(*pose[:3]), self.owner.App.Rotation(*pose[3:]))
+            if obj is assembly and payload['parents']:
+                root_pose = validate_pose(payload['world_roots'][index])
+                root_world = self.owner.App.Placement(self.owner.App.Vector(*root_pose[:3]), self.owner.App.Rotation(*root_pose[3:]))
+                current_world = world_placement(assembly, assembly)
+                if current_world is None: raise ValueError('상위 배치의 세계 좌표를 확인할 수 없습니다.')
+                parent_world = current_world.multiply(assembly.Placement.inverse())
+                placement = parent_world.inverse().multiply(root_world)
+            assignments.append((obj, placement))
+        try:
+            with self.owner.preview_changes():
+                for obj, placement in assignments: obj.Placement = placement
+            self._preview = True; self._frame = index; self._remember()
+        except Exception as error:
+            self._remember(); self._restore(); self._state = 'FAILED'; self._error = str(error)
+            raise
+        return {'calculation_id': self._calculation['id'], 'frame': index,
+            'time': self._calculation['frame_times'][index], 'frame_kind': 'design' if index == 0 else
+                'simulation' if self._calculation['clock_source']['complete'] else 'unknown',
+            'time_unit': 's', 'clock': self._calculation['clock'], 'preview': True, 'retained': True,
+            'accepted': self._calculation.get('accepted'),
+            'validation': next(iter(self._calculation.get('constraint_check', {}).get('frame_states', [])[index:index+1]), None)}
+
+    def _retained_path(self, assembly, args, result):
+        if self._timer: self._timer.stop()  # Also before the first playback tick.
+        if self._state == 'PLAYING': self._state = 'PAUSED'  # Cancel even an already-queued tick.
+        if set(args) != {'calculation_id', 'trace_id', 'start', 'count'}:
+            raise ValueError('Path needs exact calculation/trace and bounded start/count')
+        start, count = args['start'], args['count']
+        if type(start) is not int or not 0 <= start < result['frame_count'] or type(count) is not int or not 1 <= count <= MAX_PAGE:
+            raise ValueError('Native path page start must be in range and count 1..200')
+        original = result.get('paths', {}).get(args['trace_id'])
+        if original is None: raise ValueError('선택한 계산에 보존된 경로점이 없습니다.')
+        page = deepcopy(original)
+        page['rows'] = [row for row in page['rows'] if start <= row['frame'] < start+count]
+        from .motion_path import merge_path
+        page = merge_path(self._path_result, page)
+        if self._preview: self._restore()
+        if self._state in ('PLAYING', 'PAUSED'): self._state = 'CALCULATED'
+        self._frame = None
+        self._path_result = deepcopy(page)
+        if self._pending_summary and self._pending_summary['id'] == result['id']:
+            self._pending_summary['path'] = deepcopy(page)
+        # Full paths stay immutable even when the user reads only a small page.
+        return page
+
+    def _generate(self, assembly):
         metadata, simulation = self._metadata(assembly)
         native_definition=self._native_definition(simulation)
         if native_definition['time']!=[float(metadata['definition']['time'][key]) for key in ('start','end','step')]:
             raise ValueError('속성창에서 바꾼 운동 시간이 적용한 정의와 다릅니다. 시간과 구동에서 시작·끝·출력 간격을 확인하고 다시 적용하세요. 기존 경로는 보존됩니다.')
+        if native_definition['tolerance'] != float(metadata['definition']['native_error_tolerance']):
+            raise ValueError('native 계산 오차 허용값이 적용한 정의와 다릅니다. 시간과 구동에서 확인하고 다시 적용하세요. 이전 결과는 보존됩니다.')
         if not any(getattr(j, 'ObjectToGround', None) is not None for j in self._joints(assembly)):
             raise ValueError('Native kinematics requires an explicitly grounded occurrence')
         parts = self._parts(assembly)
@@ -729,19 +1149,34 @@ class Motion:
             if drive['type'] not in {'Revolute': {'Angular'}, 'Slider': {'Linear'}, 'Cylindrical': {'Angular', 'Linear'}}.get(getattr(joint, 'JointType', None), set()):
                 raise ValueError(joint.Label + ': 변경된 관절 종류에 맞는 회전·이동 구동을 다시 선택하세요.')
         formulas = self._compile_drives(assembly, metadata['definition'])
-        if len(simulation.Group) != len(formulas) or any(obj.Formula != formulas[index] for index,obj in enumerate(simulation.Group)):
+        if len(simulation.Group) != len(formulas) or any(
+                obj.Formula != formulas[index] or str(obj.MotionType) != metadata['definition']['drives'][index]['type']
+                or not obj.Joint or obj.Joint[0] is not self._joint(assembly, metadata['definition']['drives'][index]['joint_id'])
+                for index, obj in enumerate(simulation.Group)):
             raise ValueError('적용한 구동 관계와 native 운동식이 다릅니다. 구동 정의를 다시 적용하세요.')
+        for obj in simulation.Group:
+            property_type = getattr(obj, 'getTypeIdOfProperty', None)
+            if property_type is not None and any(property_type(key) not in kinds for key, kinds in (
+                    # Motion uses XLinkSubHidden; it derives from XLinkSub and
+                    # is accepted by the native dynamic_cast (not LinkSub).
+                    ('Joint', ('App::PropertyXLinkSub', 'App::PropertyXLinkSubHidden')),
+                    ('MotionType', ('App::PropertyEnumeration',)), ('Formula', ('App::PropertyString',)))):
+                raise ValueError('native 운동 객체의 관절 연결 형식이 다릅니다. 구동을 다시 적용하세요.')
         self._capture(assembly)
         scene = self._scene(assembly)
         self._state = 'CALCULATING'; self._error = None
         try:
+            self._attempt['stage'] = 'NATIVE'
             with self.owner.preview_changes(), self._native_scope(assembly):
                 status = assembly.generateSimulation(simulation)
+            self._attempt['native_status'] = status
+            # getJoints() has now updated the actual reference-local JCS used by
+            # handleOneSideOfJoint. Capture them before design-pose restoration.
+            self._attempt['effective_joints'] = self._joint_records(assembly)
             self._remember()
-            if status != 0:
-                names = ', '.join(self._joint(assembly, d['joint_id']).Label for d in metadata['definition']['drives'])
-                raise RuntimeError('운동 계산 실패: ' + names + '. 종속 관절의 구동곡선·연결·고정을 확인하세요. '
-                                   'FreeCAD 계산 상태 ' + str(status) + '; 설계 자세를 복원했습니다.')
+            if type(status) is not int or status != 0:
+                raise RuntimeError('운동 계산 실패. 원인 관절과 실패 시각은 native에서 제공하지 않습니다. '
+                                   'FreeCAD 계산 상태 ' + str(status))
             count = assembly.numberOfFrames()
             if type(count) is not int or not 1 <= count <= MAX_FRAMES: raise ValueError('Native solver returned an invalid/unbounded frame count')
             app=getattr(self.owner,'App',None)
@@ -761,9 +1196,20 @@ class Motion:
                     'mapping':'INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified' if clock_error is None else 'Unverified frame schedule; no physical time assigned',
                     'solver_schedule_source':'https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp',
                     'source':PINNED_SOURCE,'complete':clock_error is None,'reason':clock_error}}
-            self._restore(); self._state = 'CALCULATED'; self._frame = None
-            self._path_result = None
-            self._pending_summary = deepcopy(self._calculation)
+            self._restore()
+            self._attempt['stage'] = 'CAPTURE'
+            raw = self._collect_native_result(assembly)
+            raw['check_model'] = {'joints': deepcopy(self._attempt['effective_joints'])}
+            self._attempt['stage'] = 'CHECK'
+            self._pending_summary = self._assess_result(raw)
+            check = self._pending_summary['constraint_check']
+            self._attempt['constraint_check'] = deepcopy(check)
+            if not check['accepted']:
+                self._attempt['raw_result_id'] = raw['id']
+                raise MotionResultError(check_message(check), unknown_diagnostic('CHECK', status))
+            self._calculation['constraint_check'] = deepcopy(check)
+            self._calculation['accepted'] = True
+            self._state = 'CALCULATED'; self._frame = None; self._path_result = None
             return deepcopy(self._calculation)
         except Exception as error:
             self._remember(); self._restore(); self._calculation = None
@@ -780,6 +1226,8 @@ class Motion:
 
     def _show_frame(self, assembly, index):
         if type(index) is not int or not 0 <= index < self._calculation['frame_count']: raise ValueError('Select an actual native frame index')
+        if self._replay is not None:
+            return self._show_retained_frame(assembly, index)
         try:
             with self.owner.preview_changes(), self._native_scope(assembly):
                 status = assembly.updateForFrame(index)
@@ -803,10 +1251,11 @@ class Motion:
             self._timer.timeout.connect(self._tick)
         self._direction = direction
         self._state = 'PLAYING'
-        self._timer.start(max(1, round(1000/self._metadata(assembly)[0]['definition']['fps'])))
+        self._timer.start(max(1, round(1000/(self._replay['fps'] if self._replay is not None else self._metadata(assembly)[0]['definition']['fps']))))
         return self.descriptor()
 
     def _tick(self):
+        if self._state != 'PLAYING': return  # Ignore an already-queued timeout after stop/read.
         try:
             self.owner.assert_thread()
             assembly = self.owner._object(self._calculation['assembly_id'])
@@ -837,7 +1286,23 @@ class Motion:
             if args: raise ValueError('Inspect accepts no arguments')
             return self.descriptor()
         assembly = self._assembly(target)
-        if operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
+        if self._recovery_error and operation != 'pre.motion.inspect': raise RuntimeError(self._recovery_error)
+        if operation == 'pre.motion.frame' and set(args) != {'calculation_id', 'frame'}:
+            raise ValueError('Frame requires exact calculation_id/frame')
+        if operation == 'pre.motion.play' and set(args) != {'calculation_id', 'direction'}:
+            raise ValueError('Play requires calculation_id/direction')
+        if operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose'):
+            self._assert_editor_applied(assembly)  # Gate BEFORE selecting or changing retained state.
+        if operation == 'pre.motion.path':
+            retained = self._find_result(assembly, args.get('calculation_id'), persisted_only=True)
+            if retained and args.get('trace_id') in retained.get('paths', {}):
+                return self._retained_path(assembly, args, retained)
+        if operation in ('pre.motion.frame', 'pre.motion.play'):
+            # Accepted results and explicitly labelled rejected raw poses are
+            # read-only retained selections, never substitutes for a success.
+            if not self._calculation or self._calculation['id'] != args.get('calculation_id'):
+                self._select_retained(assembly, args.get('calculation_id'))
+        if operation == 'pre.motion.path':
             self._assert_editor_applied(assembly)
         if operation == 'pre.motion.inspect':
             if args: raise ValueError('Inspect accepts no arguments')
@@ -892,6 +1357,8 @@ class Motion:
             return self._play(assembly, args['direction'])
         if operation == 'pre.motion.path': return self._path(assembly, args)
         if operation == 'pre.motion.adopt_pose':
+            if self._replay is not None:
+                raise ValueError('보존 자세는 읽기 전용입니다. 현재 설계에 적용하려면 현재 조건으로 다시 계산하세요.')
             if set(args) != {'calculation_id', 'frame'} or args['frame'] != self._frame or not self._preview:
                 raise ValueError('Adopt only the explicitly selected current preview frame')
             adopted = [(obj, prop, _copy_pose(getattr(obj, prop))) for obj, prop, _ in self._base]

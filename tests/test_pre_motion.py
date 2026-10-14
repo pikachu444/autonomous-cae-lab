@@ -383,7 +383,7 @@ def test_injected_qt_actual_frame_receipt_and_path(qt_panel):
     panel._send('pre.motion.calculate', {})
     op, args, selected, done = queued[-1]
     done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
-    assert panel.frame.maximum() == 3 and '계산 프레임 4' in panel.status.text()
+    assert panel.frame.maximum() == 3 and panel.frame_table.rowCount() == 4
     panel.frame.setValue(2); panel._send('pre.motion.frame', panel._frame_args())
     op, args, selected, done = queued[-1]
     assert args['frame'] == 2 and args['calculation_id'] == motion.descriptor()['calculation']['id']
@@ -392,7 +392,8 @@ def test_injected_qt_actual_frame_receipt_and_path(qt_panel):
     panel._send('pre.motion.path', {'calculation_id': panel._calculation_id(), 'trace_id': 'Tip', 'start': 0, 'count': 3})
     op, args, selected, done = queued[-1]
     done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
-    assert panel.path.rowCount() == 3 and panel.path.item(2, 2).text() == '10.0'
+    # Reading a page preserves the already collected full result.
+    assert panel.path.rowCount() == 4 and panel.path.item(2, 2).text() == '10.0'
     assert owner.doc.moving.Placement.Base.x == 0
 
 
@@ -405,7 +406,8 @@ def test_injected_qt_late_receipt_reopened_session_is_ignored(qt_panel):
     done({'status': 'COMPLETED', 'result': {'state': 'PLAYING', 'occurrences': [{'id': 'Old', 'label': 'Old'}], 'joints': []}})
     assert panel._session == 'Snew' and panel._motion['state'] == 'UNCOMPUTED'
     assert panel.connector_a.findData('Old') == -1
-    assert all(b.isEnabled() for b in panel._buttons)
+    assert all(b.isEnabled() for b in panel._buttons if b is not panel.adopt_button)
+    assert not panel.adopt_button.isEnabled()  # No preview pose exists to adopt.
 
 
 def test_injected_qt_units_survive_deleted_drive_row(qt_panel):

@@ -1,0 +1,5216 @@
+{
+  "schema": "m3-windows-raw-test-records/1",
+  "source_archive_sha256": "9971ca2b09623f70e323e902eb06a06ff85ab3ec260f6e5428641a4851f9dc32",
+  "source_fcstd_sha256": "b9dc4bcd8297ec1165d3941d297030f3f11927a3939efe1c909ab596e75e7a58",
+  "native_version": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "cases": {
+    "normal": {
+      "summary": {
+        "assembly_id": "FourBar",
+        "attempt_id": "Ad64d3ad900624dc7b53e078cac72a919",
+        "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+        "clock_source": {
+          "complete": true,
+          "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+          "native_version": "FreeCAD 1.1.4",
+          "reason": null,
+          "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+          "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+        },
+        "created_at": "2026-10-14T10:57:54.917473+00:00",
+        "definition_sha256": "d77ddb3ae97886bb5df175753d0db34717ea80efb3a4a1ffac055cbf69a984cc",
+        "definition_snapshot": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "fps": 20,
+        "frame_count": 22,
+        "frame_times": [
+          null,
+          0.0,
+          0.05,
+          0.1,
+          0.15000000000000002,
+          0.2,
+          0.25,
+          0.3,
+          0.35,
+          0.39999999999999997,
+          0.44999999999999996,
+          0.49999999999999994,
+          0.5499999999999999,
+          0.6,
+          0.65,
+          0.7000000000000001,
+          0.7500000000000001,
+          0.8000000000000002,
+          0.8500000000000002,
+          0.9000000000000002,
+          0.9500000000000003,
+          1.0000000000000002
+        ],
+        "id": "K82c225a79b6d4f838c31420ad2e99eb4",
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_definition_sha256": "93bfe58d7965566c60bb39fa48cd4aec94cb821ca32243f90bdf856abf1f1269",
+        "native_status": 0,
+        "paths": {
+          "연결봉 중앙": {
+            "assembly_id": "FourBar",
+            "calculation_id": "K82c225a79b6d4f838c31420ad2e99eb4",
+            "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+            "clock_source": {
+              "complete": true,
+              "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+              "native_version": "FreeCAD 1.1.4",
+              "reason": null,
+              "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+              "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+            },
+            "complete": true,
+            "coordinate_unit": "mm",
+            "definition_sha256": "d77ddb3ae97886bb5df175753d0db34717ea80efb3a4a1ffac055cbf69a984cc",
+            "document_id": "Pa60d7baed61547efa648410618dae131",
+            "frame": "document_global",
+            "preview_restored": true,
+            "rows": [
+              {
+                "frame": 0,
+                "frame_kind": "design",
+                "point": [
+                  64.98625584806037,
+                  50.98075833549863,
+                  0.0
+                ],
+                "time": null
+              },
+              {
+                "frame": 1,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806037,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.0
+              },
+              {
+                "frame": 2,
+                "frame_kind": "simulation",
+                "point": [
+                  64.52774833216998,
+                  51.109470756341494,
+                  0.0
+                ],
+                "time": 0.05
+              },
+              {
+                "frame": 3,
+                "frame_kind": "simulation",
+                "point": [
+                  64.06649252782252,
+                  51.23402501530542,
+                  0.0
+                ],
+                "time": 0.1
+              },
+              {
+                "frame": 4,
+                "frame_kind": "simulation",
+                "point": [
+                  63.60251957453713,
+                  51.3543655118082,
+                  0.0
+                ],
+                "time": 0.15000000000000002
+              },
+              {
+                "frame": 5,
+                "frame_kind": "simulation",
+                "point": [
+                  63.13586018455092,
+                  51.47043635866784,
+                  0.0
+                ],
+                "time": 0.2
+              },
+              {
+                "frame": 6,
+                "frame_kind": "simulation",
+                "point": [
+                  62.66654462276078,
+                  51.582181324421356,
+                  0.0
+                ],
+                "time": 0.25
+              },
+              {
+                "frame": 7,
+                "frame_kind": "simulation",
+                "point": [
+                  62.19460268452616,
+                  51.689543772235815,
+                  0.0
+                ],
+                "time": 0.3
+              },
+              {
+                "frame": 8,
+                "frame_kind": "simulation",
+                "point": [
+                  61.720063671178686,
+                  51.79246659508053,
+                  0.0
+                ],
+                "time": 0.35
+              },
+              {
+                "frame": 9,
+                "frame_kind": "simulation",
+                "point": [
+                  61.24295636306525,
+                  51.8908921467946,
+                  0.0
+                ],
+                "time": 0.39999999999999997
+              },
+              {
+                "frame": 10,
+                "frame_kind": "simulation",
+                "point": [
+                  60.76330898992995,
+                  51.984762168644345,
+                  0.0
+                ],
+                "time": 0.44999999999999996
+              },
+              {
+                "frame": 11,
+                "frame_kind": "simulation",
+                "point": [
+                  60.28114919841617,
+                  52.07401771092112,
+                  0.0
+                ],
+                "time": 0.49999999999999994
+              },
+              {
+                "frame": 12,
+                "frame_kind": "simulation",
+                "point": [
+                  59.79650401644305,
+                  52.15859904907996,
+                  0.0
+                ],
+                "time": 0.5499999999999999
+              },
+              {
+                "frame": 13,
+                "frame_kind": "simulation",
+                "point": [
+                  59.30939981418014,
+                  52.23844559386271,
+                  0.0
+                ],
+                "time": 0.6
+              },
+              {
+                "frame": 14,
+                "frame_kind": "simulation",
+                "point": [
+                  58.819862261309,
+                  52.31349579478473,
+                  0.0
+                ],
+                "time": 0.65
+              },
+              {
+                "frame": 15,
+                "frame_kind": "simulation",
+                "point": [
+                  58.32791628022147,
+                  52.38368703629142,
+                  0.0
+                ],
+                "time": 0.7000000000000001
+              },
+              {
+                "frame": 16,
+                "frame_kind": "simulation",
+                "point": [
+                  57.83358599475886,
+                  52.448955525806845,
+                  0.0
+                ],
+                "time": 0.7500000000000001
+              },
+              {
+                "frame": 17,
+                "frame_kind": "simulation",
+                "point": [
+                  57.33689467404565,
+                  52.509236172801565,
+                  0.0
+                ],
+                "time": 0.8000000000000002
+              },
+              {
+                "frame": 18,
+                "frame_kind": "simulation",
+                "point": [
+                  56.83786467091154,
+                  52.56446245789705,
+                  0.0
+                ],
+                "time": 0.8500000000000002
+              },
+              {
+                "frame": 19,
+                "frame_kind": "simulation",
+                "point": [
+                  56.33651735432913,
+                  52.61456629089891,
+                  0.0
+                ],
+                "time": 0.9000000000000002
+              },
+              {
+                "frame": 20,
+                "frame_kind": "simulation",
+                "point": [
+                  55.83287303521543,
+                  52.659477856505504,
+                  0.0
+                ],
+                "time": 0.9500000000000003
+              },
+              {
+                "frame": 21,
+                "frame_kind": "simulation",
+                "point": [
+                  55.326950884856394,
+                  52.69912544627238,
+                  0.0
+                ],
+                "time": 1.0000000000000002
+              }
+            ],
+            "scene_sha256": "bbf553eb898f5275646d5b84f2878c3ed14541c3474bb6936a5a27fca9cd26f1",
+            "total_frames": 22,
+            "trace": {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            },
+            "trace_id": "연결봉 중앙"
+          }
+        },
+        "poses": {
+          "data": "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",
+          "encoding": "zlib-json-base64",
+          "raw_bytes": 8712,
+          "sha256": "4229fcb6dec71baf23daf24c68445d5ef697259be0d805c2999ff9ebde3aae58"
+        },
+        "scene_sha256": "bbf553eb898f5275646d5b84f2878c3ed14541c3474bb6936a5a27fca9cd26f1",
+        "time": {
+          "end": 1.0,
+          "start": 0.0,
+          "step": 0.05,
+          "unit": "s"
+        }
+      },
+      "model": {
+        "bindings": [
+          {
+            "id": "FourBar",
+            "path": [
+              "FourBar"
+            ],
+            "type": "Assembly::AssemblyObject"
+          },
+          {
+            "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+            "id": "Link_coupler",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_coupler"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_coupler",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+            "id": "Link_crank",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_crank"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_crank",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+            "id": "Link_ground",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_ground"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_ground",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+            "id": "Link_rocker",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_rocker"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_rocker",
+            "source_document": "$self",
+            "type": "App::Link"
+          }
+        ],
+        "design": [
+          {
+            "id": "FourBar",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_coupler",
+            "pose": [
+              30.00000000000001,
+              51.96152422706632,
+              0.0,
+              0.0,
+              0.0,
+              -0.014012317000025622,
+              0.999901822666751
+            ]
+          },
+          {
+            "id": "Link_crank",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.5000000000000001,
+              0.8660254037844386
+            ]
+          },
+          {
+            "id": "Link_ground",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_rocker",
+            "pose": [
+              100.0,
+              -6.67073301423292e-36,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399157,
+              0.7069123828037016
+            ]
+          }
+        ],
+        "joints": [
+          {
+            "ground": "Link_ground",
+            "id": "Ground",
+            "label": "고정 링크 지지",
+            "path": [
+              "FourBar",
+              "Joints",
+              "Ground"
+            ],
+            "suppressed": false
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.49999999999999994,
+              -0.8660254037844387
+            ],
+            "Reference1": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointA",
+            "label": "입력 회전 A",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointA"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              60.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.49999999999999994,
+              -0.8660254037844387
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.014012317000025594,
+              0.999901822666751
+            ],
+            "Reference1": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointB",
+            "label": "회전 B",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointB"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              70.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.014012317000025594,
+              0.999901822666751
+            ],
+            "Placement2": [
+              50.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399159,
+              -0.7069123828037014
+            ],
+            "Reference1": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointC",
+            "label": "회전 C",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointC"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399159,
+              -0.7069123828037014
+            ],
+            "Placement2": [
+              100.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Reference1": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointD",
+            "label": "출력 회전 D",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointD"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          }
+        ],
+        "parents": []
+      },
+      "attempt": {
+        "assembly_id": "FourBar",
+        "capture_frame": 21,
+        "definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "diagnostic": null,
+        "finished_at": "2026-10-14T10:57:55.323087+00:00",
+        "id": "Ad64d3ad900624dc7b53e078cac72a919",
+        "model": {
+          "bindings": [
+            {
+              "id": "FourBar",
+              "path": [
+                "FourBar"
+              ],
+              "type": "Assembly::AssemblyObject"
+            },
+            {
+              "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+              "id": "Link_coupler",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_coupler"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_coupler",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+              "id": "Link_crank",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_crank"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_crank",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+              "id": "Link_ground",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_ground"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_ground",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+              "id": "Link_rocker",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_rocker"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_rocker",
+              "source_document": "$self",
+              "type": "App::Link"
+            }
+          ],
+          "design": [
+            {
+              "id": "FourBar",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_coupler",
+              "pose": [
+                30.00000000000001,
+                51.96152422706632,
+                0.0,
+                0.0,
+                0.0,
+                -0.014012317000025622,
+                0.999901822666751
+              ]
+            },
+            {
+              "id": "Link_crank",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.5000000000000001,
+                0.8660254037844386
+              ]
+            },
+            {
+              "id": "Link_ground",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_rocker",
+              "pose": [
+                100.0,
+                -6.67073301423292e-36,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399157,
+                0.7069123828037016
+              ]
+            }
+          ],
+          "joints": [
+            {
+              "ground": "Link_ground",
+              "id": "Ground",
+              "label": "고정 링크 지지",
+              "path": [
+                "FourBar",
+                "Joints",
+                "Ground"
+              ],
+              "suppressed": false
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.49999999999999994,
+                -0.8660254037844387
+              ],
+              "Reference1": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointA",
+              "label": "입력 회전 A",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointA"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                60.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.49999999999999994,
+                -0.8660254037844387
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.014012317000025594,
+                0.999901822666751
+              ],
+              "Reference1": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointB",
+              "label": "회전 B",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointB"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                70.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.014012317000025594,
+                0.999901822666751
+              ],
+              "Placement2": [
+                50.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399159,
+                -0.7069123828037014
+              ],
+              "Reference1": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointC",
+              "label": "회전 C",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointC"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399159,
+                -0.7069123828037014
+              ],
+              "Placement2": [
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Reference1": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointD",
+              "label": "출력 회전 D",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointD"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            }
+          ],
+          "parents": []
+        },
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_status": 0,
+        "previous_success_id": null,
+        "result_id": "K82c225a79b6d4f838c31420ad2e99eb4",
+        "stage": "COMPLETE",
+        "started_at": "2026-10-14T10:57:54.917473+00:00",
+        "state": "SUCCEEDED"
+      }
+    },
+    "overconstrained": {
+      "summary": {
+        "assembly_id": "FourBar",
+        "attempt_id": "A7f112021635a4868b0c1a81963cb58b2",
+        "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+        "clock_source": {
+          "complete": true,
+          "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+          "native_version": "FreeCAD 1.1.4",
+          "reason": null,
+          "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+          "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+        },
+        "created_at": "2026-10-14T10:57:55.637457+00:00",
+        "definition_sha256": "ab80f4a69cda295e3bf79124797b25b9a7bbacf18a8e32da90da8d4d59163528",
+        "definition_snapshot": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            },
+            {
+              "formula": "0",
+              "joint_id": "JointD",
+              "name": "출력 고정 구동",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "fps": 20,
+        "frame_count": 22,
+        "frame_times": [
+          null,
+          0.0,
+          0.05,
+          0.1,
+          0.15000000000000002,
+          0.2,
+          0.25,
+          0.3,
+          0.35,
+          0.39999999999999997,
+          0.44999999999999996,
+          0.49999999999999994,
+          0.5499999999999999,
+          0.6,
+          0.65,
+          0.7000000000000001,
+          0.7500000000000001,
+          0.8000000000000002,
+          0.8500000000000002,
+          0.9000000000000002,
+          0.9500000000000003,
+          1.0000000000000002
+        ],
+        "id": "Kf7d51cc9a9d246b3bb702ba4ed3e3ba2",
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            },
+            {
+              "formula": "0",
+              "id": "CAELabMotion001",
+              "joint": "JointD",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_definition_sha256": "835556861cb7f3eeda29ded91e43869682019e20535fc53e43bcd0d26cbb41c3",
+        "native_status": 0,
+        "paths": {
+          "연결봉 중앙": {
+            "assembly_id": "FourBar",
+            "calculation_id": "Kf7d51cc9a9d246b3bb702ba4ed3e3ba2",
+            "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+            "clock_source": {
+              "complete": true,
+              "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+              "native_version": "FreeCAD 1.1.4",
+              "reason": null,
+              "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+              "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+            },
+            "complete": true,
+            "coordinate_unit": "mm",
+            "definition_sha256": "ab80f4a69cda295e3bf79124797b25b9a7bbacf18a8e32da90da8d4d59163528",
+            "document_id": "Pa60d7baed61547efa648410618dae131",
+            "frame": "document_global",
+            "preview_restored": true,
+            "rows": [
+              {
+                "frame": 0,
+                "frame_kind": "design",
+                "point": [
+                  64.98625584806037,
+                  50.98075833549863,
+                  0.0
+                ],
+                "time": null
+              },
+              {
+                "frame": 1,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806032,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.0
+              },
+              {
+                "frame": 2,
+                "frame_kind": "simulation",
+                "point": [
+                  64.99013896630136,
+                  51.11066710016245,
+                  0.0
+                ],
+                "time": 0.05
+              },
+              {
+                "frame": 3,
+                "frame_kind": "simulation",
+                "point": [
+                  64.99443452705296,
+                  51.238587436147334,
+                  0.0
+                ],
+                "time": 0.1
+              },
+              {
+                "frame": 4,
+                "frame_kind": "simulation",
+                "point": [
+                  64.99912048328841,
+                  51.36450960182442,
+                  0.0
+                ],
+                "time": 0.15000000000000002
+              },
+              {
+                "frame": 5,
+                "frame_kind": "simulation",
+                "point": [
+                  65.0041749973316,
+                  51.48842400773327,
+                  0.0
+                ],
+                "time": 0.2
+              },
+              {
+                "frame": 6,
+                "frame_kind": "simulation",
+                "point": [
+                  65.00957644689394,
+                  51.61032121731211,
+                  0.0
+                ],
+                "time": 0.25
+              },
+              {
+                "frame": 7,
+                "frame_kind": "simulation",
+                "point": [
+                  65.01530343119416,
+                  51.730191947616504,
+                  0.0
+                ],
+                "time": 0.3
+              },
+              {
+                "frame": 8,
+                "frame_kind": "simulation",
+                "point": [
+                  65.02133477715623,
+                  51.84802707002622,
+                  0.0
+                ],
+                "time": 0.35
+              },
+              {
+                "frame": 9,
+                "frame_kind": "simulation",
+                "point": [
+                  65.02764954567832,
+                  51.96381761094047,
+                  0.0
+                ],
+                "time": 0.39999999999999997
+              },
+              {
+                "frame": 10,
+                "frame_kind": "simulation",
+                "point": [
+                  65.03422703796704,
+                  52.077554752461275,
+                  0.0
+                ],
+                "time": 0.44999999999999996
+              },
+              {
+                "frame": 11,
+                "frame_kind": "simulation",
+                "point": [
+                  65.04104680193083,
+                  52.189229833064964,
+                  0.0
+                ],
+                "time": 0.49999999999999994
+              },
+              {
+                "frame": 12,
+                "frame_kind": "simulation",
+                "point": [
+                  65.04808863862563,
+                  52.29883434826176,
+                  0.0
+                ],
+                "time": 0.5499999999999999
+              },
+              {
+                "frame": 13,
+                "frame_kind": "simulation",
+                "point": [
+                  65.05533260874665,
+                  52.40635995124349,
+                  0.0
+                ],
+                "time": 0.6
+              },
+              {
+                "frame": 14,
+                "frame_kind": "simulation",
+                "point": [
+                  65.06275903915966,
+                  52.511798453519184,
+                  0.0
+                ],
+                "time": 0.65
+              },
+              {
+                "frame": 15,
+                "frame_kind": "simulation",
+                "point": [
+                  65.07034852946472,
+                  52.61514182553867,
+                  0.0
+                ],
+                "time": 0.7000000000000001
+              },
+              {
+                "frame": 16,
+                "frame_kind": "simulation",
+                "point": [
+                  65.07808195858564,
+                  52.71638219730406,
+                  0.0
+                ],
+                "time": 0.7500000000000001
+              },
+              {
+                "frame": 17,
+                "frame_kind": "simulation",
+                "point": [
+                  65.08594049137855,
+                  52.81551185896909,
+                  0.0
+                ],
+                "time": 0.8000000000000002
+              },
+              {
+                "frame": 18,
+                "frame_kind": "simulation",
+                "point": [
+                  65.09390558525179,
+                  52.912523261426195,
+                  0.0
+                ],
+                "time": 0.8500000000000002
+              },
+              {
+                "frame": 19,
+                "frame_kind": "simulation",
+                "point": [
+                  65.10195899679078,
+                  53.00740901688151,
+                  0.0
+                ],
+                "time": 0.9000000000000002
+              },
+              {
+                "frame": 20,
+                "frame_kind": "simulation",
+                "point": [
+                  65.11008278838007,
+                  53.10016189941739,
+                  0.0
+                ],
+                "time": 0.9500000000000003
+              },
+              {
+                "frame": 21,
+                "frame_kind": "simulation",
+                "point": [
+                  65.11825933481524,
+                  53.19077484554271,
+                  0.0
+                ],
+                "time": 1.0000000000000002
+              }
+            ],
+            "scene_sha256": "bbf553eb898f5275646d5b84f2878c3ed14541c3474bb6936a5a27fca9cd26f1",
+            "total_frames": 22,
+            "trace": {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            },
+            "trace_id": "연결봉 중앙"
+          }
+        },
+        "poses": {
+          "data": "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",
+          "encoding": "zlib-json-base64",
+          "raw_bytes": 8718,
+          "sha256": "e5f56591706228388a95fda49837bfad6bbc04ee906428412b51f9ce3beefcfe"
+        },
+        "scene_sha256": "bbf553eb898f5275646d5b84f2878c3ed14541c3474bb6936a5a27fca9cd26f1",
+        "time": {
+          "end": 1.0,
+          "start": 0.0,
+          "step": 0.05,
+          "unit": "s"
+        }
+      },
+      "model": {
+        "bindings": [
+          {
+            "id": "FourBar",
+            "path": [
+              "FourBar"
+            ],
+            "type": "Assembly::AssemblyObject"
+          },
+          {
+            "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+            "id": "Link_coupler",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_coupler"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_coupler",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+            "id": "Link_crank",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_crank"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_crank",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+            "id": "Link_ground",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_ground"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_ground",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+            "id": "Link_rocker",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_rocker"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_rocker",
+            "source_document": "$self",
+            "type": "App::Link"
+          }
+        ],
+        "design": [
+          {
+            "id": "FourBar",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_coupler",
+            "pose": [
+              30.00000000000001,
+              51.96152422706632,
+              0.0,
+              0.0,
+              0.0,
+              -0.014012317000025622,
+              0.999901822666751
+            ]
+          },
+          {
+            "id": "Link_crank",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.5000000000000001,
+              0.8660254037844386
+            ]
+          },
+          {
+            "id": "Link_ground",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_rocker",
+            "pose": [
+              100.0,
+              -6.67073301423292e-36,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399157,
+              0.7069123828037016
+            ]
+          }
+        ],
+        "joints": [
+          {
+            "ground": "Link_ground",
+            "id": "Ground",
+            "label": "고정 링크 지지",
+            "path": [
+              "FourBar",
+              "Joints",
+              "Ground"
+            ],
+            "suppressed": false
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.49999999999999994,
+              -0.8660254037844387
+            ],
+            "Reference1": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointA",
+            "label": "입력 회전 A",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointA"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              60.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.49999999999999994,
+              -0.8660254037844387
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.014012317000025594,
+              0.999901822666751
+            ],
+            "Reference1": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointB",
+            "label": "회전 B",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointB"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              70.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.014012317000025594,
+              0.999901822666751
+            ],
+            "Placement2": [
+              50.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399159,
+              -0.7069123828037014
+            ],
+            "Reference1": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointC",
+            "label": "회전 C",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointC"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399159,
+              -0.7069123828037014
+            ],
+            "Placement2": [
+              100.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Reference1": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointD",
+            "label": "출력 회전 D",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointD"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          }
+        ],
+        "parents": []
+      },
+      "attempt": {
+        "assembly_id": "FourBar",
+        "capture_frame": 21,
+        "definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            },
+            {
+              "formula": "0",
+              "joint_id": "JointD",
+              "name": "출력 고정 구동",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "diagnostic": null,
+        "finished_at": "2026-10-14T10:57:55.910389+00:00",
+        "id": "A7f112021635a4868b0c1a81963cb58b2",
+        "model": {
+          "bindings": [
+            {
+              "id": "FourBar",
+              "path": [
+                "FourBar"
+              ],
+              "type": "Assembly::AssemblyObject"
+            },
+            {
+              "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+              "id": "Link_coupler",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_coupler"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_coupler",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+              "id": "Link_crank",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_crank"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_crank",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+              "id": "Link_ground",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_ground"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_ground",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+              "id": "Link_rocker",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_rocker"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_rocker",
+              "source_document": "$self",
+              "type": "App::Link"
+            }
+          ],
+          "design": [
+            {
+              "id": "FourBar",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_coupler",
+              "pose": [
+                30.00000000000001,
+                51.96152422706632,
+                0.0,
+                0.0,
+                0.0,
+                -0.014012317000025622,
+                0.999901822666751
+              ]
+            },
+            {
+              "id": "Link_crank",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.5000000000000001,
+                0.8660254037844386
+              ]
+            },
+            {
+              "id": "Link_ground",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_rocker",
+              "pose": [
+                100.0,
+                -6.67073301423292e-36,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399157,
+                0.7069123828037016
+              ]
+            }
+          ],
+          "joints": [
+            {
+              "ground": "Link_ground",
+              "id": "Ground",
+              "label": "고정 링크 지지",
+              "path": [
+                "FourBar",
+                "Joints",
+                "Ground"
+              ],
+              "suppressed": false
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.49999999999999994,
+                -0.8660254037844387
+              ],
+              "Reference1": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointA",
+              "label": "입력 회전 A",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointA"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                60.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.49999999999999994,
+                -0.8660254037844387
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.014012317000025594,
+                0.999901822666751
+              ],
+              "Reference1": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointB",
+              "label": "회전 B",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointB"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                70.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.014012317000025594,
+                0.999901822666751
+              ],
+              "Placement2": [
+                50.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399159,
+                -0.7069123828037014
+              ],
+              "Reference1": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointC",
+              "label": "회전 C",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointC"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399159,
+                -0.7069123828037014
+              ],
+              "Placement2": [
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Reference1": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointD",
+              "label": "출력 회전 D",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointD"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            }
+          ],
+          "parents": []
+        },
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            },
+            {
+              "formula": "0",
+              "id": "CAELabMotion001",
+              "joint": "JointD",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_status": 0,
+        "previous_success_id": "K82c225a79b6d4f838c31420ad2e99eb4",
+        "result_id": "Kf7d51cc9a9d246b3bb702ba4ed3e3ba2",
+        "stage": "COMPLETE",
+        "started_at": "2026-10-14T10:57:55.637457+00:00",
+        "state": "SUCCEEDED"
+      }
+    },
+    "unreachable": {
+      "summary": {
+        "assembly_id": "FourBar",
+        "attempt_id": "A3f5a74b26e534dcc83954c77bb204830",
+        "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+        "clock_source": {
+          "complete": true,
+          "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+          "native_version": "FreeCAD 1.1.4",
+          "reason": null,
+          "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+          "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+        },
+        "created_at": "2026-10-14T10:57:56.154005+00:00",
+        "definition_sha256": "ebbe0a8e8110aee6d88df852e9decf2fe5025959489d3fed24a1ecbbe9809632",
+        "definition_snapshot": {
+          "drives": [
+            {
+              "formula": "pi",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "fps": 20,
+        "frame_count": 22,
+        "frame_times": [
+          null,
+          0.0,
+          0.05,
+          0.1,
+          0.15000000000000002,
+          0.2,
+          0.25,
+          0.3,
+          0.35,
+          0.39999999999999997,
+          0.44999999999999996,
+          0.49999999999999994,
+          0.5499999999999999,
+          0.6,
+          0.65,
+          0.7000000000000001,
+          0.7500000000000001,
+          0.8000000000000002,
+          0.8500000000000002,
+          0.9000000000000002,
+          0.9500000000000003,
+          1.0000000000000002
+        ],
+        "id": "K650c257493804a5ebdea40964c057b6d",
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "pi",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_definition_sha256": "c2dfbdca0ae54b6f0eeb54fc4964a2e2273d06ef6e8c66b78ca6b8581fef28de",
+        "native_status": 0,
+        "paths": {
+          "연결봉 중앙": {
+            "assembly_id": "FourBar",
+            "calculation_id": "K650c257493804a5ebdea40964c057b6d",
+            "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+            "clock_source": {
+              "complete": true,
+              "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+              "native_version": "FreeCAD 1.1.4",
+              "reason": null,
+              "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+              "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+            },
+            "complete": true,
+            "coordinate_unit": "mm",
+            "definition_sha256": "ebbe0a8e8110aee6d88df852e9decf2fe5025959489d3fed24a1ecbbe9809632",
+            "document_id": "Pa60d7baed61547efa648410618dae131",
+            "frame": "document_global",
+            "preview_restored": true,
+            "rows": [
+              {
+                "frame": 0,
+                "frame_kind": "design",
+                "point": [
+                  64.98625584806037,
+                  50.98075833549863,
+                  0.0
+                ],
+                "time": null
+              },
+              {
+                "frame": 1,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.980758335498614,
+                  0.0
+                ],
+                "time": 0.0
+              },
+              {
+                "frame": 2,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.980758335498614,
+                  0.0
+                ],
+                "time": 0.05
+              },
+              {
+                "frame": 3,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.1
+              },
+              {
+                "frame": 4,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.15000000000000002
+              },
+              {
+                "frame": 5,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.2
+              },
+              {
+                "frame": 6,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.25
+              },
+              {
+                "frame": 7,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.3
+              },
+              {
+                "frame": 8,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.35
+              },
+              {
+                "frame": 9,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.39999999999999997
+              },
+              {
+                "frame": 10,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.44999999999999996
+              },
+              {
+                "frame": 11,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.49999999999999994
+              },
+              {
+                "frame": 12,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.5499999999999999
+              },
+              {
+                "frame": 13,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.6
+              },
+              {
+                "frame": 14,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.65
+              },
+              {
+                "frame": 15,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.7000000000000001
+              },
+              {
+                "frame": 16,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.7500000000000001
+              },
+              {
+                "frame": 17,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.8000000000000002
+              },
+              {
+                "frame": 18,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.8500000000000002
+              },
+              {
+                "frame": 19,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.98075833549862,
+                  0.0
+                ],
+                "time": 0.9000000000000002
+              },
+              {
+                "frame": 20,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.980758335498614,
+                  0.0
+                ],
+                "time": 0.9500000000000003
+              },
+              {
+                "frame": 21,
+                "frame_kind": "simulation",
+                "point": [
+                  64.98625584806038,
+                  50.980758335498614,
+                  0.0
+                ],
+                "time": 1.0000000000000002
+              }
+            ],
+            "scene_sha256": "bbf553eb898f5275646d5b84f2878c3ed14541c3474bb6936a5a27fca9cd26f1",
+            "total_frames": 22,
+            "trace": {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            },
+            "trace_id": "연결봉 중앙"
+          }
+        },
+        "poses": {
+          "data": "eJztmV1v2zYUhv+LsEvb4+ch6bss9bCi7Qa021UQCPySo0WWDEluEQT97yVVJ6slD62DIFIBK6AhH55Dvnr0mkTA+0Q3jd+Y4i7NXbJMfq929W+6TmaJyUuXl+smWV7dJ72+rW5vQvwxcj1L2rutDzkX+9GWy4e7v8y/3rbJ59l9svbVxrf1XchDAFiDYoqqTFmmLFUMNGFOAMu8tYQLLSSh1oGUmDFnCBjOLQPnOPIsiOg0vc3L29RWu23ho7Aifm1rXTZZVW+SZaaLxg/1zg7rgvw6X8fxyl1R7L+k1acy9O1DjdVFeL4rvECzfQtVTRjPxsf+cKO3/hsdXztSV9ndxpdtyPil8UWW/Mdpu10uo4g+GM6NFGCUMMh4wqRQznpEiGXcKoKN5IIwoQ3iTDqhpOKgQFkClmQYGXwIJpC4PR1LV/VsUPYano7ESCwVppkXlBkrMmOtw8KDQ4pSIxzT3FKkOXKMhxygTuhMY40R4IwZeYBkXVe70p3MZF/2XFAeVTydCkNMSuGJJ1wTZSVjWhHkKZfMaKAZGIQVSE0yRKwRDDCzSmLsERXOO3FApa7s7RN+QPuy56LyqOIUKmGYMLbdFbrNq/LrKvYGOIpLSFheJAr28MZ5zZACZhEXBiJ5W4TZ4qr2frW6vHiV4vDH0jev/1y9u/j79WX64fKP1at/3q5CqvNNvi6D+isUpB9r3eNc0XD77YVnHC8UYE4YISIseZQcVM3DB2YIE4pFzCccSMxQ4UJYEgIAguMw8vF5OepNhxYSIAzDwjsOhqAS/rf2QTNGnRJYgECC0qCHUKKIn1PoVcR+hDEBTJXCXHQhUEG9JDJMiDBch5eR1Xrj0zbf+Lh1dG9/PwYPH1Ej7umOj9y1mEBj627U4RXnY+wwFiX2QopFML1gCMVU4J3mATTBByE5lCj5IKSGWeowi0bMvawHSJHPS1hq6Kify1InM2IDSAi+Q4kzfgqmnr8kHXKSP8qJLggoLgQnCgmJf4ATDDmJF+MkRuI0bFNyz0k/spekMqpX2FSpjOkVKqdKZVSvTBXKqFYZa1OatFXoeQs6RgVPlcqoXqFTpTKmV8h5CzrmlalCGdUq5y3oGBWYKpVRvXLego5ROa8rR6jg8xZ0zCtThTKqVSb7v+GYVoHzFnSMyk+2BV3Hs7Xal208DIgnYvbGb3SyTKz2hTbzUrf5Rz/fVPFwa76tGt/8Gs94P1V14dK6qrrC7yg89557X7r3+vMXfk+AVQ==",
+          "encoding": "zlib-json-base64",
+          "raw_bytes": 8795,
+          "sha256": "b09ce3055c63d63127da3f74b94f9d87a046f9bbf0578890eb4ea1adba5da2d9"
+        },
+        "scene_sha256": "bbf553eb898f5275646d5b84f2878c3ed14541c3474bb6936a5a27fca9cd26f1",
+        "time": {
+          "end": 1.0,
+          "start": 0.0,
+          "step": 0.05,
+          "unit": "s"
+        }
+      },
+      "model": {
+        "bindings": [
+          {
+            "id": "FourBar",
+            "path": [
+              "FourBar"
+            ],
+            "type": "Assembly::AssemblyObject"
+          },
+          {
+            "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+            "id": "Link_coupler",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_coupler"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_coupler",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+            "id": "Link_crank",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_crank"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_crank",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+            "id": "Link_ground",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_ground"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_ground",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+            "id": "Link_rocker",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_rocker"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_rocker",
+            "source_document": "$self",
+            "type": "App::Link"
+          }
+        ],
+        "design": [
+          {
+            "id": "FourBar",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_coupler",
+            "pose": [
+              30.00000000000001,
+              51.96152422706632,
+              0.0,
+              0.0,
+              0.0,
+              -0.014012317000025622,
+              0.999901822666751
+            ]
+          },
+          {
+            "id": "Link_crank",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.5000000000000001,
+              0.8660254037844386
+            ]
+          },
+          {
+            "id": "Link_ground",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_rocker",
+            "pose": [
+              100.0,
+              -6.67073301423292e-36,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399157,
+              0.7069123828037016
+            ]
+          }
+        ],
+        "joints": [
+          {
+            "ground": "Link_ground",
+            "id": "Ground",
+            "label": "고정 링크 지지",
+            "path": [
+              "FourBar",
+              "Joints",
+              "Ground"
+            ],
+            "suppressed": false
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.49999999999999994,
+              -0.8660254037844387
+            ],
+            "Reference1": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointA",
+            "label": "입력 회전 A",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointA"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              60.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.49999999999999994,
+              -0.8660254037844387
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.014012317000025594,
+              0.999901822666751
+            ],
+            "Reference1": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointB",
+            "label": "회전 B",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointB"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              70.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.014012317000025594,
+              0.999901822666751
+            ],
+            "Placement2": [
+              50.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399159,
+              -0.7069123828037014
+            ],
+            "Reference1": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointC",
+            "label": "회전 C",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointC"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7073011261399159,
+              -0.7069123828037014
+            ],
+            "Placement2": [
+              100.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Reference1": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointD",
+            "label": "출력 회전 D",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointD"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          }
+        ],
+        "parents": []
+      },
+      "attempt": {
+        "assembly_id": "FourBar",
+        "capture_frame": 21,
+        "definition": {
+          "drives": [
+            {
+              "formula": "pi",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "diagnostic": null,
+        "finished_at": "2026-10-14T10:57:56.427082+00:00",
+        "id": "A3f5a74b26e534dcc83954c77bb204830",
+        "model": {
+          "bindings": [
+            {
+              "id": "FourBar",
+              "path": [
+                "FourBar"
+              ],
+              "type": "Assembly::AssemblyObject"
+            },
+            {
+              "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+              "id": "Link_coupler",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_coupler"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_coupler",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+              "id": "Link_crank",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_crank"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_crank",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+              "id": "Link_ground",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_ground"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_ground",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+              "id": "Link_rocker",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_rocker"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_rocker",
+              "source_document": "$self",
+              "type": "App::Link"
+            }
+          ],
+          "design": [
+            {
+              "id": "FourBar",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_coupler",
+              "pose": [
+                30.00000000000001,
+                51.96152422706632,
+                0.0,
+                0.0,
+                0.0,
+                -0.014012317000025622,
+                0.999901822666751
+              ]
+            },
+            {
+              "id": "Link_crank",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.5000000000000001,
+                0.8660254037844386
+              ]
+            },
+            {
+              "id": "Link_ground",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_rocker",
+              "pose": [
+                100.0,
+                -6.67073301423292e-36,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399157,
+                0.7069123828037016
+              ]
+            }
+          ],
+          "joints": [
+            {
+              "ground": "Link_ground",
+              "id": "Ground",
+              "label": "고정 링크 지지",
+              "path": [
+                "FourBar",
+                "Joints",
+                "Ground"
+              ],
+              "suppressed": false
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.49999999999999994,
+                -0.8660254037844387
+              ],
+              "Reference1": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointA",
+              "label": "입력 회전 A",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointA"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                60.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.49999999999999994,
+                -0.8660254037844387
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.014012317000025594,
+                0.999901822666751
+              ],
+              "Reference1": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointB",
+              "label": "회전 B",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointB"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                70.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.014012317000025594,
+                0.999901822666751
+              ],
+              "Placement2": [
+                50.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399159,
+                -0.7069123828037014
+              ],
+              "Reference1": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointC",
+              "label": "회전 C",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointC"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7073011261399159,
+                -0.7069123828037014
+              ],
+              "Placement2": [
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Reference1": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointD",
+              "label": "출력 회전 D",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointD"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            }
+          ],
+          "parents": []
+        },
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "pi",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_status": 0,
+        "previous_success_id": "Kf7d51cc9a9d246b3bb702ba4ed3e3ba2",
+        "result_id": "K650c257493804a5ebdea40964c057b6d",
+        "stage": "COMPLETE",
+        "started_at": "2026-10-14T10:57:56.154005+00:00",
+        "state": "SUCCEEDED"
+      }
+    },
+    "singular": {
+      "summary": {
+        "assembly_id": "FourBar",
+        "attempt_id": "A89071ac7aada421ba9306e36ec52c7b1",
+        "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+        "clock_source": {
+          "complete": true,
+          "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+          "native_version": "FreeCAD 1.1.4",
+          "reason": null,
+          "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+          "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+        },
+        "created_at": "2026-10-14T10:57:56.703587+00:00",
+        "definition_sha256": "d77ddb3ae97886bb5df175753d0db34717ea80efb3a4a1ffac055cbf69a984cc",
+        "definition_snapshot": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "fps": 20,
+        "frame_count": 22,
+        "frame_times": [
+          null,
+          0.0,
+          0.05,
+          0.1,
+          0.15000000000000002,
+          0.2,
+          0.25,
+          0.3,
+          0.35,
+          0.39999999999999997,
+          0.44999999999999996,
+          0.49999999999999994,
+          0.5499999999999999,
+          0.6,
+          0.65,
+          0.7000000000000001,
+          0.7500000000000001,
+          0.8000000000000002,
+          0.8500000000000002,
+          0.9000000000000002,
+          0.9500000000000003,
+          1.0000000000000002
+        ],
+        "id": "K40fa3bd6ce4a459284eec33594167383",
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_definition_sha256": "93bfe58d7965566c60bb39fa48cd4aec94cb821ca32243f90bdf856abf1f1269",
+        "native_status": 0,
+        "paths": {
+          "연결봉 중앙": {
+            "assembly_id": "FourBar",
+            "calculation_id": "K40fa3bd6ce4a459284eec33594167383",
+            "clock": "FREECAD_1_1_4_KINEMATIC_SCHEDULE",
+            "clock_source": {
+              "complete": true,
+              "mapping": "INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified",
+              "native_version": "FreeCAD 1.1.4",
+              "reason": null,
+              "solver_schedule_source": "https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp",
+              "source": "https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly"
+            },
+            "complete": true,
+            "coordinate_unit": "mm",
+            "definition_sha256": "d77ddb3ae97886bb5df175753d0db34717ea80efb3a4a1ffac055cbf69a984cc",
+            "document_id": "Pa60d7baed61547efa648410618dae131",
+            "frame": "document_global",
+            "preview_restored": true,
+            "rows": [
+              {
+                "frame": 0,
+                "frame_kind": "design",
+                "point": [
+                  26.33333333333333,
+                  42.405450383438,
+                  0.0
+                ],
+                "time": null
+              },
+              {
+                "frame": 1,
+                "frame_kind": "simulation",
+                "point": [
+                  26.333333333333282,
+                  42.405450383438,
+                  0.0
+                ],
+                "time": 0.0
+              },
+              {
+                "frame": 2,
+                "frame_kind": "simulation",
+                "point": [
+                  25.817294564000424,
+                  42.3791027327964,
+                  0.0
+                ],
+                "time": 0.05
+              },
+              {
+                "frame": 3,
+                "frame_kind": "simulation",
+                "point": [
+                  25.302362592386324,
+                  42.349534527051716,
+                  0.0
+                ],
+                "time": 0.1
+              },
+              {
+                "frame": 4,
+                "frame_kind": "simulation",
+                "point": [
+                  24.788570603754927,
+                  42.31674123232054,
+                  0.0
+                ],
+                "time": 0.15000000000000002
+              },
+              {
+                "frame": 5,
+                "frame_kind": "simulation",
+                "point": [
+                  24.275955371749752,
+                  42.28072533912166,
+                  0.0
+                ],
+                "time": 0.2
+              },
+              {
+                "frame": 6,
+                "frame_kind": "simulation",
+                "point": [
+                  23.764553358603678,
+                  42.241489589610865,
+                  0.0
+                ],
+                "time": 0.25
+              },
+              {
+                "frame": 7,
+                "frame_kind": "simulation",
+                "point": [
+                  23.254400710517114,
+                  42.19903697114509,
+                  0.0
+                ],
+                "time": 0.3
+              },
+              {
+                "frame": 8,
+                "frame_kind": "simulation",
+                "point": [
+                  22.745533256783183,
+                  42.153370716049224,
+                  0.0
+                ],
+                "time": 0.35
+              },
+              {
+                "frame": 9,
+                "frame_kind": "simulation",
+                "point": [
+                  22.237986509082766,
+                  42.10449430136945,
+                  0.0
+                ],
+                "time": 0.39999999999999997
+              },
+              {
+                "frame": 10,
+                "frame_kind": "simulation",
+                "point": [
+                  21.73179566094304,
+                  42.052411448608446,
+                  0.0
+                ],
+                "time": 0.44999999999999996
+              },
+              {
+                "frame": 11,
+                "frame_kind": "simulation",
+                "point": [
+                  21.226995587356818,
+                  41.99712612344155,
+                  0.0
+                ],
+                "time": 0.49999999999999994
+              },
+              {
+                "frame": 12,
+                "frame_kind": "simulation",
+                "point": [
+                  20.723620844559157,
+                  41.93864253541465,
+                  0.0
+                ],
+                "time": 0.5499999999999999
+              },
+              {
+                "frame": 13,
+                "frame_kind": "simulation",
+                "point": [
+                  20.221705669958006,
+                  41.87696513762333,
+                  0.0
+                ],
+                "time": 0.6
+              },
+              {
+                "frame": 14,
+                "frame_kind": "simulation",
+                "point": [
+                  19.721283982215546,
+                  41.81209862637347,
+                  0.0
+                ],
+                "time": 0.65
+              },
+              {
+                "frame": 15,
+                "frame_kind": "simulation",
+                "point": [
+                  19.222389381475978,
+                  41.74404794082341,
+                  0.0
+                ],
+                "time": 0.7000000000000001
+              },
+              {
+                "frame": 16,
+                "frame_kind": "simulation",
+                "point": [
+                  18.725055149736598,
+                  41.67281826260746,
+                  0.0
+                ],
+                "time": 0.7500000000000001
+              },
+              {
+                "frame": 17,
+                "frame_kind": "simulation",
+                "point": [
+                  18.229314251357522,
+                  41.59841501544112,
+                  0.0
+                ],
+                "time": 0.8000000000000002
+              },
+              {
+                "frame": 18,
+                "frame_kind": "simulation",
+                "point": [
+                  17.73519933370649,
+                  41.52084386470774,
+                  0.0
+                ],
+                "time": 0.8500000000000002
+              },
+              {
+                "frame": 19,
+                "frame_kind": "simulation",
+                "point": [
+                  17.242742727933965,
+                  41.4401107170268,
+                  0.0
+                ],
+                "time": 0.9000000000000002
+              },
+              {
+                "frame": 20,
+                "frame_kind": "simulation",
+                "point": [
+                  16.75197644987481,
+                  41.35622171980379,
+                  0.0
+                ],
+                "time": 0.9500000000000003
+              },
+              {
+                "frame": 21,
+                "frame_kind": "simulation",
+                "point": [
+                  16.26293220107138,
+                  41.26918326076183,
+                  0.0
+                ],
+                "time": 1.0000000000000002
+              }
+            ],
+            "scene_sha256": "552b4acd57a82e975ab061664ade8d0c01fa1ba47bc2bc3d19781632fb8016cf",
+            "total_frames": 22,
+            "trace": {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            },
+            "trace_id": "연결봉 중앙"
+          }
+        },
+        "poses": {
+          "data": "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",
+          "encoding": "zlib-json-base64",
+          "raw_bytes": 9278,
+          "sha256": "79e45408d51fba70f9eea3294c559ba9d5b6c7d21ee556ea688b5539c589334b"
+        },
+        "scene_sha256": "552b4acd57a82e975ab061664ade8d0c01fa1ba47bc2bc3d19781632fb8016cf",
+        "time": {
+          "end": 1.0,
+          "start": 0.0,
+          "step": 0.05,
+          "unit": "s"
+        }
+      },
+      "model": {
+        "bindings": [
+          {
+            "id": "FourBar",
+            "path": [
+              "FourBar"
+            ],
+            "type": "Assembly::AssemblyObject"
+          },
+          {
+            "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+            "id": "Link_coupler",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_coupler"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_coupler",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+            "id": "Link_crank",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_crank"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_crank",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+            "id": "Link_ground",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_ground"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_ground",
+            "source_document": "$self",
+            "type": "App::Link"
+          },
+          {
+            "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+            "id": "Link_rocker",
+            "link_transform": false,
+            "path": [
+              "FourBar",
+              "Link_rocker"
+            ],
+            "rigid": null,
+            "rigid_owner": null,
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "source": "Shape_rocker",
+            "source_document": "$self",
+            "type": "App::Link"
+          }
+        ],
+        "design": [
+          {
+            "id": "FourBar",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_coupler",
+            "pose": [
+              -4.000000000000007,
+              59.86651818838306,
+              0.0,
+              0.0,
+              0.0,
+              -0.2581988897471612,
+              0.9660917830792959
+            ]
+          },
+          {
+            "id": "Link_crank",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7302967433402215,
+              0.6831300510639732
+            ]
+          },
+          {
+            "id": "Link_ground",
+            "pose": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "id": "Link_rocker",
+            "pose": [
+              100.0,
+              2.8788801138013164e-42,
+              0.0,
+              0.0,
+              0.0,
+              0.9660917830792959,
+              0.25819888974716104
+            ]
+          }
+        ],
+        "joints": [
+          {
+            "ground": "Link_ground",
+            "id": "Ground",
+            "label": "고정 링크 지지",
+            "path": [
+              "FourBar",
+              "Joints",
+              "Ground"
+            ],
+            "suppressed": false
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7302967433402218,
+              -0.683130051063973
+            ],
+            "Reference1": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointA",
+            "label": "입력 회전 A",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointA"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              60.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.7302967433402218,
+              -0.683130051063973
+            ],
+            "Placement2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.2581988897471611,
+              0.9660917830792959
+            ],
+            "Reference1": [
+              "Link_crank",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointB",
+            "label": "회전 B",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointB"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              70.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.2581988897471611,
+              0.9660917830792959
+            ],
+            "Placement2": [
+              50.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.9660917830792959,
+              -0.2581988897471611
+            ],
+            "Reference1": [
+              "Link_coupler",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointC",
+            "label": "회전 C",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointC"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          },
+          {
+            "Angle": 0.0,
+            "Detach1": true,
+            "Detach2": true,
+            "Distance": 0.0,
+            "Distance2": 0.0,
+            "Offset1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Offset2": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Placement1": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.9660917830792959,
+              -0.2581988897471611
+            ],
+            "Placement2": [
+              100.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "Reference1": [
+              "Link_rocker",
+              [
+                "",
+                ""
+              ]
+            ],
+            "Reference2": [
+              "Link_ground",
+              [
+                "",
+                ""
+              ]
+            ],
+            "id": "JointD",
+            "label": "출력 회전 D",
+            "limits": {},
+            "path": [
+              "FourBar",
+              "Joints",
+              "JointD"
+            ],
+            "suppressed": false,
+            "type": "Revolute"
+          }
+        ],
+        "parents": []
+      },
+      "attempt": {
+        "assembly_id": "FourBar",
+        "capture_frame": 21,
+        "definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "joint_id": "JointA",
+              "name": "입력 회전",
+              "type": "Angular",
+              "unit": "rad"
+            }
+          ],
+          "fps": 20,
+          "native_error_tolerance": 1e-06,
+          "time": {
+            "end": 1.0,
+            "start": 0.0,
+            "step": 0.05,
+            "unit": "s"
+          },
+          "traces": [
+            {
+              "coordinate_unit": "mm",
+              "frame": "occurrence_local",
+              "id": "연결봉 중앙",
+              "occurrence_id": "Link_coupler",
+              "output_frame": "document_global",
+              "point": [
+                35.0,
+                0.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "diagnostic": null,
+        "finished_at": "2026-10-14T10:57:57.106791+00:00",
+        "id": "A89071ac7aada421ba9306e36ec52c7b1",
+        "model": {
+          "bindings": [
+            {
+              "id": "FourBar",
+              "path": [
+                "FourBar"
+              ],
+              "type": "Assembly::AssemblyObject"
+            },
+            {
+              "geometry": "0661a694939f9c49c3946a24d764fecc257a7823cd688144db26b55c46dd50e4",
+              "id": "Link_coupler",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_coupler"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_coupler",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "55b876b97b0be24879dce022c45c921b857247ab0548d798956969c26c2f10b1",
+              "id": "Link_crank",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_crank"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_crank",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "b818913fe734bc7fbccd17e6d0933b7d4a5c30a50d45e7363d7afa1a1061f4b8",
+              "id": "Link_ground",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_ground"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_ground",
+              "source_document": "$self",
+              "type": "App::Link"
+            },
+            {
+              "geometry": "404887e2e25a29c844a920e3584ba63f6b01968a2f02cb74614c9811e037ded7",
+              "id": "Link_rocker",
+              "link_transform": false,
+              "path": [
+                "FourBar",
+                "Link_rocker"
+              ],
+              "rigid": null,
+              "rigid_owner": null,
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "source": "Shape_rocker",
+              "source_document": "$self",
+              "type": "App::Link"
+            }
+          ],
+          "design": [
+            {
+              "id": "FourBar",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_coupler",
+              "pose": [
+                -4.000000000000007,
+                59.86651818838306,
+                0.0,
+                0.0,
+                0.0,
+                -0.2581988897471612,
+                0.9660917830792959
+              ]
+            },
+            {
+              "id": "Link_crank",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7302967433402215,
+                0.6831300510639732
+              ]
+            },
+            {
+              "id": "Link_ground",
+              "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "id": "Link_rocker",
+              "pose": [
+                100.0,
+                2.8788801138013164e-42,
+                0.0,
+                0.0,
+                0.0,
+                0.9660917830792959,
+                0.25819888974716104
+              ]
+            }
+          ],
+          "joints": [
+            {
+              "ground": "Link_ground",
+              "id": "Ground",
+              "label": "고정 링크 지지",
+              "path": [
+                "FourBar",
+                "Joints",
+                "Ground"
+              ],
+              "suppressed": false
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7302967433402218,
+                -0.683130051063973
+              ],
+              "Reference1": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointA",
+              "label": "입력 회전 A",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointA"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                60.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.7302967433402218,
+                -0.683130051063973
+              ],
+              "Placement2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.2581988897471611,
+                0.9660917830792959
+              ],
+              "Reference1": [
+                "Link_crank",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointB",
+              "label": "회전 B",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointB"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                70.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.2581988897471611,
+                0.9660917830792959
+              ],
+              "Placement2": [
+                50.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.9660917830792959,
+                -0.2581988897471611
+              ],
+              "Reference1": [
+                "Link_coupler",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointC",
+              "label": "회전 C",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointC"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            },
+            {
+              "Angle": 0.0,
+              "Detach1": true,
+              "Detach2": true,
+              "Distance": 0.0,
+              "Distance2": 0.0,
+              "Offset1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Offset2": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Placement1": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.9660917830792959,
+                -0.2581988897471611
+              ],
+              "Placement2": [
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "Reference1": [
+                "Link_rocker",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "Reference2": [
+                "Link_ground",
+                [
+                  "",
+                  ""
+                ]
+              ],
+              "id": "JointD",
+              "label": "출력 회전 D",
+              "limits": {},
+              "path": [
+                "FourBar",
+                "Joints",
+                "JointD"
+              ],
+              "suppressed": false,
+              "type": "Revolute"
+            }
+          ],
+          "parents": []
+        },
+        "native_definition": {
+          "drives": [
+            {
+              "formula": "10*pi/180*time",
+              "id": "CAELabMotion",
+              "joint": "JointA",
+              "type": "Angular"
+            }
+          ],
+          "fps": 20,
+          "time": [
+            0.0,
+            1.0,
+            0.05
+          ],
+          "tolerance": 1e-06
+        },
+        "native_status": 0,
+        "previous_success_id": "K650c257493804a5ebdea40964c057b6d",
+        "result_id": "K40fa3bd6ce4a459284eec33594167383",
+        "stage": "COMPLETE",
+        "started_at": "2026-10-14T10:57:56.703587+00:00",
+        "state": "SUCCEEDED"
+      }
+    }
+  },
+  "native_motion_property_types": {
+    "Formula": "App::PropertyString",
+    "Joint": "App::PropertyXLinkSubHidden",
+    "MotionType": "App::PropertyEnumeration"
+  }
+}

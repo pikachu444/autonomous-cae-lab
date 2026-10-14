@@ -21,6 +21,12 @@ def relation_setup(setup):
 def test_declared_source_degree_relation_compiles_before_native_conversion_and_old_read_unchanged(setup):
     recorded=deepcopy(setup[0].doc.frames)
     owner,motion,target,d=relation_setup(setup); original=deepcopy(d)
+    # Formula compilation uses independent chains; two joints on the same
+    # moving body would instead impose incompatible closure constraints.
+    assembly=owner._object(target['assembly_id'])
+    moving=assembly.newObject('App::Link','IndependentSlider')
+    moving.setLink(owner.doc.moving.getLinkedObject())
+    owner._object(d['drives'][1]['joint_id']).Reference2=(moving,['',''])
     motion.dispatch('pre.motion.configure',{'definition':d},target)
     simulation=owner._object(owner.metadata['motion']['simulation_id'])
     assert simulation.Group[0].Formula=='((90*time)*pi/180)'
