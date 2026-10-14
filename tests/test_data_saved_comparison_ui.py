@@ -135,14 +135,23 @@ def test_actual_http_saved_comparison_reopen_bounded_selection_and_unexecuted_fo
         assert target['kind'] == 'expert' and target['runs'] == []
         assert len(owner.workbench.manager.list()) == before_jobs
         model = client.document_open(kind='material', title='Explicit identification model')
-        monkeypatch.setattr(QInputDialog, 'getItem', lambda *args, **kwargs: (
-            next(label for label in args[3] if model['id'] in label), True))
+        choices = []
+        def choose_fit_input(parent, title, label, items, *args, **kwargs):
+            choices.append((title, label))
+            if title == '재료 피팅':
+                assert label == '관측할 응력 채널'
+                return next(item for item in items if item == 'response / xx [MPa]'), True
+            assert title == '피팅할 재료' and label == '재료 법칙 또는 기존 재료'
+            return next(item for item in items if item.endswith('. ' + model['title'])), True
+        monkeypatch.setattr(QInputDialog, 'getItem', choose_fit_input)
         plans = []
         window.numerical_requested.connect(plans.append)
         window.request_followup('numerical')
         wait(app, lambda: plans and len(launches) == 2 and not window._busy)
         plan = client.document_read(plans[0]['document_id'])
+        assert choices == [('재료 피팅', '관측할 응력 채널'), ('피팅할 재료', '재료 법칙 또는 기존 재료')]
         assert plan['kind'] == 'numerical' and plan['runs'] == []
+        assert plan['draft']['material']['document_id'] == model['id']
         assert plans[0]['source']['job_id'] == job and plans[0]['execute'] is False
         assert plan['draft']['experiments'][0]['source'] == window.selected_source()
         assert len(owner.workbench.manager.list()) == before_jobs

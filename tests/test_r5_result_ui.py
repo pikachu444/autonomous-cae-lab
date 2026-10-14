@@ -267,8 +267,11 @@ def test_evaluation_pending_apply_blocks_structural_clicks_and_keeps_submitted_d
         wait(app, client.started.is_set)
         assert not window.tabs.isEnabled() and not window.stage_editor.isEnabled()
         buttons = [button for button in window.findChildren(QPushButton)
-                   if button.text() in ('Remove stage', 'Remove selected rows', 'Clear prepared reuse')]
-        assert buttons and all(not button.isEnabled() for button in buttons)
+                   if button.text() in ('선택 단계 작업', '선택 행 삭제', '재사용 선택 해제')]
+        assert {button.text() for button in buttons} == {'선택 단계 작업', '선택 행 삭제', '재사용 선택 해제'}
+        stage_actions = next(button for button in buttons if button.text() == '선택 단계 작업').menu().actions()
+        assert any(action.text() == '단계 삭제' for action in stage_actions)
+        assert all(not button.isEnabled() for button in buttons)
         for button in buttons:
             QTest.mouseClick(button, Qt.MouseButton.LeftButton)
         assert window.edited_draft() == submitted
