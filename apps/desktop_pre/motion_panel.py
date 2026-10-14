@@ -6,6 +6,7 @@ from copy import deepcopy
 import json
 
 from apps.desktop_pre.motion import JOINT_TYPES
+from apps.desktop_pre.motion_formula import compile_drives
 
 JOINT_LABELS = {'Grounded': '고정 부품', 'Fixed': '고정 연결', 'Revolute': '회전',
     'Cylindrical': '원통 (회전·이동)', 'Slider': '직선 이동', 'Ball': '구면',
@@ -41,6 +42,7 @@ class MotionPanel:
         self._initial_editor = None
         self._path_read_scope = None
         self._buttons = []
+        self._loading_drive = False
         layout = QtWidgets.QVBoxLayout(self.widget)
         row = QtWidgets.QHBoxLayout(); self.assembly = QtWidgets.QComboBox()
         row.addWidget(QtWidgets.QLabel('조립')); row.addWidget(self.assembly, 1)
@@ -104,7 +106,7 @@ class MotionPanel:
         form.addRow('재생 속도 [프레임/s]', self.fps); form.addRow('계산 오차 허용값', self.tolerance)
         self.fps.valueChanged.connect(self._mark_edited); self.tolerance.textEdited.connect(self._mark_edited)
         definition_layout.addLayout(form)
-        self.drives = QtWidgets.QTableWidget(0, 4); self.drives.setHorizontalHeaderLabels(['구동 관절', '운동 종류', '시간곡선 (time = 초)', '단위'])
+        self.drives = QtWidgets.QTableWidget(0, 6); self.drives.setHorizontalHeaderLabels(['구동 관절', '운동 종류', '시간식 (time = 초)', '단위', '구동 이름', '종속 관계'])
         self.drives.cellChanged.connect(self._mark_edited); definition_layout.addWidget(self.drives)
         buttons = QtWidgets.QHBoxLayout()
         self._button(buttons, '구동 추가', lambda: self._drive_row({}))
@@ -112,6 +114,33 @@ class MotionPanel:
         self._button(buttons, '구동 적용', self._configure)
         self._button(buttons, '구동 편집 취소', self._cancel_definition)
         definition_layout.addLayout(buttons)
+        self.drive_details = QtWidgets.QGroupBox('선택한 구동의 관계와 허용 한계')
+        details = QtWidgets.QGridLayout(self.drive_details)
+        self.drive_name = QtWidgets.QLineEdit(); self.drive_unit = QtWidgets.QComboBox()
+        self.drive_mode = QtWidgets.QComboBox(); self.drive_mode.addItems(['시간식', '다른 구동 따라가기'])
+        self.drive_source = QtWidgets.QComboBox(); self.drive_ratio = QtWidgets.QLineEdit(); self.drive_offset = QtWidgets.QLineEdit()
+        self.drive_ratio_unit = QtWidgets.QComboBox(); self.drive_offset_unit = QtWidgets.QComboBox()
+        self.drive_min, self.drive_max = QtWidgets.QLineEdit(), QtWidgets.QLineEdit(); self.drive_limit_unit = QtWidgets.QComboBox()
+        for field in (self.drive_min,self.drive_max): field.setPlaceholderText('한계 없음')
+        for unit in ('rad','deg','mm'):
+            self.drive_offset_unit.addItem(unit); self.drive_limit_unit.addItem(unit)
+            for source_unit in ('rad','deg','mm'): self.drive_ratio_unit.addItem(unit+'/'+source_unit)
+        for row,label,field,label2,field2 in (
+            (0,'구동 이름',self.drive_name,'출력 단위',self.drive_unit),
+            (1,'구동 방식',self.drive_mode,'기준 구동',self.drive_source),
+            (2,'비율',self.drive_ratio,'비율 단위',self.drive_ratio_unit),
+            (3,'영점 이동',self.drive_offset,'이동 단위',self.drive_offset_unit),
+            (4,'허용 하한',self.drive_min,'허용 상한',self.drive_max)):
+            details.addWidget(QtWidgets.QLabel(label),row,0); details.addWidget(field,row,1)
+            details.addWidget(QtWidgets.QLabel(label2),row,2); details.addWidget(field2,row,3)
+        details.addWidget(QtWidgets.QLabel('한계 단위'),5,0); details.addWidget(self.drive_limit_unit,5,1)
+        self.drive_relation = QtWidgets.QLabel('기준 구동의 선언 단위 값 × 비율 + 영점 이동. 미구동 관절 자세를 추정하지 않습니다.')
+        self.drive_relation.setWordWrap(True); details.addWidget(self.drive_relation,6,0,1,4)
+        definition_layout.addWidget(self.drive_details); self.drive_details.setEnabled(False)
+        self.drives.currentCellChanged.connect(lambda *args: self._drive_selected())
+        for field in (self.drive_name,self.drive_ratio,self.drive_offset,self.drive_min,self.drive_max): field.textEdited.connect(self._drive_options_edited)
+        for combo in (self.drive_mode,self.drive_source,self.drive_unit,self.drive_ratio_unit,self.drive_offset_unit,self.drive_limit_unit):
+            combo.currentIndexChanged.connect(self._drive_options_edited)
         self.traces = QtWidgets.QTableWidget(0, 7)
         self.traces.setHorizontalHeaderLabels(['경로 이름', '부품', '로컬 x', '로컬 y', '로컬 z', '단위', '출력 좌표'])
         self.traces.cellChanged.connect(self._mark_edited); definition_layout.addWidget(self.traces)
@@ -164,7 +193,8 @@ class MotionPanel:
             table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
             table.setAlternatingRowColors(True)
             table.setMinimumHeight(130)
-        self.drives.setColumnWidth(0, 210); self.drives.setColumnWidth(1, 100); self.drives.setColumnWidth(2, 300)
+        self.drives.setColumnWidth(0, 180); self.drives.setColumnWidth(1, 90); self.drives.setColumnWidth(2, 220)
+        self.drives.setColumnWidth(3, 55); self.drives.setColumnWidth(4, 120)
         self.traces.setColumnWidth(0, 140); self.traces.setColumnWidth(1, 175)
         self.widget.setObjectName('CAELabMotionPanel')
         font = self.widget.font(); font.setFamily('Malgun Gothic'); font.setPointSize(max(9, font.pointSize())); self.widget.setFont(font)
@@ -510,12 +540,14 @@ class MotionPanel:
         default = DRIVE_TYPES.get(selected.get('type'), ('Angular',))[0]
         kind.setCurrentIndex(kind.findData(value.get('type', default)))
         self.drives.setCellWidget(row, 0, joint); self.drives.setCellWidget(row, 1, kind)
+        joint.motion_options = {key: deepcopy(value[key]) for key in ('name','dependency','limits') if key in value}
         self._item(self.drives, row, 2, value.get('formula', ''))
-        self._item(self.drives, row, 3, 'rad' if kind.currentData() == 'Angular' else 'mm', readonly=True)
+        self._item(self.drives, row, 3, value.get('unit', 'rad' if kind.currentData() == 'Angular' else 'mm'), readonly=True)
         def changed(*args):
             current_row = next((r for r in range(self.drives.rowCount()) if self.drives.cellWidget(r, 1) is kind), None)
             if current_row is not None: self._item(self.drives, current_row, 3, 'rad' if kind.currentData() == 'Angular' else 'mm', readonly=True)
             self._mark_edited()
+            self._drive_selected()
         def joint_changed(*args):
             selected = next((j for j in self._motion.get('joints', []) if j['id'] == joint.currentData()), {})
             allowed = DRIVE_TYPES.get(selected.get('type'), ())
@@ -523,6 +555,102 @@ class MotionPanel:
             self._mark_edited()
         kind.currentIndexChanged.connect(changed); joint.currentIndexChanged.connect(joint_changed)
         self._mark_edited()
+
+    def _drive_summaries(self):
+        self.drives.blockSignals(True)
+        try:
+            values=self._drive_values(raw=True)
+            for row,value in enumerate(values):
+                options=self.drives.cellWidget(row,0).motion_options; dep=options.get('dependency')
+                self._item(self.drives,row,4,value.get('name',''),readonly=True)
+                relation='시간식'
+                if dep:
+                    master=next((d for d in values if (d['joint_id'],d['type'])==(dep.get('joint_id'),dep.get('type'))),{})
+                    joint=next((j for j in self._motion.get('joints',[]) if j['id']==master.get('joint_id')),{})
+                    relation=(master.get('name') or joint.get('label') or '기준 구동 없음')+' × '+str(dep.get('ratio',''))+' + '+str(dep.get('offset',''))
+                self._item(self.drives,row,5,relation,readonly=True)
+                self.drives.item(row,5).setToolTip(relation)
+                item=self.drives.item(row,2)
+                flags=item.flags()
+                item.setFlags(flags & ~self.QtCore.Qt.ItemIsEditable if dep else flags | self.QtCore.Qt.ItemIsEditable)
+                item.setToolTip('종속 관계를 사용합니다. 직접 시간식을 편집하려면 구동 방식을 시간식으로 바꾸세요.' if dep else '')
+        finally: self.drives.blockSignals(False)
+        selected=self.drives.currentRow()
+        if selected>=0 and hasattr(self,'drive_relation'):
+            self.drive_relation.setText(('종속식: '+(values[selected].get('name') or '선택 구동')+' = '+self.drives.item(selected,5).text()+' ['+values[selected]['unit']+']\n기준값은 기준 구동의 선언 단위 값입니다.')
+                if values[selected].get('dependency') else '시간식의 time은 초입니다. 출력은 선택한 rad/deg 또는 mm 단위입니다.')
+
+    def _drive_values(self, *, raw=False):
+        def cell(row,column):
+            item=self.drives.item(row,column); return item.text() if item else ''
+        rows=[]
+        for row in range(self.drives.rowCount()):
+            joint=self.drives.cellWidget(row,0)
+            value={'joint_id':joint.currentData(),'type':self.drives.cellWidget(row,1).currentData(),
+                'formula':cell(row,2),'unit':cell(row,3),**deepcopy(joint.motion_options)}
+            for key,fields in (('dependency',('ratio','offset')),('limits',('min','max'))):
+                if value.get(key) is not None:
+                    for field in fields:
+                        number=value[key].get(field)
+                        if raw: value[key][field]='' if number is None else str(number)
+                        else: value[key][field]=None if number in ('',None) and key=='limits' else self._numeric(str(number))
+            rows.append(value)
+        return rows
+
+    def _drive_selected(self):
+        if not hasattr(self,'drive_details') or self._loading_drive: return
+        row=self.drives.currentRow(); self.drive_details.setEnabled(row>=0)
+        if row<0: return
+        value=self._drive_values(raw=True)[row]
+        self._loading_drive=True
+        try:
+            self.drive_name.setText(value.get('name',''))
+            self.drive_unit.clear(); self.drive_unit.addItems(['rad','deg'] if value['type']=='Angular' else ['mm'])
+            self.drive_unit.setCurrentText(value['unit'])
+            dep=value.get('dependency'); self.drive_mode.setCurrentIndex(1 if dep is not None else 0)
+            self.drive_source.clear(); self.drive_source.addItem('기준 구동을 선택하세요',None)
+            for index,drive in enumerate(self._drive_values(raw=True)):
+                joint=next((j for j in self._motion.get('joints',[]) if j['id']==drive['joint_id']),{})
+                label=drive.get('name') or joint.get('label') or '구동 '+str(index+1)
+                label += ' ('+('회전' if drive['type']=='Angular' else '이동')+', '+drive['unit']+')'
+                self.drive_source.addItem(label,json.dumps([drive['joint_id'],drive['type']]))
+            if dep:
+                key=json.dumps([dep.get('joint_id'),dep.get('type')]); selected=self.drive_source.findData(key)
+                if selected<0: self.drive_source.addItem('기준 구동 없음 — 다시 선택',key); selected=self.drive_source.count()-1
+                self.drive_source.setCurrentIndex(selected)
+            self.drive_ratio.setText(dep.get('ratio','1') if dep else '1'); self.drive_offset.setText(dep.get('offset','0') if dep else '0')
+            self.drive_ratio_unit.setCurrentText(dep.get('ratio_unit',value['unit']+'/'+value['unit']) if dep else value['unit']+'/'+value['unit'])
+            self.drive_offset_unit.setCurrentText(dep.get('offset_unit',value['unit']) if dep else value['unit'])
+            limit=value.get('limits') or {}
+            self.drive_min.setText(limit.get('min','')); self.drive_max.setText(limit.get('max',''))
+            self.drive_limit_unit.setCurrentText(limit.get('unit',value['unit']))
+            for widget in (self.drive_source,self.drive_ratio,self.drive_ratio_unit,self.drive_offset,self.drive_offset_unit): widget.setEnabled(dep is not None)
+        finally: self._loading_drive=False
+        self._drive_summaries()
+
+    def _drive_options_edited(self, *args):
+        row=self.drives.currentRow()
+        if row<0 or self._loading or self._loading_drive: return
+        joint=self.drives.cellWidget(row,0); options=deepcopy(joint.motion_options)
+        if self.drive_name.text() or 'name' in options: options['name']=self.drive_name.text()
+        if self.drive_mode.currentIndex()==1:
+            source=tuple(json.loads(self.drive_source.currentData())) if self.drive_source.currentData() else (None,None)
+            previous=options.get('dependency')
+            if previous is None or (previous.get('joint_id'),previous.get('type'))!=source:
+                master=next((d for d in self._drive_values(raw=True) if (d['joint_id'],d['type'])==source),{})
+                self._loading_drive=True
+                self.drive_ratio_unit.setCurrentText(self.drive_unit.currentText()+'/'+master.get('unit',self.drive_unit.currentText()))
+                self.drive_offset_unit.setCurrentText(self.drive_unit.currentText()); self._loading_drive=False
+            options['dependency']={'joint_id':source[0],'type':source[1],'ratio':self.drive_ratio.text(),
+                'ratio_unit':self.drive_ratio_unit.currentText(),'offset':self.drive_offset.text(),'offset_unit':self.drive_offset_unit.currentText()}
+        else: options.pop('dependency',None)
+        if self.drive_min.text() or self.drive_max.text() or 'limits' in options:
+            options['limits']={'min':self.drive_min.text(),'max':self.drive_max.text(),'unit':self.drive_limit_unit.currentText()}
+        joint.motion_options=options
+        self._item(self.drives,row,3,self.drive_unit.currentText(),readonly=True)
+        self._mark_edited()
+        enabled=self.drive_mode.currentIndex()==1
+        for widget in (self.drive_source,self.drive_ratio,self.drive_ratio_unit,self.drive_offset,self.drive_offset_unit): widget.setEnabled(enabled)
 
     def _trace_row(self, value):
         row = self.traces.rowCount(); self.traces.insertRow(row)
@@ -545,8 +673,7 @@ class MotionPanel:
             item = table.item(row, column); return item.text() if item else ''
         definition = {'time': {**{key: self._numeric(field.text()) for key, field in self.time.items()}, 'unit': 's'},
             'fps': self.fps.value(), 'native_error_tolerance': self._numeric(self.tolerance.text()),
-            'drives': [{'joint_id': self.drives.cellWidget(row, 0).currentData(), 'type': self.drives.cellWidget(row, 1).currentData(),
-                        'formula': text(self.drives, row, 2), 'unit': text(self.drives, row, 3)} for row in range(self.drives.rowCount())],
+            'drives': self._drive_values(),
             'traces': [{'id': text(self.traces, row, 0), 'occurrence_id': self.traces.cellWidget(row, 1).currentData(),
                         'point': [self._numeric(text(self.traces, row, c)) for c in (2, 3, 4)], 'frame': 'occurrence_local',
                         'coordinate_unit': 'mm', 'output_frame': 'document_global'} for row in range(self.traces.rowCount())]}
@@ -570,9 +697,7 @@ class MotionPanel:
         if self._edited:
             definition = {'time': {name: field.text() for name, field in self.time.items()},
                 'fps': self.fps.value(), 'tolerance': self.tolerance.text(),
-                'drives': [{'joint_id': self.drives.cellWidget(row, 0).currentData(),
-                    'type': self.drives.cellWidget(row, 1).currentData(), 'formula': cell(self.drives, row, 2),
-                    'unit': cell(self.drives, row, 3)} for row in range(self.drives.rowCount())],
+                'drives': self._drive_values(raw=True),
                 'traces': [{'id': cell(self.traces, row, 0), 'occurrence_id': self.traces.cellWidget(row, 1).currentData(),
                     'point': [cell(self.traces, row, c) for c in (2, 3, 4)]} for row in range(self.traces.rowCount())]}
         editor = {'view': self.current_view(), 'joint_draft': joint, 'definition_draft': definition}
@@ -676,6 +801,17 @@ class MotionPanel:
             seen.add(key); combo.setToolTip(message)
             if message: issues.append(str(row+1) + '행: ' + message)
         if hasattr(self, 'definition_notice'):
+            self._drive_summaries()
+            values=self._drive_values()
+            joints={j['id']:j for j in self._motion.get('joints',[])}
+            try:
+                _,problems=compile_drives(values,(float(self.time['start'].text()),float(self.time['end'].text())),joints)
+                for row,messages in sorted(problems.items()):
+                    for message in messages:
+                        issue=(str(row+1)+'행: ' if row>=0 else '')+message
+                        if issue not in issues: issues.append(issue)
+                        if row>=0: self.drives.cellWidget(row,0).setToolTip('; '.join(messages))
+            except (ValueError,TypeError): pass
             self.definition_notice.setText('\n'.join(issues) if issues else ('구동 편집 중 — 적용 후 계산할 수 있습니다.' if self._edited else ''))
         return issues
 

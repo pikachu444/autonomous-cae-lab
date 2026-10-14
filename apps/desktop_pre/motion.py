@@ -12,6 +12,7 @@ import json
 import math
 import re
 import uuid
+from apps.desktop_pre.motion_formula import compile_drives, native_limits, REQUIRED, OPTIONAL
 
 OPERATIONS = ('pre.assembly.create', 'pre.assembly.link', 'pre.joint.create',
     'pre.joint.update', 'pre.joint.remove', 'pre.motion.inspect', 'pre.motion.configure',
@@ -384,6 +385,7 @@ class Motion:
         for j in joints:
             refs = [getattr(j, 'Reference1', None), getattr(j, 'Reference2', None)]
             issues = []
+            if getattr(j, 'Suppressed', False): issues.append('억제된 관절입니다. 관절을 활성화하거나 구동 대상을 바꾸세요.')
             if hasattr(j, 'JointType'):
                 for index, ref in enumerate(refs, 1):
                     if not ref or ref[0] is None or ref[0] not in parts:
@@ -402,7 +404,7 @@ class Motion:
                 'references': [[r[0].Name if r[0] else None, list(r[1])] if r else None for r in refs],
                 'parameters': {key: float(getattr(j, key).Value) if hasattr(getattr(j, key), 'Value') else float(getattr(j, key))
                                for key in ('Distance', 'Distance2', 'Angle') if hasattr(j, key)},
-                'editable': j in direct, 'issues': issues})
+                'editable': j in direct, 'issues': issues, 'limits': native_limits(j), 'suppressed': bool(getattr(j,'Suppressed',False))})
         return {**(descriptor if descriptor is not None else self.descriptor()), 'occurrences': [{'id': obj.Name, 'label': obj.Label, 'type': obj.TypeId,
             'rigid': getattr(obj, 'Rigid', None),
             'placement': _pose(obj.Placement), 'linked_object': obj.getLinkedObject().Name if obj.isDerivedFrom('App::Link') else obj.Name} for obj in parts],
@@ -433,22 +435,7 @@ class Motion:
         if tolerance <= 0: raise ValueError('Native error tolerance must be explicitly positive')
         drives = definition['drives']
         if not isinstance(drives, list) or not 1 <= len(drives) <= 32: raise ValueError('Declare one to 32 native joint drives')
-        seen = set()
-        for drive in drives:
-            if not isinstance(drive, dict) or set(drive) != {'joint_id', 'type', 'formula', 'unit'}: raise ValueError('Drive requires joint_id/type/formula/unit')
-            joint = self._joint(assembly, drive['joint_id'])
-            kind = getattr(joint, 'JointType', None)
-            allowed = {'Revolute': {'Angular'}, 'Slider': {'Linear'}, 'Cylindrical': {'Angular', 'Linear'}}
-            if drive['type'] not in allowed.get(kind, set()) or drive['unit'] != ('rad' if drive['type'] == 'Angular' else 'mm'):
-                raise ValueError('Angular rad drives require Revolute/Cylindrical; Linear mm drives require Slider/Cylindrical')
-            key = (joint.Name, drive['type'])
-            if key in seen: raise ValueError('A joint cannot have duplicate drive types')
-            seen.add(key)
-            formula = drive['formula']
-            if (not isinstance(formula, str) or not 1 <= len(formula) <= 256
-                    or not re.fullmatch(r'[A-Za-z0-9_+*/^()., \-]+', formula)
-                    or set(re.findall(r'[A-Za-z_]+', formula)) - {'time', 'pi', 'sin', 'cos', 'tan', 'arctan', 'exp', 'log', 'sqrt', 'e'}):
-                raise ValueError('Use an explicit bounded native formula; no Python or native path expressions')
+        formulas = self._compile_drives(assembly, definition)
         traces = definition['traces']
         if not isinstance(traces, list) or len(traces) > MAX_TRACES: raise ValueError('Declare at most eight tracked points')
         trace_ids = set()
@@ -476,9 +463,10 @@ class Motion:
             simulation.aTimeStart, simulation.bTimeEnd, simulation.cTimeStepOutput = start, end, step
             simulation.fGlobalErrorTolerance = tolerance; simulation.jFramesPerSecond = definition['fps']
             motions = []
-            for drive in drives:
+            for index, drive in enumerate(drives):
                 obj = assembly.newObject('App::FeaturePython', 'CAELabMotion')
-                native.Motion(obj, drive['type'], self._joint(assembly, drive['joint_id']), drive['formula'])
+                native.Motion(obj, drive['type'], self._joint(assembly, drive['joint_id']), formulas[index])
+                if drive.get('name'): obj.Label = drive['name']
                 if self.owner.App.GuiUp: native.ViewProviderMotion(obj.ViewObject)
                 motions.append(obj)
             simulation.Group = motions
@@ -492,6 +480,19 @@ class Motion:
         self.owner._transaction('Configure native assembly motion', change)
         self._expected_generation = self.owner.generation
         return {**result, 'definition': definition, 'executed': False}
+
+    def _compile_drives(self, assembly, definition):
+        joints = {joint.Name: {'type': str(joint.JointType), 'label': joint.Label,
+            'limits': native_limits(joint),
+            'suppressed': bool(getattr(joint,'Suppressed',False)),
+            'issues': ['억제된 관절입니다. 관절을 활성화하거나 구동 대상을 바꾸세요.'] if getattr(joint, 'Suppressed', False) else []}
+            for joint in self._joints(assembly) if hasattr(joint, 'JointType')}
+        formulas, issues = compile_drives(definition['drives'],
+            (definition['time']['start'], definition['time']['end']), joints)
+        if issues:
+            raise ValueError('\n'.join(('구동 '+str(row+1)+'행: ' if row >= 0 else '') + '; '.join(messages)
+                for row,messages in sorted(issues.items())))
+        return formulas
 
     def _set_view(self, assembly, args):
         if set(args) != {'view'}: raise ValueError('Motion selection requires one explicit view')
@@ -567,10 +568,22 @@ class Motion:
                     or not isinstance(definition['drives'], list) or not isinstance(definition['traces'], list)):
                 raise ValueError('Invalid raw motion editor structure')
             for drive in definition['drives']:
-                if (not isinstance(drive, dict) or set(drive) != {'joint_id', 'type', 'formula', 'unit'}
+                if (not isinstance(drive, dict) or not REQUIRED <= set(drive) or set(drive)-REQUIRED-OPTIONAL
                         or not identifier(drive['joint_id']) or not identifier(drive['type'])
                         or not isinstance(drive['formula'], str) or not isinstance(drive['unit'], str)):
                     raise ValueError('Invalid raw drive row structure')
+                if 'name' in drive and not isinstance(drive['name'], str): raise ValueError('Invalid raw drive name')
+                for field in ('dependency', 'limits'):
+                    if drive.get(field) is not None and not isinstance(drive[field], dict): raise ValueError('Invalid raw drive '+field)
+                dependency = drive.get('dependency')
+                if dependency is not None and (set(dependency) != {'joint_id','type','ratio','ratio_unit','offset','offset_unit'}
+                        or not identifier(dependency['joint_id']) or not identifier(dependency['type'])
+                        or any(not isinstance(dependency[key], str) for key in ('ratio','ratio_unit','offset','offset_unit'))):
+                    raise ValueError('Invalid raw drive dependency')
+                limits = drive.get('limits')
+                if limits is not None and (set(limits) != {'min','max','unit'}
+                        or any(not isinstance(value, str) for value in limits.values())):
+                    raise ValueError('Invalid raw drive limits')
             for trace in definition['traces']:
                 if (not isinstance(trace, dict) or set(trace) != {'id', 'occurrence_id', 'point'}
                         or not isinstance(trace['id'], str) or not identifier(trace['occurrence_id'])
@@ -647,6 +660,9 @@ class Motion:
                 raise ValueError('구동 관절이 삭제되었습니다. 시간과 구동에서 관절을 다시 선택하여 적용하세요.') from error
             if drive['type'] not in {'Revolute': {'Angular'}, 'Slider': {'Linear'}, 'Cylindrical': {'Angular', 'Linear'}}.get(getattr(joint, 'JointType', None), set()):
                 raise ValueError(joint.Label + ': 변경된 관절 종류에 맞는 회전·이동 구동을 다시 선택하세요.')
+        formulas = self._compile_drives(assembly, metadata['definition'])
+        if len(simulation.Group) != len(formulas) or any(obj.Formula != formulas[index] for index,obj in enumerate(simulation.Group)):
+            raise ValueError('적용한 구동 관계와 native 운동식이 다릅니다. 구동 정의를 다시 적용하세요.')
         self._capture(assembly)
         scene, native_definition = self._scene(assembly), self._native_definition(simulation)
         self._state = 'CALCULATING'; self._error = None
