@@ -165,6 +165,7 @@ class SourceUpdateDialog(QDialog):
     def _preview(self):
         root = self.roots.currentData(); relative = self.file.text()
         if not root or not relative: return
+        self._edited()
         self.notice.setText('새 파일의 첫 시각 필드와 전체 시각 목록을 읽는 중… 기존 창은 바꾸지 않습니다.')
         def read():
             receipt = self.client.register_local_input(root['id'], relative)
@@ -174,7 +175,7 @@ class SourceUpdateDialog(QDialog):
                 self.notice.setText('선택한 파일이 바뀌었습니다. 다시 미리보기를 누르세요.'); return
             self.preview = value; impact = value['impact']
             self.notice.setText('원자료 내용이 달라졌습니다. 새 프로젝트로 열어 연구를 이어갈 수 있습니다.' if impact['content_changed'] else
-                '파일 내용은 같습니다. 위치만 바뀌었다면 기존 창의 위치 수리를 사용하세요. 새 프로젝트로 별도 열 수도 있습니다.')
+                '파일 내용은 같습니다. 위치만 바뀌었다면 원파일 다시 연결을 사용하세요. 새 프로젝트로 별도 열 수도 있습니다.')
             self.files.setRowCount(len(impact['files']))
             for index, file in enumerate(impact['files']):
                 for column, text in enumerate((file['name'], {'same':'동일', 'changed':'내용 변경', 'added':'추가', 'missing':'새 자료에 없음'}[file['change']])):
