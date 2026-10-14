@@ -52,13 +52,16 @@ U/RF/S/E/PEEQ를 확인했다. 원 계산은 한 번이며 GUI Runner 전체 조
 연결 결함을 발견해 consumer의 제한된 계약을 맞췄다. 기존 등록 검사를 우회하거나
 원자료를 제거하지 않았다. 관련47검사와 실제 ParaView6.2의 PEEQ 선택·저장·새 프로세스
 재열기가 통과했고 Astra의 해당 변경 독립 검토에 추가 P1/P2는 없었다. 선택 결과의
-recovery 전달 검사도 추가해7검사가 통과했다. pvpython 렌더이며 OS 직접 조작은 아니다.
+recovery 전달과 잘못된 선언 형식 검사도 추가해8검사가 통과했다. pvpython 렌더이며 OS 직접 조작은 아니다.
 자료는 `runs/product-development/20261014/nonlinear-user-model/native-single-solid/`,
 `native-post-receipt.json`과 `native-single-solid-post/`에 있다. 절점 PEEQ의 음수값도
 그대로 보존하며 수치 적합성/공학적 승인으로 처리하지 않는다. 공개 편집 예제와
 [실행 안내](examples/material-tests/ns1/README.md)를 추가했다. 아직 기본 설치/main 배포 전이다.
-실제 창의 한글 글꼴·곡선 대비와 작은 창 오류 상태는 Sol이 교정하고 Astra가 직접
-화면 대안을 논의한다. Pro의 두 핵심 수정 회수와 합친 뒤 다음 인도를 진행한다.
+이 변경과 예제는 `3549d1e`로 개발 브랜치 `codex/ns1-integration`에 push했고 원격 참조를
+확인했다. main은 `4bad73f`이며 PR8의 Pro 교정은 아직 수신 전이다. Space 요약도 갱신했다.
+실제 창의 작은 창 오류 상태는 Sol이 교정하고 Astra가 직접 화면 대안을 논의한다.
+자식 위젯까지 실제 맑은 고딕을 확인했으며 숨겨진 탭의 최소폭 영향을 스크롤 배치로
+고치는 중이다. Pro의 두 핵심 수정 회수와 합친 뒤 다음 인도를 진행한다.
 
 **운동 시간 교정 통합:** Sol `5ea18c0`와 후속 `ad960ed`를 main `331d2fe`/`9630f5a`로
 통합했다. Astra가 찾은 native 시간 변경과 적용 정의 불일치는 계산 전에 차단하고,
