@@ -185,6 +185,12 @@ bridge 수명이나 native 창 닫기/저장 제어는 수정하지 않았습니
 
 ## 작성 및 통합 확인의 구분
 
+`2d66ce4`/`aea11ef`의 성분 의미·배열별 유효성 교정은 Codex가 별도 작업 폴더에서
+관련 Python/Qt 검사와 실제 설치 ParaView의 점/경로 측정·재비교·저장·새 프로세스
+재열기를 확인했습니다. Astra는 원래 두 지적의 해소를 독립 재검토했습니다.
+원자료는 `runs/product-development/20261014/post-compare-observables-aea11ef/receipt.json`이며
+새 솔버 계산이나 전체 OS 마우스 조작 수용을 한 것은 아닙니다.
+
 - 첫 게시본 `caaaa86`: 통합 담당자가 별도 worktree에서 physics/editor
   14건 통과를 전달했습니다. 일반 Python의 VTK 모듈 검사는 1건 건너뛰었습니다.
   설치 ParaView 6.2의 실제 `--create`와 별도 `--reopen`은 원값/변환/차이/
