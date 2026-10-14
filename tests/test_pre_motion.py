@@ -314,8 +314,8 @@ def test_no_python_formula_no_implicit_units_or_stale_frame(setup):
     definition['drives'][0]['formula'] = '__import__("os")'
     with pytest.raises(ValueError, match='native formula'):
         motion.dispatch('pre.motion.configure', {'definition': definition}, target)
-    definition['drives'][0]['formula'] = 'time'; definition['drives'][0]['unit'] = 'deg'
-    with pytest.raises(ValueError, match='Angular rad'):
+    definition['drives'][0]['formula'] = 'time'; definition['drives'][0]['unit'] = 'mm'
+    with pytest.raises(ValueError, match='단위'):
         motion.dispatch('pre.motion.configure', {'definition': definition}, target)
     with pytest.raises(ValueError, match='STALE_FRAME'):
         motion.dispatch('pre.motion.frame', {'calculation_id': 'old', 'frame': 0}, target)

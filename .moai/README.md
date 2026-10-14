@@ -9,9 +9,11 @@ isolated user profile; its broad agent/provider/workflow scaffold was not copied
 
 Read [CURRENT_STATE](../CURRENT_STATE.md) for current progress. SPECs link to
 existing product/design documents; they do not create another current queue.
-Do not auto-route a SPEC ID to run. No automatic goal/loop, backend execution,
-cloud service, implementation, merge or model/provider replacement is authorized.
-The user reviews the full design and then separately instructs development start.
+The user authorized product implementation and integration on 2026-10-13.
+Use the current assignment and its acceptance criteria to choose work; a SPEC ID
+alone does not start an unrelated task. Routine implementation, review and authorized
+publication proceed without repeated approval. Model/provider replacement, paid
+services and unrelated native runs are not implied by MoAI routing.
 
 The installed CLI provides `spec lint/view/status` and `plan render-html`.
 `plan render-html` renders a report; it does not author a product design.
@@ -21,10 +23,12 @@ references when applying them. Claude-specific tool names and resource reference
 must be resolved against the installed Codex package; absent tools are not invoked
 or advertised. Current user instructions and AGENTS override template routing.
 
-Project MCP configuration applies on a compatible new trusted session. Its presence
-does not add tools to this already running session. CLI/subprocess MCP checks and
-host-exposed calls are recorded separately in the connection evidence. Hook trust
-is a host action and is not assumed or bypassed.
+The host exposed `spec_audit`, `spec_drift`, `spec_progress` and `todo_list` MCP tools
+in the 2026-10-14 session. CLI SPEC lint/view and task-card edits are also in use.
+Recheck actual tool availability in a new session: configuration alone is not proof.
+Hook trust is a host action and is not assumed or bypassed. Do not claim that the
+Claude-specific team runtime is available; current Codex agents and messaging run
+the assigned work while MoAI supplies decomposition, SPEC and task management.
 
 Machine installation paths are development-only. Product applications do not use
 MoAI, Pro relay, Penpot, draw.io or Codex as runtime prerequisites.

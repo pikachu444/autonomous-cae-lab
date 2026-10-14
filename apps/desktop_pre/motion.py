@@ -6,12 +6,15 @@ Native generateSimulation is synchronous and has no exposed interruption hook.
 Playback can stop between native frame updates; bounded path pages are synchronous.
 """
 from copy import deepcopy
+from contextlib import contextmanager
 import hashlib
 import importlib
 import json
 import math
 import re
 import uuid
+from apps.desktop_pre.motion_formula import compile_drives, native_limits, REQUIRED, OPTIONAL
+from apps.desktop_pre.motion_occurrence import hierarchy, unique_path, world_placement, native_scope, NestedRecoveryError
 
 OPERATIONS = ('pre.assembly.create', 'pre.assembly.link', 'pre.joint.create',
     'pre.joint.update', 'pre.joint.remove', 'pre.motion.inspect', 'pre.motion.configure',
@@ -22,6 +25,13 @@ JOINT_TYPES = ('Fixed', 'Revolute', 'Cylindrical', 'Slider', 'Ball', 'Distance',
                'Parallel', 'Perpendicular', 'Angle')
 MAX_PARTS, MAX_JOINTS, MAX_FRAMES, MAX_PAGE, MAX_TRACES = 256, 128, 2001, 200, 8
 PINNED_SOURCE = 'https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly'
+
+
+def _joint_label(joint):
+    if joint.Label != joint.Name: return joint.Label
+    return {'Revolute':'회전 관절','Slider':'직선 이동 관절','Cylindrical':'원통 관절',
+        'Fixed':'고정 연결','Ball':'구면 관절','Distance':'거리 관절','Parallel':'평행 관절',
+        'Perpendicular':'수직 관절','Angle':'각도 관절'}.get(getattr(joint,'JointType',None),'고정 부품')
 
 
 def _hash(value):
@@ -88,7 +98,11 @@ class Motion:
 
     def _parts(self, assembly, *, allow_empty=False):
         parts = self._api()[0].getMovablePartsWithin(assembly)
-        if not parts and not allow_empty or len(parts) > MAX_PARTS or len({p.Name for p in parts}) != len(parts):
+        unique = {part.Name:part for part in parts}
+        if len(unique)!=len(parts) and not allow_empty:
+            raise ValueError('동일한 native 부품이 조립의 여러 위치에 있습니다. 각 위치에 별도 Link를 배치하여 참조를 복구하세요.')
+        parts=list(unique.values())
+        if not parts and not allow_empty or len(parts) > MAX_PARTS:
             raise ValueError('Native motion requires one to 256 distinct movable occurrences')
         return parts
 
@@ -112,6 +126,7 @@ class Motion:
         joint = self.owner._object(name)
         if joint not in self._joints(assembly):
             raise ValueError('Joint does not belong to the selected native assembly')
+        unique_path(assembly,joint)
         return joint
 
     def _placement(self, value):
@@ -136,6 +151,9 @@ class Motion:
         obj = self.owner._object(value['object_id'])
         if obj not in self._parts(assembly):
             raise ValueError('Connector must select a movable occurrence in this assembly')
+        selected = unique_path(assembly,obj)
+        if not selected['connectable']:
+            raise ValueError('강체 하위 조립의 내부 부품은 개별 연결/구동 대상이 아닙니다. 강체 배치를 선택하거나 가동 조립으로 배치하세요.')
         sub = value['subelement']
         if not isinstance(sub, str) or sub and not re.fullmatch(r'(?:[A-Za-z_][A-Za-z0-9_]*\.)*(Face|Edge|Vertex)[1-9][0-9]*', sub):
             raise ValueError('Select an exact native Face/Edge/Vertex or empty occurrence origin')
@@ -232,8 +250,17 @@ class Motion:
                     if hasattr(joint, key):
                         v = getattr(joint, key); row[key] = float(v.Value) if hasattr(v, 'Value') else v
             joints.append(row)
-        return _hash({'document': self.owner.doc.Name, 'assembly': assembly.Name,
-                      'assembly_pose': plc(assembly, 'Placement'), 'parts': rows, 'joints': joints})
+        paths = hierarchy(assembly)
+        # Include actual ownership as well as IDs: moving an existing object to
+        # another nested parent invalidates frames without relinking its source.
+        for row in rows:
+            candidates=paths.get(row['id'],[])
+            if any(len(candidate['path'])>2 for candidate in candidates):
+                row['occurrence_paths']=[candidate['path'] for candidate in candidates]
+        scene={'document': self.owner.doc.Name, 'assembly': assembly.Name,
+            'assembly_pose': plc(assembly, 'Placement'), 'parts': rows, 'joints': joints}
+        if getattr(assembly,'Parents',None): scene['assembly_world_pose']=_pose(world_placement(assembly,assembly))
+        return _hash(scene)
 
     def _native_definition(self, simulation):
         def number(name):
@@ -368,6 +395,7 @@ class Motion:
 
     def _inspect(self, assembly, descriptor=None):
         parts = self._parts(assembly, allow_empty=True)
+        paths = hierarchy(assembly)
         joints = self._joints(assembly)
         rows = []
         direct = [obj for group in assembly.OutList if group.TypeId == 'Assembly::JointGroup' for obj in group.Group]
@@ -384,10 +412,16 @@ class Motion:
         for j in joints:
             refs = [getattr(j, 'Reference1', None), getattr(j, 'Reference2', None)]
             issues = []
+            candidates=paths.get(j.Name,[])
+            if len(candidates)!=1: issues.append('관절이 속한 배치가 없거나 여러 위치입니다. 정확한 배치를 다시 선택하세요.')
+            if getattr(j, 'Suppressed', False): issues.append('억제된 관절입니다. 관절을 활성화하거나 구동 대상을 바꾸세요.')
             if hasattr(j, 'JointType'):
                 for index, ref in enumerate(refs, 1):
                     if not ref or ref[0] is None or ref[0] not in parts:
                         issues.append('연결 ' + str(index) + '의 부품을 다시 선택하세요.')
+                        continue
+                    if len(paths.get(ref[0].Name,[]))!=1:
+                        issues.append('연결 '+str(index)+'의 배치 위치가 모호합니다. 해당 위치의 별도 Link를 다시 선택하세요.')
                         continue
                     try:
                         if ref[1] and ref[1][0]:
@@ -396,14 +430,21 @@ class Motion:
                     except Exception:
                         issues.append('연결 ' + str(index) + '의 면·모서리·점을 다시 선택하세요.')
                 if all(refs) and refs[0][0] is refs[1][0]: issues.append('서로 다른 두 부품을 선택하세요.')
-            rows.append({'id': j.Name, 'label': j.Label,
+            titles=candidates[0]['label'].split(' / ') if len(candidates)==1 else [j.Label]
+            label=' / '.join(titles[:-2]+[_joint_label(j)]) if len(titles)>2 else _joint_label(j)
+            rows.append({'id': j.Name, 'label': label,
                 'type': str(j.JointType) if hasattr(j, 'JointType') else 'Grounded',
                 'grounded_occurrence': j.ObjectToGround.Name if hasattr(j, 'ObjectToGround') and j.ObjectToGround else None,
                 'references': [[r[0].Name if r[0] else None, list(r[1])] if r else None for r in refs],
                 'parameters': {key: float(getattr(j, key).Value) if hasattr(getattr(j, key), 'Value') else float(getattr(j, key))
                                for key in ('Distance', 'Distance2', 'Angle') if hasattr(j, key)},
-                'editable': j in direct, 'issues': issues})
-        return {**(descriptor if descriptor is not None else self.descriptor()), 'occurrences': [{'id': obj.Name, 'label': obj.Label, 'type': obj.TypeId,
+                'editable': j in direct, 'issues': issues, 'limits': native_limits(j), 'suppressed': bool(getattr(j,'Suppressed',False))})
+        return {**(descriptor if descriptor is not None else self.descriptor()), 'occurrences': [{'id': obj.Name,
+            'label': paths[obj.Name][0]['label'] if len(paths.get(obj.Name,[]))==1 else obj.Label+' (배치 참조 확인 필요)', 'type': obj.TypeId,
+            'path': paths[obj.Name][0]['path'] if len(paths.get(obj.Name,[]))==1 else None,
+            'connectable': len(paths.get(obj.Name,[]))==1 and paths[obj.Name][0]['connectable'],
+            'reference_issue': '' if len(paths.get(obj.Name,[]))==1 else '같은 native 객체가 여러 위치에 있습니다. 해당 위치의 별도 Link를 선택하세요.',
+            'rigid_owner': paths[obj.Name][0]['rigid_owner'] if len(paths.get(obj.Name,[]))==1 else None,
             'rigid': getattr(obj, 'Rigid', None),
             'placement': _pose(obj.Placement), 'linked_object': obj.getLinkedObject().Name if obj.isDerivedFrom('App::Link') else obj.Name} for obj in parts],
             'joints': rows, 'joint_types': ['Grounded', *JOINT_TYPES], 'inspection_assembly_id': assembly.Name,
@@ -433,22 +474,7 @@ class Motion:
         if tolerance <= 0: raise ValueError('Native error tolerance must be explicitly positive')
         drives = definition['drives']
         if not isinstance(drives, list) or not 1 <= len(drives) <= 32: raise ValueError('Declare one to 32 native joint drives')
-        seen = set()
-        for drive in drives:
-            if not isinstance(drive, dict) or set(drive) != {'joint_id', 'type', 'formula', 'unit'}: raise ValueError('Drive requires joint_id/type/formula/unit')
-            joint = self._joint(assembly, drive['joint_id'])
-            kind = getattr(joint, 'JointType', None)
-            allowed = {'Revolute': {'Angular'}, 'Slider': {'Linear'}, 'Cylindrical': {'Angular', 'Linear'}}
-            if drive['type'] not in allowed.get(kind, set()) or drive['unit'] != ('rad' if drive['type'] == 'Angular' else 'mm'):
-                raise ValueError('Angular rad drives require Revolute/Cylindrical; Linear mm drives require Slider/Cylindrical')
-            key = (joint.Name, drive['type'])
-            if key in seen: raise ValueError('A joint cannot have duplicate drive types')
-            seen.add(key)
-            formula = drive['formula']
-            if (not isinstance(formula, str) or not 1 <= len(formula) <= 256
-                    or not re.fullmatch(r'[A-Za-z0-9_+*/^()., \-]+', formula)
-                    or set(re.findall(r'[A-Za-z_]+', formula)) - {'time', 'pi', 'sin', 'cos', 'tan', 'arctan', 'exp', 'log', 'sqrt', 'e'}):
-                raise ValueError('Use an explicit bounded native formula; no Python or native path expressions')
+        formulas = self._compile_drives(assembly, definition)
         traces = definition['traces']
         if not isinstance(traces, list) or len(traces) > MAX_TRACES: raise ValueError('Declare at most eight tracked points')
         trace_ids = set()
@@ -458,7 +484,9 @@ class Motion:
                 raise ValueError('Trace needs occurrence-local point in mm and document_global output frame')
             if not isinstance(trace['id'], str) or not trace['id'] or trace['id'] in trace_ids: raise ValueError('Tracked point IDs must be distinct')
             trace_ids.add(trace['id']); _vector(trace['point'], 'Tracked local point', 3)
-            if self.owner._object(trace['occurrence_id']) not in self._parts(assembly): raise ValueError('Tracked point occurrence is outside this assembly')
+            obj=self.owner._object(trace['occurrence_id'])
+            if obj not in self._parts(assembly): raise ValueError('Tracked point occurrence is outside this assembly')
+            unique_path(assembly,obj)
         for key, rows in (('drive_row', drives), ('trace_row', traces)):
             if key in view and view[key] >= len(rows): raise ValueError('Select an actual motion table row')
         self.before_design_action('configure motion')
@@ -476,9 +504,10 @@ class Motion:
             simulation.aTimeStart, simulation.bTimeEnd, simulation.cTimeStepOutput = start, end, step
             simulation.fGlobalErrorTolerance = tolerance; simulation.jFramesPerSecond = definition['fps']
             motions = []
-            for drive in drives:
+            for index, drive in enumerate(drives):
                 obj = assembly.newObject('App::FeaturePython', 'CAELabMotion')
-                native.Motion(obj, drive['type'], self._joint(assembly, drive['joint_id']), drive['formula'])
+                native.Motion(obj, drive['type'], self._joint(assembly, drive['joint_id']), formulas[index])
+                if drive.get('name'): obj.Label = drive['name']
                 if self.owner.App.GuiUp: native.ViewProviderMotion(obj.ViewObject)
                 motions.append(obj)
             simulation.Group = motions
@@ -492,6 +521,21 @@ class Motion:
         self.owner._transaction('Configure native assembly motion', change)
         self._expected_generation = self.owner.generation
         return {**result, 'definition': definition, 'executed': False}
+
+    def _compile_drives(self, assembly, definition):
+        paths=hierarchy(assembly)
+        joints = {joint.Name: {'type': str(joint.JointType), 'label': joint.Label,
+            'limits': native_limits(joint),
+            'suppressed': bool(getattr(joint,'Suppressed',False)),
+            'issues': (['억제된 관절입니다. 관절을 활성화하거나 구동 대상을 바꾸세요.'] if getattr(joint, 'Suppressed', False) else [])
+                + (['관절의 배치 참조가 없거나 여러 위치입니다. 해당 위치의 관절을 다시 선택하세요.'] if len(paths.get(joint.Name,[]))!=1 else [])}
+            for joint in self._joints(assembly) if hasattr(joint, 'JointType')}
+        formulas, issues = compile_drives(definition['drives'],
+            (definition['time']['start'], definition['time']['end']), joints)
+        if issues:
+            raise ValueError('\n'.join(('구동 '+str(row+1)+'행: ' if row >= 0 else '') + '; '.join(messages)
+                for row,messages in sorted(issues.items())))
+        return formulas
 
     def _set_view(self, assembly, args):
         if set(args) != {'view'}: raise ValueError('Motion selection requires one explicit view')
@@ -567,10 +611,22 @@ class Motion:
                     or not isinstance(definition['drives'], list) or not isinstance(definition['traces'], list)):
                 raise ValueError('Invalid raw motion editor structure')
             for drive in definition['drives']:
-                if (not isinstance(drive, dict) or set(drive) != {'joint_id', 'type', 'formula', 'unit'}
+                if (not isinstance(drive, dict) or not REQUIRED <= set(drive) or set(drive)-REQUIRED-OPTIONAL
                         or not identifier(drive['joint_id']) or not identifier(drive['type'])
                         or not isinstance(drive['formula'], str) or not isinstance(drive['unit'], str)):
                     raise ValueError('Invalid raw drive row structure')
+                if 'name' in drive and not isinstance(drive['name'], str): raise ValueError('Invalid raw drive name')
+                for field in ('dependency', 'limits'):
+                    if drive.get(field) is not None and not isinstance(drive[field], dict): raise ValueError('Invalid raw drive '+field)
+                dependency = drive.get('dependency')
+                if dependency is not None and (set(dependency) != {'joint_id','type','ratio','ratio_unit','offset','offset_unit'}
+                        or not identifier(dependency['joint_id']) or not identifier(dependency['type'])
+                        or any(not isinstance(dependency[key], str) for key in ('ratio','ratio_unit','offset','offset_unit'))):
+                    raise ValueError('Invalid raw drive dependency')
+                limits = drive.get('limits')
+                if limits is not None and (set(limits) != {'min','max','unit'}
+                        or any(not isinstance(value, str) for value in limits.values())):
+                    raise ValueError('Invalid raw drive limits')
             for trace in definition['traces']:
                 if (not isinstance(trace, dict) or set(trace) != {'id', 'occurrence_id', 'point'}
                         or not isinstance(trace['id'], str) or not identifier(trace['occurrence_id'])
@@ -647,11 +703,14 @@ class Motion:
                 raise ValueError('구동 관절이 삭제되었습니다. 시간과 구동에서 관절을 다시 선택하여 적용하세요.') from error
             if drive['type'] not in {'Revolute': {'Angular'}, 'Slider': {'Linear'}, 'Cylindrical': {'Angular', 'Linear'}}.get(getattr(joint, 'JointType', None), set()):
                 raise ValueError(joint.Label + ': 변경된 관절 종류에 맞는 회전·이동 구동을 다시 선택하세요.')
+        formulas = self._compile_drives(assembly, metadata['definition'])
+        if len(simulation.Group) != len(formulas) or any(obj.Formula != formulas[index] for index,obj in enumerate(simulation.Group)):
+            raise ValueError('적용한 구동 관계와 native 운동식이 다릅니다. 구동 정의를 다시 적용하세요.')
         self._capture(assembly)
         scene, native_definition = self._scene(assembly), self._native_definition(simulation)
         self._state = 'CALCULATING'; self._error = None
         try:
-            with self.owner.preview_changes():
+            with self.owner.preview_changes(), self._native_scope(assembly):
                 status = assembly.generateSimulation(simulation)
             self._remember()
             if status != 0:
@@ -674,10 +733,18 @@ class Motion:
             self._state = 'FAILED'; self._error = str(error)
             raise
 
+    @contextmanager
+    def _native_scope(self, assembly):
+        try:
+            with native_scope(assembly,self._joints(assembly),self._parts(assembly)): yield
+        except NestedRecoveryError as error:
+            self._recovery_error=str(error)
+            raise
+
     def _show_frame(self, assembly, index):
         if type(index) is not int or not 0 <= index < self._calculation['frame_count']: raise ValueError('Select an actual native frame index')
         try:
-            with self.owner.preview_changes():
+            with self.owner.preview_changes(), self._native_scope(assembly):
                 status = assembly.updateForFrame(index)
                 if isinstance(status, int) and status != 0: raise RuntimeError('FreeCAD 자세 갱신 실패: ' + str(status))
             self._preview = True; self._frame = index; self._remember()
@@ -837,6 +904,8 @@ class Motion:
             if set(args) != {'type', 'occurrence_id'} or operation != 'pre.joint.create': raise ValueError('Grounded joint creation requires occurrence_id; remove its exact joint to unground')
             occurrence = self.owner._object(args['occurrence_id'])
             if occurrence not in self._parts(assembly): raise ValueError('Ground only a native movable occurrence')
+            if not unique_path(assembly,occurrence)['connectable']:
+                raise ValueError('강체 하위 조립은 강체 배치를 고정하세요. 가동 하위 조립은 내부의 개별 부품을 고정하세요.')
             if occurrence.TypeId == 'Assembly::AssemblyLink' and not occurrence.Rigid:
                 raise ValueError('가동 하위 조립 전체는 고정할 수 없습니다. 내부 부품을 선택하세요.')
             if any(getattr(j, 'ObjectToGround', None) is occurrence for j in self._joints(assembly)): raise ValueError('Occurrence is already grounded')
@@ -915,7 +984,8 @@ class Motion:
         try:
             for index in range(start, min(start+count, self._calculation['frame_count'])):
                 frame = self._show_frame(assembly, index)
-                global_placement = self._api()[0].getGlobalPlacement((obj, ['']), obj)
+                global_placement = world_placement(assembly,obj)
+                if global_placement is None: global_placement = self._api()[0].getGlobalPlacement((obj, ['']), obj)
                 position = global_placement.multVec(point)
                 rows.append({'frame': index, 'nominal_time': frame['nominal_time'], 'point': [float(position.x), float(position.y), float(position.z)]})
         finally:
