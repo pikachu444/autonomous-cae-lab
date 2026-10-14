@@ -25,6 +25,26 @@ JOINT_TYPES = ('Fixed', 'Revolute', 'Cylindrical', 'Slider', 'Ball', 'Distance',
                'Parallel', 'Perpendicular', 'Angle')
 MAX_PARTS, MAX_JOINTS, MAX_FRAMES, MAX_PAGE, MAX_TRACES = 256, 128, 2001, 200, 8
 PINNED_SOURCE = 'https://github.com/FreeCAD/FreeCAD/tree/1.1.4/src/Mod/Assembly'
+NATIVE_CLOCK = 'FREECAD_1_1_4_KINEMATIC_SCHEDULE'
+
+
+def native_frame_times(time, count=None):
+    # Ondsel System emits INPUT then INITIALCONDITION. Its output loop uses
+    # repeated addition and end + 0.1*hout; never round/clamp to the requested end.
+    start,end,step=(float(time[key]) for key in ('start','end','step'))
+    if not all(math.isfinite(v) for v in (start,end,step)) or start<0 or end<=start or step<=0:
+        raise ValueError('유한한 시작·끝·양의 출력 간격을 초 단위로 입력하세요.')
+    times=[None,start]; current=start+step; boundary=end+0.1*step
+    if step>4*float.fromhex('0x1.0000000000000p-52') and current<boundary:
+        while current<=boundary:
+            if len(times)>=MAX_FRAMES: raise ValueError('계산 출력 시각이 허용 프레임 수를 넘습니다.')
+            times.append(current); following=current+step
+            if following<=current: raise ValueError('출력 간격으로 다음 시각을 구분할 수 없습니다.')
+            current=following
+    if count is not None and len(times)!=count:
+        raise ValueError('계산 프레임과 출력 시각의 수가 다릅니다. 실제 시각을 확정할 수 없어 경로에 시간을 붙이지 않았습니다. '
+            '예상 '+str(len(times))+' / 계산 '+str(count))
+    return times
 
 
 def _joint_label(joint):
@@ -467,8 +487,7 @@ class Motion:
         start, end, step = (_number(time[key], key, 0) for key in ('start', 'end', 'step'))
         if step <= 0 or end <= start or (end-start)/step > MAX_FRAMES-1:
             raise ValueError('Declare a positive output step and one to 2000 bounded intervals')
-        if abs((end-start)/step - round((end-start)/step)) > 1e-10:
-            raise ValueError('End-start must be an exact declared integer number of output steps')
+        native_frame_times(time)  # Includes the design and initial-condition frames in the bound.
         if type(definition['fps']) is not int or not 1 <= definition['fps'] <= 120: raise ValueError('Playback fps must be 1..120')
         tolerance = _number(definition['native_error_tolerance'], 'Native global error tolerance', 0)
         if tolerance <= 0: raise ValueError('Native error tolerance must be explicitly positive')
@@ -530,8 +549,9 @@ class Motion:
             'issues': (['억제된 관절입니다. 관절을 활성화하거나 구동 대상을 바꾸세요.'] if getattr(joint, 'Suppressed', False) else [])
                 + (['관절의 배치 참조가 없거나 여러 위치입니다. 해당 위치의 관절을 다시 선택하세요.'] if len(paths.get(joint.Name,[]))!=1 else [])}
             for joint in self._joints(assembly) if hasattr(joint, 'JointType')}
+        times=native_frame_times(definition['time'])
         formulas, issues = compile_drives(definition['drives'],
-            (definition['time']['start'], definition['time']['end']), joints)
+            (float(definition['time']['start']),max(float(definition['time']['end']),times[-1])), joints)
         if issues:
             raise ValueError('\n'.join(('구동 '+str(row+1)+'행: ' if row >= 0 else '') + '; '.join(messages)
                 for row,messages in sorted(issues.items())))
@@ -719,11 +739,23 @@ class Motion:
                                    'FreeCAD 계산 상태 ' + str(status) + '; 설계 자세를 복원했습니다.')
             count = assembly.numberOfFrames()
             if type(count) is not int or not 1 <= count <= MAX_FRAMES: raise ValueError('Native solver returned an invalid/unbounded frame count')
+            app=getattr(self.owner,'App',None)
+            version=tuple(app.Version()[:3]) if hasattr(app,'Version') else ('unknown',)
+            clock_error=None
+            try:
+                if version!=('1','1','4'): raise ValueError('이 FreeCAD 버전의 native 출력 시각 대응을 확인하지 않았습니다.')
+                times=native_frame_times(metadata['definition']['time'],count)
+            except ValueError as error:
+                times=[None]*count; clock_error=str(error); self._error=clock_error
             self._calculation = {'id': 'K' + uuid.uuid4().hex, 'assembly_id': assembly.Name,
                 'scene_sha256': scene, 'definition_sha256': _hash(metadata['definition']),
                 'native_definition_sha256': _hash(native_definition), 'frame_count': count,
                 'native_status': status, 'time': deepcopy(metadata['definition']['time']),
-                'clock': 'NATIVE_FRAME_INDEX; nominal output grid, not an exposed solver time array'}
+                'clock': NATIVE_CLOCK, 'frame_times':times,
+                'clock_source':{'native_version':'FreeCAD '+'.'.join(version),
+                    'mapping':'INPUT(no physical time), INITIALCONDITION(start), native repeated-addition output schedule; frame count verified' if clock_error is None else 'Unverified frame schedule; no physical time assigned',
+                    'solver_schedule_source':'https://github.com/FreeCAD/OndselSolver/blob/4be80eef02a3486cda0d78f3ccbb308d207a9639/OndselSolver/System.cpp',
+                    'source':PINNED_SOURCE,'complete':clock_error is None,'reason':clock_error}}
             self._restore(); self._state = 'CALCULATED'; self._frame = None
             self._path_result = None
             self._pending_summary = deepcopy(self._calculation)
@@ -752,7 +784,8 @@ class Motion:
             self._remember(); self._restore(); self._calculation = None
             self._state = 'FAILED'; self._error = str(error); raise
         return {'calculation_id': self._calculation['id'], 'frame': index,
-            'nominal_time': self._calculation['time']['start'] + index * self._calculation['time']['step'],
+            'time':self._calculation['frame_times'][index], 'frame_kind':'design' if index==0 else
+                'simulation' if self._calculation['clock_source']['complete'] else 'unknown',
             'time_unit': 's', 'clock': self._calculation['clock'], 'preview': True}
 
     def _play(self, assembly, direction):
@@ -987,13 +1020,15 @@ class Motion:
                 global_placement = world_placement(assembly,obj)
                 if global_placement is None: global_placement = self._api()[0].getGlobalPlacement((obj, ['']), obj)
                 position = global_placement.multVec(point)
-                rows.append({'frame': index, 'nominal_time': frame['nominal_time'], 'point': [float(position.x), float(position.y), float(position.z)]})
+                rows.append({'frame': index, 'time':frame['time'], 'frame_kind':frame['frame_kind'],
+                    'point': [float(position.x), float(position.y), float(position.z)]})
         finally:
             self._restore()
             if self._calculation: self._state = 'CALCULATED'
             self._frame = None
         result = {'calculation_id': self._calculation['id'], 'trace_id': trace['id'], 'coordinate_unit': 'mm',
                 'frame': 'document_global', 'clock': self._calculation['clock'], 'rows': rows,
+                'clock_source':deepcopy(self._calculation['clock_source']),
                 'total_frames': self._calculation['frame_count'], 'preview_restored': True,
                 'assembly_id': assembly.Name, 'trace': deepcopy(trace),
                 'document_id': getattr(self.owner, 'document_id', self.owner.doc.Name),

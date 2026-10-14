@@ -75,7 +75,7 @@ class Object:
 class Document:
     def __init__(self):
         self.Name, self.Objects, self.calls = 'Design', [], []
-        self.frames = [Placement(Vector(0)), Placement(Vector(4)), Placement(Vector(9))]
+        self.frames = [Placement(Vector(0)), Placement(Vector(4)), Placement(Vector(9)), Placement(Vector(12))]
         self.status, self.frame_error = 0, None
     def addObject(self, kind, name):
         stem, n = name, 1
@@ -126,7 +126,7 @@ class Owner:
         self.doc.owner = self
         self.preferences = Preferences()
         self.App = NS(Vector=Vector, Rotation=Rotation, Placement=Placement, GuiUp=False,
-                      ParamGet=lambda name: self.preferences)
+                      ParamGet=lambda name: self.preferences,Version=lambda:('1','1','4'))
         self.Gui, self.QtCore, self.transactions = NS(), NS(QTimer=Timer), []
     def assert_thread(self): pass
     def _object(self, name):
@@ -192,7 +192,7 @@ def setup():
                     'coordinate_unit': 'mm', 'output_frame': 'document_global'}]}
     motion.dispatch('pre.motion.configure', {'definition': definition}, target)
     # Controlled retained native-output fixture, restored after configure recompute.
-    owner.doc.frames = [Placement(Vector(0)), Placement(Vector(4)), Placement(Vector(9))]
+    owner.doc.frames = [Placement(Vector(0)), Placement(Vector(4)), Placement(Vector(9)), Placement(Vector(12))]
     return owner, motion, target, definition
 
 
@@ -204,15 +204,15 @@ def calculate(setup):
 
 def test_native_construct_calculate_frames_path_save_restores(setup):
     owner, motion, target, result = calculate(setup)
-    assert result['frame_count'] == 3 and result['native_status'] == 0
+    assert result['frame_count'] == 4 and result['native_status'] == 0
     assert _pose(owner.doc.moving.Placement) == [0, 0, 0, 0, 0, 0, 1]
     generation = owner.generation
     motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
     assert owner.doc.moving.Placement.Base.x == 9 and owner.generation == generation
     path = motion.dispatch('pre.motion.path', {'calculation_id': result['id'], 'trace_id': 'Tip', 'start': 0, 'count': 3}, target)
     assert [row['point'] for row in path['rows']] == [[1, 2, 0], [5, 2, 0], [10, 2, 0]]
-    assert [row['nominal_time'] for row in path['rows']] == [2, 2.5, 3]
-    assert 'not an exposed solver time array' in path['clock']
+    assert [row['time'] for row in path['rows']] == [None, 2, 2.5]
+    assert result['frame_times']==[None,2,2.5,3]
     assert motion.descriptor()['path'] == path
     assert owner.doc.moving.Placement.Base.x == 0
     motion.before_design_action('save')
@@ -220,7 +220,7 @@ def test_native_construct_calculate_frames_path_save_restores(setup):
     assert owner.metadata['motion']['last_completed']['path'] == path
     reopened = Motion(owner)
     assert reopened.descriptor()['state'] == 'UNCOMPUTED'
-    assert reopened.descriptor()['definition']['last_completed']['frame_count'] == 3
+    assert reopened.descriptor()['definition']['last_completed']['frame_count'] == 4
 
 
 @pytest.mark.parametrize('action', ['pre.motion.stop', 'pre.motion.cancel'])
@@ -240,7 +240,7 @@ def test_play_pause_completion_and_close_restore(setup):
     motion.dispatch('pre.motion.pause', {}, target)
     assert not motion._timer.active and motion.descriptor()['preview']
     motion.dispatch('pre.motion.play', {'calculation_id': result['id'], 'direction': 1}, target)
-    for _ in range(3): motion._timer.callback()
+    for _ in range(result['frame_count']): motion._timer.callback()
     assert motion.descriptor()['state'] == 'COMPLETED'
     assert owner.doc.moving.Placement.Base.x == 0 and not motion._timer.active
     motion.close(); assert motion.descriptor()['calculation'] is None
@@ -298,7 +298,7 @@ def test_only_explicit_adopt_changes_design_and_preserves_preferences(setup):
     assert owner.doc.moving.Placement.Base.x == 4
 
 
-@pytest.mark.parametrize('field,value,match', [('time', {'start': 0,'end': 1,'step': .3,'unit':'s'}, 'integer'),
+@pytest.mark.parametrize('field,value,match', [('time', {'start': 0,'end': 1,'step': 0,'unit':'s'}, 'positive'),
     ('time', {'start':0,'end':100,'step':.001,'unit':'s'}, 'bounded'), ('fps', True, 'fps'),
     ('native_error_tolerance', 0., 'positive')])
 def test_explicit_definition_budget_and_units(setup, field, value, match):
@@ -383,7 +383,7 @@ def test_injected_qt_actual_frame_receipt_and_path(qt_panel):
     panel._send('pre.motion.calculate', {})
     op, args, selected, done = queued[-1]
     done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
-    assert panel.frame.maximum() == 2 and '계산 프레임 3' in panel.status.text()
+    assert panel.frame.maximum() == 3 and '계산 프레임 4' in panel.status.text()
     panel.frame.setValue(2); panel._send('pre.motion.frame', panel._frame_args())
     op, args, selected, done = queued[-1]
     assert args['frame'] == 2 and args['calculation_id'] == motion.descriptor()['calculation']['id']

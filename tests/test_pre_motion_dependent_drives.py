@@ -30,7 +30,7 @@ def test_declared_source_degree_relation_compiles_before_native_conversion_and_o
     assert cold.descriptor()['calculation'] is None and owner.metadata['motion']['definition']==original
     owner.doc.frames=recorded  # native-output double was invalidated by configure
     calc=motion.dispatch('pre.motion.calculate',{},target)
-    assert calc['frame_count']==3
+    assert calc['frame_count']==4
 
 
 @pytest.mark.parametrize('fault,match',[('cycle','순환'),('missing','기준 관절'),('unit','단위'),('duplicate','중복'),('ratio','유한'),('limit','전구간'),('reversed','하한')])
