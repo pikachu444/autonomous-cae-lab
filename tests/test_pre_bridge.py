@@ -111,6 +111,31 @@ def request(native,operation='pre.set_property',arguments=None,target=None,**ove
         'target':target if target is not None else {'object_id':'Pad'},**overrides}
 
 
+def test_mesh_comparison_routes_without_design_change(native, monkeypatch):
+    from apps.desktop_pre import mesh_quality_compare
+    from caelab.native_commands import CAPABILITIES
+    mesh = Object(native.doc, 'MeshGmsh', 'Fem::FemMeshGmsh')
+    native.doc.Objects.append(mesh)
+    calls = []
+    def compare(editor, selected, history_id, expected_hash):
+        calls.append((editor, selected, history_id, expected_hash))
+        return {'history_id': history_id, 'mesh_id': selected.Name}
+    monkeypatch.setattr(mesh_quality_compare, 'compare_mesh_quality', compare)
+    def reject_design_change(operation):
+        raise AssertionError('A quality comparison must not change the design')
+    native.owner.before_design_action = reject_design_change
+    generation = native.owner.generation
+    response = native.owner.dispatch(request(native, 'pre.fem.mesh_compare',
+        {'history_id': 'Gprevious', 'mesh_sha256': 'a' * 64}, {'object_id': mesh.Name}))
+    assert 'pre.fem.mesh_compare' in CAPABILITIES['pre']
+    assert response['status'] == 'COMPLETED', response
+    assert calls == [(native.owner.fem, mesh, 'Gprevious', 'a' * 64)]
+    assert native.owner.generation == generation and native.doc.transactions == []
+    invalid = native.owner.dispatch(request(native, 'pre.fem.mesh_compare',
+        {'history_id': 'Gprevious'}, {'object_id': mesh.Name}, command_id='Cinvalid'))
+    assert invalid['status'] == 'FAILED' and len(calls) == 1
+
+
 def test_human_changes_observer_lifecycle_and_saved_state(native):
     owner=native.owner
     assert owner in native.app.observers
