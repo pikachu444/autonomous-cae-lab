@@ -14,32 +14,41 @@ def add_steps_page(panel, W, C):
         def paintEvent(self, event):
             painter = G.QPainter(self)
             painter.fillRect(self.rect(),self.palette().base())
-            r = self.rect().adjusted(55,15,-20,-35)
-            painter.setPen(self.palette().text().color())
-            painter.drawLine(r.bottomLeft(),r.bottomRight())
-            painter.drawLine(r.bottomLeft(),r.topLeft())
-            painter.drawText(5,18,self.unit)
-            painter.drawText(55,self.height()-8,self.axis_label)
+            metrics = painter.fontMetrics()
+            line = metrics.height()
             try:
                 points = [(float(x),float(y)) for x,y in self.points]
-                if not points or any(not math.isfinite(x) or not math.isfinite(y) for x,y in points):
-                    return
+                if any(not math.isfinite(x) or not math.isfinite(y) for x,y in points):
+                    points = []
+            except (ValueError,TypeError):
+                points = []
+            left = 55
+            if points:
                 xmin,xmax = min(x for x,y in points),max(x for x,y in points)
                 ymin,ymax = min(y for x,y in points),max(y for x,y in points)
                 if xmax==xmin: xmax=xmin+1
                 if ymax==ymin: ymax=ymin+1
-                painter.drawText(2,r.top()+12,format(ymax,'.5g'))
-                painter.drawText(2,r.bottom(),format(ymin,'.5g'))
-                painter.drawText(r.left(),r.bottom()+16,format(xmin,'.5g'))
-                painter.drawText(r.right()-45,r.bottom()+16,format(xmax,'.5g'))
+                ytop,ybottom = format(ymax,'.5g'),format(ymin,'.5g')
+                left = max(55,metrics.horizontalAdvance(ytop)+16,metrics.horizontalAdvance(ybottom)+16)
+            # Font-sized margins keep scientific notation and units apart at desktop scaling.
+            r = self.rect().adjusted(left,line+12,-20,-(2*line+18))
+            painter.setPen(self.palette().text().color())
+            painter.drawLine(r.bottomLeft(),r.bottomRight())
+            painter.drawLine(r.bottomLeft(),r.topLeft())
+            painter.drawText(8,metrics.ascent()+4,self.unit)
+            painter.drawText(r.left(),self.height()-5,self.axis_label)
+            if points:
+                painter.drawText(r.left()-8-metrics.horizontalAdvance(ytop),r.top()+metrics.ascent(),ytop)
+                painter.drawText(r.left()-8-metrics.horizontalAdvance(ybottom),r.bottom(),ybottom)
+                painter.drawText(r.left(),r.bottom()+line+2,format(xmin,'.5g'))
+                xtop = format(xmax,'.5g')
+                painter.drawText(r.right()-metrics.horizontalAdvance(xtop),r.bottom()+line+2,xtop)
                 pen = G.QPen(self.palette().highlight().color()); pen.setWidthF(2.)
                 painter.setPen(pen)
                 xy = [C.QPointF(r.left()+(x-xmin)*r.width()/(xmax-xmin),
                       r.bottom()-(y-ymin)*r.height()/(ymax-ymin)) for x,y in points]
                 for a,b in zip(xy,xy[1:]): painter.drawLine(a,b)
                 for p in xy: painter.drawEllipse(p,3.,3.)
-            except (ValueError,TypeError):
-                pass
 
     class Page(W.QWidget):
         keys = ('label','duration','initial','minimum','maximum','increments','output_frequency')

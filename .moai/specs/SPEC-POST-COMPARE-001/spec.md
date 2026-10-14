@@ -58,3 +58,8 @@ Keep native ParaView and the existing Qt controls; do not create another app or 
 Unsupported element families or physical measure conversions remain explicit requirements
 with named limitations, not silent scope deletions. Do not replace meaningful transforms with
 forms whose only action is an unsupported message. Deliver useful end-to-end supported paths.
+
+## Out of Scope
+
+- Replacing native FreeCAD/ParaView, existing job/result owners or completed scalar mapping.
+- New solver calculations, paid services and historical full benchmark campaigns.
