@@ -19,6 +19,9 @@ BASIS = 'CalculiX master-face local normal/tangents; projected nodal values; exa
 
 def read_dat(path, pairs, frames, *, prefix=False):
     """Read complete CF/CFN/CFS triples in frozen request order, retaining raw signs."""
+    pairs = [p for p in pairs if p['draft']['normal_law'] != 'tie']
+    if not pairs:
+        return []  # TIE is an MPC; no CONTACT PRINT request was made.
     text = _read(path).decode('ascii').replace('\r\n', '\n')
     lines = text.splitlines()
     requests = [(pair['object_id'], key) for pair in pairs for key in ('CF', 'CFN', 'CFS')]
@@ -141,6 +144,8 @@ def geometric_gaps(model, frame, *, subdivisions=4):
     elements = {row['element_id']: row['node_ids'] for row in model['elements']}
     result = []
     for pair in model['contacts']:
+        if pair['draft']['normal_law'] == 'tie':
+            continue
         triangles, sources = [], []
         for e, face in pair['b']['element_faces']:
             points = np.asarray([nodes[elements[e][slot]] for slot in FACES[face]])
@@ -200,7 +205,10 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
     elements = {row['element_id']: row['node_ids'] for row in model['elements']}
     body_numbers = {name: i+1 for i, name in enumerate(sorted(model['body_maps']))}
     membership = {n: [] for n in node_ids}
+    has_contact = any(p['draft']['normal_law'] != 'tie' for p in model['contacts'])
     for pair in model['contacts']:
+        if pair['draft']['normal_law'] == 'tie':
+            continue
         for n in surface_nodes(pair['a'], elements):
             membership[n].append(pair['object_id'])
     arrays = []
@@ -216,12 +224,21 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             ('NativeElementId','CELLS','calculix_export_element_identity'),
             ('SourceNodeId','POINTS','body_local_freecad_node_identity'), ('SourceElementId','CELLS','body_local_freecad_element_identity'),
             ('BodyIndex','POINTS','retained_body_identity'), ('ElementBodyIndex','CELLS','retained_body_identity'),
-            ('FixedXYZ_input','POINTS','input_classification'), ('LoadedNode_input','POINTS','input_classification'),
-            ('SlavePairCount','POINTS','contact_input_membership'), ('CONTACT_valid','POINTS','native_contact_record_validity'), ('GeomGap_valid','POINTS','derived_value_validity')]:
+            ('FixedXYZ_input','POINTS','input_classification'), ('LoadedNode_input','POINTS','input_classification')]:
         declared(key, '1', meaning, association, frame='not_applicable')
-    for index, key in enumerate(CHANNELS):
+    if has_contact:
+        for key, meaning in [('SlavePairCount','contact_input_membership'), ('CONTACT_valid','native_contact_record_validity'), ('GeomGap_valid','derived_value_validity')]:
+            declared(key, '1', meaning, frame='not_applicable')
+    for index, key in enumerate(CHANNELS if has_contact else ()):
         declared(key, 'mm' if index < 3 else 'MPa', 'solver_exported_nodal_contact_' + key, frame=BASIS)
-    declared('GeomGap_mm', 'mm', 'derived_piecewise_linear_geometric_gap', frame='master_normal')
+    if has_contact:
+        declared('GeomGap_mm', 'mm', 'derived_piecewise_linear_geometric_gap', frame='master_normal')
+    field_specs = [('FORC', 'F', 'N', 'nodal_force', ('X', 'Y', 'Z')),
+                   ('STRESS', 'S', 'MPa', 'cauchy_stress', ('XX', 'YY', 'ZZ', 'XY', 'YZ', 'ZX'))]
+    for native, prefix, unit, measure, components in field_specs:
+        if all(native in frame['fields'] for frame in frames):
+            for component in components:
+                declared(prefix+component+'_'+unit, unit, measure)
     collection = ET.Element('VTKFile', type='Collection', version='0.1', byte_order='LittleEndian')
     group = ET.SubElement(collection, 'Collection')
     for index, frame in enumerate(frames):
@@ -235,14 +252,19 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             valid = len(rows) == 1 and rows[0]['quality_valid']
             gap_values.append(rows[0]['value_mm'] if valid else math.nan)
             gap_valid.append(int(valid))
-        extra = {key: [frame['fields']['CONTACT'].get(n, [None]*6)[j]
-                       if frame['fields']['CONTACT'].get(n, [None]*6)[j] is not None else math.nan
-                       for n in node_ids] for j, key in enumerate(CHANNELS)}
-        extra['CONTACT_valid'] = [int(n in frame['fields']['CONTACT'] and
-                                     all(v is not None for v in frame['fields']['CONTACT'][n])) for n in node_ids]
+        contact = frame['fields'].get('CONTACT', {})
+        extra = {key: [contact.get(n, [None]*6)[j]
+                       if contact.get(n, [None]*6)[j] is not None else math.nan
+                       for n in node_ids] for j, key in enumerate(CHANNELS if has_contact else ())}
+        if has_contact:
+            extra.update(CONTACT_valid=[int(n in contact and all(v is not None for v in contact[n])) for n in node_ids],
+                         SlavePairCount=[len(membership[n]) for n in node_ids], GeomGap_mm=gap_values, GeomGap_valid=gap_valid)
+        for native, prefix, unit, measure, components in field_specs:
+            if all(native in f['fields'] for f in frames):
+                for j, component in enumerate(components):
+                    extra[prefix+component+'_'+unit] = [frame['fields'][native][n][j] for n in node_ids]
         extra.update(SourceNodeId=[r['native_node_id'] for r in node_rows],
-            BodyIndex=[body_numbers[r['body_id']] for r in node_rows],
-            SlavePairCount=[len(membership[n]) for n in node_ids], GeomGap_mm=gap_values, GeomGap_valid=gap_valid)
+            BodyIndex=[body_numbers[r['body_id']] for r in node_rows])
         boundary = {(row['node_id'], row['component']) for row in model['boundary_dofs'] if row['value_mm'] == 0}
         raw = {'nodes': [{**row, 'displacement_mm': frame['fields']['DISP'][row['node_id']]} for row in node_rows],
             'elements': model['elements'], 'loads': model['loads'],
@@ -257,10 +279,10 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
         ET.SubElement(group, 'DataSet', timestep=format(frame['static']['load_parameter'], '.17g'), group='', part='0', file=path.name)
         save_json(folder / (path.stem + '.json'), {'static': frame['static'],
             'step_location': frame.get('step_location'),
-            'contact': [{'node_id': n, 'pair_membership': membership[n], 'values': frame['fields']['CONTACT'].get(n),
+            'contact': [{'node_id': n, 'pair_membership': membership[n], 'values': contact.get(n),
                          'raw_tokens': frame.get('contact_tokens', {}).get(n),
-                         'record_present': n in frame['fields']['CONTACT']} for n in node_ids],
-            'channels': list(CHANNELS), 'basis': BASIS, 'nodal_projection': 'native_slave_face_projection_and_shared_node_average',
+                         'record_present': n in contact} for n in node_ids],
+            'channels': list(CHANNELS) if has_contact else [], 'basis': BASIS, 'nodal_projection': 'native_slave_face_projection_and_shared_node_average',
             'gap': gaps, 'active_state': 'UNKNOWN',
             'pair_resultants': [row for row in pair_results if row['static'] == frame['static']]})
     ET.ElementTree(collection).write(folder / 'contact.pvd', encoding='utf-8', xml_declaration=True)
@@ -270,7 +292,7 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             'static': None, 'time': {'unit': axis(model)['unit'], 'semantics': axis(model)['semantics'],
                                      'values': [frame['static']['load_parameter'] for frame in frames]},
             'arrays': arrays}
-    if provenance is not None:
+    if provenance is not None and has_contact:
         metadata['contact_inspection'] = _inspection_bundle(folder, model, frames, provenance, metadata, execution)
     return metadata
 
@@ -288,6 +310,8 @@ def _inspection_bundle(folder, model, frames, provenance, metadata, execution):
     elements = {row['element_id']: row for row in model['elements']}
     pairs, faces, surface_ids, element_ids, face_ids = [], [], [], [], []
     for index, original in enumerate(model['contacts']):
+        if original['draft']['normal_law'] == 'tie':
+            continue
         pair = {'id': original['object_id'], 'label': original.get('draft', {}).get('label') or 'Contact ' + str(index + 1)}
         for side_index, side in enumerate(('a', 'b')):
             surface = deepcopy(original[side])

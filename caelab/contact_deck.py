@@ -25,6 +25,14 @@ def contact_cards(pair):
     errors = law_errors(draft)
     if errors:
         raise ValueError('; '.join(row['message'] for row in errors))
+    if draft['normal_law'] == 'tie':
+        lines = []
+        for side, prefix in [('a', 'TIE_DEP'), ('b', 'TIE_IND')]:
+            lines.append('*SURFACE, NAME=' + prefix + identifier)
+            lines.extend(str(element) + ',S' + str(face) for element, face in pair[side]['element_faces'])
+        lines.extend(['*TIE, POSITION TOLERANCE=' + num(draft['tie_tolerance_mm']) +
+                      ', ADJUST=NO, NAME=TIE' + identifier, 'TIE_DEP' + identifier + ', TIE_IND' + identifier])
+        return '\n'.join(lines) + '\n'
     lines = []
     for side, prefix in [('a', 'DEP'), ('b', 'IND')]:
         lines.append('*SURFACE, NAME=' + prefix + identifier)
@@ -135,6 +143,14 @@ def validate_model(model):
         loads[key] = value
     if not boundaries or ('analysis_steps' not in model and not (any(value != 0 for value in loads.values()) or any(value != 0 for value in boundaries.values()))):
         raise ValueError('Provide explicit restraints and a nonzero force or prescribed displacement')
+    dependent = set()
+    for pair in model['contacts']:
+        if pair['draft']['normal_law'] != 'tie':
+            continue
+        slave = {elements[e][slot] for e, face in pair['a']['element_faces'] for slot in FACES[face]}
+        if slave & dependent or any(n in slave for n, d in boundaries):
+            raise ValueError('묶음 A면의 절점은 다른 묶음의 종속 절점이나 변위 구속과 겹칠 수 없습니다. A/B 또는 구속 면을 다시 선택하세요.')
+        dependent.update(slave)
     step = model['step']
     times = [number(step[key]) for key in ('initial', 'period', 'minimum', 'maximum')]
     if any(value <= 0 for value in times) or not times[2] <= times[0] <= min(times[1], times[3]):
@@ -206,8 +222,14 @@ def render(model):
     if model['loads']:
         lines.append('*CLOAD')
         lines += [str(row['node_id']) + ',' + str(row['component']) + ',' + num(row['force_N']) for row in model['loads']]
-    lines.extend(['*NODE FILE', 'U', '*CONTACT FILE', 'CDIS,CSTR'])
-    for pair in model['contacts']:
+    has_tie = any(pair['draft']['normal_law'] == 'tie' for pair in model['contacts'])
+    lines.extend(['*NODE FILE', 'U,RF' if has_tie else 'U'])
+    if has_tie:
+        lines.extend(['*EL FILE', 'S'])
+    contact_pairs = [pair for pair in model['contacts'] if pair['draft']['normal_law'] != 'tie']
+    if contact_pairs:
+        lines.extend(['*CONTACT FILE', 'CDIS,CSTR'])
+    for pair in contact_pairs:
         identifier = pair['object_id']
         # Preserve this order: 2.22 writes indistinguishable headings for these three requests.
         lines.extend(['*CONTACT PRINT,SLAVE=DEP' + identifier + ',MASTER=IND' + identifier, 'CF,CFN,CFS'])

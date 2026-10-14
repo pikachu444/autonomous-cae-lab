@@ -12,12 +12,13 @@ def add_contact_page(panel, W, C):
             self.pair.currentIndexChanged.connect(self.load_pair)
             layout.addWidget(self.pair)
             form = W.QFormLayout()
+            self.form = form
             form.setVerticalSpacing(3)
             self.label = W.QLineEdit('접촉')
             self.label.setObjectName('contactName')
             form.addRow('이름', self.label)
             self.sides = {}
-            for side, label in [('a', 'A 면 (slave)'), ('b', 'B 면 (master)')]:
+            for side, label in [('a', 'A 면 (종속)'), ('b', 'B 면 (기준)')]:
                 row = W.QHBoxLayout()
                 combo = W.QComboBox()
                 combo.setObjectName('contactSide' + side.upper())
@@ -30,15 +31,18 @@ def add_contact_page(panel, W, C):
             self.fields = {}
             choices = {
                 'normal_law': [('법칙 선택', None), ('선형 압력–침투', 'linear'),
-                               ('강체 접촉 (미지원)', 'hard'), ('응집 법칙 (미지원)', 'cohesive')],
-                'tangential_law': [('법칙 선택', None), ('마찰 없음', 'frictionless'), ('쿨롱 마찰', 'coulomb')],
+                               ('묶음 접촉', 'tie'),
+                               ('비관통 접촉 (미지원)', 'hard'), ('응집 법칙 (미지원)', 'cohesive')],
+                'tangential_law': [('법칙 선택', None), ('마찰 없음', 'frictionless'), ('쿨롱 마찰', 'coulomb'), ('상대 미끄럼 구속', 'tied')],
+                'tie_adjust': [('원래 절점 위치 유지', False), ('절점 투영 (미지원)', True)],
                 'gap_policy': [('실제 형상', 'geometry'), ('균일한 설정 간극', 'prescribed')],
                 'normal': [('고체 바깥쪽 법선', 'outward_solid'), ('법선 반전 (미지원)', 'reversed')],
                 'sliding': [('면 대 면', 'surface_to_surface'), ('작은 미끄럼 (미지원)', 'small')],
                 'step': [('전체 단계', 'Step1')],
                 'activation': [('전체 단계 유지', 'whole_step'), ('단계 중간 활성화 (미지원)', 'interval')],
             }
-            labels = [('normal_law', '법선 법칙'), ('normal_stiffness_MPa_per_mm', '법선 강성 [MPa/mm]'),
+            labels = [('normal_law', '접촉 법칙'), ('normal_stiffness_MPa_per_mm', '법선 강성 [MPa/mm]'),
+                ('tie_tolerance_mm', '묶음 허용거리 [mm]'), ('tie_adjust', '절점 위치'),
                 ('tangential_law', '마찰 법칙'), ('friction_coefficient', '마찰계수'),
                 ('stick_stiffness_MPa_per_mm', '접선 강성 [MPa/mm]'), ('gap_policy', '간극 정책'),
                 ('nominal_gap_mm', '설정 간극 [mm]'), ('adjustment_mm', '절점 조정 [mm] (미지원)'),
@@ -56,6 +60,10 @@ def add_contact_page(panel, W, C):
                 widget.setObjectName('contact_' + key)
                 self.fields[key] = widget
                 form.addRow(label, widget)
+            self.fields['normal_law'].currentIndexChanged.connect(self.law_changed)
+            self.fields['tangential_law'].currentIndexChanged.connect(self.dependencies)
+            self.fields['tie_tolerance_mm'].setToolTip('A면의 절점을 B면에 연결할 최대 거리입니다. 초기 간극이나 절점 이동량이 아닙니다.')
+            self.fields['tie_adjust'].setToolTip('ADJUST=NO로 원래 절점 위치를 유지합니다. Adjust 투영과 주기대칭은 지원하지 않습니다.')
             self.label.textEdited.connect(panel._edited)
             layout.addLayout(form)
             row = W.QHBoxLayout()
@@ -70,11 +78,46 @@ def add_contact_page(panel, W, C):
             self.diagnostics.setObjectName('contactDiagnostics')
             self.diagnostics.itemActivated.connect(self.focus_error)
             layout.addWidget(self.diagnostics, 1)
+            layout.addStretch(1)
             panel.tabs.addTab(self, '접촉')
+            self.dependencies()
+
+        def law_changed(self, *unused):
+            if not self.loading:
+                tangent = self.fields['tangential_law']
+                if self.fields['normal_law'].currentData() == 'tie':
+                    self._linear_tangent = tangent.currentData()
+                    tangent.setCurrentIndex(tangent.findData('tied'))
+                elif tangent.currentData() == 'tied':
+                    tangent.setCurrentIndex(max(0, tangent.findData(getattr(self, '_linear_tangent', None))))
+            self.dependencies()
+
+        def dependencies(self, *unused):
+            tied = self.fields['normal_law'].currentData() == 'tie'
+            friction = self.fields['tangential_law'].currentData() == 'coulomb'
+            for key in ('tie_tolerance_mm', 'tie_adjust'):
+                self.form.setRowVisible(self.fields[key], tied)
+            for key in ('normal_stiffness_MPa_per_mm', 'gap_policy', 'nominal_gap_mm',
+                        'adjustment_mm', 'normal', 'sliding'):
+                widget = self.fields[key]
+                neutral = {'gap_policy':'geometry', 'nominal_gap_mm':'', 'adjustment_mm':'0',
+                           'normal':'outward_solid', 'sliding':'surface_to_surface'}
+                value = widget.currentData() if isinstance(widget, W.QComboBox) else widget.text()
+                nonneutral = key in neutral and value != neutral[key]
+                self.form.setRowVisible(widget, not tied or nonneutral)
+            self.fields['tangential_law'].setEnabled(not tied)
+            self.form.labelForField(self.fields['tangential_law']).setText('상대 운동' if tied else '마찰 법칙')
+            for key in ('step','activation'):
+                self.form.setRowVisible(self.fields[key], not tied)
+            self.fields['tie_adjust'].setToolTip('원래 절점 위치를 유지하고 모든 해석 단계에서 연결합니다. 절점 투영과 주기대칭은 지원하지 않습니다.')
+            for key in ('friction_coefficient', 'stick_stiffness_MPa_per_mm'):
+                self.form.setRowVisible(self.fields[key], not tied)
+                self.fields[key].setEnabled(not tied and friction)
 
         def edited(self):
             if not self.loading:
                 panel._edited()
+                self.dependencies()
 
         def selected(self):
             return next((row for row in self.rows if row['object_id'] == self.pair.currentData()), None)
@@ -99,7 +142,9 @@ def add_contact_page(panel, W, C):
                 return
             from caelab.contact import default_contact
             selected = self.selected()
-            draft = selected['draft'] if selected else default_contact()
+            draft = default_contact()
+            if selected:
+                draft.update(selected['draft'])
             self.loading = True
             try:
                 self.label.setText(draft['label'])
@@ -120,8 +165,10 @@ def add_contact_page(panel, W, C):
                     item = W.QListWidgetItem(error['message'])
                     item.setData(256, error['path'])
                     self.diagnostics.addItem(item)
+                self.diagnostics.setVisible(self.diagnostics.count() > 0)
             finally:
                 self.loading = False
+                self.dependencies()
 
         def focus_error(self, item):
             path = item.data(256)
@@ -155,7 +202,7 @@ def add_contact_page(panel, W, C):
                     self.pair.blockSignals(blocked)
                     if untouched:
                         self.load_pair()
-                panel.status.setPlainText('Contact draft applied. Save uses the native project; Run checks faces, mesh and effective law.')
+                panel.status.setPlainText('접촉 설정을 적용했습니다. 프로젝트를 저장하거나 입력을 생성해 확인하세요.')
             panel._send('pre.contact.set', {'draft': self.draft()}, identifier, on_done=done)
 
         def capture(self, side):

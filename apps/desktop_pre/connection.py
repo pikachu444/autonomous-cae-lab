@@ -235,7 +235,7 @@ class Connection:
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
                 'document_id': owner.document_id, 'session_id': owner.session_id,
                 'generation': owner.generation, 'export_only': bool(export_only),
-                'operation': 'pre.contact.freeze' if any(femutils.type_of_obj(obj) == 'Fem::ConstraintContact'
+                'operation': 'pre.contact.freeze' if any(femutils.type_of_obj(obj) in ('Fem::ConstraintContact', 'Fem::ConstraintTie')
                     and not getattr(obj, 'Suppressed', False) for obj in selected.Group) else 'pre.freeze',
                 'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
             self.send_command()
