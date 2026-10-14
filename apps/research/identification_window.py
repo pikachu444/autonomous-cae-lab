@@ -35,24 +35,37 @@ class IdentificationWindow(QDialog):
         root.addWidget(self.question)
         self.note=QPlainTextEdit();self.note.setPlaceholderText('미식별 조합을 구분할 조건과 판단 근거')
         self.note.setMaximumHeight(110);root.addWidget(self.note)
-        row=QHBoxLayout();self.keep=QPushButton('연구 기록에 저장');self.keep.clicked.connect(self.save_study);row.addWidget(self.keep)
-        report=QPushButton('보고서 만들기…');report.clicked.connect(self.open_report);row.addWidget(report)
+        row=QHBoxLayout()
+        self.reload_result=QPushButton('결과 다시 읽기');self.reload_result.clicked.connect(self._read);row.addWidget(self.reload_result)
+        self.keep=QPushButton('연구 기록에 저장');self.keep.clicked.connect(self.save_study);row.addWidget(self.keep)
+        self.report=QPushButton('보고서 만들기…');self.report.clicked.connect(self.open_report);row.addWidget(self.report)
         close=QPushButton('닫기');close.clicked.connect(self.reject);row.addWidget(close);root.addLayout(row)
         self.message=QLabel('고정 계수는 식별 성공으로 세지 않습니다.');self.message.setWordWrap(True);root.addWidget(self.message)
+        self._update_actions()
         self._read()
+
+    def _update_actions(self):
+        idle=not self._workers and not self._closed
+        readable=self._payload is not None and self._payload[2].get('kind')=='fit'
+        self.reload_result.setEnabled(idle)
+        self.keep.setEnabled(idle and readable)
+        self.report.setEnabled(idle and readable)
 
     def _run(self,fn,callback):
         if self._workers or self._closed:return False
         self._callback=callback
         worker=_Read(fn);self._workers.append(worker)
         worker.signals.finished.connect(self._finished,Qt.ConnectionType.QueuedConnection)
-        self.keep.setEnabled(False);QThreadPool.globalInstance().start(worker);return True
+        self._update_actions();QThreadPool.globalInstance().start(worker);return True
 
     @Slot(object,object)
     def _finished(self,value,error):
-        self._workers=[];self.keep.setEnabled(True)
+        self._workers=[]
         if self._closed:return
-        if error:self.message.setText('읽기/저장 실패. 입력은 유지됩니다. '+str(error))
+        self._update_actions()
+        if error:
+            if self._payload is None:self.summary.setText('저장된 피팅 결과를 읽지 못했습니다.')
+            self.message.setText('읽기/저장 실패. 입력은 유지됩니다. 결과 다시 읽기 또는 같은 저장을 다시 시도하세요. '+str(error))
         else:self._callback(value)
 
     def _read(self):
@@ -66,6 +79,7 @@ class IdentificationWindow(QDialog):
 
     def show_result(self,payload):
         self._payload=payload
+        self._update_actions()
         _,run,result,_=payload
         if result.get('kind')!='fit':
             self.summary.setText('선택한 계산은 피팅 결과가 아닙니다.');self.keep.setEnabled(False);return
@@ -93,7 +107,8 @@ class IdentificationWindow(QDialog):
             self.summary.setText('최종 피팅점: 독립 방향 '+str(diagnosis['jacobian_rank'])+' / '+str(diagnosis['coefficient_count'])+
                 '\n명시한 탐색범위로 정규화한 잔차 Jacobian SVD. 전역 유일성과 측정 불확실성은 미확인입니다.')
         else:self.summary.setText('이 결과에는 완전한 식별 진단이 없습니다. '+str(diagnosis.get('reason','재계산하지 않았습니다.')))
-        self.figure.tight_layout();self.canvas.draw_idle()
+        self.figure.tight_layout();self.canvas.draw()
+        self.message.setText('고정 계수는 식별 성공으로 세지 않습니다. 다음 시험 질문과 판단 근거를 작성하세요.')
 
     def save_study(self):
         if not self._payload or self._workers:return
