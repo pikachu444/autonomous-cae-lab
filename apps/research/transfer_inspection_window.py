@@ -84,6 +84,7 @@ class TransferInspectionWindow(QDialog):
         if not selection:return
         self.table.setRowCount(0);self._rows=[];self.figure.clear();self.canvas.draw_idle()
         self.previous.setEnabled(False);self.next.setEnabled(False);self.page.clear()
+        self.status.setToolTip('')
         self.status.setText('선택한 전달값을 읽는 중…')
         start=self._start
         self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id,*selection,start=start),self._show)
