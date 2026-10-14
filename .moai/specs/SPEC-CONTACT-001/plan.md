@@ -1,5 +1,11 @@
 # Implementation sequence
 
+2026-10-14 reuse input: [ada-py and WELSIM findings](../../../docs/PREPOST_REUSE.md#2026-10-14-추가-조사-ada-py와-welsim)
+map existing FN14/FN15 work to contact-side selection, law-specific controls and
+load-step tables. Reuse the documented interaction pattern and eligible public
+examples; WELSIM is not a runtime dependency. ada-py remains a narrow, unintegrated
+file-format candidate. This does not reopen completed work or replace CURRENT_STATE.
+
 The current Expert assignment continues first. Actual Pro writes the subsequent
 contact feature's code, tests and usage instructions; Codex integrates shared
 contracts and Windows execution, with Astra reviewing the meaningful physical

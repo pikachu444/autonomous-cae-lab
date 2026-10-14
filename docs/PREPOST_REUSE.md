@@ -2,6 +2,57 @@
 
 조사일: 2026-10-08. 범위: 저장소 코드와 ADR, 공식 upstream 문서, 현재 Windows 배포물 정보. 이 문서는 구현 또는 제품 수락 판정이 아니라 `PREPOST_APP_SPEC.md`의 선택 근거다. 현재 세션의 GUI 실행·조작·재시작 검증은 root 소유의 `PREPOST_VERIFICATION.md`에 따로 기록한다.
 
+## 2026-10-14 추가 조사: ada-py와 WELSIM
+
+현재 구현을 통째로 교체하지 않고, 남은 전후처리 작업에 재사용할 부분을 조사했다.
+[ada-py 소스 조사](research/20261014-adapy.md)와
+[WELSIM 화면·작업 조사](research/20261014-welsim-workflows.md)에 세부 근거와 코드 연결을 둔다.
+아래는 채택 방향이며, 패키지 설치·제품 통합·native 실행을 마쳤다는 뜻이 아니다.
+
+| 자료 | 실제로 활용할 부분 | 적용할 기존 작업 | 결정 |
+|---|---|---|---|
+| ada-py | 빔·셸 구조 모델, 단면·재료·집합, 메시와 FE 입출력 구현 | FN12-02, FN15-02 | 필요한 카드만 읽고 쓰는 선택형 adapter 후보. 현재 FreeCAD 편집기·JobManager·ParaView를 교체하지 않는다. Windows 설치와 보존되는 카드 범위 확인 뒤 채택한다. |
+| WELSIM 공식 화면·설명 | 객체 선택과 속성/3D/표/그래프 연결, 접촉 양쪽 면 선택, 해석 단계표, 결과 종류·성분·시각 선택 | FN14-01/02, FN15-01, FN27-01 | 해당 기능의 다음 구현에 작업 흐름을 적용한다. 이미지·브랜드·비공개 코드를 복제하지 않는다. 결과 선택 UI는 FN28-02의 좌표·단위·벡터/텐서 변환 구현을 대체하지 않는다. |
+| WelSimAutoTests | 접촉·하중·솔버 선택 등 실제 조작 순서가 적힌 XML | FN14-01/02, FN15-01/02, FN16-01 | Apache-2.0 자료를 읽어 사용자 시나리오와 필요한 입력을 구체화한다. WELSIM 전용 재생기를 우리 무료 실행 환경에 포함하지 않는다. |
+| CalculiX-Examples | 접촉·비선형 단계의 공개 입력과 후처리 예제 | FN14-02, FN15-01/02 | MIT 예제의 카드/출력 요청을 참고한다. 기능 구현 후 필요한 작은 예제만 원 출처와 라이선스를 보존해 재사용한다. 전체 예제 실행을 선행조건으로 추가하지 않는다. |
+
+다음 전처리 구현의 순서는 **접촉할 두 면 선택 → 접촉 법칙과 마찰 설정 → 단계별
+하중 편집 → 입력 파일 확인·실행 → 접촉 결과 확인 → 저장·재열기**로 묶는다.
+이미 되는 부분을 다시 만들지 않는다. 남은 법선 방향·간극 표시, 하중 단계 편집,
+결과 채널과 재열기 연결에 집중한다. 별도 도구 도입 과제를 늘리지 않으며 진행 개수는
+[CURRENT_STATE의 기존 24개 작업](../CURRENT_STATE.md)에서 유지한다.
+
+### 무료 사용과 실제 공개 소스의 경계
+
+WELSIM 본체는 [유료 제품](https://welsim.com/pricing/)이다. 공식 FAQ가 무료라고
+안내하는 MatEditor·CurveFitter·BeamSection·UnitConverter와 본체를 혼동하지 않는다.
+무료 보조 프로그램의 사용 안내는 본체 또는 보조 프로그램의 소스 재배포 허가가 아니다.
+[공식 앱 저장소](https://github.com/WelSimLLC/WelSim-Apps)의 파일 목록을 확인했으며,
+`demo.cpp`는 안내 주석 두 줄이다. 공개된 전체 전후처리 구현을 가져올 수 있다고 판단할
+근거는 없다. 본체 설치·체험판 등록·구매는 하지 않았다.
+
+[WelSimAutoTests](https://github.com/WelSimLLC/WelSimAutoTests)는 실제
+[Apache-2.0 LICENSE](https://github.com/WelSimLLC/WelSimAutoTests/blob/main/LICENSE)를
+제공한다. 다만 README는 재생에 WELSIM 라이선스와 해당 외부 솔버가 필요하다고 명시한다.
+확인한 `13_CalculiX/13013_calculix_contact_frictional.xml`은 두 박스의 면을 지정하고
+마찰계수·압력·CalculiX를 설정해 계산하는 순서를 담는다. 마지막 검사는 FRD 파일 존재이며,
+접촉력·수렴·정확도 검사가 아니다. 이 자료를 수치 검증 통과 근거로 사용하지 않는다.
+조사 기준은 `8d56050c634912bd65d524f79278ca433dfd98dc`다.
+
+WelSimLLC의 [CalculiX-Examples](https://github.com/WelSimLLC/CalculiX-Examples)는
+[calculix/CalculiX-Examples](https://github.com/calculix/CalculiX-Examples)의 fork다.
+[MIT LICENSE](https://github.com/WelSimLLC/CalculiX-Examples/blob/master/LICENSE)의
+원 저자는 Martin Kraska다. 조사한 fork 기준은 `a7be2ecb2547de34537c156b53ace287e2970791`.
+`Contact/Hertz_2D/Hertz.inp`에서 두 `*STEP`, `NLGEOM`, 접촉면/상호작용과
+`CDIS,CSTR` 요청을 확인했다. `README`는 CCX/CGX 2.19, 평면변형률·선형 탄성·penalty
+접촉으로 범위를 명시한다. 외부 include 파일은 전처리 스크립트가 생성하므로 INP 하나만
+가져와 즉시 실행되는 예제로 취급하지 않는다. 일반 3D 충돌·손상 지원으로 확대하지 않는다.
+
+ada-py의 GPL-3.0-or-later 조건과 전이 의존성은 세부 조사에 기록한다. 현재 저장소에는
+전체 제품을 대상으로 한 root LICENSE가 없어 재배포 방식은 아직 확정할 수 없다.
+선택형 adapter나 별도 프로세스로 나누는 것만으로 GPL 의무가 없어졌다고 보지 않는다.
+이번에는 소스를 조사했으며 GPL 코드를 제품에 복사하거나 패키지를 추가하지 않았다.
+
 ## 1. 결론과 근거의 수준
 
 2026-10-10 적용 범위 교정: 아래 FreeCAD 후보 평가는 **CAD/FE 전처리**의 CAD·조립·메시·조건 작업에 한정한다. Data, Material Research, PDE Research는 독립 문서 작업공간이며 FreeCAD 설치에 따라 host를 변경하지 않는다. 공통 reader·표/곡선·수치 서비스는 재사용하되 비CAD 문서의 경량↔FreeCAD 왕복을 채택 조건으로 삼지 않는다. [현재 책임 경계](PREPOST_APP_SPEC.md#2-앱-경계와-첫-전체-구성), [ADR0060](../ADR/0060-independent-research-workspaces.md) 참조. 아래 날짜·버전·실행 수치는 원 조사 기록이며 이번에 재실행한 값이 아니다.
