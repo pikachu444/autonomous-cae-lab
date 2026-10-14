@@ -13,7 +13,7 @@ from caelab.adapters import freecad_parameters as selectors
 from caelab.storage import canonical_hash
 
 OPERATIONS = ('pre.parameters.discover', 'pre.parameters.probe', 'pre.parameters.register',
-              'pre.parameters.update', 'pre.parameters.remove', 'pre.parameters.preflight')
+              'pre.parameters.update', 'pre.parameters.rebind', 'pre.parameters.remove', 'pre.parameters.preflight')
 
 
 def _finite(value, name):
@@ -53,10 +53,36 @@ class Parameters:
         worker, owner = self.worker, self.owner
         registry = self.registry()
         targets = worker._targets(owner.doc)
-        resolved = selectors.registered_targets(owner.doc, registry, targets, worker._datum)
+        # Inspection keeps broken drafts editable. The shared selector stays
+        # strict for export/execution; no failed binding is guessed here.
+        selectors.unique_paths(targets)
+        entries, resolved, failures = registry['parameters'], [], {}
+        if any(not isinstance(entry, dict) for entry in entries):
+            raise ValueError('Invalid native parameter definition; preserve and repair the draft')
+        def identity(entry):
+            return (entry.get('object'), entry.get('kind'),
+                    entry.get('property') if entry.get('kind') == 'property' else entry.get('constraint'))
+        for index, entry in enumerate(entries):
+            try:
+                result = selectors.registered_targets(owner.doc, {'parameters': [entry]}, targets, worker._datum)[0]
+                if any(other != index and (entries[other].get('name') == entry.get('name')
+                       or entries[other].get('key') == entry.get('key')
+                       or identity(entries[other]) == identity(entry)) for other in range(len(entries))):
+                    raise ValueError('NATIVE_DUPLICATE_IDENTITY: Duplicate registered parameter name, key or target')
+                resolved.append(result)
+            except ValueError as error:
+                failures[index] = str(error)
         stamp = canonical_hash({'document_id': owner.document_id, 'session_id': owner.session_id,
             'generation': owner.generation, 'targets': targets, 'registry': registry})
-        return registry, targets, resolved, stamp
+        return registry, targets, resolved, stamp, failures
+
+    def _occupied(self, actual, registry):
+        obj = self.owner._object(actual['object'])
+        dimension = (actual['dimension'] if actual['kind'] == 'property'
+                     else obj.Constraints[selectors.raw_constraint_index(actual)].Name)
+        return any(entry.get('object') == actual['object'] and entry.get('kind') == actual['kind']
+                   and entry.get('property' if actual['kind'] == 'property' else 'constraint') == dimension
+                   for entry in registry['parameters'])
 
     def _writable(self, actual, entry=None):
         obj = self.owner._object(actual['object'])
@@ -71,14 +97,18 @@ class Parameters:
             if not obj.getDriving(datum):
                 raise ValueError('A reference constraint cannot drive a research variable')
             name = obj.Constraints[datum].Name
+            if name and sum(c.Name == name for c in obj.Constraints) != 1:
+                raise ValueError('Ambiguous Sketcher constraint name; repair its native names first')
             paths = {'Constraints[' + str(datum) + ']', 'Constraints.' + name}
         if any(path in paths for path, _ in getattr(obj, 'ExpressionEngine', [])):
             raise ValueError('Expression-driven target: edit its native expression, not a numerical replacement')
         return obj, datum
 
     def discover(self):
-        registry, targets, resolved, stamp = self._current()
+        registry, targets, resolved, stamp, failures = self._current()
         candidates = selectors.discovery_candidates(targets, resolved, stamp)
+        candidates = [item for item in candidates if not self._occupied(
+            selectors.resolve_selection(item['key'], stamp, stamp, targets, resolved)[0], registry)]
         for item in candidates:
             actual, _ = selectors.resolve_selection(item['key'], stamp, stamp, targets, resolved)
             try:
@@ -88,9 +118,16 @@ class Parameters:
                 item['writable'], item['diagnostic'] = False, str(error)
         metadata = self.owner.read_metadata().get('parameters', {})
         registered = []
-        for entry, target in resolved:
+        by_entry = {id(entry): target for entry, target in resolved}
+        for index, entry in enumerate(registry['parameters']):
             row = {**deepcopy(entry), **deepcopy(metadata.get(entry['name'], {})),
-                   'current_value': self.worker._read(self.owner.doc, entry)}
+                   'current_value': None, 'resolved': index not in failures}
+            if index in failures:
+                row.update(writable=False, diagnostic=failures[index])
+                registered.append(row)
+                continue
+            target = by_entry[id(entry)]
+            row['current_value'] = self.worker._read(self.owner.doc, entry)
             try:
                 self._writable(target, entry)
                 row['writable'], row['diagnostic'] = True, None
@@ -110,7 +147,7 @@ class Parameters:
         if args['unit'] != 'mm':
             raise ValueError('The pinned length-variable worker takes explicit mm values')
         trial = _finite(args['trial_value'], 'Trial value')
-        registry, targets, resolved, stamp = self._current()
+        registry, targets, resolved, stamp, _ = self._current()
         actual, registered = selectors.resolve_selection(args['selector'], stamp, args['source_stamp'], targets, resolved)
         self._writable(actual, registered)
         entry = deepcopy(registered or actual)
@@ -177,9 +214,9 @@ class Parameters:
         lower, upper = _finite(args['lower'], 'Lower bound'), _finite(args['upper'], 'Upper bound')
         if lower >= upper or args['mode'] not in {'fixed', 'free'}:
             raise ValueError('Increasing bounds and fixed/free mode are required')
-        registry, targets, resolved, stamp = self._current()
+        registry, targets, resolved, stamp, _ = self._current()
         actual, registered = selectors.resolve_selection(args['selector'], stamp, args['source_stamp'], targets, resolved)
-        if registered or any(row['name'] == name for row in registry['parameters']):
+        if registered or self._occupied(actual, registry) or any(row['name'] == name for row in registry['parameters']):
             raise ValueError('This target or research ID is already registered')
         obj, datum = self._writable(actual)
         proof = self.proofs.get(args['proof_id'])
@@ -213,7 +250,7 @@ class Parameters:
     def update(self, args):
         if set(args) - {'parameter_id', 'value', 'unit', 'lower', 'upper', 'mode', 'label'} or 'parameter_id' not in args:
             raise ValueError('Update only a named registered variable value/bounds/mode/label')
-        registry, targets, resolved, _ = self._current()
+        registry, targets, resolved, _, _ = self._current()
         match = next(((e, t) for e, t in resolved if e['name'] == args['parameter_id']), None)
         if not match:
             raise ValueError('Select an existing research parameter ID')
@@ -242,6 +279,55 @@ class Parameters:
         self.owner._transaction('Edit research variable ' + entry['name'], apply)
         return self.discover()
 
+    def rebind(self, args):
+        if set(args) != {'parameter_id', 'selector', 'source_stamp', 'proof_id'}:
+            raise ValueError('Repair requires the registered variable, current replacement and effect proof')
+        registry, targets, resolved, stamp, failures = self._current()
+        matches = [(i, entry) for i, entry in enumerate(registry['parameters'])
+                   if entry['name'] == args['parameter_id']]
+        if len(matches) != 1 or matches[0][0] not in failures:
+            raise ValueError('Select one unresolved registered variable; duplicate IDs require native registry repair')
+        index, old = matches[0]
+        # Even an exact registered key cannot bypass a stale repair request.
+        if args['source_stamp'] != stamp:
+            raise ValueError('NATIVE_SELECTOR_STALE: rediscover before repairing this variable')
+        actual, registered = selectors.resolve_selection(args['selector'], stamp, args['source_stamp'], targets, resolved)
+        if registered or self._occupied(actual, registry):
+            raise ValueError('The replacement target is already registered')
+        obj, datum = self._writable(actual)
+        proof = self.proofs.get(args['proof_id'])
+        if (not proof or proof['source_stamp'] != stamp or proof['selector'] != args['selector']
+                or not proof['changed'] or proof['error'] or not proof['restored']):
+            raise ValueError('EFFECT_PROOF_STALE_OR_FAILED: check this replacement before applying repair')
+        if old.get('unit') != 'mm' or actual.get('unit') != 'mm' or proof['unit'] != 'mm':
+            raise ValueError('The replacement must use the registered mm length unit')
+        lower, upper = _finite(old['min'], 'Lower bound'), _finite(old['max'], 'Upper bound')
+        if lower >= upper or not lower <= actual['value'] <= upper or not lower <= proof['trial_value'] <= upper:
+            raise ValueError('Replacement and probed values must lie inside the existing bounds')
+        entry = deepcopy(old)
+        for key in ('property', 'constraint', 'constraint_index'):
+            entry.pop(key, None)
+        entry.update(object=actual['object'], kind=actual['kind'], key=args['selector'])
+        if actual['kind'] == 'property':
+            entry['property'] = actual['dimension']
+        else:
+            if any(c.Name == old['name'] for i, c in enumerate(obj.Constraints) if i != datum):
+                raise ValueError('The stable Sketcher name already exists; repair native names first')
+            entry['constraint'] = old['name']
+        registry['parameters'][index] = entry
+        metadata = self.owner.read_metadata()
+        metadata.setdefault('parameters', {}).setdefault(old['name'], {})['effect'] = deepcopy(proof)
+        def apply():
+            if actual['kind'] == 'constraint':
+                obj.renameConstraint(datum, old['name'])
+            self.worker._save_registry(self.owner.doc, registry)
+            self.owner.write_metadata(metadata)
+            selectors.registered_targets(self.owner.doc, {'parameters': [entry]},
+                                         self.worker._targets(self.owner.doc), self.worker._datum)
+        self.owner._transaction('Repair research variable ' + old['name'], apply)
+        self.proofs.clear()
+        return self.discover()
+
     def dispatch(self, operation, args, target):
         if target:
             raise ValueError('Research variable commands use explicit selector/parameter IDs in arguments')
@@ -255,12 +341,14 @@ class Parameters:
             return self.register(args)
         if operation == 'pre.parameters.update':
             return self.update(args)
+        if operation == 'pre.parameters.rebind':
+            return self.rebind(args)
         if operation == 'pre.parameters.remove':
             if set(args) != {'parameter_id'}:
                 raise ValueError('Select an exact registered variable')
             registry = self.registry()
-            if not any(e['name'] == args['parameter_id'] for e in registry['parameters']):
-                raise ValueError('Unknown registered variable')
+            if sum(e['name'] == args['parameter_id'] for e in registry['parameters']) != 1:
+                raise ValueError('Select one unique registered variable; duplicate IDs require native registry repair')
             registry['parameters'] = [e for e in registry['parameters'] if e['name'] != args['parameter_id']]
             metadata = self.owner.read_metadata()
             metadata.setdefault('parameters', {}).pop(args['parameter_id'], None)

@@ -304,4 +304,4 @@ def test_real_owner_capabilities_are_admitted_by_actual_service_registry(live, t
                      execution_mode='gui', documents=[descriptor], registration_nonce='fixture-native-registration-nonce')
     read = service.read(live.owner.document_id)
     assert read['kind'] == 'pre' and read['connected']
-    assert {'pre.project.save', 'pre.parameters.probe', 'pre.parameters.register'} <= set(read['capabilities'])
+    assert {'pre.project.save', 'pre.parameters.probe', 'pre.parameters.register', 'pre.parameters.rebind'} <= set(read['capabilities'])
