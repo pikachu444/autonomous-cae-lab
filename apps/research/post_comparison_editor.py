@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, Q
     QLabel, QComboBox, QPushButton, QDialog, QDialogButtonBox, QLineEdit,
     QTabWidget, QTableWidget, QTableWidgetItem, QCheckBox)
 from apps.research.data_window import number_or_raw, display
-from caelab.post_comparison import IDENTITY, COMPONENTS
+from caelab.post_comparison import (IDENTITY, COMPONENTS, UNKNOWN_OBSERVABLE,
+    observable_value, observable_label, retained_declarations)
 
 
 def default_recipe():
@@ -66,7 +67,7 @@ class ComparisonEditor(QWidget):
     def metadata(self, ref):
         source = next((r for r in self.sources if r['source_ref'] == ref), {})
         actual = deepcopy(source.get('metadata') or {})
-        declared = source.get('native_metadata') or {}
+        declared = retained_declarations(source.get('native_metadata')) or {}
         by_key = {(r.get('name'), r.get('association')): r for r in declared.get('arrays', [])}
         rows = actual.get('arrays') or declared.get('arrays', [])
         actual['arrays'] = [{**r, **by_key.get((r.get('name'), r.get('association')), {})} for r in rows]
@@ -100,6 +101,8 @@ class ComparisonEditor(QWidget):
             field.setMinimumContentsLength(12)
             self.layout_grid.addWidget(field, 2, column)
             info = QLabel(' / '.join(str(current.get(k) or '미지정') for k in ('units', 'measure', 'frame')))
+            if current.get('observable') is not None:
+                info.setText(observable_label(current['observable']) + ' / ' + info.text())
             info.setWordWrap(True); self.layout_grid.addWidget(info, 3, column)
             actions = QWidget(); row = QHBoxLayout(actions); row.setContentsMargins(0, 0, 0, 0)
             meaning = QPushButton('물리량 확인…'); meaning.clicked.connect(lambda checked=False, s=side: self.meaning(s))
@@ -143,7 +146,7 @@ class ComparisonEditor(QWidget):
         current = self.value[side]; current['array'], current['association'] = selected
         metadata, declared = self.metadata(current['source_ref'])
         row = next((r for r in metadata.get('arrays', []) if [r['name'], r['association']] == selected), {})
-        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks'):
+        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks', 'observable', 'validity_policy', 'spatial_mask'):
             current[key] = deepcopy(row.get(key, [] if key == 'validity_masks' else None))
         if row.get('components') == 1 and current.get('layout') is None:
             current['layout'] = {'kind': 'scalar', 'components': ['scalar']}
@@ -193,6 +196,33 @@ class ComparisonEditor(QWidget):
         if declaration.get('layout') is not None:
             for field in (kind, components, shear, scalar_meaning, tensor_indices): field.setEnabled(False)
         if declaration.get('temperature_kind') is not None: temperature.setEnabled(False)
+
+        observed = current.get('observable')
+        known_observed = declaration.get('observable')
+        observable_fields = None
+        if known_observed is not None and known_observed != UNKNOWN_OBSERVABLE:
+            form.addRow('저장된 관측량', QLabel(observable_label(known_observed)))
+        elif layout.get('kind') == 'scalar':
+            leaves = [('미확인', None)]
+            for source_kind, selections in (('scalar', ['scalar']), ('vector', ['x','y','z','magnitude']),
+                                           ('tensor', COMPONENTS + ['magnitude'])):
+                for selection in selections:
+                    leaf = observable_value(source_kind, selection)
+                    leaves.append((observable_label(leaf), leaf))
+            invariant = observable_value('scalar', 'scalar', scalar_semantics='invariant')
+            leaves.append(('회전에 무관한 스칼라 값', invariant))
+            operand = observed.get('operand') if isinstance(observed, dict) and observed.get('operation') == 'difference' else observed
+            if isinstance(operand, dict) and operand.get('operation') == 'norm_of_difference':
+                operand = observable_value(operand['source_kind'], 'magnitude')
+            leaf_field = combo(leaves, operand if operand != UNKNOWN_OBSERVABLE else None)
+            leaf_field.setObjectName('observable_value')
+            operation = combo([('원 관측량', 'value'), ('선택값의 차이 B − A', 'difference'),
+                               ('전체 차이의 크기 |B − A|', 'norm_of_difference')],
+                              observed.get('operation', 'value') if isinstance(observed, dict) and observed != UNKNOWN_OBSERVABLE else 'value')
+            operation.setObjectName('observable_operation')
+            form.addRow('원 성분 또는 크기', leaf_field); form.addRow('값의 정의', operation)
+            observable_fields = (leaf_field, operation)
+
         mask = QLineEdit(', '.join(current.get('validity_masks') or [])); form.addRow('원자료 유효성 배열', mask)
         if declaration.get('validity_masks') is not None: mask.setReadOnly(True)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -204,6 +234,22 @@ class ComparisonEditor(QWidget):
             current['layout'].update(components=['scalar'], scalar_semantics=scalar_meaning.currentData())
         if kind.currentData() == 'tensor': current['layout'].update(shear=shear.currentData(), indices=tensor_indices.currentData())
         if declaration.get('layout') is not None: current['layout'] = deepcopy(declaration['layout'])
+
+        if known_observed is not None and known_observed != UNKNOWN_OBSERVABLE:
+            current['observable'] = deepcopy(known_observed)
+        elif observable_fields is not None:
+            leaf_field, operation = observable_fields
+            leaf = deepcopy(leaf_field.currentData())
+            if leaf is None:
+                current['observable'] = deepcopy(UNKNOWN_OBSERVABLE) if observed is not None else None
+            elif operation.currentData() == 'difference':
+                current['observable'] = {'version': 1, 'operation': 'difference', 'operand': leaf}
+            elif operation.currentData() == 'norm_of_difference':
+                current['observable'] = {'version': 1, 'operation': 'norm_of_difference',
+                    'source_kind': leaf.get('source_kind'),
+                    'norm': 'euclidean' if leaf.get('source_kind') == 'vector' else 'frobenius'}
+            else:
+                current['observable'] = leaf
         current['temperature_kind'] = temperature.currentData()
         current['validity_masks'] = [s.strip() for s in mask.text().split(',') if s.strip()]
         self.value[side] = current

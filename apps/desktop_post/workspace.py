@@ -12,6 +12,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 from paraview import simple as p
+from caelab import post_comparison as physical
 
 try:
     from . import external, analysis, measurements, contact_views
@@ -156,7 +157,7 @@ class Workspace:
             if record:
                 bundle = self.bundles.get(record['id'], {})
                 obj['retained_values_only'] = bool(bundle.get('retained_only'))
-                obj['output_metadata'] = deepcopy(record.get('summary', {}).get('declarations'))
+                obj['output_metadata'] = physical.retained_declarations(record.get('summary', {}).get('declarations'))
                 try:
                     obj['current_inputs_differ'] = self.source_stamps(self._refs(obj['kind'], record['recipe'])) != record['bindings']
                 except (ValueError, RuntimeError, OSError):
@@ -525,6 +526,8 @@ class Workspace:
             if obj['kind'] == 'comparison':
                 for side in ('a', 'b'):
                     self._declared_side(draft[side])
+                if draft.get('version') != 2 and any(draft[side].get('observable') is not None for side in ('a', 'b')):
+                    raise ValueError('저장 성분의 재비교는 물리량 비교 편집기에서 작성하세요.')
                 bundle = analysis.build_comparison(self.resolve(draft['a']['source_ref']), self.resolve(draft['b']['source_ref']), draft, name)
             elif obj['kind'] == 'filter':
                 bundle = analysis.create_filter(self.resolve(draft['source_ref']), draft['filter'], draft.get('settings', {}), name)
@@ -544,7 +547,7 @@ class Workspace:
                     if selected and selected.get('validity_masks'):
                         from .comparison_native import _filter
                         source = _filter(source, 'quality_only', {'array': draft['array'],
-                            'masks': selected['validity_masks']}, name, prefix)
+                            'masks': selected['validity_masks'], 'validity_policy': selected.get('validity_policy')}, name, prefix)
                     bundle = measurements.build_measurement(source, draft, name)
                     bundle['proxies'] = prefix + bundle['proxies']
                 except BaseException:
@@ -556,10 +559,14 @@ class Workspace:
                 if selected and draft.get('measurement') in ('point', 'path'):
                     result_declaration = deepcopy(declaration)
                     result_array = deepcopy(selected)
+                    if selected.get('observable') in (None, physical.UNKNOWN_OBSERVABLE) and draft.get('observable') is not None:
+                        result_array['observable'] = deepcopy(draft['observable'])
                     if draft['measurement'] == 'path':
                         # Quality was applied to the physical values BEFORE path
                         # interpolation; removed mask arrays are not claimed as outputs.
                         result_array['validity_masks'] = ['vtkValidPointMask']
+                        if result_array.get('validity_policy') == 'declared_array':
+                            result_array['spatial_mask'] = 'vtkValidPointMask'
                     result_declaration['arrays'] = [result_array]
                     result_declaration['frozen_clock'] = deepcopy(declaration.get('frozen_clock')) if 'frozen_clock' in declaration else (
                         {'value': draft['time'], 'unit': draft.get('time_units'), 'semantics': draft.get('time_origin')}
@@ -598,12 +605,13 @@ class Workspace:
         record, bundle = self._bundle(obj)  # Exact applied graph/result, not arbitrary lineage.
         summary = record.get('summary', {})
         if summary.get('declarations'):
-            return deepcopy(summary['declarations'])
+            return physical.retained_declarations(summary['declarations'])
         recipe = record['recipe']
         if obj['kind'] != 'measurement' or recipe.get('measurement') not in ('point', 'path'):
             return None  # Verified legacy/arbitrary filter: meanings remain user-declared, never inherited by guess.
         row = {key: recipe.get(key) for key in ('quantity', 'units', 'measure', 'frame')}
-        row.update(name=recipe.get('array'), association='POINTS')
+        row.update(name=recipe.get('array'), association='POINTS',
+                   observable=deepcopy(recipe.get('observable', physical.UNKNOWN_OBSERVABLE)))
         return {'arrays': [row], **{key: recipe.get(key) for key in ('coordinate_units', 'coordinate_frame')},
                 'time': {'unit': recipe.get('time_units'), 'semantics': recipe.get('time_origin')}
                     if recipe.get('time') is not None else None,
@@ -618,19 +626,27 @@ class Workspace:
         elif 'frozen_clock' in side:
             raise ValueError('원 reader를 저장된 고정 측정으로 재표기할 수 없습니다.')
         if metadata is None:
+            if side.get('validity_policy') is not None:
+                raise ValueError('배열별 유효성 정책은 확인된 저장 선언에서만 사용할 수 있습니다.')
             return  # User must supply every meaning in the recipe; no guessed defaults.
         row = next((row for row in metadata['arrays'] if (row['association'], row['name']) == (side.get('association'), side.get('array'))), None)
         if row is None:
             raise ValueError('Chosen array has no matching declaration in its source receipt')
+        if side.get('validity_policy') is not None and side['validity_policy'] != row.get('validity_policy'):
+            raise ValueError('Comparison validity policy conflicts with the retained source declaration')
         for name in ('units', 'frame', 'measure', 'quantity'):
             if row.get(name) is not None and row[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
         for name in ('coordinate_units', 'coordinate_frame'):
             if metadata.get(name) is not None and metadata[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
-        for key in ('layout', 'temperature_kind', 'validity_masks'):
+        for key in ('layout', 'temperature_kind', 'validity_masks', 'validity_policy', 'spatial_mask'):
             if key in row and row[key] is not None and row[key] != side.get(key):
                 raise ValueError('Comparison ' + key + ' conflicts with the retained source declaration')
+        if row.get('observable') == physical.UNKNOWN_OBSERVABLE:
+            physical.validate_observable(side.get('observable'))
+        elif row.get('observable') is not None and row['observable'] != side.get('observable'):
+            raise ValueError('Comparison observable conflicts with the retained source declaration')
         if 'frozen_clock' in metadata:
             sampling = side.get('sampling', {'mode': 'exact', 'time': side.get('time')})
             if sampling != {'mode': 'exact', 'time': None}:
@@ -648,6 +664,8 @@ class Workspace:
                 raise ValueError('Measurement ' + name + ' must be explicit text or unknown')
         metadata = self._output_declaration(draft.get('source_ref'))
         if metadata is None:
+            if draft.get('validity_policy') is not None:
+                raise ValueError('배열별 유효성 정책은 확인된 저장 선언에서만 사용할 수 있습니다.')
             return
         if 'frozen_clock' in metadata:
             if draft.get('measurement') == 'time' or draft.get('time') is not None:
@@ -661,10 +679,19 @@ class Workspace:
             if (row['association'], row['name']) == (draft.get('association'), draft.get('array'))), None)
         if declaration is None:
             raise ValueError('The selected source has no matching retained measurement declaration')
-        for name in (*fields, 'layout', 'temperature_kind', 'validity_masks'):
+        if draft.get('validity_policy') is not None and draft['validity_policy'] != declaration.get('validity_policy'):
+            raise ValueError('Measurement validity policy conflicts with the retained source declaration')
+        for name in (*fields, 'layout', 'temperature_kind', 'validity_masks', 'validity_policy', 'spatial_mask'):
             original = metadata.get(name) if name.startswith('coordinate_') else declaration.get(name)
             if draft.get(name) and original is not None and draft[name] != original:
                 raise ValueError('Measurement ' + name + ' conflicts with the retained source declaration')
+        if draft.get('observable') is not None:
+            original = declaration.get('observable')
+            if original == physical.UNKNOWN_OBSERVABLE:
+                if draft['observable'] != physical.UNKNOWN_OBSERVABLE:
+                    physical.validate_observable(draft['observable'])
+            elif original is not None and original != draft['observable']:
+                raise ValueError('Measurement observable conflicts with the retained source declaration')
         clock = metadata.get('time')
         if clock and clock['unit'] != draft.get('time_units'):
             raise ValueError('Measurement clock unit conflicts with the retained source declaration')
@@ -707,7 +734,7 @@ class Workspace:
         verify_origin(origin)
         rows, total = [], None
         while total is None or len(rows) < total:
-            page = contact_views.annotate(measurements.sample_data(bundle['source'], offset=len(rows), limit=1000), saved['summary'])
+            page = contact_views.annotate(measurements.sample_data(bundle['source'], offset=len(rows), limit=1000, declarations=saved['summary'].get('declarations')), saved['summary'])
             count = page.get('total', page.get('count'))
             if type(count) is not int or not 1 <= count <= MAX_ROWS:
                 raise ValueError('Use a measurement with 1–20000 saved rows; no partial curve is handed off')
@@ -762,7 +789,8 @@ class Workspace:
         if obj['kind'] == 'comparison':
             result = analysis.sample_page(bundle, offset=offset, limit=limit, point_index=point_index)
         else:
-            result = measurements.sample_data(bundle['source'], offset=offset, limit=limit, point_index=point_index)
+            result = measurements.sample_data(bundle['source'], offset=offset, limit=limit, point_index=point_index,
+                                              declarations=record.get('summary', {}).get('declarations'))
         result = contact_views.annotate(result, record.get('summary', {}))
         if point_index is not None:
             # An explicit point query selects this exact output only. Preview
@@ -795,7 +823,8 @@ class Workspace:
             if obj['kind'] == 'comparison':
                 actual = analysis.sample_page(bundle, point_index=point_index)
             else:
-                actual = measurements.sample_data(bundle['source'], point_index=point_index)
+                actual = measurements.sample_data(bundle['source'], point_index=point_index,
+                                                  declarations=record.get('summary', {}).get('declarations'))
             if digest(actual.get('rows', [])) != obj['selection_hash']:
                 raise ValueError('Native selected sample differs from its saved row')
             measurements.highlight_point(bundle['source'], point_index)

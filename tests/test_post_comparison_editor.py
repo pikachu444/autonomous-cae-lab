@@ -142,3 +142,48 @@ def test_saved_measurement_array_choices_and_declarations_preserve_partial_geome
     assert editor._draft['temperature_kind']=='absolute'
     assert editor._draft['validity_masks']==['A_finite']
     assert editor._draft['time'] is None and editor._draft['time_units']=='s'
+
+
+def test_saved_observable_is_read_only_and_field_change_drops_previous_identity(app,monkeypatch):
+    from copy import deepcopy
+    from caelab.post_comparison import observable_value
+    rows=sources()
+    declaration=rows[0]['native_metadata']['arrays'][0]
+    declaration.update(layout={'kind':'scalar','components':['scalar'],'scalar_semantics':'component'},
+        observable=observable_value('vector','x'),validity_policy='declared_array',
+        validity_masks=['A_finite'])
+    editor=ComparisonEditor(default_recipe(),rows)
+    editor.change_source('a','Sa');editor.change_field('a',['pressure','POINTS'])
+    assert editor.draft()['a']['observable']==declaration['observable']
+    monkeypatch.setattr(QDialog,'exec',lambda self:QDialog.DialogCode.Accepted)
+    editor.meaning('a')
+    assert editor.draft()['a']['observable']==declaration['observable']
+    assert editor.draft()['a']['validity_policy']=='declared_array'
+    editor.change_field('a',None)
+    assert editor.draft()['a'].get('observable') is None
+    editor.close()
+
+
+def test_legacy_observable_explicit_choice_cancel_and_reopen(app,monkeypatch):
+    from copy import deepcopy
+    from PySide6.QtWidgets import QComboBox
+    from caelab.post_comparison import UNKNOWN_OBSERVABLE, observable_value
+    rows=sources()
+    rows[0]['native_metadata']['derivation']='comparison_v2'
+    rows[0]['native_metadata']['arrays'][0]['layout']={'kind':'scalar','components':['scalar'],'scalar_semantics':'component'}
+    editor=ComparisonEditor(default_recipe(),rows)
+    editor.change_source('a','Sa');editor.change_field('a',['pressure','POINTS'])
+    assert editor.draft()['a']['observable']==UNKNOWN_OBSERVABLE
+    draft=editor.draft()
+    def choose(dialog, accepted):
+        field=dialog.findChild(QComboBox,'observable_value')
+        field.setCurrentIndex(field.findData(observable_value('vector','y')))
+        return QDialog.DialogCode.Accepted if accepted else QDialog.DialogCode.Rejected
+    monkeypatch.setattr(QDialog,'exec',lambda dialog:choose(dialog,False))
+    editor.meaning('a');assert editor.draft()==draft
+    monkeypatch.setattr(QDialog,'exec',lambda dialog:choose(dialog,True))
+    editor.meaning('a')
+    assert editor.draft()['a']['observable']==observable_value('vector','y')
+    reopened=ComparisonEditor(editor.draft(),rows)
+    assert reopened.draft()==editor.draft()
+    editor.close();reopened.close()
