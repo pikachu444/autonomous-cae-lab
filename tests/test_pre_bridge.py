@@ -88,6 +88,10 @@ def native(tmp_path):
     sketch.getDatum=lambda index:sketch.datums[index]
     analysis=Object(doc,'Analysis','Fem::FemAnalysis')
     solver=Object(doc,'Solver','Fem::SolverCcxTools')
+    # Mirror the actual native Analysis membership used by freeze routing.
+    analysis.Group=[solver, force]
+    solver.MaterialNonlinearity='linear'
+    solver.GeometricalNonlinearity='linear'
     doc.Objects=[dimension,force,sketch,analysis,solver]
     selection=NS(rows=[])
     selection.getSelectionEx=lambda name:list(selection.rows)
@@ -394,7 +398,7 @@ def test_connection_does_not_reuse_identity_for_a_different_unsaved_document(tmp
     connection.QtCore=None
     connection.log=lambda *args,**kwargs:None
     connection.identity=NS(setText=lambda text:None)
-    for name in ('run_button','cancel_button','retry_button'):
+    for name in ('run_button','export_button','cancel_button','retry_button'):
         setattr(connection,name,NS(setEnabled=lambda value:None))
     connection.tick()
     assert captured==[None]

@@ -7,6 +7,16 @@
 
 ## 지금 이어갈 작업
 
+**셸 모델 후속 구현 배정:** MoAI t17로 SPEC-PREFE-001 E1/AC06의 두께·offset·방향·
+압력 편집→입력·계산→상/하면 결과·재열기 구현을 분리했다. Astra가 최신 E1/AC06과
+요청 전문을 대조해 범위 축소나 막는 누락이 없음을 확인했다. 기준은 통합 브랜치
+`bbffc70`이며 새 shell 전용 파일은 Pro, 공통 연결은 Codex가 맡는다. 진행 중인 NS1,
+M3와 Sol의 재료/FEM 패널을 동시에 수정하지 않는다. 요청 `PRO-E1-SHELL-20261014-01`은
+`runs/product-development/20261014/shell-user-model/pro-request.md`에 있다. 프로젝트 Chat의
+실제 Pro 파워5를 확인하고 한 번 전송한 뒤 요청 전문의 게시와 Pro의 코드 조회 시작을
+확인했다. [셸 작성 대화](https://chatgpt.com/g/g-p-6abbcb200108819193174a8715322a59-autonomous-cae-lab/c/6acf514d-4424-83e8-a29e-512a9672f69e),
+수신 화면은 같은 폴더 `pro-request-sent.jpg`다. 아직 구현 회수나 E1 완료로 세지 않는다.
+
 2026-10-14 최신 체크포인트. 아래의 날짜별 서술은 앞선 실행 근거이며 이 절의
 현재 배정보다 우선하지 않는다. 전체 제품 개발은 계속 진행한다. 2026-10-14 후속
 Goal 재개 후 최신 조회에서 `active`를 확인했다. 앞선 중단 원인은 확인되지 않았다.
@@ -20,10 +30,71 @@ Goal 재개 후 최신 조회에서 `active`를 확인했다. 앞선 중단 원�
 main `0508b6d`, 기존 첫 모듈/작성 브랜치, NS1 전체 사용자 작업·숫자 출력/곡선 제한/
 변형률 정의 교정·파일 소유·무료 조건·GUI 지침과 Space 링크를 본문으로 전달했다.
 요청 ID와 전체 사용자 메시지 게시, Pro의 요청 수신 답변과 main/브랜치 조회 시작을
-확인했다. 새 코드 제출 완료는 아직 아니다. 준비 자료는
+확인했다. 이후 실제 UI의 최종 답변에서 코드 제출을 확인했다. 준비 자료는
 `runs/product-development/20261014/nonlinear-user-model/pro-new-session.md`, 수신 화면은
 같은 폴더의 `pro-new-session-sent.jpg`다. Space의 현재 작성 대화 링크도 갱신했다.
-진행 중 응답에 중복 요청을 끼우지 않고 실제 산출물을 회수한다.
+최종 제출은 [PR8](https://github.com/pikachu444/autonomous-cae-lab/pull/8)의
+`2ff3f6b`이며 제품 코드는 `fa7dfe0`와 같다. 마지막 차이는 사용이 끝난 일회성
+병합 workflow 삭제뿐이다. 재료 표·native J2·단일 고체/기존 접촉 입력·실행·
+S/E/PEEQ·실패 결과 재열기를 포함한다. Codex는 main `4bad73f`와 정상 병합 준비했고
+Astra가 핵심 코드를 독립 검토하며 Sol이 실제 FreeCAD 재료→입력 연결을 확인한다.
+Windows 통합본 첫 관련 검사는 80통과/1건너뜀/2실패였다. 두 실패는 좁은 Qt 창의
+최소 너비와 지수 문자열 표기 차이이며 Sol이 화면을 확인해 교정한다. 건너뜀은
+gfortran 부재다. 원격의 234통과와 이 Windows 결과를 구별한다. 전체 수치 캠페인을
+재실행하지 않으며 NS1/AC-12·13 전체 완료도 아니다.
+[사용자 흐름](docs/NS1_USER_MODEL_KO.md), [Pro 제출 범위](docs/NS1_IMPLEMENTATION_STATUS.md)를 따른다.
+독립 검토에서 적용 후 추가된 native 소성 객체가 옛 적용 상태를 우회하는 문제와,
+마지막 FRD 필드가 잘리면 앞선 정상 부분결과도 열리지 않는 문제를 확인했다.
+Codex가 해당 경계를 읽고 실제 Pro에 `PRO-NS1-CORRECTION-20261014-01`을 전송했으며
+요청 전문의 게시와 응답 중 상태를 확인했다. 같은 PR8에서 두 결함과 관련 검사를
+교정하도록 배정했다. 요청은 같은 준비 폴더의 `pro-correction-request.md`다.
+최종 교정 회수 전까지 main 원격에 NS1 병합을 게시하지 않는다. 로컬 통합 브랜치는
+`codex/ns1-integration`이며 원격 main은 `4bad73f`를 유지한다. 기존 접촉·동결·단계·
+FE 편집 영향 범위의 추가132검사도 Windows에서 통과했다. 동일 검사를 반복하지 않고
+후속 교정 범위만 확인한다. Sol의 분리된 Windows 작업 및 M3 Pro 구현은 계속 진행한다.
+Sol의 실제 FreeCAD 첫 실행에서 잘못된 소성 표 초안 저장→FCStd 닫기→새 Owner 재열기→
+수정→J2/NLGEOM 적용을 확인했고 Codex가 `runs/ns1-native-check/applied-j2.png`와
+receipt를 읽었다. 이 경로는 조립 작업 폴더에 있다. 기존 영역 지정/조건 복구로
+고정·하중 면을 확인한 뒤 native 입력 생성이 완료됐다. Codex는 이 공개 모델을
+Windows CalculiX 2.22의 기존 어댑터로 실제 실행했고 정상 종료와 10개 수렴 증분의
+U/RF/S/E/PEEQ를 확인했다. 원 계산은 한 번이며 GUI Runner 전체 조작의 확인은 아니다.
+실제 결과 등록 후 Post가 새 field_meanings/availability/recovery/shear 정보를 거절한
+연결 결함을 발견해 consumer의 제한된 계약을 맞췄다. 기존 등록 검사를 우회하거나
+원자료를 제거하지 않았다. 관련47검사와 실제 ParaView6.2의 PEEQ 선택·저장·새 프로세스
+재열기가 통과했고 Astra의 해당 변경 독립 검토에 추가 P1/P2는 없었다. 선택 결과의
+recovery 전달과 잘못된 선언 형식 검사도 추가해8검사가 통과했다. pvpython 렌더이며 OS 직접 조작은 아니다.
+자료는 `runs/product-development/20261014/nonlinear-user-model/native-single-solid/`,
+`native-post-receipt.json`과 `native-single-solid-post/`에 있다. 절점 PEEQ의 음수값도
+그대로 보존하며 수치 적합성/공학적 승인으로 처리하지 않는다. 공개 편집 예제와
+[실행 안내](examples/material-tests/ns1/README.md)를 추가했다. 아직 기본 설치/main 배포 전이다.
+이 변경과 예제는 `3549d1e`로 개발 브랜치 `codex/ns1-integration`에 push했고 원격 참조를
+확인했다. main은 `4bad73f`이며 PR8의 Pro 교정은 아직 수신 전이다. Space 요약도 갱신했다.
+작은 창 교정은 Sol `3388699`를 통합 브랜치 `d3c7548`로 반영했다. 자식 위젯까지
+실제 맑은 고딕을 확인했고 숨은 탭의 최소폭 영향은 표준 스크롤 배치로 고쳤다.
+정상/잘못된 표 모두480×900과 넓은1100×900에서 조작 접근을 확인했으며 Astra가
+직접 화면·코드를 읽고 추가 P1/P2 없음을 보고했다. Codex도 정상/오류 화면을 읽고
+통합본의 재료/FE/접합/단계 UI21검사를 실행해 통과했다. 기존 접합 테스트의 Owner
+더블에 빠진 read_metadata 계약을 추가했으며 제품 실행 조건을 바꾸지 않았다.
+실제 FreeCAD 프로세스의 독립 QWidget 렌더/프로그램 제어이고 전체 도킹/OS 입력까지
+확인한 것은 아니다. 자료는 조립 작업 폴더 `runs/ns1-native-check/gui-scroll-final/`이다.
+Sol은 후속으로 Post 필드 목록의 물리량·단위·절점 외삽 의미 표시를 맡고 Astra가
+직접 검토한다. 원값/선택 key는 유지하며 재료 화면에 결과 경고를 추가하지 않는다.
+Pro의 두 핵심 수정은 최종 답변과 원격 `c07da54`를 회수해 `e1be0be`로 통합했다.
+적용한 재료와 활성 객체 집합의 불일치, 마지막 PE 필드 중 EOF로 이전 정상 결과까지
+사라지는 두 지적은 Astra 재검토에서 해결됐다. 통합본의 해당 재료·EOF·Post 검사는
+89통과/1건너뜀이며 건너뜀은 gfortran 부재다. Pro의 Linux 검사 결과와 구별한다.
+Astra가 추가로 종료 표식만 잘린 경우 마지막 완전 증분까지 제외하는 P2를 찾아
+Sol이 `6260908`로 고쳤고 `6a437d7`로 통합했다. 잘린 종료 표식과 미완성 증분의
+보존 이유를 구별하며, 온전한 1/2증분과 파생본 재열기를 유지한다. Astra 재검토에서
+해당 P2 해결·남은 P1/P2 없음, Codex 통합본 관련27검사 통과를 확인했다.
+새 solver 실행 없이 기존 실패/취소·원파일 보존 경계를 확인했다. 기본 브랜치 반영을 진행한다.
+Post의 물리량·단위·출력 위치와 선택 설명은 `f5553f3`/`96f77a5`로 통합했다.
+자동 갱신 때 선택이 풀리던 문제도 Sol이 고쳤으며 Astra가 재검토했다. Codex는
+실제 저장 결과의 필드 정보를 사용한 Qt 작은 화면을 읽고 관련4검사 통과를 확인했다.
+이는 저장 자료를 주입한 Qt 화면이며 ParaView 전체 GUI 조작 확인은 아니다.
+근거는 조립 작업 폴더 `runs/post-field-meaning/`다. PR8의 Windows CI에서는 기존
+UQ 오류 문구 검사가 이전의 independent 문구를 요구해 실패했다. 실제 source=None
+거절과 수치 기준을 유지하면서 분포 출처 문구를 검사하도록 고쳐 해당 회귀가 통과했다.
 
 **운동 시간 교정 통합:** Sol `5ea18c0`와 후속 `ad960ed`를 main `331d2fe`/`9630f5a`로
 통합했다. Astra가 찾은 native 시간 변경과 적용 정의 불일치는 계산 전에 차단하고,
@@ -79,7 +150,15 @@ E1 셸의 S8 후보와 출력 위치 조사도 research에 남겼으며,
 본문은 `runs/product-development/20261014/closed-mechanism/pro-request.md`다.
 기준 main `9a63fe9`, native1.1.4 진단 API의 실제 한계와 예제 부재, 정상·실패·복구
 인도 조건을 전달했다. 게시된 사용자 요청과 Pro의 코드 확인/작성 수신 답변을 확인했고
-같은 폴더의 `pro-request-sent.jpg`에 보존했다. 아직 코드 제출/통합 완료는 아니다.
+같은 폴더의 `pro-request-sent.jpg`에 보존했다. 첫 최종 답변은 저장소 본문 접근 실패로
+미통합 motion_history 모듈·대역 검사·연결 명세만 제출했으며 M3 완료가 아니다.
+Codex는 공개 `407184b`의 desktop_pre·motion 검사·SPEC·GUI 스킬을 직접 ZIP으로
+첨부하고 `PRO-M3-INTEGRATE-20261014-02`로 기존 controller/Qt/native 4R 예제까지
+이어 작성하도록 요청했다. 입력 도구가 줄바꿈을 전송으로 처리해 본문이 여러 메시지로
+게시됐고, 남은 인도 조건도 한 번 전송했다. 전체 요청의 게시와 Pro의 ZIP 본문 읽기
+완료·구현 계속 답변을 확인했다. 원문 `pro-source-followup.md`, 첨부
+`m3-source-407184b.zip`, 수신 화면 `pro-source-followup-sent.jpg`는 같은 폴더에 있다.
+현재는 이 후속 구현을 회수할 차례이며 기존 부분 모듈을 제품에 통합하지 않았다.
 
 **CAD 변수 참조 복구 통합:** MoAI t15의 Sol 작성분 `a122350`을 공통 명령 등록과
 함께 main `4e0f415`로 통합했다. 끊어진 치수를 목록에 남기고 정상 치수는 계속

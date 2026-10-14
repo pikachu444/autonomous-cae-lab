@@ -10,6 +10,7 @@ import numpy as np
 
 from ..contact_deck import FACES
 from ..contact_steps import axis, profile
+from ..calculix_material import field_specifications, result_meanings
 from .frozen_fem import _read, _number
 from .fixture_field import _printed_close
 
@@ -243,12 +244,15 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
         declared(key, 'mm' if index < 3 else 'MPa', 'solver_exported_nodal_contact_' + key, frame=BASIS)
     if has_contact:
         declared('GeomGap_mm', 'mm', 'derived_piecewise_linear_geometric_gap', frame='master_normal')
-    field_specs = [('FORC', 'F', 'N', 'nodal_force', ('X', 'Y', 'Z')),
-                   ('STRESS', 'S', 'MPa', 'cauchy_stress', ('XX', 'YY', 'ZZ', 'XY', 'YZ', 'ZX'))]
+    field_specs = field_specifications(model)
     for native, prefix, unit, measure, components in field_specs:
-        if all(native in frame['fields'] for frame in frames):
+        if any(native in frame['fields'] for frame in frames):
             for component in components:
-                declared(prefix+component+'_'+unit, unit, measure)
+                entry = declared(prefix+component+'_'+unit, unit, measure)
+                entry['recovery'] = 'native integration-point extrapolation and nodal averaging' if native != 'FORC' else 'native nodal force; reactions only at restrained DOFs'
+                if native == 'TOSTRAIN':
+                    entry['shear_convention'] = 'tensor_shear_not_engineering_shear'
+            declared(native+'_valid', '1', 'native_field_record_present', frame='not_applicable')
     collection = ET.Element('VTKFile', type='Collection', version='0.1', byte_order='LittleEndian')
     group = ET.SubElement(collection, 'Collection')
     for index, frame in enumerate(frames):
@@ -270,9 +274,11 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             extra.update(CONTACT_valid=[int(n in contact and all(v is not None for v in contact[n])) for n in node_ids],
                          SlavePairCount=[len(membership[n]) for n in node_ids], GeomGap_mm=gap_values, GeomGap_valid=gap_valid)
         for native, prefix, unit, measure, components in field_specs:
-            if all(native in f['fields'] for f in frames):
+            if any(native in f['fields'] for f in frames):
                 for j, component in enumerate(components):
-                    extra[prefix+component+'_'+unit] = [frame['fields'][native][n][j] for n in node_ids]
+                    extra[prefix+component+'_'+unit] = [frame['fields'][native][n][j]
+                        if native in frame['fields'] else math.nan for n in node_ids]
+                extra[native+'_valid'] = [int(native in frame['fields']) for n in node_ids]
         extra.update(SourceNodeId=[r['native_node_id'] for r in node_rows],
             BodyIndex=[body_numbers[r['body_id']] for r in node_rows])
         if solver_coordinates is not None:
@@ -296,6 +302,8 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
         ET.SubElement(group, 'DataSet', timestep=format(frame['static']['load_parameter'], '.17g'), group='', part='0', file=path.name)
         save_json(folder / (path.stem + '.json'), {'static': frame['static'],
             'step_location': frame.get('step_location'),
+            'field_availability': {native: ('available' if native in frame['fields'] else 'unavailable_not_output')
+                                   for native, *_ in field_specs},
             'contact': [{'node_id': n, 'pair_membership': membership[n], 'values': contact.get(n),
                          'raw_tokens': frame.get('contact_tokens', {}).get(n),
                          'record_present': n in contact} for n in node_ids],
@@ -308,7 +316,10 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
     metadata = {'coordinate_units': 'mm', 'coordinate_frame': 'FREECAD_DOCUMENT_GLOBAL',
             'static': None, 'time': {'unit': axis(model)['unit'], 'semantics': axis(model)['semantics'],
                                      'values': [frame['static']['load_parameter'] for frame in frames]},
-            'arrays': arrays}
+            'arrays': arrays,
+            'field_availability': {native: {'present_frames': sum(native in f['fields'] for f in frames),
+                'total_frames': len(frames), 'missing_policy': 'unavailable; no zero fill'} for native, *_ in field_specs}}
+    metadata['field_meanings'] = result_meanings({'linear': False, 'nonlinear': True}.get(model.get('step', {}).get('geometry')))
     if solver_coordinates is not None:
         save_json(folder/'tie-adjustment.json',adjustment)
         from ..contact_inspection import file_pin

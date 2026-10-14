@@ -156,6 +156,103 @@ def window(app):
     window.close()
 
 
+def test_field_meaning_selection_keyboard_preserves_original_arrays(app, window):
+    from PySide6.QtTest import QTest
+    arrays = [
+        {'name': 'PEEQ_1', 'association': 'POINTS', 'components': 1, 'units': '1',
+         'measure': 'equivalent_plastic_strain', 'metadata_status': 'DECLARED',
+         'recovery': 'native integration-point extrapolation and nodal averaging',
+         'range': [-.000860108, .0208308]},
+        {'name': 'TOSTRAIN_4', 'association': 'POINTS', 'components': 1, 'units': '1',
+         'measure': 'green_lagrange',
+         'recovery': 'native integration-point extrapolation and nodal averaging',
+         'shear_convention': 'tensor_shear_not_engineering_shear'},
+        {'name': 'FORC_1', 'association': 'POINTS', 'components': 1, 'units': 'N',
+         'measure': 'nodal_force', 'recovery': 'native nodal force; reactions only at restrained DOFs'},
+        {'name': 'STRESS_1', 'association': 'CELLS', 'components': 1, 'units': 'MPa',
+         'measure': 'cauchy_stress'},
+    ]
+    before = deepcopy(arrays), deepcopy(window.client.document), list(window.client.calls)
+    window._fill_arrays(arrays)
+    window.array_table.selectRow(0)
+    assert window.array_table.item(0, 0).text() == 'PEEQ_1'
+    assert window.array_table.item(0, 4).text() == '등가 소성변형률'
+    assert '무차원 [1]' in window.array_description.text()
+    assert '적분점에서 외삽' in window.array_description.text()
+    assert '음수가 포함' in window.array_description.text()
+    assert '원값을 그대로' in window.array_description.text()
+    window.array_table.setFocus()
+    QTest.keyClick(window.array_table, Qt.Key.Key_Down)
+    assert 'Green–Lagrange' in window.array_description.text()
+    assert '공학 전단변형률과 구별' in window.array_description.text()
+    assert '음수가 포함' not in window.array_description.text()
+    window.array_table.selectRow(2)
+    assert '구속된 자유도' in window.array_description.text()
+    window.array_table.selectRow(3)
+    assert '셀 자료' in window.array_description.text()
+    assert 'MPa' in window.array_description.text()
+    assert (arrays, window.client.document, window.client.calls) == before
+
+
+def test_field_meaning_unknown_and_source_refresh_clear_selection(app, window):
+    window._fill_arrays([
+        {'name': 'PEEQ_1', 'association': 'POINTS', 'components': 1, 'units': 'MPa',
+         'metadata_status': 'UNKNOWN'},
+        {'name': '<custom>', 'association': 'CELLS', 'measure': 'user_defined_measure', 'units': None},
+    ])
+    window.array_table.selectRow(0)
+    assert window.array_table.item(0, 4).text() == '미지정'
+    assert '등가 소성' not in window.array_description.text()
+    assert '절점' not in window.array_description.text()
+    window.array_table.selectRow(1)
+    assert window.array_table.item(1, 4).text() == '기록된 정의'
+    assert window.array_table.item(1, 4).toolTip() == 'user_defined_measure'
+    assert window.array_description.text().startswith('<custom>:')
+    assert window.array_description.textFormat() == Qt.TextFormat.PlainText
+    assert '단위 미지정' in window.array_description.text()
+    window._fill_arrays({'other': {'association': 'POINTS', 'components': 1}})
+    assert not window.array_table.selectionModel().selectedRows()
+    assert window.array_description.text().startswith('필드를 선택하면')
+    window._source_ref = None
+    window._show_arrays()
+    assert window.array_table.rowCount() == 0
+    assert window.array_description.toolTip() == ''
+
+
+def test_field_meaning_poll_keeps_exact_field_but_source_change_or_removal_clears(app, window):
+    doc = deepcopy(window.document)
+    arrays = [{'name': 'PEEQ_1', 'association': 'POINTS', 'units': '1',
+               'measure': 'equivalent_plastic_strain'}]
+    for source in doc['state']['analysis']['sources']:
+        source['native_metadata']['arrays'] = deepcopy(arrays)
+    window._source_ref = 'Sfirst'
+    window._tree_selection = ('source', 'Sfirst')
+    window._show_document(doc)
+    window.array_table.selectRow(0)
+    selected_text = window.array_description.text()
+    window._show_document(doc, preserve_buffer=True)
+    assert window.array_table.selectionModel().selectedRows()[0].row() == 0
+    assert window.array_description.text() == selected_text
+    # Updated metadata/reordering must refresh the explanation for the exact key.
+    window._fill_arrays([{'name': 'other', 'association': 'POINTS'},
+                        {**arrays[0], 'units': None}])
+    assert window.array_table.selectionModel().selectedRows()[0].row() == 1
+    assert '단위 미지정' in window.array_description.text()
+    window._source_ref = 'Ssecond'
+    window._tree_selection = ('source', 'Ssecond')
+    window._show_document(doc)
+    assert not window.array_table.selectionModel().selectedRows()
+    assert window.array_description.text().startswith('필드를 선택하면')
+    window.array_table.selectRow(0)
+    window._fill_arrays([{'name': 'other', 'association': 'POINTS'}])
+    assert not window.array_table.selectionModel().selectedRows()
+    assert window.array_description.text().startswith('필드를 선택하면')
+    window._fill_arrays(arrays)
+    window.array_table.selectRow(0)
+    window._fill_arrays(arrays + arrays)
+    assert not window.array_table.selectionModel().selectedRows()
+
+
 def test_comparison_declarations_preview_apply_actual_sample_callbacks(app, window):
     from apps.research.post_window import SIDE_FIELDS
     assert window.edited_draft() == defaults('comparison')

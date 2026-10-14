@@ -8,14 +8,45 @@ on_done=None) uses the shared asynchronous native command transport and returns
 
 
 def make_panel(QtWidgets, QtCore, editor, submit):
+    class TaskTabs(QtWidgets.QTabWidget):
+        def __init__(self):
+            super().__init__()
+            self._pages = {}
+
+        def addTab(self, page, label):
+            scroll = QtWidgets.QScrollArea()
+            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(page)
+            self._pages[page] = scroll
+            return super().addTab(scroll, label)
+
+        def setCurrentWidget(self, page):
+            super().setCurrentWidget(self._pages.get(page, page))
+
+        def indexOf(self, page):
+            return super().indexOf(self._pages.get(page, page))
+
+        def widget(self, index):
+            scroll = super().widget(index)
+            return scroll.widget() if scroll is not None else None
+
+        def currentWidget(self):
+            return self.widget(self.currentIndex())
+
     class Panel(QtWidgets.QWidget):
         def __init__(self):
             super().__init__()
             self.setObjectName('caelabFemPanel')
+            font = self.font()
+            font.setFamily('Malgun Gothic')
+            font.setPointSize(max(9, font.pointSize()))
+            self.setFont(font)
             self.editor, self.submit = editor, submit
             self._description, self._mutating, self._last_history = {}, [], None
             self._actions, self._command_busy, self._edit_serial = [], False, 0
             outer = QtWidgets.QVBoxLayout(self)
+            outer.setContentsMargins(6, 8, 6, 8)
             row = QtWidgets.QHBoxLayout()
             heading = QtWidgets.QLabel('해석 모델')
             heading.setWordWrap(True)
@@ -23,7 +54,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.refresh_button = self._button('새로 고침', self.refresh, row, mutate=False)
             self.cancel_button = self._button('메시 생성 취소', self.cancel_mesh, row, mutate=False)
             outer.addLayout(row)
-            self.tabs = QtWidgets.QTabWidget()
+            self.tabs = TaskTabs()
             outer.addWidget(self.tabs, 1)
             self._mesh_tab()
             self._region_tab()
@@ -330,25 +361,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             layout.addWidget(scope)
 
         def _material_tab(self):
-            layout = self._page('재료')
-            self._section(layout, '등방성 탄성 물성')
-            form = QtWidgets.QFormLayout()
-            self.material = QtWidgets.QComboBox()
-            self.material.setObjectName('femMaterial')
-            self.material.currentIndexChanged.connect(self._load_material)
-            self.modulus = self._number('femYoungModulus', minimum=0, value=0)
-            self.modulus.setSpecialValueText('미입력')
-            self.poisson = self._number('femPoissonRatio', minimum=-1, maximum=.499999999, value=-1)
-            self.poisson.setSpecialValueText('미입력')
-            form.addRow('재료 선택', self.material)
-            form.addRow('탄성계수 [MPa]', self.modulus)
-            form.addRow('포아송비', self.poisson)
-            layout.addLayout(form)
-            row = QtWidgets.QHBoxLayout()
-            self._button('탄성 물성 적용', self.apply_material, row)
-            self._button('FreeCAD에서 재료 편집', lambda: self.native_task(self.material.currentData()), row)
-            layout.addLayout(row)
-            layout.addStretch(1)
+            from .material_panel import add_material_page
+            self.material_page = add_material_page(self, QtWidgets, QtCore)
 
         def _fill_combo(self, widget, entries):
             previous = widget.currentData()
@@ -374,7 +388,6 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             objs = self.editor.owner.doc.Objects
             def kind(obj):
                 return getattr(getattr(obj, 'Proxy', None), 'Type', obj.TypeId)
-            self._fill_combo(self.material, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::MaterialCommon' and obj.Category == 'Solid'])
             self._fill_combo(self.analysis, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::FemAnalysis'])
             regions = self._description['regions']
             entries = [(row['label'] + (' (대상 확인 필요)' if row['validation'] != 'EXACT_TARGET_MATCH' else ''), row['id']) for row in regions]
@@ -402,12 +415,13 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                 self.regions.addTopLevelItem(item)
                 if row['id'] == selected_id:
                     self.regions.setCurrentItem(item)
+            self.material_page.refresh(load_forms=load_forms)
             self.contact_page.refresh(load_forms=load_forms)
             self.steps_page.refresh(load_forms=load_forms)
             if load_forms:
                 self._load_mesh()
                 self._load_condition()
-                self._load_material()
+                if not self.material_page.elastic_pending(): self._load_material()
             self.poll()
 
         def poll(self):
@@ -420,6 +434,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     button.setEnabled(not self._command_busy)
                 for button in self._mutating:
                     button.setEnabled(not busy and not native_task and not self._command_busy)
+                self.material_page.sync_actions(busy or native_task)
                 self.cancel_button.setEnabled(busy and not self._command_busy)
                 histories = description['mesh_history']
                 stamp = repr(histories[-1]) if histories else None

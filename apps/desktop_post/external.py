@@ -184,7 +184,7 @@ def validate_declared_metadata(source, metadata):
                     raise ValueError('Native curve values differ from the exact Data snapshot')
         return deepcopy(metadata)
     required_keys = {"coordinate_units", "coordinate_frame", "static", "arrays"}
-    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection"}:
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings"}:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
     if "contact_inspection" in metadata:
         contact_api().descriptor(metadata["contact_inspection"])
@@ -215,18 +215,39 @@ def validate_declared_metadata(source, metadata):
                 or source.GetXMLName() != "PVDReader" or times(source) != clock["values"]):
             raise ValueError("Declared dimensionless/seconds clock differs from the exact native PVD timesteps")
     arrays = metadata["arrays"]
+    if "field_meanings" in metadata:
+        from caelab.calculix_material import result_meanings
+        if metadata["field_meanings"] not in [result_meanings(value) for value in (None, False, True)]:
+            raise ValueError("Native field meanings differ from the supported CalculiX declarations")
+    if "field_availability" in metadata:
+        availability = metadata["field_availability"]
+        if not isinstance(availability, dict) or set(availability) != {"FORC", "STRESS", "TOSTRAIN", "PE"}:
+            raise ValueError("Native field availability requires the declared CalculiX fields")
+        for record in availability.values():
+            if (not isinstance(record, dict) or set(record) != {"present_frames", "total_frames", "missing_policy"}
+                    or type(record["present_frames"]) is not int or type(record["total_frames"]) is not int
+                    or record["total_frames"] != (len(clock["values"]) if clock else 1)
+                    or not 0 <= record["present_frames"] <= record["total_frames"]
+                    or record["missing_policy"] != "unavailable; no zero fill"):
+                raise ValueError("Native field availability differs from the retained frame collection")
     if not isinstance(arrays, list) or not arrays or len(arrays) > 128:
         raise ValueError("Declare a bounded nonempty array list")
     seen = set()
     for declaration in arrays:
         required = {"association", "name", "components", "units", "frame", "measure"}
-        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity"}:
+        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"}:
             raise ValueError("Each declared array requires exact association/name/components and units/frame/measure")
         for key in ("name", "units", "frame", "measure"):
             if not isinstance(declaration[key], str) or not declaration[key].strip():
                 raise ValueError("Declared array meaning must be nonempty explicit text")
         if 'quantity' in declaration and (not isinstance(declaration['quantity'], str) or not declaration['quantity'].strip()):
             raise ValueError('Declared quantity must be explicit nonempty text')
+        if 'recovery' in declaration and (not isinstance(declaration['recovery'], str) or declaration['recovery'] not in {
+                'native nodal force; reactions only at restrained DOFs',
+                'native integration-point extrapolation and nodal averaging'}):
+            raise ValueError('Unsupported native field recovery declaration')
+        if 'shear_convention' in declaration and declaration['shear_convention'] != 'tensor_shear_not_engineering_shear':
+            raise ValueError('Unsupported native tensor shear convention')
         association = declaration["association"]
         if association not in ("POINTS", "CELLS", "FIELD"):
             raise ValueError("Declared array association must match POINTS, CELLS or FIELD")
@@ -307,7 +328,7 @@ def _inspect_result(source, time=None, native_metadata=None):
             arrays.append({"name": name, "association": association, "components": components,
                            "component_names": [array.GetComponentName(i) for i in range(components)],
                            "range": [value if math.isfinite(value) else None for value in array.GetRange()],
-                           **{key: declared.get((association, name), {}).get(key) for key in ("units", "frame", "measure", "quantity")},
+                           **{key: declared.get((association, name), {}).get(key) for key in ("units", "frame", "measure", "quantity", "recovery", "shear_convention")},
                            "metadata_status": "DECLARED" if (association, name) in declared else "UNKNOWN"})
     return {"reader": source.GetXMLName(), "points": info.GetNumberOfPoints(),
             "cells": info.GetNumberOfCells(), "bounds": list(info.GetBounds()),
@@ -317,6 +338,7 @@ def _inspect_result(source, time=None, native_metadata=None):
             "coordinate_units": declaration["coordinate_units"] if declaration else None,
             "coordinate_frame": declaration["coordinate_frame"] if declaration else None,
             "static": deepcopy(declaration["static"]) if declaration else None,
+            "field_availability": deepcopy(declaration.get("field_availability")) if declaration else None,
             "metadata_status": "DECLARED" if declaration else "UNKNOWN",
             "arrays": arrays, "qualification": "UNKNOWN"}
 
@@ -352,7 +374,7 @@ def select_array(source, association, array, component=None, time=None, view=Non
     selected_metadata = next(row for row in metadata["arrays"] if row["association"] == association and row["name"] == array)
     return {"association": association, "array": array, "component": component,
             "time": metadata["time"], "time_units": metadata["time_units"], "time_semantics": metadata["time_semantics"],
-            **{key: selected_metadata[key] for key in ("units", "frame", "measure", "metadata_status")},
+            **{key: selected_metadata[key] for key in ("units", "frame", "measure", "metadata_status", "recovery", "shear_convention")},
             **{key: deepcopy(metadata[key]) for key in ("coordinate_units", "coordinate_frame", "static")}}
 
 

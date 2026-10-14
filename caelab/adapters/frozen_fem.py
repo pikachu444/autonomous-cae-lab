@@ -23,7 +23,7 @@ from ..execution_control import run_owned_command, check_cancelled, ExecutionCan
 from ..storage import check_id, save_json
 
 MAX_BYTES = 256 * 1024 ** 2
-_FRD_LABELS = {**_LABELS, "TOSTRAIN": (
+_FRD_LABELS = {**_LABELS, "PE": ("PE 1 1 0 0",), "TOSTRAIN": (
     "EXX 1 4 1 1", "EYY 1 4 2 2", "EZZ 1 4 3 3",
     "EXY 1 4 1 2", "EYZ 1 4 2 3", "EZX 1 4 3 1"),
     "FORC": ("F1 1 2 1 0", "F2 1 2 2 0", "F3 1 2 3 0", "ALL 1 2 0 0 1ALL")}
@@ -230,16 +230,37 @@ def validate_snapshot(path):
     return manifest, mesh, pins, _gates(nodes, elements, fixed)
 
 
-def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=None, require_contact=True):
+class FrdTruncatedEOF(ValueError):
+    """A syntactically valid field prefix ended at physical EOF, not corruption.
+
+    prefix_lines excludes the WHOLE incomplete increment, not just its last
+    field, or only an EOF-truncated file terminator after complete fields.
+    Only retained_prefix uses this signal to create a derived copy.
+    Strict callers still receive a ValueError and never receive partial fields.
+    """
+    def __init__(self, message, prefix_lines, *, reason="incomplete_increment_at_eof"):
+        super().__init__(message)
+        self.prefix_lines = prefix_lines
+        self.reason = reason
+
+
+def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=None, require_contact=True,
+             data=None, allow_missing_end=False):
     """Read native ASCII geometry and the last complete static displacement.
 
     Fixed-column records and component labels follow CalculiX 2.21 frd.c and
     frdheader.c. The loadcase counter counts fields, not increments; all fields
     of a given output increment share KODE and time. Known ancillary fields
     are checked and retained as source information, never qualified responses.
+    data is a bounded in-memory reading copy. allow_missing_end admits ONLY an
+    absent file terminator after complete fields; malformed fields remain errors.
+    A torn file terminator signals its own strict derived-copy cutoff.
     """
     try:
-        text = _read(path).decode("ascii").replace("\r\n", "\n")
+        raw = _read(path) if data is None else data
+        if not isinstance(raw, bytes) or len(raw) > MAX_BYTES:
+            raise ValueError("FRD reading copy exceeds the bounded reader size")
+        text = raw.decode("ascii").replace("\r\n", "\n")
     except UnicodeDecodeError as exc:
         raise ValueError("Only ASCII CalculiX FRD is supported") from exc
     if "\r" in text or "\x00" in text:
@@ -254,9 +275,41 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
     if contact_profile is not None:
         if contact_materials is None or contact_profile.get('version') != 1 or not contact_profile.get('steps'):
             raise ValueError('Step-aware FRD requires the explicit retained contact profile')
-    def retain_frame():
+    increment_start = None
+    def eof(message):
+        raise FrdTruncatedEOF(message, increment_start)
+
+    def last_fragment(index):
+        return index == len(lines) - 1 and not text.endswith("\n")
+
+    def numeric_tail(row, width, records):
+        # Only a SHORT, unterminated final record with valid completed tokens is
+        # eligible. A short newline-terminated row, a bad number, foreign node,
+        # duplicate or damage followed by another record is still corruption.
+        if row in (" -", " -1"):
+            return True
+        if row[:3] != " -1" or len(row) >= 13 + 12 * width:
+            return False
+        if not re.fullmatch(r" *[0-9]*", row[3:13]):
+            return False
+        if len(row) < 13:
+            return True
+        node = _identifier(row[3:13].strip())
+        if node not in nodes or node in records:
+            raise ValueError("Foreign or duplicate FRD field node")
+        for start in range(13, len(row), 12):
+            token = row[start:start+12].strip()
+            if start+12 <= len(row):
+                _number(token)
+            elif token and not re.fullmatch(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]*)(?:[EeDd][+-]?[0-9]*)?|[+-]", token):
+                return False
+        return True
+
+    def retain_frame(*, at_eof=False):
         if contact_materials is not None:
             if "DISP" not in fields or require_contact and "CONTACT" not in fields:
+                if at_eof:
+                    eof("EOF before the complete final displacement/contact increment")
                 raise ValueError("Incomplete contact frame: displacement and CONTACT are both required")
             frames.append({"static": {"step": active_step, "increment": increment, "load_parameter": parameter},
                            "load_parameter_token": parameter_token, "fields": fields,
@@ -331,6 +384,10 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
                 raise ValueError("Unterminated FRD geometry")
             i += 1
         elif parts[0] == "1PSTEP":
+            if last_fragment(i-1) and len(line) < 60 and re.fullmatch(r"\s*1PSTEP[ 0-9]*", line):
+                # An incomplete step header cannot certify a new increment; keep
+                # only the previously closed increment prefix conservatively.
+                eof("EOF within a native FRD step header")
             row = line.ljust(70)
             if not topology or pending is not None or header is not None or len(line) > 70 or row[10:24].strip() or row[60:].strip():
                 raise ValueError("Malformed FRD step")
@@ -340,8 +397,13 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
                     (contact_profile is not None and not 1 <= step <= len(contact_profile['steps'])) or
                     (active_step is not None and (step, inc) < (active_step, increment))):
                 raise ValueError("FRD requires ordered fields in the retained steps")
+            if (step, inc) != (active_step, increment):
+                increment_start = i - 1
             pending = (count, inc, step)
         elif parts[0] == "100CL":
+            if (pending is not None and header is None and last_fragment(i-1) and len(line) < 75
+                    and re.fullmatch(r"\s*100CL[ 0-9EeDd+.\-]*", line)):
+                eof("EOF within a native FRD field header")
             if pending is None or header is not None or len(line) != 75:
                 raise ValueError("Malformed FRD static field header")
             output_inc = _identifier(line[58:63].strip())
@@ -377,19 +439,33 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
             active_step, increment, kode, parameter, parameter_token = native_step, inc, output_inc, value, token
             header = True
         elif parts[0] == "-4":
+            if header is not None and last_fragment(i-1):
+                fragment = " ".join(parts)
+                candidates = [f"-4 {name} {len(labels)} 1" for name, labels in labels_by_name.items()
+                              if name not in fields]
+                if any(candidate != fragment and candidate.startswith(fragment) for candidate in candidates):
+                    eof("EOF within a native FRD field definition")
             if header is None or len(parts) != 4 or parts[1] not in labels_by_name or parts[1] in fields:
                 raise ValueError("Unexpected or duplicate FRD field")
             name, labels = parts[1], labels_by_name[parts[1]]
             if parts[2:] != [str(len(labels)), "1"]:
                 raise ValueError("Malformed FRD field definition")
             for label in labels:
-                if i >= len(lines) or lines[i].split() != ["-5", *label.split()]:
+                if i >= len(lines):
+                    eof("EOF within native FRD component labels")
+                if lines[i].split() != ["-5", *label.split()]:
+                    if last_fragment(i) and ("-5 " + label).startswith(" ".join(lines[i].split())):
+                        eof("EOF within a native FRD component label")
                     raise ValueError("FRD component meaning/order differs")
                 i += 1
             records = {}
-            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "ERROR":1, "CONTACT":6}[name]
+            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "PE":1, "ERROR":1, "CONTACT":6}[name]
             while i < len(lines) and lines[i].strip() != "-3":
                 raw_record = lines[i].rstrip()
+                if last_fragment(i) and numeric_tail(raw_record, width, records):
+                    if len(records) >= field_coverage and raw_record != " -":
+                        raise ValueError("FRD records exceed declared coverage before EOF")
+                    eof("EOF within a native FRD field record")
                 if name == "CONTACT":
                     if raw_record[:3] != " -1" or len(raw_record) != 13 + 12*width:
                         raise ValueError("Malformed native CONTACT record")
@@ -410,7 +486,11 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
                     raise ValueError("Foreign or duplicate FRD field node")
                 records[n] = values
                 i += 1
-            if (i == len(lines) or len(records) != field_coverage or
+            if i == len(lines):
+                if len(records) > field_coverage:
+                    raise ValueError("FRD records exceed declared coverage before EOF")
+                eof("EOF before native FRD field terminator")
+            if (len(records) != field_coverage or
                     (name != "CONTACT" and set(records) != set(nodes))):
                 raise ValueError("Incomplete FRD field relative to declared coverage")
             fields[name] = records
@@ -421,11 +501,23 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
             if pending is not None or header is not None:
                 raise ValueError("Incomplete FRD end marker")
             ended = True
+        elif last_fragment(i-1) and line.strip() in ("9", "99", "999"):
+            if pending is not None or header is not None:
+                raise ValueError("Incomplete FRD end marker")
+            # Derive a strict copy ending BEFORE the torn terminator, preserving
+            # all complete fields for the usual required-field/STA checks.
+            raise FrdTruncatedEOF("EOF within a native FRD file terminator", i-1,
+                                  reason="partial_end_marker_at_eof")
         elif xyz or not re.match(r"\s*1[CU]", line):
+            if (last_fragment(i-1) and topology and any(marker.startswith(line.strip())
+                    for marker in ("1PSTEP", "100CL", "-4", "9999"))):
+                eof("EOF within a native FRD record marker")
             raise ValueError("Unexpected native FRD content")
-    if not ended or "DISP" not in fields:
+    if pending is not None or header is not None:
+        eof("EOF before a complete native FRD field")
+    if (not ended and not allow_missing_end) or "DISP" not in fields:
         raise ValueError("Missing complete final FRD displacement/end marker")
-    retain_frame()
+    retain_frame(at_eof=not ended and allow_missing_end)
     return {**({"frames": frames} if contact_materials is not None else {}), "displacements": fields["DISP"], "frd_coordinates_mm": xyz,
             "elements": topology, "static": {"step":active_step, "increment":increment, "load_parameter":parameter},
             "load_parameter_token":parameter_token, "final_fields":sorted(fields), "field_count":field_count,

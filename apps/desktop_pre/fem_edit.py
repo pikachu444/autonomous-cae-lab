@@ -16,6 +16,7 @@ import sys
 import uuid
 
 from .contact import ContactEditor, OPERATIONS as CONTACT_OPERATIONS
+from . import nonlinear_material
 from .freeze_analysis import CCX_FROM_NATIVE_TET10
 from .mesh_binding import PROPERTY_NAME, global_placement
 
@@ -25,7 +26,7 @@ OPERATIONS = (
     'pre.fem.mesh_cancel', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight',
     'pre.fem.region_set', 'pre.fem.region_remove', 'pre.fem.condition_set',
     'pre.fem.condition_repair', 'pre.fem.material_set', 'pre.fem.task_edit',
-) + CONTACT_OPERATIONS
+) + CONTACT_OPERATIONS + nonlinear_material.OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
 NORMALIZED_JACOBIAN_FLOOR = 256 * sys.float_info.epsilon
 _MESH_FIELDS = {'CharacteristicLengthMin', 'CharacteristicLengthMax', 'ElementOrder',
@@ -345,6 +346,19 @@ class FEMEditor:
         args = deepcopy(arguments)
         if operation in CONTACT_OPERATIONS:
             return self.contact.dispatch(operation, args, target)
+        if operation in nonlinear_material.OPERATIONS:
+            obj = self._object(target)
+            if operation == 'pre.fem.nonlinear_settings':
+                self._assert_idle()
+                return nonlinear_material.settings(self, obj, args)
+            expected = {'analysis_id'} if operation.endswith('_read') else {'analysis_id', 'draft'}
+            if set(args) != expected:
+                raise ValueError('기본 재료와 해석, 소성 표 초안을 지정하세요.')
+            if operation.endswith('_read'):
+                return nonlinear_material.read(self, obj, args['analysis_id'])
+            self._assert_idle()
+            action = nonlinear_material.save if operation.endswith('_save') else nonlinear_material.apply
+            return action(self, obj, args['analysis_id'], args['draft'])
         if operation == 'pre.fem.mesh_quality':
             if set(args) - {'offset', 'limit'}:
                 raise ValueError('Quality accepts only offset and limit')
@@ -798,8 +812,14 @@ class FEMEditor:
         if analysis.Document is not self.owner.doc or _native_type(analysis) != 'Fem::FemAnalysis':
             fail('analysis', 'Select the exact native Analysis in this document')
             return errors
-        if any(_native_type(obj) in ('Fem::ConstraintContact', 'Fem::ConstraintTie') and not getattr(obj, 'Suppressed', False)
-               for obj in analysis.Group):
+        programs = [row for row in self._metadata().get('contact_programs', [])
+                    if row.get('analysis_id') == analysis.Name]
+        active_contact = any(_native_type(obj) in ('Fem::ConstraintContact', 'Fem::ConstraintTie')
+                             and not getattr(obj, 'Suppressed', False) for obj in analysis.Group)
+        if not active_contact and any(row.get('draft', {}).get('procedure') != 'static' for row in programs):
+            fail('steps', '무접촉 단일 고체의 첫 지원은 정적 단계입니다. 동적 단계는 이 경로에서 실행하지 않습니다.')
+            return errors
+        if nonlinear_material.uses_solid_route(analysis, self._metadata()):
             solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
                        and not getattr(obj, 'Suppressed', False)]
             if len(solvers) != 1:
