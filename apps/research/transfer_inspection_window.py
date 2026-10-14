@@ -21,7 +21,8 @@ class TransferInspectionWindow(QDialog):
         self.setWindowTitle('전달값 확인');self.resize(1100,780)
         layout=QVBoxLayout(self);header=QHBoxLayout()
         self.selector=QComboBox();self.selector.currentIndexChanged.connect(self._selected)
-        header.addWidget(QLabel('전달 / 반복'));header.addWidget(self.selector,1);layout.addLayout(header)
+        self.retry=QPushButton('다시 읽기');self.retry.clicked.connect(self._retry)
+        header.addWidget(QLabel('전달 / 반복'));header.addWidget(self.selector,1);header.addWidget(self.retry);layout.addLayout(header)
         self.status=QLabel('보존된 전달을 읽는 중…');self.status.setWordWrap(True);layout.addWidget(self.status)
         splitter=QSplitter(Qt.Orientation.Vertical);layout.addWidget(splitter,1)
         self.figure=Figure(constrained_layout=True);self.canvas=FigureCanvasQTAgg(self.figure)
@@ -35,16 +36,19 @@ class TransferInspectionWindow(QDialog):
         paging=QHBoxLayout();self.previous=QPushButton('이전 행');self.next=QPushButton('다음 행');self.page=QLabel()
         self.previous.clicked.connect(lambda:self._page(-256));self.next.clicked.connect(lambda:self._page(256))
         paging.addWidget(self.previous);paging.addWidget(self.next);paging.addWidget(self.page);paging.addStretch();layout.addLayout(paging)
+        self.previous.setEnabled(False);self.next.setEnabled(False)
         self.residual=QLabel();self.residual.setWordWrap(True);layout.addWidget(self.residual)
         self._initial=(transfer_id,iteration)
         self._read(lambda:client.evaluation_transfer(document_id,job_id),self._catalog)
 
     def _read(self,function,accepted):
+        self.retry.setEnabled(False)
         self._serial+=1;serial=self._serial
         work=_Read(function);_ACTIVE_READS.add(work)
         def done(value,error):
             _ACTIVE_READS.discard(work)
             if self._closed or serial!=self._serial:return
+            self.retry.setEnabled(True)
             if error:self.status.setText(str(error));return
             accepted(value)
         work.signals.finished.connect(done,Qt.ConnectionType.QueuedConnection)
@@ -70,12 +74,16 @@ class TransferInspectionWindow(QDialog):
 
     def _selected(self,*_):
         self._start=0;self._load()
+    def _retry(self):
+        if self.selector.currentData():self._load()
+        else:self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id),self._catalog)
     def _page(self,offset):
         self._start=max(0,self._start+offset);self._load()
     def _load(self):
         selection=self.selector.currentData()
         if not selection:return
         self.table.setRowCount(0);self._rows=[];self.figure.clear();self.canvas.draw_idle()
+        self.previous.setEnabled(False);self.next.setEnabled(False);self.page.clear()
         self.status.setText('선택한 전달값을 읽는 중…')
         start=self._start
         self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id,*selection,start=start),self._show)
@@ -88,7 +96,8 @@ class TransferInspectionWindow(QDialog):
             values=[row['node'],', '.join(self._value(x) for x in row['coordinates']),row['supplied'],row['received'],row['difference'],'예','있음' if row['available'] else '없음']
             for j,value in enumerate(values):self.table.setItem(i,j,QTableWidgetItem(self._value(value)))
         self.status.setText(data['unavailable'] or ('공급값과 수신값 일치' if data['exact_values_match'] else '불일치: '+', '.join(data['metadata_differences'] or ['값'])))
-        states={'SUCCEEDED':'완료','FAILED':'실패','CANCELLED':'취소','REJECTED':'거절','RUNNING':'실행 중'}
+        states={'SUCCEEDED':'완료','FAILED':'실패','CANCELLED':'취소','REJECTED':'거절','RUNNING':'실행 중',
+                'QUEUED':'대기','INTERRUPTED':'중단','CLEANUP_UNCONFIRMED':'종료 확인 필요'}
         target=data['target_attempt']['state']
         self.status.setText('수신 계산 '+states.get(target,target)+' / '+self.status.text())
         self.status.setToolTip(str(data['metadata']))
