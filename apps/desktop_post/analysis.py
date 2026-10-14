@@ -26,7 +26,7 @@ OUTPUT_ARRAYS = {"a": "A_original", "b": "B_at_A", "delta": "B_minus_A",
                  "percent_valid": "percent_valid", "reason": "comparison_reason",
                  "percent_reason": "percent_reason"}
 REASONS = {0: "valid", 1: "outside_b_domain", 2: "nonfinite_a", 3: "nonfinite_b",
-           4: "nonfinite_difference", 5: "zero_a", 6: "nonfinite_percent"}
+           4: "nonfinite_difference", 5: "zero_a", 6: "nonfinite_percent", 7: "percent_disabled"}
 DECLARATIONS = ("quantity", "units", "measure", "frame", "coordinate_units", "coordinate_frame")
 
 
@@ -240,6 +240,9 @@ def _program(source, script, namespace, role, proxies):
 
 
 def build_comparison(a, b, recipe, namespace="Comparison"):
+    if recipe.get("version") == 2:
+        from .comparison_native import build
+        return build(a, b, recipe, namespace)
     """Create hidden, owned native proxies and return JSON summary plus handles."""
     previous = _preserve_active()
     bundle = {"source": None, "proxies": [], "summary": {}}
@@ -307,8 +310,12 @@ def build_comparison(a, b, recipe, namespace="Comparison"):
 
 
 
-def _comparison_fingerprint(data):
-    _, _, mesh_hash = _mesh(data)
+def _comparison_fingerprint(data, *, version=1):
+    if version == 2:
+        from .comparison_native import geometry
+        _, _, mesh_hash = geometry(data)
+    else:
+        _, _, mesh_hash = _mesh(data)
     arrays = []
     for association, attrs in (("POINTS", data.GetPointData()), ("CELLS", data.GetCellData())):
         for i in range(attrs.GetNumberOfArrays()):
@@ -337,7 +344,7 @@ def output_fingerprint(bundle):
     Callers compare this with the validated summary before consuming an applied
     result. This detects changed upstream data even when its labels are stable.
     """
-    return _comparison_fingerprint(_fetch(bundle["source"]))
+    return _comparison_fingerprint(_fetch(bundle["source"]), version=bundle.get("summary", {}).get("comparison_version", 1))
 
 
 def cleanup(bundle):
@@ -490,6 +497,15 @@ def sample_page(bundle, offset=0, limit=100, point_index=None):
         row.update(valid=bool(values["valid"][index]), percent_valid=bool(values["percent_valid"][index]),
                    validity_reason=REASONS[int(values["reason"][index])],
                    percent_reason=REASONS[int(values["percent_reason"][index])])
+        if bundle.get("summary", {}).get("comparison_version") == 2:
+            for key, name in (("a_raw", "A_source_value"), ("b_raw", "B_source_sampled")):
+                value = float(_scalar(data, name)[index])
+                row[key] = value if math.isfinite(value) else None
+            for name in ("A_original_components", "B_sampled_original_components", "A_common_components", "B_common_components"):
+                arr = pd.GetArray(name)
+                if arr is None:
+                    raise ValueError("Retained comparison component array is missing")
+                row[name] = [float(v) if math.isfinite(v) else None for v in arr.GetTuple(index)]
         rows.append(row)
     return {"points": n, "offset": point_index if point_index is not None else offset,
             "limit": 1 if point_index is not None else limit, "rows": rows,
