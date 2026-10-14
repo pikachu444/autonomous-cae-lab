@@ -53,6 +53,12 @@ class LostReceipt:
         plan_draft = (from_material_document(self.target) if kind == 'material' else
             request_draft({'purpose': 'Receipt recovery', 'operation': 'doe', 'inputs': deepcopy(draft),
                            'budget': {'evaluations': 2}}, source=self.source))
+        if kind == 'material':
+            # The coefficient preview validates a real plan before sending an adoption.
+            plan_draft.update(mode='doe', method='lhs', count=2, budget=2)
+            self.result['kind'] = 'doe'
+            for candidate, value in zip(self.result['candidates'], (1100, 1200)):
+                candidate['values'] = {'E': value}
         self.plan = document('Noriginal', plan_draft, 'numerical')
         self.plan['runs'] = [{'job_id': 'Joriginal', 'input_generation': 4, 'input_revision': 'Iplan',
                              'draft': deepcopy(plan_draft), 'retained_state': 'SUCCEEDED', 'retention_complete': True}]
@@ -134,9 +140,9 @@ def test_explicit_receipt_retry_uses_frozen_payload_without_new_target_or_uuid(a
         pending = window._adoption_receipt
         assert pending and window.retry_adoption_button.isEnabled()
         frozen = deepcopy(client.requests[0])
-        assert all(value in window.adoption_receipt_label.text() for value in
+        assert all(value in window.adoption_receipt_label.toolTip() for value in
                    (client.target['id'], 'Joriginal', 'Cactual', frozen['command_id']))
-        assert 'unconfirmed' in window.message.text()
+        assert '아직 확인하지 못했습니다' in window.message.text()
         assert not (window.adopt_button if kind == 'material' else window.pde_adopt_button).isEnabled()
         # New selection/document/target state cannot replace the frozen request.
         window.candidates.selectRow(1)
@@ -148,7 +154,7 @@ def test_explicit_receipt_retry_uses_frozen_payload_without_new_target_or_uuid(a
         client.target['generation'] = 90
         reads = list(client.reads)
         assert window._adoption_receipt is pending
-        assert 'Cactual' in window.adoption_receipt_label.text()
+        assert 'Cactual' in window.adoption_receipt_label.toolTip()
         assert window.retry_adoption_receipt()
         wait(app, lambda: window._adoption_receipt is None and not window._busy)
         assert client.requests == [frozen, frozen]
@@ -173,7 +179,7 @@ def test_session_change_preserves_unresolved_info_and_rejects_rebased_retry(app,
         window.document['session_id'] = 'Srestarted'
         window._update_actions()
         assert not window.retry_adoption_button.isEnabled()
-        assert 'Session changed' in window.adoption_receipt_label.text()
+        assert '연결이 바뀌어' in window.adoption_receipt_label.text()
         assert not window.retry_adoption_receipt()
         begin(window, kind)
         assert window._adoption_receipt is pending and len(client.requests) == 1

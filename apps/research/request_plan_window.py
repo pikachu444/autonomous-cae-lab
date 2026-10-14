@@ -1843,7 +1843,7 @@ class RequestPlanWindow(NumericalWindow):
 
     def review_pde_candidate(self):
         if self._adoption_receipt is not None:
-            self.message.setText('An adoption receipt is unconfirmed. Retry that exact receipt before starting another adoption.')
+            self.message.setText('앞선 적용 결과를 먼저 확인하세요. 아래의 적용 결과 다시 확인 버튼을 사용하세요.')
             return False
         candidate = self._selected_pde_candidate()
         if (not candidate or not self.document or self._callbacks or self._pending_adoption
@@ -2334,11 +2334,11 @@ class RequestPlanWindow(NumericalWindow):
     def _select_return_channels(self, result):
         from PySide6.QtWidgets import QListWidget, QListWidgetItem
         dialog = QDialog(self)
-        dialog.setWindowTitle('Return selected run')
+        dialog.setWindowTitle('계산 결과 보내기')
         dialog.resize(600, 380)
         layout = QVBoxLayout(dialog)
-        label = QLabel('Attach this exact run and the checked top-level responses.\n'
-                       'Candidate records remain run evidence; a selected table row does not narrow the attachment.')
+        label = QLabel('연구 기록에 함께 보낼 계산 응답을 선택하세요.\n'
+                       '선택한 계산의 전체 후보 이력도 함께 전달됩니다. 표에서 고른 후보 하나만 보내는 기능은 아닙니다.')
         label.setWordWrap(True)
         layout.addWidget(label)
         channels = QListWidget()
@@ -2349,9 +2349,10 @@ class RequestPlanWindow(NumericalWindow):
             channels.addItem(item)
         layout.addWidget(channels, 1)
         if not channels.count():
-            layout.addWidget(QLabel('This run has no top-level channels. Its candidate records and diagnostics can still be reviewed.'))
+            layout.addWidget(QLabel('이 계산에는 따로 선택할 응답이 없습니다. 후보 이력과 계산 상태는 전달할 수 있습니다.'))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Present for review')
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('연구 창으로 보내기')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -2430,12 +2431,13 @@ class RequestPlanWindow(NumericalWindow):
 
     def _return_message(self, receipt):
         status = receipt.get('status', 'UNCONFIRMED')
-        text = {'PRESENTED': 'Presented in the existing research window. Use Review returned result there to Attach or Cancel.',
-                'ATTACHED': 'Evidence attached to the original local draft. Apply and Save remain explicit.',
-                'ALREADY_ATTACHED': 'The exact run and channels are already in the original draft.',
-                'CANCELLED': 'Return cancelled in the original window; its draft was unchanged.',
-                'UNKNOWN': 'No retained delivery receipt in that window; inspect it before explicitly resending.'}.get(status)
-        self.message.setText(text or 'Result return ' + status + ': ' + str(receipt.get('reason', 'Inspect the original window.')))
+        text = {'PRESENTED': '연구 창으로 보냈습니다. 그 창의 받은 결과 확인에서 추가하거나 취소하세요.',
+                'ATTACHED': '연구 기록에 결과를 추가했습니다. 연구 창에서 적용하고 저장하세요.',
+                'ALREADY_ATTACHED': '이 계산 결과와 선택한 응답은 이미 연구 기록에 있습니다.',
+                'CANCELLED': '연구 창에서 결과 추가를 취소했습니다. 편집 내용은 유지됩니다.',
+                'UNKNOWN': '전달 여부를 확인할 수 없습니다. 다시 보내기 전에 연구 창을 확인하세요.'}.get(status)
+        self.message.setText(text or '결과 전달을 확인하지 못했습니다. 연구 창의 상태를 확인하세요.')
+        self.message.setToolTip('' if text else str(receipt.get('reason', status)))
 
     def check_return_status(self):
         if not self._last_return_message or self._busy or self._callbacks:

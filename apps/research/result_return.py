@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 from PySide6.QtCore import QObject, QLockFile, QStandardPaths, QThread, QThreadPool, QTimer, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
-from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QListWidget, QToolBar, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QListWidget, QPushButton, QToolBar, QVBoxLayout
 
 from caelab.research_operations import validate_result_reference
 from caelab.storage import canonical_hash, check_id
@@ -169,7 +169,7 @@ class PendingResultReview(QObject):
         self.workers = []
         self.reviewing = False
         self.connections = set()
-        self.action = QAction('Review returned result…', window)
+        self.action = QAction('받은 결과 확인…', window)
         self.action.setVisible(False)
         self.action.triggered.connect(self.review_next)
         bars = window.findChildren(QToolBar)
@@ -304,14 +304,14 @@ class PendingResultReview(QObject):
             if oldest is None:
                 break
             del self.receipts[oldest]
-        self.action.setText(('Review observation… (' if self.target and self.target[0].startswith('N')
-                             else 'Review returned result… (') + str(len(self.pending)) + ')')
+        self.action.setText(('받은 측정값 확인… (' if self.target and self.target[0].startswith('N')
+                             else '받은 결과 확인… (') + str(len(self.pending)) + ')')
         self.action.setVisible(True)
         window.showNormal()
         window.raise_()
         window.activateWindow()
-        window.message.setText('Measured curve ready for review. Current Plan edits have not changed.' if operation == 'observation'
-                               else 'Numerical result ready for review. The current edits have not changed.')
+        window.message.setText('측정값을 받았습니다. 받은 측정값 확인에서 추가하거나 취소하세요.' if operation == 'observation'
+                               else '계산 결과를 받았습니다. 받은 결과 확인에서 추가하거나 취소하세요.')
         return {**base, 'status': 'PRESENTED', 'delivery_id': identifier}
 
     def _blocked(self):
@@ -323,7 +323,7 @@ class PendingResultReview(QObject):
 
     def review_next(self):
         if not self.pending or self.reviewing or self._blocked():
-            self.window.message.setText('Finish the current request or repair the draft/conflict before reviewing the returned result.')
+            self.window.message.setText('진행 중인 작업이나 문서 충돌을 해결한 뒤 받은 결과를 확인하세요.')
             return False
         identifier = next(iter(self.pending))
         message = deepcopy(self.pending[identifier])
@@ -341,7 +341,8 @@ class PendingResultReview(QObject):
                 self.receipts[identifier].update(status='REJECTED', reason=str(error))
             self.pending.pop(identifier, None)
             self._finish()
-            self.window.message.setText('Result not attached; current edits retained. ' + error)
+            self.window.message.setText('결과를 추가하지 못했습니다. 편집 내용은 유지됩니다.')
+            self.window.message.setToolTip(str(error))
         def checked(payload):
             if not relevant() or canonical_hash(payload['target']['draft']) != context[2]:
                 failed('The original owner or local editor changed. Reconcile it before retrying.')
@@ -350,7 +351,7 @@ class PendingResultReview(QObject):
                 self.receipts[identifier]['status'] = 'CANCELLED'
                 self.pending.pop(identifier, None)
                 self._finish()
-                self.window.message.setText('Return cancelled. Current document edits are unchanged.')
+                self.window.message.setText('결과 추가를 취소했습니다. 편집 내용은 유지됩니다.')
                 return
             if not relevant():
                 failed('The original editor changed during review.')
@@ -365,10 +366,11 @@ class PendingResultReview(QObject):
             self.receipts[identifier]['status'] = status
             self.pending.pop(identifier, None)
             self._finish()
-            self.window.message.setText('Observation appended locally. Assign its model protocol/response, then Apply and Save.'
+            self.window.message.setText('측정값을 추가했습니다. 시험 조건과 응답을 지정한 뒤 적용하고 저장하세요.'
                 if status == 'ATTACHED' and message['operation'] == 'observation' else
-                'Result evidence attached locally. Apply and Save remain explicit.' if status == 'ATTACHED'
-                else 'This exact result and selection is already attached.')
+                '연구 기록에 결과를 추가했습니다. 변경 사항을 적용하고 저장하세요.' if status == 'ATTACHED'
+                else '이 결과는 이미 연구 기록에 있습니다.')
+            self.window.message.setToolTip('')
         self._read(lambda: verify_result(self.window.client, message), checked, failed)
         return True
 
@@ -392,8 +394,8 @@ class PendingResultReview(QObject):
         self.reviewing = False
         self.window._incoming_review = False
         self.action.setVisible(bool(self.pending))
-        self.action.setText(('Review observation… (' if self.target and self.target[0].startswith('N')
-                             else 'Review returned result… (') + str(len(self.pending)) + ')')
+        self.action.setText(('받은 측정값 확인… (' if self.target and self.target[0].startswith('N')
+                             else '받은 결과 확인… (') + str(len(self.pending)) + ')')
         self.window._update_actions()
 
     def confirm(self, message, payload):
@@ -403,21 +405,27 @@ class PendingResultReview(QObject):
                                               message['selection']['role'], self.window)
             return dialog.exec() == QDialog.DialogCode.Accepted
         dialog = QDialog(self.window)
-        dialog.setWindowTitle('Attach Numerical result')
-        dialog.resize(660, 360)
+        dialog.setWindowTitle('연구 기록에 결과 추가')
+        dialog.resize(660, 220)
         layout = QVBoxLayout(dialog)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addWidget(QLabel(payload['title'] + ' → ' + self.window.document['title']))
-        scope = ', '.join(message['selection']) if message['selection'] else 'No top-level response channels'
-        label = QLabel('Run: ' + message['reference']['job_id'] + '\nChannels: ' + scope +
-                       '\nRun evidence includes its candidate records; it is not a single-candidate attachment.')
+        scope = ', '.join(message['selection']) if message['selection'] else '별도로 선택한 응답 없음'
+        label = QLabel('선택한 응답: ' + scope + '\n이 계산의 전체 후보 이력을 함께 추가합니다.')
         label.setWordWrap(True)
         layout.addWidget(label)
         details = QListWidget()
         for key, value in message['reference'].items():
             details.addItem(key + ': ' + str(value))
+        technical = QPushButton('기술 정보 보기')
+        technical.setCheckable(True)
+        technical.toggled.connect(details.setVisible)
+        layout.addWidget(technical)
         layout.addWidget(details)
+        details.hide()
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Attach evidence')
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('연구 기록에 추가')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -524,7 +532,10 @@ def send_message(message, *, timeout_ms=2500):
     deadline, buffer = time.monotonic() + timeout_ms / 1000, bytearray()
     while b'\n' not in buffer and time.monotonic() < deadline:
         if not socket.bytesAvailable():
-            socket.waitForReadyRead(max(1, int((deadline - time.monotonic()) * 1000)))
+            # Windows PySide can hold the GIL throughout this native wait. Yield
+            # between short waits so a receiver in this process can run its slots.
+            socket.waitForReadyRead(max(1, min(10, int((deadline - time.monotonic()) * 1000))))
+            time.sleep(.001)
         buffer.extend(bytes(socket.readAll()))
         if len(buffer) > MAX_FRAME:
             raise RuntimeError('Invalid local result receipt.')

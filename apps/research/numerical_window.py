@@ -422,7 +422,7 @@ class NumericalWindow(QMainWindow):
         self.adoption_receipt_label.setObjectName('unconfirmedAdoptionReceipt')
         self.adoption_receipt_label.setWordWrap(True)
         self.adoption_receipt_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.retry_adoption_button = QPushButton('Retry adoption receipt')
+        self.retry_adoption_button = QPushButton('적용 결과 다시 확인')
         self.retry_adoption_button.setObjectName('retryAdoptionReceipt')
         self.retry_adoption_button.clicked.connect(self.retry_adoption_receipt)
         layout.addWidget(self.adoption_receipt_label)
@@ -437,17 +437,17 @@ class NumericalWindow(QMainWindow):
         request = pending['request']
         target = request['target_document_id' if pending['kind'] == 'domain' else pending['kind'] + '_document_id']
         same_session = self.document is not None and self.document['session_id'] == pending['source_session']
-        note = ('Session changed: this receipt remains unresolved. Its request cannot be rebased or resubmitted in the new session.'
-                if not same_session else 'Retry resends this exact reviewed request and command ID; it never selects another candidate.')
-        self.adoption_receipt_label.setText('Unconfirmed ' + pending['kind'].title() + ' adoption · target ' + target +
-            ' · job ' + request['job_id'] + ' · candidate ' + request['candidate_id'] +
-            '\nCommand ' + request['command_id'] + '\n' + note)
+        note = ('연결이 바뀌어 다시 확인할 수 없습니다. 원문서에서 적용 여부를 확인하세요.'
+                if not same_session else '다른 후보를 적용하기 전에 아래 버튼으로 앞선 적용 결과를 확인하세요.')
+        self.adoption_receipt_label.setText('후보가 원문서에 적용됐는지 아직 확인하지 못했습니다.\n' + note)
+        self.adoption_receipt_label.setToolTip('진단 정보\n원문서: ' + target + '\n계산: ' + request['job_id'] +
+            '\n후보: ' + request['candidate_id'] + '\n요청: ' + request['command_id'])
         self.retry_adoption_button.setEnabled(same_session and not self._callbacks and not self._pending_adoption
                                              and (not self._busy or self._busy_background))
 
     def _submit_adoption_receipt(self, kind, request, acknowledged=None):
         if self._adoption_receipt is not None:
-            self.message.setText('An adoption receipt is unconfirmed. Retry that exact receipt before starting another adoption.')
+            self.message.setText('앞선 적용 결과를 먼저 확인하세요. 아래의 적용 결과 다시 확인 버튼을 사용하세요.')
             return False
         self._adoption_receipt = {'kind': kind, 'request': deepcopy(request),
             'source_session': self.document['session_id'], 'acknowledged': acknowledged}
@@ -457,15 +457,15 @@ class NumericalWindow(QMainWindow):
         if self._adoption_receipt is not pending:
             return False
         if self.document is None or self.document['session_id'] != pending['source_session']:
-            self.message.setText('Service session changed. The original adoption receipt remains unresolved; no rebased request was submitted.')
+            self.message.setText('연결이 바뀌어 적용 여부를 확인하지 못했습니다. 원문서의 현재 값을 확인하세요.')
             self._update_adoption_receipt_actions()
             return False
         request = deepcopy(pending['request'])
         kind = pending['kind']
         target = request['target_document_id' if kind == 'domain' else kind + '_document_id']
         def failed(error):
-            self.message.setText('Adoption receipt unconfirmed for ' + target + ' · ' + request['job_id'] + ' · ' +
-                                 request['candidate_id'] + '. Use Retry adoption receipt with the same command ID. ' + error)
+            self.message.setText('적용 결과를 아직 확인하지 못했습니다. 적용 결과 다시 확인 버튼을 누르세요.')
+            self.message.setToolTip(str(error))
         def accepted(receipt):
             if (not isinstance(receipt, dict) or receipt.get('command_id') != request['command_id']
                     or not isinstance(receipt.get('document'), dict) or receipt['document'].get('id') != target):
@@ -474,8 +474,8 @@ class NumericalWindow(QMainWindow):
             self._adoption_receipt = None
             if kind == 'pde':
                 self._pde_adoption_request = None
-            self.message.setText('Acknowledged ' + kind.title() + ' adoption · target ' + target + ' · job ' +
-                                 request['job_id'] + ' · candidate ' + request['candidate_id'] + '. No solver was executed.')
+            self.message.setText('선택한 후보를 원문서에 적용했습니다. 원문서에서 값을 확인하고 저장하세요.')
+            self.message.setToolTip('')
             callback = pending['acknowledged']
             if callback is not None:
                 callback(receipt)
@@ -492,7 +492,7 @@ class NumericalWindow(QMainWindow):
             self._send_adoption_receipt(pending)
         if self._busy_background:
             self._pending_adoption = begin
-            self.message.setText('Waiting for the current read, then retrying the original adoption receipt with its exact command ID.')
+            self.message.setText('현재 자료 읽기가 끝나면 앞선 적용 결과를 확인합니다.')
             self._update_actions()
             return True
         return self._send_adoption_receipt(pending)
@@ -1328,21 +1328,21 @@ class NumericalWindow(QMainWindow):
 
     def adopt_candidate(self):
         if self._adoption_receipt is not None:
-            self.message.setText('An adoption receipt is unconfirmed. Retry that exact receipt before starting another adoption.')
+            self.message.setText('앞선 적용 결과를 먼저 확인하세요. 아래의 적용 결과 다시 확인 버튼을 사용하세요.')
             return False
         self._commit_editor()
         job = self.selected_job()
         candidate = self.selected_candidate()
         if self.local_dirty or self.conflict or not job or not candidate:
-            self.message.setText('Apply plan edits and select one actual candidate before adopting.')
+            self.message.setText('계획의 변경 사항을 적용한 뒤 계산이 끝난 후보 하나를 선택하세요.')
             return
         selected = next((row for row in self._result_cache.get(job, {}).get('candidates', [])
                          if row.get('candidate_id', row.get('id')) == candidate), None)
         if selected is not None and selected.get('prediction_status') == 'PREDICTED':
-            self.message.setText('This candidate is a surrogate prediction. Select an actual evaluated candidate before Material adoption.')
+            self.message.setText('이 후보는 예측값입니다. 실제 계산이 끝난 후보를 선택하세요.')
             return False
         if self._pending_adoption or self._callbacks or self._busy and not self._busy_background:
-            self.message.setText('A foreground request is still in progress; no adoption was submitted.')
+            self.message.setText('현재 작업이 끝나면 후보를 적용할 수 있습니다.')
             return False
         document_id, document_session = self.document['id'], self.document['session_id']
         run = next(item for item in self.document['runs'] if item['job_id'] == job)
@@ -1353,13 +1353,13 @@ class NumericalWindow(QMainWindow):
                     self.selected_job() == job and self.selected_candidate() == candidate and
                     not self.local_dirty and not self.conflict)
             if not same:
-                self.message.setText('Plan, run, candidate or edits changed; adoption cancelled. Select the intended candidate again.')
+                self.message.setText('계획이나 선택이 바뀌어 적용을 취소했습니다. 적용할 후보를 다시 선택하세요.')
             return same
         def target_read(target):
             if not same_selection():
                 return
             if target.get('id') != reference['document_id'] or target.get('session_id') != document_session:
-                self.message.setText('Original Material identity/session changed. No adoption was submitted.')
+                self.message.setText('원래 재료 문서의 연결이 바뀌어 적용하지 않았습니다. 재료를 다시 열어 확인하세요.')
                 return
             from caelab.numerical_document import adopted_draft
             try:
@@ -1370,7 +1370,7 @@ class NumericalWindow(QMainWindow):
             changes='\n'.join(str(name)+': '+str(old.get(name,'?'))+' → '+str(value)+' '+('1' if name=='nu' else target['draft']['settings']['stress_unit'])
                 for name,value in proposed['settings']['parameters'].items())
             if QMessageBox.question(self, '계수를 재료에 적용', target['title']+'\n\n'+changes+'\n\n적용 후 재료 창에서 별도로 저장할 수 있습니다.', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Yes:
-                self.message.setText('Adoption cancelled; no Material coefficients changed.')
+                self.message.setText('적용을 취소했습니다. 재료 계수는 바뀌지 않았습니다.')
                 return
             if not same_selection():
                 return
@@ -1385,7 +1385,7 @@ class NumericalWindow(QMainWindow):
                 self._call(lambda: self.client.document_read(reference['document_id']), target_read)
         if self._busy_background:
             self._pending_adoption = begin
-            self.message.setText('Waiting for the current read, then confirming '+candidate+' from '+job+'.')
+            self.message.setText('현재 자료 읽기가 끝나면 선택한 후보의 계수를 확인합니다.')
             self._update_actions()
             return True
         begin()

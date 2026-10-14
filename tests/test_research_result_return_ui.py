@@ -17,7 +17,7 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('felupe')
-from PySide6.QtCore import QThreadPool
+from PySide6.QtCore import QThreadPool, Qt
 from PySide6.QtWidgets import QApplication
 
 from apps.research.expert_window import ExpertWindow
@@ -348,7 +348,8 @@ def test_ipc_malformed_frame_disconnect_and_stale_session_no_fallback(app, loopb
             received = bytearray()
             deadline = time.monotonic() + 2  # Shorter than the server's 3s idle timeout.
             while socket.state() != QLocalSocket.LocalSocketState.UnconnectedState and time.monotonic() < deadline:
-                socket.waitForReadyRead(100)
+                socket.waitForReadyRead(10)
+                time.sleep(.001)  # Let the same-process Python receiver run on Windows.
                 received.extend(bytes(socket.readAll()))
             received.extend(bytes(socket.readAll()))
             assert socket.state() == QLocalSocket.LocalSocketState.UnconnectedState, 'Server must reject and disconnect malformed input'
@@ -462,7 +463,9 @@ def test_separate_process_live_reuse_and_closed_origin(app, loopback, monkeypatc
             if process.poll() is None:
                 process.terminate()
                 process.wait(timeout=5)
-            process.communicate()
+            stdout, stderr = process.communicate()
+            (tmp_path / 'child-stdout.txt').write_bytes(stdout or b'')
+            (tmp_path / 'child-stderr.txt').write_bytes(stderr or b'')
 
 
 @pytest.mark.parametrize('kind', ['expert', 'study', 'independent'])
@@ -478,7 +481,7 @@ def test_plan_return_button_original_and_independent_selection(app, loopback, mo
     source.open_document(document_id=plan['id'])
     wait(app, lambda: source.document is not None and not source._busy)
     source.runs.selectRow(next(row for row in range(source.runs.rowCount())
-                              if source.runs.item(row, 0).text() == reference['job_id']))
+                              if source.runs.item(row, 0).data(Qt.ItemDataRole.UserRole) == reference['job_id']))
     wait(app, lambda: not source._busy and not source._callbacks)
     counts = (len(client.documents()['documents']), len(wb.manager.list()), len(provider_calls))
     assert origin_id(source.document['runs'][0]) == (None if kind == 'independent' else origin['id'])
@@ -555,7 +558,7 @@ def test_return_selected_earlier_run_and_real_top_level_channel(app, loopback, m
     source.open_document(document_id=plan['id'])
     wait(app, lambda: source.document is not None and not source._busy)
     source.runs.selectRow(next(row for row in range(source.runs.rowCount())
-                              if source.runs.item(row, 0).text() == reference['job_id']))
+                              if source.runs.item(row, 0).data(Qt.ItemDataRole.UserRole) == reference['job_id']))
     wait(app, lambda: not source._busy and not source._callbacks)
     def select_channel(result):
         assert set(result['responses']) == {'cost'}
