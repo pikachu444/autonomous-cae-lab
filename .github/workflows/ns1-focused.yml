@@ -1,48 +1,39 @@
 name: NS1 focused checks
 
 on:
-  push:
-    branches: [codex/nonlinear-user-model-20261014]
-    paths:
-      - 'caelab/**'
-      - 'apps/desktop_pre/**'
-      - 'tests/test_ns1*'
-      - '.github/workflows/ns1-focused.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  material-contract:
+  user-model-contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      QT_QPA_PLATFORM: offscreen
+      NS1_RENDER_DIR: artifacts/qt
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - name: Retain the exact source for disconnected review
+      - run: python -m pip install numpy pytest jsonschema filelock matplotlib PySide6-Essentials==6.9.1 shiboken6==6.9.1
+      - name: Require actual Fortran parser check
+        run: command -v gfortran
+      - name: Focused non-native integration and real Qt checks
+        run: |
+          mkdir -p artifacts
+          python -m pytest tests/test_calculix_material.py tests/test_ns1_*.py tests/test_contact.py tests/test_contact_execution.py tests/test_contact_native_export.py tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_tie.py tests/test_frozen_fem.py tests/test_pre_fem_edit.py tests/test_pre_fem_panel_ui.py tests/test_contact_inspection.py -q --junitxml=artifacts/focused-tests.xml
+      - name: Retain exact source; no native solver-completion claim
+        if: always()
         run: |
           mkdir -p artifacts
           git rev-parse HEAD > artifacts/source-commit.txt
           git archive --format=zip --output=artifacts/ns1-source.zip HEAD
-      - name: Obtain existing Qt runtime and pinned native references for offline checks
-        run: |
-          python -m pip download --only-binary=:all: PySide6-Essentials==6.9.1 shiboken6==6.9.1 --dest artifacts/qt-wheels
-          mkdir -p artifacts/native-reference/ccx artifacts/native-reference/freecad
-          for file in plastics.f plcopy.f calctotstrain.f frd.c; do
-            curl --fail --location --retry 2 "https://raw.githubusercontent.com/Dhondtguido/CalculiX/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/$file" -o "artifacts/native-reference/ccx/$file"
-          done
-          for file in femsolver/calculix/write_materials.py femsolver/calculix/write_step_output.py femtools/membertools.py; do
-            curl --fail --location --retry 2 "https://raw.githubusercontent.com/FreeCAD/FreeCAD/1.1.4/src/Mod/Fem/$file" -o "artifacts/native-reference/freecad/$(basename "$file")"
-          done
-      - run: python -m pip install numpy pytest
-      - name: Check material execution boundaries only
-        run: python -m pytest tests/test_calculix_material.py tests/test_ns1_material_limits.py -q --junitxml=artifacts/material-tests.xml
-      - name: Publish source and test report
+      - name: Publish source, report and Qt captures
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ns1-focused-source
           path: artifacts/
