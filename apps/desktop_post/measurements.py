@@ -30,8 +30,14 @@ def _indices(indices, size):
     return indices
 
 
-def _selection(indices, namespace):
+def _selection(indices, namespace, *, time_history=False):
     from paraview.selection import CreateSelection
+    if time_history:
+        # Query selections produce statistics over time even with statistics
+        # disabled. Fixed point IDs retain one history per selected point.
+        return CreateSelection('IDSelectionSource', _name(namespace, 'original point indexes'),
+                               FieldType='POINT', IDs=[item for index in indices for item in (-1, index)],
+                               ContainingCells=0, InsideOut=0)
     return CreateSelection('SelectionQuerySource', _name(namespace, 'original point indexes'),
                            ElementType=0, QueryString=' | '.join('(id == %d)' % value for value in indices), InsideOut=0)
 
@@ -161,7 +167,7 @@ def build_measurement(source, draft, namespace):
             if native_times and ('time' not in draft or draft['time'] not in native_times):
                 raise ValueError('Choose an exact native frame for the saved original-point measurement')
             selected_input = analysis._freeze(source, draft.get('time'), namespace, proxies)
-        selection = _selection(indices, namespace)
+        selection = _selection(indices, namespace, time_history=kind == 'time')
         # Selection sources live in the selection_sources group. Keep their
         # stable names separately; SaveState retains the actual selection proxy.
         extraction = (p.PlotSelectionOverTime(registrationName=_name(namespace, 'native point histories'), Input=selected_input, Selection=selection,
@@ -176,7 +182,8 @@ def build_measurement(source, draft, namespace):
                    'time_units': draft.get('time_units'), 'time_origin': draft.get('time_origin'),
                    'tracking': tracking if kind == 'time' else None,
                    **{key: draft.get(key) or None for key in ('quantity', 'units', 'frame', 'measure', 'coordinate_units', 'coordinate_frame')},
-                   'selection_type': 'SelectionQuerySource', 'selection_query': ' | '.join('(id == %d)' % value for value in indices)}
+                   'selection_type': 'IDSelectionSource' if kind == 'time' else 'SelectionQuerySource',
+                   'selection_query': None if kind == 'time' else ' | '.join('(id == %d)' % value for value in indices)}
         return {'source': extraction, 'proxies': proxies, 'selection_proxies': [selection], 'summary': summary}
     except BaseException:
         for proxy in reversed(proxies):
