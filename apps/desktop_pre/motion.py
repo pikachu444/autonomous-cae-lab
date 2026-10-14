@@ -66,6 +66,7 @@ class Motion:
         self._direction = 1
         self._path_result = None
         self._pending_summary = None
+        self._path_source_cache = {}
         self._recovery_error = None
 
     def _api(self):
@@ -303,7 +304,9 @@ class Motion:
                 metadata = deepcopy(self.owner.read_metadata())
                 if isinstance(metadata.get('motion'), dict) and metadata['motion'].get('assembly_id') == summary['assembly_id']:
                     metadata['motion']['last_completed'] = summary
-                    self.owner.write_metadata(metadata)
+                if summary.get('paths'):
+                    metadata.setdefault('motion_paths', {})[summary['id']] = summary
+                self.owner.write_metadata(metadata)
             self.owner._transaction('Retain completed native motion summary', persist)
             self._pending_summary = None
         if self._state not in ('UNCOMPUTED', 'FAILED', 'STALE'): self._state = 'UNCOMPUTED'
@@ -322,6 +325,7 @@ class Motion:
             'definition': deepcopy(self.owner.read_metadata().get('motion')),
             'calculation': deepcopy(self._calculation), 'physics': 'NATIVE_KINEMATICS_ONLY',
             'path': deepcopy(self._path_result),
+            'path_results': self._path_summaries(),
             'recovery_error': self._recovery_error,
             'native_generation_interruptible': False, 'path_sampling_interruptible': False,
             'limits': {'parts': MAX_PARTS, 'frames': MAX_FRAMES, 'path_page': MAX_PAGE},
@@ -337,6 +341,30 @@ class Motion:
             try: return self._inspect(assembly, value)
             except RuntimeError as error: value['inspection_error'] = str(error)
         return value
+
+    def _path_summaries(self):
+        metadata = self.owner.read_metadata()
+        summaries = deepcopy(metadata.get('motion_paths', {}))
+        last = (metadata.get('motion') or {}).get('last_completed')
+        for summary in (last, self._pending_summary):
+            if summary and (summary.get('paths') or summary.get('path')):
+                value = deepcopy(summary)
+                if not value.get('paths'): value['paths'] = {value['path']['trace_id']: value['path']}
+                summaries[value['id']] = value
+        values = []
+        self._path_source_cache = {key: status for key, status in self._path_source_cache.items() if key[0] == self.owner.generation}
+        for summary in summaries.values():
+            key = (self.owner.generation, summary['id'])
+            if key not in self._path_source_cache:
+                try:
+                    assembly = self.owner._object(summary['assembly_id'])
+                    applied = metadata.get('motion') or {}
+                    status = ('UNKNOWN' if applied.get('assembly_id') != assembly.Name else
+                        'CURRENT' if _hash(applied['definition']) == summary['definition_sha256'] and self._scene(assembly) == summary['scene_sha256'] else 'STALE')
+                except Exception: status = 'UNKNOWN'
+                self._path_source_cache[key] = status
+            summary['source_status'] = self._path_source_cache[key]; values.append(summary)
+        return values
 
     def _inspect(self, assembly, descriptor=None):
         parts = self._parts(assembly, allow_empty=True)
@@ -500,7 +528,8 @@ class Motion:
     def _save_editor(self, assembly, args):
         if set(args) != {'editor'}: raise ValueError('Declare one assembly editor snapshot')
         editor = deepcopy(args['editor'])
-        if (not isinstance(editor, dict) or set(editor) != {'view', 'joint_draft', 'definition_draft'}
+        if (not isinstance(editor, dict) or not {'view', 'joint_draft', 'definition_draft'} <= set(editor)
+                or set(editor) - {'view', 'joint_draft', 'definition_draft', 'path_view'}
                 or not isinstance(editor['view'], dict)
                 or any(value is not None and not isinstance(value, dict) for value in (editor['joint_draft'], editor['definition_draft']))):
             raise ValueError('Invalid assembly editor snapshot structure')
@@ -509,6 +538,16 @@ class Motion:
         if (set(view) != {'joint_id', 'drive_row', 'trace_row'} or not identifier(view['joint_id'])
                 or any(type(view[key]) is not int or view[key] < -1 for key in ('drive_row', 'trace_row'))):
             raise ValueError('Invalid editor selection structure')
+        if 'path_view' in editor:
+            selected = editor['path_view']
+            if (not isinstance(selected, dict) or set(selected) != {'calculation_id', 'trace_id', 'frame', 'projection'}
+                    or not isinstance(selected['calculation_id'], str) or not isinstance(selected['trace_id'], str)
+                    or selected['projection'] not in ('time', 'xy', 'xz', 'yz') or type(selected['frame']) is not int):
+                raise ValueError('Invalid retained path selection')
+            path = next((summary.get('paths', {}).get(selected['trace_id']) for summary in self._path_summaries()
+                         if summary['id'] == selected['calculation_id'] and summary['assembly_id'] == assembly.Name), None)
+            if not path or not any(row['frame'] == selected['frame'] for row in path['rows']):
+                raise ValueError('Select a frame belonging to this assembly’s retained path')
         joint = editor['joint_draft']
         if joint is not None:
             if (set(joint) != {'joint_id', 'type', 'connectors', 'parameters'}
@@ -756,6 +795,8 @@ class Motion:
             def change():
                 for obj, prop, plc in adopted: setattr(obj, prop, _copy_pose(plc))
                 metadata = deepcopy(self.owner.read_metadata()); metadata['motion']['adopted_pose'] = provenance
+                if self._pending_summary and self._pending_summary.get('paths'):
+                    metadata.setdefault('motion_paths', {})[calculation] = deepcopy(self._pending_summary)
                 self.owner.write_metadata(metadata)
             # AssemblyObject.execute() otherwise solves on recompute and may replace
             # this explicitly selected driven pose. Restore the exact preference.
@@ -883,7 +924,14 @@ class Motion:
             self._frame = None
         result = {'calculation_id': self._calculation['id'], 'trace_id': trace['id'], 'coordinate_unit': 'mm',
                 'frame': 'document_global', 'clock': self._calculation['clock'], 'rows': rows,
-                'total_frames': self._calculation['frame_count'], 'preview_restored': True}
+                'total_frames': self._calculation['frame_count'], 'preview_restored': True,
+                'assembly_id': assembly.Name, 'trace': deepcopy(trace),
+                'document_id': getattr(self.owner, 'document_id', self.owner.doc.Name),
+                'scene_sha256': self._calculation['scene_sha256'], 'definition_sha256': self._calculation['definition_sha256']}
+        from .motion_path import merge_path
+        paths = deepcopy((self._pending_summary or {}).get('paths', {}))
+        result = merge_path(paths.get(trace['id']), result)
+        paths[trace['id']] = result
         self._path_result = deepcopy(result)
-        self._pending_summary = {**deepcopy(self._calculation), 'path': deepcopy(result)}
+        self._pending_summary = {**deepcopy(self._calculation), 'path': deepcopy(result), 'paths': paths}
         return result
