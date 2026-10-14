@@ -64,7 +64,7 @@ private Q_SLOTS:
     connect(action, &QAction::triggered, qApp, &QApplication::closeAllWindows);
     window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
     action->trigger(); QVERIFY(window.isVisible()); QCOMPARE(window.stockCalls, 0);
-    window.activateWindow(); window.setFocus();
+    window.activateWindow(); QVERIFY(QTest::qWaitForWindowActive(&window)); window.setFocus();
     QTest::keyClick(&window, Qt::Key_Q, Qt::ControlModifier);
     QTRY_COMPARE(static_cast<int>(a.events.size()), 2);
     QVERIFY(window.isVisible());
@@ -83,9 +83,28 @@ private Q_SLOTS:
     QCOMPARE(gate.attach(&window, 2, 2, callback), CAE_OK);
     window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
     SendMessageW(reinterpret_cast<HWND>(window.winId()), WM_SYSCOMMAND, SC_CLOSE, 0);
-    QVERIFY(window.isVisible()); QCOMPARE(a.events.size(), size_t(1));
-    window.activateWindow(); window.setFocus();
-    QTest::keyClick(&window, Qt::Key_F4, Qt::AltModifier);
+    QTRY_COMPARE(a.events.size(), size_t(1)); QVERIFY(window.isVisible());
+    window.activateWindow(); QVERIFY(QTest::qWaitForWindowActive(&window)); window.setFocus();
+    // QWidget QTest keyClick dispatches a QKeyEvent directly; it bypasses
+    // Windows' default system-key handling of Alt+F4. Target only this owned
+    // HWND, exercising the system-key message path without global input.
+    const auto hwnd = reinterpret_cast<HWND>(window.winId());
+    DWORD windowProcess = 0;
+    GetWindowThreadProcessId(hwnd, &windowProcess);
+    QCOMPARE(windowProcess, GetCurrentProcessId());
+    BYTE previousKeys[256], systemKeys[256];
+    QVERIFY(GetKeyboardState(previousKeys));
+    std::copy(std::begin(previousKeys), std::end(previousKeys), std::begin(systemKeys));
+    // Qt's Windows mapper reads the current UI thread's keyboard state, not
+    // just the message's Alt context bit. SetKeyboardState is thread-local;
+    // restore it before processing any asynchronously posted close event.
+    systemKeys[VK_MENU] |= 0x80;
+    systemKeys[VK_LMENU] |= 0x80;
+    QVERIFY(SetKeyboardState(systemKeys));
+    SendMessageW(hwnd, WM_SYSKEYDOWN, VK_F4, LPARAM(1) | (LPARAM(1) << 29));
+    SendMessageW(hwnd, WM_SYSKEYUP, VK_F4,
+                 LPARAM(1) | (LPARAM(1) << 29) | (LPARAM(1) << 30) | (LPARAM(1) << 31));
+    QVERIFY(SetKeyboardState(previousKeys));
     QTRY_COMPARE(a.events.size(), size_t(2));
     QVERIFY(window.isVisible());
 #endif

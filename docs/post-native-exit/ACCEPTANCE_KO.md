@@ -5,8 +5,11 @@
 A. Python 단위검사: owner fake/native API doubles, actual CFUNCTYPE adapter, 상태/저장
 실패/재진입/late validation/재시도/three lifecycle/미완성 draft/manifest 거부 검사.
 B. C/C++ core: CloseTransaction 및 실제 C→Python ABI. Qt가 없어서도 수행 가능.
-C. Qt6.9 harness: 실제 QCloseEvent/QAction/Ctrl+Q/Windows SC_CLOSE/Alt+F4, stock 및 late
-veto, modal, 범위, 한글 기본 focus, narrow/normal 캡처. 현재 미실행.
+C. Qt6.9 harness: 실제 QCloseEvent/QAction/Ctrl+Q/Windows SC_CLOSE 및 자기 HWND의
+Alt+F4 system-key message, stock 및 late veto, modal, 범위, 한글 기본 focus,
+narrow/normal QWidget grab 캡처. Windows MSVC로 빌드·실행했다. 최초 XML 12 case
+중 2개 입력 전달 검사는 실패했으며, 하네스 전달 교정 뒤 그 두 검사만 재실행해
+통과했다. 실제 사용자 키보드 입력이나 ParaView의 결과로 세지 않는다.
 D. 실제 Windows ParaView6.2: 반드시 아래의 전체 검수표와 새 owner 복구를 확인한다.
 A/B 또는 C 결과를 D의 합격으로 바꾸지 않는다. QtTest가 보낸 key event도 물리적
 Windows 키보드/비클라이언트 X의 실제 입력 증명과 구분한다.
