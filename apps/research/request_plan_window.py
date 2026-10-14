@@ -134,6 +134,7 @@ class _WorksheetDelegate(QStyledItemDelegate):
 class RequestPlanWindow(NumericalWindow):
     """Reuse NumericalWindow's service commands, retained jobs, save and close flow."""
     def __init__(self, client, document_id=None, poll_interval=2000, auto_open=True):
+        self._draft_history_enabled = True
         self._post_observation = None
         self._observation_key = None
         self._return_messages = {}
@@ -172,8 +173,8 @@ class RequestPlanWindow(NumericalWindow):
         file_menu.addActions([self.new_action, self.open_action, self.save_action])
         edit_menu.addActions([self.undo_action, self.redo_action])
         for action, callback in ((self.new_action, self.new_document), (self.open_action, self.choose_document),
-            (self.save_action, self.save_document), (self.undo_action, lambda: self.command('document.undo')),
-            (self.redo_action, lambda: self.command('document.redo'))):
+            (self.save_action, self.save_document), (self.undo_action, lambda: self.undo_inputs()),
+            (self.redo_action, lambda: self.undo_inputs(redo=True))):
             bar.addAction(action)
             action.triggered.connect(callback)
         self.apply_button, self.run_button = QPushButton('변경 적용'), QPushButton('계산 실행')
@@ -478,6 +479,16 @@ class RequestPlanWindow(NumericalWindow):
         self.result_summary.setWordWrap(True)
         self.result_summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         plot_controls.addWidget(self.method_response,1)
+        self.pareto_x, self.pareto_y = QComboBox(), QComboBox()
+        for name, selector in (('가로축', self.pareto_x), ('세로축', self.pareto_y)):
+            selector.setAccessibleName(name + ' 목표')
+            selector.setMinimumContentsLength(12)
+            selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            selector.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+            selector.currentIndexChanged.connect(self._plot_selected_result)
+            plot_controls.addWidget(selector, 1)
+            selector.hide()
+        self._pareto_axes_job = None
         result_layout.addWidget(self.result_summary)
         workflow_row = QHBoxLayout()
         self.next_method = QComboBox()
@@ -742,6 +753,21 @@ class RequestPlanWindow(NumericalWindow):
         index=self.method_response.findData(prior)
         self.method_response.setCurrentIndex(max(0,index));self.method_response.blockSignals(False)
         self.method_response.setVisible(self.method_response.count()>0)
+        run = next((row for row in self.document.get('runs', []) if row['job_id'] == self.selected_job()), {})
+        definitions = run.get('draft', {}).get('request', {}).get('inputs', {}).get('objectives', [])
+        axes_visible = result.get('kind') == 'epsilon_optimization' and len(definitions) > 2
+        from .numerical_methods import objective_label
+        for default, selector in enumerate((self.pareto_x, self.pareto_y)):
+            prior = selector.currentData() if self._pareto_axes_job == self.selected_job() else default
+            selector.blockSignals(True)
+            selector.clear()
+            for index, definition in enumerate(definitions):
+                selector.addItem(('가로: ' if default == 0 else '세로: ') + objective_label(definition), index)
+            selected_index = selector.findData(prior)
+            selector.setCurrentIndex(selected_index if selected_index >= 0 else min(default, selector.count()-1))
+            selector.blockSignals(False)
+            selector.setVisible(axes_visible)
+        self._pareto_axes_job = self.selected_job()
         self.result_summary.clear()
         self.next_method_button.setEnabled(bool(result) and not self._busy)
         self._plot_selected_result()
@@ -789,7 +815,9 @@ class RequestPlanWindow(NumericalWindow):
             self.runs.item(row, 3).setText('현재 입력' if run.get('is_current_input') and not self.local_dirty else '이전 입력')
 
     def _sheet_table(self, name, headers):
-        table = QTableWidget(0, len(headers))
+        from .numerical_editing import PlanTable
+        table = PlanTable(0, len(headers))
+        table.pasteRejected.connect(self.message.setText)
         table.setObjectName(name)
         table.setHorizontalHeaderLabels(headers)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -1110,6 +1138,7 @@ class RequestPlanWindow(NumericalWindow):
         self._result_errors.clear()
         self._statuses.clear()
         self._show_document(document)
+        self._reset_draft_history(force=True)
         self.work_pages.setCurrentWidget(self.results_panel if document.get('runs') else self.plan_page)
         self.message.setText('계산 계획을 열었습니다.')
         self._post_observation = None
@@ -1172,6 +1201,7 @@ class RequestPlanWindow(NumericalWindow):
         self._populating = False
         self._populate_runs(prefer_job)
         self._draw_result()
+        self._reset_draft_history()
         self._update_actions()
 
     def _populate_inputs(self, value):
@@ -1930,6 +1960,7 @@ class RequestPlanWindow(NumericalWindow):
                 self.message.setText('Earlier edits applied. Newer edits remain; Apply them before Save or Run.')
             else:
                 self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
+                self._reset_draft_history(force=True)
                 self.message.setText('Study ' + operation + ' acknowledged.')
             if after and not late:
                 QTimer.singleShot(0, after)
@@ -1939,8 +1970,9 @@ class RequestPlanWindow(NumericalWindow):
             session_id=document['session_id'], expected_generation=document['generation'], command_id='C' + uuid.uuid4().hex),
             accepted, relevant=lambda: self.document and (self.document['id'], self.document['session_id']) == context)
 
-    def edited_draft(self):
-        self._commit_editor()
+    def edited_draft(self, *, commit=True):
+        if commit:
+            self._commit_editor()
         draft = deepcopy(self._request_buffer)
         if self._view_error:
             return draft
@@ -2485,8 +2517,8 @@ class RequestPlanWindow(NumericalWindow):
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._view_error and not self.document.get('diagnostics'))
         self.save_action.setEnabled(enabled)
-        self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
-        self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
+        self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))
+        self.redo_action.setEnabled(enabled and (self._draft_history_index + 1 < len(self._draft_history) or not self.local_dirty and self.document.get('can_redo', False)))
         self.new_action.setEnabled(available)
         self.open_action.setEnabled(available)
         self.read_button.setEnabled(enabled and self.selected_job() is not None)

@@ -92,7 +92,7 @@ class ProtocolDialog(QDialog):
 
     def draft_settings(self):
         focus = QApplication.focusWidget()
-        if focus:
+        if focus and self.isAncestorOf(focus):
             focus.clearFocus()
         settings = deepcopy(self.settings)
         settings['time'] = [cell_value(self.table, row, 0) for row in range(self.table.rowCount())]
@@ -209,6 +209,11 @@ class NumericalWindow(QMainWindow):
         self._trial_source_queue = {}
         self._operation_options_by_mode = {}
         self._shown_operation_mode = 'fit'
+        self._draft_history_enabled = type(self) is NumericalWindow or getattr(self, '_draft_history_enabled', False)
+        self._draft_history, self._draft_history_index = [], 0
+        self._draft_history_owner = None
+        self._history_restoring = False
+        self._history_pending = False
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -236,8 +241,8 @@ class NumericalWindow(QMainWindow):
         self.redo_action=QAction('다시 실행',self,shortcut=QKeySequence.Redo)
         self.request_action=QAction('일반 수치 계획…',self)
         for action,handler in ((self.new_action,self.new_document),(self.open_action,self.choose_document),
-            (self.save_action,self.save_document),(self.undo_action,lambda:self.command('document.undo')),
-            (self.redo_action,lambda:self.command('document.redo')),(self.request_action,lambda:self.open_request_document())):
+            (self.save_action,self.save_document),(self.undo_action,lambda:self.undo_inputs()),
+            (self.redo_action,lambda:self.undo_inputs(redo=True)),(self.request_action,lambda:self.open_request_document())):
             action.triggered.connect(handler)
         files.addActions([self.new_action,self.open_action,self.save_action,self.request_action])
         material_action=QAction('재료 열기 / 저장…',self)
@@ -285,7 +290,9 @@ class NumericalWindow(QMainWindow):
         self.settings_toggle.toggled.connect(settings.setVisible); settings.hide()
         edit.addWidget(self.settings_toggle); edit.addWidget(settings)
         self.input_splitter=QSplitter(Qt.Orientation.Vertical); edit.addWidget(self.input_splitter,1)
-        self.variables=QTableWidget(0,7); self.variables.setObjectName('numericalVariables')
+        from .numerical_editing import PlanTable
+        self.variables=PlanTable(0,7); self.variables.setObjectName('numericalVariables')
+        self.variables.pasteRejected.connect(self.message.setText)
         self.variables.setHorizontalHeaderLabels(['계수','단위','시작값','하한','상한','조정','좌표'])
         self.variables.itemChanged.connect(self._edited)
         self.variables.horizontalHeader().setDefaultSectionSize(65)
@@ -301,7 +308,8 @@ class NumericalWindow(QMainWindow):
         self.remove_experiment=QPushButton('제거'); self.remove_experiment.clicked.connect(self.remove_experiments)
         for button in (self.add_experiment,self.edit_protocol,self.remove_experiment): buttons.addWidget(button)
         el.addLayout(buttons)
-        self.experiments=QTableWidget(0,8); self.experiments.setObjectName('numericalExperiments')
+        self.experiments=PlanTable(0,8); self.experiments.setObjectName('numericalExperiments')
+        self.experiments.pasteRejected.connect(self.message.setText)
         self.experiments.setHorizontalHeaderLabels(['식별자','용도','시험','관측','모델 응답','가중치','오차 기준','조건'])
         self.experiments.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.experiments.itemChanged.connect(self._edited)
@@ -507,6 +515,7 @@ class NumericalWindow(QMainWindow):
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
         self._show_document(document)
+        self._reset_draft_history(force=True)
         self.message.setText('시험 조건과 조정할 계수를 확인하세요. 적용 후 피팅을 실행할 수 있습니다.')
 
     def open_request_document(self, document_id=None):
@@ -556,6 +565,7 @@ class NumericalWindow(QMainWindow):
         self.material_label.setToolTip(str(self._material.get('document_id','')) if isinstance(self._material,dict) else '')
         self._populate_runs(prefer_job)
         self._draw_result()
+        self._reset_draft_history()
         self._update_actions()
 
     def _set_cell(self, table, row, col, value, editable=True):
@@ -681,15 +691,61 @@ class NumericalWindow(QMainWindow):
             self.variables.blockSignals(blocked)
         if not self._populating:
             self.local_dirty = True
+            if self._draft_history_enabled and not self._history_pending:
+                self._history_pending = True
+                QTimer.singleShot(0, self._capture_draft_edit)
             self._update_actions()
+
+    def _reset_draft_history(self, *, force=False):
+        if self._draft_history_enabled and not self._history_restoring:
+            owner = (self.document['id'], self.document['session_id'])
+            if (not force and owner == self._draft_history_owner and self._draft_history
+                    and self._draft_history[0] == self.document['draft']):
+                return
+            self._draft_history = [deepcopy(self.document['draft'])]
+            self._draft_history_index = 0
+            self._draft_history_owner = owner
+
+    def _capture_draft_edit(self):
+        self._history_pending = False
+        if not self._draft_history_enabled or self._history_restoring or not self.document or self._populating:
+            return
+        draft = self.edited_draft(commit=False)
+        if self._draft_history and draft == self._draft_history[self._draft_history_index]:
+            return
+        self._draft_history = self._draft_history[:self._draft_history_index + 1] + [draft]
+        self._draft_history_index = len(self._draft_history) - 1
+        self._update_actions()
+
+    def undo_inputs(self, *, redo=False):
+        self._commit_editor()
+        if self._draft_history_enabled:
+            self._capture_draft_edit()
+            target = self._draft_history_index + (1 if redo else -1)
+            if 0 <= target < len(self._draft_history):
+                service = deepcopy(self.document)
+                visible = deepcopy(service)
+                visible['draft'] = deepcopy(self._draft_history[target])
+                self._history_restoring = True
+                try:
+                    self._show_document(visible, prefer_job=self.selected_job())
+                    self.document = service
+                    self._draft_history_index = target
+                    self.local_dirty = visible['draft'] != service['draft']
+                finally:
+                    self._history_restoring = False
+                self._update_actions()
+                return True
+        return self.command('document.redo' if redo else 'document.undo')
 
     def _commit_editor(self):
         focus = QApplication.focusWidget()
         if focus and self.editor.isAncestorOf(focus):
             focus.clearFocus()
 
-    def edited_draft(self):
-        self._commit_editor()
+    def edited_draft(self, *, commit=True):
+        if commit:
+            self._commit_editor()
         draft = deepcopy(self.document['draft'])
         if self._view_error:
             return draft
@@ -914,6 +970,7 @@ class NumericalWindow(QMainWindow):
                 return
             self.local_dirty = False
             self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
+            self._reset_draft_history(force=True)
             self.message.setText('Applied through the Numerical document owner: ' + operation)
             if type(self) is NumericalWindow and self.document.get('diagnostics'):
                 self.locate_input_error()
@@ -945,11 +1002,17 @@ class NumericalWindow(QMainWindow):
 
     def choose_material(self):
         def chosen(document):
+            service = deepcopy(self.document)
             draft = self.edited_draft()
             replacement = from_material_document(document)
             draft.update(material=replacement['material'], variables=replacement['variables'])
             # Old experiments stay visible; incompatible protocol/model blocks running.
-            self._show_document({**self.document, 'draft': draft})
+            self._history_restoring = True
+            try:
+                self._show_document({**service, 'draft': draft})
+                self.document = service
+            finally:
+                self._history_restoring = False
             self._edited()
         self._list_select('material', chosen)
 
@@ -1468,8 +1531,8 @@ class NumericalWindow(QMainWindow):
         blocked = present and bool(self.document.get('diagnostics'))
         self.run_button.setEnabled(enabled and not self.local_dirty and not blocked)
         self.save_action.setEnabled(enabled)
-        self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
-        self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
+        self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))
+        self.redo_action.setEnabled(enabled and (self._draft_history_index + 1 < len(self._draft_history) or not self.local_dirty and self.document.get('can_redo', False)))
         self.new_action.setEnabled(available)
         self.open_action.setEnabled(available)
         for button in (self.read_button, self.adopt_button, self.analysis_button):

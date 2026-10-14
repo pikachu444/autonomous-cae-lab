@@ -392,17 +392,21 @@ def plot(window,result,inputs):
         archive=set(result.get('pareto',{}).get('nondominated_ids',[]))
         if len(definitions)<2:empty('보존된 목표 정의가 없습니다.')
         else:
+            indexes = [selector.currentData() for selector in (window.pareto_x, window.pareto_y)]
+            x_index, y_index = [index if type(index) is int and 0 <= index < len(definitions) else default
+                                for default, index in enumerate(indexes)]
+            x_definition, y_definition = definitions[x_index], definitions[y_index]
             groups={'front':[],'feasible':[],'infeasible':[]}
             for row in result.get('candidates',[]):
-                x,y=(scalar(row,d) for d in definitions[:2])
+                x,y=(scalar(row,d) for d in (x_definition, y_definition))
                 if x is None or y is None:continue
                 group='front' if row['candidate_id'] in archive else 'feasible' if row.get('feasible') else 'infeasible'
                 groups[group].append((x,y,row['candidate_id']))
             for name,color,marker,label in [('infeasible','#999999','x','제약 위반'),('feasible','#7fa7c3','o','충족'),('front','#276b9d','D','비지배 후보')]:
                 data=groups[name]
                 if data:points(ax,[x for x,y,i in data],[y for x,y,i in data],[i for x,y,i in data],c=color,marker=marker,label=label)
-            ax.set_xlabel(definitions[0]['response']+' ['+definitions[0]['unit']+']')
-            ax.set_ylabel(definitions[1]['response']+' ['+definitions[1]['unit']+']')
+            ax.set_xlabel(objective_label(x_definition))
+            ax.set_ylabel(objective_label(y_definition))
             if ax.collections:ax.legend()
         children=result.get('children',[])
         dispatch=[row.get('dispatched_evaluations_total') for row in children]
