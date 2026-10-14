@@ -91,7 +91,8 @@ FreeCAD 1.1.4, ParaView 6.2.0입니다.
 시작 메뉴의 **전처리**, **후처리**에서 각각 열 수 있습니다. 소스 폴더의
 `Start-CAE-Pre.cmd`, `Start-CAE-Post.cmd`를 더블클릭해도 같습니다.
 설치 경로가 연결되어 있지 않으면 FreeCAD 또는 ParaView 실행 파일을 선택하는 창이
-나타납니다. 후처리에서는 이어서 열 결과 파일(VTU/PVD)을 고릅니다. 파일을 여는 것만으로
+나타납니다. 후처리에서는 이어서 결과 파일(VTU/PVD) 또는 저장한 프로젝트의
+`project.json`을 고릅니다. 프로젝트를 고르면 저장된 분석을 바로 다시 엽니다. 파일을 여는 것만으로
 솔버를 실행하지는 않습니다. 이 바로가기가 외부 프로그램까지 설치하는 것은 아닙니다.
 선택한 FreeCAD·ParaView 위치는 현재 사용자의 PC에 각각 저장하므로 다음 실행에서
 다시 고를 필요가 없습니다. 파일을 옮기거나 삭제했으면 다시 선택합니다. 명령어의
@@ -113,8 +114,9 @@ FreeCAD portable 설치라면 `bin` 폴더의 실행 파일을 지정합니다.
 경로는 사용자가 가진 파일의 경로로 바꾸세요. 실제 메시 생성과 해석에는 해당 backend 설정도
 필요합니다. [첫 사용 예제](USER_GUIDE_KO.md)와 [접촉 작업 안내](CONTACT_WORKFLOW.md)를 참고하세요.
 
-저장한 후처리 프로젝트를 다시 열 때는 원 결과 파일 대신 프로젝트의 `project.json`을
-지정합니다. 아래 경로도 실제 저장 위치로 바꾸세요.
+저장한 후처리 프로젝트를 다시 열 때는 **후처리** 바로가기의 파일 선택 창에서 원 결과
+파일 대신 프로젝트의 `project.json`을 고릅니다. 명령으로 열려면 아래처럼 지정하세요.
+아래 경로도 실제 저장 위치로 바꾸세요.
 
 ```powershell
 .\scripts\start_cae_post.ps1 -ParaViewExe 'C:\Tools\ParaView\bin\paraview.exe' -Project 'C:\MyResults\study\project.json'

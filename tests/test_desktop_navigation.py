@@ -189,6 +189,52 @@ def test_post_existing_project_requires_no_solver_or_native_preparation(client, 
     assert 'CAELAB_ORIGIN_JOB_ID' not in processes[0][1]['env']
 
 
+@pytest.mark.parametrize('suffix', ['.json', '.vtu', '.pvd'])
+def test_post_shortcut_opens_selected_project_or_result(client, processes, tmp_path, monkeypatch, suffix):
+    post_install(client, tmp_path)
+    selected = tmp_path / ('내 결과' + suffix)
+    state = tmp_path / 'saved.pvsm'
+    state.write_text('TEST_ONLY')
+    original = json.dumps({'kind': 'external-result', 'workspace_file': state.name}).encode()
+    selected.write_bytes(original if suffix == '.json' else b'TEST_ONLY_RESULT')
+    dialogs, prepared = [], []
+    def choose(title, filters):
+        dialogs.append((title, filters))
+        return selected
+    def prepare(command, **kwargs):
+        prepared.append(command)
+        assert command[3] == str(selected)
+        workspace = Path(command[4])
+        workspace.mkdir()
+        (workspace / state.name).write_bytes(state.read_bytes())
+        (workspace / 'project.json').write_bytes(original)
+        return NS(returncode=0)
+    monkeypatch.setattr(desktop, '_choose_file', choose)
+    monkeypatch.setattr(desktop.subprocess, 'run', prepare)
+    result = desktop._post(client, desktop._arguments(['--service', client.url, 'post']))
+    assert len(dialogs) == 1 and '*.json' in dialogs[0][1]
+    assert result['status'] == 'LAUNCHED' and len(processes) == 1
+    if suffix == '.json':
+        assert not prepared and Path(result['project']) == selected
+        assert selected.read_bytes() == original
+    else:
+        assert len(prepared) == 1
+
+
+@pytest.mark.parametrize('headless', [False, True])
+def test_post_missing_selection_creates_no_files_or_process(client, processes, tmp_path, monkeypatch, headless):
+    post_install(client, tmp_path)
+    def choose(*args):
+        if headless:
+            pytest.fail('Headless preparation must not open a file dialog')
+        raise ValueError('No file selected')
+    monkeypatch.setattr(desktop, '_choose_file', choose)
+    args = ['--service', client.url, 'post'] + (['--prepare-only'] if headless else [])
+    with pytest.raises(ValueError, match='headless preparation' if headless else 'No file selected'):
+        desktop._post(client, desktop._arguments(args))
+    assert not processes and not Path(client.context['export_root']).exists()
+
+
 def test_prepare_only_keeps_exact_candidate_stage_origin_for_later_open(client, processes, tmp_path, monkeypatch):
     post_install(client, tmp_path)
     source = {'document_id': 'Nplan', 'candidate_id': 'Cchosen', 'evaluation_index': 1, 'attempt_id': 'Astress'}

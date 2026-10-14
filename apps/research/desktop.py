@@ -506,6 +506,15 @@ def _post(client, args):
         if _native_pid_alive(measurement_source.get('pid')) is not False:
             raise ValueError('Original Post closure is unconfirmed; reconnect its existing window')
         args.project = measurement_source['project']['path']
+    if not (args.project or args.input_path or args.input_id or args.job_id):
+        if args.prepare_only:
+            raise ValueError('Specify a Post project or VTU/PVD result for headless preparation')
+        selected = _choose_file('후처리 프로젝트 또는 결과 열기',
+            '후처리 파일 (*.json *.vtu *.pvd);;저장한 프로젝트 (*.json);;해석 결과 (*.vtu *.pvd)')
+        if selected.suffix.lower() == '.json':
+            args.project = str(selected)
+        else:
+            args.input_path = str(selected)
     if args.project:
         project = Path(args.project).resolve(strict=True)
         folder = _folder(context, 'post', args.output)
@@ -523,7 +532,7 @@ def _post(client, args):
         if args.input_id:
             command += [str(workspace), '--registered-input', check_id(args.input_id), '--service-url', client.url]
         else:
-            source = Path(args.input_path).resolve(strict=True) if args.input_path else _choose_file('Open retained VTU/PVD result', 'Result files (*.vtu *.pvd)')
+            source = Path(args.input_path).resolve(strict=True)
             command += [str(source), str(workspace)]
         with (folder / 'prepare.stdout.log').open('wb') as stdout, (folder / 'prepare.stderr.log').open('wb') as stderr:
             completed = subprocess.run(command, cwd=folder, stdout=stdout, stderr=stderr, check=False)
