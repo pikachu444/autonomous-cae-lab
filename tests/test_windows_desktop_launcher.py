@@ -528,7 +528,7 @@ foreach ($command in $commands) {
 
     def test_all_direct_tools_preserve_exact_selection_and_shared_url(self):
         tools = ("material", "data", "numerical", "pde", "expert",
-                 "runner", "simulation", "evaluation", "study")
+                 "runner", "simulation", "evaluation", "study", "report")
         for entry in ("start-windows.ps1", "start_cae_research.ps1"):
             for tool in tools:
                 with self.subTest(entry=entry, tool=tool):
@@ -544,6 +544,20 @@ foreach ($command in $commands) {
                     self.assertEqual(desktops[0]["argv"],
                                      ["--service", "http://127.0.0.1:8877", tool, flag, value])
                     self.assertEqual(desktops[0]["cwd"], spec["source"])
+
+    def test_report_reuses_service_and_opens_exact_saved_document(self):
+        for entry in ("start-windows.ps1", "start_cae_research.ps1"):
+            with self.subTest(entry=entry):
+                result, events, spec = self.run_case([
+                    self.phase(NoBrowser=True, ResearchUI=True),
+                    self.phase(entry, Tool="REPORT", DocumentId="Rexact_02")])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(len(self.events_of(events, "server")), 1)
+                desktops = self.events_of(events, "desktop")
+                self.assertEqual(len(desktops), 1)
+                self.assertEqual(desktops[0]["argv"],
+                                 ["--service", "http://127.0.0.1:8877", "report", "--document-id", "Rexact_02"])
+                self.assertEqual(desktops[0]["cwd"], spec["source"])
 
     def test_headless_modes_prepare_only_the_requested_resources(self):
         cases = [

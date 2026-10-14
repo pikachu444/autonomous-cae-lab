@@ -125,6 +125,12 @@ class Client:
     def study_references(self, identifier):
         from .storage import check_id
         return self.request('/api/workbench/studies/'+check_id(identifier)+'/references')
+    def report_capture(self, document_id, reference):
+        return self.request('/api/workbench/report-capture', dict(document_id=document_id, reference=reference))
+
+    def report_content(self, document_id, assets):
+        return self.request('/api/workbench/report-content', dict(document_id=document_id, assets=assets))
+
     def research_reference(self, reference):
         return self.request('/api/workbench/research-reference',{'reference':reference})
     def domain_plan(self, document_id, *, session_id, expected_generation, command_id):

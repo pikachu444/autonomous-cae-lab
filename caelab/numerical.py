@@ -868,6 +868,8 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
     experiments = [_experiment(e) for e in experiments]
     if len({e['id'] for e in experiments}) != len(experiments):
         raise ValueError("Experiment IDs must be distinct")
+    from .identification import require_independent_rows
+    require_independent_rows(experiments)
     fitted = [e for e in experiments if e['role'] == 'fit']
     if not fitted:
         raise ValueError("At least one fit experiment is required")
@@ -995,10 +997,10 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                 best_values = _decode(dict(zip(names, result.x)), variables)
                 termination = str(result.message)
                 convergence = bool(result.success)
-                jacobian_rank = int(np.linalg.matrix_rank(result.jac))
-                condition = float(np.linalg.cond(result.jac))
-                identification = {'jacobian_rank': jacobian_rank, 'coefficient_count': len(variables),
-                                  'condition_number': condition if math.isfinite(condition) else None}
+                from .identification import diagnose
+                identification = diagnose(result.jac, variables, fitted, best_values,
+                    loss=opts.get('loss', 'linear'), jacobian_method=opts.get('jac', '2-point'),
+                    active_mask=result.active_mask)
             else:
                 if set(opts) - {'seed', 'max_generations', 'population_size'}:
                     raise ValueError("Unknown differential-evolution fit options")
@@ -1062,6 +1064,12 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
             if any(curve['execution_status']!='SUCCEEDED' for curve in curves):
                 failure_reason='Final candidate could not reproduce successful fit responses'
                 convergence=False
+        if identification and (identification.get('parameter_values') != best_values
+                or any('penalty_applied' in row for row in rows)
+                or len(curves) != len(fitted)
+                or any(curve['execution_status'] != 'SUCCEEDED' for curve in curves)):
+            identification = {'status': 'UNKNOWN', 'reason':
+                'Final retained responses differ from the Jacobian point or penalties entered the residual search.'}
         timing = models.timing()
     holdout = [e for e in experiments if e['role'] == 'holdout']
     if best_values is not None and holdout:

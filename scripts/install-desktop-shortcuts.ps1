@@ -15,7 +15,7 @@ if (-not [IO.File]::Exists($launcher)) {
 $tools = [ordered]@{
     runner = '실행 관리'; data = '데이터'; material = '재료'; pde = '방정식'
     numerical = '수치 연구'; expert = '전문가 토론'; simulation = '해석'
-    evaluation = '계산 절차'; study = '연구 기록'
+    evaluation = '계산 절차'; study = '연구 기록'; report = '보고서'
     pre = '전처리'; post = '후처리'
 }
 $nativeLaunchers = @{ pre = 'Start-CAE-Pre.cmd'; post = 'Start-CAE-Post.cmd' }

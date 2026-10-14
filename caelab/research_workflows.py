@@ -155,7 +155,7 @@ def _candidate_reference_view(result, selection):
     """
     if isinstance(selection, list):
         selection = {'responses': selection}
-    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows'}:
+    if not isinstance(selection, dict) or set(selection) - {'responses', 'rows', 'candidate_ids', 'metadata_only', 'reduction_index'}:
         raise ValueError('Candidate evidence preview accepts response names and rows; open the original result for advanced selection')
     names = selection.get('responses')
     if names is not None and (not isinstance(names, list) or any(not isinstance(name, str) for name in names)):
@@ -166,13 +166,39 @@ def _candidate_reference_view(result, selection):
         raise ValueError('Candidate response rows require an integer start and stop')
     key = 'candidates' if isinstance(result.get('candidates'), list) else 'predictions'
     rows = result[key]
+    selected_ids = selection.get('candidate_ids')
+    if selected_ids is not None:
+        if (not isinstance(selected_ids, list) or not selected_ids or
+                any(not isinstance(v, str) for v in selected_ids) or len(set(selected_ids)) != len(selected_ids)):
+            raise ValueError('Choose distinct exact retained candidates')
+        if set(selected_ids) - {row.get('candidate_id') for row in rows}:
+            raise ValueError('Selected candidate is absent from this exact result')
+        rows = [row for row in rows if row.get('candidate_id') in selected_ids]
+    reduction_index=selection.get('reduction_index')
+    if reduction_index is not None:
+        if (type(reduction_index) is not int or selected_ids is None or len(rows)!=1
+                or not 0<=reduction_index<len(rows[0].get('response_reductions',[]))
+                or set(selection)-{'candidate_ids','responses','reduction_index'}):
+            raise ValueError('Select one exact saved candidate reduction, without curve rows or times')
+        reduced=rows[0]['response_reductions'][reduction_index]
+        if names != [reduced['response']]:
+            raise ValueError('Saved reduction and requested response differ')
+        actual=deepcopy(result);actual[key]=deepcopy(rows)
+        actual[key][0]['responses']={}
+        actual[key][0]['response_reductions']=[deepcopy(reduced)]
+        actual[key][0]['selected_reduction_index']=reduction_index
+        return actual
     available = {name for row in rows for name in (row.get('responses') or {})}
     if names is not None and any(name not in available for name in names):
         raise ValueError('Unknown candidate response selection')
     actual = deepcopy(result)
+    actual[key] = deepcopy(rows)
     for row in actual[key]:
         responses = row.get('responses') or {}
-        row['responses'] = {name: response for name, response in responses.items() if names is None or name in names}
+        row['responses'] = ({} if selection.get('metadata_only') else
+            {name: response for name, response in responses.items() if names is None or name in names})
+        if not selection.get('metadata_only'):
+            row.pop('response_reductions',None)
         for response in row['responses'].values():
             if bounds is None or response.get('kind') != 'series':
                 continue
@@ -200,6 +226,27 @@ def resolve_reference(wb, reference):
     if error:
         raise ValueError(error)
     kind = reference['kind']
+    if kind == 'comparison':
+        owner=wb._document_owner(reference['document_id'])
+        if owner is wb.native_commands:raise ValueError('비교를 소유한 연구 문서를 선택하세요.')
+        saved=owner._verify_revision(reference['document_id'],reference['saved_revision'])
+        row=next((r for r in saved.get('comparisons',[]) if r['id']==reference['comparison_id']),None)
+        if saved['kind']!=reference['document_kind'] or row is None or row['result_sha256']!=reference['result_sha256']:
+            raise ValueError('저장된 비교의 정확한 참조가 다릅니다.')
+        current=owner.read(reference['document_id'])
+        current_row=next((r for r in current.get('comparisons',[]) if r['id']==reference['comparison_id']),None)
+        if current_row is None or current_row['result_sha256']!=row['result_sha256']:
+            raise ValueError('요청한 비교가 현재 소유자에서 읽히지 않습니다.')
+        comparison=owner.comparison(reference['document_id'],reference['comparison_id'],
+            start=reference['start'],count=reference['count'])
+        return {'status':'AVAILABLE','kind':kind,'reference':deepcopy(reference),'comparison':comparison}
+    if kind == 'knowledge':
+        source = wb.assistance_call('knowledge.source', {key: deepcopy(reference[key])
+            for key in ('document_id', 'revision', 'locator')})
+        if (source.get('status') != 'AVAILABLE' or source.get('sha256') != reference['source_sha256']
+                or canonical_hash(source) != reference['content_sha256']):
+            raise ValueError('선택한 문헌 개정/원문이 없거나 변경되었습니다.')
+        return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference), 'source': source}
     if kind == 'document':
         owner = wb._document_owner(reference['document_id'])
         if owner is wb.native_commands:
@@ -216,7 +263,7 @@ def resolve_reference(wb, reference):
         selection = reference.get('selection', [reference['response']] if reference.get('response') else {'metadata_only': True})
         nested = isinstance(result.get('candidates'), list) or isinstance(result.get('predictions'), list)
         metadata_only = isinstance(selection, dict) and selection.get('metadata_only')
-        actual = (_candidate_reference_view(result, selection) if nested and not metadata_only else
+        actual = (_candidate_reference_view(result, selection) if nested else
                   wb.document_result(exact['document_id'], exact['job_id'], selection=selection))
         return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
                 'metadata': result_metadata(result), 'result': actual}
@@ -231,4 +278,5 @@ def resolve_reference(wb, reference):
 def reference_metadata(wb, reference):
     result = resolve_reference(wb, reference)
     result.pop('document', None); result.pop('result', None); result.pop('turn', None)
+    result.pop('source', None); result.pop('comparison', None)
     return result

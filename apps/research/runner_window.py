@@ -237,7 +237,7 @@ class RunnerWindow(QMainWindow):
         for kind, label in (("pre", "CAD 및 전처리…"), ("post", "후처리…"),
                             ("data", "데이터…"), ("material", "재료…"), ("numerical", "수치 연구…"),
                             ("pde", "방정식…"), ("simulation", "해석…"), ("evaluation", "계산 절차…"),
-                            ("study", "연구 기록…"), ("expert", "전문가 토론…")):
+                            ("study", "연구 기록…"), ("report", "보고서…"), ("expert", "전문가 토론…")):
             action = QAction(label, self)
             action.triggered.connect(lambda checked=False, tool=kind: self.open_tool(tool))
             tools.addAction(action)

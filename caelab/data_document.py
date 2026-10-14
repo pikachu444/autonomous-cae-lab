@@ -20,7 +20,7 @@ def default_draft():
 def diagnostics(draft):
     """Preserve invalid drafts; import requires explicit meaning for every channel."""
     try:
-        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata'}:
+        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata', 'acquisition'}:
             raise ValueError('Data draft requires data_id and mapping; only explicit test_metadata may be added')
         check_id(draft['data_id'])
         if not draft['data_id'].startswith('D'):
@@ -46,7 +46,7 @@ def diagnostics(draft):
             if not isinstance(name, str) or not name.strip():
                 raise ValueError('Every response needs a channel name')
             required = {'column', 'unit', 'component', 'location', 'measure', 'frame', 'axis'}
-            optional = {'scale', 'offset', 'reduction', 'coordinate_system', 'row_selection'}
+            optional = {'scale', 'offset', 'reduction', 'coordinate_system', 'row_selection', 'calibration'}
             if not isinstance(response, dict) or not required <= set(response) or set(response) - required - optional:
                 raise ValueError(f'{name}: response requires column, unit, component, location, measure, frame and axis')
             axis = response['axis']
@@ -65,6 +65,11 @@ def diagnostics(draft):
                         raise ValueError(f'{name}: {label} {key} must be a finite number')
             if isinstance(response['column'], str) != isinstance(axis['column'], str):
                 raise ValueError(f'{name}: use either numeric indexes for both columns or named columns for both')
+            if 'calibration' in response:
+                from .experiment_calibration import validate_calibration
+                validate_calibration(response['calibration'], response['unit'])
+                if response.get('scale', 1) != 1 or response.get('offset', 0) != 0:
+                    raise ValueError(name + ': 교정과 기존 배율/오프셋을 중복 적용할 수 없습니다.')
             validate_row_selection(response.get('row_selection', {}))
     except (ValueError, TypeError, KeyError) as error:
         return [{'severity': 'error', 'path': 'mapping', 'message': str(error), 'blocks_evaluation': True}]
@@ -91,7 +96,8 @@ class DataDocuments(MaterialDocuments):
 
     @staticmethod
     def job_arguments(draft):
-        return {'data_id': draft['data_id'], 'mapping': deepcopy(draft['mapping'])}
+        return {'data_id': draft['data_id'], 'mapping': deepcopy(draft['mapping']),
+                'test_metadata': deepcopy(draft.get('test_metadata', {}))}
 
     def prepare_job_arguments(self, draft, document):
         """Freeze the exact registered or document-retained source before submit."""
@@ -112,7 +118,72 @@ class DataDocuments(MaterialDocuments):
         self._check_source(identifier, source, receipt)
         reference.update(sha256=receipt['sha256'], bytes=receipt['bytes'],
                          receipt_sha256=canonical_hash(receipt))
-        return {**self.job_arguments(draft), 'source_ref': reference}
+        certificates = []
+        for spec in draft['mapping']['columns'].values():
+            if 'calibration' not in spec:
+                continue
+            cert = spec['calibration']['source']
+            # Reuse the same frozen source contract for certificates.
+            prepared = self.prepare_job_arguments({'data_id': cert['data_id'],
+                'mapping': {'columns': {}}}, document)['source_ref']
+            if prepared['sha256'] != cert['sha256']:
+                raise ValueError('교정 원본이 변경되었습니다. 새 버전을 명시적으로 선택하세요.')
+            certificates.append(prepared)
+        # The command receipt must freeze exactly the arguments that admission stores.
+        certificates = self.calibration_sources(draft['mapping'], certificates)
+        return {**self.job_arguments(draft), 'source_ref': reference,
+                **({'calibration_sources': certificates} if certificates else {})}
+
+    def calibration_sources(self, mapping, supplied=None, *, require_frozen=False):
+        """Derive the entire certificate closure from the actual submitted mapping."""
+        from .experiment_calibration import validate_calibration
+        required = {}
+        columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
+        for spec in (columns.values() if isinstance(columns, dict) else []):
+            if not isinstance(spec, dict) or 'calibration' not in spec:
+                continue
+            recipe = spec['calibration']
+            validate_calibration(recipe, spec.get('unit'))
+            source = recipe['source']
+            identifier = source['data_id']
+            if identifier in required and required[identifier] != source['sha256']:
+                raise ValueError('한 교정 원본에 서로 다른 버전이 지정되었습니다.')
+            required[identifier] = source['sha256']
+        if supplied is None:
+            if required and require_frozen:
+                raise ValueError('교정 원본의 제출 당시 기록이 없습니다.')
+            supplied = []
+            for identifier in sorted(required):
+                path, receipt = self.resolve_input(identifier)
+                self._check_source(identifier, Path(path), receipt)
+                supplied.append({'kind': 'registered_calibration', 'data_id': identifier,
+                    'sha256': receipt['sha256'], 'bytes': receipt['bytes'],
+                    'receipt_sha256': canonical_hash(receipt)})
+        if not isinstance(supplied, list):
+            raise ValueError('교정 원본 목록이 잘못되었습니다.')
+        verified = {}
+        for reference in supplied:
+            if not isinstance(reference, dict):
+                raise ValueError('교정 원본 기록이 잘못되었습니다.')
+            identifier = reference.get('data_id')
+            if identifier not in required or reference.get('sha256') != required[identifier]:
+                raise ValueError('교정식의 원본과 제출한 증빙이 다릅니다.')
+            if identifier in verified and verified[identifier] != reference:
+                raise ValueError('한 교정 원본에 서로 다른 보존 기록이 있습니다.')
+            if reference.get('kind') == 'registered_calibration':
+                if set(reference) != {'kind','data_id','sha256','bytes','receipt_sha256'}:
+                    raise ValueError('등록 교정 원본의 필드가 잘못되었습니다.')
+                path, receipt = self.resolve_input(identifier)
+                self._check_source(identifier, Path(path), receipt)
+                if (receipt['sha256'] != reference['sha256'] or receipt['bytes'] != reference['bytes']
+                        or canonical_hash(receipt) != reference['receipt_sha256']):
+                    raise ValueError('교정 원본 또는 등록 기록이 변경되었습니다.')
+            else:
+                self.resolve_job_source(identifier, reference)
+            verified[identifier] = deepcopy(reference)
+        if set(verified) != set(required):
+            raise ValueError('교정식에 필요한 원본 증빙이 빠졌습니다.')
+        return [verified[key] for key in sorted(verified)]
 
     def resolve_job_source(self, identifier, reference):
         """Resolve only a frozen service-owned reference, never a supplied file path."""
@@ -176,6 +247,25 @@ class DataDocuments(MaterialDocuments):
         drafts.extend(run.get('draft', {}) for run in saved['runs'])
         identifiers = set()
         for draft in drafts:
+            if not isinstance(draft, dict):
+                continue
+            mapping = draft.get('mapping')
+            columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
+            specs = list(columns.values()) if isinstance(columns, dict) else []
+            acquisition = draft.get('acquisition')
+            if isinstance(acquisition, dict) and isinstance(acquisition.get('channels'), list):
+                specs += acquisition['channels']
+            for spec in specs:
+                calibration = spec.get('calibration') if isinstance(spec, dict) else None
+                source = calibration.get('source') if isinstance(calibration, dict) else None
+                if isinstance(source, dict):
+                    try:
+                        identifier = check_id(source.get('data_id'))
+                        if identifier.startswith('D'):
+                            identifiers.add(identifier)
+                    except ValueError:
+                        pass
+        for draft in drafts:
             identifier = draft.get('data_id') if isinstance(draft, dict) else None
             try:
                 check_id(identifier)
@@ -186,6 +276,12 @@ class DataDocuments(MaterialDocuments):
         retained = {}
         unresolved = []
         used = {run.get('draft', {}).get('data_id') for run in saved['runs']}
+        for run in saved['runs']:
+            mapping = run.get('draft', {}).get('mapping')
+            columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
+            for spec in (columns.values() if isinstance(columns, dict) else []):
+                if isinstance(spec, dict) and isinstance(spec.get('calibration'), dict):
+                    used.add((spec['calibration'].get('source') or {}).get('data_id'))
         for identifier in sorted(identifiers):
             original = self._retained_source(saved, identifier)
             try:

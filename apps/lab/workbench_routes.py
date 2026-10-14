@@ -38,6 +38,12 @@ def handle(handler,method,path,query):
             if set(body)-{'document_id','job_id','transfer_id','iteration','start','count'} or not {'document_id','job_id'} <= set(body):
                 raise ServiceError(400,'정확한 연성 결과와 전달을 선택하세요.')
             return handler._json(200,workbench.evaluation_transfer(**body))
+        if path in {'/api/workbench/report-capture', '/api/workbench/report-content'}:
+            field = 'reference' if path.endswith('capture') else 'assets'
+            if set(body) != {'document_id', field}:
+                raise ServiceError(400, '보고서와 정확한 자료를 선택하세요.')
+            function = workbench.report_capture if field == 'reference' else workbench.report_content
+            return handler._json(200, function(**body))
         if path=='/api/workbench/research-reference':
             if set(body)!={'reference'}:
                 raise ServiceError(400,'Select the exact saved evidence reference')

@@ -395,13 +395,27 @@ def _read_result(path, *, verify, selection, arrays):
             if any(key in selection and response.get(key) != selection[key] for key in ('component', 'location')):
                 del result['responses'][name]
                 continue
-            if response.get('kind') != 'series':
+            if response.get('kind') != 'series' and not (response.get('kind') == 'field' and 'source_rows' in response):
                 continue
             values = np.asarray(array_value(response['value']))
             selected = np.arange(len(values))
             if 'rows' in selection:
                 start, stop = selection['rows']
                 selected = selected[slice(start, stop)]
+            if 'source_rows' in selection:
+                requested = selection['source_rows']
+                if (not isinstance(requested, list) or not requested or len(requested) > 4096
+                        or any(type(row) is not int or row < 0 for row in requested)
+                        or len(set(requested)) != len(requested)):
+                    raise ValueError('Choose at most 4096 distinct original rows')
+                original = response.get('source_rows')
+                if original is None:
+                    raise ValueError('This response has no original-row identity')
+                original = np.asarray(array_value(original))
+                raw_rows = (response.get('raw_samples') or {}).get('source_rows', original)
+                if set(requested) - set(array_value(raw_rows)):
+                    raise ValueError('Requested original rows are absent; no substitute rows are read')
+                selected = selected[np.isin(original[selected], requested)]
             if 'time_range' in selection:
                 axis = next((a for a in response.get('axes', []) if a['name'] == 'time'), None)
                 if axis is None:
@@ -421,6 +435,8 @@ def _read_result(path, *, verify, selection, arrays):
                 raw_total=len(array_value(raw['source_rows']))
                 first,last=selection.get('rows',[0,raw_total])
                 raw_selected=np.arange(raw_total)[slice(first,last)]
+                if 'source_rows' in selection:
+                    raw_selected=raw_selected[np.isin(np.asarray(array_value(raw['source_rows']))[raw_selected], selection['source_rows'])]
                 if 'time_range' in selection and 'transformed_axis' in raw:
                     # Raw invalid tokens remain visible in row pages. A time
                     # query retains only explicitly finite raw coordinates.

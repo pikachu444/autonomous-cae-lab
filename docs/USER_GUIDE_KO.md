@@ -527,6 +527,41 @@ Material이나 PDE에서 각각 저장한 모델을 계산 순서로 묶을 수 
 
 ![접촉면의 절점 값과 하중 계수에 따른 A 면 힘 이력](images/contact-results.png)
 
+## 시험 채널을 교정하고 보고서로 저장하기
+
+기본 설치 후 시작 메뉴에서 **데이터**와 **보고서**를 따로 열 수 있습니다.
+보고서에는 저장한 시험 자료, 계산 결과, 연구 기록을 골라 넣습니다.
+
+먼저 공개 예제로 전체 연결을 보려면 저장소 폴더에서 PowerShell을 열고 실행하세요.
+합성 전압 파일을 가져오고 FELUPE 재료점 계산을 한 번 수행합니다. 실제 장비는 사용하지 않습니다.
+
+```powershell
+$caePython = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime\venv\Scripts\python.exe'
+$example = & $caePython -m examples.experiment_report --store runs/experiment-example --run | ConvertFrom-Json
+.\Start-CAE-Lab.cmd -Tool report -Store runs/experiment-example -Port 18766 -DocumentId $example.report
+```
+
+**공개 시험 비교 보고서**가 열립니다. 왼쪽에서 센서 교정 또는 관측과 계산을 선택해
+표와 곡선을 읽으세요. **선택 섹션 편집…**에서 설명과 표·곡선 포함 여부를 바꾸고
+**설명 적용**을 누릅니다. **파일** 메뉴에서 저장하거나 PDF·Markdown으로 내보냅니다.
+다시 열 때는 같은 작업 폴더와 문서를 사용합니다. 예제의 별도 작업 폴더는 기본 시작
+메뉴가 여는 작업 폴더와 다르므로 위 명령을 그대로 사용하세요.
+
+자기 파일로 작업할 때는 Data에서 열과 단위를 지정한 뒤 **편집 → 채널 교정…**을
+엽니다. 교정서의 계수·영점·단위·범위를 입력하고 **교정 전후 보기**에서 확인한 후
+**초안에 적용**합니다. Data에서 가져오기를 실행하고 저장하면 원값과 교정값이 함께
+남습니다. 결과 표의 필요한 행을 선택하고 **선택 결과로 보고서…**를 누르면 해당
+자료로 보고서를 이어 씁니다. 범위 밖·센서 포화 표본도 원값은 남으며 계산에서는 제외됩니다.
+
+![공개 전압 자료의 원값과 교정값 비교](images/measurement-calibration.png)
+
+![저장한 시험 자료로 만든 독립 보고서](images/measurement-report.png)
+
+위 화면은 실제 Qt 제품 창에 공개 합성 자료를 연 것입니다. 센서 교정의 정확성이나
+제품의 공학적 승인을 뜻하지 않습니다. 불확실성 자동 전파와 실장비 수집·중지는 남은
+개발 범위입니다. 계수 식별 진단, 수집 설정 재사용과 오류 복구는
+[시험 자료와 보고서 상세 안내](EXPERIMENT_REPORT.md)를 참고하세요.
+
 ## 내 모델과 결과로 이어가기
 
 기존 결과는 ParaView Post에서 직접 열 수 있습니다. FreeCAD 모델이나 AI 연결을

@@ -104,7 +104,7 @@ class NativeCommands:
         for document in documents:
             identifier = check_id(document['id'])
             kind = document.get('kind')
-            if identifier in result or identifier[0] in {'M', 'T', 'N'} or kind not in CAPABILITIES:
+            if identifier in result or identifier[0] in {'M', 'T', 'N', 'B'} or kind not in CAPABILITIES:
                 raise ValueError('Use unique native Pre/Post document identities')
             for key in ('generation', 'view_generation'):
                 if type(document.get(key)) is not int or document[key] < 0:

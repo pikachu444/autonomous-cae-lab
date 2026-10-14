@@ -227,6 +227,8 @@ class NumericalWindow(QMainWindow):
         files=self.menuBar().addMenu('파일(&F)')
         edits=self.menuBar().addMenu('편집(&E)')
         view=self.menuBar().addMenu('보기(&V)')
+        identification = view.addAction('계수 식별과 다음 시험…')
+        identification.triggered.connect(self.open_identification)
         self.new_action=QAction('새 피팅 계획',self,shortcut=QKeySequence.New)
         self.open_action=QAction('열기…',self,shortcut=QKeySequence.Open)
         self.save_action=QAction('저장',self,shortcut=QKeySequence.Save)
@@ -1019,6 +1021,16 @@ class NumericalWindow(QMainWindow):
         self._populate_experiments()
         self._populating = False
         self._edited()
+
+    def open_identification(self):
+        if not self.document or not self.selected_job():
+            self.message.setText('저장한 피팅 계산을 선택하세요.')
+            return False
+        from .identification_window import IdentificationWindow
+        window = IdentificationWindow(self.client, self.document['id'], self.selected_job(), self)
+        self._identification_windows = getattr(self, '_identification_windows', []) + [window]
+        window.show()
+        return True
 
     def selected_job(self):
         rows = sorted({item.row() for item in self.runs.selectedIndexes()})

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+from .experiment_labels import sample_reason
 import json
 import math
 import os
@@ -188,6 +189,21 @@ class DataWindow(QMainWindow):
         self.test_columns_action = QAction('시험 열 설정…', self)
         self.test_columns_action.triggered.connect(self.configure_test_columns)
         edit.addAction(self.test_columns_action)
+        self.calibration_action = QAction('채널 교정…', self)
+        self.calibration_action.triggered.connect(self.edit_calibration)
+        edit.addAction(self.calibration_action)
+        calibrated_result = QAction('교정 전후 결과…', self)
+        calibrated_result.triggered.connect(self.read_calibrated_result)
+        edit.addAction(calibrated_result)
+        affected = QAction('이 자료를 사용하는 계획…', self)
+        affected.triggered.connect(self.show_dependents)
+        edit.addAction(affected)
+        self.acquisition_action = QAction('파일 수집 설정…', self)
+        self.acquisition_action.triggered.connect(self.edit_acquisition)
+        edit.addAction(self.acquisition_action)
+        report_action = QAction('선택 결과로 보고서…', self)
+        report_action.triggered.connect(self.open_report)
+        files.addAction(report_action)
         self.apply_button.clicked.connect(self.apply_inputs)
         self.import_button.clicked.connect(self.import_table)
         for button in (self.source_button, self.settings_button, self.apply_button, self.import_button):
@@ -719,7 +735,9 @@ class DataWindow(QMainWindow):
             job = receipt.get('job')
             self._preview_key = None
             self._show_document(receipt['document'], prefer_job=job['id'] if job else None)
-            self.message.setText('Applied through the Data document owner: ' + operation)
+            self.message.setText({'document.save':'저장했습니다.','data.update':'입력을 적용했습니다.',
+                'data.import':'자료 가져오기를 시작했습니다.','document.undo':'실행을 취소했습니다.',
+                'document.redo':'다시 적용했습니다.'}.get(operation,'처리했습니다.'))
             if after:
                 after()
             else:
@@ -787,6 +805,143 @@ class DataWindow(QMainWindow):
             self.source_label.setText('원본: '+Path(path).name)
             QTimer.singleShot(0,self.refresh_preview)
         self._call(upload,registered,relevant=lambda:self.document and self.document['id']==document_id)
+
+    def edit_calibration(self):
+        if not self.document or self._busy or self.conflict or self._view_error:
+            return False
+        draft = self.edited_draft()
+        channel = self._channel_name
+        token = (self.document['id'], self._source_id, channel)
+        def show(preview):
+            if token != (self.document['id'], self._source_id, self._channel_name):
+                return
+            from .experiment_dialogs import CalibrationDialog
+            dialog = CalibrationDialog(self.client, draft['mapping']['columns'][channel], preview, self)
+            active = self.timer.isActive(); self.timer.stop()
+            try:
+                accepted = dialog.exec() == QDialog.DialogCode.Accepted
+            finally:
+                if active and not self._closed: self.timer.start()
+            if accepted and token == (self.document['id'], self._source_id, self._channel_name):
+                original = draft['mapping']['columns'][channel]
+                if (original.get('scale',1) != 1 or original.get('offset',0) != 0) and QMessageBox.question(self,
+                    '교정식 적용', '기존 배율/오프셋을 새 교정식으로 교체할까요? 적용 전 입력은 실행 취소로 복구할 수 있습니다.',
+                    QMessageBox.StandardButton.Ok|QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Ok:
+                    return
+                recipe = dialog.edited()
+                current = self.edited_draft()
+                current['mapping']['columns'][channel]['calibration'] = recipe
+                current['mapping']['columns'][channel]['unit'] = recipe['output_unit']
+                # Affine composition must be explicit; the old mapping is retained by Undo.
+                current['mapping']['columns'][channel].pop('scale', None)
+                current['mapping']['columns'][channel].pop('offset', None)
+                self._working_draft = current
+                self._populating=True
+                try:self._populate_mapping()
+                finally:self._populating=False
+                self._edited()
+        # Only the matching raw source preview is eligible; never the previous file's cache.
+        if self._preview and self._preview.get('id') == self._source_id:
+            show(deepcopy(self._preview))
+        elif draft == self.document['draft']:
+            self._call(lambda: self.client.document_source_preview(self.document['id']), show)
+        else:
+            self.message.setText('새 원본/열 설정을 적용한 뒤 채널 교정을 여세요.')
+
+    def read_calibrated_result(self):
+        if self._busy:return False
+        try:source=self.selected_source()
+        except ValueError as error:self.message.setText(str(error));return False
+        def show(result):
+            from .experiment_dialogs import CalibrationDialog
+            response=result.get('responses',{}).get(source['response'],{})
+            recipe=response.get('calibration');raw=response.get('raw_samples')
+            if not recipe or not raw:
+                self.message.setText('선택한 가져오기에는 보존된 채널 교정이 없습니다.');return
+            preview={'table_preview':{'headers':['원값'],'rows':[[v] for v in raw['value']],
+                'row_numbers':raw['source_rows']}}
+            mapping={'column':0,'unit':response['unit'],'calibration':recipe}
+            dialog=CalibrationDialog(self.client,mapping,preview,self,retained_response=response)
+            dialog.setWindowTitle('교정 전후 결과')
+            for widget in list(dialog.fields.values())+[dialog.role,dialog.provided,dialog.ukind,dialog.correlation,dialog.upload]:
+                widget.setEnabled(False)
+            dialog.message.setText('선택한 계산에 보존된 교정과 원행입니다. 창을 닫아도 설정은 바뀌지 않습니다.')
+            dialog.exec()
+        return self._call(lambda:self.client.document_result(source['document_id'],source['job_id'],
+            selection={'responses':[source['response']],'rows':[0,4096]}),show)
+
+    def show_dependents(self):
+        if not self.document or self._busy:return False
+        identifier=self.document['id']
+        def find(payload):
+            rows=[]
+            def uses(value):
+                if isinstance(value,dict):
+                    return value.get('document_id')==identifier or any(uses(v) for v in value.values())
+                return isinstance(value,list) and any(uses(v) for v in value)
+            for document in payload['documents']:
+                if document.get('kind') in {'numerical','study','report'} and uses(document.get('draft',{})):
+                    rows.append(document['title'])
+            QMessageBox.information(self,'이 자료를 사용하는 계획',
+                ('\n'.join(rows)+'\n\n저장된 계획은 선택 당시의 가져오기를 유지합니다. 새 교정은 각 계획에서 명시적으로 다시 선택하세요.')
+                if rows else '현재 문서 목록에는 이 자료를 참조하는 계획이 없습니다.')
+        return self._call(self.client.documents,find)
+
+    def edit_acquisition(self):
+        if not self.document or self._busy or self.conflict or self._view_error:
+            return False
+        from .experiment_dialogs import AcquisitionDialog
+        draft = self.edited_draft()
+        dialog = AcquisitionDialog(draft.get('acquisition'), draft['mapping']['columns'], self)
+        active = self.timer.isActive()
+        self.timer.stop()
+        try:
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                current = self.edited_draft()
+                current['acquisition'] = dialog.edited()
+                if dialog.reuse.isChecked():
+                    for row in current['acquisition']['channels']:
+                        if row['name'] in current['mapping']['columns'] and row['calibration'] is not None:
+                            target=current['mapping']['columns'][row['name']]
+                            if target.get('scale',1)!=1 or target.get('offset',0)!=0:
+                                self.message.setText('기존 배율이 있는 채널은 채널 교정에서 명시적으로 교체하세요.');return
+                            target['calibration']=deepcopy(row['calibration'])
+                            target['unit']=row['calibration']['output_unit']
+                self._working_draft = current
+                self._populating=True
+                try:self._populate_mapping()
+                finally:self._populating=False
+                self._edited()
+        finally:
+            if active and not self._closed: self.timer.start()
+
+    def open_report(self):
+        if self._busy: return False
+        try: source = self.selected_source()
+        except ValueError as error:
+            self.message.setText(str(error)); return False
+        if self._comparison_id:
+            row=next((r for r in self.document.get('comparisons',[]) if r['id']==self._comparison_id),None)
+            if not row or not row.get('retained_revision'):
+                self.message.setText('비교를 먼저 저장하세요.');return False
+            from .report_window import ReportWindow
+            reference={'kind':'comparison','document_id':self.document['id'],'document_kind':'data',
+                'saved_revision':row['retained_revision'],'comparison_id':row['id'],'result_sha256':row['result_sha256'],
+                'start':self.row_start.value(),'count':min(4096,self.row_count.value())}
+            window=ReportWindow(self.client,reference=reference)
+            self._report_windows=getattr(self,'_report_windows',[])+[window];window.show();return True
+        rows = sorted(self._selected_original_rows())
+        if not rows:
+            self.message.setText('보고서에 넣을 원행을 표 또는 곡선에서 선택하세요.'); return False
+        def selected(reference):
+            from .report_window import ReportWindow
+            frozen = {'kind': 'result', **reference,
+                      'selection': {'responses': [source['response']], 'source_rows': rows}}
+            window = ReportWindow(self.client, reference=frozen)
+            self._report_windows = getattr(self, '_report_windows', []) + [window]
+            window.show()
+        return self._call(lambda: self.client.document_result_reference(source['document_id'], source['job_id']), selected)
 
     def configure_test_columns(self):
         if not self.document or self._busy or self.conflict: return
@@ -1387,8 +1542,11 @@ class DataWindow(QMainWindow):
             self.values.setRowCount(len(indexes))
             for row, index in enumerate(indexes):
                 cells = [raw['source_rows'][index], (raw.get('transformed_axis') or raw.get('axis') or [None]*len(raw['source_rows']))[index],
-                    raw.get('transformed_value',raw['value'])[index], raw['calculation_valid'][index], raw['quality_valid'][index], raw['display_visible'][index],
-                    '; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason)]
+                    raw.get('transformed_value',raw['value'])[index],
+                    '포함' if raw['calculation_valid'][index] else '제외',
+                    '정상' if raw['quality_valid'][index] else '확인 필요',
+                    '표시' if raw['display_visible'][index] else '숨김',
+                    sample_reason('; '.join(reason for reason in (raw['exclusion_reasons'][index], raw['quality_reasons'][index]) if reason))]
                 for column, cell in enumerate(cells):
                     self.values.setItem(row, column, QTableWidgetItem(display(cell)))
                 self.values.item(row,2).setToolTip('원본 값: '+display(raw['value'][index]))

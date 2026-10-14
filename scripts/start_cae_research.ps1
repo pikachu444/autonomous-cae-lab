@@ -1,7 +1,7 @@
 # Independent research tools share the existing private Python and local service.
 [CmdletBinding()]
 param(
-    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study')][string]$Tool = 'runner',
+    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study','report')][string]$Tool = 'runner',
     [string]$DocumentId,
     [string]$JobId,
     [switch]$Documents,

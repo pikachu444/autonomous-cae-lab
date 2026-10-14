@@ -178,6 +178,17 @@ def read_table(path, mapping):
         rows = np.asarray(source_rows if source_rows is not None else range(len(values)), dtype=int)
         selection = spec.get('row_selection', {})
         calculation, quality, visible = _row_state(rows, selection)
+        requested_calculation = calculation.copy()
+        calibration = None
+        if 'calibration' in spec:
+            from ..experiment_calibration import calibrate, validate_calibration
+            validate_calibration(spec['calibration'], spec['unit'])
+            if spec.get('scale', 1) != 1 or spec.get('offset', 0) != 0:
+                raise ValueError('교정과 기존 배율/오프셋을 중복 적용할 수 없습니다.')
+            values, calibration = calibrate(raw_values, spec['calibration'])
+            usable = np.asarray(calibration['calibration_valid'], dtype=bool)
+            quality &= usable
+            calculation &= usable
         if not calculation.any():
             raise ValueError(f'{name}: calculation selection contains no original rows')
         axis_spec = spec.get('axis')
@@ -208,12 +219,14 @@ def read_table(path, mapping):
             'reduction': spec.get('reduction', 'none'), 'axes': axes,
             **{key: deepcopy(spec[key]) for key in ('frame', 'measure') if key in spec},
             'mapping': deepcopy(spec), 'source_rows': rows[calculation],
+            'source_column_identity': (list(data.dtype.names).index(spec['column'])
+                if named and not isinstance(data, dict) else spec['column']),
             'source_row_kind': 'physical_line' if source_rows is not None else 'array_index',
             'coordinate_system': spec.get('coordinate_system', 'UNSPECIFIED'),
             'source_selector': {'file': source.name, 'column': spec['column'], 'axis': deepcopy(axis_spec)}}
         # Older unmasked imports keep their response shape. Explicit masks add an
         # audit table and gap boundaries, separate from Plan experiment roles.
-        if selection:
+        if selection or calibration is not None:
             response.update(segments=segments, has_calculation_gaps=len(segments) > 1,
                 raw_samples={'source_rows': rows.tolist(), 'value': _retained_numbers(raw_values),
                     'axis': _retained_numbers(raw_axis) if raw_axis is not None else None,
@@ -222,10 +235,18 @@ def read_table(path, mapping):
                     'finite': finite.tolist(), 'quality_valid': (quality & finite).tolist(),
                     'calculation_valid': calculation.tolist(), 'display_visible': visible.tolist(),
                     'exclusion_reasons': [selection.get('reasons', {}).get(str(row),
-                        'outside explicit calculation selection' if not used else '') for row, used in zip(rows, calculation)],
+                        'outside explicit calculation selection' if not used else '') for row, used in zip(rows, requested_calculation)],
                     'quality_reasons': [selection.get('quality_reasons', {}).get(str(row),
                         'nonfinite original or transformed sample' if not ok else
                         'explicit raw quality flag' if row in selection.get('quality_rows', []) else '') for row, ok in zip(rows, finite)]})
+        if calibration is not None:
+            response['calibration'] = deepcopy(spec['calibration'])
+            response['raw_samples'].update({key: value for key, value in calibration.items() if isinstance(value, list)})
+            response['raw_samples']['calculation_requested'] = requested_calculation.tolist()
+            response['raw_samples']['quality_reasons'] = [
+                '; '.join(filter(None, (existing, calibration['calibration_reasons'][i])))
+                for i, existing in enumerate(response['raw_samples']['quality_reasons'])]
+            response['calibration_status'] = {key: value for key, value in calibration.items() if not isinstance(value, list)}
         responses[name] = response
     after = source.stat()
     if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):

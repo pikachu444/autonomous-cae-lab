@@ -27,6 +27,28 @@ def reference_error(reference):
         if not isinstance(reference, dict):
             raise ValueError('Choose an exact saved source reference')
         kind = reference.get('kind')
+        if kind == 'comparison':
+            required={'kind','document_id','document_kind','saved_revision','comparison_id','result_sha256','start','count'}
+            if set(reference)!=required or reference['document_kind'] not in {'data','material','pde','simulation'}:
+                raise ValueError('저장된 곡선 비교와 원 문서를 선택하세요.')
+            for key in ('document_id','saved_revision','comparison_id'):check_id(reference[key])
+            if (not re.fullmatch('[0-9a-f]{64}',str(reference['result_sha256']))
+                    or type(reference['start']) is not int or reference['start']<0
+                    or type(reference['count']) is not int or not 1<=reference['count']<=4096):
+                raise ValueError('정확한 비교와 4096개 이하 표본 구간을 선택하세요.')
+            return None
+        if kind == 'knowledge':
+            required = {'kind', 'document_id', 'revision', 'locator', 'source_sha256', 'content_sha256'}
+            if set(reference) != required or type(reference['revision']) is not int or reference['revision'] < 1:
+                raise ValueError('문헌의 정확한 저장 개정과 원문 구간을 선택하세요.')
+            if not isinstance(reference['document_id'], str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', reference['document_id']):
+                raise ValueError('문헌 저장소의 정확한 자료 식별자가 필요합니다.')
+            if not isinstance(reference['locator'], dict):
+                raise ValueError('원문 위치를 명시하세요.')
+            for key in ('source_sha256', 'content_sha256'):
+                if not re.fullmatch('[0-9a-f]{64}', str(reference[key])):
+                    raise ValueError('문헌 원본과 선택 원문의 식별값이 필요합니다.')
+            return None
         if kind == 'document':
             required = {'kind', 'document_kind', 'document_id', 'saved_revision', 'input_revision', 'input_sha256'}
             optional = set()
