@@ -300,12 +300,14 @@ class ContactFemCalculixAdapter:
                     frames=observed['frames']
                     pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True)
                     metadata=write_post(output/'partial/post',model,frames,pairs,solver_coordinates=coordinates,adjustment=partial_adjustment,
-                        execution={'status':result['execution_status'],'complete_analysis':False,'scope':'CONVERGED_PREFIX'},provenance={
+                        execution={'status':result['execution_status'],'complete_analysis':False,'scope':'CONVERGED_PREFIX',
+                                   'frd_retention':observed['retention']},provenance={
                         'snapshot_id':manifest['id'],'snapshot_sha256':pins['snapshot.json']['sha256'],
                         'raw_frd_sha256':_sha(output/'solver/contact.frd'),'raw_dat_sha256':_sha(output/'solver/contact.dat') if (output/'solver/contact.dat').is_file() else None})
                     artifact=output/'partial/post/contact.pvd'
                     result['partial_result']={'status':'CONVERGED_PREFIX','frame_count':len(frames),
-                        'complete_analysis':False,'status_source':result['increment_history']['source']}
+                        'complete_analysis':False,'status_source':result['increment_history']['source'],
+                        'frd_retention':observed['retention']}
                     result['post_artifact']={'relative':'partial/post/contact.pvd','bytes':artifact.stat().st_size,
                         'sha256':_sha(artifact),'native_metadata':metadata}
                 except (ValueError,OSError,KeyError,TypeError,IndexError,UnicodeError) as error:

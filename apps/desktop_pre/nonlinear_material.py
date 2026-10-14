@@ -64,6 +64,39 @@ def _signature(obj):
             'yield_points': list(obj.YieldPoints), 'suppressed': bool(getattr(obj, 'Suppressed', False))}
 
 
+def _application_matches(record, objects):
+    """Compare the applied law AND the complete active set for this base material.
+
+    The first support permits zero (elastic) or one (J2) active object. Therefore
+    the existing applied_draft/applied_native snapshot unambiguously defines
+    the expected active set, including older saved records; no migration or
+    inference from the *current* native set is needed.
+    """
+    applied = record.get('applied_draft')
+    signature = record.get('applied_native')
+    if not isinstance(applied, dict):
+        return False
+    if applied.get('law') == LINEAR:
+        expected = []
+    elif (applied.get('law') == J2 and isinstance(signature, dict)
+          and signature.get('suppressed') is False):
+        expected = [signature]
+    else:
+        return False
+    active = [_signature(obj) for obj in objects if not getattr(obj, 'Suppressed', False)]
+    if active != expected:
+        return False
+    # Retain the existing check on an intentionally suppressed native curve too.
+    # An added active object must not be certified by this unchanged old object.
+    if signature is not None:
+        if not isinstance(signature, dict):
+            return False
+        current = [obj for obj in objects if obj.Name == signature.get('object_id')]
+        if len(current) != 1 or _signature(current[0]) != signature:
+            return False
+    return True
+
+
 def draft_errors(draft):
     if not isinstance(draft, dict) or draft.get('law') not in (LINEAR, J2):
         return [{'path': 'law', 'message': '등방 탄성 또는 J2 등방 경화를 선택하세요.',
@@ -103,9 +136,14 @@ def read(fem, base, analysis_id):
     if len(active) > 1:
         errors.append({'path': 'material', 'message': '같은 기본 재료에 활성 소성 객체가 여러 개입니다.',
                        'severity': 'error', 'blocks_evaluation': True})
+    matches = bool(record and record.get('applied_draft') == draft and
+                   _application_matches(record, objects))
+    if record and record.get('applied_draft') == draft and not matches:
+        errors.append({'path': 'material', 'message': 'native 소성 재료가 변경됐습니다. 표를 확인하고 명시 적용하세요.',
+                       'severity': 'error', 'blocks_evaluation': True})
     return {'analysis_id': analysis.Name, 'material_id': base.Name,
             'draft': draft, 'errors': errors, 'native': [_signature(obj) for obj in objects],
-            'applied': bool(record and record.get('applied_draft') == draft),
+            'applied': matches,
             'source': 'saved_draft' if record else 'native_material', 'executed': False}
 
 
@@ -176,9 +214,7 @@ def effective(fem, analysis, base):
             raise ValueError(base.Label + ': ' + '; '.join(e['path'] + ': ' + e['message'] for e in errors))
         if record.get('applied_draft') != record['draft']:
             raise ValueError(base.Label + ': 저장한 소성 초안을 적용한 뒤 계산하세요.')
-        signature = record.get('applied_native')
-        current = next((obj for obj in all_objects if signature and obj.Name == signature['object_id']), None)
-        if (signature is not None and (current is None or _signature(current) != signature)) or (signature is None and objects):
+        if not _application_matches(record, all_objects):
             raise ValueError(base.Label + ': native 소성 재료가 변경됐습니다. 표를 확인하고 명시 적용하세요.')
     if not objects:
         return {'law': LINEAR}
@@ -188,7 +224,7 @@ def effective(fem, analysis, base):
     native_yield_points(curve)
     return {'law': J2, 'plasticity': curve, 'native_nonlinear_id': obj.Name,
             'source_native_yield_points': list(obj.YieldPoints),
-            'source_curve': deepcopy(record['draft']['plasticity']) if record else None}
+            'source_curve': deepcopy(record['applied_draft']['plasticity']) if record else None}
 
 
 def settings(fem, solver, args):
