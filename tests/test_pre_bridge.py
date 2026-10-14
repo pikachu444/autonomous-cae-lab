@@ -131,6 +131,22 @@ def test_human_changes_observer_lifecycle_and_saved_state(native):
     assert owner.generation==old+5
     owner.slotDeletedDocument(native.doc)
     assert owner.descriptor()['capabilities']==[]
+
+
+def test_open_pre_document_registers_all_native_operations(native,tmp_path):
+    from caelab.native_commands import NativeCommands
+    owner = native.owner
+    broker = NativeCommands(tmp_path/'service', 'Sservice')
+    registered = broker.register(host_id='Hpre',session_id=owner.session_id,
+        application='freecad',version='1.1.4',execution_mode='gui',
+        documents=[owner.descriptor()],registration_nonce='n'*32)
+    identity = {key:registered[key] for key in ('session_id','host_token')}
+    broker.submit(document_id=owner.document_id,operation='pre.inspect',arguments={},
+        session_id=owner.session_id,expected_generation=owner.generation,command_id='Cinspect')
+    dispatched = broker.next('Hpre',**identity)['command']
+    outcome = owner.dispatch(dispatched)
+    assert outcome['status'] == 'COMPLETED'
+    assert 'pre.impact.capture' in outcome['result']['capabilities']
     owner.close()
     assert owner not in native.app.observers
 

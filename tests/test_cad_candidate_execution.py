@@ -98,6 +98,24 @@ def test_short_native_copy_retains_identical_bytes_and_reports_failed_transfer(t
     projects.shutil.rmtree(native_paths[-1].parent)
 
 
+def test_native_copy_transfer_does_not_lengthen_a_valid_windows_path(tmp_path, monkeypatch):
+    from apps.desktop_pre import projects
+    parent = tmp_path / ('p' * max(1, 218 - len(str(tmp_path)) - 1))
+    parent.mkdir()
+    destination = parent / 'model.FCStd'
+    assert len(str(destination)) < 260
+    monkeypatch.setattr(projects, '_native_copy_uses_short_path', lambda _: True)
+    copyfile = projects.shutil.copyfile
+    def limited_copy(source, target):
+        if len(str(target)) >= 260:
+            raise FileNotFoundError('Embedded native Python Win32 path limit')
+        return copyfile(source, target)
+    monkeypatch.setattr(projects.shutil, 'copyfile', limited_copy)
+    projects.save_native_copy(NS(saveCopy=lambda path: Path(path).write_bytes(b'editable native copy')), destination)
+    assert destination.read_bytes() == b'editable native copy'
+    assert list(parent.iterdir()) == [destination]
+
+
 def test_freecad_portable_launcher_resolves_same_installation_bin(tmp_path, monkeypatch):
     from caelab.cad_numerical import resolve_settings
     from caelab.workbench import Workbench

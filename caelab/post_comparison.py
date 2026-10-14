@@ -65,6 +65,149 @@ def layout_size(layout):
     raise ValueError('성분 수만으로 물리 의미를 추측하지 않습니다. 성분 순서와 전단 규약을 확인하세요.')
 
 
+
+# A one-column array is a storage shape, not a physical observable identity.
+# Expression trees retain subtraction order without tying equivalent quantities
+# to a source object ID. Exact source IDs/revisions remain in owner dependencies.
+UNKNOWN_OBSERVABLE = {'version': 1, 'operation': 'unknown'}
+
+
+def observable_value(kind, selection, *, scalar_semantics=None):
+    result = {'version': 1, 'operation': 'value', 'source_kind': kind, 'selection': selection}
+    if kind == 'scalar':
+        result['scalar_semantics'] = scalar_semantics
+    if selection == 'magnitude':
+        result['norm'] = 'euclidean' if kind == 'vector' else 'frobenius'
+    return result
+
+
+def validate_observable(value, depth=0):
+    if not isinstance(value, dict) or value.get('version') != 1 or depth > 16:
+        raise ValueError('관측량 정의를 확인하세요.')
+    operation = value.get('operation')
+    if operation == 'unknown':
+        raise ValueError('원 성분 또는 불변량 정의가 미확인입니다. 물리량 확인에서 명시하세요. 원본 보기는 유지됩니다.')
+    if operation == 'difference':
+        if set(value) != {'version', 'operation', 'operand'}:
+            raise ValueError('차이 관측량 정의가 잘못되었습니다.')
+        validate_observable(value['operand'], depth + 1)
+    elif operation == 'norm_of_difference':
+        kind = value.get('source_kind')
+        if (kind not in ('vector', 'tensor') or value.get('norm') !=
+                {'vector': 'euclidean', 'tensor': 'frobenius'}.get(kind)
+                or set(value) != {'version', 'operation', 'source_kind', 'norm'}):
+            raise ValueError('차이 전체 성분의 크기 정의를 확인하세요.')
+    elif operation == 'value':
+        kind, selection = value.get('source_kind'), value.get('selection')
+        names = {'scalar': ['scalar'], 'vector': ['x', 'y', 'z', 'magnitude'],
+                 'tensor': COMPONENTS + ['magnitude']}
+        if kind not in names or selection not in names[kind]:
+            raise ValueError('관측량의 원 종류와 선택 성분이 맞지 않습니다.')
+        expected = observable_value(kind, selection, scalar_semantics=value.get('scalar_semantics'))
+        if value != expected or (kind == 'scalar' and value.get('scalar_semantics') not in (None, 'invariant')):
+            raise ValueError('스칼라 한 성분에는 원 벡터/텐서의 성분 이름이 필요합니다.')
+    else:
+        raise ValueError('지원하지 않는 관측량 정의입니다.')
+    return deepcopy(value)
+
+
+def selected_observable(side, selection):
+    layout = side['layout']
+    if layout['kind'] != 'scalar':
+        return validate_observable(observable_value(layout['kind'], selection))
+    if selection != 'scalar':
+        raise ValueError('저장된 스칼라 열에서 다른 원 성분을 만들 수 없습니다.')
+    if side.get('observable') is not None:
+        return validate_observable(side['observable'])
+    if layout.get('scalar_semantics') == 'component':
+        return validate_observable(UNKNOWN_OBSERVABLE)
+    return observable_value('scalar', 'scalar', scalar_semantics=layout.get('scalar_semantics'))
+
+
+def observable_invariant(value):
+    operation = value['operation']
+    if operation == 'difference':
+        return observable_invariant(value['operand'])
+    return operation == 'norm_of_difference' or (operation == 'value' and
+        (value.get('selection') == 'magnitude' or value.get('scalar_semantics') == 'invariant'))
+
+
+def check_observables(recipe):
+    a, b = recipe['a'], recipe['b']
+    if a['layout']['kind'] == 'scalar' and b['layout']['kind'] == 'scalar':
+        ao, bo = (selected_observable(side, recipe['selection']) for side in (a, b))
+        if ao != bo:
+            raise ValueError('서로 다른 관측량입니다: ' + observable_label(ao) + ' / ' + observable_label(bo)
+                             + '. 같은 원 성분과 차이 정의를 선택하세요.')
+        return ao
+    for side in (a, b):
+        if side.get('observable') is not None:
+            raise ValueError('한 열의 관측량 정의를 전체 벡터/텐서 배열로 재표기할 수 없습니다.')
+    return selected_observable(a, recipe['selection'])
+
+
+def observable_label(value):
+    if not isinstance(value, dict):
+        return '관측량 미확인'
+    operation = value.get('operation')
+    if operation == 'difference':
+        return '(' + observable_label(value.get('operand')) + ')의 B − A'
+    kind = {'scalar': '스칼라', 'vector': '벡터', 'tensor': '텐서'}.get(value.get('source_kind'), '')
+    if operation == 'norm_of_difference':
+        return kind + ' 차이의 크기 |B − A|'
+    if operation != 'value':
+        return '관측량 미확인'
+    selection = value.get('selection')
+    if selection == 'magnitude':
+        return kind + (' 크기' if value.get('source_kind') == 'vector' else ' Frobenius 크기')
+    return '스칼라 값' if selection == 'scalar' else kind + ' ' + str(selection).upper() + ' 성분'
+
+
+def retained_declarations(metadata):
+    """Annotate only a read copy; never rewrite a legacy saved record/hash."""
+    result = deepcopy(metadata)
+    if result and result.get('derivation') == 'comparison_v2' and result.get('observable_version') != 1:
+        for row in result.get('arrays', []):
+            row.setdefault('observable', deepcopy(UNKNOWN_OBSERVABLE))
+            if row.get('validity_masks'):
+                row.setdefault('validity_policy', 'declared_array')
+                if row.get('name') in ('B_at_A', 'B_minus_A'):
+                    if any(key in row['validity_masks'] for key in ('B_finite', 'comparison_valid')):
+                        row.setdefault('spatial_mask', 'spatial_valid')
+                    elif row['validity_masks'] == ['vtkValidPointMask']:
+                        row.setdefault('spatial_mask', 'vtkValidPointMask')
+    return result
+
+
+def output_declarations(recipe):
+    a = recipe['a']
+    observed = check_observables(recipe)
+    delta = ({'version': 1, 'operation': 'norm_of_difference', 'source_kind': a['layout']['kind'],
+              'norm': 'euclidean' if a['layout']['kind'] == 'vector' else 'frobenius'}
+             if recipe.get('difference') == 'norm_of_difference' else
+             {'version': 1, 'operation': 'difference', 'operand': deepcopy(observed)})
+    arrays = []
+    for name, observable, mask in (('A_original', observed, 'A_finite'),
+            ('B_at_A', observed, 'B_finite'), ('B_minus_A', delta, 'comparison_valid')):
+        validate_observable(observable)
+        row = {key: a[key] for key in ('quantity', 'measure', 'frame')}
+        row.update(name=name, units=recipe['target']['units'], association='POINTS',
+            layout={'kind': 'scalar', 'components': ['scalar'],
+                    'scalar_semantics': 'invariant' if observable_invariant(observable) else 'component'},
+            observable=deepcopy(observable), validity_masks=[mask], validity_policy='declared_array',
+            source_layouts={side: deepcopy(recipe[side]['layout']) for side in ('a', 'b')},
+            temperature_kind='difference' if name == 'B_minus_A' and a.get('temperature_kind') == 'absolute'
+                             else a.get('temperature_kind'))
+        if name in ('B_at_A', 'B_minus_A'):
+            row['spatial_mask'] = 'spatial_valid'
+        arrays.append(row)
+    clock = recipe.get('clock', {})
+    frozen = {key: clock[key] for key in ('value', 'unit', 'semantics')} if clock.get('value') is not None else None
+    return {'coordinate_units': a['coordinate_units'], 'coordinate_frame': a['coordinate_frame'],
+            'arrays': arrays, 'time': None, 'frozen_clock': frozen, 'sample_clock': deepcopy(clock),
+            'derivation': 'comparison_v2', 'selection': recipe['selection'], 'observable_version': 1}
+
+
 def canonical(values, layout):
     values = np.asarray(values, dtype=np.float64)
     size = layout_size(layout)
@@ -241,7 +384,8 @@ def validate(recipe, times_a, times_b):
         raise ValueError('B 응답 기저를 A 응답 기저로 옮기는 회전을 확인하세요.')
     kind = a['layout']['kind']
     response_rotated = not np.array_equal(rotation(alignment['response_rotation']), np.eye(3)) or a['frame'] != b['frame']
-    if kind == 'scalar' and response_rotated and any(s['layout'].get('scalar_semantics') != 'invariant' for s in (a, b)):
+    observed = check_observables(recipe)
+    if kind == 'scalar' and response_rotated and not observable_invariant(observed):
         raise ValueError('스칼라 성분의 기저 변경에는 원 벡터/텐서가 필요합니다. 불변량만 단독 변환할 수 있습니다.')
     if kind == 'tensor' and response_rotated:
         if any(s['layout'].get('indices') != 'same_cartesian_basis' for s in (a, b)):
@@ -270,7 +414,9 @@ def validate(recipe, times_a, times_b):
     return plans
 
 
-def compare(a, b, recipe, inside):
+def compare(a, b, recipe, inside, *, enforce_observables=True):
+    if enforce_observables:
+        check_observables(recipe)
     kind = recipe['a']['layout']['kind']; selection = recipe['selection']
     av, bv = scalar(a, kind, selection), scalar(b, kind, selection)
     valid_a, valid_b = np.isfinite(a).all(axis=1), np.isfinite(b).all(axis=1)

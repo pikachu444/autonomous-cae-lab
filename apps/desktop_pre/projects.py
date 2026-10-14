@@ -116,7 +116,11 @@ def save_native_copy(doc, destination, *, App=None):
         doc.saveCopy(str(native))
         if not native.is_file():
             raise OSError('Native saveCopy produced no file')
-        staged = destination.with_name('.copy-' + uuid.uuid4().hex + '.FCStd')
+        # This is a byte-transfer file, not a native document. A long UUID plus
+        # extension can exceed Win32 MAX_PATH even when the final name fits.
+        descriptor, temporary = tempfile.mkstemp(prefix='.', dir=destination.parent)
+        os.close(descriptor)
+        staged = Path(temporary)
         shutil.copyfile(native, staged)
         if native_cad.sha(native) != native_cad.sha(staged):
             raise OSError('Retained native copy differs from short staging')

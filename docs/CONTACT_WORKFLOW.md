@@ -864,7 +864,7 @@ contact_fem --rebuild-post-from으로 새 sibling 폴더에 읽을 수 있으며
 
 | 원 요구 | 이번 소스의 연결 | 남은 범위 |
 |---|---|---|
-| FN14-01 면/법칙/간극 | 정확 면 집합, 방향·거리, 역할 교환, linear/frictionless/Coulomb, CLEARANCE | hard/tie/cohesive, 물리 법선 반전, 메시 Adjust, 접촉 활성 구간 |
+| FN14-01 면/법칙/간극 | 정확 면 집합, 방향·거리, 역할 교환, linear/frictionless/Coulomb, CLEARANCE, tie(ADJUST=NO) | hard/cohesive, 물리 법선 반전, 메시 Adjust, 주기대칭 접합, 접촉 활성 구간·접합 해제 |
 | FN14-02 결과 | 단계/증분, 압력·raw COPEN·슬립·파생 간극·쌍 합력, 측정→Numerical | 활성 상태/정확 tangent basis, 일반 쌍별 integration-point field |
 | FN15-01 조건/실패 | 단계·곡선·invalid draft·입력-only·STA 시도·보존 입력 수정 | 자동 원인 판정, 범용 restart, 고정 지지 단계별 해제 |
 | FN15-02 실행 | 기존 executor의 동종 정적/암시적 동적 단계·밀도·완료 계약 | 혼합 절차, 초기 속도·회전, 재료 비선형/댐핑/열연성/다른 solver 조합 |

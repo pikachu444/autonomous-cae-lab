@@ -17,7 +17,7 @@ CAPABILITIES = {
              'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
              'post.measurement_snapshot', 'post.measurement_open', 'post.contact_inspect', 'post.contact_measurement',
              'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export'},
-    'pre': {'pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze',
+    'pre': {'pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.impact.capture',
             'document.save', 'document.undo', 'document.redo', 'document.activate',
             'pre.workbench', 'pre.export_native_copy', 'pre.validate',
             'pre.research.discover', 'pre.research.register', 'pre.research.remove', 'pre.research.prepare', 'pre.research.connect_assembly',

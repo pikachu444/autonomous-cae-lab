@@ -63,6 +63,11 @@ def execute(inputs, output, stage, settings):
         values[~valid] = np.nan
         output.GetPointData().RemoveArray(settings['array'])
         _put(output.GetPointData(), settings['array'], values)
+        if settings.get('validity_policy') == 'declared_array':
+            # New selected-array stage only. Legacy saved scripts retain their
+            # original joint-mask behavior because they lack this policy.
+            output.GetPointData().RemoveArray('vtkValidPointMask')
+            _put(output.GetPointData(), 'vtkValidPointMask', valid.astype(np.uint8))
     elif stage == 'prepare':
         source = inputs[0]; side = settings
         geometry(source)
@@ -79,7 +84,7 @@ def execute(inputs, output, stage, settings):
         values = np.asarray(vtk_to_numpy(arr), dtype=np.float64).copy()
         if values.ndim == 1: values = values[:, None]
         masks = list(side.get('validity_masks', []))
-        if attrs.GetArray('vtkValidPointMask') is not None and 'vtkValidPointMask' not in masks:
+        if side.get('validity_policy') != 'declared_array' and attrs.GetArray('vtkValidPointMask') is not None and 'vtkValidPointMask' not in masks:
             masks.append('vtkValidPointMask')
         valid = np.isfinite(values).all(axis=1)
         for name in masks:
@@ -156,7 +161,10 @@ def execute(inputs, output, stage, settings):
         inside = np.ones(a.GetNumberOfPoints(), dtype=bool) if inside is None else vtk_to_numpy(inside).astype(bool)
         av, bv = _values(a, VALUE), _values(b, VALUE).copy()
         bv[~inside] = np.nan
-        values = physical.compare(av, bv, recipe, inside)
+        # Old saved filters must still expose their original retained output.
+        # New comparisons validate observable identity before graph creation.
+        values = physical.compare(av, bv, recipe, inside,
+                                  enforce_observables=recipe.get('observable_version') == 1)
         for role, name in OUTPUT_ARRAYS.items():
             array = values[role]
             _put(output.GetPointData(), name, array.astype(np.uint8) if array.dtype == bool else array)
@@ -259,7 +267,7 @@ def build(a, b, recipe, namespace):
                     raise ValueError('설치된 ParaView가 필요한 공간 보간 속성을 제공하지 않습니다: ' + key)
                 setattr(sample, key, value)
             sample.UpdatePipeline()
-        output = _filter([af, sample, original_a], 'difference', recipe, namespace, bundle['proxies'])
+        output = _filter([af, sample, original_a], 'difference', dict(recipe, observable_version=1), namespace, bundle['proxies'])
         bundle['source'] = output
         data = analysis._fetch(output)
         if geometry(data)[2] != ag[2]:
@@ -290,25 +298,4 @@ def build(a, b, recipe, namespace):
 
 
 def declarations(recipe):
-    a = recipe['a']
-    row = {key: a[key] for key in ('quantity', 'measure', 'frame')}
-    row.update(units=recipe['target']['units'], association='POINTS',
-               layout={'kind': 'scalar', 'components': ['scalar']},
-               validity_masks=['comparison_valid'])
-    arrays = []
-    for name in ('A_original', 'B_at_A', 'B_minus_A'):
-        current = dict(row, name=name)
-        current['validity_masks'] = [{'A_original': 'A_finite', 'B_at_A': 'B_finite', 'B_minus_A': 'comparison_valid'}[name]]
-        current['layout'] = {'kind': 'scalar', 'components': ['scalar'], 'scalar_semantics':
-            ('invariant' if recipe['selection'] == 'magnitude' or name == 'B_minus_A' and recipe.get('difference') == 'norm_of_difference'
-             else a['layout'].get('scalar_semantics') if recipe['selection'] == 'scalar' else 'component')}
-        if name == 'B_minus_A' and a.get('temperature_kind') == 'absolute':
-            current['temperature_kind'] = 'difference'
-        else:
-            current['temperature_kind'] = a.get('temperature_kind')
-        arrays.append(current)
-    clock = recipe.get('clock', {})
-    frozen_clock = {key: clock[key] for key in ('value', 'unit', 'semantics')} if clock.get('value') is not None else None
-    return {'coordinate_units': a['coordinate_units'], 'coordinate_frame': a['coordinate_frame'],
-            'arrays': arrays, 'time': None, 'frozen_clock': frozen_clock, 'sample_clock': deepcopy(clock),
-            'derivation': 'comparison_v2', 'selection': recipe['selection']}
+    return physical.output_declarations(recipe)
