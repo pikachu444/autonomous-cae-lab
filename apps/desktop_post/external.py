@@ -55,6 +55,17 @@ def shell_api():
         sys.path.remove(repository)
 
 
+def beam_api():
+    import sys
+    repository = str(Path(__file__).resolve().parents[2])
+    sys.path.insert(0, repository)
+    try:
+        from caelab import beam_inspection
+        return beam_inspection
+    finally:
+        sys.path.remove(repository)
+
+
 def source_files(entry, native_metadata=None):
     """Validate and enumerate a bounded, local PVD+VTU dependency set."""
     entry = Path(entry).resolve(strict=True)
@@ -120,6 +131,10 @@ def source_files(entry, native_metadata=None):
         bundle = shell_api().load(entry, declaration)
         if bundle['manifest']['native_metadata'] != {k: v for k, v in native_metadata.items() if k != 'shell_inspection'}:
             raise ValueError('Shell field declarations differ from the retained bundle')
+        files = list(dict.fromkeys([*files, *bundle['paths']]))
+    if (any(key in (native_metadata or {}) for key in ('beam', 'beam_inspection')) or
+            entry.name == 'beam.pvd' and (entry.parent/'beam_inspection.json').exists()):
+        bundle = beam_api().validate_metadata(entry, native_metadata)
         files = list(dict.fromkeys([*files, *bundle['paths']]))
     return files
 
@@ -210,7 +225,15 @@ def validate_declared_metadata(source, metadata):
         if bundle['manifest']['native_metadata'] != {k: v for k, v in metadata.items() if k != 'shell_inspection'}:
             raise ValueError('Shell field declarations differ from the retained bundle')
         shell_keys = set(bundle['manifest']['native_metadata']) | {'shell_inspection'}
-    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings"} - shell_keys:
+    beam = isinstance(metadata, dict) and any(key in metadata for key in ('beam', 'beam_inspection'))
+    beam_keys = set()
+    if beam:
+        inputs = reader_input_files(source)
+        if len(inputs) != 1 or source.GetXMLName() != 'PVDReader':
+            raise ValueError('Beam declaration requires its exact retained PVD reader')
+        bundle = beam_api().validate_metadata(inputs[0], metadata)
+        beam_keys = set(bundle['manifest']['native_metadata']) | {'beam_inspection'}
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings"} - shell_keys - beam_keys:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
     if "contact_inspection" in metadata:
         contact_api().descriptor(metadata["contact_inspection"])
@@ -261,7 +284,7 @@ def validate_declared_metadata(source, metadata):
     seen = set()
     for declaration in arrays:
         required = {"association", "name", "components", "units", "frame", "measure"}
-        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"} - ({'location'} if shell else set()):
+        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"} - ({'location'} if shell or beam else set()):
             raise ValueError("Each declared array requires exact association/name/components and units/frame/measure")
         for key in ("name", "units", "frame", "measure"):
             if not isinstance(declaration[key], str) or not declaration[key].strip():
@@ -271,9 +294,10 @@ def validate_declared_metadata(source, metadata):
         shell_recovery = {'native_nodal_dof', 'magnitude_of_native_vector',
                           'native_extrapolated_nodal_averaged',
                           'basis_change_of_native_nodal_recovery'} if shell else set()
+        beam_recovery = {'native_nodal_dof', 'native_original_beam_nodal_rf', 'native_section_force_output'} if beam else set()
         if 'recovery' in declaration and (not isinstance(declaration['recovery'], str) or declaration['recovery'] not in {
                 'native nodal force; reactions only at restrained DOFs',
-                'native integration-point extrapolation and nodal averaging'} | shell_recovery):
+                'native integration-point extrapolation and nodal averaging'} | shell_recovery | beam_recovery):
             raise ValueError('Unsupported native field recovery declaration')
         if 'shear_convention' in declaration and declaration['shear_convention'] != 'tensor_shear_not_engineering_shear':
             raise ValueError('Unsupported native tensor shear convention')
@@ -358,6 +382,8 @@ def _inspect_result(source, time=None, native_metadata=None):
                            "component_names": [array.GetComponentName(i) for i in range(components)],
                            "range": [value if math.isfinite(value) else None for value in array.GetRange()],
                            **{key: declared.get((association, name), {}).get(key) for key in ("units", "frame", "measure", "quantity", "recovery", "shear_convention")},
+                           **({"location": declared[(association, name)]["location"]}
+                              if "location" in declared.get((association, name), {}) else {}),
                            "metadata_status": "DECLARED" if (association, name) in declared else "UNKNOWN"})
     return {"reader": source.GetXMLName(), "points": info.GetNumberOfPoints(),
             "cells": info.GetNumberOfCells(), "bounds": list(info.GetBounds()),
@@ -369,7 +395,11 @@ def _inspect_result(source, time=None, native_metadata=None):
             "static": deepcopy(declaration["static"]) if declaration else None,
             "field_availability": deepcopy(declaration.get("field_availability")) if declaration else None,
             "metadata_status": "DECLARED" if declaration else "UNKNOWN",
-            "arrays": arrays, "qualification": "UNKNOWN"}
+            "arrays": arrays, "qualification": "UNKNOWN",
+            **({"beam": {**deepcopy(declaration["beam"]),
+                 "selected_static": next((deepcopy(row) for row in declaration["beam"]["frames"]
+                                           if row["load_parameter"] == selected), None)}}
+               if declaration and 'beam_inspection' in declaration else {})}
 
 
 def select_array(source, association, array, component=None, time=None, view=None):
@@ -399,6 +429,7 @@ def select_array(source, association, array, component=None, time=None, view=Non
     p.ColorBy(display, selection)
     display.RescaleTransferFunctionToDataRange(True, False)
     display.SetScalarBarVisibility(view, True)
+    p.HideUnusedScalarBars(view)
     p.SetActiveSource(source)
     selected_metadata = next(row for row in metadata["arrays"] if row["association"] == association and row["name"] == array)
     if native_metadata and 'shell_inspection' in native_metadata:
@@ -416,10 +447,27 @@ def select_array(source, association, array, component=None, time=None, view=Non
             bar = p.GetScalarBar(transfer, view)
             unit = selected_metadata['units']
             bar.Title = titles[array] + (' [' + unit + ']' if unit != '1' else '')
+    if native_metadata and 'beam_inspection' in native_metadata:
+        # Titles name one physical quantity/unit; SECTION FORCES is never stress.
+        transfer = p.GetColorTransferFunction(array)
+        p.UpdateScalarBarsComponentTitle(transfer, display)
+        bar = p.GetScalarBar(transfer, view)
+        unit = selected_metadata['units']
+        bar.Title = selected_metadata['quantity'] + (' [' + unit + ']' if unit != '1' else '')
+        bar.TitleFontSize = 12
+        bar.LabelFontSize = 11
+        # VTK's bundled Arial does not contain Korean glyphs. Use the installed
+        # Windows font without copying/redistributing its font file.
+        font = Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts' / 'malgun.ttf'
+        if os.name == 'nt' and font.is_file():
+            bar.TitleFontFamily = 'File'
+            bar.TitleFontFile = str(font)
     return {"association": association, "array": array, "component": component,
             "time": metadata["time"], "time_units": metadata["time_units"], "time_semantics": metadata["time_semantics"],
             **{key: selected_metadata[key] for key in ("units", "frame", "measure", "metadata_status", "recovery", "shear_convention")},
-            **{key: deepcopy(metadata[key]) for key in ("coordinate_units", "coordinate_frame", "static")}}
+            **({"location": selected_metadata["location"]} if "location" in selected_metadata else {}),
+            **{key: deepcopy(metadata[key]) for key in ("coordinate_units", "coordinate_frame", "static")},
+            **({'beam': deepcopy(metadata['beam'])} if 'beam' in metadata else {})}
 
 
 def physical_input(source, arrays):
@@ -502,7 +550,12 @@ def save_project(path, doc, *, prepare=None):
         if inputs:
             native_readers.append({"reader_name": label, "reader_type": source.GetXMLName(), "input_paths": list(map(str, inputs))})
         for entry in inputs:
-            files = source_files(entry) if entry.suffix.lower() in READERS else [entry]
+            # Preserve declarations/raw companions for the exact registered
+            # reader while collecting saved dependencies; no filter inheritance.
+            declaration = next((record.get("native_metadata") for record in doc["sources"].values()
+                if record["reader_name"] == label and
+                   Path(record["entry_path"]).resolve(strict=True) == entry), None)
+            files = source_files(entry, declaration) if entry.suffix.lower() in READERS else [entry]
             for file in files:
                 native_files[str(file)] = sha(file)
     state = output / "analysis.pvsm"

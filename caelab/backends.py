@@ -45,6 +45,7 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("structure.calculix.design", "cad_analysis", "CADAnalysisAdapter", ("model", "evaluation"), None, "FreeCAD GUI/Gmsh/CalculiX"),
     ("structure.calculix.contact", "contact_fem", "ContactFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
     ("structure.calculix.shell", "shell_fem", "ShellFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
+    ("structure.calculix.beam", "beam_fem", "BeamFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
     ("structural.code_aster", "codeaster_elasticity", "CodeAsterElasticityAdapter", ("model",), None, "Code_Aster"),
     ("structural.code_aster.plasticity", "codeaster_plasticity", "CodeAsterPlasticityAdapter", ("model",), None, "Code_Aster"),
     ("structural.code_aster.geometric_nonlinearity", "codeaster_geometric", "CodeAsterGeometricAdapter", ("model",), None, "Code_Aster"),

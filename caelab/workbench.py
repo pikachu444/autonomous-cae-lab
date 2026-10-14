@@ -365,6 +365,11 @@ class Workbench:
         limit=self.config.get('local_input_max_bytes',2*1024**3)
         if type(limit) is not int or limit<1:
             raise ValueError('local_input_max_bytes must be a positive integer')
+        if source.name == 'beam_inspection.json':
+            from .beam_inspection import explicit_manifest
+            entry, metadata = explicit_manifest(source)
+            return register_native_input(self.root, roots[root_id], entry, 'D'+uuid.uuid4().hex,
+                root_id=root_id, relative=relative, limit=limit, native_metadata=metadata)
         if source.name == 'shell_inspection.json':
             from .shell_inspection import explicit_manifest
             entry, metadata = explicit_manifest(source)
@@ -407,7 +412,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'native_curve'}:
+        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam', 'native_curve'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -422,7 +427,7 @@ class Workbench:
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'native_curve'}:
+        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam', 'native_curve'}:
             raise ValueError('Select a registered native result or FEM snapshot')
         result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
@@ -431,7 +436,7 @@ class Workbench:
         result['registration_origin'] = deepcopy(receipt.get('origin'))
         if receipt.get('candidate_branch'):
             result['candidate_branch'] = deepcopy(receipt['candidate_branch'])
-        if receipt['kind'] in {'frozen_fem', 'frozen_contact', 'frozen_shell'}:
+        if receipt['kind'] in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
         if receipt['kind'] == 'native_design':
@@ -447,7 +452,7 @@ class Workbench:
     def input_preview(self,identifier):
         path=self.input_path(identifier)
         receipt=load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') in {'frozen_fem', 'frozen_contact', 'frozen_shell'}:
+        if receipt.get('kind') in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'}:
             return {'id':identifier,'kind':receipt['kind'],'format':receipt['format'],
                     'name':receipt['name'],'file_count':len(receipt['files']),
                     'bytes':receipt['total_bytes'],'sha256':receipt['sha256'],
@@ -750,14 +755,14 @@ class Workbench:
         if backend == 'structure.calculix.design':
             from .cad_numerical import resolve_settings
             return resolve_settings(self, settings)
-        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell'}:
+        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')
             identifier=settings['data_id']
             path=self.input_path(identifier)
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
             if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem',
-                                      'structure.calculix.shell':'frozen_shell'}[backend]:
+                                      'structure.calculix.shell':'frozen_shell', 'structure.calculix.beam':'frozen_beam'}[backend]:
                 raise ValueError('Select a registered frozen FEM snapshot')
             return {'data_id':identifier,'snapshot_path':str(path)}
         if backend=='files.table':
@@ -838,16 +843,18 @@ class Workbench:
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
             result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell'}:
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
                     'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem',
-                            'structure.calculix.shell':'frozen_shell'}[backend]}
+                            'structure.calculix.shell':'frozen_shell', 'structure.calculix.beam':'frozen_beam'}[backend]}
             publish_contact_prefix = (backend=='structure.calculix.contact' and
                 result.get('partial_result',{}).get('status')=='CONVERGED_PREFIX' and
                 result.get('partial_result',{}).get('complete_analysis') is False)
             publish_shell_prefix = (backend=='structure.calculix.shell' and bool(result.get('post_artifact')))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell'} and (
-                    result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix or publish_shell_prefix):
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'} and (
+                    result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix or publish_shell_prefix or
+                    (backend=='structure.calculix.beam' and result.get('post_artifact') and
+                     result.get('execution_status') in {'FAILED','CANCELLED'})):
                 native_status=result.get('execution_status')
                 try:
                     artifact=result['post_artifact']
