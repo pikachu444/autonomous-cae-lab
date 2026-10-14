@@ -41,3 +41,26 @@ Codex에 없는 manager-spec/Claude Team 도구를 호출했다고 기록하지 
 
 MoAI 형식 검사와 Astra의 기능/수용 검토 결과는 [review.md](review.md)에 남겼다.
 형식 통과는 코드 구현이나 공학적 정확성 증명이 아니다.
+
+## E1 셸 재사용 경로 — 2026-10-14 설치 소스 확인
+
+Windows에 설치된 FreeCAD 1.1.4의 `Mod/Fem` 소스를 직접 읽었다. 새 셸 두께
+객체나 기본 CalculiX writer를 만들 필요는 없다. `femobjects/element_geometry2D.py`의
+`Fem::ElementGeometry2D`가 Thickness(mm)와 Offset을 소유하고,
+`femsolver/calculix/write_femelement_geometry.py`가 재료별 요소 집합에
+`*SHELL SECTION`과 OFFSET, 두께를 출력한다. 같은 writer에는 막 요소 분기가
+있으므로 굽힘이 없는 막을 셸과 같은 선택으로 취급하면 안 된다.
+
+`write_mesh.py`는 shell face variant로 native 메시를 내보내고,
+`write_step_output.py`는 BeamShellResultOutput3D에 따라 OUTPUT=2d/3d를 나눈다.
+상·하면 구분은 두께 속성만 연결해서 끝나지 않으며, 이 출력 선택과 실제 결과
+위치/절점 대응을 함께 설계해야 한다. 정확한 첫 요소명과 상·하면 reader 대응은
+아직 확인 전이다. 이를 모든 셸 지원 또는 E1 착수 카드 완성으로 표시하지 않는다.
+
+프로젝트의 `apps/desktop_pre/freeze_analysis.py::_deck`는 C3D10 이외 요소를
+거절하고 `caelab/adapters/native_structural_deck.py`도 C3D10 단일 solid를 쓴다.
+따라서 native UI에서 셸을 만들 수 있는 것과 Lab에서 저장한 사용자 모델을
+실행·결과 재열기까지 연결하는 것은 다르다. E1은 기존 native 두께/영역 편집을
+재사용하고 이 입력 동결·실행·결과 연결을 확장하는 작업으로 배정한다.
+진행 중인 Pro NS1의 FE 편집·동결 파일과 겹치므로 해당 제출의 공통 변경을
+통합한 기준에서 작성 범위를 나눈다. 이번 조사에서는 메시 생성이나 솔버 실행을 하지 않았다.
