@@ -70,17 +70,18 @@ Post·Data/Material·Numerical/PDE는 기존의 연결된 작업 트리 세 개�
 CURRENT_STATE가 계속 유일한 현황 원본이며 새 팀별 보고서를 경쟁 작업 큐로 만들지 않는다.
 
 **일곱 팀의 첫 통합 묶음:** 아래 변경은 main에 통합하고 관련 검사·실제 Qt 표시를
-검토했다. `8f08ca6`까지 원격 main에 게시해 일치를 확인했다. 이 첫 묶음은 각 팀의 전체 인도
+검토했다. M4·추가 GUI와 공통 연결 교정을 합쳐 `1e3025f`까지 원격 main에 게시하고
+일치를 확인했다. 이 첫 묶음은 각 팀의 전체 인도
 완료가 아니며 큰 핵심 구현은 아래 실제 Pro 작성으로 병행한다.
 
 | 인도 | 이번에 연결한 사용자 동작 | 남은 핵심 구현 |
 |---|---|---|
 | CAD·조립·전처리 | 부품별 메시 입력 보호와 전역/국부 독립 적용; M4 선택 자세 모델의 실행 관문·실패 패널·저장 후 편집까지 통합 확인 | 일반 다변수 기구·요소/체결/접촉/재료 조합의 원행별 잔여 |
-| 구조·동해석·충격 | Runner 응답이 원래 작업에만 반영; 충격 영역 생성·수정 후 정확한 선택 유지 | 초기조건·혼합 단계·시간별 결과·실제 restart와 원격 실행 |
-| 후처리·비교 | Post 창의 저장 소유자·타이머·원자료 감시 해제; 닫힌 창의 늦은 작업 차단 | 실제 ParaView File→Exit 연결과 남은 변환·측정 |
+| 구조·동해석·충격 | Runner 응답이 원래 작업에만 반영; 충격 영역 생성·수정 후 정확한 선택 유지; 조건 대화상자에서 원 문서·입력 보존 | 초기조건·혼합 단계·시간별 결과·실제 restart와 원격 실행 |
+| 후처리·비교 | Post 창의 저장 소유자·타이머·원자료 감시 해제; 닫힌 창의 늦은 작업 차단; native 종료 관문 소스 게시 | 실제 ParaView plugin 빌드·File→Exit 수용과 남은 변환·측정 |
 | Data·Material | Material 셀 편집·붙여넣기·미적용 Undo/Redo; 여러 Data 파일 열기와 창 메뉴/Ctrl+Tab 이동; 물리량 이름 표시와 잘못된 시험 초안 보호 | 처리 단계·혼합 제어·관련 문서 부분 저장/복구 |
-| Numerical·PDE·연성 | Plan 초안 편집·붙여넣기·Pareto 축 선택; PDE 오차 표/그래프 선택 연동; 보존 전달 읽기 실패 시 같은 대상 재시도 | 보존 후보의 상세 계산, 이산 변수·MDO·장 전달 잔여 |
-| Expert·Study·보고서 | 보존 문헌 선택·명시 개정과 판단 유지; 보고서 파일 쓰기 실패 보호 | 정확한 3D 그림 전달·실험 불확실성·다자 토론/장비 잔여 |
+| Numerical·PDE·연성 | Plan 초안·Pareto 축; PDE 표/그래프 선택; 전달 재읽기; UQ 분포/구간 선택; DE 계획 실행 옵션 교정 | 보존 후보의 상세 계산, 이산 변수·MDO·장 전달 잔여 |
+| Expert·Study·보고서 | 보존 문헌·명시 개정·판단 유지; 보고서 쓰기 실패 보호; 저장된 피팅 재읽기와 질문 보존 | 정확한 3D 그림 전달·실험 불확실성·다자 토론/장비 잔여 |
 | 설치·공통 연결 | 실행 전 잘못된 native 앱/입력 경로 거절; 읽기 전용 설치 위치 확인 | 이동용 작업 사본·선택 연결 보기와 배포 잔여 |
 
 Post의 실제 ParaView 종료 확인은 이번 첫 GUI 묶음에서 시간 초과했고 원 기록을 보존한다.
@@ -94,9 +95,21 @@ Gmsh·pvpython 잔류 프로세스가 없는 것도 확인했다.
 시간 결과·실제 restart를 한 사용자 작업으로 완성하는 범위다. 자료는
 `runs/product-development/20261015/dynamic-delivery/`에 보존했다. 새 실제 Pro의
 Pro/파워5와 본문·첨부 수신을 확인했고 최종 ZIP을 실제 회수해 구조·동해석 팀에 전달했다.
-현재 전용 소스·공통 패치 검토와 연결 중이며 실제 Windows 동해석/restart 완료는 아니다:
+전용 소스와 공통14 패치를 현재 main WIP에 통합했다. 원 M4 full shape/READY 관문과
+PoseCandidate 등록을 보존했고 동해석/저장/reader/restart/Qt·일반 FEM 관문의 국소 검사
+51개가 통과했다. 작은 보존 파일을 읽을 때 256 MiB를 과할당하던 공통 helper도
+입력 크기만큼 읽도록 수정해 게시했다. 실제 Windows 동해석/restart 완료는 아니다:
 https://chatgpt.com/g/g-p-6abbcb200108819193174a8715322a59-autonomous-cae-lab/c/6acffc66-1dfc-83ee-a0e0-13c9e0fb0d0e
 동시 Runner/Impact GUI 작성 파일은 읽기 자료로만 포함하고 공통 변경은 별도 패치로 받는다.
+원 Pro 생성기/단계 추가의 release→hold 모순, DesktopLinks의 동해석·READ 제출 누락,
+Post exact 단계 sidecar 재열기는 실제 Pro C1에서 교정 중이다. 원 compiler 관문을
+완화하지 않는다. 기존 동해석 대화의 사용자 초안을 보존하고, 전체 계획을 쓴 실제 Pro에
+원 요구·원 소스·반환 ZIP·최신 교정 소스를 함께 전달했다. 기록은 같은 dynamic-delivery의
+`pro-correction-preload-release.md`에 있다. 이 관문 통합 전에는 실제 계산을 시작하지 않는다.
+담당은 실제 FreeCAD에서 초기속도 공개 모델 생성→저장→새 native owner 재열기·재동결을
+확인했다. 실제 C3D10 모델의 초기속도 DOF·밀도 변환·초기조건과 DYNAMIC/WRITE 입력을
+읽었으며 계산은 하지 않았다. 해당 owned Job과 FreeCAD를 종료했다. 공통14 통합도
+Astra가 원 Pro 패치와 대조해 새로운 의미 차이나 M4/기존 경로 손실을 찾지 않았다.
 
 관련 문서의 부분 저장(FN02-02)은 Data/Material 팀, 이동용 작업 사본(FN01-02)과
 선택 연결 보기(FN31)는 설치·연결 팀, 원격 실행(FN26)은 Runner 팀이 지속 담당한다.
@@ -113,19 +126,36 @@ root는 공유 API/스키마 패치를 순차 통합한다. FN08 구성식 전�
 통합 패치를 구분한다.
 
 후처리의 최종 `PRO-POST-NATIVE-EXIT-20261015-01.zip`을 실제 회수해 Post 팀에 넘겼다.
-분리 작업 트리에서 전용 파일·최소 공통 패치의 Windows 영향 검사를 확인하고 있다.
-일치하는 ParaView/Qt SDK·C++ 빌드와 실제 Exit/취소/재열기는 미완료다. stock Save State
-취소 이후의 재시도도 원행 수용에 남긴다. native 빌드 도구가 없다는 이유로 별도 유료 SDK를
-사용하거나 지원 완료로 표시하지 않는다.
+전용 소스·최소 공통 패치와 Astra의 detach 실패 후 닫기 순서 교정을 원격 main에 게시했다.
+Post 팀은 기존 VS2022 Community/MSVC·Windows SDK·CMake를 실제 찾아 core/ABI를 빌드했다.
+무료 공식 Qt6.9 MSVC SDK를 별도 경로에 풀었고 Qt DLL은 stock ParaView와 동일하다.
+실제 Qt 종료 하네스 빌드와 실행을 진행하며 이벤트 대기/Windows system-key 경로를
+구분해 확인한다. 전체 ParaView plugin 빌드·실제 Exit/취소/재열기는 미완료다.
+stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하네스를 ParaView native
+사용 완료로 세지 않으며 유료 SDK·기존 앱 덮어쓰기를 사용하지 않는다.
+
+이동용 사본·선택 연결 보기도 실제 Pro 초기 ZIP을 회수해 전용16 파일을 WIP로 적용했다.
+공통4 패치는 별도 검사 사본에만 적용했고 main에는 미적용이다. 기존 local register와
+HTTP 사본 생성은 Windows에서 확인했다. acknowledged draft의 재개, typed 관계 편집·
+취소/영향/참조 복구·해제, 새 창/프로세스의 배치 재개가 빠져 Pro C1을 준비한다.
+Windows의 ZIP 원 파일명 정규화로 거절 검사가 누락된 사례도 함께 교정한다.
+로컬 사본은 사용자가 선택한 비공개 공학 자료도 정상 취급한다. 외부 Pro/공개 Git에
+비공개 자료를 전달하지 않는 운영 규칙과 로컬 파일 사용을 혼동하지 않는다.
 
 Data/Material의 `PRO-DATA-MATERIAL-DELIVERY-20261015-01`, Numerical의
 `PRO-NUMERICAL-DETAIL-20261015-01`, Expert/보고서의 `PRO-EXPERT-REPORT-20261015-01`도
 각 담당이 실제 Pro/파워5에서 작성 연결했다. 관련 문서 부분 저장·처리/시험 정의,
 보존 후보 상세 계산, 정확한 3D 그림·보고서 전달을 각각 의미 있는 핵심 단위로 맡겼다.
 각 첨부·요청·회수 상태는 담당 작업 트리의 `_workspace/delivery-*`에 보존한다.
-Data의 최종 코드는 회수 전이다. Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
+일곱 인도의 초기 핵심 제출물은 모두 실제 회수했다. Data는 처리·관련 저장·혼합 제어의
+전용7 모듈과 공통 패치를 별도 사본에서 확인했다. raw 미완성 셀/닫기 실패 복구와
+재표본화 contributor/weight·동일 grid 소비 정책의 누락은 실제 Pro C1에서 작성 중이다.
+Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
 설치 런타임에서 실제 FELUPE 후보/holdout 상세 계산과 새 owner 재열기, Qt 흐름을 좁게
-확인했다. 채택·보고의 상세 보존 관문 누락은 C03의 Pro 후속 교정으로 작성 중이며 공통
+확인했다. 실제 기존 Workbench 인증 loopback의 least-squares→상세 요청→계획 저장도
+좁게 확인했다. 이 대역 계산 경로와 실제 FELUPE 계산은 구별한다. DE에 least-squares
+옵션을 자동 넣던 기존 공통 버그는 method별 예산 처리로 교정해 게시했으며 명시한
+잘못된 사용자 옵션은 계속 거절한다. 채택·보고의 상세 보존 관문 누락은 C03의 Pro 후속 교정으로 작성 중이며 공통
 main에는 아직 통합하지 않았다. Expert/보고서는 최종 ZIP을 실제 회수해
 `_workspace/delivery-expert-study/pro-20261015-01/returned/`에 보존했다. 현재 main의 별도
 검사용 사본에서 전용 코드·공통 패치의 영향과 Qt/PDF/재열기를 확인했으며 root main의
@@ -138,6 +168,10 @@ Structure/Post/설치 팀의 브라우저 inventory는 비어 현재 제공 UI �
 반복 초기화나 숨긴 endpoint로 우회하지 않고 root가 해당 세 Pro 대화의 UI 파일 회수만
 담당한다. 팀별 코드 검토·전용 적용·연결·검사는 계속 각 개발 담당이 수행한다. Expert/Data/
 Numerical 담당은 실제 사용할 수 있는 자신의 브라우저 연결을 유지한다.
+Material에서 여는 변수 편집기는 기존 Pro `PlanOwnerAdapter`를 소비하는 Numerical 팀의
+같은 Qt 위젯으로 연결한다. 별도 owner/compiler/저장 조정자를 중복 개발하지 않는다.
+M4 담당도 다음 B1.2 일반 다변수 운동 Pro 패킷과 국부 크기 선택·미적용 편집 보호를
+계속 개발한다. 작은 자식 기능 완료를 인도팀 종료로 처리하지 않는다.
 
 **메시 품질 창 정돈:** 메시 요약과 요소 표를 중심에 놓고 표시·격리·확대·복원을
 짧은 버튼으로 정리했다. 긴 품질 기준은 접어서 열며, 오류 이유·단위·음수 원값과

@@ -40,6 +40,8 @@ class IdentificationWindow(QDialog):
         self.keep=QPushButton('연구 기록에 저장');self.keep.clicked.connect(self.save_study);row.addWidget(self.keep)
         self.report=QPushButton('보고서 만들기…');self.report.clicked.connect(self.open_report);row.addWidget(self.report)
         close=QPushButton('닫기');close.clicked.connect(self.reject);row.addWidget(close);root.addLayout(row)
+        # Enter in an authored question must not activate the dialog's Close button.
+        for button in (self.reload_result,self.keep,self.report,close):button.setAutoDefault(False)
         self.message=QLabel('고정 계수는 식별 성공으로 세지 않습니다.');self.message.setWordWrap(True);root.addWidget(self.message)
         self._update_actions()
         self._read()
