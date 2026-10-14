@@ -210,9 +210,17 @@ class PostWindow(QMainWindow):
         self.array_table = QTableWidget(0, 5)
         self.array_table.setHorizontalHeaderLabels(['필드', '위치', '성분 수', '단위', '물리 의미'])
         self.array_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.array_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.array_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.array_table.itemSelectionChanged.connect(self._array_selected)
         self.array_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for col, width in ((1, 100), (2, 85), (3, 80), (4, 100)):
+        for col, width in ((1, 100), (2, 75), (3, 70), (4, 230)):
             self.array_table.setColumnWidth(col, width)
+        self.array_description = QLabel('필드를 선택하면 출력 위치와 물리적 정의를 볼 수 있습니다.')
+        self.array_description.setObjectName('postFieldMeaning')
+        self.array_description.setTextFormat(Qt.TextFormat.PlainText)
+        self.array_description.setWordWrap(True)
+        self.array_description.setMinimumWidth(0)
         split.addWidget(left)
         center = QWidget()
         center_layout = QVBoxLayout(center)
@@ -315,6 +323,7 @@ class PostWindow(QMainWindow):
         self.source_tools.setLayout(history)
         center_layout.addWidget(self.source_tools)
         center_layout.addWidget(self.array_table, 1)
+        center_layout.addWidget(self.array_description)
         self.progress = QLabel('요청 대기 중')
         self.progress.setWordWrap(True)
         self.statusBar().addWidget(self.progress, 1)
@@ -1453,14 +1462,53 @@ class PostWindow(QMainWindow):
     def _fill_arrays(self, arrays):
         if isinstance(arrays, dict):
             arrays = [{**row, 'name': name} for name, row in arrays.items()]
+        self._array_rows = deepcopy(arrays)
+        self.array_table.clearSelection()
+        self.array_table.setCurrentCell(-1, -1)
         self.array_table.setRowCount(len(arrays))
         for row, item in enumerate(arrays):
             values = [item.get(key) for key in ('name', 'association', 'components', 'units')]
-            values[1] = {'POINTS': '점 (POINTS)', 'CELLS': '셀 (CELLS)'}.get(values[1], values[1])
-            values.append(item.get('metadata_status', 'explicit' if item.get('units') is not None else 'unknown'))
-            values[-1] = {'explicit': '명시됨', 'unknown': '미지정', 'UNKNOWN': '미지정'}.get(values[-1], values[-1])
+            values[1] = {'POINTS': '점 자료', 'CELLS': '셀 자료'}.get(values[1], values[1])
+            values.append(self._array_meaning(item))
             for column, value in enumerate(values):
-                self.array_table.setItem(row, column, QTableWidgetItem('알 수 없음' if value is None else display(value)))
+                cell = QTableWidgetItem('알 수 없음' if value is None else display(value))
+                cell.setToolTip(str(item.get('measure') or '물리적 정의 미지정') if column == 4 else
+                                str(item.get('association') or '') if column == 1 else cell.text())
+                self.array_table.setItem(row, column, cell)
+        self._array_selected()
+
+    @staticmethod
+    def _array_meaning(item):
+        measure = item.get('measure')
+        if not measure or measure in ('UNKNOWN', 'unknown'):
+            return '미지정'
+        return {'displacement': '변위', 'cauchy_stress': 'Cauchy 응력', 'Cauchy': 'Cauchy 응력',
+                'green_lagrange': 'Green–Lagrange 전체변형률', 'infinitesimal': '미소 전체변형률',
+                'equivalent_plastic_strain': '등가 소성변형률', 'nodal_force': '절점힘'}.get(
+                    measure, '기록된 정의')
+
+    def _array_selected(self):
+        rows = self.array_table.selectionModel().selectedRows()
+        if not rows or rows[0].row() >= len(getattr(self, '_array_rows', [])):
+            self.array_description.setText('필드를 선택하면 출력 위치와 물리적 정의를 볼 수 있습니다.')
+            self.array_description.setToolTip('')
+            return
+        item = self._array_rows[rows[0].row()]
+        location = {'POINTS': '점 자료', 'CELLS': '셀 자료'}.get(item.get('association'), '출력 위치 미확인')
+        units = '무차원 [1]' if item.get('units') == '1' else (str(item['units']) if item.get('units') else '단위 미지정')
+        text = [str(item.get('name', '필드')) + ': ' + self._array_meaning(item) + ', ' + location + ', ' + units + '.']
+        recovery = item.get('recovery')
+        if recovery == 'native integration-point extrapolation and nodal averaging' and item.get('association') == 'POINTS':
+            text.append('절점값은 적분점에서 외삽한 뒤 평균한 값입니다.')
+            bounds = item.get('range') or []
+            if item.get('measure') == 'equivalent_plastic_strain' and bounds and isinstance(bounds[0], (int, float)) and bounds[0] < 0:
+                text.append('외삽·평균된 절점 결과에 음수가 포함되어 있습니다. 원값을 그대로 표시합니다.')
+        elif recovery == 'native nodal force; reactions only at restrained DOFs':
+            text.append('절점힘입니다. 구속된 자유도의 값만 반력으로 해석할 수 있습니다.')
+        if item.get('shear_convention') == 'tensor_shear_not_engineering_shear':
+            text.append('전단 성분은 텐서 전단변형률이며 공학 전단변형률과 구별합니다.')
+        self.array_description.setText(' '.join(text))
+        self.array_description.setToolTip('\n'.join(str(item[key]) for key in ('measure', 'recovery', 'shear_convention') if item.get(key)))
 
     def _show_arrays(self):
         source = next((item for item in self._sources() if item['source_ref'] == self._source_ref), None)
@@ -1468,7 +1516,7 @@ class PostWindow(QMainWindow):
             metadata = source.get('native_metadata') or source.get('metadata') or {}
             self._fill_arrays(metadata.get('arrays', []))
         else:
-            self.array_table.setRowCount(0)
+            self._fill_arrays([])
 
     def choose_source(self, *, repair=False):
         if repair and not self._source_ref:
@@ -1715,6 +1763,7 @@ class PostWindow(QMainWindow):
             button.setEnabled(enabled and not self.local_dirty)
         browsing = bool(self._tree_selection and self._tree_selection[0] == 'source')
         self.array_table.setVisible(browsing)
+        self.array_description.setVisible(browsing)
         self.source_tools.setVisible(browsing)
         self.show_source_button.setVisible(browsing)
         self.show_applied_button.setVisible(not browsing)
