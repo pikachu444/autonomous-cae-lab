@@ -144,6 +144,8 @@ class MotionPanel:
         self.traces = QtWidgets.QTableWidget(0, 7)
         self.traces.setHorizontalHeaderLabels(['경로 이름', '부품', '로컬 x', '로컬 y', '로컬 z', '단위', '출력 좌표'])
         self.traces.cellChanged.connect(self._mark_edited); definition_layout.addWidget(self.traces)
+        self.trace_notice = QtWidgets.QLabel(); self.trace_notice.setWordWrap(True); definition_layout.addWidget(self.trace_notice)
+        self.traces.currentCellChanged.connect(lambda *args:self._trace_selected())
         buttons = QtWidgets.QHBoxLayout()
         self._button(buttons, '경로점 추가', lambda: self._trace_row({}))
         self._button(buttons, '경로점 삭제', lambda: self._remove_row(self.traces))
@@ -353,12 +355,15 @@ class MotionPanel:
         combo.blockSignals(True); combo.clear()
         for row in rows:
             combo.addItem(row.get('label', row['id']), row['id'])
-            combo.setItemData(combo.count()-1, row['id'], self.QtCore.Qt.ToolTipRole)
+            combo.setItemData(combo.count()-1, row.get('label',row['id']), self.QtCore.Qt.ToolTipRole)
         index = combo.findData(old)
         if index < 0 and old is not None and preserve_missing:
             combo.addItem('참조 없음 — 다시 선택', old); index = combo.count()-1
             combo.setItemData(index, str(old), self.QtCore.Qt.ToolTipRole)
         combo.setCurrentIndex(-1 if keep_empty else index if index >= 0 else 0); combo.blockSignals(False)
+
+    def _connector_rows(self):
+        return [row for row in self._motion.get('occurrences',[]) if row.get('connectable',True)]
 
     def refresh(self, descriptor):
         if not isinstance(descriptor, dict): return
@@ -401,7 +406,7 @@ class MotionPanel:
             metadata = self._motion.get('definition') or {}
             if 'joints' in self._motion and self._motion.get('inspection_assembly_id') == self._active_assembly:
                 self._fill_combo(self.joint, self._motion['joints'], metadata.get('view', {}).get('joint_id') if not self.joint.count() else None, preserve_missing=True)
-                for combo in (self.connector_a, self.connector_b): self._fill_combo(combo, self._motion.get('occurrences', []), preserve_missing=True)
+                for combo in (self.connector_a, self.connector_b): self._fill_combo(combo, self._connector_rows(), preserve_missing=True)
             definition = metadata.get('definition') if metadata.get('assembly_id') == self.assembly.currentData() else None
             stamp = json.dumps(definition, sort_keys=True)
             if not self._edited and stamp != self._definition_stamp:
@@ -469,11 +474,12 @@ class MotionPanel:
             self._motion.update(deepcopy(value))
             self._fill_combo(self.joint, value.get('joints', []), self._pending_joint_id or (self._saved_view.get('joint_id') if not self.joint.count() else None), preserve_missing=True)
             self._pending_joint_id = None
-            for combo in (self.connector_a, self.connector_b): self._fill_combo(combo, value['occurrences'], preserve_missing=True)
+            for combo in (self.connector_a, self.connector_b): self._fill_combo(combo, self._connector_rows(), preserve_missing=True)
             for row in range(self.drives.rowCount()):
                 combo = self.drives.cellWidget(row, 0); self._fill_combo(combo, [j for j in value.get('joints', []) if j['type'] in DRIVE_TYPES], preserve_missing=True)
             for row in range(self.traces.rowCount()):
                 combo = self.traces.cellWidget(row, 1); self._fill_combo(combo, value['occurrences'], preserve_missing=True)
+            if hasattr(self,'drive_details'): self._drive_selected()
         finally: self._loading = False
         if not self._joint_edited: self._joint_selected(0)
         self._validate_drives()
@@ -498,7 +504,7 @@ class MotionPanel:
                 if name in joint.get('parameters', {}): field.setText(str(joint['parameters'][name]))
             for ref, combo, field in zip(joint.get('references', []) if joint['type'] != 'Grounded' else [], (self.connector_a, self.connector_b), (self.subelement_a, self.subelement_b)):
                 if ref:
-                    self._fill_combo(combo, self._motion.get('occurrences', []), ref[0], preserve_missing=True)
+                    self._fill_combo(combo, self._connector_rows(), ref[0], preserve_missing=True)
                     field.setText(ref[1][0] if ref[1] else '')
                     field.setToolTip(('연결 위치: ' + (ref[1][1] or '부품 원점') +
                         '\n같은 형상을 유지하면 이 위치도 유지됩니다.') if len(ref[1]) == 2
@@ -666,6 +672,11 @@ class MotionPanel:
         row = table.currentRow()
         if row >= 0: table.removeRow(row); self._mark_edited()
 
+    def _trace_selected(self):
+        if not hasattr(self,'trace_notice'): return
+        row=self.traces.currentRow(); combo=self.traces.cellWidget(row,1) if row>=0 else None
+        self.trace_notice.setText('추적 배치: '+combo.currentText() if combo is not None else '')
+
     def _configure(self):
         if self._validate_drives():
             self.status.setText('구동 표에서 표시된 참조 또는 운동 종류를 수정하세요.'); return
@@ -744,7 +755,7 @@ class MotionPanel:
                 self._selected_joint = self.joint.currentData()
                 self.joint_type.setCurrentIndex(self.joint_type.findData(joint.get('type')))
                 for ref, combo, field in zip(joint.get('connectors', []), (self.connector_a, self.connector_b), (self.subelement_a, self.subelement_b)):
-                    self._fill_combo(combo, self._motion.get('occurrences', []), ref.get('object_id'), preserve_missing=True)
+                    self._fill_combo(combo, self._connector_rows(), ref.get('object_id'), preserve_missing=True)
                     if ref.get('object_id') is None: combo.setCurrentIndex(-1)
                     field.setText(ref.get('subelement', ''))
                 for name, (field, unit) in self.joint_parameters.items(): field.setText(joint.get('parameters', {}).get(name, ''))
@@ -798,7 +809,7 @@ class MotionPanel:
             elif joint.get('issues'): message = '관절 연결을 먼저 복구하세요.'
             key = (combo.currentData(), kind.currentData())
             if key in seen: message = '같은 관절에 같은 종류의 구동을 중복 지정했습니다.'
-            seen.add(key); combo.setToolTip(message)
+            seen.add(key); combo.setToolTip(message or (joint or {}).get('label',''))
             if message: issues.append(str(row+1) + '행: ' + message)
         if hasattr(self, 'definition_notice'):
             self._drive_summaries()
@@ -812,6 +823,13 @@ class MotionPanel:
                         if issue not in issues: issues.append(issue)
                         if row>=0: self.drives.cellWidget(row,0).setToolTip('; '.join(messages))
             except (ValueError,TypeError): pass
+            for row in range(self.traces.rowCount()):
+                combo=self.traces.cellWidget(row,1)
+                occurrence=next((p for p in self._motion.get('occurrences',[]) if p['id']==combo.currentData()),None)
+                message=('배치 참조 없음 — 선택한 조립 안의 부품을 다시 선택하세요.' if occurrence is None else occurrence.get('reference_issue',''))
+                combo.setToolTip(message or (occurrence or {}).get('label',''))
+                if message: issues.append('경로점 '+str(row+1)+'행: '+message)
+            self._trace_selected()
             self.definition_notice.setText('\n'.join(issues) if issues else ('구동 편집 중 — 적용 후 계산할 수 있습니다.' if self._edited else ''))
         return issues
 
