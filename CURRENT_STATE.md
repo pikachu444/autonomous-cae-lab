@@ -129,16 +129,17 @@ root는 공유 API/스키마 패치를 순차 통합한다. FN08 구성식 전�
 전용 소스·최소 공통 패치와 Astra의 detach 실패 후 닫기 순서 교정을 원격 main에 게시했다.
 Post 팀은 기존 VS2022 Community/MSVC·Windows SDK·CMake를 실제 찾아 core/ABI를 빌드했다.
 무료 공식 Qt6.9 MSVC SDK를 별도 경로에 풀었고 Qt DLL은 stock ParaView와 동일하다.
-실제 Qt 종료 하네스 빌드와 실행을 진행하며 이벤트 대기/Windows system-key 경로를
-구분해 확인한다. 전체 ParaView plugin 빌드·실제 Exit/취소/재열기는 미완료다.
+실제 Qt 종료 하네스도 빌드·실행했다. 일반 종료 열 경로와 대기/Windows system-key
+입력 연결을 교정한 두 경로가 통과했고 이전 실패도 보존한다. 이 합성 system-key와
+실제 사용자 키보드는 구별한다. 전체 ParaView plugin 빌드·실제 Exit/취소/재열기는 미완료다.
 stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하네스를 ParaView native
 사용 완료로 세지 않으며 유료 SDK·기존 앱 덮어쓰기를 사용하지 않는다.
 
 이동용 사본·선택 연결 보기도 실제 Pro 초기 ZIP을 회수해 전용16 파일을 WIP로 적용했다.
 공통4 패치는 별도 검사 사본에만 적용했고 main에는 미적용이다. 기존 local register와
 HTTP 사본 생성은 Windows에서 확인했다. acknowledged draft의 재개, typed 관계 편집·
-취소/영향/참조 복구·해제, 새 창/프로세스의 배치 재개가 빠져 Pro C1을 준비한다.
-Windows의 ZIP 원 파일명 정규화로 거절 검사가 누락된 사례도 함께 교정한다.
+취소/영향/참조 복구·해제, 새 창/프로세스의 배치 재개가 빠져 실제 Pro C1에 함께 맡겼다.
+Windows의 ZIP 원 파일명 정규화로 거절 검사가 누락된 사례도 같은 C1에서 교정 중이다.
 로컬 사본은 사용자가 선택한 비공개 공학 자료도 정상 취급한다. 외부 Pro/공개 Git에
 비공개 자료를 전달하지 않는 운영 규칙과 로컬 파일 사용을 혼동하지 않는다.
 
@@ -161,7 +162,8 @@ main에는 아직 통합하지 않았다. Expert/보고서는 최종 ZIP을 실�
 검사용 사본에서 전용 코드·공통 패치의 영향과 Qt/PDF/재열기를 확인했으며 root main의
 공통 코드는 아직 적용하지 않았다. Astra와 담당이 정적 하중축·무차원 모델 시간을 실제
 물리시각으로 표시하는 결함, composite 블록 색상 혼입과 실제 원결과 열기 누락을 확인해
-같은 실제 Pro의 C1 핵심 교정으로 작성 중이다. 소스의 검토와
+같은 실제 Pro의 C1 핵심 교정본을 회수했다. 현재 Astra 재검토와 Windows 영향 확인 중이며
+root main에는 아직 적용하지 않았다. 소스의 검토와
 국소 실행을 전체 FN32 완료로 확대하지 않는다. 공유 프로젝트의
 새 대화 입력은 한 담당씩 전송 권한을 받아 혼입을 막고, 응답 작성과 코드 작업은 병렬로 계속한다.
 Structure/Post/설치 팀의 브라우저 inventory는 비어 현재 제공 UI 제어를 사용할 수 없었다.
