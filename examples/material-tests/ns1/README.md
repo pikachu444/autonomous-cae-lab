@@ -10,11 +10,16 @@
 
 ## 열고 편집하기
 
-Windows 설치를 마친 뒤 저장소 폴더의 PowerShell에서 실행합니다.
-FreeCAD를 찾지 못하면 `-FreeCADExe`에 설치된 실행 파일 경로를 지정하세요.
+Windows 설치를 마친 뒤 이 폴더의 **Open-Example.cmd**를 더블클릭합니다.
+처음 실행할 때 FreeCAD 위치를 물으면 설치된 `FreeCAD.exe`를 선택하세요.
+매번 새 작업 폴더를 만들므로 이전에 저장한 작업은 유지됩니다. 이전 작업을 이어가려면
+그때 저장한 전처리 문서를 여세요. 이 실행 파일은 공개 예제를 새로 여는 용도입니다.
+
+저장소 폴더의 PowerShell에서도 같은 예제를 열 수 있습니다.
+실행 파일 선택 대신 경로를 지정하려면 `-FreeCADExe`를 사용하세요.
 
 ```powershell
-.\scripts\start_cae_pre.ps1 -Source .\examples\material-tests\ns1\block-j2.FCStd -Output .\runs\my-j2-model
+.\scripts\start_cae_pre.ps1 -Source .\examples\material-tests\ns1\block-j2.FCStd
 ```
 
 1. 해석 모델 창의 **재료** 탭을 열고 기본 재료를 선택합니다.
