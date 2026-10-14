@@ -64,6 +64,389 @@ def test_existing_condition_highlight_then_confirm_uses_only_async_typed_owner_c
     assert 'NOT_RELEASED' in panel.status.toPlainText()
 
 
+def _second_mesh(native):
+    from test_pre_fem_edit import Object, Quantity
+    values = {key: value for key, value in vars(native.mesh).items()
+              if key not in {'Document', 'Name', 'Label', 'TypeId'}}
+    other = Object(native.doc, 'SecondMesh', native.mesh.TypeId, **values)
+    other.CharacteristicLengthMax = Quantity('4 mm')
+    native.analysis.addObject(other)
+    return other
+
+
+def test_open_prepared_mesh_selects_exact_second_target_and_submits_it(panel, native):
+    other = _second_mesh(native)
+    panel.tabs.setCurrentIndex(1)
+    panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == other.Name and panel.tabs.currentIndex() == 0
+    assert panel.max_size.value() == 4
+    panel.min_size.setValue(1)
+    panel.apply_mesh_settings()
+    assert panel.test_calls[-1][2] == {'object_id': other.Name}
+    panel.test_complete()
+    assert other.CharacteristicLengthMin.Value == 1
+    assert native.mesh.CharacteristicLengthMin.Value == 0
+    panel.open_mesh_settings(native.mesh.Name)
+    assert panel.mesh.currentData() == native.mesh.Name
+
+
+def test_open_prepared_mesh_preserves_unapplied_settings_and_pending_command(panel, native):
+    other = _second_mesh(native)
+    panel.max_size.setValue(7)
+    with pytest.raises(ValueError, match='미적용'):
+        panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == native.mesh.Name and panel.max_size.value() == 7
+    panel.apply_mesh_settings()
+    with pytest.raises(ValueError, match='메시 작업'):
+        panel.open_mesh_settings(other.Name)
+    panel.test_complete()
+    panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == other.Name and panel.max_size.value() == 4
+
+
+def _local_region(panel, native):
+    from test_pre_fem_edit import region
+    selected = region(native)
+    panel.refresh()
+    panel.local_region.setCurrentIndex(panel.local_region.findData(selected['id']))
+    return selected
+
+
+def test_global_apply_keeps_local_draft_pending_for_exact_mesh_handoff(panel, native):
+    other = _second_mesh(native)
+    selected = _local_region(panel, native)
+    panel.local_size.setValue(.4)
+    panel.max_size.setValue(7)
+    panel.apply_mesh_settings()
+    panel.test_complete()
+    assert native.mesh.CharacteristicLengthMax.Value == 7
+    assert not native.mesh.MeshRegionList and panel.local_size.value() == .4
+    with pytest.raises(ValueError, match='미적용'):
+        panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == native.mesh.Name
+    panel.apply_local_size()
+    assert panel.test_calls[-1][2] == {'object_id': native.mesh.Name}
+    panel.test_complete()
+    assert native.mesh.MeshRegionList[0].CharacteristicLength.Value == .4
+    assert panel.refinement.findData(native.mesh.MeshRegionList[0].Name) >= 0
+    panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == other.Name and panel.max_size.value() == 4
+    assert panel.local_region.currentData() is None and panel.local_size.value() == 1
+    panel.local_region.setCurrentIndex(panel.local_region.findData(selected['id']))
+    panel.local_size.setValue(.2)
+    panel.apply_local_size()
+    assert panel.test_calls[-1][2] == {'object_id': other.Name}
+    panel.test_complete()
+    assert other.MeshRegionList[0].CharacteristicLength.Value == .2
+    assert native.mesh.MeshRegionList[0].CharacteristicLength.Value == .4
+
+
+def test_local_apply_preserves_unsubmitted_global_draft_and_late_local_input(panel, native):
+    other = _second_mesh(native)
+    _local_region(panel, native)
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.4)
+    panel.apply_local_size()
+    panel.local_size.setValue(.6)
+    panel.test_complete()
+    assert native.mesh.CharacteristicLengthMax.Value == 2
+    assert native.mesh.MeshRegionList[0].CharacteristicLength.Value == .4
+    assert panel.max_size.value() == 7 and panel.local_size.value() == .6
+    with pytest.raises(ValueError, match='미적용'):
+        panel.open_mesh_settings(other.Name)
+    panel.local_size.setValue(.4)
+    with pytest.raises(ValueError, match='미적용'):
+        panel.open_mesh_settings(other.Name)
+    panel.apply_mesh_settings()
+    panel.test_complete()
+    panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == other.Name
+
+
+def test_global_receipt_tracks_submitted_values_and_keeps_late_input_pending(panel, native):
+    other = _second_mesh(native)
+    panel.max_size.setValue(7)
+    panel.apply_mesh_settings()
+    panel.max_size.setValue(9)
+    panel.test_complete()
+    assert native.mesh.CharacteristicLengthMax.Value == 7 and panel.max_size.value() == 9
+    with pytest.raises(ValueError, match='미적용'):
+        panel.open_mesh_settings(other.Name)
+    panel.max_size.setValue(7)
+    panel.open_mesh_settings(other.Name)
+    assert panel.mesh.currentData() == other.Name
+
+
+def test_refresh_preserves_unsubmitted_mesh_fields_and_handoff_guard(panel, native):
+    other = _second_mesh(native)
+    _local_region(panel, native)
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.4)
+    before = panel._mesh_fields()
+    panel.refresh()
+    assert panel._mesh_fields() == before
+    with pytest.raises(ValueError, match='미적용'):
+        panel.open_mesh_settings(other.Name)
+    assert panel._mesh_fields() == before and panel.mesh.currentData() == native.mesh.Name
+
+
+def _choose_draft_dialog(choice):
+    def choose():
+        dialog = QtWidgets.QApplication.activeModalWidget()
+        assert isinstance(dialog, QtWidgets.QMessageBox)
+        assert dialog.windowTitle() == '미적용 메시 설정'
+        assert dialog.defaultButton().text() == '취소' and dialog.escapeButton().text() == '취소'
+        button = next(button for button in dialog.buttons() if button.text() == choice)
+        button.click()
+    QtCore.QTimer.singleShot(0, choose)
+
+
+@pytest.mark.parametrize('choice', ['취소', '버리고 선택'])
+def test_direct_mesh_selection_cancel_or_discard_preserves_exact_targets(panel, native, choice):
+    other = _second_mesh(native)
+    _local_region(panel, native)
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.4)
+    before = panel._mesh_fields()
+    _choose_draft_dialog(choice)
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert not panel.test_pending and native.mesh.CharacteristicLengthMax.Value == 2
+    if choice == '취소':
+        assert panel.mesh.currentData() == native.mesh.Name and panel._mesh_fields() == before
+    else:
+        assert panel.mesh.currentData() == other.Name and panel.max_size.value() == 4
+        assert panel.local_size.value() == 1 and panel.local_region.currentData() is None
+        assert not panel._mesh_pending()
+
+
+def test_direct_mesh_selection_apply_submits_global_then_local_to_original_mesh(panel, native):
+    other = _second_mesh(native)
+    _local_region(panel, native)
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.4)
+    _choose_draft_dialog('적용 후 선택')
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert panel.mesh.currentData() == native.mesh.Name
+    assert panel.test_calls[-1][0] == 'pre.fem.mesh_settings'
+    panel.test_complete()
+    assert panel.test_calls[-1][0] == 'pre.fem.mesh_local_size'
+    assert panel.mesh.currentData() == native.mesh.Name
+    panel.test_complete()
+    assert [call[2] for call in panel.test_calls] == [{'object_id': native.mesh.Name}] * 2
+    assert native.mesh.CharacteristicLengthMax.Value == 7
+    assert native.mesh.MeshRegionList[0].CharacteristicLength.Value == .4
+    assert other.CharacteristicLengthMax.Value == 4 and not other.MeshRegionList
+    assert panel.mesh.currentData() == other.Name and panel.max_size.value() == 4
+
+
+def test_direct_mesh_selection_rejects_busy_and_late_edits_stop_automatic_switch(panel, native):
+    other = _second_mesh(native)
+    panel.refresh()
+    panel.max_size.setValue(7)
+    _choose_draft_dialog('적용 후 선택')
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    panel.max_size.setValue(9)
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert panel.mesh.currentData() == native.mesh.Name and panel.max_size.value() == 9
+    assert '메시 작업' in panel.status.toPlainText()
+    panel.test_complete()
+    assert native.mesh.CharacteristicLengthMax.Value == 7
+    assert panel.mesh.currentData() == native.mesh.Name and panel.max_size.value() == 9
+    assert '새로 수정한 입력' in panel.status.toPlainText() and panel._mesh_pending()
+
+
+def test_partial_apply_failure_retains_original_selection_and_unapplied_local_draft(panel, native):
+    other = _second_mesh(native)
+    _local_region(panel, native)
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.4)
+    _choose_draft_dialog('적용 후 선택')
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    panel.test_complete()
+    operation, arguments, target, callback = panel.test_pending.pop(0)
+    assert operation == 'pre.fem.mesh_local_size' and target == {'object_id': native.mesh.Name}
+    callback({'status': 'FAILED', 'error': {'message': 'Local region is unresolved'}})
+    assert not panel._command_busy and panel.mesh.currentData() == native.mesh.Name
+    assert panel.max_size.value() == 7 and panel.local_size.value() == .4
+    assert native.mesh.CharacteristicLengthMax.Value == 7 and not native.mesh.MeshRegionList
+    assert panel._mesh_pending() and panel.status.toPlainText() == 'Local region is unresolved'
+
+
+def test_dock_close_show_preserves_draft_and_stops_old_selection_continuation(panel, native, app):
+    other = _second_mesh(native)
+    _local_region(panel, native)
+    window = QtWidgets.QMainWindow()
+    dock = QtWidgets.QDockWidget('해석 설정', window)
+    dock.setWidget(panel)
+    window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+    window.show()
+    app.processEvents()
+    try:
+        panel.max_size.setValue(7)
+        panel.local_size.setValue(.4)
+        _choose_draft_dialog('적용 후 선택')
+        panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+        dock.close()
+        app.processEvents()
+        dock.show()
+        app.processEvents()
+        panel.test_complete()
+        assert not panel.test_pending  # No local apply or implicit switch after close/show.
+        assert panel.mesh.currentData() == native.mesh.Name
+        assert panel.max_size.value() == 7 and panel.local_size.value() == .4
+        assert panel._mesh_pending() and not native.mesh.MeshRegionList
+    finally:
+        panel.setParent(None)
+        window.close()
+        window.deleteLater()
+        app.processEvents()
+
+
+@pytest.mark.parametrize('choice', ['취소', '버리고 생성', '적용 후 생성'])
+def test_remesh_resolves_draft_before_using_exact_native_settings(panel, native, choice):
+    panel.max_size.setValue(7)
+    _choose_draft_dialog(choice)
+    panel.generate_mesh()
+    if choice == '취소':
+        assert not panel.test_pending and panel.max_size.value() == 7
+        return
+    if choice == '적용 후 생성':
+        assert panel.test_calls[-1][0] == 'pre.fem.mesh_settings'
+        panel.test_complete()
+        assert native.mesh.CharacteristicLengthMax.Value == 7
+    else:
+        assert native.mesh.CharacteristicLengthMax.Value == 2 and panel.max_size.value() == 2
+    assert panel.test_calls[-1] == ('pre.fem.mesh_generate', {}, {'object_id': native.mesh.Name})
+    _, _, _, callback = panel.test_pending.pop(0)
+    callback({'status': 'COMPLETED', 'result': {'state': 'QUEUED', 'history_id': 'retained-test'}})
+
+
+def test_missing_form_mesh_does_not_rebind_draft_to_first_remaining_mesh(panel, native):
+    other = _second_mesh(native)
+    panel.max_size.setValue(7)
+    native.doc.Objects.remove(native.mesh)
+    native.analysis.Group.remove(native.mesh)
+    panel.refresh()
+    assert panel.mesh.currentIndex() == -1 and panel.max_size.value() == 7
+    assert '현재 메시를 찾지 못했습니다' in panel.status.toPlainText()
+    _choose_draft_dialog('취소')
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert panel.mesh.currentIndex() == -1 and panel.max_size.value() == 7
+    _choose_draft_dialog('버리고 선택')
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert panel.mesh.currentData() == other.Name and panel.max_size.value() == 4
+
+
+def test_document_close_contract_waits_for_apply_and_preserves_cancelled_draft(panel, native):
+    accepted, cancelled = [], []
+    panel.max_size.setValue(7)
+    _choose_draft_dialog('취소')
+    panel.request_mesh_close(lambda: accepted.append(True), on_cancelled=lambda: cancelled.append(True))
+    assert not accepted and panel._mesh_pending() and cancelled == [True]
+    _choose_draft_dialog('적용 후 닫기')
+    panel.request_mesh_close(lambda: accepted.append(True))
+    assert not accepted and panel.test_calls[-1][2] == {'object_id': native.mesh.Name}
+    with pytest.raises(ValueError, match='메시 작업'):
+        panel.request_mesh_close(lambda: accepted.append(False))
+    panel.test_complete()
+    assert accepted == [True] and not panel._mesh_pending()
+
+
+def test_document_close_failure_notifies_caller_without_erasing_draft(panel, native):
+    accepted, cancelled = [], []
+    panel.max_size.setValue(7)
+    _choose_draft_dialog('적용 후 닫기')
+    panel.request_mesh_close(lambda: accepted.append(True), on_cancelled=lambda: cancelled.append(True))
+    _, _, _, callback = panel.test_pending.pop(0)
+    callback({'status': 'FAILED', 'error': {'message': 'Controlled native failure'}})
+    callback({'status': 'FAILED', 'error': {'message': 'Duplicate receipt'}})
+    assert not accepted and cancelled == [True]
+    assert panel.max_size.value() == 7 and panel._mesh_pending()
+
+
+def test_late_remesh_apply_receipt_keeps_new_input_without_starting_generation(panel, native):
+    panel.max_size.setValue(7)
+    _choose_draft_dialog('적용 후 생성')
+    panel.generate_mesh()
+    panel.local_size.setValue(.6)
+    panel.test_complete()
+    assert not panel.test_pending and len(panel.test_calls) == 1
+    assert native.mesh.CharacteristicLengthMax.Value == 7
+    assert panel.local_size.value() == .6 and panel._mesh_pending()
+
+
+def test_native_meshing_blocks_selection_without_losing_draft(panel, native, monkeypatch):
+    other = _second_mesh(native)
+    panel.refresh()
+    panel.max_size.setValue(7)
+    descriptor = native.editor.descriptor
+    monkeypatch.setattr(native.editor, 'descriptor', lambda: dict(descriptor(), mesh_busy=True))
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert panel.mesh.currentData() == native.mesh.Name and panel.max_size.value() == 7
+    assert not panel.test_pending and '메시 작업' in panel.status.toPlainText()
+
+
+def test_old_document_receipt_cannot_continue_switch_or_clean_draft(panel, native):
+    other = _second_mesh(native)
+    panel.refresh()
+    panel.max_size.setValue(7)
+    _choose_draft_dialog('적용 후 선택')
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    _, _, _, callback = panel.test_pending.pop(0)
+    original = native.doc
+    native.doc = NS(Name=original.Name, Objects=original.Objects)
+    try:
+        callback({'status': 'COMPLETED', 'result': {'mesh_id': native.mesh.Name}})
+        assert panel.mesh.currentData() == native.mesh.Name and panel._mesh_pending()
+        assert 'STALE_SESSION' in panel.status.toPlainText() and not panel.test_pending
+    finally:
+        native.doc = original
+
+
+def test_destroyed_panel_ignores_late_mesh_receipt(panel, native, app):
+    other_panel = make_panel(QtWidgets, QtCore, native.editor, panel.submit)
+    other_panel.timer.stop()
+    other_panel.max_size.setValue(7)
+    other_panel.apply_mesh_settings()
+    _, _, _, callback = panel.test_pending.pop(0)
+    other_panel.deleteLater()
+    QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
+    assert other_panel._disposed
+    callback({'status': 'COMPLETED', 'result': {'mesh_id': native.mesh.Name}})
+    assert not other_panel._command_busy
+
+
+def test_keyboard_selection_escape_restores_draft_and_exact_mesh(panel, native, app):
+    from PySide6 import QtTest
+    other = _second_mesh(native)
+    panel.refresh()
+    panel.max_size.setValue(7)
+    panel.show()
+    panel.mesh.setFocus()
+    app.processEvents()
+    QtCore.QTimer.singleShot(0, lambda: QtTest.QTest.keyClick(
+        QtWidgets.QApplication.activeModalWidget(), QtCore.Qt.Key_Escape))
+    QtTest.QTest.keyClick(panel.mesh, QtCore.Qt.Key_Down)
+    app.processEvents()
+    assert panel.mesh.currentData() == native.mesh.Name and panel.max_size.value() == 7
+    assert panel.focusWidget() is panel.mesh and not panel.test_pending
+
+
+def test_confirmation_with_new_input_cannot_discard_the_new_value(panel, native):
+    other = _second_mesh(native)
+    panel.refresh()
+    panel.max_size.setValue(7)
+    def changed_then_discard():
+        dialog = QtWidgets.QApplication.activeModalWidget()
+        panel.max_size.setValue(9)
+        next(button for button in dialog.buttons() if button.text() == '버리고 선택').click()
+    QtCore.QTimer.singleShot(0, changed_then_discard)
+    panel.mesh.setCurrentIndex(panel.mesh.findData(other.Name))
+    assert panel.mesh.currentData() == native.mesh.Name and panel.max_size.value() == 9
+    assert panel._mesh_pending() and not panel.test_pending
+    assert '선택 확인 중' in panel.status.toPlainText()
+
+
 def test_quality_callback_populates_actual_rows_and_rejects_changed_selection_or_owner(panel, native):
     panel.read_quality()
     assert panel.quality.rowCount() == 0 and panel._command_busy

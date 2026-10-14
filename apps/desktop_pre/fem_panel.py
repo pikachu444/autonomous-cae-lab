@@ -45,6 +45,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.editor, self.submit = editor, submit
             self._description, self._mutating, self._last_history = {}, [], None
             self._actions, self._command_busy, self._edit_serial = [], False, 0
+            self._mesh_form_id, self._view_epoch, self._disposed = None, 0, False
+            self.destroyed.connect(lambda *_: setattr(self, '_disposed', True))
             outer = QtWidgets.QVBoxLayout(self)
             outer.setContentsMargins(6, 8, 6, 8)
             row = QtWidgets.QHBoxLayout()
@@ -126,6 +128,10 @@ def make_panel(QtWidgets, QtCore, editor, submit):
         def _edited(self, *unused):
             self._edit_serial += 1
 
+        def hideEvent(self, event):
+            self._view_epoch += 1
+            super().hideEvent(event)
+
         def _status_changed(self):
             text = self.status.toPlainText()
             first = text.splitlines()[0] if text else '모델 설정을 편집하세요.'
@@ -174,7 +180,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             heading.setStyleSheet('font-weight: 600; margin-top: 4px;')
             layout.addWidget(heading)
 
-        def _send(self, operation, args=None, object_id=None, on_done=None):
+        def _send(self, operation, args=None, object_id=None, on_done=None, on_error=None):
             if self._command_busy:
                 raise ValueError('다른 명령을 처리 중입니다. 완료 후 다시 시도하세요.')
             owner, doc, serial = self.editor.owner, self.editor.owner.doc, self._edit_serial
@@ -188,6 +194,10 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     return
                 delivered = True
                 self._command_busy = False
+                if self._disposed:
+                    if on_error:
+                        on_error(ValueError('CLOSED_PANEL: the mesh editor has been closed'))
+                    return
                 self._completion_serial = serial
                 try:
                     if self.editor.owner is not owner or owner.doc is not doc or getattr(owner, 'closed', False) or getattr(owner, 'session_id', None) != session:
@@ -202,15 +212,19 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                         on_done(payload)
                 except Exception as error:
                     self.status.setPlainText(str(error))
+                    if on_error:
+                        on_error(error)
                 finally:
                     self.poll()
             try:
                 result = self.submit(operation, args or {}, {'object_id': object_id} if object_id else {}, on_done=done)
                 if isinstance(result, dict) and not result.get('queued') and not delivered:
                     done(result)  # Explicit immediate receipts remain useful for injected local checks.
-            except Exception:
+            except Exception as error:
                 self._command_busy = False
                 self.poll()
+                if on_error:
+                    on_error(error)
                 raise
 
         def _refresh_after(self, result=None):
@@ -236,7 +250,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             form = QtWidgets.QFormLayout()
             self.mesh = QtWidgets.QComboBox()
             self.mesh.setObjectName('femMesh')
-            self.mesh.currentIndexChanged.connect(self._load_mesh)
+            self.mesh.currentIndexChanged.connect(lambda *_: self._action(self._mesh_changed))
             form.addRow('메시 선택', self.mesh)
             self.min_size = self._number('femMinimumSize')
             self.max_size = self._number('femMaximumSize')
@@ -378,6 +392,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             widget.blockSignals(blocked)
 
         def refresh(self, *, load_forms=True):
+            mesh_pending = self._mesh_pending()
             self._description = self.editor.descriptor()
             def label(identifier):
                 try:
@@ -385,6 +400,12 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                 except Exception:
                     return identifier
             self._fill_combo(self.mesh, [(label(row['object_id']), row['object_id']) for row in self._description['meshes']])
+            missing_mesh = bool(self._mesh_form_id and self.mesh.findData(self._mesh_form_id) < 0)
+            if missing_mesh:
+                blocked = self.mesh.blockSignals(True)
+                self.mesh.setCurrentIndex(-1)
+                self.mesh.blockSignals(blocked)
+                self.status.setPlainText('현재 메시를 찾지 못했습니다. 입력은 유지됩니다. 다른 메시를 명시적으로 선택하세요.')
             self._fill_combo(self.condition, [(label(row['object_id']) + (' (대상 확인 필요)' if row['errors'] else ''), row['object_id'])
                                             for row in self._description['conditions']])
             objs = self.editor.owner.doc.Objects
@@ -393,7 +414,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._fill_combo(self.analysis, [(obj.Label, obj.Name) for obj in objs if kind(obj) == 'Fem::FemAnalysis'])
             regions = self._description['regions']
             entries = [(row['label'] + (' (대상 확인 필요)' if row['validation'] != 'EXACT_TARGET_MATCH' else ''), row['id']) for row in regions]
-            self._fill_combo(self.local_region, entries)
+            self._fill_combo(self.local_region, [('적용 영역 선택', None)] + entries)
             self._fill_combo(self.condition_region, entries)
             edge_regions = [(row['label'], row['id']) for row in regions if len(row['target']['subelements']) == 1
                             and row['target']['subelements'][0]['name'].startswith('Edge')]
@@ -422,7 +443,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.steps_page.refresh(load_forms=load_forms)
             self.convergence_page.refresh(load_forms=load_forms)
             if load_forms:
-                self._load_mesh()
+                if not mesh_pending and not missing_mesh:
+                    self._load_mesh()
                 self._load_condition()
                 if not self.material_page.elastic_pending(): self._load_material()
             self.poll()
@@ -461,6 +483,11 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             if not identifier:
                 return
             obj = self.editor.owner._object(identifier)
+            if identifier != self._mesh_form_id:
+                self.element_type.setCurrentIndex(0)
+                self.local_region.setCurrentIndex(0)
+                self.refinement.setCurrentIndex(0)
+                self.local_size.setValue(1)
             self.min_size.setValue(float(obj.CharacteristicLengthMin.getValueAs('mm').Value))
             self.max_size.setValue(float(obj.CharacteristicLengthMax.getValueAs('mm').Value))
             order_labels = {'1st': '1차', '2nd': '2차'}
@@ -470,6 +497,124 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.order.setCurrentIndex(self.order.findData(obj.ElementOrder))
             self.dimension.setCurrentIndex(self.dimension.findData(obj.ElementDimension))
             self._fill_combo(self.refinement, [('새 국부 크기 설정', None)] + [(ref.Label, ref.Name) for ref in obj.MeshRegionList])
+            self._mesh_form_id = identifier
+            self._loaded_mesh_fields = self._mesh_fields()
+
+        def _mesh_fields(self):
+            return (self.min_size.value(), self.max_size.value(), self.order.currentData(),
+                    self.dimension.currentData(), self.element_type.currentData(),
+                    self.local_region.currentData(), self.refinement.currentData(), self.local_size.value())
+
+        def _mesh_pending(self):
+            return self._mesh_fields() != getattr(self, '_loaded_mesh_fields', self._mesh_fields())
+
+        def _mesh_changed(self):
+            identifier = self.mesh.currentData()
+            if not self._mesh_form_id or identifier == self._mesh_form_id:
+                self._load_mesh()
+                return
+            blocked = self.mesh.blockSignals(True)
+            self.mesh.setCurrentIndex(self.mesh.findData(self._mesh_form_id))
+            self.mesh.blockSignals(blocked)
+            if self._command_busy or self.editor.descriptor()['mesh_busy']:
+                raise ValueError('메시 작업을 마친 뒤 다른 부품을 선택하세요. 현재 선택과 입력은 유지됩니다.')
+            if self._mesh_pending():
+                self._resolve_mesh_draft(lambda: self.open_mesh_settings(identifier), '선택')
+                self.mesh.setFocus()
+            else:
+                self.open_mesh_settings(identifier)
+
+        def _discard_mesh_draft(self):
+            fields = self._loaded_mesh_fields
+            self.min_size.setValue(fields[0])
+            self.max_size.setValue(fields[1])
+            for widget, value in zip((self.order, self.dimension, self.element_type,
+                                       self.local_region, self.refinement), fields[2:7]):
+                widget.setCurrentIndex(widget.findData(value))
+            self.local_size.setValue(fields[7])
+            self._load_mesh()
+
+        def _resolve_mesh_draft(self, proceed, action, *, on_cancelled=None):
+            owner, doc = self.editor.owner, self.editor.owner.doc
+            session = getattr(owner, 'session_id', None)
+            identifier, epoch, submitted = self._mesh_form_id, self._view_epoch, self._mesh_fields()
+            cancelled = False
+            def cancel(*unused):
+                nonlocal cancelled
+                if not cancelled and on_cancelled:
+                    cancelled = True
+                    on_cancelled()
+            dialog = QtWidgets.QMessageBox(self)
+            dialog.setWindowTitle('미적용 메시 설정')
+            dialog.setText('현재 메시의 변경한 설정을 어떻게 처리할까요?')
+            dialog.setInformativeText('적용은 현재 부품의 설정만 변경합니다. 메시 생성은 별도 동작입니다.')
+            apply = dialog.addButton('적용 후 ' + action, QtWidgets.QMessageBox.AcceptRole)
+            discard = dialog.addButton('버리고 ' + action, QtWidgets.QMessageBox.DestructiveRole)
+            cancel_button = dialog.addButton('취소', QtWidgets.QMessageBox.RejectRole)
+            dialog.setDefaultButton(cancel_button)
+            dialog.setEscapeButton(cancel_button)
+            dialog.exec()
+            if (self.editor.owner is not owner or owner.doc is not doc or getattr(owner, 'closed', False)
+                    or getattr(owner, 'session_id', None) != session):
+                cancel()
+                raise ValueError('STALE_SESSION: the mesh draft belongs to the earlier document/session')
+            if dialog.clickedButton() not in (apply, discard):
+                cancel()
+                return
+            if (epoch != self._view_epoch or self._mesh_fields() != submitted or self._command_busy
+                    or self.editor.descriptor()['mesh_busy']):
+                cancel()
+                raise ValueError('선택 확인 중 입력이나 작업 상태가 바뀌었습니다. 현재 메시와 입력을 유지합니다.')
+            if dialog.clickedButton() is discard:
+                self._discard_mesh_draft()
+                proceed()
+            elif dialog.clickedButton() is apply:
+                if identifier != self.mesh.currentData():
+                    cancel()
+                    raise ValueError('현재 메시를 찾지 못해 설정을 적용할 수 없습니다. 입력을 버리거나 원 대상을 복구하세요.')
+                def continued():
+                    if epoch != self._view_epoch or identifier != self.mesh.currentData():
+                        cancel()
+                        return
+                    if self._mesh_fields() != submitted:
+                        self.status.setPlainText('새로 수정한 입력이 있어 현재 메시를 유지합니다. 미적용 설정을 확인하세요.')
+                        cancel()
+                        return
+                    if self._mesh_fields()[:5] != self._loaded_mesh_fields[:5]:
+                        self.apply_mesh_settings(on_done=continued, on_error=cancel)
+                    elif self._mesh_fields()[5:] != self._loaded_mesh_fields[5:]:
+                        self.apply_local_size(on_done=continued, on_error=cancel)
+                    else:
+                        proceed()
+                continued()
+
+        def request_mesh_close(self, on_accepted, *, on_cancelled=None):
+            """Resolve this mesh form before its owning document is closed."""
+            if self._command_busy or self.editor.descriptor()['mesh_busy']:
+                raise ValueError('메시 작업을 마친 뒤 문서를 닫으세요. 현재 입력은 유지됩니다.')
+            if self._mesh_pending():
+                self._resolve_mesh_draft(on_accepted, '닫기', on_cancelled=on_cancelled)
+            else:
+                on_accepted()
+
+        def open_mesh_settings(self, identifier):
+            """Select the exact prepared mesh without discarding another form."""
+            if self._command_busy or self.editor.descriptor()['mesh_busy']:
+                raise ValueError('메시 작업을 마친 뒤 다른 부품을 선택하세요.')
+            previous = self.mesh.currentData()
+            if previous != identifier and self._mesh_pending():
+                raise ValueError('현재 메시의 미적용 설정을 적용하거나 되돌린 뒤 다른 부품의 메시 설정을 여세요.')
+            self.refresh(load_forms=False)
+            index = self.mesh.findData(identifier)
+            if index < 0:
+                raise ValueError('선택한 부품의 메시가 없습니다. 부품을 다시 선택하세요.')
+            if previous != identifier:
+                blocked = self.mesh.blockSignals(True)
+                self.mesh.setCurrentIndex(index)
+                self.mesh.blockSignals(blocked)
+                self._load_mesh()
+            self.tabs.setCurrentIndex(0)
+            self.mesh.setFocus()
 
         def _load_condition(self):
             identifier = self.condition.currentData()
@@ -508,21 +653,45 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     self.poisson.setValue(-1)
                     self.status.setPlainText('Native material values are unresolved; enter explicit elastic values or use native Tasks. ' + str(error))
 
-        def apply_mesh_settings(self):
+        def apply_mesh_settings(self, *, on_done=None, on_error=None):
             args = {'min_size': self.min_size.value(), 'max_size': self.max_size.value(), 'unit': 'mm',
                     'element_order': self.order.currentData(), 'element_dimension': self.dimension.currentData()}
             if self.element_type.currentData():
                 args['element_type'] = self.element_type.currentData()
-            self._send('pre.fem.mesh_settings', args, self.mesh.currentData(), on_done=lambda result:
-                self.status.setPlainText('Native mesh settings applied. Generation remains an explicit action.'))
+            identifier, submitted = self.mesh.currentData(), self._mesh_fields()[:5]
+            def applied(result):
+                if identifier == self.mesh.currentData():
+                    self._loaded_mesh_fields = submitted + self._loaded_mesh_fields[5:]
+                self.status.setPlainText('메시 설정을 적용했습니다. 메시 생성은 별도로 실행하세요.')
+                if on_done:
+                    on_done()
+            self._send('pre.fem.mesh_settings', args, identifier, on_done=applied, on_error=on_error)
 
-        def apply_local_size(self):
+        def apply_local_size(self, *, on_done=None, on_error=None):
             args = {'region_id': self.local_region.currentData(), 'size': self.local_size.value(), 'unit': 'mm'}
             if self.refinement.currentData():
                 args['refinement_id'] = self.refinement.currentData()
-            self._send('pre.fem.mesh_local_size', args, self.mesh.currentData(), on_done=self._refresh_after)
+            identifier, submitted = self.mesh.currentData(), self._mesh_fields()[5:]
+            def applied(result):
+                if identifier == self.mesh.currentData():
+                    self.refresh(load_forms=False)
+                    obj = self.editor.owner._object(identifier)
+                    self._fill_combo(self.refinement, [('새 국부 크기 설정', None)] + [(ref.Label, ref.Name) for ref in obj.MeshRegionList])
+                    self._loaded_mesh_fields = self._loaded_mesh_fields[:5] + submitted
+                self.status.setPlainText('국부 요소 크기를 적용했습니다. 메시 생성은 별도로 실행하세요.')
+                if on_done:
+                    on_done()
+            self._send('pre.fem.mesh_local_size', args, identifier, on_done=applied, on_error=on_error)
 
         def generate_mesh(self):
+            if self._command_busy or self.editor.descriptor()['mesh_busy']:
+                raise ValueError('메시 작업을 마친 뒤 다시 생성하세요. 현재 입력은 유지됩니다.')
+            if self._mesh_pending():
+                self._resolve_mesh_draft(self._generate_mesh, '생성')
+            else:
+                self._generate_mesh()
+
+        def _generate_mesh(self):
             self._send('pre.fem.mesh_generate', {}, self.mesh.currentData(), on_done=lambda result:
                 self.status.setPlainText('메시 생성 상태: ' + {'QUEUED': '대기 중', 'RUNNING': '생성 중', 'SUCCEEDED': '완료',
                     'FAILED': '실패', 'CANCELLED': '취소'}.get(result['state'], '미확인') + '\nNative Gmsh ' + result['state'] + '; receipt ' + result['history_id']))
