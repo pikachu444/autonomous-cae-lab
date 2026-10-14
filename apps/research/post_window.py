@@ -1350,6 +1350,8 @@ class PostWindow(QMainWindow):
                         text = str(value.get('row', '—'))
                     elif key == 'b_rows' and isinstance(value, list):
                         text = ' → '.join(str(v.get('row', '—')) for v in value) or '—'
+                    elif key in ('quality', 'calculation') and value in (0, 1):
+                        text = ('정상' if value else '결측·품질 실패') if key == 'quality' else ('포함' if value else '제외')
                 item = QTableWidgetItem(text)
                 item.setToolTip(display(value))
                 self.samples.setItem(row, column, item)

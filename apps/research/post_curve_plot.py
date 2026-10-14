@@ -104,7 +104,15 @@ class CurvePlot(QDialog):
                     shown = str(value.get('row', '—'))
                 if key == 'b_rows' and isinstance(value, list):
                     shown = ' → '.join(str(v.get('row','—')) for v in value) or '—'
-                item = QTableWidgetItem(shown); item.setToolTip(str(value)); item.setData(Qt.ItemDataRole.UserRole, row['row_index'])
+                if key in ('quality', 'calculation') and value in (0, 1):
+                    shown = ('정상' if value else '결측·품질 실패') if key == 'quality' else ('포함' if value else '제외')
+                item = QTableWidgetItem(shown)
+                tooltip = str(value)
+                if key == 'b_rows':
+                    unit = self.payload['summary']['sources']['a']['axis'].get('unit', '?')
+                    tooltip += '\n대응 좌표 ['+str(unit)+']: '+str(row.get('b_axis', []))
+                    tooltip += '\n오른쪽 표본 가중치: '+text(row.get('weight'))
+                item.setToolTip(tooltip); item.setData(Qt.ItemDataRole.UserRole, row['row_index'])
                 table.setItem(i, j, item)
 
     def draw_segments(self, ax, rows, xkey, ykey, color, label):
