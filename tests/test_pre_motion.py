@@ -746,3 +746,16 @@ def test_qt_native_root_selection_is_normalized_to_occurrence(qt_panel):
     panel._use_selection(panel.connector_b, panel.subelement_b)
     assert panel.connector_b.currentData() == obj.Name and panel.subelement_b.text() == 'Face1'
     assert panel._joint_edited
+
+
+@pytest.mark.parametrize('operation', ['calculate', 'frame', 'play', 'adopt_pose', 'path'])
+def test_unapplied_joint_reference_blocks_motion_until_cancel(qt_panel, operation):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    panel.subelement_a.setText('Face99')
+    panel.subelement_a.textEdited.emit('Face99')
+    assert panel._joint_edited and not panel._edited
+    panel._send('pre.motion.' + operation, {})
+    assert not queued and '관절' in panel.status.text()
+    panel._cancel_joint()
+    panel._send('pre.motion.' + operation, {})
+    assert queued[-1][0] == 'pre.motion.' + operation

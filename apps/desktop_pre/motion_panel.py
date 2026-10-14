@@ -245,8 +245,8 @@ class MotionPanel:
 
     def _send(self, operation, args, *, target=None, inspect=False):
         if self._busy: return
-        if self._edited and operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
-            self.status.setText('구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.'); return
+        if (self._edited or self._joint_edited) and operation in ('pre.motion.calculate', 'pre.motion.frame', 'pre.motion.play', 'pre.motion.adopt_pose', 'pre.motion.path'):
+            self.status.setText('관절과 구동 편집을 적용하거나 취소한 뒤 운동을 확인하세요.'); return
         target = self._target() if target is None else target
         edit_version, joint_version = self._edit_version, self._joint_version
         self._serial += 1; serial = self._serial; scope = (self._document, self._session, self.assembly.currentData())
