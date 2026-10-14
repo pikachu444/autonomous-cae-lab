@@ -59,6 +59,35 @@ def test_unverified_native_version_preserves_coordinates_without_schedule_infere
     assert path['rows'][2]['point']==[10.,2.,0.] and path['rows'][2]['time'] is None
 
 
+def test_same_count_shifted_native_time_rejects_before_generation_and_marks_retained_path_past(setup):
+    owner,motion,target,definition=setup;definition=deepcopy(definition);frames=deepcopy(owner.doc.frames)
+    definition['time'].update(start=0.,end=1.,step=.5)
+    motion.dispatch('pre.motion.configure',{'definition':definition},target);owner.doc.frames=frames
+    _,_,_,calculation=calculate(setup)
+    path=motion.dispatch('pre.motion.path',{'calculation_id':calculation['id'],'trace_id':'Tip','start':0,'count':4},target)
+    assert motion.descriptor()['path_results'][-1]['source_status']=='CURRENT'
+    simulation=owner._object(owner.metadata['motion']['simulation_id'])
+    simulation.aTimeStart,simulation.bTimeEnd=.5,1.5;owner.generation+=1
+    assert len(owner.doc.frames)==4 and native_frame_times({'start':.5,'end':1.5,'step':.5},4)==[None,.5,1.,1.5]
+    before=len([c for c in owner.doc.calls if c[0]=='generateSimulation'])
+    with pytest.raises(ValueError,match='다시 적용'):
+        motion.dispatch('pre.motion.calculate',{},target)
+    assert len([c for c in owner.doc.calls if c[0]=='generateSimulation'])==before
+    retained=next(s for s in motion.descriptor()['path_results'] if s['id']==calculation['id'])
+    assert retained['source_status']=='STALE' and retained['paths']['Tip']==path
+    assert owner.metadata['motion']['definition']==definition and simulation.aTimeStart==.5 and simulation.bTimeEnd==1.5
+    assert owner.doc.moving.Placement.Base.x==0
+
+
+def test_qt_restored_design_does_not_display_previous_preview_time(qt_panel):
+    app,widget,panel,queued,descriptor,setup=qt_panel
+    calculate(setup);widget.refresh(descriptor())
+    panel._motion.update(frame=2,preview=True);panel._show_runtime()
+    assert '계산 시각 2.5 s' in panel.status.text()
+    panel._motion.update(preview=False,state='CANCELLED');panel._show_runtime()
+    assert '설계 자세' in panel.status.text() and '계산 시각' not in panel.status.text()
+
+
 def timed_samples():
     return {'calculation_id':'Ktime','trace_id':'Tip','total_frames':4,'clock':NATIVE_CLOCK,
         'clock_source':{'complete':True,'native_version':'FreeCAD 1.1.4'},'coordinate_unit':'mm','frame':'document_global',

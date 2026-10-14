@@ -452,7 +452,7 @@ class MotionPanel:
                 ' / 계산 프레임 ' + str(calculation.get('frame_count', 0)) +
                 (' / ' + str(self._motion['error']) if self._motion.get('error') else ''))
             index=self._motion.get('frame'); times=calculation.get('frame_times',[])
-            if index is not None and 0<=index<len(times):
+            if self._motion.get('preview') and index is not None and 0<=index<len(times):
                 self.status.setText(self.status.text()+(' / 설계 자세 (시각 없음)' if index==0 else
                     ' / 시각 미확인' if times[index] is None else ' / 계산 시각 '+format(times[index],'.9g')+' s'))
             if self._edited or self._joint_edited:

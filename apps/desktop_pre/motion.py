@@ -406,8 +406,10 @@ class Motion:
                 try:
                     assembly = self.owner._object(summary['assembly_id'])
                     applied = metadata.get('motion') or {}
+                    native_matches=(not summary.get('native_definition_sha256') or applied.get('assembly_id')!=assembly.Name
+                        or _hash(self._native_definition(self._metadata(assembly)[1]))==summary['native_definition_sha256'])
                     status = ('UNKNOWN' if applied.get('assembly_id') != assembly.Name else
-                        'CURRENT' if _hash(applied['definition']) == summary['definition_sha256'] and self._scene(assembly) == summary['scene_sha256'] else 'STALE')
+                        'CURRENT' if _hash(applied['definition']) == summary['definition_sha256'] and self._scene(assembly) == summary['scene_sha256'] and native_matches else 'STALE')
                 except Exception: status = 'UNKNOWN'
                 self._path_source_cache[key] = status
             summary['source_status'] = self._path_source_cache[key]; values.append(summary)
@@ -697,6 +699,9 @@ class Motion:
     def _calculate(self, assembly):
         self.before_design_action('recalculate')
         metadata, simulation = self._metadata(assembly)
+        native_definition=self._native_definition(simulation)
+        if native_definition['time']!=[float(metadata['definition']['time'][key]) for key in ('start','end','step')]:
+            raise ValueError('속성창에서 바꾼 운동 시간이 적용한 정의와 다릅니다. 시간과 구동에서 시작·끝·출력 간격을 확인하고 다시 적용하세요. 기존 경로는 보존됩니다.')
         if not any(getattr(j, 'ObjectToGround', None) is not None for j in self._joints(assembly)):
             raise ValueError('Native kinematics requires an explicitly grounded occurrence')
         parts = self._parts(assembly)
@@ -727,7 +732,7 @@ class Motion:
         if len(simulation.Group) != len(formulas) or any(obj.Formula != formulas[index] for index,obj in enumerate(simulation.Group)):
             raise ValueError('적용한 구동 관계와 native 운동식이 다릅니다. 구동 정의를 다시 적용하세요.')
         self._capture(assembly)
-        scene, native_definition = self._scene(assembly), self._native_definition(simulation)
+        scene = self._scene(assembly)
         self._state = 'CALCULATING'; self._error = None
         try:
             with self.owner.preview_changes(), self._native_scope(assembly):
