@@ -25,8 +25,13 @@ $evidence = [ordered]@{source_commit=(& git -C $repo rev-parse HEAD); sdk_build=
     artifact_upload='NONE'; release_publication='NONE'; runner_image=$env:ImageVersion}
 
 function Invoke-Checked([string]$Program, [string[]]$Arguments) {
+    $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($root))
+    Write-Output "SDK_DISK before program=$Program volume=$($drive.Name) available_bytes=$($drive.AvailableFreeSpace)"
     & $Program @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "Native step failed: $Program (exit $LASTEXITCODE)" }
+    $exitCode = $LASTEXITCODE
+    $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($root))
+    Write-Output "SDK_DISK after program=$Program volume=$($drive.Name) available_bytes=$($drive.AvailableFreeSpace) exit=$exitCode"
+    if ($exitCode -ne 0) { throw "Native step failed: $Program (exit $exitCode)" }
 }
 
 function Import-VisualStudioEnvironment {
