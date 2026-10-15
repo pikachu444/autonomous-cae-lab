@@ -337,7 +337,13 @@ def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=
     result['responses'].update(chosen)
     save_json(out/'selected_responses.json',selection_record)
     from ..impact_b import append_readback
-    append_readback(out,model,s,result,frames)
+    unit_evidence=None
+    if any(row['scope']=='pair' for row in s.get('b_responses',[])):
+        from ..impact_bulk_history import completed_pair_units
+        try:unit_evidence=completed_pair_units(out,model,s,result)
+        except (ValueError,KeyError,TypeError,OSError) as error:
+            result['diagnostics']['pair_unit_evidence']={'status':'UNKNOWN','reason':str(error)}
+    append_readback(out,model,s,result,frames,unit_evidence=unit_evidence)
     metadata=write_post(out/'post',frames,damage=damage)
     pvd=out/'post/impact.pvd'
     result['post_artifacts']=[{'relative':'post/impact.pvd','sha256':file_hash(pvd),

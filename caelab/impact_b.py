@@ -61,16 +61,16 @@ def verify(text,model,settings,definition):
             raise ValueError('The retained LAW117 envelope was changed by a bulk/contact extension')
 
 
-def readback(folder,model,settings,definition,frames,*,failed=False,runtime_identity=None):
+def readback(folder,model,settings,definition,frames,*,failed=False,runtime_identity=None,unit_evidence=None):
     from pathlib import Path
     from .impact_bulk_history import read
     folder=Path(folder); path=folder/'native/impactT01';titles=folder/'native/impactT01_TITLES'
     history=read(path,titles=titles,failed=failed) if path.is_file() and titles.is_file() else None
-    selected,record=impact_bulk_results.read_selected(history,frames,model,settings,definition,runtime_identity=runtime_identity)
+    selected,record=impact_bulk_results.read_selected(history,frames,model,settings,definition,runtime_identity=runtime_identity,unit_evidence=unit_evidence)
     return selected,record,history
 
 
-def append_readback(folder,model,settings,result,frames,*,partial=False):
+def append_readback(folder,model,settings,result,frames,*,partial=False,unit_evidence=None):
     """Add B observations to the existing attempt/read job, without a second owner.
 
     An explicit partial read isolates TH and animation selections. The original
@@ -143,7 +143,7 @@ def append_readback(folder,model,settings,result,frames,*,partial=False):
     available=AvailableFrames()
     excluded=[{'frame_index':i,'time_s':m.get('time_s'),'reason':m.get('reason')}
               for i,m in enumerate(frames.frames) if not m.get('available',True)] if hasattr(frames,'frames') else []
-    history=None;history_error=None;unit_evidence=None
+    history=None;history_error=None
     needs_history=any(r['scope'] in ('bulk','pair') for r in settings.get('b_responses',[]))
     if needs_history:
         try:

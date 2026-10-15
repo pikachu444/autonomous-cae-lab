@@ -249,38 +249,75 @@ class _RetainedPairUnits:
         self.metadata=deepcopy(metadata)
 
 
-def retained_pair_units(root,execution_pin,model,settings,runtime_identity):
-    """Verify legacy TH units against this exact, already retained native attempt."""
+def _pair_unit_files(root,model,settings,runtime_identity,inp,pins,checks,*,execution_pin=None,command_pins=()):
     import json
     from .impact_native_io import read_bytes
     from .dynamic_result_store import admit_pin
     from .adapters.impact import starter_admission
     from .adapters.opencourant_runtime import WINDOWS_SOURCE,WINDOWS_FILES
     root=Path(root)
-    def payload(pin):
-        return read_bytes(admit_pin(root,pin),expected=pin,maximum=64*1024**2)
-    original=json.loads(payload(execution_pin))
     if (not isinstance(runtime_identity,dict) or
         (runtime_identity.get('platform'),runtime_identity.get('source_tag'))!=('win64',WINDOWS_SOURCE) or
-        runtime_identity.get('files')!=WINDOWS_FILES or original['diagnostics'].get('runtime')!=runtime_identity):
-        raise ValueError('Legacy pair units require the exact retained fixed runtime')
-    retained=original['retained_native'];inp=retained['input_artifacts']['input.json']
-    if inp['relative']!='input.json' or json.loads(payload(inp))!=settings or settings['source']['units']!='Mg/mm/s':
-        raise ValueError('Legacy pair units differ from the exact retained input')
-    pins={name:retained['native_artifacts'][name] for name in ('native/impact_0000.out','native/impactT01','native/impactT01_TITLES')}
+        runtime_identity.get('files')!=WINDOWS_FILES):
+        raise ValueError('Legacy pair units require the exact fixed runtime')
+    if (inp['relative']!='input.json' or
+        json.loads(read_bytes(admit_pin(root,inp),expected=inp,maximum=64*1024**2))!=settings or
+        settings['source']['units']!='Mg/mm/s'):
+        raise ValueError('Legacy pair units differ from the exact input')
     for name,pin in pins.items():
         if pin['relative']!=name:raise ValueError('Legacy pair unit artifact identity differs')
         verify_pin(root,pin)
-    checks=[v for v in original['checks'] if v.get('name')=='native_starter']
     actual=starter_admission(admit_pin(root,pins['native/impact_0000.out']),model)
+    checks=[v for v in checks if v.get('name')=='native_starter']
     if len(checks)!=1 or checks[0]!=actual or actual.get('status')!='PASS' or actual.get('units')!='Mg/mm/s':
         raise ValueError('Legacy pair units require the actual matching native Starter unit check')
-    # Recheck pins after parsing; caller strings and current locale never supply units.
-    for pin in (execution_pin,inp,*pins.values()):verify_pin(root,pin)
-    return _RetainedPairUnits({'basis':'EXACT_RETAINED_INPUT_AND_NATIVE_STARTER_UNITS',
-        'units':'Mg/mm/s','execution_pin':deepcopy(execution_pin),'input_pin':deepcopy(inp),
-        'native_pins':deepcopy(pins),'native_unit_check':deepcopy(actual),
+    for pin in (inp,*pins.values(),*command_pins):verify_pin(root,pin)
+    if execution_pin is not None:verify_pin(root,execution_pin)
+    return _RetainedPairUnits({'basis':('EXACT_RETAINED_INPUT_AND_NATIVE_STARTER_UNITS' if execution_pin else
+        'EXACT_COMPLETED_NATIVE_INPUT_AND_STARTER_UNITS'),
+        'units':'Mg/mm/s',**({'execution_pin':deepcopy(execution_pin)} if execution_pin else
+        {'source_execution_record':'NOT_YET_PUBLISHED','owned_command_pins':deepcopy(list(command_pins))}),
+        'input_pin':deepcopy(inp),'native_pins':deepcopy(pins),'native_unit_check':deepcopy(actual),
         'producer_source_commit':WINDOWS_SOURCE},_seal=_UNIT_SEAL)
+
+
+def retained_pair_units(root,execution_pin,model,settings,runtime_identity):
+    """Verify legacy TH units against this exact, already retained native attempt."""
+    import json
+    from .impact_native_io import read_bytes
+    from .dynamic_result_store import admit_pin
+    original=json.loads(read_bytes(admit_pin(root,execution_pin),expected=execution_pin,maximum=64*1024**2))
+    if original['diagnostics'].get('runtime')!=runtime_identity:
+        raise ValueError('Legacy pair units require the exact retained runtime')
+    retained=original['retained_native']
+    pins={name:retained['native_artifacts'][name] for name in ('native/impact_0000.out','native/impactT01','native/impactT01_TITLES')}
+    return _pair_unit_files(root,model,settings,runtime_identity,retained['input_artifacts']['input.json'],
+        pins,original['checks'],execution_pin=execution_pin)
+
+
+def completed_pair_units(root,model,settings,execution):
+    """Trusted adapter seam after native completion; no synthetic execution record.
+
+    Uses the same file/unit checks as a retained attempt. This helper is not an
+    external request or an authority granted by a caller's unit dictionary.
+    """
+    import json
+    from .impact_native_io import read_bytes
+    root=Path(root);diagnostics=execution['diagnostics']
+    if (execution.get('execution_status')!='SUCCEEDED' or diagnostics.get('native_execution_status')!='SUCCEEDED' or
+        diagnostics.get('native_termination',{}).get('status')!='NORMAL' or diagnostics.get('cleanup_unconfirmed')):
+        raise ValueError('Current pair units require the completed native attempt')
+    command_pins=[]
+    for label in ('starter','engine'):
+        pin=file_pin(root,root/'native'/(label+'.execution.json'))
+        receipt=json.loads(read_bytes(root/pin['relative'],expected=pin,maximum=64*1024**2))
+        if (receipt.get('status')!='COMPLETED' or type(receipt.get('return_code')) is not int or
+            receipt['return_code']!=0 or receipt.get('tree_ownership')!='WINDOWS_JOB'):
+            raise ValueError('Current pair units require completed owned native command receipts')
+        command_pins.append(pin)
+    inp=file_pin(root,root/'input.json')
+    pins={name:file_pin(root,root/name) for name in ('native/impact_0000.out','native/impactT01','native/impactT01_TITLES')}
+    return _pair_unit_files(root,model,settings,diagnostics.get('runtime'),inp,pins,execution['checks'],command_pins=command_pins)
 
 
 def pair_provenance(history,group,runtime_identity,unit_evidence=None):

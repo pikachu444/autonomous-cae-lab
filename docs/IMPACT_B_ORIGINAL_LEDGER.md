@@ -55,3 +55,10 @@ native LAW36+INIEVO가 불가능하다고 판단한 것은 아니다. source hoo
 B05의 실제 3040 단위는 원 execution/input/TH/TITLES/Starter pins와 고정 runtime 및 실제 단위 check를 결속한 경우만 제공한다. B06 힘은 raw 충격량의 명시 구간 평균 차분이다. 이번 실제 CSV FN/FT는 불명 추가 제목과 함께 미차분 충격량으로 남았으므로, 기존 합성 converter 대조를 모든 실제 입력에 일반화하지 않는다. CSV를 native 힘으로 해석하지 않는다.
 
 실제 끝 표본 0.0029800354968756437 s와 선언 0.003 s를 구분한다. 운동 에너지는 원 native 0.006500000134110451→3488010496 N mm, 마지막 내부 에너지는5289563648 N mm로 급증했다. 원 관측을 유지하며 물리/안정성/공학 승인은 UNKNOWN이다. 읽기·보존 사용자 흐름의 완결과 물리 수용 미완료를 분리하며 원 Pro 범위의 다른 PARTIAL 항목을 완료로 바꾸지 않는다.
+
+
+### 2026-10-16 최초 원실행 pair 단위 증거 연결
+
+DT1 변경 후 별도 실제 실행은 Starter/Engine 정상·4733cycles·후처리/저장/cold를 마쳤으나, 당시 첫 읽기의18 pair 응답은 단위 증거 미전달로 UNKNOWN이었다. 이 결과는 원 상태 그대로 보존한다. 정상 읽기는 원 execution 기록 발행 전 현재의 완료된 owned command/input/Starter/TH/TITLES pins를, 명시 재읽기는 원 execution pin을 각각 같은 단위 검증 핵심에 전달하도록 연결했다. 임시 원실행 기록·단위 추정·공차 완화는 없다.
+
+새 실제 출력 사본에서 첫 읽기 단계를 소프트웨어로 재구성하고, 같은 원 Simulation의 명시 재읽기 한 건으로18응답×150표본을 선택·저장·새 프로세스 재열기했다. 두 경로의 값/시각/NATIVE·DERIVED 원천이 같다. 원 UNKNOWN 결과 hash와 원 bytes는 불변이고, 이 후속의 추가 solver/converter는0회다. 새 최초 native 실행을 다시 했다고 주장하지 않으며 물리 승인은 UNKNOWN을 유지한다.

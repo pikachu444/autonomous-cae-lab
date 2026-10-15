@@ -141,6 +141,15 @@ python -m examples.impact.bulk_interface.run_local --workspace "C:\CAE\Impact B 
 
 추가 제목이 해독되지 않는 CSV는 동일 고정 converter identity일 때만 원 헤더 bytes를 보존하고 가역적인 byte escape로 표시한다. 첫 24개 global 제목은 여전히 정확해야 하며 수치 행의 손상을 문자 무시로 숨기지 않는다. 이 실제 CSV의 FN/FT 900개 값은 충격량 원값과 일치했고 차분되지 않았다. 앞선 합성 3표본 converter의 차분 성공은 그 입력에 한정된다. **CSV FN/FT 열을 힘으로 가정하지 않는다.** 접촉쌍은 기존 raw TH reader로 읽고, 힘은 그 실제 시각의 충격량 차분인 구간 평균값으로만 제공한다.
 
-단위 헤더가 없는 3040/3041은 원 실행을 보존한 후 명시 재읽기에서 단위를 확인한다. 같은 원 execution·input·TH·TITLES·Starter 출력의 pins, 원 고정 runtime, 원 입력 Mg/mm/s와 실제 Starter unit check를 함께 검증한다. 외부 dict의 단위 표기나 PASS 문자열만으로는 물리값으로 승격하지 않는다. 4021의 내장 단위 검증은 그대로다.
+단위 헤더가 없는 3040/3041은 최초 읽기와 보존 후 재읽기 모두 정확한 완료 근거로 단위를 확인한다. 명시 재읽기는 같은 원 execution·input·TH·TITLES·Starter 출력의 pins, 원 고정 runtime, 원 입력 Mg/mm/s와 실제 Starter unit check를 함께 검증한다. 최초 읽기는 아직 발행 전인 원 execution 기록을 요구하는 대신, 현재 완료된 owned Starter/Engine receipt와 같은 입력·native 파일 pins를 검증한다. 외부 dict의 단위 표기나 PASS 문자열만으로는 물리값으로 승격하지 않는다. 4021의 내장 단위 검증은 그대로다.
 
 이번 실제 원 TH는 150표본이며 마지막 시각은 0.0029800354968756437 s다. 선언 종료 0.003 s로 보간하지 않는다. 원 운동 에너지는 0.006500000134110451 N mm에서 3488010496 N mm로, 내부 에너지는 마지막 5289563648 N mm로 커졌다. 이 급증을 원 곡선과 관측 기록에 그대로 남기며 **수치 안정성·물리 타당성·공학 승인은 UNKNOWN**이다. 새 읽기의 성공은 원 Engine 정상 종료나 해석 품질 통과를 대신하지 않는다. 원 FAILED 결과와 새 읽기 결과를 각각 보존하고 저장 후 새 프로세스에서 같은 18개 접촉쌍 응답을 재열었다.
+
+
+## 9. 최초 실행의 접촉쌍 읽기
+
+정상 실행의 첫 후처리에서도 3040 접촉쌍 값을 읽는다. 이전에는 원 실행 기록을 쓰기 전이라 단위 증거가 전달되지 않아 raw 값이 있어도 pair 응답이 UNKNOWN으로 남았다. 현재는 실제 native 종료와 runtime/deck 확인 이후, 완료된 owned Starter/Engine receipt·정확한 input.json·Starter 출력·TH·TITLES를 같은 단위 검증 핵심에 전달한다. 임시 원실행 기록을 만들지 않는다.
+
+현재 완료 증거 또는 원 보존 증거 중 어느 경로를 쓰더라도 실제 Starter unit check를 원 출력에서 다시 파싱해 비교하고, 고정 runtime·입력·TH/TITLES pins를 대조한다. 누락·다른 입력·다른 단위·미완료 command·cleanup 미확인·caller의 단위 dict는 물리값의 근거가 되지 않는다. 그 경우 pair는 UNKNOWN으로 유지하고 다른 정상 출력은 별도로 읽는다. 원 충격량, DERIVED 구간 평균 힘, DERIVED 표본 적분의 구분은 그대로다.
+
+이미 저장된 UNKNOWN 결과를 수정하지 않는다. 같은 Simulation에서 **보존 결과 다시 읽기**를 명시하면 새 읽기 결과로 연결해 선택·저장할 수 있다. 실제 DT1 원출력 사본에서 원실행 기록 없는 첫 읽기 단계를 재구성했고, 같은 원 Simulation의 명시 재읽기 한 건과 18개 응답·150표본의 값/시각/원천 구분이 일치했다. 저장 후 새 프로세스에서 동일한 선택을 다시 읽었다. 이는 기존 실제 출력의 소프트웨어 재읽기 확인이며, 새 solver/converter 실행이나 새 물리 수용은 아니다. 원 UNKNOWN 결과·원 파일과 물리 UNKNOWN은 보존한다.
