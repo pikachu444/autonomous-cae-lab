@@ -206,6 +206,8 @@ class RunnerWindow(QMainWindow):
 
     def __init__(self, client, *, job_id=None, poll_interval=2000, on_open_origin=None):
         super().__init__()
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.client = client
         self.jobs = {}
         self.selected_job_id = None
@@ -395,7 +397,9 @@ class RunnerWindow(QMainWindow):
         technical_layout.addWidget(self.details, 1)
         self.tabs.addTab(technical_panel, "기술 상세")
         split.addWidget(self.tabs)
-        split.setSizes([400, 460])
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 2)
+        split.setSizes([260, 600])
         layout.addWidget(split, 1)
         self.setCentralWidget(root)
         self._clear_result()
@@ -773,20 +777,29 @@ class RunnerWindow(QMainWindow):
             table_row(self.values, row, [start + row, f"{text_value(coordinate)} {axis.get('unit', 'unit not recorded')}", f"{text_value(value)} {unit}", included])
         self.response_label.setText(f"원본 행 {start} 이상 {start + len(values)} 미만 ({len(values)}행)" + ("\n" + ", ".join(labels) if labels else ""))
         try:
-            x = [float(value) for value in axis["values"]]
-            y = [float(value) for value in values]
-            if not all(math.isfinite(value) for value in x + y) or response.get("valid") is False:
-                raise ValueError("Invalid retained response")
-            if mask is not None and (not isinstance(mask, list) or len(mask) != len(y) or any(type(value) is not bool for value in mask)):
+            if mask is not None and (not isinstance(mask, list) or len(mask) != len(values) or any(type(value) is not bool for value in mask)):
                 raise ValueError("Unsupported mask")
+            x = [float(value) for value in axis["values"]]
+            y = [math.nan if mask is not None and not mask[row] else float(value) for row, value in enumerate(values)]
+            if not all(math.isfinite(value) for value in x) or response.get("valid") is False:
+                raise ValueError("Invalid retained response")
+            if any(not math.isfinite(value) for row, value in enumerate(y) if mask is None or mask[row]):
+                raise ValueError("Invalid retained response")
         except (TypeError, ValueError, OverflowError):
-            self.response_label.setText(self.response_label.text() + " · Invalid values or mask: inspect Values; no curve is drawn.")
-            self._blank_plot("Retained invalid values are shown in Values")
+            self.response_label.setText(self.response_label.text() + "\n값 또는 유효성 표시를 확인하세요. 곡선을 그리지 않았습니다.")
+            self._blank_plot("원값 표에서 잘못된 값과 유효성을 확인하세요.")
             self.result_views.setCurrentWidget(self.values)
             return
+        if mask is not None and not any(mask):
+            self.response_label.setText(self.response_label.text() + "\n이 구간에 표시할 유효 표본이 없습니다. 원값은 표에 남아 있습니다.")
+            self._blank_plot("유효 표본 없음")
+            self.result_views.setCurrentWidget(self.values)
+            return
+        if mask is not None and not all(mask):
+            self.response_label.setText(self.response_label.text() + f"\n제외 표본 {mask.count(False)}개는 빈 구간으로 표시합니다. 원값과 유효성은 표에서 확인하세요.")
         self.axes.clear()
         self.axes.set_axis_on()
-        self.axes.plot(x, [value if mask is None or mask[row] else math.nan for row, value in enumerate(y)], marker="o", markersize=3)
+        self.axes.plot(x, y, marker="o", markersize=3)
         self.axes.set_xlabel(f"{axis.get('name', 'axis name not recorded')} [{axis.get('unit', 'unit not recorded')}]")
         self.axes.set_ylabel(f"{name} [{unit}]")
         self.axes.set_title("")
