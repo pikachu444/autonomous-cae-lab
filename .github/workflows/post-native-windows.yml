@@ -21,7 +21,6 @@ jobs:
       run:
         shell: pwsh
     env:
-      POST_NATIVE_ROOT: ${{ runner.temp }}\cae-post-native-${{ github.run_id }}-${{ github.run_attempt }}
       PIP_NO_CACHE_DIR: '1'
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
     steps:
@@ -34,6 +33,12 @@ jobs:
           if ($repo.private -ne $false -or $env:RUNNER_OS -ne 'Windows') {
             throw 'This workflow requires a public repository and standard Windows runner.'
           }
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP) -or
+              $env:GITHUB_RUN_ID -notmatch '^\d+$' -or $env:GITHUB_RUN_ATTEMPT -notmatch '^\d+$') {
+            throw 'Runner temporary path and run identity are required before preparing SDK inputs.'
+          }
+          $postRoot = Join-Path $env:RUNNER_TEMP ("cae-post-native-{0}-{1}" -f $env:GITHUB_RUN_ID,$env:GITHUB_RUN_ATTEMPT)
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "POST_NATIVE_ROOT=$postRoot" -Encoding utf8
           $repo | Select-Object full_name,private,html_url | ConvertTo-Json
           Get-CimInstance Win32_OperatingSystem | Select-Object Caption,TotalVisibleMemorySize,FreePhysicalMemory
           foreach ($path in @('C:\', $env:GITHUB_WORKSPACE, $env:RUNNER_TEMP)) {
@@ -66,6 +71,10 @@ jobs:
         if: always()
         run: |
           $root = $env:POST_NATIVE_ROOT
+          if ([string]::IsNullOrWhiteSpace($root)) {
+            Write-Output 'Receipt output skipped: SDK root initialization did not complete; see the original failed step.'
+            exit 0
+          }
           @('inputs.json','build-evidence.json','build-job/native-check.json',
             'plugin-build/core-test-job/native-check.json',
             'checks/load/native-check.json','checks/create/native-check.json','checks/cold/native-check.json') | ForEach-Object {

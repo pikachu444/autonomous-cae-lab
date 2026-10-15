@@ -60,3 +60,8 @@ license/build 정책 설명에만 사용하고 제품 API 판별은 정확한 �
 
 Web source 검토와 full upstream checkout/Windows compilation은 별개다. 본 작업에서
 실제 완료한 local 실행/실패 로그는 evidence에만 기록하며 source 링크로 대체하지 않는다.
+
+## GitHub workflow의 실행 컨텍스트
+
+- https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability — job-level env는 runner context를 지원하지 않는다. RUNNER_TEMP는 실행 중인 step에서 읽는다.
+- https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#setting-an-environment-variable — POST_NATIVE_ROOT를 GITHUB_ENV에 기록해 후속 step에 전달한다. 초기화 실패 시 영수증 출력은 건너뛰며 원 실패를 보존한다.
