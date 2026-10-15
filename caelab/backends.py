@@ -29,7 +29,7 @@ def register_backend(identifier, factory, *, roles=("model",), optional_dependen
 def _builtin(identifier, module, name, roles, dependency=None, native=None):
     threads=2 if identifier in {'explicit.openradioss','explicit.opencourant.model','structural.code_aster',
         'structural.code_aster.plasticity','structural.code_aster.geometric_nonlinearity',
-        'structural.families.code_aster'} else 1
+        'structural.families.code_aster', 'structure.codeaster.frozen'} else 1
     register_backend(identifier, f"caelab.{module}:{name}", roles=roles,
                      optional_dependency=dependency, native_runtime=native,threads=threads)
 
@@ -42,6 +42,7 @@ for _id, _module, _name, _roles, _dep, _native in (
     # An already frozen native input is executed by evaluation.run/Workbench.
     # It does not implement Lab's declared-model/solve interface.
     ("structure.calculix.frozen", "frozen_fem", "FrozenFemCalculixAdapter", ("evaluation",), None, "CalculiX"),
+    ("structure.codeaster.frozen", "codeaster_frozen", "FrozenFemCodeAsterAdapter", ("evaluation",), None, "Code_Aster17.4"),
     ("structure.calculix.design", "cad_analysis", "CADAnalysisAdapter", ("model", "evaluation"), None, "FreeCAD GUI/Gmsh/CalculiX"),
     ("structure.calculix.contact", "contact_fem", "ContactFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
     ("structure.calculix.shell", "shell_fem", "ShellFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),

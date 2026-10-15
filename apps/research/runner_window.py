@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import json
 import math
 import os
+from pathlib import Path
 import sys
 import uuid
 
@@ -19,7 +20,7 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QFormLayout, QGridLayout,
-    QHBoxLayout, QHeaderView, QLabel, QMainWindow, QPlainTextEdit, QPushButton,
+    QHBoxLayout, QHeaderView, QInputDialog, QLabel, QMainWindow, QPlainTextEdit, QPushButton,
     QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
@@ -44,7 +45,7 @@ def operation_label(operation):
 
 
 def backend_label(backend):
-    names = {"structure.calculix.contact": "CalculiX 구조 해석", "structure.calculix.frozen": "CalculiX 고정 입력 해석",
+    names = {"structure.codeaster.frozen": "Code_Aster 사용자 모델 해석", "structure.calculix.contact": "CalculiX 구조 해석", "structure.calculix.frozen": "CalculiX 고정 입력 해석",
         "structure.calculix.native": "CalculiX 구조 해석", "structure.calculix.design": "CalculiX 설계 해석",
         "structure.calculix.shell": "CalculiX 셸 해석", "structure.calculix.beam": "CalculiX 빔 해석",
         "material.felupe": "FElupe 재료 계산", "files.table": "표 파일 읽기",
@@ -79,6 +80,22 @@ def timestamp_label(value):
         return stamp.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, TypeError):
         return "시각 기록 확인 필요"
+
+
+def post_result_label(native):
+    arrays = [row for row in (native.get("native_metadata") or {}).get("arrays", []) if isinstance(row, dict)]
+    measures = {row.get("measure") for row in arrays}
+    if "cauchy_stress_at_native_integration_point" in measures:
+        title = "적분점 응력"
+        arrays = [row for row in arrays if row.get("measure") == "cauchy_stress_at_native_integration_point"]
+    elif "displacement" in measures and "nodal_reaction" in measures:
+        title = "변위와 반력"
+        arrays = [row for row in arrays if row.get("measure") in {"displacement", "nodal_reaction"}]
+    else:
+        title = native.get("name") or Path(native.get("path") or "공간 결과").name
+    units = list(dict.fromkeys(row["units"] for row in arrays
+                              if isinstance(row.get("units"), str) and row["units"] and row["units"] != "1"))
+    return title + (" (" + ", ".join(units) + ")" if units else "")
 
 
 def resource_label(resources):
@@ -195,7 +212,7 @@ def fill_tree(tree, mapping):
         "backend": "계산 엔진", "label": "작업 이름", "settings": "계산 설정", "parameters": "매개변수",
         "threads": "CPU 스레드", "memory_mb": "메모리(MB)", "execution": "실행 설정", "workers": "동시 작업 수"}
     arguments = mapping.get("arguments") or {}
-    native_reference = arguments.get("backend") in {"structure.calculix.contact", "structure.calculix.frozen", "structure.calculix.shell", "structure.calculix.beam"}
+    native_reference = arguments.get("backend") in {"structure.calculix.contact", "structure.calculix.frozen", "structure.calculix.shell", "structure.calculix.beam", "structure.codeaster.frozen"}
     def append(parent, key, value, depth=0, path=()):
         if (not path and key in {"job_id", "request_id", "request_hash"} or
                 path == ("arguments",) and key == "origin" and isinstance(value, dict) and "document_id" in value or
@@ -761,19 +778,54 @@ class RunnerWindow(QMainWindow):
         if not identifier:
             return
         self.message.setText("선택한 실행의 저장된 공간 결과를 찾고 있습니다…")
-        def received(navigation, _ticket):
-            post = navigation.get("post_input")
-            if not post:
-                self.message.setText("후처리로 열 수 있는 저장된 공간 결과가 없습니다. 원래 응답은 결과 보기에서 읽을 수 있습니다.")
+        current = lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch)
+        def open_post(input_id):
+            if self._closed or not current():
                 return
             from .desktop import launch_post
             def launched(receipt, _ticket):
                 self.message.setText("선택한 실행의 후처리 열기를 요청했습니다. 준비 중 오류는 별도 창에 표시됩니다.")
             self._request("open-post:" + identifier,
-                          lambda: launch_post(self.client, post["id"], job_id=identifier), launched,
-                          relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+                          lambda: launch_post(self.client, input_id, job_id=identifier), launched, relevant=current)
+        def received(navigation, _ticket):
+            inputs = []
+            for post in [navigation.get("post_input"), *(navigation.get("post_inputs") or [])]:
+                if isinstance(post, dict) and isinstance(post.get("id"), str) and post["id"] and post["id"] not in inputs:
+                    inputs.append(post["id"])
+            if not inputs:
+                self.message.setText("후처리로 열 수 있는 저장된 공간 결과가 없습니다. 원래 응답은 결과 보기에서 읽을 수 있습니다.")
+                return
+            if len(inputs) == 1:
+                open_post(inputs[0])
+                return
+            def choices_read(records, _ticket):
+                labels = [post_result_label(record) for record in records]
+                if len(set(labels)) != len(labels):
+                    labels = [f"{index + 1}. {label}" for index, label in enumerate(labels)]
+                dialog = QInputDialog(self)
+                dialog.setWindowTitle("후처리 결과 열기")
+                dialog.setLabelText("열 결과를 선택하세요.")
+                dialog.setComboBoxItems(labels)
+                dialog.setComboBoxEditable(False)
+                dialog.setOkButtonText("열기")
+                dialog.setCancelButtonText("취소")
+                accepted = dialog.exec()
+                selected = dialog.findChild(QComboBox).currentIndex()
+                dialog.deleteLater()
+                if not accepted:
+                    if current():
+                        self.message.setText("후처리 열기를 취소했습니다.")
+                    return
+                if 0 <= selected < len(inputs):
+                    open_post(inputs[selected])
+            def read_choices():
+                records = [self.client.native_input(input_id) for input_id in inputs]
+                if any(record.get("id") != input_id for input_id, record in zip(inputs, records)):
+                    raise ValueError("등록한 결과를 확인할 수 없습니다. 결과 목록을 다시 여세요.")
+                return records
+            self._request("post-choices:" + identifier, read_choices, choices_read, relevant=current)
         self._request("navigation-post:" + identifier, lambda: self.client.job_navigation(identifier), received,
-                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+                      relevant=current)
 
     def _update_actions(self):
         job = self.jobs.get(self.selected_job_id, {})

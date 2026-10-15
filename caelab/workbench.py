@@ -917,13 +917,13 @@ class Workbench:
         if backend == 'structure.calculix.design':
             from .cad_numerical import resolve_settings
             return resolve_settings(self, settings)
-        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'}:
+        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')
             identifier=settings['data_id']
             path=self.input_path(identifier)
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
-            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem',
+            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
                                       'structure.calculix.shell':'frozen_shell', 'structure.calculix.beam':'frozen_beam'}[backend]:
                 raise ValueError('Select a registered frozen FEM snapshot')
             return {'data_id':identifier,'snapshot_path':str(path)}
@@ -1025,15 +1025,15 @@ class Workbench:
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
             result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'}:
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
-                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem',
+                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
                             'structure.calculix.shell':'frozen_shell', 'structure.calculix.beam':'frozen_beam'}[backend]}
             publish_contact_prefix = (backend=='structure.calculix.contact' and
                 result.get('partial_result',{}).get('status')=='CONVERGED_PREFIX' and
                 result.get('partial_result',{}).get('complete_analysis') is False)
             publish_shell_prefix = (backend=='structure.calculix.shell' and bool(result.get('post_artifact')))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'} and (
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'} and (
                     result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix or publish_shell_prefix or
                     (backend=='structure.calculix.beam' and result.get('post_artifact') and
                      result.get('execution_status') in {'FAILED','CANCELLED'})):
@@ -1043,14 +1043,17 @@ class Workbench:
                         from .dynamic_locations import publish_job_inputs
                         publish_job_inputs(self,result,output,identifier,arguments)
                     else:
-                        artifact=result['post_artifact']
-                        source=contained(output,artifact['relative'])
-                        if source.stat().st_size!=artifact['bytes'] or file_hash(source)!=artifact['sha256']:
-                            raise ValueError('Native Post artifact changed before registration')
-                        receipt=register_native_input(self.root,output,source,'D'+uuid.uuid4().hex,
-                            root_id='job:'+identifier,relative=artifact['relative'],limit=self.config.get('local_input_max_bytes',2*1024**3),
-                            native_metadata=artifact.get('native_metadata'))
-                        result['post_input']={'id':receipt['id'],'format':receipt['format'],'sha256':receipt['sha256']}
+                        artifacts=[result['post_artifact'],*result.get('additional_post_artifacts',[])]
+                        result['post_inputs']=[]
+                        for artifact in artifacts:
+                            source=contained(output,artifact['relative'])
+                            if source.stat().st_size!=artifact['bytes'] or file_hash(source)!=artifact['sha256']:
+                                raise ValueError('Native Post artifact changed before registration')
+                            receipt=register_native_input(self.root,output,source,'D'+uuid.uuid4().hex,
+                                root_id='job:'+identifier,relative=artifact['relative'],limit=self.config.get('local_input_max_bytes',2*1024**3),
+                                native_metadata=artifact.get('native_metadata'))
+                            result['post_inputs'].append({'id':receipt['id'],'format':receipt['format'],'sha256':receipt['sha256']})
+                        result['post_input']=deepcopy(result['post_inputs'][0])
                 except (OSError, ValueError, KeyError, TypeError) as error:
                     # Preserve the already-computed responses and owned files if
                     # downstream publication fails. Never claim Post is ready or

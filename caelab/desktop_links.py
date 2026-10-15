@@ -30,10 +30,12 @@ class DesktopLinks:
                 'freecad_executable': config.get('freecad_executable') or os.getenv('CAELAB_FREECAD_EXE') or shutil.which('FreeCAD') or shutil.which('freecad'),
                 'paraview_executable': config.get('paraview_executable') or os.getenv('CAELAB_PARAVIEW_EXE') or shutil.which('paraview')}
 
-    def submit_frozen(self, command_id):
+    def submit_frozen(self, command_id, *, solver=None):
         """Retry one completed export without registering/submitting it twice."""
         wb = self.workbench
         command_id = check_id(command_id)
+        if solver not in (None, 'calculix', 'codeaster'):
+            raise ValueError('Choose CalculiX or the existing Code_Aster runtime')
         exports = {'pre.freeze': ('frozen_fem', 'structure.calculix.frozen'),
             'pre.contact.freeze': ('frozen_contact', 'structure.calculix.contact'),
             'pre.shell.freeze': ('frozen_shell', 'structure.calculix.shell'),
@@ -44,6 +46,8 @@ class DesktopLinks:
             command = wb.native_commands.status(command_id)
             if command['operation'] not in exports or command['state'] != 'SUCCEEDED':
                 raise ValueError('A completed native FEM/contact/dynamic export command is required')
+            if solver == 'codeaster' and command['operation'] != 'pre.freeze':
+                raise ValueError('Code_Aster currently accepts single-solid linear Fixed/Force snapshots only')
             envelope = command.get('outcome', {}).get('result', {})
             result = envelope.get('result', {})
             if envelope.get('status') != 'COMPLETED':
@@ -66,6 +70,7 @@ class DesktopLinks:
                     limit=wb.config.get('local_input_max_bytes', 2 * 1024 ** 3))
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
             receipt_kind, backend = exports[command['operation']]
+            if solver == 'codeaster': backend = 'structure.codeaster.frozen'
             if receipt.get('kind') != receipt_kind:
                 raise ValueError('Registered snapshot kind differs from the completed export operation')
             if command['operation'] in {'pre.dynamic.freeze', 'pre.dynamic.restart'}:
@@ -81,7 +86,7 @@ class DesktopLinks:
             job = wb.submit('run', {'backend': backend,
                 'settings': {'data_id': receipt['id']}, 'origin': origin,
                 'label': result.get('label', 'FreeCAD FEM analysis')[:160]},
-                request_id='native-frozen:' + command_id)
+                request_id='native-frozen:' + command_id + (':codeaster' if solver == 'codeaster' else ''))
             return {'job': job, 'input': receipt, 'origin': origin}
 
     def research_job(self, job_id):
@@ -128,7 +133,7 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam'}:
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
             result['retained_design_input_id'] = job['arguments']['settings']['data_id']
         if origin.get('kind') == 'pre':
             try:
