@@ -82,3 +82,11 @@ import 및 driver method binding 실패 원본은 각 이전 process 폴더에 �
 root의 적용 순서는 전용 4모듈+이 tests/docs → `root-hooks-01/root-gui-hooks.patch`다.
 후자는 현재 main의 두 공유 파일만 대상으로 하며 Core/공통 스키마/다른 팀 소스는 없다.
 root는 이 제한된 연결을 통합한 뒤 전체 기능 상태와 다음 실제 계산 수용을 기록한다.
+
+독립 읽기 후 반복 갱신의 delegate 3개를 재사용하도록 보완했다. 최초1/2개가 21회
+갱신 뒤 21/42개로 늘던 원인을 제거했고, 해당 수량·동일 인스턴스·표시명 변경 1개만
+0.77초 확인했다. 렌더와 owner 흐름은 다시 실행하지 않았다. 긴 descriptor 이름과
+긴 복합 단위의 별도 native 화면은 미검증이다. composed 결과 JSON의 owner_writes:0와
+복사한 하네스의 owner/solver0 문구는 잔여 기록이므로 전체 owner 흐름의 주장에 쓰지
+않는다. 실제 numerical.update/document.save는 쓰기를 했으며, 새 Job/solver0 및
+편집 대화상자·결과 읽기의 무쓰기를 구분한다. 원 로그/JSON은 고치지 않았다.
