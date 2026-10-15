@@ -86,3 +86,16 @@ Preserve failed attempts, declared missing history and exact original proofs.
 Design review, pure codec checks, native execution, GUI interaction and engineering
 qualification are separate outcomes. Relevant implementations and narrow checks
 proceed in parallel; unchanged physics campaigns are not repeated for this unit.
+
+The 2026-10-16 native saved-project implementation and its integrated F1–F4
+correction passed independent Astra review. Existing FreeCAD/ParaView owners,
+native Save, registered dependency sets and portable copying are reused. Actual
+checks cover linked Pre documents, Post retained history and same-session repair,
+initial missing pinned inputs, two copies/cold opens, and mixed Study/Report
+navigation. Confirmed pre-Save refusals and unknown post-Save outcomes remain
+distinct. Original failed attempts and unavailable records are retained.
+
+This accepts that implementation unit, not the whole Desktop delivery. Physical
+OS interaction, complete ParaView window usability, clean-PC/relocated deployment
+and engineering qualification remain unproven. Current work and source-specific
+receipts are linked from CURRENT_STATE.md.

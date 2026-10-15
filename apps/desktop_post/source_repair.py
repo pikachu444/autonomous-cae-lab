@@ -29,17 +29,32 @@ def source_issues(document):
             external.verify_sources(None, {'sources': {ref: record}})
         except (OSError, ValueError, RuntimeError) as error:
             issues.append({'source_ref': ref, 'input_id': record.get('input_id'),
-                           'reader_name': record['reader_name'], 'message': str(error)})
+                           'reader_name': record['reader_name'], 'message': str(error),
+                           'code': 'MISSING_DEPENDENCY' if any(not Path(pin['path']).is_file()
+                               for pin in record.get('source_pins', [])) else 'CONTENT_CHANGED'})
     return issues
 
 
-def verify_analysis_files(document):
+def verify_analysis_files(document, *, allow_missing=False, project_path=None):
+    issues = []
+    from caelab.native_post_dependencies import history_asset_mapping
+    assets, proof = history_asset_mapping(document, project_path) if project_path is not None else ({}, None)
     for obj in document.get('analysis', {}).get('objects', {}).values():
         for revision in obj.get('history', []):
+            preserved = proof is not None and any(row['history']['object_ref'] == obj['id']
+                and row['history']['revision_id'] == revision['id'] and row['state'] == 'UNAVAILABLE_DECLARED'
+                for row in document.get('native_history_availability', {}).get('histories', []))
             for record in revision.get('result_files', []):
-                file = Path(record['path'])
-                if not file.is_file() or file.stat().st_size != record['bytes'] or external.sha(file) != record['sha256']:
+                mapped = assets.get(record['path']) if preserved else record['path']
+                file = Path(mapped) if mapped is not None else None
+                if (file is None or not file.is_file()) and allow_missing:
+                    issues.append({'code': 'MISSING_HISTORY_DEPENDENCY', 'object_ref': obj['id'],
+                        'revision': revision['id'], 'reader_name': revision.get('retained_source_name', revision.get('source_name', '')),
+                        'message': '보존한 분석 파일을 찾을 수 없습니다: ' + str(file)})
+                    continue
+                if file is None or not file.is_file() or file.stat().st_size != record['bytes'] or external.sha(file) != record['sha256']:
                     raise ValueError('Retained analysis values/mask file is missing or changed: ' + str(file))
+    return issues
 
 
 def _unavailable_curve_names(document, issues):
@@ -104,7 +119,7 @@ def partial_state(state, document, issues, output, *, retain_applied=False):
     registrations = {} if collection is None else {item.get('name'): item.get('id') for item in collection.findall('Item')}
     bad = {registrations[row['reader_name']] for row in issues if row['reader_name'] in registrations}
     contact = document.get('analysis', {}).get('contact_selection') or {}
-    if contact and contact.get('source_ref') in {row['source_ref'] for row in issues}:
+    if contact and contact.get('source_ref') in {row.get('source_ref') for row in issues}:
         bad.update(registrations[name] for name in contact.get('overlay_names', []) if name in registrations)
     semantic_names = _unavailable_curve_names(document, issues)
     bad.update(registrations[name] for name in semantic_names if name in registrations)
@@ -186,44 +201,11 @@ def partial_state(state, document, issues, output, *, retain_applied=False):
         name for name, identifier in registrations.items() if identifier not in bad)}
 
 
-def _rewrite_reader_paths(state, sources, native_readers=()):
-    """Change only admitted source reader FileName entries, not arbitrary XML text."""
-    tree = ET.parse(state)
-    root = tree.getroot()
-    server = root.find('ServerManagerState') if root.tag != 'ServerManagerState' else root
-    if server is None:
-        raise ValueError('Saved ParaView state has no ServerManagerState')
-    collection = server.find("ProxyCollection[@name='sources']")
-    registrations = {} if collection is None else {item.get('name'): item.get('id') for item in collection.findall('Item')}
-    for record in sources.values():
-        identifier = registrations.get(record['reader_name'])
-        proxy = server.find("Proxy[@id='%s']" % identifier) if identifier else None
-        if proxy is None or proxy.get('type') != record['reader_type']:
-            raise ValueError('Saved reader name/type does not match the admitted result')
-        prop = proxy.find("Property[@name='FileName']")
-        if prop is None:
-            raise ValueError('Saved native reader has no supported FileName property')
-        elements = prop.findall('Element')
-        if len(elements) != 1:
-            raise ValueError('This relocation supports one VTU or one PVD entry per reader')
-        elements[0].set('value', record['entry_path'])
-        # Domain/FileList may contain informational old paths. Only actual file
-        # properties are modified; the reader rebuilds domains from admitted input.
-    source_names = {row['reader_name'] for row in sources.values()}
-    for record in native_readers:
-        if record['reader_name'] in source_names:
-            continue
-        identifier = registrations.get(record['reader_name'])
-        proxy = server.find("Proxy[@id='%s']" % identifier) if identifier else None
-        if proxy is None or proxy.get('type') != record['reader_type']:
-            raise ValueError('Saved auxiliary reader identity changed')
-        prop = proxy.find("Property[@name='FileName']")
-        elements = [] if prop is None else prop.findall('Element')
-        if len(elements) != len(record['input_paths']):
-            raise ValueError('Saved auxiliary reader file count changed')
-        for element, path in zip(elements, record['input_paths']):
-            element.set('value', path)
-    return tree
+def _rewrite_reader_paths(state, sources, native_readers=(), *, reader_bindings=None, member_paths=None):
+    """Use the same pure exact-slot codec as registration and portable derivation."""
+    from caelab.native_post_dependencies import rewrite_pvsm_paths
+    return rewrite_pvsm_paths(state, sources, native_readers,
+        reader_bindings=reader_bindings, member_paths=member_paths)
 
 
 def repair_source(owner, source_ref, input_id, receipt):
@@ -234,6 +216,8 @@ def repair_source(owner, source_ref, input_id, receipt):
     if receipt.get('id') != input_id or receipt.get('format') not in ('vtu', 'pvd', 'vtt'):
         raise ValueError('Choose a verified registered VTU/PVD result set')
     replacement = dict(old, entry_path=receipt['path'], source_pins=deepcopy(receipt['source_pins']))
+    if old.get('native_metadata') != receipt.get('native_metadata'):
+        raise ValueError('CONTENT_CHANGED: replacement field declarations differ; add a new result instead')
     if Path(old['entry_path']).suffix.lower() != '.' + receipt['format'] or content_set(old) != content_set(replacement):
         raise ValueError('CONTENT_CHANGED: replacement bytes/dependency names differ; add them as a new result instead')
     external.verify_sources(None, {'sources': {source_ref: replacement}})
@@ -247,6 +231,8 @@ def repair_source(owner, source_ref, input_id, receipt):
     for prior in old['source_pins']:
         relative=Path(prior['path']).relative_to(Path(old['entry_path']).parent).as_posix()
         native_paths[prior['path']]=replacement_paths[relative]
+    if 'input_paths' in replacement:
+        replacement['input_paths'] = [native_paths.get(path, path) for path in replacement['input_paths']]
     proposed = deepcopy(document)
     proposed['sources'][source_ref] = replacement
     proposed['native_reader_files'] = {native_paths.get(path, path): value for path, value in proposed.get('native_reader_files', {}).items()}
@@ -254,47 +240,116 @@ def repair_source(owner, source_ref, input_id, receipt):
         reader['input_paths'] = [native_paths.get(path, path) for path in reader['input_paths']]
     remaining = source_issues(proposed)
     if previous_source is not None:
-        _, pending = owner.native_properties(previous_source)
-        if pending:
-            raise ValueError('BUSY_EDIT: Apply/Reset this reader\'s native pending properties before location repair')
-        original = previous_source.FileName
-        statuses = {key: getattr(previous_source, key) for key in ('PointArrayStatus', 'CellArrayStatus', 'PointArrays', 'CellArrays', 'FieldArrays')
-                    if key in previous_source.ListProperties()}
-        overlay_changes = []
-        contact = document.get('analysis', {}).get('contact_selection') or {}
-        if contact.get('source_ref') == source_ref:
-            for name in contact.get('overlay_names', []):
-                proxy = p.FindSource(name)
-                if proxy is None or proxy.GetXMLName() != 'XMLUnstructuredGridReader':
+        from caelab.native_post_dependencies import READERS
+        workspace = getattr(owner, 'workspace', None)
+        old_state = workspace.state if workspace is not None else None
+        if workspace is not None:
+            proposed['analysis'] = deepcopy(workspace.state)
+        unavailable = {(row['history']['object_ref'], row['history']['revision_id'])
+            for row in proposed.get('native_history_availability', {}).get('histories', [])
+            if row['state'] == 'UNAVAILABLE_DECLARED'}
+        for obj in proposed.get('analysis', {}).get('objects', {}).values():
+            for record in obj.get('history', []):
+                if (obj['id'], record['id']) in unavailable:
                     continue
-                _, pending_overlay = owner.native_properties(proxy)
-                if pending_overlay:
-                    raise ValueError('BUSY_EDIT: Apply/Reset pending contact surface reader properties first')
-                original_paths = list(proxy.FileName)
-                replacement_files = [native_paths.get(path, path) for path in original_paths]
-                if replacement_files != original_paths:
-                    overlay_changes.append((proxy, original_paths, replacement_files))
+                if record.get('result_file'):
+                    record['result_file'] = native_paths.get(record['result_file'], record['result_file'])
+                for pin in record.get('result_files', []):
+                    pin['path'] = native_paths.get(pin['path'], pin['path'])
+                retained = record.get('retained_reader')
+                if retained:
+                    retained['input_paths'] = [native_paths.get(path, path) for path in retained['input_paths']]
+                    for pin in retained['files']:
+                        pin['path'] = native_paths.get(pin['path'], pin['path'])
+        # Every exact occurrence that consumes the selected source's pinned files
+        # participates in one transaction, including auxiliary/retained readers.
+        changes = []
+        for (name, _), proxy in p.GetSources().items():
+            inputs = list(map(str, external.reader_input_files(proxy)))
+            projected = [native_paths.get(path, path) for path in inputs]
+            if projected == inputs:
+                continue
+            if proxy.GetXMLName() not in READERS:
+                raise ValueError('READER_NOT_VERIFIED: an affected reader type is unsupported: ' + name)
+            declared = [row for row in document.get('native_readers', []) if row['reader_name'] == name]
+            if declared and (len(declared) != 1 or declared[0]['reader_type'] != proxy.GetXMLName()
+                             or declared[0]['input_paths'] != inputs):
+                raise ValueError('READER_CHANGED: affected reader type/ordered slots differ: ' + name)
+            if not declared and proxy is not previous_source and any(path not in native_paths for path in inputs):
+                raise ValueError('HISTORY_DEPENDENCY_UNBOUND: affected reader has an unpinned additional slot')
+            props, pending = owner.native_properties(proxy)
+            if pending:
+                raise ValueError('BUSY_EDIT: Apply/Reset every affected reader before location repair')
+            statuses = {key: deepcopy(props[key]) for key in ('PointArrayStatus', 'CellArrayStatus', 'PointArrays', 'CellArrays', 'FieldArrays') if key in props}
+            scalar = not isinstance(props.get('FileName', inputs), list)
+            changes.append({'name': name, 'proxy': proxy, 'old': inputs, 'new': projected,
+                            'scalar': scalar, 'statuses': statuses})
+        if not any(row['proxy'] is previous_source for row in changes):
+            raise ValueError('READER_CHANGED: the selected source no longer consumes its saved entry')
+        impact_names = {row['name'] for row in changes}
+        impacted = set(); refs = {source_ref}
+        changed = True
+        while changed:
+            changed = False
+            for ref, obj in proposed.get('analysis', {}).get('objects', {}).items():
+                for record in obj.get('history', []):
+                    recipe = record['recipe']
+                    dependencies = ([recipe['a']['source_ref'], recipe['b']['source_ref']]
+                        if obj['kind'] == 'comparison' else [recipe['source_ref']])
+                    labels = {node['label'] for site in ('graph', 'retained_graph') for node in (record.get(site) or {}).get('nodes', [])}
+                    if set(dependencies) & refs or labels & impact_names:
+                        impacted.add((ref, record['id']))
+                        if ref not in refs: refs.add(ref); changed = True
+        basis_module = None; old_basis = None
+        if getattr(owner, 'portable_binding', None) is not None:
+            from apps.desktop_post import portable_project as basis_module
+            old_basis = basis_module._open_basis[owner.portable_binding.open_id]
+            new_paths = {identifier: Path(native_paths.get(str(path), str(path)))
+                         for identifier, path in old_basis['member_paths'].items()}
+        def assign(row, values):
+            row['proxy'].FileName = values[0] if row['scalar'] else list(values)
+            for key, value in row['statuses'].items(): setattr(row['proxy'], key, deepcopy(value))
+            row['proxy'].UpdatePipeline()
+        original_document = deepcopy(document)
         try:
-            for proxy, _, replacement_files in overlay_changes:
-                proxy.FileName = replacement_files
-                proxy.UpdatePipeline()
-            previous_source.FileName = [replacement['entry_path']] if receipt['format'] in ('vtu', 'vtt') else replacement['entry_path']
-            previous_source.UpdatePipeline()
-            for key, value in statuses.items():
-                setattr(previous_source, key, value)
-            external.verify_readers({'sources': {source_ref: replacement}})
+            for row in changes: assign(row, row['new'])
+            if basis_module is not None:
+                basis_module._open_basis[owner.portable_binding.open_id] = {**old_basis, 'member_paths': new_paths}
+            if workspace is not None:
+                workspace.document, workspace.state = proposed, proposed['analysis']
+            expected_readers = [row for row in proposed.get('native_readers', []) if row['reader_name'] in impact_names]
+            external.verify_readers({'sources': {source_ref: replacement}, 'native_readers': expected_readers})
+            external._verify_metadata_records({'sources': {source_ref: replacement}}, live=True)
+            if workspace is not None:
+                for ref, revision_id in impacted:
+                    if (ref, revision_id) in unavailable:
+                        continue
+                    obj = workspace.object(ref)
+                    record = next(item for item in obj['history'] if item['id'] == revision_id)
+                    bundle = workspace.bundles.get(revision_id)
+                    if bundle is None:
+                        raise ValueError('SOURCE_UNAVAILABLE: an affected retained history has no verified bundle')
+                    workspace._verify_record(obj, record, bundle)
+            document.clear(); document.update(proposed); document['repair'] = remaining
+            if workspace is not None:
+                workspace.document, workspace.state = document, document['analysis']
+            return {'source_ref': source_ref, 'input_id': input_id, 'content_changed': False,
+                    'remaining': remaining, 'affected_readers': sorted(impact_names),
+                    'affected_histories': [list(row) for row in sorted(impacted)], 'retained_branches_recomputed': False}
         except BaseException:
-            for proxy, original_paths, _ in overlay_changes:
-                proxy.FileName = original_paths
-                proxy.UpdatePipeline()
-            previous_source.FileName = original
-            for key, value in statuses.items():
-                setattr(previous_source, key, value)
+            rollback_errors = []
+            for row in reversed(changes):
+                try: assign(row, row['old'])
+                except BaseException as error: rollback_errors.append(str(error))
+            if basis_module is not None:
+                basis_module._open_basis[owner.portable_binding.open_id] = old_basis
+            document.clear(); document.update(original_document)
+            if workspace is not None:
+                document['analysis'] = old_state
+                workspace.document, workspace.state = document, old_state
+            if rollback_errors:
+                raise RuntimeError('REPAIR_ROLLBACK_FAILED: current native readers need explicit recovery: ' + '; '.join(rollback_errors))
             raise
-        document.clear()
-        document.update(proposed)
-        document['repair'] = remaining
-        return {'source_ref': source_ref, 'input_id': input_id, 'content_changed': False, 'remaining': remaining}
     if document.get('partial_workspace'):
         # Restore this admitted reader beside the healthy live graph. Retained
         # dependent results stay read-only until the user explicitly validates

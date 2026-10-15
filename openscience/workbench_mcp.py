@@ -50,6 +50,38 @@ def input_preview(input_id: str) -> dict:
     """Inspect registered data or native-set metadata after checking retained files."""
     return client().input_preview(input_id)
 
+
+@mcp.tool()
+def native_project_register(source: dict, command_id: str, replacements: list | None = None) -> dict:
+    """Register selected saved native files or a completed native Save; never saves or launches."""
+    return client().native_project_register(source, replacements=replacements or (), command_id=command_id)
+
+@mcp.tool()
+def native_project_read(reference: dict, facet: str = 'summary') -> dict:
+    """Read the exact registered native snapshot; metadata summary is not native open evidence."""
+    return client().native_project_read(reference, facet=facet)
+
+@mcp.tool()
+def native_project_prepare_open(request: dict, command_id: str) -> dict:
+    """Prepare an exact saved import or selected working head; does not launch native software."""
+    return client().native_project_prepare_open(request, command_id=command_id)
+
+@mcp.tool()
+def native_project_open_ticket(open_id: str) -> dict:
+    """Check the current native open request/readback; never launches or adopts caller authority."""
+    return client().native_project_open_ticket(open_id)
+
+@mcp.tool()
+def native_project_prepare_save(open_id: str, expected_stamp: dict, expected_head: dict | None, command_id: str) -> dict:
+    """Reserve a target after human first-Save approval; the existing document.save remains explicit."""
+    return client().native_project_prepare_save(open_id, expected_stamp=expected_stamp, expected_head=expected_head, command_id=command_id)
+
+@mcp.tool()
+def native_project_save_head(target_id: str, save_command_id: str, expected_head: dict | None,
+                             command_id: str, open_id: str | None = None) -> dict:
+    """Publish only a verified completed native Save; no native Save or ID allocation retry."""
+    return client().native_project_save_head(target_id, save_command_id, expected_head=expected_head, command_id=command_id, open_id=open_id)
+
 @mcp.tool()
 def native_input_resolve(input_id: str) -> dict:
     """Resolve a registered native result's verified local path and dependency pins."""

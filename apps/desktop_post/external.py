@@ -82,51 +82,9 @@ def source_files(entry, native_metadata=None):
     entry = Path(entry).resolve(strict=True)
     if not entry.is_file() or entry.suffix.lower() not in READERS:
         raise ValueError("Supported result inputs are VTU and PVD with relative VTU frames")
-    files = [entry]
-    if entry.suffix.lower() == ".pvd":
-        maximum = 8 * 1024 * 1024
-        if entry.stat().st_size > maximum:
-            raise ValueError("PVD collection metadata exceeds 8 MiB")
-        with entry.open("rb") as stream:
-            payload = stream.read(maximum + 1)
-        if len(payload) > maximum:
-            raise ValueError("PVD collection metadata exceeds 8 MiB")
-        text = payload.decode("utf-8-sig")
-        if "<!DOCTYPE" in text.upper() or "<!ENTITY" in text.upper():
-            raise ValueError("PVD declarations and entities are not supported")
-        try:
-            root = ET.fromstring(text)
-        except ET.ParseError as error:
-            raise ValueError("Invalid PVD collection XML: " + str(error)) from error
-        if root.tag != "VTKFile" or root.get("type") != "Collection":
-            raise ValueError("PVD must contain a VTK Collection")
-        datasets = root.findall("./Collection/DataSet")
-        if not datasets:
-            raise ValueError("PVD contains no frame datasets")
-        if len(datasets) > 1024:
-            raise ValueError("PVD supports at most 1024 datasets")
-        references = []
-        for dataset in datasets:
-            reference = dataset.get("file", "")
-            relative = Path(reference)
-            if (not reference or "\\" in reference or ":" in reference or "\x00" in reference
-                    or relative.anchor or PureWindowsPath(reference).anchor or ".." in relative.parts):
-                raise ValueError("PVD frames must be relative local VTU paths inside the input set")
-            if relative.suffix.lower() != ".vtu":
-                raise ValueError("PVD supports only contained VTU frame files")
-            try:
-                time = float(dataset.attrib["timestep"])
-            except (KeyError, ValueError) as error:
-                raise ValueError("Each PVD frame needs a finite numeric timestep") from error
-            if not math.isfinite(time):
-                raise ValueError("Each PVD frame needs a finite numeric timestep")
-            references.append(relative)
-        for relative in references:
-            frame = (entry.parent / relative).resolve(strict=True)
-            if not frame.is_relative_to(entry.parent) or not frame.is_file():
-                raise ValueError("PVD supports only contained VTU frame files")
-            if frame not in files:
-                files.append(frame)
+    from caelab.native_post_dependencies import inspect_dataset
+    files = [Path(row['path']) for row in inspect_dataset(entry, baseline_pins=None,
+        approved_roots=[entry.parent], limits={})['files']]
     if dynamic_api().required(entry, native_metadata):
         bundle = dynamic_api().load(entry, native_metadata)
         files = list(dict.fromkeys([*files, *bundle['paths']]))
@@ -177,6 +135,9 @@ def verify_sources(path, doc, *, full=False):
 
 def verify_readers(doc):
     registered = p.GetSources()
+    names = [name for name, _ in registered]
+    if len(names) != len(set(names)):
+        raise RuntimeError('Duplicate native source registrations cannot be restored safely')
     for record in list(doc["sources"].values()) + doc.get("native_readers", []):
         readers = [source for (label, _), source in registered.items() if label == record["reader_name"]]
         if len(readers) != 1 or readers[0].GetXMLName() != record["reader_type"]:
@@ -560,7 +521,7 @@ def _verify_metadata_records(doc, *, live=False):
             validate_declared_metadata(p.FindSource(record["reader_name"]), metadata)
 
 
-def save_project(path, doc, *, prepare=None):
+def save_project(path, doc, *, prepare=None, _history_owner=None):
     try:
         from .source_repair import source_issues
     except ImportError:
@@ -596,6 +557,8 @@ def save_project(path, doc, *, prepare=None):
     # partial-load bookkeeping is not a new persisted reader exemption.
     doc.pop('_partial_removed_source_names', None)
     doc['repair'] = issues
+    if issues:
+        doc['partial_workspace'] = True
     if prepare is not None:
         doc = prepare(doc, output)
     active=p.GetActiveSource() if hasattr(p,'GetActiveSource') else None
@@ -614,11 +577,24 @@ def save_project(path, doc, *, prepare=None):
             declaration = next((record.get("native_metadata") for record in doc["sources"].values()
                 if record["reader_name"] == label and
                    Path(record["entry_path"]).resolve(strict=True) == entry), None)
-            files = source_files(entry, declaration) if entry.suffix.lower() in READERS else [entry]
+            if entry.suffix.lower() in READERS:
+                files = source_files(entry, declaration)
+            else:
+                from caelab.native_post_dependencies import inspect_dataset
+                files = [Path(row['path']) for row in inspect_dataset(entry, baseline_pins=None,
+                    approved_roots=[entry.parent], limits={})['files']]
             for file in files:
                 native_files[str(file)] = sha(file)
     state = output / "analysis.pvsm"
     p.SaveState(str(state))
+    from caelab.native_post_dependencies import inspect_pvsm
+    try:
+        admitted = inspect_pvsm(state, saved_readers=native_readers, source_records=healthy['sources'], limits={})
+        doc['native_dependency_issues'] = admitted['issues']
+    except ValueError as error:
+        # Saving a repairable native draft remains possible. Registration must
+        # independently verify the state and cannot promote this to complete.
+        doc['native_dependency_issues'] = [{'code': 'SAVED_READER_BINDING_INVALID', 'message': str(error)}]
     verify_sources(path, healthy)
     for file, expected in native_files.items():
         if sha(file) != expected:
@@ -634,6 +610,13 @@ def save_project(path, doc, *, prepare=None):
                 saved[field] = os.environ[variable]
     project = output / "project.json"
     project.write_text(json.dumps(saved, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    from apps.desktop_post.portable_project import finalize_saved_history
+    finalize_saved_history(project, saved, owner=_history_owner)
+    attempt = getattr(_history_owner, '_native_save_attempt', None)
+    if attempt is not None and attempt.get('phase') == 'INVOKED':
+        # This completed native manifest+basis boundary precedes notification.
+        # A later exception is not a confirmed failed native Save.
+        attempt.update(phase='PUBLISHED', saved_file=str(project))
     os.environ["CAE_POST_PROJECT"] = str(project)
     print("PROJECT SAVED " + str(project))
     return project
@@ -643,7 +626,6 @@ def restore_workspace(path, doc, *, allow_repair=False):
     global _recovery, _recovery_state
     _recovery = []
     _recovery_state = None
-    _verify_metadata_records(doc)
     state = path.parent / doc["workspace_file"]
     if sha(state) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
@@ -651,8 +633,13 @@ def restore_workspace(path, doc, *, allow_repair=False):
         from .source_repair import source_issues, verify_analysis_files, partial_state
     except ImportError:
         from source_repair import source_issues, verify_analysis_files, partial_state
-    verify_analysis_files(doc)
+    history_issues = verify_analysis_files(doc, allow_missing=allow_repair, project_path=path)
     issues = source_issues(doc)
+    if any(row.get('code') == 'CONTENT_CHANGED' for row in issues):
+        raise ValueError('CONTENT_CHANGED: saved source bytes differ; add a new result or restore the exact original bytes')
+    issues.extend(history_issues)
+    missing_refs = {row['source_ref'] for row in issues if row.get('source_ref')}
+    _verify_metadata_records({**doc, 'sources': {ref: row for ref, row in doc.get('sources', {}).items() if ref not in missing_refs}})
     if issues:
         if not allow_repair:
             verify_sources(path, doc)
@@ -660,7 +647,7 @@ def restore_workspace(path, doc, *, allow_repair=False):
         partial = Path(doc['project_root']) / 'repairs' / ('P' + uuid.uuid4().hex) / 'available.pvsm'
         selection = partial_state(state, doc, issues, partial, retain_applied=True)
         p.LoadState(str(partial))
-        missing = {row['source_ref'] for row in issues}
+        missing = {row['source_ref'] for row in issues if row.get('source_ref')}
         healthy = {**doc, 'sources': {ref: row for ref, row in doc['sources'].items() if ref not in missing}}
         available_names = set(selection['healthy_source_names'])
         healthy['native_readers'] = [row for row in doc.get('native_readers', [])
@@ -700,8 +687,10 @@ def restore_workspace(path, doc, *, allow_repair=False):
         if 'dynamic_locations' in declaration:
             available=declaration['time']['values']
             current=float(p.GetAnimationScene().AnimationTime)
+            if current not in available:
+                raise ValueError('SELECTION_TIME_UNAVAILABLE: saved time is outside the declared source range')
             dynamic_api().select(record['entry_path'],declaration,
-                time=current if current in available else available[0],
+                time=current,
                 registration_origin=record.get('registration_origin'))
     verify_readers(doc)
     _verify_metadata_records(doc, live=True)

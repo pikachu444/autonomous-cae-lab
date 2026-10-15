@@ -74,7 +74,7 @@ class Workbench:
         self.material_documents=MaterialDocuments(self.root,self.session_id,self.submit,self.manager)
         self.data_documents=DataDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_input=lambda identifier:(self.input_path(identifier),load_json(self.root/'inputs'/check_id(identifier)/'input.json')))
-        self.native_commands=NativeCommands(self.root,self.session_id)
+        self.native_commands=NativeCommands(self.root,self.session_id, private_target_save=self._native_project_target_save)
         self.numerical_documents=NumericalDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_document=self.document_read, resolve_result=self.document_result,
             resolve_processing=self.data_documents.processing_result,
@@ -269,6 +269,46 @@ class Workbench:
                     and not (arguments['receipt'].get('format') == 'vtt' and arguments['receipt'].get('kind') == 'native_curve')):
                 raise ValueError('Post readers currently admit registered VTU/PVD result sets')
         method=owner.submit if owner is self.native_commands else owner.command
+        if owner is self.native_commands and operation in {'document.save', 'pre.project.save'} and command_id:
+            # Keep admission and its absence proof under the existing registry
+            # RLock. A queued/persisted operation is never released or replayed.
+            with owner._lock:
+                try:
+                    return method(identifier,operation,arguments,session_id=session_id,
+                                  expected_generation=expected_generation,command_id=command_id)
+                except ValueError as error:
+                    record_path = owner.root / (check_id(command_id) + '.json')
+                    if (arguments != {} or command_id in owner._commands
+                            or record_path.exists() or record_path.is_symlink()):
+                        raise
+                    from .native_project_inputs import (context_from_workbench,
+                        resolve_target_save_command, _record_target_save_failure)
+                    context = context_from_workbench(self)
+                    matches = [binding for binding, _ in context.target_saves.values()
+                               if binding.save_command_id == command_id]
+                    if len(matches) != 1:
+                        raise
+                    try:
+                        reserved = resolve_target_save_command(context, command_id)
+                        document = owner.read(identifier)
+                        exact = (type(expected_generation) is int and reserved == matches[0]
+                            and reserved.owner_document_id == identifier
+                            and reserved.expected_stamp['session_id'] == session_id
+                            and reserved.expected_stamp['generation'] == expected_generation
+                            and document.get('connected')
+                            and document.get('session_id') == session_id
+                            and document.get('service_session_id') == self.session_id
+                            and document.get('kind') == reserved.expected_stamp['kind'])
+                        if not exact:
+                            raise ValueError('The rejected request is not the exact current Save reservation')
+                        _record_target_save_failure(context, reserved, error, stage='before_save')
+                    except (KeyError, ValueError, FileNotFoundError):
+                        # Missing/changed permission or reservation is UNKNOWN;
+                        # preserve it and the original refusal without release.
+                        raise error
+                    return owner._record_not_dispatched_save_failure(identifier, operation, arguments,
+                        session_id=session_id, expected_generation=expected_generation,
+                        command_id=command_id, error=error)
         return method(identifier,operation,arguments,session_id=session_id,
                       expected_generation=expected_generation,command_id=command_id)
 
@@ -532,6 +572,9 @@ class Workbench:
     def input_path(self, identifier):
         check_id(identifier)
         receipt=load_json(self.root/'inputs'/identifier/'input.json')
+        if receipt.get('native_project') is not None:
+            from .native_project_inputs import context_from_workbench, registered_input
+            return registered_input(context_from_workbench(self), identifier, full=True).entry_path
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
@@ -559,6 +602,17 @@ class Workbench:
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
+        if receipt.get('native_project') is not None:
+            from .native_project_inputs import context_from_workbench, registered_input
+            verified = registered_input(context_from_workbench(self), identifier, full=True)
+            return {'id': identifier, 'path': str(verified.entry_path), 'kind': receipt['kind'],
+                'format': receipt['format'], 'sha256': receipt['sha256'],
+                'source_pins': [{'path': str(verified.member_paths[m['id']]), 'bytes': m['bytes'], 'sha256': m['sha256']}
+                                for m in verified.snapshot['members'] if m['storage'] == 'file'],
+                'files': [{'path': str(verified.member_paths[m['id']]), 'relative': m['relative'],
+                           'bytes': m['bytes'], 'sha256': m['sha256']}
+                          for m in verified.snapshot['members'] if m['storage'] == 'file'],
+                'registration_origin': deepcopy(receipt.get('origin')), 'native_reference': deepcopy(verified.reference)}
         if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam', 'native_curve'}:
             raise ValueError('Select a registered native result or FEM snapshot')
         result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
@@ -581,9 +635,146 @@ class Workbench:
             result['native_metadata'] = deepcopy(receipt['native_metadata'])
         return result
 
+    def native_project_register(self, source, *, replacements=(), command_id):
+        from .native_project_inputs import context_from_workbench, register_saved, resolve_completed_command
+        context = context_from_workbench(self, resolve_completed_save=lambda identifier: resolve_completed_command(self, identifier))
+        return register_saved(context, source, replacements=replacements, command_id=command_id)
+
+    def native_project_read(self, reference, *, facet='summary'):
+        from .native_project_inputs import context_from_workbench, read_registered
+        return read_registered(context_from_workbench(self), reference, facet=facet)
+
+    def native_project_prepare_open(self, request, *, command_id):
+        from .native_project_inputs import context_from_workbench
+        from .portable_project_native import prepare_open, open_ticket_view
+        context = context_from_workbench(self)
+        if request.get('intent') == 'working':
+            from .portable_project_native import _target
+            if set(request) != {'reference', 'intent', 'target_id', 'expected_head', 'selection', 'allow_partial'}:
+                raise ValueError('현재 작업 사본의 정확한 열기 요청을 선택하세요.')
+            check_id(command_id)
+            target, head, verified = _target(context, request['target_id'])
+            if (request['reference'] != head['reference'] or request['expected_head'] !=
+                    {'generation': head['head_generation'], 'reference': head['reference']}):
+                raise ValueError('STALE_TARGET: 현재 저장본을 다시 선택하세요.')
+            if type(request['allow_partial']) is not bool or (not request['allow_partial'] and
+                    verified.snapshot['validation']['closure'] != 'COMPLETE'):
+                raise ValueError('일부 자료가 없는 작업 사본의 열기를 명시적으로 확인하세요.')
+            try:
+                owner = self.native_commands.read(target['working_document_id'])
+            except KeyError:
+                owner = None
+            if owner is not None and owner.get('owner_closed'):
+                owner = None  # Authenticated native close permits a new explicit open.
+            if owner is not None:
+                # A live window owns its edits. Reuse only its current exact
+                # ticket; missing evidence is not permission for a new launch.
+                open_id = owner.get('native_open_id')
+                if request['selection'] is not None:
+                    return {'status': 'OPEN_UNCONFIRMED', 'open_id': open_id,
+                        'reference': deepcopy(request['reference']), 'owner_document_id': target['working_document_id'],
+                        'target_id': target['target_id'],
+                        'message': '현재 창의 선택 대상을 확인할 수 없습니다. 저장본을 별도 창에서 여세요.'}
+                try:
+                    view = self.native_project_open_ticket(open_id)
+                    ticket = context.tickets[open_id]
+                    if (view['status'] not in {'OPENED', 'PARTIAL_OPEN'} or
+                            view['target_id'] != target['target_id'] or
+                            view['owner_document_id'] != target['working_document_id'] or
+                            owner.get('native_target_id') != target['target_id'] or
+                            Path(owner.get('native_working_root', '')).resolve() != ticket.binding.materialization_root.resolve()):
+                        raise ValueError('현재 창과 선택한 작업 사본의 대응을 확인할 수 없습니다.')
+                except (KeyError, TypeError, ValueError):
+                    return {'status': 'OPEN_UNCONFIRMED', 'open_id': open_id,
+                        'reference': deepcopy(request['reference']), 'owner_document_id': target['working_document_id'],
+                        'target_id': target['target_id'], 'message': '이미 열린 작업 창의 연결을 먼저 확인하세요.'}
+                return {**view, 'reuse_existing': True, 'request_reference': deepcopy(request['reference']),
+                    'expected_stamp': {key: owner.get('id' if key == 'document_id' else key) for key in
+                        ('document_id', 'kind', 'session_id', 'generation', 'view_generation', 'saved_revision', 'graph_version')}}
+        ticket = prepare_open(context, request, command_id=command_id)
+        view = open_ticket_view(context, ticket.binding.open_id)
+        return {key: view[key] for key in ('status', 'open_id', 'reference', 'owner_document_id',
+            'target_id', 'local_save_state', 'warnings', 'effects')}
+
+    def native_project_open_ticket(self, open_id):
+        from .native_project_inputs import context_from_workbench
+        from .portable_project_native import open_ticket_view
+        view = open_ticket_view(context_from_workbench(self), open_id)
+        if view['status'] == 'OPENED':
+            readback = view['readback']
+            # Query the exact readback session, even after another explicit
+            # open has created a new owner session for the same working ID.
+            owner = next((item for item in self.native_commands.documents()
+                if item['id'] == view['owner_document_id']
+                and item.get('session_id') == readback.get('native_owner_session')
+                and item.get('service_session_id') == self.session_id), {})
+            if owner.get('owner_closed') and owner.get('kind') == view['native_kind']:
+                view['status'] = 'CLOSED'
+            elif not (owner.get('connected') and owner.get('kind') == view['native_kind']
+                    and owner.get('session_id') == readback.get('native_owner_session')
+                    and owner.get('service_session_id') == self.session_id
+                    and owner.get('native_open_id') == open_id
+                    and owner.get('native_target_id') == view['target_id']
+                    and Path(owner.get('native_working_root', '')).resolve() ==
+                        context_from_workbench(self).tickets[open_id].binding.materialization_root.resolve()):
+                view['status'] = 'OPEN_UNCONFIRMED'
+            elif readback.get('status') == 'PARTIAL_OPEN':
+                view['status'] = 'PARTIAL_OPEN'
+        return view
+
+    def native_project_prepare_save(self, open_id, *, expected_stamp, expected_head, command_id):
+        from .native_project_inputs import context_from_workbench, prepare_target_save
+        owner = self.native_commands.read(expected_stamp['document_id'])
+        current = {key: owner.get('id' if key == 'document_id' else key) for key in
+            ('document_id', 'kind', 'session_id', 'generation', 'view_generation', 'saved_revision', 'graph_version')}
+        if not owner.get('connected') or current != expected_stamp:
+            raise ValueError('STALE_DOCUMENT: 현재 native 문서의 저장 기준을 다시 확인하세요.')
+        reservation = prepare_target_save(context_from_workbench(self), open_id,
+            expected_stamp=expected_stamp, expected_head=expected_head, command_id=command_id)
+        return {'status': 'SAVE_PREPARED', **{key: deepcopy(getattr(reservation, key)) for key in
+            ('save_id', 'save_command_id', 'open_id', 'owner_document_id', 'target_id', 'expected_head')},
+            'effects': {'native_save': False, 'head_published': False}}
+
+    def native_project_save_head(self, target_id, save_command_id, *, expected_head, command_id, open_id=None):
+        from .native_project_inputs import (context_from_workbench, resolve_target_save_command,
+            resolve_completed_command, publish_head)
+        context = context_from_workbench(self)
+        reservation = resolve_target_save_command(context, save_command_id)
+        if (reservation.target_id != target_id or reservation.expected_head != expected_head
+                or (open_id is not None and reservation.open_id != open_id)
+                or (expected_head is None and open_id != reservation.open_id)):
+            raise ValueError('STALE_TARGET: 완료한 저장과 원 작업 대상을 다시 확인하세요.')
+        witness = resolve_completed_command(self, save_command_id)
+        return publish_head(context, target_id, witness, expected_head=expected_head,
+            command_id=command_id, _target_save=reservation)
+
+    def _native_project_target_save(self, request, document):
+        if request['operation'] not in {'document.save', 'pre.project.save'}:
+            return None
+        from .native_project_inputs import context_from_workbench, resolve_target_save_command
+        context = context_from_workbench(self)
+        if not any(binding.save_command_id == request['command_id'] for binding, _ in context.target_saves.values()):
+            return None  # Ordinary native Save keeps the existing path.
+        stamp = {key: document.get('id' if key == 'document_id' else key) for key in
+            ('document_id', 'kind', 'session_id', 'generation', 'view_generation', 'saved_revision', 'graph_version')}
+        reservation = resolve_target_save_command(context, request['command_id'], stamp)
+        if (request['document_id'] != reservation.owner_document_id
+                or request['session_id'] != reservation.expected_stamp['session_id']
+                or request['expected_generation'] != reservation.expected_stamp['generation']
+                or request['arguments']):
+            raise ValueError('STALE_DOCUMENT: 예약한 native 저장 요청이 변경되었습니다.')
+        return {'prepare_command_id': context.target_saves[reservation.save_id][1],
+            'save_command_id': reservation.save_command_id, 'open_id': reservation.open_id}
+
     def input_preview(self,identifier):
         path=self.input_path(identifier)
         receipt=load_json(self.root/'inputs'/identifier/'input.json')
+        if receipt.get('native_project') is not None:
+            from .native_project_inputs import context_from_workbench, registered_input, read_registered
+            context = context_from_workbench(self)
+            verified = registered_input(context, identifier, full=True)
+            return {'id': identifier, 'name': receipt['name'], 'kind': receipt['kind'], 'format': receipt['format'],
+                    **read_registered(context, verified.reference)}
         if receipt.get('kind') in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'}:
             return {'id':identifier,'kind':receipt['kind'],'format':receipt['format'],
                     'name':receipt['name'],'file_count':len(receipt['files']),

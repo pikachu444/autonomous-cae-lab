@@ -373,6 +373,12 @@ def start(config_path):
                 if dock.objectName() in ('Python console', 'Report view'):
                     dock.hide()
             Gui.getMainWindow().showMaximized()
+            opened_native_owner = None
+            if CONFIG.get('native_project_open'):
+                if any(CONFIG.get(key) for key in ('source', 'assembly', 'input_receipt')):
+                    raise ValueError('저장본 열기 요청과 다른 원 입력을 함께 지정할 수 없습니다.')
+                from apps.desktop_pre.portable_project import open_launch_config
+                opened_native_owner, _ = open_launch_config(CONFIG['native_project_open'])
             if CONFIG.get('source'):
                 doc = load(CONFIG['source'])
                 if CONFIG.get('source_label'):
@@ -382,13 +388,14 @@ def start(config_path):
             if not App.ActiveDocument:
                 doc = App.newDocument('ResearchDesign')
                 doc.UndoMode = 1
-            if Gui.activeDocument():
+            if Gui.activeDocument() and opened_native_owner is None:
                 Gui.activeDocument().activeView().viewAxonometric()
                 Gui.activeDocument().activeView().fitAll()
             if CONFIG.get('service_url'):
                 from apps.desktop_pre.connection import Connection
                 from apps.desktop_pre.native_controls import install
-                CONNECTION = Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record)
+                CONNECTION = Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record,
+                                        initial_owners=(() if opened_native_owner is None else (opened_native_owner,)))
                 CONNECTION.guards = install(CONNECTION, guarded(open_model))
                 from apps.desktop_pre.beam_menu import install as install_beam
                 install_beam(CONNECTION)
@@ -399,8 +406,10 @@ def start(config_path):
                     owner = CONNECTION.active_owner()
                     owner.project.open(CONFIG['input_receipt'])
                     CONNECTION.tick()
+            from apps.desktop_pre.portable_project import install_file_actions
+            install_file_actions(CONFIG, connection=CONNECTION)
             def final_view():
-                if Gui.activeDocument():
+                if Gui.activeDocument() and opened_native_owner is None:
                     Gui.activeDocument().activeView().viewAxonometric()
                     Gui.activeDocument().activeView().fitAll()
             QtCore.QTimer.singleShot(1500, final_view)

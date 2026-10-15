@@ -53,7 +53,18 @@ class Controls:
                     raise ValueError('Native unapplied input state is unknown')
                 if pending:
                     raise ValueError('BUSY_EDIT: native widget inputs are unapplied')
-            self.owner.save_project()
+            from apps.desktop_post.portable_project import save_current_project
+            def confirm_partial(rows):
+                titles = [self.owner.workspace.object(row['history']['object_ref']).get('title', '분석') for row in rows]
+                return self.platform.confirm_save(self.main,
+                    '일부 보존 파일이 없는 분석을 과거 기록으로 함께 저장할까요?\n\n' + '\n'.join(titles)
+                    + '\n\n원 분석 기록과 누락 목록을 보존합니다. 누락된 원값은 검증된 결과로 사용할 수 없습니다.')
+            saved = save_current_project(self.owner,
+                confirm_first_save=lambda: self.platform.confirm_save(self.main,
+                    '이 저장본을 새 작업 프로젝트로 저장할까요?\n\n현재 창의 변경 내용과 표시를 저장합니다. 불러온 원본은 보존합니다.'),
+                confirm_partial=confirm_partial)
+            if saved is None:
+                return False
         except Exception as error:
             self._log('native_project_save_failed', error=str(error), error_type=type(error).__name__)
             if str(error).startswith('BUSY_EDIT:'):
@@ -256,6 +267,9 @@ class _Windows:
             self.error(main,'닫기 선택창을 열지 못했습니다. 창을 유지합니다.')
             return 'cancel'
         return {1001:'save',1002:'discard'}.get(choice.value,'cancel')
+
+    def confirm_save(self, main, text):
+        return self.user.MessageBoxW(main, text, '프로젝트 저장', 0x4 | 0x20) == 6
 
     def error(self, main, text):
         self.user.MessageBoxW(main,text,'프로젝트 저장',0x10)

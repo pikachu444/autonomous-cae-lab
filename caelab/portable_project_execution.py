@@ -56,12 +56,15 @@ def _read_asset(folder, ref):
 class TypedProjection:
     """Replay only the existing declared owner reference paths, never strings."""
     def __init__(self, value):
-        if (not isinstance(value, dict) or set(value) != {'schema', 'source_scope', 'target_scope', 'documents', 'inputs', 'revisions'}
+        if (not isinstance(value, dict) or set(value) not in ({'schema', 'source_scope', 'target_scope', 'documents', 'inputs', 'revisions'},
+                    {'schema', 'source_scope', 'target_scope', 'documents', 'inputs', 'revisions', 'native_mapping'})
                 or value.get('schema') != MAP_SCHEMA
                 or any(not isinstance(value.get(k), list) for k in ('documents', 'inputs', 'revisions'))
                 or not all(isinstance(value.get(k), str) and value[k] for k in ('source_scope', 'target_scope'))):
             _error('unknown or malformed mapping schema')
         self.value = value
+        from .native_project_contract import validate_native_mapping
+        self.native_mapping = validate_native_mapping(value.get('native_mapping', []))
         self.docs = {r['source_document_id']: r for r in value['documents']}
         self.inputs = {(r['source_document_id'], r['source_input_revision']): r for r in value['inputs']}
         self.revisions = {(r['source_document_id'], r['source_revision']): r['revision'] for r in value['revisions']}
@@ -100,6 +103,9 @@ class TypedProjection:
 
     def reference(self, typed):
         ref, doc = deepcopy(typed.value), typed.document_id
+        if ref.get('kind') in {'native_pre', 'native_post'}:
+            from .native_project_contract import project_native_reference
+            return project_native_reference(ref, self.native_mapping)
         if ref.get('kind') == 'knowledge':
             return ref
         if ref.get('paper_id') and not doc:
@@ -132,7 +138,7 @@ class TypedProjection:
         for typed in draft_references(self.docs[doc]['kind'], value):
             if self.docs[doc]['kind'] == 'report':
                 from .portable_project_report import can_navigate
-                if not can_navigate(typed.value, self.docs):
+                if not can_navigate(typed.value, self.docs, self.native_mapping):
                     continue
             replace_at(result, typed.path, self.reference(typed))
         from .portable_research_owner import current_draft
@@ -180,6 +186,8 @@ def transfer_map(fork):
             'input_sha256': fork.input_hash(doc, rev)} for (doc, rev), draft in sorted(fork.inputs.items())],
         'revisions': [{'source_document_id': doc, 'source_revision': rev, 'revision': new}
             for (doc, rev), new in sorted(fork.revisions.items())]}
+    if getattr(fork, 'native_mapping', []):
+        value['native_mapping'] = deepcopy(fork.native_mapping)
     projection = TypedProjection(value)
     for doc, rev in projection.inputs:
         projection.input_hash(doc, rev)

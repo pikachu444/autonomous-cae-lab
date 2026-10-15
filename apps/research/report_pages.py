@@ -76,6 +76,21 @@ def blocks(content):
         yield ('table',(['원행',xlabel,'관측 ['+comparison['unit']+']','계산 ['+comparison['unit']+']','차이 ['+comparison['unit']+']'],
             [[row,t,o,p,d] for row,t,o,p,d in zip(rows,x,observed,predicted,physical)]))
         return
+    if kind in {'native_pre', 'native_post'}:
+        snapshot = content['native_project']
+        label = 'FreeCAD 모델 저장본' if kind == 'native_pre' else 'ParaView 결과 저장본'
+        from pathlib import PureWindowsPath
+        entry = next(row for row in snapshot['members'] if row['id'] == snapshot['entry_member'])
+        origin = next((row['original_location'] for row in snapshot['logical_origins']
+                       if row['member_id'] == entry['id']), entry.get('relative', ''))
+        name = PureWindowsPath(origin).name
+        count = sum(row['role'] == 'pre_document' for row in snapshot['members']) if kind == 'native_pre' else sum(row['storage'] == 'file' for row in snapshot['members'])
+        unit = '문서' if kind == 'native_pre' else '파일'
+        yield ('paragraph', label + ' / ' + name + ' / 포함 ' + unit + ' ' + str(count) + '개')
+        missing = len(snapshot['unavailable'])
+        if missing:
+            yield ('paragraph', '누락 자료 ' + str(missing) + '개: 저장 모델의 포함 파일을 복구하세요.')
+        return
     if kind == 'knowledge':
         source = content['source']
         yield ('paragraph', source.get('title', '문헌'))

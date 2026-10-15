@@ -54,6 +54,8 @@ class ReferenceWindow(QMainWindow):
             if self.reference.get('kind') != 'result' else '이 결과가 속한 계산의 실행 기록을 엽니다.')
         if self.reference.get('kind') == 'numerical_candidate_evidence':
             self.open_button.setToolTip('보고서에 저장된 후보와 상세 실행을 그대로 선택합니다. 열기는 계산하지 않습니다.')
+        if self.reference.get('kind') in {'native_pre', 'native_post'}:
+            self.open_button.setToolTip('선택한 저장본을 별도 창에서 엽니다. 현재 편집은 유지됩니다.')
         self.open_button.clicked.connect(self.open_owner)
         bar.addWidget(self.open_button)
         spacer = QWidget()
@@ -93,6 +95,8 @@ class ReferenceWindow(QMainWindow):
             self.reference.get('kind'), '저장된 자료')
 
     def _owner_label(self):
+        if self.reference.get('kind') in {'native_pre', 'native_post'}:
+            return '저장한 모델 열기' if self.reference['kind'] == 'native_pre' else '저장한 분석 열기'
         if self.reference.get('kind') == 'numerical_candidate_evidence':
             return '선택 후보 상세 열기'
         if self.reference.get('kind') == 'result':
@@ -198,6 +202,9 @@ class ReferenceWindow(QMainWindow):
     def open_owner(self):
         if self._busy or self._closed or not self.open_button.isEnabled():
             return False
+        if self.reference.get('kind') in {'native_pre', 'native_post'}:
+            from .native_project_actions import open_reference_native
+            return open_reference_native(self)
         from .desktop import launch_tool
         reference = deepcopy(self.reference)
         try:

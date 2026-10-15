@@ -33,7 +33,7 @@ def command_status_text(operation, state):
 
 
 class Connection:
-    def __init__(self, config, App, Gui, QtCore, QtWidgets, *, log=None):
+    def __init__(self, config, App, Gui, QtCore, QtWidgets, *, log=None, initial_owners=()):
         self.config, self.App, self.Gui = config, App, Gui
         self.QtCore, self.QtWidgets = QtCore, QtWidgets
         self.log = log or (lambda *a, **kw: None)
@@ -107,6 +107,12 @@ class Connection:
         QtWidgets.QApplication.instance().aboutToQuit.connect(self.close)
         from .shell_controls import install as install_shell_controls
         install_shell_controls(self)
+        for owner in initial_owners:
+            if (owner.doc.Name in self.owners or App.listDocuments().get(owner.doc.Name) is not owner.doc
+                    or owner.App is not App or owner.Gui is not Gui):
+                raise ValueError('Native owner adoption requires its current exact document')
+            self.owners[owner.doc.Name] = bridge.start(owner.doc, config, QtCore, log=self.log, _existing_owner=owner)
+            owner.find_owner = lambda linked: next((row[0] for row in self.owners.values() if row[0].doc is linked), None)
         self.tick()
 
     def active_owner(self):

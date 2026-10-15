@@ -463,7 +463,7 @@ def historical_reference(folder, document, typed):
     current = typed
     for hop in state['proof']['hops']:
         projection = TypedProjection(_read_asset(folder, hop['mapping']))
-        if current.document_id in projection.docs:
+        if current.document_id in projection.docs or (current.value.get('kind') in {'native_pre', 'native_post'} and projection.native_mapping):
             current = TypedReference(typed.path, typed.role, typed.form, projection.reference(current))
     return current
 

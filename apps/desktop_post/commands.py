@@ -257,9 +257,10 @@ def save_project():
 
 
 def restore_workspace(*, allow_repair=False):
-    path, doc = verify_sources()
+    path, doc = project()
     if doc.get("kind") == "external-result":
         return external_module().restore_workspace(path, doc, allow_repair=allow_repair)
+    verify_sources()
     if "workspace_sha256" in doc and sha(path.parent / doc["workspace_file"]) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
     for file, expected in doc.get("native_reader_files", {}).items():

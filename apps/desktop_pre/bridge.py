@@ -195,9 +195,15 @@ class Owner:
         except Exception as error:
             motion = {'inspection_error': str(error)}
         return {'id': self.document_id, 'kind': 'pre', 'title': self.doc.Label,
+                **({'native_open_id': self.portable_binding.open_id,
+                    'native_target_id': getattr(self, 'native_target', self.portable_binding.target_id),
+                    'native_working_root': str(self.portable_binding.materialization_root)}
+                   if getattr(self, 'portable_binding', None) is not None else {}),
                 'native_document': self.doc.Name, 'working_file': self.doc.FileName,
                 'generation': self.generation, 'view_generation': self.view_generation,
                 'saved_generation': self.saved_generation, 'dirty': not self.project.is_saved(),
+                'saved_revision': (self.project.last_save or {}).get('revision'),
+                'graph_version': self.project.graph_version(),
                 'capabilities': list(OPERATIONS), 'objects': objects,
                 'object_count': len(self.doc.Objects), 'selection': self._selection,
                 'mesh_binding_diagnostics': dict(self.binding_diagnostics),
@@ -238,7 +244,8 @@ class Owner:
             if old != stamp:
                 raise ValueError('command_id conflicts with an earlier native request')
             return deepcopy(result)
-        result = {'command_id': identifier, 'document_id': self.document_id}
+        result = {'command_id': identifier, 'document_id': self.document_id, 'session_id': self.session_id}
+        save_adapter_entered = False
         try:
             self.refresh()
             if self.closed or request['document_id'] != self.document_id or request['session_id'] != self.session_id:
@@ -279,7 +286,14 @@ class Owner:
                     if args or target:
                         raise ValueError('This document command takes no arguments or target')
                     if operation == 'document.save':
-                        payload = self.project.save()
+                        if getattr(self, 'portable_binding', None) is not None:
+                            from .portable_project import complete_save_command
+                            save_adapter_entered = True
+                            payload = complete_save_command(self, request)
+                        else:
+                            if '_target_save' in request:
+                                raise ValueError('Native Save reservation requires its opened portable owner')
+                            payload = self.project.save()
                     elif operation in {'document.undo', 'document.redo'}:
                         count = self.doc.UndoCount if operation.endswith('undo') else self.doc.RedoCount
                         if not count:
@@ -298,7 +312,9 @@ class Owner:
                             window.showNormal()
                         window.raise_()
                         window.activateWindow()
-                    payload = {**self.descriptor(), **({'save': payload} if operation == 'document.save' else {})}
+                    payload = {**self.descriptor(), **({'save': payload,
+                        **({'native_save_receipt': payload['native_save_receipt']} if 'native_save_receipt' in payload else {})}
+                        if operation == 'document.save' else {})}
                 elif operation == 'pre.impact.capture':
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Choose an exact Analysis and mesh-reference solver')
@@ -315,7 +331,16 @@ class Owner:
                 elif operation in PARAMETER_OPERATIONS:
                     payload = self.parameters.dispatch(operation, args, target)
                 elif operation in PROJECT_OPERATIONS:
-                    payload = self.project.dispatch(operation, args, target)
+                    if operation == 'pre.project.save' and getattr(self, 'portable_binding', None) is not None:
+                        if args or target:
+                            raise ValueError('Project Save takes no caller arguments or target')
+                        from .portable_project import complete_save_command
+                        save_adapter_entered = True
+                        payload = complete_save_command(self, request)
+                    else:
+                        if operation == 'pre.project.save' and '_target_save' in request:
+                            raise ValueError('Native Save reservation requires its opened portable owner')
+                        payload = self.project.dispatch(operation, args, target)
                 elif operation in POSE_CANDIDATE_OPERATIONS:
                     payload = self.pose_candidates.dispatch(operation, args, target)
                 elif operation in MOTION_OPERATIONS:
@@ -458,6 +483,9 @@ class Owner:
                 self.refresh()
             result.update(status='COMPLETED', result=payload, generation=self.generation, view_generation=self.view_generation)
         except Exception as error:
+            if not save_adapter_entered:
+                from .portable_project import _reject_unstarted_save
+                _reject_unstarted_save(self, request, error)
             result.update(status='FAILED', error={'type': type(error).__name__, 'message': str(error)},
                           generation=self.generation, view_generation=self.view_generation)
         self.completed[identifier] = (stamp, deepcopy(result))
@@ -537,8 +565,15 @@ class GuiDispatch:
         self.owner.close()
 
 
-def start(doc, config, QtCore, *, log=None, document_id=None):
-    owner = Owner(doc, config['export_root'], document_id=document_id)
+def start(doc, config, QtCore, *, log=None, document_id=None, _existing_owner=None):
+    if _existing_owner is not None:
+        if (type(_existing_owner) is not Owner or _existing_owner.doc is not doc or _existing_owner.closed
+                or (document_id is not None and document_id != _existing_owner.document_id)):
+            raise ValueError('Existing native owner differs from the document being connected')
+        _existing_owner.assert_thread()
+        owner = _existing_owner
+    else:
+        owner = Owner(doc, config['export_root'], document_id=document_id)
     owner.QtCore = QtCore
     dispatcher = GuiDispatch(owner, QtCore)
     broker = BrokerIO(dispatcher, config['service_url'], application='freecad',

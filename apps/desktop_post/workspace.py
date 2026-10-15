@@ -77,6 +77,7 @@ class Workspace:
             raise ValueError('Unsupported saved Post analysis version; the saved project is preserved')
         self.bundles = {}
         self.last_preview = {}
+        self._new_history_keys = set()
         self.restore_issues = []
         for key, record in self.document.get('sources', {}).items():
             record.setdefault('source_ref', key)
@@ -87,6 +88,16 @@ class Workspace:
                 obj['redo_stack'] = [obj['redo']] if obj.get('redo') else []
             obj.pop('redo', None)
             for revision in obj.get('history', []):
+                unavailable = next((row for row in document.get('native_history_availability', {}).get('histories', [])
+                    if row['history']['object_ref'] == obj['id'] and row['history']['revision_id'] == revision['id']
+                    and row['state'] == 'UNAVAILABLE_DECLARED'), None)
+                if unavailable is not None:
+                    from caelab.native_post_dependencies import digest as history_digest
+                    if history_digest(revision) != unavailable['record_sha256']:
+                        raise ValueError('SNAPSHOT_CHANGED: unavailable history record differs')
+                    self.restore_issues.append({'object_ref': obj['id'], 'revision': revision['id'],
+                        'message': '과거 기록·원값 미확인: 보존한 분석 파일을 복구하세요.'})
+                    continue
                 cached = p.FindSource(revision.get('retained_source_name', '')) if revision.get('retained_source_name') else None
                 if cached is not None:
                     bundle = {'source': cached, 'proxies': [cached],
@@ -177,7 +188,11 @@ class Workspace:
                 obj['retained_values_only'] = bool(bundle.get('retained_only'))
                 obj['output_metadata'] = physical.retained_declarations(record.get('summary', {}).get('declarations'))
                 try:
-                    obj['current_inputs_differ'] = self.source_stamps(self._refs(obj['kind'], record['recipe'])) != record['bindings']
+                    from apps.desktop_post.portable_project import compare_history_inputs
+                    checked = compare_history_inputs(self, obj, record, mode='current')
+                    obj['current_inputs_differ'] = checked['state'] != 'SAME'
+                    obj['input_comparison_status'] = checked['state']
+                    obj['input_comparison_issues'] = checked['issues']
                 except (ValueError, RuntimeError, OSError):
                     obj['current_inputs_differ'] = True
         return {'sources': sources, 'objects': objects,
@@ -267,6 +282,18 @@ class Workspace:
                            'metadata': record.get('native_metadata_sha256') if record else None}
         return stamps
 
+    def _graph_on_basis(self, actual, expected, obj, record):
+        if getattr(self.owner, 'portable_binding', None) is None:
+            return actual
+        from apps.desktop_post.portable_project import _history_basis, verified_history_slots, _is_new_history
+        if _is_new_history(self, obj, record):
+            return actual
+        from caelab.native_post_dependencies import graph_on_source_basis
+        basis = _history_basis(self, obj, record)
+        proof = verified_history_slots(self, obj, record, mode='retained')
+        return graph_on_source_basis(actual, expected_graph=expected,
+            history_basis=basis, verified_slots=proof)
+
     def _verify_inputs(self, refs, checking=None, revisions=None):
         """Verify only the selected originals and every applied upstream graph."""
         checking = set() if checking is None else checking
@@ -313,7 +340,7 @@ class Workspace:
         checking.add(record['id'])
         try:
             if bundle.get('retained_only'):
-                if analysis.graph_signature(bundle) != bundle['retained_graph']:
+                if self._graph_on_basis(analysis.graph_signature(bundle), bundle['retained_graph'], obj, record) != bundle['retained_graph']:
                     raise ValueError('RETAINED_READER_CHANGED: reopen the unchanged saved analysis values')
                 binding = self._retained_reader_binding(record, bundle['source'])
                 self._verify_result_pins(record.get('result_files', []))
@@ -326,9 +353,12 @@ class Workspace:
             revisions = self._retained_dependencies(record, refs)
             self.pending(refs, revisions)
             self._verify_inputs(refs, checking, revisions)
-            if self.source_stamps(refs, revisions) != record['bindings']:
-                raise ValueError('INPUT_CHANGED: this result belongs to an earlier native input; restore it or validate a new revision')
-            if analysis.graph_signature(bundle) != record['graph']:
+            from apps.desktop_post.portable_project import compare_history_inputs
+            compared = compare_history_inputs(self, obj, record, mode='retained')
+            if compared['state'] != 'SAME':
+                prefix = 'SOURCE_UNAVAILABLE' if compared['state'] == 'UNAVAILABLE' else 'INPUT_CHANGED'
+                raise ValueError(prefix + ': this result belongs to an earlier native input: ' + '; '.join(compared['issues']))
+            if self._graph_on_basis(analysis.graph_signature(bundle), record['graph'], obj, record) != record['graph']:
                 raise ValueError('PIPELINE_CHANGED: native properties differ from the retained recipe')
             if obj['kind'] == 'comparison':
                 actual = analysis.output_fingerprint(bundle)
@@ -378,47 +408,21 @@ class Workspace:
                     file = Path(path)
                     if file.is_file():
                         add({'path': path, 'bytes': file.stat().st_size, 'sha256': sha256})
-        selected = []
-        visited = set()
-        containers = {'.pvd', '.vtm', '.vtpc', '.vtpd', '.pvtu', '.pvtp', '.pvtr', '.pvti', '.pvts'}
-        leaves = {'.vtu', '.vtp', '.vtr', '.vti', '.vts', '.csv', '.vtt'}
-        def visit(file, root, depth=0):
-            path = str(file)
-            if path in visited: return
-            if depth > 16: raise ValueError('Retained native dependency nesting exceeds 16 levels')
-            if len(visited) >= 4096: raise ValueError('Retained native dependency set exceeds 4096 files')
-            pin = baseline.get(path)
-            if pin is None:
-                raise ValueError('RETAINED_READER_CHANGED: actual reader dependency has no exact saved pin: ' + path)
-            self._verify_result_pins([pin])  # Verify container before reading its references.
-            visited.add(path); selected.append(deepcopy(pin))
-            extension = file.suffix.lower()
-            if extension in leaves: return
-            if extension not in containers:
-                raise ValueError('Unsupported retained native reader dependency format: ' + extension)
-            if file.stat().st_size > 8 * 1024 * 1024:
-                raise ValueError('Retained native container metadata exceeds 8 MiB')
-            text = file.read_text(encoding='utf-8-sig')
-            if '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():
-                raise ValueError('Retained native XML declarations/entities are unsupported')
+        from caelab.native_post_dependencies import inspect_dataset
+        selected = {}
+        for entry in entries:
             try:
-                xml = ET.fromstring(text)
-            except ET.ParseError as error:
-                raise ValueError('Invalid retained native container XML') from error
-            if xml.tag != 'VTKFile': raise ValueError('Retained native container must be VTK XML')
-            for node in xml.iter():
-                reference = node.get('file')
-                if reference is None: continue
-                relative = Path(reference)
-                if not reference or relative.is_absolute() or '..' in relative.parts or '\\' in reference or ':' in reference:
-                    raise ValueError('Retained native dependencies must be contained relative files')
-                child = (file.parent / relative).resolve(strict=True)
-                if not child.is_relative_to(root): raise ValueError('Retained native dependency escapes its input set')
-                visit(child, root, depth+1)
-        for entry in entries: visit(entry, entry.parent)
-        if binding is not None and visited != set(baseline):
+                checked = inspect_dataset(entry, baseline_pins=list(baseline.values()),
+                    approved_roots=[entry.parent], limits={})
+            except ValueError as error:
+                raise ValueError('RETAINED_DATA_CHANGED: ' + str(error)) from error
+            if not checked['complete']:
+                raise ValueError('RETAINED_READER_CHANGED: actual dependency has no exact saved pin')
+            for pin in checked['files']:
+                selected[pin['path']] = pin
+        if binding is not None and set(selected) != set(baseline):
             raise ValueError('RETAINED_READER_CHANGED: native dependency list differs from its exact saved pins')
-        return {'reader_name': name, 'reader_type': kind, 'input_paths': actual_paths, 'files': selected}
+        return {'reader_name': name, 'reader_type': kind, 'input_paths': actual_paths, 'files': list(selected.values())}
 
     def _retained_dependencies(self, record, refs):
         """Resolve this result's input revisions, never the current editor cursor."""
@@ -651,6 +655,8 @@ class Workspace:
                        'bindings': self.source_stamps(self._refs(obj['kind'], draft))}
             preview['dependencies'] = {ref: self.applied(self.object(ref))['id']
                 for ref in self._refs(obj['kind'], draft) if ref not in self.document['sources']}
+            from caelab.native_post_dependencies import history_key
+            self._new_history_keys.add(tuple(history_key(obj['id'], preview).values()))
             obj['preview'] = preview
             obj['diagnostics'] = []
             self.last_preview[object_ref] = identifier
@@ -1176,13 +1182,20 @@ class Workspace:
             self._touch()
         return changed
 
-    def prepare_save(self, document, folder):
+    def prepare_save(self, document, folder, *, _history_plan=None):
         self.prepare_for_save()
         document['analysis'] = deepcopy(self.state)
+        if _history_plan is not None:
+            from apps.desktop_post.portable_project import preserve_history_for_save
+            preserve_history_for_save(self.owner, document, folder, _history_plan)
         for obj in document['analysis']['objects'].values():
             for record in obj['history']:
                 bundle = self.bundles.get(record['id'])
                 if bundle is None:
+                    if _history_plan is not None and any(row['history']['object_ref'] == obj['id']
+                            and row['history']['revision_id'] == record['id'] and row['state'] == 'UNAVAILABLE_DECLARED'
+                            for row in _history_plan.histories):
+                        continue
                     raise ValueError('PIPELINE_CHANGED: restore or validate the edited analysis before saving')
                 reader_binding = self._verify_record(obj, record, bundle)
                 artifact = measurements.save_native_data(bundle['source'], folder / record['id'], 'result',

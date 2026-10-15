@@ -64,10 +64,11 @@ CAPABILITIES['pre'].update(DYNAMIC_OPERATIONS)
 
 
 class NativeCommands:
-    def __init__(self, root, service_session_id, *, heartbeat_timeout=30):
+    def __init__(self, root, service_session_id, *, heartbeat_timeout=30, private_target_save=None):
         self.root = Path(root) / 'native_commands'
         self.root.mkdir(parents=True, exist_ok=True)
         self.session_id = service_session_id
+        self.private_target_save = private_target_save
         self.timeout = heartbeat_timeout
         self._lock = threading.RLock()
         self._hosts, self._commands = {}, {}
@@ -202,6 +203,7 @@ class NativeCommands:
             self._expire()
             return [{**deepcopy(document), 'host_id': host['host_id'], 'session_id': host['session_id'],
                      'connected': host['connected'], 'execution_mode': host['execution_mode'],
+                     'owner_closed': not host['connected'] and host.get('_disconnect_kind') == 'closed',
                      **self._activity(host), 'service_session_id': self.session_id}
                     for host in self._hosts.values() for document in host['documents'].values()]
 
@@ -214,6 +216,8 @@ class NativeCommands:
     def submit(self, document_id, operation, arguments, *, session_id, expected_generation, command_id=None):
         if not isinstance(arguments, dict) or type(expected_generation) is not int or expected_generation < 0:
             raise ValueError('Command needs arguments and an exact input generation')
+        if '_target_save' in arguments:
+            raise ValueError('Native Save 예약은 현재 서비스가 확인합니다.')
         identifier = check_id(command_id or 'C' + uuid.uuid4().hex)
         request = dict(document_id=check_id(document_id), operation=operation, arguments=deepcopy(arguments),
                        session_id=session_id, expected_generation=expected_generation)
@@ -240,6 +244,42 @@ class NativeCommands:
             command = {**request, 'command_id': identifier, 'host_id': document['host_id'], 'target': target,
                        'service_session_id': self.session_id, 'request_hash': signature, 'state': 'QUEUED',
                        'supports_cancel': 'queued_only', 'cancel_requested': False, 'created_utc': utc_now()}
+            if self.private_target_save is not None:
+                private = self.private_target_save({**request, 'command_id': identifier}, document)
+                if private is not None:
+                    if not isinstance(private, dict) or set(private) != {'prepare_command_id', 'save_command_id', 'open_id'}:
+                        raise ValueError('Invalid private native Save reservation')
+                    command['_target_save'] = deepcopy(private)
+            self._persist(command)
+            self._commands[identifier] = command
+            return deepcopy(command)
+
+    def _record_not_dispatched_save_failure(self, document_id, operation, arguments, *,
+            session_id, expected_generation, command_id, error):
+        """Private WB seam after an exact sealed reservation was refused.
+
+        A caller exception or unknown native outcome is never this evidence.
+        Existing commands and files are immutable, including partial admission.
+        """
+        if (operation not in {'document.save', 'pre.project.save'} or arguments != {}
+                or type(expected_generation) is not int
+                or not isinstance(error, ValueError)):
+            raise ValueError('Only a proven pre-dispatch native Save refusal can be recorded')
+        identifier = check_id(command_id)
+        request = dict(document_id=check_id(document_id), operation=operation, arguments={},
+                       session_id=session_id, expected_generation=expected_generation)
+        with self._lock:
+            path = self.root / (identifier + '.json')
+            if identifier in self._commands or path.exists() or path.is_symlink():
+                raise ValueError('An admitted or retained command must be reconciled')
+            document = self.read(document_id)
+            detail = {'type': type(error).__name__, 'message': str(error)}
+            command = {**request, 'command_id': identifier, 'host_id': document['host_id'],
+                'target': {}, 'service_session_id': self.session_id,
+                'request_hash': canonical_hash(request), 'state': 'FAILED', 'phase': 'NOT_DISPATCHED',
+                'supports_cancel': 'queued_only', 'cancel_requested': False, 'created_utc': utc_now(),
+                'error': detail, 'native_save_invoked': False,
+                'outcome': {'state': 'FAILED', 'error': deepcopy(detail), 'native_save_invoked': False}}
             self._persist(command)
             self._commands[identifier] = command
             return deepcopy(command)
@@ -349,4 +389,4 @@ class NativeCommands:
     def shutdown(self):
         with self._lock:
             for host in self._hosts.values():
-                self._disconnect(host, 'Service shut down; native application is unconfirmed')
+                self._disconnect(host, 'Service shut down; native application is unconfirmed', kind='service_shutdown')

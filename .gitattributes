@@ -171,3 +171,6 @@ tests/fixtures/dynamic_r2_c1/** -text -whitespace
 # Official documentation and its license notices retain the upstream bytes.
 examples/research-knowledge/sources/** -text -whitespace
 examples/research-knowledge/licenses/** -text -whitespace
+
+# A saved native example must retain its pinned bytes after a Windows checkout.
+examples/native-project-post/saved-example/** -text -whitespace

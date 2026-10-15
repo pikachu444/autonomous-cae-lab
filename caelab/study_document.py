@@ -27,6 +27,10 @@ def reference_error(reference):
         if not isinstance(reference, dict):
             raise ValueError('Choose an exact saved source reference')
         kind = reference.get('kind')
+        if kind in {'native_pre', 'native_post'}:
+            from .native_project_contract import validate_native_reference
+            validate_native_reference(reference)
+            return None
         if kind == 'numerical_candidate_evidence':
             from .numerical_candidate_evidence import validate_evidence_reference
             validate_evidence_reference(reference)

@@ -99,7 +99,15 @@ def effective_selection(reference):
 def compact_payload(payload):
     """Keep verified selected numeric/text content, never paths to mutable views."""
     result = {'kind': payload['kind']}
-    if payload['kind'] == 'numerical_candidate_evidence':
+    if payload['kind'] in {'native_pre', 'native_post'}:
+        from .native_project_contract import validate_snapshot
+        snapshot = validate_snapshot(payload['native_project'])
+        if (payload.get('verification') != 'FULL_SNAPSHOT_VERIFIED'
+                or payload['kind'] != 'native_' + snapshot['native_kind']):
+            raise ValueError('보고서에는 검증된 정확한 모델 저장본을 선택하세요.')
+        # The local input ID is navigation, never part of the frozen source snapshot.
+        result['native_project'] = deepcopy(snapshot)
+    elif payload['kind'] == 'numerical_candidate_evidence':
         result['candidate_evidence'] = deepcopy(payload['candidate_evidence'])
         result['report_intent'] = payload['report_intent']
     elif payload['kind'] == 'comparison':

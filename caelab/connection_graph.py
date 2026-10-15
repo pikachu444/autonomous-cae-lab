@@ -189,6 +189,12 @@ class SnapshotReader:
         if ref.get('kind') == 'knowledge':
             return {'status': 'EXTERNAL', 'message': '문헌 원문은 해당 도구에서 명시적으로 확인하세요.',
                     'exact_reference': None, 'owner_id': None}
+        if ref.get('kind') in {'native_pre', 'native_post'}:
+            from .native_project_inputs import context_from_workbench, verify_registered
+            verified = verify_registered(context_from_workbench(self.wb), ref, full=True)
+            return {'status': 'AVAILABLE', 'message': '검증된 원본 저장 모델', 'exact_reference': verified.reference,
+                    'owner_id': ref['document_id'], 'owner_kind': verified.snapshot['native_kind'],
+                    'owner_title': verified.receipt['name'], 'reference_basis': 'registered_native_snapshot'}
         current = self.current(identifier)
         exact, saved, run = None, None, None
         if form == 'material_input':
@@ -363,17 +369,17 @@ def build_graph(workbench, document_ids: list[str] | None = None, *, include_his
                 resolved = reader.resolve(typed)
             except (ValueError, KeyError, TypeError, OSError) as error:
                 resolved = {'status': 'BROKEN', 'exact_reference': None, 'owner_id': target, 'message': str(error)}
-            if target and resolved['status'] != 'EXTERNAL':
+            if target and resolved['status'] != 'EXTERNAL' and typed.value.get('kind') not in {'native_pre', 'native_post'}:
                 try:
                     add_document(check_id(target))
                 except ValueError:
                     pass
             owner = documents.get(target, {})
-            label = owner.get('title', '외부 자료' if resolved['status'] == 'EXTERNAL' else '찾을 수 없는 원문서')
-            node(ref_key, label, owner.get('kind', 'reference'), resolved['status'],
+            label = owner.get('title', resolved.get('owner_title', '외부 자료' if resolved['status'] == 'EXTERNAL' else '찾을 수 없는 원문서'))
+            node(ref_key, label, owner.get('kind', resolved.get('owner_kind', 'reference')), resolved['status'],
                  node_type='reference', subtitle=typed.role, consumer_id=identifier, path=list(typed.path),
                  working_reference=resolved.get('working_reference'), owner_id=resolved.get('owner_id'),
-                 owner_kind=owner.get('kind'), exact_reference=resolved.get('exact_reference'),
+                 owner_kind=owner.get('kind', resolved.get('owner_kind')), exact_reference=resolved.get('exact_reference'),
                  diagnostic={'reference': typed.value, 'form': typed.form, 'basis': resolved.get('reference_basis'), 'message': resolved['message']})
             edge(source_key, ref_key, typed.role, status=resolved['status'], path=list(typed.path))
             if target and 'document/' + target in nodes:

@@ -1,0 +1,1 @@
+<VTKFile type="Collection"><Collection><DataSet timestep="0" group="A" part="0" file="frame0.vtu"/><DataSet timestep="1" group="A" part="0" file="frame1.vtu"/></Collection></VTKFile>

@@ -27,6 +27,22 @@ def handle(handler,method,path,query):
             body = handler._json_body(maximum=8*1024*1024+64*1024)
         else:
             body = handler._json_body()
+        if path.startswith('/api/workbench/native-project/'):
+            name = path.rsplit('/', 1)[-1]
+            contracts = {
+                'register': ('native_project_register', {'source', 'command_id'}, {'replacements'}),
+                'read': ('native_project_read', {'reference'}, {'facet'}),
+                'prepare-open': ('native_project_prepare_open', {'request', 'command_id'}, set()),
+                'open-ticket': ('native_project_open_ticket', {'open_id'}, set()),
+                'prepare-save': ('native_project_prepare_save', {'open_id', 'expected_stamp', 'expected_head', 'command_id'}, set()),
+                'save-head': ('native_project_save_head', {'target_id', 'save_command_id', 'expected_head', 'command_id'}, {'open_id'}),
+            }
+            if name not in contracts:
+                raise ServiceError(404, '해당 native 프로젝트 작업이 없습니다.')
+            operation, required, optional = contracts[name]
+            if not required <= set(body) or set(body) - required - optional:
+                raise ServiceError(400, '선택한 저장본과 현재 작업의 정확한 인수만 지정하세요.')
+            return handler._json(200, getattr(workbench, operation)(**body))
         if path == '/api/workbench/remote':
             if set(body) != {'operation','arguments'} or not isinstance(body['arguments'],dict):
                 raise ServiceError(400, '원격 목록/입력/보존 상태 명령을 지정하세요.')

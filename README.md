@@ -81,7 +81,10 @@ FreeCAD·ParaView가 설치되어 있다면 시작 메뉴의 **전처리**, **�
 
 [작업을 다른 폴더나 PC로 옮기기](docs/portable_connection_c3a/README_KO.md#실제-사용자-동선)에서는
 시험 데이터·재료·수치 계획과 미완성 입력을 함께 옮기고 편집을 이어 갑니다.
-해석·연구·보고서와 CAD/후처리 파일의 이동 범위는 추가 개발 중입니다.
+FreeCAD·ParaView의 저장 프로젝트를 옮기는 방법은 [모델 안내](docs/native-project/PRE_KO.md)와
+[분석 안내](docs/native-project/POST_KO.md)에 있습니다. [연구 문서와 함께 옮기기](docs/native-project/RESEARCH_KO.md),
+[연구에서 저장 모델·분석 열기](docs/native-project/CONNECTED_KO.md)도 연결됩니다.
+지원하는 외부 부품과 reader, 누락 자료의 복구 범위는 각 안내에서 확인하세요.
 
 [수치 연구 안내](docs/NUMERICAL_WORKFLOWS.md)는 DOE, 영향도, 불확실성,
 대리모델과 다목적 계산의 입력·결과 연결을 설명합니다. 저장한 모델의 예측과

@@ -22,12 +22,9 @@ import tempfile
 from typing import Any
 import uuid
 
-from .connection_graph import SnapshotReader, is_acknowledged_container
-from .portable_project_drafts import AcknowledgedReader, WORKING, POLICIES, CAPSULE_CONTRACT, virtual_revision
 from .connection_graph_refs import (TypedReference, comparison_references,
                                     document_references, draft_references, replace_at)
 from .evaluation import file_hash, read_result
-from .jobs import TERMINAL
 from .portable_project_io import (Issue, PortableProjectError, MAX_BYTES, MAX_FILES,
     copy_verified, extract_archive, fail, fingerprint_file, inside, json_file,
     no_links, relative_name, verify_inventory)
@@ -39,6 +36,15 @@ SUPPORTED = {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde'
 _PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B', 'study': 'S', 'expert': 'X', 'pde': 'Q', 'simulation': 'V', 'evaluation': 'E'}
 _DENIED_NAMES = {'.env', 'credentials', 'credentials.json', 'token', 'token.json',
                  'id_rsa', 'id_ed25519', 'operator.json', 'service.json'}
+
+
+def _research_dependencies():
+    # Native-only file work must run in the existing FreeCAD/ParaView Python
+    # without importing research owners, JobManager or its filelock dependency.
+    global SnapshotReader, is_acknowledged_container
+    global AcknowledgedReader, WORKING, POLICIES, CAPSULE_CONTRACT, virtual_revision
+    from .connection_graph import SnapshotReader, is_acknowledged_container
+    from .portable_project_drafts import AcknowledgedReader, WORKING, POLICIES, CAPSULE_CONTRACT, virtual_revision
 
 
 def _asset_name(name: str, kind: str | None = None) -> str:
@@ -141,7 +147,7 @@ def _unpinned_job_inputs(document: dict):
                     yield path + '/' + field
 
 
-def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='acknowledged', recovery_archives=None) -> dict[str, Any]:
+def _inspect_research_copy(workbench, selections: list[str | dict], *, draft_policy='acknowledged', recovery_archives=None) -> dict[str, Any]:
     """List pinned files and missing dependencies without saving or collecting.
 
     The user reviews this exact inventory before approving creation. A selected
@@ -149,11 +155,13 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
     drafts requires explicit saved_only. Missing files block publication with
     locations/recovery; no implicit save, apply, execution or UI collection.
     """
+    _research_dependencies()
     if draft_policy not in POLICIES:
         raise ValueError('초안 포함(acknowledged) 또는 저장본만(saved_only)을 명시하세요.')
     reader = AcknowledgedReader(workbench)
     issues: list[Issue] = []
     warnings: list[dict] = []
+    native_references = []
     try:
         chosen = _selections(reader, selections, draft_policy)
     except PortableProjectError as error:
@@ -276,6 +284,9 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
             refs = [*document_references(document, include_history=True), *comparison_references(document),
                     *extra_references(document)]
             for typed in refs:
+                if typed.value.get('kind') in {'native_pre', 'native_post'}:
+                    native_references.append(deepcopy(typed.value))
+                    continue
                 if (typed.value.get('kind') == 'knowledge'
                         or typed.value.get('paper_id') and not typed.value.get('document_id')):
                     continue  # Exact local/public archive closure was checked above.
@@ -346,12 +357,21 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
         'revisions': [{'document_id': i, 'saved_revision': r} for i, r in sorted(visited)],
         'bytes_to_copy': total * 2 + recovery_bytes + report_archive_bytes * 2, 'warnings': warnings, 'issues': [asdict(i) for i in issues],
         'executed': False, 'engineering_release': 'NOT_RELEASED'}
+    if native_references:
+        result['_native_references'] = native_references
     result['inspection_sha256'] = canonical_hash(result)
     return result
 
 
+def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='acknowledged', recovery_archives=None):
+    from .portable_project_native import inspect_union
+    return inspect_union(workbench, selections, research_inspector=_inspect_research_copy,
+                         draft_policy=draft_policy, recovery_archives=recovery_archives)
+
+
 class _Fork:
     def __init__(self, wb, plan, stage, project_id):
+        _research_dependencies()
         self.wb, self.plan, self.stage = wb, plan, stage
         self.reader = AcknowledgedReader(wb, [r['document_id'] for r in plan['documents']]
                                          if plan.get('draft_policy') == 'acknowledged' else ())
@@ -404,6 +424,9 @@ class _Fork:
 
     def reference(self, typed):
         ref, target = deepcopy(typed.value), typed.document_id
+        if ref.get('kind') in {'native_pre', 'native_post'}:
+            from .native_project_contract import project_native_reference
+            return project_native_reference(ref, self.native_mapping)
         if ref.get('kind') == 'knowledge':
             return ref  # Exact knowledge IDs/revisions/locators/hashes are never rewritten.
         if ref.get('paper_id') and not target:
@@ -443,7 +466,7 @@ class _Fork:
         for typed in draft_references(kind, value):
             if kind == 'report':
                 from .portable_project_report import can_navigate
-                if not can_navigate(typed.value, self.documents):
+                if not can_navigate(typed.value, self.documents, self.native_mapping):
                     continue
             replace_at(draft, typed.path, self.reference(typed))
         from .portable_research_owner import current_draft
@@ -730,11 +753,15 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
                 fail('OWNER_BUSY', row['document_id'], '원 도구에서 문서를 처리 중입니다. 사본은 발행하지 않았습니다.',
                      '처리가 끝난 뒤 같은 포함 목록으로 다시 시도하세요.', row['document_id'])
             locks.callback(lock.release)
-        locks.enter_context(workbench.material_documents._lock('ViewConnectionState'))
+        if inspection['selections']:
+            locks.enter_context(workbench.material_documents._lock('ViewConnectionState'))
+        if inspection.get('native_inspections'):
+            from .portable_project_native import native_context
+            locks.enter_context(native_context(workbench).lock)
         prior_receipt = existing_receipt()  # A concurrent identical call may have completed.
         if prior_receipt:
             return prior_receipt
-        fresh = inspect_copy(workbench, inspection['selections'], draft_policy=inspection.get('draft_policy', 'saved_only'),
+        fresh = inspect_copy(workbench, inspection['selections'] + inspection.get('native_selections', []), draft_policy=inspection.get('draft_policy', 'saved_only'),
                              recovery_archives=inspection.get('recovery_selections', []))
         if fresh.get('inspection_sha256') != inspection['inspection_sha256']:
             fail('STALE_INSPECTION', str(destination), '포함 자료나 문서 입력/저장 개정이 바뀌었습니다.', '포함 목록을 새로 확인하세요.')
@@ -742,12 +769,27 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
         reserved = False
         try:
             project_id = 'P' + uuid.uuid4().hex
-            fork = _Fork(workbench, inspection, stage, project_id)
-            documents = fork.write()
-            from .portable_project_recovery import write_archives
-            recovery_archives = write_archives(fork)
-            from .connection_graph_view import transfer_view
-            transfer_view(workbench, stage, fork.documents, inspection.get('view_state'))
+            native = {}
+            if inspection.get('native_inspections'):
+                from .portable_project_native import native_context, stage_native
+                choices = [{'reference': r['native'], 'working_target': r['working_target']}
+                           for r in inspection['native_selections']]
+                native = stage_native(native_context(workbench), inspection['native_inspections'], stage,
+                                      project_id=project_id, local_ids={'selections': choices})
+            if inspection['selections']:
+                fork = _Fork(workbench, inspection, stage, project_id)
+                fork.native_mapping = native.get('native_mapping', [])
+                documents = fork.write()
+                from .portable_project_recovery import write_archives
+                recovery_archives = write_archives(fork)
+                from .connection_graph_view import transfer_view
+                transfer_view(workbench, stage, fork.documents, inspection.get('view_state'))
+            else:
+                from types import SimpleNamespace
+                fork = SimpleNamespace(knowledge_revisions=[], literature_archives=[], documents={}, revisions={}, input_ids={})
+                documents, recovery_archives = [], []
+                (stage / 'workbench').mkdir(exist_ok=True)
+                (stage / 'portable').mkdir(exist_ok=True)
             immutable = []
             for path in sorted(stage.rglob('*')):
                 if not path.is_file():
@@ -765,7 +807,7 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
                 'knowledge_revisions': fork.knowledge_revisions,
                 'literature_archives': fork.literature_archives,
                 'knowledge_workspace_id': 'portable:' + project_id if fork.knowledge_revisions else 'local',
-                'capsule_boundary': deepcopy(CAPSULE_CONTRACT),
+                'capsule_boundary': deepcopy(inspection['capsule_boundary']),
                 'revision_map': [{'source_document_id': i, 'source_revision': r,
                                   'document_id': fork.documents[i], 'revision': new} for (i, r), new in sorted(fork.revisions.items())],
                 'input_map': [{'source_document_id': i, 'source_input_revision': r,
@@ -773,12 +815,14 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
                                'input_sha256': fork.input_hash(i, r)} for (i, r), new in sorted(fork.input_ids.items())],
                 'files': immutable, 'warnings': inspection['warnings'], 'executed': False,
                 'engineering_release': 'NOT_RELEASED'}
+            if native:
+                manifest.update(native, format='caelab.portable-project/2')
             manifest['manifest_sha256'] = canonical_hash(manifest)
             save_json(stage / MANIFEST, manifest)
             checked = verify_project(stage)
             if checked['status'] != 'READY':
                 raise PortableProjectError([Issue(**i) for i in checked['issues']])
-            last = inspect_copy(workbench, inspection['selections'], draft_policy=inspection.get('draft_policy', 'saved_only'),
+            last = inspect_copy(workbench, inspection['selections'] + inspection.get('native_selections', []), draft_policy=inspection.get('draft_policy', 'saved_only'),
                              recovery_archives=inspection.get('recovery_selections', []))
             if last.get('inspection_sha256') != inspection['inspection_sha256']:
                 fail('SOURCE_CHANGED', str(workbench.workspace), '복사 중 원본 자료가 바뀌었습니다.', '포함 목록부터 다시 확인하세요.')
@@ -787,8 +831,9 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
             destination.mkdir(exist_ok=False)
             reserved = True
             save_json(destination / '.incomplete.json', {'project_id': project_id, 'state': 'PUBLISHING'})
-            for name in ('workbench', 'portable'):
-                (stage / name).rename(destination / name)
+            for name in ('workbench', 'portable', 'native'):
+                if (stage / name).exists():
+                    (stage / name).rename(destination / name)
             (stage / MANIFEST).rename(destination / MANIFEST)  # Completion marker LAST.
             (destination / '.incomplete.json').unlink()
             stage.rmdir()
@@ -807,8 +852,11 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
 
 def _manifest(folder: Path) -> dict:
     manifest = json_file(folder / MANIFEST)
-    if manifest.get('format') != FORMAT:
+    if manifest.get('format') not in {FORMAT, 'caelab.portable-project/2'}:
         raise ValueError('지원하는 제품 작업 사본이 아닙니다.')
+    native_keys = {'native_contract', 'native_inputs', 'native_projects', 'native_mapping'}
+    if manifest['format'] == FORMAT and native_keys.intersection(manifest):
+        raise ValueError('Native 기록에는 portable-project/2가 필요합니다.')
     expected = manifest.get('manifest_sha256')
     if canonical_hash({k: v for k, v in manifest.items() if k != 'manifest_sha256'}) != expected:
         fail('MANIFEST_CHANGED', folder / MANIFEST, '사본의 포함/대응 기록이 변경되었습니다.', '원래의 작업 사본 기록을 복구하세요.')
@@ -838,8 +886,11 @@ def verify_project(folder: str | Path) -> dict:
                 if path.is_file():
                     relative_name(path.relative_to(folder).as_posix())
         issues = verify_inventory(folder, manifest['files'])
-        from .portable_project_recovery import verify_archives
-        verify_archives(folder, manifest)
+        if manifest.get('recovery_archives'):
+            from .portable_project_recovery import verify_archives
+            verify_archives(folder, manifest)
+        elif manifest.get('recovery_archives') != []:
+            raise ValueError('Invalid recovery archive list')
         # Current document heads can evolve through the original owner.save.
         # Do not pin mutable heads to their original export bytes.
         for row in manifest['documents']:
@@ -901,7 +952,12 @@ def verify_project(folder: str | Path) -> dict:
                 from .portable_project_report import verify_current
                 verify_current(owner_root, draft if working.exists() and
                     draft.get('saved_revision') == revision else current)
-        return {'status': 'BLOCKED' if issues else 'READY', 'project_id': manifest['project_id'],
+        native = {}
+        if manifest['format'] == 'caelab.portable-project/2':
+            from .native_project_inputs import NativeOnlyContext
+            from .portable_project_native import verify_native
+            native = verify_native(NativeOnlyContext(folder, approved_roots={}), manifest)
+        return {**native, 'status': 'BLOCKED' if issues else 'READY', 'project_id': manifest['project_id'],
                 'documents': manifest['documents'], 'issues': [asdict(i) for i in issues],
                 'executed': False, 'engineering_release': 'NOT_RELEASED'}
     except PortableProjectError as error:
@@ -921,6 +977,9 @@ def open_project(folder: str | Path):
     checked = verify_project(folder)
     if checked['status'] != 'READY':
         raise PortableProjectError([Issue(**i) for i in checked['issues']])
+    if not checked['documents'] and _manifest(Path(folder))['format'] == 'caelab.portable-project/2':
+        from .native_project_inputs import NativeOnlyContext
+        return NativeOnlyContext(folder, approved_roots={})
     from .workbench import Workbench
     wb = Workbench(folder)
     try:

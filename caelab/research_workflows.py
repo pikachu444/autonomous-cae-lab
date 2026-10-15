@@ -264,6 +264,12 @@ def resolve_reference(wb, reference):
     if error:
         raise ValueError(error)
     kind = reference['kind']
+    if kind in {'native_pre', 'native_post'}:
+        from .native_project_inputs import context_from_workbench, verify_registered
+        verified = verify_registered(context_from_workbench(wb), reference, full=True)
+        return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(verified.reference),
+                'native_project': deepcopy(verified.snapshot),
+                'verification': 'FULL_SNAPSHOT_VERIFIED', 'engineering_release': 'UNKNOWN'}
     if kind == 'numerical_candidate_evidence':
         from .numerical_candidate_evidence import candidate_report_payload
         return candidate_report_payload(wb.numerical_documents, reference)

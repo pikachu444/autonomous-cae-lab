@@ -1,0 +1,16 @@
+{
+  "head_generation": 0,
+  "layer": "DERIVED_BASE",
+  "parent_reference": null,
+  "reference": {
+    "document_id": "D94b4d2f328f449349a2d4f9448b4c2df",
+    "input_id": "D2dba013c70b947088e6950a5d5e4a03c",
+    "kind": "native_post",
+    "saved_revision": "R9f69cc1e94c3352a6e9b2a4977821cb860979fccca959cafb5cdab79190e0d90",
+    "snapshot_sha256": "5b4ec2884c2c830786ba3422bf3ad7c45a5b6a63201ebe0b5af3de06d0deccd9",
+    "version": 1
+  },
+  "target_id": "K407a9b00235945b8b2d8046f11f72cda",
+  "version": 1,
+  "working_document_id": "D3a30647075114356a132001d3aecf075"
+}

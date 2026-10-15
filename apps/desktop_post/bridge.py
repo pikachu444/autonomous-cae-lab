@@ -68,7 +68,15 @@ def properties(proxy):
 
 
 class Owner:
-    def __init__(self, document_id=None, session_id=None):
+    def __init__(self, document_id=None, session_id=None, *, _portable_binding=None):
+        if _portable_binding is not None:
+            try:
+                from .portable_project import validate_binding
+            except ImportError:
+                from portable_project import validate_binding
+            validate_binding(_portable_binding)
+        self.portable_binding = _portable_binding
+        self.native_target_id = _portable_binding.target_id if _portable_binding is not None else None
         self.thread = threading.get_ident()
         self.session_id = session_id or "S" + uuid.uuid4().hex
         path, doc = commands.project()
@@ -82,18 +90,27 @@ class Owner:
             self.project_document['repair'] = external.recovery_records()
             self.project_document['partial_workspace'] = True
         self.title = path.parent.name
-        self.saved_revision = doc.get("workspace_sha256")
-        self.saved_generation = 0
-        self.saved_view_generation = 0
         self.generation = doc.get("generation", 0)
         self.view_generation = doc.get("view_generation", 0)
-        self.saved_generation = self.generation
-        self.saved_view_generation = self.view_generation
+        self.source_reference = deepcopy(_portable_binding.reference) if _portable_binding is not None else None
+        self.source_native_revision = (_portable_binding.verified_input.snapshot.get('native_revision')
+                                       if _portable_binding is not None else None)
+        local_saved = _portable_binding is None
+        if _portable_binding is not None and _portable_binding.intent == 'working':
+            # N0 validates DERIVED_BASE at generation 0 and NATIVE_SAVED above 0.
+            local_saved = _portable_binding.expected_head['generation'] > 0
+            if local_saved and _portable_binding.verified_input.snapshot['source_document_id'] != self.document_id:
+                raise ValueError('STALE_TARGET: saved native head belongs to another document')
+        self.saved_revision = ((self.source_native_revision if _portable_binding is not None else doc.get('workspace_sha256'))
+                               if local_saved else None)
+        self.saved_generation = self.generation if local_saved else None
+        self.saved_view_generation = self.view_generation if local_saved else None
         self._content = None
         self._view = None
         self._observers = {}
         self.closed = False
         self.completed = {}
+        self.native_completed_saves = {}
         self.modified_events = 0
         self.workspace = None
         if 'sources' in doc:
@@ -183,7 +200,15 @@ class Owner:
         self.modified_events += 1
         if self._content is not None:
             identifier = proxy_id(source)
-            applied, _ = properties(source)
+            try:
+                applied, _ = properties(source)
+            except (ValueError, RuntimeError):
+                # Native vector properties emit events while their domain is
+                # being rebuilt (e.g. array-name/status pairs are half written).
+                # Retain the checked edit in CAS; the next normal refresh still
+                # strictly reads the completed native properties or fails.
+                self.generation += 1
+                return
             if self._content.get(identifier) != applied:
                 # Observe each checked edit/Undo even if two edits happen between ticks.
                 self._content[identifier] = applied
@@ -193,46 +218,95 @@ class Owner:
         self.assert_thread()
         self.closed = True
         self._activate_origin_window = None
+        self._confirm_partial_history_save = None
         for identifier, (native, tag) in list(self._observers.items()):
             native.RemoveObserver(tag)
             self._observers.pop(identifier)
 
     def descriptor(self):
         self.assert_thread()
+        from caelab.native_post_dependencies import digest
         return {"id": self.document_id, "kind": "post", "title": self.title,
                 "generation": self.generation, "view_generation": self.view_generation,
                 "dirty": (self.generation != self.saved_generation or self.view_generation != self.saved_view_generation),
-                "saved_revision": self.saved_revision, "capabilities": list(self.operations()), "state": self.snapshot}
+                "saved_revision": self.saved_revision, "graph_version": digest([
+                    {key: row[key] for key in ('label', 'reader', 'properties')} for row in self.snapshot['sources']]),
+                "native_open_id": self.portable_binding.open_id if self.portable_binding else None,
+                "native_target_id": self.native_target_id,
+                "native_source_reference": deepcopy(self.source_reference),
+                "native_source_revision": self.source_native_revision,
+                "native_working_root": str(self.portable_binding.materialization_root) if self.portable_binding else None,
+                "capabilities": list(self.operations()), "state": self.snapshot}
 
-    def save_project(self):
+    def save_project(self, *, _target_save=None, _history_plan=None):
         """Complete the same managed save for human macros and typed commands."""
-        self.refresh()
-        if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
-            raise ValueError("BUSY_EDIT: native properties contain unapplied changes")
-        # External save verifies the healthy sources and retained analysis, and
-        # preserves unavailable branches with explicit repair records. A global
-        # source check here would make a partially recovered document unsavable.
-        path, doc = commands.project()
-        if (doc.get("kind") != external.KIND or doc.get("document_id", self.document_id) != self.document_id
-                or Path(doc.get("project_root", path.parent)).resolve() != self.project_root):
-            raise ValueError("STALE_DOCUMENT: managed save belongs to a different document")
-        if self.workspace is not None:
-            self.workspace.prepare_for_save()
+        try:
             self.refresh()
-        generation, view_generation = self.generation, self.view_generation
-        source_doc = self.project_document if self.workspace is not None else doc
-        options = {'prepare': self.workspace.prepare_save} if self.workspace is not None else {}
-        saved = external.save_project(path, dict(source_doc, document_id=self.document_id,
-                                                generation=generation, view_generation=view_generation), **options)
+            save_root = self.project_root
+            if _target_save is not None:
+                from caelab.native_project_contract import require_target_save
+                from apps.desktop_post.portable_project import _stamp
+                require_target_save(_target_save)
+                if (self.portable_binding is None or _target_save.open_id != self.portable_binding.open_id
+                        or _target_save.owner_document_id != self.document_id or _target_save.expected_stamp != _stamp(self)
+                        or _target_save.source_reference != self.portable_binding.reference):
+                    raise ValueError('STALE_DOCUMENT: native Save reservation belongs to another current owner')
+                save_root = _target_save.native_save_root.parent
+            elif (self.portable_binding is not None and self.portable_binding.intent == 'saved'
+                  and self.native_target_id is None):
+                raise ValueError('FIRST_SAVE_TARGET_REQUIRED: choose a new working project before saving this imported snapshot')
+            if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
+                raise ValueError("BUSY_EDIT: native properties contain unapplied changes")
+            # External save verifies the healthy sources and retained analysis, and
+            # preserves unavailable branches with explicit repair records. A global
+            # source check here would make a partially recovered document unsavable.
+            path, doc = commands.project()
+            if (doc.get("kind") != external.KIND or doc.get("document_id", self.document_id) != self.document_id
+                    or Path(doc.get("project_root", path.parent)).resolve() != self.project_root):
+                raise ValueError("STALE_DOCUMENT: managed save belongs to a different document")
+            if self.workspace is not None:
+                self.workspace.prepare_for_save()
+                self.refresh()
+            generation, view_generation = self.generation, self.view_generation
+            source_doc = self.project_document if self.workspace is not None else doc
+            options = {'prepare': lambda document, folder: self.workspace.prepare_save(document, folder,
+                _history_plan=_history_plan)} if self.workspace is not None else {}
+            if self.workspace is not None or self.portable_binding is not None:
+                options['_history_owner'] = self
+        except Exception as error:
+            from apps.desktop_post.portable_project import _record_definite_save_failure
+            _record_definite_save_failure(self, _target_save, error, stage='before_save')
+            raise
+        attempt = {'phase': 'INVOKED', 'command_id': _target_save.save_command_id if _target_save is not None else None}
+        self._native_save_attempt = attempt
+        try:
+            saved = external.save_project(path, dict(source_doc, document_id=self.document_id, project_root=str(save_root),
+                                                    generation=generation, view_generation=view_generation), **options)
+        except Exception as error:
+            if attempt['phase'] == 'INVOKED':
+                from apps.desktop_post.portable_project import _record_definite_save_failure
+                _record_definite_save_failure(self, _target_save, error, stage='native_save')
+            # PUBLISHED means native Save completed before this error. Preserve
+            # its path/reservation as unknown; never turn it into a retryable Save.
+            raise
+        attempt.update(phase='RETURNED', saved_file=str(saved))
         saved_doc = json.loads(saved.read_text(encoding="utf-8"))
         revision = saved_doc["workspace_sha256"]
         self.project_path = Path(saved)
+        self.project_root = Path(save_root)
+        if _target_save is not None:
+            self.native_target_id = _target_save.target_id
         self.project_document.clear()
         self.project_document.update(saved_doc)
         self.refresh()
         # Publish save completion only after the native save and manifest succeed.
         self.saved_revision = revision
         self.saved_generation, self.saved_view_generation = generation, view_generation
+        if self.workspace is not None:
+            finalized = {tuple(row['history'][key] for key in ('object_ref', 'revision_id', 'revision_sha256'))
+                         for row in saved_doc.get('native_relocation_basis', {}).get('histories', [])}
+            self.workspace._new_history_keys.difference_update(finalized)
+        attempt['phase'] = 'COMPLETED'
         return saved
 
     def dispatch(self, request):
@@ -249,6 +323,7 @@ class Owner:
         self.refresh()
         result = {"command_id": identifier, "document_id": self.document_id, "session_id": self.session_id,
                   "generation": self.generation, "view_generation": self.view_generation, "supports_cancel": "queued_only"}
+        save_entered = False
         try:
             if request.get("document_id") != self.document_id or request.get("session_id") != self.session_id:
                 raise ValueError("STALE_DOCUMENT: wrong document or owner session")
@@ -294,8 +369,49 @@ class Owner:
                 if operation == "document.save":
                     if arguments or target:
                         raise ValueError("document.save uses the managed document save location")
-                    saved = self.save_project()
+                    target_save = None
+                    wire = request.get('_target_save')
+                    if wire is not None:
+                        if (not isinstance(wire, dict) or set(wire) != {'prepare_command_id', 'save_command_id', 'open_id'}
+                                or wire['save_command_id'] != identifier or self.portable_binding is None
+                                or wire['open_id'] != self.portable_binding.open_id):
+                            raise ValueError('STALE_DOCUMENT: invalid current native Save reservation')
+                        from caelab.native_project_inputs import resume_target_save
+                        context = getattr(self, 'native_project_context', None)
+                        if context is None:
+                            raise ValueError('Current native open context is required for Save')
+                        target_save = resume_target_save(context, wire['prepare_command_id'])
+                        if target_save.save_command_id != identifier or target_save.open_id != wire['open_id']:
+                            raise ValueError('STALE_DOCUMENT: native Save reservation differs')
+                    history_plan = None
+                    unavailable = [row for row in self.project_document.get('native_history_availability', {}).get('histories', [])
+                                   if row['state'] == 'UNAVAILABLE_DECLARED']
+                    if unavailable and self.portable_binding is not None:
+                        from apps.desktop_post.portable_project import prepare_history_save, _stamp, _expect
+                        history_plan = prepare_history_save(self, expected_stamp=_stamp(self), preserve_unavailable=True)
+                        confirm = getattr(self, '_confirm_partial_history_save', None)
+                        if confirm is None or confirm(deepcopy(unavailable)) is not True:
+                            message = ('USER_CANCELLED: 누락 분석의 과거 기록 보관을 취소했습니다.' if confirm is not None else
+                                'HISTORY_CONFIRMATION_REQUIRED: 현재 ParaView 창에서 누락 분석의 과거 기록 보관을 확인한 뒤 다시 저장하세요.')
+                            raise ValueError(message)
+                        _expect(self, history_plan.owner_stamp)
+                    save_entered = True
+                    if target_save is not None or history_plan is not None:
+                        saved = self.save_project(_target_save=target_save, _history_plan=history_plan)
+                    else:
+                        saved = self.save_project()
+                    save_receipt = None
+                    if self.portable_binding is not None:
+                        try:
+                            from .portable_project import record_completed_save
+                        except ImportError:
+                            from portable_project import record_completed_save
+                        witness = record_completed_save(self, saved, identifier)
+                        from caelab.native_project_inputs import _save_witness_receipt
+                        save_receipt = _save_witness_receipt(witness, self.portable_binding, _target_save=target_save)
                     payload = {"project": str(saved), "document_id": self.document_id}
+                    if save_receipt is not None:
+                        payload['native_save_receipt'] = save_receipt
                 else:
                     if source is None:
                         raise ValueError("post.select_array requires an exact source_id")
@@ -309,6 +425,9 @@ class Owner:
                 self.refresh()
             result.update(status="COMPLETED", result=payload, generation=self.generation, view_generation=self.view_generation)
         except Exception as error:
+            if not save_entered:
+                from apps.desktop_post.portable_project import _reject_reserved_save_before_effect
+                _reject_reserved_save_before_effect(self, request, error)
             self.refresh()
             result.update(status="FAILED", error={"type": type(error).__name__, "message": str(error)}, generation=self.generation, view_generation=self.view_generation)
         self.completed[identifier] = (stamp, result)
@@ -364,6 +483,7 @@ class GuiDispatch:
                 else:
                     from curve_origin_native import activate_window
                 self.owner._activate_origin_window = lambda: activate_window(self.owner, self.native_controls)
+                self.owner._confirm_partial_history_save = self._confirm_partial_history_save
         except Exception as error:
             print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
         try:
@@ -377,6 +497,24 @@ class GuiDispatch:
                   '기존 X/Alt+F4/저장 매크로를 사용하세요. '+str(error))
         return self
 
+    def _confirm_partial_history_save(self, rows):
+        self.owner.assert_thread()
+        controls = self.native_controls
+        if controls is None or controls.closed or controls.in_action or not controls.main:
+            return False
+        lines = []
+        for row in rows:
+            title = self.owner.workspace.object(row['history']['object_ref']).get('title', '분석')
+            names = [Path(item['expected_child']['relative']).name for item in row['missing'] if item.get('expected_child')]
+            lines.append(title + ': ' + ', '.join(names))
+        controls.in_action = True
+        try:
+            return controls.platform.confirm_save(controls.main,
+                '다음 파일이 없는 분석을 과거 기록으로 함께 저장할까요?\n\n' + '\n'.join(lines)
+                + '\n\n원 기록과 누락 목록을 보존합니다. 원값을 복구하기 전에는 검증된 결과로 사용할 수 없습니다.')
+        finally:
+            controls.in_action = False
+
     def _tick(self, *_):
         self.owner.assert_thread()
         if self.closed:
@@ -386,6 +524,7 @@ class GuiDispatch:
                 self.native_controls.refresh()
             except Exception as error:
                 self.owner._activate_origin_window = None
+                self.owner._confirm_partial_history_save = None
                 self.native_controls.close()
                 self.native_controls = None
                 print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
@@ -449,6 +588,7 @@ class GuiDispatch:
             self.native_exit.close()
         self.closed = True
         self.owner._activate_origin_window = None
+        self.owner._confirm_partial_history_save = None
         # Keep the closed receipt on the existing broker; it reconciles queued
         # commands without pretending a native calculation was cancelled.
         if self.broker_close is not None:
@@ -488,12 +628,14 @@ class BrokerIO(_NativeBrokerIO):
         dispatcher.broker_close = self.close
 
 
-def start(service_url, *, log=None):
-    owner = Owner()
+def start(service_url=None, *, log=None, owner=None, _portable_binding=None):
+    owner = owner or Owner(_portable_binding=_portable_binding)
+    if _portable_binding is not None and owner.portable_binding is not _portable_binding:
+        raise ValueError('STALE_TARGET: existing Post owner belongs to another open ticket')
     dispatcher = GuiDispatch(owner)
     try:
         dispatcher.install()
-        broker = BrokerIO(dispatcher, service_url, log=log).start()
+        broker = BrokerIO(dispatcher, service_url, log=log).start() if service_url else None
         commands.set_save_owner(owner)
     except Exception:
         dispatcher.close()

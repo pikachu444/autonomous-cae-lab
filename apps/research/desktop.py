@@ -460,12 +460,33 @@ def _folder(context, tool, output=None):
     return folder
 
 
-def _pre(client, args):
-    context = client.desktop_context()
+def _pre(client, args, *, _native_project_ticket=None, _local_context=None):
+    ticket = _native_project_ticket
+    if ticket is not None:
+        from caelab.native_project_contract import NativeOpenTicket, require_open_binding, require_verified_input
+        if type(ticket) is not NativeOpenTicket:
+            raise ValueError('현재 검증된 모델 열기 요청을 선택하세요.')
+        binding = require_open_binding(ticket.binding)
+        verified = require_verified_input(ticket.verified_input)
+        if (binding.reference != verified.reference or binding.context_session != verified.context_session
+                or verified.snapshot['native_kind'] != 'pre' or ticket.status != 'PREPARED'):
+            raise ValueError('선택한 모델의 현재 열기 요청이 다릅니다.')
+        if any(getattr(args, key, None) for key in ('source', 'assembly', 'input_id')):
+            raise ValueError('저장한 모델과 다른 원 입력을 함께 열 수 없습니다.')
+    if client is None:
+        if ticket is None or _local_context is None:
+            raise ValueError('독립 열기에는 현재 설치와 검증된 모델 요청이 필요합니다.')
+        context = dict(_local_context)
+        if Path(context['repo_root']).resolve(strict=True) != Path(__file__).resolve().parents[2]:
+            raise ValueError('사본에 기록된 경로 대신 현재 설치에서 열어 주세요.')
+    else:
+        context = client.desktop_context()
     executable = _executable(context, 'freecad_executable', args.executable, not args.prepare_only)
     folder = _folder(context, 'pre', args.output)
-    config = {'output':str(folder), 'service_url':client.url,
+    config = {'output':str(folder), 'service_url':client.url if client is not None else None,
               'export_root':context['export_root'], 'python':context['python']}
+    if ticket is not None:
+        config['native_project_open'] = ticket.derived['launch_config']
     if context.get('paraview_executable'):
         config['paraview_executable'] = context['paraview_executable']
     if getattr(args, 'input_id', None):
@@ -544,7 +565,40 @@ def _register_post_inspection(client, selected):
 
 
 def _post(client, args, *, _report_origin=None, _report_launch=None,
-          _measurement_origin=None, _origin_launch=None):
+          _measurement_origin=None, _origin_launch=None,
+          _native_project_ticket=None, _local_context=None):
+    native_ticket = _native_project_ticket
+    if native_ticket is not None:
+        from caelab.native_project_contract import NativeOpenTicket, require_open_binding, require_verified_input
+        from caelab.native_post_dependencies import verify_snapshot_members
+        if type(native_ticket) is not NativeOpenTicket:
+            raise ValueError('A verified current native project ticket is required')
+        binding = require_open_binding(native_ticket.binding)
+        verified = require_verified_input(native_ticket.verified_input)
+        if (binding.reference != verified.reference or binding.context_session != verified.context_session
+                or verified.snapshot['native_kind'] != 'post'):
+            raise ValueError('The native Post ticket belongs to another registered source')
+        if native_ticket.status != 'PREPARED' or verified.snapshot['format'] != 'post-project':
+            raise ValueError('MANAGED_SAVE_REQUIRED: save this raw state as an analysis project first')
+        if any(getattr(args, key, None) for key in ('job_id', 'input_path', 'input_id', 'research_source',
+                'measurement_result', 'curve_origin', 'report_image')) or any(value is not None for value in
+                (_report_origin, _report_launch, _measurement_origin, _origin_launch)):
+            raise ValueError('A native project ticket cannot share a job, result or origin launch')
+        verify_snapshot_members(verified.snapshot, verified.member_paths)
+        project = Path(native_ticket.derived['project_path']).resolve(strict=True)
+        if project != (binding.working_root / 'project.json').resolve(strict=True):
+            raise ValueError('The native Post project is outside its exact current working ticket')
+        args.project = str(project)
+    if client is None:
+        if native_ticket is None or _local_context is None:
+            raise ValueError('Standalone Post launch requires a verified native project and current local installation context')
+        context = dict(_local_context)
+        installed_repository = Path(__file__).resolve().parents[2]
+        if Path(context['repo_root']).resolve(strict=True) != installed_repository:
+            raise ValueError('Use the current local installation, not a repository path from the copied project')
+    else:
+        context = client.desktop_context()
+    service_url = client.url if client is not None else None
     if getattr(args, 'curve_origin', None):
         from .post_curve_origin import launch_saved_measurement
         return launch_saved_measurement(client, args)
@@ -552,7 +606,6 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
     if getattr(args, 'report_image', None):
         from .report_image_origin import launch_saved_project
         return launch_saved_project(client, args)
-    context = client.desktop_context()
     executable = _executable(context, 'paraview_executable', args.executable, not args.prepare_only)
     exit_plugin = os.environ.get('CAE_POST_EXIT_PLUGIN')
     exit_runtime = os.environ.get('CAE_POST_PARAVIEW_ROOT')
@@ -617,7 +670,7 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
     state = (project.parent / document['workspace_file']).resolve(strict=True)
     if not state.is_file():
         raise ValueError('The selected Post project has no native workspace state')
-    origin_job_id = args.job_id or document.get('origin_job_id')
+    origin_job_id = None if native_ticket is not None else args.job_id or document.get('origin_job_id')
     if args.job_id:
         if args.project and research_source is None:
             research_source = document.get('origin_research_source')
@@ -638,13 +691,21 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
     if args.prepare_only:
         return {'status':'PREPARED', 'project':str(project), 'state':str(state)}
     environment = dict(os.environ, PV_MACRO_PATH=str(home / ('macros_external' if document.get('kind') == 'external-result' else 'macros')),
-        CAE_POST_HOME=str(home), CAE_POST_PROJECT=str(project), CAE_POST_SERVICE_URL=client.url,
+        CAE_POST_HOME=str(home), CAE_POST_PROJECT=str(project),
         CAE_POST_LAUNCH_DIR=str(folder),
         CAELAB_DESKTOP_PYTHON=context['python'], CAELAB_REPO_ROOT=context['repo_root'])
     # Prevent an inherited Post origin from attaching itself to an unrelated input.
     environment.pop('CAELAB_ORIGIN_JOB_ID', None)
     environment.pop('CAE_POST_MEASUREMENT', None)
     environment.pop('CAE_POST_REPORT_ORIGIN', None)
+    environment.pop('CAE_POST_NATIVE_OPEN', None)
+    environment.pop('CAE_POST_SERVICE_URL', None)
+    if service_url:
+        environment['CAE_POST_SERVICE_URL'] = service_url
+    else:
+        environment.pop('CAELAB_SERVICE_URL', None)
+    if native_ticket is not None:
+        environment['CAE_POST_NATIVE_OPEN'] = native_ticket.derived['launch_config']
     if _report_origin is not None:
         from .report_image_origin import prepare_native_environment
         prepare_native_environment(_report_origin, project, folder, environment)
@@ -741,6 +802,7 @@ def _arguments(argv=None):
         tool.add_argument('--job-id' if name == 'runner' else '--document-id')
     for tool in (pre, post):
         tool.add_argument('--executable'); tool.add_argument('--output'); tool.add_argument('--prepare-only', action='store_true')
+        tool.add_argument('--native-project-open-id')
     post.add_argument('--job-id')
     post.add_argument('--research-source')
     return parser.parse_args(argv)
@@ -751,7 +813,21 @@ def main(argv=None):
     if not args.service:
         raise ValueError('Specify the existing local service URL')
     client = Client(args.service)
-    if args.tool == 'pre': result = _pre(client, args)
+    if args.tool in {'pre', 'post'} and args.native_project_open_id:
+        if args.prepare_only or any(getattr(args, key, None) for key in ('source', 'assembly', 'input_id',
+                'input_path', 'project', 'job_id', 'research_source', 'measurement_result', 'curve_origin', 'report_image')):
+            raise ValueError('저장본 열기 요청과 다른 입력을 함께 지정할 수 없습니다.')
+        from .native_project_actions import NativeProjectActions
+        from caelab.portable_project_native import resume_open_ticket, claim_open_launch
+        view = client.native_project_open_ticket(args.native_project_open_id)
+        if view['native_kind'] != args.tool:
+            raise ValueError('선택한 저장본의 프로그램이 다릅니다.')
+        if view['status'] == 'PREPARED':
+            context, ticket = resume_open_ticket(view['launch_config'])
+            claim_open_launch(context, args.native_project_open_id)
+            (_pre if args.tool == 'pre' else _post)(client, args, _native_project_ticket=ticket)
+        result = NativeProjectActions(client).check_open(args.native_project_open_id)
+    elif args.tool == 'pre': result = _pre(client, args)
     elif args.tool == 'post': result = _post(client, args)
     elif args.tool == 'origin': result = open_origin(client, args.job_id)
     else:

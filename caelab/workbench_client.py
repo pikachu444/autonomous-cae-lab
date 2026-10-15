@@ -80,6 +80,27 @@ class Client:
         return self.request('/api/workbench/connection/view-save', {'state': state, 'scope': scope,
             'expected_revision': expected_revision, 'expected_sha256': expected_sha256, 'command_id': command_id})
 
+    def native_project_register(self, source, *, replacements=(), command_id):
+        return self.request('/api/workbench/native-project/register', {'source': source,
+            'replacements': list(replacements), 'command_id': command_id})
+
+    def native_project_read(self, reference, *, facet='summary'):
+        return self.request('/api/workbench/native-project/read', {'reference': reference, 'facet': facet})
+
+    def native_project_prepare_open(self, request, *, command_id):
+        return self.request('/api/workbench/native-project/prepare-open', {'request': request, 'command_id': command_id})
+
+    def native_project_open_ticket(self, open_id):
+        return self.request('/api/workbench/native-project/open-ticket', {'open_id': open_id})
+
+    def native_project_prepare_save(self, open_id, *, expected_stamp, expected_head, command_id):
+        return self.request('/api/workbench/native-project/prepare-save', {'open_id': open_id,
+            'expected_stamp': expected_stamp, 'expected_head': expected_head, 'command_id': command_id})
+
+    def native_project_save_head(self, target_id, save_command_id, *, expected_head, command_id, open_id=None):
+        return self.request('/api/workbench/native-project/save-head', {'target_id': target_id,
+            'save_command_id': save_command_id, 'expected_head': expected_head, 'command_id': command_id, 'open_id': open_id})
+
     def portable_inspect(self, selections, *, draft_policy='acknowledged', recovery_archives=None):
         return self.request('/api/workbench/portable-project/inspect',
                             {'selections': selections, 'draft_policy': draft_policy, 'recovery_archives': recovery_archives})

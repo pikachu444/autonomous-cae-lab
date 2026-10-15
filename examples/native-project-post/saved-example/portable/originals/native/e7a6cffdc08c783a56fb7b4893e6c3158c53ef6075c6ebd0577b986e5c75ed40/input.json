@@ -1,0 +1,77 @@
+{
+  "bytes": 22420,
+  "created_utc": "2026-10-15T19:45:15.406636+00:00",
+  "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/0/project.json",
+  "files": [
+    {
+      "bytes": 22420,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/0/project.json",
+      "relative": "sets/0/project.json",
+      "sha256": "252cdd1c090a77710b7c3e4df7bdc21aab63a80bb4763adcd61e005c98b212b4"
+    },
+    {
+      "bytes": 239887,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/0/analysis.pvsm",
+      "relative": "sets/0/analysis.pvsm",
+      "sha256": "1e252f43c41818595e04fdce2f5a9e146b5687b34fc436d4fa0d016ce0334598"
+    },
+    {
+      "bytes": 182,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/1/series.pvd",
+      "relative": "sets/1/series.pvd",
+      "sha256": "ae49bfd6a09eb75f26238ed579f528a77909df754a8511243f93c26240354f3b"
+    },
+    {
+      "bytes": 1700,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/1/frame0.vtu",
+      "relative": "sets/1/frame0.vtu",
+      "sha256": "4ce72050267020965815dff3b8e58fd2940f2814153304d38e92f000b6fe7616"
+    },
+    {
+      "bytes": 1699,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/1/frame1.vtu",
+      "relative": "sets/1/frame1.vtu",
+      "sha256": "aa5ec72da475002dc04e2852f6c03c599ced07b83c139751896122ee163e3330"
+    },
+    {
+      "bytes": 1690,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/2/frame0.vtu",
+      "relative": "sets/2/frame0.vtu",
+      "sha256": "d2e9e96399f6e9b3df6c489e173c0d69b2a58a3d85db0318b882aa5f94990ace"
+    },
+    {
+      "bytes": 2272,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/3/result.vtu",
+      "relative": "sets/3/result.vtu",
+      "sha256": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384"
+    },
+    {
+      "bytes": 2272,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/4/result.vtu",
+      "relative": "sets/4/result.vtu",
+      "sha256": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384"
+    },
+    {
+      "bytes": 2568,
+      "file": "inputs/De8f4d895f922475eafa618bc161496e5/files/sets/5/result.vtu",
+      "relative": "sets/5/result.vtu",
+      "sha256": "f7556e7a2e48849ac6a4263ef546f0620df7f78d6dfb09faa594f614a0593ebc"
+    }
+  ],
+  "format": "post-project",
+  "id": "De8f4d895f922475eafa618bc161496e5",
+  "kind": "native_post_project",
+  "name": "project.json",
+  "native_project": {
+    "manifest_file": "native-project.json",
+    "manifest_sha256": "01c2321dc45b6ab7a82dbb359c237890fded8c2d1c3d62d790a51ecbf55a8d77",
+    "version": 1
+  },
+  "origin": {
+    "mode": "LOCAL_SNAPSHOT",
+    "relative": "sets/0/project.json",
+    "root_id": "original"
+  },
+  "sha256": "252cdd1c090a77710b7c3e4df7bdc21aab63a80bb4763adcd61e005c98b212b4",
+  "total_bytes": 274690
+}

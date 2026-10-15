@@ -1,10 +1,8 @@
 """Immutable VTU/PVD snapshots; native readers retain the format's meaning."""
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 import hashlib
 import json
-import math
 import os
-import xml.etree.ElementTree as ET
 
 from .evaluation import file_hash
 from .storage import save_json, utc_now, canonical_hash
@@ -30,53 +28,10 @@ def _within_root(path, root):
 
 
 def _files(source, root):
-    paths = [source]
-    parsed_sha = None
-    if source.suffix.lower() == '.pvd':
-        if source.stat().st_size > 8 * 1024 * 1024:
-            raise ValueError('PVD collection metadata exceeds 8 MiB')
-        with source.open('rb') as stream:
-            payload = stream.read(8 * 1024 * 1024 + 1)
-        if len(payload) > 8 * 1024 * 1024:
-            raise ValueError('PVD collection metadata exceeds 8 MiB')
-        text = payload.decode('utf-8-sig')
-        if '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():
-            raise ValueError('PVD declarations and entities are not supported')
-        try:
-            document = ET.fromstring(text)
-        except ET.ParseError as exc:
-            raise ValueError(f'Invalid PVD collection XML: {exc}') from exc
-        if document.tag != 'VTKFile' or document.get('type') != 'Collection':
-            raise ValueError('A VTK Collection PVD file is required')
-        collection = document.find('Collection')
-        datasets = [] if collection is None else collection.findall('DataSet')
-        if not datasets:
-            raise ValueError('PVD collection has no datasets')
-        if len(datasets) > 1024:
-            raise ValueError('PVD registration supports at most 1024 datasets')
-        references = []
-        for dataset in datasets:
-            relative = dataset.get('file', '')
-            if (not relative or '\\' in relative or ':' in relative or '\x00' in relative
-                    or Path(relative).anchor or PureWindowsPath(relative).anchor):
-                raise ValueError('PVD dependencies require relative file paths')
-            if '..' in Path(relative).parts:
-                raise ValueError('PVD datasets must be inside the collection folder')
-            if Path(relative).suffix.lower() != '.vtu':
-                raise ValueError('PVD registration currently supports VTU datasets only')
-            try:
-                time = float(dataset.attrib['timestep'])
-            except (KeyError, ValueError) as exc:
-                raise ValueError('Each PVD frame needs a finite numeric timestep') from exc
-            if not math.isfinite(time):
-                raise ValueError('Each PVD frame needs a finite numeric timestep')
-            references.append(relative)
-        for relative in references:
-            dependency = _within_root(source.parent / relative, root)
-            if dependency not in paths:
-                paths.append(dependency)
-        parsed_sha = hashlib.sha256(payload).hexdigest()
-    return paths, parsed_sha
+    from .native_post_dependencies import inspect_dataset
+    checked = inspect_dataset(source, baseline_pins=None, approved_roots=[root], limits={})
+    return ([Path(row['path']) for row in checked['files']],
+            checked['files'][0]['sha256'] if source.suffix.lower() == '.pvd' else None)
 
 
 def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
@@ -127,7 +82,7 @@ def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
     return paths, hashlib.sha256(payload).hexdigest()
 
 
-def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *, root_id, relative, limit, kind, format, native_metadata=None):
+def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *, root_id, relative, limit, kind, format, native_metadata=None, _postprocess=None):
     if native_metadata is not None:
         if not isinstance(native_metadata, dict) or len(json.dumps(native_metadata, allow_nan=False).encode('utf-8')) > 64 * 1024:
             raise ValueError('Native metadata must be a bounded explicit object')
@@ -197,6 +152,8 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         receipt['origin']['dynamic_locations'] = dynamic_origin
     if native_metadata is not None:
         receipt.update(native_metadata=native_metadata, native_metadata_sha256=canonical_hash(native_metadata))
+    if _postprocess is not None:
+        receipt = _postprocess(folder, receipt)
     save_json(folder / 'input.json', receipt)
     return receipt
 

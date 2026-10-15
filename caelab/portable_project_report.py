@@ -54,7 +54,14 @@ def navigation_name(binding):
     return asset_name(binding)[:-5] + '.navigation.json'
 
 
-def can_navigate(reference, documents):
+def can_navigate(reference, documents, native_mapping=()):
+    if reference.get('kind') in {'native_pre', 'native_post'}:
+        from .native_project_contract import project_native_reference
+        try:
+            project_native_reference(reference, native_mapping)
+        except (ValueError, KeyError, TypeError):
+            return False
+        return True
     return (reference.get('kind') == 'knowledge' or
             reference.get('kind') in NAVIGABLE and
             TypedReference((), '보고서 원자료', 'exact', reference).document_id in documents)
@@ -62,7 +69,7 @@ def can_navigate(reference, documents):
 
 def project_reference(projection, reference):
     """Project only an explicitly selected, supported current source."""
-    if can_navigate(reference, projection.docs):
+    if can_navigate(reference, projection.docs, projection.native_mapping):
         return projection.reference(TypedReference((), '보고서 원자료', 'exact', reference))
     return deepcopy(reference)
 
@@ -279,7 +286,7 @@ def replay(folder, link, identifier, binding, frozen):
         if (mapping['source_scope'] != scope or doc not in projection.docs
                 or projection.docs[doc]['kind'] != 'report'):
             raise ValueError('보고서 이동 기록의 소유자/보관소가 이어지지 않습니다.')
-        navigation = can_navigate(reference, projection.docs)
+        navigation = can_navigate(reference, projection.docs, projection.native_mapping)
         if navigation:
             content = _project_content(projection, reference, content)
         reference = project_reference(projection, reference)

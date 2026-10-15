@@ -113,6 +113,11 @@ class ReferenceContent(QWidget):
                     lines.append(' | '.join(headers))
                     lines.extend(' | '.join(value_text(v) for v in row) for row in rows)
             self.body.setPlainText('\n'.join(lines)); return
+        if kind in {'native_pre', 'native_post'}:
+            from .report_pages import blocks
+            self.title.setText('FreeCAD 모델 저장본' if kind == 'native_pre' else 'ParaView 결과 저장본')
+            self.body.setPlainText('\n'.join(value for block, value in blocks(payload) if block == 'paragraph'))
+            return
         if kind == 'knowledge':
             source = payload['source']
             self.title.setText(source.get('title', label))

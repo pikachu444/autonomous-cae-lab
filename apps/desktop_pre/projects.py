@@ -14,12 +14,12 @@ OPERATIONS = ('pre.project.inspect', 'pre.project.save', 'pre.project.open', 'pr
 OPENED = {}
 
 
-def remember_open(doc, manifest, source):
+def remember_open(doc, manifest, source, *, portable_binding=None):
     """Only the actual native opener can attach the verified restored context."""
     from .assembly_pose_source import restore_retained_source
     restore_retained_source(doc, manifest)
     restore_document_labels(doc, manifest)
-    OPENED[doc.Name] = (doc, deepcopy(manifest), str(source))
+    OPENED[doc.Name] = (doc, deepcopy(manifest), str(source), portable_binding)
 
 
 def _linked(value):
@@ -146,12 +146,16 @@ class Project:
     def attach_opened(self):
         opened = OPENED.pop(self.owner.doc.Name, None)
         if opened and opened[0] is self.owner.doc:
-            manifest, source = opened[1:]
+            manifest, source = opened[1:3]
+            if len(opened) > 3 and opened[3] is not None:
+                self.owner.portable_binding = opened[3]
+                self.owner.native_identity_initialization = deepcopy(manifest.get('_portable_identity_initialization', []))
             if 'shell_binding_evidence' in manifest:
                 self.owner.shell.restore_binding_evidence(manifest['shell_binding_evidence'])
             if manifest.get('kind') == native_cad.KIND and not manifest.get('new_design_branch'):
                 self.last_save = {'revision': manifest['revision'], 'opened_source': source,
-                                  'unavailable_dependencies': manifest.get('unavailable_dependencies', [])}
+                                  'unavailable_dependencies': manifest.get('unavailable_dependencies', []),
+                'identity_initialization': deepcopy(manifest.get('_portable_identity_initialization', []))}
                 self.owner.saved_generation = self.owner.generation
                 self._saved_graph_version = self.graph_version()
             # Save targets a new managed copy until the human chooses Save As.
@@ -249,12 +253,24 @@ class Project:
         if self.in_save:
             raise ValueError('SAVE_IN_PROGRESS: the current native save must finish')
         path = Path(path or self.path or (owner.export_root / owner.document_id / 'design.caepre')).resolve()
+        stage_root = owner.export_root
+        reservation = getattr(owner, '_native_target_save', None)
+        if reservation is not None:
+            from caelab.native_project_contract import require_target_save
+            require_target_save(reservation)
+            if (reservation.owner_document_id != owner.document_id or
+                    reservation.expected_stamp['session_id'] != owner.session_id or
+                    not path.is_relative_to(reservation.native_save_root.resolve())):
+                raise ValueError('Native Save destination differs from its current reservation')
+            stage_root = reservation.native_save_root
         if path.suffix.lower() != '.caepre':
             raise ValueError('Lab Save uses .caepre; native FCStd export is a separate command')
         owner.before_design_action('save')
         self.in_save = True
         try:
             metadata = owner.read_metadata()
+            if getattr(owner, 'portable_binding', None) is not None and metadata.get('document_id') != owner.document_id:
+                raise ValueError('OWNER_IDENTITY_CHANGED: portable native owner identity differs')
             metadata['document_id'] = owner.document_id
             if metadata != owner.read_metadata():
                 owner._transaction('Initialize Lab project identity', lambda: owner.write_metadata(metadata))
@@ -271,7 +287,7 @@ class Project:
             generations = owner.generation
             graph_version = self.graph_version()
             revision = 'R' + uuid.uuid4().hex
-            stage = owner.export_root / owner.document_id / 'project_staging' / revision
+            stage = stage_root / owner.document_id / 'project_staging' / revision
             stage.mkdir(parents=True, exist_ok=False)
             names = {doc.Name: 'documents/' + doc.Name + '.FCStd' for doc in docs}
             originals = {Path(doc.FileName).resolve(): doc.Name for doc in docs if doc.FileName}
@@ -332,6 +348,8 @@ class Project:
                                    if getattr(owner, 'find_owner', lambda _: None)(doc) is not None else None)}
                     for doc in docs if doc is not owner.doc],
                 'engineering_release': 'UNKNOWN', 'design_pose_restored': True}
+            from .portable_project import capture_native_selection
+            manifest['native_selection'] = capture_native_selection(owner, docs)
             if shell_evidence is not None:
                 manifest['shell_binding_evidence'] = shell_evidence
             save_json(stage / 'project.json', manifest)
@@ -355,7 +373,12 @@ class Project:
         finally:
             self.in_save = False
 
-    def open(self, receipt):
+    def open(self, receipt, *, _portable_binding=None):
+        if _portable_binding is not None:
+            from .portable_project import _trusted, native_open_receipt
+            _trusted(*_portable_binding)
+            if receipt != native_open_receipt(_portable_binding[0]):
+                raise ValueError('Native open receipt differs from its current verified input')
         if not isinstance(receipt, dict) or receipt.get('kind') != 'native_design':
             raise ValueError('Open a registered editable CAD/project input')
         source = Path(receipt['path']).resolve(strict=True)
@@ -364,7 +387,8 @@ class Project:
         for row in receipt.get('files', []):
             if native_cad.sha(row['path']) != row['sha256']:
                 raise ValueError('Registered native Link dependency changed')
-        folder = self.owner.export_root / 'editable_imports' / ('I' + uuid.uuid4().hex)
+        folder = (_portable_binding[1].working_root if _portable_binding is not None else
+                  self.owner.export_root / 'editable_imports' / ('I' + uuid.uuid4().hex))
         if source.suffix.lower() == '.caepre':
             manifest, entry = native_cad.unpack_project(source, folder)
         else:
@@ -373,6 +397,9 @@ class Project:
             locations = receipt.get('native_metadata', {}).get('original_locations', {})
             original = {row['path']: locations[row['relative']] for row in registered if row['relative'] in locations}
             manifest, entry = native_cad.working_copy(source, folder, registered=registered, original_locations=original)
+        if _portable_binding is not None:
+            from .portable_project import verify_prepared
+            verify_prepared(*_portable_binding)
         doc = self.owner.App.openDocument(str(entry))
         doc.UndoMode = 1
         branch = receipt.get('candidate_branch')
@@ -382,7 +409,11 @@ class Project:
             data.update(document_id='P' + uuid.uuid4().hex, candidate_branch=deepcopy(branch))
             metadata.write(doc, data)
             manifest = {**deepcopy(manifest), 'new_design_branch': True}
-        remember_open(doc, manifest, source)
+        portable_binding = None
+        if _portable_binding is not None:
+            from .portable_project import bind_opened
+            manifest, portable_binding = bind_opened(self.owner, doc, manifest, source, *_portable_binding)
+        remember_open(doc, manifest, source, portable_binding=portable_binding)
         # The connection creates a distinct native owner for the new document;
         # it never switches a current owner's document pointer behind the GUI.
         return {'native_document': doc.Name, 'working_file': doc.FileName,

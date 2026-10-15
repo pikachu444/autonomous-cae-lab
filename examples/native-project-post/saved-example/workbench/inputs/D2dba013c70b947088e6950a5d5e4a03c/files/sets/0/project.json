@@ -1,0 +1,618 @@
+{
+  "kind": "external-result",
+  "version": 1,
+  "document_id": "D94b4d2f328f449349a2d4f9448b4c2df",
+  "project_root": "C:\\np-post19\\registration\\native\\Kc9699df6b278480d9cae7fdf5a6e0fac",
+  "sources": {
+    "result": {
+      "entry_path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\series.pvd",
+      "input_id": null,
+      "reader_name": "Result | series.pvd | 428844f0",
+      "reader_type": "PVDReader",
+      "source_pins": [
+        {
+          "path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\series.pvd",
+          "bytes": 182,
+          "sha256": "ae49bfd6a09eb75f26238ed579f528a77909df754a8511243f93c26240354f3b"
+        },
+        {
+          "path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\frame0.vtu",
+          "bytes": 1700,
+          "sha256": "4ce72050267020965815dff3b8e58fd2940f2814153304d38e92f000b6fe7616"
+        },
+        {
+          "path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\frame1.vtu",
+          "bytes": 1699,
+          "sha256": "aa5ec72da475002dc04e2852f6c03c599ced07b83c139751896122ee163e3330"
+        }
+      ],
+      "metadata": {
+        "reader": "PVDReader",
+        "points": 4,
+        "cells": 1,
+        "bounds": [
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0
+        ],
+        "timesteps": [
+          0.0,
+          1.0
+        ],
+        "time": 0.0,
+        "time_units": null,
+        "time_semantics": null,
+        "coordinate_units": null,
+        "coordinate_frame": null,
+        "static": null,
+        "field_availability": null,
+        "metadata_status": "UNKNOWN",
+        "arrays": [
+          {
+            "name": "U",
+            "association": "POINTS",
+            "components": 3,
+            "component_names": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "range": [
+              0.1,
+              0.1
+            ],
+            "units": null,
+            "frame": null,
+            "measure": null,
+            "quantity": null,
+            "recovery": null,
+            "shear_convention": null,
+            "metadata_status": "UNKNOWN"
+          },
+          {
+            "name": "q",
+            "association": "POINTS",
+            "components": 1,
+            "component_names": [
+              ""
+            ],
+            "range": [
+              0.1,
+              3.1
+            ],
+            "units": null,
+            "frame": null,
+            "measure": null,
+            "quantity": null,
+            "recovery": null,
+            "shear_convention": null,
+            "metadata_status": "UNKNOWN"
+          }
+        ],
+        "qualification": "UNKNOWN"
+      },
+      "source_revision": "497c67dfc4f13d4e7bb0e6c55db0a4eef660df478055f6a3390574a9d9e9c182",
+      "label": "series.pvd",
+      "source_ref": "result"
+    },
+    "B": {
+      "entry_path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\2\\frame0.vtu",
+      "input_id": null,
+      "reader_name": "Result | frame0.vtu | 9b6b8dcb",
+      "reader_type": "XMLUnstructuredGridReader",
+      "source_pins": [
+        {
+          "path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\2\\frame0.vtu",
+          "bytes": 1690,
+          "sha256": "d2e9e96399f6e9b3df6c489e173c0d69b2a58a3d85db0318b882aa5f94990ace"
+        }
+      ],
+      "metadata": {
+        "reader": "XMLUnstructuredGridReader",
+        "points": 4,
+        "cells": 1,
+        "bounds": [
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0
+        ],
+        "timesteps": [],
+        "time": null,
+        "time_units": null,
+        "time_semantics": null,
+        "coordinate_units": null,
+        "coordinate_frame": null,
+        "static": null,
+        "field_availability": null,
+        "metadata_status": "UNKNOWN",
+        "arrays": [
+          {
+            "name": "U",
+            "association": "POINTS",
+            "components": 3,
+            "component_names": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "range": [
+              2.0,
+              2.0
+            ],
+            "units": null,
+            "frame": null,
+            "measure": null,
+            "quantity": null,
+            "recovery": null,
+            "shear_convention": null,
+            "metadata_status": "UNKNOWN"
+          },
+          {
+            "name": "q",
+            "association": "POINTS",
+            "components": 1,
+            "component_names": [
+              ""
+            ],
+            "range": [
+              2.0,
+              5.0
+            ],
+            "units": null,
+            "frame": null,
+            "measure": null,
+            "quantity": null,
+            "recovery": null,
+            "shear_convention": null,
+            "metadata_status": "UNKNOWN"
+          }
+        ],
+        "qualification": "UNKNOWN"
+      },
+      "source_revision": "e583a4890f4554f9139a63a7bcf2b21aa0dea85ef011df77fc66042c30d9fd19",
+      "source_ref": "B"
+    }
+  },
+  "repair": [],
+  "active_selection": {
+    "source_name": "Result | series.pvd | 428844f0",
+    "view_name": "RenderView1"
+  },
+  "native_dependency_issues": [],
+  "workspace_file": "analysis.pvsm",
+  "workspace_sha256": "a52d0632c161b8cc737f7cf77555ed9dc1744ef237a6664eaf7118a14a62b223",
+  "native_reader_files": {
+    "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\3\\result.vtu": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384",
+    "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\2\\frame0.vtu": "d2e9e96399f6e9b3df6c489e173c0d69b2a58a3d85db0318b882aa5f94990ace",
+    "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\series.pvd": "ae49bfd6a09eb75f26238ed579f528a77909df754a8511243f93c26240354f3b",
+    "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\frame0.vtu": "4ce72050267020965815dff3b8e58fd2940f2814153304d38e92f000b6fe7616",
+    "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\frame1.vtu": "aa5ec72da475002dc04e2852f6c03c599ced07b83c139751896122ee163e3330"
+  },
+  "native_readers": [
+    {
+      "reader_name": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+      "reader_type": "XMLUnstructuredGridReader",
+      "input_paths": [
+        "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\3\\result.vtu"
+      ]
+    },
+    {
+      "reader_name": "Result | frame0.vtu | 9b6b8dcb",
+      "reader_type": "XMLUnstructuredGridReader",
+      "input_paths": [
+        "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\2\\frame0.vtu"
+      ]
+    },
+    {
+      "reader_name": "Result | series.pvd | 428844f0",
+      "reader_type": "PVDReader",
+      "input_paths": [
+        "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\1\\series.pvd"
+      ]
+    }
+  ],
+  "saved_utc": "2026-10-15T19:57:28.400029+00:00",
+  "analysis": {
+    "version": 1,
+    "objects": {
+      "A20538bcba1004ed398bfbb723a72fc00": {
+        "id": "A20538bcba1004ed398bfbb723a72fc00",
+        "kind": "filter",
+        "title": "보존한 변형",
+        "draft": {
+          "source_ref": "B",
+          "filter": "WarpByVector",
+          "settings": {
+            "association": "POINTS",
+            "array": "U",
+            "scale_factor": 0.1
+          }
+        },
+        "history": [
+          {
+            "id": "V251373c56e324cfbaf7d40c11b37c6ce",
+            "key": "3ab21cda37537b5f54b5b41dac992eced3ef595c05b006c90ed5b1a30b9af1a4",
+            "recipe": {
+              "source_ref": "B",
+              "filter": "WarpByVector",
+              "settings": {
+                "association": "POINTS",
+                "array": "U",
+                "scale_factor": 0.1
+              }
+            },
+            "source_name": "CAE filter | A20538bcba1004ed398bfbb723a72fc00 | d6a9c12d | WarpByVector | 68d82959f5214bbfb88c6c02bef137ed",
+            "proxy_names": [
+              "CAE filter | A20538bcba1004ed398bfbb723a72fc00 | d6a9c12d | WarpByVector | 68d82959f5214bbfb88c6c02bef137ed"
+            ],
+            "summary": {
+              "kind": "WarpByVector",
+              "settings": {
+                "association": "POINTS",
+                "array": "U",
+                "scale_factor": 0.1
+              },
+              "time": null,
+              "points": 4,
+              "cells": 1,
+              "data_type": "vtkUnstructuredGrid",
+              "qualification": "UNQUALIFIED",
+              "graph": {
+                "nodes": [
+                  {
+                    "label": "CAE filter | A20538bcba1004ed398bfbb723a72fc00 | d6a9c12d | WarpByVector | 68d82959f5214bbfb88c6c02bef137ed",
+                    "type": "WarpVector",
+                    "properties": {
+                      "Input": {
+                        "source_label": "Result | frame0.vtu | 9b6b8dcb",
+                        "port": 0
+                      },
+                      "ScaleFactor": 0.1,
+                      "Vectors": [
+                        "POINTS",
+                        "U"
+                      ]
+                    }
+                  }
+                ],
+                "output_label": "CAE filter | A20538bcba1004ed398bfbb723a72fc00 | d6a9c12d | WarpByVector | 68d82959f5214bbfb88c6c02bef137ed",
+                "sha256": "2571360f9cc8f185a3cedfd8e7e0c96289cee7e188a3d62d3ee1b529a7fc4418"
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "label": "CAE filter | A20538bcba1004ed398bfbb723a72fc00 | d6a9c12d | WarpByVector | 68d82959f5214bbfb88c6c02bef137ed",
+                  "type": "WarpVector",
+                  "properties": {
+                    "Input": {
+                      "source_label": "Result | frame0.vtu | 9b6b8dcb",
+                      "port": 0
+                    },
+                    "ScaleFactor": 0.1,
+                    "Vectors": [
+                      "POINTS",
+                      "U"
+                    ]
+                  }
+                }
+              ],
+              "output_label": "CAE filter | A20538bcba1004ed398bfbb723a72fc00 | d6a9c12d | WarpByVector | 68d82959f5214bbfb88c6c02bef137ed",
+              "sha256": "2571360f9cc8f185a3cedfd8e7e0c96289cee7e188a3d62d3ee1b529a7fc4418"
+            },
+            "bindings": {
+              "B": {
+                "properties": {
+                  "CellArrayStatus": [],
+                  "PointArrayStatus": [
+                    "U",
+                    "q"
+                  ],
+                  "TimeArray": "TimeValue"
+                },
+                "revision": "e583a4890f4554f9139a63a7bcf2b21aa0dea85ef011df77fc66042c30d9fd19",
+                "metadata": null
+              }
+            },
+            "dependencies": {},
+            "previous": null,
+            "result_file": "C:\\np-post19\\registration\\native\\Kc9699df6b278480d9cae7fdf5a6e0fac\\saved\\20261015T195728Z-cefb51\\V251373c56e324cfbaf7d40c11b37c6ce\\result.vtu",
+            "result_files": [
+              {
+                "path": "C:\\np-post19\\registration\\native\\Kc9699df6b278480d9cae7fdf5a6e0fac\\saved\\20261015T195728Z-cefb51\\V251373c56e324cfbaf7d40c11b37c6ce\\result.vtu",
+                "bytes": 2272,
+                "sha256": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384"
+              },
+              {
+                "path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\3\\result.vtu",
+                "bytes": 2272,
+                "sha256": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384"
+              }
+            ],
+            "result_sha256": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384",
+            "retained_source_name": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+            "retained_graph": {
+              "nodes": [
+                {
+                  "label": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+                  "type": "XMLUnstructuredGridReader",
+                  "properties": {
+                    "CellArrayStatus": [],
+                    "FileName": [
+                      "C:\\np-post19\\original\\project\\saved\\20261015T194514Z-caf590\\V251373c56e324cfbaf7d40c11b37c6ce\\result.vtu"
+                    ],
+                    "PointArrayStatus": [
+                      "U",
+                      "q"
+                    ],
+                    "TimeArray": "TimeValue"
+                  }
+                }
+              ],
+              "output_label": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+              "sha256": "0de10ba8a61b9bfc87d36fc664003004339eb9dee10e7798ecedf2aae87dfef3"
+            },
+            "retained_reader": {
+              "reader_name": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+              "reader_type": "XMLUnstructuredGridReader",
+              "input_paths": [
+                "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\3\\result.vtu"
+              ],
+              "files": [
+                {
+                  "path": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\files\\sets\\3\\result.vtu",
+                  "bytes": 2272,
+                  "sha256": "5505dc30c7a2f26ce4f4e50211335ce9ea51209b349e9bc2c4dfe2e755707384"
+                }
+              ]
+            }
+          }
+        ],
+        "position": 0,
+        "preview": null,
+        "selection": [],
+        "diagnostics": [],
+        "redo_stack": []
+      },
+      "Afb478a03de9c4c7a99ccf1c95657872c": {
+        "id": "Afb478a03de9c4c7a99ccf1c95657872c",
+        "kind": "filter",
+        "title": "보존값에서 이어 변형",
+        "draft": {
+          "source_ref": "A20538bcba1004ed398bfbb723a72fc00",
+          "filter": "WarpByVector",
+          "settings": {
+            "association": "POINTS",
+            "array": "U",
+            "scale_factor": 0.2
+          }
+        },
+        "history": [
+          {
+            "id": "V2e04f7fd67b245f6abda2203095b785a",
+            "key": "b1447bdc63d838645f34a00502e963abd58a1a842df0b144f144da37ca27f776",
+            "recipe": {
+              "source_ref": "A20538bcba1004ed398bfbb723a72fc00",
+              "filter": "WarpByVector",
+              "settings": {
+                "association": "POINTS",
+                "array": "U",
+                "scale_factor": 0.2
+              }
+            },
+            "source_name": "CAE filter | Afb478a03de9c4c7a99ccf1c95657872c | eaaa6fcf | WarpByVector | 27636094d5af458b8ca1c46d325d9fa7",
+            "proxy_names": [
+              "CAE filter | Afb478a03de9c4c7a99ccf1c95657872c | eaaa6fcf | WarpByVector | 27636094d5af458b8ca1c46d325d9fa7"
+            ],
+            "summary": {
+              "kind": "WarpByVector",
+              "settings": {
+                "association": "POINTS",
+                "array": "U",
+                "scale_factor": 0.2
+              },
+              "time": null,
+              "points": 4,
+              "cells": 1,
+              "data_type": "vtkUnstructuredGrid",
+              "qualification": "UNQUALIFIED",
+              "graph": {
+                "nodes": [
+                  {
+                    "label": "CAE filter | Afb478a03de9c4c7a99ccf1c95657872c | eaaa6fcf | WarpByVector | 27636094d5af458b8ca1c46d325d9fa7",
+                    "type": "WarpVector",
+                    "properties": {
+                      "Input": {
+                        "source_label": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+                        "port": 0
+                      },
+                      "ScaleFactor": 0.2,
+                      "Vectors": [
+                        "POINTS",
+                        "U"
+                      ]
+                    }
+                  }
+                ],
+                "output_label": "CAE filter | Afb478a03de9c4c7a99ccf1c95657872c | eaaa6fcf | WarpByVector | 27636094d5af458b8ca1c46d325d9fa7",
+                "sha256": "ad478d0626813214b9a6912bb7bd3ada59922cf3efb59e9942e4e9875fdd7cd9"
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "label": "CAE filter | Afb478a03de9c4c7a99ccf1c95657872c | eaaa6fcf | WarpByVector | 27636094d5af458b8ca1c46d325d9fa7",
+                  "type": "WarpVector",
+                  "properties": {
+                    "Input": {
+                      "source_label": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+                      "port": 0
+                    },
+                    "ScaleFactor": 0.2,
+                    "Vectors": [
+                      "POINTS",
+                      "U"
+                    ]
+                  }
+                }
+              ],
+              "output_label": "CAE filter | Afb478a03de9c4c7a99ccf1c95657872c | eaaa6fcf | WarpByVector | 27636094d5af458b8ca1c46d325d9fa7",
+              "sha256": "ad478d0626813214b9a6912bb7bd3ada59922cf3efb59e9942e4e9875fdd7cd9"
+            },
+            "bindings": {
+              "A20538bcba1004ed398bfbb723a72fc00": {
+                "properties": {
+                  "FileName": [
+                    "C:\\np-post19\\original\\project\\saved\\20261015T194514Z-caf590\\V251373c56e324cfbaf7d40c11b37c6ce\\result.vtu"
+                  ],
+                  "CellArrayStatus": [],
+                  "PointArrayStatus": [
+                    "U",
+                    "q"
+                  ],
+                  "TimeArray": "TimeValue"
+                },
+                "revision": "10b671152cada8eba64726477864344e05343f2c71e995222c823ffbc71ad7b6",
+                "metadata": null
+              }
+            },
+            "dependencies": {
+              "A20538bcba1004ed398bfbb723a72fc00": "V251373c56e324cfbaf7d40c11b37c6ce"
+            },
+            "previous": null,
+            "result_file": "C:\\np-post19\\registration\\native\\Kc9699df6b278480d9cae7fdf5a6e0fac\\saved\\20261015T195728Z-cefb51\\V2e04f7fd67b245f6abda2203095b785a\\result.vtu",
+            "result_files": [
+              {
+                "path": "C:\\np-post19\\registration\\native\\Kc9699df6b278480d9cae7fdf5a6e0fac\\saved\\20261015T195728Z-cefb51\\V2e04f7fd67b245f6abda2203095b785a\\result.vtu",
+                "bytes": 2568,
+                "sha256": "f7556e7a2e48849ac6a4263ef546f0620df7f78d6dfb09faa594f614a0593ebc"
+              }
+            ],
+            "result_sha256": "f7556e7a2e48849ac6a4263ef546f0620df7f78d6dfb09faa594f614a0593ebc"
+          }
+        ],
+        "position": 0,
+        "preview": null,
+        "selection": [],
+        "diagnostics": [],
+        "redo_stack": []
+      }
+    },
+    "active_object": "Afb478a03de9c4c7a99ccf1c95657872c"
+  },
+  "generation": 10,
+  "view_generation": 1,
+  "parent_project": "C:\\np-post19\\registration\\native\\saved-O92653fe4923d411882feaca884815b61\\working\\O92653fe4923d411882feaca884815b61\\project.json",
+  "native_relocation_basis": {
+    "version": 1,
+    "histories": [
+      {
+        "version": 1,
+        "history": {
+          "object_ref": "A20538bcba1004ed398bfbb723a72fc00",
+          "revision_id": "V251373c56e324cfbaf7d40c11b37c6ce",
+          "revision_sha256": "10b671152cada8eba64726477864344e05343f2c71e995222c823ffbc71ad7b6"
+        },
+        "bindings_sha256": "d1bb1a414daac177a7a5db4f2bd9e4bc9dd1169b825d892204500a2ee00f17ff",
+        "graph_sha256": "e26a9d4370c2c3c3b2e661d41a8c00abdeaeb080f13448da469303266ad2c8d2",
+        "retained_graph_sha256": "80f5e4868972412e6b753418acb6c650edac64fe9cd43945a3a1ae3fd2380578",
+        "slots": [
+          {
+            "site": "retained_graph",
+            "binding_ref": null,
+            "upstream": null,
+            "reader_key": {
+              "proxy_group": "sources",
+              "registration_name": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+              "saved_proxy_id": "7232"
+            },
+            "reader_type": "XMLUnstructuredGridReader",
+            "output_port": 0,
+            "file_property": "FileName",
+            "value_shape": "list",
+            "slot_count": 1,
+            "element_index": 0,
+            "basis_value": "C:\\np-post19\\original\\project\\saved\\20261015T194514Z-caf590\\V251373c56e324cfbaf7d40c11b37c6ce\\result.vtu",
+            "member_id": "M1388d2ecd0f57957376bff86",
+            "closure_member_ids": [
+              "M1388d2ecd0f57957376bff86"
+            ],
+            "closure_sha256": "6b30f867d5b313e2ae6bba51ca3ff2b6e1f544bf09985dd52ffdaf72a615578e"
+          }
+        ]
+      },
+      {
+        "version": 1,
+        "history": {
+          "object_ref": "Afb478a03de9c4c7a99ccf1c95657872c",
+          "revision_id": "V2e04f7fd67b245f6abda2203095b785a",
+          "revision_sha256": "8bbd4f50add476ece6ac3beb51bf7215d544aa84b3f6f5990f3abbf75ca78284"
+        },
+        "bindings_sha256": "1164221484f1305a7005bcf73b90e6aaffe4d3f0f124527873908f446cf21dc6",
+        "graph_sha256": "25bd6086c79623e508f6ec55491573734c83e6f2a3abbdd711bdaec64bc4f4eb",
+        "retained_graph_sha256": null,
+        "slots": [
+          {
+            "site": "binding",
+            "binding_ref": "A20538bcba1004ed398bfbb723a72fc00",
+            "upstream": {
+              "object_ref": "A20538bcba1004ed398bfbb723a72fc00",
+              "revision_id": "V251373c56e324cfbaf7d40c11b37c6ce",
+              "revision_sha256": "10b671152cada8eba64726477864344e05343f2c71e995222c823ffbc71ad7b6"
+            },
+            "reader_key": {
+              "proxy_group": "sources",
+              "registration_name": "CAE retained | V251373c56e324cfbaf7d40c11b37c6ce",
+              "saved_proxy_id": "7232"
+            },
+            "reader_type": "XMLUnstructuredGridReader",
+            "output_port": 0,
+            "file_property": "FileName",
+            "value_shape": "list",
+            "slot_count": 1,
+            "element_index": 0,
+            "basis_value": "C:\\np-post19\\original\\project\\saved\\20261015T194514Z-caf590\\V251373c56e324cfbaf7d40c11b37c6ce\\result.vtu",
+            "member_id": "M1388d2ecd0f57957376bff86",
+            "closure_member_ids": [
+              "M1388d2ecd0f57957376bff86"
+            ],
+            "closure_sha256": "6b30f867d5b313e2ae6bba51ca3ff2b6e1f544bf09985dd52ffdaf72a615578e"
+          }
+        ]
+      }
+    ]
+  },
+  "native_history_availability": {
+    "version": 1,
+    "histories": [
+      {
+        "history": {
+          "object_ref": "A20538bcba1004ed398bfbb723a72fc00",
+          "revision_id": "V251373c56e324cfbaf7d40c11b37c6ce",
+          "revision_sha256": "10b671152cada8eba64726477864344e05343f2c71e995222c823ffbc71ad7b6"
+        },
+        "state": "RETAINED_ONLY",
+        "record_sha256": "ae15ca83dc5ce0c8743ed64d163fe42393434bf1cfdd5fa73b46e5a12efb970b",
+        "missing": [],
+        "reason_code": null
+      },
+      {
+        "history": {
+          "object_ref": "Afb478a03de9c4c7a99ccf1c95657872c",
+          "revision_id": "V2e04f7fd67b245f6abda2203095b785a",
+          "revision_sha256": "8bbd4f50add476ece6ac3beb51bf7215d544aa84b3f6f5990f3abbf75ca78284"
+        },
+        "state": "AVAILABLE",
+        "record_sha256": "34ff2f271412e33b4437fe825338a86d08729087d8573cc2603d78433b4545e9",
+        "missing": [],
+        "reason_code": null
+      }
+    ]
+  }
+}
