@@ -1017,10 +1017,6 @@ class DataWindow(QMainWindow):
                 'row_numbers':raw['source_rows']}}
             mapping={'column':0,'unit':response['unit'],'calibration':recipe}
             dialog=CalibrationDialog(self.client,mapping,preview,self,retained_response=response)
-            dialog.setWindowTitle('교정 전후 결과')
-            for widget in list(dialog.fields.values())+[dialog.role,dialog.provided,dialog.ukind,dialog.correlation,dialog.upload]:
-                widget.setEnabled(False)
-            dialog.message.setText('선택한 계산에 보존된 교정과 원행입니다. 창을 닫아도 설정은 바뀌지 않습니다.')
             dialog.exec()
         return self._call(lambda:self.client.document_result(source['document_id'],source['job_id'],
             selection={'responses':[source['response']],'rows':[0,4096]}),show)
