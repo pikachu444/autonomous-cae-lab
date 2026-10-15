@@ -200,8 +200,9 @@ def add_output_cards(text, bulk, settings, model):
         additions+=f'/TH/INTER/{gid}\n{title}\n'+''.join(f'{v:<10}' for v in PAIR_TOKENS)+'\n'+integer(ident)+'\n'
         groups.append({'id':gid,'type':101,'kind':'pair','title':title,'members':[ident],
                        'tokens':list(PAIR_TOKENS),'pair':deepcopy(pair),'contact_index':index-1,
-                       'normal_tangent':'signed components, global axes, not sum of absolute values',
-                       'native_store_semantics':'UNVERIFIED_FSAV_FORCE_OR_IMPULSE',
+                       'normal_tangent':'signed native components, global axes, not sum of absolute values',
+                       'surface_order':{'surface1':pair['b'],'surface2':pair['a']},
+                       'native_store_semantics':'CUMULATIVE_IMPULSE_REQUIRES_PINNED_PRODUCER',
                        'converter_source_commit':'NOT_PROVEN_BY_RELEASE'})
     effective=append_before_end(text,additions) if additions else text
     generated={k:v for k,v in cards(effective).items() if k not in blocks}

@@ -6,7 +6,7 @@ are distinct. Unknown fields remain empty/masked, never fabricated zeros.
 from copy import deepcopy
 import math
 from .adapters.impact_results import continuity
-from .impact_bulk_history import bind, series
+from .impact_bulk_history import bind, series, pair_provenance, impulse_secants
 from .impact_model import NAME
 from .impact_interface import face_sample, audit_controls
 
@@ -128,7 +128,7 @@ def deletion_events(times,states,*,source_rows=None,gap_before=None):
     return events
 
 
-def read_selected(history,frames,model,settings,definition,*,excluded_frames=()):
+def read_selected(history,frames,model,settings,definition,*,excluded_frames=(),runtime_identity=None):
     validate(model,settings); responses={};records={}; events={};bound=[]
     if history is not None:
         bound=bind(history,definition['outputs'])
@@ -159,14 +159,26 @@ def read_selected(history,frames,model,settings,definition,*,excluded_frames=())
             else:
                 label={'force':'접촉쌍 힘','native_impulse':'접촉쌍 원 충격량','sampled_impulse':'접촉쌍 힘 표본 적분'}[q]
                 unit='N' if q=='force' else 'N s';measure=q
-                # Current supplied pin evidence proves member/component selection,
-                # but not FSAV temporal storage or the shipped converter transform.
-                # Do not promote six plausible columns into instantaneous forces.
                 raw=series(history,group,group['members'][0],selected['component']) if group else []
-                reasons=['FSAV의 force/누적 impulse와 exact converter 변환 입증이 없어 물리량을 승격하지 않습니다']*len(times)
-                meta.update(status='UNKNOWN',native_stored_values=raw,native_store_semantics='UNVERIFIED',
-                    converter_source_commit='NOT_PROVEN_BY_RELEASE',pair=deepcopy(group),
-                    derived_integration='not performed without admitted force semantics')
+                provenance=pair_provenance(history,group,runtime_identity) if group else None
+                meta.update(native_stored_values=raw,pair=deepcopy(group))
+                if provenance is None:
+                    reasons=['고정 producer·단위·원 채널 번호 대응을 확인할 수 없어 접촉 물리량은 UNKNOWN입니다']*len(times)
+                    meta.update(status='UNKNOWN',native_store_semantics='UNVERIFIED')
+                else:
+                    meta.update(provenance,native_store_semantics=provenance['native_store_semantics'])
+                    if q=='native_impulse':
+                        values=list(raw);label='접촉쌍 누적 충격량';measure='native_cumulative_contact_impulse'
+                    else:
+                        values,support=impulse_secants(times,raw,source_rows=source_rows)
+                        meta.update(origin='DERIVED',force_support=support,instantaneous_force=False)
+                        label='접촉쌍 구간 평균 힘';measure='derived_mean_force_from_native_impulse_secants'
+                        if q=='sampled_impulse':
+                            values=sampled_integral(times,values)
+                            label='접촉쌍 평균 힘 표본 적분';measure='derived_trapezoid_of_sampled_mean_force'
+                            meta.update(integration_reference='zero at first retained sample; not a native observation',
+                                exact_solver_impulse=False,derived_integration='trapezoid using actual retained TT samples')
+                    reasons=['' if value is not None else '구간 표본 부족·누락 또는 비유한 원 충격량으로 계산할 수 없습니다' for value in values]
             meta.update(native_group=deepcopy(group),source_pin=deepcopy(history['source_pin']) if history else None,
                 byte_ranges=[r['byte_range'] for r in history['samples']] if history else [],
                 excluded_tail=deepcopy(history['excluded']) if history else [],

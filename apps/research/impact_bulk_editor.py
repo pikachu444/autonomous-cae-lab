@@ -190,7 +190,7 @@ class ResponseDialog(QDialog):
         self.settings=deepcopy(settings);self.old=row;self.applied=None;self.model=model_from_settings(settings)
         layout=QVBoxLayout(self);form=QFormLayout();layout.addLayout(form)
         self.scope=QComboBox()
-        for label,value in [('벌크 요소','bulk'),('원 응집 요소의 대응면','interface'),('원 접촉쌍 (물리량 미확인)','pair')]:self.scope.addItem(label,value)
+        for label,value in [('벌크 요소','bulk'),('원 응집 요소의 대응면','interface'),('원 접촉쌍','pair')]:self.scope.addItem(label,value)
         self.quantity=QComboBox();self.identity=QComboBox();self.component=QComboBox()
         for label,widget in [('위치 종류',self.scope),('물리량',self.quantity),('원 대상',self.identity),('성분',self.component)]:form.addRow(label,widget)
         self.note=QLabel();self.note.setWordWrap(True);layout.addWidget(self.note);self.status=QLabel();self.status.setWordWrap(True);layout.addWidget(self.status)
@@ -210,9 +210,9 @@ class ResponseDialog(QDialog):
             ids=[e for e,row in self.model['elements'].items() if row['type']=='COH3D8']
             self.note.setText('원 대응면의 기하량입니다. 솔버의 접촉 간극·관입·반력이나 삭제 뒤 부활한 응집 표면력으로 해석하지 않습니다.')
         else:
-            for label,key in [('접촉쌍 힘 [N]','force'),('접촉쌍 원 충격량 [N s]','native_impulse'),('접촉쌍 표본 적분 [N s]','sampled_impulse')]:self.quantity.addItem(label,key)
+            for label,key in [('접촉쌍 구간 평균 힘 [N]','force'),('접촉쌍 누적 충격량 [N s]','native_impulse'),('평균 힘 표본 적분 [N s]','sampled_impulse')]:self.quantity.addItem(label,key)
             ids=list(range(len(self.settings.get('contacts',[]))))
-            self.note.setText('현재 접촉쌍 저장량의 물리 의미는 미확인입니다. 선택해도 힘·충격량은 미확인으로 남으며, 전체 접촉의 절점 합력으로 대체하지 않습니다.')
+            self.note.setText('누적 충격량은 솔버의 원 출력값입니다. 힘은 저장 시각 사이의 평균값이며 표본 적분과 구분합니다. 지원하지 않는 솔버 버전은 미확인으로 표시합니다.')
         for eid in ids:self.identity.addItem(pair_label(self.settings,eid) if scope=='pair' else element_label(self.model,eid),eid)
         self.quantity.blockSignals(False);self.components()
     def components(self):
@@ -263,7 +263,7 @@ class BulkPage(QWidget):
         modes={'COHESIVE_ONLY':'응집 압축만','DELAYED_TYPE24_REQUIRE_DELETION':'지연 TYPE24'}
         for row in data['interfaces']:append('interface',[row['material'],modes.get(row['reclosure'],'방식 미선택'),pair_label(settings,row['contact_index']) if type(row['contact_index']) is int else '별도 접촉 없음',field_value(row['contact_start_s']) if row['contact_start_s'] is not None else '해당 없음'])
         for row in settings.get('b_responses',[]):
-            q=row['quantity'];label=impact_bulk_results.BULK[q][0] if q in impact_bulk_results.BULK else {'face_separation':'면 분리','face_opening_change':'벌어짐 변화','face_slip_change':'미끄럼 변화','cohesive_active':'응집 요소 활성','force':'접촉쌍 힘 (미확인)','native_impulse':'접촉쌍 원 충격량 (미확인)','sampled_impulse':'접촉쌍 표본 적분 (미확인)'}.get(q,q)
+            q=row['quantity'];label=impact_bulk_results.BULK[q][0] if q in impact_bulk_results.BULK else {'face_separation':'면 분리','face_opening_change':'벌어짐 변화','face_slip_change':'미끄럼 변화','cohesive_active':'응집 요소 활성','force':'접촉쌍 구간 평균 힘','native_impulse':'접촉쌍 누적 충격량','sampled_impulse':'평균 힘 표본 적분'}.get(q,q)
             unit=impact_bulk_results.BULK[q][2] if q in impact_bulk_results.BULK else '1' if q=='cohesive_active' else 'mm' if row['scope']=='interface' else 'N' if q=='force' else 'N s'
             target=pair_label(settings,row['identity']) if row['scope']=='pair' else element_label(self.model,row['identity']) if self.model is not None else '원 대상 확인 필요'
             append('response',[label+' ['+unit+']',target,{'scalar':'값','normal':'법선','tangent1':'접선 1','tangent2':'접선 2','FNX':'법선 X','FNY':'법선 Y','FNZ':'법선 Z','FTX':'접선 X','FTY':'접선 Y','FTZ':'접선 Z'}.get(row['component'],row['component'])])

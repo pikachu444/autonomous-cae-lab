@@ -27,7 +27,7 @@ def register_backend(identifier, factory, *, roles=("model",), optional_dependen
     _registry[identifier] = Backend(identifier, tuple(roles), factory, optional_dependency, native_runtime,threads)
 
 def _builtin(identifier, module, name, roles, dependency=None, native=None):
-    threads=2 if identifier in {'explicit.openradioss','explicit.opencourant.model','structural.code_aster',
+    threads=2 if identifier in {'explicit.openradioss','structural.code_aster',
         'structural.code_aster.plasticity','structural.code_aster.geometric_nonlinearity',
         'structural.families.code_aster', 'structure.codeaster.frozen'} else 1
     register_backend(identifier, f"caelab.{module}:{name}", roles=roles,

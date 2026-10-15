@@ -12,7 +12,7 @@ from .execution_control import ExecutionCleanupFailed
 from .storage import check_id
 
 
-def run_domain(workbench, model, output):
+def run_domain(workbench, model, output, *, runtime=None):
     backend, settings = model['backend'], deepcopy(model['settings'])
     if backend.startswith('pde.'):
         from .pde_document import validate_draft, support_details
@@ -37,7 +37,8 @@ def run_domain(workbench, model, output):
         if backend=='damage.rainflow':
             from .fatigue import resolved_adapter
             execution_backend=resolved_adapter(workbench,settings)
-        result = evaluation.run(execution_backend, settings, output=calculation)
+        options = {} if runtime is None else {'runtime': runtime}
+        result = evaluation.run(execution_backend, settings, output=calculation, **options)
     except ExecutionCleanupFailed:
         raise
     except Exception as error:

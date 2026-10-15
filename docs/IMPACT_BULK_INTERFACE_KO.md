@@ -60,7 +60,17 @@
 
 Native TFILE/4 reader는 원 group ID·member ID·출력 token·실제 binary32 시각과 원 row/byte 범위를 사용한다. 입력 token 순서와 native 저장 순서가 달라도 실제 token으로 대응한다. DAMA/OFF/IE 등의 열이 없거나 identity가 다르면 값을 생성하지 않는다. 전체 internal energy 차를 damage dissipation으로 만들지 않는다. 벌크와 계면 손상을 합산하지 않는다.
 
-접촉 pair는 exact TYPE24 카드 ID·대응면·TH/INTER group/member·FN/FT 원 성분을 보존한다. **현재 pair의 저장량이 force인지 누적 impulse인지에 대한 exact producer→FSAV→TH→converter correspondence는 미수용이다.** pair force/native impulse/sample impulse의 물리 응답은 UNKNOWN, 원 저장값과 identity는 진단에 보존된다. 이를 기존 ANIM의 all-contact nodal resultant로 대체하지 않는다. TYPE24에 없는 SFW/CE_DAMP를 만들지 않는다.
+접촉쌍은 정확한 TYPE24 카드·양면·TH/INTER group/member·FNX/FNY/FNZ/FTX/FTY/FTZ를 선택한다. 고정 Windows producer의 첫 여섯 raw TH 열은 **누적 충격량**이다. 솔버가 매 증분 힘×DT12를 FSAV에 더하고 TH가 그대로 기록하며, 현재 고정 `th_to_csv`는 이 누적값을 차분해 힘으로 내보낸다. 현재 reader는 CSV의 FN/FT를 다시 충격량으로 읽지 않고 원 TH를 사용한다. 고정 producer·원 변수 번호·단위 대응이 없는 과거/다른 runtime은 UNKNOWN을 유지한다.
+
+| 접촉쌍 선택 | 표시·계산 의미 |
+|---|---|
+| `native_impulse` | native 누적 충격량 [N·s], NATIVE. 첫 기록값을 임의로 0으로 바꾸지 않는다. |
+| `force` | 누적 충격량의 시각 차분으로 얻는 **구간 평균 힘** [N], DERIVED. 양 끝은 한 구간, 내부 표본은 앞·뒤 표본을 잇는 구간을 사용한다. 순간 solver 힘이 아니다. |
+| `sampled_impulse` | 위 평균 힘 표본을 실제 TH 시각으로 사다리꼴 적분한 값 [N·s], DERIVED. 첫 표본을 0 기준으로 삼으며 exact solver 충격량과 다르다. |
+
+여섯 성분은 모델 전역 축의 native 부호를 유지한다. 법선 FN은 접촉 법선 기여의 전역 X/Y/Z 성분이며 축방향 절댓값이 아니다. surface-to-surface TYPE24에서 원 surface1의 main 기여는 +FNI·N, surface2의 main 기여는 -FNI·N으로 누적한다. 기존 compiler는 surface1=`b`, surface2=`a`를 쓴다. FT는 native FXT/FYT/FZT main-contact 기여를 그대로 합친 값으로, 사용자가 고른 한 body 쪽으로 재부호화하지 않는다. 다른 쌍이나 ANIM의 all-contact nodal resultant를 섞지 않는다. TH group에는 정확한 interface member 하나만 두고 성분별 native 변수 번호 1–6까지 검사한다.
+
+실제 binary32 TH 시각을 사용하며 요청한 출력 간격이나 안정 시간증분을 대신 넣지 않는다. 힘의 각 값에는 실제 차분 구간과 원 row를 보존한다. 표본 부족·비유한 값·원 row gap은 계산하지 않고 mask로 남기며, 표본 적분도 그 뒤를 이어 붙이지 않는다. TYPE24에 없는 SFW/CE_DAMP는 만들지 않는다.
 
 ## 3. 계면: 지원 코드와 남은 물리 수용
 
@@ -110,3 +120,16 @@ python -m examples.impact.bulk_interface.run_local --workspace "C:\CAE\Impact B 
 전용 파일은 product.patch, A 소유 접점은 A.integration.patch, root 접점은 root.integration.patch로 분리한다. integration.patch는 두 접점 patch를 합친 동일본이다. **분할본과 합본을 중복 적용하지 않는다.** 최신 A/root 수정 위에는 해당 최소 hunk를 정합하며 baseline 전체 파일을 덮지 않는다. source/에는 신규 B 전용 파일만 제공한다.
 
 원 B 전체 잔여는 `IMPACT_B_ORIGINAL_LEDGER.md`에 남긴다. A의 일반 native RAD/계층 입력, C의 εN/다축 피로, 추가 결과의 Qt 표시·물리 수용, Codex의 native Windows 실행·게시, Astra 독립 검토는 이 GUI 연결로 대신 완료 처리하지 않는다.
+
+
+## 7. 접촉쌍 응답 후속 확인
+
+같은 Simulation의 **결과 선택**에서 접촉쌍과 성분, 누적 충격량·구간 평균 힘·평균 힘 표본 적분 중 필요한 응답을 선택한다. 기존 응답 이름 선택으로 곡선·표를 비교하고 문서를 저장한다. 다른 프로세스에서 열어도 원 pair/member와 원 시각, 부호·단위, NATIVE/DERIVED 구별이 유지된다. 두 양을 비교할 때 원 충격량의 초기 offset과 표본 적분의 0 기준을 먼저 확인한다.
+
+2026-10-16 후속은 고정 producer source `cb760c206e346eff12161a2268b134ef9d48a4ef`의 TYPE24 누적·TH 저장·초기화/clear 경로와 실제 고정 converter binary의 3표본/2쌍/12 signed 채널을 대조했다. raw [0,2,1] N·s와 비등간 시각 [0,0.1,0.4] s에 대해 변환 힘은 [20,2.5,-3.333333] N이다. 이 입력은 합성 TH 형식 검사이며 실제 contact 관측이 아니다. 별도 Tools source의 중심/끝 차분 구현도 확인했으나 release binary의 정확한 Tools build commit을 단정하지 않는다. 제품은 고정 binary 해시와 원 producer 소스를 구별해 보존한다.
+
+정상 및 원 FAILED/잘린 TH의 기존 Simulation 읽기·선택·저장·mutable 결과 제거·새 Python cold에서 같은 선택과 원 실패를 보존했고 solver/converter 재호출은 없었다. 고정 producer 증거가 빠지면 pair 값은 UNKNOWN이며 원 저장 열은 진단에 남는다.
+
+허용한 공개 두 탄성 C3D4·TYPE24 한 쌍의 실제 Windows 확인은 Starter 뒤 관문에서 `Itetra4=3/Ismstr=12` 불일치로 차단됐다. Starter는 1 thread로 실행됐고 Engine은 시작하지 않았다. 원 변환 INP/native deck·Starter 결과·문서·cold를 보존했으며 입력이나 공차를 바꿔 재실행하지 않았다. 따라서 새 실제 접촉 조합의 충격량/운동량·부호 수용은 아직 미완료다. 기존 native RAD의 명시 Itetra4=1000 지원을 INP effective compiler에 잇는 정식화 교정은 별도 후속이다. 이 reader 인도로 벌크/계면 손상, 비영 FT 물리 검증이나 전체 B 완료를 주장하지 않는다.
+
+원 생산 소스와 공식 보조 문서: [고정 TYPE24 producer](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/interfaces/int24/i24for3.F), [TH 직접 저장](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/th/thkin.F), [출력 뒤 clear 범위](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/sortie_main.F), [공식 TH/INTER 성분](https://2023.help.altair.com/2023/hwsolvers/rad/topics/solvers/rad/th_inter_starter_r.htm). 공식 성분 설명은 producer/실제 binary 대조를 대신하지 않는다.

@@ -235,3 +235,49 @@ def series(history, group, member, token):
         raise ValueError('Choose an exact native group member and token')
     index=group['members'].index(member)*len(group['tokens'])+group['tokens'].index(token)
     return [sample['groups'][str(group['id'])][index] for sample in history['samples']]
+
+
+PAIR_CHANNELS=('FNX','FNY','FNZ','FTX','FTY','FTZ')
+
+
+def pair_provenance(history,group,runtime_identity):
+    """Admit this raw interface buffer only for the traced, fixed producer."""
+    from .adapters.opencourant_runtime import WINDOWS_SOURCE,WINDOWS_FILES
+    if not isinstance(runtime_identity,dict) or (runtime_identity.get('platform'),runtime_identity.get('source_tag'))!=('win64',WINDOWS_SOURCE) or runtime_identity.get('files')!=WINDOWS_FILES:
+        return None
+    if group.get('type')!=101 or len(group.get('members',[]))!=1:
+        return None
+    if dict(zip(group.get('tokens',[]),group.get('native_variable_ids',[])))!={token:i+1 for i,token in enumerate(PAIR_CHANNELS)}:
+        return None
+    if history['layout']['format_code']!=4021 or history['layout']['unit_factors'] is None:
+        return None
+    return {'producer_source_commit':WINDOWS_SOURCE,'engine_sha256':WINDOWS_FILES['exec/engine_win64.exe'],
+        'native_store_semantics':'CUMULATIVE_SIGNED_CONTACT_IMPULSE','native_unit':'N s',
+        'native_channel_ids':{token:i+1 for i,token in enumerate(PAIR_CHANNELS)},
+        'pair_member_id':group['members'][0],'basis':'MODEL_GLOBAL',
+        'sign':'native signed global components, no absolute value or user-side sign reversal',
+        'normal_orientation':'surface-to-surface TYPE24: +FNI*N for surface1 main segments, -FNI*N for surface2 main segments',
+        'tangent_orientation':'native sum of FXT/FYT/FZT main-contact contributions; not reoriented to a selected body',
+        'aggregation':'one exact interface member; sum of its contact contributions, not all contacts',
+        'accumulation':'FSAV += force * DT12; DT12=(DT1+DT2)/2; not cleared at TH output on writing rank',
+        'clock':'TH records actual TT; requested output interval is not substituted',
+        'force_transform':'DERIVED_SECANT_OF_NATIVE_IMPULSE; forward/backward endpoints and centered interior',
+        'converter':'raw TFILE/4 reader bypasses converter; native impulse is never taken from converted FN/FT CSV',
+        'converter_sha256':WINDOWS_FILES['exec/th_to_csv_win64.exe']}
+
+
+def impulse_secants(times,values,*,source_rows=None,gap_before=None):
+    """Output-supported signed mean force, never an instantaneous solver force."""
+    if len(times)!=len(values) or any(not math.isfinite(t) for t in times) or any(b<=a for a,b in zip(times,times[1:])):
+        raise ValueError('Actual impulse sample clocks must be finite and increasing')
+    n=len(times);rows=list(range(n)) if source_rows is None else list(source_rows)
+    gaps=[False]*n if gap_before is None else list(gap_before)
+    if len(rows)!=n or len(gaps)!=n:raise ValueError('Impulse sample mask/row lengths differ')
+    result=[];support=[]
+    for i in range(n):
+        a,b=(0,1) if i==0 else (n-2,n-1) if i==n-1 else (i-1,i+1)
+        valid=n>=2 and all(type(value) in (int,float) and math.isfinite(value) for value in values[a:b+1])
+        valid=valid and not any(gaps[a+1:b+1]) and all(y==x+1 for x,y in zip(rows[a:b],rows[a+1:b+1]))
+        result.append((values[b]-values[a])/(times[b]-times[a]) if valid else None)
+        support.append({'source_rows':rows[a:b+1],'time_interval_s':[times[a],times[b]]} if n>=2 else None)
+    return result,support

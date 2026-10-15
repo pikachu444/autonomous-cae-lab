@@ -34,3 +34,15 @@ native LAW36+INIEVO가 불가능하다고 판단한 것은 아니다. source hoo
 ## 2026-10-16 현재 main 통합 경계
 
 원 Pro의 B01–B10 요구와 위 잔여를 유지한다. 전용 벌크·계면·TFILE/4 읽기19파일을 재사용하고, 최근 A의 보존 결과 읽기·원 슬롯/부분 prefix 보호를 이전 B 재후처리 파일로 대체하지 않는다. B08/B09의 반환 당시 합성 실행과 별도로, 현행 Windows owner의 B 추가 선택·정의 pin·실패 부분 읽기·저장·새 Python cold 읽기를 합성 입력으로 확인했다. B 정의가 없는 과거 작업은 UNKNOWN이고, 정의 pin 변조와 없는 채널은 성공으로 바꾸지 않는다. 원 작업 실패도 그대로다. 원문 변경 뒤 재료 적용집합·논리 요소·접촉쌍의 원 대응 변경은 기존 검토/명시 적용을 거쳐야 한다. 이 연결 및 국소 확인은 실제 native B 물리 수용이나 전체 B 완료가 아니다.
+
+
+## 2026-10-16 접촉쌍 B05/B06 reader 후속
+
+위 표의 Pro 반환 당시 미확인 기록을 지우지 않는다. 이번 구현은 다음 경계를 바꾼다.
+
+- **제품 의미 연결 완료:** 고정 cb760c TYPE24 producer가 FSAV1–6에 매 증분 힘×DT12를 누적하고 THKIN이 그대로 기록함을 확인했다. FSAV 초기 0, rank0 누적 유지·비작성 rank SPMD reduce 후 clear, 별도 PARTSAV 초기화와 interface energy/area clear를 구분했다. 정확한 한 interface member와 변수 번호 1–6을 검사해 native 누적 충격량, 차분 구간 평균 힘, 평균 힘 표본 적분을 구분한다. 과거 원 정의·입력·UNKNOWN 결과는 고치지 않는다.
+- **실행 확인:** 고정 converter SHA `ad5b8a76b5a13aa695616f15af400ad1ea344a1afb37a2480f17aaa0ec758d01`의 실제 변환을 공개 합성 3표본·2쌍으로 한 건 실행했고 12 signed 채널의 끝/중심 차분과 헤더/member를 대조했다. raw impulse와 converted force를 뒤섞지 않는다. 원 Tools commit 대응은 미확인으로 유지하며 직접 raw reader는 converter에 의존하지 않는다.
+- **원 owner와 보존:** 기존 Simulation의 정상/FAILED 부분 읽기·정확한 pair 선택·표/곡선·저장·mutable 결과 제거·별도 프로세스 cold를 확인했다. 원 FAILED와 누락/부호/row gap 및 NATIVE/DERIVED를 보존하고 원 실행을 다시 시작하지 않는다.
+- **실제 물리 수용 미완료:** 공개 2탄성 C3D4/TYPE24 한 쌍의 Starter를 1 thread로 실행했으나 기존 관문이 Itetra4=3/Ismstr=12 불일치를 거절했다. Engine NOT_RUN이다. 원 입력·변환 deck·실패·문서 cold는 보존했다. 이 단일 시도를 통과한 실제 pair 충격량/힘이나 운동량 수용으로 세지 않으며 숨은 입력 수정·재실행도 하지 않았다. 기존 direct 경로의 명시 Itetra4=1000을 INP effective compiler에 연결하는 후속 교정은 별도다.
+
+그러므로 B05/B06의 원 저장 의미·reader·converter·owner 경로는 위 범위에서 해결됐고, 실제 새 접촉 조합과 전체 B의 물리 수용은 남는다. native penetration·완전 손상 뒤 recontact/reopen·비영 접선 힘·softening 및 에너지/mesh 수용은 이 후속에서 완료하지 않았다. 추가 공학 자격은 UNKNOWN/NOT_RELEASED다.

@@ -146,6 +146,9 @@ class ImpactAdapter:
     def run(self,settings,*,output,runtime=None):
         if runtime and set(runtime)-{'threads','memory_mb'}:
             raise ValueError('Operator runtime cannot be changed by the model')
+        threads=(runtime or {}).get('threads',2)
+        if type(threads) is not int or not 1<=threads<=64:
+            raise ValueError('Impact runtime threads must be an integer between 1 and 64')
         s=domain.validate_settings(settings);model=domain.model_from_settings(s)
         out=Path(output);native=out/'native'
         save_json(out/'input.json',s)
@@ -189,6 +192,7 @@ class ImpactAdapter:
             actual_model={**model,'nodes':initial['nodes']}
             phase='runtime'
             names,env,identity=selected_runtime()
+            env={**env,'OMP_NUM_THREADS':str(threads)}
             result['diagnostics']['runtime']=identity
             if not direct:
                 phase='conversion'
@@ -219,12 +223,12 @@ class ImpactAdapter:
             result['checks'].append({'name':'effective_physics','status':'PASS'})
             save_json(out/'effective_deck_pins.json',frozen)
             phase='starter'
-            command([names['starter'],'-i',name+'_0000.rad','-np','1','-nt','2'],'starter')
+            command([names['starter'],'-i',name+'_0000.rad','-np','1','-nt',str(threads)],'starter')
             result['checks'].append(starter_admission(native/(name+'_0000.out'),model))
             if any(file_hash(native/key)!=value for key,value in frozen.items()):
                 raise ValueError('Effective deck/include bytes changed during Starter')
             phase='engine';result['diagnostics']['native_execution_status']='STARTED'
-            process=command([names['engine'],'-i',name+'_0001.rad','-nt','2'],'engine')
+            process=command([names['engine'],'-i',name+'_0001.rad','-nt',str(threads)],'engine')
             termination=engine_termination(native/(name+'_0001.out'),process.stdout,s['time']['end_s'])
             result['diagnostics']['native_termination']=termination
             if termination['status']!='NORMAL':

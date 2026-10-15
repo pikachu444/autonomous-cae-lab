@@ -966,6 +966,10 @@ class Workbench:
         actual_threads=max(actual_threads,execution.get('workers',1)*external.get('threads',1))
         registered=next((row for row in self.backends() if row['id']==arguments.get('backend')), {})
         native_threads=registered.get('threads',1)
+        if arguments.get('backend')=='explicit.opencourant.model':
+            # This adapter now honors the admitted thread count; keep its old
+            # two-thread default when no operator reservation was supplied.
+            native_threads=max(native_threads,requested.get('threads',2))
         if registered.get('native_runtime') and arguments.get('backend') not in self.config.get('external_backends',{}):
             import os
             # Preserved native adapters may inherit operator thread settings.
@@ -1220,6 +1224,9 @@ class Workbench:
             if set(args)!={'backend','settings'}:
                 raise ValueError('Simulation requires only its declared backend and frozen settings')
             from .research_execution import run_domain
+            if args['backend']=='explicit.opencourant.model':
+                return run_domain(self,args,self.root/'results'/identifier,
+                    runtime=self.manager.status(identifier)['resources'])
             return run_domain(self,args,self.root/'results'/identifier)
         if operation=='evaluate' and backend=='evaluation.definition':
             from .evaluation_definition import execute

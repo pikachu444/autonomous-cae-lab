@@ -44,6 +44,14 @@ def verify(text,model,settings,definition):
     for key,expected in {**definition['interface']['cards'],**definition['outputs']['generated_cards']}.items():
         if blocks.get(key)!=expected:
             raise ValueError('B interface/output card changed: '+key)
+    for group in definition['outputs']['groups']:
+        if group['kind']!='pair':continue
+        index=group['contact_index'];members=group['members']
+        if type(index) is not int or not 0<=index<len(settings['contacts']) or group['pair']!=settings['contacts'][index] or len(members)!=1:
+            raise ValueError('B contact pair receipt differs from the original selected pair')
+        contact=blocks.get('/INTER/TYPE24/'+str(members[0]))
+        if not contact or contact[0].strip().upper()!='IMPACT'+str(index+1):
+            raise ValueError('B contact pair member differs from the exact TYPE24 card')
     from .impact_damage import law_card
     for item in definition['cohesive']['elements'].values():
         mid=item['material_id'];name=item['material']
@@ -53,12 +61,12 @@ def verify(text,model,settings,definition):
             raise ValueError('The retained LAW117 envelope was changed by a bulk/contact extension')
 
 
-def readback(folder,model,settings,definition,frames,*,failed=False):
+def readback(folder,model,settings,definition,frames,*,failed=False,runtime_identity=None):
     from pathlib import Path
     from .impact_bulk_history import read
     folder=Path(folder); path=folder/'native/impactT01';titles=folder/'native/impactT01_TITLES'
     history=read(path,titles=titles,failed=failed) if path.is_file() and titles.is_file() else None
-    selected,record=impact_bulk_results.read_selected(history,frames,model,settings,definition)
+    selected,record=impact_bulk_results.read_selected(history,frames,model,settings,definition,runtime_identity=runtime_identity)
     return selected,record,history
 
 
@@ -154,13 +162,15 @@ def append_readback(folder,model,settings,result,frames,*,partial=False):
         try:
             if kind!='interface' and history_error:raise ValueError(history_error)
             chosen,observations=impact_bulk_results.read_selected(history if kind!='interface' else None,
-                available,model,{**settings,'b_responses':rows},definition,excluded_frames=excluded)
+                available,model,{**settings,'b_responses':rows},definition,excluded_frames=excluded,
+                runtime_identity=diagnostics.get('runtime'))
             # A correctly read inactive element remains masked; deletion is not
             # a reader failure. Missing samples/channels and unproven pair force
             # semantics remain separate from that physical activation state.
             observed=any(item['times_s'] for item in observations['selections'].values())
             incomplete=bool(excluded) if kind=='interface' else bool(history and history['excluded'])
-            status='UNKNOWN' if kind=='pair' or not observed else 'PARTIAL' if incomplete else 'COMPLETE'
+            readable=all(response['metadata'].get('status')!='UNKNOWN' for response in chosen.values())
+            status='UNKNOWN' if not observed or kind=='pair' and not readable else 'PARTIAL' if incomplete else 'COMPLETE'
             scope(kind,status,selected_names=[r['name'] for r in rows],
                   excluded_tail=deepcopy(history['excluded']) if kind!='interface' and history else [],
                   unavailable_frames=deepcopy(excluded) if kind=='interface' else [])
@@ -190,7 +200,7 @@ def editor_rows(settings):
     return {'bulk':rows,'interfaces':deepcopy(settings.get('interface_controls',[])),
             'quantities':[{'id':key,'label':v[0],'unit':v[2]} for key,v in impact_bulk_results.BULK.items()],
             'readback_label':'보존 결과 다시 읽기',
-            'pair_semantics':'원 pair/time 열은 보존; force/impulse 저장 의미 수용은 아직 UNKNOWN'}
+            'pair_semantics':'정확한 접촉쌍의 누적 충격량·구간 평균 힘·평균 힘 표본 적분을 구분합니다. 고정 runtime 미확인은 UNKNOWN입니다.'}
 
 
 def set_bulk_law(settings,material,law=None):
