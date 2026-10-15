@@ -92,7 +92,7 @@ def load(view, reference=None, *, verify_observations=True):
                 observed['status']!=data['surface']['status']):
             raise ValueError('Retained top/bottom observations differ from native FRD/12d')
         if 'source/shell.dat' in members:
-            if normalize(read_dat(members['source/shell.dat'],mesh['elements']))!=data['internal']:
+            if normalize(read_dat(members['source/shell.dat'],mesh['elements'],retain_lines='regions' in data['model']['draft']))!=data['internal']:
                 raise ValueError('Retained internal observations differ from native DAT')
         elif data['internal'].get('rows'):
             raise ValueError('Internal result rows have no native DAT source')
@@ -124,7 +124,7 @@ def load(view, reference=None, *, verify_observations=True):
         for index,time in enumerate(sorted({r['load_parameter'] for r in data['internal']['rows']})):
             rows=[r for r in data['internal']['rows'] if r['load_parameter']==time]
             name=f'internal_{index:04d}.vtu'; buffer=BytesIO()
-            description=internal(buffer,rows)
+            description=internal(buffer,rows,association='CELLS' if 'regions' in data['model']['draft'] else 'POINTS')
             if description is not None and (name not in members or read_bytes(members[name])!=buffer.getvalue()):
                 raise ValueError('Internal-point view differs from its native DAT observations')
     return {'manifest':manifest,'data':data,'paths':paths}
@@ -157,3 +157,37 @@ def explicit_manifest(path):
     reference={'relative':path.name,'sha256':sha(path),'bytes':path.stat().st_size}
     checked=load(view,reference)
     return view,{**deepcopy(checked['manifest']['native_metadata']),'shell_inspection':reference}
+
+
+def inspect_internal(view, *, element_id, integration_point, quantity='S',
+                     load_parameter=None, basis='global', reference=None):
+    """Exact DAT IP inspection; a center-axis transform is explicitly derived."""
+    if quantity not in ('S','E','COORD') or basis not in ('global','element_center_user'):
+        raise ValueError('Select native S/E/COORD and an explicitly supported display basis')
+    checked=load(view,reference); data=checked['data']; rows=data['internal']['rows']
+    times=sorted({r['load_parameter'] for r in rows})
+    time=times[-1] if load_parameter is None and times else load_parameter
+    matches=[r for r in rows if (r['element_id'],r['integration_point'],r['load_parameter'])==
+             (element_id,integration_point,time)]
+    if len(matches)!=1 or quantity not in matches[0]:
+        raise ValueError('This exact native integration-point quantity is unavailable')
+    row=matches[0]; raw=deepcopy(row[quantity]); values=deepcopy(raw['values'])
+    transform=None
+    if basis!='global':
+        if quantity=='COORD': raise ValueError('Native global COORD positions are not a material-axis tensor')
+        _,mesh=build(data['model']); axes=mesh['axes'][element_id]
+        from .adapters.shell_results import rotate_tensor
+        values=rotate_tensor(values,axes)
+        transform={'axes':axes,'definition':'constant basis projected at original S8 element center',
+                   'native_IP_material_basis':False,'source_values':raw['values']}
+    source=next((r for r in checked['manifest']['files'] if r['relative']=='source/shell.dat'),None)
+    return {'element_id':element_id,'integration_point':integration_point,'load_parameter':time,
+            'quantity':quantity,'values':values,'raw':raw,
+            'unit':{'S':'MPa','E':'1','COORD':'mm'}[quantity],
+            'position_mm':deepcopy(row.get('COORD',{}).get('values')),
+            'position_status':'OBSERVED' if 'COORD' in row else 'UNAVAILABLE',
+            'frame':'FREECAD_DOCUMENT_GLOBAL' if basis=='global' else 'SHELL_ELEMENT_CENTER_USER_AXES',
+            'location':'internal_integration_point','association':'CELLS','recovery':'none_native_DAT',
+            'basis_transform':transform,'shear_convention':'tensor_off_diagonal_not_engineering_gamma',
+            'source_pin':source,'source_execution_status':data['execution_status'],
+            'point_measurement':'UNSUPPORTED','engineering_valid':False}

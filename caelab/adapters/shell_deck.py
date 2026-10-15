@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 import re
 
+from caelab.shell_regions import element_values
 from caelab.shell_model import prepare_mesh, check_supports, number, digest, issue, ShellError
 
 KIND = 'freecad-shell-frozen'
@@ -93,7 +94,9 @@ def _section_fragments(text, mesh, material):
         name = options['ELSET']
         if name in found or options['MATERIAL'] != material.upper():
             raise ValueError('Native shell section identity mismatch')
-        values = mesh['values']
+        if not re.fullmatch(r'ES[1-9][0-9]*', name) or int(name[2:]) not in mesh['elements']:
+            raise ValueError('Native section references a foreign shell element')
+        values = element_values(mesh, int(name[2:]))
         # FreeCAD's source formats Thickness and Offset with .13G.
         if (number(rows[0]) != float(format(values['thickness_mm'], '.13G')) or
                 number(options['OFFSET']) != float(format(values['offset'], '.13G'))):
@@ -119,10 +122,10 @@ def _pressure_fragment(text, mesh):
         if e in found:
             raise ValueError('Repeated native shell pressure')
         found[e] = number(parts[2])
-    expected = -mesh['values']['pressure_MPa']
+    expected = {e: -element_values(mesh, e)['pressure_MPa'] for e in mesh['elements']}
     # Native Pressure.getValueAs('MPa') yields the applied float; no mesh-area
     # distribution or force conversion is performed by this adapter.
-    if set(found) != set(mesh['elements']) or any(abs(v-expected) > 8*math.ulp(expected) for v in found.values()):
+    if set(found) != set(mesh['elements']) or any(abs(v-expected[e]) > 8*math.ulp(expected[e]) for e,v in found.items()):
         raise ValueError('Native pressure target/sign differs from the applied shell draft')
     return found
 
@@ -174,8 +177,13 @@ def build(model):
     elastic = _material_fragment(model['native_material'], mesh, material)
     native_sections = _section_fragments(model['native_sections'], mesh, material)
     pressures = _pressure_fragment(model['native_pressure'], mesh)
-    offset_token, thickness_token = next(iter(native_sections.values()))
-    mesh['section_values'] = {'thickness_mm':number(thickness_token),'offset':number(offset_token)}
+    if 'regions' in model['draft']:
+        mesh['section_values_by_element'] = {
+            e: {'thickness_mm': number(native_sections['ES'+str(e)][1]),
+                'offset': number(native_sections['ES'+str(e)][0])} for e in mesh['elements']}
+    else:
+        offset_token, thickness_token = next(iter(native_sections.values()))
+        mesh['section_values'] = {'thickness_mm':number(thickness_token),'offset':number(offset_token)}
     # Bind result geometry to the values actually serialized, not extra draft digits.
     mesh['nodes'] = {n:[float(token(v)) for v in xyz] for n,xyz in mesh['nodes'].items()}
     # The selected subset and the explicit reversal are the only mesh edits.

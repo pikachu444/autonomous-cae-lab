@@ -73,6 +73,12 @@ def read_frd(path, model, *, allow_partial=False, data=None):
     record only. Corruption followed by more content, wrong labels, duplicate
     nodes and foreign topology always reject the entire reading copy.
     """
+    from .beam_output import mode
+    if mode(model)=='raw_stress':
+        if data is not None:
+            raise ValueError('3D beam observations require the full pinned FRD/12d/DAT source set')
+        from .beam_raw_results import read
+        return read(path,model,allow_partial=allow_partial)
     nodes, elements, _ = validate_model(model)
     raw = _read_bytes(Path(path)) if data is None else data
     if not isinstance(raw, bytes) or len(raw) > 64 * 1024**2:
@@ -275,6 +281,8 @@ def read_frd(path, model, *, allow_partial=False, data=None):
 
 def channels(frame):
     """One component, frame, source field and unit per channel; never mixed tensors."""
+    if frame.get('output_mode')=='raw_stress':
+        raise ValueError('Raw Cauchy stress cannot be read through SECTION FORCES channels; use inspect_raw')
     result = {}
     for key,(source,index,unit,coordinate,title,measure) in CHANNELS.items():
         result[key] = {'unit':unit,'frame':coordinate,'label':title,'measure':measure,
@@ -285,6 +293,10 @@ def channels(frame):
 
 def post_metadata(observed, model, *, source_status):
     """Exact field declaration for the PVD load-parameter collection, never seconds."""
+    from .beam_output import mode
+    if mode(model)=='raw_stress':
+        from .beam_raw_results import post_metadata as raw_metadata
+        return raw_metadata(observed,model,source_status=source_status)
     validate_model(model)
     frames = observed['frames']
     if not frames or len(frames) > 1024:
@@ -330,6 +342,11 @@ def post_files(observed, model, *, source_status):
     No disk writes or solver imports on reopening. Each numeric array is rebuilt
     from native FRD component values and exact input node/element associations.
     """
+    from .beam_output import mode
+    if mode(model)=='raw_stress':
+        from .beam_raw_results import post_files as raw_files
+        yield from raw_files(observed,model,source_status=source_status)
+        return
     import io
     post_metadata(observed, model, source_status=source_status)
     nodes, _, stations = validate_model(model)
@@ -391,6 +408,10 @@ def write_post(folder, observed, model, *, source_status):
 
 
 def final_responses(observed, model):
+    from .beam_output import mode
+    if mode(model)=='raw_stress':
+        from .beam_raw_results import final_responses as raw_responses
+        return raw_responses(observed,model)
     nodes,_,_ = validate_model(model); order=sorted(nodes)
     frame=observed['frames'][-1]
     return {name:{'kind':'field','unit':ch['unit'],'value':[ch['values'][n] for n in order],

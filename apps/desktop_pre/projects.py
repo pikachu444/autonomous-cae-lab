@@ -147,6 +147,8 @@ class Project:
         opened = OPENED.pop(self.owner.doc.Name, None)
         if opened and opened[0] is self.owner.doc:
             manifest, source = opened[1:]
+            if 'shell_binding_evidence' in manifest:
+                self.owner.shell.restore_binding_evidence(manifest['shell_binding_evidence'])
             if manifest.get('kind') == native_cad.KIND and not manifest.get('new_design_branch'):
                 self.last_save = {'revision': manifest['revision'], 'opened_source': source,
                                   'unavailable_dependencies': manifest.get('unavailable_dependencies', [])}
@@ -263,6 +265,9 @@ class Project:
                 if other is not None and other is not owner:
                     other.before_design_action('linked project save')
                     linked_owners.append((other, other.generation))
+            # Preserve digest-authenticated shell BREP preimages before saveCopy.
+            # This does not change the draft, its binding, or native geometry.
+            shell_evidence = owner.shell.export_binding_evidence() if metadata.get('shells') else None
             generations = owner.generation
             graph_version = self.graph_version()
             revision = 'R' + uuid.uuid4().hex
@@ -327,7 +332,13 @@ class Project:
                                    if getattr(owner, 'find_owner', lambda _: None)(doc) is not None else None)}
                     for doc in docs if doc is not owner.doc],
                 'engineering_release': 'UNKNOWN', 'design_pose_restored': True}
+            if shell_evidence is not None:
+                manifest['shell_binding_evidence'] = shell_evidence
             save_json(stage / 'project.json', manifest)
+            # Optional evidence must not make a previously saveable draft exceed the existing manifest limit.
+            if shell_evidence is not None and (stage / 'project.json').stat().st_size > 8 * 1024 * 1024:
+                manifest.pop('shell_binding_evidence')
+                save_json(stage / 'project.json', manifest)
             # Publish an immutable revision first. Failure to publish the user's
             # selected .caepre keeps both that revision and the previous save.
             retained = stage / 'retained.caepre'

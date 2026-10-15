@@ -21,6 +21,7 @@ class DraftBuffer:
     def read(self, analysis_id, draft):
         self.analysis_id=analysis_id
         self.base={k:deepcopy(draft.get(k,'' if k!='fixed_nodes' else [])) for k in (*FIELDS,'orientation','fixed_nodes')}
+        if 'regions' in draft:self.base['regions']=deepcopy(draft['regions'])
         self.fields=deepcopy(self.base)
 
     def pending_changes(self):
@@ -86,6 +87,12 @@ def make_panel(W, C, editor, submit):
             self.scroll=W.QScrollArea(); self.scroll.setWidgetResizable(True)
             self.scroll.setFrameShape(W.QFrame.NoFrame)
             body=W.QWidget(); form=W.QVBoxLayout(body); form.setContentsMargins(0,0,0,0)
+            region_buttons=W.QHBoxLayout()
+            self.regions_button=W.QPushButton('영역별 단면·법선 편집…')
+            self.import_regions_button=W.QPushButton('모델의 영역 불러오기')
+            self.regions_button.clicked.connect(self.edit_regions)
+            self.import_regions_button.clicked.connect(self.import_regions)
+            region_buttons.addWidget(self.regions_button);region_buttons.addWidget(self.import_regions_button);form.addLayout(region_buttons)
             section=W.QLabel('단면과 하중');section.setProperty('shellSection',True);form.addWidget(section)
             self.properties=W.QTableWidget(len(FIELDS),3)
             self.properties.setHorizontalHeaderLabels(['속성','값','확인'])
@@ -139,6 +146,9 @@ def make_panel(W, C, editor, submit):
             self.post_button.clicked.connect(lambda:self.action('open_result'))
             for i,b in enumerate((self.prepare_button,self.run_button,self.cancel_prepare_button,self.post_button)):
                 runbuttons.addWidget(b,i//2,i%2)
+            self.raw_result_button=W.QPushButton('저장된 원 위치·적분점 열기…')
+            self.raw_result_button.clicked.connect(self.open_raw_result)
+            runbuttons.addWidget(self.raw_result_button,2,0,1,2)
             layout.addLayout(runbuttons)
             self.status=W.QLabel(); self.status.setWordWrap(True); self.status.setAccessibleName('셸 편집 상태'); layout.addWidget(self.status)
             self.analysis.currentIndexChanged.connect(self.change_analysis)
@@ -176,9 +186,12 @@ def make_panel(W, C, editor, submit):
             self.begin_button.setEnabled(not self.busy)
             self.analysis.setEnabled(not self.busy)
             for b in (self.face_button,self.elements_button,self.save_button,self.apply_button,self.preview_button,
-                      self.reload_button,self.support,self.flip,self.confirm_normal,self.repair):
+                      self.reload_button,self.support,self.flip,self.confirm_normal,self.repair,self.regions_button,self.import_regions_button):
                 b.setEnabled(have and not self.busy)
             self.properties.setEnabled(have and not self.busy)
+            regional='regions' in self.buffer.fields
+            for key,field in self.edits.items():field.setEnabled(not regional or key in ('young_MPa','poisson'))
+            self.import_regions_button.setEnabled(have and not self.busy)
             self.confirm_normal.setEnabled(bool(have and not self.busy and not self.buffer.fields.get('orientation')))
             self.accept_selection.setEnabled(bool(self.pending_selection) and not self.busy)
             self.cancel_selection.setEnabled(bool(self.pending_selection) and not self.busy)
@@ -241,10 +254,31 @@ def make_panel(W, C, editor, submit):
             self.support_count.setText('추가 고정 '+str(len(self.buffer.fields.get('fixed_nodes',[])))+'개')
             direction=self.buffer.fields.get('orientation')
             self.direction.setText({'native':'현재 메시 순서의 법선','reversed':'현재 메시 순서와 반대 법선'}.get(direction,'법선 미확정 — 화면에서 확인하세요.'))
+            if 'regions' in self.buffer.fields:
+                self.direction.setText(str(len(self.buffer.fields['regions']))+'개 영역의 기하 법선 — 개별 방향은 영역 편집에서 확인합니다.'+(' 대상 복구 뒤 메시 법선 확인이 필요합니다.' if not direction else ''))
             self.confirm_normal.setEnabled(bool(self.row and not direction and not self.busy))
             global_errors=[e['message'] for e in errors if e['path'] not in FIELDS]
             self.set_status('\n'.join(dict.fromkeys(global_errors)) if global_errors else
                             ('미적용 수정이 있습니다.' if self.pending_changes() else ''))
+
+        def edit_regions(self):
+            def open_editor():
+                from .shell_regions_panel import edit_regions
+                draft={**deepcopy(self.row['draft']),**deepcopy(self.buffer.fields)}
+                value=edit_regions(W,C,editor,draft,parent=self)
+                if value is not None:
+                    self.buffer.fields['regions']=value;self.prepared=None
+                    self.show_errors();self.update_enabled()
+            self.safe(lambda:self.save_editor_then(open_editor))
+
+        def import_regions(self):
+            if W.QMessageBox.question(self,'모델의 영역 속성 불러오기',
+                '현재 모델에서 영역의 두께·오프셋·축·하중·요소 할당을 읽어 초안을 교체합니다. '
+                '미저장 편집은 버리고 기존 적용 상태는 해제합니다. 계속합니까?',
+                W.QMessageBox.Yes|W.QMessageBox.No,W.QMessageBox.No)!=W.QMessageBox.Yes:return
+            aid=self.buffer.analysis_id
+            self.safe(lambda:self._send('pre.shell.import_regions',{'analysis_id':aid},
+                lambda value:self.reload(value,selected=aid)))
 
         def change_analysis(self,*_):
             if self.loading: return
@@ -392,6 +426,10 @@ def make_panel(W, C, editor, submit):
                 aid=self.buffer.analysis_id
                 self.save_editor_then(lambda:self._send('pre.shell.repair_objects',{'analysis_id':aid,'objects':objects},self.reload))
             self.safe(repair)
+
+        def open_raw_result(self):
+            from .b13_result_window import open_shell_result
+            self.safe(lambda:open_shell_result(W,C,parent=self))
 
         def action(self,name):
             if not self.connection: self.set_status('기존 계산 연결을 확인하세요.'); return

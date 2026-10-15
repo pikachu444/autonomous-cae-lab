@@ -13,8 +13,9 @@ from caelab.shell_model import (DEFAULTS, FIELDS, ShellError, issue, digest,
 
 OPERATIONS = ('pre.shell.inspect', 'pre.shell.begin', 'pre.shell.repair_objects', 'pre.shell.save_draft',
               'pre.shell.preview_rebind', 'pre.shell.apply_rebind', 'pre.shell.cancel_rebind',
-              'pre.shell.preview', 'pre.shell.reverse', 'pre.shell.apply', 'pre.shell.freeze')
-READ_ONLY = {'pre.shell.inspect', 'pre.shell.preview_rebind', 'pre.shell.cancel_rebind', 'pre.shell.preview'}
+              'pre.shell.preview', 'pre.shell.reverse', 'pre.shell.apply', 'pre.shell.freeze',
+              'pre.shell.region_selection', 'pre.shell.import_regions', 'pre.shell.reverse_region')
+READ_ONLY = {'pre.shell.region_selection', 'pre.shell.inspect', 'pre.shell.preview_rebind', 'pre.shell.cancel_rebind', 'pre.shell.preview'}
 SETTINGS = {'AnalysisType':'static', 'ModelSpace':'3D', 'GeometricalNonlinearity':'linear',
             'MaterialNonlinearity':'linear', 'SplitInputWriter':False,
             'ExcludeBendingStiffness':False, 'BeamShellResultOutput3D':True}
@@ -31,6 +32,133 @@ def native_type(obj):
 def _refs(obj):
     return [{'object_id': source.Name, 'subelements': [names] if isinstance(names,str) else list(names)}
             for source, names in getattr(obj, 'References', [])]
+
+
+# Only exact signed zeros in supported analytic plane axes are normalized.
+# All nonzero digits, topology/flags, ordering, orientation and whitespace stay
+# exact. A historical digest alone is NOT enough: its preimage is required.
+_BREP_V1 = '\nCASCADE Topology V1, (c) Matra-Datavision\n'
+_BREP_EVIDENCE_SCHEMA = 'caelab-shell-brep-evidence/1'
+_MAX_BREP_BYTES = 64 * 1024 * 1024
+_MAX_RETAINED_BREP_BYTES = 2 * 1024 * 1024
+_FIXED_REAL = re.compile(r'(?<!\S)[+-]?(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?(?=\s|$)')
+
+
+def _brep_zero_identity(text):
+    """Normalize plane axis signed zeros, not topology or arbitrary BREP tokens.
+
+    No float conversion/rounding is used. Only a complete simple analytic
+    Surfaces table is recognized; unknown/variable-length surface records stay
+    byte-exact. Plane origin, type, nonzero axis values, cylinder records and
+    every token outside these plane axes remain unchanged.
+    """
+    if (not isinstance(text, str) or not text.startswith(_BREP_V1)
+            or len(text) > _MAX_BREP_BYTES or not text.isascii()):
+        raise ValueError('검증 가능한 native BREP V1 원문이 없습니다.')
+    lines = text.splitlines(keepends=True)
+    headers = [i for i, line in enumerate(lines) if line.startswith('Surfaces ')]
+    if len(headers) != 1:
+        return text
+    start = headers[0]
+    header = re.fullmatch(r'Surfaces ([0-9]+)\s*', lines[start])
+    if header is None:
+        return text
+    count = int(header[1])
+    end = start + 1 + count
+    if end >= len(lines) or not lines[end].startswith(
+            ('Polygon3D ', 'PolygonOnTriangulations ', 'Triangulations ', 'TShapes ')):
+        return text
+    rows = []
+    for index in range(start + 1, end):
+        tokens = list(re.finditer(r'\S+', lines[index]))
+        values = [m[0] for m in tokens]
+        # V1 plane = type + origin(3) + direction/X/Y axes(9).
+        # Cylinder has the same frame plus radius, but is kept exact here.
+        if not values or (values[0], len(values)) not in (('1', 13), ('2', 14)):
+            return text
+        if any(not re.fullmatch(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?', v)
+               for v in values[1:]):
+            return text
+        rows.append((index, tokens))
+    for index, tokens in rows:
+        if tokens[0][0] == '1':
+            for token in reversed(tokens[4:13]):
+                if token[0] == '-0':
+                    line = lines[index]
+                    lines[index] = line[:token.start()] + '0' + line[token.end():]
+    return ''.join(lines)
+
+
+def _saved_brep_export_candidate(text):
+    """Recover a possible *old export string*, never infer physical equality.
+
+    FreeCAD 1.1.4 exportBrepToString uses an unformatted stringstream and
+    TopoShape::exportBrep's V1 ShapeSet. An FCStd ASCII member can instead have
+    fixed-point stream formatting (15 digits, 17 in the geometry tables).
+    Re-render just that formatting. The caller MUST authenticate the resulting
+    string against the already recorded JSON-string digest, or refuse it.
+    Unknown formatting, lost digits, flags changed by a reader, etc. therefore
+    do not authorize a binding. No CAD objects are read/created/recomputed here.
+    """
+    _brep_zero_identity(text)  # Bound the input and require the actual V1 header.
+    precision, locations, output = 15, False, []
+    for line in text.splitlines(keepends=True):
+        if line.startswith('Locations '):
+            locations = True
+        if line.startswith(('Curve2ds ', 'Curves ', 'Surfaces ')):
+            locations = False
+            precision = 17
+        if line.startswith(('Polygon3D ', 'PolygonOnTriangulations ', 'Triangulations ', 'TShapes ')):
+            locations = False
+            precision = 15
+        def render(match):
+            value = float(match[0])
+            if not math.isfinite(value):
+                raise ValueError('비유한 저장 BREP 수치입니다.')
+            return format(value, f'.{precision}g')
+        # Location matrix rows use setw(15) and precision(15), not fixed(15).
+        tokens = line.split()
+        if locations and len(tokens) == 4 and all(_FIXED_REAL.fullmatch(t) for t in tokens):
+            values = [float(t) for t in tokens]
+            if not all(math.isfinite(v) for v in values):
+                raise ValueError('비유한 저장 BREP 배치입니다.')
+            line = ' '.join(format(v, '15.15g') for v in values) + ' \n'
+        else:
+            line = _FIXED_REAL.sub(render, line)
+        output.append(line)
+    return ''.join(output)
+
+
+def _saved_shape_brep(obj):
+    """Read the exact named Shape property from this document's FCStd, read-only.
+
+    This is the existing native project working copy, not a guessed Windows
+    source path, a new document, a save, or an unrelated frozen result. Even a
+    valid archive is only a candidate until its export digest authenticates it.
+    """
+    from pathlib import Path
+    import zipfile
+    from caelab import native_cad
+    filename = getattr(obj.Document, 'FileName', '')
+    if not filename or Path(filename).suffix.lower() != '.fcstd':
+        raise ValueError('현재 문서의 저장 FCStd가 없습니다.')
+    with zipfile.ZipFile(filename) as archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise ValueError('저장 FCStd에 중복 member가 있습니다.')
+        tree = native_cad._xml(archive)
+        objects = [o for o in tree.findall('./ObjectData/Object') if o.get('name') == obj.Name]
+        if len(objects) != 1:
+            raise ValueError('저장 FCStd의 형상 객체가 모호하거나 없습니다.')
+        properties = [p for p in objects[0].findall('./Properties/Property')
+                      if p.get('name') == 'Shape' and p.get('type') == 'Part::PropertyPartShape']
+        if len(properties) != 1 or len(properties[0].findall('Part')) != 1:
+            raise ValueError('저장된 native Shape 속성의 원문을 확인할 수 없습니다.')
+        member = native_cad._safe_member(properties[0].find('Part').get('file'))
+        info = archive.getinfo(member)
+        if info.file_size > _MAX_BREP_BYTES:
+            raise ValueError('저장 BREP 검증 크기를 초과했습니다.')
+        return archive.read(info).decode('ascii')
 
 
 def _geometry(obj):
@@ -54,10 +182,12 @@ class ShellEditor:
         self.owner = owner
         self._pending = {}
         self._overlay = None
+        self._binding_breps = {}
 
     def close(self):
         self.clear_preview()
         self._pending.clear()
+        self._binding_breps.clear()
 
     def _object(self, name):
         obj = self.owner.doc.getObject(name) if isinstance(name,str) else None
@@ -105,6 +235,8 @@ class ShellEditor:
         mesh, _, _ = self._mesh(draft)
         analysis = self._object(draft['analysis_id'])
         refs = list(draft.get('face_refs', []))
+        for row in draft.get('regions', []):
+            refs.extend(row.get('face_refs', []))
         for obj in analysis.Group:
             if native_type(obj) == 'Fem::ConstraintFixed' and not getattr(obj,'Suppressed',False):
                 refs.extend(_refs(obj))
@@ -122,8 +254,116 @@ class ShellEditor:
                 'fixed_references':{o.Name:_refs(o) for o in analysis.Group
                     if native_type(o)=='Fem::ConstraintFixed' and not getattr(o,'Suppressed',False)}}
 
+    def restore_binding_evidence(self, evidence):
+        """Attach only hash-authenticated historical text from verified open.
+
+        This cache contains old BREP preimages, NEVER a current stamp/fingerprint.
+        It cannot replace a binding, an applied model, or a newer raw edit.
+        """
+        if (not isinstance(evidence, dict) or set(evidence) != {'schema', 'breps'}
+                or evidence.get('schema') != _BREP_EVIDENCE_SCHEMA
+                or not isinstance(evidence['breps'], dict)):
+            raise ValueError('저장된 셸 BREP 증거 형식이 잘못됐습니다.')
+        checked = {}
+        size = 0
+        for key, text in evidence['breps'].items():
+            _brep_zero_identity(text)
+            size += len(text.encode('ascii'))
+            if size > _MAX_RETAINED_BREP_BYTES or digest(text) != key:
+                raise ValueError('저장된 셸 BREP 증거의 원 확인값이 다릅니다.')
+            checked[key] = text
+        # Retain previously verified evidence, rather than replacing it with a
+        # late response. None of it authorizes a different draft/target/shape.
+        self._binding_breps.update(checked)
+
+    def _binding_brep(self, geometry):
+        """Return an authenticated preimage of this exact historical digest."""
+        key = geometry['brep']
+        retained = self._binding_breps.get(key)
+        if retained is not None and digest(retained) == key:
+            return retained
+        obj = self._object(geometry['object_id'])
+        current = obj.Shape.exportBrepToString()
+        if digest(current) == key:
+            _brep_zero_identity(current)
+            return current
+        import zipfile
+        from xml.etree.ElementTree import ParseError
+        try:
+            saved = _saved_shape_brep(obj)
+            for candidate in (saved, _saved_brep_export_candidate(saved)):
+                if digest(candidate) == key:
+                    return candidate
+        except (OSError, ValueError, KeyError, UnicodeError, zipfile.BadZipFile, ParseError):
+            pass  # Missing proof is a stale binding, not a new baseline.
+        raise ValueError('이전 BREP 확인값에 일치하는 원문 증거가 없어 대상 동등성을 확인할 수 없습니다.')
+
+    def _same_geometry(self, previous, current):
+        if previous == current:
+            return True
+        if (not isinstance(previous, dict) or not isinstance(current, dict)
+                or set(previous) != {'object_id', 'brep', 'placement'}
+                or set(current) != set(previous)
+                or any(previous[k] != current[k] for k in ('object_id', 'placement'))):
+            return False
+        try:
+            old_text = self._binding_brep(previous)
+            obj = self._object(current['object_id'])
+            new_text = obj.Shape.exportBrepToString()
+            # Do not compare a later, changed observation to an earlier stamp.
+            return (digest(new_text) == current['brep'] and
+                    _brep_zero_identity(old_text) == _brep_zero_identity(new_text))
+        except (ValueError, KeyError, TypeError, AttributeError, RuntimeError):
+            return False
+
+    def _same_binding(self, previous, current):
+        if previous == current:
+            return True
+        if not isinstance(previous, dict) or not isinstance(current, dict) or set(previous) != set(current):
+            return False
+        geometric = {'mesh_source', 'reference_geometry'}
+        if (not geometric <= set(previous) or
+                any(previous[k] != current[k] for k in set(previous) - geometric)):
+            return False
+        old_refs, new_refs = previous['reference_geometry'], current['reference_geometry']
+        if not isinstance(old_refs, dict) or not isinstance(new_refs, dict) or set(old_refs) != set(new_refs):
+            return False
+        return (self._same_geometry(previous['mesh_source'], current['mesh_source']) and
+                all(self._same_geometry(old_refs[k], new_refs[k]) for k in old_refs))
+
+    def export_binding_evidence(self):
+        """Existing Project.save retains proofs, not a rewritten model or stamp.
+
+        Unavailable/oversized old evidence is omitted, not invented; such a
+        record remains an editable invalid draft and cannot use this bridge.
+        Duplicate source/reference preimages are retained only once.
+        """
+        wanted = {}
+        for record in self._all()['shells'].values():
+            applied = record.get('applied') or {}
+            for binding in (record.get('draft', {}).get('binding'),
+                            applied.get('draft', {}).get('binding'),
+                            applied.get('native', {}).get('binding')):
+                if not isinstance(binding, dict):
+                    continue
+                refs = binding.get('reference_geometry', {})
+                for geometry in [binding.get('mesh_source'), *refs.values()]:
+                    if isinstance(geometry, dict) and isinstance(geometry.get('brep'), str):
+                        wanted.setdefault(geometry['brep'], geometry)
+        breps, size = {}, 0
+        for key, geometry in sorted(wanted.items()):
+            try:
+                text = self._binding_brep(geometry)
+                length = len(text.encode('ascii'))
+            except (ValueError, KeyError, TypeError, AttributeError, RuntimeError, UnicodeError):
+                continue
+            if size + length <= _MAX_RETAINED_BREP_BYTES:
+                breps[key] = text
+                size += length
+        return {'schema': _BREP_EVIDENCE_SCHEMA, 'breps': breps}
+
     def _binding(self, draft):
-        if self._stamp(draft) != draft.get('binding'):
+        if not self._same_binding(draft.get('binding'), self._stamp(draft)):
             raise ShellError([issue('elements',
                 '메시 또는 참조 형상이 바뀌었습니다. 해당 면/요소를 다시 선택하고 대상을 명시적으로 복구하세요.')])
 
@@ -141,6 +381,13 @@ class ShellEditor:
         for key, kind in [('solver_id','Fem::SolverCcxTools'),('material_id','Fem::MaterialCommon'),
                           ('geometry_id','Fem::ElementGeometry2D'),('pressure_id','Fem::ConstraintPressure')]:
             objects = by[kind]
+            if 'regions' in draft and key in ('geometry_id', 'pressure_id'):
+                expected = [row[key] for row in draft['regions'] if row[key]]
+                if len(set(expected)) != len(expected) or set(expected) != {o.Name for o in objects}:
+                    raise ShellError([issue('regions/'+key, '영역의 native 속성 할당이 중복되거나 해석 소속과 다릅니다. 제거한 영역 객체는 native 해석에서도 명시적으로 분리하세요.')])
+                if complete and len(expected) != len(draft['regions']):
+                    raise ShellError([issue('regions/'+key, '모든 영역 속성을 먼저 적용하세요.')])
+                continue
             if len(objects)>1 or objects and objects[0].Name != draft.get(key):
                 raise ShellError([issue(key, '활성 native 객체와 저장된 적용 대상이 다릅니다. 해석 객체를 확인하세요.')])
             if (complete or key=='solver_id') and not objects:
@@ -174,6 +421,9 @@ class ShellEditor:
         return check_supports(selected_mesh, nodes)
 
     def _native_state(self, draft):
+        if 'regions' in draft:
+            from .shell_region_native import state
+            return state(self, draft)
         _, by = self._members(draft, complete=True)
         solver = self._object(draft['solver_id'])
         material = self._object(draft['material_id'])
@@ -201,6 +451,9 @@ class ShellEditor:
             # Opening an existing editor never resets a saved invalid draft.
             return self.inspect(args['analysis_id'])
         draft = dict(deepcopy(DEFAULTS), **args, elements=[], face_refs=[])
+        if sum(native_type(o)=='Fem::ElementGeometry2D' and not getattr(o,'Suppressed',False) for o in analysis.Group)>1:
+            from .shell_region_native import begin_regions
+            return begin_regions(self, draft, analysis)
         for key,kind in [('material_id','Fem::MaterialCommon'),('geometry_id','Fem::ElementGeometry2D'),
                          ('pressure_id','Fem::ConstraintPressure')]:
             objects = [o for o in analysis.Group if native_type(o)==kind and not getattr(o,'Suppressed',False)]
@@ -247,11 +500,14 @@ class ShellEditor:
         return self.inspect(analysis_id)
 
     def save_draft(self, analysis_id, fields):
-        allowed = set(FIELDS)|{'orientation','fixed_nodes'}
+        allowed = set(FIELDS)|{'orientation','fixed_nodes','regions'}
         if not isinstance(fields,dict) or set(fields)-allowed:
             raise ValueError('Only editable shell properties may be changed here')
         for k,v in fields.items():
-            if k=='fixed_nodes':
+            if k=='regions':
+                from caelab.shell_regions import check_shape
+                check_shape(v)
+            elif k=='fixed_nodes':
                 if not isinstance(v,list) or len(v)>100000 or any(type(n)!=int or n<=0 for n in v) or len(v)!=len(set(v)):
                     raise ValueError('Fixed nodes must be distinct positive native integer IDs')
             elif not isinstance(v,str) or len(v)>80:
@@ -261,6 +517,9 @@ class ShellEditor:
         new=fields.get('orientation',old)
         if new and new!=old and (old or new!='native'):
             raise ValueError('방향 반전은 법선 반전 명령으로 offset/압력과 함께 적용하세요.')
+        if 'regions' in fields and 'regions' in record['draft']:
+            from .shell_region_native import check_reversal_edit
+            check_reversal_edit(record['draft']['regions'], fields['regions'])
         record['draft'].update(deepcopy(fields))
         self._store(analysis_id,record,'셸 초안 편집')
         return self.inspect(analysis_id)
@@ -307,7 +566,7 @@ class ShellEditor:
         draft.update(elements=sorted(elements),face_refs=deepcopy(face_refs or []))
         stamp=self._stamp(draft)
         old=record['draft'].get('binding')
-        if (old and old['mesh_source']!=stamp['mesh_source']
+        if (old and not self._same_geometry(old['mesh_source'],stamp['mesh_source'])
                 and old['mesh_sha256']==stamp['mesh_sha256']):
             raise ShellError([issue(mesh.Label,'원 형상이 바뀌었지만 메시가 그대로입니다. native 메시를 재생성한 뒤 복구하세요.')])
         draft['binding']=stamp
@@ -324,12 +583,18 @@ class ShellEditor:
         if key not in self._pending:
             raise ValueError('대상 미리보기가 만료되었습니다. 다시 선택하세요.')
         analysis_id,draft=self._pending[key]
-        if self._stamp(draft)!=draft['binding']:
+        if not self._same_binding(draft['binding'],self._stamp(draft)):
             raise ValueError('미리보기 이후 대상이 바뀌었습니다. 다시 선택하세요.')
         record=self._record(analysis_id)
         # Preserve newer property edits made while the target was being previewed.
         for name in (*FIELDS,'fixed_nodes'):
             draft[name]=deepcopy(record['draft'][name])
+        if 'regions' in record['draft']:
+            draft['regions']=deepcopy(record['draft']['regions'])
+            # Numeric edits survive a late preview. New face targets invalidate
+            # that preview instead of silently authorising another geometry.
+            if not self._same_binding(draft['binding'],self._stamp(draft)):
+                raise ValueError('영역 참조가 미리보기 뒤 바뀌었습니다. 편집을 유지하고 다시 선택하세요.')
         record['draft']=draft
         self._store(analysis_id,record,'셸 대상 복구')
         self._pending.clear()
@@ -344,7 +609,12 @@ class ShellEditor:
         if type(keep_physical_load) is not bool:
             raise ValueError('Select an explicit reversal rule')
         record=self._record(analysis_id)
-        record['draft']=reverse(record['draft'],keep_physical_load=keep_physical_load)
+        if 'regions' in record['draft']:
+            from caelab.shell_regions import reverse_region
+            for row in list(record['draft']['regions']):
+                record['draft'] = reverse_region(record['draft'], row['id'], keep_physical_load=keep_physical_load)
+        else:
+            record['draft']=reverse(record['draft'],keep_physical_load=keep_physical_load)
         self._store(analysis_id,record,'셸 법선 반전')
         return self.inspect(analysis_id)
 
@@ -385,9 +655,13 @@ class ShellEditor:
         return {'selected_count':len(prepared['elements']),
                 'surface_preview':'geometric_normal_preview_not_solver_averaged_normals',
                 'direction_confirmed':confirmed,
-                'thickness_mm':prepared['values']['thickness_mm'],'offset':prepared['values']['offset']}
+                **({'regions':deepcopy(draft['regions'])} if 'regions' in draft else
+                   {'thickness_mm':prepared['values']['thickness_mm'],'offset':prepared['values']['offset']})}
 
     def apply(self, analysis_id):
+        if 'regions' in self._record(analysis_id)['draft']:
+            from .shell_region_native import apply
+            return apply(self, analysis_id)
         import ObjectsFem
         record=self._record(analysis_id); draft=record['draft']
         self._binding(draft)
@@ -446,7 +720,13 @@ class ShellEditor:
         applied=record.get('applied')
         if applied is None or applied['draft']!=draft:
             raise ShellError([issue('apply','편집한 셸 속성을 명시적으로 적용하세요.')])
-        if self._native_state(draft)!=applied['native']:
+        observed = self._native_state(draft)
+        previous = applied['native']
+        # Compare actual native state without replacing either recorded stamp.
+        same_native = (set(observed) == set(previous) and
+            all(observed[k] == previous[k] for k in set(previous) - {'binding'}) and
+            self._same_binding(previous.get('binding'), observed.get('binding')))
+        if not same_native:
             raise ShellError([issue('apply','활성 native 단면/재료/하중/조건이 적용 상태와 다릅니다. 확인 후 다시 적용하세요.')])
         if applied['native']['solver']!=SETTINGS or applied['native']['pressure_amplitude']:
             raise ShellError([issue('solver_id','선형 정적 S8 해석 설정을 다시 적용하세요.')])
@@ -480,6 +760,9 @@ class ShellEditor:
         self.owner.assert_thread()
         if target: raise ValueError('Shell commands use explicit native analysis arguments')
         allowed={
+            'pre.shell.region_selection':({'analysis_id'},{'analysis_id'}),
+            'pre.shell.import_regions':({'analysis_id'},{'analysis_id'}),
+            'pre.shell.reverse_region':({'analysis_id','region_id','keep_physical_load'},{'analysis_id','region_id'}),
             'pre.shell.inspect':({'analysis_id'},set()),
             'pre.shell.begin':({'analysis_id','mesh_id','solver_id'},{'analysis_id','mesh_id','solver_id'}),
             'pre.shell.repair_objects':({'analysis_id','objects'},{'analysis_id','objects'}),
@@ -496,6 +779,21 @@ class ShellEditor:
         if operation not in allowed or set(args)-permitted or not required<=set(args):
             raise ValueError('Unknown or incomplete shell command arguments')
         aid=args.get('analysis_id')
+        if operation=='pre.shell.region_selection':
+            from .shell_region_native import selection
+            return selection(self, aid)
+        if operation=='pre.shell.import_regions':
+            from .shell_region_native import import_properties
+            return import_properties(self, aid)
+        if operation=='pre.shell.reverse_region':
+            from caelab.shell_regions import reverse_region
+            keep = args.get('keep_physical_load', True)
+            if type(keep) is not bool:
+                raise ValueError('Select an explicit reversal rule')
+            record = self._record(aid)
+            record['draft'] = reverse_region(record['draft'], args['region_id'], keep_physical_load=keep)
+            self._store(aid, record, '셸 영역 법선 반전')
+            return self.inspect(aid)
         if operation=='pre.shell.inspect': return self.inspect(aid)
         if operation=='pre.shell.begin': return self.begin(args)
         if operation=='pre.shell.repair_objects': return self.repair_objects(aid,args['objects'])

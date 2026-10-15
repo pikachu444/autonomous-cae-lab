@@ -106,6 +106,9 @@ def geometry(owner, draft):
            'units':{'length':'mm','force':'N','moment':'Nmm','elasticity':'MPa','rotation':'rad'},
            'nodes':nodes,'elements':elements,'axes':axes,'edge_start_mm':start,'edge_end_mm':end,
            'length_mm':length,'draft':deepcopy(draft)}
+    if 'axis_regions' in draft:
+        from .beam_axis_native import geometry_axes
+        geometry_axes(owner,model)
     nn,ee,ss,endpoint_ids=mesh_data(model)
     refs=[];actual=[]
     for i,row in enumerate(draft['ends']):
@@ -152,6 +155,9 @@ def native_values(owner, record):
         for key,prefix,free,units in (('translation_mm','Displacement','TranslationFree','mm'),
                                      ('rotation_deg','Rotation','RotationFree','deg')):
             row[key]=['' if getattr(obj,free+axis) else str(_quantity(obj,prefix+axis,units)) for axis in 'XYZ']
+    if 'axis_regions' in d:
+        from .beam_axis_native import import_values
+        import_values(owner,d)
     return d
 
 
@@ -179,6 +185,9 @@ def property_stamp(owner, record, *, values_only=False):
             row[prefix]=[bool(getattr(obj,prefix+axis)) for axis in 'XYZ']
         if not values_only:row['references']=refs(obj)
         value['ends'].append(row)
+    if record.get('native_axis_assignments'):
+        from .beam_axis_native import stamp
+        value['axis_regions']=stamp(owner,record,values_only=values_only)
     return canonical_hash(value)
 
 
@@ -205,6 +214,8 @@ def analysis_members(owner, record):
         ('material.object_id', draft['material']['object_id'], {'Fem::MaterialCommon'}),
         *[(f'ends.{i}', name, {'CAELab::BeamEnd'}) for i, name in enumerate(ends)],
     ]
+    required += [(f'axis_regions.{i}',row['rotation_id'],{'Fem::ElementRotation1D'})
+                 for i,row in enumerate(draft.get('axis_regions',[]))]
     names = [name for _, name, _ in required]
     if len(set(names)) != len(names):
         raise BeamInputError('analysis_id', '단면·재료·방향·메시·끝 조건 참조가 중복됐습니다. 다시 지정하세요.')
@@ -241,7 +252,11 @@ def collect(owner, record):
     analysis, solver = analysis_members(owner, record)
     if property_stamp(owner,record)!=record.get('native_property_stamp'):
         raise BeamInputError('native','FreeCAD 속성이 변경됐습니다. 속성 불러오기 후 확인·적용하세요.')
-    model,binding=geometry(owner,record['draft'])
+    if 'axis_regions' in record['draft']:
+        from .beam_axis_native import geometry_with_reference
+        model,binding,axis_correspondence=geometry_with_reference(owner,record)
+    else:
+        model,binding=geometry(owner,record['draft']);axis_correspondence=None
     require_same_binding(record,model,binding)
     required={'AnalysisType':'static','GeometricalNonlinearity':'linear','MaterialNonlinearity':'linear',
               'ModelSpace':'3D','ExcludeBendingStiffness':False,'BeamReducedIntegration':True}
@@ -258,6 +273,9 @@ def collect(owner, record):
     model['source']={'document_id':owner.document_id,'native_document':owner.doc.Name,
                      'analysis_id':analysis.Name,'mesh_id':record['draft']['mesh_id'],
                      'solver_id':solver.Name,'binding':binding,'end_object_ids':record['end_object_ids']}
+    if axis_correspondence is not None:
+        model['source']['axis_assignment_correspondence']=deepcopy(axis_correspondence)
+        model['source']['original_axis_regions']=deepcopy(record['draft']['axis_regions'])
     return model,solver
 
 
@@ -276,14 +294,27 @@ def verify_writers(owner,model,solver,folder):
         sec=get_object(owner,model['draft']['section']['object_id'],'section.object_id')
         ctx=SimpleNamespace(solver_obj=solver,mat_geo_sets=[{'ccx_elset':list(elements),'ccx_elset_name':'BEAM',
             'mat_obj_name':'BEAMMAT','beamsection_obj':sec,'beam_axis_m':model['axes']['local1']}])
+        expected_section=section_card(model)
+        if 'axis_regions' in model['draft']:
+            from caelab.beam_output import axes_for
+            ctx.mat_geo_sets=[]; expected_section=''
+            for row in model['draft']['axis_regions']:
+                for e in sorted(row['elements']):
+                    ctx.mat_geo_sets.append({'ccx_elset':[e],'ccx_elset_name':f'BE{e}',
+                        'mat_obj_name':'BEAMMAT','beamsection_obj':sec,'beam_axis_m':axes_for(model,e)['local1']})
+                    single={**model,'axes':axes_for(model,e),
+                            'draft':{k:v for k,v in model['draft'].items() if k!='axis_regions'}}
+                    expected_section+=section_card(single).replace('ELSET=BEAM,',f'ELSET=BE{e},',1)
         stream=io.StringIO();write_femelement_geometry(stream,ctx)
         effective='\n'.join(s for s in stream.getvalue().splitlines() if s.strip() and not s.startswith('**'))+'\n'
-        if effective!=section_card(model):
+        if effective!=expected_section:
             raise BeamInputError('section','설치된 native BEAM SECTION 출력이 일치하지 않습니다.')
-        return {'mesh_writer':'FemMesh.writeABAQUS(edgeVariant=beam reduced)',
+        from caelab.beam_output import mode, WRITER_OUTPUT, mechanical_identity
+        return {'mechanical_sha256':mechanical_identity(model),
+                'mesh_writer':'FemMesh.writeABAQUS(edgeVariant=beam reduced)',
                 'mesh_writer_sha256':_hash(probe),'section_writer':'femsolver.calculix.write_femelement_geometry',
                 'section_card':effective,'moment_route':'CLOAD DOF4..6; no rigid body; no force couples',
-                'rotation_route':'BOUNDARY DOF4..6; deg converted to rad', 'output':'OUTPUT=2D / SECTION FORCES'}
+                'rotation_route':'BOUNDARY DOF4..6; deg converted to rad', 'output':WRITER_OUTPUT[mode(model)]}
     finally:
         # This diagnostic is not an untracked second executable input.
         if probe.exists():probe.unlink()

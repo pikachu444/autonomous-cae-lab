@@ -97,6 +97,9 @@ def project_properties(owner,record):
                 setattr(obj,free+axis,is_free)
                 if not is_free:setattr(obj,prefix+axis,f'{number(text):.16g} {units}')
     record['end_object_ids']=names
+    if 'axis_regions' in d or 'native_axis_assignments' in record:
+        from .beam_axis_native import project
+        project(owner,record)
 
 
 class BeamEditor:
@@ -127,7 +130,10 @@ class BeamEditor:
             model=None
             if not errors:
                 try:
-                    model,_=beam_native.geometry(self.owner,r['draft'])
+                    if 'axis_regions' in r['draft']:
+                        from .beam_axis_native import geometry_with_reference
+                        model,_,_=geometry_with_reference(self.owner,r)
+                    else:model,_=beam_native.geometry(self.owner,r['draft'])
                     errors=validate_draft(r['draft'],model['axes'])
                     beam_native.validate_model(model)
                 except BeamInputError as exc:errors.append(exc.record())
@@ -185,7 +191,11 @@ class BeamEditor:
         if r['draft'].get('analysis_id')!=key:raise ValueError('Analysis identity changed')
         errors=validate_draft(r['draft'])
         if errors:raise BeamInputError(errors[0]['path'],errors[0]['message'])
-        model,binding=beam_native.geometry(self.owner,r['draft'])
+        regional='axis_regions' in r['draft']
+        if regional:
+            from .beam_axis_native import geometry_with_reference
+            model,binding,_=geometry_with_reference(self.owner,r,rebind=rebind)
+        else:model,binding=beam_native.geometry(self.owner,r['draft'])
         beam_native.validate_model(model)
         if ('binding' in r or r.get('applied_draft_hash')) and not rebind:
             require_same_binding(r,model,binding)
@@ -194,11 +204,18 @@ class BeamEditor:
             if not rebind or beam_native.property_stamp(self.owner,self._get(key),values_only=True)!=r.get('native_value_stamp'):
                 raise BeamInputError('native','native 속성이 변경됐습니다. 속성 불러오기로 먼저 확인하세요.')
         def change():
+            if regional:r['draft']=deepcopy(model['draft'])
             project_properties(self.owner,r)
             self.owner.doc.recompute()
             # Recompute may touch the native mesh. Admit only the same exact
             # geometry, even if its native storage compacted the labels.
-            current,current_binding=beam_native.geometry(self.owner,r['draft'])
+            if regional:
+                current,current_binding,_=geometry_with_reference(self.owner,{'draft':r['draft'],'binding':binding,REFERENCE_KEY:reference})
+                if current['draft']!=r['draft']:
+                    r['draft']=deepcopy(current['draft'])
+                    from .beam_axis_native import project
+                    project(self.owner,r)
+            else:current,current_binding=beam_native.geometry(self.owner,r['draft'])
             require_same_binding({'binding':binding,REFERENCE_KEY:reference},current,current_binding)
             beam_native.validate_model(current)
             r.update(binding=current_binding,applied_draft_hash=canonical_hash(r['draft']))

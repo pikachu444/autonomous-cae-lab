@@ -108,6 +108,13 @@ def normal8(points, r=0., s=0.):
 
 
 def validate_draft(draft):
+    if isinstance(draft, dict) and 'regions' in draft:
+        from .shell_regions import validate
+        return validate(draft)
+    return _validate_uniform_draft(draft)
+
+
+def _validate_uniform_draft(draft, *, require_nonzero_pressure=True):
     errors, values = [], {}
     if not isinstance(draft, dict):
         return [issue('shell', '셸 초안을 읽을 수 없습니다.')], None
@@ -136,7 +143,7 @@ def validate_draft(draft):
     if (not isinstance(fixed, list) or any(type(n) is not int or n <= 0 for n in fixed)
             or len(set(fixed)) != len(fixed)):
         errors.append(issue('fixed_nodes', '고정 절점은 중복 없는 양의 정수 번호로 지정하세요.'))
-    if values.get('pressure_MPa') == 0:
+    if require_nonzero_pressure and values.get('pressure_MPa') == 0:
         errors.append(issue('pressure_MPa', '첫 정적 압력 경로는 0이 아닌 압력을 요구합니다.'))
     values['orientation'] = draft.get('orientation')
     return errors, values
@@ -164,13 +171,21 @@ def reverse(draft, *, keep_physical_load=True):
 
 
 def prepare_mesh(nodes, elements, draft):
+    if isinstance(draft, dict) and 'regions' in draft:
+        from .shell_regions import prepare
+        return prepare(nodes, elements, draft)
+    return _prepare_uniform_mesh(nodes, elements, draft)
+
+
+def _prepare_uniform_mesh(nodes, elements, draft, *, require_nonzero_pressure=True):
     """Select and orient arbitrary native S8 IDs, with sampled geometry guards.
 
     These are serialization/topology/numerical guards, not mesh qualification.
     Curved elements are allowed; knots/effective averaged normals are read from
     CalculiX .12d + FRD after execution, not guessed by this preview.
     """
-    errors, values = validate_draft(draft)
+    errors, values = _validate_uniform_draft(
+        draft, require_nonzero_pressure=require_nonzero_pressure)
     if errors:
         raise ShellError(errors)
     if any(e not in elements for e in draft['elements']):

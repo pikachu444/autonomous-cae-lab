@@ -30,7 +30,7 @@ def collect(output, model, mesh, *, execution_status):
     expansion=read_expansion(native/'shell.12d',mesh['elements'])
     observed=read_frd(native/'shell.frd',expansion)
     mapping=locations(mesh,expansion,observed)
-    dat=(read_dat(native/'shell.dat',mesh['elements']) if (native/'shell.dat').is_file() and (native/'shell.dat').stat().st_size
+    dat=(read_dat(native/'shell.dat',mesh['elements'],retain_lines='regions' in model['draft']) if (native/'shell.dat').is_file() and (native/'shell.dat').stat().st_size
          else {'status':'PARTIAL','rows':[],'diagnostic':{'reason':'No nonempty native DAT'}})
     frames=[f for f in observed['frames'] if f['fields']]
     if not frames:
@@ -55,7 +55,7 @@ def collect(output, model, mesh, *, execution_status):
     for index,time in enumerate(sorted({r['load_parameter'] for r in dat['rows']})):
         rows=[r for r in dat['rows'] if r['load_parameter']==time]
         name=f'internal_{index:04d}.vtu'
-        if internal(post/name,rows) is not None: views.append(name)
+        if internal(post/name,rows,association='CELLS' if 'regions' in model['draft'] else 'POINTS') is not None: views.append(name)
     last=frames[-1]
     complete=(observed['status']=='COMPLETE' and REQUIRED<=last['fields'].keys() and
               last['load_parameter']==1.0 and dat['status']=='COMPLETE' and

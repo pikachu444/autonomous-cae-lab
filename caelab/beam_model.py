@@ -149,8 +149,11 @@ def default_draft(analysis_id='', mesh_id='', edge=None):
 def check_draft_shape(draft):
     """Versioned command structure; unfinished scalar strings are intentional."""
     required={'analysis_id','mesh_id','edge','section','material','ends','diagnostic_oblique'}
-    if not isinstance(draft,dict) or set(draft)!=required:
+    if not isinstance(draft,dict) or not required <= set(draft) or set(draft)-required-{'output','axis_regions'}:
         raise BeamInputError('draft','빔 초안의 필수 항목 또는 버전이 다릅니다.')
+    from .beam_output import check_shape as check_output_shape, check_axis_shape
+    if 'output' in draft: check_output_shape(draft['output'])
+    if 'axis_regions' in draft: check_axis_shape(draft['axis_regions'])
     def keys(value,expected,path):
         if not isinstance(value,dict) or set(value)!=set(expected):
             raise BeamInputError(path,'설정 항목 또는 버전이 다릅니다.')
@@ -180,6 +183,8 @@ def validate_draft(draft, axes=None):
         except (BeamInputError, KeyError, TypeError) as exc:
             errors.append(exc.record() if isinstance(exc, BeamInputError) else
                           {'path':path, 'message':'설정이 누락됐습니다.'})
+    from .beam_output import validate as validate_output, settings
+    check('output', lambda: validate_output(settings(draft)))
     for name in ('width_mm','height_mm'):
         def positive(name=name):
             if number(draft['section'][name], 'section.'+name) <= 0:
@@ -312,6 +317,14 @@ def validate_model(model):
     expected=native_axis_formula(model['axes']['tangent'],draft['section']['rotation_deg'])
     if any(abs(a-b)>AXIS_TOL for a,b in zip(model['axes']['local1'],expected)):
         raise BeamInputError('section.rotation_deg','회전값과 저장된 native 1축이 다릅니다.')
+    from .beam_output import element_axes
+    expected_axes = element_axes(draft, model['axes']['tangent'], elements)
+    if expected_axes is not None:
+        saved_axes = {int(e): a for e,a in model.get('element_axes', {}).items()}
+        if expected_axes != saved_axes:
+            raise BeamInputError('axis_regions', '영역별 입력 회전과 보존 축이 다릅니다.')
+    elif 'element_axes' in model:
+        raise BeamInputError('axis_regions', '요소별 축에 대응하는 원 영역 설정이 없습니다.')
     # Rank of constrained rigid motions; no material/beam stiffness approximation.
     import numpy as np
     rows=[]

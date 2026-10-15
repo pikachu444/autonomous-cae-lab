@@ -99,11 +99,14 @@ def surface(path, mesh, locations, observed_frame):
             'engineering_valid':False}
 
 
-def internal(path, rows):
+def internal(path, rows, *, association='POINTS'):
     """Native COORD points only; never derive coordinates for missing DAT data."""
+    if association not in ('POINTS','CELLS'):
+        raise ValueError('Explicit native integration-point view association required')
     if not rows or any('COORD' not in r for r in rows):
         return None
     vtk,pd,cd=_document([r['COORD']['values'] for r in rows],[[i] for i in range(len(rows))],1)
+    if association=='CELLS': pd=cd
     desc=[]
     _array(pd,desc,'NativeElementId',[r['element_id'] for r in rows],integer=True)
     _array(pd,desc,'IntegrationPoint',[r['integration_point'] for r in rows],integer=True)

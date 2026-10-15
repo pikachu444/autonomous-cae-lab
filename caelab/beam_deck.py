@@ -8,6 +8,16 @@ from .beam_model import validate_model, number
 
 
 def section_card(model):
+    if 'axis_regions' in model['draft']:
+        from .beam_output import axes_for
+        pieces=[]
+        for row in model['draft']['axis_regions']:
+            for e in sorted(row['elements']):
+                single={**model, 'axes':axes_for(model,e),
+                        'draft':{k:v for k,v in model['draft'].items() if k!='axis_regions'}}
+                pieces.append(f'*ELSET, ELSET=BE{e}\n{e}\n'+
+                              section_card(single).replace('ELSET=BEAM,',f'ELSET=BE{e},',1))
+        return ''.join(pieces)
     s=model['draft']['section'];m=model['axes']['local1']
     return ('*BEAM SECTION, ELSET=BEAM, MATERIAL=BEAMMAT, SECTION=RECT\n'
             +f"{number(s['width_mm']):.13G},{number(s['height_mm']):.13G}\n"
@@ -31,6 +41,12 @@ def render(model):
     if model['loads']:
         out += ['*CLOAD']
         out += [f"{v['node']},{v['dof']},{v['value']:.13G}" for v in model['loads']]
+    from .beam_output import mode
+    if mode(model)=='raw_stress':
+        out += ['*NODE FILE, OUTPUT=3D, GLOBAL=YES','U,RF',
+                '*EL FILE, GLOBAL=YES','S,E',
+                '*EL PRINT, ELSET=BEAM, GLOBAL=YES','S,E,COORD','*END STEP']
+        return '\n'.join(out)+'\n'
     # S slots here are mixed-unit section forces, NEVER a stress tensor.
     out += ['*NODE FILE, OUTPUT=2D, GLOBAL=YES','U,RF',
             '*EL FILE, SECTION FORCES','S', '*NODE PRINT, NSET=NALL','U,RF','*END STEP']

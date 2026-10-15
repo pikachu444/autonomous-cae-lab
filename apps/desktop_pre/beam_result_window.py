@@ -21,6 +21,9 @@ def open_result(W,C,folder=None,*,parent=None):
     try:saved=read_saved_run(folder)
     except Exception as exc:
         W.QMessageBox.warning(parent,'결과를 열지 못했습니다',str(exc));return None
+    if saved['model'] is not None and saved['model']['draft'].get('output',{}).get('mode')=='raw_stress':
+        from .b13_result_window import open_beam_result
+        return open_beam_result(W,C,folder,saved,parent=parent)
     G=qt_gui();window=W.QDialog(parent);window.setWindowTitle('빔 결과');window.resize(1080,740)
     window.setAttribute(C.Qt.WA_DeleteOnClose)
     layout=W.QVBoxLayout(window);receipt=saved['execution'];observed=saved['observed'];model=saved['model']

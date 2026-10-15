@@ -1,0 +1,7 @@
+# Only the invocation-scoped native checker opens this macro in a new process.
+import os,sys
+from pathlib import Path
+ROOT=Path(os.environ['CAELAB_B13_REPOSITORY'])
+if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+from examples.b13.check_in_freecad import run
+run()

@@ -57,8 +57,12 @@ def validate_snapshot(path):
     if not matches_saved_input(_read_bytes(path.parent/'beam.inp').decode('ascii'), model):
         raise ValueError('Frozen beam deck does not match its native settings/connectivity')
     writers=manifest.get('writers',{})
-    if writers.get('output')!='OUTPUT=2D / SECTION FORCES':
+    from ..beam_output import WRITER_OUTPUT, mode
+    if writers.get('output')!=WRITER_OUTPUT[mode(model)]:
         raise ValueError('Beam native output contract is not explicit')
+    from ..beam_output import mechanical_identity
+    if 'mechanical_sha256' in writers and writers['mechanical_sha256']!=mechanical_identity(model):
+        raise ValueError('Native writer mechanical identity differs from actual serialized input')
     return manifest,model,pins
 
 
@@ -157,6 +161,12 @@ class BeamFemCalculixAdapter:
         try:
             source=Path(settings['snapshot_path'])
             manifest,model,pins=validate_snapshot(source)
+            from ..beam_output import mode, mechanical_identity
+            if mode(model)=='raw_stress':
+                from ..beam_raw_results import UNAVAILABLE as RAW_UNAVAILABLE
+                result['unavailable']=RAW_UNAVAILABLE.copy()
+            if 'output' in model['draft']:
+                result.update(output_mode=mode(model),mechanical_sha256=mechanical_identity(model))
             retained=output/'frozen_input';retained.mkdir()
             for name in pins:
                 shutil.copyfile(source.parent/name,retained/name)
@@ -231,6 +241,14 @@ class BeamFemCalculixAdapter:
             'Section force slots have separate N and Nmm channels, never MPa or von Mises.',
             'Non-axis-aligned models are diagnostic only until independent CalculiX 2.22 verification.',
             'Native computation success is not an engineering acceptance.']
+        if model is not None and mode(model)=='raw_stress':
+            result['limitations']=[
+                'Straight B32R/RECT with uniform dimensions and optional explicit element-axis regions; curved beams remain outside this profile.',
+                'Expanded S/E are native extrapolated/averaged values; DAT S/E/COORD are fifty internal IP observations; COORD must match the expanded topology.',
+                'Rigid-section rotations are infinitesimal least-squares projections, not native generalized DOFs.',
+                'Expanded RF sums and recovered-stress traction integrals are distinct; complete discrete support reactions are unavailable.',
+                'SECTION FORCES requires a separate explicit run; source/run identities are not merged.',
+                'Native success is not Windows usability or engineering acceptance.']
         # A failed/rejected/cancelled attempt also gets a stable reader receipt.
         result['artifacts']=[{'relative':p.relative_to(output).as_posix(),'path':p.relative_to(output).as_posix(),'bytes':p.stat().st_size,'sha256':sha(p)}
             for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()]

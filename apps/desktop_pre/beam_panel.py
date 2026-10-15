@@ -186,6 +186,9 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
     hl.addWidget(button('보존 결과 열기…',safe(on_results)))
     hl.addWidget(W.QLabel('결과를 열어도 재계산하지 않습니다. 실패한 계산의 입력과 로그도 남습니다.'))
     tabs.addTab(history_page,'이전 계산')
+    from .beam_output_panel import make_widget as make_output_widget
+    output_panel=make_output_widget(W,C,editor,lambda:read_draft(),changed)
+    output_index=tabs.addTab(output_panel,'응력 출력과 단면축')
     footer=W.QGridLayout();footer.setHorizontalSpacing(8);footer.setVerticalSpacing(8)
     save_draft=button('초안 저장',safe(lambda:invoke('pre.beam.draft',with_draft=True)))
     apply_button=button('적용',safe(lambda:invoke('pre.beam.apply',with_draft=True)));apply_button.setProperty('primary',True)
@@ -217,7 +220,7 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
             for r,(key,_) in enumerate(row_defs):
                 d['ends'][i][key]=[cell['field'].text() if cell and (cell['row'],cell['column'])==(r,c)
                                    else table.item(r,c).text() for c in range(3)]
-        return d
+        return output_panel.merge_draft(d)
     def update_preview():
         preview.set_section(*(fields['section.'+k].text() for k in ('width_mm','height_mm','rotation_deg')))
     def mark_errors(items):
@@ -237,6 +240,7 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
                 row=next((j for j,(k,_) in enumerate(row_defs) if k==parts[2]),None)
                 if row is not None:end_tables[ei].setCurrentCell(row,int(parts[3]));end_tables[ei].editItem(end_tables[ei].currentItem())
         elif path=='edge':tabs.setCurrentIndex(0);refs['edge'][0].setFocus()
+        elif path.startswith(('output','axis_regions')):tabs.setCurrentIndex(output_index)
     errors.itemClicked.connect(focus_error)
     def load_result(value):
         if value.get('status')=='FAILED':
@@ -245,6 +249,7 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
         if r is None:return
         state.update(draft=deepcopy(r['draft']),dirty=False,loading=True,can_freeze=value.get('can_freeze',False))
         d=state['draft']
+        output_panel.set_draft(d)
         for path,item in fields.items():
             group,key=path.split('.');item.setText(str(d[group][key]))
         for path in refs:
@@ -291,6 +296,7 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
                 group,name=path.split('.');item.setText(str(defaults[group][name]))
             for path in refs:
                 refs[path][1]={'object':'','subelement':''};refs[path][0].clear()
+            output_panel.set_draft({})
             axes_table.clearContents();effective_table.setRowCount(0);errors.clear();history.clear()
             tabs.setCurrentIndex(0);state['loading']=False;update_preview()
             status.setText('모델에서 빔 모서리를 선택한 뒤 설정 만들기를 누르세요.');update_buttons()

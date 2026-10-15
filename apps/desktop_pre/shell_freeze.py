@@ -16,15 +16,17 @@ def _native_fragments(editor, draft, prepared):
     from femsolver.calculix.write_femelement_geometry import write_femelement_geometry
     from femsolver.calculix.write_constraint_pressure import write_meshdata_constraint
     from femsolver.calculix.write_femelement_material import write_femelement_material
-    geometry=editor._object(draft['geometry_id'])
+    regional = 'regions' in draft
+    geometry=None if regional else editor._object(draft['geometry_id'])
     material=editor._object(draft['material_id'])
-    pressure=editor._object(draft['pressure_id'])
+    pressure=None if regional else editor._object(draft['pressure_id'])
     solver=editor._object(draft['solver_id'])
     member=SimpleNamespace(mats_linear=[{'Object':material}],mats_nonlinear=[],
                            cons_centrif=[],cons_selfweight=[])
     writer=SimpleNamespace(solver_obj=solver,analysis_type='static',member=member,
         mat_geo_sets=[{'ccx_elset':[e], 'ccx_elset_name':'ES'+str(e),
-                      'mat_obj_name':material.Name,'shellthickness_obj':geometry}
+                      'mat_obj_name':material.Name,'shellthickness_obj':
+                          (editor._object(prepared['region_by_element'][e]['geometry_id']) if regional else geometry)}
                      for e in prepared['elements']])
     section=StringIO(); write_femelement_geometry(section,writer)
     elastic=StringIO(); write_femelement_material(elastic,writer)
@@ -33,7 +35,20 @@ def _native_fragments(editor, draft, prepared):
     # comments are diagnostic only; no fictitious geometric face is resolved.
     mesh=editor._object(draft['mesh_id'])
     load_record={'PressureFaces':[((mesh,('SelectedS8',)), sorted(prepared['elements']),False)]}
-    write_meshdata_constraint(load,load_record,pressure,writer)
+    if regional:
+        from caelab.adapters.shell_deck import sections
+        native_rows = []
+        for row in draft['regions']:
+            part = StringIO()
+            resolved = {'PressureFaces': [((mesh, ('SelectedS8',)), sorted(row['elements']), False)]}
+            write_meshdata_constraint(part, resolved, editor._object(row['pressure_id']), writer)
+            cards = sections(part.getvalue())
+            if len(cards)!=1 or cards[0][:2] != ('*DLOAD', {}):
+                raise ValueError('Native regional pressure writer changed its DLOAD contract')
+            native_rows.extend(cards[0][2])
+        load.write('*DLOAD\n'+'\n'.join(native_rows)+'\n')
+    else:
+        write_meshdata_constraint(load,load_record,pressure,writer)
     return section.getvalue(),load.getvalue(),elastic.getvalue()
 
 

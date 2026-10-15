@@ -13,7 +13,7 @@ def show(owner, mesh, *, previous=None):
     # All geometry remains in the native FemMesh display. At most 2000 elements
     # receive direction/offset overlays, avoiding an unbounded GUI allocation.
     stride=max(1,math.ceil(len(mesh['elements'])/2000))
-    values=mesh['values']
+    from caelab.shell_regions import element_values
     def polyline(points, color):
         sep=coin.SoSeparator(); material=coin.SoBaseColor()
         material.rgb=color; sep.addChild(material)
@@ -22,6 +22,7 @@ def show(owner, mesh, *, previous=None):
         line=coin.SoLineSet(); line.numVertices=[len(points)]; sep.addChild(line)
         root.addChild(sep)
     for e in list(mesh['elements'])[::stride]:
+        values=element_values(mesh,e)
         points=[mesh['nodes'][n] for n in mesh['elements'][e]]
         center=[sum(w*p[k] for w,p in zip(shape8(0,0),points)) for k in range(3)]
         n=mesh['normals'][e]; x=mesh['axes'][e][0]

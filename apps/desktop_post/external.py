@@ -247,11 +247,15 @@ def validate_declared_metadata(source, metadata):
         shell_keys = set(bundle['manifest']['native_metadata']) | {'shell_inspection'}
     beam = isinstance(metadata, dict) and any(key in metadata for key in ('beam', 'beam_inspection'))
     beam_keys = set()
+    raw_beam = False
     if beam:
         inputs = reader_input_files(source)
         if len(inputs) != 1 or source.GetXMLName() != 'PVDReader':
             raise ValueError('Beam declaration requires its exact retained PVD reader')
         bundle = beam_api().validate_metadata(inputs[0], metadata)
+        # The owner has re-read exact raw dependencies and regenerated these
+        # declarations. Do not extend the vocabulary for arbitrary sources.
+        raw_beam = metadata['beam'].get('output') == '3D_RAW_STRESS'
         beam_keys = set(bundle['manifest']['native_metadata']) | {'beam_inspection'}
     dynamic = isinstance(metadata, dict) and 'dynamic_locations' in metadata
     if dynamic:
@@ -319,7 +323,9 @@ def validate_declared_metadata(source, metadata):
     seen = set()
     for declaration in arrays:
         required = {"association", "name", "components", "units", "frame", "measure"}
-        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"} - ({'location'} if shell or beam else set()):
+        raw_keys = {'source_field', 'interpolated_by_lab', 'source_array',
+                    'basis_is_native_IP_material_basis', 'source_blocks'} if raw_beam else set()
+        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"} - ({'location'} if shell or beam else set()) - raw_keys:
             raise ValueError("Each declared array requires exact association/name/components and units/frame/measure")
         for key in ("name", "units", "frame", "measure"):
             if not isinstance(declaration[key], str) or not declaration[key].strip():
@@ -330,11 +336,18 @@ def validate_declared_metadata(source, metadata):
                           'native_extrapolated_nodal_averaged',
                           'basis_change_of_native_nodal_recovery'} if shell else set()
         beam_recovery = {'native_nodal_dof', 'native_original_beam_nodal_rf', 'native_section_force_output'} if beam else set()
+        if raw_beam:
+            beam_recovery |= {'native_expanded_nodal_dof', 'native_expanded_RF',
+                              'native_extrapolated_nodal_averaged',
+                              'basis_change_of_native_nodal_recovery', 'none_native_DAT'}
         if 'recovery' in declaration and (not isinstance(declaration['recovery'], str) or declaration['recovery'] not in {
                 'native nodal force; reactions only at restrained DOFs',
                 'native integration-point extrapolation and nodal averaging'} | shell_recovery | beam_recovery):
             raise ValueError('Unsupported native field recovery declaration')
-        if 'shear_convention' in declaration and declaration['shear_convention'] != 'tensor_shear_not_engineering_shear':
+        allowed_shear = {'tensor_shear_not_engineering_shear'}
+        if raw_beam:
+            allowed_shear.add('tensor_off_diagonal_not_engineering_gamma')
+        if 'shear_convention' in declaration and declaration['shear_convention'] not in allowed_shear:
             raise ValueError('Unsupported native tensor shear convention')
         association = declaration["association"]
         if 'basis' in metadata and 'quantity' in declaration and association != {'P1': 'POINTS', 'DG0': 'CELLS'}[metadata['basis']]:

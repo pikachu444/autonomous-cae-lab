@@ -73,6 +73,13 @@ def _sources(root, members, context):
     if not required <= members.keys():
         raise ValueError('Beam bundle is missing native input/model/FRD/execution sources')
     manifest, model, pins = validate_snapshot(members['source/frozen_input/snapshot.json'])
+    from .beam_output import mode
+    if mode(model)=='raw_stress':
+        if 'source/solver/beam.12d' not in members:
+            raise ValueError('Raw beam expansion has no exact retained source member')
+        dat_path=members['source/solver/beam.frd'].with_suffix('.dat')
+        if dat_path.is_file() and dat_path.stat().st_size and 'source/solver/beam.dat' not in members:
+            raise ValueError('Raw beam DAT is not a pinned bundle member')
     status = context.get('execution_status')
     if (context.get('kind') != 'beam-execution-context' or context.get('schema_version') != '1'
             or context.get('backend') != BACKEND or status not in {'SUCCEEDED', 'FAILED', 'CANCELLED'}
@@ -328,3 +335,70 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
+
+def inspect_raw(view, *, element_id, quantity='S', expanded_node_id=None,
+                integration_point=None, load_parameter=None, basis='global', reference=None):
+    """Read one exact original-element/expanded-node OR internal-IP observation."""
+    checked=load(view,reference); model=checked['data']['model']; observed=checked['data']['observed']
+    from .beam_output import mode, axes_for
+    if mode(model)!='raw_stress':
+        raise ValueError('A section-force run has no raw stress tensor; select its separate 3D run')
+    if (expanded_node_id is None)==(integration_point is None):
+        raise ValueError('Select exactly one native expanded node or integration point')
+    if quantity not in ('S','E','U','RF') or basis not in ('global','declared_element'):
+        raise ValueError('Unsupported raw quantity or basis')
+    if quantity in ('U','RF') and basis!='global':
+        raise ValueError('This inspection preserves raw global U/RF; no implicit vector transformation')
+    frames=observed['frames']
+    frame=frames[-1] if load_parameter is None else next((f for f in frames if f['static']['load_parameter']==load_parameter),None)
+    if frame is None: raise ValueError('Native static load parameter is unavailable')
+    time=frame['static']['load_parameter']
+    if integration_point is not None:
+        matches=[r for r in observed['internal']['rows'] if
+                 (r['element_id'],r['integration_point'],r['load_parameter'])==(element_id,integration_point,time)]
+        if len(matches)!=1 or quantity not in matches[0]: raise ValueError('Exact native IP quantity is unavailable')
+        row=matches[0]; raw=deepcopy(row[quantity]); values=raw['values']
+        position=row.get('COORD',{}).get('values'); source='beam.dat'
+        location={'element_id':element_id,'integration_point':integration_point,
+                  'kind':'internal_integration_point','association':'CELLS','recovery':'none_native_DAT'}
+    else:
+        expansion=observed['expansion'].get(str(element_id))
+        if expansion is None or expanded_node_id not in expansion['expanded']:
+            raise ValueError('Expanded node is not incident to the selected retained original element')
+        field={'S':'STRESS','E':'TOSTRAIN','U':'DISP','RF':'FORC'}[quantity]
+        rows=frame['native_fields'].get(field,{})
+        if str(expanded_node_id) not in rows: raise ValueError('Exact native expanded field is unavailable')
+        values=deepcopy(rows[str(expanded_node_id)]); raw={'values':deepcopy(values),'source_field':field,
+            'source_lines':frame['source_lines'][field]}
+        position=observed['coordinates_mm'][str(expanded_node_id)]; source='beam.frd'
+        location={'element_id':element_id,'expanded_node_id':expanded_node_id,'kind':'expanded_3D_node',
+            'association':'POINTS','recovery':'native_extrapolated_nodal_averaged' if quantity in ('S','E') else 'native_nodal_observation'}
+    transform=None
+    if basis=='declared_element':
+        from .adapters.shell_results import rotate_tensor
+        axes=axes_for(model,element_id)
+        transformed=rotate_tensor(values,[axes[k] for k in ('local1','local2','tangent')])
+        transform={'source_values':values,'axes':deepcopy(axes),'native_IP_material_basis':False}
+        values=transformed
+    return {'location':location,'quantity':quantity,'values':values,'raw':raw,'position_mm':position,
+            'unit':{'S':'MPa','E':'1','U':'mm','RF':'N'}[quantity],
+            'frame':'FREECAD_DOCUMENT_GLOBAL' if basis=='global' else 'DECLARED_BEAM_ELEMENT_AXES',
+            'static':deepcopy(frame['static']),'basis_transform':transform,
+            'shear_convention':'tensor_off_diagonal_not_engineering_gamma' if quantity in ('S','E') else 'not_applicable',
+            'source_pin':observed['source_pins'][source],'source_execution_status':checked['execution']['execution_status'],
+            'point_measurement':'UNSUPPORTED' if integration_point is not None else 'NATIVE_EXPANDED_LOCATION_ONLY',
+            'unavailable':deepcopy(observed['unavailable']),'engineering_valid':False}
+
+
+def inspect_section_responses(view, *, load_parameter=None, reference=None):
+    checked=load(view,reference); observed=checked['data']['observed']
+    if observed.get('output_mode')!='raw_stress':
+        raise ValueError('Select the separate 3D beam run for section/support observations')
+    frames=observed['frames']
+    selected=frames[-1] if load_parameter is None else next((f for f in frames if f['static']['load_parameter']==load_parameter),None)
+    if selected is None: raise ValueError('Native frame unavailable')
+    return {'static':deepcopy(selected['static']),'derived_rotations':deepcopy(selected['derived_rotations']),
+            'supports':deepcopy(selected['supports']),'native_generalized_rotation':'UNAVAILABLE',
+            'source_pins':deepcopy(observed['source_pins']),
+            'source_execution_status':checked['execution']['execution_status'],'engineering_valid':False}
