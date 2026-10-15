@@ -39,6 +39,11 @@ def test_trial_review_does_not_connect_across_preserved_invalid_gap():
         segments=[{'rows': [0, 2]}, {'rows': [2, 4]}])
     dialog = ExperimentDialog(default_draft()['settings'], result)
     assert [list(line.get_xdata()) for line in dialog.figure.axes[0].lines] == [[0., 1.], [3., 4.]]
+    assert len({line.get_color() for line in dialog.figure.axes[0].lines})==1
+    preview=DataProcessingPreviewDialog(result,retained=True)
+    assert len(preview.figure.axes[0].lines)==2
+    assert len({line.get_color() for line in preview.figure.axes[0].lines})==1
+    preview.close()
     dialog.close(); app.processEvents()
 
 

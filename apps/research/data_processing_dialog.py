@@ -192,7 +192,7 @@ class DataProcessingPreviewDialog(QDialog):
             if len(x) == len(values):
                 ranges = [segment['rows'] for segment in response.get('segments', [])] if 'segments' in response else [[0, len(values)]]
                 for first, last in ranges:
-                    axis.plot(x[first:last], values[first:last], linewidth=1.4, marker='.' if last - first == 1 else None)
+                    axis.plot(x[first:last], values[first:last], color='C0', linewidth=1.4, marker='.' if last - first == 1 else None)
             axis.set_xlabel((axes[0].get('name', '') + ' [' + axes[0].get('unit', '') + ']') if axes else '')
             axis.set_ylabel(name + ' [' + response.get('unit', '') + ']')
             rows = response.get('source_rows', [])
