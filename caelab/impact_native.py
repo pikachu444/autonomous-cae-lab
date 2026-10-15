@@ -20,7 +20,7 @@ STARTER_FAMILIES = (
     r'/INIVEL/TRA/[1-9][0-9]*', r'/INTER/TYPE24/[1-9][0-9]*',
     r'/FUNCT/[1-9][0-9]*', r'/GRAV/[1-9][0-9]*',
 )
-ENGINE_FIXED = {'/PRINT/-100/50','/PARITH/OFF','/DT','/DT/NODA/CST/0','/ANIM/DT',
+ENGINE_FIXED = {'/PRINT/-100/50','/PARITH/OFF','/DT','/DT/NODA/CST/0','/DT1/BRICK/STOP','/ANIM/DT',
                 '/ANIM/VECT/DISP','/ANIM/VECT/VEL','/ANIM/VECT/ACC','/ANIM/VECT/CONT',
                 '/ANIM/BRICK/TENS/STRESS','/ANIM/BRICK/DAMA','/ANIM/ELEM/DAMG',
                 '/TH/TITLE','/TFILE/4','/STOP'}
@@ -356,7 +356,7 @@ def parse_source(source):
     if not engine or engine[0]['key']!=f'/RUN/{run_name}/1' or engine[-1]['key']!='/STOP':
         raise SourceError('Engine는 원 RUN으로 시작하여 STOP으로 끝나야 합니다')
     if ('/DT' in engine_table)==('/DT/NODA/CST/0' in engine_table):raise SourceError('CFL 또는 mass scaling control을 하나만 지정하세요')
-    t={}
+    t={};solid_dt=None
     for key,card in engine_table.items():
         if key.startswith('/RUN/'):
             t['end_s']=_control_tokens(card,1)[0];engine_field(card,'end_s',0,'s')
@@ -365,6 +365,10 @@ def parse_source(source):
             if key=='/DT' and target!=0:_error(card,'/DT의 미지원 두 번째 field는 0이어야 합니다')
             engine_field(card,'scale',0,'1')
             if key!='/DT':engine_field(card,'target_step_s',1,'s')
+        elif key=='/DT1/BRICK/STOP':
+            solid_scale,minimum=_control_tokens(card,2)
+            if minimum!=0:_error(card,'첫 DT1/BRICK/STOP minimum은 명시 0이어야 합니다')
+            solid_dt=solid_scale;engine_field(card,'scale',0,'1')
         elif key=='/ANIM/DT':
             start,interval=_control_tokens(card,2)
             if start!=0:_error(card,'첫 지원 ANIM 시작 시각은 0입니다')
@@ -380,6 +384,15 @@ def parse_source(source):
         raise SourceError('종료·출력 간격·CFL·mass scaling을 확인하세요')
     controls['time']=t
     physics=validate_physics(graphs['starter']['text'],model,initial,controls)
+    if solid_dt is not None:
+        if t['mass_scaling'] or solid_dt!=t['scale']:
+            _error(engine_table['/DT1/BRICK/STOP'],'DT1은 mass scaling 없이 /DT와 같은 명시 scale을 사용해야 합니다')
+        if (not all(e['type']=='C3D4' for e in model['elements'].values()) or
+            physics['effective_formulation']['Itetra4_by_element']!={str(e):1000 for e in model['elements']}):
+            _error(engine_table['/DT1/BRICK/STOP'],'DT1 첫 지원은 기존 탄성 C3D4 / Itetra4=1000입니다')
+        for item in fields:
+            if item['role']=='engine' and item['field']=='scale' and item['card'] in ('/DT','/DT1/BRICK/STOP'):
+                item['label']='전체·고체 시간증분 계수 함께 변경'
     # Check nonzero velocity on fixed translational DOFs independently of converter.
     for block in model['blocks']:
         n,axis,*_=map(int,block['rows'][0][1].split(','))
@@ -421,6 +434,7 @@ def validate_settings(settings):
 
 def edit_field(settings, field_id, value, *, reason, expected_source_sha256):
     from .impact_input_edits import replace_range
+    from .storage import canonical_hash
     parsed=parse_source(settings['source'])
     matches=[f for f in parsed['fields'] if f['id']==field_id]
     if len(matches)!=1:raise SourceError('정확한 native 원문 field를 선택하세요')
@@ -430,6 +444,13 @@ def edit_field(settings, field_id, value, *, reason, expected_source_sha256):
     if f['kind']!='token' and len(token)!=f['width']:raise SourceError('수치가 native field 폭을 벗어납니다')
     source=replace_range(settings['source'],f['file'],f['start'],f['end'],token,reason=reason,
                          expected_source_sha256=expected_source_sha256)
+    # DT1 projects one common scale: an explicit scale edit updates both exact fields atomically.
+    linked=[v for v in parsed['fields'] if v['field']=='scale' and v['card'] in ('/DT','/DT1/BRICK/STOP')]
+    if f['field']=='scale' and len(linked)==2:
+        for other in linked:
+            if other['id']!=f['id']:
+                source=replace_range(source,other['file'],other['start'],other['end'],format(value,'.17g'),
+                    reason=reason,expected_source_sha256=canonical_hash(source))
     # Source is authoritative. Refresh only its exactly projected physical controls.
     result=settings_from_source(source)
     result['responses']=deepcopy(settings.get('responses',[]))

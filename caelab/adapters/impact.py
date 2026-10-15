@@ -216,10 +216,13 @@ class ImpactAdapter:
                     effective_gravity,b_definition=compile_b(effective_gravity,actual_model,s,damage_receipt)
                     save_json(out/'b_definition.json',b_definition)
                 starter.write_text(effective_gravity,encoding='ascii',newline='\n')
+                timestep_receipt=domain.engine_timestep(s,model=model,physics=physics)
+                engine_text=domain.engine_deck(s,model=model,physics=physics)
                 save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt,
                                                        'surface_serialization':surface_receipt,
-                                                       'inp_elastic_tetra_formulation':formulation_receipt})
-                (native/'impact_0001.rad').write_text(domain.engine_deck(s),encoding='ascii',newline='\n')
+                                                       'inp_elastic_tetra_formulation':formulation_receipt,
+                                                       'solid_timestep':timestep_receipt})
+                (native/'impact_0001.rad').write_text(engine_text,encoding='ascii',newline='\n')
                 frozen={p.name:file_hash(p) for p in native.glob('*.rad')}
             save_json(out/'damage_definition.json',damage_receipt)
             result['checks'].append({'name':'effective_physics','status':'PASS'})

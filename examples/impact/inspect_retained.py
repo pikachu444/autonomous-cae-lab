@@ -2,7 +2,9 @@
 import argparse
 import json
 from pathlib import Path
-from caelab.impact_model import validate_settings,engine_deck
+from caelab.impact_model import validate_settings
+from caelab.impact_retained import context,reference
+from caelab.dynamic_result_store import verify_pin
 from caelab.adapters.impact_results import history
 from caelab.adapters.impact_timing import engine_termination,history_inventory,sample_coverage,energy_observations
 
@@ -10,12 +12,16 @@ from caelab.adapters.impact_timing import engine_termination,history_inventory,s
 def inspect(calculation,history_csv=None):
     root=Path(calculation).resolve(strict=True);native=root/'native'
     settings=validate_settings(json.loads((root/'input.json').read_text(encoding='utf-8')))
-    if (native/'impact_0001.rad').read_text(encoding='ascii')!=engine_deck(settings):
-        raise ValueError('Retained engine controls differ from their saved settings')
+    # Past attempts retain their actual Engine recipe; never regenerate it with today's compiler.
+    _,attempt,frozen_settings,_,_,_=context(reference(root),root)
+    if frozen_settings!=settings:raise ValueError('Retained input differs from its exact attempt')
+    engine_pin=attempt['retained_native']['native_artifacts']['native/impact_0001.rad']
+    if engine_pin['relative']!='native/impact_0001.rad':raise ValueError('Retained Engine identity differs')
+    verify_pin(root,engine_pin)
     termination=engine_termination(native/'impact_0001.out','',settings['time']['end_s'])
     if termination['status']!='NORMAL':raise ValueError('Native termination: '+termination['status'])
     csvpath=Path(history_csv).resolve(strict=True) if history_csv else native/'history.csv'
-    responses,table=history(csvpath)
+    responses,table=history(csvpath,converter_identity=attempt['diagnostics'].get('runtime'))
     inventory=history_inventory(native/'impactT01',table)
     coverage=sample_coverage([row['values'][0] for row in table['rows']],
                             settings['time']['end_s'],settings['time']['history_interval_s'])

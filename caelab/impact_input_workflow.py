@@ -75,7 +75,7 @@ def inspect(settings):
         if source.get('format')=='RAD':
             from .impact_native import parse_source
             parsed=parse_source(source)
-            report['fields']=[{**deepcopy(f),'label':LABELS.get(f['field'],f['field'])} for f in parsed['fields']]
+            report['fields']=[{**deepcopy(f),'label':f.get('label',LABELS.get(f['field'],f['field']))} for f in parsed['fields']]
         report['source_lineage']=deepcopy(model.get('lineage',{}))
         from .impact_initial_state import describe
         if source.get('format')=='RAD':initial=parsed['initial']

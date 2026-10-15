@@ -182,4 +182,21 @@ reply = workbench.document_command(
 )
 ```
 
-False는 이미 보존된 VTK/CSV만 읽으며 runtime 조회도 하지 않는다. True는 원 native ANIM/TH를 동일 pinned converter로 다시 변환한다. True 경로는 이 작성환경에서 실제 converter 실행 NOT_RUN이다. 새 Job 결과의 READBACK_ONLY/solver_execution=NOT_PERFORMED와 source_execution_status를 함께 보여야 한다. 새 읽기가 성공해도 원 FAILED/CANCELLED를 SUCCEEDED로 바꾸지 않는다. 원 Job·현재 선택·입력과 결과를 저장한 뒤 새 owner에서 다시 읽는다.
+False는 이미 보존된 VTK/CSV만 읽으며 runtime 조회도 하지 않는다. True는 원 native ANIM/TH를 동일 pinned converter로 다시 변환한다. 2026-10-16 공개 INP 접촉쌍의 보존 결과에서 True의 TH/ANIM 재변환과 저장·새 owner 읽기를 확인했다. native RAD 전체 재변환·GUI 수용을 이 한 건으로 확대하지 않는다. 새 Job 결과의 READBACK_ONLY/solver_execution=NOT_PERFORMED와 source_execution_status를 함께 보여야 한다. 새 읽기가 성공해도 원 FAILED/CANCELLED를 SUCCEEDED로 바꾸지 않는다. 원 Job·현재 선택·입력과 결과를 저장한 뒤 새 owner에서 다시 읽는다.
+
+
+## 탄성 사면체의 정확한 시간증분 — 2026-10-16
+
+INP의 **모든 요소가 선형 탄성 LAW1의 C3D4**이고 실제 effective property가 Itetra4=1000이며 질량 스케일링이 없을 때, 생성 Engine은 기존 `/DT`와 함께 `/DT1/BRICK/STOP`을 명시한다. 두 카드 모두 사용자가 선택한 CFL 계수를 쓰고 minimum은 0이다. 예를 들어 CFL=.9이면 두 카드의 수치 행은 각각 `.9 0`이다. 계수를 .5로 낮추거나 기존 물리 공차·모델·원 결과를 바꾸는 기능이 아니다.
+
+DT1은 같은 solid의 더 정확한 native 시간증분 계산을 선택한다. `/DT`의 전역 기본 계수와 DT1의 고체 계수는 native에서 서로 다른 변수다. 이번 유한 지원에서는 같은 사용자 계수를 유지하도록 **두 값이 같은 경우만** 지원한다. C3D8/C3D10, 소성 LAW36, cohesive, 혼합 모델, mass scaling에는 이 보조 카드를 자동 추가하지 않는다. 실제 검증된 formulation과 생성 조건이 다르면 실행 전에 거절한다. 적용 요소·계수·최소 증분·적용 이유는 기존 physical admission에 함께 보존한다.
+
+Python의 `engine_deck(settings)` 미리보기·내보내기도 동일한 원 모델/시간 설정에서 같은 DT1 카드를 생성한다. adapter는 이미 검증한 모델과 effective physics를 재사용한다. 과거 결과를 다시 읽을 때는 지금의 생성기로 옛 Engine을 재생성하지 않고 그 원 실행에 보존된 정확한 Engine bytes를 읽는다.
+
+기존 지원 native 탄성 C3D4/Itetra4=1000에는 명시 `/DT1/BRICK/STOP`을 읽고 편집·저장·내보낼 수 있다. `/DT`가 함께 있어야 하고, 두 scale은 유한한 0 초과 1 이하의 같은 값이어야 하며 두 minimum은 0이어야 한다. 중복 카드·비어 있거나 여분인 필드·다른 minimum·mass scaling 혼합·서로 다른 scale은 원 위치를 붙여 거절한다. 사용자 원문을 자동 동일화하지 않는다. 해당 초안과 원 bytes는 보존할 수 있다.
+
+정상 DT1 문서의 수치 항목은 **전체·고체 시간증분 계수 함께 변경**으로 표시한다. 이 항목을 명시 편집하면 `/DT`와 DT1의 정확한 두 scale 범위를 한 작업으로 바꾸고 마지막에 전체 입력을 다시 검사한다. 다른 bytes와 원 CRLF는 그대로다. Undo/Redo, 저장 후 새 owner 재열기·재편집, 정확한 native 내보내기와 원문 복원을 확인했다. 기존 `/DT` 단독 문서와 허용된 mass scaling 문서는 종전대로다. 기존 source editor의 명칭 연결이며 새 GUI 개편이나 OS 조작 수용을 주장하지 않는다.
+
+이 native 지원은 기존 탄성 C3D4 원문 범위다. generated INP의 B 응답용 `/TH/INTER` 등 전체 카드를 native로 재가져와 편집하는 기능은 여전히 미지원이다. DT1 카드 하나의 지원을 B 전체 native 편집 지원으로 해석하면 안 된다.
+
+Python converter·controlled Starter 경계, 원문·문서 저장·cold와 기존 영향 검사를 마친 뒤 같은 공개 입력·CFL .9로 실제 계산 한 번을 확인했다. Starter·Engine과 결과 읽기가 성공했고 정확한 고체 시간증분 계산, 4733증분, 저장·새 프로세스의 동일 결과와 확인용 프로세스 종료를 확인했다. 접촉 전 에너지 폭주는 이번 출력에서 사라졌지만 접촉 후 에너지 오차는 남아 물리 수용은 미완료다. 새 원실행의 접촉쌍 응답은 단위 근거 전달을 추가 연결하기 전 UNKNOWN이며 빈 응답을 실제 0으로 해석하지 않는다. 과거 실패와 원 결과는 그대로 보존한다.

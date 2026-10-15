@@ -358,12 +358,37 @@ def render(settings):
         'motions':motion_receipts}
 
 
-def engine_deck(settings, name='impact'):
+def engine_timestep(settings, *, model=None, physics=None):
+    """One generated-INP decision for preview/export and the admitted adapter."""
     t=settings['time']
+    decision={'applied':False,'global_scale':t['scale'],'mass_scaling':t['mass_scaling']}
+    if settings.get('source',{}).get('format')!='INP' or t['mass_scaling']:
+        return {**decision,'reason':'NATIVE_SOURCE_OR_MASS_SCALING_UNCHANGED'}
+    model=model_from_settings(settings) if model is None else model
+    elements=model['elements']
+    eligible=bool(elements) and not settings.get('cohesive') and not settings.get('bulk_damage') and all(
+        e['type']=='C3D4' and 'PLASTIC' not in model['materials'][model['assignment'][eid]] and
+        model['materials'][model['assignment'][eid]].get('_elastic_type')!='TRACTION'
+        for eid,e in elements.items())
+    if not eligible:return {**decision,'reason':'NOT_EXCLUSIVELY_LINEAR_ELASTIC_C3D4'}
+    if physics is not None:
+        expected={str(e):1000 for e in elements}
+        if (physics.get('effective_formulation',{}).get('Itetra4_by_element')!=expected or
+            physics.get('material_by_element')!={str(e):model['assignment'][e] for e in elements}):
+            raise ValueError('Accurate tetra timestep requires the admitted original LAW1 C3D4 / Itetra4=1000 mapping')
+    return {**decision,'applied':True,'card':'/DT1/BRICK/STOP','solid_scale':t['scale'],
+        'minimum_step_s':0.,'element_ids':sorted(elements),'effective_Itetra4':1000,
+        'basis':'EXISTING_NATIVE_ACCURATE_LINEAR_TETRA_TIMESTEP','qualification':'UNKNOWN'}
+
+
+def engine_deck(settings, name='impact', *, model=None, physics=None):
+    t=settings['time']
+    solid=engine_timestep(settings,model=model,physics=physics)
     lines=[f'/RUN/{name}/1',format(t['end_s'],'.17g'),'/PRINT/-100/50','/PARITH/OFF',
            '/DT/NODA/CST/0' if t['mass_scaling'] else '/DT',
-           f"{t['scale']:.17g} {t['target_step_s'] if t['mass_scaling'] else 0}",
-           '/ANIM/DT',f"0 {t['field_interval_s']:.17g}",'/ANIM/VECT/DISP','/ANIM/VECT/VEL',
+           f"{t['scale']:.17g} {t['target_step_s'] if t['mass_scaling'] else 0}"]
+    if solid['applied']:lines.extend([solid['card'],f"{solid['solid_scale']:.17g} 0"])
+    lines.extend(['/ANIM/DT',f"0 {t['field_interval_s']:.17g}",'/ANIM/VECT/DISP','/ANIM/VECT/VEL',
            '/ANIM/VECT/ACC','/ANIM/VECT/CONT','/ANIM/BRICK/TENS/STRESS','/ANIM/BRICK/DAMA',
-           '/ANIM/ELEM/DAMG','/TH/TITLE','/TFILE/4',format(t['history_interval_s'],'.17g'),'/STOP','0 0 0 1 1','']
+           '/ANIM/ELEM/DAMG','/TH/TITLE','/TFILE/4',format(t['history_interval_s'],'.17g'),'/STOP','0 0 0 1 1',''])
     return '\n'.join(lines)
