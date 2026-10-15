@@ -528,7 +528,12 @@ def _register_post_inspection(client, selected):
             return check_id(receipt['id'])
 
 
-def _post(client, args, *, _report_origin=None, _report_launch=None):
+def _post(client, args, *, _report_origin=None, _report_launch=None,
+          _measurement_origin=None, _origin_launch=None):
+    if getattr(args, 'curve_origin', None):
+        from .post_curve_origin import launch_saved_measurement
+        return launch_saved_measurement(client, args)
+    launch_progress = _report_launch if _report_launch is not None else _origin_launch
     if getattr(args, 'report_image', None):
         from .report_image_origin import launch_saved_project
         return launch_saved_project(client, args)
@@ -621,9 +626,10 @@ def _post(client, args, *, _report_origin=None, _report_launch=None):
     if _report_origin is not None:
         from .report_image_origin import prepare_native_environment
         prepare_native_environment(_report_origin, project, folder, environment)
-    if measurement_source is not None:
+    selection_origin = measurement_source if measurement_source is not None else _measurement_origin
+    if selection_origin is not None:
         selection_path = folder / 'measurement.json'
-        save_json(selection_path, {key: measurement_source[key] for key in (
+        save_json(selection_path, {key: selection_origin[key] for key in (
             'kind', 'document_id', 'session_id', 'pid', 'project', 'workspace', 'object_ref',
             'revision', 'recipe_sha256', 'result_files_sha256', 'result_sha256')})
         environment['CAE_POST_MEASUREMENT'] = str(selection_path)
@@ -651,20 +657,25 @@ def _post(client, args, *, _report_origin=None, _report_launch=None):
         if _report_origin is not None:
             from caelab.report_image import verify_origin
             verify_origin(_report_origin)
-        if _report_launch is not None:
-            _report_launch['phase'] = 'SPAWNING'
+        if _measurement_origin is not None:
+            from caelab.post_observation import verify_origin as verify_measurement
+            verify_measurement(_measurement_origin)
+            if Path(args.project).resolve() != Path(_measurement_origin['project']['path']).resolve():
+                raise ValueError('원측정의 정확 저장 프로젝트가 아닙니다.')
+        if launch_progress is not None:
+            launch_progress['phase'] = 'SPAWNING'
         try:
             process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
                                         '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
         except OSError:
             # Confirmed process-creation failure. Interrupts remain ambiguous.
-            if _report_launch is not None:
-                _report_launch['phase'] = 'NOT_CREATED'
+            if launch_progress is not None:
+                launch_progress['phase'] = 'NOT_CREATED'
             if marker is not None:
                 marker.unlink(missing_ok=True)
             raise
-        if _report_launch is not None:
-            _report_launch.update(phase='CREATED', pid=process.pid)
+        if launch_progress is not None:
+            launch_progress.update(phase='CREATED', pid=process.pid)
         if marker is not None:
             save_json(marker, {'state': 'LAUNCH_REQUESTED', 'launcher_pid': process.pid,
                                'project_sha256': measurement_source['project']['sha256']})
@@ -700,6 +711,7 @@ def _arguments(argv=None):
     choice = post.add_mutually_exclusive_group()
     choice.add_argument('--measurement-result')
     choice.add_argument('--report-image')
+    choice.add_argument('--curve-origin')
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
     origin = sub.add_parser('origin', allow_abbrev=False); origin.add_argument('--job-id', required=True)
     for name in sorted(TOOLS):

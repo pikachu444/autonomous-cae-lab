@@ -113,13 +113,14 @@ class Owner:
         return self.project_path, deepcopy(self.project_document)
 
     def operations(self):
+        activation = ('document.activate',) if callable(getattr(self, '_activate_origin_window', None)) else ()
         if self.workspace is None:
-            return OPERATIONS
+            return OPERATIONS + activation
         try:
             from .workspace import OPERATIONS as extra
         except ImportError:
             from workspace import OPERATIONS as extra
-        return OPERATIONS + extra
+        return OPERATIONS + extra + activation
 
     def assert_thread(self):
         if threading.get_ident() != self.thread:
@@ -191,6 +192,7 @@ class Owner:
     def close(self):
         self.assert_thread()
         self.closed = True
+        self._activate_origin_window = None
         for identifier, (native, tag) in list(self._observers.items()):
             native.RemoveObserver(tag)
             self._observers.pop(identifier)
@@ -276,6 +278,11 @@ class Owner:
                     if available and float(p.GetAnimationScene().AnimationTime) not in available:
                         raise ValueError("TIME_SELECTION_UNSUPPORTED: select an exact native frame before inspecting its values")
                     payload["data"] = external.inspect_result(source)
+            elif operation == 'document.activate':
+                if arguments or target:
+                    raise ValueError('document.activate uses only the authenticated current owner window')
+                payload = self._activate_origin_window()
+                self.refresh()
             elif operation not in OPERATIONS:
                 if target:
                     raise ValueError('Analysis commands use stable source_ref/object_ref arguments')
@@ -351,6 +358,12 @@ class GuiDispatch:
                 from native_controls import install
             self.native_controls = install(self.owner, busy=lambda: self.command_gate.executing,
                                            on_closed=self.close)
+            if self.native_controls is not None:
+                if __package__:
+                    from .curve_origin_native import activate_window
+                else:
+                    from curve_origin_native import activate_window
+                self.owner._activate_origin_window = lambda: activate_window(self.owner, self.native_controls)
         except Exception as error:
             print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
         try:
@@ -372,6 +385,7 @@ class GuiDispatch:
             try:
                 self.native_controls.refresh()
             except Exception as error:
+                self.owner._activate_origin_window = None
                 self.native_controls.close()
                 self.native_controls = None
                 print('프로젝트 저장 단축키 연결을 준비하지 못했습니다. 저장 매크로를 사용하세요. '+str(error))
@@ -434,6 +448,7 @@ class GuiDispatch:
         if self.native_exit is not None:
             self.native_exit.close()
         self.closed = True
+        self.owner._activate_origin_window = None
         # Keep the closed receipt on the existing broker; it reconciles queued
         # commands without pretending a native calculation was cancelled.
         if self.broker_close is not None:

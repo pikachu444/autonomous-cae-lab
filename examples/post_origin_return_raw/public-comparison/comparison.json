@@ -1,0 +1,123 @@
+{
+  "version": 2,
+  "a": {
+    "source_ref": "result",
+    "array": "force",
+    "association": "POINTS",
+    "quantity": "force",
+    "units": "N",
+    "measure": "force",
+    "frame": "global",
+    "coordinate_units": "mm",
+    "coordinate_frame": "global",
+    "layout": {
+      "kind": "vector",
+      "components": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "time": 0.5,
+    "time_units": "s",
+    "time_origin": "physical_time",
+    "sampling": {
+      "mode": "exact",
+      "time": 0.5
+    },
+    "clock_offset": 0.0,
+    "validity_masks": [
+      "quality"
+    ]
+  },
+  "b": {
+    "source_ref": "replace-with-added-source",
+    "array": "force",
+    "association": "POINTS",
+    "quantity": "force",
+    "units": "kN",
+    "measure": "force",
+    "frame": "rotated",
+    "coordinate_units": "m",
+    "coordinate_frame": "rotated",
+    "layout": {
+      "kind": "vector",
+      "components": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "time": null,
+    "time_units": "s",
+    "time_origin": "physical_time",
+    "sampling": {
+      "mode": "linear",
+      "bracket": [
+        0.0,
+        1.0
+      ],
+      "max_gap": 1.0
+    },
+    "clock_offset": 0.0,
+    "validity_masks": [
+      "quality"
+    ]
+  },
+  "method": "same_mesh",
+  "tolerance": 0.0,
+  "target": {
+    "units": "N"
+  },
+  "selection": "y",
+  "difference": "selected_difference",
+  "percent": "relative_a",
+  "clock": {
+    "value": 0.5,
+    "unit": "s",
+    "semantics": "physical_time"
+  },
+  "alignment": {
+    "geometry_rotation": [
+      [
+        0,
+        -1,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "response_rotation": [
+      [
+        0,
+        -1,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "geometry_declared": true,
+    "response_declared": true
+  }
+}

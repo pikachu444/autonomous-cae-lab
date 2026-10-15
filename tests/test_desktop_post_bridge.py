@@ -351,6 +351,30 @@ def test_close_during_executing_command_keeps_timer_and_owner(bridge):
     dispatcher.close()
 
 
+@pytest.mark.parametrize('ending', ['owner', 'dispatcher', 'controls_failed'])
+def test_activation_capability_ends_with_owned_window_controls(bridge, ending):
+    owner = bridge.module.Owner()
+    dispatcher = bridge.module.GuiDispatch(owner)
+    owner._activate_origin_window = lambda: {'status': 'ACTIVATED'}
+    assert 'document.activate' in owner.operations()
+    if ending == 'owner':
+        owner.close()
+    elif ending == 'dispatcher':
+        dispatcher.close()
+    else:
+        def failed_refresh():
+            raise RuntimeError('native controls disconnected')
+        closed = []
+        dispatcher.native_controls = SimpleNamespace(
+            refresh=failed_refresh, close=lambda: closed.append(True))
+        dispatcher._tick()
+        assert closed == [True] and dispatcher.native_controls is None
+        assert not owner.closed
+    assert 'document.activate' not in owner.operations()
+    if not owner.closed:
+        dispatcher.close()
+
+
 def test_failed_native_install_releases_observers_and_save_owner(bridge,monkeypatch):
     bridge.view.interactor=Interactor(gui=False);cleared=[]
     monkeypatch.setattr(bridge.module.commands,'clear_save_owner',lambda owner:cleared.append(owner))

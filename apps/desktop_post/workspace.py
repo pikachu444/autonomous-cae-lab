@@ -29,6 +29,7 @@ OPERATIONS = (
     'post.measurement_snapshot', 'post.measurement_open', 'post.contact_inspect', 'post.contact_measurement',
     'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export',
     'post.report_image_verify',
+    'post.curve_origin_read', 'post.curve_origin_verify', 'post.curve_origin_select',
 )
 
 
@@ -426,6 +427,20 @@ class Workspace:
             raise ValueError('Unsupported Post workspace command')
         if not isinstance(arguments, dict):
             raise ValueError('Arguments must be an object')
+        if operation.startswith('post.curve_origin_'):
+            try:
+                from . import curve_origin_native
+            except ImportError:
+                import curve_origin_native
+            handler = {'post.curve_origin_read': curve_origin_native.read,
+                       'post.curve_origin_verify': curve_origin_native.verify,
+                       'post.curve_origin_select': curve_origin_native.select}[operation]
+            if operation != 'post.curve_origin_read':
+                if 'origin_target' not in arguments or 'target' in arguments:
+                    raise ValueError('The original row requires an explicit origin_target argument')
+                arguments = dict(arguments)
+                arguments['target'] = arguments.pop('origin_target')
+            return handler(self, **arguments)
         handlers = {
             'post.source_add': self.add_source, 'post.source_select': self.select_source,
             'post.source_repair': self.repair_source, 'post.comparison_edit': self.edit_comparison,
@@ -839,6 +854,7 @@ class Workspace:
                                               declarations=record.get('summary', {}).get('declarations'))
         result = contact_views.annotate(result, record.get('summary', {}))
         if row_index is not None:
+            obj.pop('selection_context', None)
             obj['selection'] = deepcopy(result.get('rows', []))
             obj['selection_revision'] = record['id']
             obj['selection_hash'] = digest(obj['selection'])
@@ -847,6 +863,7 @@ class Workspace:
             # An explicit point query selects this exact output only. Preview
             # selection never creates a view or displays a hidden pipeline.
             measurements.highlight_point(bundle['source'], point_index)
+            obj.pop('selection_context', None)
             obj['selection'] = deepcopy(result.get('rows', []))
             obj['selection_revision'] = record['id']
             obj['selection_hash'] = digest(obj['selection'])
@@ -859,6 +876,16 @@ class Workspace:
         obj = self.state['objects'].get(self.state.get('active_object'))
         if obj is None:
             return False
+        if obj.get('selection_context', {}).get('kind') == 'post_curve_origin':
+            try:
+                try:
+                    from .curve_origin_native import restore
+                except ImportError:
+                    from curve_origin_native import restore
+                return restore(self, obj)
+            except (ValueError, RuntimeError, OSError) as error:
+                self.restore_issues.append({'object_ref': obj['id'], 'message': str(error)})
+                return False
         record = self.applied(obj)
         rows = obj.get('selection')
         if record and record['recipe'].get('version') == 3 and rows:

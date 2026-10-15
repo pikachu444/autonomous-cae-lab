@@ -14,6 +14,8 @@ CAPABILITIES = {
     'post': {'post.inspect', 'post.select_array', 'document.save', 'document.activate',
              'post.source_add', 'post.source_select', 'post.source_repair',
              'post.comparison_edit', 'post.curve_catalog', 'post.mapping_validate', 'post.sample',
+             'post.curve_origin_read', 'post.curve_origin_verify', 'post.curve_origin_select',
+             'post.report_image_verify',
              'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
              'post.measurement_snapshot', 'post.measurement_open', 'post.contact_inspect', 'post.contact_measurement',
              'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export'},

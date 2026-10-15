@@ -1227,6 +1227,8 @@ class PostWindow(QMainWindow):
             from .post_curve_plot import CurvePlot
             dialog = CurvePlot(self._samples, self._sample_basis, self)
             dialog.rowSelected.connect(lambda index: self.select_curve_row(index, dialog.basis))
+            from .post_curve_origin_ui import attach_origin_controls
+            attach_origin_controls(dialog, self)
         else:
             from .post_comparison_plot import ComparisonPlot
             dialog = ComparisonPlot(self._samples, self._sample_basis, self)

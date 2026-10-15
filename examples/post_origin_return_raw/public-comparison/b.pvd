@@ -1,0 +1,1 @@
+<?xml version="1.0"?><VTKFile type="Collection" version="0.1" byte_order="LittleEndian"><Collection><DataSet timestep="0.0" group="" part="0" file="b0.vtu"/><DataSet timestep="1.0" group="" part="0" file="b1.vtu"/></Collection></VTKFile>
