@@ -68,7 +68,7 @@ def capture_point_selection(source):
     before = p.GetActiveSource(), p.GetActiveView()
     extraction = None
     try:
-        extraction = p.ExtractSelection(registrationName=_name('CAE selection', 'capture'), Input=source, Selection=selection)
+        extraction = p.ExtractSelection(registrationName=analysis._name('선택한 점', 'capture'), Input=source, Selection=selection)
         extraction.UpdatePipeline()
         data = servermanager.Fetch(extraction)
         if not hasattr(data, 'GetPointData'):
@@ -170,9 +170,9 @@ def build_measurement(source, draft, namespace):
         selection = _selection(indices, namespace, time_history=kind == 'time')
         # Selection sources live in the selection_sources group. Keep their
         # stable names separately; SaveState retains the actual selection proxy.
-        extraction = (p.PlotSelectionOverTime(registrationName=_name(namespace, 'native point histories'), Input=selected_input, Selection=selection,
+        extraction = (p.PlotSelectionOverTime(registrationName=analysis._name(namespace, 'native point histories'), Input=selected_input, Selection=selection,
                                                OnlyReportSelectionStatistics=0) if kind == 'time' else
-                      p.ExtractSelection(registrationName=_name(namespace, 'original samples'), Input=selected_input, Selection=selection))
+                      p.ExtractSelection(registrationName=analysis._name(namespace, 'original samples'), Input=selected_input, Selection=selection))
         proxies.append(extraction)
         extraction.UpdatePipeline()
         summary = {'measurement': kind, 'array': array, 'association': 'POINTS',

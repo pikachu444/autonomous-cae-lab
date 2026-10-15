@@ -202,7 +202,7 @@ def build(ws, recipe, namespace):
     before = p.GetActiveSource(), p.GetActiveView()
     source = None
     try:
-        source = p.XMLTableReader(registrationName=namespace + ' curve ' + uuid.uuid4().hex[:8], FileName=[str(path)])
+        source = p.XMLTableReader(registrationName=analysis._name(namespace, 'curve comparison'), FileName=[str(path)])
         source.UpdatePipeline()
         summary = {'comparison_version': 3, 'recipe': deepcopy(recipe), 'blocked': result['blocked'],
             'count_a': len(result['a']['rows']), 'count_b': len(result['b']['rows']), 'count_aligned': len(aligned),

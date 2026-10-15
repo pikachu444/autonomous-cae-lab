@@ -8,7 +8,6 @@ import hashlib
 import json
 import math
 import re
-import uuid
 
 import numpy as np
 from paraview import simple as p, servermanager
@@ -17,9 +16,10 @@ try:
 except ImportError:
     from vtk.util.numpy_support import vtk_to_numpy
 try:
-    from . import external
+    from . import external, naming
 except ImportError:
     import external
+    import naming
 
 OUTPUT_ARRAYS = {"a": "A_original", "b": "B_at_A", "delta": "B_minus_A",
                  "percent": "percent_change", "valid": "comparison_valid",
@@ -38,7 +38,7 @@ def _digest(value):
 def _name(namespace, role):
     if not isinstance(namespace, str) or not namespace.strip():
         raise ValueError("A nonempty native registration namespace is required")
-    return namespace + " | " + role + " | " + uuid.uuid4().hex
+    return naming.proxy_name(namespace, role, p.GetSources())
 
 
 def _preserve_active():

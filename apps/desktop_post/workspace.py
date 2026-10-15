@@ -15,12 +15,13 @@ from paraview import simple as p
 from caelab import post_comparison as physical
 
 try:
-    from . import external, analysis, measurements, contact_views
+    from . import external, analysis, measurements, contact_views, naming
 except ImportError:
     import external
     import analysis
     import measurements
     import contact_views
+    import naming
 
 OPERATIONS = (
     'post.source_add', 'post.source_select', 'post.source_repair',
@@ -492,7 +493,7 @@ class Workspace:
             raise ValueError('Registered reader receipt differs from the requested input')
         if label_text is not None and (not isinstance(label_text, str) or len(label_text) > 256):
             raise ValueError('Use a short source display name')
-        source, record = external.admit_result(receipt['path'], input_id, receipt['source_pins'], receipt.get('native_metadata'), receipt.get('registration_origin'))
+        source, record = external.admit_result(receipt['path'], input_id, receipt['source_pins'], receipt.get('native_metadata'), receipt.get('registration_origin'), display_name=label_text)
         ref = 'S' + uuid.uuid4().hex
         record.update(source_ref=ref, label=label_text or Path(receipt['path']).name)
         self.document['sources'][ref] = record
@@ -556,7 +557,7 @@ class Workspace:
             raise ValueError('Analysis draft exceeds 128 KiB')
         if object_ref is None:
             object_ref = 'A' + uuid.uuid4().hex
-            obj = {'id': object_ref, 'kind': kind, 'title': title or kind.title(), 'draft': draft,
+            obj = {'id': object_ref, 'kind': kind, 'title': title or naming.operation_name(kind, draft), 'draft': draft,
                    'history': [], 'position': -1, 'preview': None, 'selection': [], 'diagnostics': []}
             self.state['objects'][object_ref] = obj
         else:
@@ -590,7 +591,7 @@ class Workspace:
         try:
             key = self._key(obj)
             draft = obj['draft']
-            name = 'CAE ' + obj['kind'] + ' | ' + object_ref + ' | ' + uuid.uuid4().hex[:8]
+            name = obj['title']
             if obj['kind'] == 'comparison' and draft.get('version') == 3:
                 from .curve_native import build
                 bundle = build(self, draft, name)

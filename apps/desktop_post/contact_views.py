@@ -2,7 +2,6 @@
 from copy import deepcopy
 import json
 from pathlib import Path
-import uuid
 
 from paraview import simple as p
 try:
@@ -134,7 +133,7 @@ def _show(workspace, bundle, selection, view_id=None):
             raise ValueError('Previous contact surface input changed; its native branch is preserved')
         retired = _owned_overlay(workspace, old, previous_bundle, replacing=True)
     created = []
-    namespace = 'Contact faces ' + uuid.uuid4().hex[:10]
+    namespace = analysis._name('접촉면', 'contact faces')
     try:
         reader = p.XMLUnstructuredGridReader(registrationName=namespace, FileName=[bundle['surfaces_path']])
         created.append(reader)
@@ -143,7 +142,7 @@ def _show(workspace, bundle, selection, view_id=None):
             if selection['side'] not in (side, 'both'):
                 continue
             identifier = pair[side]['surface_index']
-            face = p.Threshold(registrationName=namespace + ' ' + side.upper(), Input=reader)
+            face = p.Threshold(registrationName=analysis._name('접촉면 ' + side.upper(), 'contact surface'), Input=reader)
             created.append(face)
             face.Scalars = ['CELLS', 'ContactSurfaceIndex']
             # The surface index is scalar. ParaView 6.2 otherwise reports an
@@ -273,7 +272,7 @@ def build_measurement(workspace, draft, namespace):
         "    output.AddColumn(array)\n")
     proxy = None
     try:
-        proxy = p.ProgrammableSource(registrationName=namespace, OutputDataSetType='vtkTable')
+        proxy = p.ProgrammableSource(registrationName=analysis._name(namespace, 'contact_force'), OutputDataSetType='vtkTable')
         proxy.Script = script
         proxy.UpdatePipeline()
         data = analysis._fetch(proxy)

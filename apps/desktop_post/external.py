@@ -18,8 +18,10 @@ from paraview import simple as p, servermanager
 
 try:
     from .commands import sha, reader_input_files
+    from . import naming
 except ImportError:
     from commands import sha, reader_input_files
+    import naming
 
 
 KIND = "external-result"
@@ -716,7 +718,7 @@ def restore_selection(doc):
         if view is not None: p.SetActiveView(view)
 
 
-def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None, registration_origin=None):
+def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None, registration_origin=None, *, display_name=None):
     """Admit one immutable reader without creating a document, view or layout."""
     if input_id is not None and source_pins is None:
         raise ValueError("A registered input ID requires its complete verified source pins")
@@ -737,7 +739,7 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
         pinned = deepcopy(source_pins)
     if source_pins is not None and pinned != source_pins:
         raise RuntimeError("Registered source pins do not match the actual result dependency set")
-    name = "Result | " + entry.name + " | " + uuid.uuid4().hex[:8]
+    name = naming.unique_name(display_name or entry.name, p.GetSources())
     reader_type = READERS[entry.suffix.lower()]
     previous_source = p.GetActiveSource() if hasattr(p, "GetActiveSource") else None
     previous_view = p.GetActiveView()
