@@ -1116,6 +1116,53 @@ class NumericalWindow(QMainWindow):
             and self._adoption_receipt is None and not self.conflict and not self._view_error and self.mode.currentText()=='fit'
             and isinstance(self._material,dict) and not material_diagnostics(self._material.get('draft',{})))
 
+    def processed_trial_stage_pending(self):
+        """Whether the host may keep waiting for this window's current read."""
+        if (self._closed or self._allow_close or self._view_error or self.conflict
+                or self._adoption_receipt is not None or self._pending_adoption):
+            return False
+        return bool(self._busy if self.document is None else self._busy_background or self._callbacks)
+
+    def _processed_trial_selection(self, source, original):
+        """Bind one dialog's explicit channel reads to its retained result.
+
+        The caller supplies already detached result JSON. The callable uses
+        that snapshot and the client only, so the dialog may run it on its
+        existing read worker without accessing this Qt window.
+        """
+        from caelab.storage import canonical_hash
+        client=self.client
+        source=deepcopy(source)
+        verify=type(self)._verify_processed_source
+        record=original['diagnostics']['processing_record']
+        if (record.get('id')!=source['processing_revision']
+                or not isinstance(record.get('result_sha256'),str)
+                or len(record['result_sha256'])!=64):
+            raise ValueError('저장한 처리 결과를 확인하지 못했습니다. Data에서 다시 선택하세요.')
+        keys=('id','source','result_sha256','recipe_sha256','preview_sha256','state')
+        identity={key:deepcopy(record.get(key)) for key in keys}
+        selected={}
+        def read(names):
+            if (not isinstance(names,list) or not names
+                    or any(not isinstance(name,str) or name not in original['responses'] for name in names)
+                    or len(names)!=len(set(names))):
+                raise ValueError('보존한 응답과 측정 변형 채널을 선택하세요.')
+            value=client.data_material('data.processing.result',{
+                'document_id':source['document_id'],'processing_revision':source['processing_revision'],
+                'selection':deepcopy(names)})
+            verify(source,value)
+            diagnostics=value.get('diagnostics',{})
+            current=diagnostics.get('processing_record',{})
+            if (value.get('execution_status')!='SUCCEEDED'
+                    or diagnostics.get('selected_channels_only') is not True
+                    or {key:current.get(key) for key in keys}!=identity
+                    or set(value.get('responses',{}))!=set(names)
+                    or any(canonical_hash(value['responses'][name])!=canonical_hash(original['responses'][name]) for name in names)):
+                raise ValueError('선택한 범위가 저장한 처리 결과와 다릅니다. Data에서 다시 선택하세요.')
+            selected.update(names=tuple(names),result_sha256=current['result_sha256'])
+            return deepcopy(value)
+        return read,selected
+
     def stage_processed_trial(self, source, result):
         """Review a retained Data result into this Plan's local draft only.
 
@@ -1131,8 +1178,13 @@ class NumericalWindow(QMainWindow):
             if not isinstance(source,dict) or not required<=set(source) or set(source)-required-{'response'}:
                 raise ValueError('Data에서 저장한 처리 결과를 선택하세요.')
             self._verify_processed_source(source,result)
-            if result.get('execution_status')!='SUCCEEDED' or not result.get('responses'):
+            diagnostics=result.get('diagnostics',{})
+            partial=(result.get('execution_status')=='FAILED'
+                and diagnostics.get('processing_status')=='PARTIAL'
+                and diagnostics.get('processing_record',{}).get('state')=='PARTIAL')
+            if (result.get('execution_status')!='SUCCEEDED' and not partial) or not result.get('responses'):
                 raise ValueError('선택한 처리 결과에 사용할 응답이 없습니다.')
+            reader,selection=self._processed_trial_selection(source,result) if partial else (None,{})
         except (ValueError,TypeError,AttributeError) as error:
             self.message.setText(str(error))
             return False
@@ -1140,7 +1192,10 @@ class NumericalWindow(QMainWindow):
         token=(self.document['id'],self.document['session_id'],self.document['generation'])
         before=self.edited_draft(commit=False)
         from .material_test_dialog import ExperimentDialog
-        dialog=ExperimentDialog(self._material['draft']['settings'],result,self,selected=source.get('response'))
+        options={'selected':source.get('response')}
+        if reader is not None:
+            options['selected_result_reader']=reader
+        dialog=ExperimentDialog(self._material['draft']['settings'],result,self,**options)
         if dialog.exec()!=QDialog.DialogCode.Accepted:
             return False
         if (token!=(self.document['id'],self.document['session_id'],self.document['generation'])
@@ -1148,6 +1203,13 @@ class NumericalWindow(QMainWindow):
             self.message.setText('검토 중 계획이 변경되었습니다. 시험을 다시 추가하세요.')
             return False
         value=dialog.value
+        if partial:
+            names=[value['name']]
+            if value['kinematics'] is not None:
+                names.append(value['kinematics']['channel'])
+            if selection.get('names')!=tuple(names):
+                self.message.setText('선택한 응답과 변형 채널을 다시 확인하세요. 시험은 추가하지 않았습니다.')
+                return False
         experiments=deepcopy(before['experiments'])
         index=1
         while 'Test'+str(index) in {e['id'] for e in experiments}: index+=1
