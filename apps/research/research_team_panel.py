@@ -387,6 +387,7 @@ class TeamReviewDialog(QDialog):
         layout.addWidget(split, 1)
         self.roles = QTreeWidget()
         self.roles.setHeaderLabels(['담당자', '역할'])
+        self.roles.header().setStretchLastSection(False)
         self.roles.setMinimumWidth(220)
         self.roles.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.roles.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -535,8 +536,11 @@ class TeamReviewDialog(QDialog):
         from .expert_sources import SourceDialog
         row = self.assignments[self._selected]
         definition = next((r for r in self.window._registry if r['id'] == self._selected), {})
-        dialog = SourceDialog(self.window.client, {'selected_sources': deepcopy(row['source_refs'])},
-            collections=definition.get('collections', []), parent=self)
+        source_context = deepcopy(self.window.edited_draft().get('context', {}))
+        source_context['selected_sources'] = deepcopy(row['source_refs'])
+        source_context['selected_document_ids'] = [ref['document_id'] for ref in row['source_refs']]
+        dialog = SourceDialog(self.window.client, source_context,
+            collections=definition.get('collections', []), role_id=self._selected, parent=self)
         try:
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 row['source_refs'] = deepcopy(dialog.references)

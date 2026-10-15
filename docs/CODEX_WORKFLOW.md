@@ -115,6 +115,11 @@ native 확인을 위한 새 FreeCAD·pvpython 프로세스는 Windows의
 이 환경에서 `QTest.qWait`만 반복한 driver가 HTTP 스레드를 막았던 사례를 보존한다.
 확인 도구의 대기 문제를 제품 읽기 실패나 확정 성능으로 판정하지 않는다.
 
+병렬 pytest는 각 실행의 새 출력 폴더 아래 고유한 `--basetemp`를 사용한다. 기본 공용
+임시 폴더의 자동 정리가 다른 담당의 완료 자료를 지운 사례가 있다. 재열기·검토에
+필요한 설정·문서·원문은 전용 작업 폴더에 보존하고 파일 존재를 확인한 뒤 제출한다.
+이미 쓴 임시 폴더를 새 실행의 `--basetemp`로 재사용하지 않는다.
+
 MoAI의 Python 코드 검사는 `moai ast-grep <수정 파일> --lang python --format json`으로
 실행한다. 현재 프로젝트 규칙은 동적 eval/exec와 subprocess의 shell=True 사용을
 검토 대상으로 찾는다. 이 제한된 검사를 독립 검토나 해당 기능의 동작 확인으로 대신하지

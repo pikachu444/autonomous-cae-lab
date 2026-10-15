@@ -1,17 +1,38 @@
 """Native local source selection on existing upload, KnowledgeStore and job APIs."""
 from copy import deepcopy
 import json
+import re
+from html.parser import HTMLParser
 from pathlib import Path
 import uuid
 
 from PySide6.QtCore import Qt, QThreadPool, QTimer
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog,
     QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+    QStackedWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from caelab.assist.knowledge import selected_source_refs
 
 DATA = Qt.ItemDataRole.UserRole
+
+
+def _reading_markdown(text):
+    """Typeset the bundled HTML image/version marks without loading resources."""
+    from .readable_text import _code_ranges
+    protected=_code_ranges(text)
+    class ImageAlt(HTMLParser):
+        alt=''
+        def handle_starttag(self,tag,attrs):
+            if tag=='img':self.alt=dict(attrs).get('alt') or ''
+    def replace(match):
+        if any(start<match.end() and end>match.start() for start,end in protected):return match.group()
+        tag=match.group()
+        if re.match(r'<img\b',tag,re.I):
+            parsed=ImageAlt();parsed.feed(tag)
+            alt=re.sub(r'([\\`*_{}\[\]<>()#!|])',r'\\\1',parsed.alt)
+            return '['+(alt+' — ' if alt else '')+'그림 미포함]'
+        return '\n' if re.match(r'<br\b',tag,re.I) else ''
+    return re.sub(r'<(?:img\b[^>]*|/?small\s*|br\s*/?)>',replace,text,flags=re.I)
 
 
 def assist(client, operation, arguments=None):
@@ -24,6 +45,7 @@ class SourcePreview(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.payload = None
+        self._markdown = False
         layout = QVBoxLayout(self)
         self.title = QLabel('문헌을 선택하세요.')
         self.title.setWordWrap(True)
@@ -35,19 +57,39 @@ class SourcePreview(QWidget):
         self.segment.currentIndexChanged.connect(self.show_segment)
         self.details = QPushButton('진단 상세…')
         self.details.clicked.connect(self.show_details)
+        self.raw = QPushButton('원문 보기')
+        self.raw.setCheckable(True)
+        self.raw.setToolTip('현재 구간의 보관된 텍스트를 정확히 표시합니다.')
+        self.raw.toggled.connect(self.show_segment)
+        self.raw.hide()
         line.addWidget(self.segment, 1)
+        line.addWidget(self.raw)
         line.addWidget(self.details)
         layout.addLayout(line)
         self.text = QPlainTextEdit()
         self.text.setReadOnly(True)
         self.text.setObjectName('sourceText')
-        layout.addWidget(self.text, 1)
+        from .readable_text import ReadingBrowser
+        self.reading = ReadingBrowser()
+        self.reading.setOpenLinks(False)
+        self.reading.setOpenExternalLinks(False)
+        self.pages = QStackedWidget()
+        self.pages.addWidget(self.text)
+        self.pages.addWidget(self.reading)
+        layout.addWidget(self.pages, 1)
         self.notice = QLabel()
         self.notice.setWordWrap(True)
         layout.addWidget(self.notice)
 
     def set_payload(self, payload):
         self.payload = deepcopy(payload)
+        from .expert_library_pack import official_markdown
+        self._markdown = official_markdown(payload)
+        self.raw.setVisible(self._markdown)
+        self.raw.blockSignals(True)
+        self.raw.setChecked(False)
+        self.raw.blockSignals(False)
+        self.pages.setCurrentWidget(self.text)
         self.title.setText(payload.get('title') or '보관된 문헌')
         scope = {'abstract_only': '초록만 제공', 'metadata_only': '서지 정보만 제공',
                  'fulltext': '추출한 본문', 'access_unavailable': '원문을 읽을 수 없음'}.get(payload.get('status'))
@@ -57,8 +99,11 @@ class SourcePreview(QWidget):
         self.segment.clear()
         for index, row in enumerate(payload.get('segments', [])):
             locator = row['locator']
+            section = locator.get('section') or ''
+            if '<' in section or '>' in section:
+                section = ''
             label = ('쪽 ' + str(locator['page']) if 'page' in locator else
-                     locator.get('section') or '줄 ' + str(locator.get('line_start', '')) +
+                     section or '줄 ' + str(locator.get('line_start', '')) +
                      '–' + str(locator.get('line_end', '')))
             self.segment.addItem(label or '본문 ' + str(index + 1), index)
             self.segment.setItemData(index, json.dumps(locator, ensure_ascii=False), Qt.ItemDataRole.ToolTipRole)
@@ -82,11 +127,19 @@ class SourcePreview(QWidget):
         content = row['text']
         self.text.setPlainText(content[:200_000] + ('\n[이 본문은 200,000자까지 표시합니다.]'
                                                   if len(content) > 200_000 else ''))
+        if self._markdown and not self.raw.isChecked():
+            from .readable_text import show_markdown
+            show_markdown(self.reading, _reading_markdown(content[:200_000]))
+            self.pages.setCurrentWidget(self.reading)
+        else:self.pages.setCurrentWidget(self.text)
         limits = row.get('limitations', [])
         self.text.setToolTip('\n'.join(limits))
+        self.reading.setToolTip('\n'.join(limits))
 
     def show_error(self, message):
         self.payload = None
+        self.raw.hide()
+        self.pages.setCurrentWidget(self.text)
         self.title.setText('원문을 읽을 수 없음')
         self.segment.clear()
         self.text.setPlainText(str(message))
@@ -105,7 +158,7 @@ class SourcePreview(QWidget):
 
 class SourceDialog(QDialog):
     """Import is explicit library work; selection changes only on Attach."""
-    def __init__(self, client, context, *, collections=(), parent=None):
+    def __init__(self, client, context, *, collections=(), role_id=None, parent=None):
         super().__init__(parent)
         self.client = client
         self.references = None
@@ -119,6 +172,10 @@ class SourceDialog(QDialog):
         self._focus = None
         self._catalog = {}
         self._selection_error = None
+        self._role_collections=set(collections)
+        self._scope_role_id=role_id
+        self._context=deepcopy(context)
+        self._connection_status=None
         try:
             self.initial = selected_source_refs(context)
             self.legacy = []
@@ -135,13 +192,18 @@ class SourceDialog(QDialog):
         top = QHBoxLayout()
         self.add_file = QPushButton('파일 가져오기…')
         self.add_file.clicked.connect(self.choose_file)
+        self.official = QPushButton('공식 자료 가져오기…')
+        self.official.clicked.connect(self.choose_official)
         self.collection = QComboBox()
         self.collection.setEditable(True)
-        self.collection.addItems(list(dict.fromkeys(collections)) or ['research'])
+        from .expert_library_pack import collection_label
+        for name in list(dict.fromkeys(collections)) or ['research']:
+            self.collection.addItem(collection_label(name),name)
         self.collection.setToolTip('문헌 보관함입니다. 연구에 연결하는 동작은 모델 전송을 허용하지 않습니다.')
         self.refresh = QPushButton('목록 새로 고침')
         self.refresh.clicked.connect(self.load_library)
         top.addWidget(self.add_file)
+        top.addWidget(self.official)
         top.addWidget(QLabel('보관함'))
         top.addWidget(self.collection, 1)
         top.addWidget(self.refresh)
@@ -153,6 +215,11 @@ class SourceDialog(QDialog):
         self.message = QLabel('연결할 문헌을 체크하세요. 보관된 원문은 직접 다시 선택하기 전까지 유지됩니다.')
         self.message.setWordWrap(True)
         layout.addWidget(self.message)
+        scope=QHBoxLayout()
+        self.readiness=QLabel('문헌 선택은 외부 전송 허용과 별개입니다.')
+        self.readiness.setWordWrap(True);scope.addWidget(self.readiness,1)
+        self.settings=QPushButton('연결 설정…');self.settings.clicked.connect(self.open_settings)
+        scope.addWidget(self.settings);layout.addLayout(scope)
         split = QSplitter(Qt.Orientation.Horizontal)
         left = QWidget()
         column = QVBoxLayout(left)
@@ -161,8 +228,10 @@ class SourceDialog(QDialog):
         self.library.setObjectName('sourceLibrary')
         self.library.setMinimumWidth(220)
         self.library.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.library.header().setStretchLastSection(False)
         self.library.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.library.currentItemChanged.connect(self.preview_selected)
+        self.library.itemChanged.connect(self.update_readiness)
         column.addWidget(self.library, 1)
         self.version = QComboBox()
         self.version.currentIndexChanged.connect(self.change_version)
@@ -187,7 +256,7 @@ class SourceDialog(QDialog):
 
     def _controls(self):
         idle = not self._busy and self._import_job is None
-        for widget in (self.library, self.version, self.refresh, self.collection, self.add_file):
+        for widget in (self.library, self.version, self.refresh, self.collection, self.add_file,self.official,self.settings):
             widget.setEnabled(idle)
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(idle)
         self.retry_import.setVisible(self._import_request is not None and self._import_job is None)
@@ -228,9 +297,62 @@ class SourceDialog(QDialog):
                 result.append(deepcopy(item.data(0, DATA)))
         return result
 
+    def update_readiness(self,*_):
+        missing=[self._catalog.get(ref['document_id'],{}).get('collection') for ref in self.selected()]
+        missing=list(dict.fromkeys(name for name in missing if name and name not in self._role_collections))
+        if missing:
+            from .expert_library_pack import collection_label
+            self.readiness.setText('담당자의 검토 범위를 확인하세요: '+', '.join(collection_label(name) for name in missing)+'. 연결 설정에서 변경할 수 있습니다.')
+        elif self._connection_status=='NOT_CONFIGURED':
+            self.readiness.setText('문헌은 읽을 수 있습니다. 연구 시작 전 연결 설정에서 모델을 선택하세요.')
+        elif any(ref not in self._context.get('transmission_scope',{}).get('source_refs',[]) for ref in self.selected()):
+            self.readiness.setText('아직 전송을 허용하지 않은 문헌입니다. 연결한 뒤 토론의 전송 설정에서 허용하세요.')
+        else:self.readiness.setText('선택 자료와 전송 허용은 별개입니다. 자료 반입은 권한을 늘리지 않습니다.')
+
+    def choose_official(self):
+        from .expert_library_pack import OfficialDocumentsDialog
+        dialog=OfficialDocumentsDialog(self.client,self)
+        try:
+            accepted=dialog.exec()==QDialog.DialogCode.Accepted
+            if accepted:
+                existing=self.selected()
+                self.initial=list({ref['document_id']:ref for ref in [*existing,*dialog.references]}.values())
+                self.library.clear()
+                if dialog.references:self._focus=dialog.references[0]['document_id']
+        finally:dialog.close();dialog.deleteLater()
+        if not self._closed:self.load_library()
+
+    def open_settings(self):
+        from .expert_connection_dialog import ConnectionDialog
+        dialog=ConnectionDialog(self.client,self)
+        try:dialog.exec()
+        finally:dialog.close();dialog.deleteLater()
+        ancestor=self.parent()
+        while ancestor is not None:
+            if callable(getattr(ancestor,'refresh_registry',None)):
+                ancestor.refresh_registry();break
+            ancestor=ancestor.parent()
+        def refreshed(value):
+            value,self._connection_status=value
+            roles=value.get('experts',[])
+            self._role_collections={name for role in roles
+                if self._scope_role_id is None or role['id']==self._scope_role_id
+                for name in role.get('collections',[])}
+            self.update_readiness()
+        def read_settings():
+            roles=assist(self.client,'experts.list')
+            return roles,self.client.expert_connection().get('configuration')
+        if not self._closed:self._call(read_settings,refreshed)
+
     def load_library(self):
         selected = self.selected() if self.library.topLevelItemCount() else deepcopy(self.initial)
+        def read():
+            library=assist(self.client,'knowledge.list')
+            try:configuration=self.client.expert_connection().get('configuration')
+            except Exception:configuration=None
+            return library,configuration
         def loaded(payload):
+            payload,self._connection_status=payload
             self._catalog = {doc['document_id']: doc for doc in payload['documents']}
             pinned = {ref['document_id']: ref for ref in selected}
             self.library.blockSignals(True)
@@ -243,7 +365,8 @@ class SourceDialog(QDialog):
                 ref = pinned.get(identifier) or {'document_id': identifier, 'revision': document['latest_revision']}
                 title = document.get('title') or '읽을 수 없는 선택 문헌'
                 self.titles[identifier] = title
-                item = QTreeWidgetItem([title, document.get('collection', '없음')])
+                from .expert_library_pack import collection_label
+                item = QTreeWidgetItem([title, collection_label(document.get('collection', '없음'))])
                 item.setData(0, DATA, deepcopy(ref))
                 item.setToolTip(0, title)
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
@@ -253,10 +376,11 @@ class SourceDialog(QDialog):
                     chosen = item
             self.library.setCurrentItem(chosen or self.library.topLevelItem(0))
             self.library.blockSignals(False)
+            self.update_readiness()
             if self._selection_error:
                 self.message.setText(self._selection_error + '. 원문을 읽고 연결할 문헌을 직접 선택하세요.')
             QTimer.singleShot(0, self.preview_selected)
-        return self._call(lambda: assist(self.client, 'knowledge.list'), loaded)
+        return self._call(read, loaded)
 
     def preview_selected(self, *_):
         item = self.library.currentItem()
@@ -301,6 +425,8 @@ class SourceDialog(QDialog):
 
     def import_file(self, filename):
         collection = self.collection.currentText().strip()
+        if self.collection.currentIndex()>=0 and collection==self.collection.itemText(self.collection.currentIndex()):
+            collection=self.collection.currentData()
         if not collection:
             self.message.setText('보관함 이름을 입력하세요.')
             return False

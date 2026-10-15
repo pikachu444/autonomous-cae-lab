@@ -10,13 +10,15 @@ from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QVBoxLayout, QHBoxLayo
     QScrollArea)
 
 from caelab import expert_connection as setup
+from .expert_library_pack import collection_label, COLLECTIONS
 
 
 def is_example_role(definition):
     """Recognize the actual shipped definition, never an ID/name alone."""
     try:
-        path = Path(__file__).resolve().parents[2] / 'examples' / 'workbench_experts.json'
-        examples = setup.roles(setup.read_config(path)[0])
+        directory = Path(__file__).resolve().parents[2] / 'examples'
+        examples = [row for name in ('workbench_experts.json','cae_research_experts.json')
+                    for row in setup.roles(json.loads((directory/name).read_text(encoding='utf-8-sig')))]
     except (OSError, ValueError):
         return False
     return any(definition == row for row in examples)
@@ -161,10 +163,15 @@ class ConnectionDialog(QDialog):
         role_layout.addWidget(self.roles, 1)
         role_buttons = QHBoxLayout()
         choose = QPushButton('역할 파일 불러오기…')
-        example = QPushButton('예제 역할 불러오기')
+        self.preset = QComboBox()
+        self.preset.addItem('기본 연구팀 (3담당)', 'cae_research_experts.json')
+        self.preset.addItem('재료와 시험 (2담당)', 'workbench_experts.json')
+        self.preset.addItem('현재 저장된 역할', None)
+        example = self.load_preset_button = QPushButton('역할 불러오기')
         choose.clicked.connect(self.choose_roles)
-        example.clicked.connect(self.example_roles)
+        example.clicked.connect(self.load_preset)
         role_buttons.addWidget(choose)
+        role_buttons.addWidget(self.preset)
         role_buttons.addWidget(example)
         role_buttons.addStretch()
         self.role_details = QPushButton('선택 역할 상세…')
@@ -172,6 +179,9 @@ class ConnectionDialog(QDialog):
         self.role_details.clicked.connect(self.show_role_details)
         role_buttons.addWidget(self.role_details)
         role_layout.addLayout(role_buttons)
+        self.role_scope = QPushButton('검토할 자료…')
+        self.role_scope.clicked.connect(self.edit_role_collections)
+        role_layout.addWidget(self.role_scope,0,Qt.AlignmentFlag.AlignLeft)
         self.tabs.addTab(role_page, '역할')
 
         scope = QWidget()
@@ -406,6 +416,7 @@ class ConnectionDialog(QDialog):
             # A legacy external roles file is not reread under the config hash.
             self.definitions = (setup.roles(definitions) if isinstance(definitions, (list, dict))
                                 else deepcopy(registry.get('experts', [])))
+            self._saved_definitions=deepcopy(self.definitions)
             for combo, values, chosen in (
                 (self.profile, locations['profiles'], runtime.get('openscience_profile')),
                 (self.runtime, locations['runtimes'], runtime.get('openscience_runtime_prefix'))):
@@ -472,6 +483,59 @@ class ConnectionDialog(QDialog):
     def _role_selection_changed(self):
         if hasattr(self, 'role_details'):
             self.role_details.setEnabled(0 <= self.roles.currentRow() < len(self.definitions))
+        if hasattr(self,'role_scope'):
+            self.role_scope.setEnabled(0 <= self.roles.currentRow() < len(self.definitions))
+
+    def load_preset(self):
+        if not self.loaded or self._busy:return
+        filename=self.preset.currentData()
+        if filename is None:
+            definitions=deepcopy(self._saved_definitions)
+        else:
+            path=Path(__file__).resolve().parents[2]/'examples'/filename
+            try:incoming=setup.roles(json.loads(path.read_text(encoding='utf-8-sig')))
+            except (ValueError,OSError) as error:
+                self.message.setText('역할 구성을 읽지 못했습니다. 현재 편집은 유지합니다.')
+                self.error_detail.setText(str(error));return
+            definitions=deepcopy(self.definitions)
+            known={row['id']:row for row in definitions}
+            conflicts=[row for row in incoming if row['id'] in known and row!=known[row['id']]]
+            if conflicts:
+                self.message.setText('같은 식별자의 사용자 역할이 있어 기존 정의를 유지했습니다. 역할 상세를 확인하세요.')
+                return
+            definitions.extend(row for row in incoming if row['id'] not in known)
+        overrides={row['id']:{'model':self.roles.cellWidget(index,1).currentText().strip()}
+                   for index,row in enumerate(self.definitions)}
+        selected=self._selected_collections()
+        self.definitions=definitions;self._populate_roles(overrides);self._populate_collections(selected)
+        self.message.setText('역할을 편집 목록에 불러왔습니다. 현재 사용자 역할과 연결은 설정 적용 전까지 유지됩니다.')
+
+    def edit_role_collections(self):
+        index=self.roles.currentRow()
+        if not 0<=index<len(self.definitions):return
+        role=self.definitions[index]
+        dialog=QDialog(self);dialog.setWindowTitle('검토할 자료');dialog.resize(480,400)
+        layout=QVBoxLayout(dialog)
+        layout.addWidget(QLabel(role.get('label',role['id'])))
+        choices=QListWidget();layout.addWidget(choices)
+        for name in dict.fromkeys([*role.get('collections',[]),*COLLECTIONS]):
+            item=QListWidgetItem(collection_label(name));item.setData(Qt.ItemDataRole.UserRole,name)
+            item.setToolTip(name);item.setFlags(item.flags()|Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if name in role.get('collections',[]) else Qt.CheckState.Unchecked)
+            choices.addItem(item)
+        note=QLabel('이 담당자의 자료 범위입니다. 외부 전송은 자료 전송 탭에서 따로 허용합니다.')
+        note.setWordWrap(True);layout.addWidget(note)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('편집에 반영')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
+        try:
+            if dialog.exec()==QDialog.DialogCode.Accepted:
+                selected=self._selected_collections()
+                role['collections']=[choices.item(i).data(Qt.ItemDataRole.UserRole) for i in range(choices.count())
+                    if choices.item(i).checkState()==Qt.CheckState.Checked]
+                self._populate_collections(selected);self._mark_changed()
+        finally:dialog.deleteLater()
 
     def show_role_details(self):
         row = self.roles.currentRow()
@@ -488,13 +552,14 @@ class ConnectionDialog(QDialog):
         self.collections.clear()
         names = sorted(set(selected) | {name for row in self.definitions for name in row.get('collections', [])})
         for name in names:
-            item = QListWidgetItem(name)
+            item = QListWidgetItem(collection_label(name))
+            item.setData(Qt.ItemDataRole.UserRole,name);item.setToolTip(name)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Checked if name in selected else Qt.CheckState.Unchecked)
             self.collections.addItem(item)
 
     def _selected_collections(self):
-        return [self.collections.item(i).text() for i in range(self.collections.count())
+        return [self.collections.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.collections.count())
                 if self.collections.item(i).checkState() == Qt.CheckState.Checked]
 
     def choose_folder(self, combo):
@@ -532,7 +597,7 @@ class ConnectionDialog(QDialog):
 
     def _read_roles(self, path):
         try:
-            definitions = setup.roles(setup.read_config(path)[0])
+            definitions = setup.roles(json.loads(path.read_text(encoding='utf-8-sig')))
         except (OSError, ValueError) as error:
             self.message.setText('역할 파일을 읽지 못했습니다. 기존 역할은 유지했습니다. 확인 상세를 확인하세요.')
             self.error_detail.setText(str(error))
@@ -571,6 +636,7 @@ class ConnectionDialog(QDialog):
             return candidate, sha
         def saved(payload):
             self.original, self.expected_sha = payload
+            self._saved_definitions=deepcopy(self.original.get('experts', []))
             self._pending_sha = self.expected_sha
             self._saved = True
             self._save_started = False
