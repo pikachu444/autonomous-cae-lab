@@ -291,3 +291,16 @@ class MaterialPlanPanel(QWidget):
     def has_pending_inputs(self):
         return self._busy or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
                                  for widget in self._widgets.values())
+
+    def recovery_ready(self):
+        return not self._busy and all(widget.recovery_ready() for widget in self._widgets.values()
+                                     if widget.document_snapshot() is not None)
+
+    def recovery_views(self):
+        """Independent owner receipts and noncommitting widget callbacks."""
+        views=[]
+        for widget in self._widgets.values():
+            document=widget.document_snapshot()
+            if document is not None:
+                views.append((document,widget.recovery_snapshot,widget.restore_recovery))
+        return views

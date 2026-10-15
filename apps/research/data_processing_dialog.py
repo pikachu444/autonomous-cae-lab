@@ -141,11 +141,13 @@ class DataProcessingRecipeDialog(QDialog):
 
 
 class DataProcessingPreviewDialog(QDialog):
-    def __init__(self, result, parent=None, *, retained=False):
+    def __init__(self, result, parent=None, *, retained=False, allow_plan=False):
         super().__init__(parent)
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
         from matplotlib.figure import Figure
-        self.result = deepcopy(result)
+        self.processing_result = deepcopy(result)
+        self.plan_requested = False
+        self.plan_button = None
         self.setWindowTitle('처리 결과' if retained else '처리 미리보기'); self.resize(900, 640)
         layout = QVBoxLayout(self)
         self.stages = QTableWidget(0, 3)
@@ -167,27 +169,33 @@ class DataProcessingPreviewDialog(QDialog):
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         layout.addWidget(self.table, 1)
+        from .numerical_methods import ResultDisplay
+        display=ResultDisplay(self.table)
+        for column in (0,1): self.table.setItemDelegateForColumn(column,display)
         self.status = QLabel(); self.status.setWordWrap(True); layout.addWidget(self.status)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기')
         if not retained:
             apply = buttons.addButton('처리 결과 보존', QDialogButtonBox.ButtonRole.AcceptRole)
             apply.clicked.connect(self.accept)
+        elif allow_plan:
+            self.plan_button = buttons.addButton('피팅 계획으로…', QDialogButtonBox.ButtonRole.ActionRole)
+            self.plan_button.clicked.connect(self._plan)
         buttons.rejected.connect(self.reject); layout.addWidget(buttons)
         self.channel.currentTextChanged.connect(self._channel); self._channel(self.channel.currentText())
 
     def _channel(self, name):
-        response = self.result.get('responses', {}).get(name)
+        response = self.processing_result.get('responses', {}).get(name)
         self.figure.clear(); axis = self.figure.add_subplot(111); self.table.setRowCount(0)
-        processing_status = self.result.get('diagnostics', {}).get('processing_status')
-        self.status.setText('일부 처리 실패' if processing_status == 'PARTIAL' else '처리 실패' if self.result.get('execution_status') == 'FAILED' else '처리 결과')
+        processing_status = self.processing_result.get('diagnostics', {}).get('processing_status')
+        self.status.setText('일부 처리 실패' if processing_status == 'PARTIAL' else '처리 실패' if self.processing_result.get('execution_status') == 'FAILED' else '처리 결과')
         if response:
             values = response.get('value', []); axes = response.get('axes', [])
             x = axes[0].get('values', []) if axes else []
             if len(x) == len(values):
                 ranges = [segment['rows'] for segment in response.get('segments', [])] if 'segments' in response else [[0, len(values)]]
                 for first, last in ranges:
-                    axis.plot(x[first:last], values[first:last], linewidth=1.4, marker='.' if last - first == 1 else None)
+                    axis.plot(x[first:last], values[first:last], color='C0', linewidth=1.4, marker='.' if last - first == 1 else None)
             axis.set_xlabel((axes[0].get('name', '') + ' [' + axes[0].get('unit', '') + ']') if axes else '')
             axis.set_ylabel(name + ' [' + response.get('unit', '') + ']')
             rows = response.get('source_rows', [])
@@ -196,6 +204,13 @@ class DataProcessingPreviewDialog(QDialog):
             for row in range(self.table.rowCount()):
                 for col, value in enumerate((x[row] if row < len(x) else '', values[row], response.get('unit', ''),
                                               rows[row] if row < len(rows) and rows[row] is not None else '—')):
-                    self.table.setItem(row, col, QTableWidgetItem(str(value)))
+                    item=QTableWidgetItem(str(value));item.setToolTip(repr(value) if col in (0,1) else str(value))
+                    self.table.setItem(row,col,item)
             if len(values) > 1000: self.status.setText(self.status.text() + ' / 표는 처음 1000개 표본')
+        if self.plan_button:
+            self.plan_button.setEnabled(bool(response and response.get('measure') in ('infinitesimal_Cauchy', 'first_Piola')))
         axis.grid(alpha=.2); self.canvas.draw_idle()
+
+    def _plan(self):
+        self.plan_requested = True
+        self.accept()

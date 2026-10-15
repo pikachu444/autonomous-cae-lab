@@ -39,3 +39,17 @@ def test_invalid_preserved_document_can_still_be_selected(kind, draft):
     assert dialog.selected_document['draft'] == draft
     assert dialog.table.item(0, 2).text() == '저장하지 않은 변경'
     dialog.close(); app.processEvents()
+
+
+def test_plan_picker_uses_exact_duplicate_row_or_explicit_new_choice():
+    app = QApplication.instance() or QApplication([])
+    documents = [dict(id=identifier, title='인장 피팅', draft={'experiments': [], 'variables': []})
+                 for identifier in ('Nfirst', 'Nsecond')]
+    dialog = DataMaterialDocumentDialog(documents, kind='numerical')
+    dialog.table.selectRow(1); dialog._choose()
+    assert dialog.selected_document['id'] == 'Nsecond' and not dialog.create_requested
+    assert all('Nsecond' not in dialog.table.item(1, column).text() for column in range(3))
+    dialog.close()
+    empty = DataMaterialDocumentDialog([], kind='numerical'); empty._create()
+    assert empty.create_requested and empty.selected_document is None
+    empty.close(); app.processEvents()

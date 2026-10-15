@@ -127,6 +127,7 @@ class DataWindow(QMainWindow):
         self._accepting = False
         self._callback_calls = []
         self._data_windows = []
+        self._processed_plan_windows = []
         self._view_error = None
         self._working_draft = None
         self._channel_name = None
@@ -168,6 +169,8 @@ class DataWindow(QMainWindow):
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
+        from .data_material_recovery_host import install_recovery_action
+        self.recovery_action=install_recovery_action(self,files)
         close.triggered.connect(self.close)
         self.undo_action.triggered.connect(lambda: self.command('document.undo'))
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
@@ -349,7 +352,7 @@ class DataWindow(QMainWindow):
         vertical = QSplitter(Qt.Orientation.Vertical)
         self.sheets = QTabWidget()
         self.sheets.setMinimumHeight(100)
-        self.preview_table = self._table(['Original row'])
+        self.preview_table = self._table(['원본 행'])
         self.values = self._table(['원본 행', '축', '관측', '계산 포함', '원본 품질', '화면 표시', '이유'])
         self.values.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.values.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -677,8 +680,26 @@ class DataWindow(QMainWindow):
         if focus and self.editor.isAncestorOf(focus):
             focus.clearFocus()
 
-    def edited_draft(self):
-        self._commit_editor()
+    def _reveal_editor_focus(self):
+        focus = QApplication.focusWidget()
+        if focus is None or not self.editor.isAncestorOf(focus):
+            return
+        if self.mapping.isAncestorOf(focus) and self.mapping.currentItem() is not None:
+            self.mapping.scrollToItem(self.mapping.currentItem())
+        ancestor = focus.parentWidget()
+        while ancestor is not None and ancestor is not self:
+            if isinstance(ancestor, QScrollArea):
+                ancestor.ensureWidgetVisible(focus, 8, 8)
+            ancestor = ancestor.parentWidget()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'editor'):
+            QTimer.singleShot(0, self._reveal_editor_focus)
+
+    def edited_draft(self, *, commit=True):
+        if commit:
+            self._commit_editor()
         draft = deepcopy(self._working_draft or self.document['draft'])
         if self._view_error:
             return draft
@@ -956,9 +977,14 @@ class DataWindow(QMainWindow):
             return
         from .data_processing_dialog import DataProcessingPreviewDialog
         identifier = self.document['id']; revision = records[labels.index(selected)]['id']
+        def shown(result):
+            dialog = DataProcessingPreviewDialog(result, self, retained=True, allow_plan=True)
+            dialog.exec()
+            if dialog.plan_requested:
+                from .data_processing_plan import open_processing_plan
+                open_processing_plan(self, result, dialog.channel.currentText())
         self._call(lambda: self.client.data_material('data.processing.result',
-            {'document_id': identifier, 'processing_revision': revision}),
-            lambda result: DataProcessingPreviewDialog(result, self, retained=True).exec())
+            {'document_id': identifier, 'processing_revision': revision}), shown)
 
     def edit_calibration(self):
         if not self.document or self._busy or self.conflict or self._view_error:
@@ -1182,7 +1208,7 @@ class DataWindow(QMainWindow):
             self._preview = preview
             table = preview.get('table_preview', {})
             self.preview_table.clear()
-            headers = ['Original row'] + table.get('headers', [])
+            headers = ['원본 행'] + table.get('headers', [])
             self.preview_table.setColumnCount(len(headers))
             self.preview_table.setHorizontalHeaderLabels(headers)
             self.preview_table.setRowCount(len(table.get('rows', [])))
@@ -1549,9 +1575,9 @@ class DataWindow(QMainWindow):
         self.values.setRowCount(0)
         self.axes.clear()
         self.axes.set_axis_off()
-        self.axes.text(.5, .5, 'Select a retained import to read its original values', ha='center', va='center', transform=self.axes.transAxes)
+        self.axes.text(.5, .5, '가져온 결과를 선택하면 원래 값을 볼 수 있습니다.', ha='center', va='center', transform=self.axes.transAxes)
         self.canvas.draw_idle()
-        self.result_label.setText('No imported response selected.')
+        self.result_label.setText('가져온 결과가 선택되지 않았습니다.')
 
     def _draw_result(self, receipt, key):
         same_page = key == getattr(self, '_drawn_result_key', None)
@@ -1944,30 +1970,8 @@ class DataWindow(QMainWindow):
             self.identity.setToolTip(f"Document: {self.document['id']}\nSession: {self.document['session_id']}\nSaved: {self.document.get('saved_revision')}")
 
     def _leave(self, continuation):
-        self._commit_editor()
-        if self._busy:
-            self.message.setText('Wait for the document request before leaving. Existing imports remain service-owned.')
-            return
-        if not self.document or not (self.local_dirty or self.document.get('dirty')):
-            continuation()
-            return
-        question = QMessageBox(self)
-        question.setWindowTitle('Unsaved Data document')
-        question.setText('Save this document before leaving?')
-        question.setInformativeText('Keep service draft preserves unapplied mapping edits without saving a revision. Closing does not cancel a job.')
-        save = question.addButton('Save', QMessageBox.ButtonRole.AcceptRole)
-        keep = question.addButton('Keep service draft', QMessageBox.ButtonRole.DestructiveRole)
-        question.addButton(QMessageBox.StandardButton.Cancel)
-        question.exec()
-        if question.clickedButton() == save:
-            self.save_document(after=continuation)
-        elif question.clickedButton() == keep:
-            if self.conflict:
-                self.message.setText('Resolve the conflict or keep edits as a new document before leaving.')
-            elif self.local_dirty:
-                self.apply_inputs(after=continuation)
-            else:
-                continuation()
+        from .data_material_recovery_host import leave_with_recovery
+        leave_with_recovery(self, continuation)
 
     def new_document(self):
         def create():

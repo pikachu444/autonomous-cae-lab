@@ -10,7 +10,8 @@ class DataMaterialDocumentDialog(QDialog):
         super().__init__(parent)
         self.documents = deepcopy(documents)
         self.selected_document = None
-        self.setWindowTitle('재료 열기' if kind == 'material' else '시험 데이터 열기')
+        self.create_requested = False
+        self.setWindowTitle('재료 열기' if kind == 'material' else '피팅 계획 선택' if kind == 'numerical' else '시험 데이터 열기')
         self.resize(780, 440)
         self.setMinimumSize(540, 320)
         layout = QVBoxLayout(self)
@@ -43,6 +44,10 @@ class DataMaterialDocumentDialog(QDialog):
                                 f"[{1 if name == 'nu' else unit}]"
                                 for name, value in values.items() if name in labels]
                 description = model + (', ' + ', '.join(coefficients) if coefficients else '')
+            elif kind == 'numerical':
+                trials = draft.get('experiments', [])
+                variables = draft.get('variables', [])
+                description = f"시험 {len(trials) if isinstance(trials, list) else 0}개, 변수 {len(variables) if isinstance(variables, list) else 0}개"
             else:
                 mapping = draft.get('mapping', {})
                 columns = mapping.get('columns', {}) if isinstance(mapping, dict) else {}
@@ -58,6 +63,9 @@ class DataMaterialDocumentDialog(QDialog):
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         self.buttons.accepted.connect(self._choose)
         self.buttons.rejected.connect(self.reject)
+        if kind == 'numerical':
+            create = self.buttons.addButton('새 계획…', QDialogButtonBox.ButtonRole.ActionRole)
+            create.clicked.connect(self._create)
         layout.addWidget(self.buttons)
         self.table.itemDoubleClicked.connect(lambda *_: self._choose())
         self.table.itemSelectionChanged.connect(self._selection_changed)
@@ -80,3 +88,7 @@ class DataMaterialDocumentDialog(QDialog):
         if row >= 0 and self.table.selectedItems() and not self.table.isRowHidden(row):
             self.selected_document = deepcopy(self.documents[row])
             self.accept()
+
+    def _create(self):
+        self.create_requested = True
+        self.accept()

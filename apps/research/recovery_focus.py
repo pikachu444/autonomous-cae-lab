@@ -8,15 +8,27 @@ class RawEditorFocusGuard(QObject):
     def __init__(self, roots):
         super().__init__()
         self._editors = []
+        self._active = False
         self._focus = QApplication.focusWidget()
+        self.protect_current(roots)
+
+    def protect_current(self, roots, *, restore_focus=False):
+        roots=list(roots); added=[]
         for root in roots:
             for table in root.findChildren(QAbstractItemView):
                 if table.state() != QAbstractItemView.State.EditingState: continue
                 for kind in (QComboBox, QLineEdit):
-                    self._editors.extend(editor for editor in table.findChildren(kind)
-                                         if editor.isVisible() and editor not in self._editors)
+                    added.extend(editor for editor in table.findChildren(kind)
+                                 if editor.isVisible() and editor not in self._editors and editor not in added)
+        self._editors.extend(added)
+        if self._active:
+            for editor in added: editor.installEventFilter(self)
+        if restore_focus:
+            candidate=added[0] if added else next((root.focusWidget() for root in roots if root.focusWidget()),None)
+            if candidate is not None: self._focus=candidate
 
     def __enter__(self):
+        self._active=True
         for editor in self._editors: editor.installEventFilter(self)
         return self
 
@@ -26,6 +38,7 @@ class RawEditorFocusGuard(QObject):
         return super().eventFilter(watched, event)
 
     def __exit__(self, *_):
+        self._active=False
         for editor in self._editors:
             if isValid(editor): editor.removeEventFilter(self)
         if self._focus is not None and isValid(self._focus) and self._focus.isVisible():

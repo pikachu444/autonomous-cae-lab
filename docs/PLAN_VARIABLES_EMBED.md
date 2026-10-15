@@ -25,6 +25,11 @@ widget.patchPreviewRequested.connect(review_explicit_owner_preview)
 호스트는 `set_variable_labels({id: 표시명})`으로 실제 선택 모델의 물리 명칭을 표시한다.
 이름의 원 ID·버퍼·단위는 유지하며 알 수 없는 변수를 다른 물리량으로 추정하지 않는다.
 
+호스트는 `recovery_ready()`로 현재 원문 보관을 검토할 수 있는지 읽는다. 연결된 문서가
+있고 요청 처리와 미확인 실행 취소/다시 실행이 없을 때만 참이다. 미확정 로컬 셀은
+보관 대상이므로 이 판정을 막지 않는다. 이 accessor는 셀 확정이나 API 호출을 하지
+않으며 Core의 보관/닫기 검증을 대체하지 않는다.
+
 `recovery_snapshot()`은 셀을 확정하거나 네트워크를 읽지 않고 Data의 실제 raw capsule
 형식에 맞는 `cells/local_draft/focus/selection/paste/editor_revision`을 돌려준다. 원값은
 연결 당시의 인정된 문서 값이다. 같은 UI 상태의 token은 같고 raw 셀·커서·선택이 바뀌면

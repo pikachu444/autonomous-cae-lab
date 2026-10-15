@@ -53,6 +53,12 @@ class _CoefficientDisplay(QStyledItemDelegate):
         return str(value)
 
 
+class _TrialRoleDisplay(QStyledItemDelegate):
+    """Keep the exact editable role token while painting its task name."""
+    def displayText(self, value, locale):
+        return {'fit':'피팅','holdout':'검증'}.get(str(value),str(value))
+
+
 class ProtocolDialog(QDialog):
     """Edit measured kinematics without inferring a lateral F or strain/time map."""
     def __init__(self, settings, parent=None):
@@ -312,6 +318,7 @@ class NumericalWindow(QMainWindow):
         self.experiments=PlanTable(0,8); self.experiments.setObjectName('numericalExperiments')
         self.experiments.pasteRejected.connect(self.message.setText)
         self.experiments.setHorizontalHeaderLabels(['식별자','용도','시험','관측','모델 응답','가중치','오차 기준','조건'])
+        self.experiments.setItemDelegateForColumn(1,_TrialRoleDisplay(self.experiments))
         self.experiments.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.experiments.itemChanged.connect(self._edited)
         self.experiments.setColumnHidden(0,True); self.experiments.setColumnHidden(4,True)
@@ -320,6 +327,16 @@ class NumericalWindow(QMainWindow):
         for column,width in ((1,55),(2,120),(3,85),(5,60),(6,75)):
             self.experiments.setColumnWidth(column,width)
         el.addWidget(self.experiments,1)
+        self.sample_policy_state=QLabel()
+        self.sample_policy_state.setVisible(False)
+        policy_controls=QHBoxLayout()
+        self.sample_policy_button=QPushButton('표본 용도…')
+        self.sample_policy_button.clicked.connect(self.edit_sample_policy)
+        self.sample_policy_button.setVisible(False)
+        policy_controls.addWidget(self.sample_policy_button)
+        policy_controls.addWidget(self.sample_policy_state,1)
+        el.addLayout(policy_controls)
+        self.experiments.itemSelectionChanged.connect(self._trial_selection_changed)
         self.input_splitter.addWidget(self.experiments_panel)
         self.operation_options=_OperationOptions(self); self.input_splitter.addWidget(self.operation_options)
         self.input_splitter.setSizes([180,300,0])
@@ -447,13 +464,17 @@ class NumericalWindow(QMainWindow):
         if pending is None:
             return
         request = pending['request']
-        target = request['target_document_id' if pending['kind'] == 'domain' else pending['kind'] + '_document_id']
+        target = request['document_id' if pending['kind']=='sample_policy' else 'target_document_id' if pending['kind'] == 'domain' else pending['kind'] + '_document_id']
         same_session = self.document is not None and self.document['session_id'] == pending['source_session']
+        if pending['kind']=='sample_policy':
+            same_session=bool(same_session and self.document['id']==target)
         note = ('연결이 바뀌어 다시 확인할 수 없습니다. 원문서에서 적용 여부를 확인하세요.'
-                if not same_session else '다른 후보를 적용하기 전에 아래 버튼으로 앞선 적용 결과를 확인하세요.')
-        self.adoption_receipt_label.setText('후보가 원문서에 적용됐는지 아직 확인하지 못했습니다.\n' + note)
-        self.adoption_receipt_label.setToolTip('진단 정보\n원문서: ' + target + '\n계산: ' + request['job_id'] +
-            '\n후보: ' + request['candidate_id'] + '\n요청: ' + request['command_id'])
+                if not same_session else '계획을 계속 편집하기 전에 아래 버튼으로 적용 결과를 확인하세요.'
+                if pending['kind']=='sample_policy' else '다른 후보를 적용하기 전에 아래 버튼으로 앞선 적용 결과를 확인하세요.')
+        self.adoption_receipt_label.setText(('관측 표본 용도가 계획에 적용됐는지 아직 확인하지 못했습니다.\n'
+            if pending['kind']=='sample_policy' else '후보가 원문서에 적용됐는지 아직 확인하지 못했습니다.\n') + note)
+        self.adoption_receipt_label.setToolTip('진단 정보\n원문서: ' + target + '\n계산: ' + request.get('job_id','') +
+            '\n후보: ' + request.get('candidate_id','') + '\n요청: ' + request['command_id'])
         self.retry_adoption_button.setEnabled(same_session and not self._callbacks and not self._pending_adoption
                                              and (not self._busy or self._busy_background))
 
@@ -474,7 +495,10 @@ class NumericalWindow(QMainWindow):
             return False
         request = deepcopy(pending['request'])
         kind = pending['kind']
-        target = request['target_document_id' if kind == 'domain' else kind + '_document_id']
+        target = request['document_id' if kind=='sample_policy' else 'target_document_id' if kind == 'domain' else kind + '_document_id']
+        if kind=='sample_policy' and self.document['id']!=target:
+            self.message.setText('다른 계획을 열어 적용 여부를 확인하지 못했습니다. 원래 계획에서 확인하세요.')
+            return False
         def failed(error):
             self.message.setText('적용 결과를 아직 확인하지 못했습니다. 적용 결과 다시 확인 버튼을 누르세요.')
             self.message.setToolTip(str(error))
@@ -486,12 +510,14 @@ class NumericalWindow(QMainWindow):
             self._adoption_receipt = None
             if kind == 'pde':
                 self._pde_adoption_request = None
-            self.message.setText('선택한 후보를 원문서에 적용했습니다. 원문서에서 값을 확인하고 저장하세요.')
+            self.message.setText('관측 표본 용도를 계획에 적용했습니다. 확인한 뒤 저장하세요.' if kind=='sample_policy'
+                else '선택한 후보를 원문서에 적용했습니다. 원문서에서 값을 확인하고 저장하세요.')
             self.message.setToolTip('')
             callback = pending['acknowledged']
             if callback is not None:
                 callback(receipt)
-        method = (self.client.domain_candidate_adopt if kind == 'domain' else
+        method = ((lambda **arguments:self.client.data_material('data.sample_policy.adopt',arguments)) if kind=='sample_policy' else
+                  self.client.domain_candidate_adopt if kind == 'domain' else
                   self.client.pde_adopt if kind == 'pde' else self.client.numerical_adopt)
         return self._call(lambda: method(**request), accepted, rejected=failed,
                           relevant=lambda: self._adoption_receipt is pending)
@@ -543,7 +569,7 @@ class NumericalWindow(QMainWindow):
                 raise ValueError('Unsupported visible plan shape')
             if not isinstance(draft['variables'], list) or any(set(v) != {'id', 'unit', 'value', 'lower', 'upper', 'free', 'transform'} for v in draft['variables']):
                 raise ValueError('Unsupported coefficient shape')
-            if not isinstance(draft['experiments'], list) or any(set(e) - {'kinematics'} != {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'} for e in draft['experiments']):
+            if not isinstance(draft['experiments'], list) or any(set(e) - {'kinematics', 'selection'} != {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'} for e in draft['experiments']):
                 raise ValueError('Unsupported experiment shape')
             self._material = deepcopy(draft['material'])
             self._experiments = deepcopy(draft['experiments'])
@@ -601,7 +627,49 @@ class NumericalWindow(QMainWindow):
     def _trial_source_key(trial):
         source=trial.get('source',{})
         keys=('document_id','job_id','input_revision','input_sha256')
-        return tuple(source.get(key) for key in keys)
+        processing=source.get('processing_revision')
+        channels=tuple(sorted({source.get('response'), trial.get('kinematics',{}).get('channel')} - {None, ''})) if processing else ()
+        return tuple(source.get(key) for key in keys)+(processing,channels)
+
+    @staticmethod
+    def _verify_processed_source(source, result):
+        diagnostics=result.get('diagnostics',{})
+        record=diagnostics.get('processing_record',{})
+        if (diagnostics.get('processing_revision')!=source.get('processing_revision')
+                or any(record.get('source',{}).get(key)!=source.get(key)
+                       for key in ('document_id','job_id','input_revision','input_sha256'))):
+            raise ValueError('선택한 처리 결과의 원본 입력이 다릅니다. Data에서 다시 선택하세요.')
+
+    def _read_trial_source(self, trial):
+        """Read the selected retained import/processing revision; never process it."""
+        source=trial['source']
+        identifier,job,revision,digest,processing,channels=self._trial_source_key(trial)
+        doc=self.client.document_read(identifier)
+        source_run=next((r for r in doc.get('runs',[]) if r['job_id']==job),None)
+        if (doc.get('kind')!='data' or source_run is None
+                or source_run.get('input_revision')!=revision or source_run.get('input_sha256')!=digest):
+            raise ValueError('선택 시험의 저장된 Data 입력이 다릅니다.')
+        if processing:
+            result=self.client.data_material('data.processing.result',{
+                'document_id':identifier,'processing_revision':processing,'selection':list(channels)})
+            self._verify_processed_source(source,result)
+        else:
+            result=self.client.document_result(identifier,job)
+        if result.get('execution_status')!='SUCCEEDED':
+            raise ValueError('선택 시험의 결과 읽기를 완료하지 못했습니다. Data에서 확인하세요.')
+        filename=''
+        data_id=source_run.get('draft',{}).get('data_id')
+        try:
+            try:
+                preview=self.client.input_preview(data_id)
+            except Exception:
+                if doc.get('draft',{}).get('data_id')!=data_id: raise
+                preview=self.client.document_source_preview(identifier)
+            if preview.get('sha256')==result.get('diagnostics',{}).get('source_sha256') and preview.get('sha256'):
+                filename=str(preview.get('name',''))
+        except Exception:
+            pass  # Missing filename must not hide an intact retained curve.
+        return {'title':doc.get('title',''),'filename':filename,'result':result}
 
     def _trial_label(self, trial, observed=None, index=1):
         cached=self._trial_sources.get(self._trial_source_key(trial),{})
@@ -626,15 +694,33 @@ class NumericalWindow(QMainWindow):
                 unit=obs.get('unit',trial.get('settings',{}).get('stress_unit',''))
                 self.experiments.item(row,3).setText(str(component)+' ['+str(unit)+']')
                 self.experiments.item(row,3).setToolTip(str(trial.get('source',{}).get('response','')))
+                count=str(len(trial.get('settings',{}).get('time',[])))+' 상태'
+                policy=trial.get('selection',{}).get('sample_policy')
+                self.experiments.item(row,7).setText(count+(' / 구간 적용' if policy else ''))
+            self._trial_selection_changed()
         finally:
             self._populating=old
+
+    def _trial_selection_changed(self):
+        rows=sorted({item.row() for item in self.experiments.selectedIndexes()})
+        trial=self._experiments[rows[0]] if len(rows)==1 and rows[0]<len(self._experiments) else {}
+        policy=trial.get('selection',{}).get('sample_policy')
+        processed=bool(trial.get('source',{}).get('processing_revision'))
+        self.sample_policy_state.setVisible(processed)
+        pending=self._adoption_receipt is not None and self._adoption_receipt['kind']=='sample_policy'
+        self.sample_policy_state.setText('표본 용도 적용 확인 필요' if pending else
+            '관측 구간 적용됨' if policy and policy.get('adoption') else '관측 구간 미적용')
+        self.sample_policy_button.setVisible(processed)
+        self.sample_policy_button.setEnabled(processed and self.can_stage_processed_trial()
+            and not self.local_dirty and self._adoption_receipt is None)
+        self.sample_policy_button.setToolTip('먼저 계획 적용으로 편집한 시험을 적용하세요.' if self.local_dirty else '')
 
     def _queue_trial_sources(self, trials):
         if self._closed or not isValid(self) or self.client is None or self._allow_close or not self.document: return
         owner=(self.document['id'],self.document['session_id'])
         for trial in trials:
             key=self._trial_source_key(trial)
-            if all(key) and key not in self._trial_sources and key not in self._trial_source_errors:
+            if all(key[:4]) and key not in self._trial_sources and key not in self._trial_source_errors:
                 self._trial_source_queue[key]=owner
         if self._trial_source_queue: QTimer.singleShot(0,self._drain_trial_sources)
 
@@ -651,31 +737,9 @@ class NumericalWindow(QMainWindow):
             if queued_owner!=owner or key not in keys or key in self._trial_sources or key in self._trial_source_errors:
                 self._trial_source_queue.pop(key,None); continue
             self._trial_source_queue.pop(key,None)
-            def read(key=key):
-                identifier,job,revision,digest=key
-                doc=self.client.document_read(identifier)
-                source_run=next((r for r in doc.get('runs',[]) if r['job_id']==job),None)
-                if (doc.get('kind')!='data' or source_run is None
-                        or source_run.get('input_revision')!=revision or source_run.get('input_sha256')!=digest):
-                    raise ValueError('선택 시험의 저장된 Data 입력이 다릅니다.')
-                result=self.client.document_result(identifier,job)
-                if result.get('execution_status')!='SUCCEEDED':
-                    raise ValueError('선택 시험의 가져오기가 완료되지 않았습니다.')
-                filename=''
-                data_id=source_run.get('draft',{}).get('data_id')
-                # Registration names, unlike private storage basenames, retain
-                # the user's filename. Preview is bounded and never recomputes.
-                try:
-                    try:
-                        preview=self.client.input_preview(data_id)
-                    except Exception:
-                        if doc.get('draft',{}).get('data_id')!=data_id: raise
-                        preview=self.client.document_source_preview(identifier)
-                    if preview.get('sha256')==result.get('diagnostics',{}).get('source_sha256') and preview.get('sha256'):
-                        filename=str(preview.get('name',''))
-                except Exception:
-                    pass  # A title failure must not hide an intact retained curve.
-                return {'title':doc.get('title',''), 'filename':filename, 'result':result}
+            trial=deepcopy(next(trial for trial in active if self._trial_source_key(trial)==key))
+            def read(trial=trial):
+                return self._read_trial_source(trial)
             def received(payload,key=key):
                 self._trial_sources[key]=payload
                 self._refresh_experiment_labels()
@@ -975,7 +1039,9 @@ class NumericalWindow(QMainWindow):
             self.local_dirty = False
             self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
             self._reset_draft_history(force=True)
-            self.message.setText('Applied through the Numerical document owner: ' + operation)
+            self.message.setText({'numerical.update':'계획을 적용했습니다.',
+                'document.save':'계획을 저장했습니다.'}.get(operation,'작업을 완료했습니다.'))
+            self.message.setToolTip(operation)
             if type(self) is NumericalWindow and self.document.get('diagnostics'):
                 self.locate_input_error()
             if after:
@@ -1055,6 +1121,201 @@ class NumericalWindow(QMainWindow):
                 relevant=lambda:token==(self.document['id'],self.document['session_id']))
         self._list_select('data',data_chosen)
 
+    def can_stage_processed_trial(self):
+        """Whether this existing Plan can review an incoming Data trial now."""
+        return bool(self.document and not self._closed and not self._allow_close
+            and not self._busy and not self._callbacks and not self._pending_adoption
+            and self._adoption_receipt is None and not self.conflict and not self._view_error and self.mode.currentText()=='fit'
+            and isinstance(self._material,dict) and not material_diagnostics(self._material.get('draft',{})))
+
+    def processed_trial_stage_pending(self):
+        """Whether the host may keep waiting for this window's current read."""
+        if (self._closed or self._allow_close or self._view_error or self.conflict
+                or self._adoption_receipt is not None or self._pending_adoption):
+            return False
+        return bool(self._busy if self.document is None else self._busy_background or self._callbacks)
+
+    def _processed_trial_selection(self, source, original):
+        """Bind one dialog's explicit channel reads to its retained result.
+
+        The caller supplies already detached result JSON. The callable uses
+        that snapshot and the client only, so the dialog may run it on its
+        existing read worker without accessing this Qt window.
+        """
+        from caelab.storage import canonical_hash
+        client=self.client
+        source=deepcopy(source)
+        verify=type(self)._verify_processed_source
+        record=original['diagnostics']['processing_record']
+        if (record.get('id')!=source['processing_revision']
+                or not isinstance(record.get('result_sha256'),str)
+                or len(record['result_sha256'])!=64):
+            raise ValueError('저장한 처리 결과를 확인하지 못했습니다. Data에서 다시 선택하세요.')
+        keys=('id','source','result_sha256','recipe_sha256','preview_sha256','state')
+        identity={key:deepcopy(record.get(key)) for key in keys}
+        selected={}
+        def read(names):
+            if (not isinstance(names,list) or not names
+                    or any(not isinstance(name,str) or name not in original['responses'] for name in names)
+                    or len(names)!=len(set(names))):
+                raise ValueError('보존한 응답과 측정 변형 채널을 선택하세요.')
+            value=client.data_material('data.processing.result',{
+                'document_id':source['document_id'],'processing_revision':source['processing_revision'],
+                'selection':deepcopy(names)})
+            verify(source,value)
+            diagnostics=value.get('diagnostics',{})
+            current=diagnostics.get('processing_record',{})
+            if (value.get('execution_status')!='SUCCEEDED'
+                    or diagnostics.get('selected_channels_only') is not True
+                    or {key:current.get(key) for key in keys}!=identity
+                    or set(value.get('responses',{}))!=set(names)
+                    or any(canonical_hash(value['responses'][name])!=canonical_hash(original['responses'][name]) for name in names)):
+                raise ValueError('선택한 범위가 저장한 처리 결과와 다릅니다. Data에서 다시 선택하세요.')
+            selected.update(names=tuple(names),result_sha256=current['result_sha256'])
+            return deepcopy(value)
+        return read,selected
+
+    def stage_processed_trial(self, source, result):
+        """Review a retained Data result into this Plan's local draft only.
+
+        No owner command, processing, save or fit is performed. The host retains
+        its source until can_stage_processed_trial() allows this explicit review.
+        """
+        if not self.can_stage_processed_trial():
+            self.message.setText('계획을 읽은 뒤 시험을 추가하세요. 진행 중인 작업이나 편집 충돌을 먼저 확인하세요.')
+            return False
+        source,result=deepcopy(source),deepcopy(result)
+        try:
+            required={'document_id','job_id','input_revision','input_sha256','processing_revision'}
+            if not isinstance(source,dict) or not required<=set(source) or set(source)-required-{'response'}:
+                raise ValueError('Data에서 저장한 처리 결과를 선택하세요.')
+            self._verify_processed_source(source,result)
+            diagnostics=result.get('diagnostics',{})
+            partial=(result.get('execution_status')=='FAILED'
+                and diagnostics.get('processing_status')=='PARTIAL'
+                and diagnostics.get('processing_record',{}).get('state')=='PARTIAL')
+            if (result.get('execution_status')!='SUCCEEDED' and not partial) or not result.get('responses'):
+                raise ValueError('선택한 처리 결과에 사용할 응답이 없습니다.')
+            reader,selection=self._processed_trial_selection(source,result) if partial else (None,{})
+        except (ValueError,TypeError,AttributeError) as error:
+            self.message.setText(str(error))
+            return False
+        self._commit_editor()
+        token=(self.document['id'],self.document['session_id'],self.document['generation'])
+        before=self.edited_draft(commit=False)
+        from .material_test_dialog import ExperimentDialog
+        options={'selected':source.get('response')}
+        if reader is not None:
+            options['selected_result_reader']=reader
+        dialog=ExperimentDialog(self._material['draft']['settings'],result,self,**options)
+        if dialog.exec()!=QDialog.DialogCode.Accepted:
+            return False
+        if (token!=(self.document['id'],self.document['session_id'],self.document['generation'])
+                or before!=self.edited_draft(commit=False) or self.conflict):
+            self.message.setText('검토 중 계획이 변경되었습니다. 시험을 다시 추가하세요.')
+            return False
+        value=dialog.value
+        if partial:
+            names=[value['name']]
+            if value['kinematics'] is not None:
+                names.append(value['kinematics']['channel'])
+            if selection.get('names')!=tuple(names):
+                self.message.setText('선택한 응답과 변형 채널을 다시 확인하세요. 시험은 추가하지 않았습니다.')
+                return False
+        experiments=deepcopy(before['experiments'])
+        index=1
+        while 'Test'+str(index) in {e['id'] for e in experiments}: index+=1
+        source['response']=value['name']
+        experiment={'id':'Test'+str(index),'role':value['role'],'source':source,
+            'response':value['response'],'settings':deepcopy(value['settings']),
+            'weight':value['weight'],'scale':value['scale']}
+        if value['kinematics'] is not None:
+            experiment['kinematics']=deepcopy(value['kinematics'])
+        self._experiments=experiments+[experiment]
+        # The normal retained-source reader resolves the actual Data title.
+        # Do not cache a generic label that would conceal different Data owners.
+        self._populating=True
+        try:
+            self._populate_experiments()
+            self.experiments.selectRow(len(experiments))
+        finally:
+            self._populating=False
+        self._edited()
+        self.message.setText('시험을 초안에 추가했습니다. 조건을 확인한 뒤 계획에 적용하세요.')
+        return True
+
+    def edit_sample_policy(self):
+        rows=sorted({item.row() for item in self.experiments.selectedIndexes()})
+        if (not self.can_stage_processed_trial() or self.local_dirty or len(rows)!=1):
+            self.message.setText('시험 하나를 선택하고 편집한 계획을 적용한 뒤 표본 용도를 여세요.')
+            return False
+        submitted=self.edited_draft()
+        trial=deepcopy(submitted['experiments'][rows[0]])
+        source=trial['source']
+        if not source.get('processing_revision'):
+            self.message.setText('Data에서 저장한 처리 결과를 선택하세요.')
+            return False
+        document=deepcopy(self.document)
+        def read():
+            retained=self._read_trial_source(trial)['result']
+            proposal=self.client.data_material('data.sample_policy.preview',{
+                'document_id':source['document_id'],'processing_revision':source['processing_revision'],
+                # Trial weight is applied separately by the existing fit engine.
+                # A newly reviewed sample policy starts with unit sample weights.
+                'response':source['response'],'role':trial['role'],'weight':1.0})
+            channel=retained.get('channels',{}).get(source['response'])
+            if channel is None:
+                channel=retained.get('responses',{}).get(source['response'],{}).get('processing_channel')
+            if channel is None:
+                raise ValueError('선택 시험의 표본 정보를 읽지 못했습니다. Data에서 처리 결과를 확인하세요.')
+            return proposal,channel
+        def reviewed(payload):
+            proposal,channel=payload
+            from .data_sample_policy_dialog import SamplePolicyDialog
+            initial_entries=None
+            policy=trial.get('selection',{}).get('sample_policy')
+            if policy:
+                from caelab.data_processing_selection import validate_sample_policy
+                try:
+                    validate_sample_policy(policy)
+                    if policy['domain']!=proposal['domain'] or set(policy['overrides'])-set(proposal['entries']):
+                        raise ValueError('The existing policy belongs to another frozen sample domain')
+                    initial_entries={sid:deepcopy(policy['overrides'].get(sid,policy['default']))
+                                     for sid in proposal['entries']}
+                except (ValueError,KeyError,TypeError) as error:
+                    failed(error)
+                    return
+            dialog=SamplePolicyDialog(proposal,channel,self,initial_entries=initial_entries)
+            if dialog.exec()!=QDialog.DialogCode.Accepted:
+                return
+            identity=lambda value:(value['id'],value['session_id'],value['generation'])
+            if (identity(self.document)!=identity(document) or self.conflict
+                    or self.edited_draft()!=submitted):
+                self.message.setText('검토 중 계획이 변경되었습니다. 표본 용도를 다시 여세요.')
+                return
+            arguments={'document_id':document['id'],'experiment_id':trial['id'],
+                'proposal':deepcopy(proposal),'entries':deepcopy(dialog.entries),
+                'session_id':document['session_id'],'expected_generation':document['generation'],
+                'command_id':'C'+uuid.uuid4().hex}
+            def acknowledged(receipt):
+                # A replay receipt may describe a historical owner. Never replace
+                # a later local/peer draft with that old acknowledgement.
+                if self.document==receipt['document'] and self.edited_draft()==receipt['document']['draft']:
+                    return
+                if identity(self.document)!=identity(document) or self.edited_draft()!=submitted:
+                    self.conflict=True
+                    self.message.setText('표본 용도 적용을 확인했습니다. 이후 편집은 보존했습니다. 현재 계획을 다시 확인하세요.')
+                    return
+                self.local_dirty=False
+                self._show_document(receipt['document'])
+                self._reset_draft_history(force=True)
+                self.experiments.selectRow(rows[0])
+            self._submit_adoption_receipt('sample_policy',arguments,acknowledged)
+        def failed(error):
+            self.message.setText('표본 용도를 읽지 못했습니다. 연결과 Data 처리 결과를 확인한 뒤 다시 여세요.')
+            self.message.setToolTip(str(error))
+        return self._call(read,reviewed,rejected=failed)
+
     def change_protocol(self):
         rows=sorted({item.row() for item in self.experiments.selectedIndexes()})
         if len(rows)!=1:
@@ -1070,6 +1331,10 @@ class NumericalWindow(QMainWindow):
             if token!=(self.document['id'],self.document['session_id']) or row>=len(current) or current[row]!=experiment:
                 self.message.setText('선택 시험이 변경되었습니다. 조건을 다시 여세요.');return
             value=dialog.value
+            if (experiment.get('selection',{}).get('sample_policy')
+                    and value['name']!=experiment['source']['response']):
+                self.message.setText('구간을 적용한 시험의 응답은 유지해야 합니다. 다른 응답은 새 시험으로 추가하세요.')
+                return
             current[row].update(settings=value['settings'],role=value['role'],response=value['response'],
                 weight=value['weight'],scale=value['scale'])
             current[row]['source']['response']=value['name']
@@ -1078,7 +1343,7 @@ class NumericalWindow(QMainWindow):
             self._experiments=current
             self._populating=True;self._populate_experiments();self._populating=False
             self._edited()
-        self._call(lambda:self.client.document_result(source['document_id'],source['job_id']),inspected,
+        self._call(lambda:self._read_trial_source(experiment)['result'],inspected,
             relevant=lambda:token==(self.document['id'],self.document['session_id']))
 
     def remove_experiments(self):
@@ -1383,7 +1648,8 @@ class NumericalWindow(QMainWindow):
                         axis(str(definition.get('response')) + ' / ' + str(definition.get('reduction')) + ' [' + str(definition.get('unit', '?')) + ']')
                     ax.set_title('Actual epsilon search candidates · blue retained nondominated candidates; global optimality unproven')
                     return
-        ax.text(.5, .5, 'Actual candidate values and failures are retained in the table.\nSelect a study with curves, optimization objectives or declared UQ statistics to plot.',
+        empty='시험 조건을 확인한 뒤 피팅을 실행하세요.' if self.mode.currentText()=='fit' and not job else '저장된 계산을 선택하면 결과를 표시합니다.'
+        ax.text(.5, .5, empty,
                 ha='center', va='center', transform=ax.transAxes)
         ax.set_axis_off()
 
@@ -1601,6 +1867,8 @@ class NumericalWindow(QMainWindow):
         present = self.document is not None
         available = not (self._busy or self._callbacks or self._pending_adoption)
         enabled = present and available and not self.conflict
+        if self._adoption_receipt and self._adoption_receipt['kind']=='sample_policy':
+            enabled=False
         self.editor.setEnabled(enabled and not self._view_error)
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
         blocked = present and bool(self.document.get('diagnostics'))
@@ -1618,6 +1886,7 @@ class NumericalWindow(QMainWindow):
                                      not self._callbacks and self._pending_adoption is None and
                                      (not self._busy or self._busy_background) and bool(self.selected_job()))
         self._update_adoption_receipt_actions()
+        self._trial_selection_changed()
         self.reload_button.setVisible(self.conflict)
         self.copy_button.setVisible(self.conflict)
         if present:
