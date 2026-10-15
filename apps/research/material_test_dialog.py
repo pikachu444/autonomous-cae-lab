@@ -253,7 +253,8 @@ class ExperimentDialog(QDialog):
                     self._selection_worker=None
                     self._set_reading(False)
                     if error:
-                        self.message.setText('선택한 채널을 읽지 못했습니다. '+str(error)); return
+                        self.message.setText('선택한 범위를 읽지 못했습니다. 응답과 변형 채널을 확인하세요.')
+                        self.message.setToolTip(str(error)); return
                     try:
                         if (not isinstance(result,dict) or result.get('execution_status')!='SUCCEEDED'
                                 or set(result.get('responses',{}))!=set(names)):

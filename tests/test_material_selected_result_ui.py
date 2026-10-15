@@ -69,7 +69,8 @@ def test_selected_read_failure_preserves_incomplete_text_and_can_retry(app):
     window,source,before=dialog(reader)
     window._accept(); wait(app,lambda:window._selection_worker is None)
     assert window.value is None and window.weight.text()=='1e'
-    assert window._inputs.isEnabled() and '원 처리 결과' in window.message.text()
+    assert window._inputs.isEnabled() and '선택한 범위' in window.message.text()
+    assert window.message.toolTip()=='원 처리 결과가 바뀌었습니다.'
     assert source==before and window.imported==before
 
 
