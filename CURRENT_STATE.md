@@ -50,13 +50,13 @@ MoAI의 기존 작업 카드도 같은 7개 단위로 연결했다. 계획 대�
 
 | 작업 묶음 | 끝낼 사용자 결과 | 현재 배정과 통합 경계 |
 |---|---|---|
-| CAD·조립·전처리 | 모델/조립 편집→선택 자세의 독립 해석 모델→부품별 메시·재료·실제 면 조건→저장·재개 | 실제 Pro M4 작성, `m4_fem_handoff` Sol이 FEM 폼·대상 전환·미적용 입력 보호 개발. t21. common Pre 연결은 root |
-| 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | `delivery_structure_impact` Sol이 Runner/Impact GUI·원입력 이동·늦은 응답 보호 개발. t20. NS2/N3 핵심은 실제 Pro 재작성, adapter/공통 실행은 root |
-| 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | `delivery_post` Sol이 Post GUI/bridge 저장·닫기·작업 수명 개발. t4. 기존 ParaView 명령 재사용, native File→Exit 연결 핵심은 Pro |
-| Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | `delivery_data_material` Sol이 Data/Material 전용 GUI 개발. t5. 첫 묶음은 복수 Material 문서의 편집·붙여넣기·미적용 Undo. 엔진 추가는 Pro |
-| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | `delivery_numerical_pde` Sol이 Numerical/Plan/PDE 전용 GUI 개발. t6(t7 연결). 첫 묶음은 Plan 편집·포커스. 이산/종속 변수·MDO·mapping 핵심은 Pro |
-| Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | `delivery_expert_study` Sol이 Expert/Study/Report 전용 GUI 개발. t2(t9 연결). 기존 knowledge 문헌 선택·명시 개정 복구부터 완성, 핵심 연구 동작은 Pro |
-| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | `delivery_install_connections` Sol이 Windows 설치/진입 scripts 개발. t10. root가 공통 schema/Core/registry/desktop dispatch와 게시 소유, 이동용 사본 핵심은 Pro |
+| CAD·조립·전처리 | 모델/조립 편집→선택 자세의 독립 해석 모델→부품별 메시·재료·실제 면 조건→저장·재개 | M1 일반 관계·M4 독립 모델은 게시. 실제 Pro가 B13 셸 저장/무압력 영역 교정과 별도 접촉·구속/S2 확장을 작성 중이다. t21. 반환 뒤 Sol 전용 GUI·native 연결, Astra 검토, root 공통 Pre 통합 |
+| 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | 원 400프레임 읽기·MCP/Runner 연결은 게시. 일반 입력·손상·피로의 Pro02는 도구 오류로 미인도되어 RECOVER1로 코드 회수 중이다. t20. Sol GUI·원입력 이동, root adapter/공통 실행 |
+| 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | 저장 비교의 원행 복귀는 게시. Windows SDK·plugin 새 빌드38719038490이 진행 중이며 Sol은 로더 원인을 확인한다. t4. 실제 native 창 왕복·File→Exit 수용은 미완료 |
+| Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | 피팅·채택·법칙/Hex8 연결과 오류 화면은 게시. t5. 전체 재료군·일반 형상/요소 조합은 잔여이며 기존 완료를 반복 검사하지 않는다. Pro 추가 엔진 작성, Sol 전용 GUI, root 공통 통합 |
+| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수와 Windows 공간 PDE·온도 전달은 게시. 실제 Pro가 공유 변수 MDO·첫 선형 adjoint/gradient 소비 S2를 작성 중이다. t6/t7. 반환 뒤 Sol 전용 GUI·연결, Astra 수치/작업 흐름 검토, root 공통 통합 |
+| Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 정확 결과 첨부·최종점 진단·보고서 원자료 복귀/저장·재열기는 게시. t2/t9. native Post 전체 왕복·실장비/일반 composite 잔여를 유지하고 실제 장비 입력과 별개 작업을 구별한다 |
+| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기와 Data/Material/Numerical 원문 이동·재개를22da57c로 게시. t10/t25. 현재 정확 소스와 CB01–10을 새 실제 Pro에 전달해 다른 owner/native 이동을 작성 중이다. root가 공통 schema/Core/registry/dispatch와 게시 소유 |
 
 각 묶음은 원행/SPEC의 상세 완료 조건을 유지한다. 새로운 지원 조합은 현재 미지원의
 이름만 바꾸어 닫지 않는다. 실제 장비/원격 호스트가 필요한 항목은 입력 미정을 명시하고
@@ -192,6 +192,9 @@ Data C3 대화에서 최신 별도 요청·공개 소스 여섯 첨부와 함께
 확인에서도 구현 소스·패치·ZIP·검사 로그가 없었다. 이전 인도 완료 주장은 철회됐으며
 원본 여섯 파일은 남아 있다. 같은 원요구·원자료를 새 Pro/파워5 대화에 직접 첨부해
 A/B/C 전체의 실제 작성을 재개했다. 이전 구현의 회수·복원이라고 표시하지 않는다.
+새 요청02도 도구 오류로 실제 코드 없이 종료된 것을 확인했다. 이전 작성물을 우선
+회수하고 파일 도구 실패 시 적용 가능한 코드·패치를 답변 본문으로 받도록 같은 실제
+Pro에 RECOVER1을 전송했다. 기존 통과 주장·파일 존재는 미확인이며 완료로 세지 않는다.
 `impact-next/relay.json`이 단일 회수 기록이며 구현 완료는 아니다.
 Runner에서는 명시적으로 제외된 값이 없는 표본 하나 때문에 정상 이력까지 숨던 표시를
 교정했다. 제외 위치는 빈 곡선 구간으로 남기고 원값·시간·부분 실패 상태를 유지한다.
@@ -269,6 +272,7 @@ GUI 교정과 한국어 화면/사용법을 `583ad1a`로 원격 main에 게시�
 절점 수·연결·Jacobian 문제를 주화면에서 구별하며 원 진단은 기술 상세에 남긴다.
 Sol의 실제 Windows Qt 표시·입력 보존·응답 복구 확인과 Astra의 최종 검토를 마쳤고
 Codex도 최종 오류 화면을 열어 확인했다. 요청·CAS·응답 유실 복구 조건은 유지한다.
+이 화면 교정과 사용법은 `24d81a6`으로 원격 main에 게시했다.
 
 PDE S1 실제 구현도 회수해 전용24개·기존2개·공통11개와 기존 MCP 연결을 통합했다.
 Windows에서 실제 scikit-fem 열 계산→다른 P1 메시·명시 시각 전달→평면응력 열탄성→저장·
@@ -394,15 +398,18 @@ Astra가 미완성 원문에만 남은 옛 의존 자료의 수집 누락과 유
 검토했다. Windows에서 원문 미리보기→현재 편집/저장→새 보관→재복사→별도 프로세스
 재열기가 통과했다. 원 폴더가 없어도 시험·보정 자료를 읽으며 원 자료와 실패를 보존한다.
 새 15개와 영향 2개 검사만 실행했고 원 대규모 검사는 반복하지 않았다. C3A/C1/C2를
-한 게시 묶음으로 정리했으며 [Windows 확인](docs/portable_connection_c3a/WINDOWS_VERIFICATION_KO.md)에
+`22da57c`로 원격 main에 게시했고 일치를 확인했다. [Windows 확인](docs/portable_connection_c3a/WINDOWS_VERIFICATION_KO.md)에
 범위를 기록했다. `_workspace/delivery-install-connections/c3a-data-q-request/relay.json`이
 해당 회수·게시 기록이다. 필수 C3B의 Report·Study·Expert·PDE·Simulation·Evaluation과 managed
 FCStd/Post 이동은 Sol이 기존 요구·API로 작성 요청을 구체화하고 Astra가 독립 검토했다.
-`_workspace/delivery-install-connections/c3b-request/`를 재사용해 Data C2 반영 뒤 정확한
-작성 기준을 고정한다. 이 준비나 세 문서의 사본 구현을 전체 C3 완료로 세지 않는다.
+`_workspace/delivery-install-connections/c3b-request/`에서22da57c의 관련968개 원문과
+전체 요구·API·완료 조건을 고정하고 Astra가 독립 대조했다. 새 실제 Pro/파워5에 네 첨부를
+직접 전달해 작성을 시작했으며 같은 폴더의 `relay.json`이 회수 상태 원본이다.
+시간을 모두 쓰고 파일 없이 끝나는 일을 줄이도록 완결된 사용자 흐름의 실제 코드를
+먼저 회수·통합하고 나머지를 계속한다. 부분 인도를 전체 C3B 완료로 세지 않는다.
 미완성 셀 보관·다른 문서 종류·native 의존 자료를 함께 이동하는 범위이며 최근 혼합 변수와
 재료 복구 GUI의 병렬 변경도 명시했다. 현재 지원 세 문서의 완료와 이 확장을 구분한다.
-같은 폴더의 `c3-c01-request/relay.json`이 현재 회수 기록이다.
+앞선 C3A/C1의 회수·게시는 `c3-c01-request/relay.json`, 현재 확장 작성은 위 C3B 기록을 따른다.
 로컬 사본은 사용자가 선택한 비공개 공학 자료도 정상 취급한다. 외부 Pro/공개 Git에
 비공개 자료를 전달하지 않는 운영 규칙과 로컬 파일 사용을 혼동하지 않는다.
 
