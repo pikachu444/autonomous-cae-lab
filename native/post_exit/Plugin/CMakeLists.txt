@@ -8,7 +8,7 @@ paraview_add_plugin(CaePostExit
   SOURCES ${autostart_sources}
     pqCaePostExitStarter.h pqCaePostExitStarter.cxx
     CloseGate.h CloseGate.cxx NativeDraft.h NativeDraft.cxx CloseTransaction.h cae_post_exit_abi.h)
-target_link_libraries(CaePostExit PRIVATE ParaView::pqApplicationComponents
+target_link_libraries(CaePostExit PRIVATE ParaView::pqComponents
   Qt6::Core Qt6::Gui Qt6::Widgets)
 target_compile_definitions(CaePostExit PRIVATE CAE_POST_EXIT_BUILD)
 target_compile_features(CaePostExit PRIVATE cxx_std_17)
