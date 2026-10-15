@@ -22,6 +22,9 @@ widget.patchPreviewRequested.connect(review_explicit_owner_preview)
 이 accessor는 네트워크 재조회나 셀 확정을 하지 않으며 미확정 buffer의 원래 identity를
 관련 저장/닫기 복구와 연결하는 데 사용한다. 분리 상태에서는 `None`을 돌려준다.
 
+호스트는 `set_variable_labels({id: 표시명})`으로 실제 선택 모델의 물리 명칭을 표시한다.
+이름의 원 ID·버퍼·단위는 유지하며 알 수 없는 변수를 다른 물리량으로 추정하지 않는다.
+
 변수 이름·단위와 Request Plan의 탐색 여부는 읽기 전용이다. 현재 지원하는
 시작값·하한·상한·탐색 여부·선형/로그 변환은 기존 typed worksheet delegate와
 PlanTable 붙여넣기를 사용한다. 아직 지원하지 않는 이산/종속 변수 엔진의 구현을

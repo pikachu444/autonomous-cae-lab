@@ -90,6 +90,9 @@ def test_document_snapshot_is_exact_detached_and_does_not_commit_pending_editor(
     editor.setText('2.6')
     snapshot=first.document_snapshot()
     assert snapshot==original and first.table.item(0,2).text()==original_text
+    first.set_variable_labels({'a':'탄성계수 E'})
+    assert first.table.item(0,0).text()=='탄성계수 E' and first.document_snapshot()==original
+    assert first.table.item(0,0).data(256)['value']=='a'
     snapshot['draft']['request']['inputs']['variables'][0]['value']=9.
     assert first.document_snapshot()==original and first._adapter.calls==[]
     QTest.keyClick(editor,Qt.Key.Key_Escape);app.processEvents()
