@@ -35,8 +35,8 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 FORMAT = 'caelab.portable-project/1'
 MANIFEST = 'portable-project.json'
-SUPPORTED = {'data', 'material', 'numerical', 'report'}
-_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B'}
+SUPPORTED = {'data', 'material', 'numerical', 'report', 'study', 'expert'}
+_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B', 'study': 'S', 'expert': 'X'}
 _DENIED_NAMES = {'.env', 'credentials', 'credentials.json', 'token', 'token.json',
                  'id_rsa', 'id_ed25519', 'operator.json', 'service.json'}
 
@@ -69,7 +69,7 @@ def _selections(reader: SnapshotReader, selections: list[str | dict], draft_poli
         seen.add(identifier)
         current = reader.current(identifier)
         if current['kind'] not in SUPPORTED:
-            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical과 Report를 지원합니다.',
+            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical, Report, Study와 Expert를 지원합니다.',
                  '다른 도구의 원자료는 원문서에 그대로 보존하세요.', identifier)
         revision = value.get('saved_revision') or current.get('saved_revision')
         if draft_policy == 'acknowledged' and revision != current.get('saved_revision'):
@@ -241,7 +241,7 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                     issues.append(Issue('UNRETAINED_SOURCE', str(folder / 'sources' / data_id),
                         '선택한 Data 원자료가 저장 개정에 없습니다.', '원파일을 명시적으로 선택한 뒤 원문서를 저장하세요.', identifier))
             for run in document.get('runs', []):
-                if (selected[identifier] == revision or revision == WORKING) and not run.get('retention_complete'):
+                if document['kind'] != 'expert' and (selected[identifier] == revision or revision == WORKING) and not run.get('retention_complete'):
                     issues.append(Issue('RUN_NOT_RETAINED', str(folder / 'jobs' / (run['job_id'] + '.json')),
                         '진행 중이거나 완전하게 보존하지 않은 계산은 작업 사본으로 확정할 수 없습니다.',
                         '계산 종료/취소를 확인하고 원문서를 저장한 뒤 다시 시도하세요.', identifier))
@@ -254,8 +254,22 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                 inspect_document(reader, document, revision)
             from .portable_project_evidence import validate_document_evidence
             validate_document_evidence(reader, document)
-            refs = [*document_references(document, include_history=True), *comparison_references(document)]
+            from .portable_research_knowledge import collect_document
+            from .portable_research_owner import extra_references, replay, current_folder
+            if document['kind'] in {'study', 'expert'}:
+                archive_root = (current_folder(reader.owner(identifier)._folder(identifier), document)
+                    if virtual_revision(revision) else folder)
+                replay(archive_root, document)
+            collect_document(reader, document, revision=revision)
+            refs = [*document_references(document, include_history=True), *comparison_references(document),
+                    *extra_references(document)]
             for typed in refs:
+                if (typed.value.get('kind') == 'knowledge'
+                        or typed.value.get('paper_id') and not typed.value.get('document_id')):
+                    continue  # Exact local/public archive closure was checked above.
+                if document['kind'] == 'expert':
+                    from .portable_research_owner import inspection_reference
+                    typed = inspection_reference(archive_root, document, typed)
                 target = typed.document_id
                 if document['kind'] == 'report':
                     from .portable_project_report import can_navigate
@@ -292,14 +306,18 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
             issues.append(Issue('REVISION_UNAVAILABLE', str(reader.owner(identifier)._folder(identifier) / 'revisions' / revision),
                                 str(error), '정확한 저장 원본을 복구하거나 원문서에서 새 저장 개정을 선택하세요.', identifier))
     files = sorted(inventory.values(), key=lambda r: r['path'])
-    total = sum(row['bytes'] for row in files)
+    from .portable_research_knowledge import reviewed, reviewed_literature
+    knowledge = reviewed(reader)
+    literature = reviewed_literature(reader)
+    knowledge_files = {row['path']: row for record in [*knowledge, *literature] for row in record['files']}
+    total = sum(row['bytes'] for row in files) + sum(row['bytes'] for row in knowledge_files.values())
     recovery_bytes = sum(row['bytes'] for row in recovery['recovery_files'])
-    report_ids = {row['document_id'] for row in summaries if row['kind'] == 'report'}
+    report_ids = {row['document_id'] for row in summaries if row['kind'] in {'report', 'study', 'expert'}}
     report_archive_files = [row for row in files if row['document_id'] in report_ids]
     # Raw owner archives may also retain an acknowledged layer's saved base.
     # This conservative allowance supplements (never raises) the existing caps.
     report_archive_bytes = sum(row['bytes'] for row in report_archive_files)
-    if (len(files) * 2 + len(recovery['recovery_files']) + len(report_archive_files) * 2 > MAX_FILES
+    if (len(files) * 2 + len(knowledge_files) * 2 + len(recovery['recovery_files']) + len(report_archive_files) * 2 > MAX_FILES
             or total * 2 + recovery_bytes + report_archive_bytes * 2 > MAX_BYTES):
         issues.append(Issue('SIZE_LIMIT', str(workbench.workspace), '원본 보존본과 작업 사본의 크기 한도를 넘습니다.', '문서 묶음을 명시적으로 나누세요.'))
     from .connection_graph_view import view_inventory
@@ -312,7 +330,7 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
     result = {'format': FORMAT, 'status': 'BLOCKED' if issues else 'READY', 'view_state': view,
         'service_session_id': workbench.session_id, 'selections': chosen, 'documents': summaries,
         'draft_policy': draft_policy, 'capsule_boundary': deepcopy(CAPSULE_CONTRACT), **recovery,
-        'source_store': str(workbench.workspace), 'pins': pins, 'files': files,
+        'source_store': str(workbench.workspace), 'pins': pins, 'files': files, 'knowledge': knowledge, 'literature': literature,
         'revisions': [{'document_id': i, 'saved_revision': r} for i, r in sorted(visited)],
         'bytes_to_copy': total * 2 + recovery_bytes + report_archive_bytes * 2, 'warnings': warnings, 'issues': [asdict(i) for i in issues],
         'executed': False, 'engineering_release': 'NOT_RELEASED'}
@@ -341,7 +359,7 @@ class _Fork:
             if (wb.workspace / MANIFEST).is_file() else canonical_hash({'store': str(wb.workspace)}))
         for (identifier, _), document in self.snapshots.items():
             for revision, draft in [(document['input_revision'], document['draft']),
-                                    *((r['input_revision'], r['draft']) for r in document.get('runs', []))]:
+                                    *((r['input_revision'], r['draft']) for r in document.get('runs', []) if document['kind'] != 'expert')]:
                 key = (identifier, revision)
                 if key in self.inputs and canonical_hash(self.inputs[key]) != canonical_hash(draft):
                     fail('INPUT_ID_CONFLICT', identifier, '같은 원입력 개정에 다른 내용이 있습니다.', '원본 소유 기록을 복구하세요.', identifier)
@@ -374,9 +392,15 @@ class _Fork:
 
     def reference(self, typed):
         ref, target = deepcopy(typed.value), typed.document_id
+        if ref.get('kind') == 'knowledge':
+            return ref  # Exact knowledge IDs/revisions/locators/hashes are never rewritten.
+        if ref.get('paper_id') and not target:
+            from .portable_research_knowledge import evidence_pin
+            return evidence_pin(ref)  # A paper archive is not a document owner ID.
         if target not in self.documents:
             fail('DOCUMENT_NOT_SELECTED', target, '참조 문서가 포함되지 않았습니다.', '포함 목록을 다시 확인하세요.')
-        key = {'adoption': 'plan_id', 'proposal': 'discussion_id', 'pde': 'pde_document_id'}.get(typed.form, 'document_id')
+        key = ('discussion_id' if ref.get('kind') == 'expert_turn' else
+               {'adoption': 'plan_id', 'proposal': 'discussion_id', 'pde': 'pde_document_id'}.get(typed.form, 'document_id'))
         ref[key] = self.documents[target]
         rev_key = 'plan_revision' if typed.form == 'adoption' else 'saved_revision'
         if rev_key in ref:
@@ -390,7 +414,7 @@ class _Fork:
                 ref['candidate_evidence'] = self.reference(TypedReference((), '채택 증거', 'exact', ref['candidate_evidence']))
             run = self.run_for(target, ref['job_id'])
             ref['input_sha256'] = self.input_hash(target, run['input_revision'])
-        elif 'input_revision' in ref:
+        elif 'input_revision' in ref and not (ref.get('kind') == 'result' and target.startswith('X')):
             old_revision = ref['input_revision']
             if 'input_sha256' in ref and canonical_hash(self.inputs[(target, old_revision)]) != ref['input_sha256']:
                 fail('INPUT_HASH_CONFLICT', target, '참조한 원입력 내용이 다릅니다.', '정확한 원본을 복구하세요.')
@@ -410,7 +434,8 @@ class _Fork:
                 if not can_navigate(typed.value, self.documents):
                     continue
             replace_at(draft, typed.path, self.reference(typed))
-        return draft
+        from .portable_research_owner import current_draft
+        return current_draft(kind, draft)
 
     def frozen_source(self, value):
         value = deepcopy(value)
@@ -444,6 +469,9 @@ class _Fork:
         return args
 
     def run(self, identifier, original):
+        if identifier.startswith('X'):
+            from .portable_research_owner import project_run
+            return project_run(self, identifier, original)
         run = deepcopy(original)
         run['draft'] = self.draft(identifier, original['draft'])
         run['input_revision'] = self.input_ids[(identifier, original['input_revision'])]
@@ -535,6 +563,8 @@ class _Fork:
                 if source_run.get('retention_complete'):
                     write_execution(self, identifier, revision, source_run, run, target)
         for run in document['runs']:
+            if document['kind'] == 'expert':
+                continue  # Origin job and submitted-input files remain byte-exact.
             job_path = target / 'jobs' / (check_id(run['job_id']) + '.json')
             input_path = target / 'inputs' / (run['job_id'] + '.json')
             if job_path.is_file():
@@ -554,6 +584,9 @@ class _Fork:
         if document['kind'] == 'report':
             from .portable_project_report import write_revision as write_report
             write_report(self, identifier, revision, original, document, target)
+        if document['kind'] in {'study', 'expert'}:
+            from .portable_research_owner import write_revision as write_research
+            write_research(self, identifier, revision, original, document, target)
         owner = self.reader.owner(identifier)
         document['_saved_fingerprint'] = owner._fingerprint(document)
         save_json(target / 'document.json', document)
@@ -577,6 +610,8 @@ class _Fork:
             copy_verified(inside(self.wb.workspace, entry['path']), target, entry)
 
     def write(self):
+        from .portable_research_knowledge import write as write_knowledge
+        self.knowledge_revisions = write_knowledge(self)
         for entry in self.plan['files']:
             path = f"portable/originals/{entry['document_id']}/{entry['saved_revision']}/{entry['asset']}"
             self.copy_entry(entry, inside(self.stage, path, must_exist=False))
@@ -604,6 +639,9 @@ class _Fork:
                     if not row.get('retained_revision'):
                         source = self.revision_path(identifier, WORKING) / 'candidate_evidence' / (row['id'] + '.json')
                         copy_verified(source, owner_folder / 'candidate_evidence' / source.name, fingerprint_file(source))
+                if working['kind'] in {'study', 'expert'}:
+                    from .portable_research_owner import install_working as install_research
+                    install_research(self.revision_path(identifier, WORKING), owner_folder, working)
                 if working['kind'] == 'report':
                     from .portable_project_report import install_working
                     install_working(self.revision_path(identifier, WORKING), owner_folder, working)
@@ -695,13 +733,18 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
                 if not path.is_file():
                     continue
                 rel = path.relative_to(stage).as_posix()
-                if rel.startswith(('portable/originals/', 'portable/recovery/', 'portable/recovery-maps/')) or '/revisions/' in rel or '/candidate_evidence/' in rel:
+                knowledge_asset = rel.startswith('workbench/assistance/knowledge/') and rel != 'workbench/assistance/knowledge/documents.json'
+                literature_asset = rel.startswith('workbench/assistance/literature/') and Path(rel).name != 'papers.json'
+                if knowledge_asset or literature_asset or rel.startswith(('portable/originals/', 'portable/recovery/', 'portable/recovery-maps/')) or '/revisions/' in rel or '/candidate_evidence/' in rel:
                     immutable.append({'path': rel, **fingerprint_file(path)})
             manifest = {'format': FORMAT, 'project_id': project_id, 'created_utc': utc_now(),
                 'command_id': command_id, 'request_sha256': signature,
                 'source_store': inspection['source_store'], 'source_inspection_sha256': inspection['inspection_sha256'],
                 'documents': documents, 'draft_policy': inspection.get('draft_policy', 'saved_only'),
                 'recovery_archives': recovery_archives,
+                'knowledge_revisions': fork.knowledge_revisions,
+                'literature_archives': fork.literature_archives,
+                'knowledge_workspace_id': 'portable:' + project_id if fork.knowledge_revisions else 'local',
                 'capsule_boundary': deepcopy(CAPSULE_CONTRACT),
                 'revision_map': [{'source_document_id': i, 'source_revision': r,
                                   'document_id': fork.documents[i], 'revision': new} for (i, r), new in sorted(fork.revisions.items())],
@@ -788,6 +831,9 @@ def verify_project(folder: str | Path) -> dict:
                 if (draft.get('id') != identifier or draft.get('kind') != row['kind']
                         or draft.get('saved_revision') is not None or draft.get('_disk_revision') is not None):
                     raise ValueError('미저장 문서 초안의 소유자/저장 상태가 다릅니다.')
+                if row['kind'] in {'study', 'expert'}:
+                    from .portable_research_owner import replay, current_folder
+                    replay(current_folder(owner_root, draft), draft)
                 if row['kind'] == 'report':
                     from .portable_project_report import verify_current
                     verify_current(owner_root, draft)
@@ -813,6 +859,10 @@ def verify_project(folder: str | Path) -> dict:
                 draft = json_file(working)
                 if draft.get('id') != identifier or draft.get('kind') != row['kind']:
                     raise ValueError('복구 초안의 문서 소유자가 다릅니다.')
+            if row['kind'] in {'study', 'expert'}:
+                from .portable_research_owner import replay, current_folder
+                research = draft if working.exists() and draft.get('saved_revision') == revision else current
+                replay(current_folder(owner_root, research), research)
             if row['kind'] == 'report':
                 from .portable_project_report import verify_current
                 verify_current(owner_root, draft if working.exists() and

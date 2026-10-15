@@ -116,7 +116,8 @@ class ReferenceContent(QWidget):
         if kind == 'knowledge':
             source = payload['source']
             self.title.setText(source.get('title', label))
-            self.body.setPlainText('\n\n'.join(row.get('text', '') for row in source.get('segments', [])))
+            from .portable_research_actions import source_description
+            self.body.setPlainText(source_description(payload))
             return
         if kind == 'expert_turn':
             turn = payload['turn']

@@ -72,7 +72,7 @@ class TypedProjection:
             _error('duplicate/cross-owner mapping')
         for old, row in self.docs.items():
             check_id(old); check_id(row['document_id'])
-            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report'}:
+            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report', 'study', 'expert'}:
                 _error('mapping changed owner kind')
         for (doc, revision), row in self.inputs.items():
             if row['document_id'] != self.docs[doc]['document_id']:
@@ -100,14 +100,20 @@ class TypedProjection:
 
     def reference(self, typed):
         ref, doc = deepcopy(typed.value), typed.document_id
+        if ref.get('kind') == 'knowledge':
+            return ref
+        if ref.get('paper_id') and not doc:
+            from .portable_research_knowledge import evidence_pin
+            return evidence_pin(ref)
         if doc not in self.docs:
             _error('reference targets an unselected owner')
-        key = {'adoption': 'plan_id', 'proposal': 'discussion_id', 'pde': 'pde_document_id'}.get(typed.form, 'document_id')
+        key = ('discussion_id' if ref.get('kind') == 'expert_turn' else
+               {'adoption': 'plan_id', 'proposal': 'discussion_id', 'pde': 'pde_document_id'}.get(typed.form, 'document_id'))
         ref[key] = self.docs[doc]['document_id']
         revkey = 'plan_revision' if typed.form == 'adoption' else 'saved_revision'
         if revkey in ref:
             ref[revkey] = self.revisions[(doc, ref[revkey])]
-        if 'input_revision' in ref:
+        if 'input_revision' in ref and not (ref.get('kind') == 'result' and self.docs[doc]['kind'] == 'expert'):
             old = ref['input_revision']
             row = self.inputs[(doc, old)]
             if 'input_sha256' in ref and ref['input_sha256'] != row['source_input_sha256']:
@@ -129,7 +135,8 @@ class TypedProjection:
                 if not can_navigate(typed.value, self.docs):
                     continue
             replace_at(result, typed.path, self.reference(typed))
-        return result
+        from .portable_research_owner import current_draft
+        return current_draft(self.docs[doc]['kind'], result)
 
     def arguments(self, value):
         result = deepcopy(value)

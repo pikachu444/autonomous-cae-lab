@@ -473,6 +473,10 @@ class MaterialDocuments(RetainedComparisons):
         saved = deepcopy(document)
         self._retain_inputs(saved, folder)
         for run in saved['runs']:
+            if self.kind == 'expert' and run.get('portable_history_only'):
+                from .portable_research_owner import retain_job
+                retain_job(self, saved, folder, run, revision)
+                continue
             retained = run.get('retained_record') or run.get('retained_result')
             if retained and run.get('retention_complete'):
                 self._verify_revision(identifier, retained['revision'])

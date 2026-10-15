@@ -27,7 +27,7 @@ from matplotlib.figure import Figure
 DATA = Qt.ItemDataRole.UserRole
 CHOICE_DATA = int(Qt.ItemDataRole.UserRole) + 1
 RETAINED_ROLES = {'doe': ('candidates',), 'analyze': ('table',), 'surrogate': ('training', 'holdout', 'model'),
-                  'sensitivity': ('table', 'plan'), 'batch_export': ('candidates',),
+                  'sensitivity': ('table', 'plan', 'baseline', 'refined'), 'batch_export': ('candidates',),
                   'batch_import': ('batch', 'results')}
 MODEL_OPERATIONS = {'evaluate', 'fit', 'doe', 'optimize', 'uq', 'epsilon'}
 PDE_CANDIDATE_OPERATIONS = {'fit', 'doe', 'optimize', 'uq', 'epsilon'}
@@ -503,13 +503,16 @@ class RequestPlanWindow(NumericalWindow):
         workflow_row = QHBoxLayout()
         self.next_method = QComboBox()
         for label, name in [('회귀 영향도', 'analyze'), ('Sobol 표본 평가', 'doe'),
-                            ('Sobol 분석', 'sensitivity'), ('대리모델 학습', 'surrogate'),
-                            ('저장 모델로 예측', 'predict'), ('예측점 실제 평가', 'confirm')]:
+                            ('Sobol 분석', 'sensitivity'), ('Sobol N/2N 비교', 'convergence'), ('대리모델 학습', 'surrogate'),
+                            ('저장 모델로 예측', 'predict'), ('저장 모델로 추천점 찾기', 'search'), ('예측점 실제 평가', 'confirm')]:
             self.next_method.addItem(label, name)
         self.next_method_button = QPushButton('이 결과로 계획 만들기…')
         self.next_method_button.clicked.connect(self.plan_from_result)
         workflow_row.addWidget(self.next_method)
         workflow_row.addWidget(self.next_method_button)
+        self.convergence_button=QPushButton('Sobol 수렴 비교 보기…')
+        self.convergence_button.clicked.connect(self.show_sobol_convergence)
+        workflow_row.addWidget(self.convergence_button)
         self.confirmation_button=QPushButton('예측과 실제 비교…')
         self.confirmation_button.clicked.connect(self.compare_prediction)
         workflow_row.addWidget(self.confirmation_button)
@@ -595,11 +598,25 @@ class RequestPlanWindow(NumericalWindow):
                 sampling_ref = previous.get('result_refs',{}).get('candidates')
                 if sampling_ref:inputs['result_refs']['plan']=deepcopy(sampling_ref)
                 operation, title = 'sensitivity', 'Sobol 분석'
+            elif action == 'convergence':
+                if result.get('method') != 'SALib.sobol' or not result.get('matched_design_sha256'):
+                    self.message.setText('변수 의미와 원 설계가 보존된 Sobol 분석을 선택하세요.');return
+                inputs = {'result_refs':{'baseline':ref}}
+                operation, title = 'sensitivity', 'Sobol N/2N 비교'
             elif action == 'surrogate':
                 if not result.get('candidates'):
                     self.message.setText('학습에 사용할 실제 평가 자료를 선택하세요.');return
                 inputs = {'result_refs':{'training':ref},'response':{},'points':[],'options':{}}
                 operation, title = 'surrogate', '대리모델 학습'
+            elif action == 'search':
+                artifact=result.get('model_artifact',{})
+                if artifact.get('status')!='AVAILABLE':
+                    self.message.setText('추천점 탐색에 사용할 저장 모델을 선택하세요.');return
+                inputs={'result_refs':{'model':ref}, 'search':{
+                    'variables':deepcopy(artifact['variables']),
+                    'objective':{**deepcopy(artifact['response']),'direction':'minimize'},
+                    'constraints':[],'seed':0,'options':{'max_generations':5,'population_size':8}}}
+                operation,title='surrogate','저장 모델 추천점 탐색'
             elif action == 'predict':
                 if result.get('model_artifact',{}).get('status') != 'AVAILABLE':
                     self.message.setText('이 결과에는 재학습 없이 사용할 저장 모델이 없습니다.');return
@@ -610,11 +627,18 @@ class RequestPlanWindow(NumericalWindow):
                     self.message.setText('실제 평가로 확인할 예측점 한 행을 선택하세요.');return
                 self._prepare_confirmation(ref,result,chosen,current,relevant)
                 return
-            budget = max(1,len(result.get('candidates',[]))) if action == 'doe' else 1
+            budget = 48 if action == 'search' else max(1,len(result.get('candidates',[]))) if action == 'doe' else 1
             draft = request_draft({'purpose':title,'operation':operation,'inputs':inputs,'budget':{'evaluations':budget}},source=source)
             if frozen.get('model_source'):draft['model_source']=deepcopy(frozen['model_source'])
             self._leave(lambda:self.open_document(title=title,draft=draft))
         self._call(prepare,ready,relevant=relevant)
+
+    def show_sobol_convergence(self):
+        result=self._result_cache.get(self.selected_job(),{})
+        if result.get('kind')!='sensitivity_convergence':return
+        from .numerical_extension_widgets import SobolConvergenceWindow
+        dialog=SobolConvergenceWindow(result,self)
+        dialog.exec()
 
     def _confirmation_model(self,reference):
         """Read the exact retained training condition chain without executing."""
@@ -1006,6 +1030,8 @@ class RequestPlanWindow(NumericalWindow):
             refresh_extra(self, value, operation)
             from .numerical_mixed_plan import refresh_variable_sheet
             refresh_variable_sheet(self,value)
+            from .numerical_methods import refresh_search_sheet
+            refresh_search_sheet(self,value,operation)
         finally:
             self._sheet_populating = False
 
@@ -1317,9 +1343,9 @@ class RequestPlanWindow(NumericalWindow):
         self.tabs.setTabVisible(self.tabs.indexOf(self.observation_panel), operation == 'fit')
         self.operation_note.setText({
             'analyze': 'Select the exact saved candidate table and declare each physical response/reduction. Failed rows remain exclusions.',
-            'surrogate': 'Select separate retained training and holdout runs. Add physical response/reduction and typed points. Predictions remain PREDICTED; they cannot be adopted as evaluated coefficients.',
-            'sensitivity': 'Select the matched retained Sobol sampling plan and actual response table. Ordinary DOE samples cannot substitute for its exact identities/order. Execution requires SALib on the service.',
-            'sample_sensitivity': 'Declare variables, count (Sobol base count), seed and second_order. The downstream evaluation budget must cover count × (dimensions + 2), or count × (2 × dimensions + 2) for second order. Sampling requires SALib; it performs no model evaluation.',
+            'surrogate': '학습 자료와 별도 검증 자료를 선택하세요. 저장 모델의 새 점 예측과 추천점 탐색은 실제 평가와 구분됩니다.',
+            'sensitivity': '원 Sobol 표본과 같은 순서의 실제 평가 자료를 선택하세요. N/2N 비교에는 같은 조건의 두 분석이 필요합니다.',
+            'sample_sensitivity': '변수 범위와 기본 표본 수를 지정하세요. 실제 평가 수는 N×(변수 수+2), 2차 효과 포함 시 N×(2×변수 수+2)입니다.',
             'doe': 'Edit the registered backend/settings and explicit variable declarations, or select retained candidate coordinates to evaluate them in their original order/IDs. Selecting a saved sampling plan never draws replacement points.',
             'batch_export': 'Select actual retained candidate coordinates and declare case_id. Export writes a file-exchange manifest; it performs no solver evaluation.',
             'batch_import': 'Select the retained batch manifest and exact actual imported result rows. Missing rows remain NOT_EVALUATED. Results may instead be entered as a typed results list.',
@@ -1384,14 +1410,8 @@ class RequestPlanWindow(NumericalWindow):
         refs = inputs.get('result_refs', {})
         refs = refs if isinstance(refs, dict) else {}
         self.pinned_sources.setRowCount(len(refs))
-        for row, (role, reference) in enumerate(refs.items()):
-            reference = reference if isinstance(reference, dict) else {}
-            values = (role, str(reference.get('document_id', '?')) + ' / ' + str(reference.get('job_id', '?')),
-                      reference.get('input_revision'), reference.get('result_sha256'))
-            for column, value in enumerate(values):
-                self._set_cell(self.pinned_sources, row, column, value, False)
-            metadata = self._source_metadata.get(canonical_hash(reference), {})
-            self.pinned_sources.item(row, 1).setText(str(metadata.get('title') or '보존 결과 ' + str(row + 1)))
+        from .numerical_methods import refresh_retained_labels
+        refresh_retained_labels(self,refs)
         declarations = inputs.get('responses', [inputs['response']] if 'response' in inputs else [])
         declarations = declarations if isinstance(declarations, list) else []
         self.declarations.setRowCount(len(declarations))
@@ -1414,20 +1434,20 @@ class RequestPlanWindow(NumericalWindow):
                     and canonical_hash(self.edited_draft()['request']['inputs']) == initial)
         def listed(payload):
             documents = [row for row in payload['documents'] if row.get('kind') in {'data', 'material', 'numerical', 'pde', 'simulation', 'evaluation'}]
-            labels = [row['title'] + ' · ' + row['id'] for row in documents]
+            labels = [str(index+1)+'. '+row['title'] for index,row in enumerate(documents)]
             if not labels:
-                self.message.setText('No retained research documents are available.')
+                self.message.setText('저장한 연구 문서가 없습니다. 먼저 자료나 계산 결과를 저장하세요.')
                 return
-            selected, accepted = QInputDialog.getItem(self, 'Select retained ' + role, 'Original document', labels, editable=False)
+            selected, accepted = QInputDialog.getItem(self, '저장 자료 선택', '사용할 문서', labels, editable=False)
             if accepted and relevant():
                 self._call(lambda: self.client.document_read(documents[labels.index(selected)]['id']), read, relevant=relevant)
         def read(document):
             runs = [row for row in document.get('runs', []) if row.get('retention_complete') and row.get('retained_result')]
-            labels = [row['job_id'] + ' · ' + row['input_revision'] for row in runs]
+            labels = ['계산 '+str(index+1)+' / '+str(row.get('draft',{}).get('request',{}).get('purpose','저장 결과')) for index,row in enumerate(runs)]
             if not labels:
-                self.message.setText('Save and retain the exact source run before selecting it for this Plan.')
+                self.message.setText('사용할 계산 결과를 먼저 저장하세요.')
                 return
-            selected, accepted = QInputDialog.getItem(self, 'Select exact original run', 'Retained job / submitted input', labels, editable=False)
+            selected, accepted = QInputDialog.getItem(self, '저장 결과 선택', '사용할 계산', labels, editable=False)
             if not accepted or not relevant():
                 return
             job = runs[labels.index(selected)]['job_id']
@@ -1439,20 +1459,22 @@ class RequestPlanWindow(NumericalWindow):
             reference, metadata = payload
             from caelab.research_operations import validate_result_reference
             validate_result_reference(reference)
+            if role in {'baseline','refined'} and not metadata.get('sobol_analysis'):
+                self.message.setText('실제 계산된 Sobol 분석 결과를 선택하세요. 표본 계획은 비교 지수가 아닙니다.');return
             if role == 'model' and not metadata.get('model_available'):
-                self.message.setText('보존된 전역 RBF 모델을 선택하세요. 이 결과에는 재학습 없는 모델이 없습니다.')
+                self.message.setText('보존된 RBF 모델을 선택하세요. 이 결과에는 지원되는 숫자 모델이 없습니다.')
                 return
             if role == 'plan' and metadata.get('sampling', {}).get('method') != 'SALib.sobol':
-                self.message.setText('Select the actual matched SALib Sobol sampling plan; ordinary DOE is incompatible.')
+                self.message.setText('이 계산에 사용한 Sobol 표본을 선택하세요. 일반 DOE 표본은 사용할 수 없습니다.')
                 return
             if role == 'batch' and metadata.get('manifest_kind') != 'file_batch':
                 self.message.setText('Select an actual retained file_batch export manifest.')
                 return
             if role in {'table', 'training', 'holdout', 'candidates', 'results'} and not metadata.get('candidate_count'):
-                self.message.setText('This role requires an actual retained candidate table.')
+                self.message.setText('실제 후보 평가 결과가 있는 저장 자료를 선택하세요.')
                 return
             if role in {'table', 'training', 'holdout', 'candidates', 'results'} and set(metadata.get('execution_counts', {})) == {'PREDICTED'}:
-                self.message.setText('Predicted rows cannot substitute for actual retained candidate evaluations.')
+                self.message.setText('예측값은 실제 평가 자료로 사용할 수 없습니다.')
                 return
             inputs = self.edited_draft()['request']['inputs']
             refs = inputs.get('result_refs', {})
@@ -1462,7 +1484,7 @@ class RequestPlanWindow(NumericalWindow):
             if operation == 'surrogate' and role != 'model':
                 other = refs.get('holdout' if role == 'training' else 'training', {})
                 if (other.get('document_id'), other.get('job_id')) == (reference['document_id'], reference['job_id']) or other.get('result_sha256') == reference['result_sha256']:
-                    self.message.setText('Training and holdout require distinct retained runs and results.')
+                    self.message.setText('학습 자료와 검증 자료는 서로 다른 계산 결과여야 합니다.')
                     return
             def edit(value):
                 for key in ('job_id', 'training_job', 'holdout_job', 'batch_job', 'table', 'manifest'):
@@ -1471,15 +1493,20 @@ class RequestPlanWindow(NumericalWindow):
                     value.pop(role, None)
                 if operation == 'doe':
                     value.pop('count', None)
-                if operation == 'surrogate' and role == 'model':
-                    points = value.get('points', [])
+                if operation == 'sensitivity' and role in {'baseline','refined'}:
+                    kept = {k:v for k,v in value.get('result_refs',{}).items() if k in {'baseline','refined'}}
+                    kept[role] = reference
+                    value.clear();value['result_refs']=kept
+                elif operation == 'surrogate' and role == 'model':
+                    kept = {'search':deepcopy(value['search'])} if 'search' in value else {'points':value.get('points',[])}
                     value.clear()
-                    value.update(points=points, result_refs={'model': reference})
+                    value.update(**kept, result_refs={'model': reference})
                 else:
                     if operation == 'surrogate':
                         value.setdefault('result_refs', {}).pop('model', None)
                     value.setdefault('result_refs', {})[role] = reference
             self._source_metadata[canonical_hash(reference)] = metadata
+            self.__dict__.setdefault('_retained_source_labels',{}).pop(canonical_hash(reference),None)
             self._edit_structure(edit)
             self.message.setText('선택한 저장 자료를 연결했습니다. 실행 전 변수와 응답을 확인하세요.')
             if metadata.get('diagnostics'):
@@ -1575,7 +1602,7 @@ class RequestPlanWindow(NumericalWindow):
             if not runs:
                 self.message.setText('Select a saved successful source run. Unsupported or missing runtimes still allow editing/saving the Plan.')
                 return
-            labels = [row['job_id'] + ' · ' + row['input_revision'] for row in runs]
+            labels = ['계산 '+str(index+1)+' / '+str(row.get('draft',{}).get('request',{}).get('purpose','저장 결과')) for index,row in enumerate(runs)]
             value, ok = QInputDialog.getItem(self, 'Actual retained run', 'Job / frozen input', labels, editable=False)
             if not ok or not relevant(): return
             job = runs[labels.index(value)]['job_id']
@@ -1610,7 +1637,7 @@ class RequestPlanWindow(NumericalWindow):
 
         def listed(payload):
             documents = [row for row in payload['documents'] if row.get('kind') in {'data', 'material', 'pde', 'simulation', 'evaluation'}]
-            labels = [row['title'] + ' · ' + row['id'] for row in documents]
+            labels = [str(index+1)+'. '+row['title'] for index,row in enumerate(documents)]
             if not labels:
                 self.message.setText('No retained source document is available. Import/evaluate and save its result first.')
                 return
@@ -2594,6 +2621,8 @@ class RequestPlanWindow(NumericalWindow):
             self._result_cache.get(self.selected_job(), {}).get('candidates'))
         result = self._result_cache.get(self.selected_job(), {})
         self.next_method_button.setEnabled(available and bool(result))
+        self.convergence_button.setVisible(result.get('kind')=='sensitivity_convergence')
+        self.convergence_button.setEnabled(read_available)
         run=next((row for row in self.document.get('runs',[]) if row['job_id']==self.selected_job()),{}) if present else {}
         link=run.get('draft',{}).get('method_inputs',{}).get('surrogate',{})
         self.confirmation_button.setVisible(bool(link.get('result_refs',{}).get('model')))
@@ -2611,7 +2640,7 @@ class RequestPlanWindow(NumericalWindow):
         selected_run=next((row for row in self.document.get('runs',[]) if row['job_id']==self.selected_job()),{}) if present else {}
         frozen=selected_run.get('draft',{})
         source=frozen.get('model_source') or frozen.get('source')
-        self.model_open_button.setEnabled(enabled and bool(self.edited_draft().get('model_source') or self._candidate_target(self.edited_draft().get('source'))[1]))
+        self.model_open_button.setEnabled(enabled and bool(self.edited_draft(commit=False).get('model_source') or self._candidate_target(self.edited_draft(commit=False).get('source'))[1]))
         target_kind, target_id = self._candidate_target(source)
         self.pde_adopt_button.setText('선택 후보를 PDE에 채택…' if target_kind == 'pde' else '선택 후보를 원본에 채택…')
         self.pde_adopt_button.setEnabled(read_available and not self._view_error and bool(target_id)
@@ -2623,7 +2652,7 @@ class RequestPlanWindow(NumericalWindow):
         self._update_adoption_receipt_actions()
         self.observed_read.setEnabled(enabled and self.operation.currentData() == 'fit' and self.observed_trial.count() > 0)
         self.observed_post.setEnabled(enabled and self._observation_matches() and bool(self._post_observation.get('source_available')))
-        origin=self.edited_draft().get('source') if present else None
+        origin=self.edited_draft(commit=False).get('source') if present else None
         source_id = origin.get('discussion_id',origin.get('pde_document_id',origin.get('document_id'))) if isinstance(origin,dict) else None
         self.source_button.setEnabled(present and available and isinstance(source_id,str) and source_id.startswith(('X','S','Q','T','M','N','V','E')))
         self.reload_button.setVisible(self.conflict)

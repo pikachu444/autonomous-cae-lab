@@ -48,6 +48,16 @@ class NumericalUQWindow(QDialog):
         self.summary = QLabel()
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
+        from .numerical_extension_widgets import joint_summary
+        joint = joint_summary(self.result.get('sampling',{}))
+        if joint:
+            description=QLabel(joint)
+            description.setWordWrap(True)
+            description.setToolTip('분포 근거: '+str(self.result.get('sampling',{}).get('source',{}).get('reference','')))
+            layout.addWidget(description)
+            matrix_button=QPushButton('입력 공분산과 상관 보기…')
+            matrix_button.clicked.connect(self._show_joint)
+            layout.addWidget(matrix_button)
         interval = QHBoxLayout()
         self.lower, self.upper = QLineEdit(), QLineEdit()
         self.lower.setAccessibleName('선택 구간 하한')
@@ -90,6 +100,21 @@ class NumericalUQWindow(QDialog):
         self.canvas.mpl_connect('pick_event', self._bin_picked)
         self._show_response()
 
+    def _show_joint(self):
+        from .numerical_extension_widgets import JointDistributionEditor
+        from PySide6.QtWidgets import QDialogButtonBox
+        sampling=self.result['sampling']
+        dialog=QDialog(self)
+        dialog.setWindowTitle('입력 결합분포')
+        dialog.resize(780,450)
+        layout=QVBoxLayout(dialog)
+        editor=JointDistributionEditor(sampling,self.result['variables'],dialog)
+        editor.setEnabled(False)
+        layout.addWidget(editor)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(dialog.close);layout.addWidget(buttons)
+        dialog.exec()
+
     def _show_response(self, *_):
         item = self.response.currentData() or {}
         definition = item.get('threshold') or {'response': item.get('response'), 'unit': item.get('unit')}
@@ -98,7 +123,7 @@ class NumericalUQWindow(QDialog):
         self.table.clearSelection()
         self.table.setRowCount(len(self.result.get('candidates', [])))
         for index, row in enumerate(self.result.get('candidates', [])):
-            reason = row.get('failure_reason', '')
+            reason = row.get('failure_reason') or ''
             predicted = row.get('prediction_status') == 'PREDICTED' or row.get('execution_status') == 'PREDICTED'
             status = 'PREDICTED' if predicted else row.get('execution_status')
             try:
@@ -121,11 +146,23 @@ class NumericalUQWindow(QDialog):
         def retained(value):
             return format(value, '.6g') if type(value) in (int, float) and math.isfinite(value) else '없음'
         quantiles = item.get('quantiles', {})
-        self.summary.setText('유효 ' + str(item.get('valid_count', 0)) + ' / 실패·제외 ' +
+        summary = ('전체 ' + str(item.get('total_count',len(self.result.get('candidates',[])))) +
+            ' / 유효 ' + str(item.get('valid_count', 0)) + ' / 실패·제외 ' +
             str(item.get('failed_count', 0)) + '    평균 ' + retained(item.get('mean')) +
             '    표준편차 ' + retained(item.get('std')) + '\n보존 분위수 5% / 50% / 95%: ' +
             ' / '.join(retained(quantiles.get(key)) for key in ('q05', 'q50', 'q95')) +
             '    성공한 평가에 조건부인 통계')
+        fraction=item.get('exceedance_fraction_valid')
+        if fraction is not None:
+            threshold=item.get('threshold',{})
+            summary += ('\n초과 조건: '+str(threshold.get('operator','>'))+' '+retained(threshold.get('limit'))+
+                ' ['+str(item.get('unit','?'))+']    유효 표본 기준 '+format(100*fraction,'.6g')+
+                '% (분모 '+str(item.get('valid_count',0))+')')
+            bounds=item.get('exceedance_fraction_total_bounds')
+            if bounds is not None:
+                summary += ('    전체 표본 기준 '+format(100*bounds[0],'.6g')+'~'+format(100*bounds[1],'.6g')+
+                    '% (실패값 미확인)')
+        self.summary.setText(summary)
         self.figure.clear()
         self.axis = self.figure.add_subplot(111)
         self._patch_rows = {}

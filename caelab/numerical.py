@@ -1290,8 +1290,12 @@ def analyze_candidates(table, responses, *, seed=13):
 
 
 def run_uq(evaluator_or_factory, variables, distributions, *, settings=None, count=128, seed=0,
-           independence='INDEPENDENT_USER_DECLARED', source=None, thresholds=None, correlation=None, execution=None, record=None):
-    """Declared independent input laws; optimization populations are never reused."""
+           independence='INDEPENDENT_USER_DECLARED', source=None, thresholds=None, correlation=None, joint=None, execution=None, record=None):
+    """Declared input laws; optimization populations are never reused."""
+    if joint is not None or independence == 'JOINT_USER_DECLARED':
+        from .numerical_extensions import run_joint_uq
+        return run_joint_uq(evaluator_or_factory, variables, distributions, settings=settings, count=count, seed=seed,
+            independence=independence, source=source, thresholds=thresholds, correlation=correlation, joint=joint, execution=execution, record=record)
     variables = _variables(variables)
     domains.require_capability('uq', variables)
     if independence not in {'INDEPENDENT_USER_DECLARED', 'CORRELATED_NORMAL_USER_DECLARED'} or not isinstance(source, dict) or source.get('origin') not in ('ASSUMED', 'MEASURED_REPORTED', 'PUBLISHED_REFERENCE', 'SYNTHETIC') or not source.get('reference'):
@@ -1481,7 +1485,8 @@ def sample_sensitivity(variables, *, count=128, seed=0, second_order=False):
             'second_order': second_order, 'seed': seed}, 'candidates': [{'candidate_id': f'S{i:06d}', 'values': dict(zip(problem['names'], row))} for i, row in enumerate(matrix)]}
 
 
-def analyze_sensitivity(plan, table, response):
+def analyze_sensitivity(plan, table, response, *, evaluation_context=None, evaluation_source_ref=None):
+    from .storage import canonical_hash
     domains.require_capability('sensitivity', plan['variables'])
     domains.require_capability('sensitivity', table['variables'])
     try:
@@ -1505,6 +1510,11 @@ def analyze_sensitivity(plan, table, response):
         raise ValueError("Sobol analysis requires complete finite nonconstant model outputs")
     result = analyze(sampling['problem'], y, calc_second_order=sampling['second_order'], seed=sampling['seed'])
     return {'method': 'SALib.sobol', 'sampling': deepcopy(sampling), 'response': deepcopy(response),
+            'variables': deepcopy(planned_variables),
+            'evaluation_context': deepcopy(evaluation_context),
+            'evaluation_context_sha256': canonical_hash(evaluation_context) if evaluation_context is not None else None,
+            'evaluation_source_ref': deepcopy(evaluation_source_ref),
+            'matched_design_sha256': canonical_hash({'variables': planned_variables, 'sampling': sampling, 'candidates': expected}),
             'indices': {key: _nullable(np.asarray(value).tolist()) for key, value in result.items()},
             'undefined_indices': 'null: undefined estimates or unused S2 diagonal/lower triangle; never zero',
             'second_order_pairs': [{'first': sampling['problem']['names'][i], 'second': sampling['problem']['names'][j],

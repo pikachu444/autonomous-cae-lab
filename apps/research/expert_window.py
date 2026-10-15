@@ -7,6 +7,7 @@ bounded round or Continue requests additional registered-role responses.
 from __future__ import annotations
 import argparse
 from copy import deepcopy
+from .portable_research_actions import local_rounds
 import json
 import os
 import sys
@@ -112,6 +113,8 @@ class ExpertWindow(QMainWindow):
         self.open_action = QAction('대화 열기…', self, shortcut=QKeySequence.Open)
         self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
         files.addActions([self.new_action, self.open_action, self.save_action])
+        from .portable_research_actions import install
+        install(self, files, 'expert')
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
@@ -828,7 +831,7 @@ class ExpertWindow(QMainWindow):
             self.local_dirty = late_edit
             self._show_document(payload['document'], preserve_buffer=late_edit)
             if operation == 'expert.ask':
-                active = next((row for row in self.document.get('discussion', {}).get('rounds', [])
+                active = next((row for row in local_rounds(self.document)
                                if row.get('command_id') == command_id), None)
                 self._auto_round_id = active['id'] if active else None
                 self._round_started_here = self._auto_round_id is not None
@@ -856,7 +859,7 @@ class ExpertWindow(QMainWindow):
 
     def _protocol_state(self):
         discussion = self.document.get('discussion', {}) if self.document else {}
-        rounds = [row for row in discussion.get('rounds', []) if row.get('protocol') == 'costorm']
+        rounds = [row for row in local_rounds(self.document) if row.get('protocol') == 'costorm']
         active = next((row for row in rounds if row.get('status') in {'READY', 'RUNNING'}), None)
         return discussion, rounds, active
 
@@ -885,7 +888,7 @@ class ExpertWindow(QMainWindow):
         self.partial_responses_action.setEnabled(readable)
         self.partial_responses_button.setVisible(mode and has_interrupted)
         self.partial_responses_button.setEnabled(readable)
-        self.protocol_mode.setEnabled(enabled and not discussion.get('rounds'))
+        self.protocol_mode.setEnabled(enabled and not local_rounds(self.document))
         self.conversation_pages.setTabVisible(1, mode or bool(state.get('report')))
         self.next_button.setVisible(mode)
         self.retry_button.setVisible(mode and bool(state.get('can_retry') or self._protocol_delivery))
@@ -903,12 +906,12 @@ class ExpertWindow(QMainWindow):
             self.ask_button.setEnabled(enabled and not self._draft_problem
                 and bool(self.question.toPlainText().strip()) and not self._protocol_steps
                 and not self._protocol_delivery and (bool(rounds) or not discussion.get('paused')))
-            self.next_button.setEnabled(enabled and bool(state.get('ready')) and not active
+            self.next_button.setEnabled(enabled and bool(rounds) and bool(state.get('ready')) and not active
                 and not discussion.get('paused') and not state.get('can_retry') and not self._protocol_steps
                 and not self._protocol_delivery)
-            self.retry_button.setEnabled(enabled and not active and not discussion.get('paused')
+            self.retry_button.setEnabled(enabled and bool(rounds) and not active and not discussion.get('paused')
                                          and not self._protocol_steps)
-        self.report_view.generate.setEnabled(enabled and mode and bool(state.get('ready'))
+        self.report_view.generate.setEnabled(enabled and mode and bool(rounds) and bool(state.get('ready'))
             and not active and not state.get('can_retry') and not discussion.get('paused')
             and not self._protocol_steps and not self._protocol_delivery)
         self.report_view.generate.setText('보고서 다시 작성' if state.get('report') else '보고서 작성')
@@ -1027,7 +1030,7 @@ class ExpertWindow(QMainWindow):
     def ask(self):
         if self.protocol_mode.currentData() == 'costorm':
             started = any(row.get('protocol') == 'costorm'
-                          for row in self.document.get('discussion', {}).get('rounds', []))
+                          for row in local_rounds(self.document))
             return self.protocol_action('expert.advance' if started else 'expert.ask',
                                         participate=started)
         def request():
@@ -1065,7 +1068,7 @@ class ExpertWindow(QMainWindow):
             self.local_dirty = preserve
             self._show_document(payload['document'], preserve_buffer=preserve)
             if operation == 'expert.resume':
-                active = next((row for row in self.document.get('discussion', {}).get('rounds', [])
+                active = next((row for row in local_rounds(self.document)
                                if row.get('status') in {'READY', 'RUNNING'}), None)
                 self._auto_round_id = active['id'] if active else None
                 self._round_started_here = self._auto_round_id is not None
@@ -1105,7 +1108,8 @@ class ExpertWindow(QMainWindow):
             self._show_document(remote, preserve_buffer=self.local_dirty)
             active = next((row for row in remote.get('discussion', {}).get('rounds', []) if row.get('id') == self._auto_round_id), None)
             dispatch_ready = active and (active['status'] == 'READY' or active.get('dispatch_pending'))
-            if self._round_started_here and dispatch_ready and not remote.get('discussion', {}).get('paused') and not self.conflict:
+            if (self._round_started_here and dispatch_ready and not remote.get('portable_research_owner')
+                    and not remote.get('discussion', {}).get('paused') and not self.conflict):
                 round_id = self._auto_round_id
                 def advance():
                     if (self.document and (self.document['id'], self.document['session_id']) == (identifier, session)
@@ -1624,7 +1628,7 @@ class ExpertWindow(QMainWindow):
         if present:
             paused = self.document.get('discussion', {}).get('paused', False)
             state = 'Paused; active calculations are independent' if paused else 'Discussion ready'
-            active = next((row for row in self.document.get('discussion', {}).get('rounds', [])
+            active = next((row for row in local_rounds(self.document)
                            if row.get('status') in {'READY', 'RUNNING'}), None)
             state = ('Pausing after current response' if paused and active and active.get('active_job_id')
                      else 'Paused' if paused else 'Responding…' if active and active.get('active_job_id')
@@ -1719,6 +1723,8 @@ class ExpertWindow(QMainWindow):
             if role_dialog is not None:
                 role_dialog.reject()
             self.timer.stop()
+            from .portable_research_actions import close_children
+            close_children(self)
             event.accept()
             return
         event.ignore()
@@ -1793,7 +1799,12 @@ def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener
     window._schedule_citation = schedule_reference
 
     def reference(reference):
-        frozen = deepcopy(reference)
+        from .portable_research_actions import navigation
+        try:
+            frozen = navigation(window.document, reference)
+        except ValueError as error:
+            window.message.setText(str(error))
+            return False
         owner = (window.document['id'], window.document['session_id'])
         item = window.turns.currentItem()
         turn_id = item.data(Qt.ItemDataRole.UserRole) if item else None

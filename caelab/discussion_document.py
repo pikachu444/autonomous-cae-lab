@@ -8,6 +8,7 @@ import uuid
 
 from .material_document import MaterialDocuments
 from . import discussion_costorm as costorm
+from . import portable_research_owner as portable
 from .jobs import TERMINAL
 from .assist.knowledge import selected_source_refs
 from .evaluation import read_result
@@ -103,8 +104,9 @@ class DiscussionDocuments(MaterialDocuments):
 
     def _recover_evaluations(self, document):
         """Harvest actual finished jobs, never request inference from a read."""
+        portable.verify_owner(self, document)
         changed = False
-        for record in self._state(document)['rounds']:
+        for record in portable.live_rounds(document):
             if record['status'] not in {'READY', 'RUNNING'}:
                 continue
             if record.get('dispatch_pending') and not record.get('active_job_id'):
@@ -122,7 +124,20 @@ class DiscussionDocuments(MaterialDocuments):
         self._state(document)
         result = super()._public(document)
         result['turns'] = deepcopy(document['discussion']['turns'])
-        return result
+        return portable.public_view(self, document, result)
+
+    def _retain_inputs(self, saved, folder):
+        super()._retain_inputs(saved, folder)
+        portable.retain(self, saved, folder)
+
+    def result(self, identifier, job_id, *, selection=None):
+        with self._lock(identifier):
+            self.read(identifier)
+            document = self._documents[identifier]
+            run = next((row for row in document['runs'] if row['job_id'] == job_id), None)
+            if run is not None:
+                portable.require_result(self, document, run)
+            return super().result(identifier, job_id, selection=selection)
 
     def _validate_sources(self, context):
         references = selected_source_refs(context)
@@ -219,7 +234,9 @@ class DiscussionDocuments(MaterialDocuments):
         return 'expert:' + document['id'] + ':' + record['id'] + ':' + str(record['next_index'])
 
     def _attach_job(self, document, round_record, job, arguments):
-        if job['operation'] != 'experts.ask' or canonical_hash(job['arguments']) != canonical_hash(arguments):
+        portable.assert_live(document, round_record)
+        if (job.get('request_id') != self._request_id(document, round_record) or
+                job['operation'] != 'experts.ask' or canonical_hash(job['arguments']) != canonical_hash(arguments)):
             raise ValueError('Recovered discussion request differs from its frozen runtime input')
         role = round_record['roles'][round_record['next_index']]
         if not any(run['job_id'] == job['id'] for run in document['runs']):
@@ -231,6 +248,7 @@ class DiscussionDocuments(MaterialDocuments):
         round_record.pop('prepared_arguments', None)
 
     def _submit_next(self, document, round_record):
+        portable.assert_live(document, round_record)
         index = round_record['next_index']
         if index >= len(round_record['roles']):
             round_record['status'] = 'COMPLETED'
@@ -263,6 +281,7 @@ class DiscussionDocuments(MaterialDocuments):
         return job
 
     def _read_response(self, document, run):
+        portable.require_result(self, document, run)
         if run.get('retained_result'):
             revision = run['retained_result']['revision']
             self._verify_revision(document['id'], revision)
@@ -271,6 +290,7 @@ class DiscussionDocuments(MaterialDocuments):
         return self.manager.result(run['job_id'])
 
     def _collect(self, document, round_record):
+        portable.assert_live(document, round_record)
         job_id = round_record.get('active_job_id')
         if not job_id:
             return False
@@ -279,11 +299,18 @@ class DiscussionDocuments(MaterialDocuments):
             state, error = run['retained_state'], run.get('retained_error')
         else:
             status = self.manager.status(job_id)
+            if (status.get('request_id') != self._request_id(document, round_record)
+                    or status['operation'] != 'experts.ask' or status['arguments'] != run['arguments']):
+                raise ValueError('Current job does not match this exact local round request')
             state, error = status['state'], status.get('error')
         if state not in TERMINAL:
             return False
         try:
             response = self._read_response(document, run)
+        except PermissionError as failure:
+            round_record.update(status='BLOCKED_SOURCES', active_job_id=None, completed_job_id=job_id,
+                                source_error=str(failure))
+            return True  # Preserve the returned bytes; no hidden retry or draft change.
         except (ValueError, FileNotFoundError) as failure:
             response = {'status': state, 'answer': None, 'reason': (error or {}).get('message', str(failure)),
                         'error': deepcopy(error), 'sources': [], 'proposed_actions': []}
@@ -305,7 +332,7 @@ class DiscussionDocuments(MaterialDocuments):
                     round_record['draft']['context'].get('selected_sources')))})
         round_record.update(active_job_id=None, next_index=round_record['next_index'] + 1)
         # Failure stops this round; resume never silently retries a failed role.
-        if state != 'SUCCEEDED' or response.get('status') in {'FAILED', 'NOT_CONFIGURED', 'STOPPED'}:
+        if state != 'SUCCEEDED' or response.get('status') in {'FAILED', 'NOT_CONFIGURED', 'MISSING_DEPENDENCIES', 'REJECTED', 'STOPPED'}:
             round_record['status'] = 'INTERRUPTED' if state in {'CANCELLED', 'INTERRUPTED'} or response.get('status') == 'STOPPED' else 'FAILED'
         else:
             round_record['status'] = 'COMPLETED' if round_record['next_index'] == len(round_record['roles']) else 'READY'
@@ -313,8 +340,9 @@ class DiscussionDocuments(MaterialDocuments):
 
     def command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         if operation not in SPECIAL_OPERATIONS:
-            return super().command(identifier, operation, arguments, session_id=session_id,
-                                   expected_generation=expected_generation, command_id=command_id)
+            response = super().command(identifier, operation, arguments, session_id=session_id,
+                                       expected_generation=expected_generation, command_id=command_id)
+            return portable.command_response(self, response)
         if arguments != {}:
             raise ValueError('Discussion progression requires empty arguments; edit the draft explicitly first')
         if session_id != self.session_id:
@@ -327,20 +355,22 @@ class DiscussionDocuments(MaterialDocuments):
         with self._lock(identifier):
             self.read(identifier)
             current = self._documents[identifier]
+            if command_id in current.get(portable.HISTORY, {}).get('commands', []):
+                raise PermissionError('EXPERT_ORIGIN_COMMAND: 원 command는 현지 승인/응답 복구로 사용하지 않습니다.')
             receipt = self._folder(identifier) / 'commands' / (command_id + '.json')
             if receipt.exists():
                 prior = load_json(receipt)
                 if prior['request_hash'] != signature:
                     raise ValueError('command_id conflicts with an earlier request')
                 if 'response' in prior:
-                    return prior['response']
+                    return portable.command_response(self, prior['response'])
                 if prior.get('applied') or command_id in current.get('_expert_applied_commands', []):
                     response = {'document': self._public(current), 'command_id': command_id,
                                 'recovered_after_response_loss': True}
                     save_json(receipt, {'request_hash': signature, 'response': response})
                     return response
-                if any(row.get('command_id') == command_id for row in self._state(current)['rounds']) or any(
-                        row.get('command_id') == command_id for row in self._state(current)['turns']):
+                if any(row.get('command_id') == command_id for row in portable.live_rounds(current)) or any(
+                        row.get('command_id') == command_id for row in portable.live_turns(current)):
                     # Dispatch may have been submitted while its response was lost.
                     response = {'document': self._public(current), 'command_id': command_id,
                                 'recovered_after_response_loss': True}
@@ -351,7 +381,7 @@ class DiscussionDocuments(MaterialDocuments):
                 raise ValueError('Document generation changed; reread before applying')
             document = deepcopy(current)
             state = self._state(document)
-            active = next((row for row in state['rounds'] if row['status'] in {'READY', 'RUNNING'}), None)
+            active = next((row for row in portable.live_rounds(document) if row['status'] in {'READY', 'RUNNING'}), None)
             if operation in {'expert.ask', 'expert.intervene'}:
                 self._validate_question(document, needs_roles=operation == 'expert.ask')
             if operation == 'expert.ask' and (state['paused'] or active):
@@ -374,7 +404,8 @@ class DiscussionDocuments(MaterialDocuments):
                 changed = True
                 if operation == 'expert.ask' and costorm.enabled(document):
                     active = costorm.start_record(self, document, command_id, action='start', turn=turn)
-                    document['draft']['composer'].update(text='', reply_to=None)
+                    if portable.MARKER not in document:
+                        document['draft']['composer'].update(text='', reply_to=None)
                     self._changed(document)
                     self._persist_draft(document)
                     self._documents[identifier] = document
@@ -388,7 +419,7 @@ class DiscussionDocuments(MaterialDocuments):
                         'draft': deepcopy(document['draft']),
                         'knowledge_sources': selected_source_refs(document['draft']['context']),
                         'input_generation': document['generation'],
-                        'input_revision': document['input_revision'], 'history': deepcopy(state['turns'])}
+                        'input_revision': document['input_revision'], 'history': deepcopy(portable.live_turns(document))}
                     state['rounds'].append(active)
                     self._changed(document)
                     self._persist_draft(document)
@@ -397,7 +428,8 @@ class DiscussionDocuments(MaterialDocuments):
                     changed = False  # generation already advanced before publishing dispatch
                 elif costorm.enabled(document):
                     # The append-only authored turn retains the exact submitted text.
-                    document['draft']['composer'].update(text='', reply_to=None)
+                    if portable.MARKER not in document:
+                        document['draft']['composer'].update(text='', reply_to=None)
             elif (operation in costorm.OPERATIONS or
                   operation == 'expert.advance' and not active and costorm.records(document)):
                 if active:

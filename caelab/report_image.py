@@ -506,7 +506,10 @@ def merge_read_assets(previous, received):
     for asset in received:
         identifier = asset.get('id')
         old = result.get(identifier)
-        if 'content' not in asset and old and 'content' in old:
+        if asset.get('snapshot_status') == 'SCOPE_REQUIRED':
+            # Access denial is NOT image damage; an old preview cannot grant read rights.
+            result[identifier] = deepcopy(asset)
+        elif 'content' not in asset and old and 'content' in old:
             result[identifier] = {**old, 'source_status': 'SNAPSHOT_UNAVAILABLE',
                 'message': asset.get('message', ''), 'retained_preview_only': True}
         else:

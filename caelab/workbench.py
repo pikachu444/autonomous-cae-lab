@@ -45,11 +45,12 @@ class Workbench:
             checked = verify_project(candidate)
             if checked['status'] != 'READY':
                 raise PortableProjectError([Issue(**issue) for issue in checked['issues']])
+        self._portable_manifest = load_json(candidate/'portable-project.json') if (candidate/'portable-project.json').is_file() else None
         self.workspace=candidate.resolve()
         self.root=self.workspace/'workbench'
         self.root.mkdir(parents=True,exist_ok=True)
         self.config=deepcopy(configuration or {})
-        self.workspace_id=self.config.get('workspace_id','local')
+        self.workspace_id=self.config.get('workspace_id', (self._portable_manifest or {}).get('knowledge_workspace_id', 'local'))
         if set(self.config.get('external_backends',{})) & {row['id'] for row in list_backends()}:
             raise ValueError('Workspace external backend IDs must not replace global registered backends')
         self.manager=JobManager(self.root,self._execute,workers=self.config.get('workers',2),cpu_budget=self.config.get('cpu_budget'))
@@ -94,6 +95,11 @@ class Workbench:
         from .report_document import ReportDocuments
         self.report_documents = ReportDocuments(self.root, self.session_id, self.submit, self.manager,
             resolve_reference=lambda reference: self.research_reference(reference))
+        for owner in (self.study_documents, self.discussion_documents, self.report_documents):
+            owner.knowledge_access = lambda reference: self.assistance().knowledge.check_access(
+                **reference, workspace_id=self.workspace_id)
+            owner.literature_access = lambda reference: self.assistance().literature.read(
+                reference['paper_id'], reference['locator'])
         self.desktop=DesktopLinks(self)
 
     def research_owners(self):
@@ -610,6 +616,11 @@ class Workbench:
             match=self.desktop.research_job(identifier)
             if match and match[2].get('retained_result'):
                 return match[0].result(match[1]['id'],identifier,selection=selection)
+        job = self.manager.status(identifier)
+        if job.get('operation') == 'experts.ask':
+            from .portable_research_knowledge import draft_refs, require_owner_sources
+            require_owner_sources(self.discussion_documents, draft_refs('expert',
+                {'context': job.get('arguments', {}).get('context', {})}))
         # The job owns its native path. A browser/LLM never supplies a solver
         # output directory or a replacement outcome to the native reader.
         summary=self.manager.result(identifier,selection={'responses':[]})
@@ -796,8 +807,12 @@ class Workbench:
                    'numerical.analyze':lambda request:self._execute('analyze',request,'read'),
                    'numerical.fit':lambda request:self._numerical_submit('fit',request),
                    'numerical.optimize':lambda request:self._numerical_submit('optimize',request)}
-        return Assistance(self.root/'assistance',experts=configuration.get('experts'),runtime=runtime,
+        assistance = Assistance(self.root/'assistance',experts=configuration.get('experts'),runtime=runtime,
                                    callbacks=callbacks,source_roots=[self.root])
+        if self._portable_manifest:
+            from .portable_research_knowledge import bind_store
+            bind_store(assistance.knowledge, self.workspace, self._portable_manifest)
+        return assistance
 
     @staticmethod
     def _numerical_arguments(operation, request):
@@ -864,6 +879,10 @@ class Workbench:
         args=deepcopy(validated['inputs'])
         from .research_operations import validate_result_refs
         validate_result_refs(operation,args)
+        if operation == 'surrogate' and 'search' in args:
+            args['search'] = self._numerical_arguments('optimize',
+                {**args['search'], 'budget':validated['budget']})
+            return args
         if operation in {'doe','fit','optimize','uq','epsilon'}:
             return self._numerical_arguments(operation,{**args,'budget':validated['budget']})
         if operation=='evaluate' and str(args.get('backend','')).startswith('pde.'):
@@ -1244,6 +1263,9 @@ class Workbench:
                 plan=self.result(args['batch_job'])['manifest']
             return numerical.import_batch(plan,args['results'])
         if operation=='surrogate':
+            if 'retained_model' in args and 'search' in args:
+                from .surrogate_archive import search
+                return search(args['retained_model'], source_ref=args.get('model_reference'), **args['search'])
             if 'retained_model' in args:
                 from .surrogate_archive import predict
                 return predict(args['retained_model'], args['points'])
@@ -1255,9 +1277,13 @@ class Workbench:
             return surrogate_result(training,holdout,args['response'],args['points'],
                                     variables=args.get('variables'),options=args.get('options'))
         if operation=='sensitivity':
+            if 'baseline' in args and 'refined' in args:
+                from .numerical_extensions import compare_sobol
+                return compare_sobol(args['baseline'], args['refined'], source_refs=args.get('comparison_refs'))
             table=args.get('table')
             if table is None: table=self.result(args['job_id'])
-            return numerical.analyze_sensitivity(args['plan'],table,args['response'])
+            return numerical.analyze_sensitivity(args['plan'],table,args['response'],
+                evaluation_context=args.get('evaluation_context'), evaluation_source_ref=args.get('evaluation_source_ref'))
         raise ValueError('Unknown operation')
 
     def shutdown(self, timeout=5):

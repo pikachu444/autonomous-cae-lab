@@ -266,6 +266,8 @@ class ReportDocuments(MaterialDocuments):
         frozen = load_json(path)
         from .portable_project_report import verify
         verify(self, document, binding, path, frozen)
+        from .portable_research_knowledge import require_frozen
+        require_frozen(self, frozen)
         if frozen['content'].get('kind') == 'post_image':
             report_image.validate_content(frozen['content'], binding['reference'])
         return frozen
@@ -299,6 +301,10 @@ class ReportDocuments(MaterialDocuments):
                 if issues:
                     state, message = 'UNAVAILABLE', issues[0]['message'] + ' 확인된 작업 사본은 유지합니다.'
                 rows.append({'id': binding['id'], **frozen, 'source_status': state, 'message': message})
+            except PermissionError as error:
+                rows.append({'id': binding.get('id'), 'source_status': 'SOURCE_UNAVAILABLE',
+                    'navigation_status': 'SOURCE_UNAVAILABLE', 'navigation_reference': None,
+                    'snapshot_status': 'SCOPE_REQUIRED', 'message': str(error)})
             except Exception as error:
                 rows.append({'id': binding.get('id'), 'source_status': 'SNAPSHOT_UNAVAILABLE', 'message': str(error)})
         return {'document_id': identifier, 'assets': rows}

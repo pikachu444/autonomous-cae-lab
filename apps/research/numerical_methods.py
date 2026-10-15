@@ -14,7 +14,8 @@ from caelab.storage import canonical_hash
 DATA = Qt.ItemDataRole.UserRole
 METHODS = {'fit','doe','optimize','uq','epsilon','sample_sensitivity','sensitivity','analyze','surrogate'}
 ROLES = {'table':'분석 자료','plan':'Sobol 표본','training':'학습 자료','holdout':'검증 자료',
-         'model':'저장 모델','candidates':'평가할 표본','batch':'입력 묶음','results':'계산 자료'}
+         'model':'저장 모델','candidates':'평가할 표본','batch':'입력 묶음','results':'계산 자료',
+         'baseline':'기준 N 분석','refined':'확장 2N 분석'}
 STATE = {'SUCCEEDED':'계산됨','PARTIAL_FAILURE':'일부 실패','FAILED':'실패','REJECTED':'실행 거절',
          'CANCELLED':'취소됨','PREDICTED':'예측','NOT_EVALUATED':'미평가'}
 SOURCES = ('ASSUMED','MEASURED_REPORTED','PUBLISHED_REFERENCE','SYNTHETIC')
@@ -22,6 +23,7 @@ SOURCES = ('ASSUMED','MEASURED_REPORTED','PUBLISHED_REFERENCE','SYNTHETIC')
 
 CHOICE_LABELS = {
     'INDEPENDENT_USER_DECLARED':'독립 분포', 'CORRELATED_NORMAL_USER_DECLARED':'상관 정규분포',
+    'JOINT_USER_DECLARED':'명시 결합분포',
     'ASSUMED':'사용자 가정', 'MEASURED_REPORTED':'측정 자료', 'PUBLISHED_REFERENCE':'공개 문헌', 'SYNTHETIC':'합성 예제',
     'summary':'요약 응답', 'all':'전체 응답', 'linear':'선형', 'log':'로그',
     'fit':'피팅', 'holdout':'검증', 'minimize':'최소화', 'maximize':'최대화',
@@ -70,6 +72,67 @@ def objective_label(row):
     location=row.get('location')
     if isinstance(location,str) and location and location!='model':response+=' ('+location+')'
     return response+' ['+str(row.get('unit') or '단위 미지정')+'] '+CHOICE_LABELS.get(row.get('direction','minimize'),str(row.get('direction')))
+
+
+def refresh_retained_labels(window, references):
+    """Read exact source names asynchronously; never replace an edited buffer."""
+    from PySide6.QtCore import QTimer
+    cache=window.__dict__.setdefault('_retained_source_labels',{})
+    for row,(role,reference) in enumerate(references.items()):
+        if not isinstance(reference,dict):
+            window._set_cell(window.pinned_sources,row,0,ROLES.get(role,role),False)
+            window._set_cell(window.pinned_sources,row,1,'원자료 선택을 확인하세요',False)
+            continue
+        label,reason=cache.get(canonical_hash(reference),('자료 이름 확인 중',''))
+        window._set_cell(window.pinned_sources,row,0,ROLES.get(role,role),False)
+        window._set_cell(window.pinned_sources,row,1,label,False)
+        window.pinned_sources.item(row,1).setToolTip(reason+'\n진단 정보\n'+'\n'.join(
+            str(key)+': '+str(value) for key,value in reference.items()))
+    if (not references or all(canonical_hash(ref) in cache for ref in references.values())
+            or getattr(window,'_retained_labels_scheduled',False)):
+        return
+    window._retained_labels_scheduled=True
+    def current_context():
+        if not window.document:return None
+        return (window.document['id'],window.document['session_id'],
+                canonical_hash(window.edited_draft(commit=False)))
+    def drain():
+        from shiboken6 import isValid
+        if not isValid(window) or window._closed:return
+        if window._busy or window._callbacks:
+            QTimer.singleShot(40,drain);return
+        context=current_context()
+        current=window.edited_draft(commit=False)['request']['inputs'].get('result_refs',{})
+        if not isinstance(current,dict):
+            window._retained_labels_scheduled=False;return
+        refs={canonical_hash(ref):deepcopy(ref) for ref in current.values() if isinstance(ref,dict) and canonical_hash(ref) not in cache}
+        if not refs:
+            window._retained_labels_scheduled=False;return
+        def read():
+            result={}
+            for key,ref in refs.items():
+                try:
+                    from caelab.research_operations import validate_result_reference
+                    validate_result_reference(ref)
+                    document=window.client.document_read(ref['document_id'])
+                    if window.client.document_result_reference(ref['document_id'],ref['job_id'])!=ref:
+                        raise ValueError('선택한 저장 결과의 입력 또는 내용이 바뀌었습니다.')
+                    runs=document.get('runs',[])
+                    index=next(i for i,run in enumerate(runs) if run.get('job_id')==ref['job_id'])
+                    request=runs[index].get('draft',{}).get('request',{})
+                    purpose=request.get('purpose') or '저장 결과'
+                    result[key]=(document['title']+' / 계산 '+str(index+1)+' / '+purpose,'')
+                except Exception as error:
+                    result[key]=('원자료 읽기 실패',str(error)+' 저장 결과를 다시 선택하세요.')
+            return result
+        def accepted(result):
+            cache.update(result);window._retained_labels_scheduled=False
+            if current_context()==context:window._refresh_input_summary()
+            else:
+                current=window.edited_draft(commit=False)['request']['inputs'].get('result_refs',{})
+                refresh_retained_labels(window,current if isinstance(current,dict) else {})
+        window._call(read,accepted,background=True)
+    QTimer.singleShot(0,drain)
 
 
 def display_number(value):
@@ -146,31 +209,11 @@ class MethodDialog(QDialog):
                         ('uniform','normal','truncnorm','lognormal') if j==2 else ())
             note=QLabel('정규·로그정규 꼬리는 자르지 않습니다. 절단정규는 변수의 평가 범위를 사용합니다.')
             note.setWordWrap(True);layout.addWidget(note)
-            matrix=table('정규분포 상관',['변수']+self.names)
-            matrix.setRowCount(len(self.names))
-            current=value.get('correlation',{})
-            current=current if isinstance(current,dict) else {}
-            raw=current.get('matrix',[])
-            if current and current.get('variables')!=self.names:
-                # Do not relabel an AB coefficient as AC after removing/reordering B.
-                # Leave the original invalid declaration untouched until explicit
-                # removal or a complete new matrix is entered.
-                raw=[]
-                warning=QLabel('변수가 바뀌었습니다. 기존 상관은 유지되며 실행이 차단됩니다. 새 행렬을 입력하거나 상관을 제거하세요.')
-                warning.setWordWrap(True);layout.addWidget(warning)
-            for i,name in enumerate(self.names):
-                cell(matrix,i,0,name)
-                for j in range(len(self.names)):
-                    item=raw[i][j] if i<len(raw) and isinstance(raw[i],list) and j<len(raw[i]) else ''
-                    cell(matrix,i,j+1,item,('correlation','matrix',i,j),True)
-            self.correlation_table=matrix
-            self.clear_correlation=False
-            clear=QPushButton('상관 제거')
-            def clear_matrix():
-                self.clear_correlation=True
-                for i in range(matrix.rowCount()):
-                    for j in range(matrix.rowCount()):matrix.item(i,j+1).setText('')
-            clear.clicked.connect(clear_matrix);layout.addWidget(clear)
+            from .numerical_extension_widgets import JointDistributionEditor
+            self.joint_editor=JointDistributionEditor(value,variables,self)
+            self.tabs.addTab(self.joint_editor,'결합분포')
+            # Existing callers address this table; its cells still preserve exact text.
+            self.correlation_table=self.joint_editor.matrix
         elif operation=='epsilon':
             objectives=value.get('objectives',[])
             primary=value.get('primary_index',0)
@@ -246,16 +289,8 @@ class MethodDialog(QDialog):
                         if meta['path'][0]=='distributions':
                             law=result['distributions'][meta['path'][1]]
                             if 'unit' not in law:law['unit']=t.item(i,1).text()
-        if hasattr(self,'correlation_table'):
-            t=self.correlation_table
-            changed=any(t.item(i,j+1).text()!=t.item(i,j+1).data(DATA)['shown']
-                for i in range(t.rowCount()) for j in range(t.rowCount()))
-            if self.clear_correlation and all(not t.item(i,j+1).text() for i in range(t.rowCount()) for j in range(t.rowCount())):
-                result.pop('correlation',None)
-                result['independence']='INDEPENDENT_USER_DECLARED'
-            elif changed:
-                result['correlation']={'variables':self.names,'matrix':[
-                    [number(t.item(i,j+1).text()) for j in range(t.rowCount())] for i in range(t.rowCount())]}
+        if hasattr(self,'joint_editor'):
+            result=self.joint_editor.apply(result)
         if hasattr(self,'grid_table'):
             t=self.grid_table
             result['threshold_grid']=[[number(t.item(i,j).text()) for j in range(2,t.columnCount())
@@ -273,7 +308,11 @@ def edit_method(window):
         ref=refs.get('model',refs.get('training',{}))
         metadata=window._source_metadata.get(canonical_hash(ref),{})
         value['variables']=deepcopy(metadata.get('variables',[]))
-    dialog=MethodDialog(window,value,operation)
+    if operation=='surrogate' and 'search' in value:
+        from .numerical_extension_widgets import SurrogateSearchDialog
+        dialog=SurrogateSearchDialog(value,window)
+    else:
+        dialog=MethodDialog(window,value,operation)
     if dialog.exec()!=QDialog.DialogCode.Accepted:return
     if identity!=(window.document['id'],window.document['session_id']) or window.edited_draft()!=before:
         window.message.setText('계획이 바뀌었습니다. 현재 편집을 유지했으니 다시 선택하세요.');return
@@ -289,9 +328,13 @@ def method_settings(operation,value):
         add('표본 수' if operation=='uq' else 'Sobol 기본 표본 수',('count',),128,True)
         add('난수 시드',('seed',),0,True)
     if operation=='uq':
-        add('분포 관계',('independence',),'',False,('INDEPENDENT_USER_DECLARED','CORRELATED_NORMAL_USER_DECLARED'))
+        add('분포 관계',('independence',),'',False,('INDEPENDENT_USER_DECLARED','CORRELATED_NORMAL_USER_DECLARED','JOINT_USER_DECLARED'))
         add('분포 근거',('source','origin'),'',False,SOURCES)
         add('자료 또는 가정',('source','reference'),'')
+    elif operation=='surrogate' and 'search' in value:
+        add('예측 탐색 세대 수',('search','options','max_generations'),5,True)
+        add('예측 탐색 집단 크기',('search','options','population_size'),8,True)
+        add('난수 시드',('search','seed'),0,True)
     elif operation=='sample_sensitivity':
         add('2차 효과 포함',('second_order',),False,False,(False,True))
     elif operation=='epsilon':
@@ -310,7 +353,45 @@ def method_settings(operation,value):
         add('형상 계수 (필요한 커널)',('options','epsilon'),1.,True)
         degree={'multiquadric':0,'linear':0,'thin_plate_spline':1,'cubic':1,'quintic':2}.get((value.get('options') if isinstance(value.get('options'),dict) else {}).get('kernel','thin_plate_spline'),0)
         add('다항식 차수',('options','degree'),degree,True)
+        add('이웃 수',('options','neighbors'),None,True,(('전역',None),))
     return rows
+
+
+def refresh_search_sheet(window,value,operation):
+    """Use the existing worksheet for the selected archive's nested search."""
+    search=value.get('search') if operation=='surrogate' else None
+    active=isinstance(search,dict)
+    widgets=(window.variables_button,window.variable_domains_button,window.remove_variable_button,window.remove_response_button)
+    if active:
+        if not hasattr(window,'_search_hidden_controls'):
+            window._search_hidden_controls=[(widget,widget.isHidden()) for widget in widgets]
+        for widget in widgets:widget.hide()
+    else:
+        for widget,hidden in window.__dict__.pop('_search_hidden_controls',[]):widget.setHidden(hidden)
+        return
+    variables=search.get('variables',[])
+    variables=variables if isinstance(variables,list) else []
+    window.variable_sheet.setRowCount(len(variables))
+    for row,variable in enumerate(variables):
+        if not isinstance(variable,dict):continue
+        for column,key in enumerate(('id','id','value','lower','upper','unit','transform')):
+            path=('search','variables',row,key) if key in {'value','lower','upper'} else None
+            window._sheet_cell(window.variable_sheet,row,column,variable.get(key),path,numeric=key in {'value','lower','upper'})
+    definitions=[('목표',search.get('objective',{}),('search','objective'))]
+    constraints=search.get('constraints',[])
+    if isinstance(constraints,list):definitions.extend(('제약',d,('search','constraints',i)) for i,d in enumerate(constraints))
+    window.response_sheet.setRowCount(len(definitions))
+    for row,(label,definition,path) in enumerate(definitions):
+        if not isinstance(definition,dict):continue
+        window._sheet_cell(window.response_sheet,row,0,label)
+        window._sheet_cell(window.response_sheet,row,1,definition.get('response'))
+        window._sheet_cell(window.response_sheet,row,2,definition.get('reduction'),choices=tuple(CHOICE_LABELS))
+        key='direction' if label=='목표' else 'operator'
+        window._sheet_cell(window.response_sheet,row,3,definition.get(key),path+(key,),
+            choices=('minimize','maximize') if label=='목표' else ('<=','>='))
+        window._sheet_cell(window.response_sheet,row,4,definition.get('limit'),
+            path+('limit',) if label=='제약' else None,numeric=True)
+        window._sheet_cell(window.response_sheet,row,5,definition.get('unit'))
 
 
 def refresh_extra(window,value,operation):
@@ -326,6 +407,8 @@ def refresh_extra(window,value,operation):
     visible=operation in {'uq','epsilon','surrogate','doe'}
     window.method_edit.setVisible(visible)
     window.method_edit.setText({'uq':'분포와 상관…','epsilon':'목표별 한계값…','surrogate':'예측할 점…','doe':'후보 직접 지정…'}.get(operation,'방법 설정'))
+    if operation=='surrogate' and 'search' in value:
+        window.method_edit.setText('저장 모델 예측 탐색…')
     summary=''
     if operation=='uq':
         laws=value.get('distributions',{})
@@ -335,8 +418,11 @@ def refresh_extra(window,value,operation):
         grid=value.get('threshold_grid',[])
         summary='한계 조합 '+str(math.prod(len(row) for row in grid) if grid and all(isinstance(row,list) for row in grid) else 0)+'개'
     elif operation=='surrogate':
-        summary='저장 모델 예측' if 'model' in value.get('result_refs',{}) else '학습 자료와 별도 검증 자료를 선택하세요.'
-        summary+=' / 예측할 점 '+str(len(value.get('points',[])))+'개'
+        if 'search' in value:
+            summary='저장 모델로 추천점 탐색 / 실제 해석 미수행'
+        else:
+            summary='저장 모델 예측' if 'model' in value.get('result_refs',{}) else '학습 자료와 별도 검증 자료를 선택하세요.'
+            summary+=' / 예측할 점 '+str(len(value.get('points',[])))+'개'
     elif operation=='sample_sensitivity':
         count=value.get('count');variables=value.get('variables',[])
         if type(count) is int:summary='평가할 표본 '+str(count*(2*len(variables)+2 if value.get('second_order') is True else len(variables)+2))+'개 (SALib 필요)'
@@ -426,6 +512,24 @@ def plot(window,result,inputs):
         if ax.containers:ax.legend()
         window.result_summary.setText('matched 표본 '+str(len(result.get('candidate_ids',[])))+'개 / 미정 지수는 값 없음으로 보존')
     elif kind=='surrogate':
+        # Keep exact point identity in item data; the primary table uses task names.
+        rows=result.get('candidates',result.get('predictions',[]))
+        window.candidates.blockSignals(True)
+        for index,row in enumerate(rows):
+            item=window.candidates.item(index,0)
+            if item is None:continue
+            item.setData(Qt.ItemDataRole.UserRole,row.get('candidate_id'))
+            item.setToolTip(str(row.get('candidate_id','')));item.setText('예측점 '+str(index+1))
+            if result.get('surrogate_operation')=='search' and row.get('execution_status')=='PREDICTED':
+                column=window.candidates.columnCount()-3
+                item=window.candidates.item(index,column)
+                item.setText(display_number(row.get('objective')));item.setToolTip(str(row.get('objective')))
+                condition=('예측 충족' if row.get('predicted_feasible') else '예측 위반')
+                if row.get('out_of_range'):condition+=' / 학습 범위 밖'
+                window.candidates.item(index,column+1).setText(condition)
+                window.candidates.horizontalHeaderItem(column).setText('예측 목적값 ['+str(result.get('response',{}).get('unit',''))+']')
+        window.candidates.resizeColumnsToContents()
+        window.candidates.blockSignals(False)
         validation=result.get('validation',{})
         mode=window.method_response.currentData()
         if mode=='holdout':
@@ -449,7 +553,7 @@ def plot(window,result,inputs):
         excluded=validation.get('exclusions',{})
         window.result_summary.setText('검증 RMSE '+display_number(validation.get('rmse'))+' ['+str(validation.get('unit',''))+']'+
             ' / 제외: 학습 '+str(len(excluded.get('training',[])))+', 검증 '+str(len(excluded.get('holdout',[])))+
-            ' / 실제 해석 미수행')
+            ' / 실제 해석 미수행'+(' / 국소 계수 계산' if result.get('local_coefficients_computed') else ''))
     elif result.get('sensitivity'):
         analyses=result['sensitivity']
         index=max(0,window.method_response.currentIndex())

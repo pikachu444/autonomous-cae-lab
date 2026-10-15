@@ -87,6 +87,31 @@ class KnowledgeStore:
         self._manifest = self.root / 'documents.json'
         self._data = json.loads(self._manifest.read_text(encoding='utf-8')) if self._manifest.exists() else {'documents': {}}
 
+    def _reload(self):
+        # Another current local owner may revoke after an earlier inspection.
+        data = (json.loads(self._manifest.read_text(encoding='utf-8'))
+                if self._manifest.exists() else {'documents': {}})
+        if data != self._data:
+            self._store = None  # A cached index never retains an old local grant.
+        self._data = data
+
+    def check_access(self, document_id, revision, *, workspace_id='local', collections=None):
+        with self._lock:
+            self._reload()
+            document = self._data['documents'].get(document_id)
+            if not document or not self._allowed(document, workspace_id, collections):
+                raise PermissionError('Source is missing, revoked or outside the current access scope')
+            if type(revision) is not int or revision < 1 or revision > document['latest_revision']:
+                raise ValueError('Unknown exact document revision')
+            expected = getattr(self, '_portable_bindings', {}).get((document_id, revision))
+            if expected is not None and document.get('portable_revisions', {}).get(str(revision)) != expected:
+                raise PermissionError('KNOWLEDGE_ID_COLLISION: 현지의 다른 내용에 대한 권한을 원 frozen 자료에 재사용할 수 없습니다.')
+            return {'status': 'PERMITTED', 'document_id': document_id, 'revision': revision}
+
+    def revision_details(self, document_id, revision, *, workspace_id='local', collections=None):
+        from ..portable_research_knowledge import revision_details
+        return revision_details(self, document_id, revision, workspace_id=workspace_id, collections=collections)
+
     def _save(self):
         temporary = self._manifest.with_suffix('.tmp')
         temporary.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -106,6 +131,7 @@ class KnowledgeStore:
         segments, failed = read_segments(path)
         data = path.read_bytes()
         with self._lock:
+            self._reload()
             document_id = document_id or uuid.uuid4().hex
             if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', document_id):
                 raise ValueError('Invalid document ID')
@@ -133,18 +159,29 @@ class KnowledgeStore:
             (directory / 'segments.json').write_text(json.dumps(archive, ensure_ascii=False), encoding='utf-8')
             self._data['documents'][document_id] = {'latest_revision': revision, 'collection': collection,
                                                   'access_scope': scope, 'title': title, 'revoked': False}
+            if old and old.get('portable_revisions'):
+                self._data['documents'][document_id]['portable_revisions'] = deepcopy(old['portable_revisions'])
             self._save()
         return {'status': 'INGESTED', 'document_id': document_id, 'revision': revision,
                 'segments_read': len(rows), 'failed_segments': failed, 'sha256': archive['sha256']}
 
     def source(self, document_id, revision=None, locator=None, *, workspace_id='local', collections=None):
         with self._lock:
+            self._reload()
             document = self._data['documents'].get(document_id)
             if not document or not self._allowed(document, workspace_id, collections):
                 raise PermissionError('Source is missing, revoked or outside the current access scope')
+            if revision is None and document.get('portable_revisions'):
+                raise ValueError('ARCHIVED_REVISION_REQUIRED: 보존된 문헌은 정확한 개정을 선택하세요.')
+            if document.get('portable_revisions') and type(revision) is not int:
+                raise ValueError('ARCHIVED_REVISION_REQUIRED: 보존 문헌의 개정은 정확한 정수여야 합니다.')
             revision = document['latest_revision'] if revision is None else int(revision)
             if revision < 1 or revision > document['latest_revision']:
                 raise ValueError('Unknown document revision')
+            from ..portable_research_knowledge import archived_source
+            carried = archived_source(self, document, document_id, revision, locator)
+            if carried is not None:
+                return carried
             archive = json.loads((self.root / document_id / str(revision) / 'segments.json').read_text(encoding='utf-8'))
             rows = archive['segments']
             if locator:
@@ -156,11 +193,13 @@ class KnowledgeStore:
 
     def list(self, *, workspace_id='local', collections=None):
         with self._lock:
+            self._reload()
             return {'status': 'OK', 'documents': [dict(document_id=key, **deepcopy(doc))
                 for key, doc in self._data['documents'].items() if self._allowed(doc, workspace_id, collections)]}
 
     def revoke(self, document_id, *, workspace_id='local'):
         with self._lock:
+            self._reload()
             document = self._data['documents'].get(document_id)
             if not document or not self._allowed(document, workspace_id):
                 raise PermissionError('Document is outside the current access scope')
@@ -172,13 +211,17 @@ class KnowledgeStore:
         from haystack import Document
         from haystack.document_stores.in_memory import InMemoryDocumentStore
         with self._lock:
+            self._reload()
+            from ..portable_research_knowledge import _archive
             store = InMemoryDocumentStore(bm25_algorithm='BM25L', shared=False,
                 bm25_tokenization_regex=r'(?u)\b\w+\b')
             documents = []
             for document_id, doc in self._data['documents'].items():
                 if doc.get('revoked'):
                     continue
-                archive = json.loads((self.root / document_id / str(doc['latest_revision']) / 'segments.json').read_text(encoding='utf-8'))
+                retained = _archive(self, document_id, doc['latest_revision'], doc)
+                archive = (retained[1] if retained else json.loads(
+                    (self.root / document_id / str(doc['latest_revision']) / 'segments.json').read_text(encoding='utf-8')))
                 for row in archive['segments']:
                     documents.append(Document(id=f"{document_id}:{row['revision']}:{row['segment_id']}",
                                               content=row['text'], meta={k: v for k, v in row.items() if k != 'text'}))
@@ -197,12 +240,18 @@ class KnowledgeStore:
         if set(filters) - {'document_ids', 'content_kind'}:
             raise ValueError('Only document_ids and content_kind filters are supported')
         with self._lock:
+            self._reload()
             allowed = [key for key, doc in self._data['documents'].items()
                        if self._allowed(doc, workspace_id, collections) and
                        ('document_ids' not in filters or key in filters['document_ids'])]
             if not allowed:
                 return {'status': 'OK', 'hits': [], 'method': 'Haystack BM25L'}
             if source_refs is None:
+                # Explicit search may reuse the index, but not bypass archive integrity.
+                from ..portable_research_knowledge import _archive
+                for identifier in allowed:
+                    doc = self._data['documents'][identifier]
+                    _archive(self, identifier, doc['latest_revision'], doc)
                 if self._store is None:
                     self.rebuild()
                 selected_store = self._store

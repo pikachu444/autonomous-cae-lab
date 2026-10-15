@@ -165,6 +165,11 @@ class StudyDocuments(MaterialDocuments):
         super().__init__(root, session_id, submit, manager)
         self.resolve_reference = resolve_reference
 
+    def _retain_inputs(self, saved, folder):
+        super()._retain_inputs(saved, folder)
+        from .portable_research_owner import retain
+        retain(self, saved, folder)
+
     def _recover_evaluations(self, document):
         # Studies have no calculation/inference operation or execution history.
         return None

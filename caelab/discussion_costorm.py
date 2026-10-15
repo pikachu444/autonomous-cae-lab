@@ -2,6 +2,7 @@
 from copy import deepcopy
 import uuid
 from .storage import canonical_hash, check_id, utc_now
+from .portable_research_owner import live_turns
 
 OPERATIONS = {'expert.report', 'expert.retry'}
 
@@ -11,7 +12,8 @@ def enabled(document):
 
 
 def records(document):
-    return [row for row in document.get('discussion', {}).get('rounds', []) if row.get('protocol') == 'costorm']
+    from .portable_research_owner import live_rounds
+    return [row for row in live_rounds(document) if row.get('protocol') == 'costorm']
 
 
 def previous_response(owner, document, record):
@@ -88,9 +90,9 @@ def start_record(owner, document, command_id, *, action, turn=None):
     interventions = [{'id': item['id'], 'text': item['text'],
                       'topic_id': item['topic_id'], 'topic_title': (item.get('topic') or {}).get('title'),
                       'reply_to': item.get('reply_to'),
-                      'reply_text': next((turn.get('text') for turn in document['discussion']['turns']
+                      'reply_text': next((turn.get('text') for turn in live_turns(document)
                                           if turn['id'] == item.get('reply_to')), None)}
-        for item in document['discussion']['turns'] if item.get('author') == 'user'
+        for item in live_turns(document) if item.get('author') == 'user'
         and item['id'] != initial_user and item['id'] not in consumed]
     role = frozen['participants'][0]
     record = {'id': 'B' + uuid.uuid4().hex, 'command_id': command_id, 'protocol': 'costorm',
@@ -161,8 +163,14 @@ def collect(owner, document, record, run, response, state):
         # A preflight/transport failure must not erase the previously readable map/report.
         earlier = previous_response(owner, document, record) if record.get('previous_job_id') else None
         protocol = deepcopy((earlier or {}).get('costorm') or {})
+    if not protocol and document['discussion'].get('costorm'):
+        # A failed new local attempt cannot erase an archived readable map/report.
+        record.update(active_job_id=None, completed_job_id=run['job_id'], next_index=1, status='FAILED')
+        document['discussion']['last_failure'] = {'job_id': run['job_id'],
+            'status': response.get('status', state), 'reason': response.get('reason')}
+        return True
     view = protocol.get('view') or {}
-    existing = {item.get('protocol_index') for item in document['discussion']['turns']
+    existing = {item.get('protocol_index') for item in live_turns(document)
                 if item.get('protocol') == 'costorm'}
     for turn in view.get('turns', []):
         if turn['index'] in existing:

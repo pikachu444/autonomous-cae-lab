@@ -83,11 +83,13 @@ def install_algebra(monkeypatch):
 
 
 def save(app,w):
+    wait(app,lambda:not w._busy and not w._callbacks and not getattr(w,'_retained_labels_scheduled',False),w)
     w.save_document()
     wait(app,lambda:not w._busy and not w.local_dirty and bool(w.document.get('saved_revision')),w)
 
 
 def execute(app,wb,w):
+    wait(app,lambda:not w._busy and not w._callbacks and not getattr(w,'_retained_labels_scheduled',False),w)
     if w.local_dirty:
         w.apply_inputs();wait(app,lambda:not w._busy and not w.local_dirty,w)
     assert not w.document['diagnostics'],w.document['diagnostics']
@@ -355,6 +357,57 @@ def test_method_choices_display_labels_keep_canonical_unknown_and_objective_iden
     assert multi.method_sheet.item(0,1).text()=='C [N] 최소화'
     assert wb.manager.list()==[]
 
+
+
+def test_saved_model_search_worksheet_reopen_and_exact_readable_sources(environment,monkeypatch):
+    app,wb,open_window=environment
+    install_algebra(monkeypatch);refs=[]
+    for points in ((0.,.2,.4,.6,.8,1.),(.1,.3,.5,.7,.9)):
+        w=open_window(request('doe',{'backend':'test.d6.ui','settings':{},'variables':inputs()['variables'],
+            'candidates':[{'values':{'x':x}} for x in points]},len(points)))
+        job,_=execute(app,wb,w);save(app,w)
+        refs.append(wb.document_result_reference(w.document['id'],job))
+    definition=dict(response='cost',unit='MPa',component='scalar',location='model',reduction='none')
+    model=open_window(request('surrogate',{'result_refs':dict(zip(('training','holdout'),refs)),
+        'response':definition,'points':[],'options':{'neighbors':3}}))
+    job,result=execute(app,wb,model);save(app,model)
+    reference=wb.document_result_reference(model.document['id'],job)
+    search={'variables':deepcopy(result['variables']),'objective':dict(definition,direction='minimize'),
+        'constraints':[dict(definition,operator='<=',limit=.9)],'seed':5,'options':{'max_generations':1,'population_size':5}}
+    w=open_window(request('surrogate',{'result_refs':{'model':reference},'search':search},10))
+    wait(app,lambda:not w._busy and not w._callbacks and not getattr(w,'_retained_labels_scheduled',False),w)
+    assert w.variable_sheet.rowCount()==1 and w.response_sheet.rowCount()==2
+    assert w.variable_sheet.item(0,0).text()=='x' and w.response_sheet.item(0,1).text()=='cost'
+    label=w.pinned_sources.item(0,1)
+    label_text=label.text()
+    assert model.document['title'] in label.text() and '계산 1' in label.text()
+    assert reference['job_id'] not in label.text() and reference['job_id'] in label.toolTip()
+    assert w.pinned_sources.isColumnHidden(2) and w.pinned_sources.isColumnHidden(3)
+    w.variable_sheet.item(0,3).setText('0.1');w.response_sheet.item(1,4).setText('0.8')
+    assert w.edited_draft()['request']['inputs']['search']['variables'][0]['lower']==.1
+    assert w.edited_draft()['request']['inputs']['search']['constraints'][0]['limit']==.8
+    save(app,w)
+    reopened=open_window(identifier=w.document['id'])
+    wait(app,lambda:not reopened._busy and not reopened._callbacks and not getattr(reopened,'_retained_labels_scheduled',False),reopened)
+    assert reopened.pinned_sources.item(0,1).text()==label_text
+    assert reopened.edited_draft()['request']['inputs']['search']['constraints'][0]['limit']==.8
+    for operation,model_hidden,constraint_hidden in (('doe',False,True),('uq',False,False),('sample_sensitivity',True,True)):
+        reopened.operation.setCurrentIndex(reopened.operation.findData(operation))
+        assert reopened.model_response_button.isHidden()==model_hidden
+        assert reopened.constraint_button.isHidden()==constraint_hidden
+        assert not reopened.variables_button.isHidden() and not reopened.variable_domains_button.isHidden()
+    reopened.operation.setCurrentIndex(reopened.operation.findData('surrogate'))
+    assert reopened.variables_button.isHidden() and reopened.model_response_button.isHidden()
+    assert reopened.edited_draft()['request']['inputs']['search']['constraints'][0]['limit']==.8
+    jobs=len(wb.manager.list())
+    # A different variable meaning remains literal, saveable and blocked by the existing search admission.
+    reopened._edit_structure(lambda value:value['search']['variables'][0].update(unit='Pa'))
+    save(app,reopened)
+    reply=wb.document_command(reopened.document['id'],'numerical.run',{},session_id=reopened.document['session_id'],
+        expected_generation=reopened.document['generation'])
+    wrong=reply['job']['id'];wait(app,lambda:wb.manager.status(wrong)['state']=='FAILED',reopened)
+    assert 'units' in wb.manager.status(wrong)['error']['message']
+    assert len(wb.manager.list())==jobs+1 and wb.document_result(model.document['id'],job)==result
 
 
 def test_saved_prediction_to_explicit_actual_confirmation_and_paired_read(environment,monkeypatch):

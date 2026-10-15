@@ -49,11 +49,21 @@ class CopyReviewDialog(QDialog):
         table.setHorizontalHeaderLabels(['문서', '보존 자료', '크기 (bytes)'])
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         titles = {row['document_id']: row['title'] for row in inspection.get('documents', [])}
+        from .portable_research_actions import append_knowledge_rows
+        append_knowledge_rows(table, inspection)
         for row in inspection.get('files', []):
             index = table.rowCount(); table.insertRow(index)
-            for column, text in enumerate((titles.get(row['document_id'], '문서'), row['asset'], str(row['bytes']))):
+            asset = row['asset']
+            label = ('문서' if asset == 'document.json' else
+                '원자료 연결' if asset.endswith('.navigation.json') else
+                '고정 원자료' if asset.startswith('assets/') else
+                '문서 연결' if asset.startswith('portable_execution/mappings/') else
+                '보존 원본' if asset.startswith('portable_execution/') else
+                {'sources': '원자료', 'inputs': '입력', 'jobs': '실행 기록', 'results': '결과',
+                 'comparisons': '비교', 'candidate_evidence': '후보 근거'}.get(asset.split('/')[0], '보존 파일'))
+            for column, text in enumerate((titles.get(row['document_id'], '문서'), label, str(row['bytes']))):
                 item = QTableWidgetItem(text)
-                item.setToolTip(text)
+                item.setToolTip(asset if column == 1 else text)
                 table.setItem(index, column, item)
         for row in inspection.get('recovery_archives', []):
             index = table.rowCount(); table.insertRow(index)
@@ -72,7 +82,8 @@ class CopyReviewDialog(QDialog):
         self.problem.setReadOnly(True)
         self.problem.setMaximumHeight(160)
         layout.addWidget(self.problem)
-        self.approval = QCheckBox('복사할 문서와 보존 파일 목록을 확인했습니다.')
+        self.approval = QCheckBox('목록을 확인하고 문헌을 이 작업 사본에서 읽도록 반입합니다.'
+            if inspection.get('knowledge') or inspection.get('literature') else '복사할 문서와 보존 파일 목록을 확인했습니다.')
         layout.addWidget(self.approval)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.button(QDialogButtonBox.StandardButton.Save).setText('새 폴더에 작업 사본 만들기…')
@@ -497,7 +508,7 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.message.setText('작업 사본을 만들었습니다. 원자료와 계산 기록은 보존되며 새 계산은 실행하지 않았습니다.')
         self._text_dialog('작업 사본 저장 완료', '새 폴더: ' + receipt['workspace'] + '\n\n'
             '현재 창은 원 보관소에 그대로 연결되어 있습니다. 새 폴더를 기존 제품 서비스의 --store로 열면 '
-            'Data·Material·Numerical·Report에서 사본을 편집할 수 있습니다.\n'
+            'Data·Material·Numerical·Study·Expert·Report에서 사본을 편집할 수 있습니다.\n'
             '폴더 전체를 함께 이동하세요. 내부 파일을 따로 옮기지 마세요.')
 
     def verify_copy(self):

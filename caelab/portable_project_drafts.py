@@ -228,7 +228,14 @@ class AcknowledgedReader(SnapshotReader):
         if doc['kind'] == 'report':
             from .portable_project_report import collect_working
             collect_working(self, doc)
+        if doc['kind'] in {'study', 'expert'}:
+            from .portable_research_owner import collect_working as collect_research, collect_jobs
+            collect_research(self, doc)
+            if doc['kind'] == 'expert':
+                collect_jobs(self, doc)
         for run in doc.get('runs', []):
+            if doc['kind'] == 'expert':
+                continue  # Original attempt snapshots are retained by the X-specific read facet.
             if run.get('retention_complete') and run.get('retained_record'):
                 continue
             job = self.wb.manager.status(run['job_id']) if run.get('retained_record') else super().job(raw, run)

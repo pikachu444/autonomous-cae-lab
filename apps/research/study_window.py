@@ -80,6 +80,8 @@ class StudyWindow(NumericalWindow):
         self.identity.hide()
         files = self.menuBar().addMenu('파일(&F)')
         files.addActions([self.new_action, self.open_action, self.save_action])
+        from .portable_research_actions import install
+        install(self, files, 'study')
         report = files.addAction('보고서 만들기…')
         report.triggered.connect(self.open_report)
         self.literature_action = QAction('문헌 추가…', self)
@@ -804,6 +806,9 @@ class StudyWindow(NumericalWindow):
             return
         if self._allow_close and getattr(self, '_result_return', None):
             self._result_return.close()
+        if self._allow_close:
+            from .portable_research_actions import close_children
+            close_children(self)
         super().closeEvent(event)
 
     def open_document(self, *, document_id=None, title='새 연구 기록', draft=None):

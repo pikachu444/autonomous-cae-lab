@@ -149,7 +149,7 @@ _PLAN_INPUTS = {
     'uq': _object({'backend': _STRING, 'settings': _OBJECT, 'variables': _VARIABLES,
                    'responses': _STRINGS,
                    'distributions': _OBJECT, 'count': _POSITIVE, 'seed': {'type': 'integer'},
-                   'source': _OBJECT, 'independence': _STRING, 'correlation': _OBJECT, 'execution': _EXECUTION,
+                   'source': _OBJECT, 'independence': _STRING, 'correlation': _OBJECT, 'joint': _OBJECT, 'execution': _EXECUTION,
                    'thresholds': {'type': 'array', 'items': _object({**_SCALAR_REFERENCE['properties'],
                        'limit': _NUMBER, 'operator': {'enum': ['<=', '>=', '<', '>']}}, _SCALAR_REFERENCE['required'])}},
                   ['backend', 'variables', 'distributions', 'source', 'independence']),
@@ -198,13 +198,19 @@ _PLAN_INPUTS['surrogate'] = {'oneOf': [
              'points': {'type': 'array', 'items': _OBJECT}, 'variables': _VARIABLES, 'options': _OBJECT},
             ['result_refs', 'response', 'points']),
     _object({'result_refs': _retained_roles('model'), 'points': {'type': 'array', 'items': _OBJECT}},
-            ['result_refs', 'points'])]}
+            ['result_refs', 'points']),
+    _object({'result_refs': _retained_roles('model'), 'search': _object({
+        'variables': _VARIABLES, 'objective': _OBJECTIVE,
+        'constraints': {'type':'array','items':_CONSTRAINT}, 'seed':{'type':'integer'},
+        'options': _object({'max_generations':_POSITIVE,'population_size':_POSITIVE}),
+        'execution': _EXECUTION}, ['variables','objective'])}, ['result_refs','search'])]}
 _PLAN_INPUTS['sensitivity'] = {'oneOf': [
     _object({'job_id': _STRING, 'plan': _OBJECT, 'response': _SCALAR_REFERENCE}, ['job_id', 'plan', 'response']),
     _object({'result_refs': _retained_roles('table'), 'plan': _OBJECT, 'response': _SCALAR_REFERENCE},
             ['result_refs', 'plan', 'response']),
     _object({'result_refs': _retained_roles('table', 'plan'), 'response': _SCALAR_REFERENCE},
-            ['result_refs', 'response'])]}
+            ['result_refs', 'response']),
+    _object({'result_refs': _retained_roles('baseline', 'refined')}, ['result_refs'])]}
 _PLAN_INPUTS['batch_export'] = {'oneOf': [
     _object({'variables': _VARIABLES, 'candidates': {'type': 'array', 'items': _OBJECT},
              'case_id': _STRING, 'settings': _OBJECT}, ['variables', 'candidates', 'case_id']),
@@ -452,6 +458,11 @@ class ExpertRuntime:
             archive = self.knowledge.source(**reference, workspace_id=workspace_id)
             if archive['collection'] not in collections:
                 continue
+            if hasattr(self.knowledge, 'check_access'):
+                try:
+                    self.knowledge.check_access(**reference, workspace_id=workspace_id, collections=collections)
+                except PermissionError:
+                    continue  # Archived collection is provenance, not today's role grant.
             if not archive['segments']:
                 raise ValueError('Selected source has no readable segments; inspect extraction before requesting a round')
             selected.append(reference)

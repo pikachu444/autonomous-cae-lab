@@ -82,7 +82,8 @@ def result_metadata(result):
                 break
         item.pop('selectors_truncated', None)
         native[name] = item
-    return {'kind':result.get('kind'), 'variables':deepcopy(result.get('variables',[])),
+    return {'sobol_analysis': result.get('method') == 'SALib.sobol' and 'indices' in result,
+            'kind':result.get('kind'), 'variables':deepcopy(result.get('variables',[])),
             'responses':list(catalog.values()), 'candidate_count':len(candidates),
             'native_channels': native,
             'execution_counts':counts,'sampling':sampling,'diagnostics':diagnostics,
@@ -172,7 +173,7 @@ def validate_result_refs(operation, inputs):
     roles = RESULT_ROLES.get(operation)
     alternatives = [roles]
     if operation == 'sensitivity':
-        alternatives.append({'table', 'plan'})
+        alternatives.extend(({'table', 'plan'}, {'baseline', 'refined'}))
     elif operation == 'surrogate':
         alternatives.append({'model'})
     elif operation == 'batch_import':
@@ -226,13 +227,21 @@ def resolve_request_inputs(operation, inputs, *, resolve_document, resolve_resul
         return result
     resolved = {role: _resolve(reference, resolve_document, resolve_result)
                 for role, reference in references.items()}
-    if operation in {'analyze', 'sensitivity'}:
+    if operation == 'sensitivity' and set(resolved) == {'baseline', 'refined'}:
+        result.update(resolved, comparison_refs=deepcopy(references))
+    elif operation in {'analyze', 'sensitivity'}:
         result['table'] = resolved['table']
+        if operation == 'sensitivity':
+            from .numerical_extensions import sensitivity_evaluation_context
+            result['evaluation_context'] = sensitivity_evaluation_context(references['table'], resolve_document)
+            result['evaluation_source_ref'] = deepcopy(references['table'])
         if operation == 'sensitivity' and 'plan' in resolved:
             result['plan'] = resolved['plan']
     elif operation == 'surrogate':
         if 'model' in resolved:
             result['retained_model'] = resolved['model']
+            if 'search' in result:
+                result['model_reference'] = deepcopy(references['model'])
         else:
             result.update(training=resolved['training'], holdout=resolved['holdout'])
     elif operation in {'batch_export','doe'}:
@@ -308,6 +317,8 @@ def surrogate_result(training, holdout, response, points, *, variables=None, opt
     return {'kind': 'surrogate', 'execution_status': 'SUCCEEDED', 'predictions': model.predict(points),
             'variables': deepcopy(model.variables), 'response': deepcopy(model.response),
             'model_artifact': archive(model), 'training_performed': True, 'solver_execution': 'NOT_PERFORMED',
+            'prediction_operation': 'SOLVE_LOCAL_COEFFICIENTS' if model.model.neighbors is not None and points else 'TRAIN_AND_VALIDATE',
+            'local_coefficients_computed': bool(model.model.neighbors is not None and (points or holdout.get('candidates'))),
             'validation': {**model.validation, 'exclusions': {'training': excluded_train, 'holdout': excluded_test},
                            'training_count': len(training.get('candidates', [])),
                            'holdout_count': len(holdout.get('candidates', []))},

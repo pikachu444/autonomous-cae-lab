@@ -328,8 +328,8 @@ class ReportWindow(QMainWindow):
         bindings=[s['asset'] for s in self.draft['sections'] if s.get('asset')]
         def read(receipt):
             if self.document['id']!=identifier: return
-            from caelab.report_image import merge_read_assets
-            self.assets = merge_read_assets(self.assets, receipt['assets']); self.render()
+            from .portable_research_report import apply_read_assets
+            apply_read_assets(self, receipt['assets'])
             bad=sum(a.get('source_status')!='AVAILABLE' for a in receipt['assets'])
             self.message.setText('원자료 확인 필요: '+str(bad)+'개' if bad else '고정한 자료를 읽었습니다.')
         return self._call(lambda:self.client.report_content(identifier,bindings),read)
@@ -640,22 +640,8 @@ class ReportWindow(QMainWindow):
             self.message.setText('설명 적용 또는 수정 취소 후 내보내세요.'); return
         errors=diagnostics(self.draft)
         if errors:self.message.setText(errors[0]['message']);return
-        unavailable=[s for s in self.draft['sections'] if s['include'] and s.get('asset')
-            and self.assets.get(s['asset']['id'],{}).get('source_status')!='AVAILABLE']
-        if unavailable and QMessageBox.question(self,'원자료 확인 필요',
-            '확인되지 않은 섹션에 표시를 남겨 초안으로 내보낼까요?',
-            QMessageBox.StandardButton.Ok|QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Ok:return
-        path,_=QFileDialog.getSaveFileName(self,'보고서 내보내기','보고서.'+format,
-                                         'PDF (*.pdf)' if format=='pdf' else 'Markdown (*.md)')
-        if not path:return
-        try:
-            self.render()
-            if self._page is None or getattr(self, '_page_stale', False):raise ValueError('페이지 오류를 먼저 고치세요. 이전 출력은 유지합니다.')
-            if format=='pdf':atomic_export(path,lambda p:pdf_document(self._page,p))
-            else:atomic_export(path,lambda p:p.write_text(markdown(self.draft,self.assets),encoding='utf-8'))
-            self.message.setText('보고서를 내보냈습니다.')
-        except Exception as error:self.message.setText('내보내지 못했습니다. 이전 파일은 유지됩니다. '+str(error))
+        from .portable_research_report import export_checked
+        return export_checked(self, format)
 
     def can_leave(self):
         if self._busy or self._pending:return False

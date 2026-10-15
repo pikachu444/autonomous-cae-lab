@@ -281,7 +281,11 @@ def resolve_reference(wb, reference):
         if (source.get('status') != 'AVAILABLE' or source.get('sha256') != reference['source_sha256']
                 or canonical_hash(source) != reference['content_sha256']):
             raise ValueError('선택한 문헌 개정/원문이 없거나 변경되었습니다.')
-        return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference), 'source': source}
+        result = {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference), 'source': source}
+        if hasattr(wb, 'assistance'):
+            result['source_metadata'] = wb.assistance().knowledge.revision_details(
+                reference['document_id'], reference['revision'], workspace_id=wb.workspace_id)
+        return result
     if kind == 'document':
         owner = wb._document_owner(reference['document_id'])
         if owner is wb.native_commands:
@@ -290,6 +294,9 @@ def resolve_reference(wb, reference):
         if (saved['kind'] != reference['document_kind'] or saved['input_revision'] != reference['input_revision']
                 or canonical_hash(saved['draft']) != reference['input_sha256']):
             raise ValueError('Saved document input identity differs')
+        if saved['kind'] == 'expert':
+            from .portable_research_knowledge import require_owner_sources, document_refs
+            require_owner_sources(owner, document_refs(saved))
         return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
                 'document': {key: deepcopy(saved[key]) for key in ('id', 'kind', 'title', 'input_revision', 'draft')}}
     if kind == 'result':
@@ -308,6 +315,8 @@ def resolve_reference(wb, reference):
                 'metadata': result_metadata(result), 'result': actual}
     owner = wb.discussion_documents
     saved = owner._verify_revision(reference['discussion_id'], reference['saved_revision'])
+    from .portable_research_knowledge import require_owner_sources, document_refs
+    require_owner_sources(owner, [*document_refs(saved), *saved.get('portable_knowledge_refs', [])])
     turn = next((row for row in saved.get('discussion', {}).get('turns', []) if row['id'] == reference['turn_id']), None)
     if turn is None or canonical_hash(turn) != reference['turn_sha256']:
         raise ValueError('Saved discussion turn differs from its exact reference')

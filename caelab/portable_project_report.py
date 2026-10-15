@@ -28,7 +28,7 @@ ASSET = re.compile(r'assets/A[0-9a-f]{64}(?:\.navigation)?\.json\Z')
 # These exact source readers have a projection-invariant compact payload, or a
 # declared document projection below.  Do not silently treat every new kind as
 # one of them. Knowledge permission transfer belongs to the later CB02 unit.
-NAVIGABLE = frozenset({'document', 'result'})
+NAVIGABLE = frozenset({'document', 'result', 'knowledge'})
 
 
 def bindings(document):
@@ -55,8 +55,9 @@ def navigation_name(binding):
 
 
 def can_navigate(reference, documents):
-    return (reference.get('kind') in NAVIGABLE
-            and TypedReference((), '보고서 원자료', 'exact', reference).document_id in documents)
+    return (reference.get('kind') == 'knowledge' or
+            reference.get('kind') in NAVIGABLE and
+            TypedReference((), '보고서 원자료', 'exact', reference).document_id in documents)
 
 
 def project_reference(projection, reference):
@@ -373,6 +374,8 @@ def collect_working(reader, document):
     owner = reader.owner(document['id'])
     included = {}
     root = owner_folder(owner._folder(document['id']), document)
+    from .portable_research_knowledge import collect_report_archive
+    collect_report_archive(reader, root, document)
     for ref in owner_refs(root, document):
         name = ref['file']
         if name in included and included[name] != ref['sha256']:
@@ -384,7 +387,7 @@ def collect_working(reader, document):
             included[name] = ref['sha256']
     for _, binding in bindings(document):
         folder, _, frozen = locate(owner, document, binding)
-        check_permission_boundary(document, binding, frozen)
+        check_permission_boundary(document, binding, frozen, reader)
         link = document.get(MARKER, {}).get(binding['id'])
         for ref in declared_refs(folder, binding, link):
             name = ref['file']
@@ -397,15 +400,19 @@ def collect_working(reader, document):
                 included[name] = ref['sha256']
 
 
-def check_permission_boundary(document, binding, frozen):
-    # A revoked or scoped knowledge source must not be republished by pretending
-    # it is merely an engineering snapshot. CB02 will use the existing local
-    # KnowledgeStore resolver; no ACL or permission override is introduced here.
-    if frozen['content'].get('kind') == 'knowledge':
+def check_permission_boundary(document, binding, frozen, reader=None):
+    from .portable_research_knowledge import frozen_refs, unique_refs, collect_reference
+    references = unique_refs(frozen_refs(frozen))
+    if references and reader is None:
         fail('REPORT_KNOWLEDGE_SCOPE_REQUIRED', document['id'] + '/' + binding['id'],
              '이 보고서의 문헌 원문은 exact revision의 현지 읽기 권한 연결이 필요합니다.',
-             '원 보고서를 유지하세요. 이 중간 인도는 공학 입력·결과·보존 그림의 이동만 지원합니다.',
-             document['id'])
+             '원 보고서를 유지하고 현재 문헌 읽기 권한을 확인하세요.', document['id'])
+    for reference in references:
+        try:
+            collect_reference(reader, reference)
+        except PermissionError as error:
+            fail('KNOWLEDGE_ACCESS_DENIED', document['id'], str(error),
+                 '현재 허용된 문헌 원문을 확인하세요. 원 보고서는 그대로 유지합니다.', document['id'])
 
 
 def inspect_document(reader, document, revision):
@@ -414,6 +421,8 @@ def inspect_document(reader, document, revision):
     from .portable_project_drafts import virtual_revision
     root = (owner_folder(owner._folder(document['id']), document) if virtual_revision(revision)
             else reader.revision_folder(document['id'], revision))
+    from .portable_research_knowledge import collect_report_archive
+    collect_report_archive(reader, root, document)
     refs = owner_refs(root, document)
     if refs and not virtual_revision(revision):
         declared = {row['path'] for row in json_file(inside(root, 'revision.json'))['files']}
@@ -431,7 +440,7 @@ def inspect_document(reader, document, revision):
             link = document.get(MARKER, {}).get(binding['id'])
             if not set(declared_files(folder, binding, link)) <= declared:
                 raise ValueError('보고서 저장 개정의 declared asset closure가 누락되었습니다.')
-        check_permission_boundary(document, binding, frozen)
+        check_permission_boundary(document, binding, frozen, reader)
 
 
 def write_revision(fork, identifier, revision, original, document, folder):
@@ -449,6 +458,8 @@ def write_revision(fork, identifier, revision, original, document, folder):
     owner_proof['hops'].append({'mapping': mapping, 'archive': archived_owner})
     document[OWNER_MARKER] = _put_json(folder, 'report_owner', owner_proof)
     replay_owner(folder, document)
+    from .portable_research_knowledge import report_archive_refs
+    document['portable_knowledge_refs'] = report_archive_refs(folder, document)
     links = {}
     for path, old_binding in originals:
         current = document
