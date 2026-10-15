@@ -1,13 +1,13 @@
 ---
 id: SPEC-DESKTOP-001
 title: "Windows engineering research desktop workflows and design acceptance"
-version: "0.1.0"
-status: draft
+version: "0.2.0"
+status: in-progress
 created: 2026-10-12
-updated: 2026-10-13
+updated: 2026-10-16
 author: "Codex integration; actual Pro product design author"
 priority: "P1 High"
-phase: "design-before-implementation"
+phase: implementation
 module: "apps/research, apps/desktop_pre, apps/desktop_post"
 lifecycle: spec-anchored
 tags: "desktop, Qt, native, product-design"
@@ -23,8 +23,10 @@ The latest [user request](../../../docs/design/20261012-desktop-planning/USER_DE
 controls this design. [CURRENT_STATE](../../../CURRENT_STATE.md) alone owns current
 progress/assignment. Product scope and detailed design remain in the existing
 [overview](../../../docs/PRODUCT_PLAN.md) and [detail](../../../docs/PRODUCT_UI_MCP_PLAN.md).
-This draft links the MoAI lifecycle to those owners; it does not declare the plan
-or product complete. Base source `9a6e308`; upstream `3e48bf6`.
+This SPEC links the MoAI lifecycle to those owners; it does not declare the plan
+or product complete. The user authorized whole-product implementation on
+2026-10-13; the original planning approval boundary is no longer a pending start
+gate. The original design baseline was `9a6e308`; upstream remains `3e48bf6`.
 
 ## 2. Scope
 

@@ -4,8 +4,8 @@ title: "Independent numerical research and connected result use"
 version: "0.1.0"
 status: in-progress
 created: 2026-10-14
-updated: 2026-10-14
-author: "Codex scope; actual ChatGPT Pro implementation"
+updated: 2026-10-16
+author: "Actual Pro product design and original implementation; Sol scoped extensions; Codex integration"
 priority: "P1 High"
 phase: implementation
 module: "Numerical research"

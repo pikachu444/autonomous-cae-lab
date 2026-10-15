@@ -178,7 +178,7 @@ discussion_costorm·discussion_document, material_document와 research_workflows
 요청과 재복사·두 별도 프로세스 재열기를 확인했다. root는 실제 보통/좁은 창과 포함
 목록을 직접 읽고 [사진과 사용 순서](docs/portable_study_expert/USAGE_KO.md)를 연결했다.
 이 확인에서 실제 모델·외부 검색·솔버 호출은 없으며 OS 직접 조작·PDF 출력·새 연구팀
-전체 수용·다른 문서 종류의 이동은 별도다. 현재 통합 소스의 게시를 root가 진행한다.
+전체 수용·다른 문서 종류의 이동은 별도다. `de7de4e`로 원격 main에 게시했고 일치를 확인했다.
 
 기본 native 전후처리 연결을 게시한 상태에서 보존했던 후처리·수치 확장도 병렬 재개한다.
 Sol `post_windows_build_fix`가 comparison_native·Post 비교 편집창·post_comparison과
@@ -204,7 +204,7 @@ Windows Qt 편집·취소·추천 후 실제 한 점 평가, 이동 후 명시 �
 확인하고 Astra 최종 통합 검토를 마쳤다. Sobol 비교는 같은 실제 평가기·고정 설정·원
 모델을 요구하며, 비동기 이름 읽기가 편집 포커스를 잃게 하던 문제도 교정했다. root가
 최종 보통/좁은 창을 확인하고 [사진과 사용법](docs/NUMERICAL_EXTENSIONS_KO.md)을
-연결했다. 현재 두 묶음의 공통 중첩을 함께 통합·게시하며 전체 B5/수치·물리 자격은
+연결했다. 두 묶음의 공통 중첩을 함께 `de7de4e`로 원격 main에 게시했고 일치를 확인했다. 전체 B5/수치·물리 자격은
 완료로 세지 않는다. 같은 전체 suite/솔버 캠페인은 반복하지 않았다. 소유 테스트 Job은
 정상·실패·시간 초과를 포함해 모두 정리했다.
 
@@ -213,6 +213,21 @@ Windows Qt 편집·취소·추천 후 실제 한 점 평가, 이동 후 명시 �
 출처·문서 라이선스/사용법과 검사만 소유하고 runtime·공유 권한·새 DB·GUI는 변경하지
 않는다. 무료 원문을 실제 반입·BM25 검색·정확한 구간 읽기·새 프로세스 재열기까지
 연결하며, 분야 전문성 검증이나 새 연구팀 완성으로 표시하지 않는다.
+Sol `expert_roundtrip_finish`는 이어서 기존 B8.3의 PDE/Simulation 이동 사본을 맡는다.
+원 실행·입력/field 원문 보존과 현재 편집·명시 새 로컬 실행을 나누고 기존 reader·owner·
+portable 발행을 재사용한다. 전용 helper·예제·검사·사용법만 작성하고 공통 변경은 root
+최소 패치로 통합한다. Evaluation/managed Pre/Post 이동을 허용 목록만 넓혀 완료로 세지 않는다.
+Sol `post_windows_build_fix`는 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료
+plugin을 잇는다. 기존 실제 Pro C++/ABI 소스와 Windows SDK 빌드 중단점을 보존하며,
+기존 SDK가 Viskores의 기본 설치 component를 빠뜨린 원인을 확인했다. 같은 기존
+빌드의 한 DLL 설치를 새 시험 폴더에서 대조했고 root가 공식 설치 스크립트에
+`Unspecified` component를 추가했다. 전체 SDK/plugin load가 통과한 것으로 세지 않는다.
+새 CI·광역 로컬 빌드는 아직 시작하지 않았고 실제 File→Exit 수용은 미완료다.
+Sol `inverse_delivery`는 보존한 B8.4 SSH/Slurm/PBS 원격 실행 초안과 기존 batch 교환을
+이어 구현한다. 전용 원격 코드·대화창·사용법과 작은 controlled 검사를 소유하고 공통
+Runner/작업관리 연결은 root 최소 패치로 통합한다. 사용자 원격 host·권한은 제공되지
+않았으므로 임의 접속·자격증명 변경이나 실제 원격 성공 주장은 하지 않는다. 무료
+Windows native 경로와 로컬 독립 실행을 유지하며 WSL·새 서버·새 구독은 요구하지 않는다.
 
 **최근 게시:** 화면별 한국어 사용 안내와 실제 캡처는 원격 main에 반영됐다.
 [화면별 안내](docs/SCREEN_GUIDE_KO.md)에서 각 독립 앱의 시작·주요 조작·저장/재열기를
@@ -273,9 +288,9 @@ MoAI의 기존 작업 카드도 같은 7개 단위로 연결했다. 계획 대�
 | 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | 일반 입력 A·보존 결과 읽기·벌크·계면 편집과 CMB/SWT·임계면 피로를 main에 게시. 실제 Qt 저장·재개와 해당 독립 검토 완료. 전체 native 손상·재접촉·재료 자격·일반 restart는 잔여. t20 |
 | 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | 기존 ParaView 기본 왕복은 게시. 장 비교의 필수 영역·성분별 적분표와 무재계산 재열기를 실제 확인하고 시간 마스크 교정·독립 검토를 완료. 종료 plugin과 저장 파일 개별 손상 격리 복구는 잔여. t4 |
 | Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | 피팅·채택·법칙/Hex8 연결과 오류 화면은 게시. FN-03-02 유한변형 관측→같은 측도 예측/피팅·채택·저장 재개를 통합하고 Windows 실제 FELUPE·Qt와 Astra 독립 검토를 마침. 원 입력·결과/기존 recipe·mixed controller·후보 엔진 유지. t5. 전체 재료군·일반 형상/요소 조합은 잔여 |
-| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수·Windows 공간 PDE·온도 전달·공유 변수 MDO/첫 선형 adjoint는 게시. joint UQ·Sobol N/2N·국소 대리모델·추천점 실제 확인은 Qt/새 프로세스 확인과 Astra 검토를 마쳐 통합·게시 중. 일반 total adjoint는 잔여. t6/t7 |
+| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수·Windows 공간 PDE·온도 전달·공유 변수 MDO/첫 선형 adjoint에 이어 joint UQ·Sobol N/2N·국소 대리모델·추천점 실제 확인을 게시. 일반 total adjoint와 다른 확장 잔여 유지. t6/t7 |
 | Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 정확 결과 첨부·보고서·공개 초록 연결은 게시. 실제 연구팀의 Pro 설계는 네 실행 계약을 교정 중이며 독립 공식자료 반입 묶음은 작성 중. 실장비·일반 composite와 새 팀 전체 수용은 잔여. t2/t9 |
-| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report 사본은 게시. 문헌·Study·Expert 사본과 현지 명시 Ask는 Windows Qt/두 새 프로세스 확인과 Astra 검토를 마쳐 통합·게시 중. 다른 owner/native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
+| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report에 이어 문헌·Study·Expert 사본과 현지 명시 Ask도 게시. 다음 PDE/Simulation 사본을 전용 담당이 작성. 다른 owner/native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
 
 각 묶음은 원행/SPEC의 상세 완료 조건을 유지한다. 새로운 지원 조합은 현재 미지원의
 이름만 바꾸어 닫지 않는다. 실제 장비/원격 호스트가 필요한 항목은 입력 미정을 명시하고

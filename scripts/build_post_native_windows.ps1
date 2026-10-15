@@ -150,6 +150,8 @@ try {
     Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','runtime')
     Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','development')
     Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','python')
+    # Viskores shared libraries use CMake's default installation component.
+    Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','Unspecified')
     $evidence['sdk_build'] = 'RUNTIME_AND_DEVELOPMENT_INSTALL_COMPLETED'
     $env:PATH = "$(Join-Path $runtime 'bin');$env:PATH"
     $deployQt = Join-Path $qt 'bin/windeployqt.exe'
