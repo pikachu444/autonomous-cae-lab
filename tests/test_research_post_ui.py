@@ -446,7 +446,7 @@ def test_exact_native_view_selection_apply_show_overlay_source_and_disappeared_v
     window.view_selector.setCurrentIndex(window.view_selector.findData('302'))
     assert window.edited_draft() == before_draft and not window.local_dirty
     window.new_object('measurement')
-    window.measurement_kind.setCurrentText('path')
+    window.measurement_kind.setCurrentIndex(window.measurement_kind.findData('path'))
     window.preview()
     wait(app, lambda: not window._busy and window._pending is None and len(window.client.calls) == 2)
     window.apply_button.click()
@@ -483,7 +483,7 @@ def test_measurement_optional_declarations_stay_unknown_until_explicit_edit(app,
                 'coordinate_units': 'mm', 'coordinate_frame': 'lab'}
     for key, value in supplied.items():
         edit(window, (key,), value)
-    window.measurement_kind.setCurrentText('time')
+    window.measurement_kind.setCurrentIndex(window.measurement_kind.findData('time'))
     assert all(window.edited_draft()[key] == value for key, value in supplied.items())
     window.store_draft()
     wait(app, lambda: not window._busy and window._pending is None)

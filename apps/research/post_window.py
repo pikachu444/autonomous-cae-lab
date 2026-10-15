@@ -52,7 +52,7 @@ LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 
           'quantity': '물리량', 'units': '응답 단위', 'measure': '물리적 정의', 'frame': '응답 좌표계',
           'coordinate_units': '좌표 단위', 'coordinate_frame': '좌표계',
           'time': '원 결과 시각 (없으면 비움)', 'time_units': '시간 단위',
-          'time_origin': '시간 기준', 'point_indices': '원본 점 번호',
+          'time_origin': '시간 기준', 'point_indices': '원본 VTK 점 번호 (0부터)',
           'origin': '평면 원점 [x, y, z]', 'normal': '평면 법선 [x, y, z]',
           'point1': '첫 점 [x, y, z]', 'point2': '끝 점 [x, y, z]',
           'resolution': '선 구간 수', 'tolerance': '허용 오차',
@@ -337,6 +337,10 @@ class PostWindow(QMainWindow):
         self.select_array_button = QPushButton('선택 성분 보기')
         self.select_array_button.clicked.connect(self.show_selected_array)
         array_controls.addWidget(self.select_array_button)
+        self.measure_array_button = QPushButton('이 필드 측정…')
+        self.measure_array_button.setToolTip('점 필드의 전체 성분을 보존하는 측정 초안을 만듭니다. 선택과 계산은 자동 실행하지 않습니다.')
+        self.measure_array_button.clicked.connect(self.measure_selected_array)
+        array_controls.addWidget(self.measure_array_button)
         center_layout.addWidget(self.array_controls)
         self.progress = QLabel('요청 대기 중')
         self.progress.setWordWrap(True)
@@ -699,7 +703,7 @@ class PostWindow(QMainWindow):
         else:
             field = QLineEdit(field_text(value))
             if key in VECTORS:
-                field.setPlaceholderText('Explicit comma-separated values')
+                field.setPlaceholderText('쉼표로 구분한 값')
             field.textEdited.connect(self._edited)
         field.setObjectName('post.' + '.'.join(path))
         self.fields[path] = (field, deepcopy(value))
@@ -832,23 +836,25 @@ class PostWindow(QMainWindow):
             form.addRow(button)
         else:
             self.measurement_kind = QComboBox()
-            self.measurement_kind.addItems(['point', 'path', 'time'])
-            if draft.get('measurement') not in MEASUREMENT_FIELDS:
-                self.measurement_kind.addItem(display(draft.get('measurement')))
-            self.measurement_kind.setCurrentText(draft.get('measurement', 'point'))
-            self.measurement_kind.currentTextChanged.connect(self._measurement_changed)
-            form.addRow('측정 방식 (point/path/time)', self.measurement_kind)
+            for title, kind in (('선택한 원본 점', 'point'), ('두 점 사이 경로', 'path'), ('같은 원본 점의 시간 이력', 'time')):
+                self.measurement_kind.addItem(title, kind)
+            kind = draft.get('measurement', 'point')
+            if kind not in MEASUREMENT_FIELDS:
+                self.measurement_kind.addItem('미지원 저장 방식: ' + display(kind), kind)
+            self.measurement_kind.setCurrentIndex(self.measurement_kind.findData(kind))
+            self.measurement_kind.currentIndexChanged.connect(lambda _index: self._measurement_changed(self.measurement_kind.currentData()))
+            form.addRow('측정 방식', self.measurement_kind)
             for key in MEASUREMENT_FIELDS.get(draft.get('measurement'), ()):
                 self._form_field(form, key, draft.get(key, None if key in ('time', 'time_units', 'time_origin') else 'POINTS' if key == 'association' else ''), (key,))
                 if key in MEASUREMENT_DECLARATIONS:
-                    self.fields[(key,)][0].setPlaceholderText('Unknown unless explicitly declared')
-            note = QLabel('Measurement meaning, units and frames are optional declarations. Blank remains unknown; native array names do not supply these meanings.')
+                    self.fields[(key,)][0].setPlaceholderText('선언이 없으면 알 수 없음')
+            note = QLabel('단위와 물리적 정의는 저장된 선언을 사용하거나 직접 지정하세요. 비워 두면 미확인으로 남습니다. 점 번호는 solver 절점 번호와 다른 VTK 인덱스입니다.')
             note.setWordWrap(True)
             form.addRow(note)
             declarations_button = QPushButton('저장된 물리량 정보 사용')
             declarations_button.clicked.connect(lambda checked=False: self.use_declarations())
             form.addRow(declarations_button)
-            self.capture_button = QPushButton('Capture original native point selection')
+            self.capture_button = QPushButton('ParaView에서 선택한 원본 점 가져오기')
             self.capture_button.clicked.connect(self.capture_selection)
             form.addRow(self.capture_button)
         self.tabs.blockSignals(True)
@@ -927,7 +933,7 @@ class PostWindow(QMainWindow):
         if self._busy or self._pending:
             return False
         if self.local_dirty:
-            self.message.setText('Keep the current draft before creating another analysis object.')
+            self.message.setText('현재 편집을 초안으로 보관한 뒤 새 분석을 만드세요.')
             self.tabs.blockSignals(True)
             self.tabs.setCurrentIndex(('comparison', 'filter', 'measurement').index(self._kind))
             self.tabs.blockSignals(False)
@@ -1593,6 +1599,33 @@ class PostWindow(QMainWindow):
             self.array_description.setText(self.array_description.text()+' 실제 성분 목록이 없습니다. 필드 정보 읽기로 확인하세요.')
         self._update_actions()
 
+    def _selected_measurement_field(self):
+        selected = self.array_table.selectionModel().selectedRows()
+        arrays = getattr(self, '_array_rows', [])
+        if (not self._source_ref or self._tree_selection != ('source', self._source_ref)
+                or getattr(self, '_array_source_ref', None) != self._source_ref
+                or not selected or selected[0].row() >= len(arrays)):
+            return None
+        field = arrays[selected[0].row()]
+        return field if field.get('association') == 'POINTS' and field.get('name') else None
+
+    def measure_selected_array(self):
+        field = self._selected_measurement_field()
+        if not field or not (self.document or {}).get('connected') or self.conflict:
+            self.message.setText('연결된 원자료에서 점 필드를 선택하세요. 셀 필드를 점 자료로 바꾸지는 않습니다.')
+            return False
+        if not self.new_object('measurement'):
+            return False
+        self._draft.update(array=field['name'], association=field['association'])
+        self._populate_editor()
+        _, declared = self._source_choice_metadata(self._source_ref)
+        if any((row.get('name'), row.get('association')) == (field['name'], field['association'])
+               for row in (declared or {}).get('arrays', [])):
+            self.use_declarations()
+        self.message.setText('선택한 필드의 전체 성분으로 측정을 준비했습니다. 원본 점이나 경로와 시각을 지정한 뒤 미리보기를 실행하세요.')
+        self._update_actions()
+        return True
+
     def show_selected_array(self):
         rows = self.array_table.selectionModel().selectedRows()
         if not rows or not self.array_component.count(): return False
@@ -1847,6 +1880,7 @@ class PostWindow(QMainWindow):
         self.inspect_button.setEnabled(enabled and bool(self._source_ref))
         self.select_array_button.setEnabled(enabled and bool(self.array_table.selectionModel().selectedRows())
             and bool(self.array_component.count()) and 'post.select_array' in self.document.get('capabilities', []))
+        self.measure_array_button.setEnabled(enabled and not self.local_dirty and bool(self._selected_measurement_field()))
         self.array_component.setEnabled(enabled and bool(self.array_component.count()))
         source = self.contact_source()
         self.contact_button.setEnabled(enabled and bool(source and
