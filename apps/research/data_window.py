@@ -127,6 +127,7 @@ class DataWindow(QMainWindow):
         self._accepting = False
         self._callback_calls = []
         self._data_windows = []
+        self._processed_plan_windows = []
         self._view_error = None
         self._working_draft = None
         self._channel_name = None
@@ -956,9 +957,14 @@ class DataWindow(QMainWindow):
             return
         from .data_processing_dialog import DataProcessingPreviewDialog
         identifier = self.document['id']; revision = records[labels.index(selected)]['id']
+        def shown(result):
+            dialog = DataProcessingPreviewDialog(result, self, retained=True, allow_plan=True)
+            dialog.exec()
+            if dialog.plan_requested:
+                from .data_processing_plan import open_processing_plan
+                open_processing_plan(self, result, dialog.channel.currentText())
         self._call(lambda: self.client.data_material('data.processing.result',
-            {'document_id': identifier, 'processing_revision': revision}),
-            lambda result: DataProcessingPreviewDialog(result, self, retained=True).exec())
+            {'document_id': identifier, 'processing_revision': revision}), shown)
 
     def edit_calibration(self):
         if not self.document or self._busy or self.conflict or self._view_error:

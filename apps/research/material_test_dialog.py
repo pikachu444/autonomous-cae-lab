@@ -197,7 +197,10 @@ class ExperimentDialog(QDialog):
             x,y=axis.get('values',[]),response.get('value',[])
             if (isinstance(x,list) and isinstance(y,list) and len(x)==len(y) and len(x) and
                     all(type(value) in (int,float) and math.isfinite(value) for value in x+y)):
-                ax.plot(x,y,'o-',markersize=3)
+                ranges = ([segment['rows'] for segment in response['segments']]
+                          if 'segments' in response else [[0, len(y)]])
+                for first, last in ranges:
+                    ax.plot(x[first:last], y[first:last], 'o-', markersize=3)
             else:
                 ax.text(.5,.5,'변형 이력 확인 필요' if index==1 and not measured else '선택한 채널의 곡선 없음',
                         ha='center',va='center',transform=ax.transAxes)
