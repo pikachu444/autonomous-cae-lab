@@ -189,10 +189,27 @@ def history_summary(original):
 
 
 def refs(folder, document):
+    from .portable_research_team import declared_team_assets
+    result = [{'file': row['path'], 'sha256': row['sha256']}
+              for row in declared_team_assets(document)]
+    # The owner declares each exact round checkpoint location. No directory
+    # walk, job lookup or model/session resume is involved.
+    team = document.get('discussion', {}).get('research_team') or {}
+    for record in document.get('discussion', {}).get('rounds', []):
+        spec = record.get('protocol_request', {})
+        if spec.get('variant') != 'cae_research_team_v2':
+            continue
+        name = 'research-team/' + check_id(record['id']) + '/action.json'
+        path = inside(folder, name, must_exist=False)
+        if path.exists():
+            checkpoint = json_file(path)
+            if record.get('prepared_arguments') and checkpoint.get('arguments_digest') != canonical_hash(record['prepared_arguments']):
+                raise ValueError('원 연구 checkpoint의 제출 인자가 다릅니다.')
+            result.append({'file': name, 'sha256': fingerprint_file(path)['sha256']})
     value = replay(folder, document)
     if value is None:
-        return []
-    result = [document[MARKER]]
+        return result
+    result += [document[MARKER]]
     for hop in value['proof']['hops']:
         result += [hop['mapping'], hop['archive']]
         archive = _read_asset(folder, hop['archive'])
@@ -278,6 +295,10 @@ def write_revision(fork, identifier, revision, original, document, folder):
     document[MARKER] = _put_json(folder, 'research_owner', proof)
     if document['kind'] == 'expert':
         document[HISTORY] = history_summary(original)
+        from .portable_research_team import project_archived_team
+        archived = project_archived_team(document)
+        document.clear()
+        document.update(archived)
         document.pop('_expert_applied_commands', None)
         # Original paused value remains in the raw owner. Local pause controls
         # only NEW rounds and never authorize a continuation of an origin round.
@@ -351,6 +372,8 @@ def run_refs(document, run):
 def public_view(owner, document, result, *, include_navigation=True):
     """Current authored work is independent of denied origin/generated context."""
     from .portable_research_knowledge import _turn_refs, draft_refs
+    from .portable_research_team import apply_team_local_view
+    result = apply_team_local_view(owner, document, result)
     if MARKER not in document:
         return result
     result['archived_attempts'] = {'round_ids': list(document.get(HISTORY, {}).get('rounds', {})),
@@ -407,6 +430,21 @@ def extra_references(document):
     from .connection_graph_refs import TypedReference, draft_references
     if document.get('kind') != 'expert':
         return
+    team = document.get('discussion', {}).get('research_team') or {}
+    base = ('discussion', 'research_team')
+    for identifier, dependency in team.get('dependencies', {}).items():
+        if dependency.get('kind') == 'result' and isinstance(dependency.get('exact_ref'), dict):
+            yield TypedReference((*base, 'dependencies', identifier, 'exact_ref'),
+                '원 연구가 사용한 계산 결과', 'result', deepcopy(dependency['exact_ref']))
+    for identifier, receipt in team.get('read_receipts', {}).items():
+        if receipt.get('kind') == 'result' and isinstance(receipt.get('source_ref'), dict):
+            yield TypedReference((*base, 'read_receipts', identifier, 'source_ref'),
+                '원 연구가 읽은 계산 결과', 'result', deepcopy(receipt['source_ref']))
+    for identifier, phase in team.get('phases', {}).items():
+        for i, assignment in enumerate(phase.get('assignments', [])):
+            for j, selection in enumerate(assignment.get('result_refs', [])):
+                yield TypedReference((*base, 'phases', identifier, 'assignments', i, 'result_refs', j, 'reference'),
+                    '이전 연구 단계의 선택 결과', 'result', deepcopy(selection['reference']))
     for i, record in enumerate(document.get('discussion', {}).get('rounds', [])):
         for ref in draft_references('expert', record.get('draft', {})):
             yield TypedReference(('discussion', 'rounds', i, 'draft', *ref.path), ref.role, ref.form, ref.value)
@@ -432,7 +470,8 @@ def historical_reference(folder, document, typed):
 
 def inspection_reference(folder, document, typed):
     path = typed.path
-    origin = ((path and path[0] == 'runs' and historical_run(document['runs'][path[1]])) or
+    origin = ((len(path) > 1 and path[:2] == ('discussion', 'research_team')) or
+              (path and path[0] == 'runs' and historical_run(document['runs'][path[1]])) or
               (len(path) > 2 and path[0] == 'discussion' and
                ((path[1] == 'turns' and is_origin_turn(document, document['discussion']['turns'][path[2]])) or
                 (path[1] == 'rounds' and is_origin_round(document, document['discussion']['rounds'][path[2]])))))

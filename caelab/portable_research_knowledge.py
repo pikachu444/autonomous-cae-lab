@@ -149,6 +149,12 @@ def draft_refs(kind, draft):
         # incomplete literature closure rather than silently pretending it moved.
         if context.get('selected_document_ids') and 'selected_sources' not in context:
             raise ValueError('KNOWLEDGE_UNPINNED_LEGACY: 원 질문의 문헌 개정을 먼저 명시 보관하세요.')
+        team = context.get('research_team') or {}
+        for assignment in team.get('assignments', []):
+            for source in assignment.get('source_refs', []):
+                value = evidence_pin(source)
+                if value:
+                    yield value
         for turn in context.get('discussion', {}).get('turns', []):
             yield from _turn_refs(turn)
 
@@ -164,6 +170,18 @@ def document_refs(document, *, results=()):
             args = run.get('arguments', {})
             yield from draft_refs(kind, {'context': args.get('context', {})})
     if kind == 'expert':
+        from .research_team_contract import source_closure
+        team = document.get('discussion', {}).get('research_team') or {}
+        for source in source_closure(team):
+            value = evidence_pin(source)
+            if value:
+                yield value
+        for phase in team.get('phases', {}).values():
+            for assignment in phase.get('assignments', []):
+                for source in assignment.get('source_refs', []):
+                    value = evidence_pin(source)
+                    if value:
+                        yield value
         for turn in document.get('discussion', {}).get('turns', []):
             yield from _turn_refs(turn)
         for record in document.get('discussion', {}).get('rounds', []):

@@ -1,0 +1,5 @@
+[
+  {"id":"r0","label":"시험 검토","instructions":"Read scoped observations. Distinguish measurements from assumptions; do not grant engineering approval.","collections":["public"],"tools":["knowledge.source"]},
+  {"id":"r1","label":"역학 검토","instructions":"Read scoped observations. Check boundary conditions and physical interpretation; do not grant engineering approval.","collections":["public"],"tools":["knowledge.source"]},
+  {"id":"r2","label":"불확실성 검토","instructions":"Read scoped observations. Identify discriminating repeat observations and uncertainty; do not grant engineering approval.","collections":["public"],"tools":["knowledge.source"]}
+]

@@ -415,6 +415,8 @@ class ExpertWindow(QMainWindow):
         self.side.setCornerWidget(hide_side)
         splitter.setStretchFactor(1, 1)
         self.setCentralWidget(root)
+        from .research_team_panel import install as install_research_team
+        install_research_team(self, splitter, left)
         self._update_actions()
 
     def open_connection(self):
@@ -519,6 +521,7 @@ class ExpertWindow(QMainWindow):
         self._registry_refresh_pending = False
         def received(payload):
             self._registry = payload.get('experts', [])
+            self._research_team_runtime = deepcopy(payload.get('runtime', {}))
             self._populate_roles(self.edited_draft()['participants'] if self.document else [])
             if self.document:
                 self._populate_turns()
@@ -651,6 +654,7 @@ class ExpertWindow(QMainWindow):
         self._update_evidence_label()
         self._populate_sources()
         self._sync_source_preview()
+        self.research_team.populate(preserve_buffer=preserve_buffer)
         self._update_actions()
 
     def _populate_topics(self):
@@ -771,7 +775,7 @@ class ExpertWindow(QMainWindow):
         self.reply.addItem('새 질문', None)
         for turn in self.document.get('turns', []):
             from .discussion_view import author_label
-            self.reply.addItem(author_label(turn, self._registry) + ': ' + str(turn.get('text') or turn['status'])[:65], turn['id'])
+            self.reply.addItem(author_label(turn, self._registry) + ': ' + str(turn.get('text') or turn.get('status') or '발언')[:65], turn['id'])
         index = self.reply.findData(target)
         self.reply.setCurrentIndex(max(0, index))
         self._populating = False
@@ -789,6 +793,7 @@ class ExpertWindow(QMainWindow):
         # silently expand this persisted explicit scope.
         scope = self._buffer.setdefault('context', {}).setdefault('transmission_scope', {})
         ids = [item['job_id'] for item in self._buffer['composer']['evidence'] if 'job_id' in item]
+        ids += self.research_team.result_ids()
         scope['result_ids'] = list(dict.fromkeys(scope.get('result_ids', []) + ids)) if checked else []
         self._edited()
 
@@ -814,7 +819,7 @@ class ExpertWindow(QMainWindow):
         for key, field in (('model_calls', self.model_calls), ('tool_calls', self.tool_calls), ('seconds', self.seconds)):
             if field.value() != self._control_initial.get(key):
                 draft['budget'][key] = field.value()
-        return draft
+        return self.research_team.apply_draft(draft)
 
     def command(self, operation, arguments=None, *, after=None):
         if not self.document or self.conflict:
@@ -1028,6 +1033,8 @@ class ExpertWindow(QMainWindow):
                           lambda _: self.message.setText('현재 응답 취소를 요청했습니다. 완료된 발언은 남습니다.'))
 
     def ask(self):
+        if self.research_team.selected():
+            return self.research_team.start()
         if self.protocol_mode.currentData() == 'costorm':
             started = any(row.get('protocol') == 'costorm'
                           for row in local_rounds(self.document))
@@ -1645,6 +1652,7 @@ class ExpertWindow(QMainWindow):
         # Queue it so an accepted source selection can start its owner check first.
         self._drain_protocol()
         self._schedule_registry_refresh()
+        self.research_team.update_actions()
 
     def reload_remote(self):
         return self._call(lambda: self.client.document_read(self.document['id']), self._opened)

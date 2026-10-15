@@ -28,6 +28,12 @@ def previous_response(owner, document, record):
 
 
 def start_record(owner, document, command_id, *, action, turn=None):
+    from .research_team_contract import enabled as team_enabled
+    if team_enabled(document['draft']):
+        from .discussion_research_team import start_record as team_start
+        return team_start(owner, document, command_id, action=action, turn=turn)
+    if document['draft'].get('context', {}).get('research_team') is not None:
+        raise ValueError('기존 연구팀 기록은 보존됩니다. 명시한 새 v2 단계를 작성하세요.')
     prior = records(document)
     if action == 'start' and prior:
         raise ValueError('이 토론은 이미 시작했습니다. 계속하기 또는 새 대화를 선택하세요.')
@@ -123,6 +129,9 @@ def authorize(owner, arguments, job_id):
     spec = arguments.get('context', {}).get('costorm')
     if not isinstance(spec, dict):
         raise PermissionError('Missing owner protocol request')
+    if spec.get('variant') == 'cae_research_team_v2':
+        from .discussion_research_team import authorize as team_authorize
+        return team_authorize(owner, arguments, job_id)
     identifier = check_id(spec.get('document_id'))
     with owner._lock(identifier):
         owner.read(identifier)
@@ -158,6 +167,9 @@ def authorize(owner, arguments, job_id):
 
 
 def collect(owner, document, record, run, response, state):
+    if record.get('protocol_request', {}).get('variant') == 'cae_research_team_v2':
+        from .discussion_research_team import collect as team_collect
+        return team_collect(owner, document, record, run, response, state)
     protocol = response.get('costorm') or {}
     if not protocol:
         # A preflight/transport failure must not erase the previously readable map/report.

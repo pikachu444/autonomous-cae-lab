@@ -89,6 +89,8 @@ class Completion:
                     'You are discussing evidence, not granting engineering approval.\n'
                     + self.instructions + '\n\n' + prompt)
             self.runtime._transmission_check({'prompt': full, 'sources': self.context['_source_grants']}, self.context)
+            if callable(getattr(self, 'before_model_input', None)):
+                self.before_model_input(full)
             key = canonical_hash({'prompt': full, 'model': self.config.model, 'format': VERSION})
             prior = next((row for row in self.journal if row['key'] == key), None)
             if prior is not None:
@@ -100,6 +102,8 @@ class Completion:
                 raise RuntimeError('This discussion action exceeds the retained completion limit')
             from .openscience_host import run_openscience
             steps = self.budget.reserve_provider_steps(correction=True)
+            if hasattr(self.budget, 'observe_host'):
+                self.budget.observe_host()
             text = run_openscience(full, {}, self.budget, self.config.model,
                 max_steps=steps, profile_path=self.config.openscience_profile,
                 runtime_prefix=self.config.openscience_runtime_prefix)
@@ -183,10 +187,11 @@ def _paper_rows(value):
 
 class SelectedRetriever:
     """Selected evidence first, then explicitly allowed free Crossref abstracts."""
-    def __init__(self, runtime, context, workspace_id, collections, budget, verify, result_sources=(), journal=None, operations=None):
+    def __init__(self, runtime, context, workspace_id, collections, budget, verify, result_sources=(), journal=None, operations=None, *, public_access=None, public_caller=None):
         self.runtime, self.context = runtime, context
         self.workspace_id, self.collections, self.budget, self.verify = workspace_id, collections, budget, verify
         self.result_sources = result_sources
+        self.public_access, self.public_caller = public_access, public_caller
         self.journal = journal if journal is not None else []
         self.operations = operations if operations is not None else []
         self.events = []
@@ -258,6 +263,13 @@ class SelectedRetriever:
         return rows
 
     def __call__(self, query_or_queries, exclude_urls=()):
+        if self.public_access is not None:
+            if self.public_caller is None:
+                raise PermissionError('A current role binding is required for team retrieval')
+            self.verify()
+            return self.public_access.retrieve(query_or_queries, caller=self.public_caller,
+                input_dependencies=self.public_caller.generation_ledger.active_dependencies,
+                exclude_urls=exclude_urls, result_sources=self.result_sources)
         check_cancelled()
         if time.monotonic() >= self.budget.deadline:
             raise RuntimeError('Consultation time budget exhausted before retrieval')
@@ -391,6 +403,11 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
     if not isinstance(trusted, dict):
         raise PermissionError('Co-STORM steps must be submitted by the existing discussion owner')
     spec = deepcopy(trusted['request'])
+    if spec.get('variant') == 'cae_research_team_v2':
+        if canonical_hash(context.get('costorm')) != canonical_hash(spec):
+            raise PermissionError('Protocol request differs from the owner prepared step')
+        from .research_team import run_team_action
+        return run_team_action(runtime, definition, question, context, session, path, workspace_id, budget, trusted.get('team_action'))
     if canonical_hash(context.get('costorm')) != canonical_hash(spec):
         raise PermissionError('Protocol request differs from the owner prepared step')
     config = runtime.runtime.for_expert(definition['id'])

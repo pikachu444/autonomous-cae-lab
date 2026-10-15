@@ -381,7 +381,7 @@ class _Budget:
         self.used_models, self.used_tools, self.used_consultations = 0, 0, 0
         self.used_model_host_invocations = 0
         self.used_evaluations = 0
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
 
     def consume(self, kind):
         with self.lock:
@@ -393,7 +393,7 @@ class _Budget:
                 raise RuntimeError(kind + ' call budget exhausted')
             setattr(self, attr, getattr(self, attr) + 1)
 
-    def reserve_provider_steps(self, *, allowed_consultations=0, correction=False):
+    def reserve_provider_steps(self, *, allowed_consultations=0, correction=False, _allocation=None):
         """Charge the shared budget for the maximum steps a CLI run may take.
 
         The CLI does not report a trustworthy billed model-call count. Reserve
@@ -401,6 +401,8 @@ class _Budget:
         two steps for each still-allowed nested consultation when possible.
         """
         with self.lock:
+            if _allocation is not None:
+                return _allocation._reserve_locked(self, allowed_consultations=allowed_consultations, correction=correction)
             if time.monotonic() >= self.deadline:
                 raise RuntimeError('Consultation time budget exhausted')
             remaining = self.model_calls - self.used_models
@@ -580,19 +582,68 @@ class ExpertRuntime:
         current = _Budget(self.runtime, budget)
         return self._ask(definition, generator, question, context, session, path, workspace_id, current, [expert_id])
 
-    def _ask(self, definition, generator, question, context, session, path, workspace_id, budget, visited):
+    def _run_approved_role(self, expert_id, question, context, session_id, *, workspace_id,
+                           budget, visited, binding):
+        from ..research_team_contract import ApprovedRoleBinding
+        if (not isinstance(binding, ApprovedRoleBinding) or binding.actor_id != expert_id
+                or binding.role_session_id != session_id or binding.budget_slice is not budget
+                or binding.generation_ledger.runtime is not self
+                or binding.generation_ledger.workspace_id != workspace_id):
+            raise PermissionError('The current owner role binding is required')
+        definition = self.describe(expert_id)
+        definition['tools'] = [name for name in definition.get('tools', []) if name in binding.assignment['tools']]
+        if budget.tool_calls == 0:
+            definition['tools'] = []
+        definition['instructions'] = definition.get('instructions', '') + (
+            '\nReturn research_reply with kind (observation/hypothesis/question/challenge/revision/plan/synthesis), '
+            'claims (text,basis observed/inferred/hypothesized,conditions,source_refs,missing_evidence), '
+            'questions (expert_id,target_turn_id,target_claim_id,question,discriminating_observation), '
+            'revisions (prior_claim_id,decision keep/revise/withdraw/undetermined,reason,evidence), unknowns. '
+            'Preserve the assigned actual target. No engineering approval is granted.')
+        generator = self.runtime.selected_generator(expert_id)
+        if generator is None:
+            return {'status': 'NOT_CONFIGURED', 'answer': None, 'reason': 'Configure the registered role model.',
+                    'sources': [], 'proposed_actions': [], 'inference_performed': False}
+        if budget.ticket['kind'] in {'REPAIR', 'FINALIZE'}:
+            definition['tools'] = []
+            continuation = binding.frozen_task_ref.get('continuation') or {}
+            ref = continuation.get('raw_response_ref')
+            if ref:
+                scope = binding.current_scope_probe()
+                raw = scope['resolve_payload'](ref)
+                metadata = scope['ledger_state']['outputs'].get(__import__('caelab.storage', fromlist=['canonical_hash']).canonical_hash(ref))
+                if not metadata:raise PermissionError('The original incomplete response input is unverified')
+                binding.generation_ledger.add_supplied({'kind': 'response', 'exact_ref': ref, 'payload': raw},
+                    dependencies=metadata['dependency_ids'], origin='history')
+                context = deepcopy(context)
+                context['incomplete_response'] = raw
+                from .research_team import restore_task_reads
+                context = restore_task_reads(binding, context, ref)
+                question = 'Finish only this preserved task; no tools or new observations. ' + question
+        binding.generation_ledger.context = deepcopy(context)
+        session, path = self._session(session_id, workspace_id, expert_id)
+        return self._ask(definition, generator, question, context, session, path,
+                         workspace_id, budget, visited, _binding=binding)
+
+    def _ask(self, definition, generator, question, context, session, path, workspace_id, budget, visited, *, _binding=None):
         from haystack.components.agents import Agent
         from haystack.dataclasses import ChatMessage
         from haystack.tools import Tool
         selected_runtime = self.runtime.for_expert(definition['id'])
         sources, events, actions, tool_evidence = [], [], [], []
+        if _binding is not None:
+            sources.extend(deepcopy(row['source']) for row in context.get('retained_task_reads', []))
         collections = definition.get('collections', [])
-        context, snippets = self._knowledge_context(context, workspace_id, collections)
+        if _binding is None:
+            context, snippets = self._knowledge_context(context, workspace_id, collections)
+        else:
+            from .research_evidence import selected_knowledge_context
+            context, snippets = selected_knowledge_context(_binding)
         selected = selected_source_refs(context)
         selected_results = context.get('selected_result_ids', [])
         allowed_result_ids = set(selected_results)
         created_result_ids = set()
-        for grant in session.get('generated_jobs', []):
+        for grant in (session.get('generated_jobs', []) if _binding is None else []):
             identifier = grant.get('job_id')
             if not identifier or context.get('allow_generated_results') is False:
                 continue
@@ -621,7 +672,7 @@ class ExpertRuntime:
         if snippets:
             tool_evidence.append({'tool': 'selected.source_segments', 'returned': snippets})
         safe_history = []
-        for turn in session['turns'][-10:]:
+        for turn in (session['turns'][-10:] if _binding is None else []):
             if 'read_sources' not in turn:
                 continue
             try:
@@ -637,8 +688,11 @@ class ExpertRuntime:
             safe_history.extend([ChatMessage.from_user(turn['question']),
                                  ChatMessage.from_assistant(turn['response'].get('answer') or '')])
 
-        def execute(name, request):
-            budget.consume('tool')
+        if _binding is not None:
+            for turn in _binding.prepare_history(session['turns'][-10:]):
+                safe_history.extend([ChatMessage.from_user(turn['question']), ChatMessage.from_assistant(turn['answer'])])
+
+        def execute_legacy(name, request):
             requested_budget = 0
             if name == 'knowledge.search':
                 requested_collections = request.get('collections', collections)
@@ -825,8 +879,51 @@ class ExpertRuntime:
                            'summary': summary})
             return result
 
+        def execute(name, request):
+            budget.consume('tool')
+            if _binding is None:
+                return execute_legacy(name, request)
+            permit = _binding.prepare_tool(name, request, debit=True)
+            try:
+                if permit['dispatch'] == 'GUARDED':
+                    if not callable(permit.get('invoke')):
+                        raise PermissionError('A guarded tool has no current trusted callback')
+                    result = permit['invoke']()
+                elif name == 'experts.consult':
+                    target = _binding.prepare_consult(request['expert_id'], request['question'], visited=visited)
+                    budget.consume('consultation')
+                    result = self._run_approved_role(target.actor_id, request['question'],
+                        target.generation_ledger.context, target.role_session_id, workspace_id=workspace_id,
+                        budget=target.budget_slice, visited=visited + [target.actor_id], binding=target)
+                    target.complete_consult(result)
+                elif permit['dispatch'] == 'EXISTING' and name not in {'results.read', 'literature.search', 'literature.read', 'numerical.analyze'}:
+                    result = execute_legacy(name, permit['canonical_request'])
+                else:
+                    raise PermissionError('Guarded research tool dispatch cannot use a legacy fallback')
+            except Exception as error:
+                _binding.finish_tool(permit, error)
+                raise
+            bound = _binding.finish_tool(permit, result)
+            citation_markers = []
+            for receipt in bound['read_receipts']:
+                ref = receipt.get('source_ref', {})
+                if receipt.get('kind') == 'result' and ref.get('job_id'):
+                    marker = {**deepcopy(ref), 'selector': deepcopy(receipt['returned_selector']),
+                              'read_receipt_id': receipt['id']}
+                    sources.append(marker); citation_markers.append(marker)
+                elif any(key in ref for key in ('document_id', 'paper_id', 'run_id')):
+                    sources.append(deepcopy(ref)); citation_markers.append(deepcopy(ref))
+            if citation_markers and isinstance(bound['payload'], dict):
+                bound['payload'] = {**bound['payload'], 'citation_markers': citation_markers}
+            if name == 'calculations.plan' and isinstance(bound['payload'], dict):
+                if bound['payload'] not in actions:actions.append(deepcopy(bound['payload']))
+            events.append({'tool': name, 'status': bound['status'],
+                           'read_receipt_ids': [row['id'] for row in bound['read_receipts']]})
+            return bound['payload']
+
         tools = []
         scoped_calls = {}
+        tool_schemas = {}
         installed = {'knowledge.search', 'knowledge.source', 'literature.search', 'literature.read',
                      'calculations.plan', 'experts.consult'} | set(self.callbacks)
         def make_call(tool_name):
@@ -834,8 +931,8 @@ class ExpertRuntime:
                 request = arguments
                 try:
                     from jsonschema import Draft202012Validator
-                    schema = _TOOL_INPUTS[tool_name]
-                    if tool_name in {'calculations.plan', 'calculations.submit'}:
+                    schema = tool_schemas[tool_name]
+                    if _binding is None and tool_name in {'calculations.plan', 'calculations.submit'}:
                         schema = calculation_request_schema(operation=request.get('operation'),
                             submission=tool_name == 'calculations.submit')
                     validator = Draft202012Validator(schema)
@@ -848,6 +945,12 @@ class ExpertRuntime:
                     error = {'status': 'INVALID_TOOL_INPUT', 'tool': tool_name,
                              'field': str(exc).split(':', 1)[0], 'message': str(exc)}
                     events.append({'tool': tool_name, 'status': error['status'], 'error': error})
+                    if _binding is not None:
+                        from ..storage import canonical_hash
+                        ledger = _binding.generation_ledger
+                        ledger.add_supplied({'kind': 'tool_output',
+                            'exact_ref': {'tool': tool_name, 'request_digest': canonical_hash(request)},
+                            'payload': error}, dependencies=list(ledger.active_dependencies), origin='tool_return')
                     return error
                 except (PermissionError, RuntimeError) as exc:
                     events.append({'tool': tool_name, 'status': 'TOOL_REJECTED',
@@ -860,6 +963,11 @@ class ExpertRuntime:
             schema = _TOOL_INPUTS.get(name)
             if schema is None:
                 continue
+            if _binding is not None:
+                schema = _binding.tool_parameters(name, schema)
+                if schema is None:
+                    continue
+            tool_schemas[name] = schema
             call = make_call(name)
             scoped_calls[name.replace('.', '_')] = {'call': call, 'parameters': schema,
                 'description': 'Use ' + name + ' with the named fields. Invalid fields return INVALID_TOOL_INPUT for correction.'}
@@ -868,13 +976,16 @@ class ExpertRuntime:
                               parameters=schema, function=call))
         def recheck_sources():
             for source in sources:
-                if 'document_id' in source:
+                if 'document_id' in source and not (_binding is not None and 'job_id' in source):
                     self._check_knowledge(source, context, workspace_id, collections)
             self._transmission_check(sources, context, generated_result_ids=created_result_ids)
 
         class BeforeModel:
             def run(self, state):
                 recheck_sources()
+                if _binding is not None:
+                    _binding.prepare_model_input([message.to_dict() for message in state.data['messages']],
+                        mode='repair' if budget.ticket['kind'] == 'REPAIR' else 'initial', supplied_items=[])
                 budget.consume('model')
                 # Bound the cumulative tool/context transmission before every actual inference.
                 size = sum(len(str(message.to_dict()).encode()) for message in state.data['messages'])
@@ -905,7 +1016,12 @@ class ExpertRuntime:
                 if len(prompt.encode()) > self.runtime.max_payload_bytes:
                     raise ValueError('Agent context exceeds the approved transmission bound')
                 recheck_sources()
+                if _binding is not None:
+                    _binding.prepare_model_input({'prompt': prompt, 'tools': tool_schemas},
+                        mode='repair' if budget.ticket['kind'] == 'REPAIR' else 'initial', supplied_items=[])
                 max_steps = budget.reserve_provider_steps(allowed_consultations=allowed_consultations)
+                if _binding is not None:
+                    budget.observe_host()
                 text = run_openscience(prompt, scoped_calls, budget, selected_runtime.model, max_steps=max_steps,
                                        profile_path=self.runtime.openscience_profile,
                                        runtime_prefix=self.runtime.openscience_runtime_prefix)
@@ -928,6 +1044,17 @@ class ExpertRuntime:
                 for citation in citations:
                     if not isinstance(citation, dict):
                         raise ValueError('Malformed citation')
+                    if _binding is not None and ('job_id' in citation or 'reference' in citation or 'run_id' in citation):
+                        ledger = _binding.generation_ledger
+                        actual = [ledger.state['read_receipts'][key] for key in ledger.read_receipt_ids
+                                  if ledger.state['read_receipts'][key].get('kind') == 'result']
+                        from ..research_team_contract import match_result_citation
+                        matched = match_result_citation(citation, actual)
+                        if matched is None:
+                            unverified.append(citation)
+                        else:
+                            approved.append(deepcopy(citation))
+                        continue
                     if not any(key in citation for key in ('document_id', 'paper_id', 'run_id')):
                         raise ValueError('Citation must identify an actually read source')
                     keys = (['document_id', 'revision', 'locator'] if 'document_id' in citation else
@@ -956,6 +1083,13 @@ class ExpertRuntime:
                 invalid = mismatch.citations if isinstance(mismatch, _UnverifiedCitation) else []
                 events.append({'tool': event_name, 'status': 'REJECTED',
                                'invalid_citations': invalid, 'reason': str(mismatch)})
+                if _binding is not None:
+                    raw = {'status': 'INVALID', 'answer': text, 'sources': [], 'assumptions': [],
+                        'proposed_actions': deepcopy(actions), 'tool_events': deepcopy(events)}
+                    _binding.validation_failed(raw, [str(mismatch)])
+                    rows = _binding.current_scope_probe()['ledger_state']['responses'].values()
+                    record = [row for row in rows if row['task_id'] == _binding.task_id][-1]
+                    return {**raw, 'research_response': deepcopy(record)}
                 if budget.used_models >= budget.model_calls or time.monotonic() + 5 >= budget.deadline:
                     raise
                 markers = []
@@ -1046,8 +1180,16 @@ class ExpertRuntime:
                                         'model_host_invocations': budget.used_model_host_invocations,
                                         'tool_calls': budget.used_tools,
                                         'consultations': budget.used_consultations, 'evaluations_requested': budget.used_evaluations}}
+            if _binding is not None:
+                from ..research_team_contract import validate_reply
+                response['research_reply'] = deepcopy(structured.get('research_reply'))
+                validation = validate_reply(response, task=_binding.frozen_task_ref, allowed_references=approved,
+                    read_receipts=[_binding.generation_ledger.state['read_receipts'][key]
+                        for key in _binding.generation_ledger.read_receipt_ids])
+                response['research_response'] = _binding.finalize_response(response, validation)
             if path is not None:
-                session['turns'].append({'question': question, 'context': context, 'response': response, 'read_sources': sources})
+                session['turns'].append({'question': question, 'context': context, 'response': response, 'read_sources': sources,
+                    **({'actor_id': _binding.actor_id, 'phase_id': _binding.phase_id, 'task_id': _binding.task_id} if _binding is not None else {})})
                 with self._lock:
                     temporary = path.with_suffix('.tmp')
                     temporary.write_text(json.dumps(session, ensure_ascii=False), encoding='utf-8')

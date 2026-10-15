@@ -86,6 +86,10 @@ class Workbench:
             list_experts=lambda:self.assistance_call('experts.list',{}),
             resolve_document=self.document_read,resolve_result=self.document_result,
             resolve_knowledge=lambda reference:self.assistance_call('knowledge.source',reference))
+        from .research_team_results import capture_result_verification
+        self.discussion_documents.capture_result_verification = lambda ref: capture_result_verification(self, ref)
+        from . import research_team_followup
+        self.discussion_documents.research_team_transfer_context = lambda doc: research_team_followup.build_transfer_context(self, doc)
         self.simulation_documents=SimulationDocuments(self.root,self.session_id,self.submit,self.manager)
         self.evaluation_documents=EvaluationDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision))
@@ -117,7 +121,7 @@ class Workbench:
             raise ValueError('Choose a research document kind; native documents open in their host')
         if title is None:
             title={'material':'Material research','data':'Data research','pde':'PDE research',
-                   'numerical':'Numerical Plan','expert':'Expert discussion','simulation':'Simulation research',
+                   'numerical':'Numerical Plan','expert':'전문가 토론','simulation':'Simulation research',
                    'evaluation':'Evaluation definition','study':'Study','report':'연구 보고서'}[kind]
         return owners[kind].open(title=title,draft=draft,document_id=document_id)
 
@@ -280,7 +284,16 @@ class Workbench:
 
     def document_result_metadata(self, identifier, job_id):
         from .research_operations import result_metadata
-        return result_metadata(self.document_result(identifier,job_id,selection={'metadata_only': True}))
+        from .research_team_results import describe_result_selection
+        metadata = result_metadata(self.document_result(identifier,job_id,selection={'metadata_only': True}))
+        metadata['research_team_descriptor'] = describe_result_selection(self, identifier, job_id)
+        return metadata
+
+    def research_team_transfer(self, document_id, kind, selection, *, session_id, expected_generation, command_id):
+        """Open selected research in an existing editor without starting inference."""
+        from .research_team_followup import transfer
+        return transfer(self, document_id, kind, selection, session_id=session_id,
+                        expected_generation=expected_generation, command_id=command_id)
 
     def document_response_locations(self, identifier, job_id, channel, *, start=0, count=128, search=''):
         from .research_operations import response_locations
@@ -1118,6 +1131,23 @@ class Workbench:
                 from .discussion_costorm import authorize
                 from .assist.costorm import owner_step
                 trusted = authorize(self.discussion_documents, args, identifier)
+                if trusted.get('team_action') is not None:
+                    action = trusted['team_action']
+                    def configure_tools(runtime, budget):
+                        from types import SimpleNamespace
+                        from .assist.research_evidence import ResultAccess
+                        from .research_team_results import workbench_readers, analysis_input_factory, AnalysisAccess
+                        from .execution_control import check_cancelled
+                        readers = workbench_readers(self, verification_receipts=action.lookup_result_verification)
+                        readers['transmission_check'] = runtime._transmission_check
+                        result_access = ResultAccess(readers=readers, current_scope_probe=action.current_scope_probe)
+                        analysis_access = AnalysisAccess(
+                            describe_inputs=analysis_input_factory(self, readers=readers),
+                            describe_resources=lambda resources: self.resource_request({}, resources),
+                            existing_callback=lambda request: self._execute('analyze', request, 'read'),
+                            execution_control=SimpleNamespace(check=check_cancelled))
+                        return {'result_access': result_access, 'analysis_access': analysis_access}
+                    action.configure_tools = configure_tools
                 with owner_step(trusted):
                     result = self.assistance_call(operation, args)
             else:

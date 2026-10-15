@@ -48,6 +48,10 @@ def _asset_name(name: str, kind: str | None = None) -> str:
         fail('PRIVATE_ASSET_REFUSED', name, '인증/환경설정 파일은 자동 수집하지 않습니다.', '인증/환경설정 자료를 제외하고 선택 목록을 다시 확인하세요. 공학 자료의 공개 여부는 제한하지 않습니다.')
     if kind == 'evaluation' and name == 'stage_inputs.json':
         return name
+    if kind == 'expert':
+        from .portable_research_team import is_team_asset
+        if is_team_asset(name):
+            return name
     if kind == 'report':
         from .portable_project_report import ASSET
         if ASSET.fullmatch(name):

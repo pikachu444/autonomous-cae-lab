@@ -181,7 +181,7 @@ def execute_definition(wb, arguments, job_id):
         lambda model, output: run_domain(wb, model, output), reuse_result=retained, reuse_folder=folder)
 
 
-def _candidate_reference_view(result, selection):
+def _candidate_reference_view(result, selection, *, array_value=lambda value: value):
     """Select actual nested candidate responses after full exact-result verification.
 
     This is a read view of existing candidate records, not a new result schema
@@ -237,19 +237,22 @@ def _candidate_reference_view(result, selection):
         for response in row['responses'].values():
             if bounds is None or response.get('kind') != 'series':
                 continue
-            values = response.get('value')
+            import numpy as np
+            values = array_value(response.get('value'))
             axes = response.get('axes') or []
-            if (not isinstance(values, list) or len(axes) != 1
-                    or not isinstance(axes[0].get('values'), list) or len(axes[0]['values']) != len(values)):
+            axis_values = array_value(axes[0].get('values')) if len(axes) == 1 else None
+            if (not isinstance(values, (list, np.ndarray)) or len(axes) != 1
+                    or not isinstance(axis_values, (list, np.ndarray)) or len(axis_values) != len(values)):
                 raise ValueError('Candidate series does not have one matching saved axis')
             selected = slice(*bounds)
-            response['value'] = values[selected]
-            axes[0]['values'] = axes[0]['values'][selected]
+            response['value'] = np.asarray(values)[selected].tolist()
+            axes[0]['values'] = np.asarray(axis_values)[selected].tolist()
             for field in ('mask', 'source_rows'):
                 if response.get(field) is not None:
-                    if not isinstance(response[field], list) or len(response[field]) != len(values):
+                    field_values = array_value(response[field])
+                    if not isinstance(field_values, (list, np.ndarray)) or len(field_values) != len(values):
                         raise ValueError('Candidate series ' + field + ' does not match its values')
-                    response[field] = response[field][selected]
+                    response[field] = np.asarray(field_values)[selected].tolist()
     return actual
 
 

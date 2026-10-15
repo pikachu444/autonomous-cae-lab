@@ -391,6 +391,9 @@ class MaterialDocuments(RetainedComparisons):
                 return prior['response']
             if document['generation'] != expected_generation:
                 raise ValueError('Document generation changed; reread before applying')
+            if self.kind == 'expert' and operation == self.update_operation:
+                from .research_team_results import prepare_result_update
+                prepare_result_update(self, document, arguments)
             save_json(receipt, {'request_hash': signature, 'state': 'APPLYING', 'operation': operation,
                                'input_generation': expected_generation, 'input': document['draft'],
                                'input_revision': document['input_revision'], 'session_id': self.session_id})
@@ -399,6 +402,9 @@ class MaterialDocuments(RetainedComparisons):
                 if 'draft' not in arguments or set(arguments) - allowed:
                     raise ValueError('Material update requires only draft; Data may carry an explicit portable source review')
                 draft = self._draft(arguments['draft'])
+                if self.kind == 'expert':
+                    from .discussion_research_team import normalize_update
+                    draft = normalize_update(document, draft, command_id=command_id)
                 if canonical_hash(draft) != canonical_hash(document['draft']):
                     document['_undo'].append(deepcopy(document['draft']))
                     document['_redo'] = []

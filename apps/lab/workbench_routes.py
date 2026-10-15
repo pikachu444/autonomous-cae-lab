@@ -110,6 +110,10 @@ def handle(handler,method,path,query):
             if set(body)!={'context','kind','session_id','command_id'}:
                 raise ServiceError(400,'Select a saved Study issue and target editor')
             return handler._json(200,workbench.desktop.study_followup(**body))
+        if path == '/api/workbench/research-team-transfer':
+            if set(body) != {'document_id', 'kind', 'selection', 'session_id', 'expected_generation', 'command_id'}:
+                raise ServiceError(400, 'Select the source discussion, saved content and target editor')
+            return handler._json(200, workbench.research_team_transfer(**body))
         if path=='/api/workbench/document-compare':
             if set(body)!={'source','prediction_source'}:
                 raise ServiceError(400,'Choose the two explicit retained curve references')

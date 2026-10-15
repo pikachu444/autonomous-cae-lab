@@ -4,6 +4,7 @@ Set CAELAB_SERVICE_URL; this process never constructs Lab or a job controller.
 The same tools can be used by OpenScience or any compatible MCP client.
 """
 import os
+from typing import Literal
 from mcp.server.fastmcp import FastMCP
 from caelab.workbench_client import Client
 
@@ -347,6 +348,18 @@ def expert_plan_open(discussion_id: str, turn_id: str, proposal_index: int, sess
     """Open the selected actual proposal as an editable Numerical document; it submits no calculation."""
     return client().discussion_plan(discussion_id,turn_id,proposal_index,
         session_id=session_id,command_id=command_id)
+
+@mcp.tool()
+def expert_research_transfer(document_id: str, kind: Literal['study', 'result_review', 'report'],
+                             selection: dict, session_id: str, expected_generation: int,
+                             command_id: str) -> dict:
+    """Open selected claims in Study, an actual result review draft, or a retained Report.
+
+    Use stored selection IDs and the exact current owner session/generation.
+    Identical retries keep command_id; this never asks a model or runs a calculation.
+    """
+    return client().research_team_transfer(document_id,kind,selection,session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
 
 @mcp.tool()
 def numerical_plan_edit(document_id: str, draft: dict, session_id: str, expected_generation: int,

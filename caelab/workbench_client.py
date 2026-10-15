@@ -212,6 +212,10 @@ class Client:
     def study_followup(self, context, kind, *, session_id, command_id):
         return self.request('/api/workbench/study-followup',dict(context=context,kind=kind,
             session_id=session_id,command_id=command_id))
+    def research_team_transfer(self, document_id, kind, selection, *, session_id, expected_generation, command_id):
+        return self.request('/api/workbench/research-team-transfer', dict(document_id=document_id,
+            kind=kind, selection=selection, session_id=session_id,
+            expected_generation=expected_generation, command_id=command_id))
     def data_followup(self,source,kind,*,session_id,command_id,material_document_id=None):
         return self.request('/api/workbench/data-followup',dict(source=source,kind=kind,session_id=session_id,
             command_id=command_id,material_document_id=material_document_id))

@@ -149,11 +149,14 @@ root가 공통 파일의 최소 패치를 순서대로 적용하며 기존 코�
 공유 예산과 역할별 실제 Ask binding, 같은 action의 문헌 검색, Workbench의 정확한 결과·
 기존 수치 분석 연결, 명시한 결과 첨부와 Qt/portable 참조 접점을 적용했다. 선택한 주장·
 보고서·실제 결과를 같은 기존 Study/Report/Expert로 여는 HTTP/Client 경로도 연결했고,
-현재 각 담당이 정상·실패·재개 동작을 한 묶음으로 마무리한다. B의 실제 기존 검색·원문·
-자료 공유 모듈은 전용 인도를 마쳤다. A의 공개 조사→상호질문→답변은 controlled 실행이며
-실제 외부 모델을 호출한 확인과 구별한다. 새 팀 전체 실구독 실행·GUI 수용과 분야 전문성은
-아직 완료가 아니다. 검토 보고서는
-`_workspace/research-team-design-review/CORRECTED_REVIEW.md`에 보존했다.
+네 담당의 구현·교정을 통합했고 Astra의 최종 통합 검토에서 열린 필수 수정은 없다.
+자료 조사→담당 간 질문·답변→논점·보고서, 명시한 계산 결과의 재검토와 기존 Study/Report
+연결을 확인했다. 생성 응답은 대역이며 실제 자료 읽기·수치 분석·HTTP·CLI·MCP와 Qt는
+기존 실행 경로를 사용했다. 서로 다른 두 프로세스에서 이동 사본을 다시 열고 작성·저장을
+이어가는 동작도 확인했다. 실제 보통/좁은 Qt 창과 한국어 사용법은
+[연구팀 안내](docs/research-team/USAGE_KO.md)에 있다. 새 팀 전체의 실제 구독 모델 실행,
+잠금 해제 후 OS 직접 조작과 분야 전문성 검증은 아직 완료가 아니다. 최종 검토는
+`_workspace/research-team-integration-review/REVIEW.md`에 보존했다.
 기존 Space 댓글 한도 때문에 같은 프로젝트의 [개발 논의](https://chatgpt.com/space/page_b4b3b6a868dc8191a4de4f2282d85a78)
 페이지에서 담당자들이 직접 질문·답변을 이어간다. CURRENT_STATE가 유일한 현재 작업 원본이다.
 입력/부분결과 GUI 묶음 ade0ca6는 원격 main과 일치를 확인했다. 실제 Pro B 전용 소스는
@@ -259,8 +262,19 @@ Astra 최종 독립 검토를 마쳤다. 실제 두 단계 계산과 명시한 �
 https://chatgpt.com/c/6ad0c7d0-6f70-83ee-a420-2427dfa05b55 를 사용한다.
 요청과 공개 소스 원문 묶음은 `_workspace/native-portable-map/pro-packet/`에 있다.
 목표는 기존 FreeCAD/ParaView 저장·원문·의존 파일·경로 복구·열기를 재사용하는
-독립 도구와 전체 연결의 상세 설계다. 실제 Pro/파워5를 확인하고 공개 자료 두 파일을
-첨부해 한 번 전송했으며 현재 응답 생성 중이다. 새 native 실행은 시작하지 않았다.
+독립 도구와 전체 연결의 상세 설계다. 실제 Pro/파워5의 완료된 편집 가능 MD를 공식
+다운로드로 회수했다. 원문은 `_workspace/pro-recovered-20261016/native-project/native-project-design.md`다.
+Astra `native_project_design_review`가 저장 참조·독립 열기·재복사를 검토한다. retained
+분석을 다시 입력으로 쓰는 Post 경로의 파일 대응과, 원 문서가 열려 있을 때 과거 저장본을
+별도로 여는 identity 정책을 보완해 같은 Pro에 교정을 요청한다. Sol N0 `inverse_delivery`는
+공통 계약·등록·사본 helper, N1 `pde_delivery_packet`은 FreeCAD 저장·XLink·편집 사본,
+N2 `native_post_delivery`는 ParaView 의존 파일·분석 복원·복구를 병렬 작성한다. 미확정
+두 계약은 가정으로 고정하지 않고 독립 검토·Pro 교정 뒤 통합한다. 공유 Core 파일은 root가
+반영하며 기존 연구팀 구현을 덮지 않는다. 이 설계 회수 자체를 native 실행 완료로 세지 않는다.
+교정 요청 `PRO-NATIVE-PROJECT-20261016-02`를 같은 Pro/파워5 대화에 두 문서와 함께
+한 번 전송했고 실제 메시지·응답 생성 중 상태를 확인했다.
+요청 원문은 위 회수 폴더의 `correction-request.md`, 독립 검토는
+`_workspace/native-project-design-review/REVIEW.md`이며 원 설계를 보존한 전체 교체본을 받는다.
 Sol `post_windows_build_fix`가 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료
 plugin을 연결했고 Astra 통합 검토를 마쳤다. 실제 Qt 종료 event·저장/취소/오류 창과
 root의 실행 파일 일치·미완성 입력 저장 방지 교정을 확인했다. 기존 실제 Pro C++/ABI

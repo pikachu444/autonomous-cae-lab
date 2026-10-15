@@ -67,7 +67,7 @@ def main(argv=None):
             action.add_argument('id')
     command = sub.add_parser('documents', help='Open and edit the same document as GUI/MCP')
     actions = command.add_subparsers(dest='action', required=True)
-    for name in ('list','open','read','apply','result','inspect','stages','stage','transfer','candidate'):
+    for name in ('list','open','read','apply','result','inspect','stages','stage','transfer','candidate','research-transfer'):
         action = actions.add_parser(name)
         action.add_argument('--url',default='http://127.0.0.1:8766')
         if name=='open':
@@ -75,7 +75,7 @@ def main(argv=None):
             action.add_argument('--kind',choices=['material','data','numerical','pde','expert','simulation','evaluation','study'],default='material')
             action.add_argument('--title',default='Material research')
             action.add_argument('--draft')
-        if name in {'read','apply','result','inspect','stages','stage','transfer','candidate'}:
+        if name in {'read','apply','result','inspect','stages','stage','transfer','candidate','research-transfer'}:
             action.add_argument('id')
         if name=='apply':
             action.add_argument('--operation',required=True)
@@ -83,6 +83,12 @@ def main(argv=None):
             action.add_argument('--session',required=True)
             action.add_argument('--generation',type=int,required=True)
             action.add_argument('--command-id')
+        if name=='research-transfer':
+            action.add_argument('--kind',choices=['study','result_review','report'],required=True)
+            action.add_argument('--selection',required=True,help='Stored research selection: JSON or path to JSON')
+            action.add_argument('--session',required=True)
+            action.add_argument('--generation',type=int,required=True)
+            action.add_argument('--command-id',required=True)
         if name in {'result','stages','stage','transfer','candidate'}:
             action.add_argument('job_id')
         if name=='stage':
@@ -140,6 +146,9 @@ def main(argv=None):
             result=client.numerical_evaluation_result(args.id,args.job_id,args.candidate_id,
                 evaluation_index=args.evaluation_index,attempt_id=args.attempt_id,
                 selection=json_value(args.selection) if args.selection else None)
+        elif args.action=='research-transfer':
+            result=client.research_team_transfer(args.id,args.kind,json_value(args.selection),session_id=args.session,
+                expected_generation=args.generation,command_id=args.command_id)
         elif args.action=='result':
             result=client.document_result(args.id,args.job_id)
         else:

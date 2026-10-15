@@ -38,3 +38,20 @@ native Qt/portable workflow. Reuse the existing ExpertRuntime, host, readers,
 Numerical Plan and document owners. Root integrates shared hooks sequentially.
 The complete team workflow requires actual returned role/tool work and usable
 desktop interaction; connection success or design review alone cannot close it.
+
+## Phase 4 mode selection
+
+Use parallel Codex subagents for the independent A/B/C/D bundles in `tasks.md`.
+The installed MoAI run workflow supplies the decomposition and handoff procedure;
+its exposed MCP tools supply SPEC/task inspection. A Claude Code Agent Teams
+executor is not exposed in this session and is not claimed as executed.
+Codex starts and coordinates the actual workers through the available
+collaboration tools. They discuss shared contracts directly and return minimal
+common-file patches to the lead, rather than editing those files concurrently.
+
+Keep the adopted per-call binding, exact result selection and shared-dependency
+contracts fixed across the bundles. The lead installs the Workbench callback
+factory, owner command hooks, portable reference mapping and client transport
+once. Review the integrated user workflow at the feature boundary; do not make
+every small edit wait for another reviewer or unchanged solver campaign.
+Current execution status remains solely in CURRENT_STATE.

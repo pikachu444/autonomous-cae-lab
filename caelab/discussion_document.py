@@ -15,11 +15,11 @@ from .evaluation import read_result
 from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 
-SPECIAL_OPERATIONS = {'expert.ask', 'expert.intervene', 'expert.pause', 'expert.resume', 'expert.advance'} | costorm.OPERATIONS
+SPECIAL_OPERATIONS = {'expert.ask', 'expert.intervene', 'expert.pause', 'expert.resume', 'expert.advance', 'expert.acknowledge_unresolved'} | costorm.OPERATIONS
 
 
 def default_draft():
-    return {'topics': [{'id': 'Qmain', 'title': 'Research question', 'parent_id': None}],
+    return {'topics': [{'id': 'Qmain', 'title': '연구 질문', 'parent_id': None}],
             'participants': [],
             'composer': {'text': '', 'topic_id': 'Qmain', 'reply_to': None,
                          'classification': 'question', 'evidence': []},
@@ -161,7 +161,11 @@ class DiscussionDocuments(MaterialDocuments):
         if target and not any(turn['id'] == target for turn in turns):
             raise ValueError('Reply target does not belong to this discussion')
         if needs_roles:
-            self._validate_sources(draft['context'])
+            from .research_team_contract import enabled as team_enabled
+            if team_enabled(draft):
+                selected_source_refs(draft['context'])  # Exact syntax; each binding checks its own current source grants.
+            else:
+                self._validate_sources(draft['context'])
             registry = self.list_experts()
             registered = {item['id'] for item in (registry['experts'] if isinstance(registry, dict) else registry)}
             if not draft['participants'] or not set(draft['participants']).issubset(registered):
@@ -262,7 +266,10 @@ class DiscussionDocuments(MaterialDocuments):
                 if ('knowledge_sources' not in round_record
                         and 'selected_sources' not in round_record['draft']['context']):
                     raise ValueError('Legacy round source scope is unresolved; start a new round after reviewing Sources')
-                self._validate_sources(round_record['draft']['context'])
+                if round_record.get('protocol_request', {}).get('variant') == 'cae_research_team_v2':
+                    selected_source_refs(round_record['draft']['context'])
+                else:
+                    self._validate_sources(round_record['draft']['context'])
             except (ValueError, PermissionError, OSError) as error:
                 # Preserve frozen legacy/revoked rounds and already completed roles.
                 # A later explicit Ask may use the user's repaired current draft.
@@ -339,6 +346,10 @@ class DiscussionDocuments(MaterialDocuments):
         return True
 
     def command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
+        if operation == 'expert.acknowledge_unresolved':
+            from .discussion_research_team import acknowledge_unresolved
+            return portable.command_response(self, acknowledge_unresolved(self, identifier, arguments,
+                session_id=session_id, expected_generation=expected_generation, command_id=command_id))
         if operation not in SPECIAL_OPERATIONS:
             response = super().command(identifier, operation, arguments, session_id=session_id,
                                        expected_generation=expected_generation, command_id=command_id)

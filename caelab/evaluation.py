@@ -373,7 +373,15 @@ def _read_result(path, *, verify, selection, arrays):
             prefix=f"{curve.get('role')}: {curve.get('experiment_id')}"
             curve_views(curve.get('observations'),curve.get('prediction'),
                         prefix+' observed',prefix+' predicted',curve.get('mask'),curve.get('prediction_metadata'))
-    if selection is not None:
+    candidate_selection = (isinstance(selection, dict) and 'candidate_ids' in selection
+                           and isinstance(result.get('candidates'), list))
+    if candidate_selection:
+        from .research_workflows import _candidate_reference_view
+        candidate_page = {k: v for k, v in selection.items() if k != 'rows'}
+        if 'reduction_index' in selection:
+            candidate_page = selection
+        result = _candidate_reference_view(result, candidate_page)
+    if selection is not None and not candidate_selection:
         names = selection.get('responses') if isinstance(selection, dict) else selection
         if names is not None:
             if not isinstance(names,(list,tuple)) or not all(isinstance(name,str) for name in names):
@@ -483,6 +491,11 @@ def _read_result(path, *, verify, selection, arrays):
         # diagnostics or saved native fields into an interactive response.
         # Their hashed references remain available for a separate full read.
         result['responses'] = unpack(result.get('responses', {}))
+        if candidate_selection:
+            if 'rows' in selection:
+                result = _candidate_reference_view(result, selection, array_value=array_value)
+            for row in result['candidates']:
+                row['responses'] = unpack(row.get('responses', {}))
     else:
         result = unpack(result)
     return result

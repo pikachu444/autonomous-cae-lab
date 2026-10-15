@@ -86,6 +86,12 @@ def draft_references(kind: str, draft: dict) -> Iterator[TypedReference]:
     elif kind == 'expert':
         for i, source in enumerate(_rows(_object(draft.get('composer')).get('evidence'))):
             found.append(ref(('composer', 'evidence', i), '질문의 근거', source))
+        team = _object(_object(draft.get('context')).get('research_team'))
+        if team.get('version') == 2:
+            for i, assignment in enumerate(_rows(team.get('assignments'))):
+                for j, selection in enumerate(_rows(_object(assignment).get('result_refs'))):
+                    found.append(ref(('context', 'research_team', 'assignments', i, 'result_refs', j, 'reference'),
+                        '담당자가 검토할 계산 결과', _object(selection).get('reference'), 'result'))
     yield from (row for row in found if row is not None)
 
 
