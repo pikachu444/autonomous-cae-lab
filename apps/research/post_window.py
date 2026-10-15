@@ -485,6 +485,7 @@ class PostWindow(QMainWindow):
         return {'document.save': '저장', 'post.sample': '측정값 조회', 'post.inspect': '필드 조회', 'post.select_array': '성분 표시',
                 'post.mapping_validate': '미리보기', 'post.apply': '적용', 'post.show_analysis': '적용 결과 표시',
                 'post.contact_inspect': '접촉 결과 조회', 'post.measurement_snapshot': '측정 확인',
+                'post.measurement_capture': '원본 점 선택 가져오기',
                 'post.export': '내보내기', 'post.undo': '적용 취소', 'post.redo': '다시 적용',
                 'post.measurement_edit': '측정 초안 보관', 'post.filter_edit': '필터 초안 보관',
                 'post.comparison_edit': '비교 초안 보관'}.get(operation, '후처리 작업')
@@ -855,6 +856,7 @@ class PostWindow(QMainWindow):
             declarations_button.clicked.connect(lambda checked=False: self.use_declarations())
             form.addRow(declarations_button)
             self.capture_button = QPushButton('ParaView에서 선택한 원본 점 가져오기')
+            self.capture_button.setToolTip('점 측정과 시간 이력에 사용합니다. 경로는 두 끝점 좌표를 지정하세요.')
             self.capture_button.clicked.connect(self.capture_selection)
             form.addRow(self.capture_button)
         self.tabs.blockSignals(True)
@@ -1112,7 +1114,8 @@ class PostWindow(QMainWindow):
                 if callback:
                     callback(payload)
             self.message.setText(self.operation_label(pending['request']['operation']) + ' 완료.' +
-                                 (' 새 편집은 아직 적용하지 않았습니다.' if late_edit else ''))
+                                 (' 새 편집은 아직 적용하지 않았습니다.' if late_edit or
+                                  (self.local_dirty and pending['request']['operation'] == 'post.measurement_capture') else ''))
         else:
             self._show_document(remote, preserve_buffer=True)
             error = command.get('outcome', {}).get('error', command.get('error', {}))
@@ -1429,16 +1432,32 @@ class PostWindow(QMainWindow):
 
     def capture_selection(self):
         draft = self.edited_draft()
+        if draft.get('measurement') not in ('point', 'time') or draft.get('association') != 'POINTS':
+            self.message.setText('원본 점 선택은 점 측정과 시간 이력에서 사용합니다. 경로는 두 끝점 좌표를 지정하세요.')
+            return False
         source, array = draft.get('source_ref'), draft.get('array')
         if not source or not array:
-            self.message.setText('Choose an admitted original source and exact array before capturing its native point selection.')
+            self.message.setText('원자료와 정확한 점 필드를 먼저 선택하세요.')
             return False
         def accepted(payload):
+            captured = payload['draft']
+            prepared = deepcopy(captured)
+            # Capture supplies original IDs and known declarations. Explicit
+            # edits still need review/store through the existing owner gates.
+            prepared.update({key: deepcopy(value) for key, value in draft.items()
+                             if key != 'point_indices' and value is not None})
+            if prepared.get('measurement') == 'time':
+                prepared.pop('time', None)
             self._object_ref = payload['id']
             self._tree_selection = ('object', payload['id'])
-            self._kind, self._draft = 'measurement', deepcopy(payload['draft'])
+            self._kind, self._draft = 'measurement', deepcopy(captured)
             self.local_dirty = False
             self._show_document(self.document, preserve_buffer=False)
+            if prepared != captured:
+                self._draft = prepared
+                self.local_dirty = True
+                self._edit_serial += 1
+                self._populate_editor()
         return self.queue_command('post.measurement_capture', {'source_ref': source, 'array': array}, accepted=accepted)
 
     def show_comparison_originals(self, a, b):
@@ -1953,7 +1972,8 @@ class PostWindow(QMainWindow):
             self.sample_context.setText('아직 읽은 값이 없습니다. 설정을 확인하고 측정값을 읽으세요.')
         if hasattr(self, 'capture_button'):
             try:
-                self.capture_button.setEnabled(enabled)
+                self.capture_button.setEnabled(enabled and self.edited_draft().get('measurement') in ('point', 'time')
+                    and self.edited_draft().get('association') == 'POINTS')
             except RuntimeError:
                 pass
 
