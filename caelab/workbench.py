@@ -18,7 +18,7 @@ from .native_inputs import NATIVE_EXTENSIONS, register_native_input, register_fr
 INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
 
 OPERATIONS = {'detail_eval','evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
-              'batch_export','batch_import','surrogate','epsilon','sensitivity',
+              'batch_export','batch_import','remote.run','remote.reconnect','remote.cancel','remote.collect','surrogate','epsilon','sensitivity',
               'sample_sensitivity', 'experiment_uncertainty', 'identification_final',
               'knowledge.ingest','knowledge.rebuild','knowledge.revoke','literature.search','literature.read',
               'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled','dynamic.reprocess','impact.reprocess'}
@@ -697,6 +697,15 @@ class Workbench:
             raise ValueError('Output, runtime and execution registrations are operator-owned')
         if isinstance(arguments.get('backend'),str) and arguments['backend'] not in {row['id'] for row in self.backends()}:
             raise ValueError('Backend is not registered')
+        if operation.startswith('remote.'):
+            from .remote_execution import validate_arguments
+            if not isinstance(request_id, str) or not request_id.strip():
+                raise ValueError('원격 요청은 응답 유실 후 같은 요청을 확인할 request_id가 필요합니다.')
+            if resources:
+                raise ValueError('원격 자원은 remote_resources에서 지정하세요.')
+            validate_arguments(self, operation, arguments)
+            return self._admit_job(operation, arguments, workspace_id=self.workspace_id,
+                request_id=request_id, resources={'threads':1})
         if operation in {'doe','optimize','epsilon','fit','uq','sample_sensitivity'} and 'variables' in arguments:
             from .variable_domains import normalize, require_capability
             declared = normalize(arguments['variables'])
@@ -975,6 +984,9 @@ class Workbench:
         return settings
 
     def _execute(self, operation, arguments, identifier):
+        if operation.startswith('remote.'):
+            from .remote_execution import execute
+            return execute(self, operation, arguments, identifier)
         if operation == 'impact.reprocess':
             from .impact_recovery import execute
             return execute(self, arguments, identifier)

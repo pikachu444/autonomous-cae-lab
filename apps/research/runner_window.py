@@ -41,7 +41,8 @@ def operation_label(operation):
             "optimize": "최적화", "uq": "불확실성 분석", "sensitivity": "민감도 분석",
             "surrogate": "대리모델", "epsilon": "다목적 최적화", "experts.ask": "전문가 질문",
             "experts.discuss": "전문가 토론", "data.import": "데이터 가져오기",
-            "dynamic.reprocess": "동해석 결과 다시 읽기"}.get(operation, "등록된 작업" if operation else "기록 없음")
+            "remote.run":"원격 제출", "remote.reconnect":"원격 상태 확인", "remote.cancel":"원격 취소",
+            "remote.collect":"원격 결과 회수", "dynamic.reprocess": "동해석 결과 다시 읽기"}.get(operation, "등록된 작업" if operation else "기록 없음")
 
 
 def backend_label(backend):
@@ -308,6 +309,10 @@ class RunnerWindow(QMainWindow):
             action = QAction(label, self)
             action.triggered.connect(lambda checked=False, tool=kind: self.open_tool(tool))
             tools.addAction(action)
+        tools.addSeparator()
+        remote_action = QAction('원격 실행…', self)
+        remote_action.triggered.connect(self.open_remote_execution)
+        tools.addAction(remote_action)
         toolbar = QToolBar("실행 작업")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -705,6 +710,10 @@ class RunnerWindow(QMainWindow):
             self.message.setText(state_description(job))
         self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received,
                       relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+
+    def open_remote_execution(self):
+        from .remote_execution_dialog import show_remote
+        show_remote(self)
 
     def open_contact_steps(self):
         identifier,epoch=self.selected_job_id,self._selection_epoch

@@ -239,11 +239,16 @@ Actions artifact/cache·유료 runner는 사용하지 않는다. 소스 게시 �
 게시하고 일치를 확인한 뒤 [공개 Windows 실행](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38777226677)을
 한 번 시작했으며 현재 진행 중이다. 실행 중 재전송하거나 광역 로컬 빌드를 함께 시작하지 않는다.
 실제 ParaView File→Exit·직접 OS 입력·깨끗한 PC 설치는 미완료다.
-Sol `inverse_delivery`는 보존한 B8.4 SSH/Slurm/PBS 원격 실행 초안과 기존 batch 교환을
-이어 구현한다. 전용 원격 코드·대화창·사용법과 작은 controlled 검사를 소유하고 공통
-Runner/작업관리 연결은 root 최소 패치로 통합한다. 사용자 원격 host·권한은 제공되지
-않았으므로 임의 접속·자격증명 변경이나 실제 원격 성공 주장은 하지 않는다. 무료
-Windows native 경로와 로컬 독립 실행을 유지하며 WSL·새 서버·새 구독은 요구하지 않는다.
+Sol `inverse_delivery`가 보존한 B8.4 SSH/Slurm/PBS 초안과 기존 batch 교환을 연결했고
+root 공통 Runner/작업관리 통합과 Astra 독립 검토를 마쳤다. 입력·자원 선택→제출→같은
+작업의 상태 확인/취소→종료 확인 뒤 명시 회수→Runner 결과/후보표로 이어진다.
+응답이 유실된 채 창을 닫아도 새 프로세스에서 원 요청을 확인하고 중복 제출하지 않는다.
+조회·회수의 로컬 취소로 원격 계산을 취소하지 않으며 실제 종료를 모르면 회수를 막는다.
+전용 core와 실제 로컬 HTTP·Qt/외부 실행 adapter의 작은 사용 흐름을 확인했고 모든 소유
+Job을 정리했다. [화면과 사용법](docs/remote_execution/USAGE_KO.md)은 로컬 시험 화면임을
+표시한다. 사용자 원격 host·권한은 제공되지 않아 실제 SSH·Slurm/PBS·POSIX 정리와 원격
+결과의 실제 ParaView 수용은 미확인이다. 무료 Windows native 경로와 로컬 독립 실행을
+유지하며 WSL·새 서버·새 구독은 요구하지 않는다.
 
 **최근 게시:** 화면별 한국어 사용 안내와 실제 캡처는 원격 main에 반영됐다.
 [화면별 안내](docs/SCREEN_GUIDE_KO.md)에서 각 독립 앱의 시작·주요 조작·저장/재열기를

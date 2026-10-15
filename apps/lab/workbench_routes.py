@@ -27,6 +27,11 @@ def handle(handler,method,path,query):
             body = handler._json_body(maximum=8*1024*1024+64*1024)
         else:
             body = handler._json_body()
+        if path == '/api/workbench/remote':
+            if set(body) != {'operation','arguments'} or not isinstance(body['arguments'],dict):
+                raise ServiceError(400, '원격 목록/입력/보존 상태 명령을 지정하세요.')
+            from caelab.remote_execution import dispatch
+            return handler._json(200, dispatch(workbench, body['operation'], body['arguments']))
         if path == '/api/workbench/connection-graph':
             if set(body) - {'document_ids', 'include_history'} or type(body.get('include_history', False)) is not bool:
                 raise ServiceError(400, '실제 문서 목록과 편집 이력 포함 여부만 지정하세요.')
