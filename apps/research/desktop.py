@@ -453,6 +453,8 @@ def _pre(client, args):
     folder = _folder(context, 'pre', args.output)
     config = {'output':str(folder), 'service_url':client.url,
               'export_root':context['export_root'], 'python':context['python']}
+    if context.get('paraview_executable'):
+        config['paraview_executable'] = context['paraview_executable']
     if getattr(args, 'input_id', None):
         if args.source or args.assembly:
             raise ValueError('Choose a registered design input or a direct native source')

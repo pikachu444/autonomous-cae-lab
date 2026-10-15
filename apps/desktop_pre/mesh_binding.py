@@ -1,8 +1,9 @@
 """Observe a native mesh/source association without meshing, recompute or save.
 
 An initial association records what was loaded, not whether that mesh was made
-from that shape. Its engineering qualification remains UNKNOWN. Once recorded,
-a changed shape cannot reuse the old mesh, even after save/reopen or recompute.
+from that shape. Its engineering qualification remains UNKNOWN. A changed shape
+cannot reuse the old mesh. Different BRep serialization needs retained original
+geometry and unchanged subelement correspondence; it never creates a new stamp.
 Only an observed change of native mesh contents can record a new association.
 """
 import hashlib
@@ -53,7 +54,7 @@ def global_placement(obj):
     return value
 
 
-def _current(mesh):
+def _current(mesh, *, retain_brep=False):
     source = mesh.Shape
     if source is None or source.Document is not mesh.Document:
         raise ValueError("Mesh association requires a source in the same document")
@@ -84,12 +85,57 @@ def _current(mesh):
                 raise ValueError("Mesh association contains invalid connectivity")
             rows.append([_identifier(identifier), connectivity])
         elements[family] = rows
-    return {
+    current = {
         "source": {"name": source.Name, "type": source.TypeId,
                    "brep_sha256": _digest(brep), "global_placement": global_placement(source)},
         "mesh": {"name": mesh.Name,
                  "ordered_mesh_sha256": _digest(_json({"nodes": nodes, "elements": elements}))},
     }
+    if retain_brep:
+        current['source']['brep'] = brep
+    return current
+
+
+def _same_source_geometry(reference_brep, current_shape):
+    """Prove geometry AND native subelement order from the retained original.
+
+    Never compare volume/bounds alone or apply a found face permutation to the
+    old mesh. All operations use copies and the existing kernel tolerances.
+    """
+    import Part
+    from caelab.adapters.freecad_face_catalog_worker import _verify_geometry, _close
+    from caelab.adapters.native_face_catalog import GEOMETRY_TOLERANCES
+    reference = Part.Shape()
+    reference.importBrepFromString(reference_brep)
+    current = current_shape.copy()
+    limits = GEOMETRY_TOLERANCES.copy()
+    proof = _verify_geometry(current, reference, limits)
+    for old, new in zip(reference.Faces, current.Faces):
+        if str(old.Orientation) != str(new.Orientation):
+            raise ValueError('Native source face orientation changed')
+        common = old.common(new)
+        if (common.isNull() or not common.isValid() or common.Area <= 0 or
+                abs(common.Area / old.Area - 1) > limits['relative'] or
+                abs(common.Area / new.Area - 1) > limits['relative']):
+            raise ValueError('Native source FaceN correspondence changed')
+    if len(reference.Edges) != len(current.Edges) or len(reference.Vertexes) != len(current.Vertexes):
+        raise ValueError('Native source edge/vertex topology changed')
+    for old, new in zip(reference.Edges, current.Edges):
+        if str(old.Orientation) != str(new.Orientation):
+            raise ValueError('Native source edge orientation changed')
+        common = old.common(new)
+        lengths = (old.Length, new.Length, common.Length)
+        if (common.isNull() or not common.isValid() or
+                not all(math.isfinite(v) and v > 0 for v in lengths) or
+                abs(common.Length / old.Length - 1) > limits['relative'] or
+                abs(common.Length / new.Length - 1) > limits['relative']):
+            raise ValueError('Native source EdgeN correspondence changed')
+    for old, new in zip(reference.Vertexes, current.Vertexes):
+        if any(not _close(a, b, limits['length_mm'], limits['relative'])
+               for a, b in zip(old.Point, new.Point)):
+            raise ValueError('Native source VertexN correspondence changed')
+    return {**proof, 'subelement_correspondence': 'SAME_FACE_EDGE_VERTEX_ORDER_AND_ORIENTATION',
+            'reference': 'ORIGINAL_RETAINED_BREP'}
 
 
 def _record(mesh):
@@ -111,12 +157,14 @@ def _record(mesh):
             return value
         value = json.loads(getattr(mesh, PROPERTY_NAME), object_pairs_hook=unique_pairs)
         require(set(value) == {"schema_version", "status", "qualification", "source", "mesh"})
-        require(value["schema_version"] in (1, 2) and type(value["schema_version"]) is int)
+        require(value["schema_version"] in (1, 2, 3) and type(value["schema_version"]) is int)
         require(value["status"] in (INITIAL, REPLACED))
         require(value["qualification"] == "UNKNOWN")
-        fields = {"name", "type", "brep_sha256"} | ({"global_placement"} if value['schema_version'] == 2 else set())
+        fields = {"name", "type", "brep_sha256"} | ({"global_placement"} if value['schema_version'] >= 2 else set())
+        if value['schema_version'] == 3:
+            fields.add('brep')
         require(set(value["source"]) == fields)
-        if value['schema_version'] == 2:
+        if value['schema_version'] >= 2:
             pose = value['source']['global_placement']
             require(isinstance(pose, list) and len(pose) == 7
                     and all(type(v) in (int, float) and math.isfinite(v) for v in pose))
@@ -126,6 +174,9 @@ def _record(mesh):
             require(isinstance(value["source"][name], str) and bool(value["source"][name]))
         for digest in (value["source"]["brep_sha256"], value["mesh"]["ordered_mesh_sha256"]):
             require(isinstance(digest, str) and re.fullmatch("[0-9a-f]{64}", digest))
+        if value['schema_version'] == 3:
+            brep = value['source']['brep']
+            require(isinstance(brep, str) and bool(brep) and _digest(brep) == value['source']['brep_sha256'])
     except (TypeError, KeyError, ValueError) as exc:
         raise ValueError("Malformed recorded mesh association; it cannot be reset automatically") from exc
     return value
@@ -155,11 +206,11 @@ class MeshBindingObserver:
         self._check_document(mesh)
         if PROPERTY_NAME in mesh.PropertiesList:
             return self.validate(mesh)
-        current = _current(mesh)
+        current = _current(mesh, retain_brep=True)
         mesh.addProperty("App::PropertyString", PROPERTY_NAME, "CAELab",
                          "Recorded mesh/source association; initial provenance remains unknown",
                          attr=PROPERTY_ATTRIBUTES, locked=True)
-        value = dict(current, schema_version=2, status=INITIAL, qualification="UNKNOWN")
+        value = dict(current, schema_version=3, status=INITIAL, qualification="UNKNOWN")
         setattr(mesh, PROPERTY_NAME, _json(value))
         return self.validate(mesh)
 
@@ -169,11 +220,21 @@ class MeshBindingObserver:
         current = _current(mesh)
         if value['schema_version'] == 1:
             raise ValueError('Source placement was not recorded in this older mesh binding; regenerate the native mesh before export')
-        if value["source"] != current["source"]:
+        recorded = {k: v for k, v in value['source'].items() if k != 'brep'}
+        identity = ('name', 'type', 'global_placement')
+        if any(recorded.get(k) != current['source'].get(k) for k in identity):
             raise ValueError("Source geometry changed after the recorded mesh association; regenerate the native mesh before export")
+        proof = {}
+        if recorded['brep_sha256'] != current['source']['brep_sha256']:
+            if value['schema_version'] != 3:
+                raise ValueError('Source geometry changed or was serialized differently; this older mesh binding has no original BRep to prove equivalence. Regenerate the native mesh before export')
+            try:
+                proof['source_equivalence'] = _same_source_geometry(value['source']['brep'], mesh.Shape.Shape)
+            except Exception as error:
+                raise ValueError('Source geometry changed or its exact subelement correspondence cannot be proved; regenerate the native mesh before export') from error
         if value["mesh"] != current["mesh"]:
             raise ValueError("Native mesh changed without an observed replacement; its source association is unknown")
-        return dict(value, binding_validation="CURRENT_SOURCE_AND_MESH_MATCH")
+        return dict(value, binding_validation="CURRENT_SOURCE_AND_MESH_MATCH", **proof)
 
     def slotChangedObject(self, obj, prop):
         if prop != "FemMesh" or (self.document is not None and obj.Document is not self.document):
@@ -184,14 +245,14 @@ class MeshBindingObserver:
             return
         try:
             self._check_document(obj)
-            current = _current(obj)
+            current = _current(obj, retain_brep=True)
             if PROPERTY_NAME not in obj.PropertiesList:
                 self.track(obj)  # First observation has no historical baseline.
             else:
                 value = _record(obj)  # Malformed metadata is never overwritten.
                 if value["mesh"] != current["mesh"]:
                     setattr(obj, PROPERTY_NAME,
-                            _json(dict(current, schema_version=2, status=REPLACED,
+                            _json(dict(current, schema_version=3, status=REPLACED,
                                        qualification="UNKNOWN")))
                 # Touching/reassigning identical mesh content cannot rebind it
                 # to changed CAD. Such an association still fails validation.

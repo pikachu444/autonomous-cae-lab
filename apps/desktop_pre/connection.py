@@ -52,9 +52,15 @@ class Connection:
         layout.setSpacing(8)
         self.identity = QtWidgets.QLabel('현재 문서를 연결하는 중…')
         self.identity.setWordWrap(True)
-        self.message = QtWidgets.QLabel('해석과 현재 메시를 선택하세요. 입력 파일 생성은 계산을 실행하지 않습니다.')
+        self.message = QtWidgets.QLabel('솔버를 선택해 계산하고, 결과를 선택해 ParaView에서 여세요.')
         self.message.setWordWrap(True)
-        self.run_button = QtWidgets.QPushButton('계산 실행')
+        self.native_solver_button = QtWidgets.QPushButton('FreeCAD에서 계산…')
+        self.native_solver_button.setToolTip('모델 트리의 솔버 하나를 선택합니다. FreeCAD의 솔버 작업창에서 입력 작성과 실행을 진행합니다.')
+        self.native_solver_button.clicked.connect(self.open_native_solver)
+        self.native_post_button = QtWidgets.QPushButton('선택 결과를 ParaView에서 열기')
+        self.native_post_button.setToolTip('선택한 결과만 새 VTU로 내보냅니다. FreeCAD 기계 결과의 좌표는 mm, 변위는 m, 응력은 Pa입니다. Post 결과는 원 배열의 단위를 확인하세요.')
+        self.native_post_button.clicked.connect(self.open_native_result)
+        self.run_button = QtWidgets.QPushButton('입력 보존 후 계산')
         self.export_button = QtWidgets.QPushButton('입력 파일 생성…')
         self.export_button.clicked.connect(lambda: self.run(export_only=True))
         self.run_button.setToolTip('선택한 해석의 현재 메시와 조건으로 계산을 시작합니다.')
@@ -73,6 +79,14 @@ class Connection:
         self.connect_button = QtWidgets.QPushButton('다시 연결')
         self.connect_button.clicked.connect(self.reconnect)
         layout.addWidget(self.identity)
+        tabs = QtWidgets.QTabWidget()
+        native = QtWidgets.QWidget()
+        native_row = QtWidgets.QHBoxLayout(native)
+        for widget in (self.native_solver_button, self.native_post_button):
+            widget.setMinimumHeight(32)
+            native_row.addWidget(widget)
+        tabs.addTab(native, '기본 해석')
+        managed = QtWidgets.QWidget()
         controls = QtWidgets.QGridLayout()
         controls.setHorizontalSpacing(8)
         controls.setVerticalSpacing(8)
@@ -80,7 +94,9 @@ class Connection:
                        self.numerical_button, self.impact_button, self.runner_button, self.connect_button)):
             widget.setMinimumHeight(30)
             controls.addWidget(widget, index // 4, index % 4)
-        layout.addLayout(controls)
+        managed.setLayout(controls)
+        tabs.addTab(managed, '계산 관리')
+        layout.addWidget(tabs)
         layout.addWidget(self.message)
         self.dock.setWidget(panel)
         Gui.getMainWindow().addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dock)
@@ -98,6 +114,88 @@ class Connection:
         if doc is None or doc.Name not in self.owners:
             raise ValueError('CAD 문서를 만들거나 연 뒤 연결이 끝날 때까지 기다리세요.')
         return self.owners[doc.Name][0]
+
+    def _native_selection(self, kind):
+        doc = self.App.ActiveDocument
+        selected = self.Gui.Selection.getSelection()
+        if doc is None or len(selected) != 1 or getattr(selected[0], 'Document', None) is not doc:
+            raise ValueError('현재 문서의 ' + ('솔버' if kind == 'solver' else '계산 결과') + ' 하나를 모델 트리에서 선택하세요.')
+        obj = selected[0]
+        types = ('Fem::FemSolverObjectPython',) if kind == 'solver' else ('Fem::FemResultObject', 'Fem::FemPostObject')
+        if not any(obj.isDerivedFrom(name) for name in types):
+            raise ValueError('모델 트리에서 ' + ('솔버' if kind == 'solver' else '계산 결과') + ' 하나를 선택하세요.')
+        binding = self.owners.get(doc.Name)
+        if self.pending or (binding and any(row['document_id'] == binding[0].document_id for row in self.native_requests.values())):
+            raise ValueError('진행 중인 문서 작업을 마친 뒤 선택한 ' + ('솔버를 여세요.' if kind == 'solver' else '결과를 여세요.'))
+        return obj
+
+    def open_native_solver(self):
+        try:
+            solver = self._native_selection('solver')
+            # Same entry point as native FEM_SolverControl. Its own task panel
+            # owns input writing, ccx preferences/PATH, QProcess and results.
+            if self.Gui.ActiveDocument.setEdit(solver, 0) is False:
+                raise ValueError('열려 있는 편집 작업을 마친 뒤 솔버를 다시 여세요.')
+            for dock in self.Gui.getMainWindow().findChildren(self.QtWidgets.QDockWidget):
+                if dock.objectName() == 'Tasks':
+                    dock.show()
+                    dock.raise_()
+            self.message.setText('FreeCAD 솔버 작업창에서 입력 파일 작성과 계산을 실행하세요.')
+        except Exception as error:
+            self.message.setText(str(error))
+
+    def open_native_result(self):
+        result = None
+        try:
+            selected = self._native_selection('result')
+            executable = self._native_paraview()
+            if executable is None:
+                return
+            if self._native_selection('result') is not selected:
+                raise ValueError('실행 파일을 고르는 동안 선택한 결과가 바뀌었습니다. 결과를 다시 선택하세요.')
+            from feminout import importVTKResults
+            folder = Path(self.config['output']) / 'native-results' / uuid.uuid4().hex
+            folder.mkdir(parents=True, exist_ok=False)
+            result = folder / 'result.vtu'
+            # Native official exporter consumes exactly the captured selection.
+            # Do not freeze/recompute the model or parse FRD a second time.
+            importVTKResults.export([selected], str(result))
+            if not result.is_file() or result.stat().st_size == 0:
+                raise ValueError('선택한 결과를 VTU로 내보내지 못했습니다. FreeCAD 오류를 확인하세요.')
+            environment = os.environ.copy()
+            for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
+                environment.pop(key, None)
+            command = [self.config['python'], '-m', 'apps.research.desktop', '--service',
+                       self.config['service_url'], 'post', '--input-path', str(result),
+                       '--executable', str(executable)]
+            repository = self.config.get('repo_root') or str(Path(__file__).resolve().parents[2])
+            with (folder / 'launch.stdout.log').open('wb') as stdout, (folder / 'launch.stderr.log').open('wb') as stderr:
+                subprocess.Popen(command, cwd=str(repository), env=environment, stdout=stdout, stderr=stderr)
+            units = ('기계 결과: 좌표 mm, 변위 m, 응력 Pa.' if selected.isDerivedFrom('Fem::FemResultObject')
+                     else 'Post 결과의 원 배열 단위를 확인하세요.')
+            self.message.setText('같은 연구 작업공간의 후처리 열기를 요청했습니다. ' + units + '\n' + str(result))
+        except Exception as error:
+            self.message.setText(str(error) + ('\n내보낸 결과: ' + str(result) +
+                '\n열기 오류 기록: ' + str(result.parent / 'launch.stderr.log') if result is not None and result.is_file() else ''))
+
+    def _native_paraview(self):
+        settings = self.QtCore.QSettings('AutonomousCAELab', 'DesktopLaunchers')
+        for value in (self.config.get('paraview_executable'), os.getenv('CAELAB_PARAVIEW_EXE'),
+                      settings.value('paraview_executable', '')):
+            if value:
+                path = Path(str(value)).expanduser()
+                if path.is_file() and path.name.lower() in {'paraview.exe', 'paraview'}:
+                    return path.resolve()
+        filename, _ = self.QtWidgets.QFileDialog.getOpenFileName(self.dock, '설치된 ParaView 선택', '',
+            'ParaView (paraview.exe);;모든 파일 (*)')
+        if not filename:
+            self.message.setText('ParaView 열기를 취소했습니다. 원 결과는 그대로입니다.')
+            return None
+        path = Path(filename).resolve(strict=True)
+        if not path.is_file() or path.name.lower() not in {'paraview.exe', 'paraview'}:
+            raise ValueError('설치된 paraview.exe를 선택하세요.')
+        settings.setValue('paraview_executable', str(path))
+        return path
 
     def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True, _capture_beam=True, _capture_dynamic=True):
         owner = owner or self.active_owner()
@@ -300,6 +398,8 @@ class Connection:
             connected = False
             self.identity.setText('CAD 문서를 만들거나 여세요.')
         waiting = self.pending is not None
+        self.native_solver_button.setEnabled(active is not None and not waiting)
+        self.native_post_button.setEnabled(active is not None and not waiting)
         self.run_button.setEnabled(connected and not waiting)
         self.export_button.setEnabled(connected and not waiting)
         self.cancel_button.setEnabled(waiting and self.pending['stage'] == 'command' and not self.pending.get('retry'))
