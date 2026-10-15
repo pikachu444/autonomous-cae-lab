@@ -176,7 +176,8 @@ def save_evaluation(result, output, *, existing=False):
         # would change those bytes. Keep their bounded Python metadata as JSON;
         # true ndarray fields still use the existing checked .npy storage.
         if isinstance(value, dict) and isinstance(value.get('schema'), str) and value['schema'] in {
-                'caelab.frozen-fit-input.v1', 'caelab.candidate-detail.v1'}:
+                'caelab.frozen-fit-input.v1', 'caelab.candidate-detail.v1',
+                'caelab.variable-domains.v1', 'caelab.variable-assignment.v1', 'caelab.typed-binding.v1'}:
             exact_json = True
         array = None
         if isinstance(value, np.ndarray):
@@ -203,7 +204,8 @@ def save_evaluation(result, output, *, existing=False):
             shared[fingerprint] = arrays[-1]
             return {'data_ref': arrays[-1]}
         if isinstance(value, dict):
-            return {key: pack(item, exact_json=exact_json) for key, item in value.items()}
+            return {key: pack(item, exact_json=exact_json or
+                             (key == 'variables' and 'domain_input' in value)) for key, item in value.items()}
         if isinstance(value, (list, tuple)):
             return [pack(item, exact_json=exact_json) for item in value]
         if isinstance(value, np.generic):

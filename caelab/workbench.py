@@ -638,6 +638,15 @@ class Workbench:
             raise ValueError('Output, runtime and execution registrations are operator-owned')
         if isinstance(arguments.get('backend'),str) and arguments['backend'] not in {row['id'] for row in self.backends()}:
             raise ValueError('Backend is not registered')
+        if operation in {'doe','optimize','epsilon','fit','uq','sample_sensitivity'} and 'variables' in arguments:
+            from .variable_domains import normalize, require_capability
+            declared = normalize(arguments['variables'])
+            require_capability(operation, declared)
+            described = self.describe_inputs(arguments) if operation != 'fit' or arguments.get('settings') else {}
+            if described.get('inputs'):
+                from .variable_binding import admit_domains, request_descriptors
+                admit_domains(declared, request_descriptors(arguments.get('backend'),
+                    arguments.get('settings', {}), described['inputs']))
         if operation in {'experiment_uncertainty', 'identification_final'}:
             from .experiment_analysis_service import validate_prepared
             validate_prepared(self, operation, arguments)
@@ -1122,6 +1131,9 @@ class Workbench:
                         'decision':'NOT_RELEASED','candidate_association':'UNASSIGNED_AFTER_ENGINE_ERROR'},
                     'evaluation_attempts':(evaluator.retained_attempts() if callable(getattr(evaluator,'retained_attempts',None))
                                            else deepcopy(evaluator.completed))}
+            if 'domain_input' in result:
+                from .numerical_candidate_detail import backend_binding
+                result['evaluator_binding'] = backend_binding(self, backend)
             if fit_snapshot is not None:
                 result['fit_input_snapshot']=fit_snapshot
             if owns_candidate_files:
@@ -1146,7 +1158,7 @@ class Workbench:
             return numerical.detect_event(response,**args)
         if operation=='batch_export':
             path=self.root/'batches'/identifier
-            plan=numerical.export_batch(args['variables'],args['candidates'],path,case_id=args['case_id'],settings=args.get('settings'))
+            plan=numerical.export_batch(args['variables'],args['candidates'],path,case_id=args['case_id'],settings=args.get('settings'),domain_input=args.get('domain_input'))
             return {'batch_id':identifier,'manifest':plan,'mode':'FILE_EXCHANGE','solver_execution':'NOT_PERFORMED'}
         if operation=='batch_import':
             plan=args.get('manifest')

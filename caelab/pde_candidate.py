@@ -9,7 +9,7 @@ import math
 
 from .backends import get_backend
 from .contracts import CapabilityUnavailable
-from . import model_parameters
+from . import model_parameters, variable_binding, variable_domains
 from .numerical import _variables
 from .pde_document import BACKENDS
 from .storage import canonical_hash, check_id
@@ -59,10 +59,8 @@ def _finite(value, label):
 def _normalized_variables(value, label):
     if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
         raise ValueError(label + ' requires declared numerical variables')
-    # Reuse the numerical engine's normalization, including initial values and
-    # log coordinates. A Request Plan contains free variables only.
-    if any(set(row) - {'id', 'unit', 'lower', 'upper', 'value', 'transform'} for row in value):
-        raise ValueError(label + ' contains unsupported variable fields')
+    # The same bounded declarations are used at submission, execution and read.
+    # Normalization parses dimensions but never evaluates dependent values.
     return {row['id']: row for row in _variables(value)}
 
 
@@ -130,20 +128,14 @@ def prepare_candidate(run, result, candidate_id, source_document):
         raise CapabilityUnavailable(backend + ': no declared scalar input binding is advertised')
     descriptors = model_parameters._inputs(adapter, draft['settings'])
     by_id = {item['id']: item for item in descriptors}
-    for name, variable in variables.items():
-        declared = by_id.get(name)
-        if declared is None:
-            raise ValueError('Variable is not an advertised PDE input: ' + name)
-        if variable['unit'] != declared['unit']:
-            raise ValueError('Variable unit differs from the declared PDE input; no conversion is inferred: ' + name)
-        if not declared['lower'] <= variable['lower'] < variable['upper'] <= declared['upper']:
-            raise ValueError('Submitted bounds exceed the declared PDE input envelope: ' + name)
-        value = _finite(values[name], name)
-        if not variable['lower'] <= value <= variable['upper']:
-            raise ValueError('Candidate value lies outside submitted bounds: ' + name)
+    variable_binding.admit_domains(variables, descriptors)
+    values = variable_binding.verify_candidate(result, variables, candidate,
+                                               raw_declarations=inputs['variables'])
     # bind validates the complete declaration, mirrors, simultaneous scientific
     # admission and unchanged fixed settings. Never replace it with a path setter.
     bound = model_parameters.bind(adapter, draft['settings'], values)
+    variable_binding.verify_actual_binding(candidate, adapter, draft['settings'], bound,
+        required=variable_domains.typed(list(variables.values())))
     adopted = {'backend': backend, 'settings': bound}
     evidence = {'original_pde': reference, 'operation': operation,
                 'result_kind': result['kind'], 'candidate_id': candidate_id,
@@ -152,11 +144,10 @@ def prepare_candidate(run, result, candidate_id, source_document):
                 'settings_template_sha256': canonical_hash(draft['settings']),
                 'bound_draft_sha256': canonical_hash(adopted),
                 'model_declaration_sha256': canonical_hash(model_parameters.declaration(adapter, bound)),
-                'declared_inputs': [{key: deepcopy(item[key]) for key in
-                                    ('id', 'label', 'unit', 'value', 'lower', 'upper')}
-                                   | {'free': item['id'] in variables,
-                                      'submitted_bounds': [variables[item['id']]['lower'], variables[item['id']]['upper']]
-                                      if item['id'] in variables else None}
-                                   for item in descriptors],
+                'declared_inputs': variable_binding.descriptor_evidence(descriptors, variables),
                 'engineering_release': 'NOT_RELEASED'}
+    if variable_domains.typed(list(variables.values())):
+        evidence['domain_input'] = deepcopy(result['domain_input'])
+        evidence['domain_assignment'] = deepcopy(candidate['domain_assignment'])
+        evidence['input_binding'] = deepcopy(candidate['input_binding'])
     return {'draft': adopted, 'source': evidence}

@@ -110,6 +110,10 @@ def _validate(samples, variable_definitions, response_definitions, seed):
             raise ValueError(f"{name} must contain {lower}..{upper} rows")
     names = set()
     for variable in variable_definitions:
+        if isinstance(variable, dict) and (variable.get('kind', 'continuous') != 'continuous'
+                or variable.get('mode', 'free') != 'free'):
+            from ..contracts import CapabilityUnavailable
+            raise CapabilityUnavailable('Saved campaign regression supports independent continuous variables only; use mixed candidate statistics/Pareto without regression')
         _shape(variable, _VARIABLE_REQUIRED, _VARIABLE_OPTIONAL, "Variable definition")
         name = _identifier(variable["parameter_id"], "Parameter ID", _PARAMETER_ID)
         if name in names:

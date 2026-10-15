@@ -147,15 +147,27 @@ def model_declaration(backend,settings):
 
 def describe_inputs(backend,settings):
     s=validate_settings(backend,settings)
-    return [{'id':row['name'],'label':row['name'],'unit':row['unit'],'value':row['value'],
+    descriptors = [{'id':row['name'],'label':row['name'],'unit':row['unit'],'value':row['value'],
              'lower':-1e100,'upper':1e100,
              'settings_path':['parameters',i,'value'],'declaration_paths':[['model','parameters',i,'value']]}
             for i,row in enumerate(s['parameters'])]
+    if backend == ODE:
+        from .variable_binding import ode_solver_descriptor
+        descriptors.append(ode_solver_descriptor(s))
+    return descriptors
 
 
 def bind_inputs(backend,settings,values):
     s=validate_settings(backend,settings)
     known={row['name']:row for row in s['parameters']}
-    if not isinstance(values,dict) or set(values)-set(known): raise ValueError('등록된 계수만 변경할 수 있습니다.')
-    for name,value in values.items(): known[name]['value']=number(value,'parameters.'+name)
+    from .variable_binding import ODE_METHOD_ID, ODE_METHODS
+    allowed = set(known) | ({ODE_METHOD_ID} if backend == ODE else set())
+    if not isinstance(values,dict) or set(values)-allowed: raise ValueError('등록된 입력만 변경할 수 있습니다.')
+    for name,value in values.items():
+        if name == ODE_METHOD_ID:
+            if type(value) is not str or value not in ODE_METHODS:
+                fail('solver.method','등록된 시간 적분 방법의 실제 이름을 선택하세요.')
+            s['solver']['method'] = value
+        else:
+            known[name]['value']=number(value,'parameters.'+name)
     return validate_settings(backend,s)

@@ -25,9 +25,8 @@ _OBJECT = {'type': 'object'}
 _POSITIVE = {'type': 'integer', 'minimum': 1}
 _NUMBER = {'type': 'number'}
 _BOUNDS = {'type': 'array', 'items': _NUMBER, 'minItems': 2, 'maxItems': 2}
-_VARIABLE = _object({'id': _STRING, 'unit': _STRING, 'lower': _NUMBER, 'upper': _NUMBER,
-                     'value': _NUMBER, 'transform': {'enum': ['linear', 'log']}},
-                    ['id', 'unit', 'lower', 'upper'])
+from ..variable_domains import variable_schema, normalize, require_capability
+_VARIABLE = variable_schema()
 _VARIABLES = {'type': 'array', 'items': _VARIABLE, 'minItems': 1}
 _BUDGET_INPUT = _object({'evaluations': _POSITIVE}, ['evaluations'])
 _EXECUTION = _object({'mode': {'enum': ['serial', 'batch', 'process']},
@@ -267,6 +266,9 @@ def validate_plan_request(request, *, describe_inputs=None, submission=False):
     if failure:
         field = '.'.join(str(part) for part in failure.absolute_path) or '$'
         raise ValueError(f'Invalid {plan["operation"]} plan input {field}: {failure.message}')
+    if 'variables' in plan['inputs']:
+        variables = normalize(plan['inputs']['variables'])
+        require_capability(plan['operation'], variables)
     if plan['operation'] in {'doe', 'uq'} and plan['inputs'].get('count', 0) > evaluations:
         raise ValueError('Planned sample count exceeds the evaluation budget')
     if plan['operation'] == 'sample_sensitivity':
@@ -284,6 +286,10 @@ def validate_plan_request(request, *, describe_inputs=None, submission=False):
         if failure:
             field = '.'.join(str(part) for part in failure.absolute_path) or 'settings'
             raise ValueError(f'Invalid backend settings {field}: {failure.message}')
+    if 'variables' in plan['inputs'] and isinstance(supported, dict) and supported.get('inputs'):
+        from ..variable_binding import admit_domains, request_descriptors
+        admit_domains(variables, request_descriptors(plan['inputs'].get('backend'),
+            plan['inputs'].get('settings', {}), supported['inputs']))
     return {'status': 'PLANNED', 'executed': False, 'editable': True, 'plan': plan,
             'supported_inputs': supported}
 

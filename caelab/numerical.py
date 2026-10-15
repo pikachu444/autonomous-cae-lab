@@ -26,6 +26,7 @@ from scipy.stats import qmc, norm, truncnorm, lognorm
 from .optimizers.scipy_de import ScipyDifferentialEvolution
 from .optimizers import campaign_analysis as analysis
 from .execution_control import ExecutionCleanupFailed
+from . import variable_domains as domains
 
 
 class StudyCancelled(RuntimeError):
@@ -59,44 +60,19 @@ def _number(value, label):
 
 
 def _variables(variables):
-    if not isinstance(variables, list) or not variables:
-        raise ValueError("Declare at least one numerical variable")
-    result = []
-    for item in variables:
-        name = item.get('id', item.get('parameter_id'))
-        if not isinstance(name, str) or not name or name in {v['id'] for v in result}:
-            raise ValueError("Variable IDs must be nonempty and distinct")
-        unit = item.get('unit')
-        if not isinstance(unit, str) or not unit:
-            raise ValueError(f"Declare the unit of {name}")
-        low = _number(item.get('lower', item.get('lower_bound')), f'{name} lower bound')
-        high = _number(item.get('upper', item.get('upper_bound')), f'{name} upper bound')
-        if low >= high or not math.isfinite(high - low) or not math.isfinite(high + low):
-            raise ValueError(f"{name} requires increasing finite bounds")
-        transform = item.get('transform', 'linear')
-        if transform not in ('linear', 'log') or (transform == 'log' and low <= 0):
-            raise ValueError("Transform must be linear or log with positive bounds")
-        initial = _number(item.get('value', item.get('initial', (low + high) / 2)), f'{name} initial value')
-        if not low <= initial <= high:
-            raise ValueError(f"{name} initial value lies outside its bounds")
-        result.append(dict(id=name, unit=unit, lower=low, upper=high, value=initial, transform=transform))
-    return result
+    return domains.normalize(variables)
 
 
 def _encoded(variables):
-    return [dict(parameter_id=v['id'], target='numerical', kind='continuous', mode='free',
-                 lower_bound=math.log(v['lower']) if v['transform'] == 'log' else v['lower'],
-                 upper_bound=math.log(v['upper']) if v['transform'] == 'log' else v['upper'])
-            for v in variables]
+    return domains.VariableDomains(variables).encoded()
 
 
 def _decode(values, variables):
-    return {v['id']: float(math.exp(values[v['id']]) if v['transform'] == 'log' else values[v['id']])
-            for v in variables}
+    return domains.VariableDomains(variables).decode(values)
 
 
 def _initial(variables):
-    return {v['id']: math.log(v['value']) if v['transform'] == 'log' else v['value'] for v in variables}
+    return domains.VariableDomains(variables).encode()
 
 
 def _execution(execution):
@@ -298,7 +274,7 @@ def _row(identifier, values, evaluation):
             'checks': deepcopy(evaluation.get('checks', [])), 'diagnostics': deepcopy(evaluation.get('diagnostics', {}))}
     # An exchange may have completed successfully while its values were only
     # predicted. Preserve that distinction at the first row-construction boundary.
-    for key in ('prediction_status', 'out_of_range', 'source', 'prediction_source', 'evaluation_refs'):
+    for key in ('prediction_status', 'out_of_range', 'source', 'prediction_source', 'evaluation_refs', 'input_binding'):
         if key in evaluation:
             result[key] = deepcopy(evaluation[key])
     return result
@@ -336,41 +312,39 @@ def _record(result, record):
 
 
 def _candidates(candidates, variables):
-    rows, names = [], {v['id'] for v in variables}
-    for index, candidate in enumerate(candidates):
-        values = candidate.get('values', candidate)
-        if set(values) != names:
-            raise ValueError("Every candidate must contain exactly the declared variables")
-        values = {name: _number(value, name) for name, value in values.items()}
-        if any(not v['lower'] <= values[v['id']] <= v['upper'] for v in variables):
-            raise ValueError("Candidate value outside declared bounds")
-        identifier = candidate.get('candidate_id', f'C{index:06d}') if 'values' in candidate else f'C{index:06d}'
-        if not isinstance(identifier, str) or not identifier or identifier in {r['candidate_id'] for r in rows}:
-            raise ValueError("Candidate IDs must be nonempty and distinct")
-        rows.append({'candidate_id': identifier, 'values': values})
-    if not rows:
-        raise ValueError("At least one candidate is required")
-    return rows
+    return domains.VariableDomains(variables).candidates(candidates)
 
 
 def run_doe(evaluator_or_factory, variables, *, settings=None, candidates=None, count=16, seed=0,
-            execution=None, record=None):
+            execution=None, record=None, domain_input=None):
     """Evaluate specified or SciPy LHS candidates; failures/cancellations retain IDs."""
-    variables = _variables(variables)
+    domain = domains.VariableDomains(variables)
+    variables = domain.variables
     if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError("seed must be an unsigned 32-bit integer")
+    if domain_input is not None and candidates is None:
+        raise ValueError('Retained domains require their exact candidate rows; no resampling is implicit')
     if candidates is None:
         if type(count) is not int or count < 1:
             raise ValueError("count must be a positive integer")
-        encoded = _encoded(variables)
-        cube = qmc.LatinHypercube(len(variables), rng=np.random.default_rng(seed)).random(count)
-        points = qmc.scale(cube, [v['lower_bound'] for v in encoded], [v['upper_bound'] for v in encoded])
-        candidates = [_decode(dict(zip([v['id'] for v in variables], point)), variables) for point in points]
+        cube = qmc.LatinHypercube(len(domain.free), rng=np.random.default_rng(seed)).random(count) if domain.free else [[] for _ in range(count)]
+        candidates = domain.sample_free(cube)
         sampling = {'method': 'scipy.latin_hypercube', 'seed': seed, 'count': count, 'scipy_version': scipy.__version__,
-                    'coordinates': [v['transform'] for v in variables]}
+                    'coordinates': [v['transform'] for v in domain.free]}
+        if domain.typed:
+            sampling.update(finite_axis_policy='uniform inverse-CDF bins; repeated rows retained and evaluated',
+                            category_order='declared choice order; not a physical metric')
     else:
         sampling = {'method': 'specified', 'count': len(candidates)}
-    pending = _candidates(candidates, variables)
+    if domain_input is not None:
+        if not domain.typed:
+            raise ValueError('Retained typed domains cannot be reinterpreted as continuous')
+        pending = domains.retained_candidates(domain_input, variables, candidates)
+        domain = domains.VariableDomains(domain_input['declarations'])
+    else:
+        pending = domain.candidates(candidates)
+    if domain.typed:
+        sampling.update(domain.coverage(pending))
     rows, stop_reason = [], None
     started = perf_counter()
     with _Evaluators(evaluator_or_factory, [settings or {}], execution) as models:
@@ -386,7 +360,10 @@ def run_doe(evaluator_or_factory, variables, *, settings=None, candidates=None, 
                 rows.extend(_row(item['candidate_id'], item['values'], _failure(stop_reason, 'REJECTED' if stop_reason == 'EVALUATION_BUDGET_EXHAUSTED' else 'CANCELLED')) for item in group)
                 continue
             try:
-                outputs = models.many([item['values'] for item in group])
+                live = [item for item in group if not item.get('domain_error')]
+                completed = iter(models.many([item['values'] for item in live]) if live else [])
+                outputs = [[domains.rejected_evaluation(item['domain_error'])] if item.get('domain_error')
+                           else next(completed) for item in group]
             except StudyCancelled:
                 stop_reason = 'USER_CANCELLED'
                 outputs = [[_failure(stop_reason, 'CANCELLED')] for _ in group]
@@ -404,10 +381,13 @@ def run_doe(evaluator_or_factory, variables, *, settings=None, candidates=None, 
                 if rows[-1]['execution_status'] != 'SUCCEEDED' and models.options['on_failure'] == 'stop':
                     stop_reason = stop_reason or 'STOPPED_AFTER_FAILURE'
         timing = models.timing()
+    for row, original in zip(rows, pending):
+        if 'domain_assignment' in original:
+            row['domain_assignment'] = deepcopy(original['domain_assignment'])
     timing['total_seconds'] = perf_counter() - started
-    return _record({'kind': 'doe', 'variables': variables, 'sampling': sampling, 'candidates': rows,
+    return _record(domains.annotate_result({'kind': 'doe', 'variables': variables, 'sampling': sampling, 'candidates': rows,
                     'execution_status': ('REJECTED' if stop_reason == 'EVALUATION_BUDGET_EXHAUSTED' else 'CANCELLED') if stop_reason else ('SUCCEEDED' if all(r['execution_status'] == 'SUCCEEDED' for r in rows) else 'PARTIAL_FAILURE'),
-                    'termination_reason': stop_reason or 'ALL_CANDIDATES_EVALUATED', 'timing': timing}, record)
+                    'termination_reason': stop_reason or 'ALL_CANDIDATES_EVALUATED', 'timing': timing}, domain), record)
 
 
 def _scalar(evaluation, definition):
@@ -453,7 +433,8 @@ def _scalar(evaluation, definition):
 def optimize(evaluator_or_factory, variables, objective, *, settings=None, constraints=None,
              seed=0, options=None, execution=None, record=None):
     """Existing differential evolution over direct variables and actual responses."""
-    variables = _variables(variables)
+    domain = domains.VariableDomains(variables)
+    variables = domain.variables
     constraints = list(constraints or [])
     direction = objective.get('direction', 'minimize')
     if direction not in ('minimize', 'maximize'):
@@ -473,29 +454,37 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
     retention = opts.get('retain_responses', 'summary')
     if retention not in {'summary', 'all'}:
         raise ValueError('retain_responses must be summary or all')
-    physical_initial = opts.get('initial_values')
-    initial = _initial(variables) if physical_initial is None else {
-        v['id']: math.log(physical_initial[v['id']]) if v['transform'] == 'log' else physical_initial[v['id']] for v in variables}
+    initial = domain.encode(opts.get('initial_values'))
+    resolutions = {}
+    def resolve_point(encoded_values):
+        key = domains.value_key(encoded_values)
+        if key not in resolutions:
+            resolutions[key] = domain.resolve(domain.decode_free(encoded_values), tolerate=True)
+        return resolutions[key]
     rows, cache, termination, algorithm = [], {}, None, None
+    solver_dispatch = None
     started = perf_counter()
     with _Evaluators(evaluator_or_factory, [settings or {}], execution) as models:
         prefetched, best_response = {}, None
         def feedback(encoded_values, *, journal_only=False):
             nonlocal best_response
-            values = _decode(encoded_values, variables)
-            key = tuple(values[v['id']].hex() for v in variables)
+            resolution = resolve_point(encoded_values)
+            values = resolution['values']
+            key = domains.value_key(values)
             if key in cache:
                 return cache[key]
             if not journal_only and models.cancelled():
                 raise StudyCancelled('USER_CANCELLED')
             try:
-                evaluation = prefetched.pop(key) if key in prefetched else models.one(values)[0]
+                evaluation = (domains.rejected_evaluation(resolution['error']) if resolution['error'] else
+                              prefetched.pop(key) if key in prefetched else models.one(values)[0])
             except EvaluationBudgetExceeded:
                 rows.append(dict(_row(f'C{len(rows):06d}', values,
                                       _failure('EVALUATION_BUDGET_EXHAUSTED', 'REJECTED')),
                                  objective=None, constraint_residuals=[None] * len(constraints), feasible=False))
+                domain.attach(rows[-1], resolution)
                 raise
-            row = _row(f'C{len(rows):06d}', values, evaluation)
+            row = domain.attach(_row(f'C{len(rows):06d}', values, evaluation), resolution)
             row.update(objective=None, constraint_residuals=[None] * len(constraints), feasible=False)
             rows.append(row)
             if evaluation.get('execution_status') == 'CANCELLED' and not journal_only:
@@ -540,18 +529,24 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
                 group = points[offset:offset + width]
                 pending = {}
                 for point in group:
-                    values = _decode(point, variables)
-                    key = tuple(values[v['id']].hex() for v in variables)
-                    if key not in cache:
+                    resolution = resolve_point(point)
+                    values = resolution['values']
+                    key = domains.value_key(values)
+                    if key not in cache and not resolution['error']:
                         pending[key] = values
                 if pending:
                     try:
                         outputs = models.many(list(pending.values()))
                     except EvaluationBudgetExceeded:
-                        for values in pending.values():
+                        for point in group:
+                            resolution = resolve_point(point)
+                            values = resolution['values']
+                            if domains.value_key(values) not in pending:
+                                continue
                             rows.append(dict(_row(f'C{len(rows):06d}', values,
                                 _failure('EVALUATION_BUDGET_EXHAUSTED', 'REJECTED')),
                                 objective=None, constraint_residuals=[None] * len(constraints), feasible=False))
+                            domain.attach(rows[-1], resolution)
                         raise
                     prefetched.update((key, output[0]) for key, output in zip(pending, outputs))
                 first_row=len(rows)
@@ -563,12 +558,18 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
                     raise EvaluationFailed('Completed candidate group contains a failed evaluation')
             return answers
         try:
-            result = ScipyDifferentialEvolution().run(
-                _encoded(variables), feedback, seed=seed,
-                max_generations=opts.get('max_generations', 40), population_size=opts.get('population_size', 12),
-                initial_values=initial, constraint_count=len(constraints),
-                evaluate_many=feedback_many if models.options['mode'] in {'process', 'batch'} else None)
-            termination, algorithm = result['termination_reason'], result['algorithm']
+            if not domain.free:
+                feedback({})
+                termination, algorithm = 'NO_FREE_VARIABLES', {'engine': ScipyDifferentialEvolution.engine,
+                    'solver_called': False, 'reason': 'One explicitly fixed assignment; no search coordinates'}
+            else:
+                result = ScipyDifferentialEvolution().run(
+                    _encoded(variables), feedback, seed=seed,
+                    max_generations=opts.get('max_generations', 40), population_size=opts.get('population_size', 12),
+                    initial_values=initial, constraint_count=len(constraints),
+                    evaluate_many=feedback_many if models.options['mode'] in {'process', 'batch'} else None)
+                termination, algorithm = result['termination_reason'], result['algorithm']
+                solver_dispatch = result.get('dispatch_statistics')
         except (StudyCancelled, EvaluationBudgetExceeded) as error:
             termination = 'USER_CANCELLED' if isinstance(error, StudyCancelled) else 'EVALUATION_BUDGET_EXHAUSTED'
         except EvaluationFailed:
@@ -580,12 +581,13 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
     if best is not None and best_response is not None:
         best['responses'] = best_response[2]
     timing['total_seconds'] = perf_counter() - started
-    return _record({'kind': 'optimization', 'variables': variables, 'objective_definition': deepcopy(objective),
+    return _record(domains.annotate_result({'kind': 'optimization', 'variables': variables, 'objective_definition': deepcopy(objective),
                     'constraint_definitions': constraints, 'algorithm': algorithm, 'candidates': rows, 'best': best,
+                    **({'solver_dispatch': solver_dispatch, 'resolved_encoded_points': len(resolutions)} if domain.typed else {}),
                     'response_retention': {'candidates': retention, 'best': 'all', 'native_originals': 'retained'},
                     'execution_status': 'CANCELLED' if termination == 'USER_CANCELLED' else ('REJECTED' if termination == 'EVALUATION_BUDGET_EXHAUSTED' else ('PARTIAL_FAILURE' if termination == 'STOPPED_AFTER_FAILURE' else ('SUCCEEDED' if best else 'FAILED'))),
                     'termination_reason': termination, 'timing': timing,
-                    'limitations': ['Termination does not prove global optimality; a warm start is a new optimization run.']}, record)
+                    'limitations': ['Termination does not prove global optimality; a warm start is a new optimization run.']}, domain), record)
 
 
 def load_observations(path, mapping):
@@ -878,6 +880,7 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
     Missing masks are fixed once from finite observations before optimization.
     """
     variables = _variables(variables)
+    domains.require_capability('fit', variables)
     if frozen_inclusion is not None:
         from .data_processing_selection import consume_frozen_fit_inclusion
         experiments = consume_frozen_fit_inclusion(experiments, frozen_inclusion)
@@ -1213,7 +1216,7 @@ def analyze_candidates(table, responses, *, seed=13):
     definitions = [dict(metric=r.get('id', r['response']), unit=r['unit'], direction=r.get('direction', 'minimize')) for r in declarations]
     if not definitions or len({d['metric'] for d in definitions}) != len(definitions) or any(not isinstance(d['metric'], str) or not d['metric'] or not d['unit'] or d['direction'] not in ('minimize', 'maximize') for d in definitions):
         raise ValueError("Declare distinct named scalar responses, their units and directions")
-    _candidates(table['candidates'], variables)
+    domains.validate_retained_table(table)
     samples = []
     for row in table['candidates']:
         metrics = {}
@@ -1236,15 +1239,22 @@ def analyze_candidates(table, responses, *, seed=13):
     # rows above; the regression/Pareto/surrogate mathematics has one owner.
     cohort = sorted([s for s in samples if s['usable'] and all(r['valid'] for r in s['responses'].values())], key=lambda s: s['id'])
     ids = [s['id'] for s in cohort]
-    var_defs = [dict(parameter_id=v['id'], unit=v['unit'], lower_bound=v['lower'], upper_bound=v['upper']) for v in variables]
-    x = np.asarray([[s['values'][v['id']] for v in variables] for s in cohort], dtype=float).reshape(len(cohort), len(variables))
+    regression = domains.capability('regression', variables)
+    var_defs = ([dict(parameter_id=v['id'], unit=v['unit'], lower_bound=v['lower'], upper_bound=v['upper']) for v in variables]
+                if regression['available'] else [])
+    x = (np.asarray([[s['values'][v['id']] for v in variables] for s in cohort], dtype=float).reshape(len(cohort), len(variables))
+         if regression['available'] else None)
+    def unavailable(definition):
+        return {'metric': definition['metric'], 'unit': definition['unit'], 'status': 'UNAVAILABLE',
+                'reason': regression['reason'], 'sample_count': len(ids), 'sample_ids': ids[:],
+                'valid': False, 'rank': None, 'condition_number': None}
     y = np.asarray([[s['responses'][d['metric']]['value'] for d in definitions] for s in cohort], dtype=float).reshape(len(cohort), len(definitions))
     shuffled = np.random.default_rng(seed).permutation(len(cohort))
     cutoff = max(1, math.ceil(len(cohort) / 4))
     test, train = sorted(shuffled[:cutoff].tolist()), sorted(shuffled[cutoff:].tolist())
     result = {'statistics': [analysis._statistics(y[:, i], d) for i, d in enumerate(definitions)],
-              'sensitivity': [analysis._sensitivity(x, y[:, i], var_defs, d, ids) for i, d in enumerate(definitions)],
-              'surrogate': [analysis._surrogate(x, y[:, i], var_defs, d, ids, seed, train, test) for i, d in enumerate(definitions)],
+              'sensitivity': [analysis._sensitivity(x, y[:, i], var_defs, d, ids) if regression['available'] else unavailable(d) for i, d in enumerate(definitions)],
+              'surrogate': [analysis._surrogate(x, y[:, i], var_defs, d, ids, seed, train, test) if regression['available'] else unavailable(d) for i, d in enumerate(definitions)],
               'pareto': analysis._pareto(y, definitions, ids),
               'exclusions': [{'id': s['id'], 'reason': s['exclusion_reason'] if not s['usable'] else 'INVALID_RESPONSE'} for s in samples if s['id'] not in set(ids)],
               'qualification': 'NUMERICAL_SAMPLE_ANALYSIS_ONLY', 'decision': 'NOT_RELEASED',
@@ -1252,6 +1262,8 @@ def analyze_candidates(table, responses, *, seed=13):
     result.update(candidate_count=len(samples), failure_count=sum(not row['usable'] for row in samples),
                   sampling=deepcopy(table.get('sampling')), variable_ranges=variables,
                   response_definitions=deepcopy(declarations))
+    if not regression['available']:
+        result['analysis_capabilities'] = {'regression': regression, 'statistics': {'available': True}, 'pareto': {'available': True}}
     return result
 
 
@@ -1259,6 +1271,7 @@ def run_uq(evaluator_or_factory, variables, distributions, *, settings=None, cou
            independence='INDEPENDENT_USER_DECLARED', source=None, thresholds=None, correlation=None, execution=None, record=None):
     """Declared independent input laws; optimization populations are never reused."""
     variables = _variables(variables)
+    domains.require_capability('uq', variables)
     if independence not in {'INDEPENDENT_USER_DECLARED', 'CORRELATED_NORMAL_USER_DECLARED'} or not isinstance(source, dict) or source.get('origin') not in ('ASSUMED', 'MEASURED_REPORTED', 'PUBLISHED_REFERENCE', 'SYNTHETIC') or not source.get('reference'):
         raise ValueError("Declare the joint assumption and distribution source")
     if independence == 'INDEPENDENT_USER_DECLARED' and correlation is not None:
@@ -1385,6 +1398,9 @@ class Surrogate:
 def fit_surrogate(training, holdout, response, *, variables=None, options=None):
     """Fit SciPy RBF only on training rows, then report independent holdout errors."""
     variables = _variables(variables or training['variables'])
+    domains.require_capability('surrogate', variables)
+    domains.require_capability('surrogate', holdout['variables'])
+    domains.require_capability('surrogate', training['variables'])
     response = dict(response)
     response['response'] = response.get('response', response.get('metric'))
     train, test = training['candidates'], holdout['candidates']
@@ -1427,11 +1443,12 @@ def fit_surrogate(training, holdout, response, *, variables=None, options=None):
 
 def sample_sensitivity(variables, *, count=128, seed=0, second_order=False):
     """Optional SALib matched Sobol plan, distinct from an ordinary LHS table."""
+    variables = _variables(variables)
+    domains.require_capability('sample_sensitivity', variables)
     try:
         from SALib.sample.sobol import sample
     except ImportError as error:
         raise RuntimeError("Global sensitivity requires the optional SALib dependency") from error
-    variables = _variables(variables)
     if any(v['transform'] != 'linear' for v in variables):
         raise ValueError("This Sobol interface currently uses independent uniform physical coordinates")
     if type(count) is not int or count < 2 or count & (count - 1):
@@ -1443,6 +1460,8 @@ def sample_sensitivity(variables, *, count=128, seed=0, second_order=False):
 
 
 def analyze_sensitivity(plan, table, response):
+    domains.require_capability('sensitivity', plan['variables'])
+    domains.require_capability('sensitivity', table['variables'])
     try:
         from SALib.analyze.sobol import analyze
     except ImportError as error:
@@ -1478,6 +1497,7 @@ def epsilon_optimize(evaluator_or_factory, variables, objectives, *, threshold_g
                      execution=None, record=None):
     """Epsilon child searches reuse the existing DE and Pareto numerical modules."""
     # Validate/assign all metric identities before the first costly candidate.
+    domain = domains.VariableDomains(variables)
     objectives = _named_responses(objectives)
     if not 0 <= primary_index < len(objectives) or len(objectives) < 2:
         raise ValueError("Select a primary objective among at least two objectives")
@@ -1504,7 +1524,7 @@ def epsilon_optimize(evaluator_or_factory, variables, objectives, *, threshold_g
                          constraints=list(constraints or []) + epsilon, seed=seed + index, options=opts,
                          execution=dict(execution_options, max_evaluations=remaining))
         for row in child['candidates']:
-            row['candidate_id'] = f'E{index:04d}_{row["candidate_id"]}'
+            domains.reidentify_assignment(row, f'E{index:04d}_{row["candidate_id"]}')
         all_rows.extend(child['candidates'])
         children.append({'child_id': f'E{index:04d}', 'thresholds': list(limits), 'termination_reason': child['termination_reason'],
                          'evaluation_count': len(child['candidates']),
@@ -1521,23 +1541,36 @@ def epsilon_optimize(evaluator_or_factory, variables, objectives, *, threshold_g
              'termination_reason': stopped or 'CHILD_SEARCHES_COMPLETED'}
     # Existing componentwise nondominance is used; exclude infeasible child
     # rows before analysis, while retaining every actual row in the study.
+    domains.annotate_result(table, domain)
+    if domain.typed:
+        table['domain_accounting']['model_calls'] = sum(c.get('dispatched_evaluations_total', 0) for c in children)
     archive_table = dict(table, candidates=[row for row in all_rows if row.get('feasible')])
     table['pareto'] = analyze_candidates(archive_table, objectives)['pareto'] if len(archive_table['candidates']) >= 2 else {'nondominated_ids': [r['candidate_id'] for r in archive_table['candidates']]}
     return _record(table, record)
 
 
-def export_batch(variables, candidates, directory, *, case_id, settings=None):
+def export_batch(variables, candidates, directory, *, case_id, settings=None, domain_input=None):
     """Export explicit candidate/case exchange identities; this performs no solve."""
     from .evaluation import save_evaluation
     from uuid import uuid4
-    variables = _variables(variables)
-    rows = _candidates(candidates, variables)
+    domain = domains.VariableDomains(variables)
+    variables = domain.variables
+    if domain_input is not None:
+        if not domain.typed:
+            raise ValueError('Retained typed domains cannot be reinterpreted as continuous')
+        rows = domains.retained_candidates(domain_input, variables, candidates)
+        domain = domains.VariableDomains(domain_input['declarations'])
+    else:
+        if domain.typed and any('domain_assignment' in row for row in candidates):
+            raise ValueError('Export retained typed candidates with their original domain_input; dependencies are not recalculated')
+        rows = domain.candidates(candidates)
     if not isinstance(case_id, str) or not case_id:
         raise ValueError("A file exchange requires an explicit case_id")
     exchange_id = 'X' + uuid4().hex
     manifest = {'kind': 'file_batch', 'case_id': case_id, 'exchange_id':exchange_id,
                 'variables': variables, 'settings': deepcopy(settings or {}),
                 'candidates': [dict(row, case_id=case_id, exchange_id=exchange_id, execution_status='NOT_EVALUATED', responses={}, failure_reason='Awaiting real external evaluation') for row in rows]}
+    domains.annotate_result(manifest, domain)
     directory = Path(directory)
     save_evaluation(manifest, directory)
     return manifest
@@ -1547,6 +1580,7 @@ def import_batch(manifest, results):
     """Recover only actual matching results; omitted candidates remain unknown."""
     if manifest.get('kind') != 'file_batch':
         raise ValueError("Expected a file batch manifest")
+    domains.validate_retained_table(manifest)
     expected = {row['candidate_id']: row for row in manifest['candidates']}
     received = {}
     for result in results:
@@ -1555,7 +1589,8 @@ def import_batch(manifest, results):
             raise ValueError("External result has unknown/duplicate candidate or mismatched case identity")
         if manifest.get('exchange_id') and result.get('exchange_id') != manifest['exchange_id']:
             raise ValueError('External result has missing or stale exchange identity')
-        if result.get('values') != expected[identifier]['values']:
+        if ((domains.typed(manifest['variables']) and domains.value_key(result.get('values')) != domains.value_key(expected[identifier]['values']))
+                or result.get('values') != expected[identifier]['values']):
             raise ValueError("External result parameter values differ from exported candidate")
         if result.get('execution_status') not in ('SUCCEEDED', 'FAILED', 'REJECTED', 'CANCELLED'):
             raise ValueError("Imported results must declare an actual execution status")
@@ -1564,6 +1599,10 @@ def import_batch(manifest, results):
     rows = []
     for identifier, original in expected.items():
         rows.append(dict(_row(identifier, original['values'], received[identifier]), case_id=manifest['case_id'], exchange_id=manifest.get('exchange_id')) if identifier in received else deepcopy(original))
+    if domains.typed(manifest['variables']):
+        for row in rows:
+            row['domain_assignment'] = deepcopy(expected[row['candidate_id']]['domain_assignment'])
+            domains.verify_retained(manifest['domain_input'], manifest['variables'], row)
     return dict(manifest, kind='imported_batch', candidates=rows,
                 identity_assurance='EXCHANGE_CASE_VALUES' if manifest.get('exchange_id') else 'LEGACY_CASE_VALUES_ONLY',
                 imported_count=len(received), missing_count=len(rows) - len(received))

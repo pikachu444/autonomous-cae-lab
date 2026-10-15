@@ -7,6 +7,7 @@ receipts and revision publication; no calculation or inference is performed.
 from copy import deepcopy
 
 from .backends import get_backend
+from . import variable_binding, variable_domains
 from .evaluation_definition import (bind_values, check_reference, compile_definition,
     document_reference, input_descriptors, verify_reference)
 from .pde_candidate import _KINDS, _finite, _normalized_variables
@@ -62,35 +63,12 @@ def _candidate(run, result, candidate_id):
         raise ValueError('Only an actually evaluated successful candidate can be adopted')
     if operation in {'fit', 'optimize', 'epsilon'}:
         _finite(row.get('objective'), 'Search objective')
-    values = row.get('values')
-    if not isinstance(values, dict) or set(values) != set(variables):
-        raise ValueError('Candidate assignments differ from the submitted free variable IDs')
-    for name, variable in variables.items():
-        value = _finite(values[name], name)
-        if not variable['lower'] <= value <= variable['upper']:
-            raise ValueError('Candidate lies outside submitted bounds: ' + name)
+    values = variable_binding.verify_candidate(result, variables, row, raw_declarations=inputs['variables'])
     return request, variables, deepcopy(values)
 
 
 def _admitted(variables, descriptors):
-    if not isinstance(descriptors, list) or any(not isinstance(row, dict) for row in descriptors):
-        raise ValueError('The original domain must advertise actual scalar inputs')
-    by_id = {row['id']: row for row in descriptors}
-    if len(by_id) != len(descriptors):
-        raise ValueError('The domain advertises duplicate input identities')
-    for name, variable in variables.items():
-        actual = by_id.get(name)
-        if actual is None:
-            raise ValueError('Variable is not an advertised domain input: ' + name)
-        if actual.get('unit') != variable['unit']:
-            raise ValueError('Variable unit differs from its advertised domain input: ' + name)
-        # Some stage adapters advertise validity through bind_inputs, without
-        # manufacturing a numerical search envelope. Enforce bounds when given.
-        if 'lower' in actual and variable['lower'] < _finite(actual['lower'], name + ' lower'):
-            raise ValueError('Submitted bounds exceed the advertised input envelope: ' + name)
-        if 'upper' in actual and variable['upper'] > _finite(actual['upper'], name + ' upper'):
-            raise ValueError('Submitted bounds exceed the advertised input envelope: ' + name)
-    return by_id
+    return variable_binding.admit_domains(variables, descriptors)
 
 
 def _changes(model, bound, values, *, stage=None):
@@ -100,7 +78,7 @@ def _changes(model, bound, values, *, stage=None):
     for name, value in values.items():
         if name not in before or name not in after or after[name].get('unit') != before[name].get('unit'):
             raise ValueError('Binding changed the advertised input identity or unit: ' + name)
-        if type(after[name].get('value')) not in (int, float) or after[name]['value'] != value:
+        if not variable_binding.admits_value(after[name], value) or after[name]['value'] != value:
             raise ValueError('Domain binding did not apply the advertised scalar assignment: ' + name)
         if before[name]['value'] != after[name]['value']:
             path = ['inputs', name] if stage is None else ['stages', stage, 'inputs', name]
@@ -136,6 +114,10 @@ def _prepare(wb, plan_id, job_id, candidate_id):
             raise ValueError('This Simulation has no advertised scalar input binding')
         _admitted(variables, input_descriptors(model))
         bound = bind_values(model, values)
+        selected = next(row for row in result['candidates'] if row['candidate_id'] == candidate_id)
+        variable_binding.verify_actual_binding(selected, adapter, model['settings'], bound['settings'],
+            required=variable_domains.typed(list(variables.values())) and
+            selected.get('diagnostics', {}).get('evaluation_mode') == 'FILE_BASED_NATIVE')
         changes = _changes(model, bound, values)
         errors = owner.diagnostics(bound)
         if errors:

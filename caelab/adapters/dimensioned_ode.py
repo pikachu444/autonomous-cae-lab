@@ -101,7 +101,7 @@ class DimensionedODEAdapter:
                 responses[error_id]={**deepcopy(response),'value':values[i]-reference,'measure':'computed_minus_user_reference'}
                 channels[row['name']].update(reference=ref_id,error=error_id)
         return {'execution_status':status,'responses':responses,'checks':checks,
-            'diagnostics':{'library':'scipy','version':scipy.__version__,'nfev':getattr(solver,'nfev',evaluations),
+            'diagnostics':{'library':'scipy','version':scipy.__version__,'solver_method':s['solver']['method'],'nfev':getattr(solver,'nfev',evaluations),
                 'rhs_calls':evaluations,'accepted_steps':accepted_steps,'last_accepted':accepted,
                 'reason':reason,'decision':'NOT_RELEASED','partial_output':len(times)!=len(requested),
                 'residual':'NOT_REPORTED_BY_SOLVER','initial_state':initial,'response_channels':channels,

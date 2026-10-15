@@ -14,7 +14,7 @@
       "properties": {"rebind_policy": {"const": "FIXED_CAD_NO_REBIND"}, "template_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "descriptors": {"type": "array", "minItems": 1, "maxItems": 32}}},
     "model_template": {"type": "object"},
     "model_template_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "model_input_descriptors": {"type": "array", "minItems": 1, "maxItems": 32},
+    "model_input_descriptors": {"type": "array", "minItems": 1, "maxItems": 33},
     "model_declaration": {"type": "object"},
     "model_source_fingerprint": {"type": "object", "required": ["adapter", "version", "source_files", "runtime"]},
     "model_adapter_version": {"type": "string"},
@@ -31,7 +31,14 @@
     "required_validations": {"type": "object"},
     "analysis": {"type": ["object", "null"]}, "failure_policy": {"type": "object"}, "created_utc": {"type": "string"}
   },
-  "allOf": [{
+  "allOf": [{"if": {"required": ["backend", "model_input_descriptors"], "properties": {
+    "backend": {"const": "pde.scipy.ode"}, "model_input_descriptors": {"contains": {
+      "type": "object", "required": ["id", "kind"],
+      "properties": {"id": {"const": "solver-method"}, "kind": {"const": "categorical"}}}}}},
+    "then": {"properties": {"model_input_descriptors": {"contains": {
+      "type": "object", "required": ["kind"], "properties": {"kind": {"const": "categorical"}}},
+      "minContains": 1, "maxContains": 1}}},
+    "else": {"properties": {"model_input_descriptors": {"maxItems": 32}}}}, {
     "if": {"required": ["route"], "properties": {"route": {"const": "model_analysis"}}},
     "then": {
       "required": ["model_template", "model_template_revision", "model_input_descriptors", "model_declaration", "model_source_fingerprint", "model_adapter_version"],

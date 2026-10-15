@@ -73,11 +73,13 @@ class NativeEvaluationFactory:
                        'template_sha256': canonical_hash(template), 'values': deepcopy(values),
                        'state': 'BINDING', 'phase': 'binding'}
             save_json(attempt, request)
-            bound, phase = deepcopy(template), 'binding'
+            bound, phase, binding_receipt = deepcopy(template), 'binding', None
             try:
                 from ..execution_control import check_cancelled
                 check_cancelled()
                 bound = bind(adapter, template, values)
+                from ..variable_binding import actual_binding
+                binding_receipt = actual_binding(adapter, template, bound, values)
                 phase = 'evaluation'
                 save_json(attempt, {**request, 'state': 'RUNNING', 'phase': phase,
                                    'bound_sha256': canonical_hash(bound)})
@@ -97,12 +99,15 @@ class NativeEvaluationFactory:
                     save_evaluation(result, folder, existing=folder.exists())
             save_json(attempt, {**request, 'state': result['execution_status'], 'phase': phase,
                                'bound_sha256': canonical_hash(bound)})
+            if binding_receipt is not None:
+                result['input_binding'] = binding_receipt
             result.setdefault('diagnostics', {})['evaluation_mode'] = 'FILE_BASED_NATIVE'
             result['diagnostics']['candidate_values'] = deepcopy(values)
             if self.retained_root:
                 saved = read_result(folder, selection={'responses': [], 'metadata_only': True})
                 request = {'backend': self.backend, 'values': deepcopy(values),
                            'settings_sha256': canonical_hash(bound),
+                           'input_binding': deepcopy(binding_receipt),
                            'response_selection': deepcopy(self.response_selection),
                            'selected_execution_status': result['execution_status']}
                 save_json(folder / 'candidate_input.json', request)

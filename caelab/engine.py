@@ -177,12 +177,10 @@ class Lab:
                                  input_id: str, parameter_id: str, display_name: str,
                                  lower: float, upper: float, mode: str = "free") -> dict:
         from .model_parameters import describe, probe
+        from .variable_binding import legacy_numeric_candidate
         self.inspect_study(study_id)
         description = describe(self, backend, settings)
-        matches = [item for item in description["candidates"] if item.native["path"] == input_id]
-        if len(matches) != 1:
-            raise ValueError("Selected model input was not advertised")
-        candidate = matches[0]
+        candidate = legacy_numeric_candidate(description, input_id)
         effect = probe(description["adapter"], settings, input_id, lower, upper)
         registry_path = self.store / "studies" / check_id(study_id) / "parameters.json"
         with FileLock(str(registry_path) + ".lock", timeout=30), self._registration_file_lock:

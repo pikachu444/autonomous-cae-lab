@@ -11,6 +11,7 @@ import math
 from pathlib import Path
 
 from .contracts import Candidate, CapabilityUnavailable
+from .variable_binding import is_enum, valid_enum_descriptor, admits_value
 from .storage import canonical_hash, core_source_hash, source_identity
 
 
@@ -67,25 +68,35 @@ def fingerprint(adapter):
 
 
 def _inputs(adapter, settings):
-    return _validated_inputs(adapter.describe_inputs(deepcopy(settings)))
+    return _validated_inputs(adapter.describe_inputs(deepcopy(settings)), maximum=_input_limit(adapter))
 
 
-def _validated_inputs(descriptors):
+def _input_limit(adapter):
+    # Existing ODE models admit 64 numeric parameters plus the adapter-owned
+    # method enum. Other adapters retain their original 32-input boundary.
+    from .variable_binding import descriptor_limit
+    return descriptor_limit(adapter.backend)
+
+
+def _validated_inputs(descriptors, *, maximum=32):
     descriptors = deepcopy(descriptors)
-    if not isinstance(descriptors, list) or not 1 <= len(descriptors) <= 32:
+    if not isinstance(descriptors, list) or not 1 <= len(descriptors) <= maximum:
         raise ValueError("Declared inputs must be a bounded nonempty list")
     names = set()
     for descriptor in descriptors:
         if (not isinstance(descriptor, dict) or
-                set(descriptor) - {"settings_mirrors"} != {"id", "label", "unit", "value", "lower", "upper",
-                                    "settings_path", "declaration_paths"} or
-                not isinstance(descriptor["id"], str) or not descriptor["id"] or
-                descriptor["id"] in names or
-                any(not isinstance(descriptor[key], str) or not descriptor[key].strip()
-                    for key in ("label", "unit")) or
-                any(not _finite(descriptor[key]) for key in ("value", "lower", "upper")) or
-                not descriptor["lower"] <= descriptor["value"] <= descriptor["upper"] or
-                not descriptor["lower"] < descriptor["upper"]):
+                any(not isinstance(descriptor.get(key), str) or not descriptor[key].strip()
+                    for key in ('id', 'label', 'unit')) or descriptor['id'] in names):
+            raise ValueError("Malformed or duplicate declared scalar input")
+        if is_enum(descriptor):
+            valid = valid_enum_descriptor(descriptor)
+        else:
+            valid = (set(descriptor) - {"settings_mirrors"} == {
+                "id", "label", "unit", "value", "lower", "upper", "settings_path", "declaration_paths"}
+                and all(_finite(descriptor[key]) for key in ('value', 'lower', 'upper'))
+                and descriptor['lower'] <= descriptor['value'] <= descriptor['upper']
+                and descriptor['lower'] < descriptor['upper'])
+        if not valid:
             raise ValueError("Malformed or duplicate declared scalar input")
         from .registry import ID
         if not ID.fullmatch(descriptor["id"]):
@@ -140,7 +151,7 @@ def _locations(descriptors, settings, model):
                      *((model, path) for path in item["declaration_paths"])]
         for target, path in locations:
             _, _, value = _leaf(target, path)
-            if not _finite(value) or value != item["value"]:
+            if not admits_value(item, value) or value != item["value"]:
                 raise ValueError("Input location must contain its actual finite scalar value")
 
 
@@ -149,14 +160,13 @@ def expected_settings(settings, descriptors, assignments):
     bound = deepcopy(settings)
     by_name = {item["id"]: item for item in descriptors}
     if (not isinstance(assignments, dict) or not assignments or
-            any(name not in by_name or not _finite(value) or
-                not by_name[name]["lower"] <= value <= by_name[name]["upper"]
+            any(name not in by_name or not admits_value(by_name[name], value)
                 for name, value in assignments.items())):
         raise ValueError("Model assignments require advertised, finite, in-domain inputs")
     for name, value in assignments.items():
         for path in [by_name[name]['settings_path'], *by_name[name].get('settings_mirrors', [])]:
             target, key, old = _leaf(bound, path)
-            if not _finite(old):
+            if not admits_value(by_name[name], old):
                 raise ValueError("Input setting must be a finite scalar")
             target[key] = value
     canonical_hash(bound)
@@ -168,8 +178,7 @@ def expected_declaration(model, descriptors, assignments):
     expected = deepcopy(model)
     by_name = {item["id"]: item for item in descriptors}
     for name, value in assignments.items():
-        if (name not in by_name or not _finite(value) or
-                not by_name[name]["lower"] <= value <= by_name[name]["upper"]):
+        if name not in by_name or not admits_value(by_name[name], value):
             raise ValueError("Declaration assignments must be admitted finite inputs")
         for path in by_name[name]["declaration_paths"]:
             target, key, original = _leaf(expected, path)
@@ -202,11 +211,14 @@ def describe(lab, backend, settings):
     _locations(descriptors, settings, model)
     source_hash = canonical_hash({"fingerprint": identity, "inputs": descriptors,
                                   "model_revision": revision})
+    # The legacy registry selects only numeric inputs, but its source identity
+    # and frozen context must include EVERY descriptor, including enum values,
+    # choice order and trusted locations. Never hash a filtered numeric view.
     candidates = [Candidate(native={"backend": backend, "document": revision,
                                    "object": "declared_inputs", "path": item["id"], "alias": ""},
                             label=item["label"], unit=item["unit"], value=item["value"],
                             lower=item["lower"], upper=item["upper"], source_sha256=source_hash)
-                  for item in descriptors]
+                  for item in descriptors if not is_enum(item)]
     return {"adapter": adapter, "declaration": model, "revision": revision,
             "descriptors": descriptors, "fingerprint": identity, "candidates": candidates}
 
@@ -242,7 +254,7 @@ def bind(adapter, settings, assignments):
         raise ModelInputRejected(str(exc)) from exc
     # Returned adapter data is a contract, not a domain verdict. Malformed
     # descriptors/declarations stop execution instead of becoming search data.
-    after = _validated_inputs(raw_after)
+    after = _validated_inputs(raw_after, maximum=_input_limit(adapter))
     bound_model = _validated_declaration(raw_model)
     if len(after) != len(before):
         raise ValueError("Model binding changed its advertised input set")
@@ -257,9 +269,27 @@ def bind(adapter, settings, assignments):
         if original["id"] in assignments and type(original["value"]) is float:
             value = float(value)
         expected = {**original, "value": value}
-        if canonical_hash(after_map.get(original["id"])) != canonical_hash(expected):
+        observed = deepcopy(after_map.get(original['id']))
+        # A numeric adapter may preserve a selected integer in its scalar
+        # declaration or advertise that exact integer as a float. Compare only
+        # the selected equal-valued leaf in the original descriptor's numeric
+        # representation; the actual bound settings and typed assignment remain
+        # unchanged and are retained separately. No rounding/tolerance is used.
+        if (original['id'] in assignments and observed is not None
+                and _finite(observed.get('value')) and _finite(value)
+                and observed['value'] == value):
+            observed['value'] = value
+        if canonical_hash(observed) != canonical_hash(expected):
             raise ValueError("Model binding changed another input or failed round-trip")
-    if canonical_hash(bound_model) != canonical_hash(expected_model):
+    comparison_model = deepcopy(bound_model)
+    for name, value in assignments.items():
+        if _finite(value):
+            for path in known[name]['declaration_paths']:
+                target, key, actual = _leaf(comparison_model, path)
+                _, _, expected_value = _leaf(expected_model, path)
+                if _finite(actual) and _finite(expected_value) and actual == expected_value:
+                    target[key] = expected_value
+    if canonical_hash(comparison_model) != canonical_hash(expected_model):
         raise ValueError("Model binding changed a frozen declaration outside selected inputs")
     return bound
 

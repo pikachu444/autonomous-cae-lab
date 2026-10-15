@@ -10,6 +10,7 @@ import math
 from .material_document import MaterialDocuments, diagnostics as material_diagnostics
 from .adapters.felupe_material import validate_settings, validate_parameters
 from .storage import canonical_hash, check_id
+from .contracts import CapabilityUnavailable
 
 
 def request_draft(request=None, *, source=None):
@@ -85,8 +86,10 @@ def request_diagnostics(draft):
             for key in ('input_sha256', 'proposal_sha256'):
                 if not isinstance(source[key], str) or len(source[key]) != 64 or any(c not in '0123456789abcdef' for c in source[key]):
                     raise ValueError('Source requires exact retained hashes')
-    except (ValueError, TypeError, KeyError) as error:
-        return [{'severity': 'error', 'path': 'request', 'message': str(error), 'blocks_evaluation': True}]
+    except (ValueError, TypeError, KeyError, CapabilityUnavailable) as error:
+        return [{'severity': 'error', 'path': getattr(error, 'path', 'request'),
+                 'code': getattr(error, 'code', 'INVALID_REQUEST'),
+                 'message': str(error), 'blocks_evaluation': True}]
     return []
 
 

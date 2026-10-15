@@ -209,7 +209,9 @@ def _plan(lab, identifier):
         raise ValueError('DOE plan differs from its frozen registry/sample count')
     if plan['route'] == 'model_analysis':
         from .model_parameters import _validated_inputs
-        descriptors = _validated_inputs(plan['model_input_descriptors'])
+        from .variable_binding import is_enum, descriptor_limit
+        descriptors = _validated_inputs(plan['model_input_descriptors'],
+                                        maximum=descriptor_limit(plan['backend']))
         revision = canonical_hash({'settings': plan['model_template'], 'declaration': plan['model_declaration']})
         if (revision != plan['model_template_revision']
                 or plan['model_source_fingerprint']['adapter'] != plan['backend']
@@ -220,7 +222,7 @@ def _plan(lab, identifier):
         advertised = {d['id']: {'native': {'backend': plan['backend'], 'document': revision,
                          'object': 'declared_inputs', 'path': d['id'], 'alias': ''},
                          'unit': d['unit'], 'source_sha256': source_sha, 'lower': d['lower'], 'upper': d['upper']}
-                      for d in descriptors}
+                      for d in descriptors if not is_enum(d)}
         if any(v.get('target') != 'model_analysis' or v.get('model_template_revision') != revision
                or v.get('input_descriptor_sha256') != canonical_hash(descriptors) for v in plan['variables']):
             raise ValueError('DOE model registry differs from its frozen descriptors')

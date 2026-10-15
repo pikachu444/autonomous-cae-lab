@@ -239,11 +239,18 @@ def resolve_request_inputs(operation, inputs, *, resolve_document, resolve_resul
         table = resolved['candidates']
         if not isinstance(table.get('candidates'), list) or not isinstance(table.get('variables'), list):
             raise ValueError('Batch export requires an actual retained candidate table with variable declarations')
-        if 'variables' in result:
-            from .numerical import _variables
-            meanings = lambda rows: {row['id']: (row['unit'], row['transform']) for row in _variables(rows)}
-            if meanings(result['variables']) != meanings(table['variables']):
-                raise ValueError('Batch variables cannot relabel retained candidate coordinate units or transforms')
+        from .variable_domains import normalize, typed, validate_retained_table
+        actual_variables = normalize(table['variables'])
+        if typed(actual_variables):
+            validate_retained_table(table)
+            if 'variables' in result and normalize(result['variables']) != actual_variables:
+                raise ValueError('Retained typed domains, choices, order, units and dependencies cannot be reinterpreted')
+            result['variables'] = deepcopy(table['domain_input']['declarations'])
+            result['domain_input'] = deepcopy(table['domain_input'])
+        elif 'variables' in result:
+            meanings = lambda rows: {row['id']: (row['unit'], row['transform']) for row in normalize(rows)}
+            if typed(normalize(result['variables'])) or meanings(result['variables']) != meanings(table['variables']):
+                raise ValueError('Batch variables cannot relabel retained coordinate units, transforms or kinds')
         else:
             result['variables'] = table['variables']
         result['candidates'] = table['candidates']

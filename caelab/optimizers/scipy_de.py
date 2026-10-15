@@ -54,14 +54,17 @@ def _validated_variables(variables: list[dict]) -> tuple[list[str], list[list[fl
             effect = variable.get("input_effect")
         else:
             raise ValueError("Optimization variable target must be CAD, model_analysis, analysis_conditions or numerical")
-        if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
+        if (variable.get("kind") not in (("continuous", "integer") if target == "numerical" else ("continuous",)) or variable.get("mode") != "free" or
                 (target != "numerical" and
                  (not isinstance(effect, dict) or effect.get("status") != "PASS"))):
-            raise ValueError("Optimization requires continuous free variables with PASS registered binding effect")
+            raise ValueError("Optimization requires continuous/integer free variables with PASS registered binding effect")
         lower = _finite_number(variable.get("lower_bound"), f"{name} lower bound")
         upper = _finite_number(variable.get("upper_bound"), f"{name} upper bound")
-        if lower >= upper:
-            raise ValueError("Optimization variable bounds must be strictly increasing")
+        integral = variable.get('kind') == 'integer'
+        if lower > upper or (lower == upper and not integral):
+            raise ValueError("Optimization variable bounds must be strictly increasing (integer singleton excepted)")
+        if integral and (math.ceil(lower) > math.floor(upper) or max(abs(lower), abs(upper)) > 2**53 - 1):
+            raise ValueError('Integer bounds require at least one exactly representable integral value')
         # SciPy scales through the sum and difference of these limits. Refuse
         # finite endpoints whose range would overflow that representation.
         if not math.isfinite(upper - lower) or not math.isfinite(upper + lower):
@@ -105,6 +108,7 @@ class ScipyDifferentialEvolution:
         and replaces the first LHS member, matching SciPy's public ``x0`` rule.
         """
         names, bounds = _validated_variables(variables)
+        integrality = [v['kind'] == 'integer' for v in variables]
         if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
             raise ValueError("Optimization seed must be an unsigned 32-bit integer")
         if type(max_generations) is not int or max_generations < 1:
@@ -119,6 +123,8 @@ class ScipyDifferentialEvolution:
                 raise ValueError("Optimization initial_values must contain exactly the variable IDs")
             x0 = {name: _finite_number(initial_values[name], f"{name} initial value")
                   for name in names}
+            if any(integral and not x0[name].is_integer() for name, integral in zip(names, integrality)):
+                raise ValueError('Optimization integer initial values must be exactly integral; no rounding')
             if any(not lower <= x0[name] <= upper
                    for name, (lower, upper) in zip(names, bounds)):
                 raise ValueError("Optimization initial_values must lie within the variable bounds")
@@ -129,12 +135,19 @@ class ScipyDifferentialEvolution:
         points = [{name: float(lower + (upper - lower) * row[index])
                    for index, (name, (lower, upper)) in enumerate(zip(names, bounds))}
                   for row in unit_cube]
+        # Integer LHS bins are the declared initializer. Fractions are never
+        # evaluated and then retroactively renamed as integral candidates.
+        for row, point in zip(unit_cube, points):
+            for index, (name, (lower, upper), integral) in enumerate(zip(names, bounds, integrality)):
+                if integral:
+                    lo, hi = math.ceil(lower), math.floor(upper)
+                    point[name] = lo + min(hi - lo, int(row[index] * (hi - lo + 1)))
         if x0 is not None:
             points[0] = x0.copy()
         return {"engine": self.engine, "version": self.version,
                 "numpy_version": numpy.__version__, "seed": seed,
                 "max_generations": max_generations, "population_size": population_size,
-                "parameter_order": names, "bounds": bounds,
+                "parameter_order": names, "bounds": bounds, "integrality": integrality,
                 "initial_population": points, "initial_values": x0,
                 "initialization": {"engine": "scipy.stats.qmc.LatinHypercube",
                                    "scramble": True, "strength": 1, "optimization": None,
@@ -175,12 +188,24 @@ class ScipyDifferentialEvolution:
         names = algorithm["parameter_order"]
         cache: dict[tuple[str, ...], dict] = {}
         callback_error: BaseException | None = None
+        dispatch = {'feedback_requests': 0, 'feedback_cache_hits': 0,
+                    'batch_point_visits': 0, 'batch_cache_hits': 0}
+
+        def candidate_values(x):
+            values = {name: _finite_number(float(value), f"{name} candidate value")
+                      for name, value in zip(names, x)}
+            if any(integral and not values[name].is_integer()
+                   for name, integral in zip(names, algorithm['integrality'])):
+                raise ValueError('SciPy emitted a nonintegral candidate for an integral coordinate')
+            return values
 
         def feedback_for(x) -> dict:
             nonlocal callback_error
-            values = {name: _finite_number(float(value), f"{name} candidate value")
-                      for name, value in zip(names, x)}
+            values = candidate_values(x)
             key = tuple(values[name].hex() for name in names)
+            dispatch['feedback_requests'] += 1
+            if key in cache:
+                dispatch['feedback_cache_hits'] += 1
             if key not in cache:
                 try:
                     cache[key] = _validated_feedback(evaluate(values), constraint_count)
@@ -216,9 +241,11 @@ class ScipyDifferentialEvolution:
             nonlocal callback_error
             pending = {}
             for column in points.T:
-                values = {name: _finite_number(float(value), f"{name} candidate value")
-                          for name, value in zip(names, column)}
+                values = candidate_values(column)
                 key = tuple(values[name].hex() for name in names)
+                dispatch['batch_point_visits'] += 1
+                if key in cache or key in pending:
+                    dispatch['batch_cache_hits'] += 1
                 if key not in cache:
                     pending[key] = values
             if not pending:
@@ -244,6 +271,7 @@ class ScipyDifferentialEvolution:
                 mutation=tuple(algorithm["mutation"]), recombination=algorithm["recombination"],
                 rng=numpy.random.default_rng(seed), polish=False, init=population, x0=x0,
                 updating="deferred", workers=1, vectorized=batched,
+                integrality=algorithm["integrality"],
                 constraints=NonlinearConstraint(constraints, -numpy.inf, 0.0))
         except BaseException:
             if callback_error is not None:
@@ -271,4 +299,7 @@ class ScipyDifferentialEvolution:
                 "candidate_values": {name: float(value) for name, value in zip(names, result.x)},
                 "objective": feedback["objective"],
                 "constraint_residuals": feedback["constraint_residuals"],
-                "evaluation_count": len(cache)}
+                "evaluation_count": len(cache),
+                "dispatch_statistics": {**dispatch, 'unique_feedback_points': len(cache),
+                    'scipy_objective_calls': int(result.nfev),
+                    'count_semantics': 'Feedback visits include separate constraint/objective callbacks; not evaluator/model calls'}}

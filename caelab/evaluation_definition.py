@@ -401,6 +401,10 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
                     stage_result = run_stage(model, folder)
                     if not (folder / 'result.json').exists():
                         save_evaluation(stage_result, folder, existing=folder.exists())
+                    # Consume the existing writer's detached JSON/array values,
+                    # not a live ndarray result in progress/hash publication.
+                    # Reading the completed stage never invokes its evaluator.
+                    stage_result = read_result(folder, verify='all')
                 record.update(state=stage_result.get('execution_status', 'FAILED'), finished_utc=utc_now(),
                               input_sha256=canonical_hash(model), result_sha256=canonical_hash(stage_result))
                 current[stage_id] = stage_result
