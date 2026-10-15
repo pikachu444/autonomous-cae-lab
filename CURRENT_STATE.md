@@ -219,6 +219,9 @@ Windows에서 새 시험의 UTF-8 읽기와 출력별 CSV 물리량 표시를 �
 복원된 뒤 요소 참조 검사가 막혔다. 자동 재연결로 통과시키지 않고 원 실패와 자료를
 보존해 Pro 교정에 포함한다. 영역별 0압력 허용도 교정 대상이다. 일반 native 회전 자유도와
 모든 구속의 합반력·모멘트는 여전히 미구현이다. 아직 게시 전이며 기존 B1.3 `relay.json`을 따른다.
+한 번의 실제 새 owner 진단에서 메시·배치·참조는 같고 원 binding과 현재 stamp의 BREP
+두 필드만 다른 것을 확인했다. 원 저장 전 export 원문이 없어 형상 동등성까지 단정하지 않는다.
+이 공개 저장본·원 소스·Astra 최종 교정 조건을 실제 Pro C1에 직접 첨부해 작성 중이다.
 
 **Expert 결과 첨부와 이어 읽기 통합:** 보존한 계산의 물리량·성분·단위를 선택해
 대화에 첨부하고, 편집 적용→실행 취소/다시 실행→저장→새 앱 재열기까지 연결했다.
@@ -254,6 +257,9 @@ Post 입력에 기저·메시 식별·정상/물리 snapshot 의미와 s/ms/min/
 실제 등록 PVD/VTU reader로 확인했다. Astra의 이 범위 소스 검토에 남은 차단은 없으며
 PDE 묶음을 `c7bc81e`로 원격 main에 게시하고 로컬/원격 일치를 확인했다. [사용 방법과 범위](docs/s1_windows_transfer/README_KO.md),
 [Windows 확인](docs/s1_windows_transfer/WINDOWS_ACCEPTANCE_KO.md)을 따른다.
+필수 후속 공유 변수 MDO·첫 실제 adjoint도 같은 실제 Pro 작성자에게 최신 게시 소스와
+전체 조건을 직접 전달했다. 기존 분야 계산·Evaluation·Numerical을 확장하는 범위이며
+새 솔버·탐색 엔진을 만들지 않는다. `pde-s2-request/relay.json`이 현재 회수 기록이다.
 Pro 작성 환경의 패키지 다운로드 DNS 실패에 대비해 공식 PyPI의 scikit-fem 12.0.2와
 기존 FELUPE 11.1.3 wheel·라이선스·API 확인을
 `_workspace/delivery-numerical-pde/offline-dependencies-20261015/`에 준비했다.
@@ -304,9 +310,13 @@ https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 �
 새 owner 재열기를 포함한다. Sol이 Windows Qt와 해당 기능 검사를, Astra가 원요구·
 기존 코드·권한·행 대응을 독립 검토 중이다. Windows Qt의 A/B 원행·보간 양끝 선택,
 취소와 늦은 응답 차단·단위 표시를 확인했다. 실제 ParaView 6.2에 없는 차트 속성을
-대역이 제공한 결함은 실제 Pro C1을 회수해 두 native 전용 파일에 적용했다. Windows VTK 전용 검사는 통과했으며 실제 chart 기술 확인과 Astra 검토 중이다. broker 예약 인수 충돌과 기존 Report
+대역이 제공한 결함은 실제 Pro C1을 회수해 두 native 전용 파일에 적용했다. Windows VTK 전용 검사와
+실제 중첩 데이터 차트의 leaf·응답/축 선택 기술 확인을 마쳤다. 자동 차트 열과 원 배열명이
+겹치는 추가 결함은 Sol이 한정 교정하고 Astra가 재검토했다. broker 예약 인수 충돌과 기존 Report
 읽기 명령의 허용목록 누락은 root가 현행 경계에 연결하고 실제 broker 왕복으로 확인했다.
-Pro의 Linux 검사와 실제 Windows/native 수용은 구별하며 아직 게시·완료가 아니다. 회수 기록은 Post 작업
+이를 `69795a9`로 원격 main에 게시하고 일치를 확인했다. [원자료 사용법과 화면](docs/post-curve-origin/USER_KO.md)을
+함께 제공한다. Pro의 Linux 검사·Windows 기술 확인·전체 GUI 수용은 구별하며, 실제 저장 비교에서
+창 활성화·종료/새 GUI까지의 전체 왕복은 아직 미완료다. 회수 기록은 Post 작업
 트리의 `delivery-post/pro-origin-return-20261015-01/relay.json`, 원본은
 `_workspace/delivery-post/origin-return-a2/`에 있다.
 cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
@@ -348,7 +358,10 @@ ZIP 다운로드가 발생하지 않고 검증 문서 미리보기도 실패해 
 통합했다. Windows에서 Data·Material·두 Plan의 원문/선택 이동과 원 store 없이 cold 읽기·
 저장·재복사를 확인했다. 손상 보관물 안내와 Windows CLI UTF-8 출력도 교정했다.
 Astra가 미완성 원문에만 남은 옛 의존 자료의 수집 누락과 유실 응답 재확인 때 최신 전체
-문서 보호 누락을 찾아 실제 Pro C1로 교정 중이다. 아직 게시 전이다. 다른 owner/native
+문서 보호 누락을 찾아 실제 Pro C1을 회수했다. 전용10개와 공통2개 증분을 현재 소스에
+통합했으며 Sol의 Windows 한정 검사와 Astra 독립 검토를 진행 중이다. 원 GUI·UTF-8 교정은
+보존했다. Data의 보정 입력이 원문 보관물에만 남는 별도 경로도 현재 범위에서 확인한다.
+아직 게시 전이다. 다른 owner/native
 확장은 필수 C3B 후속으로 유지하며 이 작업으로 전체 C3 완료를 선언하지 않는다.
 미완성 셀 보관·다른 문서 종류·native 의존 자료를 함께 이동하는 범위이며 최근 혼합 변수와
 재료 복구 GUI의 병렬 변경도 명시했다. 현재 지원 세 문서의 완료와 이 확장을 구분한다.
