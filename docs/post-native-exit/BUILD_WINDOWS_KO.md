@@ -70,6 +70,7 @@ cmake -S C:\cae-build\paraview-src -B C:\cae-build\paraview-build -G Ninja `
   -DCMAKE_BUILD_TYPE=Release -DPARAVIEW_USE_QT=ON -DPARAVIEW_QT_MAJOR_VERSION=6 `
   -DPARAVIEW_USE_PYTHON=ON -DPARAVIEW_USE_MPI=OFF -DPARAVIEW_ENABLE_WEB=OFF `
   -DPARAVIEW_BUILD_SHARED_LIBS=ON -DPARAVIEW_BUILD_TESTING=OFF `
+  -DPARAVIEW_PLUGIN_DISABLE_XML_DOCUMENTATION=ON `
   -DPARAVIEW_INSTALL_DEVELOPMENT_FILES=ON `
   -DCMAKE_PREFIX_PATH=C:\cae-tools\qt-6.9.0 `
   -DPython3_ROOT_DIR=C:\cae-tools\Python312 `
@@ -89,6 +90,14 @@ CMakeCache와 source commit/submodule 목록을 보존한다. Qt5/Qt6를 섞지 
 동일하게 재현했다고 주장하지 않는다. 실제 사용자 외부/계산 결과 reader와 복구
 작업을 matching build에서도 확인해야 한다. Qt installer를 사용하는 경우에도
 open-source 배포를 선택하고 정확 6.9.0 개발 파일을 확보했는지 확인한다.
+
+실제 Windows 구성의 첫 실패는 Qt6에 없는 `xmlpatterns`/미설치 `xsltproc`를
+플러그인 도움말 생성이 요구한 경우였다. 위 공식 옵션은 선택적 XML 도움말 생성만
+끈다. 원 실패 로그와 재구성 로그는 별도로 보존한다. 또한 한글 MSVC 출력 접두어가
+CMake에서 잘못 해석돼 Ninja의 헤더 의존성이 0개인 경우를 확인했다. 이 호스트는
+공식 `CMAKE_PROJECT_INCLUDE` 훅에서 실제 관측한 `CMAKE_CL_SHOWINCLUDES_PREFIX`만
+지정해 해결했다. 새 소규모 빌드에서 CloseGate 216개·Qt test 290개의 헤더 의존성을
+확인했다. 사용자 VS 언어, 시스템 코드 페이지 또는 전역 환경은 변경하지 않았다.
 
 ## plugin 빌드
 

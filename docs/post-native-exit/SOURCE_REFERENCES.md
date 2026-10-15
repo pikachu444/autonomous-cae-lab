@@ -40,6 +40,9 @@ license/build 정책 설명에만 사용하고 제품 API 판별은 정확한 �
   https://gitlab.kitware.com/paraview/paraview-superbuild/-/blob/v6.2.0/.gitlab/ci/download_qt6_hashes.cmake
 - 정확 ParaView source release:
   https://www.paraview.org/files/v6.2/ParaView-v6.2.0.tar.xz
+- 빌드 소스를 수정하지 않는 CMake project 설정 훅 / Windows thread keyboard state:
+  https://cmake.org/cmake/help/v3.30/variable/CMAKE_PROJECT_INCLUDE.html
+  https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setkeyboardstate
 - Qt open source/obligations:
   https://www.qt.io/development/download-open-source
   https://www.qt.io/development/open-source-lgpl-obligations
