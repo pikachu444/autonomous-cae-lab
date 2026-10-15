@@ -299,7 +299,7 @@ def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=
     if not th.is_file() or not th.with_name(th.name+'_TITLES').is_file():
         raise ValueError('Native history or matching titles missing')
     if convert:command([names['th_to_csv'],th.name,'history'],'history_convert')
-    responses,table=history(native/'history.csv')
+    responses,table=history(native/'history.csv',converter_identity=result['diagnostics'].get('runtime'))
     save_json(out/'history.json',table);result['responses']=responses
     integrity=history_inventory(th,table)
     coverage=sample_coverage([r['values'][0] for r in table['rows']],s['time']['end_s'],s['time']['history_interval_s'])
@@ -360,7 +360,7 @@ def _read_partial_outputs(out,s,model,physics,damage,result,frame_records,*,name
         except errors as error:
             recoverable(error);conversion_error=str(error)
     try:
-        responses,table=history_prefix(csv_path)
+        responses,table=history_prefix(csv_path,converter_identity=diagnostics.get('runtime'))
         recovery=table['recovery'];integrity={'status':'UNKNOWN','reason':'Native TH/TITLES or full correspondence not verified'}
         if recovery['status']=='COMPLETE' and th.is_file() and th.with_name(th.name+'_TITLES').is_file():
             try:integrity=history_inventory(th,table)

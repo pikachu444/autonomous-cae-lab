@@ -143,7 +143,7 @@ def append_readback(folder,model,settings,result,frames,*,partial=False):
     available=AvailableFrames()
     excluded=[{'frame_index':i,'time_s':m.get('time_s'),'reason':m.get('reason')}
               for i,m in enumerate(frames.frames) if not m.get('available',True)] if hasattr(frames,'frames') else []
-    history=None;history_error=None
+    history=None;history_error=None;unit_evidence=None
     needs_history=any(r['scope'] in ('bulk','pair') for r in settings.get('b_responses',[]))
     if needs_history:
         try:
@@ -154,6 +154,12 @@ def append_readback(folder,model,settings,result,frames,*,partial=False):
             for relative in ('native/impactT01','native/impactT01_TITLES'):
                 if retained is not None:verify_pin(root,retained['native_artifacts'][relative])
             save_json(root/'b_native_history.json',history)
+            if partial and history['layout']['format_code'] in (3040,3041):
+                from .impact_bulk_history import retained_pair_units
+                # Failure affects pair physical meaning, not unrelated readable history.
+                try:unit_evidence=retained_pair_units(root,original_pin,model,settings,diagnostics.get('runtime'))
+                except errors as error:
+                    reject(error);record['legacy_pair_units']={'status':'UNKNOWN','reason':str(error)}
         except errors as error:
             reject(error);history_error=str(error)
     for kind in ('bulk','pair','interface'):
@@ -163,7 +169,7 @@ def append_readback(folder,model,settings,result,frames,*,partial=False):
             if kind!='interface' and history_error:raise ValueError(history_error)
             chosen,observations=impact_bulk_results.read_selected(history if kind!='interface' else None,
                 available,model,{**settings,'b_responses':rows},definition,excluded_frames=excluded,
-                runtime_identity=diagnostics.get('runtime'))
+                runtime_identity=diagnostics.get('runtime'),unit_evidence=unit_evidence)
             # A correctly read inactive element remains masked; deletion is not
             # a reader failure. Missing samples/channels and unproven pair force
             # semantics remain separate from that physical activation state.

@@ -46,3 +46,12 @@ native LAW36+INIEVO가 불가능하다고 판단한 것은 아니다. source hoo
 - **실제 물리 수용 미완료:** 공개 2탄성 C3D4/TYPE24 한 쌍의 Starter를 1 thread로 실행했으나 기존 관문이 Itetra4=3/Ismstr=12 불일치를 거절했다. Engine NOT_RUN이다. 원 입력·변환 deck·실패·문서 cold는 보존했다. 이 단일 시도를 통과한 실제 pair 충격량/힘이나 운동량 수용으로 세지 않으며 숨은 입력 수정·재실행도 하지 않았다. 기존 direct 경로의 명시 Itetra4=1000을 INP effective compiler에 연결하는 후속 교정은 별도다.
 
 그러므로 B05/B06의 원 저장 의미·reader·converter·owner 경로는 위 범위에서 해결됐고, 실제 새 접촉 조합과 전체 B의 물리 수용은 남는다. native penetration·완전 손상 뒤 recontact/reopen·비영 접선 힘·softening 및 에너지/mesh 수용은 이 후속에서 완료하지 않았다. 추가 공학 자격은 UNKNOWN/NOT_RELEASED다.
+
+
+### 2026-10-16 실제 원출력 읽기 교정
+
+원 Starter 거절 기록은 그대로다. 별도 채택된 탄성 C3D4 정식화의 다음 한 attempt는 Starter/Engine 정상(3683 cycles) 뒤 CSV opaque 추가 헤더의 해독 실패로 FAILED를 보존했다. 원 TH/ANIM을 기존 명시 재읽기로 한 번 변환하여 같은 Simulation의 접촉쌍 18응답×150표본을 읽고 저장·cold 재열기했다. 원 실행/원 bytes/FAILED 상태는 불변이며 새 물리 실행은 0이다.
+
+B05의 실제 3040 단위는 원 execution/input/TH/TITLES/Starter pins와 고정 runtime 및 실제 단위 check를 결속한 경우만 제공한다. B06 힘은 raw 충격량의 명시 구간 평균 차분이다. 이번 실제 CSV FN/FT는 불명 추가 제목과 함께 미차분 충격량으로 남았으므로, 기존 합성 converter 대조를 모든 실제 입력에 일반화하지 않는다. CSV를 native 힘으로 해석하지 않는다.
+
+실제 끝 표본 0.0029800354968756437 s와 선언 0.003 s를 구분한다. 운동 에너지는 원 native 0.006500000134110451→3488010496 N mm, 마지막 내부 에너지는5289563648 N mm로 급증했다. 원 관측을 유지하며 물리/안정성/공학 승인은 UNKNOWN이다. 읽기·보존 사용자 흐름의 완결과 물리 수용 미완료를 분리하며 원 Pro 범위의 다른 PARTIAL 항목을 완료로 바꾸지 않는다.

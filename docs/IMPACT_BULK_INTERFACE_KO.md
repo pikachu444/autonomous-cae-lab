@@ -133,3 +133,14 @@ python -m examples.impact.bulk_interface.run_local --workspace "C:\CAE\Impact B 
 허용한 공개 두 탄성 C3D4·TYPE24 한 쌍의 실제 Windows 확인은 Starter 뒤 관문에서 `Itetra4=3/Ismstr=12` 불일치로 차단됐다. Starter는 1 thread로 실행됐고 Engine은 시작하지 않았다. 원 변환 INP/native deck·Starter 결과·문서·cold를 보존했으며 입력이나 공차를 바꿔 재실행하지 않았다. 따라서 새 실제 접촉 조합의 충격량/운동량·부호 수용은 아직 미완료다. 기존 native RAD의 명시 Itetra4=1000 지원을 INP effective compiler에 잇는 정식화 교정은 별도 후속이다. 이 reader 인도로 벌크/계면 손상, 비영 FT 물리 검증이나 전체 B 완료를 주장하지 않는다.
 
 원 생산 소스와 공식 보조 문서: [고정 TYPE24 producer](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/interfaces/int24/i24for3.F), [TH 직접 저장](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/th/thkin.F), [출력 뒤 clear 범위](https://github.com/OpenCourant/OpenCourant/blob/cb760c206e346eff12161a2268b134ef9d48a4ef/engine/source/output/sortie_main.F), [공식 TH/INTER 성분](https://2023.help.altair.com/2023/hwsolvers/rad/topics/solvers/rad/th_inter_starter_r.htm). 공식 성분 설명은 producer/실제 binary 대조를 대신하지 않는다.
+
+
+## 8. 실제 보존 결과의 3040 재읽기
+
+2026-10-16의 후속 한 건은 원 설정을 보존한 채 기존 선형 탄성 tetra 정식화를 명시하여 Starter를 통과하고 Engine이 3683 cycle로 정상 종료했다. 이후 CSV 추가 제목의 비UTF8 바이트 때문에 원 실행의 후처리가 FAILED로 남았다. 이 원 실패를 바꾸지 않고 같은 Simulation에서 **보존 결과 다시 읽기**를 명시 실행하여 TH/ANIM만 변환하고 접촉쌍 응답을 저장했다. 새 해석은 실행하지 않았다.
+
+추가 제목이 해독되지 않는 CSV는 동일 고정 converter identity일 때만 원 헤더 bytes를 보존하고 가역적인 byte escape로 표시한다. 첫 24개 global 제목은 여전히 정확해야 하며 수치 행의 손상을 문자 무시로 숨기지 않는다. 이 실제 CSV의 FN/FT 900개 값은 충격량 원값과 일치했고 차분되지 않았다. 앞선 합성 3표본 converter의 차분 성공은 그 입력에 한정된다. **CSV FN/FT 열을 힘으로 가정하지 않는다.** 접촉쌍은 기존 raw TH reader로 읽고, 힘은 그 실제 시각의 충격량 차분인 구간 평균값으로만 제공한다.
+
+단위 헤더가 없는 3040/3041은 원 실행을 보존한 후 명시 재읽기에서 단위를 확인한다. 같은 원 execution·input·TH·TITLES·Starter 출력의 pins, 원 고정 runtime, 원 입력 Mg/mm/s와 실제 Starter unit check를 함께 검증한다. 외부 dict의 단위 표기나 PASS 문자열만으로는 물리값으로 승격하지 않는다. 4021의 내장 단위 검증은 그대로다.
+
+이번 실제 원 TH는 150표본이며 마지막 시각은 0.0029800354968756437 s다. 선언 종료 0.003 s로 보간하지 않는다. 원 운동 에너지는 0.006500000134110451 N mm에서 3488010496 N mm로, 내부 에너지는 마지막 5289563648 N mm로 커졌다. 이 급증을 원 곡선과 관측 기록에 그대로 남기며 **수치 안정성·물리 타당성·공학 승인은 UNKNOWN**이다. 새 읽기의 성공은 원 Engine 정상 종료나 해석 품질 통과를 대신하지 않는다. 원 FAILED 결과와 새 읽기 결과를 각각 보존하고 저장 후 새 프로세스에서 같은 18개 접촉쌍 응답을 재열었다.

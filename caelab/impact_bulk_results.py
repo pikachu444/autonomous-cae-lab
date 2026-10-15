@@ -128,7 +128,7 @@ def deletion_events(times,states,*,source_rows=None,gap_before=None):
     return events
 
 
-def read_selected(history,frames,model,settings,definition,*,excluded_frames=(),runtime_identity=None):
+def read_selected(history,frames,model,settings,definition,*,excluded_frames=(),runtime_identity=None,unit_evidence=None):
     validate(model,settings); responses={};records={}; events={};bound=[]
     if history is not None:
         bound=bind(history,definition['outputs'])
@@ -160,7 +160,7 @@ def read_selected(history,frames,model,settings,definition,*,excluded_frames=(),
                 label={'force':'접촉쌍 힘','native_impulse':'접촉쌍 원 충격량','sampled_impulse':'접촉쌍 힘 표본 적분'}[q]
                 unit='N' if q=='force' else 'N s';measure=q
                 raw=series(history,group,group['members'][0],selected['component']) if group else []
-                provenance=pair_provenance(history,group,runtime_identity) if group else None
+                provenance=pair_provenance(history,group,runtime_identity,unit_evidence) if group else None
                 meta.update(native_stored_values=raw,pair=deepcopy(group))
                 if provenance is None:
                     reasons=['고정 producer·단위·원 채널 번호 대응을 확인할 수 없어 접촉 물리량은 UNKNOWN입니다']*len(times)

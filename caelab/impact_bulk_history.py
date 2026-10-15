@@ -240,7 +240,50 @@ def series(history, group, member, token):
 PAIR_CHANNELS=('FNX','FNY','FNZ','FTX','FTY','FTZ')
 
 
-def pair_provenance(history,group,runtime_identity):
+_UNIT_SEAL=object()
+
+
+class _RetainedPairUnits:
+    def __init__(self,metadata,*,_seal):
+        if _seal is not _UNIT_SEAL:raise ValueError('Use the exact retained attempt unit verification')
+        self.metadata=deepcopy(metadata)
+
+
+def retained_pair_units(root,execution_pin,model,settings,runtime_identity):
+    """Verify legacy TH units against this exact, already retained native attempt."""
+    import json
+    from .impact_native_io import read_bytes
+    from .dynamic_result_store import admit_pin
+    from .adapters.impact import starter_admission
+    from .adapters.opencourant_runtime import WINDOWS_SOURCE,WINDOWS_FILES
+    root=Path(root)
+    def payload(pin):
+        return read_bytes(admit_pin(root,pin),expected=pin,maximum=64*1024**2)
+    original=json.loads(payload(execution_pin))
+    if (not isinstance(runtime_identity,dict) or
+        (runtime_identity.get('platform'),runtime_identity.get('source_tag'))!=('win64',WINDOWS_SOURCE) or
+        runtime_identity.get('files')!=WINDOWS_FILES or original['diagnostics'].get('runtime')!=runtime_identity):
+        raise ValueError('Legacy pair units require the exact retained fixed runtime')
+    retained=original['retained_native'];inp=retained['input_artifacts']['input.json']
+    if inp['relative']!='input.json' or json.loads(payload(inp))!=settings or settings['source']['units']!='Mg/mm/s':
+        raise ValueError('Legacy pair units differ from the exact retained input')
+    pins={name:retained['native_artifacts'][name] for name in ('native/impact_0000.out','native/impactT01','native/impactT01_TITLES')}
+    for name,pin in pins.items():
+        if pin['relative']!=name:raise ValueError('Legacy pair unit artifact identity differs')
+        verify_pin(root,pin)
+    checks=[v for v in original['checks'] if v.get('name')=='native_starter']
+    actual=starter_admission(admit_pin(root,pins['native/impact_0000.out']),model)
+    if len(checks)!=1 or checks[0]!=actual or actual.get('status')!='PASS' or actual.get('units')!='Mg/mm/s':
+        raise ValueError('Legacy pair units require the actual matching native Starter unit check')
+    # Recheck pins after parsing; caller strings and current locale never supply units.
+    for pin in (execution_pin,inp,*pins.values()):verify_pin(root,pin)
+    return _RetainedPairUnits({'basis':'EXACT_RETAINED_INPUT_AND_NATIVE_STARTER_UNITS',
+        'units':'Mg/mm/s','execution_pin':deepcopy(execution_pin),'input_pin':deepcopy(inp),
+        'native_pins':deepcopy(pins),'native_unit_check':deepcopy(actual),
+        'producer_source_commit':WINDOWS_SOURCE},_seal=_UNIT_SEAL)
+
+
+def pair_provenance(history,group,runtime_identity,unit_evidence=None):
     """Admit this raw interface buffer only for the traced, fixed producer."""
     from .adapters.opencourant_runtime import WINDOWS_SOURCE,WINDOWS_FILES
     if not isinstance(runtime_identity,dict) or (runtime_identity.get('platform'),runtime_identity.get('source_tag'))!=('win64',WINDOWS_SOURCE) or runtime_identity.get('files')!=WINDOWS_FILES:
@@ -249,9 +292,15 @@ def pair_provenance(history,group,runtime_identity):
         return None
     if dict(zip(group.get('tokens',[]),group.get('native_variable_ids',[])))!={token:i+1 for i,token in enumerate(PAIR_CHANNELS)}:
         return None
+    legacy_units=None
     if history['layout']['format_code']!=4021 or history['layout']['unit_factors'] is None:
-        return None
+        if history['layout']['format_code'] not in (3040,3041) or not isinstance(unit_evidence,_RetainedPairUnits):return None
+        legacy_units=unit_evidence.metadata
+        for key,pin in (('native/impactT01',history['source_pin']),('native/impactT01_TITLES',history.get('titles_pin'))):
+            expected=legacy_units['native_pins'][key]
+            if pin is None or expected['relative']!='native/'+pin['relative'] or any(pin[k]!=expected[k] for k in ('bytes','sha256')):return None
     return {'producer_source_commit':WINDOWS_SOURCE,'engine_sha256':WINDOWS_FILES['exec/engine_win64.exe'],
+        **({'legacy_unit_evidence':deepcopy(legacy_units)} if legacy_units else {}),
         'native_store_semantics':'CUMULATIVE_SIGNED_CONTACT_IMPULSE','native_unit':'N s',
         'native_channel_ids':{token:i+1 for i,token in enumerate(PAIR_CHANNELS)},
         'pair_member_id':group['members'][0],'basis':'MODEL_GLOBAL',

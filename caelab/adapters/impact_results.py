@@ -1,5 +1,7 @@
 """Read actual converter bytes, preserving identity, missing rows and padding masks."""
 import csv
+import io
+from contextlib import contextmanager
 import math
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -17,13 +19,36 @@ GLOBAL_LABELS = ['내부 에너지','운동 에너지','X 운동량','Y 운동�
     '유입 질량','유출 질량','유입 에너지','유출 에너지','원본 23번 채널']
 
 
-def history(path):
-    with Path(path).open(encoding='utf-8-sig',newline='') as stream:
-        reader=csv.reader(stream)
-        header=[v.strip() for v in next(reader)]
-        if header and not header[-1]: header.pop()
+@contextmanager
+def _history_csv(path,converter_identity):
+    # Preserve undecodable extra titles as explicit byte escapes, never guess a locale.
+    with Path(path).open('rb') as binary:
+        header_bytes=binary.readline(64*1024**2+1)
+        if len(header_bytes)>64*1024**2:raise ValueError('Native history header exceeds bounds')
+        encoding='utf-8-sig';evidence=None
+        try:header_text=header_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            from .opencourant_runtime import WINDOWS_SOURCE,WINDOWS_FILES
+            if not isinstance(converter_identity,dict) or (converter_identity.get('platform'),converter_identity.get('source_tag'))!=('win64',WINDOWS_SOURCE) or converter_identity.get('files')!=WINDOWS_FILES:
+                raise ValueError('Non-UTF8 native CSV header requires the exact retained converter identity')
+            header_text=header_bytes.decode('ascii',errors='backslashreplace');encoding='ascii'
+            evidence={'encoding':'OPAQUE_EXTRA_HEADER_BYTES','raw_header_hex':header_bytes.hex(),
+                'non_ascii_byte_offsets':[i for i,v in enumerate(header_bytes) if v>=128],
+                'display':'ASCII byte escapes; not a decoded title or channel identity',
+                'converter_sha256':WINDOWS_FILES['exec/th_to_csv_win64.exe']}
+        try:header=[v.strip() for v in next(csv.reader([header_text],strict=True))]
+        except (csv.Error,StopIteration) as error:
+            raise ValueError('Native history CSV header is unreadable') from error
+        if header and not header[-1]:header.pop()
+        # Every global label is still exact ASCII. Only unbound extra titles may be opaque.
         if header[:1]!=['time'] or header[1:24]!=GLOBAL_NAMES:
             raise ValueError('Native history global layout differs; original CSV retained')
+        with io.TextIOWrapper(binary,encoding=encoding,newline='') as stream:
+            yield header,csv.reader(stream,strict=True),evidence
+
+
+def history(path,*,converter_identity=None):
+    with _history_csv(path,converter_identity) as (header,reader,header_evidence):
         raw=[]
         for line,row in enumerate(reader,2):
             if row and not row[-1].strip(): row.pop()
@@ -37,25 +62,19 @@ def history(path):
     times=[r['values'][0] for r in raw]
     if not times or any(x is None for x in times) or any(b<=a for a,b in zip(times,times[1:])):
         raise ValueError('Native history requires finite strictly increasing times')
-    return _history_result(path,header,raw)
+    return _history_result(path,header,raw,header_evidence)
 
 
-def history_prefix(path):
+def history_prefix(path,*,converter_identity=None):
     """Explicit re-read only: stop at the first invalid record, never skip it.
 
     The converter CSV is a separate artifact from TH. A valid CSV prefix is not
     evidence that the native binary history is complete or corresponds to it.
     """
     raw=[];issue=None
-    with Path(path).open(encoding='utf-8-sig',newline='') as stream:
-        reader=csv.reader(stream,strict=True)
-        try:header=[v.strip() for v in next(reader)]
-        except (csv.Error,StopIteration) as error:raise ValueError('Native history CSV header is unreadable') from error
-        if header and not header[-1]:header.pop()
-        if header[:1]!=['time'] or header[1:24]!=GLOBAL_NAMES:
-            raise ValueError('Native history global layout differs; original CSV retained')
+    with _history_csv(path,converter_identity) as (header,reader,header_evidence):
         while True:
-            line=reader.line_num+1
+            line=reader.line_num+2
             try:row=next(reader)
             except StopIteration:break
             except csv.Error as error:
@@ -80,7 +99,7 @@ def history_prefix(path):
             stream.seek(-1,2);terminated=stream.read(1) in (b'\n',b'\r')
         if not terminated:
             last=raw.pop();issue={'source_row':last['source_row'],'reason':'Final native CSV record is not terminated; value may be truncated'}
-    responses,table=_history_result(path,header,raw)
+    responses,table=_history_result(path,header,raw,header_evidence)
     table['recovery']={'status':'PARTIAL' if raw and issue else 'COMPLETE' if raw else 'UNKNOWN',
         'verified_source_rows':[r['source_row'] for r in raw],
         'first_unverified_record':issue,'after_first_invalid':'UNVERIFIED_NOT_SKIPPED' if issue else 'NO_INVALID_RECORD_OBSERVED',
@@ -89,7 +108,7 @@ def history_prefix(path):
     return responses,table
 
 
-def _history_result(path,header,raw):
+def _history_result(path,header,raw,header_evidence=None):
     responses={}
     for i,(name,label) in enumerate(zip(GLOBAL_NAMES,GLOBAL_LABELS),1):
         # Channel 23 is retained, not assigned a physical meaning from "NO NAME".
@@ -109,6 +128,7 @@ def _history_result(path,header,raw):
                     'source_artifact':Path(path).name,'source_sha256':file_hash(path),
                     'value_scale_from_Mg_mm_s':factor,'clock':'NATIVE_PHYSICAL_TIME'}}
     return responses,{'header':header,'rows':raw,'unmapped_columns':header[24:],
+        **({'header_byte_evidence':header_evidence} if header_evidence is not None else {}),
         'force_note':'Converter may differentiate impulses. Unmapped group columns are retained without a native-force claim.'}
 
 
