@@ -12,7 +12,7 @@ from ..execution_control import run_owned_command,check_cancelled,ExecutionCance
 from ..storage import save_json,canonical_hash
 from .opencourant_runtime import runtime as selected_runtime
 from .impact_results import history,read_vtk,write_post,validate_frame_identity
-from .impact_admission import global_gravity,validate_physics,normalize_contact_friction,normalize_surfaces
+from .impact_admission import global_gravity,validate_physics,normalize_contact_friction,normalize_surfaces,normalize_elastic_tetra4
 from .impact_timing import engine_termination,history_inventory,sample_coverage,energy_observations
 
 
@@ -205,6 +205,7 @@ class ImpactAdapter:
                 effective_gravity,gravity_receipt=global_gravity(starter.read_text(encoding='ascii'),s['gravity_mm_s2'])
                 effective_gravity=normalize_contact_friction(effective_gravity,s)
                 effective_gravity,surface_receipt=normalize_surfaces(effective_gravity,model)
+                effective_gravity,formulation_receipt=normalize_elastic_tetra4(effective_gravity,model,initial,s)
                 starter.write_text(effective_gravity,encoding='ascii',newline='\n')
                 physics=validate_physics(effective_gravity,model,initial,s)
                 from ..impact_damage import apply_laws,verify_laws
@@ -216,7 +217,8 @@ class ImpactAdapter:
                     save_json(out/'b_definition.json',b_definition)
                 starter.write_text(effective_gravity,encoding='ascii',newline='\n')
                 save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt,
-                                                       'surface_serialization':surface_receipt})
+                                                       'surface_serialization':surface_receipt,
+                                                       'inp_elastic_tetra_formulation':formulation_receipt})
                 (native/'impact_0001.rad').write_text(domain.engine_deck(s),encoding='ascii',newline='\n')
                 frozen={p.name:file_hash(p) for p in native.glob('*.rad')}
             save_json(out/'damage_definition.json',damage_receipt)

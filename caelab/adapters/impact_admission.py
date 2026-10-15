@@ -1,7 +1,7 @@
 """Independent checks of the bounded INP converter's effective physical model.
 
-Original conversion remains retained. Only global gravity is rewritten: the
-upstream section targeting/skew construction does not preserve arbitrary XYZ.
+Original conversion remains retained. Bounded effective-deck corrections preserve
+the admitted source physics and are independently checked below.
 """
 from collections import Counter
 import math
@@ -175,6 +175,57 @@ def normalize_surfaces(text,model):
         for index,value in replacements:lines[index]=value
         receipt[key]={'name':name,'segment_count':len(actual),'triangle_N4':'repeat_N3','layout':'5I10'}
     if seen!=set(model['surfaces']):raise ValueError('Missing native surface')
+    return ''.join(lines),receipt
+
+
+def normalize_elastic_tetra4(text, model, initial, settings):
+    """Use the existing native linear-tetra option only for default INP LAW1.
+
+    Validate the complete original conversion first; never repair an unverified
+    mesh/material assignment or override an explicitly selected formulation.
+    """
+    physics=validate_physics(text,model,initial,settings)
+    blocks=cards(text);lines=text.splitlines(keepends=True);indexes={};current=None
+    for i,line in enumerate(lines):
+        if line.startswith('/'):
+            current=line.strip();indexes[current]=[]
+        elif current and line.strip() and not line.lstrip().startswith('#'):
+            indexes[current].append(i)
+    native_types={}
+    for key,rows in blocks.items():
+        for prefix,width in (('/TETRA4/',5),('/TETRA10/',11),('/BRICK/',9)):
+            if key.startswith(prefix):
+                values=[_int(row[i:i+10]) for row in rows for i in range(0,len(row),10) if row[i:i+10].strip()]
+                for offset in range(0,len(values),width):
+                    native_types[values[offset]]=prefix
+    users={}
+    for eid,prop in physics['property_by_element'].items():
+        users.setdefault(prop,[]).append(int(eid))
+    receipt={'origin':'INP_EFFECTIVE_DECK','basis':'EXISTING_NATIVE_ELASTIC_TETRA4_1000',
+             'Abaqus_integration_equivalence':'NOT_CLAIMED','changed':[],'unchanged':[]}
+    for prop,eids in sorted(users.items()):
+        eids=sorted(eids);reason=None
+        if any(model['elements'][e]['type']!='C3D4' or native_types.get(e)!='/TETRA4/' for e in eids):
+            reason='PROPERTY_NOT_EXCLUSIVELY_ORIGINAL_C3D4'
+        elif any('PLASTIC' in model['materials'][model['assignment'][e]] or
+                 model['materials'][model['assignment'][e]].get('_elastic_type')=='TRACTION' for e in eids):
+            reason='NOT_LINEAR_ELASTIC_LAW1'
+        parts=sorted({physics['part_by_element'][str(e)] for e in eids})
+        materials=sorted({_int(blocks['/PART/'+str(part)][1][10:20]) for part in parts})
+        if reason is None and any('/MAT/ELAST/'+str(mid) not in blocks for mid in materials):
+            reason='NOT_LINEAR_ELASTIC_LAW1'
+        key='/PROP/SOLID/'+str(prop)
+        if reason is None:
+            row_index=indexes[key][1];row=lines[row_index]
+            flags=[_int(row[i:i+10]) for i in range(0,80,10)]
+            if flags!=[24,-1,0,-1,2,0,3,-1]:reason='FORMULATION_NOT_CONVERTER_DEFAULT'
+        if reason:
+            receipt['unchanged'].append({'property_id':prop,'element_ids':eids,'reason':reason})
+            continue
+        lines[row_index]=row[:60]+f'{1000:10d}'+row[70:]
+        receipt['changed'].append({'property_id':prop,'part_ids':parts,'material_ids':materials,
+            'element_ids':eids,'before':{'Itetra4':3},'after':{'Itetra4':1000},
+            'reason':'Explicit existing native one-point linear tetra; automatic default is incompatible with resolved Ismstr=10/12'})
     return ''.join(lines),receipt
 
 
