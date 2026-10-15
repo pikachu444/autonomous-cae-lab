@@ -16,4 +16,7 @@ Material의 피팅 변수 패널에서 선택한 계획을 확인하고 **함께
 
 새 세션에서 실패 문서를 재시도할 때는 새 창에서 읽은 현재 문서가 원래 실패한 buffer·입력 revision·hash·saved revision과 정확히 같아야 한다. 그 문서의 현재 session/CAS를 기존 preview에 명시 검토한 뒤 실패 문서만 기존 `related_save.retry`로 전달한다. 새로운 peer 입력으로 자동 갱신하지 않는다. 원 요청 결과를 아직 읽지 못했을 때의 **원래 저장 요청 재전송**도 사용자가 누른 경우에만 원 preview/동일 ID의 기존 `execute`를 호출한다. 이미 완료된 요청은 Core가 재실행하지 않고 원 결과를 반환한다. 조회·복구만으로는 재전송하지 않는다.
 
+같은 Material 창에서 다른 재료를 열어도 보관한 요청 문맥은 문서별로 따로 유지한다. 새 문서에는 해당 재료의 문맥만 연결하고 이전 Plan 위젯은 공개 detach로 뷰에서 분리한다. 원 문서로 돌아오면 그 문서의 요청을 다시 읽을 수 있으며 원 capsule은 변경하지 않는다. 보관 당시의 Plan 선택은 최초 연결에만 적용한다. 이후 사용자가 선택한 다른 Plan은 **다시 읽기**에서도 유지한다. 패널을 열기 전/후 A→B→A와 이후 Plan 선택 유지의 전용 Windows Qt 2개가 3.85초에 통과했고 owned Job도 종료했다. 이는 읽기 transport fixture 검사로 실제 HTTP cold 2개와 구분한다.
+
 2026-10-15 current root Core와 전용 GUI 조합에서 Windows/HTTP의 부분 실패 및 응답 유실 두 cold GUI 검사가 12.68초에 통과했다. 실제 capsule 보관 후 서비스를 재시작하고 새 Material 뷰에서 원 요청을 복구했으며, 부분 실패는 Plan만 두 번째 attempt로 저장했다. 응답 유실의 동일 요청 재전송은 양쪽 첫 attempt를 유지했고 참조 연결은 별도 클릭으로만 수행했다. 별도 foreign 문맥 네 거절 검사는 앞선 실행에서 통과했다. 최초 실행의 cold session retry 실패는 그대로 남겼으며 현재 GUI의 명시 fresh-CAS 소비로 교정했다. 정상/좁은 실제 창을 읽었고 각 owned Job은 `job_empty`로 종료했다. 같은 프로세스의 HTTP 서비스 재시작 검증이며 OS 새 프로세스 GUI나 portable resume 검증은 아니다. 보관 전 saved-revision 기준이 바뀌면 기존 C01 gate를 우회하지 않으며 현재 문서를 명시적으로 다시 확인해야 한다.
+

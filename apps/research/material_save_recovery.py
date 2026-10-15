@@ -35,9 +35,26 @@ def checked_context(context, material_id):
 
 def snapshot_context(window):
     panel = getattr(window, '_plan_panel', None)
-    if panel is not None:
+    if panel is not None and panel._related_save_material_id == window.document['id']:
         return panel.related_save_snapshot()
-    return checked_context(getattr(window, '_related_save_recovery_context', None), window.document['id'])
+    return context_for(window, window.document['id'])
+
+
+def context_for(window, material_id):
+    contexts = getattr(window, '_related_save_recovery_contexts', {})
+    context = contexts.get(material_id)
+    legacy = getattr(window, '_related_save_recovery_context', None)
+    if context is None and isinstance(legacy, dict) and legacy.get('material_id') == material_id:
+        context = legacy
+    return checked_context(context, material_id)
+
+
+def remember_context(window, context):
+    if context is not None:
+        contexts = getattr(window, '_related_save_recovery_contexts', None)
+        if contexts is None:
+            contexts = window._related_save_recovery_contexts = {}
+        contexts[context['material_id']] = deepcopy(context)
 
 
 def restore_context(window, context):
@@ -45,6 +62,7 @@ def restore_context(window, context):
     context = checked_context(context, window.document['id'])
     if context is None:
         return
+    remember_context(window, context)
     window._related_save_recovery_context = context
     panel = getattr(window, '_plan_panel', None)
     if panel is not None:

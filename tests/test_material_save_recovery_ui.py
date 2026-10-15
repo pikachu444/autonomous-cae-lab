@@ -39,6 +39,54 @@ def wait(app, ready):
     raise AssertionError('Related-save recovery GUI did not settle')
 
 
+@pytest.mark.parametrize('panel_already_open', [False, True])
+def test_related_save_context_follows_its_material_when_switching_documents(panel_already_open):
+    from apps.research.material_window import MaterialWindow
+    from apps.research.material_recovery import material_raw_snapshot
+    from apps.research.material_save_recovery import restore_context, context_for
+    from caelab.material_document import default_draft
+    from caelab.numerical_document import from_material_document
+    app=QApplication.instance() or QApplication([])
+    def document(identifier):
+        return dict(id=identifier,kind='material',title='탄성 재료',session_id='Sfixture',generation=0,
+            input_revision='I'+identifier,draft=default_draft(),runs=[],diagnostics=[],dirty=False,
+            can_undo=False,can_redo=False,saved_revision=None)
+    a,b=document('MfixtureA'),document('MfixtureB')
+    plan=dict(a,id='NfixtureA',kind='numerical',title='인장 계획',draft=from_material_document(a))
+    second=dict(plan,id='NfixtureSecond',title='별도 계획')
+    context=dict(material_id=a['id'],selected_plan=plan['id'],plans={plan['id']:dict(
+        receipt_id='Soriginal',pending_preview=None,unconfirmed=True)})
+    original=deepcopy(context);calls=[]
+    class Client:
+        def documents(self):calls.append('read');return {'documents':deepcopy([plan,second])}
+        def data_material(self,*args):raise AssertionError('Document switching issued a save request')
+    window=MaterialWindow(Client(),auto_open=False,poll_interval=0)
+    try:
+        window._show_document(a);window.show();restore_context(window,context)
+        if panel_already_open:
+            panel=window.open_plan_variables();wait(app,lambda:not panel._busy)
+            assert panel._related_save_receipts=={plan['id']:'Soriginal'}
+        # The existing open lifecycle performs the panel's owner rebinding.
+        window._opened(b)
+        if window._plan_panel is None:panel=window.open_plan_variables()
+        else:panel=window._plan_panel
+        wait(app,lambda:not panel._busy)
+        assert not panel._related_save_receipts and not panel._widgets
+        assert 'related_save' not in material_raw_snapshot(window)['selection']
+        assert context_for(window,a['id'])==original and context==original
+        window._opened(a);wait(app,lambda:not panel._busy)
+        assert panel._related_save_receipts=={plan['id']:'Soriginal'}
+        assert panel.save_receipt_button.isEnabled() and panel.plans.currentData()==plan['id']
+        assert material_raw_snapshot(window)['selection']['related_save']==original
+        panel.plans.setCurrentIndex(panel.plans.findData(second['id']))
+        panel.refresh_plans();wait(app,lambda:not panel._busy)
+        assert panel.plans.currentData()==second['id']
+        assert not panel.save_receipt_button.isEnabled()
+        assert window.document['draft']==a['draft'] and set(calls)=={'read'}
+    finally:
+        window._allow_close=True;window.close();app.processEvents()
+
+
 @pytest.mark.parametrize('lost_reply', [False, True])
 def test_cold_capsule_reopens_original_receipt_without_saving_again(tmp_path, monkeypatch, lost_reply):
     from apps.lab.service import LabService
