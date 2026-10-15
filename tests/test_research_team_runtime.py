@@ -87,6 +87,73 @@ def test_flat_result_marker_exact_task_and_nested_selector_rejection():
     assert match_result_citation(marker, []) is None  # Other tasks' receipts are not supplied.
 
 
+def test_cross_assigned_official_metadata_projects_exact_source_before_external_transmission(tmp_path,monkeypatch):
+    """Real local retrieval/guard/ledger; no Ask, host, network or operator update."""
+    from test_research_team_evidence import make_env,make_binding
+    from caelab.assist.research_evidence import selected_knowledge_context
+    from caelab.research_team_contract import projected_source_metadata
+    from caelab.assist import openscience_host
+    import hashlib
+    env=make_env(tmp_path)
+    monkeypatch.setattr(openscience_host,'run_openscience',lambda *a,**k:pytest.fail('Live/model execution is forbidden'))
+    collections=['pre-freecad-fem','mesh-gmsh','post-paraview'];pins=[];metadata=[]
+    for index,collection in enumerate(collections):
+        path=tmp_path/('official-'+str(index)+'.md')
+        path.write_text('# Official public source\nPublic retained guidance '+str(index),encoding='utf-8')
+        meta={'title':'Official '+str(index),'access_scope':'public','official_document':{
+            'collection':collection,'title':'Original bibliographic metadata','license':'Public test fixture'}}
+        saved=env.store.ingest(path,collection,meta);pins.append({key:saved[key] for key in ('document_id','revision')})
+        metadata.append(deepcopy(meta))
+    definitions={};assignments={}
+    pairs=[(0,2),(0,1),(1,2)]
+    for index,pair in enumerate(pairs):
+        actor='r'+str(index)
+        definitions[actor]={'id':actor,'instructions':'Read only the assigned exact sources.',
+            'collections':[collections[i] for i in pair],'tools':['knowledge.source']}
+        assignments[actor]={'expert_id':actor,'question':'Review these public sources.','tools':['knowledge.source'],
+            'source_refs':[pins[i] for i in pair],'result_refs':[]}
+    env.runtime.definitions=definitions;env.state['assignments']=assignments
+    context=env.state['context'];context['selected_sources']=deepcopy(pins)
+    context['selected_document_ids']=[row['document_id'] for row in pins]
+    context['transmission_scope'].update(source_refs=deepcopy(pins),collections=collections,
+        allow_public_search=False,result_ids=[],allow_generated_results=False)
+    env.runtime.runtime.external_model=True
+    env.runtime.runtime.transmission.update(collections=collections,allow_public_search=False,allow_results=False)
+    before={p.relative_to(env.store.root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in env.store.root.rglob('*') if p.is_file()}
+    binding=make_binding(env,actor='r0');role_context,snippets=selected_knowledge_context(binding)
+    assert role_context['selected_sources']==[pins[0],pins[2]]
+    assert {row['document_id'] for row in snippets}=={pins[0]['document_id'],pins[2]['document_id']}
+    assert role_context['research_team']['assignment']['source_refs']==[pins[0],pins[2]]
+    raw=deepcopy(snippets)
+    for item in raw:
+        original=deepcopy(item['revision_metadata']['official_document'])
+        for key in ('document_id','revision','locator'):original.pop(key,None)
+        item['revision_metadata']['official_document']=original
+    with pytest.raises(PermissionError,match='Unselected source'):
+        env.runtime._transmission_check(raw,role_context)  # Exact pre-fix failure.
+    payload={'question':'Review assigned sources.','context':role_context,'source_segments':snippets}
+    env.runtime._transmission_check(payload,role_context)
+    manifest=binding.prepare_model_input(payload,mode='initial',supplied_items=[])
+    assert manifest['payload_digest']==canonical_hash(payload)
+    for receipt_id,item in zip(binding.generation_ledger.read_receipt_ids,snippets):
+        receipt=binding.generation_ledger.state['read_receipts'][receipt_id]
+        assert env.state['resolve_payload'](receipt['payload_ref'])==item
+        projected=item['revision_metadata']['official_document']
+        assert {key:projected[key] for key in ('document_id','revision','locator')}=={
+            key:item[key] for key in ('document_id','revision','locator')}
+    forbidden=env.store.source(**pins[1])['segments'][0]
+    with pytest.raises(PermissionError):env.runtime._transmission_check([forbidden],role_context)
+    for invalid in ({'collection':collections[1]},
+                    {'collection':collections[0],'document_id':pins[1]['document_id'],'revision':1},
+                    {'collection':collections[0],'document_id':pins[0]['document_id']}):
+        assert projected_source_metadata(invalid,snippets[0])==invalid
+        with pytest.raises(PermissionError):env.runtime._transmission_check(invalid,role_context)
+    after={p.relative_to(env.store.root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+           for p in env.store.root.rglob('*') if p.is_file()}
+    assert after==before and binding.budget_slice.used_models==binding.budget_slice.used_tools==0
+
+
 def test_unconfigured_roles_preserve_failed_tasks_without_answered_or_host(tmp_path,monkeypatch):
     from caelab.assist import openscience_host
     wb,doc,_=configured(tmp_path,4)
@@ -99,6 +166,99 @@ def test_unconfigured_roles_preserve_failed_tasks_without_answered_or_host(tmp_p
         assert any(row['status']=='BLOCKED_SCOPE' for row in doc['discussion']['research_team']['tasks'].values())
         assert doc['discussion']['research_team']['map_checkpoints']=={}
     finally:assert wb.shutdown()['joined']
+
+
+def test_manual_rag_new_revision_exact_chunks_korean_query_payload_and_permissions(tmp_path,monkeypatch):
+    """Real archived manuals/BM25/receipts; no host, public search or live store."""
+    import hashlib
+    import socket
+    from pathlib import Path
+    from test_research_team_evidence import make_env,make_binding
+    from caelab.assist import knowledge as knowledge_module
+    from caelab.assist.research_evidence import selected_knowledge_context,check_receipt
+    from caelab.research_team_contract import projected_source_metadata
+    from examples.research_knowledge_public import PACK
+    monkeypatch.setattr(socket.socket,'connect',lambda *a,**k:pytest.fail('Network forbidden'))
+    env=make_env(tmp_path);env.store.source_roots.append(PACK.parent.resolve())
+    entries=[row for row in json.loads(PACK.read_text(encoding='utf-8'))['documents'] if row['availability']=='BUNDLED']
+    old_pins=[];new_pins=[];old_files={}
+    for entry in entries:
+        path=PACK.parent/entry['file'];metadata={'title':entry['title'],'access_scope':'public','official_document':entry}
+        with monkeypatch.context() as patch:
+            patch.setattr(knowledge_module,'_retrieval_chunks',lambda rows:rows)
+            old=env.store.ingest(path,entry['collection'],metadata)
+        pin={'document_id':old['document_id'],'revision':1};old_pins.append(pin)
+        archive=env.store.root/pin['document_id']/'1'
+        old_files.update({str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in archive.iterdir()})
+        new=env.store.ingest(path,entry['collection'],metadata,document_id=pin['document_id'])
+        assert new['revision']==2 and new['sha256']==old['sha256']
+        new_pin={**pin,'revision':2};new_pins.append(new_pin)
+        segments=env.store.source(**new_pin)['segments']
+        assert ''.join(row['text'] for row in segments)==path.read_text(encoding='utf-8')
+        if entry['id']=='paraview-basic':
+            assert len(env.store.source(**pin)['segments'])==1 and len(segments)>20
+            assert max(len(row['text'].encode()) for row in segments)<8000
+        for segment in segments:
+            exact=env.store.source(**new_pin,locator=segment['locator'])
+            assert exact['segments']==[segment]
+    assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==digest for p,digest in old_files.items())
+    collections=[entry['collection'] for entry in entries]
+    own=[new_pins[0],new_pins[2]];others=[new_pins[1]]
+    env.runtime.definitions['mesh'].update(collections=collections)
+    env.runtime.runtime.external_model=True
+    env.runtime.runtime.transmission.update(collections=collections,allow_public_search=False,allow_results=False)
+    context=env.state['context'];context['selected_sources']=deepcopy(new_pins)
+    context['selected_document_ids']=[p['document_id'] for p in new_pins]
+    context['transmission_scope'].update(collections=collections,source_refs=deepcopy(new_pins),allow_public_search=False)
+    context['research_team']['objective']='메시와 응력 회복, 하중과 변위를 어떤 관측으로 구분할까요?'
+    env.state['assignments']['mesh'].update(source_refs=own,question='공식 문서에서 응력과 메시 관측을 확인하세요.',checks=['접촉과 구속의 적용 조건'])
+    original_auto=[]
+    for pin in [old_pins[0],old_pins[2]]:
+        details=env.store.revision_details(**pin)
+        for row in env.store.source(**pin)['segments']:
+            original_auto.append({**row,'revision_metadata':projected_source_metadata(details['metadata'],row),
+                'extraction_limitations':details['failed_segments']})
+    original_bytes=len(json.dumps(original_auto,ensure_ascii=False).encode())
+    assert original_bytes>env.runtime.runtime.max_payload_bytes==100000
+    before={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in env.store.root.rglob('*') if p.is_file()}
+    binding=make_binding(env);role_context,snippets=selected_knowledge_context(binding)
+    assert {row['document_id'] for row in snippets}=={row['document_id'] for row in own}
+    assert all(row['revision']==2 for row in snippets)
+    assert not any(row['document_id']==others[0]['document_id'] for row in snippets)
+    assert 'stress' in role_context['source_retrieval']['query'] and 'mesh' in role_context['source_retrieval']['query']
+    assert all(row['retrieval']['score']>0 for row in snippets)
+    assert all('not the complete document' in row['retrieval']['scope'] for row in snippets)
+    payload={'question':binding.assignment['question'],'context':role_context,'source_segments':snippets}
+    env.runtime._transmission_check(payload,role_context)
+    manifest=binding.prepare_model_input(payload,mode='initial',supplied_items=[])
+    assert manifest['payload_digest']==canonical_hash(payload) and manifest['payload_bytes']<100000
+    for receipt_id in binding.generation_ledger.read_receipt_ids:
+        receipt=binding.generation_ledger.state['read_receipts'][receipt_id]
+        scope={**env.state,'generation_ledger':binding.generation_ledger}
+        assert check_receipt(receipt,runtime=env.runtime,workspace_id='local',current_scope=scope,recipients=['mesh'])
+        item=env.state['resolve_payload'](receipt['payload_ref'])
+        assert item['text']==env.store.source(**receipt['source_ref'])['segments'][0]['text']
+    assert binding.tool_parameters('knowledge.search',{'type':'object'}) is not None
+    binding.budget_slice.consume('tool')
+    permit=binding.prepare_tool('knowledge.search',{'query':'stress mesh','top_k':2},debit=True)
+    found=binding.finish_tool(permit,permit['invoke']())['payload']['hits']
+    assert found and all(row['document_id'] in {p['document_id'] for p in own} for row in found)
+    env.state['assignments']['mesh']['tools']=['knowledge.source']
+    assert make_binding(env,task='source-only').tool_parameters('knowledge.search',{'type':'object'}) is None
+    env.state['assignments']['mesh'].update(question='zzzznomatchtoken',checks=[])
+    context['research_team']['objective']='zzzznomatchtoken'
+    empty_context,empty=selected_knowledge_context(make_binding(env,task='empty'))
+    assert empty==[] and all(row['status']=='NO_LEXICAL_MATCH' for row in empty_context['source_retrieval']['sources'])
+    env.state['assignments']['mesh'].update(source_refs=[old_pins[2]],question='ParaView pipeline display filter')
+    oversized_binding=make_binding(env,task='original-large-chunk')
+    oversized_context,oversized=selected_knowledge_context(oversized_binding)
+    assert oversized==[] and oversized_binding.generation_ledger.read_receipt_ids==[]
+    assert oversized_context['source_retrieval']['sources'][0]['status']=='NOT_SUPPLIED_PAYLOAD_LIMIT'
+    after={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in env.store.root.rglob('*') if p.is_file()}
+    assert after==before and binding.budget_slice.used_models==0
+    print(json.dumps({'original_auto_bytes':original_bytes,'new_manifest_bytes':manifest['payload_bytes'],
+        'new_snippet_count':len(snippets),'new_snippet_bytes':len(json.dumps(snippets,ensure_ascii=False).encode()),
+        'cap':100000,'models':0,'network':0,'original_and_new_source_bytes_unchanged':True}))
 
 
 def test_actual_two_reads_subset_reverse_and_vendor_citation_roundtrip(tmp_path):

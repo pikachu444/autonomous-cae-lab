@@ -76,6 +76,35 @@ def read_segments(path):
     return segments, failed
 
 
+def _retrieval_chunks(segments):
+    """New revisions only: retain exact extracted text and line/page provenance."""
+    if not any(len(segment['text'].encode('utf-8')) > 8000 for segment in segments):
+        return segments
+    from haystack import Document
+    from haystack.components.preprocessors import DocumentSplitter
+    splitter = DocumentSplitter(split_by='line', split_length=40, split_overlap=0)
+    result = []
+    for segment in segments:
+        text = segment['text']
+        if len(text.encode('utf-8')) <= 8000:
+            result.append(segment)
+            continue
+        chunks = splitter.run(documents=[Document(content=text)])['documents']
+        if ''.join(chunk.content for chunk in chunks) != text:
+            raise ValueError('Source splitting must preserve the complete extracted text')
+        for chunk in chunks:
+            item = deepcopy(segment)
+            item['text'] = chunk.content
+            locator = item['locator']
+            if 'line_start' in locator:
+                locator['line_start'] += text[:chunk.meta['split_idx_start']].count('\n')
+                locator['line_end'] = locator['line_start'] + len(chunk.content.splitlines()) - 1
+            elif 'page' in locator:
+                locator['page_chunk'] = chunk.meta['split_id']
+            result.append(item)
+    return result
+
+
 class KnowledgeStore:
     def __init__(self, root, *, source_roots=None):
         self.root = Path(root).resolve()
@@ -129,6 +158,7 @@ class KnowledgeStore:
         if not any(path.is_relative_to(root) for root in self.source_roots):
             raise PermissionError('Source is outside the configured local import roots')
         segments, failed = read_segments(path)
+        segments = _retrieval_chunks(segments)
         data = path.read_bytes()
         with self._lock:
             self._reload()

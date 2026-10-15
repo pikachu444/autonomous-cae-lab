@@ -55,6 +55,26 @@ def enabled(draft):
             and type(team.get('version')) is int and team['version'] == VERSION)
 
 
+def projected_source_metadata(metadata, verified_segment):
+    """Bind descriptive metadata to its already-read source in the prompt copy.
+
+    A metadata field named collection is not a new document. Preserve explicit
+    identities and other collections so the normal transmission guard can reject
+    them; this projection never manufactures an extra source grant.
+    """
+    identity = {key: deepcopy(verified_segment[key]) for key in ('document_id', 'revision', 'locator')}
+    collection = verified_segment['collection']
+    def project(value):
+        if isinstance(value, list):return [project(child) for child in value]
+        if not isinstance(value, dict):return deepcopy(value)
+        result = {key: project(child) for key, child in value.items()}
+        if (result.get('collection') == collection and
+                'document_id' not in result and 'revision' not in result):
+            for key, child in identity.items():result.setdefault(key, deepcopy(child))
+        return result
+    return project(metadata)
+
+
 def validate_draft(draft, registry):
     """Pure validation; malformed/v1 teams remain editable but cannot execute."""
     errors = []

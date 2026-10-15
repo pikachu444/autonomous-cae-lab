@@ -157,6 +157,14 @@ root가 공통 파일의 최소 패치를 순서대로 적용하며 기존 코�
 [연구팀 안내](docs/research-team/USAGE_KO.md)에 있다. 새 팀 전체의 실제 구독 모델 실행,
 잠금 해제 후 OS 직접 조작과 분야 전문성 검증은 아직 완료가 아니다. 최종 검토는
 `_workspace/research-team-integration-review/REVIEW.md`에 보존했다.
+이 묶음은 `19c871b`로 원격 main에 게시하고 일치를 확인했다. 공식 공개 자료 세 개만
+사용한 실제 구독 실행은 모델 전송 전에 중단됐다. 설명 메타데이터를 다른 자료로 오인한
+문제는 원자료·권한을 바꾸지 않는 전송용 복사 교정과 영향 검사로 해결했다. 같은 문서의
+명시 재시도는 매뉴얼 전체를 자동 삽입해 전송 크기 상한에 걸렸다. 상한을 넓히지 않고
+기존 검색·분할을 재사용해 질문에 필요한 부분만 읽는 경로를 보완했다. 새 수집만 정확한
+줄 구간으로 나누며 기존 개정·인용은 바꾸지 않는다. 영향 검사 뒤 공개 자료의 새 개정을
+명시 선택한 새 단계에서 마지막 한 차례 실제 모델 실행을 준비한다. 두 시도의 원 실패와
+저장본은 유지하며 실제 모델 답변 완료로 세지 않는다. 소유 프로세스는 모두 종료했다.
 기존 Space 댓글 한도 때문에 같은 프로젝트의 [개발 논의](https://chatgpt.com/space/page_b4b3b6a868dc8191a4de4f2282d85a78)
 페이지에서 담당자들이 직접 질문·답변을 이어간다. CURRENT_STATE가 유일한 현재 작업 원본이다.
 입력/부분결과 GUI 묶음 ade0ca6는 원격 main과 일치를 확인했다. 실제 Pro B 전용 소스는
@@ -271,8 +279,12 @@ Astra `native_project_design_review`가 저장 참조·독립 열기·재복사�
 N2 `native_post_delivery`는 ParaView 의존 파일·분석 복원·복구를 병렬 작성한다. 미확정
 두 계약은 가정으로 고정하지 않고 독립 검토·Pro 교정 뒤 통합한다. 공유 Core 파일은 root가
 반영하며 기존 연구팀 구현을 덮지 않는다. 이 설계 회수 자체를 native 실행 완료로 세지 않는다.
-교정 요청 `PRO-NATIVE-PROJECT-20261016-02`를 같은 Pro/파워5 대화에 두 문서와 함께
-한 번 전송했고 실제 메시지·응답 생성 중 상태를 확인했다.
+교정 요청 `PRO-NATIVE-PROJECT-20261016-02`를 같은 Pro/파워5 대화에 한 번 전송했고
+완료된 전체 수정 MD를 공식 다운로드로 회수했다. 원문은 위 회수 폴더의
+`native-project-design-corrected.md`이며 Astra가 변경 계약을 독립 검토해 설계 PASS로
+판정했다. 채택본은 [전후처리 프로젝트 설계](docs/native-project/DESIGN_KO.md), MoAI의
+기존 `SPEC-DESKTOP-002`에 인도·달성 조건을 확장했다. 세 native 담당과 연구 문서 혼합·
+공통 GUI/명령 담당이 독립 창의 첫 저장·분석 이력·과거 연구 연결을 병렬 본구현한다.
 요청 원문은 위 회수 폴더의 `correction-request.md`, 독립 검토는
 `_workspace/native-project-design-review/REVIEW.md`이며 원 설계를 보존한 전체 교체본을 받는다.
 Sol `post_windows_build_fix`가 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료

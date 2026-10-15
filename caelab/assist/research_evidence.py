@@ -398,26 +398,54 @@ def _binding_check(binding,identifiers=None,*,public=False):
 
 
 def selected_knowledge_context(binding):
-    """Exact selected source/locator reads for automatic context, never store-wide."""
+    """Selected documents are the retrieval scope, not whole-document input."""
     ledger=binding.generation_ledger;context=deepcopy(ledger.context);snippets=[]
     scope=_binding_scope(binding);current=scope['assignments'][binding.actor_id]
     collections=ledger.runtime.describe(binding.actor_id).get('collections',[])
+    question=binding.frozen_task_ref.get('question_ref',{}).get('text') or current.get('question','')
+    query=' '.join(str(value) for value in [question,current.get('question',''),
+        context.get('research_team',{}).get('objective',''),*current.get('checks',[])])
+    # Transparent lexical assistance only; scores are not physical applicability.
+    for term,english in {'응력':'stress','변위':'displacement','메시':'mesh',
+            '수렴':'convergence','하중':'load','구속':'boundary constraint',
+            '접촉':'contact','반력':'reaction','특이점':'singularity',
+            '관측':'observation','회복':'recovery'}.items():
+        if term in query:query+=' '+english
+    limit=min(60000,max(0,ledger.runtime.runtime.max_payload_bytes-20000-len(_bytes(context))-len(_bytes(question))))
+    retrieval={'method':'Haystack BM25L','query':query,'top_k_per_source':4,
+        'max_snippet_bytes':limit,'read_scope':'Only the exact returned chunks were supplied; whole selected documents were not read into the model.',
+        'sources':[],'limitations':['Lexical relevance is not evidence of physical applicability.']}
+    context['source_retrieval']=retrieval
     for reference in binding.permitted_source_refs:
         if 'document_id' not in reference:continue
         if not _matches(reference,current.get('source_refs',[])):raise PermissionError('BLOCKED_SCOPE')
-        value=ledger.runtime.knowledge.source(reference['document_id'],reference['revision'],reference.get('locator'),
-            workspace_id=ledger.workspace_id,collections=collections)
-        details=ledger.runtime.knowledge.revision_details(reference['document_id'],reference['revision'],
-            workspace_id=ledger.workspace_id,collections=collections)
-        for segment in value['segments']:
-            item=deepcopy(segment);item['revision_metadata']=deepcopy(details['metadata'])
-            item['extraction_limitations']=deepcopy(details['failed_segments']);snippets.append(item)
-            exact={'document_id':item['document_id'],'revision':item['revision'],'locator':deepcopy(item['locator'])}
+        pin={key:reference[key] for key in ('document_id','revision')}
+        result=ledger.runtime.knowledge.search(query,collections,top_k=100 if reference.get('locator') else 4,
+            workspace_id=ledger.workspace_id,source_refs=[pin])
+        hits=[hit for hit in result['hits'] if _matches(hit,[reference])][:4]
+        selection={**deepcopy(pin),'status':'SELECTED_CHUNKS' if hits else 'NO_LEXICAL_MATCH',
+            'read_locators':[],'not_supplied':[]}
+        retrieval['sources'].append(selection)
+        details=ledger.runtime.knowledge.revision_details(**pin,workspace_id=ledger.workspace_id,collections=collections)
+        for hit in hits:
+            exact={**pin,'locator':deepcopy(hit['locator'])}
+            value=ledger.runtime.knowledge.source(**exact,workspace_id=ledger.workspace_id,collections=collections)
+            segment=next((s for s in value['segments'] if s['locator']==hit['locator'] and s['text']==hit['text']),None)
+            if segment is None:raise ValueError('The retrieved exact source chunk changed')
+            from ..research_team_contract import projected_source_metadata
+            item=deepcopy(segment);item['revision_metadata']=projected_source_metadata(details['metadata'],segment)
+            item['extraction_limitations']=deepcopy(details['failed_segments'])
+            item['retrieval']={'method':'Haystack BM25L','score':hit['score'],'scope':'Selected chunk, not the complete document'}
+            if len(_bytes(snippets+[item]))>limit:
+                selection['not_supplied'].append({'locator':deepcopy(item['locator']),'reason':'EXACT_CHUNK_EXCEEDS_REMAINING_PAYLOAD'})
+                continue
+            ledger.runtime._transmission_check(item,context)
+            snippets.append(item);selection['read_locators'].append(deepcopy(item['locator']))
             dependency=ledger.add_supplied({'kind':'knowledge','exact_ref':exact,'payload':item['text']},dependencies=[],origin='auto_snippet')
             receipt=record_read(item,tool='knowledge.source',request=exact,source_reference=exact,
                 actual_selector=exact['locator'],input_dependencies=[dependency['id']])
-            receipt['status']='AVAILABLE'
-            ledger.retain_read(receipt,item)
+            receipt['status']='AVAILABLE';ledger.retain_read(receipt,item)
+        if hits and not selection['read_locators']:selection['status']='NOT_SUPPLIED_PAYLOAD_LIMIT'
     return context,snippets
 
 
