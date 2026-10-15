@@ -3,7 +3,7 @@ from copy import deepcopy
 from PySide6.QtCore import Qt, QTimer, QItemSelectionModel
 from PySide6.QtWidgets import QAbstractItemView, QLineEdit
 from caelab.storage import canonical_hash
-from .material_recovery import _original
+from .material_recovery import _original, _line_focus, _check_line_focus, _restore_line_focus
 
 
 def _mapping_path(name, row, column):
@@ -27,8 +27,7 @@ def data_raw_snapshot(window):
         if not exists: cell['original_exists'] = False
         if pending is not None:
             cell['raw_text'] = pending.text()
-            focus_record = dict(field_path=path, cursor=pending.cursorPosition(),
-                selection=[pending.selectionStart(), len(pending.selectedText())])
+            focus_record = dict(field_path=path, **_line_focus(pending))
         cells.append(cell)
     pending = next((editor for editor in window.mapping.findChildren(QLineEdit) if editor.isVisible()), None) if window.mapping.state() == QAbstractItemView.State.EditingState else None
     for row in range(window.mapping.rowCount()):
@@ -99,6 +98,8 @@ def restore_data_raw(window, raw):
         paths.add(path); positions.add(key)
     if focus_path and focus_path not in paths:
         raise ValueError('복구할 편집 위치를 찾지 못했습니다.')
+    if focus_path:
+        _check_line_focus(next(cell['raw_text'] for cell in raw['cells'] if tuple(cell['field_path']) == focus_path), raw['focus'])
     acknowledged = deepcopy(window.document)
     rendered = deepcopy(acknowledged); rendered['draft'] = candidate
     window._channel_name = name
@@ -133,10 +134,7 @@ def restore_data_raw(window, raw):
                     window.editor.setCurrentIndex(1 if position['field'].startswith('test_') else 2 if position['field'].startswith('row_') else 0)
                     pending = field
         if pending is not None:
-            pending.setFocus(); focus = raw['focus']
-            pending.setCursorPosition(min(max(0, focus.get('cursor', 0)), len(pending.text())))
-            start, count = focus.get('selection', [-1, 0])
-            if start >= 0 and count > 0: pending.setSelection(start, count)
+            pending.setFocus(); _restore_line_focus(pending, raw['focus'])
     finally:
         window._populating = False
     window.local_dirty = True

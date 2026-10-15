@@ -14,6 +14,27 @@ def _original(draft, path):
     return True, deepcopy(value)
 
 
+def _line_focus(line):
+    return dict(cursor=line.cursorPosition(), selection=[line.selectionStart(), line.selectionLength()])
+
+
+def _check_line_focus(text, focus):
+    length = len(text.encode('utf-16-le')) // 2
+    cursor = focus.get('cursor', 0); start, count = focus.get('selection', [-1, 0])
+    if (type(cursor) is not int or not 0 <= cursor <= length
+            or type(start) is not int or type(count) is not int or count < 0
+            or not (start == -1 and count == 0 or 0 <= start <= start + count <= length)):
+        raise ValueError('복구할 원문 커서와 선택 범위를 확인하세요.')
+
+
+def _restore_line_focus(line, focus):
+    _check_line_focus(line.text(), focus)
+    cursor = focus.get('cursor', 0); start, count = focus.get('selection', [-1, 0])
+    line.setCursorPosition(cursor)
+    if start >= 0 and count > 0:
+        line.setSelection(start + count, -count) if cursor == start else line.setSelection(start, count)
+
+
 def material_raw_snapshot(window):
     """Snapshot the acknowledged base separately from pending widget text."""
     if window.document is None:
@@ -29,8 +50,7 @@ def material_raw_snapshot(window):
         if not exists: entry['original_exists'] = False
         if pending is not None:
             entry['raw_text'] = pending.text()
-            focus_record = dict(field_path=list(path), cursor=pending.cursorPosition(),
-                                selection=[pending.selectionStart(), len(pending.selectedText())])
+            focus_record = dict(field_path=list(path), **_line_focus(pending))
         cells.append(entry)
     for table, name in ((window.coefficients, '재료 계수'), (window.history, '변형 이력')):
         pending = next((editor for editor in table.findChildren(QLineEdit) if editor.isVisible()), None) if table.state() == QAbstractItemView.State.EditingState else None
@@ -102,6 +122,8 @@ def restore_material_raw(window, raw):
     focus_path = tuple(raw.get('focus', {}).get('field_path', []))
     if focus_path and focus_path not in seen:
         raise ValueError('복구할 편집 셀을 찾을 수 없습니다.')
+    if focus_path:
+        _check_line_focus(next(cell['raw_text'] for cell in raw['cells'] if tuple(cell['field_path']) == focus_path), raw['focus'])
     window._local_undo.append(deepcopy(window.edited_draft(commit=False)))
     window._local_redo.clear()
     window._restore_inputs(candidate)
@@ -136,9 +158,7 @@ def restore_material_raw(window, raw):
                 else: table.item(row, column).setText(cell['raw_text'])
         if pending is not None:
             pending.setFocus()
-            focus = raw['focus']; pending.setCursorPosition(min(max(0, focus.get('cursor', 0)), len(pending.text())))
-            start, count = focus.get('selection', [-1, 0])
-            if start >= 0 and count > 0: pending.setSelection(start, count)
+            _restore_line_focus(pending, raw['focus'])
     finally:
         window._populating = False
     window.local_dirty = candidate != window.document['draft'] or any(

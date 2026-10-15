@@ -44,3 +44,17 @@ def test_modal_review_preserves_live_delegate_text_and_original_cell(kind):
         assert view.document == document
     finally:
         dialog.close(); view._allow_close = True; view.close(); app.processEvents()
+
+
+def test_unicode_reverse_selection_uses_qt_utf16_positions():
+    from apps.research.material_recovery import _line_focus, _restore_line_focus
+    app = QApplication.instance() or QApplication([])
+    source, target = QLineEdit('🙂12'), QLineEdit('🙂12')
+    source.setSelection(2, -2)
+    focus = _line_focus(source)
+    assert focus == dict(cursor=0, selection=[0, 2])
+    _restore_line_focus(target, focus)
+    assert target.selectedText() == '🙂' and target.cursorPosition() == 0
+    with pytest.raises(ValueError, match='선택 범위'):
+        _restore_line_focus(target, dict(cursor=8, selection=[0, 2]))
+    source.close(); target.close(); app.processEvents()
