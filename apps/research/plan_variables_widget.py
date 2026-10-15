@@ -43,6 +43,7 @@ class NumericalPlanVariablesWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._adapter = self._document = None
+        self._variable_labels = {}
         self._history, self._index = [], 0
         self._populating = self._pending_history = self._busy = False
         self._worker = None
@@ -129,6 +130,7 @@ class NumericalPlanVariablesWidget(QWidget):
                     value=variable.get(key,True if key=='free' and request else None)
                     choices=(True,False) if key=='free' else ('linear','log') if key=='transform' else ()
                     shown=choice_label(value,choices) if choices else value_text(value)
+                    if key=='id' and isinstance(value,str):shown=self._variable_labels.get(value,shown)
                     editable=column>=2 and not protected and not (request and key=='free')
                     binding=dict(path=path+(row,key) if editable else None,value=deepcopy(value),shown=shown,
                                  numeric=key in ('value','lower','upper'),choices=choices)
@@ -138,6 +140,15 @@ class NumericalPlanVariablesWidget(QWidget):
                     self.table.setItem(row,column,item)
             self.table.resizeColumnsToContents()
         finally:self._populating=False
+
+    def set_variable_labels(self, labels):
+        """Host supplies labels for its known physical variables; IDs stay canonical."""
+        self._variable_labels={key:value for key,value in labels.items() if isinstance(key,str) and isinstance(value,str)}
+        for row in range(self.table.rowCount()):
+            item=self.table.item(row,0)
+            if item:
+                binding=item.data(DATA);identifier=binding['value']
+                item.setText(self._variable_labels.get(identifier,value_text(identifier)) if isinstance(identifier,str) else value_text(identifier))
 
     def _commit_editor(self):
         focus=QApplication.focusWidget()
