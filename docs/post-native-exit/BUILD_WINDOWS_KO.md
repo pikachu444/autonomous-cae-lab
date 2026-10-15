@@ -190,3 +190,16 @@ Windows 통합 검증에서는 dependency-free transaction executable과 C/Pytho
 한글 대화상자는 실제 QWidget grab으로 정상/좁은 부모 창 크기에서 확인했다.
 이 결과는 ParaView plugin의 컴파일이나 실제 ParaView6.2 종료 수용을 뜻하지 않는다.
 SDK/runtime을 완성한 뒤 ACCEPTANCE_KO.md의 실창 검사를 수행해야 한다.
+
+이후 같은 공식 ParaView source와 Qt SDK로 VS2022/MSBuild build tree를 구성했다.
+그 실제 development config를 사용한 plugin의 MOC, starter, CloseGate, NativeDraft
+여섯 object가 Windows MSVC에서 컴파일됐다. 첫 링크는 아직 SDK 빌드가 생성하지
+않은 `pqApplicationComponents-pv6.2.lib` 때문에 LNK1181로 끝났다. 해당 실행은
+기존 Job 실행기가 정리했으며, 이 기록은 API 컴파일 확인이다. 최종 plugin DLL,
+완성된 SDK/runtime, 실제 ParaView 종료 수용은 아직 확인되지 않았다.
+
+전체 SDK 빌드 중 메모리 여유가 줄어들어 원래 실행한 root의 PID, 전체 생성시각,
+명령과 Job 실행기 parent를 대조하고 보존한 process handle로 중단했다. 기존 Job의
+`job_empty`를 확인한 뒤 같은 build directory에서 clean이나 재구성 없이 parallel 1,
+BelowNormal 우선순위로 이어갔다. 원 로그와 증분 산출물을 보존하고 별도 plugin
+빌드를 겹치지 않는다. 이 자원 조정은 SDK 빌드 성공이나 native 수용 판정이 아니다.
