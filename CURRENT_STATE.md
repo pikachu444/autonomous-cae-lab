@@ -29,11 +29,14 @@ SPEC·작업 배정·진행 관리 도구이며 실제 실행과 통합은 Codex
 Astra 독립 검토를 마쳤고 `112e2f8`로 원격 main 게시·일치를 확인했다. 한국어 설치·사용
 안내를 함께 반영했고 Post 안내의 구현 용어를 사용자 작업 표현으로 다듬었다. 다음은
 실제 데스크톱 조작과 새 PC/독립 배포의 남은 경로이며, 전체 제품 완료와 구분한다.
-`expert_roundtrip_finish`는 같은 공개 연구 단계의 완료된 세 초기 조사·질문을 보존하고
-기존 답변·지도 반영만 최대 두 차례 명시 재개한다. 새 질문·단계·유료 경로는 없다.
+같은 공개 연구 단계의 세 초기 조사·질문·답변과 지도 반영은 실제 모델로 완료했다.
+`expert_roundtrip_finish`는 그 최종 지도의 기존 보고서 작성 경로를 한 번 명시 실행하고
+저장·재읽기를 마무리한다. 새 질문·단계·유료 경로는 없다.
 Windows SDK 빌드는 기존 Actions run `38777226677` 하나를 계속 확인하며 중복 실행하지
-않는다. root가 최신 computer-use 연결을 재확인했고 현재 열린 FreeCAD/ParaView 창은 없다.
-데스크톱 잠금 여부와 실제 메뉴·키보드 조작은 다음 실행에서 확인한다.
+않는다. root가 최신 computer-use 연결을 재확인했다. 복구된 Post 사본을 실제 ParaView
+GUI로 여는 새 확인은 시작 중 native DLL 접근 위반으로 종료됐다. `native_post_delivery`가
+restore/startup 경로를 좁혀 교정하고 root가 실제 메뉴·키보드 조작을 이어 확인한다.
+확인용 ParaView PID39132는 종료됐고 Job도 비었다. 사용자 창은 건드리지 않았다.
 
 **기존 전후처리 연결:** Contact 반환 소스를 통합하고 단계별 접촉 활성/미출력 처리를 교정했다.
 실제 CalculiX 3단계 계산과 같은 원출력의 저장·새 프로세스 읽기 및 Astra 검토는
@@ -196,11 +199,15 @@ EOF·취소·시간제한·자식 종료를 모델 호출 없는 한 묶음의 �
 상태를 다시 읽었고 확인용 Job은 종료했다. 이후 root가 같은 공개 자료·단계·공유 예산의
 명시 재개를 배정해 나머지 두 역할의 실제 초기 답변과 기존 질문도 수용됐다. 완료한
 초기 조사는 다시 호출하지 않았다. 첫 논점 지도는 저장·별도 프로세스 재읽기를 마쳤고,
-기존 질문에 대한 답변과 추가 지도 반영은 미완료다. 원 응답·실패·자료·설정·이전 실행
-한도는 유지하고 모든 확인용 Job을 종료했다. 새 사용자 질문·단계·공개 검색·계산은 없다.
+기존 질문에 대한 실제 답변과 해당 발언들의 지도 반영까지 완료했다. 같은 문서의 다섯
+과제가 모두 수용됐으며 최초 조사는 다시 호출하지 않았다. 마지막 저장을 새 프로세스에서
+열어 지도·적용 발언과 당시 문헌 구간 14개를 다시 읽었다. 원 응답·실패·자료·설정·이전
+실행 한도는 유지하고 모든 확인용 Job을 종료했다. 새 사용자 질문·단계·공개 검색·계산은 없다.
 실제 실행 기록은 `_workspace/research-team-explicit-repair-live/REPORT_KO.md`,
 `_workspace/research-team-continue-live-01/REPORT_KO.md`와
-`_workspace/research-team-continue-live-02/REPORT_KO.md`에 있다.
+`_workspace/research-team-continue-live-02/REPORT_KO.md`와
+`_workspace/research-team-continue-live-03/REPORT_KO.md`에 있다. 최종 지도의 실제 보고서
+작성은 별도 한 차례로 배정했으며 아직 완료로 세지 않는다. 물리 결론의 미확인은 유지한다.
 기존 Space 댓글 한도 때문에 같은 프로젝트의 [개발 논의](https://chatgpt.com/space/page_b4b3b6a868dc8191a4de4f2282d85a78)
 페이지에서 담당자들이 직접 질문·답변을 이어간다. CURRENT_STATE가 유일한 현재 작업 원본이다.
 입력/부분결과 GUI 묶음 ade0ca6는 원격 main과 일치를 확인했다. 실제 Pro B 전용 소스는
@@ -347,6 +354,12 @@ root가 후보를 읽고 공통 등록·Pre·Post·서비스 담당의 소유 �
 `_workspace/native-project-integration-review/DELTA_REVIEW.md`에 있다. 실제 OS 입력·
 전체 ParaView 창 사용성과 새 PC 설치·독립 배포는 별도 잔여로 유지한다. 기존 설치의
 소스 갱신·서비스 재시작·바로가기 안내는 [설치 문서](docs/INSTALL_KO.md)에 반영했다.
+게시 뒤 실제 GUI 확인 `gui-physical-01`은 복구 사본을 fresh ticket으로 여는 중 14.1초에
+0xc0000005로 종료됐다. WinEvent의 같은 PID는 `vtkRemotingServerManager-pv6.2.dll`을
+지목하며 startup 로그는 entered까지만 있다. 이 실패를 종전 pvpython 성공이나 GUI
+수용으로 바꾸지 않는다. 원 복사본·ticket·로그는 `C:/np-post-gui-review-01`과
+`_workspace/native-project-integration-review/gui-physical-01/`에 보존했다. Sol 담당이
+기존 GUI 성공과 LoadState/표시 초기화의 차이를 조사·교정하며 새로운 solver 실행은 없다.
 교정 기록은 각 `_workspace/delivery-native-project-*/correction-01/`에 보존한다. 기존
 동결본·실패·실행 기록은 보존하고 영향 경로만 확인한다. 전체 native/OS 직접 조작
 완료로 세지 않는다.
