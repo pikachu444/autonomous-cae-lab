@@ -148,6 +148,8 @@ class DataProcessingPreviewDialog(QDialog):
         self.processing_result = deepcopy(result)
         self.plan_requested = False
         self.plan_button = None
+        self.analysis_source = None
+        self.analysis_button = None
         self.setWindowTitle('처리 결과' if retained else '처리 미리보기'); self.resize(900, 640)
         layout = QVBoxLayout(self)
         self.stages = QTableWidget(0, 3)
@@ -181,6 +183,9 @@ class DataProcessingPreviewDialog(QDialog):
         elif allow_plan:
             self.plan_button = buttons.addButton('피팅 계획으로…', QDialogButtonBox.ButtonRole.ActionRole)
             self.plan_button.clicked.connect(self._plan)
+        if retained:
+            self.analysis_button = buttons.addButton('제공 불확실성 전파…', QDialogButtonBox.ButtonRole.ActionRole)
+            self.analysis_button.clicked.connect(self._analysis)
         buttons.rejected.connect(self.reject); layout.addWidget(buttons)
         self.channel.currentTextChanged.connect(self._channel); self._channel(self.channel.currentText())
 
@@ -209,8 +214,28 @@ class DataProcessingPreviewDialog(QDialog):
             if len(values) > 1000: self.status.setText(self.status.text() + ' / 표는 처음 1000개 표본')
         if self.plan_button:
             self.plan_button.setEnabled(bool(response and response.get('measure') in ('infinitesimal_Cauchy', 'first_Piola')))
+        if self.analysis_button:
+            self.analysis_button.setEnabled(self._analysis_selection(name) is not None)
         axis.grid(alpha=.2); self.canvas.draw_idle()
 
     def _plan(self):
         self.plan_requested = True
         self.accept()
+
+    def _analysis_selection(self, name):
+        record=self.processing_result.get('diagnostics',{}).get('processing_record',{})
+        channel=self.processing_result.get('channels',{}).get(name)
+        identifier=record.get('source',{}).get('document_id')
+        if not identifier or not record.get('id') or not isinstance(channel,dict):
+            return None
+        from caelab.storage import canonical_hash
+        return dict(kind='processing_channel',document_id=identifier,revision=record['id'],
+            channel=name,channel_sha256=canonical_hash(channel))
+
+    def _analysis(self):
+        source=self._analysis_selection(self.channel.currentText())
+        if source is None or self.analysis_button is None:
+            return False
+        self.analysis_source=source
+        self.accept()
+        return True

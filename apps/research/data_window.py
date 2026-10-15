@@ -980,7 +980,10 @@ class DataWindow(QMainWindow):
         def shown(result):
             dialog = DataProcessingPreviewDialog(result, self, retained=True, allow_plan=True)
             dialog.exec()
-            if dialog.plan_requested:
+            if dialog.analysis_source:
+                from .experiment_analysis_window import show_analysis_window
+                show_analysis_window(self,source=deepcopy(dialog.analysis_source))
+            elif dialog.plan_requested:
                 from .data_processing_plan import open_processing_plan
                 open_processing_plan(self, result, dialog.channel.currentText())
         self._call(lambda: self.client.data_material('data.processing.result',
