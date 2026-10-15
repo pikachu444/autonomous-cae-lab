@@ -239,6 +239,9 @@ class RequestPlanWindow(NumericalWindow):
         variable_actions = QHBoxLayout()
         variable_actions.addWidget(QLabel('변수'), 1)
         variable_actions.addWidget(self.variables_button)
+        from .numerical_mixed_plan import domain_button
+        self.variable_domains_button=domain_button(self)
+        variable_actions.addWidget(self.variable_domains_button)
         self.remove_variable_button = QPushButton('제거')
         self.remove_variable_button.clicked.connect(self.remove_sheet_variables)
         variable_actions.addWidget(self.remove_variable_button)
@@ -983,6 +986,8 @@ class RequestPlanWindow(NumericalWindow):
                     self.method_sheet.item(row, 1).setToolTip('Existing engine default; no field is written until edited.')
             from .numerical_methods import refresh_extra
             refresh_extra(self, value, operation)
+            from .numerical_mixed_plan import refresh_variable_sheet
+            refresh_variable_sheet(self,value)
         finally:
             self._sheet_populating = False
 
@@ -1120,7 +1125,7 @@ class RequestPlanWindow(NumericalWindow):
         if index >= len(ids):
             return
         for row in range(self.candidates.rowCount()):
-            if self.candidates.item(row, 0).text() == ids[index]:
+            if (self.candidates.item(row,0).data(Qt.ItemDataRole.UserRole) or self.candidates.item(row,0).text()) == ids[index]:
                 self.candidates.selectRow(row)
                 self.candidates.scrollToItem(self.candidates.item(row, 0))
                 break
@@ -1696,32 +1701,8 @@ class RequestPlanWindow(NumericalWindow):
         return self._pick_retained_curve(selected)
 
     def _select_model_variables(self, descriptors):
-        dialog = QDialog(self)
-        dialog.setWindowTitle('Select explicitly declared model variables')
-        dialog.resize(880, 440)
-        layout = QVBoxLayout(dialog)
-        note = QLabel('Select the variables to use. Values, units and bounds come from the registered model declaration. '
-                      'Edit the selected bounds in the worksheet; no calculation is executed.')
-        note.setWordWrap(True)
-        layout.addWidget(note)
-        table = readonly_table(['Variable ID', 'Label', 'Unit', 'Current value', 'Lower bound', 'Upper bound'])
-        table.setObjectName('declaredModelVariables')
-        table.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        table.setRowCount(len(descriptors))
-        for row, descriptor in enumerate(descriptors):
-            for column, key in enumerate(('id', 'label', 'unit', 'value', 'lower', 'upper')):
-                self._set_cell(table, row, column, descriptor.get(key), False)
-        layout.addWidget(table, 1)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Use selected variables')
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
-        table.itemSelectionChanged.connect(lambda: buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(bool(table.selectionModel().selectedRows())))
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return None
-        return [deepcopy(descriptors[index.row()]) for index in sorted(table.selectionModel().selectedRows(), key=lambda index: index.row())]
+        from .numerical_mixed_plan import select_declared_variables
+        return select_declared_variables(self,descriptors)
 
     def choose_model_variables(self):
         if (not self.document or self._view_error or self._callbacks or self._pending_adoption
@@ -1748,17 +1729,17 @@ class RequestPlanWindow(NumericalWindow):
         relevant = lambda: self._request_context() == context and not self.conflict
         def declared(payload):
             descriptors = payload.get('inputs')
-            required = {'id', 'label', 'unit', 'value', 'lower', 'upper'}
+            from .numerical_mixed_plan import descriptor_complete
             if (not isinstance(descriptors, list) or not descriptors or
-                    any(not isinstance(row, dict) or not required <= row.keys() for row in descriptors)):
+                    not all(descriptor_complete(row) for row in descriptors)):
                 self.message.setText('This backend has no complete declared variable descriptors. Existing inputs were preserved.')
                 return
             selected = self._select_model_variables(descriptors)
             if selected and relevant():
                 # Labels and native binding paths describe the advertised input;
                 # the numerical request stores only its supported variable keys.
-                variables = [{key: deepcopy(row[key]) for key in ('id', 'unit', 'value', 'lower', 'upper')}
-                             for row in selected]
+                from .numerical_mixed_variables import declared_variable
+                variables = [declared_variable(row) for row in selected]
                 self._worksheet_labels.update({row['id']: row['label'] for row in selected})
                 def append_variables(value):
                     current = value.setdefault('variables', [])
@@ -2001,7 +1982,8 @@ class RequestPlanWindow(NumericalWindow):
             else:
                 self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
                 self._reset_draft_history(force=True)
-                self.message.setText('Study ' + operation + ' acknowledged.')
+                self.message.setText({'numerical.update':'계획을 적용했습니다.','document.save':'계획을 저장했습니다.','numerical.run':'계산을 시작했습니다.'}.get(operation,'작업을 완료했습니다.'))
+                self.message.setToolTip(operation)
             if after and not late:
                 QTimer.singleShot(0, after)
             elif receipt.get('job'):
@@ -2182,7 +2164,7 @@ class RequestPlanWindow(NumericalWindow):
         rows = result.get('candidates', result.get('predictions', []))
         # Both predicted and evaluated selections survive reads of this exact result.
         selected = self.candidates.item(self.candidates.currentRow(),0)
-        selected = selected.text() if selected and self.candidates.selectionModel().selectedRows() else None
+        selected = (selected.data(Qt.ItemDataRole.UserRole) or selected.text()) if selected and self.candidates.selectionModel().selectedRows() else None
         key = (self.document['id'], self.document['session_id'], job, canonical_hash(result)) if self.document else None
         unchanged = key == self._candidate_table_key
         self.candidates.blockSignals(True)
@@ -2219,6 +2201,8 @@ class RequestPlanWindow(NumericalWindow):
         self.plot_response.setCurrentIndex(max(0, index))
         self.plot_response.blockSignals(False)
         self._method_result_view(result)
+        from .numerical_mixed_results import project_mixed_result
+        project_mixed_result(self,result,key)
         self.details.setPlainText(json.dumps({'document_diagnostics': self.document.get('diagnostics') if self.document else [],
             'view_error': self._view_error, 'selected_status': self._statuses.get(job),
             'result_read_error': self._result_errors.get(job), 'submitted_run': next((run for run in self.document.get('runs', []) if run['job_id'] == job), None) if self.document else None,
@@ -2228,6 +2212,8 @@ class RequestPlanWindow(NumericalWindow):
     def _plot_selected_result(self, *_):
         job = self.selected_job()
         result = self._result_cache.get(job, {})
+        from .numerical_mixed_results import plot_mixed_selection
+        if plot_mixed_selection(self,result):return
         rows = result.get('candidates', result.get('predictions', []))
         self.figure.clear()
         self.result_summary.clear()
@@ -2607,6 +2593,9 @@ class RequestPlanWindow(NumericalWindow):
         self.copy_button.setVisible(self.conflict)
         self.reload_button.setEnabled(available)
         self.copy_button.setEnabled(available)
+        self.variable_domains_button.setEnabled(read_available and not self._view_error and callable(getattr(self.client,'describe_inputs',None)))
+        from .numerical_mixed_plan import limit_unsupported_execution
+        limit_unsupported_execution(self)
         if present:
             self.setWindowTitle('계산 계획 — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
             self.identity.setText('변경 적용 전' if self.local_dirty else ('저장됨' if not self.document.get('dirty') else '저장 전'))

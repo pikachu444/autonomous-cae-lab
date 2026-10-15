@@ -593,6 +593,8 @@ class NumericalWindow(QMainWindow):
         settings=self._material.get('draft',{}).get('settings',{}) if isinstance(self._material,dict) else {}
         self.material_label.setText(str(settings.get('model','재료 선택'))+' ['+str(settings.get('stress_unit',''))+']')
         self.material_label.setToolTip(str(self._material.get('document_id','')) if isinstance(self._material,dict) else '')
+        from .numerical_variable_display import refresh_frozen_material_display
+        refresh_frozen_material_display(self)
         self._populate_runs(prefer_job)
         self._draw_result()
         self._reset_draft_history()
