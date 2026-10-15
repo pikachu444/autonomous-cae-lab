@@ -22,6 +22,28 @@ def wait(app, ready):
     raise AssertionError('Related save GUI reply timeout')
 
 
+def test_preview_cancel_does_not_emit_or_retain_a_save_attempt():
+    app = QApplication.instance() or QApplication([])
+    material = dict(id='Mfixture', kind='material', title='인장 재료', session_id='Sfixture',
+        generation=0, input_revision='Ifixture', draft={}, saved_revision=None)
+    plan = dict(material, id='Nfixture', kind='numerical', title='인장 피팅')
+    calls = []
+    class PreviewTransport:
+        def data_material(self, operation, arguments):
+            calls.append(operation)
+            assert operation == 'related_save.preview'
+            return dict(receipt_id='Spreview', saveable_count=2,
+                targets=[dict(target, preview_problems=[]) for target in arguments['requests']])
+    dialog = RelatedSaveDialog(PreviewTransport(), material, plan)
+    attempted = []; dialog.saveAttempted.connect(attempted.append)
+    try:
+        wait(app, lambda: dialog.preview is not None and not dialog._busy)
+        dialog.reject()
+        assert not attempted and dialog.pending_preview is None
+        assert calls == ['related_save.preview']
+    finally: dialog.close(); app.processEvents()
+
+
 def test_actual_partial_save_only_retries_failed_plan_then_explicitly_links(tmp_path, monkeypatch):
     from apps.lab.service import LabService
     from apps.lab.server import LabHTTPServer

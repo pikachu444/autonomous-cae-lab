@@ -119,3 +119,65 @@ def test_conflict_between_review_and_apply_keeps_cells(host, monkeypatch):
     assert client.document_read(identifier)['draft']['variables'][0]['value'] == 1800
     panel.save_plan()
     assert widget.has_unapplied_buffer()
+
+
+def test_lost_related_save_reply_reopens_exact_receipt_with_unfinished_cells(host, monkeypatch):
+    from PySide6.QtWidgets import QLineEdit
+    from apps.research.material_related_save import RelatedSaveDialog
+    app, client, material, panel, plans = host
+    identifier = panel.plans.currentData(); widget = panel._widgets[identifier]
+    original = client.data_material; calls = []; previews = []
+    def lose_execute_reply(operation, arguments):
+        calls.append((operation, deepcopy(arguments)))
+        value = original(operation, arguments)
+        if operation == 'related_save.execute':
+            raise ConnectionError('Injected lost HTTP reply after the actual owner saves committed')
+        return value
+    monkeypatch.setattr(client, 'data_material', lose_execute_reply)
+    def save_and_close(dialog):
+        wait(app, lambda: dialog.preview is not None and not dialog._busy)
+        previews.append(deepcopy(dialog.preview))
+        dialog.save()
+        assert panel._related_save_receipts[identifier] == dialog.preview['receipt_id']
+        wait(app, lambda: not dialog._busy)
+        assert dialog.receipt is None and dialog.pending_preview == previews[0]
+        dialog.reject(); return QDialog.DialogCode.Rejected
+    monkeypatch.setattr(RelatedSaveDialog, 'exec', save_and_close)
+    assert panel.save_related()
+    receipt_id = previews[0]['receipt_id']
+    assert panel.save_receipt_button.isEnabled()
+    assert identifier in panel._related_save_unconfirmed
+    assert panel._related_save_pending[identifier] == previews[0]
+    # Querying a committed receipt must remain available with an unfinished
+    # editor, while every mutation control stays unavailable.
+    widget.table.setCurrentCell(0, 2); widget.table.setFocus()
+    widget.table.editItem(widget.table.item(0, 2)); app.processEvents()
+    editor = QApplication.focusWidget(); assert isinstance(editor, QLineEdit)
+    old_cell = widget.table.item(0, 2).text(); editor.setText('1e')
+    def reopen_only(dialog):
+        wait(app, lambda: dialog.receipt is not None and not dialog._busy)
+        assert dialog.preview['receipt_id'] == receipt_id
+        assert not dialog.allow_writes and not dialog.save_button.isEnabled()
+        assert not dialog.link_button.isEnabled() and not dialog.retry_button.isEnabled()
+        assert dialog.receipt['all_saved']
+        assert all(len(target['attempts']) == 1 for target in dialog.receipt['targets'])
+        dialog.reject(); return QDialog.DialogCode.Rejected
+    monkeypatch.setattr(RelatedSaveDialog, 'exec', reopen_only)
+    # The ordinary action routes an unresolved save to its original result.
+    assert panel.save_related()
+    assert identifier not in panel._related_save_unconfirmed
+    assert editor.text() == '1e' and widget.table.item(0, 2).text() == old_cell
+    assert [operation for operation, _ in calls] == ['related_save.preview', 'related_save.execute', 'related_save.receipt']
+    assert calls[-1][1] == {'receipt_id': receipt_id}
+    QTest.keyClick(editor, Qt.Key.Key_Escape); app.processEvents()
+    material.coefficients.setCurrentCell(0, 1); material.coefficients.setFocus()
+    material.coefficients.editItem(material.coefficients.item(0, 1)); app.processEvents()
+    material_editor = QApplication.focusWidget(); assert isinstance(material_editor, QLineEdit)
+    material_cell = material.coefficients.item(0, 1).text(); material_editor.setText('2e')
+    assert panel.save_related(receipt_id=receipt_id)
+    assert material_editor.text() == '2e' and material.coefficients.item(0, 1).text() == material_cell
+    assert [operation for operation, _ in calls][-1] == 'related_save.receipt'
+    assert sum(operation == 'related_save.execute' for operation, _ in calls) == 1
+    receipt = original('related_save.receipt', {'receipt_id': receipt_id})
+    assert all(len(target['attempts']) == 1 for target in receipt['targets'])
+    assert not any(document.get('runs') for document in client.documents()['documents'])

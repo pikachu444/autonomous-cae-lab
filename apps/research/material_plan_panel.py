@@ -67,6 +67,8 @@ class MaterialPlanPanel(QWidget):
         self._worker = None
         self._documents, self._widgets, self._adapters = {}, {}, {}
         self._related_save_receipts = {}
+        self._related_save_pending = {}
+        self._related_save_unconfirmed = set()
         layout = QVBoxLayout(self)
         row = QHBoxLayout()
         self.plans = QComboBox()
@@ -221,27 +223,45 @@ class MaterialPlanPanel(QWidget):
 
     def save_related(self, *, receipt_id=None):
         identifier = self.plans.currentData()
-        if not identifier or self._busy or self.material._busy or self.material.conflict:
+        if not identifier or self._busy:
             return False
+        if receipt_id is None and identifier in self._related_save_unconfirmed:
+            receipt_id = self._related_save_receipts[identifier]
         material = self.material
         # Inspect without committing a delegate. Saving cannot discard an invalid
         # or unfinished cell merely because the user chose another document.
         editing = any(table.state() == QAbstractItemView.State.EditingState
                       for table in (material.history, material.coefficients))
         widget = self._widgets[identifier]
-        if (editing or material.local_dirty or widget.has_unapplied_buffer()):
+        unapplied = editing or material.local_dirty or widget.has_unapplied_buffer() or material.conflict or material._busy
+        if receipt_id is None and unapplied:
             self.message.setText('재료와 계획의 셀 편집을 먼저 검토하고 적용하세요. 미확정 입력은 보존됩니다.')
             return False
         from .material_related_save import RelatedSaveDialog
         before_material = deepcopy(material.document)
         before_plan = deepcopy(self._documents[identifier])
-        dialog = RelatedSaveDialog(self.client, before_material, before_plan, self, receipt_id=receipt_id)
-        dialog.exec()
+        dialog = RelatedSaveDialog(self.client, before_material, before_plan, self, receipt_id=receipt_id,
+            pending_preview=self._related_save_pending.get(identifier) if receipt_id else None,
+            allow_writes=not unapplied)
+        def attempted(preview):
+            self._related_save_receipts[identifier] = preview['receipt_id']
+            self._related_save_pending[identifier] = deepcopy(preview)
+            self._related_save_unconfirmed.add(identifier)
+            self.save_receipt_button.setEnabled(True)
+        dialog.saveAttempted.connect(attempted)
+        from .recovery_focus import RawEditorFocusGuard
+        with RawEditorFocusGuard([material]):
+            dialog.exec()
         # A saved receipt is evidence about the reviewed input. It must not
         # overwrite a later peer edit or an editor opened while saving.
         if dialog.receipt:
             self._related_save_receipts[identifier] = dialog.receipt['receipt_id']
             self.save_receipt_button.setEnabled(True)
+            publication_state = dialog.receipt.get('publication', {}).get('state')
+            if dialog.receipt.get('state') != 'UNCONFIRMED' and publication_state not in ('UNKNOWN', 'UPDATING', 'SAVING'):
+                self._related_save_unconfirmed.discard(identifier)
+            if not dialog.allow_writes:
+                return True  # Inspection never rebinds a pending editor.
             def same_base(current, base):
                 return (current and all(current.get(key) == base.get(key)
                     for key in ('id', 'session_id', 'generation', 'input_revision', 'draft')))

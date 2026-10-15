@@ -1,7 +1,7 @@
 """Explicit related-save UI over Pro's existing owner coordinator."""
 from copy import deepcopy
 import uuid
-from PySide6.QtCore import Qt, QThreadPool, QTimer
+from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal
 from PySide6.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QHeaderView,
     QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout)
 
@@ -12,14 +12,20 @@ STATES = {'SAVED': '저장됨', 'FAILED': '저장 실패', 'CONFLICT': '문서 �
 
 
 class RelatedSaveDialog(QDialog):
-    def __init__(self, client, material, plan, parent=None, *, receipt_id=None):
+    saveAttempted = Signal(object)
+
+    def __init__(self, client, material, plan, parent=None, *, receipt_id=None,
+                 pending_preview=None, allow_writes=True):
         super().__init__(parent)
         from caelab.related_save import input_identity
         self.client = client
         self.documents = {document['id']: deepcopy(document) for document in (material, plan)}
         self.requests = [{'identity': input_identity(document), 'buffer': deepcopy(document['draft'])}
                          for document in (material, plan)]
-        self.preview = {'receipt_id': receipt_id} if receipt_id else None
+        self.allow_writes = allow_writes
+        self._initial_receipt_id = receipt_id
+        self.pending_preview = deepcopy(pending_preview)
+        self.preview = (deepcopy(pending_preview) if pending_preview else {'receipt_id': receipt_id}) if receipt_id else None
         self.receipt = None
         self._busy = False; self._worker = None
         self.setWindowTitle('재료와 피팅 계획 저장'); self.resize(760, 370)
@@ -69,12 +75,13 @@ class RelatedSaveDialog(QDialog):
     def _buttons(self):
         ready = not self._busy
         self.save_button.setEnabled(ready and self.preview is not None and self.receipt is None
+                                    and self.allow_writes and self._initial_receipt_id is None
                                     and self.preview.get('saveable_count') == len(self.requests))
         selected = self._selected_failed() if self.receipt else []
-        self.retry_button.setEnabled(ready and bool(selected))
+        self.retry_button.setEnabled(ready and self.allow_writes and bool(selected))
         self.check_button.setEnabled(ready and self.preview is not None)
         publication = (self.receipt or {}).get('publication', {})
-        self.link_button.setEnabled(ready and bool((self.receipt or {}).get('all_saved'))
+        self.link_button.setEnabled(ready and self.allow_writes and bool((self.receipt or {}).get('all_saved'))
             and publication.get('state') in ('NOT_REQUESTED', 'LINK_SAVE_FAILED'))
         self.link_button.setText('연결 저장 재시도' if publication.get('state') == 'LINK_SAVE_FAILED' else '저장한 재료로 연결')
         self.close_button.setEnabled(ready)
@@ -120,12 +127,15 @@ class RelatedSaveDialog(QDialog):
             '저장된 문서는 다시 저장하지 않습니다. 실패 문서를 선택해 재시도하거나 결과를 확인하세요.')
 
     def save(self):
-        if self._busy or self.preview is None or self.receipt is not None: return False
+        if (self._busy or not self.allow_writes or self._initial_receipt_id is not None
+                or self.preview is None or self.receipt is not None): return False
+        self.pending_preview = deepcopy(self.preview)
+        self.saveAttempted.emit(deepcopy(self.pending_preview))
         return self._call('related_save.execute', {'preview': self.preview}, self._received)
 
     def retry_selected(self):
         targets = self._selected_failed()
-        if not targets or self._busy: return False
+        if not self.allow_writes or not targets or self._busy: return False
         selected = {target['identity']['document_id'] for target in targets}
         requests = [request for request in self.requests if request['identity']['document_id'] in selected]
         receipt_id = self.receipt['receipt_id']
@@ -142,7 +152,7 @@ class RelatedSaveDialog(QDialog):
         return self._call(operation, {'receipt_id': self.preview['receipt_id']}, self._received)
 
     def publish(self):
-        if self._busy or not self.receipt or not self.receipt.get('all_saved'): return False
+        if self._busy or not self.allow_writes or not self.receipt or not self.receipt.get('all_saved'): return False
         from caelab.related_save import input_identity
         material = next(t for t in self.receipt['targets'] if t['identity']['kind'] == 'material')
         plan = next(t for t in self.receipt['targets'] if t['identity']['kind'] == 'numerical')
