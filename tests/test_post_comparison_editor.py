@@ -99,7 +99,7 @@ def test_old_plot_cannot_select_new_native_revision_or_a_late_table_row():
     from types import SimpleNamespace
     from apps.research.post_window import PostWindow
     revision = ['V2']; commands = []; selected = []; messages = []
-    window = SimpleNamespace(_object_ref='A', _sample_basis={'revision':'V1'},
+    window = SimpleNamespace(document_id='D', session_id='S', _object_ref='A', _sample_basis={'revision':'V1'},
         _current_sample_revision=lambda preview: revision[0],
         _samples={'rows':[{'point_index':3}]},
         samples=SimpleNamespace(selectRow=lambda row:selected.append(row)),
@@ -107,7 +107,7 @@ def test_old_plot_cannot_select_new_native_revision_or_a_late_table_row():
     def queue(operation, arguments, accepted):
         commands.append((operation, arguments, accepted)); return True
     window.queue_command=queue
-    basis={'object_ref':'A','revision':'V1','preview':False}
+    basis={'document_id':'D','session_id':'S','object_ref':'A','revision':'V1','preview':False}
     assert PostWindow.select_comparison_point(window,3,basis) is False
     assert not commands and not selected
     revision[0]='V1'
