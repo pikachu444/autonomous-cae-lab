@@ -109,6 +109,14 @@ def test_damaged_or_nonready_pose_blocks_generic_mesh_run_and_both_direct_export
         freeze_analysis(c.analysis, c.solver, tmp_path / 'solid-export')
     with pytest.raises(ValueError):
         freeze_contact(c.analysis, c.solver, tmp_path / 'contact-export', fem=c.fem)
+    from apps.desktop_pre import shell_freeze, beam_native
+    monkeypatch.setattr(c.owner.App, 'Version', lambda: ['1', '1', '4'], raising=False)
+    monkeypatch.setattr(c.owner, '_idle', lambda: None, raising=False)
+    editor = NS(owner=c.owner, effective=lambda *_: pytest.fail('Invalid pose reached shell collection'))
+    with pytest.raises(ValueError):
+        shell_freeze.freeze(editor, c.analysis.Name)
+    with pytest.raises(ValueError):
+        beam_native.freeze(c.owner, {})
     assert not c.tools and not c.fem._pending
     assert not (tmp_path / 'solid-export').exists() and not (tmp_path / 'contact-export').exists()
     assert c.owner.read_metadata() == before and c.owner.doc.recomputes == count

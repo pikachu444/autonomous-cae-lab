@@ -19,7 +19,7 @@ from caelab.beam_deck import render, section_card, parse_native_mesh
 from caelab.storage import canonical_hash, save_json
 from .beam_mesh_binding import require_same_binding
 from .mesh_binding import global_placement
-from .freeze_analysis import _hash, _serialized_coordinate_close
+from .freeze_analysis import _hash, _serialized_coordinate_close, require_ready_model
 
 
 def native_type(obj):
@@ -290,6 +290,7 @@ def verify_writers(owner,model,solver,folder):
 
 
 def freeze(owner,record):
+    require_ready_model(owner.doc, owner=owner)
     model,solver=collect(owner,record)
     saved=owner.project.save()
     generation=owner.generation
@@ -304,6 +305,7 @@ def freeze(owner,record):
     save_json(root/'mesh.json',model)
     (root/'beam.inp').write_text(render(model),encoding='ascii',newline='\n')
     shutil.copyfile(saved['retained_project'],root/'editable.caepre')
+    require_ready_model(owner.doc, owner=owner)
     after,_=collect(owner,record)
     if after!=model or owner.generation!=generation:
         raise BeamInputError('draft','입력 준비 중 모델이 변경됐습니다. 새 입력을 준비하세요. 이전 파일은 보존됩니다.')

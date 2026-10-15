@@ -44,7 +44,7 @@ def freeze(editor, analysis_id):
     belongs to the existing workbench JobManager via structure.calculix.shell.
     """
     from caelab.storage import save_json
-    from .freeze_analysis import _serialized_coordinate_close
+    from .freeze_analysis import _serialized_coordinate_close, require_ready_model
     owner=editor.owner
     owner.assert_thread()
     if threading.current_thread() is not threading.main_thread():
@@ -52,6 +52,7 @@ def freeze(editor, analysis_id):
     if list(owner.App.Version())[:3] != ['1','1','4']:
         raise ValueError('First shell native writer profile requires FreeCAD 1.1.4')
     owner._idle()
+    require_ready_model(owner.doc, owner=owner)
     editor.effective(analysis_id)
     # Same native project save/copy ownership as bridge pre.freeze.
     editor.clear_preview()
@@ -98,6 +99,7 @@ def freeze(editor, analysis_id):
         if (editor._native_state(draft)!=before or doc.FileName!=filename or owner.generation!=generation
                 or doc.isTouched() or original_hash and sha(original)!=original_hash):
             raise ValueError('Live native model changed during shell preparation; partial files retained')
+        require_ready_model(doc, owner=owner)
         editable=saved.get('retained_project')
         if editable:
             shutil.copyfile(editable,folder/'editable.caepre')
