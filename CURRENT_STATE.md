@@ -78,6 +78,11 @@ Post·Data/Material·Numerical/PDE는 기존의 연결된 작업 트리 세 개�
 바꿨고, 관련7개 폴더의 HEAD·변경 상태·diff·미추적 파일 바이트가 유지됨을 확인했다.
 현재 개발3개와 main은 건드리지 않았고 강제 push·reset·clean은 하지 않았다.
 분류·복구 안내는 [브랜치 정리 기록](docs/history/20261015-branch-cleanup.md)에 있다.
+추가로 활성 개발 브랜치 세 개의 실제 diff와 미커밋 변경도 main과 대조했다.
+Data·Material/Post에는 더 가져올 제품 코드가 없었고, Numerical Plan 표의 미완성
+텍스트 선택 범위·방향 복구 한 건이 빠져 있었다. 해당 변경만 현재 main에 이식해
+한글·이모지, 양방향 선택, 손상 범위 거절과 이전 커서 전용 보관물의 복원을 확인했다.
+구형 브랜치 전체를 병합해 이후 기능을 되돌리지 않았으며 사용자 파일은 보존했다.
 팀들은 직접 메시지로 Material/Plan 편집, Pre→Runner→Post와 Windows 진입 경계를
 토론한다. Astra가 7개 인도의 범위 누락·파일 충돌·전체 연결과 종료 조건을 독립 검토한다.
 CURRENT_STATE가 계속 유일한 현황 원본이며 새 팀별 보고서를 경쟁 작업 큐로 만들지 않는다.
