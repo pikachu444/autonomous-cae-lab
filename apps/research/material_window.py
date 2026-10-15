@@ -17,7 +17,7 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QFormLayout, QHBoxLayout,
-    QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow, QMessageBox,
+    QDockWidget, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow, QMessageBox,
     QPushButton, QPlainTextEdit, QSplitter, QTableWidget, QTableWidgetItem,
     QTabWidget, QToolBar, QVBoxLayout, QWidget,
 )
@@ -141,6 +141,7 @@ class MaterialWindow(QMainWindow):
         self._runner = None
         self._numerical_windows = []
         self._native_material_windows = []
+        self._plan_panel = self._plan_dock = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -185,6 +186,9 @@ class MaterialWindow(QMainWindow):
         self.numerical_action = QAction("재료 피팅…", self)
         self.numerical_action.triggered.connect(self.open_numerical)
         windows.addAction(self.numerical_action)
+        self.plan_variables_action = QAction('피팅 변수 편집…', self)
+        self.plan_variables_action.triggered.connect(self.open_plan_variables)
+        windows.addAction(self.plan_variables_action)
         self.trial_action = QAction('단축 시험 조건…', self)
         self.trial_action.triggered.connect(self.configure_trial)
         windows.addAction(self.trial_action)
@@ -387,6 +391,8 @@ class MaterialWindow(QMainWindow):
         self._job_status.clear()
         self._result_errors.clear()
         self._show_document(document)
+        if self._plan_panel:
+            self._plan_panel.refresh_plans()
         self.message.setText("재료 계수와 변형 이력을 입력하고, 입력 적용 후 계산 실행을 누르세요.")
         QTimer.singleShot(0, self.refresh_results)
 
@@ -671,6 +677,22 @@ class MaterialWindow(QMainWindow):
             self._restore_inputs(draft)
         self.message.setText('시험 조건을 설정했습니다. 입력 적용 후 계산 실행을 누르세요.')
 
+    def open_plan_variables(self):
+        if not self.document or self._busy:
+            return
+        if not callable(getattr(self.client, 'data_material', None)):
+            self.message.setText('연결한 서비스에서 계획 변수 연결을 지원하지 않습니다.')
+            return
+        if self._plan_panel is None:
+            from .material_plan_panel import MaterialPlanPanel
+            self._plan_dock = QDockWidget('피팅 변수', self)
+            self._plan_panel = MaterialPlanPanel(self, self._plan_dock)
+            self._plan_dock.setWidget(self._plan_panel)
+            self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self._plan_dock)
+        self._plan_dock.show(); self._plan_dock.raise_()
+        self._plan_panel.refresh_plans()
+        return self._plan_panel
+
     def open_runner(self):
         from .runner_window import RunnerWindow
         selected = self._selected_jobs()
@@ -884,6 +906,9 @@ class MaterialWindow(QMainWindow):
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._draft_problem and not blocked)
         self.save_action.setEnabled(enabled)
         self.trial_action.setEnabled(enabled and not self._draft_problem)
+        self.plan_variables_action.setEnabled(enabled)
+        if self._plan_panel:
+            self._plan_panel.update_badge()
         self.undo_action.setEnabled(present and not self._busy and (bool(self._local_undo) or
             (enabled and not self.local_dirty and self.document.get("can_undo", False))))
         self.redo_action.setEnabled(present and not self._busy and (bool(self._local_redo) or
@@ -907,6 +932,10 @@ class MaterialWindow(QMainWindow):
 
     def _leave(self, continuation):
         self._commit_cell_editor()
+        if self._plan_panel and self._plan_panel.has_pending_inputs():
+            self._plan_dock.show()
+            self.message.setText('피팅 변수 편집과 계획 저장을 마친 뒤 문서를 닫거나 바꾸세요. 입력은 보존됩니다.')
+            return
         if self._busy:
             self.message.setText("Wait for the current document request before leaving. Running solver jobs remain service-owned.")
             return
