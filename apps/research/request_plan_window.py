@@ -2477,11 +2477,12 @@ class RequestPlanWindow(NumericalWindow):
             else:
                 def listed(payload):
                     documents = [row for row in payload['documents'] if row.get('kind') in {'expert', 'study'}]
-                    labels = [row['title'] + ' (' + row['kind'] + ') — ' + row['id'] for row in documents]
+                    labels = [str(index + 1) + '. ' + row['title'] + ' (' + ('대화' if row['kind'] == 'expert' else '연구 기록') + ')'
+                              for index, row in enumerate(documents)]
                     if not labels:
-                        self.message.setText('No existing Expert or Study is available. New discussion remains a separate action.')
+                        self.message.setText('결과를 받을 대화나 연구 기록을 먼저 열어 주세요.')
                         return
-                    label, accepted = QInputDialog.getItem(self, 'Attach to existing research', 'Existing document', labels, editable=False)
+                    label, accepted = QInputDialog.getItem(self, '계산 결과 전달', '받을 대화 또는 연구 기록', labels, editable=False)
                     if accepted and relevant():
                         self._call(lambda: self.client.document_read(documents[labels.index(label)]['id']), present, relevant=relevant)
                 self._call(self.client.documents, listed, relevant=relevant)

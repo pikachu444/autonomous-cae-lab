@@ -1465,43 +1465,106 @@ class ExpertWindow(QMainWindow):
         return self._call(read, received)
 
     def attach_result(self):
+        if not self.document or self.conflict or self._draft_problem:
+            return False
+        from .result_attachments import same_result_attachment
+        owner = (self.document['id'], self.document['session_id'], canonical_hash(self.document['draft']))
+        def relevant():
+            document = self.document
+            valid = (not self._closed and document and not self.conflict and not self._draft_problem
+                and (document['id'], document['session_id'], canonical_hash(document['draft'])) == owner)
+            if not valid:
+                self.message.setText('대화가 변경되어 결과를 첨부하지 않았습니다. 편집 내용은 유지됩니다.')
+            return valid
+        def choose(function):
+            self._source_choosing = True
+            self._update_actions()
+            try:
+                return function()
+            finally:
+                self._source_choosing = False
+                self._update_actions()
         def listed(payload):
+            if not relevant():
+                return
             candidates = [(doc, run) for doc in payload['documents'] if doc.get('kind') != 'expert' for run in doc.get('runs', [])]
             if not candidates:
                 self.message.setText('첨부할 계산 결과가 없습니다.')
                 return
             labels = [str(index + 1) + '. ' + doc['title'] + ' — 계산 ' + str(
                 1 + doc.get('runs', []).index(run)) for index, (doc, run) in enumerate(candidates)]
-            selected, accepted = QInputDialog.getItem(self, '계산 결과 첨부', '계산 선택', labels, editable=False)
-            if not accepted:
+            selected, accepted = choose(lambda: QInputDialog.getItem(
+                self, '계산 결과 첨부', '계산 선택', labels, editable=False))
+            if not accepted or not relevant():
                 return
             doc, run = candidates[labels.index(selected)]
-            def read(result):
+            def catalog():
+                reference = self.client.document_result_reference(doc['id'], run['job_id'])
+                expected = {'document_id': doc['id'], **{key: run[key]
+                    for key in ('job_id', 'input_revision', 'input_sha256')}}
+                if any(reference.get(key) != value for key, value in expected.items()):
+                    raise ValueError('선택한 계산의 원본이 변경되었습니다. 계산을 다시 선택하세요.')
+                return reference, self.client.document_result(doc['id'], run['job_id'], selection={'metadata_only': True})
+            def read(payload):
+                if not relevant():
+                    return
+                reference, result = payload
                 channels = list(result.get('responses', {}))
+                from .report_pages import physical_text
                 dialog = QDialog(self)
                 dialog.setWindowTitle('첨부할 결과 선택')
+                dialog.resize(560, 340)
                 layout = QVBoxLayout(dialog)
                 rows = QListWidget()
                 for channel in channels:
-                    item = QListWidgetItem(channel)
+                    response = result['responses'][channel]
+                    name = response.get('label') or physical_text('measure', response.get('measure', channel))
+                    if response.get('component'):
+                        name += ' ' + physical_text('component', response['component'])
+                    item = QListWidgetItem(name + ' [' + str(response.get('unit', '단위 미확인')) + ']')
+                    item.setData(Qt.ItemDataRole.UserRole, channel)
+                    item.setToolTip(channel)
                     item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                     item.setCheckState(Qt.CheckState.Unchecked)
                     rows.addItem(item)
                 layout.addWidget(QLabel('전달할 값을 선택하세요. 선택하지 않으면 계산 상태만 첨부합니다.'))
                 layout.addWidget(rows)
                 buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+                buttons.button(QDialogButtonBox.StandardButton.Ok).setText('대화에 첨부')
+                buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
                 buttons.accepted.connect(dialog.accept)
                 buttons.rejected.connect(dialog.reject)
                 layout.addWidget(buttons)
-                if dialog.exec() == QDialog.DialogCode.Accepted:
-                    reference = {key: deepcopy(run[key]) for key in ('job_id', 'input_revision', 'input_sha256')}
-                    reference.update(document_id=doc['id'], selection=[rows.item(row).text() for row in range(rows.count())
-                        if rows.item(row).checkState() == Qt.CheckState.Checked])
-                    self._buffer['composer']['evidence'].append(reference)
+                accepted = choose(dialog.exec) == QDialog.DialogCode.Accepted
+                dialog.deleteLater()
+                if not accepted or not relevant():
+                    return
+                attachment = {**deepcopy(reference), 'selection': [rows.item(row).data(Qt.ItemDataRole.UserRole) for row in range(rows.count())
+                    if rows.item(row).checkState() == Qt.CheckState.Checked]}
+                def verify():
+                    if self.client.document_result_reference(doc['id'], run['job_id']) != reference:
+                        raise ValueError('계산 결과의 원본이 변경되었습니다. 계산을 다시 선택하세요.')
+                    resolved = self.client.research_reference({'kind': 'result', **attachment})
+                    if resolved.get('status') != 'AVAILABLE':
+                        raise ValueError('선택한 계산의 원자료를 읽을 수 없습니다. 계산을 다시 선택하세요.')
+                    return self.client.document_read(owner[0])
+                def append(remote):
+                    if not relevant():
+                        return
+                    if ((remote['id'], remote['session_id'], canonical_hash(remote['draft'])) != owner):
+                        self.message.setText('저장된 대화가 변경되었습니다. 다시 읽은 뒤 첨부하세요. 편집 내용은 유지됩니다.')
+                        return
+                    draft = self.edited_draft()
+                    if any(same_result_attachment(row, attachment) for row in draft['composer']['evidence']):
+                        self.message.setText('이 결과는 이미 대화에 첨부되어 있습니다.')
+                        return
+                    draft['composer']['evidence'].append(attachment)
+                    self._buffer = draft
                     self._update_evidence_label()
                     self._edited()
-            QTimer.singleShot(0, lambda: self._call(lambda: self.client.document_result(doc['id'], run['job_id'],
-                selection={'metadata_only': True}), read))
+                    self.message.setText('결과를 첨부했습니다. 변경 사항을 적용하고 저장하세요.')
+                QTimer.singleShot(0, lambda: self._call(verify, append))
+            QTimer.singleShot(0, lambda: self._call(catalog, read))
         return self._call(self.client.documents, listed)
 
     def _citation_selected(self, *_):

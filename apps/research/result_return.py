@@ -409,7 +409,9 @@ class PendingResultReview(QObject):
         dialog.resize(660, 220)
         layout = QVBoxLayout(dialog)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(QLabel(payload['title'] + ' → ' + self.window.document['title']))
+        heading = QLabel(payload['title'] + ' → ' + self.window.document['title'])
+        heading.setWordWrap(True)
+        layout.addWidget(heading)
         scope = ', '.join(message['selection']) if message['selection'] else '별도로 선택한 응답 없음'
         label = QLabel('선택한 응답: ' + scope + '\n이 계산의 전체 후보 이력을 함께 추가합니다.')
         label.setWordWrap(True)
@@ -456,8 +458,9 @@ class PendingResultReview(QObject):
             return 'ATTACHED'
         reference = {**deepcopy(message['reference']), 'selection': deepcopy(message['selection'])}
         if window.document['kind'] == 'expert':
+            from .result_attachments import same_result_attachment
             rows = draft['composer']['evidence']
-            if reference in rows:
+            if any(same_result_attachment(row, reference) for row in rows):
                 return 'ALREADY_ATTACHED'
             rows.append(reference)
             window._buffer = draft
@@ -466,7 +469,7 @@ class PendingResultReview(QObject):
             reference = {'kind': 'result', **reference}
             if any(row.get('reference') == reference for row in draft['evidence']):
                 return 'ALREADY_ATTACHED'
-            draft['evidence'].append({'id': 'E' + uuid.uuid4().hex, 'label': 'Numerical result',
+            draft['evidence'].append({'id': 'E' + uuid.uuid4().hex, 'label': '계산 결과',
                                       'kind': 'result', 'reference': reference, 'note': ''})
             window._buffer = draft
             window._populate_evidence()  # Leave the current issue and its detail editor selected.

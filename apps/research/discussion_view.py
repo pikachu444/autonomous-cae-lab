@@ -159,10 +159,21 @@ class ConversationList(QListWidget):
         previous_ids = set(self._cards)
         following = not self.count() or scroll.value() >= scroll.maximum() - 24
         position = scroll.value()
+        # Keep unchanged cards, including their text selection, when new turns
+        # arrive or the currently running last turn receives another update.
+        prefix = 0
+        if self._snapshot is not None and self._snapshot[1] == roles:
+            for before, after in zip(self._snapshot[0], turns):
+                if before != after:
+                    break
+                prefix += 1
         self._snapshot = deepcopy(snapshot)
-        self._cards.clear()
-        self.clear()
-        for turn in turns:
+        while self.count() > prefix:
+            item = self.item(prefix)
+            card = self._cards.pop(item.data(Qt.ItemDataRole.UserRole))
+            self.takeItem(prefix)
+            card.deleteLater()
+        for turn in turns[prefix:]:
             item = QListWidgetItem(str(turn.get('author', 'Participant')) + '\n' + turn_text(turn))
             item.setData(Qt.ItemDataRole.UserRole, turn['id'])
             item.setData(Qt.ItemDataRole.AccessibleTextRole,
