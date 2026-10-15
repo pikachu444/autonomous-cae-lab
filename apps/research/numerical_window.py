@@ -1158,7 +1158,8 @@ class NumericalWindow(QMainWindow):
         if value['kinematics'] is not None:
             experiment['kinematics']=deepcopy(value['kinematics'])
         self._experiments=experiments+[experiment]
-        self._trial_sources[self._trial_source_key(experiment)]={'title':'처리된 시험','filename':'','result':result}
+        # The normal retained-source reader resolves the actual Data title.
+        # Do not cache a generic label that would conceal different Data owners.
         self._populating=True
         try:
             self._populate_experiments()
