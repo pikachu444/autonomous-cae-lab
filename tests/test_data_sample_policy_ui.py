@@ -66,6 +66,28 @@ def test_partial_weight_remains_editable_and_blocks_adoption(policy):
     finally: dialog.close(); app.processEvents()
 
 
+def test_policy_compact_paint_keeps_exact_item_and_entry_values(policy,monkeypatch):
+    app,proposal,channel=policy
+    from PySide6.QtWidgets import QLineEdit
+    exact=.30000000000000004
+    sid=channel['samples'][1]['sample_id'];initial=deepcopy(proposal['entries']);initial[sid]['weight']=exact
+    original=deepcopy(channel)
+    monkeypatch.setattr('caelab.data_processing_lineage.trace_sample',lambda *args:{'terms':[{'raw_ref':{'column':'force','source_row':2},'coefficient':exact,'value':None}]})
+    dialog=SamplePolicyDialog(proposal,channel,initial_entries=initial)
+    try:
+        dialog.show();app.processEvents()
+        item=dialog.table.item(1,0)
+        assert item.text()==str(channel['axis']['values'][1]) and item.toolTip()==repr(channel['axis']['values'][1])
+        assert dialog.table.itemDelegateForColumn(0).displayText(repr(exact),dialog.locale())=='0.3'
+        dialog.table.setCurrentCell(1,5);dialog.table.editItem(dialog.table.item(1,5));app.processEvents()
+        line=dialog.table.findChild(QLineEdit)
+        assert line.text()==repr(exact) and dialog.entries[sid]['weight']==exact
+        assert dialog.contributors.item(0,3).text()=='—'
+        assert dialog.contributors.item(0,2).text()==repr(exact)
+        assert channel==original
+    finally: dialog.close();app.processEvents()
+
+
 def test_existing_review_entries_seed_without_changing_proposal(policy):
     app, proposal, channel = policy
     initial = deepcopy(proposal['entries']); original = deepcopy(proposal)

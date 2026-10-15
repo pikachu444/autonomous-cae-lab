@@ -147,6 +147,7 @@ def test_host_waits_for_owner_read_and_preserves_terminal_message(monkeypatch,fi
         target.pending=False; target.ready=finish_ready
         QTest.qWait(100); app.processEvents()
         assert len(stages)==int(finish_ready) and target.message.text()=='기존 읽기 결과'
+        if not finish_ready: assert '시험을 추가하지 못했습니다' in window.message.text()
         QTest.qWait(100); app.processEvents(); assert len(stages)==int(finish_ready)
     finally:
         window._allow_close=True; window.close()

@@ -169,6 +169,9 @@ class DataProcessingPreviewDialog(QDialog):
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         layout.addWidget(self.table, 1)
+        from .numerical_methods import ResultDisplay
+        display=ResultDisplay(self.table)
+        for column in (0,1): self.table.setItemDelegateForColumn(column,display)
         self.status = QLabel(); self.status.setWordWrap(True); layout.addWidget(self.status)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기')
@@ -201,7 +204,8 @@ class DataProcessingPreviewDialog(QDialog):
             for row in range(self.table.rowCount()):
                 for col, value in enumerate((x[row] if row < len(x) else '', values[row], response.get('unit', ''),
                                               rows[row] if row < len(rows) and rows[row] is not None else '—')):
-                    self.table.setItem(row, col, QTableWidgetItem(str(value)))
+                    item=QTableWidgetItem(str(value));item.setToolTip(repr(value) if col in (0,1) else str(value))
+                    self.table.setItem(row,col,item)
             if len(values) > 1000: self.status.setText(self.status.text() + ' / 표는 처음 1000개 표본')
         if self.plan_button:
             self.plan_button.setEnabled(bool(response and response.get('measure') in ('infinitesimal_Cauchy', 'first_Piola')))

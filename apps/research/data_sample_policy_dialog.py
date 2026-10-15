@@ -39,6 +39,9 @@ class SamplePolicyDialog(QDialog):
         self.table.setHorizontalHeaderLabels(['축 값 [' + channel['axis']['unit'] + ']', '값', '원자료 / 처리', '포함', '용도', '가중치'])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        from .numerical_methods import ResultDisplay
+        number_display=ResultDisplay(self.table)
+        for column in (0,1,5): self.table.setItemDelegateForColumn(column,number_display)
         layout.addWidget(self.table, 1)
         batch = QHBoxLayout(); self.role = QComboBox()
         self.role.addItem('피팅', 'fit'); self.role.addItem('검증 (holdout)', 'holdout')
@@ -50,6 +53,8 @@ class SamplePolicyDialog(QDialog):
         self.contributors.setHorizontalHeaderLabels(['원본 열', '원본 행', '기여 계수', '원래 값'])
         self.contributors.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.contributors.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        contribution_display=ResultDisplay(self.contributors)
+        for column in (2,3): self.contributors.setItemDelegateForColumn(column,contribution_display)
         self.contributors.setMaximumHeight(160); layout.addWidget(self.contributors)
         self.message = QLabel(); self.message.setWordWrap(True); layout.addWidget(self.message)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -78,6 +83,7 @@ class SamplePolicyDialog(QDialog):
             for column, value in enumerate(values):
                 shown = '피팅' if column == 4 and value == 'fit' else '검증 (holdout)' if column == 4 and value == 'holdout' else '—' if value is None else str(value)
                 item = QTableWidgetItem(shown); item.setData(Qt.ItemDataRole.UserRole, sid)
+                if column in (0,1,5): item.setToolTip(repr(value))
                 if column < 3 or column == 4: item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 if column == 3:
                     item.setText(''); item.setFlags((item.flags() & ~Qt.ItemFlag.ItemIsEditable) | Qt.ItemFlag.ItemIsUserCheckable)
@@ -100,6 +106,7 @@ class SamplePolicyDialog(QDialog):
         elif item.column() == 5:
             from .material_window import edited_number
             self.entries[sid]['weight'] = edited_number(item.text())
+            if item.toolTip()!=item.text(): item.setToolTip(item.text())
 
     def _batch(self, *, included=None):
         rows = sorted({index.row() for index in self.table.selectedIndexes()})
@@ -122,7 +129,9 @@ class SamplePolicyDialog(QDialog):
             self.contributors.insertRow(index); ref = term['raw_ref']
             for column, value in enumerate((ref.get('column', ref.get('source_column', '')), ref.get('source_row', ref.get('row', '')),
                                           term['coefficient'], term.get('value', term.get('raw_value', '')))):
-                self.contributors.setItem(index, column, QTableWidgetItem(str(value)))
+                item=QTableWidgetItem('—' if value is None else str(value))
+                item.setToolTip('원래 값이 제공되지 않았습니다.' if value is None else repr(value))
+                self.contributors.setItem(index,column,item)
 
     def _accept(self):
         focus = self.focusWidget()

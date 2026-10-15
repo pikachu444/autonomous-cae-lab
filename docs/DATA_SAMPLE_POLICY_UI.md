@@ -23,3 +23,5 @@ Numerical GUI는 현재 owner의 선택한 trial에서 이 창을 사용한다. 
 # 기존 표본 용도 다시 검토
 
 `SamplePolicyDialog(proposal, channel, parent=None, *, initial_entries=None)`는 기존 호스트가 Core의 정책과 domain을 확인한 뒤 전달한 전체 표본 ID별 포함/용도/가중치를 표시할 수 있다. `initial_entries`는 복사하며 원래 proposal과 hash를 변경하지 않는다. 누락된 표본, 알 수 없는 용도, 잘못된 포함 값, 유한하지 않거나 음수인 가중치, 추가 필드는 거절한다. 이 인자는 GUI 초기 표시만 정하며 정책 채택 명령은 호스트가 수행한다.
+
+축·값·가중치와 원자료 기여 계수는 기존 `ResultDisplay`의 짧은 숫자 표시를 사용한다. 표의 실제 문자열, 가중치 편집기와 채택 payload에는 전체 정밀도를 유지하며 tooltip에서 원값을 볼 수 있다. trace가 원래 값을 제공하지 않은 경우 `—`로 표시하고 0이나 추정값을 만들지 않는다.

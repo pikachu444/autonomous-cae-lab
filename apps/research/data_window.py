@@ -352,7 +352,7 @@ class DataWindow(QMainWindow):
         vertical = QSplitter(Qt.Orientation.Vertical)
         self.sheets = QTabWidget()
         self.sheets.setMinimumHeight(100)
-        self.preview_table = self._table(['Original row'])
+        self.preview_table = self._table(['원본 행'])
         self.values = self._table(['원본 행', '축', '관측', '계산 포함', '원본 품질', '화면 표시', '이유'])
         self.values.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.values.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -1208,7 +1208,7 @@ class DataWindow(QMainWindow):
             self._preview = preview
             table = preview.get('table_preview', {})
             self.preview_table.clear()
-            headers = ['Original row'] + table.get('headers', [])
+            headers = ['원본 행'] + table.get('headers', [])
             self.preview_table.setColumnCount(len(headers))
             self.preview_table.setHorizontalHeaderLabels(headers)
             self.preview_table.setRowCount(len(table.get('rows', [])))
@@ -1575,9 +1575,9 @@ class DataWindow(QMainWindow):
         self.values.setRowCount(0)
         self.axes.clear()
         self.axes.set_axis_off()
-        self.axes.text(.5, .5, 'Select a retained import to read its original values', ha='center', va='center', transform=self.axes.transAxes)
+        self.axes.text(.5, .5, '가져온 결과를 선택하면 원래 값을 볼 수 있습니다.', ha='center', va='center', transform=self.axes.transAxes)
         self.canvas.draw_idle()
-        self.result_label.setText('No imported response selected.')
+        self.result_label.setText('가져온 결과가 선택되지 않았습니다.')
 
     def _draw_result(self, receipt, key):
         same_page = key == getattr(self, '_drawn_result_key', None)

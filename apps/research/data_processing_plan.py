@@ -35,6 +35,8 @@ def open_processing_plan(data_window, result, response_name):
             # Retained provenance can be large. The owner's read lifecycle,
             # rather than a second GUI timeout, decides when review is ready.
             if target.processed_trial_stage_pending(): QTimer.singleShot(50, stage)
+            elif isValid(data_window) and not getattr(data_window,'_closed',False):
+                data_window.message.setText('시험을 추가하지 못했습니다. 계획을 확인한 뒤 보존한 처리 결과를 다시 선택하세요.')
         QTimer.singleShot(0, stage)
 
     def choose(payload):
