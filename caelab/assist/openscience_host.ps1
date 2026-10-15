@@ -68,13 +68,15 @@ try {
     $info.WorkingDirectory = $profile
     $info.UseShellExecute = $false
     $info.CreateNoWindow = $true
+    $info.RedirectStandardInput = $true
+    $info.StandardInputEncoding = [Text.UTF8Encoding]::new($false)
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
     $info.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
     $info.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
     $arguments = @('run', '--format', 'json', '--workspace', 'isolated', '--delegation', 'off',
                    '--deny-prompts', '--model', $request.model, '--variant', 'high',
-                   '--deadline', [string]$request.deadline, '--', [string]$request.prompt)
+                   '--deadline', [string]$request.deadline, '--')
     foreach ($argument in $arguments) {
         $info.ArgumentList.Add([string]$argument)
     }
@@ -89,14 +91,25 @@ try {
     }
     foreach ($name in $environment.Keys) { $info.Environment[$name] = [string]$environment[$name] }
     $process = [Diagnostics.Process]::Start($info)
+    $promptWrite = $null
     try {
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
+        # Official run reads inherited stdin to EOF. Never put the prompt in argv.
+        # Async delivery leaves cancellation/deadline polling live if a child stops reading.
+        $promptWrite = $process.StandardInput.WriteAsync([string]$request.prompt)
+        $stdinClosed = $false
         $watch = [Diagnostics.Stopwatch]::StartNew()
         $stopReason = $null
         $statusUri = [string]$request.bridge_url + '/status'
         $statusHeaders = @{ Authorization = ('Bearer ' + [string]$request.bridge_token) }
-        while (-not $process.WaitForExit(250)) {
+        while ($true) {
+            if (-not $stdinClosed -and $promptWrite.IsCompleted) {
+                $null = $promptWrite.GetAwaiter().GetResult()
+                $process.StandardInput.Close() # EOF; Write, not WriteLine, preserves original bytes.
+                $stdinClosed = $true
+            }
+            if ($process.WaitForExit(250)) { break }
             try {
                 $status = Invoke-RestMethod -Method Get -Uri $statusUri -Headers $statusHeaders -TimeoutSec 2
                 if ($status.cancel_requested -eq $true) { $stopReason = 'User cancellation observed'; break }
@@ -114,6 +127,7 @@ try {
             @{status='stopped'; cleanup_confirmed=$true; reason=$stopReason} | ConvertTo-Json -Compress
             return
         }
+        if (-not $stdinClosed) { throw 'OpenScience exited before complete prompt delivery and EOF' }
         $raw = $stdout.GetAwaiter().GetResult()
         $errorText = $stderr.GetAwaiter().GetResult()
         $events = @($raw -split "`r?`n" | Where-Object { $_.Trim() } | ForEach-Object {
@@ -127,7 +141,15 @@ try {
         @{ status = $status; cleanup_confirmed=$true; text = if ($parts.Count) { [string]$parts[0].part.text } else { $null };
            reason = if ($status -eq 'completed') { $null } else { "$($done[0].status); exit=$($process.ExitCode); $($errorText.Substring(0,[Math]::Min(500,$errorText.Length)))" } } |
             ConvertTo-Json -Compress -Depth 10
-    } finally { if (-not $process.HasExited) { $process.Kill($true) } }
+    } finally {
+        if (-not $process.HasExited) { $process.Kill($true) }
+        if (-not $process.WaitForExit(5000)) { throw 'OpenScience owned process cleanup unconfirmed' }
+        if ($null -ne $promptWrite) {
+            try { $null = $promptWrite.Wait(1000) } catch { } # Broken pipe is expected after cancellation.
+            if (-not $promptWrite.IsCompleted) { throw 'OpenScience input cleanup unconfirmed' }
+        }
+        $process.Dispose()
+    }
 } finally {
     if (Test-Path -LiteralPath $temp) {
         $resolvedTemp = (Resolve-Path -LiteralPath $temp).Path
