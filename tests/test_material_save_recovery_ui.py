@@ -13,6 +13,26 @@ from PySide6.QtWidgets import QApplication
 from apps.research.material_save_recovery import checked_context
 
 
+@pytest.mark.parametrize('changed', [None, 'id', 'kind', 'session_id', 'generation', 'input_revision', 'draft', 'newer_save', 'dirty_shape', 'draft_bool'])
+def test_saved_metadata_updates_no_local_input_or_other_public_fields(changed):
+    from apps.research.material_save_recovery import saved_metadata
+    current=dict(id='Mone',kind='material',session_id='Sone',generation=2,input_revision='Ione',
+        draft={'value':1},saved_revision='Rold',dirty=True,title='현재 이름',runs=[{'job_id':'Jcurrent'}])
+    saved=deepcopy(current);saved.update(saved_revision='Rnew',dirty=False,title='옛 이름',runs=[])
+    if changed=='newer_save':current['saved_revision']='Rlater'
+    elif changed=='dirty_shape':saved['dirty']='false'
+    elif changed=='draft_bool':saved['draft']={'value':True}
+    elif changed is not None:saved[changed]={'value':2} if changed=='draft' else 3 if changed=='generation' else '다른 값'
+    before=deepcopy(current);receipt=deepcopy(saved)
+    result=saved_metadata(current,saved,previous_saved_revision='Rold')
+    if changed is not None:assert result is None
+    else:
+        expected=deepcopy(current);expected.update(saved_revision='Rnew',dirty=False)
+        assert result==expected
+        result['draft']['value']=42
+    assert current==before and saved==receipt
+
+
 @pytest.mark.parametrize('change', ['material', 'plan', 'receipt', 'kind', 'identity_shape'])
 def test_foreign_pending_save_is_rejected_without_changing_context(change):
     context = dict(material_id='Mone', selected_plan='None', plans={'None': dict(receipt_id='Rone',

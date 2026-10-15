@@ -113,7 +113,9 @@ def leave_with_recovery(window,continuation):
         question.exec()
         if question.clickedButton() is save:
             session.finish()
-            if panel and panel.has_pending_inputs():
+            if panel and panel.has_unconfirmed_save():
+                window.message.setText('저장 결과를 먼저 확인하세요. 창과 편집 원문은 유지됩니다.')
+            elif panel and panel.has_pending_inputs():
                 window.message.setText('계획 편집을 먼저 적용하고 저장하세요. 미확정 입력은 원문으로 보관할 수 있습니다.')
             else: window.save_document(after=continuation)
             return

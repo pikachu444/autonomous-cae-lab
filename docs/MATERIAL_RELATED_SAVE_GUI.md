@@ -20,3 +20,7 @@ Material의 피팅 변수 패널에서 선택한 계획을 확인하고 **함께
 
 2026-10-15 current root Core와 전용 GUI 조합에서 Windows/HTTP의 부분 실패 및 응답 유실 두 cold GUI 검사가 12.68초에 통과했다. 실제 capsule 보관 후 서비스를 재시작하고 새 Material 뷰에서 원 요청을 복구했으며, 부분 실패는 Plan만 두 번째 attempt로 저장했다. 응답 유실의 동일 요청 재전송은 양쪽 첫 attempt를 유지했고 참조 연결은 별도 클릭으로만 수행했다. 별도 foreign 문맥 네 거절 검사는 앞선 실행에서 통과했다. 최초 실행의 cold session retry 실패는 그대로 남겼으며 현재 GUI의 명시 fresh-CAS 소비로 교정했다. 정상/좁은 실제 창을 읽었고 각 owned Job은 `job_empty`로 종료했다. 같은 프로세스의 HTTP 서비스 재시작 검증이며 OS 새 프로세스 GUI나 portable resume 검증은 아니다. 보관 전 saved-revision 기준이 바뀌면 기존 C01 gate를 우회하지 않으며 현재 문서를 명시적으로 다시 확인해야 한다.
 
+저장이 완료된 뒤 응답을 잃고 미확정 셀을 편집한 경우에도 **저장 결과…**를 읽을 수 있다. 실제 저장 응답의 문서·세션·입력 세대·입력 차수·draft hash가 현재 인정된 입력과 같고, 저장 기준도 원 요청의 이전 개정 또는 그 응답 개정과 같을 때만 `saved_revision/dirty` 메타데이터를 확인한다. 다른 후행 저장이나 peer 입력은 덮어쓰지 않는다. 표·미확정 editor·커서/선택·로컬 draft·Undo/Redo·기타 문서 메타데이터는 그대로 두며 owner 적용/저장 명령을 보내지 않는다. Plan은 Numerical의 공개 `refresh_saved_metadata(document, previous_saved_revision=...)`를 사용한다. 그 API가 없는 조합에서는 Plan의 새 인정 기준을 가정하지 않는다.
+
+확인 전 닫기에서 **저장**을 고르면 먼저 저장 결과를 확인하도록 안내한다. 결과 조회 뒤에는 기존 C01의 정확 identity·인정 상태·live 원문·최종 close gate를 그대로 사용한다. 실제 Windows/HTTP 한 교차 검사는 Material의 live `1e3` 역방향 선택과 Plan의 미완성 `2e`를 유지하며 저장 응답 유실→결과 조회→원문 보관→닫기→서비스 재시작의 원 capsule 읽기까지 11.49초에 통과했다. 자동 편집 적용이나 두 번째 저장 없이 양쪽 첫 save attempt가 유지됐고 job도 없었다. 정확 입력·후행 저장·잘못된 bool/숫자 형식 구별의 순수 predicate 사례도 확인했다. 정상/좁은 before/after 네 창을 직접 읽었으며 owned Job이 종료됐다. root 공통 코드와 GUI 전용 overlay 및 Numerical API 1329053의 조합 증거이며 main 통합/OS 새 프로세스 GUI·portable 승인과 구분한다.
+
