@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import json
 import math
+import re
 import uuid
 
 import numpy as np
@@ -114,6 +115,141 @@ def _tracking_identity(data):
     return identity.hexdigest(), mode
 
 
+GAUGE_ARRAY = 'GaugeRelativeDisplacement'
+
+
+def _gauge_point_ids(data, indices):
+    result = {}
+    arrays = [data.GetPointData().GetGlobalIds()]
+    arrays.extend(data.GetPointData().GetArray(name) for name in ('NativeNodeId', 'GlobalNodeId', 'GlobalIds'))
+    for ids in arrays:
+        if ids is None:
+            continue
+        values = np.asarray(vtk_to_numpy(ids)).reshape(-1)
+        if (ids.GetNumberOfComponents() != 1 or len(values) != data.GetNumberOfPoints()
+                or not np.issubdtype(values.dtype, np.number) or not np.isfinite(values).all()
+                or len(np.unique(values)) != len(values)):
+            raise ValueError('Gauge original identities must be scalar, finite and unique for every native point')
+        result[ids.GetName() or 'active_global_ids'] = [values[index].item() for index in indices]
+    return result
+
+
+def capture_gauge_points(source):
+    """Native selections have no click-order contract; make endpoint order explicit."""
+    indices = sorted(capture_point_selection(source))
+    if len(indices) != 2:
+        raise ValueError('Select exactly two original points for the relative-displacement measurement')
+    data = analysis._fetch(source)
+    _tracking_identity(data)
+    return {'point_indices': indices, 'point1': analysis._vector(list(data.GetPoint(indices[0])), 'first reference point'),
+            'point2': analysis._vector(list(data.GetPoint(indices[1])), 'second reference point'),
+            'original_point_ids': _gauge_point_ids(data, indices)}
+
+
+def _gauge_definition(data, draft):
+    """Signed displacement difference in one explicitly fixed Cartesian basis."""
+    from caelab.experiment_calibration import UNITS
+    if not hasattr(data, 'GetPoints') or data.GetPoints() is None:
+        raise ValueError('Two-point relative displacement requires one original point dataset')
+    indices = _indices(draft.get('point_indices'), data.GetNumberOfPoints())
+    if len(indices) != 2:
+        raise ValueError('Choose exactly two distinct original VTK point indexes, in first/second order')
+    if draft.get('measure') != 'displacement':
+        raise ValueError('Declare the input field as displacement; relative displacement is not strain')
+    if draft.get('basis') != 'fixed_cartesian' or draft.get('coordinate_configuration') != 'reference':
+        raise ValueError('Declare fixed_cartesian basis and reference coordinates; warped/local bases are not inferred')
+    if (not isinstance(draft.get('frame'), str) or not draft['frame'].strip()
+            or draft['frame'].strip().lower() in ('unknown', 'undeclared', 'local', 'scalar')
+            or draft['frame'] != draft.get('coordinate_frame')):
+        raise ValueError('Displacement, reference coordinates and direction require the same declared fixed frame')
+    for key in ('units', 'coordinate_units'):
+        if UNITS.get(draft.get(key), (None,))[0] != 'length':
+            raise ValueError('Declare a known length unit for ' + key)
+    direction = analysis._vector(draft.get('direction'), 'direction')
+    if not math.isclose(math.sqrt(sum(value * value for value in direction)), 1., rel_tol=0., abs_tol=1e-12):
+        raise ValueError('Direction must be an explicit unit vector; it is not normalized automatically')
+    coordinates = [list(data.GetPoint(index)) for index in indices]
+    for key, actual in zip(('point1', 'point2'), coordinates):
+        if analysis._vector(draft.get(key), key) != actual:
+            raise ValueError('REFERENCE_REPAIR_REQUIRED: ' + key + ' no longer matches its original point; explicitly repair this measurement')
+    array = data.GetPointData().GetArray(draft.get('array'))
+    if array is None or array.GetNumberOfComponents() != 3 or array.GetNumberOfTuples() != data.GetNumberOfPoints():
+        raise ValueError('Choose an exact three-component POINTS displacement field')
+    values = [list(array.GetTuple(index)) for index in indices]
+    if any(not math.isfinite(value) for row in values for value in row):
+        raise ValueError('Both displacement endpoints must be finite; no missing value is replaced')
+    for name in ('vtkValidPointMask', 'vtkValidMask', 'vtkGhostType'):
+        mask = data.GetPointData().GetArray(name)
+        if mask is not None:
+            if mask.GetNumberOfComponents() != 1 or mask.GetNumberOfTuples() != data.GetNumberOfPoints():
+                raise ValueError('Gauge validity mask must have one scalar per original point')
+            selected = [mask.GetTuple1(index) for index in indices]
+            if any(not math.isfinite(value) or ((int(value) & 2) if name == 'vtkGhostType' else value != 1) for value in selected):
+                raise ValueError('Both gauge endpoints must be valid and active in the original field')
+    original_ids = _gauge_point_ids(data, indices)
+    if draft.get('original_point_ids') is not None and draft['original_point_ids'] != original_ids:
+        raise ValueError('REFERENCE_REPAIR_REQUIRED: selected original point identities changed')
+    value = sum((second - first) * axis for first, second, axis in zip(values[0], values[1], direction))
+    if not math.isfinite(value):
+        raise ValueError('Relative displacement overflow; no successful value was produced')
+    return {'point_indices': list(indices), 'point1': coordinates[0], 'point2': coordinates[1],
+            'direction': direction, 'basis': 'fixed_cartesian', 'coordinate_configuration': 'reference',
+            'frame': draft['frame'], 'coordinate_units': draft['coordinate_units'],
+            'units': draft['units'], 'original_ids': original_ids, 'endpoint_displacements': values,
+            'value': value}
+
+
+def _build_gauge(source, draft, namespace):
+    before = p.GetActiveSource(), p.GetActiveView()
+    proxies, selections = [], []
+    try:
+        native_times = external.times(source)
+        time = draft.get('time')
+        if native_times:
+            if type(time) not in (int, float) or time not in native_times:
+                raise ValueError('Choose an exact native frame for this two-point measurement')
+            if any(not isinstance(draft.get(key), str) or not draft[key].strip() for key in ('time_units', 'time_origin')):
+                raise ValueError('Declare the exact native clock unit and origin')
+        elif any(draft.get(key) is not None for key in ('time', 'time_units', 'time_origin')):
+            raise ValueError('Static data has no physical clock; leave time declarations empty')
+        frozen = analysis._freeze(source, time, namespace, proxies)
+        definition = _gauge_definition(analysis._fetch(frozen), draft)
+        vector = lambda row: '(' + '+'.join('(%r)*%sHat' % (value, axis) for value, axis in zip(row, 'ijk')) + ')'
+        name = draft['array'] if re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', draft['array']) else json.dumps(draft['array'])
+        calculated = p.Calculator(registrationName=analysis._name(namespace, 'relative displacement'), Input=frozen)
+        proxies.append(calculated)
+        calculated.AttributeType = 'Point Data'
+        calculated.ResultArrayName = GAUGE_ARRAY
+        calculated.Function = 'dot(%s-%s,%s)' % (name, vector(definition['endpoint_displacements'][0]), vector(definition['direction']))
+        calculated.ReplaceInvalidResults = 0
+        selection = _selection([definition['point_indices'][1]], namespace)
+        selections.append(selection)
+        result = p.ExtractSelection(registrationName=analysis._name(namespace, 'second gauge point'), Input=calculated, Selection=selection)
+        proxies.append(result)
+        output = analysis._fetch(result)
+        measured = output.GetPointData().GetArray(GAUGE_ARRAY)
+        if output.GetNumberOfPoints() != 1 or measured is None or measured.GetNumberOfComponents() != 1:
+            raise ValueError('Native gauge filter did not produce the selected scalar endpoint')
+        actual = measured.GetTuple1(0)
+        if not math.isfinite(actual) or not math.isclose(actual, definition['value'], rel_tol=1e-12, abs_tol=1e-12):
+            raise ValueError('Native relative displacement differs from the exact endpoint definition')
+        summary = {'measurement': 'gauge', 'array': GAUGE_ARRAY, 'input_array': draft['array'],
+            'association': 'POINTS', 'quantity': 'length', 'measure': 'projected_relative_displacement',
+            'sample_semantics': 'signed_two_point_difference_at_second_reference_point',
+            'gauge': definition, 'recipe': deepcopy(draft), 'time': time,
+            'component_label': 'projection ' + json.dumps(definition['direction']),
+            'location': 'original VTK points ' + ' -> '.join(map(str, definition['point_indices'])) +
+                        '; reference ' + json.dumps([definition['point1'], definition['point2']]),
+            **{key: draft.get(key) for key in ('units', 'frame', 'coordinate_units', 'coordinate_frame', 'time_units', 'time_origin')}}
+        return {'source': result, 'proxies': proxies, 'selection_proxies': selections, 'summary': summary}
+    except BaseException:
+        analysis.cleanup({'proxies': proxies, 'selection_proxies': selections})
+        raise
+    finally:
+        p.SetActiveSource(before[0])
+        p.SetActiveView(before[1])
+
+
 def build_measurement(source, draft, namespace):
     if not isinstance(draft, dict) or draft.get('association') != 'POINTS':
         raise ValueError('Choose a declared POINTS measurement')
@@ -124,6 +260,8 @@ def build_measurement(source, draft, namespace):
     source.UpdatePipeline()
     if array not in source.PointData.keys():
         raise ValueError('Selected point array is not available on this native source')
+    if kind == 'gauge':
+        return _build_gauge(source, draft, namespace)
     if kind == 'path':
         settings = {key: deepcopy(draft[key]) for key in ('array', 'association', 'point1', 'point2', 'resolution', 'tolerance')}
         if 'time' in draft:

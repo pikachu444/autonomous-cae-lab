@@ -1247,11 +1247,15 @@ class Workspace:
             raise RuntimeError('Native export produced no file')
         return {'file': str(output), 'sha256': external.sha(output), 'revision': record['id'], 'analysis_saved': False}
 
-    def capture_selection(self, *, source_ref, array, title=None):
+    def capture_selection(self, *, source_ref, array, title=None, measurement='point'):
+        if measurement not in ('point', 'gauge'):
+            raise ValueError('Choose an original point or two-point relative-displacement capture')
         if source_ref not in self.document['sources']:
             raise ValueError('Original point selection requires an admitted original reader')
         source = self.resolve(source_ref)
-        indices = measurements.capture_point_selection(source)
+        if measurement == 'gauge':
+            self.pending([source_ref]); self._verify_inputs([source_ref])
+        indices = measurements.capture_point_selection(source) if measurement == 'point' else []
         draft = {'source_ref': source_ref, 'measurement': 'point',
                  'array': array, 'association': 'POINTS', 'point_indices': indices}
         metadata = self.document['sources'][source_ref].get('native_metadata') or {}
@@ -1263,6 +1267,10 @@ class Workspace:
         if clock:
             draft.update(time_units=clock['unit'], time_origin=clock['semantics'],
                          time=external.set_time(source))
+        if measurement == 'gauge':
+            if external.times(source):
+                draft['time'] = external.set_time(source)
+            draft.update(measurement='gauge', **measurements.capture_gauge_points(source))
         return self.edit_measurement(draft=draft, title=title)
 
     def repair_source(self, *, source_ref, input_id, receipt):

@@ -162,6 +162,13 @@ def measurement_columns(snapshot):
     select an already-produced native column; this function computes neither.
     """
     array = snapshot.get('recipe', {}).get('array')
+    if snapshot.get('recipe', {}).get('measurement') == 'gauge':
+        summary = snapshot.get('summary', {})
+        if (summary.get('measurement') != 'gauge' or summary.get('input_array') != array
+                or summary.get('array') != 'GaugeRelativeDisplacement'
+                or summary.get('measure') != 'projected_relative_displacement'):
+            raise ValueError('Saved gauge output does not match its relative-displacement definition')
+        array = 'GaugeRelativeDisplacement'
     if not isinstance(array, str) or not array:
         raise ValueError('Saved measurement has no declared source array')
     available = choices(snapshot)['arrays']
@@ -214,6 +221,9 @@ def project_samples(snapshot, selection):
     if axis['kind'] == 'coordinate' and (set(axis) != {'kind', 'component'} or axis['component'] not in (0, 1, 2)):
         raise ValueError('Coordinate axis requires X, Y or Z')
     measurement = snapshot.get('summary', {}).get('measurement')
+    if measurement == 'gauge' and any(selection[key] != snapshot['summary'].get(key)
+            for key in ('component_label', 'location')):
+        raise ValueError('Use the saved two-point direction and reference location')
     if axis['kind'] == 'array' and axis.get('name') != {'time': 'Time', 'path': 'arc_length', 'contact_force': snapshot.get('summary',{}).get('axis_name','load_parameter')}.get(measurement):
         raise ValueError('Use the actual time/path axis or an explicit spatial coordinate/index')
     if axis['kind'] == 'point_index' and (set(axis) != {'kind'} or selection['axis_unit'] != '1'):

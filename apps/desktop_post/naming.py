@@ -18,7 +18,7 @@ def operation_name(kind, draft):
                 'WarpByVector': '변형 표시', 'PlotOverLine': '경로 곡선'}.get(draft.get('filter'), '필터')
     if kind == 'measurement':
         return {'point': '점 측정', 'path': '경로 측정', 'time': '시간 이력',
-                'contact_force': '접촉 힘'}.get(draft.get('measurement'), '측정')
+                'contact_force': '접촉 힘', 'gauge': '두 점 상대변위'}.get(draft.get('measurement'), '측정')
     return '결과 비교'
 
 

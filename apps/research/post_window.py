@@ -42,10 +42,12 @@ MEASUREMENT_FIELDS = {
     'point': ('source_ref', 'array', 'association', 'point_indices', 'time', 'time_units', 'time_origin') + MEASUREMENT_DECLARATIONS,
     'path': ('source_ref', 'array', 'association', 'point1', 'point2', 'resolution', 'tolerance', 'time', 'time_units', 'time_origin') + MEASUREMENT_DECLARATIONS,
     'time': ('source_ref', 'array', 'association', 'point_indices', 'time_units', 'time_origin') + MEASUREMENT_DECLARATIONS,
+    'gauge': ('source_ref', 'array', 'association', 'point_indices', 'point1', 'point2', 'direction',
+              'basis', 'coordinate_configuration', 'time', 'time_units', 'time_origin') + MEASUREMENT_DECLARATIONS,
 }
 SIDE_FIELDS = ('source_ref', 'array', 'association', 'quantity', 'units', 'measure', 'frame',
                'coordinate_units', 'coordinate_frame', 'time', 'time_units', 'time_origin')
-VECTORS = {'origin', 'normal', 'offsets', 'values', 'point1', 'point2', 'point_indices'}
+VECTORS = {'origin', 'normal', 'offsets', 'values', 'point1', 'point2', 'point_indices', 'direction'}
 BOOLEANS = {'triangulate', 'crinkle', 'invert'}
 NUMBERS = {'time', 'tolerance', 'scale_factor'}
 LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 위치 (POINTS/CELLS)',
@@ -55,7 +57,8 @@ LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 
           'time_origin': '시간 기준', 'point_indices': '원본 VTK 점 번호 (0부터)',
           'origin': '평면 원점 [x, y, z]', 'normal': '평면 법선 [x, y, z]',
           'point1': '첫 점 [x, y, z]', 'point2': '끝 점 [x, y, z]',
-          'resolution': '선 구간 수', 'tolerance': '허용 오차',
+          'direction': '상대변위의 단위 방향 [x, y, z]', 'basis': '방향의 기준',
+          'coordinate_configuration': '좌표 상태', 'resolution': '선 구간 수', 'tolerance': '허용 오차',
           'offsets': '단면 위치', 'values': '등고값', 'scale_factor': '벡터 배율'}
 
 
@@ -703,6 +706,17 @@ class PostWindow(QMainWindow):
             field.addItems(list(dict.fromkeys(row['name'] for row in arrays if isinstance(row, dict) and row.get('name'))))
             field.setCurrentText(field_text(value))
             field.currentTextChanged.connect(self._edited)
+        elif key in ('basis', 'coordinate_configuration') or (key == 'measure' and self._kind == 'measurement' and self._draft.get('measurement') == 'gauge'):
+            field = QComboBox()
+            field.addItem('미지정', None)
+            label, declared = {'basis': ('고정 직교 좌표계', 'fixed_cartesian'),
+                               'coordinate_configuration': ('변형 전 기준 좌표', 'reference'),
+                               'measure': ('변위', 'displacement')}[key]
+            field.addItem(label, declared)
+            if value and field.findData(value) < 0:
+                field.addItem('지원하지 않는 물리량' if key == 'measure' else str(value), value)
+            field.setCurrentIndex(max(0, field.findData(value)))
+            field.currentIndexChanged.connect(self._edited)
         elif key in ('association', *BOOLEANS):
             field = QComboBox()
             field.setEditable(True)
@@ -845,7 +859,7 @@ class PostWindow(QMainWindow):
             form.addRow(button)
         else:
             self.measurement_kind = QComboBox()
-            for title, kind in (('선택한 원본 점', 'point'), ('두 점 사이 경로', 'path'), ('같은 원본 점의 시간 이력', 'time')):
+            for title, kind in (('선택한 원본 점', 'point'), ('두 점 사이 경로', 'path'), ('같은 원본 점의 시간 이력', 'time'), ('두 점 상대변위', 'gauge')):
                 self.measurement_kind.addItem(title, kind)
             kind = draft.get('measurement', 'point')
             if kind not in MEASUREMENT_FIELDS:
@@ -858,6 +872,8 @@ class PostWindow(QMainWindow):
                 if key in MEASUREMENT_DECLARATIONS:
                     self.fields[(key,)][0].setPlaceholderText('선언이 없으면 알 수 없음')
             note = QLabel('단위와 물리적 정의는 저장된 선언을 사용하거나 직접 지정하세요. 비워 두면 미확인으로 남습니다. 점 번호는 solver 절점 번호와 다른 VTK 인덱스입니다.')
+            if draft.get('measurement') == 'gauge':
+                note.setText('두 원본 점의 변위 차이를 지정한 단위 방향으로 투영합니다. 신장이나 변형률이 아닙니다. 원본 VTK 점 번호 두 개와 그 기준 좌표를 같은 순서로 지정하세요. 같은 고정 직교 좌표계의 변위 필드만 사용합니다.')
             note.setWordWrap(True)
             form.addRow(note)
             declarations_button = QPushButton('저장된 물리량 정보 사용')
@@ -867,6 +883,14 @@ class PostWindow(QMainWindow):
             self.capture_button.setToolTip('점 측정과 시간 이력에 사용합니다. 경로는 두 끝점 좌표를 지정하세요.')
             self.capture_button.clicked.connect(self.capture_selection)
             form.addRow(self.capture_button)
+            if draft.get('measurement') == 'gauge':
+                self.capture_button.setToolTip('선택한 두 원본 점의 번호와 현재 기준좌표를 함께 가져옵니다. 처음에는 점 번호 오름차순이며 순서는 바꿀 수 있습니다.')
+                swap = QPushButton('두 점 순서 바꾸기')
+                swap.setObjectName('swapGaugePoints')
+                swap.clicked.connect(self.swap_gauge_points)
+                form.removeWidget(self.capture_button)
+                form.insertRow(1, self.capture_button)
+                form.insertRow(2, swap)
         self.tabs.blockSignals(True)
         self.tabs.setCurrentIndex(('comparison', 'filter', 'measurement').index(self._kind))
         self.tabs.blockSignals(False)
@@ -883,6 +907,8 @@ class PostWindow(QMainWindow):
             if isinstance(field, QComboBox):
                 if path[-1] == 'source_ref':
                     text = field.currentData() if field.currentIndex() >= 0 and field.currentText() == field.itemText(field.currentIndex()) else field.currentText()
+                elif path[-1] in ('basis', 'coordinate_configuration', 'measure'):
+                    text = field.currentData()
                 else:
                     text = field.currentText()
             else:
@@ -1390,6 +1416,10 @@ class PostWindow(QMainWindow):
                   'A_original_components': '원 A 성분', 'B_sampled_original_components': '대응 B 원성분',
                   'A_common_components': '변환 A 전체 성분', 'B_common_components': '변환 B 전체 성분',
                   'original_a_ids': '원본 식별', 'vtkValidMask': '유효 마스크'}
+        if summary.get('measurement') == 'gauge':
+            labels['point_index'] = '결과 점 번호'
+            labels['vtkOriginalPointIds'] = '끝점의 원본 VTK 점 번호'
+            labels['GaugeRelativeDisplacement'] = '두 점 상대변위 [' + str(summary.get('units') or '?') + ']'
         if self._sample_basis['draft'].get('version') == 2:
             recipe = self._sample_basis['draft']
             for key in ('a', 'b', 'delta', 'A_common_components', 'B_common_components'):
@@ -1444,7 +1474,7 @@ class PostWindow(QMainWindow):
 
     def capture_selection(self):
         draft = self.edited_draft()
-        if draft.get('measurement') not in ('point', 'time') or draft.get('association') != 'POINTS':
+        if draft.get('measurement') not in ('point', 'time', 'gauge') or draft.get('association') != 'POINTS':
             self.message.setText('원본 점 선택은 점 측정과 시간 이력에서 사용합니다. 경로는 두 끝점 좌표를 지정하세요.')
             return False
         source, array = draft.get('source_ref'), draft.get('array')
@@ -1456,8 +1486,9 @@ class PostWindow(QMainWindow):
             prepared = deepcopy(captured)
             # Capture supplies original IDs and known declarations. Explicit
             # edits still need review/store through the existing owner gates.
+            captured_fields = {'point_indices', 'point1', 'point2', 'original_point_ids', 'time'} if draft.get('measurement') == 'gauge' else {'point_indices'}
             prepared.update({key: deepcopy(value) for key, value in draft.items()
-                             if key != 'point_indices' and value is not None})
+                             if key not in captured_fields and value is not None})
             if prepared.get('measurement') == 'time':
                 prepared.pop('time', None)
             self._object_ref = payload['id']
@@ -1470,7 +1501,26 @@ class PostWindow(QMainWindow):
                 self.local_dirty = True
                 self._edit_serial += 1
                 self._populate_editor()
-        return self.queue_command('post.measurement_capture', {'source_ref': source, 'array': array}, accepted=accepted)
+        arguments = {'source_ref': source, 'array': array}
+        if draft.get('measurement') == 'gauge':
+            arguments['measurement'] = 'gauge'
+        return self.queue_command('post.measurement_capture', arguments, accepted=accepted)
+
+    def swap_gauge_points(self):
+        if self._busy or self._pending is not None or self.conflict:
+            return False
+        draft = self.edited_draft()
+        if draft.get('measurement') != 'gauge' or len(draft.get('point_indices', [])) != 2:
+            self.message.setText('두 원본 점을 먼저 가져오세요.')
+            return False
+        draft['point_indices'] = list(reversed(draft['point_indices']))
+        draft['point1'], draft['point2'] = draft.get('point2'), draft.get('point1')
+        if isinstance(draft.get('original_point_ids'), dict):
+            draft['original_point_ids'] = {name: list(reversed(values)) for name, values in draft['original_point_ids'].items()}
+        self._draft = draft
+        self._populate_editor()
+        self._edited()
+        return True
 
     def show_comparison_originals(self, a, b):
         if not a or not b:
@@ -1898,6 +1948,9 @@ class PostWindow(QMainWindow):
         present = self.document is not None
         idle = not self._busy and self._pending is None
         enabled = present and idle and not self.conflict and self.document.get('connected', False)
+        swap = self.findChild(QPushButton, 'swapGaugePoints')
+        if swap is not None:
+            swap.setEnabled(enabled)
         self.tree.setEnabled(idle)
         self.tabs.tabBar().setEnabled(idle)
         self.open_action.setEnabled(idle)
@@ -1984,7 +2037,7 @@ class PostWindow(QMainWindow):
             self.sample_context.setText('아직 읽은 값이 없습니다. 설정을 확인하고 측정값을 읽으세요.')
         if hasattr(self, 'capture_button'):
             try:
-                self.capture_button.setEnabled(enabled and self.edited_draft().get('measurement') in ('point', 'time')
+                self.capture_button.setEnabled(enabled and self.edited_draft().get('measurement') in ('point', 'time', 'gauge')
                     and self.edited_draft().get('association') == 'POINTS')
             except RuntimeError:
                 pass

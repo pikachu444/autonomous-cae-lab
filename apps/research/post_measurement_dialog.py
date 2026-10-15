@@ -16,6 +16,8 @@ from caelab.post_observation import choices, measurement_columns, project_sample
 class MeasurementDialog(QDialog):
     def __init__(self, snapshot, parent=None, *, plans=()):
         super().__init__(parent)
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.snapshot = deepcopy(snapshot)
         self.selection = None
         self._last_axis = None
@@ -28,6 +30,15 @@ class MeasurementDialog(QDialog):
         if snapshot['summary'].get('measurement') == 'contact_force':
             self.summary.setText(snapshot['summary'].get('location', '').split(' / ')[0] +
                 ': ' + snapshot['summary'].get('component_label', '') + ' A 면 합력 [N]')
+        if snapshot['summary'].get('measurement') == 'gauge':
+            self.summary.setWordWrap(True)
+            saved = snapshot['summary']
+            gauge = saved['gauge']
+            clock = ('정적 결과' if saved.get('time') is None else
+                     '시각 ' + str(saved['time']) + ' [' + str(saved.get('time_units') or '') + '], 기준 ' + str(saved.get('time_origin') or '미지정'))
+            self.summary.setText('두 점 상대변위: 원본 점 ' + ' → '.join(map(str, gauge['point_indices'])) +
+                ', 방향 ' + str(gauge['direction']) + '\n기준 좌표 ' + str(gauge['point1']) +
+                ' → ' + str(gauge['point2']) + ' [' + gauge['coordinate_units'] + '], ' + clock)
         outer.addWidget(self.summary)
         forms = QHBoxLayout()
         left, right = QFormLayout(), QFormLayout()
@@ -46,7 +57,7 @@ class MeasurementDialog(QDialog):
         for name, count in available['arrays'].items():
             components = range(count) if count > 1 else [None]
             for component in components:
-                label = name + (' [성분 ' + str(component) + ']' if component is not None else '')
+                label = ('두 점 상대변위' if snapshot['summary'].get('measurement') == 'gauge' and name == 'GaugeRelativeDisplacement' else name) + (' [성분 ' + str(component) + ']' if component is not None else '')
                 if name in measured:
                     self.value_column.addItem(label, {'name': name, 'component': component})
                 measurement = snapshot['summary'].get('measurement')
@@ -90,7 +101,7 @@ class MeasurementDialog(QDialog):
             edit.textChanged.connect(self.update_preview)
             self.fields[key] = edit
             known = (key in ('unit', 'frame', 'measure', 'axis_unit', 'axis_name') or
-                     summary.get('measurement') == 'contact_force' and key in ('component_label', 'location')) and bool(defaults.get(key))
+                     summary.get('measurement') in ('contact_force', 'gauge') and key in ('component_label', 'location')) and bool(defaults.get(key))
             edit.setReadOnly(known)
             if known:
                 edit.hide()
@@ -183,7 +194,8 @@ class MeasurementDialog(QDialog):
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(
             '계획에서 추가 검토' if self.destination.currentData() else '새 계획 만들기')
         names = {'FREECAD_DOCUMENT_GLOBAL': '문서 전체 좌표계',
-                 'contact_pair_force_resultant': '접촉 쌍의 합력'}
+                 'contact_pair_force_resultant': '접촉 쌍의 합력',
+                 'projected_relative_displacement': '지정 방향의 두 점 상대변위'}
         self.declarations.setText(', '.join(names.get(self.fields[key].text(), self.fields[key].text())
             for key in ('unit', 'frame', 'measure') if self.fields[key].text()) +
             '\n축: ' + self.fields['axis_name'].text() + ' [' + self.fields['axis_unit'].text() + ']')
@@ -245,7 +257,8 @@ class MeasurementDialog(QDialog):
                            [row['value'] if row['valid'] else math.nan for row in rows],
                            marker='o', markersize=4, picker=6)
             self.axes.set_xlabel(self.selection['axis_name'] + ' [' + self.selection['axis_unit'] + ']')
-            self.axes.set_ylabel(self.selection['component_label'] + ' [' + self.selection['unit'] + ']')
+            label = '두 점 상대변위' if self.snapshot['summary'].get('measurement') == 'gauge' else self.selection['component_label']
+            self.axes.set_ylabel(label + ' [' + self.selection['unit'] + ']')
             self.axes.grid(True, alpha=.2)
         self.marker = None
         self.figure.tight_layout()

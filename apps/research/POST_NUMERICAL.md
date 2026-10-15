@@ -4,7 +4,7 @@ This feature uses native ParaView measurements, the existing Data importer and t
 
 ## Use the desktop path
 
-1. Open a saved Post project in native ParaView and open **CAE Analysis controls**. Select a point, path or time measurement. **Apply** its recipe and **Save analysis**.
+1. Open a saved Post project in native ParaView and open **CAE Analysis controls**. Select a point, path, time or two-point relative-displacement measurement. **Apply** its recipe and **Save analysis**.
 2. Choose **Use in Numerical…**. The dialog shows the actual native table. Select its block, measured column/component/statistic and time/path/spatial axis. For example, ParaView may expose a scalar column literally named avg(U (2)); choosing that column retains that native statistic and component. It is not renamed to a guessed vector magnitude.
 3. Review the measured curve and physical component/location. Known saved units, frame, measure and clock declarations are read-only. Only missing declarations need entry. Click a row or plotted point to inspect the matching sample.
 4. If native-invalid rows exist, they remain visible. **Exclude invalid rows from calculation** is an explicit choice; their original values and native quality reasons remain retained separately from that calculation exclusion. Cancel creates no Data/Plan or job and does not edit the saved measurement.
@@ -17,6 +17,23 @@ Only explicit **New Numerical Plan** creates a Numerical document. Existing-targ
 The main sample table displays short row numbers and real native columns. Exact block/object identity is available in row tooltips. Selecting a value column is explicit; no first vector component or aggregate is silently chosen.
 
 Save/reopen retains the ordinary Data input and result. Losing the original Post project does not erase the retained curve: the Observed curve tab reports that the native source is unavailable. Repair/reopen the original saved Post source explicitly; no later field/result silently replaces it.
+
+## 두 점 상대변위를 같은 측정으로 재사용하기
+
+1. 외부 VTU/PVD를 열고 **분석 추가 → 측정**, 측정 방식 **두 점 상대변위**를 선택합니다. 원 자료와 세 성분의 변위 필드를 고릅니다. CAD·솔버·AI 연결은 필요 없습니다.
+2. ParaView의 원본 reader에서 점 두 개를 선택한 뒤 **ParaView에서 선택한 원본 점 가져오기**를 누릅니다. 원본 VTK 점 번호, 실제 두 좌표, 있으면 원 절점 ID가 함께 들어옵니다. 클릭 순서를 추정하지 않고 VTK 점 번호 오름차순으로 시작합니다. **두 점 순서 바꾸기**는 번호·좌표·원 ID를 함께 바꾸며 방향은 유지합니다. 가져오기와 순서 교환은 계산을 실행하지 않습니다.
+3. 폼에서 첫 점·끝 점을 확인하고 **상대변위의 단위 방향**을 지정합니다. 예를 들어 X 방향은 `1, 0, 0`입니다. 방향은 자동 정규화하지 않습니다. **고정 직교 좌표계**, **변형 전 기준 좌표**를 명시하고 변위와 좌표의 좌표계를 같게 지정합니다. 물리적 정의는 **변위**, 응답·좌표 단위는 각각 알려진 길이 단위여야 합니다. 화면의 Warp 배율이나 변형된 좌표를 기준점으로 사용하지 않습니다.
+4. PVD에서는 존재하는 한 시각과 시간 단위·기준을 지정합니다. 정적 VTU에는 물리 시계를 만들지 않으므로 시간 선언을 비웁니다. **초안 보관 → 미리보기 → 적용** 후 원표에서 상대변위를 확인하고 **저장**합니다. 계산은 `δ = (u₂ − u₁) · n`이며 부호를 유지합니다. 강체 병진이면 0입니다. 큰 회전에서는 실제 점간 거리 변화와 다를 수 있으며, 신장·변형률로 바꾸거나 게이지 길이로 나누지 않습니다.
+5. **Numerical로 보내기…**에서 scalar 응답 **두 점 상대변위**, 축, 피팅/검증 목적과 새/기존 계산 계획을 검토합니다. 상단의 두 원본 점·기준좌표·방향·시각·시간 기준이 맞는지 확인합니다. 축을 좌표로 선택하면 선택한 측정 결과 끝점의 좌표이며 시간 이력이 아닙니다. 전달 창은 저장된 상대변위의 단위·좌표계·측도·방향·위치를 바꿔 붙이지 않습니다. 취소는 계획을 바꾸지 않습니다.
+6. 전달한 관측값과 원 측정 정의는 기존 Data/계산 계획에 저장됩니다. 같은 계획을 다시 열어 값과 정의를 확인하거나 원 Post 측정으로 돌아갈 수 있습니다. 새로운 설계에서 좌표·원 ID가 달라지면 참조를 명시적으로 다시 선택해 수리해야 합니다. 원본 번호만 같다고 같은 물리 위치로 해석하지 않습니다. 예측 응답·모델 연결이 없는 계획은 편집 가능한 초안으로 남으며, 가져오기만으로 새 계산이 실행되지 않습니다.
+
+![두 점의 기준좌표와 명시 방향](../../docs/images/manual/post-gauge-definition.png)
+
+![저장된 원본 점·방향·시각을 확인하는 전달 창](../../docs/images/manual/post-gauge-handoff.png)
+
+지원 범위는 원본 두 점의 **선택한 한 native frame**에서의 상대변위입니다. 시간 전체의 게이지 곡선, 거리 변화·변형률, 면 평균, 임의 이동/회전 기저나 새 메시의 자동 절점 대응은 이 기능의 완료 범위가 아닙니다. 알려진 무효 mask·숨김 점·유한하지 않은 값·깨진 원 ID는 유효한 0으로 대체하지 않습니다. 기존 점·경로·원본점 시간 이력은 그대로 사용합니다.
+
+2026-10-16 Sol 구현/Root 공통 통합: 실제 설치 ParaView에서 정적 VTU와 PVD의 0.5초 원본 점 선택·상대변위 0.5 mm·저장·새 프로세스 재열기를 확인했습니다. 같은 실제 native snapshot을 기존 Data/계산 계획에 보존하고 다시 읽었습니다. 이 마지막 전달 확인은 native 명령 **운송만 명시적 시험 대역**이며 실제 Data import/계획 저장을 사용했습니다. 실제 Qt 보통/좁은 창도 해당 원표로 읽었고 OS 입력·전체 broker 왕복·공학 승인은 별도입니다. 새 솔버·provider는 호출하지 않았습니다.
 
 ## Shared implementation
 
