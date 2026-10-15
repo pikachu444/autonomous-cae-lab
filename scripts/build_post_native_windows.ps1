@@ -185,6 +185,14 @@ try {
     Get-ChildItem -LiteralPath (Join-Path $runtime 'bin') -File -Filter '*.dll' |
         Sort-Object Name | ForEach-Object { "INSTALLED_RUNTIME_DLL $($_.Name)" } |
         Add-Content -LiteralPath $dependencyLog -Encoding utf8
+    $closureLog = Join-Path $root 'checks/load-dependency-closure.log'
+    try {
+        Invoke-Checked $cmake @("-DPOST_PVPYTHON=$($pvpython.Replace('\','/'))",
+            "-DPOST_DUMPBIN=$($dumpbin.Replace('\','/'))",'-P',
+            (Join-Path $repo 'scripts/post_native_windows_dependencies.cmake')) *> $closureLog
+    } catch {
+        Add-Content -LiteralPath $closureLog -Value "DIAGNOSTIC_ERROR $_" -Encoding utf8
+    }
     Invoke-OwnedCheck 'load' @($pvpython,(Join-Path $repo 'scripts/post_native_windows_smoke.py'),'--plugin',$plugin[0].FullName)
     $evidence['native_backend'] = 'PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED'
     $comparison = Join-Path $root 'checks/comparison'

@@ -88,14 +88,15 @@ jobs:
             $file = Join-Path $root $_
             if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Tail 120 }
           }
-          @('checks/load-dependencies.log','plugin-build/core-test-job/stdout.log',
+          @('checks/load-dependencies.log','checks/load-dependency-closure.log',
+            'plugin-build/core-test-job/stdout.log',
             'checks/load/stdout.log','checks/load/stderr.log',
             'checks/create/stdout.log','checks/create/stderr.log',
             'checks/cold/stdout.log','checks/cold/stderr.log') | ForEach-Object {
             $file = Join-Path $root $_
             if (Test-Path -LiteralPath $file) {
               Write-Output "--- $_"
-              if ($_ -eq 'checks/load-dependencies.log') { Get-Content -LiteralPath $file }
+              if ($_ -in @('checks/load-dependencies.log','checks/load-dependency-closure.log')) { Get-Content -LiteralPath $file }
               else { Get-Content -LiteralPath $file -Tail 120 }
             }
           }
