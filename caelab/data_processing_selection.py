@@ -277,6 +277,7 @@ def freeze_fit_inclusion(experiments):
     packet = {'format': PACKET, 'producer': 'caelab.data_processing', 'trials': trials,
               'independence': independence}
     packet['packet_sha256'] = canonical_hash(packet)
+    consume_frozen_fit_inclusion(experiments, packet)
     return packet
 
 
@@ -313,6 +314,30 @@ def consume_frozen_fit_inclusion(experiments, packet):
         if 'source_rows' in row and any(type(r) is not int for r in row['source_rows']):
             raise ValueError('source_rows accepts only integer raw source identities')
         obs = e['observations']; channel = obs.get('processing_channel')
+        source = e.get('observation_source') or {}
+        if channel:
+            from .data_processing_lineage import verify_response, SOURCE_KEYS
+            verify_response(obs, complete=True)
+            if source.get('source_sha256') != channel['source']['source_sha256']:
+                raise ValueError('Raw file hash differs from canonical observation source hash field')
+            if any(source.get('data_source', {}).get(k) != channel['source'][k]
+                    for k in SOURCE_KEYS if k != 'source_sha256'):
+                raise ValueError('Frozen Data document/import identity differs from observation source')
+        binding = source.get('driver_binding')
+        if binding:
+            from .data_processing_lineage import aligned_driver_indexes
+            driver = binding['driver_response']
+            indexes = aligned_driver_indexes(obs, driver)
+            if (binding.get('driver_indexes') != indexes
+                    or binding.get('observation_sample_ids') != obs.get('sample_ids')
+                    or binding.get('coordinate_sample_ids') != obs.get('coordinate_sample_ids')):
+                raise ValueError('Frozen driver binding indexes/sample identities changed')
+            from .material_test import measured_protocol
+            recipe = binding['recipe']
+            expected_settings = measured_protocol(plain(e['settings']),
+                {'execution_status': 'SUCCEEDED', 'responses': {recipe['channel']: driver}}, recipe)
+            if canonical_hash(expected_settings) != canonical_hash(plain(e['settings'])):
+                raise ValueError('Frozen measured driver and evaluator time/deformation settings differ')
         if channel and channel.get('sample_domain') == 'derived-grid-v2':
             compilation = (e.get('observation_source') or {}).get('compilation') or {}
             fresh = compile_samples(channel, compilation.get('selection'), base_weight=e['weight'])
@@ -325,6 +350,11 @@ def consume_frozen_fit_inclusion(experiments, packet):
                     or e['sample_weights'] != [weights.get(i, 0.) for i in range(len(obs['value']))]):
                 raise ValueError('Experiment mask/weights differ from canonical compiler')
         e['frozen_fit_inclusion'] = deepcopy(row)  # Do not strip future provenance extensions.
+        # Small original packet header + its original per-trial row permit the
+        # existing Numerical evidence collector to verify canonical admission
+        # without N duplicated complete packets or a second compiler/schema.
+        e['frozen_fit_packet'] = {k: deepcopy(packet[k]) for k in
+            ('format', 'producer', 'packet_sha256', 'independence')}
     independence = require_independent_samples(result)
     if packet.get('independence') != independence or packet.get('producer') != 'caelab.data_processing':
         raise ValueError('Frozen canonical independence evidence differs')

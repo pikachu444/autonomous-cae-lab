@@ -196,7 +196,7 @@ def diagnostics(draft):
         seen = set()
         for experiment in draft['experiments']:
             required = {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'}
-            if not isinstance(experiment, dict) or not required <= set(experiment) or set(experiment) - required - {'kinematics', 'extensions'}:
+            if not isinstance(experiment, dict) or not required <= set(experiment) or set(experiment) - required - {'kinematics', 'selection', 'extensions'}:
                 raise ValueError('Experiments require observation source, explicit model protocol, role, weight and scale')
             from .numerical_fit_lineage import validate_experiment_extensions
             validate_experiment_extensions(experiment)
@@ -207,7 +207,9 @@ def diagnostics(draft):
             if experiment['role'] not in ('fit', 'holdout'):
                 raise ValueError('Experiment role must be fit or holdout')
             source = experiment['source']
-            if not isinstance(source, dict) or set(source) != {'document_id', 'job_id', 'response', 'input_revision', 'input_sha256'}:
+            source_keys = {'document_id', 'job_id', 'response', 'input_revision', 'input_sha256'}
+            if (not isinstance(source, dict) or not source_keys <= set(source)
+                    or set(source) - source_keys - {'processing_revision'}):
                 raise ValueError('Observation source requires exact Data document, import job, response and submitted input identity')
             for key in ('document_id', 'job_id', 'input_revision'):
                 check_id(source[key])
@@ -215,11 +217,17 @@ def diagnostics(draft):
                 raise ValueError('Select a retained Data response')
             if not isinstance(source['input_sha256'], str) or len(source['input_sha256']) != 64:
                 raise ValueError('Observation source requires its submitted input hash')
+            if 'processing_revision' in source:
+                check_id(source['processing_revision'])
+            if 'selection' in experiment:
+                from .data_processing import validate_selection
+                validate_selection(experiment['selection'])
             if 'kinematics' in experiment:
                 from .material_test import validate_kinematics
                 validate_kinematics(experiment['kinematics'])
             protocol = experiment['settings']
-            if not isinstance(protocol, dict) or set(protocol) != set(settings):
+            if (not isinstance(protocol, dict)
+                    or set(protocol) - {'boundary_control'} != set(settings) - {'boundary_control'}):
                 raise ValueError('Experiment protocol requires exactly the visible Material settings')
             validate_settings(protocol)
             if (protocol['model'], protocol['stress_unit'], protocol.get('time_unit', 's')) != (settings['model'], settings['stress_unit'], settings['time_unit']):
@@ -397,12 +405,13 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
         return draft['mode']
 
     def __init__(self, root, session_id, submit, manager, *, resolve_document, resolve_result,
-                 prepare_request=None, resolve_pde_revision=None, resolve_source_revision=None):
+                 prepare_request=None, resolve_pde_revision=None, resolve_source_revision=None, resolve_processing=None):
         super().__init__(root, session_id, submit, manager)
         self.resolve_document, self.resolve_result = resolve_document, resolve_result
         self.prepare_request = prepare_request
         self.resolve_pde_revision = resolve_pde_revision
         self.resolve_source_revision = resolve_source_revision
+        self.resolve_processing = resolve_processing
 
     @staticmethod
     def _draft(value):
@@ -491,7 +500,16 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
                 channels = [source['response']]
                 if 'kinematics' in item:
                     channels.append(item['kinematics']['channel'])
-                result = self.resolve_result(source['document_id'], source['job_id'], selection=list(dict.fromkeys(channels)))
+                if 'processing_revision' in source:
+                    if self.resolve_processing is None:
+                        raise ValueError('The Data processing result resolver is unavailable')
+                    result = self.resolve_processing(source['document_id'], source['processing_revision'],
+                        selection=list(dict.fromkeys(channels)))
+                    origin = result['diagnostics']['processing_record']['source']
+                    if any(origin.get(k) != source[k] for k in ('document_id', 'job_id', 'input_revision', 'input_sha256')):
+                        raise ValueError('Processing revision belongs to a different frozen import')
+                else:
+                    result = self.resolve_result(source['document_id'], source['job_id'], selection=list(dict.fromkeys(channels)))
                 if result.get('execution_status') != 'SUCCEEDED':
                     raise ValueError('Observation import did not succeed')
                 if 'kinematics' in item:
@@ -502,28 +520,43 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
                 observation = deepcopy(result['responses'][source['response']])
                 if 'kinematics' in item:
                     driver=result['responses'][item['kinematics']['channel']]
-                    observed_rows=observation.get('source_rows',[])
-                    driver_rows=driver.get('source_rows',[])
-                    driver_times=dict(zip(driver_rows,driver['axes'][0]['values']))
-                    observed_times=observation.get('axes',[{}])[0].get('values',[])
-                    if (len(observed_rows)!=len(observed_times) or not observed_rows
-                            or len(set(driver_rows))!=len(driver_rows)
-                            or any(row not in driver_times or driver_times[row]!=time for row,time in zip(observed_rows,observed_times))):
-                        raise ValueError('관측과 변형 이력의 원본 행/시간이 다릅니다. 같은 가져오기의 정확한 표본을 선택하세요.')
-                self._validate_observation(observation, item, settings)
-                experiment = {k: deepcopy(v) for k, v in item.items() if k not in ('source', 'kinematics')}
-                experiment['observations'] = observation
-                experiment['observation_source'] = {'data_source': deepcopy(source),
-                    'source_sha256': result.get('diagnostics', {}).get('source_sha256')}
-                experiment['settings']['parameters'] = deepcopy(settings['parameters'])
-                column=observation.get('source_column_identity', observation.get('mapping',{}).get('column'))
-                if column is not None:
-                    source_identity=result.get('diagnostics',{}).get('source_sha256') or (source['document_id'],source['job_id'])
-                    role_rows[item['role']].update((source_identity,str(column),
-                        row) for row in observation.get('source_rows',[]))
-                experiments.append(experiment)
+                    from .data_processing_lineage import aligned_driver_indexes
+                    driver_indexes = aligned_driver_indexes(observation, driver)
+                if 'selection' in item or 'processing_revision' in source:
+                    from .data_processing import compile_plan_experiment
+                    compiled = compile_plan_experiment(item, observation, result, source)
+                else:
+                    # Preserve legacy import/experiment shape when no new row
+                    # contract was requested, including historical fit IDs.
+                    experiment = {k: deepcopy(v) for k, v in item.items() if k not in ('source', 'kinematics')}
+                    experiment['observations'] = observation
+                    experiment['observation_source'] = {'data_source': deepcopy(source),
+                        'source_sha256': result.get('diagnostics', {}).get('source_sha256')}
+                    compiled = [experiment]
+                for experiment in compiled:
+                    self._validate_observation(observation, experiment, settings)
+                    experiment['settings']['parameters'] = deepcopy(settings['parameters'])
+                    if 'kinematics' in item:
+                        experiment['observation_source']['driver_binding'] = {
+                            'recipe': deepcopy(item['kinematics']), 'driver_response': deepcopy(driver),
+                            'observation_sample_ids': deepcopy(observation.get('sample_ids')),
+                            'driver_indexes': list(driver_indexes),
+                            'coordinate_sample_ids': deepcopy(observation.get('coordinate_sample_ids')),
+                            'alignment': 'FROZEN_COORDINATE_IDS' if 'target_grid' in observation else 'LEGACY_RAW_ROWS'}
+                    keys = experiment['observation_source'].get('sample_keys')
+                    if keys is None:
+                        column = observation.get('mapping', {}).get('column', observation.get('source_column_identity'))
+                        digest = result.get('diagnostics', {}).get('source_sha256') or (source['document_id'], source['job_id'])
+                        mask = experiment.get('mask', [True] * len(observation.get('source_rows', [])))
+                        keys = [(digest, str(column), row) for row, included in zip(observation.get('source_rows', []), mask) if included]
+                    role_rows[experiment['role']].update(tuple(key) for key in keys)
+                    experiments.append(experiment)
             if role_rows['fit'] & role_rows['holdout']:
                 raise ValueError('피팅과 검증에 같은 원본 표본이 포함되었습니다. Data에서 겹치지 않는 구간을 선택하세요.')
+            from .data_processing_selection import require_independent_samples, freeze_fit_inclusion
+            require_independent_samples(experiments)
+            if any(e['observations'].get('sample_domain') == 'derived-grid-v2' for e in experiments):
+                args['frozen_inclusion'] = freeze_fit_inclusion(experiments)
             options = {'failure_penalty': draft['failure_penalty']} if draft['failure_penalty'] is not None else {}
             if draft['method'] == 'differential_evolution':
                 options['seed'] = draft['seed']
@@ -545,8 +578,8 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
         if len(axes) != 1 or axes[0].get('name') != 'time' or axes[0].get('unit') != settings['time_unit']:
             raise ValueError('Supply an explicit time history; strain axes are not converted to time')
         from .numerical import _experiment
-        _experiment({**deepcopy(experiment), 'observations': deepcopy(obs)})
-        axis = axes[0]['values']
+        admitted = _experiment({**deepcopy(experiment), 'observations': deepcopy(obs)})
+        axis = admitted['observations']['axes'][0]['values'][admitted['_mask']]
         protocol = experiment['settings']
         if axis[0] < protocol['time'][0] or axis[-1] > protocol['time'][-1]:
             raise ValueError('Observed time lies outside the explicit Material protocol')

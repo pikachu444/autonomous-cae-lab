@@ -69,6 +69,7 @@ class Workbench:
         self.native_commands=NativeCommands(self.root,self.session_id)
         self.numerical_documents=NumericalDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_document=self.document_read, resolve_result=self.document_result,
+            resolve_processing=self.data_documents.processing_result,
             prepare_request=self._request_plan_arguments,
             resolve_source_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision),
             resolve_pde_revision=lambda identifier,revision:self.pde_documents._verify_revision(identifier,revision))
@@ -977,6 +978,8 @@ class Workbench:
             # The Data lane may supply its frozen compiler packet at this boundary.
             # This consumer verifies it; it never compiles or changes source rows.
             inclusion_packet=args.pop('fit_inclusion',None) if operation=='fit' else None
+            if operation == 'fit' and inclusion_packet is not None and args.get('frozen_inclusion') is not None:
+                raise ValueError('Canonical frozen_inclusion and legacy fit_inclusion cannot be combined')
             fit_snapshot=(freeze_fit_input(backend,args,arguments,
                 inclusion_packet=inclusion_packet,evaluator_binding=backend_binding(self,backend)) if operation=='fit' else None)
             methods={'detail_eval':evaluate_candidate_detail,'fit':numerical.fit_model,'doe':numerical.run_doe,'optimize':numerical.optimize,

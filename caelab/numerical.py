@@ -636,6 +636,8 @@ def _experiment(experiment):
         if not isinstance(obs.get(key), str):
             raise ValueError(f"Observation {key} must be declared explicitly")
     if obs['kind'] == 'event':
+        if 'sample_weights' in result:
+            raise ValueError('Event sample weights are unsupported; use the explicit event weight')
         # Events contribute one fixed residual; unknown events remain unknown
         # and stop LSQ rather than disappearing from the objective vector.
         if obs.get('state') not in ('OCCURRED', 'NOT_OBSERVED', 'UNKNOWN') or not isinstance(obs.get('event_definition'), dict):
@@ -655,6 +657,15 @@ def _experiment(experiment):
     if mask.shape != values.shape or not mask.any() or not np.all(np.isfinite(values[mask])):
         raise ValueError("Fixed observation mask must retain finite values")
     result['_mask'] = mask
+    if 'sample_weights' in result:
+        raw_weights = np.asarray(result['sample_weights'])
+        if raw_weights.dtype.kind not in 'iuf':
+            raise ValueError('Sample weights require finite numeric values, not booleans or text')
+        weights = np.asarray(raw_weights, dtype=float)
+        if (weights.shape != values.shape or not np.isfinite(weights).all()
+                or np.any(weights < 0) or np.any(weights[mask] <= 0)):
+            raise ValueError('Sample weights must align with observations and be positive on the fixed mask')
+        result['_sample_weights'] = weights
     obs['value'] = values
     if obs['kind'] == 'series':
         axes = obs.get('axes', [])
@@ -725,6 +736,8 @@ def _aligned(evaluation, experiment):
     if not np.all(np.isfinite(used_values)):
         raise EvaluationFailed("Predictions are nonfinite at retained observations")
     residual = (used_values - obs['value'][experiment['_mask']]) * math.sqrt(experiment['weight'] / len(used_values)) / experiment['scale']
+    if '_sample_weights' in experiment:
+        residual = residual * np.sqrt(experiment['_sample_weights'][experiment['_mask']])
     return aligned, residual
 
 
@@ -856,7 +869,7 @@ def compare_events(prediction, observation, *, nonoccurrence_penalty=None, weigh
 
 
 def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squares',
-              options=None, execution=None, record=None):
+              options=None, execution=None, record=None, frozen_inclusion=None):
     """Fit bounded coefficients to independent fit histories; holdout never tunes.
 
     Each experiment is {id, role, settings, response, observations, weight, scale,
@@ -865,6 +878,11 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
     Missing masks are fixed once from finite observations before optimization.
     """
     variables = _variables(variables)
+    if frozen_inclusion is not None:
+        from .data_processing_selection import consume_frozen_fit_inclusion
+        experiments = consume_frozen_fit_inclusion(experiments, frozen_inclusion)
+    elif any(e.get('observations', {}).get('sample_domain') == 'derived-grid-v2' for e in experiments):
+        raise ValueError('Derived sample fits require the canonical frozen inclusion packet')
     experiments = [_experiment(e) for e in experiments]
     if len({e['id'] for e in experiments}) != len(experiments):
         raise ValueError("Experiment IDs must be distinct")
@@ -1107,6 +1125,7 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                     'identification': identification, 'timing': timing,
                     'detail_retention': detail_retention.summary(),
                     'final_candidate_detail': detail_retention.final,
+                    **({'frozen_inclusion': deepcopy(frozen_inclusion)} if frozen_inclusion is not None else {}),
                     'limitations': ['Small residuals do not establish parameter uniqueness or physical qualification.',
                                     'Fit and holdout are separated by experiment/history; no holdout data tunes the coefficients.']}, record)
 
@@ -1116,6 +1135,10 @@ def _fit_curve(experiment, evaluation):
              'observations': deepcopy(experiment['observations']), 'mask': experiment['_mask'].tolist(),
              'weight': experiment['weight'], 'scale': experiment['scale'],
              'execution_status': evaluation.get('execution_status', 'FAILED')}
+    if 'frozen_fit_inclusion' in experiment:
+        curve['frozen_fit_inclusion'] = deepcopy(experiment['frozen_fit_inclusion'])
+    if 'sample_weights' in experiment:
+        curve['sample_weights'] = deepcopy(experiment['sample_weights'])
     if experiment.get('observation_source') is not None:
         curve['observation_source'] = deepcopy(experiment['observation_source'])
     if evaluation.get('evaluation_refs'):

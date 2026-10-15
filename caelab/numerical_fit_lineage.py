@@ -73,6 +73,10 @@ def validate_lineage_fields(observation, *, count=None):
 
 def lineage_assessment(experiments):
     """Evidence preservation does not certify derived train/holdout independence."""
+    from .data_processing_consumer import retained_assessment
+    assessment = retained_assessment(experiments)
+    if assessment is not None:
+        return assessment
     derived = [e['id'] for e in experiments if any(key in e['observations']
                for key in LINEAGE_OBSERVATION_FIELDS) or e.get('extensions')]
     return {'status': 'PENDING_DATA_COMPILER_CONTRACT' if derived else 'LEGACY_SOURCE_ROW_CHECK_ONLY',

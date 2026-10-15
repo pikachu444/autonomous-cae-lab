@@ -42,6 +42,58 @@ class DataMaterialService:
         channel = channel_from_import(result, source, response)
         return compile_selection(channel, selection, default_role=role, base_weight=weight)
 
+    def sample_policy_preview(self, document_id, processing_revision, response, *, role='fit', weight=1., raw_selection=None):
+        from .data_processing_selection import propose_sample_policy
+        result = self.processing_result(document_id, processing_revision, selection=[response])
+        source = result['diagnostics']['processing_record']['source']
+        return propose_sample_policy(channel_from_import(result, source, response),
+            role=role, weight=weight, raw_selection=raw_selection)
+
+
+    def sample_policy_adopt(self, document_id, experiment_id, proposal, *, session_id,
+                            expected_generation, command_id, entries=None):
+        from .data_processing_selection import accept_sample_policy, sample_domain
+        from .storage import load_json, canonical_hash, check_id
+        owner = self.owner(document_id, 'numerical')
+        policy = accept_sample_policy(proposal, adoption={'plan_document_id': document_id,
+            'command_id': command_id, 'session_id': session_id, 'generation': expected_generation}, entries=entries)
+        with owner._lock(document_id):
+            current = owner.read(document_id)
+            receipt = owner._folder(document_id) / 'commands' / (check_id(command_id) + '.json')
+            if receipt.exists():
+                prior = load_json(receipt)
+                frozen = prior.get('response', {}).get('document', {}).get('draft')
+                if frozen is not None:
+                    item = next((e for e in frozen.get('experiments', []) if e['id'] == experiment_id), None)
+                    if item is None or item.get('selection') != {'sample_policy': policy}:
+                        raise ValueError('Policy command ID already belongs to another request')
+                    # The existing command verifies request hash/session before
+                    # returning its durable ack; no newer owner input is applied.
+                    response = owner.command(document_id, owner.update_operation, {'draft': frozen},
+                        session_id=session_id, expected_generation=expected_generation, command_id=command_id)
+                    return {**response, 'sample_policy': policy, 'saved': False}
+            if current['session_id'] != session_id or current['generation'] != expected_generation:
+                raise ValueError('Plan owner changed; keep the policy preview and review again')
+            draft = deepcopy(current['draft'])
+            item = next((e for e in draft.get('experiments', []) if e['id'] == experiment_id), None)
+            if item is None:
+                raise ValueError('Select an existing Plan experiment')
+            source = item['source']
+            if 'processing_revision' not in source:
+                raise ValueError('Select a frozen Data processing revision for sample policy adoption')
+            result = self.processing_result(source['document_id'], source['processing_revision'], selection=[source['response']])
+            origin = result['diagnostics']['processing_record']['source']
+            if any(origin[k] != source[k] for k in ('document_id', 'job_id', 'input_revision', 'input_sha256')):
+                raise ValueError('Plan source differs from the reviewed processing import')
+            channel = channel_from_import(result, origin, source['response'])
+            if sample_domain(channel) != policy['domain']:
+                raise ValueError('Policy proposal belongs to another frozen response/grid')
+            item['selection'] = {'sample_policy': policy}
+            response = owner.command(document_id, owner.update_operation, {'draft': draft},
+                session_id=session_id, expected_generation=expected_generation, command_id=command_id)
+            return {**response, 'sample_policy': policy, 'saved': False}
+
+
     def sheet_group_preview(self, references):
         if not isinstance(references, list) or not 1 <= len(references) <= 128:
             raise ValueError('Select 1 to 128 exact saved Data references')
@@ -72,6 +124,8 @@ class DataMaterialService:
             'data.processing.apply': self.processing_apply,
             'data.processing.result': self.processing_result,
             'data.processing.compile': self.processing_compile,
+            'data.sample_policy.preview': self.sample_policy_preview,
+            'data.sample_policy.adopt': self.sample_policy_adopt,
             'data.sheet_group.preview': self.sheet_group_preview,
             'data.sheet_group.read': lambda group: read_sheet_group(group, self.workbench._document_owner),
             'material.control.capabilities': capabilities,

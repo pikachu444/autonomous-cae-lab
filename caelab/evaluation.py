@@ -423,6 +423,9 @@ def _read_result(path, *, verify, selection, arrays):
                 if set(requested) - set(array_value(raw_rows)):
                     raise ValueError('Requested original rows are absent; no substitute rows are read')
                 selected = selected[np.isin(original[selected], requested)]
+            if 'sample_ids' in selection or 'coordinate_sample_ids' in selection:
+                from .data_processing_result import select_sample_indexes
+                selected = select_sample_indexes(response, selection, selected, array_value)
             if 'time_range' in selection:
                 axis = next((a for a in response.get('axes', []) if a['name'] == 'time'), None)
                 if axis is None:
@@ -437,6 +440,8 @@ def _read_result(path, *, verify, selection, arrays):
                 response['mask'] = np.asarray(array_value(response['mask']))[selected].tolist()
             if response.get('source_rows') is not None:
                 response['source_rows'] = np.asarray(array_value(response['source_rows']))[selected].tolist()
+            from .data_processing_result import page_sample_metadata
+            sample_page = page_sample_metadata(response, selected, array_value)
             raw=response.get('raw_samples')
             if isinstance(raw,dict) and 'source_rows' in raw:
                 raw_total=len(array_value(raw['source_rows']))
@@ -461,7 +466,7 @@ def _read_result(path, *, verify, selection, arrays):
                             raw[key]=np.asarray(expanded,dtype=object)[raw_selected].tolist()
                 raw['page_start']=first
                 raw['total_count']=raw_total
-            if response.get('segments') is not None and response.get('source_rows') is not None:
+            if not sample_page and response.get('segments') is not None and response.get('source_rows') is not None:
                 shown={row:index for index,row in enumerate(response['source_rows'])}
                 segments=[]
                 for segment in response['segments']:

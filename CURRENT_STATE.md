@@ -157,10 +157,13 @@ stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하�
 사용 완료로 세지 않으며 유료 SDK·기존 앱 덮어쓰기를 사용하지 않는다.
 로컬 전체 SDK 빌드는 메모리 부족으로 소유 Job을 종료했고 원 출력·실패를 보존했다.
 반복 재시작하지 않는다. Post 팀이 공개 저장소의 표준 Windows runner만 쓰는 수동
-빌드 경로를 작성했고 root·Astra가 소스를 검토 중이다. cache·artifact·release 업로드,
-유료 runner와 별도 서버는 사용하지 않는다. 원격 실행·DLL 완성·실제 File→Exit 수용은
-아직 미실행이며 각각 구분한다. 사용자 PC의 테스트 FreeCAD·ParaView·Gmsh 잔류가
-없는 것도 다시 확인했다.
+빌드 경로를 작성해 root·Astra 검토 후 게시했다. 최초 요청의 workflow context 오류를
+교정한 뒤 첫 원격 실행은 압축 도구의 중복 경로 때문에 입력 준비에서 실패했다.
+원 로그를 보존하고 단일 실행 경로 선택을 교정해 다시 실행했다. 현재 실행은
+https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 이다.
+cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
+완성과 실제 File→Exit 수용은 미확인으로 유지한다. 사용자 PC의 테스트
+FreeCAD·ParaView·Gmsh 잔류가 없는 것도 다시 확인했다.
 
 이동용 사본·선택 연결 보기의 실제 Pro C1도 회수해 전용28 파일을 WIP로 통합했다.
 공통5 패치는 별도 검사 사본에서만 사용하며 main에는 미적용이다. Windows에서 저장본과
@@ -189,16 +192,25 @@ main에 통합했다. 이 정확한 부분조합에서 12개 Qt/서비스 검사
 수행한 offscreen 검사이며 담당의 실제 창 확인과 구별한다. 적용된 변수의 Undo 뒤
 Redo도 기존 owner의 같은 명령·세대 검사를 쓰도록 연결했고 실 owner 검사 1개가 통과했다.
 원 Material과 다른 Plan의 편집을 섞지 않고, 미적용 Plan이 있으면 닫기를 보류한다.
-부분 저장의 새 복구 경로와 파생 표본을 실제 피팅·후보 상세에 쓰는 공통 연결은 아직 미적용이다.
+부분 저장의 미완성 원문 복구 경로는 아직 미적용이다. 파생 표본의 공통 소비 연결은
+아래 통합 범위를 따른다.
 Astra와 담당이 복구 기준 초안의 불변 보관 누락, 실행 이력이 있는 문서의 공개 표시 필드로
 인한 잘못된 충돌을 재현했다. Data의 실제 표본 동결 형식을 Numerical이 끝까지 소비하는
 정합도 같은 Data Pro C2에 묶는다. Numerical Pro C2의 저장 재시도 수정과 파일 소유를
 분리했으며 새 compiler나 경쟁 스키마를 만들지 않는다. GUI 작성은 병행한다.
-실제 Data Pro C2 최종 ZIP을 회수했다. Data 팀이 현재 main의 함께 저장·응답 유실 복구,
-Plan Redo와 Numerical C2 저장 보호를 보존하며 전용 소스를 정합하고, 공통 변경은 root가
-병합할 최소 패치로 분리한다. Astra가 같은 원자료·반환 소스를 독립 검토한다. 아직 이
-반환물을 현재 main에서 실행·통합한 것으로 표시하지 않으며 C01과 파생 표본 소비의
-원 완료 조건을 유지한다.
+실제 Data Pro C2 최종 ZIP에서 파생 표본의 canonical 소비만 분리해 main에 통합했다.
+기존 Data 검증기·처리 DAG·원자료 기여·명시 표본 정책·가중치를 그대로 피팅 입력과
+선택 후보 상세/검증 결과로 전달한다. 처음 실제 연결 검사에서 빠진 정책 service를
+확인해 원 Pro 메서드·공개 명령만 추가했다. 기존 함께 저장·응답 유실 복구, Plan Redo와
+Numerical C2 저장 보호는 유지했다. 현재 Windows에서 작은 합성 평가기의 실제
+owner/JobManager 피팅→선택 상세/holdout→결과 보존→원 입력/실행 결과 제거→한글 경로
+이동→새 Python 프로세스 재열기와 읽기 중 새 제출 0회를 확인했다. 138표본 원 동결
+자료 소비와 기존 완료 응답 재읽기 보호도 통과했다. 기록은
+`runs/product-development/20261015/data-c2-canonical-main-policy/`이며 소유 Job을 종료했다.
+이는 실제 FELUPE·HTTP 전체·GUI 수용은 아니다. Data와 Numerical 담당이 표본 정책과
+처리 결과 선택의 기존 전용 GUI를 연결한다. Astra가 C01의 최초 저장 전 복구에서
+registered input 원파일 누락을 발견했고 실제 Pro C3에서 교정 중이다. 이 복구 기능은
+이번 통합에서 노출하지 않으며 인도4 전체 완료로 세지 않는다.
 Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
 설치 런타임에서 실제 FELUPE 후보/holdout 상세 계산과 새 owner 재열기, Qt 흐름을 좁게
 확인했다. 실제 기존 Workbench 인증 loopback의 least-squares→상세 요청→계획 저장도

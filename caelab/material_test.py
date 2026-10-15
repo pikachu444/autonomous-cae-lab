@@ -94,6 +94,9 @@ def measured_protocol(settings, result, recipe):
         finite(t, '시간'); finite(v, '변형 이력')
     if any(b <= a for a, b in zip(times, times[1:])):
         raise ValueError('시간은 순서대로 증가해야 합니다. 재시작 구간을 따로 선택하세요.')
+    if 'target_grid' in response:
+        from .data_processing_lineage import aligned_driver_indexes
+        aligned_driver_indexes(response, response)
     # Missing drive segments cannot be interpolated into a prescribed loading path.
     if response.get('has_calculation_gaps'):
         raise ValueError('변형 이력에 제외 구간이 있습니다. 연속된 이력을 선택하거나 전체 변형구배를 명시하세요.')
@@ -137,18 +140,8 @@ def deformation_plot_axis(observation, imported, recipe):
         raise ValueError('관측의 시간축이 없습니다.')
     measured_protocol({'time_unit':axes[0].get('unit')},imported,recipe)
     driver=imported['responses'][recipe['channel']]
-    rows=observation.get('source_rows',[])
-    times=axes[0].get('values',[])
-    drows=driver.get('source_rows',[])
-    dtimes=driver['axes'][0]['values']
-    values=driver['value']
-    if (not rows or len(rows)!=len(times) or len(rows)!=len(observation.get('value',[]))
-            or len(set(rows))!=len(rows) or len(drows)!=len(dtimes)
-            or len(drows)!=len(values) or len(set(drows))!=len(drows)):
-        raise ValueError('측정 변형축의 원본 행 연결이 없거나 중복됩니다.')
-    lookup={row:(time,value) for row,time,value in zip(drows,dtimes,values)}
-    if any(row not in lookup or lookup[row][0]!=time for row,time in zip(rows,times)):
-        raise ValueError('관측과 측정 변형의 원본 행/시간이 다릅니다.')
+    from .data_processing_lineage import aligned_driver_indexes
+    indexes = aligned_driver_indexes(observation, driver)
     labels={'engineering_strain':'측정 변형률','stretch':'측정 신장비','simple_shear':'측정 전단량'}
     return {'name':labels[recipe['kind']],'unit':driver['unit'],
-            'values':[lookup[row][1] for row in rows]}
+            'values':[driver['value'][i] for i in indexes]}

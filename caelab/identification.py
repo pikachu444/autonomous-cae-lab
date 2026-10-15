@@ -74,6 +74,8 @@ def diagnose(jacobian, variables, experiments, parameter_values, *, loss='linear
 
 def require_independent_rows(experiments):
     """Same raw column/row cannot become holdout by renaming or recalibration."""
+    from .data_processing_selection import require_independent_samples
+    require_independent_samples(experiments)
     owners = {}
     for e in experiments:
         source = e.get('observation_source') or {}

@@ -136,6 +136,9 @@ def _plan_input_shape(tool, *, required=()):
     return shape
 
 
+from ..data_processing_consumer import extend_fit_transport
+extend_fit_transport(_OBSERVATIONS, _EXPERIMENT, _TOOL_INPUTS['numerical.fit'])
+
 _PLAN_INPUTS = {
     'evaluate': _object({'backend': _STRING, 'settings': _OBJECT, 'values': _OBJECT}, ['backend', 'settings']),
     'doe': _plan_input_shape('numerical.doe'),

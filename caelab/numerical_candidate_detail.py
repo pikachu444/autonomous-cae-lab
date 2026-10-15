@@ -33,21 +33,24 @@ def plain(value: Any) -> Any:
     """Use the existing null policy, including NumPy scalar JSON conversion."""
     from .numerical import _nullable
     import numpy as np
-    value = _nullable(value)
-    if isinstance(value, dict):
-        return {key: plain(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [plain(item) for item in value]
-    if isinstance(value, np.generic):
-        return plain(value.item())
-    return value
+    # Normalize nulls once at the transport boundary, not once for every
+    # descendant of a full processing DAG. Preserve the identical JSON values.
+    def convert(item):
+        if isinstance(item, dict):
+            return {key: convert(child) for key, child in item.items()}
+        if isinstance(item, (list, tuple)):
+            return [convert(child) for child in item]
+        if isinstance(item, np.generic):
+            return convert(item.item())
+        return item
+    return convert(_nullable(value))
 
 
 def experiment_snapshot(experiment: dict) -> dict:
     """Freeze the mask the original engine actually used; do not 'repair' it.
 
     In particular, observations.mask and the fit mask are not interchangeable.
-    Both remain visible. A future Data compiler supplies an explicit fit mask.
+    Both remain visible. Canonical Data inputs carry their explicitly adopted fit mask.
     """
     from .numerical import _experiment
     from .numerical_fit_lineage import validate_lineage_fields, validate_experiment_extensions
@@ -59,13 +62,16 @@ def experiment_snapshot(experiment: dict) -> dict:
 
 
 def consume_frozen_fit_inclusion(experiments: list[dict], packet: dict) -> list[dict]:
-    """Legacy Numerical-local proposal; NOT an agreed Data compiler contract.
+    """Consume canonical Data packets through Data's validator; keep legacy separate.
 
-    Required per-experiment packet fields are documented in the usage file.
+    Legacy per-experiment packet fields remain documented in the usage file.
     Source rows/role/mask/normalization and observation, protocol and source
     hashes must already agree. Nothing is selected, converted or imputed here.
     Extension fields in the supplied experiments are copied unchanged.
     """
+    if isinstance(packet, dict) and packet.get('format') == 'frozen-fit-inclusion.v1':
+        from .data_processing_selection import consume_frozen_fit_inclusion as consume_data
+        return consume_data(experiments, packet)
     if not isinstance(packet, dict) or packet.get('schema') != INCLUSION_SCHEMA:
         raise DetailIdentityError('Unsupported frozen fit-inclusion packet')
     entries = packet.get('experiments')
@@ -97,13 +103,15 @@ def freeze_fit_input(backend: str, inputs: dict, submitted_arguments: dict, *, i
             or not experiments or any(not isinstance(e.get('observations'), dict)
                                       or 'path' in e['observations'] for e in experiments)):
         raise DetailIdentityError('Original resolved inline fit inputs were not retained; current sources cannot replace them')
+    from .data_processing_consumer import admit_snapshot
+    experiments, data_admission = admit_snapshot(value, submitted_arguments, legacy_packet=inclusion_packet)
     if inclusion_packet is not None:
         consume_frozen_fit_inclusion(experiments, inclusion_packet)
     value['experiments'] = [experiment_snapshot(e) for e in experiments]
     if len({e['id'] for e in value['experiments']}) != len(experiments):
         raise DetailIdentityError('Duplicate original experiment identity')
-    # This remains the legacy raw-row check, NOT derived contributor independence.
-    # Data's final compiler/consumer must be integrated separately.
+    # The shared check delegates canonical derived contributors to Data and
+    # retains the original raw-row check for explicitly legacy inputs.
     require_independent_rows(value['experiments'])
     value['variables'] = _variables(value['variables'])
     value['backend'] = backend
@@ -112,6 +120,8 @@ def freeze_fit_input(backend: str, inputs: dict, submitted_arguments: dict, *, i
                   inputs=value, inputs_sha256=canonical_hash(value))
     if inclusion_packet is not None:
         result['inclusion_packet'] = deepcopy(inclusion_packet)
+    if data_admission is not None:
+        result['data_inclusion'] = data_admission
     if evaluator_binding is not None:
         result['evaluator_binding'] = deepcopy(evaluator_binding)
     return result
@@ -130,6 +140,8 @@ def _frozen_input(run: dict, result: dict) -> dict:
         raise DetailIdentityError('Original fit input snapshot / submitted arguments hash changed')
     checked = freeze_fit_input(snapshot['inputs']['backend'], snapshot['inputs'], run['arguments'],
                                inclusion_packet=snapshot.get('inclusion_packet'))
+    if checked.get('data_inclusion') != snapshot.get('data_inclusion'):
+        raise DetailIdentityError('Canonical Data admission differs from original frozen evidence')
     if checked['inputs_sha256'] != snapshot['inputs_sha256']:
         raise DetailIdentityError('Frozen input interpretation changed')
     return deepcopy(snapshot)
@@ -677,7 +689,9 @@ def table_rows(view: dict, experiment_id: str) -> list[dict]:
     for index, observed_value in enumerate(observed):
         predicted = prediction[index] if prediction is not None else None
         used = bool(mask[index])
-        result.append(dict(candidate_id=view['candidate']['candidate_id'], experiment_id=experiment_id,
+        from .data_processing_consumer import candidate_sample_metadata
+        result.append(dict(**candidate_sample_metadata(experiment, index),
+            candidate_id=view['candidate']['candidate_id'], experiment_id=experiment_id,
             attempt_job_id=view.get('attempt_job_id'), role=experiment['role'], index=index,
             source_row=source_rows[index] if source_rows is not None else None,
             sample_id=(observation['sample_ids'][index] if observation.get('sample_ids') is not None else None),
