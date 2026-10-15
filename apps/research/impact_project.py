@@ -5,7 +5,7 @@ from threading import Event
 import math
 
 from PySide6.QtCore import Qt, Signal, QThread, QPointF, QItemSelectionModel
-from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
+from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF, QTextCursor, QFontDatabase
 from PySide6.QtWidgets import (QWidget,QDialog,QVBoxLayout,QHBoxLayout,QFormLayout,
     QLineEdit,QLabel,QPushButton,QComboBox,QCheckBox,QFileDialog,QDialogButtonBox,
     QPlainTextEdit,QSplitter,QTreeWidget,QTreeWidgetItem,QTableWidget,QTableWidgetItem,
@@ -18,14 +18,14 @@ from caelab import impact_sets as sets
 class _Import(QThread):
     ready=Signal(object,str)
     def __init__(self,entry,root,parent):
-        super().__init__(parent);self.entry=entry;self.root=root;self.cancelled=Event()
+        super().__init__(parent);self.entry=entry;self.root=root;self.cancelled=Event();self.diagnostic=None
     def run(self):
         try:
             source=capture(self.entry,self.root,cancel=self.cancelled.is_set)
             try:
                 text,spans=resolve(source);model=parse_inp(text,spans)
                 message=f"절점 {len(model['nodes']):,}개 / 요소 {len(model['elements']):,}개"
-            except ValueError as error:message='계산 전 수정 필요: '+str(error)
+            except ValueError as error:self.diagnostic=error;message='계산 전 수정 필요: '+str(error)
             if not self.cancelled.is_set():self.ready.emit(source,message)
         except ImportCancelled:pass
         except (OSError,ValueError,TypeError,KeyError) as error:
@@ -45,7 +45,8 @@ class ImportDialog(QDialog):
         row=QHBoxLayout();self.check=QPushButton('입력 확인');self.check.clicked.connect(self.check_input);row.addWidget(self.check)
         self.status=QLabel('포함 파일은 모두 선택한 작업 폴더에서 찾습니다.');self.status.setWordWrap(True);row.addWidget(self.status,1);layout.addLayout(row)
         self.files=QComboBox();self.files.currentIndexChanged.connect(self.show_file);layout.addWidget(self.files)
-        self.original=QPlainTextEdit();self.original.setReadOnly(True);layout.addWidget(self.original,1)
+        self.original=QPlainTextEdit();self.original.setReadOnly(True)
+        self.original.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont));layout.addWidget(self.original,1)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         self.ok=self.buttons.button(QDialogButtonBox.StandardButton.Ok);self.ok.setText('가져오기');self.ok.setEnabled(False)
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
@@ -77,6 +78,7 @@ class ImportDialog(QDialog):
             for item in source['bundle']['files']:self.files.addItem(item['path'],item['text'])
             self.files.addItem('펼친 입력',source['text'])
             self.ok.setText('초안으로 가져오기' if message.startswith('계산 전') else '가져오기')
+            show_source_location(self.files,self.original,getattr(self.worker,'diagnostic',None))
     def finished_read(self):
         worker=self.worker;self.worker=None;worker.deleteLater()
         self.entry.setEnabled(True);self.root.setEnabled(True);self.check.setEnabled(True)
@@ -90,6 +92,38 @@ class ImportDialog(QDialog):
     def closeEvent(self,event):
         if self.worker:self.reject();event.ignore()
         else:super().closeEvent(event)
+
+
+def show_source_location(files,view,error):
+    """Select only a recorded source location; never guess a nearby source row."""
+    name,line=getattr(error,'file',None),getattr(error,'line',None)
+    if not name or type(line) is not int or line<1:return False
+    index=files.findText(name,Qt.MatchFlag.MatchExactly)
+    if index<0:return False
+    files.setCurrentIndex(index)
+    block=view.document().findBlockByNumber(line-1)
+    if not block.isValid():return False
+    cursor=QTextCursor(block);cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+    view.setTextCursor(cursor);view.ensureCursorVisible();view.setFocus()
+    return True
+
+
+class SourceDialog(QDialog):
+    def __init__(self,source,error=None,parent=None):
+        super().__init__(parent);self.setWindowTitle('원 입력 파일');self.resize(800,600)
+        layout=QVBoxLayout(self);self.files=QComboBox();self.view=QPlainTextEdit();self.view.setReadOnly(True)
+        self.view.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        self.files.setAccessibleName('보존 원 입력 파일');self.view.setAccessibleName('원 입력 내용')
+        layout.addWidget(self.files);layout.addWidget(self.view,1)
+        for item in source.get('bundle',{}).get('files',[]):self.files.addItem(item['path'],item['text'])
+        self.files.addItem('펼친 입력',source.get('text',''))
+        self.files.currentIndexChanged.connect(lambda _:self.view.setPlainText(self.files.currentData() or ''))
+        self.view.setPlainText(self.files.currentData() or '')
+        self.note=QLabel('보존 원문입니다. 수정한 파일은 충격 조건의 ‘유한요소 파일 열기…’로 다시 가져오세요.')
+        self.note.setWordWrap(True);layout.addWidget(self.note)
+        if show_source_location(self.files,self.view,error):
+            self.note.setText(f'{error.file} {error.line}행을 확인하세요. 원문은 Ctrl+C로 복사할 수 있습니다.')
+        close=QPushButton('닫기');close.clicked.connect(self.accept);layout.addWidget(close)
 
 
 class MeshPreview(QWidget):
@@ -246,7 +280,8 @@ class ProjectPage(QWidget):
     def refresh(self,selected_key=None):
         selected_key=self.key() if selected_key is None else selected_key
         self.tree.blockSignals(True)
-        self.tree.clear();self.model=None
+        self.tree.clear();self.model=None;self.source_error=None
+        self.actions['source'].setText('원파일 보기…')
         try:
             self.model=model_from_settings(self.editor.edited());self.all_faces=sets.facets(self.model)
             generated={(d['kind'],d['name']) for d in self.editor.value.get('generated_sets',[])}
@@ -257,7 +292,10 @@ class ProjectPage(QWidget):
                     if (kind,name)==selected_key:self.tree.setCurrentItem(item)
             self.view.set_model(self.model,faces=self.all_faces);self.info.setText(bounds_label(self.model,self.model['nodes'],self.model['elements']))
             self.message.clear()
-        except (ValueError,KeyError,TypeError) as error:self.view.model=None;self.view.update();self.info.clear();self.message.setText(str(error))
+        except (ValueError,KeyError,TypeError) as error:
+            self.view.model=None;self.view.update();self.info.clear();self.message.setText(str(error))
+            self.source_error=error
+            if getattr(error,'file',None) and getattr(error,'line',None):self.actions['source'].setText('문제 원파일 보기…')
         self.tree.blockSignals(False)
         self.tree.setColumnWidth(0,190);self.selected()
         if self.tree.currentItem():self.tree.scrollToItem(self.tree.currentItem(),QAbstractItemView.ScrollHint.PositionAtCenter)
@@ -322,10 +360,8 @@ class ProjectPage(QWidget):
                         export_effective(frozen,path)
                     except (ValueError,OSError) as error:QMessageBox.warning(dialog,'저장 실패',str(error))
             save.clicked.connect(export);close.clicked.connect(dialog.accept);dialog.exec()
-        except (ValueError,KeyError,TypeError) as error:self.message.setText(str(error))
+        except (ValueError,KeyError,TypeError) as error:
+            self.message.setText(str(error));self.source_error=error
+            if getattr(error,'file',None) and getattr(error,'line',None):self.actions['source'].setText('문제 원파일 보기…')
     def show_source(self):
-        source=self.editor.value['source'];dialog=QDialog(self);dialog.setWindowTitle('보존 원파일');dialog.resize(800,600);layout=QVBoxLayout(dialog)
-        files=QComboBox();view=QPlainTextEdit();view.setReadOnly(True);layout.addWidget(files);layout.addWidget(view,1)
-        for item in source.get('bundle',{}).get('files',[]):files.addItem(item['path'],item['text'])
-        files.addItem('펼친 입력',source.get('text',''));files.currentIndexChanged.connect(lambda _:view.setPlainText(files.currentData() or ''));view.setPlainText(files.currentData() or '')
-        close=QPushButton('닫기');close.clicked.connect(dialog.accept);layout.addWidget(close);dialog.exec()
+        SourceDialog(self.editor.value['source'],self.source_error,self).exec()
