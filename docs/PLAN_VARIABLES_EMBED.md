@@ -25,6 +25,18 @@ widget.patchPreviewRequested.connect(review_explicit_owner_preview)
 호스트는 `set_variable_labels({id: 표시명})`으로 실제 선택 모델의 물리 명칭을 표시한다.
 이름의 원 ID·버퍼·단위는 유지하며 알 수 없는 변수를 다른 물리량으로 추정하지 않는다.
 
+`recovery_snapshot()`은 셀을 확정하거나 네트워크를 읽지 않고 Data의 실제 raw capsule
+형식에 맞는 `cells/local_draft/focus/selection/paste/editor_revision`을 돌려준다. 원값은
+연결 당시의 인정된 문서 값이다. 같은 UI 상태의 token은 같고 raw 셀·커서·선택이 바뀌면
+달라진다. 미확정 `1e`, 빈값, 아직 유효하지 않은 enum과 로컬 TSV 원문을 그대로 남긴다.
+
+호스트가 Data recovery API로 문서·store·generation identity와 capsule을 검증한 뒤
+`restore_recovery(raw)`를 호출한다. 현재 표가 깨끗하고 해당 원값·편집 가능한 경로가
+맞을 때만 복구하며 계산/적용/저장은 하지 않는다. 읽기 전용·중복·다른 변수나 숨은
+Plan 변경은 거절한다. 미확정 editor 복구에는 표가 실제로 열려 있어야 한다. Keep와
+close_permitted의 마지막 live token 비교, capsule discard, 관련 owner 전체 닫기는
+Material 호스트와 Data core가 맡는다. native clipboard 왕복 검증 한계는 그대로다.
+
 변수 이름·단위와 Request Plan의 탐색 여부는 읽기 전용이다. 현재 지원하는
 시작값·하한·상한·탐색 여부·선형/로그 변환은 기존 typed worksheet delegate와
 PlanTable 붙여넣기를 사용한다. 아직 지원하지 않는 이산/종속 변수 엔진의 구현을

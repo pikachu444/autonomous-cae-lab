@@ -9,7 +9,7 @@ pytest.importorskip('PySide6')
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtTest import QTest, QSignalSpy
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QMainWindow, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QHBoxLayout, QLineEdit, QMainWindow, QWidget
 
 from apps.research.plan_variables_widget import NumericalPlanVariablesWidget
 from caelab.numerical_document import request_draft
@@ -97,6 +97,69 @@ def test_document_snapshot_is_exact_detached_and_does_not_commit_pending_editor(
     assert first.document_snapshot()==original and first._adapter.calls==[]
     QTest.keyClick(editor,Qt.Key.Key_Escape);app.processEvents()
     first.detach_owner();assert first.document_snapshot() is None
+
+
+def test_recovery_snapshot_and_restore_preserve_unfinished_editor_without_commit(pair):
+    app,_,(first,second),_=pair
+    first.table.setCurrentCell(0,2);first.table.editItem(first.table.item(0,2));app.processEvents()
+    editor=first.table.findChild(QLineEdit);assert editor is not None
+    editor.setText('1e');editor.setCursorPosition(2)
+    raw=first.recovery_snapshot()
+    assert raw==first.recovery_snapshot() and raw['cells'][0]['raw_text']=='1e'
+    assert raw['cells'][0]['original_value']==2. and raw['cells'][0]['editor_kind']=='unfinished'
+    assert raw['local_draft']==first.document_snapshot()['draft'] and first.table.item(0,2).text()=='2.0'
+    second.bind_owner(Adapter('None'),document('None'))
+    second.restore_recovery(raw);app.processEvents()
+    restored=second._live_editor();assert isinstance(restored,QLineEdit)
+    assert restored.text()=='1e' and second.table.item(0,2).text()=='2.0'
+    assert second.has_unapplied_buffer() and second.recovery_snapshot()['cells']==raw['cells']
+    assert first._adapter.calls==second._adapter.calls==[]
+    QTest.keyClick(restored,Qt.Key.Key_Escape);app.processEvents()
+
+
+def test_recovery_keeps_invalid_cells_and_rejects_readonly_or_hidden_replacement(pair):
+    app,_,(first,second),_=pair
+    first.table.item(0,2).setText('');first.table.item(1,6).setText('잘못된 enum');app.processEvents()
+    raw=first.recovery_snapshot();assert {cell['raw_text'] for cell in raw['cells']}=={'','잘못된 enum'}
+    second.bind_owner(Adapter('None'),document('None'));second.restore_recovery(raw);app.processEvents()
+    assert second.table.item(0,2).text()=='' and second.table.item(1,6).text()=='잘못된 enum'
+    second.undo();app.processEvents();assert not second.has_unapplied_buffer()
+    before=second.buffer_snapshot()
+    bad=deepcopy(raw);bad['cells'][0]['field_path'][-1]='unit'
+    with pytest.raises(ValueError):second.restore_recovery(bad)
+    bad=deepcopy(raw);bad['local_draft']['request']['purpose']='숨은 변경'
+    with pytest.raises(ValueError):second.restore_recovery(bad)
+    assert second.buffer_snapshot()==before and first._adapter.calls==second._adapter.calls==[]
+
+
+def test_recovery_pending_combo_keeps_exact_invalid_text(pair):
+    app,_,(first,second),_=pair
+    first.table.setCurrentCell(0,6);first.table.editItem(first.table.item(0,6));app.processEvents()
+    editor=first.table.findChild(QComboBox);assert editor is not None
+    editor.setEditText('아직 결정하지 않은 변환')
+    editor.lineEdit().setCursorPosition(3)
+    raw=first.recovery_snapshot();assert raw['cells'][0]['original_value']=='linear'
+    assert raw['focus']['cursor']==3
+    second.bind_owner(Adapter('None'),document('None'));second.restore_recovery(raw);app.processEvents()
+    restored=second._live_editor();assert isinstance(restored,QComboBox)
+    assert restored.currentText()=='아직 결정하지 않은 변환'
+    assert restored.lineEdit().cursorPosition()==3
+    assert second.recovery_snapshot()['local_draft']==document('None')['draft']
+    QTest.keyClick(restored,Qt.Key.Key_Escape);app.processEvents()
+    assert second.buffer_snapshot()['request']['inputs']['variables'][0]['transform']=='linear'
+
+
+def test_recovery_retains_exact_local_paste_and_blank_cells(pair):
+    app,_,(first,second),_=pair
+    text='1e\t\n2.7\t0.9\n'
+    QApplication.clipboard().setText(text);first.table.setCurrentCell(0,2)
+    assert first.table.paste_cells();app.processEvents()
+    raw=first.recovery_snapshot()
+    assert raw['paste']['raw_text']==text and raw['paste']['committed'] is False
+    second.bind_owner(Adapter('None'),document('None'));second.restore_recovery(raw);app.processEvents()
+    assert second.table.item(0,2).text()=='1e' and second.table.item(0,3).text()==''
+    assert second.recovery_snapshot()['paste']==raw['paste']
+    assert first._adapter.calls==second._adapter.calls==[]
 
 
 def test_block_paste_protects_units_and_is_one_local_undo(pair):

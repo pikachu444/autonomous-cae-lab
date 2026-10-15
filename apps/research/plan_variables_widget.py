@@ -5,7 +5,7 @@ import uuid
 from PySide6.QtCore import QEvent, QThreadPool, QTimer, Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QHBoxLayout, QLabel,
-    QPushButton, QTableWidgetItem, QVBoxLayout, QWidget)
+    QComboBox, QLineEdit, QPushButton, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from caelab.storage import canonical_hash
 from .data_window import _Read
@@ -18,6 +18,12 @@ from .request_plan_window import DATA, CHOICE_DATA, _WorksheetDelegate, value_te
 class _VariableTable(PlanTable):
     undoRequested = Signal()
     redoRequested = Signal()
+
+    def paste_cells(self):
+        raw=QApplication.clipboard().text()
+        accepted=super().paste_cells()
+        if accepted:self.raw_paste=dict(raw_text=raw,committed=False,anchor=[self.currentRow(),self.currentColumn()])
+        return accepted
 
     def event(self, event):
         if event.type() == QEvent.Type.ShortcutOverride and (
@@ -101,6 +107,7 @@ class NumericalPlanVariablesWidget(QWidget):
         self.owner_label.setToolTip(document['id'])
         if not same:
             self._history, self._index = [deepcopy(document['draft'])], 0
+            self.table.raw_paste=None
             self._show_table(document['draft'])
         self.ownerActivated.emit(document['id'])
         self._update_dirty();self._buttons()
@@ -161,6 +168,95 @@ class NumericalPlanVariablesWidget(QWidget):
     def document_snapshot(self):
         """Return the exact bound receipt without reading or committing an editor."""
         return deepcopy(self._document) if self._adapter is not None else None
+
+    def _live_editor(self):
+        if self.table.state()!=QAbstractItemView.State.EditingState:return None
+        for kind in (QComboBox,QLineEdit):
+            for editor in self.table.findChildren(kind):
+                if editor.isVisible():return editor
+        return None
+
+    def recovery_snapshot(self):
+        """Read exact raw GUI state against the acknowledged owner; never commit."""
+        if self._document is None or self._adapter is None:return None
+        editor=self._live_editor();active=(self.table.currentRow(),self.table.currentColumn())
+        cells=[];focus=None
+        for row in range(self.table.rowCount()):
+            for column in range(self.table.columnCount()):
+                item=self.table.item(row,column);binding=item.data(DATA) if item else None
+                if not binding or not binding.get('path'):continue
+                path=binding['path'];original=deepcopy(self._at(self._document['draft'],path))
+                live=editor is not None and (row,column)==active
+                text=editor.currentText() if live and isinstance(editor,QComboBox) else editor.text() if live else item.text()
+                if live or text!=binding['shown']:
+                    cells.append(dict(field_path=list(path),raw_text=text,original_value=original,
+                        original_exists=True,position=dict(table='계획 변수',row=row,column=column),
+                        editor_kind='unfinished' if live else 'cell'))
+                if live:
+                    line=editor.lineEdit() if isinstance(editor,QComboBox) else editor
+                    focus=dict(field_path=list(path),cursor=line.cursorPosition() if line is not None else 0)
+        raw=dict(cells=cells,local_draft=self._buffer_snapshot(),focus=focus,
+                 selection=sorted([[index.row(),index.column()] for index in self.table.selectedIndexes()]))
+        if getattr(self.table,'raw_paste',None):raw['paste']=deepcopy(self.table.raw_paste)
+        raw['editor_revision']='E'+canonical_hash(raw)
+        return raw
+
+    def restore_recovery(self, raw):
+        """Host validates capsule identity first; restore only this fresh view's fields."""
+        if self._adapter is None or self._busy or self.has_unapplied_buffer():
+            raise ValueError('현재 계획 편집을 먼저 보관하거나 해결하세요.')
+        if not isinstance(raw,dict) or not isinstance(raw.get('cells'),list):
+            raise ValueError('보관한 계획 편집 형식을 확인하세요.')
+        bound={}
+        for row in range(self.table.rowCount()):
+            for column in range(self.table.columnCount()):
+                item=self.table.item(row,column);binding=item.data(DATA) if item else None
+                if binding and binding.get('path'):bound[tuple(binding['path'])]=(item,binding)
+        entries=[];pending=[];seen=set()
+        for cell in raw['cells']:
+            path=tuple(cell.get('field_path',()))
+            if path not in bound or path in seen or not isinstance(cell.get('raw_text'),str):
+                raise ValueError('보관한 편집이 현재 계획의 편집 가능한 변수와 다릅니다.')
+            seen.add(path)
+            if canonical_hash(cell.get('original_value'))!=canonical_hash(self._at(self._document['draft'],path)):
+                raise ValueError('보관 당시의 계획 값과 현재 값이 다릅니다.')
+            entries.append((bound[path][0],cell))
+            if cell.get('editor_kind')=='unfinished':pending.append((bound[path][0],cell))
+        if len(pending)>1:raise ValueError('보관한 미확정 편집 위치를 확인하세요.')
+        if pending and not self.table.isVisible():
+            raise ValueError('계획 변수 표를 연 뒤 미확정 편집을 복구하세요.')
+        local=raw.get('local_draft',self._document['draft'])
+        shown=[];scoped=deepcopy(self._document['draft'])
+        for path,(item,binding) in bound.items():
+            try:value=self._at(local,path)
+            except (KeyError,IndexError,TypeError):raise ValueError('보관한 계획 변수 범위가 다릅니다.') from None
+            self._at(scoped,path[:-1])[path[-1]]=deepcopy(value)
+            shown.append((item,choice_label(value,binding.get('choices',())) if binding.get('choices') else value_text(value)))
+        if canonical_hash(scoped)!=canonical_hash(local):
+            raise ValueError('보관한 편집에 이 변수 표가 다루지 않는 변경이 있습니다.')
+        self._populating=True
+        try:
+            for item,text in shown:item.setData(CHOICE_DATA,None);item.setText(text)
+            for item,cell in entries:
+                if cell.get('editor_kind')!='unfinished':item.setData(CHOICE_DATA,None);item.setText(cell['raw_text'])
+            self.table.raw_paste=deepcopy(raw.get('paste'))
+        finally:self._populating=False
+        self._capture_history()
+        if pending:
+            item,cell=pending[0];self.table.setCurrentItem(item);self.table.editItem(item)
+            editor=self._live_editor()
+            if isinstance(editor,QLineEdit):
+                editor.setText(cell['raw_text']);editor.setCursorPosition((raw.get('focus') or {}).get('cursor',len(cell['raw_text'])))
+            elif isinstance(editor,QComboBox):
+                index=editor.findText(cell['raw_text'])
+                if index<0:editor.setEditText(cell['raw_text'])
+                else:editor.setCurrentIndex(index)
+                if editor.lineEdit():editor.lineEdit().setCursorPosition((raw.get('focus') or {}).get('cursor',len(cell['raw_text'])))
+        self.table.clearSelection()
+        for row,column in raw.get('selection',[]):
+            item=self.table.item(row,column)
+            if item:item.setSelected(True)
+        self._buttons();return True
 
     def _buffer_snapshot(self, *, commit=False):
         if self._document is None:return {}
@@ -293,6 +389,7 @@ class NumericalPlanVariablesWidget(QWidget):
         if (not editing and outcome.get('state')=='APPLIED' and reviewed and
                 canonical_hash(outcome.get('reviewed_buffer'))==canonical_hash(buffer) and acknowledged and current_matches):
             self._document=deepcopy(response);self._history=[deepcopy(buffer)];self._index=0
+            self.table.raw_paste=None
             self._show_table(buffer);self._update_dirty();self._buttons()
             self.message.setText('변경을 계획에 적용했습니다. 저장은 별도로 실행하세요.')
             return True
