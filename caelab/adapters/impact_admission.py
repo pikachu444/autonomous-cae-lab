@@ -200,7 +200,7 @@ def validate_physics(text, model, initial, settings):
             if ident in materials: raise ValueError('Duplicate material identity')
             materials[ident]=(key,rows)
     properties=family('/PROP/SOLID/')
-    property_by_element={}
+    property_by_element={}; strain_by_element={}; tetra_by_element={}
     for eid,part in element_parts.items():
         if part not in parts or len(parts[part])!=2:raise ValueError('Missing native part')
         prop=_int(parts[part][1][:10])
@@ -211,8 +211,16 @@ def validate_physics(text, model, initial, settings):
             continue
         r=properties.get(prop,[])[1:]
         if len(r)!=4:raise ValueError('Missing effective solid formulation')
-        if [_int(r[0][i:i+10]) for i in range(0,80,10)]!=[24,-1,0,-1,2,0,3,-1]:
+        flags=[_int(r[0][i:i+10]) for i in range(0,80,10)]
+        # Keep old immutable attempts readable. New direct C3D4 inputs may
+        # explicitly select geometric strain=2 instead of runtime automatic=-1.
+        allowed=[[24,-1,0,-1,2,0,3,-1]]
+        if model['elements'][eid]['type']=='C3D4':
+            allowed.extend(([24,2,0,-1,2,0,3,-1],[24,-1,0,-1,2,0,1000,-1]))
+        if flags not in allowed:
             raise ValueError('Effective solid formulation changed')
+        strain_by_element[str(eid)]=flags[1]
+        tetra_by_element[str(eid)]=flags[6]
         _same(_real(r[0][80:100]),.1)
         for row,values in zip(r[1:3],[(1.1,.05,0,0,0),(0,.01,100,100,.01)]):
             for index,value in enumerate(values):_same(_real(row[index*20:(index+1)*20]),value)
@@ -272,7 +280,8 @@ def validate_physics(text, model, initial, settings):
     pairs=family('/INTER/TYPE24/')
     if len(pairs)!=len(settings['contacts']): raise ValueError('Native contact count differs')
     for i,pair in enumerate(settings['contacts'],1):
-        matches=[rows for rows in pairs.values() if rows[0].strip().upper()=='IMPACT'+str(i)]
+        expected_title=model.get('native_contact_titles',{}).get(str(i),'IMPACT'+str(i))
+        matches=[rows for rows in pairs.values() if rows[0].strip().upper()==expected_title]
         if len(matches)!=1: raise ValueError('Exact contact pair missing')
         r=matches[0][1:]
         if len(r)!=6 or _int(r[0][:10])!=surface_names[pair['b']] or _int(r[0][10:20])!=surface_names[pair['a']] or _int(r[0][20:30])!=4:
@@ -353,6 +362,8 @@ def validate_physics(text, model, initial, settings):
     return {'material_by_element':{str(e):model['assignment'][e] for e in element_parts},
         'part_by_element':{str(e):p for e,p in element_parts.items()},
         'property_by_element':property_by_element,
-        'effective_formulation':{'Isolid':24,'Itetra4':3,'Itetra10':2,'Icontrol':1,
+        'effective_formulation':{'Isolid':24,'Itetra4':next(iter(set(tetra_by_element.values()))) if len(set(tetra_by_element.values()))==1 else None,'Itetra10':2,'Icontrol':1,
+            'Itetra4_by_element':tetra_by_element,
+            'Ismstr_by_element':strain_by_element,
             'Abaqus_integration_equivalence':'NOT_CLAIMED'},'global_gravity_mm_s2':gravity,
         'fixed_dof_count':len(fixed),'velocity_node_count':len(velocities),'contact_count':len(pairs)}

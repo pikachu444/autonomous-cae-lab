@@ -231,6 +231,9 @@ def _explicit_catalog(outcome, output):
 
 def catalog_native_responses(backend, outcome, output):
     """Describe supported native channels without loading their full arrays."""
+    if backend == 'explicit.opencourant.model':
+        from ..impact_retained import catalog
+        return catalog(backend, outcome, output)
     if backend == _PDE:
         return _pde_catalog(outcome, output)
     if backend == _EXPLICIT:
@@ -243,6 +246,9 @@ def catalog_native_responses(backend, outcome, output):
 
 def read_native_response(backend, outcome, output, selector, *, start=None, stop=None):
     """Read one selected native response and a bounded half-open sample slice."""
+    if backend == 'explicit.opencourant.model':
+        from ..impact_retained import read
+        return read(backend, outcome, output, selector, start=start, stop=stop)
     catalog = catalog_native_responses(backend, outcome, output)
     if backend == _PDE:
         name, separator, node_text = selector.partition("@")

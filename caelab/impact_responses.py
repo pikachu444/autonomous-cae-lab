@@ -105,6 +105,8 @@ def read_selected(frames,model,rows,damage):
             'reduction':'none',**continuity(raw_rows,1),
             'metadata':{'label':label+' '+str(row['identity'])+' '+row['component'],'selection':deepcopy(row),
                 'origin':'DERIVED' if derived else 'NATIVE','frames':sources,
+                'source_entity':deepcopy(model.get('lineage',{}).get(
+                    'nodes' if association=='POINTS' else 'elements',{}).get(str(row['identity']))),
                 'status':'AVAILABLE' if any(v is not None for v in values) else 'UNKNOWN',
                 'limitations':(['All-contact nodal resultant; no pair identity'] if quantity.startswith('contact_') else [])}}
         response['raw_samples']['quality_reasons']=reasons

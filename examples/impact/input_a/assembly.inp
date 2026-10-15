@@ -1,0 +1,31 @@
+** Public synthetic elastic tetra; no qualification implied.
+*PART,NAME=Body-Part
+*INCLUDE,INPUT=parts/body.inc
+*END PART
+*ASSEMBLY,NAME=Drop
+*INSTANCE,NAME=Body-1,PART=Body-Part
+20,0,0
+0,0,0,0,0,1,90
+*END INSTANCE
+*INSTANCE,NAME=Body-2,PART=Body-Part
+40,0,0
+0,0,0,0,0,1,-90
+*NSET,NSET=Tip
+40
+*END INSTANCE
+*NSET,NSET=Fixed,INSTANCE=Body-1
+10
+*NSET,NSET=BothTips
+Body-1.40,Body-2.Tip
+*ELSET,ELSET=AllSolids
+Body-1.Solid,Body-2.Solid
+*SURFACE,NAME=Upper,TYPE=ELEMENT
+Body-2.Solid,S2
+*END ASSEMBLY
+*MATERIAL,NAME=Steel
+*DENSITY
+7.8e-9
+*ELASTIC
+210000,.3
+*BOUNDARY
+Drop.Fixed,1,3,0

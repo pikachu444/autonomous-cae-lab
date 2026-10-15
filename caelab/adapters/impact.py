@@ -68,15 +68,37 @@ def starter_admission(path, model):
         match=re.search(label+r'[^\n]*\(\s*Mg\s*,\s*mm\s*,\s*s\s*\)\s+([0-9.E+-]+)\s+([0-9.E+-]+)\s+([0-9.E+-]+)',text)
         if not match or not all(math.isclose(float(v),e,rel_tol=1e-9) for v,e in zip(match.groups(),(1000.,.001,1.))):
             raise ValueError('Starter units differ from Mg/mm/s; original log retained')
-    return {'name':'native_starter','status':'PASS','units':'Mg/mm/s','warnings':0,'errors':0}
+    # Automatic property defaults can be incompatible even with zero warnings.
+    # Inspect the actual Starter review, never infer resolved flags from input.
+    review=[];lines=text.splitlines();part_type=None
+    for index,line in enumerate(lines[:-1]):
+        if 'Part id,name:' in line:
+            kind=re.search(r'Elm type:\s*(\S+)',line)
+            part_type=kind[1] if kind else None
+        columns=line.split()
+        if 'Isolid' not in columns or 'Ismstr' not in columns or 'Itetra4' not in columns:continue
+        tokens=lines[index+1].split()
+        if len(tokens)!=len(columns) or any(not re.fullmatch(r'[+-]?\d+',v) for v in tokens):
+            raise ValueError('Starter formulation review is incomplete; Engine was not started')
+        actual=dict(zip(columns,map(int,tokens)));review.append(actual)
+        tetra_part=(part_type=='TETRA4' or part_type is None and
+                    all(e['type']=='C3D4' for e in model['elements'].values()))
+        if tetra_part and actual['Itetra4']==3 and actual['Ismstr'] in (10,12):
+            raise ValueError('Starter resolved Itetra4=3 with incompatible Ismstr=10/12; review the original solid property and material. For supported elastic C3D4, explicitly select Itetra4=1000. Engine was not started')
+    return {'name':'native_starter','status':'PASS','units':'Mg/mm/s','warnings':0,'errors':0,
+            'actual_formulation_review':review}
 
 
 class ImpactAdapter:
-    backend,version=domain.BACKEND,'1'
+    backend,version=domain.BACKEND,'2'
     input_source_files=[__file__,domain.__file__,Path(__file__).with_name('impact_admission.py'),
                         Path(__file__).with_name('impact_timing.py'),
                         Path(domain.__file__).with_name('impact_source.py'),
-                        Path(domain.__file__).with_name('impact_sets.py')]
+                        Path(domain.__file__).with_name('impact_sets.py'),
+                        *[Path(domain.__file__).with_name(name) for name in (
+                            'impact_assembly.py','impact_input_edits.py','impact_rad_source.py',
+                            'impact_native.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
+                            'impact_reference_bindings.py')]]
     default_settings=staticmethod(domain.default_settings)
     validate_settings=staticmethod(domain.validate_settings)
     input_runtime_identity=staticmethod(lambda:{'runtime':'explicit_selected_opencourant','qualification':'UNKNOWN'})
@@ -91,6 +113,8 @@ class ImpactAdapter:
 
     def describe_inputs(self,settings):
         s=domain.validate_settings(settings); rows=[]
+        if s['source']['format']=='RAD':
+            raise ValueError('native 원문 field 편집을 사용하세요. 원문과 분리된 수치 연구 입력 binding은 첫 지원 밖입니다')
         for i,m in enumerate(s['motions']):
             for key,label,unit in (('velocity_mm_s','초기 속도','mm/s'),('omega_rad_s','초기 각속도','rad/s')):
                 if key=='velocity_mm_s' and m['mode']!='velocity': continue
@@ -119,128 +143,184 @@ class ImpactAdapter:
         return domain.validate_settings(expected_settings(settings,self.describe_inputs(settings),values))
 
     def run(self,settings,*,output,runtime=None):
-        if runtime and set(runtime)-{'threads','memory_mb'}: raise ValueError('Operator runtime cannot be changed by the model')
-        s=domain.validate_settings(settings); model=domain.model_from_settings(s)
-        out=Path(output); native=out/'native'; native.mkdir()
+        if runtime and set(runtime)-{'threads','memory_mb'}:
+            raise ValueError('Operator runtime cannot be changed by the model')
+        s=domain.validate_settings(settings);model=domain.model_from_settings(s)
+        out=Path(output);native=out/'native'
         save_json(out/'input.json',s)
         from ..impact_source import retain
+        from ..impact_initial_state import describe as initial_integrals
+        from ..impact_retained import artifact_receipt,reference,catalog
         retain(s['source'],out/'source_bundle')
         save_json(out/'generated_sets.json',s.get('generated_sets',[]))
-        (out/'original.inp').write_text(s['source']['text'],encoding='ascii',newline='\n')
-        effective,initial=domain.render(s)
-        (native/'impact.inp').write_text(effective,encoding='ascii',newline='\n')
-        save_json(out/'initial_conditions.json',initial)
-        phase='runtime'; result={'execution_status':'FAILED','responses':{},'checks':[],
-            'diagnostics':{'decision':'NOT_RELEASED','qualification':'UNKNOWN'},'post_artifacts':[]}
-        names=None; identity=None; env=None
+        save_json(out/'source_lineage.json',model.get('lineage',{}))
+        direct=s['source']['format']=='RAD';name='impact';frames=[]
+        phase='input_admission';result={'execution_status':'FAILED','responses':{},'checks':[],
+            'diagnostics':{'decision':'NOT_RELEASED','qualification':'UNKNOWN',
+                           'native_execution_status':'NOT_STARTED',
+                           'input_route':'NATIVE_DIRECT' if direct else 'INP_COMPILED'},'post_artifacts':[]}
+        names=None;identity=None;env=None
         def command(argv,label):
             check_cancelled()
             process=run_owned_command([str(x) for x in argv],native,label,env=env,owned_tree=True)
-            if process.returncode: raise RuntimeError(label+' failed; native log and partial files retained')
+            if process.returncode:raise RuntimeError(label+' failed; native log and partial files retained')
             return process
         try:
+            if direct:
+                from ..impact_native import parse_source,export_direct
+                parsed=parse_source(s['source']);name=parsed['name']
+                direct_receipt=export_direct(s,native)
+                initial=parsed['initial'];physics=parsed['physics']
+                save_json(out/'native_direct_export.json',direct_receipt)
+                frozen={key:item['sha256'] for key,item in direct_receipt['files'].items()}
+                save_json(out/'physical_admission.json',{'physics':physics,
+                    'route':'NATIVE_DIRECT','original_native_bytes_preserved':True})
+                damage_receipt={'elements':{},'geometry':{},'status':'NOT_REQUESTED_NATIVE_ELASTIC'}
+                result['checks'].append({'name':'native_direct_mesh_and_physics','status':'PASS',
+                                        'converter_execution':'NOT_PERFORMED',**physics})
+            else:
+                native.mkdir()
+                (out/'original.inp').write_text(s['source']['text'],encoding='ascii',newline='\n')
+                effective,initial=domain.render(s)
+                (native/'impact.inp').write_text(effective,encoding='ascii',newline='\n')
+            save_json(out/'initial_conditions.json',initial)
+            save_json(out/'initial_mass_properties.json',initial_integrals(model,initial,s))
+            actual_model={**model,'nodes':initial['nodes']}
+            phase='runtime'
             names,env,identity=selected_runtime()
             result['diagnostics']['runtime']=identity
-            phase='conversion'
-            command([sys.executable,Path(__file__).with_name('inp2rad_worker.py'),native/'impact.inp'],'convert')
-            for tail in ('0000','0001'):
-                shutil.copyfile(native/f'impact_{tail}.rad',out/f'converted_{tail}.rad')
-            result['checks'].append({'name':'converted_mesh','status':'PASS',
-                **converted_mesh(native/'impact_0000.rad',model,initial['nodes'])})
-            starter=native/'impact_0000.rad'
-            effective_gravity,gravity_receipt=global_gravity(starter.read_text(encoding='ascii'),s['gravity_mm_s2'])
-            effective_gravity=normalize_contact_friction(effective_gravity,s)
-            effective_gravity,surface_receipt=normalize_surfaces(effective_gravity,model)
-            starter.write_text(effective_gravity,encoding='ascii',newline='\n')
-            physics=validate_physics(effective_gravity,model,initial,s)
-            from ..impact_damage import apply_laws,verify_laws
-            actual_model={**model,'nodes':initial['nodes']}
-            effective_gravity,damage_receipt=apply_laws(effective_gravity,actual_model,s.get('cohesive',[]))
-            verify_laws(effective_gravity,actual_model,s.get('cohesive',[]),damage_receipt)
-            starter.write_text(effective_gravity,encoding='ascii',newline='\n')
+            if not direct:
+                phase='conversion'
+                command([sys.executable,Path(__file__).with_name('inp2rad_worker.py'),native/'impact.inp'],'convert')
+                for tail in ('0000','0001'):
+                    shutil.copyfile(native/f'impact_{tail}.rad',out/f'converted_{tail}.rad')
+                result['checks'].append({'name':'converted_mesh','status':'PASS',
+                    **converted_mesh(native/'impact_0000.rad',model,initial['nodes'])})
+                starter=native/'impact_0000.rad'
+                effective_gravity,gravity_receipt=global_gravity(starter.read_text(encoding='ascii'),s['gravity_mm_s2'])
+                effective_gravity=normalize_contact_friction(effective_gravity,s)
+                effective_gravity,surface_receipt=normalize_surfaces(effective_gravity,model)
+                starter.write_text(effective_gravity,encoding='ascii',newline='\n')
+                physics=validate_physics(effective_gravity,model,initial,s)
+                from ..impact_damage import apply_laws,verify_laws
+                effective_gravity,damage_receipt=apply_laws(effective_gravity,actual_model,s.get('cohesive',[]))
+                verify_laws(effective_gravity,actual_model,s.get('cohesive',[]),damage_receipt)
+                starter.write_text(effective_gravity,encoding='ascii',newline='\n')
+                save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt,
+                                                       'surface_serialization':surface_receipt})
+                (native/'impact_0001.rad').write_text(domain.engine_deck(s),encoding='ascii',newline='\n')
+                frozen={p.name:file_hash(p) for p in native.glob('*.rad')}
             save_json(out/'damage_definition.json',damage_receipt)
-            save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt,'surface_serialization':surface_receipt})
             result['checks'].append({'name':'effective_physics','status':'PASS'})
-            (native/'impact_0001.rad').write_text(domain.engine_deck(s),encoding='ascii',newline='\n')
-            frozen={p.name:file_hash(p) for p in native.glob('*.rad')}
+            save_json(out/'effective_deck_pins.json',frozen)
             phase='starter'
-            command([names['starter'],'-i','impact_0000.rad','-np','1','-nt','2'],'starter')
-            result['checks'].append(starter_admission(native/'impact_0000.out',model))
-            phase='engine'
-            process=command([names['engine'],'-i','impact_0001.rad','-nt','2'],'engine')
-            termination=engine_termination(native/'impact_0001.out',process.stdout,s['time']['end_s'])
+            command([names['starter'],'-i',name+'_0000.rad','-np','1','-nt','2'],'starter')
+            result['checks'].append(starter_admission(native/(name+'_0000.out'),model))
+            if any(file_hash(native/key)!=value for key,value in frozen.items()):
+                raise ValueError('Effective deck/include bytes changed during Starter')
+            phase='engine';result['diagnostics']['native_execution_status']='STARTED'
+            process=command([names['engine'],'-i',name+'_0001.rad','-nt','2'],'engine')
+            termination=engine_termination(native/(name+'_0001.out'),process.stdout,s['time']['end_s'])
             result['diagnostics']['native_termination']=termination
             if termination['status']!='NORMAL':
                 raise ValueError('Engine termination is '+termination['status']+'; native stop evidence retained')
-            if any(file_hash(native/name)!=value for name,value in frozen.items()):
-                raise ValueError('Effective deck changed during execution')
-            current=selected_runtime()[2]
-            if current!=identity: raise ValueError('Selected runtime changed during execution')
+            if any(file_hash(native/key)!=value for key,value in frozen.items()):
+                raise ValueError('Effective deck/include bytes changed during execution')
+            if selected_runtime()[2]!=identity:raise ValueError('Selected runtime changed during execution')
+            result['diagnostics']['native_execution_status']='SUCCEEDED'
             result['execution_status']='SUCCEEDED'
-        except ExecutionCleanupFailed: raise
+        except ExecutionCleanupFailed:
+            result['diagnostics'].update(last_phase=phase,cleanup_unconfirmed=True,
+                source_sha256=canonical_hash(s['source']))
+            save_json(out/'impact_execution.json',result)
+            raise
         except ExecutionCancelled as error:
-            result['execution_status']='CANCELLED'; result['diagnostics']['reason']=str(error)
-        except (ValueError,KeyError,TypeError,OSError,RuntimeError) as error:
+            result['execution_status']='CANCELLED';result['diagnostics']['reason']=str(error)
+            if result['diagnostics']['native_execution_status']=='STARTED':
+                result['diagnostics']['native_execution_status']='CANCELLED'
+        except (ValueError,KeyError,TypeError,OSError,RuntimeError,ArithmeticError) as error:
             result['diagnostics']['reason']=str(error)
-        result['diagnostics']['last_phase']=phase
-        # Only completed execution starts converters. A cancelled owner must not
-        # spawn new processes; its raw partial files remain retained for reading.
+            if result['diagnostics']['native_execution_status']=='STARTED':
+                result['diagnostics']['native_execution_status']='FAILED'
+        # A cancelled owner cannot start postprocessors. Later explicit read jobs
+        # retain the original solver failure/cancellation separately.
         if result['execution_status']=='SUCCEEDED':
             try:
                 phase='readback'
-                th=native/'impactT01'
-                if not th.is_file() or not th.with_name(th.name+'_TITLES').is_file():
-                    raise ValueError('Native history or matching titles missing')
-                command([names['th_to_csv'],'impactT01','history'],'history_convert')
-                responses,table=history(native/'history.csv')
-                save_json(out/'history.json',table); result['responses']=responses
-                integrity=history_inventory(th,table)
-                coverage=sample_coverage([r['values'][0] for r in table['rows']],
-                                        s['time']['end_s'],s['time']['history_interval_s'])
-                coverage['native_records']=integrity
-                coverage['converted_source']={'artifact':'history.csv','sha256':file_hash(native/'history.csv')}
-                result['diagnostics']['history_coverage']=coverage
-                result['diagnostics']['energy_observations']=energy_observations(table,native/'history.csv')
-                for response in responses.values():
-                    response['metadata']['sample_coverage']=deepcopy(coverage)
-                frames=[]
-                paths=sorted(native.glob('impactA[0-9]*'),key=lambda p:int(p.name.split('A')[-1]))
-                for index,path in enumerate(paths):
-                    if index>=1024: raise ValueError('Native frame count exceeds limit')
-                    process=command([names['anim_to_vtk'],path.name],f'animation_{index:04d}')
-                    payload=process.stdout
-                    if isinstance(payload,str): payload=payload.encode('ascii')
-                    target=native/f'frame{index:04d}.vtk'; target.write_bytes(payload)
-                    raw=read_vtk(target)
-                    raw['coverage']=validate_frame_identity(raw,model,physics)
-                    frames.append((target,raw))
-                if not frames: raise ValueError('No native animation frame was retained')
-                frame_coverage=sample_coverage([raw['time'] for _,raw in frames],
-                                              s['time']['end_s'],s['time']['field_interval_s'])
-                result['diagnostics']['animation_coverage']=frame_coverage
-                from ..impact_responses import read_selected
-                chosen,selection_record=read_selected(frames,actual_model,s.get('responses',[]),damage_receipt)
-                for response in chosen.values():
-                    response.setdefault('metadata',{})['sample_coverage']=deepcopy(frame_coverage)
-                result['responses'].update(chosen)
-                save_json(out/'selected_responses.json',selection_record)
-                metadata=write_post(out/'post',frames,damage=damage_receipt)
-                pvd=out/'post/impact.pvd'
-                result['post_artifacts']=[{'relative':'post/impact.pvd','sha256':file_hash(pvd),
-                    'native_metadata':metadata,'response':'impact_fields',
-                    'dependencies':{p.name:file_hash(p) for p in sorted(pvd.parent.glob('*.vtu'))}}]
-                result['diagnostics']['frame_count']=len(frames)
-            except ExecutionCleanupFailed: raise
+                read_outputs(out,s,actual_model,physics,damage_receipt,result,frames,
+                             name=name,command=command,names=names,convert=True)
+            except ExecutionCleanupFailed:
+                result['diagnostics'].update(last_phase=phase,cleanup_unconfirmed=True,
+                    source_sha256=canonical_hash(s['source']))
+                save_json(out/'impact_execution.json',result)
+                raise
             except ExecutionCancelled as error:
-                result['execution_status']='CANCELLED'; result['diagnostics']['readback_error']=str(error)
+                result['execution_status']='CANCELLED';result['diagnostics']['readback_error']=str(error)
             except (ValueError,KeyError,TypeError,OSError,RuntimeError) as error:
-                result['diagnostics']['native_execution_status']='SUCCEEDED'
-                result['execution_status']='FAILED'; result['diagnostics']['readback_error']=str(error)
+                result['execution_status']='FAILED';result['diagnostics']['readback_error']=str(error)
         result['diagnostics'].update(last_phase=phase,source_sha256=canonical_hash(s['source']),
             physical_failure='UNKNOWN',partial_output=result['execution_status']!='SUCCEEDED',
             contact_scope='TYPE24 corner-faceted surfaces, no static penalty-law equivalence',
             limitations=['No inferred failure/life from solver termination','Unknown native arrays retained without invented units',
                          'Selected nodal force is all-contact, not pair-specific; impulse is animation-sample quadrature',
-                         'Cohesive fatigue, arbitrary cyclic plasticity and general native RAD import remain unsupported'])
+                         'First hierarchy/native route: elastic C3D4; unsupported influence cards block execution',
+                         'Input-derived COM/inertia are not solver RBODY measurements; general rigid native cards remain blocked'])
+        result['retained_native']=artifact_receipt(out,frames)
         save_json(out/'impact_execution.json',result)
+        # The evaluator already knows how to retain native channels and source
+        # references. The receipt cannot recursively contain its own digest.
+        result['diagnostics']['native_outcome']=reference(out)
+        if frames:
+            result['native_channels']=catalog(self.backend,result['diagnostics']['native_outcome'],out)
+            result['native_result']={'backend':self.backend,'directory':'.'}
         return result
+
+
+def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=None,names=None,convert=False):
+    """Actual TH/ANIM reader shared with an explicit, solver-free re-read job."""
+    from ..impact_retained import FrameView,frame_record
+    out=Path(out);native=out/'native'
+    th=native/(name+'T01')
+    if not th.is_file() or not th.with_name(th.name+'_TITLES').is_file():
+        raise ValueError('Native history or matching titles missing')
+    if convert:command([names['th_to_csv'],th.name,'history'],'history_convert')
+    responses,table=history(native/'history.csv')
+    save_json(out/'history.json',table);result['responses']=responses
+    integrity=history_inventory(th,table)
+    coverage=sample_coverage([r['values'][0] for r in table['rows']],s['time']['end_s'],s['time']['history_interval_s'])
+    coverage['native_records']=integrity
+    coverage['converted_source']={'artifact':'history.csv','sha256':file_hash(native/'history.csv')}
+    result['diagnostics']['history_coverage']=coverage
+    result['diagnostics']['energy_observations']=energy_observations(table,native/'history.csv')
+    for response in responses.values():response['metadata']['sample_coverage']=deepcopy(coverage)
+    if convert:
+        paths=sorted(native.glob(name+'A[0-9]*'),key=lambda p:int(p.name[len(name)+1:]))
+    else:paths=sorted(native.glob('frame[0-9][0-9][0-9][0-9].vtk'))
+    for index,path in enumerate(paths):
+        check_cancelled()
+        if index>=1024:raise ValueError('Native frame count exceeds limit')
+        if convert:
+            process=command([names['anim_to_vtk'],path.name],f'animation_{index:04d}')
+            payload=process.stdout
+            if isinstance(payload,str):payload=payload.encode('ascii')
+            target=native/f'frame{index:04d}.vtk';target.write_bytes(payload)
+        else:target=path
+        raw=read_vtk(target);raw['coverage']=validate_frame_identity(raw,model,physics)
+        if frame_records and raw['time']<=frame_records[-1]['time_s']:
+            raise ValueError('Duplicate/non-monotonic native animation time')
+        frame_records.append(frame_record(out,target,raw))
+    if not frame_records:raise ValueError('No native animation frame was retained')
+    frames=FrameView(out,frame_records,model,physics)
+    frame_coverage=sample_coverage([r['time_s'] for r in frame_records],s['time']['end_s'],s['time']['field_interval_s'])
+    result['diagnostics']['animation_coverage']=frame_coverage
+    from ..impact_responses import read_selected
+    chosen,selection_record=read_selected(frames,model,s.get('responses',[]),damage)
+    for response in chosen.values():response.setdefault('metadata',{})['sample_coverage']=deepcopy(frame_coverage)
+    result['responses'].update(chosen)
+    save_json(out/'selected_responses.json',selection_record)
+    metadata=write_post(out/'post',frames,damage=damage)
+    pvd=out/'post/impact.pvd'
+    result['post_artifacts']=[{'relative':'post/impact.pvd','sha256':file_hash(pvd),
+        'native_metadata':metadata,'response':'impact_fields',
+        'dependencies':{p.name:file_hash(p) for p in sorted(pvd.parent.glob('*.vtu'))}}]
+    result['diagnostics']['frame_count']=len(frames)

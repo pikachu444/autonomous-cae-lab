@@ -94,7 +94,7 @@ def diagnostics(draft):
     try:
         validate_draft(draft)
     except (ValueError, TypeError, KeyError, OverflowError, ImportError) as error:
-        return [{'path': getattr(error,'path','settings'), 'line':getattr(error,'line',None), 'column':getattr(error,'column',None), 'severity': 'error', 'message': str(error), 'blocks_evaluation': True}]
+        return [{'path': getattr(error,'path','settings'), 'line':getattr(error,'line',None), 'column':getattr(error,'column',None), 'file':getattr(error,'file',None), 'occurrence':getattr(error,'occurrence',None), 'impact':deepcopy(getattr(error,'impact',{})), 'severity': 'error', 'message': str(error), 'blocks_evaluation': True}]
     return []
 
 
@@ -126,6 +126,22 @@ class SimulationDocuments(MaterialDocuments):
         # A captured thermal field is bounded by the existing research document limit.
         from .pde_document import PDEDocuments
         return PDEDocuments._draft(value)
+
+    @property
+    def evaluation_commands(self):
+        return super().evaluation_commands | {'simulation.reprocess'}
+
+    def prepare_command_job(self, operation, arguments, document):
+        if operation == 'simulation.reprocess':
+            from .impact_recovery import document_request
+            return document_request(self, document, arguments)
+        return super().prepare_command_job(operation, arguments, document)
+
+    def command_input_context(self, operation, arguments, document, snapshot):
+        if operation == 'simulation.reprocess':
+            from .impact_recovery import source_input_context
+            return source_input_context(document, arguments, snapshot)
+        return super().command_input_context(operation, arguments, document, snapshot)
 
     def _public(self, document):
         result = super()._public(document)

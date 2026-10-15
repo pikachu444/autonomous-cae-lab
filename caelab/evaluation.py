@@ -472,7 +472,8 @@ def _read_result(path, *, verify, selection, arrays):
                 shown={row:index for index,row in enumerate(response['source_rows'])}
                 segments=[]
                 for segment in response['segments']:
-                    source_rows=[row for row in array_value(segment.get('source_rows',[])) if row in shown]
+                    source_rows=[row.item() if isinstance(row,np.generic) else row
+                                 for row in array_value(segment.get('source_rows',[])) if row in shown]
                     if source_rows:
                         segments.append({**segment,'source_rows':source_rows,
                             'rows':[shown[source_rows[0]],shown[source_rows[-1]]+1]})

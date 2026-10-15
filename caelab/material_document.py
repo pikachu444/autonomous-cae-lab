@@ -58,8 +58,25 @@ class MaterialDocuments(RetainedComparisons):
     evaluation_operation = 'evaluate'
 
     @property
+    def evaluation_commands(self):
+        return {self.evaluate_operation}
+
+    @property
     def operations(self):
-        return {self.update_operation, self.evaluate_operation, 'document.undo', 'document.redo', 'document.save'}
+        return {self.update_operation, 'document.undo', 'document.redo', 'document.save'} | self.evaluation_commands
+
+    def prepare_command_job(self, operation, arguments, document):
+        if arguments:
+            raise ValueError('Evaluate requires empty arguments')
+        errors = self.diagnostics(document['draft'])
+        if errors:
+            raise ValueError('Invalid draft blocks evaluation: ' + errors[0]['message'])
+        snapshot = deepcopy(document['draft'])
+        return snapshot, self.evaluation_for(snapshot), self.prepare_job_arguments(snapshot, document)
+
+    def command_input_context(self, operation, arguments, document, snapshot):
+        """Identity of the frozen input; command authority still uses the open draft."""
+        return {'input_generation': document['generation'], 'input_revision': document['input_revision']}
 
     @staticmethod
     def default_draft():
@@ -308,7 +325,7 @@ class MaterialDocuments(RetainedComparisons):
         """A submitted job survives a lost document write; attach it without resubmitting."""
         for path in (self._folder(document['id']) / 'commands').glob('*.json'):
             prior = load_json(path)
-            if 'response' in prior or prior.get('operation') != self.evaluate_operation:
+            if 'response' in prior or prior.get('operation') not in self.evaluation_commands:
                 continue
             request_id = self.kind + ':' + document['id'] + ':' + path.stem
             job = next((job for job in self.manager.list() if job.get('request_id') == request_id), None)
@@ -322,8 +339,15 @@ class MaterialDocuments(RetainedComparisons):
                 arguments = self.job_arguments(prior['input'])
             if job['operation'] != operation or canonical_hash(job['arguments']) != canonical_hash(arguments):
                 raise ValueError('Interrupted Material command and retained job input disagree')
+            snapshot = prior.get('submitted_input', prior['input'])
+            input_document = dict(document, generation=prior['input_generation'],
+                                  input_revision=prior.get('input_revision'))
+            expected_context = self.command_input_context(prior['operation'], arguments, input_document, snapshot)
+            context = prior.get('submitted_input_context', expected_context)
+            if context != expected_context:
+                raise ValueError('Interrupted command and retained input identity disagree')
             if not any(run['job_id'] == job['id'] for run in document['runs']):
-                run = self._run_record(job, prior['input'], prior['input_generation'], prior.get('input_revision'), prior.get('session_id'))
+                run = self._run_record(job, snapshot, context['input_generation'], context['input_revision'], prior.get('session_id'))
                 run['recovered_after_response_loss'] = True
                 document['runs'].append(run)
             self._persist_draft(document)
@@ -395,21 +419,19 @@ class MaterialDocuments(RetainedComparisons):
             elif operation == 'data.processing.apply' and self.kind == 'data':
                 from .data_processing_document import apply
                 processing = apply(self, document, arguments, command_id)
-            elif arguments:
+            elif arguments and operation not in self.evaluation_commands:
                 raise ValueError('Save/evaluate requires empty arguments')
             job = None
-            if operation == self.evaluate_operation:
-                errors = self.diagnostics(document['draft'])
-                if errors:
-                    raise ValueError('Invalid draft blocks evaluation: ' + errors[0]['message'])
-                snapshot = deepcopy(document['draft'])
-                operation_to_run, arguments_to_run = self.evaluation_for(snapshot), self.prepare_job_arguments(snapshot, document)
+            if operation in self.evaluation_commands:
+                snapshot, operation_to_run, arguments_to_run = self.prepare_command_job(operation, arguments, document)
+                input_context = self.command_input_context(operation, arguments_to_run, document, snapshot)
                 prepared = load_json(receipt)
-                prepared.update(submitted_operation=operation_to_run, submitted_arguments=arguments_to_run)
+                prepared.update(submitted_operation=operation_to_run, submitted_arguments=arguments_to_run,
+                                submitted_input=deepcopy(snapshot), submitted_input_context=deepcopy(input_context))
                 save_json(receipt, prepared)
                 job = self.submit(operation_to_run, arguments_to_run, request_id=self.kind + ':' + identifier + ':' + command_id)
-                document['runs'].append(self._run_record(job, snapshot, document['generation'],
-                                                        document['input_revision'], self.session_id))
+                document['runs'].append(self._run_record(job, snapshot, input_context['input_generation'],
+                                                        input_context['input_revision'], self.session_id))
             if operation == 'document.save':
                 from .related_save import save_marker
                 document['_save_command'] = save_marker(document, command_id, signature)

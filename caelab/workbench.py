@@ -21,7 +21,7 @@ OPERATIONS = {'detail_eval','evaluate','run','import_table','fit','doe','optimiz
               'batch_export','batch_import','surrogate','epsilon','sensitivity',
               'sample_sensitivity', 'experiment_uncertainty', 'identification_final',
               'knowledge.ingest','knowledge.rebuild','knowledge.revoke','literature.search','literature.read',
-              'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled','dynamic.reprocess'}
+              'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled','dynamic.reprocess','impact.reprocess'}
 
 
 def contained(root, relative):
@@ -719,6 +719,9 @@ class Workbench:
                 raise ValueError('Native CAD candidates currently run serially with one worker')
             if '_native_context' in arguments.get('settings', {}):
                 raise ValueError('Native execution context is service-owned')
+        if operation == 'impact.reprocess':
+            from .impact_recovery import prepare
+            arguments = prepare(self, arguments)
         if operation == 'dynamic.reprocess':
             from .dynamic_recovery_job import prepare
             arguments = prepare(self, arguments)
@@ -935,6 +938,9 @@ class Workbench:
         if backend=='structure.felupe.law_native' and 'source_receipt' in settings:
             from .law_native_provenance import admitted_guard_paths
             provenance_paths=admitted_guard_paths(settings)
+        elif backend=='explicit.opencourant.model' and 'source' in settings:
+            from .impact_input_workflow import admitted_guard_paths
+            provenance_paths=admitted_guard_paths(settings)
         def reject_paths(value,trail=()):
             if isinstance(value,dict):
                 for key,item in value.items():
@@ -950,6 +956,9 @@ class Workbench:
         return settings
 
     def _execute(self, operation, arguments, identifier):
+        if operation == 'impact.reprocess':
+            from .impact_recovery import execute
+            return execute(self, arguments, identifier)
         if operation == 'dynamic.reprocess':
             from .dynamic_recovery_job import execute
             return execute(self, arguments, identifier)

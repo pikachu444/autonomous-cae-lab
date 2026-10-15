@@ -231,16 +231,27 @@ def model_from_settings(settings):
     from .impact_sets import apply
     source=settings.get('source')
     text,spans=resolve(source)
-    return apply(parse_inp(text,spans),source,settings.get('generated_sets',[]))
+    if source.get('format') == 'RAD':
+        from .impact_native import parse_source
+        model = parse_source(source)['model']
+    else:
+        from .impact_assembly import has_hierarchy, compile_source
+        model = compile_source(text, spans) if has_hierarchy(text) else parse_inp(text,spans)
+    return apply(model,source,settings.get('generated_sets',[]))
 
 
 def validate_settings(settings):
-    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets'}!=set(default_settings())-{'cohesive','responses','generated_sets'}:
+    if isinstance(settings,dict) and settings.get('source',{}).get('format') == 'RAD':
+        from .impact_native import validate_settings as validate_native
+        return validate_native(settings)
+    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets','source_reference_bindings'}!=set(default_settings())-{'cohesive','responses','generated_sets','source_reference_bindings'}:
         raise ValueError('충격 정의의 필수 항목을 확인하세요')
     source=settings['source']
     if not isinstance(source,dict) or source.get('format')!='INP' or source.get('units')!='Mg/mm/s':
         raise ValueError('이 경로는 명시적으로 Mg/mm/s/N/MPa로 작성한 INP를 사용합니다')
     model=model_from_settings(settings)
+    from .impact_reference_bindings import validate as validate_bindings
+    validate_bindings(settings,model)
     from .impact_damage import validate as validate_damage
     validate_damage(model,settings.get('cohesive',[]))
     from .impact_responses import validate as validate_responses
@@ -267,6 +278,8 @@ def validate_settings(settings):
             h=number(m['height_mm'],'높이',True)
             if not math.hypot(*gravity): raise ValueError('높이 조건에는 중력 방향과 크기가 필요합니다')
             if any(m['velocity_mm_s']): raise ValueError('높이 조건에서는 초기 병진 속도를 0으로 두세요. 낙하와 환산 속도를 중복 적용하지 않습니다')
+        from .impact_initial_state import validate_motion
+        validate_motion(model,m,gravity)
     pairs=set()
     for pair in settings['contacts']:
         a,b=pair['a'],pair['b']
@@ -280,21 +293,15 @@ def validate_settings(settings):
 
 def render(settings):
     validate_settings(settings)
+    if settings['source']['format']=='RAD':
+        raise ValueError('Native RAD must use direct export; INP regeneration is forbidden')
     model=model_from_settings(settings)
-    nodes=deepcopy(model['nodes']); velocities={}
+    nodes=deepcopy(model['nodes']); velocities={}; motion_receipts=[]
     gravity=settings['gravity_mm_s2']; g=math.hypot(*gravity)
+    from .impact_initial_state import motion_state
     for m in settings['motions']:
-        shift=list(m['translation_mm']); velocity=list(m['velocity_mm_s'])
-        if m['mode']=='release_height':
-            shift=[x-m['height_mm']*a/g for x,a in zip(shift,gravity)]
-        elif m['mode']=='impact_height':
-            velocity=[math.sqrt(2*g*m['height_mm'])*a/g for a in gravity]
-        for n in model['nsets'][m['node_set']]:
-            # Rotation centre moves with the prescribed body translation.
-            r=[x-c for x,c in zip(nodes[n],m['center_mm'])]; w=m['omega_rad_s']
-            spin=[w[1]*r[2]-w[2]*r[1],w[2]*r[0]-w[0]*r[2],w[0]*r[1]-w[1]*r[0]]
-            velocities[n]=[v+s for v,s in zip(velocity,spin)]
-            nodes[n]=[x+s for x,s in zip(nodes[n],shift)]
+        moved,speeds,receipt=motion_state(model,m,gravity)
+        nodes.update(moved);velocities.update(speeds);motion_receipts.append(receipt)
     lines=['** CAELab explicit canonical Mg/mm/s input','*NODE']
     lines.extend(str(n)+','+','.join(format(x,'.17g') for x in xyz) for n,xyz in sorted(nodes.items()))
     for kind in sorted({row['type'] for row in model['elements'].values()}):
@@ -345,7 +352,8 @@ def render(settings):
         lines.append(',GRAV,'+format(g,'.17g')+','+','.join(format(a/g,'.17g') for a in gravity))
     lines.extend(['*END STEP',''])
     return '\n'.join(lines), {'nodes':nodes,'velocities_mm_s':velocities,
-        'units':'Mg/mm/s/N/MPa','contact_geometry':'corner_facets','active_state':'UNKNOWN'}
+        'units':'Mg/mm/s/N/MPa','contact_geometry':'corner_facets','active_state':'UNKNOWN',
+        'motions':motion_receipts}
 
 
 def engine_deck(settings, name='impact'):

@@ -73,7 +73,7 @@ def include_name(line):
     return relative_name(raw)
 
 
-def flatten(entry, read, cancel=lambda: False):
+def flatten(entry, read, cancel=lambda: False, *, dialect="INP"):
     """read(logical_name)->ASCII bytes, never resolves from the including parent."""
     files, order, spans, lines = {}, [], [], []
     expanded_bytes = 0
@@ -106,12 +106,17 @@ def flatten(entry, read, cancel=lambda: False):
             start = i + 1
             logical = physical[i]; i += 1
             # Abaqus keyword continuation, including INCLUDE split after a comma.
-            if logical.lstrip().startswith('*') and not logical.lstrip().startswith('**'):
+            if dialect == 'INP' and logical.lstrip().startswith('*') and not logical.lstrip().startswith('**'):
                 while logical.rstrip().endswith(',') and i < len(physical):
                     following = physical[i].strip()
                     if following.startswith('*'): break
                     logical += following; i += 1
-            try: child = include_name(logical)
+            try:
+                if dialect == 'RAD':
+                    from .impact_rad_source import include_name as rad_include
+                    child = rad_include(logical)
+                else:
+                    child = include_name(logical)
             except SourceError as error: raise SourceError(str(error), name, start, stack) from error
             if child is not None:
                 visit(child, (*stack, name), name, start)
@@ -135,7 +140,10 @@ def _bounded(source):
         raise SourceError('원파일과 펼친 입력을 함께 저장하는 한도(6 MiB)를 초과했습니다')
 
 
-def capture(entry, root, *, cancel=lambda: False):
+def capture(entry, root, *, cancel=lambda: False, engine=None, units=None):
+    if Path(entry).suffix.lower() == '.rad' or engine is not None:
+        from .impact_rad_source import capture as capture_rad
+        return capture_rad(entry, engine, root, cancel=cancel, units=units)
     if not str(root).strip() or not str(entry).strip():
         raise SourceError('주 입력 파일과 제출 작업 폴더를 명시적으로 선택하세요')
     root = Path(root).absolute()
@@ -143,7 +151,8 @@ def capture(entry, root, *, cancel=lambda: False):
     entry = Path(entry).absolute()
     try: name = entry.relative_to(root).as_posix()
     except ValueError as error: raise SourceError('주 입력 파일은 선택한 작업 폴더 안에 있어야 합니다') from error
-    from .read_paths import verified_read_paths, _identity
+    from .read_paths import verified_read_paths
+    from .dynamic_native_stream import _stamp, _view_stamp
     try:
         with verified_read_paths(SimpleNamespace(store=root)) as guard:
             def read(relative):
@@ -151,11 +160,15 @@ def capture(entry, root, *, cancel=lambda: False):
                 before = target.lstat()
                 flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
                 with os.fdopen(os.open(target, flags), 'rb') as stream:
-                    if _identity(os.fstat(stream.fileno())) != _identity(before):
+                    opened = os.fstat(stream.fileno())
+                    if _stamp(opened) != _stamp(before):
                         raise SourceError('입력 파일이 읽기 전에 변경되었습니다')
                     payload = stream.read(MAX_BYTES + 1)
-                    if _identity(os.fstat(stream.fileno())) != _identity(before):
+                    after = os.fstat(stream.fileno())
+                    if _stamp(after) != _stamp(before) or _view_stamp(after) != _view_stamp(opened):
                         raise SourceError('입력 파일이 읽는 동안 변경되었습니다')
+                if _view_stamp(target.lstat()) != _view_stamp(before):
+                    raise SourceError('입력 파일 경로가 읽는 동안 변경되었습니다')
                 guard.recheck()
                 return payload
             text, files, order, spans = flatten(name, read, cancel)
@@ -173,7 +186,12 @@ def capture(entry, root, *, cancel=lambda: False):
 
 def resolve(source):
     if not isinstance(source, dict): raise SourceError('원 입력을 확인하세요')
-    if 'bundle' not in source: return source.get('text'), []
+    if source.get('format') == 'RAD':
+        from .impact_rad_source import resolve as resolve_rad
+        return resolve_rad(source)
+    if 'bundle' not in source:
+        if source.get('edits'): raise SourceError('편집에는 보존 원 입력 묶음이 필요합니다')
+        return source.get('text'), []
     _bounded(source)
     bundle = source['bundle']
     if not isinstance(bundle, dict) or type(bundle.get('version')) is not int or bundle['version'] != 1: raise SourceError('입력 묶음 버전을 확인하세요')
@@ -193,8 +211,14 @@ def resolve(source):
         return table[name]
     text, used, order, spans = flatten(bundle['entry'], read)
     if {f['path'] for f in used} != set(table): raise SourceError('참조되지 않은 파일이 보존 묶음에 있습니다')
-    if text != source.get('text') or digest(text.encode('ascii')) != bundle.get('flattened_sha256') or order != bundle.get('order') or spans != bundle.get('line_map'):
+    if (not source.get('edits') and text != source.get('text')) or digest(text.encode('ascii')) != bundle.get('flattened_sha256') or order != bundle.get('order') or spans != bundle.get('line_map'):
         raise SourceError('펼친 입력 또는 원행 대응이 보존 원파일과 다릅니다')
+    if source.get('edits'):
+        from .impact_input_edits import edited_files
+        effective = edited_files(source)
+        text, used, _, spans = flatten(bundle['entry'], effective.__getitem__)
+        if {f['path'] for f in used} != set(effective) or text != source.get('text'):
+            raise SourceError('수정 입력 또는 include 대응이 편집 hunk와 다릅니다')
     return text, spans
 
 
@@ -207,6 +231,9 @@ def locate(spans, line):
 
 def retain(source, output):
     """Only adapter-owned empty attempt subdirectory; no external source reread."""
+    if source.get('format') == 'RAD':
+        from .impact_rad_source import retain as retain_rad
+        return retain_rad(source, output)
     text, _ = resolve(source)
     output = Path(output); output.mkdir()
     (output / 'flattened.inp').write_bytes(text.encode('ascii'))
@@ -217,11 +244,16 @@ def retain(source, output):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(row['text'].encode('ascii'))
         (output / 'manifest.json').write_text(json.dumps(source['bundle'], ensure_ascii=False, indent=2), encoding='utf-8')
+    if source.get('edits'):
+        (output / 'edits.json').write_text(json.dumps(source['edits'], ensure_ascii=False, indent=2), encoding='utf-8')
     return {'format': 'INP', 'units': source['units'], 'flattened_sha256': digest(text.encode('ascii'))}
 
 
 def export_effective(settings, path):
     """Write a new standalone canonical INP; never overwrite an imported original."""
+    if settings.get('source', {}).get('format') == 'RAD':
+        from .impact_native import export_direct
+        return export_direct(settings, path)
     from .impact_model import render
     text, _ = render(settings)
     path = Path(path)

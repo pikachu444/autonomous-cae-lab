@@ -113,11 +113,11 @@ def validate_frame_identity(frame, model, physics):
         'display_cell_count':len(element_ids),'native_element_count':len(set(element_ids))}
 
 
-def read_vtk(path):
+def read_vtk(path, *, expected_pin=None):
     """Bounded reader of the pinned converter's legacy ASCII output, not arbitrary VTK."""
     path=Path(path)
-    if path.stat().st_size>512*1024**2: raise ValueError('Animation text exceeds 512 MiB')
-    lines=path.read_text(encoding='ascii').splitlines()
+    from ..impact_native_io import read_bytes
+    lines=read_bytes(path,expected=expected_pin,maximum=512*1024**2).decode('ascii').splitlines()
     if len(lines)<4 or lines[2].strip()!='ASCII' or lines[3].strip()!='DATASET UNSTRUCTURED_GRID':
         raise ValueError('Expected the official ANIM converter ASCII grid')
     tokens=iter(' '.join(lines[4:]).split())
