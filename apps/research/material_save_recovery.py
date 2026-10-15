@@ -33,6 +33,27 @@ def checked_context(context, material_id):
     return deepcopy(context)
 
 
+def saved_metadata(current, saved, *, previous_saved_revision):
+    """Accept a save receipt only for the same acknowledged Material input."""
+    if not isinstance(current, dict) or not isinstance(saved, dict):
+        return None
+    keys=('id','kind','session_id','generation','input_revision','draft')
+    if (current.get('kind') != 'material' or type(current.get('generation')) is not int
+            or type(saved.get('generation')) is not int or type(saved.get('dirty')) is not bool
+            or not isinstance(saved.get('saved_revision'), str)
+            or not saved['saved_revision'] or any(current.get(key) != saved.get(key) for key in keys)):
+        return None
+    if current.get('saved_revision') not in (previous_saved_revision, saved['saved_revision']):
+        return None
+    from caelab.storage import canonical_hash
+    if canonical_hash(current['draft']) != canonical_hash(saved['draft']):
+        return None
+    refreshed=deepcopy(current)
+    refreshed['saved_revision']=saved['saved_revision']
+    refreshed['dirty']=saved['dirty']
+    return refreshed
+
+
 def snapshot_context(window):
     panel = getattr(window, '_plan_panel', None)
     if panel is not None and panel._related_save_material_id == window.document['id']:

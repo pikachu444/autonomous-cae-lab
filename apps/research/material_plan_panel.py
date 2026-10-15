@@ -277,25 +277,45 @@ class MaterialPlanPanel(QWidget):
             publication_state = dialog.receipt.get('publication', {}).get('state')
             if dialog.receipt.get('state') != 'UNCONFIRMED' and publication_state not in ('UNKNOWN', 'UPDATING', 'SAVING'):
                 self._related_save_unconfirmed.discard(identifier)
+            # A successful immutable save can change only saved metadata while
+            # a local delegate stays open. Do not repaint or commit that editor.
+            for target in dialog.receipt['targets']:
+                if target['state'] != 'SAVED': continue
+                saved = target['attempts'][-1]['response']['document']
+                if target['identity']['document_id'] == before_material['id']:
+                    from .material_save_recovery import saved_metadata
+                    refreshed = saved_metadata(material.document, saved,
+                        previous_saved_revision=target['identity']['saved_revision'])
+                    if refreshed is not None:
+                        material.document = refreshed
+                elif callable(getattr(widget, 'refresh_saved_metadata', None)):
+                    if widget.refresh_saved_metadata(saved, previous_saved_revision=target['identity']['saved_revision']):
+                        self._documents[identifier] = widget.document_snapshot()
             if not dialog.allow_writes:
+                self.message.setText('저장 결과를 읽었습니다. 편집 원문은 유지됩니다.')
+                if material.message.text() == '저장 결과를 먼저 확인하세요. 창과 편집 원문은 유지됩니다.':
+                    material.message.setText('저장 결과를 읽었습니다. 편집 원문은 유지됩니다.')
                 return True  # Inspection never rebinds a pending editor.
-            def same_base(current, base):
+            def same_base(current, base, incoming_saved_revision):
                 return (current and all(current.get(key) == base.get(key)
-                    for key in ('id', 'session_id', 'generation', 'input_revision', 'draft')))
+                    for key in ('id', 'session_id', 'generation', 'input_revision', 'draft'))
+                    and current.get('saved_revision') in (base.get('saved_revision'), incoming_saved_revision))
             for target in dialog.receipt['targets']:
                 if target['state'] != 'SAVED': continue
                 saved = target['attempts'][-1]['response']['document']
                 base = before_material if target['identity']['document_id'] == before_material['id'] else before_plan
+                if base.get('saved_revision') not in (target['identity']['saved_revision'], saved.get('saved_revision')):
+                    continue
                 from caelab.related_save import input_identity
                 identity = input_identity(base)
                 if any(target['identity'][key] != identity[key] for key in
                        ('document_id', 'session_id', 'generation', 'input_revision', 'input_sha256')):
                     continue
                 if target['identity']['document_id'] == before_material['id']:
-                    if not material.local_dirty and same_base(material.document, before_material):
+                    if not material.local_dirty and same_base(material.document, before_material, saved.get('saved_revision')):
                         material._show_document(saved, preserve_history=True)
                 elif (not widget.has_unapplied_buffer()
-                      and same_base(widget.document_snapshot(), before_plan)):
+                      and same_base(widget.document_snapshot(), before_plan, saved.get('saved_revision'))):
                     publication = dialog.receipt.get('publication', {})
                     if publication.get('state') == 'NOT_REQUESTED':
                         self._bind(identifier, saved)
@@ -308,6 +328,9 @@ class MaterialPlanPanel(QWidget):
     def has_pending_inputs(self):
         return self._busy or bool(self._related_save_unconfirmed) or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
                                  for widget in self._widgets.values())
+
+    def has_unconfirmed_save(self):
+        return bool(self._related_save_unconfirmed)
 
     def related_save_snapshot(self):
         """Noncommitting context, including attempts whose reply was lost."""
