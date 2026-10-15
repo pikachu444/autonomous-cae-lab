@@ -10,6 +10,55 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication,QLineEdit,QMessageBox
 
 
+@pytest.mark.parametrize('later_owner',['material','plan'])
+def test_modal_newer_saved_revision_is_not_rebound_to_historical_receipt(monkeypatch,later_owner):
+    from contextlib import nullcontext
+    from types import SimpleNamespace as Box
+    from PySide6.QtWidgets import QAbstractItemView
+    from apps.research.material_plan_panel import MaterialPlanPanel
+    from caelab.related_save import input_identity
+    def document(identifier,kind):
+        return dict(id=identifier,kind=kind,title='문서',session_id='Sone',generation=1,
+            input_revision='I'+identifier,draft={'value':1},saved_revision='Rbefore',dirty=True)
+    before_material=document('Mone','material');before_plan=document('None','numerical')
+    material=Box(document=deepcopy(before_material),local_dirty=False,conflict=False,_busy=False,
+        history=Box(state=lambda:QAbstractItemView.State.NoState),
+        coefficients=Box(state=lambda:QAbstractItemView.State.NoState))
+    bound=[]
+    def show(document,**kwargs):bound.append('material');material.document=deepcopy(document)
+    material._show_document=show
+    current_plan=deepcopy(before_plan)
+    widget=Box(has_unapplied_buffer=lambda:False,document_snapshot=lambda:deepcopy(current_plan),
+        refresh_saved_metadata=lambda *args,**kwargs:False)
+    host=Box(material=material,client=None,_busy=False,plans=Box(currentData=lambda:'None'),
+        _documents={'None':deepcopy(before_plan)},_widgets={'None':widget},
+        _related_save_receipts={},_related_save_pending={},_related_save_unconfirmed=set(),
+        save_receipt_button=Box(setEnabled=lambda value:None),update_badge=lambda:None)
+    def bind(identifier,document):
+        bound.append('plan');current_plan.clear();current_plan.update(deepcopy(document))
+    host._bind=bind
+    targets=[]
+    for document in (before_material,before_plan):
+        saved=deepcopy(document);saved.update(saved_revision='Rfirst',dirty=False)
+        targets.append(dict(identity=input_identity(document),state='SAVED',attempts=[{'response':{'document':saved}}]))
+    receipt=dict(receipt_id='Sreceipt',state='COMPLETE',targets=targets,publication={'state':'NOT_REQUESTED'})
+    class Dialog:
+        def __init__(self,*args,**kwargs):
+            self.receipt=deepcopy(receipt);self.allow_writes=True
+            self.saveAttempted=Box(connect=lambda slot:None)
+        def exec(self):
+            # Simulate an ordinary public refresh delivered while modal exec
+            # runs. Only saved metadata changed; input/generation stayed equal.
+            if later_owner=='material':material.document['saved_revision']='Rlater'
+            else:current_plan['saved_revision']='Rlater';host._documents['None']=deepcopy(current_plan)
+    monkeypatch.setattr('apps.research.material_related_save.RelatedSaveDialog',Dialog)
+    monkeypatch.setattr('apps.research.recovery_focus.RawEditorFocusGuard',lambda *args:nullcontext())
+    assert MaterialPlanPanel.save_related(host,receipt_id='Sreceipt')
+    current=material.document if later_owner=='material' else current_plan
+    assert current['saved_revision']=='Rlater' and later_owner not in bound
+    assert current['draft']=={'value':1}
+
+
 def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_path,monkeypatch):
     from apps.lab.service import LabService
     from apps.lab.server import LabHTTPServer

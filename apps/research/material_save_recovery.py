@@ -38,7 +38,9 @@ def saved_metadata(current, saved, *, previous_saved_revision):
     if not isinstance(current, dict) or not isinstance(saved, dict):
         return None
     keys=('id','kind','session_id','generation','input_revision','draft')
-    if (current.get('kind') != 'material' or type(saved.get('dirty')) is not bool or not isinstance(saved.get('saved_revision'), str)
+    if (current.get('kind') != 'material' or type(current.get('generation')) is not int
+            or type(saved.get('generation')) is not int or type(saved.get('dirty')) is not bool
+            or not isinstance(saved.get('saved_revision'), str)
             or not saved['saved_revision'] or any(current.get(key) != saved.get(key) for key in keys)):
         return None
     if current.get('saved_revision') not in (previous_saved_revision, saved['saved_revision']):

@@ -296,9 +296,10 @@ class MaterialPlanPanel(QWidget):
                 if material.message.text() == '저장 결과를 먼저 확인하세요. 창과 편집 원문은 유지됩니다.':
                     material.message.setText('저장 결과를 읽었습니다. 편집 원문은 유지됩니다.')
                 return True  # Inspection never rebinds a pending editor.
-            def same_base(current, base):
+            def same_base(current, base, incoming_saved_revision):
                 return (current and all(current.get(key) == base.get(key)
-                    for key in ('id', 'session_id', 'generation', 'input_revision', 'draft')))
+                    for key in ('id', 'session_id', 'generation', 'input_revision', 'draft'))
+                    and current.get('saved_revision') in (base.get('saved_revision'), incoming_saved_revision))
             for target in dialog.receipt['targets']:
                 if target['state'] != 'SAVED': continue
                 saved = target['attempts'][-1]['response']['document']
@@ -311,10 +312,10 @@ class MaterialPlanPanel(QWidget):
                        ('document_id', 'session_id', 'generation', 'input_revision', 'input_sha256')):
                     continue
                 if target['identity']['document_id'] == before_material['id']:
-                    if not material.local_dirty and same_base(material.document, before_material):
+                    if not material.local_dirty and same_base(material.document, before_material, saved.get('saved_revision')):
                         material._show_document(saved, preserve_history=True)
                 elif (not widget.has_unapplied_buffer()
-                      and same_base(widget.document_snapshot(), before_plan)):
+                      and same_base(widget.document_snapshot(), before_plan, saved.get('saved_revision'))):
                     publication = dialog.receipt.get('publication', {})
                     if publication.get('state') == 'NOT_REQUESTED':
                         self._bind(identifier, saved)
