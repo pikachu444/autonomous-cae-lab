@@ -1,0 +1,204 @@
+"""Material host of Numerical's public Plan widget and Pro transport adapter."""
+from copy import deepcopy
+import uuid
+
+from PySide6.QtCore import Qt, QThreadPool
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox,
+    QHBoxLayout, QHeaderView, QLabel, QPushButton, QStackedWidget, QTableWidget,
+    QTableWidgetItem, QVBoxLayout, QWidget)
+
+
+class PlanPatchDialog(QDialog):
+    def __init__(self, preview, document, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('피팅 변수 변경 검토')
+        self.resize(740, 420)
+        layout = QVBoxLayout(self)
+        table = QTableWidget(0, 4)
+        table.setHorizontalHeaderLabels(['변수', '항목', '현재', '편집'])
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(table)
+        variables = document['draft'].get('variables', [])
+        labels = {'value': '시작값', 'lower': '하한', 'upper': '상한', 'free': '탐색', 'transform': '변환'}
+        for item in preview['items']:
+            for change in item['changes']:
+                path = change['path'].strip('/').split('/')
+                variable = variables[int(path[1])] if len(path) == 3 and path[0] == 'variables' and path[1].isdigit() and int(path[1]) < len(variables) else {}
+                field = path[-1]
+                name = variable.get('id', '계획 입력') + (' [' + str(variable['unit']) + ']' if isinstance(variable.get('unit'), str) else '')
+                def shown(value):
+                    if value is None:
+                        return '비어 있음'
+                    if isinstance(value, (list, dict)):
+                        return '변경됨'
+                    if field == 'free':
+                        return '탐색' if value is True else '고정' if value is False else str(value)
+                    return {'linear': '선형', 'log': '로그'}.get(value, str(value)) if isinstance(value, str) else str(value)
+                row = table.rowCount(); table.insertRow(row)
+                for column, value in enumerate((name, labels.get(field, '계획 입력'), shown(change['before']), shown(change['after']))):
+                    table.setItem(row, column, QTableWidgetItem(str(value)))
+        issue = any(item.get('conflict') for item in preview['items'])
+        layout.addWidget(QLabel('계획이 변경되었습니다. 편집을 유지하고 다시 읽기 전에 확인하세요.' if issue else document['title']))
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Apply | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Apply).setText('편집 적용')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
+        buttons.button(QDialogButtonBox.StandardButton.Apply).setEnabled(not issue)
+        buttons.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
+class MaterialPlanPanel(QWidget):
+    def __init__(self, material, parent=None):
+        super().__init__(parent)
+        self.material = material
+        self.client = material.client
+        self._busy = self._binding = False
+        self._worker = None
+        self._documents, self._widgets, self._adapters = {}, {}, {}
+        layout = QVBoxLayout(self)
+        row = QHBoxLayout()
+        self.plans = QComboBox()
+        self.plans.setMinimumContentsLength(16)
+        self.plans.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        refresh, create = QPushButton('다시 읽기'), QPushButton('계획 만들기…')
+        self.open_button, self.save_button = QPushButton('계획 창 열기'), QPushButton('계획 저장')
+        row.addWidget(QLabel('피팅 계획')); row.addWidget(self.plans, 1)
+        for button in (refresh, create, self.open_button, self.save_button): row.addWidget(button)
+        layout.addLayout(row)
+        self.badge, self.message = QLabel(), QLabel()
+        self.message.setWordWrap(True)
+        layout.addWidget(self.badge)
+        self.stack = QStackedWidget(); layout.addWidget(self.stack, 1)
+        self.empty = QLabel('피팅 계획 없음'); self.stack.addWidget(self.empty)
+        layout.addWidget(self.message)
+        refresh.clicked.connect(self.refresh_plans)
+        create.clicked.connect(material.open_numerical)
+        self.open_button.clicked.connect(self.open_plan)
+        self.save_button.clicked.connect(self.save_plan)
+        self.plans.currentIndexChanged.connect(self._selected)
+
+    def _call(self, function, after):
+        if self._busy:
+            self.message.setText('계획 요청 결과를 기다리는 중입니다. 편집은 보존됩니다.')
+            return False
+        from .material_window import _Call
+        self._busy = True
+        self.setEnabled(False)
+        worker = self._worker = _Call(function)
+        def done(value, error):
+            self._busy = False; self._worker = None; self.setEnabled(True)
+            if error:
+                self.message.setText('계획 요청을 처리하지 못했습니다. 편집은 보존됩니다.')
+                self.message.setToolTip(error)
+            else:
+                after(value)
+        worker.signals.finished.connect(done, Qt.ConnectionType.QueuedConnection)
+        QThreadPool.globalInstance().start(worker)
+        return True
+
+    def refresh_plans(self):
+        material_id = self.material.document['id'] if self.material.document else None
+        def received(payload):
+            if not self.material.document or self.material.document['id'] != material_id:
+                return
+            documents = [document for document in payload['documents'] if document.get('kind') == 'numerical'
+                         and isinstance(document.get('draft', {}).get('material'), dict)
+                         and document['draft']['material'].get('document_id') == material_id]
+            present = {document['id'] for document in documents}
+            documents += [deepcopy(self._documents[identifier]) for identifier, widget in self._widgets.items()
+                          if identifier not in present and widget.has_unapplied_buffer()]
+            selected = self.plans.currentData()
+            self.plans.blockSignals(True); self.plans.clear()
+            for document in documents:
+                identifier = document['id']
+                if identifier not in self._widgets or not self._widgets[identifier].has_unapplied_buffer():
+                    self._documents[identifier] = deepcopy(document)
+                self.plans.addItem(document['title'], identifier)
+            self.plans.setCurrentIndex(max(0, self.plans.findData(selected)))
+            self.plans.blockSignals(False)
+            self._selected()
+        return self._call(self.client.documents, received)
+
+    def _bind(self, identifier, document):
+        self._binding = True
+        try:
+            self._widgets[identifier].bind_owner(self._adapters[identifier], document)
+            self._documents[identifier] = deepcopy(document)
+        except ValueError as error:
+            self.message.setText(str(error))
+        finally:
+            self._binding = False
+
+    def _selected(self):
+        identifier = self.plans.currentData()
+        self.open_button.setEnabled(bool(identifier)); self.save_button.setEnabled(bool(identifier))
+        if not identifier:
+            self.stack.setCurrentWidget(self.empty)
+            self.badge.setText('이 재료의 피팅 계획이 없습니다.'); return
+        if identifier not in self._widgets:
+            from caelab.plan_variables_api import PlanOwnerAdapter, embed_plan_variables
+            from .plan_variables_widget import NumericalPlanVariablesWidget
+            adapter = self._adapters[identifier] = PlanOwnerAdapter(self.client, identifier)
+            widget = embed_plan_variables(NumericalPlanVariablesWidget, parent=self.stack,
+                                          adapter=adapter, document=self._documents[identifier])
+            widget.owner_label.hide()  # The host selector already shows the same title.
+            self._widgets[identifier] = widget; self.stack.addWidget(widget)
+            widget.patchPreviewRequested.connect(lambda preview, key=identifier: self.review_patch(key, preview))
+            widget.ownerActivated.connect(lambda key: self._owner_activated(key))
+        self.stack.setCurrentWidget(self._widgets[identifier])
+        self._bind(identifier, self._documents[identifier])
+        self.update_badge()
+
+    def _owner_activated(self, identifier):
+        if self._binding or not identifier:
+            return
+        document = self._widgets[identifier].document_snapshot()
+        if document is not None:
+            self._documents[identifier] = document
+        self.update_badge()
+
+    def update_badge(self):
+        document = self._documents.get(self.plans.currentData())
+        if not document or not self.material.document:
+            return
+        reference = document['draft'].get('material', {})
+        self.badge.setText('재료 편집 적용 전' if self.material.local_dirty else
+            '현재 재료 입력을 참조' if reference.get('input_revision') == self.material.document['input_revision'] else '이전 재료 입력을 참조')
+
+    def review_patch(self, identifier, preview):
+        dialog = PlanPatchDialog(preview, self._documents[identifier], self)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        def applied(result):
+            widget = self._widgets[identifier]
+            if widget.show_patch_result(result):
+                outcome = next(item for item in result['outcomes'] if item['document_id'] == identifier)
+                self._documents[identifier] = deepcopy(outcome['response']['document'])
+            self.update_badge()
+        self._call(lambda: self._adapters[identifier].execute(preview), applied)
+
+    def save_plan(self):
+        identifier = self.plans.currentData()
+        if not identifier:
+            return
+        if self._widgets[identifier].has_unapplied_buffer():
+            self.message.setText('변수 변경을 검토하고 적용한 뒤 계획을 저장하세요.'); return
+        document = deepcopy(self._documents[identifier])
+        def saved(response):
+            self._bind(identifier, response['document'])
+            self.message.setText('계획을 저장했습니다.')
+        self._call(lambda: self.client.document_command(identifier, 'document.save', {},
+            session_id=document['session_id'], expected_generation=document['generation'],
+            command_id='C' + uuid.uuid4().hex), saved)
+
+    def open_plan(self):
+        if self.plans.currentData():
+            from .numerical_window import NumericalWindow
+            window = NumericalWindow(self.client, document_id=self.plans.currentData())
+            self.material._numerical_windows.append(window); window.show(); window.raise_()
+
+    def has_pending_inputs(self):
+        return self._busy or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
+                                 for widget in self._widgets.values())
