@@ -300,8 +300,10 @@ Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실�
 마쳤지만 plugin configure가 SDK에 기록된 Windows Python 경로의 escape를 해석하다
 실패했다. 해당 두 configure 경로만 CMake 구분자로 정규화했고 원 생성 함수를 사용해
 원 실패·교정 경로·공백 경로를 좁게 확인했다. 소유 Job을 종료했으며 교정 소스 게시 뒤
-새 원격 실행 `38695216322`가 게시 소스 `b2e359d`에서 진행 중이다. 공개 표준 Windows
-runner만 사용하며 아직 plugin/실창 성공은 아니다. 원 결과는
+새 원격 실행 `38695216322`는 게시 소스 `b2e359d`에서 09:33 UTC에 exit 1로 끝났고
+소유 Job은 정리됐다. wrapper 밖의 전체 빌드 로그를 Sol이 확인하며 아직 원인을 단정하지
+않는다. 새 전체 빌드는 반복하지 않았다. 공개 표준 Windows runner만 사용하며 아직
+plugin/실창 성공은 아니다. 원 결과는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 후처리의 원 A/B 측정·시험 자료로 정확히 돌아가는 남은 구현도 현재 공개 원자료와
@@ -359,8 +361,11 @@ ZIP 다운로드가 발생하지 않고 검증 문서 미리보기도 실패해 
 저장·재복사를 확인했다. 손상 보관물 안내와 Windows CLI UTF-8 출력도 교정했다.
 Astra가 미완성 원문에만 남은 옛 의존 자료의 수집 누락과 유실 응답 재확인 때 최신 전체
 문서 보호 누락을 찾아 실제 Pro C1을 회수했다. 전용10개와 공통2개 증분을 현재 소스에
-통합했으며 Sol의 Windows 한정 검사와 Astra 독립 검토를 진행 중이다. 원 GUI·UTF-8 교정은
-보존했다. Data의 보정 입력이 원문 보관물에만 남는 별도 경로도 현재 범위에서 확인한다.
+통합했다. Windows 새 C1 25개 검사와 Astra의 원 R1/R2 해소 검토를 마쳤고 원 GUI·UTF-8
+교정은 보존했다. 별도 Data 경로에서는 보정 자료가 원문 보관물에만 남으면 명시 재개 뒤
+현재 보존 입력에 연결되지 않아 새 Keep·재복사가 막히는 것을 한 번의 Windows 실행으로
+재현했다. 원 자료와 실패를 보존하고 실제 Pro에 이 Data 작업의 C2 교정을 요청했다.
+`_workspace/delivery-install-connections/c3a-data-q-request/relay.json`이 해당 회수 기록이다.
 아직 게시 전이다. 다른 owner/native
 확장은 필수 C3B 후속으로 유지하며 이 작업으로 전체 C3 완료를 선언하지 않는다.
 미완성 셀 보관·다른 문서 종류·native 의존 자료를 함께 이동하는 범위이며 최근 혼합 변수와
