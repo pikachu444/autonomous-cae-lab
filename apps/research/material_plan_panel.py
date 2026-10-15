@@ -66,6 +66,7 @@ class MaterialPlanPanel(QWidget):
         self._busy = self._binding = False
         self._worker = None
         self._documents, self._widgets, self._adapters = {}, {}, {}
+        self._related_save_receipts = {}
         layout = QVBoxLayout(self)
         row = QHBoxLayout()
         self.plans = QComboBox()
@@ -73,12 +74,16 @@ class MaterialPlanPanel(QWidget):
         self.plans.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         refresh, create = QPushButton('다시 읽기'), QPushButton('계획 만들기…')
         self.open_button, self.save_button = QPushButton('계획 창 열기'), QPushButton('계획 저장')
+        self.related_save_button = QPushButton('함께 저장…')
+        self.save_receipt_button = QPushButton('저장 결과…')
         row.addWidget(QLabel('피팅 계획')); row.addWidget(self.plans, 1)
         for button in (refresh, create, self.open_button, self.save_button): row.addWidget(button)
         layout.addLayout(row)
         self.badge, self.message = QLabel(), QLabel()
         self.message.setWordWrap(True)
         layout.addWidget(self.badge)
+        saves = QHBoxLayout(); saves.addWidget(self.related_save_button); saves.addWidget(self.save_receipt_button); saves.addStretch()
+        layout.addLayout(saves)
         self.stack = QStackedWidget(); layout.addWidget(self.stack, 1)
         self.empty = QLabel('피팅 계획 없음'); self.stack.addWidget(self.empty)
         layout.addWidget(self.message)
@@ -86,6 +91,8 @@ class MaterialPlanPanel(QWidget):
         create.clicked.connect(material.open_numerical)
         self.open_button.clicked.connect(self.open_plan)
         self.save_button.clicked.connect(self.save_plan)
+        self.related_save_button.clicked.connect(self.save_related)
+        self.save_receipt_button.clicked.connect(lambda: self.save_related(receipt_id=self._related_save_receipts.get(self.plans.currentData())))
         self.plans.currentIndexChanged.connect(self._selected)
 
     def _call(self, function, after):
@@ -144,6 +151,8 @@ class MaterialPlanPanel(QWidget):
     def _selected(self):
         identifier = self.plans.currentData()
         self.open_button.setEnabled(bool(identifier)); self.save_button.setEnabled(bool(identifier))
+        self.related_save_button.setEnabled(bool(identifier))
+        self.save_receipt_button.setEnabled(identifier in self._related_save_receipts)
         if not identifier:
             self.stack.setCurrentWidget(self.empty)
             self.badge.setText('이 재료의 피팅 계획이 없습니다.'); return
@@ -209,6 +218,55 @@ class MaterialPlanPanel(QWidget):
             from .numerical_window import NumericalWindow
             window = NumericalWindow(self.client, document_id=self.plans.currentData())
             self.material._numerical_windows.append(window); window.show(); window.raise_()
+
+    def save_related(self, *, receipt_id=None):
+        identifier = self.plans.currentData()
+        if not identifier or self._busy or self.material._busy or self.material.conflict:
+            return False
+        material = self.material
+        # Inspect without committing a delegate. Saving cannot discard an invalid
+        # or unfinished cell merely because the user chose another document.
+        editing = any(table.state() == QAbstractItemView.State.EditingState
+                      for table in (material.history, material.coefficients))
+        widget = self._widgets[identifier]
+        if (editing or material.local_dirty or widget.has_unapplied_buffer()):
+            self.message.setText('재료와 계획의 셀 편집을 먼저 검토하고 적용하세요. 미확정 입력은 보존됩니다.')
+            return False
+        from .material_related_save import RelatedSaveDialog
+        before_material = deepcopy(material.document)
+        before_plan = deepcopy(self._documents[identifier])
+        dialog = RelatedSaveDialog(self.client, before_material, before_plan, self, receipt_id=receipt_id)
+        dialog.exec()
+        # A saved receipt is evidence about the reviewed input. It must not
+        # overwrite a later peer edit or an editor opened while saving.
+        if dialog.receipt:
+            self._related_save_receipts[identifier] = dialog.receipt['receipt_id']
+            self.save_receipt_button.setEnabled(True)
+            def same_base(current, base):
+                return (current and all(current.get(key) == base.get(key)
+                    for key in ('id', 'session_id', 'generation', 'input_revision', 'draft')))
+            for target in dialog.receipt['targets']:
+                if target['state'] != 'SAVED': continue
+                saved = target['attempts'][-1]['response']['document']
+                base = before_material if target['identity']['document_id'] == before_material['id'] else before_plan
+                from caelab.related_save import input_identity
+                identity = input_identity(base)
+                if any(target['identity'][key] != identity[key] for key in
+                       ('document_id', 'session_id', 'generation', 'input_revision', 'input_sha256')):
+                    continue
+                if target['identity']['document_id'] == before_material['id']:
+                    if not material.local_dirty and same_base(material.document, before_material):
+                        material._show_document(saved, preserve_history=True)
+                elif (not widget.has_unapplied_buffer()
+                      and same_base(widget.document_snapshot(), before_plan)):
+                    publication = dialog.receipt.get('publication', {})
+                    if publication.get('state') == 'NOT_REQUESTED':
+                        self._bind(identifier, saved)
+                    elif publication.get('state') == 'PUBLISHED':
+                        final = publication['save_target']['attempts'][-1]['response']['document']
+                        self._bind(identifier, final)
+            self.update_badge()
+        return True
 
     def has_pending_inputs(self):
         return self._busy or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
