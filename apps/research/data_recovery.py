@@ -1,7 +1,7 @@
 """Noncommitting Data editor snapshots; host owns durable recovery authority."""
 from copy import deepcopy
 from PySide6.QtCore import Qt, QTimer, QItemSelectionModel
-from PySide6.QtWidgets import QApplication, QAbstractItemView, QLineEdit
+from PySide6.QtWidgets import QAbstractItemView, QLineEdit
 from caelab.storage import canonical_hash
 from .material_recovery import _original
 
@@ -18,7 +18,7 @@ def data_raw_snapshot(window):
     if window.document is None or window._view_error:
         raise ValueError('편집할 Data 문서를 먼저 여세요. 원래 문서는 보존됩니다.')
     cells, focus_record = [], None
-    draft = window.document['draft']; focus = QApplication.focusWidget()
+    draft = window.document['draft']; focus = window.focusWidget()
     def add(path, text, position, pending=None):
         nonlocal focus_record
         exists, original = _original(draft, path)
@@ -30,7 +30,7 @@ def data_raw_snapshot(window):
             focus_record = dict(field_path=path, cursor=pending.cursorPosition(),
                 selection=[pending.selectionStart(), len(pending.selectedText())])
         cells.append(cell)
-    pending = focus if isinstance(focus, QLineEdit) and window.mapping.isAncestorOf(focus) else None
+    pending = next((editor for editor in window.mapping.findChildren(QLineEdit) if editor.isVisible()), None) if window.mapping.state() == QAbstractItemView.State.EditingState else None
     for row in range(window.mapping.rowCount()):
         for column in range(window.mapping.columnCount()):
             item = window.mapping.item(row, column)

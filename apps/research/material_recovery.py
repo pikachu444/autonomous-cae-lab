@@ -1,7 +1,7 @@
 """JSON-only view snapshots. No owner mutations, requests or editor commits."""
 from copy import deepcopy
 from PySide6.QtCore import Qt, QItemSelectionModel
-from PySide6.QtWidgets import QApplication, QLineEdit
+from PySide6.QtWidgets import QAbstractItemView, QLineEdit
 from caelab.storage import canonical_hash
 
 
@@ -19,7 +19,7 @@ def material_raw_snapshot(window):
     if window.document is None:
         raise ValueError('재료 문서를 먼저 여세요.')
     cells, focus_record = [], None
-    focus = QApplication.focusWidget()
+    focus = window.focusWidget()
     draft = window.document['draft']
     def cell(path, raw, position, *, pending=None):
         nonlocal focus_record
@@ -33,7 +33,7 @@ def material_raw_snapshot(window):
                                 selection=[pending.selectionStart(), len(pending.selectedText())])
         cells.append(entry)
     for table, name in ((window.coefficients, '재료 계수'), (window.history, '변형 이력')):
-        pending = focus if isinstance(focus, QLineEdit) and table.isAncestorOf(focus) else None
+        pending = next((editor for editor in table.findChildren(QLineEdit) if editor.isVisible()), None) if table.state() == QAbstractItemView.State.EditingState else None
         for row in range(table.rowCount()):
             columns = [1] if table is window.coefficients else range(table.columnCount())
             for column in columns:
