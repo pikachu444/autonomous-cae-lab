@@ -53,6 +53,8 @@ CAPABILITIES['pre'].update(POSE_CANDIDATE_OPERATIONS)
 
 from .material_fe_transfer import OPERATIONS as LAW_NATIVE_OPERATIONS
 CAPABILITIES['pre'].update(LAW_NATIVE_OPERATIONS)
+from .periodic_constraints import OPERATIONS as PERIODIC_OPERATIONS
+CAPABILITIES['pre'].update(PERIODIC_OPERATIONS)
 
 
 from .beam_model import OPERATIONS as BEAM_OPERATIONS

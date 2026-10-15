@@ -192,6 +192,10 @@ def validate_model(model):
     if any(p['draft'].get('tie_adjust',False) and p['draft']['normal_law']=='tie' for p in model['contacts']):
         from .adapters.tie_adjustment import cases
         cases(model,nodes,elements)
+    from .periodic_constraints import compile_constraints
+    compile_constraints(model, nodes, elements)
+    from .contact_activation import compile_states
+    compile_states(model)
     if enabled(model):
         validate_effective(model)
     return nodes, elements, bodies
@@ -228,6 +232,8 @@ def render(model):
                          ',VALUE='+num(pair['draft']['nominal_gap_mm']))
     from .calculix_dynamic import model_cards
     lines += model_cards(model)
+    from .periodic_constraints import cards as periodic_cards
+    lines += periodic_cards(model)
     if 'analysis_steps' in model:
         from .contact_steps import render_steps
         return '\n'.join(lines + render_steps(model) + [''])
@@ -248,13 +254,8 @@ def render(model):
         lines += [str(row['node_id']) + ',' + str(row['component']) + ',' + num(row['force_N']) for row in model['loads']]
     has_tie = any(pair['draft']['normal_law'] == 'tie' for pair in model['contacts'])
     lines.extend(solid_output_cards(model))
-    contact_pairs = [pair for pair in model['contacts'] if pair['draft']['normal_law'] != 'tie']
-    if contact_pairs:
-        lines.extend(['*CONTACT FILE', 'CDIS,CSTR'])
-    for pair in contact_pairs:
-        identifier = pair['object_id']
-        # Preserve this order: 2.22 writes indistinguishable headings for these three requests.
-        lines.extend(['*CONTACT PRINT,SLAVE=DEP' + identifier + ',MASTER=IND' + identifier, 'CF,CFN,CFS'])
+    from .contact_activation import output_cards
+    lines.extend(output_cards(model['contacts']))
     lines.extend(['*END STEP', ''])
     return '\n'.join(lines)
 

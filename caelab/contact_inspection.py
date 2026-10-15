@@ -156,6 +156,19 @@ def load(entry, declaration, *, lazy=False):
     for element in elements.values():
         if len(element['node_ids']) != 10 or any(n not in nodes for n in element['node_ids']):
             raise ValueError('Contact surface requires retained quadratic tetrahedra')
+    from .contact_activation import PROFILE as ACTIVATION_PROFILE
+    availability = manifest.get('contact_state_profile')
+    if availability is not None:
+        if (manifest['version'] != 2 or availability.get('profile') != ACTIVATION_PROFILE or
+                availability.get('state_meaning') != 'INPUT_PAIR_AVAILABILITY_NOT_CONTACT_STATUS' or
+                availability.get('state_carry') != 'SAME_NATIVE_ANALYSIS_NO_GEOMETRY_RESET' or
+                len(availability.get('steps', [])) != len(manifest['analysis_profile']['steps'])):
+            raise ValueError('Contact input activation profile changed')
+        for declared, stage in zip(availability['steps'], manifest['analysis_profile']['steps']):
+            states = declared.get('states', {})
+            if (declared.get('step_id') != stage['id'] or declared.get('step_index') != stage['index'] or
+                    not set(pairs) <= set(states) or any(v not in ('active', 'inactive') for v in states.values())):
+                raise ValueError('Contact input activation pair/step mapping changed')
     indices = set()
     for pair in pairs.values():
         for side in ('a', 'b'):
@@ -270,6 +283,12 @@ def load(entry, declaration, *, lazy=False):
                 or type(current['gap']['recipe'].get('subdivisions_per_edge')) is not int
                 or current['gap']['recipe']['subdivisions_per_edge'] < 1):
             raise ValueError('Unsupported contact projection/gap physical declaration')
+        if availability is not None:
+            expected_states = availability['steps'][static['step'] - 1]['states']
+            if current.get('input_activation') != expected_states:
+                raise ValueError('Contact frame input activation differs from the retained schedule')
+        elif 'input_activation' in current:
+            raise ValueError('Contact frame input activation has no retained schedule')
         contact = current.get('contact', [])
         if len(contact) != len(nodes) or {r['node_id'] for r in contact} != set(nodes):
             raise ValueError('Contact nodal coverage changed')
@@ -364,6 +383,7 @@ def inspect(bundle, pair_id, side, frame_index, field, quantity='CFN', component
             'field': field, 'unit': 'mm' if field in CHANNELS[:3] or field == 'GeomGap_mm' else 'MPa',
             'scope': 'pair_geometric_derivation' if field == 'GeomGap_mm' else 'shared_nodal_projection',
             'active_state': 'UNKNOWN', 'rows': rows,
+            'input_activation': frame.get('input_activation', {}).get(pair_id, 'UNKNOWN'),
             'history': force_history(bundle, pair_id, quantity, component) if include_history else None}
 
 
@@ -408,3 +428,9 @@ def explicit_manifest(path):
 def bundle_axis(bundle):
     clock=bundle['manifest']['clock']
     return {'name':'time' if clock['unit']=='s' else 'load_parameter', **deepcopy(clock)}
+
+
+def resultant_history(bundle, pair_id, quantity, component, resultant, *, frame_indices=None):
+    """Selected native DAT force/moment; keeps the legacy force_history contract."""
+    from .contact_resultants import history
+    return history(bundle, pair_id, quantity, component, resultant, frame_indices=frame_indices)

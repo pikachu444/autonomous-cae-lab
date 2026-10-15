@@ -463,8 +463,15 @@ class PostWindow(QMainWindow):
         if draft.get('measurement') == 'contact_force':
             component = draft.get('component', 0)
             axis = 'XYZ'[component] if isinstance(component, int) and 0 <= component < 3 else str(component)
-            return (original(draft.get('source_ref')) + ': ' + str(draft.get('quantity', '')) + ' 문서 전체 ' + axis +
-                    ' 성분, A 면의 합력 [N]. 축: 정적 하중 계수 λ [1].')
+            resultant = draft.get('resultant') or {}
+            physical = '기준점 모멘트' if resultant.get('response') == 'moment' else '합력'
+            frame = resultant.get('frame_label') or draft.get('frame', '문서 전체')
+            axis_name = draft.get('axis_name', 'load_parameter')
+            axis_name = {'load_parameter': '정적 하중 계수 λ', 'time': '시간'}.get(axis_name, axis_name)
+            return (original(draft.get('source_ref')) + ': ' + str(draft.get('quantity', '')) + ' ' + frame + ' ' + axis +
+                    ' 성분, A 면의 ' + physical + ' [' + str(draft.get('units', 'N')) + ']. 축: ' +
+                    str(axis_name) + ' [' + str(draft.get('axis_unit', '1')) + '].' +
+                    (' 기준점 [mm]: ' + str(resultant['reference_point_mm']) if resultant.get('response') == 'moment' else ''))
         if draft.get('version') == 3:
             return ('기준: ' + original(draft.get('a', {}).get('source_ref')) +
                     ' / 비교: ' + original(draft.get('b', {}).get('source_ref')) +

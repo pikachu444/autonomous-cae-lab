@@ -362,24 +362,58 @@ class ContactEditor:
         if len(records)>1:
             raise ValueError('Duplicate Analysis programs')
         draft = deepcopy(records[0]['draft']) if records else default_program(step,conditions)
+        from .fem_edit import _hash
+        pairs = [{'pair_id': r['object_id'], 'label': r['draft']['label'],
+                  'normal_law': r['draft']['normal_law'], 'definition_sha256': r['definition_sha256']}
+                 for r in self._data()['contacts'] if r['analysis_id'] == analysis.Name
+                 and not getattr(self.owner._object(r['object_id']), 'Suppressed', False)]
+        source_revision = _hash({'conditions': conditions, 'pairs': pairs, 'step_defaults': step})
+        revision = _hash({'draft': draft, 'source_revision': source_revision})
         return {'analysis_id':analysis.Name,'solver_id':solver.Name,'conditions':conditions,'draft':draft,
+                'revision': revision, 'source_revision': source_revision, 'contact_pairs': pairs,
                 'applied':bool(records),'native_procedure':solver.AnalysisType,
                 'step_defaults':default_program(step,conditions)['steps'][0]}
 
     def set_steps(self, analysis, args):
-        if set(args) != {'draft'} or not isinstance(args['draft'],dict):
+        if set(args) - {'draft', 'expected_revision', 'request_id'} or not isinstance(args.get('draft'),dict):
             raise ValueError('단계 초안을 지정하세요')
         draft = deepcopy(args['draft'])
         encoded = json.dumps(draft,allow_nan=False)
         if len(encoded)>1024*1024 or not isinstance(draft.get('steps'),list) or len(draft['steps'])>100:
             raise ValueError('단계 초안의 크기를 확인하세요')
         info = self.step_inputs(analysis)
+        request_id = args.get('request_id')
+        from .fem_edit import _hash
+        import re
+        request_hash = _hash({'analysis_id': analysis.Name, 'arguments': args})
+        if request_id is not None:
+            if ('expected_revision' not in args or not isinstance(request_id, str)
+                    or not re.fullmatch(r'[A-Za-z0-9_-]{8,128}', request_id)):
+                raise ValueError('CONTACT_PROGRAM_REQUEST: 이전 버전과 정확한 요청 식별자가 필요합니다.')
+            receipts = [r for r in self._data().get('contact_program_receipts', []) if r['request_id'] == request_id]
+            if receipts:
+                if len(receipts) != 1 or receipts[0]['request_sha256'] != request_hash:
+                    raise ValueError('REQUEST_ID_REUSE: 다른 단계 편집에 같은 요청을 재사용할 수 없습니다.')
+                if receipts[0]['result_revision'] != info['revision']:
+                    raise ValueError('STALE_RECEIPT: 응답 유실 뒤 접촉쌍/조건/단계가 바뀌었습니다. 현재 초안은 유지됩니다.')
+                return {**info, 'replayed': True}
+        if request_id is None and 'expected_revision' not in args and info['applied'] and info['draft'] == draft:
+            return info
+        if 'expected_revision' in args and args['expected_revision'] != info['revision']:
+            raise ValueError('STALE_CONTACT_PROGRAM: 단계/접촉쌍/조건이 바뀌었습니다. 현재 초안을 보존하고 다시 읽으세요.')
         def change():
+            if self.step_inputs(analysis)['revision'] != info['revision']:
+                raise ValueError('INPUT_CHANGED: 단계 적용 전 문서가 변경됐습니다.')
             data = self._data()
             old = [r for r in data.get('contact_programs',[]) if r['analysis_id']==analysis.Name]
-            data.setdefault('contact_program_history',[]).extend(deepcopy(old))
+            if not old or old[0]['draft'] != draft:
+                data.setdefault('contact_program_history',[]).extend(deepcopy(old))
             data['contact_programs'] = [r for r in data.get('contact_programs',[]) if r['analysis_id']!=analysis.Name]
             data['contact_programs'].append({'analysis_id':analysis.Name,'draft':draft})
+            if request_id is not None:
+                data.setdefault('contact_program_receipts', []).append({
+                    'analysis_id': analysis.Name, 'request_id': request_id, 'request_sha256': request_hash,
+                    'result_revision': _hash({'draft': draft, 'source_revision': info['source_revision']})})
             # FreeCAD 1.1.4 CcxTools has no dynamic AnalysisType enum.
             # This owner stores the explicit procedure; native solver settings
             # remain a static-compatible reference, checked by contact export.

@@ -29,6 +29,8 @@ OPERATIONS = (
 ) + CONTACT_OPERATIONS + nonlinear_material.OPERATIONS
 from .law_native_material import OPERATIONS as LAW_NATIVE_OPERATIONS
 OPERATIONS += LAW_NATIVE_OPERATIONS
+from caelab.periodic_constraints import OPERATIONS as PERIODIC_OPERATIONS
+OPERATIONS += PERIODIC_OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
 NORMALIZED_JACOBIAN_FLOOR = 256 * sys.float_info.epsilon
 _MESH_FIELDS = {'CharacteristicLengthMin', 'CharacteristicLengthMax', 'ElementOrder',
@@ -349,6 +351,9 @@ class FEMEditor:
         if operation not in OPERATIONS or not isinstance(arguments, dict):
             raise ValueError('Unsupported typed FEM operation')
         args = deepcopy(arguments)
+        if operation in PERIODIC_OPERATIONS:
+            from .periodic_native import dispatch
+            return dispatch(self, operation, args, target)
         if operation in CONTACT_OPERATIONS:
             return self.contact.dispatch(operation, args, target)
         if operation in nonlinear_material.OPERATIONS:

@@ -234,6 +234,8 @@ def render_steps(model):
     from .contact_deck import num
     rows, lines = compile_program(model['analysis_steps'], model['conditions']), []
     from .calculix_dynamic import executed_start, procedure_suffix, output_cards, restart_write
+    from .contact_activation import compile_states, cards as activation_cards
+    schedule = compile_states(model, rows)
     first = executed_start(model)
     for step in rows:
         if step['index'] < first:
@@ -259,6 +261,7 @@ def render_steps(model):
         lines.append(','.join(num(step[k]) for k in ('initial','duration','minimum','maximum')))
         from .calculix_controls import cards as convergence_cards
         lines += convergence_cards(model['step'])
+        lines += activation_cards(schedule, step['index'])
         for mapping, card in ((step['boundary'],'*BOUNDARY'),(step['loads'],'*CLOAD')):
             groups = {}
             for key, points in sorted(mapping.items()):
@@ -274,12 +277,8 @@ def render_steps(model):
         dynamic_output = output_cards(model, step, frequency)
         lines += solid_output_cards(model, frequency) if dynamic_output is None else dynamic_output
         lines += restart_write(model, step, first)
-        contact_pairs = [p for p in model['contacts'] if p['draft']['normal_law'] != 'tie']
-        if contact_pairs:
-            lines += ['*CONTACT FILE'+frequency, 'CDIS,CSTR']
-        for pair in contact_pairs:
-            pid = pair['object_id']
-            lines += ['*CONTACT PRINT,SLAVE=DEP'+pid+',MASTER=IND'+pid+frequency,'CF,CFN,CFS']
+        from .contact_activation import output_cards as contact_output_cards
+        lines += contact_output_cards(model['contacts'], schedule, step['index'], frequency)
         lines.append('*END STEP')
     return lines
 
@@ -341,6 +340,9 @@ def validate_frames(model, observed, *, complete=True):
         from .calculix_material import ns1_enabled
         if p or ns1_enabled(model):
             frame['step_location']=step_location(model,index,value)
+        from .contact_activation import require_contact
+        if require_contact(model, index) and 'CONTACT' not in frame['fields']:
+            raise ValueError('Incomplete contact frame: active pair CONTACT output is missing')
     if complete:
         for row in expected:
             if row['index'] < executed_start(model):

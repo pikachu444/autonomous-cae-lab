@@ -65,6 +65,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.contact_page = add_contact_page(self, QtWidgets, QtCore)
             from .contact_steps_panel import add_steps_page
             self.steps_page = add_steps_page(self, QtWidgets, QtCore)
+            from .periodic_panel import add_periodic_page
+            self.periodic_page = add_periodic_page(self, QtWidgets, QtCore)
             from .convergence_panel import add_convergence_page
             self.convergence_page = add_convergence_page(self, QtWidgets, QtCore)
             self.status = QtWidgets.QPlainTextEdit()
@@ -206,7 +208,9 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                         raise ValueError('처리 결과를 확인하지 못했습니다. 같은 요청을 다시 조회하세요.')
                     if result.get('status') == 'FAILED':
                         error = result.get('error', {})
-                        raise ValueError(error.get('message', str(error)))
+                        failure = ValueError(error.get('message', str(error)))
+                        failure.native_terminal = True  # A returned native rejection, not a transport timeout.
+                        raise failure
                     payload = result.get('result', result)
                     if on_done:
                         on_done(payload)
@@ -442,6 +446,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.material_page.refresh(load_forms=load_forms)
             self.contact_page.refresh(load_forms=load_forms)
             self.steps_page.refresh(load_forms=load_forms)
+            self.periodic_page.refresh(load_forms=load_forms)
             self.convergence_page.refresh(load_forms=load_forms)
             if load_forms:
                 if not mesh_pending and not missing_mesh:

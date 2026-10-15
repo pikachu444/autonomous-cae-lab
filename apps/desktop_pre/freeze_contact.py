@@ -303,6 +303,8 @@ def collect(analysis, solver, fem, *, capture_only=False):
         model = admitted(owner, dynamic_record, baseline, proof)
         if proof != identity:
             raise ValueError('동해석 대상이 입력 준비 중 변경됐습니다.')
+    from .periodic_native import freeze as freeze_periodic
+    freeze_periodic(fem, analysis, bodies, model)
     validate_model(model)
     return model, identity
 

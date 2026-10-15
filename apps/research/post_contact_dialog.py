@@ -19,7 +19,7 @@ class ContactDialog(QDialog):
         self.saved_object = None
         self._loading = False
         self._serial = 0
-        self.setWindowTitle('접촉면과 힘 이력')
+        self.setWindowTitle('접촉면·합력·모멘트')
         self.resize(1440, 900)
         self.setMinimumSize(1020, 700)
         outer = QVBoxLayout(self)
@@ -68,7 +68,7 @@ class ContactDialog(QDialog):
         self.component.setObjectName('contactForceComponent')
         for label, value in [('전체 힘 (CF)', 'CF'), ('법선 힘 (CFN)', 'CFN'), ('접선 힘 (CFS)', 'CFS')]:
             self.quantity.addItem(label, value)
-        for index, label in enumerate(('문서 전체 X', '문서 전체 Y', '문서 전체 Z')):
+        for index, label in enumerate(('선택 좌표계 X', '선택 좌표계 Y', '선택 좌표계 Z')):
             self.component.addItem(label, index)
         force.addWidget(self.quantity, 2)
         force.addWidget(self.component, 1)
@@ -77,6 +77,9 @@ class ContactDialog(QDialog):
         self.read_button.clicked.connect(lambda: self.read())
         force.addWidget(self.read_button)
         layout.addLayout(force)
+        from .post_resultant_controls import ResultantControls
+        self.resultants = ResultantControls(self.changed, self)
+        layout.addWidget(self.resultants)
         self.figure = Figure(figsize=(6, 3.5))
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.mpl_connect('pick_event', self.picked)
@@ -94,7 +97,7 @@ class ContactDialog(QDialog):
         actions = QHBoxLayout()
         self.save_selection = QPushButton('현재 면과 증분 저장')
         self.save_selection.clicked.connect(self.save_inspection)
-        self.save_measurement = QPushButton('힘 이력 측정 저장')
+        self.save_measurement = QPushButton('합력 / 모멘트 측정 저장')
         self.save_measurement.clicked.connect(self.create_measurement)
         self.numerical = QPushButton('Numerical로 보내기…')
         self.numerical.setMinimumWidth(165)
@@ -135,7 +138,8 @@ class ContactDialog(QDialog):
         return {'source_ref': self.source_ref, 'pair_id': self.pair.currentData(),
                 'side': self.side.currentData(), 'frame_index': self.frame.currentData(),
                 'field': self.field.currentData(), 'quantity': self.quantity.currentData(),
-                'component': self.component.currentData()}
+                'component': self.component.currentData(),
+                'resultant': self.resultants.value()}
 
     def changed(self, *_):
         if self._loading:
@@ -149,6 +153,7 @@ class ContactDialog(QDialog):
         idle = self.same_owner() and not self.post._busy and self.post._pending is None and not self.post.conflict
         for combo in (self.pair, self.side, self.frame, self.field, self.quantity, self.component):
             combo.setEnabled(idle)
+        self.resultants.sync(idle)
         ready = idle and self.payload is not None
         last = self.post._last_command or {}
         failed = last.get('state') in {'FAILED', 'REJECTED', 'INTERRUPTED'} and last.get('operation') == 'post.contact_inspect'
@@ -187,7 +192,11 @@ class ContactDialog(QDialog):
         catalog = payload['catalog']
         axis_label = '시간 [s]' if catalog['axis']['unit']=='s' else '누적 하중 계수 [1]'
         symbol = 't' if catalog['axis']['unit']=='s' else 'λ'
-        self.history.setHorizontalHeaderLabels(['단계 / 증분',axis_label,'A 면 합력 [N]','유효성'])
+        response = payload['history'].get('resultant', {}).get('response', 'force')
+        response_label = 'A 면 합모멘트' if response == 'moment' else 'A 면 합력'
+        response_unit = payload['history']['unit']
+        self.history.setHorizontalHeaderLabels(['단계 / 증분', axis_label, response_label+' ['+response_unit+']', '유효성'])
+        self.resultants.load(selected.get('resultant'))
         if initial:
             self.pair.clear()
             for pair in catalog['pairs']:
@@ -214,6 +223,9 @@ class ContactDialog(QDialog):
             '형상 간극은 변형된 면의 근사값입니다. 면 색상은 절점 투영값이며 접촉 활성 여부는 확인되지 않았습니다.'
             if selected['field'] == 'GeomGap_mm' else
             '공유 절점에 투영한 값입니다. 접촉 쌍을 선택해도 그 쌍의 압력·미끄럼 기여만 분리되지 않습니다. 접촉 활성 여부는 확인되지 않았습니다.')
+        if payload.get('input_activation') is not None:
+            state = {'active': '활성', 'inactive': '비활성'}.get(payload['input_activation'], '미확인')
+            self.meaning.setText(self.meaning.text()+' 선택 단계의 접촉쌍 입력 상태: '+state+' (실제 접촉 여부 아님).')
         if catalog.get('execution',{}):
             self.meaning.setText('실패·취소 실행의 수렴한 일부 증분입니다. 전체 해석 완료가 아닙니다. '+self.meaning.text())
         self.field_table.setHorizontalHeaderLabels(['절점', payload['field'] + ' [' + payload['unit'] + ']', '유효성'])
@@ -245,7 +257,8 @@ class ContactDialog(QDialog):
         if rows[index]['valid']:
             self.axes.plot([x[index]], [y[index]], 'o', color='#c55b28', markersize=8)
         self.axes.set_xlabel(axis_label)
-        self.axes.set_ylabel(selected['quantity'] + ' global ' + 'XYZ'[selected['component']] + ' on A [N]')
+        frame_label = payload['history'].get('resultant', {}).get('frame_label', 'Global')
+        self.axes.set_ylabel(selected['quantity'] + ' ' + frame_label + ' ' + 'XYZ'[selected['component']] + ' [' + response_unit + ']')
         self.axes.grid(True, alpha=.2)
         self.figure.tight_layout()
         self.canvas.draw_idle()
@@ -301,7 +314,7 @@ class ContactDialog(QDialog):
     def create_measurement(self):
         if not self.same_owner() or self.post.local_dirty or not self.payload or not all(
                 self.payload['selection'].get(key) == value for key, value in self.selection().items()):
-            self.status.setText('현재 표와 곡선은 이전 조회입니다. 선택한 힘 성분을 먼저 조회한 뒤 측정을 저장하세요.')
+            self.status.setText('현재 표와 곡선은 이전 조회입니다. 선택한 합력/모멘트 성분을 먼저 조회한 뒤 측정을 저장하세요.')
             return False
         selected, token = self.selection(), self.token()
         def created(payload):
@@ -313,11 +326,13 @@ class ContactDialog(QDialog):
             def saved(_):
                 if token == self.token():
                     self.saved_object = object_ref
-                    self.status.setText('Force measurement saved. Use in Numerical to choose an existing Plan and review the append.')
+                    self.status.setText('측정을 저장했습니다. Numerical로 보내기에서 기존 계획·같은 축/단위·추가할 행을 검토하세요.')
                     self.sync()
             self.post.queue_command('document.save', {}, accepted=saved)
         return self.post.queue_command('post.contact_measurement',
-            {key: selected[key] for key in ('source_ref', 'pair_id', 'quantity', 'component')}, accepted=created)
+            {**{key: selected[key] for key in ('source_ref', 'pair_id', 'quantity', 'component')},
+             **({'resultant': selected['resultant']} if 'resultant' in selected else {}),
+             **({'frame_indices': [selected['frame_index']]} if self.resultants.only_frame.isChecked() else {})}, accepted=created)
 
     def use_numerical(self):
         if self.saved_object and self.payload and all(self.payload['selection'].get(key) == value

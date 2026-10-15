@@ -26,7 +26,7 @@ def read(workspace, source_ref):
 
 def inspect(workspace, *, source_ref, pair_id=None, side='both', frame_index=0,
             field='CPRESS', quantity='CFN', component=2, show=False, view_id=None,
-            offset=0, limit=500):
+            offset=0, limit=500, resultant=None):
     if type(show) is not bool or type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 1000:
         raise ValueError('Use an explicit display choice and a bounded contact row page')
     bundle = read(workspace, source_ref)
@@ -36,12 +36,18 @@ def inspect(workspace, *, source_ref, pair_id=None, side='both', frame_index=0,
         if saved.get('source_ref') == source_ref and saved.get('inspection_sha256') == bundle['descriptor']['sha256']:
             pair_id, side, frame_index, field, quantity, component = [
                 saved[key] for key in ('pair_id', 'side', 'frame_index', 'field', 'quantity', 'component')]
+            if resultant is None:
+                resultant = deepcopy(saved.get('resultant'))
         else:
             pair_id = next(iter(bundle['pairs']))
     selected = api.inspect(bundle, pair_id, side, frame_index, field, quantity, component)
+    if resultant is not None:
+        selected['history'] = api.resultant_history(bundle, pair_id, quantity, component, resultant)
+        resultant = selected['history']['resultant']
     selection = {'source_ref': source_ref, 'pair_id': pair_id, 'side': side,
                  'frame_index': frame_index, 'field': field, 'quantity': quantity, 'component': component,
-                 'inspection_sha256': bundle['descriptor']['sha256']}
+                 'inspection_sha256': bundle['descriptor']['sha256'],
+                 **({'resultant': deepcopy(resultant)} if resultant is not None else {})}
     if show:
         _show(workspace, bundle, selection, view_id)
         workspace._touch()
@@ -201,6 +207,9 @@ def restore(workspace):
             raise ValueError('Saved contact Render View is unavailable')
         external.contact_api().inspect(bundle, *[selected[k] for k in
             ('pair_id', 'side', 'frame_index', 'field', 'quantity', 'component')])
+        if 'resultant' in selected:
+            external.contact_api().resultant_history(bundle, selected['pair_id'], selected['quantity'],
+                                                      selected['component'], selected['resultant'])
         _owned_overlay(workspace, selected, bundle, replacing=False)
         # PVSM already restored the exact display/time/visibility and any later
         # native edits. Opening a project must not replay an earlier Show action.
@@ -211,24 +220,36 @@ def restore(workspace):
         return False
 
 
-def recipe(workspace, source_ref, pair_id, quantity, component):
+def _history(bundle, pair_id, quantity, component, resultant=None, frame_indices=None):
+    api = external.contact_api()
+    if resultant is not None or frame_indices is not None:
+        return api.resultant_history(bundle, pair_id, quantity, component, resultant,
+                                     frame_indices=frame_indices)
+    return api.force_history(bundle, pair_id, quantity, component)
+
+
+def recipe(workspace, source_ref, pair_id, quantity, component, resultant=None, frame_indices=None):
     bundle = read(workspace, source_ref)
-    history = external.contact_api().force_history(bundle, pair_id, quantity, component)
+    history = _history(bundle, pair_id, quantity, component, resultant, frame_indices)
     return {'source_ref': source_ref, 'measurement': 'contact_force', 'association': 'ROWS',
             'pair_id': pair_id, 'quantity': quantity, 'component': component,
-            'array': history['array'], 'units': 'N', 'frame': history['frame'],
+            'array': history['array'], 'units': history['unit'], 'frame': history['frame'],
             'measure': history['measure'], 'axis_name': history['axis']['name'], 'axis_unit': history['axis']['unit'],
             'time_units': history['axis']['unit'], 'time_origin': history['axis']['semantics'],
             'inspection_sha256': bundle['descriptor']['sha256'],
+            **({k: deepcopy(history[k]) for k in ('resultant', 'frame_indices', 'force_on', 'transformation')}
+               if 'resultant' in history else {}),
             **({'execution':deepcopy(history['execution'])} if 'execution' in history else {})}
 
 
 def build_measurement(workspace, draft, namespace):
-    expected = recipe(workspace, draft['source_ref'], draft['pair_id'], draft['quantity'], draft['component'])
+    expected = recipe(workspace, draft['source_ref'], draft['pair_id'], draft['quantity'], draft['component'],
+                      draft.get('resultant'), draft.get('frame_indices'))
     if draft != expected:
         raise ValueError('Contact force recipe differs from its exact pair/component and retained declarations')
     bundle = read(workspace, draft['source_ref'])
-    history = external.contact_api().force_history(bundle, draft['pair_id'], draft['quantity'], draft['component'])
+    history = _history(bundle, draft['pair_id'], draft['quantity'], draft['component'],
+                       draft.get('resultant'), draft.get('frame_indices'))
     # ProgrammableSource materializes an actual vtkTable from verified retained
     # numeric rows. The generated literal contains no caller code or file lookup.
     # Native PVSM retains this script; its properties are verified by graph_signature.
@@ -259,14 +280,18 @@ def build_measurement(workspace, draft, namespace):
         if data.GetNumberOfRows() != len(history['rows']):
             raise ValueError('Native contact table has an incomplete row set')
         summary = {'measurement': 'contact_force', 'array': draft['array'], 'association': 'ROWS',
-            'sample_semantics': 'retained_DAT_pair_resultant', 'units': 'N',
+            'sample_semantics': 'retained_DAT_pair_resultant', 'units': history['unit'],
             'frame': history['frame'], 'measure': history['measure'], 'quantity': draft['quantity'],
-            'component_label': draft['quantity'] + ' global ' + 'XYZ'[draft['component']],
+            'component_label': (draft['quantity'] + ' ' + history['resultant']['response'] + ' ' +
+                                history['resultant']['frame_label'] + ' ' + 'XYZ'[draft['component']]
+                                if 'resultant' in history else draft['quantity'] + ' global ' + 'XYZ'[draft['component']]),
             'location': bundle['pairs'][draft['pair_id']]['label'] + ' / ' + draft['pair_id'],
             'axis_name': draft['axis_name'], 'axis_unit': draft['axis_unit'],
             'axis_values': values[draft['axis_name']], 'time_units': draft['time_units'], 'time_origin': draft['time_origin'],
             'pair_id': draft['pair_id'], 'force_rows': history['rows'],
             'inspection_sha256': draft['inspection_sha256'], 'active_state': 'UNKNOWN',
+            **({k: deepcopy(history[k]) for k in ('resultant', 'frame_indices', 'force_on', 'transformation', 'source')}
+               if 'resultant' in history else {}),
             **({'execution':deepcopy(history['execution'])} if 'execution' in history else {})}
         return {'source': proxy, 'proxies': [proxy], 'summary': summary}
     except BaseException:
@@ -275,10 +300,10 @@ def build_measurement(workspace, draft, namespace):
         raise
 
 
-def create_measurement(workspace, *, source_ref, pair_id, quantity, component):
-    draft = recipe(workspace, source_ref, pair_id, quantity, component)
+def create_measurement(workspace, *, source_ref, pair_id, quantity, component, resultant=None, frame_indices=None):
+    draft = recipe(workspace, source_ref, pair_id, quantity, component, resultant, frame_indices)
     label = read(workspace, source_ref)['pairs'][pair_id]['label']
-    obj = workspace.edit_measurement(draft=draft, title=label + ' ' + quantity + ' ' + 'XYZ'[component])
+    obj = workspace.edit_measurement(draft=draft, title=label + ' ' + ('모멘트 ' if (resultant or {}).get('response') == 'moment' else '합력 ') + quantity + ' ' + 'XYZ'[component])
     try:
         workspace.validate(object_ref=obj['id'])
         workspace.apply(object_ref=obj['id'], show=True)

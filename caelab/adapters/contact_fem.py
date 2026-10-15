@@ -17,6 +17,7 @@ from ..storage import check_id, save_json
 from .frozen_fem import _read, _relative, _sha, _jacobian_gates, read_frd
 from .fixture_field import _printed_close
 from .contact_results import read_dat, write_post, CHANNELS, BASIS
+from ..contact_activation import compile_states, require_contact, output_availability
 
 
 def validate_snapshot(path):
@@ -143,6 +144,10 @@ class ContactFemCalculixAdapter:
                                  'configuration': 'configured PATH', 'build_identity': 'UNKNOWN'}
             native = output / 'solver'
             native.mkdir()
+            from ..contact_execution_extensions import require_runtime
+            result['runtime'].update(require_runtime(executable, native, model, run_owned_command))
+            if _sha(executable) != executable_sha:
+                raise ValueError('Contact executable changed during native version admission')
             deck = native / 'contact.inp'
             shutil.copyfile(retained / 'contact.inp', deck)
             from .dynamic_fem import before_run
@@ -176,7 +181,7 @@ class ContactFemCalculixAdapter:
             dynamic = dynamic_enabled(model)
             native_reader = read_dynamic_frd if dynamic else read_frd
             observed = native_reader(deck.with_suffix('.frd'), read_nodes, elements, contact_materials=materials,
-                                contact_profile=profile(model), require_contact=bool(contact_pairs))
+                                contact_profile=profile(model), require_contact=require_contact(model))
             from ..dynamic_result_store import file_pin
             observed_pin = file_pin(output, deck.with_suffix('.frd'))
             validate_frames(model, observed)
@@ -198,10 +203,12 @@ class ContactFemCalculixAdapter:
                 progress=result.get('increment_history') or read_status(deck.with_suffix('.sta'),model)
                 require_converged(frames,progress)
                 result['increment_history']=progress
-            pair_results = read_dat(deck.with_suffix('.dat'), model['contacts'], frames)
+            pair_results = read_dat(deck.with_suffix('.dat'), model['contacts'], frames, activation=compile_states(model))
             save_json(output / 'pair_resultants.json', {'snapshot_id': manifest['id'], 'rows': pair_results,
                 'request_order': ['CF', 'CFN', 'CFS'], 'force_units': 'N', 'moment_units': 'N mm',
-                'axis': contact_axis(model), 'area_units': 'mm^2'})
+                'axis': contact_axis(model), 'area_units': 'mm^2',
+                'contact_state_profile': compile_states(model),
+                'missing_policy': 'Inactive pair outputs are not requested; absence is not a measured zero.'})
             with (output / 'pair_resultants.csv').open('w', newline='', encoding='utf-8') as stream:
                 writer = csv.writer(stream)
                 writer.writerow(['pair', 'quantity', 'step', 'increment',
@@ -226,15 +233,18 @@ class ContactFemCalculixAdapter:
             field_clock = ({'axis':contact_axis(model), 'coordinate':final['static']['load_parameter'],
                             'step_location':deepcopy(final.get('step_location'))} if profile(model) or ns1_enabled(model) else {})
             responses = {}
+            final_contact = final['fields'].get('CONTACT', {})
+            final_availability = output_availability(model, final['static']['step'])
             for j, key in enumerate(CHANNELS if contact_pairs else ()):
-                covered = [n for n in ids if n in final['fields']['CONTACT'] and final['fields']['CONTACT'][n][j] is not None]
+                covered = [n for n in ids if n in final_contact and final_contact[n][j] is not None]
                 responses[key] = {'kind':'field', 'unit':'mm' if j < 3 else 'MPa',
-                    'value':[final['fields']['CONTACT'][n][j] for n in covered], 'component':key,
+                    'value':[final_contact[n][j] for n in covered], 'component':key,
                     'location':'calculix_export_nodes', 'reduction':'none',
                     'metadata': {'node_ids':covered, 'association':'POINTS', 'static':final['static'], **field_clock,
                         'missing_or_invalid_node_ids':[n for n in ids if n not in set(covered)],
                         'raw_frame':('dynamic-post' if dynamic else 'post')+'/frame'+str(len(frames)).zfill(4)+'.json',
                         'basis':BASIS, 'coverage':'actual_finite_native_rows', 'pair_scope':'shared_nodal_projection',
+                        'pair_output_availability': final_availability,
                         'contact_state':'UNKNOWN', 'raw_sign':'unchanged'}}
             responses['displacement'] = {'kind':'field','unit':'mm',
                 'value':[final['fields']['DISP'][n] for n in ids], 'component':'VECTOR',
@@ -267,6 +277,8 @@ class ContactFemCalculixAdapter:
                             'component':'F'+component, 'location':pair['object_id'],'reduction':'none',
                             'metadata':{'axis_semantics':contact_axis(model)['semantics'],'quantity':quantity,
                                 'frame':'FREECAD_DOCUMENT_GLOBAL','raw_rows':'pair_resultants.json',
+                                'frame_availability':[{'static': f['static'], 'output': output_availability(model, f['static']['step'])[pair['object_id']]}
+                                                      for f in frame_catalog(frames)],
                                 'excluded_nonfinite_rows':len(rows)-len(valid)}}
             artifact = output / 'post' / 'contact.pvd'
             result.update(execution_status='SUCCEEDED', responses=responses, native_version=observed['native_version'],
@@ -335,7 +347,7 @@ class ContactFemCalculixAdapter:
                     observed_pin = file_pin(output, output/'partial/committed.frd')
                     coordinates,partial_adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
                     frames=observed['frames']
-                    pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True)
+                    pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True,activation=compile_states(model))
                     legacy=dict(solver_coordinates=coordinates,adjustment=partial_adjustment,
                         execution={'status':result['execution_status'],'complete_analysis':False,'scope':'CONVERGED_PREFIX',
                                    'frd_retention':observed['retention']},provenance={
@@ -375,7 +387,8 @@ class ContactFemCalculixAdapter:
                        legacy_context=dynamic_legacy)
             finally:
                 release(observed)
-        result['artifacts'] = [{'relative':p.relative_to(output).as_posix(),'bytes':p.stat().st_size,'sha256':_sha(p)}
+        result['artifacts'] = [{'relative':p.relative_to(output).as_posix(), 'path':p.relative_to(output).as_posix(),
+                               'bytes':p.stat().st_size,'sha256':_sha(p)}
                                for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()
                                and p.name != 'contact_execution.json'
                                and not any(part.startswith(('.caelab-', '.dynamic-energy-')) for part in p.relative_to(output).parts)]
@@ -406,7 +419,9 @@ def regenerate_post(attempt, output):
     has_adjustment=any(p['draft']['normal_law']=='tie' and p['draft'].get('tie_adjust',False) for p in model['contacts'])
     if has_adjustment:
         required += ['tie_projection/expected.json','tie_projection/points.json','tie_projection/projected.json']
-    if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']) or 'solver/contact.dat' in entries:
+    stages = profile(model)
+    needs_dat = any(require_contact(model, row['index']) for row in stages['steps']) if stages else require_contact(model)
+    if needs_dat or 'solver/contact.dat' in entries:
         required.append('solver/contact.dat')
     if profile(model) or ns1_enabled(model):
         required.append('solver/contact.sta')
@@ -427,14 +442,14 @@ def regenerate_post(attempt, output):
                  'elements': {row['element_id']: 'M' + str(indices[row['body_id']])
                               for row in model['elements']}}
     observed = read_frd(attempt / 'solver/contact.frd', read_nodes, elements, contact_materials=materials,
-                        contact_profile=profile(model), require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
+                        contact_profile=profile(model), require_contact=require_contact(model))
     validate_frames(model, observed)
     frames = observed['frames']
     coordinates,adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
     if profile(model) or ns1_enabled(model):
         from ..contact_status import read_status, require_converged
         require_converged(frames, read_status(attempt / 'solver/contact.sta', model))
-    pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames)
+    pairs = read_dat(attempt / 'solver/contact.dat', model['contacts'], frames, activation=compile_states(model))
     output.parent.mkdir(parents=True, exist_ok=True)
     metadata = write_post(output, model, frames, pairs, solver_coordinates=coordinates,adjustment=adjustment,provenance={
         'snapshot_id': manifest['id'], 'snapshot_sha256': input_pins['snapshot.json']['sha256'],

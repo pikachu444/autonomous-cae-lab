@@ -5,6 +5,7 @@ frdheader.c and printoutcontact.f. This is not a claim of binary equivalence.
 """
 import math
 import re
+from pathlib import Path
 from xml.etree import ElementTree as ET
 import numpy as np
 
@@ -18,29 +19,40 @@ CHANNELS = ('COPEN', 'CSLIP1', 'CSLIP2', 'CPRESS', 'CSHEAR1', 'CSHEAR2')
 BASIS = 'CalculiX master-face local normal/tangents; projected nodal values; exact basis vectors not exported'
 
 
-def read_dat(path, pairs, frames, *, prefix=False):
+def read_dat(path, pairs, frames, *, prefix=False, activation=None):
     """Read complete CF/CFN/CFS triples in frozen request order, retaining raw signs."""
-    pairs = [p for p in pairs if p['draft']['normal_law'] != 'tie']
-    if not pairs:
+    path = Path(path)
+    if not any(p['draft']['normal_law'] != 'tie' for p in pairs):
         return []  # TIE is an MPC; no CONTACT PRINT request was made.
     from ..dynamic_native_stream import NativeLines, frame_catalog
+    from ..contact_activation import output_pairs
+    catalog = frame_catalog(frames)
+    if (not path.is_file() and not any(output_pairs(pairs, activation, f['static']['step']) for f in catalog)):
+        return []  # All retained stages explicitly disabled contact output.
     if hasattr(frames, 'metadata'):
         lines = NativeLines(path)
         try:
-            result = _read_dat_lines(lines, pairs, frame_catalog(frames), prefix=prefix)
+            result = _read_dat_lines(lines, pairs, catalog, prefix=prefix, activation=activation)
             lines.finish()
             return result
         finally:
             lines.close()
     text = _read(path).decode('ascii').replace('\r\n', '\n')
-    return _read_dat_lines(text.splitlines(), pairs, frames, prefix=prefix)
+    return _read_dat_lines(text.splitlines(), pairs, catalog, prefix=prefix, activation=activation)
 
 
-def _read_dat_lines(lines, pairs, frames, *, prefix=False):
+def _read_dat_lines(lines, pairs, frames, *, prefix=False, activation=None):
     """Existing pair resultant grammar, shared by buffered and streamed transport."""
-    requests = [(pair['object_id'], key) for pair in pairs for key in ('CF', 'CFN', 'CFS')]
+    from ..contact_activation import output_pairs
+    by_increment = {(f['static']['step'], f['static']['increment']): f for f in frames}
+    if len(by_increment) != len(frames):
+        raise ValueError('Duplicate FRD step/increment in contact requests')
+    requests = {key: [(pair['object_id'], quantity)
+                     for pair in output_pairs(pairs, activation, key[0]) for quantity in ('CF', 'CFN', 'CFS')]
+                for key in by_increment}
+    positions = dict.fromkeys(by_increment, 0)
     header = re.compile(r'^\s*statistics for slave set (\S+), master set (\S+) and time\s+(\S+)\s*$')
-    step, increment, result, ordinal = None, None, [], 0
+    step, increment, result, ordinal, last_key = None, None, [], 0, None
     expected_headings = [
         'total surface force (fx,fy,fz) and moment about the origin (mx,my,mz)',
         'center of gravity and mean normal',
@@ -66,11 +78,8 @@ def _read_dat_lines(lines, pairs, frames, *, prefix=False):
         if re.fullmatch(r'STEP[0-9]+', compact):
             step = int(compact[4:])
         elif re.fullmatch(r'INCREMENT[0-9]+', compact):
-            if ordinal % len(requests):
-                raise ValueError('DAT has an incomplete contact request sequence')
             increment = int(compact[9:])
-            if prefix and result and (step,increment) not in {
-                    (r['static']['step'],r['static']['increment']) for r in frames}:
+            if prefix and by_increment and (step, increment) > max(by_increment):
                 break
         match = header.match(line)
         i += 1
@@ -78,11 +87,19 @@ def _read_dat_lines(lines, pairs, frames, *, prefix=False):
             continue
         if step is None or step < 1 or increment is None:
             raise ValueError('DAT pair result lacks its exact step/increment')
-        pair_id, quantity = requests[ordinal % len(requests)]
+        key = step, increment
+        if last_key is not None and key < last_key:
+            raise ValueError('DAT contact frame order differs from retained FRD')
+        last_key = key
+        expected = requests.get(key, [])
+        position = positions.get(key, 0)
+        if position >= len(expected):
+            raise ValueError('Unexpected/duplicate DAT contact output for an inactive or unrequested pair/frame')
+        pair_id, quantity = expected[position]
         slave, master, token = match.groups()
         if slave.upper() != ('DEP' + pair_id).upper() or master.upper() != ('IND' + pair_id).upper():
             raise ValueError('DAT pair/order differs from frozen CONTACT PRINT requests')
-        frame = next((row for row in frames if row['static']['step'] == step and row['static']['increment'] == increment), None)
+        frame = by_increment.get(key)
         if frame is None or not _printed_close(token, frame['static']['load_parameter'],
                                                reference_token=frame['load_parameter_token']):
             raise ValueError('DAT pair result does not match an actual FRD frame')
@@ -113,11 +130,11 @@ def _read_dat_lines(lines, pairs, frames, *, prefix=False):
             'basis': 'FREECAD_DOCUMENT_GLOBAL', 'normal_projection_sign': 'positive_tension_as_printed',
             'association': 'contact_pair_resultant', 'sequence_ordinal': ordinal})
         ordinal += 1
-    if not result or ordinal % len(requests):
-        raise ValueError('Missing/incomplete pair contact resultants')
+        positions[key] += 1
     for frame in frames:
         rows = [row for row in result if row['static'] == frame['static']]
-        if [(row['pair_id'], row['quantity']) for row in rows] != requests:
+        key = frame['static']['step'], frame['static']['increment']
+        if [(row['pair_id'], row['quantity']) for row in rows] != requests[key]:
             raise ValueError('Missing/duplicate DAT pair outputs for a retained frame')
     return result
 
@@ -323,10 +340,20 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             frame_enricher.enrich(tree, index, frame)
         tree.write(path, encoding='utf-8', xml_declaration=True)
         ET.SubElement(group, 'DataSet', timestep=format(frame['static']['load_parameter'], '.17g'), group='', part='0', file=path.name)
+        from ..contact_activation import input_state
+        availability = input_state(model, frame['static']['step'])
+        from ..contact_activation import output_availability
+        pair_outputs = output_availability(model, frame['static']['step'])
         save_json(folder / (path.stem + '.json'), {'static': frame['static'],
+            **({'input_activation': availability} if availability is not None else {}),
+            'pair_output_availability': pair_outputs,
             'step_location': frame.get('step_location'),
-            'field_availability': {native: ('available' if native in frame['fields'] else 'unavailable_not_output')
+            'field_availability': {**{native: ('available' if native in frame['fields'] else 'unavailable_not_output')
                                    for native, *_ in field_specs},
+                **({'CONTACT': ('available' if 'CONTACT' in frame['fields'] else
+                    'not_requested_input_inactive' if availability is not None and
+                    not any(v == 'requested' for v in pair_outputs.values())
+                    else 'unavailable_not_output')} if has_contact else {})},
             'contact': [{'node_id': n, 'pair_membership': membership[n], 'values': contact.get(n),
                          'raw_tokens': frame.get('contact_tokens', {}).get(n),
                          'record_present': n in contact} for n in node_ids],
@@ -423,6 +450,10 @@ def _inspection_bundle(folder, model, frames, provenance, metadata, execution):
         manifest['execution'] = deepcopy(execution)
     if profile(model):
         manifest['analysis_profile'] = profile(model)
+    from ..contact_activation import compile_states
+    availability = compile_states(model)
+    if availability is not None:
+        manifest['contact_state_profile'] = availability
     path = folder / 'contact-inspection.json'
     save_json(path, manifest)
     return file_pin(path, folder)

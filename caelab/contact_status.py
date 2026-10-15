@@ -132,6 +132,7 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status,
     physical_eof = not endings and stop == line_count
 
     def parse(cut, *, eof=False):
+        from .contact_activation import require_contact
         if streaming:
             import tempfile
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -141,14 +142,14 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status,
                 return read_dynamic_frd(reading, nodes, elements,
                     allow_missing_end=eof, contact_materials=materials,
                     contact_profile=profile(model),
-                    require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
+                    require_contact=require_contact(model))
         reading = ''.join(lines[:cut])
         if not eof:
             reading = reading.rstrip('\n') + '\n 9999\n'
         return read_frd(destination, nodes, elements, data=reading.encode('ascii'),
                         allow_missing_end=eof, contact_materials=materials,
                         contact_profile=profile(model),
-                        require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
+                        require_contact=require_contact(model))
 
     recovered = False
     try:
@@ -163,17 +164,18 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status,
 
     try:
         required = {'DISP'}
-        if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']):
-            required.add('CONTACT')
         if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
             required.update(('STRESS', 'FORC'))
         if ns1_enabled(model):
             required.update(('STRESS', 'TOSTRAIN', 'FORC'))
             if has_plasticity(model):
                 required.add('PE')
+        from .dynamic_results import required_fields
+        from .contact_activation import require_contact
+        def requested(frame):
+            return required | required_fields(model, frame) | ({'CONTACT'} if require_contact(model, frame['static']['step']) else set())
         for index, frame in enumerate(frame_catalog(observed['frames'])):
-            from .dynamic_results import required_fields
-            missing = (required | required_fields(model, frame)) - set(frame['fields'])
+            missing = requested(frame) - set(frame['fields'])
             if not missing:
                 continue
             if physical_eof and not recovered and index == len(observed['frames'])-1:
@@ -185,7 +187,7 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status,
                 observed = parse(stop)
                 break
             raise ValueError('Incomplete requested FRD fields: ' + ', '.join(sorted(missing)))
-        if any((required | required_fields(model, frame)) - set(frame['fields']) for frame in frame_catalog(observed['frames'])):
+        if any(requested(frame) - set(frame['fields']) for frame in frame_catalog(observed['frames'])):
             raise ValueError('Incomplete requested fields before the EOF increment')
         if ns1_enabled(model) and observed['native_version'] != '2.22':
             raise ValueError('NS1 partial readback requires CalculiX 2.22.')

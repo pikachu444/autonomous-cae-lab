@@ -56,6 +56,7 @@ def add_steps_page(panel, W, C):
             super().__init__()
             self.info, self.buffer, self.loading, self.modified = None,None,False,False
             self.loaded_analysis = None
+            self.pending_request = None
             layout = W.QVBoxLayout(self)
             row = W.QHBoxLayout()
             self.procedure = W.QComboBox()
@@ -76,6 +77,20 @@ def add_steps_page(panel, W, C):
             self.steps.itemSelectionChanged.connect(self.select_step)
             self.steps.setMaximumHeight(190)
             layout.addWidget(self.steps)
+            self.state_control = W.QCheckBox('단계별 접촉쌍 활성 상태를 명시')
+            self.state_control.setObjectName('contactStateControl')
+            self.state_control.toggled.connect(self.enable_states)
+            layout.addWidget(self.state_control)
+            self.pair_states = W.QTableWidget(0, 2)
+            self.pair_states.setObjectName('contactStepPairStates')
+            self.pair_states.setHorizontalHeaderLabels(['접촉쌍', '선택 단계의 상태'])
+            self.pair_states.horizontalHeader().setStretchLastSection(True)
+            self.pair_states.setMaximumHeight(150)
+            layout.addWidget(self.pair_states)
+            note = W.QLabel('비활성은 접촉쌍 계산에서 제외하는 입력 상태입니다. 실제 벌어짐/접촉 상태가 아닙니다. '
+                            '묶음 해제는 초안만 저장되며 *TIE 실행은 차단됩니다.')
+            note.setWordWrap(True)
+            layout.addWidget(note)
             self.condition = W.QComboBox()
             self.condition.setObjectName('contactStepCondition')
             self.condition.currentIndexChanged.connect(self.select_curve)
@@ -107,6 +122,7 @@ def add_steps_page(panel, W, C):
             actions = W.QHBoxLayout()
             panel._button('단계 적용',self.apply,actions,name='contactStepsApply')
             panel._button('수정 취소',self.discard,actions,mutate=False)
+            panel._button('미확인 요청 재시도',self.retry,actions,name='contactStepsRetry')
             self.state = W.QLabel()
             self.state.setWordWrap(True)
             self.state.setMinimumWidth(0)
@@ -138,6 +154,7 @@ def add_steps_page(panel, W, C):
                 if index<0:
                     self.procedure.addItem('미지원 해석',self.buffer.get('procedure')); index=self.procedure.count()-1
                 self.procedure.setCurrentIndex(index)
+                self.state_control.setChecked(any('contact_states' in x for x in self.buffer['steps']))
                 self.steps.setRowCount(len(self.buffer['steps']))
                 for i,row in enumerate(self.buffer['steps']):
                     for j,key in enumerate(self.keys):
@@ -171,7 +188,51 @@ def add_steps_page(panel, W, C):
                 for i,c in enumerate(row['curves']):
                     suffix='하중' if c.get('component')==0 else '변위 '+'XYZ'[int(c['component'])-1] if c.get('component') in (1,2,3) else '성분 확인'
                     self.condition.addItem(names.get(c.get('condition_id'),'누락된 조건')+' / '+suffix+' ['+str(c.get('unit',''))+']',i)
-            self.condition.blockSignals(False); self.select_curve()
+            self.condition.blockSignals(False); self.select_curve(); self.show_states()
+        def enable_states(self, enabled):
+            if self.loading or self.buffer is None:
+                return
+            if not enabled:
+                yes = W.QMessageBox.StandardButton.Yes
+                if W.QMessageBox.question(self, '활성 상태 표 해제',
+                        '모든 단계의 접촉쌍 상태 표를 없애고 기존 전체 활성 방식으로 돌아갑니다. 계속할까요?',
+                        yes | W.QMessageBox.StandardButton.Cancel, W.QMessageBox.StandardButton.Cancel) != yes:
+                    self.state_control.blockSignals(True); self.state_control.setChecked(True); self.state_control.blockSignals(False)
+                    return
+            pairs = (self.info or {}).get('contact_pairs', [])
+            for row in self.buffer['steps']:
+                if enabled:
+                    row.setdefault('contact_states', [{'pair_id': p['pair_id'], 'state': 'active'} for p in pairs])
+                else:
+                    row.pop('contact_states', None)
+            self.mark(); self.show_states()
+        def show_states(self):
+            step = self.current_step()
+            rows = step.get('contact_states', []) if step else []
+            names = {p['pair_id']: p for p in (self.info or {}).get('contact_pairs', [])}
+            self.pair_states.setRowCount(len(rows))
+            self.pair_states.setEnabled(bool(step) and self.state_control.isChecked())
+            for i, row in enumerate(rows):
+                pair = names.get(row.get('pair_id'), {})
+                name = pair.get('label', '삭제되거나 다시 연결할 접촉쌍')
+                if pair.get('normal_law') == 'tie':
+                    name += ' / 묶음'
+                item = W.QTableWidgetItem(name)
+                item.setFlags(item.flags() & ~C.Qt.ItemFlag.ItemIsEditable)
+                item.setToolTip(str(row.get('pair_id')))
+                self.pair_states.setItem(i, 0, item)
+                combo = W.QComboBox()
+                for text, value in [('활성', 'active'), ('비활성', 'inactive'), ('묶음 해제 — 실행 미지원', 'released')]:
+                    combo.addItem(text, value)
+                index = combo.findData(row.get('state'))
+                if index < 0:
+                    combo.addItem('원래 값 — 수정 필요', row.get('state')); index = combo.count()-1
+                combo.setCurrentIndex(index)
+                combo.currentIndexChanged.connect(lambda _, r=row, w=combo: self.change_state(r, w.currentData()))
+                self.pair_states.setCellWidget(i, 1, combo)
+        def change_state(self, row, state):
+            if not self.loading:
+                row['state'] = state; self.mark()
         def mode_changed(self,*_):
             if self.loading: return
             c=self.current_curve()
@@ -265,13 +326,32 @@ def add_steps_page(panel, W, C):
             self.modified=False
             self.refresh(load_forms=True)
         def apply(self):
+            if self.pending_request:
+                self.state.setText('이전 미확인 요청을 먼저 재시도하세요. 현재 수정은 유지됩니다.')
+                return
             if not self.buffer or panel.analysis.currentData()!=self.loaded_analysis:
                 raise ValueError('편집한 해석을 다시 선택한 뒤 적용하세요')
-            aid,serial=self.loaded_analysis,panel._edit_serial
+            self.pending_request = (self.loaded_analysis, {'draft': deepcopy(self.buffer),
+                'expected_revision': self.info['revision'], 'request_id': uuid.uuid4().hex})
+            self.retry()
+        def retry(self):
+            if not self.pending_request:
+                raise ValueError('미확인 요청이 없습니다.')
+            aid, args = self.pending_request
+            if panel.analysis.currentData() != aid:
+                raise ValueError('원래 편집한 해석을 선택하세요.')
+            serial = panel._edit_serial
+            submitted_draft = deepcopy(args['draft'])
             def done(result):
-                if panel.analysis.currentData()==aid and panel._edit_serial==serial:
+                self.pending_request = None
+                if (panel.analysis.currentData()==aid and panel._edit_serial==serial
+                        and self.buffer == submitted_draft):
                     self.modified=False; self.info=result; self.buffer=deepcopy(result['draft']); self.populate()
                 else:
-                    self.state.setText('이전 초안 적용됨 / 현재 수정 유지')
-            panel._send('pre.contact.steps_set',{'draft':deepcopy(self.buffer)},aid,on_done=done)
+                    self.state.setText('이전 초안 적용됨 / 현재 수정 유지. 현재 문서를 다시 읽은 뒤 이어서 적용하세요.')
+            def failed(error):
+                if getattr(error, 'native_terminal', False):
+                    self.pending_request = None
+                self.state.setText(str(error)+' / 미적용 초안 유지')
+            panel._send('pre.contact.steps_set', deepcopy(args), aid, on_done=done, on_error=failed)
     return Page()
