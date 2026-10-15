@@ -2026,7 +2026,7 @@ class DataWindow(QMainWindow):
         event.ignore()
         def leave():
             self._allow_close = True
-            self.close()
+            QTimer.singleShot(0, self.close)
         self._leave(leave)
 
     def showEvent(self, event):

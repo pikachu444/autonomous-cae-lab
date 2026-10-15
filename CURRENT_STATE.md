@@ -221,7 +221,9 @@ Windows에서 새 시험의 UTF-8 읽기와 출력별 CSV 물리량 표시를 �
 모든 구속의 합반력·모멘트는 여전히 미구현이다. 아직 게시 전이며 기존 B1.3 `relay.json`을 따른다.
 한 번의 실제 새 owner 진단에서 메시·배치·참조는 같고 원 binding과 현재 stamp의 BREP
 두 필드만 다른 것을 확인했다. 원 저장 전 export 원문이 없어 형상 동등성까지 단정하지 않는다.
-이 공개 저장본·원 소스·Astra 최종 교정 조건을 실제 Pro C1에 직접 첨부해 작성 중이다.
+이 공개 저장본·원 소스·Astra 최종 교정 조건을 실제 Pro C1에 직접 첨부했다. C1은
+실행 도구 오류로 새 소스 없이 종료돼, 같은 원 첨부를 유지한 한 번의 재시도를 시작했다.
+진행 중 응답을 중복 전송하거나 원 실패를 완료로 바꾸지 않는다.
 
 **Expert 결과 첨부와 이어 읽기 통합:** 보존한 계산의 물리량·성분·단위를 선택해
 대화에 첨부하고, 편집 적용→실행 취소/다시 실행→저장→새 앱 재열기까지 연결했다.
@@ -245,9 +247,13 @@ Material의 명시 DP·초탄성/점탄성 point–FE·저장 개정의 해석 �
 이는 합성 메시 경로다. 별도 실제 FreeCAD에서 DP 할당 미리보기·적용·Undo/Redo·FCStd 저장과
 새 프로세스 읽기를 확인했다. 그 원 frozen 입력의 실제 FE 실행은 출처 기록의 경로를 실행 경로로
 오인하는 관문에서 차단됐다. 새 native 세션의 런타임 Proxy 표현도 안정된 참조로 바꿔야 한다.
-두 Core 교정은 실제 Pro C1 작성 중이며 물리·경로 보호를 완화하지 않는다. Astra의 독립 검토와
-Sol의 모델 편집·피팅 연결·유실 응답 재개 GUI 교정은 마쳤으나 아직 게시 전이다. 원본은
-`_workspace/delivery-data-material/law-native-return/`에 있다.
+두 Core 교정의 실제 Pro C1 소스를 회수해 전용 증분과 최소 공통 관문을 통합했다.
+출처의 정확한 세 경로만 실행 능력이 없는 기록으로 허용하며 다른 경로·코드 입력 차단과
+현재 법칙 소스·물리 입력·native solver 검사를 유지한다. 국소 검사와 Astra 읽기 검토를
+병행했고 원 동일 FCStd를 새 owner로 열어 재-freeze→실제 FE 한 번→저장·cold 읽기를
+확인 중이다. 앞선 합성 세 법칙 계산은 반복하지 않는다. Sol의 모델 편집·피팅 연결·
+유실 응답 재개 GUI 교정도 보존하며 아직 게시 전이다. 원본은
+`_workspace/delivery-data-material/law-native-return/`, C1은 `law-native-c1-return/`에 있다.
 
 PDE S1 실제 구현도 회수해 전용24개·기존2개·공통11개와 기존 MCP 연결을 통합했다.
 Windows에서 실제 scikit-fem 열 계산→다른 P1 메시·명시 시각 전달→평면응력 열탄성→저장·
@@ -301,9 +307,12 @@ Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실�
 실패했다. 해당 두 configure 경로만 CMake 구분자로 정규화했고 원 생성 함수를 사용해
 원 실패·교정 경로·공백 경로를 좁게 확인했다. 소유 Job을 종료했으며 교정 소스 게시 뒤
 새 원격 실행 `38695216322`는 게시 소스 `b2e359d`에서 09:33 UTC에 exit 1로 끝났고
-소유 Job은 정리됐다. wrapper 밖의 전체 빌드 로그를 Sol이 확인하며 아직 원인을 단정하지
-않는다. 새 전체 빌드는 반복하지 않았다. 공개 표준 Windows runner만 사용하며 아직
-plugin/실창 성공은 아니다. 원 결과는
+소유 Job은 정리됐다. 전체 로그에서 SDK·plugin 컴파일, 세 install, Qt 배포와 기존 ABI
+검사 완료를 확인했다. 첫 pvpython 실행은 DLL을 찾지 못하는 Windows 오류로 즉시
+종료됐으며 특정 누락 DLL은 로그에 없다. smoke·비교·cold는 미완료다. 기존 빌드 도구의
+직접 DLL 의존과 누락된 stderr 출력·설치 완료 기록 시점만 보완했으며, 누락을 추측한
+복사나 새 전체 빌드는 하지 않았다. 공개 표준 Windows runner만 사용하며 아직
+native plugin 사용/실창 성공은 아니다. 원 결과는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 후처리의 원 A/B 측정·시험 자료로 정확히 돌아가는 남은 구현도 현재 공개 원자료와
@@ -455,10 +464,13 @@ native access violation으로 원인을 특정하지 못해 반복을 멈췄으�
 일반 연구 원자료 열람에는 **보고서로 돌아가기 / Alt+←**를 연결했다. 미적용 설명·선택·
 최대화 상태를 보존하고 보고서가 연 읽기 창만 정리한다. Astra가 찾은 독립 후보 창까지
 닫던 범위 문제를 교정했다. Windows Qt 반례와 실제 HTTP의 고정 원자료·두 Runner의
-정확한 실행 선택, Data의 현재 문서와 명시 비교 선택을 확인했다. 마지막 Data 자식 종료
-대기에서는 실패해 보고서 저장·새 GUI 재열기에 도달하지 못했다. 제품 종료 원인은
-미확인이며 추가 반복을 멈췄고 모든 소유 Job을 정리했다. 원 기록과 한계는
-`_workspace/delivery-expert-study/report-source-roundtrip-01/FINAL_HANDOFF.md`에 있다.
+정확한 실행 선택, Data의 현재 문서와 명시 비교 선택을 확인했다. 앞선 Data 자식 종료
+대기 실패는 보존했다. 남은 보고서 복귀→미적용 설명·선택 유지→명시 적용·저장→별도
+Report GUI 재열기를 실제 Windows Qt/HTTP에서 확인했다. Data의 첫 닫기에서 closeEvent에
+재진입해 창이 남는 원인을 고쳐, 이벤트 반환 후 닫기를 예약한다. 한 번의 요청으로 정상
+종료되며 취소·저장 실패 때 입력과 창은 유지한다. 새 계산은 없고 모든 소유 Job을 정리했다.
+원 실패는 `report-source-roundtrip-01/FINAL_HANDOFF.md`, 남은 흐름과 교정 결과는
+`_workspace/delivery-expert-study/report-return-finish/RESULTS.md`에 있다.
 native Post의 broker/GUI 원창 활성화·닫힌 창 launcher 전체 왕복도 남는다. 이 범위를 전체 FN32
 완료로 확대하지 않는다. 사용 순서와 공개 결과 그림은 [보고서 사용법](docs/EXPERIMENT_REPORT.md#3d-결과-이미지를-넣고-원자료-확인하기)에 연결한다. 공유 프로젝트의
 새 대화 입력은 한 담당씩 전송 권한을 받아 혼입을 막고, 응답 작성과 코드 작업은 병렬로 계속한다.
