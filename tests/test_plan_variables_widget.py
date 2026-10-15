@@ -149,6 +149,29 @@ def test_recovery_pending_combo_keeps_exact_invalid_text(pair):
     assert second.buffer_snapshot()['request']['inputs']['variables'][0]['transform']=='linear'
 
 
+@pytest.mark.parametrize('column,start,length',[(2,0,2),(2,2,-2),(6,1,4)])
+def test_recovery_keeps_pending_text_selection_and_direction(pair,column,start,length):
+    app,_,(first,second),_=pair
+    first.table.setCurrentCell(0,column);first.table.editItem(first.table.item(0,column));app.processEvents()
+    editor=first._live_editor()
+    line=editor.lineEdit() if isinstance(editor,QComboBox) else editor
+    line.setText('1e🍀미완성');line.setSelection(start,length)
+    raw=first.recovery_snapshot()
+    expected=(line.selectedText(),line.cursorPosition(),line.selectionStart(),line.selectionLength())
+    second.bind_owner(Adapter('None'),document('None'))
+    before=second.document_snapshot()
+    bad=deepcopy(raw);bad['focus']['selection_length']=999
+    with pytest.raises(ValueError):second.restore_recovery(bad)
+    assert second.document_snapshot()==before and not second.has_unapplied_buffer()
+    second.restore_recovery(raw);app.processEvents()
+    editor=second._live_editor()
+    restored=editor.lineEdit() if isinstance(editor,QComboBox) else editor
+    assert (restored.selectedText(),restored.cursorPosition(),restored.selectionStart(),restored.selectionLength())==expected
+    assert second.recovery_snapshot()['focus']==raw['focus']
+    assert first._adapter.calls==second._adapter.calls==[]
+    QTest.keyClick(restored,Qt.Key.Key_Escape);app.processEvents()
+
+
 def test_recovery_retains_exact_local_paste_and_blank_cells(pair):
     app,_,(first,second),_=pair
     text='1e\t\n2.7\t0.9\n'

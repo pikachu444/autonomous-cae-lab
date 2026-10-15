@@ -54,6 +54,13 @@ PlanTable 붙여넣기를 사용한다. 아직 지원하지 않는 이산/종속
 응답이 유실되면 같은 command ID의 결과만 다시 확인하며 새 실행 취소를 만들지 않는다.
 owner Redo는 어댑터의 대칭 `redo` transport가 연결된 경우에만 활성화한다.
 
+원문 복구 snapshot의 focus는 커서와 선택한 텍스트의 `selection_start/selection_length`를
+추가로 보존한다. Qt와 같은 UTF-16 위치이며 선택 방향도 유지한다. 복구 전에 범위와
+해당 미확정 셀을 검사하고 잘못된 범위는 현재 표를 바꾸지 않는다. 예전 커서만 있는
+snapshot도 읽는다. snapshot은 전역 포커스 대신 해당 표의 EditingState와 실제 살아 있는
+editor를 찾는다. 호스트의 Keep/Cancel 대화상자는 FocusOut이 delegate를 확정하지 않도록
+자기 편집기를 보호해야 하며, 이미 파괴된 편집기의 원문을 재구성했다고 주장하지 않는다.
+
 검사에서는 두 owner의 포커스·키보드·미확정 편집·늦은 응답과 입력 보존을 확인했다.
 실제 초기 Pro adapter/preview/execute와 기존 Numerical owner를 붙여 적용·Undo 및
 job 증가 없음을 별도로 확인했다. Material 안의 최종 배치와 공통 HTTP transport는

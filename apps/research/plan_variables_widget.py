@@ -194,7 +194,9 @@ class NumericalPlanVariablesWidget(QWidget):
                         editor_kind='unfinished' if live else 'cell'))
                 if live:
                     line=editor.lineEdit() if isinstance(editor,QComboBox) else editor
-                    focus=dict(field_path=list(path),cursor=line.cursorPosition() if line is not None else 0)
+                    focus=dict(field_path=list(path),cursor=line.cursorPosition() if line is not None else 0,
+                        selection_start=line.selectionStart() if line is not None else -1,
+                        selection_length=line.selectionLength() if line is not None else 0)
         raw=dict(cells=cells,local_draft=self._buffer_snapshot(),focus=focus,
                  selection=sorted([[index.row(),index.column()] for index in self.table.selectedIndexes()]))
         if getattr(self.table,'raw_paste',None):raw['paste']=deepcopy(self.table.raw_paste)
@@ -225,6 +227,19 @@ class NumericalPlanVariablesWidget(QWidget):
         if len(pending)>1:raise ValueError('보관한 미확정 편집 위치를 확인하세요.')
         if pending and not self.table.isVisible():
             raise ValueError('계획 변수 표를 연 뒤 미확정 편집을 복구하세요.')
+        focus=raw.get('focus') or {}
+        if pending:
+            if not isinstance(focus,dict):raise ValueError('보관한 편집의 커서와 선택 범위를 확인하세요.')
+            cell=pending[0][1]
+            length=len(cell['raw_text'].encode('utf-16-le',errors='surrogatepass'))//2
+            cursor=focus.get('cursor',length)
+            start=focus.get('selection_start',-1);selected=focus.get('selection_length',0)
+            if (focus.get('field_path',cell['field_path'])!=cell['field_path']
+                    or any(type(value) is not int for value in (cursor,start,selected))
+                    or not 0<=cursor<=length or selected<0
+                    or not (start==-1 and selected==0 or 0<=start<=length and start+selected<=length)
+                    or selected and cursor not in (start,start+selected)):
+                raise ValueError('보관한 편집의 커서와 선택 범위를 확인하세요.')
         local=raw.get('local_draft',self._document['draft'])
         shown=[];scoped=deepcopy(self._document['draft'])
         for path,(item,binding) in bound.items():
@@ -246,12 +261,18 @@ class NumericalPlanVariablesWidget(QWidget):
             item,cell=pending[0];self.table.setCurrentItem(item);self.table.editItem(item)
             editor=self._live_editor()
             if isinstance(editor,QLineEdit):
-                editor.setText(cell['raw_text']);editor.setCursorPosition((raw.get('focus') or {}).get('cursor',len(cell['raw_text'])))
+                editor.setText(cell['raw_text'])
+                line=editor
             elif isinstance(editor,QComboBox):
                 index=editor.findText(cell['raw_text'])
                 if index<0:editor.setEditText(cell['raw_text'])
                 else:editor.setCurrentIndex(index)
-                if editor.lineEdit():editor.lineEdit().setCursorPosition((raw.get('focus') or {}).get('cursor',len(cell['raw_text'])))
+                line=editor.lineEdit()
+            else:line=None
+            if line is not None:
+                if selected:
+                    line.setSelection(start+selected,-selected) if cursor==start else line.setSelection(start,selected)
+                else:line.setCursorPosition(cursor)
         self.table.clearSelection()
         for row,column in raw.get('selection',[]):
             item=self.table.item(row,column)
