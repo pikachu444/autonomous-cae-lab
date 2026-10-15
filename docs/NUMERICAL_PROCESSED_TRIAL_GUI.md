@@ -6,6 +6,10 @@ Data 창은 기존 Plan의 NumericalWindow를 열고 `can_stage_processed_trial(
 
 저장된 처리 시험 읽기는 `data.processing.result`에 정확한 처리 차수와 응답/측정 driver의 문자열 목록 `selection`을 보낸다. 원 import로 대체하지 않는다. 캐시는 원 입력 네 항목과 처리 차수, 선택 채널을 구별한다. 전체 처리 상태가 부분 실패여도 Core가 명시 선택한 응답 읽기를 성공으로 반환한 범위만 읽으며 전체 처리 성공으로 바꾸지 않는다.
 
-기존 `experiment.selection.sample_policy`는 표 편집/조건 편집에서 그대로 보존한다. 선택 시험의 구간 채택 여부를 표시하고, 구간이 연결된 시험의 응답 변경은 새 시험 추가로 안내한다. 새 정책을 계산하거나 이전 응답의 정책을 다른 응답에 적용하지 않는다. 선택 표본 정책 검토/명시 채택은 Data 담당의 SamplePolicyDialog와 기존 Core 명령을 연결하는 다음 묶음이다.
+기존 `experiment.selection.sample_policy`는 표 편집/조건 편집에서 그대로 보존한다. 선택 시험의 구간 채택 여부를 표시하고, 구간이 연결된 시험의 응답 변경은 새 시험 추가로 안내한다. 새 정책을 계산하거나 이전 응답의 정책을 다른 응답에 적용하지 않는다.
 
-GUI 대역 검사 4개: 미확정 값/소유자/호출자 입력 보존, 잘못된 원본과 늦은 세대 거절, 정확 처리 차수/채널 읽기, 구간 정책 무손실. 실제 Data C1 owner가 내보낸 공개 결과를 Windows 창에서 정상/좁은 크기로 읽고 포커스/Esc/정책 보존을 확인한다. 계산이나 정책 채택 완료를 이 GUI 검사로 주장하지 않는다. Data C2의 canonical fit consumer 및 공통 입력 스키마는 root/실제 Pro 소유다.
+선택한 처리 시험의 `표본 용도…`는 계획 적용 후 활성화된다. Data의 실제 `data.sample_policy.preview` 결과와 전체 frozen channel을 Data 담당 SamplePolicyDialog에서 검토한다. 수락하면 기존 Numerical 적용 결과 확인 transport를 재사용하여 `data.sample_policy.adopt`를 명시 한 번 호출한다. 자동 저장/계산은 하지 않는다. 응답 유실 때 같은 명령/입력/세대를 다시 확인하며, 불확인 중 실행/적용을 막는다. 늦은 성공 응답은 이후 편집을 덮지 않고 충돌 상태로 보존한다. 창을 닫았다면 다시 열어 현재 소유자의 표본 용도를 확인해야 한다.
+
+이미 채택된 표본 정책을 다시 열 때 Core의 `validate_sample_policy`와 동일 frozen domain을 확인하고, 정확한 sample ID별 기존 포함/역할/가중치를 Data 대화상자의 `initial_entries`로 넣는다. 새 preview의 기본 피팅 용도로 초기화하지 않는다. 원 proposal/hash는 그대로이고 검토 entries만 명시 채택에 전달한다. Data의 이 optional 공개 인자를 포함한 GUI 변경과 함께 통합해야 한다.
+
+GUI 대역 검사 7개: 미확정 값/소유자/호출자 입력 보존, 잘못된 원본과 늦은 세대 거절, 정확 처리 차수/채널 읽기, 구간 정책 무손실, 명시 정책 채택 단일 호출, 유실 응답 재확인/늦은 편집 보존, 기존 표본 용도와 가중치의 재열기. 기존 후보 적용 결과 확인 9개도 통과했다. 실제 Data C1 owner가 내보낸 공개 결과를 Windows 창에서 정상/좁은 크기로 읽고 포커스/Esc/정책 보존을 확인했다. 실제 Data 정책 대화상자도 해당 channel/proposal로 정상/좁은 창과 취소를 확인했다. 이 native 검사의 서비스 읽기는 보존 fixture이며 정책 채택/fit/cold 전체 동선은 root의 Data C2 공통 통합 뒤 별도 확인한다. 계산이나 정책 채택 완료를 이 GUI 검사로 주장하지 않는다. Data C2의 canonical fit consumer 및 공통 입력 스키마는 root/실제 Pro 소유다.
