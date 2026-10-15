@@ -1,0 +1,5 @@
+time_s,signal_mV,extension_mm,temperature_C
+0,0,0.0,20
+1,30,0.5,20
+2,60,1.0,20
+3,90,1.5,20
