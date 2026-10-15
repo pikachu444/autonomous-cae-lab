@@ -12,4 +12,6 @@ Data 창은 기존 Plan의 NumericalWindow를 열고 `can_stage_processed_trial(
 
 이미 채택된 표본 정책을 다시 열 때 Core의 `validate_sample_policy`와 동일 frozen domain을 확인하고, 정확한 sample ID별 기존 포함/역할/가중치를 Data 대화상자의 `initial_entries`로 넣는다. 새 preview의 기본 피팅 용도로 초기화하지 않는다. 원 proposal/hash는 그대로이고 검토 entries만 명시 채택에 전달한다. Data의 이 optional 공개 인자를 포함한 GUI 변경과 함께 통합해야 한다.
 
+새 표본 정책의 기본 표본 가중치는 1이다. 시험 가중치는 별도 trial 항목에 그대로 남으며 표본 기본값에 다시 곱하지 않는다. 기존 채택 정책을 다시 열 때는 사용자가 정한 표본 가중치를 그대로 복원한다.
+
 GUI 대역 검사 7개: 미확정 값/소유자/호출자 입력 보존, 잘못된 원본과 늦은 세대 거절, 정확 처리 차수/채널 읽기, 구간 정책 무손실, 명시 정책 채택 단일 호출, 유실 응답 재확인/늦은 편집 보존, 기존 표본 용도와 가중치의 재열기. 기존 후보 적용 결과 확인 9개도 통과했다. 실제 Data C1 owner가 내보낸 공개 결과를 Windows 창에서 정상/좁은 크기로 읽고 포커스/Esc/정책 보존을 확인했다. 실제 Data 정책 대화상자도 해당 channel/proposal로 정상/좁은 창과 취소를 확인했다. 이 native 검사의 서비스 읽기는 보존 fixture이며 정책 채택/fit/cold 전체 동선은 root의 Data C2 공통 통합 뒤 별도 확인한다. 계산이나 정책 채택 완료를 이 GUI 검사로 주장하지 않는다. Data C2의 canonical fit consumer 및 공통 입력 스키마는 root/실제 Pro 소유다.

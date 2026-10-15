@@ -116,10 +116,11 @@ def test_adopted_policy_remains_editable_and_is_not_dropped(window,monkeypatch):
     assert '구간 적용' in window.experiments.item(0,7).text()
 
 
-def policy_client(window,monkeypatch,*,lost=False):
+def policy_client(window,monkeypatch,*,lost=False,experiment_weight=1.):
     accepted_dialog(monkeypatch,window)
     assert window.stage_processed_trial(source(),result(source()))
     doc=deepcopy(window.document);doc['draft']=window.edited_draft()
+    doc['draft']['experiments'][0]['weight']=experiment_weight
     window.local_dirty=False;window._show_document(doc);window.experiments.selectRow(0)
     initials=[]
     class Dialog:
@@ -166,6 +167,16 @@ def test_explicit_policy_uses_one_adoption_and_does_not_save_or_fit(window,monke
     assert window._adoption_receipt is None
     assert window.document['generation']==1 and window.document['dirty']
     assert not window.local_dirty and window.edited_draft()==window.document['draft']
+
+
+def test_new_policy_uses_unit_sample_weight_and_keeps_trial_weight_separate(window,monkeypatch):
+    client=policy_client(window,monkeypatch,experiment_weight=2.)
+    assert window.edit_sample_policy()
+    settle(window)
+    previews=[args for operation,args in client.calls if operation=='data.sample_policy.preview']
+    assert len(previews)==1 and previews[0]['weight']==1.0
+    assert window.document['draft']['experiments'][0]['weight']==2.
+    assert window.edited_draft()['experiments'][0]['weight']==2.
 
 
 def test_lost_policy_ack_reuses_command_and_preserves_later_local_edit(window,monkeypatch):

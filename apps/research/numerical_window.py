@@ -1186,7 +1186,9 @@ class NumericalWindow(QMainWindow):
             retained=self._read_trial_source(trial)['result']
             proposal=self.client.data_material('data.sample_policy.preview',{
                 'document_id':source['document_id'],'processing_revision':source['processing_revision'],
-                'response':source['response'],'role':trial['role'],'weight':trial['weight']})
+                # Trial weight is applied separately by the existing fit engine.
+                # A newly reviewed sample policy starts with unit sample weights.
+                'response':source['response'],'role':trial['role'],'weight':1.0})
             channel=retained.get('channels',{}).get(source['response'])
             if channel is None:
                 channel=retained.get('responses',{}).get(source['response'],{}).get('processing_channel')
