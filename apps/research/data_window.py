@@ -678,8 +678,26 @@ class DataWindow(QMainWindow):
         if focus and self.editor.isAncestorOf(focus):
             focus.clearFocus()
 
-    def edited_draft(self):
-        self._commit_editor()
+    def _reveal_editor_focus(self):
+        focus = QApplication.focusWidget()
+        if focus is None or not self.editor.isAncestorOf(focus):
+            return
+        if self.mapping.isAncestorOf(focus) and self.mapping.currentItem() is not None:
+            self.mapping.scrollToItem(self.mapping.currentItem())
+        ancestor = focus.parentWidget()
+        while ancestor is not None and ancestor is not self:
+            if isinstance(ancestor, QScrollArea):
+                ancestor.ensureWidgetVisible(focus, 8, 8)
+            ancestor = ancestor.parentWidget()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'editor'):
+            QTimer.singleShot(0, self._reveal_editor_focus)
+
+    def edited_draft(self, *, commit=True):
+        if commit:
+            self._commit_editor()
         draft = deepcopy(self._working_draft or self.document['draft'])
         if self._view_error:
             return draft

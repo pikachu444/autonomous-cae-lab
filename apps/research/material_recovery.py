@@ -1,6 +1,6 @@
 """JSON-only view snapshots. No owner mutations, requests or editor commits."""
 from copy import deepcopy
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QItemSelectionModel
 from PySide6.QtWidgets import QApplication, QLineEdit
 from caelab.storage import canonical_hash
 
@@ -110,6 +110,12 @@ def restore_material_raw(window, raw):
     pending = None
     window._populating = True
     try:
+        for table, key in ((window.history, 'history'), (window.coefficients, 'coefficients')):
+            table.clearSelection()
+            for row, column in raw.get('selection', {}).get(key, []):
+                if (type(row) is int and type(column) is int and 0 <= row < table.rowCount()
+                        and 0 <= column < table.columnCount()):
+                    table.selectionModel().select(table.model().index(row, column), QItemSelectionModel.SelectionFlag.Select)
         for cell in raw['cells']:
             path = tuple(cell['field_path']); target, row, column = allowed[path]
             if target == 'model': continue
