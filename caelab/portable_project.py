@@ -1,4 +1,4 @@
-"""Portable Data/Material/Numerical working copies using existing document owners.
+"""Portable Data/Material/Numerical/Report working copies using existing document owners.
 
 Public commands: inspect_copy, create_copy, verify_project, open_project,
 repair_asset and extract_project. Inspection is read-only. Creation copies only
@@ -35,17 +35,21 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 FORMAT = 'caelab.portable-project/1'
 MANIFEST = 'portable-project.json'
-SUPPORTED = {'data', 'material', 'numerical'}
-_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N'}
+SUPPORTED = {'data', 'material', 'numerical', 'report'}
+_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B'}
 _DENIED_NAMES = {'.env', 'credentials', 'credentials.json', 'token', 'token.json',
                  'id_rsa', 'id_ed25519', 'operator.json', 'service.json'}
 
 
-def _asset_name(name: str) -> str:
+def _asset_name(name: str, kind: str | None = None) -> str:
     relative_name(name)
     parts = Path(name).parts
     if any(part.lower() in _DENIED_NAMES for part in parts):
         fail('PRIVATE_ASSET_REFUSED', name, '인증/환경설정 파일은 자동 수집하지 않습니다.', '인증/환경설정 자료를 제외하고 선택 목록을 다시 확인하세요. 공학 자료의 공개 여부는 제한하지 않습니다.')
+    if kind == 'report':
+        from .portable_project_report import ASSET
+        if ASSET.fullmatch(name):
+            return name
     if name != 'document.json' and parts[0] not in {'sources', 'inputs', 'jobs', 'results', 'comparisons', 'candidate_evidence', 'portable_execution'}:
         fail('UNSUPPORTED_ASSET', name, '이 owner 자료 형식은 작업 사본 대상으로 지원하지 않습니다.', '원문서에 보존하고 root 통합 계약을 추가하세요.')
     return name
@@ -65,7 +69,7 @@ def _selections(reader: SnapshotReader, selections: list[str | dict], draft_poli
         seen.add(identifier)
         current = reader.current(identifier)
         if current['kind'] not in SUPPORTED:
-            fail('OWNER_NOT_SUPPORTED', identifier, '첫 작업 사본은 Data, Material, Numerical을 지원합니다.',
+            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical과 Report를 지원합니다.',
                  '다른 도구의 원자료는 원문서에 그대로 보존하세요.', identifier)
         revision = value.get('saved_revision') or current.get('saved_revision')
         if draft_policy == 'acknowledged' and revision != current.get('saved_revision'):
@@ -202,7 +206,7 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                     if entry['saved_revision'] != revision:
                         continue
                     if not entry.get('archive_only'):
-                        _asset_name(entry['asset'])
+                        _asset_name(entry['asset'], document['kind'])
                     # The same declared source may be used by multiple snapshots.
                     inventory[canonical_hash([identifier, revision, entry['asset']])] = deepcopy(entry)
             else:
@@ -211,7 +215,7 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                 for item in entries:
                     name = item['path']
                     if name != 'revision.json':
-                        _asset_name(name)
+                        _asset_name(name, document['kind'])
                     source = inside(folder, name)
                     identity = fingerprint_file(source)
                     if identity['sha256'] != item['sha256']:
@@ -245,11 +249,21 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                     reader.job(document, run)
                 if run.get('retained_result'):
                     reader.result(document, run, metadata_only=True)
+            if document['kind'] == 'report':
+                from .portable_project_report import inspect_document
+                inspect_document(reader, document, revision)
             from .portable_project_evidence import validate_document_evidence
             validate_document_evidence(reader, document)
             refs = [*document_references(document, include_history=True), *comparison_references(document)]
             for typed in refs:
                 target = typed.document_id
+                if document['kind'] == 'report':
+                    from .portable_project_report import can_navigate
+                    if not can_navigate(typed.value, selected):
+                        warnings.append({'code': 'REPORT_FROZEN_ONLY', 'document_id': identifier,
+                            'path': '/'.join(str(p) for p in typed.path),
+                            'message': '검증된 보고서 보존본은 포함합니다. 이 원자료의 현재 탐색은 연결하지 않습니다.'})
+                        continue
                 location = identifier + '/' + '/'.join(str(p) for p in typed.path)
                 if not target or target not in selected:
                     issues.append(Issue('DOCUMENT_NOT_SELECTED', location,
@@ -280,7 +294,13 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
     files = sorted(inventory.values(), key=lambda r: r['path'])
     total = sum(row['bytes'] for row in files)
     recovery_bytes = sum(row['bytes'] for row in recovery['recovery_files'])
-    if len(files) * 2 + len(recovery['recovery_files']) > MAX_FILES or total * 2 + recovery_bytes > MAX_BYTES:
+    report_ids = {row['document_id'] for row in summaries if row['kind'] == 'report'}
+    report_archive_files = [row for row in files if row['document_id'] in report_ids]
+    # Raw owner archives may also retain an acknowledged layer's saved base.
+    # This conservative allowance supplements (never raises) the existing caps.
+    report_archive_bytes = sum(row['bytes'] for row in report_archive_files)
+    if (len(files) * 2 + len(recovery['recovery_files']) + len(report_archive_files) * 2 > MAX_FILES
+            or total * 2 + recovery_bytes + report_archive_bytes * 2 > MAX_BYTES):
         issues.append(Issue('SIZE_LIMIT', str(workbench.workspace), '원본 보존본과 작업 사본의 크기 한도를 넘습니다.', '문서 묶음을 명시적으로 나누세요.'))
     from .connection_graph_view import view_inventory
     try:
@@ -294,7 +314,7 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
         'draft_policy': draft_policy, 'capsule_boundary': deepcopy(CAPSULE_CONTRACT), **recovery,
         'source_store': str(workbench.workspace), 'pins': pins, 'files': files,
         'revisions': [{'document_id': i, 'saved_revision': r} for i, r in sorted(visited)],
-        'bytes_to_copy': total * 2 + recovery_bytes, 'warnings': warnings, 'issues': [asdict(i) for i in issues],
+        'bytes_to_copy': total * 2 + recovery_bytes + report_archive_bytes * 2, 'warnings': warnings, 'issues': [asdict(i) for i in issues],
         'executed': False, 'engineering_release': 'NOT_RELEASED'}
     result['inspection_sha256'] = canonical_hash(result)
     return result
@@ -385,6 +405,10 @@ class _Fork:
         draft = deepcopy(value)
         kind = next(d['kind'] for (i, _), d in self.snapshots.items() if i == identifier)
         for typed in draft_references(kind, value):
+            if kind == 'report':
+                from .portable_project_report import can_navigate
+                if not can_navigate(typed.value, self.documents):
+                    continue
             replace_at(draft, typed.path, self.reference(typed))
         return draft
 
@@ -527,6 +551,9 @@ class _Fork:
         if virtual_revision(revision) or is_acknowledged_container(original):
             document['portable_snapshot'] = {'container_revision': self.revisions[key],
                 'layer': original.get('_portable_layer', 'ACKNOWLEDGED_WORKING')}
+        if document['kind'] == 'report':
+            from .portable_project_report import write_revision as write_report
+            write_report(self, identifier, revision, original, document, target)
         owner = self.reader.owner(identifier)
         document['_saved_fingerprint'] = owner._fingerprint(document)
         save_json(target / 'document.json', document)
@@ -577,6 +604,9 @@ class _Fork:
                     if not row.get('retained_revision'):
                         source = self.revision_path(identifier, WORKING) / 'candidate_evidence' / (row['id'] + '.json')
                         copy_verified(source, owner_folder / 'candidate_evidence' / source.name, fingerprint_file(source))
+                if working['kind'] == 'report':
+                    from .portable_project_report import install_working
+                    install_working(self.revision_path(identifier, WORKING), owner_folder, working)
                 save_json(owner_folder / 'working.json', working)
         return [{'source_document_id': i, 'document_id': self.documents[i],
                  'kind': self.snapshots[(i, r or WORKING)]['kind'],
@@ -758,6 +788,9 @@ def verify_project(folder: str | Path) -> dict:
                 if (draft.get('id') != identifier or draft.get('kind') != row['kind']
                         or draft.get('saved_revision') is not None or draft.get('_disk_revision') is not None):
                     raise ValueError('미저장 문서 초안의 소유자/저장 상태가 다릅니다.')
+                if row['kind'] == 'report':
+                    from .portable_project_report import verify_current
+                    verify_current(owner_root, draft)
                 continue
             pointer = json_file(inside(folder, f'workbench/documents/{identifier}/document.json'))
             revision = check_id(pointer['revision'])
@@ -780,6 +813,10 @@ def verify_project(folder: str | Path) -> dict:
                 draft = json_file(working)
                 if draft.get('id') != identifier or draft.get('kind') != row['kind']:
                     raise ValueError('복구 초안의 문서 소유자가 다릅니다.')
+            if row['kind'] == 'report':
+                from .portable_project_report import verify_current
+                verify_current(owner_root, draft if working.exists() and
+                    draft.get('saved_revision') == revision else current)
         return {'status': 'BLOCKED' if issues else 'READY', 'project_id': manifest['project_id'],
                 'documents': manifest['documents'], 'issues': [asdict(i) for i in issues],
                 'executed': False, 'engineering_release': 'NOT_RELEASED'}

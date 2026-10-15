@@ -72,7 +72,7 @@ class TypedProjection:
             _error('duplicate/cross-owner mapping')
         for old, row in self.docs.items():
             check_id(old); check_id(row['document_id'])
-            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical'}:
+            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report'}:
                 _error('mapping changed owner kind')
         for (doc, revision), row in self.inputs.items():
             if row['document_id'] != self.docs[doc]['document_id']:
@@ -124,6 +124,10 @@ class TypedProjection:
     def draft(self, doc, value):
         result = deepcopy(value)
         for typed in draft_references(self.docs[doc]['kind'], value):
+            if self.docs[doc]['kind'] == 'report':
+                from .portable_project_report import can_navigate
+                if not can_navigate(typed.value, self.docs):
+                    continue
             replace_at(result, typed.path, self.reference(typed))
         return result
 

@@ -152,6 +152,11 @@ def catalog(workbench, document_ids):
     recovery = RawRecoveryDrafts(workbench.root, workbench._document_owner)
     rows = []
     for did in ids:
+        if workbench._document_owner(did) is workbench.report_documents:
+            # Report uses its existing Save/Apply workflow, never a new Q owner.
+            from .connection_graph import SnapshotReader
+            SnapshotReader(workbench).current(did)
+            continue
         owner = recovery._owner(did)
         current = owner.read(did)
         for path in sorted((owner._folder(did) / 'raw-recovery').glob('Q*.json')):

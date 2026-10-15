@@ -225,6 +225,9 @@ class AcknowledgedReader(SnapshotReader):
                     'metadata': f'sources/{data_id}/input.json', 'sha256': receipt['sha256'], 'bytes': receipt['bytes']}
             doc['retained_inputs'] = retained
             doc['unresolved_inputs'] = []
+        if doc['kind'] == 'report':
+            from .portable_project_report import collect_working
+            collect_working(self, doc)
         for run in doc.get('runs', []):
             if run.get('retention_complete') and run.get('retained_record'):
                 continue

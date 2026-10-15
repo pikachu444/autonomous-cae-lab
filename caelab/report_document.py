@@ -261,9 +261,11 @@ class ReportDocuments(MaterialDocuments):
         path = self._folder(identifier) / 'assets' / (asset_id + '.json')
         if not path.exists() and document.get('saved_revision'):
             path = self._folder(identifier) / 'revisions' / check_id(document['saved_revision']) / 'assets' / (asset_id + '.json')
+        from .portable_project_io import no_links
+        no_links(path)
         frozen = load_json(path)
-        if canonical_hash(frozen) != binding['sha256'] or frozen['reference'] != binding['reference']:
-            raise ValueError('보고서 자료의 원값 또는 참조가 변경되었습니다.')
+        from .portable_project_report import verify
+        verify(self, document, binding, path, frozen)
         if frozen['content'].get('kind') == 'post_image':
             report_image.validate_content(frozen['content'], binding['reference'])
         return frozen
@@ -275,6 +277,11 @@ class ReportDocuments(MaterialDocuments):
         for binding in bindings:
             try:
                 frozen = self.asset(identifier, binding)
+                from .portable_project_report import content as portable_content
+                carried = portable_content(self, self.read(identifier), binding, frozen)
+                if carried is not None:
+                    rows.append(carried)
+                    continue
                 try:
                     if frozen['content'].get('kind') == 'post_image':
                         report_image.verify_origin(frozen['content']['snapshot']['origin'])
@@ -297,6 +304,8 @@ class ReportDocuments(MaterialDocuments):
         return {'document_id': identifier, 'assets': rows}
 
     def _retain_inputs(self, saved, folder):
+        from .portable_project_report import verify_current
+        verify_current(self._folder(saved['id']), saved)
         bindings = {}
         for draft in [saved['draft'], *saved.get('_undo', []), *saved.get('_redo', [])]:
             if not isinstance(draft, dict):
@@ -305,7 +314,10 @@ class ReportDocuments(MaterialDocuments):
                 binding = row.get('asset') if isinstance(row, dict) else None
                 if isinstance(binding, dict) and {'id', 'sha256', 'reference'} <= binding.keys():
                     bindings[binding['id']] = binding
+        copied = {}
+        from .portable_project_report import retain_owner_history
+        retain_owner_history(self, saved, folder, copied)
         for binding in bindings.values():
-            frozen = self.asset(saved['id'], binding)
-            save_json(folder / 'assets' / (check_id(binding['id']) + '.json'), frozen)
+            from .portable_project_report import retain
+            retain(self, saved, folder, binding, copied)
         self._retain_comparisons(saved, folder)

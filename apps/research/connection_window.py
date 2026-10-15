@@ -41,6 +41,8 @@ class CopyReviewDialog(QDialog):
         note = QLabel(('문서에 반영한 초안과 저장본: ' if inspection.get('draft_policy') == 'acknowledged' else '선택한 저장본만: ') + names + '\n'
             '보존 원본과 편집용 사본을 함께 만듭니다. 계산하지 않으며 기존 폴더는 덮어쓰지 않습니다.\n'
             '명시 선택한 보관 원문 '+str(len(inspection.get('recovery_archives',[])))+'개를 함께 옮깁니다. 아직 보관하지 않은 셀은 포함하지 않습니다.')
+        if any(row.get('kind') == 'report' for row in inspection.get('documents', [])):
+            note.setText(note.text() + '\nReport 창의 미적용 설명은 포함하지 않습니다. 원 창의 「설명 적용」→「저장」 후 다시 검토하세요.')
         note.setWordWrap(True)
         layout.addWidget(note)
         table = QTableWidget(0, 3)
@@ -495,7 +497,7 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.message.setText('작업 사본을 만들었습니다. 원자료와 계산 기록은 보존되며 새 계산은 실행하지 않았습니다.')
         self._text_dialog('작업 사본 저장 완료', '새 폴더: ' + receipt['workspace'] + '\n\n'
             '현재 창은 원 보관소에 그대로 연결되어 있습니다. 새 폴더를 기존 제품 서비스의 --store로 열면 '
-            'Data·Material·Numerical에서 사본을 편집할 수 있습니다.\n'
+            'Data·Material·Numerical·Report에서 사본을 편집할 수 있습니다.\n'
             '폴더 전체를 함께 이동하세요. 내부 파일을 따로 옮기지 마세요.')
 
     def verify_copy(self):

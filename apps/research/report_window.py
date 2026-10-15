@@ -64,6 +64,7 @@ class ReportWindow(QMainWindow):
         action('새 보고서', self.new_document, files, QKeySequence.New)
         action('열기…', self.choose_document, files, QKeySequence.Open)
         action('저장', self.save_document, files, QKeySequence.Save, True)
+        action('작업 사본 만들기…', self.prepare_portable_copy, files, 'Ctrl+Shift+S')
         action('PDF 내보내기…', lambda: self.export('pdf'), files, primary=True)
         action('Markdown 내보내기…', lambda: self.export('md'), files)
         action('닫기', self.close, files, QKeySequence.Close)
@@ -388,6 +389,40 @@ class ReportWindow(QMainWindow):
             return self.command('report.update',{'draft':deepcopy(self.draft)},self.save_document)
         return self.command('document.save',{})
 
+    def prepare_portable_copy(self):
+        if self._busy or self._pending or not self.document:
+            self.message.setText('진행 중인 저장 결과를 먼저 확인하세요. 현재 편집은 유지됩니다.')
+            return False
+        self.edit_title()
+        self.remember_editor()
+        if self._edit_buffers:
+            # Route to the existing explicit Apply editor; never commit a widget
+            # string merely because the user asked to inspect a portable copy.
+            pending = next(iter(self._edit_buffers))
+            index = next((i for i, row in enumerate(self.draft['sections']) if row['id'] == pending), None)
+            if index is not None:
+                self.sections.setCurrentRow(index)
+                self.edit_section()
+            self.message.setText('미적용 설명을 열었습니다. 「설명 적용」 후 저장하고 작업 사본을 다시 선택하세요. 원문은 유지됩니다.')
+            return False
+        if self.draft != self.document['draft']:
+            answer = QMessageBox.question(self, '사본에 넣을 보고서 편집',
+                '현재 화면의 제목·본문·구성에 저장하지 않은 변경이 있습니다. 먼저 기존 저장을 실행할까요?\n'
+                '저장 후 작업 사본 메뉴에서 포함 목록을 다시 확인합니다. 지금은 사본을 만들지 않습니다.',
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel)
+            if answer == QMessageBox.StandardButton.Save:
+                return self.save_document()
+            return False
+        from .connection_window import ConnectionWindow
+        window = ConnectionWindow(self.client, document_id=self.document['id'])
+        window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        window.destroyed.connect(lambda: self._source_windows.remove(window) if window in self._source_windows else None)
+        self._source_windows.append(window)
+        window.show()
+        self.message.setText('이 보고서를 선택한 연결창을 열었습니다. 다른 원자료는 포함 목록에서 직접 선택하세요.')
+        return window
+
     def undo(self):
         if self._busy or self._pending:return
         self.remember_editor()
@@ -563,12 +598,23 @@ class ReportWindow(QMainWindow):
         if not binding:
             self.message.setText('이 섹션에는 연결된 원자료가 없습니다.')
             return
-        if binding['reference'].get('kind') == 'post_image':
+        archived = self.assets.get(binding['id'], {})
+        if (binding['id'] in self.document.get('portable_report_assets', {}) and
+                ('navigation_reference' not in archived or archived.get('retained_preview_only')
+                 or archived.get('navigation_status') == 'SOURCE_UNAVAILABLE')):
+            self.message.setText('원자료 연결을 다시 확인합니다. 보고서에 보관한 자료는 계속 읽을 수 있습니다.')
+            self.read_assets()
+            return
+        reference = archived.get('navigation_reference', binding['reference'])
+        if reference is None:
+            self.message.setText('원자료 탐색은 이 사본에 포함되지 않았습니다. 원 그림·값·조건은 보고서 보존본에서 읽을 수 있습니다.')
+            return
+        if reference.get('kind') == 'post_image':
             from .report_image_dialog import show_origin
             show_origin(self, binding)
             return
         from .reference_window import ReferenceWindow
-        window=ReferenceWindow(self.client,deepcopy(binding['reference']))
+        window=ReferenceWindow(self.client,deepcopy(reference))
         back=QAction('보고서로 돌아가기',window,shortcut=QKeySequence('Alt+Left'))
         back.triggered.connect(lambda:self._return_from_source(window))
         window.findChild(QToolBar).insertAction(window.findChild(QToolBar).actions()[0],back)
