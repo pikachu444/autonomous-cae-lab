@@ -193,7 +193,9 @@ def assert_same_shape(owner, actual, expected, label):
     A Binder can bake its Support transform into a one-solid Compound whose
     outer Placement is identity. Never strip that placement or compare BREP
     bytes/outer poses here. The local replay digest is still authoritative for
-    definition -> copy and stale-source checks, NOT for Link/Binder conversion.
+    source replay and exact private-definition checks, NOT for copy rebuild or
+    Link/Binder conversion. Preparation separately preserves the source and
+    geometrically verified private-copy representation digests.
 
     Reuse the in-process kernel algorithm, not its worker launcher: one positive
     valid solid with no extra topology, bounds/volume pruning, BOTH Boolean

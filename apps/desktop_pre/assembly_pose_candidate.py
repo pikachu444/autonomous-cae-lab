@@ -226,7 +226,7 @@ def validate_model(owner, *, exact=False):
             if exact:
                 if not same_pose(_pose(link.Placement), row['world_pose']):
                     raise ValueError(row['label'] + ': 저장한 프레임과 실제 배치가 다릅니다.')
-                if _local_digest(owner, source.Shape) != row['geometry']:
+                if _local_digest(owner, source.Shape) != row.get('copied_geometry', row['geometry']):
                     raise ValueError(row['label'] + ': 저장하는 동안 CAD 원형상이 바뀌었습니다.')
             import Part
             # Never trust a cached Link/Binder pair that agrees only with itself.
@@ -494,8 +494,16 @@ class PoseCandidates:
         definitions.Label = 'CAD 원부품'
         for original, clone in zip(sources, copied):
             definitions.addObject(clone)
-            if original.TypeId != clone.TypeId or _local_digest(owner, original.Shape) != _local_digest(owner, clone.Shape):
+        # Native editable Boolean features rebuild their cached BREP on the
+        # private graph. Its representation can differ while full geometry and
+        # every face remain identical. Never recompute the user's source graph.
+        document.recompute()
+        copied_geometry = {}
+        for original, clone in zip(sources, copied):
+            if original.TypeId != clone.TypeId:
                 raise ValueError(original.Label + ': 편집 가능한 CAD 복사의 형상이 다릅니다.')
+            assert_same_shape(owner, clone.Shape, original.Shape, original.Label)
+            copied_geometry[clone.Name] = _local_digest(owner, clone.Shape)
         posed = document.addObject('App::DocumentObjectGroup', 'PoseParts')
         posed.Label = '선택 자세의 부품'
         groups = {(selection['assembly_id'],): posed}
@@ -539,7 +547,7 @@ class PoseCandidates:
             _property(body, 'App::PropertyLink', 'PoseOccurrence', link)
             _property(body, 'App::PropertyPlacement', 'SelectedWorldPose', placement(App, row['world_pose']))
             record = {**deepcopy(row), 'body_id': body.Name, 'link_id': link.Name,
-                      'copied_source_id': clone.Name}
+                      'copied_source_id': clone.Name, 'copied_geometry': copied_geometry[clone.Name]}
             _property(body, 'App::PropertyString', 'SourceIdentity',
                       _source_identity({'source_document_id': owner.document_id,
                                         'assembly_id': selection['assembly_id']}, record))
