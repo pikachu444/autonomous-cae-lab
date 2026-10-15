@@ -153,6 +153,7 @@ class ExperimentDialog(QDialog):
         self.message=QLabel(); self.message.setWordWrap(True); root.addWidget(self.message)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         self._buttons=buttons
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         buttons.accepted.connect(self._accept); buttons.rejected.connect(self.reject); root.addWidget(buttons)
         if selected_result_reader is not None:
             buttons.button(QDialogButtonBox.StandardButton.Ok).setText('선택 채널 확인')
