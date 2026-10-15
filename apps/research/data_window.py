@@ -169,6 +169,8 @@ class DataWindow(QMainWindow):
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
+        from .data_material_recovery_host import install_recovery_action
+        self.recovery_action=install_recovery_action(self,files)
         close.triggered.connect(self.close)
         self.undo_action.triggered.connect(lambda: self.command('document.undo'))
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
@@ -1968,30 +1970,8 @@ class DataWindow(QMainWindow):
             self.identity.setToolTip(f"Document: {self.document['id']}\nSession: {self.document['session_id']}\nSaved: {self.document.get('saved_revision')}")
 
     def _leave(self, continuation):
-        self._commit_editor()
-        if self._busy:
-            self.message.setText('Wait for the document request before leaving. Existing imports remain service-owned.')
-            return
-        if not self.document or not (self.local_dirty or self.document.get('dirty')):
-            continuation()
-            return
-        question = QMessageBox(self)
-        question.setWindowTitle('Unsaved Data document')
-        question.setText('Save this document before leaving?')
-        question.setInformativeText('Keep service draft preserves unapplied mapping edits without saving a revision. Closing does not cancel a job.')
-        save = question.addButton('Save', QMessageBox.ButtonRole.AcceptRole)
-        keep = question.addButton('Keep service draft', QMessageBox.ButtonRole.DestructiveRole)
-        question.addButton(QMessageBox.StandardButton.Cancel)
-        question.exec()
-        if question.clickedButton() == save:
-            self.save_document(after=continuation)
-        elif question.clickedButton() == keep:
-            if self.conflict:
-                self.message.setText('Resolve the conflict or keep edits as a new document before leaving.')
-            elif self.local_dirty:
-                self.apply_inputs(after=continuation)
-            else:
-                continuation()
+        from .data_material_recovery_host import leave_with_recovery
+        leave_with_recovery(self, continuation)
 
     def new_document(self):
         def create():

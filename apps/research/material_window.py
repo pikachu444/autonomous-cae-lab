@@ -170,6 +170,8 @@ class MaterialWindow(QMainWindow):
         files.insertAction(self.open_action, native_law)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
+        from .data_material_recovery_host import install_recovery_action
+        self.recovery_action=install_recovery_action(self,files)
         close_action.triggered.connect(self.close)
         edit = self.menuBar().addMenu("편집(&E)")
         self.undo_action = QAction("실행 취소", self, shortcut=QKeySequence.Undo)
@@ -932,34 +934,8 @@ class MaterialWindow(QMainWindow):
             self.identity_label.setToolTip(f"Document: {self.document['id']}\nOwner session: {self.document['session_id']}")
 
     def _leave(self, continuation):
-        self._commit_cell_editor()
-        if self._plan_panel and self._plan_panel.has_pending_inputs():
-            self._plan_dock.show()
-            self.message.setText('피팅 변수 편집과 계획 저장을 마친 뒤 문서를 닫거나 바꾸세요. 입력은 보존됩니다.')
-            return
-        if self._busy:
-            self.message.setText("Wait for the current document request before leaving. Running solver jobs remain service-owned.")
-            return
-        if not self.document or not (self.local_dirty or self.document.get("dirty")):
-            continuation()
-            return
-        question = QMessageBox(self)
-        question.setWindowTitle("Unsaved material document")
-        question.setText("Save this document before leaving?")
-        question.setInformativeText("Keep draft sends unapplied cells to the shared owner but does not save a document revision. Running jobs continue independently.")
-        save = question.addButton("Save", QMessageBox.ButtonRole.AcceptRole)
-        keep = question.addButton("Keep service draft", QMessageBox.ButtonRole.DestructiveRole)
-        question.addButton(QMessageBox.StandardButton.Cancel)
-        question.exec()
-        if question.clickedButton() == save:
-            self.save_document(after=continuation)
-        elif question.clickedButton() == keep:
-            if self.conflict:
-                self.message.setText("Resolve the remote conflict or keep edits as a new document before leaving.")
-            elif self.local_dirty:
-                self.apply_inputs(after=continuation)
-            else:
-                continuation()
+        from .data_material_recovery_host import leave_with_recovery
+        leave_with_recovery(self, continuation)
 
     def _commit_cell_editor(self):
         focus = QApplication.focusWidget()

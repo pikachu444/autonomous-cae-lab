@@ -83,7 +83,9 @@ def material_raw_snapshot(window):
 def restore_material_raw(window, raw):
     """Restore a host-verified capsule into a fresh view; never apply to owner."""
     from .material_window import draft_view_error, display_value
-    if window.document is None or window.local_dirty or window.conflict or window._busy:
+    if (window.document is None or window.local_dirty or window.conflict or window._busy
+            or any(table.state()==QAbstractItemView.State.EditingState
+                   for table in (window.history,window.coefficients))):
         raise ValueError('현재 재료 편집을 마친 뒤 복구 입력을 여세요.')
     if raw.get('focus') and not window.isVisible():
         raise ValueError('미확정 셀을 복구하려면 재료 창을 먼저 표시하세요.')

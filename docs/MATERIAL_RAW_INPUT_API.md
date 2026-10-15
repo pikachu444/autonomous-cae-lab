@@ -17,4 +17,4 @@ local_draft는 이미 편집한 typed 입력이며 raw 셀과 별도로 남는�
 기준값 불일치 거절, 새 행의 원래값 없음 보존을 확인했다. Windows native에서도 셀 item은1000,
 live editor는1e인 상태를 유지해 snapshot/복원했고 실행한 두 창은 닫았다. 문서·snapshot은
 명시 시험 fixture이며 실제 Core 복구 쓰기나 cold 저장·재열기를 수행한 결과가 아니다.
-C01의 prepare/Keep/close gate/불변 base/실패 보존 연결은 C2와 별도의 GUI 동선으로 남아 있다.
+C01 호스트 연결과 actual HTTP/Qt 수용 범위는 [DATA_MATERIAL_RECOVERY_DIALOGS.md](DATA_MATERIAL_RECOVERY_DIALOGS.md)에 기록한다. 이 복원 함수 자체의 검사와 Core 권한 검사를 구분한다.
