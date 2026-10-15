@@ -155,6 +155,12 @@ Post 팀은 기존 VS2022 Community/MSVC·Windows SDK·CMake를 실제 찾아 co
 실제 사용자 키보드는 구별한다. 전체 ParaView plugin 빌드·실제 Exit/취소/재열기는 미완료다.
 stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하네스를 ParaView native
 사용 완료로 세지 않으며 유료 SDK·기존 앱 덮어쓰기를 사용하지 않는다.
+로컬 전체 SDK 빌드는 메모리 부족으로 소유 Job을 종료했고 원 출력·실패를 보존했다.
+반복 재시작하지 않는다. Post 팀이 공개 저장소의 표준 Windows runner만 쓰는 수동
+빌드 경로를 작성했고 root·Astra가 소스를 검토 중이다. cache·artifact·release 업로드,
+유료 runner와 별도 서버는 사용하지 않는다. 원격 실행·DLL 완성·실제 File→Exit 수용은
+아직 미실행이며 각각 구분한다. 사용자 PC의 테스트 FreeCAD·ParaView·Gmsh 잔류가
+없는 것도 다시 확인했다.
 
 이동용 사본·선택 연결 보기의 실제 Pro C1도 회수해 전용28 파일을 WIP로 통합했다.
 공통5 패치는 별도 검사 사본에서만 사용하며 main에는 미적용이다. Windows에서 저장본과
@@ -188,6 +194,11 @@ Astra와 담당이 복구 기준 초안의 불변 보관 누락, 실행 이력�
 인한 잘못된 충돌을 재현했다. Data의 실제 표본 동결 형식을 Numerical이 끝까지 소비하는
 정합도 같은 Data Pro C2에 묶는다. Numerical Pro C2의 저장 재시도 수정과 파일 소유를
 분리했으며 새 compiler나 경쟁 스키마를 만들지 않는다. GUI 작성은 병행한다.
+실제 Data Pro C2 최종 ZIP을 회수했다. Data 팀이 현재 main의 함께 저장·응답 유실 복구,
+Plan Redo와 Numerical C2 저장 보호를 보존하며 전용 소스를 정합하고, 공통 변경은 root가
+병합할 최소 패치로 분리한다. Astra가 같은 원자료·반환 소스를 독립 검토한다. 아직 이
+반환물을 현재 main에서 실행·통합한 것으로 표시하지 않으며 C01과 파생 표본 소비의
+원 완료 조건을 유지한다.
 Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
 설치 런타임에서 실제 FELUPE 후보/holdout 상세 계산과 새 owner 재열기, Qt 흐름을 좁게
 확인했다. 실제 기존 Workbench 인증 loopback의 least-squares→상세 요청→계획 저장도
