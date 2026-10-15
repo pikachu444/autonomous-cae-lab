@@ -1,7 +1,7 @@
 """Original and aligned retained curves, with linked plot/table row identity."""
 from copy import deepcopy
 import math
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, Slot, QSignalBlocker
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem,
     QAbstractItemView, QSplitter, QTabWidget, QHeaderView)
 from matplotlib.figure import Figure
@@ -150,16 +150,43 @@ class CurvePlot(QDialog):
         if row is not None:
             self.tabs.setCurrentWidget(table); table.selectRow(row)
 
-    def select_table(self, tag):
+    @Slot(int, object)
+    def select_sample(self, index, basis):
+        keys = ('document_id', 'session_id', 'object_ref', 'revision', 'preview')
+        if (not all(self.basis.get(key) for key in keys[:4])
+                or any(basis.get(key) != self.basis.get(key) for key in keys)):
+            return False
+        table = self.tables['aligned']
+        row = next((row for row in range(table.rowCount())
+                    if table.item(row, 0).data(Qt.ItemDataRole.UserRole) == index), None)
+        with QSignalBlocker(table):
+            if row is None:
+                table.clearSelection()
+            else:
+                table.selectRow(row)
+                table.scrollToItem(table.item(row, 0))
+                self.tabs.setCurrentWidget(table)
+        if row is None:
+            marker = self.markers.pop('aligned', None)
+            if marker is not None:
+                marker.remove()
+            self.canvas.draw_idle()
+            return False
+        self.select_table('aligned', notify=False)
+        return True
+
+    def select_table(self, tag, *, notify=True):
         table = self.tables[tag]; row = table.currentRow()
         if row < 0 or table.item(row, 0) is None:
             return
         index = table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         points = [p for p in self.points.get(tag, []) if p[0] == index]
+        marker = self.markers.pop(tag, None)
+        if marker is not None:
+            marker.remove()
         if points:
-            if tag in self.markers: self.markers[tag].remove()
             self.markers[tag] = self.axes[tag].scatter([p[1] for p in points], [p[2] for p in points],
                 s=85, facecolors='none', edgecolors='black')
-            self.canvas.draw_idle()
-        if tag == 'aligned':
+        self.canvas.draw_idle()
+        if tag == 'aligned' and notify:
             self.rowSelected.emit(index)

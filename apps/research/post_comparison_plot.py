@@ -1,7 +1,7 @@
 """Read-only curves of exactly the currently fetched native comparison rows."""
 from copy import deepcopy
 import math
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -16,6 +16,8 @@ class ComparisonPlot(QDialog):
         self.rows = deepcopy(payload.get('rows', []))
         self.basis = deepcopy(basis)
         self.recipe = self.basis['draft']
+        self._selected_index = None
+        self._markers = []
         self.setWindowTitle('비교 곡선'); self.resize(900, 620)
         configure_plot_fonts()
         layout=QVBoxLayout(self)
@@ -36,6 +38,7 @@ class ComparisonPlot(QDialog):
     def draw(self):
         self.figure.clear()
         top,bottom=self.figure.subplots(2,1,sharex=True)
+        self._axes, self._markers = (top, bottom), []
         axis=self.axis.currentData()
         x=[row.get('point_index') if axis=='point_index' else row['coordinates']['xyz'.index(axis)] for row in self.rows]
         def values(key):
@@ -50,9 +53,36 @@ class ComparisonPlot(QDialog):
         coordinate_unit=self.recipe.get('a',{}).get('coordinate_units','')
         bottom.set_xlabel('원본 점 순서' if axis=='point_index' else axis.upper()+' ['+str(coordinate_unit)+']')
         for ax in (top,bottom): ax.grid(alpha=.25); ax.legend()
-        self.caption.setText(('적용 전 미리보기' if self.basis.get('preview') else '저장된 적용 결과')+
-                             '   ' + str(self.recipe.get('selection','')))
+        selection = self.recipe.get('selection', '')
+        selection_label = {'scalar': '스칼라 값', 'magnitude': '크기'}.get(selection, str(selection).upper())
+        self._caption = ('적용 전 미리보기' if self.basis.get('preview') else '저장된 적용 결과') + '   ' + selection_label
+        self.caption.setText(self._caption)
+        if self._selected_index is not None:
+            self.select_sample(self._selected_index, self.basis)
         self.canvas.draw_idle()
+
+    @Slot(int, object)
+    def select_sample(self, index, basis):
+        keys = ('document_id', 'session_id', 'object_ref', 'revision', 'preview')
+        if (not all(self.basis.get(key) for key in keys[:4])
+                or any(basis.get(key) != self.basis.get(key) for key in keys)):
+            return False
+        for marker in self._markers:
+            marker.remove()
+        self._markers = []
+        self._selected_index = index
+        self.caption.setText(self._caption)
+        row = next((row for row in self.rows if row.get('point_index') == index), None)
+        if row is not None:
+            axis = self.axis.currentData()
+            x = index if axis == 'point_index' else row['coordinates']['xyz'.index(axis)]
+            for ax, fields in zip(self._axes, (('a', 'b'), ('delta',))):
+                values = [row.get(key) for key in fields if isinstance(row.get(key), (int, float)) and math.isfinite(row[key])]
+                if values:
+                    self._markers.append(ax.scatter([x]*len(values), values, s=85, facecolors='none', edgecolors='black'))
+            self.caption.setText(self._caption + ' / 선택한 점 ' + str(index))
+        self.canvas.draw_idle()
+        return row is not None
 
     def pick(self,event):
         if len(event.ind):
