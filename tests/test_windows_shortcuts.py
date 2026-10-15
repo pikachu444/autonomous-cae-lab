@@ -1,5 +1,6 @@
 """Real Windows COM shortcuts in temporary folders; no install or app launch."""
 import json
+import base64
 import os
 from pathlib import Path
 import subprocess
@@ -39,9 +40,10 @@ def source(tmp_path, name="공학 앱 & 개인 모델's source"):
     return folder
 
 
-def install(tmp_path, origin, destination):
+def install(tmp_path, origin, destination, **options):
     return powershell(tmp_path, "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)\n& " +
         quote(SCRIPT) + ' -SourceRoot ' + quote(origin) + ' -Destination ' + quote(destination) +
+        ''.join(' -' + key + ' ' + quote(value) for key, value in options.items()) +
         ' | ConvertTo-Json -Depth 3')
 
 
@@ -139,6 +141,139 @@ def test_direct_file_invocation_resolves_its_own_source_root(tmp_path):
         quote(destination/'전처리.lnk') + ")\nWrite-Output $l.TargetPath")
     assert read.returncode == 0, read.stderr
     assert Path(read.stdout.strip()) == ROOT/'Start-CAE-Pre.cmd'
+
+
+def test_explicit_research_shortcuts_keep_two_stores_and_literal_paths_separate(tmp_path):
+    origin = source(tmp_path, "공학 앱 & 100% ' $cash`tick")
+    scripts = origin/'scripts'; scripts.mkdir()
+    record = tmp_path/'received.json'
+    (scripts/'start_cae_research.ps1').write_text(
+        'param([string]$Tool,[string]$RuntimeRoot,[string]$Store,[int]$Port,[switch]$DesktopShortcut)\n'
+        "if (-not (Get-Command Get-FileHash -ErrorAction Stop)) { throw 'Missing standard Windows module' }\n"
+        '@{Tool=$Tool;RuntimeRoot=$RuntimeRoot;Store=$Store;Port=$Port;DesktopShortcut=[bool]$DesktopShortcut} |\n'
+        'ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath ' + quote(record), encoding='utf-8-sig')
+    runtime = tmp_path/"전용 환경 & $runtime`100%"
+    first_store = tmp_path/"첫 보관소 ' $raw`100% &"
+    second_store = tmp_path/'두 번째 보관소'
+    first_destination = tmp_path/'프로젝트 하나'
+    second_destination = tmp_path/'프로젝트 둘'
+    assert install(tmp_path, origin, first_destination, RuntimeRoot=runtime,
+                   Store=first_store, Port=8871).returncode == 0
+    assert install(tmp_path, origin, second_destination, RuntimeRoot=runtime,
+                   Store=second_store, Port=8872).returncode == 0
+    first_bytes = {p.name: p.read_bytes() for p in first_destination.glob('*.lnk')}
+    # Read real COM properties, then execute the recorded native -File arguments.
+    # The selected script is a recording fixture: no install, service or GUI.
+    for destination, store, port in [(first_destination, first_store, 8871),
+                                     (second_destination, second_store, 8872)]:
+        body = "$s=New-Object -ComObject WScript.Shell\n"
+        for tool, name in TOOLS.items():
+            body += '$l=$s.CreateShortcut(' + quote(destination/(name+'.lnk')) + ')\n'
+            if tool in NATIVE_LAUNCHERS:
+                body += 'if ($l.TargetPath -ne ' + quote(origin/NATIVE_LAUNCHERS[tool]) + ") { throw 'Wrong native launcher' }\n"
+                body += "if ($l.Arguments -ne '') { throw 'Native launch settings changed' }\n"
+            else:
+                body += 'if ($l.TargetPath -ne ' + quote(PS) + ") { throw 'Wrong Research launcher' }\n"
+                expected = '-NoProfile -ExecutionPolicy Bypass -File .caelab-research-start.ps1 -Tool '+tool
+                body += 'if ($l.Arguments -cne ' + quote(expected) + ") { throw 'Wrong tool' }\n"
+                body += 'if (-not $l.Description.Contains(' + quote(store) + ")) { throw 'Missing store description' }\n"
+        body += '$l=$s.CreateShortcut(' + quote(destination/'문서 연결.lnk') + ')\n'
+        body += "$start=New-Object Diagnostics.ProcessStartInfo\n$start.FileName=$l.TargetPath\n"
+        body += "$start.Arguments=$l.Arguments\n$start.UseShellExecute=$false\n$start.CreateNoWindow=$true\n"
+        body += "$start.WorkingDirectory=$l.WorkingDirectory\n"
+        body += "$p=[Diagnostics.Process]::Start($start)\ntry {\n"
+        body += "if (-not $p.WaitForExit(10000)) { $p.Kill(); throw 'Recording launcher timed out' }\n"
+        body += "if ($p.ExitCode -ne 0) { throw 'Recording launcher failed' }\n} finally { $p.Dispose() }\n"
+        result = powershell(tmp_path, body)
+        assert result.returncode == 0, result.stdout+result.stderr
+        actual = json.loads(record.read_text(encoding='utf-8-sig'))
+        assert actual == dict(Tool='connection', RuntimeRoot=str(runtime), Store=str(store),
+                              Port=port, DesktopShortcut=True)
+    repeat = install(tmp_path, origin, first_destination, RuntimeRoot=runtime,
+                     Store=first_store, Port=8871)
+    assert repeat.returncode == 0, repeat.stderr
+    assert all(row['Action'] == 'Reused' for row in json.loads(repeat.stdout))
+    assert first_bytes == {p.name: p.read_bytes() for p in first_destination.glob('*.lnk')}
+    # Repointing an existing folder is refused before recreating a missing link.
+    (first_destination/'실행 관리.lnk').unlink()
+    before = {p.name: p.read_bytes() for p in first_destination.glob('*.lnk')}
+    conflict = install(tmp_path, origin, first_destination, RuntimeRoot=runtime,
+                       Store=second_store, Port=8872)
+    assert conflict.returncode != 0
+    assert before == {p.name: p.read_bytes() for p in first_destination.glob('*.lnk')}
+    support = first_destination/'.caelab-research-start.ps1'
+    # Windows denies CREATE_ALWAYS on hidden files; edit the existing file handle.
+    with support.open('r+b') as stream:
+        stream.seek(0, 2)
+        stream.write(b'\r\n# user edit\r\n')
+    edited = support.read_bytes()
+    refused = install(tmp_path, origin, first_destination, RuntimeRoot=runtime,
+                      Store=first_store, Port=8871)
+    assert refused.returncode != 0 and 'support file' in refused.stderr
+    assert support.read_bytes() == edited
+    assert before == {p.name: p.read_bytes() for p in first_destination.glob('*.lnk')}
+    assert not runtime.exists() and not first_store.exists() and not second_store.exists()
+
+
+def test_research_shortcut_error_is_visible_but_script_failure_remains_noninteractive(tmp_path):
+    origin = source(tmp_path)
+    scripts = origin/'scripts'; scripts.mkdir()
+    launcher = scripts/'start_cae_research.ps1'
+    launcher.write_bytes((ROOT/'scripts/start_cae_research.ps1').read_bytes())
+    (scripts/'start-windows.ps1').write_text("throw 'Controlled service preparation failure'", encoding='utf-8-sig')
+    env = os.environ.copy(); env.pop('PSModulePath', None)
+    for shortcut in [False, True]:
+        result = subprocess.run([PS, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+            str(launcher), '-Tool', 'connection', *(['-DesktopShortcut'] if shortcut else [])],
+            input='\n', capture_output=True, text=True, errors='replace', env=env, timeout=15)
+        assert result.returncode != 0
+        assert 'Controlled service preparation failure' in result.stderr
+        assert ('Enter' in result.stdout) == shortcut
+
+
+def test_explicit_shortcuts_reject_missing_launcher_or_empty_store_before_writing(tmp_path):
+    origin = source(tmp_path)
+    destination = tmp_path/'not-created'
+    missing = install(tmp_path, origin, destination, Store=tmp_path/'연구 자료')
+    assert missing.returncode != 0 and 'Research launcher' in missing.stderr
+    assert not destination.exists()
+    empty = install(tmp_path, origin, destination, Store='')
+    assert empty.returncode != 0 and 'explicit folders' in empty.stderr
+    assert not destination.exists()
+
+
+def test_another_store_winning_profile_publication_keeps_its_links(tmp_path):
+    origin = source(tmp_path)
+    scripts = origin/'scripts'; scripts.mkdir()
+    (scripts/'start_cae_research.ps1').write_text('throw "Must not launch"', encoding='utf-8-sig')
+    destination = tmp_path/'동시 설치 대상'
+    runtime = tmp_path/'private runtime'
+    winner_store = tmp_path/'먼저 지정한 보관소'
+    losing_store = tmp_path/'뒤에 지정한 보관소'
+    snapshot = tmp_path/'winner-bytes.json'
+    marker = '[void][IO.Directory]::CreateDirectory($destinationPath)'
+    text = SCRIPT.read_text(encoding='utf-8-sig')
+    assert text.count(marker) == 1
+    # A real second installer wins after this installer's preflight. No threads,
+    # timing assumptions or production hooks: only this temporary copy is changed.
+    hook = '& ' + quote(SCRIPT) + ' -SourceRoot $source -Destination $destinationPath -RuntimeRoot ' + quote(runtime)
+    hook += ' -Store ' + quote(winner_store) + ' -Port 8871 | Out-Null\n'
+    # Retain the real winner's helper but model its pause before link publication.
+    hook += "foreach ($file in [IO.Directory]::GetFiles($destinationPath,'*.lnk')) { [IO.File]::Delete($file) }\n"
+    hook += '$winner=@{}\nforeach ($file in [IO.Directory]::GetFiles($destinationPath)) {\n'
+    hook += '$winner[[IO.Path]::GetFileName($file)]=[Convert]::ToBase64String([IO.File]::ReadAllBytes($file))\n}\n'
+    hook += '[IO.File]::WriteAllText(' + quote(snapshot) + ',($winner | ConvertTo-Json -Depth 3))\n'
+    controlled = tmp_path/'controlled-installer.ps1'
+    controlled.write_text(text.replace(marker, hook+marker), encoding='utf-8-sig')
+    result = powershell(tmp_path, '& ' + quote(controlled) + ' -SourceRoot ' + quote(origin) +
+        ' -Destination ' + quote(destination) + ' -RuntimeRoot ' + quote(runtime) +
+        ' -Store ' + quote(losing_store) + ' -Port 8872')
+    assert result.returncode != 0
+    assert 'support file' in result.stderr
+    winning_bytes = {name: base64.b64decode(raw) for name, raw in json.loads(snapshot.read_text()).items()}
+    assert winning_bytes == {p.name: p.read_bytes() for p in destination.iterdir()}
+    assert list(destination.glob('*.lnk')) == []
+    assert not runtime.exists() and not winner_store.exists() and not losing_store.exists()
 
 
 @pytest.mark.parametrize('arguments', ['-Tool data', '-PrepareOnly', '-InstallOnly'])

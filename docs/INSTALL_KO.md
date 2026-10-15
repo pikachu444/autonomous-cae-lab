@@ -96,6 +96,30 @@ Windows 시작 메뉴의 기존 **Autonomous CAE Lab** 바로가기 폴더를 �
 .\scripts\install-desktop-shortcuts.ps1 -Destination "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\CAE Lab 새 위치"
 ```
 
+### 여러 연구 폴더를 시작 메뉴에서 구별하기
+
+이동 사본이나 별도 연구 폴더를 계속 사용하려면 **다른 시작 메뉴 폴더**에 그 대상을
+지정한 바로가기를 만드세요. `-Store`는 실제 연구 보관소 경로이며, 소스 코드 폴더나
+ZIP 파일을 지정하는 옵션은 아닙니다. 다른 보관소에는 다른 포트를 사용합니다.
+
+```powershell
+.\scripts\install-desktop-shortcuts.ps1 `
+  -Destination "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\CAE Lab 재료 연구" `
+  -Store 'D:\연구 자료\재료 연구' -Port 8767
+```
+
+이 폴더의 Research 앱과 **문서 연결**은 지정한 보관소로 직접 열립니다. **전처리·후처리**는
+기존 파일 선택과 native 설정을 유지합니다. 전용 Python 환경도 나누려면 같은 명령에
+`-RuntimeRoot 'D:\CAE 실행 환경\재료 연구'`를 추가합니다. 바로가기 생성만으로는 연구
+폴더를 만들거나 서버를 실행하지 않습니다. 아직 준비하지 않은 실행 환경은 첫 실행 때
+기존 설치 절차로 준비하므로 인터넷이 필요할 수 있습니다.
+
+기존 바로가기의 보관소·포트·실행 환경을 바꾸어 덮어쓰지는 않습니다. 다른 시작 메뉴 폴더를
+지정하세요. 같은 포트에 다른 보관소가 열려 있으면 기존 시작 검사가 거절하며, 사용자 서버를
+자동 종료하지 않습니다. 바로가기로 시작하다 실패하면 오류 창에서 내용을 확인하고 Enter로 닫습니다.
+지정한 시작 메뉴 폴더에는 숨김 지원 파일 `.caelab-research-start.ps1`도 함께 만들어집니다.
+바로가기와 함께 남겨 두세요. 이 파일을 수정했거나 다른 대상의 설정이 있으면 덮어쓰지 않습니다.
+
 Sobol 민감도 분석에는 선택 패키지가 필요합니다. 다음 명령으로 기존 무료 패키지
 SALib를 추가할 수 있습니다. 일반 DOE와 최적화에는 이 옵션이 필요하지 않습니다.
 
