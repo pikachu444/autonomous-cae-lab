@@ -8,4 +8,6 @@ Material의 피팅 변수 패널에서 선택한 계획을 확인하고 **함께
 
 같은 Material 창에서는 **저장 결과…**로 선택 계획의 마지막 receipt를 다시 읽는다. `RelatedSaveDialog(..., receipt_id=...)`는 기존 durable receipt를 명시적으로 읽어 표시하며 새 저장을 시작하지 않는다. 실제 서비스 종료·재시작 후 이 API로 같은 저장 결과와 정확 Material/Plan saved revision을 다시 읽는 검사는 통과했다. 이 GUI의 receipt 선택 기억은 현재 창에 한정된다. C01 복구 capsule을 통한 cold GUI 재개와 미확정 원문 닫기 보호는 별도 미완료이며 이 기능으로 대체하지 않는다.
 
+저장 execute를 시도하는 순간 원 preview와 receipt ID를 성공 응답과 분리해 기억한다. 저장이 실제로 끝난 뒤 HTTP 응답을 잃어도 창을 닫고 같은 ID의 **저장 결과…**를 읽을 수 있다. 결과가 확인되지 않은 동안 **함께 저장…**도 그 원래 결과 조회로 연결하며 새 preview나 owner 명령을 자동으로 만들지 않는다. preview만 보고 취소하면 저장 요청으로 기록하지 않는다. 미확정 셀이 있는 동안에도 결과 조회는 가능하며 저장/재시도/참조 연결은 비활성화한다. 검토 모달은 기존 `RawEditorFocusGuard`로 감싸 원래 편집기를 확정하지 않는다.
+
 검증: 실제 HTTP/기존 owner의 Plan 저장 한 번에만 권한 오류를 주입해 부분 실패→계획만 재시도→명시 참조 연결→서비스 재시작/receipt 재열기를 확인했다. solver와 fit은 실행하지 않았다. Windows 실제 Qt 정상/좁은 저장 창과 Material 패널을 읽었고 미확정 `1e`가 있을 때 저장 차단·원문 보존·Esc를 확인했다. 실행한 검사 프로세스는 종료했다. Core 전체 C1 검사 수나 C01 완료를 이 GUI 검사로 주장하지 않는다.
