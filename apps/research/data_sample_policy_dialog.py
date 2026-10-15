@@ -7,14 +7,26 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
     QTableWidget, QTableWidgetItem, QVBoxLayout)
 
 
+def _valid_entries(entries, sample_ids):
+    return (isinstance(entries, dict) and set(entries) == sample_ids
+        and all(isinstance(entry, dict) and set(entry) == {'included', 'role', 'weight'}
+            and type(entry['included']) is bool and entry['role'] in ('fit', 'holdout')
+            and type(entry['weight']) in (int, float) and math.isfinite(entry['weight'])
+            and entry['weight'] >= 0 for entry in entries.values()))
+
+
 class SamplePolicyDialog(QDialog):
-    def __init__(self, proposal, channel, parent=None):
+    def __init__(self, proposal, channel, parent=None, *, initial_entries=None):
         super().__init__(parent)
         from caelab.data_processing_selection import sample_domain
         if proposal.get('domain') != sample_domain(channel) or set(proposal['entries']) != {sample['sample_id'] for sample in channel['samples']}:
             raise ValueError('검토할 표본 정책과 처리 결과가 다릅니다.')
         self.proposal, self.channel = deepcopy(proposal), deepcopy(channel)
-        self.entries = deepcopy(proposal['entries'])
+        sample_ids = {sample['sample_id'] for sample in channel['samples']}
+        entries = proposal['entries'] if initial_entries is None else initial_entries
+        if not _valid_entries(entries, sample_ids):
+            raise ValueError('표본 용도와 가중치를 확인하세요. 원래 편집은 보존됩니다.')
+        self.entries = deepcopy(entries)
         self.setWindowTitle('관측 표본 용도')
         self.resize(960, 680)
         layout = QVBoxLayout(self)

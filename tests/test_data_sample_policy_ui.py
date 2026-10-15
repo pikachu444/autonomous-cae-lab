@@ -64,3 +64,31 @@ def test_partial_weight_remains_editable_and_blocks_adoption(policy):
         assert dialog.entries[channel['samples'][1]['sample_id']]['weight'] == '1e'
         assert dialog.table.item(1, 5).text() == '1e' and '가중치' in dialog.message.text()
     finally: dialog.close(); app.processEvents()
+
+
+def test_existing_review_entries_seed_without_changing_proposal(policy):
+    app, proposal, channel = policy
+    initial = deepcopy(proposal['entries']); original = deepcopy(proposal)
+    sid = channel['samples'][1]['sample_id']
+    initial[sid] = dict(included=False, role='holdout', weight=2.5)
+    dialog = SamplePolicyDialog(proposal, channel, initial_entries=initial)
+    try:
+        assert dialog.entries == initial and proposal == original
+        assert dialog.table.item(1, 4).text() == '검증 (holdout)'
+        assert dialog.table.item(1, 5).text() == '2.5'
+        dialog.table.item(1, 5).setText('3')
+        assert initial[sid]['weight'] == 2.5 and proposal == original
+    finally: dialog.close(); app.processEvents()
+
+
+@pytest.mark.parametrize('change', ['missing', 'role', 'included', 'weight', 'extra'])
+def test_bad_seed_rejected_before_display(policy, change):
+    app, proposal, channel = policy
+    initial = deepcopy(proposal['entries']); sid = channel['samples'][0]['sample_id']
+    if change == 'missing': initial.pop(sid)
+    elif change == 'role': initial[sid]['role'] = 'unknown'
+    elif change == 'included': initial[sid]['included'] = 1
+    elif change == 'weight': initial[sid]['weight'] = float('nan')
+    else: initial[sid]['hidden'] = 'unexpected'
+    with pytest.raises(ValueError, match='표본 용도'):
+        SamplePolicyDialog(proposal, channel, initial_entries=initial)

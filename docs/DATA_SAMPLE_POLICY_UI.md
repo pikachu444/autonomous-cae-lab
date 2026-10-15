@@ -20,3 +20,6 @@ Numerical GUI는 현재 owner의 선택한 trial에서 이 창을 사용한다. 
 보통/좁은 창에서 실제 raw 기여 계수, 선택 유지, invalid1e 보존을 확인했고 native_check가 실행한
 창은 종료했다. 서비스 adoption/fit/cold reopen의 전체 동선은 Numerical 연결과 C2 통합 뒤에
 별도로 확인한다. 현재 main의 C01/derived fit 완료 주장을 추가하지 않는다.
+# 기존 표본 용도 다시 검토
+
+`SamplePolicyDialog(proposal, channel, parent=None, *, initial_entries=None)`는 기존 호스트가 Core의 정책과 domain을 확인한 뒤 전달한 전체 표본 ID별 포함/용도/가중치를 표시할 수 있다. `initial_entries`는 복사하며 원래 proposal과 hash를 변경하지 않는다. 누락된 표본, 알 수 없는 용도, 잘못된 포함 값, 유한하지 않거나 음수인 가중치, 추가 필드는 거절한다. 이 인자는 GUI 초기 표시만 정하며 정책 채택 명령은 호스트가 수행한다.
