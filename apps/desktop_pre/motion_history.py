@@ -256,7 +256,11 @@ def check_closed_motion(summary, model, payload=None):
             if (not isinstance(ref, (list, tuple)) or len(ref) != 2 or not isinstance(ref[0], str)
                     or not isinstance(ref[1], (list, tuple)) or len(ref[1]) != 2):
                 check['unknowns'].append('관절 연결 참조가 불완전합니다.'); return check
-    if not has_closed_loop(joints):
+    relation_drives = any(isinstance(d, dict) and d.get('relation') is not None
+        for d in (summary.get('definition_snapshot') or {}).get('drives', []))
+    closed = has_closed_loop(joints)
+    if relation_drives and not closed: check['scope'] = 'SAMPLED_RELATION_POSES'
+    if not closed and not relation_drives:
         check.update(state='NOT_APPLICABLE', accepted=True, scope='NO_CLOSED_LOOP')
         return check  # M1/M2 open chains retain their existing acceptance contract.
     try:
@@ -301,10 +305,11 @@ def check_closed_motion(summary, model, payload=None):
         # Reuse M1 compilation (including declared-unit dependencies), and verify
         # exactly the native joint/type/formula list consumed by FreeCAD.
         from .motion_formula import compile_drives
-        infos = {j['id']: {'type': j['type'], 'label': j['label'], 'limits': j.get('limits', {})}
+        infos = {j['id']: {'type': j['type'], 'label': j['label'], 'limits': j.get('limits', {}), 'path': j.get('path')}
                  for j in active if 'type' in j}
         formulas, issues = compile_drives(definition['drives'],
-            (definition['time']['start'], definition['time']['end']), infos)
+            (definition['time']['start'], max(definition['time']['end'], summary['frame_times'][-1])
+                if relation_drives else definition['time']['end']), infos)
         if issues: raise ValueError('구동 입력을 확인할 수 없습니다: '+str(issues))
         expected = [(d['joint_id'], d['type'], formulas[i]) for i, d in enumerate(definition['drives'])]
         actual = [(d['joint'], d['type'], d['formula']) for d in native['drives']]

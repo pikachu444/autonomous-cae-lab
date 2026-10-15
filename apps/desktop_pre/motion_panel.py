@@ -7,6 +7,8 @@ import json
 
 from apps.desktop_pre.motion import JOINT_TYPES,native_frame_times
 from apps.desktop_pre.motion_formula import compile_drives
+from apps.desktop_pre.motion_relation import relation_values
+from apps.desktop_pre.motion_relation_editor import RelationPanelBinding
 from apps.desktop_pre.motion_history import check_message
 
 JOINT_LABELS = {'Grounded': '고정 부품', 'Fixed': '고정 연결', 'Revolute': '회전',
@@ -141,6 +143,7 @@ class MotionPanel:
         details.addWidget(QtWidgets.QLabel('한계 단위'),5,0); details.addWidget(self.drive_limit_unit,5,1)
         self.drive_relation = QtWidgets.QLabel('기준 구동의 선언 단위 값 × 비율 + 영점 이동. 미구동 관절 자세를 추정하지 않습니다.')
         self.drive_relation.setWordWrap(True); details.addWidget(self.drive_relation,6,0,1,4)
+        self.general_relation = RelationPanelBinding(self, details)
         definition_layout.addWidget(self.drive_details); self.drive_details.setEnabled(False)
         self.drives.currentCellChanged.connect(lambda *args: self._drive_selected())
         for field in (self.drive_name,self.drive_ratio,self.drive_offset,self.drive_min,self.drive_max): field.textEdited.connect(self._drive_options_edited)
@@ -704,7 +707,7 @@ class MotionPanel:
         default = DRIVE_TYPES.get(selected.get('type'), ('Angular',))[0]
         kind.setCurrentIndex(kind.findData(value.get('type', default)))
         self.drives.setCellWidget(row, 0, joint); self.drives.setCellWidget(row, 1, kind)
-        joint.motion_options = {key: deepcopy(value[key]) for key in ('name','dependency','limits') if key in value}
+        joint.motion_options = {key: deepcopy(value[key]) for key in ('name','dependency','limits','relation') if key in value}
         self._item(self.drives, row, 2, value.get('formula', ''))
         self._item(self.drives, row, 3, value.get('unit', 'rad' if kind.currentData() == 'Angular' else 'mm'), readonly=True)
         def changed(*args):
@@ -732,17 +735,19 @@ class MotionPanel:
                     master=next((d for d in values if (d['joint_id'],d['type'])==(dep.get('joint_id'),dep.get('type'))),{})
                     joint=next((j for j in self._motion.get('joints',[]) if j['id']==master.get('joint_id')),{})
                     relation=(master.get('name') or joint.get('label') or '기준 구동 없음')+' × '+str(dep.get('ratio',''))+' + '+str(dep.get('offset',''))
+                if options.get('relation') is not None: relation = options['relation'].get('expression', '') or '관계식 입력 필요'
                 self._item(self.drives,row,5,relation,readonly=True)
                 self.drives.item(row,5).setToolTip(relation)
                 item=self.drives.item(row,2)
                 flags=item.flags()
-                item.setFlags(flags & ~self.QtCore.Qt.ItemIsEditable if dep else flags | self.QtCore.Qt.ItemIsEditable)
-                item.setToolTip('종속 관계를 사용합니다. 직접 시간식을 편집하려면 구동 방식을 시간식으로 바꾸세요.' if dep else '')
+                dependent = dep is not None or options.get('relation') is not None
+                item.setFlags(flags & ~self.QtCore.Qt.ItemIsEditable if dependent else flags | self.QtCore.Qt.ItemIsEditable)
+                item.setToolTip('종속 관계를 사용합니다. 직접 시간식을 편집하려면 구동 방식을 시간식으로 바꾸세요.' if dependent else '')
         finally: self.drives.blockSignals(False)
         selected=self.drives.currentRow()
         if selected>=0 and hasattr(self,'drive_relation'):
             self.drive_relation.setText(('종속식: '+(values[selected].get('name') or '선택 구동')+' = '+self.drives.item(selected,5).text()+' ['+values[selected]['unit']+']\n기준값은 기준 구동의 선언 단위 값입니다.')
-                if values[selected].get('dependency') else '시간식의 time은 초입니다. 출력은 선택한 rad/deg 또는 mm 단위입니다.')
+                if values[selected].get('dependency') else ('관계식 출력 단위: '+values[selected]['unit'] if values[selected].get('relation') is not None else '시간식의 time은 초입니다. 출력은 선택한 rad/deg 또는 mm 단위입니다.'))
 
     def _drive_values(self, *, raw=False):
         def cell(row,column):
@@ -758,20 +763,23 @@ class MotionPanel:
                         number=value[key].get(field)
                         if raw: value[key][field]='' if number is None else str(number)
                         else: value[key][field]=None if number in ('',None) and key=='limits' else self._numeric(str(number))
+            if value.get('relation') is not None:
+                value['relation'] = relation_values(value['relation'], raw=raw)
             rows.append(value)
         return rows
 
     def _drive_selected(self):
         if not hasattr(self,'drive_details') or self._loading_drive: return
         row=self.drives.currentRow(); self.drive_details.setEnabled(row>=0)
-        if row<0: return
+        if row<0:
+            self.general_relation.select(None); return
         value=self._drive_values(raw=True)[row]
         self._loading_drive=True
         try:
             self.drive_name.setText(value.get('name',''))
             self.drive_unit.clear(); self.drive_unit.addItems(['rad','deg'] if value['type']=='Angular' else ['mm'])
             self.drive_unit.setCurrentText(value['unit'])
-            dep=value.get('dependency'); self.drive_mode.setCurrentIndex(1 if dep is not None else 0)
+            dep=value.get('dependency'); self.drive_mode.setCurrentIndex(2 if value.get('relation') is not None else 1 if dep is not None else 0)
             self.drive_source.clear(); self.drive_source.addItem('기준 구동을 선택하세요',None)
             for index,drive in enumerate(self._drive_values(raw=True)):
                 joint=next((j for j in self._motion.get('joints',[]) if j['id']==drive['joint_id']),{})
@@ -790,6 +798,7 @@ class MotionPanel:
             self.drive_limit_unit.setCurrentText(limit.get('unit',value['unit']))
             for widget in (self.drive_source,self.drive_ratio,self.drive_ratio_unit,self.drive_offset,self.drive_offset_unit): widget.setEnabled(dep is not None)
         finally: self._loading_drive=False
+        self.general_relation.select(value)
         self._drive_summaries()
 
     def _drive_options_edited(self, *args):
@@ -810,6 +819,7 @@ class MotionPanel:
         else: options.pop('dependency',None)
         if self.drive_min.text() or self.drive_max.text() or 'limits' in options:
             options['limits']={'min':self.drive_min.text(),'max':self.drive_max.text(),'unit':self.drive_limit_unit.currentText()}
+        options = self.general_relation.options(options)
         joint.motion_options=options
         self._item(self.drives,row,3,self.drive_unit.currentText(),readonly=True)
         self._mark_edited()
@@ -870,6 +880,7 @@ class MotionPanel:
                 'traces': [{'id': cell(self.traces, row, 0), 'occurrence_id': self.traces.cellWidget(row, 1).currentData(),
                     'point': [cell(self.traces, row, c) for c in (2, 3, 4)]} for row in range(self.traces.rowCount())]}
         editor = {'view': self.current_view(), 'joint_draft': joint, 'definition_draft': definition}
+        self.general_relation.put_view(editor)
         path_view = self.path_browser.current_view()
         if path_view is not None: editor['path_view'] = path_view
         if self._calculation_id() and any(row['id'] == self._calculation_id() for row in self._motion.get('path_results', [])):
@@ -889,7 +900,7 @@ class MotionPanel:
         stored = self._motion.get('editors', {}).get(self.assembly.currentData())
         if stored is None:
             applied = (self._motion.get('definition') or {}).get('view', {})
-            if editor['joint_draft'] is None and editor['definition_draft'] is None and 'path_view' not in editor and 'result_view' not in editor and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
+            if editor['joint_draft'] is None and editor['definition_draft'] is None and 'path_view' not in editor and 'result_view' not in editor and 'relation_view' not in editor and editor['view'] == applied and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
         elif editor == stored and self._motion.get('editor_assembly_id') in (None, self.assembly.currentData()): return None
         return self.editor_snapshot()
 
@@ -945,6 +956,8 @@ class MotionPanel:
                 self._show_runtime()
                 self.frame.setValue(editor['result_view']['frame'])
         finally: self._loading = False
+        self._drive_selected()
+        self.general_relation.restore_view(editor)
         self._joint_controls()
 
     def pending_view(self):
@@ -997,6 +1010,7 @@ class MotionPanel:
                 if message: issues.append('경로점 '+str(row+1)+'행: '+message)
             self._trace_selected()
             self.definition_notice.setText('\n'.join(issues) if issues else ('구동 편집 중 — 적용 후 계산할 수 있습니다.' if self._edited else ''))
+        self.general_relation.refresh_context()
         return issues
 
     def _show_path(self, value):

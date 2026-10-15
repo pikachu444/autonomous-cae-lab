@@ -15,6 +15,7 @@ import math
 import re
 import uuid
 from apps.desktop_pre.motion_formula import compile_drives, native_limits, REQUIRED, OPTIONAL
+from apps.desktop_pre.motion_relation import validate_raw_relation
 from apps.desktop_pre.motion_occurrence import hierarchy, unique_path, world_placement, native_scope, NestedRecoveryError
 
 from apps.desktop_pre.motion_history import (
@@ -496,6 +497,7 @@ class Motion:
             titles=candidates[0]['label'].split(' / ') if len(candidates)==1 else [j.Label]
             label=' / '.join(titles[:-2]+[_joint_label(j)]) if len(titles)>2 else _joint_label(j)
             rows.append({'id': j.Name, 'label': label,
+                'path': candidates[0]['path'] if len(candidates) == 1 else None,
                 'type': str(j.JointType) if hasattr(j, 'JointType') else 'Grounded',
                 'grounded_occurrence': j.ObjectToGround.Name if hasattr(j, 'ObjectToGround') and j.ObjectToGround else None,
                 'references': [[r[0].Name if r[0] else None, list(r[1])] if r else None for r in refs],
@@ -587,6 +589,7 @@ class Motion:
     def _compile_drives(self, assembly, definition):
         paths=hierarchy(assembly)
         joints = {joint.Name: {'type': str(joint.JointType), 'label': joint.Label,
+            'path': paths[joint.Name][0]['path'] if len(paths.get(joint.Name, [])) == 1 else None,
             'limits': native_limits(joint),
             'suppressed': bool(getattr(joint,'Suppressed',False)),
             'issues': (['억제된 관절입니다. 관절을 활성화하거나 구동 대상을 바꾸세요.'] if getattr(joint, 'Suppressed', False) else [])
@@ -640,7 +643,7 @@ class Motion:
         if set(args) != {'editor'}: raise ValueError('Declare one assembly editor snapshot')
         editor = deepcopy(args['editor'])
         if (not isinstance(editor, dict) or not {'view', 'joint_draft', 'definition_draft'} <= set(editor)
-                or set(editor) - {'view', 'joint_draft', 'definition_draft', 'path_view', 'result_view'}
+                or set(editor) - {'view', 'joint_draft', 'definition_draft', 'path_view', 'result_view', 'relation_view'}
                 or not isinstance(editor['view'], dict)
                 or any(value is not None and not isinstance(value, dict) for value in (editor['joint_draft'], editor['definition_draft']))):
             raise ValueError('Invalid assembly editor snapshot structure')
@@ -649,6 +652,11 @@ class Motion:
         if (set(view) != {'joint_id', 'drive_row', 'trace_row'} or not identifier(view['joint_id'])
                 or any(type(view[key]) is not int or view[key] < -1 for key in ('drive_row', 'trace_row'))):
             raise ValueError('Invalid editor selection structure')
+        if 'relation_view' in editor:
+            selected = editor['relation_view']
+            if (not isinstance(selected, dict) or set(selected) != {'source_row', 'constant_row'}
+                    or any(type(v) is not int or v < -1 for v in selected.values())):
+                raise ValueError('Invalid relation editor selection structure')
         if 'path_view' in editor:
             selected = editor['path_view']
             if (not isinstance(selected, dict) or set(selected) != {'calculation_id', 'trace_id', 'frame', 'projection'}
@@ -698,6 +706,7 @@ class Motion:
                         or not identifier(dependency['joint_id']) or not identifier(dependency['type'])
                         or any(not isinstance(dependency[key], str) for key in ('ratio','ratio_unit','offset','offset_unit'))):
                     raise ValueError('Invalid raw drive dependency')
+                if drive.get('relation') is not None: validate_raw_relation(drive['relation'])
                 limits = drive.get('limits')
                 if limits is not None and (set(limits) != {'min','max','unit'}
                         or any(not isinstance(value, str) for value in limits.values())):
@@ -1110,8 +1119,6 @@ class Motion:
         if self._state in ('PLAYING', 'PAUSED'): self._state = 'CALCULATED'
         self._frame = None
         self._path_result = deepcopy(page)
-        if self._pending_summary and self._pending_summary['id'] == result['id']:
-            self._pending_summary['path'] = deepcopy(page)
         # Full paths stay immutable even when the user reads only a small page.
         return page
 

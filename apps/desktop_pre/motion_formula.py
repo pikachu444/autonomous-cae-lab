@@ -9,7 +9,7 @@ import math
 import re
 
 REQUIRED = {'joint_id', 'type', 'formula', 'unit'}
-OPTIONAL = {'name', 'dependency', 'limits'}
+OPTIONAL = {'name', 'dependency', 'limits', 'relation'}
 UNITS = {'Angular': {'rad': 1., 'deg': math.pi/180.}, 'Linear': {'mm': 1.}}
 
 
@@ -97,8 +97,12 @@ def interval(formula, time):
 
 def compile_drives(drives, time, joints):
     """Return native formulas and row issues, leaving stored/raw rows untouched."""
+    from apps.desktop_pre.motion_relation import binding_problem, compile_relation
+    if not isinstance(drives, list) or not 1 <= len(drives) <= 32:
+        return {}, {-1: ['구동은 1개에서 32개까지 선언하세요.']}
     issues, keys, nodes, declared, compiled, visiting = {}, {}, {}, {}, {}, set()
-    def problem(index, message): issues.setdefault(index, []).append(message)
+    def problem(index, message):
+        if message not in issues.setdefault(index, []): issues[index].append(message)
     for index, drive in enumerate(drives):
         try:
             if not isinstance(drive,dict) or not REQUIRED <= set(drive) or set(drive)-REQUIRED-OPTIONAL: raise ValueError('구동 행의 선언을 확인하세요.')
@@ -106,6 +110,7 @@ def compile_drives(drives, time, joints):
             if not joint: raise ValueError('관절 참조 없음 — 다시 선택하세요.')
             if drive['type'] not in {'Revolute':{'Angular'},'Slider':{'Linear'},'Cylindrical':{'Angular','Linear'}}.get(joint['type'],set()):
                 raise ValueError('이 관절의 운동 종류를 확인하세요.')
+            if joint.get('suppressed'): raise ValueError('억제된 관절입니다. 활성화하거나 다시 선택하세요.')
             if joint.get('issues'): raise ValueError('; '.join(joint['issues']))
             if drive['unit'] not in UNITS[drive['type']]: raise ValueError('운동 종류에 맞는 rad/deg 또는 mm 단위를 선택하세요.')
             if 'name' in drive and (not isinstance(drive['name'],str) or not drive['name'].strip() or len(drive['name'])>80): raise ValueError('구동 이름을 입력하세요.')
@@ -113,8 +118,11 @@ def compile_drives(drives, time, joints):
             if key in keys:
                 problem(keys[key],'같은 관절에 같은 종류의 구동을 중복 지정했습니다.'); raise ValueError('같은 관절에 같은 종류의 구동을 중복 지정했습니다.')
             keys[key]=index; nodes[key]=drive
-            if not drive.get('dependency'): _formula(drive['formula'])
-        except (ValueError,KeyError,TypeError) as error: problem(index,str(error))
+            if drive.get('relation') is not None:
+                if drive.get('dependency') is not None or not isinstance(drive['formula'], str) or drive['formula'].strip():
+                    raise ValueError('관계식·시간식·단일 종속 구동을 중복 선언할 수 없습니다. 구동 방식을 하나 선택하세요.')
+            elif not drive.get('dependency'): _formula(drive['formula'])
+        except (ValueError,KeyError,TypeError,OverflowError) as error: problem(index,str(error))
     def resolve(key):
         index=keys[key]; drive=nodes[key]
         if index in issues: raise ValueError('기준 구동의 오류를 먼저 고치세요.')
@@ -123,7 +131,23 @@ def compile_drives(drives, time, joints):
         visiting.add(key)
         try:
             dependency=drive.get('dependency')
-            if dependency is None: expression=drive['formula']
+            native_expression = None
+            if drive.get('relation') is not None:
+                def source_expression(source):
+                    message = binding_problem(source, drives, joints)
+                    if message: raise ValueError(message)
+                    source_key = (source['joint_id'], source['type'])
+                    if source_key == key: raise ValueError('자기 참조가 있는 순환 관계입니다. 기준 구동을 바꾸세요.')
+                    if source_key not in nodes: raise ValueError('기준 구동을 먼저 추가하거나 복구하세요.')
+                    resolve(source_key)
+                    return compiled[keys[source_key]]
+                native_expression = compile_relation(drive['relation'], drive['type'], source_expression)
+                # New relations must have a proven whole-interval domain even
+                # without a finite output limit. Legacy time/dependency behavior
+                # is unchanged; no sparse sampling, clipping or raised epsilon.
+                interval(native_expression, time)
+                expression = ('('+native_expression+')/(pi/180)' if drive['unit'] == 'deg' else native_expression)
+            elif dependency is None: expression=drive['formula']
             else:
                 if not isinstance(dependency,dict) or set(dependency)!={'joint_id','type','ratio','ratio_unit','offset','offset_unit'}: raise ValueError('종속 구동 선언을 확인하세요.')
                 source=(dependency['joint_id'],dependency['type'])
@@ -135,12 +159,14 @@ def compile_drives(drives, time, joints):
                 expression='('+repr(ratio)+'*('+resolve(source)+')+'+repr(offset)+')'
             if len(expression)>8192: raise ValueError('종속 식이 너무 깁니다.')
             declared[key]=expression
-            compiled[index]=expression if drive['unit']!='deg' else '(('+expression+')*pi/180)'
+            compiled[index] = (native_expression if native_expression is not None else
+                (expression if drive['unit']!='deg' else '(('+expression+')*pi/180)'))
+            if len(compiled[index]) > 8192: raise ValueError('native 전개 식이 8192자를 넘습니다.')
             return expression
         finally: visiting.discard(key)
     for key,index in keys.items():
         try: resolve(key)
-        except (ValueError,KeyError,TypeError) as error: problem(index,str(error))
+        except (ValueError,KeyError,TypeError,OverflowError,RecursionError,SyntaxError) as error: problem(index,str(error))
     for key,index in keys.items():
         drive=nodes[key]
         limits=[]

@@ -1,0 +1,10 @@
+# Open in installed FreeCAD 1.1.4 GUI. No calculation or window termination.
+from pathlib import Path
+import sys
+import runpy
+folder = Path(__file__).resolve().parent
+repository = folder.parent.parent
+if str(repository) not in sys.path:
+    sys.path.insert(0, str(repository))
+M1_RELATIONS = runpy.run_path(str(folder/'create_relations.py'))['open_example']()
+print('여러 구동 관계를 만들었습니다. 조립 운동의 시간과 구동에서 관계를 편집하고 명시적으로 계산하세요.')

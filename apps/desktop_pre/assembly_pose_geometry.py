@@ -82,6 +82,7 @@ def select_frame(owner, assembly_id, calculation_id, frame):
     owner.assert_thread()
     motion = owner.motion
     assembly = motion._assembly({'assembly_id': assembly_id})
+    motion._assert_editor_applied(assembly)
     result = motion._saved_result(assembly, calculation_id)
     if result.get('accepted') is not True:
         raise ValueError('자세 검사를 통과한 운동 결과를 선택하세요. 실패한 원결과는 그대로 읽을 수 있습니다.')

@@ -66,6 +66,9 @@ def attach_motion(connection, owner, controller):
                 self._busy = False; self.status.setText(str(error))
 
         def start(self):
+            if getattr(controller, '_edited', False) or getattr(controller, '_joint_edited', False):
+                self.status.setText('관절과 구동 편집을 적용하거나 취소한 뒤 해석 모델을 만드세요.')
+                return
             self.send('create', controller._frame_args(), {'assembly_id': controller.assembly.currentData()})
 
         def show_document(self, name):
@@ -96,7 +99,8 @@ def attach_motion(connection, owner, controller):
             # Some descriptors intentionally omit the packed payload; accepted
             # saved results are admitted exactly by the native command itself.
             enabled = enabled or bool(result.get('accepted') and result.get('persisted'))
-            self.create.setEnabled(enabled and not data['busy'] and not self._busy and not controller._busy)
+            dirty = getattr(controller, '_edited', False) or getattr(controller, '_joint_edited', False)
+            self.create.setEnabled(enabled and not dirty and not data['busy'] and not self._busy and not controller._busy)
             self.cancel.setEnabled(data['busy'] and not self._busy)
             rows = data['history']
             stamp = tuple((r['id'], r['updated_utc'], r['state']) for r in rows)

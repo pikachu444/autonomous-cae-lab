@@ -230,6 +230,7 @@ def get_shape(obj,subname=None,transform=True):
     return shape
 
 class MotionDouble:
+    _assert_editor_applied=Motion._assert_editor_applied
     _replay_geometry=Motion._replay_geometry
     _replay_identity=Motion._replay_identity
     _joint_records=Motion._joint_records
