@@ -222,6 +222,20 @@ def test_legacy_coefficient_checkbox_keeps_bool_owner_and_other_window_separate(
         for window in (left,right):window._allow_close=True;window.close()
 
 
+def test_coefficient_refresh_reuses_delegates_and_updates_physical_label_without_window(app):
+    from types import SimpleNamespace
+    from apps.research.numerical_variable_display import refresh_coefficient_display,FreeCoefficientDelegate,VariableNameDisplay
+    table=QTableWidget();host=SimpleNamespace(variables=table)
+    refresh_coefficient_display(host,descriptors=[dict(id='E',label='탄성계수')])
+    delegates=(host._free_coefficient_display,host._variable_name_display,host._coordinate_display)
+    for _ in range(20):refresh_coefficient_display(host,descriptors=[dict(id='E',label='종방향 탄성계수')])
+    assert len(table.findChildren(FreeCoefficientDelegate))==1
+    assert len(table.findChildren(VariableNameDisplay))==2
+    assert delegates==(host._free_coefficient_display,host._variable_name_display,host._coordinate_display)
+    assert host._variable_name_display.displayText('E',None)=='종방향 탄성계수'
+    table.close()
+
+
 @pytest.mark.parametrize('late',[False,True])
 def test_opt_in_domain_editor_only_updates_same_local_draft_after_review(app,monkeypatch,late):
     from types import SimpleNamespace

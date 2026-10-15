@@ -47,11 +47,13 @@ def refresh_coefficient_display(window,*,descriptors=None,model_label=None):
     """Use actual labels supplied by the frozen model; never changes item text."""
     table=window.variables
     labels={item['id']:item.get('label',item['id']) for item in descriptors or []}
-    window._free_coefficient_display=FreeCoefficientDelegate(table)
-    window._variable_name_display=VariableNameDisplay(labels,table)
+    if not hasattr(window,'_free_coefficient_display'):window._free_coefficient_display=FreeCoefficientDelegate(table)
+    if not hasattr(window,'_variable_name_display'):window._variable_name_display=VariableNameDisplay(labels,table)
+    else:window._variable_name_display.labels=labels
     table.setItemDelegateForColumn(5,window._free_coefficient_display)
     table.setItemDelegateForColumn(0,window._variable_name_display)
-    window._coordinate_display=VariableNameDisplay({'linear':'선형','log':'로그'},table)
+    if not hasattr(window,'_coordinate_display'):
+        window._coordinate_display=VariableNameDisplay({'linear':'선형','log':'로그'},table)
     table.setItemDelegateForColumn(6,window._coordinate_display)
     if not hasattr(window,'_coefficient_checkbox_sync'):
         def sync(item):
