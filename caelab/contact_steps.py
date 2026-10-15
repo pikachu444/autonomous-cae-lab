@@ -325,9 +325,11 @@ def profile(model):
 
 def validate_frames(model, observed, *, complete=True):
     from .adapters.fixture_field import _printed_close
+    from .dynamic_native_stream import frame_catalog
+    frames = frame_catalog(observed['frames'])
     p = profile(model)
     expected = p['steps'] if p else [{'index':1,'start':0.,'end':number(model['step']['period'])}]
-    for frame in observed['frames']:
+    for frame in frames:
         s = frame['static']; index=s['step']
         from .calculix_dynamic import executed_start
         if not executed_start(model) <= index <= len(expected):
@@ -344,7 +346,7 @@ def validate_frames(model, observed, *, complete=True):
             if row['index'] < executed_start(model):
                 continue
             if not any(f['static']['step']==row['index'] and
-                       _printed_close(f['load_parameter_token'],row['end']) for f in observed['frames']):
+                       _printed_close(f['load_parameter_token'],row['end']) for f in frames):
                 raise ValueError('Contact result is missing a completed step endpoint')
     if complete and (observed['static']['step'] != len(expected) or
                      not _printed_close(observed['load_parameter_token'],expected[-1]['end'])):

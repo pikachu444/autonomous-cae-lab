@@ -64,6 +64,8 @@ def read_status(path, model):
             'failure_location':deepcopy(terminal) if not terminal['converged'] else None}
 
 def require_converged(frames, status):
+    from .dynamic_native_stream import frame_catalog
+    frames = frame_catalog(frames)
     committed=[r for r in status['rows'] if r['converged']]
     for frame in frames:
         s=frame['static']
@@ -72,7 +74,7 @@ def require_converged(frames, status):
         if len(matches)!=1:
             raise ValueError('Contact field is not a uniquely converged native increment')
 
-def retained_prefix(frd, destination, nodes, elements, materials, model, status):
+def retained_prefix(frd, destination, nodes, elements, materials, model, status, *, streaming=False):
     """Derive only completely recorded, uniquely converged output increments.
 
     Only the strict reader's structural EOF signal permits dropping an incomplete
@@ -86,37 +88,60 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
     frd, destination = Path(frd), Path(destination)
     if destination.resolve() == frd.resolve():
         raise ValueError('The derived FRD must not replace the raw solver output')
-    raw = _read(frd)
-    text = raw.decode('ascii').replace('\r\n', '\n')
-    if '\r' in text or '\x00' in text:
-        raise ValueError('Malformed ASCII FRD line encoding')
-    lines = text.splitlines(keepends=True)
-    endings = [i for i, line in enumerate(lines) if line.strip() == '9999']
-    if len(endings) > 1 or (endings and any(line.strip() for line in lines[endings[0]+1:])):
-        raise ValueError('Native FRD contains content after its end marker')
-    starts = [i for i, line in enumerate(lines) if line.split()[:1] == ['1PSTEP']]
+    from .dynamic_native_stream import NativeLines, frame_catalog, read_dynamic_frd, release
+    source = None
+    if streaming:
+        source = NativeLines(frd)
+        source.close()  # outline only; every actual parse owns its own stream
+        endings = source.endings
+        if len(endings) > 1 or source.trailing_after_end:
+            raise ValueError('Native FRD contains content after its end marker')
+        starts = source.starts
+        line_count, ends_with_newline = source.count, source.ends_with_newline
+        raw_pin = {'bytes': source.byte_count, 'sha256': source.sha256}
+    else:
+        raw = _read(frd)
+        text = raw.decode('ascii').replace('\r\n', '\n')
+        if '\r' in text or '\x00' in text:
+            raise ValueError('Malformed ASCII FRD line encoding')
+        lines = text.splitlines(keepends=True)
+        endings = [i for i, line in enumerate(lines) if line.strip() == '9999']
+        if len(endings) > 1 or (endings and any(line.strip() for line in lines[endings[0]+1:])):
+            raise ValueError('Native FRD contains content after its end marker')
+        starts = [(i, line) for i, line in enumerate(lines) if line.split()[:1] == ['1PSTEP']]
+        line_count, ends_with_newline = len(lines), text.endswith('\n')
+        raw_pin = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
     committed = {(r['step'], r['increment']) for r in status['rows'] if r['converged']}
     if not starts:
         raise ValueError('No native field output')
-    stop = endings[0] if endings else len(lines)
+    stop = endings[0] if endings else line_count
     reason = 'complete_converged_output'
     first_by_key = {}
-    for i in starts:
-        line = lines[i].rstrip('\n').ljust(70)
+    for i, original_line in starts:
+        line = original_line.rstrip('\n').ljust(70)
         try:
             key = (int(line[48:60]), int(line[36:48]))
         except ValueError:
-            # Let the strict reader distinguish a true EOF fragment from damage.
-            if i == len(lines)-1 and not text.endswith('\n') and not endings:
+            if i == line_count-1 and not ends_with_newline and not endings:
                 break
             raise ValueError('Malformed native FRD increment identity') from None
         first_by_key.setdefault(key, i)
         if key not in committed:
             stop, reason = i, 'first_nonconverged_increment'
             break
-    physical_eof = not endings and stop == len(lines)
+    physical_eof = not endings and stop == line_count
 
     def parse(cut, *, eof=False):
+        if streaming:
+            import tempfile
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory(prefix='.dynamic-prefix-', dir=destination.parent) as temporary:
+                reading = Path(temporary) / 'reading.frd'
+                source.copy_prefix(reading, cut, terminator=not eof)
+                return read_dynamic_frd(reading, nodes, elements,
+                    allow_missing_end=eof, contact_materials=materials,
+                    contact_profile=profile(model),
+                    require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
         reading = ''.join(lines[:cut])
         if not eof:
             reading = reading.rstrip('\n') + '\n 9999\n'
@@ -136,49 +161,67 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
         # Strictly reparse the reported cutoff, never search backwards for a pass.
         observed = parse(stop)
 
-    required = {'DISP'}
-    if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']):
-        required.add('CONTACT')
-    if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
-        required.update(('STRESS', 'FORC'))
-    if ns1_enabled(model):
-        required.update(('STRESS', 'TOSTRAIN', 'FORC'))
-        if has_plasticity(model):
-            required.add('PE')
-    for index, frame in enumerate(observed['frames']):
-        from .dynamic_results import required_fields
-        missing = (required | required_fields(model, frame)) - set(frame['fields'])
-        if not missing:
-            continue
-        if physical_eof and not recovered and index == len(observed['frames'])-1:
-            # EOF can occur exactly BETWEEN output fields, with no short record.
-            # Missing requested channels do not make this a complete increment.
-            key = (frame['static']['step'], frame['static']['increment'])
-            stop, reason, recovered = first_by_key[key], 'incomplete_increment_at_eof', True
-            observed = parse(stop)
-            break
-        raise ValueError('Incomplete requested FRD fields: ' + ', '.join(sorted(missing)))
-    if any((required | required_fields(model, frame)) - set(frame['fields']) for frame in observed['frames']):
-        raise ValueError('Incomplete requested fields before the EOF increment')
-    if ns1_enabled(model) and observed['native_version'] != '2.22':
-        raise ValueError('NS1 partial readback requires CalculiX 2.22.')
-    validate_frames(model, observed, complete=False)
-    require_converged(observed['frames'], status)
-    observed['retention'] = {
-        'reason': reason, 'raw_sha256': hashlib.sha256(raw).hexdigest(), 'raw_bytes': len(raw),
-        'retained_line_count': stop,
-        'discarded_from_line': stop+1 if stop < (endings[0] if endings else len(lines)) else None,
-        'last_retained_increment': deepcopy(observed['frames'][-1]['static']),
-        'synthetic_end_marker': not endings or stop != endings[0],
-        'scope': 'complete_fields_of_converged_increments_only'}
-    # Publish only the validated derived bytes. Raw FRD/STA are never opened for
-    # writing, and no failed candidate copy is advertised as a committed prefix.
-    if any(path.is_symlink() for path in (destination, *destination.parents)):
-        raise ValueError('The derived FRD must be a regular local file')
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(''.join(lines[:stop]).rstrip('\n') + '\n 9999\n',
-                           encoding='ascii', newline='\n')
-    return observed
+    try:
+        required = {'DISP'}
+        if any(p['draft']['normal_law'] != 'tie' for p in model['contacts']):
+            required.add('CONTACT')
+        if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
+            required.update(('STRESS', 'FORC'))
+        if ns1_enabled(model):
+            required.update(('STRESS', 'TOSTRAIN', 'FORC'))
+            if has_plasticity(model):
+                required.add('PE')
+        for index, frame in enumerate(frame_catalog(observed['frames'])):
+            from .dynamic_results import required_fields
+            missing = (required | required_fields(model, frame)) - set(frame['fields'])
+            if not missing:
+                continue
+            if physical_eof and not recovered and index == len(observed['frames'])-1:
+                # EOF can occur exactly BETWEEN output fields, with no short record.
+                # Missing requested channels do not make this a complete increment.
+                key = (frame['static']['step'], frame['static']['increment'])
+                stop, reason, recovered = first_by_key[key], 'incomplete_increment_at_eof', True
+                release(observed)
+                observed = parse(stop)
+                break
+            raise ValueError('Incomplete requested FRD fields: ' + ', '.join(sorted(missing)))
+        if any((required | required_fields(model, frame)) - set(frame['fields']) for frame in frame_catalog(observed['frames'])):
+            raise ValueError('Incomplete requested fields before the EOF increment')
+        if ns1_enabled(model) and observed['native_version'] != '2.22':
+            raise ValueError('NS1 partial readback requires CalculiX 2.22.')
+        validate_frames(model, observed, complete=False)
+        require_converged(observed['frames'], status)
+        observed['retention'] = {
+            'reason': reason, 'raw_sha256': raw_pin['sha256'], 'raw_bytes': raw_pin['bytes'],
+            'retained_line_count': stop,
+            'discarded_from_line': stop+1 if stop < (endings[0] if endings else line_count) else None,
+            'last_retained_increment': deepcopy(observed['frames'][-1]['static']),
+            'synthetic_end_marker': not endings or stop != endings[0],
+            'scope': 'complete_fields_of_converged_increments_only'}
+        # Publish only the validated derived bytes. Raw FRD/STA are never opened for
+        # writing, and no failed candidate copy is advertised as a committed prefix.
+        if any(path.is_symlink() for path in (destination, *destination.parents)):
+            raise ValueError('The derived FRD must be a regular local file')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if streaming:
+            import tempfile, os
+            from .dynamic_result_store import verify_pin
+            fd, name = tempfile.mkstemp(prefix='.dynamic-prefix-', dir=destination.parent)
+            os.close(fd)
+            temporary = Path(name)
+            try:
+                source.copy_prefix(temporary, stop, terminator=True)
+                verify_pin(frd.parent, {'relative': frd.name, **raw_pin})
+                os.replace(temporary, destination)
+            finally:
+                temporary.unlink(missing_ok=True)
+        else:
+            destination.write_text(''.join(lines[:stop]).rstrip('\n') + '\n 9999\n', encoding='ascii', newline='\n')
+        return observed
+
+    except BaseException:
+        release(observed)
+        raise
 
 
 def iteration_history(attempt, execution):

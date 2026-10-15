@@ -1,0 +1,40 @@
+[
+  {
+    "path": "_workspace\\delivery-structure-impact\\r2-integration\\pytest\\test_stream_grammar_exact_equa0\\in.frd",
+    "path_stat": {
+      "st_dev": 11541833656441266616,
+      "st_ino": 1125899911075704,
+      "st_size": 15833,
+      "st_mtime_ns": 1792038876854379300,
+      "st_ctime_ns": 1792038876853383300,
+      "st_birthtime_ns": 1792038876853383300
+    },
+    "fd_stat": {
+      "st_dev": 11541833656441266616,
+      "st_ino": 1125899911075704,
+      "st_size": 15833,
+      "st_mtime_ns": 1792038876854379300,
+      "st_ctime_ns": 1792038876854379300,
+      "st_birthtime_ns": 1792038876853383300
+    }
+  },
+  {
+    "path": "_workspace\\delivery-structure-impact\\r2-integration\\pytest\\test_stream_grammar_exact_equa3\\in.frd",
+    "path_stat": {
+      "st_dev": 11541833656441266616,
+      "st_ino": 562949957654401,
+      "st_size": 16181,
+      "st_mtime_ns": 1792038877680861200,
+      "st_ctime_ns": 1792038877680861200,
+      "st_birthtime_ns": 1792038877680861200
+    },
+    "fd_stat": {
+      "st_dev": 11541833656441266616,
+      "st_ino": 562949957654401,
+      "st_size": 16181,
+      "st_mtime_ns": 1792038877680861200,
+      "st_ctime_ns": 1792038877680861200,
+      "st_birthtime_ns": 1792038877680861200
+    }
+  }
+]

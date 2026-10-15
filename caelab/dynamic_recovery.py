@@ -17,7 +17,8 @@ from .execution_control import check_cancelled, ExecutionCancelled
 from .storage import save_json
 
 
-def reprocess(attempt, output, *, expected_sources=None):
+def reprocess(attempt, output, *, expected_sources=None, expected_record=None,
+              readback_job=None, original_job_state=None):
     """Return a NEW readback receipt, preserving original FAILED/CANCELLED/UNKNOWN.
 
     Legacy attempts without a terminal/owner record need an explicit complete
@@ -41,12 +42,16 @@ def reprocess(attempt, output, *, expected_sources=None):
     if not enabled(model):
         raise ValueError('This dedicated recovery is for native dynamic structural results')
     record_path = attempt/'contact_execution.json'
+    if expected_record is not None:
+        if expected_record.get('relative') != 'contact_execution.json':
+            raise ValueError('Expected record must pin the original contact_execution.json')
+        verify_pin(attempt, expected_record)
     record_bytes = _read(record_path) if record_path.is_file() else None
     parent = json.loads(record_bytes) if record_bytes is not None else None
     if parent is not None:
         if parent.get('snapshot_id') != manifest['id']:
             raise ValueError('Original execution record and frozen snapshot differ')
-        native = read_terminal(attempt)
+        native = read_terminal(attempt, full=True)
         if native.get('status') in ('STARTING', 'RUNNING', 'CLEANUP_PENDING'):
             raise ValueError('Original native termination is not established; do not reprocess active output')
         pins = {r['relative']: {k: r[k] for k in ('bytes', 'sha256')} for r in parent['artifacts']}
@@ -65,6 +70,13 @@ def reprocess(attempt, output, *, expected_sources=None):
         native = {'status': 'UNKNOWN', 'analysis_completion': 'UNKNOWN',
                   'terminal_observation': 'NOT_RECORDED', 'reason': 'unrecorded_legacy_output'}
         original_status = 'UNKNOWN'
+    record_execution_status = original_status
+    if original_job_state is not None:
+        if original_job_state not in {'SUCCEEDED','FAILED','CANCELLED','INTERRUPTED','PARTIAL_FAILURE'}:
+            raise ValueError('An exact terminal source job is required for readback')
+        if original_job_state != 'SUCCEEDED':
+            original_status = ('CANCELLED' if original_job_state == 'CANCELLED' else
+                               'UNKNOWN' if original_job_state == 'INTERRUPTED' else 'FAILED')
     if original_status not in ('SUCCEEDED', 'FAILED', 'CANCELLED', 'REJECTED', 'UNKNOWN'):
         raise ValueError('An exact terminal original job status is required')
     names = {'frozen_input/' + name for name in input_pins}
@@ -99,9 +111,13 @@ def reprocess(attempt, output, *, expected_sources=None):
                   derivation={'kind': 'explicit_native_output_readback', 'id': uuid.uuid4().hex,
                               'original_execution_status': original_status,
                               'original_snapshot_id': manifest['id'], 'original_job_id': parent.get('job_id'),
-                              'source_pins': source_pins})
+                              'source_pins': source_pins,
+                              'original_record_execution_status': record_execution_status,
+                              'original_job_state':original_job_state,
+                              'readback_job':deepcopy(readback_job)})
     result['native_execution'].setdefault('snapshot_id', manifest['id'])
     result['native_execution'].setdefault('job_id', parent.get('job_id'))
+    parsed = None
     try:
         for name in sorted(names):
             check_cancelled()
@@ -130,14 +146,15 @@ def reprocess(attempt, output, *, expected_sources=None):
                     'VERIFIED_AT_NATIVE_TERMINAL')
         if complete:
             reading = output/'solver/contact.frd'
-            parsed = read_frd(reading, nodes, elements, contact_materials=materials,
-                              contact_profile=profile(model), require_contact=bool(model['contacts']))
+            from .dynamic_native_stream import read_dynamic_frd
+            parsed = read_dynamic_frd(reading, nodes, elements, contact_materials=materials,
+                              contact_profile=profile(model), require_contact=any(p['draft']['normal_law'] != 'tie' for p in model['contacts']))
             validate_frames(model, parsed, complete=True)
             require_converged(parsed['frames'], status)
             result['derivation']['read_scope'] = 'ALL_REQUESTED_NATIVE_OUTPUT'
         else:
             reading = output/'partial/committed.frd'
-            parsed = retained_prefix(output/'solver/contact.frd', reading, nodes, elements, materials, model, status)
+            parsed = retained_prefix(output/'solver/contact.frd', reading, nodes, elements, materials, model, status, streaming=True)
             result['partial_result'] = {'status': 'CONVERGED_PREFIX', 'frame_count': len(parsed['frames']),
                                         'complete_analysis': False, 'frd_retention': parsed['retention']}
             result['derivation']['read_scope'] = 'STRICT_CONVERGED_RETAINED_PREFIX'
@@ -159,6 +176,11 @@ def reprocess(attempt, output, *, expected_sources=None):
         # Incomplete derived output stays on disk but is never an advertised completed result.
         for key in ('dynamic_result', 'dynamic_post_artifacts', 'post_artifact'):
             result.pop(key, None)
+    finally:
+        from .dynamic_native_stream import release
+        release(parsed)
+    result['execution_status'] = original_status
+    result['responses'] = {}
     result['artifacts'] = artifact_rows(output)
     save_json(output/'contact_execution.json', result)
     save_json(output/'post_regeneration.json', {k: deepcopy(result.get(k)) for k in

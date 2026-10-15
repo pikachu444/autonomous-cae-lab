@@ -1,0 +1,79 @@
+{
+  "baseline": "35a91ed5d882d63e83118e79e55844083eb7f093",
+  "pinned_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "raw_source": {
+    "contact.frd": {
+      "bytes": 163291184,
+      "sha256": "39cae29ea9a107fb408d8781a12778848cbff1b826d001540290bab26f6417fc"
+    },
+    "contact.dat": {
+      "bytes": 34672890,
+      "sha256": "d5105359e25d454bb3c02bf1cee2ad395afedc62b761a4cf2ea5defbe59eebb7"
+    },
+    "contact.rout": {
+      "bytes": 2010796,
+      "sha256": "b31d56c16819c40449903877ea47f51c511ae7ec611ffc1353d42788264727ef"
+    },
+    "contact.sta": {
+      "bytes": 29300,
+      "sha256": "95d7175380639bafbe937a79ad98e027ab648f1b94fdb94154bd97f5bb86b9b4"
+    },
+    "contact.inp": {
+      "bytes": 52491,
+      "sha256": "a6416e575559a095f4f9284ff8999b4681bca09e7b01fee27f77b40a2f77abdb"
+    }
+  },
+  "native_binary_sha256": "a7c351a332373e3075029b7986ea4c9e878789c5b4d2feaed1ef83703624fff5",
+  "sample_policy": "FRD first three exact complete native frames plus explicit derived terminator; DAT exact prefix for same three times. Not full native output. Full rout retained for ABI diagnosis.",
+  "full_raw_upload": "OMITTED; original raw retained locally, no output frequency/model/time/value changed",
+  "large_cache": {
+    "bytes": 822811181,
+    "status": "profiling-only CANCELLED bundle; not original Job success"
+  },
+  "sample_files": {
+    "ccx_contact.execution.json": {
+      "bytes": 284,
+      "sha256": "aa68f34c02885195e3e85bdb4f8866c1e30c509abde929525524b9bbde375a3f"
+    },
+    "contact.inp": {
+      "bytes": 52491,
+      "sha256": "a6416e575559a095f4f9284ff8999b4681bca09e7b01fee27f77b40a2f77abdb"
+    },
+    "contact.rout": {
+      "bytes": 2010796,
+      "sha256": "b31d56c16819c40449903877ea47f51c511ae7ec611ffc1353d42788264727ef"
+    },
+    "contact.sta": {
+      "bytes": 29300,
+      "sha256": "95d7175380639bafbe937a79ad98e027ab648f1b94fdb94154bd97f5bb86b9b4"
+    },
+    "first-three-frames.frd": {
+      "bytes": 1345753,
+      "sha256": "56b6d2426f11240ba9e074532b58f1e84983a45116447f6eea7688d26bdc14ea"
+    },
+    "first-three-times.dat": {
+      "bytes": 260146,
+      "sha256": "ff7f967b39522cf0591bcdfb39e70bb9387e8ae709855aa674ff621d7a4f4afb"
+    },
+    "frozen_input/contact.inp": {
+      "bytes": 52491,
+      "sha256": "a6416e575559a095f4f9284ff8999b4681bca09e7b01fee27f77b40a2f77abdb"
+    },
+    "frozen_input/editable.caepre": {
+      "bytes": 56278,
+      "sha256": "7c0ea89db2048ef26e90ff2ba486d70769138aaa6d451064c91be64ea67698c3"
+    },
+    "frozen_input/editable.FCStd": {
+      "bytes": 48643,
+      "sha256": "7f06a9832ed9b6925360e14493b394fd4436da57e967f1ec2b86a4a70bd8c059"
+    },
+    "frozen_input/mesh.json": {
+      "bytes": 604785,
+      "sha256": "a607e396bc1125d7a216c5333c0b456967c8daae1f23c7ad871f8b029d7bef2b"
+    },
+    "frozen_input/snapshot.json": {
+      "bytes": 2707,
+      "sha256": "7c5e1327f03fc36b53000759e819be9f6f5d3ab6abc24fbcb9da5325554887d1"
+    }
+  }
+}

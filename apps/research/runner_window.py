@@ -1,7 +1,8 @@
 """Read existing service jobs and their retained results in an independent Qt window.
 
 Run ``python -m apps.research.runner_window --service http://127.0.0.1:PORT``.
-Opening, selecting and closing this window never submit or replay a calculation.
+Opening, selecting and closing never submit work. Explicit result readback creates
+a separate service job without replaying a calculation.
 """
 from __future__ import annotations
 
@@ -35,10 +36,15 @@ MAX_LEDGER_ROWS = 200
 
 
 def operation_label(operation):
-    return {"evaluate": "계산", "fit": "재료 피팅", "doe": "실험계획",
+    return {"run": "실행", "evaluate": "계산", "fit": "재료 피팅", "doe": "실험계획",
             "optimize": "최적화", "uq": "불확실성 분석", "sensitivity": "민감도 분석",
             "surrogate": "대리모델", "epsilon": "다목적 최적화", "experts.ask": "전문가 질문",
-            "experts.discuss": "전문가 토론", "data.import": "데이터 가져오기"}.get(operation, operation or "기록 없음")
+            "experts.discuss": "전문가 토론", "data.import": "데이터 가져오기",
+            "dynamic.reprocess": "동해석 결과 다시 읽기"}.get(operation, operation or "기록 없음")
+
+
+def backend_label(backend):
+    return {"structure.calculix.contact": "CalculiX 구조 해석"}.get(backend, backend)
 
 
 def timestamp_label(value):
@@ -222,6 +228,7 @@ class RunnerWindow(QMainWindow):
         self._ledger = []
         self._ledger_kind = None
         self._on_open_origin = on_open_origin
+        self._readback_requests = {}
         self._build_ui()
         if on_open_origin is not None:
             self.open_origin.connect(on_open_origin)
@@ -327,6 +334,24 @@ class RunnerWindow(QMainWindow):
         self.error_label.setWordWrap(True)
         self.error_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         monitor_layout.addWidget(self.error_label)
+        self.readback_panel = QWidget()
+        readback_layout = QVBoxLayout(self.readback_panel)
+        readback_layout.setContentsMargins(0, 8, 0, 0)
+        self.readback_label = QLabel()
+        self.readback_label.setWordWrap(True)
+        readback_layout.addWidget(self.readback_label)
+        readback_actions = QHBoxLayout()
+        self.reprocess_button = QPushButton("결과 다시 읽기")
+        self.reprocess_button.setProperty("appearanceRole", "primary")
+        self.reprocess_button.setToolTip("보존된 원 출력을 별도 작업으로 읽습니다. 새 솔버 계산은 시작하지 않습니다.")
+        self.reprocess_button.clicked.connect(self.reprocess_selected)
+        readback_actions.addWidget(self.reprocess_button)
+        self.source_job_button = QPushButton("원 실행 선택")
+        self.source_job_button.clicked.connect(self.select_readback_source)
+        readback_actions.addWidget(self.source_job_button)
+        readback_actions.addStretch()
+        readback_layout.addLayout(readback_actions)
+        monitor_layout.addWidget(self.readback_panel)
         monitor_layout.addStretch()
         self.tabs.addTab(monitor, "진행 상황")
 
@@ -339,7 +364,9 @@ class RunnerWindow(QMainWindow):
         self.result_summary = QLabel("결과 보기를 누르면 선택한 실행의 저장 결과를 읽습니다.")
         self.result_summary.setWordWrap(True)
         result_layout.addWidget(self.result_summary)
-        controls = QHBoxLayout()
+        self.response_controls = QWidget()
+        controls = QHBoxLayout(self.response_controls)
+        controls.setContentsMargins(0, 0, 0, 0)
         self.responses = QComboBox()
         self.responses.setMinimumContentsLength(24)
         self.responses.currentIndexChanged.connect(self._response_changed)
@@ -357,10 +384,21 @@ class RunnerWindow(QMainWindow):
         self.read_rows_button = QPushButton("읽기")
         self.read_rows_button.clicked.connect(self.read_response)
         controls.addWidget(self.read_rows_button)
-        result_layout.addLayout(controls)
+        result_layout.addWidget(self.response_controls)
         self.response_label = QLabel()
         self.response_label.setWordWrap(True)
         result_layout.addWidget(self.response_label)
+        self.readback_result_actions = QWidget()
+        readback_result_actions = QHBoxLayout(self.readback_result_actions)
+        readback_result_actions.setContentsMargins(0, 0, 0, 0)
+        self.readback_post_button = QPushButton("시간별 공간 결과 열기")
+        self.readback_post_button.clicked.connect(self.open_selected_post)
+        readback_result_actions.addWidget(self.readback_post_button)
+        self.readback_details_button = QPushButton("기술 상세 보기")
+        self.readback_details_button.clicked.connect(lambda: self.tabs.setCurrentWidget(self.technical_panel))
+        readback_result_actions.addWidget(self.readback_details_button)
+        readback_result_actions.addStretch()
+        result_layout.addWidget(self.readback_result_actions)
         self.result_views = QTabWidget()
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
@@ -372,6 +410,7 @@ class RunnerWindow(QMainWindow):
         self.response_details.setReadOnly(True)
         self.result_views.addTab(self.response_details, "결과 상세")
         result_layout.addWidget(self.result_views, 1)
+        result_layout.addStretch()
         self.tabs.addTab(self.result_panel, "결과")
 
         self.ledger_panel = QWidget()
@@ -405,7 +444,7 @@ class RunnerWindow(QMainWindow):
         self._clear_result()
         self._update_actions()
 
-    def _request(self, key, function, accepted, *, relevant=None):
+    def _request(self, key, function, accepted, *, relevant=None, failed=None):
         if key in self._pending or self._closed:
             return False
         self._ticket += 1
@@ -423,7 +462,10 @@ class RunnerWindow(QMainWindow):
                 return
             if relevant is None or relevant():
                 if error:
-                    self.message.setText("Service request failed: " + error)
+                    if failed is not None:
+                        failed(error)
+                    else:
+                        self.message.setText("Service request failed: " + error)
                 else:
                     accepted(value, ticket)
             self._update_actions()
@@ -468,7 +510,7 @@ class RunnerWindow(QMainWindow):
             job = self.jobs[identifier]
             arguments = job.get("arguments", {})
             table_row(self.job_table, row, [arguments.get("label") or operation_label(job.get("operation")), identifier,
-                arguments.get("backend") or operation_label(job.get("operation")), state_description(job),
+                backend_label(arguments.get("backend")) or operation_label(job.get("operation")), state_description(job),
                 timestamp_label(job.get("started_utc")), wall_time(job), resource_label(job.get("resources", {})),
                 "저장됨" if job.get("result_refs") else "없음"])
             self.job_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, identifier)
@@ -520,7 +562,8 @@ class RunnerWindow(QMainWindow):
             "실행 취소는 선택한 전체 계산에 적용됩니다. 개별 후보만 취소할 수는 없습니다."
             if operation in PARENT_OPERATIONS else
             "실행 취소는 선택한 작업에만 적용됩니다.")
-        values = {"Job ID": job.get("id"), "Operation": operation_label(operation), "Backend": arguments.get("backend"),
+        values = {"Job ID": job.get("id"), "Operation": operation_label(operation),
+            "Backend": "보존 출력 읽기" if operation == "dynamic.reprocess" else backend_label(arguments.get("backend")),
             "Phase": {"FINISHED": "종료", "RUNNING": "실행 중", "QUEUED": "대기 중"}.get(job.get("phase"), job.get("phase")),
             "Created UTC": timestamp_label(job.get("created_utc")), "Started UTC": timestamp_label(job.get("started_utc")),
             "Finished UTC": timestamp_label(job.get("finished_utc")), "Wall time": wall_time(job), "Resources": resource_label(job.get("resources")),
@@ -541,6 +584,53 @@ class RunnerWindow(QMainWindow):
             self._input_snapshot = deepcopy(inputs)
         self._show_details()
         self._update_actions()
+
+    def select_readback_source(self):
+        source = self.jobs.get(self.selected_job_id, {}).get("arguments", {}).get("source_job_id")
+        if source:
+            self.select_job(source)
+
+    def reprocess_selected(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        job = self.jobs.get(identifier, {})
+        if not self._can_reprocess(job) or "readback:" + str(identifier) in self._pending:
+            return
+        request = self._readback_requests.setdefault(identifier, {
+            "request_id": "dynamic-readback:" + uuid.uuid4().hex})
+        self.message.setText("보존된 원 출력을 확인하고 별도 읽기 작업을 등록하고 있습니다…")
+        def submit():
+            if "arguments" not in request:
+                request["arguments"] = self.client.dynamic_reprocess_request(identifier)
+            return self.client.submit("dynamic.reprocess", request["arguments"], request_id=request["request_id"])
+        def received(derived, ticket):
+            derived_id = derived.get("id", derived.get("job_id"))
+            if (not derived_id or derived_id == identifier or derived.get("operation") != "dynamic.reprocess"
+                    or derived.get("arguments") != request.get("arguments")
+                    or derived.get("request_id") != request["request_id"]):
+                if (identifier, epoch) == (self.selected_job_id, self._selection_epoch):
+                    self.message.setText("읽기 작업의 원 실행이 다릅니다. 새로 고침으로 등록 상태를 확인하세요.")
+                return
+            self._readback_requests.pop(identifier, None)
+            self._merge_job(derived, ticket)
+            self._draw_jobs()
+            # A late registration stays in the list, but never changes a newer selection.
+            if (identifier, epoch) == (self.selected_job_id, self._selection_epoch):
+                self.select_job(derived_id)
+                self.message.setText("별도 결과 읽기 작업을 등록했습니다. 원 실행 상태는 보존됩니다.")
+        def failed(error):
+            if "arguments" not in request:
+                self._readback_requests.pop(identifier, None)
+            if (identifier, epoch) == (self.selected_job_id, self._selection_epoch):
+                self.message.setText("결과 읽기 요청을 확인하지 못했습니다: " + error +
+                    ("\n‘같은 읽기 요청 확인’으로 동일 요청의 등록 여부를 확인할 수 있습니다." if "arguments" in request else ""))
+        self._request("readback:" + identifier, submit, received, failed=failed)
+
+    @staticmethod
+    def _can_reprocess(job):
+        return (job.get("operation") == "run"
+            and job.get("arguments", {}).get("backend") == "structure.calculix.contact"
+            and job.get("state") in {"SUCCEEDED", "FAILED", "CANCELLED", "INTERRUPTED", "PARTIAL_FAILURE"}
+            and not job.get("cleanup_unconfirmed"))
 
     def cancel_selected(self):
         identifier, epoch = self.selected_job_id, self._selection_epoch
@@ -572,9 +662,11 @@ class RunnerWindow(QMainWindow):
             done,relevant=lambda:(identifier,epoch)==(self.selected_job_id,self._selection_epoch))
 
     def open_selected_origin(self):
-        identifier, epoch = self.selected_job_id, self._selection_epoch
-        if not identifier:
+        selected, epoch = self.selected_job_id, self._selection_epoch
+        if not selected:
             return
+        job = self.jobs.get(selected, {})
+        identifier = job.get("arguments", {}).get("source_job_id") if job.get("operation") == "dynamic.reprocess" else selected
         self.message.setText("선택한 실행의 입력 문서를 찾고 있습니다…")
         def received(navigation, _ticket):
             origin = navigation.get("origin_document") or {}
@@ -586,11 +678,11 @@ class RunnerWindow(QMainWindow):
             def opened(receipt, _ticket):
                 self.message.setText("선택한 실행의 입력 문서를 열었습니다." if receipt.get("status") in {"ACTIVATED", "SHOWN"}
                     else "선택한 실행의 입력 문서 열기를 요청했습니다.")
-            self._request("open-origin:" + identifier,
+            self._request("open-origin:" + selected,
                           lambda: open_origin(self.client, identifier), opened,
-                          relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
-        self._request("navigation-origin:" + identifier, lambda: self.client.job_navigation(identifier), received,
-                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+                          relevant=lambda: (selected, epoch) == (self.selected_job_id, self._selection_epoch))
+        self._request("navigation-origin:" + selected, lambda: self.client.job_navigation(identifier), received,
+                      relevant=lambda: (selected, epoch) == (self.selected_job_id, self._selection_epoch))
 
     def open_selected_study(self):
         identifier, epoch = self.selected_job_id, self._selection_epoch
@@ -642,6 +734,26 @@ class RunnerWindow(QMainWindow):
         self.post_button.setEnabled(bool(job.get("result_refs")) and not any(key.endswith(":" + str(self.selected_job_id)) and "post" in key for key in self._pending))
         self.cancel_button.setEnabled(state in {"QUEUED", "RUNNING", "CLEANUP_PENDING"} and "cancel:" + str(self.selected_job_id) not in self._pending)
         operation = job.get("operation")
+        is_source = operation == "run" and job.get("arguments", {}).get("backend") == "structure.calculix.contact"
+        is_readback = operation == "dynamic.reprocess"
+        self.origin_button.setText("원 입력 문서 열기" if is_readback else "입력 문서 열기")
+        self.readback_panel.setVisible(is_source or is_readback)
+        self.reprocess_button.setVisible(is_source)
+        self.source_job_button.setVisible(is_readback)
+        pending_readback = "readback:" + str(self.selected_job_id) in self._pending
+        self.reprocess_button.setEnabled(self._can_reprocess(job) and not pending_readback)
+        uncertain = self.selected_job_id in self._readback_requests
+        self.reprocess_button.setText("등록 중…" if pending_readback else "같은 읽기 요청 확인" if uncertain else "결과 다시 읽기")
+        if is_readback:
+            source = self.jobs.get(job.get("arguments", {}).get("source_job_id"), {})
+            self.readback_label.setText("보존된 출력을 읽는 별도 작업입니다. 원 실행: " +
+                (source.get("arguments", {}).get("label") or "원 구조 해석") + " / " + (state_description(source) if source else "상태 조회 필요") +
+                "\n솔버 계산은 다시 실행하지 않습니다. 결과 읽기 완료는 원 계산의 성공이나 공학적 승인을 뜻하지 않습니다.")
+            self.readback_label.setToolTip("원 실행 ID: " + str(job.get("arguments", {}).get("source_job_id")))
+        elif is_source:
+            self.readback_label.setText("원 실행의 입력과 상태를 확인한 뒤, 보존된 동해석 출력을 별도 작업으로 다시 읽을 수 있습니다."
+                "\n원 실패와 취소 기록은 유지됩니다. 원 출력이 없거나 변경되었으면 서비스가 요청을 거절합니다." if self._can_reprocess(job)
+                else "원 프로세스가 종료된 뒤 결과를 다시 읽을 수 있습니다. 프로세스 종료가 미확인인 작업은 먼저 종료 상태를 확인하세요.")
         self.cancel_button.setText("취소 요청됨" if state == "CANCEL_REQUESTED" else
             "종료 처리 다시 시도" if state == "CLEANUP_PENDING" else
             "전체 계산 취소" if operation in PARENT_OPERATIONS else "실행 취소")
@@ -655,6 +767,9 @@ class RunnerWindow(QMainWindow):
         self.values.setRowCount(0)
         self.response_details.clear()
         self.response_label.clear()
+        self.response_controls.show()
+        self.result_views.show()
+        self.readback_result_actions.hide()
         self.read_rows_button.setEnabled(False)
         self.row_start.setEnabled(False)
         self.row_count.setEnabled(False)
@@ -683,6 +798,10 @@ class RunnerWindow(QMainWindow):
             job = self.jobs.get(identifier, {})
             label = job.get('arguments', {}).get('label') or operation_label(job.get('operation'))
             details = [label + ' 결과: ' + state_description({'state': state})]
+            if job.get("operation") == "dynamic.reprocess":
+                source_state = result.get("source_execution_status", result.get("source_job_state", "UNKNOWN"))
+                details.append("원 계산: " + state_description({"state": source_state}) +
+                    " — 새 솔버 계산 없이 보존 출력을 읽은 결과입니다. 공학적 승인은 확인되지 않았습니다.")
             self.result_summary.setToolTip('실행 ID: ' + identifier)
             for key in ("termination_reason", "failure_reason"):
                 if result.get(key):
@@ -699,6 +818,27 @@ class RunnerWindow(QMainWindow):
             self._show_details()
             if self.responses.count():
                 self._response_changed()
+            elif job.get("operation") == "dynamic.reprocess":
+                self.response_controls.hide()
+                self.result_views.hide()
+                self.readback_result_actions.show()
+                post = bool(result.get("post_input"))
+                self.readback_post_button.setEnabled(post)
+                reference = (result.get("retained_attempt") or {}).get("dynamic_result") or {}
+                count = reference.get("frame_count")
+                lines = [f"보존된 시간 출력: {count}개" if type(count) is int and count >= 0 else "보존된 시간 출력 수는 기록되지 않았습니다."]
+                lines.append("시간별 공간 결과를 열어 출력 단계와 물리시간을 확인하세요." if post else
+                    "이 읽기 작업에 등록된 공간 결과가 없습니다. 원 실행의 입력과 오류를 확인하세요.")
+                diagnostics = result.get("diagnostics") or {}
+                readback = diagnostics.get("readback") or {}
+                for name in ("recovery", "dynamic_readback"):
+                    if isinstance(readback.get(name), str):
+                        lines.append("결과 읽기 오류: " + readback[name])
+                registration = diagnostics.get("post_registration") or {}
+                if registration.get("status") == "FAILED":
+                    lines.append("후처리 등록 실패: " + str(registration.get("message") or "원 기록을 확인하세요."))
+                lines.append("원 출력 참조와 상세 진단은 ‘기술 상세 보기’에서 확인할 수 있습니다.")
+                self.response_label.setText("\n\n".join(lines))
             else:
                 self.response_label.setText("No scalar or series response catalog was returned. Recorded metadata and file references are available below and in Details.")
                 self.response_details.setPlainText(json.dumps(result, ensure_ascii=False, indent=2))

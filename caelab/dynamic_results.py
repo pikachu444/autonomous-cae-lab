@@ -53,7 +53,8 @@ def required_fields(model, frame):
 
 
 def validate_requested(model, frames):
-    for frame in frames:
+    from .dynamic_native_stream import frame_catalog
+    for frame in frame_catalog(frames):
         missing = required_fields(model, frame) - set(frame['fields'])
         if missing:
             raise ValueError('Requested dynamic fields were not recorded at step/increment '
@@ -289,10 +290,10 @@ def result_header(model, *, execution_status, source_pins, snapshot_id):
         'state_source': deepcopy(model.get('restart', {'kind': 'model_initial_conditions_and_native_steps'}))}
 
 
-def read_attempt(attempt):
+def read_attempt(attempt, **options):
     """Cold-open v1 or frame-backed v2; raw/frame pins use streamed validation."""
     from .dynamic_result_store import read_attempt as open_retained
-    return open_retained(attempt)
+    return open_retained(attempt, **options)
 
 
 def history(result, quantity, *, body_id=None, native_node_id=None, component=1,
@@ -314,10 +315,12 @@ def history(result, quantity, *, body_id=None, native_node_id=None, component=1,
     elif quantity not in ('ELKE', 'ELSE', 'ENER'):
         raise ValueError('Unsupported dynamic result quantity')
     rows = []
-    for index, frame in enumerate(result['frames']):
-        loc = frame['location']
+    from .dynamic_result_store import frame_metadata
+    for index, meta in enumerate(frame_metadata(result)):
+        loc = meta['location']
         if not loc['physical_time_available'] or step_id is not None and loc['id'] != step_id:
             continue
+        frame = result['frames'][index]
         value, missing, association = None, None, None
         if nodal:
             if quantity == 'A_DERIVED':

@@ -23,8 +23,21 @@ def read_dat(path, pairs, frames, *, prefix=False):
     pairs = [p for p in pairs if p['draft']['normal_law'] != 'tie']
     if not pairs:
         return []  # TIE is an MPC; no CONTACT PRINT request was made.
+    from ..dynamic_native_stream import NativeLines, frame_catalog
+    if hasattr(frames, 'metadata'):
+        lines = NativeLines(path)
+        try:
+            result = _read_dat_lines(lines, pairs, frame_catalog(frames), prefix=prefix)
+            lines.finish()
+            return result
+        finally:
+            lines.close()
     text = _read(path).decode('ascii').replace('\r\n', '\n')
-    lines = text.splitlines()
+    return _read_dat_lines(text.splitlines(), pairs, frames, prefix=prefix)
+
+
+def _read_dat_lines(lines, pairs, frames, *, prefix=False):
+    """Existing pair resultant grammar, shared by buffered and streamed transport."""
     requests = [(pair['object_id'], key) for pair in pairs for key in ('CF', 'CFN', 'CFS')]
     header = re.compile(r'^\s*statistics for slave set (\S+), master set (\S+) and time\s+(\S+)\s*$')
     step, increment, result, ordinal = None, None, [], 0
@@ -197,9 +210,12 @@ def geometric_gaps(model, frame, *, subdivisions=4):
                        'solver_active_state': 'UNKNOWN', 'outside_or_ambiguous_projection': 'unavailable', 'triangle_edges': 'included_facet_normal'}}
 
 
-def write_post(folder, model, frames, pair_results, *, provenance=None, execution=None, solver_coordinates=None, adjustment=None):
+def write_post(folder, model, frames, pair_results, *, provenance=None, execution=None, solver_coordinates=None, adjustment=None, frame_enricher=None):
     from apps.desktop_post.prepare import write_vtu, data_array
     from ..storage import save_json
+    from ..dynamic_native_stream import frame_catalog
+    from ..execution_control import check_cancelled
+    catalog = frame_catalog(frames)
     if solver_coordinates is not None:
         from copy import deepcopy
         original_rows=deepcopy(model['nodes'])
@@ -245,17 +261,22 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
     if has_contact:
         declared('GeomGap_mm', 'mm', 'derived_piecewise_linear_geometric_gap', frame='master_normal')
     field_specs = field_specifications(model)
+    available = set().union(*(f['fields'] for f in catalog))
     for native, prefix, unit, measure, components in field_specs:
-        if any(native in frame['fields'] for frame in frames):
+        if native in available:
             for component in components:
                 entry = declared(prefix+component+'_'+unit, unit, measure)
                 entry['recovery'] = 'native integration-point extrapolation and nodal averaging' if native != 'FORC' else 'native nodal force; reactions only at restrained DOFs'
                 if native == 'TOSTRAIN':
                     entry['shear_convention'] = 'tensor_shear_not_engineering_shear'
             declared(native+'_valid', '1', 'native_field_record_present', frame='not_applicable')
+    if frame_enricher is not None:
+        existing = {row['name'] for row in arrays}
+        arrays.extend(row for row in frame_enricher.declarations if row['name'] not in existing)
     collection = ET.Element('VTKFile', type='Collection', version='0.1', byte_order='LittleEndian')
     group = ET.SubElement(collection, 'Collection')
     for index, frame in enumerate(frames):
+        check_cancelled()
         gaps = geometric_gaps(model, frame)
         by_node = {}
         for row in gaps['rows']:
@@ -274,7 +295,7 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
             extra.update(CONTACT_valid=[int(n in contact and all(v is not None for v in contact[n])) for n in node_ids],
                          SlavePairCount=[len(membership[n]) for n in node_ids], GeomGap_mm=gap_values, GeomGap_valid=gap_valid)
         for native, prefix, unit, measure, components in field_specs:
-            if any(native in f['fields'] for f in frames):
+            if native in available:
                 for j, component in enumerate(components):
                     extra[prefix+component+'_'+unit] = [frame['fields'][native][n][j]
                         if native in frame['fields'] else math.nan for n in node_ids]
@@ -298,6 +319,8 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
         cells = tree.find('./UnstructuredGrid/Piece/CellData')
         data_array(cells, 'SourceElementId', [r['native_element_id'] for r in model['elements']], integer=True)
         data_array(cells, 'ElementBodyIndex', [body_numbers[r['body_id']] for r in model['elements']], integer=True)
+        if frame_enricher is not None:
+            frame_enricher.enrich(tree, index, frame)
         tree.write(path, encoding='utf-8', xml_declaration=True)
         ET.SubElement(group, 'DataSet', timestep=format(frame['static']['load_parameter'], '.17g'), group='', part='0', file=path.name)
         save_json(folder / (path.stem + '.json'), {'static': frame['static'],
@@ -315,9 +338,9 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
                                        'contact_membership': membership})
     metadata = {'coordinate_units': 'mm', 'coordinate_frame': 'FREECAD_DOCUMENT_GLOBAL',
             'static': None, 'time': {'unit': axis(model)['unit'], 'semantics': axis(model)['semantics'],
-                                     'values': [frame['static']['load_parameter'] for frame in frames]},
+                                     'values': [frame['static']['load_parameter'] for frame in catalog]},
             'arrays': arrays,
-            'field_availability': {native: {'present_frames': sum(native in f['fields'] for f in frames),
+            'field_availability': {native: {'present_frames': sum(native in f['fields'] for f in catalog),
                 'total_frames': len(frames), 'missing_policy': 'unavailable; no zero fill'} for native, *_ in field_specs}}
     metadata['field_meanings'] = result_meanings({'linear': False, 'nonlinear': True}.get(model.get('step', {}).get('geometry')))
     if solver_coordinates is not None:
@@ -335,6 +358,8 @@ def write_post(folder, model, frames, pair_results, *, provenance=None, executio
 def _inspection_bundle(folder, model, frames, provenance, metadata, execution):
     """Retain exact quadratic A/B face unions, not volume-cell selections."""
     from copy import deepcopy
+    from ..dynamic_native_stream import frame_catalog
+    frames = frame_catalog(frames)
     import hashlib
     import json
     from ..contact_inspection import KIND, file_pin

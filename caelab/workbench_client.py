@@ -125,6 +125,8 @@ class Client:
 
     def submit(self,operation,arguments,*,request_id=None,resources=None):
         return self.request('/api/workbench/jobs',{'operation':operation,'arguments':arguments,'request_id':request_id,'resources':resources})
+    def dynamic_reprocess_request(self, source_job_id):
+        return self.request('/api/workbench/dynamic-reprocess-request', {'source_job_id': source_job_id})
     def backend_readiness(self, backend):
         return self.request('/api/workbench/backend-readiness', {'backend': backend})
     def documents(self):

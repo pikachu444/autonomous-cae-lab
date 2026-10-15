@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .adapters.frozen_fem import _read, _sha
 from .dynamic_model import enabled
-from .dynamic_result_store import file_pin, verify_pin
+from .dynamic_result_store import file_pin, verify_pin, admit_pin
 from .storage import save_json
 
 
@@ -111,7 +111,7 @@ def capture_terminal(output, model, manifest, pins, result, *, completed=None):
     save_json(output / 'contact_execution.json', result)
 
 
-def read_terminal(attempt):
+def read_terminal(attempt, *, full=False):
     """No FRD/result/frame parse, no executable lookup, no status promotion."""
     attempt = Path(attempt)
     raw = _read(attempt / 'contact_execution.json')
@@ -124,9 +124,11 @@ def read_terminal(attempt):
     if native.get('snapshot_id') != record.get('snapshot_id') or native.get('job_id') != record.get('job_id'):
         raise ValueError('Native terminal evidence belongs to a different job/input')
     for name, pin in native.get('source_pins', {}).items():
-        verify_pin(attempt, {'relative': name, **pin})
+        (verify_pin if full else admit_pin)(attempt, {'relative': name, **pin})
     if _read(attempt / 'contact_execution.json') != raw:
         raise ValueError('Attempt record changed during terminal read')
     return {**deepcopy(native), 'execution_status': record['execution_status'],
             'postprocessing': deepcopy(record.get('postprocessing')),
+            'verification': {'scope':'ALL_NATIVE_BYTES' if full else 'TERMINAL_RECORD_AND_SOURCE_ADMISSION',
+                             'source_contents':'VERIFIED' if full else 'DEFERRED'},
             'solver_execution': 'NOT_PERFORMED'}

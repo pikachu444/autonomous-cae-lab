@@ -112,6 +112,7 @@ class ContactFemCalculixAdapter:
         model = manifest = pins = None
         read_nodes = adjustment = None
         observed = observed_pin = None
+        dynamic_legacy = None
         tie_connected = True
         try:
             source = Path(settings['snapshot_path'])
@@ -170,7 +171,11 @@ class ContactFemCalculixAdapter:
             materials = {'names': ['M'+str(index) for index in material_indices.values()] +
                                    ['INT'+pair['object_id'].upper() for pair in contact_pairs],
                          'elements': {row['element_id']: 'M'+str(material_indices[row['body_id']]) for row in model['elements']}}
-            observed = read_frd(deck.with_suffix('.frd'), read_nodes, elements, contact_materials=materials,
+            from ..dynamic_model import enabled as dynamic_enabled
+            from ..dynamic_native_stream import read_dynamic_frd, frame_catalog, release
+            dynamic = dynamic_enabled(model)
+            native_reader = read_dynamic_frd if dynamic else read_frd
+            observed = native_reader(deck.with_suffix('.frd'), read_nodes, elements, contact_materials=materials,
                                 contact_profile=profile(model), require_contact=bool(contact_pairs))
             from ..dynamic_result_store import file_pin
             observed_pin = file_pin(output, deck.with_suffix('.frd'))
@@ -182,11 +187,11 @@ class ContactFemCalculixAdapter:
                 if observed['native_version'] != '2.22':
                     raise ValueError('NS1 requires CalculiX 2.22 result output.')
                 required = {'STRESS', 'TOSTRAIN', 'FORC'} | ({'PE'} if has_plasticity(model) else set())
-                missing = sorted({name for frame in frames for name in required - set(frame['fields'])})
+                missing = sorted({name for frame in frame_catalog(frames) for name in required - set(frame['fields'])})
                 if missing:
                     raise ValueError('Requested NS1 fields were not output: ' + ', '.join(missing))
             coordinates,adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
-            if has_tie and any(not {'DISP', 'STRESS', 'FORC'} <= set(frame['fields']) for frame in frames):
+            if has_tie and any(not {'DISP', 'STRESS', 'FORC'} <= set(frame['fields']) for frame in frame_catalog(frames)):
                 raise ValueError('묶음 접촉의 변위·응력·절점 힘 출력이 누락됐습니다. 원 출력은 보존됩니다.')
             if profile(model) or ns1_enabled(model):
                 from ..contact_status import read_status, require_converged
@@ -208,9 +213,14 @@ class ContactFemCalculixAdapter:
                     writer.writerow([row['pair_id'],row['quantity'],row['static']['step'],row['static']['increment'],
                         row['static']['load_parameter'], *['' if value is None else value for value in values],
                         'native_nonfinite' if any(value is None for value in values) else 'finite_raw'])
-            metadata = write_post(output / 'post', model, frames, pair_results, solver_coordinates=coordinates, adjustment=adjustment, provenance={
+            legacy = dict(solver_coordinates=coordinates, adjustment=adjustment, provenance={
                 'snapshot_id': manifest['id'], 'snapshot_sha256': pins['snapshot.json']['sha256'],
                 'raw_frd_sha256': _sha(deck.with_suffix('.frd')), 'raw_dat_sha256': _sha(deck.with_suffix('.dat')) if deck.with_suffix('.dat').is_file() else None})
+            if dynamic:
+                dynamic_legacy = {'pair_results': pair_results, **legacy}
+                metadata = None
+            else:
+                metadata = write_post(output / 'post', model, frames, pair_results, **legacy)
             final = frames[-1]
             ids = sorted(nodes)
             field_clock = ({'axis':contact_axis(model), 'coordinate':final['static']['load_parameter'],
@@ -223,7 +233,7 @@ class ContactFemCalculixAdapter:
                     'location':'calculix_export_nodes', 'reduction':'none',
                     'metadata': {'node_ids':covered, 'association':'POINTS', 'static':final['static'], **field_clock,
                         'missing_or_invalid_node_ids':[n for n in ids if n not in set(covered)],
-                        'raw_frame':'post/frame'+str(len(frames)).zfill(4)+'.json',
+                        'raw_frame':('dynamic-post' if dynamic else 'post')+'/frame'+str(len(frames)).zfill(4)+'.json',
                         'basis':BASIS, 'coverage':'actual_finite_native_rows', 'pair_scope':'shared_nodal_projection',
                         'contact_state':'UNKNOWN', 'raw_sign':'unchanged'}}
             responses['displacement'] = {'kind':'field','unit':'mm',
@@ -260,11 +270,11 @@ class ContactFemCalculixAdapter:
                                 'excluded_nonfinite_rows':len(rows)-len(valid)}}
             artifact = output / 'post' / 'contact.pvd'
             result.update(execution_status='SUCCEEDED', responses=responses, native_version=observed['native_version'],
-                post_artifact={'relative':'post/contact.pvd','bytes':artifact.stat().st_size,'sha256':_sha(artifact),
-                               'native_metadata':metadata},
+                **({'post_artifact': {'relative':'post/contact.pvd','bytes':artifact.stat().st_size,'sha256':_sha(artifact),
+                               'native_metadata':metadata}} if not dynamic else {}),
                 contact_outputs={'raw_frd':'solver/contact.frd','raw_dat':'solver/contact.dat',
                     'pair_table':'pair_resultants.csv','pair_detail':'pair_resultants.json',
-                    'body_map':'post/body_map.json','frame_count':len(frames),'active_state':'UNKNOWN'})
+                    'body_map':('dynamic-post' if dynamic else 'post')+'/body_map.json','frame_count':len(frames),'active_state':'UNKNOWN'})
         except ExecutionCleanupFailed:
             raise
         except ExecutionCancelled as error:
@@ -314,25 +324,38 @@ class ContactFemCalculixAdapter:
                     materials={'names':['M'+str(i) for i in indices.values()]+
                         ['INT'+p['object_id'].upper() for p in model['contacts'] if p['draft']['normal_law'] != 'tie'],
                         'elements':{r['element_id']:'M'+str(indices[r['body_id']]) for r in model['elements']}}
+                    from ..dynamic_model import enabled as dynamic_enabled
+                    from ..dynamic_native_stream import release
+                    release(observed)
+                    dynamic = dynamic_enabled(model)
                     observed=retained_prefix(output/'solver/contact.frd',output/'partial/committed.frd',
-                        read_nodes if read_nodes is not None else nodes,elements,materials,model,result['increment_history'])
+                        read_nodes if read_nodes is not None else nodes,elements,materials,model,result['increment_history'],
+                        streaming=dynamic)
                     from ..dynamic_result_store import file_pin
                     observed_pin = file_pin(output, output/'partial/committed.frd')
                     coordinates,partial_adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
                     frames=observed['frames']
                     pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True)
-                    metadata=write_post(output/'partial/post',model,frames,pairs,solver_coordinates=coordinates,adjustment=partial_adjustment,
+                    legacy=dict(solver_coordinates=coordinates,adjustment=partial_adjustment,
                         execution={'status':result['execution_status'],'complete_analysis':False,'scope':'CONVERGED_PREFIX',
                                    'frd_retention':observed['retention']},provenance={
                         'snapshot_id':manifest['id'],'snapshot_sha256':pins['snapshot.json']['sha256'],
                         'raw_frd_sha256':_sha(output/'solver/contact.frd'),'raw_dat_sha256':_sha(output/'solver/contact.dat') if (output/'solver/contact.dat').is_file() else None})
+                    if dynamic:
+                        dynamic_legacy = {'pair_results': pairs, **legacy}
+                    else:
+                        metadata=write_post(output/'partial/post',model,frames,pairs,**legacy)
                     artifact=output/'partial/post/contact.pvd'
                     result['partial_result']={'status':'CONVERGED_PREFIX','frame_count':len(frames),
                         'complete_analysis':False,'status_source':result['increment_history']['source'],
                         'frd_retention':observed['retention']}
-                    result['post_artifact']={'relative':'partial/post/contact.pvd','bytes':artifact.stat().st_size,
-                        'sha256':_sha(artifact),'native_metadata':metadata}
-                except (ValueError,OSError,KeyError,TypeError,IndexError,UnicodeError) as error:
+                    if not dynamic:
+                        result['post_artifact']={'relative':'partial/post/contact.pvd','bytes':artifact.stat().st_size,
+                            'sha256':_sha(artifact),'native_metadata':metadata}
+                except (ExecutionCancelled,ValueError,OSError,KeyError,TypeError,IndexError,UnicodeError) as error:
+                    if isinstance(error, ExecutionCancelled):
+                        result['execution_status']='CANCELLED'
+                        result['responses']={}
                     result.setdefault('diagnostics',{})['partial_readback']=str(error)
         if result.get('executed_setup'):
             from ..contact_status import iteration_history
@@ -346,7 +369,12 @@ class ContactFemCalculixAdapter:
             'Exact tangential basis vectors, active-state classification and engineering release remain UNKNOWN']
         if model is not None and manifest is not None and pins is not None:
             from .dynamic_fem import finish
-            finish(output, model, manifest, pins, result, parsed=observed, parsed_pin=observed_pin)
+            from ..dynamic_native_stream import release
+            try:
+                finish(output, model, manifest, pins, result, parsed=observed, parsed_pin=observed_pin,
+                       legacy_context=dynamic_legacy)
+            finally:
+                release(observed)
         result['artifacts'] = [{'relative':p.relative_to(output).as_posix(),'bytes':p.stat().st_size,'sha256':_sha(p)}
                                for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()
                                and p.name != 'contact_execution.json'

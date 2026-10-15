@@ -5,6 +5,7 @@ store. No neighbouring file is discovered. Shared FRD nodal projection and DAT
 pair resultants remain different quantities.
 """
 from copy import deepcopy
+from collections.abc import Sequence
 import hashlib
 import json
 import math
@@ -61,7 +62,7 @@ def descriptor(value):
     return deepcopy(value)
 
 
-def load(entry, declaration):
+def load(entry, declaration, *, lazy=False):
     """Verify bytes before parsing; return only the explicitly declared set."""
     entry = Path(entry).resolve(strict=True)
     if entry.suffix.lower() != '.pvd':
@@ -71,10 +72,15 @@ def load(entry, declaration):
     if manifest.get('kind') != KIND or manifest.get('version') not in (1,2):
         raise ValueError('Unsupported contact inspection bundle')
     execution=manifest.get('execution')
-    if execution is not None and execution not in (
-            {'status':'FAILED','complete_analysis':False,'scope':'CONVERGED_PREFIX'},
-            {'status':'CANCELLED','complete_analysis':False,'scope':'CONVERGED_PREFIX'}):
-        raise ValueError('Unsupported retained contact execution scope')
+    if execution is not None:
+        core={k:execution.get(k) for k in ('status','complete_analysis','scope')}
+        if (set(execution)-{'status','complete_analysis','scope','frd_retention'} or
+                core['status'] not in {'FAILED','CANCELLED','UNKNOWN','SUCCEEDED'} or
+                type(core['complete_analysis']) is not bool or
+                core['scope'] not in {'CONVERGED_PREFIX','RETAINED_NATIVE_OUTPUT'} or
+                core['scope']=='CONVERGED_PREFIX' and core['complete_analysis'] or
+                core['status']!='SUCCEEDED' and core['complete_analysis']):
+            raise ValueError('Unsupported retained contact execution scope')
     source = manifest.get('source')
     source_keys = {'snapshot_id', 'snapshot_sha256', 'raw_frd_sha256', 'raw_dat_sha256', 'model_sha256'}
     if (not isinstance(source, dict) or not source_keys <= set(source)
@@ -165,13 +171,45 @@ def load(entry, declaration):
             if actual != surface['node_ids']:
                 raise ValueError('Contact node membership differs from its frozen face union')
     paths = [manifest_path, topology_path, surfaces_path, body_path]
-    loaded, previous = [], None
-    size = sum(path.stat().st_size for path in paths) + len(pvd)
-    for declared, dataset in zip(frames, datasets):
+    base_size = sum(path.stat().st_size for path in paths) + len(pvd)
+    metadata = []
+    previous = None
+    for index,(declared,dataset) in enumerate(zip(frames,datasets)):
+        static=declared['static'];value=static['load_parameter']
+        if (type(value) not in (int,float) or not math.isfinite(value) or
+                previous is not None and value <= previous or
+                type(static.get('step')) is not int or type(static.get('increment')) is not int or
+                static['step']<1 or static['increment']<1 or
+                dataset.get('file')!=declared['field']['relative'] or
+                float(dataset.get('timestep','nan'))!=value or
+                index and (static['step'],static['increment']) <=
+                (frames[index-1]['static']['step'],frames[index-1]['static']['increment'])):
+            raise ValueError('Contact frame does not match its exact PVD increment')
+        for key in ('field','inspection'):
+            ref=declared[key]
+            if (set(ref)!={'relative','bytes','sha256'} or type(ref['bytes']) is not int or
+                    not 0<ref['bytes']<=(MAX_JSON if key=='inspection' else MAX_TOTAL) or
+                    not isinstance(ref['sha256'],str) or not re.fullmatch('[a-f0-9]{64}',ref['sha256'])):
+                raise ValueError('Contact member pin is incomplete')
+            path=_path(root,ref['relative'])
+            if path.stat().st_size!=ref['bytes']:
+                raise ValueError('Contact member length changed: '+path.name)
+            paths.append(path)
+        row={'static':deepcopy(static)}
+        if manifest['version']==2:
+            schedule=manifest['analysis_profile']['steps']
+            if not 1<=static['step']<=len(schedule):raise ValueError('Contact step outside schedule')
+            step=schedule[static['step']-1]
+            row['step_location']={k:deepcopy(step[k]) for k in ('id','label','index')}
+            row['step_location'].update(axis=manifest['analysis_profile']['axis'],coordinate=value-step['start'])
+        metadata.append(row);previous=value
+
+    def read_frame(index):
+        declared,dataset=frames[index],datasets[index]
+        previous=frames[index-1]['static']['load_parameter'] if index else None
         vtu, vtu_path = _read(root, declared['field'])
         current, frame_path = _read(root, declared['inspection'], json_data=True)
-        size += len(vtu) + frame_path.stat().st_size
-        if size > MAX_TOTAL:
+        if base_size + len(vtu) + frame_path.stat().st_size > MAX_TOTAL:
             raise ValueError('Contact inspection exceeds the bounded input size')
         static = declared['static']
         value = static['load_parameter']
@@ -189,11 +227,34 @@ def load(entry, declaration):
                 raise ValueError('Contact frame step is outside the retained schedule')
             step=rows[static['step']-1]
             loc=current.get('step_location') or {}
+            expected_axis=manifest['analysis_profile']['axis']
+            if 'physical_time_available' in loc:
+                dynamic=step['procedure']=='dynamic'
+                physical=0.0
+                for previous_step in rows[:static['step']-1]:
+                    if previous_step['procedure']=='dynamic':physical+=previous_step['duration']
+                expected_axis={'name':'time' if dynamic else 'static_pseudo_time',
+                               'unit':'s' if dynamic else '1',
+                               'semantics':'PHYSICAL_TIME' if dynamic else 'STATIC_PSEUDO_TIME'}
+                required={'physical_time_available':dynamic,'native_global_start':step['start'],
+                    'native_global_end':step['end'],'native_global_coordinate':value,
+                    'native_step_start':0.,'native_step_end':step['duration'],
+                    'native_step_coordinate_derived':value-step['start'],
+                    'physical_start_s':physical if dynamic else None,
+                    'physical_end_s':physical+step['duration'] if dynamic else None,
+                    'physical_time_s':physical+value-step['start'] if dynamic else None,
+                    'wall_time_s':None,'load_factor_available':False,
+                    'time_semantics':expected_axis['semantics'],'procedure':step['procedure']}
+                # Keep the same addition order as calculix_dynamic.location.
+                required['physical_time_s']=physical+(value-step['start']) if dynamic else None
+                if (any(loc.get(k)!=v for k,v in required.items()) or
+                        loc.get('state_origin') not in {'RESTART_READ','MODEL_INITIAL_CONDITIONS','PREVIOUS_NATIVE_STEP'}):
+                    raise ValueError('Contact dynamic/native clock declaration changed')
             if (loc.get('id')!=step['id'] or loc.get('label')!=step['label'] or
-                    loc.get('index')!=step['index'] or loc.get('axis')!=manifest['analysis_profile']['axis']
+                    loc.get('index')!=step['index'] or loc.get('axis')!=expected_axis
                     or loc.get('coordinate')!=value-step['start']):
                 raise ValueError('Contact frame does not identify its retained step')
-            if loaded and (static['step'],static['increment']) <= (loaded[-1]['static']['step'],loaded[-1]['static']['increment']):
+            if index and (static['step'],static['increment']) <= (frames[index-1]['static']['step'],frames[index-1]['static']['increment']):
                 raise ValueError('Contact step/increment order changed')
         previous = value
         if (current.get('active_state') != 'UNKNOWN'
@@ -228,12 +289,34 @@ def load(entry, declaration):
         for row in current.get('gap', {}).get('rows', []):
             if row['pair_id'] not in pairs or row['node_id'] not in pairs[row['pair_id']]['a']['node_ids']:
                 raise ValueError('Derived gap belongs to another contact surface')
-        loaded.append(current)
-        paths.extend([vtu_path, frame_path])
+        return current
+
+    if lazy:
+        loaded=_RetainedContactFrames(metadata,read_frame)
+    else:
+        size=base_size;loaded=[]
+        for index,declared in enumerate(frames):
+            size+=declared['field']['bytes']+declared['inspection']['bytes']
+            if size>MAX_TOTAL:raise ValueError('Contact inspection exceeds the bounded input size')
+            loaded.append(read_frame(index))
     # Entry appears first in the ordinary PVD enumeration; callers deduplicate.
     return {'manifest': manifest, 'topology': topology, 'pairs': pairs,
             'frames': loaded, 'paths': list(dict.fromkeys(paths)),
-            'surfaces_path': str(surfaces_path), 'descriptor': deepcopy(declaration)}
+            'surfaces_path': str(surfaces_path), 'descriptor': deepcopy(declaration),
+            **({'verification':{'scope':'CONTACT_METADATA_AND_TOPOLOGY','unselected_bytes':'DEFERRED',
+                                 'selected_policy':'EXACT_EXISTING_VALIDATION_AND_HASH_BEFORE_RETURN'}} if lazy else {})}
+
+
+class _RetainedContactFrames(Sequence):
+    """Existing retained inspection frames; no provider or persistent trust cache."""
+    def __init__(self,metadata,reader):self.metadata,self.reader=metadata,reader
+    def __len__(self):return len(self.metadata)
+    def __getitem__(self,index):
+        if isinstance(index,slice):return [self[i] for i in range(*index.indices(len(self)))]
+        if type(index) is not int:raise TypeError('Choose an exact retained contact frame')
+        if index<0:index+=len(self)
+        if not 0<=index<len(self):raise IndexError(index)
+        return self.reader(index)
 
 
 def describe(bundle):
@@ -241,8 +324,8 @@ def describe(bundle):
                        'a': {'body': row['a']['body_id'], 'faces': row['a']['cad_faces']},
                        'b': {'body': row['b']['body_id'], 'faces': row['b']['cad_faces']}}
                       for row in bundle['pairs'].values()],
-            'frames': [deepcopy(row['static']) for row in bundle['frames']],
-            'steps': [deepcopy(row.get('step_location')) for row in bundle['frames']],
+            'frames': [deepcopy(row['static']) for row in getattr(bundle['frames'],'metadata',bundle['frames'])],
+            'steps': [deepcopy(row.get('step_location')) for row in getattr(bundle['frames'],'metadata',bundle['frames'])],
             'fields': [{'name': name, 'unit': 'mm' if name in CHANNELS[:3] or name == 'GeomGap_mm' else 'MPa'}
                        for name in (*CHANNELS, 'GeomGap_mm')],
             'axis': bundle_axis(bundle),
@@ -250,7 +333,7 @@ def describe(bundle):
             'active_state': 'UNKNOWN'}
 
 
-def inspect(bundle, pair_id, side, frame_index, field, quantity='CFN', component=2):
+def inspect(bundle, pair_id, side, frame_index, field, quantity='CFN', component=2, *, include_history=True):
     if pair_id not in bundle['pairs'] or side not in ('a', 'b', 'both'):
         raise ValueError('Select a retained contact pair and side')
     if type(frame_index) is not int or not 0 <= frame_index < len(bundle['frames']):
@@ -281,7 +364,7 @@ def inspect(bundle, pair_id, side, frame_index, field, quantity='CFN', component
             'field': field, 'unit': 'mm' if field in CHANNELS[:3] or field == 'GeomGap_mm' else 'MPa',
             'scope': 'pair_geometric_derivation' if field == 'GeomGap_mm' else 'shared_nodal_projection',
             'active_state': 'UNKNOWN', 'rows': rows,
-            'history': force_history(bundle, pair_id, quantity, component)}
+            'history': force_history(bundle, pair_id, quantity, component) if include_history else None}
 
 
 def _finite(value):

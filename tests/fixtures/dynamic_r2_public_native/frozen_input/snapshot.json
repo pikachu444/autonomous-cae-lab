@@ -1,0 +1,98 @@
+{
+  "analysis_id": "Analysis",
+  "bodies": [
+    {
+      "binding": {
+        "binding_validation": "CURRENT_SOURCE_AND_MESH_MATCH",
+        "mesh": {
+          "name": "Mesh",
+          "ordered_mesh_sha256": "c4071f769a4ad83f18e7104074435bb5dafbfb85803914c5735ed193bf837407"
+        },
+        "qualification": "UNKNOWN",
+        "schema_version": 2,
+        "source": {
+          "brep_sha256": "89c048de386c2e7495e3da592c1d3e7010a905e84b30100e0e2c6d83daa538a6",
+          "global_placement": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "name": "Solid",
+          "type": "Part::Box"
+        },
+        "status": "INITIAL_ASSOCIATION_UNVERIFIED"
+      },
+      "body_id": "Solid",
+      "mesh_id": "Mesh",
+      "target": {
+        "brep_sha256": "89c048de386c2e7495e3da592c1d3e7010a905e84b30100e0e2c6d83daa538a6",
+        "global_placement": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "object_id": "Solid",
+        "subelements": [
+          {
+            "brep_sha256": "89c048de386c2e7495e3da592c1d3e7010a905e84b30100e0e2c6d83daa538a6",
+            "name": "Solid1"
+          }
+        ],
+        "type": "Part::Box"
+      }
+    }
+  ],
+  "decision": "NOT_RELEASED",
+  "document": {
+    "name": "DynamicSolid363c578d",
+    "original_sha256": "a55ac05900bbb4260ea01c474a13ee5632d108f0798721d3799323afc95a8180"
+  },
+  "editable_project": "editable.caepre",
+  "files": [
+    {
+      "bytes": 52491,
+      "relative": "contact.inp",
+      "sha256": "a6416e575559a095f4f9284ff8999b4681bca09e7b01fee27f77b40a2f77abdb"
+    },
+    {
+      "bytes": 48643,
+      "relative": "editable.FCStd",
+      "sha256": "7f06a9832ed9b6925360e14493b394fd4436da57e967f1ec2b86a4a70bd8c059"
+    },
+    {
+      "bytes": 604785,
+      "relative": "mesh.json",
+      "sha256": "a607e396bc1125d7a216c5333c0b456967c8daae1f23c7ad871f8b029d7bef2b"
+    },
+    {
+      "bytes": 56278,
+      "relative": "editable.caepre",
+      "sha256": "7c0ea89db2048ef26e90ff2ba486d70769138aaa6d451064c91be64ea67698c3"
+    }
+  ],
+  "id": "Fd737fa8698614418a90f15d8674e9327",
+  "input_file": "contact.inp",
+  "kind": "freecad-contact-frozen",
+  "native_version": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "qualification": "UNKNOWN",
+  "schema_version": "1",
+  "solver_execution": "NOT_PERFORMED",
+  "solver_id": "Solver"
+}

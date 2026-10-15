@@ -1,0 +1,10 @@
+{
+  "finished_utc": "2026-10-15T00:28:05.628810+00:00",
+  "pid": 38444,
+  "return_code": 0,
+  "started_utc": "2026-10-15T00:26:32.842762+00:00",
+  "status": "COMPLETED",
+  "stderr": "ccx_contact.stderr.log",
+  "stdout": "ccx_contact.stdout.log",
+  "timeout_seconds": null
+}

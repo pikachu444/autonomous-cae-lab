@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 import tempfile
 import os
+import re
 
 from .adapters.frozen_fem import _read, _relative, _sha, MAX_BYTES
 from .execution_control import check_cancelled
@@ -42,11 +43,23 @@ def file_pin(root, path):
 
 def verify_pin(root, pin):
     if (not isinstance(pin, dict) or type(pin.get('bytes')) is not int or pin['bytes'] < 0
-            or not isinstance(pin.get('sha256'), str) or len(pin['sha256']) != 64):
+            or not isinstance(pin.get('sha256'), str) or re.fullmatch('[a-f0-9]{64}', pin['sha256']) is None):
         raise ValueError('A complete dynamic artifact pin is required')
     path = _path(root, pin['relative'])
     if file_pin(root, path) != {k: pin[k] for k in ('relative', 'bytes', 'sha256')}:
         raise ValueError('Retained dynamic artifact changed (hash/size): ' + pin['relative'])
+    return path
+
+
+def admit_pin(root, pin):
+    """Metadata/path/size admission, NOT a content integrity success claim."""
+    if (not isinstance(pin, dict) or type(pin.get('bytes')) is not int or pin['bytes'] < 0
+            or not isinstance(pin.get('sha256'), str)
+            or re.fullmatch('[a-f0-9]{64}', pin['sha256']) is None):
+        raise ValueError('A complete dynamic artifact pin is required')
+    path = _path(root, pin['relative'])
+    if path.stat().st_size != pin['bytes']:
+        raise ValueError('Retained dynamic artifact changed (size): ' + pin['relative'])
     return path
 
 
@@ -173,10 +186,13 @@ class RetainedResult(dict):
         return {key: deepcopy(value, memo) for key, value in self.items()}
 
 
-def load_result(path, *, metadata_only=False):
+def load_result(path, *, metadata_only=False, expected_pin=None):
     path = Path(path)
     # v1 compatibility is intentionally still bounded by MAX_BYTES, never raised.
     payload = _read(path)
+    if expected_pin is not None and (len(payload)!=expected_pin.get('bytes') or
+            hashlib.sha256(payload).hexdigest()!=expected_pin.get('sha256')):
+        raise ValueError('Retained dynamic index changed (hash/size)')
     index = json.loads(payload)
     if index.get('kind') != 'calculix_dynamic_result':
         raise ValueError('Not a retained native dynamic result')
@@ -211,6 +227,7 @@ def write_result(output, model, frames, dat_path, *, execution_status, source_pi
     from .dynamic_results import (result_header, validate_requested, accelerations,
                                   iter_energy_blocks, _empty_energy)
     from .contact_steps import compile_program
+    from .dynamic_native_stream import frame_catalog
     from .calculix_dynamic import location
     from .adapters.fixture_field import _printed_close
     output, dat_path = Path(output), Path(dat_path)
@@ -219,6 +236,7 @@ def write_result(output, model, frames, dat_path, *, execution_status, source_pi
     if not 1 <= len(frames) <= 1024:
         raise ValueError('Expected 1..1024 retained exact frames')
     validate_requested(model, frames)
+    catalog = frame_catalog(frames)
     header = result_header(model, execution_status=execution_status,
                            source_pins=source_pins, snapshot_id=snapshot_id)
     if extra_header:
@@ -244,7 +262,7 @@ def write_result(output, model, frames, dat_path, *, execution_status, source_pi
         seen = set()
         for block in iter_energy_blocks(dat_path, model):
             check_cancelled()
-            matches = [i for i, f in enumerate(frames) if _printed_close(
+            matches = [i for i, f in enumerate(catalog) if _printed_close(
                 block['native_time_token'], f['static']['load_parameter'],
                 reference_token=f['load_parameter_token'])]
             if len(matches) > 1:
@@ -266,7 +284,7 @@ def write_result(output, model, frames, dat_path, *, execution_status, source_pi
             check_cancelled()
             native = frame['static']
             if (i > 0 and i + 1 < len(frames) and
-                    frames[i-1]['static']['step'] == native['step'] == frames[i+1]['static']['step']):
+                    catalog[i-1]['static']['step'] == native['step'] == catalog[i+1]['static']['step']):
                 acceleration = accelerations(model, frames[i-1:i+2])[1]
                 if 'source_frames' in acceleration:
                     acceleration['source_frames'] = [j+i-1 for j in acceleration['source_frames']]
@@ -295,27 +313,106 @@ def write_result(output, model, frames, dat_path, *, execution_status, source_pi
     return load_result(output / 'dynamic_result.json')
 
 
-def read_attempt(attempt):
+def read_attempt(attempt, *, metadata_only=False, verification='selected',
+                 expected_result=None, expected_job_id=None, expected_snapshot_id=None, expected_record=None):
+    """Cold open without hashing all raw outputs or frame arrays.
+
+    Index/attempt membership and paths/sizes are checked here; topology is checked
+    when loaded, every selected frame is hash checked by _Frames. 'full' is the
+    explicit whole-dependency audit. No verification scope is labelled ALL unless
+    all bytes were actually checked in this call; no persistent trust cache.
+    """
+    if verification not in ('selected', 'full'):
+        raise ValueError('Choose selected or explicit full integrity verification')
     attempt = Path(attempt).resolve(strict=True)
-    record_bytes = _read(attempt / 'contact_execution.json')
+    record_bytes = _read(attempt / 'contact_execution.json', INDEX_LIMIT)
+    if expected_record is not None and (expected_record.get('relative')!='contact_execution.json' or
+            expected_record.get('bytes')!=len(record_bytes) or
+            expected_record.get('sha256')!=hashlib.sha256(record_bytes).hexdigest()):
+        raise ValueError('Original selected attempt record changed')
     record = json.loads(record_bytes)
     reference = record.get('dynamic_result')
     if not reference:
         raise ValueError('This attempt has no retained dynamic result')
-    path = verify_pin(attempt, reference)
-    result = load_result(path)
-    entries = {row['relative']: row for row in record['artifacts']}
-    required = [{'relative': name, **pin} for name, pin in result['source_pins'].items()]
-    required += [reference, *artifact_references(result)]
-    for pin in required:
-        expected = {k: pin[k] for k in ('relative', 'bytes', 'sha256')}
-        if entries.get(pin['relative']) != expected:
-            raise ValueError('Dynamic result is not pinned by this exact attempt: ' + pin['relative'])
-        verify_pin(attempt, expected)
+    pin = {k: reference[k] for k in ('relative', 'bytes', 'sha256')}
+    if expected_result is not None and pin != {k: expected_result[k] for k in pin}:
+        raise ValueError('Selected dynamic result differs from the expected exact result')
+    if expected_job_id is not None and record.get('job_id') != expected_job_id:
+        raise ValueError('Selected dynamic result belongs to a different job')
+    if expected_snapshot_id is not None and record.get('snapshot_id') != expected_snapshot_id:
+        raise ValueError('Selected dynamic result belongs to a different input')
+    path = admit_pin(attempt,pin)
+    result = load_result(path, metadata_only=metadata_only, expected_pin=pin)
+    artifacts = record.get('artifacts', [])
+    entries = {row['relative']: row for row in artifacts}
+    if len(entries) != len(artifacts):
+        raise ValueError('Duplicate attempt artifact references')
+    required = [{'relative': name, **p} for name, p in result['source_pins'].items()]
+    required += [pin, *artifact_references(result)]
+    for item in required:
+        expected = {k: item[k] for k in ('relative', 'bytes', 'sha256')}
+        if entries.get(item['relative']) != expected:
+            raise ValueError('Dynamic result is not pinned by this exact attempt: ' + item['relative'])
+        (verify_pin if verification == 'full' else admit_pin)(attempt, expected)
     if (record.get('snapshot_id') != result.get('snapshot_id') or
             record.get('job_id') != result.get('job_id') or
+            record.get('job_identity') != result.get('job_identity') or
+            record.get('input_origin') != result.get('input_origin') or
             record.get('execution_status') != result.get('execution_status')):
         raise ValueError('Dynamic result belongs to a different job/input/status')
-    if _read(attempt / 'contact_execution.json') != record_bytes:
+    if _read(attempt / 'contact_execution.json', INDEX_LIMIT) != record_bytes:
         raise ValueError('Attempt changed during retained open')
+    # Attributes do not change the immutable result/index or exported field values.
+    if isinstance(result, RetainedResult):
+        result.verification = {
+            'scope': 'ALL_REFERENCED_BYTES' if verification == 'full' else
+                     ('INDEX_ONLY' if metadata_only else 'INDEX_AND_TOPOLOGY'),
+            'attempt_record_sha256': hashlib.sha256(record_bytes).hexdigest(),
+            'result': pin, 'paths_and_sizes': 'CHECKED',
+            'raw_source_bytes': 'VERIFIED' if verification == 'full' else 'DEFERRED',
+            'unselected_frame_bytes': 'VERIFIED' if verification == 'full' else 'DEFERRED',
+            'selected_frame_policy': 'HASH_AND_EXACT_IDENTITY_BEFORE_RETURN',
+            'engineering_qualification': 'UNKNOWN'}
     return result
+
+
+def verify_attempt(attempt, **expected):
+    """Explicit audit; byte reads are deliberate and never launch a solver."""
+    result = read_attempt(attempt, verification='full', metadata_only=True, **expected)
+    return deepcopy(getattr(result, 'verification', {'scope': 'ALL_REFERENCED_BYTES',
+                    'legacy_v1': True, 'engineering_qualification': 'UNKNOWN'}))
+
+
+def select_frame(attempt, frame_index, *, expected_native=None, **expected):
+    """Select verified payload + topology, never metadata labelled as evidence.
+
+    metadata_only=False remains accepted for callers sharing read_attempt options.
+    For metadata-only navigation use describe_attempt/read_attempt instead.
+    """
+    if expected.pop('metadata_only', False) is not False:
+        raise ValueError('select_frame requires payload verification; '
+                         'use describe_attempt for metadata-only navigation')
+    result = read_attempt(attempt, metadata_only=False, **expected)
+    catalog = frame_metadata(result)
+    if type(frame_index) is not int or not 0 <= frame_index < len(catalog):
+        raise ValueError('Choose an exact result frame index')
+    if expected_native is not None and catalog[frame_index]['native'] != expected_native:
+        raise ValueError('Selected native step/increment/coordinate differs')
+    frame = result['frames'][frame_index]
+    verification = deepcopy(getattr(result, 'verification', {'legacy_v1': True}))
+    verification.update(selected_frame_index=frame_index, selected_frame_bytes='VERIFIED')
+    return {'frame': frame, 'verification': verification,
+            'execution_status': result['execution_status'], 'qualification': result['qualification']}
+
+
+def describe_attempt(attempt, **expected):
+    """Serializable catalogue and truthful integrity scope; no native array read."""
+    data=read_attempt(attempt,metadata_only=True,**expected)
+    return {'kind':'retained_dynamic_catalog','snapshot_id':data['snapshot_id'],
+            'job_id':data.get('job_id'),'job_identity':deepcopy(data.get('job_identity')),
+            'execution_status':data['execution_status'],'complete_analysis':data['complete_analysis'],
+            'qualification':'UNKNOWN','frames':frame_metadata(data),
+            'verification':deepcopy(getattr(data,'verification',{
+                'scope':'BOUNDED_LEGACY_V1_MATERIALIZED','raw_source_bytes':'DEFERRED',
+                'engineering_qualification':'UNKNOWN'})),
+            'solver_execution':'NOT_PERFORMED'}

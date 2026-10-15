@@ -174,9 +174,11 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
     dynamic_origin = None
     if kind == 'native_result' and (native_metadata or {}).get('dynamic_locations') is not None:
         from .dynamic_locations import load
-        dynamic_origin = load(Path(workbench_root) / entry['file'], native_metadata)['origin']
+        dynamic_bundle = load(Path(workbench_root) / entry['file'], native_metadata)
+        dynamic_origin = dynamic_bundle['origin']
         if str(root_id).startswith('job:') and dynamic_origin['job_id'] != root_id[4:]:
-            raise ValueError('Dynamic input belongs to a different JobManager run')
+            from .dynamic_recovery_job import verify_registration_job
+            verify_registration_job(workbench_root, root_id[4:], dynamic_bundle)
     if kind == 'native_result' and (native_metadata or {}).get('contact_inspection') is not None:
         from .contact_inspection import load
         load(Path(workbench_root) / entry['file'], native_metadata['contact_inspection'])

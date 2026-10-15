@@ -157,9 +157,13 @@ def pins(files):
     return [{"path": str(file), "bytes": file.stat().st_size, "sha256": sha(file)} for file in files]
 
 
-def verify_sources(path, doc):
+def verify_sources(path, doc, *, full=False):
     for record in doc["sources"].values():
         recorded = record["source_pins"]
+        if (record.get('native_metadata') or {}).get('dynamic_locations') is not None:
+            dynamic_api().verify_saved_source(record['entry_path'], record['native_metadata'],
+                record.get('registration_origin'), recorded, full=full)
+            continue
         for pin in recorded:
             file = Path(pin["path"])
             if file.stat().st_size != pin["bytes"] or sha(file) != pin["sha256"]:
@@ -385,6 +389,12 @@ def inspect_result(source, time=None):
 
 
 def _inspect_result(source, time=None, native_metadata=None):
+    exact_dynamic = None
+    if (native_metadata or {}).get('dynamic_locations') is not None:
+        available = native_metadata['time']['values']
+        current = float(p.GetAnimationScene().AnimationTime)
+        chosen = time if time is not None else current if current in available else available[0]
+        exact_dynamic = dynamic_api().select(reader_input_files(source)[0],native_metadata,time=chosen)
     selected = set_time(source, time)
     declaration = validate_declared_metadata(source, native_metadata) if native_metadata is not None else None
     if declaration and 'curve' in declaration:
@@ -418,7 +428,7 @@ def _inspect_result(source, time=None, native_metadata=None):
             "field_availability": deepcopy(declaration.get("field_availability")) if declaration else None,
             "metadata_status": "DECLARED" if declaration else "UNKNOWN",
             "arrays": arrays, "qualification": "UNKNOWN",
-            **({'dynamic': dynamic_api().select(reader_input_files(source)[0], declaration, time=selected)}
+            **({'dynamic': exact_dynamic}
                if declaration and 'dynamic_locations' in declaration else {}),
             **({"beam": {**deepcopy(declaration["beam"]),
                  "selected_static": next((deepcopy(row) for row in declaration["beam"]["frames"]
@@ -640,10 +650,27 @@ def restore_workspace(path, doc, *, allow_repair=False):
                            'removed_source_names': list(selection['removed_source_names'])}
         print('PARTIAL RESTORE: healthy sources and retained analysis remain available; missing-input branches require explicit repair.')
         return {'state': 'PARTIAL_RESTORE', 'issues': issues, **selection}
+    dynamic_pins = {}
+    for record in doc.get('sources', {}).values():
+        if (record.get('native_metadata') or {}).get('dynamic_locations') is not None:
+            checked = dynamic_api().verify_saved_source(record['entry_path'],record['native_metadata'],
+                record.get('registration_origin'),record['source_pins'])
+            dynamic_pins.update({row['path']: row['sha256'] for row in checked['pins']})
     for file, expected in doc.get("native_reader_files", {}).items():
-        if sha(file) != expected:
+        if file in dynamic_pins:
+            if dynamic_pins[file] != expected:
+                raise RuntimeError("Saved dynamic reader pin differs: " + file)
+        elif sha(file) != expected:
             raise RuntimeError("Saved analysis reader input changed: " + file)
     p.LoadState(str(state))
+    for record in doc.get('sources', {}).values():
+        declaration=record.get('native_metadata') or {}
+        if 'dynamic_locations' in declaration:
+            available=declaration['time']['values']
+            current=float(p.GetAnimationScene().AnimationTime)
+            dynamic_api().select(record['entry_path'],declaration,
+                time=current if current in available else available[0],
+                registration_origin=record.get('registration_origin'))
     verify_readers(doc)
     _verify_metadata_records(doc, live=True)
     restore_selection(doc)
@@ -676,8 +703,16 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
     files = source_files(input_path, native_metadata)
     entry = files[0]
     if (native_metadata or {}).get('dynamic_locations') is not None:
-        dynamic_api().verify_registration(entry, native_metadata, registration_origin)
-    pinned = pins(files)
+        checked = dynamic_api().verify_saved_source(entry, native_metadata, registration_origin, source_pins)
+        pinned = checked['pins']
+        initial_times = native_metadata['time']['values']
+        current = float(p.GetAnimationScene().AnimationTime)
+        dynamic_api().select(entry, native_metadata, time=current if current in initial_times else initial_times[0],
+                             registration_origin=registration_origin)
+    else:
+        pinned = pins(files)
+    if source_pins is not None and (native_metadata or {}).get('dynamic_locations') is not None:
+        pinned = deepcopy(source_pins)
     if source_pins is not None and pinned != source_pins:
         raise RuntimeError("Registered source pins do not match the actual result dependency set")
     name = "Result | " + entry.name + " | " + uuid.uuid4().hex[:8]

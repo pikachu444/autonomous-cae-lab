@@ -145,7 +145,16 @@ Windows 작은 reader·원 결과 소비·Qt의 45개 영향 검사는 통과하
 전용·공통 변경을 현재 main에 통합 중이며, 원 FAILED/CANCELLED 결과와 기존
 Post 접촉 채널·FN05 연결을 보존한다. Windows 최소 실행에서 path/fd의 ctime 의미
 차이로 정상 FRD를 거절하는 문제를 찾았고 Astra는 metadata_only 선택의 허위
-검사 완료 표시도 찾았다. 두 건을 묶어 원 Windows 관측·반례와 함께 실제 Pro에 교정을 요청했다. 아직 게시 전이며
+검사 완료 표시도 찾았다. 실제 Pro C1의 두 core 교정을 회수해 적용했고 Astra가 원 Windows
+파일을 실제 읽어 두 결함의 해소와 기존 식별·해시 관문 보존을 확인했다. Windows의
+선택·변조 거절과 작은 실제 JobManager/HTTP 재처리·새 owner 읽기도 통과했다.
+원 솔버 프로세스만 대역이며 재처리의 솔버 호출은 없고 원 실패/파일은 그대로다.
+Windows 파생 FRD의 줄바꿈 차이는 root의 명시 LF 저장으로 교정했다. 링크 생성 권한이
+없는 네 경로는 해당 환경 미확인으로 남겼다. 앞선 묶음 실행의 timeout과 원 실패는
+보존하고 영향 범위만 나눠 확인했으며 모든 소유 Job을 종료했다.
+Runner에서 원 실행 확인→결과 다시 읽기→새 읽기 작업 취소/응답 유실 재확인→원 입력·
+정확한 파생 Post 열기를 연결했다. 읽기 결과는 시간 출력 수·원 계산/읽기 상태를
+구분하며 원문은 기술 상세에서 본다. 두 창 크기의 실제 Qt 표시와 독립 검토를 마쳤다.
 원 400프레임·실제 WRITE/READ·물리 비교는 반복하거나 완료 처리하지 않았다.
 사용법과 복원 당시 실패·현재 확인 범위는 [동해석 결과 읽기](docs/DYNAMIC_RETAINED_C2_RECOVERY_R1_KO.md)에 있다.
 별개 GUI로 충격 입력의 오류를 정확한 include 파일·행에 연결했다. 보존 원문을 읽고
@@ -156,7 +165,10 @@ Astra의 읽기 전용 검토를 마쳤다. 원 parser/원본 파일/계산 admi
 Data C3 대화에서 최신 별도 요청·공개 소스 여섯 첨부와 함께 실제 Pro/파워5로 한 번
 전송했고 작성 중이다. 기존 Data 대화를 이번 소스로 간주하지 않도록 범위를 분리했다.
 작성 대상은 PART/INSTANCE와 native RAD, 벌크/계면 손상, 변형률수명·평균응력·선정
-다축 피로의 A/B/C 전체다. `impact-next/relay.json`이 단일 회수 기록이며 구현 완료는 아니다.
+다축 피로의 A/B/C 전체다. 첫 최종 답변의 파일은 회수되지 않았고 실제 Pro의 복구
+확인에서도 구현 소스·패치·ZIP·검사 로그가 없었다. 이전 인도 완료 주장은 철회됐으며
+원본 여섯 파일은 남아 있다. 같은 원요구·원자료로 새 Pro 대화에서 실제 작성을 재개한다.
+`impact-next/relay.json`이 단일 회수 기록이며 구현 완료는 아니다.
 Runner에서는 명시적으로 제외된 값이 없는 표본 하나 때문에 정상 이력까지 숨던 표시를
 교정했다. 제외 위치는 빈 곡선 구간으로 남기고 원값·시간·부분 실패 상태를 유지한다.
 유효 표본의 잘못된 값과 불완전 mask는 계속 차단한다. 담당의 관련 Qt 검사와 두 창
@@ -187,6 +199,15 @@ Windows Qt 표시·저장/새 owner 재열기와 Astra 독립 검토를 마쳤�
 새 AI·솔버 계산은 없으며 실제 OS 화면 캡처/키보드 전체 수용과 구별한다.
 관련 코드·한국어 사용법·결과 선택 화면을 `984cdd8`로 원격 main에 게시하고 일치를 확인했다.
 사용법은 [한국어 안내](docs/USER_GUIDE_KO.md#제안을-계산하고-결과로-토론-이어가기)에 있다.
+
+**재료 법칙·공간 PDE의 다음 큰 구현:** 원 개발 명세의 법칙/실제 FE 연결과 다른 메시
+전달 잔여를 공개 원자료로 구체화해 각각 새 실제 Pro/파워5 대화에 직접 첨부·배정했다.
+Material의 명시 DP·초탄성/점탄성 point–FE·저장 개정의 해석 할당은
+`delivery-data-material/law-native-request/READY.json`, Windows 열 PDE→다른 P1 메시·
+명시 시각 전달→열구조/Post·저장/재열기는 `delivery-numerical-pde/pde-transfer-request/relay.json`에
+원자료·회수 상태를 둔다. 기존 owner/계산 엔진을 재사용하고 전용 구현·최소 공통 패치를
+분리한다. 공유변수 MDO/첫 실제 adjoint는 같은 PDE 작성자의 필수 후속이며 현재
+실행·완료로 표시하지 않는다. 두 요청 모두 코드 회수 전이다.
 
 관련 문서의 부분 저장(FN02-02)은 Data/Material 팀, 이동용 작업 사본(FN01-02)과
 선택 연결 보기(FN31)는 설치·연결 팀, 원격 실행(FN26)은 Runner 팀이 지속 담당한다.
@@ -222,7 +243,8 @@ Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실�
 마쳤지만 plugin configure가 SDK에 기록된 Windows Python 경로의 escape를 해석하다
 실패했다. 해당 두 configure 경로만 CMake 구분자로 정규화했고 원 생성 함수를 사용해
 원 실패·교정 경로·공백 경로를 좁게 확인했다. 소유 Job을 종료했으며 교정 소스 게시 뒤
-새 원격 실행에서 plugin 이후 단계를 확인한다. 아직 plugin/실창 성공은 아니다. 원 결과는
+새 원격 실행 `38695216322`가 게시 소스 `b2e359d`에서 진행 중이다. 공개 표준 Windows
+runner만 사용하며 아직 plugin/실창 성공은 아니다. 원 결과는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
@@ -256,7 +278,9 @@ CAS·수치·입력 조건은 바꾸지 않았다. 실제 desktop 진입·정상
 `runs/product-development/20261015/portable-connection/c2-request/relay.json`에
 회수·다음 행동을 관리한다. C01 raw-cell 복구는 아직 별도 미통합이다.
 다음 실제 Pro 구현 요청은 `6047115` 공개 소스와 최신 문서를 담은 C3 패킷으로
-실제 Pro/파워5를 확인한 뒤 공개 네 첨부와 함께 한 번 송신했고 응답 작성 중이다.
+실제 Pro/파워5를 확인한 뒤 공개 네 첨부와 함께 한 번 송신했다. 최종 답변은 나왔지만
+ZIP 다운로드가 발생하지 않고 검증 문서 미리보기도 실패해 실제 새 소스는 아직 없다.
+같은 Pro에 기존 현물만 확인·다시 묶도록 한 번 요청했고 전체 구현/검사는 반복하지 않는다.
 미완성 셀 보관·다른 문서 종류·native 의존 자료를 함께 이동하는 범위이며 최근 혼합 변수와
 재료 복구 GUI의 병렬 변경도 명시했다. 현재 지원 세 문서의 완료와 이 확장을 구분한다.
 같은 폴더의 `c3-c01-request/relay.json`이 현재 회수 기록이다.

@@ -21,7 +21,7 @@ OPERATIONS = {'detail_eval','evaluate','run','import_table','fit','doe','optimiz
               'batch_export','batch_import','surrogate','epsilon','sensitivity',
               'sample_sensitivity', 'experiment_uncertainty', 'identification_final',
               'knowledge.ingest','knowledge.rebuild','knowledge.revoke','literature.search','literature.read',
-              'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled'}
+              'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled','dynamic.reprocess'}
 
 
 def contained(root, relative):
@@ -498,6 +498,15 @@ class Workbench:
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
                 raise ValueError('Native input set has no pinned entry file')
+            if (receipt.get('native_metadata') or {}).get('dynamic_locations') is not None:
+                metadata = receipt['native_metadata']
+                if canonical_hash(metadata) != receipt.get('native_metadata_sha256'):
+                    raise ValueError('Registered native field metadata changed')
+                from .dynamic_locations import verify_saved_source
+                verify_saved_source(path, metadata, receipt.get('origin'),
+                    [{'path': str(contained(self.root,item['file'])), 'bytes': item['bytes'],
+                      'sha256': item['sha256']} for item in files])
+                return path  # selected-scope admission; no full frame-byte scan
             for item in files:
                 dependency=contained(self.root,item['file'])
                 if not dependency.is_relative_to(folder) or dependency.stat().st_size!=item['bytes'] or file_hash(dependency)!=item['sha256']:
@@ -671,6 +680,9 @@ class Workbench:
                 raise ValueError('Native CAD candidates currently run serially with one worker')
             if '_native_context' in arguments.get('settings', {}):
                 raise ValueError('Native execution context is service-owned')
+        if operation == 'dynamic.reprocess':
+            from .dynamic_recovery_job import prepare
+            arguments = prepare(self, arguments)
         if operation == 'import_table':
             arguments = deepcopy(arguments)
             certificates = self.data_documents.calibration_sources(
@@ -887,6 +899,9 @@ class Workbench:
         return settings
 
     def _execute(self, operation, arguments, identifier):
+        if operation == 'dynamic.reprocess':
+            from .dynamic_recovery_job import execute
+            return execute(self, arguments, identifier)
         args=deepcopy(arguments)
         args.pop('label',None)  # Retained job metadata, never a solver parameter.
         if operation in {'experiment_uncertainty', 'identification_final'}:

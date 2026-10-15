@@ -90,7 +90,7 @@ def _responses(result, data):
                 'not_an_energy_balance':True}}
 
 
-def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=None, frd_source=None):
+def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=None, frd_source=None, legacy_context=None):
     """Run after the common success/partial paths and before artifact hashing."""
     if not enabled(model):
         return
@@ -130,6 +130,7 @@ def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=Non
         return
     previous_post=deepcopy(result.get('post_artifact'))
     phase = 'result'
+    owned_parsed = None
     try:
         check_cancelled()
         result['postprocessing']['result'] = 'READING'
@@ -150,8 +151,10 @@ def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=Non
         if parsed is not None and parsed_pin is not None and parsed_pin['relative'] == frd.relative_to(output).as_posix():
             verify_pin(output, parsed_pin)
         else:
-            parsed=read_frd(frd,nodes,elements,contact_materials=materials,contact_profile=profile(model),
+            from ..dynamic_native_stream import read_dynamic_frd
+            parsed=read_dynamic_frd(frd,nodes,elements,contact_materials=materials,contact_profile=profile(model),
                             require_contact=bool(model['contacts']))
+            owned_parsed=parsed
         validate_frames(model,parsed,complete=result['execution_status']=='SUCCEEDED')
         require_converged(parsed['frames'],result['increment_history'])
         sources=_sources(output,pins,frd)
@@ -176,13 +179,21 @@ def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=Non
         phase = 'post'
         result['postprocessing']['post'] = 'WRITING'
         from ..dynamic_post import write
-        projections=write(output/'dynamic-post',model,data,source_root=output)
+        projections=write(output/'dynamic-post',model,data,source_root=output,
+                          native_frames=parsed['frames'], legacy_context=legacy_context)
         for info in projections.values():info['relative']='dynamic-post/'+info['relative']
         path=output/'dynamic_result.json'
         result['dynamic_result']={'relative':path.name,'bytes':path.stat().st_size,'sha256':_sha(path),
             'frame_count':len(data['frames']),'meanings':deepcopy(data['meanings']),
             'complete_analysis':data['complete_analysis'],'solver_execution_on_open':'NOT_PERFORMED'}
         result['dynamic_post_artifacts']=projections
+        from ..dynamic_result_store import file_pin
+        legacy_entry = output/'dynamic-post/contact.pvd'
+        if legacy_entry.is_file():
+            import json
+            from .frozen_fem import _read
+            legacy_metadata=json.loads(_read(output/'dynamic-post/contact-declarations.json'))
+            result['post_artifact']={**file_pin(output,legacy_entry),'native_metadata':legacy_metadata}
         if 'dynamic' in projections:
             result['native_coordinate_post_artifact']=deepcopy(result.get('post_artifact'))
             result['post_artifact']=deepcopy(projections['dynamic'])
@@ -209,3 +220,7 @@ def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=Non
         elif result['execution_status']=='SUCCEEDED':
             result['execution_status']='FAILED'
             result['responses']={}
+
+    finally:
+        from ..dynamic_native_stream import release
+        release(owned_parsed)

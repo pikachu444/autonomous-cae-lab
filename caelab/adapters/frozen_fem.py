@@ -274,7 +274,19 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
         raise ValueError("Only ASCII CalculiX FRD is supported") from exc
     if "\r" in text or "\x00" in text:
         raise ValueError("Malformed ASCII FRD line encoding")
-    lines, xyz, topology, fields = text.splitlines(), {}, {}, {}
+    lines = text.splitlines()
+    versions = [line.strip() for line in lines if line.strip().startswith("1UVERSION")]
+    return _read_frd_lines(lines, nodes, elements, versions=versions,
+        ends_with_newline=text.endswith("\n"), contact_materials=contact_materials,
+        contact_profile=contact_profile, require_contact=require_contact,
+        allow_missing_end=allow_missing_end)
+
+
+def _read_frd_lines(lines, nodes, elements, *, versions, ends_with_newline,
+                    contact_materials=None, contact_profile=None, require_contact=True,
+                    allow_missing_end=False, frame_sink=None):
+    """Shared strict grammar. Optional sink changes transport, not admission."""
+    xyz, topology, fields = {}, {}, {}
     labels_by_name = dict(_FRD_LABELS)
     if contact_profile is not None:
         from ..dynamic_results import FRD_LABELS
@@ -282,7 +294,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
     if contact_materials is not None:
         labels_by_name["CONTACT"] = tuple(name + " 1 1 0 0" for name in
             ("COPEN", "CSLIP1", "CSLIP2", "CPRESS", "CSHEAR1", "CSHEAR2"))
-    frames, material_names, contact_tokens = [], {}, {}
+    frames, material_names, contact_tokens = (frame_sink if frame_sink is not None else []), {}, {}
     field_coverage = None
     if contact_profile is not None:
         if contact_materials is None or contact_profile.get('version') != 1 or not contact_profile.get('steps'):
@@ -292,7 +304,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
         raise FrdTruncatedEOF(message, increment_start)
 
     def last_fragment(index):
-        return index == len(lines) - 1 and not text.endswith("\n")
+        return index == len(lines) - 1 and not ends_with_newline
 
     def numeric_tail(row, width, records):
         # Only a SHORT, unterminated final record with valid completed tokens is
@@ -329,7 +341,6 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
     i, pending, header, ended = 0, None, None, False
     counter, increment, kode, parameter, parameter_token = 0, None, None, None, None
     active_step = None
-    versions = [line.strip() for line in lines if line.strip().startswith("1UVERSION")]
     if len(versions) != 1 or not re.fullmatch(r"1UVERSION\s+Version 2\.\d+", versions[0]):
         raise ValueError("Missing or unsupported native CalculiX version metadata")
     if contact_materials is not None and versions[0].split("Version ")[1] != "2.22":
