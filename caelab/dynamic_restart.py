@@ -154,9 +154,12 @@ def read_rout(path):
         array('physcon', 14, 8)
         modal = array('xmodal', 11, 8, retain=True)
         damp_modes = struct.unpack(r.order+'11d', modal)[10]
-        if not math.isfinite(damp_modes) or damp_modes < 0 or damp_modes != int(damp_modes):
+        # restartwrite/restartread use Fortran INT(xmodal(11)), not a REAL equality test.
+        # The installed 2.22 writes 0.5 for zero modes. Record lengths still gate ABI.
+        if not math.isfinite(damp_modes) or damp_modes <= -1 or damp_modes >= 2**31:
             raise ValueError('Invalid native restart modal damping count')
-        if damp_modes: array('xmodal_modes', int(damp_modes), 8, retain=True)
+        damp_count = int(damp_modes)  # truncate towards zero, including the documented -0.5 Rayleigh sentinel
+        if damp_count: array('xmodal_modes', damp_count, 8, retain=True)
         if c['npmat'] != 0:
             for name, n, width in (('plicon',(2*c['npmat']+1)*nt*nmat,8),('nplicon',(nt+1)*nmat,4),
                                    ('plkcon',(2*c['npmat']+1)*nt*nmat,8),('nplkcon',(nt+1)*nmat,4)):

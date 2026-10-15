@@ -14,6 +14,7 @@ from xml.etree import ElementTree as ET
 
 from .adapters.frozen_fem import _read, _relative, _sha
 from .storage import save_json
+from .dynamic_result_store import load_result, artifact_references, frame_metadata, RetainedResult
 
 KEY = 'dynamic_locations'
 CLOCKS = {'dynamic': ('s', 'PHYSICAL_TIME'),
@@ -63,13 +64,19 @@ def retain_sources(folder, attempt, result):
     """Copy the exact admitted result and its pinned sources once for both clocks."""
     folder, attempt = Path(folder), Path(attempt)
     result_path = _path(attempt, 'dynamic_result.json')
-    if json.loads(_read(result_path)) != _plain(result):
+    saved = load_result(result_path, metadata_only=True)
+    actual = result.index if isinstance(result, RetainedResult) else _plain(result)
+    if dict(saved) != actual:
         raise ValueError('Dynamic Post must project its exact saved result')
     sources = {'dynamic_result.json': pin(attempt, result_path)}
     for name, item in result['source_pins'].items():
         if name in sources:
             raise ValueError('Duplicate dynamic result dependency')
         sources[name] = {'relative': name, **item}
+    for reference in artifact_references(saved):
+        if reference['relative'] in sources:
+            raise ValueError('Duplicate dynamic frame dependency')
+        sources[reference['relative']] = reference
     files = []
     for name, reference in sorted(sources.items()):
         source = _check(attempt, reference)
@@ -103,7 +110,8 @@ def write_sidecar(entry, result, metadata, frames, source_files):
     files = [pin(entry.parent, entry)]
     files += [pin(entry.parent, entry.parent / r['file']) for r in frames]
     files += deepcopy(source_files)
-    sidecar = {'locations': [deepcopy(result['frames'][r['result_frame_index']]['location']) for r in frames],
+    locations = frame_metadata(result)
+    sidecar = {'locations': [deepcopy(locations[r['result_frame_index']]['location']) for r in frames],
                'meanings': deepcopy(result['meanings']), 'category': category,
                'native_metadata': deepcopy(metadata), 'frames': deepcopy(frames),
                'files': files, 'origin': _origin(result, files)}
@@ -144,8 +152,8 @@ def load(entry, metadata):
     for name in ('source/dynamic_result.json', 'source/frozen_input/snapshot.json'):
         if name not in references:
             raise ValueError('Dynamic locations lack their exact result/snapshot')
-    result = json.loads(_read(_path(entry.parent, 'source/dynamic_result.json')))
-    if result.get('kind') != 'calculix_dynamic_result' or result.get('version') != 1:
+    result = load_result(_path(entry.parent, 'source/dynamic_result.json'), metadata_only=True)
+    if result.get('kind') != 'calculix_dynamic_result' or result.get('version') not in (1, 2):
         raise ValueError('Dynamic locations require the retained NS2 result')
     if sidecar.get('origin') != _origin(result, rows):
         raise ValueError('Dynamic location origin differs from the retained result')
@@ -160,6 +168,11 @@ def load(entry, metadata):
         expected_sources.add(name)
         if references.get(name) != {'relative': name, **item}:
             raise ValueError('Dynamic source lineage differs from the exact result: ' + name)
+    for item in artifact_references(result):
+        name = 'source/' + item['relative']
+        expected_sources.add(name)
+        if references.get(name) != {**item, 'relative': name}:
+            raise ValueError('Dynamic frame dependency differs from exact result: ' + name)
     # The existing snapshot/compiler/restart gates are reused, not bypassed.
     from .adapters.contact_fem import validate_snapshot
     from .calculix_dynamic import location, stage_contract

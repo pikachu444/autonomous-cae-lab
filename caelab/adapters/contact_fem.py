@@ -111,6 +111,7 @@ class ContactFemCalculixAdapter:
             'diagnostics': {}, 'artifacts': []}
         model = manifest = pins = None
         read_nodes = adjustment = None
+        observed = observed_pin = None
         tie_connected = True
         try:
             source = Path(settings['snapshot_path'])
@@ -145,7 +146,12 @@ class ContactFemCalculixAdapter:
             shutil.copyfile(retained / 'contact.inp', deck)
             from .dynamic_fem import before_run
             before_run(retained, native, model, result['runtime'], result, settings)
-            solved = run_owned_command([str(executable), '-i', deck.stem], native, 'ccx_contact')
+            solved = None
+            try:
+                solved = run_owned_command([str(executable), '-i', deck.stem], native, 'ccx_contact')
+            finally:
+                from ..dynamic_execution import capture_terminal
+                capture_terminal(output, model, manifest, pins, result, completed=solved)
             if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
                 _check_tie_connections(native)
                 tie_connected = True
@@ -166,6 +172,8 @@ class ContactFemCalculixAdapter:
                          'elements': {row['element_id']: 'M'+str(material_indices[row['body_id']]) for row in model['elements']}}
             observed = read_frd(deck.with_suffix('.frd'), read_nodes, elements, contact_materials=materials,
                                 contact_profile=profile(model), require_contact=bool(contact_pairs))
+            from ..dynamic_result_store import file_pin
+            observed_pin = file_pin(output, deck.with_suffix('.frd'))
             validate_frames(model, observed)
             frames = observed['frames']
             from ..dynamic_results import validate_requested
@@ -182,7 +190,7 @@ class ContactFemCalculixAdapter:
                 raise ValueError('묶음 접촉의 변위·응력·절점 힘 출력이 누락됐습니다. 원 출력은 보존됩니다.')
             if profile(model) or ns1_enabled(model):
                 from ..contact_status import read_status, require_converged
-                progress=read_status(deck.with_suffix('.sta'),model)
+                progress=result.get('increment_history') or read_status(deck.with_suffix('.sta'),model)
                 require_converged(frames,progress)
                 result['increment_history']=progress
             pair_results = read_dat(deck.with_suffix('.dat'), model['contacts'], frames)
@@ -276,7 +284,7 @@ class ContactFemCalculixAdapter:
             if status_path.is_file():
                 try:
                     from ..contact_status import read_status
-                    progress=read_status(status_path,model)
+                    progress=result.get('increment_history') or read_status(status_path,model)
                     result['increment_history']=progress
                     result['failure_location']=progress['failure_location']
                 except (ValueError,OSError,KeyError,UnicodeError) as error:
@@ -308,6 +316,8 @@ class ContactFemCalculixAdapter:
                         'elements':{r['element_id']:'M'+str(indices[r['body_id']]) for r in model['elements']}}
                     observed=retained_prefix(output/'solver/contact.frd',output/'partial/committed.frd',
                         read_nodes if read_nodes is not None else nodes,elements,materials,model,result['increment_history'])
+                    from ..dynamic_result_store import file_pin
+                    observed_pin = file_pin(output, output/'partial/committed.frd')
                     coordinates,partial_adjustment=_observed_adjustment(observed,adjustment,nodes,elements)
                     frames=observed['frames']
                     pairs=read_dat(output/'solver/contact.dat',model['contacts'],frames,prefix=True)
@@ -336,9 +346,11 @@ class ContactFemCalculixAdapter:
             'Exact tangential basis vectors, active-state classification and engineering release remain UNKNOWN']
         if model is not None and manifest is not None and pins is not None:
             from .dynamic_fem import finish
-            finish(output, model, manifest, pins, result)
+            finish(output, model, manifest, pins, result, parsed=observed, parsed_pin=observed_pin)
         result['artifacts'] = [{'relative':p.relative_to(output).as_posix(),'bytes':p.stat().st_size,'sha256':_sha(p)}
-                               for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()]
+                               for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()
+                               and p.name != 'contact_execution.json'
+                               and not any(part.startswith(('.caelab-', '.dynamic-energy-')) for part in p.relative_to(output).parts)]
         save_json(output / 'contact_execution.json', result)
         return result
 
@@ -353,6 +365,11 @@ def regenerate_post(attempt, output):
     record_path = attempt / 'contact_execution.json'
     record_bytes = _read(record_path)
     record = json.loads(record_bytes)
+    from ..dynamic_model import enabled as dynamic_enabled
+    _, source_model, _, _ = validate_snapshot(attempt / 'frozen_input/snapshot.json')
+    if dynamic_enabled(source_model):
+        from ..dynamic_recovery import reprocess
+        return reprocess(attempt, output)
     if record.get('execution_status') != 'SUCCEEDED':
         raise ValueError('Post regeneration requires an already parsed successful contact attempt')
     manifest, model, input_pins, _ = validate_snapshot(attempt / 'frozen_input' / 'snapshot.json')

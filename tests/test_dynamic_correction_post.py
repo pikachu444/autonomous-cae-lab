@@ -184,5 +184,6 @@ def test_partial_result_keeps_failure_and_missing_boundary_acceleration(monkeypa
     selected=select(output/artifact['relative'],artifact['native_metadata'],time=bundle['frames'][0]['timestep'])
     assert selected['execution_status']=='FAILED' and selected['complete_analysis'] is False
     assert selected['qualification']=='UNKNOWN'
-    cached=json.loads((output/'dynamic-post/source/dynamic_result.json').read_text(encoding='utf-8'))
+    from caelab.dynamic_result_store import load_result
+    cached=load_result(output/'dynamic-post/source/dynamic_result.json')
     assert all(values==[None,None,None] for values in cached['frames'][0]['acceleration']['values'].values())

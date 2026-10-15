@@ -128,83 +128,117 @@ def _native_number(token):
     return value if math.isfinite(value) else None
 
 
-def energy_history(path, model, frames):
-    """Read CalculiX 2.22 printout.f energy blocks without double-counted totals.
+class _NativeLines:
+    """One look-ahead line, preserving exact ASCII row text and 1-based lines."""
+    def __init__(self, stream):
+        self.stream, self.index, self.line = stream, -1, None
 
-    Element IDs are global deck IDs. For the admitted C3D10 structural elements,
-    four integration-point values are expected for ENER. Native contact-created
-    elements are deliberately outside CAELAB_DYNAMIC_ALL, not silently included.
-    Incomplete/nonfinite blocks stay unavailable; originals and their tokens stay
-    available for inspection. Duplicate rows/blocks or alien IDs are errors.
+    def has(self, index):
+        if index == self.index:
+            return self.line is not None
+        if index != self.index + 1:
+            raise ValueError('Native DAT reader must move forward by one line')
+        raw = self.stream.readline(1024 * 1024 + 1)
+        if len(raw) > 1024 * 1024 or b'\x00' in raw:
+            raise ValueError('Malformed or oversized native DAT line')
+        self.index = index
+        self.line = raw.decode('ascii').rstrip('\r\n') if raw else None
+        return self.line is not None
+
+    def __getitem__(self, index):
+        if not self.has(index):
+            raise IndexError(index)
+        return self.line
+
+
+def iter_energy_blocks(path, model):
+    """The existing DAT block grammar, streamed without a whole-file allocation.
+
+    Values, raw tokens, line numbers, IP identity and missing reasons are unchanged.
+    No interpolation, resampling, derived totals for incomplete blocks or solver.
     """
-    expected = {r['element_id'] for r in model['elements']}
-    entries = []
-    for f in frames:
-        entries.append({'static': deepcopy(f['static']), 'quantities': {
-            q: {'status': 'unavailable', 'reason': 'native_block_not_recorded',
-                'rows': [], 'total': None, **deepcopy(MEANINGS[q])}
-            for q in ('ELKE', 'ELSE', 'ENER')}})
     path = Path(path)
     if not path.is_file():
-        return {'frames': entries, 'source': None, 'unassociated_blocks': [],
-                'scope': 'original_structural_elements_only; not an energy balance'}
-    raw = _read(path)
-    lines = raw.decode('ascii').splitlines()
-    source = {'sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw), 'relative': 'solver/contact.dat'}
+        return
+    from .dynamic_result_store import file_pin, verify_pin
+    before = file_pin(path.parent, path)
+    expected = {r['element_id'] for r in model['elements']}
+    with path.open('rb') as stream:
+        lines = _NativeLines(stream)
+        i = 0
+        while lines.has(i):
+            match = _HEADER.match(lines[i])
+            if not match:
+                i += 1
+                continue
+            start = i
+            raw_header = lines[i]
+            kind, labels, setname, time_token = match.groups()
+            quantity = _QUANTITY[kind.lower()]
+            if setname.upper() != 'CAELAB_DYNAMIC_ALL':
+                raise ValueError('Unexpected energy set: ' + setname)
+            time = _native_number(time_token)
+            if time is None:
+                raise ValueError('Nonfinite native energy output time')
+            expected_labels = {'ELKE': ('elem, energy', 'element, energy'),
+                               'ELSE': ('element, energy',), 'ENER': ('elem, integ.pnt.,energy',)}
+            if re.sub(r'\s+', '', labels.lower()) not in [re.sub(r'\s+', '', s) for s in expected_labels[quantity]]:
+                raise ValueError('Native energy component meaning/order differs')
+            i += 1
+            while lines.has(i) and not lines[i].strip():
+                i += 1
+            rows, seen = [], set()
+            while lines.has(i):
+                tokens = lines[i].split()
+                if not tokens or not re.fullmatch(r'[0-9]+', tokens[0]):
+                    break
+                if len(tokens) != (3 if quantity == 'ENER' else 2):
+                    raise ValueError('Malformed native energy row at line ' + str(i+1))
+                element = int(tokens[0])
+                ip = int(tokens[1]) if quantity == 'ENER' and tokens[1].isdigit() else None
+                if element not in expected or quantity == 'ENER' and ip not in (1, 2, 3, 4):
+                    raise ValueError('Foreign element/integration point in native energy output')
+                key = element, ip
+                if key in seen:
+                    raise ValueError('Duplicate native energy element/integration point')
+                seen.add(key)
+                value = _native_number(tokens[-1])
+                rows.append({'element_id': element, 'integration_point': ip, 'value': value,
+                             'token': tokens[-1], 'raw': lines[i], 'line': i+1,
+                             'missing_reason': 'nonfinite_native_value' if value is None else None})
+                i += 1
+            expected_keys = {(e, ip) for e in expected for ip in ((1, 2, 3, 4) if quantity == 'ENER' else (None,))}
+            complete = seen == expected_keys and all(r['value'] is not None for r in rows)
+            block = {'quantity': quantity, 'set': setname, 'native_time_token': time_token,
+                     'native_global_coordinate': time, 'source_lines': [start+1, i], 'rows': rows,
+                     'raw_header': raw_header, 'missing_keys': sorted([list(k) for k in expected_keys-seen]),
+                     'status': 'available' if complete else 'unavailable',
+                     'reason': None if complete else 'incomplete_or_nonfinite_native_block',
+                     'total': math.fsum(r['value'] for r in rows) if complete and quantity != 'ENER' else None,
+                     'total_scope': 'one_value_per_original_structural_element' if quantity != 'ENER' else 'not_summable',
+                     **deepcopy(MEANINGS[quantity])}
+            yield block
+    verify_pin(path.parent, before)
+
+
+def _empty_energy():
+    return {q: {'status': 'unavailable', 'reason': 'native_block_not_recorded',
+                'rows': [], 'total': None, **deepcopy(MEANINGS[q])}
+            for q in ('ELKE', 'ELSE', 'ENER')}
+
+
+def energy_history(path, model, frames):
+    """v1 public collector over the same strict streaming DAT block reader."""
+    from .dynamic_result_store import file_pin
+    entries = [{'static': deepcopy(f['static']), 'quantities': _empty_energy()} for f in frames]
     unmatched = []
-    i = 0
-    while i < len(lines):
-        match = _HEADER.match(lines[i])
-        if not match:
-            i += 1
-            continue
-        start = i
-        kind, labels, setname, time_token = match.groups()
-        quantity = _QUANTITY[kind.lower()]
-        if setname.upper() != 'CAELAB_DYNAMIC_ALL':
-            raise ValueError('Unexpected energy set: ' + setname)
-        time = _native_number(time_token)
-        if time is None:
-            raise ValueError('Nonfinite native energy output time')
-        expected_labels = {'ELKE': ('elem, energy', 'element, energy'),
-                           'ELSE': ('element, energy',), 'ENER': ('elem, integ.pnt.,energy',)}
-        if re.sub(r'\s+', '', labels.lower()) not in [re.sub(r'\s+', '', s) for s in expected_labels[quantity]]:
-            raise ValueError('Native energy component meaning/order differs')
-        i += 1
-        while i < len(lines) and not lines[i].strip():
-            i += 1
-        rows, seen = [], set()
-        while i < len(lines):
-            tokens = lines[i].split()
-            if not tokens or not re.fullmatch(r'[0-9]+', tokens[0]):
-                break
-            if len(tokens) != (3 if quantity == 'ENER' else 2):
-                raise ValueError('Malformed native energy row at line ' + str(i+1))
-            element = int(tokens[0])
-            ip = int(tokens[1]) if quantity == 'ENER' and tokens[1].isdigit() else None
-            if element not in expected or quantity == 'ENER' and ip not in (1, 2, 3, 4):
-                raise ValueError('Foreign element/integration point in native energy output')
-            key = element, ip
-            if key in seen:
-                raise ValueError('Duplicate native energy element/integration point')
-            seen.add(key)
-            value = _native_number(tokens[-1])
-            rows.append({'element_id': element, 'integration_point': ip, 'value': value,
-                         'token': tokens[-1], 'raw': lines[i], 'line': i+1,
-                         'missing_reason': 'nonfinite_native_value' if value is None else None})
-            i += 1
-        expected_keys = {(e, ip) for e in expected for ip in ((1, 2, 3, 4) if quantity == 'ENER' else (None,))}
-        complete = seen == expected_keys and all(r['value'] is not None for r in rows)
-        block = {'quantity': quantity, 'set': setname, 'native_time_token': time_token,
-                 'native_global_coordinate': time, 'source_lines': [start+1, i], 'rows': rows,
-                 'raw_header': lines[start], 'missing_keys': sorted([list(k) for k in expected_keys-seen]),
-                 'status': 'available' if complete else 'unavailable',
-                 'reason': None if complete else 'incomplete_or_nonfinite_native_block',
-                 'total': math.fsum(r['value'] for r in rows) if complete and quantity != 'ENER' else None,
-                 'total_scope': 'one_value_per_original_structural_element' if quantity != 'ENER' else 'not_summable',
-                 **deepcopy(MEANINGS[quantity])}
+    path = Path(path)
+    source = None
+    if path.is_file():
+        source = {**file_pin(path.parent, path), 'relative': 'solver/contact.dat'}
+    for block in iter_energy_blocks(path, model):
         matches = [j for j, f in enumerate(frames)
-                   if _printed_close(time_token, f['static']['load_parameter'],
+                   if _printed_close(block['native_time_token'], f['static']['load_parameter'],
                                      reference_token=f['load_parameter_token'])]
         if len(matches) > 1:
             raise ValueError('Ambiguous native DAT to FRD energy time association')
@@ -212,10 +246,10 @@ def energy_history(path, model, frames):
             block['association_reason'] = 'no_retained_converged_output_frame_at_this_time'
             unmatched.append(block)
         else:
-            existing = entries[matches[0]]['quantities'][quantity]
+            existing = entries[matches[0]]['quantities'][block['quantity']]
             if existing.get('source_lines') is not None:
                 raise ValueError('Duplicate native energy block for one output frame')
-            entries[matches[0]]['quantities'][quantity] = block
+            entries[matches[0]]['quantities'][block['quantity']] = block
     return {'frames': entries, 'source': source, 'unassociated_blocks': unmatched,
             'scope': 'original_structural_elements_only; not an energy balance'}
 
@@ -237,54 +271,28 @@ def bundle(model, frames, dat_path, *, execution_status, source_pins, snapshot_i
                 'energy': energy['frames'][i]['quantities'],
                 'restrained_dofs': [list(key) for key in sorted(stages[native['step']-1]['boundary'])]}
         output.append(data)
-    # Result index is an artifact inside the EXISTING attempt, not a project format.
+    result = result_header(model, execution_status=execution_status,
+                           source_pins=source_pins, snapshot_id=snapshot_id)
+    result.update(frames=output, energy_source=energy['source'],
+                  energy_unassociated_blocks=energy['unassociated_blocks'])
+    return result
+
+
+def result_header(model, *, execution_status, source_pins, snapshot_id):
+    from .dynamic_model import capability
     return {'kind': 'calculix_dynamic_result', 'version': 1, 'snapshot_id': snapshot_id,
         'execution_status': execution_status, 'complete_analysis': execution_status == 'SUCCEEDED',
         'qualification': 'UNKNOWN', 'decision': 'NOT_RELEASED', 'solver_execution_on_open': 'NOT_PERFORMED',
         'source_pins': deepcopy(source_pins), 'stages': stage_contract(model), 'meanings': deepcopy(MEANINGS),
         'nodes': deepcopy(model['nodes']), 'elements': deepcopy(model['elements']),
-        'capability': capability(model), 'frames': output, 'energy_source': energy['source'],
-        'energy_unassociated_blocks': energy['unassociated_blocks'],
+        'capability': capability(model),
         'state_source': deepcopy(model.get('restart', {'kind': 'model_initial_conditions_and_native_steps'}))}
 
 
 def read_attempt(attempt):
-    """Cold open a pinned result, including failed/partial attempts, without ccx."""
-    attempt = Path(attempt)
-    if not attempt.is_absolute():
-        raise ValueError('Select an absolute retained attempt directory')
-    record_bytes = _read(attempt/'contact_execution.json')
-    record = json.loads(record_bytes)
-    info = record.get('dynamic_result')
-    if not isinstance(info, dict):
-        raise ValueError('This attempt has no admitted NS2 result. Inspect retained diagnostics/raw output.')
-    entries = {}
-    for pin in record['artifacts']:
-        name = _relative(pin['relative'])
-        if name in entries:
-            raise ValueError('Duplicate retained artifact pin')
-        entries[name] = pin
-    def checked(name):
-        name = _relative(name)
-        pin = entries.get(name)
-        data = _read(attempt/name)
-        if pin is None or len(data) != pin['bytes'] or hashlib.sha256(data).hexdigest() != pin['sha256']:
-            raise ValueError('Retained dynamic artifact changed: ' + name)
-        return data
-    data = checked(info['relative'])
-    if len(data) != info['bytes'] or hashlib.sha256(data).hexdigest() != info['sha256']:
-        raise ValueError('Result reference differs from the retained artifact')
-    result = json.loads(data)
-    if (result.get('kind') != 'calculix_dynamic_result' or result.get('version') != 1 or
-            result['snapshot_id'] != record['snapshot_id'] or result['execution_status'] != record['execution_status']):
-        raise ValueError('Result and attempt identities differ')
-    for name, pin in result['source_pins'].items():
-        raw = checked(name)
-        if len(raw) != pin['bytes'] or hashlib.sha256(raw).hexdigest() != pin['sha256']:
-            raise ValueError('Result provenance source changed: ' + name)
-    if _read(attempt/'contact_execution.json') != record_bytes:
-        raise ValueError('Attempt changed during cold reopen')
-    return result
+    """Cold-open v1 or frame-backed v2; raw/frame pins use streamed validation."""
+    from .dynamic_result_store import read_attempt as open_retained
+    return open_retained(attempt)
 
 
 def history(result, quantity, *, body_id=None, native_node_id=None, component=1,

@@ -15,7 +15,9 @@ from ..contact_deck import validate_model
 from ..contact_steps import profile, validate_frames
 from ..contact_status import require_converged
 from ..dynamic_model import enabled, capability
-from ..dynamic_results import bundle, history
+from ..dynamic_results import history
+from ..dynamic_result_store import write_result, file_pin, verify_pin, frame_metadata
+from ..execution_control import check_cancelled, ExecutionCancelled
 from ..dynamic_restart import stage_read, runtime_platform, checkpoint_inventory
 from ..calculix_dynamic import stage_contract
 from ..storage import save_json
@@ -47,10 +49,11 @@ def _sources(output, pins, frd):
     names += [str(frd.relative_to(output)).replace('\\','/')]
     names += ['solver/contact.'+suffix for suffix in ('inp','frd','dat','sta','rin','rout')
               if (output/('solver/contact.'+suffix)).is_file()]
+    names += [n for n in ('solver/ccx_contact.execution.json', 'source_execution.json') if (output/n).is_file()]
     result = {}
     for name in sorted(set(names)):
-        data = _read(output/name)
-        result[name] = {'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+        pin = file_pin(output, output/name)
+        result[name] = {k: pin[k] for k in ('bytes', 'sha256')}
     return result
 
 
@@ -58,14 +61,14 @@ def _responses(result, data):
     """Finite projections for existing Runner; all missing rows remain in cache."""
     if result['execution_status'] != 'SUCCEEDED':
         return
-    dynamic = [f for f in data['frames'] if f['location']['physical_time_available']]
+    dynamic = [i for i, f in enumerate(frame_metadata(data)) if f['location']['physical_time_available']]
     if not dynamic:
         return
-    final = dynamic[-1]
-    ids = sorted(final['fields']['DISP'])
+    final = data['frames'][dynamic[-1]]
+    ids = sorted(int(n) for n in final['fields']['DISP'])
     for field,name,unit in (('VELO','velocity','mm/s'),('FORC','dynamic_nodal_force','N')):
         result['responses'][name] = {'kind':'field','unit':unit,
-            'value':[final['fields'][field][n] for n in ids],
+            'value':[final['fields'][field].get(n, final['fields'][field].get(str(n))) for n in ids],
             'component':'VECTOR','location':'calculix_export_nodes','reduction':'none',
             'metadata':{'node_ids':ids,'association':'POINTS','native_field':field,
                 'step_location':deepcopy(final['location']),
@@ -87,11 +90,12 @@ def _responses(result, data):
                 'not_an_energy_balance':True}}
 
 
-def finish(output, model, manifest, pins, result):
+def finish(output, model, manifest, pins, result, *, parsed=None, parsed_pin=None, frd_source=None):
     """Run after the common success/partial paths and before artifact hashing."""
     if not enabled(model):
         return
     output = Path(output)
+    result.setdefault('postprocessing', {'result': 'NOT_STARTED', 'post': 'NOT_STARTED'})
     result['limitations'] = [
         'Implicit structural C3D10 only; static preload time is not physical time.',
         'Derived A uses three actual nonuniform V times in one dynamic step; endpoints/missing samples remain unavailable.',
@@ -115,14 +119,20 @@ def finish(output, model, manifest, pins, result):
                 'native_read_execution':'NOT_YET_PERFORMED','qualification':'UNKNOWN'}
         except (OSError,ValueError,KeyError,TypeError,IndexError,UnicodeError) as exc:
             result['dynamic_restart'] = {'status':'unavailable','reason':str(exc),'raw_source':'solver/contact.rout'}
-    if result['execution_status'] == 'SUCCEEDED':
+    if frd_source is not None:
+        from .frozen_fem import _relative
+        frd = output/_relative(frd_source)
+    elif result['execution_status'] == 'SUCCEEDED':
         frd = output/'solver/contact.frd'
     elif result.get('partial_result'):
         frd = output/'partial/committed.frd'
     else:
         return
     previous_post=deepcopy(result.get('post_artifact'))
+    phase = 'result'
     try:
+        check_cancelled()
+        result['postprocessing']['result'] = 'READING'
         from .contact_fem import validate_snapshot
         validate_snapshot(output/'frozen_input/snapshot.json')
         for name,pin in pins.items():
@@ -137,26 +147,35 @@ def finish(output, model, manifest, pins, result):
         materials={'names':['M'+str(i) for i in indices.values()]+
                    ['INT'+p['object_id'].upper() for p in model['contacts']],
                    'elements':{e['element_id']:'M'+str(indices[e['body_id']]) for e in model['elements']}}
-        parsed=read_frd(frd,nodes,elements,contact_materials=materials,contact_profile=profile(model),
-                        require_contact=bool(model['contacts']))
+        if parsed is not None and parsed_pin is not None and parsed_pin['relative'] == frd.relative_to(output).as_posix():
+            verify_pin(output, parsed_pin)
+        else:
+            parsed=read_frd(frd,nodes,elements,contact_materials=materials,contact_profile=profile(model),
+                            require_contact=bool(model['contacts']))
         validate_frames(model,parsed,complete=result['execution_status']=='SUCCEEDED')
         require_converged(parsed['frames'],result['increment_history'])
         sources=_sources(output,pins,frd)
-        data=bundle(model,parsed['frames'],output/'solver/contact.dat',
-                    execution_status=result['execution_status'],source_pins=sources,snapshot_id=manifest['id'])
-        data['job_id']=result.get('job_id')
-        data['job_identity']=deepcopy(result.get('job_identity'))
-        data['input_origin']=deepcopy(result.get('input_origin'))
+        for name, pin in result.get('native_execution', {}).get('source_pins', {}).items():
+            verify_pin(output, {'relative': name, **pin})
+        provenance = {k: deepcopy(result.get(k)) for k in
+                      ('job_id', 'job_identity', 'input_origin', 'native_execution')}
         if model.get('restart'):
-            data['state_source']['native_read_observation'] = {
+            provenance['state_source'] = deepcopy(model['restart'])
+            provenance['state_source']['native_read_observation'] = {
                 'status':'OUTPUT_FROM_NEW_NATIVE_STEPS_RECORDED',
-                'first_observed_step':data['frames'][0]['native']['step'],
+                'first_observed_step':parsed['frames'][0]['static']['step'],
                 'rin_sha256':_sha(output/'solver/contact.rin'),
                 'runtime_sha256':result['runtime']['sha256'],
                 'numerical_equivalence':'NOT_ESTABLISHED_BY_SUCCESSFUL_EXECUTION'}
-        # New projections do not replace the original contact inspection fields.
+        if result.get('derivation'):
+            provenance['derivation'] = deepcopy(result['derivation'])
+        data=write_result(output, model, parsed['frames'], output/'solver/contact.dat',
+                    execution_status=result['execution_status'], source_pins=sources,
+                    snapshot_id=manifest['id'], extra_header=provenance)
+        result['postprocessing']['result'] = 'RETAINED'
+        phase = 'post'
+        result['postprocessing']['post'] = 'WRITING'
         from ..dynamic_post import write
-        save_json(output/'dynamic_result.json',data)
         projections=write(output/'dynamic-post',model,data,source_root=output)
         for info in projections.values():info['relative']='dynamic-post/'+info['relative']
         path=output/'dynamic_result.json'
@@ -170,11 +189,13 @@ def finish(output, model, manifest, pins, result):
         elif 'static-preload' in projections:
             result['native_coordinate_post_artifact']=deepcopy(result.get('post_artifact'))
             result['post_artifact']=deepcopy(projections['static-preload'])
+        result['postprocessing']['post'] = 'RETAINED'
         _responses(result,data)
         for name,pin in sources.items():
             if _sha(output/name)!=pin['sha256']:
                 raise ValueError('Retained dynamic source changed during readback')
-    except (OSError,ValueError,KeyError,TypeError,IndexError,UnicodeError,OverflowError) as exc:
+    except (ExecutionCancelled,OSError,ValueError,KeyError,TypeError,IndexError,UnicodeError,OverflowError) as exc:
+        result['postprocessing'][phase] = 'CANCELLED' if isinstance(exc, ExecutionCancelled) else 'FAILED'
         result.setdefault('diagnostics',{})['dynamic_readback']=str(exc)
         result.pop('dynamic_result',None)
         result.pop('dynamic_post_artifacts',None)
@@ -182,6 +203,9 @@ def finish(output, model, manifest, pins, result):
         if previous_post is None: result.pop('post_artifact',None)
         else: result['post_artifact']=previous_post
         # The native result is not silently fabricated or marked as qualified.
-        if result['execution_status']=='SUCCEEDED':
+        if isinstance(exc, ExecutionCancelled):
+            result['execution_status'] = 'CANCELLED'
+            result['responses'] = {}
+        elif result['execution_status']=='SUCCEEDED':
             result['execution_status']='FAILED'
             result['responses']={}

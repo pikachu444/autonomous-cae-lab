@@ -105,7 +105,7 @@ def test_failed_but_converged_prefix_is_read_only(monkeypatch,tmp_path):
 def test_missing_energy_does_not_publish_an_empty_or_zero_core_curve(monkeypatch,tmp_path):
     from caelab.adapters.dynamic_fem import _responses
     _,out=run_double(monkeypatch,tmp_path,dynamic_model())
-    data=read_attempt(out)
+    data=deepcopy(read_attempt(out))  # Explicit mutable comparison copy; retained v2 reads are lazy.
     for frame in data['frames']:
         for name in ('ELKE','ELSE'):
             frame['energy'][name]['total']=None

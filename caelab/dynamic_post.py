@@ -11,6 +11,8 @@ from xml.etree import ElementTree as ET
 
 from .adapters.frozen_fem import _sha
 from .storage import save_json
+from .dynamic_result_store import frame_metadata
+from .execution_control import check_cancelled
 
 
 def write(folder, model, result, *, source_root):
@@ -22,6 +24,7 @@ def write(folder, model, result, *, source_root):
     nodes = sorted(model['nodes'], key=lambda r:r['node_id'])
     ids = [r['node_id'] for r in nodes]
     bodies = {b:i+1 for i,b in enumerate(sorted(model['body_maps']))}
+    field_names = set().union(*(f['field_names'] for f in frame_metadata(result)))
     declarations = []
     def declare(name,unit,measure,association='POINTS',components=1):
         row={'name':name,'association':association,'components':components,
@@ -42,11 +45,11 @@ def write(folder, model, result, *, source_root):
         declare('Restrained'+axis,'1','exact_boundary_DOF_in_this_native_step')
     declare('ENER_nodal_N_per_mm2','N/mm^2','native_extrapolated_nodal_averaged_internal_energy_density')
     for name,label in (('STRESS','S'),('TOSTRAIN','E')):
-        if any(name in f['fields'] for f in result['frames']):
+        if name in field_names:
             for component in ('XX','YY','ZZ','XY','YZ','ZX'):
                 declare(label+component,'MPa' if name=='STRESS' else '1',
                         'native_cauchy_stress' if name=='STRESS' else ('native_Green_Lagrange_strain_tensor' if model['step']['geometry']=='nonlinear' else 'native_infinitesimal_strain_tensor'))
-    if any('PE' in f['fields'] for f in result['frames']):
+    if 'PE' in field_names:
         declare('PEEQ','1','native_equivalent_plastic_strain')
     for quantity in ('ELKE','ELSE'):
         declare(quantity+'_Nmm','N*mm','native_whole_element_'+quantity,'CELLS')
@@ -66,6 +69,7 @@ def write(folder, model, result, *, source_root):
         return mapping.get(n,mapping.get(str(n),[None]*count))
     def value(v):return math.nan if v is None else v
     for index,frame in enumerate(result['frames']):
+        check_cancelled()
         fields,loc=frame['fields'],frame['location']
         restraint={tuple(k) for k in frame['restrained_dofs']}
         extra={'SourceNodeId':[n['native_node_id'] for n in nodes],
@@ -78,10 +82,10 @@ def write(folder, model, result, *, source_root):
             extra['Restrained'+axis]=[int((n,d+1) in restraint) for n in ids]
         extra['ENER_nodal_N_per_mm2']=[value(vector(fields.get('ENER',{}),n,1)[0]) for n in ids]
         for name,label in (('STRESS','S'),('TOSTRAIN','E')):
-            if any(name in f['fields'] for f in result['frames']):
+            if name in field_names:
                 for d,component in enumerate(('XX','YY','ZZ','XY','YZ','ZX')):
                     extra[label+component]=[value(vector(fields.get(name,{}),n,6)[d]) for n in ids]
-        if any('PE' in f['fields'] for f in result['frames']):
+        if 'PE' in field_names:
             extra['PEEQ']=[value(vector(fields.get('PE',{}),n,1)[0]) for n in ids]
         if model['contacts']:
             from .adapters.contact_results import CHANNELS
