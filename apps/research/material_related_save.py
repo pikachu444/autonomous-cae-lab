@@ -44,13 +44,16 @@ class RelatedSaveDialog(QDialog):
         self.retry_button = QPushButton('선택한 실패 문서 재시도')
         self.check_button = QPushButton('결과 다시 확인')
         self.link_button = QPushButton('저장한 재료로 연결')
+        self.resume_button = QPushButton('원래 저장 요청 재전송')
         self.close_button = QPushButton('닫기')
         for button in (self.save_button, self.retry_button, self.check_button): row.addWidget(button)
-        link_row.addWidget(self.link_button); link_row.addStretch(); link_row.addWidget(self.close_button)
+        link_row.addWidget(self.resume_button); link_row.addWidget(self.link_button)
+        link_row.addStretch(); link_row.addWidget(self.close_button)
         self.save_button.clicked.connect(self.save)
         self.retry_button.clicked.connect(self.retry_selected)
         self.check_button.clicked.connect(self.check)
         self.link_button.clicked.connect(self.publish)
+        self.resume_button.clicked.connect(self.resume_original)
         self.close_button.clicked.connect(self.reject)
         self.table.itemSelectionChanged.connect(self._buttons)
         self._buttons(); QTimer.singleShot(0, self.check if receipt_id else self.review)
@@ -80,6 +83,9 @@ class RelatedSaveDialog(QDialog):
         selected = self._selected_failed() if self.receipt else []
         self.retry_button.setEnabled(ready and self.allow_writes and bool(selected))
         self.check_button.setEnabled(ready and self.preview is not None)
+        pending = self._initial_receipt_id is not None and self.pending_preview is not None and self.receipt is None
+        self.resume_button.setVisible(pending)
+        self.resume_button.setEnabled(ready and pending and self.allow_writes)
         publication = (self.receipt or {}).get('publication', {})
         self.link_button.setEnabled(ready and self.allow_writes and bool((self.receipt or {}).get('all_saved'))
             and publication.get('state') in ('NOT_REQUESTED', 'LINK_SAVE_FAILED'))
@@ -137,13 +143,37 @@ class RelatedSaveDialog(QDialog):
         targets = self._selected_failed()
         if not self.allow_writes or not targets or self._busy: return False
         selected = {target['identity']['document_id'] for target in targets}
-        requests = [request for request in self.requests if request['identity']['document_id'] in selected]
+        from caelab.related_save import input_identity
+        from caelab.storage import canonical_hash
+        requests = []
+        for request in self.requests:
+            identifier=request['identity']['document_id']
+            if identifier not in selected: continue
+            current=self.documents[identifier]
+            reviewed=input_identity(current)
+            # A new process has a new session. Review its existing receipt only
+            # for exactly the retained failed input, never a newer peer draft.
+            if (current['draft'] != request['buffer'] or any(reviewed[key] != request['identity'][key]
+                    for key in ('document_id','kind','input_revision','input_sha256','saved_revision'))
+                    or canonical_hash(request['buffer']) != reviewed['input_sha256']):
+                self.message.setText('원래 입력과 현재 문서가 다릅니다. 편집을 보존하고 문서를 확인하세요.')
+                return False
+            requests.append({'identity':reviewed,'buffer':deepcopy(request['buffer'])})
         receipt_id = self.receipt['receipt_id']
         def reviewed(preview):
             if preview['saveable_count'] != len(requests):
                 self.message.setText('원래 입력과 문서가 달라 재시도하지 않았습니다. 편집을 확인한 뒤 새로 저장하세요.'); return
             self._call('related_save.retry', {'receipt_id': receipt_id, 'preview': preview}, self._received)
         return self._call('related_save.preview', {'requests': requests}, reviewed)
+
+    def resume_original(self):
+        """Explicit replay of the retained request; never allocate a new receipt."""
+        if (self._busy or not self.allow_writes or self.receipt is not None
+                or self._initial_receipt_id is None or self.pending_preview is None
+                or self.pending_preview.get('receipt_id') != self._initial_receipt_id):
+            return False
+        self.saveAttempted.emit(deepcopy(self.pending_preview))
+        return self._call('related_save.execute', {'preview': deepcopy(self.pending_preview)}, self._received)
 
     def check(self):
         if self._busy or self.preview is None: return False
@@ -159,6 +189,13 @@ class RelatedSaveDialog(QDialog):
         publication = self.receipt.get('publication', {})
         identity = (publication['linked_identity'] if publication.get('state') == 'LINK_SAVE_FAILED'
                     else input_identity(plan['attempts'][-1]['response']['document']))
+        if publication.get('state') == 'NOT_REQUESTED':
+            current=self.documents[plan['identity']['document_id']]
+            reviewed=input_identity(current)
+            if (current['draft'] == plan['attempts'][-1]['response']['document']['draft']
+                    and all(reviewed[key] == identity[key] for key in
+                            ('document_id','kind','input_revision','input_sha256','saved_revision'))):
+                identity=reviewed
         return self._call('related_save.publish', {'receipt_id': self.receipt['receipt_id'],
             'material_id': material['identity']['document_id'], 'plan_id': plan['identity']['document_id'],
             'expected_plan': identity, 'command_id': 'C' + uuid.uuid4().hex}, self._received)

@@ -69,6 +69,7 @@ class MaterialPlanPanel(QWidget):
         self._related_save_receipts = {}
         self._related_save_pending = {}
         self._related_save_unconfirmed = set()
+        self._related_save_recovery_context = None
         layout = QVBoxLayout(self)
         row = QHBoxLayout()
         self.plans = QComboBox()
@@ -96,6 +97,7 @@ class MaterialPlanPanel(QWidget):
         self.related_save_button.clicked.connect(self.save_related)
         self.save_receipt_button.clicked.connect(lambda: self.save_related(receipt_id=self._related_save_receipts.get(self.plans.currentData())))
         self.plans.currentIndexChanged.connect(self._selected)
+        self.restore_related_save_context(getattr(material, '_related_save_recovery_context', None))
 
     def _call(self, function, after):
         if self._busy:
@@ -136,6 +138,7 @@ class MaterialPlanPanel(QWidget):
                 self.plans.addItem(document['title'], identifier)
             self.plans.setCurrentIndex(max(0, self.plans.findData(selected)))
             self.plans.blockSignals(False)
+            self._restore_related_save_selection()
             self._selected()
         return self._call(self.client.documents, received)
 
@@ -289,8 +292,45 @@ class MaterialPlanPanel(QWidget):
         return True
 
     def has_pending_inputs(self):
-        return self._busy or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
+        return self._busy or bool(self._related_save_unconfirmed) or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
                                  for widget in self._widgets.values())
+
+    def related_save_snapshot(self):
+        """Noncommitting context, including attempts whose reply was lost."""
+        context = deepcopy(self._related_save_recovery_context) or {
+            'material_id': self.material.document['id'], 'selected_plan': None, 'plans': {}}
+        context['selected_plan'] = self.plans.currentData() or context['selected_plan']
+        for identifier, receipt_id in self._related_save_receipts.items():
+            context['plans'][identifier] = dict(receipt_id=receipt_id,
+                pending_preview=deepcopy(self._related_save_pending.get(identifier)),
+                unconfirmed=identifier in self._related_save_unconfirmed)
+        return context if context['plans'] else None
+
+    def restore_related_save_context(self, context):
+        from .material_save_recovery import checked_context
+        context = checked_context(context, self.material.document['id']) if context is not None else None
+        if context is None:
+            return
+        if self._related_save_receipts or self._busy:
+            raise ValueError('현재 저장 결과를 유지합니다. 보관한 요청은 새 창에서 여세요.')
+        self._related_save_recovery_context = context
+        for identifier, item in context['plans'].items():
+            self._related_save_receipts[identifier] = item['receipt_id']
+            if item['pending_preview'] is not None:
+                self._related_save_pending[identifier] = deepcopy(item['pending_preview'])
+            if item['unconfirmed']:
+                self._related_save_unconfirmed.add(identifier)
+        self._restore_related_save_selection()
+
+    def _restore_related_save_selection(self):
+        context = self._related_save_recovery_context
+        if context is None:
+            return
+        index = self.plans.findData(context['selected_plan'])
+        if index >= 0:
+            self.plans.setCurrentIndex(index)
+            self.save_receipt_button.setEnabled(self.plans.currentData() in self._related_save_receipts)
+            self.message.setText('보관한 저장 요청이 있습니다. 저장 결과에서 원래 결과를 확인하세요.')
 
     def recovery_ready(self):
         return not self._busy and all(widget.recovery_ready() for widget in self._widgets.values()
