@@ -179,6 +179,7 @@ class NumericalPlanVariablesWidget(QWidget):
         if not self.recovery_ready():return False
         if not isinstance(document,dict) or not isinstance(document.get('saved_revision'),str) or not document['saved_revision']:
             return False
+        if type(document.get('generation')) is not int or type(self._document.get('generation')) is not int:return False
         if self._document.get('saved_revision') not in (previous_saved_revision,document['saved_revision']):return False
         try:
             same=(document['kind']==self._document['kind'] and self._identity(document)==self._identity(self._document)

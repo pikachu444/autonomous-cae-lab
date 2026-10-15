@@ -103,6 +103,18 @@ def test_saved_metadata_refresh_refuses_changed_draft_or_inflight_command(pair):
     view.detach_owner();assert not view.refresh_saved_metadata(receipt,previous_saved_revision=None)
 
 
+@pytest.mark.parametrize('side,value',[('incoming',False),('incoming',0.0),('current',False),('current',0.0)])
+def test_saved_metadata_generation_requires_exact_int_without_qt_window(side,value):
+    from types import SimpleNamespace
+    current=document('Nfixture');receipt=deepcopy(current);receipt.update(saved_revision='Rsaved',dirty=False)
+    (receipt if side=='incoming' else current)['generation']=value
+    host=SimpleNamespace(_document=current,_adapter=SimpleNamespace(document_id='Nfixture'),
+        recovery_ready=lambda:True,_identity=NumericalPlanVariablesWidget._identity)
+    before=deepcopy(current)
+    assert not NumericalPlanVariablesWidget.refresh_saved_metadata(host,receipt,previous_saved_revision=None)
+    assert host._document==before
+
+
 def test_keyboard_local_undo_redo_never_targets_other_owner(pair):
     app,host,(first,second),foreign=pair
     original=second.buffer_snapshot()
