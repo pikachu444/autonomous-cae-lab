@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 import unittest
 import venv
+import sys
+import socket
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,7 +59,8 @@ $ErrorActionPreference = 'Stop'
 $spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Encoding UTF8 -Raw | ConvertFrom-Json
 $global:CaeLauncherTest = @{spec=$spec;started=$false;processId=42421;
     python=(Join-Path $spec.runtime 'venv\Scripts\python.exe');command='';ownedProcess=$true;ownedListener=$true;
-    loadedHash=$null;session='Sfixture';configAlias=$null}
+    loadedHash=$null;session='Sfixture';configAlias=$null;creation=[DateTime]'2026-10-15T00:00:00Z';
+    healthBlocked=$false;connectionBlocked=$false;startCount=0;phaseIndex=0;changedDuringWait=$false;publicationLock=$null}
 $global:LASTEXITCODE = 0
 function Write-TestEvent($value) {
     ConvertTo-Json -InputObject $value -Compress -Depth 8 |
@@ -68,7 +71,7 @@ function Get-CimInstance {
     $state = $global:CaeLauncherTest
     if ($state.started -and $Filter -eq "ProcessId=$($state.processId)") {
         $executable = if ($state.ownedProcess) { $state.python } else { 'C:\unrelated\python.exe' }
-        return [pscustomobject]@{ExecutablePath=$executable;CommandLine=$state.command}
+        return [pscustomobject]@{ExecutablePath=$executable;CommandLine=$state.command;CreationDate=$state.creation}
     }
     return $null
 }
@@ -76,16 +79,29 @@ function Get-NetTCPConnection {
     [CmdletBinding()] param([string]$LocalAddress,[int]$LocalPort,[string]$State)
     if ($global:CaeLauncherTest.started) {
         $listenerState = $global:CaeLauncherTest
+        if ($listenerState.healthBlocked) { return }
+        if ($listenerState.spec.mutate -eq 'startup_during_wait' -and $listenerState.phaseIndex -eq 1 -and
+            -not $listenerState.changedDuringWait) {
+            $listenerState.creation = $listenerState.creation.AddSeconds(1)
+            $listenerState.changedDuringWait = $true
+        }
         $owner = if ($listenerState.ownedListener) { $listenerState.processId } else { $listenerState.processId + 1 }
         return [pscustomobject]@{OwningProcess=$owner}
     }
-    throw 'No test listener'
+    if ($global:CaeLauncherTest.spec.foreign_listener) {
+        $address = $global:CaeLauncherTest.spec.foreign_listener
+        if (-not $LocalAddress -or $LocalAddress -eq $address) {
+            return [pscustomobject]@{OwningProcess=9999;LocalAddress=$address}
+        }
+    }
+    return
 }
 function Invoke-WebRequest {
     [CmdletBinding()] param([string]$Uri,[switch]$UseBasicParsing,[int]$TimeoutSec)
     $state = $global:CaeLauncherTest
     Write-TestEvent @{kind='health';uri=$Uri}
     if (-not $state.started -and -not $state.spec.foreign) { throw 'Not started' }
+    if ($state.healthBlocked) { throw 'Startup not ready' }
     $token = if ($state.spec.missing_token) { '' } else { 'synthetic-test-token' }
     return [pscustomobject]@{StatusCode=200;Content=(@{token=$token} | ConvertTo-Json)}
 }
@@ -94,6 +110,7 @@ function Invoke-RestMethod {
     if ($Uri -notlike '*/api/workbench/expert-connection') { throw 'Unexpected connection request' }
     $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
     $state = $global:CaeLauncherTest
+    if ($state.connectionBlocked) { throw 'Startup connection response unavailable' }
     if ($state.configAlias) { $config = $state.configAlias }
     return [pscustomobject]@{service_session_id=$state.session;operator_config_path=$config;config_sha256=$state.loadedHash}
 }
@@ -109,19 +126,49 @@ function Start-Process {
     Write-TestEvent @{kind='server';python=$FilePath;argv=$ArgumentList;cwd=$WorkingDirectory}
     $state.started = $true
     $state.command = $ArgumentList -join ' '
+    $state.startCount += 1
+    $state.healthBlocked = $state.startCount -eq 1 -and $state.spec.mutate -in @('startup_retry','startup_still_pending','startup_reused_pid','startup_source','startup_config','startup_stop','startup_stop_reused_pid','startup_exited','startup_during_wait')
+    $state.connectionBlocked = $state.spec.mutate -eq 'startup_connection_retry'
     $config = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\workbench-config.json'
     $state.loadedHash = if (Test-Path -LiteralPath $config) {
         (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash.ToLowerInvariant()
     } else { $null }
-    return [pscustomobject]@{Id=$state.processId;HasExited=$false}
+    [IO.File]::WriteAllText($RedirectStandardOutput, 'fixture stdout')
+    [IO.File]::WriteAllText($RedirectStandardError, 'fixture startup diagnostic')
+    if ($state.spec.mutate -in @('publication_receipt_locked','publication_pid_locked','publication_empty_receipt_locked')) {
+        $locked = if ($state.spec.mutate -eq 'publication_pid_locked') {
+            Join-Path $state.spec.runtime ("server-$($state.spec.port).pid")
+        } else { Join-Path $state.spec.runtime ("server-$($state.spec.port).launch.json") }
+        $state.publicationLock = [IO.File]::Open($locked, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    }
+    $result = [pscustomobject]@{Id=$state.processId;HasExited=$false;Handle=[IntPtr]42421;StartTime=$state.creation}
+    $result | Add-Member ScriptMethod WaitForExit { param($Milliseconds) return -not $global:CaeLauncherTest.started }
+    $result | Add-Member ScriptMethod Dispose {
+        if ($global:CaeLauncherTest.publicationLock) {
+            $global:CaeLauncherTest.publicationLock.Dispose()
+            $global:CaeLauncherTest.publicationLock = $null
+        }
+    }
+    return $result
 }
 function Stop-Process {
     Write-TestEvent @{kind='forbidden_stop'}
     throw 'Forbidden process termination in launcher test'
 }
+function taskkill.exe {
+    param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Arguments)
+    Write-TestEvent @{kind='explicit_stop';arguments=$Arguments}
+    $global:CaeLauncherTest.started = $false
+    $global:LASTEXITCODE = 0
+}
 function Start-Sleep { param([int]$Milliseconds) }
 
 try {
+    if ($spec.mutate -like 'publication_*') {
+        $previousPidText = if ($spec.mutate -eq 'publication_empty_receipt_locked') { '' } else { '0' }
+        [IO.File]::WriteAllText((Join-Path $spec.runtime ("server-$($spec.port).pid")), $previousPidText)
+        [IO.File]::WriteAllText((Join-Path $spec.runtime ("server-$($spec.port).launch.json")), '{"previous":"preserved"}')
+    }
     # ABA starts with an actual file A, records A, then applies B but restores
     # A on disk without applying it. Receipt == disk must not bypass status.
     if ($spec.mutate -in @('config_aba', 'config_alias', 'config_copy', 'config_missing')) {
@@ -131,6 +178,7 @@ try {
     }
     $phaseIndex = 0
     foreach ($phase in $spec.phases) {
+        $global:CaeLauncherTest.phaseIndex = $phaseIndex
         if ($phaseIndex -gt 0) {
             $launchPath = Join-Path $spec.runtime ("server-$($spec.port).launch.json")
             switch ($spec.mutate) {
@@ -155,6 +203,12 @@ try {
                 'receipt_no_bom' {
                     $text = [IO.File]::ReadAllText($launchPath, [Text.Encoding]::UTF8)
                     [IO.File]::WriteAllText($launchPath, $text, [Text.UTF8Encoding]::new($false))
+                }
+                'legacy_receipt_no_bom' {
+                    $receipt = Get-Content -LiteralPath $launchPath -Encoding UTF8 -Raw | ConvertFrom-Json
+                    $receipt.PSObject.Properties.Remove('launch_state')
+                    $receipt.PSObject.Properties.Remove('process_started_utc')
+                    [IO.File]::WriteAllText($launchPath, ($receipt | ConvertTo-Json -Depth 3), [Text.UTF8Encoding]::new($false))
                 }
                 'source' { Add-Content -LiteralPath (Join-Path $spec.source 'caelab\__init__.py') -Value '# changed source' }
                 'receipt_pid' {
@@ -184,10 +238,34 @@ try {
             }
         }
         $launchArgs = @{RuntimeRoot=$spec.runtime;Port=[int]$spec.port;Store=$spec.store}
+        if ($phase.entry -eq 'stop-windows.ps1') { $launchArgs.Remove('Store') }
         foreach ($property in $phase.options.PSObject.Properties) {
             $launchArgs[$property.Name] = $property.Value
         }
-        $returned = @(& (Join-Path $spec.source ('scripts\' + $phase.entry)) @launchArgs)
+        try {
+            $returned = @(& (Join-Path $spec.source ('scripts\' + $phase.entry)) @launchArgs)
+        } catch {
+            if ($phaseIndex -eq 0 -and $spec.mutate -like 'startup_*') {
+                Write-TestEvent @{kind='startup_failure';error=$_.Exception.Message}
+                $global:CaeLauncherTest.healthBlocked = $spec.mutate -eq 'startup_still_pending'
+                $global:CaeLauncherTest.connectionBlocked = $false
+                if ($spec.mutate -in @('startup_reused_pid','startup_stop_reused_pid')) { $global:CaeLauncherTest.creation = $global:CaeLauncherTest.creation.AddSeconds(1) }
+                if ($spec.mutate -eq 'startup_exited') {
+                    $global:CaeLauncherTest.started = $false
+                    $global:CaeLauncherTest.creation = $global:CaeLauncherTest.creation.AddSeconds(1)
+                    $global:CaeLauncherTest.processId += 1
+                }
+                if ($spec.mutate -eq 'startup_source') { Add-Content -LiteralPath (Join-Path $spec.source 'caelab\__init__.py') -Value '# changed source' }
+                if ($spec.mutate -eq 'startup_config') {
+                    $configFolder = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab'
+                    New-Item -ItemType Directory -Path $configFolder -Force | Out-Null
+                    '{}' | Set-Content -LiteralPath (Join-Path $configFolder 'workbench-config.json') -Encoding UTF8
+                }
+                $phaseIndex++
+                continue
+            }
+            throw
+        }
         $launchExit = $LASTEXITCODE
         foreach ($item in $returned) {
             if ($null -ne $item -and $null -ne $item.PSObject.Properties['ServiceUrl']) {
@@ -235,7 +313,7 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
             (folder / relative).mkdir(parents=True, exist_ok=True)
         for relative in ("apps/__init__.py", "apps/research/__init__.py", "caelab/__init__.py"):
             (folder / relative).write_text("", encoding="utf-8")
-        for name in ("start-windows.ps1", "start_cae_research.ps1"):
+        for name in ("start-windows.ps1", "start_cae_research.ps1", "stop-windows.ps1"):
             shutil.copyfile(ROOT / "scripts" / name, folder / "scripts" / name)
         (folder / "scripts/install-windows.ps1").write_text(INSTALLER, encoding="utf-8-sig")
         (folder / "apps/research/desktop.py").write_text(DESKTOP, encoding="utf-8")
@@ -253,12 +331,22 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
         })
         return folder, environment
 
-    def run_case(self, phases, *, mutate="", foreign=False, missing_token=False, desktop_exit=0):
+    def run_case(self, phases, *, mutate="", foreign=False, foreign_listener="", missing_token=False, desktop_exit=0):
         folder, environment = self.case()
+        if mutate == 'publication_partial_pid_write':
+            launcher = folder / 'scripts/start-windows.ps1'
+            source = launcher.read_text(encoding='utf-8-sig')
+            original_write = '[IO.File]::WriteAllBytes($receiptTemp, $Bytes)'
+            self.assertEqual(source.count(original_write), 1)
+            # Inject an actual partial sibling-temp write, then an I/O error.
+            # The production Move/Replace has not been reached at this point.
+            partial_write = """[IO.File]::WriteAllBytes($receiptTemp, [byte[]](49,50))
+        if ($Destination -eq $pidPath) { throw 'controlled partial PID temporary write failure' }"""
+            launcher.write_text(source.replace(original_write, partial_write), encoding='utf-8-sig')
         spec = {
             "source": str(folder), "runtime": str(self.runtime),
             "store": str(folder / "연구 store"), "port": 8877, "phases": phases,
-            "mutate": mutate, "foreign": foreign, "missing_token": missing_token,
+            "mutate": mutate, "foreign": foreign, "foreign_listener": foreign_listener, "missing_token": missing_token,
         }
         Path(environment["CAE_LAUNCH_TEST_CASE"]).write_text(
             json.dumps(spec, ensure_ascii=False), encoding="utf-8-sig")
@@ -311,17 +399,282 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
                          "Successful reconciliation left a temporary receipt or backup")
 
     def test_previous_bomless_utf8_receipt_keeps_korean_paths_on_reuse(self):
+        for mutation in ('receipt_no_bom', 'legacy_receipt_no_bom'):
+            with self.subTest(mutation=mutation):
+                result, events, spec = self.run_case([
+                    self.phase(NoBrowser=True, ResearchUI=True),
+                    self.phase(NoBrowser=True, ResearchUI=True)], mutate=mutation)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(len(self.events_of(events, "server")), 1)
+                self.assertEqual(self.events_of(events, "desktop"), [])
+                receipt_path = self.runtime / ("server-" + str(spec["port"]) + ".launch.json")
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                self.assertEqual(receipt["store"], spec["store"])
+                self.assertEqual(receipt["source_root"], spec["source"])
+                self.assertEqual(receipt["service_session_id"], "Sfixture")
+                if mutation == 'legacy_receipt_no_bom':
+                    self.assertNotIn('launch_state', receipt)
+                    self.assertNotIn('process_started_utc', receipt)
+
+    def test_startup_failure_retries_same_process_and_finishes_receipt(self):
+        for mutation in ('startup_retry', 'startup_connection_retry'):
+            with self.subTest(mutation=mutation):
+                result, events, spec = self.run_case([
+                    self.phase(NoBrowser=True), self.phase(NoBrowser=True)], mutate=mutation)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(len(self.events_of(events, 'startup_failure')), 1)
+                self.assertEqual(len(self.events_of(events, 'server')), 1)
+                self.assertEqual(self.events_of(events, 'desktop'), [])
+                receipt = json.loads((self.runtime / f"server-{spec['port']}.launch.json").read_text(encoding='utf-8-sig'))
+                self.assertEqual(receipt['launch_state'], 'READY')
+                self.assertEqual(receipt['service_session_id'], 'Sfixture')
+                self.assertTrue(receipt['process_started_utc'])
+
+    def test_pending_startup_refuses_duplicate_or_changed_identity(self):
+        for mutation in ('startup_still_pending', 'startup_reused_pid', 'startup_source', 'startup_config', 'startup_during_wait'):
+            with self.subTest(mutation=mutation):
+                result, events, spec = self.run_case([
+                    self.phase(NoBrowser=True), self.phase(NoBrowser=True)], mutate=mutation)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(len(self.events_of(events, 'server')), 1)
+                self.assertEqual(self.events_of(events, 'explicit_stop'), [])
+                receipt = json.loads((self.runtime / f"server-{spec['port']}.launch.json").read_text(encoding='utf-8-sig'))
+                self.assertEqual(receipt['launch_state'], 'STARTING')
+                self.assertEqual(receipt['service_session_id'], '')
+
+    def test_exited_startup_retries_new_process_without_overwriting_logs(self):
         result, events, spec = self.run_case([
-            self.phase(NoBrowser=True, ResearchUI=True),
-            self.phase(NoBrowser=True, ResearchUI=True)], mutate="receipt_no_bom")
+            self.phase(NoBrowser=True), self.phase(NoBrowser=True)], mutate='startup_exited')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(self.events_of(events, "server")), 1)
-        self.assertEqual(self.events_of(events, "desktop"), [])
-        receipt_path = self.runtime / ("server-" + str(spec["port"]) + ".launch.json")
-        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-        self.assertEqual(receipt["store"], spec["store"])
-        self.assertEqual(receipt["source_root"], spec["source"])
-        self.assertEqual(receipt["service_session_id"], "Sfixture")
+        self.assertEqual(len(self.events_of(events, 'startup_failure')), 1)
+        self.assertEqual(len(self.events_of(events, 'server')), 2)
+        self.assertEqual(self.events_of(events, 'explicit_stop'), [])
+        logs = list(self.runtime.glob(f"server-{spec['port']}-*.log"))
+        self.assertEqual(len(logs), 4, 'Retry overwrote the previous startup logs')
+        self.assertEqual(sum(p.read_text() == 'fixture startup diagnostic' for p in logs), 2)
+        receipt = json.loads((self.runtime / f"server-{spec['port']}.launch.json").read_text(encoding='utf-8-sig'))
+        self.assertEqual(receipt['pid'], 42422)
+        self.assertEqual(receipt['launch_state'], 'READY')
+
+    def test_foreign_listener_with_failing_health_does_not_start_server(self):
+        for address in ('127.0.0.1', '0.0.0.0', '::', '::1'):
+            with self.subTest(address=address):
+                result, events, _ = self.run_case([self.phase(NoBrowser=True)], foreign_listener=address)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('listener', result.stderr)
+                self.assertEqual(self.events_of(events, 'server'), [])
+                self.assertEqual(self.events_of(events, 'explicit_stop'), [])
+
+    def test_locked_startup_publication_rolls_back_only_new_process(self):
+        for mutation in ('publication_receipt_locked', 'publication_pid_locked', 'publication_partial_pid_write',
+                         'publication_empty_receipt_locked'):
+            with self.subTest(mutation=mutation):
+                result, events, spec = self.run_case([self.phase(NoBrowser=True)], mutate=mutation)
+                self.assertNotEqual(result.returncode, 0)
+                if mutation == 'publication_empty_receipt_locked':
+                    self.assertIn('PID record is empty or invalid', result.stderr)
+                    self.assertEqual(self.events_of(events, 'server'), [])
+                    self.assertEqual(self.events_of(events, 'explicit_stop'), [])
+                    self.assertEqual((self.runtime / f"server-{spec['port']}.pid").read_bytes(), b'')
+                    self.assertEqual((self.runtime / f"server-{spec['port']}.launch.json").read_text(), '{"previous":"preserved"}')
+                    continue
+                self.assertEqual(len(self.events_of(events, 'server')), 1)
+                stopped = self.events_of(events, 'explicit_stop')
+                self.assertEqual(len(stopped), 1)
+                self.assertEqual(stopped[0]['arguments'], ['/PID', '42421', '/T', '/F'])
+                expected_pid = '' if mutation == 'publication_empty_receipt_locked' else '0'
+                self.assertEqual((self.runtime / f"server-{spec['port']}.pid").read_text(), expected_pid)
+                self.assertEqual((self.runtime / f"server-{spec['port']}.launch.json").read_text(), '{"previous":"preserved"}')
+                self.assertEqual(len(list(self.runtime.glob(f"server-{spec['port']}-*.log"))), 2)
+                if mutation == 'publication_partial_pid_write':
+                    self.assertIn('controlled partial PID temporary write failure', result.stderr)
+                    self.assertEqual(list(self.runtime.glob('*.tmp')), [])
+
+    def test_actual_wildcard_listener_prevents_process_start(self):
+        for family, address in ((socket.AF_INET, '0.0.0.0'), (socket.AF_INET6, '::')):
+            with self.subTest(address=address):
+                try:
+                    listener = socket.socket(family, socket.SOCK_STREAM)
+                    listener.bind((address, 0))
+                    listener.listen(1)
+                except OSError:
+                    if 'listener' in locals():
+                        listener.close()
+                    if family == socket.AF_INET6:
+                        self.skipTest('This machine has no usable IPv6 wildcard bind')
+                    raise
+                try:
+                    folder, environment = self.case()
+                    spec = {'source': str(folder), 'runtime': str(self.runtime),
+                            'store': str(folder / 'synthetic store'), 'port': listener.getsockname()[1]}
+                    Path(environment['CAE_LAUNCH_TEST_CASE']).write_text(json.dumps(spec), encoding='utf-8-sig')
+                    script = folder / 'actual-wildcard.ps1'
+                    script.write_text(r'''
+$ErrorActionPreference = 'Stop'
+$spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Raw -Encoding UTF8 | ConvertFrom-Json
+$global:CaeLauncherTest = @{spec=$spec}
+function Write-TestEvent($value) {}
+function Invoke-WebRequest { throw 'Synthetic foreign TCP socket is not a Lab service' }
+function Start-Process { throw 'FORBIDDEN_PROCESS_START' }
+try {
+    & (Join-Path $spec.source 'scripts\start-windows.ps1') -RuntimeRoot $spec.runtime -Store $spec.store -Port $spec.port -NoBrowser
+} catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
+''', encoding='utf-8-sig')
+                    result = subprocess.run([POWERSHELL, '-NoProfile', '-File', str(script)], cwd=folder,
+                        env=environment, capture_output=True, text=True, encoding='utf-8', timeout=25)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('already has a listener', result.stderr)
+                    self.assertNotIn('FORBIDDEN_PROCESS_START', result.stderr)
+                finally:
+                    listener.close()
+
+    def test_real_new_python_tree_is_cleaned_when_receipt_replace_is_locked(self):
+        folder, environment = self.case()
+        lab = folder / 'apps/lab'
+        lab.mkdir()
+        (lab / '__init__.py').write_text('', encoding='utf-8')
+        (lab / 'server.py').write_text(r'''
+import json, os, subprocess, sys, time
+from pathlib import Path
+leaf = Path(os.environ['CAE_ROLLBACK_LEAF'])
+code = "import os,time; from pathlib import Path; Path(os.environ['CAE_ROLLBACK_LEAF']).write_text(str(os.getpid())); time.sleep(45)"
+child = subprocess.Popen([sys.executable, '-c', code], stdin=subprocess.DEVNULL)
+deadline = time.monotonic() + 5
+while not leaf.exists() and time.monotonic() < deadline:
+    time.sleep(.02)
+Path(os.environ['CAE_ROLLBACK_CHILD']).write_text(json.dumps({
+    'server': os.getpid(), 'child': child.pid, 'leaf': int(leaf.read_text())}))
+time.sleep(45)
+''', encoding='utf-8')
+        environment.update({
+            'CAE_ROLLBACK_CHILD': str(folder / 'children.json'),
+            'CAE_ROLLBACK_LEAF': str(folder / 'leaf.txt'),
+            'CAE_ROLLBACK_RESULT': str(folder / 'rollback-result.json'),
+        })
+        spec = {'source': str(folder), 'runtime': str(self.runtime),
+                'store': str(folder / 'owned synthetic store'), 'port': 8877}
+        Path(environment['CAE_LAUNCH_TEST_CASE']).write_text(json.dumps(spec), encoding='utf-8-sig')
+        script = folder / 'real-rollback.ps1'
+        script.write_text(r'''
+$ErrorActionPreference = 'Stop'
+$spec = Get-Content -LiteralPath $env:CAE_LAUNCH_TEST_CASE -Raw -Encoding UTF8 | ConvertFrom-Json
+$global:CaeLauncherTest = @{spec=$spec}
+function Write-TestEvent($value) {}
+function Invoke-WebRequest { throw 'No Lab service is used in this check' }
+function Get-NetTCPConnection { return }
+function Start-Process {
+    [CmdletBinding()]
+    param([string]$FilePath,[string[]]$ArgumentList,[string]$WorkingDirectory,
+          [string]$WindowStyle,[string]$RedirectStandardOutput,
+          [string]$RedirectStandardError,[switch]$PassThru)
+    $created = Microsoft.PowerShell.Management\Start-Process @PSBoundParameters
+    $global:CaeRollbackCreatedPid = $created.Id
+    $deadline = [DateTime]::UtcNow.AddSeconds(8)
+    while (-not [IO.File]::Exists($env:CAE_ROLLBACK_CHILD)) {
+        if ([DateTime]::UtcNow -gt $deadline) { throw 'Synthetic child preparation timed out' }
+        Start-Sleep -Milliseconds 25
+    }
+    return $created
+}
+$pidPath = Join-Path $spec.runtime 'server-8877.pid'
+$receiptPath = Join-Path $spec.runtime 'server-8877.launch.json'
+$previous = '{"previous":"preserved"}'
+[IO.File]::WriteAllText($pidPath, '0')
+[IO.File]::WriteAllText($receiptPath, $previous)
+$lock = [IO.File]::Open($receiptPath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+$failure = ''
+try {
+    & (Join-Path $spec.source 'scripts\start-windows.ps1') -RuntimeRoot $spec.runtime -Store $spec.store -Port 8877 -NoBrowser
+} catch { $failure = $_.Exception.Message }
+finally { $lock.Dispose() }
+$children = Get-Content -LiteralPath $env:CAE_ROLLBACK_CHILD -Raw | ConvertFrom-Json
+$owned = @($global:CaeRollbackCreatedPid, $children.server, $children.child, $children.leaf)
+$alive = @()
+foreach ($knownPid in $owned) {
+    try {
+        $candidate = [Diagnostics.Process]::GetProcessById([int]$knownPid)
+        try { if (-not $candidate.HasExited) { $alive += $knownPid } } finally { $candidate.Dispose() }
+    } catch [ArgumentException] {}
+}
+$control = [Diagnostics.Process]::GetProcessById([int]$env:CAE_ROLLBACK_CONTROL)
+try { $controlAlive = -not $control.HasExited } finally { $control.Dispose() }
+@{failure=$failure;owned_pids=$owned;alive_owned_pids=$alive;control_alive=$controlAlive;
+  previous_receipt_preserved=([IO.File]::ReadAllText($receiptPath) -ceq $previous);
+  previous_pid_preserved=([IO.File]::ReadAllText($pidPath) -ceq '0')} |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $env:CAE_ROLLBACK_RESULT -Encoding UTF8
+if (-not $failure) { throw 'Receipt publication unexpectedly succeeded' }
+''', encoding='utf-8-sig')
+        control = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(45)'],
+                                   creationflags=subprocess.CREATE_NO_WINDOW)
+        environment['CAE_ROLLBACK_CONTROL'] = str(control.pid)
+        try:
+            result = subprocess.run([POWERSHELL, '-NoProfile', '-File', str(script)], cwd=folder,
+                env=environment, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=30,
+                creationflags=subprocess.CREATE_NO_WINDOW)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            evidence = json.loads(Path(environment['CAE_ROLLBACK_RESULT']).read_text(encoding='utf-8-sig'))
+            self.assertIn('Replace', evidence['failure'])
+            self.assertTrue(all(isinstance(pid, int) and pid > 0 for pid in evidence['owned_pids']))
+            self.assertEqual(evidence['alive_owned_pids'], [])
+            self.assertTrue(evidence['control_alive'])
+            self.assertTrue(evidence['previous_receipt_preserved'])
+            self.assertTrue(evidence['previous_pid_preserved'])
+        finally:
+            control.terminate()
+            control.wait(timeout=5)
+
+    def test_actual_windows_process_creation_and_unused_port_query(self):
+        # No Lab server: query only this PowerShell process and an ephemeral
+        # loopback port after our own temporary socket has been closed.
+        folder, environment = self.case()
+        script = folder / 'os-startup-boundary.ps1'
+        script.write_text(r"""
+$ErrorActionPreference = 'Stop'
+$tokens = $null; $errors = $null
+$ast = [System.Management.Automation.Language.Parser]::ParseFile(
+    (Join-Path $PSScriptRoot 'scripts\start-windows.ps1'), [ref]$tokens, [ref]$errors)
+if ($errors.Count) { throw 'Launcher syntax error' }
+$definition = @($ast.FindAll({param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+    $node.Name -eq 'Get-ProcessStart'
+}, $true))
+if ($definition.Count -ne 1) { throw 'Missing production creation identity reader' }
+. ([scriptblock]::Create($definition[0].Extent.Text))
+$first = Get-ProcessStart $PID
+$second = Get-ProcessStart $PID
+if (-not $first -or $first -ne $second) { throw 'Current process identity was not stable' }
+$socket = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+try { $socket.Start(); $unusedPort = $socket.LocalEndpoint.Port } finally { $socket.Stop() }
+$category = ''
+try { $listeners = @(Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort $unusedPort -State Listen -ErrorAction Stop) }
+catch {
+    $category = [string]$_.CategoryInfo.Category
+    if ($category -ne 'ObjectNotFound') { throw }
+    $listeners = @()
+}
+if ($listeners.Count) { throw 'Temporary port was taken; retry this bounded check' }
+@{process_identity_stable=$true;unused_port_category=$category;listeners=$listeners.Count} |
+    ConvertTo-Json -Compress
+""", encoding='utf-8-sig')
+        result = subprocess.run([POWERSHELL, '-NoProfile', '-File', str(script)], cwd=folder,
+            env=environment, capture_output=True, text=True, encoding='utf-8', timeout=25)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        evidence = json.loads(result.stdout)
+        self.assertTrue(evidence['process_identity_stable'])
+        self.assertEqual(evidence['listeners'], 0)
+
+    def test_explicit_stop_pending_startup_requires_same_creation_identity(self):
+        for mutation in ('startup_stop', 'startup_stop_reused_pid'):
+            with self.subTest(mutation=mutation):
+                result, events, _ = self.run_case([
+                    self.phase(NoBrowser=True), self.phase('stop-windows.ps1', Force=True)], mutate=mutation)
+                self.assertEqual(len(self.events_of(events, 'server')), 1)
+                if mutation == 'startup_stop':
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(len(self.events_of(events, 'explicit_stop')), 1)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(self.events_of(events, 'explicit_stop'), [])
 
     def test_reuse_checks_loaded_config_and_session_even_when_receipt_matches_disk(self):
         for mutation in ('config_aba', 'service_session'):
