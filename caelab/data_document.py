@@ -20,7 +20,7 @@ def default_draft():
 def diagnostics(draft):
     """Preserve invalid drafts; import requires explicit meaning for every channel."""
     try:
-        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata', 'acquisition'}:
+        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata', 'acquisition', 'processing', 'sheet_group'}:
             raise ValueError('Data draft requires data_id and mapping; only explicit test_metadata may be added')
         check_id(draft['data_id'])
         if not draft['data_id'].startswith('D'):
@@ -85,14 +85,29 @@ class DataDocuments(MaterialDocuments):
     default_draft = staticmethod(default_draft)
     diagnostics = staticmethod(diagnostics)
 
+    @property
+    def operations(self):
+        return super().operations | {'data.processing.apply'}
+
+    def processing_preview(self, identifier):
+        from .data_processing_document import preview
+        return preview(self, identifier)
+
+    def processing_result(self, identifier, revision, *, selection=None):
+        from .data_processing_document import result
+        return result(self, identifier, revision, selection=selection)
+
     def __init__(self, root, session_id, submit, manager, *, resolve_input):
         super().__init__(root, session_id, submit, manager)
         self.resolve_input = resolve_input
 
     @staticmethod
     def _fingerprint(document):
-        return canonical_hash({'input': MaterialDocuments._fingerprint(document),
-                               'comparisons': document.get('comparisons', [])})
+        content = {'input': MaterialDocuments._fingerprint(document),
+                   'comparisons': document.get('comparisons', [])}
+        if document.get('processing_revisions'):
+            content['processing_revisions'] = document['processing_revisions']
+        return canonical_hash(content)
 
     @staticmethod
     def job_arguments(draft):
@@ -306,6 +321,8 @@ class DataDocuments(MaterialDocuments):
         saved['retained_inputs'] = retained
         saved['unresolved_inputs'] = unresolved
         self._retain_comparisons(saved, folder)
+        from .data_processing_document import retain
+        retain(self, saved, folder)
 
     def source_preview(self, identifier):
         """Read bounded original bytes, including after the registration is unavailable."""

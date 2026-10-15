@@ -17,6 +17,10 @@ class WorkbenchHTTPError(HTTPError):
 
 
 class Client:
+    def data_material(self, operation, arguments):
+        """Explicit Data/Material action; owner mutations retain their CAS/IDs."""
+        return self.request('/api/workbench/data-material', body={'operation': operation, 'arguments': arguments})
+
     def __init__(self,url):
         parsed=urlsplit(url)
         if parsed.scheme!='http' or parsed.hostname not in {'127.0.0.1','localhost'} or parsed.path not in {'','/'} or parsed.username:

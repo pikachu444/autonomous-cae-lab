@@ -35,6 +35,8 @@ class LabHTTPServer(ThreadingHTTPServer):
         self.workbench = Workbench(service._stores["local"].path, configuration=workbench_config,
                                    operator_config_path=operator_config_path)
         try:
+            from caelab.data_material_service import DataMaterialService
+            self.data_material = DataMaterialService(self.workbench)
             super().__init__(("127.0.0.1", port), LabHandler)
         except BaseException:
             self.workbench.shutdown()
@@ -144,6 +146,9 @@ class LabHandler(BaseHTTPRequestHandler):
             path = unquote(parsed.path, errors="strict")
             query = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                              max_num_fields=16)
+            if path == '/api/workbench/data-material':
+                from caelab.data_material_service import handle_http
+                return handle_http(self, method, query)
             if path.startswith("/api/workbench"):
                 from .workbench_routes import handle
                 return handle(self, method, path, query)

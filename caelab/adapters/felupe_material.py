@@ -19,6 +19,9 @@ def validate_parameters(model, parameters):
 
 
 def validate_settings(settings, *, parameters=True):
+    if 'boundary_control' in settings:
+        from ..material_control import validate_control_settings
+        return validate_control_settings(settings, parameters=parameters)
     """Validate editable inputs without importing or executing the optional solver."""
     model = settings.get('model', 'linear_elastic')
     if model not in {'linear_elastic', 'neo_hooke'}:
@@ -87,6 +90,9 @@ class FelupeMaterialAdapter:
                            deepcopy(values))['settings']
 
     def prepare(self, settings, *, runtime=None):
+        if 'boundary_control' in settings:
+            from ..material_control import prepare_controlled
+            return prepare_controlled(settings, runtime=runtime)
         import felupe
         if runtime and set(runtime)-{'threads','memory_mb'}:
             raise ValueError('Unsupported FELUPE runtime options')

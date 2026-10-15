@@ -35,7 +35,7 @@ def diagnostics(draft):
             raise ValueError('This editor supports the registered FELUPE material-point adapter')
         if not isinstance(draft.get('settings'), dict):
             raise ValueError('Material settings must be an object')
-        if set(draft['settings']) - {'tangent_probe'} != {'model', 'stress_unit', 'time_unit', 'parameters', 'time', 'deformation_gradient'}:
+        if set(draft['settings']) - {'tangent_probe', 'boundary_control'} != {'model', 'stress_unit', 'time_unit', 'parameters', 'time', 'deformation_gradient'}:
             raise ValueError('Material settings require model, parameters, time, deformation_gradient and both units')
         validate_settings(draft['settings'])
     except (ValueError, TypeError, KeyError, OverflowError) as error:
@@ -303,6 +303,13 @@ class MaterialDocuments(RetainedComparisons):
                                         session_id=session_id, expected_generation=expected_generation))
         with self._lock(identifier):
             self.read(identifier)
+            from .related_save import recover_saved_commands
+            from .related_save_edits import recover_mutation
+            recover_saved_commands(self, identifier)
+            recover_mutation(self, identifier, command_id)
+            if self.kind == 'data':
+                from .data_processing_document import recover_apply
+                recover_apply(self, identifier)
             document = deepcopy(self._documents[identifier])
             receipt = self._folder(identifier) / 'commands' / (command_id + '.json')
             if receipt.exists():
@@ -335,6 +342,9 @@ class MaterialDocuments(RetainedComparisons):
                 document[destination].append(deepcopy(document['draft']))
                 document['draft'] = document[source].pop()
                 self._changed(document)
+            elif operation == 'data.processing.apply' and self.kind == 'data':
+                from .data_processing_document import apply
+                processing = apply(self, document, arguments, command_id)
             elif arguments:
                 raise ValueError('Save/evaluate requires empty arguments')
             job = None
@@ -351,13 +361,22 @@ class MaterialDocuments(RetainedComparisons):
                 document['runs'].append(self._run_record(job, snapshot, document['generation'],
                                                         document['input_revision'], self.session_id))
             if operation == 'document.save':
+                from .related_save import save_marker
+                document['_save_command'] = save_marker(document, command_id, signature)
+                document['_save_command']['content_sha256'] = self._fingerprint(document)
                 self._save(document)
             else:
+                if operation in {self.update_operation, 'document.undo', 'document.redo'}:
+                    from .related_save_edits import mutation_marker
+                    document['_mutation_command'] = mutation_marker(document, operation=operation,
+                        command_id=command_id, request_hash=signature)
                 self._persist_draft(document)
             self._documents[identifier] = document
             response = {'document': self._public(document), 'command_id': command_id}
             if job is not None:
                 response['job'] = job
+            if operation == 'data.processing.apply':
+                response['processing'] = processing
             save_json(receipt, {'request_hash': signature, 'response': response})
             return response
 

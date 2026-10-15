@@ -138,10 +138,16 @@ def diagnostics(draft):
         if draft['mode'] not in ('fit', 'doe', 'optimize', 'uq', 'epsilon'):
             raise ValueError('Choose fit, doe, optimize, uq or epsilon; retained-result operations use Request Plans')
         material = draft['material']
-        if not isinstance(material, dict) or set(material) != {'document_id', 'generation', 'input_revision', 'draft'}:
+        required_ref = {'document_id', 'generation', 'input_revision', 'draft'}
+        if (not isinstance(material, dict) or not required_ref <= set(material)
+                or set(material) - required_ref not in (set(), {'saved_revision', 'input_sha256'})):
             raise ValueError('Select a Material document and retain its exact input revision')
         check_id(material['document_id'])
         check_id(material['input_revision'])
+        if 'saved_revision' in material:
+            check_id(material['saved_revision'])
+            if canonical_hash(material['draft']) != material['input_sha256']:
+                raise ValueError('Saved Material input hash differs from the explicit reference')
         if not material['document_id'].startswith('M') or type(material['generation']) is not int or material['generation'] < 0:
             raise ValueError('Material reference requires a Material identity and exact generation')
         errors = material_diagnostics(material['draft'])
@@ -441,7 +447,14 @@ class NumericalDocuments(MaterialDocuments):
             validate_result_refs(draft['request']['operation'], draft['request']['inputs'])
             return self.prepare_request(deepcopy(draft['request']))
         reference = draft['material']
-        current = self.resolve_document(reference['document_id'])
+        if 'saved_revision' in reference:
+            if self.resolve_source_revision is None:
+                raise ValueError('The exact saved Material resolver is unavailable')
+            current = self.resolve_source_revision(reference['document_id'], reference['saved_revision'])
+            if canonical_hash(current['draft']) != reference['input_sha256']:
+                raise ValueError('Saved Material input no longer matches its exact reference')
+        else:
+            current = self.resolve_document(reference['document_id'])
         if (current.get('kind') != 'material' or current['input_revision'] != reference['input_revision']
                 or canonical_hash(current['draft']) != canonical_hash(reference['draft'])):
             raise ValueError('Referenced Material input changed; reselect its explicit revision before running')
