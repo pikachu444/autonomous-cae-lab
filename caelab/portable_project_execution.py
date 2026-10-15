@@ -72,7 +72,7 @@ class TypedProjection:
             _error('duplicate/cross-owner mapping')
         for old, row in self.docs.items():
             check_id(old); check_id(row['document_id'])
-            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report', 'study', 'expert'}:
+            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde', 'simulation'}:
                 _error('mapping changed owner kind')
         for (doc, revision), row in self.inputs.items():
             if row['document_id'] != self.docs[doc]['document_id']:
@@ -278,9 +278,9 @@ def load_execution(owner, document_id, run):
     return folder, proof, original
 
 
-def write_execution(fork, identifier, revision, original, projected, folder):
-    """Add a proof to a Numerical run while retaining source bytes unchanged."""
-    if original['operation'] not in {'fit', 'detail_eval'}:
+def write_execution(fork, identifier, revision, original, projected, folder, *, operations=('fit', 'detail_eval')):
+    """Retain original bytes; each domain explicitly admits its own operations."""
+    if original['operation'] not in operations:
         return
     old_link = original.get('portable_execution')
     if old_link:

@@ -186,8 +186,9 @@ class PDEWindow(QMainWindow):
     def __init__(self, client, *, document_id=None, poll_interval=2000,
                  auto_open=True, runner_open=None, result_open=None, plan_open=None):
         super().__init__()
-        from .appearance import apply_appearance
+        from .appearance import apply_appearance, configure_plot_fonts
         apply_appearance(QApplication.instance())
+        configure_plot_fonts()
         self.client, self.document = client, None
         self.runner_open, self.result_open = runner_open, result_open
         self.plan_open = plan_open
@@ -225,6 +226,8 @@ class PDEWindow(QMainWindow):
         self.undo_action.triggered.connect(lambda: self.command('document.undo'))
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
         files.addActions([self.new_action, self.open_action, self.save_action])
+        from .portable_research_actions import install
+        install(self, files, self.document_kind)
         edit.addActions([self.undo_action, self.redo_action])
         research = self.menuBar().addMenu('연구(&R)')
         self.plan_action = QAction('수치 계산 계획 열기', self)
@@ -452,7 +455,14 @@ class PDEWindow(QMainWindow):
         if not self._selected_job:
             self.result_label.setText('계산 결과를 선택하세요.')
         elif not self._result:
-            self.result_label.setText('선택한 계산 결과를 읽는 중…')
+            if run.get('retention_complete') and not run.get('retained_result'):
+                status = {'FAILED': '실패', 'CANCELLED': '취소', 'SUCCEEDED': '완료'}.get(
+                    run.get('retained_state'), '종료')
+                self.result_label.setText('보존 실행: ' + status + ' (결과 없음)')
+            elif run.get('retained_result') and self._result_key == (self.document['id'], self._selected_job):
+                self.result_label.setText('보존 결과를 읽지 못했습니다.')
+            else:
+                self.result_label.setText('선택한 계산 결과를 읽는 중…')
         else:
             state = self._result.get('execution_status', self._result.get('status', 'UNKNOWN'))
             status = {'SUCCEEDED': '완료', 'COMPLETED': '완료', 'FAILED': '실패', 'REJECTED': '실행 불가',
@@ -896,6 +906,7 @@ class PDEWindow(QMainWindow):
         if not self._selected_job or not self.document or self._busy:
             return
         identifier, job = self.document['id'], self._selected_job
+        run = deepcopy(next((row for row in self.document.get('runs', []) if row['job_id'] == job), {}))
         key = (identifier, job)
         if self._result_key == key:
             return
@@ -903,9 +914,14 @@ class PDEWindow(QMainWindow):
         def read():
             # Saved owner results survive a service/job-manager restart; do not
             # require a live job status before trying the retained record.
+            if run.get('retention_complete') and not run.get('retained_result'):
+                error = run.get('retained_error') or {}
+                return {'retained_read_error': error.get('message') or '저장된 실행에 결과가 없습니다.'}
             try:
                 return self.client.document_result(identifier, job)
-            except Exception:
+            except Exception as error:
+                if run.get('retained_result') or run.get('portable_execution'):
+                    return {'retained_read_error': str(error)}
                 state = self.client.status(job)
                 if state.get('state') not in TERMINAL:
                     return {'pending_job': state}
@@ -915,7 +931,17 @@ class PDEWindow(QMainWindow):
             if (self.document['id'], self._selected_job) != key:
                 return
             if result.get('pending_job'):
-                self.result_label.setText('Evaluation ' + result['pending_job'].get('state', 'pending'))
+                state = result['pending_job'].get('state')
+                self.result_label.setText('선택한 계산: ' + {
+                    'QUEUED': '대기 중', 'RUNNING': '실행 중', 'CANCELLING': '취소 중',
+                }.get(state, '상태 확인 중'))
+                return
+            if 'retained_read_error' in result:
+                self._accept_result({})  # Clear previous fields, curve and point selection.
+                self._result_key, self._result = key, None
+                self.graph_tabs.setCurrentIndex(1)
+                self.message.setText(result['retained_read_error'])
+                self._refresh_result_caption()
                 return
             self._result_key = key
             self._accept_result(result)
@@ -1071,7 +1097,7 @@ class PDEWindow(QMainWindow):
         self.point_label.clear()
         selected = self.result_selector.currentData()
         if not self._result or not selected:
-            axes.text(.5, .5, 'No retained result selected.',
+            axes.text(.5, .5, '표시할 계산 결과가 없습니다.',
                       ha='center', va='center', transform=axes.transAxes)
         elif selected[0] == 'response':
             name = selected[1]
@@ -1106,11 +1132,11 @@ class PDEWindow(QMainWindow):
                 component = selected[2]
                 scalar = [value[component] if isinstance(value, list) else value for value in values]
                 points = axes.scatter([xy[0] for xy in coordinates], [xy[1] for xy in coordinates], c=scalar, s=14)
-                self.result_figure.colorbar(points, ax=axes, label=('Cell average' if field.get('association')=='CELLS' else 'Nodal value') + ' [' + field.get('field_unit', '1') + ']')
+                self.result_figure.colorbar(points, ax=axes, label=('요소 평균값' if field.get('association')=='CELLS' else '절점 값') + ' [' + field.get('field_unit', '1') + ']')
                 axes.set_aspect('equal')
                 axes.set_xlabel('x [' + field.get('coordinates_unit', '1') + ']')
                 axes.set_ylabel('y [' + field.get('coordinates_unit', '1') + ']')
-                axes.set_title('Exact retained cell averages' if field.get('association')=='CELLS' else 'Exact retained DOFs; no interpolation')
+                axes.set_title('요소 평균값' if field.get('association')=='CELLS' else '절점 값')
                 selected_node = self.field_node.currentData()
                 ids = field.get('node_ids', [])
                 if selected_node in ids:
@@ -1119,12 +1145,14 @@ class PDEWindow(QMainWindow):
                     axes.scatter([xy[0]], [xy[1]], facecolors='none', edgecolors='#dc2626', s=100, linewidths=2)
                     source = entry.get('source', {})
                     instant = entry.get('time')
-                    self.point_label.setText(('Cell ' if field.get('association')=='CELLS' else 'Node ') + str(selected_node) + ' at ' + display(xy) +
-                        ' [' + field.get('coordinates_unit', '1') + ']; value ' + display(scalar[index]) +
-                        ' [' + field.get('field_unit', '1') + ']; ' +
-                        ('static field' if instant is None else 'model time ' + display(instant) + ' [' + str(entry.get('time_unit', '1')) + '] / ' + str(entry.get('time_origin', ''))))
+                    timing = ('정적 결과' if instant is None else '정상 상태 결과'
+                              if entry.get('time_origin') == 'steady_reference' else
+                              '시간 ' + display(instant) + ' [' + str(entry.get('time_unit', '1')) + ']')
+                    self.point_label.setText(('요소 ' if field.get('association')=='CELLS' else '절점 ') + str(selected_node) + ': 좌표 ' + display(xy) +
+                        ' [' + field.get('coordinates_unit', '1') + '], 값 ' + display(scalar[index]) +
+                        ' [' + field.get('field_unit', '1') + '], ' + timing)
                     self.point_label.setToolTip(display({'source': source, 'study_index': entry.get('study_index'),
-                                                       'step_index': entry.get('step_index')}))
+                                                       'step_index': entry.get('step_index'), 'time_origin': entry.get('time_origin')}))
         if self._result:
             native = self._result.get('diagnostics', {}).get('native_outcome', {})
             self.messages.setPlainText(self.messages.toPlainText().split('\nRetained result:')[0] + '\nRetained result:\n' +
@@ -1356,6 +1384,10 @@ class PDEWindow(QMainWindow):
                 event.ignore()
         else:
             event.accept()
+        if event.isAccepted():
+            self._closed = True
+            from .portable_research_actions import close_children
+            close_children(self)
 
 
 def main(argv=None):

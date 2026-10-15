@@ -35,8 +35,8 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 FORMAT = 'caelab.portable-project/1'
 MANIFEST = 'portable-project.json'
-SUPPORTED = {'data', 'material', 'numerical', 'report', 'study', 'expert'}
-_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B', 'study': 'S', 'expert': 'X'}
+SUPPORTED = {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde', 'simulation'}
+_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B', 'study': 'S', 'expert': 'X', 'pde': 'Q', 'simulation': 'V'}
 _DENIED_NAMES = {'.env', 'credentials', 'credentials.json', 'token', 'token.json',
                  'id_rsa', 'id_ed25519', 'operator.json', 'service.json'}
 
@@ -69,7 +69,7 @@ def _selections(reader: SnapshotReader, selections: list[str | dict], draft_poli
         seen.add(identifier)
         current = reader.current(identifier)
         if current['kind'] not in SUPPORTED:
-            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical, Report, Study와 Expert를 지원합니다.',
+            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical, PDE, Simulation, Study, Expert와 Report를 지원합니다.',
                  '다른 도구의 원자료는 원문서에 그대로 보존하세요.', identifier)
         revision = value.get('saved_revision') or current.get('saved_revision')
         if draft_policy == 'acknowledged' and revision != current.get('saved_revision'):
@@ -249,6 +249,9 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                     reader.job(document, run)
                 if run.get('retained_result'):
                     reader.result(document, run, metadata_only=True)
+            if document['kind'] in {'pde', 'simulation'}:
+                from .portable_project_physics import inspect_document as inspect_physics
+                inspect_physics(reader, document)
             if document['kind'] == 'report':
                 from .portable_project_report import inspect_document
                 inspect_document(reader, document, revision)
@@ -562,6 +565,10 @@ class _Fork:
             for source_run, run in zip(original['runs'], document['runs']):
                 if source_run.get('retention_complete'):
                     write_execution(self, identifier, revision, source_run, run, target)
+        if document['kind'] in {'pde', 'simulation'}:
+            from .portable_project_physics import write as write_physics
+            for source_run, run in zip(original['runs'], document['runs']):
+                write_physics(self, identifier, revision, source_run, run, target)
         for run in document['runs']:
             if document['kind'] == 'expert':
                 continue  # Origin job and submitted-input files remain byte-exact.
@@ -834,6 +841,9 @@ def verify_project(folder: str | Path) -> dict:
                 if row['kind'] in {'study', 'expert'}:
                     from .portable_research_owner import replay, current_folder
                     replay(current_folder(owner_root, draft), draft)
+                if row['kind'] in {'pde', 'simulation'}:
+                    from .portable_project_physics import verify_current
+                    verify_current(owner_root, draft)
                 if row['kind'] == 'report':
                     from .portable_project_report import verify_current
                     verify_current(owner_root, draft)
@@ -863,6 +873,10 @@ def verify_project(folder: str | Path) -> dict:
                 from .portable_research_owner import replay, current_folder
                 research = draft if working.exists() and draft.get('saved_revision') == revision else current
                 replay(current_folder(owner_root, research), research)
+            if row['kind'] in {'pde', 'simulation'}:
+                from .portable_project_physics import verify_current
+                verify_current(owner_root, draft if working.exists() and
+                    draft.get('saved_revision') == revision else current)
             if row['kind'] == 'report':
                 from .portable_project_report import verify_current
                 verify_current(owner_root, draft if working.exists() and

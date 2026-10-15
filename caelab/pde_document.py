@@ -155,7 +155,13 @@ class PDEDocuments(MaterialDocuments):
         # Keep exact imported mesh content/source/checksum and all native names.
         return {'backend': draft['backend'], 'settings': deepcopy(draft['settings'])}
 
+    def _retain_inputs(self, saved, folder):
+        super()._retain_inputs(saved, folder)
+        from .portable_project_execution import retain_execution_inputs
+        retain_execution_inputs(self, saved, folder)
+
     def _public(self, document):
-        public = super()._public(document)
+        from .portable_project_execution import public_execution
+        public = public_execution(self, super()._public(document))
         public['pde_support'] = support_details(document['draft'])
         return public

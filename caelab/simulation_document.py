@@ -143,7 +143,13 @@ class SimulationDocuments(MaterialDocuments):
             return source_input_context(document, arguments, snapshot)
         return super().command_input_context(operation, arguments, document, snapshot)
 
+    def _retain_inputs(self, saved, folder):
+        super()._retain_inputs(saved, folder)
+        from .portable_project_execution import retain_execution_inputs
+        retain_execution_inputs(self, saved, folder)
+
     def _public(self, document):
-        result = super()._public(document)
+        from .portable_project_execution import public_execution
+        result = public_execution(self, super()._public(document))
         result['simulation_support'] = support_details(document['draft'])
         return result

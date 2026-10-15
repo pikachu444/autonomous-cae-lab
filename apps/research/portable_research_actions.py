@@ -28,7 +28,7 @@ def prepare_copy(window):
     dialog.setWindowTitle('작업 사본 만들기')
     dialog.resize(540, 220)
     layout = QVBoxLayout(dialog)
-    label = QLabel('포함할 내용을 선택하세요.\n편집한 질문과 판단을 포함하려면 먼저 저장하세요.')
+    label = QLabel('포함할 내용을 선택하세요.\n편집한 내용을 포함하려면 먼저 저장하세요.')
     label.setWordWrap(True); layout.addWidget(label)
     save = QPushButton('저장 후 계속')
     kept = QPushButton('저장된 내용만')

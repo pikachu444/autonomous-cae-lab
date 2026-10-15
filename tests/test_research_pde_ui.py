@@ -171,8 +171,8 @@ def test_exact_field_components_nodes_time_and_post_study(window, app):
     window.result_selector.setCurrentIndex(1)
     window.field_node.setCurrentIndex(window.field_node.findData(900))
     app.processEvents()
-    assert 'Node 900' in window.point_label.text() and 'value 20' in window.point_label.text()
-    assert 'model time 0.25 [1]' in window.point_label.text()
+    assert '절점 900' in window.point_label.text() and '값 20' in window.point_label.text()
+    assert '시간 0.25 [1]' in window.point_label.text()
     assert 'b'*64 not in window.point_label.text()
     assert 'b'*64 in window.point_label.toolTip()
     assert len(window.result_figure.axes) == 2  # One field axes and one colorbar; no accumulated colorbars.

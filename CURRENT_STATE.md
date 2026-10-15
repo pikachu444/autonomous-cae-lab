@@ -221,7 +221,8 @@ Sol `expert_roundtrip_finish`의 B8.3 PDE/Simulation 이동 사본 본코드를 
 원 실행·입력/field 원문 보존과 현재 편집·명시 새 로컬 실행을 나누고 기존 reader·owner·
 portable 발행을 재사용한다. 실제 약형식 PDE·정상 열전도 계산의 사본을 두 새 프로세스에서
 읽고 편집·저장·명시 새 계산·재복사했다. 실패·취소 결과의 원 오류 보존도 교정했다.
-현재는 표시 문구를 반영한 최종 창과 Astra 통합 검토를 마무리한다. 다음 CB06 Evaluation의
+한국어 표시를 반영한 최종 창과 Astra 통합 검토를 마쳤다. [실제 화면과 사용법](docs/portable-physics/USAGE_KO.md)을
+연결했고 테스트 소유 Job은 모두 종료했다. 다음 CB06 Evaluation의
 단계·전달·부분 재사용 사본은 Sol `pde_delivery_packet`이 전용 코드·예제·사용법을 작성하며
 공통 변경은 root 최소 패치로 통합한다. managed Pre/Post 이동을 허용 목록만 넓혀 완료로 세지 않는다.
 Sol `post_windows_build_fix`가 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료
@@ -234,7 +235,9 @@ root의 실행 파일 일치·미완성 입력 저장 방지 교정을 확인했
 같은 SDK runtime·plugin·Python/NumPy와 라이선스를 함께 회수하는 패키징과 선택적
 미공개 draft release 경로를 작성하고 작은 실제 PS/7-Zip 확인·독립 소스 검토를 마쳤다.
 Actions artifact/cache·유료 runner는 사용하지 않는다. 소스 게시 후 공개 표준 Windows CI를
-한 번 실행해 실제 SDK/plugin load와 기존 비교 재열기를 확인한다. 아직 새 CI는 시작 전이며
+한 번 실행해 실제 SDK/plugin load와 기존 비교 재열기를 확인한다. `453085b`를 원격 main에
+게시하고 일치를 확인한 뒤 [공개 Windows 실행](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38777226677)을
+한 번 시작했으며 현재 진행 중이다. 실행 중 재전송하거나 광역 로컬 빌드를 함께 시작하지 않는다.
 실제 ParaView File→Exit·직접 OS 입력·깨끗한 PC 설치는 미완료다.
 Sol `inverse_delivery`는 보존한 B8.4 SSH/Slurm/PBS 원격 실행 초안과 기존 batch 교환을
 이어 구현한다. 전용 원격 코드·대화창·사용법과 작은 controlled 검사를 소유하고 공통
@@ -303,7 +306,7 @@ MoAI의 기존 작업 카드도 같은 7개 단위로 연결했다. 계획 대�
 | Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | 피팅·채택·법칙/Hex8 연결과 오류 화면은 게시. FN-03-02 유한변형 관측→같은 측도 예측/피팅·채택·저장 재개를 통합하고 Windows 실제 FELUPE·Qt와 Astra 독립 검토를 마침. 원 입력·결과/기존 recipe·mixed controller·후보 엔진 유지. t5. 전체 재료군·일반 형상/요소 조합은 잔여 |
 | Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수·Windows 공간 PDE·온도 전달·공유 변수 MDO/첫 선형 adjoint에 이어 joint UQ·Sobol N/2N·국소 대리모델·추천점 실제 확인을 게시. 일반 total adjoint와 다른 확장 잔여 유지. t6/t7 |
 | Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 정확 결과 첨부·보고서·공개 초록 연결은 게시. 공식 자료 3개 반입·실제 검색·원문 읽기·새 프로세스 재개를 통합. 실제 연구팀의 Pro 설계는 네 실행 계약을 교정 중. 실장비·일반 composite와 새 팀 전체 수용은 잔여. t2/t9 |
-| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report에 이어 문헌·Study·Expert 사본과 현지 명시 Ask도 게시. 다음 PDE/Simulation 사본을 전용 담당이 작성. 다른 owner/native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
+| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report·문헌·Study·Expert 사본과 현지 Ask를 게시. PDE/Simulation 사본 통합·최종 검토를 마쳤고 다음 Evaluation 단계 사본을 전용 담당이 작성. native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
 
 각 묶음은 원행/SPEC의 상세 완료 조건을 유지한다. 새로운 지원 조합은 현재 미지원의
 이름만 바꾸어 닫지 않는다. 실제 장비/원격 호스트가 필요한 항목은 입력 미정을 명시하고
