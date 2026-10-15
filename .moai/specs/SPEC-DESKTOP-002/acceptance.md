@@ -75,3 +75,14 @@ original and final checks and review are retained in
 `runs/product-development/20261014/start-menu`. This extends desktop entry;
 clean-PC installation, Explorer interaction and the whole D10 delivery remain
 separate acceptance work. Current status is in CURRENT_STATE.
+
+## Native saved-project extension
+
+Use NP01–43 in [the adopted design](../../../docs/native-project/DESIGN_KO.md)
+as the detailed scenarios, including the strengthened NP38–43. Require actual
+source-free Pre/Post edit/Save, a second copy with the first source absent, stable
+separate owners, first-Save cancellation/recovery and mixed research navigation.
+Preserve failed attempts, declared missing history and exact original proofs.
+Design review, pure codec checks, native execution, GUI interaction and engineering
+qualification are separate outcomes. Relevant implementations and narrow checks
+proceed in parallel; unchanged physics campaigns are not repeated for this unit.

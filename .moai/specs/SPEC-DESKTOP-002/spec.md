@@ -1,10 +1,10 @@
 ---
 id: SPEC-DESKTOP-002
 title: "Independent desktop entry with connected document workflows"
-version: "0.1.0"
-status: completed
+version: "0.2.0"
+status: in-progress
 created: 2026-10-13
-updated: 2026-10-13
+updated: 2026-10-16
 author: "Actual ChatGPT Pro implementation; Codex orchestration/integration"
 priority: "P1 High"
 phase: implementation
@@ -59,6 +59,33 @@ No new paid dependency/provider/hosting, product web wrapper, solver campaign,
 physical device control or prototype fixture engine is introduced by this unit.
 Real native startup and numerical/engineering validity remain distinct claims.
 
-The next product unit is the existing Numerical Plan's variable/response/method
-worksheet and same Expert/Study result handoff. This entry unit is not the whole
-product's completion condition.
+The original desktop-entry implementation remains accepted within its recorded
+scope. The native saved-project follow-up below extends this SPEC; it does not
+invalidate those checks or mark the whole product complete. Current assignments
+remain solely in CURRENT_STATE.
+
+## Native saved-project follow-up
+
+Actual Pro's [corrected native design](../../../docs/native-project/DESIGN_KO.md)
+and its independently reviewed NP01–43 cases define this extension. Sol writers
+implement the native/common bundles; Codex integrates shared interfaces.
+
+- REQ-DESKTOP-002-007: When a user selects a saved FreeCAD or ParaView project,
+  the product SHALL verify its exact snapshot and declared dependencies before
+  publishing a portable copy through the existing manifest-last transaction.
+- REQ-DESKTOP-002-008: While the original project remains open or dirty, saved
+  and working imports SHALL use independent live owners. A saved import's first
+  Save SHALL preserve that live identity and publish only its new local target.
+- REQ-DESKTOP-002-009: When a copied Pre project is opened, the product SHALL
+  reuse native XLinks, selections, editable geometry and existing Save/Undo APIs.
+  Identity initialization SHALL remain outside user Undo and geometry recompute.
+- REQ-DESKTOP-002-010: When a Post project moves, the product SHALL restore its
+  reader closure and verify retained graph/bindings against each history's exact
+  source basis. Declared missing history SHALL remain distinguishable from changed
+  content through Save and a second copy.
+- REQ-DESKTOP-002-011: When selected native evidence accompanies research
+  documents, GUI/CLI/MCP SHALL address the same registered input and source proof.
+  Native-only file work SHALL not construct Workbench, JobManager or an AI provider.
+- REQ-DESKTOP-002-012: If an operation is cancelled or its reply is lost, the
+  product SHALL preserve edits and completed work and reconcile the original
+  command before repeating any native Save, registration or head publication.
