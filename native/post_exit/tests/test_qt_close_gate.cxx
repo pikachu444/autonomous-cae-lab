@@ -40,13 +40,23 @@ public:
   bool stockVeto = false, lateVeto = false;
   int stockCalls = 0;
   std::function<void()> stockModal;
+  std::function<void()> afterReview;
 protected:
   void closeEvent(QCloseEvent* event) override {
     ++stockCalls;
     if (stockModal) stockModal();
     if (stockVeto) event->ignore();
     if (gate) gate->reviewClose(event);
+    if (afterReview) afterReview();
     if (lateVeto) event->ignore();
+  }
+};
+class DownstreamVeto : public QObject {
+protected:
+  bool eventFilter(QObject*, QEvent* event) override {
+    if (event->type() != QEvent::Close) return false;
+    static_cast<QCloseEvent*>(event)->ignore();
+    return true;
   }
 };
 }
@@ -54,6 +64,25 @@ class QtCloseTest : public QObject {
   Q_OBJECT
 private Q_SLOTS:
   void initTestCase() { QApplication::setQuitOnLastWindowClosed(false); }
+  void fileExitActionUsesOriginalCloseEventOnce() {
+    Answers a; answers = &a;
+    Window main; cae::CloseGate gate([](){ return 0u; }); main.gate = &gate;
+    QCOMPARE(gate.attach(&main, 42, 42, callback), CAE_OK);
+    auto file = main.menuBar()->addMenu(QString::fromUtf8("파일"));
+    auto exit = file->addAction(QString::fromUtf8("종료"));
+    exit->setObjectName("actionFileExit");
+    connect(exit, &QAction::triggered, qApp, &QApplication::closeAllWindows);
+    main.show();
+    exit->trigger();
+    QVERIFY(main.isVisible()); QCOMPARE(main.stockCalls, 0);
+    a.begin = CAE_ALLOW;
+    exit->trigger();
+    QVERIFY(!main.isVisible()); QCOMPARE(main.stockCalls, 1);
+    QCOMPARE(std::count(a.events.begin(), a.events.end(), CAE_BEGIN), 2);
+    QCOMPARE(std::count(a.events.begin(), a.events.end(), CAE_VALIDATE), 1);
+    QCOMPARE(std::count(a.events.begin(), a.events.end(), CAE_CLOSED), 1);
+    QCOMPARE(gate.registration(), uint64_t(0));
+  }
   void actionsAndKeyboard() {
     Answers a; answers = &a;
     Window window;
@@ -143,12 +172,56 @@ private Q_SLOTS:
     window.show();
     window.stockModal = [&]() {
       QEventLoop modal;
-      QTimer::singleShot(30, &modal, [&]() { QVERIFY(gate.actionInProgress()); modal.quit(); });
+      QTimer::singleShot(30, &modal, [&]() {
+        const bool active = gate.actionInProgress();
+        modal.quit();
+        QVERIFY(active);
+      });
       modal.exec();
     };
     QVERIFY(window.close());
     QCOMPARE(std::count(a.events.begin(), a.events.end(), CAE_BEGIN), 1);
     QVERIFY(std::find(a.events.begin(), a.events.end(), CAE_ABORTED) == a.events.end());
+  }
+  void filteredCloseWithoutOfficialReviewReleasesLease() {
+    Answers a; answers = &a; a.begin = CAE_ALLOW;
+    Window window; DownstreamVeto veto;
+    // Qt calls the most recently installed filter first. The other filter
+    // rejects after our BEGIN, so the stock closeEvent/review is never reached.
+    window.installEventFilter(&veto);
+    cae::CloseGate gate([](){ return 0u; }); window.gate = &gate;
+    QCOMPARE(gate.attach(&window, 7, 7, callback), CAE_OK);
+    window.show();
+    QVERIFY(!window.close()); QVERIFY(window.isVisible());
+    QCOMPARE(window.stockCalls, 0);
+    QVERIFY(gate.actionInProgress());
+    QTRY_VERIFY(!gate.actionInProgress());
+    QCOMPARE(a.events.back(), uint32_t(CAE_ABORTED));
+    QCOMPARE(gate.registration(), uint64_t(7));
+    QVERIFY(std::find(a.events.begin(), a.events.end(), CAE_CLOSED) == a.events.end());
+    window.removeEventFilter(&veto);
+    QVERIFY(window.close());
+    QCOMPARE(window.stockCalls, 1);
+    QCOMPARE(a.events.back(), uint32_t(CAE_CLOSED));
+    QCOMPARE(gate.registration(), uint64_t(0));
+  }
+  void stockProcessEventsDoesNotExpirePermission() {
+    for (const bool reviewed : {false, true}) {
+      Answers a; answers = &a; a.begin = CAE_ALLOW;
+      Window window; cae::CloseGate gate([](){ return 0u; }); window.gate = &gate;
+      QCOMPARE(gate.attach(&window, 8, 8, callback), CAE_OK);
+      window.show();
+      auto processEvents = [&]() {
+        QCoreApplication::processEvents();
+        QVERIFY(gate.actionInProgress());
+        QVERIFY(std::find(a.events.begin(), a.events.end(), CAE_ABORTED) == a.events.end());
+      };
+      if (reviewed) window.afterReview = processEvents;
+      else window.stockModal = processEvents;
+      QVERIFY(window.close());
+      QCOMPARE(a.events.back(), uint32_t(CAE_CLOSED));
+      QCOMPARE(gate.registration(), uint64_t(0));
+    }
   }
   void scopedEditorAndUnmanagedWindow() {
     Answers a; answers = &a;
@@ -169,6 +242,7 @@ private Q_SLOTS:
       QCOMPARE(gate.detach(id), CAE_OK);
       cae_exit_status status{}; gate.status(status);
       QCOMPARE(status.installed, 0u); QCOMPARE(status.filter_count, 0u); QCOMPARE(status.settle_timer, 0u);
+      QCOMPARE(status.observer_count, 0u);
     }
     QCOMPARE(a.events.size(), size_t(3));
   }
@@ -215,6 +289,55 @@ private Q_SLOTS:
       QCOMPARE(gate.prompt(20), 3);
     }
   }
+  void explicitPromptChoicesBlockReentrantClose() {
+    Answers a; answers = &a;
+    Window main; main.show();
+    cae::CloseGate gate([](){ return 0u; }); main.gate = &gate;
+    QCOMPARE(gate.attach(&main, 40, 40, callback), CAE_OK);
+    const char* choices[] = {"caePostSave", "caePostDiscard", "caePostCancel"};
+    for (int i = 0; i < 3; ++i) {
+      bool checked = false;
+      QTimer::singleShot(20, &main, [&]() {
+        auto box = main.findChild<QMessageBox*>("caePostProjectCloseDialog");
+        if (!box) { return; }
+        auto button = box->findChild<QPushButton*>(choices[i]);
+        const bool stayed = !main.close() && main.isVisible() && gate.registration() == 40;
+        checked = stayed && button && a.events.empty();
+        if (button) button->click(); else box->reject();
+      });
+      QCOMPARE(gate.prompt(40), i + 1);
+      QVERIFY(checked); QVERIFY(main.isVisible());
+    }
+    QCOMPARE(gate.detach(40), CAE_OK);
+  }
+  void errorAcknowledgementPreservesDraftAndOwner() {
+    Answers a; answers = &a;
+    Window main; main.show(); QLineEdit draft(&main); draft.setText("1e");
+    cae::CloseGate gate([](){ return 0u; }); main.gate = &gate;
+    QCOMPARE(gate.attach(&main, 41, 41, callback), CAE_OK);
+    bool checked = false;
+    QTimer::singleShot(20, &main, [&]() {
+      auto box = main.findChild<QMessageBox*>("caePostProjectCloseError");
+      if (!box) { return; }
+      auto acknowledge = box->findChild<QPushButton*>("caePostErrorAcknowledge");
+      checked = !main.close() && main.isVisible() && draft.text() == "1e" &&
+                gate.registration() == 41 && a.events.empty();
+      const auto folder = qEnvironmentVariable("CAE_EXIT_CAPTURE_DIR");
+      if (!folder.isEmpty()) checked = checked && box->grab().save(folder + "/qt-save-error.png");
+      if (acknowledge) acknowledge->click(); else box->reject();
+    });
+    QCOMPARE(gate.error(41, QString::fromUtf8("프로젝트를 저장하지 못했습니다. 입력과 현재 결과를 유지합니다.")), CAE_OK);
+    QVERIFY(checked); QCOMPARE(draft.text(), QString("1e"));
+    QCOMPARE(gate.registration(), uint64_t(41));
+    QCOMPARE(gate.detach(41), CAE_OK);
+  }
 };
-QTEST_MAIN(QtCloseTest)
+int main(int argc, char** argv) {
+  QApplication app(argc, argv);
+  QtCloseTest test;
+  // Model the real application: close dispatch starts inside its running
+  // event loop. DeferredDelete before exec() has different Qt semantics.
+  QTimer::singleShot(0, &test, [&]() { app.exit(QTest::qExec(&test, argc, argv)); });
+  return app.exec();
+}
 #include "test_qt_close_gate.moc"

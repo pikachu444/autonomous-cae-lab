@@ -554,6 +554,13 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
         return launch_saved_project(client, args)
     context = client.desktop_context()
     executable = _executable(context, 'paraview_executable', args.executable, not args.prepare_only)
+    exit_plugin = os.environ.get('CAE_POST_EXIT_PLUGIN')
+    exit_runtime = os.environ.get('CAE_POST_PARAVIEW_ROOT')
+    if exit_plugin and exit_runtime and not args.prepare_only:
+        expected = Path(exit_runtime) / 'bin' / 'paraview.exe'
+        if not expected.is_file() or executable != expected.resolve(strict=True):
+            raise ValueError('종료 보호에 지정한 ParaView와 선택한 실행 파일이 다릅니다. '
+                             '같은 설치의 paraview.exe를 선택하거나 종료 보호 연결을 해제하세요.')
     home = Path(context['repo_root']) / 'apps/desktop_post'
     source_text = getattr(args, 'research_source', None)
     research_source = json.loads(source_text) if source_text is not None else None

@@ -13,10 +13,7 @@
 #include <utility>
 namespace cae {
 CloseGate::CloseGate(std::function<uint32_t()> nativeBusy, QObject* parent)
-  : QObject(parent), NativeBusy(std::move(nativeBusy)), Settle(this) {
-  Settle.setSingleShot(true);
-  connect(&Settle, &QTimer::timeout, this, [this]() { settle(); });
-}
+  : QObject(parent), NativeBusy(std::move(nativeBusy)) {}
 CloseGate::~CloseGate() { clear(); }
 int CloseGate::attach(QWidget* main, uint64_t registration, uint64_t client, cae_exit_callback callback) {
   if (QThread::currentThread() != thread()) return CAE_WRONG_THREAD;
@@ -35,7 +32,7 @@ int CloseGate::attach(QWidget* main, uint64_t registration, uint64_t client, cae
   return CAE_OK;
 }
 void CloseGate::clear() {
-  Settle.stop();
+  cancelSettlement();
   if (Main) Main->removeEventFilter(this);
   for (const auto& connection : Connections) disconnect(connection);
   Connections.clear();
@@ -60,7 +57,14 @@ void CloseGate::abort() {
   if (!Transaction.active()) return;
   notify(CAE_ABORTED);
   Transaction.abort();
-  Settle.stop();
+  cancelSettlement();
+}
+void CloseGate::cancelSettlement() {
+  if (Settlement) {
+    // Cancel even a deferred deletion posted by a previous registration.
+    disconnect(Settlement.data(), nullptr, this, nullptr);
+    delete Settlement.data();
+  }
 }
 bool CloseGate::eventFilter(QObject* watched, QEvent* event) {
   if (!Registration || watched != Main.data()) return false;
@@ -68,21 +72,27 @@ bool CloseGate::eventFilter(QObject* watched, QEvent* event) {
     auto close = static_cast<QCloseEvent*>(event);
     if (DialogOpen || !Transaction.begin()) { close->ignore(); return true; }
     const auto registration = Registration;
-    LoopLevel = QThread::currentThread()->loopLevel();
     // Query also inside Python's shared gate, where it can display a safe error.
     LastDecision = notify(CAE_BEGIN);
     if (Registration != registration || !Transaction.decide(LastDecision)) {
       close->ignore(); return true;
     }
     // Returning false preserves stock closeEvent/Save State/editor semantics.
-    // A later ignore must not destroy the Owner. Timer waits out nested loops.
-    Settle.start(0);
+    // A timer/queued call can run inside stock processEvents() before its
+    // close handler returns. DeferredDelete waits for the originating event
+    // loop, including nested modal loops, without polling AwaitingReview.
+    Settlement = new QObject(this);
+    const auto attempt = Transaction.attempt();
+    connect(Settlement.data(), &QObject::destroyed, this, [this, registration, attempt]() {
+      if (Registration == registration && Transaction.attempt() == attempt) settle();
+    });
+    Settlement->deleteLater();
     return false;
   }
   if (event->type() == QEvent::Hide && !event->spontaneous() && Transaction.reviewed() &&
       !InCloseNotification) {
     QScopedValueRollback<bool> notifying(InCloseNotification, true);
-    Settle.stop();
+    cancelSettlement();
     LastDecision = notify(CAE_CLOSED);
     // Normal callback uses GuiDispatch.close -> exact detach. Do not silently
     // claim cleanup succeeded when the callback failed.
@@ -104,8 +114,6 @@ void CloseGate::reviewClose(QCloseEvent* event) {
 }
 void CloseGate::settle() {
   if (!Registration || !Transaction.active()) return;
-  if (Transaction.phase() == CloseTransaction::Phase::AwaitingReview ||
-      QThread::currentThread()->loopLevel() > LoopLevel) { Settle.start(10); return; }
   // No nonspontaneous Hide was observed: stock/downstream code vetoed, or no
   // official review was emitted. Invalidate the lease; the next request asks anew.
   abort();
@@ -166,8 +174,9 @@ void CloseGate::status(cae_exit_status& output) const {
   output.attempt = Transaction.attempt(); output.installed = Registration ? 1 : 0;
   output.in_action = actionInProgress() ? 1 : 0;
   output.native_busy = NativeBusy ? NativeBusy() : 2;
-  output.settle_timer = Settle.isActive() ? 1 : 0; output.filter_count = Registration ? 1 : 0;
+  // Deferred settlement has an observer, not a polling timer. Keep the v1 ABI.
+  output.settle_timer = 0; output.filter_count = Registration ? 1 : 0;
   output.last_decision = LastDecision;
-  output.observer_count = static_cast<uint32_t>(Connections.size());
+  output.observer_count = static_cast<uint32_t>(Connections.size()) + (Settlement ? 1 : 0);
 }
 }

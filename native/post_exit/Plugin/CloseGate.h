@@ -4,7 +4,6 @@
 #include "cae_post_exit_abi.h"
 #include <QObject>
 #include <QPointer>
-#include <QTimer>
 #include <QVector>
 #include <QWidget>
 #include <functional>
@@ -30,15 +29,16 @@ private:
   int notify(uint32_t event);
   void abort();
   void settle();
+  void cancelSettlement();
   void clear();
   QPointer<QWidget> Main;
   std::function<uint32_t()> NativeBusy;
   CloseTransaction Transaction;
-  QTimer Settle;
+  QPointer<QObject> Settlement;
   QVector<QMetaObject::Connection> Connections;
   uint64_t Registration = 0, Client = 0, Window = 0;
   cae_exit_callback Callback = nullptr;
-  int LoopLevel = 0, LastDecision = CAE_UNKNOWN;
+  int LastDecision = CAE_UNKNOWN;
   bool DialogOpen = false, InCloseNotification = false;
 };
 }

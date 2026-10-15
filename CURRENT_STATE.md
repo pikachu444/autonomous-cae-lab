@@ -217,16 +217,25 @@ FreeCAD FEM·Gmsh 명령과 ParaView 튜토리얼 원문 3개, 출처와 CC BY �
 변경하지 않는다. [공식 자료 사용법](docs/EXPERT_KNOWLEDGE_KO.md)의 같은 작업 폴더로
 Expert를 열어 자료를 선택한다. 모델 호출·해석 실행·분야 전문성 또는 새 연구팀 완성은
 이 묶음에서 확인한 것이 아니다. 후속 팀 구현은 기존 Pro 설계 교정 뒤 이어간다.
-Sol `expert_roundtrip_finish`는 이어서 기존 B8.3의 PDE/Simulation 이동 사본을 맡는다.
+Sol `expert_roundtrip_finish`의 B8.3 PDE/Simulation 이동 사본 본코드를 통합했다.
 원 실행·입력/field 원문 보존과 현재 편집·명시 새 로컬 실행을 나누고 기존 reader·owner·
-portable 발행을 재사용한다. 전용 helper·예제·검사·사용법만 작성하고 공통 변경은 root
-최소 패치로 통합한다. Evaluation/managed Pre/Post 이동을 허용 목록만 넓혀 완료로 세지 않는다.
-Sol `post_windows_build_fix`는 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료
-plugin을 잇는다. 기존 실제 Pro C++/ABI 소스와 Windows SDK 빌드 중단점을 보존하며,
+portable 발행을 재사용한다. 실제 약형식 PDE·정상 열전도 계산의 사본을 두 새 프로세스에서
+읽고 편집·저장·명시 새 계산·재복사했다. 실패·취소 결과의 원 오류 보존도 교정했다.
+현재는 표시 문구를 반영한 최종 창과 Astra 통합 검토를 마무리한다. 다음 CB06 Evaluation의
+단계·전달·부분 재사용 사본은 Sol `pde_delivery_packet`이 전용 코드·예제·사용법을 작성하며
+공통 변경은 root 최소 패치로 통합한다. managed Pre/Post 이동을 허용 목록만 넓혀 완료로 세지 않는다.
+Sol `post_windows_build_fix`가 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료
+plugin을 연결했고 Astra 통합 검토를 마쳤다. 실제 Qt 종료 event·저장/취소/오류 창과
+root의 실행 파일 일치·미완성 입력 저장 방지 교정을 확인했다. 기존 실제 Pro C++/ABI
+소스와 Windows SDK 빌드 중단점을 보존하며,
 기존 SDK가 Viskores의 기본 설치 component를 빠뜨린 원인을 확인했다. 같은 기존
 빌드의 한 DLL 설치를 새 시험 폴더에서 대조했고 root가 공식 설치 스크립트에
 `Unspecified` component를 추가했다. 전체 SDK/plugin load가 통과한 것으로 세지 않는다.
-새 CI·광역 로컬 빌드는 아직 시작하지 않았고 실제 File→Exit 수용은 미완료다.
+같은 SDK runtime·plugin·Python/NumPy와 라이선스를 함께 회수하는 패키징과 선택적
+미공개 draft release 경로를 작성하고 작은 실제 PS/7-Zip 확인·독립 소스 검토를 마쳤다.
+Actions artifact/cache·유료 runner는 사용하지 않는다. 소스 게시 후 공개 표준 Windows CI를
+한 번 실행해 실제 SDK/plugin load와 기존 비교 재열기를 확인한다. 아직 새 CI는 시작 전이며
+실제 ParaView File→Exit·직접 OS 입력·깨끗한 PC 설치는 미완료다.
 Sol `inverse_delivery`는 보존한 B8.4 SSH/Slurm/PBS 원격 실행 초안과 기존 batch 교환을
 이어 구현한다. 전용 원격 코드·대화창·사용법과 작은 controlled 검사를 소유하고 공통
 Runner/작업관리 연결은 root 최소 패치로 통합한다. 사용자 원격 host·권한은 제공되지

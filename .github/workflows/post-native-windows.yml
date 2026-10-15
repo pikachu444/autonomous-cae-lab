@@ -2,6 +2,12 @@ name: Post native Windows SDK
 
 on:
   workflow_dispatch:
+    inputs:
+      recover_runtime:
+        description: 'Keep the verified runtime in an unpublished draft release (no Actions artifact/cache storage)'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -14,9 +20,13 @@ jobs:
   sdk-plugin:
     # Standard public Windows runners have free compute. Never run this in a
     # private repository or select a larger/self-hosted runner.
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && github.ref == 'refs/heads/main' }}
     runs-on: windows-2022
     timeout-minutes: 360
+    # Manual runs on trusted main only. Write access is used solely to recover
+    # a successful runtime in a draft release when explicitly selected.
+    permissions:
+      contents: write
     defaults:
       run:
         shell: pwsh
@@ -67,7 +77,64 @@ jobs:
           if ($receipt.cleanup -ne 'job_empty' -or $receipt.cleanup_error -or $receipt.timed_out) {
             throw 'SDK build/check Job cleanup or timeout requires review.'
           }
-      - name: Print receipts without artifact/cache storage or publication
+      - name: Package the verified runtime in one owned Job
+        if: ${{ inputs.recover_runtime }}
+        run: |
+          $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+          $pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+          python scripts/native_check.py --timeout 1800 --output-dir "$env:POST_NATIVE_ROOT/recovery-job" -- $pwsh -NoProfile -File "$env:GITHUB_WORKSPACE/scripts/package_post_runtime_windows.ps1" -WorkRoot $env:POST_NATIVE_ROOT -Python $python
+          if ($LASTEXITCODE -ne 0) { throw "Owned runtime packaging failed: $LASTEXITCODE" }
+          $receipt = Get-Content -LiteralPath "$env:POST_NATIVE_ROOT/recovery-job/native-check.json" -Raw | ConvertFrom-Json
+          if ($receipt.cleanup -ne 'job_empty' -or $receipt.cleanup_error -or $receipt.timed_out) {
+            throw 'Runtime packaging Job cleanup or timeout requires review.'
+          }
+      - name: Recover runtime volumes in an unpublished draft release
+        if: ${{ inputs.recover_runtime }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $recovery = Join-Path $env:POST_NATIVE_ROOT 'recovery'
+          $receiptPath = Join-Path $recovery 'package-receipt.json'
+          $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+          if ($receipt.schema -ne 'cae.post-runtime-recovery/1' -or
+              $receipt.source_commit -ne $env:GITHUB_SHA -or
+              $receipt.staged_artifact_verification -ne 'PASSED' -or
+              $receipt.archive_test -ne 'PASSED' -or $receipt.publication -ne 'NONE') {
+            throw 'Only the verified runtime from this exact source may be recovered.'
+          }
+          $volumes = @(Get-ChildItem -LiteralPath $recovery -File -Filter 'post-runtime.7z.*' | Sort-Object Name)
+          if ($volumes.Count -eq 0 -or $volumes.Count -ne @($receipt.volumes).Count) {
+            throw 'Runtime volume inventory differs from its packaging receipt.'
+          }
+          foreach ($volume in $volumes) {
+            $entry = @($receipt.volumes | Where-Object { $_.file -eq $volume.Name })
+            if ($entry.Count -ne 1 -or $volume.Length -ge 1900MB -or
+                $entry[0].bytes -ne $volume.Length -or
+                $entry[0].sha256 -ne (Get-FileHash -LiteralPath $volume.FullName -Algorithm SHA256).Hash.ToLowerInvariant()) {
+              throw 'A runtime volume is absent, changed or exceeds the recovery size limit.'
+            }
+          }
+          $tag = "post-runtime-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $notes = Join-Path $recovery 'draft-notes.md'
+          @(
+            'Development runtime recovery. This release remains an unpublished draft.'
+            ''
+            "Source: https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_SHA"
+            "Workflow: https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            ''
+            'Download every post-runtime.7z volume and package-receipt.json together.'
+            'The archive includes its file inventory, licenses, source references and Korean recovery instructions.'
+            'SDK plugin load and the existing comparison checks passed. Actual desktop exit and clean-PC installation are NOT_RUN.'
+          ) | Set-Content -LiteralPath $notes -Encoding utf8
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --draft --title 'Post Windows development runtime' --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { throw 'Draft creation was not confirmed; inspect this run tag before retrying.' }
+          $uploadFiles = @($volumes.FullName) + @($receiptPath)
+          gh release upload $tag @uploadFiles --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) { throw 'Draft upload was not confirmed; keep and inspect the existing draft.' }
+          $url = gh release view $tag --repo $env:GITHUB_REPOSITORY --json url --jq .url
+          if ($LASTEXITCODE -ne 0) { throw 'Uploaded draft readback failed.' }
+          "### Runtime recovery`n`nUnpublished draft: $url`n`nNo Actions artifact or cache storage was used. Actual desktop exit acceptance remains NOT_RUN." >> $env:GITHUB_STEP_SUMMARY
+      - name: Print receipts without Actions artifact/cache storage
         if: always()
         run: |
           $root = $env:POST_NATIVE_ROOT
@@ -100,4 +167,4 @@ jobs:
               else { Get-Content -LiteralPath $file -Tail 120 }
             }
           }
-          "### Post Windows SDK check`n`nCommit: $env:GITHUB_SHA`n`nNo cache, artifact upload, release publication or actual desktop input acceptance is performed." >> $env:GITHUB_STEP_SUMMARY
+          "### Post Windows SDK check`n`nCommit: $env:GITHUB_SHA`n`nNo Actions cache/artifact storage or public release is created. Optional runtime recovery uses an unpublished draft only. Actual desktop input acceptance is NOT_RUN." >> $env:GITHUB_STEP_SUMMARY

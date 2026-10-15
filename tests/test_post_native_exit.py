@@ -493,6 +493,40 @@ def test_invalid_native_text_prompts_but_save_cannot_erase_it(installed):
     assert i.library.emit(abi.BEGIN) == abi.ALLOW
 
 
+def test_ctrl_s_preserves_native_draft_until_apply(installed):
+    i = installed
+    i.library.ui_draft['unapplied'] = True
+    before = deepcopy(i.library.ui_draft)
+    i.controls.key_message()
+    assert not i.bridge.saved and not i.owner.closed
+    assert i.library.ui_draft == before and not i.controls.in_action
+    assert '적용하지 않은 변경' in i.library.errors[-1]
+    i.library.ui_draft['unapplied'] = False
+    i.controls.key_message()
+    assert len(i.bridge.saved) == 1 and not i.owner.closed
+
+
+@pytest.mark.parametrize('pending', [None, 1])
+def test_ctrl_s_unknown_native_draft_does_not_save(installed, pending):
+    i = installed
+    i.library.ui_draft['unapplied'] = pending
+    i.controls.key_message()
+    assert not i.bridge.saved and not i.owner.closed and not i.controls.in_action
+    assert i.library.errors
+
+
+def test_ctrl_s_native_draft_read_failure_does_not_save(installed, monkeypatch):
+    i = installed
+
+    def unavailable(*args):
+        raise OSError('draft unavailable')
+
+    monkeypatch.setattr(i.library, 'draft', unavailable)
+    i.controls.key_message()
+    assert not i.bridge.saved and not i.owner.closed and not i.controls.in_action
+    assert i.library.errors
+
+
 def test_native_widget_text_change_with_same_sm_snapshot_expires_permission(installed):
     i = installed
     dirty(i)

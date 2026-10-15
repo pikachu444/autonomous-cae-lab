@@ -46,6 +46,13 @@ class Controls:
 
     def _save(self):
         try:
+            pending_reader = getattr(self, 'close_pending_inputs', None)
+            if pending_reader is not None:
+                pending = pending_reader()
+                if type(pending) is not bool:
+                    raise ValueError('Native unapplied input state is unknown')
+                if pending:
+                    raise ValueError('BUSY_EDIT: native widget inputs are unapplied')
             self.owner.save_project()
         except Exception as error:
             self._log('native_project_save_failed', error=str(error), error_type=type(error).__name__)
