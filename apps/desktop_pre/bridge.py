@@ -23,13 +23,14 @@ from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 from apps.desktop_pre.convergence import OPERATIONS as CONVERGENCE_OPERATIONS
 from apps.desktop_pre.beam_edit import BeamEditor, OPERATIONS as BEAM_OPERATIONS
 from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
+from apps.desktop_pre.dynamic_edit import DynamicEditor, OPERATIONS as DYNAMIC_OPERATIONS, READ_ONLY as DYNAMIC_READ_ONLY
 from apps.desktop_pre.assembly_pose_candidate import PoseCandidates, OPERATIONS as POSE_CANDIDATE_OPERATIONS, READ_ONLY as POSE_CANDIDATE_READ_ONLY
 from apps.desktop_pre.shell_edit import ShellEditor, OPERATIONS as SHELL_OPERATIONS, READ_ONLY as SHELL_READ_ONLY
 
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS + POSE_CANDIDATE_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS + POSE_CANDIDATE_OPERATIONS + DYNAMIC_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -62,6 +63,7 @@ class Owner:
         self.motion = Motion(self)
         self.fem = FEMEditor(self)
         self.beam = BeamEditor(self)
+        self.dynamic = DynamicEditor(self)
         self.research = ResearchInputs(self)
         self.shell = ShellEditor(self)
         self.pose_candidates = PoseCandidates(self)
@@ -263,7 +265,7 @@ class Owner:
                 readonly = {'pre.fem.convergence_read', 'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.beam.inspect', 'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
-                readonly |= SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY
+                readonly |= SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY | DYNAMIC_READ_ONLY
                 if self.pose_candidates.busy and operation not in readonly | {'pre.assembly_candidate.cancel', 'document.activate'}:
                     raise ValueError('해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
@@ -300,6 +302,8 @@ class Owner:
                         raise ValueError('Choose an exact Analysis and mesh-reference solver')
                     from .impact_capture import capture
                     payload = capture(self, args['analysis_id'], args['solver_id'])
+                elif operation in DYNAMIC_OPERATIONS:
+                    payload = self.dynamic.dispatch(operation, args, target)
                 elif operation in SHELL_OPERATIONS:
                     payload = self.shell.dispatch(operation, args, target)
                 elif operation in BEAM_OPERATIONS:
@@ -353,6 +357,8 @@ class Owner:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
                     from apps.desktop_pre.freeze_analysis import require_ready_model
                     require_ready_model(self.doc, owner=self)
+                    if args['analysis_id'] in self.read_metadata().get('dynamic_programs', {}):
+                        raise ValueError('동해석 설정의 입력 생성/계산을 사용하세요. 일반 FEM 입력으로 초기조건과 시간 단계를 생략하지 않습니다.')
                     from apps.desktop_pre.beam_menu import uses_beam
                     if uses_beam(self._object(args['analysis_id']), self.read_metadata()):
                         raise ValueError('빔 설정에서 입력을 생성하세요. 일반 FEM 입력으로 빔 끝 모멘트를 생략하지 않습니다.')

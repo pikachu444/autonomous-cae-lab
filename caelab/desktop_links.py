@@ -34,10 +34,16 @@ class DesktopLinks:
         """Retry one completed export without registering/submitting it twice."""
         wb = self.workbench
         command_id = check_id(command_id)
+        exports = {'pre.freeze': ('frozen_fem', 'structure.calculix.frozen'),
+            'pre.contact.freeze': ('frozen_contact', 'structure.calculix.contact'),
+            'pre.shell.freeze': ('frozen_shell', 'structure.calculix.shell'),
+            'pre.beam.freeze': ('frozen_beam', 'structure.calculix.beam'),
+            'pre.dynamic.freeze': ('frozen_contact', 'structure.calculix.contact'),
+            'pre.dynamic.restart': ('frozen_contact', 'structure.calculix.contact')}
         with self._lock:
             command = wb.native_commands.status(command_id)
-            if command['operation'] not in {'pre.freeze', 'pre.contact.freeze', 'pre.shell.freeze', 'pre.beam.freeze'} or command['state'] != 'SUCCEEDED':
-                raise ValueError('A completed native FEM/contact freeze command is required')
+            if command['operation'] not in exports or command['state'] != 'SUCCEEDED':
+                raise ValueError('A completed native FEM/contact/dynamic export command is required')
             envelope = command.get('outcome', {}).get('result', {})
             result = envelope.get('result', {})
             if envelope.get('status') != 'COMPLETED':
@@ -59,12 +65,16 @@ class DesktopLinks:
                     root_id='native-owner:' + command['document_id'], relative=relative,
                     limit=wb.config.get('local_input_max_bytes', 2 * 1024 ** 3))
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
-            receipt_kind, backend = {'pre.freeze':('frozen_fem','structure.calculix.frozen'),
-                'pre.contact.freeze':('frozen_contact','structure.calculix.contact'),
-                'pre.beam.freeze':('frozen_beam','structure.calculix.beam'),
-                'pre.shell.freeze':('frozen_shell','structure.calculix.shell')}[command['operation']]
+            receipt_kind, backend = exports[command['operation']]
             if receipt.get('kind') != receipt_kind:
                 raise ValueError('Registered snapshot kind differs from the completed export operation')
+            if command['operation'] in {'pre.dynamic.freeze', 'pre.dynamic.restart'}:
+                from .adapters.contact_fem import validate_snapshot
+                from .dynamic_model import enabled, has_dynamic
+                _, model, _, _ = validate_snapshot(wb.input_path(receipt['id']))
+                if (not enabled(model) or not has_dynamic(model['analysis_steps']) or
+                        bool(model.get('restart')) != (command['operation'] == 'pre.dynamic.restart')):
+                    raise ValueError('Dynamic export operation differs from its admitted new-run/READ input')
             origin = {'kind': 'pre', 'document_id': command['document_id'],
                       'session_id': command['session_id'], 'generation': command.get('final_generation', command['expected_generation']),
                       'command_id': command_id, 'input_id': receipt['id']}

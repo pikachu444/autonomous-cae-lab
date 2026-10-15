@@ -66,6 +66,17 @@ def beam_api():
         sys.path.remove(repository)
 
 
+def dynamic_api():
+    import sys
+    repository = str(Path(__file__).resolve().parents[2])
+    sys.path.insert(0, repository)
+    try:
+        from caelab import dynamic_locations
+        return dynamic_locations
+    finally:
+        sys.path.remove(repository)
+
+
 def source_files(entry, native_metadata=None):
     """Validate and enumerate a bounded, local PVD+VTU dependency set."""
     entry = Path(entry).resolve(strict=True)
@@ -116,6 +127,9 @@ def source_files(entry, native_metadata=None):
                 raise ValueError("PVD supports only contained VTU frame files")
             if frame not in files:
                 files.append(frame)
+    if dynamic_api().required(entry, native_metadata):
+        bundle = dynamic_api().load(entry, native_metadata)
+        files = list(dict.fromkeys([*files, *bundle['paths']]))
     if entry.suffix.lower() == ".vtt" and native_metadata is not None:
         from caelab.post_curves import load_curve
         _, sidecar = load_curve(entry, native_metadata)
@@ -152,6 +166,8 @@ def verify_sources(path, doc):
                 raise RuntimeError("Original retained data changed: " + str(file))
         if set(map(str, source_files(record["entry_path"], record.get("native_metadata")))) != {pin["path"] for pin in recorded}:
             raise RuntimeError("Result dependency set does not match its recorded source pins")
+        if (record.get('native_metadata') or {}).get('dynamic_locations') is not None:
+            dynamic_api().verify_registration(record['entry_path'], record['native_metadata'], record.get('registration_origin'))
     return path, doc
 
 
@@ -233,7 +249,13 @@ def validate_declared_metadata(source, metadata):
             raise ValueError('Beam declaration requires its exact retained PVD reader')
         bundle = beam_api().validate_metadata(inputs[0], metadata)
         beam_keys = set(bundle['manifest']['native_metadata']) | {'beam_inspection'}
-    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings"} - shell_keys - beam_keys:
+    dynamic = isinstance(metadata, dict) and 'dynamic_locations' in metadata
+    if dynamic:
+        inputs = reader_input_files(source)
+        if len(inputs) != 1 or source.GetXMLName() != 'PVDReader':
+            raise ValueError('Dynamic declaration requires its exact retained PVD reader')
+        dynamic_api().load(inputs[0], metadata)
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings", "dynamic_locations"} - shell_keys - beam_keys:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
     if "contact_inspection" in metadata:
         contact_api().descriptor(metadata["contact_inspection"])
@@ -256,7 +278,7 @@ def validate_declared_metadata(source, metadata):
             raise ValueError("Declared non-temporal metadata requires its exact VTU reader")
     else:
         if (not isinstance(clock, dict) or set(clock) != {"unit", "semantics", "values"}
-                or not ((clock["unit"] == "1" and clock["semantics"] in {"DIMENSIONLESS_MODEL_TIME", "STATIC_LOAD_PARAMETER"})
+                or not ((clock["unit"] == "1" and clock["semantics"] in {"DIMENSIONLESS_MODEL_TIME", "STATIC_LOAD_PARAMETER", "MIXED_NATIVE_COORDINATE_NOT_PHYSICAL_TIME"})
                         or (clock["unit"] == "s" and isinstance(clock["semantics"], str) and clock["semantics"].strip()))
                 or not isinstance(clock["values"], list) or not clock["values"]
                 or any(type(t) not in (int, float) or not math.isfinite(t) for t in clock["values"])
@@ -396,6 +418,8 @@ def _inspect_result(source, time=None, native_metadata=None):
             "field_availability": deepcopy(declaration.get("field_availability")) if declaration else None,
             "metadata_status": "DECLARED" if declaration else "UNKNOWN",
             "arrays": arrays, "qualification": "UNKNOWN",
+            **({'dynamic': dynamic_api().select(reader_input_files(source)[0], declaration, time=selected)}
+               if declaration and 'dynamic_locations' in declaration else {}),
             **({"beam": {**deepcopy(declaration["beam"]),
                  "selected_static": next((deepcopy(row) for row in declaration["beam"]["frames"]
                                            if row["load_parameter"] == selected), None)}}
@@ -467,7 +491,8 @@ def select_array(source, association, array, component=None, time=None, view=Non
             **{key: selected_metadata[key] for key in ("units", "frame", "measure", "metadata_status", "recovery", "shear_convention")},
             **({"location": selected_metadata["location"]} if "location" in selected_metadata else {}),
             **{key: deepcopy(metadata[key]) for key in ("coordinate_units", "coordinate_frame", "static")},
-            **({'beam': deepcopy(metadata['beam'])} if 'beam' in metadata else {})}
+            **({'beam': deepcopy(metadata['beam'])} if 'beam' in metadata else {}),
+            **({'dynamic': deepcopy(metadata['dynamic'])} if 'dynamic' in metadata else {})}
 
 
 def physical_input(source, arrays):
@@ -650,6 +675,8 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
         raise ValueError("Declared native metadata requires a verified registered input receipt")
     files = source_files(input_path, native_metadata)
     entry = files[0]
+    if (native_metadata or {}).get('dynamic_locations') is not None:
+        dynamic_api().verify_registration(entry, native_metadata, registration_origin)
     pinned = pins(files)
     if source_pins is not None and pinned != source_pins:
         raise RuntimeError("Registered source pins do not match the actual result dependency set")

@@ -862,14 +862,18 @@ class Workbench:
                      result.get('execution_status') in {'FAILED','CANCELLED'})):
                 native_status=result.get('execution_status')
                 try:
-                    artifact=result['post_artifact']
-                    source=contained(output,artifact['relative'])
-                    if source.stat().st_size!=artifact['bytes'] or file_hash(source)!=artifact['sha256']:
-                        raise ValueError('Native Post artifact changed before registration')
-                    receipt=register_native_input(self.root,output,source,'D'+uuid.uuid4().hex,
-                        root_id='job:'+identifier,relative=artifact['relative'],limit=self.config.get('local_input_max_bytes',2*1024**3),
-                        native_metadata=artifact.get('native_metadata'))
-                    result['post_input']={'id':receipt['id'],'format':receipt['format'],'sha256':receipt['sha256']}
+                    if result.get('dynamic_post_artifacts'):
+                        from .dynamic_locations import publish_job_inputs
+                        publish_job_inputs(self,result,output,identifier,arguments)
+                    else:
+                        artifact=result['post_artifact']
+                        source=contained(output,artifact['relative'])
+                        if source.stat().st_size!=artifact['bytes'] or file_hash(source)!=artifact['sha256']:
+                            raise ValueError('Native Post artifact changed before registration')
+                        receipt=register_native_input(self.root,output,source,'D'+uuid.uuid4().hex,
+                            root_id='job:'+identifier,relative=artifact['relative'],limit=self.config.get('local_input_max_bytes',2*1024**3),
+                            native_metadata=artifact.get('native_metadata'))
+                        result['post_input']={'id':receipt['id'],'format':receipt['format'],'sha256':receipt['sha256']}
                 except (OSError, ValueError, KeyError, TypeError) as error:
                     # Preserve the already-computed responses and owned files if
                     # downstream publication fails. Never claim Post is ready or

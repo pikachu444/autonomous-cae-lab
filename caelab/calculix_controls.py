@@ -142,8 +142,8 @@ def validate_step_controls(step, *, procedure='static', penalty=False):
     for key, group in (('field_controls', 'field'), ('line_search_controls', 'line_search')):
         row = step.get(key)
         if row is not None:
-            if procedure != 'static':
-                raise ValueError('새 FIELD/LINE SEARCH 편집은 NS1 정적 기계 해석만 지원합니다. 동적 확장을 자동 적용하지 않습니다.')
+            if procedure not in ('static', 'dynamic') or group == 'line_search' and procedure != 'static':
+                raise ValueError('LINE SEARCH는 정적 penalty 접촉만 지원합니다. 동적 단계로 자동 이월하지 않습니다.')
             raise_errors(row_errors(row, group))
             if group == 'line_search' and not penalty:
                 raise ValueError('LINE SEARCH는 정적 surface-to-surface penalty 접촉이 있어야 합니다. 무접촉/tie 전용 모델에는 적용하지 않습니다.')

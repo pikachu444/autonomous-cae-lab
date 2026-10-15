@@ -49,7 +49,7 @@ def _native_force_table(node_load_table):
     return table
 
 
-def collect(analysis, solver, fem):
+def collect(analysis, solver, fem, *, capture_only=False):
     if threading.current_thread() is not threading.main_thread():
         raise ValueError('Contact export requires the native main thread')
     owner, doc = fem.owner, analysis.Document
@@ -68,9 +68,11 @@ def collect(analysis, solver, fem):
     programs = [r for r in fem._metadata().get('contact_programs', []) if r['analysis_id'] == analysis.Name]
     if len(programs) > 1:
         raise ValueError('Duplicate Analysis step definitions')
-    program = deepcopy(programs[0]['draft']) if programs else None
+    dynamic_record = owner.read_metadata().get('dynamic_programs', {}).get(analysis.Name)
+    program = None if capture_only else (deepcopy(dynamic_record['draft']['program']) if dynamic_record else
+                                         deepcopy(programs[0]['draft']) if programs else None)
     procedure = program.get('procedure') if program else 'static'
-    if procedure not in ('static', 'dynamic'):
+    if procedure not in ('static', 'dynamic', 'mixed'):
         raise ValueError('Repair the Analysis procedure in the Steps page')
     expected = {'AnalysisType': 'static', 'ModelSpace': '3D', 'SplitInputWriter': False}
     if any(getattr(solver, key) != value for key, value in expected.items()):
@@ -79,7 +81,7 @@ def collect(analysis, solver, fem):
         raise ValueError('Unsupported native geometric formulation')
     records = [row for row in fem.contact._data()['contacts'] if row['analysis_id'] == analysis.Name
                and not getattr(owner._object(row['object_id']), 'Suppressed', False)]
-    if not records and procedure != 'static':
+    if not records and procedure != 'static' and not dynamic_record:
         raise ValueError('무접촉 단일 body의 첫 지원은 STATIC입니다.')
     for record in records:
         errors = fem.contact.errors(record)
@@ -166,7 +168,7 @@ def collect(analysis, solver, fem):
         E = number(App.Units.Quantity(obj.Material['YoungsModulus']).getValueAs('MPa').Value)
         nu = number(obj.Material['PoissonRatio'])
         density = {}
-        if procedure == 'dynamic':
+        if procedure == 'dynamic' and not dynamic_record:
             density['density_tonne_per_mm3'] = number(App.Units.Quantity(obj.Material['Density']).getValueAs('kg/m^3').Value) * 1e-12
         constitutive = nonlinear_material.effective(fem, analysis, obj)
         for body in assigned:
@@ -200,7 +202,7 @@ def collect(analysis, solver, fem):
                 if not any(direction):
                     raise ValueError('Force direction is unresolved')
                 total = number(obj.Force.getValueAs('N').Value)
-                if total == 0 and program is None:
+                if total == 0 and program is None and not capture_only:
                     condition.update(total_force_N=0., native_integrated_force_N=0.,
                         distribution='explicit_zero_force', direction=direction)
                     model['conditions'].append(condition)
@@ -275,6 +277,12 @@ def collect(analysis, solver, fem):
     model['step'].update(convergence_effective(fem, analysis, solver))
     if program is not None:
         model['analysis_steps'] = program
+    elif capture_only:
+        # A valid initial-condition model need not have an external excitation.
+        # Reuse a STATIC baseline program only for complete source validation;
+        # this read-only capture is never an executable dynamic input.
+        from caelab.contact_steps import default_program
+        model['analysis_steps'] = default_program(model['step'], model['conditions'])
     has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
     has_contact = any(p['draft']['normal_law'] != 'tie' for p in model['contacts'])
     if has_tie:
@@ -283,9 +291,17 @@ def collect(analysis, solver, fem):
     if has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static':
         model['output']['nodal'] = ['U', 'RF', 'S', 'E'] + (['PEEQ'] if has_plasticity(model) else []) + (['CDIS', 'CSTR'] if has_contact else [])
         model['output']['pair'] = ['CF', 'CFN', 'CFS'] if has_contact else []
-    validate_model(model)
     identity = [{'body_id': identifier, 'mesh_id': row['mesh'].Name, 'target': row['target'],
                  'binding': row['binding']} for identifier, row in sorted(bodies.items())]
+    if dynamic_record and not capture_only:
+        from .dynamic_native import admitted, base
+        # Source provenance uses the same complete native baseline, independent
+        # of authored stage curves. No weak centre/volume comparison is used.
+        baseline, proof = base(owner, analysis.Name, solver.Name)
+        model = admitted(owner, dynamic_record, baseline, proof)
+        if proof != identity:
+            raise ValueError('동해석 대상이 입력 준비 중 변경됐습니다.')
+    validate_model(model)
     return model, identity
 
 

@@ -4,6 +4,9 @@ import math
 from .contact import number
 
 def axis(model):
+    if model.get('analysis_steps', {}).get('procedure') == 'mixed':
+        return {'name': 'native_coordinate', 'unit': '1',
+                'semantics': 'MIXED_NATIVE_COORDINATE_NOT_PHYSICAL_TIME'}
     dynamic = model.get('analysis_steps', {}).get('procedure') == 'dynamic'
     return {'name': 'time' if dynamic else 'load_parameter', 'unit': 's' if dynamic else '1',
             'semantics': 'PHYSICAL_TIME' if dynamic else 'STATIC_LOAD_PARAMETER'}
@@ -99,11 +102,17 @@ def compile_program(program, conditions):
     if not isinstance(program, dict) or program.get('schema_version') != '1':
         raise ValueError('지원되는 단계 정의가 아닙니다')
     procedure = program.get('procedure')
-    if procedure not in ('static', 'dynamic'):
+    if procedure not in ('static', 'dynamic', 'mixed'):
         raise ValueError('정적 또는 암시적 동적 해석을 선택하세요')
     raw_steps = program.get('steps')
     if not isinstance(raw_steps, list) or not 1 <= len(raw_steps) <= 100:
         raise ValueError('해석 단계는 1~100개가 필요합니다')
+    declared_procedure = procedure
+    procedures = {r.get('procedure', declared_procedure) for r in raw_steps}
+    if (not procedures <= {'static', 'dynamic'} or
+            declared_procedure == 'mixed' and procedures != {'static', 'dynamic'} or
+            declared_procedure != 'mixed' and procedures != {declared_procedure}):
+        raise ValueError('단계별 절차와 전체 정적/동적/혼합 선택이 다릅니다')
     known = {c['object_id']: c for c in conditions}
     if len(known) != len(conditions):
         raise ValueError('Duplicate native condition')
@@ -111,6 +120,7 @@ def compile_program(program, conditions):
     output, names, elapsed, written_elapsed = [], set(), 0., 0.
     preceding = {k:v for k,(unit,v) in required.items()}
     for index, raw in enumerate(raw_steps, 1):
+        procedure = raw.get('procedure', declared_procedure)
         label, identifier = raw.get('label'), raw.get('id')
         if not isinstance(label, str) or not label.strip() or len(label) > 160:
             raise ValueError('단계 이름을 입력하세요')
@@ -206,6 +216,9 @@ def compile_program(program, conditions):
     return output
 
 def step_location(model, step, total):
+    if 'dynamic' in model:
+        from .calculix_dynamic import location
+        return location(model, step, total)
     if 'analysis_steps' not in model:
         if step != 1:
             raise ValueError('The retained input contains only Step1')
@@ -220,13 +233,18 @@ def step_location(model, step, total):
 def render_steps(model):
     from .contact_deck import num
     rows, lines = compile_program(model['analysis_steps'], model['conditions']), []
+    from .calculix_dynamic import executed_start, procedure_suffix, output_cards, restart_write
+    first = executed_start(model)
     for step in rows:
+        if step['index'] < first:
+            continue
         amps = {}
         for mapping in (step['boundary'],step['loads']):
             for points in mapping.values():
                 key = tuple(tuple(p) for p in points)
                 if key not in amps:
-                    amps[key] = 'A'+str(step['index'])+'_'+str(len(amps)+1)
+                    prefix = model.get('restart', {}).get('amplitude_namespace', 'A')
+                    amps[key] = prefix+str(step['index'])+'_'+str(len(amps)+1)
         # Default AMPLITUDE clock is step time, intentionally resets on each step.
         for points, name in amps.items():
             lines += ['*AMPLITUDE,NAME='+name] + [num(t)+','+num(v) for t,v in points]
@@ -236,7 +254,7 @@ def render_steps(model):
                    'iterativescaling':'ITERATIVE SCALING','iterativecholesky':'ITERATIVE CHOLESKY'}
         solver = solvers[model['step']['matrix_solver']]
         card = '*STATIC' if step['procedure']=='static' else '*DYNAMIC'
-        lines.append(card+(',SOLVER='+solver if solver else '')+
+        lines.append(card+procedure_suffix(model, step)+(',SOLVER='+solver if solver else '')+
                      ('' if model['step']['automatic'] else ',DIRECT'))
         lines.append(','.join(num(step[k]) for k in ('initial','duration','minimum','maximum')))
         from .calculix_controls import cards as convergence_cards
@@ -253,7 +271,9 @@ def render_steps(model):
         frequency = ',FREQUENCY='+str(step['output_frequency'])
         has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
         from .contact_deck import solid_output_cards
-        lines += solid_output_cards(model, frequency)
+        dynamic_output = output_cards(model, step, frequency)
+        lines += solid_output_cards(model, frequency) if dynamic_output is None else dynamic_output
+        lines += restart_write(model, step, first)
         contact_pairs = [p for p in model['contacts'] if p['draft']['normal_law'] != 'tie']
         if contact_pairs:
             lines += ['*CONTACT FILE'+frequency, 'CDIS,CSTR']
@@ -309,7 +329,8 @@ def validate_frames(model, observed, *, complete=True):
     expected = p['steps'] if p else [{'index':1,'start':0.,'end':number(model['step']['period'])}]
     for frame in observed['frames']:
         s = frame['static']; index=s['step']
-        if not 1 <= index <= len(expected):
+        from .calculix_dynamic import executed_start
+        if not executed_start(model) <= index <= len(expected):
             raise ValueError('FRD step is outside the frozen schedule')
         row=expected[index-1]; value=s['load_parameter']; token=frame['load_parameter_token']
         if (value < row['start'] and not _printed_close(token,row['start']) or
@@ -320,6 +341,8 @@ def validate_frames(model, observed, *, complete=True):
             frame['step_location']=step_location(model,index,value)
     if complete:
         for row in expected:
+            if row['index'] < executed_start(model):
+                continue
             if not any(f['static']['step']==row['index'] and
                        _printed_close(f['load_parameter_token'],row['end']) for f in observed['frames']):
                 raise ValueError('Contact result is missing a completed step endpoint')

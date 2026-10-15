@@ -6,6 +6,7 @@ we substitute managed Save actions, not their geometry/solver implementation.
 """
 from pathlib import Path
 from .beam_menu import editor_token as beam_token, pending_changes as beam_pending
+from .dynamic_menu import editor_token as dynamic_token, pending_changes as dynamic_pending
 
 
 def _saved(owner):
@@ -26,7 +27,8 @@ def _close_version(owner, connection=None):
     return (owner.generation, graph() if graph is not None else None,
             controller.editor_token() if controller is not None else None,
             editor_token(connection, owner) if connection is not None else None,
-            beam_token(connection, owner) if connection is not None else None)
+            beam_token(connection, owner) if connection is not None else None,
+            dynamic_token(connection, owner) if connection is not None else None)
 
 
 def install(connection, open_model):
@@ -64,7 +66,7 @@ def install(connection, open_model):
             from .shell_controls import has_unsaved_editor
             controller = _motion_controller(connection, owner)
             return (_saved(owner) and (controller is None or not controller.has_unsaved_editor())
-                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner))
+                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner))
 
         def invoke(self, callback):
             try: callback()
@@ -182,7 +184,7 @@ def install(connection, open_model):
                 owner = pending.pop(0)
                 controller = _motion_controller(connection, owner)
                 from .shell_controls import has_unsaved_editor
-                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner):
+                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner):
                     advance(); return
                 version = _close_version(owner, connection)
                 choice = QtWidgets.QMessageBox.question(main, '다시 연결하기 전에 편집을 저장하시겠습니까?',

@@ -392,6 +392,8 @@ def start(config_path):
                 CONNECTION.guards = install(CONNECTION, guarded(open_model))
                 from apps.desktop_pre.beam_menu import install as install_beam
                 install_beam(CONNECTION)
+                from apps.desktop_pre.dynamic_menu import install as install_dynamic
+                install_dynamic(CONNECTION)
                 KEEP.append(CONNECTION)
                 if CONFIG.get('input_receipt'):
                     owner = CONNECTION.active_owner()

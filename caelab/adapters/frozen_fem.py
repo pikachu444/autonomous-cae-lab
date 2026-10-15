@@ -276,6 +276,9 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
         raise ValueError("Malformed ASCII FRD line encoding")
     lines, xyz, topology, fields = text.splitlines(), {}, {}, {}
     labels_by_name = dict(_FRD_LABELS)
+    if contact_profile is not None:
+        from ..dynamic_results import FRD_LABELS
+        labels_by_name.update(FRD_LABELS)
     if contact_materials is not None:
         labels_by_name["CONTACT"] = tuple(name + " 1 1 0 0" for name in
             ("COPEN", "CSLIP1", "CSLIP2", "CPRESS", "CSHEAR1", "CSHEAR2"))
@@ -468,7 +471,7 @@ def read_frd(path, nodes, elements, *, contact_materials=None, contact_profile=N
                     raise ValueError("FRD component meaning/order differs")
                 i += 1
             records = {}
-            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "PE":1, "ERROR":1, "CONTACT":6}[name]
+            width = {"DISP":3, "FORC":3, "STRESS":6, "TOSTRAIN":6, "PE":1, "ERROR":1, "CONTACT":6, "VELO":3, "ENER":1}[name]
             while i < len(lines) and lines[i].strip() != "-3":
                 raw_record = lines[i].rstrip()
                 if last_fragment(i) and numeric_tail(raw_record, width, records):

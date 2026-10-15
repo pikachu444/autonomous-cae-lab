@@ -46,10 +46,17 @@ def validate_snapshot(path):
         required.add('editable.caepre')
     elif manifest.get('editable_project') is not None:
         raise ValueError('Unsupported editable contact project member')
+    model = json.loads(_read(path.parent / 'mesh.json'))
+    if model.get('restart'):
+        from ..dynamic_restart import MEMBERS
+        required |= MEMBERS
     if set(pins) != required:
         raise ValueError('Contact snapshot has missing/unadmitted members')
     model = json.loads(_read(path.parent / 'mesh.json'))
     nodes, elements, bodies = validate_model(model)
+    if model.get('restart'):
+        from ..dynamic_restart import validate_members
+        validate_members(path.parent, model, pins)
     if _read(path.parent / entry) != render(model).encode('ascii'):
         raise ValueError('Contact deck differs from the admitted body/material/surface/DOF definitions')
     if {row['body_id'] for row in manifest['bodies']} != set(bodies):
@@ -136,6 +143,8 @@ class ContactFemCalculixAdapter:
             native.mkdir()
             deck = native / 'contact.inp'
             shutil.copyfile(retained / 'contact.inp', deck)
+            from .dynamic_fem import before_run
+            before_run(retained, native, model, result['runtime'], result, settings)
             solved = run_owned_command([str(executable), '-i', deck.stem], native, 'ccx_contact')
             if any(p['draft']['normal_law'] == 'tie' for p in model['contacts']):
                 _check_tie_connections(native)
@@ -159,6 +168,8 @@ class ContactFemCalculixAdapter:
                                 contact_profile=profile(model), require_contact=bool(contact_pairs))
             validate_frames(model, observed)
             frames = observed['frames']
+            from ..dynamic_results import validate_requested
+            validate_requested(model, frames)
             if ns1_enabled(model):
                 if observed['native_version'] != '2.22':
                     raise ValueError('NS1 requires CalculiX 2.22 result output.')
@@ -323,6 +334,9 @@ class ContactFemCalculixAdapter:
             'Raw signs unchanged; zero/missing COPEN or pressure does not determine active contact',
             'GeomGap is a labelled linear subdivision of deformed quadratic faces, not solver-effective clearance',
             'Exact tangential basis vectors, active-state classification and engineering release remain UNKNOWN']
+        if model is not None and manifest is not None and pins is not None:
+            from .dynamic_fem import finish
+            finish(output, model, manifest, pins, result)
         result['artifacts'] = [{'relative':p.relative_to(output).as_posix(),'bytes':p.stat().st_size,'sha256':_sha(p)}
                                for p in sorted(output.rglob('*')) if p.is_file() and not p.is_symlink()]
         save_json(output / 'contact_execution.json', result)

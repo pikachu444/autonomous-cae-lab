@@ -1,0 +1,33 @@
+{
+  "absolute": {
+    "DISP": null,
+    "VELO": null,
+    "FORC": null,
+    "STRESS": null,
+    "TOSTRAIN": null,
+    "ENER": null,
+    "ENER_IP": null,
+    "ELKE": null,
+    "ELSE": null,
+    "PE": null
+  },
+  "relative": null,
+  "time": null,
+  "saved_arrays": {
+    "vold": null,
+    "veold": null,
+    "sti": null,
+    "eme": null,
+    "ener": null,
+    "xstate": null,
+    "pslavsurf": null,
+    "clearini": null,
+    "xmodal": null,
+    "ctrl": null,
+    "qaold": null,
+    "prestr": null,
+    "xmodal_modes": null
+  },
+  "saved_relative": null,
+  "saved_time": null
+}

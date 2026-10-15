@@ -77,9 +77,12 @@ def validate_model(model):
         elements[identifier] = list(ids)
         native_elements.add((body, native))
         bodies[body]['elements'].add(identifier)
-    if model.get('analysis_scope') not in (None, 'single_solid_static'):
+    if model.get('analysis_scope') not in (None, 'single_solid_static', 'single_solid_dynamic'):
         raise ValueError('Unsupported solid analysis scope')
-    single = model.get('analysis_scope') == 'single_solid_static'
+    single = model.get('analysis_scope') in ('single_solid_static', 'single_solid_dynamic')
+    from .dynamic_model import enabled, has_dynamic, validate_effective
+    if model.get('analysis_scope') == 'single_solid_dynamic' and not enabled(model):
+        raise ValueError('Dynamic solid requires its complete frozen settings')
     if (single and len(bodies) != 1) or (not single and len(bodies) < 2) or not elements or set(nodes) != {n for ids in elements.values() for n in ids}:
         raise ValueError('Contact needs complete separate body meshes')
     from apps.desktop_pre.freeze_analysis import CCX_FROM_NATIVE_TET10
@@ -114,7 +117,7 @@ def validate_model(model):
         if errors:
             raise ValueError('; '.join(e['path'] + ': ' + e['message'] for e in errors))
         plastic_cards(row)  # Check exact serialized curve, including the 200-point cap.
-    if (single or has_plasticity(model)) and model.get('analysis_steps', {}).get('procedure', 'static') != 'static':
+    if (single or has_plasticity(model)) and model.get('analysis_steps', {}).get('procedure', 'static') != 'static' and not enabled(model):
         raise ValueError('NS1 first support is STATIC; nonlinear dynamic material input is not admitted.')
     pair_ids = set()
     for pair in model['contacts']:
@@ -173,24 +176,32 @@ def validate_model(model):
     if type(step['automatic']) is not bool or step['matrix_solver'] not in ('default', 'spooles', 'pastix', 'pardiso', 'iterativescaling', 'iterativecholesky'):
         raise ValueError('Unsupported native static solver')
     from .calculix_controls import validate_step_controls
-    validate_step_controls(step, procedure=model.get('analysis_steps', {}).get('procedure', 'static'),
-        penalty=any(p['draft']['normal_law'] == 'linear' for p in model['contacts']))
+    procedures = {s.get('procedure', model['analysis_steps']['procedure'])
+                  for s in model.get('analysis_steps', {}).get('steps', [])} or {'static'}
+    for procedure in procedures:
+        validate_step_controls(step, procedure=procedure,
+            penalty=any(p['draft']['normal_law'] == 'linear' for p in model['contacts']))
     if 'analysis_steps' in model:
         from .contact_steps import compile_program, validate_contributions
         validate_contributions(model)
         compile_program(model['analysis_steps'], model['conditions'])
-        if model['analysis_steps']['procedure'] == 'dynamic':
+        if has_dynamic(model['analysis_steps']):
             for material in model['materials']:
                 if number(material.get('density_tonne_per_mm3')) <= 0:
                     raise ValueError('Implicit dynamics requires positive density for every body')
     if any(p['draft'].get('tie_adjust',False) and p['draft']['normal_law']=='tie' for p in model['contacts']):
         from .adapters.tie_adjustment import cases
         cases(model,nodes,elements)
+    if enabled(model):
+        validate_effective(model)
     return nodes, elements, bodies
 
 
 def render(model):
     nodes, elements, bodies = validate_model(model)
+    if 'restart' in model:
+        from .calculix_dynamic import render_restart
+        return render_restart(model)
     lines = ['*HEADING', 'CAE Lab separate-body native contact', '*NODE,NSET=Nall']
     lines += [str(n) + ',' + ','.join(num(v) for v in nodes[n]) for n in sorted(nodes)]
     for index, (body, membership) in enumerate(sorted(bodies.items()), 1):
@@ -202,7 +213,8 @@ def render(model):
             *plastic_cards(material),
             '*SOLID SECTION,ELSET=B' + str(index) + ',MATERIAL=M' + str(index)])
     # Density is only effective in the explicitly selected dynamic capability.
-    if model.get('analysis_steps', {}).get('procedure') == 'dynamic':
+    from .dynamic_model import has_dynamic
+    if has_dynamic(model.get('analysis_steps', {})):
         # Insert inside each material definition, before its section.
         for index, body in enumerate(sorted(bodies), 1):
             material = next(r for r in model['materials'] if r['body_id'] == body)
@@ -214,6 +226,8 @@ def render(model):
             identifier = pair['object_id']
             lines.append('*CLEARANCE,MASTER=IND'+identifier+',SLAVE=DEP'+identifier+
                          ',VALUE='+num(pair['draft']['nominal_gap_mm']))
+    from .calculix_dynamic import model_cards
+    lines += model_cards(model)
     if 'analysis_steps' in model:
         from .contact_steps import render_steps
         return '\n'.join(lines + render_steps(model) + [''])

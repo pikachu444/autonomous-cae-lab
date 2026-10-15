@@ -71,7 +71,7 @@ CURRENT_STATE가 계속 유일한 현황 원본이며 새 팀별 보고서를 �
 
 **일곱 팀의 첫 통합 묶음:** 아래 변경은 main에 통합하고 관련 검사·실제 Qt 표시를
 검토했다. 앞선 M4·추가 GUI·공통 연결 교정은 원격 main에 게시하고 일치를 확인했으며,
-이번 보고서·공유 변수 편집기·국부 메시 복구 묶음을 이어 통합한다. 이 첫 묶음은 각 팀의 전체 인도
+보고서·공유 변수 편집기·국부 메시 복구 묶음도 main에 통합해 원격 게시를 확인했다. 이 첫 묶음은 각 팀의 전체 인도
 완료가 아니며 큰 핵심 구현은 아래 실제 Pro 작성으로 병행한다.
 
 | 인도 | 이번에 연결한 사용자 동작 | 남은 핵심 구현 |
@@ -81,7 +81,7 @@ CURRENT_STATE가 계속 유일한 현황 원본이며 새 팀별 보고서를 �
 | 후처리·비교 | Post 창의 저장 소유자·타이머·원자료 감시 해제; 닫힌 창의 늦은 작업 차단; native 종료 관문 소스 게시 | 실제 ParaView plugin 빌드·File→Exit 수용과 남은 변환·측정 |
 | Data·Material | Material 셀 편집·붙여넣기·미적용 Undo/Redo; 여러 Data 파일 열기와 창 메뉴/Ctrl+Tab 이동; 물리량 이름 표시와 잘못된 시험 초안 보호 | 처리 단계·혼합 제어·관련 문서 부분 저장/복구 |
 | Numerical·PDE·연성 | Plan 초안·Pareto 축; PDE 표/그래프 선택; 전달 재읽기; UQ 분포/구간 선택; DE 계획 실행 옵션 교정 | 보존 후보의 상세 계산, 이산 변수·MDO·장 전달 잔여 |
-| Expert·Study·보고서 | 보존 문헌·명시 개정·판단 유지; 보고서 쓰기 실패 보호; 저장된 피팅 재읽기와 질문 보존 | 정확한 3D 그림 전달·실험 불확실성·다자 토론/장비 잔여 |
+| Expert·Study·보고서 | 보존 문헌·명시 개정·판단 유지; 보고서 쓰기 실패 보호; 저장된 피팅 재읽기와 질문 보존; 저장한 3D 그림의 보고서 전달·원자료 확인과 사용법 | 일반 composite·실제 원창 활성화, 실험 불확실성·다자 토론/장비 잔여 |
 | 설치·공통 연결 | 실행 전 잘못된 native 앱/입력 경로 거절; 읽기 전용 설치 위치 확인 | 이동용 작업 사본·선택 연결 보기와 배포 잔여 |
 
 Post의 실제 ParaView 종료 확인은 이번 첫 GUI 묶음에서 시간 초과했고 원 기록을 보존한다.
@@ -95,17 +95,22 @@ Gmsh·pvpython 잔류 프로세스가 없는 것도 확인했다.
 시간 결과·실제 restart를 한 사용자 작업으로 완성하는 범위다. 자료는
 `runs/product-development/20261015/dynamic-delivery/`에 보존했다. 새 실제 Pro의
 Pro/파워5와 본문·첨부 수신을 확인했고 최종 ZIP을 실제 회수해 구조·동해석 팀에 전달했다.
-전용 소스와 공통14 패치를 현재 main WIP에 통합했다. 원 M4 full shape/READY 관문과
+전용 소스와 공통14 패치를 main에 통합했다. 원 M4 full shape/READY 관문과
 PoseCandidate 등록을 보존했고 동해석/저장/reader/restart/Qt·일반 FEM 관문의 국소 검사
 51개가 통과했다. 작은 보존 파일을 읽을 때 256 MiB를 과할당하던 공통 helper도
 입력 크기만큼 읽도록 수정해 게시했다. 실제 Windows 동해석/restart 완료는 아니다:
 https://chatgpt.com/g/g-p-6abbcb200108819193174a8715322a59-autonomous-cae-lab/c/6acffc66-1dfc-83ee-a0e0-13c9e0fb0d0e
 동시 Runner/Impact GUI 작성 파일은 읽기 자료로만 포함하고 공통 변경은 별도 패치로 받는다.
 원 Pro 생성기/단계 추가의 release→hold 모순, DesktopLinks의 동해석·READ 제출 누락,
-Post exact 단계 sidecar 재열기는 실제 Pro C1에서 교정 중이다. 원 compiler 관문을
+Post exact 단계 sidecar 재열기의 실제 Pro C1을 회수했다. 원 compiler 관문을
 완화하지 않는다. 기존 동해석 대화의 사용자 초안을 보존하고, 전체 계획을 쓴 실제 Pro에
 원 요구·원 소스·반환 ZIP·최신 교정 소스를 함께 전달했다. 기록은 같은 dynamic-delivery의
-`pro-correction-preload-release.md`에 있다. 이 관문 통합 전에는 실제 계산을 시작하지 않는다.
+`pro-correction-preload-release.md`에 있다. C1의 공통4 증분은 원 공통14·M4와 보고서 변경을
+보존하며 main에 적용했다. 구조 팀이 전용11 증분도 적용했고 기존 GUI 입력 보호를 유지했다.
+Windows의 단계/서비스/Qt·기존 복구 검사 28개가 통과했으며 Astra의 독립 소스 검토에서
+추가 필수 결함이 없었다. 반환된 서비스/입력 등록/정확한 Post 위치 보존을 연결했고
+작은 실제 계산·READ 수용을 잇는다. 전체 NS2/N3 완료나 공학 승인 판정은 아니다.
+Pro의 대역 계산 통과를 Windows CalculiX 실행으로 표시하지 않는다.
 담당은 실제 FreeCAD에서 초기속도 공개 모델 생성→저장→새 native owner 재열기·재동결을
 확인했다. 실제 C3D10 모델의 초기속도 DOF·밀도 변환·초기조건과 DYNAMIC/WRITE 입력을
 읽었으며 계산은 하지 않았다. 해당 owned Job과 FreeCAD를 종료했다. 공통14 통합도
@@ -150,7 +155,12 @@ Data/Material의 `PRO-DATA-MATERIAL-DELIVERY-20261015-01`, Numerical의
 각 첨부·요청·회수 상태는 담당 작업 트리의 `_workspace/delivery-*`에 보존한다.
 일곱 인도의 초기 핵심 제출물은 모두 실제 회수했다. Data는 처리·관련 저장·혼합 제어의
 전용7 모듈과 공통 패치를 별도 사본에서 확인했다. raw 미완성 셀/닫기 실패 복구와
-재표본화 contributor/weight·동일 grid 소비 정책의 누락은 실제 Pro C1에서 작성 중이다.
+재표본화 contributor/weight·동일 grid 소비 정책을 보강한 실제 Pro C1도 회수했고 Windows
+전용 검사와 실제 Data 처리 단계 GUI를 확인했다. 공통 main에는 아직 미적용이다.
+Astra와 담당이 복구 기준 초안의 불변 보관 누락, 실행 이력이 있는 문서의 공개 표시 필드로
+인한 잘못된 충돌을 재현했다. Data의 실제 표본 동결 형식을 Numerical이 끝까지 소비하는
+정합도 같은 Data Pro C2에 묶는다. Numerical Pro C2의 저장 재시도 수정과 파일 소유를
+분리했으며 새 compiler나 경쟁 스키마를 만들지 않는다. GUI 작성은 병행한다.
 Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
 설치 런타임에서 실제 FELUPE 후보/holdout 상세 계산과 새 owner 재열기, Qt 흐름을 좁게
 확인했다. 실제 기존 Workbench 인증 loopback의 least-squares→상세 요청→계획 저장도
@@ -174,7 +184,8 @@ native access violation으로 원인을 특정하지 못해 반복을 멈췄으�
 Structure/Post/설치 팀의 브라우저 inventory는 비어 현재 제공 UI 제어를 사용할 수 없었다.
 반복 초기화나 숨긴 endpoint로 우회하지 않고 root가 해당 세 Pro 대화의 UI 파일 회수만
 담당한다. 팀별 코드 검토·전용 적용·연결·검사는 계속 각 개발 담당이 수행한다. Expert/Data/
-Numerical 담당은 실제 사용할 수 있는 자신의 브라우저 연결을 유지한다.
+Numerical 담당은 실제 사용할 수 있는 자신의 브라우저 연결을 사용한다. Expert의 연결도
+이후 사용할 수 없게 되어 다음 큰 구현 요청은 root의 실제 Pro UI로 전달한다.
 Material에서 여는 변수 편집기는 기존 Pro `PlanOwnerAdapter`를 소비하는 Numerical 팀의
 같은 Qt 위젯으로 연결한다. 공유 위젯과 읽기 전용 bound 문서 조회, 구성식 증분 재읽기
 GUI는 main에 통합했고 관련 최소 검사 8개가 통과했다. Material host 연결은 Data C1과

@@ -146,7 +146,8 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
         if has_plasticity(model):
             required.add('PE')
     for index, frame in enumerate(observed['frames']):
-        missing = required - set(frame['fields'])
+        from .dynamic_results import required_fields
+        missing = (required | required_fields(model, frame)) - set(frame['fields'])
         if not missing:
             continue
         if physical_eof and not recovered and index == len(observed['frames'])-1:
@@ -157,7 +158,7 @@ def retained_prefix(frd, destination, nodes, elements, materials, model, status)
             observed = parse(stop)
             break
         raise ValueError('Incomplete requested FRD fields: ' + ', '.join(sorted(missing)))
-    if any(required - set(frame['fields']) for frame in observed['frames']):
+    if any((required | required_fields(model, frame)) - set(frame['fields']) for frame in observed['frames']):
         raise ValueError('Incomplete requested fields before the EOF increment')
     if ns1_enabled(model) and observed['native_version'] != '2.22':
         raise ValueError('NS1 partial readback requires CalculiX 2.22.')

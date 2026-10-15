@@ -89,7 +89,8 @@ def load(entry, declaration):
         a = p.get('axis')
         if p.get('version') != 1 or a not in (
                 {'name':'load_parameter','unit':'1','semantics':'STATIC_LOAD_PARAMETER'},
-                {'name':'time','unit':'s','semantics':'PHYSICAL_TIME'}):
+                {'name':'time','unit':'s','semantics':'PHYSICAL_TIME'},
+                {'name':'native_coordinate','unit':'1','semantics':'MIXED_NATIVE_COORDINATE_NOT_PHYSICAL_TIME'}):
             raise ValueError('Unsupported contact analysis clock')
         clock = {k:a[k] for k in ('unit','semantics')}
         elapsed = 0.
@@ -102,7 +103,8 @@ def load(entry, declaration):
                     or not isinstance(row.get('label'),str) or row.get('start') != elapsed
                     or type(row.get('duration')) not in (int,float) or not math.isfinite(row['duration'])
                     or row['duration'] <= 0 or row.get('end') != elapsed+row['duration']
-                    or row.get('procedure') != ('dynamic' if a['unit']=='s' else 'static')):
+                    or row.get('procedure') not in ({'static','dynamic'} if a['semantics']=='MIXED_NATIVE_COORDINATE_NOT_PHYSICAL_TIME'
+                                                       else {'dynamic' if a['unit']=='s' else 'static'})):
                 raise ValueError('Contact step schedule changed')
             seen_ids.add(row['id']); elapsed=row['end']
     if (manifest.get('force_unit') != 'N' or manifest.get('force_frame') != 'FREECAD_DOCUMENT_GLOBAL'

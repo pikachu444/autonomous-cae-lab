@@ -102,6 +102,16 @@ def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
         expected.add('editable.caepre')
     elif manifest.get('editable_project') is not None:
         raise ValueError('Unsupported editable native project member')
+    if kind == 'freecad-contact-frozen':
+        from .dynamic_restart import MEMBERS
+        if set(names) & MEMBERS:
+            # Only the existing admitted READ snapshot may carry restart files.
+            # Validate both the source and the copied set via this same function.
+            from .adapters.contact_fem import validate_snapshot
+            _, model, _, _ = validate_snapshot(source)
+            if not model.get('restart'):
+                raise ValueError('Restart members require an admitted native READ snapshot')
+            expected |= MEMBERS
     if (len(entries) != len(expected) or not isinstance(inp, str) or Path(inp).suffix.lower() != '.inp'
             or set(names) != expected):
         raise ValueError('FEM snapshot must retain its native CAD, mesh and unsplit input')
@@ -161,6 +171,12 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         _frozen_files(Path(workbench_root) / entry['file'], folder.resolve(),
                       kind={'frozen_beam':'freecad-beam-frozen', 'frozen_contact':'freecad-contact-frozen', 'frozen_shell':'freecad-shell-frozen',
                             'frozen_fem':'freecad-fem-frozen'}[kind])
+    dynamic_origin = None
+    if kind == 'native_result' and (native_metadata or {}).get('dynamic_locations') is not None:
+        from .dynamic_locations import load
+        dynamic_origin = load(Path(workbench_root) / entry['file'], native_metadata)['origin']
+        if str(root_id).startswith('job:') and dynamic_origin['job_id'] != root_id[4:]:
+            raise ValueError('Dynamic input belongs to a different JobManager run')
     if kind == 'native_result' and (native_metadata or {}).get('contact_inspection') is not None:
         from .contact_inspection import load
         load(Path(workbench_root) / entry['file'], native_metadata['contact_inspection'])
@@ -175,6 +191,8 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
                'kind': kind, 'format': format,
                'files': files, 'total_bytes': sum(item['bytes'] for item in files),
                'origin': {'mode': 'LOCAL_SNAPSHOT', 'root_id': root_id, 'relative': relative}}
+    if dynamic_origin is not None:
+        receipt['origin']['dynamic_locations'] = dynamic_origin
     if native_metadata is not None:
         receipt.update(native_metadata=native_metadata, native_metadata_sha256=canonical_hash(native_metadata))
     save_json(folder / 'input.json', receipt)
@@ -199,6 +217,10 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
             native_metadata={'kind': 'native_design_dependencies',
                 'original_locations': {path.relative_to(root).as_posix(): str(path) for path in paths}})
     paths, parsed_sha = _files(source, root)
+    from .dynamic_locations import required, load
+    if required(source, native_metadata):
+        bundle = load(source, native_metadata)
+        paths = list(dict.fromkeys([*paths, *[_within_root(path, root) for path in bundle['paths']]]))
     if (any(key in (native_metadata or {}) for key in ('beam', 'beam_inspection')) or
             source.name == 'beam.pvd' and (source.parent/'beam_inspection.json').exists()):
         from .beam_inspection import validate_metadata

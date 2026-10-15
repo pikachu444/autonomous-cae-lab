@@ -46,6 +46,8 @@ CAPABILITIES['pre'].update(POSE_CANDIDATE_OPERATIONS)
 
 from .beam_model import OPERATIONS as BEAM_OPERATIONS
 CAPABILITIES['pre'].update(BEAM_OPERATIONS)
+from .dynamic_model import OPERATIONS as DYNAMIC_OPERATIONS
+CAPABILITIES['pre'].update(DYNAMIC_OPERATIONS)
 
 
 class NativeCommands:

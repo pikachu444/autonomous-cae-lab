@@ -99,8 +99,12 @@ class Connection:
             raise ValueError('CAD 문서를 만들거나 연 뒤 연결이 끝날 때까지 기다리세요.')
         return self.owners[doc.Name][0]
 
-    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True, _capture_beam=True):
+    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True, _capture_beam=True, _capture_dynamic=True):
         owner = owner or self.active_owner()
+        if operation == 'document.save' and _capture_dynamic:
+            from .dynamic_menu import flush_before_save
+            captured = flush_before_save(self, owner, arguments, target, on_done, capture_motion=_capture_motion_view, capture_shell=_capture_shell, capture_beam=_capture_beam)
+            if captured is not None: return captured
         if operation == 'document.save' and _capture_shell:
             from .shell_controls import flush_before_save
             captured = flush_before_save(self, owner, arguments, target, on_done, capture_motion=_capture_motion_view, capture_beam=_capture_beam)
@@ -122,7 +126,7 @@ class Connection:
                 return owner.dispatch({'command_id': 'C'+uuid.uuid4().hex, 'document_id': owner.document_id,
                     'session_id': owner.session_id, 'expected_generation': owner.generation,
                     'operation': op, 'arguments': args, 'target': selected})
-            if operation.startswith('pre.beam.'):
+            if operation.startswith(('pre.beam.', 'pre.dynamic.')):
                 result = apply_local(operation, arguments, target or {})
                 value = result if result.get('status') == 'FAILED' else result.get('result', result)
                 if on_done: on_done(value)
@@ -172,7 +176,7 @@ class Connection:
                         return
                     try:
                         self.submit_native('document.save', saved_arguments, saved_target, saved,
-                                           owner=owner, _capture_motion_view=False, _capture_shell=_capture_shell, _capture_beam=_capture_beam)
+                                           owner=owner, _capture_motion_view=False, _capture_shell=_capture_shell, _capture_beam=_capture_beam, _capture_dynamic=_capture_dynamic)
                     except Exception as error:
                         if on_done:
                             on_done({'status': 'FAILED', 'error': {'message': str(error)}})
@@ -350,6 +354,10 @@ class Connection:
             convergence_page = getattr(dock.widget(), 'convergence_page', None) if dock is not None else None
             if convergence_page is not None and convergence_page.pending_changes(selected.Name, solvers[0].Name):
                 raise ValueError('수렴 설정에 미저장 편집이 있습니다. 초안을 저장하고 적용한 뒤 진행하세요.')
+            if selected.Name in owner.read_metadata().get('dynamic_programs', {}):
+                from .dynamic_menu import start_run as start_dynamic
+                start_dynamic(self, owner, selected.Name, export_only=export_only)
+                return
             owner.refresh()
             from .nonlinear_material import uses_solid_route
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
@@ -417,6 +425,8 @@ class Connection:
         from caelab.storage import load_json
         if load_json(manifest).get('kind') == 'freecad-beam-frozen':
             from .beam_menu import show_input
+        elif (Path(manifest).parent/'mesh.json').is_file() and load_json(Path(manifest).parent/'mesh.json').get('dynamic'):
+            from .dynamic_menu import show_input
         else:
             from .contact_input_dialog import show_input
         show_input(manifest,self.QtWidgets,self.QtCore,parent=self.Gui.getMainWindow())
@@ -560,6 +570,10 @@ class Connection:
                 from .beam_menu import make_panel
                 widget = make_panel(self, owner)
                 title = '빔 설정'
+            elif kind == 'dynamic':
+                from .dynamic_menu import make_panel
+                widget = make_panel(self, owner)
+                title = '동해석 설정'
             elif kind == 'research':
                 from .research_panel import make_panel
                 submit = lambda operation, args, target=None, on_done=None: self.submit_native(operation, args, target, on_done, owner=owner)
@@ -645,13 +659,14 @@ class Connection:
         def request_context():
             from .native_controls import _motion_controller
             from .beam_menu import editor_token as beam_token
+            from .dynamic_menu import editor_token as dynamic_token
             from .shell_controls import editor_token as shell_token
-            versions = {name: ((controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None), beam_token(self, owner), shell_token(self, owner))
+            versions = {name: ((controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner))
                         for name, (owner, _, _) in self.owners.items()}
             def accepted(context):
                 for name, (owner, _, _) in self.owners.items():
                     controller = _motion_controller(self, owner)
-                    current = ((controller.editor_token() if controller is not None else None), beam_token(self, owner), shell_token(self, owner))
+                    current = ((controller.editor_token() if controller is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner))
                     if name not in versions or current != versions[name]:
                         self.message.setText('다시 연결하는 동안 편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
                 connected(context)
