@@ -32,12 +32,15 @@ them. Preserve material identification, CAD-free research, external results,
 structural/explicit analysis, numerical methods and expert consultation. LS-OPT
 is unavailable and must not become a prerequisite.
 
-Pro writes substantial product designs, implementations, related tests/CI and docs.
-Codex challenges assumptions, reviews source and actual behavior, integrates the
-result and owns current-state/document synchronization. Codex performs the
-assigned documentation and integration work; do not silently replace Pro as
-the implementation author. Use bounded independent helpers when useful and
-supported, with explicit file ownership and no concurrent shared-interface edits.
+The user's 2026-10-15 direction assigns Pro the whole product design, detailed
+specification and important design decisions. Sol implementers build substantial
+feature deliveries in parallel from the agreed specification; routine coding must
+not wait for another Pro response. Recover and reuse existing Pro implementations
+without interrupting active writing, and attribute each author's work accurately.
+Codex owns assignment, common integration, publication and current-state/document
+synchronization. Check necessary execution and units during development; perform
+independent review at a meaningful integrated feature boundary rather than after
+each small edit. Assign explicit file ownership and avoid concurrent shared edits.
 The lead owns common schema/Core/registry/provenance integration. Actual user
 model choices take precedence over old agent-model recommendations.
 

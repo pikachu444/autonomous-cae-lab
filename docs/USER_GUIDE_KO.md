@@ -908,7 +908,8 @@ $example = & $caePython -m examples.experiment_report --store runs/experiment-ex
 
 소성 재료를 먼저 살펴보려면 [고체 소성 해석 예제](../examples/material-tests/ns1/README.md)를
 사용하세요. 형상·메시·하중과 소성 표가 들어 있는 편집 가능한 FreeCAD 파일입니다.
-현재 통합 브랜치에서 확인 중이며, 기본 설치본에 배포된 기능과는 구분합니다.
+소성 해석 기능과 이 예제는 현재 `main`에 포함되어 있습니다. 기존 설치를 사용한다면
+저장소를 갱신한 뒤 예제 안내의 지원 범위와 실행 순서를 따르세요.
 
 기존 결과는 ParaView Post에서 직접 열 수 있습니다. FreeCAD 모델이나 AI 연결을
 먼저 만들 필요는 없습니다. [설치 안내의 Post 실행 명령](INSTALL_KO.md#cad와-후처리-열기)에
