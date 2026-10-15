@@ -58,6 +58,28 @@ def snapshot(settings, model=None):
         association = QUANTITIES[quantity][1]
         rows.append({'selection': ['responses', index, 'identity'], 'value': response['identity'],
                      'source': _entity(model, association, response['identity'])})
+    def pair_target(index):
+        pairs=settings.get('contacts', [])
+        if type(index) is not int or not 0<=index<len(pairs):
+            raise SourceError('선택한 원 접촉쌍이 없습니다')
+        return {side:_target(model,'surfaces',pairs[index][side]) for side in ('a','b')}
+    for index,response in enumerate(settings.get('b_responses', [])):
+        scope=response['scope'];identity=response['identity']
+        if scope not in ('bulk','interface','pair'):
+            raise SourceError('벌크·계면·접촉쌍의 원 대상을 확인하세요')
+        source=pair_target(identity) if scope=='pair' else _entity(model,'CELLS',identity)
+        rows.append({'selection':['b_responses',index,'identity'],'value':identity,'source':source})
+    for kind in ('bulk_damage','interface_controls'):
+        for index,item in enumerate(settings.get(kind, [])):
+            material=item['material']
+            members=[_entity(model,'CELLS',e) for e,name in model['assignment'].items() if name==material]
+            if not members:raise SourceError('손상/계면 재료에 배정된 원 요소가 없습니다: '+material)
+            rows.append({'selection':[kind,index,'material'],'value':material,
+                         'source':{'kind':'material_assignment','material':material,
+                                   'members':sorted(members,key=canonical_hash)}})
+            if kind=='interface_controls' and item.get('contact_index') is not None:
+                rows.append({'selection':[kind,index,'contact_index'],'value':item['contact_index'],
+                             'source':pair_target(item['contact_index'])})
     return {'schema': 'impact-logical-selection-v1', 'rows': rows}
 
 
@@ -77,7 +99,7 @@ def validate(settings, model):
         raise SourceError('원 대상 선택의 보존 기록을 확인하세요')
     current = snapshot(settings, model)
     if canonical_hash(receipt) != canonical_hash(current):
-        raise SourceError('원문 편집 뒤 운동·접촉·결과의 원 대상 대응이 바뀌었습니다. '
+        raise SourceError('원문 편집 뒤 운동·접촉·결과·손상/계면 배정의 원 대상 대응이 바뀌었습니다. '
                           '변경 전/후 표를 확인하고 정확한 원 대상을 다시 선택하세요')
 
 

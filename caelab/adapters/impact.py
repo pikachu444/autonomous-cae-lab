@@ -98,7 +98,8 @@ class ImpactAdapter:
                         *[Path(domain.__file__).with_name(name) for name in (
                             'impact_assembly.py','impact_input_edits.py','impact_rad_source.py',
                             'impact_native.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
-                            'impact_reference_bindings.py')]]
+                            'impact_reference_bindings.py','impact_b.py','impact_bulk.py','impact_bulk_deck.py',
+                            'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py')]]
     default_settings=staticmethod(domain.default_settings)
     validate_settings=staticmethod(domain.validate_settings)
     input_runtime_identity=staticmethod(lambda:{'runtime':'explicit_selected_opencourant','qualification':'UNKNOWN'})
@@ -205,6 +206,10 @@ class ImpactAdapter:
                 from ..impact_damage import apply_laws,verify_laws
                 effective_gravity,damage_receipt=apply_laws(effective_gravity,actual_model,s.get('cohesive',[]))
                 verify_laws(effective_gravity,actual_model,s.get('cohesive',[]),damage_receipt)
+                from ..impact_b import enabled as b_enabled, compile as compile_b
+                if b_enabled(s):
+                    effective_gravity,b_definition=compile_b(effective_gravity,actual_model,s,damage_receipt)
+                    save_json(out/'b_definition.json',b_definition)
                 starter.write_text(effective_gravity,encoding='ascii',newline='\n')
                 save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt,
                                                        'surface_serialization':surface_receipt})
@@ -322,6 +327,8 @@ def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=
     for response in chosen.values():response.setdefault('metadata',{})['sample_coverage']=deepcopy(frame_coverage)
     result['responses'].update(chosen)
     save_json(out/'selected_responses.json',selection_record)
+    from ..impact_b import append_readback
+    append_readback(out,model,s,result,frames)
     metadata=write_post(out/'post',frames,damage=damage)
     pvd=out/'post/impact.pvd'
     result['post_artifacts']=[{'relative':'post/impact.pvd','sha256':file_hash(pvd),
@@ -445,6 +452,8 @@ def _read_partial_outputs(out,s,model,physics,damage,result,frame_records,*,name
     else:
         scopes['selected_responses']={'status':'UNKNOWN','reason':'No verified native frame'}
         scopes['post']={'status':'UNKNOWN','reason':'No verified native frame'}
+    from ..impact_b import append_readback
+    append_readback(out,model,s,result,FrameView(out,frame_records,model,physics),partial=True)
     diagnostics['partial_output']=any(scope['status']!='COMPLETE' for scope in scopes.values())
     if diagnostics.get('artifact_copy_errors'):diagnostics['partial_output']=True
     diagnostics['readback_summary']='PARTIAL_SCOPES_RETAINED' if diagnostics['partial_output'] else 'COMPLETE_READBACK_ONLY'

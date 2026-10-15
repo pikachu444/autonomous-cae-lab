@@ -103,6 +103,9 @@ class ImpactEditor(QDialog):
         self.tabs.insertTab(0,self.project,'모델과 집합')
         from .impact_source_editor import SourceEditor
         self.source_page=SourceEditor(self);self.tabs.insertTab(1,self.source_page,'원 입력 편집')
+        from .impact_bulk_editor import BulkPage
+        self.bulk_page=BulkPage(self);self.tabs.addTab(self.bulk_page,'벌크와 계면')
+        self.tabs.currentChanged.connect(lambda _:self.bulk_page.refresh() if self.tabs.currentWidget() is self.bulk_page else None)
         self.update_source_mode()
         self.tabs.setCurrentIndex(0)
 
@@ -120,6 +123,7 @@ class ImpactEditor(QDialog):
         for i,field in enumerate(self.gravity):field.setText(text(self.value['gravity_mm_s2'][i]))
         self.populate();self.update_source_mode();self.project.refresh(selected_key=())
         self.source_page.refresh()
+        self.bulk_page.refresh()
 
     def resize_motion_table(self,*_):
         header=self.motion.horizontalHeader().sizeHint().height()

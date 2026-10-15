@@ -244,7 +244,7 @@ def validate_settings(settings):
     if isinstance(settings,dict) and settings.get('source',{}).get('format') == 'RAD':
         from .impact_native import validate_settings as validate_native
         return validate_native(settings)
-    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets','source_reference_bindings'}!=set(default_settings())-{'cohesive','responses','generated_sets','source_reference_bindings'}:
+    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets','source_reference_bindings','bulk_damage','interface_controls','b_responses'}!=set(default_settings())-{'cohesive','responses','generated_sets','source_reference_bindings','bulk_damage','interface_controls','b_responses'}:
         raise ValueError('충격 정의의 필수 항목을 확인하세요')
     source=settings['source']
     if not isinstance(source,dict) or source.get('format')!='INP' or source.get('units')!='Mg/mm/s':
@@ -256,6 +256,8 @@ def validate_settings(settings):
     validate_damage(model,settings.get('cohesive',[]))
     from .impact_responses import validate as validate_responses
     validate_responses(model,settings.get('responses',[]))
+    from .impact_b import validate as validate_b
+    validate_b(model,settings)
     t=settings['time']
     for key in ('end_s','field_interval_s','history_interval_s','scale'):
         number(t.get(key),key,True)

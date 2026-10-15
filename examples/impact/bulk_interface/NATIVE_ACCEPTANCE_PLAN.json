@@ -1,0 +1,96 @@
+{
+  "request_id": "PRO-IMPACT-BULK-INTERFACE-20261015-01",
+  "status": "PREDECLARED_NOT_RUN",
+  "fixture": "SYNTHETIC_NOT_CALIBRATED",
+  "source_commit": "cb760c206e346eff12161a2268b134ef9d48a4ef",
+  "runtime_release": "latest-20261011",
+  "binary_download": false,
+  "runtime_pin_change": false,
+  "cases": [
+    {
+      "id": "reference",
+      "nx": 1,
+      "cfl_scale": 0.9,
+      "output_factor": 1.0
+    },
+    {
+      "id": "mesh",
+      "nx": 2,
+      "cfl_scale": 0.9,
+      "output_factor": 1.0
+    },
+    {
+      "id": "native_timestep",
+      "nx": 1,
+      "cfl_scale": 0.45,
+      "output_factor": 1.0
+    },
+    {
+      "id": "output_sampling_only",
+      "nx": 1,
+      "cfl_scale": 0.9,
+      "output_factor": 0.5
+    }
+  ],
+  "expected_input_geometry": {
+    "total_initial_volume_mm3": 1.0,
+    "material_density_Mg_mm3": 7.8e-09,
+    "input_mass_Mg": 7.8e-09,
+    "one_cell_L0_mm": 1.0,
+    "two_cell_L0_mm": 0.7937005259840998,
+    "native_initial_volume_relative_tolerance": 1e-06,
+    "actual_initial_native_volume_status": "NOT_RUN"
+  },
+  "source_formula_reference": {
+    "formula": "delta_D = delta_plastic_strain*L0*onset_YLD0/(2*Gf)",
+    "gf_N_mm": 0.02,
+    "plateau_yield_MPa": 100.0,
+    "constant_onset_reference_delta_plastic_to_D1_one_cell": 0.0004,
+    "constant_onset_reference_delta_plastic_to_D1_two_cell": 0.0005039684199579492,
+    "use": "only for independently identified native evolution state and onset YLD0; DAMA is not silently that state",
+    "energy_integral_equivalence": "NOT_ASSERTED"
+  },
+  "minimum_native_admission": [
+    "Existing Starter must report syntax-checked normal termination, zero warnings/errors and exact units.",
+    "Existing Engine normal termination and owned-command cleanup must be recorded separately from sample coverage.",
+    "Every selected bulk must have exact PART/MAT/PROP/element, Isolid24, one IP and FAILIP1.",
+    "Raw TFILE4 and TITLES must bind to expected group/member/tokens; missing or invalid channels are not zeros.",
+    "To claim observed softening/deletion, record nontrivial DAMAGE_SUM samples, at least one active-to-inactive transition and independent stress/plastic history. Otherwise that criterion is UNKNOWN/NOT_OBSERVED."
+  ],
+  "comparison_quantities": [
+    "initial native VOL versus declared geometry; do not multiply arbitrary time-dependent IE density into Gf",
+    "actual global TIME STEP distribution for CFL change, not only requested output interval",
+    "per-element DAMA/OFF/deletion-time brackets, PLAS and stress softening; native unique initiation/evolution if genuinely recorded",
+    "individual global internal/kinetic/hourglass/contact/external-work/plastic-work and MASS/ADDED MASS",
+    "retained-sample extrema and actual-time sampled integrals only when channel meaning and complete interval are verified"
+  ],
+  "numerical_comparison_rules": {
+    "native_volume": "relative error <= 1e-6 is serialization/geometry readback check only",
+    "clock": "strictly increasing actual times; no endpoint fabrication or gap bridging",
+    "deletion": "report last-active/first-inactive brackets; exact failure time UNKNOWN absent separate channel",
+    "global_energy_time_sensitivity": "report relative differences of retained maxima and final observations; 5% is a predeclared screening limit, not physical certification; differing endpoint coverage makes final-value comparison UNKNOWN",
+    "mesh_objectivity": "NOT_CERTIFIED from two meshes, TABLE scaling or volume integral; retain quantitative differences",
+    "unavailable_damage_dissipation": "UNKNOWN; no global IE subtraction substitute",
+    "failed_case": "retain original state and raw; no post-failure tolerance widening"
+  },
+  "separate_interface_required_not_run": [
+    "Native 0<d<1 opening/unload/compression/reopen with mixed mode and observed traction/history.",
+    "After complete cohesive deletion, opposing bulk TYPE24 recontact/reopen with native reaction/penetration.",
+    "No dual cohesive/contact compressive support over relevant native increments; scheduled activation and sample audit alone are insufficient.",
+    "Exact pair force/native impulse producer and converter mapping; no all-contact nodal substitution."
+  ],
+  "not_claimed": [
+    "engineering release",
+    "calibrated strength",
+    "cyclic fatigue",
+    "damage dissipation inferred from IE",
+    "native temperature-dependent failure"
+  ],
+  "execution": {
+    "Windows": "NOT_RUN",
+    "Starter": "NOT_RUN",
+    "Engine": "NOT_RUN",
+    "converter_binary": "NOT_RUN",
+    "Qt": "NOT_RUN"
+  }
+}

@@ -61,10 +61,10 @@ Sol `pde_spatial_integration`은 TH 부재·잘린 CSV와 정상 VTK를 독립�
 새 프로세스 재열기를 확인했다. 원 실행을 실패로 바꾸거나 솔버를 재실행하지 않았다.
 GUI의 선택 표시와 새 읽기 결과도 함께 바뀌며, 늦은 응답이 다른 선택을 덮지 않는다.
 이 묶음의 독립 검토와 교정 영향 검사는 끝났고 전체 HTTP/native GUI 수용과 구별한다.
-기존 B 대화를 in-app browser에서 다시 열고 완료 답변과 실제 delivery02 ZIP을 회수했다.
-로컬 _workspace/pro-recovered-20261016/impact-b에 원문·원 패치·실행/미실행 구분을
-보존했다. Pro는 B 부분 인도라고 명시했으며 현재 main에 적용한 상태는 아니다.
-C·Study/Expert의 기존 답변도 같은 공식 UI에서 회수하고 중복 새 대화는 만들지 않는다.
+기존 B·C·Study/Expert 대화의 완료 답변과 실제 ZIP을 공식 UI에서 회수했다.
+원문·원 패치·실행/미실행 구분은 `_workspace/pro-recovered-20261016`에 보존하고
+현재 코드에 나누어 통합한다. B는 부분 인도이며 전체 native/물리 수용 완료가 아니다.
+같은 구현을 받기 위한 중복 새 대화는 만들지 않는다.
 
 **기존 프로그램을 쓰는 기본 조작:** FreeCAD 계산 창에서 선택한 native 솔버 작업창을
 열고, 계산한 결과를 공식 VTU로 내보내 기존 연구용 ParaView에서 연다. 별도 프로그램으로
@@ -128,15 +128,54 @@ Completion/첫 역할 모델로 생성 관점을 운영하며 새 계산 도구�
 같은 대화의 이전 구현 ZIP도 회수했으며 아직 main 적용 완료로 세지 않는다.
 입력/부분결과 GUI 묶음 ade0ca6는 원격 main과 일치를 확인했다. 실제 Pro B 전용 소스는
 Sol pde_delivery_packet이 통합하며 중복 일반 재후처리 구현은 적용하지 않는다.
-신규 B 전용 모듈·예제·검사를 현재 모델/adapter의 최소 접점에 연결했고 전용 단위 경계를
-확인했다. 아직 미커밋이며 실제 Windows 손상 계산·전체 B 수용은 아니다. 같은 담당은
-B 정의의 선택적 원입력 보관과 A 부분 읽기 이후 추가 채널을 잇는다. 이를 위해
-adapter의 B/부분 읽기 접점과 impact_retained의 선택적 B 정의 보관 부분만 위임했고
-root는 그 구역을 동시에 수정하지 않는다. dynamic_reprocess_gui는 기존 ImpactEditor와
-새 전용 벌크/계면 편집창·전용 검사·실제 GUI 안내를 맡는다. 두 담당은 typed B API를
-직접 협의하며, 기존 A 원문·선택·저장과 일반 partial reader를 중복 대체하지 않는다.
+신규 B 전용 모듈·예제·검사를 현재 모델/adapter에 연결했다. B 정의의 선택적 원입력 보관,
+A 부분 읽기 이후 추가 채널, B 대상·재료 배정의 기존 참조 복구를 같은 owner에 통합했다.
+원 실패·누락 구간과 native/파생 응답을 구별하며 접촉쌍 힘·충격량의 미확인 의미는 유지한다.
+Sol dynamic_reprocess_gui는 기존 ImpactEditor에 벌크 손상 교정 표·계면 재접촉·추가 결과와
+원 대상 복구를 연결했다. 실제 QWindows 편집·취소·저장·별도 프로세스 재개와 기존 A 영향
+경계를 확인하고 Astra의 통합 검토를 마쳤다. root가 보통/좁은 창을 직접 확인한 뒤 반복
+개발 상태 문구를 필요한 지원 범위 표시로 정리했다. 실제 화면과 사용 순서는
+[벌크·계면 안내](docs/IMPACT_BULK_INTERFACE_KO.md)에 있다. 현재 게시 대상이며 실제 B
+Windows 손상·재접촉 계산과 전체 물리 수용 완료는 아니다. 프로그램 방식의 Qt 확인과
+잠긴 Windows의 OS 직접 입력을 구별한다. 새 솔버 실행 없이 해당 필수 검사만 수행했고
+테스트 창·자식 프로세스는 모두 정리했다. MoAI ast-grep의 수정 Python 13파일 제한 검사도
+마쳤으며 이를 수치 검증으로 대신하지 않는다. B 두 작성자의 이번 소스는 동결·통합했다.
 공개 문헌 검색 연결은 8dddcb2로 원격 main과 일치를 확인했다. Space의 현행 개요와
 사용법 링크도 갱신했으며 분야별 전문가 팀 설계는 Pro 응답 전이므로 미채택이다.
+
+회수한 실제 Pro C 피로 소스는 `_workspace/pro-recovered-20261016/impact-c`에 보존했다.
+Sol `inverse_delivery`가 신규 피로 모듈·수학 검사·사용법과 기존 Fatigue/Simulation 창의
+필요 연결을 맡아 Windows에 통합한다. 새 전용 21경로와 기존 fatigue.py,
+fatigue_editor.py, simulation_window.py의 C 구역만 위임하며 보존 결과 다시 읽기 동작을
+유지한다. simulation_document.py의 공통 접점은 root가 제안 패치를 대조해 반영한다.
+ε–N/CMB와 CP-SWT의 원 수학 기준을 유지하며 실제 재료 자격이나 솔버의 total strain
+출력 제공까지 끝났다고 하지 않는다. 아직 이번 C 반환의 최신 main 통합·게시 전이다.
+
+회수한 Study/Expert 소스는 `_workspace/pro-recovered-20261016/study-expert`에 보존했다.
+Sol `expert_roundtrip_finish`가 이동 가능한 연구 사본의 지식자료·Study·Expert·Report
+편집과 사용자가 명시한 새 Ask를 기존 owner에 잇는다. 전용 helper/검사/사용법과 관련
+GUI·portable/report/study 구역을 위임했다. workbench, assist/experts·knowledge,
+discussion_costorm·discussion_document, material_document와 research_workflows 공통
+접점은 root가 최소 패치로 통합한다. 이번 공개 문헌 권한·정확 인용·중단 재사용을 보존하고,
+재열기만으로 새 모델·검색·계산을 시작하지 않는다. Pro에 요청 중인 분야별 팀 신규 설계를
+이 이동 기능과 혼동하거나 응답 전에 임의 채택하지 않는다.
+
+기본 native 전후처리 연결을 게시한 상태에서 보존했던 후처리·수치 확장도 병렬 재개한다.
+Sol `post_windows_build_fix`가 comparison_native·Post 비교 편집창·post_comparison과
+field_transfer_contract 및 전용 검사/사용법을 맡는다. 원 결과 A/B 비교의 필수 영역·실제
+배열 선택·지원 체적 적분 검사를 기존 ParaView 적용·저장·재열기에 잇는다. 종료 plugin,
+공통 bridge/registry와 다른 담당 파일은 수정하지 않는다.
+실제 새 ParaView 재열기에서 저장된 비교 필터가 연산을 반복하는 결함을 확인했다.
+같은 담당에게 workspace의 보관 결과 복원과 external.restore_workspace,
+source_repair의 기존 임시 PVSM 복구 접점만 추가 위임했다. 원 저장 PVSM·원자료·필터
+기록은 보존하고 검증된 비교 결과를 직접 읽도록 교정하며 새 미리보기/명시 반영만
+연산한다. root는 이 세 제한 구역을 동시에 수정하지 않고 최종 공통 diff를 검토한다.
+Sol `portable_continuation`은 보존한 Numerical 전용 7파일과 전용 예제·검사·사용법을 맡아
+joint UQ, Sobol 설계 비교, 국소 대리모델과 예측 후보의 명시 실제 계산 확인을 잇는다.
+공통 NumericalDocuments/실행·Plan 접점은 현행 기준의 최소 patch로 root에 전달한다.
+기존 공유변수 MDO/미분·혼합변수·전역 모델은 유지한다. 두 확장 모두 재개·통합 중이며
+게시 또는 전체 기능 수용 완료로 세지 않는다. 실제 실행 확인은 해당 작은 사용자 경로만
+수행하고 동일한 전체 suite/솔버 캠페인을 반복하지 않는다.
 
 **최근 게시:** 화면별 한국어 사용 안내와 실제 캡처는 원격 main에 반영됐다.
 [화면별 안내](docs/SCREEN_GUIDE_KO.md)에서 각 독립 앱의 시작·주요 조작·저장/재열기를

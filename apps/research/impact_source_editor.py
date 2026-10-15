@@ -19,10 +19,11 @@ def identity_label(value,full=False):
     if not isinstance(value,dict):return str(value)
     if 'instance' in value:return str(value['instance'])+' / 원 번호 '+str(value.get('local_id',''))
     if 'native_id' in value:return '원 번호 '+str(value['native_id'])
+    if 'a' in value and 'b' in value:return '면 A: '+identity_label(value['a'],full=full)+' / 면 B: '+identity_label(value['b'],full=full)
     if 'members' in value:
         members=value['members']
         names=[identity_label(row.get('element',row))+((' / '+row['side']) if 'side' in row else '') for row in (members if full else members[:5])]
-        return str(value.get('label',''))+' / '+', '.join(names)+(' 외 '+str(len(members)-5)+'개' if not full and len(members)>5 else '')
+        return str(value.get('label',value.get('material','')))+' / '+', '.join(names)+(' 외 '+str(len(members)-5)+'개' if not full and len(members)>5 else '')
     return str(value.get('label','대상'))
 
 
@@ -80,13 +81,30 @@ class ReferenceReviewDialog(QDialog):
         self.confirm=QPushButton('현재 대상 명시 수락');self.confirm.setEnabled(False);self.confirm.clicked.connect(self.apply);row.addWidget(self.confirm)
         reject=QPushButton('거절');reject.clicked.connect(self.reject);row.addWidget(reject);layout.addLayout(row)
         model=model_from_settings(settings)
-        for old in settings.get(bindings.KEY,{}).get('rows',[]):
+        rows=deepcopy(settings.get(bindings.KEY,{}).get('rows',[]))
+        try:
+            known={tuple(row['selection']) for row in rows}
+            for current in bindings.snapshot(settings,model)['rows']:
+                if tuple(current['selection']) not in known:rows.append({**current,'source':{'label':'새 선택'}})
+        except (ValueError,KeyError,TypeError):pass
+        for old in rows:
             selection=old['selection'];kind=selection[0];index=selection[1];column=selection[2]
             if index>=len(settings.get(kind,[])):continue
-            combo=QComboBox();current=settings[kind][index][column]
-            if kind=='responses':
+            current=settings[kind][index][column]
+            if kind=='interface_controls' and column=='contact_index' and current is None:continue
+            combo=QComboBox()
+            scope=settings[kind][index].get('scope')
+            pair_selection=kind=='b_responses' and scope=='pair' or kind=='interface_controls' and column=='contact_index'
+            material_selection=kind in ('bulk_damage','interface_controls') and column=='material'
+            if pair_selection:
+                for pair_index,pair in enumerate(settings.get('contacts',[])):
+                    combo.addItem('접촉 '+str(pair_index+1)+': '+pair['a']+' ↔ '+pair['b'],pair_index)
+            elif material_selection:
+                types={'COH3D8'} if kind=='interface_controls' else {'C3D8','C3D8R'}
+                for material in sorted({name for eid,name in model['assignment'].items() if model['elements'][eid]['type'] in types}):combo.addItem(material,material)
+            elif kind in ('responses','b_responses'):
                 from caelab.impact_responses import QUANTITIES
-                association=QUANTITIES[settings[kind][index]['quantity']][1];table='nodes' if association=='POINTS' else 'elements'
+                association='CELLS' if kind=='b_responses' else QUANTITIES[settings[kind][index]['quantity']][1];table='nodes' if association=='POINTS' else 'elements'
                 lineage=model.get('lineage',{}).get(table,{})
                 for identifier in sorted(model[table]):
                     origin=lineage.get(str(identifier),{})
@@ -98,12 +116,16 @@ class ReferenceReviewDialog(QDialog):
                     combo.addItem(str(origin.get('qualified_name',origin.get('label',key))),key)
             selected=combo.findData(current)
             try:
-                actual=(bindings._entity(model,association,current) if kind=='responses' else bindings._target(model,table,current))
+                if pair_selection:
+                    pair=settings['contacts'][current];actual={side:bindings._target(model,'surfaces',pair[side]) for side in ('a','b')}
+                elif material_selection:
+                    actual={'kind':'material_assignment','material':current,'members':sorted([bindings._entity(model,'CELLS',e) for e,name in model['assignment'].items() if name==current],key=canonical_hash)}
+                else:actual=(bindings._entity(model,association,current) if kind in ('responses','b_responses') else bindings._target(model,table,current))
                 if canonical_hash(actual)!=canonical_hash(old['source']):selected=-1
-            except (ValueError,KeyError,TypeError):selected=-1
+            except (ValueError,KeyError,TypeError,IndexError):selected=-1
             combo.setCurrentIndex(selected)
             row_index=self.table.rowCount();self.table.insertRow(row_index)
-            title={'responses':'결과','motions':'운동','contacts':'접촉'}[kind]+' '+str(index+1)+((' / '+column.upper()) if kind=='contacts' else '')
+            title={'responses':'결과','motions':'운동','contacts':'접촉','b_responses':'벌크/계면 결과','bulk_damage':'벌크 재료 배정','interface_controls':'계면 배정'}[kind]+' '+str(index+1)+((' / '+column.upper()) if kind=='contacts' else ' / 접촉쌍' if pair_selection else '')
             for col,value in enumerate((title,identity_label(old['source']))):
                 item=QTableWidgetItem(value);item.setFlags(item.flags()&~Qt.ItemFlag.ItemIsEditable);self.table.setItem(row_index,col,item)
             self.table.setCellWidget(row_index,2,combo);self.choices.append((selection,combo))
