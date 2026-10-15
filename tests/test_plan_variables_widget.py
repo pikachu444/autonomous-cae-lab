@@ -66,6 +66,43 @@ def pump(app,predicate):
     raise AssertionError('Embedded Plan request did not settle')
 
 
+def test_saved_metadata_refresh_preserves_live_raw_selection_and_newer_public_metadata(pair):
+    app,host,(view,_),foreign=pair
+    view._document.update(dirty=True,runs=[{'job_id':'Jcurrent'}],diagnostics=['current'],can_undo=True)
+    item=view.table.item(0,2);view.table.setCurrentItem(item);view.table.editItem(item);app.processEvents()
+    editor=view.table.findChild(QLineEdit);editor.setText('1e');editor.setSelection(0,1)
+    raw=view.recovery_snapshot();history=deepcopy(view._history)
+    receipt=view.document_snapshot();receipt.update(saved_revision='Rsaved',dirty=False,runs=[],diagnostics=[],can_undo=False)
+    assert view.refresh_saved_metadata(receipt,previous_saved_revision=None)
+    assert view.recovery_snapshot()==raw and view._history==history and editor.selectedText()=='1'
+    assert view.document_snapshot()['runs']==[{'job_id':'Jcurrent'}]
+    assert view.document_snapshot()['diagnostics']==['current'] and view.document_snapshot()['can_undo'] is True
+    assert view.document_snapshot()['saved_revision']=='Rsaved' and view.document_snapshot()['dirty'] is False
+    assert not view._adapter.calls and not foreign
+
+
+@pytest.mark.parametrize('change',[{'generation':1},{'session_id':'Sother'},{'input_revision':'Rpeer'},
+    {'kind':'material'},{'saved_revision':''},{'dirty':None}])
+def test_saved_metadata_refresh_refuses_changed_identity_or_incomplete_receipt(pair,change):
+    _,_,(view,_),_=pair
+    before=view.document_snapshot();receipt=deepcopy(before);receipt.update(saved_revision='Rsaved',dirty=False);receipt.update(change)
+    assert not view.refresh_saved_metadata(receipt,previous_saved_revision=None) and view.document_snapshot()==before
+
+
+def test_saved_metadata_refresh_refuses_changed_draft_or_inflight_command(pair):
+    _,_,(view,_),_=pair
+    before=view.document_snapshot();receipt=deepcopy(before);receipt.update(saved_revision='Rsaved',dirty=False)
+    receipt['draft']['request']['inputs']['variables'][0]['value']=3.
+    assert not view.refresh_saved_metadata(receipt,previous_saved_revision=None) and view.document_snapshot()==before
+    receipt=deepcopy(before);receipt.update(saved_revision='Rsaved',dirty=False)
+    view._document['saved_revision']='Rnewer'
+    assert not view.refresh_saved_metadata(receipt,previous_saved_revision=None)
+    view._document['saved_revision']=None
+    for field,value in [('_busy',True),('_history_command',{'command_id':'Cpending'})]:
+        setattr(view,field,value);assert not view.refresh_saved_metadata(receipt,previous_saved_revision=None);setattr(view,field,False if field=='_busy' else None)
+    view.detach_owner();assert not view.refresh_saved_metadata(receipt,previous_saved_revision=None)
+
+
 def test_keyboard_local_undo_redo_never_targets_other_owner(pair):
     app,host,(first,second),foreign=pair
     original=second.buffer_snapshot()

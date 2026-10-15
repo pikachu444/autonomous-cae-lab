@@ -174,6 +174,21 @@ class NumericalPlanVariablesWidget(QWidget):
         return bool(self._adapter is not None and self._document is not None
             and not self._busy and self._history_command is None)
 
+    def refresh_saved_metadata(self, document, *, previous_saved_revision):
+        """Accept a save receipt for this exact acknowledged input without GUI edits."""
+        if not self.recovery_ready():return False
+        if not isinstance(document,dict) or not isinstance(document.get('saved_revision'),str) or not document['saved_revision']:
+            return False
+        if self._document.get('saved_revision') not in (previous_saved_revision,document['saved_revision']):return False
+        try:
+            same=(document['kind']==self._document['kind'] and self._identity(document)==self._identity(self._document)
+                  and document['id']==self._adapter.document_id and type(document['dirty']) is bool)
+        except (KeyError,TypeError,ValueError):return False
+        if not same:return False
+        self._document['saved_revision']=document['saved_revision']
+        self._document['dirty']=document['dirty']
+        return True
+
     def _live_editor(self):
         if self.table.state()!=QAbstractItemView.State.EditingState:return None
         for kind in (QComboBox,QLineEdit):

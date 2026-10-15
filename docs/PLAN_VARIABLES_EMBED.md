@@ -71,3 +71,17 @@ editor를 찾는다. 호스트의 Keep/Cancel 대화상자는 FocusOut이 delega
 job 증가 없음을 별도로 확인했다. Material 안의 최종 배치와 공통 HTTP transport는
 통합 후 해당 담당의 검사로 확인해야 한다. Windows 세션의 clipboard 왕복 한계 때문에
 블록 paste 의미 검사는 offscreen Qt 결과이며 native clipboard 성공으로 세지 않는다.
+# 저장 응답의 메타데이터만 확인
+
+`refresh_saved_metadata(document, *, previous_saved_revision)`은 실제 저장 응답의
+문서가 현재 bound 문서와 id/kind/session/generation/input_revision 및 초안 hash가
+모두 같을 때만 `saved_revision`과 `dirty`를 복사한다. 현재 saved_revision은 호출자가
+승인했던 previous_saved_revision 또는 도착한 saved_revision이어야 한다. 제3의 저장,
+빈 저장 revision, 진행 중 owner/history 명령은 거절한다. 표, 미확정 editor, 원문,
+커서·선택, 로컬 Undo, runs/diagnostics/title 등 다른 메타데이터는 건드리지 않는다.
+네트워크/owner 명령과 ownerActivated 신호도 없다. True 반환 때 host는 공개
+document_snapshot으로 정확한 새 base를 읽고 기존 복구 identity 관문을 그대로 사용한다.
+
+Windows 전용 영향 8개가 통과했다. live `1e`와 부분 텍스트 선택, 원 snapshot/hash,
+다른 공개 메타데이터 보존 및 peer/input/saved revision/진행 중 명령 거절을 확인했다.
+실제 related-save 응답 유실→Keep→cold 복구는 Material host 담당의 별도 수용이다.
