@@ -211,3 +211,7 @@ autostart API를 사용하므로 직접 link target을 `pqComponents`로 좁혔�
 ParaView 6.2 plugin helper는 UI interface에 `pqCore`를 연결하고, `pqComponents`는
 그 모듈에 공개 의존한다. 이 CMake 의존성 교정 이후 configure/link/native 검사는
 아직 실행하지 않았다. `vtkCommonCore` 의존성과 최종 실행파일 준비는 여전히 필요하다.
+
+로컬 메모리를 계속 점유하지 않고 확인하기 위한 수동 공개 Windows CI 경로는
+[CI_WINDOWS_KO.md](CI_WINDOWS_KO.md)에 있다. 새 workflow는 준비 상태이며 root의
+검토·실행 전이다. CI compile/backend check와 실제 ParaView 창의 종료 수용은 구분한다.
