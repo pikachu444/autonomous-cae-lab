@@ -204,6 +204,15 @@ class DataWindow(QMainWindow):
         self.calibration_action = QAction('채널 교정…', self)
         self.calibration_action.triggered.connect(self.edit_calibration)
         edit.addAction(self.calibration_action)
+        self.processing_recipe_action = QAction('처리 단계…', self)
+        self.processing_recipe_action.triggered.connect(self.edit_processing_recipe)
+        edit.addAction(self.processing_recipe_action)
+        self.processing_preview_action = QAction('처리 미리보기…', self)
+        self.processing_preview_action.triggered.connect(self.preview_processing)
+        edit.addAction(self.processing_preview_action)
+        self.processing_results_action = QAction('보존한 처리 결과…', self)
+        self.processing_results_action.triggered.connect(self.read_processing_result)
+        edit.addAction(self.processing_results_action)
         calibrated_result = QAction('교정 전후 결과…', self)
         calibrated_result.triggered.connect(self.read_calibrated_result)
         edit.addAction(calibrated_result)
@@ -886,6 +895,70 @@ class DataWindow(QMainWindow):
             self.message.setText(f'{len(documents)}개 시험 파일을 열었습니다.' +
                 ('\n열지 못한 파일: ' + '\n'.join(failures) if failures else ''))
         return self._call(opened, show, background=True)
+
+    def edit_processing_recipe(self):
+        if not self.document or self._busy or self.conflict or self._view_error:
+            return
+        if not callable(getattr(self.client, 'data_material', None)):
+            self.message.setText('연결한 서비스에서 데이터 처리를 지원하지 않습니다.'); return
+        try:
+            source = self.selected_source()
+        except ValueError:
+            self.message.setText('원본 가져오기 결과와 채널을 선택하세요.'); return
+        from .data_processing_dialog import DataProcessingRecipeDialog
+        base = deepcopy(self.document); before = self.edited_draft()
+        existing = before.get('processing', {})
+        dialog = DataProcessingRecipeDialog(existing.get('recipe', {'version': 1, 'operations': []}),
+                                            list(before['mapping']['columns']), self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        draft = deepcopy(before)
+        draft['processing'] = {'source': {key: source[key] for key in
+            ('document_id', 'job_id', 'input_revision', 'input_sha256')}, 'recipe': deepcopy(dialog.recipe)}
+        identity = lambda document: (document['id'], document['session_id'], document['generation'])
+        if identity(self.document) != identity(base) or self.conflict:
+            self.document = base; self.conflict = True
+        self._working_draft = draft
+        self._edited()
+        self.message.setText('처리 단계를 설정했습니다. 설정 적용 후 처리 미리보기를 여세요.' if not self.conflict else
+                             '자료가 변경되었습니다. 편집한 처리 단계는 보존했습니다. 충돌을 확인하세요.')
+
+    def preview_processing(self):
+        if not self.document or self._busy or self.conflict:
+            return
+        if self.local_dirty:
+            self.message.setText('처리 단계의 설정을 적용한 뒤 미리보기를 여세요.'); return
+        if not callable(getattr(self.client, 'data_material', None)):
+            self.message.setText('연결한 서비스에서 데이터 처리를 지원하지 않습니다.'); return
+        from .data_processing_dialog import DataProcessingPreviewDialog
+        base = deepcopy(self.document)
+        def reviewed(preview):
+            dialog = DataProcessingPreviewDialog(preview, self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            def retained(response):
+                self._show_document(response['document'])
+                self.message.setText('처리 결과를 보존했습니다. 자료 저장으로 함께 보관하세요.')
+            self._call(lambda: self.client.data_material('data.processing.apply', dict(
+                document_id=base['id'], preview_sha256=preview['preview_sha256'], session_id=base['session_id'],
+                expected_generation=base['generation'], command_id='C' + uuid.uuid4().hex)), retained)
+        self._call(lambda: self.client.data_material('data.processing.preview', {'document_id': base['id']}), reviewed)
+
+    def read_processing_result(self):
+        if not self.document or self._busy:
+            return
+        records = self.document.get('processing_revisions', [])
+        if not records:
+            self.message.setText('보존한 처리 결과가 없습니다.'); return
+        labels = [f"처리 결과 {index + 1}  {record.get('created_utc', '')[:19].replace('T', ' ')}" for index, record in enumerate(records)]
+        selected, accepted = QInputDialog.getItem(self, '보존한 처리 결과', '결과', labels, len(labels) - 1, False)
+        if not accepted:
+            return
+        from .data_processing_dialog import DataProcessingPreviewDialog
+        identifier = self.document['id']; revision = records[labels.index(selected)]['id']
+        self._call(lambda: self.client.data_material('data.processing.result',
+            {'document_id': identifier, 'processing_revision': revision}),
+            lambda result: DataProcessingPreviewDialog(result, self, retained=True).exec())
 
     def edit_calibration(self):
         if not self.document or self._busy or self.conflict or self._view_error:
@@ -1851,6 +1924,9 @@ class DataWindow(QMainWindow):
         blocked = present and any(item.get('blocks_evaluation') for item in self.document.get('diagnostics', []))
         self.import_button.setEnabled(enabled and not self.local_dirty and not blocked and not self._view_error)
         self.save_action.setEnabled(enabled)
+        self.processing_recipe_action.setEnabled(enabled and bool(self._selected_job) and not self._view_error)
+        self.processing_preview_action.setEnabled(enabled and not self.local_dirty and bool((self.document or {}).get('draft', {}).get('processing')))
+        self.processing_results_action.setEnabled(present and not self._busy and bool((self.document or {}).get('processing_revisions')))
         self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
         self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
         self.new_action.setEnabled(not self._busy)
