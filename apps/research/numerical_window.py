@@ -53,6 +53,12 @@ class _CoefficientDisplay(QStyledItemDelegate):
         return str(value)
 
 
+class _TrialRoleDisplay(QStyledItemDelegate):
+    """Keep the exact editable role token while painting its task name."""
+    def displayText(self, value, locale):
+        return {'fit':'피팅','holdout':'검증'}.get(str(value),str(value))
+
+
 class ProtocolDialog(QDialog):
     """Edit measured kinematics without inferring a lateral F or strain/time map."""
     def __init__(self, settings, parent=None):
@@ -312,6 +318,7 @@ class NumericalWindow(QMainWindow):
         self.experiments=PlanTable(0,8); self.experiments.setObjectName('numericalExperiments')
         self.experiments.pasteRejected.connect(self.message.setText)
         self.experiments.setHorizontalHeaderLabels(['식별자','용도','시험','관측','모델 응답','가중치','오차 기준','조건'])
+        self.experiments.setItemDelegateForColumn(1,_TrialRoleDisplay(self.experiments))
         self.experiments.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.experiments.itemChanged.connect(self._edited)
         self.experiments.setColumnHidden(0,True); self.experiments.setColumnHidden(4,True)
@@ -1029,7 +1036,9 @@ class NumericalWindow(QMainWindow):
             self.local_dirty = False
             self._show_document(receipt['document'], receipt.get('job', {}).get('id'))
             self._reset_draft_history(force=True)
-            self.message.setText('Applied through the Numerical document owner: ' + operation)
+            self.message.setText({'numerical.update':'계획을 적용했습니다.',
+                'document.save':'계획을 저장했습니다.'}.get(operation,'작업을 완료했습니다.'))
+            self.message.setToolTip(operation)
             if type(self) is NumericalWindow and self.document.get('diagnostics'):
                 self.locate_input_error()
             if after:
