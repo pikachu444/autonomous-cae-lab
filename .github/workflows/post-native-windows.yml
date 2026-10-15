@@ -64,6 +64,16 @@ jobs:
           python-version: '3.12.10'
           architecture: x64
           check-latest: false
+      - name: Check smoke admission before downloading or building the SDK
+        run: |
+          $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+          # Fetch requires POST_NATIVE_ROOT to remain absent until it starts.
+          python scripts/native_check.py --timeout 30 --output-dir "$env:POST_NATIVE_ROOT-smoke-unit-job" -- $python -m unittest discover -s tests -p test_post_native_windows_smoke.py
+          if ($LASTEXITCODE -ne 0) { throw "Smoke admission regression failed before SDK download/build: $LASTEXITCODE" }
+          $receipt = Get-Content -LiteralPath "$env:POST_NATIVE_ROOT-smoke-unit-job/native-check.json" -Raw | ConvertFrom-Json
+          if ($receipt.cleanup -ne 'job_empty' -or $receipt.cleanup_error -or $receipt.timed_out) {
+            throw 'Smoke admission Job cleanup or timeout requires review before SDK download/build.'
+          }
       - name: Fetch verified public SDK inputs and license notices
         run: |
           ./scripts/fetch_post_native_windows.ps1 -WorkRoot $env:POST_NATIVE_ROOT
@@ -141,6 +151,13 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($root)) {
             Write-Output 'Receipt output skipped: SDK root initialization did not complete; see the original failed step.'
             exit 0
+          }
+          @('native-check.json','stdout.log','stderr.log') | ForEach-Object {
+            $file = Join-Path "$root-smoke-unit-job" $_
+            if (Test-Path -LiteralPath $file) {
+              Write-Output "--- smoke-unit-job/$_"
+              Get-Content -LiteralPath $file -Raw
+            }
           }
           @('inputs.json','build-evidence.json','build-job/native-check.json',
             'plugin-build/core-test-job/native-check.json',
