@@ -207,3 +207,15 @@ def test_reopening_policy_seeds_existing_roles_and_weights_without_rewriting_pro
     assert client.dialog_initials==[policy['overrides']]
     adopt=next(args for op,args in client.calls if op=='data.sample_policy.adopt')
     assert adopt['proposal']['entries']['sample1']=={'included':True,'role':'fit','weight':1.}
+
+
+def test_policy_receipt_cannot_be_retried_from_another_plan_with_same_session(window,monkeypatch):
+    client=policy_client(window,monkeypatch,lost=True)
+    assert window.edit_sample_policy()
+    settle(window)
+    assert window._adoption_receipt is not None
+    window.document['id']='Nanother'
+    before=deepcopy(client.calls)
+    assert not window.retry_adoption_receipt()
+    assert client.calls==before
+    assert window._adoption_receipt is not None

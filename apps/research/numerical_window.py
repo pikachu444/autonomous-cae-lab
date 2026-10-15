@@ -456,8 +456,11 @@ class NumericalWindow(QMainWindow):
         request = pending['request']
         target = request['document_id' if pending['kind']=='sample_policy' else 'target_document_id' if pending['kind'] == 'domain' else pending['kind'] + '_document_id']
         same_session = self.document is not None and self.document['session_id'] == pending['source_session']
+        if pending['kind']=='sample_policy':
+            same_session=bool(same_session and self.document['id']==target)
         note = ('연결이 바뀌어 다시 확인할 수 없습니다. 원문서에서 적용 여부를 확인하세요.'
-                if not same_session else '다른 후보를 적용하기 전에 아래 버튼으로 앞선 적용 결과를 확인하세요.')
+                if not same_session else '계획을 계속 편집하기 전에 아래 버튼으로 적용 결과를 확인하세요.'
+                if pending['kind']=='sample_policy' else '다른 후보를 적용하기 전에 아래 버튼으로 앞선 적용 결과를 확인하세요.')
         self.adoption_receipt_label.setText(('관측 표본 용도가 계획에 적용됐는지 아직 확인하지 못했습니다.\n'
             if pending['kind']=='sample_policy' else '후보가 원문서에 적용됐는지 아직 확인하지 못했습니다.\n') + note)
         self.adoption_receipt_label.setToolTip('진단 정보\n원문서: ' + target + '\n계산: ' + request.get('job_id','') +
@@ -483,6 +486,9 @@ class NumericalWindow(QMainWindow):
         request = deepcopy(pending['request'])
         kind = pending['kind']
         target = request['document_id' if kind=='sample_policy' else 'target_document_id' if kind == 'domain' else kind + '_document_id']
+        if kind=='sample_policy' and self.document['id']!=target:
+            self.message.setText('다른 계획을 열어 적용 여부를 확인하지 못했습니다. 원래 계획에서 확인하세요.')
+            return False
         def failed(error):
             self.message.setText('적용 결과를 아직 확인하지 못했습니다. 적용 결과 다시 확인 버튼을 누르세요.')
             self.message.setToolTip(str(error))
