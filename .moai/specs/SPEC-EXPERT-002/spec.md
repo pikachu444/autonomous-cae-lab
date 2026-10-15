@@ -1,11 +1,11 @@
 ---
 id: SPEC-EXPERT-002
 title: "Independent Expert connection and source-grounded Co-STORM research"
-version: "0.2.0"
+version: "0.3.0"
 status: in-progress
 created: 2026-10-13
-updated: 2026-10-14
-author: "Codex assignment; actual ChatGPT Pro implementation"
+updated: 2026-10-16
+author: "Actual ChatGPT Pro design; Sol implementation; Codex integration"
 priority: "P1 High"
 phase: implementation
 module: "native Expert, existing assistance runtime and Windows operator configuration"
@@ -23,8 +23,11 @@ this work closes the missing user-facing connection/setup path.
 
 The 2026-10-14 continuation also covers the already requested Co-STORM
 workflow in PRODUCT_UI_MCP_PLAN §6.6. Connection-only delivery does not satisfy
-that workflow. The active implementation request is PRO-COSTORM-PROTOCOL-01;
-current assignment and source status remain solely in CURRENT_STATE.
+that workflow. The original PRO-COSTORM-PROTOCOL-01 source remains reusable.
+The 2026-10-16 actual Pro correction is adopted in
+[the research-team design](../../../docs/research-team/DESIGN_KO.md).
+Astra independently reviewed its four execution contracts; implementation
+is not complete. Current assignments and source status remain solely in CURRENT_STATE.
 
 ## Requirements
 
@@ -111,8 +114,10 @@ Reuse `apps/research/expert_window.py`, `caelab/assist/experts.py`,
 `caelab/assist/readiness.py`, `caelab/assist/openscience_host.py`, the current
 PowerShell host, `examples/workbench_experts.json`, Workbench configuration and
 Windows service lifecycle. Do not introduce another discussion engine or copy
-existing Plan/result integration. Actual Pro owns product code, related tests
-and usage guidance; Codex owns this SPEC, review and integration. A local
+existing Plan/result integration. Actual Pro owns the adopted overall design
+and substantial existing source. Sol writers implement the agreed feature
+bundles, related checks and usage; Codex owns common integration, this SPEC
+and publication. A local
 operator UI and remote service API have different authority; preserve that
 boundary when choosing the smallest complete implementation.
 

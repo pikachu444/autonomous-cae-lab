@@ -18,8 +18,9 @@
 
 The original connection delivery used `codex/expert-connection-20261013`.
 The continuing workflow and current branch are assigned in CURRENT_STATE.
-Pro owns product code/tests/usage; Codex owns SPEC/current status,
-environment integration and publication. The complete task packet and receipt
+Actual Pro owns the overall design and important design decisions. Sol writers
+implement the agreed bundles, tests and usage. Codex owns shared integration,
+SPEC/current status, environment integration and publication. The task packet
 are linked from CURRENT_STATE rather than duplicated as another work queue.
 
 The E7–E10 continuation reuses the official Co-STORM runner/knowledge/report
@@ -29,3 +30,11 @@ Implement the complete source-to-report workflow as one product unit, keeping
 legacy documents and Plan/result return usable. Runtime absence or unavailable
 login must not block reading saved research. Development checks stay focused on
 the changed unit; they are not a prerequisite campaign for every small edit.
+
+The adopted 2026-10-16 [Pro research-team design](../../../docs/research-team/DESIGN_KO.md)
+extends this same SPEC. Implement its A/B/C/D bundles in parallel: scheduling
+and Co-STORM map, source/search scope, exact results/analysis/Plan return, and
+native Qt/portable workflow. Reuse the existing ExpertRuntime, host, readers,
+Numerical Plan and document owners. Root integrates shared hooks sequentially.
+The complete team workflow requires actual returned role/tool work and usable
+desktop interaction; connection success or design review alone cannot close it.

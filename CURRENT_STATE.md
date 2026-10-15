@@ -130,11 +130,19 @@ ExpertRuntime의 역할별 실행과 Co-STORM 진행·지도·보고서를 연�
 보호해야 한다. Astra `pde_transfer_review`의 독립 검토는 방향 PASS이며 실행 예산,
 실제 입력 전체의 자료 의존성, exact 결과·검색·분석 dispatch, 지도 삽입 실패 복구의
 네 계약을 보완한 뒤 채택하도록 판정했다. 기존 공개검색의 자료 없는 시작 경로도
-보호해야 한다. 같은 Pro/파워5 대화에 `PRO-CAE-RESEARCH-TEAM-20261016-02` 교정 원문과
-Astra 검토를 첨부해 한 번 전송했고 현재 응답 생성 중이다. 기존 대화는
-https://chatgpt.com/c/6ad0c7d0-6f70-83ee-a420-2427dfa05b55 이며 새 대화는 만들지 않았다.
-요청 원문은 `_workspace/pro-recovered-20261016/research-team/correction-request.md`에 둔다.
-아직 신규 팀 모드 구현 또는 채택 완료로 세지 않으며 새 대화나 추가 과금은 없다.
+보호해야 한다. 같은 실제 Pro/파워5 대화의 교정본을 회수했고 Astra가 네 계약의
+수정과 기존 코드 접점을 읽어 설계 채택 PASS로 판정했다. 채택 원본은
+[분야별 연구팀 설계](docs/research-team/DESIGN_KO.md), 작업 분해는 기존
+`.moai/specs/SPEC-EXPERT-002/tasks.md`에 연결했다. 새 프로젝트나 별도 과금은 없다.
+Sol 네 담당이 본구현을 병렬 진행한다. `expert_roundtrip_finish`는 A 일정·실행·공유 예산·
+지도, `inverse_delivery`는 B 자료·검색·공유, `post_windows_build_fix`는 C 정확한 결과 선택·
+기존 분석·계산 환류, `dynamic_reprocess_gui`는 D Qt·보고서·이동 사본을 맡는다.
+root가 공통 파일의 최소 패치를 순서대로 적용하며 기존 코드·완료 검색·원 발언은 유지한다.
+첫 실제 root 예산 접점은 통합했고 전용 본코드를 작성 중이다. 새 팀 전체 실행·GUI 수용과
+분야 전문성은 아직 완료가 아니다. 검토 보고서는
+`_workspace/research-team-design-review/CORRECTED_REVIEW.md`에 보존했다.
+기존 Space 댓글 한도 때문에 같은 프로젝트의 [개발 논의](https://chatgpt.com/space/page_b4b3b6a868dc8191a4de4f2282d85a78)
+페이지에서 담당자들이 직접 질문·답변을 이어간다. CURRENT_STATE가 유일한 현재 작업 원본이다.
 입력/부분결과 GUI 묶음 ade0ca6는 원격 main과 일치를 확인했다. 실제 Pro B 전용 소스는
 Sol pde_delivery_packet이 통합하며 중복 일반 재후처리 구현은 적용하지 않는다.
 신규 B 전용 모듈·예제·검사를 현재 모델/adapter에 연결했다. B 정의의 선택적 원입력 보관,
