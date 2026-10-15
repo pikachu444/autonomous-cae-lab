@@ -1,0 +1,83 @@
+name: Post native Windows SDK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-native-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sdk-plugin:
+    # Standard public Windows runners have free compute. Never run this in a
+    # private repository or select a larger/self-hosted runner.
+    if: ${{ github.event.repository.private == false }}
+    runs-on: windows-2022
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      POST_NATIVE_ROOT: ${{ runner.temp }}\cae-post-native-${{ github.run_id }}-${{ github.run_attempt }}
+      PIP_NO_CACHE_DIR: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Confirm public repository and standard Windows environment
+        run: |
+          $repo = Invoke-RestMethod "https://api.github.com/repos/$env:GITHUB_REPOSITORY"
+          if ($repo.private -ne $false -or $env:RUNNER_OS -ne 'Windows') {
+            throw 'This workflow requires a public repository and standard Windows runner.'
+          }
+          $repo | Select-Object full_name,private,html_url | ConvertTo-Json
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption,TotalVisibleMemorySize,FreePhysicalMemory
+          git rev-parse HEAD
+      # Pin an official CPython 3.12 Windows binary release.
+      # 3.12.14 has no Windows x64 package in actions/python-versions.
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+          check-latest: false
+      - name: Fetch verified public SDK inputs and license notices
+        run: |
+          ./scripts/fetch_post_native_windows.ps1 -WorkRoot $env:POST_NATIVE_ROOT
+      - name: Build SDK and plugin, run existing native checks in one owned Job
+        run: |
+          $python = (Get-Command python -CommandType Application).Source
+          $pwsh = (Get-Command pwsh -CommandType Application).Source
+          python scripts/native_check.py --timeout 19500 --output-dir "$env:POST_NATIVE_ROOT/build-job" -- $pwsh -NoProfile -File "$env:GITHUB_WORKSPACE/scripts/build_post_native_windows.ps1" -WorkRoot $env:POST_NATIVE_ROOT -Python $python
+          if ($LASTEXITCODE -ne 0) { throw "Owned SDK build/check failed: $LASTEXITCODE" }
+          $receipt = Get-Content -LiteralPath "$env:POST_NATIVE_ROOT/build-job/native-check.json" -Raw | ConvertFrom-Json
+          if ($receipt.cleanup -ne 'job_empty' -or $receipt.cleanup_error -or $receipt.timed_out) {
+            throw 'SDK build/check Job cleanup or timeout requires review.'
+          }
+      - name: Print receipts without artifact/cache storage or publication
+        if: always()
+        run: |
+          $root = $env:POST_NATIVE_ROOT
+          @('inputs.json','build-evidence.json','build-job/native-check.json',
+            'plugin-build/core-test-job/native-check.json',
+            'checks/load/native-check.json','checks/create/native-check.json','checks/cold/native-check.json') | ForEach-Object {
+            $file = Join-Path $root $_
+            if (Test-Path -LiteralPath $file) {
+              Write-Output "--- $_"
+              Get-Content -LiteralPath $file -Raw
+            }
+          }
+          @('build-job/stdout.log','build-job/stderr.log') | ForEach-Object {
+            $file = Join-Path $root $_
+            if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Tail 120 }
+          }
+          @('plugin-build/core-test-job/stdout.log','checks/load/stdout.log',
+            'checks/create/stdout.log','checks/create/stderr.log',
+            'checks/cold/stdout.log','checks/cold/stderr.log') | ForEach-Object {
+            $file = Join-Path $root $_
+            if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Tail 60 }
+          }
+          "### Post Windows SDK check`n`nCommit: $env:GITHUB_SHA`n`nNo cache, artifact upload, release publication or actual desktop input acceptance is performed." >> $env:GITHUB_STEP_SUMMARY
