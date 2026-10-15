@@ -296,6 +296,8 @@ class DataWindow(QMainWindow):
         self.test_columns_action = QAction('시험 열 설정…', self)
         self.test_columns_action.triggered.connect(self.configure_test_columns)
         edit.addAction(self.test_columns_action)
+        from .finite_measure_gui import install_data_actions
+        install_data_actions(self, edit)
         self.calibration_action = QAction('채널 교정…', self)
         self.calibration_action.triggered.connect(self.edit_calibration)
         edit.addAction(self.calibration_action)

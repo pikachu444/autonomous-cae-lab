@@ -4,7 +4,7 @@ import math
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QComboBox, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget)
+    QTableWidgetItem, QVBoxLayout, QWidget, QCheckBox)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from shiboken6 import isValid
@@ -130,20 +130,25 @@ class ExperimentDialog(QDialog):
         left=QWidget(); self._inputs=left; form=QFormLayout(left); split.addWidget(left)
         responses=result.get('responses',{})
         self.observed=combo([(name,name) for name,row in responses.items()
-            if row.get('measure') in ('infinitesimal_Cauchy','first_Piola')])
+            if row.get('measure') in ('infinitesimal_Cauchy','first_Piola','finite_Cauchy')])
         self.role=combo([('피팅','fit'),('검증 (holdout)','holdout')])
         self.model_response=combo([('응력 '+name.removeprefix('stress_'),name)
             for name in ('stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz')])
-        self.protocol=combo([('전체 변형구배 편집','explicit'),('측정 변형 이력 사용','measured')])
+        self.protocol=combo([('전체 변형구배 편집','explicit'),('측정 변형 이력 사용','measured'),('유한변형 측정 이력 / 횡방향 제어','finite_measured')])
         self.driver=combo([('선택…',None)]+[(name,name) for name,row in responses.items()
-            if row.get('measure') in ('engineering_strain','stretch','simple_shear')])
+            if row.get('measure') in ('engineering_strain','stretch','simple_shear','log_strain')])
         self.lateral_22, self.lateral_33=QLineEdit(),QLineEdit()
         self.weight, self.scale=QLineEdit('1'),QLineEdit('1')
+        self.finite_lateral=combo([('명시 선택…',None),('횡응력 0 (자유 횡수축)','free'),('횡변형 고정 F=1','fixed'),('횡변형 지정','prescribed')])
+        self.finite_comparison=QCheckBox('후보의 실제 수락 F/J로 P → 진응력 변환')
+        self.finite_comparison.setChecked(bool((experiment or {}).get('extensions',{}).get('finite_measure')))
         self.tensor=QPushButton('변형구배 편집…'); self.tensor.clicked.connect(self._tensor)
         for label,widget in [('관측',self.observed),('용도',self.role),('모델 응답',self.model_response),
             ('변형 조건',self.protocol),('변형 채널',self.driver),('지정 F22',self.lateral_22),
             ('지정 F33',self.lateral_33),('시험 가중치',self.weight),('오차 기준값',self.scale)]:
             form.addRow(label,widget)
+        form.addRow('유한변형 횡방향 조건',self.finite_lateral)
+        form.addRow(self.finite_comparison)
         form.addRow(self.tensor)
         self.condition=QLabel('F22/F33는 지정값입니다. 자유 횡수축을 계산하지 않습니다.')
         self.condition.setWordWrap(True); form.addRow(self.condition)
@@ -167,11 +172,13 @@ class ExperimentDialog(QDialog):
         if selected and self.observed.findData(selected)>=0:
             self.observed.setCurrentIndex(self.observed.findData(selected))
         if self.recipe:
-            self.protocol.setCurrentIndex(1)
+            self.protocol.setCurrentIndex(2 if self.recipe.get('kind')=='finite_measured' else 1)
+            if self.recipe.get('kind')=='finite_measured':
+                self.finite_lateral.setCurrentIndex(self.finite_lateral.findData(self.recipe.get('lateral')))
             self.driver.setCurrentIndex(self.driver.findData(self.recipe['channel']))
-            self.lateral_22.setText(str(self.recipe['lateral_22']))
-            self.lateral_33.setText(str(self.recipe['lateral_33']))
-        for widget in (self.observed,self.protocol,self.driver):
+            self.lateral_22.setText(str(self.recipe.get('lateral_22','')))
+            self.lateral_33.setText(str(self.recipe.get('lateral_33','')))
+        for widget in (self.observed,self.protocol,self.driver,self.finite_lateral):
             widget.currentIndexChanged.connect(self._preview)
         self._preview()
 
@@ -184,9 +191,14 @@ class ExperimentDialog(QDialog):
             self._preview()
 
     def _preview(self):
-        measured=self.protocol.currentData()=='measured'
+        measured=self.protocol.currentData() in ('measured','finite_measured')
+        finite=self.protocol.currentData()=='finite_measured'
+        self.finite_lateral.setEnabled(finite)
+        self.condition.setText('기존 수락 상태·native tangent·수렴 관문으로 횡방향 조건을 풉니다.' if finite else 'F22/F33는 지정값입니다. 자유 횡수축을 계산하지 않습니다.')
         for widget in (self.driver,self.lateral_22,self.lateral_33):
             widget.setEnabled(measured)
+        for widget in (self.lateral_22,self.lateral_33):
+            widget.setEnabled(measured and (not finite or self.finite_lateral.currentData()=='prescribed'))
         self.tensor.setEnabled(not measured)
         self.figure.clear()
         axes=self.figure.subplots(2,1)
@@ -236,9 +248,23 @@ class ExperimentDialog(QDialog):
                 measure=self.imported.get('responses',{}).get(channel,{}).get('measure')
                 recipe=dict(channel=channel,kind=measure,
                     lateral_22=numeric(self.lateral_22.text()),lateral_33=numeric(self.lateral_33.text()))
+            if self.protocol.currentData()=='finite_measured':
+                from caelab.finite_measure_protocol import recipe as finite_recipe
+                observed=self.imported.get('responses',{}).get(name,{})
+                component=observed.get('component','')
+                if component not in ('xx','yy','zz'):raise ValueError('단축·동축 응력 성분을 선택하세요.')
+                recipe=finite_recipe(self.driver.currentData(),component[0],lateral=self.finite_lateral.currentData(),
+                    lateral_22=numeric(self.lateral_22.text()),lateral_33=numeric(self.lateral_33.text()))
             # Draft protocol/weight may be incomplete; save remains possible.
             pending=dict(name=name,role=self.role.currentData(),response=self.model_response.currentData(),
                 settings=settings,weight=numeric(self.weight.text()),scale=numeric(self.scale.text()),kinematics=recipe)
+            if self.finite_comparison.isChecked():
+                from caelab.finite_measure_prediction import comparison_extension
+                observed=self.imported.get('responses',{}).get(name,{})
+                component=observed.get('component','')
+                if observed.get('measure')!='finite_Cauchy' or component not in ('xx','yy','zz'):
+                    raise ValueError('명시 P→Cauchy 비교에는 같은 축의 유한변형 진응력 관측을 선택하세요.')
+                pending['extensions']={'finite_measure':comparison_extension(component[0])}
             if self._selected_result_reader is not None:
                 names=list(dict.fromkeys([name]+([recipe['channel']] if recipe else [])))
                 if any(not isinstance(item,str) or not item for item in names):
@@ -279,7 +305,13 @@ class ExperimentDialog(QDialog):
     def _finish_accept(self, pending, result):
         value=deepcopy(pending)
         if value['kinematics'] is not None:
-            value['settings']=measured_protocol(value['settings'],result,value['kinematics'])
+            try:
+                value['settings']=measured_protocol(value['settings'],result,value['kinematics'])
+            except (ValueError,TypeError,KeyError,OverflowError):
+                if value['kinematics'].get('kind')!='finite_measured':raise
+                # Keep invalid raw controls for owner diagnostics/save; execution
+                # still validates the exact recipe and compiled settings.
+
         self.value=value
         self.accept()
 

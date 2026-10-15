@@ -59,7 +59,8 @@ class DetailTableModel(QAbstractTableModel):
         ('weighted_residual','가중·정규화 잔차'),('included','피팅 포함'),
         ('observation_mask','관측 유효'),('weight','가중치'),('scale','정규화 척도'),
         ('unit','단위'),('role','시험 역할'),('status','시험 상태'),
-        ('retention','출력 보존'),('deformation_gradient','원 변형 F'),
+        ('retention','출력 보존'),('deformation_gradient','지정 변형 F'),
+        ('actual_deformation_gradient','후보 수락 F'),('actual_J','후보 수락 J'),
         ('observation_state','관측 event 상태'),('prediction_state','예측 event 상태'),
     )
     COMPARE = (('comparison_prediction','비교 후보 예측'),('comparison_residual','비교 후보 정규화 잔차'))

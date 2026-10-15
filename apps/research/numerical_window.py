@@ -23,7 +23,7 @@ from caelab.numerical_document import from_material_document, default_draft
 from caelab.workbench_client import Client
 from caelab.material_document import diagnostics as material_diagnostics
 from .data_window import _Read, display, TERMINAL
-from .runner_window import candidate_state, actual_candidate
+from .runner_window import candidate_state, actual_candidate, state_description
 
 
 def number_or_raw(text):
@@ -569,7 +569,7 @@ class NumericalWindow(QMainWindow):
                 raise ValueError('Unsupported visible plan shape')
             if not isinstance(draft['variables'], list) or any(set(v) != {'id', 'unit', 'value', 'lower', 'upper', 'free', 'transform'} for v in draft['variables']):
                 raise ValueError('Unsupported coefficient shape')
-            if not isinstance(draft['experiments'], list) or any(set(e) - {'kinematics', 'selection'} != {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'} for e in draft['experiments']):
+            if not isinstance(draft['experiments'], list) or any(set(e) - {'kinematics', 'selection', 'extensions'} != {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'} for e in draft['experiments']):
                 raise ValueError('Unsupported experiment shape')
             self._material = deepcopy(draft['material'])
             self._experiments = deepcopy(draft['experiments'])
@@ -1115,6 +1115,8 @@ class NumericalWindow(QMainWindow):
                     'document_id':document['id'],'job_id':run['job_id'],'response':value['name'],
                     'input_revision':run['input_revision'],'input_sha256':run['input_sha256']},
                     'response':value['response'],'settings':value['settings'],'weight':value['weight'],'scale':value['scale']}
+                from .finite_measure_gui import copy_trial_extensions
+                copy_trial_extensions(experiment,value)
                 if value['kinematics'] is not None:experiment['kinematics']=value['kinematics']
                 self._experiments.append(experiment)
                 self._populating=True; self._populate_experiments();self._populating=False
@@ -1231,6 +1233,8 @@ class NumericalWindow(QMainWindow):
         experiment={'id':'Test'+str(index),'role':value['role'],'source':source,
             'response':value['response'],'settings':deepcopy(value['settings']),
             'weight':value['weight'],'scale':value['scale']}
+        from .finite_measure_gui import copy_trial_extensions
+        copy_trial_extensions(experiment,value)
         if value['kinematics'] is not None:
             experiment['kinematics']=deepcopy(value['kinematics'])
         self._experiments=experiments+[experiment]
@@ -1340,6 +1344,8 @@ class NumericalWindow(QMainWindow):
             current[row].update(settings=value['settings'],role=value['role'],response=value['response'],
                 weight=value['weight'],scale=value['scale'])
             current[row]['source']['response']=value['name']
+            from .finite_measure_gui import copy_trial_extensions
+            copy_trial_extensions(current[row],value)
             if value['kinematics'] is None:current[row].pop('kinematics',None)
             else:current[row]['kinematics']=value['kinematics']
             self._experiments=current
@@ -1378,7 +1384,8 @@ class NumericalWindow(QMainWindow):
         if selected is None and runs:
             selected = runs[-1]['job_id']
         for row, run in enumerate(runs):
-            values = [run['job_id'], self._statuses.get(run['job_id'], {}).get('state', run.get('retained_state', 'Awaiting status')), f"g{run['input_generation']} / {run.get('input_revision')}", 'current plan' if run.get('is_current_input') and not self.local_dirty else 'earlier input']
+            status=self._statuses.get(run['job_id']) or {'state':run.get('retained_state','UNKNOWN')}
+            values = [run['job_id'], state_description(status), f"g{run['input_generation']} / {run.get('input_revision')}", '현재 계획' if run.get('is_current_input') and not self.local_dirty else '이전 입력']
             for col, value in enumerate(values):
                 self._set_cell(self.runs, row, col, value, False)
             self.runs.item(row,0).setText('실행 '+str(row+1))
@@ -1482,7 +1489,8 @@ class NumericalWindow(QMainWindow):
             self.curve_selector.blockSignals(True); self.curve_selector.clear()
             for curve in curves:
                 run=next((r for r in self.document.get('runs',[]) if r['job_id']==job),{})
-                trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==curve.get('experiment_id')), {})
+                trial_id=(curve.get('observation_source') or {}).get('parent_experiment_id') or curve.get('experiment_id')
+                trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==trial_id), {})
                 label=('검증' if curve.get('role')=='holdout' else '피팅')+' / '+self._trial_label(trial,curve.get('observations',{}),self.curve_selector.count()+1)
                 self.curve_selector.addItem(label,curve.get('experiment_id'))
             selected_index=self.curve_selector.findData(previous)
@@ -1515,7 +1523,8 @@ class NumericalWindow(QMainWindow):
         axes=obs.get('axes',[{}]); axis=axes[0] if axes else {}
         x,y=axis.get('values',[]),obs.get('value',[])
         run=next((r for r in self.document.get('runs',[]) if r['job_id']==self.selected_job()),{})
-        trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==curve.get('experiment_id')), {})
+        trial_id=(curve.get('observation_source') or {}).get('parent_experiment_id') or curve.get('experiment_id')
+        trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==trial_id), {})
         recipe=trial.get('kinematics')
         self.plot_axis.setEnabled(bool(recipe))
         if not recipe:
@@ -1527,7 +1536,7 @@ class NumericalWindow(QMainWindow):
             try:
                 if retained is None:
                     raise ValueError(self._trial_source_errors.get(key,'저장된 변형 이력을 읽는 중입니다.'))
-                axis=deformation_plot_axis(obs,retained['result'],recipe)
+                axis=deformation_plot_axis(obs,retained['result'],recipe,settings=trial.get('settings'))
                 x=axis['values']
             except (ValueError,KeyError,TypeError) as error:
                 self.figure.add_subplot(111).set_title('측정 변형축을 표시할 수 없습니다.',fontsize=11)
@@ -1555,9 +1564,11 @@ class NumericalWindow(QMainWindow):
         bottom.set_xlabel(str(axis.get('name','time'))+' ['+str(axis.get('unit','?'))+']')
         if top.lines:top.legend(fontsize=9)
         status=curve.get('execution_status','UNKNOWN')
-        top.set_title(('검증' if curve.get('role')=='holdout' else '피팅')+' / '+str(obs.get('component',''))+' / '+status,fontsize=11)
-        self.curve_summary.setText('최종 계수: '+', '.join(str(k)+'='+str(v) for k,v in result.get('parameters',{}).items())+
-            '    RMSE '+str(curve.get('rmse','없음'))+' '+unit+
+        status_text=candidate_state(curve)
+        top.set_title(('검증' if curve.get('role')=='holdout' else '피팅')+' / '+str(obs.get('component',''))+' / '+status_text,fontsize=11)
+        compact=lambda value: format(value,'.6g') if type(value) in (int,float) and math.isfinite(value) else str(value)
+        self.curve_summary.setText('최종 계수: '+', '.join(str(k)+'='+compact(v) for k,v in result.get('parameters',{}).items())+
+            '    RMSE '+compact(curve.get('rmse','없음'))+' '+unit+
             ('    '+str(curve.get('failure_reason','')) if status!='SUCCEEDED' else ''))
         for ax in (top,bottom):ax.grid(True,alpha=.2)
 

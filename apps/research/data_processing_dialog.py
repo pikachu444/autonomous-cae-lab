@@ -177,6 +177,8 @@ class DataProcessingPreviewDialog(QDialog):
         self.status = QLabel(); self.status.setWordWrap(True); layout.addWidget(self.status)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기')
+        from .finite_measure_gui import add_audit_button
+        add_audit_button(self, buttons)
         if not retained:
             apply = buttons.addButton('처리 결과 보존', QDialogButtonBox.ButtonRole.AcceptRole)
             apply.clicked.connect(self.accept)
@@ -213,7 +215,7 @@ class DataProcessingPreviewDialog(QDialog):
                     self.table.setItem(row,col,item)
             if len(values) > 1000: self.status.setText(self.status.text() + ' / 표는 처음 1000개 표본')
         if self.plan_button:
-            self.plan_button.setEnabled(bool(response and response.get('measure') in ('infinitesimal_Cauchy', 'first_Piola')))
+            self.plan_button.setEnabled(bool(response and response.get('measure') in ('infinitesimal_Cauchy', 'first_Piola', 'finite_Cauchy')))
         if self.analysis_button:
             self.analysis_button.setEnabled(self._analysis_selection(name) is not None)
         axis.grid(alpha=.2); self.canvas.draw_idle()

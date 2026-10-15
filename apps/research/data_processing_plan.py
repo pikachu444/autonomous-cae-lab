@@ -13,7 +13,7 @@ def open_processing_plan(data_window, result, response_name):
         return False
     record = result.get('diagnostics', {}).get('processing_record')
     response = result.get('responses', {}).get(response_name)
-    if not record or not response or response.get('measure') not in ('infinitesimal_Cauchy', 'first_Piola'):
+    if not record or not response or response.get('measure') not in ('infinitesimal_Cauchy', 'first_Piola', 'finite_Cauchy'):
         data_window.message.setText('보존한 응력 처리 결과를 선택하세요.'); return False
     source = {**deepcopy(record['source']), 'processing_revision': record['id'], 'response': response_name}
     frozen_result = deepcopy(result)
@@ -47,7 +47,7 @@ def open_processing_plan(data_window, result, response_name):
             reference = draft.get('material', {})
             material = reference.get('draft', {}) if isinstance(reference, dict) else {}
             return (document.get('kind') == 'numerical' and draft.get('mode') == 'fit'
-                    and isinstance(material, dict) and material.get('backend') == 'material.felupe')
+                    and isinstance(material, dict) and material.get('backend') in ('material.felupe','material.law_native'))
         plans = [document for document in documents if eligible(document)]
         dialog = DataMaterialDocumentDialog(plans, kind='numerical', parent=data_window)
         if dialog.exec() != dialog.DialogCode.Accepted: return
@@ -55,7 +55,7 @@ def open_processing_plan(data_window, result, response_name):
             open_plan(dialog.selected_document); return
         materials = [document for document in documents if document.get('kind') == 'material'
                      and isinstance(document.get('draft'), dict)
-                     and document['draft'].get('backend') == 'material.felupe']
+                     and document['draft'].get('backend') in ('material.felupe','material.law_native')]
         material_dialog = DataMaterialDocumentDialog(materials, kind='material', parent=data_window)
         material_dialog.setWindowTitle('피팅할 재료 선택')
         if material_dialog.exec() != material_dialog.DialogCode.Accepted: return

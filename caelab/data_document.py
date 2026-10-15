@@ -20,7 +20,7 @@ def default_draft():
 def diagnostics(draft):
     """Preserve invalid drafts; import requires explicit meaning for every channel."""
     try:
-        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata', 'acquisition', 'processing', 'sheet_group'}:
+        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata', 'acquisition', 'processing', 'sheet_group', 'finite_measure'}:
             raise ValueError('Data draft requires data_id and mapping; only explicit test_metadata may be added')
         check_id(draft['data_id'])
         if not draft['data_id'].startswith('D'):

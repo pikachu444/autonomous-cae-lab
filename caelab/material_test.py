@@ -58,6 +58,9 @@ def column_mapping(*, time_column, time_unit, response_column, response_kind,
 
 
 def validate_kinematics(recipe):
+    if isinstance(recipe, dict) and recipe.get('kind') == 'finite_measured':
+        from .finite_measure_protocol import validate
+        return validate(recipe)
     if not isinstance(recipe, dict) or set(recipe) != {'channel', 'kind', 'lateral_22', 'lateral_33'}:
         raise ValueError('시험 조건에는 변형 채널, 물리량, 명시한 횡방향 신장비가 필요합니다.')
     if not isinstance(recipe['channel'], str) or not recipe['channel'] or recipe['kind'] not in DRIVES:
@@ -69,6 +72,9 @@ def validate_kinematics(recipe):
 
 
 def measured_protocol(settings, result, recipe):
+    if isinstance(recipe, dict) and recipe.get('kind') == 'finite_measured':
+        from .finite_measure_protocol import measured_protocol as finite_protocol
+        return finite_protocol(settings, result, recipe)
     validate_kinematics(recipe)
     if result.get('execution_status') != 'SUCCEEDED':
         raise ValueError('변형 이력을 가져오지 못했습니다.')
@@ -129,7 +135,7 @@ def physical_residual(curve):
     return list(x), residual
 
 
-def deformation_plot_axis(observation, imported, recipe):
+def deformation_plot_axis(observation, imported, recipe, *, settings=None):
     """Display the measured driver at the exact observed rows/times, without sorting.
 
     The evaluator continues to use its time axis. Reversing/repeated deformation
@@ -138,10 +144,10 @@ def deformation_plot_axis(observation, imported, recipe):
     axes=observation.get('axes',[])
     if len(axes)!=1 or axes[0].get('name')!='time':
         raise ValueError('관측의 시간축이 없습니다.')
-    measured_protocol({'time_unit':axes[0].get('unit')},imported,recipe)
+    measured_protocol(settings if settings is not None else {'time_unit':axes[0].get('unit')},imported,recipe)
     driver=imported['responses'][recipe['channel']]
     from .data_processing_lineage import aligned_driver_indexes
     indexes = aligned_driver_indexes(observation, driver)
     labels={'engineering_strain':'측정 변형률','stretch':'측정 신장비','simple_shear':'측정 전단량'}
-    return {'name':labels[recipe['kind']],'unit':driver['unit'],
+    return {'name':labels.get(recipe['kind'], {'log_strain':'측정 로그 변형률','stretch':'측정 신장비','engineering_strain':'측정 변형률'}.get(driver.get('measure'), '측정 변형')),'unit':driver['unit'],
             'values':[driver['value'][i] for i in indexes]}

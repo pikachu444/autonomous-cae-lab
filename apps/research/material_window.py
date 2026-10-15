@@ -184,6 +184,8 @@ class MaterialWindow(QMainWindow):
         self.redo_action.triggered.connect(self.redo_inputs)
         edit.addActions([self.undo_action, self.redo_action])
         windows = self.menuBar().addMenu("도구(&T)")
+        from .finite_measure_gui import install_material_action
+        install_material_action(self, windows)
         self.runner_action = QAction("실행 관리…", self)
         self.runner_action.triggered.connect(self.open_runner)
         windows.addAction(self.runner_action)

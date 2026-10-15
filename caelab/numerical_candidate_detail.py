@@ -695,7 +695,9 @@ def table_rows(view: dict, experiment_id: str) -> list[dict]:
         predicted = prediction[index] if prediction is not None else None
         used = bool(mask[index])
         from .data_processing_consumer import candidate_sample_metadata
+        from .finite_measure_prediction import row_metadata
         result.append(dict(**candidate_sample_metadata(experiment, index),
+            **row_metadata(curve, axis[index], axes[0]['unit'] if axes else None),
             candidate_id=view['candidate']['candidate_id'], experiment_id=experiment_id,
             attempt_job_id=view.get('attempt_job_id'), role=experiment['role'], index=index,
             source_row=source_rows[index] if source_rows is not None else None,

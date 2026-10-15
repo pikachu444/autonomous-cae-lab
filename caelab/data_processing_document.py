@@ -47,6 +47,8 @@ def preview(owner, identifier, *, document=None):
         imported = owner.result(identifier, source['job_id'])
         if imported.get('execution_status') != 'SUCCEEDED':
             raise ValueError('The original import did not succeed')
+        from .finite_measure_input import verify_processing_specification
+        verify_processing_specification(document['draft'], imported)
         result = preview_recipe(imported, source, specification['recipe'])
         result['owner_identity'] = {
             'document_id': identifier, 'session_id': document['session_id'],

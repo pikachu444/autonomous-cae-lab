@@ -69,6 +69,7 @@ def initialize(channel, response):
                 'input_value': raw_value}
         nodes[sample['sample_id']] = {'kind': 'operation',
             'stage': {'operation': 'import_mapping', 'mapping': mapping, 'source': deepcopy(source)},
+            'physical_metadata': deepcopy(channel['metadata']),
             'response_channel_id': channel_id, 'coordinate_sample_id': grid['coordinate_sample_ids'][i],
             'inputs': [edge] if scale != 0 else [], 'bias': bias,
             'coefficient_status': 'KNOWN', 'value': channel['values'][i],
@@ -128,6 +129,7 @@ def stamp(output, parent, op, recipe_hash, stencils, biases, footprints):
         # No extrapolated/blocked output is represented as a computed value.
         known = bool(output['operation_valid'][i])
         node = {'kind': 'operation', 'stage': stage, 'response_channel_id': channel_id,
+            'physical_metadata': deepcopy(output['metadata']),
             'coordinate_sample_id': grid['coordinate_sample_ids'][i], 'inputs': edges,
             'bias': None if blocked else float(biases[i]), 'coefficient_status': 'KNOWN' if known else 'NOT_APPLICABLE',
             'value': output['values'][i], 'operation_valid': known,
@@ -164,18 +166,27 @@ def trace_sample(channel, sample_id, *, cache=None):
                                       'raw_value': node['value'], 'coefficient_status': 'KNOWN'}},
                       'bias': 0., 'coefficient_status': 'KNOWN'}
         else:
-            terms, bias = {}, node['bias']
-            status = node['coefficient_status']
-            for edge in node['inputs']:
-                parent = visit(edge['sample_id']); w = edge['coefficient']
-                if edge['coefficient_status'] != 'KNOWN' or parent['coefficient_status'] != 'KNOWN':
-                    status = 'UNKNOWN'
-                bias += w * parent['bias']
-                for key, term in parent['terms'].items():
-                    if key not in terms: terms[key] = {**deepcopy(term), 'coefficient': 0.}
-                    terms[key]['coefficient'] += w * term['coefficient']
-            result = {'terms': {k: v for k, v in terms.items() if v['coefficient'] != 0.},
-                      'bias': bias, 'coefficient_status': status}
+            parents = [visit(edge['sample_id']) for edge in node['inputs']]
+            if node.get('coefficient_status') == 'NONLINEAR_EXACT' or any(
+                    parent['coefficient_status'] == 'NONLINEAR_EXACT' for parent in parents):
+                from .finite_measure_lineage import dependency_trace
+                result = dependency_trace(node, parents)
+            else:
+                terms, bias = {}, node['bias']
+                status = node['coefficient_status']
+                for edge, parent in zip(node['inputs'], parents):
+                    w = edge['coefficient']
+                    if edge['coefficient_status'] != 'KNOWN' or parent['coefficient_status'] != 'KNOWN':
+                        status = 'UNKNOWN'
+                    if bias is not None and parent['bias'] is not None and w is not None:
+                        bias += w * parent['bias']
+                    else:
+                        bias = None
+                    for key, term in parent['terms'].items():
+                        if key not in terms: terms[key] = {**deepcopy(term), 'coefficient': 0.}
+                        terms[key]['coefficient'] += w * term['coefficient']
+                result = {'terms': {k: v for k, v in terms.items() if v['coefficient'] != 0.},
+                          'bias': bias, 'coefficient_status': status}
         visiting.remove(sid)
         cache[sid] = result
         return result
@@ -235,6 +246,11 @@ def verify_channel(channel):
             support = [visit(k) for k in footprints]
             q = bool(support) and all(v[0] for v in support)
             c = bool(support) and all(v[1] for v in support)
+            if node['stage'].get('operation') == 'finite_observation':
+                from .finite_measure_lineage import verify_node
+                verify_node(node, nodes, support)
+            elif node.get('coefficient_status') == 'NONLINEAR_EXACT':
+                raise ValueError('Nonlinear lineage requires its typed finite relation')
             finite_terms, total = True, node.get('bias')
             for edge in node['inputs']:
                 parent_id = edge['sample_id']; visit(parent_id)
@@ -274,7 +290,8 @@ def verify_channel(channel):
                 or node.get('coordinate_sample_id') != sample['coordinate_sample_id']
                 or node.get('response_channel_id') != channel['response_channel_id']
                 or node.get('value') != channel['values'][i]
-                or sample.get('contributors') != node.get('inputs')):
+                or sample.get('contributors') != node.get('inputs')
+                or ('physical_metadata' in node and node['physical_metadata'] != channel['metadata'])):
             raise ValueError('Derived sample, response channel, input or coordinate identity differs')
         if sid.startswith('P') and sid != 'P' + canonical_hash([channel['response_channel_id'], i, node])[:40]:
             raise ValueError('Derived sample ID does not identify its original operation/inputs')

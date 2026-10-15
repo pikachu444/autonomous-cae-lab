@@ -628,6 +628,8 @@ def _experiment(experiment):
     if result.get('role', 'fit') not in ('fit', 'holdout'):
         raise ValueError("Experiment role must be fit or holdout")
     result.setdefault('role', 'fit')
+    from .finite_measure_prediction import request as finite_comparison_request
+    finite_comparison_request(result)
     obs = result.get('observations')
     if isinstance(obs, dict) and 'path' in obs:
         obs = load_observations(obs['path'], obs['mapping'])
@@ -689,7 +691,8 @@ def _experiment(experiment):
 def _aligned(evaluation, experiment):
     if evaluation.get('execution_status') != 'SUCCEEDED':
         raise EvaluationFailed(str(_reason(evaluation)))
-    pred = evaluation.get('responses', {}).get(experiment['response'])
+    from .finite_measure_prediction import selected_prediction
+    pred = selected_prediction(evaluation, experiment)
     obs = experiment['observations']
     if pred is None:
         raise EvaluationFailed(f"Missing response {experiment['response']}")
@@ -1155,7 +1158,8 @@ def _fit_curve(experiment, evaluation):
                                         weight=experiment['weight'], scale=experiment['scale'])
             curve.update(prediction=deepcopy(predicted_event), residual=residual, rmse=abs(comparison['difference']))
         else:
-            curve['prediction_metadata'] = {k: v for k, v in evaluation['responses'][experiment['response']].items() if k not in ('value','axes','mask')}
+            from .finite_measure_prediction import selected_prediction
+            curve['prediction_metadata'] = {k: v for k, v in selected_prediction(evaluation, experiment).items() if k not in ('value','axes','mask')}
             curve.update(prediction=prediction, residual=residual, rmse=float(np.sqrt(np.mean((prediction[experiment['_mask']] - experiment['observations']['value'][experiment['_mask']]) ** 2))))
     except EvaluationFailed as error:
         curve.update(execution_status='FAILED', failure_reason=str(error))

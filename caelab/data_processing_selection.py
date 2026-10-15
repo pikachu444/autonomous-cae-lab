@@ -170,7 +170,7 @@ def compile_samples(channel, selection, *, base_weight=1.):
         # N complete curves when weights differ.
         if not reasons:
             trace = trace_sample(channel, sample['sample_id'], cache=cache)
-            if trace['coefficient_status'] != 'KNOWN':
+            if trace['coefficient_status'] not in {'KNOWN', 'NONLINEAR_EXACT'}:
                 record['reasons'].append('VALUE_LINEAGE_UNKNOWN')
                 record['included'] = False
             else:
@@ -215,7 +215,7 @@ def require_independent_samples(experiments):
             for sid, included in zip(samples, mask):
                 if not included: continue
                 trace = trace_sample(channel, sid, cache=cache)
-                if trace['coefficient_status'] != 'KNOWN':
+                if trace['coefficient_status'] not in {'KNOWN', 'NONLINEAR_EXACT'}:
                     raise ValueError('Cannot claim independence with unknown value lineage')
                 keys.extend((raw_key(t['raw_ref']), sid) for t in trace['terms'])
         else:
@@ -238,7 +238,7 @@ def require_independent_samples(experiments):
                 if not included: continue
                 sid = driver['sample_ids'][indexes[k]]
                 trace = trace_sample(dc, sid, cache=cache)
-                if trace['coefficient_status'] != 'KNOWN':
+                if trace['coefficient_status'] not in {'KNOWN', 'NONLINEAR_EXACT'}:
                     raise ValueError('Cannot claim independence with unknown measured driver lineage')
                 keys.extend((raw_key(t['raw_ref']), sid) for t in trace['terms'])
         for key, sample in keys:
@@ -262,6 +262,8 @@ def _trial(e):
             'source': source, 'mask_order': deepcopy(source.get('compilation', {}).get('mask_order', ['LEGACY_RAW_ROW_CONTRACT'])),
             'recipe_refs': deepcopy(obs.get('recipe_refs', [])),
             'processing_channel': deepcopy(obs.get('processing_channel'))}}
+    if e.get('extensions', {}).get('finite_measure') is not None:
+        trial['finite_comparison'] = deepcopy(e['extensions']['finite_measure'])
     if 'source_rows' in obs: trial['source_rows'] = deepcopy(obs['source_rows'])
     for key in ('sample_ids', 'coordinate_sample_ids', 'target_grid', 'response_channel_id', 'sample_domain', 'lineage_sha256'):
         if key in obs: trial[key] = deepcopy(obs[key])
@@ -302,6 +304,8 @@ def consume_frozen_fit_inclusion(experiments, packet):
     for e, wanted in zip(result, expected):
         row = by_id.get(e['id'])
         if row is None: raise ValueError('A frozen trial is missing')
+        if row.get('finite_comparison') != e.get('extensions', {}).get('finite_measure'):
+            raise ValueError('Frozen finite comparison definition changed')
         for key, value in wanted.items():
             if key == 'extra_provenance': continue
             if row.get(key) != value: raise ValueError('Frozen trial ' + key + ' mismatch')
@@ -338,7 +342,8 @@ def consume_frozen_fit_inclusion(experiments, packet):
                 {'execution_status': 'SUCCEEDED', 'responses': {recipe['channel']: driver}}, recipe)
             if canonical_hash(expected_settings) != canonical_hash(plain(e['settings'])):
                 raise ValueError('Frozen measured driver and evaluator time/deformation settings differ')
-        if channel and channel.get('sample_domain') == 'derived-grid-v2':
+        if channel and (channel.get('sample_domain') == 'derived-grid-v2' or
+                        'sample_policy' in ((source.get('compilation') or {}).get('selection') or {})):
             compilation = (e.get('observation_source') or {}).get('compilation') or {}
             fresh = compile_samples(channel, compilation.get('selection'), base_weight=e['weight'])
             if fresh['state'] != 'READY' or fresh != compilation:

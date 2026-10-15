@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "axis": "x",
+  "scope_confirmed": true,
+  "time_column": 0,
+  "time_unit": "s",
+  "columns": {
+    "load": {
+      "column": 1,
+      "unit": "N",
+      "measure": "axial_force"
+    },
+    "deformation": {
+      "column": 2,
+      "unit": "mm",
+      "measure": "gauge_extension"
+    },
+    "area": {
+      "column": 3,
+      "unit": "mm2",
+      "measure": "current_normal_area"
+    },
+    "J": {
+      "column": 4,
+      "unit": "1",
+      "measure": "volume_ratio"
+    }
+  },
+  "geometry": {
+    "A0": {
+      "value": 20.0,
+      "unit": "mm2",
+      "evidence": "Public synthetic specimen definition; NOT measured material"
+    },
+    "L0": {
+      "value": 50.0,
+      "unit": "mm",
+      "evidence": "Synthetic extensometer gauge"
+    }
+  },
+  "measurement": "extensometer_gauge_extension",
+  "basis": "jacobian",
+  "stress_unit": "MPa",
+  "assumptions": {},
+  "outputs": [
+    "first_Piola",
+    "finite_Cauchy",
+    "engineering_strain",
+    "stretch",
+    "log_strain"
+  ]
+}

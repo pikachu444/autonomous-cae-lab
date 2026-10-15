@@ -567,7 +567,7 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
                 raise ValueError('피팅과 검증에 같은 원본 표본이 포함되었습니다. Data에서 겹치지 않는 구간을 선택하세요.')
             from .data_processing_selection import require_independent_samples, freeze_fit_inclusion
             require_independent_samples(experiments)
-            if any(e['observations'].get('sample_domain') == 'derived-grid-v2' for e in experiments):
+            if any(e['observations'].get('processing_channel') for e in experiments):
                 args['frozen_inclusion'] = freeze_fit_inclusion(experiments)
             options = {'failure_penalty': draft['failure_penalty']} if draft['failure_penalty'] is not None else {}
             if draft['method'] == 'differential_evolution':
@@ -578,7 +578,8 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
     @staticmethod
     def _validate_observation(obs, experiment, settings):
         from .material_law_validation import measure
-        expected_measure = measure(settings)
+        from .finite_measure_prediction import observation_measure
+        expected_measure = observation_measure(obs, experiment, measure(settings))
         if obs.get('kind') != 'series' or obs.get('measure') != expected_measure or obs.get('frame') != 'material_cartesian':
             raise ValueError('Observation must explicitly match the model stress measure and material_cartesian frame')
         if obs.get('coordinate_system', 'UNSPECIFIED') != 'UNSPECIFIED' or 'coordinate_frame' in obs:

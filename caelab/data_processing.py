@@ -483,7 +483,11 @@ def preview_recipe(result, source, recipe):
         try:
             if channel is None:
                 raise ValueError('Unknown input channel: ' + op['input'])
-            output = _apply(channel, op, recipe_hash)
+            if op['operation'] == 'finite_observation':
+                from .finite_measure_lineage import apply as apply_finite
+                output = apply_finite(channels, op, recipe_hash)
+            else:
+                output = _apply(channel, op, recipe_hash)
             to_response(output)  # A malformed axis blocks this operation, not its independent peers.
             channels[op['output']] = output
             stage.update(state='READY', valid_count=int(np.sum(_valid(output))),
@@ -666,7 +670,7 @@ def compile_plan_experiment(experiment, observation, result, source):
                 if not record['included'] or record['import_index'] not in selected:
                     continue
                 trace = lineage.trace_sample(channel, record['sample_id'], cache=cache)
-                if trace['coefficient_status'] != 'KNOWN':
+                if trace['coefficient_status'] not in {'KNOWN', 'NONLINEAR_EXACT'}:
                     raise ValueError('Compiled observation has unknown value lineage')
                 keys.update(lineage.raw_key(t['raw_ref']) for t in trace['terms'])
             item['observation_source']['sample_keys'] = [list(key) for key in sorted(keys)]
