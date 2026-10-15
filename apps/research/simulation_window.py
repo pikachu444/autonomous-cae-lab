@@ -21,7 +21,7 @@ MODELS = {
     'thermal.scikit_fem.rectangle': ('정상 열전도 (scikit-fem)', 'P1 공간 열전도, SI 온도, 명시한 정상 상태. 기존 Picard 반복을 사용합니다.'),
     'structural.scikit_fem.thermoelastic_rectangle': ('평면응력 열탄성 (scikit-fem)', '다른 메시의 온도 전달, 구조 기준온도, 미소변형 변위 [m]와 응력 [Pa].'),
     'structure.felupe.law_native': ('저장 재료 · FELUPE Hex8 시편', '준정적 Hex8: DP / Neo-Hooke / 단일 branch Maxwell. 실제 실행과 point–FE 검증은 결과에서 확인합니다.'),
-    'damage.rainflow': ('반복하중과 S–N 누적', '저장된 단축 응력과 명시 시험 범위. 평균응력 보정·외삽 없음.'),
+    'damage.rainflow': ('반복하중 피로 평가', 'S–N/Miner, total-strain CMB/NONE, 단축 SWT와 최대 정상변형률 범위 면 CP-SWT. 명시 교정 범위·동시 이력이며 실재 재료 승인과 별도.'),
     'explicit.opencourant.model': ('사용자 FE 충격 (OpenCourant)', '원 메시·밀도·초기 운동, TYPE24 접촉과 LAW117 응집 손상. 수명·공학 승인은 별도입니다.'),
     'structure.calculix.design': ('CAD 구조 해석 (CalculiX)', '저장한 Analysis의 편집 사본과 매핑된 참조를 사용합니다. 재메시 후 기존 CalculiX 계산으로 이어집니다.'),
     'structural.code_aster': ('단축 탄성 블록 (Code_Aster)', '지정한 3차원 탄성 블록의 치수·메시·인장 하중만 지원합니다. 임의 CAD 구조 해석이 아닙니다.'),
@@ -238,6 +238,17 @@ class SimulationWindow(PDEWindow):
             for path,node in self._nodes.items():
                 if len(path)>2 or path==('settings','qualification'):node.setHidden(True)
                 elif len(path)==2:node.setExpanded(False)
+        if draft.get('backend')=='damage.rainflow':
+            # One task entry opens the dedicated editor; technical fields stay
+            # in the existing diagnostics rather than duplicating that editor.
+            for path,node in self._nodes.items():
+                node.setHidden(path!=('settings','calibration'))
+            fatigue_node=self._nodes.get(('settings','calibration'))
+            if fatigue_node:
+                fatigue_node.setText(0,'피로 조건')
+                data=fatigue_node.data(0,ROLE);data['label']='피로 조건';fatigue_node.setData(0,ROLE,data)
+                self.tree.setCurrentItem(fatigue_node)
+        self.graph_tabs.setTabVisible(self.graph_tabs.indexOf(self.domain_canvas),draft.get('backend')!='damage.rainflow')
         selected = self.tree.currentItem()
         if selected:
             self.settings_title.setText('속성 — ' + selected.text(0))
@@ -307,6 +318,17 @@ class SimulationWindow(PDEWindow):
                 form.addRow(button)
                 return
         if self._draft.get('backend')=='damage.rainflow':
+            settings=self._draft.get('settings',{})
+            source=settings.get('source') or {}
+            method=('CP-SWT 최대 정상변형률 범위 면' if settings.get('method')=='CP_SWT' else
+                '단축 SWT' if settings.get('mean_stress')=='SWT' else '단축 전체 변형률 CMB' if 'method' in settings else 'S–N 응력 수명')
+            calibration=settings.get('calibration',{})
+            summary=QLabel(method+'\n'+str(source.get('title') or '보존 이력 선택 필요'))
+            summary.setWordWrap(True);form.addRow(summary)
+            if 'method' in settings:
+                limits=QLabel('교정 수명: '+str(calibration.get('cycles_min') or '미입력')+'–'+
+                    str(calibration.get('cycles_max') or '미입력')+' 사이클')
+                limits.setWordWrap(True);form.addRow(limits)
             button=QPushButton('반복하중 조건…')
             button.clicked.connect(lambda:__import__('apps.research.fatigue_editor',fromlist=['edit']).edit(self))
             form.addRow(button);return

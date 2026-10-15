@@ -1,0 +1,23 @@
+{
+  "E": 200000.0,
+  "sigma_f": 1000.0,
+  "epsilon_f": 0.5,
+  "b": -0.1,
+  "c": -0.5,
+  "stress_unit": "MPa",
+  "strain_unit": "1",
+  "cycles_min": 1.0,
+  "cycles_max": 1000000000.0,
+  "strain_amplitude_min": 1e-06,
+  "strain_amplitude_max": 1.0,
+  "max_stress_min": 1e-06,
+  "max_stress_max": 20000.0,
+  "temperature_min_k": 293.0,
+  "temperature_max_k": 294.0,
+  "reference": "PUBLIC SYNTHETIC EXAMPLE, not a measured material",
+  "conditions": "Fully reversed axial coefficients; supplied nonproportional tensor history",
+  "failure_definition": "Demonstration Nf cycles / Miner D=1, no material release",
+  "coefficient_basis": "FULLY_REVERSED_AXIAL_STRAIN_LIFE",
+  "cyclic_state": "STABILIZED",
+  "test_basis": "AXIAL_NORMAL"
+}

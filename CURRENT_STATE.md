@@ -135,7 +135,8 @@ Sol dynamic_reprocess_gui는 기존 ImpactEditor에 벌크 손상 교정 표·�
 원 대상 복구를 연결했다. 실제 QWindows 편집·취소·저장·별도 프로세스 재개와 기존 A 영향
 경계를 확인하고 Astra의 통합 검토를 마쳤다. root가 보통/좁은 창을 직접 확인한 뒤 반복
 개발 상태 문구를 필요한 지원 범위 표시로 정리했다. 실제 화면과 사용 순서는
-[벌크·계면 안내](docs/IMPACT_BULK_INTERFACE_KO.md)에 있다. 현재 게시 대상이며 실제 B
+[벌크·계면 안내](docs/IMPACT_BULK_INTERFACE_KO.md)에 있다. `e416dbc`를 원격 main에
+게시하고 같은 커밋임을 확인했다. 실제 B
 Windows 손상·재접촉 계산과 전체 물리 수용 완료는 아니다. 프로그램 방식의 Qt 확인과
 잠긴 Windows의 OS 직접 입력을 구별한다. 새 솔버 실행 없이 해당 필수 검사만 수행했고
 테스트 창·자식 프로세스는 모두 정리했다. MoAI ast-grep의 수정 Python 13파일 제한 검사도
@@ -144,12 +145,15 @@ Windows 손상·재접촉 계산과 전체 물리 수용 완료는 아니다. �
 사용법 링크도 갱신했으며 분야별 전문가 팀 설계는 Pro 응답 전이므로 미채택이다.
 
 회수한 실제 Pro C 피로 소스는 `_workspace/pro-recovered-20261016/impact-c`에 보존했다.
-Sol `inverse_delivery`가 신규 피로 모듈·수학 검사·사용법과 기존 Fatigue/Simulation 창의
-필요 연결을 맡아 Windows에 통합한다. 새 전용 21경로와 기존 fatigue.py,
-fatigue_editor.py, simulation_window.py의 C 구역만 위임하며 보존 결과 다시 읽기 동작을
-유지한다. simulation_document.py의 공통 접점은 root가 제안 패치를 대조해 반영한다.
-ε–N/CMB와 CP-SWT의 원 수학 기준을 유지하며 실제 재료 자격이나 솔버의 total strain
-출력 제공까지 끝났다고 하지 않는다. 아직 이번 C 반환의 최신 main 통합·게시 전이다.
+Sol `inverse_delivery`가 신규 피로 모듈과 기존 Fatigue/Simulation 창의 연결을 Windows에
+통합했다. CMB·단축 SWT·최대 정상변형률 범위의 CP-SWT 계산, 원 이력/면/사이클 선택과
+저장·새 프로세스 재개를 확인했다. Pro 수학 core·원 공차와 UNKNOWN을 보존하고 Qt의
+방법 선택·좁은 창·결과 선택 저장을 교정했다. 같은 합성 Data에서 세 방법을 실제 계산하고
+새 프로세스에서 읽었으며 GUI 선택 후 저장·재개에도 추가 계산이 없다. 영향 core/owner
+54개·QWindows 7개와 Astra 독립 검토를 마쳤다. root가 실제 정상/좁은 창을 확인했고
+[피로 사용법](docs/fatigue/USAGE_KO.md)에 화면과 작업 순서를 연결했다. 해당 테스트 창과
+자식 프로세스는 모두 정리했다. 실제 재료 교정 자격, native total strain 공급, FS/전단 지배
+피로·반복 소성·계면 피로까지 완료한 것은 아니다. 이번 C 연결은 게시 대상이다.
 
 회수한 Study/Expert 소스는 `_workspace/pro-recovered-20261016/study-expert`에 보존했다.
 Sol `expert_roundtrip_finish`가 이동 가능한 연구 사본의 지식자료·Study·Expert·Report

@@ -1,0 +1,162 @@
+{
+  "delimiter": ",",
+  "skip_header": 1,
+  "columns": {
+    "e_xx": {
+      "column": 1,
+      "unit": "1",
+      "component": "xx",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_total_strain_tensor",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "e_yy": {
+      "column": 2,
+      "unit": "1",
+      "component": "yy",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_total_strain_tensor",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "e_zz": {
+      "column": 3,
+      "unit": "1",
+      "component": "zz",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_total_strain_tensor",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "e_xy": {
+      "column": 4,
+      "unit": "1",
+      "component": "xy",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_total_strain_tensor",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "e_yz": {
+      "column": 5,
+      "unit": "1",
+      "component": "yz",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_total_strain_tensor",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "e_xz": {
+      "column": 6,
+      "unit": "1",
+      "component": "xz",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_total_strain_tensor",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "s_xx": {
+      "column": 7,
+      "unit": "MPa",
+      "component": "xx",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_Cauchy",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "s_yy": {
+      "column": 8,
+      "unit": "MPa",
+      "component": "yy",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_Cauchy",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "s_zz": {
+      "column": 9,
+      "unit": "MPa",
+      "component": "zz",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_Cauchy",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "s_xy": {
+      "column": 10,
+      "unit": "MPa",
+      "component": "xy",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_Cauchy",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "s_yz": {
+      "column": 11,
+      "unit": "MPa",
+      "component": "yz",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_Cauchy",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    },
+    "s_xz": {
+      "column": 12,
+      "unit": "MPa",
+      "component": "xz",
+      "location": "public synthetic material point",
+      "frame": "specimen_fixed_model_basis",
+      "measure": "infinitesimal_Cauchy",
+      "axis": {
+        "column": 0,
+        "name": "time",
+        "unit": "s"
+      }
+    }
+  }
+}

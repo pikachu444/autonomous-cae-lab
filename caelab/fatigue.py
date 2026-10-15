@@ -23,6 +23,9 @@ def finite(value,label,positive=False):
 
 
 def validate_settings(settings):
+    if isinstance(settings,dict) and 'method' in settings:
+        from .fatigue_strain import validate_settings as validate_strain_settings
+        return validate_strain_settings(settings)
     if not isinstance(settings,dict) or set(settings)!=set(default_settings()):
         raise ValueError('반복하중 입력에는 보존 응력 선택과 S–N 시험 자료가 필요합니다')
     source=settings['source']
@@ -121,6 +124,9 @@ def stress_history(response):
 
 def resolved_adapter(workbench,settings):
     """No private payload in public drafts: obtain trusted detached bytes here."""
+    if isinstance(settings,dict) and 'method' in settings:
+        from .fatigue_strain import resolved_adapter as resolve_strain
+        return resolve_strain(workbench,settings)
     validate_settings(settings)
     from .research_operations import _resolve
     ref=settings['source']['result']
@@ -140,6 +146,9 @@ def _counter():
 
 
 def analyze(settings,response):
+    if isinstance(settings,dict) and 'method' in settings:
+        from .fatigue_strain import analyze as analyze_strain
+        return analyze_strain(settings,response)
     s=validate_settings(settings);times,stress,factor=stress_history(response)
     table=s['sn_curve'];c=s['calibration'];cycles=[];partial=0.;unknown=0
     def life(amplitude):

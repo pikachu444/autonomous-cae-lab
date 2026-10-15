@@ -165,14 +165,22 @@ class FatigueEditor(QDialog):
 
 def edit(window):
     draft=window.edited_draft()
-    if draft.get('backend')!='damage.rainflow':return
-    dialog=FatigueEditor(window.client,draft['settings'],window)
-    if dialog.exec()!=QDialog.DialogCode.Accepted:return
+    if draft.get('backend')!='damage.rainflow' or not window.document:return
+    from .fatigue_strain_dialog import choose_editor
+    from caelab.storage import canonical_hash
+    key=(window.document['id'],window.document['session_id'],window.document['generation'],canonical_hash(draft))
+    dialog=choose_editor(window.client,draft['settings'],window)
+    if dialog is None or dialog.exec()!=QDialog.DialogCode.Accepted:return
+    if not window.document:return
+    if (window.document['id'],window.document['session_id'],window.document['generation'],canonical_hash(window.edited_draft()))!=key:return
     draft['settings']=dialog.edited();window._show_document(window.document,preserve_draft=draft)
     window.local_dirty=True;window._update_actions()
 
 
 def show_cycles(parent,result):
+    if result.get('fatigue_format')=='caelab.strain-fatigue.v1':
+        from .fatigue_strain_results import show_results
+        return show_results(parent,result)
     from .appearance import configure_plot_fonts
     configure_plot_fonts()
     dialog=QDialog(parent);dialog.setWindowTitle('사이클과 누적값');dialog.resize(1060,740)

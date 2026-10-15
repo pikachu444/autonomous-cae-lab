@@ -16,7 +16,7 @@ CATALOG = {
         '미소변형 plane-stress P1 열탄성, 구조 기준온도, 검증된 절대/차분 온도 입력. 공학적 판정 UNKNOWN.'),
     'structure.felupe.law_native': (None, None,
         'FELUPE 11.1.3 Hex8 point/FE pair: DP, log-J Neo-Hooke, exact-ramp single-branch SLS. Not CalculiX/impact/shell.'),
-    'damage.rainflow': (None,None,'보존된 부호 있는 단축 응력과 명시 S–N 시험 범위. 평균응력 보정/외삽/연성 피로는 적용하지 않습니다.'),
+    'damage.rainflow': (None,None,'보존 이력의 S–N/Miner, total-strain CMB/NONE, 단축 SWT 및 최대 정상변형률 범위 면의 CP-SWT. 명시 교정 범위 안에서만 계산하며 전단 지배 재료의 적합성·반복 소성·계면 피로 연계는 승인하지 않습니다.'),
     'explicit.opencourant.model': (None, None,
         '사용자 FE 메시, 초기 운동, TYPE24, 명시 LAW117 응집 손상. Mg/mm/s 입력. 수명·공학 승인은 별도입니다.'),
     'material.mfront.user': (None, None,
