@@ -30,6 +30,47 @@ def is_enum(descriptor):
     return descriptor.get('kind') == 'categorical'
 
 
+def descriptor_limit(backend):
+    """The existing typed descriptor limit, including unselected enum inputs.
+
+    Frozen numeric DOE reads use the same limit without loading any adapter.
+    This is not a limit on the selected free variables or evaluator budget.
+    """
+    return 65 if backend == 'pde.scipy.ode' else 32
+
+
+def legacy_numeric_candidate(description, input_id):
+    """Select a legacy numeric Candidate by its advertised ID, never list index.
+
+    ``description`` is model_parameters.describe's checked, complete result.
+    Enum declarations remain in that result and its hashes, but cannot become
+    numeric registry entries. This helper performs no bind, probe or solve;
+    the existing Lab registration continues to own those checks and the write.
+    """
+    from .contracts import CapabilityUnavailable
+
+    if not isinstance(input_id, str) or not input_id:
+        raise ValueError('Selected model input was not advertised')
+    descriptors = {row['id']: row for row in description['descriptors']}
+    if len(descriptors) != len(description['descriptors']):
+        raise ValueError('Duplicate advertised model input identities')
+    descriptor = descriptors.get(input_id)
+    if descriptor is not None and is_enum(descriptor):
+        raise CapabilityUnavailable(
+            f"{input_id}: 범주 입력은 숫자 registry에 등록할 수 없습니다. "
+            "typed Request Plan에서 kind='categorical'과 광고된 문자열 선택지를 사용하세요.")
+    matches = [candidate for candidate in description['candidates']
+               if candidate.native['path'] == input_id]
+    if descriptor is None or len(matches) != 1:
+        raise ValueError('Selected model input was not advertised')
+    candidate = matches[0]
+    # Names determine pairing even when enums are interleaved or reordered.
+    if any(getattr(candidate, key) != descriptor[key]
+           for key in ('label', 'unit', 'value', 'lower', 'upper')):
+        raise ValueError('Numeric candidate differs from its exact input descriptor')
+    return candidate
+
+
 def valid_enum_descriptor(row):
     """Strict enum descriptor shape; paths are checked by the existing owner."""
     required = {'id', 'label', 'unit', 'kind', 'role', 'value', 'choices',
