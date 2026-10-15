@@ -149,6 +149,7 @@ class NumericalPlanVariablesWidget(QWidget):
             if item:
                 binding=item.data(DATA);identifier=binding['value']
                 item.setText(self._variable_labels.get(identifier,value_text(identifier)) if isinstance(identifier,str) else value_text(identifier))
+        self.table.resizeColumnToContents(0)
 
     def _commit_editor(self):
         focus=QApplication.focusWidget()
