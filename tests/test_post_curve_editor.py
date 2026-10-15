@@ -91,6 +91,7 @@ def test_earlier_curve_revision_cannot_select_current_table(app):
     view = SimpleNamespace(document_id='D', session_id='S', _object_ref='C', _sample_basis={'revision':'R0'},
         _current_sample_revision=lambda preview:'R1' if preview else 'R0',
         message=SimpleNamespace(setText=lambda text:None),
+        sampleSelectionChanged=SimpleNamespace(emit=lambda *args:None),
         _samples={'rows':[{'row_index':0}]}, samples=SimpleNamespace(selectRow=selected.append),
         queue_command=lambda *args,**kw: calls.append((args,kw)) or True)
     basis={'document_id':'D','session_id':'S','object_ref':'C','revision':'R1','preview':True}

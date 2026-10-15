@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
-from PySide6.QtCore import QSignalBlocker
+from PySide6.QtCore import QSignalBlocker, QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication, QInputDialog
 
 from apps.research.post_curve_editor import default_recipe as curve_recipe
@@ -18,6 +18,9 @@ class SelectionClient(NativeClient):
         super().__init__()
         self.curve = curve
         recipe = curve_recipe() if curve else defaults('comparison')
+        if not curve:
+            recipe['target']['units'] = recipe['a']['units'] = recipe['b']['units'] = 'MPa'
+            recipe['a']['coordinate_units'] = 'mm'
         record = {'id': 'Vexact', 'recipe': recipe, 'summary': {}}
         obj = {'id': 'Aretained', 'kind': 'comparison', 'title': '선택한 비교 결과',
                'draft': deepcopy(recipe), 'history': [record], 'position': 0,
@@ -26,17 +29,23 @@ class SelectionClient(NativeClient):
         self.document['title'] = '원본 표본 선택'
         self.rows = ([{'row_index': i, 'x': float(i), 'a': 2., 'b': 3., 'delta': 1.,
                        'percent': 50., 'a_row': {'row': 100+i}, 'b_rows': [{'row': 200+i}],
+                       'valid': True, 'a_valid': True, 'b_valid': True, 'a_segment': 0, 'b_segment': 0,
                        'reason': 'valid', 'percent_reason': 'valid'} for i in (7, 19)]
                      if curve else [{'point_index': i, 'a': 2., 'b': 3., 'delta': 1.,
+                                     'coordinates': [float(i), 0., 0.],
                                      'valid': True} for i in (7, 19)])
 
     def payload(self, rows=None):
         result = {'object_ref': 'Aretained', 'revision': 'Vexact', 'preview': False,
                   'rows': deepcopy(self.rows if rows is None else rows)}
         if self.curve:
-            result.update(semantics='retained_curve_comparison',
+            source = {'title': '힘 이력', 'axis': {'name': '시간', 'unit': 's'}, 'declaration': {'units': 'N'}}
+            originals = {tag: [{'row_index': row['row_index'], 'identity': {'row': row['row_index']},
+                'x': row['x'], 'y': row[tag], 'quality': True, 'calculation': True,
+                'visible': True, 'segment': 0} for row in self.rows] for tag in ('a', 'b')}
+            result.update(semantics='retained_curve_comparison', originals=originals,
                 summary={'recipe': {'target_unit': 'N'}, 'valid_count': 2, 'count_a': 2,
-                         'sources': {'a': {'axis': {'unit': 's'}, 'declaration': {'units': 'N'}}}})
+                         'sources': {'a': source, 'b': deepcopy(source)}})
         return result
 
     def _execute(self, command):
@@ -67,10 +76,14 @@ def selection_window():
 
     yield create
     for window in opened:
-        window.client.release = True
-        wait(app, lambda: not window._busy and window._pending is None)
-        window._allow_close = True
-        window.close()
+        try:
+            window.client.release = True
+            wait(app, lambda: not window._busy and window._pending is None)
+        finally:
+            window._allow_close = True
+            window.close()
+            window.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 @pytest.mark.parametrize('curve', [False, True])

@@ -15,7 +15,7 @@ import sys
 import uuid
 from urllib.error import HTTPError
 
-from PySide6.QtCore import QThreadPool, QTimer, QSignalBlocker, Qt
+from PySide6.QtCore import QThreadPool, QTimer, QSignalBlocker, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QCheckBox, QComboBox, QFormLayout,
@@ -114,6 +114,8 @@ def native_payload(command):
 
 
 class PostWindow(QMainWindow):
+    sampleSelectionChanged = Signal(int, object)
+
     def __init__(self, client, *, document_id, session_id=None, poll_interval=1500, auto_open=True):
         super().__init__()
         from .appearance import apply_appearance
@@ -136,6 +138,7 @@ class PostWindow(QMainWindow):
         self._edit_serial = 0
         self._samples = None
         self._sample_basis = None
+        self._confirmed_sample_selection = None
         self._contact_dialog = None
         self._curve_catalog = []
         self._build_ui()
@@ -1219,6 +1222,9 @@ class PostWindow(QMainWindow):
             dialog = ComparisonPlot(self._samples, self._sample_basis, self)
             dialog.pointSelected.connect(lambda index: self.select_comparison_point(index, dialog.basis))
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.sampleSelectionChanged.connect(dialog.select_sample)
+        if self._confirmed_sample_selection is not None:
+            dialog.select_sample(*self._confirmed_sample_selection)
         dialog.show()
 
     def _current_sample_revision(self, preview):
@@ -1247,6 +1253,8 @@ class PostWindow(QMainWindow):
                 if value.get('point_index') == index:
                     self.samples.selectRow(row)
                     break
+            self._confirmed_sample_selection = (index, deepcopy(basis))
+            self.sampleSelectionChanged.emit(index, basis)
         return self.queue_command('post.sample', {'object_ref': self._object_ref,
             'preview': basis['preview'], 'point_index': index, 'limit': 1,
             'expected_revision': basis['revision']}, accepted=selected)
@@ -1269,6 +1277,8 @@ class PostWindow(QMainWindow):
             for row, item in enumerate((self._samples or {}).get('rows', [])):
                 if item.get('row_index') == index:
                     self.samples.selectRow(row); break
+            self._confirmed_sample_selection = (index, deepcopy(basis))
+            self.sampleSelectionChanged.emit(index, basis)
         return self.queue_command('post.sample', {'object_ref': self._object_ref,
             'preview': basis['preview'], 'row_index': index, 'expected_revision': basis['revision']},
             accepted=accepted)
@@ -1932,6 +1942,7 @@ class PostWindow(QMainWindow):
                 self._source_ref = self._object_ref = None
                 self._tree_selection = None
                 self._samples = self._sample_basis = None
+                self._confirmed_sample_selection = None
                 with QSignalBlocker(self.samples):
                     self.samples.setRowCount(0)
                     self.samples.setColumnCount(0)

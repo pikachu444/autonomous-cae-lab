@@ -102,6 +102,7 @@ def test_old_plot_cannot_select_new_native_revision_or_a_late_table_row():
     window = SimpleNamespace(document_id='D', session_id='S', _object_ref='A', _sample_basis={'revision':'V1'},
         _current_sample_revision=lambda preview: revision[0],
         _samples={'rows':[{'point_index':3}]},
+        sampleSelectionChanged=SimpleNamespace(emit=lambda *args:None),
         samples=SimpleNamespace(selectRow=lambda row:selected.append(row)),
         message=SimpleNamespace(setText=lambda text:messages.append(text)))
     def queue(operation, arguments, accepted):
