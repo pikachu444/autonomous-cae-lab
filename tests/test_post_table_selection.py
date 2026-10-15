@@ -1,0 +1,114 @@
+"""Qt table selections reuse exact retained native commands; no ParaView run."""
+from copy import deepcopy
+
+import pytest
+
+pytest.importorskip('PySide6')
+pytest.importorskip('matplotlib')
+from PySide6.QtWidgets import QApplication
+
+from apps.research.post_curve_editor import default_recipe as curve_recipe
+from apps.research.post_window import PostWindow, defaults
+from test_research_post_ui import NativeClient, wait
+
+
+class SelectionClient(NativeClient):
+    def __init__(self, *, curve=False):
+        super().__init__()
+        self.curve = curve
+        recipe = curve_recipe() if curve else defaults('comparison')
+        record = {'id': 'Vexact', 'recipe': recipe, 'summary': {}}
+        obj = {'id': 'Aretained', 'kind': 'comparison', 'title': '선택한 비교 결과',
+               'draft': deepcopy(recipe), 'history': [record], 'position': 0,
+               'preview': None, 'diagnostics': []}
+        self.document['state']['analysis'].update(objects=[obj], active_object=obj['id'])
+        self.document['title'] = '원본 표본 선택'
+        self.rows = ([{'row_index': i, 'x': float(i), 'a': 2., 'b': 3., 'delta': 1.,
+                       'percent': 50., 'a_row': {'row': 100+i}, 'b_rows': [{'row': 200+i}],
+                       'reason': 'valid', 'percent_reason': 'valid'} for i in (7, 19)]
+                     if curve else [{'point_index': i, 'a': 2., 'b': 3., 'delta': 1.,
+                                     'valid': True} for i in (7, 19)])
+
+    def payload(self, rows=None):
+        result = {'object_ref': 'Aretained', 'revision': 'Vexact', 'preview': False,
+                  'rows': deepcopy(self.rows if rows is None else rows)}
+        if self.curve:
+            result.update(semantics='retained_curve_comparison',
+                summary={'recipe': {'target_unit': 'N'}, 'valid_count': 2, 'count_a': 2,
+                         'sources': {'a': {'axis': {'unit': 's'}, 'declaration': {'units': 'N'}}}})
+        return result
+
+    def _execute(self, command):
+        if command['operation'] != 'post.sample':
+            return super()._execute(command)
+        args = command['arguments']
+        assert args['expected_revision'] == 'Vexact'
+        key = 'row_index' if self.curve else 'point_index'
+        rows = [row for row in self.rows if row[key] == args[key]]
+        self.execute_count[command['command_id']] = self.execute_count.get(command['command_id'], 0)+1
+        self.document['generation'] += 1
+        return self.payload(rows)
+
+
+@pytest.fixture
+def selection_window():
+    app = QApplication.instance() or QApplication([])
+    opened = []
+
+    def create(*, curve=False):
+        client = SelectionClient(curve=curve)
+        window = PostWindow(client, document_id='Dpost', session_id='Snative',
+                            auto_open=False, poll_interval=0)
+        opened.append(window)
+        window._show_document(client.document, initial=True)
+        window._show_samples(client.payload())
+        return app, client, window
+
+    yield create
+    for window in opened:
+        window.client.release = True
+        wait(app, lambda: not window._busy and window._pending is None)
+        window._allow_close = True
+        window.close()
+
+
+@pytest.mark.parametrize('curve', [False, True])
+def test_table_pick_uses_retained_identity_and_does_not_repeat_on_reply(selection_window, curve):
+    app, client, window = selection_window(curve=curve)
+    assert client.calls == []  # Filling the table must not select a native point.
+    before = deepcopy(window._samples)
+    window.samples.selectRow(1)
+    wait(app, lambda: not window._busy and window._pending is None)
+    assert len(client.calls) == 1
+    _, operation, arguments = client.calls[0]
+    key = 'row_index' if curve else 'point_index'
+    assert operation == 'post.sample'
+    assert arguments[key] == 19  # Original identity, not the displayed row 1.
+    assert arguments['expected_revision'] == 'Vexact'
+    assert arguments['object_ref'] == 'Aretained'
+    assert arguments['preview'] is False
+    assert window.samples.currentRow() == 1
+    assert window._samples == before
+    assert sum(client.execute_count.values()) == 1
+
+
+def test_stale_table_does_not_select_a_different_native_revision(selection_window):
+    _, client, window = selection_window()
+    window.document['state']['analysis']['objects'][0]['history'][0]['id'] = 'Vnew'
+    before = deepcopy(window._samples)
+    window.samples.selectRow(1)
+    assert client.calls == []
+    assert window._samples == before
+    assert '다시' in window.message.text()
+
+
+def test_busy_or_failed_selection_requires_reread_without_replaying(selection_window):
+    _, client, window = selection_window()
+    window._busy = True
+    window.samples.selectRow(1)
+    window._busy = False
+    assert client.calls == []
+    window._sample_basis['failed'] = True
+    window.samples.selectRow(0)
+    assert client.calls == []
+    assert '다시 읽으세요' in window.message.text()

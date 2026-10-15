@@ -382,6 +382,9 @@ class PostWindow(QMainWindow):
         center_layout.addWidget(self.sample_context)
         self.samples = QTableWidget(0, 0)
         self.samples.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.samples.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.samples.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.samples.itemSelectionChanged.connect(self._sample_selected)
         self.samples.setAlternatingRowColors(True)
         self.samples.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.samples.horizontalHeader().setStretchLastSection(True)
@@ -1271,7 +1274,25 @@ class PostWindow(QMainWindow):
         return self.object_command('post.sample', arguments) if not self._object_ref else self.queue_command('post.sample',
             {'object_ref': self._object_ref, **arguments}, accepted=self._show_samples)
 
+    def _sample_selected(self):
+        if self._busy or self._pending or not self._sample_basis:
+            return False
+        selected = self.samples.selectionModel().selectedRows()
+        rows = (self._samples or {}).get('rows', [])
+        if not selected or not 0 <= selected[0].row() < len(rows):
+            return False
+        if self._sample_basis.get('failed'):
+            self.message.setText('이전 선택 요청을 완료하지 못했습니다. 현재 결과를 다시 읽으세요.')
+            return False
+        row, basis = rows[selected[0].row()], deepcopy(self._sample_basis)
+        if basis['draft'].get('version') == 3 and type(row.get('row_index')) is int:
+            return self.select_curve_row(row['row_index'], basis)
+        if type(row.get('point_index')) is int:
+            return self.select_comparison_point(row['point_index'], basis)
+        return False
+
     def _show_samples(self, payload):
+        sample_signals = QSignalBlocker(self.samples)
         self._samples = deepcopy(payload)
         obj = self._object()
         preview = payload.get('preview', self.sample_preview.isChecked())
@@ -1379,6 +1400,7 @@ class PostWindow(QMainWindow):
                 item.setToolTip(display(value))
                 self.samples.setItem(row, column, item)
                 self.samples.setColumnWidth(column, max(100, min(180, len(key) * 9)))
+        sample_signals.unblock()
         self._update_actions()
         self._show_details()
 
