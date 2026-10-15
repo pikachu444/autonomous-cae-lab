@@ -251,7 +251,8 @@ class RunnerWindow(QMainWindow):
 
     def __init__(self, client, *, job_id=None, poll_interval=2000, on_open_origin=None):
         super().__init__()
-        from .appearance import configure_plot_fonts
+        from .appearance import apply_appearance,configure_plot_fonts
+        apply_appearance(QApplication.instance())
         configure_plot_fonts()
         self.client = client
         self.jobs = {}

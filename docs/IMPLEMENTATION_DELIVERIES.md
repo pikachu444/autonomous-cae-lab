@@ -182,14 +182,14 @@ B1.1은 `PoseCandidates._prepare`의 준비 generator와 `validate_model`의 재
 
 **사용 순서:** 단위·열 순서가 다른 시험 파일 열기 → 원행/채널·geometry·측도 지정 → 처리/품질 검토 → Material 시험 제어 선택 → 직접 평가 → 같은 Numerical Plan으로 다시험 fit/holdout → 임의 후보 상세/잔차 비교 → 명시 채택 → FE 할당 또는 Study → 저장·재열기.
 
-**기존 구현:** `data_document.py`, `adapters/file_table.py`, `material_test.py`, Material owner, FELUPE/MFront adapters, `numerical.fit_model`, 원행 선택·mask·기존 피팅/holdout·명시 채택을 재사용한다. CSV import나 기존 두 계수 피팅을 새 기능으로 다시 세지 않는다.
+**기존 구현:** `data_document.py`, `adapters/file_table.py`, `material_test.py`, Material owner, FELUPE/MFront adapters, `numerical.fit_model`, 원행 선택·mask·기존 피팅/holdout·명시 채택을 재사용한다. 처리 recipe, mixed-control과 후보 상세 보존도 아래 경로에 이미 있다. 이 코드를 다시 만드는 대신 원행의 사용자 흐름과 빠진 조합을 완성한다. CSV import나 기존 두 계수 피팅을 새 기능으로 다시 세지 않는다.
 
-| 작업 | 실제 남은 코드 | 끝낼 조건 |
+| 작업 | 기존 코드와 추가·연결 대상 | 끝낼 조건 |
 |---|---|---|
-| B4.1 처리 recipe | Data owner의 기존 mapping/row mask 위에 순서 있는 처리 정의, 단계별 미리보기·편집·재정렬·무효화·저장을 추가. `data_window.py`의 가상 표/선택을 유지하고 `caelab/data_processing.py`(신규 제안)에 순수 연산을 분리 | 단위 변환·선택 구간·지원 필터/재표본화 등 명시 연산의 순서가 실제 값에 반영. 원파일/NaN/gap/비단조 원행 보존. 큰 자료를 매 셀 편집마다 전부 로드하지 않음 |
+| B4.1 처리 recipe | 기존 `data_processing.py`의 순서 검증·연산·lineage/단계 preview, `data_processing_document.py`의 적용·보존·재읽기, 전용 dialog/Plan 연결을 재사용. 가상 표/선택을 유지하고 아래 완료 조건에서 실제 빠진 연결만 보완 | 단위 변환·선택 구간·지원 필터/재표본화 등 명시 연산의 순서가 실제 값에 반영. 원파일/NaN/gap/비단조 원행 보존. 큰 자료를 매 셀 편집마다 전부 로드하지 않음 |
 | B4.2 유한변형 측도 | `material_test.column_mapping/measured_protocol`, 전용 test dialog 확장. A0/L0와 현재 A 또는 F/J, gauge/crosshead, 응력/변형률 측도·방향 입력. 단축·동축 시험에서 P11=F_axial/A0, σ11=(λ1/J)P11, e=ΔL/L0, lnλ의 유효조건을 분리 | 1250 μm→1.25 mm 등 숫자 변환과 원행 대응. J/현재 면적 없는 진응력 요청, λ≤0 로그는 차단. invalid 원문 draft는 저장. J=1을 자동 가정하지 않음 |
-| B4.3 실제 시험 제어 | FELUPE/MFront material-point adapter의 trial/committed state를 분리해 자유 횡수축, stress-control, 혼합 F/stress 성분 제어와 시계열을 추가. protocol metadata만 바꾸지 않음 | P22/P33 등 선택한 횡응력이 설정 tolerance를 만족. prescribed lateral F=1 결과와 구별. 실패 증분의 원입력·잔차·마지막 수락 상태 보존; 실패 trial이 다음 증분/후보를 오염하지 않음 |
-| B4.4 후보 상세 보존 | `numerical.fit_model`, `candidate_results_window.py`, `data_comparison.py`에 후보별 원입력/요약/실패/상세 ref와 명시 detail evaluation을 연결. 실행 전 retention policy를 고정 | 임의 후보 행 선택으로 실제 보존 곡선만 표시. NOT_RETAINED/NOT_EVALUATED는 그대로. 상세 추가 계산은 새 evaluation ID이며 옛 결과를 소급 채우지 않음 |
+| B4.3 실제 시험 제어 | 기존 `material_control.py`의 자유 횡수축·혼합 F/stress Newton 제어와 `law_native_history.py`의 trial 격리·수락 상태 commit을 재사용. 법칙별 지원 성분/측도와 protocol 편집·저장 연결의 잔여를 구별. 모든 법칙의 임의 제어가 완료됐다고 일반화하지 않음 | P22/P33 등 선택한 횡응력이 설정 tolerance를 만족. prescribed lateral F=1 결과와 구별. 실패 증분의 원입력·잔차·마지막 수락 상태 보존; 실패 trial이 다음 증분/후보를 오염하지 않음 |
+| B4.4 후보 상세 보존 | 기존 `numerical_candidate_detail.py`의 실제 상세 보존·명시 추가 계산, `numerical_candidate_evidence.py`의 원결과/채택 근거와 `candidate_results_window.py`/`data_comparison.py` 연결을 재사용. retention policy·상세 ref·실패를 유지하고 원행의 미완결 사용자 동작만 보완 | 임의 후보 행 선택으로 실제 보존 곡선만 표시. NOT_RETAINED/NOT_EVALUATED는 그대로. 상세 추가 계산은 새 evaluation ID이며 옛 결과를 소급 채우지 않음 |
 | B4.5 재료군·FE 전달 | 현재 J2 전달을 보존하고 압력 의존 DP의 명시 variant, 초탄성/점탄성 등 전체 명세의 재료군을 기존 law/interface 등록과 연결. Material model→적합한 FE card 또는 사용자 law interface, 필요 계수·measure·state를 명시 | 재료점 인장/압축/구속/제하와 해당 FE 시편에서 응력·변형·에너지/내부상태 대응. 미지원 pair만 export 차단. UI 목록·빌드 exit0가 아니라 실제 law/solver 조합으로 인수 |
 | B4.6 기존 6행 완료 대조 | FN-03-01/04-01/04-03/07-01/07-03/09-02를 현재 코드와 연결. Data 품질∩operation-valid∩Plan inclusion을 원 sample ID로 고정하고 holdout 제외, multi-owner dirty와 target 변경/응답 유실을 확인 | 숨김과 통계 제외 독립. fit와 holdout 원행 겹침 없음. Material r17 결과를 r18에 silent overwrite하지 않음. 지원 law/solver의 기존 기준을 변화 없이 적용 |
 
@@ -199,7 +199,7 @@ B1.1은 `PoseCandidates._prepare`의 준비 generator와 `validate_model`의 재
 
 **입출력·실패:** Data는 raw와 recipe/quality, Material은 law/current values/protocol, Plan은 시작값/범위/weight/train/holdout을 소유한다. 응답 원단위의 잔차와 무차원 scaled objective를 따로 저장한다. 누락된 필수 예측 구간을 제거해 유리한 목적값을 만들지 않는다. 취소된 fit는 보존 후보를 읽을 수 있지만 선택/채택은 실제 존재하는 결과만 사용한다.
 
-**소유·의존:** Pro가 processing·measure·mixed-control·retention/law 핵심 작성. Sol은 Data/Material 표·곡선·protocol editor. B5가 소유한 `numerical.py`와 B8의 공통 owner 변경은 사전 합의한 patch로 순차 반영한다. B6는 구성식 검사/FE interface, B1은 native 재료 할당을 담당한다. B8 전체 완료 전에도 기존 단일 owner 경로로 B4 인도 가능하다.
+**소유·의존:** Pro가 기존 processing·mixed-control·retention을 재사용해 빠진 measure/law 핵심을 작성한다. Sol은 Data/Material 표·곡선·protocol editor. B5가 소유한 `numerical.py`와 B8의 공통 owner 변경은 사전 합의한 patch로 순차 반영한다. B6는 구성식 검사/FE interface, B1은 native 재료 할당을 담당한다. B8 전체 완료 전에도 기존 단일 owner 경로로 B4 인도 가능하다. 이 재사용 명시는 위 완료 조건이나 남은 조합을 완료 처리하지 않는다.
 
 **최소 검사·종료:** 두 공개/합성 시험, loading/unloading 이력, 원행 mask/holdout 반례, 자유 횡수축과 구속 시험, retained/missing 후보, 채택 충돌·저장 실패를 확인한다. 추가 법칙/FE pair에만 독립 기준을 붙인다. 12행의 실제 추가 개발과 완료 대조를 모두 닫고 이 workflow를 새 프로세스에서 반복하면 B4 완료다. 실재 사용자 재료의 적합성 승인은 별도다.
 

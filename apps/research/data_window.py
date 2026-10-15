@@ -262,12 +262,17 @@ class DataWindow(QMainWindow):
         central = QVBoxLayout(center)
         self.source_label = QLabel('원본 선택에서 가져올 표 파일을 고르세요.')
         self.source_label.setWordWrap(True)
-        central.addWidget(self.source_label)
+        self.result_label = QLabel()
+        self.result_label.setWordWrap(True)
+        source_row = QHBoxLayout()
+        source_row.addWidget(self.source_label, 1)
+        source_row.addWidget(self.result_label, 1)
+        central.addLayout(source_row)
         self.editor = QTabWidget()
-        self.editor.setMaximumHeight(220)
-        self.editor.setMinimumHeight(150)
+        self.editor.setMaximumHeight(200)
+        self.editor.setMinimumHeight(180)
         setting_pages = []
-        for title in ('열 및 단위', '시험 조건', '행 선택'):
+        for title in ('열 및 단위', '시험 조건', '행 선택', '읽기 설정'):
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
             scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -278,7 +283,7 @@ class DataWindow(QMainWindow):
             scroll.setWidget(page)
             self.editor.addTab(scroll, title)
             setting_pages.append(page_layout)
-        editor, test_settings, row_settings = setting_pages
+        editor, test_settings, row_settings, read_settings = setting_pages
         parsing = QHBoxLayout()
         self.delimiter = QLineEdit(',')
         self.delimiter.setMaximumWidth(130)
@@ -296,7 +301,7 @@ class DataWindow(QMainWindow):
         parsing.addWidget(self.skip_header)
         parsing.addWidget(self.layout_button)
         parsing.addStretch()
-        editor.addLayout(parsing)
+        read_settings.addLayout(parsing)
         channel_controls = QHBoxLayout()
         self.channel_selector = QComboBox()
         self.channel_selector.currentTextChanged.connect(self._channel_changed)
@@ -317,7 +322,8 @@ class DataWindow(QMainWindow):
         self.mapping.horizontalHeaderItem(8).setToolTip('Imported value = original value * Scale + Offset. Applied independently to axis and response; default Scale is 1.')
         self.mapping.horizontalHeaderItem(9).setToolTip('Added after scaling, in the declared imported unit; default Offset is 0.')
         self.mapping.verticalHeader().hide()
-        self.mapping.setMaximumHeight(116)
+        self.mapping.verticalHeader().setDefaultSectionSize(28)
+        self.mapping.setMaximumHeight(100)
         self.mapping.setMinimumHeight(100)
         self.mapping.itemChanged.connect(self._mapping_item_edited)
         self.delimiter.textEdited.connect(self._edited)
@@ -325,7 +331,7 @@ class DataWindow(QMainWindow):
         editor.addWidget(self.mapping)
         example = QLabel('열 번호는 0부터 시작합니다. 가져올 값 = 원본 값 × 배율 + 보정값입니다. 단위 이름만 바꿔서는 값이 변환되지 않습니다.')
         example.setWordWrap(True)
-        editor.addWidget(example)
+        read_settings.addWidget(example)
         self.test_fields = {}
         for key, label in (('test_id', '시험 이름'), ('specimen', '시편'), ('protocol', '시험 방법'), ('temperature', '온도와 단위')):
             metadata = QHBoxLayout()
@@ -356,7 +362,7 @@ class DataWindow(QMainWindow):
         central.addWidget(self.editor)
         vertical = QSplitter(Qt.Orientation.Vertical)
         self.sheets = QTabWidget()
-        self.sheets.setMinimumHeight(100)
+        self.sheets.setMinimumHeight(124)
         self.preview_table = self._table(['원본 행'])
         self.values = self._table(['원본 행', '축', '관측', '계산 포함', '원본 품질', '화면 표시', '이유'])
         self.values.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -405,17 +411,12 @@ class DataWindow(QMainWindow):
         self.expert_button.clicked.connect(lambda: self.request_followup('expert'))
         for button in (self.compare_button, self.plan_button, self.expert_button):
             followup.addWidget(button)
-        graph_layout.addLayout(followup)
-        saved_comparisons = QHBoxLayout()
-        saved_comparisons.addWidget(QLabel('저장한 비교'))
+        followup.addWidget(QLabel('저장한 비교'))
         self.comparison_selector = QComboBox()
         self.comparison_selector.setObjectName('dataSavedComparison')
         self.comparison_selector.currentIndexChanged.connect(self._comparison_changed)
-        saved_comparisons.addWidget(self.comparison_selector, 1)
-        graph_layout.addLayout(saved_comparisons)
-        self.result_label = QLabel()
-        self.result_label.setWordWrap(True)
-        graph_layout.addWidget(self.result_label)
+        followup.addWidget(self.comparison_selector, 1)
+        graph_layout.addLayout(followup)
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(140)
@@ -1592,6 +1593,7 @@ class DataWindow(QMainWindow):
         self._point_visible_rows = set()
         self._selection_artist=None
         self.values.setRowCount(0)
+        self.canvas.setToolTip('')
         self.axes.clear()
         self.axes.set_axis_off()
         self.axes.text(.5, .5, '가져온 결과를 선택하면 원래 값을 볼 수 있습니다.', ha='center', va='center', transform=self.axes.transAxes)
@@ -1698,8 +1700,25 @@ class DataWindow(QMainWindow):
                         self.axes.plot([a for a, _ in points], [b for _, b in points], linestyle='--', marker='x', label='Retained prediction')
                 self.axes.legend()
         axis_name = axis.get('name', 'unknown')
-        title = str(response.get('measure', 'UNSPECIFIED')) + ' (' + ', '.join(
-            str(response.get(key, 'UNSPECIFIED')) for key in ('component', 'location', 'frame')) + ')'
+        # Match the physical terms used by Material, Runner and report pages.
+        meanings = {
+            'measure': {'force': '힘', 'torque': '토크', 'displacement': '변위', 'stress': '응력',
+                        'infinitesimal_Cauchy': '미소변형 Cauchy 응력', 'first_Piola': '제1 Piola 응력',
+                        'position': '위치', 'native_frame_index': '기록된 프레임'},
+            'component': {'x': 'X 방향', 'y': 'Y 방향', 'z': 'Z 방향',
+                          **{value: value.upper() for value in ('xx', 'yy', 'zz', 'xy', 'yx', 'xz', 'zx', 'yz', 'zy')}},
+            'location': {'material_point': '재료점'},
+            'frame': {'lab': '실험실 좌표', 'laboratory': '실험실 좌표',
+                      'material_cartesian': '재료 직교좌표', 'global': '전체 좌표', 'local': '국부 좌표',
+                      'document_global': '세계 좌표'},
+        }
+        physical = {key: meanings[key].get(value, value) if isinstance(value, str) else display(value)
+                    for key in meanings for value in [response.get(key, '미기록')]}
+        title = f"{physical['measure']} ({physical['component']})"
+        self.canvas.setToolTip('\n'.join(
+            caption + ': ' + physical[key] for key, caption in
+            (('measure', '물리량'), ('component', '성분'), ('location', '위치'), ('frame', '좌표계')))
+            + '\n단위: ' + str(response.get('unit', '미기록')))
         location = response.get('location', '')
         if (isinstance(location, str) and location.startswith('trace_point:')
                 and response.get('frame') == 'document_global'
