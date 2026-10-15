@@ -59,8 +59,8 @@ jobs:
           ./scripts/fetch_post_native_windows.ps1 -WorkRoot $env:POST_NATIVE_ROOT
       - name: Build SDK and plugin, run existing native checks in one owned Job
         run: |
-          $python = (Get-Command python -CommandType Application).Source
-          $pwsh = (Get-Command pwsh -CommandType Application).Source
+          $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+          $pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
           python scripts/native_check.py --timeout 19500 --output-dir "$env:POST_NATIVE_ROOT/build-job" -- $pwsh -NoProfile -File "$env:GITHUB_WORKSPACE/scripts/build_post_native_windows.ps1" -WorkRoot $env:POST_NATIVE_ROOT -Python $python
           if ($LASTEXITCODE -ne 0) { throw "Owned SDK build/check failed: $LASTEXITCODE" }
           $receipt = Get-Content -LiteralPath "$env:POST_NATIVE_ROOT/build-job/native-check.json" -Raw | ConvertFrom-Json

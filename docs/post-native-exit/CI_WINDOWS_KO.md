@@ -28,6 +28,10 @@ ParaView File > Exit/X/Ctrl+Q/Alt+F4, 저장 취소 후 재시도와 한글 화�
 build glue는 GitHub-hosted CI 환경인지도 확인하여 로컬의 기존 Python 환경에
 패키지를 설치하는 실수를 막는다. 로컬에서는 기존 `Build-PostExit.ps1`를 사용한다.
 
+첫 standard run은 SDK 입력을 풀기 전에 실패했다. runner의 Windows·Git에 각각 있는
+`tar.exe` 경로들이 한 명령으로 결합된 연결 오류였으며, 실행 경로를 읽는 곳에서
+첫 실행 파일 하나만 선택하도록 교정했다. SDK 컴파일이나 native 검사는 아직 시작되지 않았다.
+
 ## 입력과 실제로 검사할 범위
 
 - 공식 ParaView6.2.0 source archive와 공식 공개 Qt6.9.0/MSVC2022 네 archive를
