@@ -40,7 +40,12 @@ CAPABILITIES = {
 }
 from apps.desktop_pre.shell_edit import OPERATIONS as SHELL_OPERATIONS
 CAPABILITIES['pre'].update(SHELL_OPERATIONS)
-from apps.desktop_pre.assembly_pose_candidate import OPERATIONS as POSE_CANDIDATE_OPERATIONS
+# Capability names are the native adapter contract, not a native import.
+# Keep independent research owners usable without importing the optional M4
+# implementation. Names match 1e3025f apps/desktop_pre/assembly_pose_candidate.py.
+POSE_CANDIDATE_OPERATIONS = ('pre.assembly_candidate.create', 'pre.assembly_candidate.inspect',
+                            'pre.assembly_candidate.cancel', 'pre.assembly_candidate.open',
+                            'pre.assembly_candidate.mesh', 'pre.assembly_candidate.material')
 CAPABILITIES['pre'].update(POSE_CANDIDATE_OPERATIONS)
 
 

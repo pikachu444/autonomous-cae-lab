@@ -12,7 +12,7 @@ import unicodedata
 from .backends import list_backends, get_backend
 from .evaluation import evaluate, run, read_result, file_hash
 from .jobs import JobManager
-from .storage import save_json, load_json, check_id, utc_now, canonical_hash
+from .storage import save_json, load_json, check_id, utc_now, canonical_hash, revision_read_scope
 from .native_inputs import NATIVE_EXTENSIONS, register_native_input, register_frozen_input
 
 INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
@@ -38,7 +38,14 @@ def contained(root, relative):
 
 class Workbench:
     def __init__(self, workspace, *, configuration=None, operator_config_path=None):
-        self.workspace=Path(workspace).resolve()
+        candidate = Path(workspace).absolute()
+        if (candidate/'portable-project.json').exists() or (candidate/'.incomplete.json').exists():
+            from .portable_project import verify_project
+            from .portable_project_io import PortableProjectError, Issue
+            checked = verify_project(candidate)
+            if checked['status'] != 'READY':
+                raise PortableProjectError([Issue(**issue) for issue in checked['issues']])
+        self.workspace=candidate.resolve()
         self.root=self.workspace/'workbench'
         self.root.mkdir(parents=True,exist_ok=True)
         self.config=deepcopy(configuration or {})
@@ -114,6 +121,57 @@ class Workbench:
 
     def document_read(self, identifier):
         return self._document_owner(identifier).read(identifier)
+
+    @revision_read_scope()
+    def connection_graph(self, document_ids=None, *, include_history=False):
+        from .connection_graph import build_graph
+        return build_graph(self, document_ids, include_history=include_history)
+
+    @revision_read_scope()
+    def connection_catalog(self, target_id):
+        from .connection_graph_edit import catalog
+        return catalog(self, target_id)
+
+    @revision_read_scope()
+    def connection_impact(self, target_id, port):
+        from .connection_graph_edit import read_impact
+        return read_impact(self, target_id, port)
+
+    @revision_read_scope()
+    def connection_preview(self, target, port, action, source=None):
+        from .connection_graph_edit import preview_edit
+        return preview_edit(self, target, port, action, source)
+
+    def connection_apply(self, proposal, *, confirmed, command_id):
+        from .connection_graph_edit import apply_edit
+        return apply_edit(self, proposal, confirmed=confirmed, command_id=command_id)
+
+    @revision_read_scope()
+    def connection_view_read(self):
+        from .connection_graph_view import read_view
+        return read_view(self)
+
+    def connection_view_save(self, state, *, scope, expected_revision, expected_sha256, command_id):
+        from .connection_graph_view import save_view
+        return save_view(self, state, scope=scope, expected_revision=expected_revision,
+                         expected_sha256=expected_sha256, command_id=command_id)
+
+    def portable_inspect(self, selections, *, draft_policy='acknowledged'):
+        from .portable_project import inspect_copy
+        return inspect_copy(self, selections, draft_policy=draft_policy)
+
+    def portable_create(self, inspection, destination, *, approved, command_id, session_id):
+        from .portable_project import create_copy
+        return create_copy(self, inspection, destination, approved=approved,
+                           command_id=command_id, session_id=session_id)
+
+    def portable_verify(self, folder):
+        from .portable_project import verify_project
+        return verify_project(folder)
+
+    def portable_repair(self, folder, relative, replacement, *, approved):
+        from .portable_project import repair_asset
+        return repair_asset(folder, relative, replacement, approved=approved)
 
     def backend_readiness(self, backend):
         """Explicit dependency discovery only; never a solver/inference call."""

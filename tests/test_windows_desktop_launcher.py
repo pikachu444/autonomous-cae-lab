@@ -913,7 +913,7 @@ foreach ($command in $commands) {
 
     def test_all_direct_tools_preserve_exact_selection_and_shared_url(self):
         tools = ("material", "data", "numerical", "pde", "expert",
-                 "runner", "simulation", "evaluation", "study", "report")
+                 "runner", "simulation", "evaluation", "study", "report", "connection")
         for entry in ("start-windows.ps1", "start_cae_research.ps1"):
             for tool in tools:
                 with self.subTest(entry=entry, tool=tool):

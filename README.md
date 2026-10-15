@@ -28,6 +28,7 @@ FreeCAD·ParaView·Gmsh·외부 솔버와 AI 연결은 별도로 준비합니다
 ```powershell
 .\Start-CAE-Lab.cmd -Tool numerical
 .\Start-CAE-Lab.cmd -Tool expert
+.\Start-CAE-Lab.cmd -Tool connection
 .\Start-CAE-Lab.cmd -Tool data
 ```
 

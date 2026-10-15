@@ -55,6 +55,48 @@ class Client:
                 raise WorkbenchHTTPError(error, payload, message) from error
             raise error
 
+    def connection_graph(self, document_ids=None, *, include_history=False):
+        return self.request('/api/workbench/connection-graph',
+                            {'document_ids': document_ids, 'include_history': include_history})
+
+    def connection_catalog(self, target_id):
+        return self.request('/api/workbench/connection/catalog', {'target_id': target_id})
+
+    def connection_impact(self, target_id, port):
+        return self.request('/api/workbench/connection/impact', {'target_id': target_id, 'port': port})
+
+    def connection_preview(self, target, port, action, source=None):
+        return self.request('/api/workbench/connection/preview',
+                            {'target': target, 'port': port, 'action': action, 'source': source})
+
+    def connection_apply(self, proposal, *, confirmed, command_id):
+        return self.request('/api/workbench/connection/apply',
+                            {'proposal': proposal, 'confirmed': confirmed, 'command_id': command_id})
+
+    def connection_view_read(self):
+        return self.request('/api/workbench/connection/view-read', {})
+
+    def connection_view_save(self, state, *, scope, expected_revision, expected_sha256, command_id):
+        return self.request('/api/workbench/connection/view-save', {'state': state, 'scope': scope,
+            'expected_revision': expected_revision, 'expected_sha256': expected_sha256, 'command_id': command_id})
+
+    def portable_inspect(self, selections, *, draft_policy='acknowledged'):
+        return self.request('/api/workbench/portable-project/inspect',
+                            {'selections': selections, 'draft_policy': draft_policy})
+
+    def portable_create(self, inspection, destination, *, approved, command_id, session_id):
+        # A lost response is recovered by explicitly retrying this SAME request.
+        return self.request('/api/workbench/portable-project/create',
+            {'inspection': inspection, 'destination': str(destination), 'approved': approved,
+             'command_id': command_id, 'session_id': session_id})
+
+    def portable_verify(self, folder):
+        return self.request('/api/workbench/portable-project/verify', {'folder': str(folder)})
+
+    def portable_repair(self, folder, relative, replacement, *, approved):
+        return self.request('/api/workbench/portable-project/repair',
+            {'folder': str(folder), 'relative': relative, 'replacement': str(replacement), 'approved': approved})
+
     def upload(self, name, payload, *, _retry_auth=True):
         """Register explicitly selected local bytes through the existing bounded endpoint."""
         from urllib.parse import quote

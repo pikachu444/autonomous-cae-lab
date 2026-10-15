@@ -422,6 +422,11 @@ def _status(owner, run: dict) -> tuple[str, dict | None]:
 def read_candidate_detail(owner, document_id: str, job_id: str, candidate_id: str, *,
                           attempt_job_id: str | None = None, source: dict | None = None) -> dict:
     """Pure retained read, also usable over the existing Client read endpoints."""
+    from .portable_project_execution import detail_view
+    portable = detail_view(owner, document_id, job_id, candidate_id,
+                           source=source, attempt_job_id=attempt_job_id)
+    if portable is not None:
+        return portable
     document, run, result, reference = _source(owner, document_id, job_id, source)
     snapshot = _frozen_input(run, result)
     candidate = _candidate(result, candidate_id, snapshot)
@@ -755,12 +760,18 @@ class CandidateDetailMixin:
         base = MaterialDocuments._fingerprint(document)
         return canonical_hash({'base': base, 'candidate_evidence': document['candidate_evidence']}) if document.get('candidate_evidence') else base
 
+    def _public(self, document):
+        from .portable_project_execution import public_execution
+        return public_execution(self, super()._public(document))
+
     def _retain_inputs(self, saved, folder):
         from .numerical_candidate_evidence import _record_capture_publication
         _record_capture_publication(self, saved, folder)
         super()._retain_inputs(saved, folder)
         from .numerical_candidate_evidence import retain_evidence_inputs
         retain_evidence_inputs(self, saved, folder)
+        from .portable_project_execution import retain_execution_inputs
+        retain_execution_inputs(self, saved, folder)
 
     def command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         from .numerical_candidate_evidence import EVIDENCE_COMMANDS, evidence_command
@@ -837,5 +848,5 @@ def client_read_candidate_detail(client, document_id, job_id, candidate_id, **kw
     """Use existing HTTP reads; no new route, second controller or file copying."""
     from types import SimpleNamespace
     owner = SimpleNamespace(read=client.document_read, result=client.document_result,
-                            manager=SimpleNamespace(status=client.status))
+                            manager=SimpleNamespace(status=client.status), _portable_client_read=True)
     return read_candidate_detail(owner, document_id, job_id, candidate_id, **kwargs)

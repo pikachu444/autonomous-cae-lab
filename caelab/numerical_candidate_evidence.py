@@ -235,6 +235,11 @@ def _verified_chain(owner, document, source, candidate, selected):
 def prepare_candidate_evidence(owner, source, candidate_id, *, attempt_job_id=None,
                                required_experiments=None, purpose=SUCCESS):
     """Prepare from owner-verified history. No write, save, evaluator or submission."""
+    from .portable_project_execution import prepare_evidence
+    portable = prepare_evidence(owner, source, candidate_id, attempt_job_id=attempt_job_id,
+        required_experiments=required_experiments, purpose=purpose)
+    if portable is not None:
+        return portable
     document, run, result, exact = _source(owner, source['document_id'], source['job_id'], source)
     view = read_candidate_detail(owner, source['document_id'], source['job_id'], candidate_id,
                                  source=source, attempt_job_id=attempt_job_id)
@@ -298,10 +303,13 @@ def _binding(snapshot):
             'scope_sha256': canonical_hash(snapshot['scope']), 'purpose': snapshot['purpose']}
 
 
-def evidence_reference(document_id, revision, snapshot):
+def evidence_reference(document_id, revision, snapshot, *, owner=None):
+    from .portable_project_execution import reference_source
+    binding = _binding(snapshot)
+    binding['source'] = reference_source(owner, document_id, revision, snapshot['source'])
     digest = canonical_hash(snapshot)
     return {'kind': EVIDENCE_KIND, 'document_id': document_id, 'saved_revision': revision,
-            'evidence_id': 'H' + digest, 'snapshot_sha256': digest, **_binding(snapshot)}
+            'evidence_id': 'H' + digest, 'snapshot_sha256': digest, **binding}
 
 
 def validate_evidence_reference(reference):
@@ -332,6 +340,9 @@ def validate_evidence_reference(reference):
 def _saved_owner(owner, document_id, revision):
     """Read the exact saved revision, not working.json or the newest saved pointer."""
     saved = owner._verify_revision(document_id, revision)
+    from .connection_graph import is_acknowledged_container
+    if is_acknowledged_container(saved):
+        raise DetailIdentityError('Acknowledged container is not published candidate evidence; explicitly save with the current owner')
     if saved['id'] != document_id or saved['kind'] != 'numerical':
         raise DetailIdentityError('Evidence belongs to a different owner')
     def read(identifier):
@@ -349,7 +360,7 @@ def _saved_owner(owner, document_id, revision):
         owner._verify_revision(document_id, original_revision)
         return read_result(owner._folder(document_id) / 'revisions' / check_id(original_revision) /
                            'results' / check_id(job_id), verify='all', **kwargs)
-    return saved, SimpleNamespace(read=read, result=result, manager=None)
+    return saved, SimpleNamespace(read=read, result=result, manager=None, _portable_storage_owner=owner)
 
 
 def resolve_candidate_evidence(owner, reference, *, consumer='read', source=None,
@@ -366,13 +377,13 @@ def resolve_candidate_evidence(owner, reference, *, consumer='read', source=None
             raise DetailIdentityError('Candidate evidence was not published in this exact saved revision')
         path = owner._folder(document_id) / 'revisions' / check_id(revision) / 'candidate_evidence' / (row['id'] + '.json')
         snapshot = load_json(path)
-        if canonical_hash(snapshot) != row['sha256'] or evidence_reference(document_id, revision, snapshot) != reference:
+        if canonical_hash(snapshot) != row['sha256'] or evidence_reference(document_id, revision, snapshot, owner=owner) != reference:
             raise DetailIdentityError('Snapshot content / original candidate / selected attempt reference changed')
-        if (source is not None and source != snapshot['source'] or
+        if (source is not None and source != reference['source'] or
                 candidate_id is not None and candidate_id != snapshot['original_candidate']['candidate_id'] or
                 attempt_job_id is not _UNSET and attempt_job_id != snapshot['selected_attempt_job_id']):
             raise DetailIdentityError('Consumer selection differs from the saved source candidate or detail attempt')
-        checked = prepare_candidate_evidence(historical, snapshot['source'], snapshot['original_candidate']['candidate_id'],
+        checked = prepare_candidate_evidence(historical, reference['source'], snapshot['original_candidate']['candidate_id'],
             attempt_job_id=snapshot['selected_attempt_job_id'],
             required_experiments=[e['experiment_id'] for e in snapshot['scope']], purpose=snapshot['purpose'])
         if canonical_hash(checked) != row['sha256']:
@@ -398,6 +409,8 @@ def require_adoption_evidence(owner, reference, run, result, candidate_id):
         raise DetailEvidenceBlocked('Preserve the selected original candidate/detail evidence before fit adoption')
     resolved = resolve_candidate_evidence(owner, reference, consumer='adoption', candidate_id=candidate_id)
     snapshot = resolved['snapshot']
+    from .portable_project_execution import adoption_run
+    run = adoption_run(owner, reference, run)
     if (run.get('job_id') != snapshot['source']['job_id']
             or run.get('input_revision') != snapshot['source']['input_revision']
             or run.get('input_sha256') != snapshot['source']['input_sha256']
@@ -412,7 +425,7 @@ def candidate_adoption_preview(owner, reference):
     resolved = resolve_candidate_evidence(owner, reference, consumer='adoption')
     snapshot = resolved['snapshot']
     _, historical = _saved_owner(owner, reference['document_id'], reference['saved_revision'])
-    _, run, result, _ = _source(historical, reference['document_id'], snapshot['source']['job_id'], snapshot['source'])
+    _, run, result, _ = _source(historical, reference['document_id'], snapshot['source']['job_id'], reference['source'])
     return {'proposed_draft': adopted_draft(run, result, reference['candidate_id'],
                 evidence_owner=owner, detail_evidence=reference),
             'reference': deepcopy(reference), 'readiness': resolved['readiness']}
@@ -546,7 +559,10 @@ def retain_evidence_inputs(owner, saved, folder):
         value = load_json(base / 'candidate_evidence' / (check_id(row['id']) + '.json'))
         if canonical_hash(value) != row['sha256']:
             raise DetailIdentityError('Working candidate evidence changed; previous revision is preserved')
-        save_json(folder / 'candidate_evidence' / (row['id'] + '.json'), value)
+        from .portable_project_execution import retain_snapshot_bytes
+        destination = folder / 'candidate_evidence' / (row['id'] + '.json')
+        if not retain_snapshot_bytes(saved, base / 'candidate_evidence' / (row['id'] + '.json'), destination):
+            save_json(destination, value)
         row['retained_revision'] = folder.name
 
 
@@ -608,7 +624,7 @@ def _recover_capture_publication(owner, identifier, prior, arguments, command_id
         raise DetailIdentityError('Exact saved CAPTURE identity differs from the approved pending state')
     snapshot = load_json(owner._folder(identifier) / 'revisions' / revision / 'candidate_evidence' /
                          ('H' + prior['snapshot_sha256'] + '.json'))
-    reference = evidence_reference(identifier, revision, snapshot)
+    reference = evidence_reference(identifier, revision, snapshot, owner=owner)
     if reference['snapshot_sha256'] != witness['snapshot_sha256']:
         raise DetailIdentityError('Committed capture snapshot changed')
     response = _capture_response(owner, saved, reference, command_id)
@@ -684,7 +700,7 @@ def evidence_command(owner, identifier, operation, arguments, *, session_id, exp
         evidence_id = 'H' + digest
         row = next((r for r in document.get('candidate_evidence', []) if r['id'] == evidence_id), None)
         if not prior and row and row.get('retained_revision'):
-            reference = evidence_reference(identifier, row['retained_revision'], snapshot)
+            reference = evidence_reference(identifier, row['retained_revision'], snapshot, owner=owner)
             response = _capture_response(owner, document, reference, command_id)
         else:
             pending = deepcopy(document)
@@ -721,7 +737,7 @@ def evidence_command(owner, identifier, operation, arguments, *, session_id, exp
             finally:
                 _CAPTURE_SAVE.reset(token)
             owner._persist_draft(pending)
-            reference = evidence_reference(identifier, pending['saved_revision'], snapshot)
+            reference = evidence_reference(identifier, pending['saved_revision'], snapshot, owner=owner)
             response = _capture_response(owner, pending, reference, command_id)
             prior = load_json(receipt)  # keep the exact publication witness recorded by the save hook
         save_json(receipt, {**(prior or {}), 'request_hash': signature, 'operation': CAPTURE,

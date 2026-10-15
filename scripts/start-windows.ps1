@@ -11,7 +11,7 @@ param(
     [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
     [ValidateRange(1024,65535)][int]$Port = 8766,
     [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store'),
-    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study','report')][string]$Tool = 'runner',
+    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study','report','connection')][string]$Tool = 'runner',
     [string]$DocumentId,
     [string]$JobId,
     [switch]$PrepareOnly

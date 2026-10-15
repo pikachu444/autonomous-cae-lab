@@ -24,6 +24,9 @@ Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버�
 각각 실행합니다. **실행 관리**는 제출한 계산을 살펴보는 Runner 창입니다.
 각 바로가기는 기존 실행 환경과 같은 작업 폴더를 사용합니다.
 
+**문서 연결**은 문서·저장 참조·보존 결과의 관계를 함께 살펴볼 때 선택해서 여는 창입니다.
+각 도구는 이 창을 열지 않아도 사용할 수 있습니다. 연결 창에서 원문서를 열면 해당 도구로 이동합니다.
+
 `Start-CAE-Lab.cmd`를 더블클릭하는 기존 방법도 유지합니다. 이때는 **Runner**가
 열립니다. 아직 계산을 실행하지 않았다면 작업 목록이 비어 있는 것이 정상입니다.
 왼쪽 위 **도구** 메뉴에서 필요한 프로그램을 별도 창으로 여세요.
@@ -45,6 +48,7 @@ Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버�
 ```powershell
 .\Start-CAE-Lab.cmd -Tool numerical
 .\Start-CAE-Lab.cmd -Tool expert
+.\Start-CAE-Lab.cmd -Tool connection
 .\Start-CAE-Lab.cmd -Tool data
 .\Start-CAE-Lab.cmd -Tool material
 .\Start-CAE-Lab.cmd -Tool pde

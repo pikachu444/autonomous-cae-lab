@@ -19,12 +19,47 @@ def handle(handler,method,path,query):
         if re.fullmatch(r'/api/workbench/hosts/[^/]+/events', path):
             from .server import MAX_NATIVE_EVENT_BODY
             body = handler._json_body(maximum=MAX_NATIVE_EVENT_BODY)
+        elif path == '/api/workbench/portable-project/create':
+            body = handler._json_body(maximum=8*1024*1024)
         elif path == '/api/workbench/documents/open' or re.fullmatch(r'/api/workbench/documents/[^/]+/commands',path):
             # Existing document drafts are bounded at 8 MiB. Only their owner
             # transport accepts that draft plus a bounded command envelope.
             body = handler._json_body(maximum=8*1024*1024+64*1024)
         else:
             body = handler._json_body()
+        if path == '/api/workbench/connection-graph':
+            if set(body) - {'document_ids', 'include_history'} or type(body.get('include_history', False)) is not bool:
+                raise ServiceError(400, '실제 문서 목록과 편집 이력 포함 여부만 지정하세요.')
+            return handler._json(200, workbench.connection_graph(**body))
+        connection_routes = {
+            '/api/workbench/connection/impact': ('connection_impact', {'target_id', 'port'}),
+            '/api/workbench/connection/catalog': ('connection_catalog', {'target_id'}),
+            '/api/workbench/connection/preview': ('connection_preview', {'target', 'port', 'action', 'source'}),
+            '/api/workbench/connection/apply': ('connection_apply', {'proposal', 'confirmed', 'command_id'}),
+            '/api/workbench/connection/view-read': ('connection_view_read', set()),
+            '/api/workbench/connection/view-save': ('connection_view_save',
+                {'state', 'scope', 'expected_revision', 'expected_sha256', 'command_id'}),
+        }
+        if path in connection_routes:
+            name, fields = connection_routes[path]
+            if set(body) != fields:
+                raise ServiceError(400, '정확한 관계/배치 명령 필드가 다릅니다.')
+            return handler._json(200, getattr(workbench, name)(**body))
+        if path == '/api/workbench/portable-project/inspect':
+            if 'selections' not in body or set(body) - {'selections', 'draft_policy'}:
+                raise ServiceError(400, '문서 선택과 초안 포함 방식을 지정하세요.')
+            return handler._json(200, workbench.portable_inspect(**body))
+        portable_routes = {
+            '/api/workbench/portable-project/create': ('portable_create',
+                {'inspection', 'destination', 'approved', 'command_id', 'session_id'}),
+            '/api/workbench/portable-project/verify': ('portable_verify', {'folder'}),
+            '/api/workbench/portable-project/repair': ('portable_repair', {'folder', 'relative', 'replacement', 'approved'}),
+        }
+        if path in portable_routes:
+            name, fields = portable_routes[path]
+            if set(body) != fields:
+                raise ServiceError(400, '작업 사본의 명시적 선택/확인 필드가 다릅니다.')
+            return handler._json(200, getattr(workbench, name)(**body))
         if path == '/api/workbench/expert-connection/reload':
             if set(body) != {'expected_sha256'}:
                 raise ServiceError(400, 'Reload accepts only the saved local operator-file hash')
