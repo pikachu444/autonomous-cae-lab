@@ -284,6 +284,9 @@ class ExpertWindow(QMainWindow):
         self.cancel_response.triggered.connect(self.cancel_protocol_response)
         discussion_menu = self.menuBar().addMenu('토론')
         discussion_menu.addAction(self.cancel_response)
+        self.partial_responses_action = QAction('중단된 응답 보기…', self)
+        self.partial_responses_action.triggered.connect(self.show_partial_responses)
+        discussion_menu.addAction(self.partial_responses_action)
         self.pause_button.setToolTip('작성 중인 응답은 받되 그 다음 발언은 진행하지 않습니다.')
         self.resume_button.setToolTip('일시 정지를 해제합니다. 다음 발언은 별도로 요청합니다.')
         self.attach_button.setToolTip('저장된 계산 결과에서 첨부할 값을 선택합니다.')
@@ -296,7 +299,12 @@ class ExpertWindow(QMainWindow):
         self.protocol_budget = QPushButton()
         self.protocol_budget.setObjectName('protocolBudget')
         self.protocol_budget.clicked.connect(lambda: self.show_side(self.transmission_settings))
-        composer.addWidget(self.protocol_budget, 0, Qt.AlignmentFlag.AlignRight)
+        recovery = QHBoxLayout()
+        self.partial_responses_button = QPushButton('중단된 응답 보기…')
+        self.partial_responses_button.clicked.connect(self.show_partial_responses)
+        recovery.addWidget(self.partial_responses_button); recovery.addStretch(1)
+        recovery.addWidget(self.protocol_budget)
+        composer.addLayout(recovery)
         conversation.addWidget(self.editor)
         self.conversation_pages.currentChanged.connect(self._conversation_page_changed)
         self.report_view.return_requested.connect(lambda: self.conversation_pages.setCurrentWidget(self.turns))
@@ -634,7 +642,8 @@ class ExpertWindow(QMainWindow):
         if notice != self._protocol_notice:
             self._protocol_notice = notice
             if protocol.get('reason'):
-                self.message.setText('토론이 중단되었습니다: ' + str(protocol['reason']))
+                from .expert_partial_responses import stop_reason
+                self.message.setText('토론이 중단되었습니다: ' + stop_reason(protocol['reason']))
         self._populate_reply()
         self._update_evidence_label()
         self._populate_sources()
@@ -870,6 +879,12 @@ class ExpertWindow(QMainWindow):
         mode = self.protocol_mode.currentData() == 'costorm'
         discussion, rounds, active = self._protocol_state()
         state = discussion.get('costorm', {})
+        from .expert_partial_responses import interrupted_attempts
+        has_interrupted = bool(self.document and interrupted_attempts(self.document))
+        readable = has_interrupted and not self._foreground_busy
+        self.partial_responses_action.setEnabled(readable)
+        self.partial_responses_button.setVisible(mode and has_interrupted)
+        self.partial_responses_button.setEnabled(readable)
         self.protocol_mode.setEnabled(enabled and not discussion.get('rounds'))
         self.conversation_pages.setTabVisible(1, mode or bool(state.get('report')))
         self.next_button.setVisible(mode)
@@ -996,6 +1011,10 @@ class ExpertWindow(QMainWindow):
             return True
         return self.protocol_action('expert.retry')
 
+    def show_partial_responses(self):
+        from .expert_partial_responses import show_partial_responses
+        show_partial_responses(self)
+
     def cancel_protocol_response(self):
         _, _, active = self._protocol_state()
         if not active or not active.get('active_job_id'):
@@ -1081,7 +1100,7 @@ class ExpertWindow(QMainWindow):
                              canonical_hash(remote['draft']) != canonical_hash(self.document['draft']))
             if self.local_dirty and changed_input:
                 self.conflict = True
-                self.message.setText('Another client or owner session changed this draft. Local edits are retained; reload or keep them as a new discussion.')
+                self.message.setText('다른 창에서 대화가 바뀌었습니다. 작성 중인 질문과 의견은 유지했습니다. 저장된 내용을 다시 열거나 다른 이름으로 보관하세요.')
                 return
             self._show_document(remote, preserve_buffer=self.local_dirty)
             active = next((row for row in remote.get('discussion', {}).get('rounds', []) if row.get('id') == self._auto_round_id), None)
@@ -1587,7 +1606,7 @@ class ExpertWindow(QMainWindow):
             self.save_document(after=continuation)
         elif question.clickedButton() == keep:
             if self.conflict:
-                self.message.setText('Resolve the conflict or keep edits as a new discussion first.')
+                self.message.setText('저장된 내용을 다시 열거나 작성 중인 대화를 다른 이름으로 보관한 뒤 계속하세요.')
             elif self.local_dirty:
                 self.apply_inputs(after=continuation)
             else:
