@@ -169,6 +169,11 @@ class NumericalPlanVariablesWidget(QWidget):
         """Return the exact bound receipt without reading or committing an editor."""
         return deepcopy(self._document) if self._adapter is not None else None
 
+    def recovery_ready(self):
+        """Allow raw capture only outside unresolved owner/history commands."""
+        return bool(self._adapter is not None and self._document is not None
+            and not self._busy and self._history_command is None)
+
     def _live_editor(self):
         if self.table.state()!=QAbstractItemView.State.EditingState:return None
         for kind in (QComboBox,QLineEdit):

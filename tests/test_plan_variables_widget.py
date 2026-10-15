@@ -117,6 +117,26 @@ def test_recovery_snapshot_and_restore_preserve_unfinished_editor_without_commit
     QTest.keyClick(restored,Qt.Key.Key_Escape);app.processEvents()
 
 
+def test_recovery_ready_preserves_raw_editor_and_blocks_unresolved_commands(pair):
+    app,_,(first,second),_=pair
+    first.table.setCurrentCell(0,2);first.table.editItem(first.table.item(0,2));app.processEvents()
+    editor=first.table.findChild(QLineEdit);assert editor is not None
+    editor.setText('1e');editor.setSelection(0,1)
+    raw=first.recovery_snapshot();other=second.document_snapshot()
+    assert first.recovery_ready() and first.recovery_snapshot()==raw
+    first._busy=True
+    assert not first.recovery_ready()
+    first._busy=False;first._history_command={'kind':'undo','command_id':'Cunconfirmed'}
+    assert not first.recovery_ready()
+    first._history_command=None
+    assert first.recovery_ready() and first.recovery_snapshot()==raw
+    assert editor.text()=='1e' and editor.selectedText()=='1'
+    assert second.document_snapshot()==other and first._adapter.calls==second._adapter.calls==[]
+    QTest.keyClick(editor,Qt.Key.Key_Escape);app.processEvents()
+    first.detach_owner()
+    assert not first.recovery_ready()
+
+
 def test_recovery_keeps_invalid_cells_and_rejects_readonly_or_hidden_replacement(pair):
     app,_,(first,second),_=pair
     first.table.item(0,2).setText('');first.table.item(1,6).setText('잘못된 enum');app.processEvents()
