@@ -121,12 +121,23 @@ reader도 실제 Windows 파일을 거절했다. 출력·허용 기준을 줄이
 `dynamic-delivery/c2-request/relay.json`에 있다. Numerical C2가 완료된 실제 Pro 대화를
 재사용했으며 기존 Numerical C2 원본은 먼저 완전히 회수했다. 이 UI 회수는 Numerical
 담당이 돕고 동해석 코드·수용 책임은 구조 팀이 유지한다. 새 솔버 계산은 반복하지 않았다.
+이후 원 C2 최종 파일이 없어 실제 Pro가 기록으로 복원한 R1 소스를 회수했다. 이를
+원 완성본으로 표시하지 않고 `0457007`에 프레임별 보관·native 종료 선보존·새 폴더
+재후처리를 통합해 원격 main에 게시했다. 원 실패/취소 상태와 수치 기준을 유지하며,
+Windows 작은 reader·원 결과 소비·Qt의 45개 영향 검사는 통과하고 소유 Job을 종료했다.
+상세 결과창의 metadata 연결은 별도 WIP다. 전체 frame 해시 선조회·FRD의 전체 frame
+메모리·legacy Post 중복 생성은 아직 해결되지 않았다. 원 400frame·실제 WRITE/READ와
+물리 비교도 미완료이며, 같은 Pro의 다음 교정 자료에 이 잔여를 함께 전달한다.
+사용법과 복원 당시 실패·현재 확인 범위는 [동해석 결과 읽기](docs/DYNAMIC_RETAINED_C2_RECOVERY_R1_KO.md)에 있다.
 별개 GUI로 충격 입력의 오류를 정확한 include 파일·행에 연결했다. 보존 원문을 읽고
 복사한 뒤 교정본을 명시적으로 다시 가져와 모델/집합 화면으로 돌아간다. 위치를 모르면
 가까운 행을 추측하지 않는다. 담당의 영향 검사와 두 크기의 실제 Qt 선택/키보드 확인,
 Astra의 읽기 전용 검토를 마쳤다. 원 parser/원본 파일/계산 admission은 바꾸지 않았고
-테스트 창을 닫았다. 일반 충격 입력·손상·피로의 다음 큰 Pro 작성 패킷은 준비 상태이며
-아직 전송/구현 완료로 세지 않는다.
+테스트 창을 닫았다. 일반 충격 입력·손상·피로의 다음 큰 Pro 작성 패킷은 완료된
+Data C3 대화에서 최신 별도 요청·공개 소스 여섯 첨부와 함께 실제 Pro/파워5로 한 번
+전송했고 작성 중이다. 기존 Data 대화를 이번 소스로 간주하지 않도록 범위를 분리했다.
+작성 대상은 PART/INSTANCE와 native RAD, 벌크/계면 손상, 변형률수명·평균응력·선정
+다축 피로의 A/B/C 전체다. `impact-next/relay.json`이 단일 회수 기록이며 구현 완료는 아니다.
 Runner에서는 명시적으로 제외된 값이 없는 표본 하나 때문에 정상 이력까지 숨던 표시를
 교정했다. 제외 위치는 빈 곡선 구간으로 남기고 원값·시간·부분 실패 상태를 유지한다.
 유효 표본의 잘못된 값과 불완전 mask는 계속 차단한다. 담당의 관련 Qt 검사와 두 창
@@ -136,6 +147,11 @@ Runner에서는 명시적으로 제외된 값이 없는 표본 하나 때문에 
 확인했다. 실제 C3D10 모델의 초기속도 DOF·밀도 변환·초기조건과 DYNAMIC/WRITE 입력을
 읽었으며 계산은 하지 않았다. 해당 owned Job과 FreeCAD를 종료했다. 공통14 통합도
 Astra가 원 Pro 패치와 대조해 새로운 의미 차이나 M4/기존 경로 손실을 찾지 않았다.
+셸·빔 입력 준비에도 기존 자세 모델 READY 관문을 연결해 `6d5120a`로 원격 게시했다.
+손상·미준비 모델은 자동 저장/입력 발행 전에 막고 일반 FEM 및 초안 저장은 유지한다.
+관련 native 프로토콜 대역 36검사와 소유 Job 종료를 확인했다. 새 셸·빔 물리 확장이나
+실제 FreeCAD writer 수용으로 세지 않는다. B1.3 실제 Pro의 잘못된 삭제 패치는 적용하지
+않고 원 대화에 복구 요청을 한 번 보냈으며 정상 작성물 회수를 계속한다.
 
 관련 문서의 부분 저장(FN02-02)은 Data/Material 팀, 이동용 작업 사본(FN01-02)과
 선택 연결 보기(FN31)는 설치·연결 팀, 원격 실행(FN26)은 Runner 팀이 지속 담당한다.
@@ -165,22 +181,34 @@ stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하�
 빌드 경로를 작성해 root·Astra 검토 후 게시했다. 최초 요청의 workflow context 오류를
 교정한 뒤 첫 원격 실행은 압축 도구의 중복 경로 때문에 입력 준비에서 실패했다.
 원 로그를 보존하고 단일 실행 경로 선택을 교정해 다시 실행했다. 두 번째 실행도
-Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실패했다. 담당이
-기존 무료 7-Zip의 지원 형식·안전한 목록 검사와 최소 교정을 준비한다. 원 기록은
+Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실패했다. 새 도구를
+설치하지 않고 이미 필요한 CMake의 압축 해제를 재사용한 `75c9919`를 게시했다. 공식
+입력과 위험 경로 거절의 국소 확인을 마쳤고 세 번째 원격 실행은 공식 입력 준비를
+넘어 SDK/plugin 빌드 중이다. 실제 결과는
+https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
 완성과 실제 File→Exit 수용은 미확인으로 유지한다. 사용자 PC의 테스트
 FreeCAD·ParaView·Gmsh 잔류가 없는 것도 다시 확인했다.
+Post 표 행의 마우스·키보드 선택은 저장한 정확한 점/시간표 행으로 연결했고, 다른
+문서로 옮긴 뒤 이전 그래프나 늦은 응답이 새 문서 선택을 바꾸지 않게 했다. `fe9f851`과
+`a4ef0d7`에 게시했으며 Windows Qt 영향 검사·두 창 크기와 독립 검토를 마쳤다.
+이는 실제 ParaView 3D/Exit 완료가 아니다.
 
-이동용 사본·선택 연결 보기의 실제 Pro C1도 회수해 전용28 파일을 WIP로 통합했다.
-공통5 패치는 별도 검사 사본에서만 사용하며 main에는 미적용이다. Windows에서 저장본과
+이동용 사본·선택 연결 보기의 실제 Pro C1에 이어 C2 최종 ZIP도 회수했다. 현재 전용37과
+공통7 파일을 WIP로 정합 통합했고 원 Data C2 입력·Numerical C2 승인/저장 관문을
+독립 대조했다. Windows에서 저장본과
 적용된 초안/Undo의 별도 프로세스 재개, typed 관계 편집·취소·복구·해제, 배치 재열기와
 ZIP 원 파일명 거절의 좁은 다섯 경로가 통과했다. Qt 군집은 실패 뒤 시간 초과했으므로
 GUI 통과로 세지 않고 소유 Job을 정리했다. 최신 Numerical C2와 함께 복사하면 미발행
 상세 파일 누락, 원 fit 입력 해시와 사본 참조 불일치, 기존 상세 실행의 원출처 불일치가
 발생하는 세 실패를 별도 cold 프로세스에서 확인했다. 원자료/결과를 고치거나 검사만
 막아 완료 처리하지 않고, 같은 원본과 실제 반례를 실제 Pro C2의 한 교정 인도로 전달했다.
-작성 중이며 `runs/product-development/20261015/portable-connection/c2-request/relay.json`에
+회수한 C2를 적용한 Windows cold 확인에서 이 원 세 실패는 상세/보고/채택·재복사까지
+끝났다. 새 bound 소비 경로의 전체 fixture·소비·재복사·두 번째 cold는 100초 검사를
+두 번 끝내지 못했다. 소유 Job은 모두 종료했고 통과로 바꾸지 않는다. 이미 보존된 사본을
+재사용해 남은 단계를 분리 확인하며 같은 세 원 경로는 반복하지 않는다.
+`runs/product-development/20261015/portable-connection/c2-request/relay.json`에
 회수·다음 행동을 관리한다. C01 raw-cell 복구는 아직 별도 미통합이다.
 로컬 사본은 사용자가 선택한 비공개 공학 자료도 정상 취급한다. 외부 Pro/공개 Git에
 비공개 자료를 전달하지 않는 운영 규칙과 로컬 파일 사용을 혼동하지 않는다.
@@ -216,8 +244,15 @@ owner/JobManager 피팅→선택 상세/holdout→결과 보존→원 입력/실
 `runs/product-development/20261015/data-c2-canonical-main-policy/`이며 소유 Job을 종료했다.
 이는 실제 FELUPE·HTTP 전체·GUI 수용은 아니다. Data와 Numerical 담당이 표본 정책과
 처리 결과 선택의 기존 전용 GUI를 연결한다. Astra가 C01의 최초 저장 전 복구에서
-registered input 원파일 누락을 발견했고 실제 Pro C3에서 교정 중이다. 이 복구 기능은
-이번 통합에서 노출하지 않으며 인도4 전체 완료로 세지 않는다.
+registered input 원파일 누락은 실제 Pro C3를 회수·독립 검토해 `f8cd503`에 원격 게시했다.
+미저장 원파일/등록 JSON·현재/Undo/Redo/run의 12입력을 함께 보관하고 원 store 삭제 후
+한글 경로의 별도 프로세스에서 읽는 8개 Windows 국소 검사가 통과했다. Keep/Cancel의
+실제 창 연결과 이동 사본 연결은 계속 남으며 인도4 전체 완료로 세지 않는다.
+처리 결과→Plan 시험→명시 표본 정책 GUI는 현재 main WIP로 연결 중이다. 기존21검사와
+시험 가중치2/새 표본 가중치1의 회귀2검사는 통과했다. 실제 HTTP 동선에서는 14 MB의
+정확한 처리 결과 읽기가 약29초 걸려 host의 임의15초 마감이 먼저 끝났다. 원 결과나
+기준을 바꾸지 않고 실제 읽기 수명·오류에 맞춘 연결을 Data/Numerical 팀이 교정한다.
+전체 PARTIAL에서도 명시 선택 범위만 다시 읽는 GUI와 정상/좁은 창을 함께 마친다.
 Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
 설치 런타임에서 실제 FELUPE 후보/holdout 상세 계산과 새 owner 재열기, Qt 흐름을 좁게
 확인했다. 실제 기존 Workbench 인증 loopback의 least-squares→상세 요청→계획 저장도
@@ -269,6 +304,9 @@ REQUEST-R1을 첨부해 한 번 요청했고 작성 중이다. FN20-03/B5.1의 �
 연결을 맡겼으며 FN20-01 전체 GUI, MDO/장 전달의 완료로 확대하지 않는다. 현재 송신·
 회수 원본은 Numerical 담당 작업 트리의
 `_workspace/delivery-numerical-pde/pro-mixed-domains-20261015-01/relay.json`이다.
+최종 혼합 변수 소스 ZIP을 실제 회수했고 Numerical 팀이 전용11/공통15를 현행 코드에
+대조하며 Astra가 독립 검토한다. Pro의 Linux ODE/저장 통과와 기존 baseline/after의
+네 실패를 보존한다. Windows 통합·GUI/전체 FN20 완료는 아직 아니다.
 공유 변수 표의 미확정 숫자·선택·붙여넣기 원문을 읽고 명시적으로 복원하는 전용 GUI
 API도 main에 통합했다. 이 위젯은 문서에 적용하거나 저장하지 않으며 관련 문서의
 복구 기준·저장 조정은 Data C2에서 별도로 완성한다.
