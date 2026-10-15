@@ -10,7 +10,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from .data_window import _Read, display
-from .runner_window import readonly_table
+from .runner_window import readonly_table, state_description
 
 DATA = Qt.ItemDataRole.UserRole
 
@@ -33,38 +33,42 @@ class CandidateResultsWindow(QMainWindow):
         self._native_catalog = {}
         self._curve_result = None
         self.resize(1180, 820)
-        self.setWindowTitle('Retained candidate results — ' + candidate_id)
+        self.setWindowTitle('후보 분야 결과')
         root = QWidget(); layout = QVBoxLayout(root)
-        label = QLabel(f'{document_id} · {job_id} · {candidate_id} · owner session {session_id}')
+        label = QLabel('선택한 후보의 저장된 입력과 분야별 결과')
+        label.setToolTip(f'{document_id} / {job_id} / {candidate_id} / {session_id}')
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(label)
-        self.message = QLabel('Reading the actual candidate record does not execute or adopt inputs.')
+        self.message = QLabel('후보의 보존 결과를 읽습니다. 계산 실행이나 입력 채택은 하지 않습니다.')
         self.message.setWordWrap(True); layout.addWidget(self.message)
-        self.parameters = readonly_table(['Actual parameter', 'Submitted value', 'Declared unit'])
+        self.parameters = readonly_table(['설계 변수', '실제 적용값', '물리 단위'])
         self.parameters.setMaximumHeight(140)
-        self._rows(self.parameters, [(name, value, (units or {}).get(name, 'undeclared')) for name, value in (values or {}).items()])
+        self._rows(self.parameters, [(name, value, (units or {}).get(name, '미기록')) for name, value in (values or {}).items()])
         self.parameters.setMaximumHeight(min(140, self.parameters.horizontalHeader().height() +
             sum(self.parameters.rowHeight(row) for row in range(self.parameters.rowCount())) + 4))
         layout.addWidget(self.parameters)
         row = QHBoxLayout(); self.evaluations = QComboBox()
         self.evaluations.setObjectName('candidateEvaluations')
         self.evaluations.currentIndexChanged.connect(self._evaluation_selected)
-        self.refresh_button = QPushButton('Read / retry exact records')
+        self.refresh_button = QPushButton('결과 읽기 / 다시 시도')
         self.refresh_button.clicked.connect(self.refresh_catalog)
-        row.addWidget(QLabel('Actual candidate evaluations')); row.addWidget(self.evaluations, 1); row.addWidget(self.refresh_button)
+        row.addWidget(QLabel('후보 계산')); row.addWidget(self.evaluations, 1); row.addWidget(self.refresh_button)
         layout.addLayout(row)
         split = QSplitter(Qt.Orientation.Vertical)
-        self.stages = readonly_table(['Iteration', 'Stage', 'Actual attempt', 'Execution', 'Backend', 'Reused source'])
+        self.stages = readonly_table(['반복', '분야', '실행 식별자', '계산 상태', '계산 엔진', '재사용 여부'])
         self.stages.setObjectName('candidateStageAttempts')
         self.stages.itemSelectionChanged.connect(self._stage_selected)
         split.addWidget(self.stages)
         tabs = QTabWidget()
-        self.responses = readonly_table(['Response', 'Kind', 'Unit', 'Component', 'Position', 'Association / frame', 'Time', 'Actual value / retained array'])
-        tabs.addTab(self.responses, 'Actual responses')
-        self.residuals = readonly_table(['Iteration', 'Stage', 'Response', 'Unit', 'Actual residual', 'Limit', 'Passed'])
-        tabs.addTab(self.residuals, 'Iteration residuals')
+        self.responses = readonly_table(['응답', '종류', '단위', '성분', '위치', '배치 / 좌표계', '시간', '실제 값 / 보존 배열'])
+        tabs.addTab(self.responses, '분야 응답')
+        self.residuals = readonly_table(['반복', '분야', '응답', '단위', '실제 잔차', '허용값', '충족 여부'])
+        tabs.addTab(self.residuals, '반복 수렴')
+        from .s2_gradient_widgets import GradientEvidence
+        self.gradient_evidence = GradientEvidence(self)
+        tabs.addTab(self.gradient_evidence, '미분과 공유 입력')
         self.diagnostics = QPlainTextEdit(); self.diagnostics.setReadOnly(True)
-        tabs.addTab(self.diagnostics, 'Retained diagnostics')
+        tabs.addTab(self.diagnostics, '기술 상세')
         curve = QWidget(); curve_layout = QVBoxLayout(curve)
         row = QHBoxLayout()
         self.native_channel, self.native_location = QComboBox(), QComboBox()
@@ -72,8 +76,8 @@ class CandidateResultsWindow(QMainWindow):
         self.native_location.setObjectName('candidateNativeLocation')
         self.native_channel.currentIndexChanged.connect(self._native_channel_selected)
         self.native_location.currentIndexChanged.connect(self._curve_selection_changed)
-        row.addWidget(QLabel('Advertised channel')); row.addWidget(self.native_channel, 1)
-        row.addWidget(QLabel('Exact retained location')); row.addWidget(self.native_location, 1)
+        row.addWidget(QLabel('보존 채널')); row.addWidget(self.native_channel, 1)
+        row.addWidget(QLabel('결과 위치')); row.addWidget(self.native_location, 1)
         curve_layout.addLayout(row)
         row = QHBoxLayout()
         self.curve_start, self.curve_count = QSpinBox(), QSpinBox()
@@ -81,24 +85,24 @@ class CandidateResultsWindow(QMainWindow):
         self.curve_count.setObjectName('candidateCurveCount'); self.curve_count.setRange(1, 4096); self.curve_count.setValue(1000)
         self.curve_start.valueChanged.connect(self._curve_selection_changed)
         self.curve_count.valueChanged.connect(self._curve_selection_changed)
-        self.curve_read = QPushButton('Read selected native curve')
+        self.curve_read = QPushButton('선택 곡선 읽기')
         self.curve_read.setObjectName('candidateReadNativeCurve'); self.curve_read.clicked.connect(self.read_native_curve)
-        row.addWidget(QLabel('First retained sample')); row.addWidget(self.curve_start)
-        row.addWidget(QLabel('Maximum samples')); row.addWidget(self.curve_count); row.addWidget(self.curve_read); row.addStretch()
+        row.addWidget(QLabel('시작 행')); row.addWidget(self.curve_start)
+        row.addWidget(QLabel('최대 행 수')); row.addWidget(self.curve_count); row.addWidget(self.curve_read); row.addStretch()
         curve_layout.addLayout(row)
         self.curve_figure = Figure(constrained_layout=True)
         self.curve_canvas = FigureCanvasQTAgg(self.curve_figure)
         self.curve_axes = self.curve_figure.add_subplot(111)
-        self.curve_values = readonly_table(['Retained sample index', 'Actual axis value', 'Actual response value', 'Validity'])
+        self.curve_values = readonly_table(['보존 행', '축 값', '응답 값', '사용 여부'])
         self.curve_values.setObjectName('candidateNativeCurveValues'); self.curve_values.setMaximumHeight(180)
         self.curve_split = QSplitter(Qt.Orientation.Vertical)
         self.curve_split.addWidget(self.curve_canvas); self.curve_split.addWidget(self.curve_values)
         self.curve_split.setStretchFactor(0, 3); self.curve_split.setStretchFactor(1, 1)
         self.curve_split.setSizes([420, 100])
         curve_layout.addWidget(self.curve_split, 1)
-        self.curve_detail = QLabel('Select an advertised native channel and exact location, then Read. No evaluation is executed.')
+        self.curve_detail = QLabel('보존 채널과 정확한 위치를 선택한 뒤 곡선을 읽으세요. 계산은 실행하지 않습니다.')
         self.curve_detail.setWordWrap(True); curve_layout.addWidget(self.curve_detail)
-        self.curve_metadata_toggle = QPushButton('Show source and physical metadata')
+        self.curve_metadata_toggle = QPushButton('원자료와 물리량 상세')
         self.curve_metadata_toggle.setCheckable(True)
         self.curve_metadata = QPlainTextEdit()
         self.curve_metadata.setReadOnly(True)
@@ -108,7 +112,7 @@ class CandidateResultsWindow(QMainWindow):
         curve_layout.addWidget(self.curve_metadata_toggle)
         curve_layout.addWidget(self.curve_metadata)
         self.result_tabs = tabs
-        tabs.addTab(curve, 'Native curve / bounded samples')
+        tabs.addTab(curve, '보존 곡선')
         split.addWidget(tabs); split.setStretchFactor(0, 1); split.setStretchFactor(1, 3)
         self.stages.setMaximumHeight(180)
         split.setSizes([135, 550])
@@ -116,10 +120,13 @@ class CandidateResultsWindow(QMainWindow):
         row = QHBoxLayout(); self.fields = QComboBox()
         self.fields.setObjectName('candidateRetainedFields')
         self.fields.currentIndexChanged.connect(self._update_actions)
-        self.design_button = QPushButton('Open as new design…')
+        self.design_button = QPushButton('새 설계로 열기…')
         self.design_button.clicked.connect(self.open_design)
-        self.post_button = QPushButton('Open selected retained field in Post')
+        self.post_button = QPushButton('선택 결과를 Post에서 열기')
         self.post_button.clicked.connect(self.open_post)
+        self.transfer_button=QPushButton('전달값 보기')
+        self.transfer_button.clicked.connect(self.open_transfer)
+        row.addWidget(self.transfer_button)
         row.addWidget(self.fields, 1); row.addWidget(self.post_button); row.addWidget(self.design_button); layout.addLayout(row)
         self.setCentralWidget(root)
         self._update_actions()
@@ -144,6 +151,7 @@ class CandidateResultsWindow(QMainWindow):
             (self._composite or {}).get('execution_status') == 'SUCCEEDED' and
             bool((self._composite or {}).get('editable_design', {}).get('calculated')))
         self.post_button.setEnabled(current and not self._busy and self.fields.currentData() is not None)
+        self.transfer_button.setEnabled(current and not self._busy and self._evaluation_index is not None and bool((self._composite or {}).get('transfers')))
         self.curve_read.setEnabled(current and not self._busy and self._evaluation_index is not None
                                    and self.native_location.currentData() is not None)
 
@@ -186,6 +194,7 @@ class CandidateResultsWindow(QMainWindow):
         self._serial += 1
         self._evaluation_index = self._attempt_id = None
         self._composite = self._stage_result = None
+        self.gradient_evidence.set_result({})
         self.stages.setRowCount(0); self.responses.setRowCount(0); self.residuals.setRowCount(0); self.fields.clear()
         self._clear_curve_catalog()
         self._populating = True; self.evaluations.clear(); self._populating = False
@@ -195,15 +204,15 @@ class CandidateResultsWindow(QMainWindow):
             self._check_identity(result)
             self._populating = True; self.evaluations.clear()
             for record in result.get('evaluations', []):
-                label = f"{record['evaluation_index']} · {record.get('execution_status', '?')}"
+                label = '계산 '+str(record['evaluation_index']+1)+' / '+state_description({'state':record.get('execution_status')})
                 if 'stage_execution_count' in record:
-                    label += f" · {record['stage_execution_count']} actual stage calls"
+                    label += f" / 분야 실행 {record['stage_execution_count']}회"
                 else:
-                    label += ' · retained evaluation'
+                    label += ' / 보존 결과'
                 self.evaluations.addItem(label, record['evaluation_index'])
             self._populating = False
             if not self.evaluations.count():
-                self.message.setText('This candidate has no retained evaluation. Its numerical failure/diagnostics remain in the Plan.')
+                self.message.setText('이 후보의 보존 결과가 없습니다. 원 계산의 실패와 진단은 계획에서 확인하세요.')
                 self.diagnostics.setPlainText(json.dumps(result, ensure_ascii=False, indent=2))
             else: self._evaluation_selected()
         self._call(lambda: self.client.numerical_evaluation_result(document, job, candidate), accepted, self._serial)
@@ -212,6 +221,7 @@ class CandidateResultsWindow(QMainWindow):
         if self._populating: return
         self._serial += 1; self._evaluation_index = self.evaluations.currentData(); self._attempt_id = None
         self._composite = self._stage_result = None
+        self.gradient_evidence.set_result({})
         self.stages.setRowCount(0); self.responses.setRowCount(0); self.residuals.setRowCount(0); self.fields.clear()
         self._clear_curve_catalog()
         if self._evaluation_index is None: return
@@ -221,15 +231,23 @@ class CandidateResultsWindow(QMainWindow):
             self._check_identity(result, evaluation=True)
             self._composite = deepcopy(result)
             self._populating = True
-            self._rows(self.stages, [(r.get('iteration'), r.get('stage_id'), r.get('attempt_id'), r.get('state'), r.get('backend'), r.get('reused_from')) for r in result.get('stages', [])])
-            self.stages.setVisible(bool(result.get('stages')))
+            attempts = result.get('stages', []) + result.get('derivative_attempts', [])
+            self._rows(self.stages, [(r.get('iteration'),
+                ('수반 미분 / ' if 'primal_reference' in r else '') + result.get('stage_names', {}).get(r.get('stage_id'), str(r.get('stage_id'))),
+                r.get('attempt_id'), state_description({'state':r.get('state')}),
+                {'thermal.scikit_fem.rectangle':'scikit-fem 정상 열전도'}.get(r.get('backend'),r.get('backend')),
+                '재사용' if r.get('reused_from') else '새 계산') for r in attempts])
+            self.stages.setColumnHidden(2, True)
+            for i,attempt in enumerate(attempts):
+                self.stages.item(i,1).setToolTip(str(attempt.get('attempt_id'))+'\n'+str(attempt.get('backend')))
+            self.stages.setVisible(bool(attempts))
             self.stages.setMaximumHeight(min(180, self.stages.horizontalHeader().height() +
                 sum(self.stages.rowHeight(row) for row in range(self.stages.rowCount())) + 4))
             self._populating = False
             self._rows(self.residuals, [(i.get('iteration'), r.get('stage'), r.get('response'), r.get('unit'), r.get('observed'), r.get('limit'), r.get('passed')) for i in result.get('iterations', []) for r in i.get('checks', [])])
             self._display_result(result)
-            detail = '. Select an attempt to read that stage independently.' if result.get('stages') else '. No stage graph was retained; native channels belong to this exact evaluation.'
-            self.message.setText('Actual retained evaluation: ' + str(result.get('execution_status', 'unknown')) + detail)
+            detail = ' 분야를 선택하면 해당 원 결과를 따로 읽습니다.' if attempts else ' 이 계산에 보존된 채널을 읽습니다.'
+            self.message.setText('보존 계산: ' + state_description({'state':result.get('execution_status')}) + '.' + detail)
         self._call(lambda: self.client.numerical_evaluation_result(document, job, candidate,
             evaluation_index=index, selection={'metadata_only': True}), accepted, self._serial)
 
@@ -246,11 +264,14 @@ class CandidateResultsWindow(QMainWindow):
         def accepted(result):
             self._check_identity(result, evaluation=True, attempt=True)
             self._stage_result = deepcopy(result); self._display_result(result)
-            self.message.setText('Actual stage ' + attempt + ': ' + str(result.get('execution_status', 'unknown')) + '. The parent candidate may have failed independently.')
+            self.message.setText('선택 분야 원 계산: '+state_description({'state':result.get('execution_status')})+
+                '. 원 후보의 미분 검증과 최적화 사용 상태는 아래에서 확인하세요.')
         self._call(lambda: self.client.numerical_evaluation_result(document, job, candidate,
             evaluation_index=index, attempt_id=attempt, selection={'metadata_only': True}), accepted, self._serial)
 
     def _display_result(self, result):
+        context=self._composite or result
+        self.gradient_evidence.set_result(result, eligible=context.get('execution_status') == 'SUCCEEDED',parent=context)
         rows = []
         for name, response in result.get('responses', {}).items():
             value = response.get('value', response.get('data_ref'))
@@ -260,7 +281,14 @@ class CandidateResultsWindow(QMainWindow):
                 {'value': response.get('time'), 'unit': response.get('time_units')}, value))
         self._rows(self.responses, rows)
         self.diagnostics.setPlainText(json.dumps({'execution_status': result.get('execution_status'),
-            'diagnostics': result.get('diagnostics'), 'checks': result.get('checks'), 'stage_attempt': result.get('stage_attempt')}, ensure_ascii=False, indent=2))
+            'parent_execution_status':context.get('parent_execution_status'),
+            'candidate_execution_status':context.get('candidate_execution_status'),
+            'candidate_purpose':context.get('candidate_purpose'),
+            'candidate_gradient_admission':context.get('candidate_gradient_admission'),
+            'gradient_verification':context.get('gradient_verification'),
+            'gradients':result.get('gradients'),'derivatives':result.get('derivatives'),
+            'diagnostics': result.get('diagnostics'), 'checks': result.get('checks'), 'stage_attempt': result.get('stage_attempt'),
+            'stages':result.get('stages'),'derivative_attempts':result.get('derivative_attempts')}, ensure_ascii=False, indent=2))
         self.fields.clear()
         fields = [result['post_input']] if result.get('post_input') else []
         fields += result.get('post_inputs', [])
@@ -268,9 +296,11 @@ class CandidateResultsWindow(QMainWindow):
         for field in fields:
             if not isinstance(field, dict) or not field.get('id') or field['id'] in seen: continue
             seen.add(field['id'])
-            self.fields.addItem(field['id'] + ' · ' + str(field.get('format', 'field')) + ' · ' + str(field.get('sha256', ''))[:12], deepcopy(field))
+            name = field.get('response', '저장 결과')
+            self.fields.addItem({'temperature':'온도','displacement':'변위','stress':'응력'}.get(name, name) +
+                                ' [' + str(field.get('format', 'field')) + ']', deepcopy(field))
         if result.get('backend') == 'structure.calculix.design' and result.get('post_artifact'):
-            self.fields.addItem('Calculated native fields', {'native_candidate': True})
+            self.fields.addItem('계산한 공간 결과', {'native_candidate': True})
         self._native_catalog = deepcopy(result.get('native_channels', {}))
         for name, response in result.get('responses', {}).items():
             if response.get('kind') == 'series':
@@ -278,7 +308,7 @@ class CandidateResultsWindow(QMainWindow):
                     'selectors': [{'selector': name, 'label': name}], 'axes': deepcopy(response.get('axes', []))})
         self.native_channel.blockSignals(True); self.native_channel.clear()
         for name, descriptor in self._native_catalog.items():
-            self.native_channel.addItem(name + ' [' + str(descriptor.get('unit', 'undeclared')) + ']', name)
+            self.native_channel.addItem(name + ' [' + str(descriptor.get('unit', '미기록')) + ']', name)
         self.native_channel.blockSignals(False)
         self._native_channel_selected()
         self._update_actions()
@@ -288,7 +318,7 @@ class CandidateResultsWindow(QMainWindow):
         self.curve_metadata.clear()
         self.curve_values.setRowCount(0)
         self.curve_axes.clear()
-        self.curve_axes.text(.5, .5, 'Read the selected exact retained history.\nNo curve is inferred from scalar or field metadata.',
+        self.curve_axes.text(.5, .5, '채널과 위치를 선택한 뒤 보존된 이력을 읽으세요.\n스칼라나 공간 결과 정보로 곡선을 추정하지 않습니다.',
                              ha='center', va='center', transform=self.curve_axes.transAxes)
         self.curve_canvas.draw_idle()
 
@@ -297,7 +327,7 @@ class CandidateResultsWindow(QMainWindow):
         self.native_channel.blockSignals(True); self.native_channel.clear(); self.native_channel.blockSignals(False)
         self.native_location.blockSignals(True); self.native_location.clear(); self.native_location.blockSignals(False)
         self._clear_curve_data()
-        self.curve_detail.setText('No advertised native history is selected for this record.')
+        self.curve_detail.setText('이 결과에서 읽을 보존 이력을 선택하세요.')
         self._update_actions()
 
     def _native_channel_selected(self, *_):
@@ -315,7 +345,7 @@ class CandidateResultsWindow(QMainWindow):
                     selector = template
                     for key in fields:
                         selector = selector.replace('<' + key + '>', str(point[key]))
-                    label = 'Element {} / point {} / subpoint {}'.format(*(point[key] for key in fields))
+                    label = '요소 {} / 적분점 {} / 세부점 {}'.format(*(point[key] for key in fields))
                     self.native_location.addItem(label, selector)
         elif selectors and not descriptor.get('selectors_truncated'):
             for row in selectors:
@@ -325,7 +355,7 @@ class CandidateResultsWindow(QMainWindow):
             template = descriptor.get('selector_template', str(name) + '@<node_id>')
             if isinstance(template, str) and template.count('<node_id>') == 1:
                 for node in descriptor['node_ids']:
-                    self.native_location.addItem('Node ' + str(node), template.replace('<node_id>', str(node)))
+                    self.native_location.addItem('절점 ' + str(node), template.replace('<node_id>', str(node)))
         else:
             selector = descriptor.get('source', {}).get('selector')
             if isinstance(selector, str) and selector:
@@ -335,8 +365,8 @@ class CandidateResultsWindow(QMainWindow):
 
     def _curve_selection_changed(self, *_):
         self._clear_curve_data()
-        self.curve_detail.setText('Exact selector: ' + str(self.native_location.currentData()) if self.native_location.currentData() is not None
-                                 else 'This record has no supported exact native history selector.')
+        self.curve_detail.setText('선택한 위치의 보존 이력을 읽습니다.' if self.native_location.currentData() is not None
+                                 else '이 결과에는 읽을 수 있는 정확한 위치별 이력이 없습니다.')
         self._update_actions()
 
     def _curve_key(self):
@@ -374,15 +404,15 @@ class CandidateResultsWindow(QMainWindow):
             if not isinstance(rows, list) or len(rows) != len(values):
                 raise ValueError('Retained curve original sample identities differ from its values')
             self._curve_result = deepcopy(response)
-            self._rows(self.curve_values, [(row, x, y, 'valid' if mask is None or mask[i] else 'excluded')
+            self._rows(self.curve_values, [(row, x, y, '사용' if mask is None or mask[i] else '제외')
                 for i, (row, x, y) in enumerate(zip(rows, axis['values'], values))])
             self.curve_axes.clear()
             self.curve_axes.plot(axis['values'], [v if mask is None or mask[i] else math.nan for i, v in enumerate(values)], label=selector)
             self.curve_axes.set_xlabel(str(axis.get('name', 'axis')) + ' [' + str(axis.get('unit', 'undeclared')) + ']')
             self.curve_axes.set_ylabel(selector + ' [' + str(response.get('unit', 'undeclared')) + ']')
             self.curve_axes.legend(); self.curve_canvas.draw_idle()
-            self.curve_detail.setText(selector + ' · ' + str(response.get('unit', 'undeclared')) +
-                ' · samples ' + str(start) + '–' + str(start + len(values)) + ' · exact retained values')
+            self.curve_detail.setText(str(response.get('unit', '미기록')) +
+                ' / 보존 행 ' + str(start) + '–' + str(start + len(values)) + ' / 원자료 값')
             self.curve_metadata.setPlainText(display({'selector': selector, 'component': response.get('component'),
                 'quantity': response.get('quantity'), 'location': response.get('location'),
                 'frame': response.get('frame', response.get('coordinate_frame')), 'measure': response.get('measure'),
@@ -390,7 +420,7 @@ class CandidateResultsWindow(QMainWindow):
                          for axis in response.get('axes', [])],
                 'source': response.get('source'), 'sample_page': [start, start + len(values)]}))
             self.result_tabs.setCurrentIndex(self.result_tabs.count() - 1)
-            self.message.setText('Read ' + str(len(values)) + ' actual retained native samples. No evaluation or adoption was executed.')
+            self.message.setText('보존한 원자료 '+str(len(values))+'개를 읽었습니다. 계산이나 채택은 실행하지 않았습니다.')
         options = {'evaluation_index': index, 'selection': {'responses': [selector], 'rows': [start, start + count]}}
         if attempt is not None:
             options['attempt_id'] = attempt
@@ -413,6 +443,22 @@ class CandidateResultsWindow(QMainWindow):
             from .desktop import _spawn
             return _spawn(self.client, ['pre', '--input-id', receipt['input_id']])
         self._call(launch, lambda _: self.message.setText('Opened the retained calculated candidate as a new design.'), self._serial)
+
+    def open_transfer(self):
+        if self._evaluation_index is None:return
+        document,_,job,candidate=self.identity
+        index=self._evaluation_index
+        # Capture the immutable selection. Later row selection never retargets
+        # an open inspection window or launches a calculation.
+        def read_transfer(transfer_id=None,iteration=None,*,start=0,count=256):
+            query={'start':start,'count':count}
+            if transfer_id is not None:query.update(id=transfer_id,iteration=iteration)
+            return self.client.numerical_evaluation_result(document,job,candidate,
+                evaluation_index=index,selection={'transfer':query})
+        from .transfer_inspection_window import TransferInspectionWindow
+        window=TransferInspectionWindow(self.client,document,job,parent=self,read_transfer=read_transfer)
+        window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose,True)
+        window.show()
 
     def open_post(self):
         field = self.fields.currentData()

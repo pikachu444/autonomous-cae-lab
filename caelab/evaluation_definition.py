@@ -99,16 +99,18 @@ def validate_draft(draft):
         for key in ('input', 'output'):
             if not isinstance(row[key], str) or not row[key].strip():
                 raise ValueError('Choose the exact advertised field port')
-    bindings = set()
+    from .evaluation_shared_inputs import validate_binding, targets
+    bindings, binding_targets = set(), set()
     for row in draft['bindings']:
-        if not isinstance(row, dict) or set(row) != {'id', 'stage', 'input_id', 'unit'}:
-            raise ValueError('Variable binding requires research ID, stage, advertised input ID and unit')
-        check_id(row['id'])
-        if row['id'] in bindings or row['stage'] not in ids:
+        validate_binding(row, ids)
+        if row['id'] in bindings:
             raise ValueError('Binding ID must be distinct and refer to a stage')
         bindings.add(row['id'])
-        if not all(isinstance(row[k], str) and row[k].strip() for k in ('input_id', 'unit')):
-            raise ValueError('Binding input and unit must be explicit')
+        for target in targets(row):
+            key = target['stage'], target['input_id']
+            if key in binding_targets:
+                raise ValueError('An actual stage input cannot be owned by two bindings')
+            binding_targets.add(key)
     outputs = set()
     for row in draft['responses']:
         if not isinstance(row, dict) or set(row) != {'id', 'stage', 'response', 'unit'}:
@@ -222,16 +224,13 @@ def compile_definition(draft, snapshots):
             if port.get('required') and item['model']['settings'].get(name) is None and not any(
                     row['to_stage'] == stage_id and row['input'] == name for row in draft['transfers']):
                 raise ValueError(stage_id + ': required input port ' + name + ' is not connected')
-    seen = set()
-    for binding in draft['bindings']:
-        names = {row['id']: row for row in input_descriptors(compiled[binding['stage']]['model'])}
-        original = names.get(binding['input_id'])
-        key = (binding['stage'], binding['input_id'])
-        if original is None or original['unit'] != binding['unit'] or key in seen:
-            raise ValueError('Binding must select a distinct advertised input with its actual unit')
-        seen.add(key)
-        descriptors.append({**original, 'id': binding['id'], 'stage': binding['stage'], 'input_id': binding['input_id']})
-    return {'definition': draft, 'stages': compiled, 'inputs': descriptors, 'definition_sha256': definition_hash(draft)}
+    from .evaluation_shared_inputs import compile_bindings
+    descriptors = compile_bindings(draft['bindings'], {k:v['model'] for k,v in compiled.items()},
+                                   input_descriptors, bind_values)
+    result = {'definition': draft, 'stages': compiled, 'inputs': descriptors, 'definition_sha256': definition_hash(draft)}
+    from .linear_adjoint_contract import describe_definition
+    result['derivative_capability'] = describe_definition(result)
+    return result
 
 
 class EvaluationDocuments(MaterialDocuments):
@@ -277,7 +276,7 @@ class EvaluationDocuments(MaterialDocuments):
             compiled = compile_definition(document['draft'], self.snapshots(document['draft'], self._documents[identifier]))
             return {'document_id': identifier, 'definition_sha256': compiled['definition_sha256'],
                     'stages': stages,
-                    'inputs': compiled['inputs'], 'diagnostics': [], 'runtime': 'NOT_PROBED'}
+                    'inputs': compiled['inputs'], 'derivative_capability': compiled['derivative_capability'], 'diagnostics': [], 'runtime': 'NOT_PROBED'}
         except (ValueError, KeyError, TypeError, OSError, ImportError) as error:
             return {'document_id': identifier, 'stages': stages, 'inputs': [], 'runtime': 'NOT_PROBED',
                     'diagnostics': errors + [{'path': 'definition', 'message': str(error), 'blocks_evaluation': True}]}
@@ -323,7 +322,8 @@ def _copy_files(source, destination):
                 raise ValueError('Stage files changed during retention')
 
 
-def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reuse_folder=None):
+def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reuse_folder=None,
+            reserve=None, derivative_request=None, cost_role='primal'):
     """Run ordered existing evaluators inline; stage receipts stay under one job."""
     from .backends import get_backend
     import numpy as np
@@ -337,6 +337,7 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
     result = {'kind': 'coupled_evaluation', 'execution_status': 'FAILED', 'responses': {}, 'checks': [],
               'definition_sha256': compiled['definition_sha256'], 'values': values,
               'stages': [], 'iterations': [], 'transfers': [],
+              'stage_names': {row['id']: row['name'] for row in definition['stages']}, 'derivative_attempts': [], 'gradients': None,
               'diagnostics': {'decision': 'NOT_RELEASED', 'convergence_status': 'NOT_STARTED'}}
     def progress(phase, **extra):
         save_json(output / 'progress.json', {**deepcopy(result), 'phase': phase, **extra})
@@ -345,12 +346,10 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
     maximum = definition['iteration']['maximum'] if definition['iteration']['enabled'] else 1
     failed_stage = None
     try:
-        if set(values) - {row['id'] for row in definition['bindings']}:
-            raise ValueError('Candidate contains an undeclared evaluation input')
-        for stage_id in stage_models:
-            assignments = {row['input_id']: values[row['id']] for row in definition['bindings']
-                           if row['stage'] == stage_id and row['id'] in values}
-            stage_models[stage_id] = bind_values(stage_models[stage_id], assignments)
+        from .evaluation_shared_inputs import assign
+        stage_models, result['input_bindings'] = assign(definition['bindings'], stage_models, values,
+                                                       input_descriptors, bind_values)
+        result['initial_state_sha256'] = canonical_hash(stage_models)
         save_json(output / 'input.json', {'definition': definition, 'definition_sha256': compiled['definition_sha256'],
                                         'models': stage_models, 'values': values})
         if reuse and reuse['stages']:
@@ -405,6 +404,9 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
                     stage_result = read_result(folder, verify='all')
                     record.update(reused_from=deepcopy(reuse['source']), original_attempt_id=original['attempt_id'])
                 else:
+                    if reserve:
+                        reserve(1, role=cost_role)
+                    check_cancelled()
                     record['dispatched'] = True
                     record['input_sha256'] = canonical_hash(model)
                     progress('STAGE_RUNNING', active_attempt=attempt_id)
@@ -457,20 +459,27 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
             progress('ITERATING')
         else:
             result['diagnostics'].update(convergence_status='NOT_CONVERGED', reason='Maximum iterations reached')
+        if result['execution_status'] == 'SUCCEEDED' and derivative_request is not None:
+            from .evaluation_adjoint import compute
+            compute(compiled, stage_models, result, output, derivative_request, reserve, progress)
     except ExecutionCleanupFailed:
         progress('CLEANUP_UNCONFIRMED', failed_stage=failed_stage)
         raise
     except ExecutionCancelled as error:
-        result.update(execution_status='CANCELLED', responses={})
+        result.update(execution_status='CANCELLED', responses={}, gradients=None)
         result['diagnostics'].update(reason=str(error), failed_stage=failed_stage, convergence_status='CANCELLED')
         if result['stages'] and result['stages'][-1]['state'] == 'RUNNING':
             result['stages'][-1].update(state='CANCELLED', finished_utc=utc_now())
     except Exception as error:
-        result.update(execution_status='FAILED', responses={})
+        result.update(execution_status='FAILED', responses={}, gradients=None)
         result['diagnostics'].update(reason=str(error), error_type=type(error).__name__, failed_stage=failed_stage)
+        if getattr(error, 'budget_exhausted', False):
+            result['diagnostics']['stop_reason'] = 'EVALUATION_BUDGET_EXHAUSTED'
         if result['stages'] and result['stages'][-1]['state'] == 'RUNNING':
             result['stages'][-1].update(state='FAILED', error=str(error), finished_utc=utc_now())
     result['stage_execution_count'] = sum(row['dispatched'] for row in result['stages'])
+    result['adjoint_execution_count'] = sum(row['dispatched'] for row in result['derivative_attempts'])
+    result['cost_unit'] = 'stage_or_adjoint_dispatch'
     progress('FINISHED')
     result['artifacts'] = [{'path': p.relative_to(output).as_posix(), 'sha256': file_hash(p)}
                            for p in sorted(output.rglob('*')) if p.is_file()]
@@ -480,23 +489,52 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
 
 class DefinitionFactory:
     """Existing numerical engines call this prepared evaluator, with frozen inputs."""
+    @property
+    def uses_stage_budget(self):
+        return self._stage_costs
+
     def __init__(self, compiled, output, run_stage):
         self.compiled, self.output, self.run_stage = deepcopy(compiled), Path(output), run_stage
         self.completed = []
+        self.derivative_request = None
+        self.cost_role = 'primal'
+        # New fan-out and explicit adjoint use actual stage/transpose costs.
+        # Legacy single-target Plans retain their saved complete-evaluation budget.
+        self._stage_costs = any('targets' in b for b in self.compiled['definition']['bindings'])
+
+    def configure_adjoint(self, variables, responses):
+        from .linear_adjoint_contract import configure
+        self.derivative_request = configure(self.compiled, variables, responses)
+        self._stage_costs = True
+        return deepcopy(self.derivative_request)
+
+    def primal_only(self):
+        result = DefinitionFactory(self.compiled, self.output, self.run_stage)
+        result.cost_role = 'verification_primal'
+        result._stage_costs = self._stage_costs
+        return result
 
     def prepare(self, settings=None, *, runtime=None):
         if runtime and set(runtime) - {'threads', 'memory_mb'}:
             raise ValueError('Unsupported composite evaluator runtime options')
+        control = {'budget': None}
+        admission=deepcopy(self.derivative_request)
+        cost_role=self.cost_role
         def evaluate(values):
             folder = self.output / ('candidate-' + uuid.uuid4().hex)
-            result = execute(self.compiled, folder, self.run_stage, values=values)
+            result = execute(self.compiled, folder, self.run_stage, values=values,
+                reserve=control['budget'].reserve if control['budget'] is not None else None,
+                derivative_request=admission, cost_role=cost_role)
             # The numerical row receives an exact link to already-saved bytes.
             # It is not stored inside itself and never causes another evaluation.
             reference = {'relative': folder.relative_to(self.output.parent).as_posix(),
                 'result_sha256': file_hash(folder / 'result.json'),
                 'execution_status': result['execution_status'],
                 'stage_execution_count': result['stage_execution_count'],
+                'adjoint_execution_count': result['adjoint_execution_count'],
                 'definition_sha256': result['definition_sha256']}
             self.completed.append({**deepcopy(reference), 'values': deepcopy(values)})
             return {**result, 'evaluation_refs': [reference]}
-        return PreparedEvaluation(evaluate, deepcopy(settings or {}))
+        prepared = PreparedEvaluation(evaluate, deepcopy(settings or {}))
+        prepared.set_budget = lambda budget: control.update(budget=budget)
+        return prepared

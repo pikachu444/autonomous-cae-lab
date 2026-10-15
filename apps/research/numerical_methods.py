@@ -28,6 +28,7 @@ CHOICE_LABELS = {
     'none':'단일 값', 'max':'최댓값', 'min':'최솟값', 'mean':'평균', 'final':'마지막 증분', 'abs_max':'절댓값 최대',
     'uniform':'균등분포', 'normal':'정규분포', 'truncnorm':'절단 정규분포', 'lognormal':'로그정규분포',
     'least_squares':'최소제곱', 'differential_evolution':'차분 진화',
+    'slsqp_adjoint':'선형 이산 adjoint (SLSQP)', 'native_integral':'유한요소 적분 평균', 'nodal_max':'절점 최댓값',
     'thin_plate_spline':'박판 스플라인', 'cubic':'3차', 'quintic':'5차',
     'multiquadric':'다중 이차', 'inverse_multiquadric':'역 다중 이차',
     'inverse_quadratic':'역 이차', 'gaussian':'가우시안',

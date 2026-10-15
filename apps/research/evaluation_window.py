@@ -20,7 +20,7 @@ _COLUMNS = {
     'stages': [('id', '단계 식별자'), ('name', '단계 이름'), ('source', '저장된 원본 입력')],
     'transfers': [('id', '전달 식별자'), ('from_stage', '공급 단계'), ('output', '출력'),
                   ('to_stage', '수신 단계'), ('input', '입력'), ('mapping', '위치 연결'), ('lag', '전달 시점')],
-    'bindings': [('id', '변수 이름'), ('stage', '단계'), ('input_id', '변경할 입력'), ('unit', '단위')],
+    'bindings': [('id', '변수 이름'), ('stage', '단계'), ('input_id', '변경할 입력'), ('unit', '단위'), ('value', '공유 초기값'), ('bounds', '공유 범위')],
     'responses': [('id', '응답 이름'), ('stage', '단계'), ('response', '단계 응답'), ('unit', '단위')],
     'checks': [('stage', '단계'), ('response', '응답'), ('unit', '단위'),
                ('absolute', '절대 허용값'), ('relative', '상대 허용값'), ('scale', '물리 기준값')],
@@ -187,7 +187,7 @@ class EvaluationWindow(QMainWindow):
             page = QWidget(); page_layout = QVBoxLayout(page)
             note = {'stages': '원본은 저장된 입력을 참조합니다. 물리 조건은 선택 단계의 원본 입력에서 편집하세요.',
                     'transfers': '같은 메시 전달 또는 명시한 P1 온도 보간을 선택합니다. 시간·온도 의미는 전달 설정에서 편집하며 이전 반복 전달에는 반복 계산이 필요합니다.',
-                    'bindings': '변수는 등록된 단일 값 입력에 연결합니다. 단위와 실제 입력을 확인하세요.',
+                    'bindings': '단일 입력 또는 여러 분야의 공유 입력을 연결합니다. 공유 값은 선택한 모든 실제 입력에 한 번씩 적용합니다.',
                     'responses': '계산에서 읽을 단계 응답과 단위를 정합니다. 응답 이름은 실제 계산과 같아야 합니다.'}[key]
             text = QLabel(note); text.setWordWrap(True); page_layout.addWidget(text)
             table = self._table(_COLUMNS[key], editable=True)
@@ -200,6 +200,12 @@ class EvaluationWindow(QMainWindow):
                 add.clicked.connect({'transfers': self.add_transfer, 'bindings': self.add_binding, 'responses': self.add_response}[key])
                 remove.clicked.connect(lambda checked=False, name=key: self.remove_rows(name))
                 row.addWidget(add); row.addWidget(remove)
+                if key == 'bindings':
+                    shared = QPushButton('공유 입력 추가…'); shared.setObjectName('addSharedInput')
+                    shared.clicked.connect(lambda: self.edit_shared_binding(new=True))
+                    edit_shared = QPushButton('선택 입력 설정…'); edit_shared.setObjectName('editSharedInput')
+                    edit_shared.clicked.connect(lambda: self.edit_shared_binding(new=False))
+                    row.addWidget(shared); row.addWidget(edit_shared)
                 if key == 'transfers':
                     self.mapping_button = QPushButton('전달 설정…')
                     self.mapping_button.clicked.connect(self.edit_temperature_mapping)
@@ -299,7 +305,19 @@ class EvaluationWindow(QMainWindow):
             for column, (name, _) in enumerate(columns):
                 value = row.get(name, '')
                 text = display(value)
-                if name == 'source' and isinstance(value, dict):
+                if key=='bindings' and 'targets' in row and name=='id':
+                    text=row.get('label',str(value))
+                elif key == 'bindings' and 'targets' in row and name in ('stage','input_id'):
+                    from .shared_binding_dialog import LABELS
+                    items=row['targets']
+                    if not isinstance(items,list) or any(not isinstance(t,dict) or not isinstance(t.get('stage'),str) or not isinstance(t.get('input_id'),str) for t in items):
+                        text='공유 대상 입력 오류 — 선택 입력 설정에서 수정'
+                    else:
+                        text = (', '.join(dict.fromkeys(self._stage_name(t['stage']) for t in items)) if name == 'stage'
+                                else ', '.join(LABELS.get(t['input_id'], t['input_id']) for t in items))
+                elif key == 'bindings' and name == 'bounds' and isinstance(value,list) and len(value)==2:
+                    text = display(value[0]) + ' .. ' + display(value[1])
+                elif name == 'source' and isinstance(value, dict):
                     text = self._source_titles.get(value.get('document_id')) or '저장된 ' + {'material':'재료', 'pde':'PDE', 'simulation':'해석'}.get(value.get('kind'), '원본') + ' 입력'
                 elif name in ('stage', 'stage_id', 'from_stage', 'to_stage'):
                     text = self._stage_name(value, frozen=key is None)
@@ -325,7 +343,7 @@ class EvaluationWindow(QMainWindow):
                 item = QTableWidgetItem(text); item.setData(ROLE, deepcopy(value))
                 item.setData(DISPLAY_ROLE, text)
                 item.setToolTip(display(value))
-                editable = key == 'stages' and name == 'name' or key == 'transfers' and name == 'lag' or key == 'bindings' and name == 'id' or key == 'responses' and name in ('id', 'response', 'unit') or key == 'checks' and name in ('absolute', 'relative', 'scale')
+                editable = key == 'stages' and name == 'name' or key == 'transfers' and name == 'lag' or key == 'bindings' and name == 'id' and 'targets' not in row or key == 'responses' and name in ('id', 'response', 'unit') or key == 'checks' and name in ('absolute', 'relative', 'scale')
                 if not editable: item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 table.setItem(row_index, column, item)
         for column, (name, _) in enumerate(columns):
@@ -411,6 +429,11 @@ class EvaluationWindow(QMainWindow):
             for index, row in enumerate(rows):
                 for column, (name, _) in enumerate(_COLUMNS[key]):
                     if name == 'source': continue
+                    if key == 'bindings' and ('targets' in row and name in ('stage','input_id')
+                                             or 'targets' not in row and name in ('value','bounds')):
+                        continue
+                    if key == 'bindings' and name in ('value','bounds'):
+                        continue  # Edited only in the shared-input dialog; retain exact types/malformed drafts.
                     pending = focus.text() if isinstance(focus, QLineEdit) and table.isAncestorOf(focus) and table.currentRow() == index and table.currentColumn() == column else None
                     row[name] = item_value(table.item(index, column), numeric=key == 'checks' and name in ('absolute', 'relative', 'scale'), integer=key == 'transfers' and name == 'lag', text=pending)
         result['iteration']['enabled'] = self.iteration_enabled.isChecked()
@@ -696,6 +719,20 @@ class EvaluationWindow(QMainWindow):
                 if current['id'] == row['id']:
                     draft['transfers'][i] = replacement; self._replace_draft(draft); break
 
+    def edit_shared_binding(self, *, new=False, checked=False):
+        if not self._ensure_catalog(lambda: self.edit_shared_binding(new=new, checked=True), checked): return
+        draft = self.edited_draft(); index = self.tables['bindings'].currentRow()
+        if not new and not 0 <= index < len(draft['bindings']):
+            self.message.setText('설정할 입력 행을 선택하세요.'); return
+        from .shared_binding_dialog import SharedBindingDialog
+        original = None if new else draft['bindings'][index]
+        dialog = SharedBindingDialog(self, draft, {stage['id']: self._catalog(stage['id']) or {} for stage in draft['stages']}, original)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            row = dialog.value_draft()
+            if new: draft['bindings'].append(row)
+            else: draft['bindings'][index] = row
+            self._replace_draft(draft)
+
     def add_binding(self, checked=False):
         if not self._ensure_catalog(lambda: self.add_binding(True), checked): return
         stage_id = self._choose_stage('변경할 단계 선택')
@@ -716,10 +753,13 @@ class EvaluationWindow(QMainWindow):
         if not stage_id: return None
         catalog = self._catalog(stage_id) or {}
         outputs = catalog.get('ports', {}).get('outputs', {})
-        choices = list(outputs) + ['응답 이름과 단위 직접 지정…']
-        response, ok = QInputDialog.getItem(self, title, '응답', choices, editable=False)
+        names=list(outputs)
+        labels={'temperature':'온도장','displacement':'변위장','stress':'응력장'}
+        choices=[outputs[n].get('label',labels.get(n,n))+' ['+outputs[n]['unit']+']' for n in names]+['응답 이름과 단위 직접 지정…']
+        selected, ok = QInputDialog.getItem(self, title, '응답', choices, editable=False)
         if not ok: return None
-        if response in outputs: return stage_id, response, outputs[response]['unit']
+        if selected in choices[:-1]:
+            response=names[choices.index(selected)];return stage_id,response,outputs[response]['unit']
         response, ok = QInputDialog.getText(self, title, '단계의 실제 응답 이름')
         if not ok: return None
         unit, ok = QInputDialog.getText(self, title, '응답 단위')

@@ -44,9 +44,11 @@ def _wall_timeout():
     return int(value)
 
 
-def _run_process(command, output, environment, timeout):
+def _run_process(command, output, environment, timeout, *, working_directory=None):
     """Supervise one owned worker without using an implicit solver wall budget."""
+    working_directory = output.resolve() if working_directory is None else Path(working_directory).resolve()
     state = {"status": "PENDING", "pid": None, "timeout_seconds": timeout, "cancelled": False,
+             "working_directory": str(working_directory),
              "cleanup_pending": False, "reason": None, "return_code": None,
              "stdout": "stdout.log", "stderr": "stderr.log", "isolated_process_group": os.name == "posix"}
 
@@ -70,7 +72,7 @@ def _run_process(command, output, environment, timeout):
             persist("CANCELLED", cancelled=True, reason="USER_REQUEST")
             raise
         try:
-            process = subprocess.Popen(command, cwd=output.resolve(), env=environment, stdout=stdout, stderr=stderr,
+            process = subprocess.Popen(command, cwd=working_directory, env=environment, stdout=stdout, stderr=stderr,
                                        start_new_session=os.name == "posix")
         except OSError as exc:
             stderr.write(f"{type(exc).__name__}: {exc}\n".encode("utf-8"))

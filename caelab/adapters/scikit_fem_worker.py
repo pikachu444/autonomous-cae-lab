@@ -107,7 +107,18 @@ def thermal(settings, output):
     prescribed = np.zeros(basis.N)
     prescribed[dofs] = temperature + gx * xy[dofs, 0] + gy * xy[dofs, 1]
     solution, receipt = _solve_condensed(matrix, rhs, dofs, prescribed)
+    save(output/'thermal_solution.json', {'status':'UNVALIDATED', 'unit':'K',
+        'quantity':'absolute_temperature', 'values':solution.tolist(), 'coordinates':geometry['coordinates']})
+    save(output/'assembly.json', receipt)
+    save(output/'progress.json', {'phase':'THERMAL_SOLVED_UNVALIDATED', 'assembly':receipt,
+        'field_artifact':'thermal_solution.json', 'field_status':'NOT_YET_VALIDATED'})
     field = transfer.temperature_field(settings, solution.tolist())
+    # A physical-range/coverage rejection must not erase the actual solved
+    # field. This unvalidated artifact is evidence, never an admissible response.
+    save(output/'thermal_field.json', field)
+    save(output/'assembly.json', receipt)
+    save(output/'progress.json', {'phase':'THERMAL_SOLVED_UNVALIDATED', 'assembly':receipt,
+                                'field_artifact':'thermal_field.json', 'field_status':'NOT_YET_VALIDATED'})
     transfer.validate_capture(field)
     response = basis.interpolate(solution)
     area = float(np.sum(basis.dx))
@@ -129,6 +140,21 @@ def thermal(settings, output):
                      'quadrature_degree': 8}
     responses = {'temperature': field, 'mean_temperature': _scalar(mean, 'K', 'mean_temperature'),
                  'relative_residual': _scalar(receipt['relative_residual'], '1', 'relative_residual', 'algebraic_norm')}
+    if material['beta'] == 0. and lag is None:
+        # Original matrix and quadrature reduction, sealed with the primal.
+        # A later adjoint worker consumes these bytes without another primal.
+        @LinearForm
+        def unit_load(v, w):
+            return v
+        weights_load = unit_load.assemble(basis)
+        matrix = matrix.tocsr()
+        free = np.setdiff1d(np.arange(basis.N, dtype=np.int32), dofs)
+        np.savez_compressed(output/'primal-system.npz', data=matrix.data, indices=matrix.indices,
+            indptr=matrix.indptr, shape=np.asarray(matrix.shape), rhs=rhs, solution=solution,
+            free=free, dirichlet=dofs, weights=weights_load/area, unit_load=weights_load)
+        receipt['assembly_calls'] += 1
+        receipt['retained_primal_system'] = 'primal-system.npz'
+        receipt['response_weight_assembly_calls'] = 1
     save(output/'thermal_field.json', field)
     save(output/'assembly.json', receipt)
     save(output/'forms.txt.json', {'bilinear': 'k_lag*inner(grad(T),grad(v))', 'linear': 'q*v',
@@ -368,7 +394,13 @@ def main(input_path):
             or np.__version__ != versions['numpy']):
         raise RuntimeError('Imported library and distribution versions disagree')
     dispatch = {domain.THERMAL: thermal, domain.STRUCTURAL: structural, domain.WEAK: weak}
-    raw = dispatch[spec['backend']](settings, output)
+    if spec.get('task') == 'adjoint':
+        from caelab.adapters.scikit_fem_adjoint_worker import adjoint
+        raw = adjoint(settings, output, spec)
+    elif 'task' in spec:
+        raise ValueError('Unknown spatial worker task')
+    else:
+        raw = dispatch[spec['backend']](settings, output)
     save(output/'fields.json', raw['responses'])
     raw['diagnostics'].update(versions=versions, decision='NOT_RELEASED', physical_qualification='UNKNOWN',
                               backend_identity=spec['backend'], implementation_version='1',

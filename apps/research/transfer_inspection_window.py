@@ -14,9 +14,10 @@ _ACTIVE_READS=set()
 
 
 class TransferInspectionWindow(QDialog):
-    def __init__(self,client,document_id,job_id,transfer_id=None,iteration=None,parent=None):
+    def __init__(self,client,document_id,job_id,transfer_id=None,iteration=None,parent=None,*,read_transfer=None):
         super().__init__(parent);configure_plot_fonts()
         self.client=client;self.document_id=document_id;self.job_id=job_id
+        self.read_transfer=read_transfer or (lambda *a,**kw:client.evaluation_transfer(document_id,job_id,*a,**kw))
         self._closed=False;self._serial=0;self._rows=[];self._start=0
         self.setWindowTitle('전달값 확인');self.resize(1100,780)
         layout=QVBoxLayout(self);header=QHBoxLayout()
@@ -42,7 +43,7 @@ class TransferInspectionWindow(QDialog):
         self.previous.setEnabled(False);self.next.setEnabled(False)
         self.residual=QLabel();self.residual.setWordWrap(True);layout.addWidget(self.residual)
         self._initial=(transfer_id,iteration)
-        self._read(lambda:client.evaluation_transfer(document_id,job_id),self._catalog)
+        self._read(lambda:self.read_transfer(),self._catalog)
 
     def _read(self,function,accepted):
         self.retry.setEnabled(False)
@@ -79,7 +80,7 @@ class TransferInspectionWindow(QDialog):
         self._start=0;self.mapped_view.clear();self._load()
     def _retry(self):
         if self.selector.currentData():self._load()
-        else:self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id),self._catalog)
+        else:self._read(lambda:self.read_transfer(),self._catalog)
     def _page(self,offset):
         self._start=max(0,self._start+offset);self._load()
     def _load(self):
@@ -90,7 +91,7 @@ class TransferInspectionWindow(QDialog):
         self.status.setToolTip('')
         self.status.setText('선택한 전달값을 읽는 중…')
         start=self._start
-        self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id,*selection,start=start),self._show)
+        self._read(lambda:self.read_transfer(*selection,start=start),self._show)
 
     def _show(self,data):
         states={'SUCCEEDED':'완료','FAILED':'실패','CANCELLED':'취소','REJECTED':'거절','RUNNING':'실행 중',

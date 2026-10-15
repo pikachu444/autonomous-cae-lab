@@ -67,7 +67,7 @@ def main(argv=None):
             action.add_argument('id')
     command = sub.add_parser('documents', help='Open and edit the same document as GUI/MCP')
     actions = command.add_subparsers(dest='action', required=True)
-    for name in ('list','open','read','apply','result','inspect','stages','stage','transfer'):
+    for name in ('list','open','read','apply','result','inspect','stages','stage','transfer','candidate'):
         action = actions.add_parser(name)
         action.add_argument('--url',default='http://127.0.0.1:8766')
         if name=='open':
@@ -75,7 +75,7 @@ def main(argv=None):
             action.add_argument('--kind',choices=['material','data','numerical','pde','expert','simulation','evaluation','study'],default='material')
             action.add_argument('--title',default='Material research')
             action.add_argument('--draft')
-        if name in {'read','apply','result','inspect','stages','stage','transfer'}:
+        if name in {'read','apply','result','inspect','stages','stage','transfer','candidate'}:
             action.add_argument('id')
         if name=='apply':
             action.add_argument('--operation',required=True)
@@ -83,10 +83,15 @@ def main(argv=None):
             action.add_argument('--session',required=True)
             action.add_argument('--generation',type=int,required=True)
             action.add_argument('--command-id')
-        if name in {'result','stages','stage','transfer'}:
+        if name in {'result','stages','stage','transfer','candidate'}:
             action.add_argument('job_id')
         if name=='stage':
             action.add_argument('attempt_id')
+        if name=='candidate':
+            action.add_argument('candidate_id')
+            action.add_argument('--evaluation-index',type=int)
+            action.add_argument('--attempt-id')
+            action.add_argument('--selection',help='Exact retained selection JSON; also supports the declared transfer page')
         if name=='transfer':
             action.add_argument('--transfer-id')
             action.add_argument('--iteration',type=int)
@@ -131,6 +136,10 @@ def main(argv=None):
             result=client.evaluation_stage_result(args.id,args.job_id,args.attempt_id)
         elif args.action=='transfer':
             result=client.evaluation_transfer(args.id,args.job_id,args.transfer_id,args.iteration,start=args.start,count=args.count)
+        elif args.action=='candidate':
+            result=client.numerical_evaluation_result(args.id,args.job_id,args.candidate_id,
+                evaluation_index=args.evaluation_index,attempt_id=args.attempt_id,
+                selection=json_value(args.selection) if args.selection else None)
         elif args.action=='result':
             result=client.document_result(args.id,args.job_id)
         else:

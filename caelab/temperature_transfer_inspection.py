@@ -8,9 +8,12 @@ from .research_workflows import result_folder, evaluation_stage_result
 from .p1_temperature_transfer import original
 
 
-def inspect_mapped(wb, document_id, job_id, result, declaration, record, frozen, progress, *, start, count):
+def inspect_mapped(wb, document_id, job_id, result, declaration, record, frozen, progress, *, start, count, folder=None, read_stage=None):
     from .workbench import contained
-    folder, _ = result_folder(wb, document_id, job_id)
+    if folder is None:
+        folder, _ = result_folder(wb, document_id, job_id)
+    if read_stage is None:
+        read_stage = lambda attempt, selection: evaluation_stage_result(wb, document_id, job_id, attempt, selection)
     targets = [r for r in progress['stages'] if r['stage_id'] == record['to_stage'] and r['iteration'] == record['iteration']]
     if len(targets) != 1:
         raise ValueError('수신 단계 기록이 모호합니다.')
@@ -42,11 +45,11 @@ def inspect_mapped(wb, document_id, job_id, result, declaration, record, frozen,
         else:
             # The exact stage reader verifies payloads. Never replace corrupt
             # bytes with cached receipt values or recalculate a missing field.
-            catalog = evaluation_stage_result(wb, document_id, job_id, attempt['attempt_id'], {'metadata_only': True})
+            catalog = read_stage(attempt['attempt_id'], {'metadata_only': True})
             if snapshot['output'] not in catalog.get('responses', {}):
                 unavailable = '필수 snapshot 출력 없음'
             else:
-                response = evaluation_stage_result(wb, document_id, job_id, attempt['attempt_id'],
+                response = read_stage(attempt['attempt_id'],
                                                    {'responses': [snapshot['output']]})['responses'][snapshot['output']]
                 if index < len(refs):
                     ref = refs[index]
@@ -84,7 +87,7 @@ def inspect_mapped(wb, document_id, job_id, result, declaration, record, frozen,
     unavailable = receipt.get('error') or target.get('error')
     if target.get('dispatched') and target.get('state') in ('SUCCEEDED', 'REJECTED', 'FAILED', 'CANCELLED'):
         try:
-            downstream = evaluation_stage_result(wb, document_id, job_id, target['attempt_id'],
+            downstream = read_stage(target['attempt_id'],
                                                 {'responses': [], 'include_settings': True})
             settings = downstream.get('settings', {})
             received = settings.get(declaration['input'])

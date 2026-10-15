@@ -102,6 +102,12 @@ def numerical_evaluation_result(wb, document_id, job_id, candidate_id, *,
         raise ValueError('Choose an actual candidate evaluation, not a predicted or absent row')
     references = candidate.get('evaluation_refs', [])
     identity = dict(document_id=document_id, job_id=job_id, candidate_id=candidate_id)
+    identity.update(parent_execution_status=deepcopy(parent.get('execution_status')),
+                    candidate_purpose=deepcopy(candidate.get('purpose')),
+                    candidate_gradient_admission=deepcopy(candidate.get('gradient_admission')),
+                    candidate_execution_status=deepcopy(candidate.get('execution_status')))
+    if 'gradient_verification' in parent:
+        identity['gradient_verification'] = deepcopy(parent['gradient_verification'])
     if evaluation_index is None:
         if attempt_id is not None or selection is not None:
             raise ValueError('Select an evaluation index before its stage or response')
@@ -113,17 +119,43 @@ def numerical_evaluation_result(wb, document_id, job_id, candidate_id, *,
     directory = contained(folder, reference['relative'])
     if file_hash(directory / 'result.json') != reference['result_sha256']:
         raise ValueError('Candidate evaluation metadata differs from its retained row')
+    if isinstance(selection,dict) and 'transfer' in selection:
+        if set(selection)!={'transfer'} or attempt_id is not None:
+            raise ValueError('전달값은 단계/응답 선택과 별도로 선택하세요.')
+        query=selection['transfer']
+        if not isinstance(query,dict) or set(query)-{'id','iteration','start','count'}:
+            raise ValueError('전달 이름·반복과 제한된 행 범위만 지정하세요.')
+        progress=read_result(directory,verify='all')
+        frozen=load_json(directory/'input.json')['definition']
+        from .evaluation_definition import definition_hash
+        if definition_hash(frozen)!=progress.get('definition_sha256') or progress['definition_sha256']!=reference['definition_sha256']:
+            raise ValueError('후보의 실제 저장 정의와 원 결과 참조가 다릅니다.')
+        def read_stage(attempt,chosen):
+            stages=[r for r in progress.get('stages',[]) if r['attempt_id']==attempt]
+            if len(stages)!=1:
+                raise ValueError('이 후보의 정확한 단계만 선택하세요.')
+            row=stages[0];stage_folder=contained(directory,row['result_directory'])
+            if not (stage_folder/'result.json').is_file():
+                raise ValueError('This stage has no completed retained result; inspect progress/failure')
+            result=read_result(stage_folder,verify='all',selection=chosen)
+            return {**result,'stage_attempt':deepcopy(row),'parent_job_id':job_id}
+        from .transfer_inspection import inspect_retained
+        viewed=inspect_retained(wb,document_id,job_id,directory,frozen,progress,read_stage,
+            query.get('id'),query.get('iteration'),start=query.get('start',0),count=query.get('count',256))
+        return {**viewed,**identity,'evaluation_index':evaluation_index}
     result = read_result(directory, verify='all',
                          selection={'metadata_only': True} if attempt_id is not None else selection)
     identity['evaluation_index'] = evaluation_index
     if attempt_id is not None:
         check_id(attempt_id)
-        stage = next((row for row in result.get('stages', []) if row['attempt_id'] == attempt_id), None)
+        stage = next((row for row in result.get('stages', []) + result.get('derivative_attempts', [])
+                      if row['attempt_id'] == attempt_id), None)
         if stage is None:
             raise ValueError('Choose an attempt from this exact candidate evaluation')
         stage_directory = contained(directory, stage['result_directory'])
         result = read_result(stage_directory, verify='all', selection=selection)
         result['stage_attempt'] = deepcopy(stage)
+        result['attempt_kind'] = 'adjoint' if 'primal_reference' in stage else 'primal'
     return {**result, **identity}
 
 

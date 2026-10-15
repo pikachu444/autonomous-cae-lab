@@ -21,6 +21,21 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
     if canonical_hash(run['draft'])!=run['input_sha256']:
         raise ValueError('선택 실행의 보존 정의가 다릅니다.')
     frozen=run['draft'];progress=evaluation_progress(wb,document_id,job_id)
+    folder,_=result_folder(wb,document_id,job_id)
+    return inspect_retained(wb,document_id,job_id,folder,frozen,progress,
+        lambda attempt,selection: evaluation_stage_result(wb,document_id,job_id,attempt,selection),
+        transfer_id,iteration,start=start,count=count)
+
+
+def inspect_retained(wb,document_id,job_id,folder,frozen,progress,read_stage,
+                     transfer_id=None,iteration=None,*,start=0,count=256):
+    """Same exact transfer reader over an already verified owner-selected result.
+
+    Internal callers supply the contained folder and original attempt reader;
+    no public path, source substitution, remapping or recomputation is accepted.
+    """
+    if type(start) is not int or start<0 or type(count) is not int or not 1<=count<=1024:
+        raise ValueError('행 범위는 시작 위치와 1~1024개입니다.')
     declarations=frozen.get('transfers',[])
     records=deepcopy(progress.get('transfers',[]))
     for record in records:record['receipt_recorded']=True
@@ -52,7 +67,7 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
         if receipt[key]!=declaration[key]: raise ValueError('전달 기록과 보존 정의가 다릅니다.')
     if declaration['mapping']=='p1_temperature':
         from .temperature_transfer_inspection import inspect_mapped
-        return inspect_mapped(wb,document_id,job_id,result,declaration,receipt,frozen,progress,start=start,count=count)
+        return inspect_mapped(wb,document_id,job_id,result,declaration,receipt,frozen,progress,start=start,count=count,folder=folder,read_stage=read_stage)
     if declaration['mapping']!='exact_same_mesh':
         raise ValueError('현재 조사 화면은 선언된 동일 메시 전달만 지원합니다.')
     stages=progress.get('stages',[])
@@ -71,10 +86,10 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
     # Verify the retained result before checking its catalog. Selecting a missing
     # response directly would raise in the exact reader before we could explain
     # this actual failed binding. Do not catch corrupt-result/hash errors here.
-    catalog=evaluation_stage_result(wb,document_id,job_id,source['attempt_id'],{'metadata_only':True})
+    catalog=read_stage(source['attempt_id'],{'metadata_only':True})
     if declaration['output'] not in catalog.get('responses',{}):
         return missing('공급 결과에 선택한 장이 없습니다. 단계 실패와 원 결과를 확인하세요.')
-    read=evaluation_stage_result(wb,document_id,job_id,source['attempt_id'],{'responses':[declaration['output']]})
+    read=read_stage(source['attempt_id'],{'responses':[declaration['output']]})
     supplied=read['responses'][declaration['output']]
     if receipt['receipt_recorded'] and canonical_hash(supplied)!=receipt['source_response_sha256']:
         raise ValueError('공급 장이 보존된 전달 기록과 다릅니다.')
@@ -87,7 +102,7 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
     try:
         if not receipt['receipt_recorded']:
             raise ValueError('This stage has no completed retained result; inspect progress/failure')
-        downstream=evaluation_stage_result(wb,document_id,job_id,target['attempt_id'],
+        downstream=read_stage(target['attempt_id'],
                                           {'responses':[],'include_settings':True})
         settings=downstream.get('settings',{})
         received=settings.get(declaration['input'])

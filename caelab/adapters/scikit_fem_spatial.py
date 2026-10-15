@@ -22,6 +22,7 @@ _SOURCE_NAMES = (
     'caelab/adapters/scikit_fem_spatial.py',
     'caelab/adapters/scikit_fem_worker.py', 'caelab/adapters/scikit_fem_forms.py',
     'caelab/scikit_fem_models.py', 'caelab/p1_temperature_transfer.py',
+    'caelab/linear_adjoint_contract.py', 'caelab/adapters/scikit_fem_adjoint_worker.py',
     'caelab/dimensioned_models.py', 'caelab/dimensioned_expression.py',
     'plugins/thermoelastic/__init__.py', 'plugins/thermoelastic/reference.py',
     # These files establish the parent-owned supervisor identity. They are not
@@ -76,7 +77,22 @@ class _Spatial:
     def describe_ports(self, settings): return domain.describe_ports(self.backend, settings)
     def bind_port(self, settings, port, response): return domain.bind_port(self.backend, settings, port, response)
 
+    def describe_derivatives(self, settings):
+        from ..linear_adjoint_contract import describe
+        return describe(self.backend, self.validate_settings(settings))
+
     def run(self, settings, *, output, runtime=None):
+        return self._run_task(settings, output=output, runtime=runtime)
+
+    def run_adjoint(self, settings, *, output, primal, request, reference, runtime=None):
+        from ..linear_adjoint_contract import admit_settings
+        admit_settings(self.backend, self.validate_settings(settings), request)
+        names = ('input.json', 'worker_result.json', 'primal-system.npz')
+        files = {name: {'path': Path(primal)/name, 'sha256': _sha(Path(primal)/name)} for name in names}
+        return self._run_task(settings, output=output, runtime=runtime,
+            adjoint={'request':deepcopy(request), 'reference':deepcopy(reference), 'files':files})
+
+    def _run_task(self, settings, *, output, runtime=None, adjoint=None):
         if runtime and set(runtime) - {'threads', 'memory_mb'}:
             raise ValueError('공간 계산은 기존 JobManager의 threads/memory_mb 예약만 사용합니다.')
         settings = self.validate_settings(settings)
@@ -99,7 +115,20 @@ class _Spatial:
             copied.write_bytes(data)
             manifest['files'][name] = {'repository_path': name, 'sha256': hashlib.sha256(data).hexdigest()}
         save_json(native / 'source_manifest.json', manifest)
-        save_json(native / 'input.json', {'backend': self.backend, 'settings': settings})
+        spec = {'backend': self.backend, 'settings': settings}
+        if adjoint is not None:
+            spec.update(task='adjoint', adjoint={key:deepcopy(adjoint[key]) for key in ('request','reference')})
+            spec['adjoint']['files'] = {}
+            for name, source in adjoint['files'].items():
+                if source['path'].is_symlink() or _sha(source['path']) != source['sha256']:
+                    raise ValueError('Primal artifact changed before adjoint capture')
+                target = native/'primal'/name
+                target.parent.mkdir(exist_ok=True)
+                target.write_bytes(source['path'].read_bytes())
+                if _sha(source['path']) != source['sha256'] or _sha(target) != source['sha256']:
+                    raise ValueError('Primal artifact changed during adjoint capture')
+                spec['adjoint']['files'][name] = source['sha256']
+        save_json(native / 'input.json', spec)
         input_sha, manifest_sha = _sha(native / 'input.json'), _sha(native / 'source_manifest.json')
         environment = os.environ.copy()
         for name in ('PYTHONPATH', 'PYTHONHOME', 'VIRTUAL_ENV'):
@@ -109,10 +138,14 @@ class _Spatial:
         command = [sys.executable, '-I', str((native / 'sources/caelab/adapters/scikit_fem_worker.py').resolve()),
                    str((native / 'input.json').resolve())]
         timeout = _wall_timeout()
+        # Windows CreateProcess cannot use a >MAX_PATH current directory. All
+        # captured worker inputs/outputs are absolute and keep their native paths.
+        worker_directory = Path(sys.executable).resolve().parent if os.name == 'nt' else native.resolve()
         save_json(native / 'command.json', {'argv': command, 'timeout_seconds': timeout,
+                  'working_directory': str(worker_directory),
                   'backend': self.backend, 'required_versions': domain.VERSIONS})
         try:
-            _run_process(command, native, environment, timeout)
+            _run_process(command, native, environment, timeout, working_directory=worker_directory)
         except ExecutionCleanupFailed:
             # Do not report CANCELLED or cleaned up when the existing owner
             # could not establish a cleanup terminal state.
@@ -147,6 +180,8 @@ class _Spatial:
         if _read(native / 'fields.json') != raw['responses']:
             raise ValueError('Space field artifact differs from the actual worker response')
         raw.setdefault('diagnostics', {})['retained_worker_artifacts'] = deepcopy(artifacts)
+        raw['artifacts'] = [{'path':'native/'+name,'sha256':expected} for name,expected in artifacts.items()]
+        raw['artifacts'].append({'path':'native/worker_result.json','sha256':_sha(native/'worker_result.json')})
         return raw
 
 

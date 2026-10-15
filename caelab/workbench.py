@@ -629,7 +629,14 @@ class Workbench:
             if set(settings)!={'definition_ref'}:
                 return {'backend':backend,'inputs':[], 'required':['definition_ref'], 'readiness':'NOT_PROBED'}
             compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
+            admission = None
+            if request.get('method') == 'slsqp_adjoint':
+                from .linear_adjoint_contract import configure
+                admission = configure(compiled, request.get('variables', []),
+                    [request.get('objective', {})] + request.get('constraints', []))
             return {'backend':backend, 'inputs':compiled['inputs'], 'responses':compiled['definition']['responses'],
+                    'derivative_capability': compiled['derivative_capability'], 'derivative_admission': admission,
+                    'budget_unit': 'stage_or_adjoint_dispatch' if admission is not None or any('targets' in b for b in compiled['definition']['bindings']) else 'model_evaluation',
                     'readiness':'NOT_PROBED', 'execution':'serial existing stage adapters'}
         if backend=='material.law_native':
             from plugins.material_point import law_native
@@ -660,7 +667,9 @@ class Workbench:
         example=native_example(backend)
         extras={'example_settings':example,'example_notice':'Editable mathematical teaching case; not physical qualification.'} if example else {}
         if callable(getattr(adapter,'describe_inputs',None)) and request.get('settings'):
-            return {'backend':backend,'inputs':adapter.describe_inputs(request['settings']),**extras}
+            derivative = ({'derivative_capability': adapter.describe_derivatives(request['settings'])}
+                          if callable(getattr(adapter, 'describe_derivatives', None)) else {})
+            return {'backend':backend,'inputs':adapter.describe_inputs(request['settings']),**extras,**derivative}
         return {'backend':backend,'input_mode':'native_settings','runtime':'Probe only the chosen backend',
                 'description':'Use the backend documented settings or registered external input declaration',**extras}
 
@@ -749,6 +758,10 @@ class Workbench:
             if execution.get('mode','serial')!='serial' or execution.get('workers',1)!=1:
                 raise ValueError('Reusable stage evaluations require serial execution with one worker')
             compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
+            if arguments.get('method') == 'slsqp_adjoint':
+                from .linear_adjoint_contract import configure
+                configure(compiled, arguments.get('variables', []),
+                    [arguments.get('objective', {})] + arguments.get('constraints', []))
             models=[row['model'] for row in compiled['stages'].values()]
         for model in models:
             actual_threads=max(actual_threads,self.resource_request(model)['threads'])
@@ -807,6 +820,10 @@ class Workbench:
                 options=args.setdefault('options',{})
                 if operation=='fit' and args.get('method','least_squares')!='de':
                     options['max_nfev']=min(options.get('max_nfev',maximum),maximum)
+                elif operation=='optimize' and args.get('method') == 'slsqp_adjoint':
+                    # Native stage/adjoint dispatches use the same hard budget.
+                    if set(options) - {'maxiter','ftol','initial_values','verify_gradient','retain_responses'}:
+                        raise ValueError('SLSQP 선택에는 SLSQP 방법 설정만 사용할 수 있습니다.')
                 elif operation=='epsilon':
                     import math
                     grid=args.get('threshold_grid',[])

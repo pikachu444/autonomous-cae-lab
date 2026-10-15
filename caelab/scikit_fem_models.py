@@ -158,10 +158,14 @@ def describe_ports(backend, settings):
                 if settings['physical']['quantity'] == transfer.ABSOLUTE else {}}
     if backend == THERMAL:
         return {'inputs': {'linearization_temperature': temperature_port(False)},
-                'outputs': {'temperature': temperature_port(False)}}
+                'outputs': {'temperature': temperature_port(False),
+                    'mean_temperature': {'kind':'scalar','unit':'K','component':'mean_temperature',
+                        'location':'domain','reduction':'native_integral','label':'평균 온도'}}}
     result = original.describe_ports({k: v for k, v in settings.items() if k != 'temperature_mode'} | {'temperature': None,
         'time': {'value': float(transfer.clock(settings['time'])), 'unit': 's', 'origin': settings['time']['origin']}}, 'structural')
     result['inputs']['temperature'] = temperature_port(True, quantity=transfer.ABSOLUTE if settings['temperature_mode'] == 'absolute' else transfer.DIFFERENCE)
+    result['outputs']['max_displacement']={'kind':'scalar','unit':'m','component':'max_displacement',
+        'location':'domain','reduction':'nodal_max','label':'최대 변위'}
     return result
 
 

@@ -1,0 +1,246 @@
+{
+  "description": "Actual declarations used by examples.s2_mdo_adjoint; saved stage references are created by existing owner commands at execution, not fabricated in this file.",
+  "models": [
+    {
+      "stage": "Heat",
+      "name": "정상상태 열전도",
+      "backend": "thermal.scikit_fem.rectangle",
+      "settings": {
+        "domain": {
+          "type": "rectangle",
+          "lengths": [
+            1.0,
+            0.25
+          ],
+          "unit": "m",
+          "frame": "global_cartesian"
+        },
+        "mesh": {
+          "cells": [
+            4,
+            4
+          ],
+          "degree": 1,
+          "cell": "triangle"
+        },
+        "time": {
+          "value": 0.0,
+          "unit": "s",
+          "origin": "public_s2_steady_reference"
+        },
+        "validation": {
+          "max_residual_relative": 1e-10
+        },
+        "conductivity": {
+          "value": 40.0,
+          "unit": "W/(m*K)",
+          "beta": 0.003,
+          "beta_unit": "1/K",
+          "reference_temperature": 293.15,
+          "reference_unit": "K"
+        },
+        "heat_source": {
+          "value": 100000.0,
+          "unit": "W/m^3"
+        },
+        "boundary_temperature": {
+          "value": 330.0,
+          "unit": "K"
+        },
+        "linearization_temperature": null,
+        "boundary_gradient": {
+          "values": [
+            0.0,
+            0.0
+          ],
+          "unit": "K/m"
+        }
+      }
+    },
+    {
+      "stage": "Structure",
+      "name": "다른 메시의 열변형",
+      "backend": "structural.scikit_fem.thermoelastic_rectangle",
+      "settings": {
+        "domain": {
+          "type": "rectangle",
+          "lengths": [
+            1.0,
+            0.25
+          ],
+          "unit": "m",
+          "frame": "global_cartesian"
+        },
+        "mesh": {
+          "cells": [
+            5,
+            3
+          ],
+          "degree": 1,
+          "cell": "triangle"
+        },
+        "time": {
+          "value": 0.0,
+          "unit": "s",
+          "origin": "public_s2_steady_reference"
+        },
+        "validation": {
+          "max_residual_relative": 1e-10,
+          "free_expansion_max_error": null,
+          "temperature_uniformity_tolerance": 1e-08
+        },
+        "material": {
+          "young_modulus": 70000000000.0,
+          "young_modulus_unit": "Pa",
+          "poisson_ratio": 0.3,
+          "poisson_ratio_unit": "1",
+          "thermal_expansion": 2.3e-05,
+          "thermal_expansion_unit": "1/K",
+          "reference_temperature": 293.15,
+          "reference_temperature_unit": "K",
+          "assumption": "plane_stress"
+        },
+        "temperature": null,
+        "temperature_mode": "absolute"
+      }
+    }
+  ],
+  "definition_before_selecting_saved_sources": {
+    "stages": [],
+    "transfers": [
+      {
+        "id": "Picard",
+        "from_stage": "Heat",
+        "output": "temperature",
+        "to_stage": "Heat",
+        "input": "linearization_temperature",
+        "mapping": "exact_same_mesh",
+        "lag": 1
+      },
+      {
+        "id": "TtoU",
+        "from_stage": "Heat",
+        "output": "temperature",
+        "to_stage": "Structure",
+        "input": "temperature",
+        "mapping": "p1_temperature",
+        "lag": 0,
+        "options": {
+          "time": {
+            "mode": "exact",
+            "receiver": {
+              "value": 0.0,
+              "unit": "s",
+              "origin": "public_s2_steady_reference"
+            },
+            "sources": [
+              {
+                "stage": "Heat",
+                "output": "temperature"
+              }
+            ],
+            "same_steady_state": null
+          },
+          "required": "all_receiver_nodes",
+          "target_quantity": "absolute_temperature",
+          "target_unit": "K"
+        }
+      }
+    ],
+    "bindings": [
+      {
+        "id": "Tref",
+        "unit": "K",
+        "value": 293.15,
+        "bounds": [
+          285.0,
+          305.0
+        ],
+        "targets": [
+          {
+            "stage": "Heat",
+            "input_id": "conductivity_reference_temperature"
+          },
+          {
+            "stage": "Structure",
+            "input_id": "reference_temperature"
+          }
+        ]
+      }
+    ],
+    "responses": [
+      {
+        "id": "mean_temperature",
+        "stage": "Heat",
+        "response": "mean_temperature",
+        "unit": "K"
+      },
+      {
+        "id": "max_displacement",
+        "stage": "Structure",
+        "response": "max_displacement",
+        "unit": "m"
+      }
+    ],
+    "iteration": {
+      "enabled": true,
+      "maximum": 12,
+      "checks": [
+        {
+          "stage": "Heat",
+          "response": "temperature",
+          "unit": "K",
+          "absolute": 1e-06,
+          "relative": 1e-08,
+          "scale": 300.0
+        }
+      ]
+    },
+    "reuse": null
+  },
+  "numerical_request_before_selecting_saved_definition": {
+    "purpose": "공유 기준온도 반복 열구조 설계",
+    "operation": "optimize",
+    "inputs": {
+      "backend": "evaluation.definition",
+      "settings": {},
+      "variables": [
+        {
+          "id": "Tref",
+          "unit": "K",
+          "lower": 285.0,
+          "upper": 305.0,
+          "value": 293.15,
+          "transform": "linear"
+        }
+      ],
+      "method": "differential_evolution",
+      "objective": {
+        "response": "max_displacement",
+        "unit": "m",
+        "reduction": "nodal_max",
+        "direction": "minimize",
+        "scale": 0.001
+      },
+      "constraints": [
+        {
+          "response": "mean_temperature",
+          "unit": "K",
+          "reduction": "native_integral",
+          "operator": "<=",
+          "limit": 345.0,
+          "scale": 10.0
+        }
+      ],
+      "seed": 17,
+      "options": {
+        "max_generations": 1,
+        "population_size": 5,
+        "retain_responses": "summary"
+      }
+    },
+    "budget": {
+      "evaluations": 200
+    }
+  }
+}

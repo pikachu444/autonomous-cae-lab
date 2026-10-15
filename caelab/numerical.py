@@ -39,15 +39,18 @@ class EvaluationFailed(RuntimeError):
 
 class EvaluationBudgetExceeded(RuntimeError):
     """A candidate group would exceed its declared total model evaluation budget."""
+    budget_exhausted = True
 
 
 class _Budget:
     def __init__(self, limit=None):
         self.limit, self.used = limit, 0
-    def reserve(self, count):
+        self.roles = {}
+    def reserve(self, count, *, role='model'):
         if self.limit is not None and self.used + count > self.limit:
             raise EvaluationBudgetExceeded(f"Evaluation budget {self.limit} exhausted: {self.used} dispatched; next group needs {count}")
         self.used += count
+        self.roles[role] = self.roles.get(role, 0) + count
 
 
 def _number(value, label):
@@ -191,6 +194,8 @@ class _Evaluators:
                 for settings in self.configurations:
                     model = prepare(self.evaluator, settings, runtime=runtime)
                     self.stack.callback(model.close)
+                    if getattr(self.evaluator, 'uses_stage_budget', False):
+                        model.set_budget(self.budget)
                     self.models.append(model)
                 if self.options['mode'] == 'batch' and any(not callable(getattr(model, 'evaluate_batch', None)) for model in self.models):
                     raise ValueError("Batch execution requires an explicit evaluate_batch capability")
@@ -215,7 +220,8 @@ class _Evaluators:
     def many(self, values):
         if self.cancelled():
             raise StudyCancelled('Cancelled before next candidate evaluation')
-        self.budget.reserve(len(values) * len(self.configurations))
+        if not getattr(self.evaluator, 'uses_stage_budget', False):
+            self.budget.reserve(len(values) * len(self.configurations))
         mode = self.options['mode']
         if mode == 'batch':
             by_model = []
@@ -258,13 +264,15 @@ class _Evaluators:
         return {'preparation_seconds': self.preparation_seconds, 'model_seconds_sum': self.model_seconds,
                 'model_calls': self.model_calls, 'mode': self.options['mode'], 'workers': self.options['workers'],
                 'max_evaluations': self.budget.limit, 'dispatched_evaluations_total': self.budget.used,
+                'budget_roles':deepcopy(self.budget.roles),
+                'budget_unit':'stage_or_adjoint_dispatch' if getattr(self.evaluator,'uses_stage_budget',False) else 'model_evaluation',
                 'process_startup_in_first_evaluation': self.options['mode'] == 'process'}
 
 
 def _reason(evaluation):
     if evaluation.get('execution_status') == 'SUCCEEDED':
         return None
-    return evaluation.get('diagnostics', {}).get('failure_reason', evaluation.get('execution_status', 'Missing status'))
+    return evaluation.get('diagnostics', {}).get('failure_reason', evaluation.get('diagnostics', {}).get('reason', evaluation.get('execution_status', 'Missing status')))
 
 
 def _row(identifier, values, evaluation):
@@ -274,7 +282,7 @@ def _row(identifier, values, evaluation):
             'checks': deepcopy(evaluation.get('checks', [])), 'diagnostics': deepcopy(evaluation.get('diagnostics', {}))}
     # An exchange may have completed successfully while its values were only
     # predicted. Preserve that distinction at the first row-construction boundary.
-    for key in ('prediction_status', 'out_of_range', 'source', 'prediction_source', 'evaluation_refs', 'input_binding'):
+    for key in ('prediction_status', 'out_of_range', 'source', 'prediction_source', 'evaluation_refs', 'input_binding', 'input_bindings', 'gradients', 'gradient_provenance', 'derivative_attempts', 'initial_state_sha256', 'stage_names'):
         if key in evaluation:
             result[key] = deepcopy(evaluation[key])
     return result
@@ -376,6 +384,8 @@ def run_doe(evaluator_or_factory, variables, *, settings=None, candidates=None, 
                 outputs = [[_failure(f'{type(error).__name__}: {error}')] for _ in group]
             for item, evaluations in zip(group, outputs):
                 rows.append(_row(item['candidate_id'], item['values'], evaluations[0]))
+                if evaluations[0].get('diagnostics', {}).get('stop_reason') == 'EVALUATION_BUDGET_EXHAUSTED':
+                    stop_reason = 'EVALUATION_BUDGET_EXHAUSTED'
                 if rows[-1]['execution_status'] == 'CANCELLED':
                     stop_reason = 'USER_CANCELLED'
                 if rows[-1]['execution_status'] != 'SUCCEEDED' and models.options['on_failure'] == 'stop':
@@ -431,7 +441,13 @@ def _scalar(evaluation, definition):
 
 
 def optimize(evaluator_or_factory, variables, objective, *, settings=None, constraints=None,
-             seed=0, options=None, execution=None, record=None):
+             seed=0, options=None, execution=None, record=None, method='differential_evolution'):
+    if method == 'slsqp_adjoint':
+        from .numerical_adjoint import optimize_adjoint
+        return optimize_adjoint(evaluator_or_factory, variables, objective, settings=settings,
+            constraints=constraints, seed=seed, options=options, execution=execution, record=record)
+    if method != 'differential_evolution':
+        raise ValueError('Choose differential_evolution or slsqp_adjoint')
     """Existing differential evolution over direct variables and actual responses."""
     domain = domains.VariableDomains(variables)
     variables = domain.variables
@@ -487,6 +503,8 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
             row = domain.attach(_row(f'C{len(rows):06d}', values, evaluation), resolution)
             row.update(objective=None, constraint_residuals=[None] * len(constraints), feasible=False)
             rows.append(row)
+            if evaluation.get('diagnostics', {}).get('stop_reason') == 'EVALUATION_BUDGET_EXHAUSTED':
+                raise EvaluationBudgetExceeded('Stage/adjoint dispatch budget exhausted')
             if evaluation.get('execution_status') == 'CANCELLED' and not journal_only:
                 raise StudyCancelled(str(row['failure_reason']))
             try:

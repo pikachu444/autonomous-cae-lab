@@ -266,6 +266,9 @@ class RequestPlanWindow(NumericalWindow):
         self.sheet_layout.addWidget(self.response_sheet, 2)
         self.method_sheet = self._sheet_table('planMethod', ['방법 설정', '값'])
         self.sheet_layout.addWidget(self.method_sheet, 1)
+        self.adjoint_note=QLabel();self.adjoint_note.setWordWrap(True)
+        self.adjoint_check=QPushButton('미분 지원 확인');self.adjoint_check.clicked.connect(self.check_adjoint_support)
+        self.sheet_layout.addWidget(self.adjoint_note);self.sheet_layout.addWidget(self.adjoint_check)
         method_row = QHBoxLayout()
         self.method_summary = QLabel()
         self.method_summary.setWordWrap(True)
@@ -443,6 +446,9 @@ class RequestPlanWindow(NumericalWindow):
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         self.tabs.addTab(self.details, '기술 상세')
+        from .s2_gradient_widgets import GradientEvidence
+        self.gradient_evidence = GradientEvidence(self)
+        self.tabs.addTab(self.gradient_evidence, '미분 검사')
         observation_panel = self.observation_panel = QWidget()
         observation_layout = QVBoxLayout(observation_panel)
         observation_actions = QHBoxLayout()
@@ -916,7 +922,7 @@ class RequestPlanWindow(NumericalWindow):
                 definition = definition if isinstance(definition, dict) else {}
                 editable = role != 'Response' and isinstance(self._at_path(value, path), dict)
                 self._sheet_cell(self.response_sheet, row, 2, definition.get('reduction'),
-                    path + ('reduction',) if editable else None, choices=('none', 'max', 'min', 'mean', 'final', 'abs_max'))
+                    path + ('reduction',) if editable else None, choices=('none', 'native_integral', 'nodal_max', 'max', 'min', 'mean', 'final', 'abs_max'))
                 key = 'operator' if role in {'Constraint','Threshold'} else 'direction'
                 self._sheet_cell(self.response_sheet, row, 3, definition.get(key),
                     path + (key,) if editable and role in {'Objective','Constraint','Threshold'} else None,
@@ -932,6 +938,18 @@ class RequestPlanWindow(NumericalWindow):
                     ('난수 시드', ('seed',), 0, True, ()),
                     ('응답 보존', ('options', 'retain_responses'), 'summary', False, ('summary', 'all'))]
                 if operation == 'optimize' else [])
+            if operation == 'optimize':
+                method = value.get('method', 'differential_evolution')
+                settings = [('최적화 방법', ('method',), 'differential_evolution', False,
+                             ('differential_evolution','slsqp_adjoint'))] + (settings if method != 'slsqp_adjoint' else [
+                    ('최대 반복', ('options','maxiter'), 40, True, ()),
+                    ('종료 허용값', ('options','ftol'), 1e-9, True, ()),
+                    ('독립 미분 검사', ('options','verify_gradient'), False, False, (True,False)),
+                    ('응답 보존', ('options','retain_responses'), 'summary', False, ('summary','all'))])
+            self.adjoint_note.setVisible(operation=='optimize')
+            selected_adjoint=operation=='optimize' and value.get('method')=='slsqp_adjoint'
+            self.adjoint_check.setVisible(selected_adjoint)
+            self.adjoint_note.setText('선형 정상 열전도의 실제 adjoint를 사용합니다. 전도율·열원·경계온도와 평균온도 적분만 지원하며, primal·adjoint·독립 검사 제출을 각각 예산에서 차감합니다.' if selected_adjoint else '차분 진화는 반복 열구조 후보를 그대로 평가합니다. 공유 입력 후보의 각 분야 계산을 예산에서 차감하며, 비선형 전체 adjoint로 표시하지 않습니다.')
             if operation == 'fit':
                 self.response_sheet.setHorizontalHeaderLabels(['관찰', '모델 응답', '역할', '가중치', '잔차 척도', '관찰 채널'])
                 trials = value.get('experiments', [])
@@ -1018,6 +1036,10 @@ class RequestPlanWindow(NumericalWindow):
         try:
             before=deepcopy(value)
             change(value)
+            if self.operation.currentData()=='optimize' and path==('method',) and isinstance(value.get('options',{}),dict):
+                inactive = ('max_generations','population_size') if value.get('method')=='slsqp_adjoint' else ('maxiter','ftol','verify_gradient')
+                for key in inactive: value.get('options',{}).pop(key,None)
+                # Explicit method change is one normal draft-history edit; Undo restores all prior options.
             if self.operation.currentData()=='epsilon':
                 from .numerical_methods import remap_thresholds
                 remap_thresholds(before,value)
@@ -1039,7 +1061,8 @@ class RequestPlanWindow(NumericalWindow):
         finally:
             self._sheet_populating = False
         self._edited()
-        if self.operation.currentData()=='epsilon' and (path==('primary_index',) or path[0]=='objectives'):
+        if (self.operation.currentData()=='epsilon' and (path==('primary_index',) or path[0]=='objectives')
+                or self.operation.currentData()=='optimize' and path==('method',)):
             QTimer.singleShot(0,self._refresh_worksheet)
 
     def _remove_sheet_entries(self, table):
@@ -1704,6 +1727,18 @@ class RequestPlanWindow(NumericalWindow):
         from .numerical_mixed_plan import select_declared_variables
         return select_declared_variables(self,descriptors)
 
+    def check_adjoint_support(self):
+        if not self.document or self._callbacks or self._busy and not self._busy_background:return
+        context=self._request_context();inputs=deepcopy(self.edited_draft()['request']['inputs'])
+        if inputs.get('backend')!='evaluation.definition':
+            self.message.setText('저장된 선형 Evaluation을 계산 모델로 선택하세요.');return
+        def shown(payload):
+            admitted=payload.get('derivative_admission')
+            self.message.setText('현재 변수·응답·경계조건은 선형 adjoint 지원 범위입니다. 확인 과정에서 계산은 실행하지 않았습니다.' if admitted else
+                '지원 불가: '+str(payload.get('derivative_capability',{}).get('reason','선형 정의와 방법을 선택하세요.')))
+        self._call(lambda:self.client.describe_inputs(inputs),shown,
+            relevant=lambda:self._request_context()==context and not self.conflict)
+
     def choose_model_variables(self):
         if (not self.document or self._view_error or self._callbacks or self._pending_adoption
                 or self._busy and not self._busy_background):
@@ -2161,6 +2196,7 @@ class RequestPlanWindow(NumericalWindow):
     def _draw_result(self):
         job = self.selected_job()
         result = self._result_cache.get(job, {})
+        self.gradient_evidence.set_result(result)
         rows = result.get('candidates', result.get('predictions', []))
         # Both predicted and evaluated selections survive reads of this exact result.
         selected = self.candidates.item(self.candidates.currentRow(),0)

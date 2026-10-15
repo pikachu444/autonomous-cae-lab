@@ -1,0 +1,153 @@
+{
+  "description": "Actual declarations used by examples.s2_mdo_adjoint; saved stage references are created by existing owner commands at execution, not fabricated in this file.",
+  "models": [
+    {
+      "stage": "Heat",
+      "name": "정상상태 열전도",
+      "backend": "thermal.scikit_fem.rectangle",
+      "settings": {
+        "domain": {
+          "type": "rectangle",
+          "lengths": [
+            1.0,
+            0.25
+          ],
+          "unit": "m",
+          "frame": "global_cartesian"
+        },
+        "mesh": {
+          "cells": [
+            4,
+            4
+          ],
+          "degree": 1,
+          "cell": "triangle"
+        },
+        "time": {
+          "value": 0.0,
+          "unit": "s",
+          "origin": "public_s2_steady_reference"
+        },
+        "validation": {
+          "max_residual_relative": 1e-10
+        },
+        "conductivity": {
+          "value": 20.0,
+          "unit": "W/(m*K)",
+          "beta": 0.0,
+          "beta_unit": "1/K",
+          "reference_temperature": 293.15,
+          "reference_unit": "K"
+        },
+        "heat_source": {
+          "value": 10000.0,
+          "unit": "W/m^3"
+        },
+        "boundary_temperature": {
+          "value": 300.0,
+          "unit": "K"
+        },
+        "linearization_temperature": null,
+        "boundary_gradient": {
+          "values": [
+            0.0,
+            0.0
+          ],
+          "unit": "K/m"
+        }
+      }
+    }
+  ],
+  "definition_before_selecting_saved_sources": {
+    "stages": [],
+    "transfers": [],
+    "bindings": [
+      {
+        "id": "k",
+        "stage": "Heat",
+        "input_id": "conductivity",
+        "unit": "W/(m*K)"
+      },
+      {
+        "id": "q",
+        "stage": "Heat",
+        "input_id": "heat_source",
+        "unit": "W/m^3"
+      },
+      {
+        "id": "T0",
+        "stage": "Heat",
+        "input_id": "boundary_temperature",
+        "unit": "K"
+      }
+    ],
+    "responses": [
+      {
+        "id": "mean_temperature",
+        "stage": "Heat",
+        "response": "mean_temperature",
+        "unit": "K"
+      }
+    ],
+    "iteration": {
+      "enabled": false,
+      "maximum": 20,
+      "checks": []
+    },
+    "reuse": null
+  },
+  "numerical_request_before_selecting_saved_definition": {
+    "purpose": "실제 이산 adjoint를 소비하는 열전도 설계",
+    "operation": "optimize",
+    "inputs": {
+      "backend": "evaluation.definition",
+      "settings": {},
+      "variables": [
+        {
+          "id": "k",
+          "unit": "W/(m*K)",
+          "lower": 10.0,
+          "upper": 40.0,
+          "value": 20.0,
+          "transform": "log"
+        },
+        {
+          "id": "q",
+          "unit": "W/m^3",
+          "lower": 5000.0,
+          "upper": 20000.0,
+          "value": 10000.0,
+          "transform": "linear"
+        }
+      ],
+      "method": "slsqp_adjoint",
+      "objective": {
+        "response": "mean_temperature",
+        "unit": "K",
+        "reduction": "native_integral",
+        "direction": "minimize",
+        "scale": 10.0
+      },
+      "constraints": [
+        {
+          "response": "mean_temperature",
+          "unit": "K",
+          "reduction": "native_integral",
+          "operator": "<=",
+          "limit": 302.0,
+          "scale": 10.0
+        }
+      ],
+      "seed": 17,
+      "options": {
+        "maxiter": 30,
+        "ftol": 1e-09,
+        "verify_gradient": true,
+        "retain_responses": "summary"
+      }
+    },
+    "budget": {
+      "evaluations": 80
+    }
+  }
+}
