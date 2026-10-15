@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButto
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
-from caelab.experiment_analysis_actions import ExplicitAnalysisAction,read_analysis_source,source_request_identity
+from caelab.experiment_analysis_actions import ExplicitAnalysisAction,read_analysis_source,source_request_identity,save_analysis_study
 from caelab.experiment_analysis_service import uncertainty_request,final_request
 from caelab.experiment_analysis_reporting import coordinate,blocks,suggested_questions
 from caelab.experiment_final_diagnosis import evaluation_plan,_admission
@@ -116,8 +116,15 @@ class ExperimentAnalysisWindow(QDialog):
                 except (KeyError,ValueError,FileNotFoundError):
                     # A damaged TERMINAL result is not an unfinished input.
                     # Never hide integrity failures by silently selecting a source.
-                    if doc['runs'][-1].get('retained_state',doc['runs'][-1].get('state')) in TERMINAL:raise
-                    if self.client.status(job)['state'] in TERMINAL:raise
+                    run=doc['runs'][-1]
+                    if run.get('retained_result') or run.get('retention_complete'):raise
+                    if run.get('retained_state',run.get('state')) in TERMINAL-{'INTERRUPTED'}:raise
+                    status=self.client.status(job)
+                    if status['state']=='INTERRUPTED' and not status.get('result_refs'):
+                        view=read_analysis_source(self.client,source=source,evidence_reference=ref,plan_mask=inputs.get('plan_mask'))
+                        view['interrupted_without_result']=True
+                        return view,doc,None,None,request,source,ref
+                    if status['state'] in TERMINAL:raise
             view=read_analysis_source(self.client,source=source,evidence_reference=ref,plan_mask=inputs.get('plan_mask'))
             return view,doc,None,None,request,source,ref
         view=read_analysis_source(self.client,source=self.source,evidence_reference=self.evidence_reference)
@@ -190,6 +197,8 @@ class ExperimentAnalysisWindow(QDialog):
         if self.result:self._show_result(self.result)
         elif not final:
             x,label=coordinate(p);self.figure.clear();ax=self.figure.subplots();ax.plot(x,p['values']);ax.set_xlabel(label);ax.set_ylabel('원 교정값 ['+p['unit']+']');self.canvas.draw()
+        if self._view.get('interrupted_without_result'):
+            self.message.setText('이전 계산이 중단되어 결과가 없습니다. 입력을 확인한 뒤 새 계산을 명시적으로 실행하세요.')
         self._update_actions()
 
     def _changed(self,*_):
@@ -304,7 +313,9 @@ class ExperimentAnalysisWindow(QDialog):
             curve=curves[-1] if self.evidence_reference is None else curves[0]
             ax=self.figure.subplots();x,y=curve['x'],curve['y'];mask=curve.get('mask',[True]*len(y))
             yy=[float(v) if ok and isinstance(v,(int,float)) and math.isfinite(v) else math.nan for v,ok in zip(y,mask)]
-            ax.plot(x,yy,marker='.');ax.set_xlabel(curve['x_label']);ax.set_ylabel(curve['y_label'])
+            label=curve['y_label']
+            if label=='선언 범위로 정규화한 잔차 민감도':label='선언 범위로 정규화한\n잔차 민감도'
+            ax.plot(x,yy,marker='.');ax.set_xlabel(curve['x_label']);ax.set_ylabel(label)
         self.canvas.draw();message=next((v for k,v in content if k=='paragraph'),'결과 보존됨')
         if self._loading_request and self._loading_request!=result.get('experiment_analysis',{}).get('request'):
             message+=' · 표·곡선은 보존한 실행 입력의 결과이며 현재 편집 입력과 다를 수 있습니다.'
@@ -330,36 +341,12 @@ class ExperimentAnalysisWindow(QDialog):
             text,ok=QInputDialog.getText(self,'다음 시험','확인할 질문',text=suggested_questions(self.result)[0])
             if not ok or not text.strip():return
             self._study_pending={'question':text,'source_document':self.document['id'],'source_job':self.job_id,'source_session':self.document['session_id'],'create':'C'+uuid.uuid4().hex,'update':'C'+uuid.uuid4().hex,'save':'C'+uuid.uuid4().hex,'observation_id':'O'+uuid.uuid4().hex}
-        pending=self._study_pending;doc,job=pending['source_document'],pending['source_job']
-        def save():
-            if 'document' not in pending:
-                ref=self.client.document_result_reference(doc,job)
-                pending['reference']=deepcopy(ref)
-                pending['document']=self.client.result_followup(ref,'study',session_id=pending['source_session'],command_id=pending['create'])['document']
-            if 'update_snapshot' not in pending:
-                d=self.client.document_read(pending['document']['id']);draft=deepcopy(d['draft'])
-                if isinstance(draft.get('question'),str) and not draft['question'].strip():draft['question']=pending['question']
-                evidence=next((row for row in draft['evidence'] if all(
-                    row.get('reference',{}).get(key)==value for key,value in pending['reference'].items())),None)
-                if evidence is None:
-                    evidence={'id':'E'+uuid.uuid4().hex,'kind':'result','label':'보존한 시험 분석',
-                        'reference':{'kind':'result',**deepcopy(pending['reference'])},'note':''}
-                    draft['evidence'].append(evidence)
-                draft['next_observations'].append({'id':pending['observation_id'],'question':pending['question'],
-                    'hypothesis_ids':[],'evidence_ids':[evidence['id']],'status':'PLANNED',
-                    'note':'사용자가 선택한 다음 시험 질문; 새 계산 없음'})
-                pending['update_snapshot']=(d,draft)
-            if 'updated' not in pending:
-                d,draft=pending['update_snapshot']
-                receipt=self.client.document_command(d['id'],'study.update',{'draft':draft},session_id=d['session_id'],expected_generation=d['generation'],command_id=pending['update'])
-                pending['updated']=receipt['document']
-            updated=pending['updated']
-            return self.client.document_command(updated['id'],'document.save',{},session_id=updated['session_id'],expected_generation=updated['generation'],command_id=pending['save'])
+        pending=self._study_pending
         def opened(receipt):
             self._study_pending=None
             from .study_window import StudyWindow
             window=StudyWindow(self.client,document_id=receipt['document']['id']);self._children.append(window);window.show()
-        self._call(save,opened,write=True)
+        self._call(lambda:save_analysis_study(self.client,pending),opened,write=True)
 
     def _details(self):
         dialog=QDialog(self);dialog.setWindowTitle('원 입력과 실행 진단');dialog.resize(850,620);layout=QVBoxLayout(dialog)

@@ -99,12 +99,40 @@ def test_saved_terminal_integrity_failure_does_not_fall_back_to_live_status_or_s
     _,window=empty_window
     class Client:
         def document_read(self,identifier):
-            return {'draft':{'request':{'operation':'experiment_uncertainty','inputs':{'source':{}}}},
+            return {'id':identifier,'draft':{'request':{'operation':'experiment_uncertainty','inputs':{'source':{}}}},
                 'runs':[{'job_id':'Jold','retained_state':'SUCCEEDED','retention_complete':True}]}
         def document_result(self,*_):raise ValueError('retained hash mismatch')
         def status(self,*_):pytest.fail('Saved terminal failure consulted live status')
     window.client=Client();window._document_id='Nold'
     with pytest.raises(ValueError,match='retained hash mismatch'):window._load()
+
+
+@pytest.mark.parametrize('has_result',[False,True])
+def test_interrupted_empty_plan_reads_same_source_for_explicit_new_run_only(empty_window,monkeypatch,has_result):
+    _,window=empty_window
+    import apps.research.experiment_analysis_window as module
+    source={'kind':'result_response','reference':{'job_id':'Joriginal'},'response':'force'}
+    reads=[]
+    class Client:
+        def document_read(self,identifier):
+            return {'id':identifier,'draft':{'request':{'operation':'experiment_uncertainty',
+                'inputs':{'source':deepcopy(source),'plan_mask':[True,False]}}},'runs':[{'job_id':'Jinterrupted'}]}
+        def document_result(self,*_):raise ValueError('no retained result')
+        def status(self,job):
+            assert job=='Jinterrupted'
+            return {'state':'INTERRUPTED','result_refs':['results/Jinterrupted'] if has_result else []}
+        def document_command(self,*_a,**_k):pytest.fail('opening submitted a command')
+    def read(*_a,**kwargs):reads.append(kwargs);return {'problem':{'original':True}}
+    monkeypatch.setattr(module,'read_analysis_source',read)
+    window.client=Client();window._document_id='Nsame'
+    if has_result:
+        with pytest.raises(ValueError,match='no retained result'):window._load()
+        assert not reads
+    else:
+        view,doc,result,job,request,selected,_=window._load()
+        assert view['interrupted_without_result'] and doc['id']=='Nsame'
+        assert result is job is None and selected==source
+        assert reads==[{'source':source,'evidence_reference':None,'plan_mask':[True,False]}]
 
 
 def test_reread_keeps_table_selection_only_for_the_same_saved_job(empty_window,monkeypatch):

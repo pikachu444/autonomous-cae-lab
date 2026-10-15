@@ -4,7 +4,8 @@ from html import escape
 import json
 import math
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
     QSplitter, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -76,20 +77,31 @@ class ReferenceContent(QWidget):
             self.body.setPlainText(str(payload.get('message') or '자료를 읽을 수 없습니다.'))
             return
         kind = payload.get('kind')
-        if kind == 'numerical_candidate_evidence':
+        analysis = kind == 'result' and (payload.get('result') or {}).get('kind') in {
+            'experiment_uncertainty', 'experiment_identification'}
+        if kind == 'numerical_candidate_evidence' or analysis:
             # Reuse the Report renderer on the exact resolved saved snapshot.
             # This is presentation only: no current owner, evaluator or command.
             from .report_pages import compose
-            draft={'title':'보고서에 저장한 계산', 'sections':[{
-                'id':'Eview','title':'선택 후보 결과','text':'',
+            draft={'title':'보존한 시험 분석' if analysis else '보고서에 저장한 계산', 'sections':[{
+                'id':'Eview','title':'시험 분석 결과' if analysis else '선택 후보 결과','text':'',
                 'include':True,'table':True,'curve':True,'asset':{'id':'Aview'}}]}
             document=compose(draft,{'Aview':{'source_status':'AVAILABLE',
                 'content':payload}},self.body.font())
+            if analysis:
+                document.setDocumentMargin(6)
+                cursor=QTextCursor(document)
+                # The host already names this source. Remove only compose's
+                # three generated heading/text blocks, keeping result content.
+                cursor.setPosition(document.findBlockByNumber(3).position(),
+                    QTextCursor.MoveMode.KeepAnchor)
+                cursor.removeSelectedText()
             document.setParent(self.body)
             previous=getattr(self,'_candidate_document',None)
             self.body.setDocument(document)
             self._candidate_document=document
             if previous is not None:previous.deleteLater()
+            self._fit_analysis_document()
             return
         if kind == 'comparison':
             from .report_pages import blocks,value_text
@@ -165,6 +177,16 @@ class ReferenceContent(QWidget):
         self.candidate.blockSignals(False)
         self.candidate.setVisible(bool(self._rows))
         self._draw_result()
+
+    def _fit_analysis_document(self):
+        payload=self.payload or {}
+        if payload.get('kind')=='result' and (payload.get('result') or {}).get('kind') in {
+                'experiment_uncertainty','experiment_identification'}:
+            self.body.document().setTextWidth(max(240,self.body.viewport().width()-8))
+
+    def resizeEvent(self,event):
+        super().resizeEvent(event)
+        QTimer.singleShot(0,self._fit_analysis_document)
 
     def _draw_result(self, *_):
         if not self.payload or self.payload.get('kind') != 'result':

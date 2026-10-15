@@ -38,6 +38,33 @@ class ExplicitAnalysisAction:
             expected_generation=d['generation'],command_id=self.ids['finish'])
 
 
+def save_analysis_study(client,pending):
+    """Append the chosen question using the same exact result and retry receipts."""
+    if 'document' not in pending:
+        ref=client.document_result_reference(pending['source_document'],pending['source_job'])
+        pending['reference']=deepcopy(ref)
+        pending['document']=client.result_followup(ref,'study',session_id=pending['source_session'],command_id=pending['create'])['document']
+    if 'update_snapshot' not in pending:
+        d=client.document_read(pending['document']['id']);draft=deepcopy(d['draft'])
+        if isinstance(draft.get('question'),str) and not draft['question'].strip():draft['question']=pending['question']
+        evidence=next((row for row in draft['evidence'] if all(
+            row.get('reference',{}).get(key)==value for key,value in pending['reference'].items())),None)
+        if evidence is None:
+            evidence={'id':'E'+uuid.uuid4().hex,'kind':'result','label':'보존한 시험 분석',
+                'reference':{'kind':'result',**deepcopy(pending['reference'])},'note':''}
+            draft['evidence'].append(evidence)
+        draft['next_observations'].append({'id':pending['observation_id'],'question':pending['question'],
+            'hypothesis_ids':[],'evidence_ids':[evidence['id']],'status':'PLANNED',
+            'note':'사용자가 선택한 다음 시험 질문; 새 계산 없음'})
+        pending['update_snapshot']=(d,draft)
+    if 'updated' not in pending:
+        d,draft=pending['update_snapshot']
+        receipt=client.document_command(d['id'],'study.update',{'draft':draft},session_id=d['session_id'],expected_generation=d['generation'],command_id=pending['update'])
+        pending['updated']=receipt['document']
+    updated=pending['updated']
+    return client.document_command(updated['id'],'document.save',{},session_id=updated['session_id'],expected_generation=updated['generation'],command_id=pending['save'])
+
+
 def read_analysis_source(client, *, source=None, evidence_reference=None, plan_mask=None):
     """Preview original values/cost without creating a Plan or executing models."""
     from .storage import canonical_hash

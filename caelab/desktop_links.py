@@ -465,9 +465,9 @@ class DesktopLinks:
                 elif kind=='study':
                     from .study_document import default_draft as study_draft
                     draft=study_draft()
-                    draft['question']='What does this retained result support, and what observation could distinguish competing explanations?'
-                    draft['evidence']=[{'id':'Eresult','label':source_ref['job_id'],'kind':'result',
-                        'reference':{'kind':'result',**deepcopy(source_ref)},'note':'Exact retained input and result; no engineering approval inferred.'}]
+                    draft['question']='이 결과가 뒷받침하는 판단은 무엇이며, 다음 시험에서 무엇을 확인할까요?'
+                    draft['evidence']=[{'id':'Eresult','label':'보존한 계산 결과','kind':'result',
+                        'reference':{'kind':'result',**deepcopy(source_ref)},'note':'원 입력과 계산 결과를 보존했습니다. 공학적 승인을 뜻하지 않습니다.'}]
                 else:
                     if not isinstance(request,dict):
                         raise ValueError('A Numerical follow-up needs an explicitly edited request; nothing is inferred or submitted')
@@ -485,7 +485,7 @@ class DesktopLinks:
             target=prepared['document_id']
             with owner._lock(target):
                 document=(owner.read(target) if (owner._folder(target)/'working.json').exists() or owner._manifest(target) else
-                    owner.open(_new_id=target,title='Follow-up — '+source_ref['job_id'],draft=prepared['draft']))
+                    owner.open(_new_id=target,title='계산 결과 검토' if kind=='study' else 'Follow-up — '+source_ref['job_id'],draft=prepared['draft']))
                 save_json(path,{**prepared,'state':'SUCCEEDED'})
             return {'document':document,'source':deepcopy(source_ref),'command_id':command_id,'executed':False}
 

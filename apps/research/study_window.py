@@ -19,6 +19,7 @@ from caelab.workbench_client import Client
 from .numerical_window import NumericalWindow
 from .runner_window import readonly_table
 from .reference_content import ReferenceContent
+from . import study_presentation
 
 
 DATA = Qt.ItemDataRole.UserRole
@@ -58,6 +59,8 @@ class StudyWindow(NumericalWindow):
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
 
     def _build_ui(self):
+        from .appearance import configure_plot_fonts
+        configure_plot_fonts()
         self.resize(1440, 900)
         bar = QToolBar('연구 기록', self)
         self.addToolBar(bar)
@@ -354,6 +357,7 @@ class StudyWindow(NumericalWindow):
         self.refs_layout.setDirection(QBoxLayout.Direction.LeftToRight if vertical else QBoxLayout.Direction.TopToBottom)
         self.editor.layout().setContentsMargins(0, 8, 0, 0) if vertical else self.editor.layout().setContentsMargins(10, 0, 0, 0)
         compact = vertical and not self.editor.isHidden()
+        self.followup_basis.setVisible(bool(self.followup_basis.text()) and self.editor.isHidden())
         self.source_kind.setVisible(not compact)
         self._update_source_title(compact)
         QTimer.singleShot(0, self._update_source_title)
@@ -392,8 +396,8 @@ class StudyWindow(NumericalWindow):
 
     def _question_edited(self):
         if not self._populating and not self._raw_mode:
-            self._buffer['question'] = self.question.toPlainText()
-            self.question_preview.setText(self._buffer['question'] or '연구 질문을 작성하세요.')
+            self._buffer['question'] = study_presentation.question_value(self.document,self._buffer,self.question.toPlainText())
+            self.question_preview.setText(study_presentation.question(self.document,self._buffer) or '연구 질문을 작성하세요.')
             self._edited()
 
     def _raw_edited(self):
@@ -439,8 +443,9 @@ class StudyWindow(NumericalWindow):
         self.raw.setPlainText(json.dumps(self._buffer, ensure_ascii=False, indent=2))
         if pending_raw is not None and self._raw_mode:
             self.raw.setPlainText(pending_raw)
-        self.question.setPlainText(str(self._buffer.get('question', '')))
-        self.question_preview.setText(str(self._buffer.get('question', '')) or '연구 질문을 작성하세요.')
+        question=study_presentation.question(document,self._buffer)
+        self.question.setPlainText(str(question))
+        self.question_preview.setText(str(question) or '연구 질문을 작성하세요.')
         self._populate_entries()
         self._populate_evidence()
         self._show_detail()
@@ -542,7 +547,8 @@ class StudyWindow(NumericalWindow):
             'next_observations': '다음 확인사항', 'evidence': '자료 메모'}.get(kind, ''))
         self.statement_label.setText('메모' if kind == 'evidence' else '진술' if kind in {'hypotheses', 'decisions'} else '내용')
         title = self._evidence_label(row) if kind == 'evidence' else str(row.get('title', row.get('question', ''))) if row else ''
-        text = str(row.get('statement', row.get('note', ''))) if row else ''
+        text = (study_presentation.evidence_note(row) if kind=='evidence'
+            else str(row.get('statement', row.get('note', '')))) if row else ''
         if self.detail_title.text() != title:
             self.detail_title.setText(title)
         if self.detail_text.toPlainText() != text:
@@ -580,7 +586,7 @@ class StudyWindow(NumericalWindow):
 
     @staticmethod
     def _evidence_label(row):
-        label = str(row.get('label', '자료'))
+        label = study_presentation.evidence_label(row)
         # Old generated captions appended identities. Change presentation only;
         # never rename a user file or modify the saved evidence label.
         for key in ('job_id', 'turn_id'):
@@ -607,7 +613,7 @@ class StudyWindow(NumericalWindow):
             self._update_reading_title()
         self.followup_basis.setText(('판단: ' if self._selected and self._selected[0] == 'decisions' else '') +
             str(row.get('title', row.get('question', row.get('label', '')))) if row and self._selected[0] != 'evidence' else '')
-        self.followup_basis.setVisible(bool(self.followup_basis.text()))
+        self.followup_basis.setVisible(bool(self.followup_basis.text()) and self.editor.isHidden())
         self.note_button.setEnabled(evidence is not None and not self._raw_mode)
         if evidence is None:
             self._content_key = self._content_reference = self._content_pending = None
@@ -724,7 +730,8 @@ class StudyWindow(NumericalWindow):
         text_key = 'statement' if 'statement' in row else 'note'
         original_title = self._evidence_label(original) if self._selected[0] == 'evidence' else str(original[title_key])
         row[title_key] = deepcopy(original[title_key]) if self.detail_title.text() == original_title else self.detail_title.text()
-        row[text_key] = deepcopy(original[text_key]) if self.detail_text.toPlainText() == str(original[text_key]) else self.detail_text.toPlainText()
+        original_text = study_presentation.evidence_note(original) if self._selected[0]=='evidence' else str(original[text_key])
+        row[text_key] = deepcopy(original[text_key]) if self.detail_text.toPlainText() == original_text else self.detail_text.toPlainText()
         if 'status' in row:
             row['status'] = deepcopy(self.detail_status.currentData())
         for key, choices in self.link_lists.items():
@@ -1164,7 +1171,7 @@ class StudyWindow(NumericalWindow):
         self.reload_button.setEnabled(available)
         self.copy_button.setEnabled(available)
         if present:
-            self.setWindowTitle('Study — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+            self.setWindowTitle(study_presentation.title(self.document) + (' *' if self.local_dirty or self.document.get('dirty') else ''))
             self.identity.setText('')
         self._schedule_content_read()
 

@@ -223,6 +223,8 @@ def blocks(content):
 
 
 def plot_bytes(curve):
+    from .appearance import configure_plot_fonts
+    configure_plot_fonts()
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     fig = Figure(figsize=(7.1, 3.1), dpi=130)
