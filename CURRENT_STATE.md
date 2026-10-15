@@ -254,7 +254,7 @@ Material의 명시 DP·초탄성/점탄성 point–FE·저장 개정의 해석 �
 프로세스 cold 읽기를 확인했다. 원 모델·출처·수치 소스·실패 Job은 불변이며 새 owner는
 재적용 없이 같은 입력을 만들었다. cold 계산·새 Job은 없고 모든 소유 Job을 종료했다.
 앞선 합성 세 법칙 계산은 반복하지 않았다. Sol의 모델 편집·피팅 연결·유실 응답 재개
-GUI 교정과 한국어 화면/사용법을 함께 게시 준비한다. 원본은
+GUI 교정과 한국어 화면/사용법을 `583ad1a`로 원격 main에 게시하고 일치를 확인했다. 원본은
 `_workspace/delivery-data-material/law-native-return/`, C1은 `law-native-c1-return/`에 있다.
 
 PDE S1 실제 구현도 회수해 전용24개·기존2개·공통11개와 기존 MCP 연결을 통합했다.
@@ -313,7 +313,9 @@ Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실�
 검사 완료를 확인했다. 첫 pvpython 실행은 DLL을 찾지 못하는 Windows 오류로 즉시
 종료됐으며 특정 누락 DLL은 로그에 없다. smoke·비교·cold는 미완료다. 기존 빌드 도구의
 직접 DLL 의존과 누락된 stderr 출력·설치 완료 기록 시점만 보완했으며, 누락을 추측한
-복사나 새 전체 빌드는 하지 않았다. 공개 표준 Windows runner만 사용하며 아직
+복사는 하지 않았다. 진단 보완을 `e783606`으로 게시하고 같은 빌드의 누락 DLL을 확인할
+새 공개 표준 Windows 실행 `38719038490`을 한 번 시작했다. 실제 SDK·plugin 작성과
+로드 문제를 해결하는 작업이며 다른 제품 개발은 병행한다. 아직
 native plugin 사용/실창 성공은 아니다. 원 결과는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
