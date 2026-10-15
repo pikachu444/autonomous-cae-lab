@@ -32,6 +32,10 @@ build glue는 GitHub-hosted CI 환경인지도 확인하여 로컬의 기존 Pyt
 `tar.exe` 경로들이 한 명령으로 결합된 연결 오류였으며, 실행 경로를 읽는 곳에서
 첫 실행 파일 하나만 선택하도록 교정했다. SDK 컴파일이나 native 검사는 아직 시작되지 않았다.
 
+두 번째 실행은 runner의 기본 `tar.exe`에 LZMA 코덱이 없어 같은 단계에서 멈췄다.
+이미 필수 도구인 CMake의 `-E tar`를 사용해 고정된 7zip/XZ 입력을 푼다.
+압축을 풀기 전 경로·link 검사와 SHA256 검증은 유지하며 새 도구를 설치하지 않는다.
+
 ## 입력과 실제로 검사할 범위
 
 - 공식 ParaView6.2.0 source archive와 공식 공개 Qt6.9.0/MSVC2022 네 archive를

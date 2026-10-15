@@ -22,15 +22,18 @@ function Assert-ArchiveMembers([string[]]$Members) {
 }
 
 function Expand-PinnedArchive([string]$Archive, [string]$Destination) {
-    $tar = (Get-Command tar.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-    $members = @(& $tar -tf $Archive)
+    # The Windows Server system tar can lack LZMA. CMake is already required
+    # for this SDK and its archive command supports the pinned 7zip/XZ inputs.
+    $cmake = (Get-Command cmake.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    $Archive = [IO.Path]::GetFullPath($Archive)
+    $members = @(& $cmake -E tar tf $Archive)
     if ($LASTEXITCODE -ne 0) { throw "Cannot list verified archive: $Archive" }
     Assert-ArchiveMembers $members
-    $details = @(& $tar -tvf $Archive)
+    $details = @(& $cmake -E tar tvf $Archive)
     if ($LASTEXITCODE -ne 0 -or @($details | Where-Object { $_ -match '^[lh]' }).Count) {
         throw "Archive listing failed or contains links: $Archive"
     }
-    & $tar -xf $Archive -C $Destination
+    & $cmake -E chdir $Destination $cmake -E tar xf $Archive
     if ($LASTEXITCODE -ne 0) { throw "Archive extraction failed: $Archive" }
 }
 
