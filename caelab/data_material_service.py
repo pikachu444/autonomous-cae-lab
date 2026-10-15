@@ -8,6 +8,7 @@ from copy import deepcopy
 
 from .related_save import RelatedSaveCoordinator, input_identity
 from .related_save_edits import preview_edits, execute_edits
+from .related_save_recovery import RawRecoveryDrafts
 from .data_processing import make_sheet_group, read_sheet_group, compile_selection, channel_from_import
 from .material_control import capabilities, uniaxial_settings
 
@@ -16,6 +17,7 @@ class DataMaterialService:
     def __init__(self, workbench):
         self.workbench = workbench
         self.saves = RelatedSaveCoordinator(workbench.root, workbench._document_owner)
+        self.recovery = RawRecoveryDrafts(workbench.root, workbench._document_owner)
         # This is the same Numerical owner, not a separately cached Plan editor.
         workbench.numerical_documents.resolve_processing = workbench.data_documents.processing_result
 
@@ -48,7 +50,6 @@ class DataMaterialService:
         source = result['diagnostics']['processing_record']['source']
         return propose_sample_policy(channel_from_import(result, source, response),
             role=role, weight=weight, raw_selection=raw_selection)
-
 
     def sample_policy_adopt(self, document_id, experiment_id, proposal, *, session_id,
                             expected_generation, command_id, entries=None):
@@ -93,7 +94,6 @@ class DataMaterialService:
                 session_id=session_id, expected_generation=expected_generation, command_id=command_id)
             return {**response, 'sample_policy': policy, 'saved': False}
 
-
     def sheet_group_preview(self, references):
         if not isinstance(references, list) or not 1 <= len(references) <= 128:
             raise ValueError('Select 1 to 128 exact saved Data references')
@@ -114,6 +114,16 @@ class DataMaterialService:
     def dispatch(self, operation, arguments):
         """JSON-friendly public API. Every mutation uses explicit owner CAS IDs."""
         methods = {
+            'recovery.identity': self.recovery.owner_identity,
+            'recovery.prepare': self.recovery.prepare,
+            'recovery.execute': self.recovery.execute,
+            'recovery.read': self.recovery.read,
+            'recovery.inspect': self.recovery.inspect,
+            'recovery.source_preview': self.recovery.source_preview,
+            'recovery.portable_payload': self.recovery.portable_payload,
+            'recovery.recover': self.recovery.recover,
+            'recovery.discard': self.recovery.discard,
+            'recovery.close_permitted': self.recovery.close_permitted,
             'related_save.preview': self.saves.preview,
             'related_save.execute': self.saves.execute,
             'related_save.retry': self.saves.retry,
@@ -146,12 +156,16 @@ def handle_http(handler, method, query):
     from apps.lab.service import ServiceError
     if method != 'POST' or query:
         raise ServiceError(400, 'Data/Material actions use authenticated POST without a query')
-    # Two owner buffers may each use the existing 96 KiB draft allowance.
-    # Only this action endpoint uses the explicit 2 MiB ceiling; ordinary
-    # command endpoints retain their original 128 KiB admission limit.
-    body = handler._json_body(maximum=2 * 1024 * 1024)
+    # Compact recovery reviews carry at most 16 existing 512 KiB raw
+    # buffers, not whole historical documents/DAGs. Keep a bounded envelope;
+    # native/ordinary command limits remain unchanged.
+    body = handler._json_body(maximum=12 * 1024 * 1024)
     if not isinstance(body, dict) or set(body) != {'operation', 'arguments'}:
         raise ServiceError(400, 'Data/Material action requires operation and arguments')
+    if not str(body['operation']).startswith('recovery.'):
+        import json
+        if len(json.dumps(body, ensure_ascii=False).encode('utf-8')) > 2 * 1024 * 1024:
+            raise ServiceError(413, 'Data/Material non-recovery action exceeds 2 MiB')
     try:
         result = handler.server.data_material.dispatch(body['operation'], body['arguments'])
     except (ValueError, TypeError, KeyError, FileNotFoundError) as error:

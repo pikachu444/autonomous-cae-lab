@@ -105,6 +105,39 @@ class MaterialDocuments(RetainedComparisons):
     def _persist_draft(self, document):
         save_json(self._folder(document['id']) / 'working.json', document)
 
+    def acknowledged_state(self, identifier):
+        """Exact owner/durable state for read-only recovery; never a UI projection.
+
+        Working persistence acknowledges the entire internal document, including
+        run/reference/Undo metadata. A published saved pointer is independently
+        verified. An unresolved write cannot be healed by a Keep operation.
+        """
+        with self._lock(identifier):
+            if identifier not in self._documents:
+                self.read(identifier)
+            document = deepcopy(self._documents[identifier])
+            path = self._folder(identifier) / 'working.json'
+            before = file_hash(path)
+            durable = load_json(path)
+            if file_hash(path) != before or canonical_hash(durable) != canonical_hash(document):
+                raise ValueError('Acknowledged owner and durable working content differ')
+            manifest = self._manifest(identifier)
+            revision = (manifest or {}).get('revision')
+            if revision != document.get('saved_revision') or revision != document.get('_disk_revision'):
+                raise ValueError('Published saved pointer and acknowledged owner differ')
+            if manifest:
+                folder = self._folder(identifier) / 'revisions' / check_id(revision)
+                if file_hash(folder / 'revision.json') != manifest['revision_sha256']:
+                    raise ValueError('Acknowledged saved revision manifest changed')
+                saved = self._verify_revision(identifier, revision)
+                if (saved.get('id') != identifier or saved.get('saved_revision') != revision
+                        or self._fingerprint(saved) != manifest['fingerprint']
+                        or document.get('_saved_fingerprint') != manifest['fingerprint']):
+                    raise ValueError('Acknowledged saved reference content differs')
+            return {'document': document, 'durability': {'working_sha256': before,
+                    'working_content_sha256': canonical_hash(durable),
+                    'published_manifest': deepcopy(manifest)}}
+
     def _manifest(self, identifier):
         path = self._folder(identifier) / 'document.json'
         return load_json(path) if path.exists() else None
@@ -365,6 +398,7 @@ class MaterialDocuments(RetainedComparisons):
                 document['_save_command'] = save_marker(document, command_id, signature)
                 document['_save_command']['content_sha256'] = self._fingerprint(document)
                 self._save(document)
+                self._persist_draft(document)  # acknowledge the published saved pointer too
             else:
                 if operation in {self.update_operation, 'document.undo', 'document.redo'}:
                     from .related_save_edits import mutation_marker
