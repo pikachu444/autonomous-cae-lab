@@ -1,6 +1,5 @@
 """Open retained processed observations in Numerical's public trial editor."""
 from copy import deepcopy
-from time import monotonic
 from PySide6.QtCore import QTimer
 from shiboken6 import isValid
 
@@ -8,7 +7,8 @@ from shiboken6 import isValid
 def open_processing_plan(data_window, result, response_name):
     from .numerical_window import NumericalWindow
     from .data_material_document_dialog import DataMaterialDocumentDialog
-    if not all(callable(getattr(NumericalWindow, method, None)) for method in ('stage_processed_trial', 'can_stage_processed_trial')):
+    if not all(callable(getattr(NumericalWindow, method, None)) for method in
+               ('stage_processed_trial', 'can_stage_processed_trial', 'processed_trial_stage_pending')):
         data_window.message.setText('현재 Numerical 창에서 처리 결과의 시험 연결을 지원하지 않습니다.')
         return False
     record = result.get('diagnostics', {}).get('processing_record')
@@ -22,7 +22,6 @@ def open_processing_plan(data_window, result, response_name):
         target = NumericalWindow(data_window.client, document_id=document['id'])
         data_window._processed_plan_windows.append(target)
         target.show(); target.raise_()
-        deadline = monotonic() + 15
         def stage():
             if not isValid(target) or getattr(target, '_closed', False): return
             if target.can_stage_processed_trial():
@@ -33,8 +32,9 @@ def open_processing_plan(data_window, result, response_name):
                 except (ValueError, TypeError, KeyError) as error:
                     target.message.setText(str(error))
                 return
-            if monotonic() < deadline: QTimer.singleShot(50, stage)
-            else: target.message.setText('계획을 읽지 못했습니다. 원래 Data의 보존한 처리 결과에서 다시 여세요.')
+            # Retained provenance can be large. The owner's read lifecycle,
+            # rather than a second GUI timeout, decides when review is ready.
+            if target.processed_trial_stage_pending(): QTimer.singleShot(50, stage)
         QTimer.singleShot(0, stage)
 
     def choose(payload):

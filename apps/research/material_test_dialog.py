@@ -1,12 +1,13 @@
 """Compact editors for existing Data mappings and Material-bound experiments."""
 from copy import deepcopy
 import math
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QComboBox, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from shiboken6 import isValid
 from caelab.material_test import column_mapping, measured_protocol
 
 
@@ -111,7 +112,8 @@ class TestColumnsDialog(QDialog):
 
 class ExperimentDialog(QDialog):
     """One retained import, observation, role and measured protocol in one review."""
-    def __init__(self, settings, result, parent=None, *, experiment=None, selected=None):
+    def __init__(self, settings, result, parent=None, *, experiment=None, selected=None,
+                 selected_result_reader=None):
         super().__init__(parent)
         from .appearance import configure_plot_fonts
         configure_plot_fonts()
@@ -120,10 +122,12 @@ class ExperimentDialog(QDialog):
         self.settings, self.imported = deepcopy(settings), deepcopy(result)
         self.recipe = deepcopy((experiment or {}).get('kinematics'))
         self.value = None
+        self._selected_result_reader = selected_result_reader
+        self._selection_worker = None
         self.explicit = deepcopy(settings)
         root=QVBoxLayout(self)
         split=QSplitter(); root.addWidget(split,1)
-        left=QWidget(); form=QFormLayout(left); split.addWidget(left)
+        left=QWidget(); self._inputs=left; form=QFormLayout(left); split.addWidget(left)
         responses=result.get('responses',{})
         self.observed=combo([(name,name) for name,row in responses.items()
             if row.get('measure') in ('infinitesimal_Cauchy','first_Piola')])
@@ -148,7 +152,12 @@ class ExperimentDialog(QDialog):
         split.setSizes([310,710])
         self.message=QLabel(); self.message.setWordWrap(True); root.addWidget(self.message)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        self._buttons=buttons
         buttons.accepted.connect(self._accept); buttons.rejected.connect(self.reject); root.addWidget(buttons)
+        if selected_result_reader is not None:
+            buttons.button(QDialogButtonBox.StandardButton.Ok).setText('선택 채널 확인')
+            if result.get('diagnostics',{}).get('processing_status')=='PARTIAL':
+                self.message.setText('일부 처리 실패')
         if experiment:
             selected=experiment['source']['response']
             self.role.setCurrentIndex(self.role.findData(experiment['role']))
@@ -215,6 +224,8 @@ class ExperimentDialog(QDialog):
             if index>=0: self.model_response.setCurrentIndex(index)
 
     def _accept(self):
+        if self._selection_worker is not None:
+            return
         try:
             name=self.observed.currentData()
             if not name: raise ValueError('응력 관측 채널을 선택하세요.')
@@ -224,10 +235,55 @@ class ExperimentDialog(QDialog):
                 measure=self.imported.get('responses',{}).get(channel,{}).get('measure')
                 recipe=dict(channel=channel,kind=measure,
                     lateral_22=numeric(self.lateral_22.text()),lateral_33=numeric(self.lateral_33.text()))
-                settings=measured_protocol(settings,self.imported,recipe)
             # Draft protocol/weight may be incomplete; save remains possible.
-            self.value=dict(name=name,role=self.role.currentData(),response=self.model_response.currentData(),
+            pending=dict(name=name,role=self.role.currentData(),response=self.model_response.currentData(),
                 settings=settings,weight=numeric(self.weight.text()),scale=numeric(self.scale.text()),kinematics=recipe)
+            if self._selected_result_reader is not None:
+                names=list(dict.fromkeys([name]+([recipe['channel']] if recipe else [])))
+                if any(not isinstance(item,str) or not item for item in names):
+                    raise ValueError('변형 이력 채널을 선택하세요.')
+                from .data_window import _Read
+                reader=self._selected_result_reader
+                worker=_Read(lambda: reader(list(names)))
+                self._selection_worker=worker
+                self._set_reading(True)
+                def finished(result,error):
+                    if not isValid(self) or self._selection_worker is not worker:
+                        return
+                    self._selection_worker=None
+                    self._set_reading(False)
+                    if error:
+                        self.message.setText('선택한 채널을 읽지 못했습니다. '+str(error)); return
+                    try:
+                        if (not isinstance(result,dict) or result.get('execution_status')!='SUCCEEDED'
+                                or set(result.get('responses',{}))!=set(names)):
+                            raise ValueError('선택한 채널의 사용 가능한 처리 결과를 확인하지 못했습니다.')
+                        self._finish_accept(pending,result)
+                    except (ValueError,KeyError,TypeError) as error:
+                        self.message.setText(str(error))
+                worker.signals.finished.connect(finished,Qt.ConnectionType.QueuedConnection)
+                QThreadPool.globalInstance().start(worker)
+                return
+            self._finish_accept(pending,self.imported)
         except (ValueError,KeyError,TypeError) as error:
             self.message.setText(str(error)); return
+
+    def _set_reading(self, reading):
+        self._inputs.setEnabled(not reading)
+        self._buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(not reading)
+        if reading:
+            self.message.setText('선택한 관측과 변형 이력을 읽는 중…')
+
+    def _finish_accept(self, pending, result):
+        value=deepcopy(pending)
+        if value['kinematics'] is not None:
+            value['settings']=measured_protocol(value['settings'],result,value['kinematics'])
+        self.value=value
         self.accept()
+
+    def reject(self):
+        worker,self._selection_worker=self._selection_worker,None
+        if worker is not None:
+            worker.abandon()
+            self._set_reading(False)
+        super().reject()

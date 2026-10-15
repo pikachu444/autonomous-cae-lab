@@ -54,6 +54,7 @@ def test_host_only_stages_exact_retained_source_in_existing_plan_view(monkeypatc
             self.document = deepcopy(plan); self._busy = self._closed = False; self.message = QLabel()
         def stage_processed_trial(self, source, result): staged.append((source, result))
         def can_stage_processed_trial(self): return True
+        def processed_trial_stage_pending(self): return False
     monkeypatch.setattr('apps.research.numerical_window.NumericalWindow', PublicPlanView)
     def choose(dialog): dialog.table.selectRow(0); dialog._choose(); return QDialog.DialogCode.Accepted
     monkeypatch.setattr(DataMaterialDocumentDialog, 'exec', choose)
@@ -90,6 +91,7 @@ def test_new_plan_requires_explicit_material_choice_and_creates_once(monkeypatch
             self.document = dict(id=document_id); self._closed = False; self.message = QLabel()
         def stage_processed_trial(self, source, result): staged.append((source, result))
         def can_stage_processed_trial(self): return True
+        def processed_trial_stage_pending(self): return False
     monkeypatch.setattr('apps.research.numerical_window.NumericalWindow', PublicPlanView)
     def choose(dialog):
         choices.append(dialog.windowTitle())
@@ -108,5 +110,40 @@ def test_new_plan_requires_explicit_material_choice_and_creates_once(monkeypatch
         assert len(staged) == 1
     finally:
         window._allow_close = True; window.close()
+        for target in window._processed_plan_windows: target.close()
+        app.processEvents()
+
+
+@pytest.mark.parametrize('finish_ready',[True,False])
+def test_host_waits_for_owner_read_and_preserves_terminal_message(monkeypatch,finish_ready):
+    app=QApplication.instance() or QApplication([])
+    plan=dict(id='Npending',kind='numerical',draft={'mode':'fit','material':{'draft':{'backend':'material.felupe'}}})
+    stages=[]
+    class Client:
+        def documents(self): return {'documents':[deepcopy(plan)]}
+    class PublicPlanView(QMainWindow):
+        def __init__(self,client,*,document_id):
+            super().__init__(); self.document=deepcopy(plan); self._closed=False
+            self.pending=True; self.ready=False; self.message=QLabel('기존 읽기 결과')
+        def stage_processed_trial(self,source,result): stages.append((source,result))
+        def can_stage_processed_trial(self): return self.ready
+        def processed_trial_stage_pending(self): return self.pending
+    monkeypatch.setattr('apps.research.numerical_window.NumericalWindow',PublicPlanView)
+    def choose(dialog): dialog.table.selectRow(0); dialog._choose(); return QDialog.DialogCode.Accepted
+    monkeypatch.setattr(DataMaterialDocumentDialog,'exec',choose)
+    window=DataWindow(Client(),auto_open=False,poll_interval=0)
+    try:
+        assert open_processing_plan(window,retained(),'P11')
+        deadline=time.monotonic()+3
+        while not window._processed_plan_windows and time.monotonic()<deadline:
+            app.processEvents(); QTest.qWait(5)
+        target=window._processed_plan_windows[0]
+        QTest.qWait(100); app.processEvents(); assert not stages
+        target.pending=False; target.ready=finish_ready
+        QTest.qWait(100); app.processEvents()
+        assert len(stages)==int(finish_ready) and target.message.text()=='기존 읽기 결과'
+        QTest.qWait(100); app.processEvents(); assert len(stages)==int(finish_ready)
+    finally:
+        window._allow_close=True; window.close()
         for target in window._processed_plan_windows: target.close()
         app.processEvents()
