@@ -65,3 +65,4 @@ Web source 검토와 full upstream checkout/Windows compilation은 별개다. �
 
 - https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability — job-level env는 runner context를 지원하지 않는다. RUNNER_TEMP는 실행 중인 step에서 읽는다.
 - https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#setting-an-environment-variable — POST_NATIVE_ROOT를 GITHUB_ENV에 기록해 후속 step에 전달한다. 초기화 실패 시 영수증 출력은 건너뛰며 원 실패를 보존한다.
+- https://cmake.org/cmake/help/v3.31/manual/cmake.1.html#run-a-command-line-tool — 기존 필수 도구의 `-E tar`는 LZMA/7zip을 지원한다. `-E chdir`로 소유한 출력 경로에 추출하며 호출자의 작업 폴더를 바꾸지 않는다.
