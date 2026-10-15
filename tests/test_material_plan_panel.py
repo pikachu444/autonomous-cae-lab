@@ -59,6 +59,8 @@ def test_two_plan_buffers_focus_and_parent_close_are_independent(host):
     first_id, second_id = [plan['id'] for plan in plans]
     panel.plans.setCurrentIndex(panel.plans.findData(first_id))
     first = panel._widgets[first_id]
+    assert first.table.item(1, 0).text() == '포아송비 ν'
+    assert first.buffer_snapshot()['variables'][1]['id'] == 'nu'
     first.table.item(0, 2).setText('1600')
     panel.plans.setCurrentIndex(panel.plans.findData(second_id))
     second = panel._widgets[second_id]
