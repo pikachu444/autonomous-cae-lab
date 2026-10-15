@@ -19,7 +19,7 @@ foreach ($name in $requiredTools) {
 }
 # CreateProcessW in the existing Job runner needs an executable path, rather
 # than PowerShell's command lookup. Resolve it before launching any test app.
-$ctestExecutable = (Get-Command ctest -CommandType Application -ErrorAction Stop).Source
+$ctestExecutable = (Get-Command ctest -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $jobRunner = Join-Path $PSScriptRoot '../../scripts/native_check.py'
 if (-not (Test-Path -LiteralPath $jobRunner -PathType Leaf)) {
   throw 'The existing root-owned scripts/native_check.py is required; no test app was launched.'

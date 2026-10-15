@@ -52,7 +52,7 @@ function Import-VisualStudioEnvironment {
         }
     }
     $evidence['visual_studio'] = $vs
-    $evidence['compiler_path'] = (Get-Command cl.exe -CommandType Application -ErrorAction Stop).Source
+    $evidence['compiler_path'] = (Get-Command cl.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $evidence['compiler_file_version'] = (Get-Item -LiteralPath $evidence.compiler_path).VersionInfo.FileVersion
     $toolset = [version]$env:VCToolsVersion
     if ($toolset -lt [version]'14.39') { throw 'The selected linker/toolset predates the pinned Qt MSVC2022 build.' }
@@ -99,7 +99,7 @@ try {
     Invoke-Checked $Python @('-m','pip','install','--no-index','--no-deps','--no-cache-dir',
         (Join-Path $root 'downloads/numpy-2.3.5-cp312-cp312-win_amd64.whl'))
     Import-VisualStudioEnvironment
-    $cmake = (Get-Command cmake.exe -CommandType Application -ErrorAction Stop).Source
+    $cmake = (Get-Command cmake.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $env:PATH = "$qt/bin;$($pythonInfo.prefix);$env:PATH"
     $env:MSBUILDDISABLENODEREUSE = '1'
     $env:UseMultiToolTask = 'true'

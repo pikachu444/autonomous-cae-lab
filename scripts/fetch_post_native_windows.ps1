@@ -22,7 +22,7 @@ function Assert-ArchiveMembers([string[]]$Members) {
 }
 
 function Expand-PinnedArchive([string]$Archive, [string]$Destination) {
-    $tar = (Get-Command tar.exe -CommandType Application -ErrorAction Stop).Source
+    $tar = (Get-Command tar.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $members = @(& $tar -tf $Archive)
     if ($LASTEXITCODE -ne 0) { throw "Cannot list verified archive: $Archive" }
     Assert-ArchiveMembers $members
