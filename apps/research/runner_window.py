@@ -40,11 +40,33 @@ def operation_label(operation):
             "optimize": "최적화", "uq": "불확실성 분석", "sensitivity": "민감도 분석",
             "surrogate": "대리모델", "epsilon": "다목적 최적화", "experts.ask": "전문가 질문",
             "experts.discuss": "전문가 토론", "data.import": "데이터 가져오기",
-            "dynamic.reprocess": "동해석 결과 다시 읽기"}.get(operation, operation or "기록 없음")
+            "dynamic.reprocess": "동해석 결과 다시 읽기"}.get(operation, "등록된 작업" if operation else "기록 없음")
 
 
 def backend_label(backend):
-    return {"structure.calculix.contact": "CalculiX 구조 해석"}.get(backend, backend)
+    names = {"structure.calculix.contact": "CalculiX 구조 해석", "structure.calculix.frozen": "CalculiX 고정 입력 해석",
+        "structure.calculix.native": "CalculiX 구조 해석", "structure.calculix.design": "CalculiX 설계 해석",
+        "structure.calculix.shell": "CalculiX 셸 해석", "structure.calculix.beam": "CalculiX 빔 해석",
+        "material.felupe": "FElupe 재료 계산", "files.table": "표 파일 읽기",
+        "explicit.openradioss": "OpenRadioss 명시 해석", "explicit.opencourant.model": "OpenCourant 충격 해석",
+        "damage.rainflow": "피로 평가", "pde.scipy.ode": "SciPy 상미분방정식",
+        "pde.fenicsx.nonlinear": "FEniCSx 비선형 방정식", "pde.fenicsx.transient": "FEniCSx 시간 의존 방정식",
+        "pde.fenicsx.vector": "FEniCSx 벡터 방정식", "pde.fenicsx.coupled": "FEniCSx 연성 방정식",
+        "pde.fenicsx.imported": "FEniCSx 가져온 메시 방정식", "pde.fenicsx.dimensioned": "FEniCSx 차원 약형 방정식",
+        "material.mfront.hyperelastic": "MFront 초탄성 재료", "material.mfront.viscoelastic": "MFront 점탄성 재료",
+        "material.mfront.inverse": "MFront 재료 역추정", "material.mfront.user": "MFront 사용자 재료",
+        "structural.code_aster.plasticity": "Code_Aster 소성 해석", "structural.code_aster.geometric_nonlinearity": "Code_Aster 기하 비선형 해석",
+        "structural.code_aster.contact_patch": "Code_Aster 접촉 패치 해석", "fixture.cadquery": "CadQuery 형상 계산", "fixture.assembly": "조립 형상 계산",
+        "scipy.latin_hypercube": "라틴 초입방 표본화", "scipy.differential_evolution": "차분 진화 탐색"}
+    if backend in names:
+        return names[backend]
+    if isinstance(backend, str):
+        for prefix, label in (("pde.fenicsx", "FEniCSx 방정식 계산"), ("material.mfront", "MFront 재료 계산"),
+                              ("structural.code_aster", "Code_Aster 구조 해석"), ("fixture.freecad", "FreeCAD 형상 계산"),
+                              ("fixture.calculix", "CalculiX 형상 해석")):
+            if backend.startswith(prefix):
+                return label
+    return "등록된 계산 엔진" if backend else None
 
 
 def timestamp_label(value):
@@ -53,10 +75,10 @@ def timestamp_label(value):
     try:
         stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
         if stamp.tzinfo is None:
-            return value  # Do not invent a timezone for an old record.
+            return value + " (시간대 미기록)"
         return stamp.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, TypeError):
-        return str(value)
+        return "시각 기록 확인 필요"
 
 
 def resource_label(resources):
@@ -84,8 +106,8 @@ def short_value(value, limit=140):
 def candidate_state(row):
     status = row.get("execution_status", "UNKNOWN")
     if row.get("prediction_status") == "PREDICTED" and status != "PREDICTED":
-        return "PREDICTED — imported status: " + str(status)
-    return status
+        return "예측값 (가져온 실행 상태: " + state_description({"state": status}) + ")"
+    return "예측값" if status == "PREDICTED" else state_description({"state": status})
 
 
 def actual_candidate(row):
@@ -115,8 +137,9 @@ def state_description(job):
         "SUCCEEDED": "완료",
         "FAILED": "실패",
         "REJECTED": "실행 거절",
+        "UNKNOWN": "상태 미확인",
     }
-    description = descriptions.get(state, state)
+    description = descriptions.get(state, "상태 확인 필요")
     if job.get("cleanup_unconfirmed") and state not in {"CLEANUP_PENDING", "INTERRUPTED"}:
         description += " — 프로세스 종료 미확인"
     if job.get("cancel_requested") and state in {"SUCCEEDED", "FAILED", "PARTIAL_FAILURE"}:
@@ -127,24 +150,24 @@ def state_description(job):
 def wall_time(job):
     start = job.get("started_utc")
     if not start:
-        return "Not started" if job.get("state") == "QUEUED" else "Not recorded"
+        return "시작 전" if job.get("state") == "QUEUED" else "기록 없음"
     end = job.get("finished_utc")
     suffix = ""
     if not end and job.get("state") in TERMINAL:
         if job.get("state") != "INTERRUPTED" or not job.get("updated_utc"):
-            return "Finish time not recorded"
-        end, suffix = job["updated_utc"], " to last update"
+            return "종료 시각 미기록"
+        end, suffix = job["updated_utc"], " (마지막 갱신까지)"
     try:
         beginning = datetime.fromisoformat(start.replace("Z", "+00:00"))
         ending = datetime.fromisoformat(end.replace("Z", "+00:00")) if end else datetime.now(timezone.utc)
         if beginning.tzinfo is None or ending.tzinfo is None:
-            return "Timestamp timezone not recorded"
+            return "시간대 미기록"
         seconds = (ending - beginning).total_seconds()
         if seconds < 0:
-            return "Inconsistent timestamps"
-        return f"{seconds:.1f} s{suffix}" + (" since start" if not end else "")
+            return "시각 순서 확인 필요"
+        return f"{seconds:.1f} s{suffix}" + (" (시작 후)" if not end else "")
     except (ValueError, TypeError):
-        return "Invalid recorded timestamps"
+        return "시각 기록 확인 필요"
 
 
 def readonly_table(headers):
@@ -168,18 +191,34 @@ def table_row(table, row, values):
 
 def fill_tree(tree, mapping):
     tree.clear()
-    def append(parent, key, value, depth=0):
+    labels = {"operation": "작업 종류", "arguments": "실행 입력", "resources": "실행 자원",
+        "backend": "계산 엔진", "label": "작업 이름", "settings": "계산 설정", "parameters": "매개변수",
+        "threads": "CPU 스레드", "memory_mb": "메모리(MB)", "execution": "실행 설정", "workers": "동시 작업 수"}
+    arguments = mapping.get("arguments") or {}
+    native_reference = arguments.get("backend") in {"structure.calculix.contact", "structure.calculix.frozen", "structure.calculix.shell", "structure.calculix.beam"}
+    def append(parent, key, value, depth=0, path=()):
+        if (not path and key in {"job_id", "request_id", "request_hash"} or
+                path == ("arguments",) and key == "origin" and isinstance(value, dict) and "document_id" in value or
+                path == ("arguments",) and mapping.get("operation") == "dynamic.reprocess" and key in {"source_job_id", "source_record"} or
+                path == ("arguments", "settings") and key == "data_id" and native_reference):
+            return
         nested = isinstance(value, (dict, list))
-        item = QTreeWidgetItem([str(key), f"{len(value)} entries" if nested else text_value(value)])
+        shown = (f"{len(value)}개 항목" if nested else operation_label(value) if not path and key == "operation" else
+                 backend_label(value) if path == ("arguments",) and key == "backend" else text_value(value))
+        named_field = (not path and key in {"operation", "arguments", "resources"} or
+            path == ("arguments",) and key in {"backend", "label", "settings", "execution"} or
+            path == ("arguments", "settings") and key == "parameters" or
+            path in {("resources",), ("arguments", "execution")} and key in {"threads", "memory_mb", "workers"})
+        item = QTreeWidgetItem([labels.get(key, str(key)) if named_field else str(key), shown])
         parent.addChild(item) if isinstance(parent, QTreeWidgetItem) else parent.addTopLevelItem(item)
         if nested and depth < 10:
             entries = list(value.items()) if isinstance(value, dict) else list(enumerate(value))
             for name, child in entries[:50]:
-                append(item, name, child, depth + 1)
+                append(item, name, child, depth + 1, path + (key,))
             if len(entries) > 50:
-                item.addChild(QTreeWidgetItem(["Remaining entries", "Available in the Details tab"]))
+                item.addChild(QTreeWidgetItem(["나머지 항목", "기술 상세에서 전체 원문 확인"]))
         elif nested:
-            item.addChild(QTreeWidgetItem(["Nested input", "Available in the Details tab"]))
+            item.addChild(QTreeWidgetItem(["하위 입력", "기술 상세에서 전체 원문 확인"]))
     for key, value in mapping.items():
         append(tree, key, value)
     tree.expandToDepth(1)
@@ -408,7 +447,7 @@ class RunnerWindow(QMainWindow):
         self.result_views.addTab(self.values, "계산값")
         self.response_details = QPlainTextEdit()
         self.response_details.setReadOnly(True)
-        self.result_views.addTab(self.response_details, "결과 상세")
+        self.result_views.addTab(self.response_details, "응답 기술 상세")
         result_layout.addWidget(self.result_views, 1)
         result_layout.addStretch()
         self.tabs.addTab(self.result_panel, "결과")
@@ -419,7 +458,7 @@ class RunnerWindow(QMainWindow):
         self.ledger_label.setWordWrap(True)
         ledger_layout.addWidget(self.ledger_label)
         ledger_controls = QHBoxLayout()
-        ledger_controls.addWidget(QLabel("First record"))
+        ledger_controls.addWidget(QLabel("시작 기록"))
         self.ledger_start = QSpinBox()
         self.ledger_start.valueChanged.connect(self._draw_ledger)
         ledger_controls.addWidget(self.ledger_start)
@@ -465,7 +504,7 @@ class RunnerWindow(QMainWindow):
                     if failed is not None:
                         failed(error)
                     else:
-                        self.message.setText("Service request failed: " + error)
+                        self.message.setText("서비스 요청 실패: " + error)
                 else:
                     accepted(value, ticket)
             self._update_actions()
@@ -516,6 +555,7 @@ class RunnerWindow(QMainWindow):
             self.job_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, identifier)
             self.job_table.item(row, 0).setToolTip("실행 ID: " + identifier)
             self.job_table.item(row, 3).setToolTip(state_description(job))
+            self.job_table.item(row, 4).setToolTip(timestamp_label(job.get("started_utc")))
             if identifier == self.selected_job_id:
                 selected_row = row
         self.job_table.clearSelection()
@@ -564,7 +604,9 @@ class RunnerWindow(QMainWindow):
             "실행 취소는 선택한 작업에만 적용됩니다.")
         values = {"Job ID": job.get("id"), "Operation": operation_label(operation),
             "Backend": "보존 출력 읽기" if operation == "dynamic.reprocess" else backend_label(arguments.get("backend")),
-            "Phase": {"FINISHED": "종료", "RUNNING": "실행 중", "QUEUED": "대기 중"}.get(job.get("phase"), job.get("phase")),
+            "Phase": {"FINISHED": "종료", "RUNNING": "실행 중", "QUEUED": "대기 중", "CALCULATING": "계산 중",
+                "CLEANUP": "종료 처리 중", "AWAITING_SAFE_STOP": "안전한 중단 대기", "REQUIRES_CONFIRMATION": "상태 확인 필요"}.get(
+                    job.get("phase"), "진행 단계 확인 필요" if job.get("phase") else None),
             "Created UTC": timestamp_label(job.get("created_utc")), "Started UTC": timestamp_label(job.get("started_utc")),
             "Finished UTC": timestamp_label(job.get("finished_utc")), "Wall time": wall_time(job), "Resources": resource_label(job.get("resources")),
             "Enforcement": job.get("resource_enforcement"), "Host": job.get("host"), "Attempt": job.get("attempt"),
@@ -693,18 +735,25 @@ class RunnerWindow(QMainWindow):
             navigation=self.client.job_navigation(identifier)
             origin=navigation.get('origin_document') or {}
             if not origin.get('id') or origin.get('kind') in {'pre','post','expert'}:
-                raise ValueError('Select a saved research result; native project evidence remains in its source project')
+                raise ValueError('저장된 연구 결과를 선택하세요. CAD와 후처리 실행 근거는 원 프로젝트에서 확인할 수 있습니다.')
             reference=self.client.document_result_reference(origin['id'],identifier)
             receipt=self.client.result_followup(reference,'study',session_id=origin['session_id'],command_id='C'+uuid.uuid4().hex)
             return launch_tool(self.client,'study',document_id=receipt['document']['id'])
         return self._request('study:'+str(identifier),opened,
-            lambda result,ticket:self.message.setText('Opened an independent Study with the exact retained result; no calculation or inference was submitted.'),
+            lambda result,ticket:self.message.setText('선택한 저장 결과를 독립 연구 기록에 연결했습니다. 새 계산이나 추론은 요청하지 않았습니다.'),
             relevant=lambda:self.selected_job_id==identifier and self._selection_epoch==epoch)
 
     def open_tool(self, tool):
         from .desktop import launch_tool
+        names = {"pre": "CAD 및 전처리", "post": "후처리", "data": "데이터", "material": "재료", "numerical": "수치 연구",
+            "pde": "방정식", "simulation": "해석", "evaluation": "계산 절차", "study": "연구 기록", "report": "보고서", "expert": "전문가 토론"}
+        def opened(receipt, _ticket):
+            state = {"ACTIVATED": "열었습니다.", "SHOWN": "열었습니다.", "LAUNCH_REQUESTED": "열기를 요청했습니다.",
+                "FAILED": "열지 못했습니다.", "REJECTED": "열기 요청이 거절되었습니다."}.get(receipt.get("status"), "열기 상태를 확인하세요.")
+            self.message.setText(names.get(tool, "프로그램") + " " + state)
+            self.message.setToolTip(json.dumps(receipt, ensure_ascii=False, indent=2))
         self._request("launch-tool:" + tool, lambda: launch_tool(self.client, tool),
-                      lambda receipt, _ticket: self.message.setText(tool.title() + ": " + text_value(receipt.get("status"))))
+                      opened)
 
     def open_selected_post(self):
         identifier, epoch = self.selected_job_id, self._selection_epoch
@@ -778,7 +827,7 @@ class RunnerWindow(QMainWindow):
         index = self.tabs.indexOf(self.ledger_panel)
         if index >= 0:
             self.tabs.removeTab(index)
-        self._blank_plot("No retained response selected")
+        self._blank_plot("위 목록에서 작업을 선택한 뒤 ‘결과 보기’를 누르세요.")
 
     def _blank_plot(self, message):
         self.axes.clear()
@@ -794,7 +843,7 @@ class RunnerWindow(QMainWindow):
         self.result_summary.setText("선택한 실행의 저장 결과를 읽고 있습니다…")
         def received(result, _ticket):
             self.result_metadata = result
-            state = result.get("execution_status", "Not recorded")
+            state = result.get("execution_status", "UNKNOWN")
             job = self.jobs.get(identifier, {})
             label = job.get('arguments', {}).get('label') or operation_label(job.get('operation'))
             details = [label + ' 결과: ' + state_description({'state': state})]
@@ -805,7 +854,7 @@ class RunnerWindow(QMainWindow):
             self.result_summary.setToolTip('실행 ID: ' + identifier)
             for key in ("termination_reason", "failure_reason"):
                 if result.get(key):
-                    details.append(f"{key}: {text_value(result[key])}")
+                    details.append(("종료 사유" if key == "termination_reason" else "실패 사유") + ": " + text_value(result[key]))
             if state in {"FAILED", "PARTIAL_FAILURE", "REJECTED", "CANCELLED"}:
                 details.append("일부 결과만 남아 있을 수 있습니다. 전체 계산이 완료된 결과가 아닙니다.")
             self.result_summary.setText("\n".join(details))
@@ -840,10 +889,10 @@ class RunnerWindow(QMainWindow):
                 lines.append("원 출력 참조와 상세 진단은 ‘기술 상세 보기’에서 확인할 수 있습니다.")
                 self.response_label.setText("\n\n".join(lines))
             else:
-                self.response_label.setText("No scalar or series response catalog was returned. Recorded metadata and file references are available below and in Details.")
+                self.response_label.setText("표시할 단일 값이나 곡선이 없습니다. 저장된 파일 참조와 원 기록은 기술 상세에서 확인하세요.")
                 self.response_details.setPlainText(json.dumps(result, ensure_ascii=False, indent=2))
-                self.result_views.setCurrentWidget(self.response_details)
-                self._blank_plot("No response available in this retained result")
+                self.result_views.setCurrentWidget(self.canvas)
+                self._blank_plot("이 결과에는 표시할 단일 값이나 곡선이 없습니다.")
         self._request(f"result:{identifier}:{epoch}", lambda: self.client.result(identifier, selection={"metadata_only": True}), received,
                       relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
 
@@ -861,27 +910,27 @@ class RunnerWindow(QMainWindow):
         response_epoch = self._response_epoch
         response = self.result_metadata.get("responses", {}).get(name, {})
         self.values.setRowCount(0)
-        self._blank_plot("Reading the selected original response…")
+        self._blank_plot("선택한 원 결과를 읽고 있습니다…")
         self.response_details.setPlainText(json.dumps(response, ensure_ascii=False, indent=2))
         kind = response.get("kind")
         self.read_rows_button.setEnabled(kind == "series")
         self.row_start.setEnabled(kind == "series")
         self.row_count.setEnabled(kind == "series")
         if kind not in {"scalar", "series"}:
-            self.response_label.setText(f"{name}: {kind or 'unknown'} response. This viewer supports scalar values and one-dimensional series; use the recorded metadata/file references for this field. No field plot is synthesized.")
-            self._blank_plot("Full-field display belongs in Post")
-            self.result_views.setCurrentWidget(self.response_details)
+            self.response_label.setText(f"{name}: 단일 값이나 1차원 곡선으로 표시할 수 없는 결과입니다. 공간 결과는 후처리에서 열고 원 참조는 응답 기술 상세에서 확인하세요.")
+            self._blank_plot("공간 분포 결과는 후처리에서 확인하세요.")
+            self.result_views.setCurrentWidget(self.canvas)
             return
         start, count = self.row_start.value(), self.row_count.value()
         selection = {"responses": [name]}
         if kind == "series":
             selection["rows"] = [start, start + count]
-        self.response_label.setText(f"Reading {name} for {identifier}…")
+        self.response_label.setText(f"선택한 실행의 {name} 결과를 읽고 있습니다…")
         def received(result, _ticket):
             selected = result.get("responses", {}).get(name)
             if selected is None:
-                self.response_label.setText("The original result did not return this selected response.")
-                self._blank_plot("Selected response unavailable")
+                self.response_label.setText("원 결과에 선택한 항목이 없습니다. 다른 항목을 선택하거나 기술 상세에서 원 기록을 확인하세요.")
+                self._blank_plot("선택한 결과 항목을 읽을 수 없습니다.")
                 return
             self._draw_response(name, selected, start)
         self._request(f"response:{identifier}:{epoch}:{response_epoch}", lambda: self.client.result(identifier, selection=selection), received,
@@ -895,26 +944,26 @@ class RunnerWindow(QMainWindow):
                     'true': '유효', 'false': '유효하지 않음'}
         labels = [captions[key] + ': ' + meanings.get(text_value(response[key]), text_value(response[key]))
                   for key in captions if key in response]
-        unit = response.get("unit", "unit not recorded")
+        unit = response.get("unit", "단위 미기록")
         if response.get("kind") == "scalar":
             self.values.setRowCount(1)
-            table_row(self.values, 0, ["scalar", "—", f"{text_value(response.get('value'))} {unit}", "—"])
+            table_row(self.values, 0, ["단일 값", "—", f"{text_value(response.get('value'))} {unit}", "—"])
             self.response_label.setText(f"{name} = {text_value(response.get('value'))} {unit}" + ("\n" + ", ".join(labels) if labels else ""))
-            self._blank_plot("Scalar value shown in Values")
+            self._blank_plot("단일 값은 계산값 표에서 확인하세요.")
             self.result_views.setCurrentWidget(self.values)
             return
         values, axes = response.get("value"), response.get("axes", [])
         if not isinstance(values, list) or len(axes) != 1 or not isinstance(axes[0].get("values"), list) or len(values) != len(axes[0]["values"]):
-            self.response_label.setText("This response is not a matching one-dimensional series. Its actual metadata is retained; no curve is drawn.")
-            self._blank_plot("Unsupported series shape")
-            self.result_views.setCurrentWidget(self.response_details)
+            self.response_label.setText("축과 값이 대응하는 1차원 계열이 아니므로 곡선을 그리지 않았습니다. 원 기록은 응답 기술 상세에 보존됩니다.")
+            self._blank_plot("축과 값의 배열 크기를 확인하세요.")
+            self.result_views.setCurrentWidget(self.canvas)
             return
         axis = axes[0]
         mask = response.get("mask")
         self.values.setRowCount(len(values))
         for row, (coordinate, value) in enumerate(zip(axis["values"], values)):
-            included = mask[row] if isinstance(mask, list) and row < len(mask) else "Not supplied"
-            table_row(self.values, row, [start + row, f"{text_value(coordinate)} {axis.get('unit', 'unit not recorded')}", f"{text_value(value)} {unit}", included])
+            included = (("사용" if mask[row] else "제외") if type(mask[row]) is bool else "유효성 값 확인 필요") if isinstance(mask, list) and row < len(mask) else "유효성 미기록"
+            table_row(self.values, row, [start + row, f"{text_value(coordinate)} {axis.get('unit', '단위 미기록')}", f"{text_value(value)} {unit}", included])
         self.response_label.setText(f"원본 행 {start} 이상 {start + len(values)} 미만 ({len(values)}행)" + ("\n" + ", ".join(labels) if labels else ""))
         try:
             if mask is not None and (not isinstance(mask, list) or len(mask) != len(values) or any(type(value) is not bool for value in mask)):
@@ -940,7 +989,8 @@ class RunnerWindow(QMainWindow):
         self.axes.clear()
         self.axes.set_axis_on()
         self.axes.plot(x, y, marker="o", markersize=3)
-        self.axes.set_xlabel(f"{axis.get('name', 'axis name not recorded')} [{axis.get('unit', 'unit not recorded')}]")
+        axis_name = {'time': '시간', 'strain': '변형률', 'displacement': '변위'}.get(axis.get('name'), axis.get('name', '축 이름 미기록'))
+        self.axes.set_xlabel(f"{axis_name} [{axis.get('unit', '단위 미기록')}]")
         self.axes.set_ylabel(f"{name} [{unit}]")
         self.axes.set_title("")
         self.axes.grid(True, alpha=.25)
@@ -964,24 +1014,34 @@ class RunnerWindow(QMainWindow):
         start = self.ledger_start.value()
         rows = self._ledger[start:start + MAX_LEDGER_ROWS]
         candidate = self._ledger_kind == "candidates"
-        headers = ["Candidate", "Execution / prediction", "Variables", "Valid objective", "Penalty", "Failed / penalized / predicted objective", "Failure", "Scalar responses"] if candidate else list(dict.fromkeys(key for row in rows if isinstance(row, dict) for key in row))[:12]
+        keys = [key for key in dict.fromkeys(key for row in rows if isinstance(row, dict) for key in row)
+                if key not in {"job_id", "request_id", "request_hash", "candidate_id"}][:12]
+        captions = {"iteration": "반복", "generation": "세대", "objective": "목적함수", "best_objective": "최선 목적함수",
+            "execution_status": "실행 상태", "prediction_status": "예측 여부", "values": "변수 값", "failure_reason": "실패 사유",
+            "penalty_applied": "벌점", "time_s": "시간 [s]", "elapsed_s": "경과 시간 [s]", "evaluations": "평가 횟수"}
+        headers = ["후보", "실행 상태 / 예측", "변수", "유효 목적함수", "벌점", "실패 / 벌점 / 예측 목적함수", "실패 사유", "단일 값 결과"] if candidate else [captions.get(key, key) for key in keys]
         self.ledger_table.setColumnCount(len(headers))
         self.ledger_table.setHorizontalHeaderLabels(headers)
         self.ledger_table.setRowCount(len(rows))
-        self.ledger_label.setText(f"Returned {self._ledger_kind or 'records'}: {len(self._ledger)}. Showing [{start}, {start + len(rows)}). " +
-            ("Valid objectives exclude failed, penalized or predicted evaluations. Cancellation applies to the whole parent execution." if candidate else "Select a row to inspect the complete returned record."))
+        self.ledger_label.setText(f"{'후보' if candidate else '계산 이력'} {len(self._ledger)}개 중 {start + 1 if rows else 0}–{start + len(rows)}번째 기록. " +
+            ("실패·벌점·예측 평가는 유효 목적함수에서 제외합니다. 취소는 전체 계산에 적용됩니다." if candidate else "행을 선택하면 저장된 값을 확인할 수 있습니다. 전체 원문은 기술 상세에 보존됩니다."))
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
                 continue
             if candidate:
                 eligible = actual_candidate(row) and "penalty_applied" not in row
-                scalar = {name: f"{text_value(value.get('value'))} {value.get('unit', 'unit not recorded')}" for name, value in row.get("responses", {}).items() if value.get("kind") == "scalar"}
-                values = [row.get("candidate_id"), candidate_state(row), short_value(row.get("values")),
+                scalar = {name: f"{text_value(value.get('value'))} {value.get('unit', '단위 미기록')}" for name, value in row.get("responses", {}).items() if value.get("kind") == "scalar"}
+                variables = row.get("values")
+                variables = ", ".join(f"{name} = {text_value(value)}" for name, value in variables.items()) if isinstance(variables, dict) else text_value(variables)
+                values = [f"후보 {start + index + 1}", candidate_state(row), short_value(variables),
                     row.get("objective") if eligible else "—", row.get("penalty_applied", "—"),
-                    row.get("objective") if not eligible else "—", row.get("failure_reason", "—"), short_value(scalar)]
+                    row.get("objective") if not eligible else "—", row.get("failure_reason", "—"), short_value(", ".join(f"{name} = {value}" for name, value in scalar.items()) or "없음")]
             else:
-                values = [short_value(row.get(key)) for key in headers]
+                values = [(state_description({"state": row.get(key)}) if row.get(key) is not None else "기록 없음") if key == "execution_status" else
+                    "예측값" if key == "prediction_status" and row.get(key) == "PREDICTED" else short_value(row.get(key)) for key in keys]
             table_row(self.ledger_table, index, values)
+            if candidate:
+                self.ledger_table.item(index, 0).setToolTip("원 후보 식별값: " + str(row.get("candidate_id", "기록 없음")))
         self.ledger_details.clear()
 
     def _ledger_selected(self):
@@ -989,7 +1049,10 @@ class RunnerWindow(QMainWindow):
         if rows:
             index = self.ledger_start.value() + rows[0].row()
             if index < len(self._ledger):
-                self.ledger_details.setPlainText(json.dumps(self._ledger[index], ensure_ascii=False, indent=2))
+                current = rows[0].row()
+                self.ledger_details.setPlainText("\n".join(self.ledger_table.horizontalHeaderItem(column).text() + ": " + self.ledger_table.item(current, column).text()
+                    for column in range(self.ledger_table.columnCount()) if self.ledger_table.item(current, column)) +
+                    "\n\n전체 원문과 식별값은 기술 상세에서 확인하세요.")
 
     def _show_details(self):
         self.details.setPlainText(json.dumps({"job": self.jobs.get(self.selected_job_id), "result_metadata": self.result_metadata}, ensure_ascii=False, indent=2))

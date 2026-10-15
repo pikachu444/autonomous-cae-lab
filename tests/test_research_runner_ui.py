@@ -144,7 +144,7 @@ def test_existing_selection_reads_frozen_inputs_and_bounded_original_rows(runner
     assert viewer.monitor_fields["Input hash"].parentWidget() is viewer.technical_panel
     assert viewer.monitor_fields["Started UTC"].text() == "2026-10-11 01:00:01"
     assert viewer.monitor_fields["Resources"].text() == "CPU 스레드 2, 메모리(MB) 512"
-    assert viewer.inputs.findItems("arguments", Qt.MatchFlag.MatchExactly)[0].child(2).child(0).child(0).text(1) == "1234"
+    assert viewer.inputs.findItems("실행 입력", Qt.MatchFlag.MatchExactly)[0].child(2).child(0).child(0).text(1) == "1234"
     assert not [call for call in client.calls if call[0] in {"metadata", "response", "cancel"}]
     viewer.result_button.click()
     until(app, lambda: viewer.values.rowCount() == 4 and not viewer._pending)
@@ -156,7 +156,7 @@ def test_existing_selection_reads_frozen_inputs_and_bounded_original_rows(runner
     assert viewer.values.item(0, 0).text() == "1"
     assert viewer.values.item(0, 2).text() == "2.0 MPa"
     assert list(viewer.axes.lines[0].get_ydata()) == [2., 4.]
-    assert viewer.axes.get_xlabel() == "time [s]"
+    assert viewer.axes.get_xlabel() == "시간 [s]"
     assert "미소변형 Cauchy 응력" in viewer.response_label.text()
     assert "infinitesimal_Cauchy" in viewer.response_details.toPlainText()
     assert all(identifier != threading.get_ident() for identifier in client.thread_ids)
@@ -224,7 +224,7 @@ def test_partial_candidate_penalty_and_unsupported_field_remain_explicit(runner,
     assert viewer.ledger_table.item(1, 4).text() == "1000000.0"
     assert viewer.ledger_table.item(1, 5).text() == "1000000.0"
     assert viewer.ledger_table.item(1, 6).text() == "Invalid modulus"
-    assert "PREDICTED" in viewer.ledger_table.item(2, 1).text()
+    assert "예측값" in viewer.ledger_table.item(2, 1).text()
     assert viewer.ledger_table.item(2, 3).text() == "—"
     assert viewer.ledger_table.item(2, 5).text() == "0.1"
     assert client.results["JA"]["candidates"][2]["execution_status"] == "SUCCEEDED"

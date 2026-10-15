@@ -125,4 +125,35 @@ rout saved arrays는 native `vold/veold`의 mt×nk, `sti/eme`의 6×mi(1)×ne, `
 
 `tools/profile_dynamic_r2.py --output NEW_FOLDER --frames-per-step 3` 또는 `200`은 공개 첫 3프레임의 **명시 synthetic size double**이다. 원 값 블록을 순환시키고 시간·증분 header를 합성한다. 실제 원400프레임이나 그 물리값이 아니다. 1085 nodes/502 C3D10의 입력 모델을 유지한다. 메모리는 새 process의 adapter 전체 RSS를 10ms 간격으로 측정한다. query의 실제 read/readinto byte 수도 따로 기록하고 source 해시 전후 일치를 검사한다. GB 크기 생성본은 인도 ZIP에 넣지 않고 측정값/생성 코드/원 seed/hash만 넣는다.
 
-Windows native/실제 ccx/READ, 원 full400 출력 처리, 실제 ParaView/FreeCAD/PySide6 사용자 조작, 물리 수용과 더 넓은 E3–E6/C1–C6/explicit FN16–17 law/contact는 NOT_RUN 또는 별도 잔여다. 기존 사용자가 보고한 Windows45PASS, R1 35PASS1FAIL, 과거 C2 기록은 이번 test count에 합산하지 않는다.
+실제 ccx/READ, FreeCAD/PySide6의 OS 사용자 조작, 물리 수용과 더 넓은 E3–E6/C1–C6/explicit FN16–17 law/contact는 NOT_RUN 또는 별도 잔여다. 원 full400 읽기와 stock ParaView 확인은 아래 후속 결과를 따른다. 기존 사용자가 보고한 Windows45PASS, R1 35PASS1FAIL, 과거 C2 기록은 이번 test count에 합산하지 않는다.
+
+## 실제 400프레임과 ParaView 확인
+
+2026-10-15에는 보존된 실제 FRD 163,291,184 bytes와 DAT·STA·rout·원 입력을
+기존 재처리 API로 한 번 읽었다. 합성 프레임이나 새 솔버 계산을 사용하지 않았다.
+400프레임 전체를 개별 결과와 VTU로 저장했고, index는 372,421 bytes다.
+원 823MB 문서의 제한 초과 실패와 원 파일은 보존한다.
+
+ParaView 6.2의 실제 reader에서 0.00001·0.00201·0.004 s를 열고 1,085절점·502요소와
+변위·Z속도·XX응력·요소 운동에너지 배열을 저장 결과와 대조했다. 상태를 저장한 뒤
+별도 프로세스에서 다시 열어 선택 시각·변위 Z성분·값이 유지됨을 확인했다.
+시험에 사용한 프로세스는 모두 종료했다.
+
+![실제 400프레임 중 마지막 시각의 Z방향 변위](images/dynamic-retained-native.png)
+
+위 화면은 실제 0.004 s의 Z방향 변위를 색으로 표시한 결과이며 형상은 변형하지 않았다.
+원 실행은 부모 종료 기록이 없어 전체 계산 완료를 확인할 수 없다. 결과를 읽는 데
+성공했어도 원 취소 요청 상태와 공학적 미승인을 유지한다. 실제 WRITE/READ 이어 계산,
+Workbench 등록, plugin 종료 메뉴와 OS 마우스·키보드 조작 수용은 별도 잔여다.
+
+이 PC에서 ParaView의 **File → Open**으로 다음 파일을 열고 **Apply**하면 시간별 결과를
+볼 수 있다. 저장한 보기까지 불러오려면 **File → Load State**에서 PVSM을 연다.
+
+```text
+C:\SourceCodes\autonomous-cae-lab\_workspace\delivery-structure-impact\r2-actual400-readback\derived\dynamic-post\dynamic.pvd
+C:\SourceCodes\autonomous-cae-lab\_workspace\delivery-structure-impact\r2-actual400-readback\native-post-01\actual400-native-post.pvsm
+```
+
+이 큰 결과 파일은 로컬 작업 폴더에만 있으며 저장소 복제본에 포함하지 않는다.
+실행·읽기와 원 파일 전후 확인은 같은 폴더의 `finish-summary.json`, ParaView 확인은
+`native-post-01/finish-summary.json`에 남겼다.

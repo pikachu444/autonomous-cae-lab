@@ -26,7 +26,7 @@ def test_partial_history_gap_retains_original_values_and_selection(runner,app,tm
     assert plotted[0]==0. and plotted[1]==2. and math.isnan(plotted[2]) and plotted[3]==6.
     assert '제외 표본 1개' in viewer.response_label.text()
     assert client.results['JA']['responses']['stress_xx']==saved
-    assert viewer.values.item(2,2).text()=='기록 없음 MPa' and viewer.values.item(2,3).text()=='false'
+    assert viewer.values.item(2,2).text()=='기록 없음 MPa' and viewer.values.item(2,3).text()=='제외'
     assert 'None' not in viewer.values.item(2,2).text()
     app.processEvents();assert viewer.grab().save(str(tmp_path/f'after-{width}.png'))
     assert viewer.axes.bbox.height>100
