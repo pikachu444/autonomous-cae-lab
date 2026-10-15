@@ -108,7 +108,7 @@ def compact_payload(payload):
         source = payload['result']
         result['result'] = {k: deepcopy(source[k]) for k in
             ('kind', 'execution_status', 'responses', 'checks', 'identification', 'parameters',
-             'parameter_units', 'curves', 'converged', 'termination_reason', 'failure_reason') if k in source}
+             'parameter_units', 'experiment_analysis', 'curves', 'converged', 'termination_reason', 'failure_reason') if k in source}
         result['result']['qualification'] = deepcopy(source.get('diagnostics', {}).get('qualification', 'UNKNOWN'))
         result['result'].pop('curves', None)  # Curves are read through selected response views.
         metadata_only = effective_selection(payload.get('reference', {})).get('metadata_only', False)

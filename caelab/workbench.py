@@ -19,7 +19,7 @@ INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
 
 OPERATIONS = {'detail_eval','evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
               'batch_export','batch_import','surrogate','epsilon','sensitivity',
-              'sample_sensitivity',
+              'sample_sensitivity', 'experiment_uncertainty', 'identification_final',
               'knowledge.ingest','knowledge.rebuild','knowledge.revoke','literature.search','literature.read',
               'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled'}
 
@@ -188,6 +188,11 @@ class Workbench:
     def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         check_id(identifier)
         owner=self._document_owner(identifier)
+        if operation == 'numerical.experiment.preview':
+            if owner is not self.numerical_documents:
+                raise ValueError('Select a Numerical experiment Plan')
+            from .experiment_analysis_service import preview_owner
+            return preview_owner(owner, identifier, arguments, session_id=session_id, expected_generation=expected_generation)
         if operation == 'numerical.evidence.adopt':
             from .numerical_candidate_evidence import evidence_adopt_command
             return evidence_adopt_command(self, identifier, arguments, session_id=session_id,
@@ -303,6 +308,8 @@ class Workbench:
                 raise ValueError('보고서 캡처는 완료된 Post 명령만 선택합니다.')
             command = self.native_commands.status(check_id(reference['command_id']))
             return self.report_documents.capture_image(check_id(document_id), command)
+        from .experiment_analysis_service import validate_report_capture
+        validate_report_capture(self, reference)
         return self.report_documents.capture(check_id(document_id), reference)
 
     def report_content(self, document_id, assets):
@@ -631,6 +638,9 @@ class Workbench:
             raise ValueError('Output, runtime and execution registrations are operator-owned')
         if isinstance(arguments.get('backend'),str) and arguments['backend'] not in {row['id'] for row in self.backends()}:
             raise ValueError('Backend is not registered')
+        if operation in {'experiment_uncertainty', 'identification_final'}:
+            from .experiment_analysis_service import validate_prepared
+            validate_prepared(self, operation, arguments)
         if operation=='detail_eval':
             from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
             validate_detail_arguments(self.numerical_documents, arguments)
@@ -777,6 +787,9 @@ class Workbench:
         validated=validate_plan_request(request,describe_inputs=self.describe_inputs,
                                         submission=submission)['plan']
         operation=validated['operation']
+        if operation in {'experiment_uncertainty', 'identification_final'}:
+            from .experiment_analysis_service import prepare_request
+            return prepare_request(self, validated)
         args=deepcopy(validated['inputs'])
         from .research_operations import validate_result_refs
         validate_result_refs(operation,args)
@@ -867,6 +880,9 @@ class Workbench:
     def _execute(self, operation, arguments, identifier):
         args=deepcopy(arguments)
         args.pop('label',None)  # Retained job metadata, never a solver parameter.
+        if operation in {'experiment_uncertainty', 'identification_final'}:
+            from .experiment_analysis_service import execute
+            return execute(self, operation, args, identifier)
         if 'result_refs' in args:
             from .research_operations import resolve_request_inputs
             args=resolve_request_inputs(operation,args,resolve_document=self.document_read,

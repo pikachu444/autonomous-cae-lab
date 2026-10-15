@@ -219,6 +219,9 @@ class DataWindow(QMainWindow):
         calibrated_result = QAction('교정 전후 결과…', self)
         calibrated_result.triggered.connect(self.read_calibrated_result)
         edit.addAction(calibrated_result)
+        uncertainty_result = QAction('제공 불확실성 전파…', self)
+        uncertainty_result.triggered.connect(self.open_uncertainty_analysis)
+        edit.addAction(uncertainty_result)
         affected = QAction('이 자료를 사용하는 계획…', self)
         affected.triggered.connect(self.show_dependents)
         edit.addAction(affected)
@@ -1028,6 +1031,17 @@ class DataWindow(QMainWindow):
             self._call(lambda: self.client.document_source_preview(self.document['id']), show)
         else:
             self.message.setText('새 원본/열 설정을 적용한 뒤 채널 교정을 여세요.')
+
+    def open_uncertainty_analysis(self):
+        if self._busy:return False
+        try:source=deepcopy(self.selected_source())
+        except ValueError as error:self.message.setText(str(error));return False
+        token=self._source_token()
+        def opened(reference):
+            if self._source_token()!=token:return
+            from .experiment_analysis_window import show_analysis_window
+            show_analysis_window(self,source={'kind':'result_response','reference':reference,'response':source['response']})
+        return self._call(lambda:self.client.document_result_reference(source['document_id'],source['job_id']),opened)
 
     def read_calibrated_result(self):
         if self._busy:return False

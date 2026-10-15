@@ -1956,7 +1956,11 @@ def main(argv=None):
         parser.error('--service or CAELAB_SERVICE_URL is required')
     app = QApplication.instance() or QApplication(sys.argv[:1])
     client = Client(args.service)
-    if not args.document_id or client.document_read(args.document_id).get('draft',{}).get('mode') == 'request':
+    draft = client.document_read(args.document_id).get('draft', {}) if args.document_id else {}
+    if draft.get('mode') == 'request' and draft.get('request', {}).get('operation') in {'experiment_uncertainty', 'identification_final'}:
+        from .experiment_analysis_window import ExperimentAnalysisWindow
+        window = ExperimentAnalysisWindow(client, document_id=args.document_id)
+    elif not args.document_id or draft.get('mode') == 'request':
         from .request_plan_window import RequestPlanWindow
         window = RequestPlanWindow(client,document_id=args.document_id)
     else:

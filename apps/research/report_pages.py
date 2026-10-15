@@ -209,6 +209,10 @@ def blocks(content):
             yield ('table', (['응답', '값', '단위', '판정', '사유'], [[name, values, response.get('unit'),
                 '유효' if response.get('valid') is True else ('무효' if response.get('valid') is False else '미확인'),
                 response.get('reason',response.get('invalid_reason',''))]]))
+    if result.get('kind') in {'experiment_uncertainty','experiment_identification'}:
+        from caelab.experiment_analysis_reporting import blocks as experiment_blocks
+        yield from experiment_blocks(result)
+        return
     diagnosis = result.get('identification', {})
     if diagnosis:
         yield ('paragraph', '식별 진단: ' + str(diagnosis.get('status', 'UNKNOWN')) +

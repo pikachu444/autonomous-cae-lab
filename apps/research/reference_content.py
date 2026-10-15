@@ -76,6 +76,21 @@ class ReferenceContent(QWidget):
             self.body.setPlainText(str(payload.get('message') or '자료를 읽을 수 없습니다.'))
             return
         kind = payload.get('kind')
+        if kind == 'numerical_candidate_evidence':
+            # Reuse the Report renderer on the exact resolved saved snapshot.
+            # This is presentation only: no current owner, evaluator or command.
+            from .report_pages import compose
+            draft={'title':'보고서에 저장한 계산', 'sections':[{
+                'id':'Eview','title':'선택 후보 결과','text':'',
+                'include':True,'table':True,'curve':True,'asset':{'id':'Aview'}}]}
+            document=compose(draft,{'Aview':{'source_status':'AVAILABLE',
+                'content':payload}},self.body.font())
+            document.setParent(self.body)
+            previous=getattr(self,'_candidate_document',None)
+            self.body.setDocument(document)
+            self._candidate_document=document
+            if previous is not None:previous.deleteLater()
+            return
         if kind == 'comparison':
             from .report_pages import blocks,value_text
             lines=[]

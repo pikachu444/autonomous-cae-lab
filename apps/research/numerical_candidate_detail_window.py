@@ -143,6 +143,8 @@ class NumericalCandidateDetailWindow(QMainWindow):
         self.setWindowTitle('후보 상세')
         self.resize(1320, 820)
         self._build()
+        from .experiment_analysis_window import attach_candidate_diagnosis
+        attach_candidate_diagnosis(self)
         self.timer = QTimer(self)
         self.timer.setInterval(max(100, poll_interval))
         self.timer.timeout.connect(self._poll)

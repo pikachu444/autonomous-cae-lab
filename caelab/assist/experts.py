@@ -213,6 +213,10 @@ _PLAN_INPUTS['batch_import'] = {'oneOf': [
     _object({'result_refs': _retained_roles('batch'), 'results': {'type': 'array', 'items': _OBJECT}},
             ['result_refs', 'results']),
     _object({'result_refs': _retained_roles('batch', 'results')}, ['result_refs'])]}
+# Explicit user Plans only: no new provider tools or automatic Expert submission.
+from ..experiment_analysis_service import plan_input_schemas as _experiment_plan_schemas
+_PLAN_INPUTS.update(_experiment_plan_schemas())
+
 def calculation_request_schema(*, operation=None, submission=False):
     """One request contract for the editor, proposed Plan and authorized submit.
 

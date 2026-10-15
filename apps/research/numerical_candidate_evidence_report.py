@@ -35,10 +35,16 @@ def candidate_evidence_blocks(content):
     label = '선택 후보 결과' if success else '선택 후보 실패·취소 기록'
     preserved = ('저장한 결과를 확인했습니다.' if readiness['preservation'] == 'IMMUTABLE_REVISION_VERIFIED'
                  else '저장 상태 미확인')
+    lineage=readiness.get('lineage') or {}
+    disjoint=(readiness['preservation']=='IMMUTABLE_REVISION_VERIFIED'
+        and lineage.get('status')=='CANONICAL_DATA_CONSUMER_VERIFIED'
+        and lineage.get('derived_sample_independence')=='VERIFIED_DISJOINT_RAW_VALUE_CONTRIBUTORS')
+    source_scope=('원자료 기여 행: 피팅과 별도 확인 간 중복 없음. 측정오차의 상관은 미확인입니다.'
+        if disjoint else '파생 표본의 독립성: 미확인')
     yield ('paragraph', label + '\n원 후보: ' + _state(candidate.get('execution_status')) +
            ' / ' + ('선택한 추가 계산 결과' if snapshot['selected_attempt_job_id'] else '원 피팅에 보존된 결과') +
            '\n' + preserved + '\n별도 확인 시험의 합격·계수 식별 성공·공학 승인은 미확인입니다.' +
-           '\n파생 표본의 독립성: 미확인')
+           '\n'+source_scope)
     experiments = snapshot['fit_input']['inputs']['experiments']
     labels = {entry['id']: entry.get('title') or entry.get('name') or '시험 ' + str(index + 1)
               for index, entry in enumerate(experiments)}
@@ -70,10 +76,14 @@ def candidate_evidence_blocks(content):
         unit = rows[0]['unit']
         included = lambda value: '포함' if value is True else ('제외' if value is False else '미확인')
         quality = lambda value: '유효' if value is True else ('무효' if value is False else '미확인')
-        yield ('table', (['원행', '축', '관측 [' + unit + ']', '예측 [' + unit + ']',
+        raw_rows=all(type(row.get('source_row')) is int for row in rows)
+        if not raw_rows:
+            yield ('paragraph','표본 순서는 이 시험의 보존된 관측 순서입니다. 원자료의 행 번호가 아닙니다.')
+        yield ('table', (['원행' if raw_rows else '표본 순서', '축', '관측 [' + unit + ']', '예측 [' + unit + ']',
             '원단위 잔차 [' + unit + ']', '정규화 잔차 [1]', '피팅 사용', '관측 품질'],
-            [[r.get('source_row'), r.get('axis'), r['observation'], r['prediction'],
-              r['raw_residual'], r['weighted_residual'], included(r['included']), quality(r['observation_mask'])] for r in rows]))
+            [[r['source_row'] if raw_rows else index+1, r.get('axis'), r['observation'], r['prediction'],
+              r['raw_residual'], r['weighted_residual'], included(r['included']), quality(r['observation_mask'])]
+             for index,r in enumerate(rows)]))
         if rows[0].get('axis_name') is not None:
             for key, label in [('observation', '관측'), ('prediction', '예측'), ('raw_residual', '원단위 잔차')]:
                 if key != 'observation' and not any(r[key] is not None for r in rows):

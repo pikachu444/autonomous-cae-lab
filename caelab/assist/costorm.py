@@ -144,9 +144,15 @@ class SelectedRetriever:
         for source in self.result_sources:
             url = 'caelab-result:' + canonical_hash(source['reference'])
             if url not in seen and url not in exclude_urls:
-                rows.append({'url': url, 'title': '선택한 계산 결과', 'description': 'Retained selected response',
-                    'snippets': [json.dumps(source['payload'], ensure_ascii=False)],
-                    'meta': {'source': {**deepcopy(source['reference']), 'title': '선택한 계산 결과'}}})
+                from ..experiment_analysis_reporting import expert_summary
+                summary = expert_summary(source['payload'])
+                item = {'url': url, 'title': '선택한 계산 결과', 'description': 'Retained selected response',
+                    'snippets': [json.dumps(summary if summary is not None else source['payload'], ensure_ascii=False)],
+                    'meta': {'source': {**deepcopy(source['reference']), 'title': '선택한 계산 결과'}}}
+                if summary is not None:
+                    rows.insert(0, item)  # Explicit returned analysis must not be silently word-budget dropped.
+                else:
+                    rows.append(item)
         return rows
 
 

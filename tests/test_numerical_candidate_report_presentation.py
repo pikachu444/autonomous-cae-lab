@@ -59,3 +59,26 @@ def test_failed_response_stays_absent_without_prediction_curve_or_success_wordin
     assert not any(kind == 'curve' and '예측' in block['y_label'] for kind, block in blocks)
     table = next(value for kind, value in blocks if kind == 'table' and value[0][0] == '원행')
     assert table[1][0][3:6] == [None, None, None]
+
+
+def test_derived_display_uses_sample_order_and_only_verified_consumer_scope(presentation):
+    content, rows = presentation
+    rows[0]['source_row']=None
+    original=deepcopy(content);original_rows=deepcopy(rows)
+    blocks=list(report.candidate_evidence_blocks(content))
+    table=next(value for kind,value in blocks if kind=='table' and value[0][0]=='표본 순서')
+    assert table[1][0][0]==1 and '원자료의 행 번호가 아닙니다' in str(blocks)
+    assert 'Sprivate-sample' not in str(table)
+    assert content==original and rows==original_rows
+    content['candidate_evidence']['readiness']['lineage']={
+        'status':'CANONICAL_DATA_CONSUMER_VERIFIED',
+        'derived_sample_independence':'VERIFIED_DISJOINT_RAW_VALUE_CONTRIBUTORS'}
+    paragraphs=[value for kind,value in report.candidate_evidence_blocks(content) if kind=='paragraph']
+    assert '피팅과 별도 확인 간 중복 없음' in str(paragraphs)
+    assert '측정오차의 상관은 미확인' in str(paragraphs)
+    # Partial/legacy labels and unverified preservation never become success.
+    content['candidate_evidence']['readiness']['lineage']['status']='LEGACY_SOURCE_ROW_CHECK_ONLY'
+    assert '파생 표본의 독립성: 미확인' in str(list(report.candidate_evidence_blocks(content)))
+    content['candidate_evidence']['readiness']['lineage']['status']='CANONICAL_DATA_CONSUMER_VERIFIED'
+    content['candidate_evidence']['readiness']['preservation']='UNKNOWN'
+    assert '파생 표본의 독립성: 미확인' in str(list(report.candidate_evidence_blocks(content)))

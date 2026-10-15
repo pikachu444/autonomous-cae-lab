@@ -1,0 +1,7 @@
+PUBLIC SYNTHETIC EXAMPLE ONLY — NOT AN INSTRUMENT CALIBRATION CERTIFICATE
+F [N] = 2 [N/mV] * (voltage [mV] - 1 [mV]) + 0.5 [N]
+Supplied output expanded uncertainty: 0.1 N; coverage factor k not provided.
+Input range: 1 to 4 mV. Sensor range: 0 to 5 mV.
+The separate example declares standard input/parameter uncertainties and
+independence only to compare an analytic answer. No measured test evidence,
+manufacturer approval or engineering release is asserted.

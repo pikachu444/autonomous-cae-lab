@@ -26,6 +26,7 @@ class ReferenceWindow(QMainWindow):
         self.client, self.reference = client, deepcopy(reference)
         self._workers, self._busy, self._closed = [], False, False
         self.value, self._error = None, None
+        self._candidate_windows = []
         self.resize(1100, 780)
         self.setMinimumSize(720, 500)
         self.setWindowTitle(self._kind_title())
@@ -51,6 +52,8 @@ class ReferenceWindow(QMainWindow):
         self.open_button.setProperty('appearanceRole', 'primary')
         self.open_button.setToolTip('저장된 내용을 덮어쓰지 않고 원 프로그램의 현재 문서를 엽니다.'
             if self.reference.get('kind') != 'result' else '이 결과가 속한 계산의 실행 기록을 엽니다.')
+        if self.reference.get('kind') == 'numerical_candidate_evidence':
+            self.open_button.setToolTip('보고서에 저장된 후보와 상세 실행을 그대로 선택합니다. 열기는 계산하지 않습니다.')
         self.open_button.clicked.connect(self.open_owner)
         bar.addWidget(self.open_button)
         spacer = QWidget()
@@ -85,10 +88,13 @@ class ReferenceWindow(QMainWindow):
                     'simulation': '해석 모델', 'evaluation': '계산 절차',
                     'numerical': '계산 계획', 'data': '시험 자료'}.get(
                         self.reference.get('document_kind'), '저장된 문서')
-        return {'result': '계산 결과', 'expert_turn': '전문가 답변'}.get(
+        return {'result': '계산 결과', 'expert_turn': '전문가 답변',
+                'numerical_candidate_evidence': '선택 후보 결과'}.get(
             self.reference.get('kind'), '저장된 자료')
 
     def _owner_label(self):
+        if self.reference.get('kind') == 'numerical_candidate_evidence':
+            return '선택 후보 상세 열기'
         if self.reference.get('kind') == 'result':
             return '실행 기록에서 열기'
         kind = ('expert' if self.reference.get('kind') == 'expert_turn'
@@ -96,7 +102,7 @@ class ReferenceWindow(QMainWindow):
         return _TOOLS.get(kind, '원 프로그램') + '에서 열기'
 
     def _actions(self):
-        available = bool(self.value and self.value.get('status') == 'AVAILABLE')
+        available = bool(not self._error and self.value and self.value.get('status') == 'AVAILABLE')
         self.retry_action.setEnabled(not self._busy and not self._closed)
         self.content.read.setEnabled(not self._busy and not self._closed)
         self.open_button.setEnabled(available and self.reference.get('kind') != 'knowledge' and not self._busy and not self._closed)
@@ -107,7 +113,8 @@ class ReferenceWindow(QMainWindow):
             return False
         self.reference = deepcopy(reference)
         self._busy, self.value, self._error = True, None, None
-        self.content.clear('저장된 내용을 읽고 있습니다…')
+        if not self._has_saved_candidate_view():
+            self.content.clear('저장된 내용을 읽고 있습니다…')
         self.content.title.setText(self._kind_title())
         self.message.setText('읽는 중…')
         self._actions()
@@ -129,7 +136,18 @@ class ReferenceWindow(QMainWindow):
     def retry(self):
         return self._read(self.reference)
 
+    def _has_saved_candidate_view(self):
+        payload=self.content.payload or {}
+        return (self.reference.get('kind')=='numerical_candidate_evidence'
+            and payload.get('kind')=='numerical_candidate_evidence'
+            and payload.get('status')=='AVAILABLE' and payload.get('reference')==self.reference)
+
     def closeEvent(self, event):
+        from shiboken6 import isValid
+        for window in list(self._candidate_windows):
+            if isValid(window) and not window.close():
+                event.ignore()
+                return
         self._closed = True
         for worker in self._workers:
             worker.abandon()
@@ -141,10 +159,13 @@ class ReferenceWindow(QMainWindow):
         self._error = error
         self.value = deepcopy(value) if isinstance(value, dict) else None
         if error or not self.value or self.value.get('status') != 'AVAILABLE':
-            self.content.clear('서비스 연결과 저장된 자료를 확인한 뒤 다시 읽으세요.\n'
-                               '자세한 오류는 보기 메뉴의 진단 상세에서 확인할 수 있습니다.')
-            self.content.title.setText(self._kind_title())
-            self.message.setText('자료를 읽지 못했습니다. 다시 읽기를 누르세요.')
+            if self._has_saved_candidate_view():
+                self.message.setText('원자료를 다시 확인하지 못했습니다. 마지막으로 읽은 저장 내용을 표시합니다. 다시 읽기를 누르세요.')
+            else:
+                self.content.clear('서비스 연결과 저장된 자료를 확인한 뒤 다시 읽으세요.\n'
+                                   '자세한 오류는 보기 메뉴의 진단 상세에서 확인할 수 있습니다.')
+                self.content.title.setText(self._kind_title())
+                self.message.setText('자료를 읽지 못했습니다. 다시 읽기를 누르세요.')
         else:
             self.content.set_payload(self.value, label=self._kind_title())
             self.message.setText('저장된 내용을 읽었습니다.')
@@ -180,6 +201,26 @@ class ReferenceWindow(QMainWindow):
         from .desktop import launch_tool
         reference = deepcopy(self.reference)
         try:
+            if reference['kind'] == 'numerical_candidate_evidence':
+                from caelab.numerical_candidate_evidence import validate_evidence_reference
+                from .numerical_candidate_detail_window import NumericalCandidateDetailWindow
+                validate_evidence_reference(reference)
+                if (self.value.get('kind')!='numerical_candidate_evidence'
+                        or self.value.get('reference')!=reference):
+                    raise ValueError('선택한 후보와 저장된 참조가 다릅니다.')
+                # Freeze the selected attempt BEFORE the first retained read.
+                window=NumericalCandidateDetailWindow(self.client,
+                    document_id=reference['source']['document_id'],
+                    job_id=reference['source']['job_id'],candidate_id=reference['candidate_id'],
+                    source=deepcopy(reference['source']),parent=self,auto_load=False)
+                window.attempt_job_id=reference['attempt_job_id']
+                window.evidence_purpose.setCurrentIndex(window.evidence_purpose.findData(reference['purpose']))
+                self._candidate_windows.append(window)
+                window.destroyed.connect(lambda:self._candidate_windows.remove(window)
+                    if window in self._candidate_windows else None)
+                window.show();window.refresh()
+                self.message.setText('선택 후보 상세를 열었습니다. 저장한 보고 내용은 유지됩니다. 추가 계산은 상세 창에서 명시적으로 실행하세요.')
+                return True
             if reference['kind'] == 'result':
                 launch_tool(self.client, 'runner', job_id=reference['job_id'])
             else:

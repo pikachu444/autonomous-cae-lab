@@ -266,8 +266,12 @@ def resolve_reference(wb, reference):
         selection = reference.get('selection', [reference['response']] if reference.get('response') else {'metadata_only': True})
         nested = isinstance(result.get('candidates'), list) or isinstance(result.get('predictions'), list)
         metadata_only = isinstance(selection, dict) and selection.get('metadata_only')
-        actual = (_candidate_reference_view(result, selection) if nested else
-                  wb.document_result(exact['document_id'], exact['job_id'], selection=selection))
+        if result.get('kind') in {'experiment_uncertainty', 'experiment_identification'}:
+            from .experiment_analysis_reporting import retained_report_view
+            actual = retained_report_view(result, selection)
+        else:
+            actual = (_candidate_reference_view(result, selection) if nested else
+                      wb.document_result(exact['document_id'], exact['job_id'], selection=selection))
         return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
                 'metadata': result_metadata(result), 'result': actual}
     owner = wb.discussion_documents

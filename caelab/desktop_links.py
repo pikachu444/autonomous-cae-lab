@@ -473,7 +473,9 @@ class DesktopLinks:
                         raise ValueError('A Numerical follow-up needs an explicitly edited request; nothing is inferred or submitted')
                     wb._request_plan_arguments(request)
                     # Each result-consuming request owns its exact result_refs.
-                    if source_ref not in request.get('inputs',{}).get('result_refs',{}).values():
+                    from .experiment_analysis_service import matches_followup_source
+                    if (source_ref not in request.get('inputs',{}).get('result_refs',{}).values()
+                            and not matches_followup_source(request, source_ref, workbench=wb)):
                         raise ValueError('The request must retain the selected result reference in an explicit input role')
                     draft=request_draft(request)
                 prepared={'request_hash':signature,'document_id':{'expert':'X','numerical':'N','study':'S'}[kind]+signature[:32],
