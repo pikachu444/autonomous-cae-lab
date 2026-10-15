@@ -5,15 +5,21 @@ param(
   [Parameter(Mandatory=$true)][string]$Qt6Dir,
   [Parameter(Mandatory=$true)][string]$BuildDir,
   [string]$Python = 'python',
+  [ValidateSet('Ninja','Visual Studio 17 2022')][string]$Generator = 'Ninja',
   [switch]$RunQtHarness
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-foreach ($name in @('cmake','cl','ninja','ctest',$Python)) {
+$requiredTools = @('cmake','cl','ctest',$Python)
+if ($Generator -eq 'Ninja') { $requiredTools += 'ninja' }
+foreach ($name in $requiredTools) {
   if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
     throw "Missing $name. Use an x64 Native Tools prompt with the free OSS Build Tools workload and Windows SDK."
   }
 }
+# CreateProcessW in the existing Job runner needs an executable path, rather
+# than PowerShell's command lookup. Resolve it before launching any test app.
+$ctestExecutable = (Get-Command ctest -CommandType Application -ErrorAction Stop).Source
 $jobRunner = Join-Path $PSScriptRoot '../../scripts/native_check.py'
 if (-not (Test-Path -LiteralPath $jobRunner -PathType Leaf)) {
   throw 'The existing root-owned scripts/native_check.py is required; no test app was launched.'
@@ -27,19 +33,23 @@ function Invoke-Logged([string]$Program, [string[]]$Arguments, [string]$Log) {
   & $Program @Arguments 2>&1 | Tee-Object -FilePath (Join-Path $BuildDir $Log)
   if ($LASTEXITCODE -ne 0) { throw "$Program failed ($LASTEXITCODE). Retained log: $Log" }
 }
-Invoke-Logged 'cmake' @('-S',$PSScriptRoot,'-B',$BuildDir,'-G','Ninja',
-  '-DCMAKE_BUILD_TYPE=Release',"-DParaView_DIR=$ParaViewDir","-DQt6_DIR=$Qt6Dir",'-DBUILD_TESTING=ON') 'configure.log'
+$configureArguments = @('-S',$PSScriptRoot,'-B',$BuildDir,'-G',$Generator,
+  '-DCMAKE_BUILD_TYPE=Release',"-DParaView_DIR=$ParaViewDir","-DQt6_DIR=$Qt6Dir",'-DBUILD_TESTING=ON')
+if ($Generator -eq 'Visual Studio 17 2022') {
+  $configureArguments += @('-A','x64','-T','host=x64','-DCMAKE_CONFIGURATION_TYPES=Release')
+}
+Invoke-Logged 'cmake' $configureArguments 'configure.log'
 Invoke-Logged 'cmake' @('--build',$BuildDir,'--config','Release') 'build.log'
 # The existing Job runner owns ctest and every executable it launches.
 Invoke-Logged $Python @($jobRunner,'--timeout','120','--output-dir',(Join-Path $BuildDir 'core-test-job'),'--',
-  'ctest','--test-dir',$BuildDir,'-C','Release','--output-on-failure','-R','cae_exit_transaction|cae_exit_c_python_abi') 'core-tests.log'
+  $ctestExecutable,'--test-dir',$BuildDir,'-C','Release','--output-on-failure','-R','cae_exit_transaction|cae_exit_c_python_abi') 'core-tests.log'
 if ($RunQtHarness) {
   $previousCapture = $env:CAE_EXIT_CAPTURE_DIR
   $env:CAE_EXIT_CAPTURE_DIR = Join-Path $BuildDir 'qt-captures'
   New-Item -ItemType Directory $env:CAE_EXIT_CAPTURE_DIR | Out-Null
   try {
     Invoke-Logged $Python @($jobRunner,'--timeout','120','--output-dir',(Join-Path $BuildDir 'qt-test-job'),'--',
-      'ctest','--test-dir',$BuildDir,'-C','Release','--output-on-failure','-R','cae_exit_qt') 'qt-tests.log'
+      $ctestExecutable,'--test-dir',$BuildDir,'-C','Release','--output-on-failure','-R','cae_exit_qt') 'qt-tests.log'
   } finally {
     if ($null -eq $previousCapture) { Remove-Item Env:CAE_EXIT_CAPTURE_DIR }
     else { $env:CAE_EXIT_CAPTURE_DIR = $previousCapture }
