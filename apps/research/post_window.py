@@ -276,7 +276,8 @@ class PostWindow(QMainWindow):
         self.tabs.currentChanged.connect(self._tab_changed)
         editor_layout.addWidget(self.tabs, 1)
         self.editor_area.setMaximumHeight(290)
-        self.editor_area.setMinimumHeight(240)
+        # Let the scroll editor yield height before the action rows collide.
+        self.editor_area.setMinimumHeight(210)
         controls = QHBoxLayout()
         self.edit_button = QPushButton('초안 보관')
         self.edit_button.clicked.connect(self.store_draft)
