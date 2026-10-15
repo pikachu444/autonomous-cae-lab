@@ -114,7 +114,8 @@ try {
         '-DPARAVIEW_BUILD_TESTING=OFF','-DPARAVIEW_INSTALL_DEVELOPMENT_FILES=ON',
         '-DPARAVIEW_PLUGINS_DEFAULT=OFF',
         '-DPARAVIEW_ENABLE_EMBEDDED_DOCUMENTATION=OFF','-DPARAVIEW_PLUGIN_DISABLE_XML_DOCUMENTATION=ON',
-        "-DCMAKE_PREFIX_PATH=$qt","-DPython3_ROOT_DIR=$($pythonInfo.prefix)","-DPython3_EXECUTABLE=$Python",
+        # VTK writes Python paths into quoted CMake source; use CMake separators.
+        "-DCMAKE_PREFIX_PATH=$qt","-DPython3_ROOT_DIR=$($pythonInfo.prefix.Replace('\','/'))","-DPython3_EXECUTABLE=$($Python.Replace('\','/'))",
         "-DCMAKE_INSTALL_PREFIX=$runtime")
     Invoke-Checked $cmake $configure
     # Obtain the exact plugin dependency closure first. No default solver or

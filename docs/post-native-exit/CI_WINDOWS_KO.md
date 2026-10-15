@@ -1,7 +1,7 @@
 # 공개 Windows CI에서 SDK와 plugin 확인
 
 이 경로는 로컬 메모리 부족으로 전체 SDK 빌드를 반복 중단하는 상황을 위한 수동
-검사다. workflow와 스크립트는 준비 단계이며 원격 실행 결과가 아니다. 실제
+검사다. 원격 실행은 아래 단계에서 실패했으며 SDK/plugin 전체 완료가 아니다. 실제
 ParaView File > Exit/X/Ctrl+Q/Alt+F4, 저장 취소 후 재시도와 한글 화면 수용은
 [실창 검수표](ACCEPTANCE_KO.md)의 별도 미완료 항목이다.
 
@@ -35,6 +35,21 @@ build glue는 GitHub-hosted CI 환경인지도 확인하여 로컬의 기존 Pyt
 두 번째 실행은 runner의 기본 `tar.exe`에 LZMA 코덱이 없어 같은 단계에서 멈췄다.
 이미 필수 도구인 CMake의 `-E tar`를 사용해 고정된 7zip/XZ 입력을 푼다.
 압축을 풀기 전 경로·link 검사와 SHA256 검증은 유지하며 새 도구를 설치하지 않는다.
+
+세 번째 [실행38670920927](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927)은
+소스 `75c991960b40145ed8b6bd6545a35c20aafe0844`에서 실패했다. `pqComponents` 의존
+빌드는 완료했지만 plugin configure가 SDK의 `vtk-find-package-helpers.cmake:2`를
+읽다가 Python 실행 경로 `C:\hostedtoolcache\…`의 `\h`를 잘못된 CMake escape로
+판정했다. 원 로그·실패 상태는 보존한다. plugin 빌드·native backend·실창 종료는
+모두 `NOT_RUN`이며 의존 빌드 성공을 이들의 성공으로 세지 않는다.
+
+CI build glue에서 SDK configure의 `Python3_ROOT_DIR`·`Python3_EXECUTABLE` 인수만
+`/` 구분자로 정규화했다. VTK가 값을 따옴표로 감싼 CMake 소스로 내보내기 때문이다
+([CMake 문자열 규칙](https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#quoted-argument)).
+고정 archive의 원 VTK 생성 함수를 쓴 작은 CMake 생성→재포함 검사에서 원 경로의
+`\h` 실패와 교정 경로·공백 포함 경로의 값 보존을 확인했다. 소유 Job은 `job_empty`로
+종료했다. SDK 재빌드나 새 CI 실행은 하지 않았다. 다음은 root가 교정 소스를 검토·게시한
+뒤 새 수동 CI에서 plugin configure 이후 단계까지 확인하는 일이다.
 
 ## 입력과 실제로 검사할 범위
 

@@ -185,6 +185,7 @@ Astra가 범위와 API 명칭을 대조했다. 재사용 대화의 B13-02도 파
 완료된 이전 발언의 본문 선택도 새 응답이 들어와도 유지한다. 원 저장 결과를 사용한
 Windows Qt 표시·저장/새 owner 재열기와 Astra 독립 검토를 마쳤고 확인 Job을 종료했다.
 새 AI·솔버 계산은 없으며 실제 OS 화면 캡처/키보드 전체 수용과 구별한다.
+관련 코드·한국어 사용법·결과 선택 화면을 `984cdd8`로 원격 main에 게시하고 일치를 확인했다.
 사용법은 [한국어 안내](docs/USER_GUIDE_KO.md#제안을-계산하고-결과로-토론-이어가기)에 있다.
 
 관련 문서의 부분 저장(FN02-02)은 Data/Material 팀, 이동용 작업 사본(FN01-02)과
@@ -217,8 +218,11 @@ stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하�
 원 로그를 보존하고 단일 실행 경로 선택을 교정해 다시 실행했다. 두 번째 실행도
 Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실패했다. 새 도구를
 설치하지 않고 이미 필요한 CMake의 압축 해제를 재사용한 `75c9919`를 게시했다. 공식
-입력과 위험 경로 거절의 국소 확인을 마쳤고 세 번째 원격 실행은 공식 입력 준비를
-넘어 SDK/plugin 빌드 중이다. 실제 결과는
+입력과 위험 경로 거절의 국소 확인을 마쳤다. 세 번째 원격 실행은 SDK 의존 빌드를
+마쳤지만 plugin configure가 SDK에 기록된 Windows Python 경로의 escape를 해석하다
+실패했다. 해당 두 configure 경로만 CMake 구분자로 정규화했고 원 생성 함수를 사용해
+원 실패·교정 경로·공백 경로를 좁게 확인했다. 소유 Job을 종료했으며 교정 소스 게시 뒤
+새 원격 실행에서 plugin 이후 단계를 확인한다. 아직 plugin/실창 성공은 아니다. 원 결과는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
