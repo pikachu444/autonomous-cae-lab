@@ -233,6 +233,9 @@ Astra 지적을 교정하고 실제 Qt 복구·좁은 창·국소 검사로 확�
 B1.2 일반 다변수 운동도 전체 원 요구·현재 공개 source·native API·독립 기준값을 전달해
 실제 Pro에 구현 배정했다. 새 URL의 빈 화면은 기록하고, 완료된 실제 Pro 대화의 빈
 입력란에서 별도 큰 구현 요청으로 전달했다. 기록은 `_workspace/delivery-cad-pre/m1-general-relations-20261015/relay.json`이다.
+최종 Pro 소스 ZIP도 회수했다. CAD 담당이 domain 전용 compiler·관계 편집기·motion
+직렬화/화면/기존 관절 검사 hunk를 적용하고 Astra가 독립 검토한다. 전체 소스 사본으로
+현재 main을 덮지 않는다. 실제 FreeCAD·Qt 미실행을 Pro 검사 통과로 대신하지 않는다.
 작은 자식 기능 완료를 인도팀 종료로 처리하지 않는다.
 
 설치 팀은 시작 기록을 남기기 전 실패한 경우의 중복 실행과 프로세스 잔류를 교정했다.
