@@ -12,7 +12,9 @@
 
 이번 코드는 기존 CalculiX C3D10 implicit dynamic 경로를 확장한다. 별도 solver, scheduler, 웹 화면, project format을 만들지 않는다. 전용 코드와 기존 코드의 통합 패치를 모두 적용해야 메뉴부터 실행까지 연결된다. 기존 `.caepre`, Owner 문서·generation, frozen snapshot, JobManager와 retained attempt를 그대로 사용한다. `dynamic_result.json`은 기존 실행 폴더 안의 파생 결과 artifact이며 별도 프로젝트 파일이 아니다.
 
-**제품 코드 작성/portable 검사와 Windows native 수용 완료는 다르다.** Pro 작성 호스트에는 FreeCAD, CalculiX, ParaView, Qt 바인딩이 없었다. Windows 통합에서는 초기 속도 예제의 실제 생성·managed 저장·새 Owner 재열기/재동결과 두 크기의 FreeCAD Qt 입력 오류 복구를 확인했다. 실제 계산·READ 수치 동등성·다른 법칙/접촉 모델은 아직 확인하지 않았다. 계산이 정상 종료해도 `qualification=UNKNOWN`, `decision=NOT_RELEASED`, `engineering_valid=False`다. 실제 지원 판정은 아래 native 수용 순서로 닫아야 한다.
+**제품 코드 작성/portable 검사와 Windows native 수용 완료는 다르다.** Pro 작성 호스트에는 FreeCAD, CalculiX, ParaView, Qt 바인딩이 없었다. Windows 통합에서는 초기 속도 예제의 실제 생성·managed 저장·새 Owner 재열기/재동결과 두 크기의 FreeCAD Qt 입력 오류 복구를 확인했다. 계산부터 결과 열기까지의 완결 동선·READ 수치 동등성·다른 법칙/접촉 모델은 아직 확인하지 않았다. 계산이 정상 종료해도 `qualification=UNKNOWN`, `decision=NOT_RELEASED`, `engineering_valid=False`다. 실제 지원 판정은 아래 native 수용 순서로 닫아야 한다.
+
+후속 Windows 초기 속도 예제에서는 실제 solver가 요청한 두 단계/400증분을 끝냈지만, 전체 결과 읽기는 아직 완료되지 않았다. 같은 원 출력400프레임을 저장한 결과 문서가823MB로 커져 현재256MiB 읽기 제한에 걸리는 문제를 확인했다. 실제 rout의 저장점 읽기도 설치 build에서 오류가 있어 교정 중이다. 원 입력·FRD/DAT/STA/rout는 보존하며, 출력 간격이나 수치 기준을 바꾸어 통과시키지 않는다. 이 상태를 성공한 결과 열기 또는 실제 READ 이어 계산으로 해석하지 않는다.
 
 ZIP의 `source/`에는 Pro 소유의 새 파일만 있다. 공통 파일은 `integration.patch`에 작은 hunk로만 들어 있다. Sol 소유의 Runner/Impact, fem_panel, assembly_pose 및 다른 팀 소스는 직접 교체하지 않는다. 다음은 **Codex 통합 담당자용**이며 사용자에게 git 작업을 요구하는 절차가 아니다.
 

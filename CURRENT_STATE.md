@@ -116,7 +116,11 @@ Pro의 대역 계산 통과를 Windows CalculiX 실행으로 표시하지 않는
 기존 허용 크기를 넘어 원천 등록 전에 막히는 실제 결함을 확인했다. native rout의 현행
 reader도 실제 Windows 파일을 거절했다. 출력·허용 기준을 줄이거나 파일 한도를 올려
 완료로 처리하지 않고, 기존 artifact/reader를 재사용한 결과 저장·읽기와 실제 restart
-형식 교정을 구조 팀의 다음 Pro 인도로 묶는다. 새 솔버 계산은 반복하지 않았다.
+형식 교정을 구조 팀의 다음 Pro 인도로 묶어 실제 Pro에 전달했다. 전체 공개 기준 소스와
+작은 실제 출력·원 rout·측정 자료를 첨부했고 응답 작성 중이다. 기록은 같은
+`dynamic-delivery/c2-request/relay.json`에 있다. Numerical C2가 완료된 실제 Pro 대화를
+재사용했으며 기존 Numerical C2 원본은 먼저 완전히 회수했다. 이 UI 회수는 Numerical
+담당이 돕고 동해석 코드·수용 책임은 구조 팀이 유지한다. 새 솔버 계산은 반복하지 않았다.
 담당은 실제 FreeCAD에서 초기속도 공개 모델 생성→저장→새 native owner 재열기·재동결을
 확인했다. 실제 C3D10 모델의 초기속도 DOF·밀도 변환·초기조건과 DYNAMIC/WRITE 입력을
 읽었으며 계산은 하지 않았다. 해당 owned Job과 FreeCAD를 종료했다. 공통14 통합도
