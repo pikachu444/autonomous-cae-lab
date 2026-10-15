@@ -267,7 +267,9 @@ def _pair_unit_files(root,model,settings,runtime_identity,inp,pins,checks,*,exec
     for name,pin in pins.items():
         if pin['relative']!=name:raise ValueError('Legacy pair unit artifact identity differs')
         verify_pin(root,pin)
-    actual=starter_admission(admit_pin(root,pins['native/impact_0000.out']),model)
+    from .impact_native_b import run_name
+    prefix=run_name(settings)
+    actual=starter_admission(admit_pin(root,pins['native/'+prefix+'_0000.out']),model)
     checks=[v for v in checks if v.get('name')=='native_starter']
     if len(checks)!=1 or checks[0]!=actual or actual.get('status')!='PASS' or actual.get('units')!='Mg/mm/s':
         raise ValueError('Legacy pair units require the actual matching native Starter unit check')
@@ -275,7 +277,7 @@ def _pair_unit_files(root,model,settings,runtime_identity,inp,pins,checks,*,exec
     if execution_pin is not None:verify_pin(root,execution_pin)
     return _RetainedPairUnits({'basis':('EXACT_RETAINED_INPUT_AND_NATIVE_STARTER_UNITS' if execution_pin else
         'EXACT_COMPLETED_NATIVE_INPUT_AND_STARTER_UNITS'),
-        'units':'Mg/mm/s',**({'execution_pin':deepcopy(execution_pin)} if execution_pin else
+        'units':'Mg/mm/s','native_run_name':prefix,**({'execution_pin':deepcopy(execution_pin)} if execution_pin else
         {'source_execution_record':'NOT_YET_PUBLISHED','owned_command_pins':deepcopy(list(command_pins))}),
         'input_pin':deepcopy(inp),'native_pins':deepcopy(pins),'native_unit_check':deepcopy(actual),
         'producer_source_commit':WINDOWS_SOURCE},_seal=_UNIT_SEAL)
@@ -290,7 +292,9 @@ def retained_pair_units(root,execution_pin,model,settings,runtime_identity):
     if original['diagnostics'].get('runtime')!=runtime_identity:
         raise ValueError('Legacy pair units require the exact retained runtime')
     retained=original['retained_native']
-    pins={name:retained['native_artifacts'][name] for name in ('native/impact_0000.out','native/impactT01','native/impactT01_TITLES')}
+    from .impact_native_b import run_name
+    prefix=run_name(settings)
+    pins={name:retained['native_artifacts'][name] for name in ('native/'+prefix+'_0000.out','native/'+prefix+'T01','native/'+prefix+'T01_TITLES')}
     return _pair_unit_files(root,model,settings,runtime_identity,retained['input_artifacts']['input.json'],
         pins,original['checks'],execution_pin=execution_pin)
 
@@ -316,7 +320,9 @@ def completed_pair_units(root,model,settings,execution):
             raise ValueError('Current pair units require completed owned native command receipts')
         command_pins.append(pin)
     inp=file_pin(root,root/'input.json')
-    pins={name:file_pin(root,root/name) for name in ('native/impact_0000.out','native/impactT01','native/impactT01_TITLES')}
+    from .impact_native_b import run_name
+    prefix=run_name(settings)
+    pins={name:file_pin(root,root/name) for name in ('native/'+prefix+'_0000.out','native/'+prefix+'T01','native/'+prefix+'T01_TITLES')}
     return _pair_unit_files(root,model,settings,diagnostics.get('runtime'),inp,pins,execution['checks'],command_pins=command_pins)
 
 
@@ -333,7 +339,8 @@ def pair_provenance(history,group,runtime_identity,unit_evidence=None):
     if history['layout']['format_code']!=4021 or history['layout']['unit_factors'] is None:
         if history['layout']['format_code'] not in (3040,3041) or not isinstance(unit_evidence,_RetainedPairUnits):return None
         legacy_units=unit_evidence.metadata
-        for key,pin in (('native/impactT01',history['source_pin']),('native/impactT01_TITLES',history.get('titles_pin'))):
+        prefix=legacy_units['native_run_name']
+        for key,pin in (('native/'+prefix+'T01',history['source_pin']),('native/'+prefix+'T01_TITLES',history.get('titles_pin'))):
             expected=legacy_units['native_pins'][key]
             if pin is None or expected['relative']!='native/'+pin['relative'] or any(pin[k]!=expected[k] for k in ('bytes','sha256')):return None
     return {'producer_source_commit':WINDOWS_SOURCE,'engine_sha256':WINDOWS_FILES['exec/engine_win64.exe'],

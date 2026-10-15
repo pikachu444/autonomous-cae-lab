@@ -28,10 +28,17 @@ def number(value):
     except ValueError:return value
 
 
-def pair_label(settings,index):
+def native_pair_groups(settings):
+    from caelab.impact_native import parse_source
+    definition=parse_source(settings['source'])['b_definition']
+    return (definition or {}).get('outputs',{}).get('groups',[])
+
+
+def pair_label(settings,index,native_group=None):
     if not 0<=index<len(settings.get('contacts',[])):return '접촉 대상 다시 선택 필요'
     row=settings['contacts'][index]
-    return '접촉 '+str(index+1)+': '+row['a']+' ↔ '+row['b']+' / '+row['law']
+    name='접촉 '+str(native_group['members'][0] if native_group else index+1)
+    return name+': '+row['a']+' ↔ '+row['b']+' / '+row['law']
 
 
 def element_label(model,identifier):
@@ -186,16 +193,24 @@ class InterfaceDialog(QDialog):
 
 class ResponseDialog(QDialog):
     def __init__(self,settings,row=None,parent=None):
-        super().__init__(parent);self.setWindowTitle('벌크와 계면 결과 선택');self.resize(720,410)
+        self.native=settings.get('source',{}).get('format')=='RAD'
+        self.native_groups=native_pair_groups(settings) if self.native else []
+        if self.native and not self.native_groups:
+            raise ValueError('원 RAD에 접촉쌍 이력 출력 카드가 없습니다. 원 입력 조건에서 출력 설정을 확인하세요.')
+        if self.native and row and row.get('scope')!='pair':
+            raise ValueError('원 RAD에서는 이력 카드가 있는 접촉쌍 결과만 수정할 수 있습니다. 미지원 선택은 삭제하거나 원 입력을 확인하세요.')
+        super().__init__(parent);self.setWindowTitle('접촉쌍 결과 선택' if self.native else '벌크와 계면 결과 선택');self.resize(720,410)
         self.settings=deepcopy(settings);self.old=row;self.applied=None;self.model=model_from_settings(settings)
         layout=QVBoxLayout(self);form=QFormLayout();layout.addLayout(form)
         self.scope=QComboBox()
-        for label,value in [('벌크 요소','bulk'),('원 응집 요소의 대응면','interface'),('원 접촉쌍','pair')]:self.scope.addItem(label,value)
+        for label,value in [('벌크 요소','bulk'),('원 응집 요소의 대응면','interface'),('원 접촉쌍','pair')]:
+            if not self.native or value=='pair':self.scope.addItem(label,value)
         self.quantity=QComboBox();self.identity=QComboBox();self.component=QComboBox()
         for label,widget in [('위치 종류',self.scope),('물리량',self.quantity),('원 대상',self.identity),('성분',self.component)]:form.addRow(label,widget)
         self.note=QLabel();self.note.setWordWrap(True);layout.addWidget(self.note);self.status=QLabel();self.status.setWordWrap(True);layout.addWidget(self.status)
         buttons(self,layout,self.apply);self.scope.currentIndexChanged.connect(self.populate);self.quantity.currentIndexChanged.connect(self.components)
-        self.scope.setCurrentIndex(self.scope.findData((row or {}).get('scope','bulk')));self.populate()
+        self.identity.currentIndexChanged.connect(self.components)
+        self.scope.setCurrentIndex(self.scope.findData((row or {}).get('scope','pair' if self.native else 'bulk')));self.populate()
         if row:
             self.quantity.setCurrentIndex(self.quantity.findData(row['quantity']));self.identity.setCurrentIndex(self.identity.findData(row['identity']));self.component.setCurrentIndex(self.component.findData(row['component']))
     def populate(self):
@@ -212,12 +227,18 @@ class ResponseDialog(QDialog):
         else:
             for label,key in [('접촉쌍 구간 평균 힘 [N]','force'),('접촉쌍 누적 충격량 [N s]','native_impulse'),('평균 힘 표본 적분 [N s]','sampled_impulse')]:self.quantity.addItem(label,key)
             ids=list(range(len(self.settings.get('contacts',[]))))
+            if self.native:ids=[group['contact_index'] for group in self.native_groups]
             self.note.setText('누적 충격량은 솔버의 원 출력값입니다. 힘은 저장 시각 사이의 평균값이며 표본 적분과 구분합니다. 지원하지 않는 솔버 버전은 미확인으로 표시합니다.')
-        for eid in ids:self.identity.addItem(pair_label(self.settings,eid) if scope=='pair' else element_label(self.model,eid),eid)
+        for eid in ids:
+            group=next((g for g in self.native_groups if g['contact_index']==eid),None) if self.native else None
+            self.identity.addItem(pair_label(self.settings,eid,group) if scope=='pair' else element_label(self.model,eid),eid)
         self.quantity.blockSignals(False);self.components()
     def components(self):
         self.component.clear();scope=self.scope.currentData();q=self.quantity.currentData()
         choices=('FNX','FNY','FNZ','FTX','FTY','FTZ') if scope=='pair' else ('tangent1','tangent2') if q=='face_slip_change' else ('normal',) if q in ('face_separation','face_opening_change') else ('scalar',)
+        if self.native:
+            group=next((g for g in self.native_groups if g['contact_index']==self.identity.currentData()),{})
+            choices=tuple(key for key in choices if key in group.get('tokens',[]))
         labels={'scalar':'값','normal':'법선','tangent1':'접선 1','tangent2':'접선 2','FNX':'법선 X','FNY':'법선 Y','FNZ':'법선 Z','FTX':'접선 X','FTY':'접선 Y','FTZ':'접선 Z'}
         for key in choices:self.component.addItem(labels[key],key)
     def apply(self):
@@ -228,8 +249,14 @@ class ResponseDialog(QDialog):
             'quantity':self.quantity.currentData(),'identity':self.identity.currentData(),'component':self.component.currentData()}
         if self.old:rows[rows.index(self.old)]=row
         else:rows.append(row)
-        try:impact_bulk_results.validate(self.model,result)
-        except (ValueError,KeyError,TypeError) as error:self.status.setText(str(error));return
+        try:
+            if self.native:
+                from caelab.impact_native_b import select_response
+                group=next(g for g in self.native_groups if g['contact_index']==row['identity'])
+                result=select_response(self.settings,native_contact_id=group['members'][0],quantity=row['quantity'],
+                    component=row['component'],name=row['name'],replace_name=self.old['name'] if self.old else None)
+            else:impact_bulk_results.validate(self.model,result)
+        except (ValueError,KeyError,TypeError,StopIteration) as error:self.status.setText(str(error) or '원 접촉쌍과 성분을 선택하세요.');return
         self.applied=result;self.accept()
 
 
@@ -252,6 +279,10 @@ class BulkPage(QWidget):
         self.status=QLabel();self.status.setWordWrap(True);layout.addWidget(self.status);self.refresh()
     def refresh(self):
         settings=self.editor.edited();native=settings.get('source',{}).get('format')=='RAD';self.native=native
+        self.native_groups=[];self.native_error=''
+        if native:
+            try:self.native_groups=native_pair_groups(settings)
+            except (ValueError,KeyError,TypeError) as error:self.native_error=str(error)
         try:self.model=model_from_settings(settings)
         except (ValueError,KeyError,TypeError):self.model=None
         data=impact_b.editor_rows(settings)
@@ -265,19 +296,34 @@ class BulkPage(QWidget):
         for row in settings.get('b_responses',[]):
             q=row['quantity'];label=impact_bulk_results.BULK[q][0] if q in impact_bulk_results.BULK else {'face_separation':'면 분리','face_opening_change':'벌어짐 변화','face_slip_change':'미끄럼 변화','cohesive_active':'응집 요소 활성','force':'접촉쌍 구간 평균 힘','native_impulse':'접촉쌍 누적 충격량','sampled_impulse':'평균 힘 표본 적분'}.get(q,q)
             unit=impact_bulk_results.BULK[q][2] if q in impact_bulk_results.BULK else '1' if q=='cohesive_active' else 'mm' if row['scope']=='interface' else 'N' if q=='force' else 'N s'
-            target=pair_label(settings,row['identity']) if row['scope']=='pair' else element_label(self.model,row['identity']) if self.model is not None else '원 대상 확인 필요'
+            group=next((g for g in self.native_groups if g['contact_index']==row['identity']),None)
+            target=pair_label(settings,row['identity'],group) if row['scope']=='pair' else element_label(self.model,row['identity']) if self.model is not None else '원 대상 확인 필요'
             append('response',[label+' ['+unit+']',target,{'scalar':'값','normal':'법선','tangent1':'접선 1','tangent2':'접선 2','FNX':'법선 X','FNY':'법선 Y','FNZ':'법선 Z','FTX':'접선 X','FTY':'접선 Y','FTZ':'접선 Z'}.get(row['component'],row['component'])])
-        for button in self.actions.values():button.setEnabled(not native)
-        self.check_button.setEnabled(not native)
-        self.note.setText('원 RAD 직접 입력의 벌크·계면 확장은 지원하지 않습니다.' if native else '시험 중인 해석 기능입니다. 재료 교정값과 적용 범위를 확인하세요.')
+        for (key,verb),button in self.actions.items():
+            button.setEnabled(not native or key=='response' and (bool(settings.get('b_responses')) if verb=='remove' else bool(self.native_groups) and self.model is not None))
+        self.check_button.setEnabled(not native or self.model is not None)
+        self.note.setText(('원 접촉쌍 이력 카드의 힘과 충격량을 선택합니다. 벌크 손상·LAW117 계면 편집은 지원하지 않습니다.' if self.native_groups else
+            '원 RAD에 접촉쌍 이력 출력 카드가 없어 결과를 추가할 수 없습니다. 원 입력 조건에서 출력 설정을 확인하세요. 벌크·계면 편집은 지원하지 않습니다.')
+            if native else '시험 중인 해석 기능입니다. 재료 교정값과 적용 범위를 확인하세요.')
+        self.note.setToolTip(self.native_error)
     def action(self,key,verb):
-        if self.native:return
+        if self.native and key!='response':return
         settings=self.editor.edited();table=self.tables[key];index=table.currentRow();field={'bulk':'bulk_damage','interface':'interface_controls','response':'b_responses'}[key]
         rows=settings.get(field,[])
         if verb!='add' and not 0<=index<len(rows):self.status.setText('수정할 항목을 먼저 선택하세요.');return
+        if self.native and verb!='remove' and (not self.native_groups or self.model is None):
+            self.status.setText('접촉쌍 이력 출력 카드가 있는 원 RAD 입력을 먼저 확인하세요.');return
         if verb=='remove':
             if QMessageBox.question(self,'설정 삭제','선택한 설정을 삭제할까요? 관련 결과 선택은 확인해야 합니다.',QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:return
-            settings[field].pop(index);self.editor.replace_settings(settings);return
+            if self.native:
+                from caelab import impact_reference_bindings as bindings
+                try:bindings.validate(settings,self.model)
+                except (ValueError,KeyError,TypeError) as error:self.status.setText(str(error));return
+            settings[field].pop(index)
+            if self.native and bindings.KEY in settings:
+                try:settings[bindings.KEY]=bindings.snapshot(settings,self.model)
+                except (ValueError,KeyError,TypeError) as error:self.status.setText(str(error));return
+            self.editor.replace_settings(settings);return
         try:
             if key=='response':dialog=ResponseDialog(settings,rows[index] if verb=='edit' else None,self)
             else:

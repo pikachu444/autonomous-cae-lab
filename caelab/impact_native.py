@@ -18,7 +18,7 @@ STARTER_FAMILIES = (
     r'/TETRA4/[1-9][0-9]*', r'/GRNOD/(?:NODE|PART|SURF|GRBRIC|GRNOD)/[1-9][0-9]*',
     r'/GRBRIC/BRIC/[1-9][0-9]*', r'/SURF/SEG/[1-9][0-9]*', r'/BCS/[1-9][0-9]*',
     r'/INIVEL/TRA/[1-9][0-9]*', r'/INTER/TYPE24/[1-9][0-9]*',
-    r'/FUNCT/[1-9][0-9]*', r'/GRAV/[1-9][0-9]*',
+    r'/FUNCT/[1-9][0-9]*', r'/GRAV/[1-9][0-9]*', r'/TH/INTER/[1-9][0-9]*',
 )
 ENGINE_FIXED = {'/PRINT/-100/50','/PARITH/OFF','/DT','/DT/NODA/CST/0','/DT1/BRICK/STOP','/ANIM/DT',
                 '/ANIM/VECT/DISP','/ANIM/VECT/VEL','/ANIM/VECT/ACC','/ANIM/VECT/CONT',
@@ -398,7 +398,9 @@ def parse_source(source):
         n,axis,*_=map(int,block['rows'][0][1].split(','))
         if initial['velocities_mm_s'].get(n,[0.,0.,0.])[axis-1]!=0:
             raise SourceError('구속 자유도와 native 초기속도가 충돌합니다')
-    return {'model':model,'settings':controls,'initial':initial,'physics':physics,'fields':fields,
+    from .impact_native_b import definition
+    b_definition=definition(starter,graphs['starter']['text'],model,controls)
+    return {'model':model,'settings':controls,'initial':initial,'physics':physics,'fields':fields,'b_definition':b_definition,
             'cards':starter+engine,'starter_text':graphs['starter']['text'],'engine_text':graphs['engine']['text'],
             'name':run_name,'starter':bundle['starter'],'engine':bundle['engine'],
             'support':'NATIVE_2025_ELASTIC_C3D4_V1'}
@@ -412,18 +414,21 @@ def settings_from_source(source):
 def validate_settings(settings):
     from .impact_model import default_settings
     from .impact_responses import validate as validate_responses
-    if not isinstance(settings,dict) or set(settings)-{'generated_sets','cohesive','responses','source_reference_bindings'}!=set(default_settings())-{'generated_sets','cohesive','responses','source_reference_bindings'}:
+    optional={'generated_sets','cohesive','responses','source_reference_bindings','b_responses','bulk_damage','interface_controls'}
+    if not isinstance(settings,dict) or set(settings)-optional!=set(default_settings())-optional:
         raise ValueError('native 충격 정의의 항목을 확인하세요')
     parsed=parse_source(settings['source'])
     for name in ('time','gravity_mm_s2','motions','contacts'):
         if settings.get(name)!=parsed['settings'][name]:
             raise SourceError('native 원문과 '+name+' 표 값이 다릅니다. 원문 field의 명시 편집으로 적용하세요')
-    if settings.get('cohesive'):raise SourceError('첫 native 직접 경로는 elastic C3D4입니다. LAW117/B는 별도 지원 범위입니다')
+    if settings.get('cohesive'):raise SourceError('첫 native 직접 경로는 elastic C3D4입니다. LAW117은 별도 지원 범위입니다')
     from .impact_sets import apply
     model=apply(parsed['model'],settings['source'],settings.get('generated_sets',[]))
     from .impact_reference_bindings import validate as validate_bindings
     validate_bindings(settings,model)
     validate_responses(model,settings.get('responses',[]))
+    from .impact_native_b import validate_selections
+    validate_selections(model,settings,parsed['b_definition'])
     requested={'displacement':'/ANIM/VECT/DISP','velocity':'/ANIM/VECT/VEL','acceleration':'/ANIM/VECT/ACC',
                'contact_force':'/ANIM/VECT/CONT','contact_impulse':'/ANIM/VECT/CONT','stress':'/ANIM/BRICK/TENS/STRESS'}
     declared={c['key'] for c in parsed['cards'] if c['role']=='engine'}
@@ -454,6 +459,8 @@ def edit_field(settings, field_id, value, *, reason, expected_source_sha256):
     # Source is authoritative. Refresh only its exactly projected physical controls.
     result=settings_from_source(source)
     result['responses']=deepcopy(settings.get('responses',[]))
+    for key in ('b_responses','bulk_damage','interface_controls'):
+        if key in settings:result[key]=deepcopy(settings[key])
     # Generated target receipts bind the source bytes; retain as stale instead of silently re-anchoring.
     result['generated_sets']=deepcopy(settings.get('generated_sets',[]))
     result['qualification']=settings['qualification']

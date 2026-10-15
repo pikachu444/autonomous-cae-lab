@@ -169,6 +169,47 @@ Sol이며 원 Pro 구현과 원 실패 입력·로그는 그대로 보존했다.
 
 결과는 **원 Job의 고정 입력**에 붙인다. 현재 편집 중인 다른 revision을 사용해 옛 결과를 대응시키지 않는다. `document_result(document_id, job_id, selection={"responses":["impact.velocity.Z@2"]})` 등의 domain 호출에서 내부 숫자는 source 선택으로 해석한 값이다. 단일 frame API는 `impact_retained.select_frame`; metadata 목록은 `inventory`이며 payload 검증 상태가 다르다. 없는 프레임/성분/active 값은 UNKNOWN 또는 명시 오류다.
 
+## 생성한 접촉쌍 RAD를 다시 열기
+
+탄성 C3D4 모델이 생성한 `/TH/INTER` 카드를 포함한 Starter/Engine도 원문 그대로 다시
+열 수 있다. **벌크와 계면 → 추가 결과**에서 원 이력 카드가 선언한 접촉쌍과 성분을
+선택한다. 접촉쌍 누적 충격량, 구간 평균 힘, 평균 힘 표본 적분을 구별한다. 원문 field
+편집 후에도 결과 선택은 유지되며, 같은 해석 문서를 저장·재열어 이어서 수정할 수 있다.
+원 카드가 없는 쌍의 출력을 새로 만들어 넣지는 않는다.
+
+첫 지원은 기존 native 탄성 C3D4/TYPE24와, 한 `/TH/INTER` group에 실제 interface
+member 하나 및 `FNX FNY FNZ FTX FTY FTZ` 여섯 성분을 명시한 형식이다. 중복 member,
+없는 쌍, 다른 성분·옵션은 원 위치의 오류로 남긴다. LAW36·LAW117·벌크 손상 native
+가져오기 지원으로 확대하지 않는다. 물리 조건은 계속 **원 입력 편집**에서 변경한다.
+직접 내보내기는 TH 카드를 재생성하거나 제거하지 않으며, 명시한 편집 범위 밖의 원
+bytes·줄바꿈·include 구성을 유지한다.
+
+Python에서도 같은 정의를 명시적으로 선택할 수 있다. 아래는 파일 읽기·정의 편집뿐이며
+솔버나 converter를 실행하지 않는다. 반환한 settings는 기존 `simulation.update`로
+반영하고 `document.save`로 저장한다.
+
+```python
+from pathlib import Path
+from caelab.impact_input_workflow import open_definition
+from caelab.impact_native_b import select_response
+from caelab.impact_native import export_direct
+
+folder = Path("examples/impact/input_a/native_pair")
+draft = open_definition(folder / "impact_0000.rad", folder,
+                        engine=folder / "impact_0001.rad", units="Mg/mm/s")
+draft["settings"] = select_response(draft["settings"], native_contact_id=1,
+    quantity="native_impulse", component="FNZ", name="pair_normal_z")
+export_direct(draft["settings"], Path("C:/CAE/new-native-export"))
+```
+
+위 공개 RAD는 보존된 실제 4733증분 입력의 동일 bytes다. 이번에는 원 입력의 가져오기,
+선택·명시 수정, Simulation 저장·새 Python 재열기·동일 bytes 내보내기를 확인했다.
+별도로 원 INP attempt의 정확한 모델·TH 카드와 비교한 18응답×150표본은 기존 결과의
+값·시각·NATIVE/DERIVED 원천과 같았다. **옛 결과는 원 INP 문서/Job 소유로 유지한다.**
+새 RAD 문서에서 계산한 결과로 바꾸거나, 수정 후 모델에 자동 재결속하지 않는다.
+원 실행의 정확한 단위 증거가 없으면 접촉쌍 수치는 계속 UNKNOWN이다. 새 솔버·converter
+실행 및 물리 수용 검사는 하지 않았다.
+
 ## Python에서 보존 결과 다시 읽기
 
 Python에서도 같은 해석 문서의 원 계산을 지정해 읽을 수 있다. 다음 호출은 GUI와 같은 명령이다.
@@ -197,6 +238,6 @@ Python의 `engine_deck(settings)` 미리보기·내보내기도 동일한 원 �
 
 정상 DT1 문서의 수치 항목은 **전체·고체 시간증분 계수 함께 변경**으로 표시한다. 이 항목을 명시 편집하면 `/DT`와 DT1의 정확한 두 scale 범위를 한 작업으로 바꾸고 마지막에 전체 입력을 다시 검사한다. 다른 bytes와 원 CRLF는 그대로다. Undo/Redo, 저장 후 새 owner 재열기·재편집, 정확한 native 내보내기와 원문 복원을 확인했다. 기존 `/DT` 단독 문서와 허용된 mass scaling 문서는 종전대로다. 기존 source editor의 명칭 연결이며 새 GUI 개편이나 OS 조작 수용을 주장하지 않는다.
 
-이 native 지원은 기존 탄성 C3D4 원문 범위다. generated INP의 B 응답용 `/TH/INTER` 등 전체 카드를 native로 재가져와 편집하는 기능은 여전히 미지원이다. DT1 카드 하나의 지원을 B 전체 native 편집 지원으로 해석하면 안 된다.
+DT1 인도 당시의 native 확인은 기존 탄성 C3D4 원문 범위였으며, generated INP의 B 출력 카드는 재가져오기 대상에 포함하지 않았다. 이후 위 **생성한 접촉쌍 RAD를 다시 열기**에서 탄성 C3D4/TYPE24의 한 member·여섯 성분 `/TH/INTER` 가져오기·응답 선택·편집·저장을 연결했다. 이 유한 지원을 LAW36·LAW117이나 B 전체 native 편집 지원으로 확대하지 않는다.
 
-Python converter·controlled Starter 경계, 원문·문서 저장·cold와 기존 영향 검사를 마친 뒤 같은 공개 입력·CFL .9로 실제 계산 한 번을 확인했다. Starter·Engine과 결과 읽기가 성공했고 정확한 고체 시간증분 계산, 4733증분, 저장·새 프로세스의 동일 결과와 확인용 프로세스 종료를 확인했다. 접촉 전 에너지 폭주는 이번 출력에서 사라졌지만 접촉 후 에너지 오차는 남아 물리 수용은 미완료다. 새 원실행의 접촉쌍 응답은 단위 근거 전달을 추가 연결하기 전 UNKNOWN이며 빈 응답을 실제 0으로 해석하지 않는다. 과거 실패와 원 결과는 그대로 보존한다.
+Python converter·controlled Starter 경계, 원문·문서 저장·cold와 기존 영향 검사를 마친 뒤 같은 공개 입력·CFL .9로 실제 계산 한 번을 확인했다. Starter·Engine과 결과 읽기가 성공했고 정확한 고체 시간증분 계산, 4733증분, 저장·새 프로세스의 동일 결과와 확인용 프로세스 종료를 확인했다. 접촉 전 에너지 폭주는 이번 출력에서 사라졌지만 접촉 후 에너지 오차는 남아 물리 수용은 미완료다. 당시 첫 원실행의 접촉쌍 응답은 단위 근거 전달 전 UNKNOWN이었고 이 원 결과는 보존한다. 이후 같은 원출력과 정확한 단위 proof로 18응답×150표본 읽기·저장·cold를 확인했으며, 위 접촉쌍 후속절과 B 사용법에서 구분한다. 빈 UNKNOWN 응답을 실제 0으로 해석하거나 과거 실패·원 결과를 덮어쓰지 않는다.

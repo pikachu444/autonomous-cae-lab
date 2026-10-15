@@ -50,7 +50,7 @@ def verify(text,model,settings,definition):
         if type(index) is not int or not 0<=index<len(settings['contacts']) or group['pair']!=settings['contacts'][index] or len(members)!=1:
             raise ValueError('B contact pair receipt differs from the original selected pair')
         contact=blocks.get('/INTER/TYPE24/'+str(members[0]))
-        if not contact or contact[0].strip().upper()!='IMPACT'+str(index+1):
+        if not contact or contact[0].strip().upper()!=model.get('native_contact_titles',{}).get(str(index+1),'IMPACT'+str(index+1)):
             raise ValueError('B contact pair member differs from the exact TYPE24 card')
     from .impact_damage import law_card
     for item in definition['cohesive']['elements'].values():
@@ -61,10 +61,15 @@ def verify(text,model,settings,definition):
             raise ValueError('The retained LAW117 envelope was changed by a bulk/contact extension')
 
 
+def _native_name(settings):
+    from .impact_native_b import run_name
+    return run_name(settings)
+
+
 def readback(folder,model,settings,definition,frames,*,failed=False,runtime_identity=None,unit_evidence=None):
     from pathlib import Path
     from .impact_bulk_history import read
-    folder=Path(folder); path=folder/'native/impactT01';titles=folder/'native/impactT01_TITLES'
+    folder=Path(folder);name=_native_name(settings);path=folder/'native'/(name+'T01');titles=folder/'native'/(name+'T01_TITLES')
     history=read(path,titles=titles,failed=failed) if path.is_file() and titles.is_file() else None
     selected,record=impact_bulk_results.read_selected(history,frames,model,settings,definition,runtime_identity=runtime_identity,unit_evidence=unit_evidence)
     return selected,record,history
@@ -85,7 +90,7 @@ def append_readback(folder,model,settings,result,frames,*,partial=False,unit_evi
     from .impact_bulk_history import read
     from .execution_control import ExecutionCancelled,ExecutionCleanupFailed
     from .storage import save_json
-    root=Path(folder);diagnostics=result['diagnostics']
+    root=Path(folder);diagnostics=result['diagnostics'];name=_native_name(settings)
     scopes=diagnostics.setdefault('readback_scopes',{}) if partial else {}
     record={'selections':{},'events':{},'scopes':{},'qualification':'UNKNOWN',
             'bulk_damage_dissipation':'UNKNOWN_NOT_SYNTHESIZED',
@@ -116,8 +121,8 @@ def append_readback(folder,model,settings,result,frames,*,partial=False,unit_evi
         if pin is not None:
             if pin['relative']!='b_definition.json':raise ValueError('B definition artifact differs from its receipt')
             definition=pinned_json(pin)
-            starter=root/'native/impact_0000.rad'
-            starter_pin=(retained['native_artifacts']['native/impact_0000.rad'] if retained is not None
+            starter=root/'native'/(name+'_0000.rad')
+            starter_pin=(retained['native_artifacts']['native/'+name+'_0000.rad'] if retained is not None
                          else file_pin(root,starter))
             text=read_bytes(admit_pin(root,starter_pin),expected=starter_pin,maximum=64*1024*1024).decode('ascii')
             verify(text,model,settings,definition)
@@ -147,11 +152,11 @@ def append_readback(folder,model,settings,result,frames,*,partial=False,unit_evi
     needs_history=any(r['scope'] in ('bulk','pair') for r in settings.get('b_responses',[]))
     if needs_history:
         try:
-            path=root/'native/impactT01';titles=root/'native/impactT01_TITLES'
-            for relative in ('native/impactT01','native/impactT01_TITLES'):
+            path=root/'native'/(name+'T01');titles=root/'native'/(name+'T01_TITLES')
+            for relative in ('native/'+name+'T01','native/'+name+'T01_TITLES'):
                 if retained is not None:verify_pin(root,retained['native_artifacts'][relative])
             history=read(path,titles=titles,failed=partial)
-            for relative in ('native/impactT01','native/impactT01_TITLES'):
+            for relative in ('native/'+name+'T01','native/'+name+'T01_TITLES'):
                 if retained is not None:verify_pin(root,retained['native_artifacts'][relative])
             save_json(root/'b_native_history.json',history)
             if partial and history['layout']['format_code'] in (3040,3041):

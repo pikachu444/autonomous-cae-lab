@@ -97,7 +97,7 @@ class ImpactAdapter:
                         Path(domain.__file__).with_name('impact_sets.py'),
                         *[Path(domain.__file__).with_name(name) for name in (
                             'impact_assembly.py','impact_input_edits.py','impact_rad_source.py',
-                            'impact_native.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
+                            'impact_native.py','impact_native_b.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
                             'impact_reference_bindings.py','impact_b.py','impact_bulk.py','impact_bulk_deck.py',
                             'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py')]]
     default_settings=staticmethod(domain.default_settings)
@@ -175,6 +175,8 @@ class ImpactAdapter:
                 parsed=parse_source(s['source']);name=parsed['name']
                 direct_receipt=export_direct(s,native)
                 initial=parsed['initial'];physics=parsed['physics']
+                if parsed['b_definition'] is not None:
+                    save_json(out/'b_definition.json',parsed['b_definition'])
                 save_json(out/'native_direct_export.json',direct_receipt)
                 frozen={key:item['sha256'] for key,item in direct_receipt['files'].items()}
                 save_json(out/'physical_admission.json',{'physics':physics,

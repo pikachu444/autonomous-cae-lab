@@ -174,3 +174,6 @@ examples/research-knowledge/licenses/** -text -whitespace
 
 # A saved native example must retain its pinned bytes after a Windows checkout.
 examples/native-project-post/saved-example/** -text -whitespace
+
+# Native RAD cards and fixed-width fields retain their original bytes.
+examples/impact/input_a/native_pair/*.rad -text -whitespace
