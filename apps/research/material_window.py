@@ -522,8 +522,9 @@ class MaterialWindow(QMainWindow):
             ('횡변형 고정: F22 = F33 = 1, 전단 성분 = 0' if fixed_lateral
              else '변형구배의 9개 성분을 모두 지정'))
 
-    def edited_draft(self):
-        self._commit_cell_editor()
+    def edited_draft(self, *, commit=True):
+        if commit:
+            self._commit_cell_editor()
         draft = deepcopy(self._local_snapshot if self._local_snapshot is not None else self.document["draft"])
         if self._draft_problem:
             return draft
