@@ -26,7 +26,7 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
       #BeamPanel QPushButton[primary="true"] {{ font-weight: 600; border: 2px solid {accent}; }}
     ''')
     state={'analysis':None,'draft':None,'loading':False,'dirty':False,'can_freeze':False,'busy':False}
-    fields={};refs={};end_tables=[];systems=[]
+    fields={};refs={};end_tables=[];systems=[];active_cells={}
     top=W.QGridLayout();top.setColumnStretch(1,1)
     analysis=W.QComboBox();mesh=W.QComboBox()
     analysis.setAccessibleName('대상 해석');mesh.setAccessibleName('선 메시')
@@ -84,6 +84,33 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
         item=W.QLineEdit();item.setAccessibleName(label);item.textEdited.connect(changed)
         fields[path]=item;form.addRow(label,item)
         return item
+
+    class EndCellDelegate(W.QStyledItemDelegate):
+        def __init__(self,table):
+            super().__init__(table)
+            self.table=table
+            self.closeEditor.connect(self.closed)
+
+        def createEditor(self,parent,option,index):
+            field=super().createEditor(parent,option,index)
+            if isinstance(field,W.QLineEdit):
+                before=read_draft()
+                active_cells[self.table]={'field':field,'row':index.row(),'column':index.column(),
+                    'before':before,'dirty':state['dirty'],'can_freeze':state['can_freeze']}
+                field.textEdited.connect(changed)
+                def destroyed(*unused):
+                    if active_cells.get(self.table,{}).get('field') is field:active_cells.pop(self.table,None)
+                field.destroyed.connect(destroyed)
+            return field
+
+        def closed(self,field,hint):
+            cell=active_cells.get(self.table)
+            if not cell or cell['field'] is not field:return
+            active_cells.pop(self.table,None)
+            if hint==W.QAbstractItemDelegate.RevertModelCache and read_draft()==cell['before']:
+                state.update(dirty=cell['dirty'],can_freeze=cell['can_freeze'])
+                status.setText('현재 셀 수정을 취소했습니다.')
+                update_buttons()
     section=W.QWidget();section_layout=W.QVBoxLayout(section)
     form=W.QFormLayout();form.setFieldGrowthPolicy(W.QFormLayout.AllNonFixedFieldsGrow)
     reference_row(form,'빔 모서리','edge','Edge')
@@ -110,6 +137,7 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
         system=W.QComboBox();system.addItem('전체 좌표계','global');system.addItem('단면 좌표계','local')
         systems.append(system);form.addRow('성분 기준',system);vl.addLayout(form)
         table=W.QTableWidget(4,3);table.setVerticalHeaderLabels([r[1] for r in row_defs]);table.setHorizontalHeaderLabels(['X','Y','Z'])
+        table.setItemDelegate(EndCellDelegate(table))
         table.horizontalHeader().setSectionResizeMode(W.QHeaderView.Stretch)
         table.verticalHeader().setDefaultSectionSize(42)
         table.setMinimumHeight(220);table.setAlternatingRowColors(True)
@@ -185,7 +213,10 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
         for i,table in enumerate(end_tables):
             d['ends'][i]['reference']=deepcopy(refs[f'ends.{i}.reference'][1])
             d['ends'][i]['system']=systems[i].currentData()
-            for r,(key,_) in enumerate(row_defs):d['ends'][i][key]=[table.item(r,c).text() for c in range(3)]
+            cell=active_cells.get(table)
+            for r,(key,_) in enumerate(row_defs):
+                d['ends'][i][key]=[cell['field'].text() if cell and (cell['row'],cell['column'])==(r,c)
+                                   else table.item(r,c).text() for c in range(3)]
         return d
     def update_preview():
         preview.set_section(*(fields['section.'+k].text() for k in ('width_mm','height_mm','rotation_deg')))
@@ -305,9 +336,19 @@ def make_panel(W,C,editor,submit,*,Gui,on_run,on_results,on_runner,on_save):
     state['loading']=False
     selection_changed()
     def accept_saved_snapshot(snapshot,value):
+        if not snapshot or snapshot.get('analysis_id')!=state['analysis']:return
+        if value.get('status')=='FAILED':return
         if read_draft()==snapshot:
             load_result(value)
-        # Newer local edits remain dirty and are not overwritten by a delayed save.
+            for cell in active_cells.values():
+                cell.update(before=read_draft(),dirty=state['dirty'],can_freeze=state['can_freeze'])
+        else:
+            # Esc may have restored the old clean value while a different value
+            # was being saved. That visible value now needs its own save.
+            state.update(dirty=True,can_freeze=False)
+            for cell in active_cells.values():cell.update(dirty=True,can_freeze=False)
+            status.setText('현재 입력이 저장 응답과 다릅니다. 초안 저장 또는 적용을 선택하세요.')
+            update_buttons()
     panel.pending_changes=lambda:state['dirty']
     panel.editor_token=lambda:canonical_hash(read_draft()) if state['dirty'] else None
     panel.pending_snapshot=lambda:deepcopy(read_draft()) if state['dirty'] else None
