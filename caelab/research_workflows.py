@@ -18,7 +18,7 @@ def result_folder(wb, document_id, job_id):
     row = next((row for row in document.get('runs', []) if row['job_id'] == check_id(job_id)), None)
     if row is None:
         raise ValueError('The selected job does not belong to this document')
-    retained = row.get('retained_result')
+    retained = row.get('retained_result') or (row.get('retained_record') if row.get('retention_complete') else None)
     if retained:
         owner._verify_revision(document_id, retained['revision'])
         folder = owner._folder(document_id) / 'revisions' / retained['revision'] / 'results' / job_id
@@ -32,18 +32,19 @@ def evaluation_progress(wb, document_id, job_id):
     if wb._document_owner(document_id) is not wb.evaluation_documents:
         raise ValueError('Stage progress belongs to an EvaluationDefinition document')
     folder, row = result_folder(wb, document_id, job_id)
+    from .portable_project_evaluation import retained_job
+    job = retained_job(wb, document_id, row)
     if (folder / 'result.json').exists():
         result = wb.document_result(document_id, job_id, selection={'responses': []})
         result['phase'] = 'FINISHED'
     elif (folder / 'progress.json').exists():
         result = load_json(folder / 'progress.json')
     else:
-        result = {'phase': wb.desktop.job_record(job_id).get('phase', 'QUEUED'), 'stages': [], 'iterations': [], 'transfers': []}
+        result = {'phase': job.get('phase', 'QUEUED'), 'stages': [], 'iterations': [], 'transfers': []}
     # progress.json records the last worker observation. After a controller
     # restart it is evidence of that attempt, not a claim that it is still live.
     # Overlay controller state only in the response; never rewrite old evidence.
     result = deepcopy(result)
-    job = wb.desktop.job_record(job_id)
     state = job['state']
     result.update(job_state=state, controller_phase=job.get('phase'),
                   cancel_requested=job.get('cancel_requested', False))
@@ -174,6 +175,8 @@ def execute_definition(wb, arguments, job_id):
     if reuse and reuse['stages']:
         retained = _resolve(reuse['source'], wb.document_read, wb.document_result)
         folder, _ = result_folder(wb, reuse['source']['document_id'], reuse['source']['job_id'])
+        from .portable_project_evaluation import reuse_view
+        retained = reuse_view(wb, reuse['source'], compiled, retained)
     return execute(compiled, wb.root / 'results' / check_id(job_id),
         lambda model, output: run_domain(wb, model, output), reuse_result=retained, reuse_folder=folder)
 

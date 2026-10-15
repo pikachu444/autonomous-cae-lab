@@ -35,8 +35,8 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 FORMAT = 'caelab.portable-project/1'
 MANIFEST = 'portable-project.json'
-SUPPORTED = {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde', 'simulation'}
-_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B', 'study': 'S', 'expert': 'X', 'pde': 'Q', 'simulation': 'V'}
+SUPPORTED = {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde', 'simulation', 'evaluation'}
+_PREFIX = {'data': 'T', 'material': 'M', 'numerical': 'N', 'report': 'B', 'study': 'S', 'expert': 'X', 'pde': 'Q', 'simulation': 'V', 'evaluation': 'E'}
 _DENIED_NAMES = {'.env', 'credentials', 'credentials.json', 'token', 'token.json',
                  'id_rsa', 'id_ed25519', 'operator.json', 'service.json'}
 
@@ -46,6 +46,8 @@ def _asset_name(name: str, kind: str | None = None) -> str:
     parts = Path(name).parts
     if any(part.lower() in _DENIED_NAMES for part in parts):
         fail('PRIVATE_ASSET_REFUSED', name, '인증/환경설정 파일은 자동 수집하지 않습니다.', '인증/환경설정 자료를 제외하고 선택 목록을 다시 확인하세요. 공학 자료의 공개 여부는 제한하지 않습니다.')
+    if kind == 'evaluation' and name == 'stage_inputs.json':
+        return name
     if kind == 'report':
         from .portable_project_report import ASSET
         if ASSET.fullmatch(name):
@@ -69,7 +71,7 @@ def _selections(reader: SnapshotReader, selections: list[str | dict], draft_poli
         seen.add(identifier)
         current = reader.current(identifier)
         if current['kind'] not in SUPPORTED:
-            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical, PDE, Simulation, Study, Expert와 Report를 지원합니다.',
+            fail('OWNER_NOT_SUPPORTED', identifier, '현재 작업 사본은 Data, Material, Numerical, PDE, Simulation, Evaluation, Study, Expert와 Report를 지원합니다.',
                  '다른 도구의 원자료는 원문서에 그대로 보존하세요.', identifier)
         revision = value.get('saved_revision') or current.get('saved_revision')
         if draft_policy == 'acknowledged' and revision != current.get('saved_revision'):
@@ -252,6 +254,9 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
             if document['kind'] in {'pde', 'simulation'}:
                 from .portable_project_physics import inspect_document as inspect_physics
                 inspect_physics(reader, document)
+            if document['kind'] == 'evaluation':
+                from .portable_project_evaluation import inspect_document as inspect_evaluation
+                inspect_evaluation(reader, document)
             if document['kind'] == 'report':
                 from .portable_project_report import inspect_document
                 inspect_document(reader, document, revision)
@@ -469,7 +474,8 @@ class _Fork:
         # Request Plans retain prepared engine arguments, not an unresolved
         # request. Domain-source references outside this supported owner set
         # already block inspection through the draft's typed contracts.
-        return args
+        from .portable_project_evaluation import project_arguments
+        return project_arguments(self, args)
 
     def run(self, identifier, original):
         if identifier.startswith('X'):
@@ -569,6 +575,9 @@ class _Fork:
             from .portable_project_physics import write as write_physics
             for source_run, run in zip(original['runs'], document['runs']):
                 write_physics(self, identifier, revision, source_run, run, target)
+        if document['kind'] == 'evaluation':
+            from .portable_project_evaluation import write as write_evaluation
+            write_evaluation(self, identifier, revision, original, document, target)
         for run in document['runs']:
             if document['kind'] == 'expert':
                 continue  # Origin job and submitted-input files remain byte-exact.
@@ -844,6 +853,9 @@ def verify_project(folder: str | Path) -> dict:
                 if row['kind'] in {'pde', 'simulation'}:
                     from .portable_project_physics import verify_current
                     verify_current(owner_root, draft)
+                if row['kind'] == 'evaluation':
+                    from .portable_project_evaluation import verify_current
+                    verify_current(owner_root, draft)
                 if row['kind'] == 'report':
                     from .portable_project_report import verify_current
                     verify_current(owner_root, draft)
@@ -875,6 +887,10 @@ def verify_project(folder: str | Path) -> dict:
                 replay(current_folder(owner_root, research), research)
             if row['kind'] in {'pde', 'simulation'}:
                 from .portable_project_physics import verify_current
+                verify_current(owner_root, draft if working.exists() and
+                    draft.get('saved_revision') == revision else current)
+            if row['kind'] == 'evaluation':
+                from .portable_project_evaluation import verify_current
                 verify_current(owner_root, draft if working.exists() and
                     draft.get('saved_revision') == revision else current)
             if row['kind'] == 'report':

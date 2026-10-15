@@ -72,7 +72,7 @@ class TypedProjection:
             _error('duplicate/cross-owner mapping')
         for old, row in self.docs.items():
             check_id(old); check_id(row['document_id'])
-            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde', 'simulation'}:
+            if old[0] != row['document_id'][0] or row['kind'] not in {'data', 'material', 'numerical', 'report', 'study', 'expert', 'pde', 'simulation', 'evaluation'}:
                 _error('mapping changed owner kind')
         for (doc, revision), row in self.inputs.items():
             if row['document_id'] != self.docs[doc]['document_id']:
@@ -152,7 +152,8 @@ class TypedProjection:
                 if isinstance(original, dict) and 'document_id' in original:
                     replace_at(result, ('experiments', i, *path),
                                self.reference(TypedReference((), '원실행 관측', 'observation', original)))
-        return result
+        from .portable_project_evaluation import project_arguments
+        return project_arguments(self, result)
 
     def run(self, doc, value):
         result = logical_run(value)

@@ -21,6 +21,13 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
     if canonical_hash(run['draft'])!=run['input_sha256']:
         raise ValueError('선택 실행의 보존 정의가 다릅니다.')
     frozen=run['draft'];progress=evaluation_progress(wb,document_id,job_id)
+    if run.get('portable_execution'):
+        from .portable_project_evaluation import read_execution
+        view=read_execution(wb.evaluation_documents,document_id,job_id)
+        frozen=view['original_run']['draft']
+        from .evaluation_definition import definition_hash
+        if definition_hash(frozen)!=progress.get('definition_sha256'):
+            raise ValueError('보존된 전달 결과와 원 계산 정의가 다릅니다.')
     folder,_=result_folder(wb,document_id,job_id)
     return inspect_retained(wb,document_id,job_id,folder,frozen,progress,
         lambda attempt,selection: evaluation_stage_result(wb,document_id,job_id,attempt,selection),

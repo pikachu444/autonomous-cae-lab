@@ -115,6 +115,9 @@ class EvaluationWindow(QMainWindow):
                                 ('편집(&E)', [(self.undo_button,'Ctrl+Z'),(self.redo_button,'Ctrl+Y'),(self.apply_button,'Ctrl+Return')]),
                                 ('연구(&R)', [(self.run_button,'F5'),(self.inspect_button,None),(self.plan_button,None),(self.runner_button,None)])]:
             menu = self.menuBar().addMenu(title)
+            if title.startswith('파일'):
+                from .portable_research_actions import install
+                install(self, menu, 'evaluation')
             for button, shortcut in commands:
                 action = menu.addAction(button.text())
                 action.triggered.connect(button.click)
@@ -927,6 +930,8 @@ class EvaluationWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            from .portable_research_actions import close_children
+            close_children(self)
             self.timer.stop(); event.accept(); return
         event.ignore()
         def close(): self._allow_close = True; self.close()

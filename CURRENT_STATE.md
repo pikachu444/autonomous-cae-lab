@@ -224,15 +224,22 @@ FreeCAD FEM·Gmsh 명령과 ParaView 튜토리얼 원문 3개, 출처와 CC BY �
 작업은 모두 정리했다. 설치판과 문서판 차이를 표시하며 runtime·공유 권한·새 DB·GUI는
 변경하지 않는다. [공식 자료 사용법](docs/EXPERT_KNOWLEDGE_KO.md)의 같은 작업 폴더로
 Expert를 열어 자료를 선택한다. 모델 호출·해석 실행·분야 전문성 또는 새 연구팀 완성은
-이 묶음에서 확인한 것이 아니다. 후속 팀 구현은 기존 Pro 설계 교정 뒤 이어간다.
+이 묶음에서 확인한 것이 아니다. 후속 팀 구현은 위 채택 설계의 네 담당이 이어간다.
 Sol `expert_roundtrip_finish`의 B8.3 PDE/Simulation 이동 사본 본코드를 통합했다.
 원 실행·입력/field 원문 보존과 현재 편집·명시 새 로컬 실행을 나누고 기존 reader·owner·
 portable 발행을 재사용한다. 실제 약형식 PDE·정상 열전도 계산의 사본을 두 새 프로세스에서
 읽고 편집·저장·명시 새 계산·재복사했다. 실패·취소 결과의 원 오류 보존도 교정했다.
 한국어 표시를 반영한 최종 창과 Astra 통합 검토를 마쳤다. [실제 화면과 사용법](docs/portable-physics/USAGE_KO.md)을
-연결했고 테스트 소유 Job은 모두 종료했다. 다음 CB06 Evaluation의
-단계·전달·부분 재사용 사본은 Sol `pde_delivery_packet`이 전용 코드·예제·사용법을 작성하며
-공통 변경은 root 최소 패치로 통합한다. managed Pre/Post 이동을 허용 목록만 넓혀 완료로 세지 않는다.
+연결했고 테스트 소유 Job은 모두 종료했다. `3bd8181`로 원격 main에 게시하고 일치를 확인했다.
+이어 Sol `pde_delivery_packet`의 CB06 Evaluation 단계·전달·부분 재사용 사본을 통합했고
+Astra 최종 독립 검토를 마쳤다. 실제 두 단계 계산과 명시한 현지 계산의 원 출력을 유지해
+두 별도 프로세스에서 원 경로 없이 읽기·편집·저장·재복사했다. 최종 종합 결과 없이 실패해도
+실제 완료 단계와 진행 기록은 보관한다. 같은 저장 중 상태가 바뀌어 부분 결과를 놓치던
+경계도 기존 한 번의 상태 조회를 사용하도록 수정했다. root가 실제 정상/좁은 Qt 창·전달값을
+읽었으며 [사진과 사용 순서](docs/portable-evaluation/USAGE_KO.md)를 연결했다.
+이번 GUI의 최종 목적지 생성·OS 직접 조작과 전체 native 물리 수용은 미확인이다. 실제
+복사·재복사는 기존 API에서 확인했고 모든 소유 Job은 종료했다. CB07/08 managed Pre/Post
+이동은 기존 native 문서의 정확한 연결을 설계한 뒤 이어가며 허용 목록만 넓혀 완료로 세지 않는다.
 Sol `post_windows_build_fix`가 B3.1 File→Exit의 기존 저장·취소·실패 관문과 native 종료
 plugin을 연결했고 Astra 통합 검토를 마쳤다. 실제 Qt 종료 event·저장/취소/오류 창과
 root의 실행 파일 일치·미완성 입력 저장 방지 교정을 확인했다. 기존 실제 Pro C++/ABI
@@ -319,7 +326,7 @@ MoAI의 기존 작업 카드도 같은 7개 단위로 연결했다. 계획 대�
 | Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | 피팅·채택·법칙/Hex8 연결과 오류 화면은 게시. FN-03-02 유한변형 관측→같은 측도 예측/피팅·채택·저장 재개를 통합하고 Windows 실제 FELUPE·Qt와 Astra 독립 검토를 마침. 원 입력·결과/기존 recipe·mixed controller·후보 엔진 유지. t5. 전체 재료군·일반 형상/요소 조합은 잔여 |
 | Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수·Windows 공간 PDE·온도 전달·공유 변수 MDO/첫 선형 adjoint에 이어 joint UQ·Sobol N/2N·국소 대리모델·추천점 실제 확인을 게시. 일반 total adjoint와 다른 확장 잔여 유지. t6/t7 |
 | Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 정확 결과 첨부·보고서·공개 초록 연결은 게시. 공식 자료 3개 반입·실제 검색·원문 읽기·새 프로세스 재개를 통합. 실제 연구팀의 Pro 설계는 네 실행 계약을 교정 중. 실장비·일반 composite와 새 팀 전체 수용은 잔여. t2/t9 |
-| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report·문헌·Study·Expert 사본과 현지 Ask를 게시. PDE/Simulation 사본 통합·최종 검토를 마쳤고 다음 Evaluation 단계 사본을 전용 담당이 작성. native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
+| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report·문헌·Study·Expert와 PDE/Simulation 사본을 게시. Evaluation 단계·전달·부분 재사용 사본의 통합·실제 읽기·새 실행·재복사와 독립 검토 완료, root 게시. native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
 
 각 묶음은 원행/SPEC의 상세 완료 조건을 유지한다. 새로운 지원 조합은 현재 미지원의
 이름만 바꾸어 닫지 않는다. 실제 장비/원격 호스트가 필요한 항목은 입력 미정을 명시하고

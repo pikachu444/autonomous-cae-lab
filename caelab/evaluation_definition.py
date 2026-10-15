@@ -289,7 +289,13 @@ class EvaluationDocuments(MaterialDocuments):
                     'generation': document['generation'], 'input_revision': document['input_revision'],
                     'input_sha256': canonical_hash(draft)}}
 
+    def _public(self, document):
+        from .portable_project_execution import public_execution
+        return public_execution(self, super()._public(document))
+
     def _retain_inputs(self, saved, folder):
+        from .portable_project_execution import retain_execution_inputs
+        retain_execution_inputs(self, saved, folder)
         retained = deepcopy(saved.get('_stage_snapshots', {}))
         for stage in saved['draft'].get('stages', []):
             try:

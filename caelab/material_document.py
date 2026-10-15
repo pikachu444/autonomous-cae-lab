@@ -505,6 +505,9 @@ class MaterialDocuments(RetainedComparisons):
                         raise ValueError('Result changed during Material save; previous revision preserved')
                 read_result(destination, verify='all', selection={'metadata_only': True})
                 run['retained_result'] = {'revision': revision, 'job_id': run['job_id']}
+            elif self.kind == 'evaluation':
+                from .portable_project_evaluation import retain_partial_inputs
+                retain_partial_inputs(self, saved, folder, run, job, source)
             run['retained_state'] = job['state']
             run['retained_error'] = deepcopy(job.get('error'))
             run['retention_complete'] = job['state'] in TERMINAL
