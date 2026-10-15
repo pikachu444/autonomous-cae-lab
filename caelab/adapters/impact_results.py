@@ -37,6 +37,59 @@ def history(path):
     times=[r['values'][0] for r in raw]
     if not times or any(x is None for x in times) or any(b<=a for a,b in zip(times,times[1:])):
         raise ValueError('Native history requires finite strictly increasing times')
+    return _history_result(path,header,raw)
+
+
+def history_prefix(path):
+    """Explicit re-read only: stop at the first invalid record, never skip it.
+
+    The converter CSV is a separate artifact from TH. A valid CSV prefix is not
+    evidence that the native binary history is complete or corresponds to it.
+    """
+    raw=[];issue=None
+    with Path(path).open(encoding='utf-8-sig',newline='') as stream:
+        reader=csv.reader(stream,strict=True)
+        try:header=[v.strip() for v in next(reader)]
+        except (csv.Error,StopIteration) as error:raise ValueError('Native history CSV header is unreadable') from error
+        if header and not header[-1]:header.pop()
+        if header[:1]!=['time'] or header[1:24]!=GLOBAL_NAMES:
+            raise ValueError('Native history global layout differs; original CSV retained')
+        while True:
+            line=reader.line_num+1
+            try:row=next(reader)
+            except StopIteration:break
+            except csv.Error as error:
+                issue={'source_row':line,'reason':'Malformed CSV record: '+str(error)};break
+            if row and not row[-1].strip():row.pop()
+            reason=None;values=[]
+            if len(row)!=len(header):reason='Incomplete or wrong-width native history record'
+            else:
+                try:values=[float(v) for v in row]
+                except ValueError:reason='Nonnumeric native history value'
+                if not reason and not all(math.isfinite(v) for v in values):reason='Nonfinite native history value'
+                if not reason and (values[0]<0 or (raw and values[0]<=raw[-1]['values'][0])):
+                    reason='Native history time is negative, duplicate or non-monotonic'
+            if reason:
+                issue={'source_row':line,'reason':reason};break
+            raw.append({'source_row':line,'tokens':row,'values':values})
+    # The pinned native converter terminates records with a newline. At EOF a
+    # shortened numeric token can still parse as a finite number: do not admit
+    # that ambiguous final record merely because its width happens to match.
+    if raw and issue is None:
+        with Path(path).open('rb') as stream:
+            stream.seek(-1,2);terminated=stream.read(1) in (b'\n',b'\r')
+        if not terminated:
+            last=raw.pop();issue={'source_row':last['source_row'],'reason':'Final native CSV record is not terminated; value may be truncated'}
+    responses,table=_history_result(path,header,raw)
+    table['recovery']={'status':'PARTIAL' if raw and issue else 'COMPLETE' if raw else 'UNKNOWN',
+        'verified_source_rows':[r['source_row'] for r in raw],
+        'first_unverified_record':issue,'after_first_invalid':'UNVERIFIED_NOT_SKIPPED' if issue else 'NO_INVALID_RECORD_OBSERVED',
+        'native_history_correspondence':'UNKNOWN_UNTIL_TH_LAYOUT_AND_TIMES_VERIFIED'}
+    for response in responses.values():response['metadata']['history_recovery']=table['recovery']
+    return responses,table
+
+
+def _history_result(path,header,raw):
     responses={}
     for i,(name,label) in enumerate(zip(GLOBAL_NAMES,GLOBAL_LABELS),1):
         # Channel 23 is retained, not assigned a physical meaning from "NO NAME".

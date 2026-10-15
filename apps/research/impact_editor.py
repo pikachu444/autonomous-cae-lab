@@ -28,7 +28,9 @@ class ImpactEditor(QDialog):
         layout=QVBoxLayout(self); top=QHBoxLayout()
         self.source_label=QLabel(); self.source_label.setWordWrap(True)
         choose=QPushButton('유한요소 파일 열기…'); choose.clicked.connect(self.choose_file)
-        top.addWidget(self.source_label,1); top.addWidget(choose); layout.addLayout(top)
+        top.addWidget(self.source_label,1); top.addWidget(choose)
+        source_button=QPushButton('원 입력 조건…');source_button.clicked.connect(lambda:self.tabs.setCurrentWidget(self.source_page));top.addWidget(source_button)
+        layout.addLayout(top)
         self.tabs=QTabWidget(); layout.addWidget(self.tabs,1)
         self.motion=self.table(['절점 집합','방식','높이 [mm]','Vx [mm/s]','Vy','Vz',
             'ωx [rad/s]','ωy','ωz','중심 X [mm]','Y','Z','위치 ΔX [mm]','ΔY','ΔZ'])
@@ -99,7 +101,25 @@ class ImpactEditor(QDialog):
         from .impact_project import ProjectPage
         self.project=ProjectPage(self)
         self.tabs.insertTab(0,self.project,'모델과 집합')
+        from .impact_source_editor import SourceEditor
+        self.source_page=SourceEditor(self);self.tabs.insertTab(1,self.source_page,'원 입력 편집')
+        self.update_source_mode()
         self.tabs.setCurrentIndex(0)
+
+    def update_source_mode(self):
+        native=self.value['source'].get('format')=='RAD'
+        for i in range(self.tabs.count()):
+            if self.tabs.tabText(i) in ('초기 운동','접촉','응집 손상','시간과 중력'):
+                self.tabs.setTabEnabled(i,not native)
+        if native:self.source_label.setText((self.value['source'].get('title') or '원 RAD 입력')+'\n물리 조건은 원 입력 조건에서 수정합니다.')
+
+    def replace_settings(self,value):
+        self.value=deepcopy(value)
+        for key,field in self.times.items():field.setText(text(self.value['time'].get(key)))
+        self.mass.setChecked(self.value['time'].get('mass_scaling') is True)
+        for i,field in enumerate(self.gravity):field.setText(text(self.value['gravity_mm_s2'][i]))
+        self.populate();self.update_source_mode();self.project.refresh(selected_key=())
+        self.source_page.refresh()
 
     def resize_motion_table(self,*_):
         header=self.motion.horizontalHeader().sizeHint().height()
@@ -210,8 +230,24 @@ class ImpactEditor(QDialog):
         quantity=self.combo({k:v[0]+' ['+v[3]+']' for k,v in QUANTITIES.items()},row['quantity'])
         quantity.setMinimumContentsLength(24)
         self.responses.setCellWidget(index,1,quantity)
+        self.response_identity(index,row['identity'])
         self.response_components(index,row['component'])
         quantity.currentIndexChanged.connect(lambda:self.response_changed(quantity))
+
+    def response_identity(self,index,identity):
+        from caelab.impact_responses import QUANTITIES
+        from .impact_source_editor import identity_label
+        quantity=self.responses.cellWidget(index,1).currentData()
+        kind='nodes' if QUANTITIES.get(quantity,(None,'CELLS'))[1]=='POINTS' else 'elements'
+        try:
+            model=model_from_settings(self.value);lineage=model.get('lineage',{}).get(kind,{})
+            if not any(row.get('instance') for row in lineage.values()):return
+            combo=QComboBox();combo.setMinimumContentsLength(20)
+            for key in sorted(model[kind]):combo.addItem(identity_label(lineage.get(str(key),{'native_id':key})),key)
+            combo.setCurrentIndex(combo.findData(identity));self.responses.setCellWidget(index,2,combo)
+        except (ValueError,KeyError,TypeError):
+            item=self.responses.item(index,2);item.setText('원 대상 확인 필요');item.setData(Qt.ItemDataRole.UserRole,identity)
+            item.setFlags(item.flags()&~Qt.ItemFlag.ItemIsEditable)
 
     def response_components(self,index,selected=None):
         from caelab.impact_responses import QUANTITIES
@@ -225,7 +261,10 @@ class ImpactEditor(QDialog):
 
     def response_changed(self,combo):
         index=next((i for i in range(self.responses.rowCount()) if self.responses.cellWidget(i,1) is combo),-1)
-        if index>=0:self.response_components(index)
+        if index>=0:
+            widget=self.responses.cellWidget(index,2)
+            identity=widget.currentData() if widget is not None else self.responses.item(index,2).data(Qt.ItemDataRole.UserRole)
+            self.response_identity(index,identity);self.response_components(index)
 
     def add_response(self):
         from caelab.impact_responses import QUANTITIES
@@ -238,12 +277,15 @@ class ImpactEditor(QDialog):
         ids=list(model['nodes'] if definition[1]=='POINTS' else model['elements'])
         if quantity.startswith('cohesive_'):ids=[e for e in ids if model['elements'][e]['type']=='COH3D8']
         if not ids:self.message.setText('이 응답을 선택할 원 요소가 없습니다');return
-        value,ok=QInputDialog.getItem(self,'결과 이력','원 절점 번호' if definition[1]=='POINTS' else '원 요소 번호',[str(i) for i in ids],0,False)
+        from .impact_source_editor import identity_label
+        table='nodes' if definition[1]=='POINTS' else 'elements';lineage=model.get('lineage',{}).get(table,{})
+        names=[identity_label(lineage.get(str(i),{'native_id':i})) for i in ids]
+        value,ok=QInputDialog.getItem(self,'결과 이력','원 절점' if definition[1]=='POINTS' else '원 요소',names,0,False)
         if ok:
             used={self.responses.item(i,0).text() for i in range(self.responses.rowCount())}
             index=1
             while quantity+'_'+str(index) in used:index+=1
-            self.response_row({'name':quantity+'_'+str(index),'quantity':quantity,'identity':int(value),'component':definition[4][0]})
+            self.response_row({'name':quantity+'_'+str(index),'quantity':quantity,'identity':ids[names.index(value)],'component':definition[4][0]})
 
     def contact_row(self,c):
         r=self.contacts.rowCount(); self.contacts.insertRow(r)
@@ -277,7 +319,12 @@ class ImpactEditor(QDialog):
         value=self.edited()
         value['source']=deepcopy(dialog.source)
         for key in ('motions','contacts','cohesive','responses','generated_sets'):value[key]=[]
-        self.value=value;self.populate();self.project.refresh(selected_key=());self.tabs.setCurrentWidget(self.project)
+        value.pop('source_reference_bindings',None)
+        if dialog.source.get('format')=='RAD':
+            from caelab.impact_native import settings_from_source
+            try:value=settings_from_source(dialog.source)
+            except (ValueError,KeyError,TypeError):pass
+        self.replace_settings(value);self.tabs.setCurrentWidget(self.source_page if dialog.source.get('format')=='RAD' else self.project)
 
     def edited(self):
         value=deepcopy(self.value); motions=[]; contacts=[]
@@ -294,9 +341,12 @@ class ImpactEditor(QDialog):
         value['motions']=motions; value['contacts']=contacts
         value['responses']=[]
         for i in range(self.responses.rowCount()):
-            ident=cell(self.responses,i,2)
+            widget=self.responses.cellWidget(i,2)
+            item=self.responses.item(i,2)
+            ident=(widget.currentData() if widget is not None else item.data(Qt.ItemDataRole.UserRole)
+                   if item is not None and item.data(Qt.ItemDataRole.UserRole) is not None else cell(self.responses,i,2))
             try:ident=int(ident)
-            except ValueError:pass
+            except (ValueError,TypeError):pass
             value['responses'].append({'name':cell(self.responses,i,0),
                 'quantity':self.responses.cellWidget(i,1).currentData(),'identity':ident,
                 'component':self.responses.cellWidget(i,3).currentData()})
@@ -307,6 +357,8 @@ class ImpactEditor(QDialog):
         if not self.times['target_step_s'].text().strip(): value['time']['target_step_s']=None
         value['time']['mass_scaling']=self.mass.isChecked()
         value['gravity_mm_s2']=[numeric(w.text().strip()) for w in self.gravity]
+        if self.value['source'].get('format')=='RAD':
+            native=deepcopy(self.value);native['responses']=value['responses'];return native
         return value
 
 

@@ -103,11 +103,25 @@ def execute(workbench,arguments,identifier):
             'runtime':deepcopy(original['diagnostics'].get('runtime'))}}
     frames=[]
     try:
-        for pin in [*original['retained_native']['input_artifacts'].values(),*original['retained_native']['native_artifacts'].values()]:
+        for pin in original['retained_native']['input_artifacts'].values():
             check_cancelled();src=verify_pin(source,pin);dst=target/pin['relative']
             dst.parent.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(src,dst)
             verify_pin(source,pin);verify_pin(target,pin)
+        # Input admission remains strict. An unavailable result artifact cannot
+        # conceal unrelated healthy fields, but its pin failure is never blessed
+        # as a new valid payload or omitted from the readback scope.
+        copy_errors=[]
+        for pin in original['retained_native']['native_artifacts'].values():
+            check_cancelled();dst=None
+            try:
+                src=verify_pin(source,pin);dst=target/src.relative_to(source)
+                dst.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(src,dst);verify_pin(source,pin);verify_pin(target,pin)
+            except (ValueError,OSError) as error:
+                if dst is not None and dst.is_file():dst.unlink()
+                copy_errors.append({'artifact':deepcopy(pin),'reason':str(error)})
+        if copy_errors:attempt['diagnostics']['artifact_copy_errors']=copy_errors
         # Pin and retain the source execution record as evidence, never overwrite it.
         src=verify_pin(source,outcome['impact_record']);shutil.copyfile(src,target/'original_execution.json')
         if file_pin(target,target/'original_execution.json')['sha256']!=outcome['impact_record']['sha256']:
@@ -128,10 +142,11 @@ def execute(workbench,arguments,identifier):
                 if process.returncode:raise ValueError('원 결과 변환 실패; readback 로그와 원 실행 상태를 별도 보존합니다')
                 return process
         from .adapters.impact import read_outputs
-        read_outputs(target,s,model,physics,damage,attempt,frames,name=name,command=command,names=names,
-                     convert=arguments['convert_raw'])
+        complete=read_outputs(target,s,model,physics,damage,attempt,frames,name=name,command=command,names=names,
+                     convert=arguments['convert_raw'],partial=True,expected_frames=original['retained_native']['frames'])
         if identity is not None and runtime()[2]!=identity:raise ValueError('읽기 중 converter identity가 바뀌었습니다')
-        attempt['readback_status']='SUCCEEDED'
+        attempt['readback_status']='SUCCEEDED' if complete else 'FAILED'
+        if not complete:attempt['diagnostics']['readback_error']='일부 보존 결과만 읽었습니다. 누락·손상 구간은 readback_scopes에서 확인하세요. 원 해석 상태는 변경하지 않았습니다.'
     except ExecutionCleanupFailed:
         attempt['diagnostics']['cleanup_unconfirmed']=True
         save_json(target/'impact_execution.json',attempt)

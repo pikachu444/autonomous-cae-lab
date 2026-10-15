@@ -7,11 +7,13 @@ import argparse
 import math
 import os
 import sys
+import uuid
 from copy import deepcopy
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QApplication, QComboBox, QInputDialog, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QToolBar
-from caelab.workbench_client import Client
+from caelab.workbench_client import Client, WorkbenchHTTPError
 from caelab.simulation_document import BACKENDS, default_draft, diagnostics, support_details
 from .pde_window import PDEWindow, ROLE, display
 
@@ -62,7 +64,7 @@ _CAPTIONS = {
     'sn_curve':'S–N 시험 자료','calibration':'적용 시험 조건','temperature_k':'평가 온도 [K]',
     'repeat_block':'반복 블록 가정','cohesive':'응집 손상','motions':'초기 운동','contacts':'접촉','gravity_mm_s2':'중력',
     'generated_sets':'생성 집합','qualification':'계산 적용 범위','text':'입력 원문','provenance':'기술 출처',
-    'end_s':'종료 시간 [s]','field_interval_s':'장 출력 간격 [s]','scale':'시간증분 계수',
+    'end_s':'종료 시간 [s]','field_interval_s':'장 출력 간격 [s]','scale':'시간증분 계수','responses':'결과 이력',
     'mass_scaling':'질량 스케일링','target_step_s':'목표 증분 [s]',
     'case':'모델 종류', 'domain':'영역', 'geometry':'형상', 'type':'종류', 'unit':'단위',
     'dimensions_mm':'치수 [mm]', 'mesh_sizes_mm':'메시 크기 [mm]', 'lengths':'영역 길이',
@@ -192,6 +194,12 @@ class SimulationWindow(PDEWindow):
         research_menu.addAction(self.fatigue_action)
         self.cycles_action=QAction('사이클과 누적값…',self)
         self.cycles_action.triggered.connect(self.read_fatigue_cycles);research_menu.addAction(self.cycles_action)
+        self._impact_read_requests = {}
+        self.reprocess_impact_action = QAction('보존 결과 다시 읽기…', self)
+        self.reprocess_impact_action.setObjectName('impactReprocessAction')
+        self.reprocess_impact_action.setToolTip('선택한 계산의 원 출력을 별도 작업으로 읽습니다. 솔버 계산은 시작하지 않습니다.')
+        self.reprocess_impact_action.triggered.connect(self.reprocess_impact)
+        research_menu.addAction(self.reprocess_impact_action)
         self._update_actions()
 
     def inspect_runtime(self):
@@ -346,6 +354,108 @@ class SimulationWindow(PDEWindow):
         layout.addWidget(view);buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(dialog.reject);layout.addWidget(buttons);dialog.exec()
 
+    def _impact_source_run(self):
+        if not self.document or self._result_key != (self.document['id'], self._selected_job):
+            return None
+        run = next((row for row in self.document.get('runs', []) if row['job_id'] == self._selected_job), None)
+        if (not run or run.get('operation') != 'simulation.run'
+                or run.get('draft', {}).get('backend') != 'explicit.opencourant.model'
+                or not self._result or self._result.get('execution_status') not in
+                   {'SUCCEEDED', 'FAILED', 'PARTIAL_FAILURE', 'CANCELLED', 'INTERRUPTED'}):
+            return None
+        return run
+
+    def _refresh_result_caption(self):
+        super()._refresh_result_caption()
+        result = self._result or {}
+        if result.get('operation') != 'impact.reprocess':
+            return
+        scopes = result.get('diagnostics', {}).get('readback_scopes') or {}
+        history, animation = scopes.get('history', {}), scopes.get('animation', {})
+        labels = {'COMPLETE': '읽음', 'PARTIAL': '일부만 읽음', 'UNKNOWN': '읽지 못함'}
+        details = []
+        if history:
+            details.append('이력 ' + str(history.get('available_samples', 0)) + '개 (' +
+                           labels.get(history.get('status'), '미확인') + ')')
+        if animation:
+            count = animation.get('available_frame_count', 0)
+            details.append('공간 결과 ' + str(count) + '/' + str(animation.get('expected_slots', 0)) + '시각')
+            missing = animation.get('unavailable_frame_count', 0)
+            if missing:
+                details.append('누락·손상 ' + str(missing) + '시각')
+        state = result.get('execution_status')
+        caption = {'SUCCEEDED': '읽기 완료', 'FAILED': '읽기 실패 또는 일부만 읽음',
+                   'CANCELLED': '읽기 취소', 'INTERRUPTED': '읽기 중단'}.get(state, '읽기 상태 미확인')
+        original = {'SUCCEEDED': '완료', 'FAILED': '실패', 'CANCELLED': '취소',
+                    'INTERRUPTED': '중단', 'PARTIAL_FAILURE': '일부 실패'}.get(result.get('source_execution_status'), '미확인')
+        text = caption + (': ' + ' / '.join(details) if details else '')
+        if result.get('post_registration', {}).get('status') == 'FAILED':
+            text += '\n후처리 연결 실패. 보존한 결과와 오류를 확인하세요.'
+        self.result_label.setText(text + '\n원 계산: ' + original + ' / 새 솔버 계산 없음')
+
+    def reprocess_impact(self):
+        run = self._impact_source_run()
+        if not run or self._busy or self.conflict:
+            return False
+        key = (self.document['id'], self.document['session_id'], run['job_id'])
+        request = self._impact_read_requests.get(key)
+        if request is None:
+            if self.local_dirty:
+                self.message.setText('편집한 입력을 먼저 변경 적용하세요. 원 계산의 입력은 바뀌지 않습니다.')
+                return False
+            choices = ['저장된 결과 파일 읽기', '원 ANIM/TH를 다시 변환해 읽기']
+            choice, ok = QInputDialog.getItem(self, '보존 결과 다시 읽기',
+                '선택한 계산의 출력을 읽습니다. 원 계산의 상태는 유지됩니다.', choices, 0, False)
+            if not ok or choice not in choices:
+                return False
+            current = self._impact_source_run()
+            if (not current or (self.document['id'], self.document['session_id'], current['job_id']) != key
+                    or self._busy or self.conflict or self.local_dirty):
+                self.message.setText('선택이나 편집 중인 입력이 바뀌었습니다. 계산을 다시 선택하세요.')
+                return False
+            request = {'command_id': 'C' + uuid.uuid4().hex,
+                       'expected_generation': self.document['generation'],
+                       'arguments': {'source_job_id': run['job_id'], 'convert_raw': choice == choices[1]}}
+            self._impact_read_requests[key] = request
+        submitted_buffer = self.edited_draft()
+
+        def submit():
+            try:
+                receipt = self.client.document_command(key[0], 'simulation.reprocess', deepcopy(request['arguments']),
+                    session_id=key[1], expected_generation=request['expected_generation'], command_id=request['command_id'])
+            except WorkbenchHTTPError as error:
+                if error.code in {400, 403, 404, 409, 422}:
+                    self._impact_read_requests.pop(key, None)
+                raise
+            job, document = receipt.get('job') or {}, receipt.get('document') or {}
+            if (document.get('id') != key[0] or document.get('session_id') != key[1]
+                    or job.get('operation') != 'impact.reprocess' or job.get('id', job.get('job_id')) == key[2]
+                    or not job.get('id', job.get('job_id'))
+                    or job.get('arguments', {}).get('source_job_id') != key[2]):
+                raise ValueError('결과 읽기의 원 계산이 다릅니다. 같은 읽기 요청의 상태를 확인하세요.')
+            return receipt
+
+        def accepted(receipt):
+            self._impact_read_requests.pop(key, None)
+            if not self.document or (self.document['id'], self.document['session_id']) != key[:2]:
+                return
+            current_buffer = self.edited_draft()
+            late_edit = self.local_dirty or current_buffer != submitted_buffer
+            select_derived = self._selected_job == key[2]
+            self._show_document(receipt['document'], preserve_draft=current_buffer if late_edit else None)
+            self.local_dirty = late_edit
+            if select_derived:
+                job = receipt['job']
+                self._selected_job = job.get('id', job.get('job_id'))
+                self._result_key = self._result = None
+                target = self._run_nodes.get(self._selected_job)
+                if target is not None:
+                    self.tree.setCurrentItem(target)
+                QTimer.singleShot(0, self.refresh_result)
+            self.message.setText('결과 읽기를 요청했습니다. 원 계산의 상태는 유지됩니다.')
+
+        return self._call(submit, accepted)
+
     def _update_actions(self):
         super()._update_actions()
         for button, action in getattr(self, '_command_actions', []):
@@ -370,6 +480,13 @@ class SimulationWindow(PDEWindow):
         if hasattr(self,'fatigue_action'):
             self.fatigue_action.setEnabled(not self._busy and self._draft.get('backend')=='damage.rainflow')
             self.cycles_action.setEnabled(not self._busy and bool(self._selected_job))
+        if hasattr(self, 'reprocess_impact_action'):
+            source = self._impact_source_run()
+            key = (self.document['id'], self.document['session_id'], source['job_id']) if source else None
+            uncertain = key in self._impact_read_requests
+            self.reprocess_impact_action.setEnabled(bool(source) and not self._busy and not self.conflict
+                                                   and (not self.local_dirty or uncertain))
+            self.reprocess_impact_action.setText('결과 읽기 상태 확인…' if uncertain else '보존 결과 다시 읽기…')
         if hasattr(self, 'readiness_button'):
             self.readiness_button.setEnabled(not self._busy)
 

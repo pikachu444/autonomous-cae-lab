@@ -34,7 +34,11 @@
 | 이력 단위 | 기존 전역 에너지 응답 J(원 N·mm ×.001), 질량 kg(원 Mg ×1000), 운동량 kg·m/s(원 Mg·mm/s와 수치 같음) | 원 TH/CSV를 바꾸거나 단위만 바꾸지 않음. raw 채널 23 NO NAME은 물리 이름을 붙이지 않음 |
 | exact 선택 | frame별 pin과 payload 검증; source instance/local/effective mapping; selected/all 검증 구별 | `metadata_only=True`를 VERIFIED로 반환하지 않음. source target ID 재사용은 명시 재선택/대응 수락 전 차단 |
 | 상태 | solver 종료, 전체 작업 실패, 후처리 실패, cancel/cleanup 미확인을 별도 사실로 보존 | 실패 값을 공학 성공으로 바꾸지 않음 |
-| 재읽기 | 같은 Simulation의 원 job → 별도 READBACK_ONLY Job; 기본 VTK/CSV solver0, 명시 ANIM/TH 재변환만 pinned converter | 새 owner/store 또는 새 해석 실행 아님; 원 실행 status/원 input/record는 불변. 현재 TH/TITLES와 CSV가 먼저 유효해야 하므로 TH 부재/잘린 CSV에서 독립 VTK 또는 완결 prefix를 복구하는 것은 후속 미완료 |
+| 재읽기 | 같은 Simulation의 원 job → 별도 READBACK_ONLY Job; 기본 VTK/CSV solver0, 명시 ANIM/TH 재변환만 pinned converter. 명시 재읽기에 한해 이력과 프레임을 독립 회수 | 새 owner/store 또는 새 해석 실행 아님; 원 실행 status/원 input/record는 불변. 일부만 읽으면 새 읽기 작업은 FAILED이며 읽힌 응답·Post와 누락 범위를 함께 보존. 정상 계산의 엄격 완료 관문은 유지 |
+| 부분 이력 | TH/TITLES 부재에도 보존 CSV의 완결·유한·비음수 증가 시각 prefix를 읽음. 첫 잘못된 행에서 중단하고 원 행 번호와 이후 미확인을 명시 | 끝의 불완전 행, 틀린 열 수/값·시각, 중간 손상을 건너뛰지 않음. 줄 끝이 없는 마지막 행도 잘린 숫자일 수 있어 미확인. TH 대조가 없으면 native 이력 대응은 UNKNOWN, 값·시각 보충/보간/끝시각 추정 없음 |
+| 부분 프레임 | 원 슬롯·pin·시각·ID를 유지하며 검증된 VTK는 개별 선택. raw ANIM 순번(A001→슬롯0)의 빈 번호도 보존하며 구간 선택의 원 슬롯 번호는 유지. 손상/누락 슬롯은 읽기 오류로 남기고 시계열 segments를 분리. 기존 Post writer는 검증된 실제 표본만 출력 | 재변환하지 않은 프레임은 native artifact pin과 기존 frame pin을 모두 대조하며, pin 불일치 payload를 승인하지 않음. 손상 프레임을 시간 연속값으로 연결하거나 누락 뒤 접촉 impulse 적분을 재시작하지 않음. Post 표본 사이의 연속 해석/보간 수용 주장은 없음 |
 | 저장 | 기존 document.update/save/undo/redo, revision 입력/결과 사본, 새 owner의 선택 읽기 | GUI 적용/Windows OS UX/실제 ParaView 렌더가 검사됐다는 주장 없음 |
 
 Unknown 카드의 영향 표는 보수적인 재검토 범위다. 해석하지 못한 카드가 정확히 어느 물리량을 얼마나 바꾸는지 계산했다고 표시하지 않는다. 초안 저장과 Run 준비 판정은 서로 다르다.
+
+2026-10-16의 부분 재읽기 확인은 solver를 다시 실행하지 않은 reader 검사다. 기존 Windows native04의 별도 사본에서 TH/TITLES 부재·CSV 마지막 행 잘림·VTK 한 프레임 손상을 함께 적용해 정상 프레임 12개와 완결 이력 119행, 분리된 두 구간을 읽고 저장한 뒤 새 프로세스에서 다시 선택했다. 원 native04 파일의 해시는 변하지 않았다. 이 검사는 새 해석의 물리 수용이나 전체 GUI·ParaView 사용자 흐름 완료를 뜻하지 않는다.

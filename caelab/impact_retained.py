@@ -29,7 +29,7 @@ class FrameView(Sequence):
     """At most one native VTK payload per access; no unrelated frame hydration."""
     def __init__(self, root, frames, model, physics):
         self.root=Path(root);self.frames=deepcopy(frames);self.model=model;self.physics=physics
-        times=[r['time_s'] for r in self.frames]
+        times=[r['time_s'] for r in self.frames if r.get('available',True)]
         if any(b<=a for a,b in zip(times,times[1:])):raise ValueError('Native frame clock is duplicate or non-monotonic')
     def __len__(self):return len(self.frames)
     def __getitem__(self,index):
@@ -38,6 +38,8 @@ class FrameView(Sequence):
         if index<0:index+=len(self)
         if not 0<=index<len(self):raise IndexError(index)
         check_cancelled();meta=self.frames[index]
+        if not meta.get('available',True):
+            raise ValueError('원 프레임을 읽을 수 없습니다: '+meta.get('reason','retained frame unavailable'))
         path=admit_pin(self.root,meta['artifact'])
         from .adapters.impact_results import read_vtk,validate_frame_identity
         raw=read_vtk(path,expected_pin=meta['artifact'])
@@ -46,6 +48,75 @@ class FrameView(Sequence):
         if {a:{n:i['components'] for n,i in raw[a].items() if n!='SourcePartID'} for a in ('POINTS','CELLS')}!=meta['fields']:
             raise ValueError('Native array association/components changed')
         return path,raw
+
+
+class FrameSubset(Sequence):
+    """Indexed view of verified slots; no hydration or invented missing sample."""
+    def __init__(self,frames,indices):self.frames=frames;self.indices=list(indices)
+    def __len__(self):return len(self.indices)
+    def __getitem__(self,i):
+        if type(i) is not int or not 0<=i<len(self):raise IndexError(i)
+        return self.frames[self.indices[i]]
+
+
+def read_frame_selection(frames,model,rows,damage,*,start=0,stop=None):
+    """Reuse the physical reader per contiguous retained segment, without bridging.
+
+    Unavailable slots have no made-up time/value. Source indices and explicit
+    segments preserve those gaps, including after save and a new owner read.
+    """
+    from .impact_responses import read_selected
+    end=len(frames) if stop is None else stop
+    if all(r.get('available',True) for r in frames.frames[start:end]):
+        responses,records=read_selected(FrameSubset(frames,range(start,end)),model,rows,damage)
+        for name,response in responses.items():
+            response['source_rows']=[start+i for i in response['source_rows']]
+            response['raw_samples']['source_rows']=[start+i for i in response['raw_samples']['source_rows']]
+            for segment in response['segments']:segment['source_rows']=[start+i for i in segment['source_rows']]
+            records[name]['source_frame_indices']=list(range(start,end))
+        return responses,records
+    groups=[];current=[];missing=[]
+    for i in range(start,end):
+        meta=frames.frames[i]
+        if not meta.get('available',True):
+            if current:groups.append(current);current=[]
+            missing.append({'frame_index':i,'time_s':meta.get('time_s'),'reason':meta.get('reason')})
+        else:current.append(i)
+    if current:groups.append(current)
+    if not groups:raise ValueError('선택 구간에 검증된 원 프레임이 없습니다')
+    merged={};records={}
+    for group in groups:
+        responses,selected=read_selected(FrameSubset(frames,group),model,rows,damage)
+        for row in rows:
+            name=row['name'];response=responses[name];record=selected[name]
+            # A sampled integral cannot restart after an unavailable interval.
+            if row['quantity']=='contact_impulse' and group[0]>start:
+                response['value']=[];response['axes'][0]['values']=[];response['source_rows']=[];response['segments']=[]
+                raw=response['raw_samples'];raw['transformed_values']=[None]*len(group)
+                raw['quality_valid']=raw['calculation_valid']=[False]*len(group)
+                raw['quality_reasons']=['앞선 프레임 누락으로 적분을 이어갈 수 없습니다']*len(group)
+                record['values']=[None]*len(group);record['reasons']=list(raw['quality_reasons'])
+            response['source_rows']=[group[i] for i in response['source_rows']]
+            response['raw_samples']['source_rows']=[group[i] for i in response['raw_samples']['source_rows']]
+            for segment in response['segments']:segment['source_rows']=[group[i] for i in segment['source_rows']]
+            record['source_frame_indices']=group
+            if name not in merged:merged[name]=deepcopy(response);records[name]=deepcopy(record)
+            else:
+                dest=merged[name];offset=len(dest['value'])
+                dest['value'].extend(response['value']);dest['axes'][0]['values'].extend(response['axes'][0]['values'])
+                dest['source_rows'].extend(response['source_rows'])
+                for segment in response['segments']:
+                    segment=deepcopy(segment);segment['rows']=[v+offset for v in segment['rows']];dest['segments'].append(segment)
+                for key,value in response['raw_samples'].items():dest['raw_samples'][key].extend(value)
+                dest['metadata']['frames'].extend(response['metadata']['frames'])
+                for key in ('times_s','values','reasons','native_values','source_frame_indices'):records[name][key].extend(record[key])
+    for name,response in merged.items():
+        response['has_calculation_gaps']=True
+        response['metadata'].update(unavailable_frames=deepcopy(missing),
+            sampling='VERIFIED_CONTIGUOUS_SEGMENTS_ONLY; missing intervals are not interpolated',
+            status='AVAILABLE' if response['value'] else 'UNKNOWN')
+        records[name]['unavailable_frames']=deepcopy(missing)
+    return merged,records
 
 
 def artifact_receipt(output, frames=()):
@@ -144,7 +215,7 @@ def catalog(backend,outcome,output):
         # Derived fatigue/cohesive/impulse methods remain their existing explicitly
         # selected definitions. They are not advertised as newly measured channels.
         if quantity=='contact_impulse' or quantity.startswith('cohesive_'):continue
-        if not any(r['fields'].get(association,{}).get(array)==len(components) for r in frames):continue
+        if not any(r.get('available',True) and r['fields'].get(association,{}).get(array)==len(components) for r in frames):continue
         for component in components:
             name=f'impact.{quantity}.{component}'
             result[name]={'kind':'series','unit':unit,'component':component,'frame':'MODEL_GLOBAL',
@@ -167,15 +238,8 @@ def read(backend,outcome,output,selector,*,start=None,stop=None):
     frames=FrameView(root,record['retained_native']['frames'],model,physics)
     begin=0 if start is None else start;end=len(frames) if stop is None else stop
     if type(begin) is not int or type(end) is not int or not 0<=begin<end<=len(frames):raise ValueError('Select a nonempty bounded sample slice')
-    # A bounded sequence view, not a materialized list of every native frame.
-    class Slice(Sequence):
-        def __len__(self):return end-begin
-        def __getitem__(self,i):
-            if type(i) is not int or not 0<=i<len(self):raise IndexError(i)
-            return frames[begin+i]
-    from .impact_responses import read_selected
     row={'name':'selected','quantity':descriptor['quantity'],'identity':identity,'component':descriptor['component']}
-    responses,_=read_selected(Slice(),model,[row],damage);response=responses['selected']
+    responses,_=read_frame_selection(frames,model,[row],damage,start=begin,stop=end);response=responses['selected']
     source_entity=model.get('lineage',{}).get('nodes' if descriptor['association']=='POINTS' else 'elements',{}).get(str(identity))
     response.update(source={**descriptor['source'],'selector':selector,'sample_slice':[begin,end]},
                     metadata={**response['metadata'],'source_entity':deepcopy(source_entity),

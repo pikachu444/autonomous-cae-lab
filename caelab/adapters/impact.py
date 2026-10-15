@@ -276,8 +276,12 @@ class ImpactAdapter:
         return result
 
 
-def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=None,names=None,convert=False):
+def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=None,names=None,convert=False,
+                 partial=False,expected_frames=()):
     """Actual TH/ANIM reader shared with an explicit, solver-free re-read job."""
+    if partial:
+        return _read_partial_outputs(out,s,model,physics,damage,result,frame_records,
+            name=name,command=command,names=names,convert=convert,expected_frames=expected_frames)
     from ..impact_retained import FrameView,frame_record
     out=Path(out);native=out/'native'
     th=native/(name+'T01')
@@ -324,3 +328,124 @@ def read_outputs(out,s,model,physics,damage,result,frame_records,*,name,command=
         'native_metadata':metadata,'response':'impact_fields',
         'dependencies':{p.name:file_hash(p) for p in sorted(pvd.parent.glob('*.vtu'))}}]
     result['diagnostics']['frame_count']=len(frames)
+
+
+def _read_partial_outputs(out,s,model,physics,damage,result,frame_records,*,name,command,names,convert,expected_frames):
+    """Only the explicit reprocess operation admits independently readable scopes."""
+    from .impact_results import history_prefix
+    from ..impact_retained import FrameView,FrameSubset,frame_record,read_frame_selection
+    out=Path(out);native=out/'native';scopes={};errors=(ValueError,KeyError,TypeError,OSError,RuntimeError,StopIteration,UnicodeError)
+    def recoverable(error):
+        if isinstance(error,(ExecutionCancelled,ExecutionCleanupFailed)):raise error
+    diagnostics=result['diagnostics'];diagnostics['readback_scopes']=scopes
+    result.setdefault('responses',{})
+    th=native/(name+'T01');csv_path=native/'history.csv';conversion_error=None
+    if convert:
+        try:
+            if not th.is_file() or not th.with_name(th.name+'_TITLES').is_file():raise ValueError('Native history or matching titles missing')
+            command([names['th_to_csv'],th.name,'history'],'history_convert')
+        except errors as error:
+            recoverable(error);conversion_error=str(error)
+    try:
+        responses,table=history_prefix(csv_path)
+        recovery=table['recovery'];integrity={'status':'UNKNOWN','reason':'Native TH/TITLES or full correspondence not verified'}
+        if recovery['status']=='COMPLETE' and th.is_file() and th.with_name(th.name+'_TITLES').is_file():
+            try:integrity=history_inventory(th,table)
+            except errors as error:
+                recoverable(error);integrity={'status':'UNKNOWN','reason':str(error)}
+        recovery['native_history_correspondence']=('MATCHED_RETAINED_LAYOUT_AND_TIMES'
+            if integrity['status']=='MATCHED_RETAINED_LAYOUT_AND_TIMES' else 'UNKNOWN')
+        complete=(recovery['status']=='COMPLETE' and integrity['status']=='MATCHED_RETAINED_LAYOUT_AND_TIMES' and not conversion_error)
+        scopes['history']={**deepcopy(recovery),'status':'COMPLETE' if complete else 'PARTIAL' if table['rows'] else 'UNKNOWN',
+            'native_records':integrity,'conversion_error':conversion_error,
+            'available_samples':len(table['rows']),'qualification':'UNKNOWN'}
+        save_json(out/'history.json',table)
+        coverage=sample_coverage([r['values'][0] for r in table['rows']],s['time']['end_s'],s['time']['history_interval_s'])
+        coverage.update(native_records=integrity,recovery=deepcopy(scopes['history']),
+            converted_source={'artifact':'history.csv','sha256':file_hash(csv_path)})
+        diagnostics['history_coverage']=coverage
+        diagnostics['energy_observations']=energy_observations(table,csv_path)
+        for response in responses.values():response['metadata']['sample_coverage']=deepcopy(coverage)
+        result['responses'].update(responses)
+    except errors as error:
+        recoverable(error)
+        scopes['history']={'status':'UNKNOWN','available_samples':0,'reason':str(error),
+            'conversion_error':conversion_error,'after_first_invalid':'UNVERIFIED_NOT_SKIPPED','qualification':'UNKNOWN'}
+    expected={i:deepcopy(r) for i,r in enumerate(expected_frames)}
+    paths={int(p.stem[5:]):p for p in native.glob('frame[0-9][0-9][0-9][0-9].vtk')}
+    animations={};animation_errors=[];ambiguous=set()
+    if convert:
+        for path in sorted(native.glob(name+'A[0-9]*')):
+            suffix=path.name[len(name)+1:]
+            if not suffix.isdecimal() or int(suffix)<1:
+                animation_errors.append({'artifact':path.name,'reason':'Invalid native ANIM sequence number'});continue
+            index=int(suffix)-1  # Native A001 is original slot zero, never sorted-list position.
+            if index in animations:
+                ambiguous.add(index)
+                animation_errors.append({'artifact':path.name,'reason':'Ambiguous native ANIM sequence number'})
+            else:animations[index]=path
+    indices=set(expected)|set(paths)|set(animations)
+    if indices and max(indices)>=1024:raise ValueError('Native frame count exceeds limit')
+    missing=[];previous=None
+    for index in range(max(indices)+1 if indices else 0):
+        check_cancelled();target=native/f'frame{index:04d}.vtk'
+        try:
+            converted=False
+            if index in ambiguous:raise ValueError('Ambiguous native ANIM sequence number')
+            if convert and index in animations:
+                process=command([names['anim_to_vtk'],animations[index].name],f'animation_{index:04d}')
+                payload=process.stdout
+                if isinstance(payload,str):payload=payload.encode('ascii')
+                target.write_bytes(payload);converted=True
+            if not target.is_file():raise ValueError('Retained animation frame missing')
+            old_pin=expected.get(index,{}).get('artifact') if not converted else None
+            if old_pin is not None and old_pin['relative']!=target.relative_to(out).as_posix():
+                raise ValueError('Native frame artifact differs from original receipt')
+            raw=read_vtk(target,expected_pin=old_pin);raw['coverage']=validate_frame_identity(raw,model,physics)
+            if previous is not None and raw['time']<=previous:raise ValueError('Duplicate/non-monotonic native animation time')
+            if index in expected and raw['time']!=expected[index]['time_s']:
+                raise ValueError('Native frame time differs from original receipt')
+            record=frame_record(out,target,raw);previous=raw['time']
+        except errors as error:
+            recoverable(error)
+            record={**expected.get(index,{}),'available':False,'time_s':expected.get(index,{}).get('time_s'),
+                'fields':{},'reason':str(error),'source_frame_index':index}
+            missing.append({'frame_index':index,'time_s':record['time_s'],'reason':str(error)})
+        frame_records.append(record)
+    valid=[i for i,r in enumerate(frame_records) if r.get('available',True)]
+    scopes['animation']={'status':'PARTIAL' if valid and (missing or animation_errors) else 'COMPLETE' if valid else 'UNKNOWN',
+        'available_frame_indices':valid,'available_frame_count':len(valid),'unavailable_frame_count':len(missing),
+        'unavailable_frames':missing,'artifact_errors':animation_errors,'expected_slots':len(frame_records),
+        'sampling':'ANIMATION_SAMPLES_NOT_ALL_SOLVER_INCREMENTS','no_interpolation_across_gaps':True}
+    diagnostics['frame_count']=len(valid)
+    if valid:
+        frames=FrameView(out,frame_records,model,physics)
+        coverage=sample_coverage([frame_records[i]['time_s'] for i in valid],s['time']['end_s'],s['time']['field_interval_s'])
+        coverage.update(unavailable_frames=deepcopy(missing),no_interpolation_across_gaps=True)
+        diagnostics['animation_coverage']=coverage
+        try:
+            chosen,selection_record=read_frame_selection(frames,model,s.get('responses',[]),damage)
+            for response in chosen.values():response.setdefault('metadata',{})['sample_coverage']=deepcopy(coverage)
+            result['responses'].update(chosen);save_json(out/'selected_responses.json',selection_record)
+            scopes['selected_responses']={'status':'PARTIAL' if missing else 'COMPLETE'}
+        except errors as error:
+            recoverable(error);scopes['selected_responses']={'status':'UNKNOWN','reason':str(error)}
+        try:
+            metadata=write_post(out/'post',FrameSubset(frames,valid),damage=damage)
+            # PVD holds only actual independent samples. Do not infer a continuous
+            # solver history, or permit a missing frame to become a measured value.
+            metadata['sample_coverage']=deepcopy(coverage)
+            pvd=out/'post/impact.pvd'
+            result['post_artifacts']=[{'relative':'post/impact.pvd','sha256':file_hash(pvd),
+                'native_metadata':metadata,'response':'impact_fields',
+                'dependencies':{p.name:file_hash(p) for p in sorted(pvd.parent.glob('*.vtu'))}}]
+            scopes['post']={'status':'PARTIAL' if missing else 'COMPLETE','sample_only':True}
+        except errors as error:
+            recoverable(error);scopes['post']={'status':'UNKNOWN','reason':str(error)}
+    else:
+        scopes['selected_responses']={'status':'UNKNOWN','reason':'No verified native frame'}
+        scopes['post']={'status':'UNKNOWN','reason':'No verified native frame'}
+    diagnostics['partial_output']=any(scope['status']!='COMPLETE' for scope in scopes.values())
+    if diagnostics.get('artifact_copy_errors'):diagnostics['partial_output']=True
+    diagnostics['readback_summary']='PARTIAL_SCOPES_RETAINED' if diagnostics['partial_output'] else 'COMPLETE_READBACK_ONLY'
+    return not diagnostics['partial_output']

@@ -17,13 +17,16 @@ from caelab import impact_sets as sets
 
 class _Import(QThread):
     ready=Signal(object,str)
-    def __init__(self,entry,root,parent):
+    def __init__(self,entry,root,parent,*,engine=None,units=None):
         super().__init__(parent);self.entry=entry;self.root=root;self.cancelled=Event();self.diagnostic=None
+        self.engine=engine;self.source_units=units
     def run(self):
         try:
-            source=capture(self.entry,self.root,cancel=self.cancelled.is_set)
+            source=capture(self.entry,self.root,cancel=self.cancelled.is_set,engine=self.engine,units=self.source_units)
             try:
-                text,spans=resolve(source);model=parse_inp(text,spans)
+                from caelab.impact_model import default_settings
+                settings=default_settings();settings['source']=source
+                model=model_from_settings(settings)
                 message=f"절점 {len(model['nodes']):,}개 / 요소 {len(model['elements']):,}개"
             except ValueError as error:self.diagnostic=error;message='계산 전 수정 필요: '+str(error)
             if not self.cancelled.is_set():self.ready.emit(source,message)
@@ -41,6 +44,11 @@ class ImportDialog(QDialog):
         for field,label,call in ((self.entry,'주 입력 파일',self.choose_entry),(self.root,'입력 제출 작업 폴더',self.choose_root)):
             row=QHBoxLayout();row.addWidget(field,1);button=QPushButton('찾기…');button.clicked.connect(call);row.addWidget(button);form.addRow(label,row)
             field.textEdited.connect(self.invalidate)
+        self.engine=QLineEdit();self.engine_row=QWidget();er=QHBoxLayout(self.engine_row);er.setContentsMargins(0,0,0,0)
+        er.addWidget(self.engine,1);self.engine_find=QPushButton('찾기…');self.engine_find.clicked.connect(self.choose_engine);er.addWidget(self.engine_find)
+        self.engine_label=QLabel('Engine 파일');form.addRow(self.engine_label,self.engine_row)
+        self.engine.textEdited.connect(self.invalidate)
+        self.entry.textChanged.connect(self.route_changed);self.route_changed()
         self.units=QCheckBox('원 입력 단위: Mg, mm, s, N, MPa');layout.addWidget(self.units)
         row=QHBoxLayout();self.check=QPushButton('입력 확인');self.check.clicked.connect(self.check_input);row.addWidget(self.check)
         self.status=QLabel('포함 파일은 모두 선택한 작업 폴더에서 찾습니다.');self.status.setWordWrap(True);row.addWidget(self.status,1);layout.addLayout(row)
@@ -51,10 +59,17 @@ class ImportDialog(QDialog):
         self.ok=self.buttons.button(QDialogButtonBox.StandardButton.Ok);self.ok.setText('가져오기');self.ok.setEnabled(False)
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject);layout.addWidget(self.buttons)
-        self.units.toggled.connect(lambda _:self.ok.setEnabled(self.source is not None and self.units.isChecked() and self.worker is None))
+        self.units.toggled.connect(self.invalidate)
+    def route_changed(self,*_):
+        native=Path(self.entry.text()).suffix.lower()=='.rad'
+        self.engine_row.setVisible(native);self.engine_label.setVisible(native)
+    def choose_engine(self):
+        if self.worker:return
+        path,_=QFileDialog.getOpenFileName(self,'Engine 파일','','OpenCourant 입력 (*.rad)')
+        if path:self.engine.setText(path);self.invalidate()
     def choose_entry(self):
         if self.worker:return
-        path,_=QFileDialog.getOpenFileName(self,'주 입력 파일','','Abaqus 입력 (*.inp)')
+        path,_=QFileDialog.getOpenFileName(self,'주 입력 파일','','유한요소 입력 (*.inp *.rad)')
         if path:self.entry.setText(path);self.invalidate()
         if path and not self.root.text():self.root.setText(str(Path(path).parent))
     def choose_root(self):
@@ -66,12 +81,16 @@ class ImportDialog(QDialog):
     def check_input(self):
         if self.worker:return
         self.invalidate();self._cancel=False
-        self.worker=_Import(self.entry.text(),self.root.text(),self)
+        native=Path(self.entry.text()).suffix.lower()=='.rad'
+        if native and not self.engine.text().strip():self.status.setText('Starter와 함께 사용할 Engine 파일을 선택하세요.');return
+        self.worker=_Import(self.entry.text(),self.root.text(),self,
+            engine=self.engine.text().strip() if native else None,units='Mg/mm/s' if self.units.isChecked() else None)
         self.entry.setEnabled(False);self.root.setEnabled(False);self.check.setEnabled(False)
+        self.engine.setEnabled(False);self.engine_find.setEnabled(False);self.units.setEnabled(False)
         self.status.setText('원파일을 읽고 포함 순서를 확인하는 중…')
         self.worker.ready.connect(self.received);self.worker.finished.connect(self.finished_read);self.worker.start()
     def received(self,source,message):
-        if self._cancel:return
+        if self._cancel or self.sender() not in (None,self.worker):return
         self.source=source;self.status.setText(message)
         self.files.clear()
         if source:
@@ -80,8 +99,10 @@ class ImportDialog(QDialog):
             self.ok.setText('초안으로 가져오기' if message.startswith('계산 전') else '가져오기')
             show_source_location(self.files,self.original,getattr(self.worker,'diagnostic',None))
     def finished_read(self):
+        if self.sender() not in (None,self.worker):return
         worker=self.worker;self.worker=None;worker.deleteLater()
         self.entry.setEnabled(True);self.root.setEnabled(True);self.check.setEnabled(True)
+        self.engine.setEnabled(True);self.engine_find.setEnabled(True);self.units.setEnabled(True)
         if self._cancel:super().reject()
         else:self.ok.setEnabled(self.source is not None and self.units.isChecked())
     def show_file(self,*_):self.original.setPlainText(self.files.currentData() or '')
@@ -119,7 +140,7 @@ class SourceDialog(QDialog):
         self.files.addItem('펼친 입력',source.get('text',''))
         self.files.currentIndexChanged.connect(lambda _:self.view.setPlainText(self.files.currentData() or ''))
         self.view.setPlainText(self.files.currentData() or '')
-        self.note=QLabel('보존 원문입니다. 수정한 파일은 충격 조건의 ‘유한요소 파일 열기…’로 다시 가져오세요.')
+        self.note=QLabel('보존 원문입니다. 충격 조건의 ‘원 입력 조건…’에서 선택 범위나 원 입력 수치를 편집할 수 있습니다.')
         self.note.setWordWrap(True);layout.addWidget(self.note)
         if show_source_location(self.files,self.view,error):
             self.note.setText(f'{error.file} {error.line}행을 확인하세요. 원문은 Ctrl+C로 복사할 수 있습니다.')
@@ -280,7 +301,7 @@ class ProjectPage(QWidget):
     def refresh(self,selected_key=None):
         selected_key=self.key() if selected_key is None else selected_key
         self.tree.blockSignals(True)
-        self.tree.clear();self.model=None;self.source_error=None
+        self.tree.clear();self.model=None;self.source_error=None;self.reselect_generated=False
         self.actions['source'].setText('원파일 보기…')
         try:
             self.model=model_from_settings(self.editor.edited());self.all_faces=sets.facets(self.model)
@@ -296,6 +317,19 @@ class ProjectPage(QWidget):
             self.view.model=None;self.view.update();self.info.clear();self.message.setText(str(error))
             self.source_error=error
             if getattr(error,'file',None) and getattr(error,'line',None):self.actions['source'].setText('문제 원파일 보기…')
+            if self.editor.value.get('generated_sets'):
+                # Only the selection view uses the original current mesh.
+                # Saved definitions/bindings stay stale until explicit repair.
+                plain=self.editor.edited();plain['generated_sets']=[]
+                try:
+                    self.model=model_from_settings(plain);self.all_faces=sets.facets(self.model);self.reselect_generated=True
+                    group=QTreeWidgetItem(self.tree,['보존 생성 집합','재선택 필요']);group.setExpanded(True)
+                    for definition in self.editor.value['generated_sets']:
+                        item=QTreeWidgetItem(group,[definition['name'],'재선택 필요']);item.setData(0,Qt.ItemDataRole.UserRole,(definition['kind'],definition['name']))
+                        if (definition['kind'],definition['name'])==selected_key:self.tree.setCurrentItem(item)
+                    self.view.set_model(self.model,faces=self.all_faces)
+                    self.message.setText('현재 원 메시를 표시합니다. 보존 생성 집합은 하나씩 수정하여 원 집합과 면을 다시 선택하세요. 이전 조건은 유지되며 계산은 차단됩니다.')
+                except (ValueError,KeyError,TypeError):pass
         self.tree.blockSignals(False)
         self.tree.setColumnWidth(0,190);self.selected()
         if self.tree.currentItem():self.tree.scrollToItem(self.tree.currentItem(),QAbstractItemView.ScrollHint.PositionAtCenter)
@@ -303,9 +337,14 @@ class ProjectPage(QWidget):
         item=self.tree.currentItem();return item.data(0,Qt.ItemDataRole.UserRole) if item else None
     def selected(self,*_):
         key=self.key();generated=self.definition()
-        for action in ('motion','surface'):self.actions[action].setEnabled(bool(key and key[0]=='elset'))
-        for action in ('edit','delete'):self.actions[action].setEnabled(generated is not None)
+        native=self.editor.value['source'].get('format')=='RAD'
+        for action in ('motion','surface'):self.actions[action].setEnabled(bool(key and key[0]=='elset') and not native)
+        for action in ('edit','delete'):self.actions[action].setEnabled(generated is not None and not native)
         if self.model is None:return
+        if self.reselect_generated and generated is not None:
+            self.view.set_model(self.model,faces=self.all_faces)
+            self.info.setText(generated['name']+' / 보존한 정의입니다. 현재 메시에서 다시 선택해야 합니다.')
+            return
         if not key:
             self.view.set_model(self.model,faces=self.all_faces)
             self.info.setText(bounds_label(self.model,self.model['nodes'],self.model['elements']))
@@ -325,14 +364,23 @@ class ProjectPage(QWidget):
     def create(self,kind,definition=None):
         key=self.key()
         elset=definition['elset'] if definition else key[1]
-        try:dialog=TargetDialog(self.editor.edited(),elset,kind,definition,self)
+        settings=self.editor.edited()
+        if self.reselect_generated:settings['generated_sets']=[]
+        missing=elset not in (self.model or {}).get('elsets',{})
+        if self.reselect_generated and missing and self.model['elsets']:elset=next(iter(self.model['elsets']))
+        try:dialog=TargetDialog(settings,elset,kind,definition,self)
         except (ValueError,KeyError,TypeError) as error:self.message.setText(str(error));return
+        if self.reselect_generated:
+            dialog._restore_definition=False
+            dialog.table.clearSelection()
+            if missing:dialog.element_set.setCurrentIndex(-1)
         if dialog.exec()!=QDialog.DialogCode.Accepted:return
         definitions=deepcopy(self.editor.value.get('generated_sets',[]))
         if definition:definitions[definitions.index(definition)]=dialog.result_definition
         else:definitions.append(dialog.result_definition)
         self.editor.value['generated_sets']=definitions
         self.refresh((dialog.result_definition['kind'],dialog.result_definition['name']))
+        if hasattr(self.editor,'source_page'):self.editor.source_page.refresh()
     def edit(self):
         definition=self.definition()
         if definition:self.create(definition['kind'],definition)
@@ -346,6 +394,8 @@ class ProjectPage(QWidget):
             self.editor.value['generated_sets']=updated['generated_sets'];self.refresh()
         except ValueError as error:self.message.setText(str(error))
     def check(self):
+        if self.editor.value['source'].get('format')=='RAD':
+            self.editor.tabs.setCurrentWidget(self.editor.source_page);self.editor.source_page.refresh();return
         try:
             from caelab.impact_model import render
             frozen=deepcopy(self.editor.edited());deck,_=render(frozen);self.message.setText('입력 확인 완료. 계산은 실행하지 않았습니다.')

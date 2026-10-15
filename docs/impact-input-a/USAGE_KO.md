@@ -1,8 +1,9 @@
 # 충격 입력을 열고 계산하기
 
-현재는 아래 Python 예제와 기존 Simulation API에서 입력을 편집하고 계산할 수 있다.
-화면에서 추가 원문 편집 기능을 사용하는 연결은 아직 남아 있다. 입력 편집·저장·결과
-읽기에는 CAD·AI·MCP·WSL이나 유료 API가 필요하지 않다.
+**해석** 앱의 **충격 조건…**에서 INP 또는 native Starter/Engine 입력을 열고 편집할 수 있다.
+아래 Python 예제와 기존 Simulation API도 같은 입력과 문서를 사용한다. 입력 편집·저장·결과
+읽기에는 CAD·AI·MCP·WSL이나 유료 API가 필요하지 않다. 저장한 계산 결과는 해석 앱의
+**연구 → 보존 결과 다시 읽기…**에서 다시 읽을 수 있다. 실제 계산에는 등록한 솔버가 필요하다.
 
 ## 실행 준비
 
@@ -13,6 +14,67 @@
 실제 계산에는 기존에 등록한 무료 Windows OpenCourant가 필요하다. 예제 실행기가
 솔버를 새로 설치하거나 구매하지는 않는다. 런타임이 없어도 계산을 요청하지 않는 입력
 편집·저장 예제는 사용할 수 있다.
+
+## 해석 앱에서 입력 편집과 저장
+
+1. **해석 → 충격 조건… → 유한요소 파일 열기…**에서 주 INP 또는 Starter `.rad`와 입력 제출
+   작업 폴더를 고른다. native 입력이면 함께 사용할 **Engine 파일**도 명시적으로 고른다.
+   원 단위 **Mg, mm, s, N, MPa**를 확인하고 **입력 확인 → 가져오기**를 누른다.
+   포함 파일은 모두 지정한 작업 폴더에서 찾는다. 다른 단위를 자동 환산하지 않는다.
+   읽는 도중 취소하면 해당 읽기가 끝난 뒤 창이 닫히며 이전 입력은 유지된다.
+2. **모델과 집합**에서 기존 집합과 메시를 확인한다. **원 입력 조건…**을 누르면
+   **원 입력 편집** 탭의 파일 목록과 **입력 조건** 표가 열린다. native RAD에서는 원문이 물리 조건의
+   기준이므로 기존 초기 운동·접촉·손상·시간 탭의 별도 편집을 잠근다. 현재 투영값은 유지되며,
+   INP의 기존 운동·접촉 편집은 계속 사용할 수 있다.
+   계층 INP의 **결과 이력**에서는 부품 instance와 원 local 절점·요소 번호를 고른다.
+   같은 local 번호가 다른 instance에 있어도 구분하며, 내부 재번호를 직접 입력하지 않는다.
+3. 원파일을 고르고 수치 항목을 선택한 뒤 **선택 수치 수정… → 미리보기 → 선택 편집 반영**을 누른다.
+   직접 원문을 바꾸려면 **고급 원문 편집**에서 범위를 선택하고 **선택 범위 수정…**을 누른다.
+   수정할 원문과 기존 선택을 비교한 뒤 명시적으로 반영한다. **취소**하면 그 편집은 반영하지 않는다.
+   원문은 INP/RAD의 ASCII 제약을 따르며, 선택하지 않은 범위와 원파일의 줄바꿈은 보존한다.
+4. 미지원 카드가 있으면 진단의 파일·행을 두 번 눌러 정확한 원 위치로 이동한다.
+   미완성 초안을 반영하고 저장할 수 있지만 계산은 기존 입력 검사에서 차단된다.
+   진단을 없애기 위해 미지원 카드를 자동 무시하거나 허용값을 바꾸지 않는다.
+5. 충격 조건 창의 **편집 반영**으로 돌아가 해석 앱의 **변경 적용 → 저장**을 누른다.
+   같은 해석 문서를 다시 열고 **충격 조건… → 원 입력 조건…**에서 이어서 편집한다.
+   원문 미리보기·수치 수정·저장으로 솔버가 실행되지는 않는다.
+
+원문 편집으로 번호나 집합 구성원이 달라지면 **원 대상 대응 확인…**에서 기존 원 대상과 현재
+선택할 대상을 비교한다. 바뀐 항목은 선택을 비워 두므로 원 instance/local 번호 또는 집합을
+직접 다시 고르고 **대응 미리보기 → 현재 대상 명시 수락**을 누른다. 상세에서 이전·현재 전체
+구성원을 읽을 수 있다. **거절**하면 이전 참조와 실행 차단을 유지한다. 이전 정수 번호가 남아
+있다는 이유만으로 다른 대상에 붙이지 않는다. 원문 변경으로 생성 집합이 끊겼다면
+**모델과 집합**에 보존된 이름을 선택하고 **집합 수정…**에서 현재 원 집합과 면을 하나씩 다시
+지정한다. 다른 집합의 미확인 정의는 그대로 남는다. 사용 중인 집합은 조건을 먼저 정리하지
+않으면 삭제할 수 없다. 내부 해시·바이트 위치는 입력하지 않으며 원 instance/local 번호와
+실제 구성원으로 확인한다.
+
+![충격 입력의 파일 목록과 시간 조건 편집](../images/impact-input-conditions.png)
+
+사진은 공개 native 입력을 읽은 실제 Windows Qt 창이다. 원파일 목록에서 Engine 파일을
+고르면 종료 시간과 출력 간격을 표에서 선택할 수 있다. 계산 결과 화면은 아니다.
+
+![계층 입력에서 원 부품과 절점 번호로 결과 위치 선택](../images/impact-response-selection.png)
+
+계층 INP의 결과 위치는 **BODY-2 / 원 번호 20**처럼 부품과 원 번호로 고른다.
+다른 부품의 같은 번호와 구별하며, 사진의 공개 입력은 실제 충돌 해석 검증 사례가 아니다.
+
+## 저장한 결과 다시 읽기
+
+1. 해석 앱 왼쪽 **계산 결과**에서 다시 읽을 원 계산을 선택한다.
+2. **연구 → 보존 결과 다시 읽기…**를 누른다. 편집 중인 입력이 있으면 먼저 **변경 적용**한다.
+   현재 입력을 고쳐도 원 계산에 제출했던 입력은 유지된다.
+3. **저장된 결과 파일 읽기**는 보존된 VTK와 CSV를 읽는다. 솔버나 변환기를 실행하지 않는다.
+   **원 ANIM/TH를 다시 변환해 읽기**는 등록된 변환기로 원출력을 변환한다. 새 솔버 계산은 하지 않는다.
+4. 왼쪽에 추가된 읽기 결과를 선택해 이력과 공간 결과를 확인한다. 읽은 표본 수와 공간 결과의
+   전체 시각 수, 누락·손상 시각 수를 함께 표시한다. CSV는 처음 손상된 행 앞까지만 읽고,
+   그 뒤의 행을 건너뛰어 연결하지 않는다. 손상된 공간 결과와 별개로 정상 프레임은 볼 수 있다.
+5. **저장** 후 같은 해석 문서를 다시 열어 이어간다. 원 계산이 실패·취소였다면 그 상태는 유지된다.
+   일부 결과를 읽었다는 이유로 계산 성공이나 공학적 적합성으로 바뀌지 않는다.
+
+선택 창에서 **취소**하면 읽기를 요청하지 않는다. 제출 응답을 받지 못한 경우 메뉴가
+**결과 읽기 상태 확인…**으로 바뀐다. 이 메뉴로 같은 요청을 확인하면 읽기 작업을 중복 생성하지 않는다.
+기다리는 동안 다른 계산을 선택하거나 입력을 편집해도 늦게 도착한 응답이 그 선택과 편집을 덮어쓰지 않는다.
 
 ## CAD 없이 지금 실행할 수 있는 공개 입력 검사
 
@@ -57,32 +119,16 @@ CFL 0.9의 실제 초기 간격 8.2108e-7 s는 이를 초과했다. 이 계산�
 
 입력으로 적분한 연속체 COM은 (2.5,2.5,2.5) mm, COM 관성은 대각 9.75e-6 / 비대각 1.625e-6 Mg·mm²다. **이 행렬은 solver 강체의 lumped inertia가 아니다.** `/RBODY` native readback 미구현을 이 값으로 대체하지 않는다. 코드의 initial_mass_properties.json은 native_body_mass_inertia=UNKNOWN을 유지한다.
 
-## 기존 앱에 연결할 작업 순서
-
-‘입력 열기’에서 제출 root, INP 또는 Starter/Engine, 원 단위를 선택한다. 파일 목록/instance·local ID/집합·면 표와 원 위치를 확인한다. ‘원문 보기’의 선택 범위를 ‘수정할 원문’에서 바꾸고 ‘선택 범위 적용’을 누른다. `editor_buffer/apply_display_range`가 Qt의 LF 화면 위치를 원 ASCII/CRLF byte 범위로 변환하므로 손대지 않은 줄바꿈을 바꾸지 않는다. native 수치 표는 `apply_native_field`를 사용한다. 내부 JSON/hash/raw byte offset은 화면 입력 항목이 아니다.
-
-원문 편집으로 effective 번호나 집합 구성원이 달라지면 ‘기존 대상 / 현재 대상’ 대응 표를 확인하고 원 instance/local ID로 다시 선택한다. `impact_reference_bindings.review/accept_review`는 그 명시 수락을 저장한다. 단순히 예전 정수 ID가 여전히 존재한다는 이유로 새 대상에 붙이지 않는다. ‘적용’은 기존 `simulation.update`, ‘저장’은 `document.save`, ‘계산’만 `simulation.evaluate`다. 초안 진단이 있어도 저장은 가능하고 실행만 차단한다.
-
-결과는 **원 Job의 고정 입력**에 붙인다. 현재 편집 중인 다른 revision을 사용해 옛 결과를 대응시키지 않는다. `document_result(document_id, job_id, selection={"responses":["impact.velocity.Z@2"]})` 등의 domain 호출에서 내부 숫자는 source 선택으로 해석한 값이다. 단일 frame API는 `impact_retained.select_frame`; metadata 목록은 `inventory`이며 payload 검증 상태가 다르다. 없는 프레임/성분/active 값은 UNKNOWN 또는 명시 오류다.
-
-## 실패 자료 다시 읽기
-
-같은 Simulation에서 원 계산을 선택하고 ‘보존 결과 다시 읽기’를 명시한다. 아래는 내부 연결 예다. GUI에서는 원 계산 선택과 ‘원 ANIM/TH 다시 변환’ 선택지만 보이면 된다.
-
-```python
-reply = workbench.document_command(
-    document["id"], "simulation.reprocess",
-    {"source_job_id": original_job_id, "convert_raw": False},
-    session_id=document["session_id"],
-    expected_generation=document["generation"], command_id=unique_command_id,
-)
-```
-
-False는 이미 보존된 VTK/CSV만 읽으며 runtime 조회도 하지 않는다. True는 원 native ANIM/TH를 동일 pinned converter로 다시 변환한다. True 경로는 이 작성환경에서 실제 converter 실행 NOT_RUN이다. 새 Job 결과의 READBACK_ONLY/solver_execution=NOT_PERFORMED와 source_execution_status를 함께 보여야 한다. 새 읽기가 성공해도 원 FAILED/CANCELLED를 SUCCEEDED로 바꾸지 않는다. 원 Job·현재 선택·입력과 결과를 저장한 뒤 새 owner에서 다시 읽는다.
-
 ## 검증과 잔여
 
-원 인도의 RESULTS.md/RESULTS.json은 Pro 작성 당시 Linux 실행·synthetic 경계 대역·Windows 미실행을 구별한 기록이다. 후속 Sol Windows 통합 결과는 아래와 구별한다. A 전체 인수는 미완료다. `/RBODY`, native TRANSFORM/INIVEL AXIS 등 rigid readback 잔여와 Sol GUI 연결 및 실제 Windows/Post 확인이 남는다. B/C는 별도 배정 범위를 유지한다.
+원 인도의 RESULTS.md/RESULTS.json은 Pro 작성 당시 Linux 실행·synthetic 경계 대역·Windows 미실행을 구별한 기록이다. 후속 Sol Windows 통합 결과는 아래와 구별한다. A 전체 인수는 미완료다. `/RBODY`, native TRANSFORM/INIVEL AXIS 등 rigid readback과 native 실행·재후처리 전체 GUI 확인이 남는다. B/C는 별도 배정 범위를 유지한다.
+
+원 입력 편집 GUI는 Windows Qt에서 공개 native 입력의 파일 선택·수치 미리보기·취소·반영과
+같은 Simulation 저장을 확인했다. 별도 Python 프로세스로 저장 문서를 다시 읽은 뒤 같은 수치를
+재편집할 수 있었다. 보통·좁은 창의 입력 조건/원문·미지원 위치와 원 대상 재선택도 확인했다.
+원 CRLF 보존, 기존 ID 소멸 후 재선택, 생성 집합의 명시 복구, 전체 구성원 확인은 해당 GUI
+경계 검사다. 이 확인에서 솔버·재메시·런타임 조회는 실행하지 않았다. 프로그램에서 조작한 Qt
+창과 물리 키보드·마우스 조작은 구분하며, 이 기록은 Windows 잠금 상태의 OS 조작 수용이 아니다.
 
 
 ## Windows 국소 확인 — 2026-10-15
@@ -113,5 +159,27 @@ Sol이며 원 Pro 구현과 원 실패 입력·로그는 그대로 보존했다.
 새 읽기 Job의 snapshot/hash/revision/generation은 원 D0로 함께 기록한다. 현재 D1 초안은
 유지하고 제출 응답 유실 뒤 복구에서도 같은 D0 식별 정보를 쓴다. 이 후속 연결은 원 계산이
 정상·실패·취소인 세 대역 경계 사례에서 저장/새 owner/result reference까지 확인했으며,
-새 native 계산은 하지 않았다. TH/TITLES 부재나 잘린 CSV에서 독립 VTK/완결 prefix를
-복구하는 넓은 부분 결과 처리는 아직 미완료다.
+새 native 계산은 하지 않았다. TH/TITLES가 없거나 CSV가 중간에 잘려도 검증된 이력 구간과 정상 VTK를 나누어 읽는다.
+손상된 프레임과 누락 시각은 그대로 남기며, 그 틈을 연결해 곡선이나 충격량을 계산하지 않는다.
+기존 실제 출력의 별도 시험 사본에서 중간 프레임 손상과 CSV 잘림을 만들어 부분 읽기와
+새 프로세스 재열기를 확인했다. 원 실제 계산은 정상이었으며 실패로 바꾸지 않았다.
+재변환 converter의 실제 실행과 OS 직접 조작을 포함한 전체 화면 수용은 별도 미확인이다.
+
+## Python에서 결과 위치 선택
+
+결과는 **원 Job의 고정 입력**에 붙인다. 현재 편집 중인 다른 revision을 사용해 옛 결과를 대응시키지 않는다. `document_result(document_id, job_id, selection={"responses":["impact.velocity.Z@2"]})` 등의 domain 호출에서 내부 숫자는 source 선택으로 해석한 값이다. 단일 frame API는 `impact_retained.select_frame`; metadata 목록은 `inventory`이며 payload 검증 상태가 다르다. 없는 프레임/성분/active 값은 UNKNOWN 또는 명시 오류다.
+
+## Python에서 보존 결과 다시 읽기
+
+Python에서도 같은 해석 문서의 원 계산을 지정해 읽을 수 있다. 다음 호출은 GUI와 같은 명령이다.
+
+```python
+reply = workbench.document_command(
+    document["id"], "simulation.reprocess",
+    {"source_job_id": original_job_id, "convert_raw": False},
+    session_id=document["session_id"],
+    expected_generation=document["generation"], command_id=unique_command_id,
+)
+```
+
+False는 이미 보존된 VTK/CSV만 읽으며 runtime 조회도 하지 않는다. True는 원 native ANIM/TH를 동일 pinned converter로 다시 변환한다. True 경로는 이 작성환경에서 실제 converter 실행 NOT_RUN이다. 새 Job 결과의 READBACK_ONLY/solver_execution=NOT_PERFORMED와 source_execution_status를 함께 보여야 한다. 새 읽기가 성공해도 원 FAILED/CANCELLED를 SUCCEEDED로 바꾸지 않는다. 원 Job·현재 선택·입력과 결과를 저장한 뒤 새 owner에서 다시 읽는다.
