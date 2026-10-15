@@ -10,6 +10,9 @@ FreeCAD 기반 전처리, ParaView 기반 후처리와 독립 Qt 연구 앱을 �
 [설치 안내](docs/INSTALL_KO.md) · [처음 해볼 작업](docs/USER_GUIDE_KO.md) ·
 [개발 현황과 다음 인도본](CURRENT_STATE.md) · [English technical reference](docs/REFERENCE_EN.md)
 
+어느 프로그램에서 시작할지 모르겠다면 **[화면별 사용 안내](docs/SCREEN_GUIDE_KO.md)**를 보세요.
+실제 화면마다 하는 일, 준비할 파일, 조작 순서와 저장·다시 여는 방법을 설명합니다.
+
 [Windows 열전도·열탄성과 온도 전달 예제](docs/s1_windows_transfer/README_KO.md)는
 WSL 없이 실행할 수 있습니다. 실제 화면과 계산·저장·재열기 순서를 제공합니다.
 
