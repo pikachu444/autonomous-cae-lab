@@ -190,15 +190,160 @@ def test_refresh_preserves_unsubmitted_mesh_fields_and_handoff_guard(panel, nati
     assert panel._mesh_fields() == before and panel.mesh.currentData() == native.mesh.Name
 
 
-def _choose_draft_dialog(choice):
+def _choose_draft_dialog(choice, title='미적용 메시 설정'):
     def choose():
         dialog = QtWidgets.QApplication.activeModalWidget()
         assert isinstance(dialog, QtWidgets.QMessageBox)
-        assert dialog.windowTitle() == '미적용 메시 설정'
+        assert dialog.windowTitle() == title
         assert dialog.defaultButton().text() == '취소' and dialog.escapeButton().text() == '취소'
         button = next(button for button in dialog.buttons() if button.text() == choice)
         button.click()
     QtCore.QTimer.singleShot(0, choose)
+
+
+def _saved_refinements(panel, native):
+    from test_pre_fem_edit import region
+    first = region(native, label='첫 영역')
+    second = region(native, 'Face2', label='둘째 영역')
+    refs = [native.editor.dispatch('pre.fem.mesh_local_size',
+        {'region_id': selected['id'], 'size': size, 'unit': 'mm'}, {'object_id': native.mesh.Name})
+        for selected, size in ((first, .4), (second, .2))]
+    panel.refresh()
+    return first, second, refs
+
+
+def test_saved_local_size_selection_reads_exact_native_size_and_region_without_applying_global(panel, native):
+    from test_pre_fem_edit import Quantity
+    first, second, refs = _saved_refinements(panel, native)
+    panel.max_size.setValue(7)
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    assert panel.local_region.currentData() == first['id'] and panel.local_size.value() == .4
+    assert panel.max_size.value() == 7 and panel._mesh_pending() and not panel.test_calls
+    native._object(refs[0]['object_id']).CharacteristicLength = Quantity('.45 mm')
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[1]['object_id']))
+    assert panel.local_region.currentData() == second['id'] and panel.local_size.value() == .2
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    assert panel.local_size.value() == .45  # Read native Quantity, not stale metadata size_mm.
+    assert panel.max_size.value() == 7 and native.mesh.CharacteristicLengthMax.Value == 2
+
+
+@pytest.mark.parametrize('choice', ['취소', '버리고 선택', '적용 후 선택'])
+def test_saved_local_selection_resolves_only_local_draft_and_retains_global_draft(panel, native, choice):
+    first, second, refs = _saved_refinements(panel, native)
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.6)
+    _choose_draft_dialog(choice, '미적용 국부 크기')
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[1]['object_id']))
+    if choice == '적용 후 선택':
+        assert panel.refinement.currentData() == refs[0]['object_id']
+        assert panel.test_calls[-1] == ('pre.fem.mesh_local_size',
+            {'region_id': first['id'], 'size': .6, 'unit': 'mm', 'refinement_id': refs[0]['object_id']},
+            {'object_id': native.mesh.Name})
+        panel.test_complete()
+        assert native._object(refs[0]['object_id']).CharacteristicLength.Value == .6
+    else:
+        assert not panel.test_pending and native._object(refs[0]['object_id']).CharacteristicLength.Value == .4
+    if choice == '취소':
+        assert panel.refinement.currentData() == refs[0]['object_id'] and panel.local_size.value() == .6
+    else:
+        assert panel.refinement.currentData() == refs[1]['object_id'] and panel.local_size.value() == .2
+        assert panel.local_region.currentData() == second['id']
+        assert panel._mesh_fields()[5:] == panel._loaded_mesh_fields[5:]
+    assert panel.max_size.value() == 7 and native.mesh.CharacteristicLengthMax.Value == 2
+    assert panel._mesh_pending() and len(native.mesh.MeshRegionList) == 2
+
+
+@pytest.mark.parametrize('late_field', ['local', 'global'])
+def test_saved_local_selection_receipt_preserves_late_input_and_exact_original_target(panel, native, late_field):
+    first, second, refs = _saved_refinements(panel, native)
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    panel.max_size.setValue(7)
+    panel.local_size.setValue(.6)
+    _choose_draft_dialog('적용 후 선택', '미적용 국부 크기')
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[1]['object_id']))
+    if late_field == 'local':
+        panel.local_size.setValue(.8)
+    else:
+        panel.max_size.setValue(9)
+    panel.test_complete()
+    assert native._object(refs[0]['object_id']).CharacteristicLength.Value == .6
+    assert native._object(refs[1]['object_id']).CharacteristicLength.Value == .2
+    assert len(panel.test_calls) == 1 and native.mesh.CharacteristicLengthMax.Value == 2
+    if late_field == 'local':
+        assert panel.refinement.currentData() == refs[0]['object_id'] and panel.local_size.value() == .8
+        assert '새로 수정한 입력' in panel.status.toPlainText()
+    else:
+        assert panel.refinement.currentData() == refs[1]['object_id'] and panel.max_size.value() == 9
+    assert panel._mesh_pending()
+
+
+def test_saved_local_missing_region_stays_unassigned_until_explicit_repair(panel, native):
+    first, second, refs = _saved_refinements(panel, native)
+    native.metadata['regions'] = [row for row in native.metadata['regions'] if row['id'] != first['id']]
+    panel.refresh()
+    before = deepcopy(native.metadata)
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    assert panel.local_region.currentData() is None and panel.local_size.value() == .4
+    assert '적용 영역을 찾지 못했습니다' in panel.status.toPlainText()
+    assert native.metadata == before and not panel.test_calls
+    panel.local_region.setCurrentIndex(panel.local_region.findData(second['id']))
+    panel.local_size.setValue(.3)
+    panel.apply_local_size()
+    panel.test_complete()
+    assert native._object(refs[0]['object_id']).References == [(native.shape, ['Face2'])]
+    assert native._object(refs[0]['object_id']).CharacteristicLength.Value == .3
+
+
+def test_local_selection_during_command_restores_previous_refinement_without_losing_input(panel, native):
+    first, second, refs = _saved_refinements(panel, native)
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    panel.local_size.setValue(.6)
+    panel.apply_local_size()
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[1]['object_id']))
+    assert panel.refinement.currentData() == refs[0]['object_id'] and panel.local_size.value() == .6
+    assert '메시 작업' in panel.status.toPlainText()
+    panel.test_complete()
+    assert panel.refinement.currentData() == refs[0]['object_id'] and panel.local_size.value() == .6
+
+
+@pytest.mark.parametrize('changed_target', ['region', 'native'])
+def test_saved_local_target_mismatch_requires_explicit_region_reselection(panel, native, changed_target):
+    first, second, refs = _saved_refinements(panel, native)
+    refinement = native._object(refs[0]['object_id'])
+    if changed_target == 'region':
+        from apps.desktop_pre.fem_edit import _hash
+        native.editor.dispatch('pre.fem.region_set',
+            {'region_id': first['id'], 'label': '첫 영역', 'subelements': ['Face2'],
+             'expected_target_sha256': _hash(first['target'])},
+            {'object_id': native.shape.Name})
+    else:
+        refinement.References = [(native.shape, ['Face2'])]
+    panel.refresh()
+    before, references = deepcopy(native.metadata), list(refinement.References)
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[0]['object_id']))
+    assert panel.local_region.currentData() is None and panel.local_size.value() == .4
+    assert '현재 형상·면' in panel.status.toPlainText()
+    assert native.metadata == before and refinement.References == references
+    panel.local_size.setValue(.6)
+    with pytest.raises(ValueError, match='적용할 영역을 선택'):
+        panel.apply_local_size()
+    assert not panel.test_calls and refinement.CharacteristicLength.Value == .4
+    panel.local_region.setCurrentIndex(panel.local_region.findData(second['id']))
+    panel.apply_local_size()
+    panel.test_complete()
+    assert refinement.References == [(native.shape, ['Face2'])]
+    assert refinement.CharacteristicLength.Value == .6
+    assert not native.editor._refinement_errors(native.mesh)
+
+
+def test_saved_local_valid_selection_does_not_inherit_another_refinement_target_error(panel, native):
+    first, second, refs = _saved_refinements(panel, native)
+    native._object(refs[0]['object_id']).References = [(native.shape, ['Face2'])]
+    panel.refinement.setCurrentIndex(panel.refinement.findData(refs[1]['object_id']))
+    assert panel.local_region.currentData() == second['id'] and panel.local_size.value() == .2
+    assert native.editor._refinement_errors(native.mesh)  # The invalid sibling still blocks generation.
+    assert not panel.test_calls
 
 
 @pytest.mark.parametrize('choice', ['취소', '버리고 선택'])

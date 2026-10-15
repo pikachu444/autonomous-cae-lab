@@ -275,6 +275,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._section(layout, '국부 요소 크기')
             form = QtWidgets.QFormLayout()
             self.local_region, self.refinement = QtWidgets.QComboBox(), QtWidgets.QComboBox()
+            self.refinement.currentIndexChanged.connect(lambda *_: self._action(self._refinement_changed))
             self.local_size = self._number('femLocalSize', minimum=.000000001, value=1)
             form.addRow('국부 크기 적용 영역', self.local_region)
             form.addRow('국부 크기 설정', self.refinement)
@@ -486,7 +487,9 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             if identifier != self._mesh_form_id:
                 self.element_type.setCurrentIndex(0)
                 self.local_region.setCurrentIndex(0)
+                blocked = self.refinement.blockSignals(True)
                 self.refinement.setCurrentIndex(0)
+                self.refinement.blockSignals(blocked)
                 self.local_size.setValue(1)
             self.min_size.setValue(float(obj.CharacteristicLengthMin.getValueAs('mm').Value))
             self.max_size.setValue(float(obj.CharacteristicLengthMax.getValueAs('mm').Value))
@@ -498,6 +501,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.dimension.setCurrentIndex(self.dimension.findData(obj.ElementDimension))
             self._fill_combo(self.refinement, [('새 국부 크기 설정', None)] + [(ref.Label, ref.Name) for ref in obj.MeshRegionList])
             self._mesh_form_id = identifier
+            self._load_refinement(self.refinement.currentData())
             self._loaded_mesh_fields = self._mesh_fields()
 
         def _mesh_fields(self):
@@ -507,6 +511,62 @@ def make_panel(QtWidgets, QtCore, editor, submit):
 
         def _mesh_pending(self):
             return self._mesh_fields() != getattr(self, '_loaded_mesh_fields', self._mesh_fields())
+
+        def _set_local_fields(self, fields):
+            self.local_region.setCurrentIndex(self.local_region.findData(fields[0]))
+            blocked = self.refinement.blockSignals(True)
+            self.refinement.setCurrentIndex(self.refinement.findData(fields[1]))
+            self.refinement.blockSignals(blocked)
+            self.local_size.setValue(fields[2])
+
+        def _load_refinement(self, identifier):
+            mesh = self.editor.owner._object(self.mesh.currentData())
+            region, size = None, 1
+            if identifier:
+                obj = self.editor.owner._object(identifier)
+                if obj not in mesh.MeshRegionList:
+                    raise ValueError('이 국부 크기는 현재 메시의 설정이 아닙니다. 현재 부품에서 다시 선택하세요.')
+                size = float(obj.CharacteristicLength.getValueAs('mm').Value)
+                if not self.local_size.minimum() <= size <= self.local_size.maximum():
+                    raise ValueError('저장된 국부 크기를 이 입력란에 표시할 수 없습니다. FreeCAD에서 크기와 단위를 확인하세요.')
+                records = self.editor.owner.read_metadata().get('mesh_local_sizes', [])
+                rows = [row for row in records if isinstance(row, dict)
+                        and row.get('mesh_id') == mesh.Name and row.get('object_id') == identifier] if isinstance(records, list) else []
+                if len(rows) == 1:
+                    region = rows[0].get('region_id')
+                if self.local_region.findData(region) < 0 or region is None:
+                    region = None
+                    self.status.setPlainText('이 국부 크기의 적용 영역을 찾지 못했습니다. 영역을 다시 선택하고 국부 크기를 적용하세요.')
+                else:
+                    try:
+                        target_errors = [error for error in self.editor._refinement_errors(mesh)
+                                         if error.startswith(obj.Name + ': ')]
+                    except Exception:
+                        target_errors = ['unverified target']
+                    if target_errors:
+                        region = None
+                        self.status.setPlainText('이 국부 크기의 저장된 대상이 현재 형상·면과 일치하는지 확인할 수 없습니다. 영역을 다시 선택하고 국부 크기를 적용하세요.')
+            self._set_local_fields((region, identifier, size))
+            if hasattr(self, '_loaded_mesh_fields'):
+                self._loaded_mesh_fields = self._loaded_mesh_fields[:5] + self._mesh_fields()[5:]
+
+        def _refinement_changed(self):
+            identifier = self.refinement.currentData()
+            if not hasattr(self, '_loaded_mesh_fields'):
+                return
+            previous = self._loaded_mesh_fields[6]
+            if identifier == previous:
+                return
+            blocked = self.refinement.blockSignals(True)
+            self.refinement.setCurrentIndex(self.refinement.findData(previous))
+            self.refinement.blockSignals(blocked)
+            if self._command_busy or self.editor.descriptor()['mesh_busy']:
+                raise ValueError('메시 작업을 마친 뒤 다른 국부 크기를 선택하세요. 현재 입력은 유지됩니다.')
+            if self._mesh_fields()[5:] != self._loaded_mesh_fields[5:]:
+                self._resolve_mesh_draft(lambda: self._load_refinement(identifier), '선택', local_only=True)
+            else:
+                self._load_refinement(identifier)
+            self.refinement.setFocus()
 
         def _mesh_changed(self):
             identifier = self.mesh.currentData()
@@ -528,16 +588,17 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             fields = self._loaded_mesh_fields
             self.min_size.setValue(fields[0])
             self.max_size.setValue(fields[1])
-            for widget, value in zip((self.order, self.dimension, self.element_type,
-                                       self.local_region, self.refinement), fields[2:7]):
+            for widget, value in zip((self.order, self.dimension, self.element_type), fields[2:5]):
                 widget.setCurrentIndex(widget.findData(value))
-            self.local_size.setValue(fields[7])
+            self._set_local_fields(fields[5:])
             self._load_mesh()
 
-        def _resolve_mesh_draft(self, proceed, action, *, on_cancelled=None):
+        def _resolve_mesh_draft(self, proceed, action, *, on_cancelled=None, local_only=False):
             owner, doc = self.editor.owner, self.editor.owner.doc
             session = getattr(owner, 'session_id', None)
-            identifier, epoch, submitted = self._mesh_form_id, self._view_epoch, self._mesh_fields()
+            def fields():
+                return self._mesh_fields()[5:] if local_only else self._mesh_fields()
+            identifier, epoch, submitted = self._mesh_form_id, self._view_epoch, fields()
             cancelled = False
             def cancel(*unused):
                 nonlocal cancelled
@@ -545,9 +606,10 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     cancelled = True
                     on_cancelled()
             dialog = QtWidgets.QMessageBox(self)
-            dialog.setWindowTitle('미적용 메시 설정')
-            dialog.setText('현재 메시의 변경한 설정을 어떻게 처리할까요?')
-            dialog.setInformativeText('적용은 현재 부품의 설정만 변경합니다. 메시 생성은 별도 동작입니다.')
+            dialog.setWindowTitle('미적용 국부 크기' if local_only else '미적용 메시 설정')
+            dialog.setText('변경한 국부 크기를 어떻게 처리할까요?' if local_only else '현재 메시의 변경한 설정을 어떻게 처리할까요?')
+            dialog.setInformativeText('국부 크기만 적용합니다. 미적용 전역 설정은 유지됩니다. 메시 생성은 별도 동작입니다.'
+                                      if local_only else '적용은 현재 부품의 설정만 변경합니다. 메시 생성은 별도 동작입니다.')
             apply = dialog.addButton('적용 후 ' + action, QtWidgets.QMessageBox.AcceptRole)
             discard = dialog.addButton('버리고 ' + action, QtWidgets.QMessageBox.DestructiveRole)
             cancel_button = dialog.addButton('취소', QtWidgets.QMessageBox.RejectRole)
@@ -561,12 +623,15 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             if dialog.clickedButton() not in (apply, discard):
                 cancel()
                 return
-            if (epoch != self._view_epoch or self._mesh_fields() != submitted or self._command_busy
+            if (epoch != self._view_epoch or fields() != submitted or self._command_busy
                     or self.editor.descriptor()['mesh_busy']):
                 cancel()
                 raise ValueError('선택 확인 중 입력이나 작업 상태가 바뀌었습니다. 현재 메시와 입력을 유지합니다.')
             if dialog.clickedButton() is discard:
-                self._discard_mesh_draft()
+                if local_only:
+                    self._set_local_fields(self._loaded_mesh_fields[5:])
+                else:
+                    self._discard_mesh_draft()
                 proceed()
             elif dialog.clickedButton() is apply:
                 if identifier != self.mesh.currentData():
@@ -576,11 +641,11 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     if epoch != self._view_epoch or identifier != self.mesh.currentData():
                         cancel()
                         return
-                    if self._mesh_fields() != submitted:
+                    if fields() != submitted:
                         self.status.setPlainText('새로 수정한 입력이 있어 현재 메시를 유지합니다. 미적용 설정을 확인하세요.')
                         cancel()
                         return
-                    if self._mesh_fields()[:5] != self._loaded_mesh_fields[:5]:
+                    if not local_only and self._mesh_fields()[:5] != self._loaded_mesh_fields[:5]:
                         self.apply_mesh_settings(on_done=continued, on_error=cancel)
                     elif self._mesh_fields()[5:] != self._loaded_mesh_fields[5:]:
                         self.apply_local_size(on_done=continued, on_error=cancel)
@@ -668,6 +733,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._send('pre.fem.mesh_settings', args, identifier, on_done=applied, on_error=on_error)
 
         def apply_local_size(self, *, on_done=None, on_error=None):
+            if self.local_region.currentData() is None:
+                raise ValueError('국부 크기를 적용할 영역을 선택하세요.')
             args = {'region_id': self.local_region.currentData(), 'size': self.local_size.value(), 'unit': 'mm'}
             if self.refinement.currentData():
                 args['refinement_id'] = self.refinement.currentData()
