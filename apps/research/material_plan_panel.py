@@ -8,6 +8,13 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
     QTableWidgetItem, QVBoxLayout, QWidget)
 
 
+def material_variable_labels(document):
+    from .material_window import PARAMETERS, PARAMETER_LABELS
+    material = document['draft'].get('material', {}).get('draft', {})
+    model = material.get('settings', {}).get('model')
+    return {key: PARAMETER_LABELS[key] for key in PARAMETERS.get(model, ())} if material.get('backend') == 'material.felupe' else {}
+
+
 class PlanPatchDialog(QDialog):
     def __init__(self, preview, document, parent=None):
         super().__init__(parent)
@@ -20,13 +27,15 @@ class PlanPatchDialog(QDialog):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         layout.addWidget(table)
         variables = document['draft'].get('variables', [])
+        parameter_labels = material_variable_labels(document)
         labels = {'value': '시작값', 'lower': '하한', 'upper': '상한', 'free': '탐색', 'transform': '변환'}
         for item in preview['items']:
             for change in item['changes']:
                 path = change['path'].strip('/').split('/')
                 variable = variables[int(path[1])] if len(path) == 3 and path[0] == 'variables' and path[1].isdigit() and int(path[1]) < len(variables) else {}
                 field = path[-1]
-                name = variable.get('id', '계획 입력') + (' [' + str(variable['unit']) + ']' if isinstance(variable.get('unit'), str) else '')
+                identifier = variable.get('id', '계획 입력')
+                name = parameter_labels.get(identifier, identifier) + (' [' + str(variable['unit']) + ']' if isinstance(variable.get('unit'), str) else '')
                 def shown(value):
                     if value is None:
                         return '비어 있음'
@@ -125,6 +134,7 @@ class MaterialPlanPanel(QWidget):
         self._binding = True
         try:
             self._widgets[identifier].bind_owner(self._adapters[identifier], document)
+            self._widgets[identifier].set_variable_labels(material_variable_labels(document))
             self._documents[identifier] = deepcopy(document)
         except ValueError as error:
             self.message.setText(str(error))
@@ -143,6 +153,7 @@ class MaterialPlanPanel(QWidget):
             adapter = self._adapters[identifier] = PlanOwnerAdapter(self.client, identifier)
             widget = embed_plan_variables(NumericalPlanVariablesWidget, parent=self.stack,
                                           adapter=adapter, document=self._documents[identifier])
+            widget.set_variable_labels(material_variable_labels(self._documents[identifier]))
             widget.owner_label.hide()  # The host selector already shows the same title.
             self._widgets[identifier] = widget; self.stack.addWidget(widget)
             widget.patchPreviewRequested.connect(lambda preview, key=identifier: self.review_patch(key, preview))
