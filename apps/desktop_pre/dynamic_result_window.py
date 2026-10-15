@@ -3,9 +3,47 @@ from pathlib import Path
 import json
 import math
 from caelab.dynamic_results import read_attempt, history, MEANINGS
+from caelab.dynamic_result_store import frame_metadata
 from .dynamic_panel import style, table, _item, _gui
 
 _WINDOWS = set()
+
+# Existing research-window surface/selection tokens, scoped to this native dialog.
+_RESULT_STYLE = '''
+QDialog#DynamicResult { background:#eef2f6; color:#1c2c3d; }
+#DynamicResult QLabel#dynamicResultSummary { color:#152c45; font-size:15px; font-weight:600; }
+#DynamicResult QLabel#dynamicQualification, #DynamicResult QLabel#dynamicCoordinateNote { color:#526174; }
+#DynamicResult QTabWidget::pane { background:#ffffff; border:1px solid #ccd8e4; }
+#DynamicResult QTabBar::tab { background:#e6edf4; color:#526174; padding:7px 10px;
+    border:1px solid #ccd8e4; border-bottom:none; margin-right:3px; }
+#DynamicResult QTabBar::tab:selected { background:#ffffff; color:#173c63;
+    border-top:2px solid #2768a9; padding-top:6px; font-weight:600; }
+#DynamicResult QTabBar::tab:hover:!selected { background:#dceafb; color:#163e68; }
+#DynamicResult QTableWidget { background:#ffffff; alternate-background-color:#f4f7fb;
+    color:#1c2c3d; border:1px solid #ccd8e4; gridline-color:#e2e8f0;
+    selection-background-color:#dceafb; selection-color:#163e68; }
+#DynamicResult QTableWidget:focus { border:2px solid #2768a9; }
+#DynamicResult QTableWidget::item { padding:3px 4px; }
+#DynamicResult QTableWidget::item:selected { background:#dceafb; color:#163e68; }
+#DynamicResult QHeaderView::section { background:#e8eff6; color:#314a64; font-weight:600;
+    padding:5px 7px; border:none; border-bottom:1px solid #c4d2e0; border-right:1px solid #d8e1eb; }
+#DynamicResult QComboBox, #DynamicResult QPlainTextEdit { background:#ffffff; color:#1c2c3d;
+    border:1px solid #b8c8d8; border-radius:3px; padding:3px 5px; }
+#DynamicResult QComboBox:focus, #DynamicResult QPlainTextEdit:focus { border:2px solid #2768a9; padding:2px 4px; }
+#DynamicResult QPushButton { background:#ffffff; color:#253b52; border:1px solid #bccbd9;
+    border-radius:4px; padding:4px 9px; }
+#DynamicResult QPushButton:hover { background:#eaf2fc; border-color:#7e9fbe; }
+#DynamicResult QPushButton:pressed { background:#d3e4f7; border-color:#426c98; }
+#DynamicResult QPushButton:focus { border:2px solid #2768a9; padding:3px 8px; }
+#DynamicResult QPushButton:disabled, #DynamicResult QComboBox:disabled { background:#e9eef4;
+    color:#778697; border-color:#d2dce7; }
+'''
+
+
+def physical_time_text(location):
+    if location['procedure']=='static':return '해당 없음(정적)'
+    return '결측' if location['physical_time_s'] is None else str(location['physical_time_s'])
+
 
 EXECUTION_LABELS = {'SUCCEEDED':'계산 완료','FAILED':'계산 실패','CANCELLED':'계산 취소',
                     'REJECTED':'계산 거절','PARTIAL_FAILURE':'일부 계산 실패'}
@@ -62,11 +100,14 @@ def open_result(W, C, *, parent=None, attempt=None, on_restart=None, on_post=Non
         def __init__(self):
             super().__init__(parent); self.setWindowTitle('동해석 — 보존 결과'); self.resize(980,740)
             style(self,'DynamicResult'); self.setAttribute(C.Qt.WA_DeleteOnClose)
+            self.setStyleSheet(self.styleSheet()+_RESULT_STYLE)
             layout=W.QVBoxLayout(self)
-            note=W.QLabel(f"{EXECUTION_LABELS.get(data['execution_status'],'계산 상태 확인 필요')} / 수렴 출력 {len(data['frames'])}개\n공학적 승인은 확인되지 않았습니다.")
+            note=W.QLabel(f"{EXECUTION_LABELS.get(data['execution_status'],'계산 상태 확인 필요')} / 수렴 출력 {len(data['frames'])}개")
             note.setObjectName('dynamicResultSummary')
             note.setToolTip(f"원 실행 상태: {data['execution_status']}\n공학 승인: UNKNOWN / NOT_RELEASED\n보존 결과 위치: {attempt}")
             note.setWordWrap(True); note.setTextInteractionFlags(C.Qt.TextSelectableByMouse);layout.addWidget(note)
+            qualification=W.QLabel('공학적 승인은 확인되지 않았습니다.');qualification.setObjectName('dynamicQualification')
+            layout.addWidget(qualification)
             tabs=W.QTabWidget();layout.addWidget(tabs,1)
             page=W.QWidget();p=W.QVBoxLayout(page);grid=W.QGridLayout();p.addLayout(grid)
             self.quantity=W.QComboBox();self.node=W.QComboBox();self.element=W.QComboBox();self.component=W.QComboBox();self.ip=W.QComboBox();self.step=W.QComboBox()
@@ -84,18 +125,37 @@ def open_result(W, C, *, parent=None, attempt=None, on_restart=None, on_post=Non
                 grid.addWidget(W.QLabel(label),i//2,(i%2)*2);grid.addWidget(widget,i//2,(i%2)*2+1)
             self.meaning=W.QLabel();self.meaning.setWordWrap(True);p.addWidget(self.meaning)
             self.plot=Plot();p.addWidget(self.plot,1)
-            self.values=table(W,['물리시간 [s]','native 단계','native 증분','native 전역 좌표','값','결측 / 힘 해석'])
+            self.values=table(W,['물리시간 [s]','단계 번호','원본 증분','전체 좌표','값','결측 / 힘 해석'])
             p.addWidget(self.values,1);tabs.addTab(page,'물리시간 결과')
             native=W.QWidget();nl=W.QVBoxLayout(native)
-            n=W.QLabel('정적 선행 단계에는 물리시간이 없습니다. 아래는 파일의 실제 단계·좌표이며 하중계수나 wall time이 아닙니다.')
+            n=W.QLabel('출력을 선택하면 좌표와 시간의 정의를 확인할 수 있습니다.')
             n.setWordWrap(True);nl.addWidget(n)
-            frame_table=table(W,['단계','절차','native 증분','native 전역','native 단계 좌표','물리시간 [s]','기록 채널'])
-            for i,f in enumerate(data['frames']):
+            frame_table=self.frame_table=table(W,['단계','절차','원본 증분','전체 좌표','단계 좌표','물리시간 [s]','기록 채널'])
+            metadata=frame_metadata(data)
+            frame_table.horizontalHeaderItem(3).setToolTip('솔버가 기록한 누적 좌표입니다. 정적 가상좌표가 포함될 수 있어 물리시간과 구별합니다. 프로그램 실행시간이 아닙니다.')
+            frame_table.horizontalHeaderItem(4).setToolTip('단계 시작부터의 좌표입니다. 정적 단계는 [1], 동적 단계는 [s]입니다.')
+            frame_table.horizontalHeaderItem(5).setToolTip('동적 단계의 누적 실제 시간 [s]입니다. 정적 단계에는 해당하지 않습니다.')
+            for i,f in enumerate(metadata):
                 frame_table.insertRow(i);loc=f['location']
+                unit='s' if loc['procedure']=='dynamic' else '1'
+                coordinate=loc['native_step_coordinate_derived']
                 for j,v in enumerate([loc['label'],'동적' if loc['procedure']=='dynamic' else '정적',f['native']['increment'],loc['native_global_coordinate'],
-                        loc['native_step_coordinate_derived'],loc['physical_time_s'],', '.join(f['fields'])]):
-                    frame_table.setItem(i,j,_item(W,C,'결측' if v is None else v,False))
-            nl.addWidget(frame_table,1);tabs.addTab(native,'단계 / 원 시각')
+                        '결측' if coordinate is None else str(coordinate)+' ['+unit+']',physical_time_text(loc),', '.join(f['field_names'])]):
+                    item=_item(W,C,'결측' if v is None else v,False)
+                    if j in (3,4,5):item.setToolTip(frame_table.horizontalHeaderItem(j).toolTip()+'\n원값: '+repr([loc['native_global_coordinate'],coordinate,loc['physical_time_s']][j-3]))
+                    frame_table.setItem(i,j,item)
+            nl.addWidget(frame_table,1)
+            self.coordinate_note=W.QLabel();self.coordinate_note.setObjectName('dynamicCoordinateNote')
+            self.coordinate_note.setWordWrap(True);nl.addWidget(self.coordinate_note)
+            def selected_coordinate(row,*_):
+                if row<0:return
+                loc=metadata[row]['location']
+                self.coordinate_note.setText(loc['label']+': '+(
+                    '정적 단계 좌표 [1]는 해석 진행용 가상좌표입니다. 물리시간은 해당되지 않습니다.' if loc['procedure']=='static' else
+                    '단계 좌표 [s]는 이 단계의 시간이며, 물리시간 [s]는 동적 단계의 누적 시간입니다.'))
+            frame_table.currentCellChanged.connect(selected_coordinate)
+            if metadata:frame_table.setCurrentCell(0,0)
+            tabs.addTab(native,'단계 / 원 시각')
             for label,file in [('원 입력','solver/contact.inp'),('수렴 기록','solver/contact.sta'),('원 에너지 출력','solver/contact.dat')]:
                 text=W.QPlainTextEdit();text.setReadOnly(True);text.setLineWrapMode(W.QPlainTextEdit.NoWrap)
                 path=attempt/file
