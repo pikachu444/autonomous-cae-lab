@@ -99,6 +99,19 @@ class Workspace:
                         self.restore_issues.append({'object_ref': obj['id'], 'revision': revision['id'], 'message': str(error)})
                     continue
                 proxy = p.FindSource(revision['source_name'])
+                if (proxy is not None and revision.get('summary', {}).get('comparison_version') == 2
+                        and revision.get('result_file') and proxy.GetXMLName() in
+                        {'XMLUnstructuredGridReader', 'XMLPolyDataReader'}
+                        and external.reader_input_files(proxy) == [Path(revision['result_file']).resolve()]):
+                    bundle = {'source': proxy, 'proxies': [proxy],
+                              'summary': deepcopy(revision.get('summary', {})), 'retained_only': True}
+                    bundle['retained_graph'] = analysis.graph_signature(bundle)
+                    reopened = dict(revision); reopened.pop('retained_reader', None)
+                    binding = self._verify_record(obj, reopened, bundle)
+                    self.bundles[revision['id']] = bundle
+                    revision.update(retained_source_name=revision['source_name'],
+                                    retained_graph=deepcopy(bundle['retained_graph']), retained_reader=binding)
+                    continue
                 if proxy is None:
                     if revision.get('result_file') and revision.get('result_files'):
                         try:

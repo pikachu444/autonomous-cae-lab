@@ -13,6 +13,51 @@ from caelab import post_comparison as physical
 RAW = '__comparison_raw'
 VALUE = '__comparison_value'
 ORIGINAL = '__comparison_unmasked'
+CELL_VALUE = '__comparison_integral_cells'
+
+
+def _required(data, recipe):
+    from caelab.field_transfer_contract import policy
+    coverage, _ = policy(recipe)
+    if coverage['policy'] != 'a_mask':
+        return None
+    array = data.GetPointData().GetArray(coverage['array'])
+    if array is None or array.GetNumberOfComponents() != 1:
+        raise ValueError('A 원자료에 필수 영역 점 마스크가 없습니다: ' + coverage['array'])
+    values = np.asarray(vtk_to_numpy(array))
+    if (values.shape != (data.GetNumberOfPoints(),) or values.dtype.kind not in 'biuf'
+            or not np.isfinite(values).all() or not np.isin(values, [0, 1]).all()):
+        raise ValueError('필수 영역 배열은 원 A의 모든 점에 대응하는 유한한 0/1 마스크여야 합니다.')
+    return values
+
+
+def _transfer_checks(a, sampled_b, original_a, original_b, recipe):
+    """Checks use the actual transformed tuples; never substitute display scalars."""
+    from caelab import field_transfer_contract as transfer
+    from . import analysis
+    mask = sampled_b.GetPointData().GetArray('vtkValidPointMask')
+    inside = np.ones(a.GetNumberOfPoints(), dtype=bool) if mask is None else vtk_to_numpy(mask)
+    av, bv = _values(a, VALUE), _values(sampled_b, VALUE)
+    coverage = transfer.coverage_check(recipe, av, bv, inside, _required(original_a, recipe))
+    _, check = transfer.policy(recipe)
+    if check['mode'] == 'none':
+        integral = {'mode': 'none', 'status': 'NOT_REQUESTED', 'conservative_transfer': False}
+    else:
+        # Both domains must be actual linear tetrahedra. A's values are B after
+        # the declared association/time/unit/basis/spatial operations.
+        ap, ac, _ = analysis._mesh(a)
+        bp, bc, _ = analysis._mesh(original_b)
+        association = recipe['b']['association']
+        source = _values(original_b, VALUE)
+        if association == 'CELLS':
+            cells = original_b.GetCellData().GetArray(CELL_VALUE)
+            if cells is None:
+                raise ValueError('원 셀 적분값이 없습니다. 새 미리보기에서 실제 원자료를 다시 읽으세요.')
+            source = np.asarray(vtk_to_numpy(cells))
+            if source.ndim == 1: source = source[:, None]
+        integral = transfer.conservation_check(recipe, bp, bc, source, ap, ac, bv,
+                                                source_association=association)
+    return {'capability': transfer.capabilities(), 'coverage': coverage, 'conservation': integral}
 
 
 def geometry(data):
@@ -119,6 +164,8 @@ def execute(inputs, output, stage, settings):
             output.GetPointData().Initialize(); output.GetCellData().Initialize()
             _put(output.GetPointData(), RAW, projected)
             _put(output.GetPointData(), ORIGINAL, raw_projected)
+            if side.get('_integral_capture'):
+                _put(output.GetCellData(), CELL_VALUE, values)
         else:
             output.ShallowCopy(detached)
             _put(output.GetPointData(), RAW, values)
@@ -135,6 +182,14 @@ def execute(inputs, output, stage, settings):
         output.ShallowCopy(inputs[0]); output.GetPointData().Initialize()
         _put(output.GetPointData(), RAW, values)
         _put(output.GetPointData(), ORIGINAL, (1. - weight) * _values(inputs[0], ORIGINAL) + weight * _values(inputs[1], ORIGINAL))
+        if settings.get('integral_capture'):
+            arrays = [source.GetCellData().GetArray(CELL_VALUE) for source in inputs]
+            if any(array is None for array in arrays):
+                raise ValueError('시간 끝점의 원 셀 적분값이 없습니다.')
+            left_cells, right_cells = [np.asarray(vtk_to_numpy(array)) for array in arrays]
+            if left_cells.shape != right_cells.shape:
+                raise ValueError('시간 끝점의 원 셀 성분/개수가 다릅니다.')
+            _put(output.GetCellData(), CELL_VALUE, (1. - weight) * left_cells + weight * right_cells)
     elif stage == 'transform':
         source = inputs[0]; side, recipe = settings['side'], settings['recipe']
         output.DeepCopy(source)
@@ -147,9 +202,18 @@ def execute(inputs, output, stage, settings):
         output.GetPointData().Initialize(); output.GetCellData().Initialize()
         _put(output.GetPointData(), RAW, raw); _put(output.GetPointData(), VALUE, transformed)
         _put(output.GetPointData(), ORIGINAL, _values(source, ORIGINAL))
+        if side.get('_integral_capture') and side['association'] == 'CELLS':
+            cells = source.GetCellData().GetArray(CELL_VALUE)
+            if cells is None:
+                raise ValueError('기저·단위 변환 전 원 셀 적분값이 없습니다.')
+            _put(output.GetCellData(), CELL_VALUE,
+                 physical.transform_values(np.asarray(vtk_to_numpy(cells)), side,
+                                           recipe['target'], settings['response_rotation']))
     elif stage == 'difference':
         from .analysis import OUTPUT_ARRAYS, _identity_arrays
         a, b = inputs[:2]; recipe = settings
+        if 'coverage' in recipe or 'conservation' in recipe:
+            _transfer_checks(a, b, inputs[2], inputs[3] if len(inputs) > 3 else b, recipe)
         output.DeepCopy(a)
         output.GetPointData().Initialize(); output.GetCellData().Initialize(); output.GetFieldData().Initialize()
         # Identities come from the exact A endpoint, never from any projection.
@@ -182,6 +246,11 @@ def execute(inputs, output, stage, settings):
             if source is b: component_values[~inside] = np.nan
             _put(output.GetPointData(), name, component_values)
         _put(output.GetPointData(), 'vtkValidPointMask', values['valid'].astype(np.uint8))
+        if 'coverage' in recipe:
+            required = _required(inputs[2], recipe)
+            if required is None:
+                required = np.full(a.GetNumberOfPoints(), recipe['coverage']['policy'] == 'all_a_points')
+            _put(output.GetPointData(), 'transfer_required', np.asarray(required, dtype=np.uint8))
         output.GetInformation().Remove(vtk.vtkDataObject.DATA_TIME_STEP())
     else:
         raise ValueError('Unknown comparison stage')
@@ -214,6 +283,10 @@ def _filter(inputs, stage, settings, namespace, proxies):
 def _side(source, side, plan, recipe, which, namespace, proxies):
     from . import analysis
     endpoints, originals = [], []
+    side = deepcopy(side)
+    integral_capture = (recipe.get('conservation', {}).get('mode') == 'check_volume_integral'
+                        and which == 'b' and side['association'] == 'CELLS')
+    if integral_capture: side['_integral_capture'] = True
     for time in plan['times']:
         frozen = analysis._freeze(source, time, namespace, proxies); originals.append(frozen)
         endpoint = _filter(frozen, 'prepare', side, namespace, proxies)
@@ -225,7 +298,12 @@ def _side(source, side, plan, recipe, which, namespace, proxies):
         # Host checks precede native execution too, with an actionable error.
         if geometry(analysis._fetch(endpoints[0]))[2] != geometry(analysis._fetch(endpoints[1]))[2]:
             raise ValueError('시간 구간의 메시/좌표가 달라져 보간할 수 없습니다.')
-        current = _filter(endpoints, 'temporal', {'weight': plan['weights'][1]}, namespace, proxies)
+        if which == 'a' and recipe.get('coverage', {}).get('policy') == 'a_mask':
+            masks = [_required(analysis._fetch(original), recipe) for original in originals]
+            if not np.array_equal(masks[0], masks[1]):
+                raise ValueError('시간 양끝점의 A 필수 영역 마스크가 다릅니다. 정확한 저장 시각을 선택하거나 일관된 영역 마스크를 지정하세요.')
+        current = _filter(endpoints, 'temporal', {'weight': plan['weights'][1],
+            'integral_capture': integral_capture}, namespace, proxies)
     alignment = recipe['alignment']
     settings = {'side': side, 'recipe': recipe,
         'geometry_rotation': alignment['geometry_rotation'] if which == 'b' else physical.IDENTITY,
@@ -267,7 +345,8 @@ def build(a, b, recipe, namespace):
                     raise ValueError('설치된 ParaView가 필요한 공간 보간 속성을 제공하지 않습니다: ' + key)
                 setattr(sample, key, value)
             sample.UpdatePipeline()
-        output = _filter([af, sample, original_a], 'difference', dict(recipe, observable_version=1), namespace, bundle['proxies'])
+        transfer_checks = _transfer_checks(ad, analysis._fetch(sample), analysis._fetch(original_a), bd, recipe)
+        output = _filter([af, sample, original_a, bf], 'difference', dict(recipe, observable_version=1), namespace, bundle['proxies'])
         bundle['source'] = output
         data = analysis._fetch(output)
         if geometry(data)[2] != ag[2]:
@@ -286,6 +365,7 @@ def build(a, b, recipe, namespace):
             'percent_definition': recipe.get('percent', 'disabled'),
             'sample_semantics': 'transformed_B_sampled_at_A',
             'declarations': declarations(recipe)}
+        summary['field_transfer'] = transfer_checks
         bundle['summary'] = summary
         summary.update(analysis._comparison_fingerprint(data, version=2))
         summary['graph'] = analysis.graph_signature(bundle)

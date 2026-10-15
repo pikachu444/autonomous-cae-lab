@@ -350,6 +350,8 @@ def time_plan(side, native_times, common):
 def validate(recipe, times_a, times_b):
     if recipe.get('version') != 2:
         raise ValueError('Unsupported comparison recipe version')
+    from .field_transfer_contract import policy
+    policy(recipe)
     if recipe.get('method') not in ('same_mesh', 'linear_tetra_b_to_a'):
         raise ValueError('동일 점 대응 또는 선형 사면체 보간을 선택하세요.')
     if number(recipe.get('tolerance'), '공간 허용 오차') < 0:

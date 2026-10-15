@@ -1,12 +1,14 @@
 """Compact A/B editor; native owner remains the comparison executor."""
 from copy import deepcopy
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import (QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, QFormLayout,
     QLabel, QComboBox, QPushButton, QDialog, QDialogButtonBox, QLineEdit,
-    QTabWidget, QTableWidget, QTableWidgetItem, QCheckBox)
+    QTabWidget, QTableWidget, QTableWidgetItem, QCheckBox, QListWidget,
+    QListWidgetItem, QScrollArea, QHeaderView)
 from apps.research.data_window import number_or_raw, display
 from caelab.post_comparison import (IDENTITY, COMPONENTS, UNKNOWN_OBSERVABLE,
     observable_value, observable_label, retained_declarations)
+from .experiment_dialogs import _ExplicitApplyDialog
 
 
 def default_recipe():
@@ -18,6 +20,8 @@ def default_recipe():
         'method': 'same_mesh', 'tolerance': 0., 'target': {'units': ''},
         'selection': 'scalar', 'difference': 'selected_difference', 'percent': 'disabled',
         'clock': {'value': None, 'unit': None, 'semantics': None},
+        'coverage': {'policy': 'allow_partial', 'array': None},
+        'conservation': {'mode': 'none'},
         'alignment': {'geometry_rotation': deepcopy(IDENTITY), 'response_rotation': deepcopy(IDENTITY),
                       'translation': [0., 0., 0.], 'geometry_declared': False, 'response_declared': False}}
 
@@ -59,6 +63,7 @@ class ComparisonEditor(QWidget):
     def __init__(self, draft, sources, parent=None):
         super().__init__(parent)
         self.value = deepcopy(draft); self.sources = deepcopy(sources)
+        self.result_summary = None
         self.selectors = {}
         self.layout_grid = QGridLayout(self)
         self.layout_grid.setContentsMargins(0, 0, 0, 0)
@@ -81,7 +86,9 @@ class ComparisonEditor(QWidget):
     def _refresh(self):
         while self.layout_grid.count():
             item = self.layout_grid.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
+            if item.widget():
+                item.widget().hide()
+                item.widget().deleteLater()
         self.selectors = {}
         for column, side in enumerate(('a', 'b')):
             current = self.value[side]
@@ -100,7 +107,10 @@ class ComparisonEditor(QWidget):
             field.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
             field.setMinimumContentsLength(12)
             self.layout_grid.addWidget(field, 2, column)
-            info = QLabel(' / '.join(str(current.get(k) or '미지정') for k in ('units', 'measure', 'frame')))
+            meanings = {'force': '힘', 'displacement': '변위', 'cauchy': 'Cauchy 응력',
+                        'global': '전역', 'rotated': '회전 기저'}
+            info = QLabel(' / '.join(meanings.get(current.get(k), str(current.get(k) or '미지정'))
+                                   for k in ('units', 'measure', 'frame')))
             if current.get('observable') is not None:
                 info.setText(observable_label(current['observable']) + ' / ' + info.text())
             info.setWordWrap(True); self.layout_grid.addWidget(info, 3, column)
@@ -115,6 +125,8 @@ class ComparisonEditor(QWidget):
         names = {'scalar': ['scalar'], 'vector': ['x', 'y', 'z', 'magnitude'], 'tensor': COMPONENTS + ['magnitude']}.get(kind, [])
         labels = {'scalar': '스칼라 값', 'magnitude': '크기'}
         self.component = combo([(labels.get(n, n.upper()), n) for n in names], self.value.get('selection'))
+        if self.value.get('selection') not in names:
+            self.component.setItemText(self.component.currentIndex(), '성분 선택')
         self.component.currentIndexChanged.connect(lambda: self._set('selection', self.component.currentData()))
         self.layout_grid.addWidget(self.component, 5, 0)
         settings = QPushButton('변환 설정…'); settings.clicked.connect(self.settings)
@@ -122,7 +134,59 @@ class ComparisonEditor(QWidget):
         together = QPushButton('원본 나란히 보기')
         together.clicked.connect(lambda: self.showTogether.emit(self.value['a']['source_ref'], self.value['b']['source_ref']))
         self.layout_grid.addWidget(together, 6, 0, 1, 2)
+        policy = self.value.get('coverage', {}).get('policy', 'allow_partial')
+        note = QLabel({'allow_partial': '부분 비교: 무효 점은 마스크로 남깁니다.',
+                       'all_a_points': 'A의 모든 점이 필수입니다. 무효 점이 있으면 적용하지 않습니다.',
+                       'a_mask': 'A에서 지정한 마스크 영역이 필수입니다.'}.get(policy, '필수 영역 설정을 확인하세요.'))
+        note.setWordWrap(True)
+        note.setToolTip('점 보간과 인접 셀 평균은 보존적 전달이 아닙니다. 체적 적분 검사는 변환 설정에서 별도로 선택합니다.')
+        self.layout_grid.addWidget(note, 7, 0, 1, 2)
+        self.checks_button = QPushButton('영역과 적분 결과…')
+        self.checks_button.clicked.connect(self.show_transfer_result)
+        self.layout_grid.addWidget(self.checks_button, 8, 0, 1, 2)
+        self.set_result_summary(self.result_summary)
         self.setMinimumWidth(0)
+
+    def set_result_summary(self, summary):
+        self.result_summary = deepcopy(summary) if (summary or {}).get('field_transfer') else None
+        self.checks_button.setEnabled(self.result_summary is not None)
+        earlier = self.result_summary is not None and self.result_summary.get('recipe') != self.value
+        self.checks_button.setText('이전 결과의 영역과 적분…' if earlier else '영역과 적분 결과…')
+
+    def show_transfer_result(self):
+        if self.result_summary is None: return
+        summary = deepcopy(self.result_summary)
+        transfer = summary['field_transfer']; coverage = transfer['coverage']
+        dialog = QDialog(self); dialog.setWindowTitle('영역과 적분 결과'); dialog.resize(820, 420)
+        root = QVBoxLayout(dialog)
+        heading = QLabel('현재 편집과 다른 이전 결과입니다.' if summary.get('recipe') != self.value
+                         else '표에서 읽고 있는 비교 결과입니다.')
+        heading.setWordWrap(True); root.addWidget(heading)
+        root.addWidget(QLabel('필수 점 ' + str(coverage['required_count']) + '개 / 유효 점 '
+                             + str(coverage['valid_count']) + '개'))
+        integral = transfer['conservation']
+        if integral['mode'] == 'none':
+            root.addWidget(QLabel('체적 적분 검사를 요청하지 않았습니다.'))
+        else:
+            root.addWidget(QLabel('체적 적분: ' + ('허용값 만족' if integral['status'] == 'PASS' else '허용값 초과')
+                                 + ' [' + integral['integral_units'] + ']'))
+            count = len(integral['source_integral'])
+            names = {1: ['스칼라'], 3: ['X', 'Y', 'Z'], 9: [n.upper() for n in COMPONENTS]}.get(count)
+            result = QTableWidget(count, 5)
+            result.setHorizontalHeaderLabels(['성분', '원 B 적분', 'A 위치 B 적분', '절대 오차', '허용값'])
+            result.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            for row in range(count):
+                values = [names[row] if names else str(row + 1)] + [integral[key][row]
+                    for key in ('source_integral', 'receiver_integral', 'absolute_error', 'limits')]
+                for column, value in enumerate(values): result.setItem(row, column, QTableWidgetItem(str(value)))
+            result.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            root.addWidget(result, 1)
+        note = QLabel('점 보간·인접 셀 평균은 보존적 전달 알고리즘이 아닙니다. 원 B 적분은 셀 자료라면 원 셀 값으로 계산합니다.')
+        note.setWordWrap(True); root.addWidget(note)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기')
+        buttons.rejected.connect(dialog.reject); root.addWidget(buttons)
+        dialog.exec()
 
     def draft(self):
         return deepcopy(self.value)
@@ -169,7 +233,11 @@ class ComparisonEditor(QWidget):
         current = deepcopy(self.value[side]); metadata, declared = self.metadata(current['source_ref'])
         declaration = next((r for r in declared.get('arrays', []) if
             (r.get('name'), r.get('association')) == (current.get('array'), current.get('association'))), {})
-        dialog = QDialog(self); dialog.setWindowTitle('물리량과 성분'); form = QFormLayout(dialog)
+        dialog = _ExplicitApplyDialog(self); dialog.setWindowTitle('물리량과 성분'); dialog.resize(620, 700)
+        root = QVBoxLayout(dialog)
+        page = QWidget(); form = QFormLayout(page)
+        scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(page)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame); root.addWidget(scroll)
         fields = {}
         labels = {'quantity': '물리량', 'units': '단위', 'measure': '측도', 'frame': '성분 좌표계',
                   'coordinate_units': '형상 길이 단위', 'coordinate_frame': '형상 좌표계',
@@ -226,10 +294,22 @@ class ComparisonEditor(QWidget):
             form.addRow('원 성분 또는 크기', leaf_field); form.addRow('값의 정의', operation)
             observable_fields = (leaf_field, operation)
 
-        mask = QLineEdit(', '.join(current.get('validity_masks') or [])); form.addRow('원자료 유효성 배열', mask)
-        if declaration.get('validity_masks') is not None: mask.setReadOnly(True)
+        masks = QListWidget(); masks.setObjectName('comparisonValidityMasks'); masks.setMaximumHeight(110)
+        actual_masks = [row['name'] for row in metadata.get('arrays', [])
+                        if row.get('association') == current.get('association') and row.get('components') == 1]
+        selected_masks = current.get('validity_masks') or []
+        for name in dict.fromkeys(actual_masks + selected_masks):
+            item = QListWidgetItem(name if name in actual_masks else name + ' (원자료에 없음)', masks)
+            item.setData(Qt.ItemDataRole.UserRole, name)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if name in selected_masks else Qt.CheckState.Unchecked)
+        form.addRow('원자료 유효성 배열', masks)
+        if declaration.get('validity_masks') is not None: masks.setEnabled(False)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); form.addRow(buttons)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('설정 반영')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
+        for button in buttons.buttons(): button.setAutoDefault(False); button.setDefault(False)
+        buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); root.addWidget(buttons)
         if dialog.exec() != QDialog.DialogCode.Accepted: return
         for key, field in fields.items(): current[key] = field.text() or None
         current['layout'] = {'kind': kind.currentData(), 'components': [s.strip() for s in components.text().split(',') if s.strip()]}
@@ -254,14 +334,15 @@ class ComparisonEditor(QWidget):
             else:
                 current['observable'] = leaf
         current['temperature_kind'] = temperature.currentData()
-        current['validity_masks'] = [s.strip() for s in mask.text().split(',') if s.strip()]
+        current['validity_masks'] = [masks.item(i).data(Qt.ItemDataRole.UserRole)
+            for i in range(masks.count()) if masks.item(i).checkState() == Qt.CheckState.Checked]
         self.value[side] = current
         if side == 'a' and not self.value['target'].get('units'): self.value['target']['units'] = current.get('units')
         self._refresh(); self.changed.emit()
 
     def settings(self):
         draft = deepcopy(self.value)
-        dialog = QDialog(self); dialog.setWindowTitle('비교 변환'); dialog.resize(680, 570)
+        dialog = _ExplicitApplyDialog(self); dialog.setWindowTitle('비교 변환'); dialog.resize(740, 620)
         root = QVBoxLayout(dialog); tabs = QTabWidget(); root.addWidget(tabs)
         common = QWidget(); form = QFormLayout(common); tabs.addTab(common, '비교 방법')
         method = combo([('같은 위치와 점 순서', 'same_mesh'), ('B 사면체에서 A 위치 보간', 'linear_tetra_b_to_a')], draft['method'])
@@ -319,11 +400,58 @@ class ComparisonEditor(QWidget):
                 mode.setParent(time_page); mode.hide(); exact.setParent(time_page); exact.hide()
             timeform.addRow('원점 이동 [비교 시간 단위]', offset)
             time_controls[side] = (mode, exact, lo, hi, maxgap, offset)
+        transfer_page = QWidget(); transfer_form = QFormLayout(transfer_page)
+        transfer_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        tabs.addTab(transfer_page, '필수 영역과 적분')
+        coverage = draft.get('coverage', {'policy': 'allow_partial', 'array': None})
+        required = combo([('부분 비교 허용', 'allow_partial'), ('A 전체 점 필수', 'all_a_points'),
+                          ('A 점 마스크로 지정', 'a_mask')], coverage.get('policy'))
+        required.setObjectName('transferCoverage')
+        metadata, _ = self.metadata(draft['a']['source_ref'])
+        mask_choices = [('영역 배열 선택', None)] + [(row['name'], row['name'])
+            for row in metadata.get('arrays', []) if row.get('association') == 'POINTS' and row.get('components') == 1]
+        required_array = combo(mask_choices, coverage.get('array')); required_array.setObjectName('transferRequiredArray')
+        required_array.setToolTip('실제 A 점 배열을 선택합니다. 적용할 때 모든 값이 0 또는 1인지 확인합니다.')
+        transfer_form.addRow('필수 수신 영역', required); transfer_form.addRow('A 필수 영역 배열', required_array)
+        required_array.setEnabled(required.currentData() == 'a_mask')
+        required.currentIndexChanged.connect(lambda: required_array.setEnabled(required.currentData() == 'a_mask'))
+        conservation = draft.get('conservation', {'mode': 'none'})
+        integral = combo([('적분 검사 안 함', 'none'), ('원 B와 보간 B의 체적 적분 검사', 'check_volume_integral')], conservation.get('mode'))
+        integral.setObjectName('transferConservation')
+        absolute = line(conservation.get('absolute_tolerance', '')); absolute.setObjectName('transferIntegralAbsolute')
+        relative = line(conservation.get('relative_tolerance', '')); relative.setObjectName('transferIntegralRelative')
+        transfer_form.addRow('보간 후 보존 검사', integral)
+        transfer_form.addRow('절대 허용값 [응답 단위 × A 길이 단위³]', absolute)
+        transfer_form.addRow('상대 허용값 [1]', relative)
+        def integral_enabled():
+            for field in (absolute, relative): field.setEnabled(integral.currentData() == 'check_volume_integral')
+        integral.currentIndexChanged.connect(integral_enabled); integral_enabled()
+        limitation = QLabel('점 보간과 인접 셀 평균은 보존적 전달이 아닙니다.\n'
+            '적분 검사는 같은 실제 경계 삼각형을 가진 선형 사면체 영역에서만 지원합니다. '
+            '원 B의 전체 성분과 A에 전달된 B를 비교하며, 절대온도의 적분을 열량으로 해석하지 않습니다.')
+        limitation.setWordWrap(True); transfer_form.addRow(limitation)
+        for index in range(tabs.count()):
+            page = tabs.widget(index); title = tabs.tabText(index)
+            page.layout().setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+            tabs.removeTab(index)
+            scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(page)
+            scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+            tabs.insertTab(index, scroll, title)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('설정 반영')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
+        for button in buttons.buttons():
+            button.setAutoDefault(False); button.setDefault(False)
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); root.addWidget(buttons)
         if dialog.exec() != QDialog.DialogCode.Accepted: return
         draft.update(method=method.currentData(), tolerance=number_or_raw(tolerance.text()),
             target={'units': units.text()}, difference=difference.currentData(), percent=percent.currentData())
+        draft['coverage'] = {'policy': required.currentData(),
+                             'array': required_array.currentData() if required.currentData() == 'a_mask' else None}
+        draft['conservation'] = ({'mode': integral.currentData(),
+            'absolute_tolerance': number_or_raw(absolute.text()),
+            'relative_tolerance': number_or_raw(relative.text())}
+            if integral.currentData() == 'check_volume_integral' else {'mode': integral.currentData()})
         for side, field in projections.items(): draft[side]['projection'] = field.currentData()
         for key, field in matrices.items(): draft['alignment'][key] = table_values(field)
         draft['alignment']['translation'] = table_values(translation)[0]

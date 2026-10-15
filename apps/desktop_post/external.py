@@ -658,7 +658,7 @@ def restore_workspace(path, doc, *, allow_repair=False):
             verify_sources(path, doc)
         _recovery = issues
         partial = Path(doc['project_root']) / 'repairs' / ('P' + uuid.uuid4().hex) / 'available.pvsm'
-        selection = partial_state(state, doc, issues, partial)
+        selection = partial_state(state, doc, issues, partial, retain_applied=True)
         p.LoadState(str(partial))
         missing = {row['source_ref'] for row in issues}
         healthy = {**doc, 'sources': {ref: row for ref, row in doc['sources'].items() if ref not in missing}}
@@ -686,7 +686,15 @@ def restore_workspace(path, doc, *, allow_repair=False):
                 raise RuntimeError("Saved dynamic reader pin differs: " + file)
         elif sha(file) != expected:
             raise RuntimeError("Saved analysis reader input changed: " + file)
-    p.LoadState(str(state))
+    if any(record.get('summary', {}).get('comparison_version') == 2 and record.get('result_files')
+           for obj in doc.get('analysis', {}).get('objects', {}).values() for record in obj.get('history', [])):
+        # Read pinned applied fields, not the original executable comparison
+        # graph. The immutable PVSM is retained for provenance/explicit editing.
+        restored = Path(doc['project_root']) / 'repairs' / ('P' + uuid.uuid4().hex) / 'retained.pvsm'
+        partial_state(state, doc, [], restored, retain_applied=True)
+        p.LoadState(str(restored))
+    else:
+        p.LoadState(str(state))
     for record in doc.get('sources', {}).values():
         declaration=record.get('native_metadata') or {}
         if 'dynamic_locations' in declaration:

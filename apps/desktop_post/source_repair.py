@@ -88,7 +88,7 @@ def _unavailable_curve_names(document, issues):
     return names
 
 
-def partial_state(state, document, issues, output):
+def partial_state(state, document, issues, output, *, retain_applied=False):
     """Remove only unavailable reader branches from a copy of native PVSM.
 
     Native views/layouts and healthy sources survive. Affected saved analysis
@@ -109,6 +109,35 @@ def partial_state(state, document, issues, output):
     semantic_names = _unavailable_curve_names(document, issues)
     bad.update(registrations[name] for name in semantic_names if name in registrations)
     proxies = {item.get('id'): item for item in server.findall('Proxy')}
+    retained = set()
+    if retain_applied:
+        # A saved field comparison is data on reopen. Keep its XML identity so
+        # existing representations, camera/layout and active selection survive.
+        for obj in document.get('analysis', {}).get('objects', {}).values():
+            for record in obj.get('history', []):
+                entry = record.get('result_file')
+                kind = {'.vtu': 'XMLUnstructuredGridReader', '.vtp': 'XMLPolyDataReader'}.get(
+                    Path(entry).suffix.lower()) if entry else None
+                if (record.get('summary', {}).get('comparison_version') != 2 or not kind
+                        or record.get('retained_source_name')):
+                    continue
+                identifier = registrations.get(record['source_name'])
+                if identifier not in proxies:
+                    continue  # Existing missing-branch fallback opens the pinned result.
+                if not any(Path(pin['path']).resolve() == Path(entry).resolve()
+                           for pin in record.get('result_files', [])):
+                    raise ValueError('Saved comparison entry has no exact retained pin')
+                verify_analysis_files({'analysis': {'objects': {'saved': {'history': [record]}}}})
+                proxy = proxies[identifier]
+                proxy.clear(); proxy.attrib.update(group='sources', type=kind, id=identifier,
+                                                   servers='1')
+                prop = ET.SubElement(proxy, 'Property', name='FileName', id=identifier + '.FileName',
+                                     number_of_elements='1')
+                ET.SubElement(prop, 'Element', index='0', value=str(Path(entry).resolve()))
+                retained.add(identifier)
+                bad.update(registrations[name] for name in record.get('proxy_names', [])
+                           if name in registrations and registrations[name] != identifier)
+        bad.difference_update(retained)
     containers = {'views', 'layouts', 'timekeeper', 'animation'}
     changed = True
     while changed:
@@ -151,6 +180,7 @@ def partial_state(state, document, issues, output):
     output.parent.mkdir(parents=True, exist_ok=True)
     tree.write(output, encoding='utf-8', xml_declaration=True)
     return {'removed_proxy_ids': sorted(bad),
+            'retained_source_names': sorted(name for name, identifier in registrations.items() if identifier in retained),
             'removed_source_names': sorted(name for name, identifier in registrations.items() if identifier in bad),
             'healthy_source_names': sorted(
         name for name, identifier in registrations.items() if identifier not in bad)}

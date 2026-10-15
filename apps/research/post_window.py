@@ -1346,6 +1346,8 @@ class PostWindow(QMainWindow):
         if payload.get('semantics') == 'retained_curve_comparison' and not rows:
             rows = payload.get('originals', {}).get('a', [])[:1000]
         summary = payload.get('summary') or (revision or {}).get('summary', {})
+        if hasattr(self, 'comparison_editor') and hasattr(self.comparison_editor, 'set_result_summary'):
+            self.comparison_editor.set_result_summary(summary)
         curve_table = payload.get('semantics') == 'retained_curve_comparison'
         if curve_table:
             self.message.setText(summary.get('blocked') or

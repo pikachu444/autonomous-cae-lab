@@ -121,11 +121,14 @@ Literature/Crossref의 공개 초록 검색을 추가했다. 주제와 명시 �
 Completion/첫 역할 모델로 생성 관점을 운영하며 새 계산 도구를 제공하지 않는다. 이
 방식과 역할별 전문 에이전트 구성을 구별한다. 기존 런타임·Co-STORM의 재사용 경계와
 문헌/해석/비판 역할·근거·도구 연결의 다음 인도 설계를 실제 Pro와 확인한다.
-실제 Pro 후속 설계 요청 PRO-CAE-RESEARCH-TEAM-20261016-01을 기존 Study/Expert
-대화 https://chatgpt.com/c/6ad0c7d0-6f70-83ee-a420-2427dfa05b55 에 한 번 전송하고
-요청 본문과 응답 중 상태를 확인했다. 실제 UI의 Pro/파워5를 확인했다.
-현재 main ade0ca6와 위 소스 조사 사실을 직접 전달하며 새 대화나 추가 과금은 없다.
-같은 대화의 이전 구현 ZIP도 회수했으며 아직 main 적용 완료로 세지 않는다.
+실제 Pro/파워5의 후속 전체 설계 PRO-CAE-RESEARCH-TEAM-20261016-01이 완료됐고
+편집 가능한 MD를 공식 다운로드로 회수했다. 원문은
+`_workspace/pro-recovered-20261016/research-team/team-design.md`에 있다. 기존
+ExpertRuntime의 역할별 실행과 Co-STORM 진행·지도·보고서를 연결하고, 분야 자료·검색,
+계획·실제 결과 환류, Qt·이동 사본의 네 병렬 묶음으로 나눈 설계다. 현재 소스 ade0ca6와
+공개 검색 당시 진행 상태를 직접 전달한 기준이며 이후 D·B·C·현재 이동 기능의 변경도
+보호해야 한다. Astra `pde_transfer_review`가 최신 요구·실제 소스와 함께 독립 검토한다.
+아직 신규 팀 모드 구현 또는 채택 완료로 세지 않으며 새 대화나 추가 과금은 없다.
 입력/부분결과 GUI 묶음 ade0ca6는 원격 main과 일치를 확인했다. 실제 Pro B 전용 소스는
 Sol pde_delivery_packet이 통합하며 중복 일반 재후처리 구현은 적용하지 않는다.
 신규 B 전용 모듈·예제·검사를 현재 모델/adapter에 연결했다. B 정의의 선택적 원입력 보관,
@@ -142,7 +145,7 @@ Windows 손상·재접촉 계산과 전체 물리 수용 완료는 아니다. �
 테스트 창·자식 프로세스는 모두 정리했다. MoAI ast-grep의 수정 Python 13파일 제한 검사도
 마쳤으며 이를 수치 검증으로 대신하지 않는다. B 두 작성자의 이번 소스는 동결·통합했다.
 공개 문헌 검색 연결은 8dddcb2로 원격 main과 일치를 확인했다. Space의 현행 개요와
-사용법 링크도 갱신했으며 분야별 전문가 팀 설계는 Pro 응답 전이므로 미채택이다.
+사용법 링크도 갱신했으며 분야별 전문가 팀 설계는 회수 후 독립 검토 중이다.
 
 회수한 실제 Pro C 피로 소스는 `_workspace/pro-recovered-20261016/impact-c`에 보존했다.
 Sol `inverse_delivery`가 신규 피로 모듈과 기존 Fatigue/Simulation 창의 연결을 Windows에
@@ -153,7 +156,8 @@ Sol `inverse_delivery`가 신규 피로 모듈과 기존 Fatigue/Simulation 창�
 54개·QWindows 7개와 Astra 독립 검토를 마쳤다. root가 실제 정상/좁은 창을 확인했고
 [피로 사용법](docs/fatigue/USAGE_KO.md)에 화면과 작업 순서를 연결했다. 해당 테스트 창과
 자식 프로세스는 모두 정리했다. 실제 재료 교정 자격, native total strain 공급, FS/전단 지배
-피로·반복 소성·계면 피로까지 완료한 것은 아니다. 이번 C 연결은 게시 대상이다.
+피로·반복 소성·계면 피로까지 완료한 것은 아니다. `d841640`를 원격 main에 게시하고
+같은 커밋임을 확인했다.
 
 회수한 Study/Expert 소스는 `_workspace/pro-recovered-20261016/study-expert`에 보존했다.
 Sol `expert_roundtrip_finish`가 이동 가능한 연구 사본의 지식자료·Study·Expert·Report
@@ -169,11 +173,16 @@ Sol `post_windows_build_fix`가 comparison_native·Post 비교 편집창·post_c
 field_transfer_contract 및 전용 검사/사용법을 맡는다. 원 결과 A/B 비교의 필수 영역·실제
 배열 선택·지원 체적 적분 검사를 기존 ParaView 적용·저장·재열기에 잇는다. 종료 plugin,
 공통 bridge/registry와 다른 담당 파일은 수정하지 않는다.
-실제 새 ParaView 재열기에서 저장된 비교 필터가 연산을 반복하는 결함을 확인했다.
-같은 담당에게 workspace의 보관 결과 복원과 external.restore_workspace,
-source_repair의 기존 임시 PVSM 복구 접점만 추가 위임했다. 원 저장 PVSM·원자료·필터
-기록은 보존하고 검증된 비교 결과를 직접 읽도록 교정하며 새 미리보기/명시 반영만
-연산한다. root는 이 세 제한 구역을 동시에 수정하지 않고 최종 공통 diff를 검토한다.
+실제 새 ParaView 재열기에서 저장 비교 필터가 연산을 반복하는 결함을 교정했다.
+workspace 보관 결과 복원과 external.restore_workspace, source_repair의 기존 임시 PVSM
+복구를 재사용한다. 원 PVSM·원자료·필터 기록과 카메라·선택은 유지하고 검증된 비교 결과를
+직접 읽으며 새 미리보기/명시 반영만 연산한다. 실제 텐서 회전·단위·시간·다른 내부 메시와
+원 셀 적분을 확인하고 별도 ParaView에서 재보간/적분 없이 읽었다. Astra의 시간 보간
+필수 영역 지적은 양끝의 같은 유한 0/1 마스크만 허용하도록 교정했다. 정상/좁은 Qt 창과
+결과 표, 필요한 반례·영향 검사 및 최종 독립 검토를 마쳤다. 실제 화면과 사용법은
+[결과 비교 안내](docs/POST_COMPARISON.md)에 있다. 저장 결과 파일 자체의 손상은 기존
+검증대로 전체 복원을 거절하며 손상 항목만 격리하는 부분 복구는 잔여다. OS 직접 조작과
+통합 native GUI 전체 수용은 별도이고 이번 테스트의 소유 창·자식은 모두 정리했다.
 Sol `portable_continuation`은 보존한 Numerical 전용 7파일과 전용 예제·검사·사용법을 맡아
 joint UQ, Sobol 설계 비교, 국소 대리모델과 예측 후보의 명시 실제 계산 확인을 잇는다.
 공통 NumericalDocuments/실행·Plan 접점은 현행 기준의 최소 patch로 root에 전달한다.
@@ -237,12 +246,12 @@ MoAI의 기존 작업 카드도 같은 7개 단위로 연결했다. 계획 대�
 | 작업 묶음 | 끝낼 사용자 결과 | 현재 배정과 통합 경계 |
 |---|---|---|
 | CAD·조립·전처리 | 모델/조립 편집→선택 자세의 독립 해석 모델→부품별 메시·재료·실제 면 조건→저장·재개 | 기존 FreeCAD FEM/Gmsh 기본 경로 우선. B13 저장 모델 재열기는 게시. 접촉 반환 소스 통합과 단계 활성화의 실제 CalculiX·같은 출력 저장/새 읽기·Astra 검토를 마침. FCStd 단계 저장/전체 Post GUI는 미확인. 곡면 지그 기본 계산 연결 진행. t21. Sol 구현, root 공통 Pre 통합 |
-| 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | 원 400프레임 읽기·MCP/Runner 연결은 게시. 일반 입력 A의 실제 Pro 소스33파일과 공통5파일을 적용해 Windows OpenCourant 실행/기존 ParaView 연결 진행. 이전 미회수 기록과 손상·계면/피로 잔여는 유지. t20. Sol 기능 구현, root 공통 실행 |
-| 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | 기존 stock ParaView의 결과 열기·명시 프로젝트 저장·재열기 경로를 사용한다. Pre/OpenCourant의 현재 결과로 이 경로를 잇는다. SDK 종료 plugin과 추가 장 비교는 별도 중단점 보존, 기본 사용의 선행조건이 아니다. File→Exit plugin 수용은 미완료. t4 |
+| 구조·동해석·충격 | 모델의 지원 법칙·요소·초기 상태→명시 계산→시간별 결과·실패 수정·실제 이어 계산 | 일반 입력 A·보존 결과 읽기·벌크·계면 편집과 CMB/SWT·임계면 피로를 main에 게시. 실제 Qt 저장·재개와 해당 독립 검토 완료. 전체 native 손상·재접촉·재료 자격·일반 restart는 잔여. t20 |
+| 후처리·비교 | 외부/계산 결과의 3D·표·곡선 선택→성분/시간/단위 비교→저장·파일 복구 | 기존 ParaView 기본 왕복은 게시. 장 비교의 필수 영역·성분별 적분표와 무재계산 재열기를 실제 확인하고 시간 마스크 교정·독립 검토를 완료. 종료 plugin과 저장 파일 개별 손상 격리 복구는 잔여. t4 |
 | Data·Material | 여러 처리 단계→시험/측도→모델 피팅·후보 비교·명시 채택→다시 열기 | 피팅·채택·법칙/Hex8 연결과 오류 화면은 게시. FN-03-02 유한변형 관측→같은 측도 예측/피팅·채택·저장 재개를 통합하고 Windows 실제 FELUPE·Qt와 Astra 독립 검토를 마침. 원 입력·결과/기존 recipe·mixed controller·후보 엔진 유지. t5. 전체 재료군·일반 형상/요소 조합은 잔여 |
-| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수·Windows 공간 PDE·온도 전달과 공유 변수 MDO/첫 선형 adjoint를 게시. 작은 Windows 실제 최적화·독립 미분 검사·새 프로세스 읽기·Qt·Astra 검토 완료. 추가 surrogate/UQ/장 비교는 소스·중단점 보존 후 native 기본 흐름 뒤에 이어감. 일반 total adjoint 완료 주장은 하지 않음. t6/t7 |
-| Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 정확 결과 첨부·최종점 진단·보고서 원자료 복귀/저장·재열기는 게시. t2/t9. native Post 전체 왕복·실장비/일반 composite 잔여를 유지하고 실제 장비 입력과 별개 작업을 구별한다 |
-| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기와 Data/Material/Numerical 이동·재개를22da57c, Report 이동·현재 편집/저장/재복사·cold·실제 Qt를eaa33cf로 게시. 문헌·Study·Expert와 현재 명시 Ask를 잇는 다음 큰 구현을 새 실제 Pro에 배정해 작성 시작. 다른 owner/native 잔여 유지. t10/t25. root가 공통 schema/Core/registry/dispatch와 게시 소유 |
+| Numerical·PDE·연성 | 변수·방법·후보/장 전달 편집→실제 계산→결과 비교·채택→재개 | 혼합 변수·Windows 공간 PDE·온도 전달·공유 변수 MDO/첫 선형 adjoint는 게시. joint UQ·Sobol N/2N·국소 대리모델·추천점 실제 확인을 현재 owner·Qt에 통합하고 독립 검토 중. 일반 total adjoint는 잔여. t6/t7 |
+| Expert·Study·보고서 | 자료/문헌 찾기→Co-STORM 논점·다자 토론→계산 요청/결과 환류→판단·다음 연구·보고서 | 정확 결과 첨부·보고서·공개 초록 연결은 게시. 실제 분야별 연구팀의 Pro 전체 설계는 회수해 Astra 검토 중. 실장비·일반 composite와 새 팀 전체 수용은 잔여. t2/t9 |
+| 설치·공통 연결 | 각 독립 앱 직접 시작→선택적으로 연결→이동 가능한 작업 사본→재열기 | 독립 바로가기·Data/Material/Numerical·Report 사본은 게시. 문헌·Study·Expert 사본과 현지 명시 Ask를 현재 코드에 통합하고 독립 검토 중. 다른 owner/native 사본·배포 잔여 유지. t10/t25. root 공통 통합·게시 |
 
 각 묶음은 원행/SPEC의 상세 완료 조건을 유지한다. 새로운 지원 조합은 현재 미지원의
 이름만 바꾸어 닫지 않는다. 실제 장비/원격 호스트가 필요한 항목은 입력 미정을 명시하고
