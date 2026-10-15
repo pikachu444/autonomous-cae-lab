@@ -20,6 +20,11 @@ ParaView File > Exit/X/Ctrl+Q/Alt+F4, 저장 취소 후 재시도와 한글 화�
 없다. 결과는 job log/summary에만 남는다. 이 workflow가 계정의 다른 CI 보관 비용까지
 제어한다는 뜻은 아니다.
 
+공식 standard runner의 저장 공간 사양은 14GB다. 전체 SDK 빌드와 설치가 이 안에
+든다는 측정은 아직 없다. 첫 실행에서 C:·작업 폴더·임시 폴더의 실제 가용 공간을
+기록하고 각 build/install/check 명령 전후에도 가용 bytes를 남긴다. 공간 부족으로
+실패하면 원래 오류와 종료 코드를 보존하며 더 큰 유료 runner로 전환하지 않는다.
+
 build glue는 GitHub-hosted CI 환경인지도 확인하여 로컬의 기존 Python 환경에
 패키지를 설치하는 실수를 막는다. 로컬에서는 기존 `Build-PostExit.ps1`를 사용한다.
 

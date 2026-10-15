@@ -36,6 +36,11 @@ jobs:
           }
           $repo | Select-Object full_name,private,html_url | ConvertTo-Json
           Get-CimInstance Win32_OperatingSystem | Select-Object Caption,TotalVisibleMemorySize,FreePhysicalMemory
+          foreach ($path in @('C:\', $env:GITHUB_WORKSPACE, $env:RUNNER_TEMP)) {
+            $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($path))
+            [pscustomobject]@{path=$path; volume=$drive.Name; available_bytes=$drive.AvailableFreeSpace;
+              total_bytes=$drive.TotalSize} | ConvertTo-Json -Compress
+          }
           git rev-parse HEAD
       # Pin an official CPython 3.12 Windows binary release.
       # 3.12.14 has no Windows x64 package in actions/python-versions.
