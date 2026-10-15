@@ -99,6 +99,11 @@ native 확인을 위한 새 FreeCAD·pvpython 프로세스는 Windows의
 열린 결과창은 별도 소유를 명시하되 확인이 끝나면 직접 닫는다. 남은 native 프로세스도
 정확한 실행 소유를 확인하고 정리하며 이름을 기준으로 일괄 종료하지 않는다.
 
+같은 프로세스에서 Qt와 HTTP/Python worker를 확인하는 driver는 기존
+`test_experiment_report_ui.wait`처럼 이벤트 처리 사이에 짧은 `time.sleep`으로 양보한다.
+이 환경에서 `QTest.qWait`만 반복한 driver가 HTTP 스레드를 막았던 사례를 보존한다.
+확인 도구의 대기 문제를 제품 읽기 실패나 확정 성능으로 판정하지 않는다.
+
 MoAI의 Python 코드 검사는 `moai ast-grep <수정 파일> --lang python --format json`으로
 실행한다. 현재 프로젝트 규칙은 동적 eval/exec와 subprocess의 shell=True 사용을
 검토 대상으로 찾는다. 이 제한된 검사를 독립 검토나 해당 기능의 동작 확인으로 대신하지

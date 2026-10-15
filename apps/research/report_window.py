@@ -40,6 +40,7 @@ class ReportWindow(QMainWindow):
         self._pending = None
         self._initial_reference = deepcopy(reference)
         self._children = []
+        self._source_windows = []
         self._edit_buffers = {}
         self._editing_section = None
         self._build_ui()
@@ -559,14 +560,32 @@ class ReportWindow(QMainWindow):
         i=self.sections.currentRow()
         if i<0:return
         binding=self.draft['sections'][i].get('asset')
-        if binding:
-            if binding['reference'].get('kind') == 'post_image':
-                from .report_image_dialog import show_origin
-                show_origin(self, binding)
-                return
-            from .reference_window import ReferenceWindow
-            window=ReferenceWindow(self.client,deepcopy(binding['reference']))
-            self._children.append(window);window.show()
+        if not binding:
+            self.message.setText('이 섹션에는 연결된 원자료가 없습니다.')
+            return
+        if binding['reference'].get('kind') == 'post_image':
+            from .report_image_dialog import show_origin
+            show_origin(self, binding)
+            return
+        from .reference_window import ReferenceWindow
+        window=ReferenceWindow(self.client,deepcopy(binding['reference']))
+        back=QAction('보고서로 돌아가기',window,shortcut=QKeySequence('Alt+Left'))
+        back.triggered.connect(lambda:self._return_from_source(window))
+        window.findChild(QToolBar).insertAction(window.findChild(QToolBar).actions()[0],back)
+        window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        window.destroyed.connect(lambda:self._source_windows.remove(window) if window in self._source_windows else None)
+        self._source_windows.append(window);window.show()
+        return window
+
+    def _return_from_source(self,window):
+        from shiboken6 import isValid
+        if not isValid(self) or not isValid(window):return False
+        if not window.close():return False
+        if not self._closed:
+            if self.isMinimized():
+                self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+            self.show();self.raise_();self.activateWindow()
+        return True
 
     def export(self,format):
         self.edit_title(); self.remember_editor()
@@ -604,6 +623,10 @@ class ReportWindow(QMainWindow):
 
     def closeEvent(self,event):
         if not self.can_leave():event.ignore();return
+        from shiboken6 import isValid
+        for window in list(self._source_windows):
+            if isValid(window) and not window.close():
+                event.ignore();return
         self._closed=True
         for worker in self._workers:worker.abandon()
         super().closeEvent(event)

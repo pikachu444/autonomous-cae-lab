@@ -233,6 +233,10 @@ Material의 명시 DP·초탄성/점탄성 point–FE·저장 개정의 해석 �
 원자료·회수 상태를 둔다. 기존 owner/계산 엔진을 재사용하고 전용 구현·최소 공통 패치를
 분리한다. 공유변수 MDO/첫 실제 adjoint는 같은 PDE 작성자의 필수 후속이며 현재
 실행·완료로 표시하지 않는다. 두 요청 모두 코드 회수 전이다.
+Pro 작성 환경의 패키지 다운로드 DNS 실패에 대비해 공식 PyPI의 scikit-fem 12.0.2와
+기존 FELUPE 11.1.3 wheel·라이선스·API 확인을
+`_workspace/delivery-numerical-pde/offline-dependencies-20261015/`에 준비했다.
+설치나 제품 의존성 변경은 하지 않았으며 최종 코드 수신 후 필요한 교정에 사용한다.
 
 관련 문서의 부분 저장(FN02-02)은 Data/Material 팀, 이동용 작업 사본(FN01-02)과
 선택 연결 보기(FN31)는 설치·연결 팀, 원격 실행(FN26)은 Runner 팀이 지속 담당한다.
@@ -397,7 +401,14 @@ Astra가 세 지적의 해소를 확인했다. Windows Qt의 본문/PNG·Markdow
 실제 stock ParaView6.2의 단일 Clip 결과를 PNG로 저장하고 새 pvpython 프로세스에서
 저장 PVSM·원값·원 PNG를 다시 읽었다. 모든 확인 Job을 종료했다. 복합 블록 추가 확인은
 native access violation으로 원인을 특정하지 못해 반복을 멈췄으며 실제 수용은 미확인이다.
-실제 broker/GUI의 원창 활성화·닫힌 창 launcher 전체 왕복도 남는다. 이 범위를 전체 FN32
+일반 연구 원자료 열람에는 **보고서로 돌아가기 / Alt+←**를 연결했다. 미적용 설명·선택·
+최대화 상태를 보존하고 보고서가 연 읽기 창만 정리한다. Astra가 찾은 독립 후보 창까지
+닫던 범위 문제를 교정했다. Windows Qt 반례와 실제 HTTP의 고정 원자료·두 Runner의
+정확한 실행 선택, Data의 현재 문서와 명시 비교 선택을 확인했다. 마지막 Data 자식 종료
+대기에서는 실패해 보고서 저장·새 GUI 재열기에 도달하지 못했다. 제품 종료 원인은
+미확인이며 추가 반복을 멈췄고 모든 소유 Job을 정리했다. 원 기록과 한계는
+`_workspace/delivery-expert-study/report-source-roundtrip-01/FINAL_HANDOFF.md`에 있다.
+native Post의 broker/GUI 원창 활성화·닫힌 창 launcher 전체 왕복도 남는다. 이 범위를 전체 FN32
 완료로 확대하지 않는다. 사용 순서와 공개 결과 그림은 [보고서 사용법](docs/EXPERIMENT_REPORT.md#3d-결과-이미지를-넣고-원자료-확인하기)에 연결한다. 공유 프로젝트의
 새 대화 입력은 한 담당씩 전송 권한을 받아 혼입을 막고, 응답 작성과 코드 작업은 병렬로 계속한다.
 Structure/Post/설치 팀의 브라우저 inventory는 비어 현재 제공 UI 제어를 사용할 수 없었다.
