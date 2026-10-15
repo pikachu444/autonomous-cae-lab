@@ -1,6 +1,8 @@
 """Dedicated law view on existing Material owner/editor, curve and Plan surfaces."""
 from copy import deepcopy
+import traceback
 import numpy as np
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QInputDialog,QLabel
 from caelab.material_document import diagnostics
@@ -37,6 +39,7 @@ class LawNativeMaterialWindow(SimulationWindow):
         kwargs.setdefault('runner_open',lambda job:launch_tool(client,'runner',job_id=job))
         kwargs.setdefault('result_open',lambda doc,job,**kw:open_document_result(client,doc,job,**kw))
         super().__init__(client,**kwargs)
+        self.message.setTextFormat(Qt.TextFormat.PlainText)
         self._law_windows=[]
         self.plan_action.setText('다시험 피팅 계획…')
         self.new_action.setText('새 재료 법칙…');self.open_action.setText('재료 열기…')
@@ -48,6 +51,21 @@ class LawNativeMaterialWindow(SimulationWindow):
         if index>=0:
             self.backend.blockSignals(True);self.backend.setItemText(index,'재료 법칙 · 직접 평가');self.backend.blockSignals(False)
         if new:self.open_document(title=LABELS[law.dp.MODEL],draft=default_draft())
+
+    def _call(self,function,accepted):
+        # Retain the inherited scheduling/actions; localize only the error view.
+        def requested():
+            try:return function(),None
+            except Exception as error:return None,error
+        def finished(value):
+            result,error=value
+            if error is None:accepted(result)
+            else:
+                from .law_native_transfer_dialog import law_error_text
+                cause='원 오류: '+str(error)+'\n'+''.join(traceback.format_exception(type(error),error,error.__traceback__))
+                self.messages.setPlainText(cause+'\n'+self.messages.toPlainText())
+                self.message.setText(law_error_text(error)+' 편집 내용은 보존합니다.')
+        return super()._call(requested,finished)
 
     @staticmethod
     def field_label(path):
@@ -77,6 +95,16 @@ class LawNativeMaterialWindow(SimulationWindow):
         self.support.setText(f'계수·응력·에너지 밀도 단위: {unit} / 시간: s. '+
             '평가와 접선 검사는 FE 실행이나 공학 승인이 아닙니다. 압축·구속 holdout을 별도 지정하세요.')
 
+    def _refresh_issue_summary(self):
+        super()._refresh_issue_summary()
+        from .law_native_transfer_dialog import law_error_text
+        text=self.issue_summary.text()
+        self.issue_summary.setTextFormat(Qt.TextFormat.PlainText)
+        for row in getattr(self,'_input_checks',[]):
+            original=str(row.get('message',''))
+            if original:text=text.replace(original,law_error_text(original))
+        self.issue_summary.setText(text)
+
     def _show_document(self,document,*,preserve_draft=None):
         first=self.document is None or self.document['id']!=document['id']
         super()._show_document(document,preserve_draft=preserve_draft)
@@ -95,7 +123,8 @@ class LawNativeMaterialWindow(SimulationWindow):
             if label is not None:
                 settings=self._draft['settings']
                 unit=law.parameter_unit(settings['model'],path[-1],settings['stress_unit'])
-                label.setText(self.field_label(path)+' ['+unit+']')
+                text=self.field_label(path);suffix=' ['+unit+']'
+                label.setText(text if text.endswith(suffix) else text+suffix)
 
     def new_document(self):
         labels=list(LABELS.values())
@@ -135,7 +164,7 @@ class LawNativeMaterialWindow(SimulationWindow):
 
     def open_transfer(self):
         if not self.document or self.local_dirty or self.conflict or self.document.get('dirty') or not self.document.get('saved_revision'):
-            self.message.setText('전달할 재료를 먼저 명시 저장하세요. 미저장 편집은 자동 채택하지 않습니다.');return
+            self.message.setText('재료의 변경을 적용하고 저장한 뒤 전달하세요. 미저장 편집은 자동 채택하지 않습니다.');return
         from .law_native_transfer_dialog import LawNativeTransferDialog
         window=LawNativeTransferDialog(self.client,deepcopy(self.document),self)
         self._law_windows.append(window);window.show()

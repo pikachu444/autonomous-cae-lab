@@ -203,3 +203,100 @@ def test_law_fit_menu_opens_existing_coefficient_and_holdout_plan(live_transfer)
     finally:
         if numerical:numerical._allow_close=True;numerical.close()
         window._allow_close=True;window.close();app.processEvents()
+
+
+def test_law_error_views_keep_draft_and_original_cause(live_transfer,tmp_path):
+    """Actual Qt display, controlled service failures; no native/solver claim."""
+    app,wb,client,transfer,descriptor,registration=live_transfer
+    window=LawNativeMaterialWindow(client,auto_open=False,poll_interval=0)
+    review={'status':'READY_FOR_EXPLICIT_APPLY','mapping':[{'coefficient':'E','source_value':210000000000.,
+        'source_unit':'Pa','target_value':210000.,'target_unit':'MPa'}]}
+    source_error='SOURCE_CONFLICT: source revision/working input changed after review Mfixture'
+    solver_error='Select the Analysis CalculiX solver as the native context; FELUPE performs this specimen run Pfixture'
+    try:
+        window._show_document(transfer.material);window.show();window.resize(1440,900)
+        original=deepcopy(window.edited_draft());app.processEvents()
+        assert window.grab().save(str(tmp_path/'material-normal-1440.png'))
+        window.local_dirty=True;window.open_transfer()
+        assert not window._law_windows and window.edited_draft()==original
+        window.local_dirty=False
+        def source_failure():raise ValueError(source_error)
+        window._call(source_failure,lambda _:pytest.fail('failure called success handler'))
+        wait_for(app,lambda:not window._busy)
+        assert source_error not in window.message.text() and source_error in window.messages.toPlainText()
+        assert window.edited_draft()==original and not window.local_dirty
+        assert window.grab().save(str(tmp_path/'material-error-1440.png'))
+        window.details_action.setChecked(True);app.processEvents()
+        assert window.grab().save(str(tmp_path/'material-error-details-1440.png'))
+
+        transfer.show_review(review);transfer.summary.selectRow(0);transfer.resize(820,740);app.processEvents()
+        assert transfer.grab().save(str(tmp_path/'transfer-normal-820.png'))
+        transfer.raw.setPlainText('1e');transfer.raw.document().setModified(True)
+        def solver_failure():raise ValueError(solver_error)
+        transfer._call(solver_failure,lambda _:pytest.fail('failure called success handler'))
+        wait_for(app,lambda:not transfer._busy)
+        assert solver_error not in transfer.note.text() and solver_error in transfer.detail.toPlainText()
+        assert transfer.raw.toPlainText()=='1e' and transfer.raw.document().isModified()
+        assert transfer.summary.item(0,3).text()=='210000' and transfer.summary.item(0,4).text()=='MPa'
+        assert transfer.pending is None and wb.manager.list()==[]
+        assert transfer.grab().save(str(tmp_path/'transfer-error-820.png'))
+        transfer.details_toggle.setChecked(True);app.processEvents()
+        assert transfer.grab().save(str(tmp_path/'transfer-error-details-820.png'))
+        failed={'command_id':'Cdisplay','state':'FAILED','outcome':{'error':solver_error}}
+        transfer.pending={'id':'Cdisplay','done':lambda *_:None}
+        transfer.handle_status(failed)
+        assert transfer.pending is None and solver_error in transfer.detail.toPlainText()
+        assert '실패' in transfer.note.text() and 'FAILED' not in transfer.note.text()
+        transfer.fields['mesh_id'].setCurrentIndex(-1)
+        transfer.submit('pre.fem.law_preview',{},lambda *_:pytest.fail('missing selection submitted'))
+        assert transfer.pending is None and not wb.native_commands._commands
+        assert transfer.raw.toPlainText()=='1e' and transfer.raw.document().isModified()
+    finally:
+        window._allow_close=True;window.close();app.processEvents()
+
+
+def test_physical_error_views_keep_constraints_and_units(live_transfer,tmp_path):
+    """Actual declaration validation and Qt; the native receipt is controlled."""
+    from apps.research.law_native_transfer_dialog import law_error_text
+    from caelab.material_fe_transfer import make_review
+    from caelab import law_native_fe as fe
+    from caelab.storage import canonical_hash
+    from PySide6.QtTest import QTest
+    app,wb,client,transfer,descriptor,registration=live_transfer
+    document=client.document_open(kind='material',draft=default_draft(model='single_branch_maxwell'))
+    window=LawNativeMaterialWindow(client,auto_open=False,poll_interval=0)
+    try:
+        window._show_document(document);window.show();window.resize(1440,900)
+        field=window.fields[('settings','parameters','tau')][0]
+        field.setFocus();field.selectAll();QTest.keyClicks(field,'1e-8')
+        window.validate_inputs();wait_for(app,lambda:not window._busy)
+        assert '[1e-6,1e6] s' in window.issue_summary.text()
+        assert window._input_checks[0]['message']=='SLS tau requires [1e-6,1e6] s'
+        assert window.edited_draft()['settings']['parameters']['tau']==1e-8 and window.local_dirty
+        assert window.grab().save(str(tmp_path/'material-tau-error-1440.png'))
+
+        transfer.boundary.setCurrentIndex(1);transfer.preview();wait_for(app,lambda:not transfer._busy)
+        command=next(iter(wb.native_commands._commands.values()))
+        mesh=fe.cube_mesh();target={'mesh':mesh,'mesh_sha256':canonical_hash(mesh),'admission_errors':[]}
+        review=make_review(command['arguments']['_source_snapshot'],target,command['arguments']['options'])
+        assert review['errors']==['Uniaxial FE pair requires explicit zero yy/zz point stress controls']
+        complete_native(wb,descriptor,registration,{'review':review})
+        transfer.poll();wait_for(app,lambda:transfer.pending is None and not transfer._busy)
+        assert all(part in transfer.summary_title.text() for part in ('yy','zz','0'))
+        assert not transfer.actions['apply'].isEnabled() and review['errors'][0] in transfer.detail.toPlainText()
+        transfer.resize(820,740);app.processEvents()
+        assert transfer.grab().save(str(tmp_path/'transfer-free-lateral-error-820.png'))
+
+        # A compound blocked review must not collapse independent mesh constraints.
+        errors=['Native Hex8 ordering/Jacobian differs from the declared SMESH convention; no guessed repair',
+                'Small FE mesh requires 1..512 Hex8 cells',
+                'Hex8 connectivity must contain eight distinct existing zero-based nodes',
+                'DP: E,k0>0; -.99<=nu<.495; 0<=beta<=alpha<=1; H>=0']
+        transfer.show_review({'status':'BLOCKED','errors':errors,'mapping':[]})
+        text=transfer.summary_title.text()
+        assert all(part in text for part in ('Jacobian','SMESH','1..512','8','0','-.99<=nu<.495','0<=beta<=alpha<=1'))
+        assert '다른 요소를 자동 변환' not in text
+        assert '1e9 MPa' in law_error_text('E: exceeds admitted 1e9 MPa scale')
+        assert wb.manager.list()==[]
+    finally:
+        window._allow_close=True;window.close();app.processEvents()

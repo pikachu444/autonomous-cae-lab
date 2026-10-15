@@ -4,16 +4,64 @@ No new service route/store or auto-run. Exact command IDs recover a lost reply;
 closing the dialog never cancels or replays a possibly applied native operation.
 """
 from copy import deepcopy
-import json,uuid
+import json,re,traceback,uuid
 from PySide6.QtCore import Qt,QTimer,QThreadPool
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QFormLayout,QComboBox,QLabel,
     QPushButton,QPlainTextEdit,QMessageBox,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView)
 from caelab.storage import canonical_hash
 from caelab.law_native_fe import default_settings
 from caelab.workbench_client import WorkbenchHTTPError
-from .material_window import _Call
+from .material_window import _Call,error_message
 
 _WORKERS=set()
+
+
+def law_error_text(error):
+    """Task guidance only; the unmodified cause stays in existing details."""
+    if isinstance(error,(list,tuple)):
+        return '\n'.join(dict.fromkeys(law_error_text(item) for item in error))
+    raw=getattr(error,'service_message',None) or error_message(error)
+    text=raw.lower()
+    if 'uniaxial fe pair requires explicit zero yy/zz point stress controls' in text:
+        return '자유 횡변형 시편에는 재료의 횡응력·구속 조건에서 yy와 zz 응력 이력을 모두 0으로 명시하세요. 변경 적용·저장 후 다시 검토하세요.'
+    if text.startswith('dp: e,k0>0;'):
+        return 'DP 계수 조건: '+raw.partition(':')[2].strip()+'. 계수와 단위에서 해당 값을 수정하세요.'
+    scale=re.fullmatch(r'(E|k0|H|K0|G0|K1|G1|mu|lmbda): exceeds admitted ([0-9.eE+-]+) MPa scale',raw)
+    if scale:return scale[1]+' 계수의 절댓값은 '+scale[2]+' MPa 이하여야 합니다. 계수 값과 응력 단위를 확인하세요.'
+    for prefix,label,action in (
+        ('SLS tau requires ','이완 시간 τ 조건: ','계수와 단위에서 τ를 수정하세요.'),
+        ('SLS moduli require ','SLS 체적·전단 계수 조건: ','계수와 단위에서 K₀, G₀, K₁, G₁을 확인하세요.'),
+        ('Small FE mesh requires ','메시 요소 수 조건: ','Hex8 체적 요소 수를 확인하세요.'),
+        ('FE mesh requires ','메시 절점 수 조건: ','구속되지 않은 내부 절점을 포함하도록 메시를 준비하세요.'),
+    ):
+        if raw.startswith(prefix):return label+raw[len(prefix):]+'\n'+action
+    if 'hex8 connectivity must contain eight distinct existing zero-based nodes' in text:
+        return 'Hex8 요소마다 서로 다른 기존 절점 8개를 0부터 시작하는 번호로 연결하세요. 메시 연결성을 확인하세요.'
+    for words,message in (
+        (('interface_source_conflict',), '설치된 법칙 원문이 저장된 재료와 다릅니다. 법칙 버전을 확인하고 다시 검토하세요.'),
+        (('source_conflict','source revision','saved material changed'), '저장 재료의 원문이나 입력이 바뀌었습니다. 편집본을 보관하고 재료를 다시 저장한 뒤 검토하세요.'),
+        (('assignment_stale','target_conflict','generation','문서가 바뀌어'), '해석 대상이나 저장 상태가 바뀌었습니다. 대상 다시 읽기 후 계수 변환을 다시 검토하세요.'),
+        (('law_native_interface_required',), '이 재료는 기존 탄성 카드로 내보낼 수 없습니다. FELUPE 시편의 FE 입력 고정을 사용하세요.'),
+        (('calculix solver','ccxtools','native context solver'), '전처리에서 이 해석에 속한 CalculiX 해석기 설정을 선택하세요. 시편 계산에는 FELUPE를 사용합니다.'),
+        (('jacobian','ordering'), 'Hex8 절점 순서와 요소 Jacobian 방향이 선언한 SMESH 순서와 다릅니다. 메시의 연결·요소 방향을 확인하세요. 자동 보정하지 않습니다.'),
+        (('hex8','hexahedron8'), '선형 Hex8 체적 메시를 선택하세요. 다른 요소를 자동 변환하지 않습니다.'),
+        (('whole-solid','multibody','전체 솔리드'), '하나의 전체 솔리드 영역과 그 영역의 메시를 선택하세요. 부분 영역은 자동 재할당하지 않습니다.'),
+        (('saved_revision','saved material','saved revision','먼저 저장'), '재료의 변경을 적용하고 저장한 뒤 다시 전달하세요. 미저장 입력은 자동 채택하지 않습니다.'),
+        (('모두 선택','exact analysis','incomplete native'), '해석·재료·전체 솔리드 영역·Hex8 메시·해석기 설정을 모두 선택하세요.'),
+        (('law_native_version_unsupported','law_native_proxy_unsupported'), '지원하는 FreeCAD 1.1.4와 재료·해석기 설정인지 확인하세요. 원 할당은 그대로 보존합니다.'),
+        (('constraint','native loads','dynamic/contact'), '기존 하중·구속·접촉 조건을 확인하세요. 별도 시편 해석을 준비한 뒤 다시 검토하세요.'),
+    ):
+        if any(word in text for word in words):return message
+    # Only known domain sentences may remain verbatim; service IDs/trace do not.
+    if (raw.startswith(('Physical times must','History requires','FE maximum iterations',
+            'Fixed force tolerance','SLS physical strain','SLS admits physical strain',
+            'All four bulk/shear','DP time must','DP initial time/kappa',
+            'Nonpositive det(F)','This Neo-Hooke FE pair','Small-strain law outside',
+            'Probe h must','Explicit Pa/kPa/MPa/GPa','Uniaxial pair','Uniaxial initial',
+            'Uniaxial origin','Free-lateral public pair','Affine FE boundary'))
+            and '\n' not in raw and not re.search(r'HTTP|Traceback|0x[0-9a-f]+|[0-9a-f]{64}',raw)):
+        return '물리 입력 조건: '+raw+'\n해당 계수·이력·시편 조건을 수정한 뒤 다시 검토하세요.'
+    return '요청을 완료하지 못했습니다. 입력과 대상 상태를 확인하세요. 원인과 수치·단위는 기술 상세에서 확인할 수 있습니다.'
 
 
 class LawNativeTransferDialog(QDialog):
@@ -28,6 +76,7 @@ class LawNativeTransferDialog(QDialog):
         layout=QVBoxLayout(self)
         title=QLabel(material['title']);title.setProperty('appearanceRole','section');layout.addWidget(title)
         self.note=QLabel('FreeCAD의 해석과 전체 솔리드 영역을 선택하세요. 계산에는 FELUPE Hex8 시편을 사용합니다.')
+        self.note.setTextFormat(Qt.TextFormat.PlainText)
         self.note.setWordWrap(True);layout.addWidget(self.note)
         form=QFormLayout();self.docs=QComboBox();form.addRow('전처리 문서',self.docs);self.fields={}
         for key,label in [('analysis_id','해석'),('material_id','재료'),('region_id','전체 솔리드 영역'),
@@ -42,6 +91,7 @@ class LawNativeTransferDialog(QDialog):
             b=QPushButton(caption);b.clicked.connect(callback);buttons.addWidget(b);self.actions[name]=b
         buttons.addStretch();layout.addLayout(buttons)
         self.summary_title=QLabel('저장된 계수의 원값과 적용값을 검토하세요.');layout.addWidget(self.summary_title)
+        self.summary_title.setTextFormat(Qt.TextFormat.PlainText);self.summary_title.setWordWrap(True)
         self.summary=QTableWidget(0,5)
         self.summary.setHorizontalHeaderLabels(['계수','원값','원단위','적용값','적용단위'])
         self.summary.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -81,13 +131,18 @@ class LawNativeTransferDialog(QDialog):
             if error is None:result,error=result
             if error:
                 if failure:failure(error)
-                else:self.note.setText('응답 미확인/오류: '+str(error)+' · 적용을 추정하지 않습니다.')
+                else:self.show_error(error)
             else:
                 try:success(result)
-                except Exception as issue:self.note.setText(str(issue))
+                except Exception as issue:self.show_error(issue)
             self.update_actions()
         work.signals.finished.connect(done,Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(work)
+
+    def show_error(self,error,context=''):
+        self.note.setText((context+'\n' if context else '')+law_error_text(error))
+        detail=''.join(traceback.format_exception(type(error),error,error.__traceback__)) if isinstance(error,BaseException) else str(error)
+        self.detail.appendPlainText(detail)
 
     def update_actions(self):
         free=not self._busy and self.pending is None
@@ -146,7 +201,7 @@ class LawNativeTransferDialog(QDialog):
     def submit(self,op,args,done):
         try:
             args={'selection':self.selection(),**args};d=deepcopy(self.target)
-        except ValueError as error:self.note.setText(str(error));return
+        except ValueError as error:self.show_error(error);return
         cid='C'+uuid.uuid4().hex
         self.pending={'id':cid,'operation':op,'done':done,'unconfirmed':False,
             'service_session_id':d.get('service_session_id'),
@@ -167,17 +222,17 @@ class LawNativeTransferDialog(QDialog):
                 else:self._resolve_rejected_retry(error)
             else:
                 self.pending['unconfirmed']=True
-                self.note.setText('응답을 확인하지 못했습니다. 같은 요청으로 복구해 적용 여부를 확인하세요: '+str(error))
+                self.show_error(error,'적용 여부가 미확인입니다. 「같은 요청으로 복구」를 눌러 확인하세요. 원 요청과 메모는 보존합니다.')
         self._call(lambda:self.client.document_command(**request),queued,failed)
 
     def _reject_pending(self,error):
         self.pending=None;self.invalidate()
-        self.note.setText('요청이 거절되어 등록되지 않았습니다: '+str(error)+' 대상과 저장 재료를 다시 확인하세요.')
+        self.show_error(error,'요청이 거절되어 등록되지 않았습니다. 적용하지 않았으며 전달 메모는 보존합니다.')
 
     def _resolve_rejected_retry(self,rejection):
         pending=self.pending
         def unknown(error):
-            self.note.setText('원 요청의 등록 여부가 아직 미확정입니다. 같은 요청으로 복구하세요: '+str(error))
+            self.show_error(error,'원 요청의 등록 여부가 아직 미확정입니다. 같은 요청으로 복구하세요. 미적용을 추정하지 않습니다.')
         def found(status):
             self.pending['unconfirmed']=False;self.timer.start();self.handle_status(status)
         def missing(error):
@@ -203,8 +258,10 @@ class LawNativeTransferDialog(QDialog):
         current=self.pending;self.pending=None;self.timer.stop()
         if state!='SUCCEEDED':
             self.invalidate()
-            self.note.setText('명령 '+str(state)+' · 원 결과와 오류를 보존합니다. 다시 적용하지 않았습니다.')
-            self.detail.setPlainText(json.dumps(status,ensure_ascii=False,indent=2));return
+            self.detail.setPlainText(json.dumps(status,ensure_ascii=False,indent=2))
+            label={'FAILED':'실패','CANCELLED':'취소','INTERRUPTED':'중단'}[state]
+            cause=status.get('outcome',{}).get('error') or status.get('error') or ''
+            self.note.setText('요청 '+label+': 원 결과와 오류를 보존했습니다. 다시 적용하지 않았습니다.\n'+law_error_text(cause));return
         owner_response=status.get('outcome',{}).get('result',{})
         payload=owner_response.get('result',{})
         if status.get('final_generation') is not None:self.target['generation']=status['final_generation']
@@ -221,14 +278,14 @@ class LawNativeTransferDialog(QDialog):
                 item=QTableWidgetItem(text);item.setToolTip('저장된 재료 계수에서 변환한 값')
                 self.summary.setItem(row,column,item)
         self.summary_title.setText('검토 완료: 저장 재료 → FELUPE 시편 (mm, MPa, s)' if review.get('status')=='READY_FOR_EXPLICIT_APPLY'
-            else '적용 차단: '+' / '.join(review.get('errors',[])))
+            else '적용 차단:\n'+law_error_text(review.get('errors',[])))
 
     def poll(self):
         if self.pending and not self._busy:
             cid=self.pending['id']
             def failed(error):
                 self.timer.stop();self.pending['unconfirmed']=True
-                self.note.setText('명령 상태를 확인하지 못했습니다. 미적용을 추정하지 않고 같은 요청으로 복구합니다: '+str(error))
+                self.show_error(error,'적용 여부를 확인하지 못했습니다. 「같은 요청으로 복구」를 눌러 확인하세요. 미적용을 추정하지 않습니다.')
             self._call(lambda:self.client.command_status(cid),self.handle_status,failed)
 
     def read_assignment(self):
@@ -263,8 +320,10 @@ class LawNativeTransferDialog(QDialog):
         options={'solver':settings['solver'],'boundary':settings['boundary'],'purpose':'CONSTITUTIVE_SPECIMEN'}
         def done(payload,cid):
             self.review=payload['review'];self.preview_command=cid
-            self.note.setText('검토 준비됨 · 아직 적용하지 않았습니다.' if self.review['status']=='READY_FOR_EXPLICIT_APPLY'
-                else '검토 차단: '+' / '.join(self.review['errors']))
+            if self.review['status']=='READY_FOR_EXPLICIT_APPLY':self.note.setText('검토 준비됨 · 아직 적용하지 않았습니다.')
+            else:
+                self.note.setText('검토가 차단되어 적용할 수 없습니다. 아래 조건을 수정한 뒤 다시 검토하세요.')
+                self.detail.appendPlainText(json.dumps(self.review['errors'],ensure_ascii=False,indent=2))
         self.submit('pre.fem.law_preview',{'source':source,'options':options},done)
 
     def apply(self):

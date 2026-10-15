@@ -222,8 +222,17 @@ Windows에서 새 시험의 UTF-8 읽기와 출력별 CSV 물리량 표시를 �
 한 번의 실제 새 owner 진단에서 메시·배치·참조는 같고 원 binding과 현재 stamp의 BREP
 두 필드만 다른 것을 확인했다. 원 저장 전 export 원문이 없어 형상 동등성까지 단정하지 않는다.
 이 공개 저장본·원 소스·Astra 최종 교정 조건을 실제 Pro C1에 직접 첨부했다. C1은
-실행 도구 오류로 새 소스 없이 종료돼, 같은 원 첨부를 유지한 한 번의 재시도를 시작했다.
-진행 중 응답을 중복 전송하거나 원 실패를 완료로 바꾸지 않는다.
+실행 도구 오류로 새 소스 없이 종료됐고, 같은 대화의 한 번의 재시도도 같은 오류로 끝났다.
+최신 B13 소스·공통 참조와 동일 공개 저장 모델을 새 실제 Pro 대화에 직접 첨부해
+`PRO-B13-C1-FRESH-20261015-01` 작성을 재개했다. 앞선 미작성과 원 실패는 보존한다.
+새 대화는 https://chatgpt.com/c/6ad0aabd-cde4-83ec-8d03-092a6a6a3974 이며,
+기존 `b1-3-shell-beam-20261015/relay.json`에서 회수 상태를 관리한다.
+접촉·구속의 필수 잔여 B1.5/B1.6과 사용자 입력 Code_Aster S2도 Luna·Astra가 현재 코드와
+원 완료 조건을 함께 검토했다. 실제 사용자 면 선택, 법칙·단계 상태·Tie 조정·주기 구속,
+쌍별 장·힘·모멘트/Numerical 전달을 기존 owner/solver에 연결하는 큰 구현을 별도 새 실제
+Pro에 배정했다. 무료 Windows 실행 경로가 미확정인 조합은 기술 결정을 먼저 내리며
+원 요구에서 지우거나 미지원 표만으로 완료하지 않는다. 원자료와 현재 배정은
+`_workspace/delivery-cad-pre/contact-completion-request/relay.json`에 있다.
 
 **Expert 결과 첨부와 이어 읽기 통합:** 보존한 계산의 물리량·성분·단위를 선택해
 대화에 첨부하고, 편집 적용→실행 취소/다시 실행→저장→새 앱 재열기까지 연결했다.
@@ -256,6 +265,10 @@ Material의 명시 DP·초탄성/점탄성 point–FE·저장 개정의 해석 �
 앞선 합성 세 법칙 계산은 반복하지 않았다. Sol의 모델 편집·피팅 연결·유실 응답 재개
 GUI 교정과 한국어 화면/사용법을 `583ad1a`로 원격 main에 게시하고 일치를 확인했다. 원본은
 `_workspace/delivery-data-material/law-native-return/`, C1은 `law-native-c1-return/`에 있다.
+전용 두 창의 오류 안내도 수정했다. τ 범위·단위, DP 부등식, yy/zz=0 조건과 Hex8의
+절점 수·연결·Jacobian 문제를 주화면에서 구별하며 원 진단은 기술 상세에 남긴다.
+Sol의 실제 Windows Qt 표시·입력 보존·응답 복구 확인과 Astra의 최종 검토를 마쳤고
+Codex도 최종 오류 화면을 열어 확인했다. 요청·CAS·응답 유실 복구 조건은 유지한다.
 
 PDE S1 실제 구현도 회수해 전용24개·기존2개·공통11개와 기존 MCP 연결을 통합했다.
 Windows에서 실제 scikit-fem 열 계산→다른 P1 메시·명시 시각 전달→평면응력 열탄성→저장·
@@ -379,8 +392,10 @@ Astra가 미완성 원문에만 남은 옛 의존 자료의 수집 누락과 유
 현재 보존 입력에 연결되지 않아 새 Keep·재복사가 막히는 것을 한 번의 Windows 실행으로
 재현했다. 원 자료와 실패를 보존하고 실제 Pro에 이 Data 작업의 C2 교정을 요청했다.
 `_workspace/delivery-install-connections/c3a-data-q-request/relay.json`이 해당 회수 기록이다.
-아직 게시 전이다. 다른 owner/native
-확장은 필수 C3B 후속으로 유지하며 이 작업으로 전체 C3 완료를 선언하지 않는다.
+아직 게시 전이다. 필수 C3B의 Report·Study·Expert·PDE·Simulation·Evaluation과 managed
+FCStd/Post 이동은 Sol이 기존 요구·API로 작성 요청을 구체화하고 Astra가 독립 검토했다.
+`_workspace/delivery-install-connections/c3b-request/`를 재사용해 Data C2 반영 뒤 정확한
+작성 기준을 고정한다. 이 준비나 세 문서의 사본 구현을 전체 C3 완료로 세지 않는다.
 미완성 셀 보관·다른 문서 종류·native 의존 자료를 함께 이동하는 범위이며 최근 혼합 변수와
 재료 복구 GUI의 병렬 변경도 명시했다. 현재 지원 세 문서의 완료와 이 확장을 구분한다.
 같은 폴더의 `c3-c01-request/relay.json`이 현재 회수 기록이다.
