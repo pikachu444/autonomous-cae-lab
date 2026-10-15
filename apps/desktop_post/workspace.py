@@ -28,6 +28,7 @@ OPERATIONS = (
     'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
     'post.measurement_snapshot', 'post.measurement_open', 'post.contact_inspect', 'post.contact_measurement',
     'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export',
+    'post.report_image_verify',
 )
 
 
@@ -439,8 +440,16 @@ class Workspace:
             'post.show_analysis': self.show_analysis,
             'post.reset': self.reset, 'post.undo': self.undo, 'post.redo': self.redo,
             'post.export': self.export,
+            'post.report_image_verify': self.report_image_verify,
         }
         return handlers[operation](**arguments)
+
+    def report_image_verify(self, *, origin, expected_view_generation):
+        try:
+            from .report_image_origin_native import verify_live
+        except ImportError:
+            from report_image_origin_native import verify_live
+        return verify_live(self, origin=origin, expected_view_generation=expected_view_generation)
 
     def curve_catalog(self):
         from .curve_native import catalog
@@ -1155,7 +1164,17 @@ class Workspace:
             obj['preview'] = None
         return document
 
-    def export(self, *, object_ref, format='vtu'):
+    def export(self, *, object_ref, format='vtu', report_snapshot=False):
+        if type(report_snapshot) is not bool:
+            raise ValueError('보고서 캡처 선택은 참/거짓이어야 합니다.')
+        if report_snapshot:
+            if format != 'png':
+                raise ValueError('보고서 이미지는 PNG 형식으로 캡처하세요.')
+            try:
+                from .report_image_native import capture
+            except ImportError:
+                from report_image_native import capture
+            return capture(self, object_ref)
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj)
         if format not in ('vtu', 'csv', 'png'):

@@ -29,9 +29,17 @@ def _cae_post_startup():
             verify_origin(selected)
             if Path(selected["project"]["path"]).resolve() != project_path.resolve():
                 raise ValueError("Selected measurement belongs to another saved Post project")
+        report_origin = None
+        if os.environ.get("CAE_POST_REPORT_ORIGIN"):
+            from report_image_origin_native import startup_request, select_restored_source
+            report_origin = startup_request(os.environ["CAE_POST_REPORT_ORIGIN"], project_path)
+        if selected is not None and report_origin is not None:
+            raise ValueError("A measurement and Report origin cannot share one launch")
         from commands import restore_workspace
         log("module_loaded", module=restore_workspace.__module__)
-        restore_workspace(allow_repair=True)
+        restore_workspace(allow_repair=report_origin is None)
+        if report_origin is not None:
+            select_restored_source(report_origin)
         from paraview import simple as p, servermanager
         log("loaded", sources=[key[0] for key in p.GetSources()], views=[view.GetXMLName() for view in p.GetViews()], connection=str(servermanager.ActiveConnection))
         if os.environ.get("CAE_POST_SERVICE_URL"):

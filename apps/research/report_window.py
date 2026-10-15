@@ -70,6 +70,10 @@ class ReportWindow(QMainWindow):
         action('다시 실행', self.redo, edit, QKeySequence.Redo)
         action('설명 추가', lambda: self.append_section(section('설명')), edit)
         action('계산 결과 추가…', self.choose_result, source, primary=True)
+        from .report_image_dialog import choose_image, edit_image
+        action('3D 결과 이미지 추가…', lambda: choose_image(self), source)
+        action('선택 이미지 교체…', lambda: choose_image(self, replace=True), source)
+        action('이미지 표시와 크기…', lambda: edit_image(self), edit)
         action('저장된 연구 적용…', self.choose_study, source)
         action('문헌 추가…', self.choose_literature, source)
         action('원자료 열기', self.open_source, source)
@@ -157,7 +161,7 @@ class ReportWindow(QMainWindow):
         self.document = document; self.draft = deepcopy(document['draft'])
         self._undo.clear(); self._redo.clear(); self._pending = None
         self._edit_buffers.clear(); self._editing_section = None; self.section_editor.hide()
-        self.assets = {}; self.populate()
+        self.assets = {}; self._page = None; self.populate()
         if self._initial_reference:
             reference = self._initial_reference; self._initial_reference = None
             self.capture(reference, '선택한 결과')
@@ -301,11 +305,12 @@ class ReportWindow(QMainWindow):
             errors=diagnostics(self.draft)
             if errors: raise ValueError(errors[0]['message'])
             self._page=compose(self.draft,self.assets,self.font())
+            self._page_stale=False
             self.preview.updatePreview()
             self.fit_preview()
         except Exception as error:
-            self._page=None
-            self.message.setText('페이지를 만들 수 없습니다: '+str(error))
+            self._page_stale=True
+            self.message.setText('이전 미리보기를 유지합니다. 페이지를 만들 수 없습니다: '+str(error))
 
     def paint(self, printer):
         if self._page is not None:
@@ -317,7 +322,8 @@ class ReportWindow(QMainWindow):
         bindings=[s['asset'] for s in self.draft['sections'] if s.get('asset')]
         def read(receipt):
             if self.document['id']!=identifier: return
-            self.assets.update({a['id']:a for a in receipt['assets']}); self.render()
+            from caelab.report_image import merge_read_assets
+            self.assets = merge_read_assets(self.assets, receipt['assets']); self.render()
             bad=sum(a.get('source_status')!='AVAILABLE' for a in receipt['assets'])
             self.message.setText('원자료 확인 필요: '+str(bad)+'개' if bad else '고정한 자료를 읽었습니다.')
         return self._call(lambda:self.client.report_content(identifier,bindings),read)
@@ -534,6 +540,10 @@ class ReportWindow(QMainWindow):
         if i<0:return
         binding=self.draft['sections'][i].get('asset')
         if binding:
+            if binding['reference'].get('kind') == 'post_image':
+                from .report_image_dialog import show_origin
+                show_origin(self, binding)
+                return
             from .reference_window import ReferenceWindow
             window=ReferenceWindow(self.client,deepcopy(binding['reference']))
             self._children.append(window);window.show()
@@ -556,7 +566,7 @@ class ReportWindow(QMainWindow):
         if not path:return
         try:
             self.render()
-            if self._page is None:raise ValueError('페이지 오류를 먼저 고치세요.')
+            if self._page is None or getattr(self, '_page_stale', False):raise ValueError('페이지 오류를 먼저 고치세요. 이전 출력은 유지합니다.')
             if format=='pdf':atomic_export(path,lambda p:pdf_document(self._page,p))
             else:atomic_export(path,lambda p:p.write_text(markdown(self.draft,self.assets),encoding='utf-8'))
             self.message.setText('보고서를 내보냈습니다.')

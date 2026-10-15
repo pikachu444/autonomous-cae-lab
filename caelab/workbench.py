@@ -229,6 +229,11 @@ class Workbench:
         return self.study_documents.resolve_references(identifier)
 
     def report_capture(self, document_id, reference):
+        if isinstance(reference, dict) and reference.get('kind') == 'post_image_command':
+            if set(reference) != {'kind', 'command_id'}:
+                raise ValueError('보고서 캡처는 완료된 Post 명령만 선택합니다.')
+            command = self.native_commands.status(check_id(reference['command_id']))
+            return self.report_documents.capture_image(check_id(document_id), command)
         return self.report_documents.capture(check_id(document_id), reference)
 
     def report_content(self, document_id, assets):

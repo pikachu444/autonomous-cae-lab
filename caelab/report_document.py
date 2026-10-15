@@ -10,7 +10,14 @@ import shutil
 from .material_document import MaterialDocuments
 from .storage import canonical_hash, check_id, load_json, save_json
 from .evaluation import file_hash
-from .study_document import reference_error
+from .study_document import reference_error as study_reference_error
+from . import report_image
+
+
+def reference_error(reference):
+    if isinstance(reference, dict) and reference.get('kind') == 'post_image':
+        return report_image.reference_error(reference)
+    return study_reference_error(reference)
 
 
 def default_draft():
@@ -34,7 +41,8 @@ def diagnostics(draft):
     seen = set()
     for i, row in enumerate(draft['sections']):
         path = 'sections/' + str(i)
-        if not isinstance(row, dict) or set(row) != {'id', 'title', 'text', 'include', 'table', 'curve', 'asset'}:
+        if (not isinstance(row, dict) or set(row) - {'image'} !=
+                {'id', 'title', 'text', 'include', 'table', 'curve', 'asset'}):
             error(path, '섹션 제목, 설명, 표와 곡선 선택을 확인하세요.')
             continue
         try:
@@ -48,6 +56,11 @@ def diagnostics(draft):
             error(path, '제목과 설명은 텍스트여야 합니다.')
         if not all(type(row[k]) is bool for k in ('include', 'table', 'curve')):
             error(path, '섹션 포함과 표시 선택을 확인하세요.')
+        if 'image' in row:
+            try:
+                report_image.image_options(row)
+            except ValueError as exc:
+                error(path + '/image', str(exc))
         asset = row['asset']
         if asset is not None:
             if not isinstance(asset, dict) or set(asset) != {'id', 'sha256', 'reference'}:
@@ -176,6 +189,20 @@ class ReportDocuments(MaterialDocuments):
     def _recover_evaluations(self, document):
         return None
 
+    def _verify_revision(self, identifier, revision):
+        try:
+            result = super()._verify_revision(identifier, revision)
+            getattr(self, '_image_revision_issues', {}).pop(identifier, None)
+            return result
+        except (ValueError, OSError):
+            folder = self._folder(identifier) / 'revisions' / check_id(revision)
+            document, issues = report_image.read_degraded_revision(
+                folder, self._manifest(identifier), identifier, revision)
+            if not hasattr(self, '_image_revision_issues'):
+                self._image_revision_issues = {}
+            self._image_revision_issues[identifier] = issues
+            return document
+
     def capture(self, identifier, reference):
         with self._lock(identifier):
             self.read(identifier)
@@ -183,17 +210,29 @@ class ReportDocuments(MaterialDocuments):
             payload = self.resolve_reference(reference)
             check_selection(reference, payload)
             frozen = {'reference': reference, 'content': compact_payload(payload)}
-            encoded = json.dumps(frozen, ensure_ascii=False, allow_nan=False).encode('utf-8')
-            if len(encoded) > 8 * 1024 * 1024:
-                raise ValueError('자료가 큽니다. 필요한 응답과 원행 구간을 선택하세요.')
-            digest = canonical_hash(frozen)
-            asset_id = 'A' + digest
-            path = self._folder(identifier) / 'assets' / (asset_id + '.json')
-            if not path.exists():
-                save_json(path, frozen)
-            elif canonical_hash(load_json(path)) != digest:
-                raise ValueError('보존된 보고서 자료가 변경되었습니다.')
-            return {'id': asset_id, 'sha256': digest, 'reference': reference}
+            return self._retain_asset(identifier, frozen)
+
+    def capture_image(self, identifier, command):
+        """command must come from the stored native broker, never client JSON."""
+        with self._lock(identifier):
+            self.read(identifier)
+            reference, content = report_image.completed_content(command)
+            return self._retain_asset(identifier, {'reference': reference, 'content': content})
+
+    def _retain_asset(self, identifier, frozen):
+        # Caller holds the report owner lock; keep the one existing asset store.
+        reference = frozen['reference']
+        encoded = json.dumps(frozen, ensure_ascii=False, allow_nan=False).encode('utf-8')
+        if len(encoded) > 8 * 1024 * 1024:
+            raise ValueError('자료가 큽니다. 필요한 응답과 원행 구간을 선택하세요.')
+        digest = canonical_hash(frozen)
+        asset_id = 'A' + digest
+        path = self._folder(identifier) / 'assets' / (asset_id + '.json')
+        if not path.exists():
+            save_json(path, frozen)
+        elif canonical_hash(load_json(path)) != digest:
+            raise ValueError('보존된 보고서 자료가 변경되었습니다.')
+        return {'id': asset_id, 'sha256': digest, 'reference': reference}
 
     def asset(self, identifier, binding):
         asset_id = check_id(binding['id'])
@@ -206,6 +245,8 @@ class ReportDocuments(MaterialDocuments):
         frozen = load_json(path)
         if canonical_hash(frozen) != binding['sha256'] or frozen['reference'] != binding['reference']:
             raise ValueError('보고서 자료의 원값 또는 참조가 변경되었습니다.')
+        if frozen['content'].get('kind') == 'post_image':
+            report_image.validate_content(frozen['content'], binding['reference'])
         return frozen
 
     def content(self, identifier, bindings):
@@ -216,14 +257,21 @@ class ReportDocuments(MaterialDocuments):
             try:
                 frozen = self.asset(identifier, binding)
                 try:
-                    current = self.resolve_reference(binding['reference'])
-                    check_selection(binding['reference'], current)
-                    # The report always reads its snapshot; availability cannot replace it.
-                    if canonical_hash(compact_payload(current)) != canonical_hash(frozen['content']):
-                        raise ValueError('원자료 내용이 고정한 자료와 다릅니다.')
+                    if frozen['content'].get('kind') == 'post_image':
+                        report_image.verify_origin(frozen['content']['snapshot']['origin'])
+                    else:
+                        current = self.resolve_reference(binding['reference'])
+                        check_selection(binding['reference'], current)
+                        # The report always reads its snapshot; availability cannot replace it.
+                        if canonical_hash(compact_payload(current)) != canonical_hash(frozen['content']):
+                            raise ValueError('원자료 내용이 고정한 자료와 다릅니다.')
                     state, message = 'AVAILABLE', ''
                 except Exception as error:
                     state, message = 'UNAVAILABLE', str(error)
+                issues = [row for row in getattr(self, '_image_revision_issues', {}).get(identifier, [])
+                          if row['asset_id'] == binding['id']]
+                if issues:
+                    state, message = 'UNAVAILABLE', issues[0]['message'] + ' 확인된 작업 사본은 유지합니다.'
                 rows.append({'id': binding['id'], **frozen, 'source_status': state, 'message': message})
             except Exception as error:
                 rows.append({'id': binding.get('id'), 'source_status': 'SNAPSHOT_UNAVAILABLE', 'message': str(error)})

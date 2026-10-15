@@ -48,6 +48,12 @@ def verdict_text(value):
 def blocks(content):
     """Semantic blocks use only the frozen selected payload."""
     kind = content.get('kind')
+    if kind == 'post_image':
+        from caelab.report_image import caption, validate_content
+        validate_content(content)
+        yield ('paragraph', caption(content['snapshot']))
+        yield ('image', content)
+        return
     if kind == 'comparison':
         comparison=content['comparison']['comparison']
         observation=comparison['observation']; axes=observation.get('axes',[])
@@ -268,10 +274,15 @@ def compose(draft, assets, font):
         if not asset:
             continue
         if asset.get('source_status') != 'AVAILABLE':
-            paragraph('원자료 확인 불가 — 보고서에 고정한 내용입니다.')
+            from .report_image_pages import availability_message
+            paragraph(availability_message(asset))
         for kind, value in blocks(asset['content']):
             if kind == 'paragraph':
                 paragraph(value)
+            elif kind == 'image':
+                from .report_image_pages import insert_image
+                insert_image(document, cursor, value, section, 'report-image:' + str(images))
+                images += 1
             elif kind == 'curve' and section['curve']:
                 png = plot_bytes(value)
                 image = QImage.fromData(QByteArray(png), 'PNG')
@@ -310,10 +321,14 @@ def markdown(draft, assets):
                 lines += ['보존 자료를 읽지 못했습니다.', '']
             continue
         if asset.get('source_status') != 'AVAILABLE':
-            lines += ['원자료 확인 불가. 아래 내용은 보고서에 고정한 기록입니다.', '']
+            from .report_image_pages import availability_message
+            lines += [availability_message(asset), '']
         for kind, value in blocks(asset.get('content', {})):
             if kind == 'paragraph':
                 lines += [value, '']
+            elif kind == 'image':
+                from .report_image_pages import image_markdown
+                lines += [image_markdown(value, section), '']
             elif kind == 'curve' and section['curve']:
                 lines += ['![고정한 자료의 곡선](data:image/png;base64,' +
                           base64.b64encode(plot_bytes(value)).decode('ascii') + ')', '']

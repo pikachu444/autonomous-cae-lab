@@ -528,7 +528,10 @@ def _register_post_inspection(client, selected):
             return check_id(receipt['id'])
 
 
-def _post(client, args):
+def _post(client, args, *, _report_origin=None, _report_launch=None):
+    if getattr(args, 'report_image', None):
+        from .report_image_origin import launch_saved_project
+        return launch_saved_project(client, args)
     context = client.desktop_context()
     executable = _executable(context, 'paraview_executable', args.executable, not args.prepare_only)
     home = Path(context['repo_root']) / 'apps/desktop_post'
@@ -614,6 +617,10 @@ def _post(client, args):
     # Prevent an inherited Post origin from attaching itself to an unrelated input.
     environment.pop('CAELAB_ORIGIN_JOB_ID', None)
     environment.pop('CAE_POST_MEASUREMENT', None)
+    environment.pop('CAE_POST_REPORT_ORIGIN', None)
+    if _report_origin is not None:
+        from .report_image_origin import prepare_native_environment
+        prepare_native_environment(_report_origin, project, folder, environment)
     if measurement_source is not None:
         selection_path = folder / 'measurement.json'
         save_json(selection_path, {key: measurement_source[key] for key in (
@@ -641,14 +648,23 @@ def _post(client, args):
                                        'project_sha256': measurement_source['project']['sha256']})
                 return existing
             save_json(marker, {'state': 'STARTING', 'project_sha256': measurement_source['project']['sha256']})
+        if _report_origin is not None:
+            from caelab.report_image import verify_origin
+            verify_origin(_report_origin)
+        if _report_launch is not None:
+            _report_launch['phase'] = 'SPAWNING'
         try:
             process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
                                         '--log=' + str(folder / 'native_gui.log')], cwd=folder, env=environment)
         except OSError:
             # Confirmed process-creation failure. Interrupts remain ambiguous.
+            if _report_launch is not None:
+                _report_launch['phase'] = 'NOT_CREATED'
             if marker is not None:
                 marker.unlink(missing_ok=True)
             raise
+        if _report_launch is not None:
+            _report_launch.update(phase='CREATED', pid=process.pid)
         if marker is not None:
             save_json(marker, {'state': 'LAUNCH_REQUESTED', 'launcher_pid': process.pid,
                                'project_sha256': measurement_source['project']['sha256']})
@@ -683,6 +699,7 @@ def _arguments(argv=None):
     post = sub.add_parser('post', allow_abbrev=False)
     choice = post.add_mutually_exclusive_group()
     choice.add_argument('--measurement-result')
+    choice.add_argument('--report-image')
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
     origin = sub.add_parser('origin', allow_abbrev=False); origin.add_argument('--job-id', required=True)
     for name in sorted(TOOLS):
