@@ -234,6 +234,11 @@ Sol이 공통 통합을 원 패치와 독립 대조했다. 현재 main에서 실
 연결하며, 이산·종속 변수와 MDO·장 전달 잔여도 유지한다. 사용법은
 [후보 상세](docs/NUMERICAL_CANDIDATE_DETAIL_KO.md)와
 [선택 결과 저장·채택](docs/NUMERICAL_CANDIDATE_EVIDENCE_C1_KO.md)에 있다.
+다음 혼합 정수·이산·범주 변수와 단위 있는 종속값은 실제 Pro에 최신 공개 소스와
+REQUEST-R1을 첨부해 한 번 요청했고 작성 중이다. FN20-03/B5.1의 실제 평가·채택·cold
+연결을 맡겼으며 FN20-01 전체 GUI, MDO/장 전달의 완료로 확대하지 않는다. 현재 송신·
+회수 원본은 Numerical 담당 작업 트리의
+`_workspace/delivery-numerical-pde/pro-mixed-domains-20261015-01/relay.json`이다.
 공유 변수 표의 미확정 숫자·선택·붙여넣기 원문을 읽고 명시적으로 복원하는 전용 GUI
 API도 main에 통합했다. 이 위젯은 문서에 적용하거나 저장하지 않으며 관련 문서의
 복구 기준·저장 조정은 Data C2에서 별도로 완성한다.
