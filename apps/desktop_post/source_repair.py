@@ -164,7 +164,10 @@ def partial_state(state, document, issues, output, *, retain_applied=False):
             # Views/layout and the animation scene contain healthy siblings.
             # Individual cues/representations depend on their exact input.
             group, kind = proxy.get('group', ''), proxy.get('type', '')
-            container = group in containers and ('Cue' not in kind and 'Track' not in kind)
+            # TimeKeeper is registered in the timekeeper collection but its
+            # proxy XML group is misc. Keep this global container and prune only
+            # its missing source entries, just as for views and animation.
+            container = (group in containers or kind == 'TimeKeeper') and ('Cue' not in kind and 'Track' not in kind)
             if not container and references & bad:
                 bad.add(identifier)
                 changed = True

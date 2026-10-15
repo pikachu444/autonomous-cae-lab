@@ -622,8 +622,9 @@ def save_project(path, doc, *, prepare=None, _history_owner=None):
     return project
 
 
-def restore_workspace(path, doc, *, allow_repair=False):
+def restore_workspace(path, doc, *, allow_repair=False, _native_load=None):
     global _recovery, _recovery_state
+    load_state = p.LoadState if _native_load is None else _native_load
     _recovery = []
     _recovery_state = None
     state = path.parent / doc["workspace_file"]
@@ -646,7 +647,7 @@ def restore_workspace(path, doc, *, allow_repair=False):
         _recovery = issues
         partial = Path(doc['project_root']) / 'repairs' / ('P' + uuid.uuid4().hex) / 'available.pvsm'
         selection = partial_state(state, doc, issues, partial, retain_applied=True)
-        p.LoadState(str(partial))
+        load_state(str(partial))
         missing = {row['source_ref'] for row in issues if row.get('source_ref')}
         healthy = {**doc, 'sources': {ref: row for ref, row in doc['sources'].items() if ref not in missing}}
         available_names = set(selection['healthy_source_names'])
@@ -679,9 +680,9 @@ def restore_workspace(path, doc, *, allow_repair=False):
         # graph. The immutable PVSM is retained for provenance/explicit editing.
         restored = Path(doc['project_root']) / 'repairs' / ('P' + uuid.uuid4().hex) / 'retained.pvsm'
         partial_state(state, doc, [], restored, retain_applied=True)
-        p.LoadState(str(restored))
+        load_state(str(restored))
     else:
-        p.LoadState(str(state))
+        load_state(str(state))
     for record in doc.get('sources', {}).values():
         declaration=record.get('native_metadata') or {}
         if 'dynamic_locations' in declaration:

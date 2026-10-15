@@ -29,11 +29,16 @@ def _cae_post_startup():
             from caelab.portable_project_native import resume_open_ticket, verify_opened, _native_open_readback
             from apps.desktop_post.portable_project import restore_bound_project, select_bound_target
             context, ticket = resume_open_ticket(os.environ['CAE_POST_NATIVE_OPEN'])
+            log('native_project_verified', open_id=ticket.binding.open_id)
             if ticket.status == 'ADOPTION_REQUIRED':
                 raise ValueError('MANAGED_SAVE_REQUIRED: explicitly adopt this raw state before opening a managed analysis project')
             action = json.loads(context.open_actions[ticket.binding.open_id].read_text(encoding='utf-8'))
+            import paraview
+            log('native_project_restore_begin', open_id=ticket.binding.open_id, legacy_from_gui=getattr(paraview, 'fromGUI', None))
             opened = restore_bound_project(ticket.verified_input, ticket.binding,
-                allow_partial=action['request']['allow_partial'])
+                allow_partial=action['request']['allow_partial'], _gui_state=True)
+            for diagnostic in opened.get('native_state_diagnostics', []):
+                log('native_project_gui_state', **diagnostic)
             readback = opened['readback']
             if action['request']['selection'] is not None:
                 selected_readback = select_bound_target(opened['owner'], action['request']['selection'],

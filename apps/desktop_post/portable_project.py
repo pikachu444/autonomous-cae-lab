@@ -674,7 +674,87 @@ def derive_project(verified_input, destination, *, binding):
         'relocation': paths, 'status': 'PREPARED'}
 
 
-def restore_bound_project(verified_input, binding, *, allow_partial=False):
+def _gui_timekeeper_state(state_path, destination):
+    """One native GUI invariant on a transient copy; verified state stays intact."""
+    import xml.etree.ElementTree as ET
+    state_path, destination = Path(state_path), Path(destination)
+    before = file_pin(state_path)
+    tree = ET.parse(state_path)
+    root = tree.getroot()
+    server = root if root.tag == 'ServerManagerState' else root.find('ServerManagerState')
+    if server is None:
+        raise ValueError('NATIVE_TIMEKEEPER_UNBOUND: native server state is unavailable')
+    proxies = server.findall('Proxy')
+    keepers = [proxy for proxy in proxies if proxy.get('group') == 'misc' and proxy.get('type') == 'TimeKeeper']
+    collections = server.findall("ProxyCollection[@name='timekeeper']")
+    items = [item for collection in collections for item in collection.findall('Item')]
+    registered = {item.get('id') for item in items}
+    scenes = [proxy for proxy in proxies if proxy.get('group') == 'animation' and proxy.get('type') == 'AnimationScene']
+    animation_collections = server.findall("ProxyCollection[@name='animation']")
+    animation_ids = {item.get('id') for collection in animation_collections for item in collection.findall('Item')}
+    if scenes and (len(collections) != 1 or len(animation_collections) != 1
+            or len(items) != 1 or items[0].get('name') != 'TimeKeeper1'
+            or len(keepers) != 1 or keepers[0].get('id') != items[0].get('id')):
+        raise ValueError('NATIVE_TIMEKEEPER_UNBOUND: animation has no unique declared native singleton')
+    edits = []
+    for scene in scenes:
+        properties = scene.findall("Property[@name='TimeKeeper']")
+        if len(properties) != 1 or scene.get('id') not in animation_ids:
+            raise ValueError('NATIVE_TIMEKEEPER_UNBOUND: animation scene has no exact TimeKeeper property')
+        prop = properties[0]
+        links = prop.findall('Proxy')
+        if links:
+            if (len(links) != 1 or links[0].get('value') not in registered
+                    or len([keeper for keeper in keepers if keeper.get('id') == links[0].get('value')]) != 1):
+                raise ValueError('NATIVE_TIMEKEEPER_UNBOUND: animation scene points to an invalid TimeKeeper')
+            continue  # A valid saved link value is never rewritten.
+        if (prop.get('number_of_elements') not in (None, '0') or prop.findall('Element')
+                or len(collections) != 1 or len(animation_collections) != 1
+                or len(items) != 1 or items[0].get('name') != 'TimeKeeper1'
+                or len(keepers) != 1 or keepers[0].get('id') != items[0].get('id')):
+            raise ValueError('NATIVE_TIMEKEEPER_UNBOUND: empty animation TimeKeeper has no unique declared native singleton')
+        edits.append({'proxy_id': scene.get('id'), 'property': 'TimeKeeper',
+                      'old_proxy_ids': [], 'new_proxy_ids': [items[0].get('id')]})
+    reorder = bool(scenes) and list(server).index(collections[0]) > list(server).index(animation_collections[0])
+    if not edits and not reorder:
+        return state_path, {'source': before, 'loaded': deepcopy(before), 'edits': []}
+    for edit in edits:
+        scene = next(proxy for proxy in scenes if proxy.get('id') == edit['proxy_id'])
+        prop = scene.find("Property[@name='TimeKeeper']")
+        prop.set('number_of_elements', '1')
+        ET.SubElement(prop, 'Proxy', value=edit['new_proxy_ids'][0])
+    # ParaView 6.2 clears a proxy property before recursively locating its
+    # target, including when the saved property is already connected. Load
+    # this declared singleton first so its time-range callbacks
+    # cannot observe the animation scene during that temporary null window.
+    keeper_collection, animation_collection = collections[0], animation_collections[0]
+    old_order = [child.get('name') for child in server if child.tag == 'ProxyCollection']
+    if reorder:
+        server.remove(keeper_collection)
+        server.insert(list(server).index(animation_collection), keeper_collection)
+    new_order = [child.get('name') for child in server if child.tag == 'ProxyCollection']
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open('xb') as stream:
+        tree.write(stream, encoding='utf-8', xml_declaration=True)
+    if file_pin(state_path) != before:
+        raise ValueError('CONTENT_CHANGED: verified native load state changed')
+    return destination, {'source': before, 'loaded': file_pin(destination), 'edits': edits,
+        'collection_order': {'before': old_order, 'after': new_order}}
+
+
+def _load_managed_gui_state(state_path, binding, diagnostics):
+    from paraview import simple as p
+    path, record = _gui_timekeeper_state(state_path, Path(binding.materialization_root) / 'gui-load.pvsm')
+    # These pins/field deltas are diagnostic only. The path-only state, its
+    # project pin, immutable snapshot and relocation proof are never changed.
+    diagnostics.append(record)
+    report = Path(binding.materialization_root) / 'gui-load.json'
+    report.write_text(json.dumps({'state': 'PREPARED', **record}, indent=2) + '\n', encoding='utf-8')
+    p.LoadState(str(path))
+    report.write_text(json.dumps({'state': 'LOADED', **record}, indent=2) + '\n', encoding='utf-8')
+
+
+def restore_bound_project(verified_input, binding, *, allow_partial=False, _gui_state=False):
     _pair(verified_input, binding)
     blocking = [row for row in verified_input.snapshot['validation']['issues']
                 if row['code'] in {'UNSUPPORTED_EXECUTABLE_PROXY', 'UNSUPPORTED_DEPENDENCY', 'READER_NOT_VERIFIED'}]
@@ -691,7 +771,11 @@ def restore_bound_project(verified_input, binding, *, allow_partial=False):
         from . import commands, bridge
     except ImportError:
         import commands, bridge
-    restored = commands.restore_workspace(allow_repair=allow_partial)
+    state_diagnostics = []
+    options = {'allow_repair': allow_partial}
+    if _gui_state:
+        options['_native_load'] = lambda path: _load_managed_gui_state(path, binding, state_diagnostics)
+    restored = commands.restore_workspace(**options)
     owner = bridge.Owner(document_id=binding.working_document_id, _portable_binding=binding)
     commands.set_save_owner(owner)
     issues = owner.workspace.restore_issues if owner.workspace else []
@@ -703,7 +787,8 @@ def restore_bound_project(verified_input, binding, *, allow_partial=False):
         'native_owner_session': owner.session_id, 'native_kind': 'post'})
     return {'status': status,
             'owner': owner, 'project_path': derived['project_path'], 'issues': deepcopy(issues),
-            'selection': deepcopy(owner.project_document.get('active_selection')), 'readback': readback}
+            'selection': deepcopy(owner.project_document.get('active_selection')), 'readback': readback,
+            'native_state_diagnostics': state_diagnostics}
 
 
 def adopt_pvsm(verified_input, binding, *, expected_empty_session):

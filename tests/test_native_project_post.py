@@ -466,3 +466,122 @@ def test_repeated_stale_save_validation_never_releases_completed_or_unknown_rese
     with pytest.raises(ValueError, match='STALE_DOCUMENT'):
         portable_project.complete_save(owner, expected_stamp=target.expected_stamp, _target_save=target)
     assert failures == [] and not bridge.saved
+
+
+def test_partial_native_state_preserves_global_timekeeper_and_animation_cue(native, tmp_path):
+    import importlib
+    repair = importlib.import_module('apps.desktop_post.source_repair')
+    a = write(tmp_path/'a.vtu', b'healthy'); b = tmp_path/'b.vtu'
+    original = state(tmp_path/'original.pvsm', [('A','XMLUnstructuredGridReader',[a]),('B','XMLUnstructuredGridReader',[b])])
+    tree = ET.parse(original); server = tree.getroot().find('ServerManagerState')
+    keeper = ET.SubElement(server, 'Proxy', group='misc', type='TimeKeeper', id='30')
+    prop = ET.SubElement(keeper,'Property',name='TimeSources',number_of_elements='2')
+    for value in ('1','2'): ET.SubElement(prop,'Proxy',value=value)
+    scene = ET.SubElement(server,'Proxy',group='animation',type='AnimationScene',id='31')
+    for name,value in [('TimeKeeper','30'),('Cues','32')]:
+        ET.SubElement(ET.SubElement(scene,'Property',name=name,number_of_elements='1'),'Proxy',value=value)
+    cue = ET.SubElement(server,'Proxy',group='animation',type='TimeAnimationCue',id='32')
+    ET.SubElement(ET.SubElement(cue,'Property',name='AnimatedProxy',number_of_elements='1'),'Proxy',value='30')
+    for group,rows in [('timekeeper',[('30','TimeKeeper1')]),('animation',[('31','AnimationScene1'),('32','TimeAnimationCue1')])]:
+        collection=ET.SubElement(server,'ProxyCollection',name=group)
+        for identifier,name in rows: ET.SubElement(collection,'Item',id=identifier,name=name)
+    tree.write(original,encoding='utf-8',xml_declaration=True)
+    before=original.read_bytes()
+    output=tmp_path/'available.pvsm'
+    document={'sources':{'A':{'reader_name':'A'},'B':{'reader_name':'B'}},'analysis':{'objects':{}}}
+    result=repair.partial_state(original,document,[{'source_ref':'B','reader_name':'B'}],output,retain_applied=True)
+    server=ET.parse(output).getroot().find('ServerManagerState')
+    assert server.find("Proxy[@id='30']") is not None
+    assert server.find("Proxy[@id='32']") is not None
+    assert [row.get('value') for row in server.findall("Proxy[@id='30']/Property[@name='TimeSources']/Proxy")] == ['1']
+    assert server.find("Proxy[@id='31']/Property[@name='TimeKeeper']/Proxy").get('value')=='30'
+    assert result['removed_source_names']==['B'] and original.read_bytes()==before
+
+
+def _native_timing_state(path, *, link=None):
+    root=ET.Element('ParaView');server=ET.SubElement(root,'ServerManagerState')
+    keeper=ET.SubElement(server,'Proxy',id='30',group='misc',type='TimeKeeper')
+    ET.SubElement(ET.SubElement(keeper,'Property',name='Time'), 'Element',index='0',value='1.25')
+    scene=ET.SubElement(server,'Proxy',id='31',group='animation',type='AnimationScene')
+    prop=ET.SubElement(scene,'Property',name='TimeKeeper',id='31.TimeKeeper')
+    if link is not None:
+        prop.set('number_of_elements','1');ET.SubElement(prop,'Proxy',value=link)
+    ET.SubElement(ET.SubElement(scene,'Property',name='AnimationTime'), 'Element',index='0',value='1.25')
+    ET.SubElement(scene,'Property',name='Cues')
+    ET.SubElement(scene,'Property',name='ViewModules')
+    for group,identifier,name in [('timekeeper','30','TimeKeeper1'),('animation','31','AnimationScene1')]:
+        ET.SubElement(ET.SubElement(server,'ProxyCollection',name=group),'Item',id=identifier,name=name)
+    ET.ElementTree(root).write(path,encoding='utf-8',xml_declaration=True)
+    return root
+
+
+def test_gui_timekeeper_compatibility_changes_only_transient_empty_link(tmp_path):
+    from caelab.native_post_dependencies import file_pin
+    source=tmp_path/'path-only.pvsm';original=_native_timing_state(source);before=source.read_bytes()
+    output,record=portable_project._gui_timekeeper_state(source,tmp_path/'gui-load.pvsm')
+    assert source.read_bytes()==before and output!=source
+    assert record['source']==file_pin(source) and record['loaded']==file_pin(output)
+    assert record['edits']==[{'proxy_id':'31','property':'TimeKeeper','old_proxy_ids':[],'new_proxy_ids':['30']}]
+    loaded=ET.parse(output).getroot()
+    prop=loaded.find("ServerManagerState/Proxy[@id='31']/Property[@name='TimeKeeper']")
+    assert prop.find('Proxy').get('value')=='30'
+    prop.remove(prop.find('Proxy'));prop.attrib.pop('number_of_elements')
+    assert ET.tostring(loaded)==ET.tostring(original)  # Cues/views/time and all other fields are unchanged.
+
+
+def test_gui_timekeeper_valid_state_remains_byte_identical(tmp_path):
+    source=tmp_path/'normal.pvsm';_native_timing_state(source,link='30');before=source.read_bytes()
+    destination=tmp_path/'unused.pvsm'
+    actual,record=portable_project._gui_timekeeper_state(source,destination)
+    assert actual==source and record['edits']==[]
+    assert source.read_bytes()==before and not destination.exists()
+
+
+@pytest.mark.parametrize('fault',['wrong_target','ambiguous','missing_declaration'])
+def test_gui_timekeeper_compatibility_rejects_unknown_native_target(tmp_path,fault):
+    source=tmp_path/'invalid.pvsm';root=_native_timing_state(source,link='999' if fault=='wrong_target' else None)
+    server=root.find('ServerManagerState')
+    if fault=='ambiguous': ET.SubElement(server.find("ProxyCollection[@name='timekeeper']"),'Item',id='30',name='OtherKeeper')
+    if fault=='missing_declaration': server.remove(server.find("ProxyCollection[@name='timekeeper']"))
+    ET.ElementTree(root).write(source,encoding='utf-8',xml_declaration=True);before=source.read_bytes()
+    with pytest.raises(ValueError,match='NATIVE_TIMEKEEPER_UNBOUND'):
+        portable_project._gui_timekeeper_state(source,tmp_path/'rejected.pvsm')
+    assert source.read_bytes()==before and not (tmp_path/'rejected.pvsm').exists()
+
+
+def test_gui_legacy_timekeeper_is_loaded_before_animation_without_other_changes(tmp_path):
+    source=tmp_path/'legacy.pvsm';original=_native_timing_state(source)
+    server=original.find('ServerManagerState')
+    keeper=server.find("ProxyCollection[@name='timekeeper']");server.remove(keeper);server.append(keeper)
+    ET.ElementTree(original).write(source,encoding='utf-8',xml_declaration=True);before=source.read_bytes()
+    output,record=portable_project._gui_timekeeper_state(source,tmp_path/'transient.pvsm')
+    assert record['collection_order']=={'before':['animation','timekeeper'],'after':['timekeeper','animation']}
+    actual=ET.parse(output).getroot();server=actual.find('ServerManagerState')
+    prop=server.find("Proxy[@id='31']/Property[@name='TimeKeeper']");prop.remove(prop.find('Proxy'));prop.attrib.pop('number_of_elements')
+    keeper=server.find("ProxyCollection[@name='timekeeper']");server.remove(keeper);server.append(keeper)
+    assert ET.tostring(actual)==ET.tostring(original) and source.read_bytes()==before
+
+
+def test_gui_bound_timekeeper_animation_first_changes_only_collection_order(tmp_path):
+    source=tmp_path/'saved.pvsm';original=_native_timing_state(source,link='30')
+    server=original.find('ServerManagerState')
+    keeper=server.find("ProxyCollection[@name='timekeeper']");server.remove(keeper);server.append(keeper)
+    ET.ElementTree(original).write(source,encoding='utf-8',xml_declaration=True);before=source.read_bytes()
+    output,record=portable_project._gui_timekeeper_state(source,tmp_path/'transient.pvsm')
+    assert record['edits']==[] and output!=source
+    assert record['collection_order']=={'before':['animation','timekeeper'],'after':['timekeeper','animation']}
+    actual=ET.parse(output).getroot();server=actual.find('ServerManagerState')
+    keeper=server.find("ProxyCollection[@name='timekeeper']");server.remove(keeper);server.append(keeper)
+    assert ET.tostring(actual)==ET.tostring(original) and source.read_bytes()==before
+
+
+@pytest.mark.parametrize('fault',['duplicate_keeper','duplicate_animation'])
+def test_gui_bound_timekeeper_rejects_ambiguous_singleton(tmp_path,fault):
+    source=tmp_path/'ambiguous.pvsm';original=_native_timing_state(source,link='30')
+    server=original.find('ServerManagerState')
+    if fault=='duplicate_keeper': ET.SubElement(server,'Proxy',id='40',group='misc',type='TimeKeeper')
+    else: ET.SubElement(server,'ProxyCollection',name='animation')
+    ET.ElementTree(original).write(source,encoding='utf-8',xml_declaration=True);before=source.read_bytes()
+    with pytest.raises(ValueError,match='NATIVE_TIMEKEEPER_UNBOUND'):
+        portable_project._gui_timekeeper_state(source,tmp_path/'transient.pvsm')
+    assert source.read_bytes()==before and not (tmp_path/'transient.pvsm').exists()

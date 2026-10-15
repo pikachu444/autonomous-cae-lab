@@ -99,3 +99,11 @@ This accepts that implementation unit, not the whole Desktop delivery. Physical
 OS interaction, complete ParaView window usability, clean-PC/relocated deployment
 and engineering qualification remain unproven. Current work and source-specific
 receipts are linked from CURRENT_STATE.md.
+
+The later Post GUI load correction preserves the global native TimeKeeper and
+uses a transient, verified GUI state for its missing link and native load-order
+compatibility. Actual ParaView GUI Save followed by a fresh GUI session opening
+that saved revision retained the time, camera, source settings and history graph.
+Astra accepted this bounded six-file delta. Both owned GUI checks used bounded
+holds and were cleaned up; normal native exit and physical menu/keyboard input
+are not proven. The original state, pins and failed attempts remain unchanged.

@@ -256,10 +256,13 @@ def save_project():
     return output / "project.json"
 
 
-def restore_workspace(*, allow_repair=False):
+def restore_workspace(*, allow_repair=False, _native_load=None):
     path, doc = project()
     if doc.get("kind") == "external-result":
-        return external_module().restore_workspace(path, doc, allow_repair=allow_repair)
+        options = {'allow_repair': allow_repair}
+        if _native_load is not None:
+            options['_native_load'] = _native_load
+        return external_module().restore_workspace(path, doc, **options)
     verify_sources()
     if "workspace_sha256" in doc and sha(path.parent / doc["workspace_file"]) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
