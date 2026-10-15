@@ -233,13 +233,20 @@ def _save_once(owner, identifier, *, session_id, generation, command_id, draft_s
             expected_generation=generation, command_id=command_id)['document']
 
 
-def adopt(wb, plan_id, job_id, candidate_id, *, target_document_id, session_id, expected_generation, command_id):
+def adopt(wb, plan_id, job_id, candidate_id, *, target_document_id, session_id, expected_generation, command_id, detail_evidence=None):
     """Prepare saved branches, then explicitly edit the one original owner."""
     plan_id, job_id, target_document_id, command_id = map(check_id, (plan_id, job_id, target_document_id, command_id))
     if session_id != wb.session_id or type(expected_generation) is not int or expected_generation < 0:
         raise ValueError('Domain adoption requires the current service session and exact target generation')
-    request_hash = canonical_hash({'plan_id': plan_id, 'job_id': job_id, 'candidate_id': candidate_id,
-        'target_document_id': target_document_id, 'session_id': session_id, 'expected_generation': expected_generation})
+    _, selected_run, selected_result, _ = _run(wb, plan_id, job_id)
+    if selected_result.get('kind') == 'fit':
+        from .numerical_candidate_evidence import require_adoption_evidence
+        require_adoption_evidence(wb.numerical_documents, detail_evidence, selected_run, selected_result, candidate_id)
+    request_identity = {'plan_id': plan_id, 'job_id': job_id, 'candidate_id': candidate_id,
+        'target_document_id': target_document_id, 'session_id': session_id, 'expected_generation': expected_generation}
+    if selected_result.get('kind') == 'fit':
+        request_identity['candidate_evidence'] = deepcopy(detail_evidence)
+    request_hash = canonical_hash(request_identity)
     path = wb.root / 'domain_adoptions' / (command_id + '.json')
     with wb.desktop._lock:
         if path.exists():
@@ -305,6 +312,8 @@ def adopt(wb, plan_id, job_id, candidate_id, *, target_document_id, session_id, 
                 'input_sha256': prepared['plan_input_sha256'], 'result_sha256': prepared['result_sha256'],
                 'parameter_assignments': prepared['parameter_assignments'], 'branches': deepcopy(receipt['branches']),
                 'engineering_release': 'NOT_RELEASED'}
+            if selected_result.get('kind') == 'fit':
+                evidence['candidate_evidence'] = deepcopy(detail_evidence)
             response = owner.adopt(target_document_id, draft, evidence,
                 expected_input_revision=prepared['source']['input_revision'], expected_input_hash=prepared['source']['input_sha256'],
                 session_id=session_id, expected_generation=expected_generation, command_id=command_id)

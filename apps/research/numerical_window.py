@@ -342,7 +342,10 @@ class NumericalWindow(QMainWindow):
         self.read_button=QPushButton('결과 다시 읽기'); self.read_button.clicked.connect(self.retry_result)
         self.adopt_button=QPushButton('계수를 재료에 적용…'); self.adopt_button.clicked.connect(self.adopt_candidate)
         self.analysis_button=QPushButton('응답 분석…'); self.analysis_button.clicked.connect(self.analyze_result)
-        for button in (self.read_button,self.adopt_button,self.analysis_button): actions.addWidget(button)
+        self.candidate_detail_button=QPushButton('선택 후보 상세…')
+        self.candidate_detail_button.clicked.connect(self.open_candidate_detail)
+        self._candidate_detail_windows=[]
+        for button in (self.read_button,self.adopt_button,self.analysis_button,self.candidate_detail_button): actions.addWidget(button)
         run_layout.addLayout(actions); self._build_adoption_receipt_ui(run_layout)
         self.result_splitter.addWidget(run_panel)
         self.tabs=QTabWidget()
@@ -1402,6 +1405,40 @@ class NumericalWindow(QMainWindow):
         return window
 
 
+    def open_candidate_detail(self):
+        job, candidate = self.selected_job(), self.selected_candidate()
+        if (not self.document or not job or not candidate
+                or self._drawn_result_job != job
+                or self._result_cache.get(job,{}).get('kind')!='fit'):
+            self.message.setText('원 피팅 실행과 후보 행을 선택하세요. 선택은 계산하지 않습니다.')
+            return
+        from .numerical_candidate_detail_window import NumericalCandidateDetailWindow
+        run=next(r for r in self.document['runs'] if r['job_id']==job)
+        source=dict(document_id=self.document['id'],job_id=job,input_revision=run['input_revision'],
+            input_sha256=run['input_sha256'],result_sha256=canonical_hash(self._result_cache[job]))
+        window=NumericalCandidateDetailWindow(self.client, document_id=self.document['id'],
+            job_id=job, candidate_id=candidate, session_id=self.document['session_id'], source=source, parent=self,
+            adopt_callback=self._adopt_fit_detail)
+        window.evidence_preserved.connect(self._accept_fit_evidence)
+        window.evidence_invalidated.connect(lambda: setattr(self, '_selected_fit_evidence', None))
+        self._candidate_detail_windows.append(window)
+        window.destroyed.connect(lambda: self._candidate_detail_windows.remove(window)
+            if window in self._candidate_detail_windows else None)
+        window.show()
+
+    def _accept_fit_evidence(self, reference):
+        self._selected_fit_evidence = deepcopy(reference)
+        self.message.setText('선택 후보 결과를 저장했습니다.')
+
+    def _adopt_fit_detail(self, reference):
+        if (not self.document or self.document['id']!=reference['document_id'] or
+                self.selected_job()!=reference['source']['job_id'] or
+                self.selected_candidate()!=reference['candidate_id'] or self.local_dirty or self.conflict):
+            self.message.setText('계획이나 후보 선택이 바뀌었습니다. 채택할 후보를 다시 선택하세요.')
+            return False
+        self._accept_fit_evidence(reference)
+        return self.adopt_candidate()
+
     def selected_candidate(self):
         rows = sorted({item.row() for item in self.candidates.selectedIndexes()})
         item = self.candidates.item(rows[0], 0) if len(rows) == 1 else None
@@ -1428,15 +1465,26 @@ class NumericalWindow(QMainWindow):
         document_id, document_session = self.document['id'], self.document['session_id']
         run = next(item for item in self.document['runs'] if item['job_id'] == job)
         reference = deepcopy(run['draft']['material'])
+        detail_evidence = None
+        if self._result_cache.get(job, {}).get('kind') == 'fit':
+            detail_evidence = deepcopy(getattr(self, '_selected_fit_evidence', None))
+            if (not detail_evidence or detail_evidence['source']['job_id'] != job
+                    or detail_evidence['candidate_id'] != candidate
+                    or detail_evidence['purpose'] != 'success_judgment'):
+                self.message.setText('선택 후보의 계산 결과를 확인한 뒤 계수 채택을 누르세요.')
+                self.open_candidate_detail()
+                return False
         def same_selection():
             same = (self.document is not None and
                     (self.document['id'], self.document['session_id']) == (document_id, document_session) and
                     self.selected_job() == job and self.selected_candidate() == candidate and
-                    not self.local_dirty and not self.conflict)
+                    not self.local_dirty and not self.conflict and
+                    (detail_evidence is None or getattr(self, '_selected_fit_evidence', None) == detail_evidence))
             if not same:
                 self.message.setText('계획이나 선택이 바뀌어 적용을 취소했습니다. 적용할 후보를 다시 선택하세요.')
             return same
-        def target_read(target):
+        def target_read(payload):
+            target, evidence_preview = payload
             if not same_selection():
                 return
             if target.get('id') != reference['document_id'] or target.get('session_id') != document_session:
@@ -1444,7 +1492,8 @@ class NumericalWindow(QMainWindow):
                 return
             from caelab.numerical_document import adopted_draft
             try:
-                proposed=adopted_draft(run,self._result_cache[job],candidate)
+                proposed=(evidence_preview['evidence']['proposed_draft'] if evidence_preview is not None else
+                          adopted_draft(run,self._result_cache[job],candidate))
             except (ValueError,KeyError,TypeError) as error:
                 self.message.setText(str(error)); return
             old=target['draft']['settings']['parameters']
@@ -1460,10 +1509,18 @@ class NumericalWindow(QMainWindow):
             request = dict(document_id=document_id, job_id=job, candidate_id=candidate,
                 material_document_id=target['id'], session_id=target['session_id'],
                 expected_generation=target['generation'], command_id='C'+uuid.uuid4().hex)
+            if detail_evidence is not None:
+                request['detail_evidence'] = deepcopy(detail_evidence)
             self._submit_adoption_receipt('material', request, adopted)
         def begin():
             if same_selection():
-                self._call(lambda: self.client.document_read(reference['document_id']), target_read)
+                def read_target_and_evidence():
+                    target = self.client.document_read(reference['document_id'])
+                    preview = (self.client.numerical_evidence_command(document_id,
+                        'numerical.evidence.adoption_preview', {'reference': detail_evidence})
+                        if detail_evidence is not None else None)
+                    return target, preview
+                self._call(read_target_and_evidence, target_read)
         if self._busy_background:
             self._pending_adoption = begin
             self.message.setText('현재 자료 읽기가 끝나면 선택한 후보의 계수를 확인합니다.')

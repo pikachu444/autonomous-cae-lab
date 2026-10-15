@@ -122,6 +122,12 @@ class Client:
         from urllib.parse import urlencode
         query='?'+urlencode({'selection':json.dumps(selection)}) if selection is not None else ''
         return self.request('/api/workbench/evaluations/'+check_id(identifier)+'/jobs/'+check_id(job_id)+'/stages/'+check_id(attempt_id)+query)
+    def numerical_candidate_detail(self, document_id, job_id, candidate_id, *, attempt_job_id=None, source=None):
+        # Deliberately reuse authenticated existing reads/commands. No new HTTP route.
+        from .numerical_candidate_detail import client_read_candidate_detail
+        return client_read_candidate_detail(self, document_id, job_id, candidate_id,
+                                           attempt_job_id=attempt_job_id, source=source)
+
     def numerical_evaluation_result(self, identifier, job_id, candidate_id, *, evaluation_index=None, attempt_id=None, selection=None):
         from .storage import check_id
         from urllib.parse import urlencode
@@ -228,21 +234,49 @@ class Client:
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier)+'/navigation')
     def numerical_adopt(self, document_id, job_id, candidate_id, *, material_document_id,
-                        session_id, expected_generation, command_id):
+                        session_id, expected_generation, command_id, detail_evidence=None):
+        if detail_evidence is not None:
+            return self.numerical_evidence_adopt(document_id, job_id, candidate_id, detail_evidence,
+                target_document_id=material_document_id, target_kind='material', session_id=session_id,
+                expected_generation=expected_generation, command_id=command_id)
         return self.request('/api/workbench/numerical-adopt', dict(plan_id=document_id,job_id=job_id,
             candidate_id=candidate_id,material_document_id=material_document_id,session_id=session_id,
             expected_generation=expected_generation,command_id=command_id))
+    def numerical_evidence_command(self, document_id, operation, arguments, *, command_id=None):
+        document = self.document_read(document_id)
+        return self.document_command(document_id, operation, arguments,
+            session_id=document['session_id'], expected_generation=document['generation'], command_id=command_id)
+
+    def numerical_evidence_adopt(self, document_id, job_id, candidate_id, reference, *,
+            target_document_id, target_kind, session_id, expected_generation, command_id):
+        if (reference['document_id'] != document_id or reference['source']['job_id'] != job_id
+                or reference['candidate_id'] != candidate_id):
+            raise ValueError('Selected candidate differs from its saved evidence')
+        document = self.document_read(document_id)
+        return self.document_command(document_id, 'numerical.evidence.adopt',
+            {'reference': reference, 'target_document_id': target_document_id,
+             'target_kind': target_kind, 'target_generation': expected_generation},
+            session_id=session_id, expected_generation=document['generation'], command_id=command_id)
+
     def describe_inputs(self, request):
         return self.request('/api/workbench/inputs/describe', request)
     def pde_candidate_preview(self, plan_id, job_id, candidate_id):
         return self.request('/api/workbench/pde-candidate-preview', dict(plan_id=plan_id, job_id=job_id, candidate_id=candidate_id))
     def domain_candidate_preview(self, plan_id, job_id, candidate_id):
         return self.request('/api/workbench/domain-candidate-preview',dict(plan_id=plan_id,job_id=job_id,candidate_id=candidate_id))
-    def domain_candidate_adopt(self, plan_id, job_id, candidate_id, *, target_document_id, session_id, expected_generation, command_id):
+    def domain_candidate_adopt(self, plan_id, job_id, candidate_id, *, target_document_id, session_id, expected_generation, command_id, detail_evidence=None):
+        if detail_evidence is not None:
+            return self.numerical_evidence_adopt(plan_id, job_id, candidate_id, detail_evidence,
+                target_document_id=target_document_id, target_kind='domain', session_id=session_id,
+                expected_generation=expected_generation, command_id=command_id)
         return self.request('/api/workbench/domain-candidate-adopt',dict(plan_id=plan_id,job_id=job_id,candidate_id=candidate_id,
             target_document_id=target_document_id,session_id=session_id,expected_generation=expected_generation,command_id=command_id))
     def pde_adopt(self, plan_id, job_id, candidate_id, *, pde_document_id,
-                  session_id, expected_generation, command_id):
+                  session_id, expected_generation, command_id, detail_evidence=None):
+        if detail_evidence is not None:
+            return self.numerical_evidence_adopt(plan_id, job_id, candidate_id, detail_evidence,
+                target_document_id=pde_document_id, target_kind='pde', session_id=session_id,
+                expected_generation=expected_generation, command_id=command_id)
         return self.request('/api/workbench/pde-adopt', dict(plan_id=plan_id, job_id=job_id,
             candidate_id=candidate_id, pde_document_id=pde_document_id, session_id=session_id,
             expected_generation=expected_generation, command_id=command_id))

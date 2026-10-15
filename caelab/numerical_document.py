@@ -196,8 +196,10 @@ def diagnostics(draft):
         seen = set()
         for experiment in draft['experiments']:
             required = {'id', 'role', 'source', 'response', 'settings', 'weight', 'scale'}
-            if not isinstance(experiment, dict) or not required <= set(experiment) or set(experiment) - required - {'kinematics'}:
+            if not isinstance(experiment, dict) or not required <= set(experiment) or set(experiment) - required - {'kinematics', 'extensions'}:
                 raise ValueError('Experiments require observation source, explicit model protocol, role, weight and scale')
+            from .numerical_fit_lineage import validate_experiment_extensions
+            validate_experiment_extensions(experiment)
             identifier = check_id(experiment['id'])
             if identifier in seen:
                 raise ValueError('Experiment identities must be distinct')
@@ -369,7 +371,10 @@ def _material_operation_diagnostics(draft):
             raise ValueError('Declare a supported physical response threshold operator')
 
 
-class NumericalDocuments(MaterialDocuments):
+from .numerical_candidate_detail import CandidateDetailMixin
+
+
+class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
     kind = 'numerical'
     prefix = 'N'
     update_operation = 'numerical.update'
@@ -547,7 +552,7 @@ class NumericalDocuments(MaterialDocuments):
             raise ValueError('Observed time lies outside the explicit Material protocol')
 
 
-def adopted_draft(run, result, candidate_id):
+def adopted_draft(run, result, candidate_id, *, evidence_owner=None, detail_evidence=None):
     """Return validated coefficients; the caller owns atomic target generation checks."""
     plan = run['draft']
     if plan.get('mode') == 'request':
@@ -563,6 +568,9 @@ def adopted_draft(run, result, candidate_id):
         raise ValueError('Only an actually evaluated successful candidate can be adopted')
     if plan['mode'] in ('fit', 'optimize', 'epsilon') and (type(candidate.get('objective')) not in (int, float) or not math.isfinite(candidate['objective'])):
         raise ValueError('Search candidate requires an actual finite objective')
+    if result.get('kind') == 'fit':
+        from .numerical_candidate_evidence import require_adoption_evidence
+        require_adoption_evidence(evidence_owner, detail_evidence, run, result, candidate_id)
     free = {v['id']: v for v in plan['variables'] if v['free']}
     if not isinstance(candidate.get('values'), dict) or set(candidate['values']) != set(free):
         raise ValueError('Candidate coefficients differ from the submitted free variables')

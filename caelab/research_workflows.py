@@ -226,6 +226,9 @@ def resolve_reference(wb, reference):
     if error:
         raise ValueError(error)
     kind = reference['kind']
+    if kind == 'numerical_candidate_evidence':
+        from .numerical_candidate_evidence import candidate_report_payload
+        return candidate_report_payload(wb.numerical_documents, reference)
     if kind == 'comparison':
         owner=wb._document_owner(reference['document_id'])
         if owner is wb.native_commands:raise ValueError('비교를 소유한 연구 문서를 선택하세요.')
@@ -279,4 +282,5 @@ def reference_metadata(wb, reference):
     result = resolve_reference(wb, reference)
     result.pop('document', None); result.pop('result', None); result.pop('turn', None)
     result.pop('source', None); result.pop('comparison', None)
+    result.pop('candidate_evidence', None)
     return result

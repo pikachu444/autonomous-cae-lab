@@ -27,6 +27,10 @@ def reference_error(reference):
         if not isinstance(reference, dict):
             raise ValueError('Choose an exact saved source reference')
         kind = reference.get('kind')
+        if kind == 'numerical_candidate_evidence':
+            from .numerical_candidate_evidence import validate_evidence_reference
+            validate_evidence_reference(reference)
+            return None
         if kind == 'comparison':
             required={'kind','document_id','document_kind','saved_revision','comparison_id','result_sha256','start','count'}
             if set(reference)!=required or reference['document_kind'] not in {'data','material','pde','simulation'}:

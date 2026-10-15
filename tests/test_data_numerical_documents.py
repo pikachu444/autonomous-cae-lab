@@ -94,9 +94,11 @@ def test_fit_actual_library_and_explicit_adoption(tmp_path):
     assert {curve['role'] for curve in result['curves']} == {'fit', 'holdout'}
     assert all(curve['prediction_metadata']['frame'] == 'material_cartesian' for curve in result['curves'])
     candidate = min((row for row in result['candidates'] if row['execution_status'] == 'SUCCEEDED'), key=lambda row: row['objective'])
-    adopted = adopted_draft({'draft': draft}, result, candidate['candidate_id'])
-    assert adopted['settings']['parameters']['E'] == pytest.approx(1000, rel=1e-6)
-    assert adopted['settings']['parameters']['nu'] == .25
+    # A successful objective alone is not preserved candidate-detail evidence.
+    # The actual owner/adoption path is covered by the C1 consumer integration test.
+    from caelab.numerical_candidate_evidence import DetailEvidenceBlocked
+    with pytest.raises(DetailEvidenceBlocked):
+        adopted_draft({'draft': draft}, result, candidate['candidate_id'])
     assert draft['material']['draft']['settings']['parameters']['E'] == 1000
     rejected = deepcopy(result)
     rejected['candidates'][0]['execution_status'] = 'FAILED'

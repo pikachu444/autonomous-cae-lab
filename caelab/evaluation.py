@@ -170,11 +170,18 @@ def save_evaluation(result, output, *, existing=False):
     if (folder / 'result.json').exists():
         raise FileExistsError('A result already exists; choose a new output')
     arrays, shared = [], {}
-    def pack(value):
+    def pack(value, *, exact_json=False):
+        # Frozen candidate capsules hash JSON scalar types (including integer
+        # source rows and mixed int/float deformation entries). Array promotion
+        # would change those bytes. Keep their bounded Python metadata as JSON;
+        # true ndarray fields still use the existing checked .npy storage.
+        if isinstance(value, dict) and isinstance(value.get('schema'), str) and value['schema'] in {
+                'caelab.frozen-fit-input.v1', 'caelab.candidate-detail.v1'}:
+            exact_json = True
         array = None
         if isinstance(value, np.ndarray):
             array = value
-        elif isinstance(value, list) and value and isinstance(value[0], (int, float, list)):
+        elif not exact_json and isinstance(value, list) and value and isinstance(value[0], (int, float, list)):
             try:
                 candidate = np.asarray(value)
                 if candidate.dtype.kind in 'biuf':
@@ -196,9 +203,9 @@ def save_evaluation(result, output, *, existing=False):
             shared[fingerprint] = arrays[-1]
             return {'data_ref': arrays[-1]}
         if isinstance(value, dict):
-            return {key: pack(item) for key, item in value.items()}
+            return {key: pack(item, exact_json=exact_json) for key, item in value.items()}
         if isinstance(value, (list, tuple)):
-            return [pack(item) for item in value]
+            return [pack(item, exact_json=exact_json) for item in value]
         if isinstance(value, np.generic):
             return value.item()
         return value

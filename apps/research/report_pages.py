@@ -48,6 +48,12 @@ def verdict_text(value):
 def blocks(content):
     """Semantic blocks use only the frozen selected payload."""
     kind = content.get('kind')
+    if kind == 'numerical_candidate_evidence':
+        from .numerical_candidate_evidence_report import candidate_evidence_blocks
+        yield from candidate_evidence_blocks(content)
+        return
+    if content.get('report_intent') == 'METADATA_ONLY_NOT_A_SUCCESS_JUDGMENT':
+        yield ('paragraph', '후보 요약입니다. 원행별 상세 결과와 계수 채택은 이 요약으로 확인하지 않았습니다.')
     if kind == 'post_image':
         from caelab.report_image import caption, validate_content
         validate_content(content)

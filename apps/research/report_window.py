@@ -78,6 +78,10 @@ class ReportWindow(QMainWindow):
         action('문헌 추가…', self.choose_literature, source)
         action('원자료 열기', self.open_source, source)
         action('자료 다시 확인', self.read_assets, source)
+        def candidate_diagnostics():
+            from .numerical_candidate_evidence_report import show_candidate_diagnostics
+            show_candidate_diagnostics(self)
+        action('선택 결과 진단…', candidate_diagnostics, source)
         action('전송 다시 시도', self.retry, files)
         action('서버 저장 상태 확인…', self.reconcile, files)
         center = QWidget(); root = QVBoxLayout(center); self.setCentralWidget(center)
@@ -447,10 +451,26 @@ class ReportWindow(QMainWindow):
                 if not ok:return
                 row=rows[labels.index(label)]
                 catalog=result_metadata({'responses':row.get('responses',{})})
+                catalog['kind'] = result.get('kind')
                 catalog['responses'] += [{**entry,'reduction_index':i} for i,entry in
                     enumerate(row.get('response_reductions',[]))]
                 self._select_response(title,identifier,job,reference,catalog,[row['candidate_id']])
             self._call(lambda:self.client.document_result(identifier,job,selection={'metadata_only':True}),choose_candidate)
+            return
+        if metadata.get('kind') == 'fit' and candidate_ids:
+            label, ok = QInputDialog.getItem(self, '계산 결과 확인', '보고서에 넣을 내용',
+                ['요약만 넣기 (상세 결과 미포함)', '선택한 계산 결과 확인…'], editable=False)
+            if not ok:
+                return
+            if label.startswith('요약'):
+                self.capture({'kind':'result', **reference,
+                    'selection':{'metadata_only':True, 'candidate_ids':candidate_ids}}, title)
+                return
+            from .numerical_candidate_detail_window import NumericalCandidateDetailWindow
+            window = NumericalCandidateDetailWindow(self.client, document_id=identifier, job_id=job,
+                candidate_id=candidate_ids[0], source=reference, parent=self)
+            window.evidence_preserved.connect(lambda ref: self.capture(ref, title))
+            self._children.append(window); window.show()
             return
         descriptors = list(metadata.get('responses', []))
         descriptors += [{'response':name, **row, 'native':True}

@@ -182,8 +182,8 @@ Numerical의 최종 ZIP은 담당이 실제 회수했고, 우리
 확인했다. 실제 기존 Workbench 인증 loopback의 least-squares→상세 요청→계획 저장도
 좁게 확인했다. 이 대역 계산 경로와 실제 FELUPE 계산은 구별한다. DE에 least-squares
 옵션을 자동 넣던 기존 공통 버그는 method별 예산 처리로 교정해 게시했으며 명시한
-잘못된 사용자 옵션은 계속 거절한다. 채택·보고의 상세 보존 관문 누락은 C03의 Pro 후속 교정으로 작성 중이며 공통
-main에는 아직 통합하지 않았다. Expert/보고서는 최종 ZIP을 실제 회수해
+잘못된 사용자 옵션은 계속 거절한다. 채택·보고의 상세 보존 관문은 실제 Pro C1과
+저장 재시도 C2를 함께 통합했다. 아래 현재 main의 통합 확인 범위를 따른다. Expert/보고서는 최종 ZIP을 실제 회수해
 `_workspace/delivery-expert-study/pro-20261015-01/returned/`에 보존했다. 현재 main의 별도
 검사용 사본에서 전용 코드·공통 패치의 영향과 Qt/PDF/재열기를 확인했으며 root main의
 공통 코드는 아직 적용하지 않았다. Astra와 담당이 정적 하중축·무차원 모델 시간을 실제
@@ -210,10 +210,19 @@ GUI는 main에 통합했고 관련 최소 검사 8개가 통과했다. Material 
 Numerical C1도 회수했다. Astra와 담당이 저장 실패 뒤 peer 편집을 옛 PRESERVING 요청이
 저장하는 결함을 재현했고 실제 Pro C2 교정본도 회수했다. 원 반례·완료 응답 유실·다른
 편집 보존의 Windows 검사와 새 프로세스 재열기가 통과했으며 Astra가 해당 저장 경계를
-독립 검토했다. core는 아직 main 미적용이며 초기→C1→C2와 전용 GUI·보고서 연결을
-현재 Data 부분 통합 및 기존 공통 변경을 보존해 이어 통합한다. 원본 적용 순서는 담당
-작업 트리의 `pro-detail-20261015-01/INTEGRATION_ORDER.md`에 고정했다. 이 결함을
-허용해 채택/보고를 통과시키지 않는다.
+독립 검토했다. 초기→C1→C2, 전용 후보 창과 보고서·계수 채택 연결을 현재 main에
+통합했다. Data 부분 통합·FN32 3D 보고서·동해석·DE 예산·Plan Undo/Redo를 보존했고
+Sol이 공통 통합을 원 패치와 독립 대조했다. 현재 main에서 실제 FELUPE 계산과
+상세 보존·Material 채택·보고서 저장/새 owner 재열기를 포함한 국소 검사 8개가 통과했다.
+실제 Windows Qt에서도 후보 선택·미보존분 계산·저장/재열기, 선택 결과의 보고서·채택,
+다른 창의 편집을 임의 저장하지 않는 세 경로가 통과했다. 두 실행 모두 종료 코드 0과
+소유 Job 정리를 확인했다. 담당이 남긴 보통/좁은 창 렌더도 직접 열어 검토했다.
+기록은 `runs/product-development/20261015/numerical-main-c2-consumers-1005/`와
+`numerical-main-c2-qt-1002/`다. 이는 실제 HTTP 서버 전체 왕복이나 전체 Numerical
+인도 완료가 아니다. Data의 파생 표본 동결 형식 소비는 같은 Data Pro C2에서 계속
+연결하며, 이산·종속 변수와 MDO·장 전달 잔여도 유지한다. 사용법은
+[후보 상세](docs/NUMERICAL_CANDIDATE_DETAIL_KO.md)와
+[선택 결과 저장·채택](docs/NUMERICAL_CANDIDATE_EVIDENCE_C1_KO.md)에 있다.
 공유 변수 표의 미확정 숫자·선택·붙여넣기 원문을 읽고 명시적으로 복원하는 전용 GUI
 API도 main에 통합했다. 이 위젯은 문서에 적용하거나 저장하지 않으며 관련 문서의
 복구 기준·저장 조정은 Data C2에서 별도로 완성한다.

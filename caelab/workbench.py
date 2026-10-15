@@ -17,7 +17,7 @@ from .native_inputs import NATIVE_EXTENSIONS, register_native_input, register_fr
 
 INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
 
-OPERATIONS = {'evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
+OPERATIONS = {'detail_eval','evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
               'batch_export','batch_import','surrogate','epsilon','sensitivity',
               'sample_sensitivity',
               'knowledge.ingest','knowledge.rebuild','knowledge.revoke','literature.search','literature.read',
@@ -129,6 +129,10 @@ class Workbench:
     def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         check_id(identifier)
         owner=self._document_owner(identifier)
+        if operation == 'numerical.evidence.adopt':
+            from .numerical_candidate_evidence import evidence_adopt_command
+            return evidence_adopt_command(self, identifier, arguments, session_id=session_id,
+                expected_generation=expected_generation, command_id=command_id)
         if owner is self.native_commands and operation == 'pre.project.open':
             if not isinstance(arguments, dict) or set(arguments) != {'input_id'}:
                 raise ValueError('Open native CAD through a registered input ID, not a caller path or receipt')
@@ -215,15 +219,21 @@ class Workbench:
         return numerical_evaluation_result(self,identifier,job_id,candidate_id,
             evaluation_index=evaluation_index,attempt_id=attempt_id,selection=selection)
 
+    def numerical_candidate_detail(self, document_id, job_id, candidate_id, *, attempt_job_id=None, source=None):
+        from .numerical_candidate_detail import read_candidate_detail
+        return read_candidate_detail(self.numerical_documents, document_id, job_id, candidate_id,
+                                     attempt_job_id=attempt_job_id, source=source)
+
     def domain_candidate_preview(self, plan_id, job_id, candidate_id):
         from .domain_candidate import preview
         return preview(self,plan_id,job_id,candidate_id)
 
     def domain_candidate_adopt(self, plan_id, job_id, candidate_id, *, target_document_id,
-                               session_id, expected_generation, command_id):
+                               session_id, expected_generation, command_id, detail_evidence=None):
         from .domain_candidate import adopt
         return adopt(self,plan_id,job_id,candidate_id,target_document_id=target_document_id,
-            session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+            session_id=session_id,expected_generation=expected_generation,command_id=command_id,
+            detail_evidence=detail_evidence)
 
     def study_references(self, identifier):
         return self.study_documents.resolve_references(identifier)
@@ -562,6 +572,10 @@ class Workbench:
             raise ValueError('Output, runtime and execution registrations are operator-owned')
         if isinstance(arguments.get('backend'),str) and arguments['backend'] not in {row['id'] for row in self.backends()}:
             raise ValueError('Backend is not registered')
+        if operation=='detail_eval':
+            from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
+            validate_detail_arguments(self.numerical_documents, arguments)
+            validate_backend_binding(self, arguments)
         if operation=='evaluation.coupled':
             source=arguments.get('definition_source',{})
             owner=self.evaluation_documents
@@ -799,6 +813,10 @@ class Workbench:
             args=resolve_request_inputs(operation,args,resolve_document=self.document_read,
                                         resolve_result=self.document_result)
         backend=args.get('backend')
+        if operation=='detail_eval':
+            from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
+            validate_detail_arguments(self.numerical_documents, arguments, allow_active=True)
+            validate_backend_binding(self, arguments)
         if backend is not None:
             args['settings']=self._settings(backend,args.get('settings',{}))
         if operation=='evaluation.coupled':
@@ -919,12 +937,15 @@ class Workbench:
             plan=numerical.sample_sensitivity(**args)
             return {**plan,'kind':'sensitivity_plan','execution_status':'SUCCEEDED',
                     'solver_execution':'NOT_PERFORMED','next_step':'Evaluate the exact retained candidate rows; then select this plan and its matched result for sensitivity.'}
-        if operation in {'fit','doe','optimize','uq','epsilon'}:
+        if operation in {'fit','doe','optimize','uq','epsilon','detail_eval'}:
             backend=args.pop('backend')
-            if operation=='fit':
+            if operation in {'fit','detail_eval'}:
                 args.pop('settings',None)
                 for experiment in args.get('experiments',[]):
-                    experiment['settings']=self._settings(backend,experiment.get('settings',{}))
+                    resolved_settings=self._settings(backend,experiment.get('settings',{}))
+                    if operation=='detail_eval' and canonical_hash(resolved_settings)!=canonical_hash(experiment.get('settings',{})):
+                        raise ValueError('Detail execution cannot replace the original frozen evaluator settings')
+                    experiment['settings']=resolved_settings
                     if isinstance(experiment.get('observations'),dict) and 'path' in experiment['observations']:
                         raise ValueError('Remote observations require an uploaded result ID or explicit numeric values')
                     sources = set(experiment) & {'observations', 'observation_job', 'observation_ref'}
@@ -952,7 +973,13 @@ class Workbench:
                         experiment['observations']=observation['responses'][observation_response]
                         experiment['observation_source']={'job_id':observation_job,'response':observation_response,
                             'source_sha256':observation.get('diagnostics',{}).get('source_sha256')}
-            methods={'fit':numerical.fit_model,'doe':numerical.run_doe,'optimize':numerical.optimize,
+            from .numerical_candidate_detail import freeze_fit_input, evaluate_candidate_detail, backend_binding
+            # The Data lane may supply its frozen compiler packet at this boundary.
+            # This consumer verifies it; it never compiles or changes source rows.
+            inclusion_packet=args.pop('fit_inclusion',None) if operation=='fit' else None
+            fit_snapshot=(freeze_fit_input(backend,args,arguments,
+                inclusion_packet=inclusion_packet,evaluator_binding=backend_binding(self,backend)) if operation=='fit' else None)
+            methods={'detail_eval':evaluate_candidate_detail,'fit':numerical.fit_model,'doe':numerical.run_doe,'optimize':numerical.optimize,
                      'uq':numerical.run_uq,'epsilon':numerical.epsilon_optimize}
             execution=args.get('execution',{})
             if set(execution)-{'mode','workers','threads','memory_mb','on_failure','max_evaluations'}:
@@ -972,10 +999,10 @@ class Workbench:
                 from .research_execution import run_domain
                 if execution.get('mode','serial')!='serial' or execution.get('workers',1)!=1:
                     raise ValueError('Reusable evaluation currently runs serial stage sequences; select one worker')
-                settings=(args.get('experiments',[{}])[0].get('settings',{}) if operation=='fit' else args.get('settings',{}))
+                settings=(args.get('experiments',[{}])[0].get('settings',{}) if operation in {'fit','detail_eval'} else args.get('settings',{}))
                 if set(settings)!={'definition_ref'}:
                     raise ValueError('Select an exact saved EvaluationDefinition')
-                if operation=='fit' and any(item.get('settings')!=settings for item in args.get('experiments',[])):
+                if operation in {'fit','detail_eval'} and any(item.get('settings')!=settings for item in args.get('experiments',[])):
                     raise ValueError('Fit experiments must reference the same evaluation definition')
                 compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
                 if compiled['definition'].get('reuse'):
@@ -991,7 +1018,7 @@ class Workbench:
                     from .adapters.native_evaluation import NativeEvaluationFactory
                     selectors=args.pop('responses',None)
                     if selectors is None:
-                        if operation=='fit':
+                        if operation in {'fit','detail_eval'}:
                             selectors=[experiment['response'] for experiment in args.get('experiments',[])]
                         elif operation in {'optimize','epsilon'}:
                             definitions=([args['objective']] if operation=='optimize' else args.get('objectives',[]))+args.get('constraints',[])
@@ -1018,6 +1045,8 @@ class Workbench:
                         'decision':'NOT_RELEASED','candidate_association':'UNASSIGNED_AFTER_ENGINE_ERROR'},
                     'evaluation_attempts':(evaluator.retained_attempts() if callable(getattr(evaluator,'retained_attempts',None))
                                            else deepcopy(evaluator.completed))}
+            if fit_snapshot is not None:
+                result['fit_input_snapshot']=fit_snapshot
             if owns_candidate_files:
                 from .evaluation import save_evaluation
                 folder=self.root/'results'/identifier

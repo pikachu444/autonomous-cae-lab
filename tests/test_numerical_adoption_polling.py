@@ -85,6 +85,17 @@ class RetainedClient:
             'kind': 'curve', 'unit': 'MPa', 'value': [0., 10.],
             'axes': [{'name': 'time', 'unit': 's', 'values': [0., 1.]}]}}}
 
+    def numerical_evidence_command(self, document_id, operation, arguments):
+        # This fixture controls only Qt nested-dialog/polling dispatch. The real
+        # immutable gate is exercised in test_numerical_candidate_evidence_consumers_c1.
+        assert document_id == 'Nplan' and operation == 'numerical.evidence.adoption_preview'
+        reference = arguments['reference']
+        assert reference == self.preserved_evidence
+        proposed = deepcopy(self.material['draft'])
+        row = next(c for c in self.result['candidates'] if c['candidate_id'] == reference['candidate_id'])
+        proposed['settings']['parameters'].update(row['values'])
+        return {'evidence': {'proposed_draft': proposed}}
+
     def numerical_adopt(self, document_id, job_id, candidate_id, **options):
         args = (document_id, job_id, candidate_id, deepcopy(options))
         self.adoption_attempts.append(args)
@@ -103,6 +114,11 @@ def make_window(client):
     window._result_cache['Jretained'] = deepcopy(client.result)
     window._draw_result()
     window.candidates.selectRow(0)
+    # Explicit already-preserved service fixture, not an assertion that an
+    # objective-only row passes the production evidence gate.
+    client.preserved_evidence = {'source': {'document_id': 'Nplan', 'job_id': 'Jretained'},
+        'candidate_id': 'C000015', 'purpose': 'success_judgment', 'snapshot_sha256': 'f' * 64}
+    window._selected_fit_evidence = deepcopy(client.preserved_evidence)
     window.show()
     wait(QApplication.instance(), lambda: not window._busy and not window._trial_source_queue)
     return window

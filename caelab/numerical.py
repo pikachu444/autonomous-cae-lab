@@ -876,10 +876,13 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
     if method not in ('least_squares', 'differential_evolution', 'de'):
         raise ValueError("Fit method must be least_squares or differential_evolution")
     opts = dict(options or {})
+    from .numerical_candidate_detail import FitDetailRetention
+    detail_retention = FitDetailRetention(opts.pop('detail_retention', None))
     penalty = opts.pop('failure_penalty', None)
     if penalty is not None and _number(penalty, 'failure penalty') <= 0:
         raise ValueError("Explicit failure penalty must be positive and finite")
     rows, cache, best_values, termination, failure_reason = [], {}, None, None, None
+    final_experiments, final_outputs = [], []
     candidate_status = {}
     names = [v['id'] for v in variables]
     encoded = _encoded(variables)
@@ -907,6 +910,7 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                 rows.append({'candidate_id': f'C{len(rows):06d}', 'values': values, 'responses': {},
                              'execution_status': 'CANCELLED', 'failure_reason': 'USER_CANCELLED', 'objective': None,
                              'evaluation_refs': _experiment_evaluations(fitted, outputs)})
+                detail_retention.capture(rows[-1], fitted, outputs)
                 candidate_status[key]='CANCELLED'
                 cache[key]=None,outputs
                 if not journal_only:
@@ -923,6 +927,7 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                    'failure_reason': '; '.join(reasons) if reasons else None, 'objective': None,
                    'evaluation_refs': _experiment_evaluations(fitted, outputs)}
             rows.append(row)
+            detail_retention.capture(row, fitted, outputs)
             candidate_status[key]=row['execution_status']
             if reasons:
                 if penalty is not None:
@@ -1059,6 +1064,8 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
             # Fit outputs already cached at the final candidate are reused.
             key = tuple(best_values[name].hex() for name in names)
             outputs = cache[key][1] if key in cache and cache[key][1] is not None else models.one(best_values)
+            final_experiments.extend(fitted)
+            final_outputs.extend(outputs)
             for e, output in zip(fitted, outputs):
                 curves.append(_fit_curve(e, output))
             if any(curve['execution_status']!='SUCCEEDED' for curve in curves):
@@ -1077,6 +1084,8 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
             try:
                 outputs = models.one(best_values)
                 curves.extend(_fit_curve(e, output) for e, output in zip(holdout, outputs))
+                final_experiments.extend(holdout)
+                final_outputs.extend(outputs)
             except StudyCancelled:
                 curves.extend({'experiment_id': e['id'], 'role': 'holdout', 'execution_status': 'CANCELLED'} for e in holdout)
                 termination, failure_reason = 'USER_CANCELLED', 'Holdout evaluation was cancelled'
@@ -1090,11 +1099,14 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
             timing['preparation_seconds'] += extra['preparation_seconds']
     timing['total_seconds'] = perf_counter() - started
     timing['dispatched_evaluations_total'] = budget.used
+    detail_retention.capture_final(rows, best_values, final_experiments, final_outputs)
     return _record({'kind': 'fit', 'method': method, 'variables': variables, 'parameters': best_values,
                     'parameter_units': {v['id']: v['unit'] for v in variables}, 'curves': curves, 'candidates': rows,
                     'execution_status': 'CANCELLED' if termination == 'USER_CANCELLED' else ('REJECTED' if termination == 'EVALUATION_BUDGET_EXHAUSTED' else ('FAILED' if failure_reason or best_values is None else 'SUCCEEDED')),
                     'converged': convergence, 'termination_reason': termination, 'failure_reason': failure_reason,
                     'identification': identification, 'timing': timing,
+                    'detail_retention': detail_retention.summary(),
+                    'final_candidate_detail': detail_retention.final,
                     'limitations': ['Small residuals do not establish parameter uniqueness or physical qualification.',
                                     'Fit and holdout are separated by experiment/history; no holdout data tunes the coefficients.']}, record)
 

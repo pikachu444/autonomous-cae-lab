@@ -99,7 +99,10 @@ def effective_selection(reference):
 def compact_payload(payload):
     """Keep verified selected numeric/text content, never paths to mutable views."""
     result = {'kind': payload['kind']}
-    if payload['kind'] == 'comparison':
+    if payload['kind'] == 'numerical_candidate_evidence':
+        result['candidate_evidence'] = deepcopy(payload['candidate_evidence'])
+        result['report_intent'] = payload['report_intent']
+    elif payload['kind'] == 'comparison':
         result['comparison'] = deepcopy(payload['comparison'])
     elif payload['kind'] == 'result':
         source = payload['result']
@@ -111,6 +114,9 @@ def compact_payload(payload):
         metadata_only = effective_selection(payload.get('reference', {})).get('metadata_only', False)
         if metadata_only:
             result['result'].pop('responses', None)
+            if source.get('kind') == 'fit':
+                result['report_intent'] = 'METADATA_ONLY_NOT_A_SUCCESS_JUDGMENT'
+                result['success_judgment_permitted'] = False
         for key in ('candidates', 'predictions'):
             if isinstance(source.get(key), list):
                 result['result'][key] = [{k: deepcopy(v) for k, v in row.items()
@@ -128,6 +134,17 @@ def compact_payload(payload):
 
 
 def check_selection(reference, payload):
+    if reference['kind'] == 'numerical_candidate_evidence':
+        from .numerical_candidate_evidence import SUCCESS, FAILURE, validate_evidence_reference
+        validate_evidence_reference(reference)
+        evidence = payload.get('candidate_evidence', {})
+        readiness = evidence.get('readiness', {})
+        if (evidence.get('reference') != reference or
+                readiness.get('preservation') != 'IMMUTABLE_REVISION_VERIFIED' or
+                reference['purpose'] == SUCCESS and not readiness.get('success_judgment_permitted') or
+                reference['purpose'] == FAILURE and not readiness.get('failure_diagnostic_permitted')):
+            raise ValueError('보고서의 정확한 후보/선택 상세 근거가 보존·검증되지 않았습니다.')
+        return
     if reference['kind'] != 'result':
         return
     selection = effective_selection(reference)
@@ -141,6 +158,8 @@ def check_selection(reference, payload):
             raise ValueError('선택한 후보와 읽은 결과가 다릅니다.')
     if selection.get('metadata_only'):
         return
+    if source.get('kind') == 'fit' and isinstance(nested, list):
+        raise ValueError('Fit 성공/실패 판단 보고는 선택 후보의 numerical_candidate_evidence 참조를 보존하세요. 요약 읽기는 허용됩니다.')
     if 'reduction_index' in selection:
         if (not isinstance(nested,list) or len(nested)!=1 or
                 nested[0].get('selected_reduction_index')!=selection['reduction_index'] or

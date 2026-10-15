@@ -51,15 +51,24 @@ _OBSERVATIONS = _object({'kind': {'enum': ['scalar', 'series', 'event']}, 'unit'
                          'coordinate_frame': _STRING, 'quantity': _STRING,
                          'reduction': {'type': 'string'}, 'value': {}, 'axes': {'type': 'array', 'items': _OBJECT},
                          'state': {'enum': ['OCCURRED', 'NOT_OBSERVED', 'UNKNOWN']},
-                         'event_definition': _OBJECT},
+                         'event_definition': _OBJECT,
+                         'mask': {'type': 'array', 'items': {'type': 'boolean'}},
+                         'source_rows': {'type': 'array', 'items': {'type': 'integer', 'minimum': 0}},
+                         'source_column_identity': {'type': ['integer', 'string']},
+                         'mapping': _OBJECT, 'has_calculation_gaps': {'type': 'boolean'}},
                         ['kind', 'unit', 'component', 'location', 'reduction'])
 _EXPERIMENT = _object({'id': _STRING, 'role': {'enum': ['fit', 'holdout']},
                        'settings': _OBJECT, 'response': _STRING, 'observations': _OBSERVATIONS,
                        'observation_job': _STRING, 'observation_response': _STRING,
+                       'observation_source': _OBJECT,
                        'weight': _NUMBER, 'scale': _NUMBER,
                        'mask': {'type': 'array', 'items': {'type': 'boolean'}}},
                       ['id', 'response'])
 _EXPERIMENT['anyOf'] = [{'required': ['observations']}, {'required': ['observation_job']}]
+# Numerical transport envelope only; Data's final compiler API is not assumed.
+from ..numerical_fit_lineage import LINEAGE_OBSERVATION_FIELDS, EXPERIMENT_EXTENSION_FIELDS
+_OBSERVATIONS['properties'].update(deepcopy(LINEAGE_OBSERVATION_FIELDS))
+_EXPERIMENT['properties'].update(deepcopy(EXPERIMENT_EXTENSION_FIELDS))
 _SELECTION = _object({'responses': _STRINGS, 'metadata_only': {'type': 'boolean'},
                       'component': _STRING, 'location': _STRING,
                       'rows': {'type': 'array', 'items': {'type': 'integer', 'minimum': 0}, 'minItems': 2, 'maxItems': 2},
@@ -91,10 +100,16 @@ _TOOL_INPUTS = {
                               'count': _POSITIVE, 'seed': {'type': 'integer'},
                               'execution': _EXECUTION, 'budget': _BUDGET_INPUT}, ['backend', 'variables', 'budget']),
     'numerical.fit': _object({'backend': _STRING, 'variables': _VARIABLES,
+                              'fit_inclusion': _OBJECT,
                               'experiments': {'type': 'array', 'items': _EXPERIMENT, 'minItems': 1},
                               'method': {'enum': ['least_squares', 'differential_evolution', 'de']},
                               'options': _object({'max_nfev': _POSITIVE, 'max_generations': _POSITIVE,
-                                                   'population_size': _POSITIVE, 'failure_penalty': _NUMBER}),
+                                                   'population_size': _POSITIVE, 'failure_penalty': _NUMBER,
+                                                   'seed': {'type': 'integer'},
+                                                   'detail_retention': _object({
+                                                       'candidate_limit': {'type': 'integer', 'minimum': 0, 'maximum': 128},
+                                                       'byte_limit': {'type': 'integer', 'minimum': 0, 'maximum': 67108864}},
+                                                       ['candidate_limit', 'byte_limit'])}),
                               'execution': _EXECUTION,
                               'budget': _BUDGET_INPUT}, ['backend', 'variables', 'experiments', 'budget']),
     'numerical.optimize': _object({'backend': _STRING, 'settings': _OBJECT,

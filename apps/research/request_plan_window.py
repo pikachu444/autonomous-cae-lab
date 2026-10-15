@@ -1824,9 +1824,36 @@ class RequestPlanWindow(NumericalWindow):
             return None
         return candidates[index] if candidates[index].get('candidate_id') else None
 
+    def _adopt_fit_detail(self, reference):
+        if (not self.document or self.document['id']!=reference['document_id'] or
+                self.selected_job()!=reference['source']['job_id'] or
+                self._selected_pde_candidate()!=reference['candidate_id'] or self.local_dirty or self.conflict):
+            self.message.setText('계획이나 후보 선택이 바뀌었습니다. 채택할 후보를 다시 선택하세요.')
+            return False
+        self._accept_fit_evidence(reference)
+        return self.review_pde_candidate()
+
     def open_candidate_results(self):
         candidate = self._selected_actual_candidate()
-        if not candidate or not callable(getattr(self.client, 'numerical_evaluation_result', None)): return
+        if not candidate: return
+        if self._result_cache.get(self.selected_job(),{}).get('kind')=='fit':
+            from .numerical_candidate_detail_window import NumericalCandidateDetailWindow
+            job=self.selected_job()
+            run=next(r for r in self.document['runs'] if r['job_id']==job)
+            source=dict(document_id=self.document['id'],job_id=job,input_revision=run['input_revision'],
+                input_sha256=run['input_sha256'],result_sha256=canonical_hash(self._result_cache[job]))
+            window=NumericalCandidateDetailWindow(self.client, document_id=self.document['id'],
+                job_id=self.selected_job(), candidate_id=candidate['candidate_id'],
+                session_id=self.document['session_id'], source=source, parent=self,
+                adopt_callback=self._adopt_fit_detail)
+            window.evidence_preserved.connect(self._accept_fit_evidence)
+            window.evidence_invalidated.connect(lambda: setattr(self, '_selected_fit_evidence', None))
+            self._candidate_result_windows.append(window)
+            window.destroyed.connect(lambda: self._candidate_result_windows.remove(window)
+                if window in self._candidate_result_windows else None)
+            window.show()
+            return
+        if not callable(getattr(self.client, 'numerical_evaluation_result', None)): return
         from .candidate_results_window import CandidateResultsWindow
         identity = (self.document['id'], self.document['session_id'], self.selected_job(), candidate['candidate_id'])
         serial = self._candidate_selection_serial
@@ -1893,10 +1920,20 @@ class RequestPlanWindow(NumericalWindow):
         plan_id, session_id = self.document['id'], self.document['session_id']
         job, serial = self.selected_job(), self._candidate_selection_serial
         result_hash = self._candidate_table_key[-1]
+        detail_evidence = None
+        if self._result_cache.get(job, {}).get('kind') == 'fit':
+            detail_evidence = deepcopy(getattr(self, '_selected_fit_evidence', None))
+            if (not detail_evidence or detail_evidence['source']['job_id'] != job
+                    or detail_evidence['candidate_id'] != candidate
+                    or detail_evidence['purpose'] != 'success_judgment'):
+                self.message.setText('선택 후보의 계산 결과를 확인한 뒤 계수 채택을 누르세요.')
+                self.open_candidate_results()
+                return False
         def relevant():
             return (not self.conflict and self._request_context() == context and self.selected_job() == job
                     and self._candidate_selection_serial == serial and self._selected_pde_candidate() == candidate
-                    and self._candidate_table_key[-1] == result_hash)
+                    and self._candidate_table_key[-1] == result_hash
+                    and (detail_evidence is None or getattr(self, '_selected_fit_evidence', None) == detail_evidence))
         def current_target(target, preview):
             frozen = preview['source']
             return (target.get('id') == target_id and target.get('kind') == target_kind
@@ -1924,6 +1961,8 @@ class RequestPlanWindow(NumericalWindow):
                     request = {'plan_id': plan_id, 'job_id': job, 'candidate_id': candidate,
                                ('pde_document_id' if target_kind == 'pde' else 'target_document_id'): target_id, 'session_id': fresh['session_id'],
                                'expected_generation': fresh['generation'], 'command_id': command_id}
+                    if detail_evidence is not None:
+                        request['detail_evidence'] = deepcopy(detail_evidence)
                     if target_kind == 'pde': self._pde_adoption_request = deepcopy(request)
                     def adopted(receipt):
                         from .desktop import launch_tool

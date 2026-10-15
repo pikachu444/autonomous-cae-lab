@@ -161,7 +161,7 @@ class DesktopLinks:
         return result
 
     def adopt(self, plan_id, job_id, candidate_id, *, material_document_id,
-              session_id, expected_generation, command_id):
+              session_id, expected_generation, command_id, detail_evidence=None):
         """The Plan owns the search; only its selected coefficients edit Material."""
         from .numerical_document import adopted_draft
         wb = self.workbench
@@ -175,7 +175,8 @@ class DesktopLinks:
         if frozen['document_id'] != material_document_id:
             raise ValueError('Candidate belongs to a different Material document')
         result = wb.numerical_documents.result(plan_id, check_id(job_id))
-        draft = adopted_draft(run, result, candidate_id)
+        draft = adopted_draft(run, result, candidate_id, evidence_owner=wb.numerical_documents,
+                              detail_evidence=detail_evidence)
         # Reuse the exact verified retained run on retries. A result read above
         # already verified its immutable revision; adoption does not need to
         # copy every Plan result to another revision on each lost HTTP response.
@@ -189,6 +190,8 @@ class DesktopLinks:
         source = {'plan_id': plan_id, 'plan_revision': revision, 'job_id': job_id,
                   'candidate_id': candidate_id, 'input_sha256': run['input_sha256'],
                   'coefficient_sha256': canonical_hash(draft['settings']['parameters'])}
+        if result.get('kind') == 'fit':
+            source['candidate_evidence'] = deepcopy(detail_evidence)
         return wb.material_documents.adopt(material_document_id, draft, source,
             expected_input_revision=frozen['input_revision'], expected_input_hash=canonical_hash(frozen['draft']),
             session_id=session_id, expected_generation=expected_generation, command_id=command_id)
@@ -249,11 +252,14 @@ class DesktopLinks:
                 'executed': False, 'engineering_release': 'NOT_RELEASED'}
 
     def pde_adopt(self, plan_id, job_id, candidate_id, *, pde_document_id,
-                  session_id, expected_generation, command_id):
+                  session_id, expected_generation, command_id, detail_evidence=None):
         wb = self.workbench
         if session_id != wb.session_id:
             raise ValueError('PDE adoption requires the current service session')
         plan, run, result, frozen, target, original, prepared = self._pde_candidate(plan_id, job_id, candidate_id)
+        if result.get('kind') == 'fit':
+            from .numerical_candidate_evidence import require_adoption_evidence
+            require_adoption_evidence(wb.numerical_documents, detail_evidence, run, result, candidate_id)
         if target != check_id(pde_document_id):
             raise ValueError('The selected candidate belongs to another PDE document')
         retained = run.get('retained_result')
@@ -266,6 +272,8 @@ class DesktopLinks:
         source = {**deepcopy(prepared['source']), 'plan_id': plan_id, 'plan_revision': revision,
                   'job_id': job_id, 'candidate_id': candidate_id, 'input_sha256': run['input_sha256'],
                   'result_sha256': canonical_hash(result), 'engineering_release': 'NOT_RELEASED'}
+        if result.get('kind') == 'fit':
+            source['candidate_evidence'] = deepcopy(detail_evidence)
         return wb.pde_documents.adopt(target, prepared['draft'], source,
             expected_input_revision=frozen['input_revision'], expected_input_hash=frozen['input_sha256'],
             session_id=session_id, expected_generation=expected_generation, command_id=command_id)
