@@ -12,13 +12,13 @@ import sys
 import threading
 import uuid
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal, QItemSelectionModel
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal, QItemSelectionModel, QEvent
 from shiboken6 import isValid
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit,
-    QScrollArea, QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
+    QScrollArea, QSpinBox, QSplitter, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -31,6 +31,96 @@ from caelab.workbench_cli import serializable
 TERMINAL = {'SUCCEEDED', 'FAILED', 'CANCELLED', 'PARTIAL_FAILURE', 'INTERRUPTED', 'REJECTED'}
 TABLE_EXTENSIONS = ('.csv', '.txt', '.dat', '.asc', '.npz')
 MAX_ROWS = 2000
+
+# Same display terms as Material, Runner and report pages; never stored labels.
+_PHYSICAL_TERMS = {
+    'measure': {'force': '힘', 'torque': '토크', 'displacement': '변위', 'stress': '응력',
+                'infinitesimal_Cauchy': '미소변형 Cauchy 응력', 'first_Piola': '제1 Piola 응력',
+                'position': '위치', 'native_frame_index': '기록된 프레임'},
+    'component': {'x': 'X 방향', 'y': 'Y 방향', 'z': 'Z 방향',
+                  **{value: value.upper() for value in ('xx', 'yy', 'zz', 'xy', 'yx', 'xz', 'zx', 'yz', 'zy')}},
+    'location': {'material_point': '재료점'},
+    'frame': {'laboratory': '실험실 좌표', 'lab': '실험실 좌표',
+              'material_cartesian': '재료 직교좌표', 'global': '전체 좌표', 'local': '국부 좌표',
+              'document_global': '세계 좌표'},
+}
+
+
+class _PhysicalTermDelegate(QStyledItemDelegate):
+    """Paint known terms; the item and Data draft always keep exact raw text."""
+    def __init__(self, terms, parent):
+        super().__init__(parent)
+        self.terms = terms
+
+    def displayText(self, value, locale):
+        return self.terms.get(str(value), str(value))
+
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        editor.setEditable(True)
+        editor.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        editor.setCompleter(None)
+        # Qt otherwise emits activated on focus-out when typed text matches a label.
+        # Only an explicit item choice may replace free text with its raw token.
+        editor.lineEdit().editingFinished.disconnect()
+        for raw, label in self.terms.items():
+            if editor.findText(label) < 0:
+                editor.addItem(label, raw)
+                editor.setItemData(editor.count()-1, '원 기록: ' + raw, Qt.ItemDataRole.ToolTipRole)
+        editor.setProperty('dataPhysicalEditor', True)
+        editor.lineEdit().textEdited.connect(lambda _: editor.setProperty('typed', True))
+        def selected(_):
+            editor.setProperty('choiceRaw', editor.currentData())
+            editor.setProperty('choiceText', editor.currentText())
+            editor.setProperty('typed', False)
+            self.commitData.emit(editor)
+            self.closeEditor.emit(editor, self.EndEditHint.NoHint)
+        editor.activated.connect(selected)
+        editor.lineEdit().installEventFilter(self)
+        editor.view().setMinimumWidth(max(editor.fontMetrics().horizontalAdvance(label)
+            for label in self.terms.values()) + 40)
+        return editor
+
+    def setEditorData(self, editor, index):
+        raw = index.data(Qt.ItemDataRole.EditRole)
+        selected = editor.findData(raw)
+        if selected < 0 and raw in self.terms:
+            selected = editor.findText(self.terms[raw])
+            editor.setItemData(selected, raw)  # Preserve aliases such as lab/laboratory.
+            editor.setItemData(selected, '원 기록: ' + raw, Qt.ItemDataRole.ToolTipRole)
+        if selected < 0:
+            editor.addItem(str(raw), raw)
+            selected = editor.count()-1
+        editor.setCurrentIndex(selected)
+        editor.setProperty('choiceRaw', raw)
+        editor.setProperty('choiceText', editor.currentText())
+        editor.setProperty('typed', False)
+        editor.lineEdit().selectAll()
+
+    def setModelData(self, editor, model, index):
+        text = editor.currentText()
+        undone = text == editor.property('choiceText') and not editor.lineEdit().isUndoAvailable()
+        raw = editor.property('choiceRaw') if not editor.property('typed') or undone else text
+        model.setData(index, raw, Qt.ItemDataRole.EditRole)
+
+    def eventFilter(self, watched, event):
+        editor = watched if isinstance(watched, QComboBox) else watched.parentWidget()
+        if isinstance(editor, QComboBox) and editor.property('dataPhysicalEditor'):
+            if event.type() == QEvent.Type.KeyPress:
+                key = event.key()
+                if key == Qt.Key.Key_Escape:
+                    self.closeEditor.emit(editor, self.EndEditHint.RevertModelCache)
+                    return True
+                hints = {Qt.Key.Key_Return: self.EndEditHint.NoHint, Qt.Key.Key_Enter: self.EndEditHint.NoHint,
+                         Qt.Key.Key_Tab: self.EndEditHint.EditNextItem, Qt.Key.Key_Backtab: self.EndEditHint.EditPreviousItem}
+                if key in hints:
+                    # Commit before QComboBox can auto-select a matching typed label.
+                    self.commitData.emit(editor)
+                    self.closeEditor.emit(editor, hints[key])
+                    return True
+            if watched is not editor:
+                return False
+        return super().eventFilter(watched, event)
 
 
 def display(value):
@@ -317,7 +407,10 @@ class DataWindow(QMainWindow):
         self.mapping.setHorizontalHeaderLabels(['역할', '채널 또는 축 이름', '원본 열', '단위', '성분', '위치', '물리량 정의', '좌표계', '배율', '보정값'])
         self.mapping.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.mapping.horizontalHeader().setDefaultSectionSize(90)
-        self.mapping.setColumnWidth(1, 150)
+        for column, width in enumerate((90, 130, 60, 60, 55, 70, 185, 110)):
+            self.mapping.setColumnWidth(column, width)
+        for column, key in ((5, 'location'), (6, 'measure'), (7, 'frame')):
+            self.mapping.setItemDelegateForColumn(column, _PhysicalTermDelegate(_PHYSICAL_TERMS[key], self.mapping))
         self.mapping.horizontalHeaderItem(3).setToolTip('Unit of the imported value after Scale and Offset. A label change does not convert values.')
         self.mapping.horizontalHeaderItem(8).setToolTip('Imported value = original value * Scale + Offset. Applied independently to axis and response; default Scale is 1.')
         self.mapping.horizontalHeaderItem(9).setToolTip('Added after scaling, in the declared imported unit; default Offset is 0.')
@@ -1700,20 +1793,8 @@ class DataWindow(QMainWindow):
                         self.axes.plot([a for a, _ in points], [b for _, b in points], linestyle='--', marker='x', label='Retained prediction')
                 self.axes.legend()
         axis_name = axis.get('name', 'unknown')
-        # Match the physical terms used by Material, Runner and report pages.
-        meanings = {
-            'measure': {'force': '힘', 'torque': '토크', 'displacement': '변위', 'stress': '응력',
-                        'infinitesimal_Cauchy': '미소변형 Cauchy 응력', 'first_Piola': '제1 Piola 응력',
-                        'position': '위치', 'native_frame_index': '기록된 프레임'},
-            'component': {'x': 'X 방향', 'y': 'Y 방향', 'z': 'Z 방향',
-                          **{value: value.upper() for value in ('xx', 'yy', 'zz', 'xy', 'yx', 'xz', 'zx', 'yz', 'zy')}},
-            'location': {'material_point': '재료점'},
-            'frame': {'lab': '실험실 좌표', 'laboratory': '실험실 좌표',
-                      'material_cartesian': '재료 직교좌표', 'global': '전체 좌표', 'local': '국부 좌표',
-                      'document_global': '세계 좌표'},
-        }
-        physical = {key: meanings[key].get(value, value) if isinstance(value, str) else display(value)
-                    for key in meanings for value in [response.get(key, '미기록')]}
+        physical = {key: _PHYSICAL_TERMS[key].get(value, value) if isinstance(value, str) else display(value)
+                    for key in _PHYSICAL_TERMS for value in [response.get(key, '미기록')]}
         title = f"{physical['measure']} ({physical['component']})"
         self.canvas.setToolTip('\n'.join(
             caption + ': ' + physical[key] for key, caption in
