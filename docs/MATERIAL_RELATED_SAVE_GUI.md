@@ -6,8 +6,16 @@ Material의 피팅 변수 패널에서 선택한 계획을 확인하고 **함께
 
 두 문서가 저장된 뒤 **저장한 재료로 연결**을 눌러야 계획 참조 갱신과 연결 저장을 수행한다. 이 단계가 실패하면 이전에 저장한 계획은 보존되며 연결 저장 실패와 불확정 결과를 구별한다. 저장 응답은 검토 당시 입력과 현재 창의 기준이 같고 새 로컬 편집이 없을 때만 창에 반영한다.
 
-같은 Material 창에서는 **저장 결과…**로 선택 계획의 마지막 receipt를 다시 읽는다. `RelatedSaveDialog(..., receipt_id=...)`는 기존 durable receipt를 명시적으로 읽어 표시하며 새 저장을 시작하지 않는다. 실제 서비스 종료·재시작 후 이 API로 같은 저장 결과와 정확 Material/Plan saved revision을 다시 읽는 검사는 통과했다. 이 GUI의 receipt 선택 기억은 현재 창에 한정된다. C01 복구 capsule을 통한 cold GUI 재개와 미확정 원문 닫기 보호는 별도 미완료이며 이 기능으로 대체하지 않는다.
+같은 Material 창에서는 **저장 결과…**로 선택 계획의 마지막 receipt를 다시 읽는다. `RelatedSaveDialog(..., receipt_id=...)`는 기존 durable receipt를 명시적으로 읽어 표시하며 새 저장을 시작하지 않는다. 실제 서비스 종료·재시작 후 이 API로 같은 저장 결과와 정확 Material/Plan saved revision을 다시 읽는 검사는 통과했다.
 
 저장 execute를 시도하는 순간 원 preview와 receipt ID를 성공 응답과 분리해 기억한다. 저장이 실제로 끝난 뒤 HTTP 응답을 잃어도 창을 닫고 같은 ID의 **저장 결과…**를 읽을 수 있다. 결과가 확인되지 않은 동안 **함께 저장…**도 그 원래 결과 조회로 연결하며 새 preview나 owner 명령을 자동으로 만들지 않는다. preview만 보고 취소하면 저장 요청으로 기록하지 않는다. 미확정 셀이 있는 동안에도 결과 조회는 가능하며 저장/재시도/참조 연결은 비활성화한다. 검토 모달은 기존 `RawEditorFocusGuard`로 감싸 원래 편집기를 확정하지 않는다.
 
 검증: 실제 HTTP/기존 owner의 Plan 저장 한 번에만 권한 오류를 주입해 부분 실패→계획만 재시도→명시 참조 연결→서비스 재시작/receipt 재열기를 확인했다. solver와 fit은 실행하지 않았다. Windows 실제 Qt 정상/좁은 저장 창과 Material 패널을 읽었고 미확정 `1e`가 있을 때 저장 차단·원문 보존·Esc를 확인했다. 실행한 검사 프로세스는 종료했다. Core 전체 C1 검사 수나 C01 완료를 이 GUI 검사로 주장하지 않는다.
+
+**편집 원문 보관**에는 해당 Material의 선택 계획과 원래 저장 요청 ID·정확 preview·미확인 여부도 GUI 문맥으로 포함한다. 기존 C01 raw의 선택 정보에 보관하며 새 저장소나 Core schema를 만들지 않는다. 복구 뒤에는 사용자가 **피팅 변수** 패널을 열 때 해당 계획의 **저장 결과…**를 활성화한다. 문맥 복구 자체는 Plan 읽기나 저장을 시작하지 않는다. 다른 Material/Plan/receipt가 섞인 문맥은 편집을 바꾸기 전에 거절한다.
+
+새 세션에서 실패 문서를 재시도할 때는 새 창에서 읽은 현재 문서가 원래 실패한 buffer·입력 revision·hash·saved revision과 정확히 같아야 한다. 그 문서의 현재 session/CAS를 기존 preview에 명시 검토한 뒤 실패 문서만 기존 `related_save.retry`로 전달한다. 새로운 peer 입력으로 자동 갱신하지 않는다. 원 요청 결과를 아직 읽지 못했을 때의 **원래 저장 요청 재전송**도 사용자가 누른 경우에만 원 preview/동일 ID의 기존 `execute`를 호출한다. 이미 완료된 요청은 Core가 재실행하지 않고 원 결과를 반환한다. 조회·복구만으로는 재전송하지 않는다.
+
+같은 Material 창에서 다른 재료를 열어도 보관한 요청 문맥은 문서별로 따로 유지한다. 새 문서에는 해당 재료의 문맥만 연결하고 이전 Plan 위젯은 공개 detach로 뷰에서 분리한다. 원 문서로 돌아오면 그 문서의 요청을 다시 읽을 수 있으며 원 capsule은 변경하지 않는다. 보관 당시의 Plan 선택은 최초 연결에만 적용한다. 이후 사용자가 선택한 다른 Plan은 **다시 읽기**에서도 유지한다. 패널을 열기 전/후 A→B→A와 이후 Plan 선택 유지의 전용 Windows Qt 2개가 3.85초에 통과했고 owned Job도 종료했다. 이는 읽기 transport fixture 검사로 실제 HTTP cold 2개와 구분한다.
+
+2026-10-15 current root Core와 전용 GUI 조합에서 Windows/HTTP의 부분 실패 및 응답 유실 두 cold GUI 검사가 12.68초에 통과했다. 실제 capsule 보관 후 서비스를 재시작하고 새 Material 뷰에서 원 요청을 복구했으며, 부분 실패는 Plan만 두 번째 attempt로 저장했다. 응답 유실의 동일 요청 재전송은 양쪽 첫 attempt를 유지했고 참조 연결은 별도 클릭으로만 수행했다. 별도 foreign 문맥 네 거절 검사는 앞선 실행에서 통과했다. 최초 실행의 cold session retry 실패는 그대로 남겼으며 현재 GUI의 명시 fresh-CAS 소비로 교정했다. 정상/좁은 실제 창을 읽었고 각 owned Job은 `job_empty`로 종료했다. 같은 프로세스의 HTTP 서비스 재시작 검증이며 OS 새 프로세스 GUI나 portable resume 검증은 아니다. 보관 전 saved-revision 기준이 바뀌면 기존 C01 gate를 우회하지 않으며 현재 문서를 명시적으로 다시 확인해야 한다.

@@ -75,6 +75,10 @@ def material_raw_snapshot(window):
     raw = dict(cells=cells, local_draft=window.edited_draft(commit=False),
                selection={'history': [[index.row(), index.column()] for index in window.history.selectedIndexes()],
                           'coefficients': [[index.row(), index.column()] for index in window.coefficients.selectedIndexes()]})
+    from .material_save_recovery import snapshot_context
+    context = snapshot_context(window)
+    if context is not None:
+        raw['selection']['related_save'] = context
     if focus_record is not None: raw['focus'] = focus_record
     raw['editor_revision'] = 'U' + canonical_hash(raw)
     return raw
@@ -89,6 +93,11 @@ def restore_material_raw(window, raw):
         raise ValueError('현재 재료 편집을 마친 뒤 복구 입력을 여세요.')
     if raw.get('focus') and not window.isVisible():
         raise ValueError('미확정 셀을 복구하려면 재료 창을 먼저 표시하세요.')
+    from .material_save_recovery import checked_context, restore_context
+    context = checked_context(raw.get('selection', {}).get('related_save'), window.document['id'])
+    panel = getattr(window, '_plan_panel', None)
+    if context is not None and panel is not None and (panel._busy or panel._related_save_receipts):
+        raise ValueError('현재 저장 결과를 유지합니다. 보관한 요청은 새 창에서 여세요.')
     candidate = deepcopy(raw.get('local_draft', window.document['draft']))
     if draft_view_error(candidate):
         raise ValueError('복구 입력의 표 구조를 표시할 수 없습니다. 보존한 입력을 유지했습니다.')
@@ -166,5 +175,6 @@ def restore_material_raw(window, raw):
     window.local_dirty = candidate != window.document['draft'] or any(
         cell['raw_text'] != display_value(cell['original_value']) for cell in raw['cells'])
     window._local_snapshot = window.edited_draft(commit=False)
+    restore_context(window, context)
     window._update_actions()
     window.message.setText('보존한 재료 입력을 복구했습니다. 확인 후 입력을 적용하세요.')
