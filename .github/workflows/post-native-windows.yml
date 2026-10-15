@@ -88,10 +88,15 @@ jobs:
             $file = Join-Path $root $_
             if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Tail 120 }
           }
-          @('plugin-build/core-test-job/stdout.log','checks/load/stdout.log',
+          @('checks/load-dependencies.log','plugin-build/core-test-job/stdout.log',
+            'checks/load/stdout.log','checks/load/stderr.log',
             'checks/create/stdout.log','checks/create/stderr.log',
             'checks/cold/stdout.log','checks/cold/stderr.log') | ForEach-Object {
             $file = Join-Path $root $_
-            if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Tail 60 }
+            if (Test-Path -LiteralPath $file) {
+              Write-Output "--- $_"
+              if ($_ -eq 'checks/load-dependencies.log') { Get-Content -LiteralPath $file }
+              else { Get-Content -LiteralPath $file -Tail 120 }
+            }
           }
           "### Post Windows SDK check`n`nCommit: $env:GITHUB_SHA`n`nNo cache, artifact upload, release publication or actual desktop input acceptance is performed." >> $env:GITHUB_STEP_SUMMARY

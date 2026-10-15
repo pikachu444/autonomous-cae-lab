@@ -150,6 +150,7 @@ try {
     Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','runtime')
     Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','development')
     Invoke-Checked $cmake @('--install',$sdkBuild,'--config','Release','--component','python')
+    $evidence['sdk_build'] = 'RUNTIME_AND_DEVELOPMENT_INSTALL_COMPLETED'
     $env:PATH = "$(Join-Path $runtime 'bin');$env:PATH"
     $deployQt = Join-Path $qt 'bin/windeployqt.exe'
     Invoke-Checked $deployQt @('--release','--no-compiler-runtime','--no-translations',
@@ -173,6 +174,17 @@ try {
     Invoke-Checked $Python @((Join-Path $repo 'scripts/post_exit_artifact.py'),'--plugin',$plugin[0].FullName,
         '--runtime',$runtime,'--build-info',(Join-Path $pluginBuild 'cae-post-exit-build-info.json'),'--sdk-evidence',$sdkEvidence)
     $pvpython = Join-Path $runtime 'bin/pvpython.exe'
+    # Preserve direct PE imports before a loader failure can prevent Python diagnostics.
+    $dumpbin = (Get-Command dumpbin.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    $dependencyLog = Join-Path $root 'checks/load-dependencies.log'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $dependencyLog) -Force | Out-Null
+    foreach ($binary in @($pvpython,(Join-Path $runtime 'bin/python312.dll'))) {
+        Write-Output "--- Direct imports: $binary" | Add-Content -LiteralPath $dependencyLog -Encoding utf8
+        Invoke-Checked $dumpbin @('/DEPENDENTS',$binary) | Add-Content -LiteralPath $dependencyLog -Encoding utf8
+    }
+    Get-ChildItem -LiteralPath (Join-Path $runtime 'bin') -File -Filter '*.dll' |
+        Sort-Object Name | ForEach-Object { "INSTALLED_RUNTIME_DLL $($_.Name)" } |
+        Add-Content -LiteralPath $dependencyLog -Encoding utf8
     Invoke-OwnedCheck 'load' @($pvpython,(Join-Path $repo 'scripts/post_native_windows_smoke.py'),'--plugin',$plugin[0].FullName)
     $evidence['native_backend'] = 'PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED'
     $comparison = Join-Path $root 'checks/comparison'
@@ -180,7 +192,6 @@ try {
     $evidence['native_backend'] = 'PLUGIN_LOAD_AND_COMPARISON_SAVE_PASSED_COLD_NOT_COMPLETED'
     Invoke-OwnedCheck 'cold' @($pvpython,(Join-Path $repo 'tests/check_post_comparison_native.py'),'--reopen',(Join-Path $comparison 'receipt.json')) 300
     $evidence['native_backend'] = 'PLUGIN_LOAD_EXISTING_COMPARISON_SAVE_AND_COLD_REOPEN_PASSED'
-    $evidence['sdk_build'] = 'RUNTIME_AND_DEVELOPMENT_INSTALL_COMPLETED'
     $evidence['plugin_sha256'] = (Get-FileHash -LiteralPath $plugin[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     Write-Output 'SDK/plugin/native backend checks finished. Actual Windows ParaView GUI exit acceptance is NOT_RUN.'
 } finally {
