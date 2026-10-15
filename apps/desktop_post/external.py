@@ -259,8 +259,17 @@ def validate_declared_metadata(source, metadata):
         if len(inputs) != 1 or source.GetXMLName() != 'PVDReader':
             raise ValueError('Dynamic declaration requires its exact retained PVD reader')
         dynamic_api().load(inputs[0], metadata)
-    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings", "dynamic_locations"} - shell_keys - beam_keys:
+    spatial_keys = {'basis', 'mesh_sha256', 'snapshot_kind'}
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time", "contact_inspection", "field_availability", "field_meanings", "dynamic_locations"} - spatial_keys - shell_keys - beam_keys:
         raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
+    if 'basis' in metadata and metadata['basis'] not in ('P1', 'DG0'):
+        raise ValueError('Declared field basis must be P1 or DG0')
+    if 'mesh_sha256' in metadata and (not isinstance(metadata['mesh_sha256'], str)
+            or len(metadata['mesh_sha256']) != 64
+            or any(c not in '0123456789abcdef' for c in metadata['mesh_sha256'])):
+        raise ValueError('Declared mesh identity requires a SHA256 digest')
+    if 'snapshot_kind' in metadata and metadata['snapshot_kind'] not in ('steady', 'physical_snapshot'):
+        raise ValueError('Declared field requires its exact snapshot kind')
     if "contact_inspection" in metadata:
         contact_api().descriptor(metadata["contact_inspection"])
     for key in ("coordinate_units", "coordinate_frame"):
@@ -283,12 +292,12 @@ def validate_declared_metadata(source, metadata):
     else:
         if (not isinstance(clock, dict) or set(clock) != {"unit", "semantics", "values"}
                 or not ((clock["unit"] == "1" and clock["semantics"] in {"DIMENSIONLESS_MODEL_TIME", "STATIC_LOAD_PARAMETER", "MIXED_NATIVE_COORDINATE_NOT_PHYSICAL_TIME"})
-                        or (clock["unit"] == "s" and isinstance(clock["semantics"], str) and clock["semantics"].strip()))
+                        or (clock["unit"] in ("s", "ms", "min", "h") and isinstance(clock["semantics"], str) and clock["semantics"].strip()))
                 or not isinstance(clock["values"], list) or not clock["values"]
                 or any(type(t) not in (int, float) or not math.isfinite(t) for t in clock["values"])
                 or any(b <= a for a, b in zip(clock["values"], clock["values"][1:]))
                 or source.GetXMLName() != "PVDReader" or times(source) != clock["values"]):
-            raise ValueError("Declared dimensionless/seconds clock differs from the exact native PVD timesteps")
+            raise ValueError("Declared dimensionless/physical clock differs from the exact native PVD timesteps")
     arrays = metadata["arrays"]
     if "field_meanings" in metadata:
         from caelab.calculix_material import result_meanings
@@ -328,6 +337,8 @@ def validate_declared_metadata(source, metadata):
         if 'shear_convention' in declaration and declaration['shear_convention'] != 'tensor_shear_not_engineering_shear':
             raise ValueError('Unsupported native tensor shear convention')
         association = declaration["association"]
+        if 'basis' in metadata and 'quantity' in declaration and association != {'P1': 'POINTS', 'DG0': 'CELLS'}[metadata['basis']]:
+            raise ValueError('Declared field basis differs from its native array association')
         if association not in ("POINTS", "CELLS", "FIELD"):
             raise ValueError("Declared array association must match POINTS, CELLS or FIELD")
         identity = association, declaration["name"]

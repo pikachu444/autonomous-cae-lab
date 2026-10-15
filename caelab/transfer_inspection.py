@@ -50,6 +50,9 @@ def inspect_transfer(wb,document_id,job_id,transfer_id=None,iteration=None,*,sta
     declaration=_one(declarations,lambda row:row['id']==transfer_id,'보존 정의에 없는 전달입니다.')
     for key in ('from_stage','to_stage','input','mapping'):
         if receipt[key]!=declaration[key]: raise ValueError('전달 기록과 보존 정의가 다릅니다.')
+    if declaration['mapping']=='p1_temperature':
+        from .temperature_transfer_inspection import inspect_mapped
+        return inspect_mapped(wb,document_id,job_id,result,declaration,receipt,frozen,progress,start=start,count=count)
     if declaration['mapping']!='exact_same_mesh':
         raise ValueError('현재 조사 화면은 선언된 동일 메시 전달만 지원합니다.')
     stages=progress.get('stages',[])

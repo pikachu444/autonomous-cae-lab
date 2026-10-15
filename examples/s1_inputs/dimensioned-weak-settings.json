@@ -1,0 +1,79 @@
+{
+  "field": {
+    "name": "temperature",
+    "label": "온도",
+    "unit": "K"
+  },
+  "parameters": [
+    {
+      "name": "k",
+      "value": 1.0,
+      "unit": "W/(m*K)"
+    },
+    {
+      "name": "q",
+      "value": 0.0,
+      "unit": "W/m**3"
+    },
+    {
+      "name": "left_value",
+      "value": 300.0,
+      "unit": "K"
+    },
+    {
+      "name": "right_value",
+      "value": 310.0,
+      "unit": "K"
+    },
+    {
+      "name": "length",
+      "value": 1.0,
+      "unit": "m"
+    }
+  ],
+  "domain": {
+    "width": 1.0,
+    "height": 1.0,
+    "unit": "m"
+  },
+  "space": {
+    "family": "Lagrange",
+    "degree": 1
+  },
+  "mesh": {
+    "levels": [
+      4,
+      8
+    ]
+  },
+  "forms": {
+    "bilinear": "k*inner(grad(u),grad(v))",
+    "linear": "q*v"
+  },
+  "boundaries": [
+    {
+      "side": "left",
+      "kind": "Dirichlet",
+      "expression": "left_value"
+    },
+    {
+      "side": "right",
+      "kind": "Dirichlet",
+      "expression": "right_value"
+    }
+  ],
+  "reference": "left_value+(right_value-left_value)*x/length",
+  "solver": {
+    "residual_relative": 1e-09
+  },
+  "physical": {
+    "quantity": "absolute_temperature",
+    "measure": "thermodynamic_temperature",
+    "frame": "global_cartesian"
+  },
+  "time": {
+    "value": 0.0,
+    "unit": "s",
+    "origin": "steady_reference"
+  }
+}

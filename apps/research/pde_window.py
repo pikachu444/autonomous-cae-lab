@@ -54,6 +54,8 @@ def declared_number_kind(backend,path):
             float:[('settings','properties',int,'value'),('settings','external',int,'value'),
                    ('settings','history',int,'time'),('settings','history',int,'strain',int),
                    ('settings','initial_internal',int),('settings','probe','steps',int)]}}
+    definitions['pde.scikit_fem.dimensioned'] = {kind: list(paths) for kind, paths in definitions['pde.fenicsx.dimensioned'].items()}
+    definitions['pde.scikit_fem.dimensioned'][float].append(('settings','time','value'))
     return next((kind for kind,patterns in definitions.get(backend,{}).items()
                  if any(matches(pattern) for pattern in patterns)),None)
 
@@ -100,6 +102,7 @@ def set_path(value, path, replacement):
 def setting_label(path):
     """Readable form captions; the exact adapter path remains in the tooltip."""
     names = {'rhs': '미분식 / 우변', 'degree': '함수 공간 차수',
+             'quantity': '물리량', 'measure': '물리 측도', 'frame': '좌표계', 'origin': '시계 원점',
              'bilinear': 'a(u, v) 체적 적분식', 'linear': 'L(v) 체적 적분식',
              'initial': '초기값', 'atol': '절대 오차 허용값', 'rtol': '상대 오차 허용값',
              'reference': '독립 기준식', 'max_step': '최대 시간 간격 [s]', 'samples': '출력점 수',
@@ -116,6 +119,10 @@ def setting_label(path):
              'max_h1_seminorm_error': 'H1 반노름 오차 허용값'}
     if path[-2:] == ('domain', 'type'):
         return '영역 형상'
+    if path[-2:] == ('space', 'family'):
+        return '함수 공간 계열'
+    if path[-2:] == ('mesh', 'levels'):
+        return '메시 수준'
     if len(path) >= 2 and path[-2] == 'boundaries' and path[-1] in {'xmin', 'xmax', 'ymin', 'ymax', 'zmin', 'zmax'}:
         return path[-1][0] + (' 최소 경계' if path[-1].endswith('min') else ' 최대 경계')
     if 'lengths' in path and isinstance(path[-1], int):
@@ -300,7 +307,20 @@ class PDEWindow(QMainWindow):
         self.backend = QComboBox()
         self.backend.setObjectName('pdeBackend')
         self.backend.setEditable(True)
-        self.backend.addItems(self.model_backends)
+        backend_captions = {
+            'pde.fenicsx': '스칼라 타원형 기준식 (FEniCSx)',
+            'pde.fenicsx.rectangle': '직사각형 정상 확산 반응 (FEniCSx)',
+            'pde.fenicsx.nonlinear': '비선형 정상 방정식 (FEniCSx)',
+            'pde.fenicsx.transient': '시간 의존 확산 (FEniCSx)',
+            'pde.fenicsx.vector': '벡터 장 방정식 (FEniCSx)',
+            'pde.fenicsx.coupled': '두 스칼라 장 연성 (FEniCSx)',
+            'pde.fenicsx.imported': '가져온 메시의 약형식 (FEniCSx)',
+            'pde.scipy.ode': '상태 방정식 (SciPy ODE)',
+            'pde.fenicsx.dimensioned': '선형 약형식 (FEniCSx)',
+            'pde.scikit_fem.dimensioned': '선형 약형식 (scikit-fem)',
+        }
+        for key in self.model_backends:
+            self.backend.addItem(backend_captions.get(key, '해석 계산 방법'), key)
         self.backend.currentTextChanged.connect(self._backend_changed)
         backend_note = QLabel('계산 방법 선택은 모델을 자동 변환하지 않습니다.')
         backend_note.setWordWrap(True)
@@ -485,7 +505,16 @@ class PDEWindow(QMainWindow):
         self._input_checks = deepcopy(document.get('diagnostics', []))
         self.fields = {}
         self._populating = True
-        self.backend.setCurrentText(display(self._draft.get('backend', '')))
+        raw_backend = self._draft.get('backend', '')
+        backend_index = next((i for i in range(self.backend.count())
+                              if self.backend.itemData(i) == raw_backend), -1)
+        if backend_index < 0:
+            self.backend.addItem('지원하지 않는 계산 방법 (원 입력 보존)', deepcopy(raw_backend))
+            backend_index = self.backend.count() - 1
+        self.backend.setCurrentIndex(backend_index)
+        if self.backend.isEditable():
+            self.backend.setEditText(self.backend.itemText(backend_index))
+        self.backend.setToolTip('계산 방법 식별자: ' + display(raw_backend))
         self.tree.clear()
         self._nodes = {}
         self._run_nodes = {}
@@ -504,11 +533,11 @@ class PDEWindow(QMainWindow):
             ('입력 출처', ('settings', 'input_provenance')),
             ('수치 허용값', ('settings', 'validation')),
         ]
-        if self.document_kind == 'pde' and self._draft.get('backend') in ('pde.scipy.ode', 'pde.fenicsx.dimensioned'):
+        if self.document_kind == 'pde' and self._draft.get('backend') in ('pde.scipy.ode', 'pde.fenicsx.dimensioned', 'pde.scikit_fem.dimensioned'):
             definitions = [(label, ('settings', key)) for key, label in (
                 ('field','장'), ('states','상태와 초기조건'), ('parameters','계수'), ('forms','약형식'),
                 ('domain','영역'), ('boundaries','경계 조건'), ('space','함수 공간'), ('mesh','메시 수준'),
-                ('time','시간'), ('reference','독립 기준식'), ('solver','계산 방법'))]
+                ('time','시간'), ('physical','물리량 선언'), ('reference','독립 기준식'), ('solver','계산 방법'))]
         covered = set()
         for label, path in definitions:
             try:
@@ -616,7 +645,7 @@ class PDEWindow(QMainWindow):
             for index, item in enumerate(value):
                 self._add_fields(form, item, (*path, index))
             # List edits are explicit and preserve exact existing entries.
-            extra=self._draft.get('backend') in ('pde.scipy.ode','pde.fenicsx.dimensioned','material.mfront.user')
+            extra=self._draft.get('backend') in ('pde.scipy.ode','pde.fenicsx.dimensioned','pde.scikit_fem.dimensioned','material.mfront.user')
             if path[-1] in ('cell_counts', 'step_counts', 'levels') or extra and path[-1] in (
                     'states','parameters','boundaries','properties','external','history','initial_internal','steps'):
                 buttons = QHBoxLayout()
@@ -652,7 +681,7 @@ class PDEWindow(QMainWindow):
     def _resize_list(self, path, add):
         self._capture_settings()
         rows = at_path(self._draft, path)
-        if add and self._draft.get('backend') in ('pde.scipy.ode','pde.fenicsx.dimensioned','material.mfront.user'):
+        if add and self._draft.get('backend') in ('pde.scipy.ode','pde.fenicsx.dimensioned','pde.scikit_fem.dimensioned','material.mfront.user'):
             key=path[-1];n=len(rows)+1
             if key=='levels':value=rows[-1]*2 if rows and type(rows[-1]) is int else 4
             elif key=='states':value={'name':'state'+str(n),'label':'새 상태','unit':'1','initial':0.,'rhs':'','reference':'','atol':1e-7}
@@ -681,7 +710,11 @@ class PDEWindow(QMainWindow):
     def _backend_changed(self, text):
         if self._populating:
             return
-        self._draft['backend'] = text
+        visible_text = self.backend.lineEdit().text() if self.backend.isEditable() else text
+        selected = self.backend.currentIndex()
+        self._draft['backend'] = (deepcopy(self.backend.itemData(selected))
+                                  if selected >= 0 and visible_text == self.backend.itemText(selected) else text)
+        self.backend.setToolTip('계산 방법 식별자: ' + display(self._draft['backend']))
         self._edited()
 
     def _edited(self, *_):
@@ -746,7 +779,7 @@ class PDEWindow(QMainWindow):
         self.space.setText(('u[0], u[1]: vector Lagrange P1. ' if backend in ('pde.fenicsx.vector', 'pde.fenicsx.coupled') else
                             'u: scalar Lagrange P1. ') + '좌표 단위와 장 단위: 1 (무차원).')
         self.support.setText('solver 정책은 고정입니다. 임의 solver 옵션과 일반 UFL, ODE는 지원하지 않습니다.')
-        if backend in ('pde.scipy.ode', 'pde.fenicsx.dimensioned'):
+        if backend in ('pde.scipy.ode', 'pde.fenicsx.dimensioned', 'pde.scikit_fem.dimensioned'):
             settings = draft.get('settings', {})
             if backend == 'pde.scipy.ode':
                 self.equation.setText('dy/dt = f(t, y)')
@@ -761,7 +794,7 @@ class PDEWindow(QMainWindow):
         if backend == 'pde.fenicsx.nonlinear':
             from caelab.adapters.fenicsx_nonlinear_worker import NATIVE_OPTIONS
             policy = NATIVE_OPTIONS
-        elif backend in BACKENDS and backend not in ('pde.scipy.ode', 'pde.fenicsx.dimensioned'):
+        elif backend in BACKENDS and backend not in ('pde.scipy.ode', 'pde.fenicsx.dimensioned', 'pde.scikit_fem.dimensioned'):
             from caelab.adapters.fenicsx_rectangle_worker import NATIVE_OPTIONS
             policy = NATIVE_OPTIONS
         text = ['Input diagnostics:', *[entry['message'] for entry in checks],
@@ -894,11 +927,17 @@ class PDEWindow(QMainWindow):
         self._result = deepcopy(result)
         self.result_selector.blockSignals(True)
         self.result_selector.clear()
+        from .scikit_fem_result_view import fields as spatial_fields
+        physical = spatial_fields(result)
+        physical_names = {entry['name'] for entry in physical}
         for name, response in result.get('responses', {}).items():
+            if name in physical_names:
+                continue
             self.result_selector.addItem(self.response_caption(name, response) + ' [' + response.get('unit', '') + ']', ('response', name))
         native_fields = result.get('diagnostics', {}).get('native_fields', [])
         if isinstance(native_fields, dict):
             native_fields = [{'name': name, 'field': field} for name, field in native_fields.items()]
+        native_fields = list(native_fields) + physical
         self._native_fields = native_fields
         for index, entry in enumerate(native_fields):
             field = entry.get('field', entry)
@@ -1067,11 +1106,11 @@ class PDEWindow(QMainWindow):
                 component = selected[2]
                 scalar = [value[component] if isinstance(value, list) else value for value in values]
                 points = axes.scatter([xy[0] for xy in coordinates], [xy[1] for xy in coordinates], c=scalar, s=14)
-                self.result_figure.colorbar(points, ax=axes, label='Native nodal value [' + field.get('field_unit', '1') + ']')
+                self.result_figure.colorbar(points, ax=axes, label=('Cell average' if field.get('association')=='CELLS' else 'Nodal value') + ' [' + field.get('field_unit', '1') + ']')
                 axes.set_aspect('equal')
                 axes.set_xlabel('x [' + field.get('coordinates_unit', '1') + ']')
                 axes.set_ylabel('y [' + field.get('coordinates_unit', '1') + ']')
-                axes.set_title('Exact retained DOFs; no interpolation')
+                axes.set_title('Exact retained cell averages' if field.get('association')=='CELLS' else 'Exact retained DOFs; no interpolation')
                 selected_node = self.field_node.currentData()
                 ids = field.get('node_ids', [])
                 if selected_node in ids:
@@ -1080,10 +1119,10 @@ class PDEWindow(QMainWindow):
                     axes.scatter([xy[0]], [xy[1]], facecolors='none', edgecolors='#dc2626', s=100, linewidths=2)
                     source = entry.get('source', {})
                     instant = entry.get('time')
-                    self.point_label.setText('Node ' + str(selected_node) + ' at ' + display(xy) +
+                    self.point_label.setText(('Cell ' if field.get('association')=='CELLS' else 'Node ') + str(selected_node) + ' at ' + display(xy) +
                         ' [' + field.get('coordinates_unit', '1') + ']; value ' + display(scalar[index]) +
                         ' [' + field.get('field_unit', '1') + ']; ' +
-                        ('static field' if instant is None else 'model time ' + display(instant) + ' [1]'))
+                        ('static field' if instant is None else 'model time ' + display(instant) + ' [' + str(entry.get('time_unit', '1')) + '] / ' + str(entry.get('time_origin', ''))))
                     self.point_label.setToolTip(display({'source': source, 'study_index': entry.get('study_index'),
                                                        'step_index': entry.get('step_index')}))
         if self._result:
@@ -1108,7 +1147,7 @@ class PDEWindow(QMainWindow):
         problem = settings.get('problem', {}) if isinstance(settings, dict) else {}
         domain = problem.get('domain') if isinstance(problem, dict) else None
         side = path[-1] if path and 'boundaries' in path else None
-        dimensioned=draft.get('backend')=='pde.fenicsx.dimensioned'
+        dimensioned=draft.get('backend') in ('pde.fenicsx.dimensioned','pde.scikit_fem.dimensioned')
         if dimensioned and isinstance(settings,dict):
             declared=settings.get('domain',{})
             domain={'lengths':[declared.get('width'),declared.get('height')]}
@@ -1154,7 +1193,7 @@ class PDEWindow(QMainWindow):
                         axes.plot([lx*fraction]*2, [0, ly], '--', color='#2563eb')
                 axes.set_xlim(-lx*.1, lx*1.1)
                 axes.set_ylim(-ly*.1, ly*1.1)
-                axes.set_title('Declared domain')
+                axes.set_title('모델 영역')
             axes.set_aspect('equal')
             axes.set_xlabel('x [m]' if dimensioned else 'x [1]')
             axes.set_ylabel('y [m]' if dimensioned else 'y [1]')
@@ -1256,7 +1295,8 @@ class PDEWindow(QMainWindow):
 
     def new_document(self):
         labels={'pde.scipy.ode':'상태 방정식 (단위가 있는 ODE)',
-                'pde.fenicsx.dimensioned':'선형 약형식 (단위가 있는 스칼라 장)'}
+                'pde.fenicsx.dimensioned':'선형 약형식 (단위가 있는 스칼라 장)',
+                'pde.scikit_fem.dimensioned':'Windows 공간 약형식 (scikit-fem / 실제 SI 온도)'}
         choices=[labels.get(key,key) for key in self.model_backends]
         choice, accepted = QInputDialog.getItem(self, '새 모델', '계산 방법', choices, 0, False)
         backend=self.model_backends[choices.index(choice)] if accepted else None

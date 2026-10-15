@@ -6,7 +6,8 @@ from .dimensioned_expression import Meaning, ExpressionError, ZERO, UNITS, add_d
 
 ODE = 'pde.scipy.ode'
 WEAK = 'pde.fenicsx.dimensioned'
-BACKENDS = (ODE, WEAK)
+SCIKIT_WEAK = 'pde.scikit_fem.dimensioned'
+BACKENDS = (ODE, WEAK, SCIKIT_WEAK)
 RESERVED = {'t','x','y','u','v','pi','sin','cos','exp','log','sqrt','grad','inner'}
 
 
@@ -21,6 +22,9 @@ def number(value,path,positive=False):
 
 
 def default_settings(backend):
+    if backend == SCIKIT_WEAK:
+        from . import scikit_fem_models
+        return scikit_fem_models.default_settings(backend)
     if backend==ODE:
         return {'states':[{'name':'temperature','label':'온도','unit':'K','initial':300.,
                            'rhs':'-rate*(temperature-ambient)','reference':'ambient+(initial-ambient)*exp(-rate*t)','atol':1e-7}],
@@ -70,6 +74,9 @@ def checked_expression(source,symbols,path,expected,weak=False):
 
 
 def validate_settings(backend,settings):
+    if backend == SCIKIT_WEAK:
+        from . import scikit_fem_models
+        return scikit_fem_models.validate_settings(backend,settings)
     if not isinstance(settings,dict): fail('','설정이 필요합니다.')
     s=deepcopy(settings); symbols,_=parameters(s)
     symbols['pi']=Meaning()
@@ -139,6 +146,9 @@ def validate_settings(backend,settings):
 
 
 def model_declaration(backend,settings):
+    if backend == SCIKIT_WEAK:
+        from . import scikit_fem_models
+        return scikit_fem_models.model_declaration(backend,settings)
     s=validate_settings(backend,settings)
     return {'kind':'dimensioned_ode' if backend==ODE else 'dimensioned_linear_weak_form',
             'backend':backend,'model':s,'coordinate_unit':None if backend==ODE else 'm',
@@ -146,6 +156,9 @@ def model_declaration(backend,settings):
 
 
 def describe_inputs(backend,settings):
+    if backend == SCIKIT_WEAK:
+        from . import scikit_fem_models
+        return scikit_fem_models.describe_inputs(backend,settings)
     s=validate_settings(backend,settings)
     descriptors = [{'id':row['name'],'label':row['name'],'unit':row['unit'],'value':row['value'],
              'lower':-1e100,'upper':1e100,
@@ -158,6 +171,9 @@ def describe_inputs(backend,settings):
 
 
 def bind_inputs(backend,settings,values):
+    if backend == SCIKIT_WEAK:
+        from . import scikit_fem_models
+        return scikit_fem_models.bind_inputs(backend,settings,values)
     s=validate_settings(backend,settings)
     known={row['name']:row for row in s['parameters']}
     from .variable_binding import ODE_METHOD_ID, ODE_METHODS

@@ -67,7 +67,7 @@ def main(argv=None):
             action.add_argument('id')
     command = sub.add_parser('documents', help='Open and edit the same document as GUI/MCP')
     actions = command.add_subparsers(dest='action', required=True)
-    for name in ('list','open','read','apply','result'):
+    for name in ('list','open','read','apply','result','inspect','stages','stage','transfer'):
         action = actions.add_parser(name)
         action.add_argument('--url',default='http://127.0.0.1:8766')
         if name=='open':
@@ -75,7 +75,7 @@ def main(argv=None):
             action.add_argument('--kind',choices=['material','data','numerical','pde','expert','simulation','evaluation','study'],default='material')
             action.add_argument('--title',default='Material research')
             action.add_argument('--draft')
-        if name in {'read','apply','result'}:
+        if name in {'read','apply','result','inspect','stages','stage','transfer'}:
             action.add_argument('id')
         if name=='apply':
             action.add_argument('--operation',required=True)
@@ -83,8 +83,15 @@ def main(argv=None):
             action.add_argument('--session',required=True)
             action.add_argument('--generation',type=int,required=True)
             action.add_argument('--command-id')
-        if name=='result':
+        if name in {'result','stages','stage','transfer'}:
             action.add_argument('job_id')
+        if name=='stage':
+            action.add_argument('attempt_id')
+        if name=='transfer':
+            action.add_argument('--transfer-id')
+            action.add_argument('--iteration',type=int)
+            action.add_argument('--start',type=int,default=0)
+            action.add_argument('--count',type=int,default=256)
     command=sub.add_parser('command',help='Inspect or cancel a native owner command')
     command.add_argument('id')
     command.add_argument('--url',default='http://127.0.0.1:8766')
@@ -116,6 +123,14 @@ def main(argv=None):
             result=client.document_open(kind=args.kind,title=args.title,draft=json_value(args.draft) if args.draft else None,document_id=args.id)
         elif args.action=='read':
             result=client.document_read(args.id)
+        elif args.action=='inspect':
+            result=client.evaluation_inspect(args.id)
+        elif args.action=='stages':
+            result=client.evaluation_progress(args.id,args.job_id)
+        elif args.action=='stage':
+            result=client.evaluation_stage_result(args.id,args.job_id,args.attempt_id)
+        elif args.action=='transfer':
+            result=client.evaluation_transfer(args.id,args.job_id,args.transfer_id,args.iteration,start=args.start,count=args.count)
         elif args.action=='result':
             result=client.document_result(args.id,args.job_id)
         else:

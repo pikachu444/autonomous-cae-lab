@@ -1,0 +1,189 @@
+{
+  "kind": "editable_input_not_calculation_result",
+  "case": "affine",
+  "models": [
+    {
+      "stage": "Start",
+      "title": "공급 온도 0초",
+      "backend": "thermal.scikit_fem.rectangle",
+      "settings": {
+        "domain": {
+          "type": "rectangle",
+          "lengths": [
+            1.0,
+            0.25
+          ],
+          "unit": "m",
+          "frame": "global_cartesian"
+        },
+        "mesh": {
+          "cells": [
+            2,
+            2
+          ],
+          "degree": 1,
+          "cell": "triangle"
+        },
+        "time": {
+          "value": 0.0,
+          "unit": "s",
+          "origin": "public_s1_physical_snapshots"
+        },
+        "validation": {
+          "max_residual_relative": 1e-10
+        },
+        "conductivity": {
+          "value": 200.0,
+          "unit": "W/(m*K)",
+          "beta": 0.0,
+          "beta_unit": "1/K",
+          "reference_temperature": 293.15,
+          "reference_unit": "K"
+        },
+        "heat_source": {
+          "value": 0.0,
+          "unit": "W/m^3"
+        },
+        "boundary_temperature": {
+          "value": 300.0,
+          "unit": "K"
+        },
+        "linearization_temperature": null,
+        "boundary_gradient": {
+          "values": [
+            4.0,
+            -2.0
+          ],
+          "unit": "K/m"
+        }
+      }
+    },
+    {
+      "stage": "End",
+      "title": "공급 온도 2초",
+      "backend": "thermal.scikit_fem.rectangle",
+      "settings": {
+        "domain": {
+          "type": "rectangle",
+          "lengths": [
+            1.0,
+            0.25
+          ],
+          "unit": "m",
+          "frame": "global_cartesian"
+        },
+        "mesh": {
+          "cells": [
+            4,
+            2
+          ],
+          "degree": 1,
+          "cell": "triangle"
+        },
+        "time": {
+          "value": 2.0,
+          "unit": "s",
+          "origin": "public_s1_physical_snapshots"
+        },
+        "validation": {
+          "max_residual_relative": 1e-10
+        },
+        "conductivity": {
+          "value": 200.0,
+          "unit": "W/(m*K)",
+          "beta": 0.0,
+          "beta_unit": "1/K",
+          "reference_temperature": 293.15,
+          "reference_unit": "K"
+        },
+        "heat_source": {
+          "value": 0.0,
+          "unit": "W/m^3"
+        },
+        "boundary_temperature": {
+          "value": 310.0,
+          "unit": "K"
+        },
+        "linearization_temperature": null,
+        "boundary_gradient": {
+          "values": [
+            4.0,
+            -2.0
+          ],
+          "unit": "K/m"
+        }
+      }
+    },
+    {
+      "stage": "Structure",
+      "title": "다른 P1 메시의 열변형",
+      "backend": "structural.scikit_fem.thermoelastic_rectangle",
+      "settings": {
+        "domain": {
+          "type": "rectangle",
+          "lengths": [
+            1.0,
+            0.25
+          ],
+          "unit": "m",
+          "frame": "global_cartesian"
+        },
+        "mesh": {
+          "cells": [
+            3,
+            2
+          ],
+          "degree": 1,
+          "cell": "triangle"
+        },
+        "time": {
+          "value": 1.0,
+          "unit": "s",
+          "origin": "public_s1_physical_snapshots"
+        },
+        "validation": {
+          "max_residual_relative": 1e-10,
+          "free_expansion_max_error": null,
+          "temperature_uniformity_tolerance": 1e-08
+        },
+        "material": {
+          "young_modulus": 70000000000.0,
+          "young_modulus_unit": "Pa",
+          "poisson_ratio": 0.3,
+          "poisson_ratio_unit": "1",
+          "thermal_expansion": 2.3e-05,
+          "thermal_expansion_unit": "1/K",
+          "reference_temperature": 293.15,
+          "reference_temperature_unit": "K",
+          "assumption": "plane_stress"
+        },
+        "temperature": null,
+        "temperature_mode": "absolute"
+      }
+    }
+  ],
+  "mapping_options": {
+    "time": {
+      "mode": "linear",
+      "receiver": {
+        "value": 1.0,
+        "unit": "s",
+        "origin": "public_s1_physical_snapshots"
+      },
+      "sources": [
+        {
+          "stage": "Start",
+          "output": "temperature"
+        },
+        {
+          "stage": "End",
+          "output": "temperature"
+        }
+      ],
+      "same_steady_state": null
+    },
+    "required": "all_receiver_nodes",
+    "target_quantity": "absolute_temperature",
+    "target_unit": "K"
+  }
+}

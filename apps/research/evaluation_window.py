@@ -186,7 +186,7 @@ class EvaluationWindow(QMainWindow):
         for key, title in [('stages', '단계'), ('transfers', '장 전달'), ('bindings', '변수'), ('responses', '응답')]:
             page = QWidget(); page_layout = QVBoxLayout(page)
             note = {'stages': '원본은 저장된 입력을 참조합니다. 물리 조건은 선택 단계의 원본 입력에서 편집하세요.',
-                    'transfers': '등록된 입출력을 연결합니다. 같은 메시의 동일 위치와 단위만 지원하며 이전 반복의 전달은 반복 계산을 설정해야 합니다.',
+                    'transfers': '같은 메시 전달 또는 명시한 P1 온도 보간을 선택합니다. 시간·온도 의미는 전달 설정에서 편집하며 이전 반복 전달에는 반복 계산이 필요합니다.',
                     'bindings': '변수는 등록된 단일 값 입력에 연결합니다. 단위와 실제 입력을 확인하세요.',
                     'responses': '계산에서 읽을 단계 응답과 단위를 정합니다. 응답 이름은 실제 계산과 같아야 합니다.'}[key]
             text = QLabel(note); text.setWordWrap(True); page_layout.addWidget(text)
@@ -199,7 +199,12 @@ class EvaluationWindow(QMainWindow):
                 row = QHBoxLayout(); add = QPushButton(title + ' 추가…'); remove = QPushButton('선택 행 삭제')
                 add.clicked.connect({'transfers': self.add_transfer, 'bindings': self.add_binding, 'responses': self.add_response}[key])
                 remove.clicked.connect(lambda checked=False, name=key: self.remove_rows(name))
-                row.addWidget(add); row.addWidget(remove); row.addStretch(); page_layout.addLayout(row)
+                row.addWidget(add); row.addWidget(remove)
+                if key == 'transfers':
+                    self.mapping_button = QPushButton('전달 설정…')
+                    self.mapping_button.clicked.connect(self.edit_temperature_mapping)
+                    row.addWidget(self.mapping_button)
+                row.addStretch(); page_layout.addLayout(row)
             self.tabs.addTab(page, title)
         iteration = QWidget(); layout = QVBoxLayout(iteration)
         row = QHBoxLayout()
@@ -302,6 +307,8 @@ class EvaluationWindow(QMainWindow):
                     text = _STATUS.get(value, '상태 확인 전')
                 elif name == 'mapping' and value == 'exact_same_mesh':
                     text = '같은 메시의 동일 위치'
+                elif name == 'mapping' and value == 'p1_temperature':
+                    text = '다른 P1 메시의 온도 보간'
                 elif name == 'lag':
                     text = {0:'현재 반복', 1:'이전 반복'}.get(value, display(value))
                 elif name == 'passed':
@@ -651,15 +658,43 @@ class EvaluationWindow(QMainWindow):
         to_stage = self._choose_stage('수신 단계 선택')
         if not to_stage: return
         inputs = self._catalog(to_stage).get('ports', {}).get('inputs', {})
-        inputs = {name: spec for name, spec in inputs.items() if spec.get('transfer') == 'exact_same_mesh'}
-        if not inputs: self.message.setText('이 원본에는 같은 메시를 받는 입력이 없습니다.'); return
+        inputs = {name: spec for name, spec in inputs.items() if spec.get('transfer') == 'exact_same_mesh' or 'p1_temperature' in spec.get('mappings', [])}
+        if not inputs: self.message.setText('이 원본에는 지원되는 장 전달 입력이 없습니다.'); return
         port, ok = QInputDialog.getItem(self, '수신 입력 선택', '입력', list(inputs), editable=False)
         if not ok: return
         lag, ok = QInputDialog.getItem(self, '전달 시점', '시점', ['현재 반복 (0)', '이전 반복 (1)'], editable=False)
         if not ok: return
-        draft = self.edited_draft(); draft['transfers'].append({'id': 'F' + uuid.uuid4().hex[:12], 'from_stage': from_stage,
-            'output': output, 'to_stage': to_stage, 'input': port, 'mapping': 'exact_same_mesh', 'lag': ['현재 반복 (0)', '이전 반복 (1)'].index(lag)})
+        transfer = {'id': 'F' + uuid.uuid4().hex[:12], 'from_stage': from_stage,
+            'output': output, 'to_stage': to_stage, 'input': port, 'mapping': 'exact_same_mesh', 'lag': ['현재 반복 (0)', '이전 반복 (1)'].index(lag)}
+        if 'p1_temperature' in inputs[port].get('mappings', []) and outputs[output].get('quantity') == 'absolute_temperature':
+            choice, ok = QInputDialog.getItem(self, '공간 전달 방법', '방법',
+                ['완전히 동일한 메시', '다른 P1 메시로 온도 보간'], 1, False)
+            if not ok: return
+            if choice == '다른 P1 메시로 온도 보간':
+                from .temperature_mapping_dialog import configure
+                transfer = configure(self, transfer)
+                if transfer is None: return
+        draft = self.edited_draft(); draft['transfers'].append(transfer)
         self._replace_draft(draft)
+
+    def edit_temperature_mapping(self, checked=False):
+        draft = self.edited_draft(); index = self.tables['transfers'].currentRow()
+        if not 0 <= index < len(draft['transfers']):
+            self.message.setText('설정할 전달을 선택하세요.'); return
+        if not self._ensure_catalog(lambda: self.edit_temperature_mapping(True), checked): return
+        row = draft['transfers'][index]
+        target = self._catalog(row['to_stage']).get('ports', {}).get('inputs', {}).get(row['input'], {})
+        if 'p1_temperature' not in target.get('mappings', []):
+            self.message.setText('이 수신 capability는 기존 동일 메시 전달만 지원합니다.'); return
+        from .temperature_mapping_dialog import configure
+        replacement = configure(self, row)
+        if replacement is not None:
+            draft = self.edited_draft()
+            # Modal edits change only this stable row, retaining pending names,
+            # other mappings/options and uncommitted table values.
+            for i, current in enumerate(draft['transfers']):
+                if current['id'] == row['id']:
+                    draft['transfers'][i] = replacement; self._replace_draft(draft); break
 
     def add_binding(self, checked=False):
         if not self._ensure_catalog(lambda: self.add_binding(True), checked): return

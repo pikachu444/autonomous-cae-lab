@@ -72,6 +72,10 @@ for _suffix, _class in (("", "FenicsxPDEAdapter"), (".nonlinear", "FenicsxNonlin
              ("pde", "model") if _suffix=='.coupled' else ("pde",), native="FEniCSx")
 _builtin('pde.scipy.ode', 'adapters.dimensioned_ode', 'DimensionedODEAdapter', ('evaluation',), 'scipy')
 _builtin('pde.fenicsx.dimensioned', 'adapters.dimensioned_weak', 'DimensionedWeakAdapter', ('evaluation',), native='FEniCSx')
+# Separate Windows/native-Python spatial capability; never aliases the FEniCSx IDs.
+_builtin('pde.scikit_fem.dimensioned', 'adapters.scikit_fem_spatial', 'ScikitFemWeakAdapter', ('evaluation',), 'skfem')
+_builtin('thermal.scikit_fem.rectangle', 'adapters.scikit_fem_spatial', 'ScikitFemThermalAdapter', ('stage',), 'skfem')
+_builtin('structural.scikit_fem.thermoelastic_rectangle', 'adapters.scikit_fem_spatial', 'ScikitFemThermoelasticAdapter', ('stage',), 'skfem')
 _builtin('damage.rainflow', 'fatigue', 'FatigueAdapter', ('evaluation',))
 _builtin("scipy.latin_hypercube", "optimizers.scipy_lhs", "ScipyLatinHypercube", ("doe",), "scipy")
 _builtin('thermal.fenicsx.rectangle', 'adapters.thermoelastic_fenicsx', 'ThermalFenicsxAdapter', ('stage',), native='FEniCSx')

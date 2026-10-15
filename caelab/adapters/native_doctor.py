@@ -17,7 +17,10 @@ def execution_environment(backend, *, host):
     key=backend if isinstance(backend,str) else ""
     native=(key.startswith("pde.fenicsx") or key.startswith("material.mfront") or
             key in {"thermal.fenicsx.rectangle","structural.fenicsx.thermoelastic_rectangle"})
-    local={"pde.scipy.ode":"SciPy","material.felupe":"FELUPE"}.get(key)
+    local={"pde.scipy.ode":"SciPy","material.felupe":"FELUPE",
+           "pde.scikit_fem.dimensioned":"scikit-fem/SciPy",
+           "thermal.scikit_fem.rectangle":"scikit-fem/SciPy",
+           "structural.scikit_fem.thermoelastic_rectangle":"scikit-fem/SciPy"}.get(key)
     known=isinstance(host,str) and bool(host)
     blocked=bool(native and known and not host.startswith("linux"))
     runtime="MFront/MGIS" if key.startswith("material.mfront") else "FEniCSx" if native else local
@@ -48,6 +51,10 @@ def _command(argv, *, environment=None):
 
 
 def _discover(backend):
+    if backend in {"pde.scikit_fem.dimensioned", "thermal.scikit_fem.rectangle",
+                   "structural.scikit_fem.thermoelastic_rectangle"}:
+        from .scikit_fem_spatial import discover_runtime
+        return discover_runtime()
     if backend in {"pde.scipy.ode","material.felupe"}:
         from importlib.util import find_spec
         from importlib.metadata import version, PackageNotFoundError

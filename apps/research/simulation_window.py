@@ -16,6 +16,8 @@ from caelab.simulation_document import BACKENDS, default_draft, diagnostics, sup
 from .pde_window import PDEWindow, ROLE, display
 
 MODELS = {
+    'thermal.scikit_fem.rectangle': ('정상 열전도 (scikit-fem)', 'P1 공간 열전도, SI 온도, 명시한 정상 상태. 기존 Picard 반복을 사용합니다.'),
+    'structural.scikit_fem.thermoelastic_rectangle': ('평면응력 열탄성 (scikit-fem)', '다른 메시의 온도 전달, 구조 기준온도, 미소변형 변위 [m]와 응력 [Pa].'),
     'damage.rainflow': ('반복하중과 S–N 누적', '저장된 단축 응력과 명시 시험 범위. 평균응력 보정·외삽 없음.'),
     'explicit.opencourant.model': ('사용자 FE 충격 (OpenCourant)', '원 메시·밀도·초기 운동, TYPE24 접촉과 LAW117 응집 손상. 수명·공학 승인은 별도입니다.'),
     'structure.calculix.design': ('CAD 구조 해석 (CalculiX)', '저장한 Analysis의 편집 사본과 매핑된 참조를 사용합니다. 재메시 후 기존 CalculiX 계산으로 이어집니다.'),
@@ -67,6 +69,7 @@ _CAPTIONS = {
     'youngs_modulus_mpa':'탄성계수 [MPa]', 'poisson_ratio':'Poisson 비', 'yield_stress_mpa':'항복 응력 [MPa]',
     'plastic_modulus_mpa':'소성 계수 [MPa]', 'youngs_modulus_pa':'탄성계수 [Pa]',
     'times_s':'시간 [s]', 'axial_strain':'축 변형률 [1]', 'temperature':'온도 입력',
+    'boundary_gradient':'경계 온도 공간 기울기 [K/m]', 'temperature_mode':'온도 입력 의미',
     'conductivity':'열전도율', 'heat_source':'체적 열원', 'boundary_temperature':'경계 온도',
     'stress_free_temperature':'무응력 온도', 'linearization_temperature':'이전 온도',
     'displacement_absolute_mm':'변위 절대 허용값 [mm]', 'displacement_relative':'변위 상대 허용값',
@@ -96,6 +99,7 @@ _CAPTIONS = {
 }
 
 _CHOICES = {
+    'temperature_mode': {'absolute':'절대 온도 [K] — 구조 기준온도를 한 번 뺌', 'difference':'온도차 [ΔK] — 기준온도 출처를 확인하고 그대로 사용'},
     'case': {'uniaxial_j2_isotropic_hardening':'단축 J2 등방 경화',
              'rigid_cube_freefall':'강체 자유 이동', 'rigid_cube_compliant_stop':'강체와 탄성 스톱',
              'ssnp121a_frictionless_patch':'SSNP121A 마찰 없는 접촉 패치'},
@@ -114,7 +118,8 @@ class SimulationWindow(PDEWindow):
         ('material', '재료'), ('constitutive', '구성식'),
         ('history', '하중과 변형 이력'), ('time', '물리 시간'),
         ('conductivity', '열전도율'), ('heat_source', '체적 열원'),
-        ('boundary_temperature', '경계 온도'), ('temperature', '온도 입력'),
+        ('boundary_temperature', '경계 온도'), ('boundary_gradient', '경계 온도 기울기'),
+        ('temperature_mode', '온도 입력 의미'), ('temperature', '온도 입력'),
         ('linearization_temperature', '이전 온도'), ('limits', '수치 허용값'),
         ('validation', '수치 판정 기준'), ('analysis', '해석 조건'),
         ('loads', '하중'), ('boundary_conditions', '경계 조건'))]
@@ -265,6 +270,7 @@ class SimulationWindow(PDEWindow):
             key = next((k for k in reversed(path) if isinstance(k, str)), '')
             if isinstance(original, str) and (path in getattr(self, '_numeric_paths', set()) or
                     key in numeric or '[' in _CAPTIONS.get(key, '') or
+                    ('boundary_gradient' in path and draft.get('backend')=='thermal.scikit_fem.rectangle') or
                     key == 'value' and len(path)>2 and path[-2] in ('conductivity','heat_source','boundary_temperature','time')):
                 text = field.toPlainText() if isinstance(field, QPlainTextEdit) else field.text()
                 if text != display(original):

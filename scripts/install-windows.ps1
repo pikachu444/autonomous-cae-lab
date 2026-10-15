@@ -96,7 +96,7 @@ if ($LASTEXITCODE -ne 0 -or -not $pyVersion.StartsWith('3.12.')) { throw "Expect
 $projectSha = (Get-FileHash -LiteralPath $project -Algorithm SHA256).Hash.ToLowerInvariant()
 $installed = $false
 $extras = @('numerical','material')
-if ($ResearchUI) { $extras += 'research-ui' }
+if ($ResearchUI) { $extras += @('research-ui','spatial') }
 # Expert uses the pinned MCP package for its local bounded OpenScience host.
 # Installing it does not register an MCP client or configure/invoke a model.
 if ($ResearchUI -or $Expert) { $extras += 'assist-core' }
@@ -117,7 +117,7 @@ if (-not $installed) {
     Invoke-Checked $uv @('pip','install','--python',$python,'--editable',$editable)
 }
 Invoke-Checked $python @('-c','import apps.lab.server, caelab, scipy, felupe')
-if ($ResearchUI) { Invoke-Checked $python @('-c','import PySide6, matplotlib, apps.research.material_window') }
+if ($ResearchUI) { Invoke-Checked $python @('-c',"import PySide6, matplotlib, apps.research.material_window; import skfem; print('scikit-fem ' + skfem.__version__)") }
 # Python literals use single quotes so Windows PowerShell 5.1 preserves native -c arguments.
 if ($ResearchUI -or $Expert) {
     Invoke-Checked $python @('-c',"from caelab.assist.readiness import require_features; require_features('expert_agent', 'openai_compatible_generator', 'knowledge_index'); print('Expert dependency imports OK; model/credentials and inference are not checked')")
@@ -144,7 +144,7 @@ $receipt = [ordered]@{
 $receipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $receiptPath -Encoding UTF8
 Write-Host "Ready: $python"
 Write-Host "Receipt: $receiptPath"
-Write-Host 'Included: base workbench, numerical studies and FELUPE material-point calculations. -ResearchUI includes Expert and its local host MCP package; -Expert installs those packages without Qt; -Documents adds PDF reading; -MCP installs the same optional MCP package separately (no client registration); -Sensitivity adds Sobol sampling/analysis. Native backends and expert model configuration remain separate.'
+Write-Host 'Included: base workbench, numerical studies and FELUPE material-point calculations. -ResearchUI includes scikit-fem spatial PDE calculations, Expert and its local host MCP package; -Expert installs Expert packages without Qt; -Documents adds PDF reading; -MCP installs the same optional MCP package separately (no client registration); -Sensitivity adds Sobol sampling/analysis. Native backends and expert model configuration remain separate.'
 if ($ResearchUI) {
     Write-Host 'FreeCAD·ParaView는 별도 무료 설치를 연결합니다. 아래는 실행 파일 위치 확인이며 GUI나 계산 성공 확인이 아닙니다.'
     try { & (Join-Path $PSScriptRoot 'check-native-tools.ps1') | Format-Table Tool,Status,Path -AutoSize | Out-Host }

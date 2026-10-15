@@ -10,6 +10,9 @@ FreeCAD 기반 전처리, ParaView 기반 후처리와 독립 Qt 연구 앱을 �
 [설치 안내](docs/INSTALL_KO.md) · [처음 해볼 작업](docs/USER_GUIDE_KO.md) ·
 [개발 현황과 다음 인도본](CURRENT_STATE.md) · [English technical reference](docs/REFERENCE_EN.md)
 
+[Windows 열전도·열탄성과 온도 전달 예제](docs/s1_windows_transfer/README_KO.md)는
+WSL 없이 실행할 수 있습니다. 실제 화면과 계산·저장·재열기 순서를 제공합니다.
+
 ## 설치하고 열기
 
 1. [소스 ZIP](https://github.com/pikachu444/autonomous-cae-lab/archive/refs/heads/main.zip)을 내려받아 압축을 풉니다.

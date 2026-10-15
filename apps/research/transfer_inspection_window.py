@@ -4,7 +4,7 @@ from copy import deepcopy
 import sys
 from PySide6.QtCore import Qt,QThreadPool
 from PySide6.QtWidgets import (QApplication,QDialog,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,
-    QPushButton,QSplitter,QWidget,QTableWidget,QTableWidgetItem,QHeaderView)
+    QPushButton,QSplitter,QWidget,QTableWidget,QTableWidgetItem,QHeaderView,QStackedWidget)
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from .pde_window import _Read
@@ -24,7 +24,10 @@ class TransferInspectionWindow(QDialog):
         self.retry=QPushButton('다시 읽기');self.retry.clicked.connect(self._retry)
         header.addWidget(QLabel('전달 / 반복'));header.addWidget(self.selector,1);header.addWidget(self.retry);layout.addLayout(header)
         self.status=QLabel('보존된 전달을 읽는 중…');self.status.setWordWrap(True);layout.addWidget(self.status)
-        splitter=QSplitter(Qt.Orientation.Vertical);layout.addWidget(splitter,1)
+        self.views=QStackedWidget();layout.addWidget(self.views,1)
+        splitter=QSplitter(Qt.Orientation.Vertical);self.views.addWidget(splitter)
+        from .temperature_transfer_view import TemperatureTransferView
+        self.mapped_view=TemperatureTransferView();self.views.addWidget(self.mapped_view)
         self.figure=Figure(constrained_layout=True);self.canvas=FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(240);splitter.addWidget(self.canvas)
         self.canvas.mpl_connect('pick_event',self._pick)
@@ -59,7 +62,7 @@ class TransferInspectionWindow(QDialog):
         for row in payload['transfers']:
             self.selector.addItem(row['source_name']+' → '+row['target_name']+' / '+str(row['iteration']+1)+(' (전달 확인 없음)' if not row.get('receipt_recorded',True) else ''),
                                   (row['id'],row['iteration']))
-        desired=self.selector.findData(self._initial)
+        desired=next((i for i in range(self.selector.count()) if self.selector.itemData(i)==self._initial),-1)
         if desired>=0:self.selector.setCurrentIndex(desired)
         self.selector.blockSignals(False)
         checks=[c for row in payload['iterations'] for c in row['checks']]
@@ -73,7 +76,7 @@ class TransferInspectionWindow(QDialog):
         return '—' if value is None else format(value,'.7g') if type(value) in (int,float) else str(value)
 
     def _selected(self,*_):
-        self._start=0;self._load()
+        self._start=0;self.mapped_view.clear();self._load()
     def _retry(self):
         if self.selector.currentData():self._load()
         else:self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id),self._catalog)
@@ -82,7 +85,7 @@ class TransferInspectionWindow(QDialog):
     def _load(self):
         selection=self.selector.currentData()
         if not selection:return
-        self.table.setRowCount(0);self._rows=[];self.figure.clear();self.canvas.draw_idle()
+        self.table.setRowCount(0);self._rows=[];self.figure.clear();self.canvas.draw_idle();self.mapped_view.clear(keep_selection=True)
         self.previous.setEnabled(False);self.next.setEnabled(False);self.page.clear()
         self.status.setToolTip('')
         self.status.setText('선택한 전달값을 읽는 중…')
@@ -90,6 +93,17 @@ class TransferInspectionWindow(QDialog):
         self._read(lambda:self.client.evaluation_transfer(self.document_id,self.job_id,*selection,start=start),self._show)
 
     def _show(self,data):
+        states={'SUCCEEDED':'완료','FAILED':'실패','CANCELLED':'취소','REJECTED':'거절','RUNNING':'실행 중',
+                'QUEUED':'대기','INTERRUPTED':'중단','CLEANUP_UNCONFIRMED':'종료 확인 필요'}
+        if data.get('mapping_kind')=='p1_temperature':
+            self._data=deepcopy(data);self.views.setCurrentWidget(self.mapped_view);self.mapped_view.set_data(data)
+            self.status.setText('수신 계산 '+states.get(data['target_attempt']['state'],'상태 확인 필요')+' / '+(data['unavailable'] or
+                ('보간값과 실제 수신 입력 일치' if data['exact_values_match'] else '수신 입력 확인 불가')))
+            self.status.setToolTip(str(data['metadata']))
+            self.page.setText(f"{data['start']+1}–{data['start']+data['count']} / {data['total']} (메시별 최대 행)")
+            self.previous.setEnabled(data['start']>0);self.next.setEnabled(data['start']+data['count']<data['total'])
+            return
+        self.views.setCurrentIndex(0)
         self._data=deepcopy(data);self._rows=data['rows'];self.table.setRowCount(len(self._rows))
         unit=data['metadata'].get('unit','?');space=data['metadata'].get('coordinate_units','?')
         self.table.setHorizontalHeaderLabels(['절점','좌표 ['+space+']','공급 ['+unit+']','수신 ['+unit+']','차이 ['+unit+']','필수','수신'])
@@ -97,10 +111,8 @@ class TransferInspectionWindow(QDialog):
             values=[row['node'],', '.join(self._value(x) for x in row['coordinates']),row['supplied'],row['received'],row['difference'],'예','있음' if row['available'] else '없음']
             for j,value in enumerate(values):self.table.setItem(i,j,QTableWidgetItem(self._value(value)))
         self.status.setText(data['unavailable'] or ('공급값과 수신값 일치' if data['exact_values_match'] else '불일치: '+', '.join(data['metadata_differences'] or ['값'])))
-        states={'SUCCEEDED':'완료','FAILED':'실패','CANCELLED':'취소','REJECTED':'거절','RUNNING':'실행 중',
-                'QUEUED':'대기','INTERRUPTED':'중단','CLEANUP_UNCONFIRMED':'종료 확인 필요'}
         target=data['target_attempt']['state']
-        self.status.setText('수신 계산 '+states.get(target,target)+' / '+self.status.text())
+        self.status.setText('수신 계산 '+states.get(target,'상태 확인 필요')+' / '+self.status.text())
         self.status.setToolTip(str(data['metadata']))
         self.page.setText(f"{data['start']+1}–{data['start']+data['count']} / {data['total']}")
         self.previous.setEnabled(data['start']>0);self.next.setEnabled(data['start']+data['count']<data['total'])

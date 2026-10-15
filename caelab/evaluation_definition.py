@@ -84,16 +84,16 @@ def validate_draft(draft):
             raise ValueError(key + ' requires a bounded editable list')
     transfers, destinations = set(), set()
     for row in draft['transfers']:
-        if not isinstance(row, dict) or set(row) != {'id', 'from_stage', 'output', 'to_stage', 'input', 'mapping', 'lag'}:
-            raise ValueError('Transfer requires its ID, source/output, target/input, mapping and lag')
+        from .evaluation_temperature_mapping import validate_row
+        validate_row(row, ids)
         check_id(row['id'])
         if row['id'] in transfers or (row['to_stage'], row['input']) in destinations:
             raise ValueError('Declare each transfer ID and destination port only once')
         transfers.add(row['id']); destinations.add((row['to_stage'], row['input']))
         if row['from_stage'] not in ids or row['to_stage'] not in ids:
             raise ValueError('Transfer refers to a missing stage')
-        if type(row['lag']) is not int or row['lag'] not in (0, 1) or row['mapping'] != 'exact_same_mesh':
-            raise ValueError('Supported field transfer is exact same mesh, with lag 0 or explicitly lagged feedback 1')
+        if type(row['lag']) is not int or row['lag'] not in (0, 1):
+            raise ValueError('Field transfer requires lag 0 or explicitly lagged feedback 1')
         if row['lag'] == 0 and ids.index(row['from_stage']) >= ids.index(row['to_stage']):
             raise ValueError('An immediate input must be produced by an earlier stage')
         for key in ('input', 'output'):
@@ -203,6 +203,10 @@ def compile_definition(draft, snapshots):
             raise ValueError(stage['id'] + ': this adapter has no stateless iteration restart contract')
         compiled[stage['id']] = {'model': model, 'ports': ports}
     for row in draft['transfers']:
+        if row['mapping'] == 'p1_temperature':
+            from .evaluation_temperature_mapping import compile_transfer
+            compile_transfer(row, compiled)
+            continue
         source = compiled[row['from_stage']]['ports']['outputs'].get(row['output'])
         target = compiled[row['to_stage']]['ports']['inputs'].get(row['input'])
         if not source or not target or target.get('transfer') != row['mapping']:
@@ -266,7 +270,7 @@ class EvaluationDocuments(MaterialDocuments):
                 adapter = get_backend(model['backend'])
                 ports = adapter.describe_ports(model['settings']) if callable(getattr(adapter, 'describe_ports', None)) else {'inputs': {}, 'outputs': {}}
                 stages.append({'id': stage['id'], 'backend': model['backend'], 'ports': ports,
-                               'inputs': input_descriptors(model)})
+                               'inputs': input_descriptors(model), 'clock': deepcopy(model['settings'].get('time'))})
             except (ValueError, KeyError, TypeError, OSError, ImportError) as error:
                 errors.append({'path': 'stages.' + str(stage.get('id', '?')), 'message': str(error), 'blocks_evaluation': True})
         try:
@@ -372,6 +376,11 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
                     source_set = previous if transfer['lag'] else current
                     if transfer['lag'] and iteration == 0:
                         continue  # Adapter explicitly declares an optional, domain-owned initial seed.
+                    if transfer['mapping'] == 'p1_temperature':
+                        from .evaluation_temperature_mapping import bind_transfer
+                        model['settings'] = bind_transfer(transfer, model, source_set, result, iteration, output, definition['stages'])
+                        progress('TRANSFER_VALIDATED', active_attempt=attempt_id)
+                        continue
                     upstream = source_set[transfer['from_stage']]
                     if upstream.get('execution_status') != 'SUCCEEDED':
                         raise ValueError('Failed stage cannot supply a field')
@@ -383,6 +392,7 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
                         'source_iteration': iteration - transfer['lag'], 'status': 'VALIDATED',
                         'unit': response['unit'], 'time': response.get('time'),
                         'mesh_sha256': response.get('mesh_sha256'), 'association': response.get('association')})
+                check_cancelled()  # Mapping may finish after cancellation; never dispatch its receiver.
                 if iteration == 0 and reuse and stage_id in reuse['stages']:
                     original = next((row for row in reuse_result['stages'] if row['stage_id'] == stage_id and row['iteration'] == 0), None)
                     if not original or original['state'] != 'SUCCEEDED' or original['input_sha256'] != canonical_hash(model):

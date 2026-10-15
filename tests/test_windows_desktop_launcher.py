@@ -742,6 +742,17 @@ $hostCheck = @($ast.FindAll({
         $node.Extent.Text.Contains("require_features('mcp')")
 }, $true))
 if ($hostCheck.Count -ne 1) { throw 'Expected one guarded host readiness check' }
+$spatialCheck = @($ast.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.IfStatementAst] -and
+        $node.Extent.Text.Contains('import skfem')
+}, $true))
+if ($spatialCheck.Count -ne 1) { throw 'Expected one guarded spatial import/version check' }
+$receiptCheck = @($ast.EndBlock.Statements | Where-Object {
+    $_ -is [System.Management.Automation.Language.IfStatementAst] -and
+        $_.Extent.Text.Contains('$old.installed_extras')
+})
+if ($receiptCheck.Count -ne 1) { throw 'Expected existing installed-extras receipt check' }
 function Invoke-Checked([string]$File, [string[]]$Arguments) {
     if ($File -ne 'readiness-not-launched') { throw 'Unexpected executable' }
     $script:checks += @{file=$File;arguments=@($Arguments)}
@@ -758,7 +769,31 @@ foreach ($mode in @('base','Expert','ResearchUI','MCP')) {
     # Execute the production selection/guard source, not recreated test rules.
     . ([scriptblock]::Create(($selection -join [Environment]::NewLine)))
     . ([scriptblock]::Create($hostCheck[0].Extent.Text))
-    $results += @{mode=$mode;extras=@($extras);host_checks=@($script:checks)}
+    $hostChecks = @($script:checks)
+    $script:checks = @()
+    . ([scriptblock]::Create($spatialCheck[0].Extent.Text))
+    $missingSpatialNeedsInstall = $null
+    $completeReceiptReused = $null
+    if ($ResearchUI) {
+        $sourceRoot = 'test-source'
+        $projectSha = 'test-project'
+        $uvVersion = 'test-uv'
+        $pyVersion = '3.12.test'
+        $receiptPath = Join-Path (Split-Path -Parent $env:CAE_INSTALLER_SELECTION) 'spatial-receipt.json'
+        $receipt = @{source_root=$sourceRoot;project_sha256=$projectSha;uv_version=$uvVersion;
+            python_version=$pyVersion;installed_extras=@($extras | Where-Object { $_ -ne 'spatial' })}
+        $receipt | ConvertTo-Json | Set-Content -LiteralPath $receiptPath -Encoding UTF8
+        $installed = $false
+        . ([scriptblock]::Create($receiptCheck[0].Extent.Text))
+        $missingSpatialNeedsInstall = -not $installed
+        $receipt.installed_extras = @($extras)
+        $receipt | ConvertTo-Json | Set-Content -LiteralPath $receiptPath -Encoding UTF8
+        $installed = $false
+        . ([scriptblock]::Create($receiptCheck[0].Extent.Text))
+        $completeReceiptReused = $installed
+    }
+    $results += @{mode=$mode;extras=@($extras);host_checks=$hostChecks;spatial_checks=@($script:checks);
+        missing_spatial_needs_install=$missingSpatialNeedsInstall;complete_receipt_reused=$completeReceiptReused}
 }
 ConvertTo-Json -InputObject @($results) -Depth 6 |
     Set-Content -LiteralPath $env:CAE_INSTALLER_SELECTION -Encoding UTF8
@@ -782,11 +817,24 @@ ConvertTo-Json -InputObject @($results) -Depth 6 |
         for mode in ("Expert", "ResearchUI"):
             self.assertIn("assist-core", rows[mode]["extras"])
         self.assertIn("research-ui", rows["ResearchUI"]["extras"])
+        self.assertEqual(rows["ResearchUI"]["extras"].count("spatial"), 1)
+        self.assertEqual(len(rows["ResearchUI"]["spatial_checks"]), 1)
+        spatial_check = rows["ResearchUI"]["spatial_checks"][0]["arguments"]
+        self.assertEqual(spatial_check[0], "-c")
+        self.assertIn("import skfem", spatial_check[1])
+        self.assertIn("skfem.__version__", spatial_check[1])
+        self.assertIs(rows["ResearchUI"]["missing_spatial_needs_install"], True)
+        self.assertIs(rows["ResearchUI"]["complete_receipt_reused"], True)
+        for mode in ("base", "Expert", "MCP"):
+            self.assertNotIn("spatial", rows[mode]["extras"])
+            self.assertEqual(rows[mode]["spatial_checks"], [])
         self.assertNotIn("research-ui", rows["Expert"]["extras"])
         self.assertNotIn("assist-core", rows["MCP"]["extras"])
         import tomllib
         project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         self.assertEqual(project["project"]["optional-dependencies"]["mcp"], ["mcp==1.30.0"])
+        self.assertEqual(project["project"]["optional-dependencies"]["spatial"],
+                         ["scikit-fem==12.0.2", "scipy==1.17.0"])
 
     def test_installer_readiness_preserves_native_python_argv(self):
         folder, environment = self.case()

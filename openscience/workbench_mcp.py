@@ -15,6 +15,9 @@ def client():
         raise ValueError('CAELAB_SERVICE_URL must select an existing workbench; start caelab serve first')
     return Client(url)
 
+from caelab.temperature_transfer_mcp import register_transfer_tool
+register_transfer_tool(mcp, client)
+
 @mcp.tool()
 def backends_list() -> dict:
     """Read registered capabilities without starting a solver."""

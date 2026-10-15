@@ -108,7 +108,8 @@ def _support_cached(serialized):
                 'limitations': ['명시한 SI 단위의 수치입니다. 자동 단위 변환은 하지 않습니다.',
                     '상태 ODE 초기값 문제' if backend == dimensioned_models.ODE else '직사각형 스칼라 선형 체적 약형식, P1, Dirichlet/자연 경계'],
                 'units': '선언된 SI 단위', 'expression_language': '차원 검사 AST; Python/UFL 코드 실행 없음',
-                'runtime': '실행 시 선택한 SciPy/FEniCSx 환경을 사용합니다.'}
+                'runtime': ('Windows/native Python scikit-fem 12.0.2 + SciPy 1.17.0. 설치/실행은 별도 확인합니다.'
+                            if backend == dimensioned_models.SCIKIT_WEAK else '실행 시 선택한 SciPy/FEniCSx 환경을 사용합니다.')}
     if backend == 'pde.fenicsx':
         from .adapters.fenicsx_pde import _LIMITATIONS
         limits = _LIMITATIONS

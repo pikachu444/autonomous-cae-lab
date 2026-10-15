@@ -24,6 +24,15 @@ def write_field(name, response, output):
     association = response.get('association')
     if association not in ('POINTS', 'CELLS'):
         raise ValueError('Captured physical field supports native P1 POINTS or DG0 CELLS')
+    spatial_metadata = {key: response[key] for key in ('basis', 'mesh_sha256', 'snapshot_kind') if key in response}
+    if 'basis' in spatial_metadata and spatial_metadata['basis'] != {'POINTS': 'P1', 'CELLS': 'DG0'}[association]:
+        raise ValueError('Captured field basis differs from its native association')
+    if 'mesh_sha256' in spatial_metadata and (not isinstance(spatial_metadata['mesh_sha256'], str)
+            or len(spatial_metadata['mesh_sha256']) != 64
+            or any(c not in '0123456789abcdef' for c in spatial_metadata['mesh_sha256'])):
+        raise ValueError('Captured mesh identity requires a SHA256 digest')
+    if 'snapshot_kind' in spatial_metadata and spatial_metadata['snapshot_kind'] not in ('steady', 'physical_snapshot'):
+        raise ValueError('Captured field requires its declared snapshot kind')
     field = {'node_ids': deepcopy(response['node_ids']),
              'coordinates': deepcopy(response['coordinates'] if association == 'POINTS' else response['mesh_coordinates']),
              'values': deepcopy(response['value']), 'components': components,
@@ -39,6 +48,7 @@ def write_field(name, response, output):
     folder.mkdir(parents=True, exist_ok=False)
     path = folder / 'field.vtu'
     metadata = _write_vtu({'field': field}, path)
+    metadata.update(spatial_metadata)
     metadata.update(coordinate_frame=response['coordinate_frame'],
         time={'unit': response['time_units'], 'semantics': response['time_origin'], 'values': [response['time']]})
     for row in metadata['arrays']:
