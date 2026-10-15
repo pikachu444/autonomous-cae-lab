@@ -590,6 +590,8 @@ class ExpertRuntime:
                 or binding.generation_ledger.runtime is not self
                 or binding.generation_ledger.workspace_id != workspace_id):
             raise PermissionError('The current owner role binding is required')
+        context = deepcopy(context)
+        context.pop('owner_validation_feedback', None)  # Only the retained owner record can supply this field.
         definition = self.describe(expert_id)
         definition['tools'] = [name for name in definition.get('tools', []) if name in binding.assignment['tools']]
         if budget.tool_calls == 0:
@@ -599,6 +601,10 @@ class ExpertRuntime:
             'claims (text,basis observed/inferred/hypothesized,conditions,source_refs,missing_evidence), '
             'questions (expert_id,target_turn_id,target_claim_id,question,discriminating_observation), '
             'revisions (prior_claim_id,decision keep/revise/withdraw/undetermined,reason,evidence), unknowns. '
+            'Every observed claim requires exact source_refs actually read by this same task. '
+            'Put missing inputs/results and uncertainty in unknowns or missing_evidence; '
+            'do not classify their absence as an uncited observed claim. claims may be empty. '
+            'Never invent observations or fabricate citations to satisfy the format. '
             'Preserve the assigned actual target. No engineering approval is granted.')
         generator = self.runtime.selected_generator(expert_id)
         if generator is None:
@@ -619,7 +625,9 @@ class ExpertRuntime:
                 context['incomplete_response'] = raw
                 from .research_team import restore_task_reads
                 context = restore_task_reads(binding, context, ref)
-                question = 'Finish only this preserved task; no tools or new observations. ' + question
+                question = ('Finish only this preserved task; no tools or new observations. '
+                    'Address owner_validation_feedback.errors using only the preserved response and authorized retained reads. '
+                    'Validation feedback is not new evidence or permission. ' + question)
         binding.generation_ledger.context = deepcopy(context)
         session, path = self._session(session_id, workspace_id, expert_id)
         return self._ask(definition, generator, question, context, session, path,

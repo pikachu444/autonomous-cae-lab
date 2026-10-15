@@ -25,7 +25,9 @@ def restore_task_reads(binding, context, raw_ref):
     state = scope['ledger_state']
     previous = next((row for row in state['responses'].values() if row['task_id'] == binding.task_id
                      and row['raw_response_ref'] == raw_ref), None)
-    if previous is None:raise PermissionError('미완료 응답의 실제 원 과제 읽기를 찾을 수 없습니다.')
+    if (previous is None or previous.get('phase_id') != binding.phase_id
+            or previous.get('actor_id') != binding.actor_id):
+        raise PermissionError('미완료 응답의 실제 원 과제 읽기를 찾을 수 없습니다.')
     result = deepcopy(context); supplied = []
     ledger = binding.generation_ledger
     for identifier in previous['read_receipt_ids']:
@@ -43,6 +45,12 @@ def restore_task_reads(binding, context, raw_ref):
         if identifier not in ledger.read_receipt_ids:ledger.read_receipt_ids.append(identifier)
         supplied.append(row)
     result['retained_task_reads'] = supplied
+    feedback = {'task_id': binding.task_id, 'response_id': previous['id'],
+                'raw_response_ref': deepcopy(raw_ref), 'status': previous['validation']['status'],
+                'errors': deepcopy(previous['validation'].get('errors', []))}
+    ledger.add_supplied({'kind': 'tool_output', 'exact_ref': {'response_id': previous['id'], 'field': 'validation'},
+                        'payload': feedback}, dependencies=previous['dependency_ids'], origin='history')
+    result['owner_validation_feedback'] = feedback
     return result
 
 
