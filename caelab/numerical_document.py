@@ -8,7 +8,7 @@ from copy import deepcopy
 import math
 
 from .material_document import MaterialDocuments, diagnostics as material_diagnostics
-from .adapters.felupe_material import validate_settings, validate_parameters
+from .material_law_validation import validate_settings, validate_parameters, parameter_unit
 from .storage import canonical_hash, check_id
 from .contracts import CapabilityUnavailable
 
@@ -118,9 +118,18 @@ def from_material_document(document):
         numeric = type(value) in (int, float) and math.isfinite(value)
         low, high = ((-.99, .49) if name == 'nu' else
                      (value * .1, value * 10) if numeric and value > 0 else ('', ''))
-        draft['variables'].append({'id': name, 'unit': '1' if name == 'nu' else settings.get('stress_unit', ''),
+        draft['variables'].append({'id': name, 'unit': parameter_unit(settings, name),
                                   'value': value, 'lower': low, 'upper': high,
-                                  'free': name != 'nu', 'transform': 'linear'})
+                                  'free': name not in ('nu', 'beta', 'E') if document['draft'].get('backend') == 'material.law_native' else name != 'nu', 'transform': 'linear'})
+    if document['draft'].get('backend') == 'material.law_native':
+        from plugins.material_point.law_native import describe_inputs
+        try:
+            descriptors = {d['id']: d for d in describe_inputs(settings)}
+            for variable in draft['variables']:
+                descriptor = descriptors[variable['id']]
+                variable.update(lower=descriptor['lower'], upper=descriptor['upper'], free=descriptor['default_free'])
+        except (ValueError, TypeError, KeyError):
+            pass  # Literal incomplete input remains editable; diagnostics blocks evaluation.
     return draft
 
 
@@ -171,7 +180,7 @@ def diagnostics(draft):
             names.add(name)
             if type(variable['free']) is not bool:
                 raise ValueError('Free must be a boolean')
-            if variable['unit'] != ('1' if name == 'nu' else settings['stress_unit']):
+            if variable['unit'] != parameter_unit(settings, name):
                 raise ValueError('Coefficient unit differs from Material settings; no conversion is inferred')
             value = _number(variable['value'], name)
             if variable['transform'] not in ('linear', 'log'):
@@ -568,7 +577,8 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
 
     @staticmethod
     def _validate_observation(obs, experiment, settings):
-        expected_measure = 'infinitesimal_Cauchy' if settings['model'] == 'linear_elastic' else 'first_Piola'
+        from .material_law_validation import measure
+        expected_measure = measure(settings)
         if obs.get('kind') != 'series' or obs.get('measure') != expected_measure or obs.get('frame') != 'material_cartesian':
             raise ValueError('Observation must explicitly match the model stress measure and material_cartesian frame')
         if obs.get('coordinate_system', 'UNSPECIFIED') != 'UNSPECIFIED' or 'coordinate_frame' in obs:

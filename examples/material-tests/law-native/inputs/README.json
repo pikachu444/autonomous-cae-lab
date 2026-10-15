@@ -1,0 +1,10 @@
+{
+  "native_execution": "NOT_RUN_BY_INPUT_GENERATOR",
+  "units": "mm, MPa, s, N",
+  "physical_measurement": false,
+  "required_runtime": {
+    "felupe": "11.1.3"
+  },
+  "source_kind": "PUBLIC_SYNTHETIC",
+  "approval": "UNKNOWN"
+}

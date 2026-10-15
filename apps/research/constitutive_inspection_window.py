@@ -42,6 +42,9 @@ def component_value(values,index):
 
 def selected_probes(data,i,j):
     """Select the exact saved component order; no reconstruction of missing inputs/stress."""
+    if data.get('backend')=='material.law_native':
+        from caelab.law_native_inspection import selected_probe_rows
+        return selected_probe_rows(data,i,j)
     rows=[]
     for fd in data.get('finite_differences',[]):
         backend=data['backend'];name=data['components'][j]
@@ -117,7 +120,7 @@ class ConstitutiveInspectionWindow(QDialog):
         tabs.insertTab(0,self.stress,'변형과 응력')
         evidence=QSplitter(Qt.Orientation.Vertical)
         self.probes=QTableWidget(0,6)
-        self.probes.setHorizontalHeaderLabels(['h','− 입력 [1]','+ 입력 [1]','− 응력','+ 응력','중앙차분'])
+        self.probes.setHorizontalHeaderLabels(['h','− 입력 [1]','+ 입력 [1]','− 응력','+ 응력','차분 (방식은 상태표)'])
         self.probes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.probes.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.probes.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -192,7 +195,7 @@ class ConstitutiveInspectionWindow(QDialog):
             self.build.setItem(i,0,QTableWidgetItem(name));self.build.setItem(i,1,QTableWidgetItem(short(value)))
         self.availability.setText(' / '.join(data['unavailable'])+
             (' / 실제 substep: '+short(data['substeps']) if data.get('substeps') is not None else ''))
-        self.probe.setEnabled(data['backend']=='material.felupe')
+        self.probe.setEnabled(data['backend'] in ('material.felupe','material.law_native') and data.get('increment',0)>0)
         if matrix:self.tangent.setCurrentCell(0,0)
         self._plot()
 
@@ -208,7 +211,7 @@ class ConstitutiveInspectionWindow(QDialog):
         self._fd_rows=selected_probes(data,i,j)
         self.probes.setRowCount(len(self._fd_rows))
         self.probes.setHorizontalHeaderLabels(['h','− '+data['components'][j]+' [1]','+ '+data['components'][j]+' [1]',
-            '− '+data['components'][i]+' ['+data['tangent_unit']+']','+ '+data['components'][i]+' ['+data['tangent_unit']+']','중앙차분'])
+            '− '+data['components'][i]+' ['+data['tangent_unit']+']','+ '+data['components'][i]+' ['+data['tangent_unit']+']','차분 (방식은 상태표)'])
         for row,values in enumerate(self._fd_rows):
             for col,key in enumerate(('h','minus_input','plus_input','minus_stress','plus_stress','difference')):
                 item=QTableWidgetItem(short(values[key]));item.setToolTip(repr(values[key]));self.probes.setItem(row,col,item)
@@ -225,7 +228,7 @@ class ConstitutiveInspectionWindow(QDialog):
                     points.append((fd['h'],fd['column_values'][i]))
             else:
                 values=fd.get('tangent_kelvin_mpa',fd.get('pk1_tangent_mpa',fd.get('tangent')))
-                if values is not None:points.append((fd['h'],values[i][j]))
+                if values is not None and values[i][j] is not None:points.append((fd['h'],values[i][j]))
         ax.axhline(exact,label='기록된 접선',color='#2563eb')
         if points:
             ax.plot([p[0] for p in points],[p[1] for p in points],'o-',label='독립 중앙차분');ax.set_xscale('log')
@@ -256,7 +259,7 @@ class ConstitutiveInspectionWindow(QDialog):
         else:self.probe_states.clear()
 
     def request_probe(self):
-        if not self._data or self._data['backend']!='material.felupe':return
+        if not self._data or self._data['backend'] not in ('material.felupe','material.law_native'):return
         names=self._data['components'];column=self.tangent.currentColumn()
         selected,ok=QInputDialog.getItem(self,'독립 섭동','변형구배 성분',names,max(0,column),False)
         if not ok:return
@@ -265,7 +268,9 @@ class ConstitutiveInspectionWindow(QDialog):
         try:
             steps=[float(x.strip()) for x in text.split(',')]
             draft=deepcopy(self._data['draft'])
-            draft['settings']['tangent_probe']={'increment':self._data['increment'],'input_component':selected,'steps':steps}
+            draft['settings']['tangent_probe']={'increment':self._data['increment'],'steps':steps}
+            if self._data['backend']=='material.felupe':
+                draft['settings']['tangent_probe']['input_component']=selected
             from caelab.material_document import diagnostics
             errors=diagnostics(draft)
             if errors:raise ValueError(errors[0]['message'])

@@ -188,6 +188,12 @@ class Workbench:
     def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         check_id(identifier)
         owner=self._document_owner(identifier)
+        from .material_fe_transfer import OPERATIONS as LAW_OPERATIONS, enrich_command
+        if owner is self.native_commands and operation in LAW_OPERATIONS:
+            previous, arguments = enrich_command(self, identifier, operation, arguments,
+                session_id, expected_generation, command_id)
+            if previous is not None:
+                return previous
         if operation == 'numerical.experiment.preview':
             if owner is not self.numerical_documents:
                 raise ValueError('Select a Numerical experiment Plan')
@@ -608,6 +614,13 @@ class Workbench:
             compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
             return {'backend':backend, 'inputs':compiled['inputs'], 'responses':compiled['definition']['responses'],
                     'readiness':'NOT_PROBED', 'execution':'serial existing stage adapters'}
+        if backend=='material.law_native':
+            from plugins.material_point import law_native
+            settings=request.get('settings',request.get('inputs',{}).get('settings',{}))
+            return {'backend':backend,'models':list(law_native.MODELS),
+                    'inputs':law_native.describe_inputs(settings) if settings else [],
+                    'declaration':law_native.declaration(settings) if settings else None,
+                    'readiness':'NOT_PROBED','execution':'explicit evaluation only'}
         if backend=='material.felupe':
             from .adapters.felupe_material import FelupeMaterialAdapter
             settings=request.get('settings',request.get('inputs',{}).get('settings',{}))
@@ -884,17 +897,21 @@ class Workbench:
             settings['path']=str(self.input_path(identifier))
         # No remotely supplied solver paths or arbitrary code. Native adapters
         # retain their own typed numeric/domain validation.
-        def reject_paths(value):
+        provenance_paths=frozenset()
+        if backend=='structure.felupe.law_native' and 'source_receipt' in settings:
+            from .law_native_provenance import admitted_guard_paths
+            provenance_paths=admitted_guard_paths(settings)
+        def reject_paths(value,trail=()):
             if isinstance(value,dict):
                 for key,item in value.items():
                     if key in {'command','argv','module','factory','script','executable','output','output_root','runtime','snapshot_path'}:
                         raise ValueError('Remote execution configuration is not a model input')
-                    if key=='path' and backend!='files.table':
+                    if key=='path' and backend!='files.table' and trail+(key,) not in provenance_paths:
                         raise ValueError('Use an uploaded input reference, not a server path')
-                    reject_paths(item)
+                    reject_paths(item,trail+(key,))
             elif isinstance(value,list):
-                for item in value:
-                    reject_paths(item)
+                for index,item in enumerate(value):
+                    reject_paths(item,trail+(index,))
         reject_paths(settings)
         return settings
 

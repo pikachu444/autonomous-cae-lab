@@ -353,6 +353,8 @@ def freeze_analysis(analysis, solver, output_root, *, binding_validator=None):
             raise ValueError("Finish the native task edit before exporting")
     if femutils.type_of_obj(analysis) != "Fem::FemAnalysis" or solver.Document is not doc or solver not in analysis.Group:
         raise ValueError("Select an exact Analysis and its solver")
+    if any(getattr(obj, "CAELabLawNative", "") for obj in analysis.Group):
+        raise ValueError("LAW_NATIVE_INTERFACE_REQUIRED: CalculiX cannot export the old elastic card")
     if femutils.type_of_obj(solver) != "Fem::SolverCcxTools":
         raise ValueError("Only the native CalculiX CcxTools solver is supported")
     if doc.isTouched() or any(set(obj.State) & {"Touched", "Invalid", "Error", "Recompute"} for obj in doc.Objects):

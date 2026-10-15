@@ -20,7 +20,9 @@ def execution_environment(backend, *, host):
     local={"pde.scipy.ode":"SciPy","material.felupe":"FELUPE",
            "pde.scikit_fem.dimensioned":"scikit-fem/SciPy",
            "thermal.scikit_fem.rectangle":"scikit-fem/SciPy",
-           "structural.scikit_fem.thermoelastic_rectangle":"scikit-fem/SciPy"}.get(key)
+           "structural.scikit_fem.thermoelastic_rectangle":"scikit-fem/SciPy",
+           "material.law_native":"NumPy / fixed law interface (Neo-Hooke: FELUPE 11.1.3)",
+           "structure.felupe.law_native":"FELUPE 11.1.3 / fixed law interface"}.get(key)
     known=isinstance(host,str) and bool(host)
     blocked=bool(native and known and not host.startswith("linux"))
     runtime="MFront/MGIS" if key.startswith("material.mfront") else "FEniCSx" if native else local
@@ -55,6 +57,21 @@ def _discover(backend):
                    "structural.scikit_fem.thermoelastic_rectangle"}:
         from .scikit_fem_spatial import discover_runtime
         return discover_runtime()
+    if backend in {"material.law_native", "structure.felupe.law_native"}:
+        from .law_native_runtime import source_identity
+        from importlib.util import find_spec
+        from importlib.metadata import version
+        dependencies = ["numpy"] if backend == "material.law_native" else ["numpy", "scipy", "felupe"]
+        versions = {}
+        for dependency in dependencies:
+            if find_spec(dependency) is None:
+                raise RuntimeError(dependency + " is unavailable; execution NOT_RUN")
+            versions[dependency] = version(dependency)
+        if "felupe" in versions and versions["felupe"] != "11.1.3":
+            raise RuntimeError("This FE pair requires FELUPE 11.1.3")
+        return {"python":sys.executable,"versions":versions,"source":source_identity(),
+                "kind":"fixed_python_law_interface","calculation":"NOT_EXECUTED",
+                "neo_hooke_runtime":"FELUPE 11.1.3 checked at execution", "WSL_required":False}
     if backend in {"pde.scipy.ode","material.felupe"}:
         from importlib.util import find_spec
         from importlib.metadata import version, PackageNotFoundError
@@ -90,6 +107,12 @@ def _discover(backend):
 
 
 def _smoke_settings(backend):
+    if backend == "material.law_native":
+        from plugins.material_point.law_native import default_settings
+        return default_settings()
+    if backend == "structure.felupe.law_native":
+        from ..law_native_fe import default_settings
+        return default_settings()
     if backend == "pde.fenicsx.transient":
         from plugins.pde_transient.reference import manufactured_settings
         return manufactured_settings()

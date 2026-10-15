@@ -1,0 +1,873 @@
+{
+  "evidence": "INDEPENDENT_EXPECTED_NOT_FE_EXECUTION",
+  "cases": [
+    {
+      "id": "tension",
+      "role": "fit",
+      "settings": {
+        "model": "drucker_prager_linear",
+        "stress_unit": "MPa",
+        "time_unit": "s",
+        "parameters": {
+          "E": 210000.0,
+          "nu": 0.3,
+          "alpha": 0.2,
+          "beta": 0.05,
+          "k0": 250.0,
+          "H": 1000.0
+        },
+        "time": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "deformation_gradient": [
+          [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.0015,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.0035,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.005,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ],
+        "initial_state": {
+          "time": 0.0,
+          "strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "plastic_strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "kappa": 0.0
+        }
+      },
+      "response": "stress_xx",
+      "component": "xx",
+      "expected": [
+        {
+          "stress_tensor_mpa": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "p_mpa": -0.0,
+          "q_mpa": 0.0,
+          "kappa": 0.0,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              392.90198540375104,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              194.89916032331467,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              194.89916032331467
+            ]
+          ],
+          "p_mpa": -260.9001020167934,
+          "q_mpa": 198.00282508043637,
+          "kappa": 0.00018284548379502452,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              685.1408616495329,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              552.7269873656123,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              552.7269873656123
+            ]
+          ],
+          "p_mpa": -596.8649454602524,
+          "q_mpa": 132.41387428392056,
+          "kappa": 0.0017868633759711209,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              904.3200188338694,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              821.0978576473357,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              821.0978576473357
+            ]
+          ],
+          "p_mpa": -848.838578042847,
+          "q_mpa": 83.22216118653375,
+          "kappa": 0.002989876795103194,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        }
+      ],
+      "observations": [
+        0.0,
+        392.90198540375104,
+        685.1408616495329,
+        904.3200188338694
+      ],
+      "source_kind": "SYNTHETIC_ANALYTICAL_REFERENCE",
+      "physical_measurement": false
+    },
+    {
+      "id": "shear",
+      "role": "fit",
+      "settings": {
+        "model": "drucker_prager_linear",
+        "stress_unit": "MPa",
+        "time_unit": "s",
+        "parameters": {
+          "E": 210000.0,
+          "nu": 0.3,
+          "alpha": 0.2,
+          "beta": 0.05,
+          "k0": 250.0,
+          "H": 1000.0
+        },
+        "time": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "deformation_gradient": [
+          [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.0,
+              0.0018,
+              0.0
+            ],
+            [
+              0.0018,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.0,
+              0.0042,
+              0.0
+            ],
+            [
+              0.0042,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.0,
+              0.006,
+              0.0
+            ],
+            [
+              0.006,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ],
+        "initial_state": {
+          "time": 0.0,
+          "strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "plastic_strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "kappa": 0.0
+        }
+      },
+      "response": "stress_xy",
+      "component": "xy",
+      "expected": [
+        {
+          "stress_tensor_mpa": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "p_mpa": -0.0,
+          "q_mpa": 0.0,
+          "kappa": 0.0,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -9.055977543856427,
+              145.98080106311866,
+              0.0
+            ],
+            [
+              145.98080106311866,
+              -9.055977543856427,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -9.055977543856427
+            ]
+          ],
+          "p_mpa": 9.055977543856427,
+          "q_mpa": 252.84616437092632,
+          "kappa": 0.0010349688621550204,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -33.03257351459721,
+              150.33142493504835,
+              0.0
+            ],
+            [
+              150.33142493504835,
+              -33.03257351459721,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -33.03257351459721
+            ]
+          ],
+          "p_mpa": 33.03257351459721,
+          "q_mpa": 260.3816659617305,
+          "kappa": 0.00377515125881111,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -51.0150204926528,
+              153.5943928389955,
+              0.0
+            ],
+            [
+              153.5943928389955,
+              -51.0150204926528,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -51.0150204926528
+            ]
+          ],
+          "p_mpa": 51.0150204926528,
+          "q_mpa": 266.0332921548336,
+          "kappa": 0.005830288056303179,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        }
+      ],
+      "observations": [
+        0.0,
+        145.98080106311866,
+        150.33142493504835,
+        153.5943928389955
+      ],
+      "source_kind": "SYNTHETIC_ANALYTICAL_REFERENCE",
+      "physical_measurement": false
+    },
+    {
+      "id": "compression",
+      "role": "holdout",
+      "settings": {
+        "model": "drucker_prager_linear",
+        "stress_unit": "MPa",
+        "time_unit": "s",
+        "parameters": {
+          "E": 210000.0,
+          "nu": 0.3,
+          "alpha": 0.2,
+          "beta": 0.05,
+          "k0": 250.0,
+          "H": 1000.0
+        },
+        "time": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "deformation_gradient": [
+          [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              0.9979,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              0.9951,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              0.993,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ],
+        "initial_state": {
+          "time": 0.0,
+          "strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "plastic_strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "kappa": 0.0
+        }
+      },
+      "response": "stress_xx",
+      "component": "xx",
+      "expected": [
+        {
+          "stress_tensor_mpa": [
+            [
+              -0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "p_mpa": -0.0,
+          "q_mpa": 0.0,
+          "kappa": 0.0,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -583.8460331162206,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -260.169504826179,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -260.169504826179
+            ]
+          ],
+          "p_mpa": 368.0616809228595,
+          "q_mpa": 323.6765282900416,
+          "kappa": 6.419210546966937e-05,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -1154.4808914698265,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -728.8283763634936,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -728.8283763634936
+            ]
+          ],
+          "p_mpa": 870.7125480656046,
+          "q_mpa": 425.6525151063329,
+          "kappa": 0.0015100054932119591,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -1582.4570352350308,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -1080.3225300164793,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1080.3225300164793
+            ]
+          ],
+          "p_mpa": 1247.700698422663,
+          "q_mpa": 502.13450521855145,
+          "kappa": 0.0025943655340186765,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        }
+      ],
+      "observations": [
+        -0.0,
+        -583.8460331162206,
+        -1154.4808914698265,
+        -1582.4570352350308
+      ],
+      "source_kind": "SYNTHETIC_ANALYTICAL_REFERENCE",
+      "physical_measurement": false
+    },
+    {
+      "id": "confined_deviatoric",
+      "role": "holdout",
+      "settings": {
+        "model": "drucker_prager_linear",
+        "stress_unit": "MPa",
+        "time_unit": "s",
+        "parameters": {
+          "E": 210000.0,
+          "nu": 0.3,
+          "alpha": 0.2,
+          "beta": 0.05,
+          "k0": 250.0,
+          "H": 1000.0
+        },
+        "time": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "deformation_gradient": [
+          [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              0.9991,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9964,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.9964
+            ]
+          ],
+          [
+            [
+              0.9979,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9916,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.9916
+            ]
+          ],
+          [
+            [
+              0.997,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.988,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.988
+            ]
+          ]
+        ],
+        "initial_state": {
+          "time": 0.0,
+          "strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "plastic_strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "kappa": 0.0
+        }
+      },
+      "response": "stress_xx",
+      "component": "xx",
+      "expected": [
+        {
+          "stress_tensor_mpa": [
+            [
+              -0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -0.0
+            ]
+          ],
+          "p_mpa": -0.0,
+          "q_mpa": 0.0,
+          "kappa": 0.0,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -1126.730769230769,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -1562.8846153846152,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1562.8846153846152
+            ]
+          ],
+          "p_mpa": 1417.5,
+          "q_mpa": 436.15384615384613,
+          "kappa": 0.0,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -2702.830573648277,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -3615.522247508435,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -3615.522247508435
+            ]
+          ],
+          "p_mpa": 3311.2916895550493,
+          "q_mpa": 912.6916738601585,
+          "kappa": 0.0004333359491485523,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        },
+        {
+          "stress_tensor_mpa": [
+            [
+              -3935.6391744487164,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -5133.543906458447,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -5133.543906458447
+            ]
+          ],
+          "p_mpa": 4734.24232912187,
+          "q_mpa": 1197.9047320097307,
+          "kappa": 0.0010562661853566668,
+          "reference": "Independent physical tensor Hooke + scalar p-q closed form"
+        }
+      ],
+      "observations": [
+        -0.0,
+        -1126.730769230769,
+        -2702.830573648277,
+        -3935.6391744487164
+      ],
+      "source_kind": "SYNTHETIC_ANALYTICAL_REFERENCE",
+      "physical_measurement": false
+    }
+  ]
+}

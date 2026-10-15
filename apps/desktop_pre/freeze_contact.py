@@ -50,6 +50,8 @@ def _native_force_table(node_load_table):
 
 
 def collect(analysis, solver, fem, *, capture_only=False):
+    from caelab.material_fe_transfer import guard_other_export
+    guard_other_export(fem.owner, analysis.Name)
     if threading.current_thread() is not threading.main_thread():
         raise ValueError('Contact export requires the native main thread')
     owner, doc = fem.owner, analysis.Document

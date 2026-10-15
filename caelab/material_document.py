@@ -27,6 +27,10 @@ def diagnostics(draft):
     try:
         if set(draft) != {'backend', 'settings'}:
             raise ValueError('Material draft requires only backend and settings; hidden execution overrides are not allowed')
+        if draft.get('backend') == 'material.law_native':
+            from plugins.material_point.law_native import validate_settings as validate_law_native
+            validate_law_native(draft['settings'])
+            return []
         if draft.get('backend') in NATIVE_LAWS:
             from .simulation_document import validate_draft
             validate_draft(draft)
@@ -81,6 +85,9 @@ class MaterialDocuments(RetainedComparisons):
     def _retain_inputs(self, saved, folder):
         """Concrete document owners retain external inputs before publication."""
         self._retain_comparisons(saved, folder)
+        if self.kind == 'material':
+            from .material_fe_transfer import retain_inputs
+            retain_inputs(saved, folder)
 
     def __init__(self, root, session_id, submit, manager):
         self.root = Path(root) / 'documents'
@@ -273,6 +280,12 @@ class MaterialDocuments(RetainedComparisons):
         if self.kind == 'material' and document['draft'].get('backend') in NATIVE_LAWS:
             from .simulation_document import support_details
             result['material_support'] = support_details(document['draft'])
+        if self.kind == 'material' and document['draft'].get('backend') == 'material.law_native':
+            from plugins.material_point.law_native import declaration
+            try:
+                result['material_support'] = declaration(document['draft']['settings'])
+            except (ValueError, TypeError, KeyError):
+                result['material_support'] = {'status':'INVALID_DRAFT', 'evidence':'NOT_RUN'}
         return result
 
     def read(self, identifier):

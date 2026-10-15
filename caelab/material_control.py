@@ -167,7 +167,8 @@ def uniaxial_settings(base: dict, values: list, *, control='stretch', lateral='f
     return result
 
 
-def solve_history(settings: dict, point_response: Callable, *, check_cancelled=None) -> dict:
+def solve_history(settings: dict, point_response: Callable, *, check_cancelled=None,
+                  _validated_context=None) -> dict:
     """Damped Newton on the exact controlled stress components.
 
     point_response(F) returns (stress[3,3], dStress_dF[3,3,3,3]). It must be
@@ -175,7 +176,11 @@ def solve_history(settings: dict, point_response: Callable, *, check_cancelled=N
     injected here; production uses FELUPE only. Tolerances never change on failure.
     """
     from .execution_control import ExecutionCancelled, ExecutionCleanupFailed
-    model, times, prescribed = validate_control_settings(settings)
+    # Trusted domain-only reuse: the stateful caller validates its own declaration,
+    # invokes one increment, and closes over an immutable accepted state. This is
+    # not a JSON input field and does not relax the public elastic admission.
+    model, times, prescribed = (validate_control_settings(settings) if _validated_context is None
+                                else _validated_context)
     bc, unit = settings['boundary_control'], settings['stress_unit']
     names = sorted(bc['stress_components'])
     ij = [COMPONENTS[name] for name in names]

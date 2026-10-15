@@ -61,6 +61,8 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("explicit.opencourant.model", "impact", "ImpactAdapter", ("evaluation",), None, "OpenCourant"),
     ("explicit.openradioss", "openradioss", "OpenRadiossAdapter", ("model",), None, "OpenRadioss"),
     ("material.felupe", "felupe_material", "FelupeMaterialAdapter", ("prepared",), "felupe", None),
+    ("material.law_native", "law_native_point", "LawNativePointAdapter", ("prepared", "evaluation"), "numpy", None),
+    ("structure.felupe.law_native", "law_native_fe", "LawNativeFEAdapter", ("evaluation",), "felupe", None),
     ("files.table", "file_table", "TableReaderAdapter", ("reader", "prepared"), "numpy", None),
 ):
     _builtin(_id, "adapters." + _module, _name, _roles, _dep, _native)

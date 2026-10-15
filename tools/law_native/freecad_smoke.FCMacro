@@ -1,0 +1,7 @@
+# Fixed-source native acceptance only; not an arbitrary-source build permission.
+import os,sys,json
+from pathlib import Path
+config=json.loads(Path(os.environ['CAELAB_LAW_SMOKE_CONFIG']).read_text(encoding='utf-8'))
+sys.path.insert(0,config['repo'])
+from tools.law_native.freecad_smoke import run
+run()

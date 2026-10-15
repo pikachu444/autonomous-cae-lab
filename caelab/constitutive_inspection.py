@@ -79,6 +79,9 @@ def inspect_constitutive(wb,document_id,job_id,increment=0):
           'state_initial':None,'state_trial':None,'state_committed':None,'finite_differences':[],'quantities':[],
           'unavailable':[]}
     if type(increment) is not int or increment<0: raise ValueError('증분을 선택하세요.')
+    if backend=='material.law_native':
+        from .law_native_inspection import populate
+        return populate(view,result,run['draft']['settings'],increment)
     if backend=='material.felupe':
         settings=run['draft']['settings'];times=settings['time']
         if increment>=len(times): raise ValueError('보존 이력에 없는 증분입니다.')

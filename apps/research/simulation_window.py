@@ -18,6 +18,7 @@ from .pde_window import PDEWindow, ROLE, display
 MODELS = {
     'thermal.scikit_fem.rectangle': ('정상 열전도 (scikit-fem)', 'P1 공간 열전도, SI 온도, 명시한 정상 상태. 기존 Picard 반복을 사용합니다.'),
     'structural.scikit_fem.thermoelastic_rectangle': ('평면응력 열탄성 (scikit-fem)', '다른 메시의 온도 전달, 구조 기준온도, 미소변형 변위 [m]와 응력 [Pa].'),
+    'structure.felupe.law_native': ('저장 재료 · FELUPE Hex8 시편', '준정적 Hex8: DP / Neo-Hooke / 단일 branch Maxwell. 실제 실행과 point–FE 검증은 결과에서 확인합니다.'),
     'damage.rainflow': ('반복하중과 S–N 누적', '저장된 단축 응력과 명시 시험 범위. 평균응력 보정·외삽 없음.'),
     'explicit.opencourant.model': ('사용자 FE 충격 (OpenCourant)', '원 메시·밀도·초기 운동, TYPE24 접촉과 LAW117 응집 손상. 수명·공학 승인은 별도입니다.'),
     'structure.calculix.design': ('CAD 구조 해석 (CalculiX)', '저장한 Analysis의 편집 사본과 매핑된 참조를 사용합니다. 재메시 후 기존 CalculiX 계산으로 이어집니다.'),

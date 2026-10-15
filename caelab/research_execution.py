@@ -16,7 +16,7 @@ def run_domain(workbench, model, output):
     backend, settings = model['backend'], deepcopy(model['settings'])
     if backend.startswith('pde.'):
         from .pde_document import validate_draft, support_details
-    elif backend == 'material.felupe':
+    elif backend in ('material.felupe', 'material.law_native'):
         from .material_document import diagnostics
         errors = diagnostics(model)
         if errors:

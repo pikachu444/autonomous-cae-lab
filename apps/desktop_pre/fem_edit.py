@@ -27,6 +27,8 @@ OPERATIONS = (
     'pre.fem.region_set', 'pre.fem.region_remove', 'pre.fem.condition_set',
     'pre.fem.condition_repair', 'pre.fem.material_set', 'pre.fem.task_edit',
 ) + CONTACT_OPERATIONS + nonlinear_material.OPERATIONS
+from .law_native_material import OPERATIONS as LAW_NATIVE_OPERATIONS
+OPERATIONS += LAW_NATIVE_OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
 NORMALIZED_JACOBIAN_FLOOR = 256 * sys.float_info.epsilon
 _MESH_FIELDS = {'CharacteristicLengthMin', 'CharacteristicLengthMax', 'ElementOrder',
@@ -341,6 +343,9 @@ class FEMEditor:
 
     def dispatch(self, operation, arguments, target):
         self.owner.assert_thread()
+        if operation in LAW_NATIVE_OPERATIONS:
+            from .law_native_material import dispatch
+            return dispatch(self, operation, arguments, target)
         if operation not in OPERATIONS or not isinstance(arguments, dict):
             raise ValueError('Unsupported typed FEM operation')
         args = deepcopy(arguments)

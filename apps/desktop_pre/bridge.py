@@ -265,6 +265,8 @@ class Owner:
                 readonly = {'pre.fem.convergence_read', 'pre.research.discover', 'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
                             'pre.beam.inspect', 'pre.motion.inspect', 'pre.motion.path', 'pre.contact.inspect', 'pre.contact.highlight',
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
+                from caelab.material_fe_transfer import READ_ONLY as LAW_READ_ONLY
+                readonly |= LAW_READ_ONLY
                 readonly |= SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY | DYNAMIC_READ_ONLY
                 if self.pose_candidates.busy and operation not in readonly | {'pre.assembly_candidate.cancel', 'document.activate'}:
                     raise ValueError('해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
@@ -355,6 +357,8 @@ class Owner:
                 elif operation in {'pre.freeze', 'pre.contact.freeze'}:
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
+                    from caelab.material_fe_transfer import guard_other_export
+                    guard_other_export(self, args['analysis_id'])
                     from apps.desktop_pre.freeze_analysis import require_ready_model
                     require_ready_model(self.doc, owner=self)
                     if args['analysis_id'] in self.read_metadata().get('dynamic_programs', {}):

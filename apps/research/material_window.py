@@ -380,6 +380,11 @@ class MaterialWindow(QMainWindow):
 
     def _opened(self, document):
         from caelab.material_document import NATIVE_LAWS
+        if document['draft'].get('backend') == 'material.law_native':
+            from .law_native_material_window import LawNativeMaterialWindow
+            window=LawNativeMaterialWindow(self.client,auto_open=False)
+            self._native_material_windows.append(window);window._opened(document);window.show()
+            return
         if document['draft'].get('backend') in NATIVE_LAWS:
             from .native_material_window import NativeMaterialWindow
             window = NativeMaterialWindow(self.client, auto_open=False)
@@ -961,8 +966,13 @@ class MaterialWindow(QMainWindow):
         from caelab.material_document import NATIVE_LAWS
         from caelab.simulation_document import default_draft
         labels=['탄성 재료점 (MFront)','유한변형 SVK','Maxwell 점탄성','사용자 MFront 법칙']
+        from .law_native_material_window import LABELS, default_draft as native_default
+        labels += list(LABELS.values())
         selected, accepted = QInputDialog.getItem(self, '새 구성식', '구성식', labels, 0, False)
-        if accepted:
+        if accepted and labels.index(selected)>=len(NATIVE_LAWS):
+            model=list(LABELS)[labels.index(selected)-len(NATIVE_LAWS)]
+            self._call(lambda:self.client.document_open(kind='material',title=selected,draft=native_default(model=model)),self._opened)
+        elif accepted:
             backend=NATIVE_LAWS[labels.index(selected)]
             self._call(lambda: self.client.document_open(kind='material', title=selected,
                        draft=default_draft(backend)), self._opened)
@@ -1011,7 +1021,10 @@ def main(argv=None):
     app = QApplication.instance() or QApplication(sys.argv[:1])
     document = client.document_read(args.document_id) if args.document_id else None
     from caelab.material_document import NATIVE_LAWS
-    if document and document.get('kind') == 'material' and document['draft'].get('backend') in NATIVE_LAWS:
+    if document and document.get('kind')=='material' and document['draft'].get('backend')=='material.law_native':
+        from .law_native_material_window import LawNativeMaterialWindow
+        window=LawNativeMaterialWindow(client,auto_open=False);window._opened(document)
+    elif document and document.get('kind') == 'material' and document['draft'].get('backend') in NATIVE_LAWS:
         from .native_material_window import NativeMaterialWindow
         window = NativeMaterialWindow(client, auto_open=False)
         window._opened(document)

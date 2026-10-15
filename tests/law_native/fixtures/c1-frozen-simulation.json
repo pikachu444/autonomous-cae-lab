@@ -1,0 +1,2838 @@
+{
+  "assignment_sha256": "469bf171043872392a200187a33abfac5e70e30efee80e8a3b9c0c5936a3717d",
+  "executed": false,
+  "native_target": {
+    "admission_errors": [],
+    "analysis_id": "Analysis",
+    "current_assignment_property": "{\"backend\": \"structure.felupe.law_native\", \"review_sha256\": \"2616385f2d615db34f25664fa598ff40768ed5f4850ca2b6de4c7f657ca50c1e\", \"source_sha256\": \"3677ecc567333c5c28c454dd02934b80958cbdabe0005ea036021fd943f75096\"}",
+    "document_id": "P350ded7eae18455a8bf4fe453743e0fd",
+    "execution_backend": "structure.felupe.law_native",
+    "execution_version": "11.1.3",
+    "generation": 12,
+    "geometry": {
+      "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+      "global_placement": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "object_id": "Specimen",
+      "subelements": [
+        {
+          "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+          "name": "Solid1"
+        }
+      ],
+      "type": "Part::Feature"
+    },
+    "material": {
+      "object_id": "Material",
+      "properties": {
+        "Category": "Solid",
+        "Material": {
+          "Name": "Preserved original elastic placeholder",
+          "PoissonRatio": "0.3",
+          "YoungsModulus": "210000 MPa"
+        },
+        "Proxy": "<femobjects.material_common.MaterialCommon object at 0x0000021F1F4194D0>",
+        "References": [
+          [
+            {
+              "document": "LawNativeSpecimen",
+              "object_id": "Specimen"
+            },
+            [
+              "Solid1"
+            ]
+          ]
+        ],
+        "Suppressed": false,
+        "UUID": ""
+      },
+      "type": "Fem::MaterialCommon"
+    },
+    "mesh": {
+      "cells": [
+        [
+          0,
+          1,
+          4,
+          3,
+          9,
+          10,
+          13,
+          12
+        ],
+        [
+          1,
+          2,
+          5,
+          4,
+          10,
+          11,
+          14,
+          13
+        ],
+        [
+          3,
+          4,
+          7,
+          6,
+          12,
+          13,
+          16,
+          15
+        ],
+        [
+          4,
+          5,
+          8,
+          7,
+          13,
+          14,
+          17,
+          16
+        ],
+        [
+          9,
+          10,
+          13,
+          12,
+          18,
+          19,
+          22,
+          21
+        ],
+        [
+          10,
+          11,
+          14,
+          13,
+          19,
+          20,
+          23,
+          22
+        ],
+        [
+          12,
+          13,
+          16,
+          15,
+          21,
+          22,
+          25,
+          24
+        ],
+        [
+          13,
+          14,
+          17,
+          16,
+          22,
+          23,
+          26,
+          25
+        ]
+      ],
+      "connectivity": "VTK_HEXAHEDRON_0_BASED",
+      "element": "Hexahedron8",
+      "length_unit": "mm",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.5,
+          0.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.5,
+          0.0
+        ],
+        [
+          0.5,
+          0.5,
+          0.0
+        ],
+        [
+          1.0,
+          0.5,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.5,
+          1.0,
+          0.0
+        ],
+        [
+          1.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.5
+        ],
+        [
+          0.5,
+          0.0,
+          0.5
+        ],
+        [
+          1.0,
+          0.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ],
+        [
+          1.0,
+          0.5,
+          0.5
+        ],
+        [
+          0.0,
+          1.0,
+          0.5
+        ],
+        [
+          0.5,
+          1.0,
+          0.5
+        ],
+        [
+          1.0,
+          1.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.5,
+          0.0,
+          1.0
+        ],
+        [
+          1.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          0.5,
+          1.0
+        ],
+        [
+          0.5,
+          0.5,
+          1.0
+        ],
+        [
+          1.0,
+          0.5,
+          1.0
+        ],
+        [
+          0.0,
+          1.0,
+          1.0
+        ],
+        [
+          0.5,
+          1.0,
+          1.0
+        ],
+        [
+          1.0,
+          1.0,
+          1.0
+        ]
+      ],
+      "quadrature": "Gauss2x2x2"
+    },
+    "mesh_sha256": "a773c6bca06c74aa7563792383dbdcbe15ccbe6b3d089b9e8ca4759de8d5a576",
+    "metadata_sha256": "4848455538205a47deb7191bc95644d97e1591d352385338e6586414f45016e6",
+    "native_analysis_members": [
+      {
+        "object_id": "Material",
+        "properties": {
+          "Category": "Solid",
+          "Material": {
+            "Name": "Preserved original elastic placeholder",
+            "PoissonRatio": "0.3",
+            "YoungsModulus": "210000 MPa"
+          },
+          "Proxy": "<femobjects.material_common.MaterialCommon object at 0x0000021F1F4194D0>",
+          "References": [
+            [
+              {
+                "document": "LawNativeSpecimen",
+                "object_id": "Specimen"
+              },
+              [
+                "Solid1"
+              ]
+            ]
+          ],
+          "Suppressed": false,
+          "UUID": ""
+        },
+        "type": "Fem::MaterialCommon"
+      },
+      {
+        "object_id": "SolverContext",
+        "properties": {
+          "AnalysisType": "static",
+          "AutomaticIncrementation": true,
+          "BeamReducedIntegration": true,
+          "BeamShellResultOutput3D": true,
+          "BucklingAccuracy": 0.01,
+          "BucklingFactors": 1,
+          "EigenmodeHighLimit": "1000000.0 1/s",
+          "EigenmodeLowLimit": "0.0 1/s",
+          "EigenmodesCount": 10,
+          "ExcludeBendingStiffness": false,
+          "GeometricalNonlinearity": "linear",
+          "IncrementsMaximum": 2000,
+          "IterationsControlParameterCutb": "0.25,0.5,0.75,0.85,,,1.5,",
+          "IterationsControlParameterIter": "4,8,9,200,10,400,,200,,",
+          "IterationsControlParameterTimeUse": false,
+          "MaterialNonlinearity": "linear",
+          "MatrixSolverType": "default",
+          "ModelSpace": "3D",
+          "OutputFrequency": 1,
+          "PastixMixedPrecision": false,
+          "Proxy": "<femobjects.solver_ccxtools.SolverCcxTools object at 0x0000021EA656FB10>",
+          "Results": [],
+          "SplitInputWriter": false,
+          "ThermoMechSteadyState": true,
+          "ThermoMechType": "coupled",
+          "TimeInitialIncrement": "1.0 s",
+          "TimeMaximumIncrement": "1.0 s",
+          "TimeMinimumIncrement": "1e-05 s",
+          "TimePeriod": "1.0 s",
+          "Tool": null,
+          "WorkingDir": "",
+          "WorkingDirectory": ""
+        },
+        "type": "Fem::SolverCcxTools"
+      },
+      {
+        "object_id": "SpecimenMesh",
+        "properties": {
+          "Placement": "Placement [Pos=(0,0,0), Yaw-Pitch-Roll=(0,0,0)]",
+          "Suppressed": false,
+          "_ElementMapVersion": "5"
+        },
+        "type": "Fem::FemMeshObject"
+      }
+    ],
+    "native_context_solver": {
+      "object_id": "SolverContext",
+      "properties": {
+        "AnalysisType": "static",
+        "AutomaticIncrementation": true,
+        "BeamReducedIntegration": true,
+        "BeamShellResultOutput3D": true,
+        "BucklingAccuracy": 0.01,
+        "BucklingFactors": 1,
+        "EigenmodeHighLimit": "1000000.0 1/s",
+        "EigenmodeLowLimit": "0.0 1/s",
+        "EigenmodesCount": 10,
+        "ExcludeBendingStiffness": false,
+        "GeometricalNonlinearity": "linear",
+        "IncrementsMaximum": 2000,
+        "IterationsControlParameterCutb": "0.25,0.5,0.75,0.85,,,1.5,",
+        "IterationsControlParameterIter": "4,8,9,200,10,400,,200,,",
+        "IterationsControlParameterTimeUse": false,
+        "MaterialNonlinearity": "linear",
+        "MatrixSolverType": "default",
+        "ModelSpace": "3D",
+        "OutputFrequency": 1,
+        "PastixMixedPrecision": false,
+        "Proxy": "<femobjects.solver_ccxtools.SolverCcxTools object at 0x0000021EA656FB10>",
+        "Results": [],
+        "SplitInputWriter": false,
+        "ThermoMechSteadyState": true,
+        "ThermoMechType": "coupled",
+        "TimeInitialIncrement": "1.0 s",
+        "TimeMaximumIncrement": "1.0 s",
+        "TimeMinimumIncrement": "1e-05 s",
+        "TimePeriod": "1.0 s",
+        "Tool": null,
+        "WorkingDir": "",
+        "WorkingDirectory": ""
+      },
+      "type": "Fem::SolverCcxTools"
+    },
+    "native_element_nodes": [
+      [
+        1,
+        [
+          1,
+          4,
+          5,
+          2,
+          10,
+          13,
+          14,
+          11
+        ]
+      ],
+      [
+        2,
+        [
+          2,
+          5,
+          6,
+          3,
+          11,
+          14,
+          15,
+          12
+        ]
+      ],
+      [
+        3,
+        [
+          4,
+          7,
+          8,
+          5,
+          13,
+          16,
+          17,
+          14
+        ]
+      ],
+      [
+        4,
+        [
+          5,
+          8,
+          9,
+          6,
+          14,
+          17,
+          18,
+          15
+        ]
+      ],
+      [
+        5,
+        [
+          10,
+          13,
+          14,
+          11,
+          19,
+          22,
+          23,
+          20
+        ]
+      ],
+      [
+        6,
+        [
+          11,
+          14,
+          15,
+          12,
+          20,
+          23,
+          24,
+          21
+        ]
+      ],
+      [
+        7,
+        [
+          13,
+          16,
+          17,
+          14,
+          22,
+          25,
+          26,
+          23
+        ]
+      ],
+      [
+        8,
+        [
+          14,
+          17,
+          18,
+          15,
+          23,
+          26,
+          27,
+          24
+        ]
+      ]
+    ],
+    "native_mesh_sha256": "f13c6bd42f7ec6125be458aacf5fe7bfad3b00933bd8756b8a956fbcf2852f0d",
+    "native_node_ids": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27
+    ],
+    "native_solver_is_not_executed": true,
+    "native_to_vtk_permutation": [
+      0,
+      3,
+      2,
+      1,
+      4,
+      7,
+      6,
+      5
+    ],
+    "region": {
+      "id": "Rb09406258a17409993c375a5d40cd868",
+      "label": "전체 Solid1",
+      "qualification": "UNKNOWN",
+      "target": {
+        "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+        "global_placement": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "object_id": "Specimen",
+        "subelements": [
+          {
+            "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+            "name": "Solid1"
+          }
+        ],
+        "type": "Part::Feature"
+      },
+      "target_sha256": "feffc1704630829c8d7c2eda08b7361a60d20ec9deecddb096ccf4444090f060"
+    },
+    "selection": {
+      "analysis_id": "Analysis",
+      "material_id": "Material",
+      "mesh_id": "SpecimenMesh",
+      "region_id": "Rb09406258a17409993c375a5d40cd868",
+      "solver_id": "SolverContext"
+    },
+    "session_id": "S9ddf6ba5499e4dd3a183e5275663d71f"
+  },
+  "notice": "Open existing Simulation owner, then explicitly evaluate; no implicit job",
+  "simulation_draft": {
+    "backend": "structure.felupe.law_native",
+    "settings": {
+      "boundary": {
+        "mode": "affine_boundary",
+        "origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "compare_point": true,
+      "law": {
+        "deformation_gradient": [
+          [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.001,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.006,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            [
+              1.002,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ],
+        "initial_state": {
+          "kappa": 0.0,
+          "plastic_strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "strain_kelvin": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time": 0.0
+        },
+        "model": "drucker_prager_linear",
+        "parameters": {
+          "E": 210000.0,
+          "H": 1000.0,
+          "alpha": 0.2,
+          "beta": 0.05,
+          "k0": 250.0,
+          "nu": 0.3
+        },
+        "stress_unit": "MPa",
+        "time": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "time_unit": "s"
+      },
+      "mesh": {
+        "cells": [
+          [
+            0,
+            1,
+            4,
+            3,
+            9,
+            10,
+            13,
+            12
+          ],
+          [
+            1,
+            2,
+            5,
+            4,
+            10,
+            11,
+            14,
+            13
+          ],
+          [
+            3,
+            4,
+            7,
+            6,
+            12,
+            13,
+            16,
+            15
+          ],
+          [
+            4,
+            5,
+            8,
+            7,
+            13,
+            14,
+            17,
+            16
+          ],
+          [
+            9,
+            10,
+            13,
+            12,
+            18,
+            19,
+            22,
+            21
+          ],
+          [
+            10,
+            11,
+            14,
+            13,
+            19,
+            20,
+            23,
+            22
+          ],
+          [
+            12,
+            13,
+            16,
+            15,
+            21,
+            22,
+            25,
+            24
+          ],
+          [
+            13,
+            14,
+            17,
+            16,
+            22,
+            23,
+            26,
+            25
+          ]
+        ],
+        "connectivity": "VTK_HEXAHEDRON_0_BASED",
+        "element": "Hexahedron8",
+        "length_unit": "mm",
+        "points": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.5,
+            0.0
+          ],
+          [
+            0.5,
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.5,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.5,
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.5
+          ],
+          [
+            0.5,
+            0.0,
+            0.5
+          ],
+          [
+            1.0,
+            0.0,
+            0.5
+          ],
+          [
+            0.0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            1.0,
+            0.5,
+            0.5
+          ],
+          [
+            0.0,
+            1.0,
+            0.5
+          ],
+          [
+            0.5,
+            1.0,
+            0.5
+          ],
+          [
+            1.0,
+            1.0,
+            0.5
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.0,
+            1.0
+          ],
+          [
+            1.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.5,
+            1.0
+          ],
+          [
+            0.5,
+            0.5,
+            1.0
+          ],
+          [
+            1.0,
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0,
+            1.0
+          ],
+          [
+            1.0,
+            1.0,
+            1.0
+          ]
+        ],
+        "quadrature": "Gauss2x2x2"
+      },
+      "solver": {
+        "backend": "structure.felupe.law_native",
+        "felupe_version": "11.1.3",
+        "force_tolerance_N": 1e-08,
+        "max_iterations": 40,
+        "step": "quasistatic"
+      },
+      "source_receipt": {
+        "analysis_id": "Analysis",
+        "applied": true,
+        "applied_target": {
+          "admission_errors": [],
+          "analysis_id": "Analysis",
+          "current_assignment_property": "{\"backend\": \"structure.felupe.law_native\", \"review_sha256\": \"2616385f2d615db34f25664fa598ff40768ed5f4850ca2b6de4c7f657ca50c1e\", \"source_sha256\": \"3677ecc567333c5c28c454dd02934b80958cbdabe0005ea036021fd943f75096\"}",
+          "document_id": "P350ded7eae18455a8bf4fe453743e0fd",
+          "execution_backend": "structure.felupe.law_native",
+          "execution_version": "11.1.3",
+          "geometry": {
+            "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+            "global_placement": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "object_id": "Specimen",
+            "subelements": [
+              {
+                "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+                "name": "Solid1"
+              }
+            ],
+            "type": "Part::Feature"
+          },
+          "material": {
+            "object_id": "Material",
+            "properties": {
+              "Category": "Solid",
+              "Material": {
+                "Name": "Preserved original elastic placeholder",
+                "PoissonRatio": "0.3",
+                "YoungsModulus": "210000 MPa"
+              },
+              "Proxy": "<femobjects.material_common.MaterialCommon object at 0x0000021F1F4194D0>",
+              "References": [
+                [
+                  {
+                    "document": "LawNativeSpecimen",
+                    "object_id": "Specimen"
+                  },
+                  [
+                    "Solid1"
+                  ]
+                ]
+              ],
+              "Suppressed": false,
+              "UUID": ""
+            },
+            "type": "Fem::MaterialCommon"
+          },
+          "mesh": {
+            "cells": [
+              [
+                0,
+                1,
+                4,
+                3,
+                9,
+                10,
+                13,
+                12
+              ],
+              [
+                1,
+                2,
+                5,
+                4,
+                10,
+                11,
+                14,
+                13
+              ],
+              [
+                3,
+                4,
+                7,
+                6,
+                12,
+                13,
+                16,
+                15
+              ],
+              [
+                4,
+                5,
+                8,
+                7,
+                13,
+                14,
+                17,
+                16
+              ],
+              [
+                9,
+                10,
+                13,
+                12,
+                18,
+                19,
+                22,
+                21
+              ],
+              [
+                10,
+                11,
+                14,
+                13,
+                19,
+                20,
+                23,
+                22
+              ],
+              [
+                12,
+                13,
+                16,
+                15,
+                21,
+                22,
+                25,
+                24
+              ],
+              [
+                13,
+                14,
+                17,
+                16,
+                22,
+                23,
+                26,
+                25
+              ]
+            ],
+            "connectivity": "VTK_HEXAHEDRON_0_BASED",
+            "element": "Hexahedron8",
+            "length_unit": "mm",
+            "points": [
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.5,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.5,
+                0.0
+              ],
+              [
+                0.5,
+                0.5,
+                0.0
+              ],
+              [
+                1.0,
+                0.5,
+                0.0
+              ],
+              [
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.5,
+                1.0,
+                0.0
+              ],
+              [
+                1.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.5
+              ],
+              [
+                0.5,
+                0.0,
+                0.5
+              ],
+              [
+                1.0,
+                0.0,
+                0.5
+              ],
+              [
+                0.0,
+                0.5,
+                0.5
+              ],
+              [
+                0.5,
+                0.5,
+                0.5
+              ],
+              [
+                1.0,
+                0.5,
+                0.5
+              ],
+              [
+                0.0,
+                1.0,
+                0.5
+              ],
+              [
+                0.5,
+                1.0,
+                0.5
+              ],
+              [
+                1.0,
+                1.0,
+                0.5
+              ],
+              [
+                0.0,
+                0.0,
+                1.0
+              ],
+              [
+                0.5,
+                0.0,
+                1.0
+              ],
+              [
+                1.0,
+                0.0,
+                1.0
+              ],
+              [
+                0.0,
+                0.5,
+                1.0
+              ],
+              [
+                0.5,
+                0.5,
+                1.0
+              ],
+              [
+                1.0,
+                0.5,
+                1.0
+              ],
+              [
+                0.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.5,
+                1.0,
+                1.0
+              ],
+              [
+                1.0,
+                1.0,
+                1.0
+              ]
+            ],
+            "quadrature": "Gauss2x2x2"
+          },
+          "mesh_sha256": "a773c6bca06c74aa7563792383dbdcbe15ccbe6b3d089b9e8ca4759de8d5a576",
+          "metadata_sha256": "4848455538205a47deb7191bc95644d97e1591d352385338e6586414f45016e6",
+          "native_analysis_members": [
+            {
+              "object_id": "Material",
+              "properties": {
+                "Category": "Solid",
+                "Material": {
+                  "Name": "Preserved original elastic placeholder",
+                  "PoissonRatio": "0.3",
+                  "YoungsModulus": "210000 MPa"
+                },
+                "Proxy": "<femobjects.material_common.MaterialCommon object at 0x0000021F1F4194D0>",
+                "References": [
+                  [
+                    {
+                      "document": "LawNativeSpecimen",
+                      "object_id": "Specimen"
+                    },
+                    [
+                      "Solid1"
+                    ]
+                  ]
+                ],
+                "Suppressed": false,
+                "UUID": ""
+              },
+              "type": "Fem::MaterialCommon"
+            },
+            {
+              "object_id": "SolverContext",
+              "properties": {
+                "AnalysisType": "static",
+                "AutomaticIncrementation": true,
+                "BeamReducedIntegration": true,
+                "BeamShellResultOutput3D": true,
+                "BucklingAccuracy": 0.01,
+                "BucklingFactors": 1,
+                "EigenmodeHighLimit": "1000000.0 1/s",
+                "EigenmodeLowLimit": "0.0 1/s",
+                "EigenmodesCount": 10,
+                "ExcludeBendingStiffness": false,
+                "GeometricalNonlinearity": "linear",
+                "IncrementsMaximum": 2000,
+                "IterationsControlParameterCutb": "0.25,0.5,0.75,0.85,,,1.5,",
+                "IterationsControlParameterIter": "4,8,9,200,10,400,,200,,",
+                "IterationsControlParameterTimeUse": false,
+                "MaterialNonlinearity": "linear",
+                "MatrixSolverType": "default",
+                "ModelSpace": "3D",
+                "OutputFrequency": 1,
+                "PastixMixedPrecision": false,
+                "Proxy": "<femobjects.solver_ccxtools.SolverCcxTools object at 0x0000021EA656FB10>",
+                "Results": [],
+                "SplitInputWriter": false,
+                "ThermoMechSteadyState": true,
+                "ThermoMechType": "coupled",
+                "TimeInitialIncrement": "1.0 s",
+                "TimeMaximumIncrement": "1.0 s",
+                "TimeMinimumIncrement": "1e-05 s",
+                "TimePeriod": "1.0 s",
+                "Tool": null,
+                "WorkingDir": "",
+                "WorkingDirectory": ""
+              },
+              "type": "Fem::SolverCcxTools"
+            },
+            {
+              "object_id": "SpecimenMesh",
+              "properties": {
+                "Placement": "Placement [Pos=(0,0,0), Yaw-Pitch-Roll=(0,0,0)]",
+                "Suppressed": false,
+                "_ElementMapVersion": "5"
+              },
+              "type": "Fem::FemMeshObject"
+            }
+          ],
+          "native_context_solver": {
+            "object_id": "SolverContext",
+            "properties": {
+              "AnalysisType": "static",
+              "AutomaticIncrementation": true,
+              "BeamReducedIntegration": true,
+              "BeamShellResultOutput3D": true,
+              "BucklingAccuracy": 0.01,
+              "BucklingFactors": 1,
+              "EigenmodeHighLimit": "1000000.0 1/s",
+              "EigenmodeLowLimit": "0.0 1/s",
+              "EigenmodesCount": 10,
+              "ExcludeBendingStiffness": false,
+              "GeometricalNonlinearity": "linear",
+              "IncrementsMaximum": 2000,
+              "IterationsControlParameterCutb": "0.25,0.5,0.75,0.85,,,1.5,",
+              "IterationsControlParameterIter": "4,8,9,200,10,400,,200,,",
+              "IterationsControlParameterTimeUse": false,
+              "MaterialNonlinearity": "linear",
+              "MatrixSolverType": "default",
+              "ModelSpace": "3D",
+              "OutputFrequency": 1,
+              "PastixMixedPrecision": false,
+              "Proxy": "<femobjects.solver_ccxtools.SolverCcxTools object at 0x0000021EA656FB10>",
+              "Results": [],
+              "SplitInputWriter": false,
+              "ThermoMechSteadyState": true,
+              "ThermoMechType": "coupled",
+              "TimeInitialIncrement": "1.0 s",
+              "TimeMaximumIncrement": "1.0 s",
+              "TimeMinimumIncrement": "1e-05 s",
+              "TimePeriod": "1.0 s",
+              "Tool": null,
+              "WorkingDir": "",
+              "WorkingDirectory": ""
+            },
+            "type": "Fem::SolverCcxTools"
+          },
+          "native_element_nodes": [
+            [
+              1,
+              [
+                1,
+                4,
+                5,
+                2,
+                10,
+                13,
+                14,
+                11
+              ]
+            ],
+            [
+              2,
+              [
+                2,
+                5,
+                6,
+                3,
+                11,
+                14,
+                15,
+                12
+              ]
+            ],
+            [
+              3,
+              [
+                4,
+                7,
+                8,
+                5,
+                13,
+                16,
+                17,
+                14
+              ]
+            ],
+            [
+              4,
+              [
+                5,
+                8,
+                9,
+                6,
+                14,
+                17,
+                18,
+                15
+              ]
+            ],
+            [
+              5,
+              [
+                10,
+                13,
+                14,
+                11,
+                19,
+                22,
+                23,
+                20
+              ]
+            ],
+            [
+              6,
+              [
+                11,
+                14,
+                15,
+                12,
+                20,
+                23,
+                24,
+                21
+              ]
+            ],
+            [
+              7,
+              [
+                13,
+                16,
+                17,
+                14,
+                22,
+                25,
+                26,
+                23
+              ]
+            ],
+            [
+              8,
+              [
+                14,
+                17,
+                18,
+                15,
+                23,
+                26,
+                27,
+                24
+              ]
+            ]
+          ],
+          "native_mesh_sha256": "f13c6bd42f7ec6125be458aacf5fe7bfad3b00933bd8756b8a956fbcf2852f0d",
+          "native_node_ids": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ],
+          "native_solver_is_not_executed": true,
+          "native_to_vtk_permutation": [
+            0,
+            3,
+            2,
+            1,
+            4,
+            7,
+            6,
+            5
+          ],
+          "region": {
+            "id": "Rb09406258a17409993c375a5d40cd868",
+            "label": "전체 Solid1",
+            "qualification": "UNKNOWN",
+            "target": {
+              "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+              "global_placement": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "object_id": "Specimen",
+              "subelements": [
+                {
+                  "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+                  "name": "Solid1"
+                }
+              ],
+              "type": "Part::Feature"
+            },
+            "target_sha256": "feffc1704630829c8d7c2eda08b7361a60d20ec9deecddb096ccf4444090f060"
+          },
+          "selection": {
+            "analysis_id": "Analysis",
+            "material_id": "Material",
+            "mesh_id": "SpecimenMesh",
+            "region_id": "Rb09406258a17409993c375a5d40cd868",
+            "solver_id": "SolverContext"
+          }
+        },
+        "assignment_sha256": "469bf171043872392a200187a33abfac5e70e30efee80e8a3b9c0c5936a3717d",
+        "executed": false,
+        "material_id": "Material",
+        "native_property": "{\"backend\": \"structure.felupe.law_native\", \"review_sha256\": \"2616385f2d615db34f25664fa598ff40768ed5f4850ca2b6de4c7f657ca50c1e\", \"source_sha256\": \"3677ecc567333c5c28c454dd02934b80958cbdabe0005ea036021fd943f75096\"}",
+        "old_native_material_unchanged": true,
+        "review": {
+          "compiler_executed": false,
+          "errors": [],
+          "executed": false,
+          "interface": {
+            "backend": "structure.felupe.law_native",
+            "card_preview": "{\n  \"backend\": \"structure.felupe.law_native\",\n  \"solver\": {\n    \"backend\": \"structure.felupe.law_native\",\n    \"felupe_version\": \"11.1.3\",\n    \"step\": \"quasistatic\",\n    \"max_iterations\": 40,\n    \"force_tolerance_N\": 1e-08\n  },\n  \"law\": {\n    \"deformation_gradient\": [\n      [\n        [\n          1.0,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          1.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          1.0\n        ]\n      ],\n      [\n        [\n          1.001,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          1.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          1.0\n        ]\n      ],\n      [\n        [\n          1.006,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          1.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          1.0\n        ]\n      ],\n      [\n        [\n          1.002,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          1.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          1.0\n        ]\n      ]\n    ],\n    \"initial_state\": {\n      \"kappa\": 0.0,\n      \"plastic_strain_kelvin\": [\n        0.0,\n        0.0,\n        0.0,\n        0.0,\n        0.0,\n        0.0\n      ],\n      \"strain_kelvin\": [\n        0.0,\n        0.0,\n        0.0,\n        0.0,\n        0.0,\n        0.0\n      ],\n      \"time\": 0.0\n    },\n    \"model\": \"drucker_prager_linear\",\n    \"parameters\": {\n      \"E\": 210000.0,\n      \"H\": 1000.0,\n      \"alpha\": 0.2,\n      \"beta\": 0.05,\n      \"k0\": 250.0,\n      \"nu\": 0.3\n    },\n    \"stress_unit\": \"MPa\",\n    \"time\": [\n      0.0,\n      1.0,\n      2.0,\n      3.0\n    ],\n    \"time_unit\": \"s\"\n  },\n  \"mesh_identity\": \"a773c6bca06c74aa7563792383dbdcbe15ccbe6b3d089b9e8ca4759de8d5a576\"\n}",
+            "declaration": {
+              "components": [
+                "xx",
+                "yy",
+                "zz",
+                "xy",
+                "xz",
+                "yz"
+              ],
+              "engineering_release": "UNKNOWN",
+              "frame": "material_cartesian",
+              "gradient_measure": "infinitesimal_strain_kelvin",
+              "initial_state": {
+                "kappa": 0.0,
+                "plastic_strain_kelvin": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "strain_kelvin": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time": 0.0
+              },
+              "law": "drucker_prager_linear",
+              "physical_calibration": "UNKNOWN",
+              "pressure_sign": "compression_positive",
+              "rate_dependence": false,
+              "shear": "Kelvin sqrt(2), not engineering shear",
+              "strength": "UNKNOWN",
+              "stress_measure": "infinitesimal_Cauchy",
+              "stress_unit": "MPa",
+              "tangent_kind": "consistent_discrete",
+              "tangent_pair": "DsigmaK_DepsilonK",
+              "time_unit": "s",
+              "variant": "DP-LINEAR-KAPPA-DEV/1"
+            },
+            "kind": "FELUPE_CONSTITUTIVE_CALLBACK",
+            "not_a_calculix_card": true,
+            "required_values": [
+              {
+                "name": "mesh",
+                "origin": "CURRENT_NATIVE_FEM",
+                "unit": "mm"
+              },
+              {
+                "name": "boundary",
+                "origin": "EXPLICIT_SPECIMEN_OVERRIDE",
+                "value": {
+                  "mode": "affine_boundary",
+                  "origin_mm": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                }
+              },
+              {
+                "name": "initial_state",
+                "origin": "SAVED_MATERIAL",
+                "value": {
+                  "kappa": 0.0,
+                  "plastic_strain_kelvin": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "strain_kelvin": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "time": 0.0
+                }
+              },
+              {
+                "name": "time",
+                "origin": "SAVED_MATERIAL",
+                "unit": "s",
+                "value": [
+                  0.0,
+                  1.0,
+                  2.0,
+                  3.0
+                ]
+              }
+            ],
+            "settings": {
+              "boundary": {
+                "mode": "affine_boundary",
+                "origin_mm": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "compare_point": true,
+              "law": {
+                "deformation_gradient": [
+                  [
+                    [
+                      1.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  [
+                    [
+                      1.001,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  [
+                    [
+                      1.006,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  [
+                    [
+                      1.002,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ]
+                ],
+                "initial_state": {
+                  "kappa": 0.0,
+                  "plastic_strain_kelvin": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "strain_kelvin": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "time": 0.0
+                },
+                "model": "drucker_prager_linear",
+                "parameters": {
+                  "E": 210000.0,
+                  "H": 1000.0,
+                  "alpha": 0.2,
+                  "beta": 0.05,
+                  "k0": 250.0,
+                  "nu": 0.3
+                },
+                "stress_unit": "MPa",
+                "time": [
+                  0.0,
+                  1.0,
+                  2.0,
+                  3.0
+                ],
+                "time_unit": "s"
+              },
+              "mesh": {
+                "cells": [
+                  [
+                    0,
+                    1,
+                    4,
+                    3,
+                    9,
+                    10,
+                    13,
+                    12
+                  ],
+                  [
+                    1,
+                    2,
+                    5,
+                    4,
+                    10,
+                    11,
+                    14,
+                    13
+                  ],
+                  [
+                    3,
+                    4,
+                    7,
+                    6,
+                    12,
+                    13,
+                    16,
+                    15
+                  ],
+                  [
+                    4,
+                    5,
+                    8,
+                    7,
+                    13,
+                    14,
+                    17,
+                    16
+                  ],
+                  [
+                    9,
+                    10,
+                    13,
+                    12,
+                    18,
+                    19,
+                    22,
+                    21
+                  ],
+                  [
+                    10,
+                    11,
+                    14,
+                    13,
+                    19,
+                    20,
+                    23,
+                    22
+                  ],
+                  [
+                    12,
+                    13,
+                    16,
+                    15,
+                    21,
+                    22,
+                    25,
+                    24
+                  ],
+                  [
+                    13,
+                    14,
+                    17,
+                    16,
+                    22,
+                    23,
+                    26,
+                    25
+                  ]
+                ],
+                "connectivity": "VTK_HEXAHEDRON_0_BASED",
+                "element": "Hexahedron8",
+                "length_unit": "mm",
+                "points": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.5,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.5,
+                    0.0
+                  ],
+                  [
+                    0.5,
+                    0.5,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    0.5,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    1.0,
+                    0.0
+                  ],
+                  [
+                    0.5,
+                    1.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.5
+                  ],
+                  [
+                    0.5,
+                    0.0,
+                    0.5
+                  ],
+                  [
+                    1.0,
+                    0.0,
+                    0.5
+                  ],
+                  [
+                    0.0,
+                    0.5,
+                    0.5
+                  ],
+                  [
+                    0.5,
+                    0.5,
+                    0.5
+                  ],
+                  [
+                    1.0,
+                    0.5,
+                    0.5
+                  ],
+                  [
+                    0.0,
+                    1.0,
+                    0.5
+                  ],
+                  [
+                    0.5,
+                    1.0,
+                    0.5
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    0.5
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    1.0
+                  ],
+                  [
+                    0.5,
+                    0.0,
+                    1.0
+                  ],
+                  [
+                    1.0,
+                    0.0,
+                    1.0
+                  ],
+                  [
+                    0.0,
+                    0.5,
+                    1.0
+                  ],
+                  [
+                    0.5,
+                    0.5,
+                    1.0
+                  ],
+                  [
+                    1.0,
+                    0.5,
+                    1.0
+                  ],
+                  [
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  [
+                    0.5,
+                    1.0,
+                    1.0
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                ],
+                "quadrature": "Gauss2x2x2"
+              },
+              "solver": {
+                "backend": "structure.felupe.law_native",
+                "felupe_version": "11.1.3",
+                "force_tolerance_N": 1e-08,
+                "max_iterations": 40,
+                "step": "quasistatic"
+              }
+            }
+          },
+          "mapping": [
+            {
+              "coefficient": "E",
+              "factor": 1.0,
+              "origin": "SAVED_MATERIAL_COEFFICIENT",
+              "source_unit": "MPa",
+              "source_value": 210000.0,
+              "target_unit": "MPa",
+              "target_value": 210000.0
+            },
+            {
+              "coefficient": "H",
+              "factor": 1.0,
+              "origin": "SAVED_MATERIAL_COEFFICIENT",
+              "source_unit": "MPa",
+              "source_value": 1000.0,
+              "target_unit": "MPa",
+              "target_value": 1000.0
+            },
+            {
+              "coefficient": "alpha",
+              "factor": 1.0,
+              "origin": "SAVED_MATERIAL_COEFFICIENT",
+              "source_unit": "1",
+              "source_value": 0.2,
+              "target_unit": "1",
+              "target_value": 0.2
+            },
+            {
+              "coefficient": "beta",
+              "factor": 1.0,
+              "origin": "SAVED_MATERIAL_COEFFICIENT",
+              "source_unit": "1",
+              "source_value": 0.05,
+              "target_unit": "1",
+              "target_value": 0.05
+            },
+            {
+              "coefficient": "k0",
+              "factor": 1.0,
+              "origin": "SAVED_MATERIAL_COEFFICIENT",
+              "source_unit": "MPa",
+              "source_value": 250.0,
+              "target_unit": "MPa",
+              "target_value": 250.0
+            },
+            {
+              "coefficient": "nu",
+              "factor": 1.0,
+              "origin": "SAVED_MATERIAL_COEFFICIENT",
+              "source_unit": "1",
+              "source_value": 0.3,
+              "target_unit": "1",
+              "target_value": 0.3
+            }
+          ],
+          "options": {
+            "boundary": {
+              "mode": "affine_boundary",
+              "origin_mm": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "purpose": "CONSTITUTIVE_SPECIMEN",
+            "solver": {
+              "backend": "structure.felupe.law_native",
+              "felupe_version": "11.1.3",
+              "force_tolerance_N": 1e-08,
+              "max_iterations": 40,
+              "step": "quasistatic"
+            }
+          },
+          "qualification": {
+            "engineering_release": "UNKNOWN",
+            "failure": "UNKNOWN",
+            "physical_calibration": "UNKNOWN",
+            "strength": "UNKNOWN"
+          },
+          "review_sha256": "2616385f2d615db34f25664fa598ff40768ed5f4850ca2b6de4c7f657ca50c1e",
+          "schema": "saved-material-native-assignment/1",
+          "solver_executed": false,
+          "source": {
+            "build": {
+              "arbitrary_source_approval": "NOT_GRANTED; original exact-source MFront authority unchanged",
+              "execution": "NOT_REQUIRED",
+              "kind": "FIXED_PYTHON_INTERFACE"
+            },
+            "input_revision": "Id914c3ceb9244708b348cf28ee77f193",
+            "law_source": {
+              "files": {
+                "caelab/adapters/law_native_fe.py": {
+                  "sha256": "94dfa9dfcf96d1479be6da6e1b406c23a69bcbc40b497fc4ed624b5d962ac90f",
+                  "text": "\"\"\"Explicit JobManager/evaluation FE adapter with the existing owned-process runner.\"\"\"\nfrom copy import deepcopy\nfrom pathlib import Path\nimport os\nimport subprocess\nimport sys\nfrom .. import law_native_fe as domain\nfrom ..storage import save_json\nfrom ..evaluation import read_result,file_hash\nfrom ..execution_control import run_owned_command,ExecutionCancelled,ExecutionCleanupFailed\n\n\nclass LawNativeFEAdapter:\n    backend='structure.felupe.law_native'\n    version='1'\n    default_settings=staticmethod(domain.default_settings)\n    validate_settings=staticmethod(domain.validate_settings)\n    describe_model=staticmethod(domain.describe_model)\n\n    def describe_ports(self,settings):\n        domain.validate_settings(settings)\n        return {'inputs':{},'outputs':{}}\n\n    def describe_inputs(self,settings):\n        # FE fitting is deliberately not a new optimizer route: point fitting is\n        # bound by the saved Material owner, followed by explicit FE application.\n        domain.validate_settings(settings)\n        return []\n\n    def run(self,settings,*,output,runtime=None):\n        if runtime and set(runtime)-{'threads','memory_mb'}:\n            raise ValueError('No caller executable/library/source/build override')\n        s=domain.validate_settings(settings);folder=Path(output).resolve()\n        save_json(folder/'fe-input.json',s)\n        package_root=Path(__file__).resolve().parents[2]\n        env=dict(os.environ)\n        env.update(PYTHONPATH=str(package_root),OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1')\n        command=[sys.executable,'-m','caelab.adapters.law_native_fe_worker',\n                 '--input',str(folder/'fe-input.json'),'--output',str(folder/'fe')]\n        save_json(folder/'fe-command.json',{'argv':command,'cwd':str(folder),'timeout_s':180,\n            'owner':'existing JobManager/execution_control; no solver by name or imported PID',\n            'compile':'NOT_REQUIRED','windows':'WSL_NOT_REQUIRED'})\n        try:\n            completed=run_owned_command(command,folder,'law-fe',timeout=180,env=env,owned_tree=True)\n            if (folder/'fe/result.json').exists():\n                result=read_result(folder/'fe',verify='all')\n            else:\n                result={'execution_status':'FAILED','responses':{},'checks':[],\n                    'diagnostics':{'reason':'Worker returned no retained evaluation','return_code':completed.returncode,\n                                   'FE_execution':'FAILED','build_execution':'NOT_REQUIRED'}}\n        except ExecutionCleanupFailed:raise\n        except (ExecutionCancelled,subprocess.TimeoutExpired) as error:\n            result={'execution_status':'CANCELLED' if isinstance(error,ExecutionCancelled) else 'FAILED',\n                'responses':{},'checks':[],'diagnostics':{'reason':str(error),'FE_execution':'INTERRUPTED',\n                    'partial_evidence':'fe/fe-progress.json if produced; no failed trial commit',\n                    'build_execution':'NOT_REQUIRED'}}\n        result['artifacts']=[{'path':p.relative_to(folder).as_posix(),'sha256':file_hash(p)}\n                            for p in sorted(folder.rglob('*')) if p.is_file()]\n        return result\n"
+                },
+                "caelab/adapters/law_native_fe_worker.py": {
+                  "sha256": "00ac6eb98e9a4ece4dc8e2a932ae84b274a1107314e0a95e7958b396449fa985",
+                  "text": "\"\"\"FELUPE spatial assembly/global solve worker, not a material-point stand-in.\n\nAccepted local states are frozen per time increment. Every global Newton trial\nuses the same accepted states; only a converged spatial solve may commit them.\n\"\"\"\nfrom copy import deepcopy\nfrom pathlib import Path\nimport argparse\nimport sys\nimport traceback\nimport numpy as np\nfrom plugins.material_point import law_native as law\nfrom plugins.material_point.law_native_history import evaluate_history\nfrom .. import law_native_fe as domain\nfrom ..storage import save_json,load_json,canonical_hash\nfrom ..execution_control import check_cancelled\nfrom ..evaluation import save_evaluation\nfrom .law_native_runtime import runtime_identity\n\n\nclass FelupeConstitutive:\n    \"\"\"FELUPE gradient/hessian ABI, with explicit frozen pre-increment state.\"\"\"\n    def __init__(self,settings):\n        self.settings=deepcopy(settings)\n        self.x=[np.eye(3),np.zeros(0)]\n        self.accepted=None;self.time=None;self.initial=False;self.last_failure=None\n        self.calls={'gradient':0,'hessian':0}\n\n    def begin(self,accepted,time,*,initial=False):\n        self.accepted=deepcopy(accepted);self.time=float(time);self.initial=initial\n        self.accepted_hash=canonical_hash(self.accepted);self.last_failure=None\n\n    def batch(self,F):\n        F=np.asarray(F,dtype=float)\n        if F.ndim!=4 or F.shape[:2]!=(3,3):\n            raise ValueError('FELUPE gradient shape must be (3,3,nq,ncell)')\n        rows=[]\n        for q in range(F.shape[2]):\n            for cell in range(F.shape[3]):\n                check_cancelled()\n                index=q*F.shape[3]+cell\n                try:\n                    if self.initial:\n                        if not np.allclose(F[:,:,q,cell],self.settings['deformation_gradient'][0],rtol=0,atol=2e-14):\n                            raise ValueError('Initial FE gradient differs from accepted homogeneous state')\n                        r=law.initial_response(self.settings)\n                    else:\n                        r=law.update(self.settings,deepcopy(self.accepted[index]),F[:,:,q,cell],self.time)\n                    rows.append(r)\n                except Exception as error:\n                    self.last_failure={'quadrature':q,'cell':cell,'time':self.time,'trial_F':F[:,:,q,cell].tolist(),\n                        'initial_state':deepcopy(self.accepted[index]),'initial_state_sha256':canonical_hash(self.accepted[index]),\n                        'error':str(error),'partial':deepcopy(getattr(error,'evidence',None))}\n                    raise\n        if canonical_hash(self.accepted)!=self.accepted_hash:\n            raise RuntimeError('FE trial mutated accepted constitutive state')\n        return rows\n\n    def gradient(self,x):\n        self.calls['gradient']+=1\n        F=np.asarray(x[0]);rows=self.batch(F)\n        stress=np.zeros_like(F)\n        for i,r in enumerate(rows):\n            q,c=divmod(i,F.shape[3]);stress[:,:,q,c]=law.physical_response(self.settings,r)[0]\n        # Local states are retained by this worker, not hidden in FELUPE's scratch.\n        return [stress,np.zeros((0,*F.shape[2:]))]\n\n    def hessian(self,x):\n        self.calls['hessian']+=1\n        F=np.asarray(x[0]);rows=self.batch(F);C=np.zeros((3,3,3,3,*F.shape[2:]))\n        for i,r in enumerate(rows):\n            q,c=divmod(i,F.shape[3]);tangent=law.physical_response(self.settings,r)[1]\n            if tangent is None:\n                raise ValueError('NONDIFFERENTIABLE: no discrete tangent for this FE trial')\n            C[:,:,:,:,q,c]=tangent\n        return [C]\n\n\ndef _boundary(s,points,index):\n    F=np.asarray(s['law']['deformation_gradient'][index]);origin=np.asarray(s['boundary']['origin_mm'])\n    prescribed={}\n    if s['boundary']['mode']=='affine_boundary':\n        for node in domain.boundary_nodes(s['mesh']['cells']):\n            for c,value in enumerate((F-np.eye(3))@(points[node]-origin)):\n                prescribed[3*node+c]=float(value)\n    else:\n        lo,hi=points.min(axis=0),points.max(axis=0)\n        for node,p in enumerate(points):\n            if p[0]==lo[0]:prescribed[3*node]=0.\n            if p[0]==hi[0]:prescribed[3*node]=float((F[0,0]-1)*(hi[0]-lo[0]))\n            if p[1]==lo[1]:prescribed[3*node+1]=0.\n            if p[2]==lo[2]:prescribed[3*node+2]=0.\n    dof0=np.array(sorted(prescribed),dtype=int)\n    dof1=np.setdiff1d(np.arange(points.size),dof0)\n    if not len(dof1):raise ValueError('A spatial solve must have actual free DOFs')\n    return dof0,dof1,np.array([prescribed[i] for i in dof0])\n\n\ndef _plain(value):\n    if isinstance(value,np.ndarray):return value.tolist()\n    if isinstance(value,np.generic):return value.item()\n    if isinstance(value,dict):return {k:_plain(v) for k,v in value.items()}\n    if isinstance(value,(tuple,list)):return [_plain(v) for v in value]\n    return value\n\n\ndef solve(settings,output):\n    s=domain.validate_settings(settings);folder=Path(output)\n    folder.mkdir(parents=True,exist_ok=False)\n    save_json(folder/'frozen-input.json',s)\n    try:\n        runtime=runtime_identity()\n    except Exception as error:\n        result={'execution_status':'REJECTED','responses':{},'checks':[],\n            'diagnostics':{'execution_layer':'FE','FE_execution':'NOT_RUN','point_execution':'NOT_RUN',\n                'reason':str(error),'error_type':type(error).__name__,'build_execution':'NOT_REQUIRED',\n                'engineering_release':'UNKNOWN'}}\n        save_evaluation(result,folder,existing=True);return result\n    save_json(folder/'runtime.json',runtime)\n    import felupe as fem\n    points=np.asarray(s['mesh']['points']);cells=np.asarray(s['mesh']['cells'])\n    mesh=fem.Mesh(points=points,cells=cells,cell_type='hexahedron')\n    region=fem.RegionHexahedron(mesh)\n    if np.any(np.asarray(region.dV)<=0):raise ValueError('Nonpositive native quadrature/Jacobian volume')\n    field=fem.FieldContainer([fem.Field(region,dim=3)])\n    field[0].values[:]=(points-np.asarray(s['boundary']['origin_mm']))@(np.asarray(s['law']['deformation_gradient'][0])-np.eye(3)).T\n    material=FelupeConstitutive(s['law']);solid=fem.SolidBody(umat=material,field=field)\n    F=np.asarray(field.extract()[0]);nq,ncells=F.shape[2:]\n    accepted=[deepcopy(s['law']['initial_state']) for _ in range(nq*ncells)]\n    steps=[];failed=None;last_values=field[0].values.copy();global_calls=0\n    def checkpoint():\n        save_json(folder/'fe-progress.json',{'steps':steps,'failed_increment':failed,\n            'last_accepted_states':accepted,'last_accepted_displacement_mm':last_values.tolist(),\n            'source_sha256':canonical_hash(s),'runtime_sha256':canonical_hash(runtime),\n            'point_comparison':'NOT_RUN_UNTIL_FE_FINISHES'})\n    checkpoint()\n    for index,time in enumerate(s['law']['time']):\n        material.begin(accepted,time,initial=index==0)\n        before=deepcopy(accepted);before_values=last_values.copy();residuals=[];iteration_trace=[]\n        trial_displacement=None\n        def observe_iteration(dx,x,iteration,xnorm,fnorm,success):\n            nonlocal trial_displacement\n            # FELUPE's native fnorm is DIMENSIONLESS, not a residual in N.\n            residuals.append(float(fnorm))\n            iteration_trace.append({'iteration':int(iteration),'relative_force_residual':float(fnorm),\n                'displacement_increment_norm_mm':float(xnorm),'native_success':bool(success)})\n            trial_displacement=x[0].values.tolist()\n            check_cancelled()\n        try:\n            dof0,dof1,ext0=_boundary(s,points,index)\n            if index:\n                global_calls+=1\n                solution=fem.newtonraphson(x0=field,items=[solid],dof0=dof0,dof1=dof1,ext0=ext0,\n                    tol=domain.FE_LIMITS['native_newton_relative_tolerance'],maxiter=s['solver']['max_iterations'],\n                    verbose=False,callback=observe_iteration)\n                if not solution.success:raise RuntimeError('FELUPE did not converge')\n                field=solution.x;solid.field=field\n                force=np.asarray(solution.fun.toarray() if hasattr(solution.fun,'toarray') else solution.fun).reshape(-1)\n                iterations=int(solution.iterations);residuals=list(map(float,solution.fnorms))\n            else:\n                force=np.asarray(solid.assemble.vector(field=field).toarray()).reshape(-1)\n                iterations=0\n            actual_residual=float(np.linalg.norm(force[dof1]))\n            if actual_residual>s['solver']['force_tolerance_N']:\n                raise RuntimeError('Native free-DOF equilibrium residual exceeds fixed force tolerance')\n            F=np.asarray(field.extract()[0]);rows=material.batch(F)\n            stress=np.empty((nq,ncells,3,3));local=[]\n            for i,r in enumerate(rows):\n                q,c=divmod(i,ncells);stress[q,c]=law.physical_response(s['law'],r)[0]\n                local.append({'quadrature_index':q,'cell_index':c,'F':F[:,:,q,c].tolist(),\n                    'stress':np.asarray(r['stress']).tolist(),'state':deepcopy(r['state']),\n                    'initial_state_sha256':canonical_hash(before[i]),'local':deepcopy(r['diagnostics']),\n                    'stored_energy':r['stored_energy'],'dissipated_energy':r['dissipated_energy']})\n            reaction=force.reshape(len(points),3)\n            balance=float(np.linalg.norm(reaction.sum(axis=0)))\n            force_scale=max(1.,float(np.linalg.norm(reaction,axis=1).sum()))\n            if balance>domain.FE_LIMITS['relative_force_balance']*force_scale:\n                raise RuntimeError('Assembled reaction force balance failed')\n            steps.append({'increment':index,'time':time,'time_unit':'s','local':local,\n                'displacement_mm':field[0].values.tolist(),'reaction_N':reaction.tolist(),\n                'force_residual_N':actual_residual,'force_balance_N':balance,\n                'iterations':iterations,'relative_residual_history':residuals,'iteration_trace':iteration_trace,\n                'native_relative_tolerance':domain.FE_LIMITS['native_newton_relative_tolerance'],\n                'absolute_force_tolerance_N':s['solver']['force_tolerance_N'],'actual_free_dofs':len(dof1),\n                'quadrature_weights_mm3':np.asarray(region.dV).tolist()})\n            accepted=[deepcopy(r['state']) for r in rows];last_values=field[0].values.copy()\n            checkpoint()\n        except Exception as error:\n            # Do not commit failed global or local trials. Retain the last accepted prefix.\n            field[0].values[:]=before_values;accepted=before;last_values=before_values\n            failed={'increment':index,'time':time,'error_type':type(error).__name__,'reason':str(error),\n                'trial':deepcopy(material.last_failure),'relative_residual_history':residuals,\n                'iteration_trace':iteration_trace,'trial_displacement_mm':trial_displacement,\n                'last_accepted_state_sha256':canonical_hash(before)}\n            checkpoint();break\n    compare={'status':'NOT_RUN','reason':'Explicit compare_point is false or FE failed'}\n    if s['compare_point'] and not failed:\n        point=evaluate_history(s['law']);save_evaluation(point,folder/'point-comparison')\n        if point['execution_status']!='SUCCEEDED':\n            compare={'status':'FAIL','reason':'Independent point history failed; FE evidence is preserved'}\n        else:\n            model=s['law']['model'];prefix='dp' if model==law.dp.MODEL else 'neo' if model=='neo_hooke' else 'sls'\n            checks=[]\n            for fe,pt in zip(steps,point['diagnostics']['constitutive_increments']):\n                expected=np.asarray(pt['stress_tensor']);scale=max(1.,float(np.max(abs(expected))))\n                limit=domain.FE_LIMITS[prefix+'_stress_atol_mpa']+domain.FE_LIMITS[prefix+'_stress_rtol']*scale\n                errors=[];gradient_errors=[]\n                for local in fe['local']:\n                    stress=np.asarray(local['stress']) if model=='neo_hooke' else law.tensor(local['stress'])\n                    errors.append(float(np.max(abs(stress-expected))))\n                    gradient_errors.append(float(np.max(abs(np.asarray(local['F'])-np.asarray(pt['F'])))))\n                checks.append({'increment':fe['increment'],'max_ip_stress_error_MPa':max(errors),\n                    'stress_limit_MPa':limit,'max_ip_F_error':max(gradient_errors),\n                    'F_limit':domain.FE_LIMITS['F_absolute'],\n                    'status':'PASS' if max(errors)<=limit and max(gradient_errors)<=domain.FE_LIMITS['F_absolute'] else 'FAIL'})\n            compare={'status':'PASS' if checks and all(c['status']=='PASS' for c in checks) else 'FAIL',\n                     'checks':checks,'comparison':'Every integration point; not a nodal extrapolation or mean stress'}\n    save_json(folder/'pair-comparison.json',compare)\n    responses={};axis=[{'name':'time','unit':'s','values':[row['time'] for row in steps]}]\n    if steps:\n        responses['ip_stress']={'kind':'field','value':[[row['stress'] for row in step['local']] for step in steps],\n            'unit':'MPa','component':'physical9' if s['law']['model']=='neo_hooke' else 'Kelvin6',\n            'components':list(law.F9 if s['law']['model']=='neo_hooke' else law.K6),\n            'location':'integration_point','reduction':'none','axes':axis,'frame':law.FRAME,\n            'measure':law.declaration(s['law'])['stress_measure'],'valid':not bool(failed),'partial':bool(failed)}\n        responses['displacement']={'kind':'field','value':[step['displacement_mm'] for step in steps],\n            'unit':'mm','component':'xyz','location':'nodes','reduction':'none','axes':deepcopy(axis),\n            'frame':'reference_mesh_cartesian','measure':'displacement','valid':not bool(failed)}\n        responses['reaction']={'kind':'field','value':[step['reaction_N'] for step in steps],\n            'unit':'N','component':'xyz','location':'nodes','reduction':'none','axes':deepcopy(axis),\n            'frame':'reference_mesh_cartesian','measure':'assembled_nodal_reaction','valid':not bool(failed)}\n    if steps:\n        # Exact selected integration-point curves on the existing Simulation reader.\n        # These are actual spatial responses at (cell=0,q=0), NEVER nodal/volume means.\n        origin={'cell_index':0,'quadrature_index':0,'quadrature':'Gauss2x2x2',\n                'reduction':'none','origin':'ACTUAL_SPATIAL_INTEGRATION_POINT'}\n        physical=[np.asarray(step['local'][0]['stress']) if s['law']['model']=='neo_hooke'\n                  else law.tensor(step['local'][0]['stress']) for step in steps]\n        for i,a in enumerate('xyz'):\n            for j,b in enumerate('xyz'):\n                responses['ip0_stress_'+a+b]={'kind':'series','value':[float(v[i,j]) for v in physical],\n                    'unit':'MPa','component':a+b,'location':'integration_point','reduction':'none',\n                    'axes':deepcopy(axis),'frame':law.FRAME,'measure':law.declaration(s['law'])['stress_measure'],\n                    'selection':deepcopy(origin),'valid':not bool(failed),'partial':bool(failed)}\n        for key in ('stored_energy','dissipated_energy'):\n            if all(step['local'][0][key] is not None for step in steps):\n                responses['ip0_'+key]={'kind':'series','value':[step['local'][0][key] for step in steps],\n                    'unit':'MPa','component':key,'location':'integration_point','reduction':'none',\n                    'axes':deepcopy(axis),'frame':law.FRAME,'measure':'energy_per_reference_volume',\n                    'selection':deepcopy(origin),'source':'constitutive quadrature output, NOT native global energy',\n                    'valid':not bool(failed),'partial':bool(failed)}\n    success=not failed and compare['status']!='FAIL' and global_calls>0\n    result={'execution_status':'SUCCEEDED' if success else 'FAILED','responses':responses,\n        'checks':[{'name':'spatial_FE_equilibrium','status':'PASS' if not failed and global_calls else 'FAIL'},\n                  {'name':'same_law_point_FE_pair','status':compare['status'] if compare['status'] in ('PASS','FAIL') else 'NOT_ASSESSED'}],\n        'diagnostics':{'execution_layer':'FE','FE_execution':'ACTUAL','point_execution':'ACTUAL' if s['compare_point'] and not failed else 'NOT_RUN',\n            'build_execution':'NOT_REQUIRED_FIXED_PYTHON_INTERFACE','runtime':runtime,'mesh':s['mesh'],\n            'source_receipt':deepcopy(s.get('source_receipt')),'declaration':domain.describe_model(s),\n            'steps':steps,'last_accepted_states':accepted,'failed_increment':failed,'pair_comparison':compare,\n            'global_newton_calls':global_calls,'constitutive_calls':material.calls,\n            'energy_source':'Constitutive quadrature output, not solver-reported global energy',\n            'unavailable':['Global native energy output','ParaView spatial exporter for this dedicated Hex8 pair'],\n            'physical_calibration':'UNKNOWN','strength':'UNKNOWN','engineering_release':'UNKNOWN'}}\n    save_evaluation(result,folder,existing=True)\n    return result\n\n\ndef main(argv=None):\n    parser=argparse.ArgumentParser();parser.add_argument('--input',required=True);parser.add_argument('--output',required=True)\n    args=parser.parse_args(argv)\n    try:\n        result=solve(load_json(args.input),args.output)\n        return 0 if result['execution_status']=='SUCCEEDED' else 2\n    except Exception as error:\n        folder=Path(args.output);folder.mkdir(parents=True,exist_ok=True)\n        save_json(folder/'worker-failure.json',{'type':type(error).__name__,'message':str(error),'traceback':traceback.format_exc()})\n        traceback.print_exc();return 3\n\n\nif __name__=='__main__':sys.exit(main())\n"
+                },
+                "caelab/adapters/law_native_point.py": {
+                  "sha256": "d0214ae8957e16797632f1590ad1779bd0cd0f8f02c78e4d0840dd001d8f8ed3",
+                  "text": "\"\"\"Registered prepared point adapter; existing evaluator/fit/owner retain outputs.\"\"\"\nfrom copy import deepcopy\nfrom ..evaluation import PreparedEvaluation\nfrom plugins.material_point import law_native as law\nfrom plugins.material_point.law_native_history import evaluate_history\n\n\nclass LawNativePointAdapter:\n    backend=law.POINT\n    version='1'\n    default_settings=staticmethod(law.default_settings)\n    validate_settings=staticmethod(law.validate_settings)\n    describe_inputs=staticmethod(law.describe_inputs)\n    bind_inputs=staticmethod(law.bind_inputs)\n    describe_model=staticmethod(law.declaration)\n\n    def describe_ports(self,settings):\n        law.validate_settings(settings)\n        return {'inputs':{},'outputs':{}}\n\n    def prepare(self,settings,*,runtime=None):\n        s=law.validate_settings(settings)\n        if runtime and set(runtime)-{'threads','memory_mb'}:\n            raise ValueError('No runtime/source/library injection in trusted law-native point adapter')\n        def calculate(values):\n            return evaluate_history(law.bind_inputs(deepcopy(s),values))\n        return PreparedEvaluation(calculate,s)\n"
+                },
+                "caelab/adapters/law_native_runtime.py": {
+                  "sha256": "7a82be070030ae2ac6838bec1f91ad91161f531288fb7da3227c5a0f7395503d",
+                  "text": "\"\"\"Execution-only package/ABI/source fingerprint; no runtime probing during edit.\"\"\"\nfrom pathlib import Path\nfrom importlib import metadata\nimport hashlib\nimport platform\nimport sys\nfrom ..evaluation import file_hash\nfrom plugins.material_point.law_native import FELUPE_VERSION\n\nSOURCE_RELATIVES=(\n 'plugins/material_point/law_native_tensors.py','plugins/material_point/drucker_prager.py',\n 'plugins/material_point/single_branch_native.py','plugins/material_point/law_native.py',\n 'plugins/material_point/law_native_history.py','caelab/law_native_fe.py',\n 'caelab/adapters/law_native_fe_worker.py','caelab/adapters/law_native_fe.py',\n 'caelab/adapters/law_native_point.py','caelab/adapters/law_native_runtime.py')\n\n\ndef source_identity(*, text=False):\n    root=Path(__file__).resolve().parents[2]\n    files={}\n    for name in SOURCE_RELATIVES:\n        path=root/name\n        if not path.is_file() or path.is_symlink():\n            raise ValueError('Trusted law-native source is missing or linked: '+name)\n        row={'sha256':file_hash(path)}\n        if text:row['text']=path.read_bytes().decode('utf-8')\n        files[name]=row\n    return {'interface':'law-native/1','files':files}\n\n\ndef runtime_identity():\n    import felupe, numpy, scipy\n    if felupe.__version__!=FELUPE_VERSION:\n        raise ValueError('FELUPE version mismatch; expected '+FELUPE_VERSION)\n    packages={}\n    for module in (felupe,numpy,scipy):\n        dist=metadata.distribution(module.__name__)\n        files={}\n        # Loaded extension and constitutive/solver Python sources, not huge data files.\n        for relative in dist.files or []:\n            name=str(relative)\n            if (module is felupe and name.endswith('.py')) or name.endswith(('.so','.pyd','.dll')):\n                path=Path(dist.locate_file(relative)).resolve()\n                if path.is_file():files[name]=file_hash(path)\n        packages[module.__name__]={'version':module.__version__,'source_and_binary_sha256':files,\n            'license':dist.metadata.get('License-Expression') or dist.metadata.get('License','UNAVAILABLE')[:2000]}\n    return {'os':platform.platform(),'machine':platform.machine(),'python':sys.version,\n        'python_executable_sha256':file_hash(sys.executable),'abi':sys.implementation.cache_tag,\n        'packages':packages,'source':source_identity(),\n        'compiler':'NOT_REQUIRED: fixed Python constitutive interface, no user-source build',\n        'mfront_generic_abi':'NOT_USED','calculix_abi':'NOT_USED',\n        'windows_execution':'ACTUAL' if sys.platform=='win32' else 'NOT_RUN_ON_WINDOWS'}\n"
+                },
+                "caelab/law_native_fe.py": {
+                  "sha256": "4608f4a6b994fd229713ebd01834ff1ce7ca0fc319adfaa6b74bb2546d6b0d43",
+                  "text": "\"\"\"Bounded spatial FE declarations for the existing FELUPE solver.\n\nNo FE assembly, quadrature, linear solver or global Newton is implemented here.\nHex8 reference configuration, quasistatic only, explicit mm/MPa/s.\n\"\"\"\nfrom copy import deepcopy\nimport numpy as np\nfrom plugins.material_point import law_native as law\nfrom plugins.material_point.law_native_tensors import finite\n\nFE_LIMITS={'dp_stress_atol_mpa':2e-7,'dp_stress_rtol':2e-6,\n           'neo_stress_atol_mpa':1e-8,'neo_stress_rtol':1e-6,\n           'sls_stress_atol_mpa':1e-10,'sls_stress_rtol':1e-8,\n           'F_absolute':2e-9,'relative_force_balance':2e-8,\n           'native_newton_relative_tolerance':1e-12}\n\n\ndef cube_mesh(n=3, length_mm=1.):\n    if type(n) is not int or not 3<=n<=9 or type(length_mm) not in (int,float) or length_mm<=0:\n        raise ValueError('Public cube requires 3..9 nodes/axis and positive length in mm')\n    points=[[i*length_mm/(n-1),j*length_mm/(n-1),k*length_mm/(n-1)]\n            for k in range(n) for j in range(n) for i in range(n)]\n    def ix(i,j,k):return i+n*j+n*n*k\n    cells=[[ix(i,j,k),ix(i+1,j,k),ix(i+1,j+1,k),ix(i,j+1,k),\n            ix(i,j,k+1),ix(i+1,j,k+1),ix(i+1,j+1,k+1),ix(i,j+1,k+1)]\n           for k in range(n-1) for j in range(n-1) for i in range(n-1)]\n    return {'points':points,'cells':cells,'length_unit':'mm','element':'Hexahedron8',\n            'connectivity':'VTK_HEXAHEDRON_0_BASED','quadrature':'Gauss2x2x2'}\n\n\ndef default_settings(model=law.dp.MODEL):\n    return {'law':law.default_settings(model),'mesh':cube_mesh(),\n            'boundary':{'mode':'affine_boundary','origin_mm':[0.,0.,0.]},\n            'solver':{'backend':law.FE,'felupe_version':law.FELUPE_VERSION,'step':'quasistatic',\n                'max_iterations':40,'force_tolerance_N':1e-8},'compare_point':True}\n\n\ndef boundary_nodes(cells):\n    faces={}\n    for cell in cells:\n        for face in ((0,1,2,3),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)):\n            key=tuple(sorted(cell[i] for i in face));faces[key]=faces.get(key,0)+1\n    if any(count>2 for count in faces.values()):\n        raise ValueError('Nonmanifold Hex8 face incidence')\n    return sorted({n for face,count in faces.items() if count==1 for n in face})\n\n\ndef validate_settings(settings):\n    if (not isinstance(settings,dict) or not {'law','mesh','boundary','solver','compare_point'}<=set(settings)\n            or set(settings)-{'law','mesh','boundary','solver','compare_point','source_receipt'}):\n        raise ValueError('FE settings require exact law/mesh/boundary/solver/compare_point')\n    s=deepcopy(settings);law.validate_settings(s['law'])\n    if s['law']['stress_unit']!='MPa':\n        raise ValueError('FE mapping must explicitly convert source to MPa; coordinates are mm, reactions N')\n    if len(s['law']['time'])>128:\n        raise ValueError('This small FE worker admits at most 128 requested states')\n    mesh=s['mesh']\n    if not isinstance(mesh,dict) or set(mesh)!={'points','cells','length_unit','element','connectivity','quadrature'}:\n        raise ValueError('Complete frozen Hex8 mesh is required')\n    if (mesh['length_unit'],mesh['element'],mesh['connectivity'],mesh['quadrature']) != (\n            'mm','Hexahedron8','VTK_HEXAHEDRON_0_BASED','Gauss2x2x2'):\n        raise ValueError('Only mm full-integration Hex8; no tetra/shell/beam/plane substitution')\n    if not isinstance(mesh['points'],list) or not 9<=len(mesh['points'])<=4096:\n        raise ValueError('FE mesh requires 9..4096 points (at least one unconstrained spatial node)')\n    points=finite(mesh['points'],(len(mesh['points']),3),'FE points')\n    if not isinstance(mesh['cells'],list) or not 1<=len(mesh['cells'])<=512:\n        raise ValueError('Small FE mesh requires 1..512 Hex8 cells')\n    if any(not isinstance(c,list) or len(c)!=8 or len(set(c))!=8 or\n           any(type(i) is not int or not 0<=i<len(points) for i in c) for c in mesh['cells']):\n        raise ValueError('Hex8 connectivity must contain eight distinct existing zero-based nodes')\n    if len({tuple(c) for c in mesh['cells']})!=len(mesh['cells']):\n        raise ValueError('Duplicate Hex8 cells')\n    if {i for c in mesh['cells'] for i in c}!=set(range(len(points))):\n        raise ValueError('Isolated/unused mesh points are not admissible')\n    skin=boundary_nodes(mesh['cells'])\n    if len(skin)==len(points):\n        raise ValueError('Use the public 8-element cube or a mesh with actual free interior DOFs')\n    solver=s['solver']\n    if not isinstance(solver,dict) or set(solver)!={'backend','felupe_version','step','max_iterations','force_tolerance_N'}:\n        raise ValueError('Explicit bounded FELUPE solver declaration required')\n    if (solver['backend'],solver['felupe_version'],solver['step'])!=(law.FE,law.FELUPE_VERSION,'quasistatic'):\n        raise ValueError('Wrong solver/version/step. No CalculiX, dynamic, contact or impact admission')\n    if type(solver['max_iterations']) is not int or not 1<=solver['max_iterations']<=80:\n        raise ValueError('FE maximum iterations must be 1..80')\n    if not 0<finite([solver['force_tolerance_N']],(1,),'force tolerance')[0]<=1e-7:\n        raise ValueError('Fixed force tolerance must be positive and at most 1e-7 N')\n    if type(s['compare_point']) is not bool:\n        raise ValueError('compare_point is an explicit boolean')\n    b=s['boundary']\n    if not isinstance(b,dict) or set(b)!={'mode','origin_mm'} or b['mode'] not in ('affine_boundary','uniaxial_zero_lateral'):\n        raise ValueError('Choose affine_boundary or uniaxial_zero_lateral; no inferred loads')\n    finite(b['origin_mm'],(3,),'boundary origin')\n    if b['mode']=='affine_boundary' and s['law'].get('boundary_control'):\n        raise ValueError('Affine FE boundary cannot be compared to free-lateral point history')\n    if b['mode']=='uniaxial_zero_lateral':\n        bc=s['law'].get('boundary_control',{}).get('stress_components',{})\n        if set(bc)!={'yy','zz'} or any(any(v!=0 for v in a) for a in bc.values()):\n            raise ValueError('Uniaxial FE pair requires explicit zero yy/zz point stress controls')\n        for F in s['law']['deformation_gradient']:\n            F=np.asarray(F)\n            if np.any(F-np.diag(np.diag(F))):\n                raise ValueError('Uniaxial pair does not impose shear/rotation')\n        if not np.allclose(s['law']['deformation_gradient'][0],np.eye(3),atol=0,rtol=0):\n            raise ValueError('Uniaxial initial geometry must be undeformed')\n        if not np.array_equal(np.asarray(b['origin_mm']),points.min(axis=0)):\n            raise ValueError('Uniaxial origin must equal the box minimum')\n        # Real specimen boundary faces must cover six axis-aligned surfaces.\n        lo,hi=points.min(axis=0),points.max(axis=0)\n        if np.any(hi<=lo) or any(not any(p[a] in (lo[a],hi[a]) for a in range(3)) for p in points[skin]):\n            raise ValueError('Free-lateral public pair requires an axis-aligned rectangular specimen')\n    if 'source_receipt' in s:\n        from .material_fe_transfer import cold_assignment, verify_source\n        from .storage import canonical_hash\n        record=cold_assignment(s['source_receipt'])\n        reviewed=record['review']['interface']['settings']\n        actual={k:v for k,v in s.items() if k!='source_receipt'}\n        if canonical_hash(reviewed)!=canonical_hash(actual):\n            raise ValueError('Frozen FE input differs from the explicitly applied saved Material/mesh/protocol')\n        verify_source(record['review']['source'],current_code=True)\n    return s\n\n\ndef describe_model(s):\n    s=validate_settings(s)\n    return {'backend':law.FE,'law':law.declaration(s['law']),'solver':s['solver'],\n            'element':s['mesh']['element'],'quadrature':s['mesh']['quadrature'],\n            'length_unit':'mm','force_unit':'N','boundary':s['boundary'],\n            'evidence':'EXECUTION_NOT_TESTED','energy_location':'constitutive integration point',\n            'physical_calibration':'UNKNOWN','engineering_release':'UNKNOWN'}\n"
+                },
+                "plugins/material_point/drucker_prager.py": {
+                  "sha256": "72892330756b8f42d4b770fc4391e50e6241dcf704acafcc9f724644cc784156",
+                  "text": "\"\"\"DP-LINEAR-KAPPA-DEV/1, backward-Euler nonassociated small-strain update.\n\np=-tr(sigma)/3, q=sqrt(3/2*s:s), f=q-alpha*p-k0-H*kappa,\ng=q-beta*p. kappa is accumulated equivalent DEVIATORIC plastic strain.\nAt the cone apex kappa is NOT the plastic multiplier. See EQUATIONS_KO.md.\nPure trial function: no passed initial state is ever mutated.\n\"\"\"\nfrom copy import deepcopy\nimport math\nimport numpy as np\nfrom .law_native_tensors import I6, DEV, finite, stiffness, moduli\n\nMODEL = 'drucker_prager_linear'\nVARIANT = 'DP-LINEAR-KAPPA-DEV/1'\nKEYS = ('E', 'nu', 'alpha', 'beta', 'k0', 'H')\n# New DP numerical limits, fixed before the first execution. Existing limits untouched.\nLIMITS = {'yield_relative': 2e-11, 'yield_absolute_over_E': 2e-14,\n          'tangent_relative': 2e-6, 'tangent_absolute_over_E': 2e-10,\n          'finite_difference_steps': [1e-6, 1e-7, 1e-8], 'strain_abs_max': .05}\n\n\nclass LocalFailure(ValueError):\n    def __init__(self, message, evidence):\n        super().__init__(message)\n        self.evidence = deepcopy(evidence)\n\n\ndef validate_parameters(parameters):\n    if not isinstance(parameters, dict) or set(parameters) != set(KEYS):\n        raise ValueError('DP requires exactly E, nu, alpha, beta, k0, H (direct coefficients)')\n    p = dict(zip(KEYS, finite([parameters[k] for k in KEYS], (6,), 'DP coefficients')))\n    if not (p['E'] > 0 and -.99 <= p['nu'] < .495 and\n            0 <= p['beta'] <= p['alpha'] <= 1 and p['k0'] > 0 and p['H'] >= 0):\n        raise ValueError('DP: E,k0>0; -.99<=nu<.495; 0<=beta<=alpha<=1; H>=0')\n    if not np.isfinite(list(moduli(p['E'], p['nu']))).all():\n        raise ValueError('Elastic moduli overflow')\n    return {key: float(value) for key, value in p.items()}\n\n\ndef state(*, time=0., strain_kelvin=None, plastic_strain_kelvin=None, kappa=0.):\n    return {'time': float(time), 'strain_kelvin': list(strain_kelvin if strain_kelvin is not None else [0.]*6),\n            'plastic_strain_kelvin': list(plastic_strain_kelvin if plastic_strain_kelvin is not None else [0.]*6),\n            'kappa': float(kappa)}\n\n\ndef validate_state(initial):\n    if not isinstance(initial, dict) or set(initial) != {'time','strain_kelvin','plastic_strain_kelvin','kappa'}:\n        raise ValueError('DP initial state requires time, strain_kelvin, plastic_strain_kelvin, kappa')\n    scalars = finite([initial['time'], initial['kappa']], (2,), 'DP state')\n    e = finite(initial['strain_kelvin'], (6,), 'DP initial strain')\n    ep = finite(initial['plastic_strain_kelvin'], (6,), 'DP plastic strain')\n    if scalars[0] < 0 or scalars[1] < 0 or max(abs(e)) > LIMITS['strain_abs_max']:\n        raise ValueError('DP initial time/kappa nonnegative and bounded small strain required')\n    if np.sqrt(2/3)*np.linalg.norm(DEV@ep) > scalars[1] + 1e-12:\n        raise ValueError('kappa cannot be below the norm of accumulated deviatoric plastic strain')\n    return deepcopy(initial)\n\n\ndef invariants(stress):\n    s = DEV@np.asarray(stress)\n    return -float(I6@stress)/3, float(np.sqrt(1.5)*np.linalg.norm(s))\n\n\ndef integrate(parameters, initial, strain_kelvin, time):\n    \"\"\"Return stress, true discrete tangent (possibly unavailable), state and diagnostics.\"\"\"\n    p = validate_parameters(parameters)\n    initial = validate_state(initial)\n    e = finite(strain_kelvin, (6,), 'DP strain')\n    t = float(finite([time], (1,), 'DP time')[0])\n    if t < initial['time'] or max(abs(e)) > LIMITS['strain_abs_max']:\n        raise ValueError('DP time must not decrease; |Kelvin strain|<=.05')\n    K, G = moduli(p['E'], p['nu'])\n    Ce = stiffness(K, G)\n    ep0 = np.asarray(initial['plastic_strain_kelvin'])\n    trial = Ce@(e-ep0)\n    ptr, qtr = invariants(trial)\n    s = DEV@trial\n    k = p['k0'] + p['H']*initial['kappa']\n    ftr = qtr - p['alpha']*ptr - k\n    scale = max(p['k0'], qtr, abs(p['alpha']*ptr), 1e-30)\n    tol = LIMITS['yield_absolute_over_E']*p['E'] + LIMITS['yield_relative']*scale\n    d = {'variant': VARIANT, 'trial_stress_kelvin': trial.tolist(), 'trial_p': ptr,\n         'trial_q': qtr, 'trial_yield': ftr, 'local_tolerance': tol,\n         'initial_state': deepcopy(initial), 'differentiable': True,\n         'tangent_kind': 'consistent_discrete', 'iterations': 0, 'substeps': 1}\n    ep, kap, gamma, C = ep0.copy(), float(initial['kappa']), 0., Ce.copy()\n    stress = trial.copy()\n    if ftr <= tol:\n        active = 'elastic'\n        if abs(ftr) <= tol:\n            d.update(differentiable=False, transition='yield_surface', tangent_side='elastic')\n    else:\n        D = 3*G + p['alpha']*K*p['beta'] + p['H']\n        gamma = ftr/D\n        qcone = qtr-3*G*gamma\n        if qcone > tol and qtr > 0:\n            active = 'cone'\n            n = 1.5*s/qtr\n            ep += gamma*(n+p['beta']*I6/3)\n            kap += gamma\n            q, pressure = qcone, ptr+K*p['beta']*gamma\n            stress = s*(q/qtr)-pressure*I6\n            C = (K*np.outer(I6,I6) + 2*G*(q/qtr)*DEV\n                 + 4*G*G*gamma/qtr*np.outer(n,n)\n                 - np.outer(2*G*n+K*p['beta']*I6, 2*G*n+K*p['alpha']*I6)/D)\n        else:\n            active = 'apex'\n            if p['alpha'] == 0 or p['beta'] == 0:\n                d.update(active_set=active, partial_stress_kelvin=trial.tolist(),\n                         failure='No admissible apex return with alpha*beta=0', committed=False)\n                raise LocalFailure(d['failure'], d)\n            # Generalized flow at q=0: dev plastic norm = qtr/(3G), NOT gamma.\n            dev_increment = qtr/(3*G)\n            kap += dev_increment\n            pressure = -(p['k0']+p['H']*kap)/p['alpha']\n            gamma = (pressure-ptr)/(K*p['beta'])\n            if gamma < dev_increment - tol/(3*G):\n                raise LocalFailure('Apex subgradient is outside the admissible ball', d)\n            ep += s/(2*G) + p['beta']*gamma*I6/3\n            stress = -pressure*I6\n            if qtr > tol:\n                n = 1.5*s/qtr\n                C = (2*p['H']/(3*p['alpha']))*np.outer(I6,n)\n            elif p['H'] == 0:\n                C = np.zeros((6,6))\n            else:\n                C = None\n                d.update(differentiable=False, transition='apex_trial_axis_norm',\n                         tangent_side='directional_only; no unique 6x6 derivative')\n            if abs(qcone) <= tol:\n                d.update(differentiable=False, transition='cone_apex_boundary')\n            d.update(apex_deviatoric_kappa_increment=dev_increment,\n                     apex_subgradient_norm=(dev_increment/gamma if gamma else None))\n    pressure, q = invariants(stress)\n    residual = q-p['alpha']*pressure-p['k0']-p['H']*kap\n    # Check the actual update, including stress/strain consistency; never average failures.\n    elastic_residual = float(np.linalg.norm(stress-Ce@(e-ep), ord=np.inf))\n    if (not np.isfinite(stress).all() or not np.isfinite(ep).all() or not math.isfinite(kap)\n            or elastic_residual > 20*tol or (active != 'elastic' and abs(residual) > 20*tol)):\n        d.update(active_set=active, local_residual=residual, elastic_residual=elastic_residual,\n                 partial_stress_kelvin=stress.tolist(), committed=False)\n        raise LocalFailure('DP return mapping residual/finite check failed', d)\n    accepted = state(time=t, strain_kelvin=e.tolist(), plastic_strain_kelvin=ep.tolist(), kappa=kap)\n    d.update(active_set=active, local_residual=residual, elastic_residual=elastic_residual,\n             p=pressure, q=q, plastic_multiplier=gamma, kappa_increment=kap-initial['kappa'],\n             partial_stress_kelvin=stress.tolist(), committed=False)\n    return {'stress': stress, 'tangent': C, 'state': accepted, 'diagnostics': d,\n            'stored_energy': float(.5*(e-ep)@Ce@(e-ep) + .5*p['H']*kap*kap),\n            'dissipated_energy': None}\n"
+                },
+                "plugins/material_point/law_native.py": {
+                  "sha256": "d61a219ee227e11ad569ac05edd2b827418081052870750c317963442f995764",
+                  "text": "\"\"\"Explicit material declarations shared by point, fit and the FELUPE FE pair.\n\nNo solver, compiler, provider or owner is imported during editing/validation.\nExisting FELUPE, MFront/SVK, J2 and native Maxwell inputs remain unchanged.\n\"\"\"\nfrom copy import deepcopy\nimport math\nimport numpy as np\nfrom . import drucker_prager as dp, single_branch_native as sls\nfrom .law_native_tensors import finite, kelvin, tensor, fourth, stiffness, compliance, K6, F9\n\nPOINT = 'material.law_native'\nFE = 'structure.felupe.law_native'\nMODELS = (dp.MODEL, 'neo_hooke', 'single_branch_maxwell')\nSTRESS_TO_MPA = {'Pa': 1e-6, 'kPa': 1e-3, 'MPa': 1., 'GPa': 1e3}\nFELUPE_VERSION = '11.1.3'\nFRAME = 'material_cartesian'\nBOUNDARY_OPTIONS = {'atol':1e-8, 'rtol':1e-10, 'max_iterations':40, 'max_backtracks':20}\n\n\ndef parameter_unit(model, name, stress_unit):\n    return '1' if name in ('nu','alpha','beta') else 's' if name == 'tau' else stress_unit\n\n\ndef validate_parameters(model, p):\n    if model == dp.MODEL:\n        return dp.validate_parameters(p)\n    if model == 'single_branch_maxwell':\n        return sls.validate_parameters(p)\n    if model == 'neo_hooke':\n        if not isinstance(p,dict) or set(p) != {'mu','lmbda'}:\n            raise ValueError('NeoHookeCompressible requires mu and lmbda; no bulk-energy substitution')\n        mu, la = finite([p['mu'],p['lmbda']],(2,),'Neo-Hooke coefficients')\n        if mu <= 0 or la+2*mu/3 <= 0:\n            raise ValueError('Neo-Hooke shear and small-strain bulk modulus must be positive')\n        return {'mu':float(mu),'lmbda':float(la)}\n    raise ValueError('Choose an explicit law-native model')\n\n\ndef default_settings(model=dp.MODEL):\n    if model not in MODELS:\n        raise ValueError('Unknown law-native model')\n    parameters = ({'E':210000.,'nu':.3,'alpha':.2,'beta':.05,'k0':250.,'H':1000.}\n                  if model == dp.MODEL else {'mu':30.,'lmbda':50.} if model == 'neo_hooke'\n                  else {'K0':1000.,'G0':500.,'K1':2000.,'G1':1000.,'tau':1.})\n    initial = (dp.state() if model == dp.MODEL else sls.state() if model == 'single_branch_maxwell'\n               else {'time':0.,'deformation_gradient':np.eye(3).tolist()})\n    return {'model':model,'stress_unit':'MPa','time_unit':'s','parameters':parameters,\n            'time':[0.,1.,2.,3.], 'deformation_gradient':[(np.eye(3)+np.diag([e,0,0])).tolist()\n              for e in (0.,.001,.006,.002)],'initial_state':initial}\n\n\ndef validate_settings(settings):\n    required = {'model','parameters','stress_unit','time_unit','time','deformation_gradient','initial_state'}\n    if not isinstance(settings,dict) or not required <= set(settings) or set(settings)-required-{'boundary_control','tangent_probe'}:\n        raise ValueError('Law-native requires model, parameters, units, time/F and explicit initial_state')\n    s = deepcopy(settings)\n    model = s['model']\n    p = validate_parameters(model,s['parameters'])\n    if s['stress_unit'] not in STRESS_TO_MPA or s['time_unit'] != 's':\n        raise ValueError('Explicit Pa/kPa/MPa/GPa and physical seconds are required')\n    # Bounds expressed in MPa and seconds, not arbitrary raw-unit bounds.\n    for name,value in p.items():\n        unit = parameter_unit(model,name,s['stress_unit'])\n        if unit not in ('1','s') and abs(value)*STRESS_TO_MPA[unit] > 1e9:\n            raise ValueError(name+': exceeds admitted 1e9 MPa scale')\n    if model == 'single_branch_maxwell':\n        if not 1e-6 <= p['tau'] <= 1e6:\n            raise ValueError('SLS tau requires [1e-6,1e6] s')\n        if any(p[k]*STRESS_TO_MPA[s['stress_unit']]<1e-6 for k in ('K0','G0','K1','G1')):\n            raise ValueError('SLS moduli require [1e-6,1e9] MPa, retaining the original envelope')\n    if not isinstance(s['time'],list) or not 2 <= len(s['time']) <= 256:\n        raise ValueError('History requires 2..256 states')\n    times = finite(s['time'],(len(s['time']),),'time')\n    gradients = finite(s['deformation_gradient'],(len(times),3,3),'F history')\n    if min(times) < 0 or max(times)>1e6 or np.any(np.diff(times)<=0):\n        raise ValueError('Physical times must increase strictly within [0,1e6] s')\n    for F in gradients:\n        if np.linalg.det(F)<=0:\n            raise ValueError('Nonpositive det(F) is not admissible')\n        if model == 'neo_hooke':\n            stretches=np.linalg.svd(F,compute_uv=False)\n            if min(stretches)<.5 or max(stretches)>2:\n                raise ValueError('This Neo-Hooke FE pair is bounded to principal stretches [0.5,2]')\n        elif model == 'single_branch_maxwell' and np.max(abs(tensor(kelvin(F-np.eye(3)))))>.01+8*np.finfo(float).eps:\n            raise ValueError('SLS physical strain components must remain within [-.01,.01]')\n        elif max(abs(kelvin(F-np.eye(3)))) > .05 or np.linalg.norm(F-F.T)> .15:\n            raise ValueError('Small-strain law outside the declared strain/rotation envelope')\n    initial = s['initial_state']\n    if model == 'neo_hooke':\n        if not isinstance(initial,dict) or set(initial)!={'time','deformation_gradient'}:\n            raise ValueError('Neo-Hooke is stateless: initial time and F, not plastic/viscous variables')\n        finite([initial['time']],(1,),'initial time')\n        F0=finite(initial['deformation_gradient'],(3,3),'initial F')\n        if not np.array_equal(F0,gradients[0]):\n            raise ValueError('First F must exactly equal accepted initial F')\n    else:\n        (dp if model==dp.MODEL else sls).validate_state(initial)\n        if not np.allclose(kelvin(gradients[0]-np.eye(3)),initial['strain_kelvin'],rtol=0,atol=2e-16):\n            raise ValueError('First F/strain differs from the explicitly accepted initial state')\n    if initial['time'] != times[0]:\n        raise ValueError('First history time must equal accepted initial time')\n    bc=s.get('boundary_control')\n    if bc is not None:\n        if not isinstance(bc,dict) or set(bc)!={'stress_components','solver'}:\n            raise ValueError('Boundary control requires stress_components and explicit solver options')\n        if not isinstance(bc['stress_components'],dict) or not bc['stress_components'] or set(bc['stress_components'])-set(K6):\n            raise ValueError('Use distinct physical xx/yy/zz/xy/xz/yz stress controls')\n        for name,values in bc['stress_components'].items():\n            finite(values,(len(times),),'controlled '+name)\n        opts=bc['solver']\n        if not isinstance(opts,dict) or set(opts)!=set(BOUNDARY_OPTIONS):\n            raise ValueError('Boundary solver requires fixed atol,rtol,max_iterations,max_backtracks')\n        if not (0<float(finite([opts['atol']],(1,),'atol')[0])<=1 and\n                0<=float(finite([opts['rtol']],(1,),'rtol')[0])<=1e-5):\n            raise ValueError('Invalid boundary residual tolerance')\n        for key,maximum in (('max_iterations',80),('max_backtracks',32)):\n            if type(opts[key]) is not int or not 1<=opts[key]<=maximum:\n                raise ValueError('Invalid '+key)\n    probe=s.get('tangent_probe')\n    if probe is not None:\n        if (not isinstance(probe,dict) or set(probe)!={'increment','steps'}\n                or type(probe['increment']) is not int or not 1<=probe['increment']<len(times)\n                or not isinstance(probe['steps'],list) or not 1<=len(probe['steps'])<=5):\n            raise ValueError('Probe requires one noninitial increment and 1..5 positive steps')\n        hs=finite(probe['steps'],(len(probe['steps']),),'probe steps')\n        if min(hs)<=0 or max(hs)>.001:\n            raise ValueError('Probe h must be in (0,.001]')\n    return s\n\n\ndef describe_inputs(settings):\n    s=validate_settings(settings)\n    result=[]\n    labels={'E':'탄성계수','nu':'푸아송비','alpha':'압력 계수 α','beta':'팽창 계수 β',\n        'k0':'초기 항복 절편','H':'등방 경화 계수','mu':'전단계수 μ','lmbda':'Lamé 계수 λ',\n        'K0':'평형 체적계수','G0':'평형 전단계수','K1':'branch 체적계수',\n        'G1':'branch 전단계수','tau':'완화시간'}\n    for name,value in s['parameters'].items():\n        lo,hi= ((-.9,.49) if name=='nu' else (0.,1.) if name in ('alpha','beta') else\n                (value*.1,value*10) if value>0 else (0.,max(1.,s['parameters'].get('E',1.)*.01)))\n        result.append({'id':name,'label':labels[name],'unit':parameter_unit(s['model'],name,s['stress_unit']),\n            'value':value,'lower':lo,'upper':hi,'path':['parameters',name],\n            'role':'coefficient','kind':'continuous','default_free':name not in ('E','nu','beta'),\n            'meaning':'Direct coefficient; no implicit angle/cohesion conversion'})\n    return result\n\n\ndef bind_inputs(settings, values):\n    s=validate_settings(settings)\n    if not isinstance(values,dict) or set(values)-set(s['parameters']):\n        raise ValueError('Only explicitly declared coefficients can be bound')\n    s['parameters'].update(deepcopy(values))\n    return validate_settings(s)\n\n\ndef declaration(settings):\n    s=validate_settings(settings)\n    finite_strain=s['model']=='neo_hooke'\n    return {'law':s['model'],'variant':dp.VARIANT if s['model']==dp.MODEL else\n                'FELUPE-NeoHookeCompressible-logJ/1' if finite_strain else 'SLS-bulk-shear-exact-ramp/1',\n        'stress_measure':'first_Piola' if finite_strain else 'infinitesimal_Cauchy',\n        'gradient_measure':'deformation_gradient' if finite_strain else 'infinitesimal_strain_kelvin',\n        'tangent_pair':'DP_DF_physical9' if finite_strain else 'DsigmaK_DepsilonK',\n        'tangent_kind':'consistent_discrete','components':list(F9 if finite_strain else K6),\n        'shear':'physical9' if finite_strain else 'Kelvin sqrt(2), not engineering shear',\n        'frame':FRAME,'stress_unit':s['stress_unit'],'time_unit':'s',\n        'rate_dependence':s['model']=='single_branch_maxwell','initial_state':deepcopy(s['initial_state']),\n        'pressure_sign':'compression_positive' if s['model']==dp.MODEL else None,\n        'physical_calibration':'UNKNOWN','strength':'UNKNOWN','engineering_release':'UNKNOWN'}\n\n\ndef neo_response(parameters, F, time):\n    import felupe\n    if felupe.__version__ != FELUPE_VERSION:\n        raise ValueError('This pair requires FELUPE '+FELUPE_VERSION+'; runtime upgrade needs separate validation')\n    F=finite(F,(3,3),'F')\n    if np.linalg.det(F)<=0 or min(np.linalg.svd(F,compute_uv=False))<.5 or max(np.linalg.svd(F,compute_uv=False))>2:\n        raise ValueError('Neo-Hooke F outside pair envelope')\n    material=felupe.NeoHookeCompressible(**parameters)\n    x=[F[:,:,None,None],np.zeros((0,1,1))]\n    P=np.asarray(material.gradient(x)[0])[:,:,0,0]\n    C=np.asarray(material.hessian(x)[0]).reshape(9,9)\n    energy=float(np.asarray(material.function(x)[0]).reshape(-1)[0])\n    return {'stress':P,'tangent':C,'state':{'time':float(time),'deformation_gradient':F.tolist()},\n        'stored_energy':energy,'dissipated_energy':0.,\n        'diagnostics':{'active_set':'hyperelastic','differentiable':True,'tangent_kind':'consistent_discrete',\n            'cauchy':(P@F.T/np.linalg.det(F)).tolist(),'J':float(np.linalg.det(F)),\n            'energy_zero':'FELUPE raw energy: psi(I)=3*mu/2 (not shifted)', 'committed':False}}\n\n\ndef update(settings, initial, F, time):\n    if settings['model']=='neo_hooke':\n        return neo_response(settings['parameters'],F,time)\n    return (dp if settings['model']==dp.MODEL else sls).integrate(settings['parameters'],\n        initial,kelvin(np.asarray(F)-np.eye(3)),time)\n\n\ndef initial_response(s):\n    initial=deepcopy(s['initial_state'])\n    if s['model']=='neo_hooke':\n        return neo_response(s['parameters'],s['deformation_gradient'][0],s['time'][0])\n    if s['model']==dp.MODEL:\n        result=dp.integrate(s['parameters'],initial,initial['strain_kelvin'],initial['time'])\n        if result['state']['plastic_strain_kelvin'] != initial['plastic_strain_kelvin'] or result['state']['kappa'] != initial['kappa']:\n            raise ValueError('Initial DP state lies outside yield surface; no silent initial return')\n        return result\n    p=s['parameters'];e=np.asarray(initial['strain_kelvin']);ev=np.asarray(initial['viscous_strain_kelvin'])\n    C0,C1=stiffness(p['K0'],p['G0']),stiffness(p['K1'],p['G1'])\n    q=C1@(e-ev)\n    return {'stress':C0@e+q,'tangent':None,'state':initial,\n        'stored_energy':float(.5*e@C0@e+.5*q@compliance(q,p['K1'],p['G1'])),\n        'dissipated_energy':initial['dissipated_energy'],\n        'diagnostics':{'active_set':'initial','differentiable':False,'tangent_kind':'unavailable_no_dt',\n            'branch_stress_kelvin':q.tolist(),'local_residual':None,'committed':False}}\n\n\ndef physical_response(s, result):\n    if s['model']=='neo_hooke':\n        return np.asarray(result['stress']),None if result['tangent'] is None else np.asarray(result['tangent']).reshape(3,3,3,3)\n    return tensor(result['stress']),None if result['tangent'] is None else fourth(result['tangent'])\n\n\ndef from_saved_legacy(draft):\n    \"\"\"Exact explicit mapping of legacy supported models; original draft is never edited.\"\"\"\n    backend,old=draft['backend'],deepcopy(draft['settings'])\n    if backend==POINT:\n        return validate_settings(old)\n    if backend=='material.felupe' and old.get('model')=='neo_hooke':\n        s=deepcopy(old)\n        if 'tangent_probe' in s:\n            old_probe=s['tangent_probe'];s['tangent_probe']={'increment':old_probe['increment'],'steps':old_probe['steps']}\n        if 'boundary_control' in s:\n            b=s['boundary_control']\n            if b.get('stress_measure')!='first_Piola' or b.get('frame')!=FRAME:\n                raise ValueError('Legacy Neo-Hooke boundary pair/frame is not explicit first Piola')\n            s['boundary_control']={k:deepcopy(b[k]) for k in ('stress_components','solver')}\n        s['initial_state']={'time':s['time'][0],'deformation_gradient':deepcopy(s['deformation_gradient'][0])}\n        return validate_settings(s)\n    if backend=='material.mfront.viscoelastic':\n        from . import viscoelastic_reference as reference\n        old=reference.validate_settings(old) # preserves original canonical admission/limits\n        s=default_settings('single_branch_maxwell')\n        s['parameters']=dict(zip(sls.KEYS,[old['material'][k] for k in reference.MATERIAL_KEYS]))\n        s['time']=[r['time_s'] for r in old['history']]\n        s['deformation_gradient']=[(np.eye(3)+tensor(np.asarray(r['strain'])*np.array([1,1,1,np.sqrt(2),np.sqrt(2),np.sqrt(2)]))).tolist() for r in old['history']]\n        return validate_settings(s)\n    raise ValueError('No exact pair mapping: SVK/J2/user source are not renamed Neo-Hooke/DP/SLS')\n"
+                },
+                "plugins/material_point/law_native_history.py": {
+                  "sha256": "d20459274fac5adf6195d533fe5a27eee74b08c5c68337921455ef2e30793854",
+                  "text": "\"\"\"Accepted-state history and independent same-state tangent probes.\n\nMixed boundary conditions consume the EXISTING material_control Newton loop,\nwith one frozen accepted constitutive state per increment. No new optimizer.\n\"\"\"\nfrom copy import deepcopy\nimport numpy as np\nfrom . import law_native as law\nfrom .law_native_tensors import BASIS, K6, F9, tensor, kelvin\nfrom caelab.storage import canonical_hash\nfrom caelab.execution_control import check_cancelled, ExecutionCancelled, ExecutionCleanupFailed\n\n\ndef tangent_probe(settings, initial, F, time, steps, *, analytic_override=None):\n    \"\"\"Differentiate the discrete UPDATE, not the continuum rate tangent.\"\"\"\n    initial=deepcopy(initial);initial_hash=canonical_hash(initial)\n    finite=settings['model']=='neo_hooke'\n    nominal=law.update(settings,deepcopy(initial),np.asarray(F).copy(),time)\n    analytic=nominal['tangent'] if analytic_override is None else np.asarray(analytic_override)\n    n=9 if finite else 6\n    base=np.asarray(nominal['stress']).reshape(n)\n    scale=max(float(np.max(abs(analytic))) if analytic is not None else 1.,1.)\n    relative=1e-8 if settings['model']=='single_branch_maxwell' else 2e-6\n    absolute=2e-10*max(abs(v) for k,v in settings['parameters'].items() if k not in ('nu','alpha','beta','tau'))\n    rows=[];all_smooth=True;any_failed=False\n    for h in steps:\n        row={'h':float(h),'initial_state_sha256':initial_hash,'initial_state':deepcopy(initial),\n             'analytic':None if analytic is None else np.asarray(analytic).tolist(),'columns':[]}\n        for j in range(n):\n            check_cancelled()\n            delta=np.zeros((3,3))\n            if finite:delta.flat[j]=h\n            else:delta=h*BASIS[j]\n            signed={};observed={}\n            for sign in (-1,1):\n                Fi=np.asarray(F)+sign*delta\n                try:\n                    if finite:\n                        result=law.update(settings,deepcopy(initial),Fi,time)\n                    else:\n                        # Perturb in the declared Kelvin gradient coordinates, not\n                        # F=I+eps: adding tiny h near 1 needlessly loses precision.\n                        ei=kelvin(np.asarray(F)-np.eye(3));ei[j]+=sign*h\n                        result=(law.dp if settings['model']==law.dp.MODEL else law.sls).integrate(\n                            settings['parameters'],deepcopy(initial),ei,time)\n                    signed[sign]=result\n                    observed[str(sign)]={'input_F':Fi.tolist(),'stress':np.asarray(result['stress']).reshape(n).tolist(),\n                        'trial_state':deepcopy(result['state']),'active_set':result['diagnostics']['active_set'],\n                        'differentiable':result['diagnostics']['differentiable'],\n                        'initial_state_sha256':initial_hash,'local_residual':result['diagnostics'].get('local_residual'),\n                        'actual_gradient':Fi.reshape(9).tolist() if finite else ei.tolist()}\n                except (ExecutionCancelled,ExecutionCleanupFailed):raise\n                except Exception as error:\n                    observed[str(sign)]={'input_F':Fi.tolist(),'error':str(error),'error_type':type(error).__name__,\n                                         'initial_state_sha256':initial_hash}\n            same=[sign for sign in (-1,1) if sign in signed and signed[sign]['diagnostics']['active_set']==nominal['diagnostics']['active_set']\n                  and signed[sign]['diagnostics']['differentiable']]\n            scheme='central' if len(same)==2 else 'one_sided' if same else 'unavailable'\n            fd=None\n            if len(same)==2:\n                fd=(np.asarray(signed[1]['stress']).reshape(n)-np.asarray(signed[-1]['stress']).reshape(n))/(2*h)\n            elif same:\n                sign=same[0];fd=(np.asarray(signed[sign]['stress']).reshape(n)-base)/(sign*h)\n            smooth=nominal['diagnostics']['differentiable'] and analytic is not None\n            err=None if fd is None or analytic is None else float(np.max(abs(fd-np.asarray(analytic)[:,j])))\n            if not smooth or fd is None:\n                verdict='NONDIFFERENTIABLE' if not smooth else 'UNAVAILABLE';all_smooth=False\n            else:\n                verdict='PASS' if err<=absolute+relative*scale else 'FAIL'\n                any_failed |= verdict=='FAIL'\n                if scheme!='central':all_smooth=False\n            row['columns'].append({'component':(F9 if finite else K6)[j], 'scheme':scheme,'probes':observed,\n                'finite_difference':None if fd is None else fd.tolist(),'maximum_absolute_error':err,\n                'absolute_limit':absolute+relative*scale,'status':verdict})\n        rows.append(row)\n    if canonical_hash(initial)!=initial_hash:\n        raise RuntimeError('Probe mutated accepted state')\n    status='FAIL' if any_failed else 'PASS' if all_smooth else 'NONDIFFERENTIABLE_OR_ONE_SIDED'\n    return {'status':status,'pair':law.declaration(settings)['tangent_pair'],'frame':law.FRAME,\n            'unit':settings['stress_unit'],'gradient_unit':'1','tangent_kind':'consistent_discrete',\n            'initial_state_sha256':initial_hash,'nominal_active_set':nominal['diagnostics']['active_set'],\n            'nominal_state':deepcopy(nominal['state']),'rows':rows}\n\n\ndef _controlled(s, initial, previous_F, index):\n    from caelab.material_control import solve_history\n    F=np.asarray(s['deformation_gradient'][index])\n    bc=s['boundary_control'];time=s['time'][index]\n    carrier={'model':s['model'],'parameters':deepcopy(s['parameters']),'stress_unit':s['stress_unit'],'time_unit':'s',\n             'boundary_control':{'stress_components':{key:[values[index]] for key,values in bc['stress_components'].items()},\n                'solver':deepcopy(bc['solver']),'initial_state':{'deformation_gradient':np.asarray(previous_F).tolist()},\n                'stress_measure':law.declaration(s)['stress_measure'],'frame':law.FRAME}}\n    def response(Ftrial):\n        result=law.update(s,deepcopy(initial),Ftrial,time)\n        stress,tangent=law.physical_response(s,result)\n        if tangent is None:\n            raise ValueError('NONDIFFERENTIABLE: no unique local tangent for boundary Newton')\n        return stress,tangent\n    result=solve_history(carrier,response,check_cancelled=check_cancelled,\n                         _validated_context=(s['model'],np.array([time]),F[None,:,:]))\n    if result['execution_status']!='SUCCEEDED':\n        error=RuntimeError('Mixed-boundary solve failed without constitutive commit')\n        error.evidence=deepcopy(result['diagnostics']['failed_increment'])\n        raise error\n    row=result['diagnostics']['constitutive_increments'][0]\n    return np.asarray(row['deformation_gradient']),{key:deepcopy(row[key]) for key in\n        ('residual','tolerance','iterations','iteration_trace')}\n\n\ndef evaluate_history(settings):\n    s=law.validate_settings(settings);decl=law.declaration(s)\n    accepted=deepcopy(s['initial_state']);lastF=np.asarray(s['deformation_gradient'][0])\n    records=[];probes=[];failed=None\n    for index,time in enumerate(s['time']):\n        check_cancelled()\n        before=deepcopy(accepted);F=np.asarray(s['deformation_gradient'][index]);control=None\n        try:\n            if index==0:\n                result=law.initial_response(s)\n                if s.get('boundary_control'):\n                    sigma,_=law.physical_response(s,result)\n                    for name,values in s['boundary_control']['stress_components'].items():\n                        i,j=('xyz'.index(c) for c in name)\n                        if abs(sigma[i,j]-values[0])>s['boundary_control']['solver']['atol']:\n                            raise ValueError('Initial accepted state violates prescribed initial stress')\n            else:\n                if s.get('boundary_control'):\n                    F,control=_controlled(s,before,lastF,index)\n                result=law.update(s,deepcopy(before),F,time)\n            stress,tangent=law.physical_response(s,result)\n            row={'increment':index,'time':float(time),'time_unit':'s','F':F.tolist(),\n                'strain_kelvin':None if s['model']=='neo_hooke' else result['state']['strain_kelvin'],\n                'stress':np.asarray(result['stress']).tolist(),'stress_tensor':stress.tolist(),\n                'stress_unit':s['stress_unit'],'stress_measure':decl['stress_measure'],\n                'tangent':None if result['tangent'] is None else np.asarray(result['tangent']).tolist(),\n                'tangent_pair':decl['tangent_pair'],'frame':law.FRAME,\n                'initial_state':deepcopy(before),'initial_state_sha256':canonical_hash(before),\n                'trial_state':deepcopy(result['state']),'committed_state':deepcopy(result['state']),\n                'local':deepcopy(result['diagnostics']),'boundary':control,\n                'stored_energy':result['stored_energy'],'dissipated_energy':result['dissipated_energy']}\n            if s.get('tangent_probe',{}).get('increment')==index:\n                probe=tangent_probe(s,before,F,time,s['tangent_probe']['steps'])\n                row['tangent_probe']=probe;probes.append(probe)\n                if probe['status']=='FAIL':\n                    row['committed_state']=None\n                    error=ValueError('Independent discrete tangent check failed; increment was not committed')\n                    error.evidence={'failure':'INDEPENDENT_TANGENT_FAIL','partial_response':deepcopy(row)}\n                    raise error\n            # Commit only accepted nominal + requested-check success, never a failed trial.\n            accepted=deepcopy(result['state']);lastF=F.copy();records.append(row)\n        except (ExecutionCancelled,ExecutionCleanupFailed):raise\n        except Exception as error:\n            failed={'increment':index,'time':time,'trial_F':F.tolist(),'error':str(error),\n                'error_type':type(error).__name__,'local_evidence':deepcopy(getattr(error,'evidence',None)),\n                'last_accepted_state':deepcopy(before),'last_accepted_state_sha256':canonical_hash(before)}\n            break\n    responses={};axis=[{'name':'time','unit':'s','values':[r['time'] for r in records]}]\n    for i,a in enumerate('xyz'):\n        for j,b in enumerate('xyz'):\n            responses['stress_'+a+b]={'kind':'series','value':[r['stress_tensor'][i][j] for r in records],\n                'unit':s['stress_unit'],'component':a+b,'location':'material_point','reduction':'none',\n                'axes':deepcopy(axis),'frame':law.FRAME,'measure':decl['stress_measure'],\n                'partial':failed is not None,'valid':failed is None}\n    for name in ('stored_energy','dissipated_energy'):\n        if records and all(r[name] is not None for r in records):\n            responses[name]={'kind':'series','value':[r[name] for r in records],'unit':s['stress_unit'],\n                'component':name,'location':'material_point','reduction':'none','axes':deepcopy(axis),\n                'measure':'energy_per_reference_volume','frame':law.FRAME,'valid':failed is None}\n    tangent_failed=any(p['status']=='FAIL' for p in probes)\n    return {'execution_status':'FAILED' if failed or tangent_failed else 'SUCCEEDED',\n        'responses':responses,'checks':[{'name':'constitutive_history','status':'FAIL' if failed else 'PASS'},\n            {'name':'independent_tangent','status':'FAIL' if tangent_failed else\n             'PASS' if probes and all(p['status']=='PASS' for p in probes) else 'NOT_ASSESSED'},\n            {'name':'physical_calibration','status':'NOT_ASSESSED'}],\n        'diagnostics':{'declaration':decl,'constitutive_increments':records,'tangent_probes':probes,\n            'last_accepted_state':accepted,'failed_increment':failed,\n            'unattempted_increments':list(range(len(records)+(1 if failed else 0),len(s['time']))),\n            'initial_state':deepcopy(s['initial_state']),'execution_layer':'material_point',\n            'FE_execution':'NOT_RUN','build_execution':'NOT_REQUIRED_TRUSTED_BUILTIN_SOURCE',\n            'strength':'UNKNOWN','engineering_release':'UNKNOWN',\n            'unavailable':['DP dissipated energy not implemented'] if s['model']==law.dp.MODEL else []}}\n"
+                },
+                "plugins/material_point/law_native_tensors.py": {
+                  "sha256": "d8b08f59fd2995dc16ba4d7d5c84da2688a69f5871583c1dfe8bda9624b345a4",
+                  "text": "\"\"\"Explicit Kelvin-6 / physical-9 mappings for the law-native interface.\n\nSymmetric order is xx, yy, zz, sqrt(2)xy, sqrt(2)xz, sqrt(2)yz.\nPhysical nine is row-major xx,xy,xz,yx,yy,yz,zx,zy,zz. No engineering shear.\n\"\"\"\nimport numpy as np\n\nK6 = ('xx', 'yy', 'zz', 'xy', 'xz', 'yz')\nF9 = tuple(a+b for a in 'xyz' for b in 'xyz')\nI6 = np.array([1., 1., 1., 0., 0., 0.])\nDEV = np.eye(6) - np.outer(I6, I6)/3\nBASIS = np.zeros((6, 3, 3))\nfor a, (i, j) in enumerate(((0,0),(1,1),(2,2),(0,1),(0,2),(1,2))):\n    BASIS[a,i,j] = BASIS[a,j,i] = 1. if i == j else 1/np.sqrt(2.)\n\n\ndef finite(value, shape, name):\n    raw = np.asarray(value, dtype=object)\n    if raw.shape != shape or any(isinstance(x, (bool, np.bool_)) or\n            not isinstance(x, (int, float, np.integer, np.floating)) for x in raw.flat):\n        raise ValueError(f'{name}: require finite numeric shape {shape}; no text/bool')\n    array = np.asarray(value, dtype=float)\n    if not np.isfinite(array).all():\n        raise ValueError(name + ': nonfinite value')\n    return array.copy()\n\n\ndef kelvin(tensor):\n    tensor = np.asarray(tensor, dtype=float)\n    return np.einsum('aij,ij...->a...', BASIS, tensor)\n\n\ndef tensor(vector):\n    return np.einsum('aij,a...->ij...', BASIS, np.asarray(vector, dtype=float))\n\n\ndef fourth(matrix):\n    return np.einsum('aij,ab...,bkl->ijkl...', BASIS, np.asarray(matrix), BASIS)\n\n\ndef stiffness(bulk, shear):\n    return bulk*np.outer(I6, I6) + 2*shear*DEV\n\n\ndef compliance(stress, bulk, shear):\n    stress = np.asarray(stress)\n    return DEV@stress/(2*shear) + I6*(I6@stress)/(9*bulk)\n\n\ndef moduli(E, nu):\n    return E/(3*(1-2*nu)), E/(2*(1+nu))\n"
+                },
+                "plugins/material_point/single_branch_native.py": {
+                  "sha256": "c35f2f669c5b5cdf39ac5a24fb8d027f9f8c9e98b5df371758f5f005e4df12ec",
+                  "text": "\"\"\"Exact exponential-ramp bulk+shear SLS; distinct from backward-Euler/Prony.\n\nThis production implementation does not call the existing independent reference.\nAll five parameters and the complete viscous-strain state are explicit.\n\"\"\"\nfrom copy import deepcopy\nimport math\nimport numpy as np\nfrom .law_native_tensors import finite, stiffness, compliance, tensor\n\nKEYS = ('K0','G0','K1','G1','tau')\n\n\ndef validate_parameters(p):\n    if not isinstance(p, dict) or set(p) != set(KEYS):\n        raise ValueError('Single branch requires K0,G0,K1,G1,tau')\n    values = finite([p[k] for k in KEYS], (5,), 'SLS coefficients')\n    if min(values) <= 0:\n        raise ValueError('All four bulk/shear moduli and tau must be positive')\n    return dict(zip(KEYS, map(float,values)))\n\n\ndef state(*, time=0., strain_kelvin=None, viscous_strain_kelvin=None,\n          dissipated_energy=0., work=0.):\n    return {'time': float(time), 'strain_kelvin': list(strain_kelvin if strain_kelvin is not None else [0.]*6),\n            'viscous_strain_kelvin': list(viscous_strain_kelvin if viscous_strain_kelvin is not None else [0.]*6),\n            'dissipated_energy': float(dissipated_energy), 'work': float(work)}\n\n\ndef validate_state(s):\n    if not isinstance(s,dict) or set(s) != set(state()):\n        raise ValueError('SLS requires complete time, strain, viscous strain, cumulative dissipation/work')\n    z = finite([s['time'],s['dissipated_energy'],s['work']], (3,), 'SLS state')\n    if z[0] < 0 or z[1] < 0:\n        raise ValueError('Initial time and cumulative dissipation must be nonnegative')\n    for key in ('strain_kelvin','viscous_strain_kelvin'):\n        if np.max(abs(tensor(finite(s[key],(6,),key)))) > .01+8*np.finfo(float).eps:\n            raise ValueError('SLS admits physical strain/state components in [-.01,.01]')\n    return deepcopy(s)\n\n\ndef integrate(parameters, initial, strain_kelvin, time):\n    p, initial = validate_parameters(parameters), validate_state(initial)\n    e = finite(strain_kelvin, (6,), 'SLS strain')\n    time = float(finite([time], (1,), 'SLS time')[0])\n    dt = time-initial['time']\n    if dt <= 0 or np.max(abs(tensor(e))) > .01+8*np.finfo(float).eps:\n        raise ValueError('SLS needs positive dt and physical strain components in [-.01,.01]')\n    x = dt/p['tau']\n    if not math.isfinite(x) or x <= 0:\n        raise ValueError('SLS dt/tau must be positive finite (underflow is not replaced by zero)')\n    C0, C1 = stiffness(p['K0'],p['G0']), stiffness(p['K1'],p['G1'])\n    e0, ev0 = np.asarray(initial['strain_kelvin']), np.asarray(initial['viscous_strain_kelvin'])\n    q0 = C1@(e0-ev0)\n    de = e-e0\n    z = C1@de\n    a, one_minus_a = math.exp(-x), -math.expm1(-x)\n    ramp = one_minus_a/x\n    q = a*q0+ramp*z\n    ev = e-compliance(q,p['K1'],p['G1'])\n    # Stable exact positive quadratic form for integral(q:C1^-1:q/tau dt).\n    A = -math.expm1(-2*x)/2\n    b = math.tanh(x/2)/x\n    if x < .125:\n        xx = x*x\n        delta = x*(1/12 + xx*(-1/120 + xx*(17/20160 + xx*(-31/362880\n                + xx*(691/79833600 + xx*(-5461/6227020800 + xx*929569/10461394944000))))))\n    else:\n        delta = (x-2*math.tanh(x/2))/(x*x)\n    v = q0+b*z\n    dD = float(A*v@compliance(v,p['K1'],p['G1']) + delta*z@compliance(z,p['K1'],p['G1']))\n    if x < .125:\n        # g=(1-(1-exp(-x))/x)/x; direct subtraction loses small x.\n        g = sum((-x)**n/math.factorial(n+2) for n in range(18))\n    else:\n        g = (1-ramp)/x\n    dW = float(.5*(C0@(e+e0))@de + ramp*q0@de + g*z@de)\n    psi = float(.5*e@C0@e + .5*q@compliance(q,p['K1'],p['G1']))\n    result = state(time=time,strain_kelvin=e.tolist(),viscous_strain_kelvin=ev.tolist(),\n                   dissipated_energy=initial['dissipated_energy']+dD,work=initial['work']+dW)\n    sigma = C0@e+q\n    if not np.isfinite(sigma).all() or not all(math.isfinite(v) for v in (psi,dD,dW)) or dD < -1e-12:\n        raise ValueError('SLS nonfinite response or negative exact dissipation')\n    return {'stress':sigma,'tangent':C0+ramp*C1,'state':result,'stored_energy':psi,\n            'dissipated_energy':result['dissipated_energy'],\n            'diagnostics':{'active_set':'single_branch','differentiable':True,\n                'tangent_kind':'consistent_discrete','initial_state':deepcopy(initial),\n                'dt':dt,'dt_over_tau':x,'decay':a,'ramp_factor':ramp,\n                'branch_stress_kelvin':q.tolist(),'work_increment':dW,'dissipation_increment':dD,\n                'local_residual':float(np.max(abs(q-a*q0-ramp*z))), 'committed':False}}\n"
+                }
+              },
+              "interface": "law-native/1"
+            },
+            "mapping_origin": "RETAINED_EXACT_SOURCE",
+            "original_draft": {
+              "backend": "material.law_native",
+              "settings": {
+                "deformation_gradient": [
+                  [
+                    [
+                      1.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  [
+                    [
+                      1.001,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  [
+                    [
+                      1.006,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  [
+                    [
+                      1.002,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ]
+                ],
+                "initial_state": {
+                  "kappa": 0.0,
+                  "plastic_strain_kelvin": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "strain_kelvin": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "time": 0.0
+                },
+                "model": "drucker_prager_linear",
+                "parameters": {
+                  "E": 210000.0,
+                  "H": 1000.0,
+                  "alpha": 0.2,
+                  "beta": 0.05,
+                  "k0": 250.0,
+                  "nu": 0.3
+                },
+                "stress_unit": "MPa",
+                "time": [
+                  0.0,
+                  1.0,
+                  2.0,
+                  3.0
+                ],
+                "time_unit": "s"
+              }
+            },
+            "reference": {
+              "document_id": "Md7f7fd044b2842e1bdf7bf106ef53fcf",
+              "input_sha256": "d876e30496787f3d8466dc01d11cf1793fbd61c90a0d93ab65d55db6d061d867",
+              "saved_revision": "R5c8ee140003f4a208be96b03812e1790"
+            },
+            "saved_provenance": {
+              "runs": []
+            },
+            "snapshot_sha256": "3677ecc567333c5c28c454dd02934b80958cbdabe0005ea036021fd943f75096",
+            "source_guard": [
+              {
+                "path": "C:\\SourceCodes\\autonomous-cae-lab\\_workspace\\delivery-data-material\\law-native-freecad\\source-01\\workspace\\workbench\\documents\\Md7f7fd044b2842e1bdf7bf106ef53fcf\\document.json",
+                "sha256": "4ff0e845ecefee6db2fc32fefe1be4736ccebec313299f6bafca856c32a297e8"
+              },
+              {
+                "path": "C:\\SourceCodes\\autonomous-cae-lab\\_workspace\\delivery-data-material\\law-native-freecad\\source-01\\workspace\\workbench\\documents\\Md7f7fd044b2842e1bdf7bf106ef53fcf\\working.json",
+                "sha256": "83c92296204c71d52981a7b9de052a18bfa6ab5c8f5c5bb3efcd51b4d1171d3b"
+              },
+              {
+                "path": "C:\\SourceCodes\\autonomous-cae-lab\\_workspace\\delivery-data-material\\law-native-freecad\\source-01\\workspace\\workbench\\documents\\Md7f7fd044b2842e1bdf7bf106ef53fcf\\revisions\\R5c8ee140003f4a208be96b03812e1790\\revision.json",
+                "sha256": "815112c3727c7e426ff6c1b1cebe5da5c5fc14458be991af01471aacad4edcea"
+              }
+            ]
+          },
+          "status": "READY_FOR_EXPLICIT_APPLY",
+          "target": {
+            "admission_errors": [],
+            "analysis_id": "Analysis",
+            "current_assignment_property": "",
+            "document_id": "P350ded7eae18455a8bf4fe453743e0fd",
+            "execution_backend": "structure.felupe.law_native",
+            "execution_version": "11.1.3",
+            "generation": 8,
+            "geometry": {
+              "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+              "global_placement": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "object_id": "Specimen",
+              "subelements": [
+                {
+                  "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+                  "name": "Solid1"
+                }
+              ],
+              "type": "Part::Feature"
+            },
+            "material": {
+              "object_id": "Material",
+              "properties": {
+                "Category": "Solid",
+                "Material": {
+                  "Name": "Preserved original elastic placeholder",
+                  "PoissonRatio": "0.3",
+                  "YoungsModulus": "210000 MPa"
+                },
+                "Proxy": "<femobjects.material_common.MaterialCommon object at 0x0000021F1F4194D0>",
+                "References": [
+                  [
+                    {
+                      "document": "LawNativeSpecimen",
+                      "object_id": "Specimen"
+                    },
+                    [
+                      "Solid1"
+                    ]
+                  ]
+                ],
+                "Suppressed": false,
+                "UUID": ""
+              },
+              "type": "Fem::MaterialCommon"
+            },
+            "mesh": {
+              "cells": [
+                [
+                  0,
+                  1,
+                  4,
+                  3,
+                  9,
+                  10,
+                  13,
+                  12
+                ],
+                [
+                  1,
+                  2,
+                  5,
+                  4,
+                  10,
+                  11,
+                  14,
+                  13
+                ],
+                [
+                  3,
+                  4,
+                  7,
+                  6,
+                  12,
+                  13,
+                  16,
+                  15
+                ],
+                [
+                  4,
+                  5,
+                  8,
+                  7,
+                  13,
+                  14,
+                  17,
+                  16
+                ],
+                [
+                  9,
+                  10,
+                  13,
+                  12,
+                  18,
+                  19,
+                  22,
+                  21
+                ],
+                [
+                  10,
+                  11,
+                  14,
+                  13,
+                  19,
+                  20,
+                  23,
+                  22
+                ],
+                [
+                  12,
+                  13,
+                  16,
+                  15,
+                  21,
+                  22,
+                  25,
+                  24
+                ],
+                [
+                  13,
+                  14,
+                  17,
+                  16,
+                  22,
+                  23,
+                  26,
+                  25
+                ]
+              ],
+              "connectivity": "VTK_HEXAHEDRON_0_BASED",
+              "element": "Hexahedron8",
+              "length_unit": "mm",
+              "points": [
+                [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.5,
+                  0.0,
+                  0.0
+                ],
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.5,
+                  0.0
+                ],
+                [
+                  0.5,
+                  0.5,
+                  0.0
+                ],
+                [
+                  1.0,
+                  0.5,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.5,
+                  1.0,
+                  0.0
+                ],
+                [
+                  1.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.5
+                ],
+                [
+                  0.5,
+                  0.0,
+                  0.5
+                ],
+                [
+                  1.0,
+                  0.0,
+                  0.5
+                ],
+                [
+                  0.0,
+                  0.5,
+                  0.5
+                ],
+                [
+                  0.5,
+                  0.5,
+                  0.5
+                ],
+                [
+                  1.0,
+                  0.5,
+                  0.5
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.5
+                ],
+                [
+                  0.5,
+                  1.0,
+                  0.5
+                ],
+                [
+                  1.0,
+                  1.0,
+                  0.5
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.5,
+                  0.0,
+                  1.0
+                ],
+                [
+                  1.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.5,
+                  1.0
+                ],
+                [
+                  0.5,
+                  0.5,
+                  1.0
+                ],
+                [
+                  1.0,
+                  0.5,
+                  1.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.5,
+                  1.0,
+                  1.0
+                ],
+                [
+                  1.0,
+                  1.0,
+                  1.0
+                ]
+              ],
+              "quadrature": "Gauss2x2x2"
+            },
+            "mesh_sha256": "a773c6bca06c74aa7563792383dbdcbe15ccbe6b3d089b9e8ca4759de8d5a576",
+            "metadata_sha256": "4848455538205a47deb7191bc95644d97e1591d352385338e6586414f45016e6",
+            "native_analysis_members": [
+              {
+                "object_id": "Material",
+                "properties": {
+                  "Category": "Solid",
+                  "Material": {
+                    "Name": "Preserved original elastic placeholder",
+                    "PoissonRatio": "0.3",
+                    "YoungsModulus": "210000 MPa"
+                  },
+                  "Proxy": "<femobjects.material_common.MaterialCommon object at 0x0000021F1F4194D0>",
+                  "References": [
+                    [
+                      {
+                        "document": "LawNativeSpecimen",
+                        "object_id": "Specimen"
+                      },
+                      [
+                        "Solid1"
+                      ]
+                    ]
+                  ],
+                  "Suppressed": false,
+                  "UUID": ""
+                },
+                "type": "Fem::MaterialCommon"
+              },
+              {
+                "object_id": "SolverContext",
+                "properties": {
+                  "AnalysisType": "static",
+                  "AutomaticIncrementation": true,
+                  "BeamReducedIntegration": true,
+                  "BeamShellResultOutput3D": true,
+                  "BucklingAccuracy": 0.01,
+                  "BucklingFactors": 1,
+                  "EigenmodeHighLimit": "1000000.0 1/s",
+                  "EigenmodeLowLimit": "0.0 1/s",
+                  "EigenmodesCount": 10,
+                  "ExcludeBendingStiffness": false,
+                  "GeometricalNonlinearity": "linear",
+                  "IncrementsMaximum": 2000,
+                  "IterationsControlParameterCutb": "0.25,0.5,0.75,0.85,,,1.5,",
+                  "IterationsControlParameterIter": "4,8,9,200,10,400,,200,,",
+                  "IterationsControlParameterTimeUse": false,
+                  "MaterialNonlinearity": "linear",
+                  "MatrixSolverType": "default",
+                  "ModelSpace": "3D",
+                  "OutputFrequency": 1,
+                  "PastixMixedPrecision": false,
+                  "Proxy": "<femobjects.solver_ccxtools.SolverCcxTools object at 0x0000021EA656FB10>",
+                  "Results": [],
+                  "SplitInputWriter": false,
+                  "ThermoMechSteadyState": true,
+                  "ThermoMechType": "coupled",
+                  "TimeInitialIncrement": "1.0 s",
+                  "TimeMaximumIncrement": "1.0 s",
+                  "TimeMinimumIncrement": "1e-05 s",
+                  "TimePeriod": "1.0 s",
+                  "Tool": null,
+                  "WorkingDir": "",
+                  "WorkingDirectory": ""
+                },
+                "type": "Fem::SolverCcxTools"
+              },
+              {
+                "object_id": "SpecimenMesh",
+                "properties": {
+                  "Placement": "Placement [Pos=(0,0,0), Yaw-Pitch-Roll=(0,0,0)]",
+                  "Suppressed": false,
+                  "_ElementMapVersion": "5"
+                },
+                "type": "Fem::FemMeshObject"
+              }
+            ],
+            "native_context_solver": {
+              "object_id": "SolverContext",
+              "properties": {
+                "AnalysisType": "static",
+                "AutomaticIncrementation": true,
+                "BeamReducedIntegration": true,
+                "BeamShellResultOutput3D": true,
+                "BucklingAccuracy": 0.01,
+                "BucklingFactors": 1,
+                "EigenmodeHighLimit": "1000000.0 1/s",
+                "EigenmodeLowLimit": "0.0 1/s",
+                "EigenmodesCount": 10,
+                "ExcludeBendingStiffness": false,
+                "GeometricalNonlinearity": "linear",
+                "IncrementsMaximum": 2000,
+                "IterationsControlParameterCutb": "0.25,0.5,0.75,0.85,,,1.5,",
+                "IterationsControlParameterIter": "4,8,9,200,10,400,,200,,",
+                "IterationsControlParameterTimeUse": false,
+                "MaterialNonlinearity": "linear",
+                "MatrixSolverType": "default",
+                "ModelSpace": "3D",
+                "OutputFrequency": 1,
+                "PastixMixedPrecision": false,
+                "Proxy": "<femobjects.solver_ccxtools.SolverCcxTools object at 0x0000021EA656FB10>",
+                "Results": [],
+                "SplitInputWriter": false,
+                "ThermoMechSteadyState": true,
+                "ThermoMechType": "coupled",
+                "TimeInitialIncrement": "1.0 s",
+                "TimeMaximumIncrement": "1.0 s",
+                "TimeMinimumIncrement": "1e-05 s",
+                "TimePeriod": "1.0 s",
+                "Tool": null,
+                "WorkingDir": "",
+                "WorkingDirectory": ""
+              },
+              "type": "Fem::SolverCcxTools"
+            },
+            "native_element_nodes": [
+              [
+                1,
+                [
+                  1,
+                  4,
+                  5,
+                  2,
+                  10,
+                  13,
+                  14,
+                  11
+                ]
+              ],
+              [
+                2,
+                [
+                  2,
+                  5,
+                  6,
+                  3,
+                  11,
+                  14,
+                  15,
+                  12
+                ]
+              ],
+              [
+                3,
+                [
+                  4,
+                  7,
+                  8,
+                  5,
+                  13,
+                  16,
+                  17,
+                  14
+                ]
+              ],
+              [
+                4,
+                [
+                  5,
+                  8,
+                  9,
+                  6,
+                  14,
+                  17,
+                  18,
+                  15
+                ]
+              ],
+              [
+                5,
+                [
+                  10,
+                  13,
+                  14,
+                  11,
+                  19,
+                  22,
+                  23,
+                  20
+                ]
+              ],
+              [
+                6,
+                [
+                  11,
+                  14,
+                  15,
+                  12,
+                  20,
+                  23,
+                  24,
+                  21
+                ]
+              ],
+              [
+                7,
+                [
+                  13,
+                  16,
+                  17,
+                  14,
+                  22,
+                  25,
+                  26,
+                  23
+                ]
+              ],
+              [
+                8,
+                [
+                  14,
+                  17,
+                  18,
+                  15,
+                  23,
+                  26,
+                  27,
+                  24
+                ]
+              ]
+            ],
+            "native_mesh_sha256": "f13c6bd42f7ec6125be458aacf5fe7bfad3b00933bd8756b8a956fbcf2852f0d",
+            "native_node_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27
+            ],
+            "native_solver_is_not_executed": true,
+            "native_to_vtk_permutation": [
+              0,
+              3,
+              2,
+              1,
+              4,
+              7,
+              6,
+              5
+            ],
+            "region": {
+              "id": "Rb09406258a17409993c375a5d40cd868",
+              "label": "전체 Solid1",
+              "qualification": "UNKNOWN",
+              "target": {
+                "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+                "global_placement": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "object_id": "Specimen",
+                "subelements": [
+                  {
+                    "brep_sha256": "f928aaf5b5605a779d4d74e7bf6eb5295ac6950447f6a9916b0c9204ea5c7ed2",
+                    "name": "Solid1"
+                  }
+                ],
+                "type": "Part::Feature"
+              },
+              "target_sha256": "feffc1704630829c8d7c2eda08b7361a60d20ec9deecddb096ccf4444090f060"
+            },
+            "selection": {
+              "analysis_id": "Analysis",
+              "material_id": "Material",
+              "mesh_id": "SpecimenMesh",
+              "region_id": "Rb09406258a17409993c375a5d40cd868",
+              "solver_id": "SolverContext"
+            },
+            "session_id": "S9ddf6ba5499e4dd3a183e5275663d71f"
+          }
+        },
+        "schema": "saved-material-native-assignment/1",
+        "selection": {
+          "analysis_id": "Analysis",
+          "material_id": "Material",
+          "mesh_id": "SpecimenMesh",
+          "region_id": "Rb09406258a17409993c375a5d40cd868",
+          "solver_id": "SolverContext"
+        }
+      }
+    }
+  }
+}

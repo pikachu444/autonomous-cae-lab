@@ -14,6 +14,8 @@ CATALOG = {
         'scikit-fem 12.0.2 + SciPy: P1 열전도, 절대 온도, 명시한 정상 상태, 기존 Picard 반복.'),
     'structural.scikit_fem.thermoelastic_rectangle': (None, None,
         '미소변형 plane-stress P1 열탄성, 구조 기준온도, 검증된 절대/차분 온도 입력. 공학적 판정 UNKNOWN.'),
+    'structure.felupe.law_native': (None, None,
+        'FELUPE 11.1.3 Hex8 point/FE pair: DP, log-J Neo-Hooke, exact-ramp single-branch SLS. Not CalculiX/impact/shell.'),
     'damage.rainflow': (None,None,'보존된 부호 있는 단축 응력과 명시 S–N 시험 범위. 평균응력 보정/외삽/연성 피로는 적용하지 않습니다.'),
     'explicit.opencourant.model': (None, None,
         '사용자 FE 메시, 초기 운동, TYPE24, 명시 LAW117 응집 손상. Mg/mm/s 입력. 수명·공학 승인은 별도입니다.'),
@@ -106,6 +108,8 @@ def support_details(draft):
             result['declaration'] = import_module(module).model_declaration(deepcopy(draft['settings']))
         else:
             result['ports'] = _adapter(backend).describe_ports(deepcopy(draft['settings']))
+            if backend == 'structure.felupe.law_native':
+                result['declaration'] = _adapter(backend).describe_model(deepcopy(draft['settings']))
         result['limitations'].append('Editing and declaration checks do not establish an installed backend or engineering approval.')
     return result
 

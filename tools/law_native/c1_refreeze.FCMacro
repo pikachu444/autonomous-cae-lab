@@ -1,0 +1,7 @@
+# Fixed C1 native acceptance entry; never executes source text from a receipt.
+import os, sys, json
+from pathlib import Path
+config = json.loads(Path(os.environ['CAELAB_LAW_C1_CONFIG']).read_text(encoding='utf-8'))
+sys.path.insert(0, config['repo'])
+from tools.law_native.c1_refreeze_native import run
+run()
