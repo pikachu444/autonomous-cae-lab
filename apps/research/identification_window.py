@@ -1,9 +1,10 @@
 """Read retained fit diagnosis and record an explicit next test, without evaluation."""
 from copy import deepcopy
+import json
 import uuid
 
 from PySide6.QtCore import QThreadPool, Qt, Slot
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QPlainTextEdit, QPushButton, QSplitter, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -29,7 +30,7 @@ class IdentificationWindow(QDialog):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         split.addWidget(self.table)
-        self.figure=Figure();self.canvas=FigureCanvasQTAgg(self.figure);self.canvas.setMinimumHeight(220);split.addWidget(self.canvas)
+        self.figure=Figure(layout='tight');self.canvas=FigureCanvasQTAgg(self.figure);self.canvas.setMinimumHeight(220);split.addWidget(self.canvas)
         split.setSizes([230,350]);root.addWidget(split,1)
         self.question=QLineEdit();self.question.setPlaceholderText('다음 시험에서 무엇을 확인할까요?')
         root.addWidget(self.question)
@@ -37,21 +38,37 @@ class IdentificationWindow(QDialog):
         self.note.setMaximumHeight(110);root.addWidget(self.note)
         row=QHBoxLayout()
         self.reload_result=QPushButton('결과 다시 읽기');self.reload_result.clicked.connect(self._read);row.addWidget(self.reload_result)
+        self.final_detail=QPushButton('최종 후보 상세…');self.final_detail.clicked.connect(self.open_final_detail);row.addWidget(self.final_detail)
+        self.detail_status=QLabel('');self.detail_status.setWordWrap(True);row.addWidget(self.detail_status,1)
+        self.diagnostics=QPushButton('진단 세부…');self.diagnostics.clicked.connect(self.open_diagnostics);row.addWidget(self.diagnostics)
+        root.addLayout(row);row=QHBoxLayout()
         self.keep=QPushButton('연구 기록에 저장');self.keep.clicked.connect(self.save_study);row.addWidget(self.keep)
         self.report=QPushButton('보고서 만들기…');self.report.clicked.connect(self.open_report);row.addWidget(self.report)
         close=QPushButton('닫기');close.clicked.connect(self.reject);row.addWidget(close);root.addLayout(row)
         # Enter in an authored question must not activate the dialog's Close button.
-        for button in (self.reload_result,self.keep,self.report,close):button.setAutoDefault(False)
+        for button in (self.reload_result,self.final_detail,self.diagnostics,self.keep,self.report,close):button.setAutoDefault(False)
         self.message=QLabel('고정 계수는 식별 성공으로 세지 않습니다.');self.message.setWordWrap(True);root.addWidget(self.message)
         self._update_actions()
         self._read()
 
+    def _has_fit_result(self):
+        return (self._payload is not None and isinstance(self._payload[2],dict)
+            and self._payload[2].get('kind')=='fit')
+
+    def _can_use_fit(self):
+        return not self._closed and not self._workers and self._has_fit_result()
+
     def _update_actions(self):
         idle=not self._workers and not self._closed
-        readable=self._payload is not None and self._payload[2].get('kind')=='fit'
+        readable=self._has_fit_result()
+        usable=self._can_use_fit()
         self.reload_result.setEnabled(idle)
-        self.keep.setEnabled(idle and readable)
-        self.report.setEnabled(idle and readable)
+        self.keep.setEnabled(usable)
+        self.report.setEnabled(usable)
+        self.diagnostics.setEnabled(idle and readable)
+        result=self._payload[2] if readable else {}
+        final=result.get('final_candidate_detail')
+        self.final_detail.setEnabled(bool(usable and isinstance(final,dict) and final.get('candidate_id')))
 
     def _run(self,fn,callback):
         if self._workers or self._closed:return False
@@ -84,8 +101,16 @@ class IdentificationWindow(QDialog):
         self._update_actions()
         _,run,result,_=payload
         if result.get('kind')!='fit':
-            self.summary.setText('선택한 계산은 피팅 결과가 아닙니다.');self.keep.setEnabled(False);return
+            self.summary.setText('선택한 계산은 피팅 결과가 아닙니다.')
+            self.table.setRowCount(0);self.figure.clear();self.canvas.draw()
+            self.detail_status.clear()
+            self.message.setText('피팅 결과를 다시 선택하세요. 현재 응답으로 연구 기록이나 보고서를 만들지 않습니다.')
+            return
         diagnosis=result.get('identification') or {}
+        final=result.get('final_candidate_detail')
+        self.detail_status.setText('저장된 최종 후보의 원값과 잔차를 확인합니다.' if
+            isinstance(final,dict) and final.get('candidate_id') else
+            '이 실행에는 최종 후보를 지정한 상세 결과가 없습니다.')
         method=diagnosis.get('method')
         available=method=='scaled_residual_jacobian_svd' and diagnosis.get('parameter_values')==result.get('parameters')
         states={'DISTINGUISHABLE_LOCAL':'국소 구분 가능','UNRESOLVED_LOCAL':'미식별 조합'}
@@ -108,12 +133,48 @@ class IdentificationWindow(QDialog):
             ax.set_xlabel('독립 계수 방향');ax.set_ylabel('정규화된 민감도');ax.legend()
             self.summary.setText('최종 피팅점: 독립 방향 '+str(diagnosis['jacobian_rank'])+' / '+str(diagnosis['coefficient_count'])+
                 '\n명시한 탐색범위로 정규화한 잔차 Jacobian SVD. 전역 유일성과 측정 불확실성은 미확인입니다.')
-        else:self.summary.setText('이 결과에는 완전한 식별 진단이 없습니다. '+str(diagnosis.get('reason','재계산하지 않았습니다.')))
-        self.figure.tight_layout();self.canvas.draw()
+        else:
+            reasons={
+                'Robust-loss Jacobian is modified by the optimizer; ordinary response diagnosis unavailable.':
+                    '강건 피팅의 수정된 Jacobian이므로 일반 잔차의 식별 진단은 미확인입니다.',
+                'Supported diagnosis requires 1–256 fitted parameters.':'이 진단은 자유 계수 1~256개를 지원합니다.',
+                'A complete finite residual Jacobian was not retained.':'완전한 유한 잔차 Jacobian이 보존되지 않았습니다.',
+                'Declared range scaling overflowed.':'계수 범위에 따른 정규화가 수치 범위를 넘었습니다.',
+                'SVD did not converge; fit values are retained without an identifiability claim.':
+                    '특잇값 분해가 수렴하지 않았습니다. 피팅값은 유지하며 식별 여부는 미확인입니다.',
+                'Final retained responses differ from the Jacobian point or penalties entered the residual search.':
+                    '최종 응답이 진단점과 다르거나 실패 벌점이 포함되어 식별 여부는 미확인입니다.'}
+            self.summary.setText('이 결과에는 완전한 식별 진단이 없습니다. '+
+                reasons.get(diagnosis.get('reason'),'다시 계산하지 않았습니다. 보존된 사유는 진단 세부에서 확인하세요.'))
+        self.canvas.draw()
         self.message.setText('고정 계수는 식별 성공으로 세지 않습니다. 다음 시험 질문과 판단 근거를 작성하세요.')
 
+    def open_final_detail(self):
+        """Open only the retained final ID; choosing a similar candidate is unsafe."""
+        if not self._can_use_fit() or not self.final_detail.isEnabled():return
+        from .numerical_candidate_detail_window import NumericalCandidateDetailWindow
+        document,_,result,reference=self._payload
+        window=NumericalCandidateDetailWindow(self.client,document_id=self.document_id,
+            job_id=self.job_id,candidate_id=result['final_candidate_detail']['candidate_id'],
+            session_id=document['session_id'],source=deepcopy(reference),parent=self)
+        self._detail_windows=getattr(self,'_detail_windows',[])+[window]
+        window.destroyed.connect(lambda:self._detail_windows.remove(window)
+            if window in self._detail_windows else None)
+        window.show()
+
+    def open_diagnostics(self):
+        if not self._payload or self._workers or self._closed:return
+        dialog=QDialog(self);dialog.setWindowTitle('저장된 식별 진단');dialog.resize(800,600)
+        layout=QVBoxLayout(dialog);original=QPlainTextEdit();original.setReadOnly(True)
+        original.setPlainText(json.dumps({'identification':self._payload[2].get('identification'),
+            'reference':self._payload[3]},ensure_ascii=False,indent=2))
+        layout.addWidget(original)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기')
+        buttons.rejected.connect(dialog.reject);layout.addWidget(buttons);dialog.exec()
+
     def save_study(self):
-        if not self._payload or self._workers:return
+        if not self._can_use_fit():return
         if not self.question.text().strip():
             self.message.setText('다음 시험 질문을 작성하세요.');return
         submitted=(self.question.text(),self.note.toPlainText())
@@ -156,7 +217,7 @@ class IdentificationWindow(QDialog):
         self._run(save,saved)
 
     def open_report(self):
-        if not self._payload:return
+        if not self._can_use_fit():return
         from .report_window import ReportWindow
         reference={'kind':'result',**self._payload[3],'selection':{'metadata_only':True}}
         window=ReportWindow(self.client,reference=reference)
@@ -165,4 +226,5 @@ class IdentificationWindow(QDialog):
     def done(self,result):
         self._closed=True
         for worker in self._workers:worker.abandon()
+        for window in list(getattr(self,'_detail_windows',[])):window.close()
         super().done(result)

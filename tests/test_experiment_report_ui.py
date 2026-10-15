@@ -200,7 +200,7 @@ def test_identification_lost_save_reply_retry_keeps_new_question(app,monkeypatch
     client=SaveDouble();window=IdentificationWindow(client,'Nplan','Jfit')
     try:
         window._study=deepcopy(client.doc)
-        window._payload=({'session_id':'Ssession'},{},{},{'document_id':'Nplan','job_id':'Jfit'})
+        window._payload=({'session_id':'Ssession'},{},{'kind':'fit'},{'document_id':'Nplan','job_id':'Jfit'})
         window._run=lambda fn,accepted:accepted(fn())
         window.question.setText('시험 A');window.note.setPlainText('근거 A')
         with pytest.raises(OSError):window.save_study()

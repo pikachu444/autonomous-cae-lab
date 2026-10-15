@@ -5,8 +5,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QThreadPool, Qt, Slot
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
-    QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton, QSplitter,
-    QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
+    QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton, QScrollArea,
+    QSizePolicy, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
@@ -18,20 +18,35 @@ from .report_pages import atomic_export, value_text
 from .experiment_labels import sample_reason
 
 
-class CalibrationDialog(QDialog):
+class _ExplicitApplyDialog(QDialog):
+    """Enter in an editor must not apply a partially typed calibration/setup."""
+    def keyPressEvent(self,event):
+        if event.key() in (Qt.Key.Key_Return,Qt.Key.Key_Enter):
+            focused=self.focusWidget()
+            if isinstance(focused,QPushButton):focused.click()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
+class CalibrationDialog(_ExplicitApplyDialog):
     def __init__(self, client, mapping, preview, parent=None, *, retained_response=None):
         super().__init__(parent)
         self.client=client;self.mapping=deepcopy(mapping);self.preview=deepcopy(preview)
         self.retained_response=deepcopy(retained_response)
-        self.recipe=deepcopy(mapping.get('calibration') or default_calibration(mapping.get('unit','N')))
-        self._workers=[];self._closed=False;self.fields={}
-        self.setWindowTitle('채널 교정');self.resize(1100,780)
+        self.recipe=deepcopy(retained_response['calibration'] if retained_response is not None else
+            mapping.get('calibration') or default_calibration(mapping.get('unit','N')))
+        self._workers=[];self._closed=False;self.fields={};self._has_preview=False
+        self.setWindowTitle('교정 전후 결과' if retained_response is not None else '채널 교정');self.resize(1100,780)
         configure_plot_fonts()
         root=QVBoxLayout(self);split=QSplitter();root.addWidget(split,1)
         tabs=QTabWidget();split.addWidget(tabs)
         forms={}
         for label in ('교정식','범위','측정 조건','불확실성'):
-            page=QWidget();form=QFormLayout(page);tabs.addTab(page,label);forms[label]=form
+            page=QWidget();form=QFormLayout(page)
+            scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(page)
+            scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+            tabs.addTab(scroll,label);forms[label]=form
         def field(key,label,tab,value):
             edit=QLineEdit('' if value is None else str(value));self.fields[key]=edit
             forms[tab].addRow(label,edit);return edit
@@ -71,19 +86,36 @@ class CalibrationDialog(QDialog):
         self.correlation.setCurrentIndex(max(0,self.correlation.findData(u.get('correlation','UNKNOWN'))))
         forms['불확실성'].addRow('상관',self.correlation)
         right=QWidget();view=QVBoxLayout(right);split.addWidget(right)
-        self.values=QTableWidget(0,4);self.values.setHorizontalHeaderLabels(['원행','원값','교정값','확인 사항'])
+        self.values=QTableWidget(0,7)
         self.values.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.values.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.values.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.values.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.values.horizontalHeader().setStretchLastSection(False)
+        for column in (4,5,6):self.values.setColumnHidden(column,retained_response is None)
         self.values.setMaximumHeight(230);view.addWidget(self.values)
-        self.figure=Figure();self.canvas=FigureCanvasQTAgg(self.figure);self.canvas.setMinimumHeight(300)
+        self.figure=Figure(layout='tight');self.canvas=FigureCanvasQTAgg(self.figure);self.canvas.setMinimumHeight(260)
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
         view.insertWidget(0,self.canvas,1)
         preview_button=QPushButton('교정 전후 보기');preview_button.clicked.connect(self.refresh_preview);view.addWidget(preview_button)
         split.insertWidget(0,right)
         split.setStretchFactor(0,1);split.setStretchFactor(1,0);split.setSizes([740,325])
         self.message=QLabel('같은 원본 행을 두 단위로 비교합니다.');self.message.setWordWrap(True);root.addWidget(self.message)
-        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('초안에 적용')
-        buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);root.addWidget(buttons)
+        if retained_response is None:
+            buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+            buttons.button(QDialogButtonBox.StandardButton.Ok).setText('초안에 적용')
+            buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
+            buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject)
+        else:
+            buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+            buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기')
+            buttons.rejected.connect(self.reject)
+            for widget in list(self.fields.values())+[self.role,self.provided,self.ukind,self.correlation]:
+                if isinstance(widget,QLineEdit):widget.setReadOnly(True)
+                else:widget.setEnabled(False)
+            self.upload.hide();preview_button.hide()
+        root.addWidget(buttons)
+        for button in self.findChildren(QPushButton):
+            button.setAutoDefault(False);button.setDefault(False)
         self.refresh_preview()
         for field in self.fields.values():field.textEdited.connect(self.mark_unapplied)
         for combo in (self.role,self.ukind,self.correlation):combo.currentIndexChanged.connect(self.mark_unapplied)
@@ -123,8 +155,9 @@ class CalibrationDialog(QDialog):
 
     @Slot(object,object)
     def _uploaded(self,receipt,error):
-        self._workers=[];self.upload.setEnabled(True)
+        self._workers=[]
         if self._closed:return
+        self.upload.setEnabled(True)
         if error:self.message.setText(str(error));return
         self.recipe['source']={'data_id':receipt['id'],'sha256':receipt['sha256'],'name':receipt['name']}
         self.source.setText(receipt['name']);self.refresh_preview()
@@ -147,33 +180,68 @@ class CalibrationDialog(QDialog):
                 rows=table.get('row_numbers',[])
                 if not raw:raise ValueError('현재 원본의 숫자 미리보기가 없습니다. CSV 원본과 열을 확인하세요.')
                 transformed,audit=calibrate(raw,recipe)
+            # Validate a whole retained row set before changing the last readable view.
+            # Missing flags stay unknown; never infer quality or inclusion from a plot.
+            count=len(raw)
+            required=('calibration_reasons','calibration_valid','calibration_out_of_range','sensor_saturated')
+            if len(rows)!=count or len(transformed)!=count or any(len(audit[key])!=count for key in required):
+                raise ValueError('보존된 원행과 교정값의 길이가 다릅니다. 같은 가져오기 결과를 다시 선택하세요.')
+            for key in ('quality_valid','calculation_requested','calculation_valid','display_visible'):
+                if key in audit and len(audit[key])!=count:
+                    raise ValueError('보존된 품질/선택 정보의 행 수가 다릅니다. 같은 가져오기 결과를 다시 선택하세요.')
+            raw=[float(v) for v in raw];transformed=[float(v) for v in transformed]
+            # The plot requires numeric row positions and textual physical units.
+            # Do this before clearing a previously readable view.
+            plot_rows=[float(v) for v in rows]
+            input_unit=recipe['input_unit'];output_unit=recipe['output_unit']
+            if not isinstance(input_unit,str) or not isinstance(output_unit,str):
+                raise ValueError('보존된 원값과 교정값의 단위를 확인하세요.')
+            selected=self.values.item(self.values.currentRow(),0)
+            selected=selected.text() if selected is not None else None
+            def flag(key,i,yes,no):
+                values=audit.get(key)
+                value=values[i] if values is not None else None
+                return yes if value is True else no if value is False else '미확인'
+            cells=[]
+            for i,(source,x,y,reason) in enumerate(zip(rows,raw,transformed,audit['calibration_reasons'])):
+                calculation=flag('calculation_valid',i,'사용','사용 안 함')
+                requested=audit.get('calculation_requested')
+                if requested is not None and requested[i] is False:calculation='선택 제외'
+                cells.append((source,x,y,sample_reason(reason) or
+                    flag('calibration_valid',i,'유효','확인 필요'),
+                    flag('quality_valid',i,'유효','제외'),calculation,
+                    flag('display_visible',i,'표시','숨김')))
             self.figure.clear(); axes=self.figure.subplots(2,1,sharex=True)
             self.values.setRowCount(0)
             self.values.setHorizontalHeaderLabels(['원행','원값 ['+recipe['input_unit']+']',
-                '교정값 ['+recipe['output_unit']+']','확인 사항'])
+                '교정값 ['+recipe['output_unit']+']','교정 확인','품질','계산','화면'])
             self.values.setRowCount(len(raw))
-            for i,(source,x,y,reason) in enumerate(zip(rows,raw,transformed,audit['calibration_reasons'])):
-                for j,v in enumerate((source,x,float(y),sample_reason(reason))):
-                    self.values.setItem(i,j,QTableWidgetItem(value_text(v)))
-            axes[0].plot(rows,[float(v) for v in raw],'o-');axes[0].set_ylabel('원값 ['+recipe['input_unit']+']')
+            for i,row in enumerate(cells):
+                for j,v in enumerate(row):
+                    item=QTableWidgetItem(value_text(v));item.setToolTip(value_text(v));self.values.setItem(i,j,item)
+                if value_text(row[0])==selected:self.values.selectRow(i)
+            axes[0].plot(plot_rows,raw,'o-');axes[0].set_ylabel('원값 ['+recipe['input_unit']+']')
             valid=audit['calibration_valid']
-            axes[1].plot(rows,[float(v) if ok else float('nan') for v,ok in zip(transformed,valid)],
+            axes[1].plot(plot_rows,[v if ok else float('nan') for v,ok in zip(transformed,valid)],
                          'o-',label='교정값 (범위 내)')
             for flag,marker,label in [('calibration_out_of_range','o','범위 밖'),('sensor_saturated','x','센서 포화')]:
                 chosen=[i for i,marked in enumerate(audit[flag]) if marked]
                 if chosen:
-                    axes[1].scatter([rows[i] for i in chosen],[transformed[i] for i in chosen],
-                        marker=marker,facecolors='none' if marker=='o' else 'red',edgecolors='red',label=label)
+                    style={'facecolors':'none','edgecolors':'red'} if marker=='o' else {'color':'red'}
+                    axes[1].scatter([plot_rows[i] for i in chosen],[transformed[i] for i in chosen],
+                        marker=marker,label=label,**style)
             axes[1].legend()
             axes[1].set_ylabel('교정값 ['+recipe['output_unit']+']')
             axes[1].set_xlabel('원본 행')
+            self._has_preview=True
             self.message.setText('선택한 가져오기에 보존된 원값·교정값입니다. 다시 계산하지 않았습니다.' if self.retained_response is not None else
                 '원본 앞부분 '+str(len(raw))+'행 미리보기. 전체 처리는 Data의 가져오기를 누르세요.')
         except (ValueError,KeyError,TypeError,IndexError) as error:
-            self.message.setText('미적용 입력: '+str(error)+' 이전 미리보기는 유지됩니다.')
+            self.message.setText(('미적용 입력: ' if self.retained_response is None else '결과 표시 실패: ')+str(error)+
+                (' 이전 미리보기는 유지됩니다.' if self._has_preview else ' 원본과 교정 설정을 확인하세요.'))
         if axes is not None:
             # A preview can be closed before its first event loop is entered.
-            self.figure.tight_layout();self.canvas.draw()
+            self.canvas.draw()
 
     def done(self,result):
         if self._workers:
@@ -182,7 +250,7 @@ class CalibrationDialog(QDialog):
         super().done(result)
 
 
-class AcquisitionDialog(QDialog):
+class AcquisitionDialog(_ExplicitApplyDialog):
     def __init__(self,setup,channels,parent=None):
         super().__init__(parent);self.setup=deepcopy(setup or default_acquisition());self.channels=deepcopy(channels)
         self.setWindowTitle('파일 수집 설정');self.resize(850,620)
@@ -204,6 +272,8 @@ class AcquisitionDialog(QDialog):
         self.reuse = QCheckBox('같은 이름의 현재 채널에 이 교정 적용')
         root.insertWidget(root.count()-1,self.reuse)
         self.populate()
+        for button in self.findChildren(QPushButton):
+            button.setAutoDefault(False);button.setDefault(False)
 
     def populate(self):
         self.table.setRowCount(0)
