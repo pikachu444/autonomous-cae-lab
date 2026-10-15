@@ -164,8 +164,10 @@ stock Save State 취소 이후 재시도도 원행 수용에 남긴다. Qt 하�
 반복 재시작하지 않는다. Post 팀이 공개 저장소의 표준 Windows runner만 쓰는 수동
 빌드 경로를 작성해 root·Astra 검토 후 게시했다. 최초 요청의 workflow context 오류를
 교정한 뒤 첫 원격 실행은 압축 도구의 중복 경로 때문에 입력 준비에서 실패했다.
-원 로그를 보존하고 단일 실행 경로 선택을 교정해 다시 실행했다. 현재 실행은
-https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 이다.
+원 로그를 보존하고 단일 실행 경로 선택을 교정해 다시 실행했다. 두 번째 실행도
+Windows 기본 tar의 LZMA codec 미지원으로 입력 압축 해제에서 실패했다. 담당이
+기존 무료 7-Zip의 지원 형식·안전한 목록 검사와 최소 교정을 준비한다. 원 기록은
+https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
 완성과 실제 File→Exit 수용은 미확인으로 유지한다. 사용자 PC의 테스트
 FreeCAD·ParaView·Gmsh 잔류가 없는 것도 다시 확인했다.
