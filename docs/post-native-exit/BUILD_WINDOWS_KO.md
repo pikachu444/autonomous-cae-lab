@@ -203,3 +203,11 @@ SDK/runtime을 완성한 뒤 ACCEPTANCE_KO.md의 실창 검사를 수행해야 �
 `job_empty`를 확인한 뒤 같은 build directory에서 clean이나 재구성 없이 parallel 1,
 BelowNormal 우선순위로 이어갔다. 원 로그와 증분 산출물을 보존하고 별도 plugin
 빌드를 겹치지 않는다. 이 자원 조정은 SDK 빌드 성공이나 native 수용 판정이 아니다.
+
+parallel 1에서도 큰 compile batch의 메모리 증가가 확인돼 같은 소유권 대조와
+`job_empty` 확인 후 다시 중단했다. 현재 자동 재시작하지 않는다. plugin은 실제
+`PQCOMPONENTS_EXPORT`인 Properties panel과 `PQCORE_EXPORT`인 owner/progress/
+autostart API를 사용하므로 직접 link target을 `pqComponents`로 좁혔다. 공식
+ParaView 6.2 plugin helper는 UI interface에 `pqCore`를 연결하고, `pqComponents`는
+그 모듈에 공개 의존한다. 이 CMake 의존성 교정 이후 configure/link/native 검사는
+아직 실행하지 않았다. `vtkCommonCore` 의존성과 최종 실행파일 준비는 여전히 필요하다.
