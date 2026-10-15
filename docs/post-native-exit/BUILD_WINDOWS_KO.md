@@ -31,6 +31,11 @@ SHA256과 대조해 별도 개발 prefix에 풀었다. Core/Gui/Widgets runtime 
 기존 stock ParaView DLL과 SHA256도 같았다. 이것은 Qt 일치 증거이며 ParaView
 include/import library의 일치 증거를 대신하지 않는다. 공식 ParaView 6.2.0 release
 source archive는 superbuild의 MD5와 대조했으며 별도 runtime/SDK 빌드에 사용한다.
+Qt SDK의 실제 build metadata는 MSVC 19.39 및 LTCG 비사용을 기록한다. 여기서
+사용한 MSVC는 19.43(툴셋 14.43), linker는 14.43이며 시스템 CRT DLL은 14.51이다. Microsoft의 공식
+혼합 버전 규칙에서 linker와 사용 CRT가 입력보다 오래되지 않아야 한다는 조건을
+확인했다. VS에 남은 14.42 redist를 새 runtime에 복사하지 않는다. 이 조건 확인도
+ParaView SDK/런타임 동일 빌드나 실제 plugin 수용의 대체 증거는 아니다.
 
 ## 무료 도구와 라이선스의 범위
 
@@ -98,6 +103,10 @@ CMake에서 잘못 해석돼 Ninja의 헤더 의존성이 0개인 경우를 확�
 공식 `CMAKE_PROJECT_INCLUDE` 훅에서 실제 관측한 `CMAKE_CL_SHOWINCLUDES_PREFIX`만
 지정해 해결했다. 새 소규모 빌드에서 CloseGate 216개·Qt test 290개의 헤더 의존성을
 확인했다. 사용자 VS 언어, 시스템 코드 페이지 또는 전역 환경은 변경하지 않았다.
+다만 이 설정은 일반 콘솔에서 확인한 결과다. 기존 owned Job의 `CREATE_NO_WINDOW`
+실행에서는 컴파일러 출력 인코딩이 달라 그대로 적용되지 않았다. 해당 full Ninja
+빌드는 정확한 자기 root 프로세스만 중단해 Job을 비웠으며, 별도 build directory에서
+VS2022/MSBuild generator로 전환했다. 이 기록을 전체 SDK 빌드 성공으로 세지 않는다.
 
 ## plugin 빌드
 
@@ -126,10 +135,13 @@ $env:PATH = 'C:\cae-tools\qt-6.9.0\bin;C:\cae-tools\ParaView-6.2.0-matched\bin;'
   -ParaViewDir C:\cae-tools\ParaView-6.2.0-matched\lib\cmake\paraview-6.2 `
   -Qt6Dir C:\cae-tools\qt-6.9.0\lib\cmake\Qt6 `
   -BuildDir C:\cae-build\post-exit-build-r01 -Python C:\cae-tools\Python312\python.exe -RunQtHarness
+# 위 호스트의 Ninja 출력 인코딩 문제가 있는 경우, 별도 build directory를 사용한다.
+# 같은 SDK/toolchain을 유지하며 -Generator 'Visual Studio 17 2022'로 MSBuild를 선택한다.
 ```
 
 CMake는 ParaView 6.2.0 EXACT, Qt 6.9.0 EXACT, x64, Release, dynamic linking을 요구한다.
-Ninja/MSVC가 아니거나 debug CRT 등 불일치를 runtime 파일명만 보고 허용하지 않는다.
+MSVC compiler 또는 Release CRT 등의 불일치를 runtime 파일명만 보고 허용하지 않는다.
+빌드 생성기는 Ninja 또는 VS2022/MSBuild를 명시적으로 선택할 수 있다.
 Qt harness 성공은 실제 ParaView 성공이 아니다. 별도 프로세스에서 만드는 자신의
 Qt 창만 사용한다. Qt 대화상자 캡처는 qt-captures에 저장하며 실제 ParaView 캡처와
 명확히 구분한다.

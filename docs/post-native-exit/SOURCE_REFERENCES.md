@@ -48,6 +48,8 @@ license/build 정책 설명에만 사용하고 제품 API 판별은 정확한 �
   https://www.qt.io/development/open-source-lgpl-obligations
 - MS Build Tools OSS use:
   https://devblogs.microsoft.com/cppblog/updates-to-visual-studio-build-tools-license-for-c-and-cpp-open-source-projects/
+- MSVC linker/CRT 혼합 버전 및 LTCG 제한:
+  https://learn.microsoft.com/en-us/cpp/porting/binary-compat-2015-2017?view=msvc-170
 
 Web source 검토와 full upstream checkout/Windows compilation은 별개다. 본 작업에서
 실제 완료한 local 실행/실패 로그는 evidence에만 기록하며 source 링크로 대체하지 않는다.
