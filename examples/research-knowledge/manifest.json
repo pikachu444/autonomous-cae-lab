@@ -1,0 +1,233 @@
+{
+  "title": "Official CAE reference starter pack",
+  "prepared_date": "2026-10-16",
+  "purpose": "Explicit local KnowledgeStore ingestion and source reading; no trained specialist/engineering approval claim",
+  "network_at_import": false,
+  "automatic_updates": false,
+  "assets": [
+    {
+      "path": "licenses/CC-BY-3.0.txt",
+      "bytes": 19467,
+      "sha256": "e6bc9e9c474700b708f568bac9e5a8a9bcb2b1dad53442f5ba449fcb848b8e76"
+    },
+    {
+      "path": "licenses/CC-BY-4.0.txt",
+      "bytes": 18657,
+      "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411"
+    },
+    {
+      "path": "licenses/freecad-documentation-license.md",
+      "bytes": 7165,
+      "sha256": "7ff57c78499ee59b2e798767bf9d0691d150d887caeda273ea185e317b2199db"
+    },
+    {
+      "path": "licenses/freecad-documentation-readme.md",
+      "bytes": 6204,
+      "sha256": "45bb2f9c240587ac10c6b67486193624c8d1aafb31edc1ee5482b124eefe9e68"
+    },
+    {
+      "path": "licenses/paraview-tutorial-notice.txt",
+      "bytes": 2001,
+      "sha256": "d5eaf6f59991af8b37d8e16fe852188e10556649cb194d898dd3dffd74a911ab"
+    },
+    {
+      "path": "sources/freecad-fem.md",
+      "bytes": 24570,
+      "sha256": "3a9adbcfe46e3ec645741b6e4741bd10aa5f4fe21e1f5109845fe81d6f573ec9"
+    },
+    {
+      "path": "sources/freecad-gmsh-mesh.md",
+      "bytes": 10865,
+      "sha256": "e58b2815c44cad18ed3e2b0c9fba6009ee516e36aebda437ee611dcad9fce3d8"
+    },
+    {
+      "path": "sources/paraview-basic-usage.txt",
+      "bytes": 115955,
+      "sha256": "f922e4ef4922e7ba33f7dd8689d23f214104d56b5a22c47e6b2466d84b038bc9"
+    }
+  ],
+  "documents": [
+    {
+      "retrieved_date": "2026-10-16",
+      "supersedes": null,
+      "qualification": "NOT_ASSESSED",
+      "review_status": "Official source, license and selected text inspected during preparation; not engineering qualification",
+      "id": "freecad-fem",
+      "title": "FreeCAD FEM Workbench — workflow and commands",
+      "library_title": "FreeCAD FEM 작업 순서 (보존 문서, 설치판 일치 미확인)",
+      "collection": "pre-freecad-fem",
+      "authors": "FreeCAD documentation contributors",
+      "official_url": "https://github.com/FreeCAD/FreeCAD-documentation/blob/0499378a238ce4c77c643b9cc4a03d0947381e45/wiki/FEM_Workbench.md",
+      "original_url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD-documentation/0499378a238ce4c77c643b9cc4a03d0947381e45/wiki/FEM_Workbench.md",
+      "document_kind": "official community documentation",
+      "publication_date": null,
+      "application": "FreeCAD",
+      "document_version": "0499378a238ce4c77c643b9cc4a03d0947381e45",
+      "installed_version_observed": "1.1.4",
+      "applicability": "REFERENCE_ONLY_RELEASE_UNBOUND",
+      "scope": "FEM preprocessing, mesh, loads/constraints, external solver and postprocessing commands",
+      "availability": "BUNDLED",
+      "file": "sources/freecad-fem.md",
+      "license": {
+        "name": "CC-BY-3.0",
+        "url": "https://creativecommons.org/licenses/by/3.0/",
+        "redistribution_permitted": true,
+        "basis_url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD-documentation/0499378a238ce4c77c643b9cc4a03d0947381e45/wiki/License.md",
+        "local_notices": [
+          "licenses/freecad-documentation-license.md",
+          "licenses/freecad-documentation-readme.md",
+          "licenses/CC-BY-3.0.txt"
+        ]
+      },
+      "read_scope": "Complete official Markdown file; images and linked pages are not included/read by ingestion",
+      "limitations": [
+        "Archived automatic wiki-to-Markdown conversion; not a manual pinned to FreeCAD 1.1.4.",
+        "Command availability in the installed application must be checked separately."
+      ],
+      "example_query": "finite element analysis workflow mesh solver"
+    },
+    {
+      "retrieved_date": "2026-10-16",
+      "supersedes": null,
+      "qualification": "NOT_ASSESSED",
+      "review_status": "Official source, license and selected text inspected during preparation; not engineering qualification",
+      "id": "freecad-gmsh-mesh",
+      "title": "FreeCAD FEM mesh from shape by Gmsh",
+      "library_title": "FreeCAD Gmsh 메시 설정 (보존 문서, 설치판 일치 미확인)",
+      "collection": "mesh-gmsh",
+      "authors": "FreeCAD documentation contributors",
+      "official_url": "https://github.com/FreeCAD/FreeCAD-documentation/blob/0499378a238ce4c77c643b9cc4a03d0947381e45/wiki/FEM_MeshGmshFromShape.md",
+      "original_url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD-documentation/0499378a238ce4c77c643b9cc4a03d0947381e45/wiki/FEM_MeshGmshFromShape.md",
+      "document_kind": "official command documentation",
+      "publication_date": null,
+      "application": "FreeCAD / Gmsh",
+      "document_version": "0499378a238ce4c77c643b9cc4a03d0947381e45",
+      "installed_version_observed": "FreeCAD 1.1.4 / Gmsh 4.15.0",
+      "applicability": "REFERENCE_ONLY_RELEASE_UNBOUND",
+      "scope": "FreeCAD Gmsh command, mesh size/order, physical groups and nonpositive Jacobians",
+      "availability": "BUNDLED",
+      "file": "sources/freecad-gmsh-mesh.md",
+      "license": {
+        "name": "CC-BY-3.0",
+        "url": "https://creativecommons.org/licenses/by/3.0/",
+        "redistribution_permitted": true,
+        "basis_url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD-documentation/0499378a238ce4c77c643b9cc4a03d0947381e45/wiki/License.md",
+        "local_notices": [
+          "licenses/freecad-documentation-license.md",
+          "licenses/freecad-documentation-readme.md",
+          "licenses/CC-BY-3.0.txt"
+        ]
+      },
+      "read_scope": "Complete official Markdown file; no images, scripts or examples from linked pages",
+      "limitations": [
+        "FreeCAD integration instructions; not the Gmsh 4.15.0 algorithm/reference manual.",
+        "Archived wiki source contains version markers but is not release-bound.",
+        "No mesh generation or quality/convergence validation performed."
+      ],
+      "related_official_url": "https://gmsh.info/doc/texinfo/gmsh.html",
+      "related_version_note": "Web reference currently states 4.15.2; installed binary reports 4.15.0. Not bundled or treated as identical.",
+      "example_query": "Nonpositive Jacobians Element Order"
+    },
+    {
+      "retrieved_date": "2026-10-16",
+      "supersedes": null,
+      "qualification": "NOT_ASSESSED",
+      "review_status": "Official source, license and selected text inspected during preparation; not engineering qualification",
+      "id": "paraview-basic",
+      "title": "ParaView Self-directed Tutorial — Basic Usage",
+      "library_title": "ParaView 기본 사용 (문서 5.13.3, 설치 6.2.0과 다름)",
+      "collection": "post-paraview",
+      "authors": "Kenneth Moreland, Sandia National Laboratories; named contributors in tutorial notice",
+      "official_url": "https://docs.paraview.org/en/v5.13.3/Tutorials/SelfDirectedTutorial/basicUsage.html",
+      "original_url": "https://docs.paraview.org/en/v5.13.3/_sources/Tutorials/SelfDirectedTutorial/basicUsage.rst.txt",
+      "document_kind": "official self-directed tutorial source",
+      "publication_date": null,
+      "application": "ParaView",
+      "document_version": "5.13.3",
+      "installed_version_observed": "6.2.0",
+      "applicability": "REFERENCE_ONLY_VERSION_MISMATCH",
+      "scope": "Pipeline, data loading, point/cell attributes, filters, charts, time and selection",
+      "availability": "BUNDLED",
+      "file": "sources/paraview-basic-usage.txt",
+      "license": {
+        "name": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "redistribution_permitted": true,
+        "basis_url": "https://docs.paraview.org/en/v5.13.3/Tutorials/SelfDirectedTutorial/index.html",
+        "local_notices": [
+          "licenses/paraview-tutorial-notice.txt",
+          "licenses/CC-BY-4.0.txt"
+        ]
+      },
+      "read_scope": "Complete Basic Usage RST source, stored as UTF-8 text without byte changes",
+      "limitations": [
+        "5.13.3 documentation differs from installed 6.2.0; no equivalence or menu/behavior certification.",
+        "RST directives/macros remain literal; includes, images and tutorial datasets are not followed or bundled.",
+        "Existing plain-text reader returns one chapter-wide segment, not a verified figure/formula extraction."
+      ],
+      "example_query": "point cell data selection"
+    },
+    {
+      "retrieved_date": "2026-10-16",
+      "supersedes": null,
+      "qualification": "NOT_ASSESSED",
+      "review_status": "Official source, license and selected text inspected during preparation; not engineering qualification",
+      "id": "calculix-manual",
+      "title": "CalculiX CrunchiX USER’S MANUAL 2.22",
+      "collection": "solver-calculix",
+      "authors": "Guido Dhondt",
+      "official_url": "https://www.dhondt.de/ccx_2.22.pdf",
+      "document_kind": "official solver manual",
+      "publication_date": "2024-08-05",
+      "application": "CalculiX",
+      "document_version": "2.22",
+      "installed_version_observed": "2.22 (ccx -v banner; exit 201)",
+      "applicability": "VERSION_BANNER_MATCH_ONLY",
+      "scope": "Units, element/material/contact/output definitions and convergence guidance",
+      "availability": "URL_ONLY",
+      "read_scope": "Official cover/table of contents checked on web; no body in KnowledgeStore",
+      "license": {
+        "name": "Document redistribution permission not established",
+        "redistribution_permitted": false,
+        "basis_url": "https://www.dhondt.de/",
+        "local_notices": []
+      },
+      "limitations": [
+        "Solver code GPL is not used as permission to redistribute the manual.",
+        "Same version number alone does not validate an input model or numerical result."
+      ],
+      "manual_import": "Download the exact official PDF yourself, check your usage permission, then Expert > 참고 자료 > 파일 추가…; retain version/date and PDF extraction limitations."
+    },
+    {
+      "retrieved_date": "2026-10-16",
+      "supersedes": null,
+      "qualification": "NOT_ASSESSED",
+      "review_status": "Official source, license and selected text inspected during preparation; not engineering qualification",
+      "id": "impact-inievo",
+      "title": "Altair Radioss /FAIL/INIEVO reference",
+      "collection": "impact-solver",
+      "authors": "Altair Engineering, Inc.",
+      "official_url": "https://help.altair.com/hwsolvers/rad/topics/solvers/rad/fail_inievo_starter_r.htm",
+      "document_kind": "official keyword web reference",
+      "publication_date": null,
+      "application": "Radioss / OpenCourant comparison reference",
+      "document_version": "Web edition; exact release not established",
+      "installed_version_observed": "OpenCourant configured source pin cb760c206e346eff12161a2268b134ef9d48a4ef; binary banner not queried",
+      "applicability": "REFERENCE_ONLY_RELEASE_MISMATCH_UNRESOLVED",
+      "scope": "Damage initiation/evolution keyword fields; compare against the exact pinned solver source",
+      "availability": "URL_ONLY",
+      "read_scope": "Selected keyword body checked on web; not archived/ingested",
+      "license": {
+        "name": "No permission to redistribute this help page established",
+        "redistribution_permitted": false,
+        "basis_url": "https://help.altair.com/",
+        "local_notices": []
+      },
+      "limitations": [
+        "Public access is not a redistribution license.",
+        "Web help is not proof of the pinned OpenCourant binary’s accepted card/version or physical validity."
+      ],
+      "manual_import": "Read the official URL; if permitted, save your selected UTF-8 text/PDF locally and use Expert > 참고 자료 > 파일 추가… with exact edition, locator and limitations."
+    }
+  ]
+}

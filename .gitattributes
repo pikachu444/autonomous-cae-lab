@@ -167,3 +167,7 @@ tests/fixtures/beam_native_reopen/** -text -whitespace
 # Retained native source pins require the same fixture bytes on every host.
 tests/fixtures/dynamic_r2_public_native/** -text -whitespace
 tests/fixtures/dynamic_r2_c1/** -text -whitespace
+
+# Official documentation and its license notices retain the upstream bytes.
+examples/research-knowledge/sources/** -text -whitespace
+examples/research-knowledge/licenses/** -text -whitespace

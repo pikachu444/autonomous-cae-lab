@@ -1,0 +1,54 @@
+.. include:: ../../macros.hrst
+
+Self-directed Tutorial
+======================
+
+**Self-directed Tutorial** provides an introduction to the |ParaView| software and its history,
+and exercises on how to use |ParaView| that cover basic usage, batch python scripting and visualizing large models.
+This **tutorial** was created by Kenneth Moreland at Sandia National Laboratories, has written guidance and background
+and can be followed independently.
+
+Thanks to Amy Squillacote, David DeMarle, and W. Alan Scott for
+contributing material to this tutorial. And, of course, thanks to everyone
+at Kitware, Sandia National Laboratories, Los Alamos National Laboratory,
+and all other contributing organizations for their hard work in making
+|ParaView| what it is today.
+
+This work was supported by the Director, Office of Advanced Scientific
+Computing Research, Office of Science, of the U.S. Department of Energy
+under Contract No. 12-015215, through the Scientific Discovery through
+Advanced Computing (SciDAC) Institute of Scalable Data Management,
+Analysis and Visualization.
+
+.. image:: ../../images/cc_by.png
+    :align: center
+    :width: 20%
+
+This work is licensed under the Creative Commons Attribution 4.0 International License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/ or
+send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+Sandia National Laboratories is a multi-mission laboratory managed and operated by National Technology and Engineering
+Solutions of Sandia, LLC., a wholly owned subsidiary of Honeywell International, Inc., for the U.S. Department of
+Energy’s National Nuclear Security Administration under contract DE-NA-0003525.
+
+.. image:: ../../images/snllineblk.png
+    :align: left
+    :width: 40%
+
+.. image:: ../../images/DOEbwlogo.png
+    :align: right
+    :width: 30%
+
+|
+|
+
+.. toctree::
+   :numbered:
+   :maxdepth: 2
+
+   introduction
+   basicUsage
+   batchPythonScripting
+   visualizingLargeModels
+   furtherReading
