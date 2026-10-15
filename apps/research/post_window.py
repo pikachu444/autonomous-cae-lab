@@ -1229,14 +1229,17 @@ class PostWindow(QMainWindow):
         return history[position]['id'] if 0 <= position < len(history) else None
 
     def select_comparison_point(self, index, basis):
-        if (self._object_ref != basis['object_ref'] or not self._sample_basis
+        if ((basis.get('document_id'), basis.get('session_id')) != (self.document_id, self.session_id)
+                or self._object_ref != basis['object_ref'] or not self._sample_basis
                 or self._sample_basis.get('revision') != basis.get('revision')
                 or self._current_sample_revision(basis['preview']) != basis.get('revision')):
             self.message.setText('선택한 곡선은 이전 조회입니다. 원 비교를 다시 열어 선택하세요.')
             return False
+        owner = (self.document_id, self.session_id)
         token = (self._object_ref, basis.get('revision'))
         def selected(payload):
-            if (token != (self._object_ref, (self._sample_basis or {}).get('revision'))
+            if (owner != (self.document_id, self.session_id)
+                    or token != (self._object_ref, (self._sample_basis or {}).get('revision'))
                     or token != (payload.get('object_ref'), payload.get('revision'))
                     or self._current_sample_revision(basis['preview']) != token[1]):
                 return
@@ -1249,14 +1252,17 @@ class PostWindow(QMainWindow):
             'expected_revision': basis['revision']}, accepted=selected)
 
     def select_curve_row(self, index, basis):
-        if (basis['object_ref'] != self._object_ref or not self._sample_basis
+        if ((basis.get('document_id'), basis.get('session_id')) != (self.document_id, self.session_id)
+                or basis['object_ref'] != self._object_ref or not self._sample_basis
                 or self._sample_basis.get('revision') != basis.get('revision')
                 or self._current_sample_revision(basis['preview']) != basis['revision']):
             self.message.setText('이전 곡선 조회입니다. 현재 결과를 다시 읽으세요.')
             return False
+        owner = (self.document_id, self.session_id)
         token = (self._object_ref, basis['revision'])
         def accepted(payload):
-            if (token != (self._object_ref, (self._sample_basis or {}).get('revision'))
+            if (owner != (self.document_id, self.session_id)
+                    or token != (self._object_ref, (self._sample_basis or {}).get('revision'))
                     or token != (payload.get('object_ref'), payload.get('revision'))
                     or self._current_sample_revision(basis['preview']) != token[1]):
                 return
@@ -1303,7 +1309,8 @@ class PostWindow(QMainWindow):
             else:
                 history, position = (obj or {}).get('history', []), (obj or {}).get('position', -1)
                 revision = history[position] if 0 <= position < len(history) else None
-        self._sample_basis = {'object_ref': self._object_ref, 'title': obj.get('title', '측정') if obj else '분석',
+        self._sample_basis = {'document_id': self.document_id, 'session_id': self.session_id,
+                              'object_ref': self._object_ref, 'title': obj.get('title', '측정') if obj else '분석',
                               'preview': preview, 'revision': payload.get('revision'),
                               'draft': deepcopy((revision or {}).get('recipe', (obj or {}).get('draft', self._draft)))}
         rows = payload.get('rows', [])[:1000]
@@ -1924,6 +1931,10 @@ class PostWindow(QMainWindow):
                 self.document = None
                 self._source_ref = self._object_ref = None
                 self._tree_selection = None
+                self._samples = self._sample_basis = None
+                with QSignalBlocker(self.samples):
+                    self.samples.setRowCount(0)
+                    self.samples.setColumnCount(0)
                 self._draft = defaults(self._kind)
                 self.view_selector.setCurrentIndex(0)
                 self.refresh_document(initial=True)

@@ -88,12 +88,12 @@ def test_earlier_curve_revision_cannot_select_current_table(app):
     from types import SimpleNamespace
     from apps.research.post_window import PostWindow
     calls, selected = [], []
-    view = SimpleNamespace(_object_ref='C', _sample_basis={'revision':'R0'},
+    view = SimpleNamespace(document_id='D', session_id='S', _object_ref='C', _sample_basis={'revision':'R0'},
         _current_sample_revision=lambda preview:'R1' if preview else 'R0',
         message=SimpleNamespace(setText=lambda text:None),
         _samples={'rows':[{'row_index':0}]}, samples=SimpleNamespace(selectRow=selected.append),
         queue_command=lambda *args,**kw: calls.append((args,kw)) or True)
-    basis={'object_ref':'C','revision':'R1','preview':True}
+    basis={'document_id':'D','session_id':'S','object_ref':'C','revision':'R1','preview':True}
     assert PostWindow.select_curve_row(view,0,basis) is False
     assert not calls and not selected
     view._sample_basis={'revision':'R1'}

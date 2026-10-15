@@ -5,7 +5,8 @@ import pytest
 
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QSignalBlocker
+from PySide6.QtWidgets import QApplication, QInputDialog
 
 from apps.research.post_curve_editor import default_recipe as curve_recipe
 from apps.research.post_window import PostWindow, defaults
@@ -112,3 +113,51 @@ def test_busy_or_failed_selection_requires_reread_without_replaying(selection_wi
     window.samples.selectRow(0)
     assert client.calls == []
     assert '다시 읽으세요' in window.message.text()
+
+
+def clone_owner(client, window):
+    client.document.update(id='Dclone', session_id='Sclone')
+    window.document_id, window.session_id = 'Dclone', 'Sclone'
+    window._show_document(client.document)
+    window._show_samples(client.payload())
+
+
+@pytest.mark.parametrize('curve', [False, True])
+def test_old_plot_cannot_select_a_clone_with_matching_object_and_revision(selection_window, curve):
+    _, client, window = selection_window(curve=curve)
+    old_basis = deepcopy(window._sample_basis)
+    clone_owner(client, window)
+    before = deepcopy(window._samples)
+    select = window.select_curve_row if curve else window.select_comparison_point
+    assert select(19, old_basis) is False
+    assert client.calls == []
+    assert window._samples == before
+
+
+@pytest.mark.parametrize('curve', [False, True])
+def test_reply_from_previous_owner_does_not_move_clone_selection(selection_window, curve):
+    _, client, window = selection_window(curve=curve)
+    pending = []
+    window.queue_command = lambda *args, **options: pending.append(options['accepted']) or True
+    basis = deepcopy(window._sample_basis)
+    select = window.select_curve_row if curve else window.select_comparison_point
+    assert select(19, basis) is True
+    clone_owner(client, window)
+    with QSignalBlocker(window.samples):
+        window.samples.selectRow(0)
+    pending[0]({'object_ref': 'Aretained', 'revision': 'Vexact'})
+    assert window.samples.currentRow() == 0
+    assert len(pending) == 1
+
+
+def test_choosing_another_owner_clears_old_table_without_native_selection(selection_window, monkeypatch):
+    app, client, window = selection_window()
+    client.document.update(id='Dclone', session_id='Sclone')
+    client.documents = lambda: {'documents': [deepcopy(client.document)]}
+    monkeypatch.setattr(QInputDialog, 'getItem', lambda *args, **options: (args[3][0], True))
+    assert window.choose_document() is True
+    wait(app, lambda: not window._busy and window.document is not None and window.document_id == 'Dclone')
+    assert (window.document_id, window.session_id) == ('Dclone', 'Sclone')
+    assert window._samples is None and window._sample_basis is None
+    assert window.samples.rowCount() == 0 and window.samples.columnCount() == 0
+    assert client.calls == []
