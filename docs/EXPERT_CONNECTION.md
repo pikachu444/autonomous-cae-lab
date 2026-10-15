@@ -128,6 +128,78 @@ model while retaining the common operator transmission policy and budgets.
 
 ## Focused verification and limits
 
+### CoSTORM public literature retrieval — 2026-10-16
+
+The saved materials/testing role names are instructions and tool permissions,
+not separately trained CAE models. The actual pinned Stanford CoSTORM runner
+coordinates perspectives, questions, evidence-backed turns, user interventions,
+the mind map and reports. OpenScience runs the selected model and scoped tools.
+The earlier actual OAuth clamp question was a **single-role response without
+retrieved sources**; that successful answer did not establish RAG or CoSTORM.
+
+In this adapter, the first configured participant selects the effective model.
+The configured participants' instructions are combined in **one Completion/LM**,
+reused by CoSTORM's question, answer, discourse, polishing, outline and knowledge
+components. Generated perspective names/backgrounds and discussion histories are
+saved runner state; they are not separate model processes, separately trained
+specialists or independent authority. Configured roles retain their IDs,
+collection lists and tool lists. Local retrieval uses their collection
+intersection; every role must permit the relevant local/public/result reading
+capability. A generated persona cannot widen those grants or select another
+provider. Different configured role model overrides do not create separate
+CoSTORM persona models through this adapter. A specialist corpus is still
+supplied by explicit user-selected source revisions, not by the role name.
+
+CoSTORM now connects its retriever to the existing free Crossref Literature API.
+In **Connection → Transmission**, the operator must allow public search; the
+discussion must separately enable its public-search scope. Every participating
+role must have both `literature.search` and `literature.read`. With both search
+grants, a discussion can start from a topic alone. Selected local revisions or
+explicit result attachments can still support discussions without public search.
+Importing the module, selecting sources, loading a saved discussion or viewing
+its retained citations performs no external search or inference.
+
+Each retrieval accepts at most two distinct queries and requests up to four
+papers per query. Selected local BM25 hits and explicit calculation evidence
+come before public rows. Search and each paper read consume the existing shared
+tool budget; model steps retain their existing independent budget. The retriever
+checks cancellation and the deadline around each operation and will not start
+a new public search with 20 seconds or less left, matching the existing fetch
+timeout. An in-flight existing fetch observes cancellation when it returns;
+this change does not add a background network thread or a new search service.
+
+The automatic public route explicitly reads **Crossref abstracts**, not publisher
+full text. Each source retains its exact paper ID, DOI, URL, title, authors,
+provider, actual read status/scope and archived segment locator; an absent
+abstract is labelled bibliographic metadata only. Such titles and metadata do
+not establish the paper's findings. Public empty/unavailable searches remain
+visible in retrieval events and limitations. With no selected/result evidence
+and no returned public evidence, the action stops without an article. Existing
+Literature full-text access is a separate explicitly requested operation.
+
+Public citation metadata and the actually read abstract survive CoSTORM turns,
+mind-map citations, report references, Save and reopen. Opening a citation uses
+the existing local archive reader, never a replacement DOI/network read.
+Before another model step or retry reuses public text, both public-search grants
+and the exact archive digest, paper identity, metadata and segment are checked
+again. Withdrawal, missing archives or changed source bytes block reuse. Retry
+retains each successful search/read operation immediately, even if a later
+query/read is interrupted, alongside completed retrieval rows and the existing
+completion journal. Replaying completed work does not search again or replace
+its original abstract with newer metadata; failed/empty searches can be tried
+again by explicit Retry. Replay events are labelled and do not consume another
+tool operation. Source-integrity failures do not invalidate a valid model query.
+The general model transmission checker does not itself treat a bare `paper_id`
+as a grant: these checks are performed at the CoSTORM retrieval/restore boundary.
+
+The focused tests use the actual vendored runner and document owner with
+explicit network/model doubles: public-only start, permission/role refusal,
+local/result priority, query/paper/tool/time limits, cancellation, missing
+abstracts, failed searches, citations/report/save/cold read, archive corruption
+and partial retry. They invoke no live model, credential store, paid search,
+embedding service or vector database. This is a core connection change; no new
+GUI or live public-search acceptance is claimed here.
+
 Commands for the existing runtime:
 
 ~~~powershell

@@ -172,6 +172,19 @@ def open_evidence_reference(client, reference):
             raise ValueError('This citation has no retained literature archive; no replacement source was fetched')
         payload = client.request('/api/workbench/assist', {'operation': 'literature.read',
             'arguments': {'paper_id': reference['paper_id'], 'locator': deepcopy(locator)}})
+        paper = payload.get('paper') or {}
+        if any(key in reference and reference[key] != paper.get(key)
+               for key in ('doi', 'url', 'title', 'authors', 'provider')):
+            raise ValueError('This citation differs from its retained literature metadata')
+        if ('read_status' in reference and reference['read_status'] != payload.get('status')
+                or 'text' in reference and not any(row.get('text') == reference['text']
+                    for row in payload.get('segments', []))):
+            raise ValueError('This citation differs from the retained text or read scope')
+        scope = {'abstract_only': 'abstract only; full text not read',
+                 'metadata_only': 'bibliographic metadata only; abstract/full text not read'}.get(
+                     payload.get('status'), payload.get('read_scope'))
+        if 'read_scope' in reference and reference['read_scope'] != scope:
+            raise ValueError('This citation claims a different source reading scope')
         source = deepcopy(payload)
         source['title'] = (source.get('paper') or {}).get('title') or 'Literature source'
         return {'status': 'SOURCE_READ', 'source': source}

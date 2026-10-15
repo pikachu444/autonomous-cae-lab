@@ -6,9 +6,8 @@ provider selection, public search or inference occurs on import/read/restore.
 """
 from contextlib import contextmanager
 from contextvars import ContextVar
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import asdict
-import hashlib
 import json
 import re
 import threading
@@ -17,6 +16,7 @@ import time
 from ..execution_control import check_cancelled, ExecutionCancelled, ExecutionCleanupFailed
 from ..storage import canonical_hash
 from .knowledge import selected_source_refs
+from .literature import archive_digest as _archive_digest
 
 VERSION = 'stanford-costorm-fb951af-local-1'
 _TRUSTED = ContextVar('owner_costorm_step', default=None)
@@ -117,17 +117,170 @@ class Completion:
         return {}  # The host does not supply trustworthy token counts.
 
 
+def _public_allowed(runtime, context):
+    return ((runtime.runtime.transmission or {}).get('allow_public_search') is True
+            and context.get('transmission_scope', {}).get('allow_public_search') is True)
+
+
+def _paper_sources(value):
+    # Uncited raw retrieval rows in the saved conversation are retained too.
+    if isinstance(value, dict):
+        source = value.get('meta', {}).get('source', {})
+        if 'paper_id' in source:
+            yield source
+        for child in value.values():
+            yield from _paper_sources(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _paper_sources(child)
+
+
+def _public_source(runtime, context, source):
+    """Read an exact local literature archive; never re-fetch on restore/replay."""
+    if not _public_allowed(runtime, context):
+        raise PermissionError('Public literature permission was not granted or has been withdrawn')
+    locator = source.get('locator', {})
+    archive = locator.get('archive_id', '')
+    if not re.fullmatch('[a-f0-9]{64}', archive):
+        raise ValueError('Public citation has no exact retained literature archive')
+    value = runtime.literature.read(source['paper_id'], {'archive_id': archive})
+    if _archive_digest(value) != archive:
+        raise ValueError('Retained literature archive changed')
+    paper = value['paper']
+    expected = {key: deepcopy(paper.get(key)) for key in ('paper_id', 'doi', 'url', 'title', 'authors', 'provider')}
+    expected.update(read_status=value['status'],
+        read_scope='abstract only; full text not read' if value['status'] == 'abstract_only' else 'bibliographic metadata only; abstract/full text not read')
+    fields = set(expected) | {'locator'} | ({'text'} if value['status'] == 'abstract_only' else set())
+    if set(source) != fields or any(source.get(k) != v for k, v in expected.items()):
+        raise ValueError('Public citation differs from its retained source metadata/read scope')
+    if value['status'] == 'abstract_only':
+        if not any(segment['locator'] == locator and segment['text'] == source.get('text')
+                   and segment['content_kind'] == 'abstract' for segment in value['segments']):
+            raise ValueError('Public abstract citation no longer matches its exact retained segment')
+    elif value['status'] != 'metadata_only' or value['segments'] or locator != {'archive_id': archive}:
+        raise ValueError('Unsupported public literature read scope')
+    runtime._transmission_check(source, context)
+    return value
+
+
+def _paper_rows(value):
+    if value['status'] not in ('abstract_only', 'metadata_only'):
+        return []
+    archive = _archive_digest(value)
+    metadata = {key: deepcopy(value['paper'].get(key)) for key in ('paper_id', 'doi', 'url', 'title', 'authors', 'provider')}
+    metadata.update(read_status=value['status'],
+        read_scope='abstract only; full text not read' if value['status'] == 'abstract_only' else 'bibliographic metadata only; abstract/full text not read')
+    rows = []
+    for segment in value['segments'] or [{'locator': {'archive_id': archive}}]:
+        source = {**deepcopy(metadata), 'locator': deepcopy(segment['locator'])}
+        if segment.get('text'):source['text'] = segment['text']
+        text = json.dumps(metadata, ensure_ascii=False)
+        if segment.get('text'):text += '\nActually read abstract:\n' + segment['text']
+        rows.append({'url': 'caelab-paper:' + canonical_hash({'paper_id': source['paper_id'], 'locator': source['locator']}),
+            'title': source['title'], 'description': source['read_scope'], 'snippets': [text], 'meta': {'source': source}})
+    return rows
+
+
 class SelectedRetriever:
-    """Existing revision-scoped BM25, projected into upstream Information rows."""
-    def __init__(self, runtime, context, workspace_id, collections, budget, verify, result_sources=()):
+    """Selected evidence first, then explicitly allowed free Crossref abstracts."""
+    def __init__(self, runtime, context, workspace_id, collections, budget, verify, result_sources=(), journal=None, operations=None):
         self.runtime, self.context = runtime, context
         self.workspace_id, self.collections, self.budget, self.verify = workspace_id, collections, budget, verify
         self.result_sources = result_sources
+        self.journal = journal if journal is not None else []
+        self.operations = operations if operations is not None else []
+        self.events = []
+
+    def _operation(self, tool, arguments, invoke):
+        check_cancelled()
+        self.verify()
+        if not _public_allowed(self.runtime, self.context):
+            raise PermissionError('Public literature permission was withdrawn')
+        if time.monotonic() >= self.budget.deadline:
+            raise RuntimeError('Consultation time budget exhausted before public retrieval')
+        key = canonical_hash({'tool': tool, 'arguments': arguments})
+        prior = next((item for item in self.operations if item['key'] == key), None)
+        if prior is not None:
+            return deepcopy(prior['result']), True
+        if len(self.operations) >= 512:
+            raise RuntimeError('This discussion action exceeds the retained public operation limit')
+        # Existing fetch timeout; exact cached search/read results need no network.
+        if tool == 'literature.search' and self.budget.deadline - time.monotonic() <= 20:
+            raise RuntimeError('Insufficient remaining time for the existing public search timeout')
+        self.budget.consume('tool')
+        value = invoke()
+        if (value['status'] in ('abstract_only', 'metadata_only')
+                or value['status'] == 'OK' and value.get('papers')):
+            # Record completed work BEFORE observing a later cancellation/deadline.
+            self.operations.append({'key': key, 'tool': tool, 'arguments': deepcopy(arguments), 'result': deepcopy(value)})
+        return value, False
+
+    def _public(self, queries):
+        rows, seen = [], set()
+        for query in queries:
+            check_cancelled()
+            self.verify()
+            found, replayed = self._operation('literature.search', {'query': query, 'top_k': 4},
+                lambda: self.runtime.literature.search(query, top_k=4))
+            event = {'tool': 'literature.search', 'query': query, 'status': found['status'],
+                     'papers': len(found.get('papers', [])), 'replayed': replayed}
+            if found.get('detail'):event['detail'] = found['detail']
+            self.events.append(event)
+            check_cancelled()
+            if time.monotonic() >= self.budget.deadline:
+                raise RuntimeError('Consultation time budget exhausted during public search')
+            self.verify()
+            if found['status'] != 'OK':
+                continue
+            if not found.get('papers'):
+                event['status'] = 'EMPTY'
+            for paper in found.get('papers', [])[:4]:
+                if paper['paper_id'] in seen:
+                    continue
+                seen.add(paper['paper_id'])
+                check_cancelled()
+                self.verify()
+                # Pin this successful search's metadata, not a later search's
+                # mutable paper-cache entry. The existing archive store is shared.
+                reader = copy(self.runtime.literature)
+                reader._papers = {paper['paper_id']: deepcopy(paper)}
+                value, replayed = self._operation('literature.read',
+                    {'paper': paper, 'locator': {'kind': 'abstract'}},
+                    lambda: reader.read(paper['paper_id'], {'kind': 'abstract'}))
+                event = {'tool': 'literature.read', 'paper_id': paper['paper_id'], 'status': value['status'], 'replayed': replayed}
+                self.events.append(event)
+                check_cancelled()
+                if time.monotonic() >= self.budget.deadline:
+                    raise RuntimeError('Consultation time budget exhausted during public source read')
+                for row in _paper_rows(value):
+                    _public_source(self.runtime, self.context, row['meta']['source'])
+                    rows.append(row)
+        return rows
 
     def __call__(self, query_or_queries, exclude_urls=()):
+        check_cancelled()
+        if time.monotonic() >= self.budget.deadline:
+            raise RuntimeError('Consultation time budget exhausted before retrieval')
+        queries = [query_or_queries] if isinstance(query_or_queries, str) else list(query_or_queries)
+        queries = list(dict.fromkeys(str(q).strip() for q in queries if str(q).strip()))[:2]
+        if any(len(q) > 1000 for q in queries):
+            raise ValueError('Public/source queries must be at most 1000 characters')
+        # A source/access failure is not rejection of the valid query completion.
+        from ._vendor.costorm.prompting import last_completion_key
+        last_completion_key.set(None)
         self.verify()
+        key = canonical_hash({'queries': queries, 'excluded': sorted(exclude_urls)})
+        prior = next((row for row in self.journal if row['key'] == key), None)
+        if prior is not None:
+            for row in prior['rows']:
+                if 'paper_id' in row.get('meta', {}).get('source', {}):
+                    _public_source(self.runtime, self.context, row['meta']['source'])
+            self.events.extend({**deepcopy(event), 'replayed': True} for event in prior.get('events', []))
+            return deepcopy(prior['rows'])
+        if len(self.journal) >= 128:
+            raise RuntimeError('This discussion action exceeds the retained retrieval limit')
         rows, seen = [], set()
-        for query in query_or_queries:
+        for query in queries if selected_source_refs(self.context) else []:
             check_cancelled()
             self.budget.consume('tool')
             result = self.runtime.knowledge.search(str(query), self.collections, top_k=4,
@@ -153,6 +306,18 @@ class SelectedRetriever:
                     rows.insert(0, item)  # Explicit returned analysis must not be silently word-budget dropped.
                 else:
                     rows.append(item)
+        before_events = len(self.events)
+        if _public_allowed(self.runtime, self.context):
+            for row in self._public(queries):
+                if row['url'] not in seen and row['url'] not in exclude_urls:
+                    seen.add(row['url']);rows.append(row)
+        events = deepcopy(self.events[before_events:])
+        failures = [event for event in events if event['status'] in ('EMPTY', 'UNAVAILABLE')]
+        if rows and failures:
+            rows[0]['snippets'][0] = ('[Retrieval limitation, not source content: '
+                + json.dumps(failures, ensure_ascii=False) + ']\n' + rows[0]['snippets'][0])
+        if not failures:
+            self.journal.append({'key': key, 'rows': deepcopy(rows), 'events': events})
         return rows
 
 
@@ -239,12 +404,15 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         raise PermissionError('참여 역할 모두에 선택 자료 검색·원문 읽기 권한이 필요합니다.')
     collections = sorted(set.intersection(*(set(role.get('collections', [])) for role in roles)))
     pins = selected_source_refs(context)
-    if not pins:
-        raise ValueError('Co-STORM 토론에 사용할 자료를 선택하세요.')
+    public = _public_allowed(runtime, context)
+    if public and any(not {'literature.search', 'literature.read'}.issubset(set(role.get('tools', []))) for role in roles):
+        raise PermissionError('참여 역할 모두에 공개 문헌 검색·읽기 권한이 필요합니다.')
     grants = []
     if spec.get('evidence') and any('results.read' not in role.get('tools', []) for role in roles):
         raise PermissionError('선택한 계산 결과를 읽을 참여 역할 권한이 필요합니다.')
     result_sources = trusted.get('read_results', lambda: [])()
+    if not pins and not result_sources and not public:
+        raise PermissionError('선택한 자료·계산 근거 또는 운영자와 이번 요청이 모두 허용한 공개 검색이 필요합니다.')
     for result in result_sources:
         runtime._transmission_check({**result['reference'], 'data': result['payload']}, context)
     for ref in pins:
@@ -255,6 +423,9 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
     context['_source_grants'] = grants
     instructions = '\n'.join(str(role.get('system_prompt', role.get('instructions', role.get('description', ''))))
                              for role in roles)
+    if public:
+        instructions += ('\nPublic abstracts are not full-text reads. Metadata-only sources establish bibliographic facts only; '
+                         'never infer paper findings from a title. Explain retrieval limitations and unread content.')
     runtime_identity = canonical_hash({
         key: getattr(config, key) for key in ('provider', 'model', 'external_model', 'transmission',
             'openscience_profile', 'openscience_runtime_prefix', 'max_output_tokens', 'max_payload_bytes')})
@@ -273,10 +444,15 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         # Only the exact rejected reply is requested again; valid later queued
         # completions remain reusable too.
         journal = _retry_journal(prior['retry'])
+        retrieval_journal = deepcopy(prior['retry'].get('retrieval_journal', []))
+        retrieval_operations = deepcopy(prior['retry'].get('retrieval_operations', []))
     else:
         base = deepcopy(prior.get('state')) or _new_state(question)
         inputs = deepcopy(spec.get('interventions', []))
         journal = []
+        retrieval_journal = []
+        retrieval_operations = []
+    prior_public = list(_paper_sources(prior.get('state') or {}))
     def verify():
         check_cancelled()
         for ref in pins:
@@ -287,6 +463,17 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         if canonical_hash(current_results) != canonical_hash(result_sources):
             raise ValueError('Selected retained result changed during this action')
         runtime._transmission_check({'question': question, 'sources': grants, 'results': current_results}, context)
+        sources = prior_public + [row.get('meta', {}).get('source', {})
+            for item in retrieval_journal for row in item['rows']]
+        sources += [row['meta']['source'] for item in retrieval_operations if item['tool'] == 'literature.read'
+                    for row in _paper_rows(item['result'])]
+        checked = set()
+        for source in sources:
+            if 'paper_id' in source:
+                key = canonical_hash(source)
+                if key not in checked:
+                    _public_source(runtime, context, source)
+                    checked.add(key)
     for information in (prior.get('state') or {}).get('knowledge_base', {}).get('info_uuid_to_info_dict', {}).values():
         source = information.get('meta', {}).get('source', {})
         if 'job_id' in source:
@@ -296,7 +483,8 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         runtime._transmission_check(source, context)
     verify()
     lm = Completion(runtime, config, context, workspace_id, collections, budget, journal, instructions, verify)
-    rm = SelectedRetriever(runtime, context, workspace_id, collections, budget, verify, result_sources)
+    rm = SelectedRetriever(runtime, context, workspace_id, collections, budget, verify,
+                           result_sources, retrieval_journal, retrieval_operations)
     runner = _restore(base, lm, rm)
     before = len(base.get('conversation_history', []))
     started = time.monotonic()
@@ -338,6 +526,8 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
         committed = deepcopy(base)
         retry = {'action': action, 'base': deepcopy(base), 'interventions': deepcopy(inputs),
                  'journal': deepcopy(journal),
+                 'retrieval_journal': deepcopy(retrieval_journal),
+                 'retrieval_operations': deepcopy(retrieval_operations),
                  'invalid_completion_key': (getattr(error, 'completion_key', last_completion_key.get())
                     if isinstance(error, ValueError) else None)}
         cancelled = isinstance(error, ExecutionCancelled)
@@ -354,13 +544,14 @@ def run(runtime, definition, question, context, session, path, workspace_id, bud
     for key in total:
         total[key] += usage.get(key, 0)
     protocol = {'version': VERSION, 'scope': scope, 'state': committed, 'report': report, 'retry': retry,
-        'consumed_user_ids': consumed, 'view': presentation(committed), 'usage': usage, 'total_usage': total}
+        'consumed_user_ids': consumed, 'view': presentation(committed), 'usage': usage, 'total_usage': total,
+        'retrieval_events': deepcopy(rm.events)}
     new_turns = [turn for turn in protocol['view']['turns'] if isinstance(turn['index'], int) and turn['index'] >= before]
     result = {'status': outcome, 'execution_status': 'CANCELLED' if cancelled else
               'SUCCEEDED' if outcome == 'ANSWERED' else 'PARTIAL_FAILURE',
         'answer': new_turns[-1]['text'] if new_turns and outcome == 'ANSWERED' else None,
         'reason': reason, 'sources': list(protocol['view']['sources'].values()),
-        'proposed_actions': [], 'assumptions': [], 'tool_events': [],
+        'proposed_actions': [], 'assumptions': [], 'tool_events': deepcopy(rm.events),
         'expert_id': definition['id'], 'session_id': session['session_id'],
         'inference_performed': bool(budget.used_models), 'costorm': protocol}
     session['turns'].append({'question': question, 'context': deepcopy(context), 'response': deepcopy(result),

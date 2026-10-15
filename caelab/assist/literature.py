@@ -1,5 +1,6 @@
 """Thin Crossref metadata discovery and explicitly reported public source reads."""
 from __future__ import annotations
+from copy import deepcopy
 from datetime import datetime, timezone
 from html import unescape
 from html.parser import HTMLParser
@@ -35,6 +36,14 @@ def plain_text(value):
     parser = _Text()
     parser.feed(value or '')
     return unescape(''.join(parser.parts)).strip()
+
+
+def archive_digest(result):
+    """Hash retained source content before its content address is inserted."""
+    original = deepcopy(result)
+    for segment in original['segments']:
+        segment['locator'].pop('archive_id', None)
+    return hashlib.sha256(json.dumps(original, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
 def _public_url(url):
@@ -78,7 +87,7 @@ class Literature:
 
     def _archive(self, result, raw=None):
         if self.root:
-            digest = hashlib.sha256(json.dumps(result, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            digest = archive_digest(result)
             for segment in result['segments']:
                 segment['locator']['archive_id'] = digest
             (self.root / (digest + '.json')).write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
@@ -138,10 +147,16 @@ class Literature:
             if not self.root or not re.fullmatch(r'[a-f0-9]{64}', archive_id):
                 raise ValueError('Invalid or unavailable literature archive')
             result = json.loads((self.root / (archive_id + '.json')).read_text(encoding='utf-8'))
+            if archive_digest(result) != archive_id:
+                raise ValueError('Retained literature archive changed; the original citation cannot be reopened')
+            if any(segment['locator'].get('archive_id') != archive_id for segment in result['segments']):
+                raise ValueError('Retained literature archive changed its segment locations')
             if result['paper_id'] != paper_id:
                 raise ValueError('Literature archive belongs to another paper')
             selected = {key: value for key, value in locator.items() if key != 'archive_id'}
             result['segments'] = [s for s in result['segments'] if all(s['locator'].get(k) == v for k, v in selected.items())]
+            if selected and not result['segments']:
+                raise ValueError('The selected citation location is absent from its retained source')
             return result
         paper = self._papers.get(paper_id)
         if paper is None and paper_id.startswith('doi:'):

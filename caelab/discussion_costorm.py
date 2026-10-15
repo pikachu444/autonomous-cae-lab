@@ -49,8 +49,10 @@ def start_record(owner, document, command_id, *, action, turn=None):
     checking = deepcopy(document)
     checking['draft']['composer']['text'] = frozen['composer']['text']
     owner._validate_question(checking, needs_roles=False)
-    if not frozen['context'].get('selected_sources'):
-        raise ValueError('토론에 사용할 자료를 선택하세요.')
+    has_results = any('job_id' in reference for reference in frozen['composer']['evidence'])
+    public_search = frozen['context'].get('transmission_scope', {}).get('allow_public_search') is True
+    if not frozen['context'].get('selected_sources') and not has_results and not public_search:
+        raise ValueError('토론 자료나 계산 결과를 선택하거나, 공개 문헌 검색을 허용하세요.')
     previous = prior[-1].get('completed_job_id') if prior else None
     if prior and not previous:
         raise ValueError('이전 응답을 수신한 뒤 계속하세요.')
@@ -95,7 +97,7 @@ def start_record(owner, document, command_id, *, action, turn=None):
         'user_turn_id': initial_user, 'roles': [role], 'participants': frozen['participants'],
         'sessions': deepcopy(source['sessions']) if source else {role: 'E' + uuid.uuid4().hex},
         'next_index': 0, 'active_job_id': None, 'status': 'READY',
-        'draft': frozen, 'knowledge_sources': deepcopy(frozen['context']['selected_sources']),
+        'draft': frozen, 'knowledge_sources': deepcopy(frozen['context'].get('selected_sources', [])),
         'input_generation': document['generation'], 'input_revision': document['input_revision'],
         'history': [], 'previous_job_id': previous,
         'protocol_request': {'document_id': document['id'], 'action': effective_action,
