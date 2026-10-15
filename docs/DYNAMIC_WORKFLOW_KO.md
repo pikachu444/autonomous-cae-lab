@@ -44,6 +44,17 @@ Runner의 경과 시간은 **시작 전**, **기록 없음**, **종료 시각 �
 후보 표의 **예측값**과 실패·벌점 목적함수는 유효 목적함수와 구분한다. 기본 표의 후보 번호는
 보기 순서이며 원 후보 ID, 실행 ID, 요청 식별값과 원 상태·응답은 **기술 상세**에 보존된다.
 
+### MCP에서 같은 결과 다시 읽기
+
+기존 Workbench MCP 연결에서도 `dynamic_reprocess_prepare(source_job_id)`로 원 실행의
+읽기 요청을 준비할 수 있다. 준비만으로 작업이나 솔버를 실행하지 않는다. 사용자가
+다시 읽기를 지시하면 반환한 인수를 그대로 `calculation_submit`의
+`operation="dynamic.reprocess"`에 전달한다. 동일 요청을 확인할 때는 같은 `request_id`와
+인수를 사용한다. 진행·취소·결과는 기존 `job_status`·`job_cancel`·`result_read`로 확인하며
+Runner에도 같은 작업이 나타난다. 원 실행의 실패·취소 상태와 공학적 미승인은 유지한다.
+업데이트 전에 실행한 MCP 서버는 다시 연결한 뒤 도구 목록에서
+`dynamic_reprocess_prepare`를 확인한다. Workbench 서비스나 계산 작업을 재시작할 필요는 없다.
+
 요청: **PRO-NS2-N3-DELIVERY-20261015-01**
 기준: **90d0869ba17e19671538f11e0630e1f35799ae51**. 첨부 `current-wip`는 읽기 전용 참조다. 이전 대화에서 회수한 NS2 구현은 없다.
 

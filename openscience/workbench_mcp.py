@@ -396,6 +396,16 @@ def calculation_submit(operation: str, arguments: dict, request_id: str | None=N
     return client().submit(operation,arguments,request_id=request_id,resources=resources)
 
 @mcp.tool()
+def dynamic_reprocess_prepare(source_job_id: str) -> dict:
+    """Prepare exact retained terminal native outputs without submission or solver execution.
+
+    After explicit user intent, pass the returned arguments unchanged to
+    calculation_submit('dynamic.reprocess', ...), then use the ordinary job tools.
+    The new readback job never changes the original execution or its qualification.
+    """
+    return client().dynamic_reprocess_request(source_job_id)
+
+@mcp.tool()
 def job_status(job_id: str) -> dict:
     """Read the same job ID shown by HTTP/GUI, without resubmission."""
     return client().status(job_id)
