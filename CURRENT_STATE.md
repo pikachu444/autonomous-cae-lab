@@ -213,8 +213,12 @@ Astra가 범위와 API 명칭을 대조했다. 재사용 대화의 B13-02도 파
 새 코드 없이 종료됐다. Edge의 실제 새 ChatGPT Pro/파워5 대화에서 B13-03을 보냈지만
 라이브러리 참조의 텍스트만 읽고 원 ZIP 내려받기는 403으로 실패했다. 원 네 파일을
 같은 새 대화에 직접 업로드했고 Pro가 실제 원본의 크기·CRC·manifest를 읽은 뒤
-셸 영역·빔 결과의 핵심 코드를 작성 중이다. 아직 최종 코드를 회수하지 않았으며 구현 완료로 표시하지
-않으며 기록은 기존 B1.3 `relay.json`을 따른다.
+셸 영역·빔 결과의 실제 구현 ZIP을 회수해 전용45개와 공통4개 최소 증분을 통합했다.
+Windows에서 새 시험의 UTF-8 읽기와 출력별 CSV 물리량 표시를 교정 중이다. 실제 FreeCAD의
+두 셸 영역 적용·writer·입력 준비는 확인했으나, 저장 사본의 새 owner에서 draft/applied가
+복원된 뒤 요소 참조 검사가 막혔다. 자동 재연결로 통과시키지 않고 원 실패와 자료를
+보존해 Pro 교정에 포함한다. 영역별 0압력 허용도 교정 대상이다. 일반 native 회전 자유도와
+모든 구속의 합반력·모멘트는 여전히 미구현이다. 아직 게시 전이며 기존 B1.3 `relay.json`을 따른다.
 
 **Expert 결과 첨부와 이어 읽기 통합:** 보존한 계산의 물리량·성분·단위를 선택해
 대화에 첨부하고, 편집 적용→실행 취소/다시 실행→저장→새 앱 재열기까지 연결했다.
@@ -232,11 +236,29 @@ Material의 명시 DP·초탄성/점탄성 point–FE·저장 개정의 해석 �
 명시 시각 전달→열구조/Post·저장/재열기는 `delivery-numerical-pde/pde-transfer-request/relay.json`에
 원자료·회수 상태를 둔다. 기존 owner/계산 엔진을 재사용하고 전용 구현·최소 공통 패치를
 분리한다. 공유변수 MDO/첫 실제 adjoint는 같은 PDE 작성자의 필수 후속이며 현재
-실행·완료로 표시하지 않는다. 두 요청 모두 코드 회수 전이다.
+실행·완료로 표시하지 않는다. Material 실제 구현본의 전용56개와 공통17개 최소 변경을
+회수해 통합했다. 기존 Windows FELUPE에서 DP·Neo-Hooke·단일 branch Maxwell의 실제
+8 Hex8 시편과 모든 적분점 point–FE 비교·Simulation 저장/새 owner 읽기를 확인했다.
+이는 합성 메시 경로다. 별도 실제 FreeCAD에서 DP 할당 미리보기·적용·Undo/Redo·FCStd 저장과
+새 프로세스 읽기를 확인했다. 그 원 frozen 입력의 실제 FE 실행은 출처 기록의 경로를 실행 경로로
+오인하는 관문에서 차단됐다. 새 native 세션의 런타임 Proxy 표현도 안정된 참조로 바꿔야 한다.
+두 Core 교정은 실제 Pro C1 작성 중이며 물리·경로 보호를 완화하지 않는다. Astra의 독립 검토와
+Sol의 모델 편집·피팅 연결·유실 응답 재개 GUI 교정은 마쳤으나 아직 게시 전이다. 원본은
+`_workspace/delivery-data-material/law-native-return/`에 있다.
+
+PDE S1 실제 구현도 회수해 전용24개·기존2개·공통11개와 기존 MCP 연결을 통합했다.
+Windows에서 실제 scikit-fem 열 계산→다른 P1 메시·명시 시각 전달→평면응력 열탄성→저장·
+별도 프로세스 재열기를 확인했다. Uniform·Affine의 원 허용치와 미적용 판정을 보존한다.
+실제 Qt 창의 공급/수신 선택·재조회·초안·시간 오류 수정과 계산 방법 표시를 교정했다.
+Post 입력에 기저·메시 식별·정상/물리 snapshot 의미와 s/ms/min/h 원시각을 보존하고,
+실제 등록 PVD/VTU reader로 확인했다. Astra의 이 범위 소스 검토에 남은 차단은 없으며
+PDE 묶음을 `c7bc81e`로 원격 main에 게시하고 로컬/원격 일치를 확인했다. [사용 방법과 범위](docs/s1_windows_transfer/README_KO.md),
+[Windows 확인](docs/s1_windows_transfer/WINDOWS_ACCEPTANCE_KO.md)을 따른다.
 Pro 작성 환경의 패키지 다운로드 DNS 실패에 대비해 공식 PyPI의 scikit-fem 12.0.2와
 기존 FELUPE 11.1.3 wheel·라이선스·API 확인을
 `_workspace/delivery-numerical-pde/offline-dependencies-20261015/`에 준비했다.
-설치나 제품 의존성 변경은 하지 않았으며 최종 코드 수신 후 필요한 교정에 사용한다.
+기존 runtime에는 공식 scikit-fem 12.0.2만 추가했고 기존 NumPy/SciPy/Qt를 갱신하지 않았다.
+새 선택 의존성 `spatial`에 무료 설치 경로를 연결했다. FELUPE는 기존 설치를 사용한다.
 
 관련 문서의 부분 저장(FN02-02)은 Data/Material 팀, 이동용 작업 사본(FN01-02)과
 선택 연결 보기(FN31)는 설치·연결 팀, 원격 실행(FN26)은 Runner 팀이 지속 담당한다.
@@ -277,9 +299,16 @@ runner만 사용하며 아직 plugin/실창 성공은 아니다. 원 결과는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38670920927 에 있다. 앞선 실패는
 https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38668595094 에 보존했다.
 후처리의 원 A/B 측정·시험 자료로 정확히 돌아가는 남은 구현도 현재 공개 원자료와
-완료 조건을 새 실제 Pro 대화에 직접 첨부해 배정했다. 전용 소스와 최소 공통 패치로
-반환받으며 원 보간 양끝 행·미저장 문서·새 owner 재열기를 포함한다. 회수 기록은
-Post 작업 트리의 `delivery-post/pro-origin-return-20261015-01/relay.json`이다.
+완료 조건을 새 실제 Pro 대화에 직접 첨부해 배정했다. 실제 A2 구현 ZIP을 회수해
+전용20개와 공유5개 최소 변경을 현재 main에 통합했다. 보간 양끝 행·미저장 문서·
+새 owner 재열기를 포함한다. Sol이 Windows Qt와 해당 기능 검사를, Astra가 원요구·
+기존 코드·권한·행 대응을 독립 검토 중이다. Windows Qt의 A/B 원행·보간 양끝 선택,
+취소와 늦은 응답 차단·단위 표시를 확인했다. 실제 ParaView 6.2에 없는 차트 속성을
+대역이 제공한 결함은 실제 Pro C1을 회수해 두 native 전용 파일에 적용했다. Windows VTK 전용 검사는 통과했으며 실제 chart 기술 확인과 Astra 검토 중이다. broker 예약 인수 충돌과 기존 Report
+읽기 명령의 허용목록 누락은 root가 현행 경계에 연결하고 실제 broker 왕복으로 확인했다.
+Pro의 Linux 검사와 실제 Windows/native 수용은 구별하며 아직 게시·완료가 아니다. 회수 기록은 Post 작업
+트리의 `delivery-post/pro-origin-return-20261015-01/relay.json`, 원본은
+`_workspace/delivery-post/origin-return-a2/`에 있다.
 cache·artifact·release 업로드, 유료 runner와 별도 서버는 사용하지 않는다. SDK·DLL
 완성과 실제 File→Exit 수용은 미확인으로 유지한다. 사용자 PC의 테스트
 FreeCAD·ParaView·Gmsh 잔류가 없는 것도 다시 확인했다.
@@ -315,8 +344,12 @@ CAS·수치·입력 조건은 바꾸지 않았다. 실제 desktop 진입·정상
 ZIP 다운로드가 발생하지 않고 검증 문서 미리보기도 실패해 실제 새 소스는 아직 없다.
 회수 복구에서도 C3 소스·패치·검사 기록이 없었고 Pro가 앞선 인도 주장을 철회했다.
 기존 지원 세 문서의 사본은 유지하며, 새 실제 Pro에서 먼저 C01의 Data·Material·두 Plan
-미완성 원문 이동→새 store 읽기·재열기·재복사 한 작업의 실제 작성을 시작했다. 다른 owner/native
-확장은 필수 후속으로 유지하며 첫 작업으로 전체 C3 완료를 선언하지 않는다.
+미완성 원문 이동→새 store 읽기·재열기·재복사 구현 C3A를 실제 회수해 전용20개와 공통7개를
+통합했다. Windows에서 Data·Material·두 Plan의 원문/선택 이동과 원 store 없이 cold 읽기·
+저장·재복사를 확인했다. 손상 보관물 안내와 Windows CLI UTF-8 출력도 교정했다.
+Astra가 미완성 원문에만 남은 옛 의존 자료의 수집 누락과 유실 응답 재확인 때 최신 전체
+문서 보호 누락을 찾아 실제 Pro C1로 교정 중이다. 아직 게시 전이다. 다른 owner/native
+확장은 필수 C3B 후속으로 유지하며 이 작업으로 전체 C3 완료를 선언하지 않는다.
 미완성 셀 보관·다른 문서 종류·native 의존 자료를 함께 이동하는 범위이며 최근 혼합 변수와
 재료 복구 GUI의 병렬 변경도 명시했다. 현재 지원 세 문서의 완료와 이 확장을 구분한다.
 같은 폴더의 `c3-c01-request/relay.json`이 현재 회수 기록이다.
