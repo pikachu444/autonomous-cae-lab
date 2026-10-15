@@ -156,9 +156,26 @@ class Workbench:
         return save_view(self, state, scope=scope, expected_revision=expected_revision,
                          expected_sha256=expected_sha256, command_id=command_id)
 
-    def portable_inspect(self, selections, *, draft_policy='acknowledged'):
+    def portable_inspect(self, selections, *, draft_policy='acknowledged', recovery_archives=None):
         from .portable_project import inspect_copy
-        return inspect_copy(self, selections, draft_policy=draft_policy)
+        return inspect_copy(self, selections, draft_policy=draft_policy, recovery_archives=recovery_archives)
+
+    def portable_recovery_catalog(self, document_ids):
+        from .portable_project_recovery import catalog
+        return catalog(self, document_ids)
+
+    def portable_recovery_read(self, archive_id, *, facet='layers', selection=None):
+        from .portable_project_recovery import read_archive
+        return read_archive(self.workspace, archive_id, facet=facet, selection=selection)
+
+    def portable_recovery_preview(self, archive_id, *, target_identity, buffer):
+        from .portable_recovery_resume import preview_resume
+        return preview_resume(self, archive_id, target_identity=target_identity, buffer=buffer)
+
+    def portable_recovery_resume(self, preview, *, approved, overwrite_approved, live_buffer, command_id):
+        from .portable_recovery_resume import resume
+        return resume(self, preview, approved=approved, overwrite_approved=overwrite_approved,
+                      live_buffer=live_buffer, command_id=command_id)
 
     def portable_create(self, inspection, destination, *, approved, command_id, session_id):
         from .portable_project import create_copy

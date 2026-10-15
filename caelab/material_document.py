@@ -371,14 +371,18 @@ class MaterialDocuments(RetainedComparisons):
                                'input_generation': expected_generation, 'input': document['draft'],
                                'input_revision': document['input_revision'], 'session_id': self.session_id})
             if operation == self.update_operation:
-                if set(arguments) != {'draft'}:
-                    raise ValueError('Material update requires only draft')
+                allowed = {'draft', 'portable_recovery_inputs'} if self.kind == 'data' else {'draft'}
+                if 'draft' not in arguments or set(arguments) - allowed:
+                    raise ValueError('Material update requires only draft; Data may carry an explicit portable source review')
                 draft = self._draft(arguments['draft'])
                 if canonical_hash(draft) != canonical_hash(document['draft']):
                     document['_undo'].append(deepcopy(document['draft']))
                     document['_redo'] = []
                     document['draft'] = draft
                     self._changed(document)
+                if self.kind == 'data' and 'portable_recovery_inputs' in arguments:
+                    from .portable_recovery_data_inputs import retain_for_resume
+                    retain_for_resume(self, document, arguments['portable_recovery_inputs'], command_id=command_id)
             elif operation in {'document.undo', 'document.redo'}:
                 if arguments:
                     raise ValueError('Undo/Redo requires empty arguments')
@@ -420,6 +424,10 @@ class MaterialDocuments(RetainedComparisons):
                 self._persist_draft(document)
             self._documents[identifier] = document
             response = {'document': self._public(document), 'command_id': command_id}
+            if operation in {self.update_operation, 'document.undo', 'document.redo'}:
+                # Existing receipt binds the FULL acknowledged post-state, not
+                # only input identity (evaluate/comparison can keep that identity).
+                response['acknowledged_document_sha256'] = canonical_hash(document)
             if job is not None:
                 response['job'] = job
             if operation == 'data.processing.apply':

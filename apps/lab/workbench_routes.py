@@ -46,10 +46,15 @@ def handle(handler,method,path,query):
                 raise ServiceError(400, '정확한 관계/배치 명령 필드가 다릅니다.')
             return handler._json(200, getattr(workbench, name)(**body))
         if path == '/api/workbench/portable-project/inspect':
-            if 'selections' not in body or set(body) - {'selections', 'draft_policy'}:
+            if 'selections' not in body or set(body) - {'selections', 'draft_policy', 'recovery_archives'}:
                 raise ServiceError(400, '문서 선택과 초안 포함 방식을 지정하세요.')
             return handler._json(200, workbench.portable_inspect(**body))
         portable_routes = {
+            '/api/workbench/portable-project/recovery-catalog': ('portable_recovery_catalog', {'document_ids'}),
+            '/api/workbench/portable-project/recovery-read': ('portable_recovery_read', {'archive_id', 'facet', 'selection'}),
+            '/api/workbench/portable-project/recovery-preview': ('portable_recovery_preview', {'archive_id', 'target_identity', 'buffer'}),
+            '/api/workbench/portable-project/recovery-resume': ('portable_recovery_resume',
+                {'preview', 'approved', 'overwrite_approved', 'live_buffer', 'command_id'}),
             '/api/workbench/portable-project/create': ('portable_create',
                 {'inspection', 'destination', 'approved', 'command_id', 'session_id'}),
             '/api/workbench/portable-project/verify': ('portable_verify', {'folder'}),

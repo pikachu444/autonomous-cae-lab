@@ -257,10 +257,13 @@ class DataDocuments(MaterialDocuments):
                 or source.stat().st_size != receipt.get('bytes') or file_hash(source) != receipt.get('sha256')):
             raise ValueError('Registered Data input bytes or metadata changed; previous revision is preserved')
 
-    def _retain_inputs(self, saved, folder):
+    def _retain_inputs(self, saved, folder, *, recovery_inputs=None):
+        from .portable_data_execution import retain
+        retain(self, saved, folder)
         drafts = [saved['draft'], *saved.get('_undo', []), *saved.get('_redo', [])]
         drafts.extend(run.get('draft', {}) for run in saved['runs'])
-        identifiers = set()
+        # Internal verified Q sources only; never a raw editor or input registry.
+        identifiers = set(recovery_inputs or {})
         for draft in drafts:
             if not isinstance(draft, dict):
                 continue
@@ -300,7 +303,9 @@ class DataDocuments(MaterialDocuments):
         for identifier in sorted(identifiers):
             original = self._retained_source(saved, identifier)
             try:
-                source, receipt = original if original is not None else self.resolve_input(identifier)
+                source, receipt = original if original is not None else (
+                    recovery_inputs[identifier][:2] if recovery_inputs and identifier in recovery_inputs
+                    else self.resolve_input(identifier))
             except FileNotFoundError:
                 if identifier in used:
                     raise  # A submitted import must not lose its declared raw source.
@@ -315,7 +320,21 @@ class DataDocuments(MaterialDocuments):
             self._check_source(identifier, source, receipt)
             self._check_source(identifier, destination, receipt)
             metadata = destination.parent / 'input.json'
-            save_json(metadata, receipt)
+            original_metadata = None
+            if recovery_inputs and identifier in recovery_inputs:
+                original_metadata = recovery_inputs[identifier][2]
+            elif original is not None:
+                binding = saved['retained_inputs'][identifier]
+                original_metadata = self._folder(saved['id']) / 'revisions' / check_id(binding['revision']) / binding['metadata']
+            if original_metadata is not None:
+                digest = file_hash(original_metadata)
+                if load_json(original_metadata) != receipt:
+                    raise ValueError('Retained input.json differs from the verified original receipt')
+                shutil.copyfile(original_metadata, metadata)
+                if file_hash(original_metadata) != digest or file_hash(metadata) != digest:
+                    raise ValueError('Retained input.json changed during retention')
+            else:
+                save_json(metadata, receipt)
             retained[identifier] = {'revision': folder.name, 'file': destination.relative_to(folder).as_posix(),
                 'metadata': metadata.relative_to(folder).as_posix(), 'sha256': receipt['sha256'], 'bytes': receipt['bytes']}
         saved['retained_inputs'] = retained

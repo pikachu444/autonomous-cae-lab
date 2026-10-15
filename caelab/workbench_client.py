@@ -80,9 +80,25 @@ class Client:
         return self.request('/api/workbench/connection/view-save', {'state': state, 'scope': scope,
             'expected_revision': expected_revision, 'expected_sha256': expected_sha256, 'command_id': command_id})
 
-    def portable_inspect(self, selections, *, draft_policy='acknowledged'):
+    def portable_inspect(self, selections, *, draft_policy='acknowledged', recovery_archives=None):
         return self.request('/api/workbench/portable-project/inspect',
-                            {'selections': selections, 'draft_policy': draft_policy})
+                            {'selections': selections, 'draft_policy': draft_policy, 'recovery_archives': recovery_archives})
+
+    def portable_recovery_catalog(self, document_ids):
+        return self.request('/api/workbench/portable-project/recovery-catalog', {'document_ids': document_ids})
+
+    def portable_recovery_read(self, archive_id, *, facet='layers', selection=None):
+        return self.request('/api/workbench/portable-project/recovery-read',
+                            {'archive_id': archive_id, 'facet': facet, 'selection': selection})
+
+    def portable_recovery_preview(self, archive_id, *, target_identity, buffer):
+        return self.request('/api/workbench/portable-project/recovery-preview',
+                            {'archive_id': archive_id, 'target_identity': target_identity, 'buffer': buffer})
+
+    def portable_recovery_resume(self, preview, *, approved, overwrite_approved, live_buffer, command_id):
+        return self.request('/api/workbench/portable-project/recovery-resume',
+            {'preview': preview, 'approved': approved, 'overwrite_approved': overwrite_approved,
+             'live_buffer': live_buffer, 'command_id': command_id})
 
     def portable_create(self, inspection, destination, *, approved, command_id, session_id):
         # A lost response is recovered by explicitly retrying this SAME request.

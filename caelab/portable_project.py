@@ -131,7 +131,7 @@ def _unpinned_job_inputs(document: dict):
                     yield path + '/' + field
 
 
-def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='acknowledged') -> dict[str, Any]:
+def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='acknowledged', recovery_archives=None) -> dict[str, Any]:
     """List pinned files and missing dependencies without saving or collecting.
 
     The user reviews this exact inventory before approving creation. A selected
@@ -173,6 +173,17 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
         summaries.append({'document_id': identifier, 'saved_revision': revision,
                           'title': current['title'], 'kind': current['kind'],
                           'draft_included': draft_policy == 'acknowledged'})
+    from .portable_project_recovery import collect as collect_recovery
+    recovery = {'recovery_selections': [], 'recovery_archives': [], 'recovery_files': []}
+    try:
+        recovery = collect_recovery(workbench, selected, recovery_archives)
+        from .portable_recovery_dependencies import seed_dependencies
+        queue += seed_dependencies(reader, selected, recovery)
+    except PortableProjectError as error:
+        issues.extend(error.issues)
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        issues.append(Issue('RECOVERY_ARCHIVE_UNAVAILABLE', str(workbench.workspace), str(error),
+            '원문서의 보관 자료와 receipt를 확인하세요. 원문은 변경하지 않았습니다.'))
     while queue:
         identifier, revision = queue.pop(0)
         if (identifier, revision) in visited:
@@ -185,7 +196,7 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                     identifier + '/' + position,
                     '보관소 등록 파일/설계 또는 소유자 없는 계산 입력은 사본에 자동 포함하지 않습니다.',
                     'Data 가져오기 결과를 정확한 저장 참조로 선택하세요. Native 입력은 해당 팀의 별도 보존 계약이 필요합니다.', identifier))
-            folder = reader.owner(identifier)._folder(identifier) / 'revisions' / revision
+            folder = reader.revision_folder(identifier, revision)
             if virtual_revision(revision):
                 for entry in reader.working_files[identifier]:
                     if entry['saved_revision'] != revision:
@@ -268,7 +279,8 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                                 str(error), '정확한 저장 원본을 복구하거나 원문서에서 새 저장 개정을 선택하세요.', identifier))
     files = sorted(inventory.values(), key=lambda r: r['path'])
     total = sum(row['bytes'] for row in files)
-    if len(files) * 2 > MAX_FILES or total * 2 > MAX_BYTES:
+    recovery_bytes = sum(row['bytes'] for row in recovery['recovery_files'])
+    if len(files) * 2 + len(recovery['recovery_files']) > MAX_FILES or total * 2 + recovery_bytes > MAX_BYTES:
         issues.append(Issue('SIZE_LIMIT', str(workbench.workspace), '원본 보존본과 작업 사본의 크기 한도를 넘습니다.', '문서 묶음을 명시적으로 나누세요.'))
     from .connection_graph_view import view_inventory
     try:
@@ -279,10 +291,10 @@ def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='ackno
                             str(error), '프로젝트 배치 파일을 명시적으로 복구한 뒤 다시 확인하세요.'))
     result = {'format': FORMAT, 'status': 'BLOCKED' if issues else 'READY', 'view_state': view,
         'service_session_id': workbench.session_id, 'selections': chosen, 'documents': summaries,
-        'draft_policy': draft_policy, 'capsule_boundary': deepcopy(CAPSULE_CONTRACT),
+        'draft_policy': draft_policy, 'capsule_boundary': deepcopy(CAPSULE_CONTRACT), **recovery,
         'source_store': str(workbench.workspace), 'pins': pins, 'files': files,
         'revisions': [{'document_id': i, 'saved_revision': r} for i, r in sorted(visited)],
-        'bytes_to_copy': total * 2, 'warnings': warnings, 'issues': [asdict(i) for i in issues],
+        'bytes_to_copy': total * 2 + recovery_bytes, 'warnings': warnings, 'issues': [asdict(i) for i in issues],
         'executed': False, 'engineering_release': 'NOT_RELEASED'}
     result['inspection_sha256'] = canonical_hash(result)
     return result
@@ -293,6 +305,8 @@ class _Fork:
         self.wb, self.plan, self.stage = wb, plan, stage
         self.reader = AcknowledgedReader(wb, [r['document_id'] for r in plan['documents']]
                                          if plan.get('draft_policy') == 'acknowledged' else ())
+        from .portable_recovery_dependencies import seed_dependencies
+        seed_dependencies(self.reader, {r['document_id'] for r in plan['documents']}, plan)
         self.documents = {r['document_id']: _PREFIX[r['kind']] + uuid.uuid4().hex for r in plan['documents']}
         self.revisions = {(r['document_id'], r['saved_revision']): 'R' + uuid.uuid4().hex for r in plan['revisions']}
         self.snapshots = {key: self.reader.revision(*key) for key in self.revisions}
@@ -439,6 +453,11 @@ class _Fork:
         document.update(id=self.documents[identifier], saved_revision=self.revisions[key], _disk_revision=self.revisions[key],
                         input_revision=self.input_ids[(identifier, original['input_revision'])],
                         session_id='Sportable_' + self.project_id[1:])
+        for marker in ('_save_command', '_mutation_command'):
+            if marker in document:
+                document.setdefault('portable_owner_command_history', []).append(
+                    {'authority': 'HISTORY_ONLY', 'source_document_id': identifier,
+                     'field': marker, 'record': document.pop(marker)})
         document['draft'] = self.draft(identifier, original['draft'])
         for stack in ('_undo', '_redo'):
             document[stack] = [self.draft(identifier, d) for d in original.get(stack, [])]
@@ -480,6 +499,12 @@ class _Fork:
             document.setdefault('portable_publication_history', []).append(
                 {'authority': 'HISTORY_ONLY', 'source_document_id': identifier,
                  'witnesses': document.pop('_candidate_evidence_publications')})
+        if document['kind'] == 'data' and (self.plan.get('recovery_archives') or
+                any(r.get('portable_data_execution') for r in original['runs'])):
+            from .portable_data_execution import write as write_data_execution
+            for source_run, run in zip(original['runs'], document['runs']):
+                if source_run.get('retention_complete'):
+                    write_data_execution(self, identifier, revision, source_run, run, target)
         if document['kind'] == 'numerical':
             from .portable_project_execution import write_execution
             for source_run, run in zip(original['runs'], document['runs']):
@@ -621,7 +646,8 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
         prior_receipt = existing_receipt()  # A concurrent identical call may have completed.
         if prior_receipt:
             return prior_receipt
-        fresh = inspect_copy(workbench, inspection['selections'], draft_policy=inspection.get('draft_policy', 'saved_only'))
+        fresh = inspect_copy(workbench, inspection['selections'], draft_policy=inspection.get('draft_policy', 'saved_only'),
+                             recovery_archives=inspection.get('recovery_selections', []))
         if fresh.get('inspection_sha256') != inspection['inspection_sha256']:
             fail('STALE_INSPECTION', str(destination), '포함 자료나 문서 입력/저장 개정이 바뀌었습니다.', '포함 목록을 새로 확인하세요.')
         stage = Path(tempfile.mkdtemp(prefix='.caelab-copy-', dir=destination.parent))
@@ -630,6 +656,8 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
             project_id = 'P' + uuid.uuid4().hex
             fork = _Fork(workbench, inspection, stage, project_id)
             documents = fork.write()
+            from .portable_project_recovery import write_archives
+            recovery_archives = write_archives(fork)
             from .connection_graph_view import transfer_view
             transfer_view(workbench, stage, fork.documents, inspection.get('view_state'))
             immutable = []
@@ -637,12 +665,13 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
                 if not path.is_file():
                     continue
                 rel = path.relative_to(stage).as_posix()
-                if rel.startswith('portable/originals/') or '/revisions/' in rel or '/candidate_evidence/' in rel:
+                if rel.startswith(('portable/originals/', 'portable/recovery/', 'portable/recovery-maps/')) or '/revisions/' in rel or '/candidate_evidence/' in rel:
                     immutable.append({'path': rel, **fingerprint_file(path)})
             manifest = {'format': FORMAT, 'project_id': project_id, 'created_utc': utc_now(),
                 'command_id': command_id, 'request_sha256': signature,
                 'source_store': inspection['source_store'], 'source_inspection_sha256': inspection['inspection_sha256'],
                 'documents': documents, 'draft_policy': inspection.get('draft_policy', 'saved_only'),
+                'recovery_archives': recovery_archives,
                 'capsule_boundary': deepcopy(CAPSULE_CONTRACT),
                 'revision_map': [{'source_document_id': i, 'source_revision': r,
                                   'document_id': fork.documents[i], 'revision': new} for (i, r), new in sorted(fork.revisions.items())],
@@ -656,7 +685,8 @@ def create_copy(workbench, inspection: dict, destination: str | Path, *, approve
             checked = verify_project(stage)
             if checked['status'] != 'READY':
                 raise PortableProjectError([Issue(**i) for i in checked['issues']])
-            last = inspect_copy(workbench, inspection['selections'], draft_policy=inspection.get('draft_policy', 'saved_only'))
+            last = inspect_copy(workbench, inspection['selections'], draft_policy=inspection.get('draft_policy', 'saved_only'),
+                             recovery_archives=inspection.get('recovery_selections', []))
             if last.get('inspection_sha256') != inspection['inspection_sha256']:
                 fail('SOURCE_CHANGED', str(workbench.workspace), '복사 중 원본 자료가 바뀌었습니다.', '포함 목록부터 다시 확인하세요.')
             # Exclusive directory reservation prevents even a concurrent empty
@@ -715,6 +745,8 @@ def verify_project(folder: str | Path) -> dict:
                 if path.is_file():
                     relative_name(path.relative_to(folder).as_posix())
         issues = verify_inventory(folder, manifest['files'])
+        from .portable_project_recovery import verify_archives
+        verify_archives(folder, manifest)
         # Current document heads can evolve through the original owner.save.
         # Do not pin mutable heads to their original export bytes.
         for row in manifest['documents']:

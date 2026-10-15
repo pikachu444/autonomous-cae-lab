@@ -390,9 +390,13 @@ Astra가 미완성 원문에만 남은 옛 의존 자료의 수집 누락과 유
 통합했다. Windows 새 C1 25개 검사와 Astra의 원 R1/R2 해소 검토를 마쳤고 원 GUI·UTF-8
 교정은 보존했다. 별도 Data 경로에서는 보정 자료가 원문 보관물에만 남으면 명시 재개 뒤
 현재 보존 입력에 연결되지 않아 새 Keep·재복사가 막히는 것을 한 번의 Windows 실행으로
-재현했다. 원 자료와 실패를 보존하고 실제 Pro에 이 Data 작업의 C2 교정을 요청했다.
-`_workspace/delivery-install-connections/c3a-data-q-request/relay.json`이 해당 회수 기록이다.
-아직 게시 전이다. 필수 C3B의 Report·Study·Expert·PDE·Simulation·Evaluation과 managed
+재현했다. 실제 Pro C2를 회수해 전용 구현과 Data/Material 공통 연결을 통합했고 Astra가
+검토했다. Windows에서 원문 미리보기→현재 편집/저장→새 보관→재복사→별도 프로세스
+재열기가 통과했다. 원 폴더가 없어도 시험·보정 자료를 읽으며 원 자료와 실패를 보존한다.
+새 15개와 영향 2개 검사만 실행했고 원 대규모 검사는 반복하지 않았다. C3A/C1/C2를
+한 게시 묶음으로 정리했으며 [Windows 확인](docs/portable_connection_c3a/WINDOWS_VERIFICATION_KO.md)에
+범위를 기록했다. `_workspace/delivery-install-connections/c3a-data-q-request/relay.json`이
+해당 회수·게시 기록이다. 필수 C3B의 Report·Study·Expert·PDE·Simulation·Evaluation과 managed
 FCStd/Post 이동은 Sol이 기존 요구·API로 작성 요청을 구체화하고 Astra가 독립 검토했다.
 `_workspace/delivery-install-connections/c3b-request/`를 재사용해 Data C2 반영 뒤 정확한
 작성 기준을 고정한다. 이 준비나 세 문서의 사본 구현을 전체 C3 완료로 세지 않는다.

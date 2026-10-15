@@ -125,7 +125,11 @@ def capture(owner, identifier, root, resolve_owner):
             metadata = read_result(result_folder, verify='all', selection={'metadata_only': True})
             if data_inputs is not None:
                 from .data_recovery_inputs import verify_import_sources
-                verify_import_sources(run, metadata, data_inputs)
+                submitted = run
+                if run.get('portable_data_execution'):
+                    from .portable_data_execution import original_for_capture
+                    submitted = original_for_capture(owner, document, run, result_folder)
+                verify_import_sources(submitted, metadata, data_inputs)
             add_tree(result_folder)
             item.update(result_at_review='PUBLISHED', result_path=result_folder.resolve().relative_to(root).as_posix(),
                         result_sha256=file_hash(result_folder / 'result.json'))
@@ -304,7 +308,11 @@ def verify_assets(folder, acknowledged):
             if 'data_inputs' in acknowledged:
                 from .data_recovery_inputs import verify_import_sources
                 run = next(r for r in acknowledged['document']['runs'] if r['job_id'] == job['job_id'])
-                verify_import_sources(run, metadata, acknowledged['data_inputs'])
+                submitted = run
+                if run.get('portable_data_execution'):
+                    from .portable_data_execution import original_for_archive
+                    submitted = original_for_archive(folder, acknowledged['document'], run, base)
+                verify_import_sources(submitted, metadata, acknowledged['data_inputs'])
 
     if 'data_inputs' in acknowledged:
         from .data_recovery_inputs import verify_inputs

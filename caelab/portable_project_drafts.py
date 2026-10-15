@@ -22,10 +22,8 @@ HISTORY = 'acknowledged-input-'
 def virtual_revision(revision):
     return revision == WORKING or revision.startswith(HISTORY)
 POLICIES = {'acknowledged', 'saved_only'}
-# Reserved extension boundary. No runtime UI/global settings discovery.
-CAPSULE_CONTRACT = {'format': 'caelab.portable-capsule-boundary/1',
-    'status': 'NOT_INTEGRATED', 'owner': 'DataMaterial',
-    'automatic_collection': False, 'raw_widget_buffers_included': False}
+# Explicit kept archives only; no runtime UI/global settings discovery.
+from .portable_project_recovery import BOUNDARY as CAPSULE_CONTRACT
 
 
 def snapshot_bytes(document):
@@ -114,6 +112,53 @@ class AcknowledgedReader(SnapshotReader):
         self.live_results = {}
         self.live_jobs = {}
         self.history_documents = {}
+        self.archive_folders = {}
+        self.recovery_inputs = set()
+
+    def revision_folder(self, identifier, revision):
+        return self.archive_folders.get((identifier, revision),
+            self.owner(identifier)._folder(identifier) / 'revisions' / revision)
+
+    def archived_revision(self, identifier, revision, folder, proof):
+        """Register an already verified Q saved source, not a substitute owner.
+
+        Existing live immutable bytes must agree if present. A missing historical
+        folder may be read from Q.assets; a corrupt live revision is NOT repaired.
+        """
+        key = (check_id(identifier), check_id(revision))
+        folder = Path(folder)
+        document = json_file(inside(folder, 'document.json'))
+        manifest = inside(folder, 'revision.json')
+        from .evaluation import file_hash
+        if (document.get('id') != identifier or document.get('saved_revision') != revision
+                or document.get('kind') != self.owner(identifier).kind
+                or canonical_hash(document) != proof['document_sha256']
+                or file_hash(manifest) != proof['revision_manifest_sha256']
+                or self.owner(identifier)._fingerprint(document) != document.get('_saved_fingerprint')):
+            raise ValueError('Q saved source differs from its actual owner retention proof')
+        live = self.owner(identifier)._folder(identifier) / 'revisions' / revision
+        if live.exists():
+            verified = super().revision(identifier, revision)
+            if canonical_hash(verified) != canonical_hash(document) or file_hash(live / 'revision.json') != file_hash(manifest):
+                raise ValueError('Current immutable revision conflicts with original Q saved source')
+            return
+        if key in self._revisions and canonical_hash(self._revisions[key]) != canonical_hash(document):
+            raise ValueError('Two Q assets disagree about one exact saved revision')
+        self._revisions[key] = deepcopy(document)
+        self.archive_folders.setdefault(key, folder)
+
+    def resolve(self, typed):
+        if typed.form == 'material_input' and typed.value.get('saved_revision'):
+            from .connection_graph import saved_reference
+            ref = typed.value
+            saved = self.revision(typed.document_id, ref['saved_revision'])
+            if (saved['kind'] != 'material' or saved['input_revision'] != ref['input_revision']
+                    or saved['generation'] != ref['generation']
+                    or canonical_hash(saved['draft']) != canonical_hash(ref['draft'])
+                    or canonical_hash(saved['draft']) != ref.get('input_sha256')):
+                raise ValueError('Exact saved Material binding differs from retained owner input')
+            return {'exact_reference':saved_reference(saved), 'reference_basis':'stored_reference'}
+        return super().resolve(typed)
 
     def _add(self, identifier, asset, path=None, *, payload=None, archive_only=False, revision=WORKING):
         relative_name(asset)
@@ -232,7 +277,7 @@ class AcknowledgedReader(SnapshotReader):
         key = (identifier, input_revision)
         revision = HISTORY + check_id(input_revision)
         if key not in self.history_documents:
-            if identifier not in self.included:
+            if identifier not in self.included | self.recovery_inputs:
                 raise ValueError('이전 입력을 증명할 원문서의 acknowledged 이력을 명시적으로 포함하세요.')
             original, path = recorded_material_input(self, identifier, input_revision)
             # Input-only snapshot, NOT an invented old whole document/history.
@@ -253,11 +298,22 @@ class AcknowledgedReader(SnapshotReader):
         return super().revision(identifier, revision)
 
     def matching_input(self, identifier, input_revision, digest, generation=None):
+        for (did, rev), doc in sorted(self._revisions.items()):
+            if ((did, rev) in self.archive_folders and did == identifier
+                    and doc['input_revision'] == input_revision and canonical_hash(doc['draft']) == digest
+                    and (generation is None or doc['generation'] == generation)):
+                return deepcopy(doc)
         try:
             return super().matching_input(identifier, input_revision, digest, generation)
         except FileNotFoundError:
             if identifier not in self.included:
-                raise
+                if identifier not in self.recovery_inputs:
+                    raise
+                prior = self.history_input(identifier, input_revision)
+                if (canonical_hash(prior['draft']) != digest or
+                        generation is not None and prior['generation'] != generation):
+                    raise ValueError('Recovery acknowledged input differs from exact owner receipt')
+                return prior
             current = self.working(identifier)
             if (current['input_revision'] == input_revision and canonical_hash(current['draft']) == digest
                     and (generation is None or current['generation'] == generation)):
@@ -269,12 +325,24 @@ class AcknowledgedReader(SnapshotReader):
             return self.history_input(identifier, input_revision)
 
     def job(self, document, run):
+        revision = run.get('retained_record', {}).get('revision')
+        if (document['id'], revision) in self.archive_folders:
+            folder = self.revision_folder(document['id'], revision)
+            job = json_file(inside(folder, 'jobs/' + check_id(run['job_id']) + '.json'))
+            if (job['id'] != run['job_id'] or job['operation'] != run['operation']
+                    or job['arguments'] != run['arguments']):
+                raise ValueError('Q retained job differs from its acknowledged run')
+            return job
         if run.get('retained_record', {}).get('revision') == WORKING:
             self.working(document['id'])
             return deepcopy(self.live_jobs[(document['id'], run['job_id'])])
         return super().job(document, run)
 
     def result(self, document, run, *, metadata_only=False):
+        revision = run.get('retained_result', {}).get('revision')
+        if (document['id'], revision) in self.archive_folders:
+            folder = self.revision_folder(document['id'], revision) / 'results' / check_id(run['job_id'])
+            return read_result(folder, verify='all', selection={'metadata_only': True} if metadata_only else None)
         if document['id'] in self.included:
             self.working(document['id'])
             folder = self.live_results.get((document['id'], run['job_id']))

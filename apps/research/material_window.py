@@ -172,6 +172,8 @@ class MaterialWindow(QMainWindow):
         self.save_action.triggered.connect(self.save_document)
         from .data_material_recovery_host import install_recovery_action
         self.recovery_action=install_recovery_action(self,files)
+        from .portable_recovery_host import install_portable_recovery_action
+        self.portable_recovery_action = install_portable_recovery_action(self, files)
         close_action.triggered.connect(self.close)
         edit = self.menuBar().addMenu("편집(&E)")
         self.undo_action = QAction("실행 취소", self, shortcut=QKeySequence.Undo)

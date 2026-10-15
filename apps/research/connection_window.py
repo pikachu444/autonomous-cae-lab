@@ -40,7 +40,7 @@ class CopyReviewDialog(QDialog):
         names = ', '.join(row['title'] for row in inspection.get('documents', []))
         note = QLabel(('문서에 반영한 초안과 저장본: ' if inspection.get('draft_policy') == 'acknowledged' else '선택한 저장본만: ') + names + '\n'
             '보존 원본과 편집용 사본을 함께 만듭니다. 계산하지 않으며 기존 폴더는 덮어쓰지 않습니다.\n'
-            '입력 중이며 아직 문서에 반영하지 않은 셀 값은 포함하지 않습니다.')
+            '명시 선택한 보관 원문 '+str(len(inspection.get('recovery_archives',[])))+'개를 함께 옮깁니다. 아직 보관하지 않은 셀은 포함하지 않습니다.')
         note.setWordWrap(True)
         layout.addWidget(note)
         table = QTableWidget(0, 3)
@@ -53,6 +53,12 @@ class CopyReviewDialog(QDialog):
                 item = QTableWidgetItem(text)
                 item.setToolTip(text)
                 table.setItem(index, column, item)
+        for row in inspection.get('recovery_archives', []):
+            index = table.rowCount(); table.insertRow(index)
+            total = sum(f['bytes'] for f in row['files'])
+            state = '삭제 표시 원문' if row['state'] == 'DISCARDED' else '보관 원문·당시 문서·저장 기록'
+            for column, text in enumerate((titles.get(row['document_id'], '문서'), state, str(total))):
+                table.setItem(index, column, QTableWidgetItem(text))
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
@@ -459,7 +465,8 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
     def prepare_copy(self):
         chosen = self.checked_documents()
         if chosen:
-            self._call(lambda: self.client.portable_inspect(chosen), self._review_copy)
+            from .connection_window_recovery import prepare_copy
+            prepare_copy(self, chosen)
 
     def _review_copy(self, inspection):
         review = CopyReviewDialog(inspection, self)

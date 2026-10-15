@@ -171,6 +171,8 @@ class DataWindow(QMainWindow):
         self.save_action.triggered.connect(self.save_document)
         from .data_material_recovery_host import install_recovery_action
         self.recovery_action=install_recovery_action(self,files)
+        from .portable_recovery_host import install_portable_recovery_action
+        self.portable_recovery_action = install_portable_recovery_action(self, files)
         close.triggered.connect(self.close)
         self.undo_action.triggered.connect(lambda: self.command('document.undo'))
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))

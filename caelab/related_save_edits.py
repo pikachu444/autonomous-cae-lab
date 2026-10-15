@@ -15,7 +15,10 @@ from .storage import canonical_hash, check_id, load_json, save_json
 def mutation_marker(document, *, operation, command_id, request_hash):
     return {'operation': operation, 'command_id': command_id, 'request_hash': request_hash,
             'session_id': document['session_id'], 'generation': document['generation'],
-            'input_revision': document['input_revision'], 'input_sha256': canonical_hash(document['draft'])}
+            'input_revision': document['input_revision'], 'input_sha256': canonical_hash(document['draft']),
+            # Exclude just the marker being replaced; every other owner field,
+            # including Undo/Redo, runs, comparisons and saved context is bound.
+            'document_sha256': canonical_hash({k: v for k, v in document.items() if k != '_mutation_command'})}
 
 
 def recover_mutation(owner, identifier, command_id):
@@ -44,6 +47,9 @@ def recover_mutation(owner, identifier, command_id):
                 or canonical_hash(document['draft']) != marker['input_sha256']
                 or document['generation'] != marker['generation']):
             raise ValueError('Published mutation marker and input differ')
+        if (marker.get('document_sha256') is not None and marker['document_sha256'] !=
+                canonical_hash({k: v for k, v in document.items() if k != '_mutation_command'})):
+            raise ValueError('Owner changed after the recorded mutation; preserve the newer whole document')
         current = owner._documents.get(identifier)
         if (current is not None and current['session_id'] == marker['session_id']
                 and current['generation'] == prior['input_generation']
@@ -54,6 +60,8 @@ def recover_mutation(owner, identifier, command_id):
             owner._documents[identifier] = deepcopy(document)
         response = {'document': owner._public(document), 'command_id': command_id,
                     'recovered_after_response_loss': True}
+        if marker.get('document_sha256') is not None:
+            response['acknowledged_document_sha256'] = canonical_hash(document)
         save_json(path, {'request_hash': prior['request_hash'], 'response': response})
         return response
     return None
