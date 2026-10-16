@@ -1,4 +1,13 @@
 """Short names for newly registered ParaView objects; saved names stay unchanged."""
+from pathlib import Path
+
+
+def document_title(document, fallback='후처리'):
+    title = document.get('title')
+    if isinstance(title, str) and title.strip():
+        return title
+    root = document.get('project_root')
+    return (Path(root).name if isinstance(root, str) and root else '') or fallback
 
 
 def unique_name(label, sources):

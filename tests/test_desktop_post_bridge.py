@@ -175,6 +175,7 @@ def test_macro_and_mcp_share_owner_save_completion(bridge, save_commands, monkey
     assert bridge.saved[-1]["generation"] == owner.generation == 1
     assert bridge.saved[-1]["view_generation"] == owner.view_generation == 1
     assert bridge.saved[-1]["document_id"] == owner.document_id
+    assert bridge.saved[-1]["title"] == owner.title
     dispatcher._tick()
     report = dispatcher.outgoing.get_nowait()["documents"][0]
     assert report["dirty"] is False and report["saved_revision"] == "saved"
@@ -185,6 +186,17 @@ def test_macro_and_mcp_share_owner_save_completion(bridge, save_commands, monkey
     assert bridge.doc["workspace_sha256"] == "original"
     dispatcher.close()
     assert save_commands._save_owner is None
+
+
+@pytest.mark.parametrize('title', [None, '충격 결과 비교'])
+def test_reopened_title_uses_document_or_original_project_not_revision_folder(bridge, tmp_path, monkeypatch, title):
+    root = tmp_path / '사용자 해석'
+    bridge.doc['project_root'] = str(root)
+    if title is not None:
+        bridge.doc['title'] = title
+    revision = root / 'saved' / '20261016T001023Z-330d53' / 'project.json'
+    monkeypatch.setattr(bridge.module.commands, 'project', lambda: (revision, bridge.doc))
+    assert bridge.module.Owner().descriptor()['title'] == (title or '사용자 해석')
 
 
 @pytest.mark.parametrize("failure", ["native", "manifest"])

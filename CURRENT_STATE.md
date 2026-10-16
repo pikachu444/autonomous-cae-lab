@@ -25,11 +25,12 @@ Sol 담당들이 확정 명세의 본코드·GUI·필요 검사·사용법을 �
 구별한다. Astra 독립 검토는 의미 있는 통합 기능의 경계에서 한다. MoAI는 이 작업의
 SPEC·작업 배정·진행 관리 도구이며 실제 실행과 통합은 Codex가 책임진다.
 
-**지금 끝낼 인도:** 외부 ParaView 결과의 면 평균·면 평균 이력·두 점 상대변위 이력과
-저장·Data/계획 전달이다. 실제 앱 간 계산값 전달과 같은 저장본의 새 세션 재열기를 마쳤고,
-재열기 때 삭제된 비교 편집기를 참조하던 화면 오류도 교정했다. Astra 최종 검토를 마쳐
-이 기능 묶음을 게시한다. 이어 같은 GUI 전담의 작은
-비모달 분석 설정창과 native 모델/결과의 분할 보기 후보를 통합한다. 아래 과거 인도 결과를
+**지금 끝낼 인도:** ParaView 주 작업창에 연결하는 작은 비모달 분석 설정창과
+native 모델/측정 결과의 분할 보기다. 앞선 면 평균·면 평균 이력·두 점 상대변위 이력과
+저장·Data/계획 전달은 실제 앱 왕복·새 세션 재열기·화면 오류 교정과 Astra 검토를 마쳐
+`da1ee7f`로 main에 게시하고 원격 일치를 확인했다. 작은 설정창은 제품에 적용했고
+기존 편집·미리보기·적용·취소와 좁은 화면의 Astra 독립 검토를 마쳤다. 이 변경과 사용법을
+같은 인도로 게시하고 Windows 독립 배포와 native 차트의 물리량/축 단위 표시를 이어간다. 아래 과거 인도 결과를
 다시 착수할 지시로 읽지 않는다. 독립 배포 CI는 별도 진행 중이며 기능 개발을 막지 않는다.
 
 **전후처리 이동 인도와 독립 배포:** 전후처리 저장·이동 기능의 본코드와 F1–F4 교정은 통합했고
@@ -50,9 +51,14 @@ root가 추가한 Job 정리 확인까지 실제 PowerShell 단계에서 통과�
 시작했다. 원 실패 run을 재실행하지 않았으며 추가 중복 빌드는 시작하지 않는다.
 수정 CI도 실패로 종료됐다. SDK·플러그인 빌드와 실제 LoadPlugin은 통과했지만 뒤의
 create 확인이 CI의 WGL/OpenGL 초기화 실패와 접근 위반으로 종료됐다. OSMesa도 없었다.
-뒤의 패키지·업로드가 생략돼 SDK 보존 산출물은 없다. `post_windows_build_fix`가 실패를
-통과로 바꾸지 않고 빌드 산출물을 진단용으로 회수할 최소 후보를 별도 사본에 작성한다.
-아직 새 CI나 SDK 재빌드를 시작하지 않았으며 독립 배포 완료로 표시하지 않는다.
+뒤의 패키지·업로드가 생략돼 SDK 보존 산출물은 없다. 실패를 통과로 바꾸지 않고
+SDK·원 검사 로그를 진단용 draft로 회수하는 교정을 `e531138`로 main에 게시·원격 일치
+확인했다. 기존 엄격 경로는 유지하며 명시 진단 옵션에만 적용한다. 실제 작은 PowerShell/
+7-Zip 검사와 누락 로그·빈 CTest 반례 교정/독립 검토를 마쳤다. SDK 회수나 새 CI 성공은
+아직 아니다. 같은 담당은 기존 VTK가 지원하는 무료 OSMesa를 CI 전용으로 연결할 후보를
+`_workspace/post-ci-software-render/`에 작성한다. 현재 배포본에는 OSMesa가 없어 지원하는
+고정 배포·원 라이선스부터 확인하며, 전역 설치·제품 bundle 재배포는 하지 않는다.
+새 CI나 SDK 재빌드는 아직 시작하지 않았으며 독립 배포 완료로 표시하지 않는다.
 root가 최신 computer-use 연결을
 재확인했다. 복구된 Post 사본을 실제 ParaView
 GUI로 여는 새 확인은 시작 중 native DLL 접근 위반으로 종료됐다. 부분 복구가 ParaView의
@@ -179,10 +185,33 @@ Save 반환의 같은 프로젝트를 새 ParaView/Qt 세션으로 열어 세 �
 없고 Python/ParaView·서비스 정리가 끝났다. producer 소스와 교정 GUI 한 파일의 consumer
 소스는 구별한다. Astra의 최종 기능 검토는 PASS이며 `_workspace/post-measurement-extension/review/REVIEW.md`에
 범위와 남은 한계를 남겼다. OS 직접 점 선택·임의 모델의 공학 수용·전체 Post 완료는 아니다.
-다음 화면 구현은 `native_post_delivery`가 `_workspace/post-compact-settings/after/`에 별도
-사본으로 작성한다. `inverse_delivery`의 첫 native 결과 View 분할 후보는
+다음 화면 구현은 `native_post_delivery`가 `_workspace/post-compact-settings/after/`에 작성해
+root가 제품에 적용했다. 트리 위/선택 설정 아래, 네 설정 페이지, 단일값 요약과 선택형
+곡선이며 QWindows의 380/440/460 폭·기존 명령/행 선택 영향 20개 검사와 실제 렌더를 확인했다.
+기존 창 비모달 사용은 유지하며 OS 직접 입력 수용과 구별한다. 한 행짜리 시간 이력의
+실제 시각 표시와 거절 사유의 즉시 안내 누락도 같은 인도에서 교정했다. 교정 반례 7개와
+기존 두 비교 편집기의 440폭 실제 표시를 확인했다. root는 문서의 명시 제목을
+저장하고 옛 저장본은 원 프로젝트 이름을 쓰도록 해 자동 저장 폴더명이 제목이 되던 오류를
+고쳤다. portable 사본에서도 원 제목을 보존한다. 제목의 좁은 검사 5개는 통과했고 첫 실행의
+옛 temporal fixture 누락(HideUnusedScalarBars)은 별도 실패로 보존했다. 기능 미수행을 통과로
+바꾸거나 그 무관한 표시 코드를 고치지 않았다. Astra가 이 통합 GUI 인도를 검토한다.
+`inverse_delivery`의 첫 native 결과 View 분할 후보는
 `_workspace/post-native-view-layout/native-view-layout.patch`이며 제품에 아직 적용하지 않았다.
-현재 기능의 소스 동결과 실제 연결 확인을 방해하지 않고 게시 후 적용을 조율한다.
+기존 startup과 실제 QVTK timer 경로의 `native-job-04`에서 첫 분할 API·곡선 그림과
+원 모델 카메라·시각·색·원 점 선택/파일 불변을 확인해 root가 공통 Workspace에 통합했다.
+표의 API 위치는 확인했으나 전체 OS 캡처는 검어 실제 표 화면 수용은 미확인이다.
+준비/하네스 실패는 보존했고 모든 소유 Job은 정리됐다. Astra가 찾은 여러 결과의 연속
+자동분할은 root가 기존 분할 화면에서는 새 Layout로 가도록 제한했다. saved/명시 View는
+재사용하며 통합 7개 검사에서 원 배치를 보존했다. 이 가드 때문에 native 전체를 다시
+실행하지 않았다. native 차트의 물리량/축 단위 표시는 남은 작은 표시 항목이다.
+같은 설정창 재활성화는 `dynamic_reprocess_gui`가 기존 로컬 결과 수신기로 구현해 root가
+통합했다. 같은 native 문서/session·service를 확인하고 미보관 편집·선택·대기 요청을
+유지한다. 불확실한 연결에서는 중복 창을 만들지 않으며 owner 전환·닫힘/취소도 다룬다.
+실제 제품 경로의 HTTP·Qt IPC·별도 primary Python 6개 검사는 통과했고 소유 Job을 정리했다.
+후보와 원 실패는 `_workspace/post-controls-reuse/`에 보존했다. 새 native·solver·provider나
+서비스를 추가하지 않았다. 이 통합 GUI 인도는 Astra 최종 PASS이며 보고서는
+`_workspace/post-compact-settings/review/REVIEW_KO.md`에 있다. 실제 표 화면·OS 입력과
+공학 수용, 전체 Post 완료는 이번 기능 판정에 포함하지 않는다.
 
 **앞선 Expert 개편의 범위 정정:** GUI 전담의 자료·역량에 관한 질문을 새 화면 개편 지시로 확대했던
 배정을 취소했다. 새 GUI 두 파일의 미통합 변경만 확인해 원 상태로 돌리고 사본은

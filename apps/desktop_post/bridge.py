@@ -89,7 +89,11 @@ class Owner:
         if hasattr(external, 'recovery_records') and external.recovery_records():
             self.project_document['repair'] = external.recovery_records()
             self.project_document['partial_workspace'] = True
-        self.title = path.parent.name
+        try:
+            from .naming import document_title
+        except ImportError:
+            from naming import document_title
+        self.title = document_title(doc, path.parent.name)
         self.generation = doc.get("generation", 0)
         self.view_generation = doc.get("view_generation", 0)
         self.source_reference = deepcopy(_portable_binding.reference) if _portable_binding is not None else None
@@ -280,7 +284,7 @@ class Owner:
         attempt = {'phase': 'INVOKED', 'command_id': _target_save.save_command_id if _target_save is not None else None}
         self._native_save_attempt = attempt
         try:
-            saved = external.save_project(path, dict(source_doc, document_id=self.document_id, project_root=str(save_root),
+            saved = external.save_project(path, dict(source_doc, document_id=self.document_id, title=self.title, project_root=str(save_root),
                                                     generation=generation, view_generation=view_generation), **options)
         except Exception as error:
             if attempt['phase'] == 'INVOKED':

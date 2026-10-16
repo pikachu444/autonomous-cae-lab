@@ -1022,12 +1022,34 @@ class Workspace:
         self._touch()
         return deepcopy(record)
 
+    def _result_render_view(self, obj, record, active_view):
+        """Only split the current layout where this result's exact input is visible."""
+        if active_view is None:
+            return None
+        layout = p.GetLayout(active_view)
+        if layout is None or layout.SMProxy.GetMaximizedCell() != -1:
+            return None
+        if layout.GetViewLocation(active_view) != 0:
+            return None  # Preserve an already split model instead of shrinking it again.
+        refs = self._refs(obj['kind'], record['recipe'])
+        revisions = self._retained_dependencies(record, refs)
+        inputs = [self.resolve(ref, revisions.get(ref)) for ref in refs]
+        renders = [view for _, view in self._views()
+            if view.GetXMLName() == 'RenderView' and layout.GetViewLocation(view) >= 0
+            and any(getattr(display, 'Visibility', 0) and getattr(display, 'Input', None) is not None
+                and any(external._same_proxy(display.Input, source) for source in inputs)
+                for display in getattr(view, 'Representations', []))]
+        if any(external._same_proxy(active_view, view) for view in renders):
+            return layout, active_view
+        return (layout, renders[0]) if len(renders) == 1 else None
+
     def show(self, obj, record, bundle, *, view_id=None, array=None):
         source = bundle['source']
         before_source, before_view = p.GetActiveSource(), p.GetActiveView()
         before_name = record.get('view_name')
         before_names = deepcopy(record.get('view_names'))
-        layout = created_view = None
+        layout = created_view = split_layout = None
+        split_slot = None
         view = None
         required_view = self.view_type(obj, record)
         if view_id is not None:
@@ -1046,9 +1068,22 @@ class Workspace:
         previous_visibility = getattr(previous_display, 'Visibility', None)
         try:
             if view is None:
-                layout = p.CreateLayout(name='CAE analysis | ' + obj['id'])
-                created_view = view = p.CreateView(required_view)
-                p.AssignViewToLayout(view=view, layout=layout, hint=0)
+                placement = (self._result_render_view(obj, record, before_view)
+                    if required_view in ('SpreadSheetView', 'XYChartView') else None)
+                if placement is not None:
+                    candidate_layout, render_view = placement
+                    location = candidate_layout.GetViewLocation(render_view)
+                    top = candidate_layout.SplitViewVertical(render_view, 0.68)
+                    if top != 2 * location + 1:
+                        raise RuntimeError('모델 아래에 결과 화면을 배치하지 못했습니다. 기존 화면은 유지합니다.')
+                    split_layout, split_slot = candidate_layout, top + 1
+                    created_view = view = p.CreateView(required_view)
+                    if not split_layout.AssignView(split_slot, view):
+                        raise RuntimeError('분할한 아래 화면에 결과를 표시하지 못했습니다.')
+                else:
+                    layout = p.CreateLayout(name='CAE analysis | ' + obj['id'])
+                    created_view = view = p.CreateView(required_view)
+                    p.AssignViewToLayout(view=view, layout=layout, hint=0)
                 record['view_name'] = next((name for name, item in self._views() if external._same_proxy(item, view)), None)
             display = p.Show(source, view, 'SpreadSheetRepresentation') if view.GetXMLName() == 'SpreadSheetView' else p.Show(source, view)
             if view.GetXMLName() == 'XYChartView' and record['recipe'].get('version') == 3:
@@ -1107,6 +1142,13 @@ class Workspace:
                     cleanup(lambda: setattr(previous_display, 'Visibility', previous_visibility))
                 else:
                     cleanup(lambda: p.Hide(source, view))
+            if split_layout is not None:
+                def restore_split():
+                    if created_view is not None:
+                        split_layout.SMProxy.RemoveView(created_view.SMProxy)
+                    if not split_layout.SMProxy.Collapse(split_slot):
+                        raise RuntimeError('새 결과의 빈 화면을 닫지 못했습니다.')
+                cleanup(restore_split)
             if created_view is not None:
                 cleanup(lambda: p.Delete(created_view))
             if layout is not None:

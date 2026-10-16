@@ -646,6 +646,8 @@ def derive_project(verified_input, destination, *, binding):
                               'owner_document_id': binding.working_document_id}, 'original_data_unchanged': True}
     for key in ('service_url', 'desktop_python', 'repo_root', 'origin_job_id'):
         document.pop(key, None)
+    from apps.desktop_post.naming import document_title
+    document['title'] = document_title(document)
     document['project_root'] = str((binding.native_save_root.parent if binding.native_save_root is not None
                                   else Path(binding.working_root)).resolve())
     document['document_id'] = binding.working_document_id

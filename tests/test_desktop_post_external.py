@@ -160,6 +160,13 @@ def pvd_files(tmp_path):
     return entry
 
 
+def test_new_document_title_uses_input_filename(native, tmp_path):
+    _, _, external = native
+    entry = pvd_files(tmp_path)
+    project = external.open_result(entry, tmp_path / 'analysis')
+    assert json.loads(project.read_text(encoding='utf-8'))['title'] == entry.name
+
+
 def test_temporal_open_selection_save_restore_and_dependency_guards(native, tmp_path, monkeypatch):
     fake, commands, external = native
     entry = pvd_files(tmp_path)

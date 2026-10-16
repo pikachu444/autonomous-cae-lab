@@ -798,7 +798,7 @@ def open_result(input_path, project_directory, input_id=None, source_pins=None, 
         display.SeriesVisibility = ['value']
     else:
         p.ResetCamera(view)
-    doc = {"kind": KIND, "version": 1, "document_id": "D" + uuid.uuid4().hex,
+    doc = {"kind": KIND, "version": 1, "document_id": "D" + uuid.uuid4().hex, "title": Path(input_path).name,
            "project_root": str(folder), "sources": {"result": record}}
     # Publish the first manifest only after the native state and dependency checks succeed.
     saved = save_project(folder / "project.json", doc)

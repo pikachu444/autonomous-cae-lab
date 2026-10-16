@@ -72,7 +72,10 @@ def validate_message(message):
     if operation not in {'result', 'observation', 'activate', 'status'} or set(message) != expected:
         raise ValueError('Unsupported local operation or fields.')
     identifier = check_id(message['target_id'])
-    if not identifier.startswith(('X', 'S', 'N')):
+    if identifier.startswith('D'):
+        if operation != 'activate':
+            raise ValueError('Native Post controls accept activation only.')
+    elif not identifier.startswith(('X', 'S', 'N')):
         raise ValueError('Return target must be an existing Expert, Study or Numerical Plan.')
     if not isinstance(message['session_id'], str) or not 1 <= len(message['session_id']) <= 160:
         raise ValueError('Missing service session.')
@@ -186,14 +189,21 @@ class PendingResultReview(QObject):
         service = service_identity(self.window.client.url)
         name, path = _route(service, document['id'])
         if self.route == name:
+            if document['id'].startswith('D') and self.target != (document['id'], document['session_id']):
+                self.window.message.setText('현재 후처리 세션이 달라졌습니다. 기존 편집은 유지됩니다.')
+                return False
             self.target = (document['id'], document['session_id'])
             return True
         existing = _ENDPOINTS.get(name)
         if existing is not None:
-            existing.window.showNormal()
-            existing.window.raise_()
-            existing.window.activateWindow()
-            self.window.message.setText('This document is already open. Its existing edits remain in that window.')
+            if document['id'].startswith('D'):
+                existing.receive({'version': 1, 'operation': 'activate', 'service': service,
+                    'target_id': document['id'], 'session_id': document['session_id']})
+            else:
+                existing.window.showNormal()
+                existing.window.raise_()
+                existing.window.activateWindow()
+            self.window.message.setText('이 문서의 설정창이 이미 열려 있습니다. 기존 편집은 그 창에 유지됩니다.')
             return False
         lock = _lock(path)
         if not lock.tryLock(0):
@@ -579,9 +589,14 @@ def deliver_result(client, message, *, launch=None, timeout=12):
     raise RuntimeError(last + ' Return remains unconfirmed; retry without creating another research document.')
 
 
-def activate_existing(client, target_id):
+def activate_existing(client, target_id, *, session_id=None):
     """Return an activation receipt or ABSENT; never hide timeout/stale-owner errors."""
     document = client.document_read(check_id(target_id))
+    if target_id.startswith('D') and (document.get('id') != target_id or document.get('kind') != 'post'
+            or not document.get('connected') or not document.get('session_id')):
+        raise ValueError('현재 연결된 후처리 문서를 확인할 수 없습니다. ParaView에서 문서를 확인하세요.')
+    if session_id is not None and document.get('session_id') != session_id:
+        raise ValueError('요청한 후처리 세션이 현재 문서와 다릅니다. 기존 창과 편집은 유지됩니다.')
     message = {'version': 1, 'operation': 'activate', 'service': service_identity(client.url),
                'target_id': target_id, 'session_id': document['session_id']}
     receipt = send_message(message)

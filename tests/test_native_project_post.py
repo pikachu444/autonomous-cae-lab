@@ -37,6 +37,7 @@ def test_originals_unchanged_and_saved_paths_relocated_without_native_import(tmp
     context, reference = registered(tmp_path, project)
     prepared = ticket(context, reference)
     derived = json.loads(Path(prepared.derived['project_path']).read_text(encoding='utf-8'))
+    assert derived['title'] == Path(original['project_root']).name
     for key in ('service_url', 'desktop_python', 'repo_root', 'origin_job_id'): assert key not in derived
     assert derived['document_id'] != original['document_id']
     history = derived['analysis']['objects']['Afilter']['history'][0]

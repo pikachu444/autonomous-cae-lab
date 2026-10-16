@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
     QMenu, QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter, QStyle,
     QTabWidget, QTableWidget, QTableWidgetItem, QToolBar, QTreeWidget,
-    QTreeWidgetItem, QToolButton, QVBoxLayout, QWidget,
+    QTreeWidgetItem, QToolButton, QVBoxLayout, QWidget, QSizePolicy,
 )
 
 from apps.research.data_window import _Read, number_or_raw, integer_or_raw, display
@@ -163,8 +163,8 @@ class PostWindow(QMainWindow):
             self.refresh_document(initial=True)
 
     def _build_ui(self):
-        self.resize(1440, 900)
-        self.setMinimumSize(1060, 700)
+        self.resize(440, 900)
+        self.setMinimumSize(380, 650)
         toolbar = QToolBar('후처리')
         self.addToolBar(toolbar)
         self.open_action = QAction('열린 후처리로 전환…', self, shortcut=QKeySequence.Open)
@@ -195,7 +195,8 @@ class PostWindow(QMainWindow):
         outer = QVBoxLayout(root)
         self.identity.setProperty('appearanceRole', 'title')
         outer.addWidget(self.identity)
-        self.message = QLabel('ParaView에서 후처리 문서를 열면 원 결과와 측정값을 선택할 수 있습니다.')
+        from .post_settings_pages import MessageLabel
+        self.message = MessageLabel('ParaView에서 후처리 문서를 열면 원 결과와 측정값을 선택할 수 있습니다.')
         self.message.setWordWrap(True)
         outer.addWidget(self.message)
         split = QSplitter(Qt.Orientation.Horizontal)
@@ -530,6 +531,7 @@ class PostWindow(QMainWindow):
         for action in self.new_buttons:
             action.setParent(self)
         self.menuBar().clear()
+        self.handoff_retry.setParent(self); self.handoff_retry.hide()
         toolbar.clear()
         toolbar.setWindowTitle('빠른 실행')
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
@@ -591,6 +593,7 @@ class PostWindow(QMainWindow):
         view_menu = self.menuBar().addMenu('보기(&V)')
         view_menu.addAction(self.refresh_action)
         view_menu.addAction('설정', self.edit_selected)
+        self._desktop_view_menu = view_menu
         view_menu.addAction('표', lambda: self.output_tabs.setCurrentIndex(0))
         view_menu.addAction('메시지', lambda: self.output_tabs.setCurrentIndex(1))
         view_menu.addAction('기술 상세', lambda: self.output_tabs.setCurrentIndex(2))
@@ -620,6 +623,287 @@ class PostWindow(QMainWindow):
         self.preview_button.clicked.connect(self.preview_result)
         self.apply_button.clicked.disconnect()
         self.apply_button.clicked.connect(self.apply_result)
+        self._compact_desktop(toolbar)
+
+    def _compact_desktop(self, toolbar):
+        """Nonmodal analysis settings beside the actual ParaView main window."""
+        old = self.takeCentralWidget()
+        root = QWidget()
+        layout = QVBoxLayout(root)
+        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setSpacing(4)
+        self.compact_split = QSplitter(Qt.Orientation.Vertical)
+        layout.addWidget(self.compact_split, 1)
+        model = QWidget()
+        model_layout = QVBoxLayout(model)
+        model_layout.setContentsMargins(0, 0, 0, 0)
+        self.identity.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.identity.setMinimumWidth(0)
+        model_layout.addWidget(self.identity)
+        self.tree.setMinimumSize(0, 80)
+        self.tree.setColumnWidth(0, 260)
+        model_layout.addWidget(self.tree, 1)
+        self.compact_split.addWidget(model)
+        selected = QWidget()
+        selected_layout = QVBoxLayout(selected)
+        selected_layout.setContentsMargins(0, 0, 0, 0)
+        selected_layout.setSpacing(4)
+        self.object_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.object_label.setMinimumWidth(0)
+        selected_layout.addWidget(self.object_label)
+        self.compact_state = QLabel()
+        selected_layout.addWidget(self.compact_state)
+        self.selected_toolbar = QToolBar('선택 분석')
+        self.selected_toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.selected_toolbar.addActions([self.preview_action, self.apply_action])
+        self.selected_toolbar.addAction(self.keep_action)
+        self.apply_action.setShortcuts([QKeySequence('F7'), QKeySequence('Ctrl+Return')])
+        self.apply_action.setToolTip('검증한 현재 초안을 적용합니다. F7 / Ctrl+Enter')
+        selected_layout.addWidget(self.selected_toolbar)
+        self.work_tabs = QTabWidget()
+        self.work_tabs.setObjectName('postCompactWork')
+        settings = QWidget()
+        settings_layout = QVBoxLayout(settings)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.setSpacing(3)
+        self.compact_required = QLabel()
+        self.compact_required.setWordWrap(True)
+        settings_layout.addWidget(self.compact_required)
+        settings_layout.addWidget(self.return_editor)
+        settings_layout.addWidget(self.editor_area, 1)
+        settings_layout.addWidget(self.source_settings, 1)
+        self.work_tabs.addTab(settings, '설정')
+        self._compact_settings_widget = settings
+        result = QWidget()
+        result_layout = QVBoxLayout(result)
+        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.setSpacing(4)
+        result_controls = QToolBar('선택 결과')
+        result_controls.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        result_controls.addActions([self.show_result_action, self.numerical_action])
+        result_layout.addWidget(result_controls)
+        native_options = QHBoxLayout()
+        native_options.addWidget(self.view_selector, 1)
+        native_options.addWidget(self.comparison_display, 1)
+        result_layout.addLayout(native_options)
+        self.view_selector.setMaximumWidth(16777215)
+        self.view_selector.setMinimumWidth(0)
+        result_layout.addWidget(self.handoff_retry)
+        result_layout.addWidget(self.sample_context)
+        self.sample_context.setMaximumHeight(48)
+        raw, messages, details = [self.output_tabs.widget(i) for i in range(3)]
+        self._compact_messages = messages
+        for widget in (raw, messages, details): widget.setParent(self)
+        self.output_tabs.clear()
+        summary = QWidget()
+        summary_layout = QVBoxLayout(summary)
+        summary_layout.setContentsMargins(0, 0, 0, 0)
+        self.compact_value = QLabel('아직 읽은 결과가 없습니다.')
+        self.compact_value.setProperty('appearanceRole', 'section')
+        self.compact_value.setWordWrap(True)
+        summary_layout.addWidget(self.compact_value)
+        self.compact_table = QTableWidget(0, 3)
+        self.compact_table.setObjectName('postCompactValues')
+        self.compact_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.compact_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.compact_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.compact_table.verticalHeader().hide()
+        self.compact_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.compact_table.itemSelectionChanged.connect(self._compact_result_selected)
+        summary_layout.addWidget(self.compact_table, 1)
+        self.output_tabs.addTab(summary, '요약')
+        self._compact_summary = summary
+        self.output_tabs.addTab(raw, '원표')
+        self.output_tabs.addTab(self.result_plot, '곡선')
+        self.output_tabs.addTab(messages, '메시지')
+        self.output_tabs.addTab(details, '상세')
+        result_layout.addWidget(self.output_tabs, 1)
+        self.work_tabs.addTab(result, '결과')
+        selected_layout.addWidget(self.work_tabs, 1)
+        self.compact_notice = QLabel()
+        self.message.textChanged.connect(self.compact_notice.setText)
+        self.message.textChanged.connect(self.compact_notice.setToolTip)
+        self.compact_notice.setWordWrap(True)
+        self.compact_notice.setMaximumHeight(74)
+        selected_layout.addWidget(self.compact_notice)
+        self.compact_split.addWidget(selected)
+        self.compact_split.setSizes([210, 610])
+        self.compact_split.setStretchFactor(0, 0)
+        self.compact_split.setStretchFactor(1, 1)
+        self.setCentralWidget(root)
+        old.hide()
+        self.editor_toggle.setParent(self); self.editor_toggle.hide()
+        self.graphics_toolbar.setParent(self); self.graphics_toolbar.hide()
+        self.settings_panel.setParent(self); self.settings_panel.hide()
+        self.result_plot.setMinimumWidth(0)
+        self.result_plot.canvas.setMinimumSize(0, 180)
+        self.source_settings.setMinimumWidth(0)
+        controls = self.array_controls.layout()
+        while controls.count():
+            item = controls.takeAt(0)
+            if item.widget() not in (self.array_component, self.select_array_button, self.measure_array_button) and item.widget():
+                item.widget().deleteLater()
+        source_commands = QVBoxLayout()
+        component_row = QHBoxLayout()
+        component_row.addWidget(QLabel('표시 성분'))
+        self.array_component.setMinimumWidth(0)
+        self.array_component.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        component_row.addWidget(self.array_component, 1)
+        source_commands.addLayout(component_row)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.select_array_button)
+        buttons.addWidget(self.measure_array_button)
+        source_commands.addLayout(buttons)
+        controls.addLayout(source_commands)
+        for column in range(1, self.array_table.columnCount()):
+            self.array_table.setColumnHidden(column, True)
+        toolbar.clear()
+        toolbar.addAction(self.save_action)
+        add = QToolButton()
+        add.setText('분석 추가')
+        add.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder))
+        add.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        add.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu = QMenu(add); menu.addActions(self.new_buttons); add.setMenu(menu)
+        toolbar.addWidget(add)
+        toolbar.addAction(self.native_action)
+        self.native_action.setText('ParaView로 이동')
+        self.show_result_action.setText('ParaView 결과')
+        self.numerical_action.setText('수치 연구로…')
+        view_menu = self._desktop_view_menu
+        view_menu.clear()
+        view_menu.addAction(self.refresh_action)
+        view_menu.addAction('선택 설정', lambda: self.work_tabs.setCurrentIndex(0))
+        for text, widget in [('결과 요약', summary), ('원표', raw), ('곡선', self.result_plot), ('메시지', messages), ('기술 상세', details)]:
+            view_menu.addAction(text, lambda checked=False, widget=widget: self._compact_show_result(widget))
+        self._compact_ready = True
+        self._settings_page_index = 0
+        self.progress.setMinimumWidth(0)
+        self.progress.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.retry_button.setText('요청 재확인')
+        self.retry_button.setToolTip('결과가 미확인인 같은 요청의 상태를 다시 확인합니다.')
+        self.compact_notice.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        for action in self.results_menu.actions():
+            if action.text() == '조회 범위…':
+                action.triggered.disconnect()
+                action.triggered.connect(self._compact_read_options)
+
+    def _compact_read_options(self):
+        self.read_options.toggle()
+        self._compact_show_result(self.output_tabs.widget(1))
+
+    def _compact_update(self, browsing, obj, idle):
+        if not getattr(self, '_compact_ready', False):
+            return
+        self.editor_toggle.hide()
+        self.editor_area.setVisible(not browsing)
+        self.return_editor.setText('편집 중인 분석으로 돌아가기')
+        self.compact_state.setText('원 결과 선택' if browsing else
+            '편집 중 · 미보관' if self.local_dirty else self._analysis_state(obj) if obj else '새 분석')
+        if self._samples is None:
+            self.compact_table.setRowCount(0)
+            self.compact_value.setText('아직 읽은 결과가 없습니다.')
+        self.compact_notice.setText(self.message.text())
+        self.compact_notice.setToolTip(self.message.text())
+        self.selected_toolbar.setVisible(not browsing)
+        self.compact_required.setVisible(not browsing)
+        self.work_tabs.setTabEnabled(1, not browsing)
+        if browsing:
+            self.work_tabs.setCurrentIndex(0)
+        draft = self.edited_draft()
+        if self._kind == 'measurement' and draft.get('measurement') in MEASUREMENT_FIELDS:
+            measurement = draft['measurement']
+            required = ['source_ref', 'array', 'units', 'measure', 'frame', 'coordinate_units', 'coordinate_frame']
+            if measurement in ('gauge', 'gauge_time'):
+                required += ['point_indices', 'point1', 'point2', 'direction', 'basis', 'coordinate_configuration']
+            elif measurement in ('surface_average', 'surface_time'):
+                required += ['surface_faces', 'geometry']
+                if draft.get('component') is not None: required += ['basis']
+                if draft.get('component') == 'projection': required += ['direction']
+            if measurement in ('surface_time', 'gauge_time'):
+                required += ['time_range', 'reference_time', 'time_units', 'time_origin']
+            elif measurement == 'time' or draft.get('time') is not None:
+                required += ['time_units', 'time_origin']
+            missing = [[] for _ in range(4)]
+            for key in required:
+                value = draft.get(key)
+                if value is None or value == '' or value == []:
+                    label = {'surface_faces':'원본 경계 면', 'point1':'A 기준 좌표', 'point2':'B 기준 좌표'}.get(key, LABELS.get(key, key))
+                    missing[self.settings_pages.page_for(key, measurement)].append(label)
+            self.settings_pages.missing(missing)
+            for key, label in [('point1','A 기준 좌표'),('point2','B 기준 좌표')]:
+                if (key,) in self._compact_field_labels:
+                    self._compact_field_labels[(key,)].setText(label + ' [' + str(draft.get('coordinate_units') or '단위 미지정') + ']')
+            needed = [name for page in missing for name in page]
+            self.compact_required.setText('미결정: ' + ', '.join(needed[:3]) + (' 외 ' + str(len(needed)-3) + '개' if len(needed)>3 else '') if needed else '필수 선언 입력됨 · 미리보기로 검증하세요.')
+            self.compact_required.setToolTip('미결정: ' + ', '.join(needed) if needed else '입력 여부만 표시합니다. 수치·선택·단위의 유효성은 기존 미리보기에서 검증합니다.')
+            if measurement in ('surface_average','surface_time'):
+                self._compact_field_labels[('direction',)].setVisible(draft.get('component') == 'projection')
+        else:
+            self.compact_required.clear()
+        if self._sample_basis:
+            full = self.sample_context.text()
+            state = '이전 조회 · 다시 읽기 필요' if full.startswith('이전 조회') else '최근 조회 실패 · 이전 값' if full.startswith('최근 조회 실패') else '미리보기' if self._sample_basis['preview'] else '적용 결과'
+            self.sample_context.setText(self._sample_basis['title'] + ' · ' + state)
+            self.sample_context.setToolTip(full)
+
+    def _compact_samples(self, payload, recipe):
+        rows = payload.get('rows', [])[:1000]
+        summary = payload.get('summary') or {}
+        measurement = recipe.get('measurement')
+        primary = {'surface_average':'SurfaceAreaAverage', 'surface_time':'SurfaceAreaAverage',
+                   'gauge':'GaugeRelativeDisplacement', 'gauge_time':'GaugeRelativeDisplacement'}.get(measurement)
+        if primary is None:
+            self.compact_table.setRowCount(0)
+            self.compact_value.setText('측정한 원래 값과 성분은 원표에서 확인하세요.')
+            self._compact_show_result(self.output_tabs.widget(1))
+            return
+        title = {'SurfaceAreaAverage':'면 평균', 'GaugeRelativeDisplacement':'두 점 상대변위'}.get(primary, '측정 결과')
+        unit = summary.get('units') or recipe.get('units') or '단위 미지정'
+        blocker = QSignalBlocker(self.compact_table)
+        self.compact_table.setRowCount(len(rows))
+        history = measurement in ('surface_time','gauge_time','time')
+        self.compact_table.setHorizontalHeaderLabels(['시각 [' + str(recipe.get('time_units') or '?') + ']' if history else '물리량', '값 [' + str(unit) + ']', '유효성'])
+        valid_count = 0
+        for index, row in enumerate(rows):
+            values = row.get('values', {})
+            value = values.get(primary) if primary else None
+            validity = row.get('validity', {}).get(primary, 'valid')
+            valid = (type(value) in (int, float) and math.isfinite(value) and row.get('valid', True) is not False
+                     and values.get('vtkValidMask', 1) != 0 and validity in ('valid', True))
+            valid_count += int(valid)
+            # Display rounding only; payload, raw table and native provenance keep full values.
+            text_value = format(value, '.8g') if type(value) in (int, float) else '값 없음' if value is None else display(value)
+            texts = [display(values.get('Time')) if history else title, text_value, '유효' if valid else '무효 / 결측']
+            for col, text in enumerate(texts):
+                item = QTableWidgetItem(text)
+                item.setToolTip('원본 행 ' + str(row.get('row', row.get('point_index', index))) + '\n' + display(row))
+                self.compact_table.setItem(index, col, item)
+        if len(rows) == 1:
+            clock = rows[0].get('values', {}).get('Time') if history else recipe.get('time')
+            stamp = '시각 정보 없음' if clock is None else '시각 ' + str(clock) + ' ' + str(recipe.get('time_units') or '단위 미지정')
+            value = self.compact_table.item(0, 1).text()
+            self.compact_value.setText(title + ': ' + value + ' ' + str(unit) + '\n' + stamp + ' · ' + ('유효' if valid_count else '무효 / 결측'))
+        else:
+            self.compact_value.setText(title + ' · ' + str(len(rows)) + '개 표본\n유효 ' + str(valid_count) + ' / 결측·무효 ' + str(len(rows)-valid_count))
+        blocker.unblock()
+        self._compact_show_result(self._compact_summary)
+
+    def _compact_show_result(self, widget):
+        self.work_tabs.setCurrentIndex(1)
+        self.output_tabs.setCurrentWidget(widget)
+
+    def _compact_result_selected(self):
+        selected = self.compact_table.selectionModel().selectedRows()
+        if selected and self._samples:
+            self.samples.selectRow(selected[0].row())
+
+    def capture_new_measurement(self):
+        if self.local_dirty and self._object_ref:
+            self.message.setText('현재 측정 편집을 초안으로 보관하거나 되돌린 뒤, 선택으로 새 측정을 추가하세요.')
+            self.compact_notice.setText(self.message.text())
+            return False
+        return self.capture_selection()
 
     def preview_result(self):
         def validate():
@@ -643,6 +927,7 @@ class PostWindow(QMainWindow):
         self.editor_toggle.setChecked(True)
         self.return_to_editor() if self._tree_selection and self._tree_selection[0] == 'source' and self.local_dirty else self._update_actions()
         self.tabs.setFocus()
+        self.work_tabs.setCurrentIndex(0)
         return True
 
     def new_gauge(self):
@@ -882,6 +1167,13 @@ class PostWindow(QMainWindow):
         return self._call(lambda: self.client.document_read(identifier), accepted, background=not (initial or explicit))
 
     def _show_document(self, document, *, preserve_buffer=False, initial=False):
+        from .result_return import bind_receiver
+        if not bind_receiver(self, document):
+            if self.document is None:
+                # Only this fresh duplicate is disposable; never close the existing editor.
+                self._allow_close = True
+                self.close()
+            return False
         self.document = deepcopy(document)
         analysis = self._analysis()
         if initial and not self._object_ref:
@@ -902,7 +1194,7 @@ class PostWindow(QMainWindow):
             if self._tree_selection == ('source', ref):
                 selected = item
         for obj in self._objects():
-            item = QTreeWidgetItem([obj.get('title', obj['kind']), '미리보기' if obj.get('preview') else '적용됨' if obj.get('position', -1) >= 0 else '초안'])
+            item = QTreeWidgetItem([obj.get('title', obj['kind']), self._analysis_state(obj)])
             item.setData(0, Qt.ItemDataRole.UserRole, ('object', obj['id']))
             item.setToolTip(0, obj['id'])
             objects.addChild(item)
@@ -928,6 +1220,7 @@ class PostWindow(QMainWindow):
         self._show_arrays()
         self._show_details()
         self._update_actions()
+        return True
 
     def _tree_selected(self):
         if self._populating or self._pending or self._busy:
@@ -957,6 +1250,8 @@ class PostWindow(QMainWindow):
             self.samples.setColumnCount(0)
         self._update_actions()
         self._show_details()
+
+        self.work_tabs.setCurrentIndex(0)
 
     def _source_choice_metadata(self, ref):
         source = next((row for row in self._sources() if row['source_ref'] == ref), None)
@@ -1024,7 +1319,19 @@ class PostWindow(QMainWindow):
                 field.addItem('지원하지 않는 물리량' if key == 'measure' else str(value), value)
             field.setCurrentIndex(max(0, field.findData(value)))
             field.currentIndexChanged.connect(self._surface_component_changed if key == 'component' else self._edited)
-        elif key in ('association', *BOOLEANS):
+        elif key == 'association':
+            field = QComboBox()
+            field.addItem('점 자료', 'POINTS')
+            field.addItem('셀 자료', 'CELLS')
+            if field.findData(value) < 0:
+                field.addItem('행 자료' if value == 'ROWS' else '저장된 위치: ' + str(value), value)
+            field.setCurrentIndex(field.findData(value))
+            field.setToolTip('ParaView의 원 자료 위치입니다. 셀 자료를 FE 요소로 추정하지 않습니다.')
+            if self._draft.get('measurement') in ('surface_average', 'surface_time'):
+                field.currentIndexChanged.connect(lambda *_: self._source_field_changed(path))
+            else:
+                field.currentIndexChanged.connect(self._edited)
+        elif key in BOOLEANS:
             field = QComboBox()
             field.setEditable(True)
             field.addItems(['POINTS', 'CELLS'] if key == 'association' else ['true', 'false'])
@@ -1045,6 +1352,9 @@ class PostWindow(QMainWindow):
         return field
 
     def _populate_editor(self):
+        if getattr(self, '_compact_ready', False) and getattr(self, 'settings_pages', None) is not None:
+            self._settings_page_index = self.settings_pages.currentIndex()
+        self.settings_pages = None
         self._populating = True
         self.fields = {}
         # The form owns its editor widgets; do not retain one after deleteLater.
@@ -1224,11 +1534,99 @@ class PostWindow(QMainWindow):
                 self.capture_button.clicked.connect(self.capture_surface_faces)
                 form.removeWidget(self.capture_button)
                 self.surface_selection_layout.addWidget(self.capture_button)
+        if getattr(self, '_compact_ready', False) and self._kind == 'measurement' and isinstance(draft, dict) and draft.get('measurement') in MEASUREMENT_FIELDS:
+            self._compact_measurement_pages(form, draft)
         self.tabs.blockSignals(True)
         self.tabs.setCurrentIndex(('comparison', 'filter', 'measurement').index(self._kind))
         self.tabs.blockSignals(False)
         self._populating = False
         self._update_actions()
+
+    def _compact_measurement_pages(self, form, draft):
+        from .post_settings_pages import SettingsPages
+        pages = SettingsPages()
+        hold = QWidget(pages)
+        hold.hide()
+        measurement = draft['measurement']
+        kept = [self.measurement_kind, *(field for field, _original in self.fields.values())]
+        if hasattr(self, 'capture_button'):
+            kept.append(self.capture_button)
+        swap = self.findChild(QPushButton, 'swapGaugePoints') if measurement in ('gauge', 'gauge_time') else None
+        native = self.findChild(QToolButton, 'postNativeSelect' if measurement in ('gauge', 'gauge_time') else 'postNativeSurface')
+        for widget in (swap, native):
+            if widget is not None: kept.append(widget)
+        for name in ('gauge_points','gauge_notice','gauge_conditions') if measurement in ('gauge','gauge_time') else ('surface_summary','surface_conditions') if measurement in ('surface_average','surface_time') else ():
+            kept.append(getattr(self, name))
+        for widget in kept:
+            widget.hide(); widget.setParent(hold)
+        while form.count():
+            item = form.takeAt(0)
+            if item.widget():
+                widget = item.widget(); widget.hide(); widget.setParent(None); widget.deleteLater()
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.addRow('측정', self.measurement_kind)
+        self.measurement_kind.show()
+        self.settings_pages = pages
+        form.addRow(pages)
+        pages.show()
+        labels = {'source_ref':'원 결과', 'array':'필드', 'association':'자료 위치',
+            'direction':'단위 방향 n', 'basis':'방향 기저', 'coordinate_configuration':'좌표 상태',
+            'point1':'A 기준 좌표', 'point2':'B 기준 좌표', 'point_indices':'원본 점 번호',
+            'time':'측정 시각', 'time_range':'시각 범위', 'reference_time':'기준 시각',
+            'geometry':'면적 기준', 'component':'원 성분', 'tolerance':'허용 오차'}
+        self._compact_field_labels = {}
+        for path, (field, _original) in self.fields.items():
+            key = path[-1]
+            page = pages.page_for(key, measurement)
+            self._compact_field_labels[path] = pages.field(page, labels.get(key, LABELS.get(key,key)), field)
+        if native is None:
+            native = QToolButton()
+            native.setDefaultAction(self.native_action)
+            native.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        pages.row(0, native)
+        if measurement in ('point','time','gauge','gauge_time'):
+            self.capture_button.clicked.disconnect()
+            self.capture_button.clicked.connect(self.capture_new_measurement)
+            self.capture_button.setText('선택으로 새 측정 추가')
+            self.capture_button.setToolTip('ParaView의 원본 점 선택으로 새 측정을 만듭니다. 현재 측정의 편집 내용을 덮지 않습니다.')
+        else:
+            self.capture_button.setText('원본 경계 면 선택…')
+        selection = QWidget()
+        row = QHBoxLayout(selection)
+        row.setContentsMargins(0,0,0,0)
+        row.addWidget(self.capture_button, 1)
+        self.capture_button.show()
+        if swap is not None:
+            swap.setText('A/B 순서 교환')
+            row.addWidget(swap)
+            swap.show()
+        pages.row(0, selection)
+        if measurement in ('gauge','gauge_time'):
+            pages.row(0, self.gauge_points)
+            pages.row(0, self.gauge_notice)
+            self.gauge_notice.setVisible(bool(self.gauge_notice.text()))
+        elif measurement in ('surface_average','surface_time'):
+            pages.row(0, self.surface_summary)
+        declarations = QPushButton('저장된 물리량 선언 사용')
+        declarations.clicked.connect(lambda: self.use_declarations())
+        pages.row(2, declarations)
+        clock = QLabel()
+        clock.setWordWrap(True)
+        metadata, _ = self._source_choice_metadata(draft.get('source_ref'))
+        times = metadata.get('timesteps') or []
+        clock.setText('원 결과 시각: ' + (field_text(times[:8]) + (' …' if len(times)>8 else '') if times else '저장된 시각 정보 없음'))
+        clock.setToolTip(field_text(times))
+        pages.row(3, clock)
+        pages.setCurrentIndex(max(0,min(3,getattr(self,'_settings_page_index',0))))
+
+    @staticmethod
+    def _analysis_state(obj):
+        history, position = obj.get('history', []), obj.get('position', -1)
+        active = history[position] if 0 <= position < len(history) else None
+        preview = obj.get('preview')
+        if preview and preview.get('id') != (active or {}).get('id'):
+            return '미리보기'
+        return '적용됨' if active else '초안'
 
     def _surface_settings(self, form, draft):
         main = ('source_ref', 'array', 'association', 'component', 'direction') + (('time_range', 'reference_time') if draft['measurement'] == 'surface_time' else ('time',))
@@ -1376,7 +1774,7 @@ class PostWindow(QMainWindow):
             if isinstance(field, QComboBox):
                 if path[-1] == 'source_ref':
                     text = field.currentData() if field.currentIndex() >= 0 and field.currentText() == field.itemText(field.currentIndex()) else field.currentText()
-                elif path[-1] in ('basis', 'coordinate_configuration', 'measure', 'geometry', 'component'):
+                elif path[-1] in ('basis', 'coordinate_configuration', 'measure', 'geometry', 'component', 'association'):
                     text = field.currentData()
                 else:
                     text = field.currentText()
@@ -1460,6 +1858,9 @@ class PostWindow(QMainWindow):
             self.tabs.blockSignals(False)
             return False
         self._kind, self._object_ref = kind, None
+        self.work_tabs.setCurrentIndex(0)
+        if self.settings_pages is not None:
+            self.settings_pages.setCurrentIndex(0)
         self._tree_selection = None
         self._restore_tree_selection()
         self._samples = self._sample_basis = None
@@ -1639,7 +2040,7 @@ class PostWindow(QMainWindow):
                 confirmed = isinstance(payload, dict) and payload.get('foreground_confirmed') is True
                 self.message.setText('ParaView 창으로 이동했습니다. 점 선택 도구로 원본 점을 선택하세요.' if confirmed else
                     '원 결과는 선택했습니다. Windows가 창 전환을 허용하지 않았습니다. 작업 표시줄의 ParaView 창을 열어 점을 선택하세요.')
-                self.output_tabs.setCurrentIndex(1)
+                self._compact_show_result(self._compact_messages)
             elif pending['request']['operation'] == 'post.source_select':
                 self.message.setText('원 결과를 ParaView에서 선택했습니다. 점 선택 도구는 ParaView 창에서 사용하세요.')
         else:
@@ -1652,7 +2053,7 @@ class PostWindow(QMainWindow):
             self.message.setText('요청을 완료하지 못했습니다. 편집은 보관했습니다. ' +
                                  error_text)
             if getattr(self, '_desktop_ready', False):
-                self.output_tabs.setCurrentIndex(1)
+                self._compact_show_result(self._compact_messages)
                 if self.edited_draft().get('measurement') == 'gauge':
                     self.gauge_notice.setText(self.message.text())
                     self.gauge_notice.show()
@@ -1992,6 +2393,7 @@ class PostWindow(QMainWindow):
                     self.samples.setColumnWidth(headers.index(key), width)
         sample_signals.unblock()
         self.result_plot.set_samples(payload, self._sample_basis['draft'])
+        self._compact_samples(payload, self._sample_basis['draft'])
         self._update_actions()
         self._show_details()
 
@@ -2690,6 +3092,7 @@ class PostWindow(QMainWindow):
                 missing = [LABELS[key] for key in required if not draft.get(key)]
                 self.surface_conditions.setText('미결정: ' + ', '.join(missing) if missing else
                     '응답 [' + str(draft['units']) + '] / ' + str(draft['frame']) + '\n기준 좌표 [' + str(draft['coordinate_units']) + '] / 고정 기준 면적')
+        self._compact_update(browsing, obj, idle)
 
     def choose_document(self):
         if self.local_dirty:
@@ -2697,7 +3100,7 @@ class PostWindow(QMainWindow):
             return False
         token = self._context_token()
         def listed(payload):
-            documents = [doc for doc in payload.get('documents', []) if doc.get('kind') == 'post']
+            documents = [doc for doc in payload.get('documents', []) if doc.get('kind') == 'post' and doc.get('connected')]
             if not documents:
                 self.message.setText('No existing native Post owners are connected. Open the saved analysis in ParaView first.')
                 return
@@ -2705,19 +3108,36 @@ class PostWindow(QMainWindow):
             label, accepted = QInputDialog.getItem(self, '열린 후처리로 전환', 'ParaView에서 열린 문서', labels, editable=False)
             if accepted and token == self._context_token():
                 selected = documents[labels.index(label)]
-                self.document_id, self.session_id = selected['id'], selected['session_id']
-                self.document = None
-                self._source_ref = self._object_ref = None
-                self._tree_selection = None
-                self._samples = self._sample_basis = None
-                self._confirmed_sample_selection = None
-                with QSignalBlocker(self.samples):
-                    self.samples.setRowCount(0)
-                    self.samples.setColumnCount(0)
-                self._draft = defaults(self._kind)
-                self.view_selector.setCurrentIndex(0)
-                self.refresh_document(initial=True)
+                self._open_selected_document(selected)
         return self._call(self.client.documents, listed, relevant=lambda: token == self._context_token())
+
+    def _open_selected_document(self, selected):
+        from .result_return import activate_existing, bind_receiver
+        token = self._context_token()
+        def checked():
+            receipt = activate_existing(self.client, selected['id'], session_id=selected['session_id'])
+            return receipt, self.client.document_read(selected['id'])
+        def accepted(payload):
+            receipt, document = payload
+            if receipt['status'] == 'ACTIVATED':
+                self.message.setText('이미 열린 설정창으로 이동했습니다. 이 창의 편집은 유지됩니다.')
+                return
+            if (document.get('session_id') != selected['session_id'] or document.get('kind') != 'post'
+                    or not document.get('connected')):
+                self.message.setText('후처리 세션이 달라져 전환하지 않았습니다. 현재 편집은 유지됩니다.')
+                return
+            if not bind_receiver(self, document):
+                return
+            self.document_id, self.session_id = document['id'], document['session_id']
+            self._source_ref = self._object_ref = self._tree_selection = None
+            self._samples = self._sample_basis = self._confirmed_sample_selection = None
+            with QSignalBlocker(self.samples):
+                self.samples.setRowCount(0)
+                self.samples.setColumnCount(0)
+            self._draft = defaults(self._kind)
+            self.view_selector.setCurrentIndex(0)
+            self._show_document(document, initial=True)
+        return self._call(checked, accepted, relevant=lambda: token == self._context_token() and not self.local_dirty)
 
     def closeEvent(self, event):
         if self._pending and not self._allow_close:
@@ -2734,6 +3154,9 @@ class PostWindow(QMainWindow):
         self._measurement_poll_pending = None
         self.timer.stop()
         self.command_timer.stop()
+        receiver = getattr(self, '_result_return', None)
+        if receiver:
+            receiver.close()
         event.accept()
 
 
@@ -2746,7 +3169,23 @@ def main(argv=None):
     if not args.service:
         parser.error('--service or CAELAB_SERVICE_URL must identify the existing local service')
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    window = PostWindow(Client(args.service), document_id=args.document_id, session_id=args.session_id)
+    client = Client(args.service)
+    from .result_return import activate_existing
+    try:
+        receipt = activate_existing(client, args.document_id, session_id=args.session_id)
+        if receipt['status'] == 'ACTIVATED':
+            return 0
+        document = client.document_read(args.document_id)
+        if (document.get('kind') != 'post' or not document.get('connected')
+                or args.session_id is not None and document.get('session_id') != args.session_id):
+            raise ValueError('현재 연결된 후처리 세션을 확인할 수 없습니다.')
+    except (ValueError, RuntimeError, OSError) as error:
+        print('후처리 설정창을 열지 못했습니다. ' + str(error), file=sys.stderr)
+        return 2
+    window = PostWindow(client, document_id=args.document_id, session_id=document['session_id'], auto_open=False)
+    if not window._show_document(document, initial=True):
+        print(window.message.text(), file=sys.stderr)
+        return 0
     window.show()
     return app.exec()
 
