@@ -162,13 +162,21 @@ def measurement_columns(snapshot):
     select an already-produced native column; this function computes neither.
     """
     array = snapshot.get('recipe', {}).get('array')
-    if snapshot.get('recipe', {}).get('measurement') == 'gauge':
+    if snapshot.get('recipe', {}).get('measurement') in ('gauge','gauge_time'):
         summary = snapshot.get('summary', {})
-        if (summary.get('measurement') != 'gauge' or summary.get('input_array') != array
+        if (summary.get('measurement') != snapshot['recipe']['measurement'] or summary.get('input_array') != array
                 or summary.get('array') != 'GaugeRelativeDisplacement'
                 or summary.get('measure') != 'projected_relative_displacement'):
             raise ValueError('Saved gauge output does not match its relative-displacement definition')
         array = 'GaugeRelativeDisplacement'
+    if snapshot.get('recipe',{}).get('measurement') in ('surface_average','surface_time'):
+        summary = snapshot.get('summary',{})
+        if (summary.get('measurement')!=snapshot['recipe']['measurement'] or summary.get('input_array')!=array
+                or summary.get('array')!='SurfaceAreaAverage'
+                or summary.get('reduction')!='native_surface_triangulation_area_weighted_mean'
+                or summary.get('geometry')!='fixed_reference'):
+            raise ValueError('Saved surface average differs from its actual native face integral')
+        array = 'SurfaceAreaAverage'
     if not isinstance(array, str) or not array:
         raise ValueError('Saved measurement has no declared source array')
     available = choices(snapshot)['arrays']
@@ -221,10 +229,10 @@ def project_samples(snapshot, selection):
     if axis['kind'] == 'coordinate' and (set(axis) != {'kind', 'component'} or axis['component'] not in (0, 1, 2)):
         raise ValueError('Coordinate axis requires X, Y or Z')
     measurement = snapshot.get('summary', {}).get('measurement')
-    if measurement == 'gauge' and any(selection[key] != snapshot['summary'].get(key)
+    if measurement in ('gauge','gauge_time','surface_time','surface_average') and any(selection[key] != snapshot['summary'].get(key)
             for key in ('component_label', 'location')):
         raise ValueError('Use the saved two-point direction and reference location')
-    if axis['kind'] == 'array' and axis.get('name') != {'time': 'Time', 'path': 'arc_length', 'contact_force': snapshot.get('summary',{}).get('axis_name','load_parameter')}.get(measurement):
+    if axis['kind'] == 'array' and axis.get('name') != {'time': 'Time', 'gauge_time':'Time', 'surface_time':'Time', 'surface_average':'SampleIndex', 'path': 'arc_length', 'contact_force': snapshot.get('summary',{}).get('axis_name','load_parameter')}.get(measurement):
         raise ValueError('Use the actual time/path axis or an explicit spatial coordinate/index')
     if axis['kind'] == 'point_index' and (set(axis) != {'kind'} or selection['axis_unit'] != '1'):
         raise ValueError('Original point index is dimensionless; it is not a physical clock')
@@ -232,9 +240,12 @@ def project_samples(snapshot, selection):
     coordinate_axis = axis['kind'] == 'coordinate' or axis.get('name') == 'arc_length'
     if coordinate_axis and summary.get('coordinate_units') and selection['axis_unit'] != summary['coordinate_units']:
         raise ValueError('Use the saved coordinate unit; no length conversion is performed')
-    if summary.get('measurement') == 'time' and (axis['kind'] != 'array' or axis.get('name') != 'Time'
+    if summary.get('measurement') in ('time','gauge_time','surface_time') and (axis['kind'] != 'array' or axis.get('name') != 'Time'
             or axis.get('component') is not None or selection['axis_unit'] != summary.get('time_units')):
         raise ValueError('Time measurements require their actual native clock and saved time unit')
+    if measurement == 'surface_average' and (axis != {'kind':'array','name':'SampleIndex','component':None}
+            or selection['axis_unit']!='1' or selection['axis_name']!='SampleIndex'):
+        raise ValueError('정적·단일 시각 면 평균은 무차원 표본 번호를 사용합니다. 물리 시간 이력을 만들지 않습니다.')
     if measurement == 'contact_force':
         expected_axis = summary.get('axis_name','load_parameter')
         expected_unit = summary.get('axis_unit','1')
@@ -288,10 +299,12 @@ def project_samples(snapshot, selection):
         writer.writerow([repr(x) if _finite(x) else 'nan', repr(y) if _finite(y) else 'nan', int(valid)])
     if not projected or len(invalid) == len(projected):
         raise ValueError('This selection has no valid measured samples')
-    if summary.get('measurement') == 'time':
+    if summary.get('measurement') in ('time','gauge_time','surface_time'):
         actual = [row['axis'] for row in projected]
         if actual != summary.get('time_values'):
             raise ValueError('Selected axis is not the exact saved native clock; no clock interpolation is permitted')
+    if measurement == 'surface_average' and [row['axis'] for row in projected] != summary.get('axis_values'):
+        raise ValueError('면 평균의 저장된 표본 번호가 원 측정 표와 다릅니다. 원 측정을 다시 열어 확인하세요.')
     if measurement == 'contact_force' and [r['axis'] for r in projected] != summary.get('axis_values'):
         raise ValueError('Contact force rows differ from the exact retained load increments')
     response = {'column': 1, 'unit': selection['unit'], 'component': selection['component_label'],

@@ -87,9 +87,19 @@ Research는 기존 Qt Widgets 구현을 이어 쓴다. Python 서비스·로컬 
 새 대시보드, KPI 카드, 큰 제목, 긴 설명/입력폼 나열은 이 요구의 구현이 아니다.
 독립 앱마다 동일한 세 칸 배치를 강제하지 않는다.
 
+Post의 주 작업창은 **실제 ParaView**다. 모델·필터·선택·시간·실제 결과는 native 메뉴와
+Pipeline Browser/Properties/View에서 다룬다. 사용자의 COMSOL 화면 구성 지시에 따라
+Qt 분석 설정은 선택한 대상만 편집하는 비모달 보조창으로 정리한다. 분석 트리 위에 선택
+설정을 쌓는 Regular 배치를 기준으로 하고, 좁은 창은 대상·정의·단위·시각 페이지로 나눈다.
+단일 값은 수치와 표를 먼저 보여 주고 이력은 곡선으로 읽는다. Qt 안의 큰 그래프를 실제
+3D 작업창 대신 쓰지 않으며 두 OS 창을 임베딩·프로세스 간 도킹으로 설명하지 않는다.
+이는 2026-10-16 실제 Pro의 전체 Post 설계에 대한 통합 방향이며 현재 구현 완료 범위는
+CURRENT_STATE와 [Post 사용법](../apps/research/POST_NUMERICAL.md)에 구분한다.
+
 | 작업공간 | 주 기준 | 유지할 화면 구조와 핵심 조작 |
 |---|---|---|
 | CAD/FE | **FreeCAD native 작업 화면** | Model/Property/Tasks와 실제 3D를 유지. 스케치/구속→피처 치수 수정→부품 instance/관절→운동→메시 설정/품질→조건의 대상 선택→저장·재개. Abaqus 조건 편집과 HyperMesh 품질 선택은 해당 작업의 보조 참고이며 전체 chrome을 섞지 않음 |
+| Post | **ParaView native 작업 화면과 COMSOL의 선택 설정 구조** | ParaView에서 실제 모델·필드·필터·시간·선택·분할 보기를 사용. Qt의 분석 트리에서 대상을 골라 해당 정의만 편집→미리보기→적용→실제 결과 확인→저장→관측 전달. 두 프로그램의 역할을 구분하며 native pipeline 전체를 Qt에서 복제하지 않음 |
 | Data | **Origin 워크북·그래프** | 열 이름·단위·역할·수식 행, 자료 표, 그래프 창을 직접 조작. 파일 열기→열 지정→행/범위 선택→변환 설정→처리 전후 보기→설정 재열기→저장·재개 |
 | Material | **MCalibration Calibrate/Load Case** | 좌측 시험 목록과 계수 표, 우측 큰 관측/예측 곡선, 하단 실행 출력. 모델 선택→시험/이력 편집→직접 평가→계수/자유 변수 수정→동정→별도 조건 확인→모델 채택 |
 | PDE | **COMSOL Model Builder/Settings/Graphics** | 모델 트리→선택한 식/field/domain/BC의 설정→해당 영역·mesh/field가 같은 작업을 가리킴. 식/space·계수·경계 편집→오류 위치 이동→study 수치 설정→실제 평가→해/오차 비교 |

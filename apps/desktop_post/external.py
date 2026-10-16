@@ -851,4 +851,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    # Portable pvpython starts this script outside the repository working directory.
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     main()

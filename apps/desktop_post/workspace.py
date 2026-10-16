@@ -616,11 +616,15 @@ class Workspace:
                     if declaration and 'frozen_clock' in declaration:
                         from .comparison_native import _filter
                         source = _filter(source, 'frozen', {}, name, prefix)
-                    if selected and selected.get('validity_masks'):
+                    if selected and selected.get('validity_masks') and draft.get('measurement') not in ('surface_average','surface_time','gauge_time'):
                         from .comparison_native import _filter
                         source = _filter(source, 'quality_only', {'array': draft['array'],
                             'masks': selected['validity_masks'], 'validity_policy': selected.get('validity_policy')}, name, prefix)
-                    bundle = measurements.build_measurement(source, draft, name)
+                    measurement_draft = deepcopy(draft)
+                    if selected and draft.get('measurement') in ('surface_average','surface_time','gauge_time'):
+                        measurement_draft['validity_masks'] = deepcopy(selected.get('validity_masks', []))
+                        measurement_draft['validity_policy'] = selected.get('validity_policy')
+                    bundle = measurements.build_measurement(source, measurement_draft, name)
                     bundle['proxies'] = prefix + bundle['proxies']
                 except BaseException:
                     analysis.cleanup({'proxies': prefix})
@@ -744,7 +748,7 @@ class Workspace:
                 raise ValueError('배열별 유효성 정책은 확인된 저장 선언에서만 사용할 수 있습니다.')
             return
         if 'frozen_clock' in metadata:
-            if draft.get('measurement') == 'time' or draft.get('time') is not None:
+            if draft.get('measurement') in ('time','surface_time','gauge_time') or draft.get('time') is not None:
                 raise ValueError('저장된 고정 결과에서는 점 또는 경로를 선택하세요. 원 표본 시각을 다시 지정하거나 시간 이력으로 늘리지 않습니다.')
             clock = metadata['frozen_clock']
             if clock:
@@ -865,6 +869,13 @@ class Workspace:
         if obj['kind'] == 'comparison' and record['recipe'].get('version') == 3:
             from .curve_native import sample
             result = sample(bundle, offset=offset, limit=limit, row_index=row_index, point_index=point_index)
+        elif row_index is not None and obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('surface_average','surface_time','gauge_time'):
+            if type(row_index) is not int or row_index < 0 or point_index is not None:
+                raise ValueError('측정 표의 행 번호를 선택하세요. 공간 점 번호와 함께 사용할 수 없습니다.')
+            result = measurements.sample_data(bundle['source'], offset=row_index, limit=1)
+            if (len(result.get('rows', [])) != 1 or result['rows'][0].get('row') != row_index
+                    or result['rows'][0].get('block') != []):
+                raise ValueError('선택한 행이 현재 측정 표에 없습니다. 표를 다시 읽으세요.')
         elif row_index is not None:
             raise ValueError('이 분석은 시간표 행 선택을 지원하지 않습니다.')
         elif obj['kind'] == 'comparison':
@@ -908,6 +919,20 @@ class Workspace:
                 return False
         record = self.applied(obj)
         rows = obj.get('selection')
+        if record and obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('surface_average','surface_time','gauge_time') and rows:
+            if (obj.get('selection_revision') != record['id'] or not isinstance(rows, list) or len(rows) != 1
+                    or not isinstance(rows[0], dict) or type(rows[0].get('row')) is not int
+                    or rows[0]['row'] < 0 or rows[0].get('block') != []):
+                return False
+            try:
+                _, bundle = self._bundle(obj)
+                actual = measurements.sample_data(bundle['source'], offset=rows[0]['row'], limit=1)
+                if digest(actual['rows']) != obj.get('selection_hash') or digest(rows) != obj.get('selection_hash'):
+                    raise ValueError('저장된 측정 행과 현재 원표가 다릅니다.')
+                return True
+            except (ValueError, RuntimeError, OSError) as error:
+                self.restore_issues.append({'object_ref': obj['id'], 'message': str(error)})
+                return False
         if record and record['recipe'].get('version') == 3 and rows:
             if (obj.get('selection_revision') != record['id'] or len(rows) != 1
                     or type(rows[0].get('row_index')) is not int):
@@ -978,7 +1003,7 @@ class Workspace:
     def view_type(obj, record):
         if obj['kind'] == 'comparison' and record['recipe'].get('version') == 3:
             return 'XYChartView'
-        if (obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('time', 'path', 'contact_force')
+        if (obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('time', 'path', 'contact_force', 'surface_time', 'gauge_time')
                 or obj['kind'] == 'filter' and record['recipe'].get('filter') == 'PlotOverLine'):
             return 'XYChartView'
         return 'SpreadSheetView' if obj['kind'] == 'measurement' else 'RenderView'
@@ -1041,12 +1066,16 @@ class Workspace:
             elif view.GetXMLName() == 'XYChartView':
                 display.UseIndexForXAxis = 0
                 measurement = record['recipe'].get('measurement')
-                display.XArrayName = {'time': 'Time', 'contact_force': record['recipe'].get('axis_name','load_parameter')}.get(measurement, 'arc_length')
-                if measurement == 'contact_force':
+                display.XArrayName = {'time': 'Time', 'surface_time':'Time', 'gauge_time':'Time', 'contact_force': record['recipe'].get('axis_name','load_parameter')}.get(measurement, 'arc_length')
+                if measurement in ('contact_force','surface_time','gauge_time'):
                     display.AttributeType = 'Row Data'
-                array = record['recipe'].get('array') or record['recipe'].get('settings', {}).get('array')
+                array = (record['summary']['array'] if measurement in ('surface_average','surface_time','gauge_time') else
+                         record['recipe'].get('array') or record['recipe'].get('settings', {}).get('array'))
                 if array:
                     display.SeriesVisibility = [array]
+                    if measurement in ('surface_average','surface_time','gauge_time'):
+                        display.SeriesLineStyle = [array,'0']
+                        display.SeriesMarkerStyle = [array,'4']
             if obj['kind'] == 'comparison' and view.GetXMLName() == 'RenderView':
                 arrays = bundle.get('summary', {}).get('arrays', {})
                 array = array or (arrays.get('delta', 'CAE_delta') if isinstance(arrays, dict) else 'CAE_delta')
@@ -1247,14 +1276,20 @@ class Workspace:
             raise RuntimeError('Native export produced no file')
         return {'file': str(output), 'sha256': external.sha(output), 'revision': record['id'], 'analysis_saved': False}
 
-    def capture_selection(self, *, source_ref, array, title=None, measurement='point'):
-        if measurement not in ('point', 'gauge'):
+    def capture_selection(self, *, source_ref, array, title=None, measurement='point', reference_time=None, offset=0, limit=200):
+        if measurement not in ('point', 'gauge', 'gauge_time', 'surface_time', 'surface_average'):
             raise ValueError('Choose an original point or two-point relative-displacement capture')
         if source_ref not in self.document['sources']:
             raise ValueError('Original point selection requires an admitted original reader')
         source = self.resolve(source_ref)
-        if measurement == 'gauge':
+        if measurement in ('gauge','gauge_time','surface_time','surface_average'):
             self.pending([source_ref]); self._verify_inputs([source_ref])
+        if measurement in ('surface_time','surface_average'):
+            try:
+                from .measurement_histories import surface_options
+            except ImportError:
+                from measurement_histories import surface_options
+            return surface_options(source, reference_time if reference_time is not None else external.set_time(source), offset=offset, limit=limit)
         indices = measurements.capture_point_selection(source) if measurement == 'point' else []
         draft = {'source_ref': source_ref, 'measurement': 'point',
                  'array': array, 'association': 'POINTS', 'point_indices': indices}
@@ -1267,10 +1302,16 @@ class Workspace:
         if clock:
             draft.update(time_units=clock['unit'], time_origin=clock['semantics'],
                          time=external.set_time(source))
-        if measurement == 'gauge':
+        if measurement in ('gauge','gauge_time'):
             if external.times(source):
                 draft['time'] = external.set_time(source)
             draft.update(measurement='gauge', **measurements.capture_gauge_points(source))
+            if measurement == 'gauge_time':
+                times = external.times(source)
+                if not times:raise ValueError('Static data has no physical gauge time history')
+                if reference_time is not None and reference_time != draft['time']:
+                    raise ValueError('Select the reference frame before capturing its two original points')
+                draft.update(measurement='gauge_time', reference_time=draft.pop('time'), time_range=[times[0],times[-1]])
         return self.edit_measurement(draft=draft, title=title)
 
     def repair_source(self, *, source_ref, input_id, receipt):

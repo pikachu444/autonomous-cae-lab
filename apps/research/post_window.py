@@ -19,8 +19,8 @@ from PySide6.QtCore import QThreadPool, QTimer, QSignalBlocker, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QCheckBox, QComboBox, QFormLayout,
-    QDialog, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
-    QMenu, QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter,
+    QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
+    QMenu, QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter, QStyle,
     QTabWidget, QTableWidget, QTableWidgetItem, QToolBar, QTreeWidget,
     QTreeWidgetItem, QToolButton, QVBoxLayout, QWidget,
 )
@@ -45,11 +45,15 @@ MEASUREMENT_FIELDS = {
     'gauge': ('source_ref', 'array', 'association', 'point_indices', 'point1', 'point2', 'direction',
               'basis', 'coordinate_configuration', 'time', 'time_units', 'time_origin') + MEASUREMENT_DECLARATIONS,
 }
+MEASUREMENT_FIELDS['gauge_time'] = tuple(key for key in MEASUREMENT_FIELDS['gauge'] if key != 'time') + ('time_range', 'reference_time')
+MEASUREMENT_FIELDS['surface_time'] = ('source_ref', 'array', 'association', 'component', 'direction', 'basis', 'geometry',
+    'time_range', 'reference_time', 'time_units', 'time_origin') + MEASUREMENT_DECLARATIONS
+MEASUREMENT_FIELDS['surface_average'] = tuple(key for key in MEASUREMENT_FIELDS['surface_time'] if key not in ('time_range', 'reference_time')) + ('time',)
 SIDE_FIELDS = ('source_ref', 'array', 'association', 'quantity', 'units', 'measure', 'frame',
                'coordinate_units', 'coordinate_frame', 'time', 'time_units', 'time_origin')
-VECTORS = {'origin', 'normal', 'offsets', 'values', 'point1', 'point2', 'point_indices', 'direction'}
+VECTORS = {'origin', 'normal', 'offsets', 'values', 'point1', 'point2', 'point_indices', 'direction', 'time_range'}
 BOOLEANS = {'triangulate', 'crinkle', 'invert'}
-NUMBERS = {'time', 'tolerance', 'scale_factor'}
+NUMBERS = {'time', 'reference_time', 'tolerance', 'scale_factor'}
 LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 위치 (POINTS/CELLS)',
           'quantity': '물리량', 'units': '응답 단위', 'measure': '물리적 정의', 'frame': '응답 좌표계',
           'coordinate_units': '좌표 단위', 'coordinate_frame': '좌표계',
@@ -60,6 +64,8 @@ LABELS = {'source_ref': '원 자료', 'array': '필드', 'association': '자료 
           'direction': '상대변위의 단위 방향 [x, y, z]', 'basis': '방향의 기준',
           'coordinate_configuration': '좌표 상태', 'resolution': '선 구간 수', 'tolerance': '허용 오차',
           'offsets': '단면 위치', 'values': '등고값', 'scale_factor': '벡터 배율'}
+LABELS.update(time_range='실제 시각 범위 [시작, 끝]', reference_time='기준 좌표의 실제 시각',
+              component='평균할 성분', geometry='평균 면적의 기준')
 
 
 def defaults(kind, source_ref=''):
@@ -161,7 +167,7 @@ class PostWindow(QMainWindow):
         self.setMinimumSize(1060, 700)
         toolbar = QToolBar('후처리')
         self.addToolBar(toolbar)
-        self.open_action = QAction('후처리 문서 열기…', self, shortcut=QKeySequence.Open)
+        self.open_action = QAction('열린 후처리로 전환…', self, shortcut=QKeySequence.Open)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action = QAction('저장', self, shortcut=QKeySequence.Save)
         self.save_action.triggered.connect(self.save_document)
@@ -412,8 +418,281 @@ class PostWindow(QMainWindow):
         split.addWidget(center)
         split.setSizes([260, 1180])
         self.setCentralWidget(root)
+        self._arrange_desktop(toolbar)
         self._populate_editor()
         self._update_actions()
+
+    def _arrange_desktop(self, toolbar):
+        """Model tree / selected Settings / Graphics / lower Tables and Messages.
+
+        Native 3D remains in the existing ParaView process. Every action below
+        delegates to the original command and its owner/draft guards.
+        """
+        from .post_result_plot import ResultPlot
+        old = self.takeCentralWidget()
+        root = QWidget()
+        outer = QVBoxLayout(root)
+        outer.setContentsMargins(4, 4, 4, 4)
+        self.desktop_split = QSplitter(Qt.Orientation.Horizontal)
+        outer.addWidget(self.desktop_split, 1)
+        model = QWidget()
+        model_layout = QVBoxLayout(model)
+        model_layout.setContentsMargins(0, 0, 0, 0)
+        self.identity.setWordWrap(True)
+        model_layout.addWidget(self.identity)
+        self.tree.setHeaderLabels(['모델 / 결과', '상태'])
+        self.tree.setColumnWidth(0, 140)
+        self.tree.setIndentation(12)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._tree_menu)
+        self.tree.itemDoubleClicked.connect(lambda *_: self.open_native_source() if self._tree_selection and self._tree_selection[0] == 'source' else self.edit_selected())
+        model_layout.addWidget(self.tree, 1)
+        self.desktop_split.addWidget(model)
+
+        self.settings_panel = QWidget()
+        settings = QVBoxLayout(self.settings_panel)
+        settings.setContentsMargins(4, 0, 4, 0)
+        heading = QLabel('설정')
+        heading.setProperty('appearanceRole', 'section')
+        settings.addWidget(heading)
+        settings.addWidget(self.object_label)
+        settings.addWidget(self.return_editor)
+        self.selection_meaning.setVisible(False)
+        self.editor_toggle.setText('설정 접기' if self.editor_toggle.isChecked() else '설정 편집')
+        settings.addWidget(self.editor_toggle, 0, Qt.AlignmentFlag.AlignLeft)
+        self.editor_area.setMaximumHeight(16777215)
+        self.editor_area.setMinimumHeight(0)
+        settings.addWidget(self.editor_area, 1)
+        for form in self._forms.values():
+            form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        # Source properties and field inspection are contextual Settings.
+        self.source_settings = QWidget()
+        source_layout = QVBoxLayout(self.source_settings)
+        source_layout.setContentsMargins(0, 0, 0, 0)
+        source_layout.addWidget(self.array_table, 1)
+        source_layout.addWidget(self.array_description)
+        source_layout.addWidget(self.array_controls)
+        settings.addWidget(self.source_settings, 1)
+        self.desktop_split.addWidget(self.settings_panel)
+
+        results = QSplitter(Qt.Orientation.Vertical)
+        graphics = QWidget()
+        graphics_layout = QVBoxLayout(graphics)
+        graphics_layout.setContentsMargins(0, 0, 0, 0)
+        title = QLabel('그래픽 / 측정 결과')
+        title.setProperty('appearanceRole', 'section')
+        graphics_layout.addWidget(title)
+        self.graphics_toolbar = QToolBar('그래픽')
+        self.graphics_toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        graphics_layout.addWidget(self.graphics_toolbar)
+        self.result_plot = ResultPlot(self)
+        self.result_plot.rowSelected.connect(self.samples.selectRow)
+        graphics_layout.addWidget(self.result_plot, 1)
+        self.sample_context.setMaximumHeight(85)
+        graphics_layout.addWidget(self.sample_context)
+        results.addWidget(graphics)
+        self.output_tabs = QTabWidget()
+        self.output_tabs.setObjectName('postOutputTabs')
+        table_page = QWidget()
+        table_layout = QVBoxLayout(table_page)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.addWidget(self.samples, 1)
+        table_layout.addWidget(self.sample_controls)
+        self.output_tabs.addTab(table_page, '표')
+        messages = QWidget()
+        messages_layout = QVBoxLayout(messages)
+        self.message.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        messages_layout.addWidget(self.message)
+        messages_layout.addStretch()
+        self.output_tabs.addTab(messages, '메시지')
+        self.details.setMaximumHeight(16777215)
+        self.details.show()
+        self.output_tabs.addTab(self.details, '기술 상세')
+        results.addWidget(self.output_tabs)
+        results.setSizes([540, 210])
+        self.desktop_split.addWidget(results)
+        model.setMinimumWidth(160)
+        self.settings_panel.setMinimumWidth(280)
+        self.desktop_split.setStretchFactor(0, 0)
+        self.desktop_split.setStretchFactor(1, 0)
+        self.desktop_split.setStretchFactor(2, 1)
+        self.desktop_split.setSizes([215, 330, 870])
+        self.setCentralWidget(root)
+        old.hide()
+        # Old button objects retain the single command/enabled implementation;
+        # actions share those exact slots rather than duplicating operations.
+        for widget in (self.edit_button, self.preview_button, self.apply_button, self.reset_button,
+                       self.source_tools, self.sample_tools, self.add_source_button,
+                       self.show_source_button, self.show_applied_button, self.contact_button,
+                       self.comparison_display, self.view_selector, self.handoff_retry, self.refresh_button):
+            widget.setParent(self)
+            widget.hide()
+        for action in self.new_buttons:
+            action.setParent(self)
+        self.menuBar().clear()
+        toolbar.clear()
+        toolbar.setWindowTitle('빠른 실행')
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        style = self.style()
+        self.open_action.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton))
+        self.save_action.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton))
+        self._command_actions = []
+        def command(text, button, icon, shortcut=None):
+            action = QAction(style.standardIcon(icon), text, self)
+            action.setToolTip(text + (f' ({shortcut})' if shortcut else ''))
+            if shortcut:
+                action.setShortcut(QKeySequence(shortcut))
+            action.triggered.connect(button.click)
+            self._command_actions.append((action, button))
+            return action
+        self.refresh_action = command('새로고침', self.refresh_button, QStyle.StandardPixmap.SP_BrowserReload, 'F5')
+        self.add_source_action = command('결과 파일 추가…', self.add_source_button, QStyle.StandardPixmap.SP_FileDialogNewFolder)
+        self.preview_action = command('미리보기', self.preview_button, QStyle.StandardPixmap.SP_FileDialogContentsView, 'F6')
+        self.apply_action = command('적용', self.apply_button, QStyle.StandardPixmap.SP_DialogApplyButton, 'F7')
+        self.keep_action = command('초안 보관', self.edit_button, QStyle.StandardPixmap.SP_DialogSaveButton)
+        self.reset_action = command('편집 되돌리기', self.reset_button, QStyle.StandardPixmap.SP_DialogResetButton)
+        self.read_action = command('측정값 읽기', self.sample_button, QStyle.StandardPixmap.SP_FileDialogDetailedView, 'F8')
+        self.export_action = command('결과 내보내기…', self.export_button, QStyle.StandardPixmap.SP_DialogSaveButton)
+        self.numerical_action = command('Numerical로 보내기…', self.numerical_button, QStyle.StandardPixmap.SP_ArrowRight)
+        self.contact_action = command('접촉 결과…', self.contact_button, QStyle.StandardPixmap.SP_FileDialogInfoView)
+        self.show_result_action = command('ParaView에서 적용 결과 보기', self.show_applied_button, QStyle.StandardPixmap.SP_DesktopIcon)
+        self.edit_action = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), '설정 편집', self)
+        self.edit_action.setShortcut(QKeySequence('Alt+Return'))
+        self.edit_action.triggered.connect(self.edit_selected)
+        self.native_action = QAction(style.standardIcon(QStyle.StandardPixmap.SP_DesktopIcon), 'ParaView로 이동', self)
+        self.native_action.setToolTip('원 결과를 실제 ParaView 창에 표시합니다. 점 선택 도구는 ParaView에서 사용하세요. (F4)')
+        self.native_action.setShortcut(QKeySequence('F4'))
+        self.native_action.triggered.connect(self.open_native_source)
+        self.new_gauge_action = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileIcon), '두 점 상대변위…', self)
+        self.new_gauge_action.triggered.connect(self.new_gauge)
+        self.new_buttons.append(self.new_gauge_action)
+        file_menu = self.menuBar().addMenu('파일(&F)')
+        file_menu.addActions([self.open_action, self.add_source_action, self.save_action])
+        edit_menu = self.menuBar().addMenu('편집(&E)')
+        edit_menu.addActions([self.edit_action, self.keep_action, self.reset_action, self.undo_button, self.redo_button])
+        self.analysis_menu = self.menuBar().addMenu('분석(&A)')
+        self.analysis_menu.addActions(self.new_buttons)
+        measurement_menu = self.analysis_menu.addMenu('측정 추가')
+        for kind, label in [('point', '점'), ('path', '경로'), ('time', '원본 점 시간 이력'),
+                            ('gauge_time', '두 점 상대변위 시간 이력'), ('surface_average', '면 평균'), ('surface_time', '면 평균 시간 이력')]:
+            action = measurement_menu.addAction(label + '…')
+            action.triggered.connect(lambda checked=False, kind=kind: self.new_measurement_type(kind))
+            self.new_buttons.append(action)
+        self.analysis_menu.addSeparator()
+        self.analysis_menu.addActions([self.preview_action, self.apply_action])
+        self.results_menu = self.menuBar().addMenu('결과(&R)')
+        self.results_menu.addActions([self.native_action, self.show_result_action, self.read_action, self.contact_action])
+        self.results_menu.addAction(command('비교 곡선…', self.comparison_curve_button, QStyle.StandardPixmap.SP_FileDialogContentsView))
+        export_menu = self.results_menu.addMenu('내보내기')
+        for fmt in ('vtu', 'csv', 'png'):
+            action = export_menu.addAction(fmt.upper(), lambda checked=False, fmt=fmt: self._export_format(fmt))
+            self._command_actions.append((action, self.export_button))
+        self.results_menu.addAction(self.numerical_action)
+        view_menu = self.menuBar().addMenu('보기(&V)')
+        view_menu.addAction(self.refresh_action)
+        view_menu.addAction('설정', self.edit_selected)
+        view_menu.addAction('표', lambda: self.output_tabs.setCurrentIndex(0))
+        view_menu.addAction('메시지', lambda: self.output_tabs.setCurrentIndex(1))
+        view_menu.addAction('기술 상세', lambda: self.output_tabs.setCurrentIndex(2))
+        self.results_menu.addAction('조회 범위…', self.read_options.toggle)
+        self.inspect_action = command('필드 정보 읽기', self.inspect_button, QStyle.StandardPixmap.SP_FileDialogInfoView)
+        self.results_menu.addAction(self.inspect_action)
+        file_menu.addSeparator()
+        file_menu.addAction(command('원파일 다시 연결…', self.repair_button, QStyle.StandardPixmap.SP_DialogOpenButton))
+        file_menu.addAction(command('변경 자료로 새 프로젝트…', self.changed_source_button, QStyle.StandardPixmap.SP_FileIcon))
+        toolbar.addActions([self.open_action, self.save_action])
+        toolbar.addSeparator()
+        toolbar.addAction(self.new_gauge_action)
+        toolbar.addAction(self.native_action)
+        toolbar.addSeparator()
+        toolbar.addActions([self.preview_action, self.apply_action])
+        toolbar.addWidget(self.handoff_retry)
+        self.graphics_toolbar.addActions([self.native_action, self.read_action])
+        self.graphics_toolbar.addSeparator()
+        self.graphics_toolbar.addAction(self.numerical_action)
+        self.graphics_toolbar.addWidget(self.comparison_display)
+        self.graphics_toolbar.addWidget(self.view_selector)
+        self.view_selector.setMinimumWidth(100)
+        self.view_selector.setMaximumWidth(180)
+        self.view_selector.show()
+        self._desktop_ready = True
+        self.preview_button.clicked.disconnect()
+        self.preview_button.clicked.connect(self.preview_result)
+        self.apply_button.clicked.disconnect()
+        self.apply_button.clicked.connect(self.apply_result)
+
+    def preview_result(self):
+        def validate():
+            def ready(_payload):
+                self.sample_preview.setChecked(True)
+                self.read_samples()
+            self.queue_command('post.mapping_validate', {'object_ref': self._object_ref}, accepted=ready)
+        if self.local_dirty or not self._object_ref:
+            return self.store_draft(after=validate)
+        return validate()
+
+    def apply_result(self):
+        def read(_payload):
+            self.sample_preview.setChecked(False)
+            self.read_samples()
+        return self.object_command('post.apply', after=read)
+
+    def edit_selected(self):
+        if self._busy or self._pending:
+            return False
+        self.editor_toggle.setChecked(True)
+        self.return_to_editor() if self._tree_selection and self._tree_selection[0] == 'source' and self.local_dirty else self._update_actions()
+        self.tabs.setFocus()
+        return True
+
+    def new_gauge(self):
+        return self.new_measurement_type('gauge')
+
+    def new_measurement_type(self, kind):
+        if not self.new_object('measurement'):
+            return False
+        self._draft = {key: value for key, value in self._draft.items() if key in MEASUREMENT_FIELDS[kind]}
+        self._draft['measurement'] = kind
+        if kind in ('gauge', 'gauge_time'):
+            self._draft['direction'] = []
+        elif kind in ('surface_average', 'surface_time'):
+            self._draft['direction'] = None
+        self._populate_editor()
+        return True
+
+    def _export_format(self, fmt):
+        self.export_format.setCurrentText(fmt)
+        self.export_button.click()
+
+    def _tree_menu(self, position):
+        item = self.tree.itemAt(position)
+        if item is None or not item.data(0, Qt.ItemDataRole.UserRole):
+            return
+        self.tree.setCurrentItem(item)
+        if self.tree.currentItem() is not item:
+            return
+        menu = QMenu(self.tree)
+        if self._tree_selection[0] == 'source':
+            menu.addActions([self.native_action, self.new_gauge_action])
+            menu.addAction(self.inspect_action)
+        else:
+            menu.addActions([self.edit_action, self.preview_action, self.apply_action, self.read_action,
+                             self.native_action, self.numerical_action])
+        menu.exec(self.tree.viewport().mapToGlobal(position))
+
+    def open_native_source(self):
+        draft = self.edited_draft()
+        ref = self._source_ref if self._tree_selection and self._tree_selection[0] == 'source' else draft.get('source_ref')
+        if not ref or ref not in {source['source_ref'] for source in self._sources()}:
+            self.message.setText('모델 트리에서 원 결과를 선택하세요.')
+            return False
+        view = self._view_arguments(source=True, source_ref=ref)
+        if view is None:
+            return False
+        def shown(_payload):
+            if 'document.activate' in (self.document or {}).get('capabilities', []):
+                self.queue_command('document.activate', {})
+        return self.queue_command('post.source_select', {'source_ref': ref, 'show': True, **view}, accepted=shown)
 
     def _toggle_editor(self, opened):
         self.editor_area.setVisible(opened)
@@ -454,7 +733,7 @@ class PostWindow(QMainWindow):
         def field_meaning(values):
             if not isinstance(values, dict):
                 return '형식이 맞지 않은 설정입니다. 기술 상세에서 원문을 확인하세요.'
-            time = ('저장 시각의 이력' if values.get('measurement') == 'time' else
+            time = ('시각 범위 ' + field_text(values.get('time_range')) + ' [' + str(values.get('time_units') or '?') + ']' if values.get('measurement') in ('gauge_time', 'surface_time') else '저장 시각의 이력' if values.get('measurement') == 'time' else
                     '시각 미지정' if values.get('time') is None else
                     '시각 ' + str(values['time']) + ' [' + str(values.get('time_units') or '단위 미지정') + ']')
             location = ('점 번호 ' + field_text(values['point_indices']) if values.get('point_indices') else
@@ -463,6 +742,15 @@ class PostWindow(QMainWindow):
             return (original(values.get('source_ref')) + ': ' + str(values.get('array') or '필드 미지정') +
                     ' [' + str(values.get('units') or '단위 미지정') + '], ' + location + ', ' + time +
                     ', ' + str(values.get('frame') or '좌표계 미지정'))
+        if draft.get('measurement') in ('surface_average', 'surface_time'):
+            component = draft.get('component')
+            response = '스칼라' if component is None else '방향 ' + field_text(draft.get('direction')) if component == 'projection' else str(component) + '번 성분'
+            clock = ('시각 범위 ' + field_text(draft.get('time_range')) if draft['measurement'] == 'surface_time' else
+                     '시각 정보 없음' if draft.get('time') is None else '시각 ' + str(draft['time']))
+            return (original(draft.get('source_ref')) + ': ' + str(draft.get('array') or '필드 미지정') +
+                ' / 경계 면 ' + str(len(draft.get('surface_faces') or [])) + '개 / ' + response +
+                ' [' + str(draft.get('units') or '단위 미지정') + ']\n' + clock +
+                ' [' + str(draft.get('time_units') or '?') + '] / 고정 기준 면적')
         if draft.get('measurement') == 'contact_force':
             component = draft.get('component', 0)
             axis = 'XYZ'[component] if isinstance(component, int) and 0 <= component < 3 else str(component)
@@ -636,7 +924,7 @@ class PostWindow(QMainWindow):
         if initial:
             self.editor_toggle.setChecked(not bool(obj and obj.get('position', -1) >= 0))
         self._populate_views()
-        self.setWindowTitle('후처리 — ' + document.get('title', '문서') + (' *' if self.local_dirty else ''))
+        self.setWindowTitle(document.get('title', '문서') + ' — Post 분석 설정' + (' *' if self.local_dirty else ''))
         self._show_arrays()
         self._show_details()
         self._update_actions()
@@ -664,6 +952,7 @@ class PostWindow(QMainWindow):
             self._populate_editor()
             self._samples = None
             self._sample_basis = None
+            self.result_plot.set_samples(None, None)
             self.samples.setRowCount(0)
             self.samples.setColumnCount(0)
         self._update_actions()
@@ -706,23 +995,44 @@ class PostWindow(QMainWindow):
             field.addItems(list(dict.fromkeys(row['name'] for row in arrays if isinstance(row, dict) and row.get('name'))))
             field.setCurrentText(field_text(value))
             field.currentTextChanged.connect(self._edited)
-        elif key in ('basis', 'coordinate_configuration') or (key == 'measure' and self._kind == 'measurement' and self._draft.get('measurement') == 'gauge'):
+            if self._draft.get('measurement') in ('surface_average', 'surface_time'):
+                field.activated.connect(lambda *_: self._source_field_changed(path))
+                field.lineEdit().editingFinished.connect(lambda: self._source_field_changed(path))
+        elif key in ('basis', 'coordinate_configuration', 'geometry', 'component') or (key == 'measure' and self._kind == 'measurement' and self._draft.get('measurement') in ('gauge', 'gauge_time')):
             field = QComboBox()
             field.addItem('미지정', None)
-            label, declared = {'basis': ('고정 직교 좌표계', 'fixed_cartesian'),
+            if key == 'component':
+                field.setItemText(0, '스칼라 필드 전체')
+                metadata, native = self._source_choice_metadata(self._draft.get('source_ref'))
+                declared = next((row for row in [*(native or {}).get('arrays', []), *metadata.get('arrays', [])] if row.get('name') == self._draft.get('array')
+                    and row.get('association') == self._draft.get('association')), {})
+                count = declared.get('components')
+                names = declared.get('component_names') or []
+                if type(count) is int and count > 1:
+                    for number in range(count):
+                        label = names[number] if len(names) == count and isinstance(names[number], str) and names[number] else str(number) + '번 원 성분'
+                        field.addItem(label, number)
+                if count == 3:
+                    field.addItem('지정 방향으로 투영', 'projection')
+            else:
+                label, declared = {'basis': ('고정 직교 좌표계', 'fixed_cartesian'),
                                'coordinate_configuration': ('변형 전 기준 좌표', 'reference'),
+                               'geometry': ('기준 시각의 고정 면적', 'fixed_reference'),
                                'measure': ('변위', 'displacement')}[key]
-            field.addItem(label, declared)
-            if value and field.findData(value) < 0:
+                field.addItem(label, declared)
+            if value is not None and value != '' and field.findData(value) < 0:
                 field.addItem('지원하지 않는 물리량' if key == 'measure' else str(value), value)
             field.setCurrentIndex(max(0, field.findData(value)))
-            field.currentIndexChanged.connect(self._edited)
+            field.currentIndexChanged.connect(self._surface_component_changed if key == 'component' else self._edited)
         elif key in ('association', *BOOLEANS):
             field = QComboBox()
             field.setEditable(True)
             field.addItems(['POINTS', 'CELLS'] if key == 'association' else ['true', 'false'])
             field.setCurrentText(field_text(value).lower() if key in BOOLEANS else field_text(value))
             field.currentTextChanged.connect(self._edited)
+            if key == 'association' and self._draft.get('measurement') in ('surface_average', 'surface_time'):
+                field.activated.connect(lambda *_: self._source_field_changed(path))
+                field.lineEdit().editingFinished.connect(lambda: self._source_field_changed(path))
         else:
             field = QLineEdit(field_text(value))
             if key in VECTORS:
@@ -737,16 +1047,24 @@ class PostWindow(QMainWindow):
     def _populate_editor(self):
         self._populating = True
         self.fields = {}
+        # The form owns its editor widgets; do not retain one after deleteLater.
+        self.comparison_editor = None
         for form in self._forms.values():
             while form.count():
                 item = form.takeAt(0)
                 if item.widget():
-                    item.widget().deleteLater()
+                    widget = item.widget()
+                    widget.hide()
+                    widget.setParent(None)
+                    widget.deleteLater()
                 elif item.layout():
                     while item.layout().count():
                         child = item.layout().takeAt(0)
                         if child.widget():
-                            child.widget().deleteLater()
+                            widget = child.widget()
+                            widget.hide()
+                            widget.setParent(None)
+                            widget.deleteLater()
         form = self._forms[self._kind]
         draft = self._draft
         if not isinstance(draft, dict):
@@ -859,7 +1177,7 @@ class PostWindow(QMainWindow):
             form.addRow(button)
         else:
             self.measurement_kind = QComboBox()
-            for title, kind in (('선택한 원본 점', 'point'), ('두 점 사이 경로', 'path'), ('같은 원본 점의 시간 이력', 'time'), ('두 점 상대변위', 'gauge')):
+            for title, kind in (('선택한 원본 점', 'point'), ('두 점 사이 경로', 'path'), ('같은 원본 점의 시간 이력', 'time'), ('두 점 상대변위', 'gauge'), ('두 점 상대변위의 시간 이력', 'gauge_time'), ('면적 가중 면 평균', 'surface_average'), ('면적 가중 면 평균의 시간 이력', 'surface_time')):
                 self.measurement_kind.addItem(title, kind)
             kind = draft.get('measurement', 'point')
             if kind not in MEASUREMENT_FIELDS:
@@ -867,7 +1185,11 @@ class PostWindow(QMainWindow):
             self.measurement_kind.setCurrentIndex(self.measurement_kind.findData(kind))
             self.measurement_kind.currentIndexChanged.connect(lambda _index: self._measurement_changed(self.measurement_kind.currentData()))
             form.addRow('측정 방식', self.measurement_kind)
-            for key in MEASUREMENT_FIELDS.get(draft.get('measurement'), ()):
+            if kind in ('gauge', 'gauge_time'):
+                self._gauge_settings(form, draft)
+            elif kind in ('surface_average', 'surface_time'):
+                self._surface_settings(form, draft)
+            for key in (() if kind in ('gauge', 'gauge_time', 'surface_average', 'surface_time') else MEASUREMENT_FIELDS.get(draft.get('measurement'), ())):
                 self._form_field(form, key, draft.get(key, None if key in ('time', 'time_units', 'time_origin') else 'POINTS' if key == 'association' else ''), (key,))
                 if key in MEASUREMENT_DECLARATIONS:
                     self.fields[(key,)][0].setPlaceholderText('선언이 없으면 알 수 없음')
@@ -875,27 +1197,174 @@ class PostWindow(QMainWindow):
             if draft.get('measurement') == 'gauge':
                 note.setText('두 원본 점의 변위 차이를 지정한 단위 방향으로 투영합니다. 신장이나 변형률이 아닙니다. 원본 VTK 점 번호 두 개와 그 기준 좌표를 같은 순서로 지정하세요. 같은 고정 직교 좌표계의 변위 필드만 사용합니다.')
             note.setWordWrap(True)
-            form.addRow(note)
+            if kind not in ('gauge', 'gauge_time', 'surface_average', 'surface_time'):
+                form.addRow(note)
             declarations_button = QPushButton('저장된 물리량 정보 사용')
             declarations_button.clicked.connect(lambda checked=False: self.use_declarations())
-            form.addRow(declarations_button)
+            if kind not in ('gauge', 'gauge_time', 'surface_average', 'surface_time'):
+                form.addRow(declarations_button)
+            else:
+                declarations_button.deleteLater()
             self.capture_button = QPushButton('ParaView에서 선택한 원본 점 가져오기')
             self.capture_button.setToolTip('점 측정과 시간 이력에 사용합니다. 경로는 두 끝점 좌표를 지정하세요.')
             self.capture_button.clicked.connect(self.capture_selection)
             form.addRow(self.capture_button)
-            if draft.get('measurement') == 'gauge':
+            if draft.get('measurement') in ('gauge', 'gauge_time'):
+                self.capture_button.setText('2  선택한 두 점 가져오기')
                 self.capture_button.setToolTip('선택한 두 원본 점의 번호와 현재 기준좌표를 함께 가져옵니다. 처음에는 점 번호 오름차순이며 순서는 바꿀 수 있습니다.')
                 swap = QPushButton('두 점 순서 바꾸기')
                 swap.setObjectName('swapGaugePoints')
                 swap.clicked.connect(self.swap_gauge_points)
                 form.removeWidget(self.capture_button)
-                form.insertRow(1, self.capture_button)
-                form.insertRow(2, swap)
+                self.gauge_selection_layout.addWidget(self.capture_button)
+                self.gauge_selection_layout.addWidget(swap)
+            elif kind in ('surface_average', 'surface_time'):
+                self.capture_button.setText('기준 시각의 원본 경계 면 선택…')
+                self.capture_button.clicked.disconnect()
+                self.capture_button.clicked.connect(self.capture_surface_faces)
+                form.removeWidget(self.capture_button)
+                self.surface_selection_layout.addWidget(self.capture_button)
         self.tabs.blockSignals(True)
         self.tabs.setCurrentIndex(('comparison', 'filter', 'measurement').index(self._kind))
         self.tabs.blockSignals(False)
         self._populating = False
         self._update_actions()
+
+    def _surface_settings(self, form, draft):
+        main = ('source_ref', 'array', 'association', 'component', 'direction') + (('time_range', 'reference_time') if draft['measurement'] == 'surface_time' else ('time',))
+        for key in main:
+            default = 'POINTS' if key == 'association' else None if key in ('time', 'reference_time', 'component', 'direction') else [] if key in VECTORS else ''
+            self._form_field(form, key, draft.get(key, default), (key,))
+        native = QToolButton()
+        native.setDefaultAction(self.native_action)
+        native.setText('ParaView에서 원 결과 보기…')
+        native.setObjectName('postNativeSurface')
+        native.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        form.addRow(native)
+        self.surface_summary = QLabel()
+        self.surface_summary.setWordWrap(True)
+        form.addRow(self.surface_summary)
+        selection = QWidget()
+        self.surface_selection_layout = QVBoxLayout(selection)
+        self.surface_selection_layout.setContentsMargins(0, 0, 0, 0)
+        form.addRow(selection)
+        self.surface_conditions = QLabel()
+        self.surface_conditions.setWordWrap(True)
+        form.addRow(self.surface_conditions)
+        toggle = QToolButton()
+        toggle.setText('측정 조건 / 고정 기준 면적')
+        toggle.setCheckable(True)
+        toggle.setArrowType(Qt.ArrowType.RightArrow)
+        toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        form.addRow(toggle)
+        details = QWidget()
+        conditions = QFormLayout(details)
+        conditions.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        for key in MEASUREMENT_FIELDS[draft['measurement']]:
+            if key not in main:
+                self._form_field(conditions, key, draft.get(key), (key,))
+        declarations = QPushButton('저장된 물리량 정보 사용')
+        declarations.clicked.connect(lambda: self.use_declarations())
+        conditions.addRow(declarations)
+        details.hide()
+        toggle.toggled.connect(details.setVisible)
+        toggle.toggled.connect(lambda opened: toggle.setArrowType(Qt.ArrowType.DownArrow if opened else Qt.ArrowType.RightArrow))
+        form.addRow(details)
+
+    def _gauge_settings(self, form, draft):
+        self._form_field(form, 'source_ref', draft.get('source_ref', ''), ('source_ref',))
+        self._form_field(form, 'array', draft.get('array', ''), ('array',))
+        native = QToolButton()
+        native.setDefaultAction(self.native_action)
+        native.setText('1  ParaView로 이동')
+        native.setObjectName('postNativeSelect')
+        native.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        native.setToolTip('실제 ParaView 창으로 이동합니다. 원 결과의 점 선택 도구로 두 점을 고른 뒤 이 창으로 돌아오세요.')
+        form.addRow(native)
+        self.gauge_points = QLabel()
+        self.gauge_points.setObjectName('gaugePointSummary')
+        self.gauge_points.setWordWrap(True)
+        form.addRow(self.gauge_points)
+        self.gauge_notice = QLabel()
+        self.gauge_notice.setWordWrap(True)
+        self.gauge_notice.setObjectName('gaugeSelectionNotice')
+        self.gauge_notice.hide()
+        form.addRow(self.gauge_notice)
+        selection = QWidget()
+        self.gauge_selection_layout = QVBoxLayout(selection)
+        self.gauge_selection_layout.setContentsMargins(0, 0, 0, 0)
+        form.addRow(selection)
+        self._form_field(form, 'direction', draft.get('direction', []), ('direction',))
+        self.fields[('direction',)][0].setPlaceholderText('단위 방향을 명시: x, y, z')
+        axes = QComboBox()
+        axes.setAccessibleName('명시적으로 선택할 전역 방향')
+        axes.addItem('방향 직접 입력 / 전역축 선택…', None)
+        for text, vector in [('X 방향', [1,0,0]), ('Y 방향', [0,1,0]), ('Z 방향', [0,0,1])]:
+            axes.addItem(text, vector)
+        def direction(index):
+            vector = axes.itemData(index)
+            if vector is not None:
+                self.fields[('direction',)][0].setText(field_text(vector))
+                self._edited()
+        axes.currentIndexChanged.connect(direction)
+        form.addRow(axes)
+        self.gauge_conditions = QLabel()
+        self.gauge_conditions.setObjectName('gaugeConditionSummary')
+        self.gauge_conditions.setWordWrap(True)
+        form.addRow(self.gauge_conditions)
+        toggle = QToolButton()
+        toggle.setText('측정 조건 / 기준 시각·좌표' if draft['measurement'] == 'gauge_time' else '측정 조건 / 기준 좌표')
+        toggle.setCheckable(True)
+        toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        toggle.setArrowType(Qt.ArrowType.RightArrow)
+        toggle.setObjectName('gaugeConditionsToggle')
+        form.addRow(toggle)
+        details = QWidget()
+        detail_form = QFormLayout(details)
+        detail_form.setContentsMargins(0, 0, 0, 0)
+        detail_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        if draft.get('measurement') == 'gauge_time':
+            for key in ('time_range', 'reference_time'):
+                self._form_field(detail_form, key, draft.get(key), (key,))
+        for key in MEASUREMENT_FIELDS[draft['measurement']]:
+            if key not in ('source_ref', 'array', 'direction', 'time_range', 'reference_time'):
+                default = None if key in ('time', 'time_units', 'time_origin') else 'POINTS' if key == 'association' else ''
+                self._form_field(detail_form, key, draft.get(key, default), (key,))
+        declarations = QPushButton('저장된 물리량 정보 사용')
+        declarations.clicked.connect(lambda: self.use_declarations())
+        detail_form.addRow(declarations)
+        note = QLabel('δ = (두 번째 점의 변위 − 첫 번째 점의 변위) · 방향\n같은 고정 직교 좌표계의 변위만 사용합니다. 거리 변화나 변형률이 아닙니다.')
+        note.setWordWrap(True)
+        detail_form.addRow(note)
+        details.hide()
+        toggle.toggled.connect(details.setVisible)
+        toggle.toggled.connect(lambda opened: toggle.setArrowType(Qt.ArrowType.DownArrow if opened else Qt.ArrowType.RightArrow))
+        form.addRow(details)
+
+    def _update_gauge_summary(self):
+        if self._kind != 'measurement' or self.edited_draft().get('measurement') not in ('gauge', 'gauge_time'):
+            return
+        draft = self.edited_draft()
+        points = draft.get('point_indices')
+        if isinstance(points, list) and len(points) == 2:
+            unit = str(draft.get('coordinate_units') or '단위 미지정')
+            self.gauge_points.setText('A: 원본 점 ' + str(points[0]) + ' / (' + field_text(draft.get('point1')) + ') [' + unit + ']' +
+                '\nB: 원본 점 ' + str(points[1]) + ' / (' + field_text(draft.get('point2')) + ') [' + unit + ']\n부호 순서: B − A')
+            self.gauge_points.setToolTip(str(draft.get('original_point_ids') or '저장된 추가 원 ID 없음'))
+        else:
+            self.gauge_points.setText('원본 점 두 개 선택 필요 — ParaView에서 선택 후 가져오세요.')
+        required = ('units', 'measure', 'frame', 'coordinate_units', 'coordinate_frame', 'basis', 'coordinate_configuration')
+        if draft.get('measurement') == 'gauge_time':
+            required += ('time_range', 'time_units', 'time_origin')
+        missing = [LABELS[key] for key in required if not draft.get(key)]
+        if draft.get('measurement') == 'gauge_time' and draft.get('reference_time') in (None, ''):
+            missing.append(LABELS['reference_time'])
+        clock = ('시각 범위 ' + (field_text(draft.get('time_range')) or '미지정') + ' [' + str(draft.get('time_units') or '단위 미지정') + '] / 기준 ' + str(draft.get('reference_time') if draft.get('reference_time') is not None else '미지정') if draft.get('measurement') == 'gauge_time' else '시각 정보 없음' if draft.get('time') is None else
+                 '시각 ' + str(draft['time']) + ' [' + str(draft.get('time_units') or '단위 미지정') + '] / ' +
+                 {'analysis_start':'해석 시작 기준'}.get(draft.get('time_origin'), str(draft.get('time_origin') or '시간 기준 미지정')))
+        self.gauge_conditions.setText(('미결정: ' + ', '.join(missing) if missing else
+            '응답 [' + str(draft['units']) + '] / 좌표계 ' + str(draft['frame']) + '\n기준 좌표 [' + str(draft['coordinate_units']) + ']') + '\n' + clock)
+        self.gauge_conditions.setToolTip('시간 기준: ' + str(draft.get('time_origin')))
 
     def edited_draft(self):
         draft = deepcopy(self._draft)
@@ -907,7 +1376,7 @@ class PostWindow(QMainWindow):
             if isinstance(field, QComboBox):
                 if path[-1] == 'source_ref':
                     text = field.currentData() if field.currentIndex() >= 0 and field.currentText() == field.itemText(field.currentIndex()) else field.currentText()
-                elif path[-1] in ('basis', 'coordinate_configuration', 'measure'):
+                elif path[-1] in ('basis', 'coordinate_configuration', 'measure', 'geometry', 'component'):
                     text = field.currentData()
                 else:
                     text = field.currentText()
@@ -954,7 +1423,23 @@ class PostWindow(QMainWindow):
             return
         draft = self.edited_draft()
         self._draft = {key: value for key, value in draft.items() if key in MEASUREMENT_FIELDS[kind]}
+        if kind in ('gauge', 'gauge_time') and draft.get('measurement') in ('gauge', 'gauge_time') and 'original_point_ids' in draft:
+            self._draft['original_point_ids'] = deepcopy(draft['original_point_ids'])
+        if kind in ('surface_average', 'surface_time') and draft.get('measurement') in ('surface_average', 'surface_time') and 'surface_faces' in draft:
+            self._draft['surface_faces'] = deepcopy(draft['surface_faces'])
         self._draft['measurement'] = kind
+        self._populate_editor()
+        self._edited()
+
+    def _surface_component_changed(self, *_):
+        if self._populating:
+            return
+        if self._kind != 'measurement' or self._draft.get('measurement') not in ('surface_average', 'surface_time'):
+            self._edited()
+            return
+        self._draft = self.edited_draft()
+        if self._draft.get('component') != 'projection':
+            self._draft['direction'] = None
         self._populate_editor()
         self._edited()
 
@@ -1150,11 +1635,27 @@ class PostWindow(QMainWindow):
             self.message.setText(self.operation_label(pending['request']['operation']) + ' 완료.' +
                                  (' 새 편집은 아직 적용하지 않았습니다.' if late_edit or
                                   (self.local_dirty and pending['request']['operation'] == 'post.measurement_capture') else ''))
+            if pending['request']['operation'] == 'document.activate':
+                confirmed = isinstance(payload, dict) and payload.get('foreground_confirmed') is True
+                self.message.setText('ParaView 창으로 이동했습니다. 점 선택 도구로 원본 점을 선택하세요.' if confirmed else
+                    '원 결과는 선택했습니다. Windows가 창 전환을 허용하지 않았습니다. 작업 표시줄의 ParaView 창을 열어 점을 선택하세요.')
+                self.output_tabs.setCurrentIndex(1)
+            elif pending['request']['operation'] == 'post.source_select':
+                self.message.setText('원 결과를 ParaView에서 선택했습니다. 점 선택 도구는 ParaView 창에서 사용하세요.')
         else:
             self._show_document(remote, preserve_buffer=True)
             error = command.get('outcome', {}).get('error', command.get('error', {}))
+            error_text = str(error.get('message', error) if isinstance(error, dict) else error)
+            if ('REFERENCE_REPAIR_REQUIRED' in error_text and
+                    self.edited_draft().get('measurement') in ('gauge', 'gauge_time')):
+                error_text = '기준 시각의 원래 두 점이나 좌표가 달라졌습니다. 두 점을 다시 선택하세요.'
             self.message.setText('요청을 완료하지 못했습니다. 편집은 보관했습니다. ' +
-                                 str(error.get('message', error) if isinstance(error, dict) else error))
+                                 error_text)
+            if getattr(self, '_desktop_ready', False):
+                self.output_tabs.setCurrentIndex(1)
+                if self.edited_draft().get('measurement') == 'gauge':
+                    self.gauge_notice.setText(self.message.text())
+                    self.gauge_notice.show()
             if pending['request']['operation'] == 'post.sample' and self._sample_basis:
                 self._sample_basis['failed'] = True
         self._show_details()
@@ -1223,7 +1724,7 @@ class PostWindow(QMainWindow):
         self.message.setText('Local new recipe reset. No native application or saved object was changed.')
         return True
 
-    def object_command(self, operation, extra=None):
+    def object_command(self, operation, extra=None, *, after=None):
         if not self._object_ref:
             self.message.setText('Keep this explicit recipe first to create an analysis object.')
             return False
@@ -1239,6 +1740,8 @@ class PostWindow(QMainWindow):
                     self._populate_editor()
             if operation == 'post.export':
                 self.details.setPlainText(json.dumps({'export': payload, 'command': self._last_command}, ensure_ascii=False, indent=2))
+            if after:
+                after(payload)
         arguments = {'object_ref': self._object_ref, **(extra or {})}
         if operation in ('post.apply', 'post.show_analysis'):
             view = self._view_arguments()
@@ -1320,7 +1823,7 @@ class PostWindow(QMainWindow):
                     or self._current_sample_revision(basis['preview']) != token[1]):
                 return
             for row, item in enumerate((self._samples or {}).get('rows', [])):
-                if item.get('row_index') == index:
+                if item.get('row_index', item.get('row')) == index:
                     self.samples.selectRow(row); break
             self._confirmed_sample_selection = (index, deepcopy(basis))
             self.sampleSelectionChanged.emit(index, basis)
@@ -1348,6 +1851,8 @@ class PostWindow(QMainWindow):
         row, basis = rows[selected[0].row()], deepcopy(self._sample_basis)
         if basis['draft'].get('version') == 3 and type(row.get('row_index')) is int:
             return self.select_curve_row(row['row_index'], basis)
+        if basis['draft'].get('measurement') in ('surface_average', 'surface_time', 'gauge_time') and type(row.get('row')) is int:
+            return self.select_curve_row(row['row'], basis)
         if type(row.get('point_index')) is int:
             return self.select_comparison_point(row['point_index'], basis)
         return False
@@ -1372,7 +1877,9 @@ class PostWindow(QMainWindow):
         if payload.get('semantics') == 'retained_curve_comparison' and not rows:
             rows = payload.get('originals', {}).get('a', [])[:1000]
         summary = payload.get('summary') or (revision or {}).get('summary', {})
-        if hasattr(self, 'comparison_editor') and hasattr(self.comparison_editor, 'set_result_summary'):
+        if (self._kind == 'comparison' and isinstance(self._draft, dict)
+                and self._draft.get('version') in (2, 3)
+                and hasattr(self.comparison_editor, 'set_result_summary')):
             self.comparison_editor.set_result_summary(summary)
         curve_table = payload.get('semantics') == 'retained_curve_comparison'
         if curve_table:
@@ -1401,6 +1908,9 @@ class PostWindow(QMainWindow):
             return values
         flat_rows = [columns(row) for row in rows]
         headers = list(dict.fromkeys(key for row in flat_rows for key in row))
+        if self._sample_basis['draft'].get('measurement') == 'gauge':
+            primary = ['GaugeRelativeDisplacement', 'GaugeRelativeDisplacement 유효성', 'coordinates']
+            headers = [key for key in primary if key in headers] + [key for key in headers if key not in primary]
         if curve_table:
             headers = (['row_index', 'a_row', 'b_rows', 'x', 'a', 'b', 'delta', 'percent', 'reason', 'percent_reason']
                 if payload.get('rows') else ['row_index', 'identity', 'x', 'y', 'quality', 'calculation', 'exclusion_reason'])
@@ -1420,6 +1930,7 @@ class PostWindow(QMainWindow):
             labels['point_index'] = '결과 점 번호'
             labels['vtkOriginalPointIds'] = '끝점의 원본 VTK 점 번호'
             labels['GaugeRelativeDisplacement'] = '두 점 상대변위 [' + str(summary.get('units') or '?') + ']'
+            labels['coordinates'] = '끝점 B 기준좌표 [' + str(summary.get('coordinate_units') or '?') + ']'
         if self._sample_basis['draft'].get('version') == 2:
             recipe = self._sample_basis['draft']
             for key in ('a', 'b', 'delta', 'A_common_components', 'B_common_components'):
@@ -1440,6 +1951,13 @@ class PostWindow(QMainWindow):
             for key in ('a', 'b', 'delta'):
                 labels[key] += ' [' + unit + ']'
         labels.update({key: key.removesuffix(' 유효성') + ' 유효성' for key in headers if key.endswith(' 유효성')})
+        if self._sample_basis['draft'].get('measurement') == 'gauge':
+            labels['GaugeRelativeDisplacement 유효성'] = '유효성'
+        labels.update(Time='시각 [' + str(summary.get('time_units') or '?') + ']', SampleIndex='결과 행',
+            SurfaceAreaAverage='면 평균 [' + str(summary.get('units') or '?') + ']',
+            SurfaceArea='기준 면적 [' + str(summary.get('area_unit') or '?') + ']')
+        if summary.get('measurement') == 'gauge_time':
+            labels['GaugeRelativeDisplacement'] = '두 점 상대변위 [' + str(summary.get('units') or '?') + ']'
         self.samples.setHorizontalHeaderLabels([labels.get(key, key) for key in headers])
         for column, key in enumerate(headers):
             self.samples.horizontalHeaderItem(column).setToolTip(key)
@@ -1468,25 +1986,33 @@ class PostWindow(QMainWindow):
                 item.setToolTip(display(value))
                 self.samples.setItem(row, column, item)
                 self.samples.setColumnWidth(column, max(100, min(180, len(key) * 9)))
+        if self._sample_basis['draft'].get('measurement') == 'gauge':
+            for key, width in [('GaugeRelativeDisplacement', 180), ('GaugeRelativeDisplacement 유효성', 70), ('coordinates', 190)]:
+                if key in headers:
+                    self.samples.setColumnWidth(headers.index(key), width)
         sample_signals.unblock()
+        self.result_plot.set_samples(payload, self._sample_basis['draft'])
         self._update_actions()
         self._show_details()
 
     def capture_selection(self):
         draft = self.edited_draft()
-        if draft.get('measurement') not in ('point', 'time', 'gauge') or draft.get('association') != 'POINTS':
+        if draft.get('measurement') not in ('point', 'time', 'gauge', 'gauge_time') or draft.get('association') != 'POINTS':
             self.message.setText('원본 점 선택은 점 측정과 시간 이력에서 사용합니다. 경로는 두 끝점 좌표를 지정하세요.')
             return False
         source, array = draft.get('source_ref'), draft.get('array')
         if not source or not array:
             self.message.setText('원자료와 정확한 점 필드를 먼저 선택하세요.')
+            if draft.get('measurement') == 'gauge':
+                self.gauge_notice.setText(self.message.text())
+                self.gauge_notice.show()
             return False
         def accepted(payload):
             captured = payload['draft']
             prepared = deepcopy(captured)
             # Capture supplies original IDs and known declarations. Explicit
             # edits still need review/store through the existing owner gates.
-            captured_fields = {'point_indices', 'point1', 'point2', 'original_point_ids', 'time'} if draft.get('measurement') == 'gauge' else {'point_indices'}
+            captured_fields = {'point_indices', 'point1', 'point2', 'original_point_ids', 'time', 'reference_time'} if draft.get('measurement') in ('gauge', 'gauge_time') else {'point_indices'}
             prepared.update({key: deepcopy(value) for key, value in draft.items()
                              if key not in captured_fields and value is not None})
             if prepared.get('measurement') == 'time':
@@ -1502,15 +2028,108 @@ class PostWindow(QMainWindow):
                 self._edit_serial += 1
                 self._populate_editor()
         arguments = {'source_ref': source, 'array': array}
-        if draft.get('measurement') == 'gauge':
-            arguments['measurement'] = 'gauge'
+        if draft.get('measurement') in ('gauge', 'gauge_time'):
+            arguments['measurement'] = draft['measurement']
+            if draft.get('measurement') == 'gauge_time' and draft.get('reference_time') is not None:
+                arguments['reference_time'] = draft['reference_time']
         return self.queue_command('post.measurement_capture', arguments, accepted=accepted)
+
+    def capture_surface_faces(self):
+        draft = self.edited_draft()
+        if draft.get('measurement') not in ('surface_average', 'surface_time') or not draft.get('source_ref') or not draft.get('array'):
+            self.message.setText('먼저 원 자료와 평균할 필드를 지정하세요.')
+            return False
+        token = self._context_token()
+        serial = self._edit_serial
+        def available(payload):
+            dialog = QDialog(self)
+            dialog.setModal(True)
+            dialog.setWindowTitle('원본 경계 면 선택')
+            dialog.resize(780, 520)
+            layout = QVBoxLayout(dialog)
+            clock = '시각 정보 없음' if payload['reference_time'] is None else '기준 시각 ' + str(payload['reference_time']) + ' [' + str(draft.get('time_units') or '단위 미지정') + ']'
+            label = QLabel(clock + ': 평균에 포함할 원본 경계 면을 명시적으로 선택하세요.\n셀 전체나 내부 면을 자동 포함하지 않습니다.')
+            label.setWordWrap(True)
+            layout.addWidget(label)
+            tree = QTreeWidget()
+            tree.setHeaderLabels(['포함할 원본 셀 / 경계 면', '원본 VTK 점 번호', '기준 좌표'])
+            tree.setColumnWidth(0, 180); tree.setColumnWidth(1, 160)
+            layout.addWidget(tree, 1)
+            page = QHBoxLayout()
+            previous, next_page, count = QPushButton('이전 면'), QPushButton('다음 면'), QLabel()
+            page.addWidget(previous); page.addWidget(count, 1); page.addWidget(next_page)
+            layout.addLayout(page)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.button(QDialogButtonBox.StandardButton.Ok).setText('선택한 면 사용')
+            buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+            state = {'selected': {(face['cell_index'], face['face_index']): deepcopy(face) for face in draft.get('surface_faces', [])}, 'page': None, 'closed': False}
+            def changed(item, _column):
+                face = item.data(0, Qt.ItemDataRole.UserRole)
+                key = (face['cell_index'], face['face_index'])
+                if item.checkState(0) == Qt.CheckState.Checked:
+                    state['selected'][key] = deepcopy(face)
+                else:
+                    state['selected'].pop(key, None)
+                buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(bool(state['selected']))
+            tree.itemChanged.connect(changed)
+            def fill(result):
+                if state['closed']:
+                    return
+                if token != self._context_token() or serial != self._edit_serial or result['reference_time'] != payload['reference_time']:
+                    dialog.reject()
+                    return
+                state['page'] = result
+                blocker = QSignalBlocker(tree)
+                tree.clear()
+                for face in result['faces']:
+                    row = QTreeWidgetItem([str(face['cell_index']) + ' / ' + ('표면 셀' if face['face_index'] is None else str(face['face_index'])),
+                        field_text(face['point_indices']), str(face['coordinates'])])
+                    row.setData(0, Qt.ItemDataRole.UserRole, deepcopy(face))
+                    row.setCheckState(0, Qt.CheckState.Checked if (face['cell_index'], face['face_index']) in state['selected'] else Qt.CheckState.Unchecked)
+                    row.setToolTip(2, str(face['coordinates']) + '\n원 ID: ' + str(face['original_point_ids']))
+                    tree.addTopLevelItem(row)
+                count.setText(str(result.get('offset', 0) + (1 if result['faces'] else 0)) + '–' + str(result.get('offset', 0) + len(result['faces'])) +
+                    ' / ' + str(result.get('total', len(result['faces']))))
+                previous.setEnabled(result.get('offset', 0) > 0)
+                next_page.setEnabled(result.get('has_more', False))
+                tree.setEnabled(True)
+                buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(bool(state['selected']))
+                blocker.unblock()
+            def fetch(step):
+                if state['closed'] or self._busy or self._pending:
+                    return
+                current = state['page']
+                previous.setEnabled(False); next_page.setEnabled(False)
+                tree.setEnabled(False)
+                buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+                count.setText('원본 경계 면을 읽는 중…')
+                self.queue_command('post.measurement_capture', {'source_ref': draft['source_ref'], 'array': draft['array'],
+                    'measurement': draft['measurement'], 'reference_time': payload['reference_time'],
+                    'offset': max(0, current.get('offset', 0) + step * 200), 'limit': 200}, accepted=fill)
+            previous.clicked.connect(lambda: fetch(-1)); next_page.clicked.connect(lambda: fetch(1))
+            buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+            def finished(result):
+                state['closed'] = True
+                if (result == QDialog.DialogCode.Accepted and token == self._context_token()
+                        and serial == self._edit_serial and not self._pending and not self._busy and not self.conflict):
+                    self._draft = self.edited_draft()
+                    self._draft.update(surface_faces=list(state['selected'].values()), geometry=payload['geometry'])
+                    self._draft['time' if draft['measurement'] == 'surface_average' else 'reference_time'] = payload['reference_time']
+                    self._populate_editor(); self._edited()
+                dialog.deleteLater()
+            dialog.finished.connect(finished)
+            fill(payload)
+            dialog.open()
+        return self.queue_command('post.measurement_capture', {'source_ref': draft['source_ref'], 'array': draft['array'],
+            'measurement': draft['measurement'], 'reference_time': draft.get('time' if draft['measurement'] == 'surface_average' else 'reference_time'),
+            'offset': 0, 'limit': 200}, accepted=available)
 
     def swap_gauge_points(self):
         if self._busy or self._pending is not None or self.conflict:
             return False
         draft = self.edited_draft()
-        if draft.get('measurement') != 'gauge' or len(draft.get('point_indices', [])) != 2:
+        if draft.get('measurement') not in ('gauge', 'gauge_time') or len(draft.get('point_indices', [])) != 2:
             self.message.setText('두 원본 점을 먼저 가져오세요.')
             return False
         draft['point_indices'] = list(reversed(draft['point_indices']))
@@ -1565,7 +2184,7 @@ class PostWindow(QMainWindow):
         self.view_selector.setCurrentIndex(max(0, index))
         self.view_selector.blockSignals(False)
 
-    def _view_arguments(self, *, source=False):
+    def _view_arguments(self, *, source=False, source_ref=None):
         identifier = self.view_selector.currentData()
         if identifier is None:
             return {}
@@ -1575,7 +2194,7 @@ class PostWindow(QMainWindow):
             self.message.setText('The exact selected native view is unavailable. Choose another view explicitly.')
             return None
         if source:
-            record = next((item for item in self._sources() if item['source_ref'] == self._source_ref), {})
+            record = next((item for item in self._sources() if item['source_ref'] == (source_ref or self._source_ref)), {})
             required = 'XYChartView' if (record.get('native_metadata') or {}).get('curve') else 'RenderView'
             if view.get('type') != required:
                 self.message.setText('원 자료에 맞는 ' + ('차트' if required == 'XYChartView' else '3D') + ' 뷰를 선택하세요.')
@@ -2037,10 +2656,40 @@ class PostWindow(QMainWindow):
             self.sample_context.setText('아직 읽은 값이 없습니다. 설정을 확인하고 측정값을 읽으세요.')
         if hasattr(self, 'capture_button'):
             try:
-                self.capture_button.setEnabled(enabled and self.edited_draft().get('measurement') in ('point', 'time', 'gauge')
-                    and self.edited_draft().get('association') == 'POINTS')
+                self.capture_button.setEnabled(enabled and (self.edited_draft().get('measurement') in ('surface_average', 'surface_time') or
+                    self.edited_draft().get('measurement') in ('point', 'time', 'gauge', 'gauge_time')
+                    and self.edited_draft().get('association') == 'POINTS'))
             except RuntimeError:
                 pass
+        if getattr(self, '_desktop_ready', False):
+            self.source_settings.setVisible(browsing)
+            self.selection_meaning.hide()
+            # These legacy command owners now live in menus/toolbars.
+            for widget in (self.edit_button, self.preview_button, self.apply_button, self.reset_button,
+                           self.source_tools, self.sample_tools, self.add_source_button,
+                           self.show_source_button, self.show_applied_button, self.contact_button):
+                widget.hide()
+            self.view_selector.setVisible(self.view_selector.count() > 1)
+            self.edit_action.setEnabled(enabled and not browsing)
+            source_ref = self._source_ref if browsing else self.edited_draft().get('source_ref')
+            self.native_action.setEnabled(enabled and any(row['source_ref'] == source_ref for row in self._sources()))
+            for action, button in self._command_actions:
+                action.setEnabled(button.isEnabled())
+            self._update_gauge_summary()
+            if self.edited_draft().get('measurement') in ('surface_average', 'surface_time'):
+                draft = self.edited_draft()
+                direction = self.fields[('direction',)][0]
+                direction.setVisible(draft.get('component') == 'projection')
+                direction_label = self._forms['measurement'].labelForField(direction)
+                if direction_label is not None:
+                    direction_label.setVisible(draft.get('component') == 'projection')
+                self.surface_summary.setText('선택한 원본 경계 면: ' + str(len(draft.get('surface_faces') or [])) + '개')
+                required = ('units', 'measure', 'frame', 'coordinate_units', 'coordinate_frame', 'geometry')
+                if draft.get('component') is not None:
+                    required += ('basis',)
+                missing = [LABELS[key] for key in required if not draft.get(key)]
+                self.surface_conditions.setText('미결정: ' + ', '.join(missing) if missing else
+                    '응답 [' + str(draft['units']) + '] / ' + str(draft['frame']) + '\n기준 좌표 [' + str(draft['coordinate_units']) + '] / 고정 기준 면적')
 
     def choose_document(self):
         if self.local_dirty:
@@ -2053,7 +2702,7 @@ class PostWindow(QMainWindow):
                 self.message.setText('No existing native Post owners are connected. Open the saved analysis in ParaView first.')
                 return
             labels = [doc.get('title', '후처리 문서') + ' (' + str(index + 1) + ')' for index, doc in enumerate(documents)]
-            label, accepted = QInputDialog.getItem(self, '후처리 문서 열기', 'ParaView에서 열린 문서', labels, editable=False)
+            label, accepted = QInputDialog.getItem(self, '열린 후처리로 전환', 'ParaView에서 열린 문서', labels, editable=False)
             if accepted and token == self._context_token():
                 selected = documents[labels.index(label)]
                 self.document_id, self.session_id = selected['id'], selected['session_id']

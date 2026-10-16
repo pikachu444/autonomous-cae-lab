@@ -178,6 +178,14 @@ B1.1은 `PoseCandidates._prepare`의 준비 generator와 `validate_model`의 재
 
 **독립 진입:** 외부 VTU/PVD와 기존 저장 결과로 먼저 인수한다. B1의 새 결과 ID는 연결 검사에만 필요하며 Post 개발의 선행이 아니다. 표본화는 선언한 시간 구간 안에서만, 공간 보간은 실제 지원 영역 안에서만 수행한다. delta mask와 percent mask(A≠0)를 구별하고 작은 ε로 0분모를 숨기지 않는다. association/좌표 정보가 없으면 진단과 원값은 남기고 해당 차분만 차단한다.
 
+**B3.3의 현재 구현 범위:** 정적·한 실제 시각의 면적 가중 평균, 같은 원 경계면의 시간 이력,
+고정 두 점의 부호 있는 상대변위 이력을 기존 Post에 연결했다. 정의·단위·실제 시각과 무효
+행을 저장하고 같은 측정을 Data/계산 계획으로 전달한다. 현재 지원은 고정 기준 형상의
+선형 삼각형·사각형 경계면과 같은 원 점이며, 현재 면적·고차면·여러 블록의 대응은 잔여다.
+벡터 크기·불변량·traction을 자동으로 추정하지 않는다. 새 설계의 형상·연결·원 ID가
+달라지면 명시 참조 복구가 필요하다. [조작과 지원 범위](../apps/research/POST_NUMERICAL.md)를
+따르며 이 세 측정의 인도를 B3 전체 완료로 확대하지 않는다.
+
 **소유:** 현재 File→Exit 담당 Sol 유지. 비교/측정 의미는 Pro, native/Qt 조작은 파일을 나눈 Sol, 공통 bridge/명령은 Codex 통합. B1/B2는 parser와 실제 field 의미를 공급하고 B3는 재해석 없이 소비한다.
 
 **검사·종료:** solver 없이 제조된 상수/선형 field, 알려진 vector/tensor 회전, 시간 중간값·gap, 같은/다른 mesh, 0분모와 이동 파일을 사용한다. 실제 ParaView/Qt에서 선택→저장→취소/실패→새 프로세스 재열기를 확인한다. 외부 결과 단독 업무와 Pre/Numerical/Report 왕복이 모두 닫히면 B3 인도 완료다. 전체 reader 형식/모든 물리 측도 지원이라고 확대하지 않으며 FN-28-02의 명시 잔여는 남김없이 대조한다.
@@ -249,7 +257,7 @@ B1.1은 `PoseCandidates._prepare`의 준비 generator와 `validate_model`의 재
 
 도구의 편집·저장·보존 결과 읽기와 Windows 지원 ODE/Material 계산은 Linux/WSL 존재와 무관하게 인수한다. Linux 전용 capability는 이미 사용 가능한 경우에만 명시 선택한 기존 Linux/원격 runtime으로 분리하며 Windows 사용자에게 WSL 설치를 자동 요구하지 않는다. 필요한 FE/PDE 기능의 Windows 배포 공백은 **Luna의 해당 runtime 소스/무료 배포 확인 → Pro의 기존 adapter/worker Windows 이식 또는 호환되는 기존 OSS backend 선택 → Codex의 실제 Windows 실행** 순으로 해당 기능 안에서 처리한다. 이 선택은 인터페이스·방정식·기준을 바꾼다면 별도 capability로 추가해야 하며 dimensionless 결과의 이름만 바꾸는 대체는 금지한다. 실제 대체 경로를 만들지 못한 필수 항목은 열린 개발 항목이지 ‘미지원 안내 완료’가 아니다.
 
-**B6.3의 첫 대상과 확장:** 먼저 기존 P1 온도 field의 다른 mesh 전달과 시각 대응을 닫는다. 이어 벡터/텐서·association 변환은 B3의 검증된 수치 변환 코드를 재사용하되 열량/하중처럼 보존이 필요한 port는 보존 오차를 별도로 검사한다. 단순 nodal interpolation을 conservative transfer라고 부르지 않는다. 열–구조–계면 사례 C의 실제 온도·변형·계면 응답은 B1/B2와 연결한다.
+**B6.3의 구현 범위와 확장:** 스칼라 P1 온도의 다른 mesh 전달, 명시 시각 대응, K/절대 °C 변환과 수신 측 Tref 반영은 기존 구현을 재사용한다. 원·수신 값과 mask를 보존하고 필요한 수신 영역이 무효면 실행을 차단한다. 이 경로를 새로 만들 과제로 되돌리지 않는다. 벡터/텐서·association 변환은 B3의 검증된 수치 변환 코드를 재사용하되 열량/하중처럼 보존이 필요한 port는 보존 오차를 별도로 검사한다. 단순 nodal interpolation을 conservative transfer라고 부르지 않는다. 열–구조–계면 사례 C의 실제 온도·변형·계면 응답은 B1/B2와 연결한다.
 
 **소유·의존:** Pro가 law/interface·식/전달/반복 계약, Sol이 inspector·equation/transfer editor를 맡고 Astra가 state·단위·mapping·수렴을 검토한다. `evaluation_definition.py`의 반복 실행과 B5 MDO는 같은 소유자가 관리한다. B5의 일반 변수/참조 계약만 먼저 합의하고 전체 Numerical 완료를 기다리지 않는다.
 
@@ -514,7 +522,7 @@ B1–B8의 작업과 부록의 74개 원행을 한 번씩 대조해, 실제 남�
 | FN-18-01 / 완료 대조 | B6.2; RESEARCH FN-18-01 | R01;R16;R28;R31 / AC-D03;AC-D11;AC-D04 | 현재 bounded AST/unit1를 정확히 보여주고 declared input을 바꿈 |
 | FN-18-02 / 완료 대조 | B6.2; RESEARCH FN-18-02 | R01;R16;R28;R31 / AC-D03;AC-D11;AC-D04 | 미지원 방정식 draft 저장·실행 차단; 지원 equation 독립 기준 충족 |
 | FN-19-01 / 완료 대조 | B6.4; RESEARCH FN-19-01 | R01;R16;R19;R20;R31 / AC-D03;AC-D11 | Plan 없이 같은 kind=evaluation 문서를 저장/평가·Plan은 exact ref |
-| FN-19-02 / 추가 개발 | B6.3; RESEARCH FN-19-02 | R01;R16;R19;R20;R31 / AC-D03;AC-D11 | 실제 공급/수신 field와 ΔL=α(T−Tref)L 기준; ΔT offset 중복 금지 |
+| FN-19-02 / 부분 구현 | B6.3; RESEARCH FN-19-02 | R01;R16;R19;R20;R31 / AC-D03;AC-D11 | 스칼라 P1 온도의 mesh·시각·단위 대응은 기존 구현 재사용. 실제 공급/수신 field와 ΔL=α(T−Tref)L 기준; ΔT offset 중복 금지. 벡터/텐서·보존 전달 잔여 |
 | FN-19-03 / 완료 대조 | B6.4; RESEARCH FN-19-03 | R01;R16;R19;R20;R31 / AC-D03;AC-D11 | NOT_CONVERGED는 유효 목적값 아님; 반복 partial checkpoint 미지원 유지 |
 
 ### B7 Study·Expert·실험·보고 — 9행

@@ -12,6 +12,9 @@ from matplotlib.figure import Figure
 
 from caelab.post_observation import choices, measurement_columns, project_samples
 
+TIME_MEASUREMENTS = ('time', 'gauge_time', 'surface_time')
+GENERATED_MEASUREMENTS = ('gauge', 'gauge_time', 'surface_average', 'surface_time')
+
 
 class MeasurementDialog(QDialog):
     def __init__(self, snapshot, parent=None, *, plans=()):
@@ -22,7 +25,9 @@ class MeasurementDialog(QDialog):
         self.selection = None
         self._last_axis = None
         self.projected = None
-        self.setWindowTitle('측정 곡선을 계산 계획으로 보내기')
+        measurement = snapshot['summary'].get('measurement')
+        self.setWindowTitle('측정값을 계산 계획으로 보내기' if measurement == 'surface_average' else
+                            '측정 곡선을 계산 계획으로 보내기')
         self.resize(1100, 780)
         outer = QVBoxLayout(self)
         self.summary = QLabel('저장된 측정에서 응답 열과 곡선의 축을 선택하세요.')
@@ -30,15 +35,26 @@ class MeasurementDialog(QDialog):
         if snapshot['summary'].get('measurement') == 'contact_force':
             self.summary.setText(snapshot['summary'].get('location', '').split(' / ')[0] +
                 ': ' + snapshot['summary'].get('component_label', '') + ' A 면 합력 [N]')
-        if snapshot['summary'].get('measurement') == 'gauge':
+        if measurement in ('gauge', 'gauge_time'):
             self.summary.setWordWrap(True)
             saved = snapshot['summary']
-            gauge = saved['gauge']
+            gauge = saved.get('gauge') or snapshot['recipe']
             clock = ('정적 결과' if saved.get('time') is None else
                      '시각 ' + str(saved['time']) + ' [' + str(saved.get('time_units') or '') + '], 기준 ' + str(saved.get('time_origin') or '미지정'))
+            if measurement == 'gauge_time':
+                clock = str(len(saved['time_values'])) + '개 실제 시각 [' + saved['time_units'] + ']'
             self.summary.setText('두 점 상대변위: 원본 점 ' + ' → '.join(map(str, gauge['point_indices'])) +
                 ', 방향 ' + str(gauge['direction']) + '\n기준 좌표 ' + str(gauge['point1']) +
                 ' → ' + str(gauge['point2']) + ' [' + gauge['coordinate_units'] + '], ' + clock)
+        if measurement in ('surface_average', 'surface_time'):
+            saved = snapshot['summary']
+            clock = ('정적 결과' if saved.get('time') is None else
+                     '시각 ' + str(saved['time']) + ' [' + str(saved.get('time_units') or '') + ']')
+            if measurement == 'surface_time':
+                clock = str(len(saved['time_values'])) + '개 실제 시각 [' + saved['time_units'] + ']'
+            self.summary.setWordWrap(True)
+            self.summary.setText('선택한 면 ' + str(len(snapshot['recipe']['surface_faces'])) +
+                '개의 면적 가중 평균 [' + saved['units'] + '], ' + clock)
         outer.addWidget(self.summary)
         forms = QHBoxLayout()
         left, right = QFormLayout(), QFormLayout()
@@ -49,7 +65,8 @@ class MeasurementDialog(QDialog):
         measured = measurement_columns(snapshot)
         self.block, self.value_column, self.axis_column = QComboBox(), QComboBox(), QComboBox()
         for block in available['blocks']:
-            self.block.addItem('자료 블록 ' + str(block) if block else '점 자료', block)
+            self.block.addItem('자료 블록 ' + str(block) if block else
+                              '측정 표' if measurement in GENERATED_MEASUREMENTS else '점 자료', block)
         for combo in (self.value_column, self.axis_column):
             combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(22)
@@ -57,16 +74,22 @@ class MeasurementDialog(QDialog):
         for name, count in available['arrays'].items():
             components = range(count) if count > 1 else [None]
             for component in components:
-                label = ('두 점 상대변위' if snapshot['summary'].get('measurement') == 'gauge' and name == 'GaugeRelativeDisplacement' else name) + (' [성분 ' + str(component) + ']' if component is not None else '')
+                label = ({'GaugeRelativeDisplacement': '두 점 상대변위',
+                          'SurfaceAreaAverage': '면 평균', 'Time': '시간',
+                          'SampleIndex': '표본 번호'}.get(name, name)
+                         if measurement in GENERATED_MEASUREMENTS else name)
+                label += ' [성분 ' + str(component) + ']' if component is not None else ''
                 if name in measured:
                     self.value_column.addItem(label, {'name': name, 'component': component})
                 measurement = snapshot['summary'].get('measurement')
-                if name == {'time': 'Time', 'path': 'arc_length', 'contact_force': snapshot['summary'].get('axis_name','load_parameter')}.get(measurement) and component is None:
+                if name == {'time': 'Time', 'gauge_time': 'Time', 'surface_time': 'Time',
+                            'surface_average': 'SampleIndex', 'path': 'arc_length',
+                            'contact_force': snapshot['summary'].get('axis_name','load_parameter')}.get(measurement) and component is None:
                     self.axis_column.addItem(label, {'kind': 'array', 'name': name, 'component': component})
-        if available['coordinates'] and snapshot['summary'].get('measurement') != 'time':
+        if available['coordinates'] and measurement not in (*TIME_MEASUREMENTS, 'surface_average'):
             for component, label in enumerate(('X 좌표', 'Y 좌표', 'Z 좌표')):
                 self.axis_column.addItem(label, {'kind': 'coordinate', 'component': component})
-        if available['point_index'] and snapshot['summary'].get('measurement') != 'time':
+        if available['point_index'] and measurement not in (*TIME_MEASUREMENTS, 'surface_average'):
             self.axis_column.addItem('원 결과 점 번호', {'kind': 'point_index'})
         self.role = QComboBox()
         self.role.addItem('피팅 관측값', 'fit')
@@ -89,8 +112,10 @@ class MeasurementDialog(QDialog):
         summary = snapshot['summary']
         defaults = {'unit': summary.get('units'), 'frame': summary.get('frame'),
                     'measure': summary.get('measure'),
-                    'axis_name': summary.get('axis_name') or ('time' if summary.get('measurement') == 'time' else ''),
-                    'axis_unit': summary.get('axis_unit') or (summary.get('time_units') if summary.get('measurement') == 'time' else summary.get('coordinate_units')),
+                    'axis_name': summary.get('axis_name') or ('time' if measurement in TIME_MEASUREMENTS else
+                                                            'SampleIndex' if measurement == 'surface_average' else ''),
+                    'axis_unit': summary.get('axis_unit') or (summary.get('time_units') if measurement in TIME_MEASUREMENTS else
+                                                            '1' if measurement == 'surface_average' else summary.get('coordinate_units')),
                     'component_label': summary.get('component_label', ''), 'location': summary.get('location', '')}
         labels = {'unit': '응답 단위', 'component_label': '물리 성분 또는 통계량',
                   'location': '측정 위치', 'frame': '응답 좌표계', 'measure': '물리적 정의',
@@ -101,7 +126,7 @@ class MeasurementDialog(QDialog):
             edit.textChanged.connect(self.update_preview)
             self.fields[key] = edit
             known = (key in ('unit', 'frame', 'measure', 'axis_unit', 'axis_name') or
-                     summary.get('measurement') in ('contact_force', 'gauge') and key in ('component_label', 'location')) and bool(defaults.get(key))
+                     measurement in ('contact_force', *GENERATED_MEASUREMENTS) and key in ('component_label', 'location')) and bool(defaults.get(key))
             edit.setReadOnly(known)
             if known:
                 edit.hide()
@@ -145,7 +170,7 @@ class MeasurementDialog(QDialog):
             combo.currentIndexChanged.connect(self.update_preview)
         self.exclude_invalid.toggled.connect(self.update_preview)
         self.canvas.mpl_connect('pick_event', self.picked)
-        if summary.get('measurement') == 'contact_force':
+        if measurement in ('contact_force', 'gauge_time', 'surface_time', 'surface_average'):
             # This applied measurement already names one explicit pair component.
             self.value_column.setCurrentIndex(1)
             self.axis_column.setCurrentIndex(1)
@@ -173,6 +198,8 @@ class MeasurementDialog(QDialog):
                 declarations = {'axis_name': ('X', 'Y', 'Z')[axis['component']], 'axis_unit': summary.get('coordinate_units') or ''}
             elif axis.get('name') == 'Time':
                 declarations = {'axis_name': 'time', 'axis_unit': summary.get('time_units') or ''}
+            elif summary.get('measurement') == 'surface_average' and axis.get('name') == 'SampleIndex':
+                declarations = {'axis_name': 'SampleIndex', 'axis_unit': '1'}
             elif summary.get('measurement') == 'contact_force' and axis.get('name') == summary.get('axis_name','load_parameter'):
                 declarations = {'axis_name': summary.get('axis_name','load_parameter'),
                                 'axis_unit': summary.get('axis_unit','1')}
@@ -195,10 +222,13 @@ class MeasurementDialog(QDialog):
             '계획에서 추가 검토' if self.destination.currentData() else '새 계획 만들기')
         names = {'FREECAD_DOCUMENT_GLOBAL': '문서 전체 좌표계',
                  'contact_pair_force_resultant': '접촉 쌍의 합력',
+                 'cauchy_stress': '코시 응력',
                  'projected_relative_displacement': '지정 방향의 두 점 상대변위'}
         self.declarations.setText(', '.join(names.get(self.fields[key].text(), self.fields[key].text())
             for key in ('unit', 'frame', 'measure') if self.fields[key].text()) +
-            '\n축: ' + self.fields['axis_name'].text() + ' [' + self.fields['axis_unit'].text() + ']')
+            '\n축: ' + {'time': '시간', 'SampleIndex': '표본 번호'}.get(
+                self.fields['axis_name'].text(), self.fields['axis_name'].text()) +
+            ' [' + self.fields['axis_unit'].text() + ']')
         try:
             selection = self.selected_mapping()
             projection = project_samples(self.snapshot, selection)
@@ -209,8 +239,12 @@ class MeasurementDialog(QDialog):
                 str(len(projection['invalid_rows'])) + '개. 재표본화와 단위 변환 없이 전달합니다.')
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(projection['importable'])
             rows = projection['rows']
+            reset_columns = self.table.horizontalHeaderItem(0).text() != '원본 행'
             self.table.setColumnCount(5)
             self.table.setHorizontalHeaderLabels(['원본 행', '축', '측정값', '유효성', '이유'])
+            if reset_columns:
+                for column, width in enumerate((70, 85, 100, 70, 120)):
+                    self.table.setColumnWidth(column, width)
         except (ValueError, TypeError, KeyError) as error:
             self.notice.setText(str(error))
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
@@ -241,7 +275,8 @@ class MeasurementDialog(QDialog):
             identity = row['native']
             for column, value in enumerate((identity.get('row', identity.get('point_index')), row['axis'], row['value'],
                                             '유효' if row['valid'] else '무효' if row['valid'] is False else '미지정',
-                                            row['reason'])):
+                                            {'valid': '정상', 'native_mask': '원 결과에서 제외',
+                                             'nonfinite_axis_or_value': '축 또는 측정값이 유효한 수가 아닙니다'}.get(row['reason'], row['reason']))):
                 text = json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else '' if value is None else str(value)
                 item = QTableWidgetItem(text)
                 item.setToolTip(json.dumps({'native': identity, 'object': self.snapshot['origin']['object_ref']}) if column == 0 else text)
@@ -256,8 +291,11 @@ class MeasurementDialog(QDialog):
             self.axes.plot([row['axis'] if isinstance(row['axis'], (int, float)) else math.nan for row in rows],
                            [row['value'] if row['valid'] else math.nan for row in rows],
                            marker='o', markersize=4, picker=6)
-            self.axes.set_xlabel(self.selection['axis_name'] + ' [' + self.selection['axis_unit'] + ']')
-            label = '두 점 상대변위' if self.snapshot['summary'].get('measurement') == 'gauge' else self.selection['component_label']
+            self.axes.set_xlabel({'time': '시간', 'SampleIndex': '표본 번호'}.get(
+                self.selection['axis_name'], self.selection['axis_name']) + ' [' + self.selection['axis_unit'] + ']')
+            measurement = self.snapshot['summary'].get('measurement')
+            label = ('두 점 상대변위' if measurement in ('gauge', 'gauge_time') else
+                     '면 평균' if measurement in ('surface_average', 'surface_time') else self.selection['component_label'])
             self.axes.set_ylabel(label + ' [' + self.selection['unit'] + ']')
             self.axes.grid(True, alpha=.2)
         self.marker = None
@@ -294,8 +332,11 @@ class ObservationReviewDialog(QDialog):
         origin = payload['origin']
         execution=origin.get('summary',{}).get('execution',{})
         partial='실패/취소 실행의 수렴한 일부 이력입니다.\n' if execution.get('complete_analysis') is False else ''
-        label = QLabel(partial + origin['selection']['value_array'] + ' → ' + title + '\n' +
-            response['unit'] + ' / ' + response['frame'] + ' / ' + response['measure'] +
+        value_name = {'GaugeRelativeDisplacement': '두 점 상대변위',
+                      'SurfaceAreaAverage': '면 평균'}.get(origin['selection']['value_array'], origin['selection']['value_array'])
+        measure_name = {'projected_relative_displacement': '지정 방향의 두 점 상대변위'}.get(response['measure'], response['measure'])
+        label = QLabel(partial + value_name + ' → ' + title + '\n' +
+            response['unit'] + ' / ' + response['frame'] + ' / ' + measure_name +
             '\n' + ('피팅 관측값' if role=='fit' else '검증 관측값') +
             '으로 추가합니다. 현재 수정은 유지됩니다.')
         label.setObjectName('observationScope')

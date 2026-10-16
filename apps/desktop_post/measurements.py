@@ -146,7 +146,7 @@ def capture_gauge_points(source):
             'original_point_ids': _gauge_point_ids(data, indices)}
 
 
-def _gauge_definition(data, draft):
+def _gauge_definition(data, draft, *, allow_invalid=False):
     """Signed displacement difference in one explicitly fixed Cartesian basis."""
     from caelab.experiment_calibration import UNITS
     if not hasattr(data, 'GetPoints') or data.GetPoints() is None:
@@ -172,31 +172,32 @@ def _gauge_definition(data, draft):
     for key, actual in zip(('point1', 'point2'), coordinates):
         if analysis._vector(draft.get(key), key) != actual:
             raise ValueError('REFERENCE_REPAIR_REQUIRED: ' + key + ' no longer matches its original point; explicitly repair this measurement')
+    original_ids = _gauge_point_ids(data, indices)
+    if draft.get('original_point_ids') is not None and draft['original_point_ids'] != original_ids:
+        raise ValueError('REFERENCE_REPAIR_REQUIRED: selected original point identities changed')
     array = data.GetPointData().GetArray(draft.get('array'))
     if array is None or array.GetNumberOfComponents() != 3 or array.GetNumberOfTuples() != data.GetNumberOfPoints():
+        if allow_invalid:return {'value':None,'valid':False,'reason':'missing_or_changed_displacement_field'}
         raise ValueError('Choose an exact three-component POINTS displacement field')
     values = [list(array.GetTuple(index)) for index in indices]
-    if any(not math.isfinite(value) for row in values for value in row):
-        raise ValueError('Both displacement endpoints must be finite; no missing value is replaced')
-    for name in ('vtkValidPointMask', 'vtkValidMask', 'vtkGhostType'):
+    invalid = 'nonfinite_endpoint' if any(not math.isfinite(value) for row in values for value in row) else None
+    for name in (('vtkGhostType',) if draft.get('validity_policy')=='declared_array' else ('vtkValidPointMask', 'vtkValidMask', 'vtkGhostType')):
         mask = data.GetPointData().GetArray(name)
         if mask is not None:
             if mask.GetNumberOfComponents() != 1 or mask.GetNumberOfTuples() != data.GetNumberOfPoints():
                 raise ValueError('Gauge validity mask must have one scalar per original point')
             selected = [mask.GetTuple1(index) for index in indices]
             if any(not math.isfinite(value) or ((int(value) & 2) if name == 'vtkGhostType' else value != 1) for value in selected):
-                raise ValueError('Both gauge endpoints must be valid and active in the original field')
-    original_ids = _gauge_point_ids(data, indices)
-    if draft.get('original_point_ids') is not None and draft['original_point_ids'] != original_ids:
-        raise ValueError('REFERENCE_REPAIR_REQUIRED: selected original point identities changed')
+                invalid = name
     value = sum((second - first) * axis for first, second, axis in zip(values[0], values[1], direction))
-    if not math.isfinite(value):
-        raise ValueError('Relative displacement overflow; no successful value was produced')
+    if not math.isfinite(value):invalid = invalid or 'nonfinite_relative_displacement'
+    if invalid and not allow_invalid:
+        raise ValueError('Both gauge endpoints must be finite, valid and active; no missing value is replaced: '+invalid)
     return {'point_indices': list(indices), 'point1': coordinates[0], 'point2': coordinates[1],
             'direction': direction, 'basis': 'fixed_cartesian', 'coordinate_configuration': 'reference',
             'frame': draft['frame'], 'coordinate_units': draft['coordinate_units'],
             'units': draft['units'], 'original_ids': original_ids, 'endpoint_displacements': values,
-            'value': value}
+            'value': None if invalid else value,'valid':invalid is None,'reason':invalid or 'valid'}
 
 
 def _build_gauge(source, draft, namespace):
@@ -251,6 +252,12 @@ def _build_gauge(source, draft, namespace):
 
 
 def build_measurement(source, draft, namespace):
+    if isinstance(draft,dict) and draft.get('measurement') in ('surface_average','surface_time','gauge_time'):
+        if draft.get('association') not in ('POINTS','CELLS') or draft['measurement']=='gauge_time' and draft['association']!='POINTS':
+            raise ValueError('원 물리량의 POINTS/CELLS 위치를 선택하세요. 두 점 상대변위 이력은 POINTS가 필요합니다.')
+        try:from .measurement_histories import build
+        except ImportError:from measurement_histories import build
+        return build(source,draft,namespace)
     if not isinstance(draft, dict) or draft.get('association') != 'POINTS':
         raise ValueError('Choose a declared POINTS measurement')
     kind = draft.get('measurement')
