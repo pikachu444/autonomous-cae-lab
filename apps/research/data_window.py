@@ -325,6 +325,10 @@ class DataWindow(QMainWindow):
         self.acquisition_action = QAction('파일 수집 설정…', self)
         self.acquisition_action.triggered.connect(self.edit_acquisition)
         edit.addAction(self.acquisition_action)
+        self.recorded_acquisition_action = QAction('기록 취득…', self)
+        from .acquisition_panel import show_acquisition
+        self.recorded_acquisition_action.triggered.connect(lambda: show_acquisition(self))
+        edit.addAction(self.recorded_acquisition_action)
         report_action = QAction('선택 결과로 보고서…', self)
         report_action.triggered.connect(self.open_report)
         files.addAction(report_action)

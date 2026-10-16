@@ -1202,6 +1202,9 @@ class Workbench:
         return settings
 
     def _execute(self, operation, arguments, identifier):
+        if operation == 'acquisition.replay':
+            from .acquisition_service import execute
+            return execute(self, arguments, identifier)
         if operation.startswith('remote.'):
             from .remote_execution import execute
             return execute(self, operation, arguments, identifier)

@@ -107,7 +107,14 @@ class DataDocuments(MaterialDocuments):
                    'comparisons': document.get('comparisons', [])}
         if document.get('processing_revisions'):
             content['processing_revisions'] = document['processing_revisions']
+        if document.get('acquisition_heads'):
+            content['acquisition_heads'] = document['acquisition_heads']
         return canonical_hash(content)
+
+    def _recover_evaluations(self, document):
+        super()._recover_evaluations(document)
+        from .acquisition_service import refresh_heads
+        refresh_heads(self, document)
 
     @staticmethod
     def job_arguments(draft):
@@ -264,6 +271,8 @@ class DataDocuments(MaterialDocuments):
         drafts.extend(run.get('draft', {}) for run in saved['runs'])
         # Internal verified Q sources only; never a raw editor or input registry.
         identifiers = set(recovery_inputs or {})
+        from .acquisition_service import source_ids
+        identifiers.update(source_ids(self, saved))
         for draft in drafts:
             if not isinstance(draft, dict):
                 continue
@@ -342,6 +351,8 @@ class DataDocuments(MaterialDocuments):
         self._retain_comparisons(saved, folder)
         from .data_processing_document import retain
         retain(self, saved, folder)
+        from .acquisition_service import retain as retain_acquisition
+        retain_acquisition(self, saved, folder)
 
     def source_preview(self, identifier):
         """Read bounded original bytes, including after the registration is unavailable."""

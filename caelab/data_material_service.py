@@ -113,6 +113,9 @@ class DataMaterialService:
 
     def dispatch(self, operation, arguments):
         """JSON-friendly public API. Every mutation uses explicit owner CAS IDs."""
+        if isinstance(operation, str) and operation.startswith('acquisition.'):
+            from .acquisition_service import AcquisitionService
+            return AcquisitionService(self.workbench).dispatch(operation, arguments)
         methods = {
             'recovery.identity': self.recovery.owner_identity,
             'recovery.prepare': self.recovery.prepare,
