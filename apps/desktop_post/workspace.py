@@ -1111,6 +1111,24 @@ class Workspace:
                     if measurement in ('surface_average','surface_time','gauge_time'):
                         display.SeriesLineStyle = [array,'0']
                         display.SeriesMarkerStyle = [array,'4']
+                    if obj['kind'] == 'measurement' and measurement in ('surface_time', 'gauge_time'):
+                        title = {'surface_time': 'Surface average',
+                                 'gauge_time': 'Projected relative displacement'}[measurement]
+                        summary = record.get('summary', {})
+                        units = [summary.get(key, record['recipe'].get(key)) for key in ('units', 'time_units')]
+                        units = [value.strip() if isinstance(value, str) and value.strip()
+                                 and value.strip().lower() not in ('unknown', 'undeclared', 'unspecified')
+                                 else 'unit unknown' for value in units]
+                        response = title + ' [' + units[0] + ']'
+                        display.SeriesLabel = [array, response]
+                        axis_unit = '[' + ('?' if units[0] == 'unit unknown' else units[0]) + ']'
+                        # ParaView 6.2 axis-title defaults are empty; keep explicit user titles.
+                        shared = any(not external._same_proxy(item, display) and getattr(item, 'Visibility', 0)
+                                     and getattr(item, 'Input', None) is not None for item in view.Representations)
+                        if not shared and not view.LeftAxisTitle:
+                            view.LeftAxisTitle = axis_unit
+                        if not shared and not view.BottomAxisTitle:
+                            view.BottomAxisTitle = 'Time [' + units[1] + ']'
             if obj['kind'] == 'comparison' and view.GetXMLName() == 'RenderView':
                 arrays = bundle.get('summary', {}).get('arrays', {})
                 array = array or (arrays.get('delta', 'CAE_delta') if isinstance(arrays, dict) else 'CAE_delta')
