@@ -24,6 +24,7 @@ Pro와 Codex 모두 같은 기준 버전·최신 사용자 결정·미반영 산
   [로컬 실행과 backend](docs/LOCAL_EXECUTION.md).
 - [제품 상세기획](docs/PRODUCT_UI_MCP_PLAN.md), [사용 사례](docs/WORKBENCH_USE_CASES.md),
   [원요구 기록](PROJECT_SCOPE.md), [요구 해석](docs/REQUIREMENTS_VALIDITY_REVIEW.md).
+- [세부 개발 목록과 지원·종료조건](docs/DEVELOPMENT_ITEMS.md).
 - [날짜별 구현·검증 기록](docs/WORKBENCH_PROGRESS.md),
   [전처리·후처리 수용 기록](docs/PREPOST_VERIFICATION.md), `benchmarks/records/`.
 - [문서 통합 전 CURRENT_STATE/HANDOFF 원문](docs/history/20261012-before-consolidation/README.md).
