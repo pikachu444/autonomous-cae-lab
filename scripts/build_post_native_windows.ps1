@@ -197,12 +197,12 @@ try {
     }
     Invoke-OwnedCheck 'load' @($pvpython,(Join-Path $repo 'scripts/post_native_windows_smoke.py'),'--plugin',$plugin[0].FullName)
     $evidence['native_backend'] = 'PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED'
+    $evidence['plugin_sha256'] = (Get-FileHash -LiteralPath $plugin[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     $comparison = Join-Path $root 'checks/comparison'
     Invoke-OwnedCheck 'create' @($pvpython,(Join-Path $repo 'tests/check_post_comparison_native.py'),'--create',$comparison) 300
     $evidence['native_backend'] = 'PLUGIN_LOAD_AND_COMPARISON_SAVE_PASSED_COLD_NOT_COMPLETED'
     Invoke-OwnedCheck 'cold' @($pvpython,(Join-Path $repo 'tests/check_post_comparison_native.py'),'--reopen',(Join-Path $comparison 'receipt.json')) 300
     $evidence['native_backend'] = 'PLUGIN_LOAD_EXISTING_COMPARISON_SAVE_AND_COLD_REOPEN_PASSED'
-    $evidence['plugin_sha256'] = (Get-FileHash -LiteralPath $plugin[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     Write-Output 'SDK/plugin/native backend checks finished. Actual Windows ParaView GUI exit acceptance is NOT_RUN.'
 } finally {
     $evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $evidencePath -Encoding utf8

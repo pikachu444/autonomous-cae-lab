@@ -87,19 +87,30 @@ jobs:
           if ($receipt.cleanup -ne 'job_empty' -or $receipt.cleanup_error -or $receipt.timed_out) {
             throw 'SDK build/check Job cleanup or timeout requires review.'
           }
-      - name: Package the verified runtime in one owned Job
-        if: ${{ inputs.recover_runtime }}
+      - name: Package the runtime for verified or diagnostic recovery in one owned Job
+        id: runtime-package
+        if: ${{ always() && !cancelled() && inputs.recover_runtime }}
         run: |
           $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
           $pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-          python scripts/native_check.py --timeout 1800 --output-dir "$env:POST_NATIVE_ROOT/recovery-job" -- $pwsh -NoProfile -File "$env:GITHUB_WORKSPACE/scripts/package_post_runtime_windows.ps1" -WorkRoot $env:POST_NATIVE_ROOT -Python $python
+          if ([string]::IsNullOrWhiteSpace($env:POST_NATIVE_ROOT)) { Write-Output 'No SDK root to recover.'; exit 0 }
+          $evidencePath = Join-Path $env:POST_NATIVE_ROOT 'build-evidence.json'
+          if (-not (Test-Path -LiteralPath $evidencePath)) { Write-Output 'No completed SDK evidence to recover.'; exit 0 }
+          $evidence = Get-Content -LiteralPath $evidencePath -Raw | ConvertFrom-Json
+          $eligible = @('PLUGIN_LOAD_EXISTING_COMPARISON_SAVE_AND_COLD_REOPEN_PASSED',
+            'PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED','PLUGIN_LOAD_AND_COMPARISON_SAVE_PASSED_COLD_NOT_COMPLETED')
+          if ($evidence.sdk_build -ne 'RUNTIME_AND_DEVELOPMENT_INSTALL_COMPLETED' -or $evidence.native_backend -notin $eligible) {
+            Write-Output 'SDK/plugin load did not complete; no runtime recovery attempted.'; exit 0
+          }
+          python scripts/native_check.py --timeout 1800 --output-dir "$env:POST_NATIVE_ROOT/recovery-job" -- $pwsh -NoProfile -File "$env:GITHUB_WORKSPACE/scripts/package_post_runtime_windows.ps1" -WorkRoot $env:POST_NATIVE_ROOT -Python $python -AllowIncompleteNativeChecks
           if ($LASTEXITCODE -ne 0) { throw "Owned runtime packaging failed: $LASTEXITCODE" }
           $receipt = Get-Content -LiteralPath "$env:POST_NATIVE_ROOT/recovery-job/native-check.json" -Raw | ConvertFrom-Json
           if ($receipt.cleanup -ne 'job_empty' -or $receipt.cleanup_error -or $receipt.timed_out) {
             throw 'Runtime packaging Job cleanup or timeout requires review.'
           }
+          'ready=true' >> $env:GITHUB_OUTPUT
       - name: Recover runtime volumes in an unpublished draft release
-        if: ${{ inputs.recover_runtime }}
+        if: ${{ always() && !cancelled() && inputs.recover_runtime && steps.runtime-package.outputs.ready == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -109,7 +120,8 @@ jobs:
           if ($receipt.schema -ne 'cae.post-runtime-recovery/1' -or
               $receipt.source_commit -ne $env:GITHUB_SHA -or
               $receipt.staged_artifact_verification -ne 'PASSED' -or
-              $receipt.archive_test -ne 'PASSED' -or $receipt.publication -ne 'NONE') {
+              $receipt.archive_test -ne 'PASSED' -or $receipt.publication -ne 'NONE' -or
+              $receipt.recovery_purpose -notin @('VERIFIED_BACKEND','DIAGNOSTIC_ONLY')) {
             throw 'Only the verified runtime from this exact source may be recovered.'
           }
           $volumes = @(Get-ChildItem -LiteralPath $recovery -File -Filter 'post-runtime.7z.*' | Sort-Object Name)
@@ -134,7 +146,10 @@ jobs:
             ''
             'Download every post-runtime.7z volume and package-receipt.json together.'
             'The archive includes its file inventory, licenses, source references and Korean recovery instructions.'
-            'SDK plugin load and the existing comparison checks passed. Actual desktop exit and clean-PC installation are NOT_RUN.'
+            "Recovery purpose: $($receipt.recovery_purpose)"
+            "Original backend check status: $($receipt.native_backend)"
+            'DIAGNOSTIC_ONLY retains an incomplete/failed comparison check; recovery does not make the workflow pass.'
+            'Actual desktop exit and clean-PC installation are NOT_RUN.'
           ) | Set-Content -LiteralPath $notes -Encoding utf8
           gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --draft --title 'Post Windows development runtime' --notes-file $notes
           if ($LASTEXITCODE -ne 0) { throw 'Draft creation was not confirmed; inspect this run tag before retrying.' }

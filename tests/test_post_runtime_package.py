@@ -107,10 +107,12 @@ def tools():
     return power, seven
 
 
-def package(build, tools):
+def package(build, tools, *, allow_incomplete=False):
     power, seven = tools
-    return subprocess.run([power, '-NoProfile', '-File', str(SCRIPT), '-WorkRoot', str(build),
-                           '-Python', sys.executable, '-SevenZip', seven],
+    command = [power, '-NoProfile', '-File', str(SCRIPT), '-WorkRoot', str(build),
+               '-Python', sys.executable, '-SevenZip', seven]
+    if allow_incomplete: command.append('-AllowIncompleteNativeChecks')
+    return subprocess.run(command,
                           capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=40)
 
 
@@ -175,3 +177,78 @@ def test_existing_recovery_is_never_overwritten(build, tools):
     assert result.returncode != 0
     assert sentinel.read_bytes() == b'preserve this exact file'
     assert list((build / 'recovery').iterdir()) == [sentinel]
+
+
+def diagnostic_build(root):
+    evidence = json.loads((root / 'build-evidence.json').read_text())
+    evidence.update(native_backend='PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED',
+        plugin_build='BUILT_CORE_AND_C_ABI_CHECKS_PASSED_QT_HARNESS_COMPILED')
+    json_file(root / 'build-evidence.json', evidence)
+    for relative, code in [('build-job', 1), ('plugin-build/core-test-job', 0), ('checks/load', 0)]:
+        json_file(root / relative / 'native-check.json', {'exit_code':code,'cleanup':'job_empty',
+            'cleanup_error':None,'error':None,'timed_out':False})
+    put(root / 'plugin-build/core-test-job/stdout.log',
+        b'1/2 Test #1: cae_exit_transaction .............   Passed    0.01 sec\r\n'
+        b'2/2 Test #2: cae_exit_c_python_abi ............   Passed    0.02 sec\r\n'
+        b'100% tests passed, 0 tests failed out of 2\r\n')
+    plugin = root / 'plugin-build/bin/Release/CaePostExit.dll'
+    json_file(root / 'checks/load/stdout.log', {'plugin_load':'PASSED','paraview':'6.2',
+        'plugin':str(plugin.resolve()),'sha256':digest(plugin)})
+    json_file(root / 'checks/create/native-check.json', {'exit_code':3221225477,
+        'cleanup':'job_empty','cleanup_error':None,'timed_out':False,'error':None})
+    put(root / 'checks/create/stderr.log', b'controlled render failure, not native execution')
+    return evidence
+
+
+def test_incomplete_backend_stays_refused_without_explicit_recovery(build, tools):
+    diagnostic_build(build)
+    assert package(build, tools).returncode != 0
+    assert not (build / 'recovery/package-receipt.json').exists()
+
+
+def test_diagnostic_bundle_preserves_original_failure_and_logs(build, tools):
+    original = diagnostic_build(build)
+    before = (build / 'build-evidence.json').read_bytes()
+    result = package(build, tools, allow_incomplete=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    receipt = json.loads((build / 'recovery/package-receipt.json').read_text())
+    assert receipt['recovery_purpose'] == 'DIAGNOSTIC_ONLY'
+    assert receipt['native_backend'] == original['native_backend']
+    assert receipt['actual_gui_exit_acceptance'] == 'NOT_RUN'
+    assert (build / 'build-evidence.json').read_bytes() == before
+    logs = build / 'recovery/post-runtime/provenance'
+    for name in ('build-job/native-check.json','plugin-build/core-test-job/stdout.log',
+                 'checks/load/stdout.log','checks/create/stderr.log'):
+        assert (logs / name).read_bytes() == (build / name).read_bytes()
+
+
+@pytest.mark.parametrize('fault', ['cleanup_unverified','wrong_plugin_sha','failed_cleanup_unverified'])
+def test_diagnostic_recovery_requires_clean_jobs_and_exact_load(build, tools, fault):
+    diagnostic_build(build)
+    name = {'cleanup_unverified':'build-job/native-check.json','wrong_plugin_sha':'checks/load/stdout.log',
+            'failed_cleanup_unverified':'checks/create/native-check.json'}[fault]
+    value = json.loads((build / name).read_text())
+    value.update({'sha256':'0'*64} if fault == 'wrong_plugin_sha' else {'cleanup':'kill_on_close_unverified'})
+    json_file(build / name, value)
+    assert package(build, tools, allow_incomplete=True).returncode != 0
+    assert not (build / 'recovery/package-receipt.json').exists()
+
+
+@pytest.mark.parametrize('fault', ['missing_core_stdout','unrelated_core_stdout','missing_failed_stderr'])
+def test_diagnostic_recovery_requires_original_test_and_failure_logs(build, tools, fault):
+    diagnostic_build(build)
+    path = build / ('checks/create/stderr.log' if fault == 'missing_failed_stderr'
+                    else 'plugin-build/core-test-job/stdout.log')
+    if fault == 'unrelated_core_stdout':
+        # Mentioning both names is not proof that CTest ran them.
+        path.write_bytes(b'cae_exit_transaction cae_exit_c_python_abi\r\nNo tests were found!!!\r\n')
+    else:
+        path.unlink()
+    original = path.read_bytes() if path.exists() else None
+    result = package(build, tools, allow_incomplete=True)
+    assert result.returncode != 0
+    assert ('original failed-check stderr' if fault == 'missing_failed_stderr' else
+            'original core/C ABI stdout' if fault == 'missing_core_stdout' else
+            'executed Passed CTest record') in result.stderr
+    assert not (build / 'recovery').exists()
+    assert (path.read_bytes() if path.exists() else None) == original

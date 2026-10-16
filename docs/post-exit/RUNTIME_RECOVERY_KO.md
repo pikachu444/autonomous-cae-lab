@@ -28,6 +28,21 @@ plugin과 기존 manifest, Qt 플랫폼 DLL, 공식 CPython 3.12.10의 실행 �
 root 담당자는 이 파일과 receipt만 기존 공개 저장소의 미공개 draft release에 회수용으로
 보관합니다. 이 스크립트는 release를 만들지 않습니다. Actions artifact/cache는 사용하지 않습니다.
 
+## 렌더 검사 실패 시 진단용 회수
+
+SDK 설치와 실제 plugin load가 통과했지만 비교 생성·재열기가 실패한 경우에는
+담당자가 `-AllowIncompleteNativeChecks`를 명시해 같은 실행 파일과 원 로그를
+진단용으로 회수할 수 있습니다. 기본 호출은 여전히 backend 검사 전체 성공을 요구합니다.
+진단용 묶음의 `recovery_purpose`는 `DIAGNOSTIC_ONLY`이며 원 실패와
+미완료 비교 상태를 그대로 보존합니다. 이 회수는 workflow 실패를 성공으로 바꾸지 않습니다.
+원 Job 정리와 실제 plugin load receipt가 없거나 파일 pin이 다르면 회수하지 않습니다.
+원 CTest stdout에서 core·C ABI 두 검사의 실제 통과 행을 확인하며, 실패한 생성·재열기
+단계의 원 stderr도 필수로 보존합니다. 로그가 없으면 대신 만들지 않고 회수를 거절합니다.
+
+진단용 묶음에서는 저장·비교·렌더 또는 실제 File → Exit가 통과했다고 판단하지 마세요.
+포함한 실패 로그를 먼저 확인하고 같은 runtime을 사용해 남은 경로를 확인합니다.
+원 실행 파일이나 실패 기록을 바꾸지 않습니다.
+
 ## 내려받은 환경에서 확인
 
 모든 분할 파일과 receipt를 같은 새 폴더로 받고 각 SHA를 대조한 뒤 첫 파일을 풉니다.

@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory=$true)][string]$WorkRoot,
     [Parameter(Mandatory=$true)][string]$Python,
-    [string]$SevenZip
+    [string]$SevenZip,
+    [switch]$AllowIncompleteNativeChecks
 )
 $ErrorActionPreference = 'Stop'
 if (-not $SevenZip) {
@@ -15,6 +16,7 @@ $code = @'
 import hashlib
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import shutil
 import stat
@@ -23,7 +25,8 @@ import sys
 import zipfile
 
 sys.dont_write_bytecode = True
-root, repo, seven = (Path(p).resolve(strict=True) for p in sys.argv[1:])
+root, repo, seven = (Path(p).resolve(strict=True) for p in sys.argv[1:4])
+allow_incomplete = sys.argv[4] == '1'
 sys.path.insert(0, str(repo))
 from apps.desktop_post.native_exit_abi import verify_artifact, file_sha256
 
@@ -66,8 +69,13 @@ def copy_tree(source, target, exclude=()):
 out = root / 'recovery'
 require(not out.exists(), 'Preserve existing recovery output; use a new SDK work directory')
 evidence = read(root / 'build-evidence.json')
-require(evidence.get('native_backend') == 'PLUGIN_LOAD_EXISTING_COMPARISON_SAVE_AND_COLD_REOPEN_PASSED',
-        'Only the successful existing SDK/native-backend check may be packaged')
+backend = evidence.get('native_backend')
+complete = backend == 'PLUGIN_LOAD_EXISTING_COMPARISON_SAVE_AND_COLD_REOPEN_PASSED'
+require(complete or allow_incomplete and backend in {
+    'PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED',
+    'PLUGIN_LOAD_AND_COMPARISON_SAVE_PASSED_COLD_NOT_COMPLETED'},
+    'Requires successful backend checks, or explicit diagnostic recovery after plugin load')
+purpose = 'VERIFIED_BACKEND' if complete else 'DIAGNOSTIC_ONLY'
 require(evidence.get('sdk_build') == 'RUNTIME_AND_DEVELOPMENT_INSTALL_COMPLETED', 'SDK install incomplete')
 require(evidence['python']['version'] == '3.12.10' and evidence['python']['bits'] == 64,
         'Requires the recorded official CPython 3.12.10 x64 prefix')
@@ -78,6 +86,32 @@ require(len(plugins) == 1, 'Expected one exact built plugin')
 plugin = plugins[0]
 manifest = verify_artifact(plugin, runtime)
 require(file_sha256(plugin) == evidence['plugin_sha256'], 'Build/plugin receipt differs')
+if not complete:
+    require(evidence.get('plugin_build') == 'BUILT_CORE_AND_C_ABI_CHECKS_PASSED_QT_HARNESS_COMPILED',
+            'Diagnostic recovery requires successful core/C ABI checks')
+    for relative, expected_exit in (('build-job', 1), ('plugin-build/core-test-job', 0), ('checks/load', 0)):
+        receipt = read(root / relative / 'native-check.json')
+        require(receipt['exit_code'] == expected_exit and receipt['cleanup'] == 'job_empty' and
+                not receipt.get('cleanup_error') and not receipt.get('timed_out') and not receipt.get('error'),
+                'Diagnostic recovery requires completed empty owned Jobs: ' + relative)
+    core_stdout = root / 'plugin-build/core-test-job/stdout.log'
+    require(core_stdout.is_file(), 'Diagnostic recovery requires original core/C ABI stdout')
+    core_output = core_stdout.read_text(encoding='utf-8-sig')
+    for test in ('cae_exit_transaction', 'cae_exit_c_python_abi'):
+        require(re.search(r'(?m)^[ \t]*\d+/\d+[ \t]+Test[ \t]+#\d+:[ \t]*' +
+                          re.escape(test) + r'[ \t]+\.{2,}[ \t]+Passed(?:[ \t]|$)', core_output),
+                'Diagnostic recovery requires an executed Passed CTest record: ' + test)
+    load = json.loads((root / 'checks/load/stdout.log').read_text(encoding='utf-8-sig').strip().splitlines()[-1])
+    require(load['plugin_load'] == 'PASSED' and load['paraview'] == '6.2' and
+            load['sha256'] == evidence['plugin_sha256'] and Path(load['plugin']).resolve() == plugin.resolve(),
+            'Diagnostic recovery requires the actual exact plugin-load receipt')
+    failed_stage = 'create' if backend == 'PLUGIN_LOAD_PASSED_COMPARISON_NOT_COMPLETED' else 'cold'
+    failed = read(root / 'checks' / failed_stage / 'native-check.json')
+    require(failed['exit_code'] != 0 and failed['cleanup'] == 'job_empty' and
+            not failed.get('cleanup_error') and not failed.get('timed_out') and not failed.get('error'),
+            'Preserve a failed comparison check with confirmed Job cleanup')
+    require((root / 'checks' / failed_stage / 'stderr.log').is_file(),
+            'Diagnostic recovery requires original failed-check stderr: ' + failed_stage)
 require(file_sha256(prefix / 'python312.dll') == evidence['python_dll_sha256'] ==
         file_sha256(runtime / 'bin/python312.dll'), 'Official Python DLL differs from the pinned runtime')
 sdk = read(root / 'sdk-evidence.json')
@@ -149,6 +183,15 @@ for name in ('inputs.json', 'build-evidence.json', 'sdk-evidence.json',
 for name in sdk['files']:
     source = Path(name).resolve(strict=True)
     copy_file(source, bundle / 'provenance/sdk-files' / source.relative_to(root))
+# Preserve original failed/successful checks as bytes; recovery does not change their verdict.
+for folder in ('build-job', 'plugin-build/core-test-job', 'checks/load', 'checks/create', 'checks/cold'):
+    for name in ('native-check.json', 'stdout.log', 'stderr.log'):
+        source_log = root / folder / name
+        if source_log.is_file():
+            copy_file(source_log, bundle / 'provenance' / folder / name)
+for name in ('load-dependencies.log', 'load-dependency-closure.log'):
+    if (root / 'checks' / name).is_file():
+        copy_file(root / 'checks' / name, bundle / 'provenance/checks' / name)
 copy_tree(root / 'qt/source-license-notices', bundle / 'licenses/Qt')
 for module in ('qtbase', 'qttools', 'qtsvg', 'qt5compat'):
     require((bundle / 'licenses/Qt' / module / 'LICENSE.LGPL3').is_file(), 'Qt notice missing: ' + module)
@@ -171,6 +214,7 @@ copy_file(repo / 'benchmarks/input-data/codeaster/COPYING.GPL-3.0', bundle / 'li
 copy_file(repo / 'docs/post-exit/RUNTIME_RECOVERY_KO.md', bundle / 'READ_ME_KO.md')
 write(bundle / 'sources.json', {
     'inputs': inputs, 'source_commit': evidence['source_commit'],
+    'native_backend': backend, 'recovery_purpose': purpose,
     'plugin_source': 'https://github.com/pikachu444/autonomous-cae-lab/tree/' + evidence['source_commit'] + '/native/post_exit',
     'python': 'https://www.python.org/downloads/release/python-31210/',
     'qt_source': 'https://download.qt.io/archive/qt/6.9/6.9.0/single/qt-everywhere-src-6.9.0.tar.xz',
@@ -195,9 +239,10 @@ write(out / 'package-receipt.json', {
     'files_manifest_sha256': file_sha256(bundle / 'files.json'),
     'volumes': [{'file': p.name, 'bytes': p.stat().st_size, 'sha256': file_sha256(p)} for p in volumes],
     'staged_artifact_verification': 'PASSED', 'archive_test': 'PASSED',
-    'publication': 'NONE', 'actual_gui_exit_acceptance': 'NOT_RUN'})
+    'publication': 'NONE', 'native_backend': backend, 'recovery_purpose': purpose,
+    'actual_gui_exit_acceptance': 'NOT_RUN'})
 print(out / 'package-receipt.json')
 '@
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-$code | & $Python - $WorkRoot $repo $SevenZip
+$code | & $Python - $WorkRoot $repo $SevenZip ([int]$AllowIncompleteNativeChecks.IsPresent)
 if ($LASTEXITCODE -ne 0) { throw "Post runtime packaging failed: $LASTEXITCODE. Preserve the new recovery folder for diagnosis." }
