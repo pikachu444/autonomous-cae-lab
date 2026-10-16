@@ -886,6 +886,8 @@ class PostWindow(QMainWindow):
             self.compact_value.setText(title + ': ' + value + ' ' + str(unit) + '\n' + stamp + ' · ' + ('유효' if valid_count else '무효 / 결측'))
         else:
             self.compact_value.setText(title + ' · ' + str(len(rows)) + '개 표본\n유효 ' + str(valid_count) + ' / 결측·무효 ' + str(len(rows)-valid_count))
+        if summary.get('quadrature'):
+            self.compact_value.setText(self.compact_value.text() + '\n고차 형상 적분 · 두 적분 규칙의 차이는 원표에서 확인 (오차 한계 미확정)')
         blocker.unblock()
         self._compact_show_result(self._compact_summary)
 
@@ -2485,9 +2487,10 @@ class PostWindow(QMainWindow):
                 tree.clear()
                 for face in result['faces']:
                     row = QTreeWidgetItem([str(face['cell_index']) + ' / ' + ('표면 셀' if face['face_index'] is None else str(face['face_index'])),
-                        field_text(face['point_indices']), str(face['coordinates'])])
+                        ({6:'TRI6 · 원 절점 6개',8:'QUAD8 · 원 절점 8개'}.get(len(face['point_indices']), field_text(face['point_indices']))), str(face['coordinates'])])
                     row.setData(0, Qt.ItemDataRole.UserRole, deepcopy(face))
                     row.setCheckState(0, Qt.CheckState.Checked if (face['cell_index'], face['face_index']) in state['selected'] else Qt.CheckState.Unchecked)
+                    row.setToolTip(1, field_text(face['point_indices']))
                     row.setToolTip(2, str(face['coordinates']) + '\n원 ID: ' + str(face['original_point_ids']))
                     tree.addTopLevelItem(row)
                 count.setText(str(result.get('offset', 0) + (1 if result['faces'] else 0)) + '–' + str(result.get('offset', 0) + len(result['faces'])) +

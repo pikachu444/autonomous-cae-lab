@@ -56,6 +56,28 @@ Save/reopen retains the ordinary Data input and result. Losing the original Post
 
 새 세 측정은 실제 Client·HTTP·native broker·ParaView GUI를 통해 미리보기→적용→저장→Data/계획 전달을 확인했습니다. 면적 1:3인 공개 제조 입력에서 면 평균 8 MPa, 면 평균 이력 [8, 10, 12] MPa, 두 점 이력 [0.5, 1.5, 3.5] mm와 실제 시각 [0, 0.07, 0.2] s를 대조했습니다. 같은 저장본을 새 ParaView/Qt 세션에서 열어 설정·표·곡선·원 값과 기존 Data/계획을 확인했고 계산을 다시 적용하거나 반입하지 않았습니다. 시험 프로그램은 모두 정리했습니다. 이 실행은 프로그램으로 Qt 명령을 호출한 소프트웨어 확인이며 OS 마우스 점 선택·새 모델 계산·공학 승인은 별도입니다. 새 솔버·provider는 호출하지 않았습니다.
 
+## 고차 기준면의 면 평균과 적분
+
+![고차면의 원 중간절점 선택](../../docs/images/manual/post-quadratic-surface-selection.png)
+
+**면 평균** 또는 **면 평균 시간 이력**에서 원 자료·필드·자료 위치를 고른 뒤 **원본 경계 면 선택…**을 누릅니다. TRI6는 원 절점 6개, QUAD8은 원 절점 8개를 사용합니다. 좌표와 원 번호는 각 행의 상세에서 확인합니다. 체적 셀의 공유 내부면은 제외하며, 중간절점 연결이 다른 공유면은 오류로 표시합니다. 선택창의 취소는 기존 정의를 바꾸지 않고, **선택한 면 사용**은 현재 초안만 바꿉니다. 단위·좌표계·실제 시각을 지정한 뒤 **미리보기 → 적용 → 저장**을 실행합니다.
+
+![고차면 평균과 정확도 미확정 표시](../../docs/images/manual/post-quadratic-surface-result.png)
+
+TRI6는 7점, QUAD8은 5×5 Gauss 규칙으로 실제 3D 형상함수의 면적을 적분합니다. 원 점 자료는 같은 형상함수로 보간하고, 셀 자료는 원 owner 셀의 값을 그 면의 상수로 사용합니다. 원 producer가 복구한 점 자료라면 해당 복구 선언을 보존합니다. 고차 중간절점을 버린 평면 다각형이나 native 적분점 면적으로 바꾸지 않습니다.
+
+결과 요약은 면 평균이며, **원표**에는 면적 `SurfaceArea`, 적분 `SurfaceIntegral`과 두 규칙의 차이 `SurfaceAreaDifference`, `SurfaceIntegralDifference`, `SurfaceAverageDifference`도 보존됩니다. 면적 단위는 좌표 단위², 적분 단위는 응답 단위×좌표 단위²입니다. 대조 규칙은 TRI6 12점·QUAD8 7×7입니다. 이 차이는 관측된 수치 차이이며 엄밀한 오차 상한이 아닙니다. 정해진 정확도 허용치가 없으므로 **오차 한계·수렴·공학 적합성은 미확정**으로 남습니다.
+
+현재 지원은 단일 dataset의 **고정 기준 형상**입니다. 면별 평면 투영의 전 영역 정규성을 보수적인 Bernstein 계수 조건으로 확인한 graph patch를 적분합니다. 퇴화·중간절점 오류 또는 이 조건을 입증할 수 없는 큰 overhang은 계산을 보류합니다. 보류를 실제 접힘으로 단정하지 않으며, 면적 0이나 선형화 결과로 통과시키지 않습니다. 일반 overhang·다중 블록·현재 변형 면적은 이 기능의 지원 범위 밖입니다. 원 mask가 무효인 시각은 값과 면적을 결측으로 유지하고 그 면의 일부만 버려 평균을 다시 만들지 않습니다.
+
+저장 후 새 후처리 owner로 열면 같은 원 면·정의·규칙·원표를 읽으며 다시 적용하지 않습니다. **수치 연구로…**는 기존 고정 snapshot을 사용해 면 평균을 Data/계획에 전달합니다. 면적·적분·규칙 차이는 측정 출처의 보조 정보이며 다른 물리 응답으로 자동 선택하지 않습니다.
+
+저장된 **면 평균 시간 이력**과 **두 점 상대변위 시간 이력**은 **곡선 비교**에서도 선택할 수 있습니다. 원표의 실제 `Time`과 유효성 mask를 사용하며 무효 행을 연결하거나 보조 면적·적분 열을 응답으로 바꾸지 않습니다. 방향 투영과 두 점 상대변위의 관측량 의미는 자동 추정하지 않으므로 비교 설정의 **물리량·가로축 확인…**에서 확인합니다. 단일 시각 면 평균은 시간 곡선 목록에 넣지 않습니다.
+
+위 그림의 **고차면 측정 시험**은 공개 합성 PVD 자료를 연 실제 QWindows 설정창입니다. 실제 ParaView reader·계산·저장·새 owner 재열기는 별도 확인했으며, 이 설정창의 명령 운송과 snapshot→Data/계획의 native 상태 조회는 명시적 시험 대역으로 확인했습니다. OS 마우스 선택이나 전체 broker 경로의 새 수용시험은 수행하지 않았습니다. 원 수치·실패 기록은 인도 자료에 보존합니다.
+
+형상함수와 원 절점 순서는 [고정 VTK TRI6](https://raw.githubusercontent.com/Kitware/VTK/a970ec452229b1a0953684c00ecd9fe612778b8a/Common/DataModel/vtkQuadraticTriangle.cxx), [QUAD8](https://raw.githubusercontent.com/Kitware/VTK/a970ec452229b1a0953684c00ecd9fe612778b8a/Common/DataModel/vtkQuadraticQuad.cxx)를 따릅니다. 전 영역 정규성의 충분조건과 지원 한계는 [고차 요소의 기하 유효성 원문](https://gmsh.info/doc/preprints/gmsh_curved2_preprint.pdf)의 Bernstein 경계 원리와 별도로 기록한 구현 조건을 사용합니다.
+
 ## 서로 다른 응력 측도를 Cauchy로 비교하기
 
 ![실제 변형구배를 선택하는 응력 측도 설정](../../docs/images/manual/post-stress-measures.png)

@@ -55,6 +55,13 @@ class MeasurementDialog(QDialog):
             self.summary.setWordWrap(True)
             self.summary.setText('선택한 면 ' + str(len(snapshot['recipe']['surface_faces'])) +
                 '개의 면적 가중 평균 [' + saved['units'] + '], ' + clock)
+        if measurement in ('surface_average', 'surface_time') and snapshot['summary'].get('quadrature'):
+            q=snapshot['summary']['quadrature']
+            self.summary.setText(self.summary.text() + '\n고차 형상 적분: ' + ', '.join(q.get('rules',[])) +
+                ' / 면적 단위 ' + str(snapshot['summary'].get('area_unit') or '미지정') + '\n두 적분 규칙의 차이를 보존하며 오차 한계는 미확정입니다.')
+            if snapshot['summary'].get('field_recovery'):
+                self.summary.setText(self.summary.text() + '\n원 producer의 복구/평균 선언이 보존된 응답입니다.')
+                self.summary.setToolTip(str(snapshot['summary']['field_recovery']))
         outer.addWidget(self.summary)
         forms = QHBoxLayout()
         left, right = QFormLayout(), QFormLayout()

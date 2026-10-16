@@ -1,7 +1,8 @@
 """Bounded native surface/gauge histories, materialized by the existing Post owner.
 
-Only actual frames and fixed reference geometry are admitted. VTK computes surface
-integrals; the retained table never recomputes a measurement when reopened.
+Only actual frames and fixed reference geometry are admitted. Linear faces use
+VTK integration; TRI6/QUAD8 use native-order parametric quadrature. The retained
+table never recomputes a measurement when reopened.
 """
 from copy import deepcopy
 import json
@@ -43,11 +44,56 @@ def _tracking(data):
     return h.hexdigest(),mode
 
 
+def _quadratic_owners(data):
+    if not any(data.GetCellType(i) in (22,23,24,25,26,27) for i in range(data.GetNumberOfCells())):return None
+    from vtkmodules.vtkCommonDataModel import vtkGenericCell
+    cell=vtkGenericCell();result={}
+    for owner in range(data.GetNumberOfCells()):
+        data.GetCell(owner,cell)
+        for number in range(cell.GetNumberOfFaces()) if cell.GetCellDimension()==3 else (None,) if cell.GetCellDimension()==2 else ():
+            face=cell.GetFace(number) if number is not None else cell
+            kind=face.GetCellType()
+            if kind not in (5,9,22,23):continue
+            ids=[face.GetPointId(j) for j in range(face.GetNumberOfPoints())]
+            corners=3 if kind in (5,22) else 4
+            result.setdefault(tuple(sorted(ids[:corners])),[]).append((owner,number,ids,kind))
+    return result
+
+
+def _original_quadratic_catalog(data,topology,offset,limit,owners):
+    def connectivity(row):
+        ids,kind=row[2],row[3];corners=3 if kind in (5,22) else 4
+        edges=tuple(sorted((tuple(sorted((ids[i],ids[(i+1)%corners]))),ids[corners+i])
+            for i in range(corners))) if kind in (22,23) else ()
+        return kind,tuple(sorted(ids[:corners])),edges
+    boundary=[]
+    for candidates in topology.values():
+        if len(candidates)>2 or len(candidates)==2 and (
+                any(row[1] is None for row in candidates) or
+                connectivity(candidates[0])!=connectivity(candidates[1])):
+            raise ValueError('중복·비정합 고차 경계면입니다. 공유 중간절점과 원 face 연결을 확인하세요.')
+        if len(candidates)==1:boundary.append(candidates[0])
+    boundary.sort(key=lambda row:(row[0],-1 if row[1] is None else row[1]))
+    rows=[]
+    for owner,face_index,ids,kind in boundary[offset:None if limit is None else offset+limit]:
+        if owners is not None and owner not in owners:continue
+        if len(set(ids))!=len(ids) or min(ids)<0 or max(ids)>=data.GetNumberOfPoints():
+            raise ValueError('고차면의 원 중간절점 번호가 누락·중복되었습니다.')
+        rows.append({'cell_index':owner,'face_index':face_index,'point_indices':ids,
+            'coordinates':[list(data.GetPoint(i)) for i in ids]})
+    selected=sorted({i for row in rows for i in row['point_indices']});positions={value:i for i,value in enumerate(selected)}
+    identities=_point_ids(data,selected)
+    for row in rows:row['original_point_ids']={name:[values[positions[i]] for i in row['point_indices']] for name,values in identities.items()}
+    return rows,len(boundary)
+
+
 def _surface_catalog(data,*,offset=0,limit=None,owners=None):
     """Whole-source boundary first; never expose a cut cell's internal faces."""
     from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
     if not hasattr(data,'GetPoints') or data.GetPoints() is None:
         raise ValueError('단일 원 자료를 선택하세요. 여러 블록의 면 대응은 자동 추정하지 않습니다.')
+    topology=_quadratic_owners(data)
+    if topology is not None:return _original_quadratic_catalog(data,topology,offset,limit,owners)
     surface=vtkDataSetSurfaceFilter();surface.SetInputData(data)
     surface.PassThroughPointIdsOn();surface.PassThroughCellIdsOn()
     surface.SetOriginalPointIdsName('CAE_MeasurePointIndex');surface.SetOriginalCellIdsName('CAE_MeasureCellIndex')
@@ -97,7 +143,7 @@ def surface_options(source,reference_time,*,offset=0,limit=200):
         frozen=analysis._freeze(source,reference_time,'surface selection',temporary)
         rows,total=_surface_catalog(analysis._fetch(frozen),offset=offset,limit=limit)
         return {'reference_time':reference_time,'faces':rows,'total':total,'offset':offset,'limit':limit,'has_more':offset+limit<total,
-            'geometry':'fixed_reference','selection':'원 경계의 삼각형·사각형 면을 명시 선택'}
+            'geometry':'fixed_reference','selection':'원 경계의 TRI3/QUAD4/TRI6/QUAD8 면을 중간절점까지 명시 선택'}
     finally:
         analysis.cleanup({'proxies':temporary});p.SetActiveSource(before[0]);p.SetActiveView(before[1])
 
@@ -147,7 +193,7 @@ def _valid(attrs,indices,size,*,ghost_bit,masks=(),policy=None,ghost_only=False)
 
 
 def surface_average(data,draft,faces=None):
-    """Native triangle/quad triangulation integral, divided by its full area."""
+    """Linear native integral or full quadratic-shape integral over reference area."""
     from vtkmodules.vtkCommonDataModel import vtkPolyData,vtkCellArray
     from vtkmodules.vtkCommonCore import vtkDoubleArray
     from vtkmodules.vtkFiltersParallel import vtkIntegrateAttributes
@@ -189,6 +235,33 @@ def surface_average(data,draft,faces=None):
     point_valid,point_reason=_valid(data.GetPointData(),point_indices,data.GetNumberOfPoints(),ghost_bit=2,ghost_only=True)
     if not valid or not owner_valid or not point_valid or any(not math.isfinite(v) for v in values.values()):
         return {'value':None,'area':None,'valid':False,'reason':reason or owner_reason or point_reason or 'nonfinite_selected_field'}
+    if any(len(face['point_indices']) in (6,8) for face in faces):
+        try:from .surface_quadrature import integrate
+        except ImportError:from surface_quadrature import integrate
+        reports=[]
+        for face in faces:
+            ids=face['point_indices']
+            if len(ids) in (6,8):
+                local=integrate(face['coordinates'],[values[i] for i in ids] if association=='POINTS' else values[face['cell_index']])
+            else:
+                local=surface_average(data,draft,[face]);area=local['area'];integral=area*local['value']
+                local.update(integral=integral,reference_area=area,reference_integral=integral,rule='native_linear')
+            reports.append(local)
+        area=math.fsum(row['area'] for row in reports);integral=math.fsum(row['integral'] for row in reports)
+        reference_area=math.fsum(row['reference_area'] for row in reports)
+        reference_integral=math.fsum(row['reference_integral'] for row in reports)
+        value=integral/area
+        if not all(math.isfinite(v) for v in (area,integral,reference_area,reference_integral,value)) or min(area,reference_area)<=0:
+            raise ValueError('선택 고차면의 전체 면적과 적분을 유한하게 계산할 수 없습니다.')
+        return {'value':value,'area':area,'valid':True,'reason':'valid','integral':integral,
+            'area_difference':math.fsum(abs(row['area']-row['reference_area']) for row in reports),
+            'integral_difference':math.fsum(abs(row['integral']-row['reference_integral']) for row in reports),
+            'mean_difference':abs(value-reference_integral/reference_area),
+            'quadrature':{'version':1,'rules':sorted(set(row['rule'] for row in reports)),
+                'reference_rules':['TRI6_12','QUAD8_7x7'],'error_bound':'NOT_ESTABLISHED',
+                'convergence':'UNKNOWN','metric':'derived_geometric_area_not_native_IP_area',
+                'regularity':'affine_projection_contraction_bernstein',
+                'faces':[row.get('geometry_checks') for row in reports]}}
     surface=vtkPolyData();surface.SetPoints(data.GetPoints());polys=vtkCellArray()
     for face in faces:
         polys.InsertNextCell(len(face['point_indices']))
@@ -269,11 +342,17 @@ def build(source,draft,namespace):
                     valid,reason=_valid(current.GetPointData(),draft['point_indices'],current.GetNumberOfPoints(),ghost_bit=2,masks=draft.get('validity_masks',[]),policy=draft.get('validity_policy'))
                     if not valid:sample.update(value=None,valid=False,reason=reason)
                 rows.append({'time':time,'value':sample['value'],'valid':sample.get('valid',True),
-                    'reason':sample.get('reason','valid'),'area':sample.get('area')})
+                    'reason':sample.get('reason','valid'),'area':sample.get('area'),
+                    **({k:sample.get(k) for k in ('integral','area_difference','integral_difference','mean_difference','quadrature')} if sample.get('quadrature') else {})})
             finally:analysis.cleanup({'proxies':local})
         array=SURFACE_ARRAY if faces is not None else GAUGE_ARRAY
         values={'SampleIndex' if single else 'Time':[0] if single else times,array:[r['value'] for r in rows],'vtkValidMask':[int(r['valid']) for r in rows]}
+        high_order=faces is not None and any(len(f['point_indices']) in (6,8) for f in faces)
         if faces is not None:values['SurfaceArea']=[r['area'] for r in rows]
+        if high_order:
+            for column,key in [('SurfaceIntegral','integral'),('SurfaceAreaDifference','area_difference'),
+                    ('SurfaceIntegralDifference','integral_difference'),('SurfaceAverageDifference','mean_difference')]:
+                values[column]=[r.get(key) for r in rows]
         result=_table(values,namespace)
         summary={**{k:deepcopy(draft.get(k)) for k in ('units','frame','quantity','coordinate_units','coordinate_frame','time_units','time_origin')},
             'measurement':kind,'input_array':draft['array'],'array':array,'association':'ROWS','recipe':deepcopy(draft),
@@ -288,6 +367,14 @@ def build(source,draft,namespace):
         if faces is not None:summary.update(area_unit=draft['coordinate_units']+'^2',
             reduction='native_surface_triangulation_area_weighted_mean',
             field_interpolation='native_point_triangulation' if draft['association']=='POINTS' else 'original_owner_cell_piecewise_constant_on_face')
+        if high_order:
+            summary.update(reduction='native_parametric_quadratic_area_weighted_mean',
+                sample_semantics='native_quadratic_shape_area_average',
+                quadrature=next((r['quadrature'] for r in rows if r.get('quadrature')),
+                    {'version':1,'rules':[],'error_bound':'NOT_ESTABLISHED','convergence':'UNKNOWN'}),
+                integral_unit=draft['units']+'*'+draft['coordinate_units']+'^2',
+                field_interpolation='native_quadratic_shape' if draft['association']=='POINTS' else 'original_owner_cell_piecewise_constant_on_face')
+        if faces is not None and draft.get('field_recovery') is not None:summary['field_recovery']=deepcopy(draft['field_recovery'])
         return {'source':result,'proxies':[result],'summary':summary}
     except BaseException:
         if result is not None:p.Delete(result)

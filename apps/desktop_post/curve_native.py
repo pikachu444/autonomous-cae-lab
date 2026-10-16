@@ -26,7 +26,7 @@ def _rows(source, summary=None):
 def _saved_measurement(ws, ref):
     obj = ws.object(ref)
     record, bundle = ws._bundle(obj)
-    if obj['kind'] != 'measurement' or record['recipe'].get('measurement') not in ('time', 'contact_force'):
+    if obj['kind'] != 'measurement' or record['recipe'].get('measurement') not in ('time', 'contact_force', 'surface_time', 'gauge_time'):
         raise ValueError('적용하고 저장한 시간 이력 또는 접촉 힘 이력을 선택하세요.')
     if obj['draft'] != record['recipe']:
         raise ValueError('먼저 이 측정의 미적용 변경을 적용하고 저장하세요.')
@@ -55,10 +55,25 @@ def options(ws, ref):
     obj, record, bundle = _saved_measurement(ws, ref)
     recipe, summary = record['recipe'], record['summary']
     rows = _rows(bundle['source'], summary)
-    snapshot = {'recipe': recipe, 'rows': rows}
+    snapshot = {'recipe': recipe, 'summary': summary, 'rows': rows}
     available, columns = choices(snapshot), measurement_columns(snapshot)
     declaration = deepcopy(summary.get('selected_declaration') or
                            {k: recipe.get(k) for k in ('units', 'quantity', 'frame', 'measure', 'observable', 'layout')})
+    derived = recipe.get('measurement') in ('surface_time', 'gauge_time')
+    if derived:
+        layout = declaration.get('layout') or {}
+        observable = deepcopy(declaration.get('observable') or physical.UNKNOWN_OBSERVABLE)
+        if recipe['measurement'] == 'gauge_time' or recipe.get('component') == 'projection':
+            observable = deepcopy(physical.UNKNOWN_OBSERVABLE)
+        elif layout.get('kind') in ('vector', 'tensor'):
+            component = recipe.get('component')
+            observable = (physical.observable_value(layout['kind'], layout['components'][component])
+                if type(component) is int and 0 <= component < len(layout.get('components', []))
+                else deepcopy(physical.UNKNOWN_OBSERVABLE))
+        declaration.update({key: summary.get(key) for key in ('units', 'quantity', 'frame', 'measure')})
+        declaration.update(layout={'kind': 'scalar', 'components': ['scalar']}, observable=observable)
+        if available['arrays'].get('Time') != 1 or available['arrays'].get('vtkValidMask') != 1:
+            raise ValueError('저장 측정의 실제 시각과 유효성 열을 확인하세요.')
     if (recipe.get('measurement') == 'contact_force'
             and recipe.get('quantity') in ('CF', 'CFN', 'CFS') and type(recipe.get('component')) is int
             and 0 <= recipe['component'] < 3):
@@ -66,6 +81,8 @@ def options(ws, ref):
     result = []
     for block in available['blocks']:
         blockrows = [row for row in rows if row['block'] == block]
+        if derived and [row['values'].get('Time') for row in blockrows] != summary.get('time_values'):
+            raise ValueError('측정 시간표가 저장된 실제 시각과 다릅니다.')
         for column, meaning in columns.items():
             if not all(column in r['values'] for r in blockrows):
                 continue
@@ -81,9 +98,9 @@ def options(ws, ref):
                 d.setdefault('observable', deepcopy(physical.UNKNOWN_OBSERVABLE))
                 if d.get('observable') is None:
                     d['observable'] = deepcopy(physical.UNKNOWN_OBSERVABLE)
-                d['reduction'] = meaning['statistic']
+                d['reduction'] = 'avg' if recipe.get('measurement') == 'surface_time' else meaning['statistic']
                 d['location'] = obj.get('title', '측정') + ' / 위치 ' + str(available['blocks'].index(block)+1)
-                for axis in ('Time', recipe.get('axis_name', 'load_parameter')):
+                for axis in (('Time',) if derived else ('Time', recipe.get('axis_name', 'load_parameter'))):
                     if axis not in available['arrays'] or available['arrays'][axis] != 1:
                         continue
                     if any(r['values'].get(axis) is None for r in blockrows):
@@ -106,7 +123,7 @@ def catalog(ws):
             except (ValueError, OSError, RuntimeError) as error:
                 issues.append({'label': item.get('label', '시험'), 'message': str(error)})
     for obj in ws.state['objects'].values():
-        if obj['kind'] == 'measurement' and (ws.applied(obj) or {}).get('recipe', {}).get('measurement') in ('time', 'contact_force'):
+        if obj['kind'] == 'measurement' and (ws.applied(obj) or {}).get('recipe', {}).get('measurement') in ('time', 'contact_force', 'surface_time', 'gauge_time'):
             try:
                 results.extend(options(ws, obj['id']))
             except (ValueError, OSError, RuntimeError) as error:
@@ -136,6 +153,8 @@ def selected(ws, side):
         # Field-specific quality has already been applied before native time
         # sampling. Never substitute another curve's common comparison mask.
         selected_quality = r.get('validity', {}).get(option['column'])
+        if record['recipe'].get('measurement') in ('surface_time', 'gauge_time') and values.get('vtkValidMask') != 1:
+            selected_quality = 'native_mask'
         quality = curves.numeric(value) is not None and selected_quality in (None, 'valid')
         rows.append({'identity': {'block': r['block'], 'row': r['row']},
             'x': curves.numeric(values[option['axis_column']]), 'y': curves.numeric(value),

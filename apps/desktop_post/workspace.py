@@ -629,6 +629,7 @@ class Workspace:
                     if selected and draft.get('measurement') in ('surface_average','surface_time','gauge_time'):
                         measurement_draft['validity_masks'] = deepcopy(selected.get('validity_masks', []))
                         measurement_draft['validity_policy'] = selected.get('validity_policy')
+                        measurement_draft['field_recovery'] = deepcopy(selected.get('recovery'))
                     bundle = measurements.build_measurement(source, measurement_draft, name)
                     bundle['proxies'] = prefix + bundle['proxies']
                 except BaseException:
