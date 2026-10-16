@@ -117,11 +117,11 @@ Pro·파워 5/5와 진행 중 응답 없음을 확인했다. 교체한 초안은
 | 현재 담당 | 기존 작업과 이번에 끝낼 결과 | 소유와 통합 |
 |---|---|---|
 | `native_post_delivery` / Sol-high | B3.2 응력 변환 통합 완료 후 E5 GUI 소유. 실제 모델 두 끝 선택·6모드 k/c·축·attachment의 보조창을 구현 담당과 직접 논의/작성 | `_workspace/native-connector-delivery/after/apps/desktop_pre/connector_panel.py`와 `gui/`만 직접 작성. 앞선 [응력 비교 사용법](apps/research/POST_NUMERICAL.md#서로-다른-응력-측도를-cauchy로-비교하기) 유지 |
-| `dynamic_reprocess_gui` / Sol-high | B7.3 차이 전파 후보와 UNKNOWN 표시 교정 완료. root가 Data/비교/Study에 적용 | `_workspace/calibration-uncertainty/`와 `correction-01/`, [사용법](docs/experiment_expert/COMPARISON_UNCERTAINTY_KO.md) |
+| `dynamic_reprocess_gui` / Sol-high | B7.3 차이 전파 통합 완료 후 E6 체결 하중 본구현 배정. 실제 절단면·축·조임/유지/외력과 축력/반력·재편집을 기존 native 경로에 연결 | `_workspace/native-pretension-delivery/` after/patch만 직접 소유. 공통 조건/schema/registry/Owner 접점은 root 통합. 앞선 [차이 전파 사용법](docs/experiment_expert/COMPARISON_UNCERTAINTY_KO.md) 유지 |
 | `pde_transfer_review` / Astra-xhigh | 위 두 기능의 통합 소스·수치 의미·실제 렌더 독립 검토 완료. 필수 표시 2건 교정 후 열린 지적 없음 | `_workspace/current-comparison-integration/REVIEW.md`, 전체 B3/B7 인수와 구별 |
 | `inverse_delivery` / Sol-high | E5 두 기준점/영역의 병진·회전 스프링/댐퍼, 국부축·계수→기존 Windows OpenCourant 입력→응답→저장/재열기의 본구현 시작 | `_workspace/native-connector-delivery/`만 직접 작성. 제품 after/patch 제안, Core/schema/공유 접점은 root 통합 |
 | `cae_engineering` / CAE 자문 | 완료된 두 비교 자문에 이어 E5 구현 담당과 TYPE13·회전 attachment·k/c 단위/TH 의미를 직접 논의 | `_workspace/native-connector-reuse/CAE_IMPLEMENTATION_CONTRACT.md` 및 구현 폴더의 `CAE_DECISIONS.md`. 제품 공동 파일 편집 없음 |
-| `native_connector_reuse` / Luna-high | E5 조사 완료 후 E6 체결 하중의 설치된 FreeCAD FEM/CalculiX·공식 PrePoMax 소스에서 절단면·축·조임/유지/외력의 재사용 접점만 한정 조사 | E5는 `_workspace/native-connector-reuse/ANSWER.md`. E6는 `_workspace/native-pretension-reuse/ANSWER.md`만 소유하며 제품 변경/native 실행 없음 |
+| `native_connector_reuse` / Luna-high | E5/E6 재사용 조사 완료. E6의 실제 절단면·전용 reference DOF·단계·section force와 내부 cut 선택의 미연결을 구현자에게 전달 | E5는 `_workspace/native-connector-reuse/ANSWER.md`. E6는 `_workspace/native-pretension-reuse/ANSWER.md`. 제품 변경/native 실행 없음 |
 | `scope_pre_impact` / Luna-high | 다음 E3 적층 셸을 위해 설치된 shell writer·CalculiX/PrePoMax 공식 소스의 실제 composite 요소·층별 입력/출력 재사용 접점만 조사 | `_workspace/native-composite-reuse/ANSWER.md`만 소유. 전체 44행 재조사·제품 변경·native 실행 없음 |
 
 통합 비교 기능의 확인: root 제품 소스에서 관련 36개 단위/Qt 검사 통과. 원 작성자의 실제
