@@ -32,6 +32,17 @@ SPEC·작업 배정·진행 관리 도구이며 실제 실행과 통합은 Codex
 기존 편집·미리보기·적용·취소와 좁은 화면의 Astra 독립 검토를 마쳤다. 이 변경과 사용법을
 같은 인도로 `8223cf0` main에 게시하고 원격 일치를 확인했다. 이어 새 native 이력 차트의
 물리량/축 단위 표시를 구현하고 실제 한 차트에서 잘림과 원 값·시각·모델 상태 불변을 확인했다.
+Windows 첫 사용을 MoAI의 두 작업으로 나눴다. `post_windows_build_fix`의 ZIP 설치용 소스
+준비를 root가 통합했다. 비어 있거나 없는 폴더에만 공식 고정 소스를 준비하며 기존 Git과
+사용자 수정을 보존한다. 중간 실패·해시 오류에서는 불완전 소스를 실행 대상으로 쓰지 않는다.
+작은 검사 7개와 공식 원본 93파일의 동일성·재실행 보존을 확인했으며 전체 설치나 새 PC
+성공으로 표시하지 않는다. `dynamic_reprocess_gui`는 이미 설치된 FreeCAD·ParaView의
+명시/기억 경로와 자동 찾기를 기존 실행기·경로 점검에 연결한다.
+후보는 각각 `_workspace/windows-upstream-install/after/`,
+`_workspace/windows-native-discovery/after/`에 작성하고 root가 제품에 통합한다.
+기존 source·설정과 사용자 수정은 보존하며, 깨진 명시 경로를 다른 프로그램으로 조용히
+대체하지 않는다. 여러 후보는 사용자가 고르고 일반 Research 작업에 native 바이너리를
+필수로 추가하지 않는다. 예제 추가나 새 helper 화면으로 인도를 대신하지 않는다.
 Windows 독립 배포를 진행하며 아래 과거 인도 결과를
 다시 착수할 지시로 읽지 않는다. 독립 배포 CI는 별도 진행 중이며 기능 개발을 막지 않는다.
 
@@ -57,9 +68,10 @@ create 확인이 CI의 WGL/OpenGL 초기화 실패와 접근 위반으로 종료
 SDK·원 검사 로그를 진단용 draft로 회수하는 교정을 `e531138`로 main에 게시·원격 일치
 확인했다. 기존 엄격 경로는 유지하며 명시 진단 옵션에만 적용한다. 실제 작은 PowerShell/
 7-Zip 검사와 누락 로그·빈 CTest 반례 교정/독립 검토를 마쳤다. SDK 회수나 새 CI 성공은
-아직 아니다. 같은 담당은 기존 VTK가 지원하는 무료 OSMesa를 CI 전용으로 연결할 후보를
-`_workspace/post-ci-software-render/`에 작성한다. 현재 배포본에는 OSMesa가 없어 지원하는
-고정 배포·원 라이선스부터 확인하며, 전역 설치·제품 bundle 재배포는 하지 않는다.
+아직 아니다. 무료 OSMesa를 CI 전용으로 연결할 후보와 원 라이선스 자료는
+`_workspace/post-ci-software-render/`에 보존했다. 현재 배포본에는 OSMesa가 없고 후보의
+바이너리 구성·배포 조건을 확정하지 못해 실행·CI 투입·제품 재배포는 하지 않았다.
+이 선택 경로는 기본 설치된 ParaView 사용의 선행조건이 아니며 담당은 ZIP 설치 구현으로 옮겼다.
 GUI 게시 소스 `8223cf0`로 [새 단일 공개 Windows 빌드](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38832404797)를
 시작했다. 기존 실행이 모두 종료된 것을 확인한 뒤 명시 진단 회수를 켰으며 원 실패 run을
 재실행하지 않았다. PUBLIC 저장소와 표준 windows-2022 runner의 무료 조건도 공식 문서에서

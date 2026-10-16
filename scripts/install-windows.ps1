@@ -93,6 +93,8 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 }
 $pyVersion = (& $python -c 'import sys; print(sys.version.split()[0])').Trim()
 if ($LASTEXITCODE -ne 0 -or -not $pyVersion.StartsWith('3.12.')) { throw "Expected private CPython 3.12 at $python; found $pyVersion" }
+# GitHub source ZIPs omit submodules. Prepare only an empty/missing upstream, before package discovery.
+Invoke-Checked $python @((Join-Path $PSScriptRoot 'prepare_fixture_upstream.py'),'--source-root',$sourceRoot,'--cache-root',$env:UV_CACHE_DIR)
 $projectSha = (Get-FileHash -LiteralPath $project -Algorithm SHA256).Hash.ToLowerInvariant()
 $installed = $false
 $extras = @('numerical','material')
