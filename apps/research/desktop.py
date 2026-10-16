@@ -283,6 +283,19 @@ def _activate(client, origin):
     return {'status': 'ACTIVATED', 'document_id': origin['id'], 'command_id': identifier}
 
 
+def open_native_input(client, input_id, parent=None):
+    """Open the registered editable input, without executing its analysis."""
+    input_id = check_id(input_id)
+    native = client.native_input(input_id)
+    if (native.get('id') != input_id or native.get('kind') not in {
+            'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam',
+            'frozen_connector', 'frozen_pretension', 'frozen_composite_shell'} or
+            not native.get('editable_path')):
+        raise ValueError('편집할 해석 입력 모델을 찾을 수 없습니다. 등록한 원 입력을 확인하세요.')
+    return _spawn(client, ['pre', '--source', native['editable_path'],
+                          '--source-label', '해석 입력 모델'])
+
+
 def open_origin(client, job_id, parent=None):
     """Activate the exact live source or explicitly open its retained design copy.
 

@@ -38,10 +38,14 @@ B1–B2 12행, B3–B6 20행, B7–B8 12행의 한정 대조 입력을 각각 �
 Pro는 전체 남은 작업의 상세 설계와 지원 범위를 확정하며, 그 결과를 Sol의
 본코드 병렬 배정과 Astra의 핵심 설계 독립 검토에 사용한다. 기존 배포 CI는 병행한다.
 
-Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **연결 복구 후 응답 중**.
+Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **완료 응답과 편집 가능한 원문 회수, 독립 검토 중**.
 전체 남은 세부 개발·지원 조합·종료 조건을 확정하는 한 요청이며 작은 코드 교정 요청이 아니다.
 최초 전송은 보존되지 않았고 복구 뒤 같은 ID의 요청 한 건을 실제 전송했다.
-완료 응답/파일은 아직 회수하지 않았다. 중복 전송이나 유료 우회 없이 같은 응답을 이어 확인한다.
+회수 원문은 `_workspace/closeout-20261016/pro-result/whole-product-closeout.md`다.
+Pro는 71개 고유 인도단위(작성 시점 D30/A37/E4, 소프트웨어 67개)를 제안했다.
+이는 현재 남은 수나 채택 완료 수가 아니다. 최신 두 비교 구현과 native 작성 내용을
+대조하고 Astra가 원 FN/지원 조합/중복/종료 조건을 독립 검토한다. 그 교정 뒤 기존
+실행계획에 통합한다. 작은 구현·교정의 추가 Pro 요청은 보내지 않았다.
 대상은 기존 [Pro 대화](https://chatgpt.com/c/6ad0c48d-36b4-83ec-a79b-f25b5dd3dac4),
 재시도 기준 소스는 `8c1d264d0818d45cd37991cc9c0424b91493a1ea`다. 복구된 실제 UI의
 Pro·파워 5/5와 진행 중 응답 없음을 확인했다. 교체한 초안은 Codex가 작성한 위 요청이다.
@@ -116,13 +120,30 @@ Pro·파워 5/5와 진행 중 응답 없음을 확인했다. 교체한 초안은
 
 | 현재 담당 | 기존 작업과 이번에 끝낼 결과 | 소유와 통합 |
 |---|---|---|
-| `native_post_delivery` / Sol-high | B3.2 응력 변환 통합 완료 후 E5 GUI 소유. 실제 모델 두 끝 선택·6모드 k/c·축·attachment의 보조창을 구현 담당과 직접 논의/작성 | `_workspace/native-connector-delivery/after/apps/desktop_pre/connector_panel.py`와 `gui/`만 직접 작성. 앞선 [응력 비교 사용법](apps/research/POST_NUMERICAL.md#서로-다른-응력-측도를-cauchy로-비교하기) 유지 |
+| `native_post_delivery` / Sol-high | E5 보조창 후보 동결 후 신규 native 해석의 공통 Simulation 표시·정확한 입력 모델 열기를 작성. 이어 E5 FE 초기 운동의 좁은 선택 교정 소유 | `_workspace/native-simulation-open/gui/`와 E5 correction의 panel만 순차 소유. 실제 제품 공통 파일은 root 통합. 앞선 [응력 비교 사용법](apps/research/POST_NUMERICAL.md#서로-다른-응력-측도를-cauchy로-비교하기) 유지 |
 | `dynamic_reprocess_gui` / Sol-high | B7.3 차이 전파 통합 완료 후 E6 체결 하중 본구현 배정. 실제 절단면·축·조임/유지/외력과 축력/반력·재편집을 기존 native 경로에 연결 | `_workspace/native-pretension-delivery/` after/patch만 직접 소유. 공통 조건/schema/registry/Owner 접점은 root 통합. 앞선 [차이 전파 사용법](docs/experiment_expert/COMPARISON_UNCERTAINTY_KO.md) 유지 |
-| `pde_transfer_review` / Astra-xhigh | 위 두 기능의 통합 소스·수치 의미·실제 렌더 독립 검토 완료. 필수 표시 2건 교정 후 열린 지적 없음 | `_workspace/current-comparison-integration/REVIEW.md`, 전체 B3/B7 인수와 구별 |
+| `pde_transfer_review` / Astra-xhigh | 위 두 비교 기능의 독립 검토 완료 후 E3 적층 셸의 source/층 순서/IP·재료 자문 완료. 현재 E6 실제 CLOAD/SOF 차이의 원입력·출력 정의를 한정 대조 | 비교 검토 `_workspace/current-comparison-integration/REVIEW.md`, E3 자문 `_workspace/native-composite-delivery/CAE_DECISIONS.md`. 자문을 새 native 인수나 독립 통합 PASS로 표시하지 않음 |
 | `inverse_delivery` / Sol-high | E5 두 기준점/영역의 병진·회전 스프링/댐퍼, 국부축·계수→기존 Windows OpenCourant 입력→응답→저장/재열기의 본구현 시작 | `_workspace/native-connector-delivery/`만 직접 작성. 제품 after/patch 제안, Core/schema/공유 접점은 root 통합 |
 | `cae_engineering` / CAE 자문 | 완료된 두 비교 자문에 이어 E5 구현 담당과 TYPE13·회전 attachment·k/c 단위/TH 의미를 직접 논의 | `_workspace/native-connector-reuse/CAE_IMPLEMENTATION_CONTRACT.md` 및 구현 폴더의 `CAE_DECISIONS.md`. 제품 공동 파일 편집 없음 |
 | `native_connector_reuse` / Luna-high | E5/E6 재사용 조사 완료. E6의 실제 절단면·전용 reference DOF·단계·section force와 내부 cut 선택의 미연결을 구현자에게 전달 | E5는 `_workspace/native-connector-reuse/ANSWER.md`. E6는 `_workspace/native-pretension-reuse/ANSWER.md`. 제품 변경/native 실행 없음 |
-| `scope_pre_impact` / Luna-high | 다음 E3 적층 셸을 위해 설치된 shell writer·CalculiX/PrePoMax 공식 소스의 실제 composite 요소·층별 입력/출력 재사용 접점만 조사 | `_workspace/native-composite-reuse/ANSWER.md`만 소유. 전체 44행 재조사·제품 변경·native 실행 없음 |
+| `scope_pre_impact` / Luna-high | E3 재사용 조사 완료. 균질 S8와 S8R COMPOSITE의 native 층 출력·확장 topology 차이를 구현자에게 전달 | `_workspace/native-composite-reuse/ANSWER.md`만 소유. 전체 44행 재조사·제품 변경·native 실행 없음 |
+| `post_windows_build_fix` / Sol-high | E3 S8R 적층 셸의 기존 native geometry/재료/조건 재사용, 층 편집→동결→원 S/E/DAT·FRD→재편집 본구현 | `_workspace/native-composite-delivery/` after/patch만 소유. geometry/공통 reader의 최소 hunk는 root 통합 |
+| `whole_closeout_review` / Astra-xhigh | 회수한 Pro 전체 종료설계의 71개 ID/원요구/지원 조합/팀 간 producer·receiver/실제 작업 완결성을 독립 검토 | `_workspace/closeout-20261016/review/`만 소유. 제품 변경/native/provider 실행 없음 |
+| `connector_code_review` / Sol-high | E5 11개 모듈 묶음의 한정 코드 검토 완료. masked 응답·부분 실패 읽기·public path·native 부착 물성 대조의 필수 교정 4건을 작성자와 직접 조정 | `_workspace/native-connector-delivery/review/CODE_REVIEW.md`. 원 native 실행이나 GUI 수용과 구별 |
+
+root 공통 연결: 완료한 native 입력을 기존 Simulation 문서로 **자동 계산 없이** 여는
+Client/HTTP/CLI/MCP 소스를 작성했다. 같은 요청의 재시도·응답 유실·서비스 재시작에서도
+기존 미저장 편집을 유지하고 중복 작업을 만들지 않는다. 같은 입력 모델을 기존 native
+실행기로 여는 접점도 재사용한다. `simulation.run`의 설정 이중 해석을 고쳐 등록 입력을
+공개 검증한 뒤 실행 경계에서 한 번만 해소한다. 등록되지 않은 caller path를 허용하지 않는다.
+한정 6개 라우팅/HTTP/실행 경계와 8개 Qt 검사 통과, native·솔버는 doubles이며 실제 물리 실행으로
+표시하지 않는다. 정상/좁은 실제 QWindows 렌더에서 원 모델 제목·입력 열기·계산/결과를
+확인했고 내부 backend/data_id 폼은 기술 상세로 옮겼다. OS 수동 입력·실제 FreeCAD 열림과
+구별한다. E5 전용 코드/공통 hunk는 로컬 제품 트리에 미커밋 적용했지만 위 4건 교정과
+실제 native 확인을 마칠 때까지 E5 완료로 보고하지 않는다. E6/E3는 private 후보 작성 중이다.
+E6는 작은 실제 C3D10 입력에서 native 조임/길이 유지/외력과 원 SOF·RP 읽기까지 도달했다.
+다만 명목 조임력과 SOF의 차이는 미설명 상태라 원 출력 정의·양쪽 절단면·부과 하중을
+자문자와 대조 중이며, 이 결과를 체결 하중의 정확성 또는 E6 완료로 처리하지 않는다.
 
 통합 비교 기능의 확인: root 제품 소스에서 관련 36개 단위/Qt 검사 통과. 원 작성자의 실제
 ParaView Preview→Apply→Save→별도 process 재열기, 실제 Client/JobManager/Plan/Study와

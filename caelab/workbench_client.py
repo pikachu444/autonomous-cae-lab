@@ -317,6 +317,12 @@ class Client:
         body = {'command_id':command_id}
         if solver is not None: body['solver'] = solver
         return self.request('/api/workbench/native-submit', body)
+
+    def native_open_simulation(self, command_id, *, solver=None):
+        body = {'command_id': command_id}
+        if solver is not None: body['solver'] = solver
+        return self.request('/api/workbench/native-open-simulation', body)
+
     def job_navigation(self, identifier):
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier)+'/navigation')

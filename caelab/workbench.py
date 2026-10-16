@@ -1215,7 +1215,7 @@ class Workbench:
             from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
             validate_detail_arguments(self.numerical_documents, arguments, allow_active=True)
             validate_backend_binding(self, arguments)
-        if backend is not None:
+        if backend is not None and operation != 'simulation.run':
             args['settings']=self._settings(backend,args.get('settings',{}))
         if operation=='evaluation.coupled':
             from .research_workflows import execute_definition

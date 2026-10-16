@@ -36,8 +36,8 @@ class DesktopLinks:
                 'repo_root': str(Path(__file__).resolve().parents[1]),
                 'freecad_executable': freecad, 'paraview_executable': paraview}
 
-    def submit_frozen(self, command_id, *, solver=None):
-        """Retry one completed export without registering/submitting it twice."""
+    def _frozen_export(self, command_id, *, solver=None):
+        """Resolve one completed export through the existing registration receipt."""
         wb = self.workbench
         command_id = check_id(command_id)
         if solver not in (None, 'calculix', 'codeaster'):
@@ -77,6 +77,8 @@ class DesktopLinks:
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
             receipt_kind, backend = exports[command['operation']]
             if solver == 'codeaster': backend = 'structure.codeaster.frozen'
+            if solver == 'calculix' and not backend.startswith('structure.calculix.'):
+                raise ValueError('This frozen input does not support the selected CalculiX backend')
             if receipt.get('kind') != receipt_kind:
                 raise ValueError('Registered snapshot kind differs from the completed export operation')
             if command['operation'] in {'pre.dynamic.freeze', 'pre.dynamic.restart'}:
@@ -89,11 +91,53 @@ class DesktopLinks:
             origin = {'kind': 'pre', 'document_id': command['document_id'],
                       'session_id': command['session_id'], 'generation': command.get('final_generation', command['expected_generation']),
                       'command_id': command_id, 'input_id': receipt['id']}
-            job = wb.submit('run', {'backend': backend,
-                'settings': {'data_id': receipt['id']}, 'origin': origin,
-                'label': result.get('label', 'FreeCAD FEM analysis')[:160]},
+            return {'command': command, 'result': result, 'input': receipt,
+                    'backend': backend, 'origin': origin}
+
+    def submit_frozen(self, command_id, *, solver=None):
+        """Retry one completed export without registering/submitting it twice."""
+        command_id = check_id(command_id)
+        with self._lock:
+            frozen = self._frozen_export(command_id, solver=solver)
+            job = self.workbench.submit('run', {'backend': frozen['backend'],
+                'settings': {'data_id': frozen['input']['id']}, 'origin': frozen['origin'],
+                'label': frozen['result'].get('label', 'FreeCAD FEM analysis')[:160]},
                 request_id='native-frozen:' + command_id + (':codeaster' if solver == 'codeaster' else ''))
-            return {'job': job, 'input': receipt, 'origin': origin}
+            return {'job': job, 'input': frozen['input'], 'origin': frozen['origin']}
+
+    def open_frozen_simulation(self, command_id, *, solver=None):
+        """Open this exact frozen input in Simulation without starting a job."""
+        command_id = check_id(command_id)
+        with self._lock:
+            frozen = self._frozen_export(command_id, solver=solver)
+            from .simulation_document import CATALOG
+            if frozen['backend'] not in CATALOG:
+                raise ValueError('이 입력은 계산창 열기가 연결되지 않았습니다. 기존 전처리 실행을 사용하세요.')
+            signature = canonical_hash({'command_id': command_id,
+                'request_hash': frozen['command']['request_hash'], 'backend': frozen['backend'],
+                'input_id': frozen['input']['id'], 'input_sha256': frozen['input']['sha256']})
+            target = 'V' + signature[:32]
+            record = self.root / 'simulation_documents' / (target + '.json')
+            previous = load_json(record) if record.exists() else None
+            if previous is not None and (not isinstance(previous, dict) or
+                    previous.get('signature') != signature or previous.get('document_id') != target):
+                raise ValueError('The frozen Simulation creation record has changed')
+            owner = self.workbench.simulation_documents
+            creation = {'signature': signature, 'document_id': target,
+                        'input_id': frozen['input']['id'], 'origin': frozen['origin']}
+            with owner._lock(target):
+                if (owner._folder(target) / 'working.json').exists() or owner._manifest(target):
+                    document = owner.read(target)
+                else:
+                    if previous and previous.get('state') == 'SUCCEEDED':
+                        raise FileNotFoundError('The previously opened Simulation document is missing')
+                    save_json(record, {**creation, 'state': 'APPLYING'})
+                    document = owner.open(_new_id=target,
+                        title=frozen['result'].get('label', '구조 해석')[:160],
+                        draft={'backend': frozen['backend'], 'settings': {'data_id': frozen['input']['id']}})
+                save_json(record, {**creation, 'state': 'SUCCEEDED'})
+            return {'document': document, 'input': frozen['input'], 'origin': frozen['origin'],
+                    'status': 'DRAFT_OPENED', 'executed': False}
 
     def research_job(self, job_id):
         """Find the exact saved owner record, without recreating a controller job."""

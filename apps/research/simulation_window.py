@@ -10,14 +10,29 @@ import sys
 import uuid
 from copy import deepcopy
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QApplication, QComboBox, QInputDialog, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QToolBar
+from PySide6.QtWidgets import QApplication, QComboBox, QInputDialog, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QToolBar, QToolButton, QStyle
 from caelab.workbench_client import Client, WorkbenchHTTPError
 from caelab.simulation_document import BACKENDS, default_draft, diagnostics, support_details
 from .pde_window import PDEWindow, ROLE, display
 
-MODELS = {
+NATIVE_MODELS = {
+    'explicit.opencourant.connector': ('스프링과 댐퍼 해석', '선택한 두 대상의 국부 6모드 스프링·댐퍼 입력을 사용합니다.'),
+    'structure.calculix.pretension': ('볼트 체결 해석', '전처리에서 준비한 체결과 후속 하중 단계를 사용합니다.'),
+    'structure.calculix.shell.composite': ('적층 셸 해석', '원 모델의 적층 순서·재료·방향을 보관한 입력을 사용합니다.'),
+}
+
+CONNECTOR_RESPONSES = {
+    **{'connector.F'+axis: '국부 일반화 힘 '+axis+'' for axis in 'XYZ'},
+    **{'connector.M'+axis: '국부 일반화 모멘트 '+axis+'' for axis in 'XYZ'},
+    'connector.LX': '축 신장', 'connector.LY': 'beam 전단 변형 Y', 'connector.LZ': 'beam 전단 변형 Z',
+    **{'connector.R'+axis: '상대 회전 '+axis+'' for axis in 'XYZ'},
+    'connector.LENGTH': '전체 길이', 'connector.IE': '점성항 포함 내부 일',
+    'connector.OFF': '원 OFF 플래그',
+}
+
+MODELS = {**NATIVE_MODELS,
     'thermal.scikit_fem.rectangle': ('정상 열전도 (scikit-fem)', 'P1 공간 열전도, SI 온도, 명시한 정상 상태. 기존 Picard 반복을 사용합니다.'),
     'structural.scikit_fem.thermoelastic_rectangle': ('평면응력 열탄성 (scikit-fem)', '다른 메시의 온도 전달, 구조 기준온도, 미소변형 변위 [m]와 응력 [Pa].'),
     'structure.felupe.law_native': ('저장 재료 · FELUPE Hex8 시편', '준정적 Hex8: DP / Neo-Hooke / 단일 branch Maxwell. 실제 실행과 point–FE 검증은 결과에서 확인합니다.'),
@@ -184,6 +199,12 @@ class SimulationWindow(PDEWindow):
         self.backend = choice
         choice.setObjectName('pdeBackend')
         choice.currentTextChanged.connect(self._backend_changed)
+        self._backend_note = next((label for label in self.settings_panel.findChildren(QLabel)
+            if label.text() == '계산 방법 선택은 모델을 자동 변환하지 않습니다.'), None)
+        self.input_model_action = QAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon), '입력 모델 열기', self)
+        self.input_model_action.setToolTip('이 해석에 보관된 편집 가능한 입력 사본을 FreeCAD에서 엽니다.')
+        self.input_model_action.triggered.connect(self.open_input_model)
+        edit_menu.addAction(self.input_model_action)
         self.reload_button.setText('저장 버전 다시 읽기')
         self.copy_button.setText('편집본을 새 모델로 보관')
         self.impact_action = QAction('충격 조건…', self)
@@ -248,7 +269,20 @@ class SimulationWindow(PDEWindow):
                 fatigue_node.setText(0,'피로 조건')
                 data=fatigue_node.data(0,ROLE);data['label']='피로 조건';fatigue_node.setData(0,ROLE,data)
                 self.tree.setCurrentItem(fatigue_node)
-        self.graph_tabs.setTabVisible(self.graph_tabs.indexOf(self.domain_canvas),draft.get('backend')!='damage.rainflow')
+        native = draft.get('backend') in NATIVE_MODELS
+        self.backend.setVisible(not native)
+        if self._backend_note is not None: self._backend_note.setVisible(not native)
+        if native:
+            for path, node in self._nodes.items():
+                node.setHidden(path != ('settings', 'data_id'))
+            input_node = self._nodes.get(('settings', 'data_id'))
+            if input_node is not None:
+                input_node.setText(0, '입력 모델')
+                data = input_node.data(0, ROLE); data['label'] = '입력 모델'; input_node.setData(0, ROLE, data)
+                if not (self.tree.currentItem() and self.tree.currentItem().data(0, ROLE).get('job_id')):
+                    self.tree.setCurrentItem(input_node)
+                    self._selection_changed(input_node)
+        self.graph_tabs.setTabVisible(self.graph_tabs.indexOf(self.domain_canvas),not native and draft.get('backend')!='damage.rainflow')
         selected = self.tree.currentItem()
         if selected:
             self.settings_title.setText('속성 — ' + selected.text(0))
@@ -270,6 +304,7 @@ class SimulationWindow(PDEWindow):
         self.messages.setPlainText('\n'.join(['Input diagnostics:', *[row['message'] for row in checks],
             'Supported model:', *details.get('limitations', []), 'Declared inputs / transfer ports:',
             display(details.get('declaration') or details.get('ports') or {}),
+            *(['보관된 입력 정의:', display(draft)] if backend in NATIVE_MODELS else []),
             '계산 환경은 별도 확인이 필요합니다. 입력 검사는 공학적 승인이 아닙니다.']))
         self._input_checks = deepcopy(checks)
         self._refresh_issue_summary()
@@ -306,6 +341,16 @@ class SimulationWindow(PDEWindow):
         if type(value) in (int, float):
             self._numeric_paths = getattr(self, '_numeric_paths', set())
             self._numeric_paths.add(path)
+        if self._draft.get('backend') in NATIVE_MODELS and path[:1] == ('settings',):
+            title = QLabel(self.document.get('title') or NATIVE_MODELS[self._draft['backend']][0]); title.setWordWrap(True)
+            form.addRow(title)
+            family = QLabel(NATIVE_MODELS[self._draft['backend']][0]); family.setWordWrap(True); form.addRow(family)
+            state = QLabel('전처리에서 보관한 입력을 사용합니다.' if self._native_input_id() else '보관된 입력을 확인할 수 없습니다. 전처리에서 해석 입력을 다시 준비하세요.')
+            state.setWordWrap(True); form.addRow(state)
+            button = QToolButton(); button.setDefaultAction(self.input_model_action)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon); form.addRow(button)
+            note = QLabel('모델과 조건 편집은 입력 사본에서 진행합니다. 변경한 입력은 전처리에서 다시 준비해 해석으로 여세요.'); note.setWordWrap(True); form.addRow(note)
+            return
         if self._draft.get('backend') == 'explicit.opencourant.model':
             if path[1:2] == ('source',) or len(path)>1 and path[1] in ('motions','contacts','cohesive','responses','time','gravity_mm_s2','generated_sets'):
                 if path == ('settings','source'):
@@ -345,13 +390,44 @@ class SimulationWindow(PDEWindow):
         else:
             super()._add_fields(form, value, path)
 
+    def _native_input_id(self):
+        settings = self._draft.get('settings')
+        value = settings.get('data_id') if isinstance(settings, dict) else None
+        from caelab.storage import check_id
+        try: return check_id(value) if isinstance(value, str) and value else None
+        except (ValueError, TypeError): return None
+
+    def open_input_model(self):
+        if (not self.document or self._busy or self.conflict or self.local_dirty
+                or self._draft.get('backend') not in NATIVE_MODELS or not self._native_input_id()):
+            self.message.setText('현재 보관된 해석 입력을 선택하고 편집을 적용한 뒤 여세요.'); return False
+        from .desktop import open_native_input
+        key = (self.document['id'], self.document['session_id'], self.document['generation'], self._native_input_id())
+        def accepted(result):
+            current = (self.document['id'], self.document['session_id'], self.document['generation'], self._native_input_id()) if self.document else None
+            if current != key: return
+            self.message.setText('입력 모델 열기를 요청했습니다. 별도 FreeCAD 창에서 보관된 사본을 확인하세요.')
+        return self._call(lambda: open_native_input(self.client, key[3]), accepted)
+
+    def _accept_result(self, result):
+        super()._accept_result(result)
+        if self._draft.get('backend') not in NATIVE_MODELS: return
+        channels = (self._result or {}).get('native_channels', {})
+        for index in range(self.channel.count()):
+            key = self.channel.itemData(index); descriptor = channels.get(key, {})
+            label = descriptor.get('label') or (CONNECTOR_RESPONSES.get(key) if self._draft.get('backend') == 'explicit.opencourant.connector' else None)
+            if label: self.channel.setItemText(index, label+' ['+str(descriptor.get('unit') or '단위 미확인')+']')
+
     def response_caption(self, name, response):
+        if self._result and self._result.get('backend') == 'explicit.opencourant.connector' and name in CONNECTOR_RESPONSES:
+            return CONNECTOR_RESPONSES[name]
         caption = super().response_caption(name, response)
         if caption == name and self._result and self._result.get('backend') == 'damage.rainflow' and name == 'stress_history':
             return '원 응력 이력'
         return caption
 
     def axis_caption(self, axis):
+        if self._result and self._result.get('backend') in NATIVE_MODELS and axis.get('name') == 'time': return '시간'
         if self._result and self._result.get('backend') == 'damage.rainflow' and axis.get('name') == 'cycle_count_record':
             return '사이클 기록 번호'
         return super().axis_caption(axis)
@@ -480,8 +556,9 @@ class SimulationWindow(PDEWindow):
 
     def _update_actions(self):
         super()._update_actions()
+        self.evaluate_button.setText('계산 실행' if self._draft.get('backend') in NATIVE_MODELS else '모델 평가')
         for button, action in getattr(self, '_command_actions', []):
-            action.setEnabled(button.isEnabled())
+            action.setText(button.text()); action.setEnabled(button.isEnabled())
         graph = self.model_splitter.widget(2)
         if hasattr(self, '_model_graph_available'):
             show = self._model_graph_available or bool(self._selected_job)
@@ -509,6 +586,10 @@ class SimulationWindow(PDEWindow):
             self.reprocess_impact_action.setEnabled(bool(source) and not self._busy and not self.conflict
                                                    and (not self.local_dirty or uncertain))
             self.reprocess_impact_action.setText('결과 읽기 상태 확인…' if uncertain else '보존 결과 다시 읽기…')
+        if hasattr(self, 'input_model_action'):
+            self.input_model_action.setVisible(self._draft.get('backend') in NATIVE_MODELS)
+            self.input_model_action.setEnabled(bool(self.document) and self._draft.get('backend') in NATIVE_MODELS
+                and bool(self._native_input_id()) and not (self._busy or self.local_dirty or self.conflict))
         if hasattr(self, 'readiness_button'):
             self.readiness_button.setEnabled(not self._busy)
 

@@ -177,6 +177,10 @@ def handle(handler,method,path,query):
             if 'command_id' not in body or set(body)-{'command_id','solver'}:
                 raise ServiceError(400,'Native submit requires the exact completed export command_id and optional solver')
             return handler._json(202,workbench.desktop.submit_frozen(body['command_id'], solver=body.get('solver')))
+        if path=='/api/workbench/native-open-simulation':
+            if 'command_id' not in body or set(body)-{'command_id','solver'}:
+                raise ServiceError(400,'Select the exact completed export command and optional solver')
+            return handler._json(200,workbench.desktop.open_frozen_simulation(body['command_id'], solver=body.get('solver')))
         if path=='/api/workbench/numerical-adopt':
             if set(body)!={'plan_id','job_id','candidate_id','material_document_id','session_id','expected_generation','command_id'}:
                 raise ServiceError(400,'Adoption requires the selected candidate and exact target generation')

@@ -165,6 +165,11 @@ def native_analysis_submit(command_id: str) -> dict:
     return client().native_submit(command_id)
 
 @mcp.tool()
+def native_analysis_open(command_id: str, solver: str | None = None) -> dict:
+    """Open the exact completed native export in Simulation; no calculation starts. Retry returns the same document with its edits."""
+    return client().native_open_simulation(command_id, solver=solver)
+
+@mcp.tool()
 def job_navigation(job_id: str) -> dict:
     """Get this job's original document, retained editable design and verified Post input references."""
     return client().job_navigation(job_id)

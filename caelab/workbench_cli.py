@@ -109,6 +109,7 @@ def main(argv=None):
     action=command.add_mutually_exclusive_group()
     action.add_argument('--cancel',action='store_true')
     action.add_argument('--submit-frozen',action='store_true',help='Submit the exact completed native export through the shared JobManager')
+    action.add_argument('--open-simulation',action='store_true',help='Open a supported completed native export in Simulation without starting a calculation')
     args = parser.parse_args(argv)
     if args.command in {'backends', 'doctor'}:
         from .backends import list_backends
@@ -127,6 +128,7 @@ def main(argv=None):
         client=Client(args.url)
         if args.command=='command':
             result=(client.native_submit(args.id) if args.submit_frozen else
+                    client.native_open_simulation(args.id) if args.open_simulation else
                     client.command_cancel(args.id) if args.cancel else client.command_status(args.id))
         elif args.action=='list':
             result=client.documents()
