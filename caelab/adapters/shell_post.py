@@ -23,7 +23,7 @@ def _write_xml(tree, destination):
 
 
 def _document(points, cells, cell_type):
-    from apps.desktop_post.prepare import data_array
+    from .vtu import data_array
     vtk=ET.Element('VTKFile',type='UnstructuredGrid',version='0.1',byte_order='LittleEndian',header_type='UInt32')
     grid=ET.SubElement(vtk,'UnstructuredGrid')
     piece=ET.SubElement(grid,'Piece',NumberOfPoints=str(len(points)),NumberOfCells=str(len(cells)))
@@ -40,7 +40,7 @@ def _document(points, cells, cell_type):
 
 def _array(parent, descriptions, name, values, *, components=1, unit='1', frame='not_applicable',
            measure='identity', names=None, integer=False, location=None, recovery=None):
-    from apps.desktop_post.prepare import data_array
+    from .vtu import data_array
     child=data_array(parent,name,values,components,integer)
     if names:
         for i,label in enumerate(names): child.set('ComponentName'+str(i),label)

@@ -228,7 +228,7 @@ def geometric_gaps(model, frame, *, subdivisions=4):
 
 
 def write_post(folder, model, frames, pair_results, *, provenance=None, execution=None, solver_coordinates=None, adjustment=None, frame_enricher=None):
-    from apps.desktop_post.prepare import write_vtu, data_array
+    from .vtu import write_vtu, data_array
     from ..storage import save_json
     from ..dynamic_native_stream import frame_catalog
     from ..execution_control import check_cancelled
@@ -391,7 +391,7 @@ def _inspection_bundle(folder, model, frames, provenance, metadata, execution):
     import json
     from ..contact_inspection import KIND, file_pin
     from ..storage import save_json
-    from apps.desktop_post.prepare import data_array
+    from .vtu import data_array
     nodes = sorted(model['nodes'], key=lambda row: row['node_id'])
     indexes = {row['node_id']: index for index, row in enumerate(nodes)}
     elements = {row['element_id']: row for row in model['elements']}

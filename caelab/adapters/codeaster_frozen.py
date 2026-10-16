@@ -18,7 +18,7 @@ from .codeaster_execution import process_budgets
 from .frozen_fem import validate_snapshot, _read, _sha
 from ..execution_control import check_cancelled, ExecutionCancelled, ExecutionCleanupFailed
 from ..storage import check_id, save_json
-from apps.desktop_post.prepare import write_vtu, data_array
+from .vtu import write_vtu, data_array
 
 
 WORKER = Path(worker.__file__).resolve()

@@ -18,7 +18,7 @@ def collection_label(name):
 
 def official_markdown(payload):
     """Only the two verified bundled Markdown originals have a known format."""
-    from examples.research_knowledge_public import load_pack
+    from caelab.research_knowledge_pack import load_pack
     try:
         pack=load_pack()
         assets={row['path']:row['sha256'] for row in pack['assets']}
@@ -103,7 +103,7 @@ class OfficialDocumentsDialog(QDialog):
 
     def load(self):
         def read():
-            from examples.research_knowledge_public import PACK,load_pack
+            from caelab.research_knowledge_pack import PACK,load_pack
             pack=load_pack();digest=sha256(PACK.read_bytes()).hexdigest()
             return pack,digest,*self.read_jobs(pack,digest)
         def loaded(value):
@@ -246,7 +246,7 @@ class OfficialDocumentsDialog(QDialog):
             existing=next((job for job in jobs if job.get('request_id')==request_id),None)
             if existing:return existing
             if request_id not in pending:
-                from examples.research_knowledge_public import PACK,load_pack
+                from caelab.research_knowledge_pack import PACK,load_pack
                 load_pack()  # Revalidate originals AND all license notices before mutation.
                 source=PACK.parent/entry['file'];raw=source.read_bytes()
                 expected=next(v for v in self.pack['assets'] if v['path']==entry['file'])

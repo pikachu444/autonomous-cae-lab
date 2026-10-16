@@ -266,7 +266,7 @@ def field_units(name,components,association):
 
 
 def write_post(folder, frames, *, damage=None):
-    from apps.desktop_post.prepare import data_array
+    from .vtu import data_array
     folder=Path(folder); folder.mkdir()
     pvd=ET.Element('VTKFile',type='Collection',version='0.1',byte_order='LittleEndian')
     collection=ET.SubElement(pvd,'Collection'); times=[]; declared=None; observations=[]

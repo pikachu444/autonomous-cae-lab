@@ -61,7 +61,7 @@ class _DynamicFields:
         self.nodes, self.ids, self.bodies, self.field_names = nodes, ids, bodies, field_names
 
     def enrich(self, tree, index, native_frame):
-        from apps.desktop_post.prepare import data_array
+        from .adapters.vtu import data_array
         frame = self.result['frames'][index]
         if frame['native'] != native_frame['static']:
             raise ValueError('Dynamic and contact projections select different native frames')

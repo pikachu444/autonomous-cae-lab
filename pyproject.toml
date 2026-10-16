@@ -32,6 +32,7 @@ exclude = ["plugins.fixture_design.upstream.tests*", "plugins.fixture_design.ups
 
 [tool.setuptools.package-data]
 schemas = ["*.json"]
+caelab = ["research_knowledge/*.json", "research_knowledge/*.md", "research_knowledge/licenses/*", "research_knowledge/sources/*"]
 "apps.lab" = ["static/**/*"]
 "caelab.assist" = ["*.ps1"]
 "caelab.assist._vendor.costorm" = ["LICENSE", "NOTICE.md"]

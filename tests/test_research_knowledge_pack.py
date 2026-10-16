@@ -12,6 +12,7 @@ import sys
 import pytest
 
 from examples import research_knowledge_public as pack
+from caelab import research_knowledge_pack as product_pack
 
 
 def no_network(*a,**kw):raise AssertionError('Official pack import/search/read must be offline')
@@ -26,6 +27,12 @@ def offline(monkeypatch):
 
 
 def test_official_pack_originals_licenses_versions_and_url_only():
+    assert pack.load_pack is product_pack.load_pack and pack.PACK == product_pack.PACK
+    assert pack.PACK.parent.parent == Path(product_pack.__file__).parent
+    # Preserve the existing Git LF and Windows autocrlf checkout bytes.
+    assert hashlib.sha256(pack.PACK.read_bytes()).hexdigest() in {
+        '288499db579371ec431252d8e292391ad356bc5ca6a0c016b5f63e5b7dd6b3ff',
+        '00da0e0a919c2cd8674df894c50f98ebf5be970ee00926c3ffd441b97fa69934'}
     manifest=pack.load_pack()
     assert len(manifest['documents'])==5
     included=[d for d in manifest['documents'] if d['availability']=='BUNDLED']

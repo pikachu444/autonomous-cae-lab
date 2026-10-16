@@ -18,7 +18,7 @@ import subprocess
 import numpy as np
 
 from apps.desktop_pre.freeze_analysis import _deck, _deck_scope, _serialized_coordinate_close, CCX_FROM_NATIVE_TET10
-from apps.desktop_post.prepare import write_vtu
+from .vtu import write_vtu
 from .fixture_field import _frd_record, _identifier, _number, _printed_close, _LABELS
 from ..execution_control import run_owned_command, check_cancelled, ExecutionCancelled, ExecutionCleanupFailed
 from ..storage import check_id, save_json

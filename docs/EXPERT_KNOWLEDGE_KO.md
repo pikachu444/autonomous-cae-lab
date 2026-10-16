@@ -16,8 +16,9 @@ CalculiX·Radioss 참고 링크입니다. 자료를 넣었다고 모델이 전�
 | Radioss INIEVO 설명 | 공식 URL만 | 웹 설명과 고정 OpenCourant의 카드·법칙 구현이 같다고 가정하지 않습니다. 전문은 포함하지 않았습니다. |
 
 원문·출처·문서 라이선스·사용범위는
-[편집 가능한 목록](../examples/research-knowledge/manifest.json)과
-[저작자 및 배포 조건](../examples/research-knowledge/ATTRIBUTION.md)에 있습니다.
+[편집 가능한 목록](../caelab/research_knowledge/manifest.json)과
+[저작자 및 배포 조건](../caelab/research_knowledge/ATTRIBUTION.md)에 있습니다.
+자료와 배포 고지는 설치 패키지에 함께 들어 있으며, Expert는 예제 폴더 없이도 이 자료를 사용합니다.
 FreeCAD 문서는 CC BY 3.0, 선택한 ParaView 튜토리얼은 CC BY 4.0이라는
 문서 자체의 허가를 사용했습니다. 소프트웨어 라이선스를 문서에 대신 적용하지 않았습니다.
 

@@ -2,6 +2,7 @@ scripts/wsl-windows-git/git text eol=lf
 scripts/wsl-windows-git/empty.config text eol=lf
 openscience/patches/*.patch -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 tests/fixtures/calculix_221_structural_family/family.dat -text
+tests/fixtures/post_writer_9c001eb.vtu -text whitespace=cr-at-eol
 tests/fixtures/calculix_221_structural_family/family.frd -text
 tests/fixtures/calculix_221_structural_family/mesh.inc -text
 tests/fixtures/calculix_221_structural_family/mesh.json -text
@@ -169,8 +170,8 @@ tests/fixtures/dynamic_r2_public_native/** -text -whitespace
 tests/fixtures/dynamic_r2_c1/** -text -whitespace
 
 # Official documentation and its license notices retain the upstream bytes.
-examples/research-knowledge/sources/** -text -whitespace
-examples/research-knowledge/licenses/** -text -whitespace
+caelab/research_knowledge/sources/** -text -whitespace
+caelab/research_knowledge/licenses/** -text -whitespace
 
 # A saved native example must retain its pinned bytes after a Windows checkout.
 examples/native-project-post/saved-example/** -text -whitespace
