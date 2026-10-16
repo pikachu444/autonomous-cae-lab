@@ -4,6 +4,17 @@ from pathlib import Path
 import pytest
 
 from apps.research import desktop
+from caelab import native_tools
+
+
+@pytest.fixture(autouse=True)
+def no_machine_discovery(monkeypatch):
+    for key in ('CAELAB_FREECAD_EXE','CAELAB_PARAVIEW_EXE','CAE_POST_EXIT_PLUGIN',
+                'CAE_POST_PARAVIEW_ROOT','ProgramFiles','ProgramFiles(x86)','LOCALAPPDATA'):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv('PATH','')
+    monkeypatch.setattr(native_tools,'_windows_app_paths',lambda name:[])
+    monkeypatch.setattr(native_tools,'saved_executable',lambda key:None)
 
 
 @pytest.fixture
@@ -46,9 +57,9 @@ def test_explicit_and_headless_launches_never_consult_desktop_preferences(tmp_pa
     assert desktop._executable({key: str(selected)}, key) == selected
     assert desktop._executable({}, key, str(selected)) == selected
     assert desktop._executable({key: str(selected)}, key, interactive=False) == selected
-    with pytest.raises(ValueError, match='specified installed executable'):
+    with pytest.raises(ValueError, match='--executable'):
         desktop._executable({key: str(selected)}, key, str(tmp_path / 'missing.exe'))
-    with pytest.raises(ValueError, match='Configure'):
+    with pytest.raises(ValueError, match='실행 파일'):
         desktop._executable({}, key, interactive=False)
 
 

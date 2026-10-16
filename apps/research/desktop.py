@@ -427,24 +427,65 @@ def _choose_file(title, filters):
 
 
 def _executable(context, key, override=None, interactive=True):
-    value = override or context.get(key)
-    candidate = Path(value) if value else None
+    from caelab.native_tools import TOOLS, discover, saved_executable
+    title, variable, _ = TOOLS[key]
+    explicit = any(value is not None and value != '' for value in (override, context.get(key), os.environ.get(variable)))
     settings = None
-    if interactive and not value:
-        settings = _native_settings()
-        saved = settings.value(key, '', type=str)
-        candidate = Path(saved) if saved else None
-    if override and not candidate.is_file():
-        raise ValueError('The specified installed executable is unavailable: ' + str(candidate))
-    if candidate is None or not candidate.is_file():
-        if not interactive:
-            raise ValueError('Configure ' + key + ' or pass its installed executable')
-        candidate = _choose_file(('FreeCAD' if key == 'freecad_executable' else 'ParaView') + ' 실행 파일 선택',
+    saved = None
+    if not explicit:
+        if interactive:
+            settings = _native_settings()
+            saved = settings.value(key, '', type=str)
+        else:
+            saved = saved_executable(key)
+    result = discover(key, override=override, context=context, saved=saved)
+    if result['status'] == 'INVALID':
+        raise ValueError(result['source'] + '에 지정한 실행 파일이 없습니다: ' + result['path'] +
+                         '\n해당 경로를 수정한 뒤 다시 여세요.')
+    if result['status'] == 'FOUND':
+        return Path(result['path'])
+    if not interactive:
+        paths = ', '.join(row['path'] for row in result['candidates'])
+        raise ValueError(title + ' 실행 파일을 지정하세요 (--executable 또는 desktop.' + key + ').' +
+                         (' 여러 설치가 있습니다: ' + paths if paths else ' 설치된 실행 파일을 찾지 못했습니다.'))
+    if result['status'] == 'MULTIPLE':
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication, QInputDialog, QComboBox, QDialog
+        application = QApplication.instance() or QApplication(sys.argv[:1])
+        paths = [row['path'] for row in result['candidates']]
+        other = '다른 실행 파일 선택…'
+        labels = [(Path(path).parent.parent.name if Path(path).parent.name.lower() == 'bin'
+                   else Path(path).parent.name) + ' — ' + path for path in paths]
+        dialog = QInputDialog()
+        dialog.setWindowTitle(title + ' 설치 선택')
+        dialog.setLabelText('사용할 실행 파일')
+        dialog.setComboBoxItems(labels + [other])
+        dialog.setComboBoxEditable(False)
+        dialog.setOkButtonText('선택')
+        dialog.setCancelButtonText('취소')
+        combo = dialog.findChild(QComboBox)
+        combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        combo.setMinimumContentsLength(28)
+        for index, path in enumerate(paths):
+            combo.setItemData(index, path, Qt.ItemDataRole.ToolTipRole)
+        dialog.resize(640, 160)
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        index = combo.currentIndex()
+        dialog.deleteLater()
+        if not accepted:
+            raise ValueError('실행 파일 선택을 취소했습니다. 기존 경로는 유지됩니다.')
+        candidate = Path(paths[index]) if index < len(paths) else _choose_file(title + ' 실행 파일 선택',
+                                                                            'Application (*.exe);;All files (*)')
+    else:
+        candidate = _choose_file(title + (' 실행 파일 다시 선택' if result['stale_saved'] else ' 실행 파일 선택'),
                                  'Application (*.exe);;All files (*)')
-        settings = settings or _native_settings()
-        settings.setValue(key, str(candidate.resolve(strict=True)))
-        settings.sync()
-    return candidate.resolve(strict=True)
+    candidate = candidate.resolve(strict=True)
+    if not candidate.is_file():
+        raise ValueError('실행 파일을 선택하세요: ' + str(candidate))
+    settings = settings or _native_settings()
+    settings.setValue(key, str(candidate))
+    settings.sync()
+    return candidate
 
 
 def _native_settings():
@@ -487,8 +528,11 @@ def _pre(client, args, *, _native_project_ticket=None, _local_context=None):
               'export_root':context['export_root'], 'python':context['python']}
     if ticket is not None:
         config['native_project_open'] = ticket.derived['launch_config']
-    if context.get('paraview_executable'):
-        config['paraview_executable'] = context['paraview_executable']
+    from caelab.native_tools import discover, saved_executable
+    post_runtime = discover('paraview_executable', context=context,
+                            saved=saved_executable('paraview_executable'))
+    if post_runtime['status'] in {'FOUND', 'INVALID'}:
+        config['paraview_executable'] = post_runtime['path']
     if getattr(args, 'input_id', None):
         if args.source or args.assembly:
             raise ValueError('Choose a registered design input or a direct native source')

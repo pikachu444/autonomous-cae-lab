@@ -22,13 +22,19 @@ class DesktopLinks:
         self.root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
 
-    def context(self):
+    def context(self, *, resolve_executables=True):
         config = self.workbench.config.get('desktop', {})
+        # Server calculations resolve their own runtime; desktop clients must
+        # apply local environment/preferences before discovering installations.
+        freecad = config.get('freecad_executable')
+        paraview = config.get('paraview_executable')
+        if resolve_executables:
+            freecad = freecad or os.getenv('CAELAB_FREECAD_EXE') or shutil.which('FreeCAD') or shutil.which('freecad')
+            paraview = paraview or os.getenv('CAELAB_PARAVIEW_EXE') or shutil.which('paraview')
         return {'service_session_id': self.workbench.session_id,
                 'export_root': str(self.root), 'python': sys.executable,
                 'repo_root': str(Path(__file__).resolve().parents[1]),
-                'freecad_executable': config.get('freecad_executable') or os.getenv('CAELAB_FREECAD_EXE') or shutil.which('FreeCAD') or shutil.which('freecad'),
-                'paraview_executable': config.get('paraview_executable') or os.getenv('CAELAB_PARAVIEW_EXE') or shutil.which('paraview')}
+                'freecad_executable': freecad, 'paraview_executable': paraview}
 
     def submit_frozen(self, command_id, *, solver=None):
         """Retry one completed export without registering/submitting it twice."""

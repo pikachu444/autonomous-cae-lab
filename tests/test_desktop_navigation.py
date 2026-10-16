@@ -278,12 +278,12 @@ def test_post_wrong_job_input_refused_before_any_native_preparation(client, proc
 def test_native_launcher_scripts_use_private_bootstrap_without_historical_sources():
     root = Path(__file__).resolve().parents[1]
     for name in ('start_cae_pre.ps1','start_cae_post.ps1','start_cae_research.ps1'):
-        text = (root / 'scripts' / name).read_text()
+        text = (root / 'scripts' / name).read_text(encoding='utf-8-sig')
         assert 'start-windows.ps1' in text and '-ResearchUI' in text
         assert 'apps.research.desktop' in text
         assert 'prepost-session-20261008' not in text
         assert 'requires PowerShell 7.4' not in text and '-Environment' not in text
-    assert "'data','numerical'" in (root / 'scripts/start_cae_research.ps1').read_text()
+    assert "'data','numerical'" in (root / 'scripts/start_cae_research.ps1').read_text(encoding='utf-8-sig')
 
 
 @pytest.fixture

@@ -186,12 +186,15 @@ class Connection:
 
     def _native_paraview(self):
         settings = self.QtCore.QSettings('AutonomousCAELab', 'DesktopLaunchers')
-        for value in (self.config.get('paraview_executable'), os.getenv('CAELAB_PARAVIEW_EXE'),
-                      settings.value('paraview_executable', '')):
+        for source, value in (('연결 설정 paraview_executable', self.config.get('paraview_executable')),
+                              ('CAELAB_PARAVIEW_EXE', os.getenv('CAELAB_PARAVIEW_EXE')),
+                              ('saved', settings.value('paraview_executable', ''))):
             if value:
                 path = Path(str(value)).expanduser()
                 if path.is_file() and path.name.lower() in {'paraview.exe', 'paraview'}:
                     return path.resolve()
+                if source != 'saved':
+                    raise ValueError(source + '에 지정한 ParaView 실행 파일을 확인하세요: ' + str(path))
         filename, _ = self.QtWidgets.QFileDialog.getOpenFileName(self.dock, '설치된 ParaView 선택', '',
             'ParaView (paraview.exe);;모든 파일 (*)')
         if not filename:

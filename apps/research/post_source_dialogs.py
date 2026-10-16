@@ -12,11 +12,10 @@ from apps.desktop_post.source_change import preview_change
 
 
 def inspect_replacement(client, input_id, original):
-    from .desktop import _executable, _native_settings
+    from .desktop import _executable
     context = client.desktop_context()
     receipt = client.native_input(input_id)
-    installed = context.get('paraview_executable') or _native_settings().value('paraview_executable', '', type=str)
-    executable = _executable(context, 'paraview_executable', installed or None, False)
+    executable = _executable(context, 'paraview_executable', interactive=False)
     pvpython = executable.with_name('pvpython.exe' if executable.suffix.lower() == '.exe' else 'pvpython')
     folder = Path(context['export_root']) / 'desktop' / ('source-preview-' + uuid.uuid4().hex)
     folder.mkdir(parents=True, exist_ok=False)

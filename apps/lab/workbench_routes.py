@@ -293,7 +293,7 @@ def handle(handler,method,path,query):
     if path=='/api/workbench/desktop':
         if query:
             raise ServiceError(400,'Desktop context does not accept query arguments')
-        return handler._json(200,workbench.desktop.context())
+        return handler._json(200,workbench.desktop.context(resolve_executables=False))
     match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/navigation',path)
     if match:
         if query:
