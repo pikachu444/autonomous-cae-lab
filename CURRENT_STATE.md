@@ -46,7 +46,8 @@ FreeCAD·ParaView 찾기도 root가 기존 실행기·읽기 전용 경로 점�
 관련 통합 71개 검사와 Windows의 옛 문자 인코딩 문제를 고친 검사 1개를 마쳤다.
 760/480 폭의 실제 QWindows 선택창·선택/취소와 임시 설정 보존을 확인해 root도 읽었다.
 새 native 프로그램·solver/provider 실행은 없으며 버전 호환성·새 PC 수용과 구별한다.
-확인용 Job은 모두 정리했다. 이 인도를 설치 안내와 묶어 게시한다.
+확인용 Job은 모두 정리했다. 설치 안내와 묶어 `caee77e`로 main에 게시하고 원격 일치를
+확인했다. 두 설치 작업은 마쳤으며 독립 배포는 아래 단일 SDK 빌드 결과를 이어 회수한다.
 후보는 각각 `_workspace/windows-upstream-install/after/`,
 `_workspace/windows-native-discovery/after/`에 작성하고 root가 제품에 통합한다.
 기존 source·설정과 사용자 수정은 보존하며, 깨진 명시 경로를 다른 프로그램으로 조용히
