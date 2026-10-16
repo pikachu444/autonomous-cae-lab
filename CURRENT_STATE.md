@@ -93,7 +93,7 @@ Pro·파워 5/5와 진행 중 응답 없음을 확인했다. 교체한 초안은
 | B7.1 문헌·판단 | 구현 있음·확인 | 실제 자료 구간·저장 개정·복구와 옛 판단의 원 참조 유지 대조 |
 | B7.2 Expert 협업 | 실제 연구 완료·추가 수용 | 실제 3담당 상호 연구/지도/보고서는 유지. 중단/한도/부분응답/재개와 중복 없는 후속 업무를 대조 |
 | B7.3 계측 불확실성 | 기존 전파·차이 연결 통합 | 기존 엔진을 재사용한 저장 비교 B−A의 제공 공분산 전파·Plan/Study·재열기를 통합. 고정축 조건부 범위와 전체 측정 불확실성을 구별 |
-| B7.4 식별 진단 | 추가 개발 | robust/DE 후보의 한정 profile/perturbation 진단을 원 fit bounds/목적 기준·Study 후속 시험과 연결 |
+| B7.4 식별 진단 | 구현 있음·사용 흐름 확인 | 기존 `experiment_final_diagnosis`의 robust/DE 보존 후보별 명시 차분·일반 잔차 Jacobian/국소 SVD와 다음 시험·Study 연결을 재사용. 전역 유일성으로 확대하지 않음 |
 | B7.5 3D 보고서 | 구현 있음·GUI 확인 | 기존 실제 결과 캡처·고정 자산·원창 열기·복합 보고/내보내기를 같은 frame/field로 대조 |
 | B7.6 장비 취득 | 공통 수집의 구현/확인·외부 인수 | 장비 없이도 sample/sequence·오류/종료 UI·adapter 경계를 대조하고 누락을 수정. 실제 장비 binding·물리 중지는 장비/프로토콜/권한을 받은 뒤 인수 |
 | B8.1 독립 열기 | 구현 있음·확인 | 각 지원 도구/파일의 직접 진입·같은 소유자 활성화·다른 저장소 구별·계산 없는 결과 열기 대조 |
@@ -121,7 +121,8 @@ Pro·파워 5/5와 진행 중 응답 없음을 확인했다. 교체한 초안은
 | `pde_transfer_review` / Astra-xhigh | 위 두 기능의 통합 소스·수치 의미·실제 렌더 독립 검토 완료. 필수 표시 2건 교정 후 열린 지적 없음 | `_workspace/current-comparison-integration/REVIEW.md`, 전체 B3/B7 인수와 구별 |
 | `inverse_delivery` / Sol-high | E5 두 기준점/영역의 병진·회전 스프링/댐퍼, 국부축·계수→기존 Windows OpenCourant 입력→응답→저장/재열기의 본구현 시작 | `_workspace/native-connector-delivery/`만 직접 작성. 제품 after/patch 제안, Core/schema/공유 접점은 root 통합 |
 | `cae_engineering` / CAE 자문 | 완료된 두 비교 자문에 이어 E5 구현 담당과 TYPE13·회전 attachment·k/c 단위/TH 의미를 직접 논의 | `_workspace/native-connector-reuse/CAE_IMPLEMENTATION_CONTRACT.md` 및 구현 폴더의 `CAE_DECISIONS.md`. 제품 공동 파일 편집 없음 |
-| `native_connector_reuse` / Luna-high | 설치된 FreeCAD FEM/현 adapter 조사 완료. 표면 Spring을 E5 두 점 회전 connector로 오인하지 않도록 기술 경로 한정 | `_workspace/native-connector-reuse/ANSWER.md`. 새 solver/framework/전역 WSL 없이 기존 Windows TYPE13 경로 선택 |
+| `native_connector_reuse` / Luna-high | E5 조사 완료 후 E6 체결 하중의 설치된 FreeCAD FEM/CalculiX·공식 PrePoMax 소스에서 절단면·축·조임/유지/외력의 재사용 접점만 한정 조사 | E5는 `_workspace/native-connector-reuse/ANSWER.md`. E6는 `_workspace/native-pretension-reuse/ANSWER.md`만 소유하며 제품 변경/native 실행 없음 |
+| `scope_pre_impact` / Luna-high | 다음 E3 적층 셸을 위해 설치된 shell writer·CalculiX/PrePoMax 공식 소스의 실제 composite 요소·층별 입력/출력 재사용 접점만 조사 | `_workspace/native-composite-reuse/ANSWER.md`만 소유. 전체 44행 재조사·제품 변경·native 실행 없음 |
 
 통합 비교 기능의 확인: root 제품 소스에서 관련 36개 단위/Qt 검사 통과. 원 작성자의 실제
 ParaView Preview→Apply→Save→별도 process 재열기, 실제 Client/JobManager/Plan/Study와
@@ -129,6 +130,18 @@ QWindows 보통/좁은 창 기록을 Astra가 함께 읽었다. 원 응력과 �
 UNKNOWN 그래프의 임의 숫자축과 비교 분기의 불필요한 실행 카운터를 교정해 적용했다.
 일반 변형률·모든 공간 대응·일반 비선형 전파·OS 수동 입력·공학적 적합성을 완료로 확대하지 않는다.
 owned Job 정리 완료이며 테스트 창을 남기지 않았다. 원 근거는 위 두 후보 폴더와 통합 검토 폴더에 남는다.
+
+B7.4의 추가 개발 표기도 실제 소스와 맞지 않아 교정했다. 기존 최종점 진단은 optimizer의
+수정 Jacobian을 재활용하지 않고 원 fit bounds 안에서 명시 h/h/2 차분으로 일반 잔차를 평가한다.
+`tests/experiment_expert/test_final_diagnosis.py`는 linear/soft_l1/DE를 각각 다루며,
+`experiment_analysis_reporting.py`의 다음 시험·Study 연결도 이미 있다. 이번에는 코드를
+재작성하거나 수치 검사를 반복하지 않았다. 실제 사용자 흐름 인수와 전역 식별성은 별도다.
+
+E5 구현은 원 CAD/메시 선택과 보존 참조를 잇는 전용 소스를 작성 중이다. 먼저 작성하는
+명시 rigid endpoint 경로를 기존 변형체 FE 연결의 완료로 대체하지 않는다. 기존 지원
+elastic C3D4 Impact 입력의 강성·질량·조건을 유지한 채 attachment/TYPE13을 잇는 한정
+접점도 구현 담당과 CAE 자문이 직접 논의한다. 전 solver/요소 조합을 새로 요구하는 것이
+아니며, 미지원 경로 표기만으로 E5를 완료 처리하지 않는다.
 
 B7.3 담당의 현재 코드 대조에서 `experiment_uncertainty.py`와 기존 analysis service/
 actions/reporting의 표준/확장 불확실성·부분 공분산·PSD·JΣJᵀ·Plan/Study 경로가 확인됐다.
