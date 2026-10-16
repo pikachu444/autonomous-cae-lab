@@ -180,7 +180,7 @@ def retained_declarations(metadata):
 
 
 def output_declarations(recipe):
-    a = effective_stress_side(recipe['a'], recipe)
+    a = effective_side(recipe['a'], recipe)
     observed = check_observables(recipe)
     delta = ({'version': 1, 'operation': 'norm_of_difference', 'source_kind': a['layout']['kind'],
               'norm': 'euclidean' if a['layout']['kind'] == 'vector' else 'frobenius'}
@@ -200,6 +200,8 @@ def output_declarations(recipe):
                              else a.get('temperature_kind'))
         if name in ('B_at_A', 'B_minus_A'):
             row['spatial_mask'] = 'spatial_valid'
+        if 'strain_conversion' in recipe:
+            row.update(strain_role='total', reference_configuration=a['reference_configuration'])
         arrays.append(row)
     clock = recipe.get('clock', {})
     frozen = {key: clock[key] for key in ('value', 'unit', 'semantics')} if clock.get('value') is not None else None
@@ -373,6 +375,12 @@ def validate(recipe, times_a, times_b):
                 if UNITS.get(unit, (None,))[0] != 'stress':
                     raise ValueError('응력 측도 변환에는 명시한 응력 단위가 필요합니다.')
         a, b = (effective_stress_side(side, recipe) for side in (a, b))
+    from . import post_strain_measures as strain
+    if strain.enabled(recipe):
+        for side in (a, b): strain.validate_side(side)
+        if a['reference_configuration'] != b['reference_configuration']:
+            raise ValueError('A/B 전체 변형률의 기준 배치가 다릅니다. 같은 기준 배치를 확인하세요.')
+        a, b = (strain.effective_side(side, recipe) for side in (a, b))
     for key in ('quantity', 'measure'):
         if a[key] != b[key]:
             raise ValueError('서로 다른 ' + key + '는 회전으로 변환할 수 없습니다.')
@@ -458,15 +466,23 @@ def validate_stress_side(side):
         raise ValueError('이 응력 측도의 두 지표가 같은 직교 기저인지 명시하세요.')
     if measure == 'cauchy':
         return measure
+    gradient = validate_deformation_gradient(side)
+    expected = gradient['material_frame'] if measure == 'pk2' else gradient['spatial_frame']
+    if side.get('frame') != expected or measure == 'pk1' and side.get('material_frame') != gradient['material_frame']:
+        raise ValueError('원 응력과 F의 현재/기준 지표 기저가 일치하지 않습니다.')
+    return measure
+
+
+def validate_deformation_gradient(side):
     gradient = side.get('deformation_gradient')
     keys = {'array', 'association', 'units', 'orientation', 'basis', 'spatial_frame', 'material_frame', 'layout', 'validity_masks'}
     if not isinstance(gradient, dict) or set(gradient) != keys:
-        raise ValueError('원 응력과 같은 자료의 전체 F 배열·위치·두 기저·방향·유효성 선언이 필요합니다. J=1을 가정하지 않습니다.')
+        raise ValueError('원 텐서와 같은 자료의 전체 F 배열·위치·두 기저·방향·유효성 선언이 필요합니다. J=1을 가정하지 않습니다.')
     if (not isinstance(gradient['array'], str) or not gradient['array'].strip()
             or gradient['array'] == side.get('array')
             or gradient['association'] != side.get('association') or gradient['units'] != '1'
             or gradient['orientation'] != 'current_from_reference' or gradient['basis'] != 'fixed_cartesian'):
-        raise ValueError('F는 응력과 같은 점/셀 위치의 무차원 현재 행 / 기준 열 고정 직교 기저여야 합니다.')
+        raise ValueError('F는 텐서와 같은 점/셀 위치의 무차원 현재 행 / 기준 열 고정 직교 기저여야 합니다.')
     for key in ('spatial_frame', 'material_frame'):
         if not isinstance(gradient[key], str) or not gradient[key].strip() or gradient[key].upper() in ('UNKNOWN', 'UNSPECIFIED'):
             raise ValueError('F의 현재·기준 기저 이름을 각각 명시하세요.')
@@ -476,10 +492,7 @@ def validate_stress_side(side):
         raise ValueError('F는 대각·비대각 전체 9성분의 실제 성분 순서와 현재 행 / 기준 열 선언이 필요합니다.')
     if not isinstance(gradient['validity_masks'], list) or any(not isinstance(name, str) or not name for name in gradient['validity_masks']):
         raise ValueError('F의 유효성 배열 이름을 확인하세요.')
-    expected = gradient['material_frame'] if measure == 'pk2' else gradient['spatial_frame']
-    if side.get('frame') != expected or measure == 'pk1' and side.get('material_frame') != gradient['material_frame']:
-        raise ValueError('원 응력과 F의 현재/기준 지표 기저가 일치하지 않습니다.')
-    return measure
+    return gradient
 
 
 def effective_stress_side(side, recipe):
@@ -531,7 +544,15 @@ def stress_to_cauchy(values, side, gradient=None, *, target_unit):
     return result.reshape((-1, 9))
 
 
+def effective_side(side, recipe):
+    from . import post_strain_measures as strain
+    return strain.effective_side(side, recipe) if strain.enabled(recipe) else effective_stress_side(side, recipe)
+
+
 def comparison_order(recipe):
+    from . import post_strain_measures as strain
+    if strain.enabled(recipe):
+        return ORDER[:2] + ['strain_unit', 'strain_measure_to_green_lagrange_at_native_endpoints'] + ORDER[2:]
     if stress_conversion_enabled(recipe):
         return ORDER[:2] + ['stress_unit', 'stress_measure_to_cauchy_at_native_endpoints'] + ORDER[2:]
     return list(ORDER)
@@ -541,7 +562,10 @@ def validate_gradient_declaration(side, metadata):
     """Known reader declarations cannot be overwritten by the comparison draft."""
     if validate_stress_side(side) == 'cauchy' or metadata is None:
         return
-    gradient = side['deformation_gradient']
+    validate_gradient_metadata(side['deformation_gradient'], metadata)
+
+
+def validate_gradient_metadata(gradient, metadata):
     row = next((r for r in metadata.get('arrays', [])
         if (r.get('name'), r.get('association')) == (gradient['array'], gradient['association'])), None)
     if row is None:

@@ -111,6 +111,8 @@ class ComparisonEditor(QWidget):
                         'global': '전역', 'rotated': '회전 기저'}
             from .post_stress_editor import STRESS_LABELS
             meanings.update(STRESS_LABELS)
+            from caelab.post_strain_measures import LABELS
+            meanings.update(LABELS)
             info = QLabel(' / '.join(meanings.get(current.get(k), str(current.get(k) or '미지정'))
                                    for k in ('units', 'measure', 'frame')))
             if current.get('observable') is not None:
@@ -142,6 +144,8 @@ class ComparisonEditor(QWidget):
                        'a_mask': 'A에서 지정한 마스크 영역이 필수입니다.'}.get(policy, '필수 영역 설정을 확인하세요.'))
         if self.value.get('stress_conversion') == {'version': 1, 'target_measure': 'cauchy'}:
             note.setText('공통 Cauchy [' + str(self.value.get('target', {}).get('units') or '단위 미지정') + ']로 비교합니다. 원 A/B 성분은 별도 보존됩니다.\n' + note.text())
+        if self.value.get('strain_conversion') == {'version': 1, 'target_measure': 'green_lagrange'}:
+            note.setText('공통 기준 Green–Lagrange E [' + str(self.value.get('target', {}).get('units') or '단위 미지정') + ']로 비교합니다. 원 A/B는 별도 보존됩니다.\n' + note.text())
         note.setWordWrap(True)
         note.setToolTip('점 보간과 인접 셀 평균은 보존적 전달이 아닙니다. 체적 적분 검사는 변환 설정에서 별도로 선택합니다.')
         self.layout_grid.addWidget(note, 7, 0, 1, 2)
@@ -216,6 +220,11 @@ class ComparisonEditor(QWidget):
         row = next((r for r in metadata.get('arrays', []) if [r['name'], r['association']] == selected), {})
         for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks', 'observable', 'validity_policy', 'spatial_mask', 'material_frame'):
             current[key] = deepcopy(row.get(key, [] if key == 'validity_masks' else None))
+        for key in ('strain_role', 'reference_configuration'):
+            if row.get(key) is not None: current[key] = deepcopy(row[key])
+            else: current.pop(key, None)
+        if row.get('strain_precision') is not None: current['strain_precision'] = deepcopy(row['strain_precision'])
+        else: current.pop('strain_precision', None)
         if row.get('components') == 1 and current.get('layout') is None:
             current['layout'] = {'kind': 'scalar', 'components': ['scalar']}
         for key in ('coordinate_units', 'coordinate_frame', 'time_units'):
@@ -435,7 +444,10 @@ class ComparisonEditor(QWidget):
             '원 B의 전체 성분과 A에 전달된 B를 비교하며, 절대온도의 적분을 열량으로 해석하지 않습니다.')
         limitation.setWordWrap(True); transfer_form.addRow(limitation)
         from .post_stress_editor import stress_page
-        commit_stress = stress_page(self, draft, tabs, combo, line)
+        commit_stress = ((lambda: None) if any(draft[s].get('quantity') == 'strain' for s in ('a', 'b')) and 'stress_conversion' not in draft
+                         else stress_page(self, draft, tabs, combo, line))
+        from .post_strain_editor import strain_page
+        commit_strain = strain_page(self, draft, tabs, combo, line)
         for index in range(tabs.count()):
             page = tabs.widget(index); title = tabs.tabText(index)
             page.layout().setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
@@ -450,7 +462,7 @@ class ComparisonEditor(QWidget):
             button.setAutoDefault(False); button.setDefault(False)
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); root.addWidget(buttons)
         if dialog.exec() != QDialog.DialogCode.Accepted: return
-        commit_stress()
+        commit_stress(); commit_strain()
         draft.update(method=method.currentData(), tolerance=number_or_raw(tolerance.text()),
             target={'units': units.text()}, difference=difference.currentData(), percent=percent.currentData())
         draft['coverage'] = {'policy': required.currentData(),

@@ -57,6 +57,8 @@ def _unit(unit):
     """Existing calibration units, plus one explicit coefficient ratio."""
     if not isinstance(unit, str):
         raise ValueError('단위를 명시하세요.')
+    if unit in {'mm^2','m^2'}:
+        return (('area',1),), {'mm^2':1e-6,'m^2':1.}[unit]
     if unit in UNITS:
         dimension, scale = UNITS[unit]
         return (() if dimension == 'dimensionless' else ((dimension, 1),)), scale
@@ -525,6 +527,9 @@ def processing_problem(channel, *, plan_mask=None):
 
 def propagate(problem, specification):
     """Explicit computation over an already bound source problem."""
+    if problem.get('kind')=='observation_chain':
+        from .experiment_observation_uncertainty import propagate as observation_propagate
+        return observation_propagate(problem,specification)
     required = {'uncertainties', 'dependence', 'axis_uncertainty'}
     if not isinstance(specification, dict) or set(specification) - required - {'requested_transform'} or not required <= specification.keys():
         raise ValueError('원값/계수 불확실성·상관·축 불확실성을 명시하세요.')

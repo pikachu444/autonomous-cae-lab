@@ -10,14 +10,23 @@ STRESS_LABELS = {
     'kirchhoff': 'Kirchhoff 응력', 'kirchhoff_stress': 'Kirchhoff 응력', 'tau': 'Kirchhoff 응력'}
 
 
-def stress_page(editor, draft, tabs, combo, line):
-    page = QWidget(); form = QFormLayout(page); tabs.addTab(page, '응력 측도')
-    enabled = QCheckBox('원 응력을 공통 Cauchy 응력으로 변환')
-    enabled.setObjectName('stressConversionEnabled')
-    enabled.setChecked(draft.get('stress_conversion') == {'version': 1, 'target_measure': 'cauchy'})
+def stress_page(editor, draft, tabs, combo, line, *, strain=False):
+    key = 'strain_conversion' if strain else 'stress_conversion'
+    target = 'green_lagrange' if strain else 'cauchy'
+    labels = STRESS_LABELS
+    if strain:
+        from caelab.post_strain_measures import LABELS
+        labels = LABELS
+    definition = {'version': 1, 'target_measure': target}
+    page = QWidget(); form = QFormLayout(page); tabs.addTab(page, '변형률 측도' if strain else '응력 측도')
+    enabled = QCheckBox('원 변형률을 공통 기준 Green–Lagrange E로 변환' if strain else '원 응력을 공통 Cauchy 응력으로 변환')
+    enabled.setObjectName('strainConversionEnabled' if strain else 'stressConversionEnabled')
+    enabled.setChecked(draft.get(key) == definition)
     form.addRow(enabled)
     note = QLabel('원 A/B는 그대로 보존합니다. PK1·PK2·Kirchhoff는 같은 원 자료·시각·점/셀의 실제 F가 필요합니다. '
         'F의 행은 현재 기저, 열은 기준 기저입니다. 셀 평균·시간 보간 전에 변환하며 J=det(F)>0을 확인합니다.')
+    if strain:
+        note.setText('원 A/B는 보존합니다. Euler–Almansi는 실제 F가 필요합니다. E와 기준 Hencky는 F를 명시하면 C=FᵀF도 검사합니다. F는 현재 행 / 기준 열이며 셀 평균·시간 보간 전에 변환합니다.')
     note.setWordWrap(True); form.addRow(note)
     controls = {}; changed = [False]
     enabled.toggled.connect(lambda: changed.__setitem__(0, True))
@@ -49,12 +58,21 @@ def stress_page(editor, draft, tabs, combo, line):
             rows.addRow('원 PK1의 기준 열 기저', pk1_material)
         else:
             pk1_material.setParent(group); pk1_material.hide()
-        is_cauchy = str(value.get('measure', '')).lower() in ('cauchy', 'cauchy_stress')
-        heading = QLabel(side.upper() + ' 원 측도: ' + STRESS_LABELS.get(str(value.get('measure', '')).lower(), str(value.get('measure') or '미지정')) + (' — F 불필요' if is_cauchy else ''))
-        heading.setWordWrap(True); form.addRow(heading); form.addRow(group)
-        def toggle(active, group=group, is_cauchy=is_cauchy):
-            group.setVisible(not is_cauchy); group.setEnabled(active and not is_cauchy)
+        is_cauchy = not strain and str(value.get('measure', '')).lower() in ('cauchy', 'cauchy_stress')
+        heading = QLabel(side.upper() + ' 원 측도: ' + labels.get(str(value.get('measure', '')).lower(), str(value.get('measure') or '미지정')) + (' — F 불필요' if is_cauchy else ''))
+        heading.setWordWrap(True); form.addRow(heading)
+        use_f = None
+        if strain:
+            use_f = QCheckBox('실제 F와의 정합도 검사')
+            use_f.setObjectName(side + 'UseGradient')
+            use_f.setChecked(bool(stored) or value.get('measure') == 'euler_almansi')
+            use_f.setEnabled(value.get('measure') != 'euler_almansi')
+            form.addRow(use_f)
+        form.addRow(group)
+        def toggle(active, group=group, is_cauchy=is_cauchy, use_f=use_f):
+            group.setVisible(not is_cauchy and (use_f is None or use_f.isChecked())); group.setEnabled(active and not is_cauchy)
         enabled.toggled.connect(toggle); toggle(enabled.isChecked())
+        if use_f is not None: use_f.toggled.connect(lambda active, toggle=toggle: toggle(enabled.isChecked()))
         fields = {'array': array, 'units': units, 'orientation': orientation, 'basis': basis,
                   'spatial_frame': spatial, 'material_frame': material, 'order': order, 'masks': masks,
                   'pk1_material': pk1_material}
@@ -97,14 +115,19 @@ def stress_page(editor, draft, tabs, combo, line):
         for widget in (spatial, material, order, pk1_material):
             widget.textEdited.connect(edited)
         masks.itemChanged.connect(edited)
+        if use_f is not None:
+            use_f.toggled.connect(edited)
+            fields['use_f'] = use_f
         controls[side] = (fields, is_cauchy, side_changed)
     def commit():
         if not changed[0]: return
         if not enabled.isChecked():
-            draft.pop('stress_conversion', None); return
-        draft['stress_conversion'] = {'version': 1, 'target_measure': 'cauchy'}
+            draft.pop(key, None); return
+        draft[key] = definition
         for side, (fields, is_cauchy, edited) in controls.items():
             if is_cauchy or not edited[0]: continue
+            if fields.get('use_f') is not None and not fields['use_f'].isChecked():
+                draft[side].pop('deformation_gradient', None); continue
             selected = fields['array'].currentData()
             if selected is None:
                 draft[side].pop('deformation_gradient', None); continue

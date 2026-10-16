@@ -62,8 +62,9 @@ def blocks(result):
     if result.get('failure_reason'):
         yield 'paragraph', str(result['failure_reason'])
     if result.get('kind') == 'experiment_uncertainty':
-        difference=p.get('kind')=='comparison_difference'
-        value_label='차이 B−A' if difference else '원 교정/처리 값'
+        difference=p.get('kind')=='comparison_difference' or p.get('comparison_difference',False)
+        chain=p.get('kind')=='observation_chain'
+        value_label='차이 B−A' if difference else '관측 변환값' if chain else '원 교정/처리 값'
         yield 'paragraph', ('저장된 관측 A와 예측 B의 차이 B−A에 대한 1차 전파입니다. 가중·정규화 잔차의 불확실성이 아니며 원 비교는 유지됩니다.' if difference else
             '제공한 입력·계수 불확실성만 사용한 1차 값 전파입니다. 원 교정값과 제공 output uncertainty는 변경하지 않았습니다. 신뢰구간이 아닙니다.')
         yield 'paragraph', ('전체 측정 불확실성: 미확인. 축 불확실성은 계산하지 않았습니다.' if a.get('complete_measurement_uncertainty')=='UNKNOWN'
@@ -86,13 +87,18 @@ def blocks(result):
             for v,included in zip(p['values'],p['included'])]
         x, label = coordinate(p)
         ids = p.get('original',{}).get('raw_samples',{}).get('source_rows')
-        yield 'table', (['원 행' if ids else '표본 순서',value_label,'표준불확실성','단위','판단','사유'],
-            [[ids[i] if ids else i+1,r['original_value'],value(r['standard_uncertainty']),r['unit'],STATES.get(r['status'],UNKNOWN),uncertainty_reason(r.get('reason'),p)] for i,r in enumerate(rows)])
+        headers=['원 행' if ids else '표본 순서',value_label,'표준불확실성','단위','판단','사유']
+        display_rows=[[ids[i] if ids else i+1,r['original_value'],value(r['standard_uncertainty']),r['unit'],STATES.get(r['status'],UNKNOWN),uncertainty_reason(r.get('reason'),p)] for i,r in enumerate(rows)]
+        if chain:
+            yield 'paragraph', '명시한 관측 변환과 공통 시간 offset의 국소 1차 전파입니다. 방향·기준좌표·원/target 시각 격자는 고정이며 일반 3D 회전이나 신뢰구간을 계산하지 않습니다.'
+            headers+=['확장불확실성','포함인자 k']
+            for display,row in zip(display_rows,rows):display.extend([value(row.get('expanded_uncertainty')),value(row.get('coverage_factor'))])
+        yield 'table', (headers,display_rows)
         if len(x)==len(p.get('values',[])):
             yield 'curve', {'x':x,'y':p['values'],'mask':p['included'],'x_label':label,'y_label':value_label+' ['+p['unit']+']'}
             yield 'curve', {'x':x,'y':[r['standard_uncertainty'] for r in rows],
                 'mask':[r['status']=='COMPUTED_FIRST_ORDER' for r in rows], 'x_label':label,
-                'y_label':('차이의 표준불확실성' if difference else '표준불확실성 — 값 조건부 1차')+' ['+p['unit']+']'}
+                'y_label':('차이의 표준불확실성' if difference else ('표준불확실성' if chain else '표준불확실성 — 값 조건부 1차'))+' ['+p['unit']+']'}
     elif result.get('kind') == 'experiment_identification':
         d = result.get('identification', {})
         yield 'paragraph', STATES.get(d.get('status'),UNKNOWN)+' — 최종 선택점의 일반 잔차 Jacobian 진단입니다. 전역 유일성과 측정 불확실성은 미확인입니다.'

@@ -596,8 +596,11 @@ class Workspace:
                 from .curve_native import build
                 bundle = build(self, draft, name)
             elif obj['kind'] == 'comparison':
+                from caelab import post_strain_measures as strain
                 for side in ('a', 'b'):
                     self._declared_side(draft[side])
+                    if strain.enabled(draft):
+                        strain.validate_gradient_declaration(draft[side], self._output_declaration(draft[side]['source_ref']))
                     if physical.stress_conversion_enabled(draft):
                         physical.validate_gradient_declaration(draft[side], self._output_declaration(draft[side]['source_ref']))
                 if draft.get('version') != 2 and any(draft[side].get('observable') is not None for side in ('a', 'b')):

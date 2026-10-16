@@ -32,6 +32,9 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 뜻도 아니다. D에 포함된 구현·사용 인수를 다시 별도 A로 더하지 않는다. 기존 44개 부모,
 74개 FN, 52개 원요구 절, 22개 Pre 항목, 17개 UC와 다섯 통합장면은 대응 범위이며
 개수에 더하지 않는다. 이번 목록의 CLOSED는 아직 선언하지 않았다.
+현재 D 29개 중 **5개는 본코드 통합과 한정 확인을 마쳤고, 24개는 추가 개발이 남았다.**
+다음 네 항목을 병렬 작성하고 나머지 20개는 기존 의존 순서로 이어간다.
+다섯 항목의 미실행 범위와 최종 사용자 인수는 같은 ID 안에서 닫으며 별도 기능으로 더하지 않는다.
 
 각 ID의 입력→조작→결과·단위, 지원 solver/요소/법칙/환경, 수정 코드, 의존,
 실패·취소·저장·새 프로세스 재개와 완료조건은 상세 목록 §3–5에 있다.
@@ -45,18 +48,19 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 
 | 담당 | 현재 결과와 쓰기 소유 |
 |---|---|
-| post_windows_build_fix / Sol-high | 적층 셸: 층 편집·native 입력·층별 S/E·재편집. 전용 후보 동결, root가 제품 통합. 공통 파일 직접 쓰기 없음 |
-| inverse_delivery / Sol-high | 스프링·댐퍼: 실제 FE 영역 연결·축/계수·Windows native 응답·저장재개. 전용 후보 동결, root가 통합 |
-| dynamic_reprocess_gui / Sol-high | 체결: 절단면/축·조임/유지/외력·결과. 전용 후보 동결, 선택 원결속의 작은 공통 교정 제안 중 |
-| native_post_delivery / Sol-high | 변형률 측도 비교: E/e/H의 명시 변환·원 측도/마스크·Post 선택/저장 흐름. 전용 private 소스 작성 |
-| connector_code_review / Sol-high | 교정식·게이지·시간 오프셋의 1차 불확실성 연결. 기존 엔진·Plan/Study 재사용, 전용 private 소스 작성 |
-| whole_closeout_review / Astra-xhigh | 전체 종료설계 독립 검토 완료. 현재 E3/E5/E6의 통합 소스·실제 결과·창·실패/복구를 읽기 전용 검토 |
-| cae_engineering / CAE 자문 | 고정 원문/실제 진단으로 요소·물리량·변형률 계약 자문 완료. 제품 Expert 기능이나 독립 통합 PASS와 구별 |
+| post_windows_build_fix / Sol-high | 적층 셸 인도 완료. 다음 B6.3.L03: 기존 CCX 지지 반력→정확 TRI6 대응→보존 하중 전달. `_workspace/conservative-load-delivery/`만 작성 |
+| inverse_delivery / Sol-high | 스프링·댐퍼 인도 완료. 다음 B1.5.L01: 기존 Aster native hard contact를 사용자 모델의 면 선택·조건·실행·결과에 연결. `_workspace/aster-hard-contact-delivery/`만 작성 |
+| dynamic_reprocess_gui / Sol-high | 체결 인도 완료. 다음 B1.4.L02: 기존 native 온도·초기 응력/변형 조건 편집과 실행 연결. `_workspace/initial-fields-delivery/`만 작성 |
+| native_post_delivery / Sol-high | 변형률 측도 비교 인도 완료. 다음 B3.3.L01: 고차면 선택과 면 측정. `_workspace/quadratic-surface-delivery/`만 작성 |
+| connector_code_review / Sol-high | 관측 불확실성 인도 및 긴 미선택 채널 교정 완료. 현 후보 동결, 새 쓰기 배정 없음 |
+| whole_closeout_review / Astra-xhigh | 전체 설계와 E3/E5/E6 통합 독립 검토 완료. 지적 F1–F5 교정 확인, 해당 범위 차단 결함 0 |
+| pde_transfer_review / Astra-xhigh | B3.2.L02/B7.3.L01 통합 독립 검토 완료. 행렬 선할당·미선택 채널 간섭 교정 확인, 명시 범위 차단 결함 0 |
+| cae_engineering / CAE 자문 | 기존 자문 완료. 다음 native 접촉·초기장·보존 하중·고차면의 필요한 계약만 담당자와 직접 논의. 독립 최종 검토나 제품 Expert와 구별 |
 | Codex | Core/registry/owner/public 경계·공통 GUI/저장·문서·Git 통합. 전용 모듈은 담당 작성물을 검토해 반영 |
 
 전용 작성은 각 `_workspace/*-delivery/`에서 분리하고 root가 실제 공통 파일에 병합한다.
 담당자들은 구체 설계 문제를 직접 논의할 수 있다. 팀 일곱 개는 소유영역이며 고정 동시
-일곱 호출 의무가 아니다. 현재 세 native 기능과 두 연구 기능을 병행한다.
+일곱 호출 의무가 아니다. 새 네 항목은 이미 정한 71개 안의 작업이며 범위를 추가한 것이 아니다.
 
 ## 이번 체크포인트
 
@@ -74,11 +78,19 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 - 체결: C3D10의 조임→길이 유지→외력, 절단면 선택과 결과 읽기를 통합했다.
   실제 선택 절단면 절점력 합 599.9996 N은 지지 600 N과 일치한다. SOF −1200.021 N은
   복구 응력 면적분이며 다른 물리량이다. 원값·원 실패를 보존하고 일반 RF/contact force로
-  확대하지 않는다. cold 선택의 원 subshape 결속 교정이 남아 있다.
-- 현재 root 집중 확인: 첫 통합 확인에서 86개가 통과했다. 이후 닫힌 원 모델 재열기,
-  public 입력의 단일 해소, 기존 S8 저장 대역을 교정하고 해당 확인이 통과했다.
-  Astra가 찾은 미적용 값의 Ctrl+S/닫기/재연결 보관과 솔버 메뉴의 조건 누락은 같은
-  기능에서 교정 중이다. 제품 전체 인수나 실제 물리 적격성 통과로 표시하지 않는다.
+  확대하지 않는다. cold 선택의 원 subshape 결속도 같은 원 BRep로 확인한다.
+- 세 native 기능의 원 모델 재열기·공개 입력 단일 해소·Ctrl+S/닫기/재연결·미적용 raw
+  보관·별도 솔버 메뉴 조건 누락을 교정했다. root 최종 집중 161개 확인 통과, 소유 Job 정리.
+  Astra가 실제 반영 소스와 해당 결과를 대조해 다섯 지적을 닫았다. 체결의 새 raw 초안은
+  controlled fresh editor에서 확인했으며 실제 새 raw `.caepre` cold 실행으로 바꿔 말하지 않는다.
+- 변형률 비교: total E/e/material H를 같은 기준 E로 변환하고 원 측도·행·mask를 유지한다.
+  e는 F 필수, E/H는 선택이다. 실제 ParaView 수치 경로·보존본 재열기와 정상/좁은 Qt를
+  확인했고 root 37개 집중 확인, 기존 응력/비교 경로 회귀가 통과했다. 사용자 C-bound는
+  native 정확도 인증으로 승격하지 않는다.
+- 관측 불확실성: 원 교정식·게이지·단축 응력·시간 오프셋을 기존 전파 엔진과 Plan/Study/
+  Report에 연결했다. 실제 HTTP 저장·보존본 재열기, root 24개와 후속 2개 경계 확인 및
+  QWindows 확인을 마쳤다. 긴 원자료의 N² 선할당과 긴 미선택 채널 간섭을 교정했다.
+  두 연구 기능은 Astra의 명시 범위 검토를 마쳤다. 전체 앱의 최종 사용 인수·공학 승인은 별도다.
 
 ## 항목별 현재 진도
 
@@ -91,11 +103,11 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B1.2.L01 | 다변수 기구·중첩 occurrence 의 마지막 native 인수 | A | 기존 구현 인수 대기 | T1 |
 | B1.3.L01 | 곡면·영역별 S8 와 B32R 원출력의 지원 내 왕복 | A | 기존 구현 인수 대기 | T1 |
 | B1.3.L02 | B32R native 일반화 회전·완전 지지반력·50IP 관측 완결 | D | 개발 대기 | T1 |
-| B1.4.L01 | E3 적층 셸의 층별 입력·출력 | D | 제품 통합·확인 중 | post_windows_build_fix / Codex |
-| B1.4.L02 | E4 온도·초기 응력/변형 상태의 native 편집 | D | 개발 대기 | T1 |
-| B1.4.L03 | E5 병진·회전 spring/damper | D | 제품 통합·확인 중 | inverse_delivery / Codex |
-| B1.4.L04 | E6 조임→길이 유지→사용 하중 | D | 제품 통합·확인 중 | dynamic_reprocess_gui / Codex |
-| B1.5.L01 | C1 진짜 hard 접촉 | D | 개발 대기 | T2 |
+| B1.4.L01 | E3 적층 셸의 층별 입력·출력 | D | 구현 통합·한정 확인 완료 | post_windows_build_fix / Codex |
+| B1.4.L02 | E4 온도·초기 응력/변형 상태의 native 편집 | D | 구현 중 | dynamic_reprocess_gui |
+| B1.4.L03 | E5 병진·회전 spring/damper | D | 구현 통합·한정 확인 완료 | inverse_delivery / Codex |
+| B1.4.L04 | E6 조임→길이 유지→사용 하중 | D | 구현 통합·한정 확인 완료 | dynamic_reprocess_gui / Codex |
+| B1.5.L01 | C1 진짜 hard 접촉 | D | 구현 중 | inverse_delivery |
 | B1.5.L02 | C2 implicit cohesive 와 압축 재접촉 | D | 개발 대기 | T2 |
 | B1.5.L03 | C3 곡면·모서리·연쇄 tie 조정 | D | 개발 대기 | T2 |
 | B1.5.L04 | C5 단계 활성과 접합 해제의 native 상태 연속 | D | 개발 대기 | T2 |
@@ -118,9 +130,9 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B3.1.L01 | 실제 ParaView 주창·선택 설정의 OS 작업 인수 | A | 기존 구현 인수 대기 | T3 |
 | B3.1.L02 | managed ParaView 저장·File→Exit 네 경로 | A | 기존 구현 인수 대기 | T7 |
 | B3.2.L01 | 네 원응력→공통 Cauchy 비교 | A | 기존 구현 인수 대기 | T3 |
-| B3.2.L02 | 변형률의 유한한 측도 비교 | D | 구현 중 | native_post_delivery |
+| B3.2.L02 | 변형률의 유한한 측도 비교 | D | 구현 통합·한정 확인 완료 | native_post_delivery |
 | B3.2.L03 | TET/HEX 고차 공간 비교 | D | 개발 대기 | T3 |
-| B3.3.L01 | 고차면 측정 | D | 개발 대기 | T3 |
+| B3.3.L01 | 고차면 측정 | D | 구현 중 | native_post_delivery |
 | B3.3.L02 | 다중 block 측정·원 leaf 복귀 | D | 개발 대기 | T3 |
 | B3.3.L03 | 실제 현재 형상 면적·법선으로 측정 | D | 개발 대기 | T3 |
 | B3.4.L01 | 원 결과 복구·변경 branch·정확한 원 선택 반환 | A | 기존 구현 인수 대기 | T3 |
@@ -139,11 +151,11 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B6.2.L01 | 독립 PDE 의 선언 모델별 입력·실제 해·재개 | A | 기존 구현 인수 대기 | T5 |
 | B6.3.L01 | 변위 vector → 구조 Dirichlet port | D | 개발 대기 | T5 |
 | B6.3.L02 | 초기 응력 tensor port | D | 개발 대기 | T5 |
-| B6.3.L03 | CCX 고정 지지 RF 에서 다른 C3D10 경계로 보존 하중 전달 | D | 개발 대기 | T5 |
+| B6.3.L03 | CCX 고정 지지 RF 에서 다른 C3D10 경계로 보존 하중 전달 | D | 구현 중 | post_windows_build_fix |
 | B6.3.L04 | 기존 P1 온도에서 3D 이중층·계면까지 | D | 개발 대기 | T5 |
 | B7.1.L01 | 문헌 원문·독립 Study·판단 보존 | A | 기존 구현 인수 대기 | T6 |
 | B7.2.L01 | 기존 3 역할 Expert 의 중단·한도·부분응답 재개 | A | 기존 구현 인수 대기 | T6 |
-| B7.3.L01 | B−A 비교 불확실성 | D | 구현 중 | connector_code_review |
+| B7.3.L01 | B−A 비교 불확실성 | D | 구현 통합·한정 확인 완료 | connector_code_review |
 | B7.4.L01 | 기존 robust/DE 최종 perturbation→다음 시험 | A | 기존 구현 인수 대기 | T6 |
 | B7.5.L01 | 실제 3D 장면·판단·수치가 들어간 한 보고서 | A | 기존 구현 인수 대기 | T6 |
 | B7.6.L01 | 장비 없이 닫는 공통 취득·sequence·종료 소프트웨어 | D | 개발 대기 | T6 |
@@ -162,21 +174,22 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 
 ## 다음 행동
 
-1. 세 native 기능의 마지막 연결·선택 보호 교정을 통합하고, 변경된 경로만 확인한다.
-   정상/좁은 실제 창과 단위·선택·실패/취소·원 모델 재편집을 대조한다. Astra의 실제
-   blocking 지적을 같은 기능에서 닫고, 미실행 범위는 남긴다.
-2. 변형률 비교와 관측 불확실성의 작성물을 병행 회수·통합한다. 공통 파일은 root가
-   순차 병합하고 새 수치 엔진/저장소를 만들지 않는다.
-3. 검토한 묶음을 커밋·push하고 원격 반영을 확인한다. 71개 목록의 같은 ID에서
-   상태를 갱신한 뒤 기존 의존 순서에 따라 다음 개발을 배정한다. 작은 교정 Pro 호출은 없다.
-4. Windows SDK CI는 실패 종료했다. 기존 담당이 해당 로그의 종료 원인과 한정 대안을
-   조사하며 새 실행을 자동으로 반복하지 않는다. 배포 성공·새 PC 수용은 미완료다.
-   stock ParaView 사용은 해당 SDK를 기다리지 않는다.
+1. 새 네 인도의 확정 profile과 기존 구현을 해당 ID에서 읽고 전용 본코드를 병렬 작성한다.
+   native 메뉴·reader·기존 JobManager/owner를 재사용하고 공통 파일은 root가 순차 병합한다.
+   일반 코드와 작은 교정의 Pro 호출은 없다.
+2. 이번 다섯 기능은 재개발하지 않는다. 미실행 사용자 경로는 해당 항목/최종 통합장면에서
+   기존 자료를 재사용해 닫는다. 다른 항목의 선행조건으로 unchanged solver 캠페인을 반복하지 않는다.
+3. 각 인도의 코드·한국어 사용법·필요한 최소 확인을 함께 커밋·push하고 원격을 확인한다.
+   사용 차단 결함은 같은 ID에서 교정하며, 후속 확장을 조용히 추가하지 않는다.
+4. Windows SDK CI는 호스팅 runner 통신 단절로 실패했다. 로그 ZIP·artifact·해당 draft
+   release가 없어 회수/증분 재개는 불가능했다. 구체 자원 원인을 추정해 SDK를 바꾸거나
+   같은 긴 빌드를 자동 반복하지 않는다. stock ParaView 사용을 막지 않는다. 배포·새 PC 인수는 남는다.
 
 ## 기준 소스·보존·관련 자료
 
-- 마지막 게시 기준: main `bb318346c81ae6ca3d0b32494363778ae770e1b8`.
-  이번 E3/E5/E6 통합·목록은 아직 작업 트리이며 게시 확인 후 이 항목을 갱신한다.
+- 상세 종료목록 게시: `6de7c44`. native 세 기능 통합: `e2c2e43`.
+  두 연구 기능과 이 현재상태는 이번 연구 통합 커밋에 포함한다. 실제 HEAD/원격은 새 세션에서
+  Git으로 확인하며, 로컬 커밋과 원격 게시를 구별한다.
 - pinned upstream: `plugins/fixture_design/upstream`의
   `3e48bf6138f495299f45b1af254bfb4aaff307b8`, 변경 없음.
 - 사용자 미추적 자료 `.codex-remote-attachments/`,
@@ -189,7 +202,10 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
   `_workspace/`는 공개 배포 파일이 아니다. 필요한 공개 원 fixture·사용법은 제품 docs/tests에 둔다.
 - [한국어 설치](docs/INSTALL_KO.md), [첫 사용](docs/USER_GUIDE_KO.md),
   [후처리](docs/native-project/POST_KO.md), [적층 셸](docs/composite-shell/USAGE_KO.md),
-  [체결 하중](docs/PRETENSION_KO.md), [기존 실행계획](docs/IMPLEMENTATION_DELIVERIES.md).
+  [체결 하중](docs/PRETENSION_KO.md), [스프링·댐퍼](docs/CONNECTOR_KO.md),
+  [변형률 비교](apps/research/POST_NUMERICAL.md),
+  [관측 불확실성](docs/experiment_expert/OBSERVATION_UNCERTAINTY_KO.md),
+  [기존 실행계획](docs/IMPLEMENTATION_DELIVERIES.md).
 - 이전의 누적 상태 원문은 [보존본](docs/history/20261016-before-closeout/CURRENT_STATE.md)에
   바이트 그대로 남겼다. 그 안의 옛 담당·다음 행동·견적은 현재 작업 지시가 아니다.
   기존 실패·측정값·허용치와 유효한 계약/ADR은 해당 원기록을 계속 따른다.

@@ -288,13 +288,19 @@ def validate_declared_metadata(source, metadata):
         required = {"association", "name", "components", "units", "frame", "measure"}
         raw_keys = {'source_field', 'interpolated_by_lab', 'source_array',
                     'basis_is_native_IP_material_basis', 'source_blocks'} if raw_beam else set()
-        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention"} - ({'location'} if shell or beam else set()) - raw_keys:
+        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity", "recovery", "shear_convention", "strain_role", "reference_configuration", "strain_precision"} - ({'location'} if shell or beam else set()) - raw_keys:
             raise ValueError("Each declared array requires exact association/name/components and units/frame/measure")
         for key in ("name", "units", "frame", "measure"):
             if not isinstance(declaration[key], str) or not declaration[key].strip():
                 raise ValueError("Declared array meaning must be nonempty explicit text")
         if 'quantity' in declaration and (not isinstance(declaration['quantity'], str) or not declaration['quantity'].strip()):
             raise ValueError('Declared quantity must be explicit nonempty text')
+        for key in ('strain_role', 'reference_configuration'):
+            if key in declaration and (not isinstance(declaration[key], str) or not declaration[key].strip()):
+                raise ValueError('변형률 종류와 기준 배치는 명시한 원 선언이어야 합니다.')
+        if 'strain_precision' in declaration:
+            from caelab.post_strain_measures import precision
+            precision(declaration, required=True)
         shell_recovery = {'native_nodal_dof', 'magnitude_of_native_vector',
                           'native_extrapolated_nodal_averaged',
                           'basis_change_of_native_nodal_recovery'} if shell else set()

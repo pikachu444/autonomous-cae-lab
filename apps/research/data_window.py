@@ -316,6 +316,9 @@ class DataWindow(QMainWindow):
         uncertainty_result = QAction('제공 불확실성 전파…', self)
         uncertainty_result.triggered.connect(self.open_uncertainty_analysis)
         edit.addAction(uncertainty_result)
+        observation_result=QAction('관측 변환의 불확실성…',self)
+        observation_result.triggered.connect(lambda:self.open_uncertainty_analysis(observation=True))
+        edit.addAction(observation_result)
         affected = QAction('이 자료를 사용하는 계획…', self)
         affected.triggered.connect(self.show_dependents)
         edit.addAction(affected)
@@ -1133,8 +1136,14 @@ class DataWindow(QMainWindow):
         else:
             self.message.setText('새 원본/열 설정을 적용한 뒤 채널 교정을 여세요.')
 
-    def open_uncertainty_analysis(self):
+    def open_uncertainty_analysis(self,*,observation=False):
         if self._busy:return False
+        def launch(source):
+            if observation:
+                from .observation_uncertainty_dialog import show_from_source
+                return show_from_source(self,source)
+            from .experiment_analysis_window import show_analysis_window
+            return show_analysis_window(self,source=source)
         if self._comparison_id:
             row=next((r for r in self.document.get('comparisons',[]) if r['id']==self._comparison_id),None)
             if not row or not row.get('retained_revision'):
@@ -1143,7 +1152,7 @@ class DataWindow(QMainWindow):
             reference={'kind':'comparison','document_id':self.document['id'],'document_kind':'data',
                 'saved_revision':row['retained_revision'],'comparison_id':row['id'],'result_sha256':row['result_sha256'],
                 'start':self.row_start.value(),'count':min(4096,self.row_count.value())}
-            show_analysis_window(self,source={'kind':'retained_comparison','reference':reference})
+            launch({'kind':'retained_comparison','reference':reference})
             return True
         try:source=deepcopy(self.selected_source())
         except ValueError as error:self.message.setText(str(error));return False
@@ -1151,7 +1160,7 @@ class DataWindow(QMainWindow):
         def opened(reference):
             if self._source_token()!=token:return
             from .experiment_analysis_window import show_analysis_window
-            show_analysis_window(self,source={'kind':'result_response','reference':reference,'response':source['response']})
+            launch({'kind':'result_response','reference':reference,'response':source['response']})
         return self._call(lambda:self.client.document_result_reference(source['document_id'],source['job_id']),opened)
 
     def read_calibrated_result(self):

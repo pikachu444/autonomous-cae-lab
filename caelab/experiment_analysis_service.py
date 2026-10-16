@@ -25,8 +25,9 @@ def plan_input_schemas():
         'channel': string, 'channel_sha256': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'}},
         ['kind', 'document_id', 'revision', 'channel', 'channel_sha256'])
     comparison = closed({'kind': {'const':'retained_comparison'},'reference':obj},['kind','reference'])
+    observation = closed({'kind': {'const':'observation_chain'}, 'base':obj, 'operands':obj},['kind','base','operands'])
     return {
-        'experiment_uncertainty': closed({'source': {'oneOf': [imported, processing, comparison]},
+        'experiment_uncertainty': closed({'source': {'oneOf': [imported, processing, comparison, observation]},
             'specification': obj, 'plan_mask': {'type': 'array', 'items': {'type': 'boolean'}}}, ['source', 'specification']),
         'identification_final': closed({'evidence_reference': obj,
             'relative_step': {'type': 'number', 'minimum': 1e-8, 'maximum': 1e-2},
@@ -80,6 +81,9 @@ def source_problem(workbench, inputs):
             raise ValueError('처리 채널의 원값/기여/선택이 달라졌습니다.')
         problem = processing_problem(channel, plan_mask=inputs.get('plan_mask'))
         problem['processing_record'] = plain(result['diagnostics']['processing_record'])
+    elif source['kind'] == 'observation_chain':
+        from .experiment_observation_uncertainty import read_problem
+        problem = read_problem(workbench,source,plan_mask=inputs.get('plan_mask'))
     elif source['kind'] == 'retained_comparison':
         from .experiment_comparison_uncertainty import read_problem
         problem = read_problem(workbench,source['reference'],plan_mask=inputs.get('plan_mask'))
@@ -310,6 +314,9 @@ def matches_followup_source(request, source_reference, *, workbench=None):
     inputs = request.get('inputs', {})
     if operation == 'experiment_uncertainty':
         source = inputs.get('source', {})
+        if source.get('kind')=='observation_chain':
+            original=deepcopy(request);original['inputs']['source']=deepcopy(source['base'])
+            return matches_followup_source(original,source_reference,workbench=workbench)
         selected = source.get('reference') if source.get('kind') == 'result_response' else None
         if source.get('kind') == 'retained_comparison' and workbench is not None:
             # The original A result anchors the established handoff receipt.

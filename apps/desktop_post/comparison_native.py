@@ -129,6 +129,8 @@ def execute(inputs, output, stage, settings):
         values = np.asarray(vtk_to_numpy(arr), dtype=np.float64).copy()
         if values.ndim == 1: values = values[:, None]
         masks = list(side.get('validity_masks', []))
+        if side.get('_strain_target') == 'green_lagrange' and side.get('spatial_mask') and side['spatial_mask'] not in masks:
+            masks.append(side['spatial_mask'])
         if side.get('validity_policy') != 'declared_array' and attrs.GetArray('vtkValidPointMask') is not None and 'vtkValidPointMask' not in masks:
             masks.append('vtkValidPointMask')
         valid = np.isfinite(values).all(axis=1)
@@ -140,13 +142,14 @@ def execute(inputs, output, stage, settings):
             valid &= np.isfinite(mask_values) & (mask_values != 0)
         original = values.copy()
         values[~valid] = np.nan
-        if side.get('_stress_target') == 'cauchy':
+        strain_conversion = side.get('_strain_target') == 'green_lagrange'
+        if strain_conversion or side.get('_stress_target') == 'cauchy':
             gradient = None
-            if physical.validate_stress_side(side) != 'cauchy':
+            if (strain_conversion and side.get('deformation_gradient') is not None) or (not strain_conversion and physical.validate_stress_side(side) != 'cauchy'):
                 specification = side['deformation_gradient']
                 field = attrs.GetArray(specification['array'])
                 if field is None or field.GetNumberOfComponents() != 9 or field.GetNumberOfTuples() != expected:
-                    raise ValueError('원 응력과 같은 위치·표본의 전체 9성분 F 배열을 읽을 수 없습니다.')
+                    raise ValueError('원 텐서와 같은 위치·표본의 전체 9성분 F 배열을 읽을 수 없습니다.')
                 gradient = np.asarray(vtk_to_numpy(field), dtype=np.float64).copy()
                 for name in specification['validity_masks']:
                     mask = attrs.GetArray(name)
@@ -155,7 +158,11 @@ def execute(inputs, output, stage, settings):
                     flags = np.asarray(vtk_to_numpy(mask))
                     valid &= np.isfinite(flags) & (flags != 0)
                 values[~valid] = np.nan
-            values = physical.stress_to_cauchy(values, side, gradient, target_unit=side['_stress_units'])
+            if strain_conversion:
+                from caelab.post_strain_measures import to_green_lagrange
+                values = to_green_lagrange(values, side, gradient, target_unit=side['_strain_units'])
+            else:
+                values = physical.stress_to_cauchy(values, side, gradient, target_unit=side['_stress_units'])
         detached = source.NewInstance(); detached.DeepCopy(source)
         detached.GetPointData().Initialize(); detached.GetCellData().Initialize(); detached.GetFieldData().Initialize()
         if side['association'] == 'CELLS':
@@ -210,7 +217,7 @@ def execute(inputs, output, stage, settings):
         source = inputs[0]; side, recipe = settings['side'], settings['recipe']
         output.DeepCopy(source)
         raw = _values(source, RAW)
-        effective = physical.effective_stress_side(side, recipe)
+        effective = physical.effective_side(side, recipe)
         transformed = physical.transform_values(raw, effective, recipe['target'], settings['response_rotation'])
         points = physical.transform_points(geometry(source)[0], side['coordinate_units'], recipe['a']['coordinate_units'],
                                           settings['geometry_rotation'], settings['translation'])
@@ -303,6 +310,9 @@ def _side(source, side, plan, recipe, which, namespace, proxies):
     side = deepcopy(side)
     if physical.stress_conversion_enabled(recipe):
         side.update(_stress_target='cauchy', _stress_units=recipe['target']['units'])
+    from caelab.post_strain_measures import enabled
+    if enabled(recipe):
+        side.update(_strain_target='green_lagrange', _strain_units=recipe['target']['units'])
     integral_capture = (recipe.get('conservation', {}).get('mode') == 'check_volume_integral'
                         and which == 'b' and side['association'] == 'CELLS')
     if integral_capture: side['_integral_capture'] = True
@@ -384,6 +394,8 @@ def build(a, b, recipe, namespace):
             'percent_definition': recipe.get('percent', 'disabled'),
             'sample_semantics': 'transformed_B_sampled_at_A',
             'declarations': declarations(recipe)}
+        from caelab.post_strain_measures import enabled, provenance
+        if enabled(recipe): summary['strain_conversion'] = provenance(recipe)
         summary['field_transfer'] = transfer_checks
         bundle['summary'] = summary
         summary.update(analysis._comparison_fingerprint(data, version=2))

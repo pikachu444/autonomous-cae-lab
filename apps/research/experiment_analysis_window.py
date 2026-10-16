@@ -92,6 +92,11 @@ class ExperimentAnalysisWindow(QDialog):
             button.setAutoDefault(False);button.clicked.connect(slot)
             (actions if button in (self.save,self.run,self.cancel,self.read) else followup).addWidget(button)
         self.message=QLabel('미제공값을 잔차·독립성·0으로 보충하지 않습니다.');self.message.setWordWrap(True);layout.addWidget(self.message)
+        from .observation_uncertainty_dialog import install_action
+        install_action(self,followup)
+        self.output_k=QLineEdit();self.output_k.setMaximumWidth(90);self.output_k.setPlaceholderText('미지정');self.output_k.textEdited.connect(self._changed)
+        self.output_k_label=QLabel('출력 포함인자 k');options.addWidget(self.output_k_label);options.addWidget(self.output_k)
+        self.output_k.hide();self.output_k_label.hide()
         self.timer=QTimer(self);self.timer.setInterval(700);self.timer.timeout.connect(self._poll)
         self._update_actions();self._call(self._load,self._loaded)
 
@@ -148,6 +153,7 @@ class ExperimentAnalysisWindow(QDialog):
         self._update_actions()
 
     def _label(self,v):
+        if v.get('label') and not v.get('operand'):return v['label']
         if v.get('operand'):
             return v['label']+' / '+('원행 '+str(v['source_row']) if 'source_row' in v else '표본 '+str(v['sample_index']+1))
         if v.get('source_row') is not None:return '원행 '+str(v['source_row'])
@@ -158,13 +164,17 @@ class ExperimentAnalysisWindow(QDialog):
         self._view,self.document,self.result,self.job_id,request,self.source,self.evidence_reference=payload
         self._loading_request=deepcopy(request)
         self._populating=True;p=self._view['problem'];final=self.evidence_reference is not None
-        difference=p.get('kind')=='comparison_difference'
-        self.cost.setVisible(not difference)
+        difference=p.get('kind')=='comparison_difference' or p.get('comparison_difference',False)
+        chain=p.get('kind')=='observation_chain'
+        self.cost.setVisible(not difference and not chain)
         self.tabs.setTabText(0,'원 측정값' if difference else '입력·계수')
         self.inputs.setHorizontalHeaderItem(0,QTableWidgetItem('원 측정값' if difference else '원값 / 계수'))
         self.setWindowTitle('최종점 계수 진단' if final else '차이의 불확실성' if p.get('kind')=='comparison_difference' else '제공 불확실성 전파')
         self.run.setText('최종점 진단' if final else '전파 계산')
         spec=(request or {}).get('inputs',{}).get('specification',{})
+        self.output_k.setVisible(chain);self.output_k_label.setVisible(chain)
+        self.output_k.setText(str(spec['output_coverage_factor']) if spec.get('output_coverage_factor') is not None else '')
+        self._observation_button.setVisible(not final)
         self.inputs.setRowCount(len(p['variables']))
         kind_width=0
         for i,v in enumerate(p['variables']):
@@ -200,10 +210,11 @@ class ExperimentAnalysisWindow(QDialog):
         self.summary.setText('최종 선택 계수의 원 피팅 잔차와 가중치, 포함 구간을 그대로 사용합니다.' if final else
             '관측 A와 예측 B의 저장된 정렬·선택으로 차이 B−A를 계산합니다. 두 자료 사이의 상관도 제공하세요.' if difference else
             '보존한 시험의 원 교정값과 제공 출력 불확실성은 바꾸지 않습니다.')
+        if chain:self.summary.setText('저장한 순서로 관측량을 변환합니다. 원 교정/처리 값과 비교는 보존하며, 제공한 불확실성과 공유 입력의 상관을 사용합니다.')
         self._populating=False;self.dirty=False
         if self.result:self._show_result(self.result)
         elif not final:
-            x,label=coordinate(p);self.figure.clear();ax=self.figure.subplots();ax.plot(x,p['values']);ax.set_xlabel(label);ax.set_ylabel(('차이 B−A' if difference else '원 교정값')+' ['+p['unit']+']');self.canvas.draw()
+            x,label=coordinate(p);self.figure.clear();ax=self.figure.subplots();ax.plot(x,p['values']);ax.set_xlabel(label);ax.set_ylabel(('차이 B−A' if difference else '관측 변환값' if chain else '원 교정값')+' ['+p['unit']+']');self.canvas.draw()
         if self._view.get('interrupted_without_result'):
             self.message.setText('이전 계산이 중단되어 결과가 없습니다. 입력을 확인한 뒤 새 계산을 명시적으로 실행하세요.')
         self._update_actions()
@@ -252,6 +263,7 @@ class ExperimentAnalysisWindow(QDialog):
         previous=deepcopy((self._loading_request or {}).get('inputs',{}))
         specification=deepcopy(previous.get('specification',{}))
         specification.update(uncertainties=uncertainties,dependence=dep,axis_uncertainty=self.axis.currentData())
+        if p.get('kind')=='observation_chain':specification['output_coverage_factor']=number_or_raw(self.output_k.text().strip()) if self.output_k.text().strip() else None
         return uncertainty_request(self.source,specification,plan_mask=previous.get('plan_mask'),
             purpose=(self._loading_request or {}).get('purpose','제공 불확실성 전파'))
 
@@ -303,7 +315,7 @@ class ExperimentAnalysisWindow(QDialog):
         current=(self.results.currentRow(),self.results.currentColumn()) if same_job else (-1,-1)
         scroll=(self.results.verticalScrollBar().value(),self.results.horizontalScrollBar().value())
         self.result=result;content=list(blocks(result))
-        if result.get('experiment_analysis',{}).get('source_problem',{}).get('kind')=='comparison_difference':
+        if result.get('experiment_analysis',{}).get('source_problem',{}).get('kind') in ('comparison_difference','observation_chain'):
             self.results.setMinimumHeight(125)
         tables=[v for k,v in content if k=='table'];table=tables[-1] if tables else ([],[])
         headers,rows=table;self.results.setColumnCount(len(headers));self.results.setHorizontalHeaderLabels(headers);self.results.setRowCount(len(rows))
