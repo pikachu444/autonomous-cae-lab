@@ -152,6 +152,8 @@ class Project:
                 self.owner.native_identity_initialization = deepcopy(manifest.get('_portable_identity_initialization', []))
             if 'shell_binding_evidence' in manifest:
                 self.owner.shell.restore_binding_evidence(manifest['shell_binding_evidence'])
+                if manifest.get('metadata', {}).get('composite_shells'):
+                    self.owner.composite.restore_binding_evidence(manifest['shell_binding_evidence'])
             if manifest.get('kind') == native_cad.KIND and not manifest.get('new_design_branch'):
                 self.last_save = {'revision': manifest['revision'], 'opened_source': source,
                                   'unavailable_dependencies': manifest.get('unavailable_dependencies', []),
@@ -283,7 +285,8 @@ class Project:
                     linked_owners.append((other, other.generation))
             # Preserve digest-authenticated shell BREP preimages before saveCopy.
             # This does not change the draft, its binding, or native geometry.
-            shell_evidence = owner.shell.export_binding_evidence() if metadata.get('shells') else None
+            shell_evidence = (owner.composite.export_binding_evidence(include_shells=True) if metadata.get('composite_shells')
+                              else owner.shell.export_binding_evidence() if metadata.get('shells') else None)
             generations = owner.generation
             graph_version = self.graph_version()
             revision = 'R' + uuid.uuid4().hex

@@ -139,8 +139,8 @@ def _unpinned_job_inputs(document: dict):
             # These actual Workbench._settings contracts consume a global
             # registered input/design, NOT an owner-retained Data result. Merely
             # copying a Plan (even alongside a Data doc) cannot rebind them.
-            if value.get('backend') in {'files.table', 'structure.calculix.frozen', 'structure.codeaster.frozen', 'structure.calculix.contact',
-                    'structure.calculix.shell', 'structure.calculix.beam', 'structure.calculix.design'}:
+            if value.get('backend') in {'files.table', 'structure.calculix.frozen', 'structure.codeaster.frozen', 'structure.calculix.contact', 'structure.calculix.pretension',
+                    'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.calculix.design'}:
                 yield path + '/settings'
             for field in ('job_id', 'training_job', 'holdout_job', 'batch_job'):
                 if field in value:

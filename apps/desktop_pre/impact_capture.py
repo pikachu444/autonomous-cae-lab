@@ -7,7 +7,7 @@ from .freeze_contact import _refs
 from .fem_edit import _native_type,_target
 
 
-def capture(owner,analysis_id,solver_id):
+def capture(owner,analysis_id,solver_id,*,_connector_linear=False):
     import FreeCAD as App
     from femtools import membertools
     from femmesh import meshtools
@@ -39,8 +39,12 @@ def capture(owner,analysis_id,solver_id):
         if source is None or source.Document is not doc or source.Name in bodies or len(source.Shape.Solids)!=1 or not source.Shape.copy(True,False).isValid():
             raise ValueError('물체별로 유효한 한 솔리드와 독립 메시가 필요합니다')
         binding=owner.mesh_bindings.validate(mesh)
-        quality=owner.fem.quality(mesh,offset=0,limit=1)
-        if quality['bad_element_count'] or not mesh.FemMesh.Volumes: raise ValueError(mesh.Label+': 메시 품질을 수정하세요')
+        if _connector_linear:
+            from .connector_fe_native import validate_native_mesh
+            validate_native_mesh(mesh)
+        else:
+            quality=owner.fem.quality(mesh,offset=0,limit=1)
+            if quality['bad_element_count'] or not mesh.FemMesh.Volumes: raise ValueError(mesh.Label+': 메시 품질을 수정하세요')
         getter=MeshSetsGetter(analysis,solver,mesh,membertools.AnalysisMember(analysis))
         _,ids,is_sub=meshtools.get_ccx_elements(getter,(source,'Solid1'))
         if is_sub or set(map(int,ids))!=set(map(int,mesh.FemMesh.Volumes)): raise ValueError('실제 물체와 메시 소유권이 다릅니다')
@@ -50,12 +54,16 @@ def capture(owner,analysis_id,solver_id):
             'elements':[{'element_id':int(e),'type':'C3D10','native_node_ids':list(map(int,mesh.FemMesh.getElementNodes(e)))}
                         for e in sorted(mesh.FemMesh.Volumes)]})
         bodies[source.Name]={'object':source,'getter':getter,'mesh':mesh,'binding':binding,'target':_target(source,['Solid1'])}
-    assembled=separate_meshes(rows,minimum_bodies=1)
+    if _connector_linear:
+        from .connector_fe_native import assemble
+        assembled=assemble(rows,minimum_bodies=1)
+    else:
+        assembled=separate_meshes(rows,minimum_bodies=1)
     lines=['*HEADING','Native FE explicit capture','*NODE']
     lines += [str(r['node_id'])+','+','.join(format(x,'.17g') for x in r['position_mm']) for r in assembled['nodes']]
     names={body:'BODY'+str(i) for i,body in enumerate(bodies,1)}
     for body,name in names.items():
-        lines.append('*ELEMENT,TYPE=C3D10,ELSET='+name)
+        lines.append('*ELEMENT,TYPE='+('C3D4' if _connector_linear else 'C3D10')+',ELSET='+name)
         lines += [str(r['element_id'])+','+','.join(map(str,r['node_ids'])) for r in assembled['elements'] if r['body_id']==body]
         lines.append('*NSET,NSET='+name)
         node_ids=list(assembled['body_maps'][body]['nodes'].values())

@@ -3,7 +3,7 @@ import re
 
 
 def uses_extensions(model):
-    return bool(model.get('periodic_constraints')) or any(
+    return bool(model.get('pretension_sections')) or bool(model.get('periodic_constraints')) or any(
         'contact_states' in row for row in model.get('analysis_steps', {}).get('steps', []))
 
 

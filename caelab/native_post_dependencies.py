@@ -598,7 +598,7 @@ def declared_companions(entry, metadata, registration_origin=None, source_pins=N
         from . import dynamic_locations
         dynamic_locations.verify_saved_source(entry, metadata, registration_origin, source_pins, full=True)
         paths.extend(dynamic_locations.load(entry, metadata, verification='full')['paths'])
-    for key, module in (('contact_inspection', 'contact_inspection'), ('shell_inspection', 'shell_inspection')):
+    for key, module in (('contact_inspection', 'contact_inspection'), ('shell_inspection', 'shell_inspection'), ('composite_inspection', 'composite_shell_results')):
         if key in metadata:
             from importlib import import_module
             bundle = import_module('.' + module, __package__).load(entry, metadata[key])
@@ -807,7 +807,7 @@ def post_project_files(project_path, *, approved_roots, limits, _replacements=No
                 data = by_path.get(str(Path(record['entry_path']).resolve()))
                 if data is not None and child != data['member_id']:
                     edge(data['member_id'], child, {'codec': 'post_manifest_v1', 'field': 'declared_companion/' + str(companion.name)}, str(companion))
-            for kind in ('dynamic_locations', 'contact_inspection', 'shell_inspection', 'beam_inspection', 'curve'):
+            for kind in ('dynamic_locations', 'contact_inspection', 'shell_inspection', 'composite_inspection', 'beam_inspection', 'curve'):
                 declaration = (record.get('native_metadata') or {}).get(kind)
                 if not isinstance(declaration, dict):
                     continue

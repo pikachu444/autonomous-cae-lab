@@ -23,14 +23,16 @@ from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 from apps.desktop_pre.convergence import OPERATIONS as CONVERGENCE_OPERATIONS
 from apps.desktop_pre.beam_edit import BeamEditor, OPERATIONS as BEAM_OPERATIONS
 from apps.desktop_pre.research_inputs import ResearchInputs, OPERATIONS as RESEARCH_OPERATIONS
+from apps.desktop_pre.connector_edit import ConnectorEditor, OPERATIONS as CONNECTOR_OPERATIONS, READ_ONLY as CONNECTOR_READ_ONLY
 from apps.desktop_pre.dynamic_edit import DynamicEditor, OPERATIONS as DYNAMIC_OPERATIONS, READ_ONLY as DYNAMIC_READ_ONLY
 from apps.desktop_pre.assembly_pose_candidate import PoseCandidates, OPERATIONS as POSE_CANDIDATE_OPERATIONS, READ_ONLY as POSE_CANDIDATE_READ_ONLY
 from apps.desktop_pre.shell_edit import ShellEditor, OPERATIONS as SHELL_OPERATIONS, READ_ONLY as SHELL_READ_ONLY
+from apps.desktop_pre.composite_edit import CompositeEditor, OPERATIONS as COMPOSITE_OPERATIONS, READ_ONLY as COMPOSITE_READ_ONLY
 
 
-OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.impact.capture',
+OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.pretension.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
-              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS + POSE_CANDIDATE_OPERATIONS + DYNAMIC_OPERATIONS
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS + POSE_CANDIDATE_OPERATIONS + DYNAMIC_OPERATIONS + CONNECTOR_OPERATIONS + COMPOSITE_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -64,8 +66,10 @@ class Owner:
         self.fem = FEMEditor(self)
         self.beam = BeamEditor(self)
         self.dynamic = DynamicEditor(self)
+        self.connector = ConnectorEditor(self)
         self.research = ResearchInputs(self)
         self.shell = ShellEditor(self)
+        self.composite = CompositeEditor(self)
         self.pose_candidates = PoseCandidates(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
@@ -274,7 +278,8 @@ class Owner:
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
                 from caelab.material_fe_transfer import READ_ONLY as LAW_READ_ONLY
                 readonly |= LAW_READ_ONLY
-                readonly |= SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY | DYNAMIC_READ_ONLY
+                readonly |= {'pre.fem.pretension_read', 'pre.fem.pretension_faces', 'pre.fem.pretension_highlight'}
+                readonly |= COMPOSITE_READ_ONLY | SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY | DYNAMIC_READ_ONLY | set(CONNECTOR_READ_ONLY)
                 if self.pose_candidates.busy and operation not in readonly | {'pre.assembly_candidate.cancel', 'document.activate'}:
                     raise ValueError('해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
                 if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
@@ -320,8 +325,12 @@ class Owner:
                         raise ValueError('Choose an exact Analysis and mesh-reference solver')
                     from .impact_capture import capture
                     payload = capture(self, args['analysis_id'], args['solver_id'])
+                elif operation in CONNECTOR_OPERATIONS:
+                    payload = self.connector.dispatch(operation, args, target)
                 elif operation in DYNAMIC_OPERATIONS:
                     payload = self.dynamic.dispatch(operation, args, target)
+                elif operation in COMPOSITE_OPERATIONS:
+                    payload = self.composite.dispatch(operation, args, target)
                 elif operation in SHELL_OPERATIONS:
                     payload = self.shell.dispatch(operation, args, target)
                 elif operation in BEAM_OPERATIONS:
@@ -379,7 +388,7 @@ class Owner:
                         raise ValueError('Choose an exact native Analysis')
                     diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
                     payload = {'diagnostics': diagnostics, 'can_freeze': not diagnostics, 'engineering_release': 'UNKNOWN'}
-                elif operation in {'pre.freeze', 'pre.contact.freeze'}:
+                elif operation in {'pre.freeze', 'pre.contact.freeze', 'pre.pretension.freeze'}:
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
                     from caelab.material_fe_transfer import guard_other_export
@@ -391,11 +400,21 @@ class Owner:
                     from apps.desktop_pre.beam_menu import uses_beam
                     if uses_beam(self._object(args['analysis_id']), self.read_metadata()):
                         raise ValueError('빔 설정에서 입력을 생성하세요. 일반 FEM 입력으로 빔 끝 모멘트를 생략하지 않습니다.')
+                    has_pretension = (args['analysis_id'] in self.read_metadata().get('pretension_editors',{}) or
+                        any(row.get('analysis_id') == args['analysis_id']
+                            for row in self.read_metadata().get('pretension_sections', [])))
+                    if has_pretension and operation != 'pre.pretension.freeze':
+                        raise ValueError('체결 조건이 있는 해석은 체결 입력 생성/계산을 사용하세요.')
                     from apps.desktop_pre.freeze_analysis import freeze_analysis
                     diagnostics = (self.fem.validate_for_run(self._object(args['analysis_id']))
-                                   if operation == 'pre.freeze' else [])
+                                   if operation in {'pre.freeze', 'pre.pretension.freeze'} else [])
                     if diagnostics:
                         raise ValueError('FEM_INPUT_INVALID: ' + '; '.join(item['path'] + ': ' + item['message'] for item in diagnostics))
+                    if operation == 'pre.pretension.freeze':
+                        from apps.desktop_pre.pretension_native import read as pretension_read
+                        state = pretension_read(self.fem, self._object(args['analysis_id']))
+                        if not state['sections'] or any(row['errors'] for row in state['sections']):
+                            raise ValueError('체결 절단면과 조임값을 적용하고 진단을 확인하세요.')
                     saved = self.project.save()
                     frozen_generation = self.generation
                     from apps.desktop_pre.nonlinear_material import uses_solid_route
@@ -499,6 +518,7 @@ class Owner:
         self.pose_candidates.close()
         self.fem.close()
         self.shell.close()
+        self.composite.close()
         if not self.closed:
             self.motion.close()
         self.App.removeDocumentObserver(self)

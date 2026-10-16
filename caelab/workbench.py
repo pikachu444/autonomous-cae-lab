@@ -533,6 +533,11 @@ class Workbench:
             entry, metadata = explicit_manifest(source)
             return register_native_input(self.root, roots[root_id], entry, 'D'+uuid.uuid4().hex,
                 root_id=root_id, relative=relative, limit=limit, native_metadata=metadata)
+        if source.name == 'composite_inspection.json':
+            from .composite_shell_results import explicit_manifest
+            entry, metadata = explicit_manifest(source)
+            return register_native_input(self.root, roots[root_id], entry, 'D'+uuid.uuid4().hex,
+                root_id=root_id, relative=relative, limit=limit, native_metadata=metadata)
         if source.name == 'shell_inspection.json':
             from .shell_inspection import explicit_manifest
             entry, metadata = explicit_manifest(source)
@@ -578,7 +583,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam', 'native_curve'}:
+        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector', 'native_curve'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -613,7 +618,7 @@ class Workbench:
                            'bytes': m['bytes'], 'sha256': m['sha256']}
                           for m in verified.snapshot['members'] if m['storage'] == 'file'],
                 'registration_origin': deepcopy(receipt.get('origin')), 'native_reference': deepcopy(verified.reference)}
-        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam', 'native_curve'}:
+        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector', 'native_curve'}:
             raise ValueError('Select a registered native result or FEM snapshot')
         result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
@@ -622,7 +627,7 @@ class Workbench:
         result['registration_origin'] = deepcopy(receipt.get('origin'))
         if receipt.get('candidate_branch'):
             result['candidate_branch'] = deepcopy(receipt['candidate_branch'])
-        if receipt['kind'] in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'}:
+        if receipt['kind'] in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
         if receipt['kind'] == 'native_design':
@@ -775,7 +780,7 @@ class Workbench:
             verified = registered_input(context, identifier, full=True)
             return {'id': identifier, 'name': receipt['name'], 'kind': receipt['kind'], 'format': receipt['format'],
                     **read_registered(context, verified.reference)}
-        if receipt.get('kind') in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'}:
+        if receipt.get('kind') in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector'}:
             return {'id':identifier,'kind':receipt['kind'],'format':receipt['format'],
                     'name':receipt['name'],'file_count':len(receipt['files']),
                     'bytes':receipt['total_bytes'],'sha256':receipt['sha256'],
@@ -966,7 +971,7 @@ class Workbench:
         actual_threads=max(actual_threads,execution.get('workers',1)*external.get('threads',1))
         registered=next((row for row in self.backends() if row['id']==arguments.get('backend')), {})
         native_threads=registered.get('threads',1)
-        if arguments.get('backend')=='explicit.opencourant.model':
+        if arguments.get('backend') in {'explicit.opencourant.model','explicit.opencourant.connector'}:
             # This adapter now honors the admitted thread count; keep its old
             # two-thread default when no operator reservation was supplied.
             native_threads=max(native_threads,requested.get('threads',2))
@@ -1153,14 +1158,19 @@ class Workbench:
         if backend == 'structure.calculix.design':
             from .cad_numerical import resolve_settings
             return resolve_settings(self, settings)
-        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
+        if backend == 'explicit.opencourant.connector' and set(settings) == {'data_id'}:
+            identifier=settings['data_id'];path=self.input_path(identifier)
+            receipt=load_json(self.root/'inputs'/identifier/'input.json')
+            if receipt.get('kind')!='frozen_connector':raise ValueError('Select a registered connector input')
+            return {'data_id':identifier,'snapshot_path':str(path)}
+        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')
             identifier=settings['data_id']
             path=self.input_path(identifier)
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
-            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
-                                      'structure.calculix.shell':'frozen_shell', 'structure.calculix.beam':'frozen_beam'}[backend]:
+            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
+                                      'structure.calculix.shell':'frozen_shell', 'structure.calculix.shell.composite':'frozen_composite_shell', 'structure.calculix.beam':'frozen_beam'}[backend]:
                 raise ValueError('Select a registered frozen FEM snapshot')
             return {'data_id':identifier,'snapshot_path':str(path)}
         if backend=='files.table':
@@ -1215,7 +1225,12 @@ class Workbench:
             from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
             validate_detail_arguments(self.numerical_documents, arguments, allow_active=True)
             validate_backend_binding(self, arguments)
-        if backend is not None and operation != 'simulation.run':
+        domain_adapter = None
+        if operation == 'evaluate' and backend not in {'evaluation.definition', 'material.mfront.prepared'}:
+            candidate = get_backend(backend)
+            if not callable(candidate) and not callable(getattr(candidate, 'prepare', None)):
+                domain_adapter = candidate
+        if backend is not None and operation != 'simulation.run' and domain_adapter is None:
             args['settings']=self._settings(backend,args.get('settings',{}))
         if operation=='evaluation.coupled':
             from .research_workflows import execute_definition
@@ -1224,7 +1239,7 @@ class Workbench:
             if set(args)!={'backend','settings'}:
                 raise ValueError('Simulation requires only its declared backend and frozen settings')
             from .research_execution import run_domain
-            if args['backend']=='explicit.opencourant.model':
+            if args['backend'] in {'explicit.opencourant.model','explicit.opencourant.connector'}:
                 return run_domain(self,args,self.root/'results'/identifier,
                     runtime=self.manager.status(identifier)['resources'])
             return run_domain(self,args,self.root/'results'/identifier)
@@ -1248,14 +1263,17 @@ class Workbench:
                 from .adapters.native_evaluation import NativeEvaluationFactory
                 return evaluate(NativeEvaluationFactory(backend,self.root/'native'/identifier),
                                 args.get('settings',{}),values=args.get('values'))
-            adapter = get_backend(backend)
+            adapter = domain_adapter if domain_adapter is not None else get_backend(backend)
             if not callable(adapter) and not callable(getattr(adapter, 'prepare', None)):
                 from .model_parameters import bind
                 from .research_execution import run_domain
                 settings = args.get('settings', {})
                 if args.get('values'):
                     settings = bind(adapter, settings, args['values'])
-                return run_domain(self, {'backend': backend, 'settings': settings}, self.root/'results'/identifier)
+                runtime = (self.manager.status(identifier)['resources']
+                           if backend in {'explicit.opencourant.model', 'explicit.opencourant.connector'} else None)
+                return run_domain(self, {'backend': backend, 'settings': settings}, self.root/'results'/identifier,
+                                  runtime=runtime)
             return evaluate(backend,args.get('settings',{}),values=args.get('values'))
         if operation=='run':
             if backend=='material.mfront.prepared':
@@ -1267,15 +1285,15 @@ class Workbench:
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
             result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
-                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
-                            'structure.calculix.shell':'frozen_shell', 'structure.calculix.beam':'frozen_beam'}[backend]}
-            publish_contact_prefix = (backend=='structure.calculix.contact' and
+                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
+                            'structure.calculix.shell':'frozen_shell', 'structure.calculix.shell.composite':'frozen_composite_shell', 'structure.calculix.beam':'frozen_beam'}[backend]}
+            publish_contact_prefix = (backend in {'structure.calculix.contact', 'structure.calculix.pretension'} and
                 result.get('partial_result',{}).get('status')=='CONVERGED_PREFIX' and
                 result.get('partial_result',{}).get('complete_analysis') is False)
-            publish_shell_prefix = (backend=='structure.calculix.shell' and bool(result.get('post_artifact')))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'} and (
+            publish_shell_prefix = (backend in {'structure.calculix.shell','structure.calculix.shell.composite'} and bool(result.get('post_artifact')))
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen'} and (
                     result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix or publish_shell_prefix or
                     (backend=='structure.calculix.beam' and result.get('post_artifact') and
                      result.get('execution_status') in {'FAILED','CANCELLED'})):

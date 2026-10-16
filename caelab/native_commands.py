@@ -42,6 +42,11 @@ CAPABILITIES = {
 }
 from apps.desktop_pre.shell_edit import OPERATIONS as SHELL_OPERATIONS
 CAPABILITIES['pre'].update(SHELL_OPERATIONS)
+from .pretension import OPERATIONS as PRETENSION_OPERATIONS
+CAPABILITIES['pre'].update(PRETENSION_OPERATIONS)
+CAPABILITIES['pre'].add('pre.pretension.freeze')
+from apps.desktop_pre.composite_edit import OPERATIONS as COMPOSITE_OPERATIONS
+CAPABILITIES['pre'].update(COMPOSITE_OPERATIONS)
 # Capability names are the native adapter contract, not a native import.
 # Keep independent research owners usable without importing the optional M4
 # implementation. Names match 1e3025f apps/desktop_pre/assembly_pose_candidate.py.
@@ -59,6 +64,8 @@ CAPABILITIES['pre'].update(PERIODIC_OPERATIONS)
 
 from .beam_model import OPERATIONS as BEAM_OPERATIONS
 CAPABILITIES['pre'].update(BEAM_OPERATIONS)
+from .connector_model import OPERATIONS as CONNECTOR_OPERATIONS
+CAPABILITIES['pre'].update(CONNECTOR_OPERATIONS)
 from .dynamic_model import OPERATIONS as DYNAMIC_OPERATIONS
 CAPABILITIES['pre'].update(DYNAMIC_OPERATIONS)
 

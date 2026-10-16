@@ -271,6 +271,8 @@ def render_steps(model):
             for i,(name,keys) in enumerate(groups.items()):
                 lines.append(card+(',OP=NEW' if i==0 else '')+',AMPLITUDE='+name)
                 lines += [str(n)+','+str(d)+(','+str(d) if card=='*BOUNDARY' else '')+',1' for n,d in keys]
+        from .pretension_deck import step_cards as pretension_step_cards
+        lines += pretension_step_cards(model, step['index'])
         frequency = ',FREQUENCY='+str(step['output_frequency'])
         has_tie = any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
         from .contact_deck import solid_output_cards
@@ -279,6 +281,8 @@ def render_steps(model):
         lines += restart_write(model, step, first)
         from .contact_activation import output_cards as contact_output_cards
         lines += contact_output_cards(model['contacts'], schedule, step['index'], frequency)
+        from .pretension_deck import output_cards as pretension_output_cards
+        lines += pretension_output_cards(model, frequency)
         lines.append('*END STEP')
     return lines
 

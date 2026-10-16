@@ -1096,6 +1096,7 @@ def install_file_actions(config, *, connection=None, owner=None):
             found = Owner(doc, Path(state['config']['output'])/'native-saves', App=App, Gui=Gui)
             local_owners.append(found)
         return found
+    state['current_owner'] = current
     def context_for(active):
         if hasattr(active, 'portable_context'):
             return active.portable_context
@@ -1118,6 +1119,12 @@ def install_file_actions(config, *, connection=None, owner=None):
         active = None
         try:
             active = current()
+            if getattr(active, '_portable_pending_save', None) is None:
+                from .connector_menu import store_native_pending
+                store_native_pending(Gui, active)
+            if getattr(active, '_portable_pending_save', None) is None:
+                from .pretension_controls import store_native_pending
+                store_native_pending(active, connection=state['connection'])
             ctx = context_for(active)
             pending = getattr(active, '_portable_pending_save', None)
             if pending is not None:

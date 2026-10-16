@@ -140,7 +140,8 @@ def test_client_http_and_cli_open_the_same_owner_without_running(native, tmp_pat
         assert not thread.is_alive()
 
 
-def test_simulation_validates_the_public_input_before_resolving_it_once(native, tmp_path, monkeypatch):
+@pytest.mark.parametrize('operation', ['simulation.run', 'evaluate'])
+def test_simulation_validates_the_public_input_before_resolving_it_once(native, tmp_path, monkeypatch, operation):
     from caelab import research_execution
     allow_routing_profile(monkeypatch)
     def validate(value):
@@ -162,13 +163,13 @@ def test_simulation_validates_the_public_input_before_resolving_it_once(native, 
         completed_export(wb, native)
         opened = wb.desktop.open_frozen_simulation('Cfreeze')
         draft = opened['document']['draft']
-        result = wb._execute('simulation.run', draft, 'Jexplicit')
+        result = wb._execute(operation, draft, 'Jexplicit')
         assert result['execution_status'] == 'SUCCEEDED'
         assert calls == [('structure.calculix.frozen', {
             'data_id': opened['input']['id'],
             'snapshot_path': str(wb.input_path(opened['input']['id']))})]
         with pytest.raises(ValueError, match='public declaration'):
-            wb._execute('simulation.run', {'backend': draft['backend'],
+            wb._execute(operation, {'backend': draft['backend'],
                 'settings': calls[0][1]}, 'Jinvalid')
         assert len(calls) == 1
     finally:

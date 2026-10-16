@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sys
+from copy import deepcopy
 from types import SimpleNamespace as NS
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
@@ -82,7 +83,7 @@ def test_closed_pre_opens_explicit_retained_copy_in_new_native_session(client, p
     desktop.open_origin(client, 'Jrun')
     command = processes[0][0]
     assert command[-5:] == ['pre', '--source', str(Path(client.context['repo_root']) / 'retained.FCStd'),
-                           '--source-label', 'Retained design copy — Jrun']
+                           '--source-label', '해석 입력 모델']
     assert client.commands == []
 
 
@@ -368,8 +369,15 @@ def test_post_document_activation_requires_explicit_native_owner_capability(clie
 
 
 @pytest.mark.parametrize('state', ['SUCCEEDED', 'FAILED', 'CANCELLED'])
-@pytest.mark.parametrize('family', ['contact', 'shell', 'beam'])
-def test_attempt_closed_origin_uses_exact_retained_design(client, processes, state, monkeypatch, family):
+@pytest.mark.parametrize('backend,kind', [
+    ('structure.calculix.contact', 'frozen_contact'),
+    ('structure.calculix.shell', 'frozen_shell'),
+    ('structure.calculix.beam', 'frozen_beam'),
+    ('structure.calculix.shell.composite', 'frozen_composite_shell'),
+    ('structure.calculix.pretension', 'frozen_contact'),
+    ('explicit.opencourant.connector', 'frozen_connector'),
+])
+def test_attempt_closed_origin_uses_exact_retained_design(client, processes, state, monkeypatch, backend, kind):
     from caelab.desktop_links import DesktopLinks
 
     def disconnected(identifier):
@@ -379,7 +387,7 @@ def test_attempt_closed_origin_uses_exact_retained_design(client, processes, sta
     links = DesktopLinks.__new__(DesktopLinks)
     links.workbench = NS(native_commands=NS(read=disconnected))
     job = {'id': 'Jcontact', 'state': state, 'result_refs': [],
-           'arguments': {'backend': 'structure.calculix.' + family,
+           'arguments': {'backend': backend,
                          'settings': {'data_id': 'Dcontact'},
                          'origin': {'kind': 'pre', 'document_id': 'Pcontact',
                                     'session_id': 'Sclosed', 'generation': 9}}}
@@ -389,7 +397,7 @@ def test_attempt_closed_origin_uses_exact_retained_design(client, processes, sta
     reads = []
     def retained(identifier):
         reads.append(identifier)
-        return {'id': identifier, 'kind': 'frozen_' + family, 'editable_path': path}
+        return {'id': identifier, 'kind': kind, 'editable_path': path}
     client.native_input = retained
     navigation = links.navigation('Jcontact')
     assert navigation['origin_document'] is None
@@ -400,7 +408,7 @@ def test_attempt_closed_origin_uses_exact_retained_design(client, processes, sta
     assert result['status'] == 'LAUNCH_REQUESTED'
     assert reads == ['Dcontact']
     assert processes[0][0][-5:] == [
-        'pre', '--source', path, '--source-label', 'Retained design copy — Jcontact']
+        'pre', '--source', path, '--source-label', '해석 입력 모델']
     assert not client.commands
     assert job['state'] == state
 
@@ -409,6 +417,23 @@ def test_closed_origin_still_rejects_unrelated_native_receipt_kind(client, proce
     client.navigation.update(origin_document=None, retained_design_input_id='Dresult')
     client.native_input = lambda identifier: {
         'id': identifier, 'kind': 'external_result', 'editable_path': 'wrong.FCStd'}
-    with pytest.raises(ValueError, match='editable FEM copy'):
+    with pytest.raises(ValueError, match='해석 입력 모델'):
         desktop.open_origin(client, 'Jcontact')
     assert not processes and not client.commands
+
+
+def test_inline_connector_navigation_has_no_retained_cad_copy():
+    from caelab.desktop_links import DesktopLinks
+    from test_connector_model import draft
+    links = DesktopLinks.__new__(DesktopLinks)
+    links.workbench = NS()
+    job = {'id': 'Jinline', 'state': 'SUCCEEDED', 'result_refs': [],
+           'arguments': {'backend': 'explicit.opencourant.connector',
+                         'settings': {'connector': draft()}}}
+    before = deepcopy(job)
+    links.job_record = lambda _: job
+    links.research_job = lambda _: None
+    navigation = links.navigation('Jinline')
+    assert navigation['retained_design_input_id'] is None
+    assert navigation['origin_document'] is None
+    assert job == before

@@ -1,0 +1,78 @@
+ ELEMENT            1 with label "S8R    C" and with nodes:
+          1          3         17         15          2         11         16         10
+  is expanded into a "C3D20RLC" element with topology:
+         38         56        182        164         40         58        184        166         47        128
+        173        119         49        130        175        121         39         57        183        165
+
+ ELEMENT            2 with label "S8R    C" and with nodes:
+          3          5         19         17          4         12         18         11
+  is expanded into a "C3D20RLC" element with topology:
+         56         74        200        182         58         76        202        184         65        137
+        191        128         67        139        193        130         57         75        201        183
+
+ ELEMENT            3 with label "S8R    C" and with nodes:
+          5          7         21         19          6         13         20         12
+  is expanded into a "C3D20RLC" element with topology:
+         74         92        218        200         76         94        220        202         83        146
+        209        137         85        148        211        139         75         93        219        201
+
+ ELEMENT            4 with label "S8R    C" and with nodes:
+          7          9         23         21          8         14         22         13
+  is expanded into a "C3D20RLC" element with topology:
+         92        110        236        218         94        112        238        220        101        155
+        227        146        103        157        229        148         93        111        237        219
+
+ ELEMENT            5 with label "S8R    C" and with nodes:
+         15         17         31         29         16         25         30         24
+  is expanded into a "C3D20RLC" element with topology:
+        164        182        308        290        166        184        310        292        173        254
+        299        245        175        256        301        247        165        183        309        291
+
+ ELEMENT            6 with label "S8R    C" and with nodes:
+         17         19         33         31         18         26         32         25
+  is expanded into a "C3D20RLC" element with topology:
+        182        200        326        308        184        202        328        310        191        263
+        317        254        193        265        319        256        183        201        327        309
+
+ ELEMENT            7 with label "S8R    C" and with nodes:
+         19         21         35         33         20         27         34         26
+  is expanded into a "C3D20RLC" element with topology:
+        200        218        344        326        202        220        346        328        209        272
+        335        263        211        274        337        265        201        219        345        327
+
+ ELEMENT            8 with label "S8R    C" and with nodes:
+         21         23         37         35         22         28         36         27
+  is expanded into a "C3D20RLC" element with topology:
+        218        236        362        344        220        238        364        346        227        281
+        353        272        229        283        355        274        219        237        363        345
+
+ a MEAN ROTATION MPC was generated in node            1
+                 about the axis (   1.0000000000000000      ,   0.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node            1
+                 about the axis (   0.0000000000000000      ,   1.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           10
+                 about the axis (   1.0000000000000000      ,   0.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           10
+                 about the axis (   0.0000000000000000      ,   1.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           15
+                 about the axis (   1.0000000000000000      ,   0.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           15
+                 about the axis (   0.0000000000000000      ,   1.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           24
+                 about the axis (   1.0000000000000000      ,   0.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           24
+                 about the axis (   0.0000000000000000      ,   1.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           29
+                 about the axis (   1.0000000000000000      ,   0.0000000000000000      ,   0.0000000000000000      )
+
+ a MEAN ROTATION MPC was generated in node           29
+                 about the axis (   0.0000000000000000      ,   1.0000000000000000      ,   0.0000000000000000      )
+

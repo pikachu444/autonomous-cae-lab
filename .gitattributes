@@ -177,3 +177,7 @@ examples/native-project-post/saved-example/** -text -whitespace
 
 # Native RAD cards and fixed-width fields retain their original bytes.
 examples/impact/input_a/native_pair/*.rad -text -whitespace
+
+# Keep original fixed-width laminate outputs and their source bindings unchanged.
+tests/fixtures/composite_shell_ccx222/** -text -whitespace
+tests/fixtures/pretension/** -text -whitespace

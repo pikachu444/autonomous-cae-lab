@@ -88,6 +88,15 @@ def publish_fields(workbench, result, output):
             continue
         from .physical_fields import write_field
         sets.append(write_field(name, response, output / ('post-' + check_id(name))))
+    # Frozen native adapters retain their established single-artifact contract.
+    legacy = ([result['post_artifact']] if result.get('post_artifact') else [])
+    legacy += result.get('additional_post_artifacts', [])
+    for entry in legacy:
+        from .workbench import contained
+        source = contained(output / 'calculation', entry['relative'])
+        if source.stat().st_size != entry['bytes'] or evaluation.file_hash(source) != entry['sha256']:
+            raise ValueError('Native Post artifact changed before registration')
+        sets.append({'path': source, 'native_metadata': entry.get('native_metadata')})
     # Adapter-produced mixed native FE fields use the same immutable registrar.
     # No arbitrary caller path; only a contained, hashed artifact of this run.
     for entry in result.get('post_artifacts', []):

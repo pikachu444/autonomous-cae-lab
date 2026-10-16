@@ -67,6 +67,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.steps_page = add_steps_page(self, QtWidgets, QtCore)
             from .periodic_panel import add_periodic_page
             self.periodic_page = add_periodic_page(self, QtWidgets, QtCore)
+            from .pretension_panel import add_pretension_page
+            self.pretension_page = add_pretension_page(self, QtWidgets, QtCore)
             from .convergence_panel import add_convergence_page
             self.convergence_page = add_convergence_page(self, QtWidgets, QtCore)
             self.status = QtWidgets.QPlainTextEdit()
@@ -447,6 +449,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.contact_page.refresh(load_forms=load_forms)
             self.steps_page.refresh(load_forms=load_forms)
             self.periodic_page.refresh(load_forms=load_forms)
+            self.pretension_page.refresh(load_forms=load_forms)
             self.convergence_page.refresh(load_forms=load_forms)
             if load_forms:
                 if not mesh_pending and not missing_mesh:

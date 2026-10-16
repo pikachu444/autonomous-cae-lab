@@ -35,6 +35,15 @@ def _files(source, root):
 
 
 def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
+    if kind == 'freecad-connector-frozen':
+        from .connector_snapshot import validate_snapshot
+        _, _, _, paths = validate_snapshot(source)
+        return [_within_root(p, root) for p in paths], file_hash(source)
+    if kind == 'freecad-composite-shell-frozen':
+        from .adapters.composite_shell_deck import validate_snapshot
+        manifest, _, _, _ = validate_snapshot(source)
+        paths = [source] + [_within_root(source.parent / entry['relative'], root) for entry in manifest['files']]
+        return paths, file_hash(source)
     if kind == 'freecad-shell-frozen':
         from .adapters.shell_deck import validate_snapshot
         manifest, _, _, _ = validate_snapshot(source)
@@ -121,10 +130,10 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         if _identity(path.stat()) != before[path] or file_hash(path) != entry['sha256']:
             raise ValueError('Source changed during native registration')
     entry = files[0]
-    if kind in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam'}:
+    if kind in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector'}:
         # The copied bytes must match the manifest too, including a change before copying.
         _frozen_files(Path(workbench_root) / entry['file'], folder.resolve(),
-                      kind={'frozen_beam':'freecad-beam-frozen', 'frozen_contact':'freecad-contact-frozen', 'frozen_shell':'freecad-shell-frozen',
+                      kind={'frozen_composite_shell':'freecad-composite-shell-frozen', 'frozen_connector':'freecad-connector-frozen', 'frozen_beam':'freecad-beam-frozen', 'frozen_contact':'freecad-contact-frozen', 'frozen_shell':'freecad-shell-frozen',
                             'frozen_fem':'freecad-fem-frozen'}[kind])
     dynamic_origin = None
     if kind == 'native_result' and (native_metadata or {}).get('dynamic_locations') is not None:
@@ -137,6 +146,9 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
     if kind == 'native_result' and (native_metadata or {}).get('contact_inspection') is not None:
         from .contact_inspection import load
         load(Path(workbench_root) / entry['file'], native_metadata['contact_inspection'])
+    if kind == 'native_result' and (native_metadata or {}).get('composite_inspection') is not None:
+        from .composite_shell_results import load
+        load(Path(workbench_root) / entry['file'], native_metadata['composite_inspection'])
     if kind == 'native_result' and (native_metadata or {}).get('shell_inspection') is not None:
         from .shell_inspection import load
         load(Path(workbench_root) / entry['file'], native_metadata['shell_inspection'])
@@ -185,6 +197,12 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
         from .beam_inspection import validate_metadata
         bundle = validate_metadata(source, native_metadata)
         paths = list(dict.fromkeys([*paths, *[_within_root(path, root) for path in bundle['paths']]]))
+    if (native_metadata or {}).get('composite_inspection') is not None:
+        from .composite_shell_results import load
+        bundle = load(source, native_metadata['composite_inspection'])
+        if bundle['manifest']['native_metadata'] != {k:v for k,v in native_metadata.items() if k != 'composite_inspection'}:
+            raise ValueError('Laminate field declarations differ from their pinned bundle')
+        paths = list(dict.fromkeys([*paths, *[_within_root(path, root) for path in bundle['paths']]]))
     if (native_metadata or {}).get('shell_inspection') is not None:
         from .shell_inspection import load
         bundle = load(source, native_metadata['shell_inspection'])
@@ -212,13 +230,15 @@ def register_frozen_input(workbench_root, approved_root, source, identifier, *, 
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError('FEM snapshot manifest exceeds 8 MiB')
     kind = json.loads(raw).get('kind')
-    if kind not in {'freecad-fem-frozen', 'freecad-contact-frozen', 'freecad-shell-frozen', 'freecad-beam-frozen'}:
+    if kind not in {'freecad-fem-frozen', 'freecad-contact-frozen', 'freecad-shell-frozen', 'freecad-composite-shell-frozen', 'freecad-beam-frozen', 'freecad-connector-frozen'}:
         raise ValueError('Select an admitted native frozen snapshot kind')
     paths, parsed_sha = _frozen_files(source, root, kind=kind)
     receipt_kind, format_name = {'freecad-fem-frozen':('frozen_fem','freecad-fem'),
         'freecad-contact-frozen':('frozen_contact','freecad-contact'),
         'freecad-shell-frozen':('frozen_shell','freecad-shell'),
-        'freecad-beam-frozen':('frozen_beam','freecad-beam')}[kind]
+        'freecad-composite-shell-frozen':('frozen_composite_shell','freecad-composite-shell'),
+        'freecad-beam-frozen':('frozen_beam','freecad-beam'),
+        'freecad-connector-frozen':('frozen_connector','freecad-connector')}[kind]
     return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
                          root_id=root_id, relative=relative, limit=limit,
                          kind=receipt_kind, format=format_name)

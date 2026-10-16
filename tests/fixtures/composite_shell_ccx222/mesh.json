@@ -1,0 +1,657 @@
+{
+  "applied": {
+    "draft": {
+      "analysis_id": "LaminateAnalysis",
+      "binding": {
+        "fixed_references": {
+          "ConstraintFixed": [
+            {
+              "object_id": "Plate",
+              "subelements": [
+                "Edge1"
+              ]
+            }
+          ]
+        },
+        "mesh_id": "ShellMesh",
+        "mesh_placement": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "mesh_sha256": "3a5eb4c5cbf88e3992aedc46f5e64813f8d41ab812777c203760327ab1d3f2ce",
+        "mesh_source": {
+          "brep": "2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6",
+          "object_id": "Plate",
+          "placement": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "reference_geometry": {
+          "Plate": {
+            "brep": "2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6",
+            "object_id": "Plate",
+            "placement": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      },
+      "elements": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "fixed_nodes": [],
+      "materials": {
+        "Isotropic": {
+          "constants": {
+            "E_MPa": "70000",
+            "nu": ".3"
+          },
+          "label": "등방 탄성 층",
+          "law": "isotropic_linear"
+        },
+        "Orthotropic": {
+          "constants": {
+            "E1_MPa": "130000",
+            "E2_MPa": "9000",
+            "E3_MPa": "9000",
+            "G12_MPa": "5000",
+            "G13_MPa": "5000",
+            "G23_MPa": "3300",
+            "nu12": ".28",
+            "nu13": ".28",
+            "nu23": ".35"
+          },
+          "label": "직교이방성 층",
+          "law": "orthotropic_linear"
+        }
+      },
+      "mesh_id": "ShellMesh",
+      "regions": [
+        {
+          "axis": [
+            "1",
+            "0",
+            "0"
+          ],
+          "elements": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "face_refs": [
+            {
+              "object_id": "Plate",
+              "subelements": [
+                "Face1"
+              ]
+            }
+          ],
+          "id": "R6a07f408a34e44f18864cbf6e0370d1e",
+          "label": "판재 면",
+          "offset": ".15",
+          "orientation": "native",
+          "plies": [
+            {
+              "angle_deg": "90",
+              "id": "UpperPly",
+              "material_id": "Orthotropic",
+              "thickness_mm": ".7"
+            },
+            {
+              "angle_deg": "0",
+              "id": "LowerPly",
+              "material_id": "Isotropic",
+              "thickness_mm": "1.3"
+            }
+          ],
+          "pressure_MPa": ".001"
+        }
+      ],
+      "solver_id": "SolverCcxTools"
+    },
+    "native": {
+      "binding": {
+        "fixed_references": {
+          "ConstraintFixed": [
+            {
+              "object_id": "Plate",
+              "subelements": [
+                "Edge1"
+              ]
+            }
+          ]
+        },
+        "mesh_id": "ShellMesh",
+        "mesh_placement": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "mesh_sha256": "3a5eb4c5cbf88e3992aedc46f5e64813f8d41ab812777c203760327ab1d3f2ce",
+        "mesh_source": {
+          "brep": "2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6",
+          "object_id": "Plate",
+          "placement": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "reference_geometry": {
+          "Plate": {
+            "brep": "2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6",
+            "object_id": "Plate",
+            "placement": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      },
+      "definition": "{\"analysis_id\": \"LaminateAnalysis\", \"binding\": {\"fixed_references\": {\"ConstraintFixed\": [{\"object_id\": \"Plate\", \"subelements\": [\"Edge1\"]}]}, \"mesh_id\": \"ShellMesh\", \"mesh_placement\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], \"mesh_sha256\": \"3a5eb4c5cbf88e3992aedc46f5e64813f8d41ab812777c203760327ab1d3f2ce\", \"mesh_source\": {\"brep\": \"2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6\", \"object_id\": \"Plate\", \"placement\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]}, \"reference_geometry\": {\"Plate\": {\"brep\": \"2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6\", \"object_id\": \"Plate\", \"placement\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]}}}, \"elements\": [1, 2, 3, 4, 5, 6, 7, 8], \"fixed_nodes\": [], \"materials\": {\"Isotropic\": {\"constants\": {\"E_MPa\": \"70000\", \"nu\": \".3\"}, \"label\": \"등방 탄성 층\", \"law\": \"isotropic_linear\"}, \"Orthotropic\": {\"constants\": {\"E1_MPa\": \"130000\", \"E2_MPa\": \"9000\", \"E3_MPa\": \"9000\", \"G12_MPa\": \"5000\", \"G13_MPa\": \"5000\", \"G23_MPa\": \"3300\", \"nu12\": \".28\", \"nu13\": \".28\", \"nu23\": \".35\"}, \"label\": \"직교이방성 층\", \"law\": \"orthotropic_linear\"}}, \"mesh_id\": \"ShellMesh\", \"regions\": [{\"axis\": [\"1\", \"0\", \"0\"], \"elements\": [1, 2, 3, 4, 5, 6, 7, 8], \"face_refs\": [{\"object_id\": \"Plate\", \"subelements\": [\"Face1\"]}], \"id\": \"R6a07f408a34e44f18864cbf6e0370d1e\", \"label\": \"판재 면\", \"offset\": \".15\", \"orientation\": \"native\", \"plies\": [{\"angle_deg\": \"90\", \"id\": \"UpperPly\", \"material_id\": \"Orthotropic\", \"thickness_mm\": \".7\"}, {\"angle_deg\": \"0\", \"id\": \"LowerPly\", \"material_id\": \"Isotropic\", \"thickness_mm\": \"1.3\"}], \"pressure_MPa\": \".001\"}], \"solver_id\": \"SolverCcxTools\"}",
+      "feature_id": "CAELabComposite",
+      "materials": {
+        "Isotropic": {
+          "CAELabLinearLaw": "isotropic_linear",
+          "Name": "등방 탄성 층",
+          "PoissonRatio": "0.29999999999999999",
+          "YoungsModulus": "70000 MPa"
+        },
+        "Orthotropic": {
+          "CAELabLinearLaw": "orthotropic_linear",
+          "Name": "직교이방성 층",
+          "PoissonRatioXY": "0.28000000000000003",
+          "PoissonRatioXZ": "0.28000000000000003",
+          "PoissonRatioYZ": "0.34999999999999998",
+          "ShearModulusXY": "5000 MPa",
+          "ShearModulusXZ": "5000 MPa",
+          "ShearModulusYZ": "3300 MPa",
+          "YoungsModulusX": "130000 MPa",
+          "YoungsModulusY": "9000 MPa",
+          "YoungsModulusZ": "9000 MPa"
+        }
+      },
+      "solver": {
+        "AnalysisType": "static",
+        "BeamShellResultOutput3D": true,
+        "ExcludeBendingStiffness": false,
+        "GeometricalNonlinearity": "linear",
+        "MaterialNonlinearity": "linear",
+        "ModelSpace": "3D",
+        "SplitInputWriter": false
+      }
+    }
+  },
+  "draft": {
+    "analysis_id": "LaminateAnalysis",
+    "binding": {
+      "fixed_references": {
+        "ConstraintFixed": [
+          {
+            "object_id": "Plate",
+            "subelements": [
+              "Edge1"
+            ]
+          }
+        ]
+      },
+      "mesh_id": "ShellMesh",
+      "mesh_placement": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "mesh_sha256": "3a5eb4c5cbf88e3992aedc46f5e64813f8d41ab812777c203760327ab1d3f2ce",
+      "mesh_source": {
+        "brep": "2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6",
+        "object_id": "Plate",
+        "placement": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "reference_geometry": {
+        "Plate": {
+          "brep": "2114777ce90e640a8f0558696dbe1f11621e98ba13d167aa1269e5b2514145b6",
+          "object_id": "Plate",
+          "placement": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        }
+      }
+    },
+    "elements": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "fixed_nodes": [],
+    "materials": {
+      "Isotropic": {
+        "constants": {
+          "E_MPa": "70000",
+          "nu": ".3"
+        },
+        "label": "등방 탄성 층",
+        "law": "isotropic_linear"
+      },
+      "Orthotropic": {
+        "constants": {
+          "E1_MPa": "130000",
+          "E2_MPa": "9000",
+          "E3_MPa": "9000",
+          "G12_MPa": "5000",
+          "G13_MPa": "5000",
+          "G23_MPa": "3300",
+          "nu12": ".28",
+          "nu13": ".28",
+          "nu23": ".35"
+        },
+        "label": "직교이방성 층",
+        "law": "orthotropic_linear"
+      }
+    },
+    "mesh_id": "ShellMesh",
+    "regions": [
+      {
+        "axis": [
+          "1",
+          "0",
+          "0"
+        ],
+        "elements": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "face_refs": [
+          {
+            "object_id": "Plate",
+            "subelements": [
+              "Face1"
+            ]
+          }
+        ],
+        "id": "R6a07f408a34e44f18864cbf6e0370d1e",
+        "label": "판재 면",
+        "offset": ".15",
+        "orientation": "native",
+        "plies": [
+          {
+            "angle_deg": "90",
+            "id": "UpperPly",
+            "material_id": "Orthotropic",
+            "thickness_mm": ".7"
+          },
+          {
+            "angle_deg": "0",
+            "id": "LowerPly",
+            "material_id": "Isotropic",
+            "thickness_mm": "1.3"
+          }
+        ],
+        "pressure_MPa": ".001"
+      }
+    ],
+    "solver_id": "SolverCcxTools"
+  },
+  "fixed_nodes": [
+    1,
+    10,
+    15,
+    24,
+    29
+  ],
+  "kind": "freecad-composite-shell-mesh",
+  "native_mesh": "** written by FreeCAD inp file writer for CalculiX,Abaqus meshes\r\n** highest dimension mesh elements only.\r\n\r\n** Nodes\r\n*Node, NSET=Nall\r\n1, 0, 0, 0\r\n2, 10, 0, 0\r\n3, 20, 0, 0\r\n4, 30, 0, 0\r\n5, 40, 0, 0\r\n6, 50, 0, 0\r\n7, 60, 0, 0\r\n8, 70, 0, 0\r\n9, 80, 0, 0\r\n10, 0, 7.5, 0\r\n11, 20, 7.5, 0\r\n12, 40, 7.5, 0\r\n13, 60, 7.5, 0\r\n14, 80, 7.5, 0\r\n15, 0, 15, 0\r\n16, 10, 15, 0\r\n17, 20, 15, 0\r\n18, 30, 15, 0\r\n19, 40, 15, 0\r\n20, 50, 15, 0\r\n21, 60, 15, 0\r\n22, 70, 15, 0\r\n23, 80, 15, 0\r\n24, 0, 22.5, 0\r\n25, 20, 22.5, 0\r\n26, 40, 22.5, 0\r\n27, 60, 22.5, 0\r\n28, 80, 22.5, 0\r\n29, 0, 30, 0\r\n30, 10, 30, 0\r\n31, 20, 30, 0\r\n32, 30, 30, 0\r\n33, 40, 30, 0\r\n34, 50, 30, 0\r\n35, 60, 30, 0\r\n36, 70, 30, 0\r\n37, 80, 30, 0\r\n\r\n\r\n** Face elements\r\n*Element, TYPE=S8, ELSET=Efaces\r\n1, 1, 3, 17, 15, 2, 11, 16, 10\r\n2, 3, 5, 19, 17, 4, 12, 18, 11\r\n3, 5, 7, 21, 19, 6, 13, 20, 12\r\n4, 7, 9, 23, 21, 8, 14, 22, 13\r\n5, 15, 17, 31, 29, 16, 25, 30, 24\r\n6, 17, 19, 33, 31, 18, 26, 32, 25\r\n7, 19, 21, 35, 33, 20, 27, 34, 26\r\n8, 21, 23, 37, 35, 22, 28, 36, 27\r\n\r\n** Define element set Eall\r\n*ELSET, ELSET=Eall\r\nEfaces\r\n",
+  "output_contract": {
+    "COORD": "NOT_REQUESTED",
+    "DAT": "GLOBAL S,E; 8 native IP per layer; two thickness IP per layer",
+    "FRD": "GLOBAL nodal extrapolated/averaged per expanded layer solid",
+    "RF": "NOT_REQUESTED",
+    "layer_order": "UI top(+normal) first; native bottom(-normal) first"
+  },
+  "profile": "CCX222_S8R_COMPOSITE_GLOBAL_IP",
+  "schema_version": "1",
+  "source_elements": {
+    "1": [
+      1,
+      3,
+      17,
+      15,
+      2,
+      11,
+      16,
+      10
+    ],
+    "2": [
+      3,
+      5,
+      19,
+      17,
+      4,
+      12,
+      18,
+      11
+    ],
+    "3": [
+      5,
+      7,
+      21,
+      19,
+      6,
+      13,
+      20,
+      12
+    ],
+    "4": [
+      7,
+      9,
+      23,
+      21,
+      8,
+      14,
+      22,
+      13
+    ],
+    "5": [
+      15,
+      17,
+      31,
+      29,
+      16,
+      25,
+      30,
+      24
+    ],
+    "6": [
+      17,
+      19,
+      33,
+      31,
+      18,
+      26,
+      32,
+      25
+    ],
+    "7": [
+      19,
+      21,
+      35,
+      33,
+      20,
+      27,
+      34,
+      26
+    ],
+    "8": [
+      21,
+      23,
+      37,
+      35,
+      22,
+      28,
+      36,
+      27
+    ]
+  },
+  "source_nodes": {
+    "1": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "10": [
+      0.0,
+      7.5,
+      0.0
+    ],
+    "11": [
+      20.0,
+      7.5,
+      0.0
+    ],
+    "12": [
+      40.0,
+      7.5,
+      0.0
+    ],
+    "13": [
+      60.0,
+      7.5,
+      0.0
+    ],
+    "14": [
+      80.0,
+      7.5,
+      0.0
+    ],
+    "15": [
+      0.0,
+      15.0,
+      0.0
+    ],
+    "16": [
+      10.0,
+      15.0,
+      0.0
+    ],
+    "17": [
+      20.0,
+      15.0,
+      0.0
+    ],
+    "18": [
+      30.0,
+      15.0,
+      0.0
+    ],
+    "19": [
+      40.0,
+      15.0,
+      0.0
+    ],
+    "2": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "20": [
+      50.0,
+      15.0,
+      0.0
+    ],
+    "21": [
+      60.0,
+      15.0,
+      0.0
+    ],
+    "22": [
+      70.0,
+      15.0,
+      0.0
+    ],
+    "23": [
+      80.0,
+      15.0,
+      0.0
+    ],
+    "24": [
+      0.0,
+      22.5,
+      0.0
+    ],
+    "25": [
+      20.0,
+      22.5,
+      0.0
+    ],
+    "26": [
+      40.0,
+      22.5,
+      0.0
+    ],
+    "27": [
+      60.0,
+      22.5,
+      0.0
+    ],
+    "28": [
+      80.0,
+      22.5,
+      0.0
+    ],
+    "29": [
+      0.0,
+      30.0,
+      0.0
+    ],
+    "3": [
+      20.0,
+      0.0,
+      0.0
+    ],
+    "30": [
+      10.0,
+      30.0,
+      0.0
+    ],
+    "31": [
+      20.0,
+      30.0,
+      0.0
+    ],
+    "32": [
+      30.0,
+      30.0,
+      0.0
+    ],
+    "33": [
+      40.0,
+      30.0,
+      0.0
+    ],
+    "34": [
+      50.0,
+      30.0,
+      0.0
+    ],
+    "35": [
+      60.0,
+      30.0,
+      0.0
+    ],
+    "36": [
+      70.0,
+      30.0,
+      0.0
+    ],
+    "37": [
+      80.0,
+      30.0,
+      0.0
+    ],
+    "4": [
+      30.0,
+      0.0,
+      0.0
+    ],
+    "5": [
+      40.0,
+      0.0,
+      0.0
+    ],
+    "6": [
+      50.0,
+      0.0,
+      0.0
+    ],
+    "7": [
+      60.0,
+      0.0,
+      0.0
+    ],
+    "8": [
+      70.0,
+      0.0,
+      0.0
+    ],
+    "9": [
+      80.0,
+      0.0,
+      0.0
+    ]
+  },
+  "units": {
+    "force": "N",
+    "position": "mm",
+    "stress": "MPa"
+  }
+}

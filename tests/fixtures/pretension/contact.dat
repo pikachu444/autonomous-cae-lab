@@ -1,0 +1,102 @@
+
+                        S T E P       1
+
+
+                                INCREMENT     1
+
+
+ displacements (vx,vy,vz) for set PTRPPBOLT and time  0.1000000E+01
+
+        15  9.361733E-02  0.000000E+00  0.000000E+00
+
+ forces (fx,fy,fz) for set PTRPPBOLT and time  0.1000000E+01
+
+        15 -5.877743E+01  0.000000E+00  0.000000E+00
+
+
+
+ statistics for surface set PTSECPBOLT and time  0.1000000E+01
+
+   total surface force (fx,fy,fz) and moment about the origin(mx,my,mz)
+
+   -6.935856E+01 -6.935856E+01 -1.200021E+03 -4.383102E+02  4.383102E+02 -7.709389E-13
+
+   center of gravity and mean normal
+
+    3.333333E-01  3.333333E-01  0.000000E+00  0.000000E+00  0.000000E+00  1.000000E+00
+
+   moment about the center of gravity(mx,my,mz)
+
+   -3.830333E+01  3.830333E+01 -3.836931E-13
+
+   area, normal force (+ = tension), shear force (size), torque and bending moment (size)
+
+    5.000000E-01 -1.200021E+03  9.808782E+01 -3.836931E-13  5.416908E+01
+
+                        S T E P       2
+
+
+                                INCREMENT     1
+
+
+ displacements (vx,vy,vz) for set PTRPPBOLT and time  0.2000000E+01
+
+        15  9.361733E-02  0.000000E+00  0.000000E+00
+
+ forces (fx,fy,fz) for set PTRPPBOLT and time  0.2000000E+01
+
+        15 -5.877743E+01  0.000000E+00  0.000000E+00
+
+
+
+ statistics for surface set PTSECPBOLT and time  0.2000000E+01
+
+   total surface force (fx,fy,fz) and moment about the origin(mx,my,mz)
+
+   -6.935856E+01 -6.935856E+01 -1.200021E+03 -4.383102E+02  4.383102E+02 -1.030287E-12
+
+   center of gravity and mean normal
+
+    3.333333E-01  3.333333E-01  0.000000E+00  0.000000E+00  0.000000E+00  1.000000E+00
+
+   moment about the center of gravity(mx,my,mz)
+
+   -3.830333E+01  3.830333E+01 -9.237056E-14
+
+   area, normal force (+ = tension), shear force (size), torque and bending moment (size)
+
+    5.000000E-01 -1.200021E+03  9.808782E+01 -9.237056E-14  5.416908E+01
+
+                        S T E P       3
+
+
+                                INCREMENT     1
+
+
+ displacements (vx,vy,vz) for set PTRPPBOLT and time  0.3000000E+01
+
+        15  9.361733E-02  0.000000E+00  0.000000E+00
+
+ forces (fx,fy,fz) for set PTRPPBOLT and time  0.3000000E+01
+
+        15 -6.505591E+01  0.000000E+00  0.000000E+00
+
+
+
+ statistics for surface set PTSECPBOLT and time  0.3000000E+01
+
+   total surface force (fx,fy,fz) and moment about the origin(mx,my,mz)
+
+   -7.676730E+01 -7.676730E+01 -1.328204E+03 -4.851296E+02  4.851296E+02  5.790923E-13
+
+   center of gravity and mean normal
+
+    3.333333E-01  3.333333E-01  0.000000E+00  0.000000E+00  0.000000E+00  1.000000E+00
+
+   moment about the center of gravity(mx,my,mz)
+
+   -4.239480E+01  4.239480E+01  5.790923E-13
+
+   area, normal force (+ = tension), shear force (size), torque and bending moment (size)
+
+    5.000000E-01 -1.328204E+03  1.085653E+02  5.790923E-13  5.995531E+01

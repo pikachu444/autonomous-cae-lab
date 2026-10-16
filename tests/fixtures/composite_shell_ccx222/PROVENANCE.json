@@ -1,0 +1,19 @@
+{
+  "kind": "actual native output from public generated laminate",
+  "solver": "CalculiX 2.22",
+  "source": "examples/composite/generate_laminate.py",
+  "layers": "UI upper orthotropic .7 mm 90 deg / lower isotropic 1.3 mm 0 deg",
+  "elements": 8,
+  "native_layer_solids": 16,
+  "DAT_IP_per_field": 128,
+  "native_exit_code": 0,
+  "meaning": "Raw solver execution succeeded. First collection rejected composite FRD header count; failure preserved. Reader corrected against unchanged original bytes; no solver repeat.",
+  "qualification": "UNKNOWN",
+  "files": {
+    "composite.12d": "5d69183b64c0e1dbab1e0c2b061e1e339af2299ddead9cfe15422a89a95762ea",
+    "composite.dat": "29bbb5eee20986fb29ce6fe5c7f163d55cd95221d7457c92c40deb4a6979a948",
+    "composite.frd": "87508b17f213fc139a359b1b038e6e949f3daa1db3358b01b6acd171066a1bae",
+    "composite.inp": "2d19b3c944cba40d4e524d18a6c390e5d339778909800b0d6d62ea57ff71cef0",
+    "mesh.json": "fe1386ed3e7b3db835f7cfd66714bdc334347d3fb2e6ffc58efc5e2b7d169a09"
+  }
+}

@@ -42,9 +42,12 @@ class DesktopLinks:
         command_id = check_id(command_id)
         if solver not in (None, 'calculix', 'codeaster'):
             raise ValueError('Choose CalculiX or the existing Code_Aster runtime')
-        exports = {'pre.freeze': ('frozen_fem', 'structure.calculix.frozen'),
+        exports = {'pre.connector.freeze': ('frozen_connector', 'explicit.opencourant.connector'),
+            'pre.freeze': ('frozen_fem', 'structure.calculix.frozen'),
             'pre.contact.freeze': ('frozen_contact', 'structure.calculix.contact'),
+            'pre.pretension.freeze': ('frozen_contact', 'structure.calculix.pretension'),
             'pre.shell.freeze': ('frozen_shell', 'structure.calculix.shell'),
+            'pre.composite.freeze': ('frozen_composite_shell', 'structure.calculix.shell.composite'),
             'pre.beam.freeze': ('frozen_beam', 'structure.calculix.beam'),
             'pre.dynamic.freeze': ('frozen_contact', 'structure.calculix.contact'),
             'pre.dynamic.restart': ('frozen_contact', 'structure.calculix.contact')}
@@ -88,6 +91,12 @@ class DesktopLinks:
                 if (not enabled(model) or not has_dynamic(model['analysis_steps']) or
                         bool(model.get('restart')) != (command['operation'] == 'pre.dynamic.restart')):
                     raise ValueError('Dynamic export operation differs from its admitted new-run/READ input')
+            if command['operation'] == 'pre.pretension.freeze':
+                from .adapters.contact_fem import validate_snapshot
+                from .pretension import sections
+                _, model, _, _ = validate_snapshot(wb.input_path(receipt['id']))
+                if not sections(model):
+                    raise ValueError('The explicit pretension export has no admitted actual internal section')
             origin = {'kind': 'pre', 'document_id': command['document_id'],
                       'session_id': command['session_id'], 'generation': command.get('final_generation', command['expected_generation']),
                       'command_id': command_id, 'input_id': receipt['id']}
@@ -183,8 +192,8 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
-            result['retained_design_input_id'] = job['arguments']['settings']['data_id']
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.calculix.pretension', 'explicit.opencourant.connector'}:
+            result['retained_design_input_id'] = job['arguments']['settings'].get('data_id')
         if origin.get('kind') == 'pre':
             try:
                 current = wb.native_commands.read(origin['document_id'])

@@ -73,8 +73,8 @@ def _coordinate_error(token):
     return dec+.51*float_ulp+32*math.ulp(v)
 
 
-def read_frd(path, expansion, *, profile='S8'):
-    if profile not in ('S8','B32R_RECT'):
+def read_frd(path, expansion, *, profile='S8', material_ids=None):
+    if profile not in ('S8','B32R_RECT','S8R_COMPOSITE'):
         raise ValueError('Unsupported native expanded FRD profile')
     field_labels=dict(LABELS); field_widths=dict(WIDTHS); required=set(REQUIRED)
     if profile=='B32R_RECT':
@@ -109,13 +109,18 @@ def read_frd(path, expansion, *, profile='S8'):
                         xyz[n]=values; coordinate_tokens[n]=tokens
                     if set(xyz)!=expected_nodes: fail('Incomplete expanded FRD coordinates')
                 else:
-                    if not xyz or topology or count!=len(expansion): fail('FRD expanded element count differs')
+                    expected_count=(len({r['shell_element_id'] for r in expansion.values()})
+                                    if profile=='S8R_COMPOSITE' else len(expansion))
+                    if not xyz or topology or count!=expected_count: fail('FRD element header count differs')
                     while i<len(lines) and lines[i].strip()!='-3':
                         row=lines[i].rstrip(); i+=1
-                        if (len(row)!=28 or row[:3]!=' -1' or
-                                [row[a:b].strip() for a,b in ((13,18),(18,23),(23,28))]!=['4','0','1']):
-                            fail('Expected FRD HEX20, material 1 for homogeneous S8')
                         e=_identifier(row[3:13].strip())
+                        material=str(material_ids[e]) if profile=='S8R_COMPOSITE' and material_ids is not None and e in material_ids else '1'
+                        if profile=='S8R_COMPOSITE' and (material_ids is None or e not in material_ids):
+                            fail('Missing declared composite layer material identity')
+                        if (len(row)!=28 or row[:3]!=' -1' or
+                                [row[a:b].strip() for a,b in ((13,18),(18,23),(23,28))]!=['4','0',material]):
+                            fail('Expected FRD HEX20 and declared material identity')
                         conn=[]
                         while i<len(lines) and lines[i][:3]==' -2':
                             row=lines[i].rstrip(); i+=1
@@ -183,10 +188,9 @@ def read_frd(path, expansion, *, profile='S8'):
             elif xyz or not re.match(r'\s*1[CU]',line):
                 fail('Unexpected native shell FRD record')
     except (ValueError,IndexError) as exc:
-        if profile=='B32R_RECT' and (i<len(lines) or str(exc) != 'Truncated native shell field; uncommitted field discarded'):
-            # The new beam profile must not downgrade middle-file corruption,
-            # label/identity errors or malformed numeric rows into partial data.
-            raise ValueError(f'Invalid expanded beam FRD at line {i}: {exc}') from exc
+        if profile in ('B32R_RECT','S8R_COMPOSITE') and (i<len(lines) or str(exc) != 'Truncated native shell field; uncommitted field discarded'):
+            # Native profile/identity errors are not truncated result prefixes.
+            raise ValueError(f'Invalid expanded {profile} FRD at line {i}: {exc}') from exc
         if not xyz or set(topology)!=set(expansion):
             raise ValueError(f'No admitted expanded mesh at FRD line {i}: {exc}') from exc
         diagnostic={'line':i,'reason':str(exc)}

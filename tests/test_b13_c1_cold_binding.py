@@ -148,7 +148,8 @@ def configure_project_owner(editor, tmp_path, native_bytes):
     owner.export_root = tmp_path/'exports'; owner.recovery_error = None; owner.closed = False
     owner.before_design_action = lambda _: None
     owner.find_owner = lambda _: None
-    owner.Gui = NS(getDocument=lambda _: NS(getInEdit=lambda: False))
+    owner.Gui = NS(getDocument=lambda _: NS(getInEdit=lambda: False),
+                   Selection=NS(getSelectionEx=lambda _: []))
     owner.App = NS()
     doc.saveCopy = lambda path: Path(path).write_bytes(native_bytes)
     owner.project = Project(owner)

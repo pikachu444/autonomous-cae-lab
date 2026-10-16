@@ -188,6 +188,12 @@ def _prepare_uniform_mesh(nodes, elements, draft, *, require_nonzero_pressure=Tr
         draft, require_nonzero_pressure=require_nonzero_pressure)
     if errors:
         raise ShellError(errors)
+    return prepare_geometry(nodes, elements, draft, values)
+
+
+def prepare_geometry(nodes, elements, draft, values):
+    """Shared eight-node shell topology after profile-owned physical validation."""
+    errors = []
     if any(e not in elements for e in draft['elements']):
         raise ShellError([issue('elements', '선택 요소가 없어졌습니다. 대상을 명시적으로 다시 선택하세요.')])
     chosen, normals, axes, areas = {}, {}, {}, {}

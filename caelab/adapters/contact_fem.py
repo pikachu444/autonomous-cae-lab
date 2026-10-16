@@ -179,6 +179,8 @@ class ContactFemCalculixAdapter:
             from ..dynamic_model import enabled as dynamic_enabled
             from ..dynamic_native_stream import read_dynamic_frd, frame_catalog, release
             dynamic = dynamic_enabled(model)
+            from .pretension_results import solver_mesh as pretension_solver_mesh
+            post_model, read_nodes, elements, pretension_copies = pretension_solver_mesh(model, read_nodes, elements)
             native_reader = read_dynamic_frd if dynamic else read_frd
             observed = native_reader(deck.with_suffix('.frd'), read_nodes, elements, contact_materials=materials,
                                 contact_profile=profile(model), require_contact=require_contact(model))
@@ -188,7 +190,7 @@ class ContactFemCalculixAdapter:
             frames = observed['frames']
             from ..dynamic_results import validate_requested
             validate_requested(model, frames)
-            if ns1_enabled(model):
+            if ns1_enabled(model) or model.get('pretension_sections'):
                 if observed['native_version'] != '2.22':
                     raise ValueError('NS1 requires CalculiX 2.22 result output.')
                 required = {'STRESS', 'TOSTRAIN', 'FORC'} | ({'PE'} if has_plasticity(model) else set())
@@ -204,6 +206,16 @@ class ContactFemCalculixAdapter:
                 require_converged(frames,progress)
                 result['increment_history']=progress
             pair_results = read_dat(deck.with_suffix('.dat'), model['contacts'], frames, activation=compile_states(model))
+            from .pretension_results import read as read_pretension, responses as pretension_responses
+            pretension_rows = read_pretension(deck.with_suffix('.dat'), model, frames)
+            if model.get('pretension_sections'):
+                from .pretension_results import attach_nodal_resultants
+                attach_nodal_resultants(model, pretension_rows, frames)
+            if model.get('pretension_sections'):
+                save_json(output/'pretension_resultants.json', {'rows':pretension_rows, 'node_copies':pretension_copies,
+                    'method':'native SOF stress-extrapolation section integral; raw RP U/RF separate',
+                    'reference_U1':'generalized section differential, not bolt total elastic extension',
+                    'source_model':'frozen_input/mesh.json', 'engineering_release':'UNKNOWN'})
             save_json(output / 'pair_resultants.json', {'snapshot_id': manifest['id'], 'rows': pair_results,
                 'request_order': ['CF', 'CFN', 'CFS'], 'force_units': 'N', 'moment_units': 'N mm',
                 'axis': contact_axis(model), 'area_units': 'mm^2',
@@ -227,8 +239,13 @@ class ContactFemCalculixAdapter:
                 dynamic_legacy = {'pair_results': pair_results, **legacy}
                 metadata = None
             else:
-                metadata = write_post(output / 'post', model, frames, pair_results, **legacy)
+                metadata = write_post(output / 'post', post_model, frames, pair_results, **legacy)
+                if pretension_copies:
+                    metadata['pretension_geometry']={'basis':'CalculiX 2.22 explicit native partner-node map',
+                        'node_copies':pretension_copies,'original_mesh_unchanged':True}
             final = frames[-1]
+            if model.get('pretension_sections'):
+                nodes = read_nodes
             ids = sorted(nodes)
             field_clock = ({'axis':contact_axis(model), 'coordinate':final['static']['load_parameter'],
                             'step_location':deepcopy(final.get('step_location'))} if profile(model) or ns1_enabled(model) else {})
@@ -251,7 +268,7 @@ class ContactFemCalculixAdapter:
                 'location':'calculix_export_nodes','reduction':'none',
                 'metadata':{'node_ids':ids,'association':'POINTS','static':final['static'], **field_clock,
                             'frame':'FREECAD_DOCUMENT_GLOBAL'}}
-            if has_tie or ns1_enabled(model):
+            if has_tie or ns1_enabled(model) or model.get('pretension_sections'):
                 for native, prefix, unit, measure, components in field_specifications(model):
                     if native not in final['fields']:
                         continue
@@ -280,6 +297,7 @@ class ContactFemCalculixAdapter:
                                 'frame_availability':[{'static': f['static'], 'output': output_availability(model, f['static']['step'])[pair['object_id']]}
                                                       for f in frame_catalog(frames)],
                                 'excluded_nonfinite_rows':len(rows)-len(valid)}}
+            responses.update(pretension_responses(model, pretension_rows, frames))
             artifact = output / 'post' / 'contact.pvd'
             result.update(execution_status='SUCCEEDED', responses=responses, native_version=observed['native_version'],
                 **({'post_artifact': {'relative':'post/contact.pvd','bytes':artifact.stat().st_size,'sha256':_sha(artifact),
@@ -332,6 +350,10 @@ class ContactFemCalculixAdapter:
                     if 'runtime' not in result or _sha(Path(result['runtime']['executable']))!=result['runtime']['sha256']:
                         raise ValueError('Executed runtime changed before partial readback')
                     nodes,elements,bodies=validate_model(model)
+                    from .pretension_results import solver_mesh as pretension_solver_mesh
+                    partial_model, partial_nodes, elements, pretension_copies = pretension_solver_mesh(model, nodes, elements)
+                    if model.get('pretension_sections'):
+                        nodes = read_nodes = partial_nodes
                     indices={body:i for i,body in enumerate(sorted(bodies),1)}
                     materials={'names':['M'+str(i) for i in indices.values()]+
                         ['INT'+p['object_id'].upper() for p in model['contacts'] if p['draft']['normal_law'] != 'tie'],
@@ -356,7 +378,20 @@ class ContactFemCalculixAdapter:
                     if dynamic:
                         dynamic_legacy = {'pair_results': pairs, **legacy}
                     else:
-                        metadata=write_post(output/'partial/post',model,frames,pairs,**legacy)
+                        metadata=write_post(output/'partial/post',partial_model,frames,pairs,**legacy)
+                        if model.get('pretension_sections'):
+                            metadata['pretension_geometry']={'basis':'CalculiX 2.22 explicit native partner-node map',
+                                'node_copies':pretension_copies,'original_mesh_unchanged':True}
+                            try:
+                                from .pretension_results import read as read_pretension, attach_nodal_resultants, responses as pretension_responses
+                                rows=read_pretension(output/'solver/contact.dat',model,frames,prefix=True)
+                                attach_nodal_resultants(model,rows,frames)
+                                save_json(output/'partial/pretension_resultants.json',{'rows':rows,'node_copies':pretension_copies,
+                                    'source_execution_status':result['execution_status'],'complete_analysis':False})
+                                result['responses'].update(pretension_responses(model,rows,frames,raw_rows='partial/pretension_resultants.json'))
+                            except (ValueError,OSError,KeyError,TypeError,IndexError,UnicodeError) as error:
+                                result.setdefault('diagnostics',{})['pretension_partial_readback']=str(error)
+
                     artifact=output/'partial/post/contact.pvd'
                     result['partial_result']={'status':'CONVERGED_PREFIX','frame_count':len(frames),
                         'complete_analysis':False,'status_source':result['increment_history']['source'],

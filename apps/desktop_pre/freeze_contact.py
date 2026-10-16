@@ -27,8 +27,11 @@ def _refs(obj, bodies, *, material=False):
         if material:
             if names not in ([], [''], ['Solid1']):
                 raise ValueError('Material assignment supports complete explicit bodies only')
-        elif not names or len(names) != len(set(names)) or any(not name.startswith('Face') for name in names):
-            raise ValueError(obj.Label + ': select distinct exact faces')
+        elif not names or len(names) != len(set(names)) or not (
+                all(name.startswith('Face') for name in names) or
+                (_native_type(obj) in ('Fem::ConstraintFixed', 'Fem::ConstraintDisplacement') and
+                 all(name.startswith('Vertex') for name in names))):
+            raise ValueError(obj.Label + ': select distinct exact faces, or support vertices')
         rows.append((source, names))
     if not material and (not rows or len({source.Name for source, names in rows}) != 1):
         raise ValueError(obj.Label + ': each support/load must reference faces of one body')
@@ -191,9 +194,14 @@ def collect(analysis, solver, fem, *, capture_only=False):
             # Prove each selected CAD face resolves, before native union/integration.
             for source, names in refs:
                 for face in names:
-                    _, entries, is_sub = meshtools.get_ccx_elements(getter, (source, face))
-                    if not is_sub or not entries:
-                        raise ValueError(obj.Label + ': selected face has no mapped elements')
+                    if face.startswith('Vertex'):
+                        exact = meshtools.get_femnodes_by_references(body['mesh'].FemMesh, [(source, (face,))])
+                        if not exact or any(int(n) not in nmap for n in exact):
+                            raise ValueError(obj.Label + ': selected vertex has no exact native mesh nodes')
+                    else:
+                        _, entries, is_sub = meshtools.get_ccx_elements(getter, (source, face))
+                        if not is_sub or not entries:
+                            raise ValueError(obj.Label + ': selected face has no mapped elements')
             condition = {'object_id': obj.Name, 'label': obj.Label, 'type': _native_type(obj), 'body_id': body_id,
                          'targets': [_target(source, names) for source, names in refs]}
             if group_name == 'cons_force':
@@ -305,6 +313,8 @@ def collect(analysis, solver, fem, *, capture_only=False):
             raise ValueError('동해석 대상이 입력 준비 중 변경됐습니다.')
     from .periodic_native import freeze as freeze_periodic
     freeze_periodic(fem, analysis, bodies, model)
+    from .pretension_native import freeze as freeze_pretension
+    freeze_pretension(fem, analysis, bodies, model)
     validate_model(model)
     return model, identity
 

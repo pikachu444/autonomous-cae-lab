@@ -27,7 +27,7 @@ def register_backend(identifier, factory, *, roles=("model",), optional_dependen
     _registry[identifier] = Backend(identifier, tuple(roles), factory, optional_dependency, native_runtime,threads)
 
 def _builtin(identifier, module, name, roles, dependency=None, native=None):
-    threads=2 if identifier in {'explicit.openradioss','structural.code_aster',
+    threads=2 if identifier in {'explicit.openradioss','explicit.opencourant.connector','structural.code_aster',
         'structural.code_aster.plasticity','structural.code_aster.geometric_nonlinearity',
         'structural.families.code_aster', 'structure.codeaster.frozen'} else 1
     register_backend(identifier, f"caelab.{module}:{name}", roles=roles,
@@ -45,7 +45,9 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("structure.codeaster.frozen", "codeaster_frozen", "FrozenFemCodeAsterAdapter", ("evaluation",), None, "Code_Aster17.4"),
     ("structure.calculix.design", "cad_analysis", "CADAnalysisAdapter", ("model", "evaluation"), None, "FreeCAD GUI/Gmsh/CalculiX"),
     ("structure.calculix.contact", "contact_fem", "ContactFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
+    ("structure.calculix.pretension", "pretension_fem", "PretensionFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
     ("structure.calculix.shell", "shell_fem", "ShellFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
+    ("structure.calculix.shell.composite", "composite_shell_fem", "CompositeShellCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
     ("structure.calculix.beam", "beam_fem", "BeamFemCalculixAdapter", ("evaluation",), None, "CalculiX 2.22"),
     ("structural.code_aster", "codeaster_elasticity", "CodeAsterElasticityAdapter", ("model",), None, "Code_Aster"),
     ("structural.code_aster.plasticity", "codeaster_plasticity", "CodeAsterPlasticityAdapter", ("model",), None, "Code_Aster"),
@@ -59,6 +61,7 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("material.mfront.hyperelastic", "mfront_hyperelastic", "MFrontHyperelasticAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.viscoelastic", "mfront_viscoelastic", "MFrontViscoelasticAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.prepared", "mfront_prepared", "MFrontElasticityPreparedAdapter", ("prepared",), None, "MFront/MGIS"),
+    ("explicit.opencourant.connector", "opencourant_connector", "ConnectorAdapter", ("evaluation",), None, "OpenCourant"),
     ("explicit.opencourant.model", "impact", "ImpactAdapter", ("evaluation",), None, "OpenCourant"),
     ("explicit.openradioss", "openradioss", "OpenRadiossAdapter", ("model",), None, "OpenRadioss"),
     ("material.felupe", "felupe_material", "FelupeMaterialAdapter", ("prepared",), "felupe", None),

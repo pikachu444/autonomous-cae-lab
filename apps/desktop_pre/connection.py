@@ -19,7 +19,7 @@ from apps.desktop_pre import bridge
 def command_status_text(operation, state):
     action = {'document.save': '저장', 'document.undo': '실행 취소',
               'document.redo': '다시 실행', 'document.activate': '문서 전환',
-              'pre.freeze': '입력 파일 생성', 'pre.contact.freeze': '접촉 입력 생성',
+              'pre.freeze': '입력 파일 생성', 'pre.contact.freeze': '접촉 입력 생성', 'pre.pretension.freeze': '체결 입력 생성',
               'pre.links.record': '계산 연결'}.get(operation)
     if action is None:
         family = operation.rsplit('.', 1)[0]
@@ -107,6 +107,8 @@ class Connection:
         QtWidgets.QApplication.instance().aboutToQuit.connect(self.close)
         from .shell_controls import install as install_shell_controls
         install_shell_controls(self)
+        from .composite_controls import install as install_composite_controls
+        install_composite_controls(self)
         for owner in initial_owners:
             if (owner.doc.Name in self.owners or App.listDocuments().get(owner.doc.Name) is not owner.doc
                     or owner.App is not App or owner.Gui is not Gui):
@@ -138,6 +140,17 @@ class Connection:
     def open_native_solver(self):
         try:
             solver = self._native_selection('solver')
+            binding = self.owners.get(solver.Document.Name)
+            composites = binding[0].read_metadata().get('composite_shells', {}) if binding else {}
+            targets = [aid for aid, record in composites.items() if record['draft'].get('solver_id') == solver.Name]
+            if targets:
+                if len(targets) != 1: raise ValueError('적층 해석 하나를 활성화하세요.')
+                from .composite_controls import route as composite_route
+                composite_route(self, binding[0], targets[0], open_only=True)
+                return
+            if binding:
+                from .pretension_controls import route_native_solver
+                if route_native_solver(self, binding[0], solver): return
             # Same entry point as native FEM_SolverControl. Its own task panel
             # owns input writing, ccx preferences/PATH, QProcess and results.
             if self.Gui.ActiveDocument.setEdit(solver, 0) is False:
@@ -206,8 +219,12 @@ class Connection:
         settings.setValue('paraview_executable', str(path))
         return path
 
-    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True, _capture_beam=True, _capture_dynamic=True):
+    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True, _capture_beam=True, _capture_dynamic=True, _capture_composite=True, _capture_connector=True, _capture_pretension=True):
         owner = owner or self.active_owner()
+        if operation == 'document.save' and _capture_composite:
+            from .composite_controls import flush_before_save
+            captured = flush_before_save(self, owner, arguments, target, on_done, _capture_motion_view=_capture_motion_view, _capture_shell=_capture_shell, _capture_beam=_capture_beam, _capture_dynamic=_capture_dynamic)
+            if captured is not None: return captured
         if operation == 'document.save' and _capture_dynamic:
             from .dynamic_menu import flush_before_save
             captured = flush_before_save(self, owner, arguments, target, on_done, capture_motion=_capture_motion_view, capture_shell=_capture_shell, capture_beam=_capture_beam)
@@ -233,7 +250,7 @@ class Connection:
                 return owner.dispatch({'command_id': 'C'+uuid.uuid4().hex, 'document_id': owner.document_id,
                     'session_id': owner.session_id, 'expected_generation': owner.generation,
                     'operation': op, 'arguments': args, 'target': selected})
-            if operation.startswith(('pre.beam.', 'pre.dynamic.')):
+            if operation in {'pre.connector.draft', 'pre.fem.pretension_save_editor'} or operation.startswith(('pre.beam.', 'pre.dynamic.', 'pre.composite.')):
                 result = apply_local(operation, arguments, target or {})
                 value = result if result.get('status') == 'FAILED' else result.get('result', result)
                 if on_done: on_done(value)
@@ -252,12 +269,28 @@ class Connection:
                 if on_done: on_done(value)
                 return {'queued': True, 'completed': True, 'command_id': result.get('command_id')}
             if operation != 'document.save': raise ValueError('문서 연결이 끊겼습니다. 다시 연결한 뒤 편집하세요.')
-            snapshot = deepcopy(controller.pending_editor()) if controller is not None else None
+            snapshot = deepcopy(controller.pending_editor()) if controller is not None and _capture_motion_view else None
             if snapshot is not None:
                 result = apply_local('pre.motion.save_editor', {'editor': snapshot['editor']}, {'assembly_id': snapshot['assembly_id']})
                 if result.get('status') == 'FAILED':
                     if on_done: on_done(result)
                     return {'queued': True, 'completed': True, 'command_id': result.get('command_id')}
+            if _capture_connector:
+                from .connector_menu import flush_before_save
+                def document_saved(value):
+                    if value.get('status') != 'FAILED' and snapshot is not None: controller.accept_saved_editor(snapshot)
+                    if on_done: on_done(value)
+                captured = flush_before_save(self, owner, arguments, target, document_saved,
+                    _capture_motion_view=False, _capture_shell=False, _capture_beam=False,
+                    _capture_dynamic=False, _capture_composite=False)
+                if captured is not None: return captured
+            if _capture_pretension:
+                from .pretension_controls import flush_before_save
+                def pretension_document_saved(value):
+                    if value.get('status') != 'FAILED' and snapshot is not None: controller.accept_saved_editor(snapshot)
+                    if on_done: on_done(value)
+                captured = flush_before_save(self, owner, arguments, target, pretension_document_saved)
+                if captured is not None: return captured
             result = apply_local('document.save', arguments, target or {})
             value = result if result.get('status') == 'FAILED' else result.get('result', result)
             if result.get('status') != 'FAILED' and snapshot is not None: controller.accept_saved_editor(snapshot)
@@ -291,6 +324,16 @@ class Connection:
                 return self.submit_native('pre.motion.save_editor' if editor_save else 'pre.motion.set_view',
                     {'editor': snapshot['editor']} if editor_save else {'view': snapshot['view']},
                     {'assembly_id': snapshot['assembly_id']}, view_applied, owner=owner)
+        if operation == 'document.save' and _capture_connector:
+            from .connector_menu import flush_before_save
+            captured = flush_before_save(self, owner, arguments, target, on_done,
+                _capture_motion_view=False, _capture_shell=False, _capture_beam=False,
+                _capture_dynamic=False, _capture_composite=False)
+            if captured is not None: return captured
+        if operation == 'document.save' and _capture_pretension:
+            from .pretension_controls import flush_before_save
+            captured = flush_before_save(self, owner, arguments, target, on_done)
+            if captured is not None: return captured
         identifier = 'C' + uuid.uuid4().hex
         self.native_requests[identifier] = {'command_id': identifier, 'document_id': owner.document_id,
             'session_id': owner.session_id, 'generation': owner.generation, 'operation': operation,
@@ -441,6 +484,9 @@ class Connection:
             if len(solvers) != 1:
                 raise ValueError('CalculiX 솔버가 하나 지정된 해석을 선택하세요.')
             owner = self.owners[doc.Name][0]
+            from .composite_controls import route as composite_route
+            if composite_route(self, owner, selected.Name, export_only=export_only):
+                return
             if selected.Name in owner.read_metadata().get('shells', {}):
                 # Shell Run always uses the exact explicitly prepared/reviewed command.
                 self.show_panel('shell', owner=owner)
@@ -457,6 +503,9 @@ class Connection:
             page = getattr(dock.widget(),'steps_page',None) if dock is not None else None
             if page is not None and page.modified:
                 raise ValueError('해석 단계에 미적용 수정이 있습니다. 단계 적용 또는 수정 취소 후 진행하세요.')
+            pretension_page = getattr(dock.widget(), 'pretension_page', None) if dock is not None else None
+            if pretension_page is not None and (pretension_page.modified or pretension_page.pending):
+                raise ValueError('체결 조건에 미적용 수정 또는 미확인 요청이 있습니다. 적용·취소 또는 요청 확인 후 진행하세요.')
             material_page = getattr(dock.widget(), 'material_page', None) if dock is not None else None
             if material_page is not None and material_page.pending_changes():
                 raise ValueError('재료 또는 기하 설정에 미적용 편집이 있습니다. 초안 저장/적용 또는 저장본 읽기 후 진행하세요.')
@@ -472,7 +521,9 @@ class Connection:
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
                 'document_id': owner.document_id, 'session_id': owner.session_id,
                 'generation': owner.generation, 'export_only': bool(export_only),
-                'operation': 'pre.contact.freeze' if uses_solid_route(selected, owner.read_metadata()) else 'pre.freeze',
+                'operation': ('pre.pretension.freeze' if any(row.get('analysis_id') == selected.Name
+                    for row in owner.read_metadata().get('pretension_sections', [])) else
+                    'pre.contact.freeze' if uses_solid_route(selected, owner.read_metadata()) else 'pre.freeze'),
                 'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
             self.send_command()
         except Exception as exc:
@@ -675,7 +726,11 @@ class Connection:
                        'motion': ('motion_panel', owner.motion, '조립 운동'),
                        'shell': ('shell_panel', owner.shell, '판재 셸'),
                        'fem': ('fem_panel', owner.fem, '해석 설정')}
-            if kind == 'beam':
+            if kind == 'composite':
+                from .composite_controls import make_panel
+                widget = make_panel(self, owner)
+                title = '적층 셸'
+            elif kind == 'beam':
                 from .beam_menu import make_panel
                 widget = make_panel(self, owner)
                 title = '빔 설정'
@@ -764,18 +819,24 @@ class Connection:
                 if binding and binding[0].doc is doc:
                     for kind in visible:
                         self.show_panel(kind, owner=binding[0])
+            from .connector_menu import rebind as rebind_connector
+            for name, (previous_owner, _, _) in previous:
+                if name in self.owners: rebind_connector(self, previous_owner, self.owners[name][0])
             self.message.setText('문서를 다시 연결했습니다.')
         def request_context():
             from .native_controls import _motion_controller
             from .beam_menu import editor_token as beam_token
             from .dynamic_menu import editor_token as dynamic_token
             from .shell_controls import editor_token as shell_token
-            versions = {name: ((controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner))
+            from .composite_controls import editor_token as composite_token
+            from .connector_menu import editor_token as connector_token
+            from .pretension_controls import editor_token as pretension_token
+            versions = {name: ((controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner), composite_token(self, owner), connector_token(self, owner), pretension_token(self, owner))
                         for name, (owner, _, _) in self.owners.items()}
             def accepted(context):
                 for name, (owner, _, _) in self.owners.items():
                     controller = _motion_controller(self, owner)
-                    current = ((controller.editor_token() if controller is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner))
+                    current = ((controller.editor_token() if controller is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner), composite_token(self, owner), connector_token(self, owner), pretension_token(self, owner))
                     if name not in versions or current != versions[name]:
                         self.message.setText('다시 연결하는 동안 편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
                 connected(context)

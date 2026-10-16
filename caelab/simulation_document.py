@@ -10,6 +10,8 @@ from .material_document import MaterialDocuments
 
 
 CATALOG = {
+    'structure.calculix.pretension': (None, None,
+        '실제 C3D10 내부 절단면의 조임·길이 고정·외력. 정적 절단면 절점력 합·복구 응력 면적분·참조 자유도 응답을 구분합니다.'),
     'thermal.scikit_fem.rectangle': (None, None,
         'scikit-fem 12.0.2 + SciPy: P1 열전도, 절대 온도, 명시한 정상 상태, 기존 Picard 반복.'),
     'structural.scikit_fem.thermoelastic_rectangle': (None, None,
@@ -17,6 +19,10 @@ CATALOG = {
     'structure.felupe.law_native': (None, None,
         'FELUPE 11.1.3 Hex8 point/FE pair: DP, log-J Neo-Hooke, exact-ramp single-branch SLS. Not CalculiX/impact/shell.'),
     'damage.rainflow': (None,None,'보존 이력의 S–N/Miner, total-strain CMB/NONE, 단축 SWT 및 최대 정상변형률 범위 면의 CP-SWT. 명시 교정 범위 안에서만 계산하며 전단 지배 재료의 적합성·반복 소성·계면 피로 연계는 승인하지 않습니다.'),
+    'structure.calculix.shell.composite': (None, None,
+        '보존한 S8R 적층 셸 입력. 등방/직교이방성 선형 탄성, 정적 고정/압력. DAT 원 층별 적분점과 FRD 외삽값을 구분하며 공학적 승인은 별도입니다.'),
+    'explicit.opencourant.connector': (None, None,
+        '실제 CAD/메시 영역의 명시 rigid attachment와 TYPE13 병진·회전 k/c. 기존 탄성 C3D4 FE 질량·강성 보존. 공학 판정 UNKNOWN.'),
     'explicit.opencourant.model': (None, None,
         '사용자 FE 메시, 초기 운동, TYPE24, 명시 LAW117 응집 손상. Mg/mm/s 입력. 수명·공학 승인은 별도입니다.'),
     'material.mfront.user': (None, None,

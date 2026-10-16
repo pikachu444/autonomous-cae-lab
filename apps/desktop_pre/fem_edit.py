@@ -31,6 +31,8 @@ from .law_native_material import OPERATIONS as LAW_NATIVE_OPERATIONS
 OPERATIONS += LAW_NATIVE_OPERATIONS
 from caelab.periodic_constraints import OPERATIONS as PERIODIC_OPERATIONS
 OPERATIONS += PERIODIC_OPERATIONS
+from caelab.pretension import OPERATIONS as PRETENSION_OPERATIONS
+OPERATIONS += PRETENSION_OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
 NORMALIZED_JACOBIAN_FLOOR = 256 * sys.float_info.epsilon
 _MESH_FIELDS = {'CharacteristicLengthMin', 'CharacteristicLengthMax', 'ElementOrder',
@@ -71,10 +73,10 @@ def _target(obj, names):
         raise ValueError('Use distinct exact native subelement names')
     entries = []
     for name in names:
-        if not isinstance(name, str) or not re.fullmatch(r'(Face|Edge|Solid)[1-9][0-9]*', name):
-            raise ValueError('Regions support exact body/SolidN, FaceN or EdgeN targets')
+        if not isinstance(name, str) or not re.fullmatch(r'(Face|Edge|Solid|Vertex)[1-9][0-9]*', name):
+            raise ValueError('Regions support exact body/SolidN, FaceN, EdgeN or VertexN targets')
         family, index = re.match(r'([A-Za-z]+)([0-9]+)', name).groups()
-        shapes = getattr(obj.Shape, {'Face': 'Faces', 'Edge': 'Edges', 'Solid': 'Solids'}[family])
+        shapes = getattr(obj.Shape, {'Face': 'Faces', 'Edge': 'Edges', 'Solid': 'Solids', 'Vertex': 'Vertexes'}[family])
         if int(index) > len(shapes):
             raise ValueError('STALE_TARGET: selected native subelement no longer exists')
         entries.append({'name': name, 'brep_sha256': _brep(shapes[int(index) - 1])})
@@ -221,7 +223,7 @@ class FEMEditor:
         row = rows[0]
         source = self.owner._object(row['target']['object_id'])
         names = [item['name'] for item in row['target']['subelements']]
-        if source.Document is not self.owner.doc or _target(source, names) != row['target']:
+        if source.Document is not self.owner.doc or not self._same_condition_target(row['target'], _target(source, names)):
             raise ValueError('STALE_REGION: geometry changed; explicitly repair the named region')
         return row, source, names
 
@@ -247,19 +249,65 @@ class FEMEditor:
         self.owner.write_metadata(data)
         return record
 
+    def _same_condition_target(self, saved, current):
+        if saved == current:
+            return True
+        # Reuse an original v3 mesh/source proof; never rebind the saved target.
+        if (not isinstance(saved, dict) or not isinstance(current, dict) or
+                set(saved) != set(current) or any(saved.get(k) != current.get(k)
+                for k in ('object_id', 'type', 'global_placement')) or
+                [v.get('name') for v in saved.get('subelements', [])] !=
+                [v.get('name') for v in current.get('subelements', [])]):
+            return False
+        if any(set(v) != {'name', 'brep_sha256'} or
+                not isinstance(v['brep_sha256'], str) or not re.fullmatch('[a-f0-9]{64}', v['brep_sha256'])
+                for v in saved.get('subelements', [])):
+            return False
+        source = self.owner._object(saved['object_id'])
+        for mesh in self.owner.doc.Objects:
+            if not hasattr(mesh, 'FemMesh') or getattr(mesh, 'Shape', None) is not source:
+                continue
+            try:
+                proof = self.owner.mesh_bindings.validate(mesh)
+                origin = proof['source']
+                if (proof['schema_version'] == 3 and origin['brep_sha256'] == saved['brep_sha256'] and
+                        origin['name'] == saved['object_id'] and origin['type'] == saved['type'] and
+                        origin['global_placement'] == saved['global_placement'] and
+                        proof.get('source_equivalence', {}).get('subelement_correspondence') ==
+                        'SAME_FACE_EDGE_VERTEX_ORDER_AND_ORIENTATION'):
+                    # Bind each historical child digest to that exact original
+                    # full BRep, not merely to a valid-looking digest/name.
+                    import Part
+                    reference = Part.Shape()
+                    reference.importBrepFromString(origin['brep'])
+                    for child in saved['subelements']:
+                        match = re.fullmatch(r'(Face|Edge|Solid|Vertex)([1-9][0-9]*)', child['name'])
+                        if match is None:
+                            raise ValueError('Invalid original subelement name')
+                        shapes = getattr(reference, {'Face':'Faces', 'Edge':'Edges',
+                            'Solid':'Solids', 'Vertex':'Vertexes'}[match[1]])
+                        index = int(match[2])-1
+                        if index >= len(shapes) or _brep(shapes[index]) != child['brep_sha256']:
+                            raise ValueError('Original subelement digest differs from retained BRep')
+                    return True
+            except (ValueError, KeyError, TypeError, AttributeError, RuntimeError, ImportError):
+                continue
+        return False
+
     def _condition_errors(self, obj, data):
         row = next((row for row in data['conditions'] if row['object_id'] == obj.Name), None)
         if row is None:
             return ['UNTRACKED_TARGET: explicitly confirm/repair this condition target']
         try:
             current = [_target(self.owner._object(ref['object_id']), ref['subelements']) for ref in _references(obj)]
-            if not current or current != row['targets']:
+            if not current or len(current) != len(row['targets']) or not all(
+                    self._same_condition_target(old, now) for old, now in zip(row['targets'], current)):
                 return ['STALE_CONDITION_TARGET: explicitly select and repair references after geometry changes']
             direction = None
             if _native_type(obj) == 'Fem::ConstraintForce' and getattr(obj, 'Direction', None):
                 source, names = obj.Direction
                 direction = _target(source, list([names] if isinstance(names, str) else names))
-            if direction != row.get('direction_target'):
+            if not self._same_condition_target(row.get('direction_target'), direction):
                 return ['STALE_FORCE_DIRECTION: explicitly repair the direction target']
         except Exception as error:
             return [str(error)]
@@ -351,6 +399,9 @@ class FEMEditor:
         if operation not in OPERATIONS or not isinstance(arguments, dict):
             raise ValueError('Unsupported typed FEM operation')
         args = deepcopy(arguments)
+        if operation in PRETENSION_OPERATIONS:
+            from .pretension_native import dispatch
+            return dispatch(self, operation, arguments, target)
         if operation in PERIODIC_OPERATIONS:
             from .periodic_native import dispatch
             return dispatch(self, operation, args, target)
@@ -555,8 +606,6 @@ class FEMEditor:
         if repair and set(args) - {'region_id', 'direction_region_id'}:
             raise ValueError('Target repair changes only explicitly selected references')
         region, source, names = self._region(args['region_id'])
-        if not names or any(not name.startswith('Face') for name in names):
-            raise ValueError('Supported Fixed/Force execution requires exact solid faces')
         kind = _native_type(obj)
         creating = kind == 'Fem::FemAnalysis' and not repair
         if creating:
@@ -565,6 +614,10 @@ class FEMEditor:
             kind = 'Fem::Constraint' + args['kind']
         elif kind not in ('Fem::ConstraintFixed', 'Fem::ConstraintForce', 'Fem::ConstraintDisplacement'):
             raise ValueError('Select a native Fixed/Force/Displacement condition, or its Analysis to create one')
+        faces = bool(names) and all(name.startswith('Face') for name in names)
+        vertices = bool(names) and all(name.startswith('Vertex') for name in names)
+        if not faces and not (vertices and kind in ('Fem::ConstraintFixed', 'Fem::ConstraintDisplacement')):
+            raise ValueError('Fixed/Displacement는 정확한 Face 또는 Vertex, Force는 Face를 선택하세요.')
         if 'kind' in args and kind != 'Fem::Constraint' + args['kind']:
             raise ValueError('Condition kind differs from the selected native object')
         if 'analysis_id' in args and self.owner._object(args['analysis_id']) is not (obj if creating else obj.getParentGroup()):

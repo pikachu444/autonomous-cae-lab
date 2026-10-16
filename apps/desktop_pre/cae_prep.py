@@ -407,7 +407,9 @@ def start(config_path):
                     owner.project.open(CONFIG['input_receipt'])
                     CONNECTION.tick()
             from apps.desktop_pre.portable_project import install_file_actions
-            install_file_actions(CONFIG, connection=CONNECTION)
+            native_file_actions = install_file_actions(CONFIG, connection=CONNECTION)
+            from apps.desktop_pre.connector_menu import install as install_connectors
+            install_connectors(CONFIG, connection=CONNECTION, file_actions=native_file_actions)
             def final_view():
                 if Gui.activeDocument() and opened_native_owner is None:
                     Gui.activeDocument().activeView().viewAxonometric()

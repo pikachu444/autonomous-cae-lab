@@ -198,6 +198,8 @@ def validate_model(model):
     compile_states(model)
     if enabled(model):
         validate_effective(model)
+    from .pretension import sections
+    sections(model)
     return nodes, elements, bodies
 
 
@@ -234,6 +236,8 @@ def render(model):
     lines += model_cards(model)
     from .periodic_constraints import cards as periodic_cards
     lines += periodic_cards(model)
+    from .pretension_deck import model_cards as pretension_cards
+    lines += pretension_cards(model)
     if 'analysis_steps' in model:
         from .contact_steps import render_steps
         return '\n'.join(lines + render_steps(model) + [''])
@@ -262,7 +266,7 @@ def render(model):
 
 def solid_output_cards(model, frequency=''):
     """Request the real native nodal recovery; PE is the FRD name of scalar PEEQ."""
-    ns1 = has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static'
+    ns1 = has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static' or bool(model.get('pretension_sections'))
     tie = any(pair['draft']['normal_law'] == 'tie' for pair in model['contacts'])
     lines = ['*NODE FILE' + frequency, 'U,RF' if ns1 or tie else 'U']
     if ns1:

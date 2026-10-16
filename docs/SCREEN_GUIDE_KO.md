@@ -60,6 +60,8 @@ FreeCAD FEM·Gmsh·CalculiX·ParaView로 진행할 수 있습니다. 솔버 없�
 형상 변경 뒤 끊어진 면은 실제 대상을 다시 선택해야 합니다.
 자세한 순서는 [판재 셸](SHELL_WORKFLOW_KO.md), [CAD 치수 편집](USER_GUIDE_KO.md#1-cad-예제를-열고-치수-바꾸기),
 [보](BEAM_WORKFLOW_KO.md), [접촉](CONTACT_WORKFLOW.md) 안내를 따르세요.
+추가 조건은 [적층 셸](composite-shell/USAGE_KO.md), [스프링과 댐퍼](CONNECTOR_KO.md),
+[볼트 체결](PRETENSION_KO.md)에서 입력·결과·재편집 순서를 확인할 수 있습니다.
 
 ## 후처리에서 결과 보고 비교하기
 
