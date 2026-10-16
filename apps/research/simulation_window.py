@@ -23,6 +23,10 @@ NATIVE_MODELS = {
     'structure.calculix.shell.composite': ('적층 셸 해석', '원 모델의 적층 순서·재료·방향을 보관한 입력을 사용합니다.'),
 }
 
+
+def _is_native(backend):
+    return isinstance(backend, str) and backend in NATIVE_MODELS
+
 CONNECTOR_RESPONSES = {
     **{'connector.F'+axis: '국부 일반화 힘 '+axis+'' for axis in 'XYZ'},
     **{'connector.M'+axis: '국부 일반화 모멘트 '+axis+'' for axis in 'XYZ'},
@@ -269,7 +273,7 @@ class SimulationWindow(PDEWindow):
                 fatigue_node.setText(0,'피로 조건')
                 data=fatigue_node.data(0,ROLE);data['label']='피로 조건';fatigue_node.setData(0,ROLE,data)
                 self.tree.setCurrentItem(fatigue_node)
-        native = draft.get('backend') in NATIVE_MODELS
+        native = _is_native(draft.get('backend'))
         self.backend.setVisible(not native)
         if self._backend_note is not None: self._backend_note.setVisible(not native)
         if native:
@@ -304,7 +308,7 @@ class SimulationWindow(PDEWindow):
         self.messages.setPlainText('\n'.join(['Input diagnostics:', *[row['message'] for row in checks],
             'Supported model:', *details.get('limitations', []), 'Declared inputs / transfer ports:',
             display(details.get('declaration') or details.get('ports') or {}),
-            *(['보관된 입력 정의:', display(draft)] if backend in NATIVE_MODELS else []),
+            *(['보관된 입력 정의:', display(draft)] if _is_native(backend) else []),
             '계산 환경은 별도 확인이 필요합니다. 입력 검사는 공학적 승인이 아닙니다.']))
         self._input_checks = deepcopy(checks)
         self._refresh_issue_summary()
@@ -341,7 +345,7 @@ class SimulationWindow(PDEWindow):
         if type(value) in (int, float):
             self._numeric_paths = getattr(self, '_numeric_paths', set())
             self._numeric_paths.add(path)
-        if self._draft.get('backend') in NATIVE_MODELS and path[:1] == ('settings',):
+        if _is_native(self._draft.get('backend')) and path[:1] == ('settings',):
             title = QLabel(self.document.get('title') or NATIVE_MODELS[self._draft['backend']][0]); title.setWordWrap(True)
             form.addRow(title)
             family = QLabel(NATIVE_MODELS[self._draft['backend']][0]); family.setWordWrap(True); form.addRow(family)
@@ -399,7 +403,7 @@ class SimulationWindow(PDEWindow):
 
     def open_input_model(self):
         if (not self.document or self._busy or self.conflict or self.local_dirty
-                or self._draft.get('backend') not in NATIVE_MODELS or not self._native_input_id()):
+                or not _is_native(self._draft.get('backend')) or not self._native_input_id()):
             self.message.setText('현재 보관된 해석 입력을 선택하고 편집을 적용한 뒤 여세요.'); return False
         from .desktop import open_native_input
         key = (self.document['id'], self.document['session_id'], self.document['generation'], self._native_input_id())
@@ -411,7 +415,7 @@ class SimulationWindow(PDEWindow):
 
     def _accept_result(self, result):
         super()._accept_result(result)
-        if self._draft.get('backend') not in NATIVE_MODELS: return
+        if not _is_native(self._draft.get('backend')): return
         channels = (self._result or {}).get('native_channels', {})
         for index in range(self.channel.count()):
             key = self.channel.itemData(index); descriptor = channels.get(key, {})
@@ -427,7 +431,7 @@ class SimulationWindow(PDEWindow):
         return caption
 
     def axis_caption(self, axis):
-        if self._result and self._result.get('backend') in NATIVE_MODELS and axis.get('name') == 'time': return '시간'
+        if self._result and _is_native(self._result.get('backend')) and axis.get('name') == 'time': return '시간'
         if self._result and self._result.get('backend') == 'damage.rainflow' and axis.get('name') == 'cycle_count_record':
             return '사이클 기록 번호'
         return super().axis_caption(axis)
@@ -556,7 +560,7 @@ class SimulationWindow(PDEWindow):
 
     def _update_actions(self):
         super()._update_actions()
-        self.evaluate_button.setText('계산 실행' if self._draft.get('backend') in NATIVE_MODELS else '모델 평가')
+        self.evaluate_button.setText('계산 실행' if _is_native(self._draft.get('backend')) else '모델 평가')
         for button, action in getattr(self, '_command_actions', []):
             action.setText(button.text()); action.setEnabled(button.isEnabled())
         graph = self.model_splitter.widget(2)
@@ -587,8 +591,8 @@ class SimulationWindow(PDEWindow):
                                                    and (not self.local_dirty or uncertain))
             self.reprocess_impact_action.setText('결과 읽기 상태 확인…' if uncertain else '보존 결과 다시 읽기…')
         if hasattr(self, 'input_model_action'):
-            self.input_model_action.setVisible(self._draft.get('backend') in NATIVE_MODELS)
-            self.input_model_action.setEnabled(bool(self.document) and self._draft.get('backend') in NATIVE_MODELS
+            self.input_model_action.setVisible(_is_native(self._draft.get('backend')))
+            self.input_model_action.setEnabled(bool(self.document) and _is_native(self._draft.get('backend'))
                 and bool(self._native_input_id()) and not (self._busy or self.local_dirty or self.conflict))
         if hasattr(self, 'readiness_button'):
             self.readiness_button.setEnabled(not self._busy)

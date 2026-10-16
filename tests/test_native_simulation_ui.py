@@ -102,6 +102,15 @@ def test_legacy_editing_and_explicit_save_run_commands_remain_existing_paths(win
     assert ('settings','case') in win.fields and win.evaluate_button.text()=='모델 평가'
 
 
+@pytest.mark.parametrize('backend', [{}, []])
+def test_invalid_backend_draft_stays_editable_without_native_commands(window, backend):
+    win,app=window; value=document(backend)
+    win._show_document(value); app.processEvents()
+    assert win._draft['backend']==backend
+    assert not win.backend.isHidden() and not win.input_model_action.isVisible()
+    assert win.evaluate_button.text()=='모델 평가' and not win.client.calls
+
+
 def test_connector_actual_unit_labels_and_invalid_gaps_preserve_raw_arrays(window):
     win,app=window;win._selected_job='Jdisplay'
     response={'kind':'series','value':[1.,None,3.],'unit':'N','axes':[{'name':'time','unit':'s','values':[0.,.1,.2]}],
