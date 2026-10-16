@@ -1036,7 +1036,7 @@ Research9종: Data, Material, Numerical, PDE, Simulation, Evaluation, Study, Exp
 **분류 D · 단독 책임 T3(Post·비교·측정) · 상대 작업량 2/3**
 원 연결: FN-14-02, FN-27-01; SPEC-POST-COMPARE-001, POST-NUMERICAL-001, DESKTOP-001/002.
 
-**현재 구현 / 실제 잔여:** 점/경로·선형 tri/quad 면 평균은 있다. TRI6/QUAD8 native face 형상을 그대로 적분하는 경로가 잔여다.
+**현재 구현 / 실제 잔여:** TRI6/QUAD8의 고정 기준 면 평균·적분, 수치 차이·미확정 표시, 선택 저장과 Data/계획 연결을 통합했다. 저장된 면/두 점 시간 이력의 곡선 비교 연결도 포함한다. OS 직접 조작과 나머지 지원 한계의 현재 판정은 CURRENT_STATE를 따른다.
 
 **고정 지원 profile:** POST, SURFACE
 
@@ -1552,7 +1552,7 @@ Research9종: Data, Material, Numerical, PDE, Simulation, Evaluation, Study, Exp
 **분류 D · 단독 책임 T6(Study·Expert·실험·Report) · 상대 작업량 3/3**
 원 연결: FN-35-01; SPEC-EXPERIMENT-001, EXPERT-001/002, DESKTOP-002.
 
-**현재 구현 / 실제 잔여:** 교정/가공 Data 와 acquisition 설정은있지만 sample sequence·공통상태/stop acknowledgment·오류 UI 의완결구현은확인되지않았다. 전체를외부장비대기로넘기지않는다.
+**현재 구현 / 실제 잔여:** 기록 CSV 재생의 sequence·공통 상태·중지 응답·원문/교정 보존·부분 Data·저장본 재개 소프트웨어를 통합했다. 문서 전환과 동시 저장 오류도 수정했다. 실제 장비와 물리적 중지 응답은 별도 L02이며, OS 직접 조작의 현재 판정은 CURRENT_STATE를 따른다.
 
 **고정 지원 profile:** W, ACQUISITION
 
