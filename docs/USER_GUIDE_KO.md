@@ -903,8 +903,11 @@ $example = & $caePython -m examples.experiment_report --store runs/experiment-ex
 ![저장한 시험 자료로 만든 독립 보고서](images/measurement-report.png)
 
 위 화면은 실제 Qt 제품 창에 공개 합성 자료를 연 것입니다. 센서 교정의 정확성이나
-제품의 공학적 승인을 뜻하지 않습니다. 불확실성 자동 전파와 실장비 수집·중지는 남은
-개발 범위입니다. 계수 식별 진단, 수집 설정 재사용과 오류 복구는
+제품의 공학적 승인을 뜻하지 않습니다. 제공된 불확실성을 전파하려면
+[시험 자료의 불확실성 안내](experiment_expert/WORKFLOW_KO.md)를 따르세요.
+저장한 관측·예측 비교에서는 [차이의 불확실성](experiment_expert/COMPARISON_UNCERTAINTY_KO.md)을
+별도 계획으로 계산할 수 있습니다. 상관을 모르면 미확인으로 남으며 계산을 자동 실행하지 않습니다.
+실장비 수집·중지는 남은 개발 범위입니다. 계수 식별 진단, 수집 설정 재사용과 오류 복구는
 [시험 자료와 보고서 상세 안내](EXPERIMENT_REPORT.md)를 참고하세요.
 
 ## 내 모델과 결과로 이어가기

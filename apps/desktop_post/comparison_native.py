@@ -140,6 +140,22 @@ def execute(inputs, output, stage, settings):
             valid &= np.isfinite(mask_values) & (mask_values != 0)
         original = values.copy()
         values[~valid] = np.nan
+        if side.get('_stress_target') == 'cauchy':
+            gradient = None
+            if physical.validate_stress_side(side) != 'cauchy':
+                specification = side['deformation_gradient']
+                field = attrs.GetArray(specification['array'])
+                if field is None or field.GetNumberOfComponents() != 9 or field.GetNumberOfTuples() != expected:
+                    raise ValueError('원 응력과 같은 위치·표본의 전체 9성분 F 배열을 읽을 수 없습니다.')
+                gradient = np.asarray(vtk_to_numpy(field), dtype=np.float64).copy()
+                for name in specification['validity_masks']:
+                    mask = attrs.GetArray(name)
+                    if mask is None or mask.GetNumberOfComponents() != 1 or mask.GetNumberOfTuples() != expected:
+                        raise ValueError('F의 명시한 원 유효성 배열을 확인하세요: ' + name)
+                    flags = np.asarray(vtk_to_numpy(mask))
+                    valid &= np.isfinite(flags) & (flags != 0)
+                values[~valid] = np.nan
+            values = physical.stress_to_cauchy(values, side, gradient, target_unit=side['_stress_units'])
         detached = source.NewInstance(); detached.DeepCopy(source)
         detached.GetPointData().Initialize(); detached.GetCellData().Initialize(); detached.GetFieldData().Initialize()
         if side['association'] == 'CELLS':
@@ -194,7 +210,8 @@ def execute(inputs, output, stage, settings):
         source = inputs[0]; side, recipe = settings['side'], settings['recipe']
         output.DeepCopy(source)
         raw = _values(source, RAW)
-        transformed = physical.transform_values(raw, side, recipe['target'], settings['response_rotation'])
+        effective = physical.effective_stress_side(side, recipe)
+        transformed = physical.transform_values(raw, effective, recipe['target'], settings['response_rotation'])
         points = physical.transform_points(geometry(source)[0], side['coordinate_units'], recipe['a']['coordinate_units'],
                                           settings['geometry_rotation'], settings['translation'])
         native_points = vtk.vtkPoints(); native_points.SetData(numpy_to_vtk(points, deep=True))
@@ -207,7 +224,7 @@ def execute(inputs, output, stage, settings):
             if cells is None:
                 raise ValueError('기저·단위 변환 전 원 셀 적분값이 없습니다.')
             _put(output.GetCellData(), CELL_VALUE,
-                 physical.transform_values(np.asarray(vtk_to_numpy(cells)), side,
+                 physical.transform_values(np.asarray(vtk_to_numpy(cells)), effective,
                                            recipe['target'], settings['response_rotation']))
     elif stage == 'difference':
         from .analysis import OUTPUT_ARRAYS, _identity_arrays
@@ -284,6 +301,8 @@ def _side(source, side, plan, recipe, which, namespace, proxies):
     from . import analysis
     endpoints, originals = [], []
     side = deepcopy(side)
+    if physical.stress_conversion_enabled(recipe):
+        side.update(_stress_target='cauchy', _stress_units=recipe['target']['units'])
     integral_capture = (recipe.get('conservation', {}).get('mode') == 'check_volume_integral'
                         and which == 'b' and side['association'] == 'CELLS')
     if integral_capture: side['_integral_capture'] = True
@@ -361,7 +380,7 @@ def build(a, b, recipe, namespace):
             'input_hash_a': analysis._values_hash(_values(ad, VALUE)),
             'input_hash_b': analysis._values_hash(_values(bd, VALUE)),
             'original_a_id_arrays': analysis._identity_arrays(analysis._fetch(original_a).GetPointData()),
-            'order': physical.ORDER, 'time_plans': plans, 'qualification': 'UNQUALIFIED',
+            'order': physical.comparison_order(recipe), 'time_plans': plans, 'qualification': 'UNQUALIFIED',
             'percent_definition': recipe.get('percent', 'disabled'),
             'sample_semantics': 'transformed_B_sampled_at_A',
             'declarations': declarations(recipe)}

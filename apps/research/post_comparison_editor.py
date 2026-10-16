@@ -109,6 +109,8 @@ class ComparisonEditor(QWidget):
             self.layout_grid.addWidget(field, 2, column)
             meanings = {'force': '힘', 'displacement': '변위', 'cauchy': 'Cauchy 응력',
                         'global': '전역', 'rotated': '회전 기저'}
+            from .post_stress_editor import STRESS_LABELS
+            meanings.update(STRESS_LABELS)
             info = QLabel(' / '.join(meanings.get(current.get(k), str(current.get(k) or '미지정'))
                                    for k in ('units', 'measure', 'frame')))
             if current.get('observable') is not None:
@@ -138,6 +140,8 @@ class ComparisonEditor(QWidget):
         note = QLabel({'allow_partial': '부분 비교: 무효 점은 마스크로 남깁니다.',
                        'all_a_points': 'A의 모든 점이 필수입니다. 무효 점이 있으면 적용하지 않습니다.',
                        'a_mask': 'A에서 지정한 마스크 영역이 필수입니다.'}.get(policy, '필수 영역 설정을 확인하세요.'))
+        if self.value.get('stress_conversion') == {'version': 1, 'target_measure': 'cauchy'}:
+            note.setText('공통 Cauchy [' + str(self.value.get('target', {}).get('units') or '단위 미지정') + ']로 비교합니다. 원 A/B 성분은 별도 보존됩니다.\n' + note.text())
         note.setWordWrap(True)
         note.setToolTip('점 보간과 인접 셀 평균은 보존적 전달이 아닙니다. 체적 적분 검사는 변환 설정에서 별도로 선택합니다.')
         self.layout_grid.addWidget(note, 7, 0, 1, 2)
@@ -210,7 +214,7 @@ class ComparisonEditor(QWidget):
         current = self.value[side]; current['array'], current['association'] = selected
         metadata, declared = self.metadata(current['source_ref'])
         row = next((r for r in metadata.get('arrays', []) if [r['name'], r['association']] == selected), {})
-        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks', 'observable', 'validity_policy', 'spatial_mask'):
+        for key in ('quantity', 'units', 'measure', 'frame', 'layout', 'temperature_kind', 'validity_masks', 'observable', 'validity_policy', 'spatial_mask', 'material_frame'):
             current[key] = deepcopy(row.get(key, [] if key == 'validity_masks' else None))
         if row.get('components') == 1 and current.get('layout') is None:
             current['layout'] = {'kind': 'scalar', 'components': ['scalar']}
@@ -257,7 +261,7 @@ class ComparisonEditor(QWidget):
         shear = combo([('실제 텐서 전단', 'tensor'), ('공학 전단 변형률', 'engineering'), ('Kelvin 성분', 'kelvin')], layout.get('shear', 'tensor'))
         temperature = combo([('해당 없음 / 미확인', None), ('절대온도', 'absolute'), ('온도차', 'difference')], current.get('temperature_kind'))
         scalar_meaning = combo([('미확인', None), ('회전에 무관한 스칼라', 'invariant'), ('벡터·텐서의 한 성분', 'component')], layout.get('scalar_semantics'))
-        tensor_indices = combo([('미확인 / 두 기저', None), ('두 지표가 같은 직교 기저', 'same_cartesian_basis')], layout.get('indices'))
+        tensor_indices = combo([('미확인 / 두 기저', None), ('두 지표가 같은 직교 기저', 'same_cartesian_basis'), ('현재 행 / 기준 열 (PK1)', 'spatial_material_basis')], layout.get('indices'))
         form.addRow('스칼라 의미', scalar_meaning); form.addRow('텐서 기저', tensor_indices)
         form.addRow('성분 종류', kind); form.addRow('배열의 성분 순서', components)
         form.addRow('텐서 전단 규약', shear); form.addRow('온도 의미', temperature)
@@ -430,6 +434,8 @@ class ComparisonEditor(QWidget):
             '적분 검사는 같은 실제 경계 삼각형을 가진 선형 사면체 영역에서만 지원합니다. '
             '원 B의 전체 성분과 A에 전달된 B를 비교하며, 절대온도의 적분을 열량으로 해석하지 않습니다.')
         limitation.setWordWrap(True); transfer_form.addRow(limitation)
+        from .post_stress_editor import stress_page
+        commit_stress = stress_page(self, draft, tabs, combo, line)
         for index in range(tabs.count()):
             page = tabs.widget(index); title = tabs.tabText(index)
             page.layout().setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
@@ -444,6 +450,7 @@ class ComparisonEditor(QWidget):
             button.setAutoDefault(False); button.setDefault(False)
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); root.addWidget(buttons)
         if dialog.exec() != QDialog.DialogCode.Accepted: return
+        commit_stress()
         draft.update(method=method.currentData(), tolerance=number_or_raw(tolerance.text()),
             target={'units': units.text()}, difference=difference.currentData(), percent=percent.currentData())
         draft['coverage'] = {'policy': required.currentData(),

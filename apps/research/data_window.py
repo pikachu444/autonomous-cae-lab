@@ -1135,6 +1135,16 @@ class DataWindow(QMainWindow):
 
     def open_uncertainty_analysis(self):
         if self._busy:return False
+        if self._comparison_id:
+            row=next((r for r in self.document.get('comparisons',[]) if r['id']==self._comparison_id),None)
+            if not row or not row.get('retained_revision'):
+                self.message.setText('비교를 먼저 저장한 뒤 차이의 불확실성을 계산하세요.');return False
+            from .experiment_analysis_window import show_analysis_window
+            reference={'kind':'comparison','document_id':self.document['id'],'document_kind':'data',
+                'saved_revision':row['retained_revision'],'comparison_id':row['id'],'result_sha256':row['result_sha256'],
+                'start':self.row_start.value(),'count':min(4096,self.row_count.value())}
+            show_analysis_window(self,source={'kind':'retained_comparison','reference':reference})
+            return True
         try:source=deepcopy(self.selected_source())
         except ValueError as error:self.message.setText(str(error));return False
         token=self._source_token()

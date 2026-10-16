@@ -24,8 +24,9 @@ def plan_input_schemas():
     processing = closed({'kind': {'const': 'processing_channel'}, 'document_id': string, 'revision': string,
         'channel': string, 'channel_sha256': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'}},
         ['kind', 'document_id', 'revision', 'channel', 'channel_sha256'])
+    comparison = closed({'kind': {'const':'retained_comparison'},'reference':obj},['kind','reference'])
     return {
-        'experiment_uncertainty': closed({'source': {'oneOf': [imported, processing]},
+        'experiment_uncertainty': closed({'source': {'oneOf': [imported, processing, comparison]},
             'specification': obj, 'plan_mask': {'type': 'array', 'items': {'type': 'boolean'}}}, ['source', 'specification']),
         'identification_final': closed({'evidence_reference': obj,
             'relative_step': {'type': 'number', 'minimum': 1e-8, 'maximum': 1e-2},
@@ -79,6 +80,9 @@ def source_problem(workbench, inputs):
             raise ValueError('처리 채널의 원값/기여/선택이 달라졌습니다.')
         problem = processing_problem(channel, plan_mask=inputs.get('plan_mask'))
         problem['processing_record'] = plain(result['diagnostics']['processing_record'])
+    elif source['kind'] == 'retained_comparison':
+        from .experiment_comparison_uncertainty import read_problem
+        problem = read_problem(workbench,source['reference'],plan_mask=inputs.get('plan_mask'))
     else:
         raise ValueError('실제 저장한 원자료/처리 채널을 선택하세요.')
     problem['source'] = deepcopy(source)
@@ -307,6 +311,10 @@ def matches_followup_source(request, source_reference, *, workbench=None):
     if operation == 'experiment_uncertainty':
         source = inputs.get('source', {})
         selected = source.get('reference') if source.get('kind') == 'result_response' else None
+        if source.get('kind') == 'retained_comparison' and workbench is not None:
+            # The original A result anchors the established handoff receipt.
+            # The frozen problem separately binds the saved comparison and B.
+            selected = source_problem(workbench, inputs)['operand_references']['A']
         if source.get('kind') == 'processing_channel' and workbench is not None:
             # The original Data result anchors the existing idempotent handoff;
             # the Plan ALSO retains the exact published processing/channel SHA.

@@ -89,6 +89,10 @@ def read_analysis_source(client, *, source=None, evidence_reference=None, plan_m
                 raise ValueError('처리 개정의 원 시험 입력과 명시 Plan 출처가 다릅니다.')
             problem=processing_problem(channel,plan_mask=plan_mask)
             problem['processing_record']=deepcopy(r['diagnostics']['processing_record'])
+        elif source.get('kind')=='retained_comparison':
+            from .experiment_comparison_uncertainty import read_problem
+            problem=read_problem(client,source['reference'],plan_mask=plan_mask)
+            ref=problem['operand_references']['A'];d=client.document_read(ref['document_id'])
         elif source.get('kind')=='result_response':
             ref=source['reference'];d=client.document_read(ref['document_id'])
             r=client.document_result(ref['document_id'],ref['job_id'])

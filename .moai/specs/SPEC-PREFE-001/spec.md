@@ -2,7 +2,7 @@
 id: SPEC-PREFE-001
 title: "전처리·구조해석 15개 작업의 구현 범위와 완료 조건"
 version: "0.1.0"
-status: draft
+status: in-progress
 created: 2026-10-14
 updated: 2026-10-14
 author: "Codex 작업 구체화, 기존 Pro 제품 명세 기반"

@@ -38,14 +38,15 @@ B1–B2 12행, B3–B6 20행, B7–B8 12행의 한정 대조 입력을 각각 �
 Pro는 전체 남은 작업의 상세 설계와 지원 범위를 확정하며, 그 결과를 Sol의
 본코드 병렬 배정과 Astra의 핵심 설계 독립 검토에 사용한다. 기존 배포 CI는 병행한다.
 
-Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **사용자 메시지·첨부 게시 확인,
-응답 시작 오류**. 해당 응답의 한 번의 재시도도 오류였다. 새 대화 화면으로
-이동하자 실제 UI가 ‘계정을 불러오지 못했습니다’를 표시했고 계정 재시도도
-회복하지 못했다. Pro 응답/새 대화 생성은 미완료다. 중복 전송·유료 우회는 하지 않는다.
+Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **연결 복구 후 응답 중**.
+전체 남은 세부 개발·지원 조합·종료 조건을 확정하는 한 요청이며 작은 코드 교정 요청이 아니다.
+최초 전송은 보존되지 않았고 복구 뒤 같은 ID의 요청 한 건을 실제 전송했다.
+완료 응답/파일은 아직 회수하지 않았다. 중복 전송이나 유료 우회 없이 같은 응답을 이어 확인한다.
 대상은 기존 [Pro 대화](https://chatgpt.com/c/6ad0c48d-36b4-83ec-a79b-f25b5dd3dac4),
-기준 소스는 `380cf35c1ab8ed8de86b1c4828292c75b9142fdc`다. 실제 UI의 Pro·파워 5/5,
-빈 초안과 이전 응답 완료를 확인했다. 공개 원요구·전체 기능/실행계획·기존 SPEC·관련
-소스의 묶음과 최신 한정 대조 사실을 전달한다. 준비 자료는
+재시도 기준 소스는 `8c1d264d0818d45cd37991cc9c0424b91493a1ea`다. 복구된 실제 UI의
+Pro·파워 5/5와 진행 중 응답 없음을 확인했다. 교체한 초안은 Codex가 작성한 위 요청이다.
+공개 원요구·전체 기능/실행계획·기존 SPEC와 공개 Python 제품/테스트 원문 전체,
+고정 upstream 및 최신 대조 정정을 전달한다. 준비 자료는
 `_workspace/closeout-20261016/`이며, 전송·응답·통합을 구별해서 갱신한다.
 
 #### 기존 44개 실행행의 현재 종료 목록
@@ -70,7 +71,7 @@ Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **사용자 메시지·첨부 게
 | B2.5 충격 입력 | 범위 확정·개발 | 기존 INP/RAD subset을 재사용하고 요구된 card/element/instance 지원 목록의 가져오기→수정→실행→Post를 닫음 |
 | B2.6 손상·피로 | 범위 확정·개발 | 기존 bulk/계면/pair 결과를 유지하고 미완료 손상 채널·재개폐·평균응력/다축 경로를 각각 닫음 |
 | B3.1 선택·닫기 | 구현·배포 확인 | 같은 선택과 Ctrl+S/X/Alt+F4/File→Exit의 저장/취소/실패 의미를 실제 지원 ParaView에서 완료 |
-| B3.2 결과 비교 | 추가 개발 | 동일 측도 제한을 넘어 요구된 물리 측도/공간 대응을 실제 정보가 있는 조합에서 변환·비교·재열기 |
+| B3.2 결과 비교 | 응력 변환 통합·나머지 개발 | 명시 F로 Cauchy/PK1/PK2/Kirchhoff→공통 Cauchy 비교·재열기는 통합. 변형률 측도와 추가 공간 대응은 남음 |
 | B3.3 측정 재사용 | 추가 개발 | 현재 측정/환류는 유지. 고차면·다중 블록·현재 변형 면적의 구체 지원 경로와 재평가를 완료 |
 | B3.4 복구·보고 반환 | 구현 있음·확인 | 같은 내용 재연결/변경 내용 새 분석을 구분하고 정확한 선택을 Report/Study/Plan에서 재열기 |
 | B4.1 Data 처리 | 구현 있음·확인 | 선언된 recipe의 원행·단위·mask·순서와 저장/새 소유자 재읽기·Plan 편입을 대조 |
@@ -91,7 +92,7 @@ Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **사용자 메시지·첨부 게
 | B6.4 반복 연성 | 구현 있음·확인 | 기존 Picard/MDO의 stage 격리·잔차·수렴·부분 실패·재사용과 저장/재열기 대조 |
 | B7.1 문헌·판단 | 구현 있음·확인 | 실제 자료 구간·저장 개정·복구와 옛 판단의 원 참조 유지 대조 |
 | B7.2 Expert 협업 | 실제 연구 완료·추가 수용 | 실제 3담당 상호 연구/지도/보고서는 유지. 중단/한도/부분응답/재개와 중복 없는 후속 업무를 대조 |
-| B7.3 계측 불확실성 | 전파 코드 있음·연결 확인/교정 | 기존 `experiment_uncertainty`의 표준/확장·공분산·PSD·전파·Plan/Study 경로를 재사용. 교정 Data/비교의 실제 누락 연결만 수정하고 단위·상관·UNKNOWN·재열기를 닫음 |
+| B7.3 계측 불확실성 | 기존 전파·차이 연결 통합 | 기존 엔진을 재사용한 저장 비교 B−A의 제공 공분산 전파·Plan/Study·재열기를 통합. 고정축 조건부 범위와 전체 측정 불확실성을 구별 |
 | B7.4 식별 진단 | 추가 개발 | robust/DE 후보의 한정 profile/perturbation 진단을 원 fit bounds/목적 기준·Study 후속 시험과 연결 |
 | B7.5 3D 보고서 | 구현 있음·GUI 확인 | 기존 실제 결과 캡처·고정 자산·원창 열기·복합 보고/내보내기를 같은 frame/field로 대조 |
 | B7.6 장비 취득 | 공통 수집의 구현/확인·외부 인수 | 장비 없이도 sample/sequence·오류/종료 UI·adapter 경계를 대조하고 누락을 수정. 실제 장비 binding·물리 중지는 장비/프로토콜/권한을 받은 뒤 인수 |
@@ -110,20 +111,35 @@ Pro 요청 `PRO-PRODUCT-CLOSEOUT-20261016-01`: **사용자 메시지·첨부 게
 미분법/derivative-free와 구별해 전 범용 adjoint를 임의 필수로 늘리지 않는다.
 지원 조합과 남은 세부 배정의 미결은 다음 통합에서
 같은 부모 아래 구체화하며, 그 미결이 남아 있는 동안 전체 개발 완료/일정 확정으로
-보고하지 않는다. 미정 설계는 기존 일곱 팀 경계로 확정해 배정한다. 이미 기존 명세에서
-입력과 종료 결과가 명확한 다음 두 기능은 Pro 연결 복구와 무관하게 **본코드 작성 중**이다.
+보고하지 않는다. 미정 설계는 기존 일곱 팀 경계로 확정해 배정한다.
+아래 두 비교 기능은 **제품 소스 통합과 한정 확인을 완료**했고, 다음 기존 E5 본구현을 배정했다.
 
 | 현재 담당 | 기존 작업과 이번에 끝낼 결과 | 소유와 통합 |
 |---|---|---|
-| `native_post_delivery` / Sol-high | B3.2의 서로 다른 응력 측도를 명시 변형 정보로 같은 측도에 맞춰 비교·저장/재열기. 없는 F/J·성분은 추정하지 않음 | `_workspace/post-physical-measures/after/` 후보와 최소 patch, root가 기존 비교/owner 접점 통합 |
-| `dynamic_reprocess_gui` / Sol-high | B7.3의 기존 전파/analysis-service를 재사용해 교정 Data·동일 관측 비교의 실제 연결 간극만 수정하고 저장/재열기 | `_workspace/calibration-uncertainty/after/` 후보와 최소 patch, root가 기존 Data/비교/Study 접점 통합 |
-| `cae_engineering` / CAE 자문 | 두 담당과 직접 논의해 실제 입력·단위·성분·공분산·지원 변환과 독립 기준을 한정 | 기능별 `CAE_DECISIONS.md`만 작성, 제품 공동 파일 편집 없음 |
+| `native_post_delivery` / Sol-high | B3.2 응력 변환 통합 완료 후 E5 GUI 소유. 실제 모델 두 끝 선택·6모드 k/c·축·attachment의 보조창을 구현 담당과 직접 논의/작성 | `_workspace/native-connector-delivery/after/apps/desktop_pre/connector_panel.py`와 `gui/`만 직접 작성. 앞선 [응력 비교 사용법](apps/research/POST_NUMERICAL.md#서로-다른-응력-측도를-cauchy로-비교하기) 유지 |
+| `dynamic_reprocess_gui` / Sol-high | B7.3 차이 전파 후보와 UNKNOWN 표시 교정 완료. root가 Data/비교/Study에 적용 | `_workspace/calibration-uncertainty/`와 `correction-01/`, [사용법](docs/experiment_expert/COMPARISON_UNCERTAINTY_KO.md) |
+| `pde_transfer_review` / Astra-xhigh | 위 두 기능의 통합 소스·수치 의미·실제 렌더 독립 검토 완료. 필수 표시 2건 교정 후 열린 지적 없음 | `_workspace/current-comparison-integration/REVIEW.md`, 전체 B3/B7 인수와 구별 |
+| `inverse_delivery` / Sol-high | E5 두 기준점/영역의 병진·회전 스프링/댐퍼, 국부축·계수→기존 Windows OpenCourant 입력→응답→저장/재열기의 본구현 시작 | `_workspace/native-connector-delivery/`만 직접 작성. 제품 after/patch 제안, Core/schema/공유 접점은 root 통합 |
+| `cae_engineering` / CAE 자문 | 완료된 두 비교 자문에 이어 E5 구현 담당과 TYPE13·회전 attachment·k/c 단위/TH 의미를 직접 논의 | `_workspace/native-connector-reuse/CAE_IMPLEMENTATION_CONTRACT.md` 및 구현 폴더의 `CAE_DECISIONS.md`. 제품 공동 파일 편집 없음 |
+| `native_connector_reuse` / Luna-high | 설치된 FreeCAD FEM/현 adapter 조사 완료. 표면 Spring을 E5 두 점 회전 connector로 오인하지 않도록 기술 경로 한정 | `_workspace/native-connector-reuse/ANSWER.md`. 새 solver/framework/전역 WSL 없이 기존 Windows TYPE13 경로 선택 |
+
+통합 비교 기능의 확인: root 제품 소스에서 관련 36개 단위/Qt 검사 통과. 원 작성자의 실제
+ParaView Preview→Apply→Save→별도 process 재열기, 실제 Client/JobManager/Plan/Study와
+QWindows 보통/좁은 창 기록을 Astra가 함께 읽었다. 원 응력과 원 A/B 결과는 유지된다.
+UNKNOWN 그래프의 임의 숫자축과 비교 분기의 불필요한 실행 카운터를 교정해 적용했다.
+일반 변형률·모든 공간 대응·일반 비선형 전파·OS 수동 입력·공학적 적합성을 완료로 확대하지 않는다.
+owned Job 정리 완료이며 테스트 창을 남기지 않았다. 원 근거는 위 두 후보 폴더와 통합 검토 폴더에 남는다.
 
 B7.3 담당의 현재 코드 대조에서 `experiment_uncertainty.py`와 기존 analysis service/
 actions/reporting의 표준/확장 불확실성·부분 공분산·PSD·JΣJᵀ·Plan/Study 경로가 확인됐다.
 앞선 단일 교정 함수의 복사 동작만 보고 전체 전파 기능이 없다고 판단한 것은 범위가
 너무 좁았다. 전파 엔진을 새로 만들지 않으며 실제 미연결 경로를 특정한 뒤 교정한다.
-이미 기존 요구를 충족한 경로는 근거를 연결해 닫는다. 아래 여덟 영역의 옛 요약보다
+기존 실제 Client/Data→불확실성 Plan→동일 관측 비교와 Study→새 프로세스 재읽기는
+원자료·저장 참조를 유지한 채 완료했고 소유 Job을 정리했다. 이것은 평균값 비교와
+전파 Plan을 함께 보존한 흐름이지 B−A 차이 자체의 불확실성 전파가 아니다.
+실제 간극인 후자는 A/B 교차 공분산을 명시해 기존 엔진을 소비하는 코드로 통합했다.
+가중 residual과 물리 차이의 불확실성도 구별한다. 일반 비선형 전파의 전체 지원으로
+확대하지 않는다. 이미 충족한 경로는 근거를 연결해 닫는다. 아래 여덟 영역의 옛 요약보다
 이 최신 발견과 위 실행행 판정이 우선한다.
 
 두 구현은 기존 Pro 명세의 Sol 작성이며 새 Pro 결과가 아니다. 같은 공유 파일을 동시에

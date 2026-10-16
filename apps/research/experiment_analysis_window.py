@@ -148,6 +148,8 @@ class ExperimentAnalysisWindow(QDialog):
         self._update_actions()
 
     def _label(self,v):
+        if v.get('operand'):
+            return v['label']+' / '+('원행 '+str(v['source_row']) if 'source_row' in v else '표본 '+str(v['sample_index']+1))
         if v.get('source_row') is not None:return '원행 '+str(v['source_row'])
         if v.get('raw_ref'):return '원행 '+str(v['raw_ref'].get('source_row','미확인'))
         return {'a':'기울기 a','x0':'입력 영점','b':'출력 오프셋'}.get(v.get('coefficient',v['id']),v['id'])
@@ -156,7 +158,11 @@ class ExperimentAnalysisWindow(QDialog):
         self._view,self.document,self.result,self.job_id,request,self.source,self.evidence_reference=payload
         self._loading_request=deepcopy(request)
         self._populating=True;p=self._view['problem'];final=self.evidence_reference is not None
-        self.setWindowTitle('최종점 계수 진단' if final else '제공 불확실성 전파')
+        difference=p.get('kind')=='comparison_difference'
+        self.cost.setVisible(not difference)
+        self.tabs.setTabText(0,'원 측정값' if difference else '입력·계수')
+        self.inputs.setHorizontalHeaderItem(0,QTableWidgetItem('원 측정값' if difference else '원값 / 계수'))
+        self.setWindowTitle('최종점 계수 진단' if final else '차이의 불확실성' if p.get('kind')=='comparison_difference' else '제공 불확실성 전파')
         self.run.setText('최종점 진단' if final else '전파 계산')
         spec=(request or {}).get('inputs',{}).get('specification',{})
         self.inputs.setRowCount(len(p['variables']))
@@ -192,11 +198,12 @@ class ExperimentAnalysisWindow(QDialog):
         self._cost_changed();cost=self._cost_number()
         self.budget.setValue((request or {}).get('budget',{}).get('evaluations',max(1,cost)))
         self.summary.setText('최종 선택 계수의 원 피팅 잔차와 가중치, 포함 구간을 그대로 사용합니다.' if final else
+            '관측 A와 예측 B의 저장된 정렬·선택으로 차이 B−A를 계산합니다. 두 자료 사이의 상관도 제공하세요.' if difference else
             '보존한 시험의 원 교정값과 제공 출력 불확실성은 바꾸지 않습니다.')
         self._populating=False;self.dirty=False
         if self.result:self._show_result(self.result)
         elif not final:
-            x,label=coordinate(p);self.figure.clear();ax=self.figure.subplots();ax.plot(x,p['values']);ax.set_xlabel(label);ax.set_ylabel('원 교정값 ['+p['unit']+']');self.canvas.draw()
+            x,label=coordinate(p);self.figure.clear();ax=self.figure.subplots();ax.plot(x,p['values']);ax.set_xlabel(label);ax.set_ylabel(('차이 B−A' if difference else '원 교정값')+' ['+p['unit']+']');self.canvas.draw()
         if self._view.get('interrupted_without_result'):
             self.message.setText('이전 계산이 중단되어 결과가 없습니다. 입력을 확인한 뒤 새 계산을 명시적으로 실행하세요.')
         self._update_actions()
@@ -296,6 +303,8 @@ class ExperimentAnalysisWindow(QDialog):
         current=(self.results.currentRow(),self.results.currentColumn()) if same_job else (-1,-1)
         scroll=(self.results.verticalScrollBar().value(),self.results.horizontalScrollBar().value())
         self.result=result;content=list(blocks(result))
+        if result.get('experiment_analysis',{}).get('source_problem',{}).get('kind')=='comparison_difference':
+            self.results.setMinimumHeight(125)
         tables=[v for k,v in content if k=='table'];table=tables[-1] if tables else ([],[])
         headers,rows=table;self.results.setColumnCount(len(headers));self.results.setHorizontalHeaderLabels(headers);self.results.setRowCount(len(rows))
         for i,row in enumerate(rows):
@@ -315,7 +324,14 @@ class ExperimentAnalysisWindow(QDialog):
             yy=[float(v) if ok and isinstance(v,(int,float)) and math.isfinite(v) else math.nan for v,ok in zip(y,mask)]
             label=curve['y_label']
             if label=='선언 범위로 정규화한 잔차 민감도':label='선언 범위로 정규화한\n잔차 민감도'
-            ax.plot(x,yy,marker='.');ax.set_xlabel(curve['x_label']);ax.set_ylabel(label)
+            if any(math.isfinite(v) for v in yy):
+                ax.plot(x,yy,marker='.');ax.set_xlabel(curve['x_label']);ax.set_ylabel(label)
+            else:
+                ax.set_axis_off()
+                difference=result.get('experiment_analysis',{}).get('source_problem',{}).get('kind')=='comparison_difference'
+                empty=('차이의 불확실성 미확인\n상관·공분산과 입력값을 확인하세요.' if difference else
+                       '표시할 유효한 결과값이 없습니다.')
+                ax.text(.5,.5,empty,ha='center',va='center',transform=ax.transAxes)
         self.canvas.draw();message=next((v for k,v in content if k=='paragraph'),'결과 보존됨')
         if self._loading_request and self._loading_request!=result.get('experiment_analysis',{}).get('request'):
             message+=' · 표·곡선은 보존한 실행 입력의 결과이며 현재 편집 입력과 다를 수 있습니다.'

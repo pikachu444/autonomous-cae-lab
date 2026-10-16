@@ -598,6 +598,8 @@ class Workspace:
             elif obj['kind'] == 'comparison':
                 for side in ('a', 'b'):
                     self._declared_side(draft[side])
+                    if physical.stress_conversion_enabled(draft):
+                        physical.validate_gradient_declaration(draft[side], self._output_declaration(draft[side]['source_ref']))
                 if draft.get('version') != 2 and any(draft[side].get('observable') is not None for side in ('a', 'b')):
                     raise ValueError('저장 성분의 재비교는 물리량 비교 편집기에서 작성하세요.')
                 bundle = analysis.build_comparison(self.resolve(draft['a']['source_ref']), self.resolve(draft['b']['source_ref']), draft, name)
@@ -714,7 +716,7 @@ class Workspace:
             raise ValueError('Chosen array has no matching declaration in its source receipt')
         if side.get('validity_policy') is not None and side['validity_policy'] != row.get('validity_policy'):
             raise ValueError('Comparison validity policy conflicts with the retained source declaration')
-        for name in ('units', 'frame', 'measure', 'quantity'):
+        for name in ('units', 'frame', 'measure', 'quantity', 'material_frame'):
             if row.get(name) is not None and row[name] != side.get(name):
                 raise ValueError('Comparison ' + name + ' conflicts with the retained source declaration')
         for name in ('coordinate_units', 'coordinate_frame'):

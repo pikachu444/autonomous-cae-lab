@@ -35,6 +35,7 @@ def uncertainty_reason(reason,problem):
             column=reference.get('column_identity',reference.get('column'))
             if column is not None:label+=' / 열 '+str(column+1 if type(column) is int else column)
         else:label={'a':'기울기 a','x0':'입력 영점','b':'출력 오프셋'}.get(coefficient,'선택 입력')
+        if row.get('operand'):label=row['label']+' / '+label
         labels[row['id']]=label
     return prefix+', '.join(' ↔ '.join(labels.get(key,'미확인 입력') for key in pair.split(' ↔ '))
         for pair in reason[len(prefix):].split(', '))
@@ -61,7 +62,10 @@ def blocks(result):
     if result.get('failure_reason'):
         yield 'paragraph', str(result['failure_reason'])
     if result.get('kind') == 'experiment_uncertainty':
-        yield 'paragraph', '제공한 입력·계수 불확실성만 사용한 1차 값 전파입니다. 원 교정값과 제공 output uncertainty는 변경하지 않았습니다. 신뢰구간이 아닙니다.'
+        difference=p.get('kind')=='comparison_difference'
+        value_label='차이 B−A' if difference else '원 교정/처리 값'
+        yield 'paragraph', ('저장된 관측 A와 예측 B의 차이 B−A에 대한 1차 전파입니다. 가중·정규화 잔차의 불확실성이 아니며 원 비교는 유지됩니다.' if difference else
+            '제공한 입력·계수 불확실성만 사용한 1차 값 전파입니다. 원 교정값과 제공 output uncertainty는 변경하지 않았습니다. 신뢰구간이 아닙니다.')
         yield 'paragraph', ('전체 측정 불확실성: 미확인. 축 불확실성은 계산하지 않았습니다.' if a.get('complete_measurement_uncertainty')=='UNKNOWN'
                             else '선언한 고정 축과 처리 계수에 조건부인 전파입니다.')
         joint = a.get('joint_covariance_validation', {}).get('output', {})
@@ -73,8 +77,8 @@ def blocks(result):
         if isinstance(supplied,dict):
             yield 'table', (['기존 제공 출력 불확실성','단위','종류','포함인자 k','상관'], [[supplied.get('value'),supplied.get('unit'),supplied.get('kind'),value(supplied.get('k')),value(supplied.get('correlation'))]])
         elif isinstance(supplied,list):
-            yield 'table', (['원 교정 적용 순서','제공 출력 불확실성','단위','종류','포함인자 k','상관'],
-                [[i+1,value(u.get('value')),value(u.get('unit')),value(u.get('kind')),value(u.get('k')),value(u.get('correlation'))]
+            yield 'table', (['원 측정' if difference else '원 교정 적용 순서','제공 출력 불확실성','단위','종류','포함인자 k','상관'],
+                [[item.get('operand',i+1),value(u.get('value')),value(u.get('unit')),value(u.get('kind')),value(u.get('k')),value(u.get('correlation'))]
                  for i,item in enumerate(supplied)
                  for u in [item.get('provided_output_uncertainty') if isinstance(item.get('provided_output_uncertainty'),dict) else {}]])
         rows = a.get('rows', []) or [dict(original_value=v,standard_uncertainty=None,unit=p['unit'],
@@ -82,13 +86,13 @@ def blocks(result):
             for v,included in zip(p['values'],p['included'])]
         x, label = coordinate(p)
         ids = p.get('original',{}).get('raw_samples',{}).get('source_rows')
-        yield 'table', (['원 행' if ids else '표본 순서','원 교정/처리 값','표준불확실성','단위','판단','사유'],
+        yield 'table', (['원 행' if ids else '표본 순서',value_label,'표준불확실성','단위','판단','사유'],
             [[ids[i] if ids else i+1,r['original_value'],value(r['standard_uncertainty']),r['unit'],STATES.get(r['status'],UNKNOWN),uncertainty_reason(r.get('reason'),p)] for i,r in enumerate(rows)])
         if len(x)==len(p.get('values',[])):
-            yield 'curve', {'x':x,'y':p['values'],'mask':p['included'],'x_label':label,'y_label':'원 교정/처리 값 ['+p['unit']+']'}
+            yield 'curve', {'x':x,'y':p['values'],'mask':p['included'],'x_label':label,'y_label':value_label+' ['+p['unit']+']'}
             yield 'curve', {'x':x,'y':[r['standard_uncertainty'] for r in rows],
                 'mask':[r['status']=='COMPUTED_FIRST_ORDER' for r in rows], 'x_label':label,
-                'y_label':'표준불확실성 — 값 조건부 1차 ['+p['unit']+']'}
+                'y_label':('차이의 표준불확실성' if difference else '표준불확실성 — 값 조건부 1차')+' ['+p['unit']+']'}
     elif result.get('kind') == 'experiment_identification':
         d = result.get('identification', {})
         yield 'paragraph', STATES.get(d.get('status'),UNKNOWN)+' — 최종 선택점의 일반 잔차 Jacobian 진단입니다. 전역 유일성과 측정 불확실성은 미확인입니다.'
@@ -130,6 +134,8 @@ def suggested_questions(result):
     if result.get('kind')=='experiment_uncertainty':
         a=result['experiment_analysis'];p=a['source_problem']
         questions=[]
+        if p.get('kind')=='comparison_difference':
+            questions.append('두 측정값의 차이를 판단하려면 A와 B 사이의 공분산·상관을 어떻게 확인해야 하는가?')
         if a.get('missing_input_information') or any(r.get('status')=='UNKNOWN' for r in a.get('rows',[])):
             questions.append('미제공 입력 불확실성·포함인자·상관 중 어떤 자료를 확보해야 해당 표본의 전파를 계산할 수 있는가?')
         if any(p.get('metadata',{}).get(k) in (None,'UNKNOWN') for k in ('location','direction','frame')):

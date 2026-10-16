@@ -180,7 +180,7 @@ def retained_declarations(metadata):
 
 
 def output_declarations(recipe):
-    a = recipe['a']
+    a = effective_stress_side(recipe['a'], recipe)
     observed = check_observables(recipe)
     delta = ({'version': 1, 'operation': 'norm_of_difference', 'source_kind': a['layout']['kind'],
               'norm': 'euclidean' if a['layout']['kind'] == 'vector' else 'frobenius'}
@@ -366,6 +366,13 @@ def validate(recipe, times_a, times_b):
         if side['association'] == 'CELLS' and side.get('projection') != 'cell_to_point_equal_incident':
             raise ValueError('셀 값을 점에서 비교하려면 인접 셀 동일 가중 투영을 명시하세요.')
         layout_size(side.get('layout'))
+    if stress_conversion_enabled(recipe):
+        for side in (a, b):
+            validate_stress_side(side)
+            for unit in (side['units'], recipe['target']['units']):
+                if UNITS.get(unit, (None,))[0] != 'stress':
+                    raise ValueError('응력 측도 변환에는 명시한 응력 단위가 필요합니다.')
+        a, b = (effective_stress_side(side, recipe) for side in (a, b))
     for key in ('quantity', 'measure'):
         if a[key] != b[key]:
             raise ValueError('서로 다른 ' + key + '는 회전으로 변환할 수 없습니다.')
@@ -414,6 +421,145 @@ def validate(recipe, times_a, times_b):
     if plans[0]['common_time'] is None and recipe.get('clock', {}).get('value') is not None:
         raise ValueError('시각이 없는 두 자료에 실제 표본 시각을 새로 부여하지 않습니다.')
     return plans
+
+
+STRESS_MEASURES = {
+    'cauchy': 'cauchy', 'cauchy_stress': 'cauchy',
+    'pk1': 'pk1', 'first_piola': 'pk1', 'first_piola_kirchhoff': 'pk1',
+    'pk2': 'pk2', 'second_piola': 'pk2', 'second_piola_kirchhoff': 'pk2',
+    'kirchhoff': 'kirchhoff', 'kirchhoff_stress': 'kirchhoff', 'tau': 'kirchhoff'}
+
+
+def stress_conversion_enabled(recipe):
+    if 'stress_conversion' not in recipe:
+        return False
+    if recipe['stress_conversion'] != {'version': 1, 'target_measure': 'cauchy'}:
+        raise ValueError('응력 측도 변환의 공통 출력은 명시한 Cauchy 응력만 지원합니다.')
+    return True
+
+
+def stress_measure(side):
+    measure = STRESS_MEASURES.get(str(side.get('measure', '')).lower())
+    if side.get('quantity') != 'stress' or measure is None:
+        raise ValueError('전체 응력 텐서의 Cauchy / PK1 / PK2 / Kirchhoff 측도를 명시하세요.')
+    return measure
+
+
+def validate_stress_side(side):
+    measure = stress_measure(side)
+    layout = side.get('layout')
+    size = layout_size(layout)
+    if layout['kind'] != 'tensor' or layout.get('shear') not in ('tensor', 'kelvin'):
+        raise ValueError('응력 변환은 전체 텐서의 실제 전단 또는 대칭 Kelvin 성분이 필요합니다. 스칼라를 확장하지 않습니다.')
+    if measure == 'pk1':
+        if size != 9 or layout.get('indices') != 'spatial_material_basis':
+            raise ValueError('PK1은 현재 행 / 기준 열 기저의 비대칭 전체 9성분이 필요합니다.')
+    elif layout.get('indices') != 'same_cartesian_basis':
+        raise ValueError('이 응력 측도의 두 지표가 같은 직교 기저인지 명시하세요.')
+    if measure == 'cauchy':
+        return measure
+    gradient = side.get('deformation_gradient')
+    keys = {'array', 'association', 'units', 'orientation', 'basis', 'spatial_frame', 'material_frame', 'layout', 'validity_masks'}
+    if not isinstance(gradient, dict) or set(gradient) != keys:
+        raise ValueError('원 응력과 같은 자료의 전체 F 배열·위치·두 기저·방향·유효성 선언이 필요합니다. J=1을 가정하지 않습니다.')
+    if (not isinstance(gradient['array'], str) or not gradient['array'].strip()
+            or gradient['array'] == side.get('array')
+            or gradient['association'] != side.get('association') or gradient['units'] != '1'
+            or gradient['orientation'] != 'current_from_reference' or gradient['basis'] != 'fixed_cartesian'):
+        raise ValueError('F는 응력과 같은 점/셀 위치의 무차원 현재 행 / 기준 열 고정 직교 기저여야 합니다.')
+    for key in ('spatial_frame', 'material_frame'):
+        if not isinstance(gradient[key], str) or not gradient[key].strip() or gradient[key].upper() in ('UNKNOWN', 'UNSPECIFIED'):
+            raise ValueError('F의 현재·기준 기저 이름을 각각 명시하세요.')
+    if (layout_size(gradient['layout']) != 9 or gradient['layout'].get('kind') != 'tensor'
+            or gradient['layout'].get('shear') != 'tensor'
+            or gradient['layout'].get('indices') != 'spatial_material_basis'):
+        raise ValueError('F는 대각·비대각 전체 9성분의 실제 성분 순서와 현재 행 / 기준 열 선언이 필요합니다.')
+    if not isinstance(gradient['validity_masks'], list) or any(not isinstance(name, str) or not name for name in gradient['validity_masks']):
+        raise ValueError('F의 유효성 배열 이름을 확인하세요.')
+    expected = gradient['material_frame'] if measure == 'pk2' else gradient['spatial_frame']
+    if side.get('frame') != expected or measure == 'pk1' and side.get('material_frame') != gradient['material_frame']:
+        raise ValueError('원 응력과 F의 현재/기준 지표 기저가 일치하지 않습니다.')
+    return measure
+
+
+def effective_stress_side(side, recipe):
+    result = deepcopy(side)
+    if stress_conversion_enabled(recipe):
+        measure = validate_stress_side(side)
+        result.update(measure='cauchy', units=recipe['target']['units'],
+            frame=side['frame'] if measure == 'cauchy' else side['deformation_gradient']['spatial_frame'],
+            layout={'kind': 'tensor', 'components': list(COMPONENTS), 'shear': 'tensor', 'indices': 'same_cartesian_basis'})
+    return result
+
+
+def stress_to_cauchy(values, side, gradient=None, *, target_unit):
+    """Original-association endpoint tuples; no projection or interpolation here."""
+    measure = validate_stress_side(side)
+    if any(UNITS.get(unit, (None,))[0] != 'stress' for unit in (side['units'], target_unit)):
+        raise ValueError('응력 단위를 확인하세요.')
+    raw = canonical(values, side['layout']).reshape((-1, 3, 3))
+    valid = np.isfinite(raw).all(axis=(1, 2))
+    with np.errstate(over='ignore', invalid='ignore'):
+        stress = raw * factor(side['units'], target_unit)
+    if not np.isfinite(stress[valid]).all():
+        raise ValueError('응력 단위 변환 결과가 유한하지 않습니다. 원 입력을 확인하세요.')
+    result = np.full(stress.shape, np.nan)
+    if measure == 'cauchy':
+        result[valid] = stress[valid]
+    else:
+        if gradient is None:
+            raise ValueError('실제 전체 F 배열이 없습니다. 원 결과는 유지됩니다.')
+        f = canonical(gradient, side['deformation_gradient']['layout']).reshape((-1, 3, 3))
+        if len(f) != len(stress):
+            raise ValueError('F와 원 응력의 점/셀 표본 개수가 다릅니다.')
+        if not np.isfinite(f[valid]).all():
+            raise ValueError('유효 응력 표본의 F가 유한하지 않습니다.')
+        j = np.linalg.det(f[valid])
+        if not np.isfinite(j).all() or np.any(j <= 0):
+            raise ValueError('유효 표본의 det(F)는 유한한 양수여야 합니다. 값을 보정하지 않습니다.')
+        with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
+            if measure == 'pk1':
+                converted = stress[valid] @ f[valid].transpose(0, 2, 1)
+            elif measure == 'pk2':
+                converted = f[valid] @ stress[valid] @ f[valid].transpose(0, 2, 1)
+            else:
+                converted = stress[valid]
+            converted = converted / j[:, None, None]
+        if not np.isfinite(converted).all():
+            raise ValueError('F/J 응력 변환 결과가 유한하지 않습니다. 원 입력을 확인하세요.')
+        result[valid] = converted
+    return result.reshape((-1, 9))
+
+
+def comparison_order(recipe):
+    if stress_conversion_enabled(recipe):
+        return ORDER[:2] + ['stress_unit', 'stress_measure_to_cauchy_at_native_endpoints'] + ORDER[2:]
+    return list(ORDER)
+
+
+def validate_gradient_declaration(side, metadata):
+    """Known reader declarations cannot be overwritten by the comparison draft."""
+    if validate_stress_side(side) == 'cauchy' or metadata is None:
+        return
+    gradient = side['deformation_gradient']
+    row = next((r for r in metadata.get('arrays', [])
+        if (r.get('name'), r.get('association')) == (gradient['array'], gradient['association'])), None)
+    if row is None:
+        raise ValueError('선택한 원 자료에 F 배열 선언이 없습니다. reader의 실제 배열을 확인하세요.')
+    if row.get('components') not in (None, 9):
+        raise ValueError('선택한 F 배열은 전체 9성분이 아닙니다.')
+    for key, target in (('units', 'units'), ('frame', 'spatial_frame'), ('material_frame', 'material_frame'),
+                        ('orientation', 'orientation'), ('basis', 'basis'),
+                        ('layout', 'layout')):
+        known = row.get(key)
+        if known not in (None, '', 'UNKNOWN') and known != gradient[target]:
+            raise ValueError('F의 ' + key + ' 설정이 저장된 원 자료 선언과 다릅니다.')
+    if 'validity_masks' in row or row.get('spatial_mask'):
+        required = list(row.get('validity_masks') or [])
+        if row.get('spatial_mask') and row['spatial_mask'] not in required:
+            required.append(row['spatial_mask'])
+        if gradient['validity_masks'] != required:
+            raise ValueError('F의 원 품질·공간 마스크를 모두 그대로 사용하세요.')
 
 
 def compare(a, b, recipe, inside, *, enforce_observables=True):
