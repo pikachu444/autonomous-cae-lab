@@ -600,6 +600,10 @@ class FEMEditor:
         return result
 
     def _condition(self, obj, args, *, repair):
+        if repair and 'use_native_references' in args:
+            if set(args) != {'use_native_references'} or args['use_native_references'] is not True:
+                raise ValueError('현재 native 대상 확인만 명시적으로 요청하세요.')
+            return self._confirm_native_condition(obj)
         allowed = {'region_id', 'kind', 'analysis_id', 'force', 'unit', 'direction_region_id', 'reversed'}
         if set(args) - allowed or 'region_id' not in args:
             raise ValueError('Condition edit/repair requires an explicit named region')
@@ -670,6 +674,65 @@ class FEMEditor:
                 condition.EnableAmplitude = False
             result.update(self._record_condition(condition, region['id'], args.get('direction_region_id')))
         self._transaction('repair condition target' if repair else 'condition settings', change)
+        return result
+
+    def _confirm_native_condition(self, obj):
+        """Explicitly adopt reviewed native targets; leave native condition values intact."""
+        kind = _native_type(obj)
+        if kind not in ('Fem::ConstraintFixed', 'Fem::ConstraintForce'):
+            raise ValueError('현재 대상 확인은 native 고정과 힘 조건에서 지원합니다.')
+        data = self._metadata()
+        old = next((row for row in data['conditions'] if row['object_id'] == obj.Name), None)
+        # A task may change references, but cannot serve as proof that edited CAD
+        # still identifies the old faces. Geometry repair remains a separate action.
+        if old:
+            for saved in old['targets'] + ([old['direction_target']] if old.get('direction_target') else []):
+                source = self.owner._object(saved['object_id'])
+                names = [row['name'] for row in saved['subelements']]
+                if not self._same_condition_target(saved, _target(source, names)):
+                    raise ValueError('형상이 변경됐습니다. 3D에서 면을 선택하고 선택한 면으로 변경을 사용하세요.')
+        for source, names in obj.References:
+            if (source.Document is not self.owner.doc or self.owner._object(source.Name) is not source
+                    or not source.Shape.isValid()):
+                raise ValueError('현재 문서의 유효한 형상을 적용 대상으로 지정하세요.')
+        refs = _references(obj)
+        if not refs:
+            raise ValueError('FreeCAD에서 조건의 적용 대상을 지정하세요.')
+        targets = []
+        for ref in refs:
+            source, names = self.owner._object(ref['object_id']), ref['subelements']
+            if source.Document is not self.owner.doc or not names:
+                raise ValueError('현재 문서의 정확한 면 또는 꼭짓점을 지정하세요.')
+            faces = all(re.fullmatch(r'Face[1-9][0-9]*', name) for name in names)
+            vertices = all(re.fullmatch(r'Vertex[1-9][0-9]*', name) for name in names)
+            if not faces and not (kind == 'Fem::ConstraintFixed' and vertices):
+                raise ValueError('힘은 면, 고정은 면 또는 꼭짓점에 적용하세요.')
+            targets.append(_target(source, names))
+        direction = None
+        if kind == 'Fem::ConstraintForce' and getattr(obj, 'Direction', None):
+            source, names = obj.Direction
+            names = [names] if isinstance(names, str) else list(names)
+            if (source.Document is not self.owner.doc or self.owner._object(source.Name) is not source
+                    or not source.Shape.isValid() or len(names) != 1 or
+                    not re.fullmatch(r'Edge[1-9][0-9]*', names[0])):
+                raise ValueError('힘 방향은 현재 문서의 모서리 하나로 지정하세요.')
+            direction = _target(source, names)
+        def matching_region(target):
+            if target is None:
+                return None
+            for row in data['regions']:
+                try:
+                    self._region(row['id'])
+                    if self._same_condition_target(row['target'], target):
+                        return row['id']
+                except (ValueError, KeyError, TypeError, AttributeError):
+                    continue
+            return None
+        result = {}
+        def change():
+            result.update(self._record_condition(obj,
+                matching_region(targets[0]) if len(targets) == 1 else None, matching_region(direction)))
+        self._transaction('confirm native condition targets', change)
         return result
 
     def _material(self, obj, args):

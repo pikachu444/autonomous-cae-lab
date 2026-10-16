@@ -102,9 +102,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     (self.element_type, 'currentIndexChanged'), (self.local_size, 'valueChanged'),
                     (self.local_region, 'currentIndexChanged'), (self.refinement, 'currentIndexChanged'),
                     (self.region_label, 'textChanged'), (self.condition, 'currentIndexChanged'),
-                    (self.condition_region, 'currentIndexChanged'), (self.direction_region, 'currentIndexChanged'),
-                    (self.force, 'valueChanged'), (self.reversed, 'toggled'),
-                    (self.modulus, 'valueChanged'), (self.poisson, 'valueChanged')]:
+                    (self.condition_region, 'currentIndexChanged'), (self.force, 'valueChanged'),
+                    (self.direction_region, 'currentIndexChanged')]:
                 getattr(field, signal).connect(self._edited)
             self.timer = QtCore.QTimer(self)
             self.timer.setInterval(500)
@@ -175,7 +174,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             row = next((r for r in self._description.get('conditions', [])
                         if r['object_id'] == self.condition.currentData()), None)
             errors = row['errors'] if row else []
-            self.condition_message.setText('적용 대상 확인이 필요합니다. 3D에서 면을 선택하고 선택한 면으로 변경을 누르세요.' if errors else '')
+            self.condition_message.setText('적용 대상을 3D에서 확인한 뒤 현재 적용 대상 확인을 누르세요. 면을 다시 지정하려면 선택한 면으로 변경을 사용하세요.' if errors else '')
             self.condition_message.setToolTip('\n'.join(str(e.get('message', e)) if isinstance(e, dict) else str(e) for e in errors))
             self.condition_message.setVisible(bool(errors))
 
@@ -349,27 +348,34 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.condition.setObjectName('femExistingCondition')
             self.condition.currentIndexChanged.connect(self._load_condition)
             form.addRow('조건 선택', self.condition)
-            self.condition_region, self.direction_region = QtWidgets.QComboBox(), QtWidgets.QComboBox()
-            form.addRow('적용 면 영역', self.condition_region)
-            form.addRow('힘 방향', self.direction_region)
-            self.force = self._number('femForce', minimum=0, value=0)
-            self.reversed = QtWidgets.QCheckBox('힘 방향 반전')
-            form.addRow('힘 [N]', self.force)
-            form.addRow('', self.reversed)
             layout.addLayout(form)
             self.condition_message = QtWidgets.QLabel()
             self.condition_message.setWordWrap(True)
             self.condition_message.setVisible(False)
             layout.addWidget(self.condition_message)
+            recovery = QtWidgets.QFormLayout()
+            self.direction_region = QtWidgets.QComboBox()
+            self.direction_region.setObjectName('femRepairForceDirection')
+            self.direction_region.addItem('현재 힘 방향 유지', '__keep')
+            self.direction_label = QtWidgets.QLabel('복구할 힘 방향')
+            recovery.addRow(self.direction_label, self.direction_region)
+            layout.addLayout(recovery)
             row = QtWidgets.QHBoxLayout()
             self._button('3D에서 확인', self.highlight_condition, row, mutate=False, name='femHighlightCondition')
             self._button('선택한 면으로 변경', self.repair_condition,
                          row, name='femRepairCondition')
             layout.addLayout(row)
             row = QtWidgets.QHBoxLayout()
-            self._button('조건 적용', self.apply_condition, row)
-            self._button('FreeCAD에서 조건 편집', lambda: self.native_task(self.condition.currentData()), row)
+            self.edit_condition_button = self._button('FreeCAD에서 조건 편집',
+                lambda: self.native_task(self.condition.currentData()), row, name='femEditCondition')
+            self.confirm_condition_button = self._button('현재 적용 대상 확인', self.confirm_condition,
+                row, name='femConfirmCondition')
             layout.addLayout(row)
+            self.displacement_message = QtWidgets.QLabel('지정 변위의 값은 FreeCAD 속성에서 편집합니다. 적용 면은 아래 영역에서 지정하세요.')
+            self.displacement_message.setWordWrap(True)
+            layout.addWidget(self.displacement_message)
+            self.displacement_button = self._button('지정 변위 적용 면 변경', self.apply_condition, layout,
+                                                    name='femApplyDisplacementRegion')
             form = QtWidgets.QFormLayout()
             self.analysis, self.new_condition = QtWidgets.QComboBox(), QtWidgets.QComboBox()
             for label, kind in [('고정', 'Fixed'), ('힘', 'Force'), ('지정 변위', 'Displacement')]:
@@ -377,6 +383,13 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._section(layout, '새 조건')
             form.addRow('해석 선택', self.analysis)
             form.addRow('추가할 조건', self.new_condition)
+            self.condition_region = QtWidgets.QComboBox()
+            form.addRow('적용 영역', self.condition_region)
+            self.force = self._number('femInitialForce', minimum=0, value=0)
+            form.addRow('초기 힘 [N]', self.force)
+            self.new_condition.currentIndexChanged.connect(
+                lambda *_: self.force.setEnabled(self.new_condition.currentData() == 'Force'))
+            self.force.setEnabled(False)
             layout.addLayout(form)
             self._button('조건 추가', self.create_condition, layout)
             scope = QtWidgets.QLabel('형상을 바꾼 뒤에는 적용 대상을 확인하고 필요한 영역을 다시 지정하세요. 기존 조건은 유지됩니다.')
@@ -455,12 +468,13 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                 if not mesh_pending and not missing_mesh:
                     self._load_mesh()
                 self._load_condition()
-                if not self.material_page.elastic_pending(): self._load_material()
             self.poll()
 
         def poll(self):
             try:
                 description = self.editor.descriptor()
+                self._description = description
+                self._condition_status()
                 busy = description['mesh_busy']
                 native_task = bool(self.editor.owner.Gui.Control.activeDialog() or
                     (self.editor.owner.Gui.activeDocument() and self.editor.owner.Gui.activeDocument().getInEdit()))
@@ -468,6 +482,7 @@ def make_panel(QtWidgets, QtCore, editor, submit):
                     button.setEnabled(not self._command_busy)
                 for button in self._mutating:
                     button.setEnabled(not busy and not native_task and not self._command_busy)
+                self._sync_condition_actions()
                 self.material_page.sync_actions(busy or native_task)
                 self.convergence_page.sync_actions(busy or native_task)
                 self.cancel_button.setEnabled(busy and not self._command_busy)
@@ -691,40 +706,33 @@ def make_panel(QtWidgets, QtCore, editor, submit):
 
         def _load_condition(self):
             identifier = self.condition.currentData()
-            if not identifier:
-                return
-            try:
-                obj = self.editor.owner._object(identifier)
-            except Exception as error:
-                self.force.setEnabled(False)
-                self.reversed.setEnabled(False)
-                self.direction_region.setEnabled(False)
-                self.status.setPlainText(str(error))
-                return
-            is_force = obj.TypeId == 'Fem::ConstraintForce'
-            self.force.setEnabled(is_force)
-            self.reversed.setEnabled(is_force)
-            self.direction_region.setEnabled(is_force)
-            if is_force:
-                self.force.setValue(float(obj.Force.getValueAs('N').Value))
-                self.reversed.setChecked(bool(obj.Reversed))
-            row = next(row for row in self._description['conditions'] if row['object_id'] == identifier)
-            index = self.condition_region.findData(row.get('region_id'))
-            if index >= 0:
-                self.condition_region.setCurrentIndex(index)
-            self._condition_status()
-
-        def _load_material(self):
-            identifier = self.material.currentData()
             if identifier:
-                obj = self.editor.owner._object(identifier)
-                try:
-                    self.modulus.setValue(float(self.editor.owner.App.Units.Quantity(obj.Material['YoungsModulus']).getValueAs('MPa').Value))
-                    self.poisson.setValue(float(obj.Material['PoissonRatio']))
-                except (ValueError, KeyError, TypeError) as error:
-                    self.modulus.setValue(0)
-                    self.poisson.setValue(-1)
-                    self.status.setPlainText('Native material values are unresolved; enter explicit elastic values or use native Tasks. ' + str(error))
+                row = next((row for row in self._description.get('conditions', [])
+                            if row['object_id'] == identifier), {})
+                index = self.condition_region.findData(row.get('region_id'))
+                if index >= 0:
+                    self.condition_region.setCurrentIndex(index)
+            self._condition_status()
+            self._sync_condition_actions()
+
+        def _sync_condition_actions(self):
+            identifier = self.condition.currentData()
+            obj = self.editor.owner._object(identifier) if identifier else None
+            displacement = bool(obj and obj.TypeId == 'Fem::ConstraintDisplacement')
+            self.displacement_message.setVisible(displacement)
+            self.displacement_button.setVisible(displacement)
+            self.edit_condition_button.setVisible(not displacement)
+            row = next((row for row in self._description.get('conditions', [])
+                        if row['object_id'] == identifier), {})
+            self.confirm_condition_button.setVisible(bool(row.get('errors')) and not displacement)
+            direction_recovery = bool(obj and obj.TypeId == 'Fem::ConstraintForce' and row.get('errors'))
+            if not direction_recovery or identifier != getattr(self, '_direction_condition_id', None):
+                blocked = self.direction_region.blockSignals(True)
+                self.direction_region.setCurrentIndex(self.direction_region.findData('__keep'))
+                self.direction_region.blockSignals(blocked)
+            self._direction_condition_id = identifier
+            self.direction_region.setVisible(direction_recovery)
+            self.direction_label.setVisible(direction_recovery)
 
         def apply_mesh_settings(self, *, on_done=None, on_error=None):
             args = {'min_size': self.min_size.value(), 'max_size': self.max_size.value(), 'unit': 'mm',
@@ -868,11 +876,6 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._send('pre.select', {'objects': objects}, on_done=lambda result:
                 self.status.setPlainText('Actual current condition targets selected in the native 3D view. Review them before confirming or repairing.'))
 
-        def _direction(self, args, is_force):
-            if is_force and self.direction_region.currentData() != '__keep':
-                args['direction_region_id'] = self.direction_region.currentData()
-            return args
-
         def repair_condition(self):
             condition_id = self.condition.currentData()
             if not condition_id:
@@ -881,7 +884,10 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             if not names or any(not name.startswith('Face') for name in names):
                 raise ValueError('3D에서 이 조건을 적용할 면을 선택하세요.')
             obj = self.editor.owner._object(condition_id)
-            direction_args = self._direction({}, obj.TypeId == 'Fem::ConstraintForce')
+            direction_args = {}
+            if (obj.TypeId == 'Fem::ConstraintForce' and not self.direction_region.isHidden()
+                    and self.direction_region.currentData() != '__keep'):
+                direction_args['direction_region_id'] = self.direction_region.currentData()
             initial_serial = self._edit_serial
             def region_ready(region):
                 if self.condition.currentData() != condition_id or self._selection() != (object_id, names):
@@ -894,27 +900,39 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self._send('pre.fem.region_set', {'label': (obj.Label + ' 적용 면')[:160],
                 'subelements': names}, object_id, on_done=region_ready)
 
+        def confirm_condition(self):
+            identifier = self.condition.currentData()
+            if not identifier:
+                raise ValueError('적용 대상을 확인할 조건을 선택하세요.')
+            self._send('pre.fem.condition_repair', {'use_native_references': True}, identifier,
+                       on_done=self._refresh_after)
+
         def apply_condition(self):
             identifier = self.condition.currentData()
-            obj = self.editor.owner._object(identifier)
-            args = {'region_id': self.condition_region.currentData()}
-            if obj.TypeId == 'Fem::ConstraintForce':
-                args.update(force=self.force.value(), unit='N', reversed=self.reversed.isChecked())
-            self._send('pre.fem.condition_set', self._direction(args, obj.TypeId == 'Fem::ConstraintForce'), identifier, on_done=self._refresh_after)
+            if self.editor.owner._object(identifier).TypeId != 'Fem::ConstraintDisplacement':
+                raise ValueError('고정과 힘은 FreeCAD에서 조건 편집을 사용하세요.')
+            self._send('pre.fem.condition_set', {'region_id': self.condition_region.currentData()},
+                       identifier, on_done=self._refresh_after)
 
         def create_condition(self):
             kind = self.new_condition.currentData()
             args = {'kind': kind, 'region_id': self.condition_region.currentData()}
             if kind == 'Force':
-                args.update(force=self.force.value(), unit='N', reversed=self.reversed.isChecked())
-            self._send('pre.fem.condition_set', self._direction(args, kind == 'Force'), self.analysis.currentData(), on_done=self._refresh_after)
-
-        def apply_material(self):
-            self._send('pre.fem.material_set', {'young_modulus': self.modulus.value(), 'unit': 'MPa',
-                'poisson_ratio': self.poisson.value()}, self.material.currentData(), on_done=lambda result:
-                self.status.setPlainText('Native isotropic material values applied; other native material fields retained.'))
+                args.update(force=self.force.value(), unit='N')
+            def created(result):
+                self._refresh_after()
+                identifier = result['object_id']
+                if self._edit_serial != self._completion_serial:
+                    self.status.setPlainText('조건을 추가했습니다. 현재 편집을 유지합니다. 조건 목록에서 새 조건을 선택해 편집하세요.')
+                    return
+                self.condition.setCurrentIndex(self.condition.findData(identifier))
+                if kind != 'Displacement':
+                    self.native_task(identifier)
+            self._send('pre.fem.condition_set', args, self.analysis.currentData(), on_done=created)
 
         def native_task(self, identifier):
+            if not identifier:
+                raise ValueError('FreeCAD에서 편집할 객체를 선택하세요.')
             self._send('pre.fem.task_edit', {}, identifier)
 
     return Panel()

@@ -71,16 +71,20 @@ def test_201_point_draft_roundtrip_stays_editable_and_cannot_apply(panel,native,
     page.sync_actions(False); assert page.apply_button.isEnabled()
 
 
-def test_geometry_late_edit_and_elastic_edit_are_pending_until_explicit_apply(panel,native,app):
+def test_geometry_late_edit_remains_pending_and_elastic_edit_uses_native_task(panel,native,app):
     page=panel.material_page
     page.nlgeom.setChecked(True)
     assert page.geometry_pending() and '미적용' in page.strain_meaning.text()
     page.apply_geometry(); page.nlgeom.setChecked(False); panel.test_complete()
     assert native.solver.GeometricalNonlinearity=='nonlinear' and page.geometry_pending()
     page.apply_geometry(); panel.test_complete(); assert not page.geometry_pending()
-    panel.modulus.setValue(1234.5); assert page.elastic_pending() and page.pending_changes()
-    panel.refresh(); assert panel.modulus.value()==1234.5
-    panel.apply_material(); panel.test_complete(); assert not page.elastic_pending()
+    panel.findChild(W.QPushButton, 'femEditMaterial').click()
+    assert panel.test_calls[-1][:3] == ('pre.fem.task_edit', {}, {'object_id': native.material.Name})
+    panel.test_complete()
+    assert native.edit == native.material.Name
+    assert panel.findChild(W.QDoubleSpinBox, 'femYoungModulus') is None
+    assert not page.pending_changes()
+
 
 
 def test_extra_native_column_is_not_discarded_by_open_and_save(panel,native,app):

@@ -107,16 +107,12 @@ def add_material_page(panel, W, C):
             self.scope = W.QLabel(); self.scope.setWordWrap(True); self.scope.setMinimumWidth(0)
             form.addRow('적용 영역', self.scope)
             layout.addLayout(form)
-            panel._section(layout, '탄성 물성')
-            elastic = W.QHBoxLayout()
-            panel.modulus = panel._number('femYoungModulus', minimum=0, value=0); panel.modulus.setSpecialValueText('미입력')
-            panel.poisson = panel._number('femPoissonRatio', minimum=-1, maximum=.499999999, value=-1); panel.poisson.setSpecialValueText('미입력')
-            ef = W.QFormLayout(); ef.addRow('E [MPa]', panel.modulus); ef.addRow('포아송비', panel.poisson)
-            elastic.addLayout(ef, 1)
-            actions = W.QVBoxLayout()
-            panel._button('탄성 적용', panel.apply_material, actions, name='femApplyMaterial')
+            panel._section(layout, '기본 재료')
+            actions = W.QHBoxLayout()
+            panel._button('FreeCAD에서 재료 편집', lambda: panel.native_task(panel.material.currentData()),
+                          actions, name='femEditMaterial')
             panel._button('선택 따라가기', self.follow_selection, actions, mutate=False)
-            elastic.addLayout(actions); layout.addLayout(elastic)
+            layout.addLayout(actions)
             panel._section(layout, '소성 곡선')
             row = W.QHBoxLayout(); self.law = W.QComboBox(); self.law.setObjectName('ns1MaterialLaw')
             self.law.addItem('등방 탄성', LINEAR); self.law.addItem('J2 등방 경화', J2); row.addWidget(self.law, 1)
@@ -222,7 +218,6 @@ def add_material_page(panel, W, C):
             try:
                 self.info = service.read(panel.editor, base, aid)
                 self.buffer = deepcopy(self.info['draft'])
-                panel._load_material()
                 refs = getattr(base, 'References', [])
                 self.scope.setText(', '.join(obj.Label for obj, names in refs) if refs else '해석의 전체 고체 (명시 기본 재료)')
                 self.populate()
@@ -394,19 +389,8 @@ def add_material_page(panel, W, C):
         def geometry_pending(self):
             return self.geometry_source is not None and self.nlgeom.isChecked() != self.geometry_source
 
-        def elastic_pending(self):
-            if not self.loaded or not self.loaded[1] or self.buffer is None: return False
-            try:
-                base = panel.editor.owner._object(self.loaded[1])
-                young = panel.editor.owner.App.Units.Quantity(base.Material['YoungsModulus']).getValueAs('MPa').Value
-                poisson = float(base.Material['PoissonRatio'])
-                return not (math.isclose(panel.modulus.value(), young, rel_tol=5e-15, abs_tol=1e-9) and
-                            math.isclose(panel.poisson.value(), poisson, rel_tol=5e-15, abs_tol=1e-9))
-            except (AttributeError, KeyError, TypeError, ValueError):
-                return False  # Unresolved native values still fail the owner run gate.
-
         def pending_changes(self):
-            return self.modified or self.geometry_pending() or self.elastic_pending()
+            return self.modified or self.geometry_pending()
 
         def geometry_caption(self, *_):
             prefix = '미적용 설정 — ' if self.geometry_pending() else ''
