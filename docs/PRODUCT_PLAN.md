@@ -13,7 +13,11 @@
 이 문서는 채택한 제품 방향이다. 구현 현황과 다음 작업은 [CURRENT_STATE](../CURRENT_STATE.md),
 Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 관리한다.
 남은 코드의 인도·병렬 의존·종료 조건은 [전체 제품 실행계획](IMPLEMENTATION_DELIVERIES.md)에
-연결했다. 현재 일곱 팀은 이 계획의 세부 인도를 나누어 개발하며 현황은 CURRENT_STATE에 둔다.
+연결했다. 그 문서의 당시 팀 배정은 현재 실행 상태가 아니며 실제 배정은 CURRENT_STATE만 따른다.
+2026-10-18의 GUI 기반·공통 요소·개발 방식 교정은 [공학 데스크톱 개발 복구안](GUI_RECOVERY_PLAN_KO.md)에
+모았다. 이 설계의 게시와 실제 GUI 교체 완료를 구별한다.
+Data의 LabPlot 경로는 기존 PySide6 기본 구성에서 C++/Qt/KDE 앱으로 바꿀 명시적 후보이며,
+한정된 실제 연결 확인 전에는 도입 완료로 표시하지 않는다. 나머지 Research는 PySide6를 유지한다.
 현재 우선순위는 독립 도구군의 직접 진입·주요 편집·도구 간 연결·오류 복구·저장/재개와
 Expert의 실제 연구 흐름이다. 특정 C3D10 메시나 F05 진단은 전체 제품 개발의 선행조건이 아니다.
 기존 요구 기록과 [ADR0060](../ADR/0060-independent-research-workspaces.md)의

@@ -1,6 +1,11 @@
 # Product design owner and editable artifacts
 
-Current originals and status are linked from
+The latest [GUI recovery plan](../../../docs/GUI_RECOVERY_PLAN_KO.md) defines base
+reuse, common desktop interactions and the bounded executable-skeleton criteria.
+It does not declare the donor integrated or the product GUI accepted. Scope and
+the next assigned action are owned only by [CURRENT_STATE](../../../CURRENT_STATE.md).
+
+Earlier originals are linked from
 [the design review entry](../../../docs/design/20261012-desktop-planning/README.md).
 Use [the existing detailed design](../../../docs/PRODUCT_UI_MCP_PLAN.md) as reusable
 Pro v2 input, not proof of this new request's completion.
@@ -12,7 +17,7 @@ The recovered Pro design is [FUNCTION_SPEC](../../../docs/design/20261012-deskto
 with [SCREEN_SPEC](../../../docs/design/20261012-desktop-planning/pro-authored/SCREEN_SPEC.md),
 [implementation tasks](../../../docs/design/20261012-desktop-planning/pro-authored/IMPLEMENTATION_BACKLOG.csv)
 and [review paths](../../../docs/design/20261012-desktop-planning/REVIEW_GUIDE.md).
-The current concrete layouts and interaction source are
+The earlier concrete layouts and interaction source are
 [DESIGN](../../../docs/design/20261012-desktop-planning/pro-ux/DESIGN.md),
 [editable state screens](../../../docs/design/20261012-desktop-planning/pro-ux/screens/README.md),
 [workflows](../../../docs/design/20261012-desktop-planning/pro-ux/Workflows.drawio) and

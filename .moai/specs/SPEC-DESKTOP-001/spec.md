@@ -4,7 +4,7 @@ title: "Windows engineering research desktop workflows and design acceptance"
 version: "0.2.0"
 status: in-progress
 created: 2026-10-12
-updated: 2026-10-16
+updated: 2026-10-18
 author: "Codex integration; actual Pro product design author"
 priority: "P1 High"
 phase: implementation
@@ -19,8 +19,8 @@ era: V3R6
 
 ## 1. Authority and source
 
-The latest [user request](../../../docs/design/20261012-desktop-planning/USER_DESIGN_REQUIREMENTS.md)
-controls this design. [CURRENT_STATE](../../../CURRENT_STATE.md) alone owns current
+The [original planning request](../../../docs/design/20261012-desktop-planning/USER_DESIGN_REQUIREMENTS.md)
+is preserved; the latest direct user instruction controls scope. [CURRENT_STATE](../../../CURRENT_STATE.md) alone owns current
 progress/assignment. Product scope and detailed design remain in the existing
 [overview](../../../docs/PRODUCT_PLAN.md) and [detail](../../../docs/PRODUCT_UI_MCP_PLAN.md).
 This SPEC links the MoAI lifecycle to those owners; it does not declare the plan
@@ -38,7 +38,7 @@ An absent backend is a declared support gap, not a deleted requirement.
 
 ### Out of Scope
 
-- Production implementation before the user's development-start instruction.
+- Production implementation outside the latest user assignment. The 2026-10-13 implementation authorization is historical fact; a later planning-only or stop instruction controls the current task.
 - New paid subscriptions/APIs/credits/plugins/hosting/trials requiring payment.
 - Unchanged solver campaigns.
 - Private company CAD/data or credentials in public Git.
@@ -58,7 +58,7 @@ Separate editable planning prototypes and necessary limited technical checks are
 - REQ-DESKTOP-001-009: When save or source recovery fails, the product SHALL preserve the previous committed data and current draft and provide a recoverable next action.
 - REQ-DESKTOP-001-010: The project SHALL separate operational execution, usability, numerical verification and engineering qualification while preserving UNKNOWN/NOT_RELEASED and original thresholds.
 - REQ-DESKTOP-001-011: The design SHALL use zero additional spending and documented compatible open-source paths; missing free paths SHALL remain unresolved requirements.
-- REQ-DESKTOP-001-012: The project SHALL use actual ChatGPT Pro as the main design author and independent Astra review, and SHALL wait for the user's later development-start instruction before production implementation.
+- REQ-DESKTOP-001-012: The project SHALL use actual ChatGPT Pro as the main product-design author and independent Astra/xhigh review, and SHALL follow the latest explicit user assignment for implementation scope. The recorded 2026-10-13 implementation approval SHALL NOT restart work stopped or limited by a later user instruction, and the original planning gate SHALL NOT be treated as still pending for already assigned routine work.
 - REQ-DESKTOP-001-013: The project SHALL reuse existing Core/Domain/Adapter, upstream, readers, numerical engines, JobManager and document/native owners.
 - REQ-DESKTOP-001-014: The design SHALL connect requirement, feature, screen/state, implementation target, acceptance and feature-specific verification timing/reference evidence.
 - REQ-DESKTOP-001-015: The desktop design SHALL make the selected engineering object, its values/units, current edit/run/save state and next action apparent through tables, curves, model views and contextual controls; internal diagnostics SHALL NOT displace the main task or require reading long explanatory text to complete it.

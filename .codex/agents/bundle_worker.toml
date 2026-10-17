@@ -3,7 +3,7 @@ description = "Implement an assigned user-visible feature slice within an agreed
 model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
 developer_instructions = """
-Follow AGENTS.md and the parent's assigned W1-W5 and use-case sections.
+Follow AGENTS.md, CURRENT_STATE.md and the parent's current bounded assignment with its linked use cases and acceptance criteria. Historical W1-W5 instructions are references, not an active queue.
 Implement the input-to-result behavior, not only scaffolding, tests or documentation.
 Use existing numerical, solver and retrieval implementations. Read relevant official APIs before adding generic infrastructure.
 Change only assigned files. Request a parent decision before changing a shared contract.
