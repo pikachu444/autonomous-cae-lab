@@ -1,0 +1,6 @@
+# Run only in a newly owned, empty FreeCAD process with an explicit fixed packet.
+import os, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(os.environ['CAELAB_CASE_A_REPO'])/'tests'/'law_native'))
+from case_a_native import run
+run()

@@ -90,6 +90,9 @@ def _boundary(s,points,index):
             if p[0]==hi[0]:prescribed[3*node]=float((F[0,0]-1)*(hi[0]-lo[0]))
             if p[1]==lo[1]:prescribed[3*node+1]=0.
             if p[2]==lo[2]:prescribed[3*node+2]=0.
+            if s['boundary']['mode']=='box_normal_displacement':
+                if p[1]==hi[1]:prescribed[3*node+1]=float((F[1,1]-1)*(hi[1]-lo[1]))
+                if p[2]==hi[2]:prescribed[3*node+2]=float((F[2,2]-1)*(hi[2]-lo[2]))
     dof0=np.array(sorted(prescribed),dtype=int)
     dof1=np.setdiff1d(np.arange(points.size),dof0)
     if not len(dof1):raise ValueError('A spatial solve must have actual free DOFs')
@@ -249,6 +252,21 @@ def solve(settings,output):
                     'axes':deepcopy(axis),'frame':law.FRAME,'measure':'energy_per_reference_volume',
                     'selection':deepcopy(origin),'source':'constitutive quadrature output, NOT native global energy',
                     'valid':not bool(failed),'partial':bool(failed)}
+        if s['law']['model'] == law.dp.MODEL:
+            observed = [domain.dp_observables(step['local'][0]['stress'],
+                step['local'][0]['state'], s['law']['parameters']) for step in steps]
+            for key, unit, measure in (
+                ('pressure', 'MPa', 'minus_trace_Cauchy_over_3_compression_positive'),
+                ('equivalent_stress', 'MPa', 'sqrt_3J2_Cauchy'),
+                ('yield_function', 'MPa', 'q_minus_alpha_p_minus_k0_minus_H_kappa'),
+                ('plastic_volume_strain', '1', 'trace_infinitesimal_plastic_strain'),
+                ('kappa', '1', 'accumulated_equivalent_deviatoric_plastic_strain')):
+                responses['ip0_' + key] = {'kind':'series',
+                    'value':[row[key] for row in observed], 'unit':unit, 'component':key,
+                    'location':'integration_point', 'reduction':'none', 'axes':deepcopy(axis),
+                    'frame':law.FRAME, 'measure':measure, 'selection':deepcopy(origin),
+                    'source':'derived from retained actual spatial stress and accepted state',
+                    'valid':not bool(failed), 'partial':bool(failed)}
     success=not failed and compare['status']!='FAIL' and global_calls>0
     result={'execution_status':'SUCCEEDED' if success else 'FAILED','responses':responses,
         'checks':[{'name':'spatial_FE_equilibrium','status':'PASS' if not failed and global_calls else 'FAIL'},

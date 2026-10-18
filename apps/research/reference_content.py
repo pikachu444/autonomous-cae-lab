@@ -12,6 +12,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from .runner_window import readonly_table, table_row, text_value
 from .discussion_view import turn_text, author_label
+from .law_native_labels import response_label
 
 
 def pde_input_html(draft):
@@ -224,6 +225,7 @@ class ReferenceContent(QWidget):
             self.body.setPlainText('이 자료는 원래 프로그램에서 열어 확인하세요.')
             return
         metadata = payload.get('metadata') or {}
+        def caption(name):return response_label(name,payload.get('result') or {}) or name
         selection=(payload.get('reference') or {}).get('selection')
         if isinstance(selection,dict) and selection.get('schema')=='caelab.impact-history-selection/1':
             # The saved selection owns its channel and transformed unit.
@@ -233,17 +235,17 @@ class ReferenceContent(QWidget):
         for item in metadata.get('responses', []):
             name = item.get('response')
             if name:
-                self.channel.addItem(name + ' [' + str(item.get('unit', '단위 미확인')) + ']', name)
+                self.channel.addItem(caption(name) + ' [' + str(item.get('unit', '단위 미확인')) + ']', name)
         for name, item in metadata.get('native_channels', {}).items():
             if not item.get('requires_location') and self.channel.findData(name) < 0:
-                self.channel.addItem(name + ' [' + str(item.get('unit', '단위 미확인')) + ']', name)
+                self.channel.addItem(caption(name) + ' [' + str(item.get('unit', '단위 미확인')) + ']', name)
         result = payload.get('result') or {}
         self._result = result
         self._rows = result.get('candidates', result.get('predictions', []))
         for row in ([result] + self._rows):
             for name, response in (row.get('responses') or {}).items():
                 if self.channel.findData(name) < 0:
-                    self.channel.addItem(name + ' [' + str(response.get('unit', '단위 미확인')) + ']', name)
+                    self.channel.addItem(caption(name) + ' [' + str(response.get('unit', '단위 미확인')) + ']', name)
         available = (self._rows[0].get('responses') or {}) if self._rows else (result.get('responses') or {})
         if available:
             self.channel.setCurrentIndex(self.channel.findData(next(iter(available))))
@@ -319,6 +321,7 @@ class ReferenceContent(QWidget):
             self.body.show(); self.result_views.hide()
             return
         response = responses[name]
+        caption=response_label(name,source) or name
         unit = str(response.get('unit', '단위 미확인'))
         labels = [str(response['component'])] if isinstance(response.get('component'), (str, int, float)) else []
         # Frame/measure identifiers remain exact in Details. They are not titles.
@@ -327,7 +330,7 @@ class ReferenceContent(QWidget):
             labels.append(location)
         elif isinstance(location, dict) and isinstance(location.get('label'), str):
             labels.append(location['label'])
-        self.title.setText(name + ' [' + unit + ']' + (' — ' + ' / '.join(labels) if labels else ''))
+        self.title.setText(caption + ' [' + unit + ']' + (' — ' + ' / '.join(labels) if labels and caption==name else ''))
         self.result_views.show()
         self.values.setRowCount(0)
         self.axes.clear()
@@ -394,7 +397,7 @@ class ReferenceContent(QWidget):
             plotted_y.append(y if finite and included is not False and response.get('valid') is not False else math.nan)
         self.axes.plot(plotted_x, plotted_y, marker='o', markersize=3)
         self.axes.set_xlabel(str(axis.get('name', '위치')) + ' [' + str(axis.get('unit', '단위 미확인')) + ']')
-        self.axes.set_ylabel(name + ' [' + unit + ']')
+        self.axes.set_ylabel(caption + ' [' + unit + ']')
         self.axes.grid(True, alpha=.2)
         self.canvas.draw_idle()
         self.body.setPlainText('누락되거나 제외된 값은 그래프에서 끊어 표시합니다.' if

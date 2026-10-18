@@ -22,7 +22,7 @@
 | native_impl / Sol-high | B6.3.L01 domain/전용 검사 freeze. 현재 B4.5의 전용 native Post→Study 검사. 공통 snapshot/등록·실행 연결은 Codex | TR-U 원 source 재계산0/수신1회와 Runner·Post/cold·독립 검토 완료. U PASS, 원 엄격 기준의 절점 응력 FAIL·IP UNKNOWN을 유지. 후속 실제 ParaView 저장3건 완료; exact saved root의 dependency 등록 거절을 보존하고 공통 연결 후 같은 저장본 등록 대기 |
 | data_impl / Sol-high | B2.6.L04 impact_responses·history 선택·전용 검사 freeze。owner/API·Study/Plan 연결·최종 공개 guide는 Codex | 원150표본/P1의 실제 선택→Study→미실행 Plan·저장/별도 cold 완료. 원행·정확 interval/mask/support와 단위/끊김·충돌 보존. 같은 Astra가 마지막 두 consumer P2 폐쇄. L03 P2 exact checkpoint 미충족/새 prefix·child0은 별도 유지 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.4 candidate detail 창/전용 검사/사용법 freeze。후속 B4.5.L01 law_native_fe/worker/inspection·전용 인수. 공통 host/Core는 Codex | B4.3 `881edf8` 게시 후 B4.4 실제 원 후보/기존 상세·실패·거절 복구·Report 자산/cold, 8검사와 Astra의51 hash/11실제 화면 검토 폐쇄. 새 fit/detail/native/provider0. 같은 담당에게 B4.5.L01 기존 J2/DP 동일 시험 인수를 실제 호출; 새 campaign 전 선언·근거 확인 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.5.L01 law_native_fe/worker/inspection·전용 인수 freeze. 공통 host/Core·초기 saved Post 등록은 Codex | 고정 입력의 실제 물리9건 완료, 실행 전 제출 실패1건 보존. 실제 Post 저장/등록3개와 계산6개를 같은 Study에 저장·새 owner로9참조 재열기. 마지막 물리명 표시·실제 창과 CAE/Astra 한정 검토 폐쇄, 공학 UNKNOWN |
 | desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | impact_history_view.py와 전용 GUI 검사 freeze. 공통 menu/API/Study/Plan·최종 guide는 Codex | L04 실제150표본·P1의 일반/좁은 창·정확 endpoint/선택 signal·원 계산 상태 표시 확인. TR-U 원 기준 CAD 차단/Runner/Post 여섯 화면도 직접 판독, 추가 시각 P1/P2 없음 |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
@@ -59,8 +59,9 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 같은 담당에게 실제 후속 호출했다. B5.4는 `15569bb`, B4.2는 `b9ea19d`로 게시했다.
 혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
 L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. B4.4는
-`966d40e`, B8.3은 `6b1b372`로 원격 게시했다. 현재 다음 행동은 TR-U 한정 인도의
-게시, L04의 마지막 선택 표시 검토와 B4.5 원 결과의 Post/Study 연결, B8.1 정확 owner 열기다.
+`966d40e`, B8.3은 `6b1b372`로 원격 게시했다. TR-U 한정 인도는 `5216e37`,
+L04 선택·Study/Plan은 `6bf7a39`로 원격 게시했다. 현재 다음 행동은 검토를 닫은
+B4.5 인도의 게시와 B8.1 정확 owner 열기의 실제 Windows 인수다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 
 TR-U 한정 인도는 원 CCX 변위를 다시 계산하지 않고 다른35절점/8 C3D10의 외곽
@@ -79,6 +80,18 @@ L04는 원150표본과 P1 저장 결과를 읽어 정확한 표본·부호·평�
 단위·재읽기·누락 구간 표시 교정은 기존 두 saved Study의 실제 버튼/일반·좁은 화면과
 별도 통제 gap widget으로 확인했고 같은 Astra가 두 P2를 폐쇄했다. 새 native/변환기/솔버0,
 원 물리 FAIL·UNKNOWN은 유지한다. [사용법·지원](docs/IMPACT_HISTORY_SELECTION_KO.md).
+
+B4.5는 기존 DP FE·J2 환원 재료점·CalculiX의 같은1 mm 상자에서 인장·압축·구속
+이력을 각각 한 번 실행했다. 물리9건과 실행 전 잘못된 제출1건을 구분해 원 실패를
+보존했다. DP64 IP의 원 수락 상태와 CCX27절점 FRD, 공칭 RF/A0와 Cauchy 응력,
+T/C 역항복과 구속 DP의 탄성 복귀를 구분하며 교차 솔버/실물 qualification은 UNKNOWN이다.
+새 saved Post의 exact 등록 source31파일만 기존 registry/pin 검증으로 허용했고 root 권한은
+넓히지 않았다. 실제 저장 장면3개와 계산6개를 같은 Study에 저장·별도 owner에서9/9
+참조를 확인했다. 원 immutable15,749파일은 같고 working6개의 session_id 변화만 별도
+해시 증명했다. 30초 참조 읽기 실패와 loading/검사 실패는 성공으로 바꾸지 않았다.
+마지막 한국어 압력/요소 연결 화면을 같은 담당이 직접 확인했고 desktop·CAE·Astra가
+한정 검토를 닫았다. 전체 OS 직접 입력/실험 검증 완료와 구별한다.
+[지원·사용법](docs/CASE_A_J2_DP_KO.md).
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
@@ -858,7 +871,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B4.2.L01 | 단축·동축 유한변형 관측→같은 측도 예측 | A | 공개 합성 단축·동축 인수 및 독립/실제 창 검토 폐쇄. 실장비/공학 qualification과 구별 | native_data_product_impl / Codex |
 | B4.3.L01 | 혼합 F/stress 제어의 법칙별 인수 | A | 기존 구현 인수 대기 | T4 |
 | B4.4.L01 | 후보 상세 보존·새 평가·채택 충돌 | A | 한정 인수·검토 후 `966d40e` 게시, 새 평가0 | native_data_product_impl / Codex |
-| B4.5.L01 | 사례 A: 기존 J2 와 DP 의 같은 물리시험 비교 | A | 기존 구현 인수 대기 | T4 |
+| B4.5.L01 | 사례 A: 기존 J2 와 DP 의 같은 물리시험 비교 | A | 실제 물리9건·Post3개·Study9참조 저장/cold·물리/통합/화면 한정 검토 폐쇄. 합성 holdout·교차 솔버/실물 UNKNOWN | native_data_product_impl / native_impl / Codex |
 | B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 별도 후보 미통합, 연구 요구 미완료 | 미배정 |
 | B5.1.L01 | 혼합변수 DOE 의 실제 domain binding | A | 실제 후속 배정, 첫 PDE descriptor HTTP와 exact saved source 확인/실행0 | native_impl / Codex |
 | B5.3.L01 | 일반 역해석의 고정 관측·feasible 후보 왕복 | A | 한정 인수·예측 support/구간 P2 폐쇄, Case A/B 전체와 구별 | native_impl / Codex |

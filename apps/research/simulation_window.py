@@ -146,9 +146,12 @@ class SimulationWindow(PDEWindow):
         ('validation', '수치 판정 기준'), ('analysis', '해석 조건'),
         ('loads', '하중'), ('boundary_conditions', '경계 조건'))]
 
-    @staticmethod
-    def field_label(path):
+    def field_label(self,path):
         key = path[-1]
+        if (getattr(self,'_draft',{}).get('backend')=='structure.felupe.law_native'
+                and tuple(path[:3])==('settings','mesh','cells')):
+            if len(path)==3:return '요소 연결'
+            return ('요소 ' if len(path)==4 else '연결 절점 ')+str(key+1)
         if 'input_provenance' in path and key in ('origin', 'reference'):
             return '입력 유형' if key == 'origin' else '자료 참조'
         if isinstance(key, int):
@@ -430,6 +433,9 @@ class SimulationWindow(PDEWindow):
             if label: self.channel.setItemText(index, label+' ['+str(descriptor.get('unit') or '단위 미확인')+']')
 
     def response_caption(self, name, response):
+        from .law_native_labels import response_label
+        caption=response_label(name,self._result or {})
+        if caption:return caption
         if self._result and self._result.get('backend') == 'explicit.opencourant.connector' and name in CONNECTOR_RESPONSES:
             return CONNECTOR_RESPONSES[name]
         caption = super().response_caption(name, response)

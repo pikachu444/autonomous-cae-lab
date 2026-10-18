@@ -68,8 +68,7 @@ class NativeMaterialWindow(SimulationWindow):
         else:
             self.evaluate_button.setText('모델 평가')
 
-    @staticmethod
-    def field_label(path):
+    def field_label(self,path):
         labels={'source':'법칙 원문','behaviour':'법칙 이름','action':'작업','interface':'인터페이스',
                 'hypothesis':'공간 가정','stress_unit':'응력 단위','strain_unit':'변형률 단위','time_unit':'시간 단위',
                 'properties':'물성','external':'외부 상태','initial_internal':'초기 내부 상태',
@@ -81,8 +80,8 @@ class NativeMaterialWindow(SimulationWindow):
         key=path[-1]
         if isinstance(key,int):
             parent=next((x for x in reversed(path[:-1]) if isinstance(x,str)),'')
-            return labels.get(parent,SimulationWindow.field_label(path[:-1]))+' '+str(key+1)
-        return labels.get(key,SimulationWindow.field_label(path))
+            return (labels[parent] if parent in labels else super().field_label(path[:-1]))+' '+str(key+1)
+        return labels[key] if key in labels else super().field_label(path)
 
     def _add_fields(self,form,value,path):
         if path==('settings','source') and self._draft.get('backend')=='material.mfront.user':

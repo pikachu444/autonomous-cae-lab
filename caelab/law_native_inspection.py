@@ -39,6 +39,18 @@ def populate(view, result, settings, increment):
     if selected['strain_kelvin'] is not None:
         quantities.append(quantity('Kelvin 변형률','infinitesimal_strain_kelvin',selected['strain_kelvin'],
                                    SYMMETRIC6,'1',selected['frame']))
+    from plugins.material_point import law_native as law
+    if settings['model'] == law.dp.MODEL and selected['committed_state'] is not None:
+        from .law_native_fe import dp_observables
+        observed = dp_observables(selected['stress'], selected['committed_state'], settings['parameters'])
+        for key, symbol, name, unit, measure in (
+            ('pressure','p','압력 p (압축 양)',settings['stress_unit'],'minus_trace_Cauchy_over_3'),
+            ('equivalent_stress','q','등가응력 q',settings['stress_unit'],'sqrt_3J2_Cauchy'),
+            ('yield_function','f','항복함수 f (부호 포함)',settings['stress_unit'],'q_minus_alpha_p_minus_k0_minus_H_kappa'),
+            ('plastic_volume_strain','tr(εᵖ)','소성 체적변형률','1','trace_infinitesimal_plastic_strain'),
+            ('kappa','κ','누적 편차 소성변형률 κ','1','accumulated_equivalent_deviatoric_plastic_strain')):
+            quantities.append(quantity(name, measure, [observed[key]], [symbol], unit, selected['frame'],
+                origin='derived_from_retained_stress_and_committed_state'))
     failure=result['diagnostics'].get('failed_increment')
     view.update(increments=[{'index':r['increment'],'time':r['time'],'unit':'s'} for r in records]+(
             [{'index':failure['increment'],'time':failure['time'],'unit':'s','failed':True}] if failure else []),

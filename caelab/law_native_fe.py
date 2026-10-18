@@ -15,6 +15,23 @@ FE_LIMITS={'dp_stress_atol_mpa':2e-7,'dp_stress_rtol':2e-6,
            'native_newton_relative_tolerance':1e-12}
 
 
+def dp_observables(stress_kelvin, state, parameters):
+    """Project a retained DP response; never integrate or qualify a material.
+
+    Pressure is compression-positive. The yield-function value is signed,
+    including elastic unloading; it is not a Newton residual or a verdict.
+    """
+    stress = finite(stress_kelvin, (6,), 'Retained DP Kelvin stress')
+    accepted = law.dp.validate_state(state)
+    coefficients = law.dp.validate_parameters(parameters)
+    pressure, equivalent = law.dp.invariants(stress)
+    return {'pressure': pressure, 'equivalent_stress': equivalent,
+            'yield_function': equivalent - coefficients['alpha'] * pressure
+                - coefficients['k0'] - coefficients['H'] * accepted['kappa'],
+            'plastic_volume_strain': float(sum(accepted['plastic_strain_kelvin'][:3])),
+            'kappa': accepted['kappa']}
+
+
 def cube_mesh(n=3, length_mm=1.):
     if type(n) is not int or not 3<=n<=9 or type(length_mm) not in (int,float) or length_mm<=0:
         raise ValueError('Public cube requires 3..9 nodes/axis and positive length in mm')
@@ -43,6 +60,25 @@ def boundary_nodes(cells):
     if any(count>2 for count in faces.values()):
         raise ValueError('Nonmanifold Hex8 face incidence')
     return sorted({n for face,count in faces.items() if count==1 for n in face})
+
+
+def _require_box_boundary_faces(cells, points):
+    """Six complete axis-aligned exterior planes, not just nodes on their union."""
+    incidence={}
+    for cell in cells:
+        for local in ((0,1,2,3),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)):
+            face=tuple(sorted(cell[i] for i in local))
+            incidence[face]=incidence.get(face,0)+1
+    limits=(points.min(axis=0),points.max(axis=0));covered=set()
+    for face,count in incidence.items():
+        if count!=1:continue
+        planes={(axis,side) for axis in range(3) for side in (0,1)
+                if np.all(points[list(face),axis]==limits[side][axis])}
+        if not planes:
+            raise ValueError('Box normal displacement boundary face must lie in one min/max plane')
+        covered.update(planes)
+    if covered!={(axis,side) for axis in range(3) for side in (0,1)}:
+        raise ValueError('Box normal displacement requires all six exterior planes')
 
 
 def validate_settings(settings):
@@ -87,27 +123,34 @@ def validate_settings(settings):
     if type(s['compare_point']) is not bool:
         raise ValueError('compare_point is an explicit boolean')
     b=s['boundary']
-    if not isinstance(b,dict) or set(b)!={'mode','origin_mm'} or b['mode'] not in ('affine_boundary','uniaxial_zero_lateral'):
-        raise ValueError('Choose affine_boundary or uniaxial_zero_lateral; no inferred loads')
+    if not isinstance(b,dict) or set(b)!={'mode','origin_mm'} or b['mode'] not in ('affine_boundary','uniaxial_zero_lateral','box_normal_displacement'):
+        raise ValueError('Choose affine_boundary, uniaxial_zero_lateral or box_normal_displacement; no inferred loads')
     finite(b['origin_mm'],(3,),'boundary origin')
     if b['mode']=='affine_boundary' and s['law'].get('boundary_control'):
         raise ValueError('Affine FE boundary cannot be compared to free-lateral point history')
-    if b['mode']=='uniaxial_zero_lateral':
-        bc=s['law'].get('boundary_control',{}).get('stress_components',{})
-        if set(bc)!={'yy','zz'} or any(any(v!=0 for v in a) for a in bc.values()):
-            raise ValueError('Uniaxial FE pair requires explicit zero yy/zz point stress controls')
+    if b['mode']=='box_normal_displacement':
+        if s['law']['model']!=law.dp.MODEL or s['law'].get('boundary_control'):
+            raise ValueError('Box normal displacement admits small-strain DP prescribed F only; no point stress control')
+        _require_box_boundary_faces(mesh['cells'],points)
+    if b['mode'] in ('uniaxial_zero_lateral','box_normal_displacement'):
+        label='Uniaxial' if b['mode']=='uniaxial_zero_lateral' else 'Box normal displacement'
+        if b['mode']=='uniaxial_zero_lateral':
+            bc=s['law'].get('boundary_control',{}).get('stress_components',{})
+            if set(bc)!={'yy','zz'} or any(any(v!=0 for v in a) for a in bc.values()):
+                raise ValueError('Uniaxial FE pair requires explicit zero yy/zz point stress controls')
         for F in s['law']['deformation_gradient']:
             F=np.asarray(F)
             if np.any(F-np.diag(np.diag(F))):
-                raise ValueError('Uniaxial pair does not impose shear/rotation')
+                raise ValueError(label+' pair does not impose shear/rotation')
         if not np.allclose(s['law']['deformation_gradient'][0],np.eye(3),atol=0,rtol=0):
-            raise ValueError('Uniaxial initial geometry must be undeformed')
+            raise ValueError(label+' initial geometry must be undeformed')
         if not np.array_equal(np.asarray(b['origin_mm']),points.min(axis=0)):
-            raise ValueError('Uniaxial origin must equal the box minimum')
+            raise ValueError(label+' origin must equal the box minimum')
         # Real specimen boundary faces must cover six axis-aligned surfaces.
         lo,hi=points.min(axis=0),points.max(axis=0)
         if np.any(hi<=lo) or any(not any(p[a] in (lo[a],hi[a]) for a in range(3)) for p in points[skin]):
-            raise ValueError('Free-lateral public pair requires an axis-aligned rectangular specimen')
+            raise ValueError(('Free-lateral public pair' if b['mode']=='uniaxial_zero_lateral' else label)+
+                ' requires an axis-aligned rectangular specimen')
     if 'source_receipt' in s:
         from .material_fe_transfer import cold_assignment, verify_source
         from .storage import canonical_hash

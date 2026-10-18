@@ -616,7 +616,7 @@ def declared_companions(entry, metadata, registration_origin=None, source_pins=N
 
 
 def post_project_files(project_path, *, approved_roots, limits, _replacements=None, _basis_source=None, _save_binding=None,
-                       _save_registered_source=None):
+                       _save_registered_source=None, _registered_source=None):
     project_path = Path(project_path).resolve(strict=True)
     roots = [Path(root).resolve() for root in approved_roots]
     allowed = {}
@@ -626,7 +626,8 @@ def post_project_files(project_path, *, approved_roots, limits, _replacements=No
         require_replacement_map(_replacements)
         original = post_project_files(project_path, approved_roots=approved_roots, limits=limits,
                                       _basis_source=_basis_source, _save_binding=_save_binding,
-                                      _save_registered_source=_save_registered_source)['snapshot']
+                                      _save_registered_source=_save_registered_source,
+                                      _registered_source=_registered_source)['snapshot']
         for missing in original['unavailable']:
             if not _replacements.has(missing['parent_member'], missing['locator']):
                 continue
@@ -759,14 +760,16 @@ def post_project_files(project_path, *, approved_roots, limits, _replacements=No
         document = json.loads(project_path.read_text(encoding='utf-8-sig'))
         if document.get('kind') != 'external-result':
             raise ValueError('Expected an existing independent Post project')
-        if _save_registered_source is not None:
-            if _save_binding is None or not callable(_save_registered_source):
+        if _save_registered_source is not None or _registered_source is not None:
+            if _save_registered_source is not None and (_save_binding is None or not callable(_save_registered_source)):
                 raise ValueError('Current verified native Save binding is required for registered repair members')
+            resolver=_save_registered_source if _save_registered_source is not None else _registered_source
+            if not callable(resolver):raise ValueError('Current registered source resolver is required')
             for ref, record in document.get('sources', {}).items():
                 external = any(not any(Path(pin['path']).resolve().is_relative_to(root) for root in roots)
                     and str(Path(pin['path']).resolve()) not in allowed for pin in record['source_pins'])
                 if external:
-                    allowed.update({str(Path(path).resolve()): pin for path, pin in _save_registered_source(ref, record).items()})
+                    allowed.update({str(Path(path).resolve()): pin for path, pin in resolver(ref, record).items()})
         if document.get('native_history_source_snapshot'):
             pin = document['native_history_source_snapshot']
             child = add(pin['path'], 'declared_metadata', pin)

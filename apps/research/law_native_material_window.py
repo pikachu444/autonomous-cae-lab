@@ -68,8 +68,7 @@ class LawNativeMaterialWindow(SimulationWindow):
                 self.message.setText(law_error_text(error)+' 편집 내용은 보존합니다.')
         return super()._call(requested,finished)
 
-    @staticmethod
-    def field_label(path):
+    def field_label(self,path):
         names={'E':'탄성계수 E','nu':'포아송비 ν','alpha':'압력 계수 α','beta':'팽창 계수 β',
             'k0':'초기 항복 절편 k₀','H':'경화계수 H','K0':'평형 체적탄성계수 K₀','G0':'평형 전단계수 G₀',
             'K1':'branch 체적계수 K₁','G1':'branch 전단계수 G₁','tau':'이완 시간 τ [s]',
@@ -80,7 +79,7 @@ class LawNativeMaterialWindow(SimulationWindow):
             'stored_energy':'저장 에너지 밀도','dissipated_energy':'누적 소산 에너지 밀도',
             'work':'누적 일 밀도','steps':'섭동 크기 h','increment':'검사 증분 (0부터)',
             'stress_components':'지정할 물리 응력 성분','atol':'절대 응력 오차','rtol':'상대 응력 오차'}
-        return names.get(path[-1],SimulationWindow.field_label(path))
+        return names[path[-1]] if path[-1] in names else super().field_label(path)
 
     def _show_support(self,draft=None,checks=None,details=None):
         current=draft if draft is not None else self._draft

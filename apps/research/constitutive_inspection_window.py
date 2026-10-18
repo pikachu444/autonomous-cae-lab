@@ -30,7 +30,12 @@ MEASURES={'deformation_gradient':'변형구배 F',
  'physical tensor strain (not engineering shear)':'물리 텐서 변형률',
  'physical infinitesimal Cauchy stress':'물리 텐서 Cauchy',
  'Kelvin strain (sqrt(2) shear)':'Kelvin 변형률 · 전단 ×√2',
- 'Kelvin Cauchy stress (sqrt(2) shear)':'Kelvin 응력 · 전단 ×√2'}
+ 'Kelvin Cauchy stress (sqrt(2) shear)':'Kelvin 응력 · 전단 ×√2',
+ 'minus_trace_Cauchy_over_3':'−tr(σ)/3 · 압축 양',
+ 'sqrt_3J2_Cauchy':'√(3J₂)',
+ 'q_minus_alpha_p_minus_k0_minus_H_kappa':'q − αp − (k₀ + Hκ)',
+ 'trace_infinitesimal_plastic_strain':'tr(εᵖ)',
+ 'accumulated_equivalent_deviatoric_plastic_strain':'누적 편차 소성변형률'}
 
 
 def component_value(values,index):

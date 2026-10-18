@@ -146,20 +146,10 @@ def _source(context,source):
     return source['native_kind'],_approved_path(context,inside(root,relative_name(source['relative']))),deepcopy(source)
 
 
-def _save_registered_source_members(context,binding,source_ref,record):
-    """Exact same-content registered relocation for this sealed Post source only."""
-    from .native_project_contract import require_open_binding
-    require_open_binding(binding)
-    _need(binding.context_session==context.session_id and binding.reference['kind']=='native_post',
-        'Native repaired source belongs to another open context')
-    verified=verify_registered(context,binding.reference,full=True)
-    original=json_file(verified.entry_path).get('sources',{}).get(source_ref)
-    _need(isinstance(original,dict) and isinstance(record,dict),'REPLACEMENT_UNBOUND: choose this saved native source')
-    for key in ('source_revision','reader_name','reader_type','native_metadata'):
-        _need(record.get(key)==original.get(key),'CONTENT_CHANGED: repaired native source identity differs')
-    _need(isinstance(original.get('source_revision'),str) and bool(original['source_revision']),
-        'REPLACEMENT_UNBOUND: saved native source has no exact content revision')
+def _registered_source_files(context,record):
+    """Verify this record against its complete current registered input set."""
     identifier=check_id(record.get('input_id'));folder=context.root/'inputs'/identifier
+    no_links(folder)
     receipt=json_file(inside(folder,'input.json'))
     _need(receipt.get('id')==identifier and receipt.get('kind') in {'native_result','native_curve'},
         'Repaired source must be a current registered native result')
@@ -168,7 +158,7 @@ def _save_registered_source_members(context,binding,source_ref,record):
         _need(canonical_hash(receipt['native_metadata'])==receipt.get('native_metadata_sha256'),'Registered source metadata changed')
     files=receipt.get('files');_need(isinstance(files,list) and 0<len(files)<=4096,'Registered source has no bounded file inventory')
     entry=inside(context.root,receipt['file']);no_links(entry)
-    _need(Path(record['entry_path']).resolve()==entry and entry.suffix.lower()==Path(original['entry_path']).suffix.lower(),
+    _need(Path(record['entry_path']).resolve()==entry,
         'CONTENT_CHANGED: repaired source entry differs from its exact registered entry/type')
     registered={};total=0
     for file in files:
@@ -188,11 +178,49 @@ def _save_registered_source_members(context,binding,source_ref,record):
             _need(name not in result,'Duplicate native source content member')
             result[name]={key:pin[key] for key in ('bytes','sha256')}
         return result
-    original_content=content(original['source_pins'],original['entry_path'])
-    _need(original_content==content(record['source_pins'],record['entry_path'])=={name:pin for name,(_,pin) in registered.items()},
+    _need(content(record['source_pins'],record['entry_path'])=={name:pin for name,(_,pin) in registered.items()},
         'CONTENT_CHANGED: repaired registered source relative content differs')
     _need({Path(pin['path']).resolve() for pin in record['source_pins']}=={path for path,_ in registered.values()},
         'Repaired source pins point outside its exact registered set')
+    _need(len(record['source_pins'])==len(registered),'Duplicate registered source pins')
+    return receipt,entry,registered
+
+
+def _initial_registered_source_members(context,source_ref,record):
+    """Admit only a current registered result, without granting its parent root."""
+    if not record.get('input_id'):return {}
+    receipt,entry,registered=_registered_source_files(context,record)
+    content=[{'relative':name,**pin} for name,(_,pin) in registered.items()]
+    _need(record.get('source_revision')==canonical_hash({'format':entry.suffix.lower(),
+        'files':sorted(content,key=lambda row:row['relative'])}),
+        'CONTENT_CHANGED: registered source content revision differs')
+    _need(record.get('registration_origin')==receipt.get('origin'),
+        'CONTENT_CHANGED: registered source origin differs')
+    return {path:{'relative':'registered/'+receipt['id']+'/'+name,**pin}
+        for name,(path,pin) in registered.items()}
+
+
+def _save_registered_source_members(context,binding,source_ref,record):
+    """Exact same-content registered relocation for this sealed Post source only."""
+    from .native_project_contract import require_open_binding
+    require_open_binding(binding)
+    _need(binding.context_session==context.session_id and binding.reference['kind']=='native_post',
+        'Native repaired source belongs to another open context')
+    verified=verify_registered(context,binding.reference,full=True)
+    original=json_file(verified.entry_path).get('sources',{}).get(source_ref)
+    _need(isinstance(original,dict) and isinstance(record,dict),'REPLACEMENT_UNBOUND: choose this saved native source')
+    for key in ('source_revision','reader_name','reader_type','native_metadata'):
+        _need(record.get(key)==original.get(key),'CONTENT_CHANGED: repaired native source identity differs')
+    _need(isinstance(original.get('source_revision'),str) and bool(original['source_revision']),
+        'REPLACEMENT_UNBOUND: saved native source has no exact content revision')
+    _,entry,registered=_registered_source_files(context,record)
+    _need(entry.suffix.lower()==Path(original['entry_path']).suffix.lower(),
+        'CONTENT_CHANGED: repaired source entry differs from its exact registered entry/type')
+    original_content={Path(pin['path']).relative_to(Path(original['entry_path']).parent).as_posix():
+        {key:pin[key] for key in ('bytes','sha256')} for pin in original['source_pins']}
+    _need(len(original_content)==len(original['source_pins']) and
+        original_content=={name:pin for name,(_,pin) in registered.items()},
+        'CONTENT_CHANGED: repaired registered source relative content differs')
     origins={row['original_location']:row['member_id'] for row in verified.snapshot['logical_origins']}
     members={row['id']:row for row in verified.snapshot['members']};allowed={}
     source_members={origins[pin['path']] for pin in original['source_pins'] if pin['path'] in origins}
@@ -258,6 +286,12 @@ def _plan(context,kind,path,identifier,*,_replacements=None,primary_root=None):
             for physical,member in allowed.items():save_files[physical]={key:member[key] for key in ('bytes','sha256')}
             return allowed
         private['_save_registered_source']=registered_source
+    elif kind=='post' and kind not in context.adapters:
+        def initial_source(source_ref,record):
+            allowed=_initial_registered_source_members(context,source_ref,record)
+            for physical,member in allowed.items():save_files[physical]={key:member[key] for key in ('bytes','sha256')}
+            return allowed
+        private['_registered_source']=initial_source
     if kind=='pre':
         plan=adapter['inspect'](path,approved_roots=roots,
             source_document_id='P'+canonical_hash(identifier)[:32],**private)
