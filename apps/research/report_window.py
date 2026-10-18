@@ -78,6 +78,7 @@ class ReportWindow(QMainWindow):
         action('3D 결과 이미지 추가…', lambda: choose_image(self), source)
         action('선택 이미지 교체…', lambda: choose_image(self, replace=True), source)
         action('이미지 표시와 크기…', lambda: edit_image(self), edit)
+        action('저장된 연구 추가…', lambda: self.choose_study(append=True), source)
         action('저장된 연구 적용…', self.choose_study, source)
         action('문헌 추가…', self.choose_literature, source)
         action('원자료 열기', self.open_source, source)
@@ -550,25 +551,30 @@ class ReportWindow(QMainWindow):
         if dialog.exec()==QDialog.DialogCode.Accepted:
             self.capture({'kind':'result',**reference,'selection':dialog.selection},title+' '+name)
 
-    def choose_study(self):
+    def choose_study(self, *, append=False):
         def listed(payload):
             rows=[d for d in payload['documents'] if d.get('kind')=='study' and d.get('saved_revision') and not d.get('dirty')]
             labels=[str(i+1)+'. '+d['title'] for i,d in enumerate(rows)]
             if not rows:self.message.setText('연구 기록을 먼저 저장하세요.');return
-            label,ok=QInputDialog.getItem(self,'저장된 연구 적용','연구',labels,editable=False)
-            if ok:self.use_study(rows[labels.index(label)])
+            label,ok=QInputDialog.getItem(self,'저장된 연구 추가' if append else '저장된 연구 적용',
+                '연구',labels,editable=False)
+            if ok:self.use_study(rows[labels.index(label)],append=append)
         self._call(self.client.documents,listed)
 
-    def use_study(self,study):
+    def use_study(self,study,*,append=False):
+        if self._busy or self._pending or not self.document:
+            self.message.setText('진행 중인 저장 결과를 먼저 확인하세요. 현재 편집은 유지됩니다.')
+            return False
         self.remember_editor()
         if self._edit_buffers:
             self.message.setText('현재 섹션의 설명을 적용하거나 수정 취소한 뒤 다른 연구를 적용하세요.')
             return False
-        if self.draft['sections'] and QMessageBox.question(self,'연구 적용',
+        if not append and self.draft['sections'] and QMessageBox.question(self,'연구 적용',
             '현재 섹션을 선택한 저장 연구로 교체할까요? 실행 취소로 복구할 수 있습니다.',
             QMessageBox.StandardButton.Ok|QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Ok:return
         identifier=self.document['id']
+        study=deepcopy(study)
         proposed_base=deepcopy(self.draft)
         reference={'kind':'document','document_kind':'study','document_id':study['id'],
             'saved_revision':study['saved_revision'],'input_revision':study['input_revision'],
@@ -580,13 +586,17 @@ class ReportWindow(QMainWindow):
                     asset=self.client.report_capture(identifier,item['reference'])))
             return rows
         def accepted(rows):
+            if not self.document or self.document['id']!=identifier:return
             self.remember_editor()
             if self.draft != proposed_base or self._edit_buffers:
                 self.message.setText('자료를 읽는 동안 보고서가 편집되었습니다. 현재 내용을 유지합니다. 연구 적용을 다시 선택하세요.')
                 return
             self._editing_section=None;self.section_editor.hide()
-            draft=deepcopy(self.draft);draft['sections']=rows;self.changed(draft);self.read_assets()
-        self._call(capture,accepted)
+            draft=deepcopy(self.draft)
+            first=len(draft['sections']) if append else 0
+            draft['sections']=(draft['sections']+rows) if append else rows
+            self.changed(draft);self.sections.setCurrentRow(first);self.sections.setFocus();self.read_assets()
+        return self._call(capture,accepted)
 
     def choose_literature(self):
         from .experiment_sources import choose_knowledge

@@ -92,9 +92,13 @@ def blocks(content):
             yield ('paragraph', '누락 자료 ' + str(missing) + '개: 저장 모델의 포함 파일을 복구하세요.')
         return
     if kind == 'knowledge':
+        from .portable_research_actions import source_locator_text
         source = content['source']
         yield ('paragraph', source.get('title', '문헌'))
         for segment in source.get('segments', []):
+            locator = source_locator_text(segment.get('locator', {}))
+            if locator:
+                yield ('paragraph', locator)
             yield ('paragraph', segment.get('text', ''))
         for issue in source.get('failed_segments', []):
             yield ('paragraph', '읽지 못한 원문: ' + str(issue.get('reason', '미확인')))
@@ -149,7 +153,13 @@ def blocks(content):
         for index,row in enumerate(result.get(key,[])):
             predicted=key=='predictions' or row.get('prediction_status')=='PREDICTED' or row.get('execution_status')=='PREDICTED'
             yield ('paragraph', ('대리모델 예측 — 실제 계산 아님' if predicted else '선택한 실제 후보')+' '+str(index+1))
-            yield ('table', (['입력','값'], [[k,v] for k,v in row.get('values',{}).items()]))
+            inputs=[]
+            for name,value in row.get('values',{}).items():
+                units={entry['unit'] for entry in result.get('variables',[])+row.get('input_bindings',[])
+                    if entry.get('id')==name and isinstance(entry.get('unit'),str) and entry['unit']}
+                unit=(next(iter(units)) if len(units)==1 else '미제공' if not units else '불일치: '+' / '.join(sorted(units)))
+                inputs.append([name,value,unit])
+            yield ('table', (['입력','값','단위'], inputs))
             yield from blocks({'kind':'result','result':row})
     if 'objective' in result:
         yield ('table', (['저장된 목적값','제약 만족'],[[result['objective'],

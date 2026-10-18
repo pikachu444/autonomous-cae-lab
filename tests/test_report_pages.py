@@ -80,3 +80,36 @@ def test_study_observation_status_uses_same_caption_without_rewriting_source():
     paragraphs = '\n'.join(value for kind, value in blocks(content) if kind == 'paragraph')
     assert '확인 예정' in paragraphs and 'PLANNED' not in paragraphs
     assert content == before
+
+
+@pytest.mark.parametrize('locator,caption',[
+    ({'section':'절차','line_start':1,'line_end':6,'segment_id':0},'절차 / 줄 1–6'),
+    ({'page':3},'쪽 3'),
+])
+def test_knowledge_locator_is_printed_with_the_exact_retained_excerpt(locator,caption):
+    content={'kind':'knowledge','source':{'title':'원 문헌','segments':[{
+        'locator':locator,'text':'보존한 정확 본문'}]}}
+    before=deepcopy(content)
+    paragraphs=[value for kind,value in blocks(content) if kind=='paragraph']
+    assert paragraphs==['원 문헌',caption,'보존한 정확 본문']
+    assert content==before
+
+
+def test_failed_candidate_capture_preserves_exact_input_unit_for_printing():
+    from caelab.report_document import compact_payload
+    payload={'kind':'result','reference':{'selection':{'metadata_only':True}},'result':{
+        'kind':'optimization','variables':[{'id':'Tref','unit':'K'}],
+        'candidates':[{'values':{'Tref':293.15},'execution_status':'FAILED','objective':None,
+            'input_bindings':[{'id':'Tref','unit':'K','value':293.15}]}]}}
+    before=deepcopy(payload)
+    content=compact_payload(payload)
+    tables=[value for kind,value in blocks(content) if kind=='table']
+    assert (['입력','값','단위'],[['Tref',293.15,'K']]) in tables
+    assert content['result']['candidates'][0]['input_bindings']==payload['result']['candidates'][0]['input_bindings']
+    assert payload==before
+
+
+def test_legacy_candidate_unit_is_explicitly_unprovided():
+    content={'kind':'result','result':{'candidates':[{'values':{'unknown':2.}}]}}
+    tables=[value for kind,value in blocks(content) if kind=='table']
+    assert (['입력','값','단위'],[['unknown',2.,'미제공']]) in tables

@@ -18,7 +18,7 @@
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
-| material_numerical_impl / Sol-high | B7.4의 Experiment Analysis 창·전용 질문 dialog/actions/reporting/검사 인도 freeze. 다음 B7.5 기존 Report image/장면 경로의 한정 인수 | 계수·고정/미식별 방향→명시 질문·참고 관측→Study/Report/cold와 모달 결과 교체 P2 폐쇄. 게시 뒤 같은 담당에게 보존 native 장면→같은 Report→원 store 없는 cold packet을 실제 후속 배정 |
+| material_numerical_impl / Sol-high | B7.5 ReportWindow·전용 검사·사용법 인도 freeze. 공통 Report owner/출력·portable helper는 Codex | 실제 native 한 캡처·같은 Report의 Study/원진단/문헌/실패·저장/출력 실패 보존·원폴더 없는 cold 완료. 문헌 위치·실패 후보 입력 단위 P2와 독립/시각 검토 폐쇄. 게시 뒤 같은 담당에게 기존 portable 이동 사본 편집 B8.3.L01을 이어 배정 |
 | native_impl / Sol-high | B5.3.L01의 Numerical 전용 창·보고 소비 helper·검사·사용법 인도 freeze. 공통 numerical/comparison 엔진은 Codex | 고정 mask/N/weight/scale·holdout 제외·실패 벌점 분리·동일 증거/채택 보호/Study/Report/cold 완료. 예측 support 및 명시 구간 P2 공통 교정도 독립 검토 폐쇄. 다음 B5.4.L01은 기존 adjoint/FD/DE의 명시 선택·지원 계약을 같은 담당에게 이어 배정 |
 | data_impl / Sol-high | B2.6.L02 신규 history helper·전용 검사/고정 이력 인도 freeze. `impact_interface.py`/`impact_damage.py`의 기존 법칙은 수정하지 않음 | 사전 선언 normal/mixed 두 실제 native 실행, owner/저장/별도 cold와 관측 메뉴·동일 결과 선택 완료. 형식·누락 프레임 및 축 표시 P2 폐쇄. 다음 L03은 같은 writer가 신규 reclosure helper와 기존 interface를 맡고 root가 공통 실행/카드·provenance를 통합 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·보존 입력에 근거한 한정 자문. 제품 파일·실행 없음 | B2.6.L02의 법칙/압축/평균 관측과 B5.3의 원 피팅 선택·예측 support 계약 자문 완료. 다음 B2.6.L03 실제 삭제 연동·접촉 전환의 pinned-source 가능성/입력·관측 계약을 실제 후속 배정. sibling 송신 오류는 Codex가 중계 |
@@ -55,7 +55,7 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 후속 배정했다. 역해석의 고정 관측·보고·cold와 예측 support/명시 구간 공통 교정은 독립
 검토까지 마쳤다. 현재 다음 행동은 이 인도 게시·B5.4의 기존 미분법 선택 후속 배정,
 Data 처리 계보·큰 표의 마지막 판정 원행/복구 안내, native L02 게시와 L03 첫 capability
-인수 배정, B7.5 문헌 위치·실패 후보 입력 단위 출력 마감이다. B5.4는 같은 담당에게 실제
+인수 배정과 B7.5 게시·기존 이동 사본 인수 B8.3.L01 배정이다. B5.4는 같은 담당에게 실제
 후속 배정했고 첫 보존 S2/FD 읽기부터 공통 method metadata를 연결하고 있다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
@@ -65,7 +65,7 @@ Data 처리 계보·큰 표의 마지막 판정 원행/복구 안내, native L02
 | Data 제품화 | 원표/곡선·원행·단일 update/Undo·prepare/취소/같은 job 복구·저장/cold·정확 Material·기존 처리/취득 연결 통과. 최종package05의 범위 제외 수·미완성 숫자 요약 두 P2와 실제 설치→일반 빈 창/정확 문서·새 job0 및 독립 검토 폐쇄 | 로컬 설치와 기본 진입 전환 완료. 다음 B4.1.L01 기존 recipe/resample 계보·큰 표 인수. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
 | Numerical/동일 Evaluation | DOE/RBF/Pareto/Picard·Taylor/저장 단계·공유 binding은 `ff23037`로 게시. 후속 B5.3의 같은 mask/weight/척도·원/정규화 잔차·실패 벌점/조건·holdout·보존 채택/Study/Report/cold와 독립 검토 완료 | B5.3 인도 게시 뒤 B5.4의 기존 adjoint/ordinary FD/DE 선택과 지원 계약의 실제 GUI 소비. 기존 실행을 재사용하고 새 범용 adjoint/전체 native campaign을 만들지 않음 |
 | Expert→Study→Report | `f7de485`로 완료·게시. 정확 발언/선택 결과→Study 명시 판단→Report 출력·응답 유실/현재 권한·편집 보존·cold와 독립 검토 폐쇄 | B7.4로 실제 후속 배정했으며 그 인수도 다음 행에서 완료. 이 첫 packet을 모든 B7 완료로 확대하지 않음 |
-| B7.4 식별성→다음 시험 | 보존 계수/고정/약방향·관측 원순서→사용자 명시 질문·메모→Study/Report와 저장 응답 유실/표시 결과·모달 교체 복구·세 사례 cold 완료. 독립 검토 P2 폐쇄 | 다음 B7.5의 기존 native 장면·표·판단을 같은 Report에서 출력/원본 없는 cold. 새 solver/3D/범용 식별 엔진 없음 |
+| B7.4 식별성→다음 시험 | `8ea3e87`로 게시. 명시 질문/판단·세 사례 cold와 모달 P2 폐쇄. 후속 B7.5도 실제 한 캡처·기존 자료 조합·원본 없는 cold/PDFMD·문헌 위치와 단위 P2까지 완료 | B7.5 게시 뒤 기존 portable 이동 사본의 편집/저장/재보관 B8.3.L01. 같은 자료를 재사용하고 새 solver/3D/범용 식별 엔진을 만들지 않음 |
 | native RAD | B2.5는 `6c09607`로 게시. B2.6.L02의 partial normal/mixed 두 native 실행·owner/cold·이력 편집/원 대상 binding·보존 관측창·동일 선택/재열기·독립 검토와 마지막 축 표시 P2까지 완료 | L02 게시 뒤 같은 writer에게 L03의 pinned Python sensor/OFF·TYPE24 Idel1 가능성 인수를 실제 배정. CAE source 계약은 완료됐으나 runtime/매 증분 trace/restart는 아직 미확인. clock gate만으로 자동 삭제 연동을 완료하지 않음 |
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
@@ -87,6 +87,21 @@ Core source table 4행 읽기는 `installed-normal-02/`에서 확인했다. 문�
 실행 근거를 연결하며 성공 campaign을 반복한 것으로 세지 않는다. [사용법·실제 화면](docs/DATA_WORKSPACE_KO.md)과
 [빌드·라이선스·설치](native/data_labplot/README.md)를 갱신한다. 이 인수는 전체 OS 직접 입력,
 LabPlot 모든 upstream 분석, 공개 binary 배포 완료나 공학 적합성 승인이 아니다.
+
+B7.5는 같은 Report에 정적 native 장면·명시 미판단 Study·기존 μ 자유/λ=5 MPa 고정
+진단·정확 문헌 구간·Picard FAILED/NOT_CONVERGED 결과를 함께 보관했다. 실제 기존
+ParaView/CaptureSession을 통한 명시 캡처는 한 번이며 새 수치/피팅/provider 호출은 0이다.
+기존 섹션을 보존하는 ‘저장된 연구 추가…’와 Undo/Redo, 늦은 편집/미확정 저장 guard를
+연결했다. 부분 저장·부분 PDF 실패에서 이전 저장본과 출력 파일을 보존했다.
+owned 원폴더를 분리한 뒤 별도 Windows process에서 같은 자료/원 PNG/미확인·실패를
+읽고, 원자료 누락 안내→같은 Report 복귀→명시 경고 후 PDF5쪽/MD를 다시 출력했다.
+최종 실제 출력 검토에서 문헌 줄 위치와 후보 입력 K 단위 누락을 교정했다. 후자는 원
+exact 실패 결과만 명시 재보관/새 저장본으로 만들고 이전 자산·저장본과 다른 네 근거는
+보존했다. 옛 자산의 단위는 추측하지 않고 미제공으로 남기며 현재 ACL·원 내용 검증은
+유지한다. 관련 9/21검사·공통 locator14·단위18/호환8검사는 각 보존 로그로 확인했고
+중복을 합산하지 않는다. 소유 프로세스 정리와 실제 일반/좁은 화면·PDF 단위/문헌 위치를
+같은 데스크톱 담당/Astra가 확인해 P2를 폐쇄했다. [사용법·실제 출력](docs/REPORT_SCENE_STUDY_KO.md)을
+게시한다. 전체 portable 이동·OS 직접 입력·물리/공학 적합성은 이 인도와 구별한다.
 
 B2.6.L02는 원 LAW117 물성과 압축 규약을 유지한 두 사전 선언 변위 이력을 실행했다.
 normal 160/mixed 161 원 프레임에서 각각 부분 손상 150표본, 최대 mean damage
@@ -679,8 +694,8 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B2.5.L01 | 계층 INP 의 기존 flat 물리 범위 합류 | D | 한정 인도 완료: 8개 native·별도 cold·Post 복귀·독립 통합 검토 | data_impl / Codex |
 | B2.5.L02 | native RAD 의 LAW36/INIEVO·LAW117 명시 편집 | D | 실제 배정·첫 native 원카드 반례부터 구현 중 | data_impl / Codex |
 | B2.6.L01 | LAW36/INIEVO 실제 손상·삭제·에너지 인수 | A | 기존 구현 인수 대기 | T2 |
-| B2.6.L02 | LAW117 부분 손상 unload–compression–reopen | D | 개발 대기 | T2 |
-| B2.6.L03 | 완전 삭제 후 bulk-face 재접촉·재개구 | D | 개발 대기 | T2 |
+| B2.6.L02 | LAW117 부분 손상 unload–compression–reopen | D | 한정 구현·두 native 이력/편집/관측·cold 인수 완료, 공학 UNKNOWN | data_impl / Codex |
+| B2.6.L03 | 완전 삭제 후 bulk-face 재접촉·재개구 | D | 실제 후속 배정, pinned sensor/runtime P0 연결 중 | data_impl / Codex |
 | B2.6.L04 | pair force·표본 impulse·질량·에너지의 최종 선택 연결 | A | 기존 구현 인수 대기 | T2 |
 | B2.6.L05 | 기존 ε–N·SWT·critical-plane 피로의 실제 작업 인수 | A | 기존 구현 인수 대기 | T2 |
 | B3.1.L01 | 실제 ParaView 주창·선택 설정의 OS 작업 인수 | A | 기존 구현 인수 대기 | T3 |
@@ -699,8 +714,8 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B4.5.L01 | 사례 A: 기존 J2 와 DP 의 같은 물리시험 비교 | A | 기존 구현 인수 대기 | T4 |
 | B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 별도 후보 미통합, 연구 요구 미완료 | 미배정 |
 | B5.1.L01 | 혼합변수 DOE 의 실제 domain binding | A | 기존 구현 인수 대기 | T5 |
-| B5.3.L01 | 일반 역해석의 고정 관측·feasible 후보 왕복 | A | 기존 구현 인수 대기 | T5 |
-| B5.4.L01 | 필수 사례별 미분법 선택·기존 adjoint 인수 | A | 기존 구현 인수 대기 | T5 |
+| B5.3.L01 | 일반 역해석의 고정 관측·feasible 후보 왕복 | A | 한정 인수·예측 support/구간 P2 폐쇄, Case A/B 전체와 구별 | native_impl / Codex |
+| B5.4.L01 | 필수 사례별 미분법 선택·기존 adjoint 인수 | A | 실제 후속 배정, 기존 S2/FD/DE와 공통 방법 계약 연결 중 | native_impl / Codex |
 | B5.6.L01 | 보존 대리모델·다목적·Picard/MDO 한 정의 | A | PDE/Evaluation 한정 인도 완료; Numerical/동일 정의 후속 실제 배정 | native_impl / Codex |
 | B6.1.L01 | 사용자 MFront→한 실제 FE interface | D | 개발 대기 | T4 |
 | B6.1.L02 | 구성식 increment·접선·FE IP 원값 인수 | A | 기존 구현 인수 대기 | T4 |
@@ -712,8 +727,8 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B7.1.L01 | 문헌 원문·독립 Study·판단 보존 | A | 지정 문헌/판단·복구·cold 인도 완료, 두 P2 폐쇄 | material_numerical_impl / Codex |
 | B7.2.L01 | 기존 3 역할 Expert 의 중단·한도·부분응답 재개 | A | 기존 구현 인수 대기 | T6 |
 | B7.3.L01 | B−A 비교 불확실성 | D | 구현 통합·한정 확인 완료 | connector_code_review |
-| B7.4.L01 | 기존 robust/DE 최종 perturbation→다음 시험 | A | 기존 구현 인수 대기 | T6 |
-| B7.5.L01 | 실제 3D 장면·판단·수치가 들어간 한 보고서 | A | 기존 구현 인수 대기 | T6 |
+| B7.4.L01 | 기존 robust/DE 최종 perturbation→다음 시험 | A | 세 사례/명시 질문·Study/Report/cold 인수 완료, 공학 UNKNOWN | material_numerical_impl / Codex |
+| B7.5.L01 | 실제 3D 장면·판단·수치가 들어간 한 보고서 | A | 한정 인수·원본 없는 cold/PDFMD·문헌 위치/단위 P2 폐쇄 | material_numerical_impl / Codex |
 | B7.6.L01 | 장비 없이 닫는 공통 취득·sequence·종료 소프트웨어 | D | 본코드 통합·한정 확인 완료, 실장비는 L02 | pending_acquisition_integration |
 | B7.6.L02 | 실제 장비 한 종류의 binding·권한·물리 stop 인수 | E | 외부 입력 대기 | T6 |
 | B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | 기존 구현 인수 대기 | T7 |

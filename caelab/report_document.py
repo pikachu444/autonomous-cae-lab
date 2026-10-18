@@ -116,7 +116,7 @@ def compact_payload(payload):
         source = payload['result']
         result['result'] = {k: deepcopy(source[k]) for k in
             ('kind', 'execution_status', 'responses', 'checks', 'identification', 'parameters',
-             'parameter_units', 'experiment_analysis', 'curves', 'converged', 'termination_reason', 'failure_reason') if k in source}
+             'parameter_units', 'variables', 'experiment_analysis', 'curves', 'converged', 'termination_reason', 'failure_reason') if k in source}
         result['result']['qualification'] = deepcopy(source.get('diagnostics', {}).get('qualification', 'UNKNOWN'))
         result['result'].pop('curves', None)  # Curves are read through selected response views.
         metadata_only = effective_selection(payload.get('reference', {})).get('metadata_only', False)
@@ -130,7 +130,7 @@ def compact_payload(payload):
                 result['result'][key] = [{k: deepcopy(v) for k, v in row.items()
                     if k in {'candidate_id','values','execution_status','prediction_status','responses',
                         'checks','failure_reason','error','feasible','objective','objectives','penalty','constraints',
-                        'constraint_residuals','response_reductions','selected_reduction_index','converged','termination_reason'}
+                        'constraint_residuals','response_reductions','selected_reduction_index','converged','termination_reason','input_bindings'}
                     and (k != 'responses' or not metadata_only)} for row in source[key]]
     elif payload['kind'] == 'document':
         result['document'] = deepcopy(payload['document'])
@@ -139,6 +139,18 @@ def compact_payload(payload):
     else:
         result['turn'] = deepcopy(payload['turn'])
     return snapshot_value(result)
+
+
+def matches_snapshot(payload, frozen):
+    current=compact_payload(payload)
+    if current.get('kind')==frozen.get('kind')=='result':
+        before=frozen['result'];after=current['result']
+        # Old captures did not retain these units; their immutable shape remains authoritative.
+        if 'variables' not in before:after.pop('variables',None)
+        for key in ('candidates','predictions'):
+            for old,new in zip(before.get(key,[]),after.get(key,[])):
+                if 'input_bindings' not in old:new.pop('input_bindings',None)
+    return canonical_hash(current)==canonical_hash(frozen)
 
 
 def check_selection(reference, payload):
@@ -299,7 +311,7 @@ class ReportDocuments(MaterialDocuments):
                         current = self.resolve_reference(binding['reference'])
                         check_selection(binding['reference'], current)
                         # The report always reads its snapshot; availability cannot replace it.
-                        if canonical_hash(compact_payload(current)) != canonical_hash(frozen['content']):
+                        if not matches_snapshot(current,frozen['content']):
                             raise ValueError('원자료 내용이 고정한 자료와 다릅니다.')
                     state, message = 'AVAILABLE', ''
                 except Exception as error:

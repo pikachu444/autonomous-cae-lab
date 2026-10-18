@@ -55,15 +55,15 @@ def test_report_exact_absent_time_rejects_instead_of_nearest():
 
 
 def test_literature_only_study_is_freezable_without_model(tmp_path):
-    # Explicit knowledge read double: archive/access behavior is tested by KnowledgeStore.
     root=tmp_path/'store';wb=Workbench(root)
-    source={'status':'AVAILABLE','document_id':'7ab1c3d4e5f647829abcdef01234567890','revision':1,'sha256':'c'*64,
-        'title':'공개 문헌','segments':[{'text':'실험 조건을 먼저 기록한다.','locator':{'page':1}}],
-        'failed_segments':[],'collection':'local'}
-    wb.assistance_call=lambda operation,args:deepcopy(source)
     try:
-        ref={'kind':'knowledge','document_id':'7ab1c3d4e5f647829abcdef01234567890','revision':1,'locator':{},
-             'source_sha256':'c'*64,'content_sha256':canonical_hash(source)}
+        knowledge=wb.assistance().knowledge
+        knowledge.source_roots=[root]
+        path=root/'paper.txt';path.write_text('실험 조건을 먼저 기록한다.',encoding='utf-8')
+        ingested=knowledge.ingest(path,'local',{'title':'공개 문헌'})
+        source=knowledge.source(ingested['document_id'],1)
+        ref={'kind':'knowledge','document_id':ingested['document_id'],'revision':1,'locator':{},
+             'source_sha256':ingested['sha256'],'content_sha256':canonical_hash(source)}
         from caelab.study_document import default_draft as study_draft
         study=study_draft()
         study['evidence']=[{'id':'Epaper','label':'공개 문헌','kind':'knowledge','reference':ref,'note':''}]
@@ -73,8 +73,8 @@ def test_literature_only_study_is_freezable_without_model(tmp_path):
         asset=wb.report_capture(report['id'],ref)
         content=wb.report_content(report['id'],[asset])['assets'][0]['content']
         assert content['source']['segments'][0]['text']==source['segments'][0]['text']
-        source['revision']=2
-        assert wb.report_content(report['id'],[asset])['assets'][0]['source_status']=='UNAVAILABLE'
+        knowledge.revoke(ingested['document_id'])
+        assert wb.report_content(report['id'],[asset])['assets'][0]['source_status']=='SOURCE_UNAVAILABLE'
         assert report['runs']==[]
     finally:wb.shutdown()
 
@@ -93,6 +93,21 @@ def test_snapshot_numeric_scalars_nonfinite_and_legacy_response_preserve_values(
     assert frozen['result']['responses']['force']['source_rows']==[2]
     assert json.loads(json.dumps(frozen,allow_nan=False))==frozen
     assert snapshot_value([np.nan,np.inf,-np.inf,None])==['nan','inf','-inf',None]
+
+
+def test_added_unit_metadata_keeps_old_capture_shape_without_ignoring_changed_values():
+    from caelab.report_document import compact_payload,matches_snapshot
+    payload={'kind':'result','result':{'variables':[{'id':'Tref','unit':'K'}],
+        'candidates':[{'values':{'Tref':293.15},'input_bindings':[{'id':'Tref','unit':'K'}]}]}}
+    current=compact_payload(payload);old=deepcopy(current)
+    old['result'].pop('variables');old['result']['candidates'][0].pop('input_bindings')
+    old_hash=canonical_hash(old);source_hash=canonical_hash(payload)
+    assert matches_snapshot(payload,old) and matches_snapshot(payload,current)
+    changed=deepcopy(payload);changed['result']['candidates'][0]['values']['Tref']=294.
+    assert not matches_snapshot(changed,old)
+    changed=deepcopy(payload);changed['result']['candidates'][0]['input_bindings'][0]['unit']='degC'
+    assert not matches_snapshot(changed,current)
+    assert canonical_hash(old)==old_hash and canonical_hash(payload)==source_hash
 
 
 @pytest.mark.parametrize('key,status',[('candidates','SUCCEEDED'),('predictions','PREDICTED')])

@@ -103,6 +103,13 @@ def navigation(document, reference):
     return deepcopy(reference)
 
 
+def source_locator_text(locator):
+    place = [str(locator['section'])] if locator.get('section') else []
+    if 'page' in locator: place.append('쪽 ' + str(locator['page']))
+    if 'line_start' in locator: place.append('줄 ' + str(locator['line_start']) + '–' + str(locator.get('line_end', locator['line_start'])))
+    return ' / '.join(place)
+
+
 def source_description(payload):
     """Bibliography/location/limits in the existing reading pane, not raw JSON."""
     source = payload['source']; details = payload.get('source_metadata', {})
@@ -112,11 +119,7 @@ def source_description(payload):
     heading.append('문헌 개정 ' + str(source['revision']))
     paragraphs = [' · '.join(heading)]
     for row in source.get('segments', []):
-        loc = row.get('locator', {})
-        place = [str(loc['section'])] if loc.get('section') else []
-        if 'page' in loc: place.append('쪽 ' + str(loc['page']))
-        if 'line_start' in loc: place.append('줄 ' + str(loc['line_start']) + '–' + str(loc.get('line_end', loc['line_start'])))
-        paragraphs.append(' / '.join(place) + '\n' + row.get('text', ''))
+        paragraphs.append(source_locator_text(row.get('locator', {})) + '\n' + row.get('text', ''))
         if row.get('limitations'): paragraphs.append('추출 한계: ' + '; '.join(row['limitations']))
     for failure in source.get('failed_segments', []):
         paragraphs.append('추출 실패: ' + str(failure.get('reason', failure)))
