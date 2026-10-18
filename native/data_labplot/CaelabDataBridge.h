@@ -40,6 +40,8 @@
 #include <QLibraryInfo>
 #include <QElapsedTimer>
 #include <QMessageBox>
+#include <QDialogButtonBox>
+#include <QPushButton>
 #include <stdexcept>
 #include <limits>
 #include <functional>
@@ -51,6 +53,11 @@ class CaelabDataBridge : public QObject {
     QPointer<Spreadsheet> sheet;
     QPointer<Worksheet> sourceWorksheet;
     QPointer<Project> connectedProject;
+    QPointer<Project> boundProject;
+    QMetaObject::Connection saveStateConnection;
+    QJsonObject loadedBinding, confirmedReceipt, conflictCurrent;
+    bool inputConflict{false};
+    QString conflictJournal;
     QJsonObject savedAck, importedReference, pendingBinding;
     QByteArray pendingXml;
     QString pendingPath;
@@ -132,12 +139,17 @@ class CaelabDataBridge : public QObject {
     };
     void load() {
         if (!pendingApply.isEmpty() || pendingView()) throw std::runtime_error("Complete the pending command or exact view save before reading another Core input.");
-        if (connected() && draft != baseline.value(text("draft")).toObject() &&
+        if (requiresCoreSave() && (inputConflict || draft != baseline.value(text("draft")).toObject()) &&
             QMessageBox::question(window, text("Unapplied Data edits"), text("Discard local Data edits and read Core again?"), QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel) != QMessageBox::Discard) return;
+        if (!connected() && !loadedBinding.isEmpty()) {
+            if (service.isEmpty()) service = loadedBinding.value(text("service_url")).toString();
+            identifier = loadedBinding.value(text("document")).toObject().value(text("id")).toString();
+        }
         if (service.isEmpty() || identifier.isEmpty())
             throw std::runtime_error("Set CAELAB_SERVICE_URL and CAELAB_DATA_DOCUMENT_ID for the bounded donor trial.");
         baseline = request(documentPath()); draft = baseline.value(text("draft")).toObject(); ++loadEpoch;
         importedReference = {}; savedAck = {};
+        inputConflict = false;
         attachProject();
         auto mapping = draft.value(text("mapping")).toObject();
         const auto channels = mapping.value(text("columns")).toObject();
@@ -217,6 +229,7 @@ class CaelabDataBridge : public QObject {
         window->statusBar()->showMessage(text("Core source loaded in a temporary donor project. Native Save stores a LabPlot view only; Core save is not connected."));
     }
     void exclude() {
+        if (inputConflict) throw std::runtime_error("The local input is in conflict. Its recovery file is preserved; explicitly reload before editing.");
         if (!pendingApply.isEmpty() || pendingView()) throw std::runtime_error("Confirm the pending command and exact view save before editing again.");
         if (!sheet || !window->project()) return;
         auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
@@ -236,7 +249,7 @@ class CaelabDataBridge : public QObject {
         window->statusBar()->showMessage(text("Local calculation exclusions changed. Core is unchanged until Apply."));
     }
     QJsonObject command(const QString& operation, const QJsonObject& arguments = {}) {
-        if (!connected()) throw std::runtime_error("This native project is not connected to a Core Data document.");
+        if (!connected() || inputConflict) throw std::runtime_error("Reconnect or explicitly reload the preserved Core input before submitting another command.");
         if (pendingApply.isEmpty()) {
             const auto current = request(documentPath());
             if (current.value(text("session_id")) != baseline.value(text("session_id")) || current.value(text("generation")) != baseline.value(text("generation")))
@@ -247,11 +260,14 @@ class CaelabDataBridge : public QObject {
         }
         if (pendingApply.value(text("operation")) != operation) throw std::runtime_error("Retry the original pending command first.");
         const auto receipt = request(documentPath() + text("/commands"), &pendingApply);
+        confirmedReceipt = receipt;
         const auto acknowledged = receipt.value(text("document")).toObject();
         const auto current = request(documentPath());
         for (const auto* key : {"session_id", "generation", "input_revision", "draft"})
-            if (current.value(text(key)) != acknowledged.value(text(key)))
-                throw std::runtime_error("Apply is acknowledged but Core has since changed. Keep the local buffer and recover explicitly.");
+            if (current.value(text(key)) != acknowledged.value(text(key))) {
+                conflictCurrent = current; preserveCommandConflict();
+                throw std::runtime_error("The original command is acknowledged, but Core input has changed. The local project, request and acknowledgement are preserved in a recovery file; explicitly reload or close without overwriting Core.");
+            }
         baseline = current; pendingApply = {};
         syncLocks();
         return receipt;
@@ -261,9 +277,11 @@ class CaelabDataBridge : public QObject {
         window->statusBar()->showMessage(text("One Data update applied. No import, solver or AI was run."));
     }
     void attachProject() {
+        QObject::disconnect(saveStateConnection);
         connectedProject = window->project();
+        boundProject = connectedProject;
         auto* owner = connectedProject.data();
-        QObject::connect(owner, &Project::requestSaveState, this, [this, owner](QXmlStreamWriter* writer) {
+        saveStateConnection = QObject::connect(owner, &Project::requestSaveState, this, [this, owner](QXmlStreamWriter* writer) {
             if (!serializing || owner != connectedProject || owner != window->project()) return;
             writer->writeTextElement(text("caelab_data_binding"), QString::fromLatin1(QJsonDocument(pendingBinding).toJson(QJsonDocument::Compact).toBase64()));
         });
@@ -282,6 +300,7 @@ class CaelabDataBridge : public QObject {
         const auto binding = fileBinding(path);
         if (binding.isEmpty()) return;
         const auto acknowledgement = binding.value(text("document")).toObject();
+        boundProject = window->project(); loadedBinding = binding;
         const auto oldService = service, oldIdentifier = identifier;
         if (service.isEmpty()) service = binding.value(text("service_url")).toString();
         identifier = acknowledgement.value(text("id")).toString();
@@ -290,6 +309,7 @@ class CaelabDataBridge : public QObject {
             if (current.value(text("input_revision")) != acknowledgement.value(text("input_revision")) || current.value(text("draft")) != acknowledgement.value(text("draft")))
                 throw std::runtime_error("The saved native view refers to an older Core input. Its file is preserved; reopen the matching Core revision explicitly.");
             baseline = current; draft = current.value(text("draft")).toObject(); savedAck = acknowledgement;
+            inputConflict = false;
             importedReference = binding.value(text("result_reference")).toObject();
             channel = binding.value(text("response")).toString(); rows = binding.value(text("source_rows")).toArray();
             ++loadEpoch; attachProject();
@@ -302,6 +322,22 @@ class CaelabDataBridge : public QObject {
     QString recoveryPath() const {
         const auto folder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + text("/caelab-data-recovery");
         QDir().mkpath(folder); return folder + text("/") + identifier + text(".json");
+    }
+    void preserveCommandConflict() {
+        const auto previousBinding = pendingBinding;
+        pendingBinding = QJsonObject{{text("service_url"), service}, {text("document"), baseline}, {text("response"), channel}, {text("source_rows"), rows}};
+        QByteArray xml; QBuffer buffer(&xml); buffer.open(QIODevice::WriteOnly); QXmlStreamWriter writer(&buffer);
+        serializing = true; connectedProject->save(QPixmap(), &writer); serializing = false;
+        pendingBinding = previousBinding;
+        const QJsonObject journal{{text("kind"), text("command_conflict")}, {text("request"), pendingApply},
+            {text("receipt"), confirmedReceipt}, {text("current_document"), conflictCurrent}, {text("baseline"), baseline},
+            {text("local_draft"), draft}, {text("xml"), QString::fromLatin1(xml.toBase64())}, {text("service_url"), service}};
+        conflictJournal = recoveryPath() + text(".conflict-") + QUuid::createUuid().toString(QUuid::Id128) + text(".json");
+        QSaveFile file(conflictJournal);
+        if (writer.hasError() || !file.open(QIODevice::WriteOnly) || file.write(QJsonDocument(journal).toJson()) < 0 || !file.commit())
+            throw std::runtime_error("The confirmed command and local buffer are still in this window; its recovery file could not be committed. Retry before closing.");
+        inputConflict = true; pendingApply = {}; pendingBinding = {}; pendingXml.clear();
+        connectedProject->setChanged(true); syncLocks();
     }
     void writeRecovery() {
         QSaveFile file(recoveryPath());
@@ -329,6 +365,7 @@ class CaelabDataBridge : public QObject {
         return true;
     }
     void beginSave(const QString& path) {
+        if (!connected() || inputConflict) throw std::runtime_error("This bound project could not verify its Core input. Its original binding and file are preserved; reconnect before saving.");
         if (!pendingXml.isEmpty()) return;
         if (draft != baseline.value(text("draft")).toObject()) apply();
         auto* owner = connectedProject.data();
@@ -364,9 +401,15 @@ class CaelabDataBridge : public QObject {
         const auto temporary = QFileInfo(path).absolutePath() + text("/recovered-") + QUuid::createUuid().toString(QUuid::Id128) + text(".lml");
         QSaveFile view(temporary);
         if (!view.open(QIODevice::WriteOnly) || view.write(xml) != xml.size() || !view.commit()) throw std::runtime_error("The recovery view could not be staged.");
-        if (window->project()) window->project()->setChanged(false);
         if (!window->openProject(temporary)) throw std::runtime_error("The native recovery view could not be reopened.");
-        restoreBinding(temporary);
+        if (journal.value(text("kind")) == text("command_conflict")) {
+            baseline = journal.value(text("baseline")).toObject();
+            draft = journal.value(text("local_draft")).toObject(); confirmedReceipt = journal.value(text("receipt")).toObject();
+            conflictCurrent = journal.value(text("current_document")).toObject(); inputConflict = true; conflictJournal = path;
+            window->statusBar()->showMessage(text("Conflict project and local edits recovered. Core remains unchanged; explicitly reload to choose current input."));
+            return;
+        }
+        if (!connected()) restoreBinding(temporary);
         pendingBinding = journal.value(text("binding")).toObject(); pendingPath = journal.value(text("path")).toString(); pendingXml = xml;
         connectedProject->setChanged(true); syncLocks();
         window->statusBar()->showMessage(text("Exact failed-save snapshot recovered. Retry replaces the view without another Core save."));
@@ -440,6 +483,50 @@ class CaelabDataBridge : public QObject {
                 if (fileBinding(target).value(text("document")) != ack) throw std::runtime_error("View retry changed its exact Core acknowledgement.");
                 report = QJsonObject{{text("status"), text("PASS")}, {text("scope"), text("new-process recovery and exact view retry; no Core commands")},
                     {text("binding"), fileBinding(target)}, {text("document"), request(documentPath())}, {text("view_saved"), true}, {text("data_updates"), 0}};
+            } else if (phase == text("cancel_recovery")) {
+                auto* unsaved = new Worksheet(text("Unsaved recovery guard")); window->addAspectToProject(unsaved);
+                unsaved->setName(text("Preserve these native edits")); window->project()->setChanged(true);
+                auto* owner = window->project(); const auto index = owner->undoStack()->index();
+                const auto oldDraft = draft;
+                QTimer cancel; cancel.setInterval(20);
+                QObject::connect(&cancel, &QTimer::timeout, this, [] {
+                    for (auto* widget : QApplication::topLevelWidgets()) {
+                        if (!widget->isVisible()) continue;
+                        if (auto* box = widget->findChild<QDialogButtonBox*>()) if (auto* button = box->button(QDialogButtonBox::Cancel)) button->click();
+                    }
+                }); cancel.start();
+                bool rejected = false;
+                try { recoverSave(QString::fromUtf8(qgetenv("CAELAB_DATA_RECOVERY_PATH"))); } catch (const std::exception&) { rejected = true; }
+                cancel.stop();
+                if (!rejected || window->project() != owner || owner->undoStack()->index() != index || draft != oldDraft || !owner->isChanged() || unsaved->name() != text("Preserve these native edits"))
+                    throw std::runtime_error("Cancelling recovery discarded the current native edits or history.");
+                report = QJsonObject{{text("status"), text("PASS")}, {text("scope"), text("real native unsaved-project dialog cancellation preserves Project, edits, draft and Undo")}, {text("data_updates"), 0}};
+            } else if (phase == text("offline_save") || phase == text("mismatch_save")) {
+                if (!requiresCoreSave() || connected()) throw std::runtime_error("The unverified saved binding was not retained as a protected bound project.");
+                QFile original(target); original.open(QIODevice::ReadOnly); const auto bytes = original.readAll(); original.close();
+                window->project()->setName(text("Unverified local view edits"));
+                if (window->save(target)) throw std::runtime_error("An unverified bound project was saved through the unlinked native path.");
+                QFile after(target); after.open(QIODevice::ReadOnly);
+                if (after.readAll() != bytes || fileBinding(target).isEmpty() || !window->project()->isChanged()) throw std::runtime_error("The original bound file or unverified local edits were lost.");
+                report = QJsonObject{{text("status"), text("PASS")}, {text("scope"), text("unverified bound native view rejects Save and preserves original binding/file and local view edits")}, {text("data_updates"), 0}};
+            } else if (phase == text("lost_save")) {
+                load(); auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
+                view->setCellsSelected(1, 0, 1, sheet->columnCount() - 1); exclude();
+                if (window->save(target) || pendingApply.isEmpty()) throw std::runtime_error("The real lost save response did not preserve its pending request.");
+                const auto requestBefore = pendingApply; const auto draftBefore = draft;
+                if (window->save(target) || !inputConflict || !pendingApply.isEmpty() || confirmedReceipt.isEmpty() || conflictJournal.isEmpty() || draft != draftBefore || !mayOpen(QString()))
+                    throw std::runtime_error("Confirmed historical save did not enter a recoverable conflict without indefinite locking.");
+                QFile journal(conflictJournal); if (!journal.open(QIODevice::ReadOnly)) throw std::runtime_error("The conflict journal is missing.");
+                const auto preserved = QJsonDocument::fromJson(journal.readAll()).object();
+                if (preserved.value(text("request")) != requestBefore || preserved.value(text("receipt")) != confirmedReceipt || preserved.value(text("local_draft")) != draft)
+                    throw std::runtime_error("The original request, confirmed acknowledgement or local buffer was not preserved.");
+                report = QJsonObject{{text("status"), text("PASS")}, {text("scope"), text("real HTTP save reply loss, external input change, same-ID retry, durable acknowledged conflict")},
+                    {text("journal"), conflictJournal}, {text("local_draft"), draft}, {text("receipt"), confirmedReceipt}, {text("current_document"), conflictCurrent}, {text("unlocked_for_recovery"), true}};
+            } else if (phase == text("conflict_recover")) {
+                recoverSave(QString::fromUtf8(qgetenv("CAELAB_DATA_RECOVERY_PATH")));
+                if (!inputConflict || !requiresCoreSave() || !pendingApply.isEmpty() || confirmedReceipt.isEmpty()) throw std::runtime_error("The acknowledged conflict could not be reopened safely.");
+                report = QJsonObject{{text("status"), text("PASS")}, {text("scope"), text("new-process acknowledged conflict recovery preserves local draft and receipt without Core commands")},
+                    {text("local_draft"), draft}, {text("receipt"), confirmedReceipt}, {text("data_updates"), 0}};
             } else if (phase == text("reopen")) {
                 if (!connected()) throw std::runtime_error("The native saved project did not restore its Core binding.");
                 const auto before = request(documentPath());
@@ -537,6 +624,7 @@ public:
         return nullptr;
     }
     bool connected() const { return connectedProject && connectedProject == window->project(); }
+    bool requiresCoreSave() const { return boundProject && boundProject == window->project(); }
     bool mayOpen(const QString& path) {
         if (!pendingApply.isEmpty() || pendingView()) {
             window->statusBar()->showMessage(text("Finish the pending exact save or command before switching documents.")); return false;
@@ -545,10 +633,11 @@ public:
     }
     void opened(const QString& path) {
         guarded([this, path] { restoreBinding(path); });
-        if (QString::fromUtf8(qgetenv("CAELAB_DATA_WORKFLOW_PHASE")) == text("reopen") && !workflowStarted) {
+        const auto phase = QString::fromUtf8(qgetenv("CAELAB_DATA_WORKFLOW_PHASE"));
+        if ((phase == text("reopen") || phase == text("offline_save") || phase == text("mismatch_save")) && !workflowStarted) {
             workflowStarted = true;
             const auto report = QString::fromUtf8(qgetenv("CAELAB_DATA_TRIAL_REPORT"));
-            QTimer::singleShot(0, this, [this, report] { workflow(report, text("reopen")); });
+            QTimer::singleShot(0, this, [this, report, phase] { workflow(report, phase); });
         }
     }
     bool saveConnected(const QString& path) {
@@ -605,7 +694,8 @@ public:
         if (window->project() && !window->project()->fileName().isEmpty()) guarded([this] { restoreBinding(window->project()->fileName()); });
         const auto report = QString::fromUtf8(qgetenv("CAELAB_DATA_TRIAL_REPORT"));
         const auto phase = QString::fromUtf8(qgetenv("CAELAB_DATA_WORKFLOW_PHASE"));
-        if (!report.isEmpty() && phase != text("reopen")) QTimer::singleShot(300, this, [this, report, phase] { if (phase.isEmpty()) trial(report); else workflow(report, phase); });
-        if (!report.isEmpty() && phase == text("reopen")) QTimer::singleShot(15000, this, [this, report] { if (!workflowStarted) { workflowStarted = true; workflow(report, text("reopen")); } });
+        const bool afterOpen = phase == text("reopen") || phase == text("offline_save") || phase == text("mismatch_save");
+        if (!report.isEmpty() && !afterOpen) QTimer::singleShot(300, this, [this, report, phase] { if (phase.isEmpty()) trial(report); else workflow(report, phase); });
+        if (!report.isEmpty() && afterOpen) QTimer::singleShot(15000, this, [this, report, phase] { if (!workflowStarted) { workflowStarted = true; workflow(report, phase); } });
     }
 };

@@ -5,10 +5,12 @@ import os
 from pathlib import Path
 import sys
 import threading
+import socket
+from copy import deepcopy
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY))
-from apps.lab.server import LabHTTPServer
+from apps.lab.server import LabHTTPServer, LabHandler
 from apps.lab.service import LabService
 from caelab.material_test import column_mapping
 from caelab.numerical_document import from_material_document
@@ -66,15 +68,15 @@ def cancel_verified(self):
 ExperimentDialog.exec = cancel_verified
 ''', encoding='utf-8')
 
-        def launch(phase, *, recovery=None, native_file=None):
+        def launch(phase, *, recovery=None, native_file=None, source_document=None, view_path=None, service_url=None):
             folder = output / phase; folder.mkdir()
             report = folder / 'result.json'
             report.with_suffix('.json.rc').write_text('[Settings_General]\nlastRunVersion=2.12.80\n', encoding='utf-8')
             env = dict(os.environ)
             env.pop('QT_QPA_PLATFORM', None)
-            env.update(CAELAB_SERVICE_URL=client.url, CAELAB_DATA_DOCUMENT_ID=data['id'],
+            env.update(CAELAB_SERVICE_URL=service_url or client.url, CAELAB_DATA_DOCUMENT_ID=(source_document or data)['id'],
                 CAELAB_DATA_TRIAL_REPORT=str(report), CAELAB_DATA_WORKFLOW_PHASE=phase,
-                CAELAB_DATA_VIEW_PATH=str(target), CAELAB_DONOR_SDK=str(sdk),
+                CAELAB_DATA_VIEW_PATH=str(view_path or target), CAELAB_DONOR_SDK=str(sdk),
                 CAELAB_MATERIAL_DOCUMENT_ID=material['id'], CAELAB_TEST_RECEIPT=str(receiver),
                 QT_PLUGIN_PATH=str(sdk / 'plugins'), PATH=str(sdk / 'bin') + os.pathsep + os.environ['PATH'],
                 PYTHONPATH=os.pathsep.join((str(hook), str(REPOSITORY), os.environ.get('PYTHONPATH', ''))))
@@ -105,6 +107,8 @@ ExperimentDialog.exec = cancel_verified
         assert not after_partial['dirty'] and partial['binding']['response'] == 'stress'
         exact = partial['binding']['result_reference']
         assert exact['result_sha256'] == canonical_hash(client.document_result(data['id'], exact['job_id']))
+        launch('cancel_recovery', recovery=partial['recovery_path'])
+        assert target.read_bytes() == old_bytes and client.document_read(data['id']) == after_partial
         retry = launch('retry', recovery=partial['recovery_path'])
         assert retry['binding'] == partial['binding'] and retry['data_updates'] == 0
         assert client.document_read(data['id']) == after_partial and target.read_bytes() != old_bytes
@@ -115,10 +119,46 @@ ExperimentDialog.exec = cancel_verified
         assert received['selected_response'] == 'stress' and received['material_id'] == material['id'] and received['plan_id'] == plan['id']
         assert received['plugin_path'] is None and str(sdk).lower() not in received['path'].lower()
         assert client.document_read(plan['id'])['draft']['experiments'] == [] and not client.document_read(material['id'])['runs']
+        saved_bytes = target.read_bytes()
+        launch('offline_save', native_file=target, service_url='http://127.0.0.1:1')
+        assert target.read_bytes() == saved_bytes and client.document_read(data['id']) == after_partial
+        changed = deepcopy(after_partial['draft']); changed['mapping']['columns']['stress']['unit'] = 'kPa'
+        external = client.document_command(data['id'], 'data.update', {'draft': changed}, session_id=after_partial['session_id'], expected_generation=after_partial['generation'])['document']
+        launch('mismatch_save', native_file=target)
+        assert target.read_bytes() == saved_bytes and client.document_read(data['id']) == external
+        lost_data = client.document_open(kind='data', title='Native lost reply guard', draft=data['draft'])
+        lost_target = output / 'lost-reply.lml'; lost_target.write_bytes(old_bytes)
+        original_json = LabHandler._json
+        dropped = []
+        def drop_save_reply(handler, status, value):
+            if (not dropped and handler.path.endswith('/commands') and isinstance(value, dict)
+                    and value.get('document', {}).get('id') == lost_data['id'] and value.get('acknowledged_document_sha256')):
+                dropped.append(value)
+                remote = client.document_read(lost_data['id']); edited = deepcopy(remote['draft'])
+                edited['mapping']['columns']['stress']['unit'] = 'kPa'
+                client.document_command(remote['id'], 'data.update', {'draft': edited}, session_id=remote['session_id'], expected_generation=remote['generation'])
+                handler.close_connection = True
+                try: handler.connection.shutdown(socket.SHUT_RDWR)
+                except OSError: pass
+                handler.connection.close()
+                return
+            return original_json(handler, status, value)
+        LabHandler._json = drop_save_reply
+        try:
+            lost = launch('lost_save', source_document=lost_data, view_path=lost_target)
+        finally:
+            LabHandler._json = original_json
+        assert len(dropped) == 1 and lost_target.read_bytes() == old_bytes and lost['receipt'] == dropped[0]
+        before_recovery = client.document_read(lost_data['id'])
+        recovered = launch('conflict_recover', recovery=lost['journal'], source_document=lost_data, view_path=lost_target)
+        assert recovered['local_draft'] == lost['local_draft'] and recovered['receipt'] == lost['receipt']
+        assert client.document_read(lost_data['id']) == before_recovery and lost_target.read_bytes() == old_bytes
         print(json.dumps({'status': 'PASS', 'source': args.source, 'document_id': data['id'],
             'generation': after_partial['generation'], 'runs': 1, 'saved_revision': after_partial['saved_revision'],
             'result_sha256': exact['result_sha256'], 'same_ref_retry': True, 'new_process_reopen': True,
-            'material_receiver': True, 'receiver_qt': received['qt_version'], 'fit_runs': 0, 'output': str(output)}))
+            'material_receiver': True, 'receiver_qt': received['qt_version'], 'fit_runs': 0,
+            'recovery_cancel_preserved': True, 'unverified_binding_preserved': True,
+            'lost_save_conflict_recovered': True, 'output': str(output)}))
     finally:
         server.shutdown(); server.server_close(); service.shutdown(); thread.join(5)
 

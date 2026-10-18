@@ -21,6 +21,6 @@ diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
  	return true;
 @@ -1017,2 +1019,4 @@
  bool MainWin::save(const QString& fileName) {
-+    if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->connected())
++    if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->requiresCoreSave())
 +        return bridge->saveConnected(fileName);
  	DEBUG(Q_FUNC_INFO << ", file name = " << fileName.toStdString())

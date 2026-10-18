@@ -193,6 +193,24 @@ Two consecutive `build_windows.ps1 -PatchOnly` calls on the existing checkout
 left source bytes unchanged (`_workspace/labplot-patch-series-20261018-02/result.json`).
 Unchanged adapter copies no longer cause unnecessary recompilation.
 
+The subsequent review correction checks are retained in
+`labplot-workflow-guards-axial-01` and `labplot-workflow-guards-shear-01`.
+They additionally exercise the actual native unsaved-project Cancel dialog
+before recovery, offline and externally changed bound-project Save rejection,
+and real HTTP save-response loss followed by an external input change and
+same-ID retry. The latter preserves the confirmed receipt, original request,
+local draft and native XML in a conflict journal, releases the pending-request
+lock and reopens that journal in another native process. A bound project keeps
+its protected identity even when Core verification fails; ordinary native Save
+cannot silently erase its binding. Original file bytes remain intact. External
+unit changes in these guard cases are intentional owner-conflict setup and do
+not import or run physics. The first saved generation remains separately recorded
+from those later external edits.
+The guard executable SHA-256 is
+`239949672825BE307DAEC1A1053F714B789C2D5496F1BAE93CC90428E65935F7`;
+adapter SHA-256 is
+`03D299BBA77FA3BFAD1C61AC4EDF2F478145E7BB301F53F861452932B934CD88`.
+
 ## Ownership and meaning
 
 Core remains the engineering document/reader/retained-result owner. A donor
