@@ -33,6 +33,40 @@ CAE Lab 페이지에 남아 있다.
 이 전환의 Qt 동작·대상 검사와 실제 FreeCAD 설정창의 직접 조작 확인은
 [현재 상태](../../CURRENT_STATE.md)에서 구분한다.
 
+## 공개 지그의 입력·계산·결과 연결 확인
+
+`scripts/check_native_fixture_delivery.py`는 기존 `roller_support`와 FreeCAD의 실제
+Tasks·Gmsh·CalculiX writer, 기존 계산 서비스·Runner·ParaView를 잇는 재현용 확인이다.
+매번 새 폴더를 사용하고, 실행한 native 프로세스와 자식만 Windows Job으로 정리한다.
+
+```powershell
+python scripts/check_native_fixture_delivery.py `
+  --root runs/native-fixture-check-new `
+  --source-python '<cadquery가 있는 기존 Python>/python.exe' `
+  --freecad-root '<FreeCAD 설치 폴더>' `
+  --pvpython '<ParaView 설치 폴더>/bin/pvpython.exe'
+```
+
+같은 확인에서 이미 보존한 메시를 다시 생성할 필요가 없다면
+`--prepared-source runs/<기존 확인>`으로 그 `working.FCStd`와 원 생성 기록을 복사해
+이어 쓴다. 원 파일은 덮지 않으며 새 작업 폴더에 복사본의 SHA256과 출처를 기록한다.
+
+조건은 연결 확인용 등방성 재료 E=1000 MPa, ν=0.25, 바닥 고정, 새들 면의 전역 −Z
+힘이다. 힘은 `10 N`, `20 N`처럼 단위를 명시한다. FreeCAD의 원 `Force.Value`는
+N 값이 아니므로 외부 호출에서는 `Force.getValueAs('N').Value`로 읽는다.
+20 N 편집 취소 시 10 N을 유지하고, 수락 뒤에는 새 입력·새 실행을 만든다.
+
+곡면 하중의 요청값과 실제 절점 하중 합력은 별도로 기록한다. 설치된 native writer는
+CAD 곡면 면적과 메시 면적을 이용하므로 두 값이 다를 수 있다. 이 확인은 원 writer를
+수정하거나 힘을 보정하지 않는다. 이 확인의 보존 합력 오차 1e-8 N 기준을 넘으면 수치
+판정은 FAIL로 남기며, 작업 연결의 성공과 공학 적합성 UNKNOWN을 구분한다.
+메시 Jacobian·구속·native 표와 deck·원본 hash 검사는 계속 실행 관문이다.
+
+결과 비교는 같은 성분·mm 단위·정적 진행값 1을 사용한다. 절점 ID·좌표·요소가 모두
+같을 때만 절점 차이를 만들고, 다르면 나란히 보기만 남긴다. 저장한 Pre/Post를 새
+프로세스에서 다시 열 때 계산을 재실행하지 않는다. 단계별 응답과 원 입력·출력은
+확인 폴더의 `delivery.json`, native 실행 로그, 각 저장 프로젝트에 남는다.
+
 ## 메시 비교 명령 연결
 
 **CAE 작업 → 메시 품질 비교…**에서 현재 메시와 보관된 이전 메시의 품질 통계를 비교한다. 메시가 여러 개라면 모델 트리에서 현재 메시 하나를 선택한다. [사용 순서](../../docs/USER_GUIDE_KO.md#메시를-다시-만든-뒤-품질-비교하기)를 참고한다. 선택 요소 격리·확대는 아직 개발 중이다.

@@ -406,3 +406,54 @@ acceptance and its run paths are recorded once in [WORKBENCH_PROGRESS](WORKBENCH
 Headless Post commands/reopen do not verify visible GUI dispatch. The complete
 Pre→Runner→Post and independent Data/Plan research workflows remain open. Prior
 failed attempts and physical UNKNOWN/NOT_RELEASED are preserved.
+
+## 2026-10-18 — Public roller-support native connection
+
+The existing public `roller_support` was generated through the pinned fixture
+adapter and opened in FreeCAD 1.1.4. With the same curved C3D10 mesh, the native
+Force Tasks editor cancelled a 20 N edit back to 10 N, then accepted 20 N. The
+existing JobManager executed A/B with CalculiX 2.22; Runner read both results and
+activated the original design. The original A result and all its native artifact
+hashes remained unchanged. The script-entry adapter correction is `6907721`.
+
+![Native Force Tasks before confirming the edit](images/desktop-recovery/native-tasks.png)
+
+The Tasks image shows the edit before pressing either button. The actual cancel
+and accept receipts, job identities and stage links are retained in the
+[source-bound acceptance record](evidence/native-fixture-20261018.json).
+
+![Runner reading the retained changed-load result](images/desktop-recovery/native-runner.png)
+
+ParaView 6.2.0 read the two retained results, verified equal native node IDs,
+coordinates and elements, and saved the same-mesh displacement comparison.
+Both results have static step 1/increment 1/load parameter 1; this is not physical
+time 1 s. Fresh FreeCAD and ParaView processes reopened the saved projects
+without solver execution. Pre restored the 20 N setting and both job links;
+Post restored the comparison and the same 1000-row table query without restore
+issues. Maxima and residuals below use the whole result arrays.
+
+![Native A/B displacement views with equal camera and colour range](images/desktop-recovery/native-comparison.png)
+
+| Quantity | A | B |
+|---|---:|---:|
+| Requested native Force magnitude, N | 10 | 20 |
+| Actual assembled Z resultant, N | −9.980906327477719 | −19.9618126549555 |
+| Maximum absolute UZ, mm | 0.000363654 | 0.000727307 |
+
+The original absolute resultant criterion of `1e−8 N` remains **FAIL** for both
+inputs. FreeCAD distributes the curved-face force using mesh and CAD areas; the
+input was neither compensated nor renormalized. Existing mesh, constraint,
+native table/deck and hash gates remained in force. The observed
+`max|UZ_B−2 UZ_A|≈1.0e−9 mm` is consistent with the actual doubled nodal loading;
+it is not a new numerical convergence or accuracy verdict. Engineering
+qualification remains **UNKNOWN**.
+
+The early bad Jacobian mesh, wrong-unit driver input and interrupted workflow
+attempts remain unchanged in their original records. The final record joins
+verified stages rather than relabelling those failures. Eight owned native
+process checks exited successfully with empty Windows Jobs. Astra's independent
+read-only review checked the result/artifact hashes and saved-project identity;
+desktop review closed overlapping labels and unequal camera scale in the final
+native render. The OS whole-window capture was black, so OS input and whole-window
+composition acceptance remain unverified. This closes this synthetic connection
+workflow, not general physical, strength, durability or orthotropic qualification.

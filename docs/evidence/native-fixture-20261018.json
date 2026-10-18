@@ -1,0 +1,112 @@
+{
+  "workflow_completed": true,
+  "engineering_valid": false,
+  "qualification": "UNKNOWN",
+  "source_delivery": "runs/native-fixture-delivery-20261018-13/delivery.json",
+  "source_creation": "runs/native-fixture-delivery-20261018-09/source.json",
+  "source_reuse": "runs/native-fixture-delivery-20261018-11/source-reuse.json",
+  "job_A": "Ja09c08ea95324a0db030868980459e91",
+  "job_B": "J603dfc0cb1ad4b41b6692d31cf21c1e3",
+  "force_conservation_A": {
+    "requested_force_N": 10,
+    "assembled_force_N": [
+      0,
+      0,
+      -9.980906327477719
+    ],
+    "difference_N": [
+      0,
+      0,
+      0.019093672522281224
+    ],
+    "criterion_absolute_N": 1e-08,
+    "verdict": "FAIL",
+    "workflow_admission": "Existing native table/deck, mesh, constraint and hash gates; conservation remains a separate failed numerical claim"
+  },
+  "force_conservation_B": {
+    "requested_force_N": 20,
+    "assembled_force_N": [
+      0,
+      0,
+      -19.9618126549555
+    ],
+    "difference_N": [
+      0,
+      0,
+      0.0381873450444985
+    ],
+    "criterion_absolute_N": 1e-08,
+    "verdict": "FAIL",
+    "workflow_admission": "Existing native table/deck, mesh, constraint and hash gates; conservation remains a separate failed numerical claim"
+  },
+  "native_nodal_load_scaling": {
+    "expected_scale": 2.0,
+    "maximum_abs_B_minus_2A_N": 1.0005885009434223e-14
+  },
+  "tasks": {
+    "cancel": {
+      "force_N": 10.0,
+      "active_dialog": false,
+      "generation": 6
+    },
+    "accept": {
+      "force_N": 20.0,
+      "active_dialog": false,
+      "generation": 23
+    }
+  },
+  "runner": "runs/native-fixture-delivery-20261018-13/runner.json",
+  "live_design_return": {
+    "status": "ACTIVATED",
+    "document_id": "P9d0cee67704e4e4aa5e4050a4ea7d173",
+    "command_id": "C81479eda1a474bac8007d6f8078f6c2c"
+  },
+  "cold_pre": "runs/native-fixture-delivery-20261018-16/cold-pre.json",
+  "cold_post": "runs/native-fixture-delivery-20261018-18/cold-post.json",
+  "post_project": "runs/native-fixture-delivery-20261018-16/post-project/saved/20261018T071301Z-d118c1/project.json",
+  "post_render": "runs/native-fixture-delivery-20261018-18/post-desktop-labelled.png",
+  "result_A_unchanged": "runs/native-fixture-delivery-20261018-18/retained-A-final.json",
+  "native_node_coordinates_elements_equal": true,
+  "UZ_mm": {
+    "maximum_A_mm": 0.000363654,
+    "maximum_B_mm": 0.000727307,
+    "maximum_abs_B_minus_2A_mm": 1.0000000000157452e-09,
+    "statistic": "maximum absolute UZ over the whole VTK array"
+  },
+  "U_magnitude_mm": {
+    "maximum_A_mm": 0.00042145962448049515,
+    "maximum_B_mm": 0.0008429183888716392,
+    "maximum_abs_B_minus_2A_mm": 1.4175867296965967e-09
+  },
+  "checks": [
+    "runs/native-fixture-delivery-20261018-09/source-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-13/pre-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-13/runner-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-16/post-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-16/cold-pre-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-17/post-desktop-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-18/post-render-process/native-check.json",
+    "runs/native-fixture-delivery-20261018-18/cold-post-process/native-check.json"
+  ],
+  "limitations": [
+    "Requested force and assembled curved-face native nodal resultant differ; 1e-8 N conservation test remains FAIL.",
+    "Actual ParaView desktop executed; OS window capture is black. Native rendered views and saved project were verified separately.",
+    "Synthetic linear static connection check; no strength, physical, durability or orthotropic equivalence qualification.",
+    "Cancelled/accepted values are native receipts; Task images show the edit before pressing the button."
+  ],
+  "provenance": {
+    "adapter_source_commit": "6907721",
+    "pinned_fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "driver_sha256": "5e3ca24ae0fbc8e26a7798dbc5ef9583048c3cad1749c170a3f958e1b693152e",
+    "freecad": "1.1.4",
+    "calculix": "2.22",
+    "paraview": "6.2.0",
+    "raw_artifacts": "Relative runs paths are retained local diagnostic evidence, not files distributed by this document.",
+    "interrupted_attempts": "Original 11/13/14/15 failure records remain unchanged; this record joins verified stages."
+  },
+  "process_verification": {
+    "invocations": 8,
+    "all_exit_zero": true,
+    "all_job_empty": true
+  }
+}
