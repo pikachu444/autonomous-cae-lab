@@ -278,9 +278,12 @@ class Client:
             selection=selection, session_id=session_id, handoff_id=handoff_id, target_plan_id=target_plan_id))
     def post_observation(self, reference):
         return self.request('/api/workbench/post-observation', {'reference': reference})
-    def result_followup(self,source_ref,kind='expert',*,session_id,command_id,request=None):
-        return self.request('/api/workbench/result-followup',dict(source_ref=source_ref,kind=kind,
-            session_id=session_id,command_id=command_id,request=request))
+    def result_followup(self,source_ref,kind='expert',*,session_id,command_id,request=None,history_selection=None):
+        body=dict(source_ref=source_ref,kind=kind,session_id=session_id,command_id=command_id,request=request)
+        if history_selection is not None:body['history_selection']=history_selection
+        return self.request('/api/workbench/result-followup',body)
+    def impact_history_snapshot(self,identifier,job_id):
+        return self.request('/api/workbench/documents/'+identifier+'/impact-history/'+job_id)
     def expert_connection(self):
         return self.request('/api/workbench/expert-connection')
     def reload_expert_connection(self, expected_sha256):

@@ -165,7 +165,7 @@ def handle(handler,method,path,query):
                 raise ServiceError(400,'Select the exact retained Data result reference')
             return handler._json(200,workbench.post_observation(**body))
         if path=='/api/workbench/result-followup':
-            if set(body)-{'source_ref','kind','session_id','command_id','request'}:
+            if set(body)-{'source_ref','kind','session_id','command_id','request','history_selection'}:
                 raise ServiceError(400,'Unknown result follow-up field')
             return handler._json(200,workbench.desktop.result_followup(**body))
         if path == '/api/workbench/cad-numerical-plan':
@@ -347,6 +347,10 @@ def handle(handler,method,path,query):
             raise ServiceError(400,'Unknown document result selection')
         selection=json.loads(query['selection'][0]) if 'selection' in query else None
         return handler._json(200,workbench.document_result(match.group(1),match.group(2),selection=selection))
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/impact-history/([^/]+)',path)
+    if match:
+        if query:raise ServiceError(400,'Retained history lookup does not accept query arguments')
+        return handler._json(200,workbench.impact_history_snapshot(*match.groups()))
     match=re.fullmatch(r'/api/workbench/documents/([^/]+)/response-locations/([^/]+)',path)
     if match:
         if set(query)-{'channel','start','count','search'} or any(len(value)!=1 for value in query.values()) or 'channel' not in query:

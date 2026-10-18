@@ -20,10 +20,10 @@
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | B8.3.L01 freeze·게시 후 B8.1.L01 전용 owner 열기 검사/사용법. 공통 launcher/activation/lifecycle은 Codex | B8.3 `6b1b372` 게시. B8.1 실제 후속 호출에서 같은 Material의 중복 창을 재현·정리했고 기본 native Data 진입도 별도로 확인 중. Python 호환 창의 성공을 native LabPlot 완료로 세지 않음 |
 | native_impl / Sol-high | B6.3.L01 domain/전용 검사 freeze. 현재 B4.5의 전용 native Post→Study 검사. 공통 snapshot/등록·실행 연결은 Codex | TR-U 원 source 재계산0/수신1회와 Runner·Post/cold·독립 검토 완료. U PASS, 원 엄격 기준의 절점 응력 FAIL·IP UNKNOWN을 유지. 후속 실제 ParaView 저장3건 완료; exact saved root의 dependency 등록 거절을 보존하고 공통 연결 후 같은 저장본 등록 대기 |
-| data_impl / Sol-high | B2.6.L04 impact_responses·history 선택·전용 검사/사용법。owner/API·Study/Plan 연결은 Codex | L03 P0/P1 `fb2013e` 게시. Pro의 동일 Simulation 한정 child 소유 방침을 수신했으나 pinned Engine의 TT>TSTOP 종료로 정확 .00225 최종 checkpoint 요건 미충족; 새 prefix/child0. 독립 후속 L04에서 원150표본과 P1 saved-owner 읽기·정확 interval/mask/support를 연결 중 |
+| data_impl / Sol-high | B2.6.L04 impact_responses·history 선택·전용 검사 freeze。owner/API·Study/Plan 연결·최종 공개 guide는 Codex | 원150표본/P1의 실제 선택→Study→미실행 Plan·저장/별도 cold 완료. 원행·정확 interval/mask/support와 단위/끊김·충돌 보존. 같은 Astra가 마지막 두 consumer P2 폐쇄. L03 P2 exact checkpoint 미충족/새 prefix·child0은 별도 유지 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
 | native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.4 candidate detail 창/전용 검사/사용법 freeze。후속 B4.5.L01 law_native_fe/worker/inspection·전용 인수. 공통 host/Core는 Codex | B4.3 `881edf8` 게시 후 B4.4 실제 원 후보/기존 상세·실패·거절 복구·Report 자산/cold, 8검사와 Astra의51 hash/11실제 화면 검토 폐쇄. 새 fit/detail/native/provider0. 같은 담당에게 B4.5.L01 기존 J2/DP 동일 시험 인수를 실제 호출; 새 campaign 전 선언·근거 확인 |
-| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | B8 Data failure 표시 한정 교정 freeze。후속 새 impact_history_view.py와 전용 GUI 검사/사용법. 공통 menu/API/Study/Plan은 Codex | Data 원 실패·진단·원행/Jobs 불변5검사와 실제 일반/좁은 창 확인. L04 실제150표본 창/정확 endpoint/동일 선택 signal 구현·검사 중. 같은 전문 담당이 창을 직접 확인 |
+| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | impact_history_view.py와 전용 GUI 검사 freeze. 공통 menu/API/Study/Plan·최종 guide는 Codex | L04 실제150표본·P1의 일반/좁은 창·정확 endpoint/선택 signal·원 계산 상태 표시 확인. TR-U 원 기준 CAD 차단/Runner/Post 여섯 화면도 직접 판독, 추가 시각 P1/P2 없음 |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
 기존 개발을 새 제품 범위로 취급하거나 기능마다 재승인하지 않는다. 실제 의존이나 같은
@@ -72,6 +72,13 @@ UNKNOWN이다. 허용값·원 입력·실패는 바꾸지 않았다. 실제 Runn
 한정 검토를 닫았다. 기준 FCStd는 매핑 BC를 편집하는 실행 모델이 아니며 전달 authoring GUI는
 아직 미완료다. [지원·사용법](docs/STRUCTURAL_U_TRANSFER_KO.md). 마지막 manifest 뒤 문서의
 수신 창 설명만 실제 Runner 범위로 좁혔으며 추가 native 실행으로 세지 않는다.
+
+L04는 원150표본과 P1 저장 결과를 읽어 정확한 표본·부호·평균 구간·질량/에너지를
+선택하고 같은 선택을 Study와 미실행 Numerical Plan에 보존한다. 실제 두 사례의 첫 Qt
+수신과 별도 cold4단계, 선택이 바뀐 Study의 CAS 충돌/편집 보존을 확인했다. 마지막
+단위·재읽기·누락 구간 표시 교정은 기존 두 saved Study의 실제 버튼/일반·좁은 화면과
+별도 통제 gap widget으로 확인했고 같은 Astra가 두 P2를 폐쇄했다. 새 native/변환기/솔버0,
+원 물리 FAIL·UNKNOWN은 유지한다. [사용법·지원](docs/IMPACT_HISTORY_SELECTION_KO.md).
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
@@ -836,7 +843,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B2.6.L01 | LAW36/INIEVO 실제 손상·삭제·에너지 인수 | A | 기존 구현 인수 대기 | T2 |
 | B2.6.L02 | LAW117 부분 손상 unload–compression–reopen | D | 한정 구현·두 native 이력/편집/관측·cold 인수 완료, 공학 UNKNOWN | data_impl / Codex |
 | B2.6.L03 | 완전 삭제 후 bulk-face 재접촉·재개구 | D | 실제 후속 배정, pinned sensor/runtime P0 연결 중 | data_impl / Codex |
-| B2.6.L04 | pair force·표본 impulse·질량·에너지의 최종 선택 연결 | A | 기존 구현 인수 대기 | T2 |
+| B2.6.L04 | pair force·표본 impulse·질량·에너지의 최종 선택 연결 | A | 두 실제 보존 결과의 선택·Study/미실행 Plan·저장/cold·충돌 보존 및 마지막 두 P2 폐쇄. 공학 UNKNOWN | data_impl / desktop_specialist / Codex |
 | B2.6.L05 | 기존 ε–N·SWT·critical-plane 피로의 실제 작업 인수 | A | 기존 구현 인수 대기 | T2 |
 | B3.1.L01 | 실제 ParaView 주창·선택 설정의 OS 작업 인수 | A | 기존 구현 인수 대기 | T3 |
 | B3.1.L02 | managed ParaView 저장·File→Exit 네 경로 | A | 기존 구현 인수 대기 | T7 |

@@ -513,7 +513,8 @@ class DesktopLinks:
             return {'document':result,'source':prepared['source'],'command_id':command_id,
                     'status':'DRAFT_OPENED','executed':False}
 
-    def result_followup(self, source_ref, kind='expert', *, session_id, command_id, request=None):
+    def result_followup(self, source_ref, kind='expert', *, session_id, command_id, request=None,
+                        history_selection=None):
         from .research_operations import _resolve
         from .discussion_document import default_draft as discussion_draft
         from .numerical_document import request_draft
@@ -521,7 +522,11 @@ class DesktopLinks:
         if session_id!=wb.session_id or kind not in {'expert','numerical','study'}:
             raise ValueError('Follow-up requires the current service session and an explicit workspace')
         command_id=check_id(command_id)
-        signature=canonical_hash(dict(source=source_ref,kind=kind,session_id=session_id,request=request))
+        signed=dict(source=source_ref,kind=kind,session_id=session_id,request=request)
+        if history_selection is not None:
+            if kind!='study':raise ValueError('Save this history selection as a Study before creating its Plan')
+            signed['history_selection']=history_selection
+        signature=canonical_hash(signed)
         path=self.root/'result_followups'/(command_id+'.json')
         with self._lock:
             if path.exists():
@@ -530,6 +535,10 @@ class DesktopLinks:
                     raise ValueError('Follow-up command conflicts with an earlier request')
             else:
                 result=_resolve(source_ref,wb.document_read,wb.document_result)
+                history_packet=None
+                if history_selection is not None:
+                    from .impact_history_binding import replay
+                    history_packet=replay(source_ref,result,history_selection)
                 if kind=='expert':
                     draft=discussion_draft()
                     draft['composer'].update(text='Interpret this retained research result, its failed cases and the next distinguishing study.',
@@ -542,6 +551,13 @@ class DesktopLinks:
                     draft['question']='이 결과가 뒷받침하는 판단은 무엇이며, 다음 시험에서 무엇을 확인할까요?'
                     draft['evidence']=[{'id':'Eresult','label':'보존한 계산 결과','kind':'result',
                         'reference':{'kind':'result',**deepcopy(source_ref)},'note':'원 입력과 계산 결과를 보존했습니다. 공학적 승인을 뜻하지 않습니다.'}]
+                    if history_packet is not None:
+                        chosen=history_packet['selection']['request']
+                        draft['question']=(chosen['response']+'의 '+str(chosen['start_s'])+'–'+
+                            str(chosen['end_s'])+' s 선택에서 무엇을 확인할까요?')
+                        draft['evidence'][0]['reference'].update(response=chosen['response'],
+                            selection=deepcopy(history_selection))
+                        draft['evidence'][0]['label']='선택한 충격 이력 ['+history_packet['response']['unit']+']'
                 else:
                     if not isinstance(request,dict):
                         raise ValueError('A Numerical follow-up needs an explicitly edited request; nothing is inferred or submitted')

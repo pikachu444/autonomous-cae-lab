@@ -641,7 +641,9 @@ class StudyWindow(NumericalWindow):
         if key == self._content_key:
             return
         self._content_key = key
-        if isinstance(reference.get('response'), str) and reference['response']:
+        history=reference.get('selection')
+        fixed_history=isinstance(history,dict) and history.get('schema')=='caelab.impact-history-selection/1'
+        if isinstance(reference.get('response'), str) and reference['response'] and not fixed_history:
             reference['selection'] = {'responses': [reference.pop('response')], 'rows': [0, 256]}
         self._content_reference = reference
         self._content_label = self._evidence_label(evidence)
@@ -722,6 +724,16 @@ class StudyWindow(NumericalWindow):
         if not self._content_reference or self._content_reference.get('kind') != 'result':
             return
         reference = deepcopy(self._content_reference)
+        history=reference.get('selection')
+        if isinstance(history,dict) and history.get('schema')=='caelab.impact-history-selection/1':
+            index=self.reading.channel.findData(reference.get('response'))
+            self.reading.channel.blockSignals(True)
+            self.reading.channel.setCurrentIndex(index)
+            self.reading.channel.blockSignals(False)
+            self.reading._draw_result()
+            if name!=reference.get('response'):
+                self.message.setText('저장한 이력의 구간과 적분을 유지합니다. 다른 이력은 해석 창에서 새로 선택하세요.')
+            return
         reference.pop('response', None)
         reference['selection'] = {'responses': [name], 'rows': [0, 256]}
         self._content_reference = reference

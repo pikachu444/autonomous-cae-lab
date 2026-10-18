@@ -228,6 +228,10 @@ class SimulationWindow(PDEWindow):
         self.interface_history_action = QAction('계면 이력 관측…', self)
         self.interface_history_action.triggered.connect(self.show_interface_history)
         research_menu.addAction(self.interface_history_action)
+        self.impact_history_action=QAction('충격 이력 선택…',self)
+        self.impact_history_action.triggered.connect(self.show_impact_history)
+        research_menu.addAction(self.impact_history_action)
+        self._history_commands={}
         self._update_actions()
 
     def inspect_runtime(self):
@@ -485,6 +489,40 @@ class SimulationWindow(PDEWindow):
         InterfaceHistoryView(deepcopy(audit), self).exec()
         return True
 
+    def _impact_history_available(self):
+        return bool(not self._busy and self.document and self._selected_job
+            and self._result_key==(self.document['id'],self._selected_job)
+            and ((self._result or {}).get('operation')=='impact.reprocess'
+                 or (self._result or {}).get('backend')=='explicit.opencourant.model')
+            and (self._result or {}).get('responses'))
+
+    def show_impact_history(self):
+        if not self._impact_history_available():return False
+        identifier,job=self.document['id'],self._selected_job
+        def read():
+            return self.client.impact_history_snapshot(identifier,job)
+        def opened(snapshot):
+            if self._result_key!=(identifier,job):return
+            from .impact_history_view import ImpactHistoryView
+            dialog=ImpactHistoryView(snapshot,self)
+            dialog.study_requested.connect(lambda packet:self._history_followup(packet,'study'))
+            dialog.plan_requested.connect(lambda packet:self._history_followup(packet,'numerical'))
+            dialog.show()
+            self._history_dialog=dialog
+        return self._call(read,opened)
+
+    def _history_followup(self,packet,kind):
+        from .impact_history_actions import prepare_followup
+        command=self._history_commands.setdefault((packet['selection_sha256'],kind),'C'+uuid.uuid4().hex)
+        def opened(receipt):
+            if receipt.get('executed') is not False:
+                self.message.setText('전달 결과가 확인되지 않았습니다. 현재 문서를 다시 읽으세요.')
+                return
+            from .desktop import launch_tool
+            launch_tool(self.client,kind,document_id=receipt['document']['id'],parent=self)
+            self.message.setText('선택한 이력을 전달했습니다. 계산은 시작하지 않았습니다.')
+        return self._call(lambda:prepare_followup(self.client,packet,kind,command),opened)
+
     def _refresh_result_caption(self):
         super()._refresh_result_caption()
         result = self._result or {}
@@ -610,6 +648,8 @@ class SimulationWindow(PDEWindow):
             self.reprocess_impact_action.setText('결과 읽기 상태 확인…' if uncertain else '보존 결과 다시 읽기…')
         if hasattr(self, 'interface_history_action'):
             self.interface_history_action.setEnabled(self._interface_history_audit() is not None)
+        if hasattr(self,'impact_history_action'):
+            self.impact_history_action.setEnabled(self._impact_history_available())
         if hasattr(self, 'input_model_action'):
             self.input_model_action.setVisible(_is_native(self._draft.get('backend')))
             self.input_model_action.setEnabled(bool(self.document) and _is_native(self._draft.get('backend'))

@@ -224,6 +224,10 @@ class ReferenceContent(QWidget):
             self.body.setPlainText('이 자료는 원래 프로그램에서 열어 확인하세요.')
             return
         metadata = payload.get('metadata') or {}
+        selection=(payload.get('reference') or {}).get('selection')
+        if isinstance(selection,dict) and selection.get('schema')=='caelab.impact-history-selection/1':
+            # The saved selection owns its channel and transformed unit.
+            metadata={}
         self.channel.blockSignals(True)
         self.channel.clear()
         for item in metadata.get('responses', []):
@@ -350,12 +354,42 @@ class ReferenceContent(QWidget):
             return
         self.values.setRowCount(len(value))
         plotted_x, plotted_y = [], []
+        breaks=set()
+        covered=None
+        segments=response.get('segments')
+        if segments is not None:
+            covered=set()
+            for segment in segments:
+                bounds=segment.get('rows') if isinstance(segment,dict) else None
+                if (not isinstance(bounds,list) or len(bounds)!=2
+                        or any(type(v) is not int for v in bounds) or not 0<=bounds[0]<bounds[1]<=len(value)):
+                    self.body.setPlainText('저장된 연속 구간이 올바르지 않습니다. 원 결과를 확인하세요.')
+                    self.body.show();self.result_views.hide();return
+                if bounds[0]:breaks.add(bounds[0])
+                covered.update(range(*bounds))
+        published=response.get('source_rows',[])
+        raw=response.get('raw_samples',{})
+        raw_rows=raw.get('source_rows',[])
+        raw_lookup=({row:i for i,row in enumerate(raw_rows)}
+                    if isinstance(raw_rows,list) and all(type(row) is int for row in raw_rows) else {})
         for index, (x, y) in enumerate(zip(axis['values'], value)):
             included = mask[index] if mask is not None else None
+            if covered is not None and index not in covered:included=False
+            source_row=published[index] if len(published)==len(value) else None
+            raw_index=raw_lookup.get(source_row)
+            if raw_index is not None:
+                for key in ('quality_valid','calculation_valid'):
+                    flags=raw.get(key,[])
+                    if len(flags)==len(raw_rows) and flags[raw_index] is False:included=False
+                gaps=raw.get('gap_before',[])
+                if len(gaps)==len(raw_rows) and gaps[raw_index]:breaks.add(index)
+            if index and len(published)==len(value) and published[index]!=published[index-1]+1:breaks.add(index)
             table_row(self.values, index, [text_value(x) + ' ' + str(axis.get('unit', '')),
                 text_value(y), unit, included if included is not None else '미지정'])
             finite = (type(x) in (int, float) and type(y) in (int, float)
                       and math.isfinite(x) and math.isfinite(y))
+            if index in breaks and index:
+                plotted_x.append(math.nan);plotted_y.append(math.nan)
             plotted_x.append(x if finite else math.nan)
             plotted_y.append(y if finite and included is not False and response.get('valid') is not False else math.nan)
         self.axes.plot(plotted_x, plotted_y, marker='o', markersize=3)

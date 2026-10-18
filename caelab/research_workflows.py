@@ -317,14 +317,19 @@ def resolve_reference(wb, reference):
         selection = reference.get('selection', [reference['response']] if reference.get('response') else {'metadata_only': True})
         nested = isinstance(result.get('candidates'), list) or isinstance(result.get('predictions'), list)
         metadata_only = isinstance(selection, dict) and selection.get('metadata_only')
-        if result.get('kind') in {'experiment_uncertainty', 'experiment_identification'}:
+        if isinstance(selection,dict) and selection.get('schema')=='caelab.impact-history-selection/1':
+            from .impact_history_binding import selected_result
+            actual=selected_result(exact,result,selection)
+        elif result.get('kind') in {'experiment_uncertainty', 'experiment_identification'}:
             from .experiment_analysis_reporting import retained_report_view
             actual = retained_report_view(result, selection)
         else:
             actual = (_candidate_reference_view(result, selection) if nested else
                       wb.document_result(exact['document_id'], exact['job_id'], selection=selection))
+        metadata_source=(actual if isinstance(selection,dict)
+            and selection.get('schema')=='caelab.impact-history-selection/1' else result)
         return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
-                'metadata': result_metadata(result), 'result': actual}
+                'metadata': result_metadata(metadata_source), 'result': actual}
     owner = wb.discussion_documents
     saved = owner._verify_revision(reference['discussion_id'], reference['saved_revision'])
     from .portable_research_knowledge import require_owner_sources, document_refs

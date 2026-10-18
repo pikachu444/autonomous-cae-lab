@@ -69,6 +69,10 @@ def reference_error(reference):
                 raise ValueError('Response selection must be an exact nonempty name')
             if 'selection' in reference and not isinstance(reference['selection'], (dict, list)):
                 raise ValueError('Result selection must retain its explicit object/list')
+            selection=reference.get('selection')
+            if (isinstance(selection,dict) and selection.get('schema')=='caelab.impact-history-selection/1'
+                    and reference.get('response')!=selection.get('selection',{}).get('request',{}).get('response')):
+                raise ValueError('선택한 이력 응답과 보존한 구간의 응답이 다릅니다.')
         elif kind == 'expert_turn':
             required = {'kind', 'discussion_id', 'saved_revision', 'turn_id', 'turn_sha256'}
             optional = set()

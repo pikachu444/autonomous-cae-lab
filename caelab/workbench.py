@@ -402,6 +402,10 @@ class Workbench:
         from .research_workflows import resolve_reference
         return resolve_reference(self,reference)
 
+    def impact_history_snapshot(self,identifier,job_id):
+        from .impact_history_binding import snapshot
+        return snapshot(self,identifier,job_id)
+
     def post_measurement_preview(self, command_id):
         from .post_numerical import preview
         return preview(self, command_id)
