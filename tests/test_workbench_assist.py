@@ -66,6 +66,32 @@ def test_ingest_limits_and_pdf_page_extraction(tmp_path):
         knowledge.search('source', filters={'arbitrary': 'filter'})
 
 
+def test_ingest_preserves_the_bytes_used_for_extraction_if_source_changes(tmp_path, monkeypatch):
+    import hashlib
+    from caelab.assist import knowledge as knowledge_module
+
+    path = tmp_path / 'changing.md'
+    original = '# Original\r\n기존 판단의 근거\r\n'.encode('utf-8')
+    replacement = '# Changed\nA different conclusion.\n'.encode('utf-8')
+    path.write_bytes(original)
+    extract = knowledge_module.read_segments
+
+    def replace_after_extraction(source, **options):
+        segments = extract(source, **options)
+        Path(source).write_bytes(replacement)
+        return segments
+
+    monkeypatch.setattr(knowledge_module, 'read_segments', replace_after_extraction)
+    knowledge = store(tmp_path)
+    result = knowledge.ingest(path, 'materials')
+    retained = knowledge.source(result['document_id'], result['revision'])
+    assert path.read_bytes() == replacement
+    assert result['sha256'] == retained['sha256'] == hashlib.sha256(original).hexdigest()
+    assert (knowledge.root / result['document_id'] / '1' / 'original.md').read_bytes() == original
+    assert retained['segments'][0]['text'] == '# Original\n기존 판단의 근거\n'
+    assert retained['segments'][0]['locator']['line_end'] == 2
+
+
 def crossref_fixture(with_abstract=True):
     item = {'DOI': '10.1234/example', 'title': ['Actual fixture title'], 'author': [{'given': 'A', 'family': 'Author'}],
             'issued': {'date-parts': [[2025]]}, 'type': 'journal-article', 'URL': 'https://doi.org/10.1234/example',

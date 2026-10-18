@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
 import hashlib
+import io
 import json
 import re
 import threading
@@ -38,15 +39,16 @@ def selected_source_refs(context):
     return result
 
 
-def read_segments(path):
-    """Extract supported source text; PDF pages retain extraction limitations."""
+def read_segments(path, *, data=None):
+    """Extract one byte snapshot; PDF pages retain extraction limitations."""
     path = Path(path)
     suffix = path.suffix.lower()
+    data = path.read_bytes() if data is None else data
     failed = []
     if suffix == '.pdf':
         from pypdf import PdfReader
         segments = []
-        for number, page in enumerate(PdfReader(path).pages, 1):
+        for number, page in enumerate(PdfReader(io.BytesIO(data)).pages, 1):
             try:
                 text = page.extract_text() or ''
             except Exception as exc:
@@ -61,7 +63,8 @@ def read_segments(path):
         return segments, failed
     if suffix not in {'.md', '.markdown', '.txt', '.csv'}:
         raise ValueError('Supported sources: PDF, Markdown, UTF-8 text and CSV')
-    text = path.read_text(encoding='utf-8')
+    with io.TextIOWrapper(io.BytesIO(data), encoding='utf-8') as stream:
+        text = stream.read()
     section, start, lines, segments = '', 1, [], []
     def flush(end):
         if ''.join(lines).strip():
@@ -157,9 +160,9 @@ class KnowledgeStore:
         path = Path(source).resolve()
         if not any(path.is_relative_to(root) for root in self.source_roots):
             raise PermissionError('Source is outside the configured local import roots')
-        segments, failed = read_segments(path)
-        segments = _retrieval_chunks(segments)
         data = path.read_bytes()
+        segments, failed = read_segments(path, data=data)
+        segments = _retrieval_chunks(segments)
         with self._lock:
             self._reload()
             document_id = document_id or uuid.uuid4().hex
