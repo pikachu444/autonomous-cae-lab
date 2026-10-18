@@ -265,10 +265,10 @@ def test_late_progress_and_stage_read_cannot_overwrite_another_owner_or_attempt(
     window._show_document(original, prefer_job=job_id)
     window.refresh_progress(); wait(application, lambda: not window._busy and window.attempts.rowCount() == 2)
     client.delay_stage = True
-    window._selected_attempt = window._progress['stages'][0]['attempt_id']
-    window.read_stage_result(); wait(application, client.stage_entered.is_set)
-    window._selected_attempt = window._progress['stages'][1]['attempt_id']
-    window.channels.setRowCount(0); window._result = None
+    window.attempts.selectRow(0); wait(application, client.stage_entered.is_set)
+    window.attempts.item(1,3).setData(Qt.ItemDataRole.UserRole,'RUNNING')
+    window._progress['stages'][1]['state']='RUNNING'
+    window.attempts.selectRow(1)
     client.stage_release.set(); wait(application, lambda: not window._busy)
     assert window.channels.rowCount() == 0 and window._result is None
 
@@ -391,3 +391,165 @@ def test_display_names_preserve_raw_definition_and_frozen_attempt_meaning(editor
     assert '실패' in window.runs.currentText()
     window._show_document(client.owner.open(title='Different owner', draft=original))
     assert window.attempts.rowCount()==0 and window.channels.rowCount()==0 and window._result is None
+
+
+def test_attempt_source_opens_submitted_revision_instead_of_new_editor_source(editor, application):
+    window,client,source=editor
+    original=document_reference(source)
+    # A retained attempt is a selection fixture; no evaluator is needed here.
+    window.document['runs']=[{'job_id':'Jfixed','draft':deepcopy(window.document['draft'])}]
+    window._selected_job='Jfixed';window._selected_attempt='Afixed'
+    window._progress={'stages':[{'stage_id':'Sone','attempt_id':'Afixed'}]}
+    replacement=deepcopy(original);replacement['saved_revision']='Rnewer'
+    replacement['input_revision']='Inewer';replacement['input_sha256']='b'*64
+    edited=window.edited_draft();edited['stages'][0]['source']=replacement
+    window._replace_draft(edited)
+    opened=[];window.source_open=lambda reference:opened.append(reference)
+    assert window._attempt_source()==original
+    assert window.open_attempt_source()
+    wait(application,lambda:not window._busy)
+    assert opened==[original] and not client.stage_calls
+    window.stage_list.setCurrentRow(0);window.open_source()
+    assert opened[-1]==replacement
+    window._selected_attempt='Aother'
+    assert window.open_attempt_source() is False and opened==[original,replacement]
+    assert '현재 입력으로 대체하지 않습니다' in window.message.text()
+
+
+@pytest.mark.parametrize('difference',['document','revision','session','dirty'])
+def test_source_picker_rejects_different_read_instead_of_silently_replacing_choice(editor, application, monkeypatch,difference):
+    window,client,source=editor
+    original=window.edited_draft()
+    replacement=deepcopy(source)
+    if difference=='document':replacement['id']='Mother'
+    elif difference=='revision':replacement['saved_revision']='Rother'
+    elif difference=='session':replacement['session_id']='Sother'
+    else:replacement['dirty']=True
+    monkeypatch.setattr(QInputDialog,'getItem',lambda *a,**k:(a[3][0],True))
+    monkeypatch.setattr(client,'document_read',lambda _:deepcopy(replacement))
+    window.add_stage();wait(application,lambda:not window._busy)
+    assert window.edited_draft()==original and not window.local_dirty
+    assert '다시 읽고 선택' in window.message.text() and not client.stage_calls
+
+
+def test_late_source_picker_cannot_change_another_document_or_session(editor,application,monkeypatch):
+    window,client,source=editor
+    entered,release=threading.Event(),threading.Event()
+    def delayed_read(_):
+        entered.set();assert release.wait(4);return deepcopy(source)
+    monkeypatch.setattr(client,'document_read',delayed_read)
+    monkeypatch.setattr(QInputDialog,'getItem',lambda *a,**k:(a[3][0],True))
+    original=deepcopy(window.document['draft'])
+    window.add_stage();wait(application,entered.is_set)
+    other=client.owner.open(title='Another evaluation',draft=original)
+    other['session_id']='Snewsession'
+    window._show_document(other)
+    release.set();wait(application,lambda:not window._busy)
+    assert window.document['id']==other['id'] and window.document['session_id']=='Snewsession'
+    assert window.edited_draft()==original and not window.local_dirty and not client.stage_calls
+
+
+def test_late_save_ack_cannot_replace_another_session(editor,application,monkeypatch):
+    window,client,_=editor
+    entered,release=threading.Event(),threading.Event()
+    actual=client.document_command
+    def delayed_command(*args,**kwargs):
+        receipt=actual(*args,**kwargs);entered.set();assert release.wait(4);return receipt
+    monkeypatch.setattr(client,'document_command',delayed_command)
+    window.save_document();wait(application,entered.is_set)
+    other=client.owner.open(title='Another owner',draft=deepcopy(window.document['draft']))
+    other['session_id']='Sother'
+    window._show_document(other)
+    release.set();wait(application,lambda:not window._busy)
+    assert window.document['id']==other['id'] and window.document['session_id']=='Sother'
+    assert not client.stage_calls
+
+
+def test_invalid_saved_source_blocks_button_and_direct_run_dispatch(editor,application):
+    window,client,_=editor
+    changed=window.edited_draft();changed['stages'][0]['source']['input_sha256']='0'*64
+    window._replace_draft(changed)
+    assert not window.run_button.isEnabled() and window.run_once() is False
+    window.apply_inputs();wait(application,lambda:not window._busy)
+    window.inspect_inputs();wait(application,lambda:not window._busy)
+    assert window._inspection['diagnostics'] and not window.run_button.isEnabled()
+    window.run_once();wait(application,lambda:not window._busy)
+    assert not client.stage_calls and not client.manager.list()
+
+
+def test_stage_physical_labels_reuse_existing_names_and_keep_unknown_raw_inputs(editor,application):
+    window,_,_=editor
+    window._inspection['stages'][0]['inputs']=[
+        {'id':'young_modulus','label':'young modulus','unit':'Pa'},
+        {'id':'poisson_ratio','label':'poisson ratio','unit':'1'},
+        {'id':'custom_input','label':'custom input','unit':'K'}]
+    window.stage_list.setCurrentRow(0);window._stage_context()
+    assert '탄성계수 [Pa]' in window.stage_summary.text()
+    assert '포아송비 [1]' in window.stage_summary.text()
+    assert 'custom input [K]' in window.stage_summary.text()
+    assert 'young_modulus' in window.stage_summary.toolTip()
+    columns=[('name',''),('kind',''),('unit',''),('component',''),('location',''),('value',''),('state','')]
+    window._put_rows(window.channels,columns,[{'name':'displacement','kind':'field','unit':'m',
+        'component':'vector','location':'node','value':{'retained_array':{}},'state':'SUCCEEDED'},
+        {'name':'user_response','component':['custom_x','custom_y'],'location':'user_location'}],key='channels')
+    assert window.channels.item(0,0).text()=='변위장' and window.channels.item(0,0).data(Qt.ItemDataRole.UserRole)=='displacement'
+    assert window.channels.item(0,2).text()=='m' and window.channels.item(0,4).text()=='절점'
+    assert window.channels.item(1,0).text()=='user_response'
+    assert window.channels.item(1,3).data(Qt.ItemDataRole.UserRole)==['custom_x','custom_y']
+
+
+@pytest.mark.parametrize('target_state',['RUNNING','SUCCEEDED'])
+def test_actual_attempt_row_selection_clears_previous_response_during_run_or_read_failure(
+        editor,application,monkeypatch,target_state):
+    window,client,_=editor
+    document=deepcopy(window.document)
+    document['title']='단계 선택 검사 — 계산 없음'
+    document['runs']=[{'job_id':'Jselection','draft':deepcopy(document['draft']),
+                      'retained_state':'SUCCEEDED','is_current_input':True}]
+    window._show_document(document,prefer_job='Jselection')
+    rows=[{'iteration':0,'stage_id':'Sone','attempt_id':'Aprevious','state':'SUCCEEDED'},
+          {'iteration':0,'stage_id':'Stwo','attempt_id':'Aselected','state':target_state}]
+    window._progress={'stages':deepcopy(rows)}
+    window._populating=True
+    window._put_rows(window.attempts,[('iteration',''),('stage_id',''),('attempt_id',''),
+        ('state',''),('backend',''),('reused_from','')],rows)
+    window._populating=False
+    reads=[]
+    def read(document,job,attempt,selection=None):
+        reads.append(attempt)
+        if attempt=='Aselected':raise OSError('Selected B retained result is unavailable (controlled read failure)')
+        return {'execution_status':'SUCCEEDED','responses':{'old_pressure':{
+            'kind':'scalar','value':123.,'unit':'MPa','component':'scalar','location':'material_point'}},
+            'diagnostics':{'scope':'DISPLAY FIXTURE; no numerical evaluator'}}
+    monkeypatch.setattr(client,'evaluation_stage_result',read)
+    window.source_open=lambda *_:None;window.result_open=lambda *_:None
+    window.show();window.activateWindow();application.processEvents()
+    window.result_tabs.setCurrentWidget(window.channels)
+    window.attempts.selectRow(0)
+    wait(application,lambda:not window._busy and bool(window._result))
+    assert window.channels.rowCount()==1 and window.channels.item(0,2).text()=='MPa'
+    assert window.result_source_action.isEnabled() and window.result_button.isEnabled()
+    previous=window._result
+    window.attempts.selectRow(0);application.processEvents()
+    assert window._result==previous and window.channels.rowCount()==1
+    window.attempts.selectRow(1)
+    assert window._selected_attempt=='Aselected'
+    assert window._result is None and window.channels.rowCount()==0
+    assert not window.result_source_action.isEnabled() and not window.result_button.isEnabled()
+    if target_state=='RUNNING':
+        application.processEvents()
+        assert reads==['Aprevious'] and '실행 중' in window.result_context.text()
+    else:
+        wait(application,lambda:not window._busy and 'unavailable' in window.message.text())
+        assert reads==['Aprevious','Aselected']
+        assert window._result is None and window.channels.rowCount()==0
+        assert not window.result_source_action.isEnabled() and not window.result_button.isEnabled()
+        assert '보존 결과가 없습니다' in window.result_context.text()
+    assert not client.stage_calls and not client.manager.list()
+    capture=os.environ.get('CAELAB_EVALUATION_SELECTION_CAPTURE_DIR')
+    if capture:
+        from pathlib import Path
+        folder=Path(capture);folder.mkdir(parents=True,exist_ok=True)
+        for width,height in ((1440,900),(1100,780)):
+            window.resize(width,height);application.processEvents()
+            assert window.grab().save(str(folder/(target_state.lower()+'-'+str(width)+'.png')))

@@ -14,6 +14,36 @@ from .runner_window import readonly_table, table_row, text_value
 from .discussion_view import turn_text, author_label
 
 
+def pde_input_html(draft):
+    """Read the resolved saved input only; never consult its current owner."""
+    from .pde_window import display, setting_label
+    settings = draft.get('settings')
+    if not isinstance(settings, dict):
+        return None
+    sections = {'states': '상태', 'parameters': '계수', 'time': '시간', 'solver': '계산 설정',
+        'domain': '영역', 'space': '함수 공간', 'mesh': '메시', 'forms': '약형식',
+        'boundaries': '경계 조건', 'initial': '초기 조건', 'field': '장',
+        'reference': '독립 기준식', 'validation': '기준 검사', 'problem': '방정식'}
+    rows = []
+    def visit(value, path=(), context=()):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                group = context + (sections.get(key, str(key)),) if not path else context
+                visit(item, path + (key,), group)
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                name = item.get('label') or item.get('name') if isinstance(item, dict) else None
+                visit(item, path + (index,), context + (str(name or index + 1),))
+        else:
+            caption = ' / '.join(context + (setting_label(('settings',) + path),))
+            text = '미제공' if value is None else display(value)
+            rows.append('<tr><td>' + escape(caption) + '</td><td>' + escape(text) + '</td></tr>')
+    visit(settings)
+    return ('<p>선택한 저장본의 입력입니다. 현재 편집 중인 모델과 별도로 읽습니다.</p>'
+        '<table width="100%" cellpadding="5"><tr><th align="left">항목</th>'
+        '<th align="left">저장된 값</th></tr>' + ''.join(rows) + '</table>')
+
+
 class ReferenceContent(QWidget):
     response_requested = Signal(str)
     def __init__(self, parent=None):
@@ -133,6 +163,11 @@ class ReferenceContent(QWidget):
             document = payload['document']
             self.title.setText(document.get('title', label))
             draft = document.get('draft', {})
+            if document.get('kind') == 'pde' and isinstance(draft, dict):
+                html = pde_input_html(draft)
+                if html is not None:
+                    self.body.setHtml(html)
+                    return
             texts = []
             for key in ('question', 'purpose', 'description', 'notes'):
                 if isinstance(draft.get(key), str) and draft[key]:

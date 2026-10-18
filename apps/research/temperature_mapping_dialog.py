@@ -13,6 +13,10 @@ MODES = {'exact': '기록된 동일 시각 선택', 'linear': '두 snapshot 사�
          'steady_relabel': '동일 정상 상태 선언으로 시계 재대응'}
 
 
+def clock_origin_label(value):
+    return '정상 상태 기준' if value == 'steady_reference' else str(value)
+
+
 class TemperatureMappingDialog(QDialog):
     def __init__(self, row, stages, catalogs, parent=None):
         super().__init__(parent)
@@ -31,7 +35,7 @@ class TemperatureMappingDialog(QDialog):
                     continue
                 clock = catalog.get('clock') or {}
                 caption = (names[stage['id']] + ' / ' + name + ' / ' + str(clock.get('value', '?'))
-                           + ' ' + str(clock.get('unit', '?')) + ' / ' + str(clock.get('origin', '?')))
+                           + ' ' + str(clock.get('unit', '?')) + ' / ' + clock_origin_label(clock.get('origin', '?')))
                 self.candidates.append((caption, {'stage': stage['id'], 'output': name}))
         target = catalogs.get(row['to_stage'], {})
         target_port = target.get('ports', {}).get('inputs', {}).get(row['input'], {})
@@ -57,12 +61,15 @@ class TemperatureMappingDialog(QDialog):
         clock_layout.addWidget(self.instant, 1); clock_layout.addWidget(self.unit)
         form.addRow('수신 시각', clock_layout)
         self.origin = QLineEdit(initial['time']['receiver']['origin']); self.origin.setObjectName('temperatureReceiverOrigin')
+        self.origin.setToolTip(clock_origin_label(initial['time']['receiver']['origin'])
+                               + '\n원본과 대응하는 시계 원점의 식별값입니다. 저장 값은 그대로 유지합니다.')
         form.addRow('시계 원점', self.origin)
         original_clock = target.get('clock') or {}
         declared = QLabel('수신 원본 시각: ' + str(original_clock.get('value', '?')) + ' '
                           + str(original_clock.get('unit', '?')) + ' / '
-                          + str(original_clock.get('origin', '?'))
+                          + clock_origin_label(original_clock.get('origin', '?'))
                           + '\n수신 원본과 물리 시각·원점이 다르면 계산 전에 차단됩니다.')
+        declared.setToolTip(str(original_clock.get('origin', '?')))
         declared.setWordWrap(True); form.addRow(declared)
         self.quantity = QComboBox(); self.quantity.setObjectName('temperatureTargetQuantity')
         self.quantity.addItem('절대 온도 [K]', (ABSOLUTE, 'K'))

@@ -10,9 +10,10 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QHBox
     QTableWidget, QTableWidgetItem, QTabWidget, QToolBar, QVBoxLayout, QWidget, QComboBox,
     QHeaderView, QMenu, QPlainTextEdit, QStyledItemDelegate)
 
-from caelab.evaluation_definition import default_draft, diagnostics, document_reference, definition_hash
+from caelab.evaluation_definition import default_draft, diagnostics, document_reference, definition_hash, check_reference
 from caelab.storage import canonical_hash
 from .data_window import _Read, display, integer_or_raw, number_or_raw, TERMINAL
+from .shared_binding_dialog import LABELS as INPUT_LABELS
 
 ROLE = Qt.ItemDataRole.UserRole
 DISPLAY_ROLE = int(ROLE) + 1
@@ -64,6 +65,8 @@ class EvaluationWindow(QMainWindow):
     def __init__(self, client, *, document_id=None, auto_open=True, poll_interval=1500,
                  runner_open=None, result_open=None, plan_open=None, source_open=None):
         super().__init__()
+        from .appearance import apply_appearance
+        apply_appearance(QApplication.instance())
         self.client, self.document = client, None
         self.runner_open, self.result_open, self.plan_open, self.source_open = runner_open, result_open, plan_open, source_open
         self.local_dirty = self.conflict = self._busy = self._populating = self._accepting = False
@@ -255,6 +258,7 @@ class EvaluationWindow(QMainWindow):
         row.addWidget(self.result_button)
         row.addWidget(self.transfer_button)
         result_menu = QMenu(self)
+        self.result_source_action = result_menu.addAction('선택 결과의 원본 입력 열기', self.open_attempt_source)
         retry_action = result_menu.addAction('같은 입력의 성공 단계 재사용…', self.retry_button.click)
         self._button_actions.append((self.retry_button, retry_action))
         result_more = QPushButton('계산 작업')
@@ -341,8 +345,15 @@ class EvaluationWindow(QMainWindow):
                             str(value.get('count', '?')) + '개 값 (배열 요약)')
                 elif name == 'kind':
                     text = {'scalar':'단일 값', 'series':'이력', 'field':'장'}.get(value, text)
+                elif key == 'channels' and name == 'name':
+                    text = {'temperature':'온도장','displacement':'변위장','stress':'응력장',
+                            'max_displacement':'최대 변위','relative_residual':'상대 대수 잔차'}.get(value,text)
+                elif key == 'channels' and name == 'component' and isinstance(value,str):
+                    text = {'vector':'벡터','scalar':'스칼라','max_displacement':'최대 변위',
+                            'relative_residual':'상대 대수 잔차'}.get(value,text)
                 elif name == 'location':
-                    text = {'controlled_fixture':'계산 대역', 'material_point':'재료점'}.get(value, text)
+                    text = {'controlled_fixture':'계산 대역', 'material_point':'재료점',
+                            'node':'절점','cell':'요소','domain':'영역'}.get(value, text)
                 item = QTableWidgetItem(text); item.setData(ROLE, deepcopy(value))
                 item.setData(DISPLAY_ROLE, text)
                 item.setToolTip(display(value))
@@ -478,13 +489,22 @@ class EvaluationWindow(QMainWindow):
         self.runner_button.setEnabled(bool(self._selected_job) and bool(self.runner_open))
         self.refresh_button.setEnabled(exists and bool(self._selected_job) and not self._busy)
         self.retry_button.setEnabled(usable and bool(self._selected_job))
-        self.result_button.setEnabled(bool(self._selected_attempt) and bool(self.result_open))
+        self.result_button.setEnabled(bool(self._selected_attempt) and bool(self._result) and bool(self.result_open))
+        self.result_source_action.setEnabled(usable and bool(self._result) and bool(self.source_open) and bool(self._attempt_source()))
         self.transfer_button.setEnabled(exists and bool(self._selected_job) and not self._busy)
         self.reload_button.setVisible(self.conflict); self.copy_button.setVisible(self.conflict)
         for button, action in self._button_actions:
             action.setEnabled(button.isEnabled())
         self.result_context.setText('선택 계산의 보존 결과입니다. 편집 중인 내용은 반영되지 않았습니다.'
                                     if self.local_dirty else '선택 계산의 원 입력과 결과를 표시합니다.')
+        if self._selected_attempt and not self._result:
+            attempt = next((row for row in self._progress.get('stages', [])
+                            if row.get('attempt_id') == self._selected_attempt), {})
+            state = attempt.get('state')
+            name = self._stage_name(attempt.get('stage_id'), frozen=True)
+            self.result_context.setText('선택 단계: ' + name + ' / ' + _STATUS[state] + ' / 아직 보존 응답이 없습니다.'
+                if state in ('RUNNING', 'QUEUED') else name + ' / 보존 결과를 읽는 중…' if self._busy else
+                name + ' / 보존 결과가 없습니다. 단계 실행을 다시 선택해 읽으세요.')
         self._stage_context()
 
     def _stage_context(self):
@@ -496,10 +516,12 @@ class EvaluationWindow(QMainWindow):
         stage = stages[index]
         catalog = self._catalog(stage['id']) or {}
         entries = catalog.get('inputs', [])
-        inputs = ', '.join(str(e.get('label') or e['id']) + ' [' + str(e.get('unit', '?')) + ']' for e in entries[:3])
+        inputs = ', '.join(str(INPUT_LABELS.get(e['id'], e.get('label') or e['id'])) + ' [' + str(e.get('unit', '?')) + ']' for e in entries[:3])
         outputs = catalog.get('ports', {}).get('outputs', {})
+        output_labels = {'temperature':'온도장','displacement':'변위장','stress':'응력장'}
         self.stage_summary.setText(stage['name'] + '\n입력: ' + (inputs or '등록된 입력 확인 필요') +
-                                   '\n출력: ' + (', '.join(name + ' [' + str(e.get('unit', '?')) + ']' for name, e in list(outputs.items())[:3]) or '응답에서 직접 지정'))
+                                   '\n출력: ' + (', '.join(str(e.get('label') or output_labels.get(name,name)) + ' [' + str(e.get('unit', '?')) + ']' for name, e in list(outputs.items())[:3]) or '응답에서 직접 지정'))
+        self.stage_summary.setToolTip(display({'inputs':entries,'outputs':outputs}))
 
     def _call(self, function, accepted, *, relevant=None, background=False):
         if self._busy:
@@ -616,7 +638,22 @@ class EvaluationWindow(QMainWindow):
             choice, ok = QInputDialog.getItem(self, '저장된 원본 선택', '원본 입력', labels, editable=False)
             if ok:
                 source = sources[labels.index(choice)]
-                self._call(lambda: self.client.document_read(source['id']), lambda document: selected(document_reference(document)), relevant=relevant)
+                try:
+                    expected = check_reference(document_reference(source))
+                except (ValueError, KeyError, TypeError):
+                    self.message.setText('선택한 저장 원본을 확인할 수 없습니다. 원본을 다시 읽고 선택하세요.')
+                    return
+                def loaded(document):
+                    try:
+                        actual = check_reference(document_reference(document))
+                    except (ValueError, KeyError, TypeError):
+                        self.message.setText('선택한 원본에 저장되지 않은 변경이나 참조 오류가 있습니다. 저장 후 다시 읽고 선택하세요.')
+                        return
+                    if actual != expected or document.get('session_id') != identity[1]:
+                        self.message.setText('선택 중 원본이나 서비스가 바뀌었습니다. 원본을 다시 읽고 선택하세요.')
+                        return
+                    selected(actual)
+                self._call(lambda: self.client.document_read(source['id']), loaded, relevant=relevant)
         return self._call(self.client.documents, listed, relevant=relevant)
 
     def add_stage(self):
@@ -742,7 +779,7 @@ class EvaluationWindow(QMainWindow):
         if not stage_id: return
         inputs = self._catalog(stage_id).get('inputs', [])
         if not inputs: self.message.setText('선택 단계에 등록된 단일 값 입력이 없습니다.'); return
-        labels = [str(i + 1) + '. ' + row.get('label', row['id']) + ' [' + row['unit'] + ']' for i, row in enumerate(inputs)]
+        labels = [str(i + 1) + '. ' + INPUT_LABELS.get(row['id'],row.get('label', row['id'])) + ' [' + row['unit'] + ']' for i, row in enumerate(inputs)]
         selected, ok = QInputDialog.getItem(self, '변경할 입력 선택', '입력', labels, editable=False)
         if not ok: return
         descriptor = inputs[labels.index(selected)]
@@ -831,10 +868,18 @@ class EvaluationWindow(QMainWindow):
         indexes = self.attempts.selectedIndexes()
         if not indexes: return
         row = indexes[0].row()
-        self._selected_attempt = self.attempts.item(row, 2).data(ROLE)
+        attempt = self.attempts.item(row, 2).data(ROLE)
+        changed = attempt != self._selected_attempt
+        self._selected_attempt = attempt
         state = self.attempts.item(row, 3).data(ROLE)
+        if changed:
+            self._result = None
+            self.channels.setRowCount(0)
+            self.message.setText('선택 단계: ' + _STATUS.get(state, '상태 확인 필요') if state in ('RUNNING', 'QUEUED')
+                                 else '선택 단계의 보존 결과 읽기 대기 중…')
         self._update_actions()
-        if state not in ('RUNNING', 'QUEUED'): QTimer.singleShot(0, self.read_stage_result)
+        if state not in ('RUNNING', 'QUEUED') and (changed or not self._result):
+            QTimer.singleShot(0, self.read_stage_result)
 
     def read_stage_result(self):
         if not self.document or not self._selected_attempt: return
@@ -847,7 +892,7 @@ class EvaluationWindow(QMainWindow):
                 if isinstance(value, dict) and 'data_ref' in value: value = {'retained_array': value['data_ref']}
                 elif isinstance(value, list): value = {'count': len(value), 'first_values': value[:6]}
                 rows.append({'name': name, **{key: response.get(key, '') for key in ('kind', 'unit', 'component', 'location')}, 'value': value, 'state': result.get('execution_status')})
-            self._put_rows(self.channels, [('name', ''), ('kind', ''), ('unit', ''), ('component', ''), ('location', ''), ('value', ''), ('state', '')], rows)
+            self._put_rows(self.channels, [('name', ''), ('kind', ''), ('unit', ''), ('component', ''), ('location', ''), ('value', ''), ('state', '')], rows, key='channels')
         return self._call(lambda: self.client.evaluation_stage_result(identity[0], identity[2], identity[3], selection={'metadata_only': True}), accepted,
             relevant=lambda: self.document and (self.document['id'], self.document['session_id'], self._selected_job, self._selected_attempt) == identity)
 
@@ -900,6 +945,29 @@ class EvaluationWindow(QMainWindow):
     def open_source(self):
         index = self.stage_list.currentRow()
         if self.source_open and index >= 0: self.source_open(deepcopy(self.edited_draft()['stages'][index]['source']))
+
+    def _attempt_source(self):
+        """Read the selected attempt's submitted source, never the current draft."""
+        run = next((r for r in (self.document or {}).get('runs', [])
+                    if r['job_id'] == self._selected_job), None)
+        attempt = next((a for a in self._progress.get('stages', [])
+                        if a.get('attempt_id') == self._selected_attempt), None)
+        if not run or not attempt:
+            return None
+        stage = next((s for s in run.get('draft', {}).get('stages', [])
+                      if s.get('id') == attempt.get('stage_id')), None)
+        return deepcopy(stage['source']) if stage else None
+
+    def open_attempt_source(self):
+        reference = self._attempt_source()
+        if not self.source_open or not reference:
+            self.message.setText('원본을 열 단계 실행을 선택하세요. 보존한 원본이 없으면 현재 입력으로 대체하지 않습니다.')
+            return False
+        identity = (self.document['id'], self.document['session_id'], self._selected_job, self._selected_attempt)
+        return self._call(lambda: self.source_open(reference),
+            lambda _: self.message.setText('선택 결과를 계산한 저장 원본 입력을 열었습니다.'),
+            relevant=lambda: self.document and
+                (self.document['id'], self.document['session_id'], self._selected_job, self._selected_attempt) == identity)
 
     def reload_remote(self):
         if self.document and QMessageBox.question(self, '현재 정의 다시 읽기', '적용하지 않은 편집을 버리고 현재 정의를 다시 읽을까요?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel) == QMessageBox.StandardButton.Yes:

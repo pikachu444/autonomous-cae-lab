@@ -57,6 +57,33 @@ class Reader:
         return deepcopy(reply)
 
 
+@pytest.mark.parametrize('backend,expected', [
+    ('pde.scipy.ode', ['-rate*(temperature-ambient)', '0.5', '1/s', 'K']),
+    ('pde.scikit_fem.dimensioned', ['k*inner(grad(u),grad(v))', 'left_value', 'W/(m*K)', '경계 조건'])])
+def test_saved_pde_input_is_readable_without_loading_current_owner(application, backend, expected):
+    from caelab.pde_document import default_draft as pde_draft
+    draft = pde_draft(backend)
+    # Authored expression text is escaped for display, never evaluated as HTML.
+    draft['settings']['reference_note'] = '<original input>'
+    payload = {'status': 'AVAILABLE', 'kind': 'document',
+               'document': {'id': 'Qsaved', 'kind': 'pde', 'title': '저장한 PDE 입력', 'draft': draft}}
+    original = deepcopy(payload)
+    reference = {'kind': 'document', 'document_kind': 'pde', 'document_id': 'Qsaved',
+                 'saved_revision': 'Rsaved', 'input_revision': 'Isaved', 'input_sha256': canonical_hash(draft)}
+    reader = Reader([payload]); window = ReferenceWindow(reader, reference)
+    try:
+        wait(application, lambda: not window._busy)
+        text = window.content.body.toPlainText()
+        for value in expected:
+            assert value in text
+        assert '<original input>' in text and '현재 편집 중인 모델과 별도로' in text
+        assert '원래 프로그램에서 저장된 모델을 열어' not in text
+        assert reader.calls == [reference] and payload == original
+        assert window.content.result_views.isHidden() and window.content.channel.isHidden()
+    finally:
+        window.close()
+
+
 def test_retry_failed_initial_and_response_preserves_exact_request(application):
     selected = deepcopy(PAYLOAD)
     selected['result']['responses'] = {'stress_yy': {'kind': 'scalar', 'value': .234567891234,
