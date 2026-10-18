@@ -188,6 +188,9 @@ def test_material_handover_saves_and_launches_only_exact_current_source(workspac
     window.result_channel.addItem('response'); window.result_channel.setCurrentText('response')
     wait(app, lambda: not window._busy)
     material = client.document_open(kind='material', title='시험 재료')
+    listed = client.documents
+    client.documents = lambda: {'documents': [{'kind': 'material', 'id': 'Munsupported', 'title': 'Native unsupported',
+        'draft': {'backend': 'material.law_native'}}, *listed()['documents']]}
     monkeypatch.setattr('apps.research.data_window.QInputDialog.getItem', lambda *_args, **_kwargs: ('1. 시험 재료', True))
     launched = []
     monkeypatch.setattr('apps.research.desktop.launch_material_observation',

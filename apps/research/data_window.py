@@ -2003,7 +2003,8 @@ class DataWindow(QMainWindow):
                     self.message.setText('보존 결과의 신원이 선택한 입력과 다릅니다. 원 결과를 다시 선택하세요.')
                     return
                 def choose(payload):
-                    documents = [document for document in payload['documents'] if document.get('kind') == 'material']
+                    documents = [document for document in payload['documents'] if document.get('kind') == 'material'
+                                 and document.get('draft', {}).get('backend') == 'material.felupe']
                     labels = ['새 재료…'] + [f"{index + 1}. {document['title']}" for index, document in enumerate(documents)]
                     label, accepted = QInputDialog.getItem(self, '재료에서 사용', '관측을 읽을 재료', labels, editable=False)
                     if not accepted or token != self._source_token():

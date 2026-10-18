@@ -49,17 +49,24 @@ Ctrl+Z/Redo와 편집 메뉴는 현재 창의 로컬 편집만 바꾼다. 적용
 것은 선택한 문서·실행·응답·입력 revision/hash의 참조다. Material은 보존 결과를 다시
 검증하고, 사용자가 선택한 Numerical 계획에서 시험 조건을 정해 관측을 명시 등록한다.
 창 열기 요청만으로 시험·계획 생성, 피팅 실행 또는 후보 채택이 완료되지 않는다.
+현재 이 시험 등록 경로는 FELUPE 재료와 연결한 계획을 지원한다.
 
 설정을 바꿨다면 다시 적용하고 자료 준비를 실행해야 새 결과를 전달할 수 있다. 이전
 가져오기와 실패한 결과는 보존되며 현재 설정의 결과로 바꿔 표시하지 않는다.
 
 ## 확인 범위
 
+![원자료 표와 곡선의 원행 선택](images/desktop-recovery/data.png)
+
+![좁은 Data 창과 선택한 자료의 가져오기 속성](images/desktop-recovery/data-narrow.png)
+
 실제 loopback HTTP와 Qt 검사에서 전체 표 읽기, 정렬·중복 원행 선택, 한 번의 적용,
 로컬 Undo, 명시 import, 응답 유실, 보기 저장 실패, 외부 입력 충돌, 오프라인 캐시와
 Material 전달 요청을 확인한다. 공개 `examples/material-tests/axial.csv`의 Windows 창을
 1440×940, 1024×760으로 열어 한글·선택·품질·제외와 속성 창을 렌더하고 닫았다.
 물리 OS 입력 전체 인수와 공학적 적합성 승인을 뜻하지 않는다.
+실제 별도 Material 프로세스에서도 같은 관측 참조와 저장 결과 hash를 확인해 시험 조건
+창에 표시했다. 이 경계 검사는 최종 등록을 취소해 시험과 계산을 추가하지 않았다.
 
 LabPlot 고정 후보의 무료 Windows 빌드 확인은 [별도 기록](../native/data_labplot/README.md)에
 남긴다. 이 PySide6 작업면 구현을 LabPlot 채택 완료로 표시하지 않는다.
