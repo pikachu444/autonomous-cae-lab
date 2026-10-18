@@ -738,7 +738,9 @@ class RequestPlanWindow(NumericalWindow):
         objective_definition=result.get('objective_definition',{})
         objective_label=('잔차 제곱합 [1]' if result.get('kind')=='fit' else
             '목적값 ['+str(objective_definition.get('unit','단위 상세'))+']')
-        headers += [name+' ['+unit+']' for name,unit in channels.items()]+[objective_label,'조건','실패 이유']
+        headers += [name+' ['+unit+']' for name,unit in channels.items()]+[objective_label]
+        if result.get('kind')=='fit':headers+=['실패 잔차 벌점 [1]']
+        headers+=['조건','실패 이유']
         self.candidates.setColumnCount(len(headers));self.candidates.setHorizontalHeaderLabels(headers)
         self.candidates.setRowCount(len(rows))
         for i,row in enumerate(rows):
@@ -747,7 +749,9 @@ class RequestPlanWindow(NumericalWindow):
             values=[row.get('candidate_id'),STATE.get(row.get('execution_status'),row.get('execution_status','미평가'))]
             values += [row.get('values',{}).get(name) for name in names]
             values += [row.get('responses',{}).get(name,{}).get('value') for name in channels]
-            values += [objective,'범위 밖' if row.get('out_of_range') else '충족' if row.get('feasible') is True else '위반' if row.get('feasible') is False else '미판정',row.get('failure_reason','')]
+            values += [objective]
+            if result.get('kind')=='fit':values+=[row.get('penalty_applied')]
+            values += ['범위 밖' if row.get('out_of_range') else '충족' if row.get('feasible') is True else '위반' if row.get('feasible') is False else '미판정',row.get('failure_reason','')]
             for j,value in enumerate(values):self._set_cell(self.candidates,i,j,value,False)
             item=self.candidates.item(i,0)
             item.setData(Qt.ItemDataRole.UserRole,row.get('candidate_id'))
@@ -2335,13 +2339,25 @@ class RequestPlanWindow(NumericalWindow):
                 def recorded_values(values):
                     return (isinstance(values, list) and len(values) == len(coordinates)
                             and all(value is None or type(value) in (int, float) and math.isfinite(value) for value in values))
+                fit_mask=curve.get('mask') if result.get('kind')=='fit' else None
+                has_fit_mask=(isinstance(fit_mask,list) and len(fit_mask)==len(coordinates)
+                    and all(type(value) is bool for value in fit_mask))
                 if finite_axis and recorded_values(observed):
-                    ax.plot(coordinates, [math.nan if value is None else value for value in observed], 'o', label='관측', markersize=3)
+                    ax.plot(coordinates, [math.nan if value is None or has_fit_mask and not fit_mask[i] else value
+                        for i,value in enumerate(observed)], 'o', label='포함한 관측' if has_fit_mask else '관측', markersize=3)
                 if finite_axis and recorded_values(predicted):
                     ax.plot(coordinates, [math.nan if value is None else value for value in predicted], label='실제 계산')
+                if finite_axis and recorded_values(observed) and has_fit_mask and not all(fit_mask):
+                    ax.plot(coordinates,[value if not fit_mask[i] and value is not None else math.nan
+                        for i,value in enumerate(observed)],'x',color='#667588',label='제외한 관측 원값')
                 ax.set_xlabel(str(source_axis.get('name', 'undeclared axis')) + ' [' + str(source_axis.get('unit', 'undeclared')) + ']')
                 ax.set_ylabel(str(observation.get('component', 'response')) + ' [' + str(observation.get('unit', 'undeclared')) + ']')
-                ax.set_title(str(curve.get('experiment_id', '시험')) + '  RMSE ' + str(curve.get('rmse', '미계산')), fontsize=9)
+                title=str(curve.get('experiment_id', '시험'))+'  RMSE '+str(curve.get('rmse', '미계산'))
+                if result.get('kind')=='fit':
+                    title+=('\n포함 행 '+(str(sum(fit_mask))+'/'+str(len(fit_mask)) if has_fit_mask else '미제공')+
+                        ', 가중치 '+str(curve.get('weight','미제공'))+', 척도 '+str(curve.get('scale','미제공'))+' '+str(observation.get('unit',''))+
+                        (' / 별도 확인: 목적함수 제외' if curve.get('role')=='holdout' else ''))
+                ax.set_title(title, fontsize=9)
                 if ax.lines:
                     ax.legend(fontsize=7)
         elif result.get('kind') == 'surrogate':

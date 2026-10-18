@@ -210,6 +210,13 @@ class NumericalCandidateDetailWindow(QMainWindow):
         self.status = QLabel('')
         self.status.setWordWrap(True)
         layout.addWidget(self.identity);layout.addWidget(self.status)
+        self.residual_summary=QLabel('')
+        self.residual_summary.setWordWrap(True)
+        self.residual_summary.setToolTip('원 피팅의 고정 포함 행과 가중치를 사용합니다. '
+            '정규화 잔차 = (예측−관측) × sqrt(가중치/포함 행수) / 척도. '
+            '표본별 가중치가 있으면 sqrt(표본 가중치)를 곱합니다. '
+            '별도 확인 시험은 목적함수에 포함하지 않습니다.')
+        layout.addWidget(self.residual_summary)
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.trials = QTreeWidget()
         self.trials.setHeaderLabels(['시험','역할','상태','보존'])
@@ -276,6 +283,7 @@ class NumericalCandidateDetailWindow(QMainWindow):
         self.view = self.comparison_view = None
         self.model.replace([])
         self.figure.clear();self.canvas.draw_idle();self.raw.clear()
+        self.residual_summary.clear()
         self.trials.clear();self.footer.clear()
         self.identity.setText('선택한 후보 상세를 읽는 중입니다.');self.identity.setToolTip('')
         self.status.clear();self.status.setToolTip('')
@@ -335,6 +343,7 @@ class NumericalCandidateDetailWindow(QMainWindow):
             self._clear_evidence()
             self.view = self.comparison_view = None
             self.model.replace([]);self.figure.clear();self.canvas.draw_idle();self.raw.clear()
+            self.residual_summary.clear()
             self.trials.clear();self.footer.clear()
             self.identity.setText('선택한 결과를 표시할 수 없습니다.');self.identity.setToolTip('')
             self.status.setText('결과를 읽지 못했습니다. 다시 읽기를 누르세요.')
@@ -403,6 +412,7 @@ class NumericalCandidateDetailWindow(QMainWindow):
             note = '연결이 변경되었습니다. 편집할 계획에서 이 상세 창을 다시 여세요.'
         self.status.setText('원 후보: '+STATES.get(candidate.get('execution_status'),'미확인')+' / 상세: '+
             (STATES.get(view.get('attempt_state'),'미확인') if view.get('attempt_state') else '원계산 보존')+
+            (' / 실패 잔차 벌점 '+display(candidate['penalty_applied'])+' [1] (목적값 없음)' if 'penalty_applied' in candidate else '')+
             (' / 원계산 실패: 실행 기록을 확인하세요.' if failure else '')+(' / '+note if note else ''))
         self.status.setToolTip(json.dumps({'candidate':candidate,'attempt_state':view.get('attempt_state'),'blocked':blocked},ensure_ascii=False,default=str))
         self.save_button.setText('계획 저장 *' if view['dirty'] else '계획 저장')
@@ -472,11 +482,21 @@ class NumericalCandidateDetailWindow(QMainWindow):
             comparison = (compare_candidate_details(self.view,self.comparison_view,identifier)
                           if self.comparison_view else None)
             self.model.replace(rows,comparison)
+            included=[row for row in rows if row['included']]
+            residuals=[row.get('weighted_residual') for row in included]
+            available=bool(included) and all(type(value) in (int,float) and math.isfinite(value) for value in residuals)
+            square_sum=sum(value*value for value in residuals) if available else None
+            trial=rows[0] if rows else {}
+            self.residual_summary.setText('포함 행 '+str(len(included))+'/'+str(len(rows))+
+                ', 가중치 '+display(trial.get('weight'))+', 척도 '+display(trial.get('scale'))+' '+str(trial.get('unit',''))+
+                '. '+('별도 확인 시험은 목적함수에서 제외합니다. ' if trial.get('role')=='holdout' else '')+
+                ('가중·정규화 잔차 제곱합 '+display(square_sum)+' [1].'
+                 if square_sum is not None and math.isfinite(square_sum) else '잔차는 미제공 상태입니다.'))
             for column,(key,_) in enumerate(self.model.columns):
                 if key=='sample_id':self.table.setColumnHidden(column,not any(row.get('sample_id') is not None for row in rows))
             self._plot();self._show_raw();self._buttons()
         except (ValueError,KeyError,TypeError,IndexError) as error:
-            self.model.replace([]);self.figure.clear();self.canvas.draw_idle();self.raw.clear()
+            self.model.replace([]);self.figure.clear();self.canvas.draw_idle();self.raw.clear();self.residual_summary.clear()
             self.status.setText('원입력과 표·곡선의 연결이 다릅니다. 원 실행을 다시 확인하세요.')
             self.status.setToolTip(str(error))
 
@@ -493,16 +513,19 @@ class NumericalCandidateDetailWindow(QMainWindow):
         mode=self.curve_mode.currentIndex()
         experiment=next(e for e in self.view['fit_input']['inputs']['experiments'] if e['id']==self._trial_id())
         segments=experiment['observations'].get('segments') or [{'rows':[0,len(rows)]}]
-        def plot_segments(data, style, label):
+        def plot_segments(data, style, label, **kwargs):
             for i,segment in enumerate(segments):
                 first,last=segment['rows']
-                line,=axis.plot(x[first:last],data[first:last],style,label=label if i==0 else None,picker=5)
+                line,=axis.plot(x[first:last],data[first:last],style,label=label if i==0 else None,picker=5,**kwargs)
                 line._detail_rows=list(range(first,last))
         if mode==0:
-            plot_segments(values('observation'),'o','관측 원값')
+            observed=values('observation')
+            plot_segments([value if row['included'] else float('nan') for value,row in zip(observed,rows)],'o','포함한 관측 원값')
             plot_segments(values('prediction'),'.-',candidate+' 예측')
             if self.comparison_view:
                 plot_segments(values('comparison_prediction'),'x--',self.compare_candidates.currentText().split(':')[0]+' 비교 예측')
+            if any(not row['included'] for row in rows):
+                plot_segments([value if not row['included'] else float('nan') for value,row in zip(observed,rows)],'x','제외한 관측 원값',color='#667588')
             axis.set_ylabel(rows[0]['unit'])
         else:
             key='raw_residual' if mode==1 else 'weighted_residual'

@@ -403,8 +403,8 @@ class NumericalWindow(QMainWindow):
         run_layout.addLayout(actions); self._build_adoption_receipt_ui(run_layout)
         self.result_splitter.addWidget(run_panel)
         self.tabs=QTabWidget()
-        self.candidates=QTableWidget(0,5)
-        self.candidates.setHorizontalHeaderLabels(['후보','상태','계수','목적함수','실패 이유'])
+        self.candidates=QTableWidget(0,6)
+        self.candidates.setHorizontalHeaderLabels(['후보','상태','계수','목적함수','실패 잔차 벌점 [1]','실패 이유'])
         self.candidates.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.candidates.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.candidates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -1574,9 +1574,14 @@ class NumericalWindow(QMainWindow):
         selected = self.selected_candidate() if self._drawn_result_job == job else None
         self._drawn_result_job = job
         self.candidates.clearSelection()
+        self.candidates.setColumnHidden(4,result.get('kind')!='fit')
+        self.candidates.horizontalHeaderItem(3).setText('잔차 제곱합 [1]' if result.get('kind')=='fit' else '목적함수')
         self.candidates.setRowCount(len(candidates))
         for row, candidate in enumerate(candidates):
-            values = [candidate['candidate_id'], candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('failure_reason')]
+            objective=candidate.get('objective')
+            if result.get('kind')=='fit' and (candidate.get('execution_status')!='SUCCEEDED' or 'penalty_applied' in candidate):
+                objective=None
+            values = [candidate['candidate_id'], candidate_state(candidate), candidate.get('values'), objective, candidate.get('penalty_applied'), candidate.get('failure_reason')]
             for col, value in enumerate(values):
                 self._set_cell(self.candidates, row, col, value, False)
             self.candidates.item(row,0).setText('후보 '+str(row+1))
@@ -1653,6 +1658,10 @@ class NumericalWindow(QMainWindow):
         compact=lambda value: format(value,'.6g') if type(value) in (int,float) and math.isfinite(value) else str(value)
         self.curve_summary.setText(('최종 계수: ' if result.get('execution_status')=='SUCCEEDED' else '보존한 계수: ')+', '.join(str(k)+'='+compact(v) for k,v in result.get('parameters',{}).items())+
             '    RMSE '+compact(curve.get('rmse','없음'))+' '+unit+
+            '    포함 행 '+(str(sum(value is True for value in curve['mask']))+'/'+str(len(curve['mask']))
+                if isinstance(curve.get('mask'),list) else '미제공')+
+            ', 가중치 '+compact(curve.get('weight','미제공'))+', 척도 '+compact(curve.get('scale','미제공'))+' '+unit+
+            ('    별도 확인 시험은 목적함수에서 제외합니다.' if curve.get('role')=='holdout' else '')+
             ('    '+str(curve.get('failure_reason','')) if status!='SUCCEEDED' else ''))
         for ax in (top,bottom):ax.grid(True,alpha=.2)
 

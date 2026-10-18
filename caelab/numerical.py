@@ -706,6 +706,30 @@ def _experiment(experiment):
     return result
 
 
+def _curve_segments(response, count):
+    """Retained half-open row ranges cannot silently become one continuous curve."""
+    gaps = bool(response.get('has_calculation_gaps'))
+    covered = np.ones(count, dtype=bool)
+    if 'segments' not in response:
+        return gaps, covered
+    segments = response['segments']
+    if not isinstance(segments, (list, tuple)):
+        raise ValueError('Curve segments must declare ordered, disjoint row ranges')
+    covered[:] = False
+    previous = 0
+    for segment in segments:
+        bounds = segment.get('rows') if isinstance(segment, dict) else None
+        if (not isinstance(bounds, (list, tuple, np.ndarray)) or len(bounds) != 2
+                or any(not isinstance(v, (int, np.integer)) or isinstance(v, (bool, np.bool_)) for v in bounds)):
+            raise ValueError('Curve segment rows require two integer bounds')
+        low, high = bounds
+        if not previous <= low < high <= count:
+            raise ValueError('Curve segment rows are unordered, overlapping or outside the original values')
+        covered[low:high] = True
+        previous = high
+    return gaps or len(segments) > 1 or not covered.all(), covered
+
+
 def _aligned(evaluation, experiment):
     if evaluation.get('execution_status') != 'SUCCEEDED':
         raise EvaluationFailed(str(_reason(evaluation)))
@@ -720,6 +744,8 @@ def _aligned(evaluation, experiment):
         if not comparison['comparable']:
             raise EvaluationFailed(comparison['reason'])
         return np.array([pred.get('value') if pred.get('value') is not None else np.nan]), np.array([comparison['residual']])
+    if 'valid' in pred and pred['valid'] is not True:
+        raise EvaluationFailed('Prediction validity is not explicitly true')
     for key in ('kind', 'unit', 'component', 'location', 'reduction'):
         if pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
@@ -734,6 +760,9 @@ def _aligned(evaluation, experiment):
         if values.size != 1:
             raise ValueError("Scalar response must have exactly one value")
         aligned = values.reshape(1)
+        required_prediction=np.array([0])
+        support_shape=aligned.shape
+        segment_support=np.ones(support_shape,dtype=bool)
     else:
         axes = pred.get('axes', [])
         if len(axes) != 1 or any(axes[0].get(key) != obs['axes'][0][key] for key in ('name', 'unit')):
@@ -748,13 +777,27 @@ def _aligned(evaluation, experiment):
         if used[0] < axis[0] or used[-1] > axis[-1]:
             raise ValueError("Observation axis lies outside prediction support; extrapolation is forbidden")
         aligned = np.full(target.shape, np.nan)
-        if obs.get('has_calculation_gaps') or pred.get('has_calculation_gaps'):
+        observation_gaps,_=_curve_segments(obs,len(target))
+        prediction_gaps,segment_support=_curve_segments(pred,len(values))
+        if observation_gaps or prediction_gaps:
             positions=np.searchsorted(axis,used)
             if np.any(positions>=len(axis)) or not np.array_equal(axis[positions],used):
-                raise ValueError('Calculation gaps require exact prediction samples; interpolation across a gap is unsupported')
+                raise ValueError('Calculation gaps require exact matching prediction samples; interpolation across a gap is unsupported')
             aligned[experiment['_mask']]=values[positions]
+            required_prediction=positions
         else:
+            right=np.searchsorted(axis,used)
+            exact=axis[right]==used
+            left=np.where(exact,right,right-1)
+            required_prediction=np.concatenate((left,right))
             aligned[experiment['_mask']] = np.interp(used, axis, values)
+        support_shape=values.shape
+    prediction_mask=np.asarray(pred.get('mask',np.ones(support_shape,dtype=bool)))
+    if prediction_mask.dtype.kind!='b' or prediction_mask.shape!=support_shape:
+        raise EvaluationFailed('Prediction mask must contain one boolean per original value')
+    support=prediction_mask & segment_support & np.isfinite(values.reshape(support_shape))
+    if not np.all(support[required_prediction]):
+        raise EvaluationFailed('Invalid prediction support at required observations or interpolation endpoints')
     used_values = aligned[experiment['_mask']]
     if not np.all(np.isfinite(used_values)):
         raise EvaluationFailed("Predictions are nonfinite at retained observations")

@@ -68,7 +68,12 @@ def candidate_evidence_blocks(content):
         text = (trial_label + ' / ' + roles.get(trial['role'], '역할 미확인') + ' / ' +
                 _state(trial['execution_status']) + ' / ' + _state(trial['retention']))
         if trial['role'] == 'holdout':
-            text += '\n추가 확인 결과는 원 피팅 당시의 별도 확인 기록과 구분하여 보존했습니다.'
+            text += '\n별도 확인 시험은 목적함수에서 제외합니다. 추가 확인 결과는 원 피팅 당시의 별도 확인 기록과 구분하여 보존했습니다.'
+        if rows:
+            number=lambda value: format(value,'.8g') if type(value) in (int,float) else '미제공'
+            text += ('\n포함 행 '+str(sum(r['included'] is True for r in rows))+'/'+str(len(rows))+
+                ', 가중치 '+number(rows[0].get('weight'))+', 척도 '+number(rows[0].get('scale'))+
+                ' '+str(rows[0].get('unit',''))+'.')
         yield ('paragraph', text)
         raw = trial.get('raw_evaluation') or {}
         if trial.get('execution_status') != 'SUCCEEDED':
