@@ -4,7 +4,7 @@ import math
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QComboBox, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget, QCheckBox)
+    QTableWidgetItem, QVBoxLayout, QWidget, QCheckBox, QScrollArea)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from shiboken6 import isValid
@@ -127,7 +127,11 @@ class ExperimentDialog(QDialog):
         self.explicit = deepcopy(settings)
         root=QVBoxLayout(self)
         split=QSplitter(); root.addWidget(split,1)
-        left=QWidget(); self._inputs=left; form=QFormLayout(left); split.addWidget(left)
+        left=QWidget(); self._inputs=left; form=QFormLayout(left)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(left);scroll.setMinimumWidth(290);split.addWidget(scroll)
+        self.measure_context=QLabel();self.measure_context.setWordWrap(True)
+        self.measure_context.setTextFormat(Qt.TextFormat.PlainText);form.addRow(self.measure_context)
         responses=result.get('responses',{})
         self.observed=combo([(name,name) for name,row in responses.items()
             if row.get('measure') in ('infinitesimal_Cauchy','first_Piola','finite_Cauchy')])
@@ -180,7 +184,42 @@ class ExperimentDialog(QDialog):
             self.lateral_33.setText(str(self.recipe.get('lateral_33','')))
         for widget in (self.observed,self.protocol,self.driver,self.finite_lateral):
             widget.currentIndexChanged.connect(self._preview)
+        self.finite_comparison.toggled.connect(self._update_context)
+        self.model_response.currentIndexChanged.connect(self._update_context)
+        for field in (self.observed,self.protocol,self.driver,self.finite_lateral):
+            field.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            field.setMinimumContentsLength(10);field.setToolTip(field.currentText());field.currentTextChanged.connect(field.setToolTip)
         self._preview()
+
+    def _update_context(self,*_):
+        from caelab.material_law_validation import measure
+        from caelab.data_processing_lineage import aligned_driver_indexes
+        from caelab.finite_measure_prediction import comparison_extension,observation_measure
+        labels={'first_Piola':'공칭 응력 P','finite_Cauchy':'유한변형 진응력 σ','infinitesimal_Cauchy':'미소변형 Cauchy',
+                'stretch':'신장비 λ','engineering_strain':'공학 변형률 e','log_strain':'로그 변형률 ln λ'}
+        native=measure(self.settings) if self.settings.get('model') else '미지정'
+        model={'neo_hooke':'Neo-Hooke','linear_elastic':'선형 탄성'}.get(self.settings.get('model'),self.settings.get('model','미지정'))
+        obs=self.imported.get('responses',{}).get(self.observed.currentData(),{})
+        frame={'material_cartesian':'재료 직교좌표'}.get(obs.get('frame'),obs.get('frame','미지정'))
+        lines=[f"재료 법칙: {model} / 원 응력: {labels.get(native,native)} [{self.settings.get('stress_unit','미지정')}]",
+            f"관측: {labels.get(obs.get('measure'),obs.get('measure','미지정'))} / {obs.get('component','미지정')} [{obs.get('unit','미지정')}] / {frame}"]
+        experiment={'response':self.model_response.currentData()}
+        if self.finite_comparison.isChecked():
+            component=obs.get('component','')
+            if component in ('xx','yy','zz'):experiment['extensions']={'finite_measure':comparison_extension(component[0])}
+            lines.append('비교 변환: 각 후보의 실제 수락 F/J 사용')
+        try:
+            expected=observation_measure(obs,experiment,native)
+            lines.append('비교 예측: '+labels.get(expected,expected)+(' / 관측 정의 일치' if obs.get('measure')==expected else ' / 관측 정의를 확인하세요.'))
+        except (ValueError,KeyError,TypeError) as error:lines.append(str(error))
+        if self.protocol.currentData() in ('measured','finite_measured'):
+            driver=self.imported.get('responses',{}).get(self.driver.currentData(),{})
+            lines.append('변형: '+labels.get(driver.get('measure'),driver.get('measure','미지정'))+' ['+str(driver.get('unit','미지정'))+']')
+            try:
+                indexes=aligned_driver_indexes(obs,driver)
+                lines.append(f'원행·시각 대응: {len(indexes)}표본 / 취득 순서 유지')
+            except (ValueError,KeyError,TypeError) as error:lines.append('원행·시각 대응 확인: '+str(error))
+        self.measure_context.setText('\n'.join(lines))
 
     def _tensor(self):
         from .numerical_window import ProtocolDialog
@@ -235,6 +274,7 @@ class ExperimentDialog(QDialog):
         if response and not self.value:
             index=self.model_response.findData('stress_'+str(response.get('component')))
             if index>=0: self.model_response.setCurrentIndex(index)
+        self._update_context()
 
     def _accept(self):
         if self._selection_worker is not None:

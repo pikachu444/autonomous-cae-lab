@@ -1136,7 +1136,7 @@ Research9종: Data, Material, Numerical, PDE, Simulation, Evaluation, Study, Exp
 **분류 A · 단독 책임 T4(Data·Material·구성식 FE) · 상대 작업량 2/3**
 원 연결: FN-03-01, FN-03-02, FN-06-01; SPEC-RESEARCH-003(FN03/04/06/07/09), EXPERIMENT-001, NUMERICAL-002.
 
-**현재 구현 / 실제 잔여:** finite_measure_*와 실제 test protocol/Plan fit/holdout 연결이 있다. F/J 변환 엔진을 새로 쓰지 않는다.
+**현재 구현 / 실제 잔여:** 기존 finite_measure_*·prediction·Plan 엔진을 재사용해 단축·동축의 실제 관측/예측 사용자 흐름을 인수했다. 기존 공개 합성 case02의 fit·holdout 각6표본과 후보 actual F/J, 원 mask/weight/scale, 실제 채택 receipt/저장·별도 cold를 보존했다. UI에서 law/측도/단위·원행/clock·치수/근거·관측 J와 명시 가정을 구분하고 현재 원 Material 변경의 확정 거절을 확인했다. [사용법과 실제 화면](FINITE_MEASURE_WORKFLOW_KO.md). 새 피팅/법칙/solver/provider 실행은 없으며 실장비 crosshead 등가성과 공학 qualification은 별도 미확인이다.
 
 **고정 지원 profile:** W, MATERIAL
 

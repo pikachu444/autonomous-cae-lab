@@ -216,6 +216,8 @@ class FiniteAuditDialog(QDialog):
         root.addWidget(self.table,3);self.figure=Figure(constrained_layout=True);self.canvas=FigureCanvasQTAgg(self.figure)
         root.addWidget(self.canvas,2);self.detail=QLabel();self.detail.setWordWrap(True);root.addWidget(self.detail)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close);buttons.button(QDialogButtonBox.StandardButton.Close).setText('닫기');buttons.rejected.connect(self.reject);root.addWidget(buttons)
+        self._selected_row=0
+        self.table.currentCellChanged.connect(self._selected)
         self.channels.currentIndexChanged.connect(self._show);self._show()
 
     def _show(self,*_):
@@ -231,7 +233,7 @@ class FiniteAuditDialog(QDialog):
             rows.append([sample['source_rows'],t,raw,v,'포함' if ch['calculation_valid'][i] else '제외','표시' if ch['display_visible'][i] else '숨김',
                 '유효' if ch['operation_valid'][i] else '무효','; '.join(reasons) if isinstance(reasons,list) else str(reasons)])
         self.table.setHorizontalHeaderLabels(['원행','시간 ['+str(ch.get('axis',{}).get('unit','미기록'))+']','원값과 변환 근거','변환값 ['+str(ch.get('metadata',{}).get('unit','미기록'))+']','계산 포함','화면 표시','변환 유효성','이유'])
-        fill_table(self.table,rows);self.figure.clear();ax=self.figure.add_subplot(111)
+        self.table.blockSignals(True);fill_table(self.table,rows);self.figure.clear();ax=self.figure.add_subplot(111)
         self.table.setColumnWidth(2,180)
         # Display mask is a display policy, never an execution mask.
         points=[(i+1,v) for i,v in enumerate(ch.get('values',[])) if ch.get('display_visible',[True]*len(ch.get('values',[])))[i]]
@@ -240,6 +242,40 @@ class FiniteAuditDialog(QDialog):
         ax.set_xlabel('취득 순서');ax.set_ylabel(LABELS.get(measure,measure)+' ['+str(ch.get('metadata',{}).get('unit',''))+']')
         self.canvas.draw();self.detail.setText('무효행도 원행과 함께 표시합니다. 계산 포함 여부와 화면 숨김은 서로 다릅니다. 피팅용과 검증용 자료는 수치 연구에서 지정하세요. 표 선택은 결과를 바꾸지 않습니다.')
         self.detail.setTextFormat(Qt.TextFormat.PlainText)
+        if rows:self.table.setCurrentCell(min(self._selected_row,len(rows)-1),0)
+        self.table.blockSignals(False)
+        self._selected(self.table.currentRow())
+
+    def _selected(self,row,*_):
+        if row<0:return
+        self._selected_row=row
+        channel=self.result.get('channels',{}).get(self.channels.currentData(),{})
+        if row>=len(channel.get('samples',[])):return
+        sample=channel['samples'][row];node=channel['lineage']['nodes'][sample['sample_id']]
+        audit=node.get('nonlinear_relation',{}).get('audit',{})
+        spec=channel.get('metadata',{}).get('extensions',{}).get('finite_measure',{}).get('payload',{})
+        measurement={'extensometer_gauge_extension':'접촉식 표점 변위','optical_gauge_extension':'광학 표점 변위',
+            'crosshead_assumed_gauge':'크로스헤드 변위를 표점 변위로 명시 가정'}.get(spec.get('measurement'),spec.get('measurement','미기록'))
+        basis={'jacobian':'표점 λ와 관측 J','current_area':'현재 단면적 A(t)','full_F':'전체 F의 det(F)',
+            'isochoric_assumption':'명시 J=1 가정','none':'추가 응력 변환 없음'}.get(spec.get('basis'),spec.get('basis','미기록'))
+        operands=node.get('nonlinear_relation',{}).get('operands',{})
+        if spec.get('basis')=='none' and operands.get('load',{}).get('metadata',{}).get('measure')=='axial_force':
+            basis='응력 측도 변환 없음; 축방향 힘/A0로 계산'
+        j_label=('명시 가정 J' if audit.get('J_origin')=='EXPLICIT_ASSUMPTION_NOT_MEASURED' or spec.get('basis')=='isochoric_assumption'
+            else '입력 J — F의 det와 일치 확인' if spec.get('basis')=='full_F' and 'J' in operands
+            else '관측 F에서 계산한 det(F)' if spec.get('basis')=='full_F'
+            else '입력 관측 J' if spec.get('basis')=='jacobian' else '변환 J')
+        fields=[('A0_mm2','A0','mm²'),('L0_mm','L0','mm'),('current_area_mm2','현재 A','mm²'),
+                ('stretch','λ','1'),('J',j_label,'1')]
+        operands=' / '.join(f'{label}={value_text(audit[key])} {unit}' for key,label,unit in fields if key in audit)
+        value_rows=', '.join(map(str,sample.get('source_rows',[]))) or '없음'
+        decision_rows=', '.join(map(str,sample.get('validity_source_rows',sample.get('source_rows',[])))) or '없음'
+        lines=[f'값 기여 원행: {value_rows} / 판정 원행: {decision_rows}',measurement+' / 변환 근거: '+str(basis),operands]
+        for key,item in spec.get('geometry',{}).items():
+            if item.get('evidence'):lines.append(str(key)+' 근거: '+str(item['evidence']))
+        for item in spec.get('assumptions',{}).values():
+            if item.get('enabled'):lines.append('명시 가정 근거: '+str(item.get('reason','미기록')))
+        self.detail.setText('\n'.join(line for line in lines if line))
 
 
 class FinitePredictionDialog(QDialog):

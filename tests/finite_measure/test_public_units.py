@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[2]/'examples/finite-measure'
 def test_public_reordered_unit_twin_and_json_cold_replay(tmp_path):
     outputs=[]
     for tag in ('train','train-unit-twin'):
-        c=json.loads((ROOT/(tag+'-config.json')).read_text());m=mapping(c)
+        c=json.loads((ROOT/(tag+'-config.json')).read_text(encoding='utf-8'));m=mapping(c)
         raw=read_table(ROOT/(tag+'.csv'),m)
         source=dict(document_id='T'+tag.replace('-',''),job_id='Jcase',input_revision='Icase',input_sha256=canonical_hash(m))
         out=preview_recipe(raw,source,recipe(c));assert out['execution_status']=='SUCCEEDED',out['stages']
@@ -31,7 +31,7 @@ def test_public_reordered_unit_twin_and_json_cold_replay(tmp_path):
 
 
 def test_local_preview_preserves_raw_and_explains_missing_unit():
-    c=json.loads((ROOT/'train-unit-twin-config.json').read_text())
+    c=json.loads((ROOT/'train-unit-twin-config.json').read_text(encoding='utf-8'))
     rows=[[1.1,1000.,1250.,1.,17.6]]
     # Here J/A are deliberately inconsistent with 1.025; the raw row survives.
     r=local_preview(c,rows)[0]

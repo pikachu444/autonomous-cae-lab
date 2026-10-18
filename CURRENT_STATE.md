@@ -98,6 +98,24 @@ Core source table 4행 읽기는 `installed-normal-02/`에서 확인했다. 문�
 [빌드·라이선스·설치](native/data_labplot/README.md)를 갱신한다. 이 인수는 전체 OS 직접 입력,
 LabPlot 모든 upstream 분석, 공개 binary 배포 완료나 공학 적합성 승인이 아니다.
 
+B4.2는 기존 유한변형 엔진과 공개 합성 case02의 exact C000010을 재사용했다.
+시험 조건에 law·원 응력/관측 측도·단위·같은 원행/clock을 표시하고, 선택 변환 행에
+A0/L0/λ/J와 근거를 표시했다. 관측 J·관측 F의 det·별도 선언 J/일치 확인·명시 가정과
+후보가 실제 수락한 F/J를 구별했다. μ 자유/λ=5MPa 고정인 원 fit·holdout 각6표본의
+mask·표본/시험 weight·scale 및 원 fit hash `e5489116…`, Material `97782405…`를 보존했다.
+과거 실제 CfiniteAdopt receipt/채택후 checkpoint를 읽고 현재 UI의 preview/취소/원 Material
+변경 HTTP400 차단을 확인했다. 현재 차단을 새 채택 성공으로 세지 않는다. 확정 최초400의
+한국어 재연결 안내와 pending 해제는 `15569bb`에 포함했고, 응답 유실 뒤400은 여전히
+불확실한 기존 요청으로 남긴다. 마지막 실제 PID15588/cold56916 exit0/job_empty, JobManager
+0→0·새 import/processing/fit/law/solver/provider0을 확인했다. 앞선 jobs4 보고는 실제
+retained run과 목록을 혼동한 오류로 정정했고 원 실패/JSON harness 오류/locale 두 실패를
+보존했다. 관련 finite46검사와 최종 UI8검사, CAE·실제 창·Astra 통합 검토를 닫았다.
+[사용법과 실제 화면](docs/FINITE_MEASURE_WORKFLOW_KO.md)을 제공한다. 원 source locator는
+기존 immutable_processing_hash 계약으로만 제외하며 다른 필드의 차이를 허용하지 않는다.
+이 실제 사례는 extensometer/assumptions={}이므로 crosshead·등체적 가정의 실험적 검증이나
+재료의 공학 qualification을 주장하지 않는다. 같은 담당의 다음 packet은 B4.3 법칙별
+혼합 F/stress 제어로 준비한다.
+
 B5.4는 기존 descriptor·Plan과 결과 metadata의 세 방법 역할/모델 지원을 같은 표로
 연결했다. 실제 S2의 두 방향 Taylor·원 허용값, FD의 h/h2·9회/예산9·holdout0, Picard의
 DE/NOT_CONVERGED를 그대로 읽었다. 방법 변경/취소·저장과 별도 cold에서 새 job/fit/solve0이다.
@@ -749,14 +767,14 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B3.3.L03 | 실제 현재 형상 면적·법선으로 측정 | D | 개발 대기 | T3 |
 | B3.4.L01 | 원 결과 복구·변경 branch·정확한 원 선택 반환 | A | 기존 구현 인수 대기 | T3 |
 | B4.1.L01 | 처리 recipe·재표본 계보·큰 Data 작업 인수 | A | 한정 인수·원행/독립 편입/2009표본·cold·두 P2 폐쇄 | native_data_product_impl / Codex |
-| B4.2.L01 | 단축·동축 유한변형 관측→같은 측도 예측 | A | 기존 구현 인수 대기 | T4 |
+| B4.2.L01 | 단축·동축 유한변형 관측→같은 측도 예측 | A | 공개 합성 단축·동축 인수 및 독립/실제 창 검토 폐쇄. 실장비/공학 qualification과 구별 | native_data_product_impl / Codex |
 | B4.3.L01 | 혼합 F/stress 제어의 법칙별 인수 | A | 기존 구현 인수 대기 | T4 |
 | B4.4.L01 | 후보 상세 보존·새 평가·채택 충돌 | A | 기존 구현 인수 대기 | T4 |
 | B4.5.L01 | 사례 A: 기존 J2 와 DP 의 같은 물리시험 비교 | A | 기존 구현 인수 대기 | T4 |
 | B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 별도 후보 미통합, 연구 요구 미완료 | 미배정 |
-| B5.1.L01 | 혼합변수 DOE 의 실제 domain binding | A | 기존 구현 인수 대기 | T5 |
+| B5.1.L01 | 혼합변수 DOE 의 실제 domain binding | A | 실제 후속 배정, 첫 PDE descriptor HTTP와 exact saved source 확인/실행0 | native_impl / Codex |
 | B5.3.L01 | 일반 역해석의 고정 관측·feasible 후보 왕복 | A | 한정 인수·예측 support/구간 P2 폐쇄, Case A/B 전체와 구별 | native_impl / Codex |
-| B5.4.L01 | 필수 사례별 미분법 선택·기존 adjoint 인수 | A | 실제 후속 배정, 기존 S2/FD/DE와 공통 방법 계약 연결 중 | native_impl / Codex |
+| B5.4.L01 | 필수 사례별 미분법 선택·기존 adjoint 인수 | A | `15569bb` 게시. 기존 S2/FD/DE와 현재 요청 비용/원 결과·실행 환경 미확인, 실제 창/독립 검토 폐쇄 | native_impl / Codex |
 | B5.6.L01 | 보존 대리모델·다목적·Picard/MDO 한 정의 | A | PDE/Evaluation 한정 인도 완료; Numerical/동일 정의 후속 실제 배정 | native_impl / Codex |
 | B6.1.L01 | 사용자 MFront→한 실제 FE interface | D | 개발 대기 | T4 |
 | B6.1.L02 | 구성식 increment·접선·FE IP 원값 인수 | A | 기존 구현 인수 대기 | T4 |
