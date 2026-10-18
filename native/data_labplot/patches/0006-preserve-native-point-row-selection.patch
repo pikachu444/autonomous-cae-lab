@@ -1,0 +1,36 @@
+diff --git a/src/backend/worksheet/plots/cartesian/XYCurve.cpp b/src/backend/worksheet/plots/cartesian/XYCurve.cpp
+--- a/src/backend/worksheet/plots/cartesian/XYCurve.cpp
++++ b/src/backend/worksheet/plots/cartesian/XYCurve.cpp
+@@ -2895,7 +2895,31 @@
+ 	}
+ 	mousePos = event->pos();
+ 
+-	if (q->activatePlot(event->pos())) {
++	bool dataPointHit = false;
++        // Bounded Core Data hook: retain original column indices, including
++        // duplicate coordinates. Do not index the pixel-compressed scenePoints.
++        if (q->property("caelab_data_curve").toBool() && q->cSystem) {
++            QVariantList indices;
++            const auto views = scene()->views();
++            if (!views.isEmpty()) {
++                auto* view = views.first();
++                const auto click = view->mapFromScene(mapToScene(event->pos()));
++                for (int i = 0; i < m_logicalPoints.size(); ++i) {
++                    bool visible = false;
++                    const auto point = q->cSystem->mapLogicalToScene(m_logicalPoints.at(i), visible);
++                    if (!visible) continue;
++                    const auto pixel = view->mapFromScene(mapToScene(point));
++                    if (QLineF(click, pixel).length() <= 8.0)
++                        indices.append(validPointsIndicesLogical.at(i));
++                }
++            }
++            dataPointHit = !indices.isEmpty();
++            QVariantMap hit;
++            hit.insert(QStringLiteral("indices"), indices);
++            hit.insert(QStringLiteral("serial"), q->property("caelab_hit").toMap().value(QStringLiteral("serial")).toInt() + 1);
++            q->setProperty("caelab_hit", hit);
++        }
++	if (dataPointHit || q->activatePlot(event->pos())) {
+ 		setSelected(true);
+ 		return;
+ 	}

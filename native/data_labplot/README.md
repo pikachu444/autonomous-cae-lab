@@ -1,4 +1,4 @@
-# LabPlot Data integration trial
+# Native LabPlot Data integration
 
 The trial uses KDE LabPlot commit `ffd1eb53fcd5d033810af092a255b25cab7c93d1`.
 The donor checkout and all downloaded SDKs stay under ignored `_workspace/`.
@@ -46,7 +46,7 @@ Run from the repository root after the private SDK is bootstrapped:
 ```
 
 The script verifies the commit, applies the local patches idempotently,
-copies the owned header, configures a fresh x64 build and builds Release with four
+copies the owned bridge and settings headers, configures a fresh x64 build and builds Release with four
 workers. Optional formats and embedded runtimes are disabled; QADS and the real
 document/command/dock environment remain intact. It only changes its process's
 PATH and restores that value in `finally`.
@@ -93,15 +93,16 @@ then the donor capture submits **zero** commands. It is not a test of donor Save
 and `.png` show the table and curve separately. The capture executable SHA-256 is
 `E8A0B2FE01CD762E949D4B1D974A38D8524BB9F1DDC9C2C0ED0724869B3BF577`.
 
-**Decision: technically connectable; production adoption incomplete.**
-The delivered product Data workspace remains the verified PySide6 implementation.
-The subsequent native save/transfer boundary below is implemented and checked;
-curve point-to-source-row selection, full quality/hide editing, channel/unit
-editing and the remaining recovery/interaction cases are still active native
-work. The default native worksheet is also not a finished product layout. Build
-success and these bounded runs are not acceptance of those remaining behaviors.
-Those remaining native conditions are active implementation work; the successful
-technical trial is not a donor rejection or a final framework replacement decision.
+**Decision: the bounded native Data foundation is verified.**
+The explicit native entry keeps LabPlot's original engineering work surface and
+uses existing Core readers, commands and retained results. The current checks
+cover original rows, engineering settings, independent row states, selection,
+local Undo, one Apply, atomic native/Core save, partial-failure recovery,
+cold reopen and exact Material handoff. The ordinary Data entry remains the
+verified PySide6 workspace; this is an additional explicit entry. A complete
+installer, redistribution bundle, every upstream LabPlot analysis feature and
+physical OS input coverage are outside this verified boundary. This successful
+integration is not a donor rejection or a final replacement-framework decision.
 
 ## First bridge boundary
 
@@ -162,7 +163,7 @@ python native/data_labplot/check_workflow_windows.py `
   --source axial.csv
 ```
 
-The actual final executions are `labplot-workflow-axial-04` and
+The first save/transfer executions are `labplot-workflow-axial-04` and
 `labplot-workflow-shear-02` under `_workspace/data-workspace-20261018/`. Both
 use public source files and the existing stress/deformation mapping, and pass:
 
@@ -226,7 +227,85 @@ the executable SHA-256 is
 `0FD4BF061C7C469BFF11CF38F2B428DA0D86EA7471B7192CF299BC2BCA1E3A64`.
 The response escrow, durable conflict and protected save logic matches the prior
 critical correction; this snapshot also contains the subsequent point-row/view
-cache and ordinary launch auto-read work, separate from unfinished settings UI.
+cache and ordinary launch auto-read work; settings UI was unfinished at that checkpoint.
+
+## Final bounded interaction delivery
+
+The real `labplot-interaction-07` execution adds four native process checks:
+
+- `interaction`: actual settings dialogs preserve an untouched draft, Cancel,
+  incomplete numeric input and edits across channel switches. Accept creates one
+  local native Undo command. Undo/Redo and cancelling a Core re-read preserve
+  the buffer and its history. Duplicate document titles use the actual combo
+  index, selecting the second ID for both Data and Material choices.
+- A five-row synthetic source contains duplicate x values and two identical
+  points. Native table, native XYCurve point and explicit rectangle selection
+  return the same original rows after view sorting and hiding. The three row
+  states remain quality `[2]`, calculation exclusion `[3]` and display hiding
+  `[5]`. Selected row `[4]` and the sorted view survive cold reopen.
+- Unit labels and scale/offset are independent. The source curve displays the
+  original reader values; its title explicitly says scale/offset have not been
+  applied. Its key identifies selection, exclusion and quality-check-needed
+  symbols. Source-ID/status columns have no plot role; mapped source/cache
+  columns have X/Y roles and the cache has engineering names. Changing the
+  canonical curve's native X/Y source is restored with guidance to use the
+  settings dialog; native styling, zoom and additional curves remain available.
+- CSV and named numeric NPZ file-open handlers use the existing upload and
+  reader. Original file SHA-256 bytes match. CSV nonnumeric cells follow the
+  existing numeric reader's NaN behavior; this does **not** claim CSV text-cell
+  preservation. The NPZ check uses `time`/`stress`/`short` lengths 5/5/2 and
+  zero-based source indices. Selecting named NPZ columns updates the native
+  curve locally without another Apply or import.
+
+The editing document receives one `data.update`, followed by native Core + view
+Save. Its cold-reopen phase receives zero commands. Each separate file-open
+case creates its own Data document and explicitly attaches the uploaded source
+with one update: three updates across three documents, zero imports/results.
+The synthetic source is an interaction fixture, not engineering qualification.
+
+```powershell
+python native/data_labplot/check_interaction_windows.py `
+  --executable _workspace/labplot-data-20261018-build-sdk/bin/Release/labplot.exe `
+  --sdk _workspace/labplot-sdk-20261018 `
+  --output _workspace/data-workspace-20261018/labplot-interaction-07
+# Always choose a fresh output directory when reproducing.
+```
+
+That four-phase executable is SHA-256
+`2DFF7C85E1B369013DB87912D2584D88AD2FAD50FA1B2F4BB4E8C77BBE1E2C9E`;
+bridge `68A37568A3FF3860C59F90C035DF5A06E4663F5948711E61A7DD4594275B56BB`.
+A final capture-only refinement preserves the hidden cache after native load and
+adds narrow curve capture. `labplot-interaction-capture-02` reopens the exact
+saved interaction document in a new service/native process, repeats point/range
+identity checks and captures normal/narrow table and curve with **zero** Core
+commands/imports. Its final executable is SHA-256
+`D8E9E8FD762EE43B6413FBAC89CEC57CDACCEA1217AB6443F20D1AB86F46C89E`;
+bridge `43DD8AF3FB81DFB1A46925848FF849462F46D11677849DCA4F00F9E344B8C2C4`;
+settings `928405ED6BC5346EB3A40142977F6F2B9303E9A1ED40B9F72B4FD33E3B9D97A3`.
+Both folders preserve exact source snapshots. Real PNGs are under their
+`interaction/` or `interaction_reopen/` folders (`result.json.curve.png`,
+`.curve-narrow.png`, `.table.png`, `.narrow.png`, `.settings.png` and
+`.settings-narrow.png`, as applicable). Actual Qt selection/mouse events were
+exercised; physical OS mouse/keyboard coverage is unverified.
+
+The preceding same-source full workflow regressions are
+`labplot-workflow-final-axial-01` and `labplot-workflow-final-shear-01`.
+All eight phases pass: partial save, unsaved-work Cancel, exact journal retry,
+cold reopen + actual stress Material receiver, offline protected Save,
+input-mismatch protected Save, actual saved-response loss and durable conflict
+reopen. They use executable `4A7539B9AAD406FBCFD71C024EF62126D4644B133B066CE36FC3065656C1224C`
+and preserve bridge snapshot `734A553D90105D12420969DC4A784B85A224A7D3F0DDC171ABB34CCAEBEC0C11`.
+The final changes after that boundary are settings/source-opening acceptance,
+source-role/legend/cache presentation, index-based document choices and capture;
+critical Core save/receipt/atomic replacement logic is unchanged.
+
+All six patches clean-apply to the fixed pristine donor, and two consecutive
+`-PatchOnly` calls leave already-applied source bytes unchanged. The final
+record is `_workspace/labplot-patch-series-20261018-05/result.json`.
+Ordinary user launch is the explicit `data-native` entry documented in
+[Data usage](../../docs/DATA_WORKSPACE_KO.md); acceptance environment variables
+are not needed. Every acceptance process tree is owned and cleaned in `finally`.
+No new numerical engine, store or paid service was introduced.
 
 ## Ownership and meaning
 

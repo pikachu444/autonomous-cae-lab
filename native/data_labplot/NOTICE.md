@@ -11,9 +11,11 @@ authoritative. A future distributed fork must include its applicable source,
 license texts and notices, including its Qt/KDE/QADS and other bundled parts.
 An available free build does not remove redistribution obligations.
 
-`CaelabDataBridge.h` is an original bounded integration adapter under
+`CaelabDataBridge.h` and `CaelabDataSettings.h` are original bounded integration
+adapter/UI sources under
 GPL-2.0-or-later. The small patches retain upstream source context: the CMake
-file is BSD-2-Clause and MainWin.cpp is GPL-2.0-or-later. The corresponding
+file is BSD-2-Clause; MainWin.cpp and the XYCurve.cpp point-row hook are
+GPL-2.0-or-later. The corresponding
 unmodified license texts are included in `LICENSES/`. Upstream copyrights and
 per-file SPDX headers remain intact in the patched donor checkout.
 

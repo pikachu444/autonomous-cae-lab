@@ -26,6 +26,12 @@ if (!(Test-Path -LiteralPath $adapterTarget) -or
     [IO.File]::ReadAllText($adapterSource) -cne [IO.File]::ReadAllText($adapterTarget)) {
     Copy-Item -LiteralPath $adapterSource -Destination $adapterTarget
 }
+$settingsSource = Join-Path $PSScriptRoot 'CaelabDataSettings.h'
+$settingsTarget = Join-Path $sourcePath 'src/frontend/CaelabDataSettings.h'
+if (!(Test-Path -LiteralPath $settingsTarget) -or
+    [IO.File]::ReadAllText($settingsSource) -cne [IO.File]::ReadAllText($settingsTarget)) {
+    Copy-Item -LiteralPath $settingsSource -Destination $settingsTarget
+}
 if ($PatchOnly) { return }
 $cmakePath = Join-Path $sdkPath 'dev-utils/bin/cmake.exe'
 if (-not (Test-Path -LiteralPath $cmakePath)) { throw "Craft CMake is missing: $cmakePath" }
@@ -42,11 +48,14 @@ try {
         'QTSVG','DISCOUNT','XLSX','ORCUS','VECTOR_BLF','EIGEN3','MCAP','TOUCHBAR','PARQUET')) {
         $configure += "-DENABLE_${feature}=OFF"
     }
+    # Native CMake warnings on stderr are diagnostics; exit codes decide failure.
+    $ErrorActionPreference = 'Continue'
     & $cmakePath @configure 2>&1 | Tee-Object -FilePath (Join-Path $buildPath 'configure.log')
     if ($LASTEXITCODE -ne 0) { throw 'Pinned LabPlot configure failed; see configure.log' }
     & $cmakePath --build $buildPath --config Release --parallel 4 2>&1 |
         Tee-Object -FilePath (Join-Path $buildPath 'build.log')
     if ($LASTEXITCODE -ne 0) { throw 'Pinned LabPlot build failed; see build.log' }
 } finally {
+    $ErrorActionPreference = 'Stop'
     $env:PATH = $previousPath
 }
