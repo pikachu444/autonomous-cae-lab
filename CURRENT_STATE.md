@@ -20,7 +20,7 @@
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | Expert/Report 전용 창·helper/검사·사용법 인도 freeze. 다음은 기존 Experiment Analysis 전용 창/actions/reporting·검사 | 저장 발언/선택 결과→Study 명시 판단→Report 출력·save/discard/cancel·cold 완료. 같은 담당에게 B7.4 보존 FD/식별성→명시 다음 시험 질문→Study/Report의 준비 packet을 실제 후속 배정 |
 | native_impl / Sol-high | 현재 `numerical_window.py`, `numerical_extension_widgets.py`, `s2_gradient_widgets.py`와 전용 helper/검사·사용법. 공통 엔진/owner/API는 Codex | PDE→Evaluation 인도와 단계 선택 P2 폐쇄 후 실제 followup 호출. B5.4/B5.6/B6.4의 기존 derivative·Picard/MDO·보존 모델과 동일 Evaluation/Plan 사용자 흐름을 이어 구현 |
-| data_impl / Sol-high | 현재 `impact_native.py`, `impact_native_b.py`, `impact_rad_source.py`, 신규 `impact_native_material_cards.py`와 전용 검사·사용법 | B2.5.L01은 `34f4815`로 게시. 실제 followup으로 B2.5.L02 시작, 기존 native bulk/interface 원카드 whitelist 반례 확보. 제한된 LAW36/INIEVO·LAW117 편집/실행/복구를 기존 parser·법칙·reader에 합류 |
+| data_impl / Sol-high | B2.5.L02 native parser·material helper/검사 인도 freeze. 다음 B2.6.L02는 `impact_interface.py`, `impact_damage.py`, 신규 전용 history helper·검사 | native 두 실행·원문/출력·Post 복귀·cold 완료. independent 3 finding와 빈 include 회귀 폐쇄. 게시 뒤 기존 부분 손상 unload–compression–reopen packet을 실제 배정 |
 | native_cae_adviser / Astra-xhigh | B2.5.L02의 exact producer/primary manual·보존 native 입력에 근거한 한정 자문. 제품 파일·실행 없음 | 원 법칙/정수 카드·단위·contact Tstart·validation copy와 export 구분을 실제 writer와 협의. sibling 송신 오류로 Codex가 구체 질문·답변 중계 |
 | native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | `native/data_labplot/CaelabDataBridge.h`, build/check/package helper, `0008` MainWin hook 단독. Settings·`0007` 제외 | 새 실제 actor를 가동해 기존 exe 첫 Core 접점과 변경 build02 원행/Undo/단일 update 통과. 현재 표/곡선 폭·선택별 pane·한국어·진행/취소·최소 runtime 묶음 구현 중 |
 | desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | `CaelabDataSettings.h`, `0007`의 ProjectExplorer.cpp/.h만 단독. donor 원본 직접 수정 없음 | 채널/축/의미별 설정·known code 한국어·이름 우선/열 선택 구현. 최신 패치 9001D26B…를 Data 다음 build에 연결. Study/PDE/Evaluation 실제 일반·좁은 창의 한정 시각 검토는 폐쇄 |
@@ -56,7 +56,7 @@ DOE/UQ 연결은 `501ddab`로 원격 게시를 확인했다. 현재 다음 행�
 | Data 제품화 | 변경 native build의 원표/곡선·원행·단일 update와 실제 prepare 성공/확인 취소/동일 job 응답 유실 복구 통과. 최종 일반/좁은 UI·저장/cold·최소 runtime launcher로 마감 | 기존 recipe/resample 계보·큰 표. build07 cache dock 수명 crash를 보존하고 build08에서 선택/재열기를 교정 중; 기본 진입은 아직 전환 전 |
 | Numerical/동일 Evaluation | 실제 followup 시작. 기존 저장 Evaluation→Plan exact 참조·방법/변수/예산→작은 실제 후보부터 통합. derivative 의미·실패/잔차·Pareto/보존 모델·명시 채택·cold로 마감 | 기존 상세 명세의 다음 미완료 leaf를 인도 후 대조. 공통 엔진 재작성·새 3D/범용 adjoint 없음 |
 | Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. 같은 명령 재확인·현재 권한 재검증·편집 보존·명시 판단·출력·저장/폐기/취소·cold와 독립 검토를 마침 | 다음 B7.4: 기존 보존 식별성/FD 진단에서 사용자가 다음 시험 질문을 골라 Study/Report로 연결. 원 결과 재사용, 새 provider/물리 campaign 없음 |
-| native RAD | 실제 followup 시작. 기존 bulk/interface native 원본 두 개→제한 field 편집/원 bytes→기존 pinned 실행·실제 채널·owner/cold로 마감. 공통 adapter/workflow는 Codex | 기존 B2.6의 실제 미완료 profile만 다음 준비. 법칙·허용치·engineering UNKNOWN 보존, 새 solver 엔진 없음 |
+| native RAD | 기존 bulk/interface native 두 원본→제한 field 편집·원 bytes→pinned 실제 2실행·원 채널·Post 복귀·owner/cold 완료. typed LAW117 표기 보존·include original/partial 읽기·모든 FUNCT 번호 충돌 및 빈 include 교정도 독립 검토 폐쇄 | 다음 B2.6.L02: 정확 fixed-source LAW117 부분 손상 한 loop와 mixed-mode loop. CAE 자문/사전 이력·관측 계약부터 연결, 기존 법칙·허용치·engineering UNKNOWN 유지 |
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
 실제 blocker가 없는 독립 담당은 다른 앱의 게시·Data 빌드·Pro 재응답을 기다리지 않는다.
@@ -142,6 +142,23 @@ Report의 본문·표·곡선과 저장/버리기/취소, PDF/Markdown, 별도 W
 새 계산/provider 호출은 0이며 QPrintPreviewWidget의 COM 진단은 로그에 남는다. 종료 0과
 실제 출력 확인을 무진단 실행으로 표현하지 않는다. [사용법과 실제 화면](docs/EXPERT_STUDY_REPORT_KO.md)을
 게시한다. 전체 B7·새 live 상담·모든 OS 직접 입력·공학 적합성 완료는 아니다.
+
+B2.5.L02는 native 2025의 고정 LAW36/INIEVO·LAW117 원문 필드를 typed admission에
+연결하고 CRLF/include와 원 source의 권위를 보존했다. 첫 실제 Core 접점은 각 한 번의
+명시 update이며, 두 native 계산은 Starter 오류·경고 0/Engine 정상 종료와 같은 Simulation
+저장·별도 Python cold를 확인했다. 실제 Windows 일반/좁은 수치창·원행 선택·미리보기 취소,
+벌크/계면 결과 선택과 ParaView의 실제 40 frame 열기→원 Simulation 복귀를 확인했다.
+`runs/native-rad-materials-20261018/native-01/`과 `_workspace/native-rad-20261018/`에
+원 실패·정확 source·소유 Job 종료를 보존한다. 벌크 TH의 22개 원 record 중 OFF=1인 초기
+1개만 손상·소성·에너지 응답에 포함되며 비활성 21개를 0으로 채우지 않는다. 삭제 bracket과
+정상 종료는 손상 진전·에너지·mesh/timestep 적합성 검증이 아니다.
+독립 검토의 MAT/BRICK include 원래/부분 결과 읽기, LAW117 합법 숫자/소문자 제목,
+미참조 FUNCT–TABLE 충돌 3건을 교정했다. 추가 빈 include는 정확 0byte pin에 한해 같은
+path/handle/두 번 hash 검증으로 읽으며 binary 출력의 nonempty 기준은 유지했다.
+관련 43검사와 마지막 빈 include 관련 12검사가 통과했다(중복 합산 없음). 기존 실제 결과
+2개의 정식 reprocess→save→새 Windows cold도 통과했고 새 solver 실행은 0이었다.
+같은 Astra가 3건과 빈 include 회귀를 모두 폐쇄했다. [사용법·지원 범위·실제 화면](docs/IMPACT_NATIVE_RAD_KO.md)을
+게시한다. B2.6 부분 손상 반복·자동 재접촉·수명·공학 적합성 완료는 아니다.
 
 ### 완료한 첫 묶음 — 실제 에이전트 배정과 첫 호출부터의 통합 (2026-10-18)
 

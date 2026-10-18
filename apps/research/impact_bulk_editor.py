@@ -31,7 +31,14 @@ def number(value):
 def native_pair_groups(settings):
     from caelab.impact_native import parse_source
     definition=parse_source(settings['source'])['b_definition']
-    return (definition or {}).get('outputs',{}).get('groups',[])
+    return [g for g in (definition or {}).get('outputs',{}).get('groups',[]) if g['kind']=='pair']
+
+
+def native_material_targets(settings):
+    from caelab.impact_native import parse_source
+    definition=parse_source(settings['source'])['b_definition'] or {}
+    return {'bulk':sorted({g['members'][0] for g in definition.get('outputs',{}).get('groups',[]) if g['kind']=='bulk'}),
+            'interface':sorted(int(e) for e in definition.get('cohesive',{}).get('elements',{}))}
 
 
 def pair_label(settings,index,native_group=None):
@@ -195,22 +202,21 @@ class ResponseDialog(QDialog):
     def __init__(self,settings,row=None,parent=None):
         self.native=settings.get('source',{}).get('format')=='RAD'
         self.native_groups=native_pair_groups(settings) if self.native else []
-        if self.native and not self.native_groups:
-            raise ValueError('원 RAD에 접촉쌍 이력 출력 카드가 없습니다. 원 입력 조건에서 출력 설정을 확인하세요.')
-        if self.native and row and row.get('scope')!='pair':
-            raise ValueError('원 RAD에서는 이력 카드가 있는 접촉쌍 결과만 수정할 수 있습니다. 미지원 선택은 삭제하거나 원 입력을 확인하세요.')
-        super().__init__(parent);self.setWindowTitle('접촉쌍 결과 선택' if self.native else '벌크와 계면 결과 선택');self.resize(720,410)
+        self.native_targets=native_material_targets(settings) if self.native else {}
+        if self.native and not (self.native_groups or any(self.native_targets.values())):
+            raise ValueError('원 RAD에 선택할 재료·이력 출력 카드가 없습니다. 원 입력의 출력 설정을 확인하세요.')
+        super().__init__(parent);self.setWindowTitle('벌크와 계면 결과 선택');self.resize(720,410)
         self.settings=deepcopy(settings);self.old=row;self.applied=None;self.model=model_from_settings(settings)
         layout=QVBoxLayout(self);form=QFormLayout();layout.addLayout(form)
         self.scope=QComboBox()
         for label,value in [('벌크 요소','bulk'),('원 응집 요소의 대응면','interface'),('원 접촉쌍','pair')]:
-            if not self.native or value=='pair':self.scope.addItem(label,value)
+            if not self.native or (self.native_groups if value=='pair' else self.native_targets[value]):self.scope.addItem(label,value)
         self.quantity=QComboBox();self.identity=QComboBox();self.component=QComboBox()
         for label,widget in [('위치 종류',self.scope),('물리량',self.quantity),('원 대상',self.identity),('성분',self.component)]:form.addRow(label,widget)
         self.note=QLabel();self.note.setWordWrap(True);layout.addWidget(self.note);self.status=QLabel();self.status.setWordWrap(True);layout.addWidget(self.status)
         buttons(self,layout,self.apply);self.scope.currentIndexChanged.connect(self.populate);self.quantity.currentIndexChanged.connect(self.components)
         self.identity.currentIndexChanged.connect(self.components)
-        self.scope.setCurrentIndex(self.scope.findData((row or {}).get('scope','pair' if self.native else 'bulk')));self.populate()
+        self.scope.setCurrentIndex(max(0,self.scope.findData((row or {}).get('scope','bulk'))));self.populate()
         if row:
             self.quantity.setCurrentIndex(self.quantity.findData(row['quantity']));self.identity.setCurrentIndex(self.identity.findData(row['identity']));self.component.setCurrentIndex(self.component.findData(row['component']))
     def populate(self):
@@ -219,10 +225,12 @@ class ResponseDialog(QDialog):
             for row in impact_b.editor_rows(self.settings)['quantities']:self.quantity.addItem(row['label']+' ['+row['unit']+']',row['id'])
             materials={row['material'] for row in self.settings.get('bulk_damage',[])}
             ids=[e for e,m in self.model['assignment'].items() if m in materials]
+            if self.native:ids=[e for e in ids if e in self.native_targets['bulk']]
             self.note.setText('DAMA는 솔버의 손상 합입니다. 활성·삭제 및 고유 INIEVO 시작/진전 상태와 구분합니다. PLSR을 파손 계산에 쓰인 EPSD로 바꾸지 않습니다.')
         elif scope=='interface':
             for label,key in [('초기 기준계의 면 분리 [mm]','face_separation'),('초기 기준계의 벌어짐 변화 [mm]','face_opening_change'),('초기 기준계의 미끄럼 변화 [mm]','face_slip_change'),('원 응집 요소 활성 [1]','cohesive_active')]:self.quantity.addItem(label,key)
             ids=[e for e,row in self.model['elements'].items() if row['type']=='COH3D8']
+            if self.native:ids=[e for e in ids if e in self.native_targets['interface']]
             self.note.setText('원 대응면의 기하량입니다. 솔버의 접촉 간극·관입·반력이나 삭제 뒤 부활한 응집 표면력으로 해석하지 않습니다.')
         else:
             for label,key in [('접촉쌍 구간 평균 힘 [N]','force'),('접촉쌍 누적 충격량 [N s]','native_impulse'),('평균 힘 표본 적분 [N s]','sampled_impulse')]:self.quantity.addItem(label,key)
@@ -230,13 +238,13 @@ class ResponseDialog(QDialog):
             if self.native:ids=[group['contact_index'] for group in self.native_groups]
             self.note.setText('누적 충격량은 솔버의 원 출력값입니다. 힘은 저장 시각 사이의 평균값이며 표본 적분과 구분합니다. 지원하지 않는 솔버 버전은 미확인으로 표시합니다.')
         for eid in ids:
-            group=next((g for g in self.native_groups if g['contact_index']==eid),None) if self.native else None
+            group=next((g for g in self.native_groups if g['contact_index']==eid),None) if self.native and scope=='pair' else None
             self.identity.addItem(pair_label(self.settings,eid,group) if scope=='pair' else element_label(self.model,eid),eid)
         self.quantity.blockSignals(False);self.components()
     def components(self):
         self.component.clear();scope=self.scope.currentData();q=self.quantity.currentData()
         choices=('FNX','FNY','FNZ','FTX','FTY','FTZ') if scope=='pair' else ('tangent1','tangent2') if q=='face_slip_change' else ('normal',) if q in ('face_separation','face_opening_change') else ('scalar',)
-        if self.native:
+        if self.native and scope=='pair':
             group=next((g for g in self.native_groups if g['contact_index']==self.identity.currentData()),{})
             choices=tuple(key for key in choices if key in group.get('tokens',[]))
         labels={'scalar':'값','normal':'법선','tangent1':'접선 1','tangent2':'접선 2','FNX':'법선 X','FNY':'법선 Y','FNZ':'법선 Z','FTX':'접선 X','FTY':'접선 Y','FTZ':'접선 Z'}
@@ -251,10 +259,15 @@ class ResponseDialog(QDialog):
         else:rows.append(row)
         try:
             if self.native:
-                from caelab.impact_native_b import select_response
-                group=next(g for g in self.native_groups if g['contact_index']==row['identity'])
-                result=select_response(self.settings,native_contact_id=group['members'][0],quantity=row['quantity'],
-                    component=row['component'],name=row['name'],replace_name=self.old['name'] if self.old else None)
+                if row['scope']=='pair':
+                    from caelab.impact_native_b import select_response
+                    group=next(g for g in self.native_groups if g['contact_index']==row['identity'])
+                    result=select_response(self.settings,native_contact_id=group['members'][0],quantity=row['quantity'],
+                        component=row['component'],name=row['name'],replace_name=self.old['name'] if self.old else None)
+                else:
+                    from caelab.impact_native_b import select_material_response
+                    result=select_material_response(self.settings,scope=row['scope'],native_element_id=row['identity'],
+                        quantity=row['quantity'],component=row['component'],name=row['name'],replace_name=self.old['name'] if self.old else None)
             else:impact_bulk_results.validate(self.model,result)
         except (ValueError,KeyError,TypeError,StopIteration) as error:self.status.setText(str(error) or '원 접촉쌍과 성분을 선택하세요.');return
         self.applied=result;self.accept()
@@ -280,8 +293,11 @@ class BulkPage(QWidget):
     def refresh(self):
         settings=self.editor.edited();native=settings.get('source',{}).get('format')=='RAD';self.native=native
         self.native_groups=[];self.native_error=''
+        self.native_targets={}
         if native:
-            try:self.native_groups=native_pair_groups(settings)
+            try:
+                self.native_groups=native_pair_groups(settings)
+                self.native_targets=native_material_targets(settings)
             except (ValueError,KeyError,TypeError) as error:self.native_error=str(error)
         try:self.model=model_from_settings(settings)
         except (ValueError,KeyError,TypeError):self.model=None
@@ -300,10 +316,11 @@ class BulkPage(QWidget):
             target=pair_label(settings,row['identity'],group) if row['scope']=='pair' else element_label(self.model,row['identity']) if self.model is not None else '원 대상 확인 필요'
             append('response',[label+' ['+unit+']',target,{'scalar':'값','normal':'법선','tangent1':'접선 1','tangent2':'접선 2','FNX':'법선 X','FNY':'법선 Y','FNZ':'법선 Z','FTX':'접선 X','FTY':'접선 Y','FTZ':'접선 Z'}.get(row['component'],row['component'])])
         for (key,verb),button in self.actions.items():
-            button.setEnabled(not native or key=='response' and (bool(settings.get('b_responses')) if verb=='remove' else bool(self.native_groups) and self.model is not None))
+            button.setEnabled(not native or key=='response' and (bool(settings.get('b_responses')) if verb=='remove' else
+                bool(self.native_groups or any(self.native_targets.values())) and self.model is not None))
         self.check_button.setEnabled(not native or self.model is not None)
-        self.note.setText(('원 접촉쌍 이력 카드의 힘과 충격량을 선택합니다. 벌크 손상·LAW117 계면 편집은 지원하지 않습니다.' if self.native_groups else
-            '원 RAD에 접촉쌍 이력 출력 카드가 없어 결과를 추가할 수 없습니다. 원 입력 조건에서 출력 설정을 확인하세요. 벌크·계면 편집은 지원하지 않습니다.')
+        self.note.setText(('원 재료·이력 카드의 요소·계면·접촉쌍 결과를 선택합니다. 물성·세트·출력 간격은 원 입력 조건에서 명시적으로 편집하세요.' if self.native_groups or any(self.native_targets.values()) else
+            '원 RAD에 선택할 재료·이력 출력 카드가 없어 결과를 추가할 수 없습니다. 원 입력 조건에서 출력 설정을 확인하세요.')
             if native else '시험 중인 해석 기능입니다. 재료 교정값과 적용 범위를 확인하세요.')
         self.note.setToolTip(self.native_error)
     def action(self,key,verb):
@@ -311,8 +328,8 @@ class BulkPage(QWidget):
         settings=self.editor.edited();table=self.tables[key];index=table.currentRow();field={'bulk':'bulk_damage','interface':'interface_controls','response':'b_responses'}[key]
         rows=settings.get(field,[])
         if verb!='add' and not 0<=index<len(rows):self.status.setText('수정할 항목을 먼저 선택하세요.');return
-        if self.native and verb!='remove' and (not self.native_groups or self.model is None):
-            self.status.setText('접촉쌍 이력 출력 카드가 있는 원 RAD 입력을 먼저 확인하세요.');return
+        if self.native and verb!='remove' and (not (self.native_groups or any(self.native_targets.values())) or self.model is None):
+            self.status.setText('재료·이력 출력 카드와 원 대상을 먼저 확인하세요.');return
         if verb=='remove':
             if QMessageBox.question(self,'설정 삭제','선택한 설정을 삭제할까요? 관련 결과 선택은 확인해야 합니다.',QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:return
             if self.native:

@@ -162,7 +162,9 @@ class SourceEditor(QWidget):
         self.original.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.fields=QTableWidget(0,4);self.fields.setHorizontalHeaderLabels(['수치 항목','값','단위','원 위치'])
         self.fields.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows);self.fields.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.fields.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents);self.fields.horizontalHeader().setStretchLastSection(True)
+        self.fields.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.fields.horizontalHeader().setStretchLastSection(False)
+        self.fields.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
         self.content_tabs.addTab(self.fields,'입력 조건');self.content_tabs.addTab(self.original,'고급 원문 편집')
         split.addWidget(right);split.setSizes([240,720]);split.setStretchFactor(1,1)
         row=QHBoxLayout()
@@ -203,6 +205,7 @@ class SourceEditor(QWidget):
                 for col,value in enumerate((field['label'],field_value(field['value']),field.get('unit',''),str(field['line'])+'행')):
                     self.fields.setItem(row,col,QTableWidgetItem(str(value)))
                 self.fields.item(row,1).setToolTip('원 입력: '+str(field['value']))
+                self.fields.item(row,0).setToolTip(field['label'])
                 self.fields.item(row,0).setData(Qt.ItemDataRole.UserRole,field)
         self.update_actions()
     def update_actions(self):

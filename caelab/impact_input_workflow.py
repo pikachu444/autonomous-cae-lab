@@ -107,6 +107,7 @@ def apply_text(settings,*,file,start,end,replacement,reason,expected_definition_
         try:
             projected=settings_from_source(result['source'])
             for key in ('time','gravity_mm_s2','motions','contacts'):result[key]=projected[key]
+            for key in ('cohesive','bulk_damage','interface_controls'):result[key]=deepcopy(projected.get(key,[]))
         except (ValueError,KeyError,TypeError):pass # explicit incomplete draft, not an execution bypass
     return {'settings':result,'inspection':inspect(result),'applied_to_document':False}
 
@@ -166,6 +167,7 @@ def declare_native_units(settings, *, units, acknowledged, expected_definition_s
     from .impact_native import settings_from_source
     projected=settings_from_source(result['source']) # actual source rows must agree
     for key in ('time','gravity_mm_s2','motions','contacts'):result[key]=projected[key]
+    for key in ('cohesive','bulk_damage','interface_controls'):result[key]=deepcopy(projected.get(key,[]))
     return {'settings':result,'inspection':inspect(result),'applied_to_document':False}
 
 

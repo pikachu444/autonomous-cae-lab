@@ -129,7 +129,7 @@ def parse_source(source):
     fields=[]
     from .impact_input_edits import edited_files, original_offset
     effective_files=edited_files(source)
-    def field(card,row_index,field_name,start,end,kind='real',unit='1'):
+    def field(card,row_index,field_name,start,end,kind='real',unit='1',label=None):
         row=card['rows'][row_index];where=row['origin']
         raw=effective_files[where['file']]
         physical=raw.splitlines(keepends=True)
@@ -138,18 +138,22 @@ def parse_source(source):
         # End of a short field is never extended into the newline/next card.
         content=physical[where['line']-1].rstrip(b'\r\n')
         if end>len(content):return
-        fields.append({'id':f"{card['role']}:{card['key']}:{row_index}:{field_name}",
+        identifier=f"{card['role']}:{card['key']}:{row_index}:{field_name}"
+        if any(item['id']==identifier for item in fields):return
+        fields.append({'id':identifier,
                        'role':card['role'],'card':card['key'],'field':field_name,'row':row_index,
                        'file':where['file'],'line':where['line'],'occurrence':where['occurrence'],
                        'start':original_offset(source,where['file'],offset),
                        'end':original_offset(source,where['file'],stop),
-                       'width':end-start,'kind':kind,'unit':unit,'value':row['text'][start:end].strip()})
+                       'width':end-start,'kind':kind,'unit':unit,'value':row['text'][start:end].strip(),
+                       **({'label':label} if label else {})})
     def engine_field(card,field_name,index,unit):
         matches=list(re.finditer(r'\S+',card['rows'][0]['text']))
         field(card,0,field_name,matches[index].start(),matches[index].end(),'token',unit)
+    from .impact_native_material_cards import FAMILIES
     for card in starter:
         key=card['key']
-        if key not in ('/BEGIN','/NODE','/END') and not any(re.fullmatch(p,key) for p in STARTER_FAMILIES):
+        if key not in ('/BEGIN','/NODE','/END') and not any(re.fullmatch(p,key) for p in STARTER_FAMILIES+FAMILIES):
             _error(card,'실행 미지원 native 영향 카드: '+key)
         if key in table:_error(card,'native 카드/ID가 중복되었습니다')
         table[key]=card
@@ -171,6 +175,8 @@ def parse_source(source):
            'native_contact_titles':{},'lineage':{'schema':'impact-native-lineage-v1','nodes':{},'elements':{},
                                                'nsets':{},'elsets':{},'surfaces':{},'materials':{},'instances':{}}}
     material_ids,part_ids,properties,groups,brick_groups,surfaces={}, {}, {}, {}, {}, {}
+    from .impact_native_material_cards import project
+    material_projection=project(starter,model,material_ids,field)
     native_element_parts={}
     for card in starter:
         key=card['key'];rows=_rows(card)
@@ -182,43 +188,60 @@ def parse_source(source):
                 if n in model['nodes']:_error(card,'native node ID가 중복됩니다')
                 model['nodes'][n]=[_real(row[j:j+20],card) for j in (10,30,50)]
                 model['lineage']['nodes'][str(n)]={**card['rows'][i]['origin'],'native_id':n,'local_id':n,'instance':None,'part':None}
-                for j,axis in enumerate('XYZ'):field(card,i,axis,10+20*j,30+20*j,unit='mm')
-        elif key.startswith('/TETRA4/'):
-            if not rows:_error(card,'빈 native TETRA4 카드입니다')
+                for j,axis in enumerate('XYZ'):field(card,i,axis,10+20*j,30+20*j,unit='mm',label='절점 '+str(n)+' / '+axis)
+        elif key.startswith(('/TETRA4/','/BRICK/')):
+            width=4 if key.startswith('/TETRA4/') else 8
+            if not rows:_error(card,'빈 native solid 카드입니다')
             for i,row in enumerate(rows):
-                _tail(row,50,card);eid,*native_conn=[_integer(row[j:j+10],card) for j in range(0,50,10)]
-                if eid in model['elements'] or len(set(native_conn))!=4:_error(card,'native element/연결 ID가 중복됩니다')
+                _tail(row,10*(width+1),card);eid,*native_conn=[_integer(row[j:j+10],card) for j in range(0,10*(width+1),10)]
+                if eid in model['elements'] or len(set(native_conn))!=width:_error(card,'native element/연결 ID가 중복됩니다')
                 # Existing impact model is Abaqus ordered; the inverse is exact,
                 # never nearest coordinates or connectivity sorting.
-                conn=[native_conn[j] for j in (0,2,1,3)]
-                model['elements'][eid]={'type':'C3D4','nodes':conn};native_element_parts[eid]=ident
+                conn=[native_conn[j] for j in (0,2,1,3)] if width==4 else native_conn[:]
+                model['elements'][eid]={'type':'C3D4' if width==4 else 'C3D8','nodes':conn};native_element_parts[eid]=ident
                 model['lineage']['elements'][str(eid)]={**card['rows'][i]['origin'],'native_id':eid,'native_connectivity':native_conn,
                                                       'local_id':eid,'instance':None,'part':ident}
         elif key.startswith('/MAT/ELAST/'):
             rows=_rows(card,3);title=_title(card)
-            if title in model['materials']:_error(card,'다른 native material ID에 동일한 title이 있습니다')
+            if ident in material_ids or title in model['materials']:_error(card,'다른 native material ID에 동일한 번호/제목이 있습니다')
             for row in rows[1:]:_tail(row,40,card)
             rho=_real(rows[1][:20],card);e=_real(rows[2][:20],card);nu=_real(rows[2][20:40],card)
             if rho<=0 or e<=0 or not -1<nu<.5 or _real(rows[1][20:40],card,blank=True)!=0:
                 _error(card,'elastic 밀도/E/ν 또는 미지원 추가 밀도 옵션입니다')
             model['materials'][title]={'DENSITY':[[rho]],'ELASTIC':[[e,nu]]};material_ids[ident]=title
             model['lineage']['materials'][title]={'native_id':ident,'origin':card['origin']}
-            field(card,1,'density',0,20,unit='Mg/mm^3');field(card,2,'E',0,20,unit='MPa');field(card,2,'nu',20,40)
+            field(card,1,'density',0,20,unit='Mg/mm^3',label=title+' / 체적 밀도')
+            field(card,2,'E',0,20,unit='MPa',label=title+' / 탄성계수')
+            field(card,2,'nu',20,40,label=title+' / 포아송비')
         elif key.startswith('/PART/'):
             rows=_rows(card,2);_tail(rows[1],30,card)
             prop=_integer(rows[1][:10],card);mat=_integer(rows[1][10:20],card)
             if _integer(rows[1][20:30],card,zero=True,blank=True)!=0:_error(card,'native subset 옵션은 첫 지원 밖입니다')
             part_ids[ident]=(prop,mat,_title(card),card)
+            field(card,1,'property_id',0,10,kind='integer',label=_title(card)+' / 속성 번호')
+            field(card,1,'material_id',10,20,kind='integer',label=_title(card)+' / 재료 번호')
         elif key.startswith('/PROP/SOLID/'):
             rows=_rows(card,5)
             for row,width in zip(rows[1:],[100,100,100,30]):_tail(row,width,card)
+            if ident in properties:_error(card,'native property ID가 중복됩니다')
+            properties[ident]=card
+            field(card,1,'Ismstr',10,20,kind='signed_integer',label=_title(card)+' / 변형 정식화')
+            field(card,1,'Itetra4',60,70,kind='integer',label=_title(card)+' / 사면체 정식화')
+        elif key.startswith('/PROP/TYPE43/'):
+            rows=_rows(card,2);_tail(rows[1],10,card)
+            if rows[1].strip()!='-1':_error(card,'응집 TYPE43은 기존 유한변형 -1을 보존합니다')
+            if ident in properties:_error(card,'native property ID가 중복됩니다')
             properties[ident]=card
         elif key.startswith('/GRNOD/'):
             _rows(card,minimum=2)
             if ident in groups:_error(card,'종류가 다른 GRNOD가 같은 native group ID를 사용합니다')
             groups[ident]=(key.split('/')[2],_ids(rows[1:],card),card)
+            for i,row in enumerate(rows[1:],1):
+                for offset in range(0,len(row.rstrip()),10):field(card,i,'member_'+str(offset//10+1),offset,offset+10,kind='integer',label=_title(card)+' / 집합 대상 번호')
         elif key.startswith('/GRBRIC/BRIC/'):
             _rows(card,minimum=2);brick_groups[ident]=(_ids(rows[1:],card),card)
+            for i,row in enumerate(rows[1:],1):
+                for offset in range(0,len(row.rstrip()),10):field(card,i,'member_'+str(offset//10+1),offset,offset+10,kind='integer',label=_title(card)+' / 요소 집합 대상 번호')
         elif key.startswith('/SURF/SEG/'):
             rows=_rows(card,minimum=2);title=_title(card)
             if title in model['surfaces']:_error(card,'중복된 native surface title입니다')
@@ -229,7 +252,7 @@ def parse_source(source):
                 if seg in seen:_error(card,'native segment ID가 중복됩니다')
                 seen.add(seg);faces.append(nodes)
             surfaces[ident]=(title,faces,card);model['surfaces'][title]=[]
-        elif key.startswith('/FUNCT/'):
+        elif key.startswith('/FUNCT/') and ident not in material_projection['functions']:
             rows=_rows(card,3)
             for row in rows[1:]:_tail(row,40,card)
             if [[_real(row[:20],card),_real(row[20:40],card)] for row in rows[1:]]!=[[0.,1.],[1.,1.]]:
@@ -253,8 +276,12 @@ def parse_source(source):
             field(card,4,'friction',20,40)
         elif key.startswith('/GRAV/'):
             rows=_rows(card,2);_tail(rows[1],100,card);field(card,1,'acceleration',80,100,unit='mm/s^2')
+        elif key.startswith('/TH/BRIC/'):
+            _rows(card,4);field(card,3,'history_element_id',0,10,kind='integer',label=_title(card)+' / 이력 원 요소')
+        elif key.startswith('/TH/INTER/'):
+            _rows(card,3);field(card,2,'history_contact_id',0,10,kind='integer',label=_title(card)+' / 이력 원 접촉쌍')
     if not model['nodes'] or not model['elements'] or len(model['nodes'])>1000000 or len(model['elements'])>1000000:
-        raise SourceError('첫 native 입력은 1~1000000개의 절점과 C3D4 요소가 필요합니다')
+        raise SourceError('native 입력은 1~1000000개의 절점과 지원 solid 요소가 필요합니다')
     for eid,element in model['elements'].items():
         if set(element['nodes'])-model['nodes'].keys():raise SourceError('native 요소가 없는 node ID를 참조합니다')
         pid=native_element_parts[eid]
@@ -263,6 +290,11 @@ def parse_source(source):
         if prop not in properties or mat not in material_ids:_error(card,'native PART의 property/material이 없습니다')
         model['assignment'][eid]=material_ids[mat]
         model['elsets'].setdefault('P'+str(pid),set()).add(eid)
+        model['lineage']['elsets']['P'+str(pid)]={'native_id':pid,'label':title,'origins':[deepcopy(card['origin'])],
+            'effective_ids':sorted(model['elsets']['P'+str(pid)]),'material_id':mat,'property_id':prop}
+        if model['materials'][material_ids[mat]].get('_elastic_type')=='TRACTION':
+            if element['type']!='C3D8':_error(card,'LAW117은 정확한 8절점 양두께 계면에만 적용합니다')
+            element['type']='COH3D8'
     # Even unreferenced influence cards must not bypass the effective-property
     # gate. This first subset rejects unused PART/MAT/PROP, rather than pretending
     # their fields were validated by the referenced-element postflight loop.
@@ -275,7 +307,7 @@ def parse_source(source):
         if ident not in used_props:_error(card,'참조되지 않은 native PROP 필드는 실행 검증 대상이 아닙니다')
     for ident in material_ids:
         if ident not in used_mats:
-            _error(table['/MAT/ELAST/'+str(ident)],'참조되지 않은 native material은 실행할 수 없습니다')
+            _error(next(c for c in starter if c['key'].startswith('/MAT/') and c['key'].rsplit('/',1)[1]==str(ident)),'참조되지 않은 native material은 실행할 수 없습니다')
     # Expose the exact face-ID mapping; duplicate/ambiguous topology is not matched.
     from .impact_sets import facets
     exact_faces={}
@@ -284,7 +316,7 @@ def parse_source(source):
         faces=[]
         for native_face in native_faces:
             matches=exact_faces.get(tuple(native_face),[])
-            if len(matches)!=1:_error(card,'native surface가 정확히 하나의 방향 있는 C3D4 면과 대응하지 않습니다')
+            if len(matches)!=1:_error(card,'native surface가 정확히 하나의 방향 있는 요소면과 대응하지 않습니다')
             faces.append((str(matches[0][0]),matches[0][1]))
         if len(set(faces))!=len(faces):_error(card,'동일 요소면이 중복되었습니다')
         model['surfaces'][title]=faces
@@ -315,6 +347,9 @@ def parse_source(source):
         if set(elements)-model['elements'].keys():_error(card,'GRBRIC에 없는 element ID가 있습니다')
         model['elsets']['B'+str(bid)]=set(elements)
     controls=default_settings();controls['source']=deepcopy(source)
+    for name in ('bulk_damage','cohesive'):controls[name]=deepcopy(material_projection[name])
+    from .impact_interface import default_control
+    controls['interface_controls']=[default_control(row['material']) for row in controls['cohesive']]
     initial={'nodes':deepcopy(model['nodes']),'velocities_mm_s':{},'units':'Mg/mm/s/N/MPa',
              'input_route':'NATIVE_DIRECT','active_state':'UNKNOWN'}
     for card in starter:
@@ -383,7 +418,9 @@ def parse_source(source):
             or t['mass_scaling'] and t['target_step_s']<=0):
         raise SourceError('종료·출력 간격·CFL·mass scaling을 확인하세요')
     controls['time']=t
-    physics=validate_physics(graphs['starter']['text'],model,initial,controls)
+    from .impact_native_material_cards import physics_text, project_controls
+    project_controls(starter,model,controls,material_projection,field)
+    physics=validate_physics(physics_text(graphs['starter']['text'],model,material_projection),model,initial,controls)
     if solid_dt is not None:
         if t['mass_scaling'] or solid_dt!=t['scale']:
             _error(engine_table['/DT1/BRICK/STOP'],'DT1은 mass scaling 없이 /DT와 같은 명시 scale을 사용해야 합니다')
@@ -399,11 +436,11 @@ def parse_source(source):
         if initial['velocities_mm_s'].get(n,[0.,0.,0.])[axis-1]!=0:
             raise SourceError('구속 자유도와 native 초기속도가 충돌합니다')
     from .impact_native_b import definition
-    b_definition=definition(starter,graphs['starter']['text'],model,controls)
+    b_definition=definition(starter,graphs['starter']['text'],model,controls,material_projection)
     return {'model':model,'settings':controls,'initial':initial,'physics':physics,'fields':fields,'b_definition':b_definition,
             'cards':starter+engine,'starter_text':graphs['starter']['text'],'engine_text':graphs['engine']['text'],
             'name':run_name,'starter':bundle['starter'],'engine':bundle['engine'],
-            'support':'NATIVE_2025_ELASTIC_C3D4_V1'}
+            'support':'NATIVE_2025_BOUNDED_SOLID_MATERIAL_V1'}
 
 
 def settings_from_source(source):
@@ -418,10 +455,11 @@ def validate_settings(settings):
     if not isinstance(settings,dict) or set(settings)-optional!=set(default_settings())-optional:
         raise ValueError('native 충격 정의의 항목을 확인하세요')
     parsed=parse_source(settings['source'])
-    for name in ('time','gravity_mm_s2','motions','contacts'):
-        if settings.get(name)!=parsed['settings'][name]:
-            raise SourceError('native 원문과 '+name+' 표 값이 다릅니다. 원문 field의 명시 편집으로 적용하세요')
-    if settings.get('cohesive'):raise SourceError('첫 native 직접 경로는 elastic C3D4입니다. LAW117은 별도 지원 범위입니다')
+    for name in ('time','gravity_mm_s2','motions','contacts','cohesive','bulk_damage','interface_controls'):
+        if settings.get(name,[])!=parsed['settings'].get(name,[]):
+            label={'time':'시간','gravity_mm_s2':'중력','motions':'초기 운동','contacts':'접촉',
+                   'cohesive':'응집 물성','bulk_damage':'벌크 손상','interface_controls':'계면 조건'}[name]
+            raise SourceError('native 원문과 '+label+' 값이 다릅니다. 원 입력 수치를 명시적으로 편집하세요')
     from .impact_sets import apply
     model=apply(parsed['model'],settings['source'],settings.get('generated_sets',[]))
     from .impact_reference_bindings import validate as validate_bindings
@@ -433,7 +471,9 @@ def validate_settings(settings):
                'contact_force':'/ANIM/VECT/CONT','contact_impulse':'/ANIM/VECT/CONT','stress':'/ANIM/BRICK/TENS/STRESS'}
     declared={c['key'] for c in parsed['cards'] if c['role']=='engine'}
     for row in settings.get('responses',[]):
-        if requested.get(row['quantity']) not in declared:raise SourceError('선택 응답의 native 출력 카드가 없습니다')
+        output=requested.get(row['quantity'])
+        if row['quantity'] in ('cohesive_damage','cohesive_opening','cohesive_slip'):output='/ANIM/BRICK/DAMA' if row['quantity']=='cohesive_damage' else '/ANIM/VECT/DISP'
+        if output not in declared:raise SourceError('선택 응답의 native 출력 카드가 없습니다')
     return deepcopy(settings)
 
 
@@ -445,7 +485,10 @@ def edit_field(settings, field_id, value, *, reason, expected_source_sha256):
     if len(matches)!=1:raise SourceError('정확한 native 원문 field를 선택하세요')
     f=matches[0]
     if type(value) not in (int,float) or not math.isfinite(value):raise SourceError('유한한 수치를 입력하세요')
-    token=format(value,'.17g') if f['kind']=='token' else f'{value:{f["width"]}.12e}'
+    if f['kind'] in ('integer','signed_integer'):
+        if value!=int(value) or f['kind']=='integer' and value<=0:raise SourceError('정확한 정수 대상 번호를 입력하세요')
+        token=f'{int(value):{f["width"]}d}'
+    else:token=format(value,'.17g') if f['kind']=='token' else f'{value:{f["width"]}.12e}'
     if f['kind']!='token' and len(token)!=f['width']:raise SourceError('수치가 native field 폭을 벗어납니다')
     source=replace_range(settings['source'],f['file'],f['start'],f['end'],token,reason=reason,
                          expected_source_sha256=expected_source_sha256)
@@ -459,7 +502,7 @@ def edit_field(settings, field_id, value, *, reason, expected_source_sha256):
     # Source is authoritative. Refresh only its exactly projected physical controls.
     result=settings_from_source(source)
     result['responses']=deepcopy(settings.get('responses',[]))
-    for key in ('b_responses','bulk_damage','interface_controls'):
+    for key in ('b_responses',):
         if key in settings:result[key]=deepcopy(settings[key])
     # Generated target receipts bind the source bytes; retain as stale instead of silently re-anchoring.
     result['generated_sets']=deepcopy(settings.get('generated_sets',[]))

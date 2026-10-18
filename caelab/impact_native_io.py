@@ -9,9 +9,9 @@ from .dynamic_native_stream import _stamp, _view_stamp, _path_stat, _open_native
 from .execution_control import check_cancelled
 
 
-def read_bytes(path, *, expected=None, maximum=256*1024*1024):
+def read_bytes(path, *, expected=None, maximum=256*1024*1024, allow_empty=False):
     path=Path(path).absolute();before=_path_stat(path)
-    if not 0<before.st_size<=maximum:raise ValueError('Native payload exceeds the declared single-file bound')
+    if not (0 if allow_empty else 1)<=before.st_size<=maximum:raise ValueError('Native payload exceeds the declared single-file bound')
     stamp=_stamp(before);view=_view_stamp(before)
     with _open_native(path) as stream:
         handle=_view_stamp(os.fstat(stream.fileno()))

@@ -96,7 +96,7 @@ class ImpactAdapter:
                         Path(domain.__file__).with_name('impact_source.py'),
                         Path(domain.__file__).with_name('impact_sets.py'),
                         *[Path(domain.__file__).with_name(name) for name in (
-                            'impact_assembly.py','impact_assembly_materials.py','impact_input_edits.py','impact_rad_source.py',
+                            'impact_assembly.py','impact_assembly_materials.py','impact_native_material_cards.py','impact_input_edits.py','impact_rad_source.py',
                             'impact_native.py','impact_native_b.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
                             'impact_reference_bindings.py','impact_b.py','impact_bulk.py','impact_bulk_deck.py',
                             'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py')]]
@@ -181,7 +181,8 @@ class ImpactAdapter:
                 frozen={key:item['sha256'] for key,item in direct_receipt['files'].items()}
                 save_json(out/'physical_admission.json',{'physics':physics,
                     'route':'NATIVE_DIRECT','original_native_bytes_preserved':True})
-                damage_receipt={'elements':{},'geometry':{},'status':'NOT_REQUESTED_NATIVE_ELASTIC'}
+                damage_receipt=deepcopy((parsed['b_definition'] or {}).get('cohesive') or
+                    {'elements':{},'geometry':{},'status':'NOT_REQUESTED_NATIVE_ELASTIC'})
                 result['checks'].append({'name':'native_direct_mesh_and_physics','status':'PASS',
                                         'converter_execution':'NOT_PERFORMED',**physics})
             else:

@@ -56,8 +56,11 @@ def verify(text,model,settings,definition):
     for item in definition['cohesive']['elements'].values():
         mid=item['material_id'];name=item['material']
         law=next(v for v in settings['cohesive'] if v['material']==name)
-        expected=impact_bulk_deck.cards(law_card(mid,name,model['materials'][name],law))
-        if blocks.get('/MAT/LAW117/'+str(mid))!=expected['/MAT/LAW117/'+str(mid)]:
+        key='/MAT/LAW117/'+str(mid)
+        native_cards=definition['cohesive'].get('native_cards')
+        expected=(native_cards.get(key) if native_cards is not None else
+                  impact_bulk_deck.cards(law_card(mid,name,model['materials'][name],law))[key])
+        if expected is None or blocks.get(key)!=expected:
             raise ValueError('The retained LAW117 envelope was changed by a bulk/contact extension')
 
 
@@ -121,10 +124,24 @@ def append_readback(folder,model,settings,result,frames,*,partial=False,unit_evi
         if pin is not None:
             if pin['relative']!='b_definition.json':raise ValueError('B definition artifact differs from its receipt')
             definition=pinned_json(pin)
-            starter=root/'native'/(name+'_0000.rad')
-            starter_pin=(retained['native_artifacts']['native/'+name+'_0000.rad'] if retained is not None
-                         else file_pin(root,starter))
-            text=read_bytes(admit_pin(root,starter_pin),expected=starter_pin,maximum=64*1024*1024).decode('ascii')
+            if settings.get('source',{}).get('format')=='RAD':
+                from .impact_source import flatten
+                source_pins={}
+                def read_native(member):
+                    relative='native/'+member
+                    member_pin=(retained['native_artifacts'][relative] if retained is not None else
+                                file_pin(root,root/relative))
+                    payload=read_bytes(admit_pin(root,member_pin),expected=member_pin,maximum=64*1024*1024,
+                        allow_empty=member_pin['bytes']==0)
+                    source_pins[relative]=deepcopy(member_pin)
+                    return payload
+                text=flatten(settings['source']['bundle']['starter'],read_native,dialect='RAD')[0]
+                record['definition_source_files']=source_pins
+            else:
+                starter=root/'native'/(name+'_0000.rad')
+                starter_pin=(retained['native_artifacts']['native/'+name+'_0000.rad'] if retained is not None
+                             else file_pin(root,starter))
+                text=read_bytes(admit_pin(root,starter_pin),expected=starter_pin,maximum=64*1024*1024).decode('ascii')
             verify(text,model,settings,definition)
             record['definition_pin']=deepcopy(pin)
     except errors as error:
