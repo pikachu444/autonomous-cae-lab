@@ -348,17 +348,20 @@ def _activate(client, origin):
     return {'status': 'ACTIVATED', 'document_id': origin['id'], 'command_id': identifier}
 
 
-def open_native_input(client, input_id, parent=None):
+def open_native_input(client, input_id, parent=None, *, source_label='해석 입력 모델'):
     """Open the registered editable input, without executing its analysis."""
     input_id = check_id(input_id)
     native = client.native_input(input_id)
+    if native.get('editable_role')=='REFERENCE_BASELINE_NOT_EXECUTABLE_TRANSFER':
+        raise ValueError('보관된 CAD는 전달 전 기준 모델입니다. 계산에는 별도로 보존한 매핑 변위를 사용했습니다. '
+                         '이 CAD를 계산 당시의 경계조건으로 수정·재실행할 수 없습니다.')
     if (native.get('id') != input_id or native.get('kind') not in {
             'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_beam',
             'frozen_connector', 'frozen_pretension', 'frozen_composite_shell'} or
             not native.get('editable_path')):
         raise ValueError('편집할 해석 입력 모델을 찾을 수 없습니다. 등록한 원 입력을 확인하세요.')
     return _spawn(client, ['pre', '--source', native['editable_path'],
-                          '--source-label', '해석 입력 모델'])
+                          '--source-label', source_label])
 
 
 def open_origin(client, job_id, parent=None):

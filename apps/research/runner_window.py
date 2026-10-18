@@ -727,7 +727,8 @@ class RunnerWindow(QMainWindow):
             dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
             self._contact_run_dialog=dialog
             dialog.show()
-        self._request('contact-steps:'+identifier,lambda:self.client.result(identifier,selection={'responses':[]}),
+        self._request('contact-steps:'+identifier,lambda:self.client.result(identifier,
+            selection={'responses':[],'include_executed_setup':True}),
             done,relevant=lambda:(identifier,epoch)==(self.selected_job_id,self._selection_epoch))
 
     def open_selected_origin(self):

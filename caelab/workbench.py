@@ -636,6 +636,17 @@ class Workbench:
         if receipt['kind'] in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
+            if receipt['kind']=='frozen_contact':
+                from .adapters.contact_fem import validate_snapshot
+                _,model,pins,_=validate_snapshot(path)
+                transfer=model.get('displacement_transfer')
+                if transfer:
+                    if transfer.get('status')!='READY' or transfer.get('boundary_dofs')!=model['boundary_dofs']:
+                        raise ValueError('The derived displacement-transfer input is inconsistent')
+                    result['editable_role']='REFERENCE_BASELINE_NOT_EXECUTABLE_TRANSFER'
+                    result['editable_relationship']={'baseline_fcstd_sha256':pins['editable.FCStd']['sha256'],
+                        'captured_model_sha256':transfer['captured_model_sha256'],
+                        'derived_model_sha256':canonical_hash(model)}
         if receipt['kind'] == 'native_design':
             result['files'] = [{'path': str(contained(self.root, item['file'])),
                                'relative': item['relative'], 'sha256': item['sha256'], 'bytes': item['bytes']}

@@ -404,6 +404,8 @@ def _read_result(path, *, verify, selection, arrays):
         # Candidate receipts compare the actual bound input, not its packed
         # array references. Keep unrelated native fields/diagnostics packed.
         result['settings'] = unpack(result.get('settings', {}))
+    if isinstance(selection,dict) and selection.get('include_executed_setup'):
+        result['executed_setup']=unpack(result.get('executed_setup',{}))
     if isinstance(selection,dict) and selection.get('metadata_only'):
         return result
     if isinstance(selection, dict):

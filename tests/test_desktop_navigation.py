@@ -422,6 +422,14 @@ def test_closed_origin_still_rejects_unrelated_native_receipt_kind(client, proce
     assert not processes and not client.commands
 
 
+def test_transfer_baseline_cad_does_not_open_as_executable_input(client, processes):
+    client.native_input=lambda identifier:{'id':identifier,'kind':'frozen_contact',
+        'editable_path':'baseline.FCStd','editable_role':'REFERENCE_BASELINE_NOT_EXECUTABLE_TRANSFER'}
+    with pytest.raises(ValueError,match='전달 전 기준 모델'):
+        desktop.open_native_input(client,'Dtransfer')
+    assert not processes and not client.commands
+
+
 def test_inline_connector_navigation_has_no_retained_cad_copy():
     from caelab.desktop_links import DesktopLinks
     from test_connector_model import draft

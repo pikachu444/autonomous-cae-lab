@@ -396,7 +396,7 @@ def handle(handler,method,path,query):
             raise ServiceError(400,'Unknown result selection')
         selected=query.get('responses',[None])[0]
         selection=json.loads(query['selection'][0]) if 'selection' in query else (selected.split(',') if selected else None)
-        if isinstance(selection,dict) and set(selection)-{'responses','component','location','rows','time_range','metadata_only'}:
+        if isinstance(selection,dict) and set(selection)-{'responses','component','location','rows','time_range','metadata_only','include_executed_setup'}:
             raise ServiceError(400,'Unknown response selection')
         return handler._json(200,workbench.result(match.group(1),selection=selection))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)/native',path)

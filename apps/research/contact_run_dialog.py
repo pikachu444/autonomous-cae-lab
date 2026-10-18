@@ -139,16 +139,17 @@ class ContactRunDialog(QDialog):
         self.canvas.draw_idle()
     def open_saved(self):
         def work():
-            from .desktop import _spawn
+            from .desktop import open_native_input
             nav=self.runner.client.job_navigation(self.job_id)
             identifier=nav.get('retained_design_input_id')
             if not identifier: raise ValueError('계산에 사용한 편집 가능 입력이 없습니다')
             native=self.runner.client.native_input(identifier)
             if native.get('id')!=identifier or native.get('kind')!='frozen_contact' or not native.get('editable_path'):
                 raise ValueError('이 계산의 보존 입력이 아닙니다')
-            return _spawn(self.runner.client,['pre','--source',native['editable_path'],'--source-label','계산 조건 수정'])
+            return open_native_input(self.runner.client,identifier,source_label='계산 조건 수정')
         self.runner._request('contact-source:'+self.job_id,work,
             lambda value,ticket:self.message.setText('계산 당시의 입력을 새 설계로 열었습니다. 해당 단계를 선택해 수정하고 새로 실행하세요.'),
+            failed=lambda error:self.message.setText(str(error)),
             relevant=lambda:self.isVisible())
     def open_post(self):
         def work():

@@ -5,6 +5,7 @@ QUAD8: (0,1,2,3,01,12,23,30), 0<=r,s<=1.
 Derivatives have shape (2, nodes), rows d/dr and d/ds.
 No native owner, interpolation fallback, inverse mapping or data storage.
 """
+import math
 import numpy as np
 
 
@@ -39,3 +40,41 @@ def shape(kind, r, s):
 
 def derivatives(kind, r, s):
     return {6:tri6_derivatives,8:quad8_derivatives}[kind](r,s)
+
+
+def regularity(points):
+    """Conservative whole-domain injectivity certificate, not point sampling.
+
+The derivative of the projected, affinely normalized map is polynomial. Its
+Bernstein matrix coefficients bound ||Dg-I|| by convexity of the spectral norm.
+A bound strictly below one certifies injectivity on the convex natural domain,
+including its boundary. No shared/global normal is imposed on adjacent faces.
+"""
+    kind=len(points);corner=2 if kind==6 else 3
+    first=points[1];normal=np.cross(first,points[corner])
+    lengths=math.hypot(*first),math.hypot(*normal)
+    if not all(math.isfinite(v) and v>0 for v in lengths):
+        raise ValueError('고차면의 기준 corner 평면을 확인할 수 없습니다. 퇴화 또는 정규성 미확정 면은 측정하지 않습니다.')
+    first=first/lengths[0];normal=normal/lengths[1]
+    plane=np.array([first,np.cross(normal,first)])
+    center=(1/3,1/3) if kind==6 else (.5,.5)
+    affine=(derivatives(kind,*center)@points@plane.T).T
+    try:inverse=np.linalg.inv(affine);condition=np.linalg.cond(affine)
+    except np.linalg.LinAlgError:raise ValueError('고차면의 기준 투영이 퇴화했습니다. 면 순서·중간절점을 확인하세요.') from None
+    def residual(r,s):
+        return inverse@(derivatives(kind,r,s)@points@plane.T).T-np.eye(2)
+    if kind==6:
+        coefficients=np.array([residual(0,0),residual(1,0),residual(0,1)])
+    else:
+        values=np.array([[residual(r,s) for s in (0,.5,1)] for r in (0,.5,1)])
+        inv_basis=np.array([[1.,0,0],[-.5,2,-.5],[0,0,1.]])
+        coefficients=np.einsum('ai,bj,ijxy->abxy',inv_basis,inv_basis,values).reshape(-1,2,2)
+    if not np.isfinite(coefficients).all() or not math.isfinite(condition):
+        raise ValueError('고차면 정규성의 수치 범위를 확인할 수 없습니다.')
+    bound=max(float(np.linalg.norm(matrix,2)) for matrix in coefficients)
+    geometry_scale=float(np.linalg.norm(inverse,2))*max(math.hypot(*point) for point in points)
+    margin=64*np.finfo(float).eps*(condition+geometry_scale)*max(1.,bound)
+    if not math.isfinite(margin) or bound+margin>=1:
+        raise ValueError('고차면의 정규성을 전 영역에서 확인하지 못했습니다. 접힘·중간절점 순서 또는 큰 overhang을 확인하세요. 정상 overhang도 이 보수적 graph 검증 밖일 수 있습니다.')
+    return {'method':'affine_projection_contraction_bernstein','derivative_bound':bound,'roundoff_margin':margin,
+            'status':'CERTIFIED_GRAPH_PATCH','engineering_qualification':'UNKNOWN'}

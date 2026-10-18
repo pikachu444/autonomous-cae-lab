@@ -18,8 +18,8 @@
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
-| material_numerical_impl / Sol-high | B8.3.L01 ConnectionWindow/recovery/portable UI·전용 검사/사용법 freeze。공통 portable owner/참조/보존·native identity는 Codex | Research9종·native Pre/Post의 그룹별 편집/저장/재복사/cold와 같은 큰 B7.5 묶음의 실제 인수 완료. 처리 당시 입력/사본에서 새 처리/원 채널 계보 교정과 두 P2 폐쇄. 큰 재복사의 두300초 응답 유실은 원UUID·완료marker 일치/읽기검증으로 복구; 성능 PASS 아님. 원본 차단한 세 번째process의 결과·5자산·MD bytes/PDF본문 동일 확인 |
-| native_impl / Sol-high | B6.3.L01 structural_field_ports/transfer·post_spatial_mapping·전용 검사/사용법。공통 snapshot/등록·실행 연결은 Codex | B5.1 `0fb39e8` 게시 후 실제 후속. 원 CCX U를 다시 계산하지 않고 다른35절점/8 C3D10의102 DOF 미리보기·실제 FreeCAD 준비 완료. 기존 contact 조건/입력 compiler·frozen 등록/Runner로 수신1회 인수 중. 내부35번 절점은 자유 |
+| material_numerical_impl / Sol-high | B8.3.L01 freeze·게시 후 B8.1.L01 전용 owner 열기 검사/사용법. 공통 launcher/activation/lifecycle은 Codex | B8.3 `6b1b372` 게시. B8.1 실제 후속 호출에서 같은 Material의 중복 창을 재현·정리했고 기본 native Data 진입도 별도로 확인 중. Python 호환 창의 성공을 native LabPlot 완료로 세지 않음 |
+| native_impl / Sol-high | B6.3.L01 domain/전용 검사 freeze. 현재 B4.5의 전용 native Post→Study 검사. 공통 snapshot/등록·실행 연결은 Codex | TR-U 원 source 재계산0/수신1회와 Runner·Post/cold·독립 검토 완료. U PASS, 원 엄격 기준의 절점 응력 FAIL·IP UNKNOWN을 유지. 후속 실제 ParaView 저장3건 완료; exact saved root의 dependency 등록 거절을 보존하고 공통 연결 후 같은 저장본 등록 대기 |
 | data_impl / Sol-high | B2.6.L04 impact_responses·history 선택·전용 검사/사용법。owner/API·Study/Plan 연결은 Codex | L03 P0/P1 `fb2013e` 게시. Pro의 동일 Simulation 한정 child 소유 방침을 수신했으나 pinned Engine의 TT>TSTOP 종료로 정확 .00225 최종 checkpoint 요건 미충족; 새 prefix/child0. 독립 후속 L04에서 원150표본과 P1 saved-owner 읽기·정확 interval/mask/support를 연결 중 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
 | native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.4 candidate detail 창/전용 검사/사용법 freeze。후속 B4.5.L01 law_native_fe/worker/inspection·전용 인수. 공통 host/Core는 Codex | B4.3 `881edf8` 게시 후 B4.4 실제 원 후보/기존 상세·실패·거절 복구·Report 자산/cold, 8검사와 Astra의51 hash/11실제 화면 검토 폐쇄. 새 fit/detail/native/provider0. 같은 담당에게 B4.5.L01 기존 J2/DP 동일 시험 인수를 실제 호출; 새 campaign 전 선언·근거 확인 |
@@ -58,9 +58,20 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B4.2와 B5.4도
 같은 담당에게 실제 후속 호출했다. B5.4는 `15569bb`, B4.2는 `b9ea19d`로 게시했다.
 혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
-L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. 현재 다음 행동은
-B8.3 검증 인도의 게시, TR-U 한정 수신 인도와 L04 선택의 실제 수신·보존 연결이다.
+L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. B4.4는
+`966d40e`, B8.3은 `6b1b372`로 원격 게시했다. 현재 다음 행동은 TR-U 한정 인도의
+게시, L04의 마지막 선택 표시 검토와 B4.5 원 결과의 Post/Study 연결, B8.1 정확 owner 열기다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
+
+TR-U 한정 인도는 원 CCX 변위를 다시 계산하지 않고 다른35절점/8 C3D10의 외곽
+34절점102 DOF에 적용했다. 내부35번 절점은 자유이며 기존 frozen 등록/Runner로 수신을
+한 번 실행했다. 실제 U는 기준을 통과했지만 FRD 절점 정상응력262.497 MPa는 선언한
+262.5 MPa와 엄격 허용값의 대조에서 FAIL이다. IP print가 없어 적분점 대조와 공학 판정은
+UNKNOWN이다. 허용값·원 입력·실패는 바꾸지 않았다. 실제 Runner 곡선/ParaView 변위와
+별도 cold, 전달 전 기준 CAD의 잘못된 재실행 차단을 확인했고 같은 Astra와 desktop 담당이
+한정 검토를 닫았다. 기준 FCStd는 매핑 BC를 편집하는 실행 모델이 아니며 전달 authoring GUI는
+아직 미완료다. [지원·사용법](docs/STRUCTURAL_U_TRANSFER_KO.md). 마지막 manifest 뒤 문서의
+수신 창 설명만 실제 Runner 범위로 좁혔으며 추가 native 실행으로 세지 않는다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
@@ -849,7 +860,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B6.1.L01 | 사용자 MFront→한 실제 FE interface | D | 개발 대기 | T4 |
 | B6.1.L02 | 구성식 increment·접선·FE IP 원값 인수 | A | 기존 구현 인수 대기 | T4 |
 | B6.2.L01 | 독립 PDE 의 선언 모델별 입력·실제 해·재개 | A | Windows ODE/P1 작업 인도 완료; 전체 declared profile와 구별 | native_impl / Codex |
-| B6.3.L01 | 변위 vector → 구조 Dirichlet port | D | 개발 대기 | T5 |
+| B6.3.L01 | 변위 vector → 구조 Dirichlet port | D | domain·실제 수신1회·Runner/Post/cold 한정 인도/검토 완료. U PASS·절점 응력 FAIL·IP UNKNOWN, authoring GUI 미완료 | native_impl / Codex |
 | B6.3.L02 | 초기 응력 tensor port | D | 개발 대기 | T5 |
 | B6.3.L03 | CCX 고정 지지 RF 에서 다른 C3D10 경계로 보존 하중 전달 | D | 구현 중 | post_windows_build_fix |
 | B6.3.L04 | 기존 P1 온도에서 3D 이중층·계면까지 | D | 미완성 실험 제품 경로 제거, native 수신기 미구현 | 미배정 |
@@ -860,7 +871,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B7.5.L01 | 실제 3D 장면·판단·수치가 들어간 한 보고서 | A | 한정 인수·원본 없는 cold/PDFMD·문헌 위치/단위 P2 폐쇄 | material_numerical_impl / Codex |
 | B7.6.L01 | 장비 없이 닫는 공통 취득·sequence·종료 소프트웨어 | D | 본코드 통합·한정 확인 완료, 실장비는 L02 | pending_acquisition_integration |
 | B7.6.L02 | 실제 장비 한 종류의 binding·권한·물리 stop 인수 | E | 외부 입력 대기 | T6 |
-| B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | 기존 구현 인수 대기 | T7 |
+| B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | 실제 후속 배정·동일 Material 중복 창 재현, 기존 activation/lifecycle 공통 연결 중. native Data 별도 | material_numerical_impl / Codex |
 | B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | 기존 구현 인수 대기 | T7 |
 | B8.3.L01 | 이동 사본 전체 선언 문서의 cold 편집 | A | 그룹11종·같은 큰 묶음의 실제 편집/저장/재복사/cold/재출력 인수 완료, 원 응답 유실과 느린 성능 유지 | material_numerical_impl / Codex |
 | B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 구현 인수 대기 | T2 |
