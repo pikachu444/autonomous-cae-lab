@@ -1129,7 +1129,7 @@ class RequestPlanWindow(NumericalWindow):
             if not relevant():
                 return
             if document.get('dirty') or not document.get('saved_revision') or document.get('diagnostics'):
-                self.message.setText('Save a valid model in its own tool before selecting it.')
+                self.message.setText('모델의 입력 오류를 확인하고 원 도구에서 저장한 뒤 선택하세요.')
                 return
             if document['kind'] == 'evaluation':
                 inputs = {'backend': 'evaluation.definition', 'settings': {'definition_ref': {
@@ -1138,11 +1138,11 @@ class RequestPlanWindow(NumericalWindow):
             else:
                 inputs = document['draft']
             if not isinstance(inputs, dict) or not isinstance(inputs.get('backend'), str) or not isinstance(inputs.get('settings'), dict):
-                self.message.setText('This saved model has no supported evaluator/settings declaration. Existing inputs remain.')
+                self.message.setText('이 저장 모델에는 지원하는 계산 모델과 입력이 없습니다. 기존 입력은 유지됩니다.')
                 return
             from PySide6.QtWidgets import QMessageBox
-            answer = QMessageBox.question(self, 'Use saved model', 'Use ' + document['title'] +
-                ' as the evaluator? Existing variable bounds, responses and method options will remain for review.')
+            answer = QMessageBox.question(self, '저장 모델 선택', document['title'] +
+                '을 계산 모델로 사용하시겠습니까? 기존 변수 범위와 응답, 방법 설정은 유지되므로 함께 확인하세요.')
             if answer != QMessageBox.StandardButton.Yes or not relevant():
                 return
             model_source={'document_id':document['id'],'kind':document['kind'],
@@ -1151,12 +1151,12 @@ class RequestPlanWindow(NumericalWindow):
             if self.operation.currentData() == 'fit':
                 trials = self.edited_draft()['request']['inputs'].get('experiments', [])
                 if not isinstance(trials, list) or not trials or any(not isinstance(row, dict) for row in trials):
-                    self.message.setText('Add a trial before choosing its model protocol.')
+                    self.message.setText('시험을 추가한 뒤 그 시험에 사용할 모델 조건을 선택하세요.')
                     return
                 selected = 0
                 if len(trials) > 1:
                     labels = [str(index + 1) + ': ' + str(row.get('id')) for index, row in enumerate(trials)]
-                    label, ok = QInputDialog.getItem(self, 'Use model protocol', 'Trial', labels, editable=False)
+                    label, ok = QInputDialog.getItem(self, '모델 조건 선택', '시험', labels, editable=False)
                     if not ok or not relevant():
                         return
                     selected = labels.index(label)
@@ -1170,9 +1170,9 @@ class RequestPlanWindow(NumericalWindow):
             documents = [row for row in payload['documents'] if row.get('kind') in {'material', 'pde', 'simulation', 'evaluation'}]
             labels = [str(i+1)+'. '+row['title']+' ('+row['kind']+')' for i,row in enumerate(documents)]
             if not labels:
-                self.message.setText('No saved model is available. Enter a registered evaluator and its settings in Model / advanced.')
+                self.message.setText('선택할 저장 모델이 없습니다. 원 도구에서 모델을 저장한 뒤 다시 선택하세요.')
                 return
-            label, ok = QInputDialog.getItem(self, 'Use saved model', 'Model', labels, editable=False)
+            label, ok = QInputDialog.getItem(self, '저장 모델 선택', '모델', labels, editable=False)
             if ok and relevant():
                 self._call(lambda: self.client.document_read(documents[labels.index(label)]['id']), read, relevant=relevant)
         return self._call(self.client.documents, listed, relevant=relevant)
@@ -1825,7 +1825,7 @@ class RequestPlanWindow(NumericalWindow):
         inputs = self.edited_draft()['request']['inputs']
         settings = self._model_settings(inputs)
         if not isinstance(inputs.get('backend'), str) or settings is None:
-            self.message.setText('Select a registered backend and its explicit settings before reading model variables.')
+            self.message.setText('계산 모델과 입력을 선택한 뒤 모델 변수를 추가하세요.')
             return
         relevant = lambda: self._request_context() == context and not self.conflict
         def declared(payload):
@@ -1833,7 +1833,7 @@ class RequestPlanWindow(NumericalWindow):
             from .numerical_mixed_plan import descriptor_complete
             if (not isinstance(descriptors, list) or not descriptors or
                     not all(descriptor_complete(row) for row in descriptors)):
-                self.message.setText('This backend has no complete declared variable descriptors. Existing inputs were preserved.')
+                self.message.setText('모델의 변수 정보를 읽지 못했습니다. 모델 입력을 확인하세요. 기존 입력은 유지됩니다.')
                 return
             selected = self._select_model_variables(descriptors)
             if selected and relevant():
@@ -1845,20 +1845,20 @@ class RequestPlanWindow(NumericalWindow):
                 def append_variables(value):
                     current = value.setdefault('variables', [])
                     if not isinstance(current, list) or any(not isinstance(row, dict) for row in current):
-                        raise ValueError('Repair the variables list in Model / advanced before adding declarations.')
+                        raise ValueError('고급 입력에서 변수 목록을 확인한 뒤 모델 변수를 추가하세요.')
                     if any(not isinstance(row.get('id'), str) for row in current):
-                        raise ValueError('Repair variable IDs before adding declared variables.')
+                        raise ValueError('변수 식별명을 확인한 뒤 모델 변수를 추가하세요.')
                     ids = {row['id'] for row in current}
                     current.extend(row for row in variables if row['id'] not in ids)
                 if self._edit_structure(append_variables):
-                    self.message.setText('Variables added. Existing bounds and units were kept.')
+                    self.message.setText('모델 변수를 추가했습니다. 기존 범위와 단위는 유지됩니다.')
         def begin():
             if relevant():
                 self._call(lambda: self.client.describe_inputs({'backend': inputs['backend'], 'settings': settings}),
                            declared, relevant=relevant)
         if self._busy_background:
             self._pending_adoption = begin
-            self.message.setText('Waiting for the current read, then reading the exact declared model variables.')
+            self.message.setText('현재 자료 읽기가 끝나면 선택한 모델의 변수를 읽습니다.')
             self._update_actions()
             return True
         begin()
@@ -1966,19 +1966,23 @@ class RequestPlanWindow(NumericalWindow):
         label.setWordWrap(True)
         layout.addWidget(label)
         table = readonly_table(['입력', '이전 값', '후보 값', '단위', '계산 단계'])
+        table.setObjectName('candidateAdoptionChanges')
         changes = preview['changes']
         stage_names={row['id']:row.get('name',row['id']) for row in preview.get('draft',{}).get('stages',[])}
         table.setRowCount(len(changes))
         for row, change in enumerate(changes):
             path='/'.join(map(str,change['path']))
-            name=change['path'][-1] if change['path'] else '입력'
-            for column, value in enumerate((name, change.get('before'), change.get('after'), change.get('unit'), stage_names.get(change.get('stage'),change.get('stage')))):
+            name=change.get('label') or change.get('input_id') or path or '입력'
+            unit=change.get('unit') if change.get('unit') is not None else '미제공'
+            stage=stage_names.get(change.get('stage'),change.get('stage')) if change.get('stage') is not None else '해당 없음'
+            for column, value in enumerate((name, change.get('before'), change.get('after'), unit, stage)):
                 self._set_cell(table, row, column, value, False)
-            table.item(row,0).setToolTip(path)
+            table.item(row,0).setToolTip((str(change['input_id'])+'\n' if change.get('input_id') else '')+path)
         table.resizeColumnsToContents()
         layout.addWidget(table, 1)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText('확인한 입력 채택')
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('취소')
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -2030,17 +2034,17 @@ class RequestPlanWindow(NumericalWindow):
                     or canonical_hash(preview.get('source')) != canonical_hash(source)
                     or preview.get('result_sha256') != result_hash or preview.get('executed') is not False
                     or not isinstance(preview.get('changes'), list) or not isinstance(preview.get('draft'), dict)):
-                self.message.setText('Candidate preview does not match the exact selected source/result. Adoption was blocked.')
+                self.message.setText('후보 미리보기가 선택한 원본과 결과에 일치하지 않아 채택을 중단했습니다. 원본과 후보를 다시 선택하세요.')
                 return
             def target_read(target):
                 if not current_target(target, preview):
-                    self.message.setText('Original ' + target_kind.title() + ' input/session changed from the frozen Plan source. Adoption was blocked.')
+                    self.message.setText('원본 입력이나 연결이 계획을 만들 때와 달라 채택을 중단했습니다. 원본을 확인하고 계획에 다시 연결하세요.')
                     return
                 if not self._review_pde_changes(preview) or not relevant():
                     return
                 def checked(fresh):
                     if not current_target(fresh, preview) or fresh.get('generation') != target.get('generation'):
-                        self.message.setText('Original ' + target_kind.title() + ' changed during review. Reread and review before adopting.')
+                        self.message.setText('검토 중 원본이 변경됐습니다. 원본을 다시 읽고 후보 입력을 확인한 뒤 채택하세요.')
                         return
                     command_id = 'C' + uuid.uuid4().hex
                     request = {'plan_id': plan_id, 'job_id': job, 'candidate_id': candidate,
@@ -2329,6 +2333,18 @@ class RequestPlanWindow(NumericalWindow):
             run = next((row for row in self.document.get('runs',[]) if row['job_id']==job),{}) if self.document else {}
             submitted = run.get('draft',{}).get('request',{}).get('inputs',{})
             if plot(self,result,submitted):
+                analyses=result.get('sensitivity',[])
+                index=max(0,self.method_response.currentIndex())
+                item=analyses[min(index,len(analyses)-1)] if analyses else {}
+                if item.get('valid') is False and item.get('reason')=='RANK_DEFICIENT':
+                    for axis in self.figure.axes:
+                        for text in axis.texts:
+                            if text.get_text()=='RANK_DEFICIENT':
+                                text.set_text('설계행이 선형 종속이어서 회귀 영향도를 계산할 수 없습니다.')
+                    self.result_summary.setText('회귀 영향도 / rank '+str(item.get('rank','미제공'))+
+                        ' / 조건수 '+('미제공' if item.get('condition_number') is None else str(item['condition_number']))+
+                        ' / 사용 '+str(len(item.get('sample_ids',[])))+' / 제외 '+str(len(result.get('exclusions',[])))+
+                        ' / 독립적인 변수 조합을 추가하고 실행 예산을 확인한 뒤 새 계획을 실행하세요.')
                 self.figure.tight_layout()
                 self.canvas.draw_idle()
                 return

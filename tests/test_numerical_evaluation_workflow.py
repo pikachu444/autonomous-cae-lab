@@ -91,8 +91,8 @@ def run_first(store,folder,evaluation_id):
         settled(lambda:bool(window.document))
         window.purpose.setFocus();QTest.keyClicks(window.purpose,'Cooling Evaluation DOE')
         window.operation.setCurrentIndex(window.operation.findData('doe'));app.processEvents()
-        popups.add('Use saved model',source['title'],'saved-evaluation-picker')
-        popups.add('Use saved model','yes')
+        popups.add('저장 모델 선택',source['title'],'saved-evaluation-picker')
+        popups.add('저장 모델 선택','yes')
         window.choose_model_document();settled(lambda:window.edited_draft().get('model_source')==reference)
         assert window.edited_draft()['request']['inputs']['settings']['definition_ref']==reference
         popups.add('모델 변수 선택',0,'evaluation-variable-picker')

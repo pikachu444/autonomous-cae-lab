@@ -84,6 +84,7 @@ def _changes(model, bound, values, *, stage=None):
             path = ['inputs', name] if stage is None else ['stages', stage, 'inputs', name]
             changes.append({'path': path, 'before': deepcopy(before[name]['value']),
                             'after': deepcopy(after[name]['value']), 'unit': before[name]['unit'],
+                            'input_id':name,'label':before[name].get('label',name),
                             **({'stage': stage} if stage is not None else {})})
     return changes
 

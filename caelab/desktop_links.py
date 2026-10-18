@@ -308,9 +308,19 @@ class DesktopLinks:
 
     def pde_candidate_preview(self, plan_id, job_id, candidate_id):
         _, run, result, source, target, original, prepared = self._pde_candidate(plan_id, job_id, candidate_id)
+        from .backends import get_backend
+        from .model_parameters import _inputs
+        model=original['draft']
+        descriptors=_inputs(get_backend(model['backend']),model['settings'])
+        by_path={tuple(['settings',*row['settings_path']]):row for row in descriptors}
+        changes=self._draft_changes(original['draft'],prepared['draft'])
+        for change in changes:
+            descriptor=by_path.get(tuple(change['path']))
+            if descriptor is not None:
+                change.update(input_id=descriptor['id'],label=descriptor['label'],unit=descriptor['unit'])
         return {'target_document_id': target, 'candidate_id': candidate_id,
                 'draft': deepcopy(prepared['draft']), 'source': deepcopy(source),
-                'changes': self._draft_changes(original['draft'], prepared['draft']),
+                'changes': changes,
                 'candidate_source': deepcopy(prepared['source']),
                 'result_sha256': canonical_hash(result), 'plan_input_sha256': run['input_sha256'],
                 'executed': False, 'engineering_release': 'NOT_RELEASED'}

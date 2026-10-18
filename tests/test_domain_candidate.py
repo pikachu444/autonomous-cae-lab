@@ -114,7 +114,8 @@ def test_simulation_preview_is_pure_and_adoption_uses_owner_undo(workbench):
     assert preview['executed'] is False and preview['branch_plan'] == []
     assert preview['result_sha256'] == canonical_hash(wb.document_result(scene.plan['id'], scene.job_id))
     assert preview['changes'] == [{'path': ['inputs', 'conductivity'], 'before': 200.0,
-                                   'after': 220.00000000000003, 'unit': 'W/(m*K)'}]
+                                   'after': 220.00000000000003, 'unit': 'W/(m*K)',
+                                   'input_id':'conductivity','label':'conductivity'}]
     assert wb.document_read(scene.source['id'])['draft'] == scene.source['draft']
     assert {row['id'] for row in wb.documents()['documents']} == documents_before
     response = adopt(wb, scene)

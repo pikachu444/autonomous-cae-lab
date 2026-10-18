@@ -270,7 +270,7 @@ def test_model_trial_cancel_is_atomic_and_primary_limits_keep_identity(environme
     before=deepcopy(w.edited_draft())
     monkeypatch.setattr(QMessageBox,'question',lambda *a,**k:QMessageBox.StandardButton.Yes)
     def choose(parent,title,label,items,**kwargs):
-        return (items[0],title!='Use model protocol')
+        return (items[0],title!='모델 조건 선택')
     monkeypatch.setattr(QInputDialog,'getItem',choose)
     w.choose_model_document();wait(app,lambda:not w._busy,w)
     assert w.edited_draft()==before and not w.local_dirty
