@@ -71,7 +71,7 @@ def stage(tmp_path, monkeypatch):
 
     def run(command, **kwargs):
         worker = Path(native_bridge.__file__).resolve().with_name("freecad_parameter_worker.py")
-        assert command == ["SIMULATED FREECAD", str(worker)]
+        assert command == ["SIMULATED FREECAD", str(worker.with_name('freecad_worker_entry.py'))]
         assert 0 < kwargs["timeout"] <= 150 and kwargs["cwd"] == native_bridge.UPSTREAM
         assert kwargs["stdout"] == subprocess.PIPE and kwargs["stderr"] == subprocess.PIPE and kwargs["text"]
         assert kwargs["env"]["CAELAB_FREECAD_PARAMETER_WORKER"] == str(worker)

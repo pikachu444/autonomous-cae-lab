@@ -40,7 +40,8 @@ def _parameter_run_in(request, command, worker, directory, timeout, runtime_inpu
     if runtime_inputs is not None:
         (directory / "runtime-inputs.json").write_text(json.dumps(runtime_inputs, allow_nan=False), encoding="utf-8")
     env = {**os.environ, "FIXTURE_FREECAD_REQUEST": str(source), "FIXTURE_FREECAD_RESULT": str(result),
-           "CAELAB_FREECAD_PARAMETER_WORKER": str(worker)}
+           "CAELAB_FREECAD_PARAMETER_WORKER": str(worker),
+           "CAELAB_FREECAD_WORKER_ENTRY": str(Path(__file__).resolve().with_name('freecad_worker_entry.py'))}
 
     def save_output(stdout, stderr):
         for name, value in (("stdout.log", stdout), ("stderr.log", stderr)):
@@ -49,7 +50,8 @@ def _parameter_run_in(request, command, worker, directory, timeout, runtime_inpu
             (directory / name).write_text(value or "", encoding="utf-8")
 
     try:
-        run = subprocess.run([command, str(worker)], cwd=UPSTREAM, env=env,
+        entry = Path(__file__).resolve().with_name('freecad_worker_entry.py')
+        run = subprocess.run([command, str(entry)], cwd=UPSTREAM, env=env,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
         save_output(run.stdout, run.stderr)
         if not result.is_file():
@@ -264,7 +266,17 @@ def _preflight(model, native_values, info=None):
         return checks
 
 
-def main():
+def _native_run(request):
+    """Keep the pinned worker while adapting FreeCAD's script module name."""
+    command = os.environ.get('FREECAD_CMD') or shutil.which('freecadcmd') or shutil.which('FreeCADCmd')
+    if not command:
+        raise RuntimeError('FreeCADCmd is required; set FREECAD_CMD to its executable')
+    with tempfile.TemporaryDirectory() as directory:
+        return _parameter_run_in(request, command, UPSTREAM / 'fixturelab/freecad_worker.py',
+                                 Path(directory), 150, None)
+
+
+def _main():
     request = json.load(sys.stdin)
     store = Path(request["store"])
     native_cad.DESIGNS = store / "native_designs"
@@ -346,6 +358,15 @@ def main():
             raise ValueError("Native CAD source changed before the adapter result")
         answer["source_sha256"] = source_sha256
     print(json.dumps(answer, ensure_ascii=False))
+
+
+def main():
+    previous = native_cad._run
+    native_cad._run = _native_run
+    try:
+        _main()
+    finally:
+        native_cad._run = previous
 
 
 if __name__ == "__main__":

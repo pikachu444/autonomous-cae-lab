@@ -311,9 +311,9 @@ def test_owned_launch_keeps_trusted_worker_protocol_and_existing_inner_bound(tmp
 
     def run(command, **kwargs):
         seen.append((command, kwargs))
-        assert command == ["TRUSTED TEST EXECUTABLE", str(Path(native_bridge.__file__).with_name("freecad_parameter_worker.py").resolve())]
+        assert command == ["TRUSTED TEST EXECUTABLE", str(Path(native_bridge.__file__).with_name("freecad_worker_entry.py").resolve())]
         assert kwargs["cwd"] == native_bridge.UPSTREAM and kwargs["timeout"] == 150
-        assert kwargs["env"]["CAELAB_FREECAD_PARAMETER_WORKER"] == command[1]
+        assert kwargs["env"]["CAELAB_FREECAD_PARAMETER_WORKER"] == str(Path(native_bridge.__file__).with_name("freecad_parameter_worker.py").resolve())
         assert kwargs["stdout"] == native_bridge.subprocess.PIPE and kwargs["stderr"] == native_bridge.subprocess.PIPE
         assert json.loads(Path(kwargs["env"]["FIXTURE_FREECAD_REQUEST"]).read_text()) == request
         Path(kwargs["env"]["FIXTURE_FREECAD_RESULT"]).write_text(json.dumps({"ok": True, "result": {"native": True}}))
