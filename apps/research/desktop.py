@@ -281,6 +281,39 @@ def launch_material_observation(client, source, document_id=None):
     return _spawn(client, arguments)
 
 
+def launch_native_data(client, *, executable, sdk, document_id=None, project=None):
+    """Open the explicit native Data workspace in its separate Qt runtime."""
+    if bool(document_id) == bool(project):
+        raise ValueError('기존 Data 문서 또는 저장한 LabPlot 파일 하나를 선택하세요.')
+    executable = Path(executable).resolve(strict=True)
+    sdk = Path(sdk).resolve(strict=True)
+    if not executable.is_file() or not (sdk / 'bin').is_dir() or not (sdk / 'plugins').is_dir():
+        raise ValueError('native Data 실행 파일과 Qt SDK의 bin/plugins 폴더를 확인하세요.')
+    arguments = [str(executable)]
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith('CAELAB_DATA_') and key not in {
+                       'QT_QPA_PLATFORM', 'QT_QPA_PLATFORM_PLUGIN_PATH',
+                       'QML2_IMPORT_PATH', 'QML_IMPORT_PATH'}}
+    environment.update(CAELAB_SERVICE_URL=client.url, CAELAB_DONOR_SDK=str(sdk),
+                       QT_PLUGIN_PATH=str(sdk / 'plugins'),
+                       PATH=str(sdk / 'bin') + os.pathsep + environment.get('PATH', ''))
+    if document_id:
+        identifier = check_id(document_id)
+        document = client.document_read(identifier)
+        if document.get('id') != identifier or document.get('kind') != 'data':
+            raise ValueError('native Data에서 열 기존 자료 문서를 선택하세요.')
+        environment['CAELAB_DATA_DOCUMENT_ID'] = identifier
+        directory = executable.parent
+    else:
+        project = Path(project).resolve(strict=True)
+        if not project.is_file() or project.suffix.lower() != '.lml':
+            raise ValueError('저장한 LabPlot 작업 파일(.lml)을 선택하세요.')
+        arguments.append(str(project))
+        directory = project.parent
+    process = subprocess.Popen(arguments, cwd=directory, env=environment)
+    return {'status': 'LAUNCH_REQUESTED', 'pid': process.pid, 'service_url': client.url}
+
+
 def _activate(client, origin):
     receipt = client.document_command(check_id(origin['id']), 'document.activate', {},
         session_id=origin['session_id'], expected_generation=origin['generation'],
@@ -867,6 +900,12 @@ def _arguments(argv=None):
     choice.add_argument('--curve-origin')
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
     origin = sub.add_parser('origin', allow_abbrev=False); origin.add_argument('--job-id', required=True)
+    data_native = sub.add_parser('data-native', allow_abbrev=False)
+    data_native.add_argument('--executable', required=True)
+    data_native.add_argument('--sdk', required=True)
+    native_selection = data_native.add_mutually_exclusive_group(required=True)
+    native_selection.add_argument('--document-id')
+    native_selection.add_argument('--project')
     for name in sorted(TOOLS):
         tool = sub.add_parser(name, allow_abbrev=False)
         tool.add_argument('--job-id' if name == 'runner' else '--document-id')
@@ -902,6 +941,9 @@ def main(argv=None):
     elif args.tool == 'pre': result = _pre(client, args)
     elif args.tool == 'post': result = _post(client, args)
     elif args.tool == 'origin': result = open_origin(client, args.job_id)
+    elif args.tool == 'data-native':
+        result = launch_native_data(client, executable=args.executable, sdk=args.sdk,
+                                    document_id=args.document_id, project=args.project)
     else:
         from importlib import import_module
         arguments = ['--service', client.url]
