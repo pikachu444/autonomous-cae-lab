@@ -71,3 +71,12 @@ def test_curves_after_tables_stay_inside_printable_page_and_keep_source():
         block = block.next()
     assert image_count == 3
     assert content == original
+def test_study_observation_status_uses_same_caption_without_rewriting_source():
+    from copy import deepcopy
+    from apps.research.report_pages import blocks
+    content = {'kind': 'document', 'document': {'kind': 'study', 'draft': {'question': '다음 시험',
+        'next_observations': [{'question': '다른 하중에서 구별할 수 있는가?', 'status': 'PLANNED', 'note': '원 메모'}]}}}
+    before = deepcopy(content)
+    paragraphs = '\n'.join(value for kind, value in blocks(content) if kind == 'paragraph')
+    assert '확인 예정' in paragraphs and 'PLANNED' not in paragraphs
+    assert content == before

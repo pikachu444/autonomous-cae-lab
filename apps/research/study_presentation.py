@@ -5,6 +5,9 @@ TITLE='계산 결과 검토'
 QUESTION='이 결과가 뒷받침하는 판단은 무엇이며, 다음 시험에서 무엇을 확인할까요?'
 LABEL='보존한 계산 결과'
 NOTE='원 입력과 계산 결과를 보존했습니다. 공학적 승인을 뜻하지 않습니다.'
+STATUS_LABELS = {'UNKNOWN': '미판단', 'PROVISIONAL': '잠정 판단', 'SUPPORTED': '지지 자료 있음',
+    'CONFLICTED': '자료가 상충함', 'REFUTED': '반증됨', 'REJECTED': '기각',
+    'NOT_RELEASED': '미승인', 'PLANNED': '확인 예정', 'OBSERVED': '관찰 기록됨'}
 
 
 def generated_evidence(row):

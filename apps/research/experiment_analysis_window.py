@@ -11,18 +11,20 @@ import uuid
 from PySide6.QtCore import Qt, QTimer, QThreadPool, Slot, QObject, QEvent
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
     QTabWidget,QWidget,QTableWidget,QTableWidgetItem,QComboBox,QLineEdit,QSpinBox,
-    QDoubleSpinBox,QHeaderView,QSplitter,QPlainTextEdit,QMessageBox,QInputDialog)
+    QDoubleSpinBox,QHeaderView,QSplitter,QPlainTextEdit,QMessageBox)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from caelab.experiment_analysis_actions import ExplicitAnalysisAction,read_analysis_source,source_request_identity,save_analysis_study
 from caelab.experiment_analysis_service import uncertainty_request,final_request
-from caelab.experiment_analysis_reporting import coordinate,blocks,suggested_questions
+from caelab.experiment_analysis_reporting import coordinate,blocks,diagnosis_tables,STATES,UNKNOWN
 from caelab.experiment_final_diagnosis import evaluation_plan,_admission
 from caelab.experiment_uncertainty import covariance,plain
+from caelab.storage import canonical_hash
 from .data_window import _Read,number_or_raw,TERMINAL
 from .appearance import configure_plot_fonts
 from .report_pages import value_text
+from .experiment_followup_dialog import choose_next_observation
 
 
 class _AnalysisCloseGuard(QObject):
@@ -67,6 +69,17 @@ class ExperimentAnalysisWindow(QDialog):
         d.addLayout(row);self.matrix=QTableWidget();d.addWidget(self.matrix)
         d.addWidget(QLabel('빈 성분은 미확인입니다. 공분산 행·열의 단위는 각 원변수의 원단위입니다.'))
         self.tabs.addTab(dependency,'상관·공분산')
+        diagnosis=QWidget();diagnosis_layout=QVBoxLayout(diagnosis)
+        self.diagnosis_summary=QLabel();self.diagnosis_summary.setWordWrap(True);diagnosis_layout.addWidget(self.diagnosis_summary)
+        self.diagnosis_summary.setMinimumHeight(65)
+        self.coefficients=QTableWidget();self.directions=QTableWidget()
+        for table in (self.coefficients,self.directions):
+            table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            table.horizontalHeader().setStretchLastSection(True);diagnosis_layout.addWidget(table,1)
+        self.direction_label=QLabel('보존한 국소 미식별 방향입니다. 새 시험의 효과나 전역 유일성을 뜻하지 않습니다.')
+        self.direction_label.setWordWrap(True);diagnosis_layout.addWidget(self.direction_label)
+        self.tabs.addTab(diagnosis,'계수 진단');self.tabs.setTabVisible(2,False)
         self.dependence.currentIndexChanged.connect(self._dependence_changed)
         self.dependence_note.textEdited.connect(self._changed);self.matrix.itemChanged.connect(self._changed)
         bottom=QWidget();b=QVBoxLayout(bottom)
@@ -212,6 +225,8 @@ class ExperimentAnalysisWindow(QDialog):
             '보존한 시험의 원 교정값과 제공 출력 불확실성은 바꾸지 않습니다.')
         if chain:self.summary.setText('저장한 순서로 관측량을 변환합니다. 원 교정/처리 값과 비교는 보존하며, 제공한 불확실성과 공유 입력의 상관을 사용합니다.')
         self._populating=False;self.dirty=False
+        self.tabs.setTabVisible(2,final)
+        if final:self.tabs.setCurrentIndex(2)
         if self.result:self._show_result(self.result)
         elif not final:
             x,label=coordinate(p);self.figure.clear();ax=self.figure.subplots();ax.plot(x,p['values']);ax.set_xlabel(label);ax.set_ylabel(('차이 B−A' if difference else '관측 변환값' if chain else '원 교정값')+' ['+p['unit']+']');self.canvas.draw()
@@ -315,6 +330,31 @@ class ExperimentAnalysisWindow(QDialog):
         current=(self.results.currentRow(),self.results.currentColumn()) if same_job else (-1,-1)
         scroll=(self.results.verticalScrollBar().value(),self.results.horizontalScrollBar().value())
         self.result=result;content=list(blocks(result))
+        if result.get('kind')=='experiment_identification':
+            diagnosis=result.get('identification',{})
+            self.diagnosis_summary.setText(STATES.get(diagnosis.get('status'),UNKNOWN)+
+                ' — 최종 선택점의 일반 잔차 Jacobian 진단입니다.'+
+                '\n전역 유일성과 측정 불확실성은 미확인입니다. 공학 승인 아님.'+
+                ('\n'+str(result.get('failure_reason') or diagnosis.get('reason')) if result.get('failure_reason') or diagnosis.get('reason') else ''))
+            for widget,(head,data) in zip((self.coefficients,self.directions),diagnosis_tables(result)):
+                old_current=(widget.currentRow(),widget.currentColumn()) if same_job else (-1,-1)
+                old_selection=[(index.row(),index.column()) for index in widget.selectedIndexes()] if same_job else []
+                old_scroll=(widget.verticalScrollBar().value(),widget.horizontalScrollBar().value())
+                widget.setColumnCount(len(head));widget.setHorizontalHeaderLabels(head);widget.setRowCount(len(data))
+                for row,values in enumerate(data):
+                    for column,item in enumerate(values):widget.setItem(row,column,QTableWidgetItem(value_text(item)))
+                widget.clearSelection();widget.setCurrentCell(*old_current)
+                for row,column in old_selection:
+                    item=widget.item(row,column)
+                    if item is not None:item.setSelected(True)
+                if same_job:
+                    widget.verticalScrollBar().setValue(old_scroll[0]);widget.horizontalScrollBar().setValue(old_scroll[1])
+            self.coefficients.setMinimumHeight(self.coefficients.horizontalHeader().height()+
+                min(3,self.coefficients.rowCount())*self.coefficients.verticalHeader().defaultSectionSize()+4)
+            has_directions=bool(self.directions.rowCount())
+            self.directions.setVisible(has_directions)
+            self.direction_label.setText('보존한 국소 미식별 방향입니다. 새 시험의 효과나 전역 유일성을 뜻하지 않습니다.' if has_directions else
+                '보존한 미식별 방향이 없습니다. 실패 또는 미확인 진단은 계수 식별 성공을 뜻하지 않습니다.')
         if result.get('experiment_analysis',{}).get('source_problem',{}).get('kind') in ('comparison_difference','observation_chain'):
             self.results.setMinimumHeight(125)
         tables=[v for k,v in content if k=='table'];table=tables[-1] if tables else ([],[])
@@ -345,7 +385,7 @@ class ExperimentAnalysisWindow(QDialog):
                        '표시할 유효한 결과값이 없습니다.')
                 ax.text(.5,.5,empty,ha='center',va='center',transform=ax.transAxes)
         self.canvas.draw();message=next((v for k,v in content if k=='paragraph'),'결과 보존됨')
-        if self._loading_request and self._loading_request!=result.get('experiment_analysis',{}).get('request'):
+        if self.dirty or self._loading_request and self._loading_request!=result.get('experiment_analysis',{}).get('request'):
             message+=' · 표·곡선은 보존한 실행 입력의 결과이며 현재 편집 입력과 다를 수 있습니다.'
         self.message.setText(message)
         self._update_actions()
@@ -355,22 +395,40 @@ class ExperimentAnalysisWindow(QDialog):
         self._call(lambda:self.client.cancel(self.job_id),lambda _:(self.message.setText('취소를 요청했습니다. 실제 중단 확인까지 결과와 입력을 보존합니다.'),self.timer.start()),write=True)
 
     def _report(self):
-        if not self.document or not self.result:return
-        doc,job=self.document['id'],self.job_id
+        if not self.document or not self.result or self._shown_job_id is None:return
+        doc,job=self.document['id'],self._shown_job_id
         def open_report(ref):
+            if (self.document['id'],self._shown_job_id)!=(doc,job):
+                self.message.setText('표시한 진단이 바뀌었습니다. 원하는 보존 결과에서 보고서를 다시 여세요.');return
             from .report_window import ReportWindow
             window=ReportWindow(self.client,reference={'kind':'result',**ref,'selection':{'metadata_only':True}})
             self._children.append(window);window.show()
         self._call(lambda:self.client.document_result_reference(doc,job),open_report)
 
     def _study(self):
-        if not self.document or not self.result:return
+        if not self.document or not self.result or self._shown_job_id is None or self._worker is not None:return
         if self._study_pending is None:
-            text,ok=QInputDialog.getText(self,'다음 시험','확인할 질문',text=suggested_questions(self.result)[0])
-            if not ok or not text.strip():return
-            self._study_pending={'question':text,'source_document':self.document['id'],'source_job':self.job_id,'source_session':self.document['session_id'],'create':'C'+uuid.uuid4().hex,'update':'C'+uuid.uuid4().hex,'save':'C'+uuid.uuid4().hex,'observation_id':'O'+uuid.uuid4().hex}
+            document=deepcopy(self.document);job=self._shown_job_id;result=deepcopy(self.result)
+            binding=(document['id'],document['session_id'],job,canonical_hash(result))
+            selection=choose_next_observation(result,self)
+            if not selection or not selection['question'].strip():return
+            self._study_pending={**selection,'source_document':document['id'],'source_job':job,'source_session':document['session_id'],'create':'C'+uuid.uuid4().hex,'update':'C'+uuid.uuid4().hex,'save':'C'+uuid.uuid4().hex,'observation_id':'O'+uuid.uuid4().hex}
+            current=(self.document['id'],self.document['session_id'],self._shown_job_id,canonical_hash(self.result))
+            if current!=binding:
+                self._study_pending['requires_confirmation']=True
+                self.message.setText('질문 작성 중 표시한 진단이 바뀌었습니다. 원 질문을 보존했습니다. 원 진단 질문 기록으로 처음 선택한 결과에 기록할지 확인하세요.')
+                self._update_actions();return
         pending=self._study_pending
+        if pending.get('requires_confirmation'):
+            answer=QMessageBox.question(self,'원 진단 질문 기록',
+                '처음 선택한 진단의 질문을 보존하고 있습니다.\n'+pending['question']+'\n원 진단에 기록할까요?',
+                QMessageBox.StandardButton.Save|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)
+            if answer!=QMessageBox.StandardButton.Save:return
+        pending.pop('requires_confirmation',None)
+        displayed=(self.document['id'],self._shown_job_id)
         def opened(receipt):
+            if (self.document['id'],self._shown_job_id)!=displayed:
+                self.message.setText('표시한 진단이 바뀌었습니다. 다음 시험 저장 재시도로 원 요청의 연구를 확인하세요.');return
             self._study_pending=None
             from .study_window import StudyWindow
             window=StudyWindow(self.client,document_id=receipt['document']['id']);self._children.append(window);window.show()
@@ -387,8 +445,10 @@ class ExperimentAnalysisWindow(QDialog):
         self.cancel.setEnabled(idle and self.job_id is not None and self.timer.isActive())
         self.read.setText('원자료 다시 읽기' if self._view is None else '결과 다시 읽기')
         self.read.setEnabled(idle and (self.job_id is not None or self._view is None))
-        self.study.setText('다음 시험 저장 재시도' if self._study_pending else '다음 시험 기록…')
-        self.study.setEnabled(idle and self.result is not None);self.report.setEnabled(idle and self.result is not None)
+        self.study.setText('원 진단 질문 기록…' if (self._study_pending or {}).get('requires_confirmation') else
+            '다음 시험 저장 재시도' if self._study_pending else '다음 시험 기록…')
+        self.study.setEnabled(idle and self.result is not None and self._shown_job_id is not None)
+        self.report.setEnabled(idle and self.result is not None and self._shown_job_id is not None)
         self.details.setEnabled(idle and loaded)
 
     def reject(self):

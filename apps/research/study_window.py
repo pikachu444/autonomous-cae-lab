@@ -26,9 +26,7 @@ from . import study_presentation
 
 
 DATA = Qt.ItemDataRole.UserRole
-STATUS_LABELS = {'UNKNOWN': '미판단', 'PROVISIONAL': '잠정 판단', 'SUPPORTED': '지지 자료 있음',
-    'CONFLICTED': '자료가 상충함', 'REFUTED': '반증됨', 'REJECTED': '기각',
-    'NOT_RELEASED': '미승인', 'PLANNED': '확인 예정', 'OBSERVED': '관찰 기록됨'}
+STATUS_LABELS = study_presentation.STATUS_LABELS
 PENDING_LITERATURE_TARGET = '문헌 연결 결과 확인을 먼저 눌러 주세요. 확인 전에는 이 자료를 삭제하거나 문헌을 교체할 수 없습니다.'
 
 

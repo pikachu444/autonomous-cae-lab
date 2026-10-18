@@ -62,10 +62,9 @@ def test_next_test_appends_to_existing_study_and_lost_save_retry_is_same_action(
         def __init__(self,*args,**kwargs):pass
         def show(self):pass
     monkeypatch.setattr(study,'StudyWindow',Child)
-    monkeypatch.setattr(module.QInputDialog,'getText',lambda *args,**kwargs:('새로 확인할 시험 질문',True))
-    monkeypatch.setattr(module,'suggested_questions',lambda _:['제안된 질문'])
+    monkeypatch.setattr(module,'choose_next_observation',lambda *args:{'question':'새로 확인할 시험 질문','note':'명시한 시험 조건'})
     window.client=Client();window.document={'id':'Nanalysis','session_id':'Ssession'}
-    window.job_id='Janalysis';window.result={'kind':'experiment_uncertainty'}
+    window.job_id=window._shown_job_id='Janalysis';window.result={'kind':'experiment_uncertainty'}
     window._call=lambda fn,done,**_kwargs:done(fn())
     with pytest.raises(OSError):window._study()
     pending=window._study_pending

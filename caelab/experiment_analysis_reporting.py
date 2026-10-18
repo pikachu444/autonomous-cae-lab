@@ -54,6 +54,21 @@ def coordinate(problem):
     return raw.get('source_rows', list(range(len(problem['values'])))), '원 행 / 보존 표본 순서 (물리 시각 아님)'
 
 
+def diagnosis_tables(result):
+    """Read the saved parameter/direction records without deriving new directions."""
+    d=result.get('identification',{})
+    p=result.get('experiment_analysis',{}).get('source_problem',{})
+    parameters=d.get('parameters') or p.get('variables',[])
+    values=d.get('parameter_values',p.get('candidate',{}).get('values',{}))
+    coefficients=(['계수','선택 값','단위','역할','국소 구분','경계'],
+        [[r['id'],values.get(r['id']),r['unit'],'피팅',STATES.get(r.get('status'),UNKNOWN),
+          '하한' if r.get('active_bound')==-1 else '상한' if r.get('active_bound')==1 else ''] for r in parameters]+
+        [[r['id'],r.get('value'),r.get('unit'),'고정 (식별 안 함)','대상 아님',''] for r in p.get('fixed_parameters',[])])
+    directions=(['보존 방향']+[r['id'] for r in parameters],
+        [[i+1]+list(row) for i,row in enumerate(d.get('null_directions',[]))])
+    return coefficients,directions
+
+
 def blocks(result):
     validate_retained_covariance(result)
     a = result.get('experiment_analysis', {})
@@ -102,10 +117,12 @@ def blocks(result):
     elif result.get('kind') == 'experiment_identification':
         d = result.get('identification', {})
         yield 'paragraph', STATES.get(d.get('status'),UNKNOWN)+' — 최종 선택점의 일반 잔차 Jacobian 진단입니다. 전역 유일성과 측정 불확실성은 미확인입니다.'
-        yield 'table', (['계수','선택 값','단위','역할','국소 구분','경계'],
-            [[r['id'],d.get('parameter_values',{}).get(r['id']),r['unit'],'피팅',STATES.get(r.get('status'),UNKNOWN),
-              '하한' if r.get('active_bound')==-1 else '상한' if r.get('active_bound')==1 else ''] for r in d.get('parameters',[])]+
-            [[r['id'],r.get('value'),r.get('unit'),'고정 (식별 안 함)','대상 아님',''] for r in p.get('fixed_parameters',[])])
+        if d.get('reason'):yield 'paragraph',str(d['reason'])
+        coefficients,directions=diagnosis_tables(result)
+        yield 'table',coefficients
+        if directions[1]:
+            yield 'paragraph','국소 미식별 방향 — 원 진단에 보존한 범위 정규화 방향 계수입니다. 새 시험의 효과를 계산한 값은 아닙니다.'
+            yield 'table',directions
         if d.get('singular_values'):
             yield 'curve', {'x':list(range(1,len(d['singular_values'])+1)), 'y':d['singular_values'],
                 'x_label':'계수 방향','y_label':'선언 범위로 정규화한 잔차 민감도'}

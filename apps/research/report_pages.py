@@ -109,10 +109,11 @@ def blocks(content):
         document = content['document']
         draft = document['draft']
         if document['kind'] == 'study':
+            from .study_presentation import STATUS_LABELS
             yield ('paragraph', draft.get('question', ''))
             for group in ('hypotheses', 'decisions', 'next_observations'):
                 for row in draft.get(group, []):
-                    yield ('paragraph', '\n'.join(str(row.get(key, '')) for key in
+                    yield ('paragraph', '\n'.join(str(STATUS_LABELS.get(row.get(key), row.get(key, '')) if key == 'status' else row.get(key, '')) for key in
                         ('title', 'question', 'statement', 'note', 'status') if row.get(key)))
         else:
             yield ('paragraph', document['title'] + '\n저장된 원 문서는 원자료 열기로 확인하세요.')

@@ -55,7 +55,7 @@ def save_analysis_study(client,pending):
             draft['evidence'].append(evidence)
         draft['next_observations'].append({'id':pending['observation_id'],'question':pending['question'],
             'hypothesis_ids':[],'evidence_ids':[evidence['id']],'status':'PLANNED',
-            'note':'사용자가 선택한 다음 시험 질문; 새 계산 없음'})
+            'note':'사용자가 선택한 다음 시험 질문; 새 계산 없음'+('\n'+pending['note'] if pending.get('note') else '')})
         pending['update_snapshot']=(d,draft)
     if 'updated' not in pending:
         d,draft=pending['update_snapshot']

@@ -18,7 +18,7 @@
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
-| material_numerical_impl / Sol-high | Expert/Report 전용 창·helper/검사·사용법 인도 freeze. 다음은 기존 Experiment Analysis 전용 창/actions/reporting·검사 | 저장 발언/선택 결과→Study 명시 판단→Report 출력·save/discard/cancel·cold 완료. 같은 담당에게 B7.4 보존 FD/식별성→명시 다음 시험 질문→Study/Report의 준비 packet을 실제 후속 배정 |
+| material_numerical_impl / Sol-high | B7.4의 Experiment Analysis 창·전용 질문 dialog/actions/reporting/검사 인도 freeze. 다음 B7.5 기존 Report image/장면 경로의 한정 인수 | 계수·고정/미식별 방향→명시 질문·참고 관측→Study/Report/cold와 모달 결과 교체 P2 폐쇄. 게시 뒤 같은 담당에게 보존 native 장면→같은 Report→원 store 없는 cold packet을 실제 후속 배정 |
 | native_impl / Sol-high | Numerical 전용 창·검사·사용법 인도 freeze. 다음 B5.3.L01은 기존 일반 역해석의 관측/feasible 후보 전용 화면·검사 | DOE/RBF/Pareto/Picard·채택/cold 및 Taylor/저장 Evaluation 표시·공유 binding 채택 P2 모두 폐쇄. 게시 뒤 같은 담당에게 B5.3.L01의 기존 선택 Case A/B 왕복을 실제 후속 배정 |
 | data_impl / Sol-high | B2.5.L02 native parser·material helper/검사 인도 freeze. 다음 B2.6.L02는 `impact_interface.py`, `impact_damage.py`, 신규 전용 history helper·검사 | native 두 실행·원문/출력·Post 복귀·cold 완료. independent 3 finding와 빈 include 회귀 폐쇄. 게시 뒤 기존 부분 손상 unload–compression–reopen packet을 실제 배정 |
 | native_cae_adviser / Astra-xhigh | B2.5.L02의 exact producer/primary manual·보존 native 입력에 근거한 한정 자문. 제품 파일·실행 없음 | 원 법칙/정수 카드·단위·contact Tstart·validation copy와 export 구분을 실제 writer와 협의. sibling 송신 오류로 Codex가 구체 질문·답변 중계 |
@@ -51,15 +51,17 @@ DOE/UQ 연결은 `501ddab`, Expert/Report는 `f7de485`, native RAD는 `6c09607`,
 옵션은 `d491d45`, Numerical은 `ff23037`로 원격 게시를 확인했다. 완료 담당에게 B7.4와
 B2.6.L02, B5.3.L01을 실제 followup 호출했다. Data package05를 현재 로컬 runtime에 설치했고
 일반 `data`는 native 작업면을 연다. `--pyside`와 기존 처리/취득은 같은 Core의 호환 경로다.
-현재 다음 행동은 Data 인도 게시/실제 B4.1 후속 배정, B7.4 모달 결과 교체 P2·기존 fixed
-진단과 native L02의 GUI/원 대상 binding 통합이다. 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
+Data는 `494d0ea`로 게시하고 B4.1.L01을 실제 배정했다. 현재 다음 행동은 B7.4 인도 게시와
+B7.5 후속 배정, B5.3의 필수 예측 support 공통 교정, native L02의 GUI/원 대상 binding 통합이다.
+각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
 | Data 제품화 | 원표/곡선·원행·단일 update/Undo·prepare/취소/같은 job 복구·저장/cold·정확 Material·기존 처리/취득 연결 통과. 최종package05의 범위 제외 수·미완성 숫자 요약 두 P2와 실제 설치→일반 빈 창/정확 문서·새 job0 및 독립 검토 폐쇄 | 로컬 설치와 기본 진입 전환 완료. 다음 B4.1.L01 기존 recipe/resample 계보·큰 표 인수. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
 | Numerical/동일 Evaluation | 실제 저장 Evaluation의 DOE3·holdout2/RBF예측·실평가1·3목표DE10·Picard12/미수렴2·명시 채택/cold 완료. Taylor 표시·정확 저장 단계 링크·공유 binding 채택 P2와 독립 검토 모두 폐쇄 | 다음 B5.3.L01 선택 Case A/B의 고정 관측·best feasible/실패·채택 왕복. 기존 엔진/보존 자료 재사용, 없는 실제 실행을 꾸미거나 새 범용 adjoint를 만들지 않음 |
-| Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. 같은 명령 재확인·현재 권한 재검증·편집 보존·명시 판단·출력·저장/폐기/취소·cold와 독립 검토를 마침 | 다음 B7.4: 기존 보존 식별성/FD 진단에서 사용자가 다음 시험 질문을 골라 Study/Report로 연결. 원 결과 재사용, 새 provider/물리 campaign 없음 |
+| Expert→Study→Report | `f7de485`로 완료·게시. 정확 발언/선택 결과→Study 명시 판단→Report 출력·응답 유실/현재 권한·편집 보존·cold와 독립 검토 폐쇄 | B7.4로 실제 후속 배정했으며 그 인수도 다음 행에서 완료. 이 첫 packet을 모든 B7 완료로 확대하지 않음 |
+| B7.4 식별성→다음 시험 | 보존 계수/고정/약방향·관측 원순서→사용자 명시 질문·메모→Study/Report와 저장 응답 유실/표시 결과·모달 교체 복구·세 사례 cold 완료. 독립 검토 P2 폐쇄 | 다음 B7.5의 기존 native 장면·표·판단을 같은 Report에서 출력/원본 없는 cold. 새 solver/3D/범용 식별 엔진 없음 |
 | native RAD | 기존 bulk/interface native 두 원본→제한 field 편집·원 bytes→pinned 실제 2실행·원 채널·Post 복귀·owner/cold 완료. typed LAW117 표기 보존·include original/partial 읽기·모든 FUNCT 번호 충돌 및 빈 include 교정도 독립 검토 폐쇄 | 다음 B2.6.L02: 정확 fixed-source LAW117 부분 손상 한 loop와 mixed-mode loop. CAE 자문/사전 이력·관측 계약부터 연결, 기존 법칙·허용치·engineering UNKNOWN 유지 |
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
@@ -193,6 +195,22 @@ Report의 본문·표·곡선과 저장/버리기/취소, PDF/Markdown, 별도 W
 새 계산/provider 호출은 0이며 QPrintPreviewWidget의 COM 진단은 로그에 남는다. 종료 0과
 실제 출력 확인을 무진단 실행으로 표현하지 않는다. [사용법과 실제 화면](docs/EXPERT_STUDY_REPORT_KO.md)을
 게시한다. 전체 B7·새 live 상담·모든 OS 직접 입력·공학 적합성 완료는 아니다.
+
+B7.4는 기존 진단의 계수/고정 계수·미식별 방향을 작업면에 보존하고, 사용자가 예시 질문을
+명시 선택하거나 직접 작성해 원 관측·목적 메모와 함께 Study에 기록한다. 자동 판단은 없다.
+새 공개 합성식 두 optimizer의 실제 16/24회 평가와 ordinary FD 9/9회, 기존 FELUPE의
+μ free/λ=5 MPa fixed 후보를 재피팅 없이 FD 5회/holdout 0회로 진단한 원 결과를 보존했다.
+순서가 같은 관측 이름도 원 시험 순서로 구별한다. 작은 잔차·국소 rank는 전역 유일성이나
+통계/공학 승인이 아니다. 저장 응답 유실은 같은 생성/편집/저장 명령으로 복구해 중복 Study를
+만들지 않는다. 새 실행 대기 중의 옛 표시 결과와 후속 근거도 일치시켰다. 독립 검토의 모달
+P2는 질문 작성 중 A→B 결과 교체를 실제 Qt nested event에서 재현하고, 원 A 질문·관측·
+참조를 보존한 뒤 명시 재확인에서만 쓰도록 교정했다. 취소는 질문을 유지하고 B에는 쓰지 않는다.
+최종 21검사와 세 사례의 실제 HTTP/Windows Qt·Report/PDF/Markdown·별도 Python cold를
+확인했다. 소비와 cold의 새 계산/provider/native 호출은 0이며 원 fit/Jacobian/Study/assets를
+보존했다. 실제 무evaluator 모달 반례와 계산 인수를 구별하고 소유 process를 정리했다.
+Astra가 P2와 추가 fixed 사례를 폐쇄했으며 시각 담당이 일반/좁은 계수·질문·출력을 확인했다.
+[사용법과 실제 화면](docs/IDENTIFICATION_NEXT_OBSERVATION_KO.md)을 게시한다. typed request
+fixed fit의 미지원 계약은 그대로며 settings 상수를 fixed로 승격하지 않는다.
 
 B2.5.L02는 native 2025의 고정 LAW36/INIEVO·LAW117 원문 필드를 typed admission에
 연결하고 CRLF/include와 원 source의 권위를 보존했다. 첫 실제 Core 접점은 각 한 번의
