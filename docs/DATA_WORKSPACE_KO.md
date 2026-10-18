@@ -3,6 +3,8 @@
 Data는 기존 문서 서비스와 표 reader를 사용하는 LabPlot 작업면이다. 로컬 Data runtime을
 설치하면 일반 `data` 진입이 이 창을 연다. SDK나 실행 파일 경로를 매번 지정하지 않는다.
 Python 호환 창과 기존 처리·취득 도구는 같은 Core 문서를 사용한다.
+[처리 표본·원행 근거·Plan 편입](DATA_PROCESSING_INSPECTOR_KO.md)에서 재표본화와 긴 표의
+탐색, 제외 원인과 학습/별도 검증의 원행 독립성을 확인할 수 있다.
 
 ## Data에서 자료 정리하기
 

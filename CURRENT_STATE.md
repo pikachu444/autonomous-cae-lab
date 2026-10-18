@@ -22,7 +22,7 @@
 | native_impl / Sol-high | B5.3.L01의 Numerical 전용 창·보고 소비 helper·검사·사용법 인도 freeze. 공통 numerical/comparison 엔진은 Codex | 고정 mask/N/weight/scale·holdout 제외·실패 벌점 분리·동일 증거/채택 보호/Study/Report/cold 완료. 예측 support 및 명시 구간 P2 공통 교정도 독립 검토 폐쇄. 다음 B5.4.L01은 기존 adjoint/FD/DE의 명시 선택·지원 계약을 같은 담당에게 이어 배정 |
 | data_impl / Sol-high | B2.6.L02 신규 history helper·전용 검사/고정 이력 인도 freeze. `impact_interface.py`/`impact_damage.py`의 기존 법칙은 수정하지 않음 | 사전 선언 normal/mixed 두 실제 native 실행, owner/저장/별도 cold와 관측 메뉴·동일 결과 선택 완료. 형식·누락 프레임 및 축 표시 P2 폐쇄. 다음 L03은 같은 writer가 신규 reclosure helper와 기존 interface를 맡고 root가 공통 실행/카드·provenance를 통합 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·보존 입력에 근거한 한정 자문. 제품 파일·실행 없음 | B2.6.L02의 법칙/압축/평균 관측과 B5.3의 원 피팅 선택·예측 support 계약 자문 완료. 다음 B2.6.L03 실제 삭제 연동·접촉 전환의 pinned-source 가능성/입력·관측 계약을 실제 후속 배정. sibling 송신 오류는 Codex가 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | Data bridge/build/package/검사 인도 freeze. 다음 B4.1.L01 전용 native 연결·검사, 공통 Python Data/Core는 root | package05의 두 P2·실제 설치/일반 진입과 독립 검토 폐쇄. 게시 뒤 같은 담당에게 기존 recipe·재표본 계보·큰 표의 한정 인수를 실제 후속 배정 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.1 신규 ProcessingInspector·전용 검사·사용법 인도 freeze. native package05 불변, 공통 Python Data/Core는 root | CSV/ASCII 처리·원행/마스크·가중 계보·Plan 독립 편입과 1005→2009 표본/페이지·cold 완료. 판정 원행과 한국어 복구 P2를 닫고 같은 담당에게 B4.2의 같은 측도 관측/예측 인수를 이어 배정 |
 | desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | Data Settings/Properties/`0007` freeze. 신규 계면 history dialog/view·전용 Qt 인도 freeze. Data/Report/Numerical의 실제 화면 검토 | 계면 입력·원 대상 확인과 보존 결과 관측창의 일반/좁은·선택·누락·미확인·축 단위와 작은 값 표시 완료. Data 판정 원행/복구 안내, Report 입력 단위의 마지막 통합 교정 검토 중. 공통 연결은 root |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
@@ -54,15 +54,16 @@ B2.6.L02, B5.3.L01을 실제 followup 호출했다. Data package05를 현재 로
 Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 담당에게 실제
 후속 배정했다. 역해석의 고정 관측·보고·cold와 예측 support/명시 구간 공통 교정은 독립
 검토까지 마쳤다. 현재 다음 행동은 이 인도 게시·B5.4의 기존 미분법 선택 후속 배정,
-Data 처리 계보·큰 표의 마지막 판정 원행/복구 안내, native L02 게시와 L03 첫 capability
-인수 배정과 B7.5 게시·기존 이동 사본 인수 B8.3.L01 배정이다. B5.4는 같은 담당에게 실제
+Data 처리 계보·큰 표는 마지막 판정 원행/복구 안내 P2까지 폐쇄했다. 현재 다음 행동은
+B4.1 게시·같은 측도 관측/예측 B4.2 배정이다. native L02는 `657308f`, B7.5는 `b184e35`로
+게시하고 각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B5.4도 같은 담당에게 실제
 후속 배정했고 첫 보존 S2/FD 읽기부터 공통 method metadata를 연결하고 있다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
-| Data 제품화 | 원표/곡선·원행·단일 update/Undo·prepare/취소/같은 job 복구·저장/cold·정확 Material·기존 처리/취득 연결 통과. 최종package05의 범위 제외 수·미완성 숫자 요약 두 P2와 실제 설치→일반 빈 창/정확 문서·새 job0 및 독립 검토 폐쇄 | 로컬 설치와 기본 진입 전환 완료. 다음 B4.1.L01 기존 recipe/resample 계보·큰 표 인수. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
+| Data 제품화 | `494d0ea`의 로컬 설치/기본 진입 완료. 후속 B4.1의 CSV/ASCII 처리/원행·마스크·계보/Plan 독립 편입/2009표본 페이지와 cold·두 P2·독립/화면 검토 완료 | B4.1 게시 뒤 B4.2의 기존 같은 측도 관측/예측·holdout/채택/저장 왕복. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
 | Numerical/동일 Evaluation | DOE/RBF/Pareto/Picard·Taylor/저장 단계·공유 binding은 `ff23037`로 게시. 후속 B5.3의 같은 mask/weight/척도·원/정규화 잔차·실패 벌점/조건·holdout·보존 채택/Study/Report/cold와 독립 검토 완료 | B5.3 인도 게시 뒤 B5.4의 기존 adjoint/ordinary FD/DE 선택과 지원 계약의 실제 GUI 소비. 기존 실행을 재사용하고 새 범용 adjoint/전체 native campaign을 만들지 않음 |
 | Expert→Study→Report | `f7de485`로 완료·게시. 정확 발언/선택 결과→Study 명시 판단→Report 출력·응답 유실/현재 권한·편집 보존·cold와 독립 검토 폐쇄 | B7.4로 실제 후속 배정했으며 그 인수도 다음 행에서 완료. 이 첫 packet을 모든 B7 완료로 확대하지 않음 |
 | B7.4 식별성→다음 시험 | `8ea3e87`로 게시. 명시 질문/판단·세 사례 cold와 모달 P2 폐쇄. 후속 B7.5도 실제 한 캡처·기존 자료 조합·원본 없는 cold/PDFMD·문헌 위치와 단위 P2까지 완료 | B7.5 게시 뒤 기존 portable 이동 사본의 편집/저장/재보관 B8.3.L01. 같은 자료를 재사용하고 새 solver/3D/범용 식별 엔진을 만들지 않음 |
@@ -87,6 +88,25 @@ Core source table 4행 읽기는 `installed-normal-02/`에서 확인했다. 문�
 실행 근거를 연결하며 성공 campaign을 반복한 것으로 세지 않는다. [사용법·실제 화면](docs/DATA_WORKSPACE_KO.md)과
 [빌드·라이선스·설치](native/data_labplot/README.md)를 갱신한다. 이 인수는 전체 OS 직접 입력,
 LabPlot 모든 upstream 분석, 공개 binary 배포 완료나 공학 적합성 승인이 아니다.
+
+B4.1은 기존 처리 owner·recipe/reader/표본 정책을 그대로 사용하고 새 Inspector에서
+전체 canonical 표본을 1000개씩 읽는다. 유효값 수·표시 수·전체 수를 구별하고 무효 표본도
+표에 남기며 같은 원 표본의 값 기여항/계수와 판정 원행을 따로 확인한다. 실제 CSV/ASCII
+교정→순서 있는 처리/미리보기 취소·명시 보존→Plan weight/mask/fit·holdout 편입→원행까지
+별도 owner/cold를 확인했다. 불규칙/NaN/제외/gap guard를 유지하며 whole gapped protocol의
+거절 뒤 연속 [5,5.5] s 구간을 명시 선택한 새 처리 개정으로 복구했다. 원 law/측도 불일치
+초안은 저장 가능하되 실행 전 exact compiler가 차단한다. 정상 law를 명시한 별도 Plan에서
+14 raw cell의 DISJOINT 및 RAW_CONTRIBUTOR_OVERLAP 반례를 확인했고 새 피팅은 없었다.
+큰 파일의 원 1005행→2009표본을 1000개씩 표시하며 페이지/채널/선택 근거 읽기에 HTTP
+전체 reload가 없음을 확인했다. 최종 잘못된 X축 단위 fixture의 앞선 PASS는 인수에서
+제외하고 원 로그를 보존한 채 Y단위·시간 s를 맞춘 실제 결과와 cold를 사용했다.
+독립 검토에서 무효 표본의 값 기여행과 판정행 혼동을 발견해 []와 [2,3]/[4,5]를 구별했고,
+잘린 필터 오류에는 알려진 원문을 유지하면서 먼저 재표본화하라는 한글 복구 안내를
+표시했다. 마지막 실제 두 표본/원 결과 hash·문서·jobs2 불변, 새 import/처리/fit/solver/
+provider0과 JUnit8검사·소유 PID54484 exit0/job_empty를 확인했다. 기존 26/4검사 보고와
+이번 로그를 구별하고 중복을 합산하지 않는다. 같은 전문 담당/Astra가 최종 일반/좁은
+화면과 계보 P2를 폐쇄했다. [사용법·실제 화면](docs/DATA_PROCESSING_INSPECTOR_KO.md)을
+게시하며 native package05를 다시 빌드하지 않았다. 실장비 교정·공학 승인은 별도다.
 
 B7.5는 같은 Report에 정적 native 장면·명시 미판단 Study·기존 μ 자유/λ=5 MPa 고정
 진단·정확 문헌 구간·Picard FAILED/NOT_CONVERGED 결과를 함께 보관했다. 실제 기존
@@ -707,7 +727,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B3.3.L02 | 다중 block 측정·원 leaf 복귀 | D | 개발 대기 | T3 |
 | B3.3.L03 | 실제 현재 형상 면적·법선으로 측정 | D | 개발 대기 | T3 |
 | B3.4.L01 | 원 결과 복구·변경 branch·정확한 원 선택 반환 | A | 기존 구현 인수 대기 | T3 |
-| B4.1.L01 | 처리 recipe·재표본 계보·큰 Data 작업 인수 | A | 기존 구현 인수 대기 | T4 |
+| B4.1.L01 | 처리 recipe·재표본 계보·큰 Data 작업 인수 | A | 한정 인수·원행/독립 편입/2009표본·cold·두 P2 폐쇄 | native_data_product_impl / Codex |
 | B4.2.L01 | 단축·동축 유한변형 관측→같은 측도 예측 | A | 기존 구현 인수 대기 | T4 |
 | B4.3.L01 | 혼합 F/stress 제어의 법칙별 인수 | A | 기존 구현 인수 대기 | T4 |
 | B4.4.L01 | 후보 상세 보존·새 평가·채택 충돌 | A | 기존 구현 인수 대기 | T4 |
@@ -733,7 +753,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B7.6.L02 | 실제 장비 한 종류의 binding·권한·물리 stop 인수 | E | 외부 입력 대기 | T6 |
 | B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | 기존 구현 인수 대기 | T7 |
 | B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | 기존 구현 인수 대기 | T7 |
-| B8.3.L01 | 이동 사본 전체 선언 문서의 cold 편집 | A | 기존 구현 인수 대기 | T7 |
+| B8.3.L01 | 이동 사본 전체 선언 문서의 cold 편집 | A | 실제 후속 배정, 기존 9 Research/native2 선언·정확 보존 자료 연결 중 | material_numerical_impl / Codex |
 | B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 구현 인수 대기 | T2 |
 | B8.4.L02 | SSH 직접 실행 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |
 | B8.4.L03 | Slurm 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |

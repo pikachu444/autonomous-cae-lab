@@ -1305,7 +1305,7 @@ class DataWindow(QMainWindow):
             self.message.setText('처리 단계의 설정을 적용한 뒤 미리보기를 여세요.'); return
         if not callable(getattr(self.client, 'data_material', None)):
             self.message.setText('연결한 서비스에서 데이터 처리를 지원하지 않습니다.'); return
-        from .data_processing_dialog import DataProcessingPreviewDialog
+        from .data_processing_inspector import DataProcessingInspectorDialog as DataProcessingPreviewDialog
         base = deepcopy(self.document)
         def reviewed(preview):
             dialog = DataProcessingPreviewDialog(preview, self)
@@ -1329,7 +1329,7 @@ class DataWindow(QMainWindow):
         selected, accepted = QInputDialog.getItem(self, '보존한 처리 결과', '결과', labels, len(labels) - 1, False)
         if not accepted:
             return
-        from .data_processing_dialog import DataProcessingPreviewDialog
+        from .data_processing_inspector import DataProcessingInspectorDialog as DataProcessingPreviewDialog
         identifier = self.document['id']; revision = records[labels.index(selected)]['id']
         def shown(result):
             dialog = DataProcessingPreviewDialog(result, self, retained=True, allow_plan=True)
