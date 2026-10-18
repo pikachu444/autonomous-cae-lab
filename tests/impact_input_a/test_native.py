@@ -77,7 +77,10 @@ def test_native_units_identity_field_option_admission(source_change):
         source=edit_source(s,'impact_0000.rad',row,row[:-10]+'       999')
     elif source_change=='property_extra':source=edit_source(s,'impact_0000.rad','/PROP/SOLID/1','/PROP/SOLID/1/7')
     elif source_change=='engine_unknown':source=edit_source(s,'impact_0001.rad','/STOP','/UNKNOWN/MASS/1\r\n/STOP')
-    else:source=edit_source(s,'impact_0001.rad','0.90000000000000002 0','0.90000000000000002 0 7')
+    else:
+        lines=original_files(s['source'])['impact_0001.rad'].decode('ascii').splitlines()
+        row=lines[lines.index('/DT')+1]
+        source=edit_source(s,'impact_0001.rad',row,row+' 7')
     with pytest.raises((ValueError,SourceError)):parse_source(source)
 
 

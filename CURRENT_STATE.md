@@ -528,7 +528,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B2.2.L01 | 정적 preload→동적 상태 carry | A | 기존 구현 인수 대기 | T2 |
 | B2.3.L01 | 시간 stream·부분 실패·명시 재후처리 | A | 기존 구현 인수 대기 | T2 |
 | B2.4.L01 | Windows WRITE→READ 실제 restart | A | 기존 구현 인수 대기 | T2 |
-| B2.5.L01 | 계층 INP 의 기존 flat 물리 범위 합류 | D | 구현·8개 native/별도 cold 확인, Post/통합 마감 중 | data_impl / Codex |
+| B2.5.L01 | 계층 INP 의 기존 flat 물리 범위 합류 | D | 한정 인도 완료: 8개 native·별도 cold·Post 복귀·독립 통합 검토 | data_impl / Codex |
 | B2.5.L02 | native RAD 의 LAW36/INIEVO·LAW117 명시 편집 | D | 개발 대기 | T2 |
 | B2.6.L01 | LAW36/INIEVO 실제 손상·삭제·에너지 인수 | A | 기존 구현 인수 대기 | T2 |
 | B2.6.L02 | LAW117 부분 손상 unload–compression–reopen | D | 개발 대기 | T2 |

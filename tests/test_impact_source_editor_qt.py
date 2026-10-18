@@ -232,6 +232,35 @@ def test_reference_details_expose_difference_after_fifth_member(app):
     finally:release(app,dialog)
 
 
+def test_cohesive_assignment_review_requires_explicit_material_selection(app,tmp_path):
+    from examples.impact.cohesive_model import settings as cohesive_settings
+    from caelab.impact_model import validate_settings
+    settings=cohesive_settings();settings['responses']=[]
+    settings[bindings.KEY]=bindings.snapshot(settings)
+    settings['source']['text']=settings['source']['text'].replace(
+        '2,5,6,7,8,9,10,11,12','4,5,6,7,8,9,10,11,12')
+    original=deepcopy(settings)
+    dialog=ReferenceReviewDialog(settings)
+    try:
+        dialog.show();app.processEvents()
+        material=next(combo for selection,combo in dialog.choices if selection==['cohesive',0,'material'])
+        assert material.currentIndex()==-1
+        assert [material.itemData(i) for i in range(material.count())]==['BOND']
+        dialog.show_review();assert not dialog.confirm.isEnabled()
+        material.setCurrentIndex(material.findData('BOND'))
+        dialog.show_review();app.processEvents()
+        assert dialog.confirm.isEnabled()
+        assert '응집 재료 배정' in dialog.table.item(dialog.table.rowCount()-1,0).text()
+        assert '원 번호 2' in dialog.details.toPlainText() and '원 번호 4' in dialog.details.toPlainText()
+        assert dialog.grab().save(str(tmp_path/'cohesive-review.png'))
+        dialog.resize(800,540);app.processEvents()
+        assert dialog.grab().save(str(tmp_path/'cohesive-review-narrow.png'))
+        dialog.apply();assert dialog.applied is not None
+        validate_settings(dialog.applied)
+        assert settings==original
+    finally:release(app,dialog)
+
+
 def test_hierarchical_new_response_uses_instance_local_display_and_saved_identity(app,monkeypatch):
     from caelab.impact_responses import QUANTITIES
     from caelab.impact_assembly import exact_entity

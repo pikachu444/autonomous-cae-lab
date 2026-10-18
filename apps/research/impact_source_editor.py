@@ -95,12 +95,12 @@ class ReferenceReviewDialog(QDialog):
             combo=QComboBox()
             scope=settings[kind][index].get('scope')
             pair_selection=kind=='b_responses' and scope=='pair' or kind=='interface_controls' and column=='contact_index'
-            material_selection=kind in ('bulk_damage','interface_controls') and column=='material'
+            material_selection=kind in ('cohesive','bulk_damage','interface_controls') and column=='material'
             if pair_selection:
                 for pair_index,pair in enumerate(settings.get('contacts',[])):
                     combo.addItem('접촉 '+str(pair_index+1)+': '+pair['a']+' ↔ '+pair['b'],pair_index)
             elif material_selection:
-                types={'COH3D8'} if kind=='interface_controls' else {'C3D8','C3D8R'}
+                types={'COH3D8'} if kind in ('cohesive','interface_controls') else {'C3D8','C3D8R'}
                 for material in sorted({name for eid,name in model['assignment'].items() if model['elements'][eid]['type'] in types}):combo.addItem(material,material)
             elif kind in ('responses','b_responses'):
                 from caelab.impact_responses import QUANTITIES
@@ -125,7 +125,7 @@ class ReferenceReviewDialog(QDialog):
             except (ValueError,KeyError,TypeError,IndexError):selected=-1
             combo.setCurrentIndex(selected)
             row_index=self.table.rowCount();self.table.insertRow(row_index)
-            title={'responses':'결과','motions':'운동','contacts':'접촉','b_responses':'벌크/계면 결과','bulk_damage':'벌크 재료 배정','interface_controls':'계면 배정'}[kind]+' '+str(index+1)+((' / '+column.upper()) if kind=='contacts' else ' / 접촉쌍' if pair_selection else '')
+            title={'responses':'결과','motions':'운동','contacts':'접촉','b_responses':'벌크/계면 결과','cohesive':'응집 재료 배정','bulk_damage':'벌크 재료 배정','interface_controls':'계면 배정'}[kind]+' '+str(index+1)+((' / '+column.upper()) if kind=='contacts' else ' / 접촉쌍' if pair_selection else '')
             for col,value in enumerate((title,identity_label(old['source']))):
                 item=QTableWidgetItem(value);item.setFlags(item.flags()&~Qt.ItemFlag.ItemIsEditable);self.table.setItem(row_index,col,item)
             self.table.setCellWidget(row_index,2,combo);self.choices.append((selection,combo))

@@ -1,6 +1,7 @@
 """Lossless lineage compiler for the first admitted Abaqus assembly subset.
 
-Only meshed PARTs, elastic C3D4, one ASSEMBLY, dependent INSTANCEs,
+Meshed PARTs use the existing flat solid/cohesive material admission, one
+ASSEMBLY, dependent INSTANCEs,
 sets/surfaces and model-level fixed translational BOUNDARY are admitted.
 The output is a separate flat input for the existing INP2RAD boundary.
 No source IDs, labels, coordinates or connectivity are welded heuristically.
@@ -9,6 +10,7 @@ from copy import deepcopy
 import math
 import re
 from .impact_source import SourceError, locate, MAX_BYTES
+from .impact_assembly_materials import SECTION_CARDS, emit_section, emit_globals, bind_assignments
 
 LABEL = re.compile(r'[A-Za-z][A-Za-z0-9_-]{0,79}\Z')
 HIERARCHY = {'PART', 'END PART', 'ASSEMBLY', 'END ASSEMBLY', 'INSTANCE', 'END INSTANCE'}
@@ -17,8 +19,8 @@ ALLOWED = {
     'INSTANCE': {'NAME', 'PART'}, 'END INSTANCE': set(), 'HEADING': set(),
     'NODE': {'NSET'}, 'ELEMENT': {'TYPE', 'ELSET'}, 'NSET': {'NSET', 'GENERATE', 'INSTANCE'},
     'ELSET': {'ELSET', 'GENERATE', 'INSTANCE'}, 'SURFACE': {'NAME', 'TYPE'},
-    'SOLID SECTION': {'ELSET', 'MATERIAL'}, 'MATERIAL': {'NAME'}, 'DENSITY': set(),
-    'ELASTIC': set(), 'BOUNDARY': set(),
+    'SOLID SECTION': {'ELSET', 'MATERIAL'}, 'COHESIVE SECTION': {'ELSET', 'MATERIAL'},
+    'MATERIAL': {'NAME'}, 'DENSITY': set(), 'ELASTIC': {'TYPE'}, 'PLASTIC': set(), 'BOUNDARY': set(),
 }
 
 
@@ -158,7 +160,7 @@ def _members(b, target, known, sets, resolve_token=None):
 
 def compile_source(text, spans=()):
     """Return the existing flat model plus a reversible source/instance receipt."""
-    from .impact_model import parse_inp
+    from .impact_model import parse_inp, WIDTHS, SURFACE_SIDES
     blocks = tokenize(text, spans)
     parts, instances, global_blocks, assembly_blocks = {}, [], [], []
     state, part, instance, assembly, assembly_closed = 'MODEL', None, None, None, False
@@ -169,6 +171,8 @@ def compile_source(text, spans=()):
     for b in blocks:
         c, o = b['card'], b['options']
         b['scope'] = part or (instance['name'] if instance else assembly if state == 'ASSEMBLY' else state)
+        for row in b['rows']:
+            row.update(scope=b['scope'], card=b['card'], options=b['options'])
         if c not in ALLOWED or set(o) - ALLOWED.get(c, set()):
             _fail(b, '미지원 카드/옵션: ' + c + ' ' + ', '.join(sorted(set(o) - ALLOWED.get(c, set()))),
                   instances=part_users.get(part, [i['name'] for i in instances]))
@@ -200,7 +204,7 @@ def compile_source(text, spans=()):
             if state != 'INSTANCE': _fail(b, 'END INSTANCE의 scope가 다릅니다')
             instance, state = None, 'ASSEMBLY'
         elif state == 'PART':
-            if c not in ('NODE','ELEMENT','NSET','ELSET','SURFACE','SOLID SECTION'): _fail(b, 'PART level에서 지원하지 않는 카드입니다')
+            if c not in ('NODE','ELEMENT','NSET','ELSET','SURFACE','SOLID SECTION','COHESIVE SECTION'): _fail(b, 'PART level에서 지원하지 않는 카드입니다')
             if 'INSTANCE' in o: _fail(b, 'INSTANCE 집합 옵션은 assembly level 전용입니다')
             parts[part]['blocks'].append(b)
         elif state == 'INSTANCE':
@@ -210,7 +214,7 @@ def compile_source(text, spans=()):
             if c not in ('NSET','ELSET','SURFACE'): _fail(b, '첫 assembly 지원은 집합·요소면입니다. connector/추가 mesh는 미지원입니다')
             assembly_blocks.append(b)
         else:
-            if c not in ('HEADING','MATERIAL','DENSITY','ELASTIC','BOUNDARY'): _fail(b, '계층 모델의 model level 카드가 아닙니다')
+            if c not in ('HEADING','MATERIAL','DENSITY','ELASTIC','PLASTIC','BOUNDARY'): _fail(b, '계층 모델의 model level 카드가 아닙니다')
             if c == 'BOUNDARY' and not assembly_closed: _fail(b, 'model BOUNDARY는 닫힌 ASSEMBLY 뒤에 지정하세요')
             global_blocks.append(b)
     if state != 'MODEL' or not assembly_closed or not instances:
@@ -237,14 +241,15 @@ def compile_source(text, spans=()):
                     if automatic:
                         nsets.setdefault(automatic, set()).add(ident); locations['nsets'].setdefault(automatic, []).append(b['origin'])
             elif c == 'ELEMENT':
-                if o.get('TYPE') != 'C3D4': _fail(b, '첫 계층 지원 요소/법칙은 elastic C3D4입니다', instances=part_users[pname])
+                kind = o.get('TYPE')
+                if kind not in WIDTHS: _fail(b, '기존 flat 경로의 C3D4, C3D10, C3D8/R, COH3D8 요소만 지원합니다', instances=part_users[pname])
                 automatic = _label(o['ELSET'], b) if 'ELSET' in o else None
                 for row in b['rows']:
                     tokens = [t.strip() for t in row['text'].split(',')]
-                    if len(tokens) != 5: _fail(row, 'C3D4는 local element ID와 순서 있는 4절점입니다')
+                    if len(tokens) != WIDTHS[kind] + 1: _fail(row, kind + '는 local element ID와 순서 있는 ' + str(WIDTHS[kind]) + '절점입니다', instances=part_users[pname])
                     ident, *conn = [_id(t, row) for t in tokens]
-                    if ident in elements or len(set(conn)) != 4: _fail(row, '중복 요소/연결 절점입니다', instances=part_users[pname])
-                    elements[ident] = conn; locations['elements'][ident] = row['origin']
+                    if ident in elements or len(set(conn)) != WIDTHS[kind]: _fail(row, '중복 요소/연결 절점입니다', instances=part_users[pname])
+                    elements[ident] = {'type': kind, 'nodes': conn}; locations['elements'][ident] = row['origin']
                     if automatic:
                         elsets.setdefault(automatic, set()).add(ident); locations['elsets'].setdefault(automatic, []).append(b['origin'])
             elif c in ('NSET','ELSET'):
@@ -252,18 +257,20 @@ def compile_source(text, spans=()):
                 name = _label(o.get(c), b)
                 added = set(); _members(b, added, known, table)
                 table.setdefault(name, set()).update(added); locations[kind].setdefault(name, []).append(b['origin'])
-        if not nodes or not elements: raise SourceError('각 PART에는 C3D4 mesh가 있어야 합니다', p['origin']['file'],p['origin']['line'])
-        for eid, conn in elements.items():
-            if set(conn) - nodes.keys(): _fail({'origin':locations['elements'][eid]}, '없는 local node를 참조합니다')
+        if not nodes or not elements: raise SourceError('각 PART에는 지원되는 solid/cohesive mesh가 있어야 합니다', p['origin']['file'],p['origin']['line'])
+        for eid, element in elements.items():
+            if set(element['nodes']) - nodes.keys(): _fail({'origin':locations['elements'][eid]}, '없는 local node를 참조합니다')
         local[pname] = {'nodes':nodes,'elements':elements,'nsets':nsets,'elsets':elsets,'locations':locations}
 
     output, compile_map = [], []
     lineage = {'schema':'impact-assembly-lineage-v1', 'assembly':assembly,
-               'nodes':{}, 'elements':{}, 'nsets':{}, 'elsets':{}, 'surfaces':{}, 'materials':{}, 'conditions':[], 'instances':{}}
+               'nodes':{}, 'elements':{}, 'nsets':{}, 'elsets':{}, 'surfaces':{}, 'materials':{}, 'sections':[], 'conditions':[], 'instances':{}}
+    emission_scope = {'scope':'MODEL', 'instances':[i['name'] for i in instances]}
     def emit(line, where, count=1):
         output.append(line)
         compile_map.append({'flat_line':len(output),'count':1,'file':where['file'],
-                            'source_line':where['line'],'occurrence':where['occurrence']})
+                            'source_line':where['line'],'occurrence':where['occurrence'],
+                            'source_flat_line':where['flat_line'], **emission_scope})
     def setname(kind, scope, label):
         # An explicit namespace table, not lossy punctuation replacement.
         table = lineage[kind]
@@ -277,6 +284,7 @@ def compile_source(text, spans=()):
     for inst in instances:
         name, pname = inst['name'], inst['part']; p = local[pname]
         scope = assembly + '.' + name
+        emission_scope = {'scope':scope, 'part':pname, 'instance':name, 'instances':[name]}
         nm = {n:next_n+j for j,n in enumerate(sorted(p['nodes']))}; next_n += len(nm)
         em = {e:next_e+j for j,e in enumerate(sorted(p['elements']))}; next_e += len(em)
         if max(next_n,next_e) > 1000001: _fail({'origin':inst['origin']}, '계층 compile 메시 크기 한도를 초과했습니다')
@@ -299,11 +307,15 @@ def compile_source(text, spans=()):
             emit(str(effective)+','+','.join(format(v,'.17g') for v in xyz),p['locations']['nodes'][n])
             lineage['nodes'][str(effective)] = {**p['locations']['nodes'][n], 'part':pname,'instance':name,
                                                 'local_id':n,'instance_origin':inst['origin'],'part_coordinates_mm':p['nodes'][n]}
-        emit('*ELEMENT,TYPE=C3D4',inst['origin'])
+        previous_type = None
         for eid, effective in em.items():
-            emit(str(effective)+','+','.join(str(nm[n]) for n in p['elements'][eid]),p['locations']['elements'][eid])
+            element = p['elements'][eid]
+            if element['type'] != previous_type:
+                emit('*ELEMENT,TYPE='+element['type'], p['locations']['elements'][eid])
+                previous_type = element['type']
+            emit(str(effective)+','+','.join(str(nm[n]) for n in element['nodes']),p['locations']['elements'][eid])
             lineage['elements'][str(effective)] = {**p['locations']['elements'][eid],'part':pname,'instance':name,'local_id':eid,
-                                                   'local_connectivity':p['elements'][eid], 'instance_origin':inst['origin']}
+                                                   'type':element['type'], 'local_connectivity':deepcopy(element['nodes']), 'instance_origin':inst['origin']}
         for card,table,keys,mapping,kind in [('NSET',ns,nkeys,nm,'nsets'),('ELSET',es,ekeys,em,'elsets')]:
             for label, members in table.items():
                 if not members: _fail({'origin':inst['origin']},'빈 상속 집합입니다')
@@ -318,11 +330,11 @@ def compile_source(text, spans=()):
         surface_seen=set()
         for b in parts[pname]['blocks']+inst['blocks']:
             c,o=b['card'],b['options']
-            if c=='SOLID SECTION':
-                label=_label(o.get('ELSET'),b); material=_label(o.get('MATERIAL'),b)
-                if label not in ekeys: _fail(b,'section의 local ELSET이 없습니다')
-                if any(row['text'].strip(',').strip() for row in b['rows']): _fail(b,'추가 section data는 미지원입니다')
-                emit('*SOLID SECTION,ELSET='+ekeys[label]+',MATERIAL='+material,b['origin'])
+            if c in SECTION_CARDS:
+                label = _label(o.get('ELSET'), b)
+                emit_section(b, instance=name, part=pname, element_keys=ekeys,
+                             local_sets={e:em[e] for e in es.get(label,())}, element_origins=p['locations']['elements'],
+                             lineage=lineage, emit=emit, fail=_fail, label=_label)
             elif c=='SURFACE':
                 label=_label(o.get('NAME'),b)
                 if label in surface_seen: _fail(b,'같은 scope의 면을 중복 정의할 수 없습니다')
@@ -332,14 +344,17 @@ def compile_source(text, spans=()):
                 emit('*SURFACE,NAME='+key+',TYPE=ELEMENT',b['origin'])
                 for row in b['rows']:
                     fields=[t.strip().upper() for t in row['text'].split(',')]
-                    if len(fields)!=2 or not re.fullmatch('S[1-4]',fields[1]): _fail(row,'C3D4 S1~S4의 정확한 요소면을 지정하세요')
+                    if len(fields)!=2 or not re.fullmatch('S[1-6]',fields[1]): _fail(row,'정확한 요소면 S1~S6을 지정하세요')
                     target,side=fields
                     members={_id(target,row)} if target.isdigit() else es.get(target,set())
                     if not members or set(members)-em.keys(): _fail(row,'없는 local element/ELSET 면입니다')
-                    for eid in sorted(members): emit(f'{em[eid]},{side}',row['origin']); faces.append([em[eid],side])
+                    for eid in sorted(members):
+                        if int(side[1:]) > SURFACE_SIDES[p['elements'][eid]['type']]: _fail(row,'해당 요소 형식에 없는 면 번호입니다', instances=[name])
+                        emit(f'{em[eid]},{side}',row['origin']); faces.append([em[eid],side])
                 if not faces: _fail(b,'빈 면입니다')
                 lineage['surfaces'][key].update(origins=[b['origin']],instance=name,part=pname,faces=faces)
 
+    emission_scope = {'scope':assembly, 'instances':[i['name'] for i in instances]}
     assembly_sets={'NSET':{},'ELSET':{}}
     assembly_keys={'NSET':{},'ELSET':{}}
     def resolve_target(token,kind,b,instance_name=None):
@@ -381,8 +396,9 @@ def compile_source(text, spans=()):
             emit('*SURFACE,NAME='+key+',TYPE=ELEMENT',b['origin'])
             for row in b['rows']:
                 fields=[t.strip().upper() for t in row['text'].split(',')]
-                if len(fields)!=2 or not re.fullmatch('S[1-4]',fields[1]):_fail(row,'정확한 C3D4 요소면이 필요합니다')
+                if len(fields)!=2 or not re.fullmatch('S[1-6]',fields[1]):_fail(row,'정확한 요소면 S1~S6이 필요합니다')
                 for eid in sorted(resolve_target(fields[0],'ELSET',row)):
+                    if int(fields[1][1:]) > SURFACE_SIDES[lineage['elements'][str(eid)]['type']]: _fail(row,'해당 요소 형식에 없는 면 번호입니다', instances=[lineage['elements'][str(eid)]['instance']])
                     emit(f'{eid},{fields[1]}',row['origin']);faces.append([eid,fields[1]])
             if not faces:_fail(b,'빈 assembly 면입니다')
             lineage['surfaces'][key].update(origins=[b['origin']],faces=faces)
@@ -396,13 +412,26 @@ def compile_source(text, spans=()):
                 ids=resolve_target(fields[0],'NSET',row)
                 for n in sorted(ids):emit(str(n)+','+','.join(fields[1:]),row['origin'])
                 lineage['conditions'].append({'kind':'BOUNDARY','target':fields[0],'effective_node_ids':sorted(ids),'origin':row['origin']})
-        else:
-            if c=='MATERIAL':lineage['materials'][_label(o.get('NAME'),b)]={'origin':b['origin']}
-            emit('*'+c+''.join(','+k+'='+str(v) for k,v in o.items()),b['origin'])
-            for row in b['rows']:emit(row['text'],row['origin'])
+    emission_scope = {'scope':'MODEL', 'instances':[i['name'] for i in instances]}
+    emit_globals(global_blocks, lineage=lineage, emit=emit, fail=_fail)
     compiled='\n'.join(output)+'\n'
     if len(compiled.encode('ascii'))>MAX_BYTES:raise SourceError('계층 compile 산출물이 6 MiB를 초과합니다')
-    model=parse_inp(compiled,compile_map)
+    try:
+        model=parse_inp(compiled,compile_map)
+    except SourceError as error:
+        flat_line = getattr(error, 'flat_line', None)
+        entry = next((row for row in compile_map if row['flat_line'] == flat_line), None)
+        if entry is not None:
+            block = next((block for block in reversed(blocks) if block['origin']['flat_line'] <= entry['source_flat_line']), None)
+            error.occurrence = entry['occurrence']
+            error.impact = {'scope':entry['scope'], 'instances':entry['instances'],
+                            'card':block['card'] if block else None,
+                            'references':deepcopy(block['options']) if block else {},
+                            'source':{'file':entry['file'], 'line':entry['source_line'],
+                                      'occurrence':entry['occurrence'], 'flat_line':entry['source_flat_line'],
+                                      'revision':'effective_source'}, 'execution':'BLOCKED'}
+        raise
+    bind_assignments(model, lineage)
     # Existing parser validates physical assignments and fixed DOFs. Preserve its result.
     model.update(lineage=lineage,compiled_text=compiled,compile_map=compile_map)
     return model
