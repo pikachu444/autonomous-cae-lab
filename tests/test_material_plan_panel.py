@@ -54,7 +54,7 @@ def host(tmp_path):
         server.shutdown(); server.server_close(); service.shutdown(); thread.join(2)
 
 
-def test_two_plan_buffers_focus_and_parent_close_are_independent(host):
+def test_two_plan_buffers_focus_and_parent_close_are_independent(host, monkeypatch):
     app, client, material, panel, plans = host
     first_id, second_id = [plan['id'] for plan in plans]
     panel.plans.setCurrentIndex(panel.plans.findData(first_id))
@@ -73,6 +73,8 @@ def test_two_plan_buffers_focus_and_parent_close_are_independent(host):
     assert first.buffer_snapshot()['variables'][0]['value'] == 1000
     assert material.edited_draft()['settings']['parameters']['E'] == 1400
     assert second.buffer_snapshot()['variables'][0]['value'] == 1700
+    from PySide6.QtWidgets import QMessageBox
+    monkeypatch.setattr(QMessageBox, 'exec', lambda self: QMessageBox.StandardButton.Cancel)
     material.close(); app.processEvents()
     assert material.isVisible() and panel.has_pending_inputs()
     assert client.document_read(first_id)['draft']['variables'][0]['value'] == 1000

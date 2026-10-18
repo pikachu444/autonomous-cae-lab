@@ -5,7 +5,7 @@ import uuid
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox,
     QHBoxLayout, QHeaderView, QLabel, QPushButton, QStackedWidget, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget)
+    QTableWidgetItem, QVBoxLayout, QWidget, QSplitter, QMessageBox)
 
 
 def material_variable_labels(document):
@@ -13,6 +13,11 @@ def material_variable_labels(document):
     material = document['draft'].get('material', {}).get('draft', {})
     model = material.get('settings', {}).get('model')
     return {key: PARAMETER_LABELS[key] for key in PARAMETERS.get(model, ())} if material.get('backend') == 'material.felupe' else {}
+
+
+def _plan_identity(document):
+    from caelab.storage import canonical_hash
+    return (document['id'],document['session_id'],document['generation'],document['input_revision'],canonical_hash(document['draft']))
 
 
 class PlanPatchDialog(QDialog):
@@ -72,6 +77,12 @@ class MaterialPlanPanel(QWidget):
         self._related_save_recovery_context = None
         self._related_save_material_id = material.document['id']
         self._related_save_selection_pending = False
+        self._pending_observation = self._staged_observation = None
+        self._source_titles = {}
+        self._trial_results = {}
+        self._drawn_trial = None
+        self._trial_plot_active = False
+        self._observation_material_id = None
         layout = QVBoxLayout(self)
         row = QHBoxLayout()
         self.plans = QComboBox()
@@ -82,18 +93,36 @@ class MaterialPlanPanel(QWidget):
         self.related_save_button = QPushButton('함께 저장…')
         self.save_receipt_button = QPushButton('저장 결과…')
         row.addWidget(QLabel('피팅 계획')); row.addWidget(self.plans, 1)
-        for button in (refresh, create, self.open_button, self.save_button): row.addWidget(button)
+        row.addWidget(refresh)
         layout.addLayout(row)
         self.badge, self.message = QLabel(), QLabel()
         self.message.setWordWrap(True)
         layout.addWidget(self.badge)
-        saves = QHBoxLayout(); saves.addWidget(self.related_save_button); saves.addWidget(self.save_receipt_button); saves.addStretch()
+        saves = QHBoxLayout()
+        for button in (create,self.open_button,self.save_button,self.related_save_button,self.save_receipt_button):saves.addWidget(button)
+        saves.addStretch()
         layout.addLayout(saves)
-        self.stack = QStackedWidget(); layout.addWidget(self.stack, 1)
+        split = QSplitter(Qt.Orientation.Horizontal)
+        self.stack = QStackedWidget(); split.addWidget(self.stack)
         self.empty = QLabel('피팅 계획 없음'); self.stack.addWidget(self.empty)
+        trials = QWidget(); trial_layout = QVBoxLayout(trials); trial_layout.setContentsMargins(0,0,0,0)
+        trial_layout.addWidget(QLabel('선택한 계획의 시험'))
+        self.trials = QTableWidget(0,4)
+        self.trials.setHorizontalHeaderLabels(['시험','용도','관측','모델 응답'])
+        self.trials.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.trials.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.trials.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.trials.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.trials.itemSelectionChanged.connect(lambda:self.show_trial(force=True))
+        self.trials.itemClicked.connect(lambda item:self.show_trial(force=True))
+        trial_layout.addWidget(self.trials)
+        self.observation_button = QPushButton('전달받은 시험 등록…')
+        self.observation_button.hide(); self.observation_button.clicked.connect(self.review_observation)
+        trial_layout.addWidget(self.observation_button)
+        split.addWidget(trials); split.setSizes([500,650]); layout.addWidget(split,1)
         layout.addWidget(self.message)
         refresh.clicked.connect(self.refresh_plans)
-        create.clicked.connect(material.open_numerical)
+        create.clicked.connect(material.create_numerical)
         self.open_button.clicked.connect(self.open_plan)
         self.save_button.clicked.connect(self.save_plan)
         self.related_save_button.clicked.connect(self.save_related)
@@ -102,7 +131,7 @@ class MaterialPlanPanel(QWidget):
         from .material_save_recovery import context_for
         self.restore_related_save_context(context_for(material, material.document['id']))
 
-    def _call(self, function, after):
+    def _call(self, function, after, *, failed=None):
         if self._busy:
             self.message.setText('계획 요청 결과를 기다리는 중입니다. 편집은 보존됩니다.')
             return False
@@ -115,6 +144,7 @@ class MaterialPlanPanel(QWidget):
             if error:
                 self.message.setText('계획 요청을 처리하지 못했습니다. 편집은 보존됩니다.')
                 self.message.setToolTip(error)
+                if failed:failed(error)
             else:
                 after(value)
         worker.signals.finished.connect(done, Qt.ConnectionType.QueuedConnection)
@@ -137,6 +167,8 @@ class MaterialPlanPanel(QWidget):
         def received(payload):
             if not self.material.document or self.material.document['id'] != material_id:
                 return
+            self._drawn_trial=None
+            self._source_titles = {document['id']:document['title'] for document in payload['documents']}
             documents = [document for document in payload['documents'] if document.get('kind') == 'numerical'
                          and isinstance(document.get('draft', {}).get('material'), dict)
                          and document['draft']['material'].get('document_id') == material_id]
@@ -154,6 +186,8 @@ class MaterialPlanPanel(QWidget):
             self.plans.blockSignals(False)
             self._restore_related_save_selection(final=True)
             self._selected()
+            if self._pending_observation:
+                self.review_observation()
         return self._call(self.client.documents, received)
 
     def _bind(self, identifier, document):
@@ -174,6 +208,8 @@ class MaterialPlanPanel(QWidget):
         self.save_receipt_button.setEnabled(identifier in self._related_save_receipts)
         if not identifier:
             self.stack.setCurrentWidget(self.empty)
+            self.trials.setRowCount(0)
+            self.show_trial(force=True)
             self.badge.setText('이 재료의 피팅 계획이 없습니다.'); return
         if identifier not in self._widgets:
             from caelab.plan_variables_api import PlanOwnerAdapter, embed_plan_variables
@@ -186,9 +222,122 @@ class MaterialPlanPanel(QWidget):
             self._widgets[identifier] = widget; self.stack.addWidget(widget)
             widget.patchPreviewRequested.connect(lambda preview, key=identifier: self.review_patch(key, preview))
             widget.ownerActivated.connect(lambda key: self._owner_activated(key))
+            router = self.material.undo_router
+            router.register_target(widget, undo=widget.undo, redo=widget.redo,
+                can_undo=widget.undo_button.isEnabled, can_redo=widget.redo_button.isEnabled,
+                label=lambda key=identifier:self._documents[key]['title'])
+            widget.activityChanged.connect(router.refresh)
         self.stack.setCurrentWidget(self._widgets[identifier])
         self._bind(identifier, self._documents[identifier])
         self.update_badge()
+
+    def receive_observation(self, source):
+        if self._staged_observation:
+            self.message.setText('앞선 시험 등록 결과를 먼저 확인하세요. 전달받은 자료는 바꾸지 않았습니다.')
+            return False
+        self._pending_observation = deepcopy(source)
+        self._observation_material_id = self.material.document['id']
+        self.observation_button.show()
+        if not self._busy:self.review_observation()
+        return True
+
+    def review_observation(self):
+        if self._busy:return False
+        if self._observation_material_id != self.material.document['id']:
+            self.message.setText('전달받은 시험의 대상 재료가 바뀌었습니다. 원래 재료를 열어 등록 결과를 확인하세요.')
+            return False
+        if self._staged_observation:return self._apply_observation()
+        source = deepcopy(self._pending_observation)
+        if not source:return False
+        identifier = self.plans.currentData()
+        if not identifier:
+            if QMessageBox.question(self, '피팅 계획 만들기', '이 재료에 연결된 계획이 없습니다. 전달받은 시험을 등록할 새 피팅 계획을 만들까요?',
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Yes:
+                return False
+            from caelab.numerical_document import from_material_document
+            draft = from_material_document(self.material.document)
+            return self._call(lambda:self.client.document_open(kind='numerical',title='재료 피팅',draft=draft),
+                lambda document:self.refresh_plans())
+        widget = self._widgets[identifier]
+        if widget.has_unapplied_buffer():
+            self.message.setText('선택 계획의 변수 편집을 적용하거나 실행 취소한 뒤 시험을 등록하세요.')
+            return False
+        base = deepcopy(self._documents[identifier])
+        material_identity = (self.material.document['id'],self.material.document['session_id'],self.material.document['generation'])
+        def read():
+            from caelab.storage import canonical_hash
+            current = self.client.document_read(identifier)
+            if _plan_identity(current) != _plan_identity(base):
+                raise ValueError('선택 계획이 다른 창에서 변경되었습니다. 다시 읽은 뒤 시험을 등록하세요.')
+            data = self.client.document_read(source['document_id'])
+            exact = self.client.document_result_reference(source['document_id'],source['job_id'])
+            for key in ('document_id','job_id','input_revision','input_sha256'):
+                if exact.get(key) != source.get(key):raise ValueError('전달받은 시험과 저장한 자료 입력이 다릅니다.')
+            result = self.client.document_result(source['document_id'],source['job_id'])
+            if canonical_hash(result) != exact['result_sha256']:
+                raise ValueError('전달받은 시험의 저장 결과가 다릅니다.')
+            observation = result.get('responses',{}).get(source['response'],{})
+            if result.get('execution_status') != 'SUCCEEDED' or observation.get('kind') != 'series':
+                raise ValueError('저장한 시험에 사용할 관측이 없습니다.')
+            return current,result,data['title']
+        def reviewed(payload):
+            current,result,title = payload
+            if (source != self._pending_observation or identifier != self.plans.currentData() or
+                    material_identity != (self.material.document['id'],self.material.document['session_id'],self.material.document['generation']) or
+                    self.material.local_dirty or self.material.conflict):
+                self.message.setText('검토할 재료나 계획이 변경되었습니다. 전달받은 시험을 다시 등록하세요.')
+                return
+            from .material_test_dialog import ExperimentDialog
+            dialog = ExperimentDialog(current['draft']['material']['draft']['settings'],result,self,selected=source['response'])
+            dialog._buttons.button(QDialogButtonBox.StandardButton.Ok).setText('시험 등록')
+            if dialog.exec() != QDialog.DialogCode.Accepted:return
+            if (identifier != self.plans.currentData() or widget.has_unapplied_buffer() or
+                    material_identity != (self.material.document['id'],self.material.document['session_id'],self.material.document['generation']) or
+                    self.material.local_dirty or self.material.conflict):
+                self.message.setText('검토 중 입력이 변경되었습니다. 시험을 다시 등록하세요.')
+                return
+            value = dialog.value
+            if value['name'] != source['response']:
+                self.message.setText('Data에서 전달한 관측과 선택한 관측이 다릅니다. Data에서 다시 선택하세요.')
+                return
+            draft = deepcopy(current['draft'])
+            index = 1
+            while 'Test'+str(index) in {trial['id'] for trial in draft['experiments']}:index += 1
+            trial = dict(id='Test'+str(index),role=value['role'],source=deepcopy(source),response=value['response'],
+                settings=deepcopy(value['settings']),weight=value['weight'],scale=value['scale'])
+            from .finite_measure_gui import copy_trial_extensions
+            copy_trial_extensions(trial,value)
+            if value['kinematics'] is not None:trial['kinematics']=deepcopy(value['kinematics'])
+            draft['experiments'].append(trial)
+            self._staged_observation = dict(document=current,draft=draft,command_id='C'+uuid.uuid4().hex)
+            self._source_titles[source['document_id']] = title
+            self._apply_observation()
+        return self._call(read,reviewed)
+
+    def _apply_observation(self):
+        staged = deepcopy(self._staged_observation)
+        if not staged or self._busy:return False
+        if self._observation_material_id != self.material.document['id']:
+            self.message.setText('시험을 검토한 원래 재료를 열어 등록 결과를 확인하세요.')
+            return False
+        base = staged['document']
+        self.observation_button.setText('시험 등록 결과 확인')
+        def apply():
+            response = self.client.document_command(base['id'],'numerical.update',{'draft':staged['draft']},
+                session_id=base['session_id'],expected_generation=base['generation'],command_id=staged['command_id'])
+            return response,self.client.document_read(base['id'])
+        def applied(payload):
+            response,current = payload
+            accepted = response['document']
+            if (accepted['draft'] != staged['draft'] or _plan_identity(accepted) != _plan_identity(current)):
+                self.message.setText('등록 뒤 계획이 변경되었습니다. 이전 시험과 편집을 보존했습니다. 계획을 다시 읽어 확인하세요.')
+                return
+            self._staged_observation = self._pending_observation = None
+            self.observation_button.hide(); self.observation_button.setText('전달받은 시험 등록…')
+            self._bind(base['id'],accepted); self.update_badge()
+            self.message.setText('선택한 계획에 시험을 등록했습니다. 계획 저장 후 계산을 실행할 수 있습니다.')
+        return self._call(apply,applied)
 
     def _owner_activated(self, identifier):
         if self._binding or not identifier:
@@ -203,8 +352,105 @@ class MaterialPlanPanel(QWidget):
         if not document or not self.material.document:
             return
         reference = document['draft'].get('material', {})
+        selected=self.trials.currentRow()
+        experiments = document['draft'].get('experiments',[])
+        self.trials.blockSignals(True)
+        self.trials.setRowCount(len(experiments))
+        for row,trial in enumerate(experiments):
+            source=trial['source']
+            values=(self._source_titles.get(source.get('document_id'),'시험 '+str(row+1)),
+                {'fit':'피팅','holdout':'별도 확인'}.get(trial['role'],trial['role']),source['response'],trial['response'])
+            for column,value in enumerate(values):
+                item=QTableWidgetItem(value);item.setToolTip(str(source));self.trials.setItem(row,column,item)
+        if experiments:self.trials.selectRow(max(0,min(selected,len(experiments)-1)))
+        self.trials.blockSignals(False)
+        self.show_trial()
         self.badge.setText('재료 편집 적용 전' if self.material.local_dirty else
             '현재 재료 입력을 참조' if reference.get('input_revision') == self.material.document['input_revision'] else '이전 재료 입력을 참조')
+
+    def show_trial(self, *, force=False):
+        document=self._documents.get(self.plans.currentData())
+        row=self.trials.currentRow()
+        if self._busy or self._pending_observation or self._staged_observation:return
+        if not document or row<0 or not document.get('runs'):
+            empty_key=(_plan_identity(document) if document else None,'NO_RESULT')
+            if force or self._trial_plot_active and self._drawn_trial!=empty_key:
+                self._clear_trial_plot('선택한 시험의 저장된 계산 결과가 없습니다.')
+                self._drawn_trial=empty_key
+            return
+        experiments=document['draft'].get('experiments',[])
+        if row>=len(experiments):return
+        trial_id=experiments[row]['id']
+        run=deepcopy(document['runs'][-1]);job=run['job_id']
+        frozen=next((trial for trial in run.get('draft',{}).get('experiments',[]) if trial.get('id')==trial_id),None)
+        key=(_plan_identity(document),job,run.get('input_revision'),run.get('input_sha256'),trial_id)
+        if key==self._drawn_trial and not force:return
+        self.material._result_view_serial += 1
+        view_serial=self.material._result_view_serial
+        self._clear_trial_plot('선택한 시험의 저장 결과를 읽는 중입니다…')
+        self._drawn_trial=key
+        if frozen is None:
+            self._clear_trial_plot('이 실행에는 선택한 시험이 없습니다. 원래 실행을 Numerical에서 확인하세요.')
+            self._drawn_trial=key
+            return
+        def draw(result):
+            if (self.material._result_view_serial!=view_serial or
+                    self.material._active_result_view!='plan'):return
+            current=self._documents.get(self.plans.currentData())
+            live_row=self.trials.currentRow()
+            if (not current or _plan_identity(current)!=key[0] or live_row<0 or
+                    live_row>=len(current['draft'].get('experiments',[])) or
+                    current['draft']['experiments'][live_row]['id']!=trial_id or
+                    not current.get('runs') or current['runs'][-1]['job_id']!=job or
+                    current['runs'][-1].get('input_sha256')!=run.get('input_sha256')):
+                self.show_trial(force=True)
+                return
+            self._trial_results[(document['id'],job)]=deepcopy(result)
+            curve=next((curve for curve in result.get('curves',[]) if curve.get('experiment_id')==trial_id),None)
+            if result.get('kind')!='fit' or curve is None:
+                self._clear_trial_plot('선택한 실행에 이 시험의 곡선이 없습니다. 실패 내용은 Numerical에서 확인하세요.')
+                self._drawn_trial=key
+                return
+            self._drawn_trial=key
+            from .numerical_window import plot_fit_trial, fit_trial_status
+            observed=curve.get('observations',{})
+            axes=observed.get('axes',[])
+            if len(axes)!=1:
+                self._clear_trial_plot('선택 시험의 축을 곡선으로 표시할 수 없습니다. Numerical에서 원 결과를 확인하세요.')
+                self._drawn_trial=key
+                return
+            figure=self.material.figure;figure.clear()
+            self.material._active_result_view='plan'
+            self.material.material_results_panel.hide()
+            blocked=self.material.response.blockSignals(True)
+            self.material.response.setCurrentIndex(self.material.response.findData(frozen['response']))
+            self.material.response.blockSignals(blocked);self.material.response.setEnabled(False)
+            prediction_ax,residual_ax=plot_fit_trial(figure,result,curve)
+            name=self._source_titles.get(frozen['source'].get('document_id'),'시험 '+str(row+1))
+            stale=run.get('draft')!=document['draft']
+            state=fit_trial_status(result,curve,include_reason=False)
+            prediction_ax.set_title(('이전 계획 입력 / ' if stale else '')+document['title']+' / '+name+' / '+('별도 확인' if frozen.get('role')=='holdout' else '피팅')+' / '+state,fontsize=10)
+            self.message.setText(fit_trial_status(result,curve))
+            self.material.canvas.draw_idle()
+        result=self._trial_results.get((document['id'],job))
+        if result is not None:draw(result)
+        else:
+            def failed(error):
+                if (self.material._result_view_serial==view_serial and self.material._active_result_view=='plan' and
+                        self.plans.currentData()==document['id']):
+                    self._clear_trial_plot('선택한 시험 결과를 읽지 못했습니다. 다시 읽기를 누르세요.')
+            self._call(lambda:self.client.document_result(document['id'],job),draw,failed=failed)
+
+    def _clear_trial_plot(self, message):
+        self.material._active_result_view='plan'
+        self._trial_plot_active=True
+        self._drawn_trial=None
+        self.material.figure.clear()
+        self.material.axes=self.material.figure.add_subplot(111)
+        self.material.axes.text(.5,.5,message,ha='center',va='center',transform=self.material.axes.transAxes,wrap=True)
+        self.material.axes.set_axis_off()
+        self.material.material_results_panel.hide()
+        self.material.canvas.draw_idle()
 
     def review_patch(self, identifier, preview):
         dialog = PlanPatchDialog(preview, self._documents[identifier], self)
@@ -326,7 +572,7 @@ class MaterialPlanPanel(QWidget):
         return True
 
     def has_pending_inputs(self):
-        return self._busy or bool(self._related_save_unconfirmed) or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
+        return self._busy or bool(self._staged_observation) or bool(self._related_save_unconfirmed) or any(widget.has_unapplied_buffer() or (widget.document_snapshot() or {}).get('dirty')
                                  for widget in self._widgets.values())
 
     def has_unconfirmed_save(self):

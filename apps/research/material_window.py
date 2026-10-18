@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QFormLayout, QHBoxLayout,
     QDockWidget, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow, QMessageBox,
     QPushButton, QPlainTextEdit, QSplitter, QTableWidget, QTableWidgetItem,
-    QTabWidget, QToolBar, QVBoxLayout, QWidget,
+    QTabWidget, QToolBar, QVBoxLayout, QWidget, QStyledItemDelegate,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -31,6 +31,12 @@ STRESS_COMPONENTS = tuple("stress_" + component for component in ("xx", "yy", "z
 TERMINAL = {"SUCCEEDED", "FAILED", "REJECTED", "PARTIAL_FAILURE", "CANCELLED", "INTERRUPTED"}
 PARAMETERS = {"linear_elastic": ("E", "nu"), "neo_hooke": ("mu", "lmbda")}
 PARAMETER_LABELS = {'E': '탄성계수 E', 'nu': '포아송비 ν', 'mu': '전단계수 μ', 'lmbda': 'Lamé 계수 λ'}
+
+
+class _CoefficientDisplay(QStyledItemDelegate):
+    def displayText(self,value,locale):
+        parsed=edited_number(value)
+        return format(parsed,'.6g') if type(parsed) in (int,float) and math.isfinite(parsed) else str(value)
 
 
 def edited_number(text):
@@ -142,6 +148,9 @@ class MaterialWindow(QMainWindow):
         self._numerical_windows = []
         self._native_material_windows = []
         self._plan_panel = self._plan_dock = None
+        self._pending_observation_source = None
+        self._active_result_view = 'material'
+        self._result_view_serial = 0
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -153,6 +162,7 @@ class MaterialWindow(QMainWindow):
 
     def _build_ui(self):
         from .appearance import configure_plot_fonts
+        from .common.commands import action_button, FocusedUndoRedo
         configure_plot_fonts()
         self.setWindowTitle("Material Research")
         self.resize(1440, 900)
@@ -180,18 +190,23 @@ class MaterialWindow(QMainWindow):
         self.redo_action = QAction("다시 실행", self, shortcut=QKeySequence.Redo)
         self.undo_action.setIconText('실행 취소')
         self.redo_action.setIconText('다시 실행')
-        self.undo_action.triggered.connect(self.undo_inputs)
-        self.redo_action.triggered.connect(self.redo_inputs)
         edit.addActions([self.undo_action, self.redo_action])
+        view=self.menuBar().addMenu('보기(&V)')
+        self.material_results_action=QAction('재료 계산 결과 보기',self)
+        self.material_results_action.triggered.connect(self.show_material_results)
+        view.addAction(self.material_results_action)
         windows = self.menuBar().addMenu("도구(&T)")
         from .finite_measure_gui import install_material_action
         install_material_action(self, windows)
         self.runner_action = QAction("실행 관리…", self)
         self.runner_action.triggered.connect(self.open_runner)
         windows.addAction(self.runner_action)
-        self.numerical_action = QAction("재료 피팅…", self)
+        self.numerical_action = QAction("피팅 계획 열기…", self)
         self.numerical_action.triggered.connect(self.open_numerical)
         windows.addAction(self.numerical_action)
+        self.new_numerical_action = QAction('새 피팅 계획…', self)
+        self.new_numerical_action.triggered.connect(self.create_numerical)
+        windows.addAction(self.new_numerical_action)
         self.plan_variables_action = QAction('피팅 변수 편집…', self)
         self.plan_variables_action.triggered.connect(self.open_plan_variables)
         windows.addAction(self.plan_variables_action)
@@ -207,11 +222,15 @@ class MaterialWindow(QMainWindow):
         toolbar.addActions([self.new_action, self.open_action, self.save_action])
         toolbar.addSeparator()
         toolbar.addActions([self.undo_action, self.redo_action])
-        self.apply_button = QPushButton("입력 적용")
-        self.run_button = QPushButton("계산 실행")
-        self.run_button.setProperty('appearanceRole', 'primary')
-        self.apply_button.clicked.connect(self.apply_inputs)
-        self.run_button.clicked.connect(self.evaluate)
+        self.apply_action = QAction('입력 적용', self)
+        self.run_action = QAction('계산 실행', self)
+        self.apply_action.triggered.connect(self.apply_inputs)
+        self.run_action.triggered.connect(self.evaluate)
+        edit.addAction(self.apply_action)
+        calculation = self.menuBar().addMenu('계산(&C)')
+        calculation.addAction(self.run_action)
+        self.apply_button = action_button(self.apply_action, self)
+        self.run_button = action_button(self.run_action, self, primary=True)
         toolbar.addWidget(self.apply_button)
         toolbar.addWidget(self.run_button)
         toolbar.addSeparator()
@@ -249,12 +268,18 @@ class MaterialWindow(QMainWindow):
         form.addRow("재료 모델", self.model)
         form.addRow("응력 및 탄성계수 단위", self.stress_unit)
         form.addRow("시간 단위", self.time_unit)
-        left.addLayout(form)
+        self.input_tabs = QTabWidget()
+        coefficient_panel, protocol_panel = QWidget(), QWidget()
+        coefficient_layout, protocol_layout = QVBoxLayout(coefficient_panel), QVBoxLayout(protocol_panel)
+        coefficient_layout.addLayout(form)
+        self.input_tabs.addTab(coefficient_panel, '재료 계수')
+        self.input_tabs.addTab(protocol_panel, '시험 조건')
+        left.addWidget(self.input_tabs, 1)
         self.model.currentIndexChanged.connect(self._model_changed)
         self.stress_unit.textEdited.connect(self._edited)
         self.time_unit.textEdited.connect(self._edited)
         self.history_label = QLabel("변형 이력 (지정한 변형구배 F)")
-        left.addWidget(self.history_label)
+        protocol_layout.addWidget(self.history_label)
         from .material_editing import MaterialTable
         self.history = MaterialTable(0, 10)
         self.history.setObjectName("materialHistory")
@@ -262,7 +287,7 @@ class MaterialWindow(QMainWindow):
         self.history.horizontalHeader().setDefaultSectionSize(68)
         self.history.setAlternatingRowColors(True)
         self.history.itemChanged.connect(self._edited)
-        left.addWidget(self.history, 3)
+        protocol_layout.addWidget(self.history, 3)
         row_buttons = QHBoxLayout()
         add_row = QPushButton("행 추가")
         remove_row = QPushButton("선택 행 삭제")
@@ -270,20 +295,25 @@ class MaterialWindow(QMainWindow):
         remove_row.clicked.connect(self.remove_states)
         row_buttons.addWidget(add_row)
         row_buttons.addWidget(remove_row)
-        left.addLayout(row_buttons)
+        protocol_layout.addLayout(row_buttons)
         self.protocol_label = QLabel()
         self.protocol_label.setWordWrap(True)
-        left.addWidget(self.protocol_label)
-        left.addWidget(QLabel("재료 계수"))
+        protocol_layout.addWidget(self.protocol_label)
+        trial_button = action_button(self.trial_action, protocol_panel)
+        protocol_layout.addWidget(trial_button)
+        coefficient_layout.addWidget(QLabel('재료 계수'))
         self.coefficients = MaterialTable(0, 3)
         self.coefficients.setObjectName("materialCoefficients")
         self.coefficients.setHorizontalHeaderLabels(["계수", "값", "단위"])
+        self.coefficients.setItemDelegateForColumn(1,_CoefficientDisplay(self.coefficients))
         self.coefficients.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.coefficients.itemChanged.connect(self._edited)
         for table in (self.history, self.coefficients):
             table.editBatchFinished.connect(self._edited)
             table.pasteRejected.connect(self.message.setText)
-        left.addWidget(self.coefficients, 2)
+        coefficient_layout.addWidget(self.coefficients, 1)
+        plans_button = action_button(self.numerical_action, coefficient_panel)
+        coefficient_layout.addWidget(plans_button)
         main.addWidget(self.editor)
 
         right = QSplitter(Qt.Orientation.Vertical)
@@ -305,6 +335,7 @@ class MaterialWindow(QMainWindow):
         plot_layout.addWidget(self.canvas, 1)
         right.addWidget(plot_panel)
         output = QWidget()
+        self.material_results_panel = output
         output_layout = QVBoxLayout(output)
         output_layout.setContentsMargins(0, 0, 0, 0)
         run_controls = QHBoxLayout()
@@ -343,6 +374,11 @@ class MaterialWindow(QMainWindow):
         main.addWidget(right)
         main.setSizes([485, 930])
         self.setCentralWidget(root)
+        self.undo_router = FocusedUndoRedo(self, self.undo_action, self.redo_action)
+        self.undo_router.register_target(self.editor, undo=self.undo_inputs, redo=self.redo_inputs,
+            can_undo=lambda:not self._busy and (bool(self._local_undo) or bool(self.document and not self.conflict and not self.local_dirty and self.document.get('can_undo'))),
+            can_redo=lambda:not self._busy and (bool(self._local_redo) or bool(self.document and not self.conflict and not self.local_dirty and self.document.get('can_redo'))),
+            label='재료 계수와 시험 조건')
         self._draw_results()
         self._update_actions()
 
@@ -373,6 +409,9 @@ class MaterialWindow(QMainWindow):
             else:
                 success(result)
             self._update_actions()
+            if (self._pending_observation_source and self.document and not self._busy and
+                    not self.local_dirty and not self.conflict):
+                QTimer.singleShot(0,lambda:self.stage_observation(self._pending_observation_source))
 
         worker.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
@@ -397,6 +436,8 @@ class MaterialWindow(QMainWindow):
             self.message.setText('Opened the same Material owner in its native law/protocol editor.')
             return
         self.document = deepcopy(document)
+        self._active_result_view = 'material'
+        self._result_view_serial += 1
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
         self._job_status.clear()
@@ -405,6 +446,9 @@ class MaterialWindow(QMainWindow):
         if self._plan_panel:
             self._plan_panel.refresh_plans()
         self.message.setText("재료 계수와 변형 이력을 입력하고, 입력 적용 후 계산 실행을 누르세요.")
+        if self._pending_observation_source:
+            source,self._pending_observation_source = self._pending_observation_source,None
+            QTimer.singleShot(0,lambda:self.stage_observation(source))
         QTimer.singleShot(0, self.refresh_results)
 
     def _show_document(self, document, *, prefer_job=None, edit_draft=None, preserve_history=False):
@@ -581,11 +625,19 @@ class MaterialWindow(QMainWindow):
             self.message.setText("Apply the edited inputs first; the service command must not silently ignore them.")
             return False
         document = deepcopy(self.document)
+        submitted = deepcopy(self.edited_draft())
 
         def accepted(receipt):
+            current = self.edited_draft()
+            late = current != submitted
             self.local_dirty = self.conflict = False
             job = receipt.get("job")
-            self._show_document(receipt["document"], prefer_job=job.get("job_id", job.get("id")) if job else None)
+            self._show_document(receipt["document"], prefer_job=job.get("job_id", job.get("id")) if job else None,
+                edit_draft=current if late else None, preserve_history=late)
+            if late:
+                self.local_dirty = current != receipt['document']['draft']
+                self.message.setText('제출 뒤 편집한 입력을 유지했습니다. 새 입력을 적용한 뒤 계속하세요.')
+                return
             self.message.setText({'material.update': '입력을 적용했습니다.', 'document.save': '저장했습니다.',
                 'document.undo': '적용한 변경을 취소했습니다.', 'document.redo': '변경을 다시 적용했습니다.',
                 'material.evaluate': '재료 계산을 시작했습니다.'}.get(operation, '처리했습니다.'))
@@ -647,6 +699,37 @@ class MaterialWindow(QMainWindow):
                 for row in sorted({index.row() for index in self.runs.selectedIndexes()})]
 
     def open_numerical(self):
+        panel = self.open_plan_variables()
+        if panel:
+            panel.message.setText('기존 계획을 선택하고 계획 창 열기를 누르세요. 새 계획은 계획 만들기로 만듭니다.')
+        return panel
+
+    def show_material_results(self):
+        self._result_view_serial += 1
+        self._active_result_view='material'
+        self._draw_results()
+        self.refresh_results()
+
+    def stage_observation(self, source):
+        """Receive an exact saved Data observation into a selected existing Plan."""
+        required={'document_id','job_id','response','input_revision','input_sha256'}
+        if (not isinstance(source,dict) or set(source)!=required or
+                any(not isinstance(source.get(key),str) or not source[key] for key in required)):
+            self.message.setText('Data에서 저장한 시험 결과와 관측 채널을 다시 선택하세요.')
+            return False
+        if self.document is None:
+            self._pending_observation_source=deepcopy(source)
+            return True
+        if self._busy or self.local_dirty or self.conflict:
+            self._pending_observation_source=deepcopy(source)
+            self.message.setText('재료 편집을 먼저 적용하세요. 전달받은 시험은 유지했습니다.')
+            return False
+        panel=self.open_plan_variables()
+        accepted=panel.receive_observation(source) if panel else False
+        if accepted:self._pending_observation_source=None
+        return accepted
+
+    def create_numerical(self):
         self._commit_cell_editor()
         if self.local_dirty or self.conflict:
             self.message.setText("재료 편집을 적용한 뒤 피팅을 여세요. 계획의 시작값과 범위는 재료 계수와 별도로 편집합니다.")
@@ -702,6 +785,7 @@ class MaterialWindow(QMainWindow):
             self._plan_dock.setWidget(self._plan_panel)
             self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self._plan_dock)
         self._plan_dock.show(); self._plan_dock.raise_()
+        self.resizeDocks([self._plan_dock],[300],Qt.Orientation.Vertical)
         self._plan_panel.refresh_plans()
         return self._plan_panel
 
@@ -774,6 +858,8 @@ class MaterialWindow(QMainWindow):
         self.runs.blockSignals(False)
 
     def _selection_changed(self):
+        self._result_view_serial += 1
+        self._active_result_view = 'material'
         self.runner_button.setEnabled(len(self._selected_jobs()) == 1)
         self._draw_results()
         self._show_diagnostics()
@@ -825,7 +911,15 @@ class MaterialWindow(QMainWindow):
         self._call(read, received, background=True)
 
     def _draw_results(self, *_):
+        if self._active_result_view == 'plan':
+            return
+        self.material_results_panel.setVisible(bool(self.document and self.document.get('runs')))
+        self.response.setEnabled(True)
+        if self.axes not in self.figure.axes:
+            self.figure.clear()
+            self.axes=self.figure.add_subplot(111)
         self.axes.clear()
+        self.axes.set_axis_on()
         self._plot_errors = {}
         self.values.setRowCount(0)
         component = self.response.currentData()
@@ -913,9 +1007,9 @@ class MaterialWindow(QMainWindow):
         present = self.document is not None
         enabled = present and not self._busy and not self.conflict
         self.editor.setEnabled(present and not self._foreground_busy and not self._draft_problem)
-        self.apply_button.setEnabled(enabled and self.local_dirty and not self._draft_problem)
+        self.apply_action.setEnabled(enabled and self.local_dirty and not self._draft_problem)
         blocked = present and any(item.get("blocks_evaluation") for item in self.document.get("diagnostics", []))
-        self.run_button.setEnabled(enabled and not self.local_dirty and not self._draft_problem and not blocked)
+        self.run_action.setEnabled(enabled and not self.local_dirty and not self._draft_problem and not blocked)
         self.save_action.setEnabled(enabled)
         self.trial_action.setEnabled(enabled and not self._draft_problem)
         self.plan_variables_action.setEnabled(enabled)
@@ -941,6 +1035,8 @@ class MaterialWindow(QMainWindow):
             self.identity_label.setText("입력 적용 필요" if self.local_dirty else
                 "저장하지 않은 변경" if dirty else "새 문서" if self.document.get('saved_revision') is None else "저장됨")
             self.identity_label.setToolTip(f"Document: {self.document['id']}\nOwner session: {self.document['session_id']}")
+        if hasattr(self, 'undo_router'):
+            self.undo_router.refresh()
 
     def _leave(self, continuation):
         from .data_material_recovery_host import leave_with_recovery
@@ -1018,6 +1114,7 @@ def main(argv=None):
     parser.add_argument("--service", default=os.environ.get("CAELAB_SERVICE_URL"))
     parser.add_argument("--document-id")
     parser.add_argument("--title", default="Material study")
+    parser.add_argument('--observation',help='Exact saved Data observation JSON')
     args = parser.parse_args(argv)
     if not args.service:
         parser.error("--service or CAELAB_SERVICE_URL must identify an existing local service")
@@ -1034,6 +1131,11 @@ def main(argv=None):
         window._opened(document)
     else:
         window = MaterialWindow(client, document_id=args.document_id, title=args.title)
+    if args.observation:
+        try:source=json.loads(args.observation)
+        except ValueError:parser.error('--observation must be exact Data observation JSON')
+        if not isinstance(window,MaterialWindow):parser.error('This material editor does not support Data trial registration')
+        window.stage_observation(source)
     window.show()
     return app.exec()
 

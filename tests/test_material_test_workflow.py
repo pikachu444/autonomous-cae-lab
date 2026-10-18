@@ -99,7 +99,18 @@ def test_csv_two_coefficients_holdout_exact_protocol_and_adoption_reopen(tmp_pat
         assert result['curves'][-1]['rmse']<1e-5
         assert wb.document_read(model['id'])['draft']==model['draft']
         candidate=min((r for r in result['candidates'] if r['execution_status']=='SUCCEEDED'),key=lambda r:r['objective'])
+        from caelab.numerical_candidate_detail import COMMAND
+        from caelab.numerical_candidate_evidence import CAPTURE, candidate_detail_readiness
+        view=wb.numerical_candidate_detail(plan['id'],submitted['job']['id'],candidate['candidate_id'])
+        if not candidate_detail_readiness(view)['ready_to_preserve']:
+            detail=command(wb.document_read(plan['id']),COMMAND,dict(source=view['source'],
+                candidate_id=candidate['candidate_id'],base_attempt_job_id=view['attempt_job_id']))
+            completed(wb,detail['job'])
+            view=wb.numerical_candidate_detail(plan['id'],submitted['job']['id'],candidate['candidate_id'],attempt_job_id=detail['job']['id'])
+        evidence=command(wb.document_read(plan['id']),CAPTURE,dict(source=view['source'],
+            candidate_id=candidate['candidate_id'],attempt_job_id=view['attempt_job_id'],purpose='success_judgment'))['reference']
         request=dict(material_document_id=model['id'],session_id=model['session_id'],expected_generation=model['generation'],command_id='Cd5adopt')
+        request['detail_evidence']=evidence
         adopted=wb.desktop.adopt(plan['id'],submitted['job']['id'],candidate['candidate_id'],**request)['document']
         repeated=wb.desktop.adopt(plan['id'],submitted['job']['id'],candidate['candidate_id'],**request)['document']
         assert adopted['generation']==repeated['generation']

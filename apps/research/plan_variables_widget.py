@@ -1,5 +1,6 @@
 """New view of an existing Plan owner; no window/table reparent or second owner."""
 from copy import deepcopy
+import math
 import uuid
 
 from PySide6.QtCore import QEvent, QThreadPool, QTimer, Qt, Signal
@@ -13,6 +14,12 @@ from .numerical_editing import PlanTable
 from .numerical_methods import choice_label, choice_value
 from .numerical_window import number_or_raw
 from .request_plan_window import DATA, CHOICE_DATA, _WorksheetDelegate, value_text
+
+
+class _VariableNumberDelegate(_WorksheetDelegate):
+    def displayText(self, value, locale):
+        parsed = number_or_raw(str(value))
+        return format(parsed, '.6g') if type(parsed) in (int, float) and math.isfinite(parsed) else str(value)
 
 
 class _VariableTable(PlanTable):
@@ -45,6 +52,7 @@ class NumericalPlanVariablesWidget(QWidget):
     patchPreviewRequested = Signal(object)
     dirtyChanged = Signal(bool)
     ownerActivated = Signal(str)
+    activityChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,6 +64,7 @@ class NumericalPlanVariablesWidget(QWidget):
         self._serial = 0
         self._dirty = False
         self._history_command = None
+        self.owner_history_allowed = lambda: True
         self.destroyed.connect(self._abandon)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -65,6 +74,8 @@ class NumericalPlanVariablesWidget(QWidget):
         self.table = _VariableTable(0, 7)
         self.table.setHorizontalHeaderLabels(['변수', '단위', '시작값', '하한', '상한', '탐색', '변환'])
         self.table.setItemDelegate(_WorksheetDelegate(self.table))
+        self._number_delegate = _VariableNumberDelegate(self.table)
+        for column in (2, 3, 4):self.table.setItemDelegateForColumn(column, self._number_delegate)
         self.table.itemChanged.connect(self._edited)
         self.table.pasteRejected.connect(self.message.setText)
         self.table.undoRequested.connect(self.undo)
@@ -112,6 +123,13 @@ class NumericalPlanVariablesWidget(QWidget):
         self.ownerActivated.emit(document['id'])
         self._update_dirty();self._buttons()
 
+    def reset_view(self, adapter, document):
+        """Host explicitly opened or acknowledged this input; abandon the old view."""
+        self._abandon()
+        self._document = None
+        self._history_command = None
+        self.bind_owner(adapter, document)
+
     @staticmethod
     def _variable_path(draft):
         return ('request','inputs','variables') if draft.get('mode') == 'request' else ('variables',)
@@ -128,6 +146,7 @@ class NumericalPlanVariablesWidget(QWidget):
             try:variables=self._at(draft,path)
             except (KeyError,TypeError):variables=[]
             variables=variables if isinstance(variables,list) else []
+            self._shown_variables=deepcopy(variables)
             self.table.setRowCount(len(variables))
             request=draft.get('mode')=='request'
             for row,variable in enumerate(variables):
@@ -304,6 +323,11 @@ class NumericalPlanVariablesWidget(QWidget):
         if self._document is None:return {}
         if commit:self._commit_editor()
         draft=deepcopy(self._document['draft'])
+        path=self._variable_path(draft)
+        try:
+            target=self._at(draft,path[:-1])
+            if isinstance(target.get(path[-1]),list):target[path[-1]]=deepcopy(self._shown_variables)
+        except (KeyError,TypeError,AttributeError):pass
         for row in range(self.table.rowCount()):
             for column in range(self.table.columnCount()):
                 item=self.table.item(row,column)
@@ -326,6 +350,10 @@ class NumericalPlanVariablesWidget(QWidget):
 
     def _edited(self, *_):
         if self._populating:return
+        if _ and isinstance(_[0], QTableWidgetItem):
+            blocked=self.table.blockSignals(True)
+            _[0].setToolTip(_[0].text())
+            self.table.blockSignals(blocked)
         if not self._pending_history:
             self._pending_history=True;QTimer.singleShot(0,self._capture_history)
         self._update_dirty();self._buttons()
@@ -348,7 +376,7 @@ class NumericalPlanVariablesWidget(QWidget):
         self._capture_history()
         if self._index:
             self._index-=1;self._show_table(self._history[self._index]);self._update_dirty();self._buttons()
-        elif self._adapter and self._document.get('can_undo'):
+        elif self._adapter and self._document.get('can_undo') and self.owner_history_allowed():
             self._send_history('undo')
 
     def redo(self):
@@ -356,7 +384,7 @@ class NumericalPlanVariablesWidget(QWidget):
         self._commit_editor();self._capture_history()
         if self._index+1<len(self._history):
             self._index+=1;self._show_table(self._history[self._index]);self._update_dirty();self._buttons()
-        elif self._adapter and self._document and self._document.get('can_redo') and callable(getattr(self._adapter,'redo',None)):
+        elif self._adapter and self._document and self._document.get('can_redo') and self.owner_history_allowed() and callable(getattr(self._adapter,'redo',None)):
             self._send_history('redo')
 
     def _send_history(self, kind):
@@ -455,9 +483,10 @@ class NumericalPlanVariablesWidget(QWidget):
         available=self._adapter is not None and not self._busy
         self.table.setEnabled(available)
         self.preview_button.setEnabled(available)
-        self.undo_button.setEnabled(available and (self._index>0 or bool(self._document and self._document.get('can_undo'))))
+        self.undo_button.setEnabled(available and (self._index>0 or bool(self._document and self._document.get('can_undo') and self.owner_history_allowed())))
         self.redo_button.setEnabled(available and (self._index+1<len(self._history) or
-            bool(self._document and self._document.get('can_redo') and callable(getattr(self._adapter,'redo',None)))))
+            bool(self._document and self._document.get('can_redo') and self.owner_history_allowed() and callable(getattr(self._adapter,'redo',None)))))
         pending=self._history_command
         self.undo_button.setText('실행 취소 결과 확인' if pending and pending['kind']=='undo' and self._index==0 else '실행 취소')
         self.redo_button.setText('다시 실행 결과 확인' if pending and pending['kind']=='redo' and self._index+1==len(self._history) else '다시 실행')
+        self.activityChanged.emit()

@@ -65,7 +65,7 @@ def test_fit_layout_physical_residual_selection_and_precise_draft(app):
     window._draw_result()
     assert list(window.figure.axes[1].lines[0].get_ydata())==pytest.approx([0,.2,-.2])
     window.curve_selector.setCurrentIndex(1)
-    assert 'FAILED' in window.figure.axes[0].get_title()
+    assert '실패' in window.figure.axes[0].get_title()
     assert not any(line.get_label()=='최종 예측' for line in window.figure.axes[0].lines)
     window.variables.item(0,3).setText('1e')
     for width,height in ((1100,780),(1440,900)):

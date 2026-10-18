@@ -36,7 +36,7 @@ STATES = {**STATE, 'RUNNING':'계산 중', 'QUEUED':'대기', 'UNKNOWN':'미확�
 RETENTION = {'RETAINED':'보존됨', 'CURVE_ONLY':'곡선만 보존', 'NOT_RETAINED':'미보존',
              'PARTIAL_OUTPUT':'일부 출력', 'NOT_EVALUATED':'미평가',
              'NOT_RETAINED_BYTE_LIMIT':'보존 용량 초과', 'NOT_RETAINED_CANDIDATE_LIMIT':'보존 후보 수 초과'}
-ROLES = {'fit':'피팅', 'holdout':'검증'}
+ROLES = {'fit':'피팅', 'holdout':'별도 확인'}
 
 
 def display(value):
@@ -688,6 +688,8 @@ class NumericalCandidateDetailWindow(QMainWindow):
             self.refresh()
 
     def closeEvent(self, event):
+        # Matplotlib's queued singleShot can outlive WA_DeleteOnClose's canvas.
+        self.canvas._draw_pending=False
         self._closed=True;self.timer.stop();self._retire_read()
         if self._write_worker is not None:
             self._write_worker.abandon()

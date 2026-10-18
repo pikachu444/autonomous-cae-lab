@@ -131,7 +131,7 @@ class ExperimentDialog(QDialog):
         responses=result.get('responses',{})
         self.observed=combo([(name,name) for name,row in responses.items()
             if row.get('measure') in ('infinitesimal_Cauchy','first_Piola','finite_Cauchy')])
-        self.role=combo([('피팅','fit'),('검증 (holdout)','holdout')])
+        self.role=combo([('피팅','fit'),('별도 확인 (holdout)','holdout')])
         self.model_response=combo([('응력 '+name.removeprefix('stress_'),name)
             for name in ('stress_xx','stress_yy','stress_zz','stress_xy','stress_xz','stress_yz')])
         self.protocol=combo([('전체 변형구배 편집','explicit'),('측정 변형 이력 사용','measured'),('유한변형 측정 이력 / 횡방향 제어','finite_measured')])

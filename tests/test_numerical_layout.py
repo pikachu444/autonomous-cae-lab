@@ -57,7 +57,7 @@ def test_uq_actual_results_have_readable_share_of_window(study, app, dimensions)
     assert not window.operation_options.isHidden()
     assert window.tabs.height() > window.centralWidget().height() / 4
     assert window.candidates.viewport().height() > 5 * window.candidates.rowHeight(0)
-    assert window.candidates.item(1, 1).text() == 'FAILED'
+    assert window.candidates.item(1, 1).text() == '실패'
     window.tabs.setCurrentWidget(window.canvas); app.processEvents()
     assert window.canvas.height() > window.centralWidget().height() / 4
     assert 'Actual UQ' in window.figure.axes[0].get_title()
@@ -101,7 +101,7 @@ def test_hidden_observations_survive_mode_changes_and_background_poll(study, app
     assert edited['variables'][0]['lower'] == 'unfinished coefficient bound'
     assert edited['operation_options']['source']['reference'] == 'Declared test input law'
     assert window.local_dirty and window.editor.isHidden()
-    assert window.candidates.item(1, 1).text() == 'FAILED'
+    assert window.candidates.item(1, 1).text() == '실패'
 
 
 def test_request_plan_keeps_its_independent_layout(app):

@@ -47,6 +47,14 @@ def refresh_coefficient_display(window,*,descriptors=None,model_label=None):
     """Use actual labels supplied by the frozen model; never changes item text."""
     table=window.variables
     labels={item['id']:item.get('label',item['id']) for item in descriptors or []}
+    if hasattr(window, 'variable_editor'):
+        window.variable_editor.set_variable_labels(labels)
+        table.verticalHeader().setVisible(False)
+        for column,width in enumerate((110,45,66,66,66,56,56)):table.setColumnWidth(column,width)
+        if model_label is not None:
+            settings=(window._material or {}).get('draft',{}).get('settings',{})
+            window.material_label.setText(model_label+' ['+str(settings.get('stress_unit',''))+']')
+        return
     if not hasattr(window,'_free_coefficient_display'):window._free_coefficient_display=FreeCoefficientDelegate(table)
     if not hasattr(window,'_variable_name_display'):window._variable_name_display=VariableNameDisplay(labels,table)
     else:window._variable_name_display.labels=labels

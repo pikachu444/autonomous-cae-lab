@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 from caelab.numerical_document import from_material_document, default_draft
 from caelab.workbench_client import Client
 from caelab.material_document import diagnostics as material_diagnostics
+from caelab.storage import canonical_hash
 from .data_window import _Read, display, TERMINAL
 from .runner_window import candidate_state, actual_candidate, state_description
 
@@ -44,19 +45,48 @@ def cell_value(table, row, column):
     return number_or_raw(item.text())
 
 
-class _CoefficientDisplay(QStyledItemDelegate):
-    """Compact painted values; the model and editor retain the exact input text."""
-    def displayText(self, value, locale):
-        parsed = number_or_raw(str(value))
-        if type(parsed) in (int, float) and math.isfinite(parsed):
-            return format(parsed, '.6g')
-        return str(value)
+def fit_trial_status(result, curve, *, include_reason=True):
+    overall=result.get('execution_status','UNKNOWN')
+    trial=curve.get('execution_status','UNKNOWN')
+    overall_label={'SUCCEEDED':'완료','FAILED':'실패','REJECTED':'거절','CANCELLED':'취소됨'}.get(overall,state_description({'state':overall}))
+    text='실행: '+overall_label+' / 시험: '+candidate_state(curve)
+    reason=curve.get('failure_reason') or result.get('error')
+    if isinstance(reason,dict):reason=reason.get('message')
+    return text+(' / '+str(reason) if include_reason and reason and (overall!='SUCCEEDED' or trial!='SUCCEEDED') else '')
+
+
+def plot_fit_trial(figure, result, curve, *, axis=None):
+    """The same retained trial and interval gaps in Material and Numerical."""
+    from caelab.material_test import physical_residual
+    observed=curve.get('observations',{})
+    axis=axis or (observed.get('axes') or [{}])[0]
+    x,y=axis.get('values',[]),observed.get('value',[])
+    prediction=curve.get('prediction',[])
+    complete=result.get('execution_status')=='SUCCEEDED' and curve.get('execution_status')=='SUCCEEDED'
+    label='최종 예측' if complete else '보존한 부분 예측' if curve.get('execution_status')=='SUCCEEDED' else '보존한 실패 출력'
+    top,bottom=figure.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
+    segments=observed.get('segments') or [{'rows':[0,len(x)]}]
+    _,residual=physical_residual(curve)
+    for index,segment in enumerate(segments):
+        first,last=segment.get('rows',[0,len(x)])
+        if len(x)==len(y):top.plot(x[first:last],y[first:last],'o',markersize=3,label='관측' if index==0 else None)
+        if isinstance(prediction,list) and len(prediction)==len(x):
+            top.plot(x[first:last],prediction[first:last],label=label if index==0 else None)
+        if len(residual)==len(x):bottom.plot(x[first:last],residual[first:last],'o-',markersize=2)
+    bottom.axhline(0,color='gray',linewidth=.7)
+    unit=observed.get('unit','?')
+    top.set_ylabel(str(observed.get('component',''))+' ['+unit+']')
+    bottom.set_ylabel('예측−관측\n['+unit+']')
+    bottom.set_xlabel(str(axis.get('name','time'))+' ['+str(axis.get('unit','?'))+']')
+    if top.lines:top.legend(fontsize=9)
+    for axes in (top,bottom):axes.grid(True,alpha=.2)
+    return top,bottom
 
 
 class _TrialRoleDisplay(QStyledItemDelegate):
     """Keep the exact editable role token while painting its task name."""
     def displayText(self, value, locale):
-        return {'fit':'피팅','holdout':'검증'}.get(str(value),str(value))
+        return {'fit':'피팅','holdout':'별도 확인'}.get(str(value),str(value))
 
 
 class ProtocolDialog(QDialog):
@@ -231,6 +261,7 @@ class NumericalWindow(QMainWindow):
 
     def _build_ui(self):
         from .appearance import configure_plot_fonts
+        from .common.commands import action_button, FocusedUndoRedo
         configure_plot_fonts()
         self.resize(1440, 900)
         self.setMinimumSize(960, 700)
@@ -247,8 +278,7 @@ class NumericalWindow(QMainWindow):
         self.redo_action=QAction('다시 실행',self,shortcut=QKeySequence.Redo)
         self.request_action=QAction('일반 수치 계획…',self)
         for action,handler in ((self.new_action,self.new_document),(self.open_action,self.choose_document),
-            (self.save_action,self.save_document),(self.undo_action,lambda:self.undo_inputs()),
-            (self.redo_action,lambda:self.undo_inputs(redo=True)),(self.request_action,lambda:self.open_request_document())):
+            (self.save_action,self.save_document),(self.request_action,lambda:self.open_request_document())):
             action.triggered.connect(handler)
         files.addActions([self.new_action,self.open_action,self.save_action,self.request_action])
         material_action=QAction('재료 열기 / 저장…',self)
@@ -256,10 +286,14 @@ class NumericalWindow(QMainWindow):
         edits.addActions([self.undo_action,self.redo_action])
         check=QAction('입력 확인',self); check.triggered.connect(self.locate_input_error); edits.addAction(check)
         toolbar.addActions([self.open_action,self.save_action,self.undo_action,self.redo_action])
-        self.apply_button=QPushButton('계획 적용'); self.apply_button.clicked.connect(self.apply_inputs)
-        self.run_button=QPushButton('피팅 실행'); self.run_button.setProperty('appearanceRole','primary')
-        self.run_button.clicked.connect(self.run_plan)
-        self.stop_button=QPushButton('실행 취소'); self.stop_button.clicked.connect(self.cancel_run)
+        self.apply_action=QAction('계획 적용',self); self.apply_action.triggered.connect(self.apply_inputs)
+        self.run_action=QAction('피팅 실행',self); self.run_action.triggered.connect(self.run_plan)
+        self.stop_action=QAction('계산 중단',self); self.stop_action.triggered.connect(self.cancel_run)
+        edits.addAction(self.apply_action)
+        calculation=self.menuBar().addMenu('계산(&C)'); calculation.addActions([self.run_action,self.stop_action])
+        self.apply_button=action_button(self.apply_action,self)
+        self.run_button=action_button(self.run_action,self,primary=True)
+        self.stop_button=action_button(self.stop_action,self)
         for widget in (self.apply_button,self.run_button,self.stop_button): toolbar.addWidget(widget)
         self.identity=QLabel(); toolbar.addWidget(self.identity)
         root=QWidget(); layout=QVBoxLayout(root)
@@ -298,16 +332,17 @@ class NumericalWindow(QMainWindow):
         edit.addWidget(self.settings_toggle); edit.addWidget(settings)
         self.input_splitter=QSplitter(Qt.Orientation.Vertical); edit.addWidget(self.input_splitter,1)
         from .numerical_editing import PlanTable
-        self.variables=PlanTable(0,7); self.variables.setObjectName('numericalVariables')
-        self.variables.pasteRejected.connect(self.message.setText)
-        self.variables.setHorizontalHeaderLabels(['계수','단위','시작값','하한','상한','조정','좌표'])
-        self.variables.itemChanged.connect(self._edited)
-        self.variables.horizontalHeader().setDefaultSectionSize(65)
-        self._coefficient_display = _CoefficientDisplay(self.variables)
-        for column in (2, 3, 4):
-            self.variables.setItemDelegateForColumn(column, self._coefficient_display)
+        from .plan_variables_widget import NumericalPlanVariablesWidget
+        self.variable_editor = NumericalPlanVariablesWidget(self)
+        self.variable_editor.owner_label.hide()
+        self.variable_editor.owner_history_allowed = self._variable_owner_history_allowed
+        self.variable_editor.dirtyChanged.connect(self._variable_buffer_changed)
+        self.variable_editor.patchPreviewRequested.connect(self._review_variable_patch)
+        self.variable_editor.ownerActivated.connect(self._variable_owner_activated)
+        self.variables=self.variable_editor.table; self.variables.setObjectName('numericalVariables')
+        self.variables.itemChanged.connect(self._variable_buffer_changed)
         self.variables.setToolTip('현재 재료와 별개인 계획 시작값과 탐색 범위입니다.')
-        self.input_splitter.addWidget(self.variables)
+        self.input_splitter.addWidget(self.variable_editor)
         self.experiments_panel=QWidget(); el=QVBoxLayout(self.experiments_panel); el.setContentsMargins(0,0,0,0)
         buttons=QHBoxLayout()
         self.add_experiment=QPushButton('시험 추가…'); self.add_experiment.clicked.connect(self.choose_observation)
@@ -324,7 +359,7 @@ class NumericalWindow(QMainWindow):
         self.experiments.setColumnHidden(0,True); self.experiments.setColumnHidden(4,True)
         self.experiments.setColumnHidden(7,True); self.experiments.horizontalHeader().setDefaultSectionSize(78)
         self.experiments.horizontalHeader().moveSection(2,0)
-        for column,width in ((1,55),(2,120),(3,85),(5,60),(6,75)):
+        for column,width in ((1,80),(2,110),(3,85),(5,50),(6,65)):
             self.experiments.setColumnWidth(column,width)
         el.addWidget(self.experiments,1)
         self.sample_policy_state=QLabel()
@@ -391,7 +426,17 @@ class NumericalWindow(QMainWindow):
         self.study_splitter.addWidget(self.results_panel)
         self.study_splitter.setStretchFactor(0,0); self.study_splitter.setStretchFactor(1,1)
         self.study_splitter.setSizes([430,940])
-        self.setCentralWidget(root); self._update_actions()
+        self.setCentralWidget(root)
+        self.undo_router = FocusedUndoRedo(self,self.undo_action,self.redo_action)
+        self.undo_router.register_target(self.editor,undo=self.undo_inputs,
+            redo=lambda:self.undo_inputs(redo=True),
+            can_undo=lambda:not self._busy and (self._draft_history_index>0 or bool(self.document and not self.local_dirty and self.document.get('can_undo'))),
+            can_redo=lambda:not self._busy and (self._draft_history_index+1<len(self._draft_history) or bool(self.document and not self.local_dirty and self.document.get('can_redo'))),
+            label='계획 입력')
+        self.undo_router.register_target(self.variable_editor,undo=self.variable_editor.undo,redo=self.variable_editor.redo,
+            can_undo=self.variable_editor.undo_button.isEnabled,can_redo=self.variable_editor.redo_button.isEnabled,label='계획 변수')
+        self.variable_editor.activityChanged.connect(self._update_actions)
+        self._update_actions()
 
     def _toggle_panel(self, name):
         panel = self.editor if name == 'inputs' else self.results_panel
@@ -544,7 +589,9 @@ class NumericalWindow(QMainWindow):
             return
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
-        self._show_document(document)
+        self._reset_variable_view = True
+        try:self._show_document(document)
+        finally:self._reset_variable_view = False
         self._reset_draft_history(force=True)
         self.message.setText('시험 조건과 조정할 계수를 확인하세요. 적용 후 피팅을 실행할 수 있습니다.')
 
@@ -609,10 +656,60 @@ class NumericalWindow(QMainWindow):
         table.setItem(row, col, item)
 
     def _populate_variables(self, variables):
-        self.variables.setRowCount(len(variables))
-        for row, variable in enumerate(variables):
-            for col, key in enumerate(('id', 'unit', 'value', 'lower', 'upper', 'free', 'transform')):
-                self._set_cell(self.variables, row, col, variable[key], editable=col > 1)
+        if self._history_restoring:
+            self.variable_editor._show_table(self.document['draft'])
+            self.variable_editor._update_dirty()
+            self.variable_editor._buttons()
+        else:
+            from caelab.plan_variables_api import PlanOwnerAdapter
+            adapter=PlanOwnerAdapter(self.client,self.document['id'])
+            document={**self.document,'kind':'numerical'}
+            bound=self.variable_editor.document_snapshot()
+            if (bound and not getattr(self,'_reset_variable_view',False) and
+                    self.variable_editor._identity(bound)==self.variable_editor._identity(document)):
+                self.variable_editor.bind_owner(adapter,document)
+            else:self.variable_editor.reset_view(adapter,document)
+
+    def _variable_owner_history_allowed(self):
+        if not self.document or self._populating or self._busy or self.conflict:
+            return False
+        draft = self.edited_draft(commit=False)
+        draft['variables'] = deepcopy(self.document['draft']['variables'])
+        return draft == self.document['draft']
+
+    def _variable_buffer_changed(self, *_):
+        if not self._populating and not self.variable_editor._populating:
+            self._edited()
+
+    def _variable_owner_activated(self, identifier):
+        if not self._populating and self.document and identifier == self.document['id']:
+            document = self.variable_editor.document_snapshot()
+            if document and document['generation'] != self.document['generation']:
+                self.local_dirty = False
+                self._show_document(document)
+
+    def _review_variable_patch(self, preview):
+        from .material_plan_panel import PlanPatchDialog
+        if self.conflict or self._busy:
+            return
+        submitted = self.edited_draft()
+        document = deepcopy(self.document)
+        if submitted != self.variable_editor.buffer_snapshot():
+            self.message.setText('시험과 방법 편집도 있습니다. 계획 적용으로 함께 적용하세요.')
+            return
+        dialog = PlanPatchDialog(preview, document, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        adapter = self.variable_editor._adapter
+        def received(result):
+            if self.variable_editor.show_patch_result(result):
+                outcome = next(item for item in result['outcomes'] if item['document_id'] == document['id'])
+                self.local_dirty = False
+                self._show_document(outcome['response']['document'])
+                self._reset_draft_history(force=True)
+            else:
+                self.message.setText(self.variable_editor.message.text())
+        return self._call(lambda: adapter.execute(preview), received)
 
     def _populate_experiments(self):
         self.experiments.setRowCount(len(self._experiments))
@@ -760,7 +857,7 @@ class NumericalWindow(QMainWindow):
             _[0].setToolTip(_[0].text())
             self.variables.blockSignals(blocked)
         if not self._populating:
-            self.local_dirty = True
+            self.local_dirty = bool(self.document and self.edited_draft(commit=False) != self.document['draft'])
             if self._draft_history_enabled and not self._history_pending:
                 self._history_pending = True
                 QTimer.singleShot(0, self._capture_draft_edit)
@@ -822,7 +919,7 @@ class NumericalWindow(QMainWindow):
         draft.update(material=deepcopy(self._material), mode=self.mode.currentText(), method=self.method.currentText(), failure_penalty=number_or_raw(self.penalty.text()))
         for key in ('budget', 'count', 'seed'):
             draft[key] = number_or_raw(getattr(self, key).text())
-        draft['variables'] = [{key: cell_value(self.variables, row, col) for col, key in enumerate(('id', 'unit', 'value', 'lower', 'upper', 'free', 'transform'))} for row in range(self.variables.rowCount())]
+        draft['variables'] = self.variable_editor._buffer_snapshot()['variables']
         if draft['mode'] in ('optimize', 'uq', 'epsilon'):
             draft['operation_options'] = self.operation_options.value()
         else:
@@ -1023,6 +1120,9 @@ class NumericalWindow(QMainWindow):
 
     def command(self, operation, arguments=None, *, after=None):
         self._commit_editor()
+        if hasattr(self,'variable_editor') and self.variable_editor._history_command:
+            self.message.setText('변수 실행 취소 또는 다시 실행 결과를 먼저 확인하세요.')
+            return False
         if not self.document or self.conflict or self.local_dirty and operation != 'numerical.update':
             self.message.setText('Apply edited plan first; commands use an exact service generation.')
             return False
@@ -1405,7 +1505,8 @@ class NumericalWindow(QMainWindow):
             return
         if self._analysis_job and not self._busy:
             return self.refresh_analysis()
-        if self._busy or not self.document:
+        if self._busy or not self.document or (hasattr(self, 'variable_editor') and
+                (self.variable_editor._busy or self.variable_editor._history_command)):
             return
         if getattr(self,'_trial_source_queue',None):
             return self._drain_trial_sources()
@@ -1491,7 +1592,7 @@ class NumericalWindow(QMainWindow):
                 run=next((r for r in self.document.get('runs',[]) if r['job_id']==job),{})
                 trial_id=(curve.get('observation_source') or {}).get('parent_experiment_id') or curve.get('experiment_id')
                 trial=next((e for e in run.get('draft',{}).get('experiments',[]) if e['id']==trial_id), {})
-                label=('검증' if curve.get('role')=='holdout' else '피팅')+' / '+self._trial_label(trial,curve.get('observations',{}),self.curve_selector.count()+1)
+                label=('별도 확인' if curve.get('role')=='holdout' else '피팅')+' / '+self._trial_label(trial,curve.get('observations',{}),self.curve_selector.count()+1)
                 self.curve_selector.addItem(label,curve.get('experiment_id'))
             selected_index=self.curve_selector.findData(previous)
             self.curve_selector.setCurrentIndex(max(0,selected_index))
@@ -1514,7 +1615,7 @@ class NumericalWindow(QMainWindow):
             self.figure.clear(); self._draw_fit_curve(result); self.canvas.draw_idle()
 
     def _draw_fit_curve(self,result):
-        from caelab.material_test import physical_residual, deformation_plot_axis
+        from caelab.material_test import deformation_plot_axis
         curves=result.get('curves',[])
         index=max(0,self.curve_selector.currentIndex())
         if index>=len(curves):return
@@ -1542,32 +1643,13 @@ class NumericalWindow(QMainWindow):
                 self.figure.add_subplot(111).set_title('측정 변형축을 표시할 수 없습니다.',fontsize=11)
                 self.curve_summary.setText(str(error)+' 시간축은 계속 사용할 수 있습니다.')
                 return
-        prediction=curve.get('prediction',[])
-        top,bottom=self.figure.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
-        # Preserve explicit gaps; never join separated observed intervals.
-        segments=obs.get('segments') or [{'rows':[0,len(x)]}]
-        for segment in segments:
-            first,last=segment.get('rows',[0,len(x)])
-            if len(x)==len(y):
-                top.plot(x[first:last],y[first:last],'o',markersize=3,label='관측' if first==0 else None)
-            if isinstance(prediction,list) and len(prediction)==len(x):
-                top.plot(x[first:last],prediction[first:last],label='최종 예측' if first==0 else None)
-        _,residual=physical_residual(curve)
-        rx=x if len(residual)==len(x) else []
-        for segment in segments:
-            first,last=segment.get('rows',[0,len(rx)])
-            bottom.plot(rx[first:last],residual[first:last],'o-',markersize=2)
-        bottom.axhline(0,color='gray',linewidth=.7)
+        top,bottom=plot_fit_trial(self.figure,result,curve,axis={**axis,'values':x})
         unit=obs.get('unit','?')
-        top.set_ylabel(str(obs.get('component',''))+' ['+unit+']')
-        bottom.set_ylabel('예측−관측\n['+unit+']')
-        bottom.set_xlabel(str(axis.get('name','time'))+' ['+str(axis.get('unit','?'))+']')
-        if top.lines:top.legend(fontsize=9)
         status=curve.get('execution_status','UNKNOWN')
-        status_text=candidate_state(curve)
-        top.set_title(('검증' if curve.get('role')=='holdout' else '피팅')+' / '+str(obs.get('component',''))+' / '+status_text,fontsize=11)
+        status_text=fit_trial_status(result,curve)
+        top.set_title(('별도 확인' if curve.get('role')=='holdout' else '피팅')+' / '+str(obs.get('component',''))+' / '+status_text,fontsize=11)
         compact=lambda value: format(value,'.6g') if type(value) in (int,float) and math.isfinite(value) else str(value)
-        self.curve_summary.setText('최종 계수: '+', '.join(str(k)+'='+compact(v) for k,v in result.get('parameters',{}).items())+
+        self.curve_summary.setText(('최종 계수: ' if result.get('execution_status')=='SUCCEEDED' else '보존한 계수: ')+', '.join(str(k)+'='+compact(v) for k,v in result.get('parameters',{}).items())+
             '    RMSE '+compact(curve.get('rmse','없음'))+' '+unit+
             ('    '+str(curve.get('failure_reason','')) if status!='SUCCEEDED' else ''))
         for ax in (top,bottom):ax.grid(True,alpha=.2)
@@ -1878,15 +1960,17 @@ class NumericalWindow(QMainWindow):
 
     def _update_actions(self):
         present = self.document is not None
-        available = not (self._busy or self._callbacks or self._pending_adoption)
+        variable_busy = hasattr(self,'variable_editor') and self.variable_editor._busy
+        variable_pending = hasattr(self,'variable_editor') and self.variable_editor._history_command is not None
+        available = not (self._busy or self._callbacks or self._pending_adoption or variable_busy)
         enabled = present and available and not self.conflict
         if self._adoption_receipt and self._adoption_receipt['kind']=='sample_policy':
             enabled=False
         self.editor.setEnabled(enabled and not self._view_error)
-        self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
+        (self.apply_action if hasattr(self,'apply_action') else self.apply_button).setEnabled(enabled and not variable_pending and self.local_dirty and not self._view_error)
         blocked = present and bool(self.document.get('diagnostics'))
-        self.run_button.setEnabled(enabled and not self.local_dirty and not blocked)
-        self.save_action.setEnabled(enabled)
+        (self.run_action if hasattr(self,'run_action') else self.run_button).setEnabled(enabled and not variable_pending and not self.local_dirty and not blocked)
+        self.save_action.setEnabled(enabled and not variable_pending)
         self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))
         self.redo_action.setEnabled(enabled and (self._draft_history_index + 1 < len(self._draft_history) or not self.local_dirty and self.document.get('can_redo', False)))
         self.new_action.setEnabled(available)
@@ -1908,8 +1992,13 @@ class NumericalWindow(QMainWindow):
             self.identity.setToolTip(self.document['id'])
             if hasattr(self,'stop_button'):
                 job=self.selected_job()
-                self.stop_button.setEnabled(enabled and self._statuses.get(job,{}).get('state') in ('QUEUED','RUNNING'))
-                self.run_button.setText('피팅 실행' if self.mode.currentText()=='fit' else '연구 실행')
+                (self.stop_action if hasattr(self,'stop_action') else self.stop_button).setEnabled(enabled and self._statuses.get(job,{}).get('state') in ('QUEUED','RUNNING'))
+                (self.run_action if hasattr(self,'run_action') else self.run_button).setText('피팅 실행' if self.mode.currentText()=='fit' else '연구 실행')
+        if hasattr(self,'undo_router'):
+            blocked=self.variable_editor.blockSignals(True)
+            self.variable_editor._buttons()
+            self.variable_editor.blockSignals(blocked)
+            self.undo_router.refresh()
 
     def _leave(self, continuation):
         self._commit_editor()

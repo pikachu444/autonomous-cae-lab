@@ -401,12 +401,12 @@ def test_close_cancel_keeps_unsent_text_then_save_closes_without_job_cancel(wind
         assert isinstance(dialog, QMessageBox)
         next(button for button in dialog.buttons() if button.text() == text).click()
 
-    QTimer.singleShot(0, lambda: choose("Cancel"))
+    QTimer.singleShot(0, lambda: choose("취소"))
     editor.close()
     assert editor.isVisible()
     assert editor.coefficients.item(0, 1).text() == "2500"
     assert not client.commands
-    QTimer.singleShot(0, lambda: choose("Save"))
+    QTimer.singleShot(0, lambda: choose("저장"))
     editor.close()
     until(app, lambda: not editor.isVisible() and not editor._busy)
     assert [item[1] for item in client.commands] == ["material.update", "document.save"]
