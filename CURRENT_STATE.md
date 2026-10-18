@@ -19,7 +19,7 @@
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | Expert/Report 전용 창·helper/검사·사용법 인도 freeze. 다음은 기존 Experiment Analysis 전용 창/actions/reporting·검사 | 저장 발언/선택 결과→Study 명시 판단→Report 출력·save/discard/cancel·cold 완료. 같은 담당에게 B7.4 보존 FD/식별성→명시 다음 시험 질문→Study/Report의 준비 packet을 실제 후속 배정 |
-| native_impl / Sol-high | `numerical_window.py`, `request_plan_window.py`, `s2_gradient_widgets.py`와 전용 검사·사용법. 공통 엔진/owner/API는 Codex | DOE/RBF/Pareto/Picard·채택/cold 인도와 실제 Taylor 지수 표시 교정 완료. root의 저장 Evaluation 본문·정확 단계 링크를 실제 Windows에서 확인 중. 공유 binding 채택 P2는 root 교정/검토 중 |
+| native_impl / Sol-high | Numerical 전용 창·검사·사용법 인도 freeze. 다음 B5.3.L01은 기존 일반 역해석의 관측/feasible 후보 전용 화면·검사 | DOE/RBF/Pareto/Picard·채택/cold 및 Taylor/저장 Evaluation 표시·공유 binding 채택 P2 모두 폐쇄. 게시 뒤 같은 담당에게 B5.3.L01의 기존 선택 Case A/B 왕복을 실제 후속 배정 |
 | data_impl / Sol-high | B2.5.L02 native parser·material helper/검사 인도 freeze. 다음 B2.6.L02는 `impact_interface.py`, `impact_damage.py`, 신규 전용 history helper·검사 | native 두 실행·원문/출력·Post 복귀·cold 완료. independent 3 finding와 빈 include 회귀 폐쇄. 게시 뒤 기존 부분 손상 unload–compression–reopen packet을 실제 배정 |
 | native_cae_adviser / Astra-xhigh | B2.5.L02의 exact producer/primary manual·보존 native 입력에 근거한 한정 자문. 제품 파일·실행 없음 | 원 법칙/정수 카드·단위·contact Tstart·validation copy와 export 구분을 실제 writer와 협의. sibling 송신 오류로 Codex가 구체 질문·답변 중계 |
 | native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | `native/data_labplot/CaelabDataBridge.h`, build/check/package helper, `0008` MainWin hook 단독. Settings·Properties·`0007` 제외 | build18/package04의 표/곡선·선택별 속성·진행/취소·독립 도구·runtime 인수 준비. 독립 검토의 range 제외 행수/미완성 숫자 요약 P2를 한정 교정해 package05 준비 중 |
@@ -55,7 +55,7 @@ Data 요약 P2·최종 runtime 설치와 Numerical 공유 채택/저장 입력 �
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
 | Data 제품화 | build18/package04 원표/곡선·원행·단일 update/Undo·prepare 성공/확인 취소/동일 job 복구·저장/cold·정확 Material·기존 처리/취득 도구 연결 통과. private profile 실제 설치→일반 data 빈 창/정확 문서 열기·새 job0 확인 | range 제외 개수/미완성 숫자 요약 P2 교정→최종package05 동일 설치 확인 후 기본 진입 전환. 이후 기존 recipe/resample 계보·큰 표. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
-| Numerical/동일 Evaluation | 실제 followup 시작. 기존 저장 Evaluation→Plan exact 참조·방법/변수/예산→작은 실제 후보부터 통합. derivative 의미·실패/잔차·Pareto/보존 모델·명시 채택·cold로 마감 | 기존 상세 명세의 다음 미완료 leaf를 인도 후 대조. 공통 엔진 재작성·새 3D/범용 adjoint 없음 |
+| Numerical/동일 Evaluation | 실제 저장 Evaluation의 DOE3·holdout2/RBF예측·실평가1·3목표DE10·Picard12/미수렴2·명시 채택/cold 완료. Taylor 표시·정확 저장 단계 링크·공유 binding 채택 P2와 독립 검토 모두 폐쇄 | 다음 B5.3.L01 선택 Case A/B의 고정 관측·best feasible/실패·채택 왕복. 기존 엔진/보존 자료 재사용, 없는 실제 실행을 꾸미거나 새 범용 adjoint를 만들지 않음 |
 | Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. 같은 명령 재확인·현재 권한 재검증·편집 보존·명시 판단·출력·저장/폐기/취소·cold와 독립 검토를 마침 | 다음 B7.4: 기존 보존 식별성/FD 진단에서 사용자가 다음 시험 질문을 골라 Study/Report로 연결. 원 결과 재사용, 새 provider/물리 campaign 없음 |
 | native RAD | 기존 bulk/interface native 두 원본→제한 field 편집·원 bytes→pinned 실제 2실행·원 채널·Post 복귀·owner/cold 완료. typed LAW117 표기 보존·include original/partial 읽기·모든 FUNCT 번호 충돌 및 빈 include 교정도 독립 검토 폐쇄 | 다음 B2.6.L02: 정확 fixed-source LAW117 부분 손상 한 loop와 mixed-mode loop. CAE 자문/사전 이력·관측 계약부터 연결, 기존 법칙·허용치·engineering UNKNOWN 유지 |
 
@@ -141,6 +141,24 @@ soft_l1/DE fit은 각각 16/24회 평가, 최종 ordinary FD는 각각 9회였�
 보존한다. 이는 실제 합성 optimizer/FD 실행이고 실물 재료 식별이나 native 해석이 아니다.
 typed fixed/dependent fit의 기존 미지원 계약을 확장하지 않았으며 settings 상수를 명시
 fixed parameter로 꾸미지 않는다.
+
+Numerical 인도는 기존 Evaluation의 ODE 16분야 실행(3+2+1+10), 직접 Picard 12단계와
+미수렴 반례 2단계에서 원 출력·예산·실패를 보존했다. 기존 S2 adjoint 결과는 재계산 없이
+Windows Taylor/잔차·정확 입력으로 열었다. 실제 후보 채택은 취소 뒤 명시 수락하여 새
+PDE 단계와 Evaluation을 저장했고, 원 도메인/결과는 남았다. 새 Python cold에서는
+계산·학습·예측 제출과 새 job이 0이었다. 원 조사·helper 실패도 원 폴더에 남긴다.
+시각 검토의 Taylor 음수 지수 □는 해당 축 formatter만 ASCII로 교정했고 원 위치·곡선은
+유지했다. 저장 Evaluation의 빈 안내문은 단계·입력 연결·응답·단위와 정확한 원 단계 링크로
+교정했다. 실제 `-16`/`-18` Windows 일반/좁은 창과 3read·현재 owner 불변을 담당·시각
+전문가·Astra가 확인했다. 원 rate 0.75와 현재 채택 0.3405369를 구별했다.
+별도 P2인 공유 binding 채택은 기존 `assign`을 재사용해 양쪽 단계와 논리 초기값을
+함께 보존한다. 원 KeyError 두 반례와 교정 뒤 관련 26검사·새 owner cold를 확인했고
+Astra가 폐쇄했다. 이 검사는 통제된 보존 후보이며 실제 FE 성공 후보로 바꾸어 부르지 않는다.
+Numerical 전용 33검사·선택/채택 21검사·Taylor 5검사는 통과했으며 중복 합산하지 않는다.
+기존 4 fit 설정 검사의 옛 채택 기대는 이미 존재하던 captured-detail 필수 gate와 충돌해,
+같은 설정 preview/근거 없는 채택 거절로 맞췄다. 원 실패 로그와 엄격한 제품 gate는 유지했다.
+[사용법과 실제 화면](docs/NUMERICAL_EVALUATION_KO.md)을 게시한다. 전체 Windows MDO
+campaign·범용 연성 adjoint·공학 적합성 완료를 주장하지 않는다.
 
 Expert의 보관 실제 발언과 선택 stress 6개·tangent 근거를 같은 HTTP/Qt owner로 Study에
 연결했다. 새 Study는 미판단이며 사용자가 지지/반박과 메모를 직접 작성한다. 연결 응답

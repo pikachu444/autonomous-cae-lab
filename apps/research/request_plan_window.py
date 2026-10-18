@@ -227,7 +227,7 @@ class RequestPlanWindow(NumericalWindow):
         self.model_button = QPushButton('모델 선택…')
         self.model_button.clicked.connect(self.choose_model_document)
         model_row.addWidget(self.model_button)
-        self.model_open_button=QPushButton('모델 열기')
+        self.model_open_button=QPushButton('저장 입력 열기')
         self.model_open_button.clicked.connect(self.open_model_source)
         model_row.addWidget(self.model_open_button)
         form.addRow('계산 모델', model_row)
@@ -749,6 +749,10 @@ class RequestPlanWindow(NumericalWindow):
             values += [row.get('responses',{}).get(name,{}).get('value') for name in channels]
             values += [objective,'범위 밖' if row.get('out_of_range') else '충족' if row.get('feasible') is True else '위반' if row.get('feasible') is False else '미판정',row.get('failure_reason','')]
             for j,value in enumerate(values):self._set_cell(self.candidates,i,j,value,False)
+            item=self.candidates.item(i,0)
+            item.setData(Qt.ItemDataRole.UserRole,row.get('candidate_id'))
+            item.setToolTip(str(row.get('candidate_id','')))
+            item.setText('후보 '+str(i+1))
         if 0<=picked<len(rows):self.candidates.selectRow(picked)
         if result.get('kind')=='sensitivity_plan':
             dimensions=len(variables);second=result.get('sampling',{}).get('second_order',False)
@@ -1917,26 +1921,29 @@ class RequestPlanWindow(NumericalWindow):
     def _review_pde_changes(self, preview):
         dialog = QDialog(self)
         kind = preview.get('target_kind', 'pde')
-        dialog.setWindowTitle('Review candidate changes to original ' + kind.title())
+        dialog.setWindowTitle('후보 입력 채택 검토')
         dialog.resize(930, 520)
         layout = QVBoxLayout(dialog)
-        action = ('Create changed stage branches and adopt their references into the original EvaluationDefinition. Existing stage source documents remain intact.'
-                  if kind == 'evaluation' else 'Adoption changes the original ' + kind.title() + ' input draft.')
-        label = QLabel('Candidate ' + str(preview['candidate_id']) + ' → ' + str(preview['target_document_id']) +
-                       '\n' + action + ' It does not execute a solver or release an engineering design.')
+        action = ('변경한 단계 입력을 새 문서로 저장하고, 원 계산 절차가 그 입력을 사용하도록 바꿉니다.'
+                  if kind == 'evaluation' else '원본 문서의 입력 초안에 아래 값을 적용합니다.')
+        label = QLabel(action+'\n적용할 값과 단위를 확인하세요. 채택으로 계산을 실행하지 않습니다.')
+        label.setToolTip(str(preview['candidate_id'])+' → '+str(preview['target_document_id']))
         label.setWordWrap(True)
         layout.addWidget(label)
-        table = readonly_table(['Original input path', 'Before', 'Candidate value', 'Declared unit', 'Stage'])
+        table = readonly_table(['입력', '이전 값', '후보 값', '단위', '계산 단계'])
         changes = preview['changes']
+        stage_names={row['id']:row.get('name',row['id']) for row in preview.get('draft',{}).get('stages',[])}
         table.setRowCount(len(changes))
         for row, change in enumerate(changes):
-            for column, value in enumerate(('/'.join(map(str, change['path'])), change.get('before'), change.get('after'), change.get('unit'), change.get('stage'))):
+            path='/'.join(map(str,change['path']))
+            name=change['path'][-1] if change['path'] else '입력'
+            for column, value in enumerate((name, change.get('before'), change.get('after'), change.get('unit'), stage_names.get(change.get('stage'),change.get('stage')))):
                 self._set_cell(table, row, column, value, False)
+            table.item(row,0).setToolTip(path)
         table.resizeColumnsToContents()
         layout.addWidget(table, 1)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Create changed stage branches and adopt references'
-            if kind == 'evaluation' else 'Adopt reviewed candidate input')
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('확인한 입력 채택')
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -2824,12 +2831,12 @@ class RequestPlanWindow(NumericalWindow):
 
     def open_model_source(self):
         draft=self.edited_draft()
-        reference=draft.get('model_source') or draft.get('source')
+        reference=deepcopy(draft.get('model_source') or draft.get('source'))
         kind,identifier=self._candidate_target(reference)
         if not identifier:return
-        from .desktop import launch_tool
-        self._call(lambda:launch_tool(self.client,kind,document_id=identifier),
-                   lambda _:self.message.setText('선택한 모델 문서를 열었습니다.'))
+        from .desktop import open_saved_reference
+        self._call(lambda:open_saved_reference(self.client,reference),
+                   lambda _:self.message.setText('계획에 선택한 저장 입력을 열었습니다.'))
 
     def open_source(self):
         source = deepcopy(self.edited_draft().get('source'))

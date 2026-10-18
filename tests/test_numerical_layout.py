@@ -109,3 +109,16 @@ def test_request_plan_keeps_its_independent_layout(app):
     assert not hasattr(window, 'study_splitter')
     assert window.inputs is not None and window.tabs is not None
     window._allow_close = True; window.close()
+
+
+def test_failed_request_optimization_has_an_editable_empty_objective_view(app):
+    window=RequestPlanWindow(None,auto_open=False,poll_interval=0)
+    result={'kind':'optimization','execution_status':'PARTIAL_FAILURE','candidates':[
+        {'candidate_id':'Cfailed','execution_status':'FAILED','objective':None,'responses':{}}]}
+    original=deepcopy(result)
+    try:
+        window.figure.clear()
+        window._draw_study_summary(result,'Jretained')
+        assert '유효 목적값이 없습니다' in window.figure.axes[0].texts[0].get_text()
+        assert result==original
+    finally:window._allow_close=True;window.close()

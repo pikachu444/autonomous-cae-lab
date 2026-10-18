@@ -44,8 +44,42 @@ def pde_input_html(draft):
         '<th align="left">저장된 값</th></tr>' + ''.join(rows) + '</table>')
 
 
+def evaluation_input_html(draft):
+    """Describe only the resolved definition; stage links retain exact revisions."""
+    stages = draft.get('stages', [])
+    names = {row['id']: row['name'] for row in stages}
+    text = ['<p>선택한 저장본의 계산 절차입니다. 현재 편집 중인 모델과 별도로 읽습니다.</p>', '<h3>계산 단계</h3><ol>']
+    kinds = {'pde': 'PDE', 'material': '재료', 'simulation': '해석'}
+    for index, row in enumerate(stages):
+        kind = kinds.get(row['source']['kind'], '분야')
+        text.append('<li>' + escape(row['name']) + ' — <a href="saved-stage:' + str(index) + '">' + kind + ' 저장 입력 열기</a></li>')
+    text.append('</ol>')
+    def table(title, headers, rows):
+        if rows:
+            text.extend(['<h3>' + title + '</h3><table width="100%" cellpadding="5"><tr>',
+                ''.join('<th align="left">' + escape(header) + '</th>' for header in headers), '</tr>'])
+            for row in rows:
+                text.append('<tr>' + ''.join('<td>' + escape(str(value)) + '</td>' for value in row) + '</tr>')
+            text.append('</table>')
+    from caelab.evaluation_shared_inputs import targets
+    table('입력 연결', ['입력', '단계 입력', '단위', '저장값'], [
+        [row.get('label', row['id']), ', '.join(names.get(target['stage'], target['stage']) + ' / ' + target['input_id']
+            for target in targets(row)), row['unit'], row.get('value', '단계 저장본에서 확인')]
+        for row in draft.get('bindings', [])])
+    table('결과', ['이름', '단계', '응답', '단위'], [
+        [row['id'], names.get(row['stage'], row['stage']), row['response'], row['unit']]
+        for row in draft.get('responses', [])])
+    iteration = draft.get('iteration', {})
+    text.append('<p>' + ('반복 계산: 최대 ' + str(iteration.get('maximum')) + '회' if iteration.get('enabled') else '순차 계산') + '</p>')
+    table('반복 수렴 기준', ['단계', '응답', '단위', '절대 한계', '상대 한계', '기준 크기'], [
+        [names.get(row['stage'], row['stage']), row['response'], row['unit'], row['absolute'], row['relative'], row['scale']]
+        for row in iteration.get('checks', [])])
+    return ''.join(text)
+
+
 class ReferenceContent(QWidget):
     response_requested = Signal(str)
+    saved_reference_requested = Signal(object)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.payload = None
@@ -73,6 +107,7 @@ class ReferenceContent(QWidget):
         self.body.setObjectName('evidenceBody')
         self.body.setOpenExternalLinks(False)
         self.body.setOpenLinks(False)
+        self.body.anchorClicked.connect(self._open_saved_stage)
         self.body.setMinimumHeight(120)
         self.result_views = QTabWidget()
         self.figure = Figure(figsize=(6, 3), tight_layout=True)
@@ -168,6 +203,9 @@ class ReferenceContent(QWidget):
                 if html is not None:
                     self.body.setHtml(html)
                     return
+            if document.get('kind') == 'evaluation' and isinstance(draft, dict):
+                self.body.setHtml(evaluation_input_html(draft))
+                return
             texts = []
             for key in ('question', 'purpose', 'description', 'notes'):
                 if isinstance(draft.get(key), str) and draft[key]:
@@ -218,6 +256,21 @@ class ReferenceContent(QWidget):
         self.candidate.blockSignals(False)
         self.candidate.setVisible(bool(self._rows))
         self._draw_result()
+
+    def _open_saved_stage(self, url):
+        payload = self.payload or {}
+        document = payload.get('document', {})
+        if payload.get('status') != 'AVAILABLE' or document.get('kind') != 'evaluation' or url.scheme() != 'saved-stage':
+            return
+        index = url.path()
+        stages = document.get('draft', {}).get('stages', [])
+        if not index.isdecimal() or int(index) >= len(stages):
+            return
+        source = stages[int(index)]['source']
+        from caelab.evaluation_definition import check_reference
+        check_reference(source)
+        self.saved_reference_requested.emit(dict(kind='document', document_kind=source['kind'],
+            **{key: source[key] for key in ('document_id', 'saved_revision', 'input_revision', 'input_sha256')}))
 
     def _fit_analysis_document(self):
         payload=self.payload or {}

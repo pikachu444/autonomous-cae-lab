@@ -226,6 +226,8 @@ class _OperationOptions(QWidget):
 class NumericalWindow(QMainWindow):
     def __init__(self, client, *, document_id=None, material_document=None, poll_interval=2000, auto_open=True):
         super().__init__()
+        from .appearance import apply_appearance
+        apply_appearance(QApplication.instance())
         self.client, self.document = client, None
         self.local_dirty = self.conflict = self._busy = self._populating = False
         self._busy_background = False
@@ -1743,7 +1745,12 @@ class NumericalWindow(QMainWindow):
                         axis(str(definition.get('response')) + ' / ' + str(definition.get('reduction')) + ' [' + str(definition.get('unit', '?')) + ']')
                     ax.set_title('Actual epsilon search candidates · blue retained nondominated candidates; global optimality unproven')
                     return
-        empty='시험 조건을 확인한 뒤 피팅을 실행하세요.' if self.mode.currentText()=='fit' and not job else '저장된 계산을 선택하면 결과를 표시합니다.'
+        draft=self.document.get('draft',{}) if self.document else {}
+        mode=draft.get('request',{}).get('operation') if draft.get('mode')=='request' else draft.get('mode')
+        empty=('유효 목적값이 없습니다. 실패 이유와 분야별 계산 잔차를 확인하세요.'
+               if kind=='optimization' and result.get('candidates') else
+               '시험 조건을 확인한 뒤 피팅을 실행하세요.' if mode=='fit' and not job else
+               '저장된 계산을 선택하면 결과를 표시합니다.')
         ax.text(.5, .5, empty,
                 ha='center', va='center', transform=ax.transAxes)
         ax.set_axis_off()

@@ -84,6 +84,49 @@ def test_saved_pde_input_is_readable_without_loading_current_owner(application, 
         window.close()
 
 
+def test_saved_evaluation_shows_stages_and_reads_the_exact_original_stage(application, tmp_path):
+    from caelab.workbench import Workbench
+    from caelab.pde_document import default_draft as pde_draft
+    from caelab.evaluation_definition import default_draft as evaluation_draft, document_reference
+    from PySide6.QtCore import QUrl
+    wb = Workbench(tmp_path / 'store', configuration={'workers': 1})
+    window = None
+    try:
+        def save(document):
+            return wb.document_command(document['id'], 'document.save', {}, session_id=wb.session_id,
+                expected_generation=document['generation'])['document']
+        pde = save(wb.document_open(kind='pde', title='원 냉각 입력', draft=pde_draft('pde.scipy.ode')))
+        source = document_reference(pde)
+        draft = evaluation_draft()
+        draft['stages'] = [{'id': 'Acooling', 'name': '냉각 <원 단계>', 'source': source}]
+        draft['bindings'] = [{'id': 'cooling_rate', 'label': '냉각률', 'targets': [
+            {'stage': 'Acooling', 'input_id': 'rate'}], 'unit': '1/s', 'value': .5}]
+        draft['responses'] = [{'id': 'temperature', 'stage': 'Acooling', 'response': 'temperature', 'unit': 'K'}]
+        evaluation = save(wb.document_open(kind='evaluation', title='저장 계산 절차', draft=draft))
+        changed = deepcopy(pde['draft']); changed['settings']['parameters'][0]['value'] = .75
+        current = wb.document_command(pde['id'], 'pde.update', {'draft': changed}, session_id=wb.session_id,
+            expected_generation=pde['generation'])['document']
+        class ActualReader:
+            def research_reference(self, ref): return wb.research_reference(ref)
+        reference = dict(kind='document', document_kind='evaluation', **{
+            key: document_reference(evaluation)[key] for key in ('document_id', 'saved_revision', 'input_revision', 'input_sha256')})
+        window = ReferenceWindow(ActualReader(), reference)
+        wait(application, lambda: not window._busy)
+        text = window.content.body.toPlainText()
+        assert '냉각 <원 단계>' in text and 'PDE 저장 입력 열기' in text
+        assert '냉각률' in text and '0.5' in text and '1/s' in text and 'temperature' in text
+        assert source['input_sha256'] not in text and source['document_id'] not in text
+        window.content.body.anchorClicked.emit(QUrl('saved-stage:0'))
+        child = window._candidate_windows[0]
+        wait(application, lambda: not child._busy)
+        assert child.reference['input_sha256'] == source['input_sha256']
+        assert child.value['document']['draft'] == pde['draft']
+        assert wb.document_read(pde['id']) == current and not wb.manager.list()
+    finally:
+        if window is not None: window.close()
+        assert wb.shutdown()['joined']
+
+
 def test_retry_failed_initial_and_response_preserves_exact_request(application):
     selected = deepcopy(PAYLOAD)
     selected['result']['responses'] = {'stress_yy': {'kind': 'scalar', 'value': .234567891234,

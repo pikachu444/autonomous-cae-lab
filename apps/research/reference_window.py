@@ -77,6 +77,7 @@ class ReferenceWindow(QMainWindow):
         for column in (2, 3):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self.content.response_requested.connect(self.read_response)
+        self.content.saved_reference_requested.connect(self.open_saved_reference)
         layout.addWidget(self.content, 1)
         self.setCentralWidget(root)
         self.message = QLabel()
@@ -198,6 +199,14 @@ class ReferenceWindow(QMainWindow):
         close.rejected.connect(dialog.reject)
         layout.addWidget(close)
         dialog.exec()
+
+    def open_saved_reference(self, reference):
+        if self._busy or self._closed or not self.value or self.value.get('status') != 'AVAILABLE':
+            return False
+        window = ReferenceWindow(self.client, reference)
+        self._candidate_windows.append(window)
+        window.show()
+        return window
 
     def open_owner(self):
         if self._busy or self._closed or not self.open_button.isEnabled():

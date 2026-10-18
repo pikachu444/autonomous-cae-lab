@@ -183,6 +183,61 @@ def test_evaluation_prepares_saved_material_simulation_pde_branches_then_only_ed
     assert len(wb.manager.list()) == 1
 
 
+@pytest.mark.parametrize('selected_shared', [True, False])
+def test_shared_evaluation_candidate_preserves_logical_and_both_target_values(workbench, selected_shared):
+    from examples.s2_mdo_adjoint import declarations
+    from caelab.evaluation_shared_inputs import assign
+    from caelab.evaluation_definition import bind_values, compile_definition
+    wb = workbench
+    models, draft, _ = declarations('mdo')
+    domains = []
+    for stage_id, title, backend, settings in models:
+        domain = saved(wb, 'simulation', {'backend': backend, 'settings': settings}, title)
+        domains.append(domain)
+        draft['stages'].append({'id': stage_id, 'name': title, 'source': document_reference(domain)})
+    if selected_shared:
+        variable = {'id': 'Tref', 'unit': 'K', 'lower': 285., 'upper': 305., 'value': 300.}
+    else:
+        draft['bindings'].append({'id': 'k', 'stage': 'Heat', 'input_id': 'conductivity', 'unit': 'W/(m*K)'})
+        variable = {'id': 'k', 'unit': 'W/(m*K)', 'lower': 5., 'upper': 50., 'value': 25.}
+    source = saved(wb, 'evaluation', draft)
+    scene = candidate_plan(wb, source, {'backend': 'evaluation.definition',
+        'settings': {'definition_ref': document_reference(source)}, 'variables': [variable], 'count': 1})
+    original_domains = {row['id']: wb.document_read(row['id']) for row in domains}
+    original_jobs = deepcopy(wb.manager.list())
+    before_documents = wb.documents()
+    preview = prepare(wb, scene)
+    assert wb.document_read(source['id']) == source and wb.documents() == before_documents  # Cancel means no command.
+    expected = 300. if selected_shared else 293.15
+    assert preview['draft']['bindings'][0]['value'] == expected
+    if selected_shared:
+        assert {'path': ['bindings', 'Tref'], 'before': 293.15, 'after': 300., 'unit': 'K'} in preview['changes']
+        assert {row.get('stage') for row in preview['changes'] if 'stage' in row} == {'Heat', 'Structure'}
+    response = adopt(wb, scene)
+    updated = response['document']
+    assert updated['draft']['bindings'][0]['value'] == expected
+    compiled = compile_definition(updated['draft'], wb.evaluation_documents.snapshots(updated['draft'], updated))
+    effective, _ = assign(updated['draft']['bindings'], {key: row['model'] for key, row in compiled['stages'].items()},
+        {}, input_descriptors, bind_values)
+    assert effective['Heat']['settings']['conductivity']['reference_temperature'] == expected
+    assert effective['Structure']['settings']['material']['reference_temperature'] == expected
+    assert {row['id']: wb.document_read(row['id']) for row in domains} == original_domains
+    assert wb.manager.list() == original_jobs and adopt(wb, scene) == response
+    assert wb.shutdown()['joined']
+    cold = Workbench(wb.root.parent)
+    try:
+        reopened = cold.document_read(source['id'])
+        assert reopened['draft'] == updated['draft'] and reopened['saved_revision'] == updated['saved_revision']
+        fresh = compile_definition(reopened['draft'], cold.evaluation_documents.snapshots(reopened['draft'], reopened))
+        effective, _ = assign(reopened['draft']['bindings'], {key: row['model'] for key, row in fresh['stages'].items()},
+            {}, input_descriptors, bind_values)
+        assert effective['Heat']['settings']['conductivity']['reference_temperature'] == expected
+        assert effective['Structure']['settings']['material']['reference_temperature'] == expected
+        assert {row['id'] for row in cold.manager.list()} == {row['id'] for row in original_jobs}
+    finally:
+        assert cold.shutdown()['joined']
+
+
 def test_changed_original_target_is_never_overwritten(workbench):
     scene = simulation_scene(workbench)
     draft = deepcopy(scene.source['draft'])
@@ -360,13 +415,13 @@ def test_simulation_fit_requires_exact_saved_settings_for_every_experiment(workb
     before = workbench.document_read(scene.source['id'])
     if fixed_settings == 'exact':
         preview = prepare(workbench, scene)
-        response = adopt(workbench, scene)
-        assert response['document']['draft'] == preview['draft']
-        assert response['document']['generation'] == 1
+        assert preview['changes'] and preview['executed'] is False
     else:
         with pytest.raises(ValueError, match='Every fit experiment must use the exact saved Simulation settings'):
             prepare(workbench, scene)
-        with pytest.raises(ValueError, match='Every fit experiment must use the exact saved Simulation settings'):
-            adopt(workbench, scene)
-        assert workbench.document_read(scene.source['id']) == before
-        assert not (workbench.root / 'domain_adoptions').exists()
+    # This controlled fixture has no captured original candidate/detail evidence.
+    # The existing stricter fit-adoption gate precedes settings preparation.
+    with pytest.raises(ValueError, match='Preserve the selected original candidate/detail evidence'):
+        adopt(workbench, scene)
+    assert workbench.document_read(scene.source['id']) == before
+    assert not (workbench.root / 'domain_adoptions').exists()

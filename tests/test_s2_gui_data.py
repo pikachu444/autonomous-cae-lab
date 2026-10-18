@@ -20,7 +20,7 @@ def method(relative,cls,name,namespace):
 
 def test_gradient_data_logic_preserves_chain_units_and_inputs():
     # This exercises the actual method body with a drawing sink, NOT a Qt test.
-    tables={};axes=SimpleNamespace(clear=lambda:None,set_xlabel=lambda *a:None,set_ylabel=lambda *a:None,
+    tables={};axes=SimpleNamespace(clear=lambda:None,get_xscale=lambda:'linear',set_xlabel=lambda *a:None,set_ylabel=lambda *a:None,
         legend=lambda:None,loglog=lambda *a,**k:None)
     view=SimpleNamespace(gradients='g',inputs='i',residuals='r',chains='c',checks='t',
         axes=axes,canvas=SimpleNamespace(draw_idle=lambda:None),summary=SimpleNamespace(setText=lambda t:tables.update(summary=t)),
@@ -76,3 +76,32 @@ def test_gradient_widget_actual_qt_normal_and_narrow():
             assert widget.tabs.count()==5 and widget.summary.text()
     finally:
         widget.close();widget.deleteLater();app.processEvents()
+
+
+def test_taylor_log_ticks_are_plain_ascii_and_preserve_values():
+    pytest.importorskip('PySide6')
+    from PySide6.QtWidgets import QApplication
+    from matplotlib.ticker import LogLocator,LogFormatterSciNotation
+    from apps.research.s2_gradient_widgets import GradientEvidence
+    app=QApplication.instance() or QApplication([]);widget=GradientEvidence()
+    result={'execution_status':'SUCCEEDED','gradient_verification':{'status':'PASS','directions':[
+        {'taylor':[{'h':h,'R0':h*.1,'R1':h*h*.1} for h in (.04,.02,.01,.005)]}]}}
+    original=deepcopy(result)
+    try:
+        widget.resize(1100,700);widget.show();widget.set_result(result);widget.canvas.draw()
+        for axis in (widget.axes.xaxis,widget.axes.yaxis):
+            assert isinstance(axis.get_major_locator(),LogLocator)
+            assert isinstance(axis.get_minor_locator(),LogLocator)
+            positions=(list(axis.get_majorticklocs()),list(axis.get_minorticklocs()))
+            major,minor=axis.get_major_formatter(),axis.get_minor_formatter()
+            axis.set_major_formatter(LogFormatterSciNotation());axis.set_minor_formatter(LogFormatterSciNotation())
+            assert positions==(list(axis.get_majorticklocs()),list(axis.get_minorticklocs()))
+            axis.set_major_formatter(major);axis.set_minor_formatter(minor)
+            assert axis.get_major_formatter()(1e-2)=='1e-02'
+            assert axis.get_major_formatter()(1e-6)=='1e-06'
+            for label in axis.get_majorticklabels()+axis.get_minorticklabels():
+                assert label.get_text().isascii() and '$' not in label.get_text()
+        assert list(widget.axes.lines[0].get_xdata())==[.04,.02,.01,.005]
+        assert list(widget.axes.lines[1].get_ydata())==[h*h*.1 for h in (.04,.02,.01,.005)]
+        assert result==original
+    finally:widget.close();widget.deleteLater();app.processEvents()

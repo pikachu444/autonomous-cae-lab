@@ -186,11 +186,15 @@ def test_independent_plan_selects_real_saved_material_and_runs_existing_adapter(
     wait(app,lambda:not w._busy and w.edited_draft().get('model_source',{}).get('document_id')==model['id'],w)
     from apps.research import desktop
     opened=[]
+    saved_opened=[]
+    monkeypatch.setattr(desktop,'open_saved_reference',lambda client,reference:
+        (saved_opened.append(deepcopy(reference)) or {'status':'OPENED'}))
     monkeypatch.setattr(desktop,'launch_tool',lambda client,tool,**kwargs:
         (opened.append((tool,kwargs['document_id'])) or {'status':'OPENED'}))
-    w.open_model_source();wait(app,lambda:not w._busy and len(opened)==1,w)
-    w.open_source();wait(app,lambda:not w._busy and len(opened)==2,w)
-    assert opened==[('material',model['id']),('material',model['id'])]
+    w.open_model_source();wait(app,lambda:not w._busy and len(saved_opened)==1,w)
+    assert saved_opened==[w.edited_draft()['model_source']]
+    w.open_source();wait(app,lambda:not w._busy and len(opened)==1,w)
+    assert opened==[('material',model['id'])]
     reads=[]
     original_read=w.client.document_read
     monkeypatch.setattr(w.client,'document_read',lambda identifier:
@@ -531,18 +535,47 @@ def test_method_switch_restores_exact_model_with_its_edited_inputs(environment,m
     reopened=open_window(identifier=w.document['id'])
     from apps.research import desktop
     opened=[]
-    monkeypatch.setattr(desktop,'launch_tool',lambda client,tool,**kwargs:
-        (opened.append(kwargs['document_id']) or {'status':'OPENED'}))
+    monkeypatch.setattr(desktop,'open_saved_reference',lambda client,reference:
+        (opened.append(deepcopy(reference)) or {'status':'OPENED'}))
     for method,model in (('doe',models[0]),('uq',models[1]),('doe',models[0])):
         reopened.operation.setCurrentIndex(reopened.operation.findData(method))
         draft=reopened.edited_draft()
         assert draft['request']['inputs']['settings']==model['draft']['settings']
         assert draft['model_source']['document_id']==draft['source']['document_id']==model['id']
         reopened.open_model_source()
-        wait(app,lambda:not reopened._busy and opened and opened[-1]==model['id'],reopened)
+        wait(app,lambda:not reopened._busy and opened and opened[-1]==draft['model_source'],reopened)
     save(app,reopened)
     again=open_window(identifier=reopened.document['id'])
     again.operation.setCurrentIndex(again.operation.findData('uq'))
     assert again.edited_draft()['model_source']['document_id']==models[1]['id']
     assert again.edited_draft()['request']['inputs']['settings']==models[1]['draft']['settings']
+    assert wb.manager.list()==[]
+
+
+def test_saved_model_open_keeps_old_input_after_owner_edit(environment,monkeypatch):
+    app,wb,open_window=environment
+    from caelab.evaluation_definition import document_reference
+    from apps.research import desktop
+    model=wb.document_open(kind='material',title='변경 전 재료 입력',draft=default_draft())
+    def command(document,operation,arguments=None):
+        return wb.document_command(document['id'],operation,arguments or {},session_id=document['session_id'],
+            expected_generation=document['generation'])['document']
+    model=command(model,'document.save');old_reference=document_reference(model)
+    draft=request('doe',{'backend':model['draft']['backend'],'settings':deepcopy(model['draft']['settings']),
+        'variables':[],'count':2},2)
+    draft['source']=draft['model_source']=deepcopy(old_reference)
+    w=open_window(draft)
+    changed=deepcopy(model['draft']);changed['settings']['parameters']['E']=2000.
+    model=command(model,'material.update',{'draft':changed});model=command(model,'document.save')
+    assert document_reference(model)!=old_reference
+    reads=[]
+    def saved(client,reference):
+        resolved=client.research_reference({**reference,'kind':'document','document_kind':reference['kind']})
+        reads.append((deepcopy(reference),resolved));return {'status':'OPENED'}
+    monkeypatch.setattr(desktop,'open_saved_reference',saved)
+    monkeypatch.setattr(desktop,'launch_tool',lambda *a,**kw:pytest.fail('Saved input must not open the mutable owner'))
+    w.model_open_button.click();wait(app,lambda:not w._busy and bool(reads),w)
+    assert reads[0][0]==old_reference
+    assert reads[0][1]['document']['draft']['settings']['parameters']['E']==1000.
+    assert wb.document_read(model['id'])['draft']['settings']['parameters']['E']==2000.
     assert wb.manager.list()==[]

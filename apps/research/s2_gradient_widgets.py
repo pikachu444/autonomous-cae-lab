@@ -2,11 +2,19 @@
 from PySide6.QtWidgets import QLabel,QSplitter,QTabWidget,QVBoxLayout,QWidget,QTableWidgetItem
 from PySide6.QtCore import Qt
 from matplotlib.figure import Figure
+from matplotlib.ticker import LogFormatter
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from .runner_window import readonly_table
 from .numerical_methods import display_number
 from .shared_binding_dialog import LABELS
 from .appearance import configure_plot_fonts
+
+
+class _TaylorLogFormatter(LogFormatter):
+    """Plain engineering exponents, without mathtext or a font-dependent minus."""
+    @staticmethod
+    def fix_minus(text):
+        return text.replace('\N{MINUS SIGN}', '-')
 
 
 class GradientEvidence(QWidget):
@@ -92,6 +100,10 @@ class GradientEvidence(QWidget):
                 valid_samples=[s for s in samples if type(s.get(key)) in (int,float) and s[key]>0]
                 if valid_samples:self.axes.loglog([s['h'] for s in valid_samples],[s[key] for s in valid_samples],marker='o',label='p'+str(i+1)+' '+key)
         self.rows(self.checks,table)
+        if self.axes.get_xscale()=='log':
+            for axis in (self.axes.xaxis,self.axes.yaxis):
+                axis.set_major_formatter(_TaylorLogFormatter())
+                axis.set_minor_formatter(_TaylorLogFormatter())
         self.axes.set_xlabel('정규화 설계 좌표 변화량 h');self.axes.set_ylabel('목적함수 나머지 절댓값')
         if directions:self.axes.legend()
         self.canvas.draw_idle()

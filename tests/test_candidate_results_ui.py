@@ -113,7 +113,8 @@ def test_failed_candidate_opens_exact_stages_units_and_registered_post(plan, app
     assert child.parameters.item(0, 2).text() == 'W/(m K)'
     assert child.responses.item(0, 2).text() == 'MPa' and child.responses.item(0, 7).text() == '2.0'
     assert child.residuals.item(0, 3).text() == 'K' and child.residuals.item(0, 4).text() == '0.1'
-    assert child.stages.item(1, 3).text() == 'FAILED'
+    assert child.stages.item(1, 3).text() == '실패'
+    assert child._composite['stages'][1]['state']=='FAILED'
     child.stages.selectRow(0); wait(app, lambda: not child._busy and child._stage_result is not None)
     assert child.responses.item(0, 0).text() == 'temperature'
     assert child.responses.item(0, 2).text() == 'K' and 'data_ref' in child.responses.item(0, 7).text()
@@ -160,7 +161,8 @@ def test_latest_stage_selection_wins_while_previous_read_is_pending(plan, app):
     wait(app, lambda: not child._busy and child._stage_result is not None)
     assert child._stage_result['stage_attempt']['stage_id'] == 'Sstructure'
     assert child.responses.rowCount() == 0 and child.fields.count() == 0
-    assert 'FAILED' in child.message.text()
+    assert '실패' in child.message.text()
+    assert child._stage_result['execution_status']=='FAILED'
 
 
 def test_foreign_response_and_changed_native_field_do_not_launch(plan, app):
@@ -333,7 +335,7 @@ def test_domain_review_actual_dialog_exact_receipt_and_owner_return(domain_plan,
             assert table.item(0, 3).text() == 'W/(m K)'
             if kind == 'evaluation':
                 assert table.item(0, 4).text() == 'Heat'
-                assert any('Create changed stage branches and adopt references' in button.text() for button in dialog.findChildren(QPushButton))
+                assert any('확인한 입력 채택' in button.text() for button in dialog.findChildren(QPushButton))
             # Its nested event loop must not start a timer read during confirmation.
             window.refresh_document()
             assert len([call for call in client.calls if call[0] == 'read']) == 1

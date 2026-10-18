@@ -140,13 +140,23 @@ def _prepare(wb, plan_id, job_id, candidate_id):
             raise ValueError('Numerical candidate adoption cannot carry direct-run reuse state')
         _admitted(variables, compiled['inputs'])
         bound, grouped = deepcopy(model), {}
+        from .evaluation_shared_inputs import assign
+        adopted_models, receipts = assign(model['bindings'], {key: row['model'] for key, row in compiled['stages'].items()},
+            values, input_descriptors, bind_values)
+        for binding in bound['bindings']:
+            if 'targets' in binding and binding['id'] in values:
+                value = values[binding['id']]
+                if binding['value'] != value:
+                    changes.append({'path': ['bindings', binding['id']], 'before': deepcopy(binding['value']),
+                        'after': deepcopy(value), 'unit': binding['unit']})
+                binding['value'] = deepcopy(value)
         for stage in model['stages']:
-            assignments = {binding['input_id']: values[binding['id']] for binding in model['bindings']
-                           if binding['stage'] == stage['id'] and binding['id'] in values}
+            assignments = {target['input_id']: target['applied_value'] for receipt in receipts
+                for target in receipt['targets'] if target['stage'] == stage['id']}
             if not assignments:
                 continue
             original_model = compiled['stages'][stage['id']]['model']
-            adopted = bind_values(original_model, assignments)
+            adopted = adopted_models[stage['id']]
             stage_changes = _changes(original_model, adopted, assignments, stage=stage['id'])
             changes.extend(stage_changes)
             if canonical_hash(adopted) == canonical_hash(original_model):
