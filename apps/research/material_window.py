@@ -749,10 +749,10 @@ class MaterialWindow(QMainWindow):
         if not callable(getattr(self.client, 'data_material', None)):
             self.message.setText('연결한 서비스에서 시험 조건 설정을 지원하지 않습니다.')
             return
-        from .material_control_dialog import MaterialControlDialog
+        from .material_control_gui import MixedControlDialog
         base_document = deepcopy(self.document)
         before = self.edited_draft()
-        dialog = MaterialControlDialog(self.client, before['settings'], self)
+        dialog = MixedControlDialog(self.client, before['settings'], self)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         draft = deepcopy(before)

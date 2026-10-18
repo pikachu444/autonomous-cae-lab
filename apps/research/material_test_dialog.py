@@ -146,7 +146,7 @@ class ExperimentDialog(QDialog):
         self.finite_lateral=combo([('명시 선택…',None),('횡응력 0 (자유 횡수축)','free'),('횡변형 고정 F=1','fixed'),('횡변형 지정','prescribed')])
         self.finite_comparison=QCheckBox('후보의 실제 수락 F/J로 P → 진응력 변환')
         self.finite_comparison.setChecked(bool((experiment or {}).get('extensions',{}).get('finite_measure')))
-        self.tensor=QPushButton('변형구배 편집…'); self.tensor.clicked.connect(self._tensor)
+        self.tensor=QPushButton('혼합 제어 조건…' if 'initial_state' in settings else '변형구배 편집…'); self.tensor.clicked.connect(self._tensor)
         for label,widget in [('관측',self.observed),('용도',self.role),('모델 응답',self.model_response),
             ('변형 조건',self.protocol),('변형 채널',self.driver),('지정 F22',self.lateral_22),
             ('지정 F33',self.lateral_33),('시험 가중치',self.weight),('오차 기준값',self.scale)]:
@@ -203,6 +203,9 @@ class ExperimentDialog(QDialog):
         frame={'material_cartesian':'재료 직교좌표'}.get(obs.get('frame'),obs.get('frame','미지정'))
         lines=[f"재료 법칙: {model} / 원 응력: {labels.get(native,native)} [{self.settings.get('stress_unit','미지정')}]",
             f"관측: {labels.get(obs.get('measure'),obs.get('measure','미지정'))} / {obs.get('component','미지정')} [{obs.get('unit','미지정')}] / {frame}"]
+        if self.protocol.currentData() == 'explicit':
+            targets = self.explicit.get('boundary_control', {}).get('stress_components', {})
+            lines.append('응력 목표: ' + ', '.join(targets) + ' / 나머지 F 지정' if targets else '제어: 모든 F 성분 지정')
         experiment={'response':self.model_response.currentData()}
         if self.finite_comparison.isChecked():
             component=obs.get('component','')
@@ -222,10 +225,15 @@ class ExperimentDialog(QDialog):
         self.measure_context.setText('\n'.join(lines))
 
     def _tensor(self):
-        from .numerical_window import ProtocolDialog
-        dialog=ProtocolDialog(self.explicit,self)
+        native = 'initial_state' in self.explicit
+        if native:
+            from .material_control_gui import MixedControlDialog
+            dialog=MixedControlDialog(None,self.explicit,self)
+        else:
+            from .numerical_window import ProtocolDialog
+            dialog=ProtocolDialog(self.explicit,self)
         if dialog.exec()==QDialog.DialogCode.Accepted:
-            self.explicit=dialog.draft_settings()
+            self.explicit=dialog.result_settings if native else dialog.draft_settings()
             self.protocol.setCurrentIndex(0)
             self._preview()
 
@@ -233,7 +241,10 @@ class ExperimentDialog(QDialog):
         measured=self.protocol.currentData() in ('measured','finite_measured')
         finite=self.protocol.currentData()=='finite_measured'
         self.finite_lateral.setEnabled(finite)
-        self.condition.setText('기존 수락 상태·native tangent·수렴 관문으로 횡방향 조건을 풉니다.' if finite else 'F22/F33는 지정값입니다. 자유 횡수축을 계산하지 않습니다.')
+        targets = self.explicit.get('boundary_control', {}).get('stress_components', {})
+        self.condition.setText('기존 수락 상태·native tangent·수렴 관문으로 횡방향 조건을 풉니다.' if finite else
+                              '응력 목표 성분은 직전 수락 상태에서 풉니다. 나머지 F만 지정합니다.' if not measured and targets else
+                              'F22/F33는 지정값입니다. 자유 횡수축을 계산하지 않습니다.')
         for widget in (self.driver,self.lateral_22,self.lateral_33):
             widget.setEnabled(measured)
         for widget in (self.lateral_22,self.lateral_33):
@@ -250,9 +261,14 @@ class ExperimentDialog(QDialog):
                     values=[matrix[0][0] for matrix in gradients]
                 except (IndexError,TypeError,KeyError):
                     values=[]
+                unit='1'; name='지정 F11'
+                if 'xx' in targets:
+                    values=targets['xx']
+                    unit=self.explicit.get('stress_unit','')
+                    name={'neo_hooke':'Pxx', 'linear_elastic':'σxx', 'drucker_prager_linear':'σxx',
+                          'single_branch_maxwell':'σxx'}.get(self.explicit.get('model'),'xx 응력')+' 목표'
                 response={'axes':[{'name':'시간','unit':self.explicit.get('time_unit',''),'values':times}],
-                          'value':values,'unit':'1'}
-                name='지정 F11'
+                          'value':values,'unit':unit}
             declared_axes=response.get('axes',[])
             axis=declared_axes[0] if isinstance(declared_axes,list) and len(declared_axes)==1 else {}
             x,y=axis.get('values',[]),response.get('value',[])

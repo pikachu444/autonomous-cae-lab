@@ -20,9 +20,9 @@
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | B8.3.L01 ConnectionWindow/recovery/portable UI·전용 검사·사용법。공통 portable owner/참조/보존·native identity는 Codex | B7.5 `b184e35` 게시 후 실제 후속 가동. Research 9종·Pre/Post의 그룹별 편집/저장/재복사/cold 인수 중. Expert·Evaluation·PDE/Simulation·Data와 실제 native 두 도구의 동선을 확인. 큰 B7.5 묶음은 처리 Data 참조/자산 경계 교정 중이며 전체 완료 아님 |
 | native_impl / Sol-high | B5.1 RequestPlan 혼합 변수·정확 PDE 채택 검토·전용 검사/사용법 freeze. 공통 descriptor/preview는 Codex | B5.4 `15569bb` 게시. B5.1 단1 DOE에서 실제 ODE 2회·종속 상한 제외1·PARTIAL_FAILURE 보존, 명시 채택/실제 PDE 수신/cold 완료. 입력 이름·단위 P2와 Astra/실제 창 검토 폐쇄. 다음 B6.3.L01의 기존 mapper/조건·실제 source 의존을 좁게 확인 후 후속 구현 배정 |
-| data_impl / Sol-high | L03 reclosure policy·impact_interface/history·전용 입력/검사/사용법 freeze. adapter/runtime/보존·owner는 Codex | P0/P1 각각 단1 native 실행, DLL/stdlib·OFF/gate/PRINT 전수 대응·저장/cold와 실제 GUI 완료. P1의 에너지/횡속도 이상을 보존해 물리·수치 인수 UNKNOWN. P2 실제 .00225 checkpoint/벌크 삭제는 미실행; 같은 Simulation의 continuation 소유 결정만 기존 Pro에 요청 |
+| data_impl / Sol-high | L03 reclosure policy·impact_interface/history·전용 입력/검사/사용법 freeze. adapter/runtime/보존·owner는 Codex | P0/P1 한정 인도 `fb2013e` 게시. 각각 단1 native 실행·전수 대응·저장/cold·GUI 완료. P1 에너지/횡속도 이상으로 물리·수치 인수 UNKNOWN. P2 실제 .00225 checkpoint/벌크 삭제는 미실행; continuation 소유 결정만 기존 Pro에 요청 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.3 material_control_gui/material_test_dialog·전용 검사/사용법. native package05·수치 엔진 불변, host/Core는 Codex | B4.2 `b9ea19d` 게시 후 실제 후속. 선언한 재료점 작업6회=성공5/예상 local failure1, host/cold jobs6→6·새0. 세 법칙 Plan 준비/저장/cold 완료. 검토에서 발견한 미완성 숫자 위치 안내와 xx 응력 제어의 F11 표시 P2 두 건을 같은 담당이 한정 교정 중 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.3 material_control_gui/material_test_dialog·전용 검사/사용법 freeze. native package05·수치 엔진 불변, host/Core는 Codex | B4.2 `b9ea19d` 게시 후 실제 후속. 선언한 재료점6회=성공5/예상 local failure1·host/cold jobs6→6·세 법칙 Plan 준비/저장/cold 완료. 미완성 숫자 위치와 xx 응력 제어 표시 P2 두 건을 실제 일반/좁은 화면·동일 전문 담당/Astra로 폐쇄. 게시 후 B4.4 후보 상세/채택 충돌을 같은 담당에게 후속 호출 |
 | desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | 기존 Data donor·계면 GUI freeze. 동일 전문 담당이 각 묶음 실제 창을 이어 검토 | B5.1 이름·단위 P2와 계면 policy 일반/좁은/별도 cold 검토 완료. B4.3 실제30장 판독 후 알려진 숫자 오류의 행·성분·단위 복구 P2를 전달. 변경된 해당 화면만 후속 확인. 공통 연결은 root |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
@@ -58,7 +58,7 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B4.2와 B5.4도
 같은 담당에게 실제 후속 호출했다. B5.4는 `15569bb`, B4.2는 `b9ea19d`로 게시했다.
 혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
-현재 다음 행동은 L03 P0/P1의 한정 인도 게시, B4.3 교정 완료 인도 게시,
+L03 P0/P1의 한정 인도도 `fb2013e`로 원격 게시했다. 현재 다음 행동은 B4.3 인도 게시,
 B8.3 처리 Data 참조/자산의 공통 교정과 같은 실제 사본 인수다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
@@ -115,6 +115,18 @@ P1의 native 정상 종료는 수치 타당성 PASS가 아니다. 약0.00036 s�
 아니므로 새 실제 prefix가 필요하다. 같은 Simulation의 한정 continuation 소유 경계만
 기존 실제 Pro 대화에 요청ID `PRO-RECLOSURE-P2-20261018`로 송신·실제 반영 확인했다.
 다른 구현·게시를 이 응답 대기로 멈추지 않는다. [지원·한계·실제 창](docs/IMPACT_RECLOSURE_KO.md).
+
+B4.3은 기존 law-native history/혼합 Newton을 유지하고 F9와 제어 응력 K6를 같은 조건 창에서
+편집한다. Neo-Hooke P와 DP/Maxwell σ, 지정 F와 자유 횡수축, 첫 수락 상태의 절대 허용값·
+이후 실제 Newton 잔차/허용값·수락/실패 prefix를 구별한다. 고정 선언6개를 각1회만 실행했다.
+Neo 자유/구속·DP 자유·Maxwell의 비균일 실제 Δt와 별도 작은 재시도5개 성공, DP apex의
+예상 local-update 실패1개는 원 상태·실패 증분을 보존한다. 새 fit/native/provider는0이다.
+host와 cold는 원6 jobs를 그대로 읽었고, 미완성 목표 저장/기존400 실행 차단 및 세 법칙의
+Plan 원 BC/F/time/state 준비·저장·별도 cold는 새 평가 없이 확인했다. 구두의 host0→0 보고는
+원 receipt의6→6으로 정정했다. 검토 P2인 오류 행·성분·시각·단위 안내와 xx 제어 시 Pxx/σxx
+목표 표시를 한정 교정해22검사와 실제 일반/좁은 캡처·동일 전문 담당/Astra로 닫았다.
+표시용 xx 목표는 미실행 fixture이며 원6개 결과와 구별한다. 초기 driver 열 선택·title/ylabel
+단언 실패와 이전 PNG는 보존한다. [사용법·실제 화면](docs/MATERIAL_MIXED_CONTROL_WORKFLOW_KO.md).
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
 실제 blocker가 없는 독립 담당은 다른 앱의 게시·Data 빌드·Pro 재응답을 기다리지 않는다.

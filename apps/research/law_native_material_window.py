@@ -44,7 +44,8 @@ class LawNativeMaterialWindow(SimulationWindow):
         self.plan_action.setText('다시험 피팅 계획…')
         self.new_action.setText('새 재료 법칙…');self.open_action.setText('재료 열기…')
         menu=self.menuBar().addMenu('재료 법칙')
-        for title,handler in [('새 법칙 문서…',self.new_document),('독립 접선 결과…',self.open_constitutive),
+        for title,handler in [('새 법칙 문서…',self.new_document),('혼합 제어 조건…',self.configure_control),
+                              ('혼합 제어 수렴과 수락 상태…',self.open_control_result),('독립 접선 결과…',self.open_constitutive),
                               ('저장 재료를 FE에 전달…',self.open_transfer)]:
             action=QAction(title,self);action.triggered.connect(handler);menu.addAction(action)
         index=self.backend.findData(law.POINT)
@@ -145,6 +146,42 @@ class LawNativeMaterialWindow(SimulationWindow):
             ax.text(.5,.5,'미완성 입력 · 원문을 보존하며 계산만 차단합니다.',ha='center');ax.set_axis_off()
             self._model_graph_available=False
         self.domain_canvas.draw_idle();self._update_actions()
+
+    def configure_control(self):
+        if not self.document or self._busy or self.conflict:return
+        from .material_control_gui import MixedControlDialog
+        document=deepcopy(self.document);draft=self.edited_draft()
+        identity=lambda d:(d['id'],d['session_id'],d['generation'])
+        polling=self.timer.isActive();self.timer.stop()
+        try:
+            dialog=MixedControlDialog(self.client,draft['settings'],self)
+            if dialog.exec()!=dialog.DialogCode.Accepted:return
+            if identity(self.document)!=identity(document):
+                self.message.setText('열린 재료가 바뀌었습니다. 원 문서를 다시 열어 조건을 확인하세요.');return
+            if dialog.result_settings!=draft['settings']:
+                draft['settings']=deepcopy(dialog.result_settings)
+                self._show_document(document,preserve_draft=draft);self.local_dirty=True
+                self._update_actions()
+            self.message.setText('혼합 제어 조건을 초안에 반영했습니다. 변경 적용 후 저장하거나 평가하세요.')
+        finally:
+            if polling:self.timer.start()
+
+    def open_control_result(self):
+        if not self.document or not self._selected_job or self._busy:return False
+        from .material_control_gui import MixedControlResultDialog
+        identity=(self.document['id'],self.document['session_id'],self._selected_job)
+        def read():
+            from caelab.storage import canonical_hash
+            document=self.client.document_read(identity[0])
+            run=next(r for r in document['runs'] if r['job_id']==identity[2])
+            if canonical_hash(run['draft'])!=run['input_sha256']:
+                raise ValueError('선택한 실행의 원 입력이 다릅니다.')
+            return self.client.document_result(identity[0],identity[2]),deepcopy(run['draft']['settings'])
+        def opened(value):
+            if not self.document or (self.document['id'],self.document['session_id'],self._selected_job)!=identity:return
+            window=MixedControlResultDialog(value[0],value[1],self)
+            self._law_windows.append(window);window.show()
+        return self._call(read,opened)
 
     def open_constitutive(self):
         jobs=[self._selected_job] if self._selected_job else []
