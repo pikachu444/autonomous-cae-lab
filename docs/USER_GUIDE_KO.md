@@ -6,6 +6,8 @@
 먼저 [설치 안내](INSTALL_KO.md)를 따라 기본 환경을 준비하세요. 아래 예제는 저장소에
 들어 있는 공개 자료를 사용합니다. 개발자의 로컬 `runs` 폴더가 없어도 시작할 수 있습니다.
 
+기능의 확인 기준·개발 검사·남은 제한은 [기능별 검증 매뉴얼](VERIFICATION_SCOPE.md)에서 확인하세요.
+
 ## 문서 연결을 선택해서 열기
 
 시작 메뉴의 **문서 연결** 또는 다음 명령으로 문서와 보존 결과의 관계를 함께 봅니다.
@@ -37,7 +39,7 @@ FreeCAD 모델은 [모델 옮기기](native-project/PRE_KO.md), ParaView 분석�
 ```
 
 위 Store에는 실제로 만든 사본 폴더를 지정합니다. 새로 계산하기 전에도 보존 결과를 읽을 수 있습니다.
-[현재 Windows 확인 범위](portable_connection_c3a/WINDOWS_VERIFICATION_KO.md)에서 미완성 편집의 지원 범위와 남은 작업을 확인하세요.
+[현재 저장·복구 확인 범위](VERIFICATION_SCOPE.md#편집부분저장복구이동-사본)에서 미완성 편집의 지원 범위와 남은 작업을 확인하세요.
 [보고서를 옮겨 이어 쓰는 방법](portable_connection_c3b/USAGE_KO.md)은 별도 안내합니다.
 
 ## 1. CAD 예제를 열고 치수 바꾸기

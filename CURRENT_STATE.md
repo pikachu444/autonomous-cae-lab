@@ -14,6 +14,34 @@
 `7590c91`까지 게시한 구현·실행 근거·사용자 파일을 보존한다. 아래 첫 기능 묶음의 완료는
 전체 제품 개발의 종료나 나머지 기존 명세의 미승인을 뜻하지 않는다.
 
+### 10월19일 이어서 실행 중인 배정
+
+B8.1은 `b0bff6e`로 원격 게시했다. 사용자의 지적에 따라 중간 인도 보고에서 멈추지 않고
+기존 전체 명세의 남은 독립 작업을 실제 후속 호출했다. 공통 파일은 Codex가 통합한다.
+
+| 실제 담당 | 단독 쓰기 범위 | 첫 접점과 완료 조건 |
+|---|---|---|
+| Codex | Core/owner/API·`remote_execution.py`, 공통 recovery host·adapter/runtime/Simulation 연결, 공개 문서·현재 상태·게시 | 원격 회수/작업 판정 분리와 독립 Numerical raw recovery hooks부터 통합. 원 실패·UNKNOWN 보존, 관련 검사와 사용자 동선 확인 뒤 게시 |
+| data_impl / Sol-high | `remote_execution_dialog.py`, 기존 remote editor tests | B8.4.L01: 기존 HTTP/JobManager와 명시 transport 대역으로 응답 유실/같은 token 재확인·취소·부분 회수/손상·cold를 닫음. 외부 승인 호스트 실행은 별도 미실행 |
+| desktop_specialist / Sol-high | `material_related_save.py`와 Material Plan/context 관련저장 hunk, 기존 관련저장/복구 tests | B8.2.L01 첫 slice: 실제 Material+DOE Plan의 미확정 입력·부분 저장·실패 문서만 재시도·원문/cold. Data3-owner 및 전체 B8.2 완료로 확대하지 않음 |
+| material_numerical_impl / Sol-high | Numerical/Request Plan의 닫기·복구 hunk, 필요한 raw view adapter, 기존 Numerical/Request tests | B8.2.L01: 미확정 원문을 owner 입력과 분리해 보관/복구, 실패·취소·CAS 변경 시 닫힘/자동 apply 0. 기존 캡슐·focus guard 재사용 |
+| native_impl / Sol-high | `_workspace/tr-u-authoring-20261019/`의 한정 조사, 구현 파일은 첫 접점 확정 후 단독 배정 | B6.3.L01: 기존 source U와 receiver 면 선택·명시 변환·mask preview·저장/재개 authoring 잔여. 기존 계산/실패를 재사용하며 새 mapper/무단 solver 실행 0 |
+| native_data_product_impl / Sol-high | 기존 thermal-regions 후보 helper/조건 widget 재사용 및 `law_native_fe.py`/worker thermal 분기 hunk, 기존 기능별 tests | B4.5.L02: 두 영역 열·기존 SLS 상태를 같은 Simulation에 연결. 원 곡률 8% 기준 FAIL/timeout 보존, 기존 DP/J2 교정 보존. adapter/Simulation 공통 hunk는 Codex |
+| native_cae_adviser / Astra-xhigh | 읽기 전용 실제 후보·입력/diagnostics와 primary source 자문 | thermal strain/state·증분 수렴·곡률 불일치만 구현 담당과 논의. 새 실행/공개 보고서/허용값 조정 0 |
+| data_integration | 읽기 전용 문서 입구·검증 매뉴얼·대표 검사 의존 조사 | 기존 검증 매뉴얼 하나를 기능별로 확장할 최소 통합안을 Codex에 전달. 새 문서·전수 검사·일괄 삭제 0 |
+
+GUI 검사는 전역 foreground를 공유하므로 Codex가 한 담당에게만 실행권을 준다. 현재
+각 구현 담당은 소스/단위 작업을 먼저 진행하며 실제 GUI/native/solver 실행은 지정된
+범위와 순서로만 한다. 의미 있는 기능 묶음이 완성되면 같은 독립 검토 담당을 재사용한다.
+
+사용자의 추가 문서 정리 방향도 이 작업에 적용한다. 사용자 입구는 설치·처음 시작·도구별
+사용법으로 유지하고, 검증 절차/기준/명령/결과 요약은 적합한 기존 검증 매뉴얼 한 곳에
+기능별로 모은다. 새 교정 회차마다 acceptance 문서나 일회성 검사 진입 스크립트를 만들지
+않는다. 기존 기능별 tests와 `scripts/native_check.py`를 재사용하며 원 실행 로그·실패·수치
+기준은 보존한다. examples의 사용자 예제와 내부 검사는 실제 호출 의존을 확인해 구분한다.
+
+아래는 직전 B8.1 인도의 담당·수용 기록이며 위의 실행 중 배정을 대체하지 않는다.
+
 | 담당 | 현재 책임과 단독 쓰기 범위 | 현재 확인 상태 / 다음 행동 |
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
@@ -61,8 +89,8 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
 L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. B4.4는
 `966d40e`, B8.3은 `6b1b372`로 원격 게시했다. TR-U 한정 인도는 `5216e37`,
-L04 선택·Study/Plan은 `6bf7a39`, B4.5 인도는 `ed6b58e`로 원격 게시했다. 현재 다음 행동은
-B8.1의 한정 통합·실제 수용·같은 독립 검토를 닫고 검증된 경계를 게시하는 것이다.
+L04 선택·Study/Plan은 `6bf7a39`, B4.5 인도는 `ed6b58e`, B8.1은 `b0bff6e`로 원격 게시했다.
+현재 다음 행동은 위의 실제 후속 배정에서 첫 common 접점부터 통합하는 것이다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 
 B8.1 공통 통합은 기존 activation 프로토콜·QLocalServer/QLockFile을 재사용해 정확 service,
@@ -919,7 +947,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B4.3.L01 | 혼합 F/stress 제어의 법칙별 인수 | A | 기존 구현 인수 대기 | T4 |
 | B4.4.L01 | 후보 상세 보존·새 평가·채택 충돌 | A | 한정 인수·검토 후 `966d40e` 게시, 새 평가0 | native_data_product_impl / Codex |
 | B4.5.L01 | 사례 A: 기존 J2 와 DP 의 같은 물리시험 비교 | A | 실제 물리9건·Post3개·Study9참조 저장/cold·물리/통합/화면 한정 검토 폐쇄. 합성 holdout·교차 솔버/실물 UNKNOWN | native_data_product_impl / native_impl / Codex |
-| B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 별도 후보 미통합, 연구 요구 미완료 | 미배정 |
+| B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 기존 후보 재사용·현재 thermal 분기/공통 Simulation 연결 통합 중. 원 곡률 FAIL/source별 gate 한계 유지 | native_data_product_impl / native_cae_adviser / Codex |
 | B5.1.L01 | 혼합변수 DOE 의 실제 domain binding | A | 실제 후속 배정, 첫 PDE descriptor HTTP와 exact saved source 확인/실행0 | native_impl / Codex |
 | B5.3.L01 | 일반 역해석의 고정 관측·feasible 후보 왕복 | A | 한정 인수·예측 support/구간 P2 폐쇄, Case A/B 전체와 구별 | native_impl / Codex |
 | B5.4.L01 | 필수 사례별 미분법 선택·기존 adjoint 인수 | A | `15569bb` 게시. 기존 S2/FD/DE와 현재 요청 비용/원 결과·실행 환경 미확인, 실제 창/독립 검토 폐쇄 | native_impl / Codex |
@@ -938,10 +966,10 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B7.5.L01 | 실제 3D 장면·판단·수치가 들어간 한 보고서 | A | 한정 인수·원본 없는 cold/PDFMD·문헌 위치/단위 P2 폐쇄 | material_numerical_impl / Codex |
 | B7.6.L01 | 장비 없이 닫는 공통 취득·sequence·종료 소프트웨어 | D | 본코드 통합·한정 확인 완료, 실장비는 L02 | pending_acquisition_integration |
 | B7.6.L02 | 실제 장비 한 종류의 binding·권한·물리 stop 인수 | E | 외부 입력 대기 | T6 |
-| B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | Research matrix·native Data lifecycle·처리/관측 P2 실제 인수 중. native Pre 확인, Post foreground/닫기 미완료 | native_impl·material_numerical_impl·data_impl·native_data_product_impl·desktop_specialist / Codex |
-| B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | 기존 구현 인수 대기 | T7 |
+| B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | `b0bff6e` 한정 인도/검토·게시. Research9/native Data·Pre2/Post2 종료재열기 확인, foreground NOT_PERFORMED/전체 OS 입력 제한 유지 | native_impl·material_numerical_impl·data_impl·native_data_product_impl·desktop_specialist / Codex |
+| B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | Material+Plan 실제 부분저장/cold와 독립 Numerical 원문 복구를 병행 구현·인수 중. Data3-owner 전체 종료와 구별 | desktop_specialist / material_numerical_impl / Codex |
 | B8.3.L01 | 이동 사본 전체 선언 문서의 cold 편집 | A | 그룹11종·같은 큰 묶음의 실제 편집/저장/재복사/cold/재출력 인수 완료, 원 응답 유실과 느린 성능 유지 | material_numerical_impl / Codex |
-| B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 구현 인수 대기 | T2 |
+| B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 transport 대역·실제 HTTP/JobManager/cold 연결 인수 중. 회수 상태/실패·누락/종료 표시 교정, 외부 호스트 미실행 | data_impl / Codex |
 | B8.4.L02 | SSH 직접 실행 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |
 | B8.4.L03 | Slurm 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |
 | B8.4.L04 | OpenPBS 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |

@@ -3,6 +3,9 @@
 설치 뒤 처음 사용할 때는 [화면별 사용 안내](SCREEN_GUIDE_KO.md)에서 할 작업에 맞는
 프로그램을 고르세요. 실제 화면과 공개 예제로 시작하는 순서를 안내합니다.
 
+설치·실행의 확인 기준과 개발 검사 명령은 [기능별 검증 매뉴얼](VERIFICATION_SCOPE.md)에 있습니다.
+아래 설치 순서를 따르기 위해 날짜별 검사 기록을 먼저 읽을 필요는 없습니다.
+
 `Install-CAE-Lab.cmd`로 준비하는 기본 설치는 **전용 Python 실행 환경과 Research Qt 앱**입니다.
 Windows 10/11 x64에서 실행하며, **FreeCAD·ParaView·Gmsh·외부 솔버는 별도로 설치합니다.**
 전처리·후처리를 열 때 이미 설치된 FreeCAD·ParaView의 위치를 찾습니다.

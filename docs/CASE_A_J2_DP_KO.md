@@ -94,10 +94,8 @@ S/E/PEEQ 출력 위치를 확인한다. Study에는 정확히 보존한 계산�
 걸린 한 번의 실패와 원 기록을 보존했으며, 다른 검사가 끝난 뒤 같은 Study를 읽어
 복구했다. 이는 대규모 자료의 응답 시간 보장이 아니다.
 
-전용 검사는 `tests/law_native/test_case_a_observables.py`, 기존 결과 HTTP 읽기는
-`tests/check_case_a_retained.py`, 기존 Material의 실제 Qt 선택 검사는
-`tests/check_case_a_inspection_windows.py`를 사용한다. 실행 receipt와 원 source hash는
-`_workspace/case-a-20261018/`의 각 독립 출력에 보존한다.
+개발 검사의 현재 절차·기준·명령은 [기능별 검증 매뉴얼](VERIFICATION_SCOPE.md#datamaterialnumerical)에
+모았다. 실행 receipt와 원 source hash는 `_workspace/case-a-20261018/`에 보존한다.
 
 원 식은 [기존 법칙 정의](law-native/EQUATIONS_KO.md), J2 표의 native 입력은
 [고정 CalculiX plastics.f](https://github.com/Dhondtguido/CalculiX/blob/cff1bb12ec7d24ad9048a1f54ae243a18d1a0b54/src/plastics.f)를 따른다.

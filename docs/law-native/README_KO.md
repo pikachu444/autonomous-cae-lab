@@ -5,7 +5,8 @@
 
 Windows에서 세 법칙의 실제 FELUPE 계산과 저장 결과 재열기를 확인했다. 저장한 FreeCAD의
 DP 시편도 새 프로세스로 열어 같은 할당을 계산하고, 저장 결과를 또 다른 프로세스에서 읽었다.
-지원 범위와 실제 확인은 [Windows 확인 기록](ACCEPTANCE_KO.md#2026-10-15-windows-통합-확인)을 따른다.
+현행 검증 절차와 확인 범위는 [기능별 검증 매뉴얼](../VERIFICATION_SCOPE.md#datamaterialnumerical)을 따른다.
+날짜별 입력·실패·출력은 [원 Windows 기록](ACCEPTANCE_KO.md#2026-10-15-windows-통합-확인)에 보존한다.
 아래 Linux/NOT_RUN은 Pro 작성 당시 기록이며 이후 Windows 확인과 구분한다.
 
 ## 인도 상태
@@ -18,8 +19,8 @@ FELUPE는 원 pyproject의 고정 의존성 11.1.3을 재사용한다. 새 solve
 
 `API_KO.md`: 함수·typed 명령·값·오류·저장 경계.
 `EQUATIONS_KO.md`: 정확한 DP/Neo/SLS 식, 측도, 초기 상태, 독립 기준.
-`WINDOWS_KO.md`: 무료 기존 의존성 설치, 실제 FE·native·Qt 검사 명령과 종료 정책.
-`ACCEPTANCE_KO.md`: 실제 수행/controlled fixture/NOT_RUN 및 남은 인수 관문.
+[검증 매뉴얼](../VERIFICATION_SCOPE.md#datamaterialnumerical): 현행 기준·실행 입구·결과 요약.
+`WINDOWS_KO.md`와 `ACCEPTANCE_KO.md`: 당시 환경·실행 명령·원 결과/실패·NOT_RUN 기록.
 `FILE_OWNERSHIP.md`: 전용 파일과 최소 공통 hunk의 소유·통합 경계.
 
 ## 사용자 경로
