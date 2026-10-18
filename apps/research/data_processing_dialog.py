@@ -31,6 +31,50 @@ CHOICES = {
 def text(value):
     return ', '.join(map(str, value)) if isinstance(value, list) else str(value)
 
+
+def _finite_recipe_summary(settings):
+    # Same physical terms as FiniteColumnsDialog/FiniteAuditDialog; display only.
+    def label(value, names):
+        return names.get(value,value) if isinstance(value,str) else text(value)
+    output=label(settings.get('output','미제공'), {'first_Piola':'공칭 응력 P',
+        'finite_Cauchy':'유한변형 진응력 σ', 'engineering_strain':'공학 변형률 e',
+        'stretch':'신장비 λ', 'log_strain':'로그 변형률 ln λ'})
+    basis=settings.get('basis','미제공')
+    basis_name=label(basis, {'none':'추가 응력 측도 변환 없음', 'current_area':'현재 면적 A(t)',
+        'jacobian':'표점 λ와 관측 J', 'full_F':'전체 F의 det(F)',
+        'isochoric_assumption':'J=1 가정 선택 (관측 아님)'})
+    channels=settings.get('channels',{})
+    if isinstance(channels,dict):
+        if basis=='jacobian':basis_name+=' / 관측 J 채널: '+text(channels.get('J','미제공'))
+        elif basis=='current_area':basis_name+=' / 현재 면적 채널: '+text(channels.get('area','미제공'))
+        elif basis=='full_F' and 'J' in channels:basis_name+=' / 입력 J 일치 확인 대상: '+text(channels['J'])
+    measurement=label(settings.get('measurement','미제공'), {
+        'extensometer_gauge_extension':'접촉식 표점 변위', 'optical_gauge_extension':'광학 표점 변위',
+        'crosshead_assumed_gauge':'크로스헤드 변위를 표점 변위로 가정',
+        'measured_axial_strain':'축방향 공학 변형률 측정', 'measured_axial_stretch':'축방향 신장비 측정',
+        'measured_log_strain':'축방향 로그 변형률 측정'})
+    assumptions=settings.get('assumptions','미제공');declared=[]
+    if isinstance(assumptions,dict):
+        for key,value in assumptions.items():
+            name={'isochoric':'J=1 등체적 가정','crosshead_equals_gauge':'크로스헤드 = 표점 변위 가정'}.get(key,key)
+            if isinstance(value,dict) and type(value.get('enabled')) is bool:
+                state='사용' if value['enabled'] else '미사용'
+                if value['enabled'] and not str(value.get('reason','')).strip():state+=' (근거 미제공)'
+                declared.append(name+': '+state)
+            else:declared.append(name+': '+text(value))
+        assumptions='; '.join(declared) if declared else '명시 가정 없음'
+    geometry=settings.get('geometry',{});dimensions=[]
+    if isinstance(geometry,dict):
+        for key,value in geometry.items():
+            dimensions.append(str(key)+'='+ (text(value.get('value','미제공'))+' '+text(value.get('unit','미제공')) if isinstance(value,dict) else text(value)))
+    axis=label(settings.get('axis','미제공'),{a:a+'축' for a in 'xyz'})
+    lines=[output+' ['+text(settings.get('unit','미제공'))+'] / '+axis,
+        '변환 근거: '+basis_name,measurement+' / '+text(assumptions)]
+    if dimensions:lines.append(' / '.join(dimensions))
+    lines.append('범위: '+label(settings.get('scope','미제공'),{'uniaxial_coaxial':'단축·동축'})+
+        ' / 좌표: '+label(settings.get('frame','미제공'),{'material_cartesian':'재료 직교 좌표'}))
+    return '\n'.join(lines)
+
 class ProcessingStepDialog(QDialog):
     def __init__(self, operation, channels, parent=None):
         super().__init__(parent)
@@ -107,9 +151,18 @@ class DataProcessingRecipeDialog(QDialog):
     def _show(self, selected=0):
         self.table.setRowCount(len(self.recipe['operations']))
         for row, op in enumerate(self.recipe['operations']):
-            summary = '; '.join(LABELS.get(key, key) + ': ' + text(value) for key, value in op['settings'].items())
-            for column, shown in enumerate((OPERATIONS.get(op['operation'], (op['operation'],))[0], op['input'], op['output'], summary)):
-                item = QTableWidgetItem(shown); item.setToolTip(shown); self.table.setItem(row, column, item)
+            finite=op['operation']=='finite_observation' and isinstance(op['settings'],dict)
+            summary = _finite_recipe_summary(op['settings']) if finite else '; '.join(LABELS.get(key, key) + ': ' + text(value) for key, value in op['settings'].items())
+            name='유한변형 관측 변환' if finite else OPERATIONS.get(op['operation'], (op['operation'],))[0]
+            for column, shown in enumerate((name, op['input'], op['output'], summary)):
+                item = QTableWidgetItem(shown); item.setToolTip(repr(op) if finite else shown); self.table.setItem(row, column, item)
+        if any(op.get('operation')=='finite_observation' for op in self.recipe['operations']):
+            header=self.table.horizontalHeader()
+            for column in range(3):
+                header.setSectionResizeMode(column,QHeaderView.ResizeMode.Interactive)
+                self.table.setColumnWidth(column,min(180,max(100,self.table.sizeHintForColumn(column))))
+            header.setSectionResizeMode(3,QHeaderView.ResizeMode.Stretch)
+            self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.selectRow(selected)
 
     def _edit(self, op):

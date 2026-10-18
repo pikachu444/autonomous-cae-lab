@@ -631,6 +631,17 @@ class BrokerIO(_NativeBrokerIO):
                          version=str(p.GetParaViewVersion()), log=log, tick_timeout=tick_timeout)
         dispatcher.broker_close = self.close
 
+    def close(self):
+        super().close()
+        # WM_NCDESTROY can be the last Python callback before ParaView exits.
+        # Keep this callback alive briefly so the existing I/O worker can send
+        # its queued close receipt. The worker never calls native/GUI objects.
+        if threading.current_thread() is not self.worker and self.worker.is_alive():
+            self.worker.join(timeout=2)
+        if self.worker.is_alive():
+            self.log('native_close_delivery_pending', host_id=self.host_id,
+                     session_id=self.session_id)
+
 
 def start(service_url=None, *, log=None, owner=None, _portable_binding=None):
     owner = owner or Owner(_portable_binding=_portable_binding)

@@ -167,6 +167,8 @@ class ReportWindow(QMainWindow):
         return self._call(lambda: self.client.document_open(kind='report', document_id=identifier), self._opened)
 
     def _opened(self, document):
+        from .result_return import bind_receiver
+        if not bind_receiver(self,document):return
         self.document = document; self.draft = deepcopy(document['draft'])
         self._undo.clear(); self._redo.clear(); self._pending = None
         self._edit_buffers.clear(); self._editing_section = None; self.section_editor.hide()
@@ -701,6 +703,8 @@ class ReportWindow(QMainWindow):
             if isValid(window) and not window.close():
                 event.ignore();return
         self._closed=True
+        from .result_return import close_receiver
+        close_receiver(self)
         for worker in self._workers:worker.abandon()
         super().closeEvent(event)
 
@@ -709,7 +713,11 @@ def main(argv=None):
     parser=argparse.ArgumentParser();parser.add_argument('--service',required=True);parser.add_argument('--document-id')
     args=parser.parse_args(argv)
     app=QApplication.instance() or QApplication(sys.argv[:1]);apply_appearance(app)
-    window=ReportWindow(Client(args.service),document_id=args.document_id);window.show()
+    client=Client(args.service)
+    if args.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client,args.document_id,kind='report').get('status')=='ACTIVATED':return 0
+    window=ReportWindow(client,document_id=args.document_id);window.show()
     return app.exec()
 
 

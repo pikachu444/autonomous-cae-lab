@@ -78,6 +78,16 @@ def test_failed_or_ambiguous_live_activation_never_falls_back_to_copy(client, pr
     assert len(client.commands) == 1 and processes == []
 
 
+@pytest.mark.parametrize('actual',[{'status':'NOT_PERFORMED'},
+    {'foreground_confirmed':False},{'request_accepted':False}])
+def test_completed_post_command_preserves_unconfirmed_foreground(client,processes,actual):
+    client.document_command=lambda *a,**k:{'command_id':'Cactivate','state':'SUCCEEDED',
+        'outcome':{'result':{'status':'COMPLETED','result':actual}}}
+    receipt=desktop._activate(client,{'id':'Dpost','kind':'post','session_id':'Sowner','generation':1})
+    assert receipt['status']=='NOT_PERFORMED' and receipt['activation']==actual
+    assert not processes
+
+
 def test_closed_pre_opens_explicit_retained_copy_in_new_native_session(client, processes):
     client.navigation.update(origin_document={'id':'Pdesign','kind':'pre','connected':False}, retained_design_input_id='Dfrozen')
     desktop.open_origin(client, 'Jrun')
@@ -88,10 +98,15 @@ def test_closed_pre_opens_explicit_retained_copy_in_new_native_session(client, p
 
 
 @pytest.mark.parametrize('kind', ['material', 'data', 'numerical'])
-def test_origin_routes_to_exact_research_document(client, processes, kind):
-    client.navigation['origin_document'] = {'id':'Dexact', 'kind':kind}
+def test_origin_routes_to_exact_research_document(client, processes, kind,monkeypatch):
+    from apps.research import result_return
+    identifier={'material':'Mexact','data':'Texact','numerical':'Nexact'}[kind]
+    document={'id':identifier,'kind':kind,'session_id':'Scurrent'}
+    client.navigation['origin_document'] = document
+    client.document_read=lambda selected:deepcopy(document) if selected==identifier else None
+    monkeypatch.setattr(result_return,'send_message',lambda message:{'status':'ABSENT'})
     desktop.open_origin(client, 'Jrun')
-    assert processes[0][0][-3:] == [kind, '--document-id', 'Dexact']
+    assert processes[0][0][-3:] == [kind, '--document-id', identifier]
 
 
 def test_pre_config_has_service_export_primary_python_and_no_fixture_defaults(client, processes, tmp_path):

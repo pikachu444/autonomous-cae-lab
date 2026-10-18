@@ -79,6 +79,24 @@ def close(app, window, client):
     window.close()
 
 
+@pytest.mark.parametrize('dirty',[False,True])
+def test_unchanged_poll_preserves_question_selection_and_local_buffer(tmp_path,app,dirty):
+    client=Client(tmp_path);window=setup(client)
+    try:
+        window.show();window.question.show();app.processEvents()
+        if dirty:window.question.insertPlainText(' local question')
+        window.question.selectAll()
+        before=(window.question.toPlainText(),window.question.textCursor().selectedText(),window.edited_draft())
+        saved=client.owner.command(client.doc['id'],'document.save',{},
+            session_id=client.doc['session_id'],expected_generation=client.doc['generation'])['document']
+        assert window.refresh_document()
+        wait(app,lambda:not window._busy and not window._callbacks)
+        assert (window.question.toPlainText(),window.question.textCursor().selectedText(),window.edited_draft())==before
+        assert window.local_dirty is dirty
+        assert window.document['saved_revision']==saved['saved_revision']
+    finally:close(app,window,client)
+
+
 def save_clean(client):
     client.doc = client.owner.command(client.doc['id'], 'document.save', {}, session_id=client.doc['session_id'],
         expected_generation=client.doc['generation'])['document']

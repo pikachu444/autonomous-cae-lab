@@ -792,6 +792,9 @@ def main(argv=None):
     from .desktop import launch_tool, open_document_result, open_domain_plan
     client = Client(options.service)
     app = QApplication.instance() or QApplication(sys.argv[:1])
+    if options.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client,options.document_id,kind='simulation').get('status')=='ACTIVATED':return 0
     window = SimulationWindow(client, document_id=options.document_id,
         runner_open=lambda job: launch_tool(client, 'runner', job_id=job),
         result_open=lambda doc, job, **kwargs: open_document_result(client, doc, job, **kwargs),

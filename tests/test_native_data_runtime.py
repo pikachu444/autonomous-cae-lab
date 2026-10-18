@@ -24,13 +24,16 @@ def package(tmp_path, monkeypatch):
 
 
 def test_install_discovery_and_normal_entry_keep_native_environment_isolated(package, monkeypatch):
+    from apps.research import result_return
     installed = runtime.install(package)
     assert runtime.install(package) == installed
     assert runtime.installed_runtime()['root'] == installed
     calls = []
     monkeypatch.setattr(desktop.subprocess, 'Popen', lambda command, **kwargs:
                         calls.append((command, kwargs)) or SimpleNamespace(pid=456))
-    client = SimpleNamespace(url='http://127.0.0.1:8766', document_read=lambda identifier: {'id': identifier, 'kind': 'data'})
+    client = SimpleNamespace(url='http://127.0.0.1:8766', document_read=lambda identifier: {
+        'id': identifier, 'kind': 'data','session_id':'SCurrent'})
+    monkeypatch.setattr(result_return,'send_message',lambda message:{'status':'ABSENT'})
     monkeypatch.setattr(desktop, 'Client', lambda service: client)
     monkeypatch.setenv('CAELAB_DONOR_SDK', 'old SDK')
     monkeypatch.setenv('CAELAB_DATA_TRIAL_REPORT', 'unrelated acceptance hook')

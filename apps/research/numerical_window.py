@@ -469,7 +469,6 @@ class NumericalWindow(QMainWindow):
             if self._closed or not isValid(self) or self._worker is not worker:
                 return
             self._busy, self._worker = False, None
-            self._busy_background = False
             self._callbacks += 1
             try:
                 if relevant is None or relevant():
@@ -487,6 +486,7 @@ class NumericalWindow(QMainWindow):
                     pending()
             finally:
                 self._callbacks -= 1
+                self._busy_background = False
                 if not self._closed and isValid(self):
                     self._update_actions()
                     if getattr(self,'_trial_source_queue',None):
@@ -619,6 +619,8 @@ class NumericalWindow(QMainWindow):
         if document.get('draft', {}).get('mode') == 'request' and type(self) is NumericalWindow:
             self.open_request_document(document['id'])
             return
+        from .result_return import bind_receiver
+        if not bind_receiver(self,document):return
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
         self._reset_variable_view = True
@@ -701,6 +703,11 @@ class NumericalWindow(QMainWindow):
                     self.variable_editor._identity(bound)==self.variable_editor._identity(document)):
                 self.variable_editor.bind_owner(adapter,document)
             else:self.variable_editor.reset_view(adapter,document)
+        header=self.variables.horizontalHeader()
+        rows=sum(self.variables.rowHeight(row) for row in range(min(2,self.variables.rowCount())))
+        rows+=max(0,2-self.variables.rowCount())*self.variables.verticalHeader().defaultSectionSize()
+        self.variables.setMinimumHeight(max(header.height(),header.sizeHint().height())+rows+
+            2*self.variables.frameWidth()+self.variables.horizontalScrollBar().sizeHint().height())
 
     def _variable_owner_history_allowed(self):
         if not self.document or self._populating or self._busy or self.conflict:
@@ -1579,8 +1586,11 @@ class NumericalWindow(QMainWindow):
             if changed and editing:
                 self.conflict = True
                 self.message.setText('Remote inputs changed while editing. Your cells are preserved; reload or keep edits as a new plan.')
-            elif not editing and not self.conflict:
+            elif changed and not editing and not self.conflict:
                 self._show_document(remote)
+            elif not changed and remote!=self.document:
+                self.document=deepcopy(remote)
+                self._populate_runs()
             self._update_actions()
             QTimer.singleShot(0, self.refresh_result)
         self._call(lambda: self.client.document_read(identifier), received, background=True)
@@ -2042,7 +2052,9 @@ class NumericalWindow(QMainWindow):
         enabled = present and available and not self.conflict
         if self._adoption_receipt and self._adoption_receipt['kind']=='sample_policy':
             enabled=False
-        self.editor.setEnabled(enabled and not self._view_error)
+        input_available=present and not self.conflict and not self._view_error and not variable_busy and not self._pending_adoption
+        if self._adoption_receipt and self._adoption_receipt['kind']=='sample_policy':input_available=False
+        self.editor.setEnabled(input_available and (self._busy_background or not(self._busy or self._callbacks)))
         (self.apply_action if hasattr(self,'apply_action') else self.apply_button).setEnabled(enabled and not variable_pending and self.local_dirty and not self._view_error)
         blocked = present and bool(self.document.get('diagnostics'))
         (self.run_action if hasattr(self,'run_action') else self.run_button).setEnabled(enabled and not variable_pending and not self.local_dirty and not blocked)
@@ -2110,6 +2122,8 @@ class NumericalWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            from .result_return import close_receiver
+            close_receiver(self)
             self._closed = True
             self.timer.stop()
             self._trial_source_queue.clear()
@@ -2123,7 +2137,7 @@ class NumericalWindow(QMainWindow):
             event.ignore()
             def close():
                 self._allow_close = True
-                self.close()
+                QTimer.singleShot(0,self.close)
             self._leave(close)
 
 
@@ -2136,6 +2150,9 @@ def main(argv=None):
         parser.error('--service or CAELAB_SERVICE_URL is required')
     app = QApplication.instance() or QApplication(sys.argv[:1])
     client = Client(args.service)
+    if args.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client,args.document_id,kind='numerical').get('status')=='ACTIVATED':return 0
     draft = client.document_read(args.document_id).get('draft', {}) if args.document_id else {}
     if draft.get('mode') == 'request' and draft.get('request', {}).get('operation') in {'experiment_uncertainty', 'identification_final'}:
         from .experiment_analysis_window import ExperimentAnalysisWindow

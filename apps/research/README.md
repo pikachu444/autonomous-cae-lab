@@ -260,6 +260,25 @@ reference checks apply. The lock contains only transient process ownership, not
 research content. Closing a view releases its route; ordinary document storage
 and Undo/Redo still use existing owners.
 
+The later B8.1 integration is Codex-owned common routing with scoped Sol Data and
+desktop changes. Activation also covers the nine Research document kinds and
+installed native Data, using the same service/document lock and current-session
+checks. Accepted close releases the route; cancelled close keeps the original
+editor. Explicit Data processing/acquisition uses a named auxiliary tool for the
+same T document rather than claiming another primary route. Native unapplied
+edits still block these tools until applied or undone.
+
+Material observation review extends this bounded wire with `material_observation`
+for an exact M target, delivery ID and the existing five-field Data source
+(`document_id`, `job_id`, `response`, `input_revision`, `input_sha256`). It retains
+dirty/busy and cancelled reviews, rejects a different pending source, and never
+fits or registers a trial on receipt alone. Explicit cancellation clears only an
+unsubmitted review; a staged or unconfirmed registration keeps its recovery path.
+The ordinary result/observation operations and Core schemas are unchanged. Actual
+Windows acceptance, source deltas and native foreground/close limits belong to
+[CURRENT_STATE](../../CURRENT_STATE.md); this extension is not attributed to the
+original Pro source below.
+
 This implementation is Pro-authored source on codex/numerical-workflow-20261013,
 based on edcc1fb2. The remote author runtime is disconnected: Python compilation,
 Qt, local IPC and numerical tests are **NOT_RUN by Pro**. Source review is separate

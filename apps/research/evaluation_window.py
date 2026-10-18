@@ -388,6 +388,8 @@ class EvaluationWindow(QMainWindow):
             focus.clearFocus()
 
     def _show_document(self, document, *, preserve_draft=None, prefer_job=None):
+        from .result_return import bind_receiver
+        if not bind_receiver(self,document):return
         previous = (self.document or {}).get('id'), (self.document or {}).get('session_id'), self._selected_job
         self.document = deepcopy(document)
         self._draft = deepcopy(document['draft'] if preserve_draft is None else preserve_draft)
@@ -553,7 +555,7 @@ class EvaluationWindow(QMainWindow):
             self._selected_job = self._selected_attempt = None; self._progress = {}; self._result = None
             self.attempts.setRowCount(0); self.residuals.setRowCount(0); self.channels.setRowCount(0)
             self._show_document(document)
-            QTimer.singleShot(0, self.inspect_inputs)
+            QTimer.singleShot(0, self._inspect_saved_inputs)
             if self._selected_job: QTimer.singleShot(20, self.refresh_progress)
         return self._call(lambda: self.client.document_open(kind='evaluation', document_id=document_id, title=title, draft=draft), accepted)
 
@@ -570,7 +572,7 @@ class EvaluationWindow(QMainWindow):
             self.message.setText({'evaluation.update':'변경을 적용했습니다.','document.save':'저장했습니다.','document.undo':'되돌렸습니다.','document.redo':'변경을 다시 적용했습니다.','evaluation.run':'계산을 요청했습니다.'}.get(operation,'작업을 반영했습니다.'))
             if after: after()
             elif job: QTimer.singleShot(0, self.refresh_progress)
-            elif operation in ('evaluation.update', 'document.undo', 'document.redo'): QTimer.singleShot(0, self.inspect_inputs)
+            elif operation in ('evaluation.update', 'document.undo', 'document.redo'): QTimer.singleShot(0, self._inspect_saved_inputs)
         return self._call(lambda: self.client.document_command(document['id'], operation, arguments or {},
             session_id=document['session_id'], expected_generation=document['generation'], command_id='C' + uuid.uuid4().hex), accepted,
             relevant=lambda: self.document and (self.document['id'], self.document['session_id'], self.document['generation']) == key)
@@ -599,6 +601,11 @@ class EvaluationWindow(QMainWindow):
             if self._selected_job: QTimer.singleShot(0, self.refresh_progress)
         return self._call(lambda: self.client.document_read(identity[0]), accepted, background=True,
             relevant=lambda: self.document and (self.document['id'], self.document['session_id']) == identity)
+
+    def _inspect_saved_inputs(self):
+        # A queued display refresh must not apply edits entered since opening.
+        if self.local_dirty:return False
+        return self.inspect_inputs()
 
     def inspect_inputs(self, *, after=None):
         if not self.document: return False
@@ -998,11 +1005,13 @@ class EvaluationWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            from .result_return import close_receiver
+            close_receiver(self)
             from .portable_research_actions import close_children
             close_children(self)
             self.timer.stop(); event.accept(); return
         event.ignore()
-        def close(): self._allow_close = True; self.close()
+        def close(): self._allow_close = True; QTimer.singleShot(0,self.close)
         self._leave(close)
 
 
@@ -1016,6 +1025,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     application = QApplication.instance() or QApplication([])
     client = Client(args.service)
+    if args.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client,args.document_id,kind='evaluation').get('status')=='ACTIVATED':return 0
     window = EvaluationWindow(client, document_id=args.document_id,
         runner_open=lambda job: launch_tool(client, 'runner', job),
         result_open=lambda document, job, attempt: open_stage_result(client, document, job, attempt),

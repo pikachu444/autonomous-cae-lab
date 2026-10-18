@@ -143,6 +143,21 @@ def editor(tmp_path, application):
         window._allow_close = True; window.close(); client.close()
 
 
+def test_queued_inspection_never_applies_new_local_edits(editor,application,monkeypatch):
+    window,client,_=editor
+    before=deepcopy(client.document_read(window.document['id']))
+    window.iteration_maximum.setText('1e')
+    window.iteration_maximum.textEdited.emit('1e')
+    assert window.local_dirty
+    def forbidden(*a,**k):
+        raise AssertionError('An automatic inspection cannot apply local edits')
+    monkeypatch.setattr(window,'apply_inputs',forbidden)
+    assert window._inspect_saved_inputs() is False
+    application.processEvents()
+    assert client.document_read(before['id'])==before
+    assert window.local_dirty and window.iteration_maximum.text()=='1e'
+
+
 def test_actual_saved_source_picker_order_bindings_and_callbacks(editor, application, monkeypatch):
     window, client, source = editor
     assert window.tabs.count() == 5 and window.run_button.isEnabled()
@@ -289,10 +304,14 @@ def test_explicit_save_is_not_dropped_behind_background_progress(editor, applica
 
 @pytest.mark.parametrize('flag', ['--document-id', '--document'])
 def test_launcher_aliases_and_exact_shared_callbacks(application, monkeypatch, flag):
-    from apps.research import evaluation_window, desktop
+    from apps.research import evaluation_window, desktop, result_return
     from caelab import workbench_client
-    calls, windows = [], []
-    client = object()
+    from types import SimpleNamespace
+    calls, windows, activations = [], [], []
+    client = SimpleNamespace(url='http://127.0.0.1:9000',
+        document_read=lambda identifier: {'id': identifier, 'kind': 'evaluation', 'session_id': 'Ssession'})
+    monkeypatch.setattr(result_return, 'send_message',
+        lambda message: (activations.append(message), {'status': 'ABSENT'})[1])
     monkeypatch.setattr(workbench_client, 'Client', lambda service: client)
     for name in ('launch_tool', 'open_stage_result', 'open_domain_plan', 'open_saved_reference'):
         monkeypatch.setattr(desktop, name,
@@ -305,6 +324,8 @@ def test_launcher_aliases_and_exact_shared_callbacks(application, monkeypatch, f
     monkeypatch.setattr(evaluation_window, 'EvaluationWindow', Window)
     monkeypatch.setattr(QApplication, 'exec', lambda self: 0)
     assert evaluation_window.main(['--service', 'http://127.0.0.1:9000', flag, 'Edefinition']) == 0
+    assert len(activations) == 1 and activations[0]['target_id'] == 'Edefinition'
+    assert activations[0]['session_id'] == 'Ssession' and activations[0]['operation'] == 'activate'
     options = windows[0].options
     assert options['document_id'] == 'Edefinition'
     options['runner_open']('Jrun')

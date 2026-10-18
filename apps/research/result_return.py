@@ -22,6 +22,8 @@ from caelab.storage import canonical_hash, check_id
 
 MAX_FRAME = 65536
 _ENDPOINTS = {}
+OWNER_KINDS={'M':'material','T':'data','N':'numerical','Q':'pde','V':'simulation',
+             'E':'evaluation','X':'expert','S':'study','B':'report','D':'post'}
 
 
 def service_identity(url):
@@ -67,21 +69,35 @@ def validate_message(message):
     if not isinstance(message, dict) or message.get('version') != 1:
         raise ValueError('Unsupported local result message.')
     operation = message.get('operation')
-    expected = common | ({'delivery_id', 'reference', 'selection'} if operation in {'result', 'observation'} else
+    expected = common | ({'delivery_id','reference'} if operation=='material_observation' else
+                         {'delivery_id', 'reference', 'selection'} if operation in {'result', 'observation'} else
                          {'delivery_id'} if operation == 'status' else set())
-    if operation not in {'result', 'observation', 'activate', 'status'} or set(message) != expected:
+    if operation not in {'result', 'observation', 'material_observation', 'activate', 'status'} or set(message) != expected:
         raise ValueError('Unsupported local operation or fields.')
     identifier = check_id(message['target_id'])
     if identifier.startswith('D'):
         if operation != 'activate':
             raise ValueError('Native Post controls accept activation only.')
+    elif operation=='material_observation':
+        if not identifier.startswith('M'):raise ValueError('Choose the exact existing Material editor.')
+        source=message['reference']
+        fields={'document_id','job_id','response','input_revision','input_sha256'}
+        if (not isinstance(source,dict) or set(source)!=fields
+                or any(not isinstance(source.get(key),str) or not source[key] for key in fields)):
+            raise ValueError('Choose an exact retained Data observation.')
+        for key in ('document_id','job_id','input_revision'):check_id(source[key])
+        if (not source['document_id'].startswith('T') or len(source['input_sha256'])!=64
+                or any(char not in '0123456789abcdef' for char in source['input_sha256'])):
+            raise ValueError('Choose the saved Data input and response.')
+    elif operation=='activate':
+        if identifier[0] not in OWNER_KINDS:raise ValueError('Choose an existing research owner.')
     elif not identifier.startswith(('X', 'S', 'N')):
         raise ValueError('Return target must be an existing Expert, Study or Numerical Plan.')
     if not isinstance(message['session_id'], str) or not 1 <= len(message['session_id']) <= 160:
         raise ValueError('Missing service session.')
     if not isinstance(message['service'], str) or len(message['service']) > 200:
         raise ValueError('Invalid service identity.')
-    if operation in {'result', 'observation', 'status'}:
+    if operation in {'result', 'observation', 'material_observation', 'status'}:
         check_id(message['delivery_id'])
     if operation == 'observation':
         validate_result_reference(message['reference'])
@@ -196,19 +212,23 @@ class PendingResultReview(QObject):
             return True
         existing = _ENDPOINTS.get(name)
         if existing is not None:
-            if document['id'].startswith('D'):
-                existing.receive({'version': 1, 'operation': 'activate', 'service': service,
-                    'target_id': document['id'], 'session_id': document['session_id']})
-            else:
-                existing.window.showNormal()
-                existing.window.raise_()
-                existing.window.activateWindow()
+            existing.receive({'version': 1, 'operation': 'activate', 'service': service,
+                'target_id': document['id'], 'session_id': document['session_id']})
             self.window.message.setText('이 문서의 설정창이 이미 열려 있습니다. 기존 편집은 그 창에 유지됩니다.')
             return False
         lock = _lock(path)
         if not lock.tryLock(0):
-            self.window.message.setText('This document has a live editor or is still opening. Use its existing window; this view was not replaced.')
-            return False
+            # The absence probe briefly holds this same lock. Confirm absence
+            # and actually acquire it again; a timeout/live owner never permits
+            # a second listener or a replacement of the current editor.
+            try:
+                receipt=send_message({'version':1,'operation':'activate','service':service,
+                    'target_id':document['id'],'session_id':document['session_id']},timeout_ms=500)
+                acquired=receipt.get('status')=='ABSENT' and lock.tryLock(0)
+            except (RuntimeError,ValueError):acquired=False
+            if not acquired:
+                self.window.message.setText('This document has a live editor or is still opening. Use its existing window; this view was not replaced.')
+                return False
         server = QLocalServer(self)
         server.setSocketOptions(QLocalServer.SocketOption.UserAccessOption)
         server.setMaxPendingConnections(8)
@@ -305,6 +325,20 @@ class PendingResultReview(QObject):
             if receipt['signature'] != signature:
                 return {**base, 'status': 'REJECTED', 'reason': 'Delivery ID has different content.'}
             return {**base, **receipt, 'delivery_id': identifier}
+        if operation=='material_observation':
+            receive=getattr(window,'stage_observation',None)
+            if not callable(receive):
+                return {**base,'status':'REJECTED','reason':'This material editor does not accept Data observations.'}
+            pending=getattr(window,'_pending_observation_source',None)
+            if pending is not None and pending!=message['reference']:
+                return {**base,'status':'BUSY','reason':'Review the previous Data observation first.'}
+            accepted=receive(deepcopy(message['reference']))
+            if not accepted and getattr(window,'_pending_observation_source',None)!=message['reference']:
+                return {**base,'status':'BUSY','reason':'The observation review is not ready.'}
+            self.receipts[identifier]={'status':'PRESENTED','signature':signature}
+            while len(self.receipts)>128:del self.receipts[next(iter(self.receipts))]
+            window.showNormal();window.raise_();window.activateWindow()
+            return {**base,**self.receipts[identifier],'delivery_id':identifier}
         if len(self.pending) >= 8:
             return {**base, 'status': 'BUSY', 'reason': 'Review or cancel the existing returned results first.'}
         self.pending[identifier] = deepcopy(message)
@@ -493,6 +527,8 @@ def install_receiver(window):
 
 
 def bind_receiver(window, document):
+    if OWNER_KINDS.get(document['id'][0])!=document.get('kind'):
+        raise ValueError('The document identity does not match its research owner.')
     receiver = getattr(window, '_result_return', None)
     if receiver is None:
         install_receiver(window)
@@ -500,7 +536,18 @@ def bind_receiver(window, document):
     if receiver.reviewing:
         window.message.setText('Finish the pending result review before changing documents.')
         return False
-    return receiver.bind(document)
+    bound=receiver.bind(document)
+    if not bound and getattr(window,'document',None) is None:
+        # A competing startup never becomes a second blank editor. Existing
+        # windows keep their buffer when a requested document is already owned.
+        window._allow_close=True
+        QTimer.singleShot(0,window.close)
+    return bound
+
+
+def close_receiver(window):
+    receiver=getattr(window,'_result_return',None)
+    if receiver is not None:receiver.close()
 
 
 
@@ -589,9 +636,13 @@ def deliver_result(client, message, *, launch=None, timeout=12):
     raise RuntimeError(last + ' Return remains unconfirmed; retry without creating another research document.')
 
 
-def activate_existing(client, target_id, *, session_id=None):
+def activate_existing(client, target_id, *, session_id=None, kind=None):
     """Return an activation receipt or ABSENT; never hide timeout/stale-owner errors."""
     document = client.document_read(check_id(target_id))
+    expected=OWNER_KINDS.get(target_id[0])
+    if (document.get('id')!=target_id or expected is None or document.get('kind')!=expected
+            or kind is not None and expected!=kind):
+        raise ValueError('The selected document does not belong to this editor.')
     if target_id.startswith('D') and (document.get('id') != target_id or document.get('kind') != 'post'
             or not document.get('connected') or not document.get('session_id')):
         raise ValueError('현재 연결된 후처리 문서를 확인할 수 없습니다. ParaView에서 문서를 확인하세요.')
@@ -599,7 +650,26 @@ def activate_existing(client, target_id, *, session_id=None):
         raise ValueError('요청한 후처리 세션이 현재 문서와 다릅니다. 기존 창과 편집은 유지됩니다.')
     message = {'version': 1, 'operation': 'activate', 'service': service_identity(client.url),
                'target_id': target_id, 'session_id': document['session_id']}
-    receipt = send_message(message)
+    app=QApplication.instance()
+    receipt=(receive_local(message) if app is not None and QThread.currentThread()==app.thread() else None)
+    if receipt is None:receipt=send_message(message)
     if receipt.get('status') not in {'ACTIVATED', 'ABSENT'}:
         raise RuntimeError('Original editor was not activated: ' + str(receipt))
+    return receipt
+
+
+def review_material_observation(client,target_id,source):
+    """Present an explicit observation in the existing editor, without fitting."""
+    target=client.document_read(check_id(target_id))
+    if target.get('id')!=target_id or target.get('kind')!='material':
+        raise ValueError('Choose the exact existing Material document.')
+    message={'version':1,'operation':'material_observation','service':service_identity(client.url),
+        'target_id':target_id,'session_id':target['session_id'],'delivery_id':'D'+uuid.uuid4().hex,
+        'reference':deepcopy(source)}
+    validate_message(message)
+    app=QApplication.instance()
+    receipt=(receive_local(message) if app is not None and QThread.currentThread()==app.thread() else None)
+    if receipt is None:receipt=send_message(message)
+    if receipt.get('status') not in {'PRESENTED','ABSENT'}:
+        raise RuntimeError('Data observation review was not confirmed: '+str(receipt))
     return receipt

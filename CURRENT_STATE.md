@@ -17,14 +17,14 @@
 | 담당 | 현재 책임과 단독 쓰기 범위 | 현재 확인 상태 / 다음 행동 |
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
-| Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
-| material_numerical_impl / Sol-high | B8.1 native Data의 `CaelabDataBridge.h`·기존 patch0005·전용 owner/lifecycle 검사·`NATIVE_DATA_OWNER_OPEN_KO.md` 단독 | 실제 동일 owner 활성화·로컬 행 제외/닫기 취소·다른 service·재열기와 probe race 확인. 독립 검토의 문서 전환/파일 열기/새 프로젝트 뒤 잠금 잔류 P2를 교정·빌드 중. 새 runtime의 실제 전환/취소·lease 해제 확인까지 완료가 아님 |
-| native_impl / Sol-high | B8.1 `check_owner_open_windows.py`·`check_owner_open_matrix_windows.py`와 전용 근거 단독. 공통 launcher/activation/lifecycle은 Codex | TR-U·B4.5 인도 완료·게시. Research9 실제 matrix에서 Material/PDE/Simulation 확인; Numerical 입력/선택 보존과 나머지 Evaluation/Expert/Study/Report를 계속 확인. 같은 service/document의 PID·편집/선택·취소 보존, accepted close 뒤 재열기·다른 service 분리가 종료조건 |
-| data_impl / Sol-high | B8.1 `data_window.py`의 명시 companion-task 부분·`test_data_companion_owner_ui.py`·전용 근거 단독. 일반 owner hooks는 Codex | L04 `6bf7a39` 게시. 처리/취득 목적이 일반 활성화에서 사라지는 P2를 명시 보조 도구 창으로 교정, 전용10검사 통과. PySide/native 두 기존 메뉴의 실제 정확 문서·취소/편집 보존·새 Job0 확인 대기 |
+| Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안과 실제 후속 호출 규칙을 적용하고 첫 명령부터 공통 통합. B8.1 protocol/launcher/accepted close와 Post 종료 통지 교정·최종 회귀·공개 사용법/현재 상태/Space 기록·게시 담당 |
+| material_numerical_impl / Sol-high | B8.1 native Data의 `CaelabDataBridge.h`·기존 patch0005·전용 owner/lifecycle 검사·`NATIVE_DATA_OWNER_OPEN_KO.md` 단독 | runtime10 빌드·설치 완료. 기존 Core/File 전달의 dirty 편집 보존·New Cancel·수락 후 lease 해제/재열기, 직접 .lml 시작의 기존 B 재사용/빈 중복 시작 종료를 확인. 원 실패·서로 다른 source 버전의 한정 근거는 delta02로 분리하며 같은 Astra가 lease P2를 폐쇄 |
+| native_impl / Sol-high | B8.1 `check_owner_open_windows.py`·`check_owner_open_matrix_windows.py`와 전용 근거 단독. 공통 launcher/activation/lifecycle은 Codex | Research9종의 실제 Windows matrix 완료. 같은 service/document의 PID·편집/선택·취소, accepted close 뒤 새 PID 재열기·다른 service 분리를 확인. Data는 명시 `--pyside`이며 기본 native/companion은 별도. 원 실패·준비 지연과 Data 설정 필드가 캡처에 보이지 않는 한계는 보존 |
+| data_impl / Sol-high | B8.1 `data_window.py`의 명시 companion-task 부분·`test_data_companion_owner_ui.py`·전용 근거 단독. 일반 owner hooks는 Codex | PySide primary의 실제 test_id 편집/route·recipe Cancel/편집 Accept/CloseCancel·취득창을 확인. runtime10의 미적용 native 편집 거절·Undo 후 두 기존 메뉴의 sameT 보조 도구 열기/취소·host 종료도 확인, Core/Jobs 불변·소유 Job 정리 완료. 미적용 native 편집의 도구 열기는 지원하지 않음 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B8.1 Material 관측 전달의 `test_material_observation_owner_ui.py`·전용 actual 검사/근거 단독. 제품 protocol/host는 Codex | B4.5 `ed6b58e` 게시. 기존 Material owner에 정확 관측5필드를 검토 목적으로 전달·편집 중 보류·다른 관측 BUSY·wrong session 거절·취소 뒤 새 Job0을 실제 확인할 준비 완료. 관측 전달을 단순 활성화로 세지 않음 |
-| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | B8.1 `check_native_owner_reuse_windows.py`·전용 native Pre/Post 근거 단독. 제품 코드는 Codex | native Pre 같은 working owner의 활성화/accepted close/재열기2회 확인. Post 같은 owner 재사용은 확인했지만 foreground 거절·실제 close receipt 부재로 미완료. Post 한정 진단에서 원 close gate/창 파괴·owner receipt를 확인하며 강제 종료를 사용자 닫기로 세지 않음 |
-| desktop_integration_review / Astra-xhigh | B8.1 한정 독립 read-only 검토. 제품/검사 쓰기·GUI/native 실행 없음 | 처리·관측 목적 유실 및 native Data 전환 뒤 lease 잔류 두 P2를 제기. 같은 담당의 교정·실제 근거가 모이면 재검토. 각 작은 변경마다 새 검토를 만들지 않음 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B8.1 Material 관측 전달의 전용 unit/actual 검사·근거 단독. 제품 protocol/host는 Codex | 실제 HTTP/QLocal/CLI exact 관측·dirty/busy 보류·다른 관측 BUSY·원 대상 보호·검토 Cancel/명시 취소/재수신과 원5 Core문서·Jobs 불변 확인. 원 actual03 실패 앞단과 같은 source의 cancel-tail PASS를 합친 한정 근거이며 같은 Astra가 P2 폐쇄. 전체 actual03를 PASS로 변경하지 않음 |
+| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | B8.1 native Pre/Post 전용 검사, Numerical 표 높이·data_processing_dialog 표시 hunk와 전용 시각 근거 단독. 다른 제품 common은 Codex | Research18PNG/Material3PNG/Data companion7PNG 판독과 두 visual P2 실제 재렌더 완료. native Pre2회와 Post2회의 exact 재사용·실제 Discard/닫힘 영수증·새 세션 재열기 확인. Post 전경 활성화 거절은 NOT_PERFORMED로 보존. 모든 소유 프로세스 정리·GUI lease 반환 |
+| desktop_integration_review / Astra-xhigh | B8.1 한정 독립 read-only 검토. 제품/검사 쓰기·GUI/native 실행 없음 | Material 관측·native lease·두 visual P2 폐쇄. Research9/companion/runtime10의 서로 다른 source delta와 한정 근거 및 Post04 종료/재열기를 확인해 검토 완료, 추가 P1/P2 없음. 전체 OS 입력/물리 인수로 확대하지 않음 |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
 기존 개발을 새 제품 범위로 취급하거나 기능마다 재승인하지 않는다. 실제 의존이나 같은
@@ -62,19 +62,54 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. B4.4는
 `966d40e`, B8.3은 `6b1b372`로 원격 게시했다. TR-U 한정 인도는 `5216e37`,
 L04 선택·Study/Plan은 `6bf7a39`, B4.5 인도는 `ed6b58e`로 원격 게시했다. 현재 다음 행동은
-B8.1 정확 owner 열기의 실제 Windows 인수와 두 P2의 교정/독립 검토 폐쇄다.
+B8.1의 한정 통합·실제 수용·같은 독립 검토를 닫고 검증된 경계를 게시하는 것이다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 
 B8.1 공통 통합은 기존 activation 프로토콜·QLocalServer/QLockFile을 재사용해 정확 service,
 document kind/id와 현재 session을 검증한다. 살아 있는 창의 편집·선택/취소를 보존하며 확인된
 부재만 새 창을 허용한다. Research accepted close의 재귀 호출을 다음 Qt event로 옮겼고,
-Numerical의 읽기 전용 polling이 입력란을 비활성화/재구성하지 않도록 교정했다. 전용 polling
-검사는 clean/raw 입력·선택 보존을 확인하며 OS focus는 별도 실제 matrix에서 확인한다.
-native activation의 실제 NOT_PERFORMED·foreground 거절을 성공으로 바꾸지 않는다. 독립
-검토의 두 P2 및 Post 실제 닫기/foreground 제한이 남아 B8.1 전체 완료를 주장하지 않는다.
+Numerical의 읽기 전용 polling이 입력란을 비활성화/재구성하지 않도록 교정했다. 같은 입력의
+저장/run metadata는 편집을 건드리지 않고 갱신한다. Study의 같은 질문 재주입에 따른 선택
+유실도 교정했다. Evaluation은 문서를 연 뒤 예약된 자동 검토가 그사이 입력한 편집을 적용하던
+문제를 교정했다. 명시 검토는 기존 계약을 유지한다. 각 전용 회귀와 실제 Research9종 matrix로
+입력/선택·닫기 취소·다른 service·accepted close/재열기를 확인했다. 원 잘못된 Evaluation
+POST는 실패한 검사 사본의 초안 변경이며 원본/저장 결과 불변·새 Job0과 구분해 보존한다.
+Numerical의 마지막 실제 검사는 해당 의존 소스가 불변이었지만 동시 Material 교정으로 전체
+소스 일치가 false였음을 그대로 기록했고, 이후 저장 metadata 전용 회귀는 별도 근거다.
+native Data는 runtime10(`DAE0C299…`, executable `2BA75D18…`, Bridge `C8DCE707…`)을
+현재 로컬에 설치했다. 기존 native 준비/저장 인수와 lease/lifecycle·직접 파일 시작의 이번
+source delta를 구분한다. 임의 파일명을 같은 owner로 합치지 않으며 미적용 native 입력은
+처리/취득 전에 적용하거나 Undo해야 한다. runtime09의 성공한 전환/취소·lease 근거와
+runtime10의 한정 directfile 교정 검사를 전체 캠페인 재실행으로 합산하지 않는다.
+native activation의 실제 NOT_PERFORMED·foreground 거절을 성공으로 바꾸지 않는다.
+Post native03은 실제 Discard·gate 허용·WM_NCDESTROY·정상 종료 뒤에도 닫힘 통지가 없던
+반례다. 마지막 콜백에서 기존 I/O worker의 전송을 최대2초 기다리도록 Codex가 교정했다.
+native04는 같은 working owner를 두 번 실제 열고 Discard·authenticated CLOSED·정상 종료를
+확인한 뒤 새 open_id/session/PID로 재열었다. 기존 Pre2회와 구분해 보존하며 원03 실패는
+PASS로 바꾸지 않는다. 전송이2초 내 끝나지 않으면 pending/미확인 경계가 남는다.
+좁은 Numerical의 두 행 전체와 유한변형 recipe5행의 P/σ·관측 J/가정 구분은 실제 재렌더로
+확인했다. 원 recipe bytes·draft·Jobs와 처리/수치 의미는 유지했다. 독립 검토의 기능·시각
+P2는 폐쇄했지만 전경 활성화·전체 OS 직접 입력·모든 기능의 인수를 완료했다고 주장하지 않는다.
 화면 조작 검사는 전역 foreground를 공유하므로 담당별 독점 순서로 실행한다. private store가
 다르다는 이유로 동시에 화면을 조작하지 않는다. 기존 전용 검사125 PASS/9 FAIL에서 관찰된
 다섯 RequestPlan/옛 영어 문구 기대 실패는 이 인도로 닫거나 전체 회귀 PASS로 바꾸지 않는다.
+
+B8.1의 실제 수용 근거는 private `_workspace/b81-owner/matrix-10/final-manifest.json`
+(`1de61b68…`, Research9), `native-data-acceptance-delta02.json`(`14da47aa…`, native Data),
+`native-specialist-final-20261019.json`(`a1c46aba…`, 두 visual delta와 원 Post03 실패),
+`native-reuse-final-20261019.json`(`ad27ef96…`, Pre2/Post2)로 연결한다. Data companion은
+`_workspace/data-companion-owner-20261018/closure.json`(`2bca8275…`), Material 관측은
+`_workspace/b81-observation-20261019/final-manifest-01.json`(`7d925c0c…`)의 composite 근거다.
+같은 검토에서 원 실패·부분 성공과 이후 source delta를 구분하며 전체 캠페인을 재실행한
+것처럼 합산하지 않는다. [Data 사용법](docs/NATIVE_DATA_OWNER_OPEN_KO.md)과
+[Windows 진입](docs/WINDOWS_QUICKSTART.md)에 실제 지원 흐름을 반영했다.
+최종 focused 회귀는121 PASS/1 SKIP(18.32초, PID45752 exit0/job_empty)다. 건너뛴 것은
+명시 private 관측 source가 필요한 실제 검사이며 앞선 composite 인수를 대신하지 않는다.
+첫 batch의119 PASS/2 FAIL/1 SKIP는 Evaluation launcher의 옛 `object()` double에
+필수 문서 읽기가 없던 실패다. double에 정확 id/kind/session과 ABSENT 경계를 넣고 실제
+활성화 대상도 검사하도록 보강했다. 제품 동작을 완화하지 않았고 원 실패 로그는 보존한다.
+Post 종료 관련 별도91 PASS(4.14초)와 실제 native04는 서로 다른 검증 범위이며 전체 suite
+PASS로 합산하지 않는다. 마지막 회귀 로그는 `final-regression-process-02/`에 보존한다.
 
 TR-U 한정 인도는 원 CCX 변위를 다시 계산하지 않고 다른35절점/8 C3D10의 외곽
 34절점102 DOF에 적용했다. 내부35번 절점은 자유이며 기존 frozen 등록/Runner로 수신을

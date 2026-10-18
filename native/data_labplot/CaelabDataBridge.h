@@ -41,6 +41,12 @@
 #include <QMenuBar>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QLockFile>
+#include <QCryptographicHash>
+#include <QScopedValueRollback>
+#include <QScopeGuard>
 #include <QPointer>
 #include <QStatusBar>
 #include <QApplication>
@@ -79,6 +85,7 @@
 #include <stdexcept>
 #include <limits>
 #include <functional>
+#include <memory>
 
 class CaelabDataBridge : public QObject {
     static QString text(const char* value) { return QString::fromUtf8(value); }
@@ -132,13 +139,145 @@ class CaelabDataBridge : public QObject {
     bool busy{false};
     bool workflowStarted{false};
     bool failNextViewWrite{false};
+    // Same identity and bounded activation wire as Research result_return.py.
+    struct ActivationLease {
+        QString name, service, target, session;
+        std::shared_ptr<QLockFile> lock;
+        bool forwarded{false};
+    };
+    std::unique_ptr<ActivationLease> activation;
+    QLocalServer* activationServer{nullptr};
+    QSet<QLocalSocket*> activationConnections;
+    bool activationReading{false};
+    Project* activationProject{nullptr};
+    QMetaObject::Connection activationDestroyedConnection;
+    QString openingPath;
+    QJsonObject openingBinding, openingDocument;
+    std::unique_ptr<ActivationLease> openingLease;
+    bool openingForwarded{false};
     bool pendingView() const { return !pendingXml.isEmpty() || !pendingBinding.isEmpty(); }
 
-    QJsonObject request(const QString& path, const QJsonObject* body = nullptr) {
-        QNetworkRequest query{QUrl(service + path)};
+    QString activationService(const QString& serviceUrl = {}) const {
+        const QUrl url(serviceUrl.isEmpty() ? service : serviceUrl);
+        if (url.scheme() != text("http") || !QStringList{text("localhost"), text("127.0.0.1"), text("::1")}.contains(url.host()) ||
+            !url.userInfo().isEmpty() || url.hasQuery() || url.hasFragment() || (!url.path().isEmpty() && url.path() != text("/")))
+            throw std::runtime_error("Open the same local research service before activating Data.");
+        return text("http://loopback:") + QString::number(url.port(80));
+    }
+    void releaseActivation() {
+        QObject::disconnect(activationDestroyedConnection); activationProject = nullptr;
+        const auto sockets = activationConnections;
+        for (auto* socket : sockets) socket->abort();
+        activationConnections.clear();
+        if (activationServer) { activationServer->close(); activationServer->deleteLater(); activationServer = nullptr; }
+        activation.reset();
+    }
+    std::unique_ptr<ActivationLease> prepareActivation(const QJsonObject& document, const QString& target = {}, const QString& serviceUrl = {}) {
+        auto lease = std::make_unique<ActivationLease>();
+        lease->service = activationService(serviceUrl); lease->target = document.value(text("id")).toString();
+        lease->session = document.value(text("session_id")).toString();
+        if (lease->target != (target.isEmpty() ? identifier : target) || document.value(text("kind")) != text("data") || lease->session.isEmpty())
+            throw std::runtime_error("The exact Data document/session is unavailable.");
+        const auto folder = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + text("/autonomous-cae-lab/desktop");
+        if (!QDir().mkpath(folder)) throw std::runtime_error("The Data activation directory is unavailable.");
+        // Python Path.resolve() uses native separators on Windows. QJsonObject
+        // serializes keys in lexical order, matching storage.canonical_hash.
+        const auto userDirectory = QDir::toNativeSeparators(QDir(folder).canonicalPath());
+        const QJsonObject key{{text("service"), lease->service}, {text("target"), lease->target}, {text("user_directory"), userDirectory}};
+        const auto digest = QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(key).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex());
+        lease->name = text("caelab-research-") + digest;
+        if (activation && activation->name == lease->name) { lease->lock = activation->lock; return lease; }
+        lease->lock = std::make_shared<QLockFile>(folder + text("/") + digest + text(".lock"));
+        lease->lock->setStaleLockTime(0);
+        if (lease->lock->tryLock(0)) return lease;
+        QLocalSocket socket; socket.setReadBufferSize(65537); socket.connectToServer(lease->name);
+        if (!socket.waitForConnected(2500)) {
+            const auto error = socket.error();
+            // Python's absence probe briefly holds this same lock. Confirmed
+            // pipe absence plus acquiring the lock is ownership, not a timeout
+            // fallback or permission to steal a living editor's lease.
+            if ((error == QLocalSocket::ServerNotFoundError || error == QLocalSocket::ConnectionRefusedError) && lease->lock->tryLock(2500)) return lease;
+            throw std::runtime_error("The original Data editor is starting or unreachable. No replacement was opened.");
+        }
+        const QJsonObject message{{text("version"), 1}, {text("operation"), text("activate")}, {text("service"), lease->service},
+            {text("target_id"), lease->target}, {text("session_id"), lease->session}};
+        socket.write(QJsonDocument(message).toJson(QJsonDocument::Compact) + '\n'); socket.flush();
+        QByteArray bytes; QElapsedTimer timer; timer.start();
+        while (!bytes.contains('\n') && timer.elapsed() < 2500) {
+            if (!socket.bytesAvailable()) socket.waitForReadyRead(qMax(1, 2500 - int(timer.elapsed())));
+            bytes += socket.readAll();
+            if (bytes.size() > 65536) throw std::runtime_error("Invalid Data activation receipt.");
+            if (socket.state() == QLocalSocket::UnconnectedState && !socket.bytesAvailable()) break;
+        }
+        socket.abort();
+        const auto receipt = QJsonDocument::fromJson(bytes).object();
+        if (!bytes.contains('\n') || receipt.value(text("status")) != text("ACTIVATED") ||
+            receipt.value(text("target_id")) != lease->target || receipt.value(text("session_id")) != lease->session)
+            throw std::runtime_error("The original Data editor did not confirm this document/session. Its edits were preserved.");
+        lease->forwarded = true;
+        if (!activationServer && (!window->project() || (window->project()->fileName().isEmpty() && window->project()->childCount<AbstractAspect>() == 0)))
+            QTimer::singleShot(0, window, &QWidget::close);
+        window->statusBar()->showMessage(text("이미 열린 자료 창으로 이동했습니다."));
+        return lease;
+    }
+    QJsonObject receiveActivation(const QJsonObject& message) {
+        const QJsonObject identity{{text("target_id"), activation ? activation->target : QString()},
+            {text("session_id"), activation ? activation->session : QString()}};
+        auto rejected = identity; rejected.insert(text("status"), text("REJECTED"));
+        if (!activation || message.keys() != QStringList{text("operation"), text("service"), text("session_id"), text("target_id"), text("version")} ||
+            message.value(text("version")) != 1 || message.value(text("operation")) != text("activate") ||
+            message.value(text("service")) != activation->service || message.value(text("target_id")) != activation->target ||
+            message.value(text("session_id")) != activation->session || !connected() || identifier != activation->target ||
+            baseline.value(text("session_id")) != activation->session || activationReading) return rejected;
+        QScopedValueRollback<bool> reading(activationReading, true);
+        try {
+            const auto current = request(documentPath());
+            if (current.value(text("id")) != activation->target || current.value(text("kind")) != text("data") ||
+                current.value(text("session_id")) != activation->session) return rejected;
+        } catch (...) { return rejected; }
+        window->showNormal(); window->raise(); window->activateWindow();
+        auto receipt = identity; receipt.insert(text("status"), text("ACTIVATED")); return receipt;
+    }
+    void commitActivation(std::unique_ptr<ActivationLease> lease) {
+        if (activation && activation->name == lease->name) {
+            activation->session = lease->session; return;
+        }
+        auto* server = new QLocalServer(this); server->setSocketOptions(QLocalServer::UserAccessOption);
+        if (!server->listen(lease->name)) { server->deleteLater(); throw std::runtime_error("The Data activation endpoint could not be opened. The previous editor is preserved."); }
+        QObject::connect(server, &QLocalServer::newConnection, this, [this, server] {
+            while (server->hasPendingConnections()) {
+                auto* socket = server->nextPendingConnection();
+                if (activationConnections.size() >= 8) { socket->abort(); socket->deleteLater(); continue; }
+                activationConnections.insert(socket); socket->setReadBufferSize(65537);
+                auto bytes = std::make_shared<QByteArray>(); auto* timeout = new QTimer(socket);
+                timeout->setSingleShot(true); timeout->setInterval(3000);
+                QObject::connect(timeout, &QTimer::timeout, socket, &QLocalSocket::abort); timeout->start();
+                auto read = [this, socket, bytes, timeout] {
+                    *bytes += socket->readAll();
+                    if (bytes->size() > 65536) { socket->abort(); return; }
+                    if (!bytes->contains('\n')) return;
+                    timeout->stop();
+                    const auto receipt = receiveActivation(QJsonDocument::fromJson(*bytes).object());
+                    socket->write(QJsonDocument(receipt).toJson(QJsonDocument::Compact) + '\n'); socket->flush(); socket->disconnectFromServer();
+                };
+                QObject::connect(socket, &QLocalSocket::readyRead, this, read);
+                QObject::connect(socket, &QLocalSocket::disconnected, this, [this, socket] { activationConnections.remove(socket); socket->deleteLater(); });
+                if (socket->bytesAvailable()) read();
+            }
+        });
+        releaseActivation(); activation = std::move(lease); activationServer = server;
+        activationProject = window->project();
+        auto* owner = activationProject;
+        activationDestroyedConnection = QObject::connect(owner, &QObject::destroyed, this, [this, owner] {
+            if (activationProject == owner) releaseActivation();
+        });
+    }
+
+    QJsonObject request(const QString& path, const QJsonObject* body = nullptr, const QString& serviceUrl = {}) {
+        QNetworkRequest query{QUrl((serviceUrl.isEmpty() ? service : serviceUrl) + path)};
         query.setTransferTimeout(30000);
         if (body) {
-            const auto overview = request(text("/api/overview"));
+            const auto overview = request(text("/api/overview"), nullptr, serviceUrl);
             query.setRawHeader(QByteArrayLiteral("X-CAE-Token"), overview.value(text("token")).toString().toUtf8());
             query.setHeader(QNetworkRequest::ContentTypeHeader, text("application/json"));
         }
@@ -240,7 +379,7 @@ class CaelabDataBridge : public QObject {
         void undo() override { if (bridge && bridge->connected() && bridge->loadEpoch == epoch && bridge->pendingApply.isEmpty() && !bridge->pendingView() && bridge->prepareJob.isEmpty()) { bridge->draft = before; bridge->channel = beforeChannel; bridge->refreshEngineeringView(); bridge->connectedProject->setChanged(true); bridge->syncLocks(); } }
         void redo() override { if (bridge && bridge->connected() && bridge->loadEpoch == epoch && bridge->pendingApply.isEmpty() && !bridge->pendingView() && bridge->prepareJob.isEmpty()) { bridge->draft = after; bridge->channel = afterChannel; bridge->refreshEngineeringView(); bridge->connectedProject->setChanged(true); bridge->syncLocks(); } }
     };
-    void load() {
+    void load(const QJsonObject& preparedDocument = {}, std::unique_ptr<ActivationLease> lease = {}) {
         if (!prepareJob.isEmpty()) throw std::runtime_error("진행 중인 자료 준비 상태를 먼저 확인하세요. 원 입력은 유지됩니다.");
         if (!pendingApply.isEmpty() || pendingView()) throw std::runtime_error("Complete the pending command or exact view save before reading another Core input.");
         if (requiresCoreSave() && (inputConflict || draft != baseline.value(text("draft")).toObject()) &&
@@ -251,7 +390,10 @@ class CaelabDataBridge : public QObject {
         }
         if (service.isEmpty() || identifier.isEmpty())
             throw std::runtime_error("Set CAELAB_SERVICE_URL and CAELAB_DATA_DOCUMENT_ID for the bounded donor trial.");
-        baseline = request(documentPath()); draft = baseline.value(text("draft")).toObject(); ++loadEpoch;
+        const auto document = preparedDocument.isEmpty() ? request(documentPath()) : preparedDocument;
+        if (!lease) lease = prepareActivation(document);
+        if (lease->forwarded) return;
+        baseline = document; draft = baseline.value(text("draft")).toObject(); ++loadEpoch;
         importedReference = {}; savedAck = {};
         inputConflict = false;
         attachProject();
@@ -363,6 +505,7 @@ class CaelabDataBridge : public QObject {
         }
         syncLocks();
         window->statusBar()->showMessage(text("원자료를 읽었습니다. 원행과 채널을 선택하고 편집한 뒤 변경 적용을 누르세요."));
+        commitActivation(std::move(lease));
     }
     void exclude() {
         if (inputConflict) throw std::runtime_error("The local input is in conflict. Its recovery file is preserved; explicitly reload before editing.");
@@ -682,8 +825,13 @@ class CaelabDataBridge : public QObject {
         if (names.isEmpty()) throw std::runtime_error("열 자료 문서가 없습니다. 원자료 파일을 여세요.");
         const int selected = chooseDocument(text("자료 열기"), text("자료 문서"), names);
         if (selected < 0 || selected >= identifiers.size()) return;
+        const auto target = identifiers.value(selected);
+        if (connected() && target == identifier) return;
+        const auto document = request(text("/api/workbench/documents/") + target);
+        auto lease = prepareActivation(document, target);
+        if (lease->forwarded) return;
         if (!window->newProject()) return;
-        identifier = identifiers.value(selected); loadedBinding = {}; inputConflict = false; load();
+        identifier = target; loadedBinding = {}; inputConflict = false; load(document, std::move(lease));
     }
     void openSourceFile(const QString& selectedPath = {}, int selectedHeaders = -1) {
         if (!pendingApply.isEmpty() || pendingView()) throw std::runtime_error("진행 중인 적용 또는 저장을 먼저 마치세요.");
@@ -758,18 +906,27 @@ class CaelabDataBridge : public QObject {
         }
         return {};
     }
-    void restoreBinding(const QString& path) {
-        const auto binding = fileBinding(path);
+    void restoreBinding(const QString& path, bool startup = false) {
+        const bool prepared = !openingBinding.isEmpty() && openingPath == QFileInfo(path).absoluteFilePath();
+        const auto binding = prepared ? openingBinding : fileBinding(path);
         if (binding.isEmpty()) return;
         const auto acknowledgement = binding.value(text("document")).toObject();
-        boundProject = window->project(); loadedBinding = binding;
+        // A startup file has already been read by MainWin::initGUI, before the
+        // bridge exists. Preserve its Core-save guard even if reconnect fails.
+        if (startup) { boundProject = window->project(); loadedBinding = binding; }
         const auto oldService = service, oldIdentifier = identifier;
-        if (service.isEmpty()) service = binding.value(text("service_url")).toString();
-        identifier = acknowledgement.value(text("id")).toString();
+        const auto targetService = service.isEmpty() ? binding.value(text("service_url")).toString() : service;
+        const auto target = acknowledgement.value(text("id")).toString();
         try {
-            const auto current = request(documentPath());
+            const auto current = prepared ? openingDocument : request(text("/api/workbench/documents/") + target, nullptr, targetService);
             if (current.value(text("input_revision")) != acknowledgement.value(text("input_revision")) || current.value(text("draft")) != acknowledgement.value(text("draft")))
                 throw std::runtime_error("The saved native view refers to an older Core input. Its file is preserved; reopen the matching Core revision explicitly.");
+            auto lease = prepared ? std::move(openingLease) : prepareActivation(current, target, targetService);
+            if (lease->forwarded) {
+                if (startup) QTimer::singleShot(0, window, &QWidget::close);
+                return;
+            }
+            service = targetService; identifier = target; boundProject = window->project(); loadedBinding = binding;
             baseline = current; draft = current.value(text("draft")).toObject(); savedAck = acknowledgement;
             inputConflict = false;
             importedReference = binding.value(text("result_reference")).toObject();
@@ -809,6 +966,7 @@ class CaelabDataBridge : public QObject {
             attachInteraction(); refreshEngineeringView(); selectSources(selectedSources);
             window->m_projectExplorer->setDataWorkspaceMode(true);
             window->statusBar()->showMessage(text("Saved Core input and native view reopened. No calculation was submitted."));
+            commitActivation(std::move(lease));
         } catch (...) { connectedProject.clear(); service = oldService; identifier = oldIdentifier; throw; }
     }
     QString recoveryPath() const {
@@ -1490,16 +1648,33 @@ class CaelabDataBridge : public QObject {
         QTimer::singleShot(100, qApp, &QApplication::quit);
     }
 public:
+    ~CaelabDataBridge() override { releaseActivation(); }
     static CaelabDataBridge* from(MainWin* host) {
         for (auto* child : host->children()) if (auto* bridge = dynamic_cast<CaelabDataBridge*>(child)) return bridge;
         return nullptr;
     }
     bool connected() const { return connectedProject && connectedProject == window->project(); }
     bool requiresCoreSave() const { return boundProject && boundProject == window->project(); }
+    void finishedOpen() { openingLease.reset(); openingPath.clear(); openingBinding = {}; openingDocument = {}; }
+    bool openWasForwarded() const { return openingForwarded; }
     bool mayOpen(const QString& path) {
+        finishedOpen(); openingForwarded = false;
         if (!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty()) {
             window->statusBar()->showMessage(text("Finish the pending exact save or command before switching documents.")); return false;
         }
+        try {
+            const auto binding = fileBinding(path);
+            if (binding.isEmpty()) return true;
+            const auto acknowledgement = binding.value(text("document")).toObject();
+            const auto target = acknowledgement.value(text("id")).toString();
+            const auto targetService = service.isEmpty() ? binding.value(text("service_url")).toString() : service;
+            const auto current = request(text("/api/workbench/documents/") + target, nullptr, targetService);
+            if (current.value(text("input_revision")) != acknowledgement.value(text("input_revision")) || current.value(text("draft")) != acknowledgement.value(text("draft")))
+                throw std::runtime_error("The saved native view refers to an older Core input. Its file is preserved; reopen the matching Core revision explicitly.");
+            auto lease = prepareActivation(current, target, targetService);
+            if (lease->forwarded) { openingForwarded = true; return false; }
+            openingPath = QFileInfo(path).absoluteFilePath(); openingBinding = binding; openingDocument = current; openingLease = std::move(lease);
+        } catch (const std::exception& error) { window->statusBar()->showMessage(QString::fromUtf8(error.what())); return false; }
         return true;
     }
     void opened(const QString& path) {
@@ -1520,6 +1695,7 @@ public:
     }
     explicit CaelabDataBridge(MainWin* host) : QObject(host), window(host), network(this),
         service(QString::fromUtf8(qgetenv("CAELAB_SERVICE_URL"))), identifier(QString::fromUtf8(qgetenv("CAELAB_DATA_DOCUMENT_ID"))) {
+        QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, [this] { releaseActivation(); });
         const QMap<QString, QString> captions{{text("File"), text("파일")}, {text("Edit"), text("편집")}, {text("View"), text("보기")},
             {text("Spreadsheet"), text("표")}, {text("Matrix"), text("행렬")}, {text("Worksheet"), text("그래프")}, {text("Data Extractor"), text("자료 추출")},
             {text("Windows"), text("창")}, {text("Tools"), text("도구")}, {text("Settings"), text("설정")}, {text("Help"), text("도움말")}};
@@ -1651,7 +1827,7 @@ public:
             if (choice >= 0 && choice < identifiers.size()) launchMaterial(identifiers.value(choice));
         }); });
         window->installEventFilter(this);
-        if (window->project() && !window->project()->fileName().isEmpty()) guarded([this] { restoreBinding(window->project()->fileName()); });
+        if (window->project() && !window->project()->fileName().isEmpty()) guarded([this] { restoreBinding(window->project()->fileName(), true); });
         const auto report = QString::fromUtf8(qgetenv("CAELAB_DATA_TRIAL_REPORT"));
         const auto phase = QString::fromUtf8(qgetenv("CAELAB_DATA_WORKFLOW_PHASE"));
         const bool afterOpen = phase == text("reopen") || phase == text("offline_save") || phase == text("mismatch_save") || phase == text("interaction_reopen");

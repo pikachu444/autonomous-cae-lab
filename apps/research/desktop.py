@@ -252,9 +252,9 @@ def launch_tool(client, tool, job_id=None, document_id=None, parent=None):
         raise ValueError('Choose an independently supported research editor or Runner')
     if (tool == 'runner' and document_id) or (tool != 'runner' and job_id):
         raise ValueError('Runner selects a job; research editors select a document')
-    if tool in {'expert', 'study'} and document_id:
+    if tool in {'material','data','numerical','pde','simulation','evaluation','expert','study','report'} and document_id:
         from .result_return import activate_existing
-        receipt = activate_existing(client, check_id(document_id))
+        receipt = activate_existing(client, check_id(document_id),kind=tool)
         if receipt.get('status') == 'ACTIVATED':
             return receipt
     arguments = [tool]
@@ -285,6 +285,10 @@ def launch_native_data(client, *, executable=None, sdk=None, document_id=None, p
     """Open installed Data independently of the primary Qt or developer SDK."""
     if document_id and project:
         raise ValueError('기존 Data 문서 또는 저장한 LabPlot 파일 하나를 선택하세요.')
+    if document_id:
+        from .result_return import activate_existing
+        receipt=activate_existing(client,check_id(document_id),kind='data')
+        if receipt.get('status')=='ACTIVATED':return receipt
     if sdk is not None:
         if not executable or not (document_id or project):
             raise ValueError('개발 실행 파일과 기존 Data 문서 또는 저장한 작업을 선택하세요.')
@@ -345,6 +349,11 @@ def _activate(client, origin):
         command = client.command_status(identifier)
     if command['state'] != 'SUCCEEDED':
         raise RuntimeError(f'Native source activation {identifier} {command["state"]}: {command.get("outcome", command.get("error", ""))}')
+    actual=command.get('outcome',{}).get('result',{}).get('result',{})
+    if (isinstance(actual,dict) and (actual.get('status')=='NOT_PERFORMED'
+            or actual.get('foreground_confirmed') is False or actual.get('request_accepted') is False)):
+        return {'status':'NOT_PERFORMED','document_id':origin['id'],'command_id':identifier,
+                'activation':deepcopy(actual)}
     return {'status': 'ACTIVATED', 'document_id': origin['id'], 'command_id': identifier}
 
 

@@ -195,7 +195,7 @@ class MaterialWindow(QMainWindow):
         self.material_results_action=QAction('재료 계산 결과 보기',self)
         self.material_results_action.triggered.connect(self.show_material_results)
         view.addAction(self.material_results_action)
-        windows = self.menuBar().addMenu("도구(&T)")
+        self.tools_menu = windows = self.menuBar().addMenu("도구(&T)")
         from .finite_measure_gui import install_material_action
         install_material_action(self, windows)
         self.runner_action = QAction("실행 관리…", self)
@@ -210,6 +210,8 @@ class MaterialWindow(QMainWindow):
         self.plan_variables_action = QAction('피팅 변수 편집…', self)
         self.plan_variables_action.triggered.connect(self.open_plan_variables)
         windows.addAction(self.plan_variables_action)
+        self.cancel_observation_action=windows.addAction('전달받은 시험 취소')
+        self.cancel_observation_action.triggered.connect(self.cancel_observation)
         self.trial_action = QAction('단축 시험 조건…', self)
         self.trial_action.triggered.connect(self.configure_trial)
         windows.addAction(self.trial_action)
@@ -418,10 +420,18 @@ class MaterialWindow(QMainWindow):
         return True
 
     def open_document(self, *, document_id=None, title="Material study", draft=None):
+        if ((self._pending_observation_source or getattr(self._plan_panel,'_pending_observation',None)) and self.document and
+                document_id!=self.document['id']):
+            self.message.setText('전달받은 시험의 대상 재료를 유지했습니다. 먼저 시험을 확인하세요.')
+            return False
         return self._call(lambda: self.client.document_open(kind="material", title=title,
                          draft=draft, document_id=document_id), self._opened)
 
     def _opened(self, document):
+        if ((self._pending_observation_source or getattr(self._plan_panel,'_pending_observation',None)) and self.document and
+                (document['id'],document['session_id'])!=(self.document['id'],self.document['session_id'])):
+            self.message.setText('전달받은 시험의 원래 재료와 연결을 유지했습니다. 먼저 시험을 확인하세요.')
+            return
         from caelab.material_document import NATIVE_LAWS
         if document['draft'].get('backend') == 'material.law_native':
             from .law_native_material_window import LawNativeMaterialWindow
@@ -435,6 +445,8 @@ class MaterialWindow(QMainWindow):
             window._opened(document); window.show()
             self.message.setText('Opened the same Material owner in its native law/protocol editor.')
             return
+        from .result_return import bind_receiver
+        if not bind_receiver(self,document):return
         self.document = deepcopy(document)
         self._active_result_view = 'material'
         self._result_view_serial += 1
@@ -717,17 +729,41 @@ class MaterialWindow(QMainWindow):
                 any(not isinstance(source.get(key),str) or not source[key] for key in required)):
             self.message.setText('Data에서 저장한 시험 결과와 관측 채널을 다시 선택하세요.')
             return False
+        panel=self._plan_panel
+        panel_pending=getattr(panel,'_pending_observation',None)
+        pending=self._pending_observation_source or panel_pending
+        if pending is not None:
+            if pending!=source:
+                self.message.setText('먼저 전달받은 시험을 확인하세요. 앞선 자료는 유지했습니다.')
+                return False
+            if panel_pending is not None:return True
         if self.document is None:
             self._pending_observation_source=deepcopy(source)
+            self._update_actions()
             return True
         if self._busy or self.local_dirty or self.conflict:
             self._pending_observation_source=deepcopy(source)
             self.message.setText('재료 편집을 먼저 적용하세요. 전달받은 시험은 유지했습니다.')
+            self._update_actions()
             return False
         panel=self.open_plan_variables()
         accepted=panel.receive_observation(source) if panel else False
         if accepted:self._pending_observation_source=None
+        self._update_actions()
         return accepted
+
+    def cancel_observation(self):
+        panel=self._plan_panel
+        if panel and (panel._busy or panel._staged_observation):
+            self.message.setText('시험 등록 요청 결과를 먼저 확인하세요. 전달받은 자료는 유지했습니다.')
+            return False
+        self._pending_observation_source=None
+        if panel:
+            panel._pending_observation=panel._observation_material_id=None
+            panel.observation_button.hide()
+        self.message.setText('전달받은 시험을 취소했습니다. 재료와 계획은 바꾸지 않았습니다.')
+        self._update_actions()
+        return True
 
     def create_numerical(self):
         self._commit_cell_editor()
@@ -1013,6 +1049,8 @@ class MaterialWindow(QMainWindow):
         self.save_action.setEnabled(enabled)
         self.trial_action.setEnabled(enabled and not self._draft_problem)
         self.plan_variables_action.setEnabled(enabled)
+        pending=self._pending_observation_source or getattr(self._plan_panel,'_pending_observation',None)
+        self.cancel_observation_action.setEnabled(bool(pending) and not getattr(self._plan_panel,'_staged_observation',None))
         if self._plan_panel:
             self._plan_panel.update_badge()
         self.undo_action.setEnabled(present and not self._busy and (bool(self._local_undo) or
@@ -1093,13 +1131,15 @@ class MaterialWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            from .result_return import close_receiver
+            close_receiver(self)
             self.timer.stop()
             event.accept()
             return
         event.ignore()
         def leave():
             self._allow_close = True
-            self.close()
+            QTimer.singleShot(0,self.close)
         self._leave(leave)
 
     def showEvent(self, event):
@@ -1120,6 +1160,11 @@ def main(argv=None):
         parser.error("--service or CAELAB_SERVICE_URL must identify an existing local service")
     client = Client(args.service)
     app = QApplication.instance() or QApplication(sys.argv[:1])
+    if args.document_id:
+        from .result_return import activate_existing,review_material_observation
+        if args.observation:
+            if review_material_observation(client,args.document_id,json.loads(args.observation)).get('status')=='PRESENTED':return 0
+        elif activate_existing(client,args.document_id,kind='material').get('status')=='ACTIVATED':return 0
     document = client.document_read(args.document_id) if args.document_id else None
     from caelab.material_document import NATIVE_LAWS
     if document and document.get('kind')=='material' and document['draft'].get('backend')=='material.law_native':

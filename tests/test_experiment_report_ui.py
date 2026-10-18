@@ -108,6 +108,8 @@ def test_report_native_pages_local_section_buffer_save_reopen_and_atomic_pdf(app
         window.save_document()
         wait(app,lambda:not window._busy and not window._pending and bool(window.document.get('saved_revision')),window)
         identifier=window.document['id'];draft=deepcopy(window.draft)
+        assert window.close()  # Reopening follows the accepted owner-close boundary.
+        app.processEvents()
         reopened=ReportWindow(client,document_id=identifier);windows.append(reopened)
         reopened.show();wait(app,lambda:reopened.document and not reopened._busy,reopened)
         assert reopened.draft==draft and not reopened.document['runs']

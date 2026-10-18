@@ -174,6 +174,10 @@ class ExperimentAnalysisWindow(QDialog):
         return {'a':'기울기 a','x0':'입력 영점','b':'출력 오프셋'}.get(v.get('coefficient',v['id']),v['id'])
 
     def _loaded(self,payload):
+        document=payload[1]
+        if document is not None:
+            from .result_return import bind_receiver
+            if not bind_receiver(self,document):return
         self._view,self.document,self.result,self.job_id,request,self.source,self.evidence_reference=payload
         self._loading_request=deepcopy(request)
         self._populating=True;p=self._view['problem'];final=self.evidence_reference is not None
@@ -296,6 +300,8 @@ class ExperimentAnalysisWindow(QDialog):
         except ValueError as error:self.message.setText(str(error));return
         submitted=self._pending
         def completed(receipt):
+            from .result_return import bind_receiver
+            if not bind_receiver(self,receipt['document']):return
             self.document=receipt['document'];self._pending=None
             if self.request_value()==submitted.request:self.dirty=False
             if 'job' in receipt:
@@ -468,6 +474,8 @@ class ExperimentAnalysisWindow(QDialog):
             if answer!=QMessageBox.StandardButton.Discard:return
         if self._worker is not None:
             self._worker.abandon();self._retired_workers.append(self._worker);self._worker=None
+        from .result_return import close_receiver
+        close_receiver(self)
         self._closed=True;self.timer.stop();super().done(code)
 
 

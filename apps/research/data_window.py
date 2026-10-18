@@ -214,8 +214,16 @@ class DataWindow(QMainWindow):
     numerical_requested = Signal(object)
     expert_requested = Signal(object)
 
-    def __init__(self, client, *, document_id=None, poll_interval=2000, auto_open=True):
+    def __init__(self, client, *, document_id=None, poll_interval=2000, auto_open=True, companion_task=None):
+        if companion_task is not None:
+            from caelab.storage import check_id
+            if companion_task not in ('processing', 'acquisition') or not isinstance(document_id, str):
+                raise ValueError('자료 처리·취득 도구는 선택한 Data 문서에서 여세요.')
+            if not check_id(document_id).startswith('T'):
+                raise ValueError('자료 처리·취득 도구의 정확한 Data 문서를 선택하세요.')
         super().__init__()
+        self._companion_task = companion_task
+        self._companion_document_id = document_id if companion_task else None
         self.client, self.document = client, None
         self.local_dirty = self.conflict = self._busy = self._populating = False
         self._foreground_busy = False
@@ -652,6 +660,8 @@ class DataWindow(QMainWindow):
         return True
 
     def open_document(self, *, document_id=None, title='Data study', draft=None, after=None):
+        if self._companion_task and (document_id != self._companion_document_id or draft is not None):
+            raise ValueError('이 보조 도구는 처음 선택한 Data 문서에서만 사용합니다.')
         def settled(value, error):
             if error and document_id:
                 self._open_cached_view(document_id)
@@ -665,6 +675,8 @@ class DataWindow(QMainWindow):
 
     def open_companion_task(self, task):
         """Wait for this exact document's existing reads before opening its editor."""
+        if task not in ('processing', 'acquisition') or self._companion_task and task != self._companion_task:
+            raise ValueError('명시한 자료 처리·취득 도구를 선택하세요.')
         if not self.document:
             return False
         identity = (self.document['id'], self.document['session_id'])
@@ -684,6 +696,12 @@ class DataWindow(QMainWindow):
         return True
 
     def _opened(self, document):
+        if self._companion_task:
+            if document.get('id') != self._companion_document_id or document.get('kind') != 'data':
+                raise ValueError('보조 도구에 연결한 Data 문서가 다릅니다.')
+        else:
+            from .result_return import bind_receiver
+            if not bind_receiver(self,document):return
         self.local_dirty = self.conflict = False
         self._cache_only = False
         from .data_workspace import DraftHistory
@@ -2571,9 +2589,9 @@ class DataWindow(QMainWindow):
         self.processing_preview_action.setEnabled(enabled and not self.local_dirty and bool((self.document or {}).get('draft', {}).get('processing')))
         self.processing_results_action.setEnabled(present and not self._busy and bool((self.document or {}).get('processing_revisions')))
         self.focused_undo.refresh()
-        self.new_action.setEnabled(not self._busy)
-        self.open_action.setEnabled(not self._busy)
-        self.open_tests_action.setEnabled(not self._busy)
+        self.new_action.setEnabled(not self._busy and not self._companion_task)
+        self.open_action.setEnabled(not self._busy and not self._companion_task)
+        self.open_tests_action.setEnabled(not self._busy and not self._companion_task)
         self.read_button.setEnabled(present and bool(self._source_id) and not self._busy)
         for button in (self.compare_button, self.plan_button, self.expert_button):
             button.setEnabled(enabled and bool(self._selected_job) and not self.local_dirty)
@@ -2587,7 +2605,8 @@ class DataWindow(QMainWindow):
         self.retry_command_button.setVisible(self._pending_command is not None)
         self.retry_command_button.setEnabled(not self._busy)
         if present:
-            self.setWindowTitle('Data — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+            title = {'processing': '자료 처리 도구', 'acquisition': '기록 취득 도구'}.get(self._companion_task, 'Data')
+            self.setWindowTitle(title + ' — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
             self.identity.setText('설정 적용 필요' if self.local_dirty else '입력 오류' if blocked or self._view_error else
                 '저장하지 않은 변경' if self.document.get('dirty') else '저장됨' if self.document.get('saved_revision') is not None else '새 문서')
             self.identity.setToolTip(f"Document: {self.document['id']}\nSession: {self.document['session_id']}\nSaved: {self.document.get('saved_revision')}")
@@ -2632,6 +2651,8 @@ class DataWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            from .result_return import close_receiver
+            close_receiver(self)
             self._closed = True
             self.timer.stop()
             self._callback_calls.clear()
@@ -2666,7 +2687,18 @@ def main(argv=None):
     if args.data_task and not args.document_id:
         parser.error('--data-task requires the selected Data document')
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    window = DataWindow(Client(args.service), document_id=args.document_id, auto_open=not bool(args.data_task))
+    client=Client(args.service)
+    if args.data_task:
+        from caelab.storage import check_id
+        identifier = check_id(args.document_id)
+        selected = client.document_read(identifier)
+        if not identifier.startswith('T') or selected.get('id') != identifier or selected.get('kind') != 'data':
+            raise ValueError('처리·취득할 정확한 Data 문서를 선택하세요.')
+    elif args.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client,args.document_id,kind='data').get('status')=='ACTIVATED':
+            return 0
+    window = DataWindow(client, document_id=args.document_id, auto_open=not bool(args.data_task), companion_task=args.data_task)
     window.show()
     if args.data_task:
         window.open_document(document_id=args.document_id, after=lambda: window.open_companion_task(args.data_task))

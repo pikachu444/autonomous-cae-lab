@@ -462,7 +462,8 @@ def test_window_close_delivers_closed_receipt_and_stops_owned_broker(bridge,monk
     assert broker.registered.wait(2)
     dispatcher.incoming.put(command(owner,'document.save'))
     dispatcher.close()
-    broker.worker.join(timeout=2)
+    # Native destruction may exit the interpreter as soon as close returns.
+    # The accepted receipt must already be delivered, without a caller join.
     assert reports==['closed'] and broker.stop.is_set() and not broker.worker.is_alive()
     assert not bridge.saved and dispatcher.incoming.empty() and owner.closed
 

@@ -207,7 +207,7 @@ def test_open_chooser_reads_real_workbench_documents_envelope(window, app, monke
 
 def test_standalone_launcher_matches_desktop_document_id_and_navigation(monkeypatch):
     from types import SimpleNamespace
-    from apps.research import pde_window, desktop
+    from apps.research import pde_window, desktop,result_return
     opened, navigation = [], []
     class Window:
         def __init__(self, client, **kwargs):
@@ -215,12 +215,17 @@ def test_standalone_launcher_matches_desktop_document_id_and_navigation(monkeypa
         def show(self):
             pass
     monkeypatch.setattr(pde_window, 'PDEWindow', Window)
+    checked=[]
+    def activate(client,identifier,**kwargs):
+        checked.append((identifier,kwargs));return {'status':'ABSENT'}
+    monkeypatch.setattr(result_return,'activate_existing',activate)
     monkeypatch.setattr(pde_window, 'QApplication', SimpleNamespace(instance=lambda: SimpleNamespace(exec=lambda: 0)))
     monkeypatch.setattr(desktop, 'launch_tool', lambda *args, **kwargs: navigation.append(('runner', args, kwargs)))
     monkeypatch.setattr(desktop, 'open_document_result', lambda *args, **kwargs: navigation.append(('post', args, kwargs)), raising=False)
     assert pde_window.main(['--service', 'http://127.0.0.1:9912', '--document-id', 'Qselected']) == 0
     client, options = opened[0]
     assert options['document_id'] == 'Qselected' and client.url == 'http://127.0.0.1:9912'
+    assert checked==[('Qselected',{'kind':'pde'})]
     options['runner_open']('Jrecorded')
     options['result_open']('Qselected', 'Jrecorded', study_index=2)
     assert navigation[0] == ('runner', (client, 'runner'), {'job_id': 'Jrecorded'})

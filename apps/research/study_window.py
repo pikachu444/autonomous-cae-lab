@@ -912,7 +912,10 @@ class StudyWindow(NumericalWindow):
                 self.conflict = True
                 self.message.setText('Study owner changed while editing. Your local research entries remain; reload or keep a new Study.')
             elif not self.conflict:
-                self._show_document(remote, preserve_buffer=self.local_dirty)
+                if changed:self._show_document(remote)
+                else:
+                    self.document=deepcopy(remote)
+                    self._update_actions()
         return self._call(lambda: self.client.document_read(context[0]), received, background=True,
                           relevant=lambda: self._context() == context)
 

@@ -8,10 +8,42 @@ diff --git a/src/frontend/MainWin.h b/src/frontend/MainWin.h
 diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
 --- a/src/frontend/MainWin.cpp
 +++ b/src/frontend/MainWin.cpp
-@@ -773,2 +773,4 @@
+@@ -758,13 +758,15 @@ void MainWin::openProject() {
+-	if (!openProject(path)) {
+-		newProject();
+-		return;
+-	}
+-
+-	// save new "last open directory"
+-	int pos = path.lastIndexOf(QLatin1String("/"));
+-	if (pos != -1) {
+-		const QString& newDir = path.left(pos);
+-		if (newDir != dir)
+-			group.writeEntry("LastOpenDir", newDir);
+-	}
++	if (!openProject(path)) {
++        if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->connected())
++            return;
++		newProject();
++		return;
++	}
++
++	// save new "last open directory"
++	int pos = path.lastIndexOf(QLatin1String("/"));
++	if (pos != -1) {
++		const QString& newDir = path.left(pos);
++		if (newDir != dir)
++			group.writeEntry("LastOpenDir", newDir);
++	}
+ }
+@@ -773,2 +773,8 @@
  bool MainWin::openProject(const QString& fileName) {
-+    if (auto* bridge = CaelabDataBridge::from(this); bridge && !bridge->mayOpen(fileName))
-+        return false;
++    auto* dataBridge = CaelabDataBridge::from(this);
++    if (dataBridge && !dataBridge->mayOpen(fileName))
++        return dataBridge->openWasForwarded();
++    auto dataOpenGuard = qScopeGuard([dataBridge] {
++        if (dataBridge) dataBridge->finishedOpen();
++    });
  	if (m_project && fileName == m_project->fileName()) {
 @@ -903,4 +905,5 @@
  	if (m_autoSaveActive)
@@ -19,6 +51,18 @@ diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
  
 +    if (auto* bridge = CaelabDataBridge::from(this)) bridge->opened(fileName);
  	return true;
+@@ -908,5 +908,7 @@ void MainWin::openRecentProject(const QUrl& url) {
+-	if (!openProject(path)) {
+-		newProject();
+-		return;
+-	}
++	if (!openProject(path)) {
++        if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->connected())
++            return;
++		newProject();
++		return;
++	}
+ }
 @@ -1017,2 +1019,4 @@
  bool MainWin::save(const QString& fileName) {
 +    if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->requiresCoreSave())

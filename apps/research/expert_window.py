@@ -1871,7 +1871,7 @@ class ExpertWindow(QMainWindow):
         event.ignore()
         def leave():
             self._allow_close = True
-            self.close()
+            QTimer.singleShot(0,self.close)
         self._leave(leave)
 
 
@@ -1983,7 +1983,7 @@ def main(argv=None):
     client = Client(args.service)
     if args.document_id:
         from .result_return import activate_existing
-        if activate_existing(client, args.document_id).get('status') == 'ACTIVATED':
+        if activate_existing(client, args.document_id,kind='expert').get('status') == 'ACTIVATED':
             return 0
     window = ExpertWindow(client, document_id=args.document_id, title=args.title)
     connect_desktop_actions(window, client)

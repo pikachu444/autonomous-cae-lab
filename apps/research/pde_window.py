@@ -505,6 +505,8 @@ class PDEWindow(QMainWindow):
                           draft=draft, document_id=document_id), self._opened)
 
     def _opened(self, document):
+        from .result_return import bind_receiver
+        if not bind_receiver(self,document):return
         self.local_dirty = self.conflict = False
         self._result_key = self._result = None
         self._selected_job = document.get('runs', [{}])[-1].get('job_id') if document.get('runs') else None
@@ -1421,6 +1423,8 @@ class PDEWindow(QMainWindow):
         else:
             event.accept()
         if event.isAccepted():
+            from .result_return import close_receiver
+            close_receiver(self)
             self._closed = True
             from .portable_research_actions import close_children
             close_children(self)
@@ -1436,6 +1440,9 @@ def main(argv=None):
     from .desktop import launch_tool, open_document_result
     client = Client(options.service)
     app = QApplication.instance() or QApplication(sys.argv[:1])
+    if options.document_id:
+        from .result_return import activate_existing
+        if activate_existing(client,options.document_id,kind='pde').get('status')=='ACTIVATED':return 0
     window = PDEWindow(client, document_id=options.document_id,
         runner_open=lambda job: launch_tool(client, 'runner', job_id=job),
         result_open=lambda document_id, job_id, study_index=None: open_document_result(
