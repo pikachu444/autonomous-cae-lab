@@ -158,8 +158,30 @@ python -m pytest tests/test_evaluation_window.py tests/test_research_pde_ui.py t
 **결과·제한:** TR-U `5216e37`은 보존 U를 다른35절점/8 C3D10에 전달해 수신1회를 실행했다.
 U PASS, 절점 응력262.497 대 기준262.5 MPa는 원 엄격 허용값에서 FAIL, IP 출력 부재는
 UNKNOWN이다. authoring GUI는 후속 작업이고 기준 FCStd는 매핑된 편집 모델이 아니다.
-[원 계약·실행](STRUCTURAL_U_TRANSFER_KO.md). 다영역 열/점탄성도 통합 중이며 원 곡률
-기준 FAIL을 성공으로 바꾸지 않는다.
+[원 계약·실행](STRUCTURAL_U_TRANSFER_KO.md).
+
+**두 영역 열·점탄성:** 기존 `connector_code_review` 후보를 재사용하고 기존 FELUPE Hex8
+worker에 한정 통합했다. 명시 CTE/Tref/물성·온도 이력과 공유 full-face 완전 접합만 허용한다.
+표시된 K는 절대 온도이며 내부 상태의 유한 지연 복귀를 영구 소성으로 표시하지 않는다.
+
+```powershell
+python -m pytest tests/law_native/test_thermal_regions.py -q
+```
+
+실제 실행은 이 파일의 opt-in node와 기존 `scripts/native_check.py`를 사용한다. FE 1회는
+같은 8요소 입력의 5시각×64IP 변형/응력/온도/전체·열·기계 변형률/상태·반력과 모든 응답이
+보존 owner 결과와 정확히 같았다(43.39초, exit0/job_empty). GUI02는 편집·취소·Apply→Undo,
+보존 상태 계속 작성의 Cancel, 잘못된 `1e`의 명시 저장과 실행 HTTP400/새 Job0, 별도 Python
+cold 복구·Undo를 확인했다(107.52초, exit0/job_empty). GUI01은 placeholder를 실제 결과로
+오인한 settle 하네스 실패로 보존했다. 생성 시 빈/한 행/온도 길이 불일치 6반례를 포함한
+관련 순수 검사 41PASS, 빈 이력의 입력 보존·한국어 안내와 숫자 오류의 원문 tooltip을
+후속 실제 창 delta 1PASS/일반·좁은 4PNG로 확인했다(22.57초, exit0/job_empty, 새 Job0).
+이 생성기 guard·표시 근거는 원 FE source와 구별하며 추가 FE는 실행하지 않았다.
+원 32/64요소의 곡률 오차 69.2194%/35.8396%는 8% 기준에서 모두 FAIL이고 네 번째 원 실행의
+180초 timeout도 불완전이다. 원 fe05의 실제 dx 제한 부재와 최종 세 조건 helper를 혼합하지
+않는다. 실물/정량 적합성은 UNKNOWN이다. 새 외부 온도 port는 연결하지 않았다.
+원 입력·후보·실행·화면은 `_workspace/thermal-regions-integration-20261019/`에 보존하며,
+절차와 결과를 별도 회차별 공개 acceptance 문서로 복제하지 않는다.
 
 ## Pre·Runner·Post와 외부 실행
 

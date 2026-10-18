@@ -82,6 +82,9 @@ def _require_box_boundary_faces(cells, points):
 
 
 def validate_settings(settings):
+    if isinstance(settings,dict) and 'thermal_regions' in settings:
+        from .law_native_thermal_regions import validate_settings as thermal_validate
+        return thermal_validate(settings,require_complete=False)
     if (not isinstance(settings,dict) or not {'law','mesh','boundary','solver','compare_point'}<=set(settings)
             or set(settings)-{'law','mesh','boundary','solver','compare_point','source_receipt'}):
         raise ValueError('FE settings require exact law/mesh/boundary/solver/compare_point')
@@ -91,35 +94,8 @@ def validate_settings(settings):
     if len(s['law']['time'])>128:
         raise ValueError('This small FE worker admits at most 128 requested states')
     mesh=s['mesh']
-    if not isinstance(mesh,dict) or set(mesh)!={'points','cells','length_unit','element','connectivity','quadrature'}:
-        raise ValueError('Complete frozen Hex8 mesh is required')
-    if (mesh['length_unit'],mesh['element'],mesh['connectivity'],mesh['quadrature']) != (
-            'mm','Hexahedron8','VTK_HEXAHEDRON_0_BASED','Gauss2x2x2'):
-        raise ValueError('Only mm full-integration Hex8; no tetra/shell/beam/plane substitution')
-    if not isinstance(mesh['points'],list) or not 9<=len(mesh['points'])<=4096:
-        raise ValueError('FE mesh requires 9..4096 points (at least one unconstrained spatial node)')
-    points=finite(mesh['points'],(len(mesh['points']),3),'FE points')
-    if not isinstance(mesh['cells'],list) or not 1<=len(mesh['cells'])<=512:
-        raise ValueError('Small FE mesh requires 1..512 Hex8 cells')
-    if any(not isinstance(c,list) or len(c)!=8 or len(set(c))!=8 or
-           any(type(i) is not int or not 0<=i<len(points) for i in c) for c in mesh['cells']):
-        raise ValueError('Hex8 connectivity must contain eight distinct existing zero-based nodes')
-    if len({tuple(c) for c in mesh['cells']})!=len(mesh['cells']):
-        raise ValueError('Duplicate Hex8 cells')
-    if {i for c in mesh['cells'] for i in c}!=set(range(len(points))):
-        raise ValueError('Isolated/unused mesh points are not admissible')
-    skin=boundary_nodes(mesh['cells'])
-    if len(skin)==len(points):
-        raise ValueError('Use the public 8-element cube or a mesh with actual free interior DOFs')
-    solver=s['solver']
-    if not isinstance(solver,dict) or set(solver)!={'backend','felupe_version','step','max_iterations','force_tolerance_N'}:
-        raise ValueError('Explicit bounded FELUPE solver declaration required')
-    if (solver['backend'],solver['felupe_version'],solver['step'])!=(law.FE,law.FELUPE_VERSION,'quasistatic'):
-        raise ValueError('Wrong solver/version/step. No CalculiX, dynamic, contact or impact admission')
-    if type(solver['max_iterations']) is not int or not 1<=solver['max_iterations']<=80:
-        raise ValueError('FE maximum iterations must be 1..80')
-    if not 0<finite([solver['force_tolerance_N']],(1,),'force tolerance')[0]<=1e-7:
-        raise ValueError('Fixed force tolerance must be positive and at most 1e-7 N')
+    points,skin=validate_mesh(mesh)
+    validate_solver(s['solver'])
     if type(s['compare_point']) is not bool:
         raise ValueError('compare_point is an explicit boolean')
     b=s['boundary']
@@ -164,9 +140,47 @@ def validate_settings(settings):
 
 
 def describe_model(s):
+    if 'thermal_regions' in s:
+        from .law_native_thermal_regions import describe_model as thermal_describe
+        return thermal_describe(s)
     s=validate_settings(s)
     return {'backend':law.FE,'law':law.declaration(s['law']),'solver':s['solver'],
             'element':s['mesh']['element'],'quadrature':s['mesh']['quadrature'],
             'length_unit':'mm','force_unit':'N','boundary':s['boundary'],
             'evidence':'EXECUTION_NOT_TESTED','energy_location':'constitutive integration point',
             'physical_calibration':'UNKNOWN','engineering_release':'UNKNOWN'}
+
+
+def validate_mesh(mesh):
+    if not isinstance(mesh,dict) or set(mesh)!={'points','cells','length_unit','element','connectivity','quadrature'}:
+        raise ValueError('Complete frozen Hex8 mesh is required')
+    if (mesh['length_unit'],mesh['element'],mesh['connectivity'],mesh['quadrature']) != (
+            'mm','Hexahedron8','VTK_HEXAHEDRON_0_BASED','Gauss2x2x2'):
+        raise ValueError('Only mm full-integration Hex8; no tetra/shell/beam/plane substitution')
+    if not isinstance(mesh['points'],list) or not 9<=len(mesh['points'])<=4096:
+        raise ValueError('FE mesh requires 9..4096 points (at least one unconstrained spatial node)')
+    points=finite(mesh['points'],(len(mesh['points']),3),'FE points')
+    if not isinstance(mesh['cells'],list) or not 1<=len(mesh['cells'])<=512:
+        raise ValueError('Small FE mesh requires 1..512 Hex8 cells')
+    if any(not isinstance(c,list) or len(c)!=8 or len(set(c))!=8 or
+           any(type(i) is not int or not 0<=i<len(points) for i in c) for c in mesh['cells']):
+        raise ValueError('Hex8 connectivity must contain eight distinct existing zero-based nodes')
+    if len({tuple(c) for c in mesh['cells']})!=len(mesh['cells']):
+        raise ValueError('Duplicate Hex8 cells')
+    if {i for c in mesh['cells'] for i in c}!=set(range(len(points))):
+        raise ValueError('Isolated/unused mesh points are not admissible')
+    skin=boundary_nodes(mesh['cells'])
+    if len(skin)==len(points):
+        raise ValueError('Use the public 8-element cube or a mesh with actual free interior DOFs')
+    return points,skin
+
+
+def validate_solver(solver):
+    if not isinstance(solver,dict) or set(solver)!={'backend','felupe_version','step','max_iterations','force_tolerance_N'}:
+        raise ValueError('Explicit bounded FELUPE solver declaration required')
+    if (solver['backend'],solver['felupe_version'],solver['step'])!=(law.FE,law.FELUPE_VERSION,'quasistatic'):
+        raise ValueError('Wrong solver/version/step. No CalculiX, dynamic, contact or impact admission')
+    if type(solver['max_iterations']) is not int or not 1<=solver['max_iterations']<=80:
+        raise ValueError('FE maximum iterations must be 1..80')
+    if not 0<finite([solver['force_tolerance_N']],(1,),'force tolerance')[0]<=1e-7:
+        raise ValueError('Fixed force tolerance must be positive and at most 1e-7 N')

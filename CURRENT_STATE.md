@@ -25,7 +25,7 @@ B8.1은 `b0bff6e`로 원격 게시했다. 사용자의 지적에 따라 중간 �
 | data_impl / Sol-high | `remote_execution_dialog.py`, 기존 remote editor tests | B8.4.L01: 기존 HTTP/JobManager와 명시 transport 대역으로 응답 유실/같은 token 재확인·취소·부분 회수/손상·cold를 닫음. 외부 승인 호스트 실행은 별도 미실행 |
 | desktop_specialist / Sol-high | `material_related_save.py`와 Material Plan/context 관련저장 hunk, 기존 관련저장/복구 tests | B8.2.L01 첫 slice: 실제 Material+DOE Plan의 미확정 입력·부분 저장·실패 문서만 재시도·원문/cold. Data3-owner 및 전체 B8.2 완료로 확대하지 않음 |
 | material_numerical_impl / Sol-high | Numerical/Request Plan의 닫기·복구 hunk, 필요한 raw view adapter, 기존 Numerical/Request tests | B8.2.L01: 미확정 원문을 owner 입력과 분리해 보관/복구, 실패·취소·CAS 변경 시 닫힘/자동 apply 0. 기존 캡슐·focus guard 재사용 |
-| native_impl / Sol-high | `_workspace/tr-u-authoring-20261019/`의 한정 조사, 구현 파일은 첫 접점 확정 후 단독 배정 | B6.3.L01: 기존 source U와 receiver 면 선택·명시 변환·mask preview·저장/재개 authoring 잔여. 기존 계산/실패를 재사용하며 새 mapper/무단 solver 실행 0 |
+| native_impl / Sol-high | `structural_transfer_native.py`/`structural_transfer_panel.py`, 기존 binding/UI tests와 `tests/check_structural_u_transfer_windows.py` authoring 분기 | B6.3.L01: 기존 source U와 receiver 면 선택·명시 변환·mask preview·저장/재개 authoring. 실제 최종 authoring/cold 진행 중이며 기존 계산/실패를 재사용, 새 mapper/추가 solver 0 |
 | native_data_product_impl / Sol-high | 기존 thermal-regions 후보 helper/조건 widget 재사용 및 `law_native_fe.py`/worker thermal 분기 hunk, 기존 기능별 tests | B4.5.L02: 두 영역 열·기존 SLS 상태를 같은 Simulation에 연결. 원 곡률 8% 기준 FAIL/timeout 보존, 기존 DP/J2 교정 보존. adapter/Simulation 공통 hunk는 Codex |
 | native_cae_adviser / Astra-xhigh | 읽기 전용 실제 후보·입력/diagnostics와 primary source 자문 | thermal strain/state·증분 수렴·곡률 불일치만 구현 담당과 논의. 새 실행/공개 보고서/허용값 조정 0 |
 | data_integration | 읽기 전용 문서 입구·검증 매뉴얼·대표 검사 의존 조사 | 기존 검증 매뉴얼 하나를 기능별로 확장할 최소 통합안을 Codex에 전달. 새 문서·전수 검사·일괄 삭제 0 |
@@ -43,7 +43,16 @@ SSH/Slurm/PBS 호스트는 미실행이다. B8.2 첫 slice는 Material+DOE Plan�
 추가 4PASS로 교정했다. 같은 Astra 검토의 P2 두 건은 폐쇄했고 남은 P1/P2는 없다.
 Data 포함 3-owner와 전체 B8.2는 남는다. OS 클립보드는 UNKNOWN이고 원 timeout/하네스
 실패는 보존한다. 절차·명령·결과는 [기존 검증 매뉴얼](docs/VERIFICATION_SCOPE.md)에 모았다.
-thermal과 TR-U authoring의 공통 통합·실제 창 검사는 계속 진행 중이다.
+이 첫 후속은 `2b6a192`로 원격 게시·main 일치를 확인했다.
+
+두 영역 열·점탄성은 원 `connector_code_review` 후보를 native_data_product_impl이 재사용하고
+Codex가 adapter/runtime/Simulation을 통합했다. 같은 8요소·5시각×64IP 실제 FE 1회가 보존
+owner 값·모든 응답과 정확히 같았고, 실제 조건 편집/취소/Apply→Undo·`1e` 저장/HTTP400/
+별도 cold 복구와 원 Job 불변을 확인했다. 빈 이력 생성의 P2와 알려진 숫자 오류 안내는
+41개 관련 순수 검사 및 실제 표시 delta1PASS/4PNG로 교정했다. 같은 Astra 검토의 scoped
+P1/P2는 없다. 원32/64요소 곡률 8% 기준 FAIL·fe05 dx 제한 차이·원 네 번째 timeout과
+공학적 UNKNOWN은 유지한다. 계속 작성은 GUI 검토/취소만 확인했으며 새 계속 FE나 외부
+온도 port는 이번에 실행하지 않았다. TR-U authoring의 최종 실제 창·cold 검사는 계속한다.
 
 사용자의 추가 문서 정리 방향도 이 작업에 적용한다. 사용자 입구는 설치·처음 시작·도구별
 사용법으로 유지하고, 검증 절차/기준/명령/결과 요약은 적합한 기존 검증 매뉴얼 한 곳에
@@ -958,7 +967,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B4.3.L01 | 혼합 F/stress 제어의 법칙별 인수 | A | 기존 구현 인수 대기 | T4 |
 | B4.4.L01 | 후보 상세 보존·새 평가·채택 충돌 | A | 한정 인수·검토 후 `966d40e` 게시, 새 평가0 | native_data_product_impl / Codex |
 | B4.5.L01 | 사례 A: 기존 J2 와 DP 의 같은 물리시험 비교 | A | 실제 물리9건·Post3개·Study9참조 저장/cold·물리/통합/화면 한정 검토 폐쇄. 합성 holdout·교차 솔버/실물 UNKNOWN | native_data_product_impl / native_impl / Codex |
-| B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 기존 후보 재사용·현재 thermal 분기/공통 Simulation 연결 통합 중. 원 곡률 FAIL/source별 gate 한계 유지 | native_data_product_impl / native_cae_adviser / Codex |
+| B4.5.L02 | 사례 C 의 다영역 열·점탄성 FE 경로 | D | 두 영역 조건/기존 SLS·FE·GUI/cold 통합과 scoped 독립 검토 완료. 원 곡률8% FAIL/engineering UNKNOWN·새 외부 온도 port 잔여 | native_data_product_impl / native_cae_adviser / Codex |
 | B5.1.L01 | 혼합변수 DOE 의 실제 domain binding | A | 실제 후속 배정, 첫 PDE descriptor HTTP와 exact saved source 확인/실행0 | native_impl / Codex |
 | B5.3.L01 | 일반 역해석의 고정 관측·feasible 후보 왕복 | A | 한정 인수·예측 support/구간 P2 폐쇄, Case A/B 전체와 구별 | native_impl / Codex |
 | B5.4.L01 | 필수 사례별 미분법 선택·기존 adjoint 인수 | A | `15569bb` 게시. 기존 S2/FD/DE와 현재 요청 비용/원 결과·실행 환경 미확인, 실제 창/독립 검토 폐쇄 | native_impl / Codex |

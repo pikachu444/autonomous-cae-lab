@@ -56,12 +56,15 @@ class FelupeConstitutive:
             raise RuntimeError('FE trial mutated accepted constitutive state')
         return rows
 
+    def physical(self,row):
+        return law.physical_response(self.settings,row)
+
     def gradient(self,x):
         self.calls['gradient']+=1
         F=np.asarray(x[0]);rows=self.batch(F)
         stress=np.zeros_like(F)
         for i,r in enumerate(rows):
-            q,c=divmod(i,F.shape[3]);stress[:,:,q,c]=law.physical_response(self.settings,r)[0]
+            q,c=divmod(i,F.shape[3]);stress[:,:,q,c]=self.physical(r)[0]
         # Local states are retained by this worker, not hidden in FELUPE's scratch.
         return [stress,np.zeros((0,*F.shape[2:]))]
 
@@ -69,7 +72,7 @@ class FelupeConstitutive:
         self.calls['hessian']+=1
         F=np.asarray(x[0]);rows=self.batch(F);C=np.zeros((3,3,3,3,*F.shape[2:]))
         for i,r in enumerate(rows):
-            q,c=divmod(i,F.shape[3]);tangent=law.physical_response(self.settings,r)[1]
+            q,c=divmod(i,F.shape[3]);tangent=self.physical(r)[1]
             if tangent is None:
                 raise ValueError('NONDIFFERENTIABLE: no discrete tangent for this FE trial')
             C[:,:,:,:,q,c]=tangent
@@ -77,6 +80,9 @@ class FelupeConstitutive:
 
 
 def _boundary(s,points,index):
+    if 'thermal_regions' in s:
+        from ..law_native_thermal_regions import boundary
+        return boundary(s,points,index)
     F=np.asarray(s['law']['deformation_gradient'][index]);origin=np.asarray(s['boundary']['origin_mm'])
     prescribed={}
     if s['boundary']['mode']=='affine_boundary':
@@ -109,6 +115,12 @@ def _plain(value):
 
 def solve(settings,output):
     s=domain.validate_settings(settings);folder=Path(output)
+    thermal='thermal_regions' in s
+    if thermal:
+        from ..law_native_thermal_regions import validate_settings as validate_thermal
+        s=validate_thermal(s,require_complete=True)
+    finite_strain=not thermal and s['law']['model']=='neo_hooke'
+    measure='infinitesimal_Cauchy' if thermal else law.declaration(s['law'])['stress_measure']
     folder.mkdir(parents=True,exist_ok=False)
     save_json(folder/'frozen-input.json',s)
     try:
@@ -125,11 +137,20 @@ def solve(settings,output):
     mesh=fem.Mesh(points=points,cells=cells,cell_type='hexahedron')
     region=fem.RegionHexahedron(mesh)
     if np.any(np.asarray(region.dV)<=0):raise ValueError('Nonpositive native quadrature/Jacobian volume')
-    field=fem.FieldContainer([fem.Field(region,dim=3)])
-    field[0].values[:]=(points-np.asarray(s['boundary']['origin_mm']))@(np.asarray(s['law']['deformation_gradient'][0])-np.eye(3)).T
-    material=FelupeConstitutive(s['law']);solid=fem.SolidBody(umat=material,field=field)
+    if thermal:
+        from .. import law_native_thermal_regions as thermal_domain
+        field=thermal_domain.displacement_field(region)
+    else:field=fem.FieldContainer([fem.Field(region,dim=3)])
+    if thermal:
+        from .. import law_native_thermal_regions as thermal_domain
+        field[0].values[:]=s['thermal_regions']['initial_displacement_mm']
+        material=thermal_domain.constitutive(s,region)
+    else:
+        field[0].values[:]=(points-np.asarray(s['boundary']['origin_mm']))@(np.asarray(s['law']['deformation_gradient'][0])-np.eye(3)).T
+        material=FelupeConstitutive(s['law'])
+    solid=fem.SolidBody(umat=material,field=field)
     F=np.asarray(field.extract()[0]);nq,ncells=F.shape[2:]
-    accepted=[deepcopy(s['law']['initial_state']) for _ in range(nq*ncells)]
+    accepted=thermal_domain.initial_states(s,nq) if thermal else [deepcopy(s['law']['initial_state']) for _ in range(nq*ncells)]
     steps=[];failed=None;last_values=field[0].values.copy();global_calls=0
     def checkpoint():
         save_json(folder/'fe-progress.json',{'steps':steps,'failed_increment':failed,
@@ -137,10 +158,10 @@ def solve(settings,output):
             'source_sha256':canonical_hash(s),'runtime_sha256':canonical_hash(runtime),
             'point_comparison':'NOT_RUN_UNTIL_FE_FINISHES'})
     checkpoint()
-    for index,time in enumerate(s['law']['time']):
+    for index,time in enumerate(s['thermal_regions']['time_s'] if thermal else s['law']['time']):
         material.begin(accepted,time,initial=index==0)
         before=deepcopy(accepted);before_values=last_values.copy();residuals=[];iteration_trace=[]
-        trial_displacement=None
+        trial_displacement=None;convergence=None
         def observe_iteration(dx,x,iteration,xnorm,fnorm,success):
             nonlocal trial_displacement
             # FELUPE's native fnorm is DIMENSIONLESS, not a residual in N.
@@ -151,11 +172,17 @@ def solve(settings,output):
             check_cancelled()
         try:
             dof0,dof1,ext0=_boundary(s,points,index)
+            if thermal and index==0 and not np.allclose(field[0].values.reshape(-1)[dof0],ext0,rtol=0,atol=1e-14):
+                raise ValueError('Initial displacement differs from explicitly prescribed initial constraints')
+            convergence=None;newton_options={}
             if index:
+                if thermal:
+                    criterion,convergence=thermal_domain.convergence_check(s,solid,field,dof0,dof1,ext0)
+                    newton_options['check']=criterion
                 global_calls+=1
                 solution=fem.newtonraphson(x0=field,items=[solid],dof0=dof0,dof1=dof1,ext0=ext0,
                     tol=domain.FE_LIMITS['native_newton_relative_tolerance'],maxiter=s['solver']['max_iterations'],
-                    verbose=False,callback=observe_iteration)
+                    verbose=False,callback=observe_iteration,**newton_options)
                 if not solution.success:raise RuntimeError('FELUPE did not converge')
                 field=solution.x;solid.field=field
                 force=np.asarray(solution.fun.toarray() if hasattr(solution.fun,'toarray') else solution.fun).reshape(-1)
@@ -169,11 +196,12 @@ def solve(settings,output):
             F=np.asarray(field.extract()[0]);rows=material.batch(F)
             stress=np.empty((nq,ncells,3,3));local=[]
             for i,r in enumerate(rows):
-                q,c=divmod(i,ncells);stress[q,c]=law.physical_response(s['law'],r)[0]
-                local.append({'quadrature_index':q,'cell_index':c,'F':F[:,:,q,c].tolist(),
+                q,c=divmod(i,ncells);stress[q,c]=material.physical(r)[0]
+                local.append({'quadrature_index':q,'cell_index':c,'F':(F[:,:,q,c]+np.eye(3) if thermal else F[:,:,q,c]).tolist(),
                     'stress':np.asarray(r['stress']).tolist(),'state':deepcopy(r['state']),
                     'initial_state_sha256':canonical_hash(before[i]),'local':deepcopy(r['diagnostics']),
                     'stored_energy':r['stored_energy'],'dissipated_energy':r['dissipated_energy']})
+                if thermal:local[-1]['thermal']=deepcopy(r['thermal'])
             reaction=force.reshape(len(points),3)
             balance=float(np.linalg.norm(reaction.sum(axis=0)))
             force_scale=max(1.,float(np.linalg.norm(reaction,axis=1).sum()))
@@ -186,6 +214,7 @@ def solve(settings,output):
                 'native_relative_tolerance':domain.FE_LIMITS['native_newton_relative_tolerance'],
                 'absolute_force_tolerance_N':s['solver']['force_tolerance_N'],'actual_free_dofs':len(dof1),
                 'quadrature_weights_mm3':np.asarray(region.dV).tolist()})
+            if thermal:steps[-1]['convergence']=deepcopy(convergence)
             accepted=[deepcopy(r['state']) for r in rows];last_values=field[0].values.copy()
             checkpoint()
         except Exception as error:
@@ -195,6 +224,7 @@ def solve(settings,output):
                 'trial':deepcopy(material.last_failure),'relative_residual_history':residuals,
                 'iteration_trace':iteration_trace,'trial_displacement_mm':trial_displacement,
                 'last_accepted_state_sha256':canonical_hash(before)}
+            if thermal:failed['convergence']=deepcopy(convergence)
             checkpoint();break
     compare={'status':'NOT_RUN','reason':'Explicit compare_point is false or FE failed'}
     if s['compare_point'] and not failed:
@@ -222,10 +252,10 @@ def solve(settings,output):
     responses={};axis=[{'name':'time','unit':'s','values':[row['time'] for row in steps]}]
     if steps:
         responses['ip_stress']={'kind':'field','value':[[row['stress'] for row in step['local']] for step in steps],
-            'unit':'MPa','component':'physical9' if s['law']['model']=='neo_hooke' else 'Kelvin6',
-            'components':list(law.F9 if s['law']['model']=='neo_hooke' else law.K6),
+            'unit':'MPa','component':'physical9' if finite_strain else 'Kelvin6',
+            'components':list(law.F9 if finite_strain else law.K6),
             'location':'integration_point','reduction':'none','axes':axis,'frame':law.FRAME,
-            'measure':law.declaration(s['law'])['stress_measure'],'valid':not bool(failed),'partial':bool(failed)}
+            'measure':measure,'valid':not bool(failed),'partial':bool(failed)}
         responses['displacement']={'kind':'field','value':[step['displacement_mm'] for step in steps],
             'unit':'mm','component':'xyz','location':'nodes','reduction':'none','axes':deepcopy(axis),
             'frame':'reference_mesh_cartesian','measure':'displacement','valid':not bool(failed)}
@@ -237,13 +267,13 @@ def solve(settings,output):
         # These are actual spatial responses at (cell=0,q=0), NEVER nodal/volume means.
         origin={'cell_index':0,'quadrature_index':0,'quadrature':'Gauss2x2x2',
                 'reduction':'none','origin':'ACTUAL_SPATIAL_INTEGRATION_POINT'}
-        physical=[np.asarray(step['local'][0]['stress']) if s['law']['model']=='neo_hooke'
+        physical=[np.asarray(step['local'][0]['stress']) if finite_strain
                   else law.tensor(step['local'][0]['stress']) for step in steps]
         for i,a in enumerate('xyz'):
             for j,b in enumerate('xyz'):
                 responses['ip0_stress_'+a+b]={'kind':'series','value':[float(v[i,j]) for v in physical],
                     'unit':'MPa','component':a+b,'location':'integration_point','reduction':'none',
-                    'axes':deepcopy(axis),'frame':law.FRAME,'measure':law.declaration(s['law'])['stress_measure'],
+                    'axes':deepcopy(axis),'frame':law.FRAME,'measure':measure,
                     'selection':deepcopy(origin),'valid':not bool(failed),'partial':bool(failed)}
         for key in ('stored_energy','dissipated_energy'):
             if all(step['local'][0][key] is not None for step in steps):
@@ -252,7 +282,7 @@ def solve(settings,output):
                     'axes':deepcopy(axis),'frame':law.FRAME,'measure':'energy_per_reference_volume',
                     'selection':deepcopy(origin),'source':'constitutive quadrature output, NOT native global energy',
                     'valid':not bool(failed),'partial':bool(failed)}
-        if s['law']['model'] == law.dp.MODEL:
+        if not thermal and s['law']['model'] == law.dp.MODEL:
             observed = [domain.dp_observables(step['local'][0]['stress'],
                 step['local'][0]['state'], s['law']['parameters']) for step in steps]
             for key, unit, measure in (
@@ -267,12 +297,14 @@ def solve(settings,output):
                     'frame':law.FRAME, 'measure':measure, 'selection':deepcopy(origin),
                     'source':'derived from retained actual spatial stress and accepted state',
                     'valid':not bool(failed), 'partial':bool(failed)}
+    if thermal:thermal_domain.add_responses(s,steps,responses,failed)
     success=not failed and compare['status']!='FAIL' and global_calls>0
     result={'execution_status':'SUCCEEDED' if success else 'FAILED','responses':responses,
         'checks':[{'name':'spatial_FE_equilibrium','status':'PASS' if not failed and global_calls else 'FAIL'},
                   {'name':'same_law_point_FE_pair','status':compare['status'] if compare['status'] in ('PASS','FAIL') else 'NOT_ASSESSED'}],
         'diagnostics':{'execution_layer':'FE','FE_execution':'ACTUAL','point_execution':'ACTUAL' if s['compare_point'] and not failed else 'NOT_RUN',
             'build_execution':'NOT_REQUIRED_FIXED_PYTHON_INTERFACE','runtime':runtime,'mesh':s['mesh'],
+            'source_input_sha256':canonical_hash(s),
             'source_receipt':deepcopy(s.get('source_receipt')),'declaration':domain.describe_model(s),
             'steps':steps,'last_accepted_states':accepted,'failed_increment':failed,'pair_comparison':compare,
             'global_newton_calls':global_calls,'constitutive_calls':material.calls,

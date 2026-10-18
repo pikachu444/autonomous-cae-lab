@@ -217,6 +217,12 @@ class SimulationWindow(PDEWindow):
         self.impact_action = QAction('충격 조건…', self)
         self.impact_action.triggered.connect(lambda: __import__('apps.research.impact_editor', fromlist=['edit']).edit(self))
         research_menu.addAction(self.impact_action)
+        self.thermal_regions_action=QAction('두 영역 열변형 조건…',self)
+        self.thermal_regions_action.triggered.connect(lambda:__import__('apps.research.law_thermal_conditions',fromlist=['edit']).edit(self))
+        research_menu.addAction(self.thermal_regions_action)
+        self.thermal_continue_action=QAction('보존 열변형 상태에서 계속…',self)
+        self.thermal_continue_action.triggered.connect(lambda:__import__('apps.research.law_thermal_conditions',fromlist=['resume']).resume(self))
+        research_menu.addAction(self.thermal_continue_action)
         self.fatigue_action=QAction('반복하중 조건…',self)
         self.fatigue_action.triggered.connect(lambda:__import__('apps.research.fatigue_editor',fromlist=['edit']).edit(self))
         research_menu.addAction(self.fatigue_action)
@@ -283,6 +289,14 @@ class SimulationWindow(PDEWindow):
                 fatigue_node.setText(0,'피로 조건')
                 data=fatigue_node.data(0,ROLE);data['label']='피로 조건';fatigue_node.setData(0,ROLE,data)
                 self.tree.setCurrentItem(fatigue_node)
+        if draft.get('backend')=='structure.felupe.law_native' and 'thermal_regions' in settings:
+            for path,node in self._nodes.items():node.setHidden(path!=('settings','thermal_regions'))
+            thermal_node=self._nodes.get(('settings','thermal_regions'))
+            if thermal_node:
+                thermal_node.setText(0,'두 영역 열변형 조건')
+                data=thermal_node.data(0,ROLE);data['label']='두 영역 열변형 조건';thermal_node.setData(0,ROLE,data)
+                if not (self.tree.currentItem() and self.tree.currentItem().data(0,ROLE).get('job_id')):
+                    self.tree.setCurrentItem(thermal_node)
         native = _is_native(draft.get('backend'))
         self.backend.setVisible(not native)
         if self._backend_note is not None: self._backend_note.setVisible(not native)
@@ -314,6 +328,8 @@ class SimulationWindow(PDEWindow):
         self.equation.setToolTip(label)
         self.space.setText('준정적 입력 경로이며 관성·속도 의존 응답은 계산하지 않습니다.' if backend == 'structural.code_aster.plasticity' else '')
         self.space.setVisible(bool(self.space.text()))
+        if backend=='structure.felupe.law_native' and 'thermal_regions' in draft.get('settings',{}):
+            limit='두 벌크층 Hex8 열변형: 미소변형 탄성/단일 Maxwell 가지, 완전 접합. 유한 시간의 지연 회복을 관측합니다. 곡률의 메시 정확도와 공학 적합성은 별도 판정입니다.'
         self.support.setText(limit)
         self.messages.setPlainText('\n'.join(['Input diagnostics:', *[row['message'] for row in checks],
             'Supported model:', *details.get('limitations', []), 'Declared inputs / transfer ports:',
@@ -352,6 +368,13 @@ class SimulationWindow(PDEWindow):
             self._draw_domain()
 
     def _add_fields(self, form, value, path):
+        if self._draft.get('backend')=='structure.felupe.law_native' and 'thermal_regions' in self._draft.get('settings',{}) and path[:1]==('settings',):
+            settings=self._draft['settings'];tr=settings['thermal_regions']
+            summary=QLabel('두 영역 열변형\n'+str(len(settings['mesh']['cells']))+' Hex8 요소 / '+str(len(tr['time_s']))+' 시각 / 절대 온도 K')
+            summary.setWordWrap(True);form.addRow(summary)
+            button=QPushButton('두 영역 열변형 조건…');button.clicked.connect(self.thermal_regions_action.trigger);form.addRow(button)
+            note=QLabel('재료·온도 이력·절점 지지·관측 위치를 조건창에서 편집합니다. 보존 상태의 계속 계산은 연구 메뉴에서 새 모델로 작성합니다.')
+            note.setWordWrap(True);form.addRow(note);return
         if type(value) in (int, float):
             self._numeric_paths = getattr(self, '_numeric_paths', set())
             self._numeric_paths.add(path)
@@ -433,6 +456,17 @@ class SimulationWindow(PDEWindow):
             if label: self.channel.setItemText(index, label+' ['+str(descriptor.get('unit') or '단위 미확인')+']')
 
     def response_caption(self, name, response):
+        if name=='curvature_xz':return '3절점 XZ 투영 곡률'
+        if self.document and name.startswith('selected'):
+            parts=name.split('_')
+            try:
+                index=int(parts[0][8:]);run=next(r for r in self.document.get('runs',[]) if r['job_id']==self._selected_job)
+                tr=run['draft']['settings']['thermal_regions'];sel=tr['observations']['integration_points'][index]
+                region=next(r for r in tr['regions'] if sel['cell'] in r['cell_ids'])
+                quantity='_'.join(parts[1:-1]) if len(parts)>2 else parts[1]
+                labels={'stress':'응력','temperature':'절대 온도','total_strain':'전체 변형률','thermal_strain':'열변형률','mechanical_strain':'기계적 변형률','viscous_strain':'점성 내부 변형률'}
+                return region['label']+' '+labels.get(quantity,quantity)+((' '+parts[-1]) if len(parts)>2 else '')+' (cell '+str(sel['cell'])+', IP '+str(sel['quadrature'])+')'
+            except (ValueError,KeyError,IndexError,StopIteration,TypeError):pass
         from .law_native_labels import response_label
         caption=response_label(name,self._result or {})
         if caption:return caption
@@ -642,6 +676,10 @@ class SimulationWindow(PDEWindow):
                 self.model_splitter.setSizes(getattr(self, '_preview_graph_sizes', [205, 360, 835]))
         if hasattr(self, 'impact_action'):
             self.impact_action.setEnabled(not self._busy and self._draft.get('backend') == 'explicit.opencourant.model')
+        if hasattr(self,'thermal_regions_action'):
+            self.thermal_regions_action.setEnabled(not self._busy and not self.conflict and self._draft.get('backend')=='structure.felupe.law_native')
+            run=next((r for r in (self.document or {}).get('runs',[]) if r['job_id']==self._selected_job),{})
+            self.thermal_continue_action.setEnabled(not self._busy and not self.conflict and 'thermal_regions' in run.get('draft',{}).get('settings',{}))
         if hasattr(self,'fatigue_action'):
             self.fatigue_action.setEnabled(not self._busy and self._draft.get('backend')=='damage.rainflow')
             self.cycles_action.setEnabled(not self._busy and bool(self._selected_job))
@@ -666,6 +704,10 @@ class SimulationWindow(PDEWindow):
     def _refresh_issue_summary(self):
         super()._refresh_issue_summary()
         text = self.issue_summary.text()
+        if text == 'region thermal coefficients: require finite numeric shape (3,); no text/bool':
+            self.issue_summary.setText('열팽창계수 또는 기준 온도를 두 영역 열변형 조건에서 수정하세요.')
+            self.issue_summary.setToolTip(text)
+            return
         for key, caption in _CAPTIONS.items():
             if text == key + ' must be a finite number':
                 self.issue_summary.setText(caption + ': 유한한 숫자를 입력하세요.')
@@ -744,6 +786,17 @@ class SimulationWindow(PDEWindow):
         settings = self.edited_draft().get('settings', {})
         domain = settings.get('domain', {}) if isinstance(settings, dict) else {}
         lengths = domain.get('lengths') if isinstance(domain, dict) else None
+        if self._draft.get('backend')=='structure.felupe.law_native' and 'thermal_regions' in settings:
+            try:
+                points=settings['mesh']['points'];cells=settings['mesh']['cells']
+                for region,color in zip(settings['thermal_regions']['regions'],('#2563eb','#c45a16')):
+                    for ci in region['cell_ids']:
+                        c=cells[ci];ids=[c[k] for k in (0,1,5,4,0)]
+                        axes.plot([points[n][0] for n in ids],[points[n][2] for n in ids],color=color,linewidth=.7)
+                axes.set_aspect('equal');axes.set_xlabel('X [mm]');axes.set_ylabel('Z [mm]')
+                axes.set_title('두 영역 입력 메시 / XZ 투영');self._model_graph_available=True
+            except (ValueError,KeyError,TypeError,IndexError):axes.set_axis_off()
+            self.domain_canvas.draw_idle();self._update_actions();return
         if self._draft.get('backend') == 'explicit.opencourant.model':
             try:
                 from caelab.impact_model import model_from_settings

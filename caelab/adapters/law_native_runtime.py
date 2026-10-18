@@ -10,7 +10,7 @@ from plugins.material_point.law_native import FELUPE_VERSION
 SOURCE_RELATIVES=(
  'plugins/material_point/law_native_tensors.py','plugins/material_point/drucker_prager.py',
  'plugins/material_point/single_branch_native.py','plugins/material_point/law_native.py',
- 'plugins/material_point/law_native_history.py','caelab/law_native_fe.py',
+ 'plugins/material_point/law_native_history.py','caelab/law_native_fe.py','caelab/law_native_thermal_regions.py',
  'caelab/adapters/law_native_fe_worker.py','caelab/adapters/law_native_fe.py',
  'caelab/adapters/law_native_point.py','caelab/adapters/law_native_runtime.py')
 

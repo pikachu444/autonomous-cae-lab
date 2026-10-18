@@ -31,6 +31,9 @@ class LawNativeFEAdapter:
         if runtime and set(runtime)-{'threads','memory_mb'}:
             raise ValueError('No caller executable/library/source/build override')
         s=domain.validate_settings(settings);folder=Path(output).resolve()
+        if 'thermal_regions' in s:
+            from ..law_native_thermal_regions import validate_settings as validate_thermal
+            s=validate_thermal(s,require_complete=True)
         save_json(folder/'fe-input.json',s)
         package_root=Path(__file__).resolve().parents[2]
         env=dict(os.environ)
