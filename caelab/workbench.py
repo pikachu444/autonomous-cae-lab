@@ -1456,6 +1456,11 @@ class Workbench:
                 compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
                 if compiled['definition'].get('reuse'):
                     raise ValueError('Numerical candidates cannot reuse another candidate state; clear direct-run reuse')
+                if 'responses' in args:
+                    selected=args.pop('responses')
+                    available={row['id'] for row in compiled['definition']['responses']}
+                    if operation not in {'doe','uq'} or not selected or len(set(selected))!=len(selected) or not set(selected)<=available:
+                        raise ValueError('Select distinct exported Evaluation response names for DOE/UQ')
                 evaluator=DefinitionFactory(compiled,self.root/'results'/identifier/'evaluations',
                     lambda model,output:run_domain(self,model,output))
             elif backend in self.config.get('external_backends',{}):

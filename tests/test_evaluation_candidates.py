@@ -5,6 +5,8 @@ are not a new material fit, native solve or physics qualification.
 """
 from copy import deepcopy
 
+import pytest
+
 from test_connected_evaluation_study import service, controlled, sources, change, wait
 from caelab.jobs import TERMINAL
 from caelab.storage import load_json
@@ -101,3 +103,24 @@ def test_engine_error_keeps_already_completed_composite_attempt(service, control
     change(client,client.document_read(document['id']),'document.save')
     assert client.document_result(document['id'],job)==result
     assert controlled['calls']==['thermal','structural']
+
+
+@pytest.mark.parametrize('response', ['displacement', 'not_exported'])
+def test_doe_explicit_response_uses_only_declared_evaluation_exports(service, controlled, response):
+    wb, client = service
+    _, draft = sources(client)
+    controlled['fail_structure'] = False
+    draft['bindings'] = [{'id': 'temperature', 'stage': 'Heat', 'input_id': 'boundary_temperature', 'unit': 'K'}]
+    document = plan(client, draft)
+    requested = deepcopy(document['draft'])
+    requested['request']['inputs']['responses'] = [response]
+    document = change(client, document, 'numerical.update', {'draft': requested})['document']
+    job = change(client, document, 'numerical.run')['job']['id']
+    wait(lambda: wb.manager.status(job)['state'] in TERMINAL)
+    if response == 'not_exported':
+        assert wb.manager.status(job)['state'] == 'FAILED' and controlled['calls'] == []
+    else:
+        result = client.document_result(document['id'], job)
+        assert result['execution_status'] == 'SUCCEEDED'
+        assert controlled['calls'] == ['thermal', 'structural', 'thermal', 'structural']
+        assert all('displacement' in row['responses'] for row in result['candidates'])

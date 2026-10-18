@@ -119,8 +119,14 @@ native Post 진입→같은 Simulation/설정/응답 복귀·새 job 0도 확인
 최종 통합 검토에서 다른 단계 선택 뒤 이전 응답이 남는 P2를 발견했다. 실제 `selectRow()`의
 성공→실행 중/읽기 실패 반례 두 개를 red→green으로 닫고 최종 Evaluation UI 22검사를 통과했다.
 소스 `4b820b91…`와 `runs/evaluation-selection-20261018-04/`의 실제 일반/좁은 창을 같은
-Astra가 확인해 지적을 폐쇄했다. 원 physics/cold 결과는 재계산하지 않았다. 공통 저장 PDE
+Astra가 확인해 지적을 폐쇄했다. `f91b976`으로 게시했고 원 physics/cold 결과는 재계산하지 않았다. 공통 저장 PDE
 본문·원점 표시 영향 검사 13개도 통과했다. [사용법·실제 화면](docs/EVALUATION_WORKFLOW_KO.md)을 게시한다.
+
+Numerical의 첫 실제 Plan 호출에서 등록된 Evaluation 응답을 골라도 공통 DOE admission이
+거절하는 접점을 확인했다. 원 실패 job은 보존하고 Evaluation의 저장된 export ID만 검증해
+기존 엔진에 합류하도록 교정했다. 실제 HTTP의 허용/미등록 응답과 기존 보존 검사 4개가
+통과했고 새 실제 Plan `Nb65849f97be44de9b88e3b19f28ea7e0`의 DOE 3후보가 원 예산 3으로
+성공했다. 원 Evaluation 결과는 불변이다. 후속 RBF/전체차원 Pareto·Picard·cold 작업은 진행 중이다.
 
 ### 완료한 첫 묶음 — 실제 에이전트 배정과 첫 호출부터의 통합 (2026-10-18)
 
