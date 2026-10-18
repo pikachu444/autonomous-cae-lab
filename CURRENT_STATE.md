@@ -13,7 +13,8 @@
 읽기 전용 준비를 끝내고 아래 네 구현 담당을 실제 가동했다. 기존 진단을 반복하거나
 새 Goal·Codex 작업을 만들지 않는다. 공통 파일은 Codex만 수정하고 첫 실제 문서·명령
 호출부터 함께 확인한다. Data·Research·native의 아래 한정 인도는 구현·확인을 마쳤다.
-LabPlot 고정 후보의 실제 실행 판정과 전체 기록·게시는 진행 중이다.
+LabPlot 고정 후보는 실제 빌드와 첫 Core 연결을 통과했다. 같은 native 작업면의
+저장·복구·재열기·Material 전달 연결은 원 Data 완료 조건에 따라 계속 구현한다.
 
 | 담당 | 단독 쓰기 범위 | 이번 종료 조건 |
 |---|---|---|
@@ -41,9 +42,15 @@ FreeCAD 1.1.4의 script module 이름 때문에 실행되지 않던 두 worker �
 교정해 기존 공개 지그 생성과 실제 메시 준비까지 진행했다. 첫 `pre.freeze`는 실제 C3D10
 Jacobian gate에서 실패해 입력·응답을 보존했고 solver를 실행하지 않았다. 같은 모델의
 진단을 CAE 자문과 확인하며 허용치를 바꾸지 않는다. 첫 전체 창 캡처의 빈 3D 영역도
-시각 인수로 수용하지 않았다. LabPlot은 공식 무료 Craft SDK의 93개 전이 의존성 설치와
-고정 소스의 MSVC CMake 구성을 마쳤다. 작은 FITS 정의 오타를 패치해 실제 C++ 빌드 중이며
-원 MainWin·표·곡선·Undo·QADS를 유지한 한정 bridge의 실행·채택 판정은 아직 미완료다.
+시각 인수로 수용하지 않았다. LabPlot은 공식 무료 Craft SDK의 93개 전이 의존성과
+고정 소스의 MSVC Release 빌드를 마쳤다. 작은 FITS 정의·Psapi 링크 패치를 보존했다.
+같은 exe에서 공개 axial/shear 원값·원행·native Project Undo/Redo·단 한 건의 `data.update`,
+generation 1·exclude [2]·runs 0을 실제 Core와 대조했다. 원 MainWin·탐색·표·곡선·속성·QADS는
+유지된다. 기술 연결은 가능하며 donor 탈락 근거는 없다. 이 첫 성공은 native Core 저장·
+부분 실패 복구·재열기·정확 Material 전달이나 생산 채택 완료를 뜻하지 않는다.
+이 한정 실행과 같은 문서의 무변경 표/곡선 재렌더 소스는 `3804fe8`에 보존했다.
+고정 donor·공식 SDK·원 실행/캡처 exe hash와 재현 명령은
+[LabPlot 연결 기록](native/data_labplot/README.md)에 있다.
 
 고차 최적화만 켠 새 메시의 `pre.freeze`는 통과했다. 첫 동결본 대조에서 driver의 무단위
 Force 대입(10→실제 0.01 N)을 찾아 명시적 N 입력으로 고쳤다. 10 N 요청의 새 입력에서도
@@ -76,8 +83,10 @@ Force 대입(10→실제 0.01 N)을 찾아 명시적 N 입력으로 고쳤다. 1
   native 렌더를 읽어 한글·단위·선택·범례·동일 카메라를 확인했다. 소유 테스트 프로세스는
   종료했다. OS 직접 입력·전체 창 GL 합성·전체 제품 인수·공학적 적합성은 미확인이다.
 
-다음 행동은 LabPlot의 현재 빌드·실제 Core 연결 결과를 확정하고, 이 한정 인도의 최종
-문서·Space·원격 게시를 마치는 것이다. 이미 확인한 전체 suite나 native 계산을 반복하지 않는다.
+검증된 제품 변경은 `1af5ef3`까지 원격 main 반영을 확인했고 Space 요약도 저장했다.
+다음 행동은 같은 Data 담당의 LabPlot native 저장·복구·재개·전달을 기존 Core/Project API로
+이어 닫는 것이다. 두 첫 trial과 이미 게시한 PySide 인도는 보존하며 donor 도입 완료나
+최종 대안 선택으로 바꾸지 않는다. 이미 확인한 전체 suite나 native 계산을 반복하지 않는다.
 
 ### 완료된 선행 작업 — 개발 복구 방법과 공학 GUI 기반 확정 (2026-10-18)
 
