@@ -81,3 +81,43 @@ def test_field_selection_and_exact_navigation_survive_details_and_graph_tabs(win
                            'responses': {}, 'diagnostics': {}})
     assert window.issue_summary.isVisible() and 'boundary solve failed' in window.issue_summary.text()
     assert window.messages.isHidden()
+
+
+def test_pde_spatial_defaults_to_field_and_keeps_only_same_source_selection(window, app):
+    from copy import deepcopy
+    window._selected_job = 'Jone'
+    result = {'backend':'pde.scikit_fem.dimensioned','created_utc':'retained-instant',
+              'execution_status':'SUCCEEDED',
+              'responses':{'l2_error':{'kind':'scalar','value':.1,'unit':'K*m'}},
+              'diagnostics':{'native_fields':[{'name':'temperature','source':{'capture_sha256':'a'*64},
+                  'field':{'node_ids':[0,1], 'coordinates':[[0,0],[1,0]], 'values':[300.,310.],
+                           'coordinates_unit':'m','field_unit':'K'}}]}}
+    window._accept_result(result); app.processEvents()
+    assert window.result_selector.currentData() == ('field',0,0)
+    window.field_node.setCurrentIndex(1)
+    window._accept_result(result); app.processEvents()
+    assert window.field_node.currentData() == 1
+    window.result_selector.setCurrentIndex(0)  # Deliberately inspect the original scalar error.
+    window._accept_result(result); app.processEvents()
+    assert window.result_selector.currentData() == ('response','l2_error')
+    window._selected_job = 'Jtwo'
+    window._accept_result(result); app.processEvents()
+    assert window.result_selector.currentData() == ('field',0,0)
+    window.field_node.setCurrentIndex(1)
+    changed = deepcopy(result); changed['diagnostics']['native_fields'][0]['source']['capture_sha256']='b'*64
+    window._accept_result(changed); app.processEvents()
+    assert window.field_node.currentData() == 0
+
+
+def test_dimensioned_pde_reference_is_wrapped_without_changing_expression(window, app):
+    from caelab.dimensioned_models import ODE
+    from caelab.pde_document import default_draft
+    from PySide6.QtWidgets import QPlainTextEdit
+    window.open_document(draft=default_draft(ODE)); settle(app,window)
+    window.tree.setCurrentItem(window._nodes[('settings','states')]); app.processEvents()
+    field = window.fields[('settings','states',0,'reference')][0]
+    assert isinstance(field,QPlainTextEdit)
+    assert field.toPlainText() == 'ambient+(initial-ambient)*exp(-rate*t)'
+    window.resize(1100,780); app.processEvents()
+    assert field.height() >= 60 and field.lineWrapMode() != QPlainTextEdit.LineWrapMode.NoWrap
+    assert window.edited_draft() == window.document['draft']

@@ -18,8 +18,10 @@
 |---|---|---|
 | Astra / xhigh | 실제 Pro에게 현재 전체 개발·GUI·오케스트레이션 문제를 묻고 자체 판단과 종합. 배정된 private 산출물만 작성하며 제품 코드·공개 문서는 수정하지 않음 | 배정측에서 실제 Pro 연결·모드 확인을 통보함. 이 세션은 종합안 미수신이며 응답 완료·반영으로 표시하지 않음 |
 | Codex / 이 개발 세션 | `CURRENT_STATE.md`와 관련 공개 운영·설계/시작 문서의 단독 편집·게시, 현재 코드에 맞는 후속 배정·공통 통합 | 최신 지시와 과거 제한을 구별해 정리. 종합안 수신 후 기존 전체 명세의 남은 작업을 담당·소유 파일·의존·종료조건으로 연결하고 독립 기능을 병행 배정 |
-| material_numerical_impl / Sol-high | `apps/research/study_window.py`, Study 전용 검사·사용법 단독. 기존 문헌/Study owner·locator·revision 재사용 | B7.1.L01의 provider 없는 문헌 선택 구간·명시 판단·동일 bytes 재연결/변경 bytes 새 revision·저장/cold reopen 인도 구현 중. 공통 owner/API는 Codex에 요청 |
-| native_impl / Sol-high | `apps/research/pde_window.py`, PDE 전용 검사·사용법 단독. 기존 ODE/P1 엔진 재사용 | B6.2.L01의 Windows ODE 한 개·P1 제조해 한 개를 실제 Qt/HTTP 편집·Check·명시 실행·결과·오류·저장/cold reopen으로 닫는 인도 배정. 기존 native 지그 계산이나 Linux campaign을 재실행하지 않음 |
+| material_numerical_impl / Sol-high | `apps/research/study_window.py`, Study 전용 검사·사용법 단독. 기존 문헌/Study owner·locator·revision 재사용 | B7.1.L01의 실제 흐름·cold 인도 뒤 Astra가 찾은 미확정 문헌 요청의 보존/복구 경계 교정 중. 권한 상속은 Codex가 공통 owner에서 교정. 두 P2 폐쇄 후 해당 인도 게시 |
+| native_impl / Sol-high | `apps/research/pde_window.py`, `pde_study_window.py`, PDE 전용 검사·사용법 단독. 기존 ODE/P1 엔진 재사용 | B6.2.L01의 Windows ODE 한 개·P1 제조해 한 개의 Qt/HTTP 편집·명시 실행·실제 해·오류·저장/cold reopen 인도 완료. 한정 시각·Astra 통합 검토 차단 지적 없음. 후속 기존 명세 배정으로 이어가며 앱 전체 완료나 개발 중단을 뜻하지 않음 |
+| data_impl / Sol-high | `caelab/impact_assembly.py`, 신규 `impact_assembly_materials.py`, assembly 전용 검사·사용법 단독 | B2.5.L01 계층 INP의 기존 flat C3D10/hex 소성/cohesive admission 합류 구현 중. 원 local connectivity·instance·include·재료/section 계보와 기존 물리 검사를 재사용. 가족별 변환 검사 뒤 기존 공개 cohesive의 작은 flat/assembly native 쌍·저장재개 확인 |
+| native_cae_adviser / Astra-xhigh | B2.5.L01의 exact producer/primary manual·기존 원입력에 근거한 한정 CAE 자문. 제품 파일·실행 없음 | 계층 writer와 요소/법칙·PROP/IP·순서·초기조건 및 작은 native 입력·원 기준을 협의. sibling 송신 오류가 재현돼 Codex가 양쪽의 구체 협의를 중계 |
 | desktop_specialist / Sol-high | 이번에는 private `native-data-ui-hooks.md`만 작성. 제품 원본 수정 없음 | 탐색기 열폭·native 페이지/작업 영역·QADS 배치의 정확 구현 지점 확인 완료. 사용자 GUI 피드백은 미해결이며 Astra·Pro 종합안 뒤 실제 교정 배정을 이어받음 |
 
 Codex는 종합안을 받을 때 현재 소스·기존 제품 명세·완료 근거와 대조해 적용한다. 남은
@@ -50,6 +52,39 @@ FreeCAD/FEM·메셔·native writer·JobManager·ParaView/reader를 재사용한�
 스냅샷에서 UTF-8/PDF 추출·보관·hash를 만들도록 기존 `KnowledgeStore`를 교정했다.
 해당 반례와 개정/권한·PDF·보존 인용 검사 14개가 통과했다. 새 store/API/provider는 없고
 Study/PDE의 진행 중인 전체 사용자 흐름을 이 공통 검사만으로 완료 판정하지 않는다.
+
+PDE 첫 실제 HTTP/Qt 호출의 ODE 문서 `Qe238dff4f3d143c2a4e78607df4ebd5d`와 실행
+`Jd436c93244984927983717e1752a0b87`은 성공·저장됐다. 이 기존 냉각식의 독립 기준 오차는
+약 `1.043e-6 K`이고 solver 미보고 잔차는 미보고로 유지한다. P1 계산 뒤 오차 비교창의
+`global_dofs`/실제 `dofs` 표시 불일치를 발견해 PDE 담당에게 전용 창 교정을 배정했다.
+`runs/pde-windows-20261018-01/`의 원 결과와 UI 실패를 보존하며 재계산 없이 교정 확인을
+이어 원 결과 재사용·새 Python cold reopen에서 같은 입력/결과 hash와 새 실행 0을 확인했다.
+실제 공간해 기본 선택·같은 결과의 선택 유지, ODE 기준식 전체 표시와 미보고 잔차 구별도
+전용 창에서 교정했다. 최종 화면·source와 영향 검사를 확인해 해당 인도를 마감한다.
+최종 source는 `pde_window.py d790ff12…` / `pde_study_window.py 4ebb862e…`다.
+PDE/Simulation 영향 검사 19개와 앞선 관련 18개는 통과했으며 중복을 합산하지 않는다.
+실제 Windows 일반/좁은/별도 cold 창은 `runs/pde-windows-20261018-08/`의 source manifest와
+소유 Job 종료 기록, 원 01 폴더의 입력/결과로 연결된다. 데스크톱 담당의 두 시각 지적을
+교정했고 Astra가 원 SI/norm·결과 선택/반환·Simulation 영향·보존 근거를 대조해 차단 지적
+없음을 확인했다. [사용법과 실제 화면](docs/PDE_WORKFLOW_KO.md)을 게시하며 원 UI 실패와
+ODE 잔차 미보고·물리 `UNKNOWN`을 보존한다. Linux 전체·PDE 앱 전체·OS 직접 입력 인수가 아니다.
+
+Study 담당은 exact 문헌 구간·명시 판단·같은 bytes/새 revision·응답 유실/늦은 응답의
+기존 HTTP/Qt 소유 경로와 별도 Python cold를 확인했다. 새 3검사 및 기존 11검사가 통과했고
+원 판단/근거를 보존했다. 초기 검토 source `0345A2ED…`와 Windows 일반/좁은 창·두 모달은
+`_workspace/study-literature/`에 있다. 한정 시각 지적을 닫았으며 Astra가 source·권한·
+보존 참조·실제 실행 증거를 대조했다. 추가 P2 두 건 중 기존 public/복수 workspace 권한을
+새 revision에 그대로 상속하는 공통 교정은 해당 반례와 관련 16검사를 통과해 검토를 닫았다.
+원 응답 유실 요청을 다른 대상이 덮지 않게 하는 Study 교정은 원 대상 삭제/교체 뒤에도
+같은 요청을 확인할 수 있도록 마지막 복구 반례를 확인 중이다. OCR/provider/전체 OS 입력과
+앱 전체 완료는 이 인도에 포함하지 않는다.
+
+B2.5의 첫 반례는 같은 flat 입력의 PART/INSTANCE 포장만으로 거절되는 4개 family였다.
+이를 기존 parser로 합류시키며 Codex는 공통 `SourceError.flat_line`을 보존해 반복 include의
+정확 occurrence/instance 진단을 연결했다. LAW117 material 이름은 같아도 원 요소 배정이
+바뀌면 기존 명시 review를 요구하도록 누락된 cohesive binding을 보완했다. 두 실제 반례의
+red→green과 기존 source 선택/기하편집 검사 4개가 통과했으며 새 helper를 adapter의 source
+identity 목록에 등록했다. 원 native 법칙·수치 허용치·검사 기준은 바꾸지 않는다.
 
 ### 완료한 첫 묶음 — 실제 에이전트 배정과 첫 호출부터의 통합 (2026-10-18)
 

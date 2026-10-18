@@ -43,3 +43,29 @@ def test_norm_plot_selection_retains_group_and_original_row_identity():
     finally:
         window.close()
         app.processEvents()
+
+
+def test_scikit_dofs_and_retained_declaration_reference_without_invented_missing_data():
+    app = QApplication.instance() or QApplication([])
+    row = dict(cells_per_axis=2, dofs=9, l2_error=.1, h1_seminorm_error=.2,
+               relative_residual=0., l2_unit='K*m', h1_unit='K',
+               norm_definition='original norm', residual_definition='original residual',
+               quadrature_degree=8)
+    missing = dict(row); missing.pop('dofs')
+    result = {'diagnostics': {'mesh_studies': [row, missing],
+                             'declaration': {'model': {'reference': 'retained_reference'}}}}
+    original = deepcopy(result)
+    window = PDEStudyWindow(result)
+    try:
+        window.show(); app.processEvents()
+        assert window.table.item(0, 1).text() == '9'
+        assert window.table.item(1, 1).text() == '미제공'
+        assert list(window.figure.axes[0].lines[0].get_xdata()) == [9]
+        assert '기준식: retained_reference' in window.detail.text()
+        assert 'original residual' in window.detail.text() and '적분 차수: 8' in window.detail.text()
+        window.table.selectRow(1); app.processEvents()
+        assert '자유도 미제공' in window.detail.text()
+        assert not window.figure.axes[0].collections
+        assert result == original
+    finally:
+        window.close(); app.processEvents()

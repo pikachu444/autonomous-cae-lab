@@ -469,7 +469,14 @@ class PDEWindow(QMainWindow):
                       'CANCELLED': '취소', 'INTERRUPTED': '중단', 'PARTIAL_FAILURE': '일부 실패'}.get(state, str(state))
             relation = (' (편집 전 입력)' if self.local_dirty else ' (현재 입력)') if run.get('is_current_input') else (
                 ' (이전 입력)' if run else '')
-            self.result_label.setText('보존 결과: ' + status + relation)
+            caption = '보존 결과: ' + status + relation
+            if self.document_kind == 'pde' and self._result.get('backend') == 'pde.scipy.ode':
+                recorded = self._result.get('diagnostics', {})
+                if recorded.get('residual') == 'NOT_REPORTED_BY_SOLVER':
+                    caption += '\n적분 잔차: 솔버가 보고하지 않음'
+                if recorded.get('accepted_steps') is not None:
+                    caption += ' / 수락한 단계: ' + str(recorded['accepted_steps'])
+            self.result_label.setText(caption)
             self.result_label.setToolTip(display(run))
 
     def _call(self, function, accepted):
@@ -672,7 +679,10 @@ class PDEWindow(QMainWindow):
         label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         adapter_path = '.'.join(str(key) for key in path[1:])
         label.setToolTip(adapter_path)
-        if isinstance(value, str) and ('\n' in value or path[-1] in ('data', 'rhs', 'solution', 'source')):
+        wrapped_reference = (self.document_kind == 'pde' and path[-1] == 'reference' and
+                             self._draft.get('backend') in ('pde.scipy.ode', 'pde.fenicsx.dimensioned',
+                                                            'pde.scikit_fem.dimensioned'))
+        if isinstance(value, str) and ('\n' in value or path[-1] in ('data', 'rhs', 'solution', 'source') or wrapped_reference):
             field = QPlainTextEdit('' if value is None else display(value))
             field.setFixedHeight(130 if path[-1] == 'data' else 90)
             field.textChanged.connect(self._edited)
@@ -950,6 +960,13 @@ class PDEWindow(QMainWindow):
 
     def _accept_result(self, result):
         selected_channel, selected_node = self.channel.currentData(), self.node.currentData()
+        selected_response = self.result_selector.currentData()
+        selected_field_node = self.field_node.currentData()
+        pde_spatial = self.document_kind == 'pde' and result.get('backend') == 'pde.scikit_fem.dimensioned'
+        selection_key = (self.document.get('id') if self.document else None, self._selected_job,
+                         result.get('backend'), result.get('created_utc'))
+        same_source = pde_spatial and getattr(self, '_pde_selection_key', None) == selection_key
+        previous_fields = getattr(self, '_native_fields', [])
         self._result = deepcopy(result)
         self.result_selector.blockSignals(True)
         self.result_selector.clear()
@@ -971,6 +988,21 @@ class PDEWindow(QMainWindow):
             for component in range(len(components)):
                 self.result_selector.addItem(str(entry.get('name', 'Native field ' + str(index + 1))) + ' (' + components[component] + ')',
                                              ('field', index, component))
+        restore_selection = False
+        if pde_spatial and native_fields:
+            selected_index = next((i for i in range(self.result_selector.count())
+                                   if self.result_selector.itemData(i) == selected_response), -1) if same_source else -1
+            if selected_index >= 0 and selected_response[0] == 'field':
+                index = selected_response[1]
+                if (index >= len(previous_fields) or
+                        previous_fields[index].get('source') != native_fields[index].get('source')):
+                    selected_index = -1
+            restore_selection = selected_index >= 0
+            if selected_index < 0:
+                selected_index = next(i for i in range(self.result_selector.count())
+                                      if self.result_selector.itemData(i)[0] == 'field')
+            self.result_selector.setCurrentIndex(selected_index)
+        self._pde_selection_key = selection_key
         self.result_selector.blockSignals(False)
         self.channel.blockSignals(True)
         self.channel.clear()
@@ -987,6 +1019,10 @@ class PDEWindow(QMainWindow):
                 self.node.setCurrentIndex(node_index)
         self.graph_tabs.setCurrentIndex(1 if self._selected_job and result else 0)
         self._result_selection_changed()
+        if restore_selection and selected_response[0] == 'field':
+            index = self.field_node.findData(selected_field_node)
+            if index >= 0:
+                self.field_node.setCurrentIndex(index)
         self._update_actions()
 
     def _result_selection_changed(self, *_):
