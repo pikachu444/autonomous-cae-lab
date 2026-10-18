@@ -47,15 +47,20 @@ def validate(model,settings):
             if row['contact_index'] is not None or row['contact_start_s'] is not None or matching:
                 raise ValueError('응집 압축만 선택한 경우 별도 접촉 조건은 비워 두세요')
             continue
-        if row['reclosure']!='DELAYED_TYPE24_REQUIRE_DELETION':
-            raise ValueError('재접촉은 응집 압축만 또는 명시 지연 TYPE24입니다')
-        index=row['contact_index']; start=number(row['contact_start_s'],'접촉 활성 시각 [s]',positive=True)
+        deletion=row['reclosure']=='DELETION_GATED_TYPE24'
+        if not deletion and row['reclosure']!='DELAYED_TYPE24_REQUIRE_DELETION':
+            raise ValueError('재접촉은 응집 압축·명시 시간 지연·검증된 삭제 연동을 선택하세요')
+        index=row['contact_index']
+        if deletion:
+            if row['contact_start_s'] is not None:raise ValueError('삭제 연동은 활성 시각을 사용하지 않습니다')
+            start=None
+        else:start=number(row['contact_start_s'],'접촉 활성 시각 [s]',positive=True)
         if type(index) is not int or not 0<=index<len(settings['contacts']) or index in contacts:
             raise ValueError('중복 없는 실제 TYPE24 접촉쌍을 선택하세요')
         if matching!={index}:
             raise ValueError('같은 대응면의 중복/별칭 TYPE24 또는 잘못된 접촉쌍을 확인하세요')
         contacts.add(index)
-        if start>=settings['time']['end_s']:
+        if start is not None and start>=settings['time']['end_s']:
             raise ValueError('접촉 활성은 종료 시각보다 앞이어야 합니다')
         pair=settings['contacts'][index]
         faces_a,faces_b=_face_nodes(model,pair['a']),_face_nodes(model,pair['b'])
@@ -71,6 +76,9 @@ def validate(model,settings):
         for j,other in enumerate(settings['contacts']):
             if j!=index and {other['a'],other['b']}=={pair['a'],pair['b']}:
                 raise ValueError('같은 계면에 중복 penalty 접촉을 적용하지 않습니다')
+    if any(row.get('reclosure')=='DELETION_GATED_TYPE24' for row in rows):
+        from .impact_reclosure_policy import validate as validate_policy
+        validate_policy(model,settings)
 
 
 def apply(text,model,settings,cohesive):
@@ -98,11 +106,15 @@ def apply(text,model,settings,cohesive):
                          gate='explicit native Tstart, not event-driven deletion')
         controls.append(entry)
     effective=replace_blocks(text,replacements) if replacements else text
+    from .impact_reclosure_policy import apply as apply_policy
+    effective,policies=apply_policy(effective,model,settings,cohesive)
     after=cards(effective)
-    return effective,{'controls':controls,'cards':{k:after[k] for k in replacements},
+    policy_cards={key:rows for policy in policies for key,rows in policy['expected_cards'].items()}
+    return effective,{'controls':controls,'cards':{**{k:after[k] for k in replacements},**policy_cards},
+        'reclosure_policies':policies,
         'partial_loop':'LAW117 irreversible unloading/reloading with intact compression',
         'post_deletion':'opposing live bulk faces; no resurrection of cohesive traction',
-        'native_loop_acceptance':'NOT_RUN','automatic_event_gate':'NOT_IMPLEMENTED'}
+        'native_loop_acceptance':'NOT_RUN','automatic_event_gate':'GENERATED_SENSOR_RUNTIME_UNVERIFIED' if policies else 'NOT_IMPLEMENTED'}
 
 
 def face_sample(raw,model,cohesive,eid,component='normal',change=False):

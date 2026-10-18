@@ -123,7 +123,7 @@ def artifact_receipt(output, frames=()):
     root=Path(output);fixed={}
     for name in ('input.json','initial_conditions.json','initial_mass_properties.json','physical_admission.json',
                  'source_bundle/manifest.json','generated_sets.json','damage_definition.json','source_lineage.json',
-                 'b_definition.json'):
+                 'b_definition.json','reclosure_definition.json','reclosure_audit.json'):
         path=root/name
         if path.is_file():fixed[name]=file_pin(root,path)
     # These are original attempt artifacts, including failed native prefixes.

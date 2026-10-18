@@ -48,6 +48,10 @@ def verify(text,model,settings,definition):
     if settings.get('interface_histories') or 'interface_history' in definition:
         from .impact_interface_history import verify as verify_histories
         verify_histories(text,model,settings,definition['interface_history'])
+    if (definition['interface'].get('reclosure_policies') or any(
+            row.get('reclosure')=='DELETION_GATED_TYPE24' for row in settings.get('interface_controls',[]))):
+        from .impact_reclosure_policy import verify as verify_reclosure
+        verify_reclosure(text,model,settings,definition['interface'].get('reclosure_policies',[]))
     impact_bulk_deck.verify(text,model,settings.get('bulk_damage',[]),definition['bulk'])
     blocks=impact_bulk_deck.cards(text)
     for key,expected in {**definition['interface']['cards'],**definition['outputs']['generated_cards']}.items():

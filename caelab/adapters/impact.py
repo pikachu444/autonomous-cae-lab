@@ -93,13 +93,15 @@ class ImpactAdapter:
     backend,version=domain.BACKEND,'2'
     input_source_files=[__file__,domain.__file__,Path(__file__).with_name('impact_admission.py'),
                         Path(__file__).with_name('impact_timing.py'),
+                        Path(__file__).with_name('impact_python_runtime.py'),
                         Path(domain.__file__).with_name('impact_source.py'),
                         Path(domain.__file__).with_name('impact_sets.py'),
                         *[Path(domain.__file__).with_name(name) for name in (
                             'impact_assembly.py','impact_assembly_materials.py','impact_native_material_cards.py','impact_input_edits.py','impact_rad_source.py',
                             'impact_native.py','impact_native_b.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
                             'impact_reference_bindings.py','impact_b.py','impact_bulk.py','impact_bulk_deck.py',
-                            'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py','impact_interface_history.py')]]
+                            'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py','impact_interface_history.py',
+                            'impact_reclosure_policy.py')]]
     default_settings=staticmethod(domain.default_settings)
     validate_settings=staticmethod(domain.validate_settings)
     input_runtime_identity=staticmethod(lambda:{'runtime':'explicit_selected_opencourant','qualification':'UNKNOWN'})
@@ -163,10 +165,14 @@ class ImpactAdapter:
             'diagnostics':{'decision':'NOT_RELEASED','qualification':'UNKNOWN',
                            'native_execution_status':'NOT_STARTED',
                            'input_route':'NATIVE_DIRECT' if direct else 'INP_COMPILED'},'post_artifacts':[]}
-        names=None;identity=None;env=None
+        names=None;identity=None;env=None;reclosure=[];python_identity=None
         def command(argv,label):
             check_cancelled()
-            process=run_owned_command([str(x) for x in argv],native,label,env=env,owned_tree=True)
+            child_env=env
+            if reclosure and label in ('starter','engine'):
+                child_env={**env,'CAELAB_RECLOSURE_PHASE':label.upper(),
+                           'CAELAB_RECLOSURE_ENGINE_SEGMENT':'0001'}
+            process=run_owned_command([str(x) for x in argv],native,label,env=child_env,owned_tree=True)
             if process.returncode:raise RuntimeError(label+' failed; native log and partial files retained')
             return process
         try:
@@ -218,20 +224,38 @@ class ImpactAdapter:
                 if b_enabled(s):
                     effective_gravity,b_definition=compile_b(effective_gravity,actual_model,s,damage_receipt)
                     save_json(out/'b_definition.json',b_definition)
+                    reclosure=b_definition['interface'].get('reclosure_policies',[])
+                    if reclosure:
+                        from .impact_python_runtime import runtime as python_runtime
+                        from ..impact_reclosure_policy import verify as verify_reclosure
+                        verify_reclosure(effective_gravity,actual_model,s,reclosure)
+                        env,python_identity=python_runtime(env)
+                        for policy in reclosure:
+                            (native/(policy['function_name']+'.py')).write_text(
+                                policy['callback_source'],encoding='ascii',newline='\n')
+                        save_json(out/'reclosure_definition.json',{'policies':reclosure,
+                            'python_runtime':python_identity,'cycle_binding':'UNVERIFIED_NATIVE_CAPABILITY',
+                            'engineering_release':'NOT_RELEASED'})
                 starter.write_text(effective_gravity,encoding='ascii',newline='\n')
                 timestep_receipt=domain.engine_timestep(s,model=model,physics=physics)
                 engine_text=domain.engine_deck(s,model=model,physics=physics)
+                if reclosure:
+                    if engine_text.count('/PRINT/-100/50')!=1:
+                        raise ValueError('Generated Engine PRINT profile differs')
+                    engine_text=engine_text.replace('/PRINT/-100/50','/PRINT/1')
                 save_json(out/'physical_admission.json',{'physics':physics,'gravity':gravity_receipt,
                                                        'surface_serialization':surface_receipt,
                                                        'inp_elastic_tetra_formulation':formulation_receipt,
                                                        'solid_timestep':timestep_receipt})
                 (native/'impact_0001.rad').write_text(engine_text,encoding='ascii',newline='\n')
                 frozen={p.name:file_hash(p) for p in native.glob('*.rad')}
+                frozen.update({p['function_name']+'.py':p['callback_sha256'] for p in reclosure})
             save_json(out/'damage_definition.json',damage_receipt)
             result['checks'].append({'name':'effective_physics','status':'PASS'})
             save_json(out/'effective_deck_pins.json',frozen)
             phase='starter'
-            command([names['starter'],'-i',name+'_0000.rad','-np','1','-nt',str(threads)],'starter')
+            command([names['starter'],'-i',name+'_0000.rad','-np','1','-nt',str(threads),
+                     *(['-python'] if reclosure else [])],'starter')
             result['checks'].append(starter_admission(native/(name+'_0000.out'),model))
             if any(file_hash(native/key)!=value for key,value in frozen.items()):
                 raise ValueError('Effective deck/include bytes changed during Starter')
@@ -244,6 +268,19 @@ class ImpactAdapter:
             if any(file_hash(native/key)!=value for key,value in frozen.items()):
                 raise ValueError('Effective deck/include bytes changed during execution')
             if selected_runtime()[2]!=identity:raise ValueError('Selected runtime changed during execution')
+            if reclosure:
+                from .impact_python_runtime import runtime as python_runtime,audit_generated_sensor
+                if python_runtime(env)[1]!=python_identity:
+                    raise ValueError('Selected Python runtime changed during execution')
+                audits=[]
+                for policy in reclosure:
+                    trace=native/policy['trace_relative']
+                    audit=audit_generated_sensor(trace,native/(name+'_0001.out'),policy,python_identity)
+                    audits.append(audit)
+                result['diagnostics']['reclosure']=audits
+                save_json(out/'reclosure_audit.json',{'policies':audits,'engineering_release':'NOT_RELEASED'})
+                if any(audit['python_runtime']['status']!='PASS' for audit in audits):
+                    raise ValueError('Native Python runtime identity could not be verified; audit retained')
             result['diagnostics']['native_execution_status']='SUCCEEDED'
             result['execution_status']='SUCCEEDED'
         except ExecutionCleanupFailed:

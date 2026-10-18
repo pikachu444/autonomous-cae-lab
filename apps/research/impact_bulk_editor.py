@@ -14,10 +14,13 @@ BULK_SUPPORT=('시험 중인 해석 기능입니다. 솔버 실행·교정 유�
     '열은 삼축응력비 η(원 카드 eta), 표 값은 시작 소성변형률입니다. 행은 LAW36이 파손 계산에 전달하는 EPSD [1/s]이며 DPLA/dt나 PLSR로 치환하지 않습니다. '
     '기준 변형률 속도는 원 카드 SR_REF이며 솔버 표의 속도 좌표는 EPSD/SR_REF입니다. 온도는 교정 적용범위이고 솔버의 온도 의존 축이 아닙니다.\n\n'
     '교정값과 출처가 필요합니다. 미완성 초안도 저장할 수 있지만 필수값 오류는 계산을 막습니다.')
-INTERFACE_SUPPORT=('시험 중인 해석 기능입니다. 기존 LAW117과 유한 두께를 유지합니다.\n\n'
-    '선택한 원 응집 요소의 아래·위 면과 실제 벌크 이웃, TYPE24 대향면과 중복 접촉을 검사합니다. '
-    '활성 시각은 시간 조건이며 자동 요소 삭제 이벤트가 아닙니다. 삭제 관측 이전의 활성과 압축 이중계상 방지는 별도 솔버 확인이 필요합니다. '
-    '자동 삭제 조건과 솔버의 압축·재접촉 수용은 확인되지 않았습니다.')
+INTERFACE_SUPPORT=('기존 LAW117과 유한 두께를 유지합니다.\n\n'
+    '시간 지연 TYPE24는 입력 시각 조건이며 자동 삭제 감지가 아닙니다. '
+    '삭제 감지 TYPE24는 고정 생성 센서로 원 응집 요소의 OFF가 정확히 0이고 양쪽 벌크가 살아 있을 때만 허용합니다. '
+    '손상값·삭제 메시지·감쇠 중인 OFF를 완전 삭제로 대신하지 않습니다.\n\n'
+    '삭제 감지의 지원 입력은 INP의 응집 요소 1개, 벌크 이웃 2개, 정확한 TYPE24 접촉쌍 1개와 마찰 0입니다. '
+    '사용자 활성 시각과 임의 센서 코드는 사용하지 않습니다. 입력 검토는 현재 실행 환경의 DLL·센서 갱신·전 증분 관측 검사를 대신하지 않습니다. '
+    '완전 삭제 뒤 응집 표면력은 미제공이며 0으로 채우지 않습니다. 공학 적합성은 별도 확인이 필요합니다.')
 
 
 def number(value):
@@ -155,45 +158,68 @@ class InterfaceDialog(QDialog):
         super().__init__(parent);self.setWindowTitle('계면 압축과 재접촉');self.resize(780,680)
         self.settings=deepcopy(settings);self.applied=None;self.material=material
         old=next((row for row in settings.get('interface_controls',[]) if row['material']==material),{})
+        self.old=deepcopy(old)
         layout=QVBoxLayout(self);layout.addWidget(QLabel(material+' / 기존 LAW117과 유한 두께 유지'))
         form=QFormLayout();self.mode=QComboBox()
-        for label,value in [('방식 선택',''),('응집 압축만 유지','COHESIVE_ONLY'),('삭제 관측 확인이 필요한 지연 TYPE24','DELAYED_TYPE24_REQUIRE_DELETION')]:self.mode.addItem(label,value)
+        for label,value in [('방식 선택',''),('응집 압축만 유지','COHESIVE_ONLY'),('입력 시각으로 지연 TYPE24','DELAYED_TYPE24_REQUIRE_DELETION'),('원 삭제 감지 후 TYPE24','DELETION_GATED_TYPE24')]:self.mode.addItem(label,value)
+        if self.mode.findData(old.get('reclosure',''))<0:self.mode.addItem('미지원 방식 — 원 초안 보존',old['reclosure'])
         self.mode.setCurrentIndex(self.mode.findData(old.get('reclosure','')));form.addRow('재접촉 방식',self.mode)
         self.pair=QComboBox();self.pair.addItem('기존 접촉쌍 선택',None)
         for index,row in enumerate(settings.get('contacts',[])):
             if row['law']=='TYPE24':self.pair.addItem(pair_label(settings,index),index)
+        if self.pair.findData(old.get('contact_index'))<0:self.pair.addItem('원 접촉쌍 확인 필요',old.get('contact_index'))
         self.pair.setCurrentIndex(max(0,self.pair.findData(old.get('contact_index'))));form.addRow('원 벌크 대향면',self.pair)
         self.start=QLineEdit('' if old.get('contact_start_s') is None else str(old['contact_start_s']));form.addRow('접촉 활성 시각 [s]',self.start);layout.addLayout(form)
         from .impact_project import MeshPreview
         self.view=MeshPreview();layout.addWidget(self.view,1)
         try:self.model=model_from_settings(settings)
         except (ValueError,KeyError,TypeError):self.model=None
-        self.status=QLabel('시험 중인 해석 기능입니다. 활성 시각은 자동 삭제 이벤트가 아닙니다.');self.status.setWordWrap(True);layout.addWidget(self.status)
+        self.policy_note=QLabel();self.policy_note.setWordWrap(True);layout.addWidget(self.policy_note)
+        self.status=QLabel('미완성 초안도 저장할 수 있습니다. 계산 전 입력과 현재 실행 환경을 별도로 확인하세요.');self.status.setWordWrap(True);layout.addWidget(self.status)
         row=QHBoxLayout();check=QPushButton('입력 검토');check.clicked.connect(self.check);row.addWidget(check)
         self.support=QPushButton('지원 범위…');self.support.setToolTip(INTERFACE_SUPPORT)
         self.support.clicked.connect(lambda:QMessageBox.information(self,'계면 재접촉 지원 범위',INTERFACE_SUPPORT));row.addWidget(self.support);layout.addLayout(row);buttons(self,layout,self.apply)
+        self.mode.setObjectName('interfaceReclosureMode');self.pair.setObjectName('interfaceContactPair');self.start.setObjectName('interfaceStartTime')
+        for field in (self.mode,self.pair):
+            field.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            field.setMinimumContentsLength(18);field.setToolTip(field.currentText());field.currentTextChanged.connect(field.setToolTip)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        self._initial=(self.mode.currentData(),self.pair.currentData(),self.start.text())
         self.mode.currentIndexChanged.connect(self.enabled);self.pair.currentIndexChanged.connect(self.highlight);self.enabled()
     def enabled(self):
-        delayed=self.mode.currentData()=='DELAYED_TYPE24_REQUIRE_DELETION';self.pair.setEnabled(delayed);self.start.setEnabled(delayed);self.highlight()
+        mode=self.mode.currentData();delayed=mode=='DELAYED_TYPE24_REQUIRE_DELETION';deletion=mode=='DELETION_GATED_TYPE24'
+        self.pair.setEnabled(delayed or deletion);self.start.setEnabled(delayed)
+        self.policy_note.setText({
+            'DELETION_GATED_TYPE24':'원 응집 요소의 OFF=0과 양쪽 벌크의 생존을 고정 센서로 확인한 뒤 접촉을 허용합니다. 감쇠 중에는 허용하지 않습니다. 활성 시각은 사용하지 않습니다. 지원 입력: 응집 1개 · 벌크 2개 · 정확한 TYPE24 한 쌍 · 마찰 0. 현재 실행 환경 검사는 별도입니다.',
+            'DELAYED_TYPE24_REQUIRE_DELETION':'입력한 시각부터 접촉을 허용하는 시간 조건입니다. 그 전에 원 응집 요소가 삭제됐는지는 실제 결과에서 별도로 확인해야 합니다.',
+            'COHESIVE_ONLY':'원 응집 요소의 압축 응답을 유지합니다. 별도 TYPE24 재접촉은 사용하지 않습니다.'
+        }.get(mode,'원 초안을 보존합니다. 지원하는 방식을 선택하고 입력을 검토하세요.'))
+        self.highlight()
     def highlight(self):
         if self.model is None:return
         faces=[];index=self.pair.currentData()
-        if self.mode.currentData()=='DELAYED_TYPE24_REQUIRE_DELETION' and type(index) is int:
+        if self.mode.currentData() in ('DELAYED_TYPE24_REQUIRE_DELETION','DELETION_GATED_TYPE24') and type(index) is int and 0<=index<len(self.settings.get('contacts',[])):
             pair=self.settings['contacts'][index]
             for name in (pair['a'],pair['b']):
                 for target,side in self.model['surfaces'].get(name,[]):
                     faces.extend((eid,side) for eid in ([int(target)] if str(target).isdigit() else self.model['elsets'][target]))
         self.view.set_model(self.model,selected=faces)
     def edited(self):
-        result=deepcopy(self.settings);delayed=self.mode.currentData()=='DELAYED_TYPE24_REQUIRE_DELETION'
-        row={'material':self.material,'compression':'INTACT_COMPRESSION_ISYM0','reclosure':self.mode.currentData(),
-            'contact_index':self.pair.currentData() if delayed else None,'contact_start_s':number(self.start.text()) if delayed else None}
+        result=deepcopy(self.settings);mode=self.mode.currentData();delayed=mode=='DELAYED_TYPE24_REQUIRE_DELETION'
+        if self.old and self._initial==(mode,self.pair.currentData(),self.start.text()):return result
+        row=deepcopy(self.old) if self.old else {'compression':'INTACT_COMPRESSION_ISYM0'}
+        row.update(material=self.material,reclosure=mode)
+        if mode in ('COHESIVE_ONLY','DELAYED_TYPE24_REQUIRE_DELETION','DELETION_GATED_TYPE24',''):
+            row.update(contact_index=self.pair.currentData() if mode in ('DELAYED_TYPE24_REQUIRE_DELETION','DELETION_GATED_TYPE24') else None,
+                contact_start_s=number(self.start.text()) if delayed else None)
         rows=result.setdefault('interface_controls',[]);old=next((i for i,v in enumerate(rows) if v['material']==self.material),None)
         if old is None:rows.append(row)
         else:rows[old]=row
         return result
     def check(self):
-        try:impact_interface.validate(model_from_settings(self.settings),self.edited());self.status.setText('대응면 확인됨. 활성 시각은 자동 삭제 이벤트가 아닙니다.')
+        try:
+            impact_interface.validate(model_from_settings(self.settings),self.edited())
+            self.status.setText('입력의 대응면과 정책을 확인했습니다. 현재 실행 환경과 실제 삭제·접촉 관측은 별도 확인이 필요합니다.')
         except (ValueError,KeyError,TypeError) as error:self.status.setText(str(error));self.status.setToolTip(str(error))
     def apply(self):self.applied=self.edited();self.accept()
 
@@ -308,7 +334,7 @@ class BulkPage(QWidget):
             table=self.tables[key];row=table.rowCount();table.insertRow(row)
             for col,value in enumerate(values):table.setItem(row,col,QTableWidgetItem(str(value)))
         for row in data['bulk']:append('bulk',[row['label'],row['law'],field_value(row['gf_n_mm']),row['calibration_source'] or '미확인'])
-        modes={'COHESIVE_ONLY':'응집 압축만','DELAYED_TYPE24_REQUIRE_DELETION':'지연 TYPE24'}
+        modes={'COHESIVE_ONLY':'응집 압축만','DELAYED_TYPE24_REQUIRE_DELETION':'시간 지연 TYPE24','DELETION_GATED_TYPE24':'원 삭제 감지 후 TYPE24'}
         for row in data['interfaces']:append('interface',[row['material'],modes.get(row['reclosure'],'방식 미선택'),pair_label(settings,row['contact_index']) if type(row['contact_index']) is int else '별도 접촉 없음',field_value(row['contact_start_s']) if row['contact_start_s'] is not None else '해당 없음'])
         for row in settings.get('b_responses',[]):
             q=row['quantity'];label=impact_bulk_results.BULK[q][0] if q in impact_bulk_results.BULK else {'face_separation':'면 분리','face_opening_change':'벌어짐 변화','face_slip_change':'미끄럼 변화','cohesive_active':'응집 요소 활성','force':'접촉쌍 구간 평균 힘','native_impulse':'접촉쌍 누적 충격량','sampled_impulse':'평균 힘 표본 적분'}.get(q,q)

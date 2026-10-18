@@ -29,8 +29,8 @@ def validate(model,settings):
     materials={row.get('material') for row in rows if isinstance(row,dict)}
     controls={row['material']:row for row in settings.get('interface_controls',[])}
     selected_controls=[controls.get(material,default_control(material)) for material in materials]
-    if any(row['reclosure']!='COHESIVE_ONLY' for row in selected_controls):
-        raise ValueError('부분 손상 반복 이력은 별도 TYPE24 없이 응집 압축만 명시합니다')
+    if any(row['reclosure'] not in ('COHESIVE_ONLY','DELETION_GATED_TYPE24') for row in selected_controls):
+        raise ValueError('부과 이력은 응집 압축만 또는 명시 삭제 연동 정책과 연결합니다')
     validate_interface(model,{**settings,'interface_controls':selected_controls})
     fixed=set();velocity_dofs=set()
     for block in model['blocks']:

@@ -57,7 +57,8 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 폐쇄해 `66db848`로 게시했다. native L02는 `657308f`, B7.5는 `b184e35`로 게시하고
 각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B4.2와 B5.4도
 같은 담당에게 실제 후속 호출했다. B5.4는 `15569bb`, B4.2는 `b9ea19d`로 게시했다.
-현재 다음 행동은 B5.1·L03 P0/P1의 한정 인도 게시, B4.3 두 표시 P2의 교정 폐쇄,
+혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
+현재 다음 행동은 L03 P0/P1의 한정 인도 게시, B4.3 교정 완료 인도 게시,
 B8.3 처리 Data 참조/자산의 공통 교정과 같은 실제 사본 인수다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
@@ -85,7 +86,7 @@ dumpContent ZIP framing의 시각/압축을 제외하고 모든 member 이름·�
 Pre/Post의 실제 편집/저장/재복사·별도 native 재열기는 확인했고 새 solver/capture/provider는0이다.
 전체11종과 큰 원 묶음의 인수는 아직 완료가 아니다.
 
-B5.1은 저장된 냉각 PDE의 정수·이산·종속·연속·적분기 범주를 같은 기존 binding으로
+B5.1 `0fb39e8`은 저장된 냉각 PDE의 정수·이산·종속·연속·적분기 범주를 같은 기존 binding으로
 연결했다. 예산3 중2개를 실제 계산하고 상한0.5를 넘는 종속값0.6은 dispatch 전에 제외했다.
 원 PARTIAL_FAILURE/모델 호출2와 기존 오차 기준을 보존했다. 명시 채택·실제 PDE 창 수신과
 별도 cold에서 원 Plan source/현재 PDE를 구별하고 원 결과32파일을 그대로 읽었다.
@@ -94,6 +95,26 @@ B5.1은 저장된 냉각 PDE의 정수·이산·종속·연속·적분기 범주
 관련64검사·전용 UI5검사와 공통 handoff/domain/기존 recovery negative56검사는 보존 로그로
 확인하고 중복 합산하지 않는다. 기존 E/탄성계수 기대 실패와 driver 실패도 보존했다.
 동일 전문 담당/Astra의 한정 시각·통합 검토를 닫았다. [사용법](docs/NUMERICAL_MIXED_GUI.md).
+
+L03 P0/P1의 한정 구현은 원 LAW117·HEPH·시간 scale0.9를 유지한다. 생성 센서는 정확한
+cohesive OFF0/양 bulk OFF1일 때만 TYPE24를 허용하며, fading·누락·재등장은 fail-closed다.
+P0의 actual DLL/stdlib·built-in math·초기 두 gate0와32 callback/31 cycle의 대응은 원 결과와
+후속 read-only 감사를 구별해 확인했다. P1은 원 선언한 Z 이력 한 번으로7654 callback/
+7653 cycle을 확인했으며11 fading 행 gate0 뒤 완전 삭제·bulk11에서만 gate1이었다.
+같은 저장 결과의 native impulse에서 파생한50 압축/75 재개방 구간 평균 힘은 순간 힘이
+아니고 일부 support는 위상 경계를 넘는다. 삭제 후146 frame의 없는 stress/DAMA는 None이다.
+별도 cold·원 hash·새 Job0과 실제 policy 창 취소/반영/저장/별도 cold를 닫았다.
+domain61 PASS/2 SKIP, UI3 PASS와 runtime identity/잘린 trace9 PASS의 범위를 구별한다.
+마지막 audit-only 교정은 원 trace의 runtime PASS·UNKNOWN·관측 위반을 함께 보존하며
+새 native 실행으로 세지 않는다. 같은 전문 담당/Astra가 P0/P1 경계 검토를 닫았다.
+
+P1의 native 정상 종료는 수치 타당성 PASS가 아니다. 약0.00036 s부터 원 binary TH의
+내부에너지와 실제 상부 횡속도가 급증하고 마지막 PRINT는 ERROR99.9%·내부에너지 약
+92350 N·mm/외부일 약0.02001 N·mm다. 원인·HEPH 기여는 UNKNOWN이며 입력·감쇠·허용값을
+조정하지 않았다. P2 물리 인수는 닫지 않는다. 최종0.004 s rst는0.00225 s checkpoint가
+아니므로 새 실제 prefix가 필요하다. 같은 Simulation의 한정 continuation 소유 경계만
+기존 실제 Pro 대화에 요청ID `PRO-RECLOSURE-P2-20261018`로 송신·실제 반영 확인했다.
+다른 구현·게시를 이 응답 대기로 멈추지 않는다. [지원·한계·실제 창](docs/IMPACT_RECLOSURE_KO.md).
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
 실제 blocker가 없는 독립 담당은 다른 앱의 게시·Data 빌드·Pro 재응답을 기다리지 않는다.
