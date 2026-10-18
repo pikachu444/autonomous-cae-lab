@@ -30,6 +30,14 @@ through adoption and cold reopen. The existing native fixture completes Tasks
 cancel/accept, two retained jobs, Runner/design return and saved Post comparison.
 Independent integration findings in these slices are closed.
 
+The native Data slice also has a fixed-source Windows build and explicit entry
+using the same Core. Actual settings, source-row selection across duplicates,
+sorting/hiding, independent quality/exclusion state, local Undo, atomic view save,
+response-loss recovery, cold reopen and exact separate Material reception are
+scoped evidence for AC-D01/D05/D07/D12. See the
+[native Data record](../../../native/data_labplot/README.md). Native Qt event/API
+checks and captured windows do not establish complete physical OS input coverage.
+
 See [Data](../../../docs/DATA_WORKSPACE_KO.md),
 [Material/Plan](../../../docs/MATERIAL_PLAN_EDITING_KO.md) and
 [native evidence](../../../docs/PREPOST_VERIFICATION.md#2026-10-18--public-roller-support-native-connection).
@@ -37,5 +45,5 @@ These are scoped evidence for AC-D01/D03/D05/D07/D08/D12, not blanket acceptance
 of all research families or all desktop workflows. Native exact resultant
 reproduction remains FAIL at the original 1e-8 N criterion; engineering
 qualification remains UNKNOWN. OS direct-input/whole-window composition,
-complete distribution and the LabPlot production-adoption verdict are separate.
+complete distribution and replacement of the default Data entry are separate.
 The current assignment and remaining action stay solely in CURRENT_STATE.

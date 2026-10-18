@@ -13,13 +13,14 @@
 읽기 전용 준비를 끝내고 아래 네 구현 담당을 실제 가동했다. 기존 진단을 반복하거나
 새 Goal·Codex 작업을 만들지 않는다. 공통 파일은 Codex만 수정하고 첫 실제 문서·명령
 호출부터 함께 확인한다. Data·Research·native의 아래 한정 인도는 구현·확인을 마쳤다.
-LabPlot 고정 후보는 실제 빌드와 Core 연결·저장·복구·재열기·정확 Material 전달을 통과했다.
-같은 native 작업면의 열·단위·품질·숨김과 표↔곡선 선택을 원 Data 완료 조건에 따라 계속 구현한다.
+LabPlot 고정 소스의 실제 빌드와 Core 연결·열/단위·원행 선택·Undo·분리 저장·복구·재열기·
+정확 Material 전달까지 원 Data 완료 조건을 닫았다. 네 담당의 한정 기능 인도를 완료했으며
+앱 전체나 모든 지원 조합의 완료를 뜻하지 않는다.
 
 | 담당 | 단독 쓰기 범위 | 이번 종료 조건 |
 |---|---|---|
 | desktop_specialist / Sol-high | `appearance.py`, 신규 `apps/research/common/commands.py`와 공통 UI 검사; 후속 `native/data_labplot/CaelabDataSettings.h` 단독 | 같은 QAction·초점별 Undo/Redo를 실제 창에 연결하고 일반/좁은 창·한국어·선택·키보드를 확인; native 채널 설정 UI를 같은 draft·Undo에 연결 |
-| data_impl / Sol-high | 신규 `native/data_labplot/` 연결·빌드·고지·검사와 Data 전용 창/검사 | 실제 원표·원행 선택·편집·Undo·단계별 저장·재열기·정확한 Material 전달. LabPlot 판정 실패 시 확정된 PySide6 대안 적용 |
+| data_impl / Sol-high | 신규 `native/data_labplot/` 연결·빌드·고지·검사(`CaelabDataSettings.h` 제외)와 Data 전용 창/검사 | 실제 원표·원행 선택·편집·Undo·단계별 저장·재열기·정확한 Material 전달. LabPlot 한정 기반 확인을 통과해 native 경로 유지 |
 | native_impl / Sol-high | Pre의 FEM/재료/연결/저장, Post의 navigation/comparison_native, Runner 전용 경로·검사·사용법 | 기존 공개 roller_support의 Tasks 취소/수락→동결 입력→두 실행→native Post 비교→원 설계 복귀·새 프로세스 재개 |
 | material_numerical_impl / Sol-high | Material/Numerical 창·계획 패널·동일 변수 편집 부품과 전용 검사·사용법 | 두 fit 시험과 별도 holdout→같은 계획→실제 동정/확인→정확 후보 채택→저장·재개 |
 | Codex / root | 공통 Core·reader·owner·API·dispatch·registry·provenance·desktop.py·통합·현재 상태·게시 | 전체 원표 읽기 API와 첫 호출부터의 문서/입력/결과 연결, 영향 검사·의미 있는 독립 검토·전체 인도 마감 |
@@ -57,7 +58,7 @@ Force 대입(10→실제 0.01 N)을 찾아 명시적 N 입력으로 고쳤다. 1
 설치 native writer의 곡면 면적 근사 때문에 실제 CLOAD 합력은 −9.980906327477719 N이었다.
 기존 native NodeLoadTable↔deck·메시·구속·입력 hash 검사는 유지한다. 요청 합력과의
 `1e-8` exact 검사 실패는 값·기준과 함께 별도 FAIL로 보존하고, 실제 분배 하중을 그대로
-쓰는 **제품 연결 시험**만 계속한다. 힘 보정·재규격화·경계 직선화·새 허용치로 PASS를
+쓰는 **제품 연결 시험**을 완료했다. 힘 보정·재규격화·경계 직선화·새 허용치로 PASS를
 만들지 않는다. 이는 정확 10/20 N 합력 재현이나 공학 적합성 확인이 아니다. CAE 자문의
 정정은 설치 FreeCAD의 CAD 면적 대비 TRIA6 분할 면적 분배 소스로 확인했다.
 
@@ -78,18 +79,23 @@ Force 대입(10→실제 0.01 N)을 찾아 명시적 N 입력으로 고쳤다. 1
   [인수 기록](docs/PREPOST_VERIFICATION.md#2026-10-18--public-roller-support-native-connection)의
   최종 원장은 기존 중단·실패 시도를 덮지 않고 성공한 단계를 연결한다. 원 A의 17개
   산출물 hash가 유지됐다. 합력 오차는 A 0.0190936725 N, B 0.0381873450 N으로 FAIL이다.
+- `0a11e59`: [native Data](native/data_labplot/README.md)의 열·단위 편집·한 번의 로컬 Undo,
+  표/점/범위의 원행 선택·중복 좌표·정렬/숨김, 품질/계산 제외 분리, 정확 저장·재개를 닫았다.
+  같은 제목의 문서는 실제 선택 인덱스로 정확한 ID를 고른다. CSV 원파일 hash와 수치
+  reader의 NaN 표시, named NPZ 배열 길이 5/5/2도 확인했다. 원값 곡선에 처리 전 표시와
+  선택·계산 제외·품질 확인 필요의 기호 키를 붙였고 native 열의 X/Y 역할을 맞췄다.
 - Astra 통합 검토에서 Data 복구·Material 원 실행/상태/구간/주기 조회/늦은 응답과 native
   입력·보존·저장 신원의 차단 지적을 닫았다. 데스크톱 담당이 실제 Windows Research 창과
   native 렌더를 읽어 한글·단위·선택·범례·동일 카메라를 확인했다. 소유 테스트 프로세스는
   종료했다. OS 직접 입력·전체 창 GL 합성·전체 제품 인수·공학적 적합성은 미확인이다.
 
-검증된 제품 변경과 첫 native Data 연결은 `2513ae7`까지 원격 main 반영을 확인했고
-Space 요약도 저장했다.
-다음 행동은 같은 Data 담당의 LabPlot native 열·단위·품질/숨김·표↔곡선 원행 선택을
-기존 Core/Project API로 닫는 것이다. 두 첫 trial과 이미 게시한 PySide 인도는 보존하며 donor 도입 완료나
-최종 대안 선택으로 바꾸지 않는다. 이미 확인한 전체 suite나 native 계산을 반복하지 않는다.
+검증된 제품 소스 `0a11e59`의 원격 main 반영을 `ls-remote`의 정확한 SHA로 확인했다.
+LabPlot은 핵심 작업 환경과 기존 Core를 유지한 채 한정 확인을 통과했으므로 native Data
+개발 경로로 유지한다. 일반 Data 진입은 PySide6이고 native는 명시 `data-native`로 연다.
+전체 installer/bundle·기본 진입 전환·전체 OS 직접 입력 인수까지 완료한 판정은 아니다.
+이전에 확인한 suite나 native 계산을 다시 실행하지 않는다.
 
-현재 native Data 후속 단위 `9ab6e7c`는 로컬 커밋이며 아직 게시하지 않았다. 동일 exe의
+native Data 저장 후속 단위 `9ab6e7c`와 교정은 위 원격 소스에 포함됐다. 동일 exe의
 axial-04/shear-02에서 Core 저장 뒤 보기 실패→기존 파일 보존→새 프로세스 journal의
 동일 참조 재시도(추가 명령 0)→정상 `.lml` 재열기→별도 Material의 정확 stress/hash 수신을
 확인했다. donor Qt 6.11.1과 수신 Qt 6.9.1을 분리했고 피팅·시험 등록은 추가하지 않았다.
@@ -102,16 +108,37 @@ native XML을 복구 파일에 보존하고 잠금을 해제하도록 교정했�
 `document.save`, 요청/응답 ID가 같고 `dirty:false`·saved revision이 있으며 다른 프로세스 복구의
 추가 명령은 0이다. 실제 컴파일 source snapshot과 실행 파일 hash를 연결했고 독립 검토에서
 세 지적을 모두 닫았다. 시험 조건·기록 정정은 `30cdf8b`에 보존했다.
-Data 담당은 이어서 native 열/단위·품질/숨김·표↔곡선 원행 선택을 닫는다. 이미 완료한
-native 구조해석과 Research 동정은 다시 실행하지 않는다.
+최종 공개 axial/shear 회귀 `labplot-workflow-final-{axial,shear}-01`의 각각 8단계에서도
+저장·복구·정확한 별도 Material 수신을 확인했다. `labplot-interaction-07`의 편집/재열기/
+CSV/NPZ 4단계는 PASS이며, 최종 `labplot-interaction-capture-02`는 같은 저장본의 새 서비스·
+native 프로세스에서 명령/가져오기 0으로 원행·그림을 재확인했다. 실행별 exact source/exe
+hash와 실패 기록은 native README가 연결한다. 최종 exe는 `D8E9E8FD…F46C89E`, bridge는
+`43DD8AF3…4B8C2C4`다. 여섯 patch의 pristine 적용과 helper 두 번 무변경도 확인했다.
+Astra는 새 native Data 기능묶음의 추가 차단 사항이 없다고 결론냈고, 데스크톱 담당은
+최종 일반/좁은 표·곡선·설정창의 한글·단위·범례·역할 표시와 잘림을 확인했다.
 
 공통 진입 `ec75ac9`는 `desktop data-native --executable ... --sdk ...`에서 기존 Data ID 또는
 저장한 `.lml` 하나를 명시해 별도 Qt 프로세스를 연다. 기존 PySide Data 기본은 유지한다.
 수락 환경 플래그·Qt plugin 환경을 분리하는 집중 검사 38개를 통과했고, 실제 일반 진입의
 원표 자동 읽기와 새 서비스 세션·주소의 `.lml` 열기에서 쓰기 명령 0·Core 문서/원 파일
 불변·소유 Windows Job 정리를 확인했다 (`_workspace/native-data-entry-20261018/normal-01/`와
-`cold-project-02/`의 `result.json`). native 설정창은 기존
-데스크톱 담당에게 별도 header 하나로 맡기고 Data 담당이 한 로컬 Undo 변경으로 통합한다.
+`cold-project-02/`의 `result.json`). native 설정창은 기존 데스크톱 담당에게 별도 header 하나로
+맡겼고 Data 담당이 한 로컬 Undo 변경으로 통합했다. Astra 검토의 `68A37568…`과 최종
+`43DD8AF3…` 소스의 차이는 캐시 숨김 복원·표시 이름과 수락 캡처뿐임을 Codex가 직접 대조했다.
+
+MoAI의 코드 관계·변경 영향 절차도 적용했다. 선택한 실제 코드의 AST import 68개를
+MoAI 코드맵 입력으로 만들어 reader의 16개 범위 내 소비 경로와 같은 계획 편집기의
+Material/Numerical/검사 세 호출자를 확인했다. 별도 reader·계획 store·Qt 임베딩을 만들지
+않고 관련 진입·전달 검사와 사용법을 동기화했다. 선택 범위의 그래프이며 선택적 함수 호출
+추출기는 없으므로 전체 저장소의 무순환 판정으로 쓰지 않는다. 근거는
+`_workspace/desktop-integration-graph-20261018/`에 있다.
+
+이번 계획의 병행 기능 인도는 모두 닫았다. Material/Numerical과 native 담당의 완료는
+각각 위 동정·채택·재개 및 지그 변경·비교·재개의 종료 조건이며 앱 전체 완료가 아니다.
+추가 기능을 미배정한 이유는 이번 제안 계획의 유한 범위이며 Data 대기 의존이나 슬롯 부족이
+아니다. 계획 안의 후속 사용법·설계/인수·현재 상태·Space·게시를 함께 정리했다. 옛 배정 전체를
+새 큐로 재개하지 않는다. 전체 제품의 다음 기능 배정은 현행 제품 계획과 최신 사용자
+우선순위를 기준으로 이어가며 같은 완료 기능을 다시 계획하거나 재승인하지 않는다.
 
 ### 완료된 선행 작업 — 개발 복구 방법과 공학 GUI 기반 확정 (2026-10-18)
 

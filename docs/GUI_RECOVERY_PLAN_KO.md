@@ -253,3 +253,18 @@ Codex는 Astra가 실제 API에서 확인한 전체 표 읽기 부족, `data.upd
 실제로 채택할 수 있는가**이며, 결과에 따른 대안도 위에 정했다. 전체 기능·지원 조합·종료식은
 기존 [DEVELOPMENT_ITEMS](DEVELOPMENT_ITEMS.md)를 유지한다. 이번 첫 뼈대나 첫 지그가 전체
 제품 완료를 대신하지 않는다. 이번에 제품 기능의 완료 상태를 올리거나 GUI 수용을 선언하지 않았다.
+
+### 구현에서 확인한 적용 범위
+
+이후 사용자가 구현을 배정해 네 Sol 담당과 Codex가 위 종료 조건을 실제 코드·서비스·native
+앱에 연결했다. LabPlot 고정 소스는 무료 Windows 빌드와 원표·열/단위·원행 선택·로컬 Undo,
+분리 저장·실패 복구·새 프로세스 재열기·정확 Material 수신을 한정 실행에서 통과했다.
+핵심 작업 환경을 유지하고 기존 Core/reader/문서 명령을 재사용했으므로 donor 탈락 조건에
+해당하지 않으며 Data의 native 개발 경로로 유지한다. 명시 `data-native` 진입을 제공하고
+기본 PySide6 Data도 유지한다. 배포 묶음이나 전체 LabPlot 기능의 이관을 완료한 판정은 아니다.
+
+Research의 같은 계획 동정·별도 확인·정확 후보 채택·재개와 공개 native 지그의 두 실행·
+Post 비교·재개도 실제 연결했다. 합력 보존 검사의 기존 FAIL과 공학 적합성 UNKNOWN은
+유지한다. 현재 배정·정확한 소스·독립 검토·실행 범위는 [CURRENT_STATE](../CURRENT_STATE.md),
+사용법은 [Data](DATA_WORKSPACE_KO.md), [Material/계획](MATERIAL_PLAN_EDITING_KO.md),
+[native 연결 인수](PREPOST_VERIFICATION.md#2026-10-18--public-roller-support-native-connection)에 둔다.

@@ -156,7 +156,7 @@ register the test and its protocol. Registration, fitting and adoption remain
 separate actions. The existing Numerical plan owns these experiments; this
 delivery does not introduce a second trial store in Material.
 
-The separately built native Data candidate has an explicit entry against the
+The separately built native Data workspace has an explicit entry against the
 same running service. Supply the actual fixed-source build and private SDK:
 
 ```powershell

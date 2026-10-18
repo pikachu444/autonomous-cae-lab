@@ -16,8 +16,11 @@ Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 �
 연결했다. 그 문서의 당시 팀 배정은 현재 실행 상태가 아니며 실제 배정은 CURRENT_STATE만 따른다.
 2026-10-18의 GUI 기반·공통 요소·개발 방식 교정은 [공학 데스크톱 개발 복구안](GUI_RECOVERY_PLAN_KO.md)에
 모았다. 이 설계의 게시와 실제 GUI 교체 완료를 구별한다.
-Data의 LabPlot 경로는 기존 PySide6 기본 구성에서 C++/Qt/KDE 앱으로 바꿀 명시적 후보이며,
-한정된 실제 연결 확인 전에는 도입 완료로 표시하지 않는다. 나머지 Research는 PySide6를 유지한다.
+Data의 native 개발 경로는 고정 LabPlot의 C++/Qt/KDE 작업면을 기존 Core에 연결하는 방식으로
+유지한다. 한정된 실제 원표·원행·열/단위·Undo·저장/복구·재열기·Material 전달을 확인했으며,
+[명시 native 진입](../native/data_labplot/README.md)을 제공한다. 일반 Data 진입은 검증된
+PySide6 작업면을 유지한다. 배포 묶음·기본 진입 전환·전체 OS 입력 인수는 이 한정 확인과
+구분하며 나머지 Research는 PySide6를 유지한다.
 현재 우선순위는 독립 도구군의 직접 진입·주요 편집·도구 간 연결·오류 복구·저장/재개와
 Expert의 실제 연구 흐름이다. 특정 C3D10 메시나 F05 진단은 전체 제품 개발의 선행조건이 아니다.
 기존 요구 기록과 [ADR0060](../ADR/0060-independent-research-workspaces.md)의
