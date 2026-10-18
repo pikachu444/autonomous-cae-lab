@@ -16,19 +16,47 @@
 
 ### 10월19일 이어서 실행 중인 배정
 
+**현재 최우선: 사용자 지적에 따른 실제 GUI 교정.** 사용자는 상용 공학 앱 수준의 화면을
+요구한 기존 지시와 달리 새 변위 전달 창이 긴 폼·부자연스러운 ‘보존 변위’·3D를 밀어내는
+배치라고 거부했다. 지시 부재가 아니라 적용·검토 실패다. 기존 기능/저장/복구 검사와
+읽을 수 있는 글자·버튼을 GUI 품질 수용으로 바꾸지 않는다. 이 작성 화면은 미인수다.
+같은 desktop_specialist에게 디자인과 `structural_transfer_panel.py`/기존 UI test 구현을
+함께 재배정했다. 프로젝트 스킬의 FC-TASK/FC-PROPERTY, VIS-TYPE/VIS-SPACE/QT-PANELS와
+FreeCAD의 실제 선택→변위 조건, Abaqus의 원 결과→viewport 경계→DOF 편집을 구체 기준으로
+적용한다. 명칭은 ‘변위 가져오기’, 원본 결과→적용할 면→변위 확인의 native 작업창으로 고친다.
+Codex는 공통 dock·명령·종료/저장 보호를 통합한다. 같은 자료·일반/좁은 실제 FreeCAD 창을
+확인하기 전 완료라고 하지 않는다. 다른 도구 비교는 기존 담당들에게 읽기 전용 분담했으며
+새 전체 코드 감사·Pro 요청·정책 파일/보고서는 만들지 않는다.
+
+다른 도구의 기존 실제 화면·현재 구현 대조도 완료했다. Workbench는 연결선/이름 겹침,
+Data는 좁은 원표와 채널명 대응, Material은 두 계수 편집 영역의 경쟁, Numerical은 변수
+표의 과대 공간, Simulation은 단일 수치의 빈 그래프, Evaluation은 단계 목록 중복,
+Runner는 진행/오류 표시의 부족을 확인했다. Expert/Study의 입력 밀집과 Report 출력
+서식도 교정 대상이다. PDE의 트리/설정/해 구조는 비교적 맞지만 직접 영역 선택, 최신
+Material 주 화면 및 native Post의 시각 품질 등 직접 보지 못한 상태는 미확인으로 남긴다.
+이는 읽기 전용 비교 결과이며 각 도구의 전체 재검사나 상용 GUI 수용을 뜻하지 않는다.
+변위 작업창 08의 실제 일반/좁은 창에서도 빈 native 작업 overlay와 작은 3D 영역이
+남아 있어 담당자가 계속 교정한다. 원문/저장/복구 기능 확인을 화면 품질 완료로 세지 않는다.
+
+새 CCX07은 시작하지 않고 보류했다. actual04의 선택/취소/적용/저장 및 actual05의 입력 생성·
+cold 복원은 기능 근거로 보존하지만, 옛 입력과 15/102 BC의 마지막 비트가 달라 INP까지
+완전 동일하지 않은 strict FAIL은 유지한다(최대 6.5052e-19 mm). NumPy별 순수 mapper 차이는
+확인했으나 BLAS/CPU의 직접 원인은 UNKNOWN이다. 수치 기준/rounding/mesh/물성 변경0.
+
 B8.1은 `b0bff6e`로 원격 게시했다. 사용자의 지적에 따라 중간 인도 보고에서 멈추지 않고
 기존 전체 명세의 남은 독립 작업을 실제 후속 호출했다. 공통 파일은 Codex가 통합한다.
 
 | 실제 담당 | 단독 쓰기 범위 | 첫 접점과 완료 조건 |
 |---|---|---|
 | Codex | Core/owner/API·`remote_execution.py`, 공통 recovery host·adapter/runtime/Simulation 연결, 공개 문서·현재 상태·게시 | 원격 회수/작업 판정 분리와 독립 Numerical raw recovery hooks부터 통합. 원 실패·UNKNOWN 보존, 관련 검사와 사용자 동선 확인 뒤 게시 |
-| data_impl / Sol-high | `remote_execution_dialog.py`, 기존 remote editor tests | B8.4.L01: 기존 HTTP/JobManager와 명시 transport 대역으로 응답 유실/같은 token 재확인·취소·부분 회수/손상·cold를 닫음. 외부 승인 호스트 실행은 별도 미실행 |
-| desktop_specialist / Sol-high | `material_related_save.py`와 Material Plan/context 관련저장 hunk, 기존 관련저장/복구 tests | B8.2.L01 첫 slice: 실제 Material+DOE Plan의 미확정 입력·부분 저장·실패 문서만 재시도·원문/cold. Data3-owner 및 전체 B8.2 완료로 확대하지 않음 |
-| material_numerical_impl / Sol-high | Numerical/Request Plan의 닫기·복구 hunk, 필요한 raw view adapter, 기존 Numerical/Request tests | B8.2.L01: 미확정 원문을 owner 입력과 분리해 보관/복구, 실패·취소·CAS 변경 시 닫힘/자동 apply 0. 기존 캡슐·focus guard 재사용 |
-| native_impl / Sol-high | `structural_transfer_native.py`/`structural_transfer_panel.py`, 기존 binding/UI tests와 `tests/check_structural_u_transfer_windows.py` authoring 분기 | B6.3.L01: 기존 source U와 receiver 면 선택·명시 변환·mask preview·저장/재개 authoring. 실제 최종 authoring/cold 진행 중이며 기존 계산/실패를 재사용, 새 mapper/추가 solver 0 |
+| data_impl / Sol-high | 현재 Data/Material/Numerical의 기존 화면·현재 구현 읽기 전용 비교 | 비교 완료. B8.4.L01 기능 인도는 `2b6a192`로 게시했으며 외부 승인 호스트 실행은 별도 미실행 |
+| desktop_specialist / Sol-high | `structural_transfer_panel.py`, 기존 `test_structural_transfer_authoring_ui.py` 단독 | 사용자 거부 화면을 native contextual task로 설계·구현. 구체 참조/조작과 실제 일반·좁은 창을 대조하며 글자/기능 통과를 GUI 수용으로 바꾸지 않음. 이전 B8.2 첫 slice는 별도 기능 근거 |
+| material_numerical_impl / Sol-high | 현재 PDE/Simulation/Evaluation/Runner의 기존 화면·현재 구현 읽기 전용 비교 | 비교 완료. B8.2 첫 slice의 원문 복구 기능 인도는 `2b6a192`로 게시했으며 전체 화면 품질 완료와 구별 |
+| native_impl / Sol-high | `structural_transfer_native.py`, 기존 binding test·`tests/check_structural_u_transfer_windows.py` | panel/UI test 쓰기를 specialist에 인도. 새 구조에 기존 native checker만 적응하며 새 CCX0/실행권은 specialist 단독. 실제05 strict FAIL/06 readonly와 원 파일을 보존 |
 | native_data_product_impl / Sol-high | 기존 thermal-regions 후보 helper/조건 widget 재사용 및 `law_native_fe.py`/worker thermal 분기 hunk, 기존 기능별 tests | B4.5.L02: 두 영역 열·기존 SLS 상태를 같은 Simulation에 연결. 원 곡률 8% 기준 FAIL/timeout 보존, 기존 DP/J2 교정 보존. adapter/Simulation 공통 hunk는 Codex |
 | native_cae_adviser / Astra-xhigh | 읽기 전용 실제 후보·입력/diagnostics와 primary source 자문 | thermal strain/state·증분 수렴·곡률 불일치만 구현 담당과 논의. 새 실행/공개 보고서/허용값 조정 0 |
-| data_integration | 읽기 전용 문서 입구·검증 매뉴얼·대표 검사 의존 조사 | 기존 검증 매뉴얼 하나를 기능별로 확장할 최소 통합안을 Codex에 전달. 새 문서·전수 검사·일괄 삭제 0 |
+| data_integration | 읽기 전용 FreeCAD/Abaqus의 동일 작업 공식 문서·실제 그림 비교 | 3D 대상 선택→성분 편집/원 결과→수신 경계 흐름을 specialist와 Codex에 전달 완료. 보지 못한 대화창 그림은 미확인 |
+| desktop_integration_review / Astra-xhigh | TR-U authoring의 공통 원본 검증·저장/종료·정확 입력 route 한정 읽기 전용 검토 | 다른 Post/Expert/Study/Report/Workbench 화면 비교 완료. 현재 작성 기능 통합 검토를 실제 followup 호출했고 최종 시각 교정은 별도 진행 중 |
 
 GUI 검사는 전역 foreground를 공유하므로 Codex가 한 담당에게만 실행권을 준다. 현재
 각 구현 담당은 소스/단위 작업을 먼저 진행하며 실제 GUI/native/solver 실행은 지정된
@@ -52,7 +80,8 @@ owner 값·모든 응답과 정확히 같았고, 실제 조건 편집/취소/App
 41개 관련 순수 검사 및 실제 표시 delta1PASS/4PNG로 교정했다. 같은 Astra 검토의 scoped
 P1/P2는 없다. 원32/64요소 곡률 8% 기준 FAIL·fe05 dx 제한 차이·원 네 번째 timeout과
 공학적 UNKNOWN은 유지한다. 계속 작성은 GUI 검토/취소만 확인했으며 새 계속 FE나 외부
-온도 port는 이번에 실행하지 않았다. TR-U authoring의 최종 실제 창·cold 검사는 계속한다.
+온도 port는 이번에 실행하지 않았다. 이 기능 통합은 `22baff3`로 원격 게시했다.
+TR-U authoring의 실제 작성·cold 기능 확인과 사용자 거부 후 시각 교정은 구별해 계속한다.
 
 사용자의 추가 문서 정리 방향도 이 작업에 적용한다. 사용자 입구는 설치·처음 시작·도구별
 사용법으로 유지하고, 검증 절차/기준/명령/결과 요약은 적합한 기존 검증 매뉴얼 한 곳에

@@ -59,6 +59,14 @@ The specialist retrieves relevant official references, owns visual design and
 scoped Qt implementation, and inspects actual windows before the user has to
 identify obvious defects. Reuse the assigned specialist across related work;
 do not substitute a role name or a loaded skill for demonstrated design quality.
+Each GUI assignment must name this skill's relevant reference sections, the
+adopted application's specific screen/interaction and the user's complete task.
+Assign design and scoped Qt implementation together, before a generic form is
+built; the specialist is not a final text-clipping checker. Compare actual windows
+with the reference at the same data/state and window size, including the main
+view, selection, commands, contextual settings, Korean/units and narrow layout.
+Record an unseen reference as unverified. Skill loading, readable text, working
+buttons and reviewer agreement do not establish overall GUI quality acceptance.
 
 Use familiar engineering application menus and natural task language. Users should
 be able to open their data/model, select or edit it, run the intended operation,
