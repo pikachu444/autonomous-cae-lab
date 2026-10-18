@@ -1,0 +1,26 @@
+diff --git a/src/frontend/MainWin.h b/src/frontend/MainWin.h
+--- a/src/frontend/MainWin.h
++++ b/src/frontend/MainWin.h
+@@ -54,2 +54,3 @@
+ class MainWin : public KXmlGuiWindow {
++    friend class CaelabDataBridge;
+ 	Q_OBJECT
+diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
+--- a/src/frontend/MainWin.cpp
++++ b/src/frontend/MainWin.cpp
+@@ -773,2 +773,4 @@
+ bool MainWin::openProject(const QString& fileName) {
++    if (auto* bridge = CaelabDataBridge::from(this); bridge && !bridge->mayOpen(fileName))
++        return false;
+ 	if (m_project && fileName == m_project->fileName()) {
+@@ -903,4 +905,5 @@
+ 	if (m_autoSaveActive)
+ 		m_autoSaveTimer.start();
+ 
++    if (auto* bridge = CaelabDataBridge::from(this)) bridge->opened(fileName);
+ 	return true;
+@@ -1017,2 +1019,4 @@
+ bool MainWin::save(const QString& fileName) {
++    if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->connected())
++        return bridge->saveConnected(fileName);
+ 	DEBUG(Q_FUNC_INFO << ", file name = " << fileName.toStdString())

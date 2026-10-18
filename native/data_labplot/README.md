@@ -95,11 +95,11 @@ and `.png` show the table and curve separately. The capture executable SHA-256 i
 
 **Decision: technically connectable; production adoption incomplete.**
 The delivered product Data workspace remains the verified PySide6 implementation.
-The native trial does not yet implement the exact Core save/view-save binding,
-partial-save recovery, save/reopen round trip, curve point-to-source-row selection,
-full quality/hide editing, or exact retained-result Material transfer. The default
-native worksheet is also not a finished product layout. Build success and these
-two bounded runs are not acceptance of those remaining behaviors.
+The subsequent native save/transfer boundary below is implemented and checked;
+curve point-to-source-row selection, full quality/hide editing, channel/unit
+editing and the remaining recovery/interaction cases are still active native
+work. The default native worksheet is also not a finished product layout. Build
+success and these bounded runs are not acceptance of those remaining behaviors.
 Those remaining native conditions are active implementation work; the successful
 technical trial is not a donor rejection or a final framework replacement decision.
 
@@ -118,16 +118,80 @@ native local Undo/Redo, in a launched acceptance process and writes its real
 outcome and window image before exiting. `CAELAB_SERVICE_URL` and
 `CAELAB_DATA_DOCUMENT_ID` identify its existing Core document.
 
-This is a finite technical bridge, not the production save/transfer adapter.
-Donor project save, partial-save recovery, point-to-row selection and Material
-handover still require their own demonstrated integration before adoption. The
-PySide6 workspace already provides the delivered engineering behavior.
+The original two trial receipts cover this first bridge only. They are preserved
+separately from the subsequent save and handover checks below. The PySide6
+workspace already provides the delivered engineering behavior.
 
 Reload invalidates the previous Core draft command epoch. An unconfirmed Apply
 locks Read, local editing, native Undo/Redo/history/New/Open/Save and Close until
 the exact pending request is confirmed. Acceptance launches use a private main
 KConfig file and Qt test-mode paths, and the existing Windows Job gate owns and
 cleans up only the launched process tree in `finally`.
+
+## Native exact save and Material receiver boundary
+
+Patch 0005 routes connected MainWin Save through this adapter and retains the
+original Project XML/dock serialization. Connection belongs to a specific
+`QPointer<Project>` and its Core binding; a new unrelated native project cannot
+save/import/transfer to the previously connected Core document. Unconnected
+native documents retain the original LabPlot save behavior.
+
+Native Save applies a changed local draft, waits for the exact Core save
+acknowledgement, serializes the real native Project with that acknowledgement,
+source identity and retained-result reference in `caelab_data_binding`, and
+replaces the file through QSaveFile. The early Project `saved()` signal does not
+complete this operation. The native project becomes clean only after replacement
+and current-input verification. Later Core result changes remain unsaved and are
+reported separately. An interrupted view save retains the exact XML bytes and
+acknowledgement in a recovery journal; retry does not issue another Core save.
+The menu provides Save, Retry and explicit recovery-file opening. Pending work
+blocks document switching, editing and closing; the prior file is preserved.
+
+Prepare is an explicit `data.import`. Save retains its exact result; Material
+handover passes only the existing five-key source reference to the existing
+separate Material receiver. The primary service Python/repository launch it with
+donor Qt plugin variables and donor SDK PATH entries removed from the child
+environment. The current response is explicitly `stress` when that channel
+exists, rather than depending on JSON key order.
+
+```powershell
+python native/data_labplot/check_workflow_windows.py `
+  --executable _workspace/labplot-data-20261018-build-sdk/bin/Release/labplot.exe `
+  --sdk _workspace/labplot-sdk-20261018 `
+  --output _workspace/data-workspace-20261018/labplot-workflow-axial-04 `
+  --source axial.csv
+```
+
+The actual final executions are `labplot-workflow-axial-04` and
+`labplot-workflow-shear-02` under `_workspace/data-workspace-20261018/`. Both
+use public source files and the existing stress/deformation mapping, and pass:
+
+- Native Apply once, explicit import once and MainWin Save with an injected
+  post-Core-save view failure; the prior file bytes remain unchanged.
+- A new native process opens the recovery journal and commits the exact original
+  acknowledgement/XML; no Core commands run in this retry phase.
+- A third native process opens the saved `.lml` through MainWin's normal
+  Project/Undo/Explorer/QADS restoration, and launches the actual Material
+  receiver. It confirms the exact result hash and selected `stress` response.
+  The protocol dialog is then cancelled by the acceptance hook. No experiment
+  registration, fit, solver run or parameter adoption is performed.
+
+Each folder retains `partial/`, `retry/`, `reopen/` JSON receipts/window images,
+stdout/stderr, `saved.lml` and `material-received.json`. Each final Core document
+has generation 1, one import run and a retained saved revision; the receiver uses
+PySide Qt 6.9.1 while the donor uses Qt 6.11.1. Process trees, including the
+receiver, are owned by the existing Windows Job gate and closed in `finally`.
+This is native save/transfer acceptance for this bounded case, not acceptance of
+all response-loss, concurrent-owner or interaction cases.
+
+This executable SHA-256 is
+`23C21E6539970DA404882FBC4A4EA8CA85DA85B44CC95BE210260F7FB65E13A2`;
+adapter source SHA-256 is
+`869EF300E4B9C1D0A708D0554AFFF10847112D3D1F3518354689ADA1D6ABFB2D`.
+All five patches applied cleanly to pristine files from the fixed commit.
+Two consecutive `build_windows.ps1 -PatchOnly` calls on the existing checkout
+left source bytes unchanged (`_workspace/labplot-patch-series-20261018-02/result.json`).
+Unchanged adapter copies no longer cause unnecessary recompilation.
 
 ## Ownership and meaning
 

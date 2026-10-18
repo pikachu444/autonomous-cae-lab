@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory=$true)][string]$SourceRoot,
     [Parameter(Mandatory=$true)][string]$SdkRoot,
-    [Parameter(Mandatory=$true)][string]$BuildRoot
+    [Parameter(Mandatory=$true)][string]$BuildRoot,
+    [switch]$PatchOnly
 )
 $ErrorActionPreference = 'Stop'
 $sourcePath = (Resolve-Path -LiteralPath $SourceRoot).Path
@@ -19,7 +20,13 @@ foreach ($patch in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'patches'
         if ($LASTEXITCODE -ne 0) { throw "Could not apply: $($patch.Name)" }
     }
 }
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'CaelabDataBridge.h') -Destination (Join-Path $sourcePath 'src/frontend/CaelabDataBridge.h')
+$adapterSource = Join-Path $PSScriptRoot 'CaelabDataBridge.h'
+$adapterTarget = Join-Path $sourcePath 'src/frontend/CaelabDataBridge.h'
+if (!(Test-Path -LiteralPath $adapterTarget) -or
+    [IO.File]::ReadAllText($adapterSource) -cne [IO.File]::ReadAllText($adapterTarget)) {
+    Copy-Item -LiteralPath $adapterSource -Destination $adapterTarget
+}
+if ($PatchOnly) { return }
 $cmakePath = Join-Path $sdkPath 'dev-utils/bin/cmake.exe'
 if (-not (Test-Path -LiteralPath $cmakePath)) { throw "Craft CMake is missing: $cmakePath" }
 $previousPath = $env:PATH
