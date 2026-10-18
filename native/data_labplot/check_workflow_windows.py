@@ -132,7 +132,8 @@ ExperimentDialog.exec = cancel_verified
         dropped = []
         def drop_save_reply(handler, status, value):
             if (not dropped and handler.path.endswith('/commands') and isinstance(value, dict)
-                    and value.get('document', {}).get('id') == lost_data['id'] and value.get('acknowledged_document_sha256')):
+                    and value.get('document', {}).get('id') == lost_data['id']
+                    and value['document'].get('dirty') is False and value['document'].get('saved_revision')):
                 dropped.append(value)
                 remote = client.document_read(lost_data['id']); edited = deepcopy(remote['draft'])
                 edited['mapping']['columns']['stress']['unit'] = 'kPa'
@@ -149,6 +150,10 @@ ExperimentDialog.exec = cancel_verified
         finally:
             LabHandler._json = original_json
         assert len(dropped) == 1 and lost_target.read_bytes() == old_bytes and lost['receipt'] == dropped[0]
+        journal = json.loads(Path(lost['journal']).read_text(encoding='utf-8'))
+        assert journal['request']['operation'] == 'document.save'
+        assert journal['request']['command_id'] == lost['receipt']['command_id']
+        assert lost['receipt']['document']['dirty'] is False and lost['receipt']['document']['saved_revision']
         before_recovery = client.document_read(lost_data['id'])
         recovered = launch('conflict_recover', recovery=lost['journal'], source_document=lost_data, view_path=lost_target)
         assert recovered['local_draft'] == lost['local_draft'] and recovered['receipt'] == lost['receipt']

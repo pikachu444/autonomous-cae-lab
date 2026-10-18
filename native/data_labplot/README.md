@@ -197,7 +197,7 @@ The subsequent review correction checks are retained in
 `labplot-workflow-guards-axial-01` and `labplot-workflow-guards-shear-01`.
 They additionally exercise the actual native unsaved-project Cancel dialog
 before recovery, offline and externally changed bound-project Save rejection,
-and real HTTP save-response loss followed by an external input change and
+and real HTTP Apply-response loss followed by an external input change and
 same-ID retry. The latter preserves the confirmed receipt, original request,
 local draft and native XML in a conflict journal, releases the pending-request
 lock and reopens that journal in another native process. A bound project keeps
@@ -210,6 +210,23 @@ The guard executable SHA-256 is
 `239949672825BE307DAEC1A1053F714B789C2D5496F1BAE93CC90428E65935F7`;
 adapter SHA-256 is
 `03D299BBA77FA3BFAD1C61AC4EDF2F478145E7BB301F53F861452932B934CD88`.
+
+The original guards' `lost_save` phase name was inaccurate: its early response
+hook matched `data.update`, so those retained receipts prove Apply-response loss.
+The corrected save-response executions are `labplot-workflow-save-reply-axial-03`
+and `labplot-workflow-save-reply-shear-01`. Their journals explicitly record
+`request.operation: document.save`, identical request/receipt command IDs, and
+acknowledged `dirty: false` plus a nonempty saved revision, before the different
+current input. Each passes durable conflict recovery in another native process.
+The harness now limits the hook to that saved-document state and asserts the
+operation and identity afterward. Earlier failed test attempts remain preserved.
+Both execution folders contain `source-snapshot.h`, the actual compiled adapter
+SHA-256 `FBFBC5F3121655EF677634D29809C7397A0658B204347E2B157444D0AF33CA0B`;
+the executable SHA-256 is
+`0FD4BF061C7C469BFF11CF38F2B428DA0D86EA7471B7192CF299BC2BCA1E3A64`.
+The response escrow, durable conflict and protected save logic matches the prior
+critical correction; this snapshot also contains the subsequent point-row/view
+cache and ordinary launch auto-read work, separate from unfinished settings UI.
 
 ## Ownership and meaning
 
