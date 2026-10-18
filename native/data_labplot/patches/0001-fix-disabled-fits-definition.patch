@@ -1,0 +1,10 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -555,5 +555,5 @@
+ else()
+-    add_definitions(-FITS_DISABLED)
++    add_definitions(-DFITS_DISABLED)
+     message(STATUS "Flexible Image Transport System Data Format (FITS) Library DISABLED")
+ endif()
+ 

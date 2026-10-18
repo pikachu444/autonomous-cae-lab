@@ -1,0 +1,15 @@
+diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
+--- a/src/frontend/MainWin.cpp
++++ b/src/frontend/MainWin.cpp
+@@ -81,4 +81,4 @@
+ #include <QStatusBar>
+ #include <QTemporaryFile>
+-#include "backend/lib/UndoStack.h"
++#include "CaelabDataBridge.h"
+ // #include <QtWidgets>
+@@ -120,4 +120,5 @@
+ 	initGUI(fileName);
++	new CaelabDataBridge(this);
+ 	setAcceptDrops(true);
+ 
+ #ifdef HAVE_KUSERFEEDBACK

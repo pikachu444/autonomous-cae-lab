@@ -1,0 +1,9 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -984,2 +984,5 @@
+ target_link_libraries(labplot labplotbackendlib labplotlib labplotnsllib)
++if(WIN32)
++    target_link_libraries(labplot Psapi)
++endif()
+ 

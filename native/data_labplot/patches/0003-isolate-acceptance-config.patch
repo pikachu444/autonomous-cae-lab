@@ -1,0 +1,25 @@
+diff --git a/src/frontend/LabPlot.cpp b/src/frontend/LabPlot.cpp
+--- a/src/frontend/LabPlot.cpp
++++ b/src/frontend/LabPlot.cpp
+@@ -18,4 +18,5 @@
+ #include <KAboutData>
++#include <KConfig>
+ #include <KColorSchemeManager>
+ #include <KConfigGroup>
+ #include <KCrash>
+@@ -34,4 +35,5 @@
+ #include <QFile>
++#include <QStandardPaths>
+ #include <QModelIndex>
+ #include <QSplashScreen>
+ #include <QSysInfo>
+@@ -43,4 +45,9 @@
+ int main(int argc, char* argv[]) {
++	const auto trialReport = qgetenv("CAELAB_DATA_TRIAL_REPORT");
++	if (!trialReport.isEmpty()) {
++		QStandardPaths::setTestModeEnabled(true);
++		KConfig::setMainConfigName(QString::fromUtf8(trialReport) + QStringLiteral(".rc"));
++	}
+ 	// trigger initialisation of proper icon theme
+ 	KIconTheme::initTheme();
+ 
