@@ -1,16 +1,19 @@
 """Independent Study question, competing hypotheses, evidence and judgment editor."""
 from copy import deepcopy
+from pathlib import Path
 import argparse
+import hashlib
 import json
 import os
 import sys
+import time
 import uuid
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QFontMetrics, QKeySequence
 from PySide6.QtWidgets import (QApplication, QBoxLayout, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QPlainTextEdit,
-    QScrollArea, QSizePolicy, QSplitter, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+    QScrollArea, QSizePolicy, QSplitter, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QFileDialog)
 
 from caelab.study_document import (default_draft, diagnostics, reference_error, HYPOTHESIS_STATUSES,
     DECISION_STATUSES, OBSERVATION_STATUSES)
@@ -26,6 +29,7 @@ DATA = Qt.ItemDataRole.UserRole
 STATUS_LABELS = {'UNKNOWN': '미판단', 'PROVISIONAL': '잠정 판단', 'SUPPORTED': '지지 자료 있음',
     'CONFLICTED': '자료가 상충함', 'REFUTED': '반증됨', 'REJECTED': '기각',
     'NOT_RELEASED': '미승인', 'PLANNED': '확인 예정', 'OBSERVED': '관찰 기록됨'}
+PENDING_LITERATURE_TARGET = '문헌 연결 결과 확인을 먼저 눌러 주세요. 확인 전에는 이 자료를 삭제하거나 문헌을 교체할 수 없습니다.'
 
 
 class StudyWindow(NumericalWindow):
@@ -56,6 +60,7 @@ class StudyWindow(NumericalWindow):
         self._content_queued = False
         self._entry_read_context = {}
         self._reading_evidence_id = None
+        self._literature_pending = None
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
 
     def _build_ui(self):
@@ -134,6 +139,10 @@ class StudyWindow(NumericalWindow):
         self.source_menu = self.menuBar().addMenu('자료(&D)')
         self.evidence_buttons = []
         self.source_menu.addAction(self.literature_action)
+        self.literature_segment_action = self.source_menu.addAction('문헌 구간 선택…')
+        self.literature_segment_action.triggered.connect(self.choose_literature_segment)
+        self.literature_file_action = self.source_menu.addAction('문헌 파일 다시 연결…')
+        self.literature_file_action.triggered.connect(lambda: self.reconnect_literature_file())
         self.evidence_buttons.append(self.literature_action)
         for label, kind in (('문서 추가…', 'document'), ('계산 결과 추가…', 'result'), ('대화 발언 추가…', 'expert_turn')):
             action = self.source_menu.addAction(label)
@@ -344,7 +353,9 @@ class StudyWindow(NumericalWindow):
 
     def _size_editor(self):
         if self.content_splitter.orientation() == Qt.Orientation.Vertical:
-            size = 220 if self._selected and self._selected[0] == 'evidence' else 280
+            # Leave the judgment state visible below its statement on first open.
+            # User splitter adjustments remain untouched while editing/selection changes.
+            size = 300 if self._selected and self._selected[0] == 'evidence' else 320
             self.content_splitter.setSizes([max(250, self.content_splitter.height() - size), size])
         else:
             self.content_splitter.setSizes([max(400, self.content_splitter.width() - 360), 360])
@@ -502,7 +513,8 @@ class StudyWindow(NumericalWindow):
             identity = identity or ref.get('response') or ('발언 본문' if row['kind'] == 'expert_turn' else '저장 자료')
             check = self._reference_checks.get(row['id'], {})
             message = {'AVAILABLE': '읽기 완료', 'UNKNOWN': '읽기 전', 'STALE': '원본 변경됨',
-                       'UNAVAILABLE': '읽을 수 없음', 'INVALID': '잘못된 참조'}.get(check.get('status'), '읽기 전')
+                       'UNAVAILABLE': '읽을 수 없음', 'INVALID': '잘못된 참조',
+                       'INVALID_LOCATOR': '구간 없음'}.get(check.get('status'), '읽기 전')
             for column, value in enumerate((self._evidence_label(row), {'expert_turn': '대화', 'result': '계산 결과', 'document': '문서'}.get(row['kind'], row['kind']), identity, message)):
                 self._set_cell(self.evidence, index, column, value, False)
                 self.evidence.item(index, column).setToolTip(str(check.get('message') or value) if column == 3 else str(value))
@@ -661,7 +673,30 @@ class StudyWindow(NumericalWindow):
             return False
         def relevant():
             return self._content_key == key and self._content_reference == reference
-        def received(payload):
+        def read():
+            try:
+                return method(reference), None
+            except Exception as error:
+                if reference.get('kind') != 'knowledge':
+                    raise
+                try:
+                    source = self._knowledge_source(reference)
+                except Exception:
+                    return None, dict(status='UNAVAILABLE', message='보관된 문헌을 읽을 수 없습니다. 문헌을 다시 선택하세요.', detail=str(error))
+                if source.get('status') == 'NO_MATCHING_SEGMENTS':
+                    return None, dict(status='INVALID_LOCATOR', message='선택한 문헌 구간이 없습니다. 문헌 구간 선택에서 보관된 구간을 다시 고르세요.', detail=str(error))
+                if (source.get('sha256') == reference.get('source_sha256')
+                        and canonical_hash(source) == reference.get('content_sha256')):
+                    return None, dict(status='UNAVAILABLE', message='문헌 읽기 응답을 받지 못했습니다. 다시 읽기를 눌러 확인하세요.', detail=str(error))
+                return None, dict(status='STALE', message='연결한 문헌 원본 또는 선택 구간이 변경되었습니다. 기존 근거와 판단은 유지됩니다.', detail=str(error))
+        def received(value):
+            payload, problem = value
+            if problem:
+                self._reference_checks[key[1]] = problem
+                self._populate_evidence()
+                self.reading.clear('자료 읽기 실패: ' + problem['message'])
+                self.reading.body.setToolTip(problem['detail'])
+                return
             # Content reads update only availability, never research judgment.
             evidence_id = key[1]
             self._reference_checks[evidence_id] = {
@@ -680,7 +715,7 @@ class StudyWindow(NumericalWindow):
             self._reference_checks[key[1]] = {'status': 'UNAVAILABLE', 'message': str(error)}
             self._populate_evidence()
             self.reading.clear('자료 읽기 실패: ' + str(error))
-        started = self._call(lambda: method(reference), received, relevant=relevant, rejected=rejected)
+        started = self._call(read, received, relevant=relevant, rejected=rejected)
         if not started:
             self._content_pending = (key, reference)
         return started
@@ -781,6 +816,9 @@ class StudyWindow(NumericalWindow):
     def remove_entry(self):
         if not self._row() or self._busy or self._callbacks:
             return
+        if self._pending_literature_target():
+            self.message.setText(PENDING_LITERATURE_TARGET)
+            return False
         kind, identifier = self._selected
         self._buffer[kind] = [row for row in self._buffer[kind] if row['id'] != identifier]
         self._selected = None
@@ -818,6 +856,9 @@ class StudyWindow(NumericalWindow):
 
     def command(self, operation, arguments=None, *, after=None):
         if not self.document or self.conflict:
+            return False
+        if operation in {'document.undo', 'document.redo'} and self._pending_literature_owner():
+            self.message.setText('문헌 연결 결과 확인을 먼저 눌러 주세요. 확인 전에는 이 연구 기록의 실행 취소와 다시 실행을 할 수 없습니다.')
             return False
         if self._raw_mode:
             try:
@@ -925,10 +966,173 @@ class StudyWindow(NumericalWindow):
             self._edited(); self._populate_evidence(); self._show_detail()
         self._modal(lambda: choose_knowledge(self.client, self, selected))
 
+    def _knowledge_source(self, reference, *, locator=None):
+        from .expert_sources import assist
+        return assist(self.client, 'knowledge.source', {
+            'document_id': reference['document_id'], 'revision': reference['revision'],
+            'locator': deepcopy(reference['locator'] if locator is None else locator)})
+
+    def _literature_selection(self):
+        row = self._row()
+        if (not row or self._selected[0] != 'evidence' or row.get('kind') != 'knowledge'
+                or self._raw_mode or self._busy or self._callbacks or self.conflict):
+            return None
+        context, reference = self._context(selection=True), deepcopy(row['reference'])
+        def relevant():
+            current = self._row()
+            return (self._context(selection=True) == context and current is not None
+                    and current.get('reference') == reference)
+        return row, reference, relevant
+
+    def _pending_literature_target(self):
+        pending, row = self._literature_pending, self._row()
+        return bool(pending and row and pending['owner'] == self._context()
+            and self._selected == ('evidence', pending['evidence_id'])
+            and row.get('reference') == pending['reference'])
+
+    def _pending_literature_owner(self):
+        return bool(self._literature_pending and self._literature_pending['owner'] == self._context())
+
+    def _append_literature(self, source, locator, label):
+        if source.get('status') != 'AVAILABLE':
+            self.message.setText('보관된 문헌 구간을 읽을 수 없습니다. 기존 근거는 유지됩니다.')
+            return False
+        reference = {'kind': 'knowledge', 'document_id': source['document_id'],
+            'revision': source['revision'], 'locator': deepcopy(locator),
+            'source_sha256': source['sha256'], 'content_sha256': canonical_hash(source)}
+        identifier = 'E' + uuid.uuid4().hex
+        self._buffer['evidence'].append({'id': identifier, 'label': label,
+            'kind': 'knowledge', 'reference': reference, 'note': ''})
+        self._selected = ('evidence', identifier)
+        self._selection_serial += 1
+        self._edited(); self._populate_evidence(); self._show_detail()
+        return True
+
+    def choose_literature_segment(self):
+        target = self._literature_selection()
+        if target is None:
+            return False
+        row, reference, relevant = target
+        label = row['label']
+        def loaded(source):
+            if source.get('status') != 'AVAILABLE' or source.get('sha256') != reference['source_sha256']:
+                self.message.setText('보관된 원문을 확인할 수 없습니다. 기존 근거는 유지됩니다.')
+                return
+            segments = source.get('segments', [])
+            labels = ['전체 보관 본문']
+            for index, segment in enumerate(segments, 1):
+                locator = segment.get('locator', {})
+                position = ('쪽 ' + str(locator['page']) if 'page' in locator else
+                    str(locator.get('section') or '본문'))
+                if 'line_start' in locator:
+                    position += ' · 행 ' + str(locator['line_start']) + '–' + str(locator['line_end'])
+                labels.append(str(index) + '. ' + position)
+            chosen, accepted = self._modal(lambda: QInputDialog.getItem(self,
+                '문헌 구간 선택', '실제로 읽고 근거로 보관할 구간', labels, editable=False))
+            if not accepted or not relevant():
+                return
+            index = labels.index(chosen)
+            locator = {} if index == 0 else deepcopy(segments[index - 1]['locator'])
+            def selected(payload):
+                if payload.get('sha256') != reference['source_sha256']:
+                    self.message.setText('선택 중 원문이 변경되었습니다. 기존 근거는 유지됩니다.')
+                    return
+                if self._append_literature(payload, locator, label + (' 선택 구간' if locator else ' 보관 본문')):
+                    self.message.setText('읽은 구간을 새 근거로 추가했습니다. 기존 근거와 판단 연결은 유지됩니다.')
+            # Defer until the current callback releases the worker guard.
+            QTimer.singleShot(0, lambda: self._call(lambda: self._knowledge_source(reference, locator=locator),
+                selected, relevant=relevant) if relevant() else None)
+        return self._call(lambda: self._knowledge_source(reference, locator={}), loaded, relevant=relevant)
+
+    def reconnect_literature_file(self, filename=None):
+        target = self._literature_selection()
+        if target is None:
+            return False
+        row, reference, relevant = target
+        owner, evidence_id = self._context(), row['id']
+        pending = self._literature_pending
+        if self._pending_literature_target():
+            return self._resume_literature_file(pending, relevant)
+        if pending:
+            self.message.setText('먼저 “' + pending['study_title'] + '”의 “' + pending['label']
+                + '” 자료에서 문헌 연결 결과 확인을 눌러 주세요. 미확정 연결을 유지합니다.')
+            return False
+        if filename is None:
+            filename, _ = self._modal(lambda: QFileDialog.getOpenFileName(self,
+                '문헌 파일 다시 연결', '', '연구 문헌 (*.pdf *.md *.txt *.csv)'))
+        if not filename or not relevant():
+            return False
+        path = Path(filename)
+        if path.suffix.lower() not in {'.pdf', '.md', '.txt', '.csv'}:
+            self.message.setText('PDF, Markdown(.md), UTF-8 텍스트 또는 CSV를 선택하세요.')
+            return False
+        def inspect():
+            with path.open('rb') as stream:
+                data = stream.read(16 * 1024 * 1024 + 1)
+            if len(data) > 16 * 1024 * 1024:
+                raise ValueError('문헌 파일은 16 MiB 이내로 선택하세요.')
+            source = self._knowledge_source(reference, locator={})
+            if source.get('sha256') != reference['source_sha256']:
+                raise ValueError('보관된 원문이 일치하지 않습니다. 기존 근거는 유지됩니다.')
+            return data, source
+        def inspected(value):
+            data, source = value
+            if hashlib.sha256(data).hexdigest() == reference['source_sha256']:
+                self.message.setText('같은 내용의 파일입니다. 이동한 경로와 관계없이 기존 보관 원문과 판단을 유지합니다.')
+                return
+            answer = self._modal(lambda: QMessageBox.question(self, '내용이 다른 문헌',
+                '선택한 파일의 내용이 다릅니다. 새 개정과 새 근거로 추가할까요?\n기존 근거와 판단 연결은 그대로 유지됩니다.',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel))
+            if answer != QMessageBox.StandardButton.Yes or not relevant():
+                return
+            pending = {'owner': owner, 'evidence_id': evidence_id, 'reference': reference, 'data': data,
+                'study_title': self.document['title'], 'label': row['label'],
+                'name': path.name, 'collection': source['collection'],
+                'request_id': 'study-source-' + uuid.uuid4().hex, 'arguments': None, 'job_id': None}
+            self._literature_pending = pending
+            QTimer.singleShot(0, lambda: self._resume_literature_file(pending, relevant) if relevant() else None)
+        return self._call(inspect, inspected, relevant=relevant)
+
+    def _resume_literature_file(self, pending, relevant):
+        def run():
+            if pending['arguments'] is None:
+                upload = self.client.upload(pending['name'], pending['data'])
+                pending['arguments'] = {'data_id': upload['id'], 'collection': pending['collection'],
+                    'document_id': pending['reference']['document_id']}
+            if pending['job_id'] is None:
+                job = self.client.submit('knowledge.ingest', pending['arguments'], request_id=pending['request_id'])
+                pending['job_id'] = job['id']
+            deadline = time.monotonic() + 20
+            while True:
+                status = self.client.status(pending['job_id'])
+                if status['state'] == 'SUCCEEDED':
+                    result = self.client.result(pending['job_id'])
+                    return self._knowledge_source(dict(result, locator={}), locator={})
+                if status['state'] in {'FAILED', 'CANCELLED', 'REJECTED'}:
+                    pending['terminal_failure'] = True
+                    raise ValueError('문헌 가져오기에 실패했습니다. 기존 근거와 판단은 유지됩니다.')
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('문헌 가져오기가 진행 중입니다. 파일 다시 연결을 눌러 같은 작업을 확인하세요.')
+                time.sleep(.05)
+        def received(source):
+            if self._append_literature(source, {}, pending['name']):
+                self._literature_pending = None
+                self.message.setText('다른 내용을 새 개정과 새 근거로 추가했습니다. 기존 판단은 원래 근거를 계속 가리킵니다.')
+        def rejected(error):
+            if pending.get('terminal_failure'):
+                self._literature_pending = None
+            self.message.setText('문헌을 연결하지 못했습니다. 기존 근거와 판단은 유지됩니다. ' + error)
+        self.message.setText('문헌의 새 개정을 보관하는 중… 응답이 끊기면 파일 다시 연결에서 재시도할 수 있습니다.')
+        return self._call(run, received, relevant=relevant, rejected=rejected)
+
     def replace_literature(self):
         row = self._row()
         if (not row or self._selected[0] != 'evidence' or row.get('kind') != 'knowledge'
                 or self._raw_mode or self._busy or self._callbacks or self.conflict):
+            return False
+        if self._pending_literature_target():
+            self.message.setText(PENDING_LITERATURE_TARGET)
             return False
         from .experiment_sources import choose_knowledge
         context = self._context(selection=True)
@@ -1149,8 +1353,8 @@ class StudyWindow(NumericalWindow):
         self.apply_button.setEnabled(enabled and self.local_dirty)
         self.save_action.setEnabled(enabled)
         self.editor_save_button.setEnabled(enabled)
-        self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
-        self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
+        self.undo_action.setEnabled(enabled and not self.local_dirty and not self._pending_literature_owner() and self.document.get('can_undo', False))
+        self.redo_action.setEnabled(enabled and not self.local_dirty and not self._pending_literature_owner() and self.document.get('can_redo', False))
         self.new_action.setEnabled(available)
         self.open_action.setEnabled(available)
         self.question.setEnabled(present and not self._raw_mode)
@@ -1161,14 +1365,20 @@ class StudyWindow(NumericalWindow):
         self.raw.setEnabled(present)
         for button in self.add_buttons + self.evidence_buttons:
             button.setEnabled(enabled and not self._raw_mode)
-        self.remove_button.setEnabled(enabled and self._row() is not None)
+        pending_target = self._pending_literature_target()
+        self.remove_button.setEnabled(enabled and self._row() is not None and not pending_target)
+        self.remove_button.setToolTip(PENDING_LITERATURE_TARGET if pending_target else '')
         self.reference_button.setEnabled(enabled and bool(self._content_reference))
         self.note_button.setEnabled(enabled and bool(self._content_reference) and not self._raw_mode)
         self.check_button.setEnabled(enabled and bool(self._content_reference))
         row = self._row()
         literature = bool(row and self._selected[0] == 'evidence' and row.get('kind') == 'knowledge')
         self.replace_literature_button.setVisible(literature)
-        self.replace_literature_button.setEnabled(enabled and literature and not self._raw_mode)
+        self.replace_literature_button.setEnabled(enabled and literature and not self._raw_mode and not pending_target)
+        self.replace_literature_button.setToolTip(PENDING_LITERATURE_TARGET if pending_target else '')
+        self.literature_segment_action.setEnabled(enabled and literature and not self._raw_mode)
+        self.literature_file_action.setEnabled(enabled and literature and not self._raw_mode)
+        self.literature_file_action.setText('문헌 연결 결과 확인…' if pending_target else '문헌 파일 다시 연결…')
         for button in (self.discussion_button, self.plan_button):
             button.setEnabled(enabled and not self._raw_mode)
         self.reload_button.setVisible(self.conflict)

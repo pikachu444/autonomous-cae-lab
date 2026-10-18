@@ -16,11 +16,13 @@ Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 �
 연결했다. 그 문서의 당시 팀 배정은 현재 실행 상태가 아니며 실제 배정은 CURRENT_STATE만 따른다.
 2026-10-18의 GUI 기반·공통 요소·개발 방식 교정은 [공학 데스크톱 개발 복구안](GUI_RECOVERY_PLAN_KO.md)에
 모았다. 이 설계의 게시와 실제 GUI 교체 완료를 구별한다.
-Data의 native 개발 경로는 고정 LabPlot의 C++/Qt/KDE 작업면을 기존 Core에 연결하는 방식으로
-유지한다. 한정된 실제 원표·원행·열/단위·Undo·저장/복구·재열기·Material 전달을 확인했으며,
-[명시 native 진입](../native/data_labplot/README.md)을 제공한다. 일반 Data 진입은 검증된
-PySide6 작업면을 유지한다. 배포 묶음·기본 진입 전환·전체 OS 입력 인수는 이 한정 확인과
-구분하며 나머지 Research는 PySide6를 유지한다.
+2026-10-18 실제 Pro 응답과 Astra 종합안에 따라 Data는 고정 LabPlot의 C++/Qt/KDE 작업면을
+제품화한다. 원표·원행·열/단위·Undo·저장/복구·재열기·Material 전달의 첫 연결은 확인했다.
+표 중심 작업면·한국어·선택별 속성·진행/취소와 최소 runtime 배포를 인수한 뒤 일반 `data`
+진입을 native로 전환한다. 그 전에는 현재 PySide6 진입과 [명시 native 진입](../native/data_labplot/README.md)을
+제공한다. 사용자가 매번 exe·SDK·내부 문서 ID를 지정하게 하지 않는다. 기존 처리·취득은 같은
+Core 문서의 전용 작업창으로 연결하고, 나머지 Research는 PySide6를 유지한다. 이 설계 채택은
+배포·전체 OS 입력 인수나 제품 전체 완료의 증거가 아니다.
 현재 우선순위는 독립 도구군의 직접 진입·주요 편집·도구 간 연결·오류 복구·저장/재개와
 Expert의 실제 연구 흐름이다. 특정 C3D10 메시나 F05 진단은 전체 제품 개발의 선행조건이 아니다.
 기존 요구 기록과 [ADR0060](../ADR/0060-independent-research-workspaces.md)의
@@ -69,6 +71,11 @@ OS 바로가기·파일 열기 또는 직접 실행 명령으로 각 도구에 �
 Material 옆에서 여는 Numerical Plan과 독립 Numerical 도구는 같은 편집기를 사용한다.
 Workbench는 이 도구들의 정확한 문서·입출력 관계를 여는 선택적인 연결 화면이다.
 
+Data의 native 창은 별도 Qt 프로세스로 실행한다. 공통 launcher가 설치된 최소 runtime을
+찾고, 배포물은 필요한 Qt/KDE 부품·번역·아이콘·고지·대응 소스를 포함한다. 개발 SDK 전체를
+사용자 설치 조건으로 만들지 않는다. 기존 명세에 이름을 정한 오픈소스 solver의 전처리→
+native 입력→실행/진행/실패/취소→Post→원 모델·저장/재개도 Research와 병행한다.
+
 | 부분 | 재사용할 기반 | 구현자가 책임질 연결 |
 |---|---|---|
 | CAD/FE | 실제 FreeCAD의 Sketcher·PartDesign·Assembly·FEM, 기존 editable FCStd 및 adapter | 같은 창의 설계·조립·운동·메시·조건, 공통 문서/명령 관문, 정확한 native 선택과 저장 |
@@ -107,7 +114,7 @@ CURRENT_STATE와 [Post 사용법](../apps/research/POST_NUMERICAL.md)에 구분�
 |---|---|---|
 | CAD/FE | **FreeCAD native 작업 화면** | Model/Property/Tasks와 실제 3D를 유지. 스케치/구속→피처 치수 수정→부품 instance/관절→운동→메시 설정/품질→조건의 대상 선택→저장·재개. Abaqus 조건 편집과 HyperMesh 품질 선택은 해당 작업의 보조 참고이며 전체 chrome을 섞지 않음 |
 | Post | **ParaView native 작업 화면과 COMSOL의 선택 설정 구조** | ParaView에서 실제 모델·필드·필터·시간·선택·분할 보기를 사용. Qt의 분석 트리에서 대상을 골라 해당 정의만 편집→미리보기→적용→실제 결과 확인→저장→관측 전달. 두 프로그램의 역할을 구분하며 native pipeline 전체를 Qt에서 복제하지 않음 |
-| Data | **Origin 워크북·그래프** | 열 이름·단위·역할·수식 행, 자료 표, 그래프 창을 직접 조작. 파일 열기→열 지정→행/범위 선택→변환 설정→처리 전후 보기→설정 재열기→저장·재개 |
+| Data | **Origin 워크북·그래프, LabPlot native 기반** | 원표와 선택 채널 곡선을 넓은 창에서는 나란히, 좁은 창에서는 같은 선택을 유지해 전환. 이름 중심 탐색과 명시적 유형 열, 채널/축/선/범례별 속성, 한국어 명령. 파일 열기→열·단위·변환·계산 사용 지정→행/범위 선택→처리 전후 보기→저장·재개 |
 | Material | **MCalibration Calibrate/Load Case** | 좌측 시험 목록과 계수 표, 우측 큰 관측/예측 곡선, 하단 실행 출력. 모델 선택→시험/이력 편집→직접 평가→계수/자유 변수 수정→동정→별도 조건 확인→모델 채택 |
 | PDE | **COMSOL Model Builder/Settings/Graphics** | 모델 트리→선택한 식/field/domain/BC의 설정→해당 영역·mesh/field가 같은 작업을 가리킴. 식/space·계수·경계 편집→오류 위치 이동→study 수치 설정→실제 평가→해/오차 비교 |
 | Numerical | **HyperStudy의 연구 트리·변수/응답 표·후보 비교** | evaluator/변수/응답·방법을 정의하고 실제 후보표와 선택 후보의 곡선·목적·제약을 함께 검사. 실패 후보, DOE, 동정, 민감도, UQ, 대리모델, 다목적을 구분. `Fit`이라는 한 이름에 동정과 대리모델 학습을 합치지 않음 |
@@ -301,6 +308,12 @@ revision, GUI/MCP의 명시적 대상과 충돌, 실행 성공과 공학 승인 
 Data/Material/PDE/Numerical 연구 도구를 같은 시점에 진행한다. 필요한 공통 연결을
 각 실제 기능에 붙이며 한 owner가 공통 문서·참조·명령·Core 변경을 통합한다.
 Material 완성을 CAD/FE·조립·Post 착수의 선행 조건으로 둔 이전 순서는 철회한다.
+
+현재 병행 인도는 Data 제품화, 기존 PDE→2D 열탄성 Evaluation→Numerical 비교, 선택한
+Expert 발언/실제 결과→Study의 명시 판단→Report 출력·cold reopen, 기존 solver profile의
+native 왕복이다. 새 3D 엔진을 연구 흐름의 선행조건으로 추가하지 않는다. 첫 인도를 게시하면
+현재 소스와 완료 근거에 맞는 다음 담당을 실제 호출한다. 현행 소유 파일·첫 호출·종료조건과
+다음 작업은 CURRENT_STATE에만 두며 과거 D/A/E 항목 수를 완성률로 쓰지 않는다.
 
 아래 P/G는 함께 보여줄 결과의 묶음이며 앞 묶음 전체가 끝나야 다음 도구를 만드는
 직렬 순서가 아니다. 처음 연결하는 도구부터 최소 저장·새 프로세스 재열기를 포함한다.

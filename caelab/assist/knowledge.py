@@ -171,7 +171,7 @@ class KnowledgeStore:
             old = self._data['documents'].get(document_id)
             if old and not self._allowed(old, workspace_id, [collection]):
                 raise PermissionError('Document revision is outside the current access scope')
-            scope = metadata.pop('access_scope', [workspace_id])
+            scope = metadata.pop('access_scope', deepcopy(old['access_scope']) if old else [workspace_id])
             if scope != 'public' and (not isinstance(scope, list) or workspace_id not in scope):
                 raise ValueError('access_scope must be public or include the importing workspace')
             if old and scope != old['access_scope']:

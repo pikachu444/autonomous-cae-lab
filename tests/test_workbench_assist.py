@@ -92,6 +92,27 @@ def test_ingest_preserves_the_bytes_used_for_extraction_if_source_changes(tmp_pa
     assert retained['segments'][0]['locator']['line_end'] == 2
 
 
+@pytest.mark.parametrize('scope', ['public', ['alpha', 'beta']])
+def test_revision_inherits_existing_access_when_not_explicitly_changed(tmp_path, scope):
+    knowledge = store(tmp_path)
+    path = tmp_path / 'shared.md'
+    path.write_text('# Original\nOriginal source.', encoding='utf-8')
+    first = knowledge.ingest(path, 'materials', {'access_scope': scope}, workspace_id='alpha')
+    before = knowledge.source(first['document_id'], 1, workspace_id='alpha')
+    path.write_text('# Revised\nAdditional observation.', encoding='utf-8')
+    second = knowledge.ingest(path, 'materials', workspace_id='alpha', document_id=first['document_id'])
+    assert second['document_id'] == first['document_id'] and second['revision'] == 2
+    assert knowledge.list(workspace_id='beta')['documents'][0]['access_scope'] == scope
+    assert knowledge.source(first['document_id'], 1, workspace_id='alpha') == before
+    with pytest.raises(ValueError, match='access scope'):
+        knowledge.ingest(path, 'materials', {'access_scope': ['alpha']},
+                         workspace_id='alpha', document_id=first['document_id'])
+    if scope != 'public':
+        with pytest.raises(PermissionError):
+            knowledge.ingest(path, 'materials', workspace_id='gamma', document_id=first['document_id'])
+    assert knowledge.list(workspace_id='alpha')['documents'][0]['latest_revision'] == 2
+
+
 def crossref_fixture(with_abstract=True):
     item = {'DOI': '10.1234/example', 'title': ['Actual fixture title'], 'author': [{'given': 'A', 'family': 'Author'}],
             'issued': {'date-parts': [[2025]]}, 'type': 'journal-article', 'URL': 'https://doi.org/10.1234/example',
