@@ -49,7 +49,9 @@ def parse_inp(text, source_map=()):
         return _parse_inp(text, context)
     except (ValueError, TypeError, KeyError, OverflowError) as error:
         file, line = locate(source_map, context['line'])
-        raise SourceError(str(error), file or '입력', line) from error
+        failure = SourceError(str(error), file or '입력', line)
+        failure.flat_line = context['line']
+        raise failure from error
 
 
 def _parse_inp(text, context):

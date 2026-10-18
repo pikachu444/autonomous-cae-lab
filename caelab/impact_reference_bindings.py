@@ -69,7 +69,7 @@ def snapshot(settings, model=None):
             raise SourceError('벌크·계면·접촉쌍의 원 대상을 확인하세요')
         source=pair_target(identity) if scope=='pair' else _entity(model,'CELLS',identity)
         rows.append({'selection':['b_responses',index,'identity'],'value':identity,'source':source})
-    for kind in ('bulk_damage','interface_controls'):
+    for kind in ('cohesive','bulk_damage','interface_controls'):
         for index,item in enumerate(settings.get(kind, [])):
             material=item['material']
             members=[_entity(model,'CELLS',e) for e,name in model['assignment'].items() if name==material]
