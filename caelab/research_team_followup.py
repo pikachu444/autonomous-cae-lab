@@ -197,6 +197,70 @@ TRANSFER_SELECTIONS = {
     'result_review': {'turn_id', 'proposal_index', 'plan_document_id', 'job_id', 'selector', 'actor_ids'}}
 
 
+def open_study_from_turn(wb, document_id, selection, *, session_id, expected_generation, command_id):
+    """Pin a legacy saved turn through the existing retryable Study transfer."""
+    from .storage import load_json, save_json
+    from .study_document import reference_error
+    reference = selection['turn_ref']
+    _need(not reference_error(reference) and reference.get('kind') == 'expert_turn'
+          and reference.get('discussion_id') == document_id, 'Select an exact saved turn from this discussion')
+    evidence = selection.get('evidence_ref')
+    if evidence is not None:
+        _need(not reference_error(evidence) and evidence.get('kind') in
+              {'knowledge', 'result', 'numerical_candidate_evidence'}, 'Select exact retained evidence')
+    # Logical immutable selection survives owner restarts; session/generation are
+    # current admission checks, not part of the saved destination's identity.
+    signature = canonical_hash({'document_id': document_id, 'kind': 'legacy_study', 'selection': selection})
+    owner = wb.discussion_documents
+    with wb.desktop._lock, owner._lock(document_id):
+        discussion = owner.read(document_id)
+        path = wb.desktop.root / 'discussion_studies' / (command_id + '.json')
+        prior = load_json(path) if path.exists() else None
+        if prior is not None and prior['request_hash'] != signature:
+            # Earlier local receipts included session/generation in the hash.
+            # Recover only an already created exact destination and its original
+            # source pins; never accept an unrelated command hash or create anew.
+            references = [reference] + ([evidence] if evidence is not None else [])
+            proposal = prior.get('proposal', {})
+            original_refs = [row.get('reference') for row in proposal.get('draft', {}).get('evidence', [])]
+            identifier = prior.get('document_id', '')
+            target = wb.study_documents
+            _need('request_kind' not in prior and prior.get('state') in {'APPLYING', 'SUCCEEDED'} and
+                  identifier == 'S' + prior['request_hash'][:32] and
+                  proposal.get('source_references') == references and original_refs == references and
+                  ((target._folder(identifier) / 'working.json').exists() or target._manifest(identifier)),
+                  'Study command conflicts with another source selection')
+        # Recheck current access on every retry, even when creation already committed.
+        resolved = wb.research_reference(reference)
+        _need(resolved.get('status') == 'AVAILABLE', 'The saved source turn is unavailable')
+        turn = resolved['turn']
+        _need(not turn.get('research_response_id'), 'Use the verified research claim transfer for this response')
+        if evidence is not None:
+            _need(wb.research_reference(evidence).get('status') == 'AVAILABLE', 'The selected retained evidence is unavailable')
+        if prior is None:
+            _need(discussion['generation'] == expected_generation, 'The source discussion changed; preserve your current edit')
+            draft = study_draft()
+            draft['question'] = (turn.get('topic') or {}).get('title') or discussion['title']
+            references = [reference] + ([evidence] if evidence is not None else [])
+            for index, ref in enumerate(references):
+                draft['evidence'].append({'id': 'E' + canonical_hash({'request': signature, 'index': index})[:32],
+                    'label': '선택한 저장 발언' if index == 0 else '선택한 근거',
+                    'kind': ref['kind'], 'reference': deepcopy(ref), 'note': ''})
+            prior = {'request_hash': signature, 'request_kind': 'legacy_saved_selection_v2', 'document_id': 'S' + signature[:32],
+                'proposal': {'draft': draft, 'source_references': deepcopy(references)}, 'state': 'APPLYING'}
+            save_json(path, prior)
+        target = wb.study_documents
+        with target._lock(prior['document_id']):
+            identifier = prior['document_id']
+            if (target._folder(identifier) / 'working.json').exists() or target._manifest(identifier):
+                document = target.read(identifier)
+            else:
+                document = target.open(_new_id=identifier, title='연구 판단 작성', draft=prior['proposal']['draft'])
+            save_json(path, {**prior, 'state': 'SUCCEEDED'})
+        return {'document': document, 'command_id': command_id, 'status': 'DRAFT_OPENED',
+            'dependency_ids': [], 'source_references': deepcopy(prior['proposal']['source_references']), 'executed': False}
+
+
 def build_transfer_context(wb, discussion):
     """Compose existing owner/portable and B gates; never contact a provider."""
     from types import SimpleNamespace
@@ -327,10 +391,15 @@ def transfer(wb, document_id, kind, selection, *, session_id, expected_generatio
     from .storage import check_id, load_json, save_json
     from .assist.research_evidence import local_projection, shared_projection
     document_id, command_id = map(check_id, (document_id, command_id))
+    legacy_study = (kind == 'study' and isinstance(selection, dict) and
+                    set(selection) in ({'turn_ref'}, {'turn_ref', 'evidence_ref'}))
     _need(kind in TRANSFER_SELECTIONS and isinstance(selection, dict) and
-          set(selection) == TRANSFER_SELECTIONS[kind], 'Choose a supported stored research selection')
+          (legacy_study or set(selection) == TRANSFER_SELECTIONS[kind]), 'Choose a supported stored research selection')
     _need(session_id == wb.session_id and type(expected_generation) is int and expected_generation >= 0,
           'Use the current document owner session and generation')
+    if legacy_study:
+        return open_study_from_turn(wb, document_id, selection, session_id=session_id,
+            expected_generation=expected_generation, command_id=command_id)
     owner = wb.discussion_documents
     with wb.desktop._lock, owner._lock(document_id):
         discussion = owner.read(document_id)

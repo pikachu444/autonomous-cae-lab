@@ -43,6 +43,8 @@ class ReportWindow(QMainWindow):
         self._source_windows = []
         self._edit_buffers = {}
         self._editing_section = None
+        self._leave_after = None
+        self._allow_close = False
         self._build_ui()
         if auto_open:
             self.open_document(document_id)
@@ -377,7 +379,7 @@ class ReportWindow(QMainWindow):
                 self.message.setText('서버 버전을 확인했습니다. 현재 편집은 유지됩니다.')
         return self._call(lambda:self.client.document_read(identifier),read)
 
-    def save_document(self):
+    def save_document(self, *, after=None):
         self.edit_title()
         self.remember_editor()
         if self._edit_buffers:
@@ -386,8 +388,8 @@ class ReportWindow(QMainWindow):
         if self._pending:return self.retry()
         if not self.document:return False
         if self.draft!=self.document['draft']:
-            return self.command('report.update',{'draft':deepcopy(self.draft)},self.save_document)
-        return self.command('document.save',{})
+            return self.command('report.update',{'draft':deepcopy(self.draft)},lambda:self.save_document(after=after))
+        return self.command('document.save',{},after)
 
     def prepare_portable_copy(self):
         if self._busy or self._pending or not self.document:
@@ -446,16 +448,15 @@ class ReportWindow(QMainWindow):
             self.command('document.redo',{},self.read_assets)
 
     def choose_document(self):
-        if not self.can_leave():return
         def listed(payload):
             rows=[d for d in payload['documents'] if d.get('kind')=='report']
             labels=[str(i+1)+'. '+d['title'] for i,d in enumerate(rows)]
             label,ok=QInputDialog.getItem(self,'보고서 열기','보고서',labels,editable=False)
             if ok:self.open_document(rows[labels.index(label)]['id'])
-        return self._call(self.client.documents,listed)
+        return self._leave(lambda:self._call(self.client.documents,listed))
 
     def new_document(self):
-        if self.can_leave():self.open_document()
+        return self._leave(self.open_document)
 
     def choose_result(self):
         def listed(payload):
@@ -644,14 +645,44 @@ class ReportWindow(QMainWindow):
         return export_checked(self, format)
 
     def can_leave(self):
+        if self._allow_close:return True
         if self._busy or self._pending:return False
         self.remember_editor()
         dirty=bool(self._edit_buffers) or self.document and (self.document.get('dirty') or self.draft!=self.document['draft'])
         if dirty:
-            return QMessageBox.question(self,'저장하지 않은 보고서','변경을 저장하지 않고 닫을까요?',
-                QMessageBox.StandardButton.Discard|QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Cancel)==QMessageBox.StandardButton.Discard
+            answer=QMessageBox.question(self,'저장하지 않은 보고서','변경한 제목·본문·설명을 저장할까요?',
+                QMessageBox.StandardButton.Save|QMessageBox.StandardButton.Discard|QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel)
+            if answer==QMessageBox.StandardButton.Save:
+                # Save in this dialog explicitly includes all pending section descriptions.
+                draft=deepcopy(self.draft)
+                for row in draft['sections']:
+                    if row['id'] in self._edit_buffers:row.update(self._edit_buffers[row['id']])
+                self._edit_buffers.clear();self._editing_section=None;self.section_editor.hide()
+                self.changed(draft)
+                continuation=self._leave_after
+                self.save_document(after=lambda:self._continue_leave(continuation))
+                return False
+            return answer==QMessageBox.StandardButton.Discard
         return True
+
+    def _leave(self, continuation):
+        self._leave_after=continuation
+        try:
+            if self.can_leave():return continuation()
+        finally:
+            self._leave_after=None
+        return False
+
+    def _continue_leave(self, continuation=None):
+        self.remember_editor()
+        if (self._busy or self._pending or self._edit_buffers or not self.document
+                or self.document.get('dirty') or self.draft!=self.document['draft']):
+            self.message.setText('저장 중 새 편집이 남았습니다. 확인 후 다시 열거나 닫으세요.')
+            return False
+        if continuation is not None:return continuation()
+        self._allow_close=True
+        return self.close()
 
     def closeEvent(self,event):
         if not self.can_leave():event.ignore();return

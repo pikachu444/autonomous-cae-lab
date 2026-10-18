@@ -95,6 +95,8 @@ class ExpertWindow(QMainWindow):
         self._protocol_delivery = None
         self._protocol_after = None
         self._protocol_notice = None
+        self._study_windows = {}
+        self._study_transfer_pending = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -220,6 +222,16 @@ class ExpertWindow(QMainWindow):
             self.turns.currentItem().data(Qt.ItemDataRole.UserRole)) if self.turns.currentItem() else None)
         selected_turn.addWidget(self.turn_context, 1)
         selected_turn.addWidget(self.selected_reply)
+        self.study_action = QAction('연구에 정리', self)
+        self.study_action.triggered.connect(self.organize_study)
+        edit.addAction(self.study_action)
+        self.study_retry_action = QAction('연구 연결 결과 확인…', self)
+        self.study_retry_action.triggered.connect(lambda: self._send_study_transfer(explicit=True))
+        edit.addAction(self.study_retry_action)
+        self.study_retry_action.setVisible(False)
+        from .common.commands import action_button
+        selected_turn.addWidget(action_button(self.study_action, self))
+        selected_turn.addWidget(action_button(self.study_retry_action, self))
         conversation.addLayout(selected_turn)
         self.turns = ConversationList()
         self.turns.citation_requested.connect(self.open_turn_citation)
@@ -340,7 +352,7 @@ class ExpertWindow(QMainWindow):
         self.source_preview = SourcePreview()
         source_layout.addWidget(self.source_preview, 1)
         self.side.addTab(self.source_tab, '참고 자료')
-        evidence_tab = QWidget()
+        evidence_tab = self.citation_tab = QWidget()
         evidence_layout = QVBoxLayout(evidence_tab)
         self.sources = QListWidget()
         self.sources.setMaximumHeight(130)
@@ -405,7 +417,7 @@ class ExpertWindow(QMainWindow):
         left.setMinimumWidth(230); left.setMaximumWidth(300)
         splitter.setSizes([270, 830, 340])
         self.side.hide()
-        for label, tab in (('참고 자료', self.source_tab), ('계산 계획', plan_tab),
+        for label, tab in (('참고 자료', self.source_tab), ('발언 근거', self.citation_tab), ('계산 계획', plan_tab),
                            ('참여 역할', participant_tab), ('전송 설정', settings)):
             action = QAction(label, self)
             action.triggered.connect(lambda checked=False, tab=tab: self.show_side(tab))
@@ -1168,6 +1180,7 @@ class ExpertWindow(QMainWindow):
         self._references, self._plans = [], []
         self.turn_context.clear()
         self.selected_reply.setEnabled(bool(current and self.document))
+        self.study_action.setEnabled(bool(current and self.document and not self._busy and not self.conflict))
         if not current or not self.document:
             return
         turn = next(row for row in self.document.get('turns', []) if row['id'] == current.data(Qt.ItemDataRole.UserRole))
@@ -1193,9 +1206,17 @@ class ExpertWindow(QMainWindow):
             self._references.append({'document_id': self.document['id'], 'job_id': turn['job_id'],
                                      'input_revision': turn.get('input_revision'),
                                      'input_sha256': turn.get('input_sha256'), 'selection': []})
-        for reference in self._references:
-            label = ('계산 결과' if 'job_id' in reference or 'run_id' in reference else '논문' if 'paper_id' in reference
+        for index, reference in enumerate(self._references, 1):
+            label = ('발언 생성 기록' if reference.get('job_id') == turn.get('job_id') and reference.get('document_id') == self.document['id']
+                     else '선택 후보 근거' if reference.get('kind') == 'numerical_candidate_evidence'
+                     else '계산 결과' if 'job_id' in reference or 'run_id' in reference else '논문' if 'paper_id' in reference
                      else self._source_titles.get(reference.get('document_id'), '참고 자료'))
+            channels = reference.get('selection', reference.get('response_selection'))
+            if isinstance(channels, dict):
+                channels = channels.get('responses')
+            label = str(index) + '. ' + label
+            if isinstance(channels, list) and channels:
+                label += ': ' + ', '.join(channels)
             item = QListWidgetItem(label)
             item.setToolTip('진단 상세에서 원본 식별 정보를 확인할 수 있습니다.')
             self.sources.addItem(item)
@@ -1204,6 +1225,113 @@ class ExpertWindow(QMainWindow):
             plan = proposal.get('plan', {}) if isinstance(proposal, dict) else {}
             self.plans.addItem(str(index + 1) + '. ' + str(plan.get('purpose') or '계산 제안'))
         self._update_actions()
+
+    def organize_study(self):
+        if (not self.document or self._busy or self._handling_reply or self._source_choosing or self.conflict):
+            return False
+        current = self.turns.currentItem()
+        if current is None:
+            return False
+        turn_id = current.data(Qt.ItemDataRole.UserRole)
+        turn = next((row for row in self.document.get('turns', []) if row['id'] == turn_id), None)
+        if turn and turn.get('research_response_id'):
+            # Keep the existing claim/dependency verification and retry receipt.
+            return self.research_team_transfer('study', turn_id)
+        owner = (self.document['id'], self.document['session_id'])
+        source_index = self.sources.currentRow()
+        source = deepcopy(self._references[source_index]) if 0 <= source_index < len(self._references) else None
+        if self.local_dirty or self.document.get('dirty') or not self.document.get('saved_revision'):
+            answer = QMessageBox.question(self, '선택 발언 정리', '대화를 저장한 뒤 선택한 발언과 근거를 연구에 정리할까요?',
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+            if answer == QMessageBox.StandardButton.Save:
+                def saved():
+                    if self.document and (self.document['id'], self.document['session_id']) == owner:
+                        item = self.turns.currentItem()
+                        index = self.sources.currentRow()
+                        selected = self._references[index] if 0 <= index < len(self._references) else None
+                        if item and item.data(Qt.ItemDataRole.UserRole) == turn_id and selected == source:
+                            self.organize_study()
+                        else:
+                            self.message.setText('대화를 저장했습니다. 정리할 발언과 근거를 다시 선택하세요.')
+                return self.save_document(after=saved)
+            return False
+        document = deepcopy(self.document)
+        key = (document['id'], document['saved_revision'], turn_id, canonical_hash(source))
+        from shiboken6 import isValid
+        previous = self._study_windows.get(key)
+        if previous is not None and isValid(previous) and not previous._closed:
+            previous.show(); previous.raise_(); previous.activateWindow()
+            return previous
+        pending = self._study_transfer_pending
+        if pending and pending['key'] != key:
+            self.message.setText('미확정 연구 연결이 있습니다. 편집 메뉴의 연구 연결 결과 확인에서 원 요청을 먼저 확인하세요.')
+            return False
+        if not pending:
+            self._study_transfer_pending = dict(key=key, document=document, turn_id=turn_id,
+                source=source, arguments=None, dispatched=False)
+        return self._send_study_transfer()
+
+    def _study_selection_key(self):
+        if not self.document:
+            return None
+        item = self.turns.currentItem()
+        index = self.sources.currentRow()
+        source = self._references[index] if 0 <= index < len(self._references) else None
+        return (self.document['id'], self.document.get('saved_revision'),
+            item.data(Qt.ItemDataRole.UserRole) if item else None, canonical_hash(source))
+
+    def _send_study_transfer(self, *, explicit=False):
+        pending = self._study_transfer_pending
+        if not pending or self._busy or self._handling_reply or self._source_choosing:
+            return False
+        display = (self.document['id'], self.document['session_id'], self._study_selection_key()) if self.document else None
+        def transfer():
+            if pending['arguments'] is None:
+                from .expert_study import selected_references
+                document = pending['document']
+                selection = selected_references(self.client, document, pending['turn_id'], pending['source'])
+                command_id = 'C'+canonical_hash({'operation':'expert.selected-study',
+                    'document_id':document['id'], 'selection':selection})
+                pending['arguments'] = dict(document_id=document['id'], kind='study', selection=selection,
+                    session_id=document['session_id'], expected_generation=document['generation'], command_id=command_id)
+            pending['dispatched'] = True
+            try:
+                return self.client.research_team_transfer(**deepcopy(pending['arguments']))
+            except Exception as error:
+                from caelab.workbench_client import WorkbenchHTTPError
+                # This exact rejection occurs only before the owner creates a receipt.
+                if (isinstance(error, WorkbenchHTTPError) and error.code == 400
+                        and error.service_message == 'ValueError: The source discussion changed; preserve your current edit'):
+                    pending['rejected_before_create'] = True
+                raise
+        def received(receipt):
+            if self._study_transfer_pending is not pending:
+                return
+            current = (self.document['id'], self.document['session_id'], self._study_selection_key()) if self.document else None
+            if current != display or (not explicit and self._study_selection_key() != pending['key']):
+                self.message.setText('선택이 변경되어 연구 창을 열지 않았습니다. 편집 메뉴의 연구 연결 결과 확인으로 원 요청을 확인하세요.')
+                return
+            if receipt.get('status') != 'DRAFT_OPENED' or receipt.get('executed') is not False:
+                self.message.setText('미실행 연구 문서의 연결 결과를 확인하지 못했습니다. 원 요청을 다시 확인하세요.')
+                return
+            from .study_window import StudyWindow
+            window = self._study_windows.get(pending['key'])
+            from shiboken6 import isValid
+            if window is None or not isValid(window) or window._closed:
+                window = StudyWindow(self.client, document_id=receipt['document']['id'], poll_interval=0)
+                self._study_windows[pending['key']] = window
+            window.show(); window.raise_(); window.activateWindow()
+            self._study_transfer_pending = None
+            self.message.setText('선택 발언과 근거를 연구에 연결했습니다. 판단은 연구에서 직접 작성하세요.')
+        def failed(error):
+            if not pending['dispatched'] or pending.get('rejected_before_create'):
+                self._study_transfer_pending = None
+                QTimer.singleShot(0, lambda: self.message.setText(
+                    '연구 연결을 적용하지 않았습니다. 편집은 유지됩니다. 대화를 다시 읽고 발언과 근거를 다시 선택하세요.'))
+            else:
+                QTimer.singleShot(0, lambda: self.message.setText(
+                    '연구 연결 응답을 받지 못했습니다. 편집 메뉴의 연구 연결 결과 확인에서 같은 요청을 확인하세요.'))
+        return self._call(transfer, received, failure=failed)
 
     def add_topic(self):
         if not self._buffer:
@@ -1615,6 +1743,11 @@ class ExpertWindow(QMainWindow):
             button.setEnabled(enabled and not self._draft_problem)
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._draft_problem)
         self.save_action.setEnabled(enabled)
+        self.study_action.setEnabled(enabled and self.turns.currentItem() is not None)
+        self.study_action.setToolTip('선택 발언과 발언 근거에서 고른 자료를 새 연구에 정리합니다.'
+            if self.sources.currentRow() >= 0 else '선택 발언을 새 연구에 정리합니다. 발언 근거에서 자료를 함께 고를 수 있습니다.')
+        self.study_retry_action.setVisible(self._study_transfer_pending is not None)
+        self.study_retry_action.setEnabled(enabled and self._study_transfer_pending is not None)
         self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
         self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
         self.pause_button.setEnabled(enabled)

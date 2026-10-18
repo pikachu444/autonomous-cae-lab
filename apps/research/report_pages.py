@@ -177,7 +177,10 @@ def blocks(content):
             if response.get('valid') is False or response.get('reason'):
                 yield ('paragraph', '응답 판정: '+('무효' if response.get('valid') is False else '미확인')+
                        ' / '+str(response.get('reason',response.get('invalid_reason','원자료 확인 필요'))))
-            if len(coordinates) == len(values) and not response.get('calibration'):
+            scalar_series = all(value is None or type(value) in (int, float) for value in values)
+            if not scalar_series:
+                yield ('paragraph', '다성분 응답은 원 표에 보존됩니다. 텐서·벡터는 원 결과에서 스칼라 성분을 명시적으로 선택한 뒤 곡선으로 추가하세요.')
+            if scalar_series and len(coordinates) == len(values) and not response.get('calibration'):
                 yield ('curve', {'x': coordinates, 'y': values, 'source_rows': rows,
                     'mask': mask, 'segments': response.get('segments'),
                     'x_label': physical_text('axis',axes[0].get('name', '')) + ' [' + axes[0].get('unit', '') + ']',
@@ -315,7 +318,10 @@ def compose(draft, assets, font):
                 image = QImage.fromData(QByteArray(png), 'PNG')
                 key = QUrl('report-image:' + str(images)); images += 1
                 document.addResource(QTextDocument.ResourceType.ImageResource, key, image)
-                fmt = QTextImageFormat(); fmt.setName(key.toString()); fmt.setWidth(515); fmt.setHeight(225)
+                # Native preview/print use the same document body, including its margins.
+                body_width = document.pageSize().width() - 2 * document.documentMargin()
+                width = min(515., max(1., body_width))
+                fmt = QTextImageFormat(); fmt.setName(key.toString()); fmt.setWidth(width); fmt.setHeight(width * 225 / 515)
                 cursor.insertImage(fmt); cursor.insertBlock()
             elif kind == 'table' and section['table']:
                 headers, rows = value

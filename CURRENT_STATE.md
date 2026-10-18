@@ -18,7 +18,7 @@
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
-| material_numerical_impl / Sol-high | 현재 `expert_window.py`, `report_window.py`, 두 앱 전용 helper/검사·`EXPERT_STUDY_REPORT_KO.md` 단독. Study 인도 freeze | Study의 두 P2·시각 검토를 닫고 실제 followup 호출. 저장 발언/returned-run·후보 근거→Study 명시 판단→Report 출력·save/discard/cancel·cold를 기존 owner로 구현. 승인 없는 live provider 호출 없음 |
+| material_numerical_impl / Sol-high | Expert/Report 전용 창·helper/검사·사용법 인도 freeze. 다음은 기존 Experiment Analysis 전용 창/actions/reporting·검사 | 저장 발언/선택 결과→Study 명시 판단→Report 출력·save/discard/cancel·cold 완료. 같은 담당에게 B7.4 보존 FD/식별성→명시 다음 시험 질문→Study/Report의 준비 packet을 실제 후속 배정 |
 | native_impl / Sol-high | 현재 `numerical_window.py`, `numerical_extension_widgets.py`, `s2_gradient_widgets.py`와 전용 helper/검사·사용법. 공통 엔진/owner/API는 Codex | PDE→Evaluation 인도와 단계 선택 P2 폐쇄 후 실제 followup 호출. B5.4/B5.6/B6.4의 기존 derivative·Picard/MDO·보존 모델과 동일 Evaluation/Plan 사용자 흐름을 이어 구현 |
 | data_impl / Sol-high | 현재 `impact_native.py`, `impact_native_b.py`, `impact_rad_source.py`, 신규 `impact_native_material_cards.py`와 전용 검사·사용법 | B2.5.L01은 `34f4815`로 게시. 실제 followup으로 B2.5.L02 시작, 기존 native bulk/interface 원카드 whitelist 반례 확보. 제한된 LAW36/INIEVO·LAW117 편집/실행/복구를 기존 parser·법칙·reader에 합류 |
 | native_cae_adviser / Astra-xhigh | B2.5.L02의 exact producer/primary manual·보존 native 입력에 근거한 한정 자문. 제품 파일·실행 없음 | 원 법칙/정수 카드·단위·contact Tstart·validation copy와 export 구분을 실제 writer와 협의. sibling 송신 오류로 Codex가 구체 질문·답변 중계 |
@@ -44,8 +44,9 @@ FreeCAD/FEM·메셔·native writer·JobManager·ParaView/reader를 재사용한�
 종합의 표 중심 병치/좁은 전환·이름 우선·맥락별 설정·분석/출력 분리와 최소 runtime 방침을
 실제 두 writer에 배정했다. 새 build의 폭/표시를 교정 중이며 사용자 피드백은 아직 최종 인수 전이다.
 
-Study와 채택 설계는 `6dfdcfe`, 계층 INP는 `34f4815`로 원격 게시를 확인했다. 현재 다음 행동은
-Evaluation 인도 게시, 진행 중 Data UX/runtime·Expert/Report·native RAD·Numerical 인도다. 일반 Data 기본
+Study와 채택 설계는 `6dfdcfe`, 계층 INP는 `34f4815`, Evaluation은 `f91b976`, 등록 응답의
+DOE/UQ 연결은 `501ddab`로 원격 게시를 확인했다. 현재 다음 행동은 Expert/Report 인도 게시와
+실제 후속 배정, 진행 중 Data UX/runtime·native RAD·Numerical 인도다. 일반 Data 기본
 진입은 UX·최소 runtime 인수 뒤 native로 전환한다. 그 전의 현재 PySide6 기본과 명시 native
 진입을 최종 이중 기본 경로로 고정하지 않는다. 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
@@ -54,7 +55,7 @@ Evaluation 인도 게시, 진행 중 Data UX/runtime·Expert/Report·native RAD�
 |---|---|---|
 | Data 제품화 | 변경 native build의 원표/곡선·원행·단일 update와 실제 prepare 성공/확인 취소/동일 job 응답 유실 복구 통과. 최종 일반/좁은 UI·저장/cold·최소 runtime launcher로 마감 | 기존 recipe/resample 계보·큰 표. build07 cache dock 수명 crash를 보존하고 build08에서 선택/재열기를 교정 중; 기본 진입은 아직 전환 전 |
 | Numerical/동일 Evaluation | 실제 followup 시작. 기존 저장 Evaluation→Plan exact 참조·방법/변수/예산→작은 실제 후보부터 통합. derivative 의미·실패/잔차·Pareto/보존 모델·명시 채택·cold로 마감 | 기존 상세 명세의 다음 미완료 leaf를 인도 후 대조. 공통 엔진 재작성·새 3D/범용 adjoint 없음 |
-| Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. root의 같은 명령 재확인 legacy 전달 경로에 연결해 판단·출력·저장/폐기/취소·cold로 마감 | 기존 B7.4·Report 자료/관측 출처 연결 잔여. 미승인 live provider는 독립 작업의 의존으로 만들지 않음 |
+| Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. 같은 명령 재확인·현재 권한 재검증·편집 보존·명시 판단·출력·저장/폐기/취소·cold와 독립 검토를 마침 | 다음 B7.4: 기존 보존 식별성/FD 진단에서 사용자가 다음 시험 질문을 골라 Study/Report로 연결. 원 결과 재사용, 새 provider/물리 campaign 없음 |
 | native RAD | 실제 followup 시작. 기존 bulk/interface native 원본 두 개→제한 field 편집/원 bytes→기존 pinned 실행·실제 채널·owner/cold로 마감. 공통 adapter/workflow는 Codex | 기존 B2.6의 실제 미완료 profile만 다음 준비. 법칙·허용치·engineering UNKNOWN 보존, 새 solver 엔진 없음 |
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
@@ -127,6 +128,20 @@ Numerical의 첫 실제 Plan 호출에서 등록된 Evaluation 응답을 골라�
 기존 엔진에 합류하도록 교정했다. 실제 HTTP의 허용/미등록 응답과 기존 보존 검사 4개가
 통과했고 새 실제 Plan `Nb65849f97be44de9b88e3b19f28ea7e0`의 DOE 3후보가 원 예산 3으로
 성공했다. 원 Evaluation 결과는 불변이다. 후속 RBF/전체차원 Pareto·Picard·cold 작업은 진행 중이다.
+
+Expert의 보관 실제 발언과 선택 stress 6개·tangent 근거를 같은 HTTP/Qt owner로 Study에
+연결했다. 새 Study는 미판단이며 사용자가 지지/반박과 메모를 직접 작성한다. 연결 응답
+유실 뒤 같은 명령을 확인해 이미 편집한 Study 한 개를 보존했고 서비스 재시작·현재 접근
+권한·원 참조 hash를 검증했다. 접수 전 generation 거절은 편집을 유지해 재선택하며,
+불명확한 통신 실패는 원 미확정 요청을 유지한다. 두 P2의 실제 반례와 교정을 Astra가 닫았다.
+Report의 본문·표·곡선과 저장/버리기/취소, PDF/Markdown, 별도 Windows cold를 확인했다.
+원 접선 텐서 3시점×81성분은 표로 보존하고 임의 스칼라 곡선을 만들지 않으며, stress
+곡선 6개는 실제 출력했다. 최종 18검사와 root legacy 전달 관련 9검사는 통과했다(중복 합산
+없음). 최종 PDF 5쪽의 직접 렌더와 일반/좁은 창은 시각 담당과 Astra 검토를 마쳤다.
+`_workspace/expert-study-report/repair-final/`에 정확 저장 결과·교정 PDF·원 실패를 보존한다.
+새 계산/provider 호출은 0이며 QPrintPreviewWidget의 COM 진단은 로그에 남는다. 종료 0과
+실제 출력 확인을 무진단 실행으로 표현하지 않는다. [사용법과 실제 화면](docs/EXPERT_STUDY_REPORT_KO.md)을
+게시한다. 전체 B7·새 live 상담·모든 OS 직접 입력·공학 적합성 완료는 아니다.
 
 ### 완료한 첫 묶음 — 실제 에이전트 배정과 첫 호출부터의 통합 (2026-10-18)
 
