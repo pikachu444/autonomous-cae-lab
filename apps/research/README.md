@@ -118,6 +118,44 @@ Ordinary editing and existing-result reading do not require an AI login. Expert
 inference requires the configured actual provider and its permitted tool scope.
 Do not combine this Qt/Python environment with FreeCAD's or ParaView's bundles.
 
+## Data source table and material observations
+
+Data opens the complete original numeric table in pages of up to 4096 rows,
+including before an import is valid. Sorting the displayed table preserves
+original row identities. Calculation exclusion, quality flags and hidden rows
+are separate edits. Apply sends one document update; **Prepare data** explicitly
+creates an import result. Local Undo after Apply leaves a new unapplied edit.
+
+Save applies the buffer, saves the Core document, then atomically saves its local
+view settings against that exact saved reference. If only the view save fails,
+retry finishes that saved revision. Input conflicts and lost command responses
+preserve the local buffer for explicit recovery. See the
+[Data workflow and recovery guide](../../docs/DATA_WORKSPACE_KO.md).
+
+The same read-only source-table route is available through Python, CLI and
+optional MCP; these calls do not import data or create jobs:
+
+```python
+page = client.document_source_table(document_id, start=0, count=4096)
+```
+
+```powershell
+python -m caelab.workbench_cli documents source-table DOCUMENT_ID --url http://127.0.0.1:8766 --start 0 --count 4096
+```
+
+The optional MCP tool is `data_source_table(document_id, start=0, count=4096)`.
+The response carries the current document/input identity, raw numeric columns
+and original row numbers. CSV/TSV rows are zero-based physical text lines; NPZ
+rows are array indices. Display access does not relax import validation.
+
+**Use in Material** selects an actual retained import matching the current Data
+input, saves it when needed, and requests a separate Material editor with that
+exact result reference. The Material editor verifies the source and stages an
+observation. Select an existing Numerical plan, or explicitly create one, to
+register the test and its protocol. Registration, fitting and adoption remain
+separate actions. The existing Numerical plan owns these experiments; this
+delivery does not introduce a second trial store in Material.
+
 ## Numerical worksheet and returning a result
 
 Direct Numerical entry without a document ID opens the generic Request Plan.

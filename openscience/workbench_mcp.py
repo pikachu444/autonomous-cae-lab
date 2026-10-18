@@ -180,6 +180,11 @@ def data_source_preview(document_id: str) -> dict:
     return client().document_source_preview(document_id)
 
 @mcp.tool()
+def data_source_table(document_id: str, start: int=0, count: int=4096) -> dict:
+    """Read original numeric columns/rows and exact input identity; no import or calculation."""
+    return client().document_source_table(document_id,start=start,count=count)
+
+@mcp.tool()
 def data_compare(source: dict, prediction_source: dict) -> dict:
     """Compare and retain exact Data/Material/PDE/Simulation curves with explicit units/frame/measure; never rerun a solver."""
     return client().document_compare(source,prediction_source)

@@ -1,6 +1,8 @@
 """Original-table transport shares the import parser and preserves source identity."""
 from copy import deepcopy
+import asyncio
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -79,6 +81,11 @@ def test_http_first_read_apply_and_cold_reopen_preserve_original(tmp_path):
         assert first['count'] == 4096 and second['count'] == 4
         assert first['source_rows'][0] == 1 and second['source_rows'] == [4097, 4098, 4099, 4100]
         assert first['columns'][1]['values'][0] == 0 and second['columns'][1]['values'][-1] == 8198
+        cli = subprocess.run([sys.executable, '-m', 'caelab', 'documents', 'source-table',
+            document['id'], '--url', client.url, '--start', '4096', '--count', '4'],
+            cwd=Path(__file__).resolve().parents[1], text=True, capture_output=True, timeout=30)
+        assert cli.returncode == 0, cli.stderr
+        assert json.loads(cli.stdout) == second
         for field in ('document_id', 'session_id', 'generation', 'input_revision', 'input_sha256', 'data_id', 'sha256'):
             assert first[field] == second[field]
         assert client.document_read(document['id']) == document
@@ -122,3 +129,39 @@ def test_http_first_read_apply_and_cold_reopen_preserve_original(tmp_path):
     assert reopened['session_id'] != first['session_id']
     assert reopened['source_rows'] == [4097, 4098, 4099, 4100]
     assert reopened['mapping'] == edited['mapping']
+
+
+def test_actual_stdio_reads_same_table_without_creating_a_job(tmp_path):
+    pytest.importorskip('mcp')
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+    server = LabHTTPServer(LabService(tmp_path / 'workspace'), 0)
+    thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': .02}, daemon=True)
+    thread.start()
+    client = Client(f'http://127.0.0.1:{server.server_port}')
+    try:
+        registered = client.upload('public.csv', b't,f\n1,10\n1,20\n2,30\n')
+        draft = default_draft()
+        draft.update(data_id=registered['id'])
+        draft['mapping']['skip_header'] = 1
+        document = client.document_open(kind='data', draft=draft)
+        async def exercise():
+            parameters = StdioServerParameters(command=sys.executable,
+                args=['-m', 'openscience.workbench_mcp'],
+                env={**os.environ, 'CAELAB_SERVICE_URL': client.url})
+            async with stdio_client(parameters) as (reader, writer):
+                async with ClientSession(reader, writer) as session:
+                    await session.initialize()
+                    reply = await session.call_tool('data_source_table',
+                        {'document_id': document['id'], 'start': 1, 'count': 2})
+                    assert not reply.isError, reply.content
+                    return reply.structuredContent or json.loads(reply.content[0].text)
+        page = asyncio.run(asyncio.wait_for(exercise(), timeout=35))
+        assert page == client.document_source_table(document['id'], start=1, count=2)
+        assert page['source_rows'] == [2, 3] and page['columns'][1]['values'] == [20, 30]
+        assert client.document_read(document['id']) == document
+        assert server.workbench.manager.list() == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)

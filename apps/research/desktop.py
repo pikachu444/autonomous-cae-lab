@@ -10,6 +10,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -260,6 +261,22 @@ def launch_tool(client, tool, job_id=None, document_id=None, parent=None):
     if job_id:
         arguments += ['--job-id', check_id(job_id)]
     if document_id:
+        arguments += ['--document-id', check_id(document_id)]
+    return _spawn(client, arguments)
+
+
+def launch_material_observation(client, source, document_id=None):
+    """Open a retained Data channel for explicit review in the Material editor."""
+    fields = {'document_id', 'job_id', 'response', 'input_revision', 'input_sha256'}
+    if (not isinstance(source, dict) or set(source) != fields or
+            not isinstance(source.get('response'), str) or not source['response'] or
+            not isinstance(source.get('input_sha256'), str) or
+            re.fullmatch(r'[0-9a-f]{64}', source['input_sha256']) is None):
+        raise ValueError('보존된 자료의 정확한 입력과 응답 채널을 선택하세요.')
+    for field in ('document_id', 'job_id', 'input_revision'):
+        check_id(source[field])
+    arguments = ['material', '--observation', json.dumps(source, ensure_ascii=False)]
+    if document_id is not None:
         arguments += ['--document-id', check_id(document_id)]
     return _spawn(client, arguments)
 
@@ -853,6 +870,8 @@ def _arguments(argv=None):
     for name in sorted(TOOLS):
         tool = sub.add_parser(name, allow_abbrev=False)
         tool.add_argument('--job-id' if name == 'runner' else '--document-id')
+        if name == 'material':
+            tool.add_argument('--observation')
     for tool in (pre, post):
         tool.add_argument('--executable'); tool.add_argument('--output'); tool.add_argument('--prepare-only', action='store_true')
         tool.add_argument('--native-project-open-id')
@@ -889,6 +908,8 @@ def main(argv=None):
         identifier = args.job_id if args.tool == 'runner' else args.document_id
         if identifier:
             arguments += ['--job-id' if args.tool == 'runner' else '--document-id', check_id(identifier)]
+        if args.tool == 'material' and args.observation is not None:
+            arguments += ['--observation', args.observation]
         from PySide6.QtWidgets import QApplication
         from .appearance import apply_appearance
         application = QApplication.instance() or QApplication(sys.argv[:1])

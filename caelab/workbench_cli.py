@@ -67,7 +67,7 @@ def main(argv=None):
             action.add_argument('id')
     command = sub.add_parser('documents', help='Open and edit the same document as GUI/MCP')
     actions = command.add_subparsers(dest='action', required=True)
-    for name in ('list','open','read','apply','result','inspect','stages','stage','transfer','candidate','research-transfer'):
+    for name in ('list','open','read','source-table','apply','result','inspect','stages','stage','transfer','candidate','research-transfer'):
         action = actions.add_parser(name)
         action.add_argument('--url',default='http://127.0.0.1:8766')
         if name=='open':
@@ -75,8 +75,11 @@ def main(argv=None):
             action.add_argument('--kind',choices=['material','data','numerical','pde','expert','simulation','evaluation','study'],default='material')
             action.add_argument('--title',default='Material research')
             action.add_argument('--draft')
-        if name in {'read','apply','result','inspect','stages','stage','transfer','candidate','research-transfer'}:
+        if name in {'read','source-table','apply','result','inspect','stages','stage','transfer','candidate','research-transfer'}:
             action.add_argument('id')
+        if name=='source-table':
+            action.add_argument('--start',type=int,default=0)
+            action.add_argument('--count',type=int,default=4096)
         if name=='apply':
             action.add_argument('--operation',required=True)
             action.add_argument('--arguments',default='{}')
@@ -136,6 +139,8 @@ def main(argv=None):
             result=client.document_open(kind=args.kind,title=args.title,draft=json_value(args.draft) if args.draft else None,document_id=args.id)
         elif args.action=='read':
             result=client.document_read(args.id)
+        elif args.action=='source-table':
+            result=client.document_source_table(args.id,start=args.start,count=args.count)
         elif args.action=='inspect':
             result=client.evaluation_inspect(args.id)
         elif args.action=='stages':

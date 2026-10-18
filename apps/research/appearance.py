@@ -35,12 +35,13 @@ QPushButton:flat { background: transparent; border-color: transparent; color: #2
 QPushButton:flat:hover { background: #eaf2fc; border-color: #b3cbe4; }
 QPushButton:flat:pressed { background: #d3e4f7; border-color: #7196bb; }
 QPushButton:flat:focus { border: 2px solid #2768a9; }
-QPushButton[appearanceRole="primary"] { background: #245f9e; color: #ffffff;
+QPushButton[appearanceRole="primary"], QToolButton[appearanceRole="primary"] { background: #245f9e; color: #ffffff;
     border-color: #245f9e; font-weight: bold; }
-QPushButton[appearanceRole="primary"]:hover { background: #1d528c; border-color: #1d528c; }
-QPushButton[appearanceRole="primary"]:pressed { background: #143f6d; border-color: #143f6d; }
-QPushButton[appearanceRole="primary"]:focus { border: 2px solid #0c304f; }
-QPushButton:disabled, QToolButton:disabled, QPushButton[appearanceRole="primary"]:disabled {
+QPushButton[appearanceRole="primary"]:hover, QToolButton[appearanceRole="primary"]:hover { background: #1d528c; border-color: #1d528c; }
+QPushButton[appearanceRole="primary"]:pressed, QToolButton[appearanceRole="primary"]:pressed { background: #143f6d; border-color: #143f6d; }
+QPushButton[appearanceRole="primary"]:focus, QToolButton[appearanceRole="primary"]:focus { border: 2px solid #0c304f; }
+QPushButton:disabled, QToolButton:disabled, QPushButton[appearanceRole="primary"]:disabled,
+QToolButton[appearanceRole="primary"]:disabled {
     background: #e9eef4; color: #778697; border-color: #d2dce7; }
 QToolBar QPushButton, QToolBar QToolButton { padding: 3px 8px; }
 QToolBar QPushButton:focus, QToolBar QToolButton:focus { padding: 2px 7px; }
