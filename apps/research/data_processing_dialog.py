@@ -218,7 +218,8 @@ class DataProcessingPreviewDialog(QDialog):
             self.plan_button.setEnabled(bool(response and response.get('measure') in ('infinitesimal_Cauchy', 'first_Piola', 'finite_Cauchy')))
         if self.analysis_button:
             self.analysis_button.setEnabled(self._analysis_selection(name) is not None)
-        axis.grid(alpha=.2); self.canvas.draw_idle()
+        # This modal preview can close before an idle callback reaches its canvas.
+        axis.grid(alpha=.2); self.canvas.draw()
 
     def _plan(self):
         self.plan_requested = True

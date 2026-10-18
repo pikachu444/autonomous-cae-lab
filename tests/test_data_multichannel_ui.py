@@ -100,8 +100,9 @@ def test_actual_http_mask_metadata_channel_edit_save_import_undo(app, tmp_path):
         assert window.document['draft']['mapping']['columns']['lateral']['row_selection']['include_ranges'] == 'unfinished interval'
         assert client.document_result(document['id'], job_id)['responses']['response']['raw_samples']['value'][1] == 'nan'
         window.command('document.undo')
-        wait(app, lambda: not window._busy and not window.document['diagnostics'])
-        assert window.document['draft'] == edited
+        assert window.edited_draft() == edited and window.local_dirty
+        assert window.document['diagnostics']  # Local Undo never mutates the applied invalid draft.
+        assert client.document_read(document['id'])['draft'] == window.document['draft']
         assert source.read_bytes() == raw
     finally:
         wait(app, lambda: not window._busy)

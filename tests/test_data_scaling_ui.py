@@ -130,13 +130,16 @@ def test_axis_response_transform_apply_undo_save_and_invalid_block(application, 
         folder = server.workbench.data_documents._folder(document['id']) / 'revisions' / saved_revision
         assert json.loads((folder / 'document.json').read_text(encoding='utf-8'))['draft'] == applied['draft']
         wait(application, window.undo_action.isEnabled)
-        window.undo_action.trigger()
-        wait(application, lambda: not window._busy and window.document['draft'] == draft)
+        while window._history.index:
+            window.undo_action.trigger()
+        assert window.edited_draft() == draft and window.local_dirty
+        assert reader.document_read(document['id'])['draft'] == applied['draft']
         assert window.mapping.item(0, 8).text() == '1'
         assert window.mapping.item(1, 9).text() == '0'
         wait(application, window.redo_action.isEnabled)
-        window.redo_action.trigger()
-        wait(application, lambda: not window._busy and window.document['draft'] == applied['draft'])
+        while window._history.index < len(window._history.states) - 1:
+            window.redo_action.trigger()
+        assert window.edited_draft() == applied['draft'] and not window.local_dirty
         assert reader.document_result(document['id'], job_id)['responses']['response'] == response
 
         # Invalid axis/response text survives Save; the previous actual result remains readable.

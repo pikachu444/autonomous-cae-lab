@@ -18,7 +18,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit,
-    QScrollArea, QSpinBox, QSplitter, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
+    QDockWidget, QFormLayout, QScrollArea, QSpinBox, QSplitter, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -30,7 +30,7 @@ from caelab.workbench_cli import serializable
 
 TERMINAL = {'SUCCEEDED', 'FAILED', 'CANCELLED', 'PARTIAL_FAILURE', 'INTERRUPTED', 'REJECTED'}
 TABLE_EXTENSIONS = ('.csv', '.txt', '.dat', '.asc', '.npz')
-MAX_ROWS = 2000
+MAX_ROWS = 4096
 
 # Same display terms as Material, Runner and report pages; never stored labels.
 _PHYSICAL_TERMS = {
@@ -161,6 +161,13 @@ class _Signals(QObject):
     finished = Signal(object, object)
 
 
+class _DataCanvas(FigureCanvasQTAgg):
+    def _draw_idle(self):
+        # A queued Matplotlib draw can outlive a deleted Data window.
+        if isValid(self):
+            super()._draw_idle()
+
+
 class _Read(QRunnable):
     def __init__(self, function):
         super().__init__()
@@ -234,6 +241,15 @@ class DataWindow(QMainWindow):
         self._result_pending = set()
         self._result_retry = {}
         self._preview_retry = 0
+        self._history = None
+        self._source_table = None
+        self._source_table_key = None
+        self._source_selected = False
+        self._pending_command = None
+        self._pending_recovery = None
+        self._save_acknowledgement = None
+        self._pending_view = None
+        self._cache_only = False
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -248,7 +264,7 @@ class DataWindow(QMainWindow):
         apply_appearance(QApplication.instance())
         configure_plot_fonts()
         self.resize(1440, 940)
-        self.setMinimumSize(960, 690)
+        self.setMinimumSize(800, 620)
         files, edit = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
         self.new_action = QAction('새 데이터…', self, shortcut=QKeySequence.New)
         self.open_action = QAction('열기…', self, shortcut=QKeySequence.Open)
@@ -264,8 +280,12 @@ class DataWindow(QMainWindow):
         from .portable_recovery_host import install_portable_recovery_action
         self.portable_recovery_action = install_portable_recovery_action(self, files)
         close.triggered.connect(self.close)
-        self.undo_action.triggered.connect(lambda: self.command('document.undo'))
-        self.redo_action.triggered.connect(lambda: self.command('document.redo'))
+        from .common.commands import FocusedUndoRedo
+        self.focused_undo = FocusedUndoRedo(self, self.undo_action, self.redo_action)
+        self.focused_undo.register_target(self, undo=lambda: self.undo_buffer(-1), redo=lambda: self.undo_buffer(1),
+            can_undo=lambda: bool(self._history and self._history.index > 0 and not self._busy and not self.conflict and not self._pending_command and not self._cache_only),
+            can_redo=lambda: bool(self._history and self._history.index < len(self._history.states)-1 and not self._busy and not self.conflict and not self._pending_command and not self._cache_only),
+            label='자료 편집')
         files.addActions([self.new_action, self.open_action, self.save_action, close])
         edit.addActions([self.undo_action, self.redo_action])
         self.window_menu = self.menuBar().addMenu('창(&W)')
@@ -277,16 +297,22 @@ class DataWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         toolbar.addActions([self.new_action, self.open_action, self.save_action, self.undo_action, self.redo_action])
-        self.source_button = QPushButton('원본 선택…')
-        self.settings_button = QPushButton('가져오기 설정')
-        self.settings_button.setCheckable(True)
-        self.settings_button.setChecked(True)
-        self.settings_button.toggled.connect(lambda visible: self.editor.setVisible(visible))
-        self.apply_button = QPushButton('설정 적용')
-        self.import_button = QPushButton('가져오기')
-        self.import_button.setProperty('appearanceRole', 'primary')
-        self.source_button.setText('CSV 열기…')
-        self.source_button.clicked.connect(self.choose_local_csv)
+        from .common.commands import action_button
+        self.source_action = QAction('표 파일 열기…', self)
+        self.settings_action = QAction('가져오기 설정', self, checkable=True)
+        self.settings_action.setChecked(True)
+        self.apply_action = QAction('설정 적용', self, shortcut=QKeySequence('Ctrl+Return'))
+        self.import_action = QAction('자료 준비', self, shortcut=QKeySequence('F5'))
+        self.material_action = QAction('재료에서 사용…', self)
+        self.material_action.triggered.connect(self.request_material)
+        self.source_button = action_button(self.source_action, self)
+        self.settings_button = action_button(self.settings_action, self)
+        self.apply_button = action_button(self.apply_action, self)
+        self.import_button = action_button(self.import_action, self, primary=True)
+        self.settings_action.toggled.connect(self._settings_visible)
+        self.source_action.triggered.connect(self.choose_local_csv)
+        data_menu = self.menuBar().addMenu('자료(&D)')
+        data_menu.addActions([self.source_action, self.settings_action, self.apply_action, self.import_action, self.material_action])
         browse = QAction('서비스 원본 선택…', self)
         browse.triggered.connect(self.choose_source)
         files.addAction(browse)
@@ -332,8 +358,8 @@ class DataWindow(QMainWindow):
         report_action = QAction('선택 결과로 보고서…', self)
         report_action.triggered.connect(self.open_report)
         files.addAction(report_action)
-        self.apply_button.clicked.connect(self.apply_inputs)
-        self.import_button.clicked.connect(self.import_table)
+        self.apply_action.triggered.connect(self.apply_inputs)
+        self.import_action.triggered.connect(self.import_table)
         for button in (self.source_button, self.settings_button, self.apply_button, self.import_button):
             toolbar.addWidget(button)
         self.identity = QLabel()
@@ -348,15 +374,21 @@ class DataWindow(QMainWindow):
         self.copy_button = QPushButton('Keep edits as a new document')
         self.reload_button.clicked.connect(self.reload_remote)
         self.copy_button.clicked.connect(lambda: self.open_document(title=self.document['title'] + ' — local edits', draft=self.edited_draft()))
+        self.retry_command_button = QPushButton('요청 확인 및 재시도')
+        self.retry_command_button.clicked.connect(self.retry_command)
         conflict.addWidget(self.reload_button)
         conflict.addWidget(self.copy_button)
+        conflict.addWidget(self.retry_command_button)
         conflict.addStretch()
         layout.addLayout(conflict)
-        horizontal = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
+        self.tree.setMinimumWidth(150)
         self.tree.setHeaderLabel('데이터 목록')
         self.tree.itemSelectionChanged.connect(self._selection_changed)
-        horizontal.addWidget(self.tree)
+        self.navigator_dock = QDockWidget('데이터 목록', self)
+        self.navigator_dock.setObjectName('dataNavigator')
+        self.navigator_dock.setWidget(self.tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.navigator_dock)
         center = QWidget()
         central = QVBoxLayout(center)
         self.source_label = QLabel('원본 선택에서 가져올 표 파일을 고르세요.')
@@ -368,10 +400,9 @@ class DataWindow(QMainWindow):
         source_row.addWidget(self.result_label, 1)
         central.addLayout(source_row)
         self.editor = QTabWidget()
-        self.editor.setMaximumHeight(200)
-        self.editor.setMinimumHeight(180)
+        self.editor.setMinimumWidth(300)
         setting_pages = []
-        for title in ('열 및 단위', '시험 조건', '행 선택', '읽기 설정'):
+        for title in ('열과 단위', '시험', '행 선택', '읽기'):
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
             scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -383,7 +414,7 @@ class DataWindow(QMainWindow):
             self.editor.addTab(scroll, title)
             setting_pages.append(page_layout)
         editor, test_settings, row_settings, read_settings = setting_pages
-        parsing = QHBoxLayout()
+        parsing = QFormLayout()
         self.delimiter = QLineEdit(',')
         self.delimiter.setMaximumWidth(130)
         self.delimiter.setPlaceholderText(',  tab  space')
@@ -393,24 +424,24 @@ class DataWindow(QMainWindow):
         self.layout_button.clicked.connect(self.use_preview_layout)
         test_columns = QPushButton('시험 열 설정…')
         test_columns.clicked.connect(self.configure_test_columns)
-        parsing.addWidget(test_columns)
-        parsing.addWidget(QLabel('구분 문자'))
-        parsing.addWidget(self.delimiter)
-        parsing.addWidget(QLabel('건너뛸 머리글 행'))
-        parsing.addWidget(self.skip_header)
-        parsing.addWidget(self.layout_button)
-        parsing.addStretch()
+        read_settings.addWidget(test_columns)
+        parsing.addRow('구분 문자', self.delimiter)
+        parsing.addRow('머리글 행 수', self.skip_header)
         read_settings.addLayout(parsing)
+        read_settings.addWidget(self.layout_button)
         channel_controls = QHBoxLayout()
         self.channel_selector = QComboBox()
         self.channel_selector.currentTextChanged.connect(self._channel_changed)
-        channel_controls.addWidget(QLabel('편집할 채널'))
+        channel_controls.addWidget(QLabel('채널'))
         channel_controls.addWidget(self.channel_selector, 1)
+        editor.addLayout(channel_controls)
+        channel_commands = QHBoxLayout()
         for title, mode in (('추가', 'add'), ('복제', 'clone'), ('삭제', 'remove')):
             button = QPushButton(title)
             button.clicked.connect(lambda checked=False, mode=mode: self.edit_channels(mode))
-            channel_controls.addWidget(button)
-        editor.addLayout(channel_controls)
+            channel_commands.addWidget(button)
+        channel_commands.addStretch()
+        editor.addLayout(channel_commands)
         self.mapping = QTableWidget(2, 10)
         self.mapping.setObjectName('dataMapping')
         self.mapping.setHorizontalHeaderLabels(['역할', '채널 또는 축 이름', '원본 열', '단위', '성분', '위치', '물리량 정의', '좌표계', '배율', '보정값'])
@@ -461,11 +492,22 @@ class DataWindow(QMainWindow):
         note = QLabel('원본 행 번호는 0부터 시작하며 구간은 양 끝을 포함합니다(NPZ는 배열 인덱스). 계산 제외, 품질 표시, 화면 숨김은 각각 독립적입니다. 피팅용과 검증용 자료는 수치 연구에서 나눕니다.')
         note.setWordWrap(True)
         row_settings.addWidget(note)
-        central.addWidget(self.editor)
+        self.properties_dock = QDockWidget('가져오기 설정', self)
+        self.properties_dock.setObjectName('dataProperties')
+        self.properties_dock.setWidget(self.editor)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.properties_dock)
+        self.properties_dock.visibilityChanged.connect(self.settings_action.setChecked)
+        view_menu = self.menuBar().addMenu('보기(&V)')
+        view_menu.addActions([self.navigator_dock.toggleViewAction(), self.properties_dock.toggleViewAction()])
         vertical = QSplitter(Qt.Orientation.Vertical)
         self.sheets = QTabWidget()
         self.sheets.setMinimumHeight(124)
         self.preview_table = self._table(['원본 행'])
+        self.preview_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.preview_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.preview_table.itemSelectionChanged.connect(self._table_selection_changed)
+        self.preview_table.horizontalHeader().setSortIndicator(0, Qt.SortOrder.AscendingOrder)
+        self.preview_table.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
         self.values = self._table(['원본 행', '축', '관측', '계산 포함', '원본 품질', '화면 표시', '이유'])
         self.values.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.values.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -479,7 +521,13 @@ class DataWindow(QMainWindow):
             self.values.addAction(action)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
-        self.sheets.addTab(self.preview_table, '원본 미리보기')
+        for label, mode in [('선택 행 계산 제외', 'exclude'), ('선택 행 제외 해제', 'restore'),
+                            ('선택 행 품질 표시', 'quality'), ('선택 행 품질 표시 해제', 'unquality'),
+                            ('선택 행 화면 숨김', 'hide'), ('숨긴 행 모두 표시', 'show_all')]:
+            action = QAction(label, self.preview_table)
+            action.triggered.connect(lambda checked=False, mode=mode: self.select_calculation_rows(mode))
+            self.preview_table.addAction(action)
+        self.sheets.addTab(self.preview_table, '원자료')
         self.sheets.addTab(self.values, '가져온 값')
         self.sheets.addTab(self.details, '진단 상세')
         vertical.addWidget(self.sheets)
@@ -492,19 +540,26 @@ class DataWindow(QMainWindow):
         self.row_count.setRange(1, MAX_ROWS)
         self.row_count.setValue(MAX_ROWS)
         self.read_button = QPushButton('구간 읽기')
-        self.read_button.clicked.connect(self.retry_result)
+        self.read_button.clicked.connect(lambda: self.retry_result() if self._selected_job else self.refresh_source_table(force=True))
         rows.addWidget(QLabel('첫 표본'))
         rows.addWidget(self.row_start)
         rows.addWidget(QLabel('개수'))
         rows.addWidget(self.row_count)
         rows.addWidget(self.read_button)
+        for label, offset in [('이전', -1), ('다음', 1)]:
+            button = QPushButton(label)
+            button.clicked.connect(lambda checked=False, offset=offset: self.source_page(offset))
+            rows.addWidget(button)
         self.result_channel = QComboBox()
         self.result_channel.currentTextChanged.connect(self._result_channel_changed)
-        rows.addWidget(QLabel('채널'))
+        self.result_channel_label = QLabel('결과 채널')
+        rows.addWidget(self.result_channel_label)
         rows.addWidget(self.result_channel)
         rows.addStretch()
         graph_layout.addLayout(rows)
         followup = QHBoxLayout()
+        self.material_button = action_button(self.material_action, self)
+        followup.addWidget(self.material_button)
         self.compare_button = QPushButton('예측 결과와 비교…')
         self.compare_button.clicked.connect(self.choose_prediction)
         self.plan_button = QPushButton('재료 피팅…')
@@ -518,18 +573,20 @@ class DataWindow(QMainWindow):
         self.comparison_selector.setObjectName('dataSavedComparison')
         self.comparison_selector.currentIndexChanged.connect(self._comparison_changed)
         followup.addWidget(self.comparison_selector, 1)
-        graph_layout.addLayout(followup)
+        self.followup_bar = QWidget()
+        self.followup_bar.setLayout(followup)
+        followup.setContentsMargins(0, 0, 0, 0)
+        graph_layout.addWidget(self.followup_bar)
         self.figure = Figure(constrained_layout=True)
-        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas = _DataCanvas(self.figure)
         self.canvas.setMinimumHeight(140)
         self.axes = self.figure.add_subplot(111)
         graph_layout.addWidget(self.canvas, 1)
         vertical.addWidget(graph)
         vertical.setSizes([220, 420])
         central.addWidget(vertical, 1)
-        horizontal.addWidget(center)
-        horizontal.setSizes([225, 1190])
-        layout.addWidget(horizontal, 1)
+        layout.addWidget(center, 1)
+        self.resizeDocks([self.navigator_dock, self.properties_dock], [180, 370], Qt.Orientation.Horizontal)
         self.setCentralWidget(root)
         self._clear_result()
         self._update_actions()
@@ -545,11 +602,15 @@ class DataWindow(QMainWindow):
         table.horizontalHeader().setStretchLastSection(True)
         return table
 
+    def _settings_visible(self, visible):
+        self.editor.setVisible(visible)
+        self.properties_dock.setVisible(visible)
+
     def _call(self, function, accepted, *, relevant=None, background=False, settled=None):
         if self._closed or not isValid(self):
             return False
         if self._busy:
-            if self._accepting and not background:
+            if not background and (self._accepting or not self._foreground_busy):
                 self._callback_calls.append((function, accepted, relevant, settled))
                 return True
             if not background:
@@ -570,7 +631,8 @@ class DataWindow(QMainWindow):
                     settled(value, error)
                 if relevant is None or relevant():
                     if error:
-                        self.message.setText('Request failed; current edits retained. ' + error)
+                        self.message.setText(('캐시 보기 / 서비스 연결 안됨. 적용·저장·전달할 수 없습니다. ' if self._cache_only else
+                                              '요청 실패 / 현재 편집은 보존했습니다. ') + error)
                     else:
                         accepted(value)
             finally:
@@ -590,10 +652,21 @@ class DataWindow(QMainWindow):
         return True
 
     def open_document(self, *, document_id=None, title='Data study', draft=None):
-        return self._call(lambda: self.client.document_open(kind='data', title=title, draft=draft, document_id=document_id), self._opened)
+        def settled(value, error):
+            if error and document_id:
+                self._open_cached_view(document_id)
+        return self._call(lambda: self.client.document_open(kind='data', title=title, draft=draft, document_id=document_id), self._opened, settled=settled)
 
     def _opened(self, document):
         self.local_dirty = self.conflict = False
+        self._cache_only = False
+        from .data_workspace import DraftHistory
+        self._history = DraftHistory(document['draft'])
+        self._pending_command = self._pending_view = None
+        self._pending_recovery = None
+        self._save_acknowledgement = None
+        self._source_table = self._source_table_key = None
+        self._source_selected = False
         self._selected_job = None
         self._comparison = self._comparison_id = None
         self._comparison_serial += 1
@@ -603,17 +676,22 @@ class DataWindow(QMainWindow):
         self._preview = None
         self.preview_table.setRowCount(0)
         self._show_document(document)
-        self.settings_button.setChecked(not bool(document.get('runs')))
+        self.settings_action.setChecked(not bool(document.get('runs')))
         self.editor.setCurrentIndex(0)
         self.sheets.setCurrentWidget(self.values if document.get('runs') else self.preview_table)
         self.message.setText('저장한 데이터를 읽었습니다. 내용을 바꾸려면 가져오기 설정을 여세요.' if document.get('runs') else
                              '원본의 열과 단위를 지정하고 설정 적용 후 가져오기를 누르세요.')
         QTimer.singleShot(0, self.refresh_preview)
+        QTimer.singleShot(0, self.refresh_source_table)
+        self._restore_view()
 
-    def _show_document(self, document, *, prefer_job=None):
+    def _show_document(self, document, *, prefer_job=None, buffer_draft=None):
         self.document = deepcopy(document)
         self._populating = True
-        draft = document['draft']
+        draft = document['draft'] if buffer_draft is None else buffer_draft
+        from .data_workspace import DraftHistory
+        if self._history is None:
+            self._history = DraftHistory(draft)
         self._view_error = view_error(draft)
         if self._source_id != draft.get('data_id', ''):
             self._preview = None
@@ -684,6 +762,8 @@ class DataWindow(QMainWindow):
         self._populate_mapping()
         self._populating = False
 
+        self._draw_source_table()
+
     def _mapping_item_edited(self, item):
         if self._populating:
             return
@@ -753,7 +833,9 @@ class DataWindow(QMainWindow):
         imports = QTreeWidgetItem(['가져온 데이터'])
         self.tree.addTopLevelItem(imports)
         self._selected_job = prefer_job or self._selected_job
-        if self._selected_job is None and self.document['runs']:
+        if prefer_job:
+            self._source_selected = False
+        if self._selected_job is None and self.document['runs'] and not self._source_selected:
             self._selected_job = self.document['runs'][-1]['job_id']
         for index, run in enumerate(self.document['runs']):
             text = f"데이터 {index + 1}"
@@ -768,9 +850,22 @@ class DataWindow(QMainWindow):
 
     def _edited(self, *_):
         if not self._populating:
-            self.local_dirty = True
+            draft = self.edited_draft(commit=False)
+            self._history.push(draft)
+            self.local_dirty = draft != self.document['draft']
             self._update_actions()
             self._draw_cached_result()
+            if not self._selected_job:
+                self._draw_source_table()
+
+    def undo_buffer(self, offset):
+        if self._busy or self.conflict or self._pending_command or self._history is None or self._cache_only:
+            return
+        draft = self._history.move(offset)
+        self.local_dirty = draft != self.document['draft']
+        self._show_document(self.document, buffer_draft=draft)
+        self._draw_source_table()
+        self.message.setText('현재 창의 편집을 되돌렸습니다. 적용된 입력은 유지됩니다.')
 
     def _cell(self, row, column, *, integer=False, number=False):
         item = self.mapping.item(row, column)
@@ -876,35 +971,148 @@ class DataWindow(QMainWindow):
 
     def command(self, operation, arguments=None, *, after=None):
         self._commit_editor()
-        if not self.document or self.conflict:
+        if operation in ('document.undo', 'document.redo'):
+            self.undo_buffer(-1 if operation == 'document.undo' else 1)
+            return True
+        if not self.document or self.conflict or self._cache_only:
+            return False
+        if self._pending_command:
+            self.message.setText('앞선 요청의 응답을 먼저 확인하세요. 편집본은 보존했습니다.')
             return False
         if self.local_dirty and operation != 'data.update':
             self.message.setText('Apply the edited mapping first; import uses the exact applied document generation.')
             return False
         document = deepcopy(self.document)
-        def accepted(receipt):
+        request = {'document': document, 'operation': operation, 'arguments': deepcopy(arguments or {}),
+                   'command_id': 'C' + uuid.uuid4().hex, 'after': after, 'buffer': self.edited_draft()}
+        self._pending_command = request
+        return self._submit_command(request)
+
+    def retry_command(self):
+        if self._pending_command and not self._busy:
+            return self._submit_command(self._pending_command)
+
+    def _submit_command(self, request):
+        document, operation = request['document'], request['operation']
+        from caelab.storage import canonical_hash
+        def input_identity(value):
+            return (value['id'], value['session_id'], value['generation'], value.get('input_revision'), canonical_hash(value['draft']))
+        def relevant():
+            return self.document is not None and self.document['id'] == document['id'] and self.document['session_id'] == document['session_id']
+        def accepted(response):
+            receipt, current = response['receipt'], response['current']
+            acknowledged = receipt['document']
+            input_changed = input_identity(current) != input_identity(acknowledged)
+            if input_changed:
+                self.conflict = True
+                self._pending_recovery = {'request_id': request['command_id'], 'buffer': deepcopy(request['buffer']),
+                    'acknowledgement': deepcopy(receipt), 'current': deepcopy(current),
+                    'reason': 'input_changed'}
+                self.message.setText('앞선 요청은 확인됐지만 서비스 입력이 이후 바뀌었습니다.' +
+                    ' 현재 편집과 확인 응답을 보존했습니다. 서비스 입력을 다시 읽거나 새 문서로 보존하세요.')
+                return
+            self._pending_command = None
+            self._pending_recovery = None
+            if operation == 'document.save':
+                self._save_acknowledgement = deepcopy(acknowledged)
             self.local_dirty = self.conflict = False
             job = receipt.get('job')
             self._preview_key = None
-            self._show_document(receipt['document'], prefer_job=job['id'] if job else None)
+            self._show_document(current, prefer_job=job['id'] if job else None)
             self.message.setText({'document.save':'저장했습니다.','data.update':'입력을 적용했습니다.',
                 'data.import':'자료 가져오기를 시작했습니다.','document.undo':'실행을 취소했습니다.',
                 'document.redo':'다시 적용했습니다.'}.get(operation,'처리했습니다.'))
-            if after:
-                after()
+            if request['after']:
+                request['after']()
             else:
                 QTimer.singleShot(0, self.refresh_preview)
-        return self._call(lambda: self.client.document_command(document['id'], operation, arguments or {},
-            session_id=document['session_id'], expected_generation=document['generation'], command_id='C' + uuid.uuid4().hex), accepted)
+                QTimer.singleShot(0, self.refresh_source_table)
+        def settled(receipt, error):
+            if error and relevant():
+                # Keep the identical command ID/body, including the old generation.
+                self._pending_command = request
+        def submit_and_confirm():
+            receipt = self.client.document_command(document['id'], operation, request['arguments'],
+                session_id=document['session_id'], expected_generation=document['generation'], command_id=request['command_id'])
+            request['acknowledgement'] = deepcopy(receipt)
+            return {'receipt': receipt, 'current': self.client.document_read(document['id'])}
+        return self._call(submit_and_confirm, accepted, relevant=relevant, settled=settled)
 
     def apply_inputs(self, *, after=None):
         return self.command('data.update', {'draft': self.edited_draft()}, after=after)
 
     def save_document(self, *, after=None):
         self._commit_editor()
+        if not self.local_dirty and self._pending_view and self._pending_view['binding']['input_sha256'] == self._view_binding()['input_sha256']:
+            return self._save_view(after=after, document=self._pending_view['document'])
+        def saved():
+            self._save_view(after=after, document=self._save_acknowledgement)
         if self.local_dirty:
-            return self.apply_inputs(after=lambda: self.command('document.save', after=after))
-        return self.command('document.save', after=after)
+            return self.apply_inputs(after=lambda: self.command('document.save', after=saved))
+        return self.command('document.save', after=saved)
+
+    def _view_binding(self):
+        from .data_workspace import saved_binding
+        return saved_binding(self.document)
+
+    def _save_view(self, *, after=None, document=None):
+        from .data_workspace import view_path, write_view, saved_binding
+        snapshot = document or self.document
+        binding = saved_binding(snapshot)
+        if not self._pending_view or self._pending_view['binding'] != binding:
+            self._pending_view = {'binding': binding, 'source_table': deepcopy(self._source_table),
+                'document': deepcopy(snapshot),
+                'channel': self._channel_name, 'properties_visible': self.properties_dock.isVisible(),
+                'page_start': self.row_start.value(), 'page_count': self.row_count.value()}
+        try:
+            write_view(view_path(self.client, self.document['id']), self._pending_view)
+        except (OSError, ValueError) as error:
+            self.message.setText('자료 저장됨 / 보기 저장 실패: ' + str(error) + ' — 저장을 눌러 보기만 재시도하세요.')
+            self._update_actions()
+            return False
+        self._pending_view = None
+        self.message.setText('선택한 저장본과 보기를 저장했습니다. 서비스의 이후 결과 또는 저장 변경은 별도로 표시합니다.'
+            if self.document.get('dirty') or binding != self._view_binding() else '자료와 보기를 저장했습니다.')
+        if after:
+            after()
+        return True
+
+    def _restore_view(self):
+        from .data_workspace import view_path
+        try:
+            with view_path(self.client, self.document['id']).open(encoding='utf-8') as stream:
+                view = json.load(stream)
+        except (OSError, ValueError):
+            return
+        if view.get('binding') != self._view_binding():
+            self.message.setText('저장한 보기의 입력 기준이 현재 자료와 다릅니다. 이전 보기 파일을 보존하고 현재 자료를 읽습니다.')
+            return
+        self.settings_action.setChecked(bool(view.get('properties_visible', False)))
+        self.row_start.setValue(max(0, int(view.get('page_start', 0))))
+        self.row_count.setValue(max(1, min(MAX_ROWS, int(view.get('page_count', MAX_ROWS)))))
+        if view.get('channel') in self._working_draft['mapping']['columns']:
+            self.channel_selector.setCurrentText(view['channel'])
+
+    def _open_cached_view(self, identifier):
+        from .data_workspace import saved_binding, view_path
+        try:
+            with view_path(self.client, identifier).open(encoding='utf-8') as stream:
+                view = json.load(stream)
+            document, table = view['document'], view['source_table']
+            if (document['id'] != identifier or view['binding'] != saved_binding(document) or not table or
+                    table['data_id'] != document['draft']['data_id']):
+                return False
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
+        self._opened(document)
+        self._cache_only = True
+        self._selected_job = None
+        self._source_selected = True
+        self._source_table = table
+        self._fill_source_table()
+        self._draw_source_table()
+        self._update_actions()
+        return True
 
     def import_table(self):
         return self.command('data.import')
@@ -912,17 +1120,27 @@ class DataWindow(QMainWindow):
     def refresh_document(self):
         if self._closed or not isValid(self):
             return
-        if not self.document or self._busy:
+        if not self.document or self._busy or self._cache_only:
             return
         identifier = self.document['id']
         session = self.document['session_id']
         def accepted(remote):
-            changed = (remote['session_id'], remote['generation']) != (self.document['session_id'], self.document['generation'])
+            changed = (remote['session_id'], remote.get('input_revision', remote['generation']), remote['draft']) != (self.document['session_id'], self.document.get('input_revision', self.document['generation']), self.document['draft'])
+            if self._pending_command:
+                self._pending_command['observed_document'] = deepcopy(remote)
+                if changed:
+                    self.conflict = True
+                    self.message.setText('미확정 요청이 있는 동안 서비스 입력이 바뀌었습니다. 편집을 보존했습니다. 같은 요청의 결과를 확인하거나 서비스 입력을 다시 읽으세요.')
+                self._update_actions()
+                return
             editing = self.local_dirty or self.mapping.state() == QAbstractItemView.State.EditingState
             if changed and editing:
                 self.conflict = True
                 self.message.setText('The shared document changed while you were editing. Reload it or keep these edits as a new document.')
             elif not editing and not self.conflict:
+                if changed:
+                    from .data_workspace import DraftHistory
+                    self._history = DraftHistory(remote['draft'])
                 self._show_document(remote)
             self._update_actions()
         def refreshed(remote):
@@ -933,6 +1151,8 @@ class DataWindow(QMainWindow):
             relevant=lambda: self.document is not None and (self.document['id'], self.document['session_id']) == (identifier, session))
 
     def reload_remote(self):
+        if self._cache_only:
+            return self.open_document(document_id=self.document['id'])
         if QMessageBox.question(self, 'Reload Data document', 'Discard this window’s unapplied mapping and reload the service version?',
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) == QMessageBox.StandardButton.Yes:
             self._call(lambda: self.client.document_read(self.document['id']), self._opened)
@@ -953,7 +1173,7 @@ class DataWindow(QMainWindow):
             self._source_id=receipt['data_id'] if 'data_id' in receipt else receipt['id']
             self._preview_key=None; self._preview_retry=0
             self._preview=None; self.preview_table.setRowCount(0)
-            self.settings_button.setChecked(True); self.editor.setCurrentIndex(0)
+            self.settings_action.setChecked(True); self.editor.setCurrentIndex(0)
             self._edited()
             self.source_label.setText('원본: '+Path(path).name)
             QTimer.singleShot(0,self.refresh_preview)
@@ -1026,7 +1246,7 @@ class DataWindow(QMainWindow):
         return self._call(opened, show, background=True)
 
     def edit_processing_recipe(self):
-        if not self.document or self._busy or self.conflict or self._view_error:
+        if not self.document or self._busy or self.conflict or self._view_error or self._cache_only:
             return
         if not callable(getattr(self.client, 'data_material', None)):
             self.message.setText('연결한 서비스에서 데이터 처리를 지원하지 않습니다.'); return
@@ -1279,8 +1499,8 @@ class DataWindow(QMainWindow):
             '관측 '+dialog.response_kind.currentText()+' ['+dialog.response_unit.currentText()+']; '+
             '변형 '+dialog.drive_kind.currentText()+' ['+dialog.drive_unit.currentText()+']; '+
             'A0='+dialog.area.text()+' '+dialog.area_unit.currentText()+'; L0='+dialog.gauge.text()+' '+dialog.gauge_unit.currentText())
-        self._show_document({**self.document,'draft':draft})
-        self.local_dirty=True; self._update_actions()
+        self._show_document(self.document, buffer_draft=draft)
+        self._edited()
         self.message.setText('열 설정을 확인하고 적용 후 가져오기를 실행하세요.')
 
     def choose_source(self):
@@ -1326,7 +1546,7 @@ class DataWindow(QMainWindow):
             self._preview_retry = 0
             self.preview_table.setRowCount(0)
             self._edited()
-            self.settings_button.setChecked(True)
+            self.settings_action.setChecked(True)
             self.editor.setCurrentIndex(0)
             self.source_label.setText('선택한 원본: ' + receipt['name'] + ' (설정 적용 필요)')
             QTimer.singleShot(0, self.refresh_preview)
@@ -1335,7 +1555,7 @@ class DataWindow(QMainWindow):
     def refresh_preview(self):
         if self._closed or not isValid(self):
             return
-        if not self.document or not self._source_id or self._busy:
+        if not self.document or not self._source_id or self._busy or self._cache_only:
             return
         key = (self.document['id'], self._source_id, self.document.get('saved_revision'))
         if key == self._preview_key or monotonic() < self._preview_retry:
@@ -1345,6 +1565,11 @@ class DataWindow(QMainWindow):
             self._preview_key = key
             self._preview = preview
             table = preview.get('table_preview', {})
+            if self._source_table and self._source_table.get('data_id') == self._source_id:
+                self._show_details()
+                self._update_actions()
+                return
+            self.preview_table.setSortingEnabled(False)
             self.preview_table.clear()
             headers = ['원본 행'] + table.get('headers', [])
             self.preview_table.setColumnCount(len(headers))
@@ -1362,7 +1587,155 @@ class DataWindow(QMainWindow):
             if error:
                 self._preview_retry = monotonic() + max(1, self.timer.interval() / 1000)
             QTimer.singleShot(0, self.refresh_result)
+            QTimer.singleShot(0, self.refresh_source_table)
         self._call(method, accepted, settled=settled, relevant=lambda: key == (self.document['id'], self._source_id, self.document.get('saved_revision')), background=True)
+
+    def source_page(self, direction):
+        self.row_start.setValue(max(0, self.row_start.value() + direction * self.row_count.value()))
+        if self._selected_job:
+            self.retry_result()
+        else:
+            self.refresh_source_table(force=True)
+
+    def refresh_source_table(self, *, force=False):
+        method = getattr(self.client, 'document_source_table', None)
+        if not self.document or not self._source_id or not method or self._busy or self._closed or self._cache_only:
+            return False
+        if self._source_id != self.document['draft'].get('data_id'):
+            return False
+        key = (self.document['id'], self.document['session_id'], self.document['generation'],
+               self.document['input_revision'], self.row_start.value(), self.row_count.value())
+        if not force and self._source_table_key == key:
+            return False
+        def accepted(table):
+            from caelab.storage import canonical_hash
+            if (table.get('document_id'), table.get('session_id'), table.get('generation'),
+                    table.get('input_revision')) != key[:4] or table.get('data_id') != self._source_id or table.get('input_sha256') != canonical_hash(self.document['draft']):
+                self.message.setText('원자료를 읽는 동안 입력이 바뀌었습니다. 기존 편집과 표를 보존했습니다. 다시 읽으세요.')
+                return
+            self._source_table, self._source_table_key = table, key
+            self._fill_source_table()
+            if not self._selected_job:
+                self._draw_source_table()
+        return self._call(lambda: method(key[0], start=key[4], count=key[5]), accepted,
+            relevant=lambda: self.document is not None and key == (self.document['id'], self.document['session_id'],
+                self.document['generation'], self.document['input_revision'], self.row_start.value(), self.row_count.value()), background=True)
+
+    def _fill_source_table(self):
+        from .data_workspace import SourceItem
+        table = self._source_table
+        if table is None:
+            return
+        widget = self.preview_table
+        widget.blockSignals(True)
+        widget.setSortingEnabled(False)
+        try:
+            widget.clear()
+            columns, rows = table['columns'], table['source_rows']
+            widget.setColumnCount(len(columns) + 4)
+            widget.setHorizontalHeaderLabels(['원본 행'] + [str(column['name']) for column in columns] + ['계산 선택', '품질', '화면'])
+            widget.setRowCount(len(rows))
+            for position, source in enumerate(rows):
+                for index, value in enumerate([source] + [column['values'][position] if position < len(column['values']) else '' for column in columns] + ['', '', '']):
+                    item = SourceItem(display(value))
+                    item.setData(Qt.ItemDataRole.UserRole, source)
+                    widget.setItem(position, index, item)
+            widget.resizeColumnsToContents()
+            widget.setColumnWidth(0, 70)
+        finally:
+            widget.setSortingEnabled(True)
+            widget.blockSignals(False)
+        self.source_label.setText(f"{table.get('name', '원자료')} / 전체 {table['total_rows']}행 / {table['start']}부터 {table['count']}행")
+
+    def _draw_source_table(self):
+        if self._selected_job or not self._source_table or not self.document or self._view_error:
+            return
+        table = self._source_table
+        if table.get('data_id') != self._source_id:
+            return
+        selected = self._selected_original_rows()
+        self._clear_result()
+        self.result_channel.hide()
+        self.result_channel_label.hide()
+        columns = {column['key']: column for column in table['columns']}
+        mapping = self.edited_draft(commit=False)['mapping']
+        if any(mapping.get(key, default) != table.get('mapping', {}).get(key, default) for key, default in (('delimiter', ','), ('skip_header', 0))):
+            self.result_label.setText('읽기 설정이 바뀌었습니다. 설정 적용 후 원자료를 다시 읽으세요.')
+            return
+        spec = mapping['columns'].get(self._channel_name, {})
+        axis = spec.get('axis', {})
+        xcolumn, ycolumn = columns.get(axis.get('column')), columns.get(spec.get('column'))
+        if not xcolumn or not ycolumn:
+            self.result_label.setText('열 및 단위에서 원자료 열을 선택하세요.')
+            return
+        from caelab.adapters.file_table import validate_row_selection
+        selection = spec.get('row_selection', {})
+        try:
+            validate_row_selection(selection)
+        except ValueError:
+            self.result_label.setText('행 선택 입력을 확인하세요. 원자료는 보존했습니다.')
+            return
+        self.axes.clear()
+        self.axes.set_axis_on()
+        points, excluded, quality = [], [], []
+        self._selection_points, self._point_visible_rows = {}, set()
+        includes = selection.get('include_ranges')
+        display_rows = {self.preview_table.item(row, 0).data(Qt.ItemDataRole.UserRole): row for row in range(self.preview_table.rowCount())}
+        states = {}
+        self.preview_table.setSortingEnabled(False)
+        for source in table['source_rows']:
+            hidden = source in selection.get('display_hidden_rows', [])
+            used = ((includes is None or any(first <= source <= last for first, last in includes)) and
+                source not in selection.get('exclude_rows', []) and
+                not any(first <= source <= last for first, last in selection.get('exclude_ranges', [])))
+            poor = source in selection.get('quality_rows', [])
+            states[source] = hidden, used, poor
+            if source in display_rows:
+                row = display_rows[source]
+                for index, value in enumerate(('포함' if used else '제외', '확인 필요' if poor else '표시 없음', '숨김' if hidden else '표시'), len(columns) + 1):
+                    self.preview_table.item(row, index).setText(value)
+                self.preview_table.setRowHidden(row, hidden)
+        self.preview_table.setSortingEnabled(True)
+        for column in range(len(columns) + 1, len(columns) + 4):
+            self.preview_table.resizeColumnToContents(column)
+        for source, x, y in zip(table['source_rows'], xcolumn['values'], ycolumn['values']):
+            hidden, used, poor = states[source]
+            try:
+                x, y = float(x), float(y)
+            except (ValueError, TypeError, OverflowError):
+                continue
+            if not math.isfinite(x) or not math.isfinite(y):
+                continue
+            if hidden:
+                points.append((x, float('nan')))
+                continue
+            self._selection_points[source] = (x, y)
+            self._point_visible_rows.add(source)
+            points.append((x, y if used else float('nan')))
+            if not used:
+                excluded.append((x, y))
+            if poor:
+                quality.append((x, y))
+        if points:
+            self.axes.plot([point[0] for point in points], [point[1] for point in points], marker='o', markersize=3, label='원본 값')
+        for values, marker, color, label in ((excluded, 'x', 'gray', '계산 제외'), (quality, 's', '#c78b22', '품질 확인')):
+            if values:
+                self.axes.scatter([p[0] for p in values], [p[1] for p in values], marker=marker, c=color, label=label)
+        self.axes.set_xlabel(str(xcolumn['name']) + ' (원본)')
+        self.axes.set_ylabel(str(ycolumn['name']) + ' (원본)')
+        self.axes.grid(True, alpha=.2)
+        if points or excluded or quality:
+            self.axes.legend(fontsize=8)
+        self.canvas.draw_idle()
+        self.result_label.setText('원자료 / ' + str(self._channel_name) + (' / 미적용 편집' if self.local_dirty else ' / 적용된 설정'))
+        self._point_row_kind = table['source_row_kind']
+        self._point_raw_total = table['total_rows']
+        from matplotlib.widgets import SpanSelector
+        self._span_selector = SpanSelector(self.axes, self._select_curve_interval, 'horizontal', useblit=False,
+            props={'alpha': .15, 'facecolor': 'tab:blue'}, button=1, minspan=0)
+        self._point_connections = [self.canvas.mpl_connect(name, callback) for name, callback in (
+            ('button_press_event', self._curve_press), ('motion_notify_event', self._curve_motion), ('button_release_event', self._curve_release))]
+        self._select_original_rows(selected)
 
     def use_preview_layout(self):
         table = (self._preview or {}).get('table_preview')
@@ -1377,6 +1750,7 @@ class DataWindow(QMainWindow):
     def _selection_changed(self):
         item = self.tree.currentItem()
         identifier = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        self._source_selected = identifier is None
         if identifier != self._selected_job:
             self._selected_job = identifier
             self._comparison = self._comparison_id = None
@@ -1389,6 +1763,8 @@ class DataWindow(QMainWindow):
             self.refresh_result()
         else:
             self.sheets.setCurrentWidget(self.preview_table)
+            self.refresh_source_table()
+            self._draw_source_table()
 
     def _result_key(self):
         return (self.document['id'], self._selected_job, self.row_start.value(), self.row_count.value(), self._result_channel) if self.document else None
@@ -1607,6 +1983,45 @@ class DataWindow(QMainWindow):
             self._call(lambda:self.client.document_result(source['document_id'],source['job_id'],
                 selection={'metadata_only':True}),inspected,relevant=lambda:token==self._source_token())
 
+    def request_material(self):
+        """Open the exact retained observation in Material's existing Plan editor."""
+        if self._busy or self.conflict or self._pending_command or self._cache_only:
+            return False
+        try:
+            source = self.selected_source()
+        except ValueError as error:
+            self.message.setText(str(error))
+            return False
+        from caelab.storage import canonical_hash
+        if self.local_dirty or source['input_sha256'] != canonical_hash(self.document['draft']):
+            self.message.setText('현재 설정을 적용하고 자료 준비를 실행한 결과를 선택하세요. 이전 결과는 유지됩니다.')
+            return False
+        token = self._source_token()
+        def retained():
+            def checked(reference):
+                if any(reference.get(key) != source[key] for key in ('document_id', 'job_id', 'input_revision', 'input_sha256')) or not reference.get('result_sha256'):
+                    self.message.setText('보존 결과의 신원이 선택한 입력과 다릅니다. 원 결과를 다시 선택하세요.')
+                    return
+                def choose(payload):
+                    documents = [document for document in payload['documents'] if document.get('kind') == 'material']
+                    labels = ['새 재료…'] + [f"{index + 1}. {document['title']}" for index, document in enumerate(documents)]
+                    label, accepted = QInputDialog.getItem(self, '재료에서 사용', '관측을 읽을 재료', labels, editable=False)
+                    if not accepted or token != self._source_token():
+                        return
+                    index = labels.index(label)
+                    identifier = documents[index - 1]['id'] if index else None
+                    from .desktop import launch_material_observation
+                    self._call(lambda: launch_material_observation(self.client, source, document_id=identifier),
+                        lambda _: self.message.setText('재료 창 열기를 요청했습니다. 사용할 계획과 시험 조건을 확인해 등록하세요.'),
+                        relevant=lambda: token == self._source_token())
+                self._call(self.client.documents, choose, relevant=lambda: token == self._source_token())
+            self._call(lambda: self.client.document_result_reference(source['document_id'], source['job_id']),
+                checked, relevant=lambda: token == self._source_token())
+        if self.document.get('dirty') or not self.document.get('saved_revision'):
+            return self.save_document(after=retained)
+        retained()
+        return True
+
     def choose_prediction(self):
         try:
             source = self.selected_source()
@@ -1696,6 +2111,7 @@ class DataWindow(QMainWindow):
             self._draw_result(receipt, self._result_key())
         elif not self._selected_job:
             self._clear_result()
+            self._draw_source_table()
 
     def _clear_result(self):
         for connection in getattr(self, '_point_connections', []):
@@ -1710,6 +2126,9 @@ class DataWindow(QMainWindow):
         self._selection_points={}
         self._point_visible_rows = set()
         self._selection_artist=None
+        self.followup_bar.setVisible(bool(self._selected_job))
+        self.result_channel.setVisible(bool(self._selected_job))
+        self.result_channel_label.setVisible(bool(self._selected_job))
         self.values.setRowCount(0)
         self.canvas.setToolTip('')
         self.axes.clear()
@@ -1889,28 +2308,30 @@ class DataWindow(QMainWindow):
 
     def _selected_original_rows(self):
         rows = set()
-        for index in self.values.selectionModel().selectedRows():
-            try: rows.add(int(self.values.item(index.row(), 0).text()))
+        table = self.values if self._selected_job else self.preview_table
+        for index in table.selectionModel().selectedRows():
+            try: rows.add(int(table.item(index.row(), 0).text()))
             except (ValueError, AttributeError): pass
         return rows
 
     def _select_original_rows(self, sources, *, additive=False, scroll_to=None):
-        selection = self.values.selectionModel()
-        blocked = self.values.blockSignals(True)
+        table = self.values if self._selected_job else self.preview_table
+        selection = table.selectionModel()
+        blocked = table.blockSignals(True)
         try:
-            if not additive: self.values.clearSelection()
-            for row in range(self.values.rowCount()):
-                item = self.values.item(row, 0)
+            if not additive: table.clearSelection()
+            for row in range(table.rowCount()):
+                item = table.item(row, 0)
                 try: source = int(item.text())
                 except (ValueError, AttributeError): continue
                 if source in sources:
-                    index = self.values.model().index(row, 0)
+                    index = table.model().index(row, 0)
                     selection.select(index, QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
                 if source == scroll_to:
-                    selection.setCurrentIndex(self.values.model().index(row, 0), QItemSelectionModel.SelectionFlag.NoUpdate)
-                    self.values.scrollToItem(item)
+                    selection.setCurrentIndex(table.model().index(row, 0), QItemSelectionModel.SelectionFlag.NoUpdate)
+                    table.scrollToItem(item)
         finally:
-            self.values.blockSignals(blocked)
+            table.blockSignals(blocked)
         self.highlight_rows()
 
     def _curve_press(self, event):
@@ -1942,8 +2363,9 @@ class DataWindow(QMainWindow):
         source = min(candidates)[-1]
         additive = 'ctrl' in (event.key or '') or 'control' in (event.key or '')
         self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
-        if any(self.values.item(row, 0).text() == str(source) for row in range(self.values.rowCount())):
-            self.sheets.setCurrentWidget(self.values)
+        table = self.values if self._selected_job else self.preview_table
+        if any(table.item(row, 0).text() == str(source) for row in range(table.rowCount())):
+            self.sheets.setCurrentWidget(table)
             self._select_original_rows({source}, additive=additive, scroll_to=source)
             self.message.setText('원본 행 ' + str(source) + '을 선택했습니다.')
         else:
@@ -1991,15 +2413,18 @@ class DataWindow(QMainWindow):
     def _select_curve_interval(self, first, last):
         if self._point_press is not None and not self._point_dragged: return
         self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
-        wanted={row for row,(x,y) in getattr(self,'_selection_points',{}).items() if first<=x<=last}
-        selection=self.values.selectionModel()
-        self.values.blockSignals(True); self.values.clearSelection()
-        for row in range(self.values.rowCount()):
-            try: source=int(self.values.item(row,0).text())
+        # Mouse coordinates are integral pixels; include the boundary pixel.
+        tolerance = abs(self.axes.get_xlim()[1] - self.axes.get_xlim()[0]) / max(1, self.axes.bbox.width)
+        wanted={row for row,(x,y) in getattr(self,'_selection_points',{}).items() if first-tolerance<=x<=last+tolerance}
+        table = self.values if self._selected_job else self.preview_table
+        selection=table.selectionModel()
+        table.blockSignals(True); table.clearSelection()
+        for row in range(table.rowCount()):
+            try: source=int(table.item(row,0).text())
             except (ValueError,AttributeError): continue
             if source in wanted:
-                selection.select(self.values.model().index(row,0),QItemSelectionModel.SelectionFlag.Select|QItemSelectionModel.SelectionFlag.Rows)
-        self.values.blockSignals(False);self.highlight_rows()
+                selection.select(table.model().index(row,0),QItemSelectionModel.SelectionFlag.Select|QItemSelectionModel.SelectionFlag.Rows)
+        table.blockSignals(False);self.highlight_rows()
 
     def _table_selection_changed(self):
         self._point_lookup_serial = getattr(self, '_point_lookup_serial', 0) + 1
@@ -2011,38 +2436,42 @@ class DataWindow(QMainWindow):
             try: artist.remove()
             except (ValueError,NotImplementedError): pass
         selected=[]
-        for row in sorted({item.row() for item in self.values.selectedIndexes()}):
-            item=self.values.item(row,0)
+        table = self.values if self._selected_job else self.preview_table
+        for row in sorted({item.row() for item in table.selectedIndexes()}):
+            item=table.item(row,0)
             try: source=int(item.text())
             except (ValueError,AttributeError): continue
             point=getattr(self,'_selection_points',{}).get(source)
             if point is not None: selected.append(point)
+        limits = self.axes.get_xlim(), self.axes.get_ylim()
         self._selection_artist=(self.axes.scatter([p[0] for p in selected],[p[1] for p in selected],
             s=48,facecolors='none',edgecolors='tab:red',zorder=5) if selected else None)
+        self.axes.set_xlim(limits[0]); self.axes.set_ylim(limits[1])
         self.canvas.draw_idle()
 
     def select_calculation_rows(self, mode):
-        if not self.document or self._busy or self.conflict or self._view_error:
+        if not self.document or self._busy or self.conflict or self._view_error or self._cache_only or self._pending_command:
             return
         rows=[]
-        for row in sorted({item.row() for item in self.values.selectedIndexes()}):
-            try: rows.append(int(self.values.item(row,0).text()))
+        table = self.values if self._selected_job else self.preview_table
+        for row in sorted({item.row() for item in table.selectedIndexes()}):
+            try: rows.append(int(table.item(row,0).text()))
             except (ValueError,AttributeError): return
-        if not rows: return
+        if not rows and mode != 'show_all': return
         # Edit the channel actually displayed, using its original row identities.
-        name=self.result_channel.currentText()
+        name=self.result_channel.currentText() if self._selected_job else self._channel_name
         draft=self.edited_draft()
         columns=draft['mapping']['columns']
         if name not in columns or self._source_id != self.document['draft'].get('data_id'):
             self.message.setText('현재 원본의 같은 채널을 선택한 뒤 구간을 편집하세요.'); return
         run=next((r for r in self.document['runs'] if r['job_id']==self._selected_job),{})
-        if run.get('input_sha256') != __import__('caelab.storage',fromlist=['canonical_hash']).canonical_hash(self.document['draft']):
+        if self._selected_job and run.get('input_sha256') != __import__('caelab.storage',fromlist=['canonical_hash']).canonical_hash(self.document['draft']):
             self.message.setText('이전 설정의 결과입니다. 현재 설정을 가져온 뒤 구간을 선택하세요.'); return
         selected=deepcopy(columns[name].get('row_selection',{}))
         from caelab.adapters.file_table import validate_row_selection
         try: validate_row_selection(selected)
         except ValueError as error:
-            self.settings_button.setChecked(True); self.editor.setCurrentIndex(2)
+            self.settings_action.setChecked(True); self.editor.setCurrentIndex(2)
             self.message.setText('행 선택의 미완성 입력을 먼저 고치세요: '+str(error))
             return
         if mode in ('fit','holdout'):
@@ -2054,6 +2483,13 @@ class DataWindow(QMainWindow):
             selected['include_ranges']=[[value,value] for value in sorted(set(rows))]
         elif mode=='exclude':
             selected['exclude_rows']=sorted(set(selected.get('exclude_rows',[]))|set(rows))
+        elif mode in ('quality', 'hide'):
+            key = 'quality_rows' if mode == 'quality' else 'display_hidden_rows'
+            selected[key] = sorted(set(selected.get(key, [])) | set(rows))
+        elif mode == 'unquality':
+            selected['quality_rows'] = [row for row in selected.get('quality_rows', []) if row not in rows]
+        elif mode == 'show_all':
+            selected['display_hidden_rows'] = []
         elif mode=='restore':
             selected['exclude_rows']=[value for value in selected.get('exclude_rows',[]) if value not in rows]
             # Split existing ranges precisely; retain other rows and their reasons.
@@ -2074,7 +2510,8 @@ class DataWindow(QMainWindow):
         self.channel_selector.blockSignals(False)
         self._populate_mapping(); self._populating=False
         self._edited()
-        self.message.setText('구간을 변경했습니다. 설정 적용 후 가져오기를 실행하세요. 이전 결과는 그대로 유지됩니다.')
+        self.message.setText('구간을 변경했습니다. 설정 적용 후 자료 준비를 실행하세요.' +
+            (' 이전 결과는 그대로 유지됩니다.' if self.document.get('runs') else ''))
 
     def _show_details(self):
         self.details.setPlainText(json.dumps({'document': self.document, 'view_diagnostic': self._view_error,
@@ -2083,30 +2520,36 @@ class DataWindow(QMainWindow):
 
     def _update_actions(self):
         present = self.document is not None
-        enabled = present and not self._busy and not self.conflict
-        self.editor.setEnabled(present and not self._foreground_busy and not self._view_error)
-        self.source_button.setEnabled(enabled and not self._view_error)
-        self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
+        enabled = present and not self._busy and not self.conflict and not self._pending_command and not self._cache_only
+        self.editor.setEnabled(present and not self._foreground_busy and not self._view_error and not self._pending_command and not self._cache_only)
+        self.source_action.setEnabled(enabled and not self._view_error)
+        self.apply_action.setEnabled(enabled and self.local_dirty and not self._view_error)
         blocked = present and any(item.get('blocks_evaluation') for item in self.document.get('diagnostics', []))
-        self.import_button.setEnabled(enabled and not self.local_dirty and not blocked and not self._view_error)
+        self.import_action.setEnabled(enabled and not self.local_dirty and not blocked and not self._view_error)
+        from caelab.storage import canonical_hash
+        run = next((row for row in (self.document or {}).get('runs', []) if row['job_id'] == self._selected_job), {})
+        current_result = present and run.get('input_sha256') == canonical_hash(self.document['draft'])
+        self.material_action.setEnabled(enabled and not self.local_dirty and bool(current_result))
         self.save_action.setEnabled(enabled)
         self.processing_recipe_action.setEnabled(enabled and bool(self._selected_job) and not self._view_error)
         self.processing_preview_action.setEnabled(enabled and not self.local_dirty and bool((self.document or {}).get('draft', {}).get('processing')))
         self.processing_results_action.setEnabled(present and not self._busy and bool((self.document or {}).get('processing_revisions')))
-        self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
-        self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
+        self.focused_undo.refresh()
         self.new_action.setEnabled(not self._busy)
         self.open_action.setEnabled(not self._busy)
         self.open_tests_action.setEnabled(not self._busy)
-        self.read_button.setEnabled(present and bool(self._selected_job) and not self._busy)
+        self.read_button.setEnabled(present and bool(self._source_id) and not self._busy)
         for button in (self.compare_button, self.plan_button, self.expert_button):
             button.setEnabled(enabled and bool(self._selected_job) and not self.local_dirty)
         self.comparison_selector.setEnabled(enabled and bool(self._selected_job) and not self.local_dirty)
         self.layout_button.setEnabled(bool((self._preview or {}).get('table_preview')) and not self._view_error)
-        self.reload_button.setVisible(self.conflict)
+        self.reload_button.setVisible(self.conflict or self._cache_only)
+        self.reload_button.setText('서비스에 다시 연결' if self._cache_only else '서비스 입력 다시 읽기')
         self.copy_button.setVisible(self.conflict)
         self.reload_button.setEnabled(not self._busy)
         self.copy_button.setEnabled(not self._busy)
+        self.retry_command_button.setVisible(self._pending_command is not None)
+        self.retry_command_button.setEnabled(not self._busy)
         if present:
             self.setWindowTitle('Data — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
             self.identity.setText('설정 적용 필요' if self.local_dirty else '입력 오류' if blocked or self._view_error else
@@ -2114,6 +2557,19 @@ class DataWindow(QMainWindow):
             self.identity.setToolTip(f"Document: {self.document['id']}\nSession: {self.document['session_id']}\nSaved: {self.document.get('saved_revision')}")
 
     def _leave(self, continuation):
+        if self._pending_command:
+            self.message.setText('요청 결과를 먼저 확인하세요. 현재 편집과 같은 명령의 재시도 정보를 유지합니다.')
+            return
+        if self._pending_view:
+            question = QMessageBox(self)
+            question.setWindowTitle('보기 저장 실패')
+            question.setText('자료는 저장됐지만 보기를 저장하지 못했습니다. 보기를 다시 저장한 뒤 계속할 수 있습니다.')
+            retry = question.addButton('보기 저장 재시도', QMessageBox.ButtonRole.AcceptRole)
+            question.addButton('취소', QMessageBox.ButtonRole.RejectRole)
+            question.exec()
+            if question.clickedButton() is retry:
+                self.save_document(after=lambda: self._leave(continuation))
+            return
         from .data_material_recovery_host import leave_with_recovery
         leave_with_recovery(self, continuation)
 
