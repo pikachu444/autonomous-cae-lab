@@ -19,3 +19,23 @@ Planning interactions and DEMO values are not actual solver/provider acceptance.
 Windows GUI completion needs actual native interaction; offscreen widget captures
 only substantiate their stated rendering/self-check scope. Physics claims need
 reference comparison for their supported response and original tolerances.
+
+## 2026-10-18 implementation checkpoint
+
+The assigned Data/Material/Numerical and public native fixture connection slices
+have actual implementations and bounded execution evidence. Data source tables,
+local editing/recovery and a separate Material receiver use the same owner;
+Material/Numerical use one plan editor and retain fit/holdout/candidate evidence
+through adoption and cold reopen. The existing native fixture completes Tasks
+cancel/accept, two retained jobs, Runner/design return and saved Post comparison.
+Independent integration findings in these slices are closed.
+
+See [Data](../../../docs/DATA_WORKSPACE_KO.md),
+[Material/Plan](../../../docs/MATERIAL_PLAN_EDITING_KO.md) and
+[native evidence](../../../docs/PREPOST_VERIFICATION.md#2026-10-18--public-roller-support-native-connection).
+These are scoped evidence for AC-D01/D03/D05/D07/D08/D12, not blanket acceptance
+of all research families or all desktop workflows. Native exact resultant
+reproduction remains FAIL at the original 1e-8 N criterion; engineering
+qualification remains UNKNOWN. OS direct-input/whole-window composition,
+complete distribution and the LabPlot production-adoption verdict are separate.
+The current assignment and remaining action stay solely in CURRENT_STATE.
