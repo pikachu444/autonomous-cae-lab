@@ -171,6 +171,8 @@ class RequestPlanWindow(NumericalWindow):
         self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
         file_menu, edit_menu = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
         file_menu.addActions([self.new_action, self.open_action, self.save_action])
+        from .data_material_recovery_host import install_recovery_action
+        self.recovery_action = install_recovery_action(self, file_menu)
         edit_menu.addActions([self.undo_action, self.redo_action])
         for action, callback in ((self.new_action, self.new_document), (self.open_action, self.choose_document),
             (self.save_action, self.save_document), (self.undo_action, lambda: self.undo_inputs()),
@@ -857,8 +859,8 @@ class RequestPlanWindow(NumericalWindow):
             self.runs.item(row, 3).setText('현재 입력' if run.get('is_current_input') and not self.local_dirty else '이전 입력')
 
     def _sheet_table(self, name, headers):
-        from .numerical_editing import PlanTable
-        table = PlanTable(0, len(headers))
+        from .numerical_recovery import RecoveryPlanTable
+        table = RecoveryPlanTable(0, len(headers))
         table.pasteRejected.connect(self.message.setText)
         table.setObjectName(name)
         table.setHorizontalHeaderLabels(headers)

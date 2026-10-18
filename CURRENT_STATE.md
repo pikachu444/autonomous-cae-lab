@@ -34,6 +34,17 @@ GUI 검사는 전역 foreground를 공유하므로 Codex가 한 담당에게만 
 각 구현 담당은 소스/단위 작업을 먼저 진행하며 실제 GUI/native/solver 실행은 지정된
 범위와 순서로만 한다. 의미 있는 기능 묶음이 완성되면 같은 독립 검토 담당을 재사용한다.
 
+10월19일 첫 후속 통합: B8.4.L01의 공통 소프트웨어 계약은 기존 HTTP/JobManager와 명시
+SSH 대역·별도 프로세스 cold로 인수했다. store A의 응답 유실 뒤 같은 URL의 B로 전환해도
+원 요청을 보존하고 B 제출/설정 쓰기 0인 P2 교정을 영향 8PASS로 확인했다. 실제 외부
+SSH/Slurm/PBS 호스트는 미실행이다. B8.2 첫 slice는 Material+DOE Plan의 부분 저장 후
+실패 Plan만 재시도, 성공 재료 receipt/기존 참조 보존 및 독립 Numerical/Request Plan의
+미확정 원문 보관·명시 복구/취소/Esc/Undo를 확인했다. 초기 열기 실패의 빈 창 닫기 차단도
+추가 4PASS로 교정했다. 같은 Astra 검토의 P2 두 건은 폐쇄했고 남은 P1/P2는 없다.
+Data 포함 3-owner와 전체 B8.2는 남는다. OS 클립보드는 UNKNOWN이고 원 timeout/하네스
+실패는 보존한다. 절차·명령·결과는 [기존 검증 매뉴얼](docs/VERIFICATION_SCOPE.md)에 모았다.
+thermal과 TR-U authoring의 공통 통합·실제 창 검사는 계속 진행 중이다.
+
 사용자의 추가 문서 정리 방향도 이 작업에 적용한다. 사용자 입구는 설치·처음 시작·도구별
 사용법으로 유지하고, 검증 절차/기준/명령/결과 요약은 적합한 기존 검증 매뉴얼 한 곳에
 기능별로 모은다. 새 교정 회차마다 acceptance 문서나 일회성 검사 진입 스크립트를 만들지
@@ -967,9 +978,9 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B7.6.L01 | 장비 없이 닫는 공통 취득·sequence·종료 소프트웨어 | D | 본코드 통합·한정 확인 완료, 실장비는 L02 | pending_acquisition_integration |
 | B7.6.L02 | 실제 장비 한 종류의 binding·권한·물리 stop 인수 | E | 외부 입력 대기 | T6 |
 | B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | `b0bff6e` 한정 인도/검토·게시. Research9/native Data·Pre2/Post2 종료재열기 확인, foreground NOT_PERFORMED/전체 OS 입력 제한 유지 | native_impl·material_numerical_impl·data_impl·native_data_product_impl·desktop_specialist / Codex |
-| B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | Material+Plan 실제 부분저장/cold와 독립 Numerical 원문 복구를 병행 구현·인수 중. Data3-owner 전체 종료와 구별 | desktop_specialist / material_numerical_impl / Codex |
+| B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | Material+DOE Plan 부분저장/실패만 재시도와 독립 Numerical 원문/cold 첫 slice 인수·독립 검토 완료. Data3-owner 전체 종료는 잔여 | desktop_specialist / material_numerical_impl / Codex |
 | B8.3.L01 | 이동 사본 전체 선언 문서의 cold 편집 | A | 그룹11종·같은 큰 묶음의 실제 편집/저장/재복사/cold/재출력 인수 완료, 원 응답 유실과 느린 성능 유지 | material_numerical_impl / Codex |
-| B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 transport 대역·실제 HTTP/JobManager/cold 연결 인수 중. 회수 상태/실패·누락/종료 표시 교정, 외부 호스트 미실행 | data_impl / Codex |
+| B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 transport 대역·실제 HTTP/JobManager/cold 인수·독립 검토 완료. store 변경 중 pending 보호 P2 폐쇄. 실제 외부 호스트는 L02–04 미실행 | data_impl / Codex |
 | B8.4.L02 | SSH 직접 실행 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |
 | B8.4.L03 | Slurm 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |
 | B8.4.L04 | OpenPBS 실제 승인 호스트 인수 | E | 외부 입력 대기 | T2 |

@@ -45,7 +45,10 @@ class RemoteExecutionDialog(QDialog):
         self._busy = False; self._pending = None; self._workers = []
         self._hosts = {}; self._attempts = {}; self._close_when_idle = False
         self._store_key = None
+        self._pending_store_key = None
+        self._store_mismatch = False
         self._pending_uncertain = False
+        self._pending_error = ''
         self.setWindowTitle('원격 실행'); self.resize(1000, 720); self.setMinimumSize(660, 560)
         layout = QVBoxLayout(self)
         group = QGroupBox('실행할 입력과 자원'); form = QFormLayout(group)
@@ -94,14 +97,14 @@ class RemoteExecutionDialog(QDialog):
         if auto_load: self.refresh()
 
     def _controls(self):
-        editable = not self._busy and self._pending is None
+        editable = not self._busy and self._pending is None and not self._pending_error
         for widget in (self.host,self.batch,self.threads,self.memory,self.wall,self.preview_button): widget.setEnabled(editable)
         self.preview_button.setEnabled(editable and bool(self.host.currentData() and self.batch.currentData()))
-        self.submit_button.setEnabled(not self._busy and (self._pending is not None or bool(self.host.currentData() and self.batch.currentData())))
+        self.submit_button.setEnabled(not self._busy and not self._pending_error and not self._store_mismatch and (self._pending is not None or bool(self.host.currentData() and self.batch.currentData())))
         self.submit_button.setText('요청 응답 다시 확인' if self._pending else '원격 제출')
         self.refresh_button.setEnabled(not self._busy)
         for button in (self.reconnect_button,self.cancel_button,self.collect_button,self.result_button):
-            button.setEnabled(not self._busy and self._pending is None and bool(self.selected_job))
+            button.setEnabled(not self._busy and self._pending is None and not self._pending_error and bool(self.selected_job))
 
     def _request(self, function, accepted, failed=None):
         if self._busy: return
@@ -124,6 +127,11 @@ class RemoteExecutionDialog(QDialog):
         self._request(lambda:self._api('catalog'), self._catalog)
 
     def _catalog(self, catalog):
+        if self._pending_store_key and catalog['store_key']!=self._pending_store_key:
+            self._store_mismatch = True
+            self.message.setText('서비스의 작업공간이 바뀌었습니다. 원 요청과 입력은 보존했습니다. 원 작업공간으로 돌아와 목록을 새로 고친 뒤 같은 요청을 확인하세요.')
+            self._controls();return
+        self._store_mismatch = False
         previous_host, previous_batch = self.host.currentData(), self.batch.currentData()
         self._hosts = {row['id']:row for row in catalog['hosts'] if not row.get('error')}
         self.host.blockSignals(True); self.host.clear(); self.batch.clear()
@@ -134,44 +142,61 @@ class RemoteExecutionDialog(QDialog):
             if index >= 0: combo.setCurrentIndex(index)
         self.host.blockSignals(False); self._host_changed()
         self._store_key = catalog['store_key']
-        self._restore_pending()
+        self._restore_pending_safe()
         self._attempts = {row['id']:row for row in catalog['attempts']}
         self.table.blockSignals(True); self.table.setRowCount(len(self._attempts))
         for index,row in enumerate(self._attempts.values()):
             host = self._hosts.get(row.get('host_id'),{})
-            values = [row['label'],host.get('label','기존 실행 위치'),STATES.get(row['state'],'확인 필요'),
+            values = [row['label'],host.get('label','기존 실행 위치'),self._state_text(row),
                       row.get('scheduler_id') or '확인 전',row.get('updated_utc','').replace('T',' ')[:19]]
             for column,value in enumerate(values):
                 item = QTableWidgetItem(str(value)); self.table.setItem(index,column,item)
             self.table.item(index,0).setData(Qt.ItemDataRole.UserRole,row['id'])
             if row['id'] == self.selected_job: self.table.selectRow(index)
         self.table.blockSignals(False)
-        self.message.setText('실행 위치를 등록한 후 사용할 수 있습니다. 로컬 실행은 계속 사용할 수 있습니다.' if not self._hosts else
+        self.message.setText(self._pending_error or ('실행 위치를 등록한 후 사용할 수 있습니다. 로컬 실행은 계속 사용할 수 있습니다.' if not self._hosts else
             '이전 요청의 응답이 미확인입니다. 같은 요청을 다시 확인하세요.' if self._pending else
-            '입력 묶음과 솔버를 확인한 후 명시적으로 제출하세요.')
-        self._controls()
+            '입력 묶음과 솔버를 확인한 후 명시적으로 제출하세요.'))
+        self._selected()
 
     def _pending_key(self, request_id):
-        return 'remote-pending/'+self._store_key+'/'+request_id
+        return 'remote-pending/'+(self._pending_store_key or self._store_key)+'/'+request_id
+
+    def _restore_pending_safe(self):
+        self._pending_error = ''
+        try: self._restore_pending()
+        except (ValueError,TypeError,KeyError):
+            self._pending_error = '요청 복구 기록을 읽지 못했습니다. 원 기록을 보존했습니다. 작업공간의 요청 기록을 확인하세요.'
 
     def _restore_pending(self):
         if self._pending or not self._store_key: return
         settings=_settings();settings.beginGroup('remote-pending/'+self._store_key)
         keys=settings.childKeys()
+        if settings.status()!=QSettings.Status.NoError: raise ValueError('Recovery settings are unreadable')
         if not keys: return
         value=json.loads(settings.value(keys[0]))
         if not isinstance(value,list) or len(value)!=3 or value[0] not in {'remote.run','remote.reconnect','remote.cancel','remote.collect'} or value[2]!=keys[0]:
             raise ValueError('보존한 원격 요청을 읽지 못했습니다. 기존 요청 기록을 확인하세요.')
-        self._pending=tuple(value)
-        self._pending_uncertain = True
         args=value[1]
+        if not isinstance(args,dict): raise ValueError('Invalid retained arguments')
         if value[0]=='remote.run':
+            if any(not isinstance(args.get(key),str) or not args[key] for key in ('host_id','batch_job')):
+                raise ValueError('Invalid retained source')
+            resources=args.get('remote_resources')
+            if not isinstance(resources,dict) or any(type(resources.get(key)) is not int or resources[key]<1 for key in ('threads','memory_mb','wall_seconds')):
+                raise ValueError('Invalid retained resource request')
             for combo,key in ((self.host,'host_id'),(self.batch,'batch_job')):
                 index=combo.findData(args[key])
                 if index>=0: combo.setCurrentIndex(index)
             for widget,key in ((self.threads,'threads'),(self.memory,'memory_mb'),(self.wall,'wall_seconds')):
-                widget.setValue(args['remote_resources'][key])
-        else: self.selected_job=args['source_job']
+                widget.setMaximum(max(widget.maximum(),resources[key]));widget.setValue(resources[key])
+        else:
+            if not isinstance(args.get('source_job'),str) or not args['source_job']:
+                raise ValueError('Invalid retained job')
+            self.selected_job=args['source_job']
+        self._pending=tuple(value)
+        self._pending_store_key = self._store_key
+        self._pending_uncertain = True
 
     def _host_changed(self):
         row = self._hosts.get(self.host.currentData())
@@ -196,39 +221,50 @@ class RemoteExecutionDialog(QDialog):
         self._request(lambda:self._api('preview',args),accepted)
 
     def submit(self):
+        if self._busy or self._pending_error or self._store_mismatch: return
+        if not self._store_key:
+            self.message.setText('작업공간의 목록을 먼저 확인하세요.');return
         if self._pending is None:
             self._pending = ('remote.run',deepcopy(self._arguments()),'remote-'+uuid.uuid4().hex)
+            self._pending_store_key = self._store_key
             self._pending_uncertain = False
         self._send_pending()
 
     def action(self, action):
+        if self._busy or self._pending_error or self._store_mismatch: return
+        if not self._store_key:
+            self.message.setText('작업공간의 목록을 먼저 확인하세요.');return
         if not self.selected_job: return
         if self._pending: self._send_pending();return
         self._pending = ('remote.'+action, {'source_job':self.selected_job}, 'remote-'+uuid.uuid4().hex)
+        self._pending_store_key = self._store_key
         self._pending_uncertain = False
         self._send_pending()
 
     def _send_pending(self):
         operation,arguments,request_id = self._pending
-        if not self._store_key:
-            self.message.setText('작업공간을 확인한 뒤 같은 요청을 다시 확인하세요.');return
+        store_key = self._pending_store_key
+        if not store_key or self._store_mismatch or self._store_key!=store_key:
+            self.message.setText('원 작업공간으로 돌아와 같은 요청을 확인하세요. 요청과 입력은 보존했습니다.');return
         settings=_settings();settings.setValue(self._pending_key(request_id),json.dumps(self._pending,ensure_ascii=False))
         settings.sync()
         if settings.status()!=QSettings.Status.NoError:
             self.message.setText('요청 복구 기록을 저장하지 못했습니다. 쓰기 권한을 확인하세요.');self._controls();return
         def accepted(job):
+            if self._pending_store_key!=store_key or self._store_key!=store_key or self._store_mismatch:
+                self.message.setText('원 작업공간에서 요청의 응답을 다시 확인하세요.');return
             if job.get('request_id')!=request_id or job.get('operation')!=operation or job.get('arguments')!=arguments:
                 self.message.setText('접수한 요청이 원 입력과 다릅니다. 같은 요청의 확인이 필요합니다.');return
             settings=_settings();settings.remove(self._pending_key(request_id));settings.sync()
             if settings.status()!=QSettings.Status.NoError:
                 self.message.setText('접수 기록의 정리를 확인하지 못했습니다. 같은 요청으로 다시 확인하세요.');return
-            self._pending = None; self._pending_uncertain = False
+            self._pending = None; self._pending_store_key = None; self._pending_uncertain = False
             self.selected_job = job['id']; self.job_ready.emit(job['id'])
-            self._restore_pending()
-            self.message.setText('요청을 접수했습니다. Runner에서 진행 상태를 확인하세요.')
+            self._restore_pending_safe()
+            self.message.setText(self._pending_error or '요청을 접수했습니다. Runner에서 진행 상태를 확인하세요.')
         def confirm():
             catalog=self._api('catalog')
-            if catalog['store_key']!=self._store_key: raise ValueError('서비스의 작업공간이 바뀌었습니다. 원 작업공간에서 같은 요청을 확인하세요.')
+            if catalog['store_key']!=store_key: raise ValueError('서비스의 작업공간이 바뀌었습니다. 원 작업공간에서 같은 요청을 확인하세요.')
             for job in catalog['requests']:
                 if job['request_id']==request_id: return job
             return self.client.submit(operation,deepcopy(arguments),request_id=request_id)
@@ -236,7 +272,7 @@ class RemoteExecutionDialog(QDialog):
             if not self._pending_uncertain and isinstance(error,WorkbenchHTTPError) and error.code in {400,403,404,409,422}:
                 settings=_settings();settings.remove(self._pending_key(request_id));settings.sync()
                 if settings.status()==QSettings.Status.NoError:
-                    self._pending=None
+                    self._pending=None;self._pending_store_key=None
                     self.message.setText('요청이 접수 전에 거절됐습니다. 입력을 수정하세요. '+error.service_message)
                     return
             self._pending_uncertain=True
@@ -248,8 +284,22 @@ class RemoteExecutionDialog(QDialog):
         if rows:
             self.selected_job = self.table.item(rows[0].row(),0).data(Qt.ItemDataRole.UserRole)
             row = self._attempts[self.selected_job]
-            self.detail.setText('선택한 작업: '+row['label']+' / '+STATES.get(row['state'],'확인 필요'))
+            lines=['선택한 작업: '+row['label']+' / '+self._state_text(row),
+                   '실제 종료 확인됨' if row.get('terminated') is True else '실제 종료 미확인 — 결과 회수 전에 같은 작업의 상태를 확인하세요.']
+            if row.get('imported_count') is not None:
+                lines.append(f"회수 후보 {row['imported_count']}개 / 후보 누락 {row.get('missing_count',0)}개")
+            error=row.get('error')
+            if isinstance(error,dict): error=error.get('message') or 'Runner에서 선택한 작업의 진단을 확인하세요.'
+            if error: lines.append('확인할 내용: '+str(error))
+            self.detail.setText('\n'.join(lines))
         self._controls()
+
+    @staticmethod
+    def _state_text(row):
+        text=STATES.get(row['state'],'확인 필요')
+        if row.get('job_state') in {'FAILED','CANCELLED','TIMEOUT'} and row['job_state']!=row['state']:
+            text+=' / '+STATES[row['job_state']]
+        return text
 
     def open_result(self):
         if self.selected_job:

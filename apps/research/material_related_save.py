@@ -1,13 +1,13 @@
 """Explicit related-save UI over Pro's existing owner coordinator."""
 from copy import deepcopy
 import uuid
-from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal
+from PySide6.QtCore import Qt, QItemSelectionModel, QThreadPool, QTimer, Signal
 from PySide6.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QHeaderView,
     QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout)
 
 
 STATES = {'SAVED': '저장됨', 'FAILED': '저장 실패', 'CONFLICT': '문서 변경됨',
-    'BLOCKED': '적용 전 입력 있음', 'UNKNOWN': '결과 확인 필요',
+    'BLOCKED': '저장 보류', 'UNKNOWN': '결과 확인 필요',
     'APPLYING': '결과 확인 필요', 'NOT_STARTED': '저장 전'}
 
 
@@ -28,13 +28,17 @@ class RelatedSaveDialog(QDialog):
         self.preview = (deepcopy(pending_preview) if pending_preview else {'receipt_id': receipt_id}) if receipt_id else None
         self.receipt = None
         self._busy = False; self._worker = None
-        self.setWindowTitle('재료와 피팅 계획 저장'); self.resize(760, 370)
+        self.setWindowTitle('재료와 계획 저장'); self.resize(760, 370)
         layout = QVBoxLayout(self)
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(['문서', '저장 상태', '확인할 내용'])
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header=self.table.horizontalHeader()
+        header.setSectionResizeMode(0,QHeaderView.ResizeMode.Interactive)
+        self.table.setColumnWidth(0,250)
+        header.setSectionResizeMode(1,QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
         layout.addWidget(self.table, 1)
         self.message = QLabel('적용된 재료와 계획의 입력을 확인합니다.'); self.message.setWordWrap(True)
         layout.addWidget(self.message)
@@ -46,6 +50,9 @@ class RelatedSaveDialog(QDialog):
         self.link_button = QPushButton('저장한 재료로 연결')
         self.resume_button = QPushButton('원래 저장 요청 재전송')
         self.close_button = QPushButton('닫기')
+        for button in (self.save_button,self.retry_button,self.check_button,self.link_button,self.resume_button):
+            button.setAutoDefault(False)
+        self.close_button.setDefault(True)
         for button in (self.save_button, self.retry_button, self.check_button): row.addWidget(button)
         link_row.addWidget(self.resume_button); link_row.addWidget(self.link_button)
         link_row.addStretch(); link_row.addWidget(self.close_button)
@@ -69,6 +76,7 @@ class RelatedSaveDialog(QDialog):
                 self.message.setText('요청 결과를 확인하지 못했습니다. 편집과 원래 계획 참조는 보존됩니다. 결과를 다시 확인하세요.')
                 self.message.setToolTip(error)
             else:
+                self.message.setToolTip('')
                 after(value)
             self._buttons()
         worker.signals.finished.connect(done, Qt.ConnectionType.QueuedConnection)
@@ -98,7 +106,11 @@ class RelatedSaveDialog(QDialog):
         return [targets[row] for row in rows if row < len(targets) and targets[row]['state'] in ('FAILED', 'CONFLICT', 'BLOCKED')]
 
     def _show(self, targets):
+        selected={self.table.item(index.row(),0).data(Qt.ItemDataRole.UserRole)
+                  for index in self.table.selectedIndexes() if self.table.item(index.row(),0)}
+        blocked=self.table.blockSignals(True)
         self.table.setRowCount(len(targets))
+        self.table.clearSelection()
         for row, target in enumerate(targets):
             identifier = target['identity']['document_id']
             problems = target.get('preview_problems', [])
@@ -108,8 +120,19 @@ class RelatedSaveDialog(QDialog):
             if error: detail = '저장 위치와 연결, 문서 변경을 확인하세요.'
             for column, value in enumerate((self.documents[identifier]['title'], STATES.get(state, '결과 확인 필요'), detail)):
                 item = QTableWidgetItem(value)
+                item.setData(Qt.ItemDataRole.UserRole,identifier)
                 item.setToolTip(error.get('message', value) if error and column == 2 else value)
                 self.table.setItem(row, column, item)
+        chosen=[row for row,target in enumerate(targets) if target['identity']['document_id'] in selected]
+        if not chosen:
+            chosen=next(([row] for row,target in enumerate(targets)
+                         if target.get('state') in ('FAILED','CONFLICT','BLOCKED')),[])
+        for row in chosen:
+            self.table.selectionModel().select(self.table.model().index(row,0),
+                QItemSelectionModel.SelectionFlag.Select|QItemSelectionModel.SelectionFlag.Rows)
+        if chosen:self.table.setCurrentCell(chosen[0],0,QItemSelectionModel.SelectionFlag.NoUpdate)
+        self.table.resizeRowsToContents()
+        self.table.blockSignals(blocked)
 
     def review(self):
         def received(preview):

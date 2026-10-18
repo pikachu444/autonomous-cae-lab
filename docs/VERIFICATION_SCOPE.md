@@ -103,12 +103,21 @@ HTTP/로컬 활성화를 사용한다. 기존 창 전환·새 작업 취소/수�
 
 ```powershell
 python -m pytest tests/test_material_related_save_ui.py tests/test_material_save_recovery_ui.py tests/test_data_material_recovery_host_ui.py -q
+python -m pytest tests/test_numerical_workflows_ui.py -q
 ```
 
 **결과·제한:** 이동 사본 `6b1b372`는 11종과 같은 큰 묶음의 편집/저장/재복사/cold를
 인수했다. 두 300초 응답 유실은 원 UUID/signature/완료 marker로 읽기 복구했으며 성능 PASS가
-아니다. B8.2의 별도 앱 부분저장·독립 Plan 원문 복구는 후속 구현 중이다. 두 문서 성공으로
-Data 포함 전체 인수를 완료했다고 하지 않는다. [원 실행 기록](portable_connection_c3a/WINDOWS_VERIFICATION_KO.md).
+아니다. 10월19일 Material+DOE Plan 부분저장은 재료 1회 성공 receipt를 유지하고 실패한
+Plan만 재시도해 총 2회로 종료했다. 별도 Python에서 미확정 `1e`/`2e`, Esc·Undo와 원 참조
+보존을 확인했다. 독립 Numerical/Request Plan도 owner 입력에 적용하지 않은 원문을 기존
+캡슐에 보관하고 새 세션에서 명시 승인 후 복구한다. 선별 회귀 6PASS, 실제 keep/cold는
+각 exit0/job_empty였다. 초기 열기 실패 뒤 빈 창을 닫지 못하던 결함은 추가 4PASS로 확인했다.
+같은 Astra 검토에서 남은 P1/P2는 없었다. 원 사본 177개 항목과 실제 원본 해시 비교 93파일은
+구별한다. Windows OS 클립보드는 UNKNOWN이며 붙여넣기는 단위 근거로 한정한다.
+관련 저장 actual04의 캡슐 응답 timeout, cold01/host01 하네스 실패는 보존했다.
+Data 포함 3-owner 및 전체 B8.2 종료로 확대하지 않는다.
+[이동 사본 원 실행 기록](portable_connection_c3a/WINDOWS_VERIFICATION_KO.md).
 
 ## Data·Material·Numerical
 
@@ -168,6 +177,15 @@ python -m pytest tests/test_remote_execution.py tests/test_remote_execution_tran
 
 **결과·제한:** L03 P1의 gate 전환/출력은 보존하지만 에너지·횡속도 이상은 UNKNOWN이다.
 정확 .00225 s checkpoint가 없어 P2 child는 미실행이다. [원 조건·한계](IMPACT_RECLOSURE_KO.md).
+B8.4.L01은 저장 Numerical Plan→immutable batch→실제 HTTP/JobManager→명시 SSH 대역으로
+응답 유실/같은 token 재확인·취소·부분 회수·checksum 오류·cold를 확인했다. 회수 완료와
+FAILED Job, 누락 수, 종료 미확인을 각각 표시한다. 손상된 pending 설정은 보존하고 신규
+제출을 막는다. 같은 URL의 store A→B→A에서도 B 제출/기록 쓰기 0, 원 A token/인수/기록
+유지 및 원 Job 확인을 포함한 영향 8PASS였다. 원 13PASS, Windows 6PASS+2 setup ERROR,
+수정된 두 setup의 2PASS는 같은 전체 실행 성공으로 합치지 않는다. 검토 P2는 폐쇄했다.
+외부 SSH/Slurm/PBS 호스트 인수(L02–04)는 NOT_RUN_EXTERNAL이다. 원 기록은
+`_workspace/remote-workflow-20261019/`, 복구는 `_workspace/related-save-20261019/` 및
+`_workspace/numerical-recovery-20261019/`에 보존한다. 공개 저장소에는 로컬 원자료를 넣지 않는다.
 [PREPOST_VERIFICATION](PREPOST_VERIFICATION.md)은 날짜별 원 실행 기록으로 유지한다.
 
 ## Expert·Study·Report

@@ -1,6 +1,6 @@
 """Focused real Qt + real owners; algebra is an explicit test-only evaluator."""
 import os
-os.environ['QT_QPA_PLATFORM']='offscreen'
+os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from copy import deepcopy
 from types import SimpleNamespace
 import time
@@ -70,6 +70,223 @@ def inputs():
         'source':dict(origin='SYNTHETIC',reference='Public algebra; not engineering evidence'),
         'independence':'INDEPENDENT_USER_DECLARED','count':32,'seed':4,
         'thresholds':[dict(response='cost',unit='MPa',reduction='none',component='scalar',location='model',limit=.25,operator='>')]}
+
+
+@pytest.fixture
+def recovery_environment(tmp_path):
+    """The existing HTTP recovery owner, without installing an evaluator."""
+    import threading
+    from apps.lab.service import LabService
+    from apps.lab.server import LabHTTPServer
+    from caelab.workbench_client import Client as HttpClient
+    app=QApplication.instance() or QApplication([])
+    service=LabService(tmp_path);server=LabHTTPServer(service,0)
+    thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.01},daemon=True);thread.start()
+    client=HttpClient(f'http://127.0.0.1:{server.server_port}')
+    windows=[]
+    def open_view(kind,identifier=None):
+        from apps.research.numerical_window import NumericalWindow
+        from caelab.numerical_document import from_material_document
+        if identifier is None:
+            if kind=='request':
+                draft=request('doe',{'variables':[dict(id='x',value=.5,lower=0.,upper=1.,unit='1')],
+                    'responses':['cost'],'count':4,'seed':2,'method':'lhs'},8)
+            else:
+                material=client.document_open(kind='material',draft=default_draft())
+                draft=from_material_document(material)
+            document=client.document_open(kind='numerical',draft=draft)
+            document=client.document_command(document['id'],'document.save',{},
+                session_id=document['session_id'],expected_generation=document['generation'])['document']
+        else:document=client.document_read(identifier)
+        view=(RequestPlanWindow if kind=='request' else NumericalWindow)(client,auto_open=False,poll_interval=0)
+        windows.append(view);view._show_document(document);view.show()
+        wait(app,lambda:not view._busy and not view._callbacks,view)
+        return view,document
+    try:yield app,server.workbench,client,open_view
+    finally:
+        for view in windows:view._allow_close=True;view.close()
+        assert QThreadPool.globalInstance().waitForDone(5000)
+        server.shutdown();server.server_close();thread.join(2);service.shutdown()
+        for view in windows:view.deleteLater()
+        app.processEvents()
+
+
+def _recovery_later(kind,callback):
+    from PySide6.QtCore import QTimer
+    def find():
+        dialog=next((view for view in QApplication.topLevelWidgets() if isinstance(view,kind) and view.isVisible()),None)
+        if dialog is None:QTimer.singleShot(5,find)
+        else:callback(dialog)
+    QTimer.singleShot(5,find)
+
+
+def _recovery_question(caption):
+    _recovery_later(QMessageBox,lambda dialog:next(button for button in dialog.buttons() if button.text()==caption).click())
+
+
+def _unfinished_numerical(app,view):
+    from PySide6.QtWidgets import QLineEdit
+    table=view.variable_sheet if isinstance(view,RequestPlanWindow) else view.variables
+    cell=table.item(0,2);table.setCurrentItem(cell);table.editItem(cell);app.processEvents()
+    line=next(editor for editor in table.findChildren(QLineEdit) if editor.isVisible())
+    line.setText('1e');line.setSelection(2,-2)
+    return table,line
+
+
+@pytest.mark.parametrize('kind',['request','material_plan'])
+def test_raw_recovery_cancel_keep_and_exact_delegate_without_apply(recovery_environment,kind):
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QLineEdit
+    from apps.research.data_material_recovery_dialog import RecoveryKeepDialog
+    from apps.research.data_material_recovery_read import RecoveryReadDialog
+    from apps.research.data_material_recovery_host import inspect_recovery
+    from apps.research.numerical_recovery import numerical_raw_snapshot
+    app,wb,client,open_view=recovery_environment
+    view,document=open_view(kind);table,line=_unfinished_numerical(app,view)
+    original=deepcopy(document);jobs=wb.manager.list()
+    _recovery_question('취소');view.close();app.processEvents()
+    assert view.isVisible() and line.text()=='1e' and line.selectedText()=='1e' and line.cursorPosition()==0
+    assert numerical_raw_snapshot(view)['local_draft']==document['draft']
+    def keep(dialog):
+        def ready():
+            if dialog.keep_button.isEnabled():dialog.keep()
+            else:QTimer.singleShot(5,ready)
+        ready()
+    _recovery_question('편집 원문 보관');_recovery_later(RecoveryKeepDialog,keep);view.close()
+    wait(app,lambda:not view.isVisible(),view)
+    raw=client.data_material('recovery.read',{'document_id':document['id']})['capsules'][-1]['capsule']['raw']
+    assert any(cell['raw_text']=='1e' and cell['editor_kind']=='unfinished' for cell in raw['cells'])
+    fresh,_=open_view(kind,document['id'])
+    def resume(dialog):
+        def ready():
+            if dialog.resume_button.isEnabled():dialog.resume()
+            else:QTimer.singleShot(5,ready)
+        ready()
+    _recovery_later(RecoveryReadDialog,resume);inspect_recovery(fresh)
+    wait(app,lambda:getattr(fresh,'_recovery_review',None) is None,fresh)
+    restored_table=fresh.variable_sheet if kind=='request' else fresh.variables
+    restored=next(editor for editor in restored_table.findChildren(QLineEdit) if editor.isVisible())
+    assert (restored.text(),restored.selectedText(),restored.cursorPosition())==('1e','1e',0)
+    after=client.document_read(document['id'])
+    for key in ('draft','generation','input_revision','saved_revision','runs'):assert after[key]==original[key]
+    assert wb.manager.list()==jobs
+
+
+@pytest.mark.parametrize('failure',['capsule','base'])
+def test_raw_recovery_write_failure_and_base_change_keep_exact_plan(recovery_environment,monkeypatch,failure):
+    from pathlib import Path
+    from PySide6.QtCore import QTimer
+    from apps.research.data_material_recovery_dialog import RecoveryKeepDialog
+    import caelab.related_save_recovery as recovery
+    app,wb,client,open_view=recovery_environment
+    view,document=open_view('request');_,line=_unfinished_numerical(app,view)
+    if failure=='base':
+        draft=deepcopy(document['draft']);draft['request']['purpose']='다른 창의 편집'
+        client.document_command(document['id'],'numerical.update',{'draft':draft},
+            session_id=document['session_id'],expected_generation=document['generation'])
+    else:
+        original=recovery.save_json
+        def fail(path,value):
+            if Path(path).parent.name=='raw-recovery':raise OSError('bounded capsule write failure')
+            return original(path,value)
+        monkeypatch.setattr(recovery,'save_json',fail)
+        def keep(dialog):
+            def ready():
+                if dialog.outcome is not None:
+                    assert not dialog.outcome['all_kept'];dialog.reject()
+                elif dialog.keep_button.isEnabled():dialog.keep();QTimer.singleShot(5,ready)
+                else:QTimer.singleShot(5,ready)
+            ready()
+        _recovery_later(RecoveryKeepDialog,keep)
+    _recovery_question('편집 원문 보관');view.close()
+    wait(app,lambda:getattr(view,'_recovery_review',None) is None,view)
+    assert view.isVisible() and (line.text(),line.selectedText(),line.cursorPosition())==('1e','1e',0)
+    assert not client.data_material('recovery.read',{'document_id':document['id']})['capsules']
+    assert client.document_read(document['id'])['draft']==(draft if failure=='base' else document['draft'])
+    assert not wb.manager.list()
+
+
+def test_raw_recovery_paste_advanced_leaf_selection_and_local_undo(recovery_environment):
+    from PySide6.QtWidgets import QLineEdit
+    from apps.research.request_plan_window import DATA
+    from apps.research.numerical_recovery import numerical_raw_snapshot, restore_numerical_raw
+    app,wb,client,open_view=recovery_environment
+    view,document=open_view('request')
+    table=view.variable_sheet;table.setCurrentItem(table.item(0,2))
+    text='1e\t잘못된 하한';app.clipboard().setText(text);assert table.paste_cells()
+    app.processEvents()
+    view.work_pages.setCurrentIndex(0)
+    view.input_tabs.setCurrentWidget(view.advanced_scroll)
+    app.processEvents()
+    tree=view.inputs
+    item=next(tree.topLevelItem(0).child(row) for row in range(tree.topLevelItem(0).childCount())
+              if tree.topLevelItem(0).child(row).data(0,DATA)['path']==('count',))
+    tree.setCurrentItem(item,1);tree.editItem(item,1);app.processEvents()
+    line=next(editor for editor in tree.findChildren(QLineEdit) if editor.isVisible())
+    line.setText('3e');line.setSelection(2,-1)
+    raw=numerical_raw_snapshot(view)
+    assert raw['paste']['variable_sheet']['raw_text']==text
+    assert raw['focus']['selection']==[1,1] and raw['focus']['cursor']==1
+    fresh,_=open_view('request',document['id']);restore_numerical_raw(fresh,raw)
+    restored=next(editor for editor in fresh.inputs.findChildren(QLineEdit) if editor.isVisible())
+    assert (restored.text(),restored.selectedText(),restored.cursorPosition())==('3e','e',1)
+    assert fresh.input_tabs.currentWidget() is fresh.advanced_scroll
+    assert fresh.variable_sheet.item(0,2).text()=='1e'
+    assert fresh.variable_sheet.item(0,3).text()=='잘못된 하한'
+    assert fresh.variable_sheet.raw_paste['raw_text']==text
+    assert sorted([[i.row(),i.column()] for i in fresh.variable_sheet.selectedIndexes()])==sorted(raw['selection']['variable_sheet'])
+    fresh.undo_inputs()
+    assert fresh.edited_draft(commit=False)==document['draft']
+    after=client.document_read(document['id'])
+    for key in ('draft','generation','input_revision','saved_revision','runs'):assert after[key]==document[key]
+    assert not wb.manager.list()
+
+
+def test_raw_recovery_explicit_save_commits_and_saves_without_running(recovery_environment):
+    app,wb,client,open_view=recovery_environment
+    view,document=open_view('request');_,line=_unfinished_numerical(app,view)
+    line.setText('2.5')
+    _recovery_question('저장');view.close()
+    wait(app,lambda:not view.isVisible(),view)
+    saved=client.document_read(document['id'])
+    assert saved['draft']['request']['inputs']['variables'][0]['value']==2.5
+    assert saved['saved_revision']!=document['saved_revision'] and not saved['dirty']
+    assert not client.data_material('recovery.read',{'document_id':document['id']})['capsules']
+    assert not wb.manager.list()
+
+
+@pytest.mark.parametrize('failed_open',[False,True])
+@pytest.mark.parametrize('action',['close','new'])
+def test_raw_recovery_empty_window_can_close_and_open_after_failed_load(recovery_environment,failed_open,action):
+    from apps.research.numerical_window import NumericalWindow
+    app,wb,client,_=recovery_environment
+    view=NumericalWindow(client,auto_open=False,poll_interval=0)
+    view.show()
+    try:
+        if failed_open:
+            view.open_document(document_id='N'+'0'*32)
+            wait(app,lambda:not view._busy and not view._callbacks,view)
+        assert view.document is None
+        called=[]
+        view._busy=True;view._leave(lambda:called.append('busy'))
+        assert not called
+        view._busy=False
+        view._leave(lambda:called.append('empty'))
+        assert called==['empty']
+        if action=='close':
+            view.close();wait(app,lambda:not view.isVisible(),view)
+            assert view._closed and not wb.manager.list()
+            return
+        view._leave(lambda:view.open_document())
+        wait(app,lambda:view.document is not None and not view._busy and not view._callbacks,view)
+        # A real document's unresolved variable command still blocks departure.
+        view.variable_editor._history_command={'operation':'document.undo'}
+        view._leave(lambda:called.append('pending'))
+        assert called==['empty']
+        view.variable_editor._history_command=None
+        assert not wb.manager.list()
+    finally:
+        view._allow_close=True;view.close()
 
 
 def install_algebra(monkeypatch):

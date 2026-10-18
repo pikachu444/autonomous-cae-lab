@@ -153,6 +153,13 @@ def test_missing_and_failed_rows_never_improve_the_candidate(setup):
     saved=wb.result(result['id'])
     assert result['state']=='FAILED' and saved['table']['missing_count']==1
     assert [row['execution_status'] for row in saved['candidates']]==['FAILED','NOT_EVALUATED']
+    calls = list(ssh.calls)
+    attempt = next(row for row in remote.catalog(wb)['attempts'] if row['id']==result['id'])
+    assert attempt['state']=='RECOVERED' and attempt['job_state']=='FAILED'
+    assert attempt['terminated'] is True and attempt['missing_count']==1
+    assert attempt['imported_count']==saved['table']['imported_count']
+    assert attempt['termination_confirmation']=='SCHEDULER_ACCOUNTING'
+    assert ssh.calls==calls  # Displaying retained failure never contacts the host.
 
 
 def test_unconfirmed_termination_blocks_fetch_then_explicit_cancel(setup):
@@ -160,6 +167,9 @@ def test_unconfirmed_termination_blocks_fetch_then_explicit_cancel(setup):
     original=run(wb,batch); assert original['state']=='FAILED'
     collected=action(wb,'collect',original['id']); assert collected['state']=='FAILED'
     assert 'fetch' not in ssh.calls
+    attempt = next(row for row in remote.catalog(wb)['attempts'] if row['id']==collected['id'])
+    assert attempt['job_state']=='FAILED' and attempt['terminated'] is False
+    assert attempt['imported_count'] is None and attempt['missing_count'] is None
     cancelled=action(wb,'cancel',original['id'],'cancel')
     assert cancelled['state']=='CANCELLED' and 'fetch' not in ssh.calls
 

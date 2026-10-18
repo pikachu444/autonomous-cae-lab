@@ -11,6 +11,9 @@ from .recovery_focus import RawEditorFocusGuard
 def _views(window):
     if not window.document:
         return []
+    provider = getattr(window, 'recovery_views', None)
+    if callable(provider):
+        return provider()
     from .material_recovery import material_raw_snapshot, restore_material_raw
     from .data_recovery import data_raw_snapshot, restore_data_raw
     data=window.document.get('kind')=='data'
@@ -25,7 +28,9 @@ def _views(window):
 
 def _available(window):
     panel=getattr(window,'_plan_panel',None)
-    return not window._busy and (panel is None or panel.recovery_ready())
+    ready=getattr(window,'recovery_ready',None)
+    return (not window._busy and (not callable(ready) or ready())
+            and (panel is None or panel.recovery_ready()))
 
 
 class _Review:

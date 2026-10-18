@@ -174,6 +174,8 @@ def validate_arguments(workbench, operation, arguments):
 
 
 def catalog(workbench):
+    jobs = workbench.manager.list()
+    by_id = {job['id']: job for job in jobs}
     hosts = []
     for identifier in workbench.config.get('remote_hosts',{}):
         try:
@@ -184,25 +186,33 @@ def catalog(workbench):
         except (ValueError,TypeError,KeyError):
             hosts.append({'id':identifier,'label':identifier,'error':'등록한 실행 위치 설정을 확인하세요.'})
     batches = []
-    for job in workbench.manager.list():
+    for job in jobs:
         if job['operation'] == 'batch_export' and job.get('result_refs'):
             batches.append({'id':job['id'],'label':job['arguments'].get('label',job['arguments'].get('case_id','실행 묶음'))})
     attempts = []
     for path in sorted((workbench.root/'results').glob('*/remote.json')):
         record = load_json(path)
+        job = by_id.get(path.parent.name, {})
         attempts.append({'id':path.parent.name,'label':record.get('label','원격 계산'),
                          'state':record['state'],'scheduler_id':record.get('scheduler_id'),
-                         'host_id':record['host_id'],'updated_utc':record['updated_utc']})
+                         'host_id':record['host_id'],'updated_utc':record['updated_utc'],
+                         'job_state':job.get('state'),
+                         **{key:deepcopy(record.get(key)) for key in ('terminated',
+                             'termination_confirmation','cancel_requested','imported_count','missing_count')},
+                         'error':deepcopy(job.get('error') or record.get('error'))})
     retained = {row['id'] for row in attempts}
-    for job in workbench.manager.list():
+    for job in jobs:
         if job['operation'] in OPERATIONS and job['id'] not in retained:
             attempts.append({'id':job['id'],'label':job['arguments'].get('label','원격 계산'),
                 'state':job['state'],'scheduler_id':None,'host_id':job['arguments'].get('host_id'),
-                'updated_utc':job.get('updated_utc',job['created_utc'])})
+                'updated_utc':job.get('updated_utc',job['created_utc']),
+                'job_state':job['state'],'error':deepcopy(job.get('error')),
+                **{key:None for key in ('terminated','termination_confirmation',
+                    'cancel_requested','imported_count','missing_count')}})
     return {'hosts':hosts,'batches':batches,'attempts':attempts,'live_acceptance':'NOT_RUN','network_calls':0,
             'store_key':canonical_hash(str(workbench.root)),
             'requests':[{key:deepcopy(job.get(key)) for key in ('id','operation','arguments','request_id','state','result_refs')}
-                        for job in workbench.manager.list() if job['operation'] in OPERATIONS]}
+                        for job in jobs if job['operation'] in OPERATIONS]}
 
 
 def status(workbench, identifier):

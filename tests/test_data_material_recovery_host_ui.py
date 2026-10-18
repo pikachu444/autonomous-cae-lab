@@ -36,6 +36,25 @@ def app():
     app.processEvents()
 
 
+def test_independent_owner_supplies_its_raw_view_and_readiness():
+    from types import SimpleNamespace
+    from apps.research.data_material_recovery_host import _views, _available
+    raw = {'unconfirmed': '1e'}
+    document = {'id': 'Nindependent', 'kind': 'numerical'}
+    views = [(deepcopy(document), lambda: deepcopy(raw), lambda value: None)]
+    ready = [True]
+    window = SimpleNamespace(document=document, _busy=False,
+        recovery_views=lambda: views, recovery_ready=lambda: ready[0])
+    assert _views(window) is views and _views(window)[0][1]()==raw
+    assert _available(window)
+    ready[0]=False
+    assert not _available(window)
+    ready[0]=True; window._busy=True
+    assert not _available(window)
+    window.document=None
+    assert _views(window)==[]
+
+
 @pytest.fixture
 def backend(tmp_path):
     service=LabService(tmp_path); server=LabHTTPServer(service,0)

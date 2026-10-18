@@ -78,9 +78,12 @@ class RecoveryReadDialog(QDialog):
         record = self._record(); cells = record['capsule']['raw']['cells'] if record else []
         self.cells.setRowCount(len(cells))
         labels = {'mapping': '열 및 단위', 'history': '변형 이력', 'coefficients': '재료 계수'}
+        fields = {'budget':'최대 모델 호출', 'count':'표본 수', 'seed':'난수 seed',
+                  'penalty':'실패 벌점', 'mode':'연구 방법', 'method':'피팅 알고리즘',
+                  'purpose':'계산 목적', 'evaluations':'허용 호출 수'}
         for row, cell in enumerate(cells):
             position = cell.get('position', {})
-            location = labels.get(position.get('table'), position.get('table', '입력'))
+            location = fields.get(position.get('field'), labels.get(position.get('table'), position.get('table', '입력')))
             if type(position.get('row')) is int: location += ' ' + str(position['row'] + 1) + '행'
             if type(position.get('column')) is int: location += ' ' + str(position['column'] + 1) + '열'
             for column, text in enumerate((location, cell['raw_text'])):

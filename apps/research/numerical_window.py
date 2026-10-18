@@ -283,6 +283,8 @@ class NumericalWindow(QMainWindow):
             (self.save_action,self.save_document),(self.request_action,lambda:self.open_request_document())):
             action.triggered.connect(handler)
         files.addActions([self.new_action,self.open_action,self.save_action,self.request_action])
+        from .data_material_recovery_host import install_recovery_action
+        self.recovery_action = install_recovery_action(self, files)
         material_action=QAction('재료 열기 / 저장…',self)
         material_action.triggered.connect(self.open_material); files.addAction(material_action)
         edits.addActions([self.undo_action,self.redo_action])
@@ -335,7 +337,7 @@ class NumericalWindow(QMainWindow):
         self.settings_toggle.toggled.connect(settings.setVisible); settings.hide()
         edit.addWidget(self.settings_toggle); edit.addWidget(settings)
         self.input_splitter=QSplitter(Qt.Orientation.Vertical); edit.addWidget(self.input_splitter,1)
-        from .numerical_editing import PlanTable
+        from .numerical_recovery import RecoveryPlanTable
         from .plan_variables_widget import NumericalPlanVariablesWidget
         self.variable_editor = NumericalPlanVariablesWidget(self)
         self.variable_editor.owner_label.hide()
@@ -354,7 +356,7 @@ class NumericalWindow(QMainWindow):
         self.remove_experiment=QPushButton('제거'); self.remove_experiment.clicked.connect(self.remove_experiments)
         for button in (self.add_experiment,self.edit_protocol,self.remove_experiment): buttons.addWidget(button)
         el.addLayout(buttons)
-        self.experiments=PlanTable(0,8); self.experiments.setObjectName('numericalExperiments')
+        self.experiments=RecoveryPlanTable(0,8); self.experiments.setObjectName('numericalExperiments')
         self.experiments.pasteRejected.connect(self.message.setText)
         self.experiments.setHorizontalHeaderLabels(['식별자','용도','시험','관측','모델 응답','가중치','오차 기준','조건'])
         self.experiments.setItemDelegateForColumn(1,_TrialRoleDisplay(self.experiments))
@@ -945,6 +947,18 @@ class NumericalWindow(QMainWindow):
         return self.command('document.redo' if redo else 'document.undo')
 
     def _commit_editor(self):
+        # A recovery question can own focus while a delegate remains unfinished.
+        # Explicit Apply/Save must commit that delegate, independently of focus.
+        from PySide6.QtWidgets import QAbstractItemDelegate
+        for view in self.editor.findChildren(QAbstractItemView):
+            if view.state() != QAbstractItemView.State.EditingState:
+                continue
+            active = next((editor for kind in (QComboBox, QLineEdit) for editor in view.findChildren(kind)
+                           if editor.isVisible()), None)
+            if active is not None:
+                view.commitData(active)
+                if isValid(active):
+                    view.closeEditor(active, QAbstractItemDelegate.EndEditHint.NoHint)
         focus = QApplication.focusWidget()
         if focus and self.editor.isAncestorOf(focus):
             focus.clearFocus()
@@ -1195,6 +1209,7 @@ class NumericalWindow(QMainWindow):
         return self.command('numerical.update', {'draft': self.edited_draft()}, after=after)
 
     def save_document(self, *, after=None):
+        self._commit_editor()
         if self.local_dirty:
             return self.apply_inputs(after=lambda: self.command('document.save', after=after))
         return self.command('document.save', after=after)
@@ -2091,24 +2106,17 @@ class NumericalWindow(QMainWindow):
             self.undo_router.refresh()
 
     def _leave(self, continuation):
-        self._commit_editor()
-        if self._busy:
-            self.message.setText('Wait for the document request before leaving; jobs remain service-owned.')
-            return
-        if not self.document or not (self.local_dirty or self.document.get('dirty')):
-            continuation()
-            return
-        box = QMessageBox(self)
-        box.setWindowTitle('Unsaved Numerical Plan')
-        box.setText('Save the plan before leaving?')
-        save = box.addButton('Save', QMessageBox.ButtonRole.AcceptRole)
-        keep = box.addButton('Keep service draft', QMessageBox.ButtonRole.DestructiveRole)
-        box.addButton(QMessageBox.StandardButton.Cancel)
-        box.exec()
-        if box.clickedButton() == save:
-            self.save_document(after=continuation)
-        elif box.clickedButton() == keep and not self.conflict:
-            self.apply_inputs(after=continuation) if self.local_dirty else continuation()
+        from .data_material_recovery_host import leave_with_recovery
+        return leave_with_recovery(self, continuation)
+
+    def recovery_views(self):
+        from .numerical_recovery import numerical_raw_snapshot, restore_numerical_raw
+        return [(deepcopy(self.document), lambda: numerical_raw_snapshot(self),
+                 lambda raw: restore_numerical_raw(self, raw))] if self.document else []
+
+    def recovery_ready(self):
+        from .numerical_recovery import recovery_ready
+        return recovery_ready(self)
 
     def new_document(self):
         self._leave(lambda: self.open_document())
