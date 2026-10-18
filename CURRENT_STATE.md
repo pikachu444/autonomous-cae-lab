@@ -19,11 +19,11 @@
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | Expert/Report 전용 창·helper/검사·사용법 인도 freeze. 다음은 기존 Experiment Analysis 전용 창/actions/reporting·검사 | 저장 발언/선택 결과→Study 명시 판단→Report 출력·save/discard/cancel·cold 완료. 같은 담당에게 B7.4 보존 FD/식별성→명시 다음 시험 질문→Study/Report의 준비 packet을 실제 후속 배정 |
-| native_impl / Sol-high | 현재 `numerical_window.py`, `numerical_extension_widgets.py`, `s2_gradient_widgets.py`와 전용 helper/검사·사용법. 공통 엔진/owner/API는 Codex | PDE→Evaluation 인도와 단계 선택 P2 폐쇄 후 실제 followup 호출. B5.4/B5.6/B6.4의 기존 derivative·Picard/MDO·보존 모델과 동일 Evaluation/Plan 사용자 흐름을 이어 구현 |
+| native_impl / Sol-high | `numerical_window.py`, `request_plan_window.py`, `s2_gradient_widgets.py`와 전용 검사·사용법. 공통 엔진/owner/API는 Codex | DOE/RBF/Pareto/Picard·채택/cold 인도와 실제 Taylor 지수 표시 교정 완료. root의 저장 Evaluation 본문·정확 단계 링크를 실제 Windows에서 확인 중. 공유 binding 채택 P2는 root 교정/검토 중 |
 | data_impl / Sol-high | B2.5.L02 native parser·material helper/검사 인도 freeze. 다음 B2.6.L02는 `impact_interface.py`, `impact_damage.py`, 신규 전용 history helper·검사 | native 두 실행·원문/출력·Post 복귀·cold 완료. independent 3 finding와 빈 include 회귀 폐쇄. 게시 뒤 기존 부분 손상 unload–compression–reopen packet을 실제 배정 |
 | native_cae_adviser / Astra-xhigh | B2.5.L02의 exact producer/primary manual·보존 native 입력에 근거한 한정 자문. 제품 파일·실행 없음 | 원 법칙/정수 카드·단위·contact Tstart·validation copy와 export 구분을 실제 writer와 협의. sibling 송신 오류로 Codex가 구체 질문·답변 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | `native/data_labplot/CaelabDataBridge.h`, build/check/package helper, `0008` MainWin hook 단독. Settings·`0007` 제외 | 새 실제 actor를 가동해 기존 exe 첫 Core 접점과 변경 build02 원행/Undo/단일 update 통과. 현재 표/곡선 폭·선택별 pane·한국어·진행/취소·최소 runtime 묶음 구현 중 |
-| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | `CaelabDataSettings.h`, `0007`의 ProjectExplorer.cpp/.h만 단독. donor 원본 직접 수정 없음 | 채널/축/의미별 설정·known code 한국어·이름 우선/열 선택 구현. 최신 패치 9001D26B…를 Data 다음 build에 연결. Study/PDE/Evaluation 실제 일반·좁은 창의 한정 시각 검토는 폐쇄 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | `native/data_labplot/CaelabDataBridge.h`, build/check/package helper, `0008` MainWin hook 단독. Settings·Properties·`0007` 제외 | build18/package04의 표/곡선·선택별 속성·진행/취소·독립 도구·runtime 인수 준비. 독립 검토의 range 제외 행수/미완성 숫자 요약 P2를 한정 교정해 package05 준비 중 |
+| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | `CaelabDataSettings.h`, `CaelabDataProperties.h`, `0007`의 ProjectExplorer.cpp/.h만 단독. donor 원본 직접 수정 없음 | Data 4종 native 속성의 12장·실제 우측 스크롤·한국어와 Taylor 2장 검토 폐쇄. Settings DBE6841D…/Properties 54C1D127… freeze. 저장 Evaluation 본문 교정 확인은 다음 실제 화면 수신 후 |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
 기존 개발을 새 제품 범위로 취급하거나 기능마다 재승인하지 않는다. 실제 의존이나 같은
@@ -45,15 +45,16 @@ FreeCAD/FEM·메셔·native writer·JobManager·ParaView/reader를 재사용한�
 실제 두 writer에 배정했다. 새 build의 폭/표시를 교정 중이며 사용자 피드백은 아직 최종 인수 전이다.
 
 Study와 채택 설계는 `6dfdcfe`, 계층 INP는 `34f4815`, Evaluation은 `f91b976`, 등록 응답의
-DOE/UQ 연결은 `501ddab`로 원격 게시를 확인했다. 현재 다음 행동은 Expert/Report 인도 게시와
-실제 후속 배정, 진행 중 Data UX/runtime·native RAD·Numerical 인도다. 일반 Data 기본
+DOE/UQ 연결은 `501ddab`, Expert/Report는 `f7de485`, native RAD는 `6c09607`로 원격 게시를 확인했다.
+두 완료 담당에게 B7.4와 B2.6.L02를 실제 followup 호출했다. 현재 다음 행동은
+Data 요약 P2·최종 runtime 설치와 Numerical 공유 채택/저장 입력 열람 인도다. 일반 Data 기본
 진입은 UX·최소 runtime 인수 뒤 native로 전환한다. 그 전의 현재 PySide6 기본과 명시 native
 진입을 최종 이중 기본 경로로 고정하지 않는다. 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
-| Data 제품화 | 변경 native build의 원표/곡선·원행·단일 update와 실제 prepare 성공/확인 취소/동일 job 응답 유실 복구 통과. 최종 일반/좁은 UI·저장/cold·최소 runtime launcher로 마감 | 기존 recipe/resample 계보·큰 표. build07 cache dock 수명 crash를 보존하고 build08에서 선택/재열기를 교정 중; 기본 진입은 아직 전환 전 |
+| Data 제품화 | build18/package04 원표/곡선·원행·단일 update/Undo·prepare 성공/확인 취소/동일 job 복구·저장/cold·정확 Material·기존 처리/취득 도구 연결 통과. private profile 실제 설치→일반 data 빈 창/정확 문서 열기·새 job0 확인 | range 제외 개수/미완성 숫자 요약 P2 교정→최종package05 동일 설치 확인 후 기본 진입 전환. 이후 기존 recipe/resample 계보·큰 표. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
 | Numerical/동일 Evaluation | 실제 followup 시작. 기존 저장 Evaluation→Plan exact 참조·방법/변수/예산→작은 실제 후보부터 통합. derivative 의미·실패/잔차·Pareto/보존 모델·명시 채택·cold로 마감 | 기존 상세 명세의 다음 미완료 leaf를 인도 후 대조. 공통 엔진 재작성·새 3D/범용 adjoint 없음 |
 | Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. 같은 명령 재확인·현재 권한 재검증·편집 보존·명시 판단·출력·저장/폐기/취소·cold와 독립 검토를 마침 | 다음 B7.4: 기존 보존 식별성/FD 진단에서 사용자가 다음 시험 질문을 골라 Study/Report로 연결. 원 결과 재사용, 새 provider/물리 campaign 없음 |
 | native RAD | 기존 bulk/interface native 두 원본→제한 field 편집·원 bytes→pinned 실제 2실행·원 채널·Post 복귀·owner/cold 완료. typed LAW117 표기 보존·include original/partial 읽기·모든 FUNCT 번호 충돌 및 빈 include 교정도 독립 검토 폐쇄 | 다음 B2.6.L02: 정확 fixed-source LAW117 부분 손상 한 loop와 mixed-mode loop. CAE 자문/사전 이력·관측 계약부터 연결, 기존 법칙·허용치·engineering UNKNOWN 유지 |
@@ -128,6 +129,18 @@ Numerical의 첫 실제 Plan 호출에서 등록된 Evaluation 응답을 골라�
 기존 엔진에 합류하도록 교정했다. 실제 HTTP의 허용/미등록 응답과 기존 보존 검사 4개가
 통과했고 새 실제 Plan `Nb65849f97be44de9b88e3b19f28ea7e0`의 DOE 3후보가 원 예산 3으로
 성공했다. 원 Evaluation 결과는 불변이다. 후속 RBF/전체차원 Pareto·Picard·cold 작업은 진행 중이다.
+
+동일 Numerical Plan의 예산 2·집단 5·최소 세대 1은 제출 전 거절되지만 입력 검사에서
+허용되던 공통 경계를 교정했다. 기존 예산 정규화 본문을 그대로 `budgeted_arguments`로
+옮겨 순수 입력 진단과 제출이 공유한다. 미완성 초안 저장은 유지하며 실제 Qt/owner에서
+Run 비활성→사용자의 명시 예산 10 수정→재활성·새 job0을 확인했다. 원 세대 축소/least-squares
+예산 검사 2개도 통과했다. 기존 robust fitter의 `loss`/`f_scale`를 Plan schema가 누락해
+첫 HTTP 호출을 거절한 반례도 확인했다. 기존 SciPy 지원 선택만 통과시키고 미지원 loss·
+비양수 scale·미지 옵션은 거절하는 4검사를 통과했다. B7.4 담당의 이후 실제 공개 대수 모델
+soft_l1/DE fit은 각각 16/24회 평가, 최종 ordinary FD는 각각 9회였으며 원값·실패·범위를
+보존한다. 이는 실제 합성 optimizer/FD 실행이고 실물 재료 식별이나 native 해석이 아니다.
+typed fixed/dependent fit의 기존 미지원 계약을 확장하지 않았으며 settings 상수를 명시
+fixed parameter로 꾸미지 않는다.
 
 Expert의 보관 실제 발언과 선택 stress 6개·tangent 근거를 같은 HTTP/Qt owner로 Study에
 연결했다. 새 Study는 미판단이며 사용자가 지지/반박과 메모를 직접 작성한다. 연결 응답

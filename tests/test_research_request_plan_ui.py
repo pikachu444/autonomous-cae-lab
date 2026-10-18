@@ -91,6 +91,42 @@ def opened(app, workbench):
     return window
 
 
+def test_budget_check_matches_submission_without_changing_or_running_saved_draft(app, workbench):
+    from caelab.numerical_document import request_diagnostics
+    draft = valid_request()
+    draft['request']['operation'] = 'optimize'
+    draft['request']['inputs'].update(
+        variables=[{'id': 'E', 'unit': 'MPa', 'value': 1000., 'lower': 500., 'upper': 2000., 'transform': 'linear'}],
+        objective={'response': 'stress_xx', 'unit': 'MPa', 'component': 'xx', 'location': 'material_point',
+                   'reduction': 'max', 'direction': 'minimize'},
+        options={'population_size': 5, 'max_generations': 1})
+    draft['request']['budget']['evaluations'] = 2
+    original = deepcopy(draft)
+    issues = request_diagnostics(draft)
+    assert issues and issues[0]['blocks_evaluation']
+    assert 'population exceeds' in issues[0]['message']
+    assert draft == original
+    with pytest.raises(ValueError, match='population exceeds'):
+        workbench._request_plan_arguments(draft['request'])
+    window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    try:
+        window.open_document(draft=draft)
+        wait(app, lambda: window.document is not None and not window._busy)
+        assert window.document['diagnostics'] and not window.run_button.isEnabled()
+        window.save_document()
+        wait(app, lambda: not window._busy and window.document['saved_revision'] is not None)
+        assert window.document['draft'] == original and not workbench.manager.list()
+        window.evaluations.setText('10')
+        window.apply_inputs()
+        wait(app, lambda: not window._busy and not window.local_dirty)
+        assert not window.document['diagnostics'] and window.run_button.isEnabled()
+        assert window.document['draft']['request']['inputs'] == original['request']['inputs']
+        assert not workbench.manager.list()
+    finally:
+        window._allow_close = True
+        window.close()
+
+
 @pytest.fixture
 def edit_windows(app, monkeypatch):
     """Close only this test's editors; editing must not start native/provider work."""

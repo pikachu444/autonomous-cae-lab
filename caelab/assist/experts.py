@@ -103,6 +103,8 @@ _TOOL_INPUTS = {
                               'experiments': {'type': 'array', 'items': _EXPERIMENT, 'minItems': 1},
                               'method': {'enum': ['least_squares', 'differential_evolution', 'de']},
                               'options': _object({'max_nfev': _POSITIVE, 'max_generations': _POSITIVE,
+                                                   'loss': {'enum': ['linear', 'soft_l1', 'huber', 'cauchy', 'arctan']},
+                                                   'f_scale': {'type': 'number', 'exclusiveMinimum': 0},
                                                    'population_size': _POSITIVE, 'failure_penalty': _NUMBER,
                                                    'seed': {'type': 'integer'},
                                                    'detail_retention': _object({

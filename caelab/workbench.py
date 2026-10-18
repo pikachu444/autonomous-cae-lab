@@ -1043,54 +1043,8 @@ class Workbench:
 
     @staticmethod
     def _numerical_arguments(operation, request):
-        """Apply the existing execution budget before a managed submission."""
-        args=deepcopy(request)
-        budget=args.pop('budget',{})
-        maximum=budget.get('evaluations')
-        if maximum is not None:
-            if type(maximum) is not int or maximum < 1:
-                raise ValueError('Evaluation budget must be a positive integer')
-            execution=args.setdefault('execution',{})
-            execution['max_evaluations']=min(execution.get('max_evaluations',maximum),maximum)
-            if operation in {'doe','uq'}:
-                if operation=='doe' and 'candidates' in args:
-                    samples=len(args['candidates'])
-                elif operation=='doe' and 'result_refs' in args:
-                    samples=0  # Exact retained rows are checked again before execution below.
-                else:
-                    samples=args.get('count',128 if operation=='uq' else 16)
-                if samples>maximum:
-                    raise ValueError('Sampling exceeds the allowed evaluation budget')
-            if operation in {'fit','optimize','epsilon'}:
-                options=args.setdefault('options',{})
-                if operation=='fit' and args.get('method','least_squares')!='de':
-                    options['max_nfev']=min(options.get('max_nfev',maximum),maximum)
-                elif operation=='optimize' and args.get('method') == 'slsqp_adjoint':
-                    # Native stage/adjoint dispatches use the same hard budget.
-                    if set(options) - {'maxiter','ftol','initial_values','verify_gradient','retain_responses'}:
-                        raise ValueError('SLSQP 선택에는 SLSQP 방법 설정만 사용할 수 있습니다.')
-                elif operation=='epsilon':
-                    import math
-                    grid=args.get('threshold_grid',[])
-                    if not grid or any(not isinstance(row,list) or not row for row in grid):
-                        raise ValueError('Each secondary objective requires an explicit nonempty threshold grid')
-                    children=math.prod(len(row) for row in grid)
-                    total=args.get('total_evaluation_budget',maximum)
-                    if type(total) is not int or total < 1 or total > maximum:
-                        raise ValueError('Epsilon total evaluation budget exceeds the Plan budget')
-                    population=options.get('population_size',12)
-                    generations=options.get('max_generations',min(40,max(1,total//children//population-1)))
-                    if children*population*(generations+1)>total:
-                        raise ValueError('Epsilon threshold searches exceed the total evaluation budget')
-                    options['max_generations']=generations
-                    args['total_evaluation_budget']=total
-                    execution['max_evaluations']=min(execution['max_evaluations'],total)
-                else:
-                    options['max_generations']=min(options.get('max_generations',40),
-                        max(1,maximum//options.get('population_size',12)-1))
-                    if (options['max_generations']+1)*options.get('population_size',12)>maximum:
-                        raise ValueError('Optimization population exceeds allowed evaluations')
-        return args
+        from .numerical_document import budgeted_arguments
+        return budgeted_arguments(operation, request)
 
     def _numerical_submit(self, operation, request):
         return self.submit(operation,self._numerical_arguments(operation,request))
