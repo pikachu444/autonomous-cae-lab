@@ -112,6 +112,10 @@ P1 원 결과는 `runs/interface-reclosure-20261018/p1-native-01`에 있으며, 
 정상 종료·gate 전환·구간 평균 힘을 에너지 균형이나 재접촉 물리 검증의 PASS로 쓰지 않는다.
 P2의 실제 벌크 삭제와 물리 인수도 아직 완료되지 않았다. 최종0.004 s restart를0.00225 s의
 압축 hold checkpoint로 재명명하거나 시각을 보정해 대신할 수 없다.
+후속 설계 결정은 같은 Simulation의 저장 prefix에서 한정 child Job을 만드는 방식이다.
+다만 현재 pinned Engine은 `TT > TSTOP` 종료 분기 뒤 최종 restart를 기록하므로 정확한
+0.00225 s checkpoint 요건이 충족되지 않았다. 이 요건이 없는 상태에서 새 prefix나
+child를 실행하지 않았으며, offset·한 step 허용·시각 명칭 변경으로 통과시키지 않는다.
 
 ## 창에서 편집하고 다시 열기
 

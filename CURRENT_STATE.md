@@ -1,6 +1,6 @@
 # 현재 작업과 제품 상태
 
-갱신: 2026-10-18. 현재 배정·진행·다음 행동은 이 파일 한 곳에서 관리한다.
+갱신: 2026-10-19. 현재 배정·진행·다음 행동은 이 파일 한 곳에서 관리한다.
 제품 목적은 [PRODUCT_PLAN](docs/PRODUCT_PLAN.md), 상세 사용자 작업은
 [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), 세부 개발·지원·종료조건은
 [DEVELOPMENT_ITEMS](docs/DEVELOPMENT_ITEMS.md), 운영은 [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md)를 따른다.
@@ -18,12 +18,13 @@
 |---|---|---|
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
-| material_numerical_impl / Sol-high | B8.3.L01 freeze·게시 후 B8.1.L01 전용 owner 열기 검사/사용법. 공통 launcher/activation/lifecycle은 Codex | B8.3 `6b1b372` 게시. B8.1 실제 후속 호출에서 같은 Material의 중복 창을 재현·정리했고 기본 native Data 진입도 별도로 확인 중. Python 호환 창의 성공을 native LabPlot 완료로 세지 않음 |
-| native_impl / Sol-high | B6.3.L01 domain/전용 검사 freeze. 현재 B4.5의 전용 native Post→Study 검사. 공통 snapshot/등록·실행 연결은 Codex | TR-U 원 source 재계산0/수신1회와 Runner·Post/cold·독립 검토 완료. U PASS, 원 엄격 기준의 절점 응력 FAIL·IP UNKNOWN을 유지. 후속 실제 ParaView 저장3건 완료; exact saved root의 dependency 등록 거절을 보존하고 공통 연결 후 같은 저장본 등록 대기 |
-| data_impl / Sol-high | B2.6.L04 impact_responses·history 선택·전용 검사 freeze。owner/API·Study/Plan 연결·최종 공개 guide는 Codex | 원150표본/P1의 실제 선택→Study→미실행 Plan·저장/별도 cold 완료. 원행·정확 interval/mask/support와 단위/끊김·충돌 보존. 같은 Astra가 마지막 두 consumer P2 폐쇄. L03 P2 exact checkpoint 미충족/새 prefix·child0은 별도 유지 |
+| material_numerical_impl / Sol-high | B8.1 native Data의 `CaelabDataBridge.h`·기존 patch0005·전용 owner/lifecycle 검사·`NATIVE_DATA_OWNER_OPEN_KO.md` 단독 | 실제 동일 owner 활성화·로컬 행 제외/닫기 취소·다른 service·재열기와 probe race 확인. 독립 검토의 문서 전환/파일 열기/새 프로젝트 뒤 잠금 잔류 P2를 교정·빌드 중. 새 runtime의 실제 전환/취소·lease 해제 확인까지 완료가 아님 |
+| native_impl / Sol-high | B8.1 `check_owner_open_windows.py`·`check_owner_open_matrix_windows.py`와 전용 근거 단독. 공통 launcher/activation/lifecycle은 Codex | TR-U·B4.5 인도 완료·게시. Research9 실제 matrix에서 Material/PDE/Simulation 확인; Numerical 입력/선택 보존과 나머지 Evaluation/Expert/Study/Report를 계속 확인. 같은 service/document의 PID·편집/선택·취소 보존, accepted close 뒤 재열기·다른 service 분리가 종료조건 |
+| data_impl / Sol-high | B8.1 `data_window.py`의 명시 companion-task 부분·`test_data_companion_owner_ui.py`·전용 근거 단독. 일반 owner hooks는 Codex | L04 `6bf7a39` 게시. 처리/취득 목적이 일반 활성화에서 사라지는 P2를 명시 보조 도구 창으로 교정, 전용10검사 통과. PySide/native 두 기존 메뉴의 실제 정확 문서·취소/편집 보존·새 Job0 확인 대기 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.5.L01 law_native_fe/worker/inspection·전용 인수 freeze. 공통 host/Core·초기 saved Post 등록은 Codex | 고정 입력의 실제 물리9건 완료, 실행 전 제출 실패1건 보존. 실제 Post 저장/등록3개와 계산6개를 같은 Study에 저장·새 owner로9참조 재열기. 마지막 물리명 표시·실제 창과 CAE/Astra 한정 검토 폐쇄, 공학 UNKNOWN |
-| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | impact_history_view.py와 전용 GUI 검사 freeze. 공통 menu/API/Study/Plan·최종 guide는 Codex | L04 실제150표본·P1의 일반/좁은 창·정확 endpoint/선택 signal·원 계산 상태 표시 확인. TR-U 원 기준 CAD 차단/Runner/Post 여섯 화면도 직접 판독, 추가 시각 P1/P2 없음 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B8.1 Material 관측 전달의 `test_material_observation_owner_ui.py`·전용 actual 검사/근거 단독. 제품 protocol/host는 Codex | B4.5 `ed6b58e` 게시. 기존 Material owner에 정확 관측5필드를 검토 목적으로 전달·편집 중 보류·다른 관측 BUSY·wrong session 거절·취소 뒤 새 Job0을 실제 확인할 준비 완료. 관측 전달을 단순 활성화로 세지 않음 |
+| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | B8.1 `check_native_owner_reuse_windows.py`·전용 native Pre/Post 근거 단독. 제품 코드는 Codex | native Pre 같은 working owner의 활성화/accepted close/재열기2회 확인. Post 같은 owner 재사용은 확인했지만 foreground 거절·실제 close receipt 부재로 미완료. Post 한정 진단에서 원 close gate/창 파괴·owner receipt를 확인하며 강제 종료를 사용자 닫기로 세지 않음 |
+| desktop_integration_review / Astra-xhigh | B8.1 한정 독립 read-only 검토. 제품/검사 쓰기·GUI/native 실행 없음 | 처리·관측 목적 유실 및 native Data 전환 뒤 lease 잔류 두 P2를 제기. 같은 담당의 교정·실제 근거가 모이면 재검토. 각 작은 변경마다 새 검토를 만들지 않음 |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
 기존 개발을 새 제품 범위로 취급하거나 기능마다 재승인하지 않는다. 실제 의존이나 같은
@@ -60,9 +61,20 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
 L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. B4.4는
 `966d40e`, B8.3은 `6b1b372`로 원격 게시했다. TR-U 한정 인도는 `5216e37`,
-L04 선택·Study/Plan은 `6bf7a39`로 원격 게시했다. 현재 다음 행동은 검토를 닫은
-B4.5 인도의 게시와 B8.1 정확 owner 열기의 실제 Windows 인수다.
+L04 선택·Study/Plan은 `6bf7a39`, B4.5 인도는 `ed6b58e`로 원격 게시했다. 현재 다음 행동은
+B8.1 정확 owner 열기의 실제 Windows 인수와 두 P2의 교정/독립 검토 폐쇄다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
+
+B8.1 공통 통합은 기존 activation 프로토콜·QLocalServer/QLockFile을 재사용해 정확 service,
+document kind/id와 현재 session을 검증한다. 살아 있는 창의 편집·선택/취소를 보존하며 확인된
+부재만 새 창을 허용한다. Research accepted close의 재귀 호출을 다음 Qt event로 옮겼고,
+Numerical의 읽기 전용 polling이 입력란을 비활성화/재구성하지 않도록 교정했다. 전용 polling
+검사는 clean/raw 입력·선택 보존을 확인하며 OS focus는 별도 실제 matrix에서 확인한다.
+native activation의 실제 NOT_PERFORMED·foreground 거절을 성공으로 바꾸지 않는다. 독립
+검토의 두 P2 및 Post 실제 닫기/foreground 제한이 남아 B8.1 전체 완료를 주장하지 않는다.
+화면 조작 검사는 전역 foreground를 공유하므로 담당별 독점 순서로 실행한다. private store가
+다르다는 이유로 동시에 화면을 조작하지 않는다. 기존 전용 검사125 PASS/9 FAIL에서 관찰된
+다섯 RequestPlan/옛 영어 문구 기대 실패는 이 인도로 닫거나 전체 회귀 PASS로 바꾸지 않는다.
 
 TR-U 한정 인도는 원 CCX 변위를 다시 계산하지 않고 다른35절점/8 C3D10의 외곽
 34절점102 DOF에 적용했다. 내부35번 절점은 자유이며 기존 frozen 등록/Runner로 수신을
@@ -891,7 +903,7 @@ Pro 원문과 Codex/Astra 교정은 저작을 구별한다. 새 Pro 구현 요�
 | B7.5.L01 | 실제 3D 장면·판단·수치가 들어간 한 보고서 | A | 한정 인수·원본 없는 cold/PDFMD·문헌 위치/단위 P2 폐쇄 | material_numerical_impl / Codex |
 | B7.6.L01 | 장비 없이 닫는 공통 취득·sequence·종료 소프트웨어 | D | 본코드 통합·한정 확인 완료, 실장비는 L02 | pending_acquisition_integration |
 | B7.6.L02 | 실제 장비 한 종류의 binding·권한·물리 stop 인수 | E | 외부 입력 대기 | T6 |
-| B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | 실제 후속 배정·동일 Material 중복 창 재현, 기존 activation/lifecycle 공통 연결 중. native Data 별도 | material_numerical_impl / Codex |
+| B8.1.L01 | 모든 독립 앱·파일의 정확 owner 열기 | A | Research matrix·native Data lifecycle·처리/관측 P2 실제 인수 중. native Pre 확인, Post foreground/닫기 미완료 | native_impl·material_numerical_impl·data_impl·native_data_product_impl·desktop_specialist / Codex |
 | B8.2.L01 | 여러 owner 의 편집·부분저장·복구초안 | A | 기존 구현 인수 대기 | T7 |
 | B8.3.L01 | 이동 사본 전체 선언 문서의 cold 편집 | A | 그룹11종·같은 큰 묶음의 실제 편집/저장/재복사/cold/재출력 인수 완료, 원 응답 유실과 느린 성능 유지 | material_numerical_impl / Codex |
 | B8.4.L01 | 외부 batch·remote 공통 소프트웨어 계약 인수 | A | 기존 구현 인수 대기 | T2 |
