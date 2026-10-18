@@ -246,7 +246,7 @@ def validate_settings(settings):
     if isinstance(settings,dict) and settings.get('source',{}).get('format') == 'RAD':
         from .impact_native import validate_settings as validate_native
         return validate_native(settings)
-    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets','source_reference_bindings','bulk_damage','interface_controls','b_responses'}!=set(default_settings())-{'cohesive','responses','generated_sets','source_reference_bindings','bulk_damage','interface_controls','b_responses'}:
+    if not isinstance(settings,dict) or set(settings)-{'cohesive','responses','generated_sets','source_reference_bindings','bulk_damage','interface_controls','interface_histories','b_responses'}!=set(default_settings())-{'cohesive','responses','generated_sets','source_reference_bindings','bulk_damage','interface_controls','interface_histories','b_responses'}:
         raise ValueError('충격 정의의 필수 항목을 확인하세요')
     source=settings['source']
     if not isinstance(source,dict) or source.get('format')!='INP' or source.get('units')!='Mg/mm/s':

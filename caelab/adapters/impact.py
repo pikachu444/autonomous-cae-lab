@@ -99,7 +99,7 @@ class ImpactAdapter:
                             'impact_assembly.py','impact_assembly_materials.py','impact_native_material_cards.py','impact_input_edits.py','impact_rad_source.py',
                             'impact_native.py','impact_native_b.py','impact_initial_state.py','impact_retained.py','impact_native_io.py',
                             'impact_reference_bindings.py','impact_b.py','impact_bulk.py','impact_bulk_deck.py',
-                            'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py')]]
+                            'impact_bulk_history.py','impact_bulk_results.py','impact_interface.py','impact_interface_history.py')]]
     default_settings=staticmethod(domain.default_settings)
     validate_settings=staticmethod(domain.validate_settings)
     input_runtime_identity=staticmethod(lambda:{'runtime':'explicit_selected_opencourant','qualification':'UNKNOWN'})

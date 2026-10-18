@@ -82,3 +82,20 @@ def test_a_only_receipt_is_unchanged_and_incomplete_b_draft_stays_editable():
     draft[KEY]=snapshot(draft)
     validate(draft,model_from_settings(draft))
     with pytest.raises(ValueError):validate_settings(draft)
+
+
+@pytest.mark.parametrize('change',['members','material','axis','name'])
+def test_imposed_history_keeps_exact_source_selection_until_explicit_review(change):
+    from examples.impact.cohesive_model import settings as coupon
+    s=coupon();s['motions']=[]
+    s['interface_histories']=[{'name':'normal','material':'BOND','node_set':'MOVING','component':'Z',
+        'time_s':[0.,s['time']['end_s']], 'displacement_mm':[0.,.008], 'frame':'MODEL_GLOBAL'}]
+    model=model_from_settings(s);s[KEY]=snapshot(s,model)
+    current=deepcopy(model)
+    if change=='members':current['nsets']['MOVING'].add(1)
+    elif change=='material':current.setdefault('lineage',{}).setdefault('elements',{})['2']={'part':'COUPON','instance':'OTHER','local_id':2}
+    elif change=='axis':s['interface_histories'][0]['component']='X'
+    else:s['interface_histories'][0]['name']='renamed'
+    with pytest.raises(ValueError,match='대응이 바뀌'):validate(s,current)
+    assert any(row['selection']==['interface_histories',0,'node_set'] for row in snapshot(s,current)['rows'])
+    assert any(row['selection']==['interface_histories',0,'material'] for row in snapshot(s,current)['rows'])

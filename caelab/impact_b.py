@@ -3,7 +3,7 @@ from copy import deepcopy
 from . import impact_bulk, impact_bulk_deck, impact_interface, impact_bulk_results
 from .storage import canonical_hash
 
-KEYS={'bulk_damage','interface_controls','b_responses'}
+KEYS={'bulk_damage','interface_controls','interface_histories','b_responses'}
 
 
 def enabled(settings):
@@ -14,6 +14,9 @@ def validate(model,settings):
     impact_bulk.validate(model,settings.get('bulk_damage',[]))
     impact_interface.validate(model,settings)
     impact_bulk_results.validate(model,settings)
+    if 'interface_histories' in settings:
+        from .impact_interface_history import validate as validate_histories
+        validate_histories(model,settings)
     if settings.get('b_readback') is not None:
         raise ValueError('원출력은 같은 Simulation의 보존 결과 다시 읽기 명령을 사용하세요. '
                          '계산 초안에 이전 b_readback 참조를 넣어 실행하지 않습니다.')
@@ -32,6 +35,9 @@ def compile(text,model,settings,cohesive):
     text,outputs=impact_bulk_deck.add_output_cards(text,bulk,settings,model)
     definition={'version':1,'model_identity':model_identity(model),'bulk':bulk,'cohesive':deepcopy(cohesive),
                 'interface':interface,'outputs':outputs,'native_acceptance':'NOT_RUN'}
+    if settings.get('interface_histories'):
+        from .impact_interface_history import apply as apply_histories
+        text,definition['interface_history']=apply_histories(text,model,settings)
     verify(text,model,settings,definition)
     return text,definition
 
@@ -39,6 +45,9 @@ def compile(text,model,settings,cohesive):
 def verify(text,model,settings,definition):
     if model_identity(model)!=definition['model_identity']:
         raise ValueError('B native definition belongs to a different effective model')
+    if settings.get('interface_histories') or 'interface_history' in definition:
+        from .impact_interface_history import verify as verify_histories
+        verify_histories(text,model,settings,definition['interface_history'])
     impact_bulk_deck.verify(text,model,settings.get('bulk_damage',[]),definition['bulk'])
     blocks=impact_bulk_deck.cards(text)
     for key,expected in {**definition['interface']['cards'],**definition['outputs']['generated_cards']}.items():
@@ -210,6 +219,22 @@ def append_readback(folder,model,settings,result,frames,*,partial=False,unit_evi
             record['interface_controls']=observations['interface_controls']
         except errors as error:
             reject(error);scope(kind,'UNKNOWN',reason=str(error),selected_names=[r['name'] for r in rows])
+    if settings.get('interface_histories'):
+        try:
+            from .impact_interface_history import observe
+            audit=observe(available,model,settings,definition['cohesive'],definition['interface_history'])
+            audit['reader_operation']=record['reader_operation']
+            audit['source_execution_status']=record['source_execution_status']
+            audit['unavailable_frames']=deepcopy(excluded)
+            if excluded:
+                for element in audit['elements']:
+                    for key in ('sampled_damage_nondecrease','sampled_initial_basis_compressive_sign'):
+                        if element[key]=='OBSERVED':element[key]='UNKNOWN'
+            scope('interface_history','PARTIAL' if excluded else 'COMPLETE',unavailable_frames=deepcopy(excluded))
+            record['interface_history']=audit
+            save_json(root/'interface_history_observations.json',audit)
+        except errors as error:
+            reject(error);scope('interface_history','UNKNOWN',reason=str(error))
     diagnostics['b_observations']=record
     save_json(root/'b_selected_responses.json',record)
 

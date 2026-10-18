@@ -23,7 +23,8 @@ def identity_label(value,full=False):
     if 'members' in value:
         members=value['members']
         names=[identity_label(row.get('element',row))+((' / '+row['side']) if 'side' in row else '') for row in (members if full else members[:5])]
-        return str(value.get('label',value.get('material','')))+' / '+', '.join(names)+(' 외 '+str(len(members)-5)+'개' if not full and len(members)>5 else '')
+        history=(str(value['history_name'])+' / '+str(value.get('component',''))+' 방향 / ') if 'history_name' in value else ''
+        return history+str(value.get('label',value.get('material','')))+' / '+', '.join(names)+(' 외 '+str(len(members)-5)+'개' if not full and len(members)>5 else '')
     return str(value.get('label','대상'))
 
 
@@ -95,12 +96,12 @@ class ReferenceReviewDialog(QDialog):
             combo=QComboBox()
             scope=settings[kind][index].get('scope')
             pair_selection=kind=='b_responses' and scope=='pair' or kind=='interface_controls' and column=='contact_index'
-            material_selection=kind in ('cohesive','bulk_damage','interface_controls') and column=='material'
+            material_selection=kind in ('cohesive','bulk_damage','interface_controls','interface_histories') and column=='material'
             if pair_selection:
                 for pair_index,pair in enumerate(settings.get('contacts',[])):
                     combo.addItem('접촉 '+str(pair_index+1)+': '+pair['a']+' ↔ '+pair['b'],pair_index)
             elif material_selection:
-                types={'COH3D8'} if kind in ('cohesive','interface_controls') else {'C3D8','C3D8R'}
+                types={'COH3D8'} if kind in ('cohesive','interface_controls','interface_histories') else {'C3D8','C3D8R'}
                 for material in sorted({name for eid,name in model['assignment'].items() if model['elements'][eid]['type'] in types}):combo.addItem(material,material)
             elif kind in ('responses','b_responses'):
                 from caelab.impact_responses import QUANTITIES
@@ -110,7 +111,7 @@ class ReferenceReviewDialog(QDialog):
                     origin=lineage.get(str(identifier),{})
                     combo.addItem(identity_label(origin if origin.get('instance') else {'native_id':identifier}),identifier)
             else:
-                table='nsets' if kind=='motions' else 'surfaces'
+                table='nsets' if kind in ('motions','interface_histories') else 'surfaces'
                 for key in model[table]:
                     origin=model.get('lineage',{}).get(table,{}).get(key,{})
                     combo.addItem(str(origin.get('qualified_name',origin.get('label',key))),key)
@@ -121,11 +122,17 @@ class ReferenceReviewDialog(QDialog):
                 elif material_selection:
                     actual={'kind':'material_assignment','material':current,'members':sorted([bindings._entity(model,'CELLS',e) for e,name in model['assignment'].items() if name==current],key=canonical_hash)}
                 else:actual=(bindings._entity(model,association,current) if kind in ('responses','b_responses') else bindings._target(model,table,current))
+                if kind=='interface_histories' and column=='node_set':
+                    history=settings[kind][index]
+                    actual={**actual,'history_name':history['name'],'component':history['component']}
                 if canonical_hash(actual)!=canonical_hash(old['source']):selected=-1
             except (ValueError,KeyError,TypeError,IndexError):selected=-1
             combo.setCurrentIndex(selected)
             row_index=self.table.rowCount();self.table.insertRow(row_index)
-            title={'responses':'결과','motions':'운동','contacts':'접촉','b_responses':'벌크/계면 결과','cohesive':'응집 재료 배정','bulk_damage':'벌크 재료 배정','interface_controls':'계면 배정'}[kind]+' '+str(index+1)+((' / '+column.upper()) if kind=='contacts' else ' / 접촉쌍' if pair_selection else '')
+            title={'responses':'결과','motions':'운동','contacts':'접촉','b_responses':'벌크/계면 결과','cohesive':'응집 재료 배정','bulk_damage':'벌크 재료 배정','interface_controls':'계면 배정','interface_histories':'계면 변위 이력'}[kind]+' '+str(index+1)+((' / '+column.upper()) if kind=='contacts' else ' / 접촉쌍' if pair_selection else '')
+            if kind=='interface_histories':
+                history=settings[kind][index]
+                title+=' / '+('절점 집합' if column=='node_set' else '재료')+' / '+str(history['name'])+' / '+str(history['component'])+' 방향'
             for col,value in enumerate((title,identity_label(old['source']))):
                 item=QTableWidgetItem(value);item.setFlags(item.flags()&~Qt.ItemFlag.ItemIsEditable);self.table.setItem(row_index,col,item)
             self.table.setCellWidget(row_index,2,combo);self.choices.append((selection,combo))

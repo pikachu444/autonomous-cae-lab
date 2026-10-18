@@ -47,6 +47,13 @@ def snapshot(settings, model=None):
     for index, motion in enumerate(settings.get('motions', [])):
         rows.append({'selection': ['motions', index, 'node_set'], 'value': motion['node_set'],
                      'source': _target(model, 'nsets', motion['node_set'])})
+    histories=settings.get('interface_histories', [])
+    if not isinstance(histories,list):
+        raise SourceError('명시 계면 하중 이력은 목록이어야 합니다')
+    for index, history in enumerate(histories):
+        rows.append({'selection': ['interface_histories', index, 'node_set'], 'value': history['node_set'],
+            'source': {**_target(model, 'nsets', history['node_set']),
+                'history_name': history['name'], 'component': history['component']}})
     for index, pair in enumerate(settings.get('contacts', [])):
         for side in ('a', 'b'):
             rows.append({'selection': ['contacts', index, side], 'value': pair[side],
@@ -69,7 +76,7 @@ def snapshot(settings, model=None):
             raise SourceError('벌크·계면·접촉쌍의 원 대상을 확인하세요')
         source=pair_target(identity) if scope=='pair' else _entity(model,'CELLS',identity)
         rows.append({'selection':['b_responses',index,'identity'],'value':identity,'source':source})
-    for kind in ('cohesive','bulk_damage','interface_controls'):
+    for kind in ('cohesive','bulk_damage','interface_controls','interface_histories'):
         for index,item in enumerate(settings.get(kind, [])):
             material=item['material']
             members=[_entity(model,'CELLS',e) for e,name in model['assignment'].items() if name==material]

@@ -225,6 +225,9 @@ class SimulationWindow(PDEWindow):
         self.reprocess_impact_action.setToolTip('선택한 계산의 원 출력을 별도 작업으로 읽습니다. 솔버 계산은 시작하지 않습니다.')
         self.reprocess_impact_action.triggered.connect(self.reprocess_impact)
         research_menu.addAction(self.reprocess_impact_action)
+        self.interface_history_action = QAction('계면 이력 관측…', self)
+        self.interface_history_action.triggered.connect(self.show_interface_history)
+        research_menu.addAction(self.interface_history_action)
         self._update_actions()
 
     def inspect_runtime(self):
@@ -467,6 +470,21 @@ class SimulationWindow(PDEWindow):
             return None
         return run
 
+    def _interface_history_audit(self):
+        if (self._busy or not self.document or not self._selected_job
+                or self._result_key != (self.document['id'], self._selected_job)):
+            return None
+        audit = (self._result or {}).get('diagnostics', {}).get('b_observations', {}).get('interface_history')
+        return audit if isinstance(audit, dict) and audit.get('elements') else None
+
+    def show_interface_history(self):
+        audit = self._interface_history_audit()
+        if audit is None:
+            return False
+        from .impact_interface_history_view import InterfaceHistoryView
+        InterfaceHistoryView(deepcopy(audit), self).exec()
+        return True
+
     def _refresh_result_caption(self):
         super()._refresh_result_caption()
         result = self._result or {}
@@ -590,6 +608,8 @@ class SimulationWindow(PDEWindow):
             self.reprocess_impact_action.setEnabled(bool(source) and not self._busy and not self.conflict
                                                    and (not self.local_dirty or uncertain))
             self.reprocess_impact_action.setText('결과 읽기 상태 확인…' if uncertain else '보존 결과 다시 읽기…')
+        if hasattr(self, 'interface_history_action'):
+            self.interface_history_action.setEnabled(self._interface_history_audit() is not None)
         if hasattr(self, 'input_model_action'):
             self.input_model_action.setVisible(_is_native(self._draft.get('backend')))
             self.input_model_action.setEnabled(bool(self.document) and _is_native(self._draft.get('backend'))

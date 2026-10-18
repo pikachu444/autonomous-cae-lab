@@ -287,6 +287,7 @@ class BulkPage(QWidget):
             row.addStretch();pl.addLayout(row);self.tabs.addTab(page,title)
         self.note=QLabel();self.note.setWordWrap(True);layout.addWidget(self.note)
         row=QHBoxLayout();check=QPushButton('입력 검토');check.clicked.connect(self.check);row.addWidget(check);self.check_button=check
+        self.history_button=QPushButton('변위 이력…');self.history_button.clicked.connect(self.edit_histories);row.addWidget(self.history_button)
         self.support=QPushButton('지원 범위…');self.support.setToolTip(BULK_SUPPORT+'\n\n'+INTERFACE_SUPPORT)
         self.support.clicked.connect(lambda:QMessageBox.information(self,'벌크와 계면 지원 범위',BULK_SUPPORT+'\n\n'+INTERFACE_SUPPORT));row.addWidget(self.support);layout.addLayout(row)
         self.status=QLabel();self.status.setWordWrap(True);layout.addWidget(self.status);self.refresh()
@@ -319,10 +320,29 @@ class BulkPage(QWidget):
             button.setEnabled(not native or key=='response' and (bool(settings.get('b_responses')) if verb=='remove' else
                 bool(self.native_groups or any(self.native_targets.values())) and self.model is not None))
         self.check_button.setEnabled(not native or self.model is not None)
+        self.history_button.setEnabled(not native and self.model is not None and
+            any(row['type']=='COH3D8' for row in self.model['elements'].values()))
         self.note.setText(('원 재료·이력 카드의 요소·계면·접촉쌍 결과를 선택합니다. 물성·세트·출력 간격은 원 입력 조건에서 명시적으로 편집하세요.' if self.native_groups or any(self.native_targets.values()) else
             '원 RAD에 선택할 재료·이력 출력 카드가 없어 결과를 추가할 수 없습니다. 원 입력 조건에서 출력 설정을 확인하세요.')
             if native else '시험 중인 해석 기능입니다. 재료 교정값과 적용 범위를 확인하세요.')
         self.note.setToolTip(self.native_error)
+    def edit_histories(self):
+        if not self.history_button.isEnabled():return False
+        try:
+            from caelab import impact_reference_bindings as bindings
+            from .impact_interface_history_dialog import InterfaceHistoryDialog
+            settings=self.editor.edited()
+            bindings.validate(settings,model_from_settings(settings))
+            dialog=InterfaceHistoryDialog(settings,self)
+            if dialog.exec()!=QDialog.DialogCode.Accepted:return False
+            result=deepcopy(dialog.draft)
+            result[bindings.KEY]=bindings.snapshot(result)
+            self.editor.replace_settings(result)
+            self.status.setText('변위 이력을 편집본에 반영했습니다. 계산은 실행하지 않았습니다.')
+            return True
+        except (ValueError,KeyError,TypeError) as error:
+            self.status.setText(str(error));return False
+
     def action(self,key,verb):
         if self.native and key!='response':return
         settings=self.editor.edited();table=self.tables[key];index=table.currentRow();field={'bulk':'bulk_damage','interface':'interface_controls','response':'b_responses'}[key]
