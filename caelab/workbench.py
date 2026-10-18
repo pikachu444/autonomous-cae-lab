@@ -846,6 +846,11 @@ class Workbench:
         return self.manager.result(identifier,selection=selection)
 
     def describe_inputs(self, request):
+        from .linear_adjoint_contract import describe_methods
+        described=self._describe_inputs(request)
+        return {**described,'derivative_methods':describe_methods(adjoint=described.get('derivative_capability'))}
+
+    def _describe_inputs(self, request):
         backend=request.get('backend') or request.get('inputs',{}).get('backend')
         if not backend:
             return {'backends':self.backends()}

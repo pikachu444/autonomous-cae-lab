@@ -1276,7 +1276,7 @@ Research9종: Data, Material, Numerical, PDE, Simulation, Evaluation, Study, Exp
 **분류 A · 단독 책임 T5(Numerical·PDE·field 전달) · 상대 작업량 2/3**
 원 연결: FN-21-02; SPEC-NUMERICAL-001/002, CAD-NUMERICAL-001, RESEARCH-003.
 
-**현재 구현 / 실제 잔여:** linear_adjoint_contract/evaluation_adjoint/numerical_adjoint 및 방향/Taylor 검사가있다. 비선형 Picard 는 DE 로명시한다. experiment_final_diagnosis 의 FD 도재사용가능하다.
+**현재 구현 / 실제 잔여:** 기존 선형 adjoint·ordinary-residual FD·DE의 역할/지원 범위를 descriptor·Plan·원 결과에서 함께 읽는다. 실제 보존 S2의 두 방향 Taylor/원 허용값, FD의 h/h2·9회·holdout0, Picard의 DE/NOT_CONVERGED를 재사용해 선택·취소·저장·별도 cold를 확인했다. 현재 FD 간격에 따른 중앙/한쪽 비용 및 검증된 Jacobian 재사용0회, runtime 미확인 본문의 독립 검토 지적도 교정했다. [사용법과 실제 화면](NUMERICAL_DERIVATIVE_KO.md). 이 leaf에서 새 solver/fit/최적화를 반복하지 않았으며 범용 비선형 adjoint·공학 승인은 주장하지 않는다.
 
 **고정 지원 profile:** NUM, DERIVATIVE
 

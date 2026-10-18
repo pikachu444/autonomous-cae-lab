@@ -274,9 +274,12 @@ class EvaluationDocuments(MaterialDocuments):
                 errors.append({'path': 'stages.' + str(stage.get('id', '?')), 'message': str(error), 'blocks_evaluation': True})
         try:
             compiled = compile_definition(document['draft'], self.snapshots(document['draft'], self._documents[identifier]))
+            from .linear_adjoint_contract import describe_methods
             return {'document_id': identifier, 'definition_sha256': compiled['definition_sha256'],
                     'stages': stages,
-                    'inputs': compiled['inputs'], 'derivative_capability': compiled['derivative_capability'], 'diagnostics': [], 'runtime': 'NOT_PROBED'}
+                    'inputs': compiled['inputs'], 'derivative_capability': compiled['derivative_capability'],
+                    'derivative_methods':describe_methods(adjoint=compiled['derivative_capability']),
+                    'diagnostics': [], 'runtime': 'NOT_PROBED'}
         except (ValueError, KeyError, TypeError, OSError, ImportError) as error:
             return {'document_id': identifier, 'stages': stages, 'inputs': [], 'runtime': 'NOT_PROBED',
                     'diagnostics': errors + [{'path': 'definition', 'message': str(error), 'blocks_evaluation': True}]}

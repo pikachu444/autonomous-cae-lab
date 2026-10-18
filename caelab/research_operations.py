@@ -21,6 +21,7 @@ RESULT_ROLES = {'doe': {'candidates'}, 'analyze': {'table'}, 'surrogate': {'trai
 
 def result_metadata(result):
     """Bounded physical response catalog from actual retained rows, no values."""
+    from .linear_adjoint_contract import describe_result_method
     candidates=result.get('candidates',result.get('predictions',[]))
     rows=candidates or [result]
     catalog,meanings,diagnostics,counts={},{},[],{}
@@ -84,6 +85,7 @@ def result_metadata(result):
         native[name] = item
     return {'sobol_analysis': result.get('method') == 'SALib.sobol' and 'indices' in result,
             'kind':result.get('kind'), 'variables':deepcopy(result.get('variables',[])),
+            'derivative_method':describe_result_method(result),
             'responses':list(catalog.values()), 'candidate_count':len(candidates),
             'native_channels': native,
             'execution_counts':counts,'sampling':sampling,'diagnostics':diagnostics,

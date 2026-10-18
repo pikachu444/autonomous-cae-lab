@@ -20,7 +20,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from caelab.numerical_document import from_material_document, default_draft
-from caelab.workbench_client import Client
+from caelab.workbench_client import Client, WorkbenchHTTPError
 from caelab.material_document import diagnostics as material_diagnostics
 from caelab.storage import canonical_hash
 from .data_window import _Read, display, TERMINAL
@@ -293,6 +293,8 @@ class NumericalWindow(QMainWindow):
         self.stop_action=QAction('계산 중단',self); self.stop_action.triggered.connect(self.cancel_run)
         edits.addAction(self.apply_action)
         calculation=self.menuBar().addMenu('계산(&C)'); calculation.addActions([self.run_action,self.stop_action])
+        self.derivative_support_action=calculation.addAction('미분법 지원…')
+        self.derivative_support_action.triggered.connect(self.check_derivative_support)
         self.apply_button=action_button(self.apply_action,self)
         self.run_button=action_button(self.run_action,self,primary=True)
         self.stop_button=action_button(self.stop_action,self)
@@ -547,6 +549,7 @@ class NumericalWindow(QMainWindow):
             self.message.setText('다른 계획을 열어 적용 여부를 확인하지 못했습니다. 원래 계획에서 확인하세요.')
             return False
         def failed(error):
+            pending['uncertain'] = True
             self.message.setText('적용 결과를 아직 확인하지 못했습니다. 적용 결과 다시 확인 버튼을 누르세요.')
             self.message.setToolTip(str(error))
         def accepted(receipt):
@@ -566,7 +569,34 @@ class NumericalWindow(QMainWindow):
         method = ((lambda **arguments:self.client.data_material('data.sample_policy.adopt',arguments)) if kind=='sample_policy' else
                   self.client.domain_candidate_adopt if kind == 'domain' else
                   self.client.pde_adopt if kind == 'pde' else self.client.numerical_adopt)
-        return self._call(lambda: method(**request), accepted, rejected=failed,
+        def send():
+            # Preserve the validated HTTP refusal before _Read converts errors
+            # to text. A transport error or a mismatched acknowledgement still
+            # needs the original idempotent receipt-recovery request.
+            try:
+                return method(**request), None
+            except WorkbenchHTTPError as error:
+                if error.code != 400:
+                    raise
+                return None, (str(error), error.service_message)
+        def received(outcome):
+            receipt, refusal = outcome
+            if refusal is None:
+                accepted(receipt)
+            elif pending.get('uncertain'):
+                # A later refusal cannot establish whether an earlier lost
+                # acknowledgement followed an application.
+                failed(refusal[0])
+            else:
+                self._adoption_receipt = None
+                if kind == 'pde':
+                    self._pde_adoption_request = None
+                self.message.setText('적용이 거절됐습니다. 계획을 연결한 뒤 원 재료가 변경됐습니다. '
+                    '원 재료의 현재 값을 확인하고 계획에 명시적으로 다시 연결한 뒤 적용하세요.'
+                    if 'Material changed after this Plan was bound' in refusal[1] else
+                    '원문서 적용이 거절됐습니다. 원문서와 계획의 연결 및 입력을 확인한 뒤 다시 적용하세요.')
+                self.message.setToolTip(refusal[0])
+        return self._call(send, received, rejected=failed,
                           relevant=lambda: self._adoption_receipt is pending)
 
     def retry_adoption_receipt(self):
@@ -1474,6 +1504,36 @@ class NumericalWindow(QMainWindow):
         window.show()
         return True
 
+    def _show_derivative_support(self,payload,message):
+        from .derivative_support_widgets import support_dialog
+        dialog=support_dialog(self,payload,message=message)
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.__dict__.setdefault('_derivative_support_windows',[]).append(dialog)
+        dialog.destroyed.connect(lambda:self._derivative_support_windows.remove(dialog)
+            if dialog in self._derivative_support_windows else None)
+        dialog.show()
+        return dialog
+
+    def check_derivative_support(self):
+        if not self.document or not self._material or self._callbacks or self._busy:return
+        context=(self.document['id'],self.document['session_id'],canonical_hash(self.edited_draft()),
+            self.selected_job(),self.selected_candidate())
+        model=deepcopy(self._material['draft'])
+        evidence=deepcopy(getattr(self,'_selected_fit_evidence',None))
+        if evidence is not None and (evidence['source']['job_id'],evidence['candidate_id'])!=context[-2:]:evidence=None
+        def read():
+            if evidence is not None:
+                from caelab.experiment_analysis_actions import read_analysis_source
+                return read_analysis_source(self.client,evidence_reference=evidence)
+            return self.client.describe_inputs(model)
+        return self._call(read,
+            lambda payload:self._show_derivative_support(payload,
+                '재료 피팅의 최종점 진단은 선택 후보의 원 잔차 FD를 별도로 실행합니다. 현재 피팅 방법과 adjoint를 구별하세요.'),
+            relevant=lambda:self.document is not None and
+                (self.document['id'],self.document['session_id'],canonical_hash(self.edited_draft()),
+                 self.selected_job(),self.selected_candidate())==context)
+
     def selected_job(self):
         rows = sorted({item.row() for item in self.runs.selectedIndexes()})
         return (self.runs.item(rows[0],0).data(Qt.ItemDataRole.UserRole) or self.runs.item(rows[0],0).text()) if len(rows)==1 else None
@@ -1991,6 +2051,8 @@ class NumericalWindow(QMainWindow):
         self.redo_action.setEnabled(enabled and (self._draft_history_index + 1 < len(self._draft_history) or not self.local_dirty and self.document.get('can_redo', False)))
         self.new_action.setEnabled(available)
         self.open_action.setEnabled(available)
+        if hasattr(self,'derivative_support_action'):
+            self.derivative_support_action.setEnabled(enabled and callable(getattr(self.client,'describe_inputs',None)))
         for button in (self.read_button, self.adopt_button, self.analysis_button):
             button.setEnabled(enabled and bool(self.selected_job()))
         # Polling is read-only; it must not swallow a user's adoption click.

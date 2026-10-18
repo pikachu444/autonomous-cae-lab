@@ -267,7 +267,7 @@ class RequestPlanWindow(NumericalWindow):
         self.method_sheet = self._sheet_table('planMethod', ['방법 설정', '값'])
         self.sheet_layout.addWidget(self.method_sheet, 1)
         self.adjoint_note=QLabel();self.adjoint_note.setWordWrap(True)
-        self.adjoint_check=QPushButton('미분 지원 확인');self.adjoint_check.clicked.connect(self.check_adjoint_support)
+        self.adjoint_check=QPushButton('미분법 지원 확인');self.adjoint_check.clicked.connect(self.check_adjoint_support)
         self.sheet_layout.addWidget(self.adjoint_note);self.sheet_layout.addWidget(self.adjoint_check)
         method_row = QHBoxLayout()
         self.method_summary = QLabel()
@@ -978,10 +978,13 @@ class RequestPlanWindow(NumericalWindow):
                     ('종료 허용값', ('options','ftol'), 1e-9, True, ()),
                     ('독립 미분 검사', ('options','verify_gradient'), False, False, (True,False)),
                     ('응답 보존', ('options','retain_responses'), 'summary', False, ('summary','all'))])
-            self.adjoint_note.setVisible(operation=='optimize')
+            derivative_task=operation in {'optimize','fit','identification_final'}
+            self.adjoint_note.setVisible(derivative_task)
             selected_adjoint=operation=='optimize' and value.get('method')=='slsqp_adjoint'
-            self.adjoint_check.setVisible(selected_adjoint)
-            self.adjoint_note.setText('선형 정상 열전도의 실제 adjoint를 사용합니다. 전도율·열원·경계온도와 평균온도 적분만 지원하며, primal·adjoint·독립 검사 제출을 각각 예산에서 차감합니다.' if selected_adjoint else '차분 진화는 반복 열구조 후보를 그대로 평가합니다. 공유 입력 후보의 각 분야 계산을 예산에서 차감하며, 비선형 전체 adjoint로 표시하지 않습니다.')
+            self.adjoint_check.setVisible(derivative_task)
+            self.adjoint_note.setText('선형 정상 열전도의 실제 adjoint를 사용합니다. 전도율·열원·경계온도와 평균온도 적분만 지원하며, primal·adjoint·독립 검사 제출을 각각 예산에서 차감합니다.' if selected_adjoint else
+                '재료 후보의 최종점 진단은 원 잔차 FD를 별도로 실행합니다. h/h2·경계 한쪽 차분을 사용하며 adjoint로 표시하지 않습니다.' if operation in {'fit','identification_final'} else
+                '차분 진화는 형상·비선형·시간·연성 후보를 기존 평가기로 탐색합니다. 분야 실행마다 예산을 사용하며 전체 연성 adjoint로 표시하지 않습니다.')
             if operation == 'fit':
                 self.response_sheet.setHorizontalHeaderLabels(['관찰', '모델 응답', '역할', '가중치', '잔차 척도', '관찰 채널'])
                 trials = value.get('experiments', [])
@@ -1765,13 +1768,41 @@ class RequestPlanWindow(NumericalWindow):
     def check_adjoint_support(self):
         if not self.document or self._callbacks or self._busy and not self._busy_background:return
         context=self._request_context();inputs=deepcopy(self.edited_draft()['request']['inputs'])
-        if inputs.get('backend')!='evaluation.definition':
-            self.message.setText('저장된 선형 Evaluation을 계산 모델로 선택하세요.');return
-        def shown(payload):
+        operation=self.edited_draft()['request']['operation']
+        def read():
+            if operation=='identification_final' and isinstance(inputs.get('evidence_reference'),dict):
+                from caelab.experiment_analysis_actions import read_analysis_source
+                return read_analysis_source(self.client,evidence_reference=inputs['evidence_reference'],
+                    relative_step=inputs.get('relative_step',1e-4),reuse_result=inputs.get('reuse_result')),None
+            base=deepcopy(inputs);base.pop('method',None)
+            payload=self.client.describe_inputs(base)
+            error=None
+            if inputs.get('method')=='slsqp_adjoint':
+                try:payload=self.client.describe_inputs(inputs)
+                except Exception as failure:error=str(failure)
+            return payload,error
+        def shown(answer):
+            payload,error=answer
             admitted=payload.get('derivative_admission')
-            self.message.setText('현재 변수·응답·경계조건은 선형 adjoint 지원 범위입니다. 확인 과정에서 계산은 실행하지 않았습니다.' if admitted else
-                '지원 불가: '+str(payload.get('derivative_capability',{}).get('reason','선형 정의와 방법을 선택하세요.')))
-        self._call(lambda:self.client.describe_inputs(inputs),shown,
+            reasons=payload.get('derivative_capability',{}).get('reasons',[])
+            raw_error=error
+            if error:
+                try:error=json.loads(error).get('error',error)
+                except (ValueError,TypeError):pass
+                error=re.sub(r'^HTTP \d{3}:\s*','',str(error))
+                message='선택한 adjoint 요청은 지원하지 않습니다: '+str(error).removeprefix('ValueError: ')
+            elif admitted:message='현재 변수·응답·경계조건은 선형 adjoint 지원 범위입니다. 확인 과정에서 계산은 실행하지 않았습니다.'
+            elif inputs.get('method')=='slsqp_adjoint':message='지원 불가: '+('; '.join(str(r) for r in reasons) or '저장된 선형 Evaluation과 지원 입력·응답을 선택하세요.')
+            elif operation in {'fit','identification_final'}:
+                diagnostic=next((row for row in payload.get('derivative_methods',[]) if row.get('method')=='identification_final'),{})
+                message=(('선택 후보의 원 잔차 FD 진단 입력을 확인했습니다. 예상 실제 평가 '+str(diagnostic.get('cost'))+'회. '
+                    if diagnostic.get('problem_support')=='SUPPORTED' else '')+
+                    '재료 피팅과 최종점 ordinary-residual FD 진단은 별개이며 adjoint로 표시하지 않습니다.')
+            else:message='선택한 탐색 방법과 미분 지원 범위를 확인하세요. 형상·비선형·시간·연성에는 기존 차분 진화를 사용합니다.'
+            self.message.setText(message)
+            self.message.setToolTip(str(raw_error or ''))
+            self._show_derivative_support(payload,message)
+        self._call(read,shown,
             relevant=lambda:self._request_context()==context and not self.conflict)
 
     def choose_model_variables(self):
@@ -2234,7 +2265,8 @@ class RequestPlanWindow(NumericalWindow):
     def _draw_result(self):
         job = self.selected_job()
         result = self._result_cache.get(job, {})
-        self.gradient_evidence.set_result(result)
+        run=next((row for row in self.document.get('runs',[]) if row['job_id']==job),{}) if self.document else {}
+        self.gradient_evidence.set_result(result,submitted=run.get('draft',{}).get('request',{}).get('inputs',{}))
         rows = result.get('candidates', result.get('predictions', []))
         # Both predicted and evaluated selections survive reads of this exact result.
         selected = self.candidates.item(self.candidates.currentRow(),0)
@@ -2640,6 +2672,7 @@ class RequestPlanWindow(NumericalWindow):
         self.return_button.setEnabled(present and available and self.selected_job() is not None)
         self.return_status_action.setEnabled(available and self._last_return_message is not None)
         read_available = present and not getattr(self, '_incoming_review', False) and not self.conflict and not self._callbacks and not self._pending_adoption and (not self._busy or self._busy_background)
+        self.adjoint_check.setEnabled(read_available and not self._view_error and callable(getattr(self.client,'describe_inputs',None)))
         candidate_task = self.operation.currentData() in PDE_CANDIDATE_OPERATIONS or bool(
             self._result_cache.get(self.selected_job(), {}).get('candidates'))
         result = self._result_cache.get(self.selected_job(), {})

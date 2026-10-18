@@ -65,11 +65,12 @@ def save_analysis_study(client,pending):
     return client.document_command(updated['id'],'document.save',{},session_id=updated['session_id'],expected_generation=updated['generation'],command_id=pending['save'])
 
 
-def read_analysis_source(client, *, source=None, evidence_reference=None, plan_mask=None):
+def read_analysis_source(client, *, source=None, evidence_reference=None, plan_mask=None,
+                         relative_step=1e-4, reuse_result=None):
     """Preview original values/cost without creating a Plan or executing models."""
     from .storage import canonical_hash
     from .experiment_uncertainty import calibration_problem,plain
-    from .experiment_final_diagnosis import problem_from_evidence,evaluation_plan,_admission
+    from .experiment_final_diagnosis import problem_from_evidence,evaluation_plan,_admission,read_jacobian
     if (source is None)==(evidence_reference is None):
         raise ValueError('보존한 시험 응답 또는 최종 후보 근거 하나를 선택하세요.')
     if source is not None:
@@ -130,11 +131,23 @@ def read_analysis_source(client, *, source=None, evidence_reference=None, plan_m
             _,run,_,_=_source(owner,identifier,ref['job_id'],expected)
             supplied['submitted_arguments']=run['arguments']
         problem=problem_from_evidence(receipt['evidence'],**supplied)
-        cost=0 if _admission(problem) else evaluation_plan(problem,1e-4)['model_evaluations']
+        reason=_admission(problem)
+        if reason:
+            cost=0
+        elif reuse_result:
+            from .research_operations import _resolve
+            retained=_resolve(reuse_result,client.document_read,client.document_result)
+            read_jacobian(retained,problem)
+            cost=0
+        else:
+            cost=evaluation_plan(problem,relative_step)['model_evaluations']
         keys=('document_id','job_id','input_revision','input_sha256','result_sha256')
         ref={k:ref[k] for k in keys}
+    from .linear_adjoint_contract import describe_methods
+    diagnostic=({'available':not reason,'reasons':[reason] if reason else [],'cost':cost}
+                if evidence_reference is not None else None)
     return {'problem':problem,'source_reference':deepcopy(ref),'session_id':d['session_id'],
-            'model_evaluations':cost,'performed_model_calls':0}
+            'model_evaluations':cost,'performed_model_calls':0,'derivative_methods':describe_methods(diagnostic=diagnostic)}
 
 
 def source_request_identity(request):

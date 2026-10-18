@@ -15,6 +15,54 @@ FIRST_ORDER = (0.8, 1.2)
 ROUNDOFF_FACTOR = 1e-10
 
 
+def describe_methods(*, adjoint=None, diagnostic=None):
+    """Describe method roles without probing runtimes or admitting a new job."""
+    rows = [
+        {'method':METHOD,'label':'선형 P1 이산 adjoint','calculation_class':'discrete_linear_adjoint',
+         'role':'optimizer_gradient','scope':'고정 메시·기하의 정상 선형 P1 계수와 평균 온도',
+         'limitations':['비선형·시간·형상·연성 total adjoint는 지원하지 않습니다.',
+                         '정확한 변수·응답·bounds는 기존 요청 admission을 확인해야 합니다.']},
+        {'method':'identification_final','label':'원 잔차 유한차분 진단',
+         'calculation_class':'ordinary_residual_finite_difference','role':'final_candidate_diagnostic',
+         'scope':'정확히 보존한 재료 피팅 후보의 보통 잔차에 대한 국소 진단',
+         'limitations':['최적화 gradient 옵션이 아닙니다.',
+                         'h/h2·경계·예산·미분가능성은 원 후보별 진단 계약을 따릅니다.']},
+        {'method':'differential_evolution','label':'차분 진화 검색','calculation_class':'derivative_free',
+         'role':'search','scope':'선택 evaluator가 지원하는 형상·비선형·시간·연성 등의 명시 검색',
+         'limitations':['미분이나 adjoint를 계산하지 않습니다.',
+                         'evaluator·변수 영역·응답·총예산의 지원은 별도로 확인합니다.']},
+    ]
+    for row, info in zip(rows,(adjoint,diagnostic,None)):
+        available=info.get('available') if isinstance(info,dict) else None
+        row.update(problem_support='SUPPORTED' if available is True else 'UNSUPPORTED' if available is False else 'UNASSESSED',
+                   reasons=deepcopy(info.get('reasons',[])) if isinstance(info,dict) else [],
+                   runtime='NOT_PROBED',runtime_available=None)
+        if isinstance(info,dict) and 'cost' in info:row['cost']=deepcopy(info['cost'])
+    return rows
+
+
+def describe_result_method(result):
+    """Read method identity separately from immutable values and execution success."""
+    algorithm=result.get('algorithm')
+    if not isinstance(algorithm,dict):algorithm={}
+    if result.get('kind')=='experiment_identification':
+        analysis=result.get('experiment_analysis')
+        jacobian=analysis.get('ordinary_jacobian') if isinstance(analysis,dict) else None
+        if not isinstance(jacobian,dict):jacobian={}
+        method='identification_final' if jacobian.get('kind')=='ordinary_residual_jacobian' else None
+    elif result.get('method')==METHOD:
+        method=METHOD
+    elif (result.get('method') in ('de','differential_evolution')
+          or algorithm.get('engine')=='scipy.differential_evolution'):
+        method='differential_evolution'
+    else:
+        method=None
+    row=next((row for row in describe_methods() if row['method']==method),None)
+    if row is not None:
+        row.update(execution_status=result.get('execution_status','UNKNOWN'),source='retained_result')
+    return row
+
+
 def describe(backend, settings):
     reasons = []
     if backend != BACKEND:

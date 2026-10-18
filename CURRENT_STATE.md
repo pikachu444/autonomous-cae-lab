@@ -19,10 +19,10 @@
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | B7.5 ReportWindow·전용 검사·사용법 인도 freeze. 공통 Report owner/출력·portable helper는 Codex | 실제 native 한 캡처·같은 Report의 Study/원진단/문헌/실패·저장/출력 실패 보존·원폴더 없는 cold 완료. 문헌 위치·실패 후보 입력 단위 P2와 독립/시각 검토 폐쇄. 게시 뒤 같은 담당에게 기존 portable 이동 사본 편집 B8.3.L01을 이어 배정 |
-| native_impl / Sol-high | B5.3.L01의 Numerical 전용 창·보고 소비 helper·검사·사용법 인도 freeze. 공통 numerical/comparison 엔진은 Codex | 고정 mask/N/weight/scale·holdout 제외·실패 벌점 분리·동일 증거/채택 보호/Study/Report/cold 완료. 예측 support 및 명시 구간 P2 공통 교정도 독립 검토 폐쇄. 다음 B5.4.L01은 기존 adjoint/FD/DE의 명시 선택·지원 계약을 같은 담당에게 이어 배정 |
-| data_impl / Sol-high | B2.6.L02 신규 history helper·전용 검사/고정 이력 인도 freeze. `impact_interface.py`/`impact_damage.py`의 기존 법칙은 수정하지 않음 | 사전 선언 normal/mixed 두 실제 native 실행, owner/저장/별도 cold와 관측 메뉴·동일 결과 선택 완료. 형식·누락 프레임 및 축 표시 P2 폐쇄. 다음 L03은 같은 writer가 신규 reclosure helper와 기존 interface를 맡고 root가 공통 실행/카드·provenance를 통합 |
+| native_impl / Sol-high | Numerical/RequestPlan의 B5.4 선택·지원 표와 원 Taylor/FD 결과, 전용 검사·사용법. 공통 metadata/비용·실행 계약은 Codex | B5.3 `0d9bc17` 게시. B5.4의 원 S2/FD/DE 읽기·선택/취소/저장/cold 및 현재 FD 간격·재사용0/실행환경 미확인 P2 폐쇄. B4.2 첫 접점의 확정 채택 거절 안내도 같은 소유 창에서 교정하며 마지막 실제 확인 뒤 게시 |
+| data_impl / Sol-high | L03 신규 reclosure helper·기존 impact_interface와 한정 history extension·전용 입력/검사/사용법. 기존 법칙·공통 adapter/runtime/보존은 Codex | L02 `657308f` 게시. L03 선언02의 고정 P0 단1회 owner/save/cold 완료. 실제 DLL·built-in math·OFF all-live와 초기 두 callback gate0 확인. 원 PRINT 표 parser를 교정해 매 증분 대응을 판정 중이며 P1/P2는 아직 미실행 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·보존 입력에 근거한 한정 자문. 제품 파일·실행 없음 | B2.6.L02의 법칙/압축/평균 관측과 B5.3의 원 피팅 선택·예측 support 계약 자문 완료. 다음 B2.6.L03 실제 삭제 연동·접촉 전환의 pinned-source 가능성/입력·관측 계약을 실제 후속 배정. sibling 송신 오류는 Codex가 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.1 신규 ProcessingInspector·전용 검사·사용법 인도 freeze. native package05 불변, 공통 Python Data/Core는 root | CSV/ASCII 처리·원행/마스크·가중 계보·Plan 독립 편입과 1005→2009 표본/페이지·cold 완료. 판정 원행과 한국어 복구 P2를 닫고 같은 담당에게 B4.2의 같은 측도 관측/예측 인수를 이어 배정 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.2 finite_measure_dialog/material_test_dialog·전용 검사/사용법. native package05 불변, 공통 Material/Data/Core는 Codex | B4.1 `66db848` 게시. B4.2는 기존 case02의 exact fit/holdout·같은 측도·A0/L0/J/λ/후보 actual F/J와 명시 채택 receipt를 재사용해 실제 UI/취소/cold 확인. 관측과 가정 J를 구분하는 CAE 자문을 적용했고 마지막 확정 거절 화면·독립 검토 진행 중 |
 | desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | Data Settings/Properties/`0007` freeze. 신규 계면 history dialog/view·전용 Qt 인도 freeze. Data/Report/Numerical의 실제 화면 검토 | 계면 입력·원 대상 확인과 보존 결과 관측창의 일반/좁은·선택·누락·미확인·축 단위와 작은 값 표시 완료. Data 판정 원행/복구 안내, Report 입력 단위의 마지막 통합 교정 검토 중. 공통 연결은 root |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
@@ -53,21 +53,30 @@ B2.6.L02, B5.3.L01을 실제 followup 호출했다. Data package05를 현재 로
 일반 `data`는 native 작업면을 연다. `--pyside`와 기존 처리/취득은 같은 Core의 호환 경로다.
 Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 담당에게 실제
 후속 배정했다. 역해석의 고정 관측·보고·cold와 예측 support/명시 구간 공통 교정은 독립
-검토까지 마쳤다. 현재 다음 행동은 이 인도 게시·B5.4의 기존 미분법 선택 후속 배정,
-Data 처리 계보·큰 표는 마지막 판정 원행/복구 안내 P2까지 폐쇄했다. 현재 다음 행동은
-B4.1 게시·같은 측도 관측/예측 B4.2 배정이다. native L02는 `657308f`, B7.5는 `b184e35`로
-게시하고 각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B5.4도 같은 담당에게 실제
-후속 배정했고 첫 보존 S2/FD 읽기부터 공통 method metadata를 연결하고 있다.
+검토까지 마쳐 `0d9bc17`로 게시했다. Data 처리 계보·큰 표도 판정 원행/복구 안내 P2까지
+폐쇄해 `66db848`로 게시했다. native L02는 `657308f`, B7.5는 `b184e35`로 게시하고
+각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B4.2와 B5.4도
+같은 담당에게 실제 후속 호출했다. 현재 다음 행동은 B5.4 검토 완료 인도 게시, B4.2의
+실제 채택 거절 안내/최종 창 검토, L03 P0 trace 판정, B8.3 첫 실제 사본의 공통 결함 교정이다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
-| Data 제품화 | `494d0ea`의 로컬 설치/기본 진입 완료. 후속 B4.1의 CSV/ASCII 처리/원행·마스크·계보/Plan 독립 편입/2009표본 페이지와 cold·두 P2·독립/화면 검토 완료 | B4.1 게시 뒤 B4.2의 기존 같은 측도 관측/예측·holdout/채택/저장 왕복. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
-| Numerical/동일 Evaluation | DOE/RBF/Pareto/Picard·Taylor/저장 단계·공유 binding은 `ff23037`로 게시. 후속 B5.3의 같은 mask/weight/척도·원/정규화 잔차·실패 벌점/조건·holdout·보존 채택/Study/Report/cold와 독립 검토 완료 | B5.3 인도 게시 뒤 B5.4의 기존 adjoint/ordinary FD/DE 선택과 지원 계약의 실제 GUI 소비. 기존 실행을 재사용하고 새 범용 adjoint/전체 native campaign을 만들지 않음 |
+| Data 제품화 | `494d0ea` 로컬 설치/기본 진입, `66db848` 처리 Inspector 인도 게시 | B4.2 실제 유한변형 관측/같은 측도 예측·보존 holdout·채택 receipt/cold와 최종 창 검토. 공개 binary 의무는 별도 미완료 |
+| Numerical/동일 Evaluation | `ff23037`와 B5.3 `0d9bc17` 게시. B5.4의 기존 adjoint/FD/DE 선택·원 결과·현재 요청 비용 및 runtime 본문 검토 폐쇄 | B5.4 인도 게시 후 기존 다음 지원 leaf를 준비해 실제 이어 배정. 새 범용 adjoint/전체 native campaign을 만들지 않음 |
 | Expert→Study→Report | `f7de485`로 완료·게시. 정확 발언/선택 결과→Study 명시 판단→Report 출력·응답 유실/현재 권한·편집 보존·cold와 독립 검토 폐쇄 | B7.4로 실제 후속 배정했으며 그 인수도 다음 행에서 완료. 이 첫 packet을 모든 B7 완료로 확대하지 않음 |
 | B7.4 식별성→다음 시험 | `8ea3e87`로 게시. 명시 질문/판단·세 사례 cold와 모달 P2 폐쇄. 후속 B7.5도 실제 한 캡처·기존 자료 조합·원본 없는 cold/PDFMD·문헌 위치와 단위 P2까지 완료 | B7.5 게시 뒤 기존 portable 이동 사본의 편집/저장/재보관 B8.3.L01. 같은 자료를 재사용하고 새 solver/3D/범용 식별 엔진을 만들지 않음 |
-| native RAD | B2.5는 `6c09607`로 게시. B2.6.L02의 partial normal/mixed 두 native 실행·owner/cold·이력 편집/원 대상 binding·보존 관측창·동일 선택/재열기·독립 검토와 마지막 축 표시 P2까지 완료 | L02 게시 뒤 같은 writer에게 L03의 pinned Python sensor/OFF·TYPE24 Idel1 가능성 인수를 실제 배정. CAE source 계약은 완료됐으나 runtime/매 증분 trace/restart는 아직 미확인. clock gate만으로 자동 삭제 연동을 완료하지 않음 |
+| native RAD | B2.5 `6c09607`·L02 `657308f` 게시. L03 P0 단1 native 호출의 실제 CPython DLL/의존성·초기 OFF·gate0·owner/save/cold 확인 | 원 PRINT 표와 32 callback/31 cycle 대응을 교정 판정. P1 full deletion/recontact와 P2 실제 bulk deletion restart는 아직 미실행. clock gate로 자동 연동 완료를 대신하지 않음 |
+
+B8.3은 기존 9 Research/native Pre·Post 문서를 그룹별 실제 사본으로 인수 중이다.
+첫 B7.5 묶음의 기본 HTTP 30초 실패, ordinary FD의 17MB command receipt에 대한 잘못된
+CAPTURE 수집, 실제 Expert의 untagged 결과 참조 오분류를 보존했다. Codex가 같은 검사 내
+immutable 결과의 중복 해석만 줄였고, fit/evidence/publication/history가 전혀 없는 Plan은
+CAPTURE 수집을 하지 않는다. 원 16MiB 관문·권한·현재 ack·원 hash는 유지한다. Expert는
+명시 evidence 위치에서 기존 결과 문법만 분류하고 원 turn/ref/hash는 바꾸지 않는다.
+C1/C2/project 관련 115 PASS/2 SKIP 및 Expert 5 PASS를 확인했으며, 같은 실제 30초 경로와
+원 store 없는 cold 편집/재복사를 담당이 이어 확인한다. 아직 전체 사본 완료가 아니다.
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
 실제 blocker가 없는 독립 담당은 다른 앱의 게시·Data 빌드·Pro 재응답을 기다리지 않는다.
@@ -88,6 +97,18 @@ Core source table 4행 읽기는 `installed-normal-02/`에서 확인했다. 문�
 실행 근거를 연결하며 성공 campaign을 반복한 것으로 세지 않는다. [사용법·실제 화면](docs/DATA_WORKSPACE_KO.md)과
 [빌드·라이선스·설치](native/data_labplot/README.md)를 갱신한다. 이 인수는 전체 OS 직접 입력,
 LabPlot 모든 upstream 분석, 공개 binary 배포 완료나 공학 적합성 승인이 아니다.
+
+B5.4는 기존 descriptor·Plan과 결과 metadata의 세 방법 역할/모델 지원을 같은 표로
+연결했다. 실제 S2의 두 방향 Taylor·원 허용값, FD의 h/h2·9회/예산9·holdout0, Picard의
+DE/NOT_CONVERGED를 그대로 읽었다. 방법 변경/취소·저장과 별도 cold에서 새 job/fit/solve0이다.
+독립 검토에서 현재 FD 간격·재사용을 버린 예상 비용을 찾아 기존 evaluation_plan과
+정확한 retained Jacobian 검증으로 교정했다. 경계 근처 간격에 따른 4↔5회와 재사용0회가
+기존 prepare와 같고 변조 hash를 거절하는 실제 owner 반례 2개를 포함해 관련 14검사가
+통과했다. UI 전달 9검사와 실제 좁은 runtime 미확인 본문도 같은 Astra/전문 담당이 닫았다.
+기존 layout 3개·sensitivity 2개 실패는 원 source를 private 메모리로 읽은 baseline에서도
+동일해 보존했으며 통과로 세지 않는다. 원 실제 수치 실행과 이번 UI/읽기·작은 대수 반례를
+구별한다. [미분법 사용법과 실제 화면](docs/NUMERICAL_DERIVATIVE_KO.md)을 제공하며 네 범주
+범용 adjoint·새 공학 qualification을 주장하지 않는다.
 
 B4.1은 기존 처리 owner·recipe/reader/표본 정책을 그대로 사용하고 새 Inspector에서
 전체 canonical 표본을 1000개씩 읽는다. 유효값 수·표시 수·전체 수를 구별하고 무효 표본도
