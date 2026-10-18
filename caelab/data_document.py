@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 import shutil
 
-from .adapters.file_table import preview_table, validate_row_selection
+from .adapters.file_table import preview_table, source_table, validate_row_selection
 from .evaluation import file_hash, save_evaluation, read_result
 from .material_document import MaterialDocuments
 from .storage import canonical_hash, check_id, load_json, save_json
@@ -353,6 +353,25 @@ class DataDocuments(MaterialDocuments):
         retain(self, saved, folder)
         from .acquisition_service import retain as retain_acquisition
         retain_acquisition(self, saved, folder)
+
+    def source_table(self, identifier, *, start=0, count=4096):
+        """Expose the verified original source of this exact editable Data input."""
+        with self._lock(identifier):
+            document = self.read(identifier)
+            data_id = document['draft'].get('data_id')
+            check_id(data_id)
+            retained = self._retained_source(document, data_id)
+            source, receipt = retained if retained is not None else self.resolve_input(data_id)
+            source = Path(source)
+            self._check_source(data_id, source, receipt)
+            mapping = document['draft'].get('mapping')
+            page = source_table(source, mapping, start=start, count=count)
+            self._check_source(data_id, source, receipt)
+            return {**page, 'document_id': document['id'], 'session_id': document['session_id'],
+                    'generation': document['generation'], 'input_revision': document['input_revision'],
+                    'input_sha256': canonical_hash(document['draft']), 'data_id': data_id,
+                    'name': receipt['name'], 'sha256': receipt['sha256'],
+                    'retained': retained is not None, 'mapping': deepcopy(mapping)}
 
     def source_preview(self, identifier):
         """Read bounded original bytes, including after the registration is unavailable."""

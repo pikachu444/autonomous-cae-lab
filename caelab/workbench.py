@@ -418,6 +418,11 @@ class Workbench:
             raise ValueError('Source preview belongs to a Data document')
         return self.data_documents.source_preview(identifier)
 
+    def document_source_table(self, identifier, *, start=0, count=4096):
+        if self._document_owner(identifier) is not self.data_documents:
+            raise ValueError('Source table belongs to a Data document')
+        return self.data_documents.source_table(identifier, start=start, count=count)
+
     def post_curve_snapshot(self, reference, response):
         """Freeze a retained Data channel for the existing native Post owner."""
         from .post_curves import snapshot

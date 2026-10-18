@@ -7,7 +7,43 @@
 
 ## 현재 목표와 작업 방식
 
-### 최신 요청 — 개발 복구 방법과 공학 GUI 기반 확정 (2026-10-18)
+### 최신 요청 — 실제 에이전트 배정과 첫 호출부터의 통합 (2026-10-18)
+
+사용자가 복구안의 실제 오케스트레이션과 제안 계획의 구현을 지시했다. 계획 모드의
+읽기 전용 준비를 끝내고 아래 네 구현 담당을 실제 가동했다. 기존 진단을 반복하거나
+새 Goal·Codex 작업을 만들지 않는다. 공통 파일은 Codex만 수정하고 첫 실제 문서·명령
+호출부터 함께 확인한다. 현재는 구현 진행 중이며 아래 완료 조건을 통과했다고 보고하지 않는다.
+
+| 담당 | 단독 쓰기 범위 | 이번 종료 조건 |
+|---|---|---|
+| desktop_specialist / Sol-high | `appearance.py`, 신규 `apps/research/common/commands.py`와 공통 UI 검사 | 같은 QAction·초점별 Undo/Redo를 실제 창에 연결하고 일반/좁은 창·한국어·선택·키보드를 확인 |
+| data_impl / Sol-high | 신규 `native/data_labplot/` 연결·빌드·고지·검사와 Data 전용 창/검사 | 실제 원표·원행 선택·편집·Undo·단계별 저장·재열기·정확한 Material 전달. LabPlot 판정 실패 시 확정된 PySide6 대안 적용 |
+| native_impl / Sol-high | Pre의 FEM/재료/연결/저장, Post의 navigation/comparison_native, Runner 전용 경로·검사·사용법 | 기존 공개 roller_support의 Tasks 취소/수락→동결 입력→두 실행→native Post 비교→원 설계 복귀·새 프로세스 재개 |
+| material_numerical_impl / Sol-high | Material/Numerical 창·계획 패널·동일 변수 편집 부품과 전용 검사·사용법 | 두 fit 시험과 별도 holdout→같은 계획→실제 동정/확인→정확 후보 채택→저장·재개 |
+| Codex / root | 공통 Core·reader·owner·API·dispatch·registry·provenance·desktop.py·통합·현재 상태·게시 | 전체 원표 읽기 API와 첫 호출부터의 문서/입력/결과 연결, 영향 검사·의미 있는 독립 검토·전체 인도 마감 |
+
+기준은 `ee0608d`, pinned fixture는 `3e48bf6`이다. 미추적 첨부와 개인 초안 이미지는
+보존하며 게시하지 않는다. 첫 Data 호출은 전체 원표 읽기→원행 선택→`data.update`
+한 건이고, import와 정확한 보존 결과 전달은 별도로 확인한다. Material과 독립 Numerical의
+서로 다른 변수표를 기존 같은 편집 부품으로 연결한다. 기존 SPEC·MoAI 기록을 재사용하며
+옛 picked 목록을 현재 팀으로 취급하지 않는다.
+
+native의 합성 연결 시험은 기존 등방성 fixture의 E=1000 MPa, ν=0.25, 바닥 Fixed,
+saddle 면 전역 −Z Force 10→20 N이다. 실제 BRep 면·CLOAD 합력·원 입력을 확인한다.
+CAE adviser와 native 담당이 기존 소스로 합의했으며 orthotropic 지그 계산과의 동등성이나
+공학 적합성은 주장하지 않는다. 독립 검토는 의미 있는 통합 인도에서 Astra/xhigh가 맡는다.
+정확한 첫 실행·결과·남은 장애는 이 절을 같은 작업에서 갱신한다.
+
+첫 실제 연결에서 전체 원표 HTTP 조회·한 건 적용·보존 원문 새 프로세스 재열기를 확인했다.
+Data 창의 정렬 뒤 원행 선택·로컬 Undo·명시 import와 부분 보기 저장 복구도 연결 중이다.
+FreeCAD 1.1.4의 script module 이름 때문에 실행되지 않던 두 worker 진입을 adapter에서
+교정해 기존 공개 지그 생성과 실제 메시 준비까지 진행했다. 첫 `pre.freeze`는 실제 C3D10
+Jacobian gate에서 실패해 입력·응답을 보존했고 solver를 실행하지 않았다. 같은 모델의
+진단을 CAE 자문과 확인하며 허용치를 바꾸지 않는다. 첫 전체 창 캡처의 빈 3D 영역도
+시각 인수로 수용하지 않고 재확인한다. LabPlot은 고정 소스로 무료 Windows SDK를
+격리 준비 중이며 빌드/실행·채택 판정은 아직 미완료다.
+
+### 완료된 선행 작업 — 개발 복구 방법과 공학 GUI 기반 확정 (2026-10-18)
 
 이번 배정은 개발 실패의 개선 방법·제품 청사진·새 세션 인계를 확정하는 것이다.
 실제 Pro 교정안과 같은 Astra Extra High의 최종 독립 검토를 회수해

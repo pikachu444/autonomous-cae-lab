@@ -307,6 +307,14 @@ def handle(handler,method,path,query):
         if query:
             raise ServiceError(400,'Listing does not accept query arguments')
         return handler._json(200,workbench.documents() if path.endswith('/documents') else workbench.native_commands.hosts())
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/source-table',path)
+    if match:
+        if set(query)-{'start','count'} or any(len(value)!=1 for value in query.values()):
+            raise ServiceError(400,'Unknown source table page field')
+        start,count=(query.get(key,[default])[0] for key,default in (('start','0'),('count','4096')))
+        if not start.isascii() or not start.isdigit() or not count.isascii() or not count.isdigit():
+            raise ServiceError(400,'Source table page requires nonnegative integers')
+        return handler._json(200,workbench.document_source_table(match.group(1),start=int(start),count=int(count)))
     match=re.fullmatch(r'/api/workbench/documents/([^/]+)/source-preview',path)
     if match:
         if query:

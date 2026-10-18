@@ -176,6 +176,10 @@ class Client:
     def document_source_preview(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/documents/'+check_id(identifier)+'/source-preview')
+    def document_source_table(self,identifier,*,start=0,count=4096):
+        from .storage import check_id
+        from urllib.parse import urlencode
+        return self.request('/api/workbench/documents/'+check_id(identifier)+'/source-table?'+urlencode({'start':start,'count':count}))
     def post_curve_snapshot(self, reference, response):
         return self.request('/api/workbench/post-curve-snapshot', {'reference': reference, 'response': response})
 

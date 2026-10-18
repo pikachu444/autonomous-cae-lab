@@ -120,15 +120,11 @@ def _retained_numbers(values):
     return [float(value) if np.isfinite(value) else str(float(value)) for value in values]
 
 
-def read_table(path, mapping):
-    source = Path(path).resolve()
-    if not source.is_file() or not source.stat().st_size:
-        raise ValueError('Input table is missing or empty')
-    before = source.stat()
-    columns = mapping.get('columns')
-    if not isinstance(columns, dict) or not columns:
-        raise ValueError('Explicit channel/column mapping is required')
-    named = any(isinstance(row.get('column'), str) for row in columns.values())
+def _load_table(source, mapping):
+    """One parser for editable original tables and validated result imports."""
+    columns = mapping.get('columns', {})
+    named = isinstance(columns, dict) and any(isinstance(row, dict) and
+        isinstance(row.get('column'), str) for row in columns.values())
     delimiter = mapping.get('delimiter', ',')
     if isinstance(delimiter, list):
         delimiter = tuple(delimiter)
@@ -157,6 +153,50 @@ def read_table(path, mapping):
                              dtype=float, encoding='utf-8', skip_header=int(mapping.get('skip_header', 0)),
                              invalid_raise=True, ndmin=1 if named else 2,
                              converters={})
+    return data, named, source_rows
+
+
+def source_table(path, mapping, *, start=0, count=4096):
+    """Page original numeric columns without running an import or axis validation."""
+    if type(start) is not int or start < 0 or type(count) is not int or not 1 <= count <= 4096:
+        raise ValueError('Source table page requires start >= 0 and count from 1 to 4096')
+    source = Path(path).resolve()
+    if not source.is_file() or not source.stat().st_size:
+        raise ValueError('Input table is missing or empty')
+    if not isinstance(mapping, dict):
+        raise ValueError('Table parsing settings must be an object')
+    before = source.stat()
+    data, named, rows = _load_table(source, mapping)
+    keys = list(data) if isinstance(data, dict) else list(data.dtype.names) if named else range(data.shape[1])
+    columns = []
+    total = 0
+    for key in keys:
+        values = np.atleast_1d(data[key] if named else data[:, key]).astype(float)
+        if values.ndim != 1:
+            raise ValueError(f'Column {key} must be a scalar channel to open as a table')
+        if rows is not None and len(rows) != len(values):
+            raise ValueError('Cannot associate parsed records with original physical lines; use an explicit extractor')
+        total = max(total, len(values))
+        columns.append({'key': key, 'name': str(key) if named else f'열 {key + 1}',
+                        'length': len(values), 'values': _retained_numbers(values[start:start + count])})
+    end = min(total, start + count)
+    after = source.stat()
+    if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+        raise ValueError('Input table changed during reading; wait for a completed extraction')
+    return {'source_row_kind': 'physical_line' if rows is not None else 'array_index',
+            'source_rows': rows[start:end] if rows is not None else list(range(start, end)),
+            'total_rows': total, 'start': start, 'count': max(0, end - start), 'columns': columns}
+
+
+def read_table(path, mapping):
+    source = Path(path).resolve()
+    if not source.is_file() or not source.stat().st_size:
+        raise ValueError('Input table is missing or empty')
+    before = source.stat()
+    columns = mapping.get('columns')
+    if not isinstance(columns, dict) or not columns:
+        raise ValueError('Explicit channel/column mapping is required')
+    data, named, source_rows = _load_table(source, mapping)
     def column(spec):
         index = spec['column']
         try:
