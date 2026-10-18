@@ -281,22 +281,35 @@ def launch_material_observation(client, source, document_id=None):
     return _spawn(client, arguments)
 
 
-def launch_native_data(client, *, executable, sdk, document_id=None, project=None):
-    """Open the explicit native Data workspace in its separate Qt runtime."""
-    if bool(document_id) == bool(project):
+def launch_native_data(client, *, executable=None, sdk=None, document_id=None, project=None):
+    """Open installed Data independently of the primary Qt or developer SDK."""
+    if document_id and project:
         raise ValueError('기존 Data 문서 또는 저장한 LabPlot 파일 하나를 선택하세요.')
-    executable = Path(executable).resolve(strict=True)
-    sdk = Path(sdk).resolve(strict=True)
-    if not executable.is_file() or not (sdk / 'bin').is_dir() or not (sdk / 'plugins').is_dir():
-        raise ValueError('native Data 실행 파일과 Qt SDK의 bin/plugins 폴더를 확인하세요.')
+    if sdk is not None:
+        if not executable or not (document_id or project):
+            raise ValueError('개발 실행 파일과 기존 Data 문서 또는 저장한 작업을 선택하세요.')
+        executable, sdk = Path(executable).resolve(strict=True), Path(sdk).resolve(strict=True)
+        if not executable.is_file() or not (sdk / 'bin').is_dir() or not (sdk / 'plugins').is_dir():
+            raise ValueError('native Data 실행 파일과 Qt SDK의 bin/plugins 폴더를 확인하세요.')
+        plugins, binary = sdk / 'plugins', sdk / 'bin'
+    else:
+        from .native_data_runtime import installed_runtime, verify_package
+        runtime = verify_package(Path(executable).resolve(strict=True).parent.parent) if executable else installed_runtime()
+        if runtime is None:
+            raise ValueError('Data runtime을 설치한 뒤 다시 열어 주세요.')
+        if executable and Path(executable).resolve() != runtime['executable']:
+            raise ValueError('Data runtime의 실행 파일을 확인하세요.')
+        executable, plugins = runtime['executable'], runtime['plugins']
+        binary = executable.parent
     arguments = [str(executable)]
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith('CAELAB_DATA_') and key not in {
                        'QT_QPA_PLATFORM', 'QT_QPA_PLATFORM_PLUGIN_PATH',
-                       'QML2_IMPORT_PATH', 'QML_IMPORT_PATH'}}
-    environment.update(CAELAB_SERVICE_URL=client.url, CAELAB_DONOR_SDK=str(sdk),
-                       QT_PLUGIN_PATH=str(sdk / 'plugins'),
-                       PATH=str(sdk / 'bin') + os.pathsep + environment.get('PATH', ''))
+                       'QML2_IMPORT_PATH', 'QML_IMPORT_PATH', 'CAELAB_DONOR_SDK'}}
+    environment.update(CAELAB_SERVICE_URL=client.url, QT_PLUGIN_PATH=str(plugins),
+                       PATH=str(binary) + os.pathsep + environment.get('PATH', ''))
+    if sdk is not None:
+        environment['CAELAB_DONOR_SDK'] = str(sdk)
     if document_id:
         identifier = check_id(document_id)
         document = client.document_read(identifier)
@@ -304,12 +317,14 @@ def launch_native_data(client, *, executable, sdk, document_id=None, project=Non
             raise ValueError('native Data에서 열 기존 자료 문서를 선택하세요.')
         environment['CAELAB_DATA_DOCUMENT_ID'] = identifier
         directory = executable.parent
-    else:
+    elif project:
         project = Path(project).resolve(strict=True)
         if not project.is_file() or project.suffix.lower() != '.lml':
             raise ValueError('저장한 LabPlot 작업 파일(.lml)을 선택하세요.')
         arguments.append(str(project))
         directory = project.parent
+    else:
+        directory = executable.parent
     process = subprocess.Popen(arguments, cwd=directory, env=environment)
     return {'status': 'LAUNCH_REQUESTED', 'pid': process.pid, 'service_url': client.url}
 
@@ -901,9 +916,9 @@ def _arguments(argv=None):
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
     origin = sub.add_parser('origin', allow_abbrev=False); origin.add_argument('--job-id', required=True)
     data_native = sub.add_parser('data-native', allow_abbrev=False)
-    data_native.add_argument('--executable', required=True)
-    data_native.add_argument('--sdk', required=True)
-    native_selection = data_native.add_mutually_exclusive_group(required=True)
+    data_native.add_argument('--executable')
+    data_native.add_argument('--sdk')
+    native_selection = data_native.add_mutually_exclusive_group()
     native_selection.add_argument('--document-id')
     native_selection.add_argument('--project')
     for name in sorted(TOOLS):
@@ -911,6 +926,10 @@ def _arguments(argv=None):
         tool.add_argument('--job-id' if name == 'runner' else '--document-id')
         if name == 'material':
             tool.add_argument('--observation')
+        elif name == 'data':
+            tool.add_argument('--pyside', action='store_true', help='기존 처리·취득 호환 창 열기')
+            tool.add_argument('--project', help='저장한 native Data 작업 열기')
+            tool.add_argument('--data-task', choices=('processing', 'acquisition'))
     for tool in (pre, post):
         tool.add_argument('--executable'); tool.add_argument('--output'); tool.add_argument('--prepare-only', action='store_true')
         tool.add_argument('--native-project-open-id')
@@ -945,6 +964,18 @@ def main(argv=None):
         result = launch_native_data(client, executable=args.executable, sdk=args.sdk,
                                     document_id=args.document_id, project=args.project)
     else:
+        if args.tool == 'data':
+            from .native_data_runtime import installed_runtime
+            if args.pyside and args.project:
+                raise ValueError('저장한 native Data 작업은 Data runtime에서 열어 주세요.')
+            if args.data_task and (not args.pyside or not args.document_id):
+                raise ValueError('자료 처리·취득은 선택한 Data 문서의 호환 창에서 열어 주세요.')
+            if not args.pyside and installed_runtime() is not None:
+                result = launch_native_data(client, document_id=args.document_id, project=args.project)
+                print(json.dumps(result, ensure_ascii=False))
+                return 0
+            if args.project:
+                raise ValueError('저장한 native Data 작업을 열려면 Data runtime을 설치하세요.')
         from importlib import import_module
         arguments = ['--service', client.url]
         identifier = args.job_id if args.tool == 'runner' else args.document_id
@@ -952,6 +983,8 @@ def main(argv=None):
             arguments += ['--job-id' if args.tool == 'runner' else '--document-id', check_id(identifier)]
         if args.tool == 'material' and args.observation is not None:
             arguments += ['--observation', args.observation]
+        elif args.tool == 'data' and args.data_task:
+            arguments += ['--data-task', args.data_task]
         from PySide6.QtWidgets import QApplication
         from .appearance import apply_appearance
         application = QApplication.instance() or QApplication(sys.argv[:1])

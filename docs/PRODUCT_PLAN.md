@@ -18,9 +18,9 @@ Pro/Codex 역할과 문서 갱신은 [CODEX_WORKFLOW](CODEX_WORKFLOW.md)에서 �
 모았다. 이 설계의 게시와 실제 GUI 교체 완료를 구별한다.
 2026-10-18 실제 Pro 응답과 Astra 종합안에 따라 Data는 고정 LabPlot의 C++/Qt/KDE 작업면을
 제품화한다. 원표·원행·열/단위·Undo·저장/복구·재열기·Material 전달의 첫 연결은 확인했다.
-표 중심 작업면·한국어·선택별 속성·진행/취소와 최소 runtime 배포를 인수한 뒤 일반 `data`
-진입을 native로 전환한다. 그 전에는 현재 PySide6 진입과 [명시 native 진입](../native/data_labplot/README.md)을
-제공한다. 사용자가 매번 exe·SDK·내부 문서 ID를 지정하게 하지 않는다. 기존 처리·취득은 같은
+일반 `data` 진입은 인수한 로컬 최소 runtime을 찾아 native 작업면을 연다. 설치 전과
+명시 `--pyside`는 Python 호환 경로다. [native 실행·설치](../native/data_labplot/README.md)를
+제공하며 사용자가 매번 exe·SDK·내부 문서 ID를 지정하게 하지 않는다. 기존 처리·취득은 같은
 Core 문서의 전용 작업창으로 연결하고, 나머지 Research는 PySide6를 유지한다. 이 설계 채택은
 배포·전체 OS 입력 인수나 제품 전체 완료의 증거가 아니다.
 현재 우선순위는 독립 도구군의 직접 진입·주요 편집·도구 간 연결·오류 복구·저장/재개와

@@ -15,6 +15,9 @@ import caelab.workbench_client as workbench_client
 @pytest.mark.parametrize("tool", sorted(desktop.TOOLS))
 @pytest.mark.parametrize("selected", [False, True])
 def test_research_entrypoint_preserves_service_and_typed_selection(monkeypatch, tool, selected):
+    from apps.research import native_data_runtime
+    monkeypatch.setattr(native_data_runtime, 'installed_runtime', lambda: None)
+    monkeypatch.setattr(desktop.subprocess, 'Popen', lambda *a, **kw: pytest.fail('Compatibility routing must not launch a native app'))
     url = "http://127.0.0.1:8877"
     flag = "--job-id" if tool == "runner" else "--document-id"
     identifier = "Jexact_02" if tool == "runner" else "Dexact_02"
@@ -52,6 +55,20 @@ def test_invalid_identifier_never_imports_a_window(monkeypatch, tool, flag):
                         lambda name: pytest.fail("An invalid selection must not open a window"))
     with pytest.raises(ValueError):
         desktop.main(["--service", "http://127.0.0.1:8877", tool, flag, "../invalid"])
+
+
+@pytest.mark.parametrize('task', ['processing', 'acquisition'])
+def test_native_data_companion_opens_existing_task_on_exact_document(monkeypatch, task):
+    url = 'http://127.0.0.1:8877'; calls = []
+    monkeypatch.setattr(desktop, 'Client', lambda service: SimpleNamespace(url=service))
+    application = object()
+    monkeypatch.setitem(sys.modules, 'PySide6.QtWidgets',
+        SimpleNamespace(QApplication=SimpleNamespace(instance=lambda: application)))
+    monkeypatch.setitem(sys.modules, 'apps.research.appearance', SimpleNamespace(apply_appearance=lambda app: None))
+    monkeypatch.setattr(importlib, 'import_module', lambda name:
+        SimpleNamespace(main=lambda args: calls.append((name, args)) or 0))
+    assert desktop.main(['--service', url, 'data', '--pyside', '--document-id', 'Texact', '--data-task', task]) == 0
+    assert calls == [('apps.research.data_window', ['--service', url, '--document-id', 'Texact', '--data-task', task])]
 
 
 @pytest.mark.parametrize("tool", ["pre", "post"])

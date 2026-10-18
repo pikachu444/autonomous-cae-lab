@@ -13,6 +13,8 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QList>
+#include <QPair>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVariant>
@@ -23,6 +25,37 @@
 // An editable snapshot only. The bridge owns applying it and Project Undo.
 class CaelabDataSettingsDialog : public QDialog {
 public:
+    enum class Section { All, Channel, Axis, Meaning };
+
+    // Display vocabulary only. Drafts and callbacks always retain stored codes.
+    static QList<QPair<QString, QString>> physicalTerms(const QString& category) {
+        if (category == QStringLiteral("component")) return {
+            {QStringLiteral("x"), text("X 방향")}, {QStringLiteral("y"), text("Y 방향")},
+            {QStringLiteral("z"), text("Z 방향")}, {QStringLiteral("xx"), QStringLiteral("XX")},
+            {QStringLiteral("yy"), QStringLiteral("YY")}, {QStringLiteral("zz"), QStringLiteral("ZZ")},
+            {QStringLiteral("xy"), QStringLiteral("XY")}, {QStringLiteral("yx"), QStringLiteral("YX")},
+            {QStringLiteral("xz"), QStringLiteral("XZ")}, {QStringLiteral("zx"), QStringLiteral("ZX")},
+            {QStringLiteral("yz"), QStringLiteral("YZ")}, {QStringLiteral("zy"), QStringLiteral("ZY")}};
+        if (category == QStringLiteral("location")) return {{QStringLiteral("material_point"), text("재료점")}};
+        if (category == QStringLiteral("measure")) return {
+            {QStringLiteral("force"), text("힘")}, {QStringLiteral("torque"), text("토크")},
+            {QStringLiteral("displacement"), text("변위")}, {QStringLiteral("stress"), text("응력")},
+            {QStringLiteral("infinitesimal_Cauchy"), text("미소변형 Cauchy 응력")},
+            {QStringLiteral("first_Piola"), text("제1 Piola 응력")},
+            {QStringLiteral("position"), text("위치")}, {QStringLiteral("native_frame_index"), text("기록된 프레임")}};
+        if (category == QStringLiteral("frame")) return {
+            {QStringLiteral("laboratory"), text("실험실 좌표")}, {QStringLiteral("lab"), text("실험실 좌표")},
+            {QStringLiteral("material_cartesian"), text("재료 직교좌표")},
+            {QStringLiteral("global"), text("전체 좌표")}, {QStringLiteral("local"), text("국부 좌표")},
+            {QStringLiteral("document_global"), text("세계 좌표")}};
+        return {};
+    }
+
+    static QString physicalLabel(const QString& category, const QString& storedValue) {
+        for (const auto& term : physicalTerms(category)) if (term.first == storedValue) return term.second;
+        return storedValue;
+    }
+
     CaelabDataSettingsDialog(const QJsonObject& draft, const QJsonArray& sourceColumns,
                             const QString& selectedChannel, QWidget* parent = nullptr)
         : QDialog(parent), m_draft(draft), m_sourceColumns(sourceColumns) {
@@ -54,15 +87,15 @@ public:
         m_message->hide();
         layout->addWidget(m_message);
 
-        auto* scroll = new QScrollArea(this);
+        auto* scroll = m_scroll = new QScrollArea(this);
         scroll->setWidgetResizable(true);
         scroll->setFrameShape(QFrame::NoFrame);
         auto* body = new QWidget(scroll);
         auto* bodyLayout = new QVBoxLayout(body);
         bodyLayout->setContentsMargins(0, 0, 0, 0);
         auto* sources = new QHBoxLayout;
-        auto* response = new QGroupBox(text("관측값"), body);
-        auto* axis = new QGroupBox(text("가로축"), body);
+        auto* response = m_responseGroup = new QGroupBox(text("관측값"), body);
+        auto* axis = m_axisGroup = new QGroupBox(text("가로축"), body);
         auto* responseGrid = new QGridLayout(response);
         auto* axisGrid = new QGridLayout(axis);
         m_valueColumn = sourceBox(QStringLiteral("coreValueColumn"), response);
@@ -78,12 +111,12 @@ public:
         sources->addWidget(axis, 1);
         bodyLayout->addLayout(sources);
 
-        auto* physical = new QGroupBox(text("관측값의 물리적 의미"), body);
+        auto* physical = m_meaningGroup = new QGroupBox(text("관측값의 물리적 의미"), body);
         auto* meaning = new QGridLayout(physical);
-        auto* component = field("component", false, "coreValueComponent", physical);
-        auto* location = field("location", false, "coreValueLocation", physical);
-        auto* measure = field("measure", false, "coreValueMeasure", physical);
-        auto* frame = field("frame", false, "coreValueFrame", physical);
+        auto* component = choiceField("component", "coreValueComponent", physical);
+        auto* location = choiceField("location", "coreValueLocation", physical);
+        auto* measure = choiceField("measure", "coreValueMeasure", physical);
+        auto* frame = choiceField("frame", "coreValueFrame", physical);
         labeled(meaning, 0, text("성분"), component, 0, 1);
         labeled(meaning, 0, text("평가 위치"), location, 2, 1);
         labeled(meaning, 1, text("물리량 척도"), measure, 0, 1);
@@ -131,8 +164,7 @@ public:
         connect(m_newName, &QLineEdit::returnPressed, this, [this] { addChannel(); });
 
         QVector<QWidget*> order{m_channels, m_newName, add, m_valueColumn};
-        for (const auto& item : m_fields) if (!item.axis && item.key != QStringLiteral("component") &&
-                item.key != QStringLiteral("location") && item.key != QStringLiteral("measure") && item.key != QStringLiteral("frame"))
+        for (const auto& item : m_fields) if (!item.axis && !item.choices)
             order.append(item.editor);
         order.append(m_axisColumn);
         for (const auto& item : m_fields) if (item.axis) order.append(item.editor);
@@ -161,9 +193,13 @@ public:
         changed = putColumn(m_valueColumn, m_valueText, m_valueIndex, response);
         axisChanged = putColumn(m_axisColumn, m_axisText, m_axisIndex, axis);
         for (const auto& item : m_fields) {
-            if (item.editor->text() == item.initial) continue;
+            if (item.editor->text() == item.initial && (!item.choices || item.choices->currentIndex() == item.initialIndex)) continue;
             auto& spec = item.axis ? axis : response;
             QJsonValue value(item.editor->text());
+            if (item.choices && !item.choices->property("caelabTyped").toBool() &&
+                    item.choices->currentIndex() >= 0 &&
+                    item.editor->text() == item.choices->itemText(item.choices->currentIndex()))
+                value = QJsonValue::fromVariant(item.choices->currentData());
             if (item.numeric) {
                 bool ok = false;
                 const double number = item.editor->text().toDouble(&ok);
@@ -186,8 +222,27 @@ public:
 
     QString selectedChannel() const { return m_channel; }
 
+    // Narrow contextual entry into the same snapshot editor; no apply or Undo owner.
+    void focusSection(Section section) {
+        m_responseGroup->setVisible(section == Section::All || section == Section::Channel);
+        m_axisGroup->setVisible(section == Section::All || section == Section::Axis);
+        m_meaningGroup->setVisible(section != Section::Axis);
+        setWindowTitle(section == Section::Axis ? text("채널의 가로축") :
+                       section == Section::Meaning ? text("채널의 물리적 의미") : text("열과 단위"));
+        QWidget* target = section == Section::Axis ? static_cast<QWidget*>(m_axisColumn) :
+            section == Section::Meaning ? static_cast<QWidget*>(m_meaningGroup) : static_cast<QWidget*>(m_valueColumn);
+        if (section == Section::Meaning && !m_fields.isEmpty()) {
+            for (const auto& item : m_fields) if (item.key == QStringLiteral("component")) { target = item.choices; break; }
+        }
+        m_scroll->ensureWidgetVisible(target);
+        target->setFocus(Qt::OtherFocusReason);
+    }
+
 private:
-    struct Field { QString key; bool axis; bool numeric; QLineEdit* editor; QString initial; };
+    struct Field {
+        QString key; bool axis; bool numeric; QLineEdit* editor; QString initial;
+        QComboBox* choices{nullptr}; int initialIndex{-1};
+    };
     QJsonObject m_draft;
     QJsonArray m_sourceColumns;
     QString m_channel, m_valueText, m_axisText;
@@ -195,6 +250,8 @@ private:
     QComboBox *m_channels, *m_valueColumn, *m_axisColumn;
     QLineEdit* m_newName;
     QLabel* m_message;
+    QScrollArea* m_scroll;
+    QGroupBox *m_responseGroup, *m_axisGroup, *m_meaningGroup;
     QVector<Field> m_fields;
 
     static QString text(const char* value) { return QString::fromUtf8(value); }
@@ -221,6 +278,29 @@ private:
         const bool numeric = fieldKey == QStringLiteral("scale") || fieldKey == QStringLiteral("offset");
         m_fields.append({fieldKey, axis, numeric, edit, {}});
         return edit;
+    }
+    QComboBox* choiceField(const char* key, const char* name, QWidget* parent) {
+        auto* choice = new QComboBox(parent);
+        choice->setObjectName(QString::fromLatin1(name) + QStringLiteral("Choice"));
+        choice->setEditable(true);
+        choice->setInsertPolicy(QComboBox::NoInsert);
+        choice->setCompleter(nullptr);
+        choice->setMinimumWidth(0);
+        choice->setMinimumContentsLength(10);
+        choice->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        choice->lineEdit()->setObjectName(QString::fromLatin1(name));
+        choice->lineEdit()->setPlaceholderText(text("미지정"));
+        // A focus-out match must not turn free draft text into a stored code.
+        QObject::disconnect(choice->lineEdit(), SIGNAL(editingFinished()), nullptr, nullptr);
+        const auto fieldKey = QString::fromLatin1(key);
+        for (const auto& term : physicalTerms(fieldKey)) {
+            choice->addItem(term.second, term.first);
+            choice->setItemData(choice->count() - 1, term.first, Qt::ToolTipRole);
+        }
+        connect(choice->lineEdit(), &QLineEdit::textEdited, this, [choice] { choice->setProperty("caelabTyped", true); });
+        connect(choice, &QComboBox::activated, this, [choice](int) { choice->setProperty("caelabTyped", false); });
+        m_fields.append({fieldKey, false, false, choice->lineEdit(), {}, choice, -1});
+        return choice;
     }
     void numericPair(QGridLayout* grid, int row, bool axis, QWidget* parent) {
         auto* scale = field("scale", axis, axis ? "coreAxisScale" : "coreValueScale", parent);
@@ -272,6 +352,22 @@ private:
         m_valueColumn->setEnabled(!m_channel.isEmpty()); m_axisColumn->setEnabled(!m_channel.isEmpty());
         for (auto& item : m_fields) {
             const auto value = (item.axis ? axis : response).value(item.key);
+            if (item.choices) {
+                int index = -1;
+                for (int i = 0; i < item.choices->count(); ++i)
+                    if (QJsonValue::fromVariant(item.choices->itemData(i)) == value) { index = i; break; }
+                if (index < 0 && !value.isUndefined()) {
+                    item.choices->addItem(shown(value), value.toVariant());
+                    index = item.choices->count() - 1;
+                }
+                item.choices->setCurrentIndex(index);
+                if (index < 0) item.choices->setEditText({});
+                item.choices->setProperty("caelabTyped", false);
+                item.initial = item.editor->text();
+                item.initialIndex = item.choices->currentIndex();
+                item.choices->setEnabled(!m_channel.isEmpty());
+                continue;
+            }
             item.initial = value.isUndefined() && item.numeric
                 ? (item.key == QStringLiteral("scale") ? QStringLiteral("1") : QStringLiteral("0")) : shown(value);
             item.editor->setText(item.initial);

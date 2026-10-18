@@ -22,8 +22,8 @@
 | native_impl / Sol-high | Numerical 전용 창·검사·사용법 인도 freeze. 다음 B5.3.L01은 기존 일반 역해석의 관측/feasible 후보 전용 화면·검사 | DOE/RBF/Pareto/Picard·채택/cold 및 Taylor/저장 Evaluation 표시·공유 binding 채택 P2 모두 폐쇄. 게시 뒤 같은 담당에게 B5.3.L01의 기존 선택 Case A/B 왕복을 실제 후속 배정 |
 | data_impl / Sol-high | B2.5.L02 native parser·material helper/검사 인도 freeze. 다음 B2.6.L02는 `impact_interface.py`, `impact_damage.py`, 신규 전용 history helper·검사 | native 두 실행·원문/출력·Post 복귀·cold 완료. independent 3 finding와 빈 include 회귀 폐쇄. 게시 뒤 기존 부분 손상 unload–compression–reopen packet을 실제 배정 |
 | native_cae_adviser / Astra-xhigh | B2.5.L02의 exact producer/primary manual·보존 native 입력에 근거한 한정 자문. 제품 파일·실행 없음 | 원 법칙/정수 카드·단위·contact Tstart·validation copy와 export 구분을 실제 writer와 협의. sibling 송신 오류로 Codex가 구체 질문·답변 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | `native/data_labplot/CaelabDataBridge.h`, build/check/package helper, `0008` MainWin hook 단독. Settings·Properties·`0007` 제외 | build18/package04의 표/곡선·선택별 속성·진행/취소·독립 도구·runtime 인수 준비. 독립 검토의 range 제외 행수/미완성 숫자 요약 P2를 한정 교정해 package05 준비 중 |
-| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | `CaelabDataSettings.h`, `CaelabDataProperties.h`, `0007`의 ProjectExplorer.cpp/.h만 단독. donor 원본 직접 수정 없음 | Data 4종 native 속성의 12장·실제 우측 스크롤·한국어와 Taylor 2장 검토 폐쇄. Settings DBE6841D…/Properties 54C1D127… freeze. 저장 Evaluation 본문 교정 확인은 다음 실제 화면 수신 후 |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | Data bridge/build/package/검사 인도 freeze. 다음 B4.1.L01 전용 native 연결·검사, 공통 Python Data/Core는 root | package05의 두 P2·실제 설치/일반 진입과 독립 검토 폐쇄. 게시 뒤 같은 담당에게 기존 recipe·재표본 계보·큰 표의 한정 인수를 실제 후속 배정 |
+| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | Data Settings/Properties/`0007` freeze. 신규 `impact_interface_history_dialog.py`·전용 Qt 검사 단독 | Data·Numerical 표시 검토 폐쇄. native 부분 손상 이력의 명시 표 편집/검증/취소/수락 창을 구현, 실제 Windows 일반/좁은 6검사·소유 Job 정리 완료. 공통 연결은 root |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
 기존 개발을 새 제품 범위로 취급하거나 기능마다 재승인하지 않는다. 실제 의존이나 같은
@@ -42,25 +42,45 @@ FreeCAD/FEM·메셔·native writer·JobManager·ParaView/reader를 재사용한�
 어색함과 자료 정리·연구 전달이라는 Data 목적이 드러나지 않는 문제다. 앞선 원행·저장·전달
 기능 검증과 화면 일부의 검토가 이 사용자 피드백을 해소한 것은 아니다. Astra·Pro의
 종합의 표 중심 병치/좁은 전환·이름 우선·맥락별 설정·분석/출력 분리와 최소 runtime 방침을
-실제 두 writer에 배정했다. 새 build의 폭/표시를 교정 중이며 사용자 피드백은 아직 최종 인수 전이다.
+실제 두 writer에 배정했다. 새 작업면·이름 우선 탐색·맥락별 속성·좁은 창의 접근과
+진행/취소·로컬 runtime을 실제 확인했고, 의미 있는 독립 검토의 두 P2까지 교정했다.
+최초 기능 접점의 성공과 이번 사용자 작업면 인수는 별도 근거로 보존한다.
 
 Study와 채택 설계는 `6dfdcfe`, 계층 INP는 `34f4815`, Evaluation은 `f91b976`, 등록 응답의
-DOE/UQ 연결은 `501ddab`, Expert/Report는 `f7de485`, native RAD는 `6c09607`로 원격 게시를 확인했다.
-두 완료 담당에게 B7.4와 B2.6.L02를 실제 followup 호출했다. 현재 다음 행동은
-Data 요약 P2·최종 runtime 설치와 Numerical 공유 채택/저장 입력 열람 인도다. 일반 Data 기본
-진입은 UX·최소 runtime 인수 뒤 native로 전환한다. 그 전의 현재 PySide6 기본과 명시 native
-진입을 최종 이중 기본 경로로 고정하지 않는다. 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
+DOE/UQ 연결은 `501ddab`, Expert/Report는 `f7de485`, native RAD는 `6c09607`, 공통 예산/robust
+옵션은 `d491d45`, Numerical은 `ff23037`로 원격 게시를 확인했다. 완료 담당에게 B7.4와
+B2.6.L02, B5.3.L01을 실제 followup 호출했다. Data package05를 현재 로컬 runtime에 설치했고
+일반 `data`는 native 작업면을 연다. `--pyside`와 기존 처리/취득은 같은 Core의 호환 경로다.
+현재 다음 행동은 Data 인도 게시/실제 B4.1 후속 배정, B7.4 모달 결과 교체 P2·기존 fixed
+진단과 native L02의 GUI/원 대상 binding 통합이다. 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
-| Data 제품화 | build18/package04 원표/곡선·원행·단일 update/Undo·prepare 성공/확인 취소/동일 job 복구·저장/cold·정확 Material·기존 처리/취득 도구 연결 통과. private profile 실제 설치→일반 data 빈 창/정확 문서 열기·새 job0 확인 | range 제외 개수/미완성 숫자 요약 P2 교정→최종package05 동일 설치 확인 후 기본 진입 전환. 이후 기존 recipe/resample 계보·큰 표. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
+| Data 제품화 | 원표/곡선·원행·단일 update/Undo·prepare/취소/같은 job 복구·저장/cold·정확 Material·기존 처리/취득 연결 통과. 최종package05의 범위 제외 수·미완성 숫자 요약 두 P2와 실제 설치→일반 빈 창/정확 문서·새 job0 및 독립 검토 폐쇄 | 로컬 설치와 기본 진입 전환 완료. 다음 B4.1.L01 기존 recipe/resample 계보·큰 표 인수. 공개 binary 배포의 dependency source 의무는 별도 미완료 |
 | Numerical/동일 Evaluation | 실제 저장 Evaluation의 DOE3·holdout2/RBF예측·실평가1·3목표DE10·Picard12/미수렴2·명시 채택/cold 완료. Taylor 표시·정확 저장 단계 링크·공유 binding 채택 P2와 독립 검토 모두 폐쇄 | 다음 B5.3.L01 선택 Case A/B의 고정 관측·best feasible/실패·채택 왕복. 기존 엔진/보존 자료 재사용, 없는 실제 실행을 꾸미거나 새 범용 adjoint를 만들지 않음 |
 | Expert→Study→Report | 보존 실제 발언/선택 stress·tangent 결과→Study 첫 HTTP/Qt 연결, 새 job/provider 0. 같은 명령 재확인·현재 권한 재검증·편집 보존·명시 판단·출력·저장/폐기/취소·cold와 독립 검토를 마침 | 다음 B7.4: 기존 보존 식별성/FD 진단에서 사용자가 다음 시험 질문을 골라 Study/Report로 연결. 원 결과 재사용, 새 provider/물리 campaign 없음 |
 | native RAD | 기존 bulk/interface native 두 원본→제한 field 편집·원 bytes→pinned 실제 2실행·원 채널·Post 복귀·owner/cold 완료. typed LAW117 표기 보존·include original/partial 읽기·모든 FUNCT 번호 충돌 및 빈 include 교정도 독립 검토 폐쇄 | 다음 B2.6.L02: 정확 fixed-source LAW117 부분 손상 한 loop와 mixed-mode loop. CAE 자문/사전 이력·관측 계약부터 연결, 기존 법칙·허용치·engineering UNKNOWN 유지 |
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
 실제 blocker가 없는 독립 담당은 다른 앱의 게시·Data 빌드·Pro 재응답을 기다리지 않는다.
+
+Data 최종 package05는 371파일/211891288 bytes이며 manifest `5DFFB28C…`, executable
+`EC5BBD41…`, Bridge `E8D57EBF…`, Settings `DBE6841D…`, Properties `54C1D127…`다.
+기존 실제 prepare 성공/확인 취소/두 GET 응답 유실의 같은 job 복구/감시창 닫기 후 재개,
+원행/채널/Undo·atomic Save/cold·정확 Material·Python 처리/취득을 보존했다. 최종 네 native
+속성의 실제 이름 편집→한 command→Undo와 XML/선택 불변·일반/좁은/우측 스크롤 12장을
+전문가가 확인했다. 알려진 caption은 번역하고 authored 값/enum·원 layout은 보존한다.
+검토 P2인 range 제외 수와 잘못된 scale/offset의 정상 기본값 표시는 실제 old red→최종
+세 반례 green으로 닫았다. 기본 routing 검사도 유효 runtime 설치에 의존해 앱을 실행하지
+않도록 고정했고 valid package가 있는 환경에서 관련 33검사가 통과했다. 원 실패도 남긴다.
+최종 private profile 설치→SDK/Qt test flags 없는 일반 `data` 빈 창과 정확 문서의 실제
+Core source table 4행 읽기는 `installed-normal-02/`에서 확인했다. 문서·generation·job 불변,
+소유 PID 48944 exit0/job_empty다. 같은 package05를 현재 로컬 runtime에도 설치·발견 확인했고
+버전과 실패 staging을 보존한다. Source/manifest delta로 그대로인 prepare/저장 경로의 앞선
+실행 근거를 연결하며 성공 campaign을 반복한 것으로 세지 않는다. [사용법·실제 화면](docs/DATA_WORKSPACE_KO.md)과
+[빌드·라이선스·설치](native/data_labplot/README.md)를 갱신한다. 이 인수는 전체 OS 직접 입력,
+LabPlot 모든 upstream 분석, 공개 binary 배포 완료나 공학 적합성 승인이 아니다.
 
 첫 공통 통합에서 문헌 추출 뒤 원파일을 다시 읽어 보관하던 경합을 확인했다. 추출 도중
 원파일이 바뀌면 본문과 원 bytes/hash가 달라지는 반례가 실제 실패했으며, 같은 bytes

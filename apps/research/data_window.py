@@ -651,11 +651,37 @@ class DataWindow(QMainWindow):
         QThreadPool.globalInstance().start(worker)
         return True
 
-    def open_document(self, *, document_id=None, title='Data study', draft=None):
+    def open_document(self, *, document_id=None, title='Data study', draft=None, after=None):
         def settled(value, error):
             if error and document_id:
                 self._open_cached_view(document_id)
-        return self._call(lambda: self.client.document_open(kind='data', title=title, draft=draft, document_id=document_id), self._opened, settled=settled)
+        def opened(document):
+            self._opened(document)
+            if after and (document_id is None or document['id'] == document_id):
+                identity = (document['id'], document['session_id'])
+                QTimer.singleShot(0, lambda: after() if self.document and
+                    (self.document['id'], self.document['session_id']) == identity else None)
+        return self._call(lambda: self.client.document_open(kind='data', title=title, draft=draft, document_id=document_id), opened, settled=settled)
+
+    def open_companion_task(self, task):
+        """Wait for this exact document's existing reads before opening its editor."""
+        if not self.document:
+            return False
+        identity = (self.document['id'], self.document['session_id'])
+        action = self.processing_recipe_action if task == 'processing' else self.recorded_acquisition_action
+        timer = QTimer(self); timer.setInterval(50)
+        def ready():
+            if self._closed or not self.document or (self.document['id'], self.document['session_id']) != identity:
+                timer.stop(); timer.deleteLater(); return
+            if self._busy or self._accepting or self._callback_calls or self._result_pending:
+                return
+            timer.stop(); timer.deleteLater()
+            if self._cache_only or self.conflict or self.local_dirty or self._view_error or not action.isEnabled():
+                self.message.setText('선택한 자료의 읽기 상태와 원본 결과를 확인한 뒤 처리·취득 메뉴에서 다시 여세요.')
+                return
+            action.trigger()
+        timer.timeout.connect(ready); timer.start()
+        return True
 
     def _opened(self, document):
         self.local_dirty = self.conflict = False
@@ -2624,12 +2650,17 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--service', default=os.environ.get('CAELAB_SERVICE_URL'))
     parser.add_argument('--document-id')
+    parser.add_argument('--data-task', choices=('processing', 'acquisition'))
     args = parser.parse_args(argv)
     if not args.service:
         parser.error('--service or CAELAB_SERVICE_URL must identify the existing local service')
+    if args.data_task and not args.document_id:
+        parser.error('--data-task requires the selected Data document')
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    window = DataWindow(Client(args.service), document_id=args.document_id)
+    window = DataWindow(Client(args.service), document_id=args.document_id, auto_open=not bool(args.data_task))
     window.show()
+    if args.data_task:
+        window.open_document(document_id=args.document_id, after=lambda: window.open_companion_task(args.data_task))
     return app.exec()
 
 

@@ -1,0 +1,278 @@
+diff --git a/src/frontend/ProjectExplorer.h b/src/frontend/ProjectExplorer.h
+--- a/src/frontend/ProjectExplorer.h
++++ b/src/frontend/ProjectExplorer.h
+@@ -18,6 +18,7 @@
+ class Project;
+ class XmlStreamReader;
+ 
++class QResizeEvent;
+ class QFrame;
+ class QLineEdit;
+ class QModelIndex;
+@@ -42,9 +43,14 @@
+ 	QModelIndex currentIndex() const;
+ 	AbstractAspect* currentAspect() const;
+ 	void search();
++	// Data-specific display policy; never changes aspects, selection or Project Undo.
++	void setDataWorkspaceMode(bool);
+ 
+ private:
+ 	void createActions();
++	void applyDataColumnVisibility();
++	void resizeDataNameColumn();
++	void resizeEvent(QResizeEvent*) override;
+ 	void contextMenuEvent(QContextMenuEvent*) override;
+ 	bool eventFilter(QObject*, QEvent*) override;
+ 	void keyPressEvent(QKeyEvent*) override;
+@@ -52,6 +58,8 @@
+ 	bool filter(const QModelIndex&, const QString&);
+ 	void showErrorMessage(const QString&);
+ 
++	bool m_dataWorkspaceMode{false};
++	QList<int> m_regularVisibleColumns;
+ 	int m_columnToHide{0};
+ 	QTreeView* m_treeView{nullptr};
+ 	Project* m_project{nullptr};
+diff --git a/src/frontend/ProjectExplorer.cpp b/src/frontend/ProjectExplorer.cpp
+--- a/src/frontend/ProjectExplorer.cpp
++++ b/src/frontend/ProjectExplorer.cpp
+@@ -40,8 +40,41 @@
+ #include <QMenu>
+ #include <QMimeData>
+ #include <QPushButton>
++#include <QResizeEvent>
++#include <QStyleOptionHeader>
+ #include <QTreeView>
+ #include <QVBoxLayout>
++
++namespace {
++QString dataColumnLabel(int column, const QString& original) {
++	switch (column) {
++	case 0: return QString::fromUtf8("이름");
++	case 1: return QString::fromUtf8("유형");
++	case 2: return QString::fromUtf8("생성일");
++	case 3: return QString::fromUtf8("메모");
++	case 4: return QString::fromUtf8("수정일");
++	default: return original;
++	}
++}
++
++// Override display text only; retain Qt's native header painting and model roles.
++class DataExplorerHeader final : public QHeaderView {
++public:
++	explicit DataExplorerHeader(QWidget* parent) : QHeaderView(Qt::Horizontal, parent) {}
++	void setDataWorkspaceMode(bool enabled) {
++		m_dataWorkspaceMode = enabled;
++		viewport()->update();
++	}
++protected:
++	void initStyleOptionForIndex(QStyleOptionHeader* option, int logicalIndex) const override {
++		QHeaderView::initStyleOptionForIndex(option, logicalIndex);
++		if (m_dataWorkspaceMode)
++			option->text = dataColumnLabel(logicalIndex, option->text);
++	}
++private:
++	bool m_dataWorkspaceMode{false};
++};
++}
+ 
+ /*!
+   \class ProjectExplorer
+@@ -58,6 +91,7 @@
+ ProjectExplorer::ProjectExplorer(QWidget* parent)
+ 	: m_treeView(new QTreeView(parent))
+ 	, m_frameFilter(new QFrame(this)) {
++	m_treeView->setHeader(new DataExplorerHeader(m_treeView));
+ 	auto* layout = new QVBoxLayout(this);
+ 	layout->setSpacing(0);
+ 	layout->setContentsMargins(0, 0, 0, 0);
+@@ -87,6 +121,10 @@
+ 	m_treeView->viewport()->installEventFilter(this);
+ 	m_treeView->header()->setStretchLastSection(true);
+ 	m_treeView->header()->installEventFilter(this);
++	connect(m_treeView->header(), &QHeaderView::sectionResized, this, [this](int section, int, int) {
++		if (m_dataWorkspaceMode && section > 0)
++			resizeDataNameColumn();
++	});
+ 	m_treeView->installEventFilter(this);
+ 	m_treeView->setDragEnabled(true);
+ 	m_treeView->setAcceptDrops(true);
+@@ -110,7 +148,7 @@
+ 		}
+ 	}
+ 	KConfigGroup group = Settings::group(QStringLiteral("ProjectExplorer"));
+-	group.writeEntry("VisibleColumns", status);
++	group.writeEntry(m_dataWorkspaceMode ? "DataWorkspaceVisibleColumns" : "VisibleColumns", status);
+ }
+ 
+ void ProjectExplorer::createActions() {
+@@ -302,7 +340,7 @@
+ 		menu->addAction(toggleFilterAction);
+ 
+ 		// Menu for showing/hiding the columns in the tree view
+-		QMenu* columnsMenu = menu->addMenu(i18n("Columns"));
++		QMenu* columnsMenu = menu->addMenu(m_dataWorkspaceMode ? QString::fromUtf8("표시할 열") : i18n("Columns"));
+ 		columnsMenu->addAction(showAllColumnsAction);
+ 		columnsMenu->addSeparator();
+ 		for (auto* action : std::as_const(list_showColumnActions))
+@@ -354,7 +392,8 @@
+ 	if (list_showColumnActions.isEmpty()) {
+ 		// read the status of the column actions if available
+ 		KConfigGroup group = Settings::group(QStringLiteral("ProjectExplorer"));
+-		const QString& status = group.readEntry(QLatin1String("VisibleColumns"), QString());
++		const QString& status = group.readEntry(m_dataWorkspaceMode ? "DataWorkspaceVisibleColumns" : "VisibleColumns",
++			m_dataWorkspaceMode ? QStringLiteral("0") : QString());
+ 		QVector<int> checkedActions;
+ 		if (!status.isEmpty()) {
+ 			QStringList strList = status.split(QLatin1Char(' '));
+@@ -363,7 +402,7 @@
+ 		}
+ 
+ 		if (!showAllColumnsAction) {
+-			showAllColumnsAction = new QAction(i18n("Show All"), this);
++			showAllColumnsAction = new QAction(m_dataWorkspaceMode ? QString::fromUtf8("모든 열 표시") : i18n("Show All"), this);
+ 			showAllColumnsAction->setCheckable(true);
+ 			showAllColumnsAction->setChecked(false);
+ 			showAllColumnsAction->setEnabled(true);
+@@ -380,7 +419,8 @@
+ 
+ 		// create an action for every available column in the model
+ 		for (int i = 0; i < m_treeView->model()->columnCount(); i++) {
+-			auto* showColumnAction = new QAction(treeModel->headerData(i, Qt::Horizontal).toString(), this);
++			const auto columnLabel = treeModel->headerData(i, Qt::Horizontal).toString();
++			auto* showColumnAction = new QAction(m_dataWorkspaceMode ? dataColumnLabel(i, columnLabel) : columnLabel, this);
+ 			showColumnAction->setCheckable(true);
+ 
+ 			// restore the status, if available
+@@ -409,6 +449,8 @@
+ 				m_treeView->hideColumn(i);
+ 		}
+ 	}
++	if (m_dataWorkspaceMode)
++		resizeHeader();
+ }
+ 
+ void ProjectExplorer::setProject(Project* project) {
+@@ -460,7 +502,7 @@
+ 	} else if (obj == m_treeView->header() && event->type() == QEvent::ContextMenu) {
+ 		// Menu for showing/hiding the columns in the tree view
+ 		QMenu* columnsMenu = new QMenu(m_treeView->header());
+-		columnsMenu->addSection(i18n("Columns"));
++		columnsMenu->addSection(m_dataWorkspaceMode ? QString::fromUtf8("표시할 열") : i18n("Columns"));
+ 		columnsMenu->addAction(showAllColumnsAction);
+ 		columnsMenu->addSeparator();
+ 		for (auto* action : std::as_const(list_showColumnActions))
+@@ -700,8 +742,7 @@
+ 		m_treeView->scrollTo(index);
+ 		m_treeView->setCurrentIndex(index);
+ 	}
+-	m_treeView->header()->resizeSections(QHeaderView::ResizeToContents);
+-	m_treeView->header()->resizeSection(0, m_treeView->header()->sectionSize(0) * 1.2);
++	resizeHeader();
+ }
+ 
+ void ProjectExplorer::navigateTo(const QString& path) {
+@@ -718,6 +759,11 @@
+ }
+ 
+ void ProjectExplorer::toggleColumn(int index) {
++	if (m_dataWorkspaceMode) {
++		applyDataColumnVisibility();
++		resizeHeader();
++		return;
++	}
+ 	// determine the total number of checked column actions
+ 	int checked = 0;
+ 	for (const auto* action : std::as_const(list_showColumnActions)) {
+@@ -767,6 +813,8 @@
+ 		action->setEnabled(true);
+ 		action->setChecked(true);
+ 	}
++	if (m_dataWorkspaceMode)
++		resizeHeader();
+ }
+ 
+ /*!
+@@ -820,7 +868,82 @@
+ 	menu.exec(bFilterOptions->mapToGlobal(QPoint(0, bFilterOptions->height())));
+ }
+ 
++void ProjectExplorer::setDataWorkspaceMode(bool enabled) {
++	if (m_dataWorkspaceMode == enabled)
++		return;
++	if (enabled) {
++		m_regularVisibleColumns.clear();
++		for (int i = 0; i < list_showColumnActions.size(); ++i)
++			if (list_showColumnActions.at(i)->isChecked())
++				m_regularVisibleColumns.append(i);
++	}
++	m_dataWorkspaceMode = enabled;
++	static_cast<DataExplorerHeader*>(m_treeView->header())->setDataWorkspaceMode(enabled);
++	m_leFilter->setPlaceholderText(enabled ? QString::fromUtf8("이름 찾기") : i18n("Search/Filter"));
++	if (showAllColumnsAction)
++		showAllColumnsAction->setText(enabled ? QString::fromUtf8("모든 열 표시") : i18n("Show All"));
++	m_treeView->setObjectName(enabled ? QStringLiteral("caelabDataExplorerTree") : QString());
++	const auto visible = Settings::group(QStringLiteral("ProjectExplorer"))
++		.readEntry("DataWorkspaceVisibleColumns", QStringLiteral("0")).split(QLatin1Char(' '));
++	for (int i = 0; i < list_showColumnActions.size(); ++i) {
++		const bool checked = enabled ? (i == 0 || visible.contains(QString::number(i))) :
++			(m_regularVisibleColumns.isEmpty() ? i < 2 : m_regularVisibleColumns.contains(i));
++		const auto label = m_treeView->model()->headerData(i, Qt::Horizontal).toString();
++		list_showColumnActions.at(i)->setText(enabled ? dataColumnLabel(i, label) : label);
++		list_showColumnActions.at(i)->setEnabled(true);
++		list_showColumnActions.at(i)->setChecked(checked);
++		m_treeView->setColumnHidden(i, !checked);
++	}
++	m_treeView->header()->setStretchLastSection(!enabled);
++	if (m_treeView->model())
++		resizeHeader();
++}
++
++void ProjectExplorer::applyDataColumnVisibility() {
++	if (!m_dataWorkspaceMode || list_showColumnActions.isEmpty())
++		return;
++	int visible = 0;
++	for (int i = 0; i < list_showColumnActions.size(); ++i) {
++		auto* action = list_showColumnActions.at(i);
++		if (i == 0)
++			action->setChecked(true); // Name is the primary object identifier.
++		action->setEnabled(i != 0);
++		m_treeView->setColumnHidden(i, !action->isChecked());
++		visible += action->isChecked() ? 1 : 0;
++	}
++	showAllColumnsAction->setChecked(visible == list_showColumnActions.size());
++	showAllColumnsAction->setEnabled(visible != list_showColumnActions.size());
++}
++
++void ProjectExplorer::resizeDataNameColumn() {
++	if (!m_dataWorkspaceMode || !m_treeView->model())
++		return;
++	int remaining = m_treeView->viewport()->width();
++	for (int i = 1; i < m_treeView->model()->columnCount(); ++i)
++		if (!m_treeView->isColumnHidden(i))
++			remaining -= m_treeView->columnWidth(i);
++	// Optional metadata may scroll; it must never consume the object name.
++	m_treeView->setColumnWidth(0, qMax(180, remaining));
++}
++
++void ProjectExplorer::resizeEvent(QResizeEvent* event) {
++	QWidget::resizeEvent(event);
++	resizeDataNameColumn();
++}
++
+ void ProjectExplorer::resizeHeader() {
++	if (m_dataWorkspaceMode) {
++		applyDataColumnVisibility();
++		auto* header = m_treeView->header();
++		header->setStretchLastSection(false);
++		header->setSectionResizeMode(QHeaderView::Interactive);
++		header->resizeSections(QHeaderView::ResizeToContents);
++		for (int i = 1; i < m_treeView->model()->columnCount(); ++i)
++			if (!m_treeView->isColumnHidden(i))
++				header->resizeSection(i, qBound(90, header->sectionSize(i), 220));
++		resizeDataNameColumn();
++		return;
++	}
+ 	m_treeView->header()->resizeSections(QHeaderView::ResizeToContents);
+ 	m_treeView->header()->resizeSection(0, m_treeView->header()->sectionSize(0) * 1.2); // make the column "Name" somewhat bigger
+ }

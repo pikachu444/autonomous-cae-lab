@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import threading
 
@@ -25,6 +26,14 @@ def main():
     args = parser.parse_args()
     executable, sdk, output = args.executable.resolve(strict=True), args.sdk.resolve(strict=True), args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
+    compiled = executable.parents[2] / 'caelab-compiled-source'
+    build_manifest = executable.parents[2] / 'caelab-build-manifest.json'
+    if not build_manifest.is_file():
+        raise RuntimeError('Build with the current build_windows.ps1 to retain exact compiled source evidence')
+    manifest = json.loads(build_manifest.read_text(encoding='utf-8-sig'))
+    assert manifest['executable_sha256'].lower() == hashlib.sha256(executable.read_bytes()).hexdigest()
+    shutil.copytree(compiled, output / 'compiled-source')
+    shutil.copy2(build_manifest, output / 'build-manifest.json')
     prior = args.capture_from.resolve(strict=True) if args.capture_from else None
     fixture = (prior or output) / 'duplicate-source.csv'
     if not prior:
@@ -98,8 +107,9 @@ def main():
                     finally: job.close()
         result = {'status': 'PASS', 'fixture': 'synthetic duplicate coordinates; not engineering qualification',
             'executable_sha256': hashlib.sha256(executable.read_bytes()).hexdigest(),
-            'bridge_sha256': hashlib.sha256((REPOSITORY / 'native/data_labplot/CaelabDataBridge.h').read_bytes()).hexdigest(),
-            'settings_sha256': hashlib.sha256((REPOSITORY / 'native/data_labplot/CaelabDataSettings.h').read_bytes()).hexdigest(),
+            'bridge_sha256': manifest['bridge_sha256'].lower(),
+            'settings_sha256': manifest['settings_sha256'].lower(),
+            'properties_sha256': manifest.get('properties_sha256', '').lower(),
             'source_rows': [1, 2, 3, 4, 5], 'selected_rows': [4], 'data_updates': 0 if prior else 3,
             'operations': {'interaction': 1, 'interaction_reopen': 0, 'file_open_csv': 1, 'file_open_npz': 1} if not prior else {'interaction_reopen': 0},
             'data_imports': 0, 'runs': 0,

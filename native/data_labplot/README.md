@@ -5,6 +5,51 @@ The donor checkout and all downloaded SDKs stay under ignored `_workspace/`.
 The full donor checkout, binaries, icons and SDK libraries are not included in
 the product. This folder owns a bounded bridge and reproducible source patches.
 
+## Installed Data entry and current local runtime
+
+After the verified local runtime is installed, ordinary `data` opens native
+Data without an executable/SDK argument. A blank launch supports source opening
+inside the app; a selected Core document or saved `.lml` uses that exact input.
+`data --pyside` keeps the explicit compatibility entry. Processing and acquisition
+open the existing Python tasks on the same Core document, with donor Qt paths
+removed; opening a task does not execute it.
+
+```powershell
+./scripts/install-native-data-windows.ps1 -PackageRoot C:/path/to/data-runtime-package
+python -m apps.research.desktop --service http://127.0.0.1:8766 data
+```
+
+The installer verifies every manifest entry, copies into an immutable version
+folder, verifies again and atomically updates `current.json`. Old versions and
+failed staging folders are preserved. Normal launch verifies the executable,
+Qt platform plugin, configuration and manifest identity. A developer SDK remains
+necessary to build this C++ application, not to run the installed package.
+
+The final 2026-10-18 local package is `product-package-05` under the private
+evidence directory, manifest `5DFFB28CB7B6D58BA44F14A935C82321A2DD6B657C74A9E571DF72E3F00CFCD6`,
+executable `EC5BBD4137285969BB9A738B12E1F29EC6EE7D04B4F83BA25F4D0225584A6EF5`.
+Its 371 files include runtime libraries/plugins, Korean resources, icons,
+licenses, the fixed donor source archive, exact compiled headers/eight patches,
+and build/package instructions. Package-04 remains preserved. These binaries are
+local acceptance artifacts and are not published in this public repository.
+`SOURCE-OBLIGATIONS.txt` records the exact dependency sources/build records and
+Microsoft redistribution terms still required before public binary redistribution;
+upstream download URLs alone do not satisfy that obligation.
+
+Actual installed launch checks use a private fresh profile, Windows system PATH,
+and no SDK or acceptance hooks: ordinary blank `data` and exact selected Data both
+open real native windows. The selected document reads all four original rows,
+keeps generation/draft/results unchanged and creates zero jobs. The final receipt
+is `_workspace/data-workspace-20261018/installed-normal-02/result.json` and its
+invocation-scoped Windows Job receipt. The final channel summary counts range/
+overlap exclusions and preserves incomplete scale/offset text. All four native
+properties retain real controls, one name command/Undo, source selection and
+serialized values across wide/narrow layouts. Earlier prepare/recovery/save/
+Material/companion evidence is linked through exact compiled-source delta records.
+
+See [current usage and actual screens](../../docs/DATA_WORKSPACE_KO.md).
+Physical OS input coverage and public binary redistribution remain separate.
+
 ## Reproduced Windows path
 
 The installed Visual Studio 2022 Community compiler (MSVC 19.43.34810.0) and
@@ -98,9 +143,9 @@ The explicit native entry keeps LabPlot's original engineering work surface and
 uses existing Core readers, commands and retained results. The current checks
 cover original rows, engineering settings, independent row states, selection,
 local Undo, one Apply, atomic native/Core save, partial-failure recovery,
-cold reopen and exact Material handoff. The ordinary Data entry remains the
-verified PySide6 workspace; this is an additional explicit entry. A complete
-installer, redistribution bundle, every upstream LabPlot analysis feature and
+cold reopen and exact Material handoff. This first foundation used an explicit
+native entry alongside PySide6. The installed entry above supersedes that first
+launch boundary. Public redistribution, every upstream LabPlot analysis feature and
 physical OS input coverage are outside this verified boundary. This successful
 integration is not a donor rejection or a final replacement-framework decision.
 
@@ -302,7 +347,7 @@ critical Core save/receipt/atomic replacement logic is unchanged.
 All six patches clean-apply to the fixed pristine donor, and two consecutive
 `-PatchOnly` calls leave already-applied source bytes unchanged. The final
 record is `_workspace/labplot-patch-series-20261018-05/result.json`.
-Ordinary user launch is the explicit `data-native` entry documented in
+Ordinary user launch uses the installed `data` entry documented in
 [Data usage](../../docs/DATA_WORKSPACE_KO.md); acceptance environment variables
 are not needed. Every acceptance process tree is owned and cleaned in `finally`.
 No new numerical engine, store or paid service was introduced.

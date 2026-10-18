@@ -156,18 +156,24 @@ register the test and its protocol. Registration, fitting and adoption remain
 separate actions. The existing Numerical plan owns these experiments; this
 delivery does not introduce a second trial store in Material.
 
-The separately built native Data workspace has an explicit entry against the
-same running service. Supply the actual fixed-source build and private SDK:
+Install a verified local native Data package once, then use the ordinary Data
+entry against the same service. The installed runtime does not require the developer SDK:
 
 ```powershell
-python -m apps.research.desktop --service http://127.0.0.1:8766 data-native --executable _workspace/labplot-data-20261018-build-sdk/bin/Release/labplot.exe --sdk _workspace/labplot-sdk-20261018 --document-id DOCUMENT_ID
+./scripts/install-native-data-windows.ps1 -PackageRoot C:/path/to/data-runtime-package
+python -m apps.research.desktop --service http://127.0.0.1:8766 data
+python -m apps.research.desktop --service http://127.0.0.1:8766 data --document-id DOCUMENT_ID
 # To reopen its saved native view, replace --document-id with --project saved.lml.
 ```
 
 This entry uses a separate Qt runtime, clears acceptance-only environment flags
 and passes the exact existing Data document or saved project to the native app.
 It reports a launch request; the app checks the saved Core binding when opening
-a project. Ordinary `data` keeps the PySide6 workspace. Native build, licensing
+a project. Explicit `data --pyside` opens the compatibility workspace; existing
+processing and acquisition actions open its dedicated task on the same document.
+Without an installed runtime the compatibility workspace remains available.
+`data-native --executable ... --sdk ...` is retained for bounded developer builds.
+Native build, licensing
 and bounded acceptance are recorded in [the native Data guide](../../native/data_labplot/README.md).
 
 ## Numerical worksheet and returning a result

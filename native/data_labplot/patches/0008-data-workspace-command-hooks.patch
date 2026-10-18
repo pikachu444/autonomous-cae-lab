@@ -1,0 +1,12 @@
+diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
+--- a/src/frontend/MainWin.cpp
++++ b/src/frontend/MainWin.cpp
+@@ -558,7 +558,7 @@
+ 	// depending on the settings, create the default project content (add a worksheet, etc.)
+ 	if (createInitialContent) {
+ 		m_project->setUndoAware(false);
+-		const auto newProject = (NewProject)group.readEntry(QStringLiteral("NewProject"), static_cast<int>(NewProject::WithSpreadsheet));
++		const auto newProject = (NewProject)group.readEntry(QStringLiteral("NewProject"), -1);
+ 		switch (newProject) {
+ 		case NewProject::WithWorksheet:
+ 			newWorksheet();

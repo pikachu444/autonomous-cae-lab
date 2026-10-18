@@ -1,7 +1,9 @@
 """Run the real donor bridge against an existing public input, owning its process tree."""
 import argparse
+import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import sys
 import threading
@@ -22,9 +24,24 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--source', choices=('axial.csv', 'shear.csv'), default='axial.csv')
     parser.add_argument('--capture-from', type=Path, help='Reopen the prior receipt document for saved read-only table/curve capture; no data.update.')
+    parser.add_argument('--clean-runtime', action='store_true', help='Launch a packaged executable using Windows system PATH, with no Qt/SDK environment.')
     args = parser.parse_args()
     executable, sdk, output = args.executable.resolve(strict=True), args.sdk.resolve(strict=True), args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
+    manifest_root = next((root for root in (executable.parents[2], executable.parent.parent)
+        if (root / 'caelab-build-manifest.json').is_file()), None)
+    if manifest_root is None:
+        raise RuntimeError('Executable has no retained compiled-source manifest')
+    manifest = json.loads((manifest_root / 'caelab-build-manifest.json').read_text(encoding='utf-8-sig'))
+    assert manifest['executable_sha256'].lower() == hashlib.sha256(executable.read_bytes()).hexdigest()
+    compiled = manifest_root / ('caelab-compiled-source' if (manifest_root / 'caelab-compiled-source').is_dir() else 'corresponding-source')
+    snapshot = output / 'compiled-source'
+    snapshot.mkdir()
+    for name, key in (('CaelabDataBridge.h', 'bridge_sha256'), ('CaelabDataSettings.h', 'settings_sha256'), ('CaelabDataProperties.h', 'properties_sha256')):
+        assert hashlib.sha256((compiled / name).read_bytes()).hexdigest() == manifest[key].lower()
+        shutil.copy2(compiled / name, snapshot / name)
+    shutil.copytree(compiled / 'patches', snapshot / 'patches')
+    shutil.copy2(manifest_root / 'caelab-build-manifest.json', output / 'build-manifest.json')
     source_root = REPOSITORY / 'examples' / 'material-tests'
     prior = args.capture_from.resolve(strict=True) if args.capture_from else None
     service = LabService(prior.parent / 'store' if prior else output / 'store')
@@ -58,6 +75,11 @@ def main():
         environment.update(CAELAB_SERVICE_URL=client.url, CAELAB_DATA_DOCUMENT_ID=document['id'],
             CAELAB_DATA_TRIAL_REPORT=str(report), QT_PLUGIN_PATH=str(sdk / 'plugins'),
             PATH=str(sdk / 'bin') + os.pathsep + os.environ['PATH'])
+        if args.clean_runtime:
+            for key in list(environment):
+                if key.startswith(('QT_', 'QML')) or key == 'CAELAB_DONOR_SDK':
+                    environment.pop(key)
+            environment['PATH'] = os.pathsep.join((str(executable.parent), str(Path(os.environ['SystemRoot']) / 'System32'), os.environ['SystemRoot']))
         if prior: environment['CAELAB_DATA_CAPTURE_ONLY'] = '1'
         else: environment.pop('CAELAB_DATA_CAPTURE_ONLY', None)
         for key in ('XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME'):
@@ -70,6 +92,8 @@ def main():
         if code != 0 or not report.is_file():
             raise RuntimeError(f'LabPlot exited {code}; inspect {output / "stderr.log"}')
         result = json.loads(report.read_text(encoding='utf-8'))
+        result['compiled_source'] = manifest
+        report.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
         current = client.document_read(document['id'])
         if result.get('status') != 'PASS':
             raise RuntimeError('Donor bridge failed: ' + result.get('error', 'unknown'))

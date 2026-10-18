@@ -4,6 +4,7 @@
 #pragma once
 #include "MainWin.h"
 #include "CaelabDataSettings.h"
+#include "CaelabDataProperties.h"
 #include "backend/core/Project.h"
 #include "backend/core/column/Column.h"
 #include "backend/lib/UndoStack.h"
@@ -12,10 +13,27 @@
 #include "backend/worksheet/TextLabel.h"
 #include "backend/worksheet/plots/cartesian/Axis.h"
 #include "backend/worksheet/plots/cartesian/CartesianPlot.h"
+#include "backend/worksheet/plots/cartesian/CartesianPlotLegend.h"
 #include "backend/worksheet/plots/cartesian/XYCurve.h"
 #include "frontend/spreadsheet/SpreadsheetView.h"
 #include "frontend/core/ContentDockWidget.h"
+#include "frontend/ProjectExplorer.h"
 #include "frontend/worksheet/WorksheetView.h"
+#include <DockManager.h>
+#include <DockAreaWidget.h>
+#include <DockSplitter.h>
+#include <KActionCollection>
+#include <QToolBar>
+#include <QToolButton>
+#include <QHeaderView>
+#include <QScrollBar>
+#include <QTreeView>
+#include <QStackedWidget>
+#include <QLabel>
+#include <QProgressBar>
+#include <QVBoxLayout>
+#include <QStyle>
+#include <QSignalBlocker>
 #include <QEventLoop>
 #include <QInputDialog>
 #include <QJsonArray>
@@ -74,7 +92,7 @@ class CaelabDataBridge : public QObject {
     QJsonArray rawColumns;
     QVector<int> displayOrder;
     QSet<int> selectedSources;
-    QMetaObject::Connection selectionConnection, pointsConnection, xSourceConnection, ySourceConnection;
+    QMetaObject::Connection selectionConnection, headerConnection, headerEditConnection, pointsConnection, xSourceConnection, ySourceConnection;
     QPointer<XYCurve> markerOwner;
     QList<QGraphicsItem*> markers;
     bool selecting{false}, refreshingView{false}, rangeSelection{false};
@@ -97,7 +115,17 @@ class CaelabDataBridge : public QObject {
     QMenu* menu;
     QAction *readAction, *excludeAction;
     QAction *applyAction, *saveAction, *prepareAction, *materialAction, *retryAction;
+    QAction *settingsAction, *tableAction, *curveAction;
+    QWidget* channelPane{nullptr};
+    QLabel* channelSummary{nullptr};
+    QComboBox* channelChoices{nullptr};
+    bool updatingChannelPane{false}, sourceEditQueued{false}, analysisLayout{false}, narrowLayout{false};
+    CaelabDataSettingsDialog::Section nextMappingSection{CaelabDataSettingsDialog::Section::All}, sourceColumnSection{CaelabDataSettingsDialog::Section::Channel};
+    QString prepareJob;
+    QJsonObject lastPrepareJob;
+    bool interactiveRequest{false};
     QList<QAction*> editActions;
+    QList<QAction*> documentActions;
     QList<QPair<QPointer<QAction>, bool>> lockedActions;
     int loadEpoch{0};
     bool curveHasData{false};
@@ -117,7 +145,7 @@ class CaelabDataBridge : public QObject {
         auto* reply = body ? network.post(query, QJsonDocument(*body).toJson(QJsonDocument::Compact)) : network.get(query);
         QEventLoop loop;
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-        loop.exec(QEventLoop::ExcludeUserInputEvents);
+        loop.exec(interactiveRequest ? QEventLoop::AllEvents : QEventLoop::ExcludeUserInputEvents);
         const auto bytes = reply->readAll();
         const auto error = reply->error();
         const auto errorMessage = reply->errorString();
@@ -136,29 +164,32 @@ class CaelabDataBridge : public QObject {
         menu->setEnabled(true); busy = false; syncLocks();
     }
     void syncLocks() {
-        if ((!pendingApply.isEmpty() || pendingView()) && lockedActions.isEmpty()) {
+        if ((!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty()) && lockedActions.isEmpty()) {
             for (auto* action : window->findChildren<QAction*>()) {
                 if (action->parent() == menu || action == menu->menuAction()) continue;
                 lockedActions.append({action, action->isEnabled()}); action->setEnabled(false);
                 QObject::connect(action, &QAction::changed, this, [this, action] {
-                    if ((!pendingApply.isEmpty() || pendingView()) && action->isEnabled()) action->setEnabled(false);
+                    if ((!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty()) && action->isEnabled()) action->setEnabled(false);
                 });
             }
-        } else if (pendingApply.isEmpty() && !pendingView() && !lockedActions.isEmpty()) {
+        } else if (pendingApply.isEmpty() && !pendingView() && prepareJob.isEmpty() && !lockedActions.isEmpty()) {
             const auto restore = lockedActions; lockedActions.clear();
             for (const auto& entry : restore) if (entry.first) entry.first->setEnabled(entry.second);
         }
-        readAction->setEnabled(pendingApply.isEmpty() && !pendingView()); excludeAction->setEnabled(pendingApply.isEmpty() && !pendingView());
-        const bool ready = connected() && !inputConflict && pendingApply.isEmpty() && !pendingView();
+        readAction->setEnabled(pendingApply.isEmpty() && !pendingView() && prepareJob.isEmpty());
+        for (auto* action : documentActions) action->setEnabled(pendingApply.isEmpty() && !pendingView() && prepareJob.isEmpty());
+        const bool ready = connected() && !inputConflict && pendingApply.isEmpty() && !pendingView() && prepareJob.isEmpty();
         for (auto* action : editActions) action->setEnabled(ready);
         excludeAction->setEnabled(ready);
         applyAction->setEnabled(ready && draft != baseline.value(text("draft")).toObject());
         saveAction->setEnabled(ready);
         prepareAction->setEnabled(ready && draft == baseline.value(text("draft")).toObject() && baseline.value(text("diagnostics")).toArray().isEmpty());
         materialAction->setEnabled(ready && !importedReference.value(text("job_id")).toString().isEmpty());
-        retryAction->setEnabled(!pendingApply.isEmpty() || pendingView());
+        retryAction->setEnabled(!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty());
     }
     bool eventFilter(QObject* watched, QEvent* event) override {
+        if (watched == window && event->type() == QEvent::Resize && analysisLayout)
+            QTimer::singleShot(0, this, [this] { arrangeAnalysisWorkspace(); });
         if (watched == sourceCurve && event->type() == QEvent::DynamicPropertyChange) {
             auto* change = static_cast<QDynamicPropertyChangeEvent*>(event);
             if (change->propertyName() == QByteArrayLiteral("caelab_hit") && displayCache && !selecting) {
@@ -191,9 +222,9 @@ class CaelabDataBridge : public QObject {
                 }
             }
         }
-        if (watched == window && event->type() == QEvent::Close && (!pendingApply.isEmpty() || pendingView())) {
+        if (watched == window && event->type() == QEvent::Close && (!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty())) {
             static_cast<QCloseEvent*>(event)->ignore();
-            window->statusBar()->showMessage(text("Retry the pending Core command or exact view save before closing. The buffer is preserved."));
+            window->statusBar()->showMessage(text("진행 중인 자료 준비 상태 또는 저장을 먼저 확인하세요. 창을 닫아도 취소가 확정되지는 않습니다."));
             return true;
         }
         return QObject::eventFilter(watched, event);
@@ -206,10 +237,11 @@ class CaelabDataBridge : public QObject {
     public:
         DraftChange(CaelabDataBridge* owner, const QJsonObject& value, const QString& valueChannel = {})
             : QUndoCommand(CaelabDataBridge::text("자료 편집")), bridge(owner), before(owner->draft), after(value), epoch(owner->loadEpoch), beforeChannel(owner->channel), afterChannel(valueChannel.isEmpty() ? owner->channel : valueChannel) {}
-        void undo() override { if (bridge && bridge->connected() && bridge->loadEpoch == epoch && bridge->pendingApply.isEmpty() && !bridge->pendingView()) { bridge->draft = before; bridge->channel = beforeChannel; bridge->refreshEngineeringView(); bridge->connectedProject->setChanged(true); } }
-        void redo() override { if (bridge && bridge->connected() && bridge->loadEpoch == epoch && bridge->pendingApply.isEmpty() && !bridge->pendingView()) { bridge->draft = after; bridge->channel = afterChannel; bridge->refreshEngineeringView(); bridge->connectedProject->setChanged(true); } }
+        void undo() override { if (bridge && bridge->connected() && bridge->loadEpoch == epoch && bridge->pendingApply.isEmpty() && !bridge->pendingView() && bridge->prepareJob.isEmpty()) { bridge->draft = before; bridge->channel = beforeChannel; bridge->refreshEngineeringView(); bridge->connectedProject->setChanged(true); bridge->syncLocks(); } }
+        void redo() override { if (bridge && bridge->connected() && bridge->loadEpoch == epoch && bridge->pendingApply.isEmpty() && !bridge->pendingView() && bridge->prepareJob.isEmpty()) { bridge->draft = after; bridge->channel = afterChannel; bridge->refreshEngineeringView(); bridge->connectedProject->setChanged(true); bridge->syncLocks(); } }
     };
     void load() {
+        if (!prepareJob.isEmpty()) throw std::runtime_error("진행 중인 자료 준비 상태를 먼저 확인하세요. 원 입력은 유지됩니다.");
         if (!pendingApply.isEmpty() || pendingView()) throw std::runtime_error("Complete the pending command or exact view save before reading another Core input.");
         if (requiresCoreSave() && (inputConflict || draft != baseline.value(text("draft")).toObject()) &&
             QMessageBox::question(window, text("Unapplied Data edits"), text("Discard local Data edits and read Core again?"), QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel) != QMessageBox::Discard) return;
@@ -223,6 +255,8 @@ class CaelabDataBridge : public QObject {
         importedReference = {}; savedAck = {};
         inputConflict = false;
         attachProject();
+        const bool newNativeDocument = connectedProject->fileName().isEmpty() && connectedProject->childCount<AbstractAspect>() == 0;
+        if (newNativeDocument) connectedProject->setName(baseline.value(text("title")).toString(text("자료")));
         auto mapping = draft.value(text("mapping")).toObject();
         const auto channels = mapping.value(text("columns")).toObject();
         channel = channels.contains(text("stress")) ? text("stress") : channels.keys().value(0);
@@ -286,6 +320,9 @@ class CaelabDataBridge : public QObject {
             auto* plot = new CartesianPlot(text("원자료 응답")); sourcePlot = plot;
             worksheet->addChild(plot); plot->setType(CartesianPlot::Type::TwoAxes);
             worksheet->setPageRect(QRectF(0, 0, 2100, 1400));
+            worksheet->setUseViewSize(true);
+            worksheet->setLayout(Worksheet::Layout::VerticalLayout);
+            worksheet->setProperty("caelab_data_analysis", true);
             plot->setRect(QRectF(150, 100, 1800, 1120));
             plot->setHorizontalPadding(240); plot->setVerticalPadding(180);
             plot->title()->setText(TextLabel::TextWrapper(text("<p align=\"center\">원자료 응답 (배율·오프셋 적용 전)<br/><span style=\"font-size:9pt\"><span style=\"color:#0071bc\">○ 선택</span>　<span style=\"color:#aa3228\">× 계산 제외</span>　<span style=\"color:#b57900\">□ 품질 확인 필요</span></span></p>"), TextLabel::Mode::Text, true));
@@ -303,7 +340,29 @@ class CaelabDataBridge : public QObject {
             curveHasData = curve->hasData();
         }
         attachInteraction(); writeSourceOrder(); refreshEngineeringView();
-        window->statusBar()->showMessage(text("Original source loaded. Select rows or curve points; local engineering edits require Apply."));
+        analysisLayout = true; arrangeAnalysisWorkspace(true);
+        window->m_projectExplorer->setDataWorkspaceMode(true);
+        window->m_propertiesDock->dockAreaWidget()->setMinimumWidth(260);
+        if (newNativeDocument) QTimer::singleShot(0, this, [this] {
+            if (!connected()) return;
+            auto* area = window->m_projectExplorerDock->dockAreaWidget(); auto* splitter = area->parentSplitter();
+            if (!splitter) return;
+            auto sizes = splitter->sizes(); const int explorer = splitter->indexOf(area); int content = -1;
+            for (int index = 0; index < sizes.size(); ++index) if (index != explorer && (content < 0 || sizes[index] > sizes[content])) content = index;
+            if (explorer >= 0 && content >= 0) { sizes[content] += sizes[explorer] - 210; sizes[explorer] = 210; window->m_dockManagerMain->setSplitterSizes(area, sizes); }
+        });
+        showChannelPane();
+        const auto runs = baseline.value(text("runs")).toArray();
+        for (int index = runs.size() - 1; index >= 0; --index) {
+            const auto run = runs[index].toObject();
+            if (!run.value(text("is_current_input")).toBool()) continue;
+            const auto jobId = run.value(text("job_id")).toString();
+            const auto state = request(text("/api/workbench/jobs/") + jobId).value(text("state")).toString();
+            if (state == text("SUCCEEDED") && importedReference.isEmpty()) importedReference = QJsonObject{{text("document_id"), identifier}, {text("job_id"), jobId}};
+            else if (state == text("QUEUED") || state == text("RUNNING") || state == text("CANCEL_REQUESTED") || state == text("CLEANUP_PENDING")) { prepareJob = jobId; break; }
+        }
+        syncLocks();
+        window->statusBar()->showMessage(text("원자료를 읽었습니다. 원행과 채널을 선택하고 편집한 뒤 변경 적용을 누르세요."));
     }
     void exclude() {
         if (inputConflict) throw std::runtime_error("The local input is in conflict. Its recovery file is preserved; explicitly reload before editing.");
@@ -340,15 +399,96 @@ class CaelabDataBridge : public QObject {
         bool valid = false; const auto number = value.toString().toDouble(&valid);
         return valid ? number : std::numeric_limits<double>::quiet_NaN();
     }
+    void arrangeAnalysisWorkspace(bool force = false) {
+        if (!connected() || !sheet || !sourceWorksheet || !analysisLayout) return;
+        const bool narrow = window->width() < 1180;
+        if (!force && narrow == narrowLayout) return;
+        narrowLayout = narrow;
+        const auto chosenRows = selectedSources;
+        QPointer<AbstractAspect> chosenAspect = window->m_projectExplorer->currentAspect();
+        const bool explicitNativeAspect = chosenAspect && chosenAspect != sheet && chosenAspect != sourceWorksheet && chosenAspect->parentAspect() != sheet;
+        auto* tableDock = sheet->dockWidget(); auto* curveDock = sourceWorksheet->dockWidget();
+        if (!tableDock || !curveDock || !tableDock->dockAreaWidget()) return;
+        if (narrow) {
+            window->m_dockManagerContent->addDockWidgetTabToArea(curveDock, tableDock->dockAreaWidget());
+            tableDock->setAsCurrentTab();
+        } else {
+            window->m_dockManagerContent->addDockWidget(ads::RightDockWidgetArea, curveDock, tableDock->dockAreaWidget());
+            window->m_dockManagerContent->setSplitterSizes(tableDock->dockAreaWidget(), {550, 450});
+            QTimer::singleShot(0, this, [this] { if (connected() && sheet && analysisLayout && !narrowLayout) window->m_dockManagerContent->setSplitterSizes(sheet->dockWidget()->dockAreaWidget(), {550, 450}); });
+            tableDock->setAsCurrentTab(); curveDock->setAsCurrentTab();
+        }
+        selectSources(chosenRows);
+        // QADS activation during our own responsive redocking must not replace
+        // an explicitly selected axis, curve, legend or independent worksheet.
+        if (explicitNativeAspect && chosenAspect) {
+            for (auto* owner = chosenAspect.data(); owner; owner = owner->parentAspect()) {
+                if (auto* part = dynamic_cast<AbstractPart*>(owner)) { part->dockWidget()->setAsCurrentTab(); break; }
+            }
+            window->m_projectExplorer->setCurrentAspect(chosenAspect);
+        }
+    }
+    void showChannelPane() {
+        if (!connected() || !channelPane) return;
+        updatingChannelPane = true; channelChoices->clear();
+        const auto columns = draft.value(text("mapping")).toObject().value(text("columns")).toObject();
+        for (auto it = columns.begin(); it != columns.end(); ++it) {
+            const auto spec = it.value().toObject();
+            channelChoices->addItem(it.key() + text(" (") + spec.value(text("unit")).toString() + text(")"), it.key());
+        }
+        channelChoices->setCurrentIndex(channelChoices->findData(channel)); updatingChannelPane = false;
+        const auto spec = columns.value(channel).toObject();
+        QString rawName;
+        for (const auto descriptor : rawColumns) if (descriptor.toObject().value(text("key")) == spec.value(text("column"))) rawName = descriptor.toObject().value(text("name")).toString();
+        int excludedCount = 0;
+        for (const auto source : rows) if (!rowUsed(source.toInt())) ++excludedCount;
+        auto transformText = [&spec](const QString& key, double fallback) -> QString {
+            const auto value = spec.value(key);
+            if (value.isUndefined()) return QString::number(fallback);
+            if (value.isDouble() && std::isfinite(value.toDouble())) return QString::number(value.toDouble(), 'g', 15);
+            QString original;
+            if (value.isString()) original = value.toString().isEmpty() ? text("빈 값") : value.toString();
+            else { const auto encoded = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact); original = QString::fromUtf8(encoded.mid(1, encoded.size() - 2)); }
+            return original + text(" (미완성)");
+        };
+        channelSummary->setText(text("원열: ") + rawName + text("\n단위: ") + spec.value(text("unit")).toString()
+            + text("\n") + CaelabDataSettingsDialog::physicalLabel(text("measure"), spec.value(text("measure")).toString())
+            + text("  ") + CaelabDataSettingsDialog::physicalLabel(text("component"), spec.value(text("component")).toString())
+            + text("\n배율: ") + transformText(text("scale"), 1) + text("   오프셋: ") + transformText(text("offset"), 0)
+            + text("\n계산 제외: ") + QString::number(excludedCount) + text("행")
+            + text("\n표와 곡선: 원값\n변환은 자료 준비에 적용"));
+        window->m_propertiesDock->setWindowTitle(text("채널과 계산 사용"));
+        window->stackedWidget->setCurrentWidget(channelPane); channelPane->show();
+    }
+    void selectSourceColumn(int index) {
+        if (!connected() || index < 1 || index > rawColumns.size()) return;
+        const auto key = rawColumns[index - 1].toObject().value(text("key"));
+        const auto columns = draft.value(text("mapping")).toObject().value(text("columns")).toObject();
+        sourceColumnSection = CaelabDataSettingsDialog::Section::Channel;
+        if (columns.value(channel).toObject().value(text("column")) != key)
+            for (auto it = columns.begin(); it != columns.end(); ++it) if (it.value().toObject().value(text("column")) == key) { channel = it.key(); break; }
+        if (columns.value(channel).toObject().value(text("column")) != key && columns.value(channel).toObject().value(text("axis")).toObject().value(text("column")) == key) sourceColumnSection = CaelabDataSettingsDialog::Section::Axis;
+        refreshEngineeringView(); showChannelPane();
+    }
     void attachInteraction() {
         if (!connected() || !sheet || !sourceCurve || !sourcePlot || !sourceWorksheet) return;
         const bool wasUndoAware = connectedProject->isUndoAware(), wasChanged = connectedProject->isChanged(); connectedProject->setUndoAware(false);
         if (!displayCache || displayCache->project() != connectedProject) {
-            auto* cache = new Spreadsheet(text("곡선 표시 자료")); cache->setHidden(true);
+            auto* cache = new Spreadsheet(text("곡선 표시 자료"));
             cache->setColumnCount(3); cache->setRowCount(rows.size()); cache->setReadOnly(true);
-            connectedProject->addChild(cache); displayCache = cache;
+            {
+                const QSignalBlocker block(window->m_projectExplorer);
+                connectedProject->addChild(cache); cache->setHidden(true);
+            }
+            displayCache = cache;
+            window->m_projectExplorer->setCurrentAspect(sheet);
         }
         displayCache->setName(text("곡선 표시 자료")); displayCache->setHidden(true);
+        if (displayCache->hasMdiSubWindow()) {
+            displayCache->suppressDeletion(true);
+            displayCache->dockWidget()->toggleView(false);
+            displayCache->suppressDeletion(false);
+        }
         sheet->setColumnCount(rawColumns.size() + 3);
         for (int column = rawColumns.size() + 1; column < sheet->columnCount(); ++column) {
             sheet->column(column)->setColumnMode(AbstractColumn::ColumnMode::Text);
@@ -357,20 +497,32 @@ class CaelabDataBridge : public QObject {
         connectedProject->setUndoAware(wasUndoAware); connectedProject->setChanged(wasChanged);
         sourceCurve->setProperty("caelab_data_curve", true); sourceCurve->installEventFilter(this);
         QObject::disconnect(selectionConnection); QObject::disconnect(pointsConnection);
+        QObject::disconnect(headerConnection); QObject::disconnect(headerEditConnection);
         QObject::disconnect(xSourceConnection); QObject::disconnect(ySourceConnection);
         auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
-        if (auto* table = view ? view->findChild<QTableView*>() : nullptr)
+        if (auto* table = view ? view->findChild<QTableView*>() : nullptr) {
             selectionConnection = QObject::connect(table->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this, view] {
                 if (selecting || refreshingView) return;
+                if (!view->findChild<QTableView*>()->selectionModel()->selectedColumns().isEmpty()) return;
                 QSet<int> sources;
                 for (int row = 0; row < sheet->rowCount(); ++row) if (view->isRowSelected(row, false)) sources.insert(static_cast<int>(sheet->column(0)->valueAt(row)));
                 selectedSources = sources; drawOverlays();
             });
+            headerConnection = QObject::connect(table->horizontalHeader(), &QHeaderView::sectionClicked, this, [this](int index) { selectSourceColumn(index); });
+            headerEditConnection = QObject::connect(table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, this, [this](int index) { selectSourceColumn(index); if (index > 0 && index <= rawColumns.size()) { nextMappingSection = sourceColumnSection; settingsAction->trigger(); } });
+            table->addActions({settingsAction, excludeAction, applyAction, prepareAction, materialAction});
+            table->setContextMenuPolicy(Qt::ActionsContextMenu);
+            table->horizontalHeader()->addAction(settingsAction); table->horizontalHeader()->setContextMenuPolicy(Qt::ActionsContextMenu);
+        }
         auto guardSource = [this](const AbstractColumn*) {
             if (!refreshingView && connected() && sourceCurve && displayCache &&
                 (sourceCurve->xColumn() != displayCache->column(1) || sourceCurve->yColumn() != displayCache->column(2))) {
                 refreshEngineeringView();
-                window->statusBar()->showMessage(text("이 응답 곡선의 원열은 ‘열과 단위’에서 지정하세요. 다른 곡선은 자유롭게 추가할 수 있습니다."));
+                showChannelPane();
+                if (!sourceEditQueued) {
+                    sourceEditQueued = true;
+                    QTimer::singleShot(0, this, [this] { sourceEditQueued = false; nextMappingSection = CaelabDataSettingsDialog::Section::Channel; settingsAction->trigger(); });
+                }
             }
         };
         xSourceConnection = QObject::connect(sourceCurve, &XYCurve::xColumnChanged, this, guardSource);
@@ -388,10 +540,11 @@ class CaelabDataBridge : public QObject {
                     selected.select(table->model()->index(row, 0), table->model()->index(row, sheet->columnCount() - 1));
                 table->selectionModel()->clear();
                 table->selectionModel()->select(selected, QItemSelectionModel::ClearAndSelect);
+                if (!selected.isEmpty()) table->selectionModel()->setCurrentIndex(selected.first().topLeft(), QItemSelectionModel::NoUpdate);
             }
         }
         selecting = false; drawOverlays();
-        window->statusBar()->showMessage(QString::number(sources.size()) + text(" original source rows selected."));
+        window->statusBar()->showMessage(text("원행 ") + QString::number(sources.size()) + text("개 선택"));
     }
     void drawOverlays() {
         if (refreshingView || !sourceCurve || !sourcePlot || !displayCache) return;
@@ -456,6 +609,7 @@ class CaelabDataBridge : public QObject {
             if (table) table->setRowHidden(row, selection.value(text("display_hidden_rows")).toArray().contains(source));
         }
         connectedProject->setUndoAware(undoAware); connectedProject->setChanged(dirty); refreshingView = false; drawOverlays();
+        if (channelPane && window->stackedWidget->currentWidget() == channelPane) showChannelPane();
     }
     void editSelectedRows(const QString& field, bool clear = false, bool all = false) {
         if (!connected() || inputConflict || !pendingApply.isEmpty() || pendingView()) throw std::runtime_error("Finish recovery or pending work before editing local row settings.");
@@ -504,13 +658,15 @@ class CaelabDataBridge : public QObject {
         writeSourceOrder(); connectedProject->setChanged(true);
         window->statusBar()->showMessage(text("표 보기만 정렬했습니다. 원행과 Core 입력은 유지됩니다."));
     }
-    void editMapping() {
+    void editMapping(CaelabDataSettingsDialog::Section section = CaelabDataSettingsDialog::Section::All) {
         if (!connected() || inputConflict || !pendingApply.isEmpty() || pendingView()) throw std::runtime_error("먼저 연결과 저장 상태를 확인하세요.");
         CaelabDataSettingsDialog dialog(draft, rawColumns, channel, window);
+        dialog.focusSection(section);
         if (dialog.exec() != QDialog::Accepted) return;
         const auto edited = dialog.editedDraft();
         if (edited != draft) connectedProject->undoStack()->push(new DraftChange(this, edited, dialog.selectedChannel()));
         else { channel = dialog.selectedChannel(); refreshEngineeringView(); }
+        showChannelPane(); syncLocks();
     }
     int chooseDocument(const QString& title, const QString& label, const QStringList& names) {
         QInputDialog dialog(window); dialog.setWindowTitle(title); dialog.setLabelText(label);
@@ -554,6 +710,7 @@ class CaelabDataBridge : public QObject {
         window->statusBar()->showMessage(text("원자료를 열었습니다. 열과 단위에서 물리량을 지정하세요. 자료 준비는 별도로 실행합니다."));
     }
     QJsonObject command(const QString& operation, const QJsonObject& arguments = {}) {
+        if (!prepareJob.isEmpty()) throw std::runtime_error("자료 준비의 종료를 확인한 뒤 변경 또는 저장하세요.");
         if (!connected() || inputConflict) throw std::runtime_error("Reconnect or explicitly reload the preserved Core input before submitting another command.");
         if (pendingApply.isEmpty()) {
             const auto current = request(documentPath());
@@ -579,7 +736,7 @@ class CaelabDataBridge : public QObject {
     }
     void apply() {
         command(text("data.update"), QJsonObject{{text("draft"), draft}});
-        window->statusBar()->showMessage(text("One Data update applied. No import, solver or AI was run."));
+        window->statusBar()->showMessage(text("변경을 적용했습니다. 자료 준비는 별도로 실행하세요."));
     }
     void attachProject() {
         QObject::disconnect(saveStateConnection);
@@ -648,7 +805,9 @@ class CaelabDataBridge : public QObject {
                 for (auto* plot : sourceWorksheet->children<CartesianPlot>()) for (auto* curve : plot->children<XYCurve>())
                     if ((!binding.value(text("curve_uuid")).toString().isEmpty() && curve->uuid().toString() == binding.value(text("curve_uuid"))) || binding.value(text("curve_uuid")).toString().isEmpty()) { sourceCurve = curve; sourcePlot = plot; }
             }
+            analysisLayout = false;
             attachInteraction(); refreshEngineeringView(); selectSources(selectedSources);
+            window->m_projectExplorer->setDataWorkspaceMode(true);
             window->statusBar()->showMessage(text("Saved Core input and native view reopened. No calculation was submitted."));
         } catch (...) { connectedProject.clear(); service = oldService; identifier = oldIdentifier; throw; }
     }
@@ -756,21 +915,56 @@ class CaelabDataBridge : public QObject {
     void importData() {
         if (pendingView()) throw std::runtime_error("Complete the pending exact view save first.");
         if (draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("Apply local settings before explicitly preparing data.");
-        const auto receipt = command(text("data.import"));
-        const auto jobId = receipt.value(text("job")).toObject().value(text("id")).toString();
-        if (jobId.isEmpty()) throw std::runtime_error("Import did not return a job identity.");
-        QElapsedTimer deadline; deadline.start(); QJsonObject job;
-        do {
-            job = request(text("/api/workbench/jobs/") + jobId);
-            const auto state = job.value(text("state")).toString();
-            if (state == text("SUCCEEDED")) break;
-            if (state == text("FAILED") || state == text("REJECTED") || deadline.elapsed() > 60000) throw std::runtime_error("The explicit data import did not succeed. Its job and original source remain retained.");
-            QEventLoop delay; QTimer::singleShot(40, &delay, &QEventLoop::quit); delay.exec(QEventLoop::ExcludeUserInputEvents);
-        } while (true);
-        baseline = request(documentPath());
-        importedReference = QJsonObject{{text("document_id"), identifier}, {text("job_id"), jobId}};
+        if (prepareJob.isEmpty()) {
+            const auto receipt = command(text("data.import"));
+            prepareJob = receipt.value(text("job")).toObject().value(text("id")).toString();
+            if (prepareJob.isEmpty()) throw std::runtime_error("자료 준비가 실행 식별자를 반환하지 않았습니다.");
+        }
+        syncLocks();
+        const auto jobId = prepareJob;
+        QDialog progress(window); progress.setObjectName(text("caelab-data-prepare")); progress.setWindowTitle(text("자료 준비"));
+        progress.setMinimumWidth(420);
+        auto* layout = new QVBoxLayout(&progress);
+        auto* label = new QLabel(text("자료 준비 상태를 확인하고 있습니다."), &progress); label->setWordWrap(true); layout->addWidget(label);
+        auto* bar = new QProgressBar(&progress); bar->setRange(0, 0); layout->addWidget(bar);
+        auto* buttons = new QDialogButtonBox(&progress);
+        auto* cancel = buttons->addButton(text("취소 요청"), QDialogButtonBox::ActionRole); cancel->setObjectName(text("caelab-prepare-cancel"));
+        auto* later = buttons->addButton(text("나중에 확인"), QDialogButtonBox::RejectRole); layout->addWidget(buttons);
+        QObject::connect(later, &QPushButton::clicked, &progress, &QDialog::reject);
+        bool cancellation = false, cancelSent = false, polling = false, terminal = false;
+        QString failure, state;
+        QObject::connect(cancel, &QPushButton::clicked, &progress, [&] { cancellation = true; cancel->setEnabled(false); label->setText(text("취소를 요청합니다. 실제 종료 확인 전까지 원자료와 이전 결과는 유지됩니다.")); });
+        QTimer poll;
+        QObject::connect(&poll, &QTimer::timeout, &progress, [&] {
+            if (polling) return;
+            polling = true; interactiveRequest = true;
+            try {
+                if (cancellation && !cancelSent) { const QJsonObject empty; request(text("/api/workbench/jobs/") + jobId + text("/cancel"), &empty); cancelSent = true; }
+                const auto job = request(text("/api/workbench/jobs/") + jobId); lastPrepareJob = job;
+                if (job.value(text("id")).toString() != jobId) throw std::runtime_error("다른 실행의 상태 응답을 받았습니다. 원 실행을 다시 확인하세요.");
+                state = job.value(text("state")).toString();
+                if (state == text("SUCCEEDED") || state == text("FAILED") || state == text("PARTIAL_FAILURE") || state == text("CANCELLED") || state == text("INTERRUPTED")) {
+                    terminal = true; poll.stop(); progress.accept();
+                } else {
+                    label->setText(state == text("CANCEL_REQUESTED") ? text("취소 요청됨. 안전한 종료를 확인하고 있습니다.") : state == text("CLEANUP_PENDING") ? text("실행 정리가 아직 확인되지 않았습니다. 다시 확인하거나 나중에 확인할 수 있습니다.") : state == text("QUEUED") ? text("자료 준비 순서를 기다리고 있습니다.") : text("원자료를 준비하고 있습니다. 계산에 사용할 행과 단위를 적용합니다."));
+                }
+            } catch (const std::exception& error) { failure = QString::fromUtf8(error.what()); poll.stop(); progress.reject(); }
+            interactiveRequest = false; polling = false;
+        });
+        poll.start(120); progress.exec(); poll.stop(); interactiveRequest = false;
+        if (!failure.isEmpty()) throw std::runtime_error((text("자료 준비 상태를 확인하지 못했습니다. 취소는 확정되지 않았습니다. ‘다시 시도’로 같은 실행을 확인하세요. ") + failure).toUtf8().constData());
+        if (!terminal) { window->statusBar()->showMessage(text("자료 준비는 계속 보존됩니다. ‘다시 시도’로 같은 실행을 확인하세요. 창 닫기는 취소 요청이 아닙니다.")); return; }
+        if (state == text("SUCCEEDED")) {
+            const auto current = request(documentPath());
+            for (const auto* key : {"session_id", "generation", "input_revision", "draft"})
+                if (current.value(text(key)) != baseline.value(text(key))) { prepareJob.clear(); inputConflict = true; syncLocks(); throw std::runtime_error("준비 중 Core 입력이 바뀌었습니다. 이전 실행과 원자료는 보존됩니다. 원자료를 다시 읽어 현재 입력을 확인하세요."); }
+            baseline = current;
+            importedReference = QJsonObject{{text("document_id"), identifier}, {text("job_id"), jobId}};
+            connectedProject->setChanged(true);
+            window->statusBar()->showMessage(text("자료 준비가 완료됐습니다. 저장한 뒤 재료에서 사용으로 정확한 결과를 검토하세요."));
+        } else window->statusBar()->showMessage(state == text("CANCELLED") ? text("자료 준비 취소가 확인됐습니다. 원자료와 이전 결과는 유지됩니다.") : text("자료 준비가 완료되지 않았습니다. 실행 진단과 원자료는 보존됩니다."));
         connectedProject->setChanged(true);
-        window->statusBar()->showMessage(text("Data explicitly prepared. Save to retain this exact result before Material transfer."));
+        prepareJob.clear(); syncLocks();
     }
     QJsonObject retainedSource() {
         if (importedReference.isEmpty() || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("Explicitly prepare and save the current applied data before transfer.");
@@ -784,15 +978,26 @@ class CaelabDataBridge : public QObject {
         return QJsonObject{{text("document_id"), identifier}, {text("job_id"), jobId}, {text("response"), channel},
             {text("input_revision"), exact.value(text("input_revision"))}, {text("input_sha256"), exact.value(text("input_sha256"))}};
     }
-    qint64 launchMaterial(const QString& materialId = {}) {
-        const auto source = retainedSource();
-        const auto context = request(text("/api/workbench/desktop"));
+    QProcessEnvironment pythonEnvironment() const {
         auto environment = QProcessEnvironment::systemEnvironment();
         for (const auto* key : {"QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "QML2_IMPORT_PATH", "CAELAB_DATA_TRIAL_REPORT", "CAELAB_DATA_CAPTURE_ONLY"}) environment.remove(text(key));
         const auto sdk = QString::fromUtf8(qgetenv("CAELAB_DONOR_SDK")); QStringList paths;
-        for (const auto& path : environment.value(text("PATH")).split(QDir::listSeparator()))
-            if (!path.startsWith(sdk.isEmpty() ? QLibraryInfo::path(QLibraryInfo::PrefixPath) : sdk, Qt::CaseInsensitive)) paths.append(path);
+        for (const auto& path : environment.value(text("PATH")).split(QDir::listSeparator())) {
+            bool donorPath = false;
+            const auto normalized = QDir::fromNativeSeparators(path);
+            for (const auto& prefix : {sdk, QLibraryInfo::path(QLibraryInfo::PrefixPath), QCoreApplication::applicationDirPath()}) {
+                const auto normalizedPrefix = QDir::fromNativeSeparators(prefix);
+                if (!prefix.isEmpty() && (normalized.compare(normalizedPrefix, Qt::CaseInsensitive) == 0 || normalized.startsWith(normalizedPrefix + QLatin1Char('/'), Qt::CaseInsensitive))) donorPath = true;
+            }
+            if (!donorPath) paths.append(path);
+        }
         environment.insert(text("PATH"), paths.join(QDir::listSeparator()));
+        return environment;
+    }
+    qint64 launchMaterial(const QString& materialId = {}) {
+        const auto source = retainedSource();
+        const auto context = request(text("/api/workbench/desktop"));
+        const auto environment = pythonEnvironment();
         QProcess process; process.setProcessEnvironment(environment); process.setWorkingDirectory(context.value(text("repo_root")).toString());
         process.setProgram(context.value(text("python")).toString());
         QStringList arguments{text("-m"), text("apps.research.desktop"), text("--service"), service, text("material"), text("--observation"), QString::fromUtf8(QJsonDocument(source).toJson(QJsonDocument::Compact))};
@@ -800,6 +1005,19 @@ class CaelabDataBridge : public QObject {
         process.setArguments(arguments); qint64 pid = 0;
         if (!process.startDetached(&pid)) throw std::runtime_error("The Material process could not be requested. The saved source is preserved.");
         window->statusBar()->showMessage(text("Material window requested. Select a plan and review its test conditions; no fit or adoption has run."));
+        return pid;
+    }
+    qint64 launchDataTools(const QString& task) {
+        if (!connected() || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("변경 적용 후 자료 도구를 여세요. 편집 중인 설정은 유지됩니다.");
+        const auto current = request(documentPath());
+        for (const auto* key : {"session_id", "generation", "input_revision", "draft"})
+            if (current.value(text(key)) != baseline.value(text(key))) throw std::runtime_error("원자료를 다시 읽어 현재 입력을 확인한 뒤 자료 도구를 여세요.");
+        const auto context = request(text("/api/workbench/desktop"));
+        QProcess process; process.setProcessEnvironment(pythonEnvironment()); process.setWorkingDirectory(context.value(text("repo_root")).toString());
+        process.setProgram(context.value(text("python")).toString());
+        process.setArguments({text("-m"), text("apps.research.desktop"), text("--service"), service, text("data"), text("--pyside"), text("--document-id"), identifier, text("--data-task"), task});
+        qint64 pid = 0; if (!process.startDetached(&pid)) throw std::runtime_error("자료 도구 창을 열지 못했습니다. 원자료와 결과는 유지됩니다.");
+        window->statusBar()->showMessage(text("같은 자료 문서의 처리와 취득 도구를 열었습니다. 이 창으로 돌아오면 원자료 다시 읽기로 변경을 확인하세요."));
         return pid;
     }
     QJsonObject interactionTrial(const QString& reportPath, bool reopened) {
@@ -834,6 +1052,17 @@ class CaelabDataBridge : public QObject {
             }}); editMapping(); expect(draft == original, "Cancelling settings changed the local draft.");
             // Preserve incomplete numeric text, channel edits and the physical meaning of a new channel.
             CaelabDataSettingsDialog check(draft, rawColumns, channel, window);
+            expect(check.findChild<QLineEdit*>(text("coreValueLocation"))->text() == text("재료점") && check.findChild<QLineEdit*>(text("coreValueFrame"))->text() == text("재료 직교좌표"), "Known physical labels were not shown in Korean.");
+            expect(check.editedDraft() == draft, "Known translated physical labels changed stored codes without an edit.");
+            auto* measures = check.findChild<QComboBox*>(text("coreValueMeasureChoice"));
+            measures->setCurrentIndex(measures->findData(text("first_Piola")));
+            expect(check.editedDraft().value(text("mapping")).toObject().value(text("columns")).toObject().value(channel).toObject().value(text("measure")) == text("first_Piola"), "A physical choice was saved as a translated label instead of its stored code.");
+            auto unknown = draft; auto unknownMapping = unknown.value(text("mapping")).toObject(); auto unknownColumns = unknownMapping.value(text("columns")).toObject(); auto unknownSpec = unknownColumns.value(channel).toObject();
+            unknownSpec.insert(text("frame"), text("custom_invalid_frame")); unknownSpec.remove(text("scale")); unknownSpec.remove(text("offset")); unknownColumns.insert(channel, unknownSpec); unknownMapping.insert(text("columns"), unknownColumns); unknown.insert(text("mapping"), unknownMapping);
+            CaelabDataSettingsDialog unknownDialog(unknown, rawColumns, channel, window); unknownDialog.focusSection(CaelabDataSettingsDialog::Section::Axis);
+            expect(unknownDialog.editedDraft() == unknown, "A context section or unknown physical code changed untouched draft keys.");
+            QFocusEvent focusOut(QEvent::FocusOut); QApplication::sendEvent(unknownDialog.findChild<QLineEdit*>(text("coreValueFrame")), &focusOut);
+            expect(unknownDialog.editedDraft() == unknown, "Focus-out erased an unknown physical code or inserted scale/offset defaults.");
             check.findChild<QLineEdit*>(text("coreValueScale"))->setText(text("1e"));
             auto* chooser = check.findChild<QComboBox*>(text("coreChannel"));
             chooser->setCurrentIndex(chooser->findText(text("deformation")));
@@ -870,7 +1099,14 @@ class CaelabDataBridge : public QObject {
             sortRows(2, true);
             expect(sheet->column(0)->valueAt(0) == 5 && rows[0].toInt() == 1, "View sorting changed the original source order.");
         }
+        bool guardOpened = false;
+        QTimer guardDialog; guardDialog.setInterval(20);
+        QObject::connect(&guardDialog, &QTimer::timeout, this, [&] {
+            if (auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget())) if (dialog->objectName() == text("coreDataSettings")) { guardOpened = true; dialog->grab().save(reportPath + text(".source-editor.png")); dialog->reject(); }
+        }); guardDialog.start();
         sourceCurve->setXColumn(sheet->column(1)); sourceCurve->setYColumn(sheet->column(2));
+        QApplication::processEvents(); guardDialog.stop();
+        expect(guardOpened, "Canonical source editing did not open the actual channel editor.");
         expect(sourceCurve->xColumn() == displayCache->column(1) && sourceCurve->yColumn() == displayCache->column(2), "Native canonical curve source editing bypassed its engineering mapping.");
         const auto selection = channelSpec().value(text("row_selection")).toObject();
         expect(selection.value(text("quality_rows")).toArray() == QJsonArray{2} && selection.value(text("exclude_rows")).toArray() == QJsonArray{3} && selection.value(text("display_hidden_rows")).toArray() == QJsonArray{5}, "Quality, exclusion and hiding were merged.");
@@ -914,11 +1150,92 @@ class CaelabDataBridge : public QObject {
             {text("row_selection"), selection}, {text("document"), request(documentPath())}, {text("data_updates"), reopened ? 0 : 1},
             {text("scope"), reopened ? text("cold reopen preserves original-row selection, view sorting, settings and independent row states") : text("actual native settings dialog, table/point/range selection, duplicate coordinates, sorting/hiding, local Undo, one Apply and atomic Save")}};
     }
+    QJsonObject summaryTrial(const QString& reportPath) {
+        load(); const auto before = request(documentPath()), original = draft;
+        window->showNormal(); window->resize(920, 760); QApplication::processEvents();
+        tableAction->trigger(); QApplication::processEvents(); showChannelPane();
+        QJsonArray excluded, tableExcluded;
+        for (const auto value : rows) if (!rowUsed(value.toInt())) excluded.append(value);
+        for (int row = 0; row < sheet->rowCount(); ++row) if (sheet->column(rawColumns.size() + 1)->textAt(row) == text("제외")) tableExcluded.append(static_cast<int>(sheet->column(0)->valueAt(row)));
+        const auto initialSummary = channelSummary->text();
+        const bool invalid = !before.value(text("diagnostics")).toArray().isEmpty();
+        const auto spec = channelSpec();
+        const QString scaleText = spec.value(text("scale")).toString(), offsetText = spec.value(text("offset")).toString();
+        const bool countMatches = initialSummary.contains(text("계산 제외: ") + QString::number(excluded.size()) + text("행"));
+        const bool transformMatches = !invalid || (initialSummary.contains(text("배율: ") + scaleText + text(" (미완성)")) && initialSummary.contains(text("오프셋: ") + offsetText + text(" (미완성)")));
+        window->grab().save(reportPath + text(".table.png"));
+        curveAction->trigger(); QApplication::processEvents(); showChannelPane();
+        int exclusionLines = 0; for (auto* marker : markers) if (dynamic_cast<QGraphicsLineItem*>(marker)) ++exclusionLines;
+        const bool maskMatches = excluded == tableExcluded && exclusionLines == 2 * excluded.size();
+        window->grab().save(reportPath + text(".curve.png"));
+        bool clearUndo = true, invalidPrepareBlocked = true, emptyPreserved = true;
+        if (!excluded.isEmpty()) {
+            selectSources(QSet<int>{excluded.first().toInt()}); editSelectedRows(text("exclude_rows"), true); showChannelPane();
+            clearUndo = rowUsed(excluded.first().toInt()) && channelSummary->text().contains(text("계산 제외: ") + QString::number(excluded.size() - 1) + text("행"));
+            connectedProject->undoStack()->undo(); showChannelPane();
+            clearUndo = clearUndo && draft == original && channelSummary->text() == initialSummary;
+        }
+        if (invalid) {
+            invalidPrepareBlocked = !prepareAction->isEnabled(); prepareAction->trigger();
+            QTimer::singleShot(30, this, [] { if (auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget())) {
+                dialog->findChild<QLineEdit*>(QStringLiteral("coreValueScale"))->clear();
+                dialog->findChild<QLineEdit*>(QStringLiteral("coreValueOffset"))->clear(); dialog->accept();
+            }}); editMapping(); showChannelPane();
+            emptyPreserved = channelSpec().value(text("scale")) == QJsonValue(text("")) && channelSpec().value(text("offset")) == QJsonValue(text("")) && channelSummary->text().contains(text("빈 값 (미완성)"));
+            window->grab().save(reportPath + text(".empty.png"));
+            connectedProject->undoStack()->undo(); showChannelPane();
+            emptyPreserved = emptyPreserved && draft == original && channelSummary->text() == initialSummary && !prepareAction->isEnabled();
+        }
+        const bool corePreserved = request(documentPath()) == before;
+        window->grab().save(reportPath + text(".restored.png"));
+        const bool passed = countMatches && transformMatches && maskMatches && clearUndo && invalidPrepareBlocked && emptyPreserved && corePreserved;
+        return QJsonObject{{text("status"), passed ? text("PASS") : text("FAILED")}, {text("summary"), initialSummary}, {text("excluded_source_rows"), excluded}, {text("table_excluded_source_rows"), tableExcluded},
+            {text("count_matches"), countMatches}, {text("transform_matches"), transformMatches}, {text("table_curve_mask_matches"), maskMatches}, {text("curve_exclusion_lines"), exclusionLines}, {text("clear_undo_restores"), clearUndo},
+            {text("invalid_prepare_blocked"), invalidPrepareBlocked}, {text("empty_and_undo_preserved"), emptyPreserved}, {text("core_preserved"), corePreserved}, {text("document"), before}, {text("data_updates"), 0}, {text("runs"), 0}};
+    }
     void workflow(const QString& reportPath, const QString& phase) {
         QJsonObject report;
         try {
             const auto target = QString::fromUtf8(qgetenv("CAELAB_DATA_VIEW_PATH"));
-            if (phase == text("partial")) {
+            if (phase == text("summary")) {
+                report = summaryTrial(reportPath);
+            } else if (phase.startsWith(text("tools_"))) {
+                load(); const auto before = request(documentPath());
+                const auto task = phase.mid(6); const auto pid = launchDataTools(task);
+                const auto receiver = QString::fromUtf8(qgetenv("CAELAB_TEST_RECEIPT"));
+                QElapsedTimer timer; timer.start();
+                while (!QFile::exists(receiver) && timer.elapsed() < 30000) { QEventLoop delay; QTimer::singleShot(40, &delay, &QEventLoop::quit); delay.exec(QEventLoop::ExcludeUserInputEvents); }
+                if (!QFile::exists(receiver)) throw std::runtime_error("The actual dedicated Data tool did not confirm its exact document.");
+                if (request(documentPath()) != before) throw std::runtime_error("Opening a dedicated Data tool changed Core input or ran an operation.");
+                report = QJsonObject{{text("status"), text("PASS")}, {text("task"), task}, {text("pid"), pid}, {text("document"), before}, {text("data_updates"), 0}};
+            } else if (phase.startsWith(text("prepare_"))) {
+                load(); const auto before = baseline;
+                QTimer cancel;
+                if (phase == text("prepare_cancel") || phase == text("prepare_later")) {
+                    cancel.setInterval(25);
+                    QObject::connect(&cancel, &QTimer::timeout, this, [this, reportPath, phase] {
+                        if (auto* dialog = window->findChild<QDialog*>(text("caelab-data-prepare"))) {
+                            if (phase == text("prepare_later")) { dialog->reject(); return; }
+                            if (auto* button = dialog->findChild<QPushButton*>(text("caelab-prepare-cancel"))) { dialog->grab().save(reportPath + text(".progress.png")); button->click(); }
+                        }
+                    }); cancel.start();
+                }
+                bool lost = false; QString originalJob;
+                try { importData(); } catch (const std::exception&) {
+                    if (phase != text("prepare_loss")) throw;
+                    lost = true; originalJob = prepareJob;
+                    if (originalJob.isEmpty() || !pendingApply.isEmpty()) throw std::runtime_error("A lost status response did not retain the confirmed prepare job.");
+                    importData();
+                }
+                cancel.stop();
+                if (phase == text("prepare_later")) { originalJob = prepareJob; if (originalJob.isEmpty()) throw std::runtime_error("Closing progress monitoring erased or cancelled the job."); importData(); if (lastPrepareJob.value(text("cancel_requested")).toBool()) throw std::runtime_error("Closing progress monitoring requested cancellation."); }
+                const auto state = lastPrepareJob.value(text("state")).toString();
+                if (!prepareJob.isEmpty() || state != (phase == text("prepare_cancel") ? text("CANCELLED") : text("SUCCEEDED"))) throw std::runtime_error("Prepare did not confirm the expected terminal state.");
+                if (phase == text("prepare_loss") && (!lost || originalJob != lastPrepareJob.value(text("id")).toString())) throw std::runtime_error("Lost status retry changed the job identity.");
+                const auto current = request(documentPath());
+                if (current.value(text("generation")) != before.value(text("generation")) || current.value(text("draft")) != before.value(text("draft")) || current.value(text("runs")).toArray().size() != before.value(text("runs")).toArray().size() + 1) throw std::runtime_error("Prepare changed input or submitted duplicate jobs.");
+                report = QJsonObject{{text("status"), text("PASS")}, {text("scope"), text("native progress, explicit cancellation or response-loss retry, actual existing JobManager terminal")}, {text("job"), lastPrepareJob}, {text("lost_status_reply"), lost}, {text("document"), current}};
+            } else if (phase == text("partial")) {
                 load();
                 auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
                 view->setCellsSelected(1, 0, 1, sheet->columnCount() - 1); exclude(); apply();
@@ -1040,12 +1357,22 @@ class CaelabDataBridge : public QObject {
     void trial(const QString& reportPath) {
         QJsonObject report;
         try {
+            window->showNormal(); window->resize(1440, 940); QApplication::processEvents();
             load();
+            QApplication::processEvents();
             const auto original = draft;
             const auto generation = baseline.value(text("generation")).toInt();
             auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
             if (!view || rows.size() < 2) throw std::runtime_error("Trial requires at least two original rows.");
             view->setCellsSelected(1, 0, 1, sheet->columnCount() - 1);
+            selectSources(QSet<int>{2});
+            auto* table = view->findChild<QTableView*>(); auto* header = table->horizontalHeader();
+            const QPointF headerPoint(header->sectionViewportPosition(3) + header->sectionSize(3) / 2, header->height() / 2);
+            QMouseEvent headerPress(QEvent::MouseButtonPress, headerPoint, header->mapToGlobal(headerPoint.toPoint()), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            QMouseEvent headerRelease(QEvent::MouseButtonRelease, headerPoint, header->mapToGlobal(headerPoint.toPoint()), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+            QApplication::sendEvent(header->viewport(), &headerPress); QApplication::sendEvent(header->viewport(), &headerRelease);
+            if (selectedSources != QSet<int>{2} || window->stackedWidget->currentWidget() != channelPane) throw std::runtime_error("Source header selection lost the original row or did not show channel properties.");
+            selectSources(QSet<int>{2});
             const bool captureOnly = qEnvironmentVariableIsSet("CAELAB_DATA_CAPTURE_ONLY");
             if (!captureOnly) {
             exclude();
@@ -1059,6 +1386,7 @@ class CaelabDataBridge : public QObject {
             apply();
             if (baseline.value(text("generation")).toInt() != generation + 1 || !baseline.value(text("runs")).toArray().isEmpty())
                 throw std::runtime_error("Trial did not produce exactly one Data update without execution.");
+            if (selectedSources != QSet<int>{2}) throw std::runtime_error("Apply or local Undo changed the selected original row.");
             }
             if (captureOnly) {
                 window->showNormal(); window->resize(1440, 940);
@@ -1082,10 +1410,75 @@ class CaelabDataBridge : public QObject {
                 for (int column = 0; column < rawColumns.size() + 1; ++column) values.append(sheet->column(column)->valueAt(row));
                 nativeValues.append(values);
             }
+            QJsonArray explorerNames;
+            if (auto* tree = window->m_projectExplorer->findChild<QTreeView*>(text("caelabDataExplorerTree"))) {
+                std::function<void(const QModelIndex&)> collect = [&](const QModelIndex& parent) {
+                    for (int row = 0; row < tree->model()->rowCount(parent); ++row) { const auto index = tree->model()->index(row, 0, parent); explorerNames.append(index.data().toString()); collect(index); }
+                }; collect(QModelIndex()); tree->expandAll();
+            }
+            if (!explorerNames.contains(text("원자료")) || !explorerNames.contains(text("응답 곡선"))) throw std::runtime_error((text("The native Explorer lost its source/curve hierarchy: ") + QString::fromUtf8(QJsonDocument(explorerNames).toJson(QJsonDocument::Compact))).toUtf8().constData());
+            QApplication::processEvents(); window->grab().save(reportPath + text(".normal.png"));
+            const auto chosenChannel = channel; const auto chosenRows = selectedSources;
+            window->resize(920, 760); QApplication::processEvents(); tableAction->trigger(); QApplication::processEvents(); window->grab().save(reportPath + text(".narrow-table.png"));
+            curveAction->trigger(); QApplication::processEvents(); window->grab().save(reportPath + text(".narrow-curve.png"));
+            if (channel != chosenChannel || selectedSources != chosenRows) throw std::runtime_error("Narrow table/curve switching changed the channel or original-row selection.");
+            QJsonArray selectedSourceRows; auto orderedSources = selectedSources.values(); std::sort(orderedSources.begin(), orderedSources.end()); for (int source : orderedSources) selectedSourceRows.append(source);
             report = QJsonObject{{text("status"), text("PASS")},
                 {text("scope"), captureOnly ? text("read-only native table and curve capture of an externally saved Core document") : text("native source table, row selection, local Undo/Redo, one Core update")},
                 {text("data_updates"), captureOnly ? 0 : 1},
-                {text("source_rows"), rows}, {text("native_values"), nativeValues}, {text("curve_has_data"), curveHasData}, {text("document"), baseline}};
+                {text("source_rows"), rows}, {text("selected_source_rows"), selectedSourceRows}, {text("native_values"), nativeValues}, {text("explorer_names"), explorerNames}, {text("curve_has_data"), curveHasData}, {text("document"), baseline}};
+            QJsonArray propertyChecks;
+            auto nativeProperties = [&](AbstractAspect* aspect, const char* expected, const char* capture) {
+                const auto undoIndex = window->project()->undoStack()->index();
+                const auto undoCount = window->project()->undoStack()->count();
+                window->m_projectExplorer->setCurrentAspect(aspect); QApplication::processEvents();
+                auto* properties = window->stackedWidget->currentWidget();
+                if (!properties || properties == channelPane || !properties->inherits(expected)) throw std::runtime_error("Selecting a graph or independent native object lost its native properties editor.");
+                auto serialized = [aspect] { QByteArray xml; QXmlStreamWriter writer(&xml); aspect->save(&writer); return xml; };
+                const auto values = serialized();
+                CaelabDataProperties::prepare(properties); CaelabDataProperties::prepare(properties);
+                if (window->stackedWidget->currentWidget() != properties || serialized() != values || window->project()->undoStack()->index() != undoIndex || window->project()->undoStack()->count() != undoCount) throw std::runtime_error("Preparing native properties changed its editor, saved values or Undo stack.");
+                window->resize(1440, 940); QApplication::processEvents(); window->grab().save(reportPath + text(capture) + text(".normal.png"));
+                window->resize(920, 760); QApplication::processEvents(); window->grab().save(reportPath + text(capture));
+                if (window->stackedWidget->currentWidget() != properties || window->m_projectExplorer->currentAspect() != aspect) throw std::runtime_error("Responsive docking replaced an explicitly selected native editor.");
+                auto* scroll = properties->findChild<QScrollArea*>(text("caelabNativePropertiesScroll"));
+                // MainWin also owns the original scroll area around stackedWidget.
+                // Depending on the other native editors' size hints, it can own
+                // horizontal overflow instead of the adapter's inner scroll area.
+                for (auto* parent = properties->parentWidget(); parent && (!scroll || scroll->horizontalScrollBar()->maximum() <= 0); parent = parent->parentWidget())
+                    if (auto* ancestor = qobject_cast<QScrollArea*>(parent); ancestor && ancestor->horizontalScrollBar()->maximum() > 0) scroll = ancestor;
+                if (!scroll || scroll->horizontalScrollBar()->maximum() <= 0) throw std::runtime_error("Narrow native properties have no horizontal path to their controls.");
+                scroll->horizontalScrollBar()->setValue(scroll->horizontalScrollBar()->maximum()); QApplication::processEvents(); window->grab().save(reportPath + text(capture) + text(".right.png"));
+                scroll->horizontalScrollBar()->setValue(0);
+                const auto originalName = aspect->name();
+                QLineEdit* nameField = nullptr;
+                for (auto* candidate : properties->findChildren<QLineEdit*>(text("leName")))
+                    if (candidate->isVisibleTo(properties) && candidate->text() == originalName) { nameField = candidate; break; }
+                const auto originalValues = serialized();
+                const auto editIndex = window->project()->undoStack()->index();
+                if (!nameField || nameField->text() != originalName) throw std::runtime_error("The native name editor lost the selected object's original name.");
+                nameField->setText(originalName + text(" 이름 편집 확인"));
+                const bool invoked = QMetaObject::invokeMethod(nameField, "textEdited", Qt::DirectConnection);
+                if (!invoked || aspect->name() == originalName || window->project()->undoStack()->index() != editIndex + 1) throw std::runtime_error((text("Native edit diagnostic: ") + text(expected) + text(" field=") + QString::fromLatin1(nameField->metaObject()->className()) + text(" text=") + nameField->text() + text(" aspect=") + aspect->name() + text(" invoked=") + QString::number(invoked) + text(" undo=") + QString::number(editIndex) + text("->") + QString::number(window->project()->undoStack()->index()) + text(" aspectAware=") + QString::number(aspect->isUndoAware()) + text(" projectAware=") + QString::number(window->project()->isUndoAware())).toUtf8().constData());
+                window->project()->undoStack()->undo();
+                if (aspect->name() != originalName || serialized() != originalValues || nameField->text() != originalName || window->project()->undoStack()->index() != editIndex) throw std::runtime_error("Native Undo did not restore the original name and values through the wrapped editor.");
+                if (channel != chosenChannel || selectedSources != chosenRows || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("Native property selection changed the source channel, original rows or Core draft.");
+                propertyChecks.append(QJsonObject{{text("editor"), text(expected)}, {text("values_and_undo_preserved"), true}, {text("same_native_editor"), true}, {text("native_name_edit_and_undo"), true}, {text("horizontal_range"), scroll->horizontalScrollBar()->maximum()}, {text("scroll_viewport_width"), scroll->viewport()->width()}, {text("scroll_content_width"), scroll->widget()->width()}});
+            };
+            nativeProperties(sourcePlot->children<Axis>().first(), "AxisDock", ".axis-properties.png");
+            nativeProperties(sourceCurve, "XYCurveDock", ".line-properties.png");
+            auto* independent = new Worksheet(text("독립 그래프 확인"));
+            auto* independentPlot = new CartesianPlot(text("자유 곡선")); independent->addChild(independentPlot); independentPlot->setType(CartesianPlot::Type::TwoAxes);
+            auto* independentCurve = new XYCurve(text("독립 곡선")); independentPlot->addChild(independentCurve);
+            independentCurve->setXColumn(sheet->column(1)); independentCurve->setYColumn(sheet->column(2));
+            auto* legend = new CartesianPlotLegend(text("범례")); independentPlot->addLegend(legend);
+            window->addAspectToProject(independent);
+            nativeProperties(independent, "WorksheetDock", ".independent-properties.png");
+            nativeProperties(legend, "CartesianPlotLegendDock", ".legend-properties.png");
+            if (independentCurve->xColumn() != sheet->column(1) || independentCurve->yColumn() != sheet->column(2) || sourceEditQueued) throw std::runtime_error("Independent native curve editing was routed through the canonical channel guard.");
+            window->m_projectExplorer->setCurrentAspect(sheet); selectSources(chosenRows); showChannelPane();
+            report.insert(text("native_properties_preserved"), true);
+            report.insert(text("native_property_checks"), propertyChecks);
         } catch (const std::exception& error) {
             report = QJsonObject{{text("status"), text("FAILED")}, {text("error"), QString::fromUtf8(error.what())},
                 {text("pending_request"), pendingApply}, {text("local_draft"), draft}, {text("baseline"), baseline}};
@@ -1104,7 +1497,7 @@ public:
     bool connected() const { return connectedProject && connectedProject == window->project(); }
     bool requiresCoreSave() const { return boundProject && boundProject == window->project(); }
     bool mayOpen(const QString& path) {
-        if (!pendingApply.isEmpty() || pendingView()) {
+        if (!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty()) {
             window->statusBar()->showMessage(text("Finish the pending exact save or command before switching documents.")); return false;
         }
         return true;
@@ -1127,12 +1520,23 @@ public:
     }
     explicit CaelabDataBridge(MainWin* host) : QObject(host), window(host), network(this),
         service(QString::fromUtf8(qgetenv("CAELAB_SERVICE_URL"))), identifier(QString::fromUtf8(qgetenv("CAELAB_DATA_DOCUMENT_ID"))) {
+        const QMap<QString, QString> captions{{text("File"), text("파일")}, {text("Edit"), text("편집")}, {text("View"), text("보기")},
+            {text("Spreadsheet"), text("표")}, {text("Matrix"), text("행렬")}, {text("Worksheet"), text("그래프")}, {text("Data Extractor"), text("자료 추출")},
+            {text("Windows"), text("창")}, {text("Tools"), text("도구")}, {text("Settings"), text("설정")}, {text("Help"), text("도움말")}};
+        for (auto* action : window->menuBar()->actions()) {
+            auto label = action->text(); label.remove(QLatin1Char('&'));
+            if (captions.contains(label)) action->setText(captions.value(label));
+        }
+        for (const auto& item : QList<QPair<QString, QString>>{{text("file_new"), text("새 작업")}, {text("file_open"), text("저장된 작업 열기…")},
+            {text("file_save_as"), text("다른 이름으로 저장…")}, {text("edit_redo"), text("다시 실행")}})
+            if (auto* action = window->actionCollection()->action(item.first)) action->setText(item.second);
+        window->m_projectExplorerDock->setWindowTitle(text("자료 탐색기"));
         menu = window->menuBar()->addMenu(text("자료"));
         auto* sourceFile = menu->addAction(text("원자료 열기…"));
         auto* coreFile = menu->addAction(text("자료 문서 열기…"));
         readAction = menu->addAction(text("원자료 다시 읽기"));
         menu->addSeparator();
-        auto* settings = menu->addAction(text("열과 단위…"));
+        auto* settings = settingsAction = menu->addAction(text("열과 단위…"));
         auto* sorted = menu->addAction(text("표 정렬…"));
         auto* range = menu->addAction(text("곡선 범위 선택")); range->setCheckable(true);
         excludeAction = menu->addAction(text("선택 행 계산 제외"));
@@ -1143,15 +1547,64 @@ public:
         auto* showAll = menu->addAction(text("숨긴 행 모두 표시"));
         menu->addSeparator();
         auto* applied = applyAction = menu->addAction(text("변경 적용"));
-        auto* saved = saveAction = menu->addAction(text("자료 저장…"));
-        auto* retry = retryAction = menu->addAction(text("적용·저장 다시 시도"));
+        auto* saved = saveAction = window->actionCollection()->action(text("file_save"));
+        saved->setText(text("자료 저장")); menu->addAction(saved);
+        auto* retry = retryAction = menu->addAction(text("다시 시도"));
         auto* recovery = menu->addAction(text("중단된 작업 복구…"));
         auto* prepared = prepareAction = menu->addAction(text("자료 준비"));
         auto* material = materialAction = menu->addAction(text("재료에서 사용…"));
-        editActions = {settings, sorted, range, included, quality, clearQuality, hidden, showAll};
+        menu->addSeparator();
+        auto* processing = menu->addAction(text("자료 처리…"));
+        auto* acquisition = menu->addAction(text("자료 취득…"));
+        documentActions = {sourceFile, coreFile, recovery};
+        menu->addSeparator();
+        tableAction = menu->addAction(text("원표 보기")); curveAction = menu->addAction(text("곡선 보기"));
+        channelPane = new QWidget(window->stackedWidget); channelPane->setObjectName(text("caelab-channel-properties")); channelPane->setMinimumWidth(260);
+        auto* channelLayout = new QVBoxLayout(channelPane);
+        auto* heading = new QLabel(text("선택 채널"), channelPane); channelLayout->addWidget(heading);
+        channelChoices = new QComboBox(channelPane); channelChoices->setAccessibleName(text("선택 채널")); channelLayout->addWidget(channelChoices);
+        channelSummary = new QLabel(channelPane); channelSummary->setWordWrap(true); channelLayout->addWidget(channelSummary);
+        auto* editChannel = new QToolButton(channelPane); editChannel->setDefaultAction(settings); editChannel->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); channelLayout->addWidget(editChannel);
+        QObject::connect(editChannel, &QToolButton::pressed, this, [this] { nextMappingSection = sourceColumnSection; });
+        channelLayout->addStretch(); window->stackedWidget->addWidget(channelPane);
+        QObject::connect(channelChoices, &QComboBox::currentIndexChanged, this, [this](int index) {
+            if (updatingChannelPane || index < 0) return;
+            channel = channelChoices->itemData(index).toString(); refreshEngineeringView(); showChannelPane();
+        });
+        QObject::connect(window->m_projectExplorer, &ProjectExplorer::selectedAspectsChanged, this, [this](const QList<AbstractAspect*>& aspects) {
+            if (!connected() || aspects.size() != 1 || !sheet) return;
+            if (aspects.first() == sheet || aspects.first() == sourceWorksheet) { showChannelPane(); return; }
+            for (int index = 1; index <= rawColumns.size(); ++index) if (aspects.first() == sheet->column(index)) { selectSourceColumn(index); return; }
+            // GuiObserver has already selected the original native editor. Keep its
+            // identity and editing behavior while making captions and controls reachable.
+            auto* properties = window->stackedWidget->currentWidget();
+            if (!properties || properties == channelPane) return;
+            if (properties->inherits("AxisDock") || properties->inherits("XYCurveDock") || properties->inherits("CartesianPlotLegendDock") || properties->inherits("WorksheetDock")) {
+                CaelabDataProperties::prepare(properties);
+                window->m_propertiesDock->setWindowTitle(properties->windowTitle());
+            }
+        });
+        QObject::connect(tableAction, &QAction::triggered, this, [this] { if (sheet) { const auto chosen = selectedSources; sheet->dockWidget()->setAsCurrentTab(); window->activateSubWindowForAspect(sheet); selectSources(chosen); showChannelPane(); } });
+        QObject::connect(curveAction, &QAction::triggered, this, [this] { if (sourceWorksheet) { const auto chosen = selectedSources; sourceWorksheet->dockWidget()->setAsCurrentTab(); window->activateSubWindowForAspect(sourceWorksheet); selectSources(chosen); showChannelPane(); } });
+        sourceFile->setShortcut(QKeySequence(text("Ctrl+Shift+O"))); settings->setShortcut(QKeySequence(text("Ctrl+M")));
+        excludeAction->setShortcut(QKeySequence(text("Ctrl+E"))); applied->setShortcut(QKeySequence(text("Ctrl+Return")));
+        prepared->setShortcut(QKeySequence(text("Ctrl+Shift+P"))); material->setShortcut(QKeySequence(text("Ctrl+Shift+M")));
+        tableAction->setShortcut(QKeySequence(text("Alt+1"))); curveAction->setShortcut(QKeySequence(text("Alt+2")));
+        sourceFile->setIcon(window->style()->standardIcon(QStyle::SP_DialogOpenButton));
+        settings->setIcon(window->style()->standardIcon(QStyle::SP_FileDialogDetailedView));
+        applied->setIcon(window->style()->standardIcon(QStyle::SP_DialogApplyButton));
+        prepared->setIcon(window->style()->standardIcon(QStyle::SP_MediaPlay));
+        material->setIcon(window->style()->standardIcon(QStyle::SP_ArrowForward));
+        auto* tools = new QToolBar(text("자료 작업"), window); tools->setObjectName(text("caelab-data-workspace"));
+        tools->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); window->addToolBarBreak(); window->addToolBar(tools);
+        tools->addActions({sourceFile, saved});
+        if (auto* undo = window->actionCollection()->action(text("edit_undo"))) { undo->setText(text("실행 취소")); menu->addAction(undo); tools->addAction(undo); }
+        tools->addSeparator(); tools->addActions({settings, excludeAction, applied, prepared, material});
+        tools->addSeparator(); tools->addActions({tableAction, curveAction});
+        editActions = {settings, sorted, range, included, quality, clearQuality, hidden, showAll, processing, acquisition};
         QObject::connect(sourceFile, &QAction::triggered, this, [this] { guarded([this] { openSourceFile(); }); });
         QObject::connect(coreFile, &QAction::triggered, this, [this] { guarded([this] { openCoreData(); }); });
-        QObject::connect(settings, &QAction::triggered, this, [this] { guarded([this] { editMapping(); }); });
+        QObject::connect(settings, &QAction::triggered, this, [this] { const auto section = nextMappingSection; nextMappingSection = CaelabDataSettingsDialog::Section::All; guarded([this, section] { editMapping(section); }); });
         QObject::connect(sorted, &QAction::triggered, this, [this] { guarded([this] {
             QStringList columns{text("원행")}; for (const auto item : rawColumns) columns.append(item.toObject().value(text("name")).toString());
             bool accepted = false; const auto selected = QInputDialog::getItem(window, text("표 정렬"), text("정렬 열"), columns, 0, false, &accepted); if (!accepted) return;
@@ -1166,13 +1619,10 @@ public:
         QObject::connect(readAction, &QAction::triggered, this, [this] { guarded([this] { load(); }); });
         QObject::connect(excludeAction, &QAction::triggered, this, [this] { guarded([this] { editSelectedRows(text("exclude_rows")); }); });
         QObject::connect(applied, &QAction::triggered, this, [this] { guarded([this] { apply(); }); });
-        QObject::connect(saved, &QAction::triggered, this, [this] {
-            const auto path = QFileDialog::getSaveFileName(window, text("자료 저장"), connected() ? connectedProject->fileName() : QString(), text("자료 작업 (*.lml)"));
-            if (!path.isEmpty()) guarded([this, path] { beginSave(path); commitView(); });
-        });
         QObject::connect(retry, &QAction::triggered, this, [this] { guarded([this] {
             const auto operation = pendingApply.value(text("operation")).toString();
-            if (operation == text("data.update")) apply();
+            if (!prepareJob.isEmpty()) importData();
+            else if (operation == text("data.update")) apply();
             else if (operation == text("data.import")) importData();
             else { if (pendingXml.isEmpty()) beginSave(pendingPath); commitView(); }
         }); });
@@ -1181,6 +1631,8 @@ public:
             if (!path.isEmpty()) guarded([this, path] { recoverSave(path); });
         });
         QObject::connect(prepared, &QAction::triggered, this, [this] { guarded([this] { importData(); }); });
+        QObject::connect(processing, &QAction::triggered, this, [this] { guarded([this] { launchDataTools(text("processing")); }); });
+        QObject::connect(acquisition, &QAction::triggered, this, [this] { guarded([this] { launchDataTools(text("acquisition")); }); });
         QObject::connect(material, &QAction::triggered, this, [this] { guarded([this] {
             if (!pendingXml.isEmpty() || !pendingApply.isEmpty()) throw std::runtime_error("Finish the pending save or command first.");
             if (!connected()) throw std::runtime_error("먼저 자료 문서를 여세요.");
