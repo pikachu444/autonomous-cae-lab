@@ -19,11 +19,11 @@
 | Astra / xhigh | 실제 Pro 협의와 자체 종합, private 설계 산출물. 제품 코드·공개 문서는 수정하지 않음 | 실제 완료 응답과 종합안을 수신·읽고 채택. `_workspace/development-continuation-20261018/{pro-response,synthesis}.md` 보존. 설계 근거이며 제품 실행/수용 증거는 아님 |
 | Codex / 이 개발 세션 | 공통 Core/owner/reader/API/registry/dispatch/provenance·공개 운영/설계·현재 상태·게시 단독 | 종합안의 Data 제품화·기본 진입 전환 조건·현재 Research/native 병행과 실제 후속 호출 규칙을 PRODUCT_PLAN/GUI_RECOVERY_PLAN/CODEX_WORKFLOW에 적용. 첫 명령부터 공통 통합 |
 | material_numerical_impl / Sol-high | B8.3.L01 ConnectionWindow/recovery/portable UI·전용 검사·사용법。공통 portable owner/참조/보존·native identity는 Codex | B7.5 `b184e35` 게시 후 실제 후속 가동. Research 9종·Pre/Post의 그룹별 편집/저장/재복사/cold 인수 중. Expert·Evaluation·PDE/Simulation·Data와 실제 native 두 도구의 동선을 확인. 큰 B7.5 묶음은 처리 Data 참조/자산 경계 교정 중이며 전체 완료 아님 |
-| native_impl / Sol-high | B5.1 RequestPlan 혼합 변수·정확 PDE 채택 검토·전용 검사/사용법 freeze. 공통 descriptor/preview는 Codex | B5.4 `15569bb` 게시. B5.1 단1 DOE에서 실제 ODE 2회·종속 상한 제외1·PARTIAL_FAILURE 보존, 명시 채택/실제 PDE 수신/cold 완료. 입력 이름·단위 P2와 Astra/실제 창 검토 폐쇄. 다음 B6.3.L01의 기존 mapper/조건·실제 source 의존을 좁게 확인 후 후속 구현 배정 |
-| data_impl / Sol-high | L03 reclosure policy·impact_interface/history·전용 입력/검사/사용법 freeze. adapter/runtime/보존·owner는 Codex | P0/P1 한정 인도 `fb2013e` 게시. 각각 단1 native 실행·전수 대응·저장/cold·GUI 완료. P1 에너지/횡속도 이상으로 물리·수치 인수 UNKNOWN. P2 실제 .00225 checkpoint/벌크 삭제는 미실행; continuation 소유 결정만 기존 Pro에 요청 |
+| native_impl / Sol-high | B6.3.L01 structural_field_ports/transfer·post_spatial_mapping·전용 검사/사용법。공통 snapshot/등록·실행 연결은 Codex | B5.1 `0fb39e8` 게시 후 실제 후속. 원 CCX U를 다시 계산하지 않고 다른35절점/8 C3D10의102 DOF 미리보기·실제 FreeCAD 준비 완료. 기존 contact 조건/입력 compiler·frozen 등록/Runner로 수신1회 인수 중. 내부35번 절점은 자유 |
+| data_impl / Sol-high | B2.6.L04 impact_responses·history 선택·전용 검사/사용법。owner/API·Study/Plan 연결은 Codex | L03 P0/P1 `fb2013e` 게시. Pro의 동일 Simulation 한정 child 소유 방침을 수신했으나 pinned Engine의 TT>TSTOP 종료로 정확 .00225 최종 checkpoint 요건 미충족; 새 prefix/child0. 독립 후속 L04에서 원150표본과 P1 saved-owner 읽기·정확 interval/mask/support를 연결 중 |
 | native_cae_adviser / Astra-xhigh | exact producer/primary manual·원 입력/diagnostics의 한정 자문. 제품 파일·실행 없음 | L03 P1의 구간 평균 힘 support·삭제 후 없는 traction·에너지 이상과 HEPH 기여 한계, B4.3의 F9/K6·P/σ·첫 수락 상태·실제 SLS dt 계약 자문 완료. 새 물성/시간/허용값 조정 없음. sibling 송신 오류는 Codex 중계 |
-| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.3 material_control_gui/material_test_dialog·전용 검사/사용법 freeze. native package05·수치 엔진 불변, host/Core는 Codex | B4.2 `b9ea19d` 게시 후 실제 후속. 선언한 재료점6회=성공5/예상 local failure1·host/cold jobs6→6·세 법칙 Plan 준비/저장/cold 완료. 미완성 숫자 위치와 xx 응력 제어 표시 P2 두 건을 실제 일반/좁은 화면·동일 전문 담당/Astra로 폐쇄. 게시 후 B4.4 후보 상세/채택 충돌을 같은 담당에게 후속 호출 |
-| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | 기존 Data donor·계면 GUI freeze. 동일 전문 담당이 각 묶음 실제 창을 이어 검토 | B5.1 이름·단위 P2와 계면 policy 일반/좁은/별도 cold 검토 완료. B4.3 실제30장 판독 후 알려진 숫자 오류의 행·성분·단위 복구 P2를 전달. 변경된 해당 화면만 후속 확인. 공통 연결은 root |
+| native_data_product_impl / 실제 bundle_worker gpt-6.1-sol/high | B4.4 candidate detail 창/전용 검사/사용법 freeze。후속 B4.5.L01 law_native_fe/worker/inspection·전용 인수. 공통 host/Core는 Codex | B4.3 `881edf8` 게시 후 B4.4 실제 원 후보/기존 상세·실패·거절 복구·Report 자산/cold, 8검사와 Astra의51 hash/11실제 화면 검토 폐쇄. 새 fit/detail/native/provider0. 같은 담당에게 B4.5.L01 기존 J2/DP 동일 시험 인수를 실제 호출; 새 campaign 전 선언·근거 확인 |
+| desktop_specialist / 실제 bundle_worker gpt-6.1-sol/high | B8 Data failure 표시 한정 교정 freeze。후속 새 impact_history_view.py와 전용 GUI 검사/사용법. 공통 menu/API/Study/Plan은 Codex | Data 원 실패·진단·원행/Jobs 불변5검사와 실제 일반/좁은 창 확인. L04 실제150표본 창/정확 endpoint/동일 선택 signal 구현·검사 중. 같은 전문 담당이 창을 직접 확인 |
 
 Codex는 수신한 종합안을 현재 소스·기존 제품 명세·완료 근거와 대조해 적용했다. 남은
 기존 개발을 새 제품 범위로 취급하거나 기능마다 재승인하지 않는다. 실제 의존이나 같은
@@ -58,15 +58,15 @@ Data는 `494d0ea`, B7.4는 `8ea3e87`로 게시하고 B4.1.L01과 B7.5를 같은 
 각각 L03 첫 capability 인수와 B8.3 이동 사본 편집을 실제 후속 배정했다. B4.2와 B5.4도
 같은 담당에게 실제 후속 호출했다. B5.4는 `15569bb`, B4.2는 `b9ea19d`로 게시했다.
 혼합 DOE 인도는 `0fb39e8`로 원격 게시를 확인했다.
-L03 P0/P1의 한정 인도도 `fb2013e`로 원격 게시했다. 현재 다음 행동은 B4.3 인도 게시,
-B8.3 처리 Data 참조/자산의 공통 교정과 같은 실제 사본 인수다.
+L03 P0/P1의 한정 인도도 `fb2013e`, B4.3은 `881edf8`로 원격 게시했다. 현재 다음 행동은
+B4.4 검토 완료 인도의 게시와 B8.3 같은 큰 묶음의 실제 사본 인수, TR-U 수신 및 L04 연결이다.
 각 인도 종료 뒤 준비된 후속 packet을 실제 호출한다.
 아래의 완료 기록과 뒤쪽에 보존한 당시 ‘다음 행동’은 현행 배정이나 구현 금지 지시가 아니다.
 
 | 현행 packet | 첫 실제 접점과 완료 조건 | 다음 준비 작업 / 실제 의존 |
 |---|---|---|
-| Data 제품화 | `494d0ea` 로컬 설치/기본 진입, `66db848` 처리 Inspector·B4.2 `b9ea19d` 인도 게시 | B4.3 법칙별 혼합 제어의 실제6작업·실패 보존·Plan 준비/cold 뒤 표시 P2 두 건 교정. 공개 binary 의무는 별도 미완료 |
-| Numerical/동일 Evaluation | `ff23037`·B5.3 `0d9bc17`·B5.4 `15569bb` 게시. B5.1 실제 혼합 DOE/채택/cold 검토 폐쇄 | B5.1 인도 게시와 기존 B6.3.L01 exact source/receiver/mapper 의존 확인. 새 범용 adjoint/전체 native campaign을 만들지 않음 |
+| Data 제품화 | `494d0ea` 로컬 설치/기본 진입, `66db848` 처리 Inspector·B4.2 `b9ea19d`·B4.3 `881edf8` 인도 게시 | B4.4 후보 결과 흐름의 한정 인수/검토 완료. B4.5.L01 같은 담당 실제 후속. 공개 binary 의무는 별도 미완료 |
+| Numerical/동일 Evaluation | `ff23037`·B5.3 `0d9bc17`·B5.4 `15569bb`·B5.1 `0fb39e8` 게시 | 기존 B6.3.L01 exact source/receiver/mapper와 기존 frozen 등록/Runner 연결 인수 중. 새 범용 adjoint/전체 native campaign을 만들지 않음 |
 | Expert→Study→Report | `f7de485`로 완료·게시. 정확 발언/선택 결과→Study 명시 판단→Report 출력·응답 유실/현재 권한·편집 보존·cold와 독립 검토 폐쇄 | B7.4로 실제 후속 배정했으며 그 인수도 다음 행에서 완료. 이 첫 packet을 모든 B7 완료로 확대하지 않음 |
 | B7.4 식별성→다음 시험 | `8ea3e87`로 게시. 명시 질문/판단·세 사례 cold와 모달 P2 폐쇄. 후속 B7.5도 실제 한 캡처·기존 자료 조합·원본 없는 cold/PDFMD·문헌 위치와 단위 P2까지 완료 | B7.5 게시 뒤 기존 portable 이동 사본의 편집/저장/재보관 B8.3.L01. 같은 자료를 재사용하고 새 solver/3D/범용 식별 엔진을 만들지 않음 |
 | native RAD | B2.5 `6c09607`·L02 `657308f` 게시. L03 P0/P1 각1 native 호출의 실제 runtime·OFF/gate 전수 대응·owner/save/cold/GUI 확인 | P1 에너지/횡속도 이상으로 수치·물리 인수 UNKNOWN. P2 실제 .00225 checkpoint와 E3 삭제·새 process 상태 전달 미실행. 기능과 물리 판정을 분리하며 clock gate/최종 .004 rst 재명명으로 대체하지 않음 |
@@ -112,9 +112,12 @@ P1의 native 정상 종료는 수치 타당성 PASS가 아니다. 약0.00036 s�
 내부에너지와 실제 상부 횡속도가 급증하고 마지막 PRINT는 ERROR99.9%·내부에너지 약
 92350 N·mm/외부일 약0.02001 N·mm다. 원인·HEPH 기여는 UNKNOWN이며 입력·감쇠·허용값을
 조정하지 않았다. P2 물리 인수는 닫지 않는다. 최종0.004 s rst는0.00225 s checkpoint가
-아니므로 새 실제 prefix가 필요하다. 같은 Simulation의 한정 continuation 소유 경계만
-기존 실제 Pro 대화에 요청ID `PRO-RECLOSURE-P2-20261018`로 송신·실제 반영 확인했다.
-다른 구현·게시를 이 응답 대기로 멈추지 않는다. [지원·한계·실제 창](docs/IMPACT_RECLOSURE_KO.md).
+아니다. 요청ID `PRO-RECLOSURE-P2-20261018`의 실제 Pro 완료 응답은 같은 Simulation의
+저장된 prefix→한정 child Job 방침을 선택했고, 정확 checkpoint가 없으면 요건 미충족으로
+막도록 했다. pinned Engine의 최종 restart는 TT>TSTOP 분기 이후 기록되어 현재 종료 방식으로
+정확 .00225 checkpoint를 만들 수 없다. offset·한 step 허용·clock 명칭 변경 없이 새 실행0으로
+남긴다. continuation helper의 미게시 WIP 검사는 실제 capability 인수가 아니다. 독립 L04
+구현은 계속한다. [지원·한계·실제 창](docs/IMPACT_RECLOSURE_KO.md).
 
 B4.3은 기존 law-native history/혼합 Newton을 유지하고 F9와 제어 응력 K6를 같은 조건 창에서
 편집한다. Neo-Hooke P와 DP/Maxwell σ, 지정 F와 자유 횡수축, 첫 수락 상태의 절대 허용값·
@@ -127,6 +130,13 @@ Plan 원 BC/F/time/state 준비·저장·별도 cold는 새 평가 없이 확인
 목표 표시를 한정 교정해22검사와 실제 일반/좁은 캡처·동일 전문 담당/Astra로 닫았다.
 표시용 xx 목표는 미실행 fixture이며 원6개 결과와 구별한다. 초기 driver 열 선택·title/ylabel
 단언 실패와 이전 PNG는 보존한다. [사용법·실제 화면](docs/MATERIAL_MIXED_CONTROL_WORKFLOW_KO.md).
+
+B4.4는 원 피팅 시험과 holdout의 보존 여부를 기존 후속 상세와 분리해 표시한다. 기존 실패의
+prediction=None·미보존과 원 진단을 유지하고, exact HTTP400 거절/응답 불명·다시 읽기 복구를
+실제 창에서 확인했다. 원 C000010의 불변 근거로 실제 Report 자산을 저장하고 별도 process에서
+같은 내용/참조 hash를 읽었다. generation0→2의 메타데이터 편집/Undo 반례는 이전 요청 거절이며
+새 후보 채택 성공을 뜻하지 않는다. 전용8검사와 Astra의51 hash·최종11 PNG 검토를 닫았다.
+새 fit/detail/native/provider0. [사용법](docs/CANDIDATE_RESULTS_WORKFLOW_KO.md).
 
 후속 준비 항목은 완료 근거와 현재 소스에 대조한 다음 한 packet이며 별도 경쟁 작업표가 아니다.
 실제 blocker가 없는 독립 담당은 다른 앱의 게시·Data 빌드·Pro 재응답을 기다리지 않는다.

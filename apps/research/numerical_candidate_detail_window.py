@@ -457,7 +457,9 @@ class NumericalCandidateDetailWindow(QMainWindow):
                 if 'SELECTED_ATTEMPT_NOT_SUCCEEDED' in codes:
                     note='선택한 상세 계산이 완료되지 않았습니다. 실행 상태를 확인하거나 실패·취소 진단을 선택하세요.'
                 elif any(code.startswith('DETAIL_') for code in codes):
-                    note='필수 시험 상세가 없습니다. 미보존분을 계산한 뒤 결과를 확인하세요.'
+                    note=('선택 실행의 필수 상세가 없습니다. 최신 상세 선택으로 보존된 후속 결과를 확인하세요.'
+                          if self.view.get('detail_eval_blocked')=='SELECT_LATEST_ATTEMPT' else
+                          '필수 시험 상세가 없습니다. 필요한 미보존 시험만 명시적으로 계산할 수 있습니다.')
                 elif 'ORIGINAL_CANDIDATE_NOT_SUCCEEDED' in codes:
                     note='성공 후보가 아닙니다. 실패·취소 진단에서 원 기록을 확인하세요.'
                 else:note='선택 결과를 사용할 수 없습니다. 시험 상태와 필수 출력·단위를 확인하세요.'
@@ -579,14 +581,27 @@ class NumericalCandidateDetailWindow(QMainWindow):
         if self._closed or self._writing:
             return
         self._retire_read();self._writing=True;self._buttons()
-        worker=self._write_worker=_Read(function)
+        # Preserve the structured service refusal across the existing reader;
+        # its generic transport path otherwise reduces every exception to text.
+        def requested():
+            try:return function(),None
+            except Exception as error:return None,error
+        worker=self._write_worker=_Read(requested)
         def done(value,error):
             if self._closed or worker is not self._write_worker:
                 return
             self._writing=False;self._write_worker=None
+            if error is None:value,error=value
             if error:
                 self._clear_evidence();self._command_generation=None
-                self.status.setText('명령 처리 결과를 확인하지 못했습니다. 다시 읽기로 실제 접수 여부를 확인하세요.')
+                from caelab.workbench_client import WorkbenchHTTPError
+                confirmed = isinstance(error,WorkbenchHTTPError) and error.code==400
+                before_submission = isinstance(error,ValueError) and str(error) in {
+                    'Owner session changed; reopen this view',
+                    'Plan changed after this result was read; reread before saving or adopting'}
+                self.status.setText('요청이 거절되었습니다. 계획과 선택 결과를 다시 읽어 현재 상태를 확인하세요.' if confirmed else
+                    '열린 계획이 바뀌어 요청하지 않았습니다. 현재 계획에서 후보 상세를 다시 여세요.' if before_submission else
+                    '명령 처리 결과를 확인하지 못했습니다. 다시 읽기로 실제 접수 여부를 확인하세요.')
                 self.status.setToolTip(str(error))
                 self.view=None;self._buttons()
                 return
