@@ -42,7 +42,18 @@ def verify_projection(folder, row, inspected):
     from .portable_project_execution import TypedProjection
     refs = acknowledged_references(inspected['capsule'])
     for hop in row['hops']:
-        refs = project_references(refs, TypedProjection(json_file(inside(Path(folder), hop['file']))))
+        projection=TypedProjection(json_file(inside(Path(folder),hop['file'])))
+        mapped=[]
+        for typed in refs:
+            try:mapped.append(TypedReference(typed.path,typed.role,typed.form,projection.reference(typed)))
+            except KeyError as error:
+                fail('RECOVERY_MAP_INCOMPLETE',Path(folder)/hop['file'],
+                    '복구 보관본 '+str(row.get('archive_id',row.get('capsule_id','')))+
+                    '의 정확한 참조가 이동 지도에 없습니다: '+str(error.args[0])+
+                    ' / 위치 '+('/'.join(map(str,typed.path))),
+                    '원 보관본과 이동 지도를 함께 복구하세요. 원 Q 자료는 읽을 수 있지만 재개할 수 없습니다.',
+                    typed.document_id)
+        refs=mapped
 
 
 def seed_dependencies(reader, selected, recovery):

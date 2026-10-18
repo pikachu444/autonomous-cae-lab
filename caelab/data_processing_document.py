@@ -110,28 +110,49 @@ def result(owner, identifier, revision, *, selection=None):
     only such channels succeeds for those channels; overall recipe status remains
     PARTIAL in diagnostics. Reading all preserves the overall FAILED status.
     """
+    return context(owner,identifier,revision,selection=selection)[0]
+
+
+def context(owner, identifier, revision, *, selection=None):
+    """Trusted internal compiler context; public results remain ordinary records."""
     with owner._lock(identifier):
         document = owner.read(identifier)
         record = next((row for row in document.get('processing_revisions', []) if row['id'] == revision), None)
         if record is None:
             raise ValueError('Processing revision is not published by this Data owner')
-        retained = read_result(_result_folder(owner, document, record), verify='all')
-        if selection is not None:
-            if (not isinstance(selection, list) or not selection or len(selection) != len(set(selection))
-                    or any(not isinstance(name, str) for name in selection)):
-                raise ValueError('Choose explicit distinct processing response names')
-            if set(selection) - set(retained['responses']):
-                raise ValueError('Selected processing operation is unsupported or has no valid result')
-            retained['responses'] = {name: retained['responses'][name] for name in selection}
-            retained['execution_status'] = 'SUCCEEDED'
-            retained['diagnostics']['selected_channels_only'] = True
-        retained['diagnostics']['processing_revision'] = revision
-        retained['diagnostics']['processing_record'] = deepcopy(record)
-        return retained
+        folder=_result_folder(owner,document,record)
+        retained=read_snapshot(folder,record,selection=selection)
+        def revision_folder(value):
+            owner._verify_revision(identifier,check_id(value))
+            return owner._folder(identifier)/'revisions'/value
+        from .portable_data_processing import source
+        original=source(document,record,retained,folder.parent.parent,revision_folder)
+        return retained,original
+
+
+def read_snapshot(folder, record, *, selection=None):
+    """Read a published row from an already verified owner snapshot, without opening it."""
+    if file_hash(Path(folder)/'result.json') != record['result_sha256']:
+        raise ValueError('An applied processing result changed; no substitute is used')
+    retained = read_result(folder, verify='all')
+    if selection is not None:
+        if (not isinstance(selection, list) or not selection or len(selection) != len(set(selection))
+                or any(not isinstance(name, str) for name in selection)):
+            raise ValueError('Choose explicit distinct processing response names')
+        if set(selection) - set(retained['responses']):
+            raise ValueError('Selected processing operation is unsupported or has no valid result')
+        retained['responses'] = {name: retained['responses'][name] for name in selection}
+        retained['execution_status'] = 'SUCCEEDED'
+        retained['diagnostics']['selected_channels_only'] = True
+    retained['diagnostics']['processing_revision'] = record['id']
+    retained['diagnostics']['processing_record'] = deepcopy(record)
+    return retained
 
 
 def retain(owner, saved, folder):
     """Hook in existing DataDocuments._retain_inputs before manifest publication."""
+    from .portable_data_processing import retain as retain_proofs
+    retain_proofs(owner,saved,folder)
     for record in saved.get('processing_revisions', []):
         source = _result_folder(owner, saved, record)
         target = Path(folder) / 'processing' / check_id(record['id'])

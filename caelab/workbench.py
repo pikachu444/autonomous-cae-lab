@@ -78,6 +78,7 @@ class Workbench:
         self.numerical_documents=NumericalDocuments(self.root,self.session_id,self.submit,self.manager,
             resolve_document=self.document_read, resolve_result=self.document_result,
             resolve_processing=self.data_documents.processing_result,
+            resolve_processing_context=self.data_documents.processing_context,
             prepare_request=self._request_plan_arguments,
             resolve_source_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision),
             resolve_pde_revision=lambda identifier,revision:self.pde_documents._verify_revision(identifier,revision))

@@ -21,6 +21,14 @@ def _failure(path, error, identifier):
 def collect_working_evidence(reader, document):
     if document.get('kind') != 'numerical':
         return
+    # CAPTURE is admitted only against an original fit belonging to this owner.
+    # Other Request Plans have ordinary (potentially large) run receipts, not
+    # candidate-capture journals. Preserve them in their existing owner store.
+    if (not any(run.get('operation')=='fit' for run in document.get('runs',[]))
+            and not document.get('candidate_evidence')
+            and not document.get('_candidate_evidence_publications')
+            and not document.get('portable_capture_history')):
+        return
     from .portable_project_drafts import WORKING
     from .numerical_candidate_evidence import CAPTURE, _binding, resolve_candidate_evidence
     identifier = document['id']

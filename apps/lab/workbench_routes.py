@@ -85,7 +85,17 @@ def handle(handler,method,path,query):
             name, fields = portable_routes[path]
             if set(body) != fields:
                 raise ServiceError(400, '작업 사본의 명시적 선택/확인 필드가 다릅니다.')
-            return handler._json(200, getattr(workbench, name)(**body))
+            from caelab.portable_project_io import PortableProjectError
+            try:
+                return handler._json(200, getattr(workbench, name)(**body))
+            except PortableProjectError as error:
+                # This guard is raised before a staging directory/reservation.
+                # Transport loss or a later failure carries no such assurance.
+                if (name == 'portable_create' and error.issues and
+                        all(issue.code == 'STALE_INSPECTION' for issue in error.issues)):
+                    return handler._json(400, {'error':str(error),
+                        'issues':error.as_dict()['issues'], 'not_applied':True})
+                raise
         if path == '/api/workbench/expert-connection/reload':
             if set(body) != {'expected_sha256'}:
                 raise ServiceError(400, 'Reload accepts only the saved local operator-file hash')

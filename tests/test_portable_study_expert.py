@@ -551,7 +551,8 @@ def test_archived_source_api_rejects_ambiguous_or_latest_revision(tmp_path,revis
         with pytest.raises(ValueError,match='ARCHIVED_REVISION_REQUIRED'):
             wb.assistance_call('knowledge.source',{'document_id':case['source']['document_id'],'revision':revision})
 
-def test_selected_actual_csv_result_study_expert_report_copy_and_cold_recopy(tmp_path):
+@pytest.mark.parametrize('legacy_expert_reference',[False,True])
+def test_selected_actual_csv_result_study_expert_report_copy_and_cold_recopy(tmp_path,legacy_expert_reference):
     """Actual tiny CSV import only; no physics/provider. Existing retained reader."""
     from examples.portable_connection_public import create_public_store
     wb, public=create_public_store(tmp_path/'origin')
@@ -562,7 +563,9 @@ def test_selected_actual_csv_result_study_expert_report_copy_and_cold_recopy(tmp
         ref['selection']=['stress']
         original=wb.research_reference(ref)
         expert=case['expert'];draft=deepcopy(expert['draft'])
-        draft['composer']['evidence']=[deepcopy(ref)]
+        expert_ref=deepcopy(ref)
+        if legacy_expert_reference:expert_ref.pop('kind')
+        draft['composer']['evidence']=[expert_ref]
         expert=saved(wb,update(wb,expert,draft))
         study=case['study'];draft=deepcopy(study['draft'])
         draft['evidence'].append({'id':'Eactual','label':'공개 CSV 응력','kind':'result','reference':ref,'note':'실제 CSV 가져오기; 물리 검증 아님'})
@@ -580,11 +583,12 @@ def test_selected_actual_csv_result_study_expert_report_copy_and_cold_recopy(tmp
         expert=cold.document_read(mapping[expert['id']]);study=cold.document_read(mapping[study['id']]);report=cold.document_read(mapping[report['id']])
         current=expert['draft']['composer']['evidence'][0]
         assert current['document_id']==mapping[data['id']] and current['job_id']==job and current['selection']==['stress']
-        actual=cold.research_reference(current)
+        assert ('kind' not in current)==legacy_expert_reference
+        actual=cold.research_reference({'kind':'result',**current})
         assert actual['result']==original['result']
         assert actual['result']['responses']['stress']['unit']=='MPa'
         assert actual['result']['responses']['stress']['value']==[0.,1.2,2.4]
-        assert study['draft']['evidence'][-1]['reference']==current
+        assert study['draft']['evidence'][-1]['reference']=={'kind':'result',**current}
         frozen=cold.report_content(report['id'],[report['draft']['sections'][-1]['asset']])['assets'][0]
         assert frozen['source_status']=='AVAILABLE'
         folder=cold.report_documents._folder(report['id'])/'revisions'/report['saved_revision']
@@ -594,5 +598,6 @@ def test_selected_actual_csv_result_study_expert_report_copy_and_cold_recopy(tmp
     (tmp_path/'copy').rename(tmp_path/'copy-preserved')
     with workspace(tmp_path/'recopy') as last,source_free(last):
         expert=last.document_read(rows(made)['expert']);ref=expert['draft']['composer']['evidence'][0]
-        assert last.research_reference(ref)['result']==original['result']
+        assert ('kind' not in ref)==legacy_expert_reference
+        assert last.research_reference({'kind':'result',**ref})['result']==original['result']
         assert not last.manager.list()

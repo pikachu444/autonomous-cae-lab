@@ -110,6 +110,7 @@ class AcknowledgedReader(SnapshotReader):
         self.working_files = {}
         self.payloads = {}
         self.live_results = {}
+        self.live_processing = {}
         self.live_jobs = {}
         self.history_documents = {}
         self.archive_folders = {}
@@ -271,6 +272,17 @@ class AcknowledgedReader(SnapshotReader):
             run.update(retained_record={'revision': WORKING, 'job_id': run['job_id']},
                        retained_state=job['state'], retained_error=deepcopy(job.get('error')), retention_complete=True)
             self.live_jobs[(identifier, run['job_id'])] = job
+        for record in doc.get('processing_revisions',[]):
+            if record.get('retained_revision'):continue
+            from .data_processing_document import read_snapshot
+            folder=owner._folder(identifier)/'processing'/check_id(record['id'])
+            read_snapshot(folder,record)
+            self.live_processing[(identifier,record['id'])]=folder
+            for path in sorted(folder.rglob('*')):
+                no_links(path)
+                if path.is_file():
+                    self._add(identifier,'processing/'+record['id']+'/'+path.relative_to(folder).as_posix(),path)
+            record['retained_revision']=WORKING
         # Comparisons have their own immutable owner-managed snapshot. An
         # unretained comparison cannot be converted into an invented saved one.
         for row in doc.get('comparisons', []):
@@ -344,17 +356,22 @@ class AcknowledgedReader(SnapshotReader):
                 raise ValueError('Q retained job differs from its acknowledged run')
             return job
         if run.get('retained_record', {}).get('revision') == WORKING:
-            self.working(document['id'])
+            if document['id'] not in self.working_documents:self.working(document['id'])
             return deepcopy(self.live_jobs[(document['id'], run['job_id'])])
         return super().job(document, run)
+
+    def processing_folder(self, document, record):
+        folder=self.live_processing.get((document['id'],record['id']))
+        return folder if folder is not None else super().processing_folder(document,record)
 
     def result(self, document, run, *, metadata_only=False):
         revision = run.get('retained_result', {}).get('revision')
         if (document['id'], revision) in self.archive_folders:
+            self.revision(document['id'],revision)
             folder = self.revision_folder(document['id'], revision) / 'results' / check_id(run['job_id'])
-            return read_result(folder, verify='all', selection={'metadata_only': True} if metadata_only else None)
+            return self._immutable_result(document,run,folder,metadata_only=metadata_only)
         if document['id'] in self.included:
-            self.working(document['id'])
+            if document['id'] not in self.working_documents:self.working(document['id'])
             folder = self.live_results.get((document['id'], run['job_id']))
             if folder is not None:
                 return read_result(folder, verify='all', selection={'metadata_only': True} if metadata_only else None)

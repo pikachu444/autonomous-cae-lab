@@ -168,7 +168,7 @@ def candidate_detail_readiness(view, *, required_experiments=None, purpose=SUCCE
             'lineage': lineage_assessment(list(experiments.values()))}
 
 
-def _run_record(owner, run, result):
+def _run_record(owner, run, result, *, verified_result_sha256=None):
     state, error = _status(owner, run)
     if state not in TERMINAL:
         raise DetailEvidenceBlocked('The original fit and selected attempt chain must be terminal; UNKNOWN is not success')
@@ -176,7 +176,7 @@ def _run_record(owner, run, result):
             'input_revision': run['input_revision'], 'input_sha256': run['input_sha256'],
             'arguments_sha256': canonical_hash(plain(run['arguments'])),
             'state': state, 'error': plain(error),
-            'result_sha256': canonical_hash(plain(result)) if result is not None else None}
+            'result_sha256': (verified_result_sha256 or canonical_hash(plain(result))) if result is not None else None}
 
 
 def _attempt_result(owner, document_id, run):
@@ -241,9 +241,10 @@ def prepare_candidate_evidence(owner, source, candidate_id, *, attempt_job_id=No
     if portable is not None:
         return portable
     document, run, result, exact = _source(owner, source['document_id'], source['job_id'], source)
-    view = read_candidate_detail(owner, source['document_id'], source['job_id'], candidate_id,
-                                 source=source, attempt_job_id=attempt_job_id)
-    original_record = _run_record(owner, run, result)
+    from .numerical_candidate_detail import _read_verified_candidate_detail
+    view = _read_verified_candidate_detail(owner, (document, run, result, exact), candidate_id,
+                                          attempt_job_id=attempt_job_id)
+    original_record = _run_record(owner, run, result, verified_result_sha256=exact['result_sha256'])
     chain = _verified_chain(owner, document, exact, view['candidate'], attempt_job_id)
     readiness = candidate_detail_readiness(view, required_experiments=required_experiments, purpose=purpose)
     if not readiness['ready_to_preserve']:
@@ -349,8 +350,7 @@ def _saved_owner(owner, document_id, revision):
         if identifier != document_id:
             raise DetailIdentityError('Evidence read attempted another owner')
         return deepcopy(saved)
-    def result(identifier, job_id, **kwargs):
-        from .evaluation import read_result
+    def result_folder(identifier, job_id):
         if identifier != document_id:
             raise DetailIdentityError('Result belongs to another evidence owner')
         run = next((r for r in saved['runs'] if r['job_id'] == job_id), None)
@@ -358,9 +358,12 @@ def _saved_owner(owner, document_id, revision):
             raise DetailIdentityError('Saved evidence run does not retain this result')
         original_revision = run['retained_result']['revision']
         owner._verify_revision(document_id, original_revision)
-        return read_result(owner._folder(document_id) / 'revisions' / check_id(original_revision) /
-                           'results' / check_id(job_id), verify='all', **kwargs)
-    return saved, SimpleNamespace(read=read, result=result, manager=None, _portable_storage_owner=owner)
+        return owner._folder(document_id) / 'revisions' / check_id(original_revision) / 'results' / check_id(job_id)
+    def result(identifier, job_id, **kwargs):
+        from .evaluation import read_result
+        return read_result(result_folder(identifier,job_id),verify='all',**kwargs)
+    return saved, SimpleNamespace(read=read, result=result, manager=None, _portable_storage_owner=owner,
+        _verified_candidate_result_location=lambda identifier,job_id:(owner,result_folder(identifier,job_id)))
 
 
 def resolve_candidate_evidence(owner, reference, *, consumer='read', source=None,

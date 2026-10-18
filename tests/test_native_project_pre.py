@@ -1,5 +1,6 @@
 """Pure saved-byte tests; these synthetic ZIPs are not native CAD acceptance."""
 from copy import deepcopy
+import io
 import zipfile
 from types import SimpleNamespace as NS
 
@@ -7,6 +8,16 @@ import pytest
 
 from apps.desktop_pre import portable_project as pre
 from caelab import native_cad
+
+
+def native_dump(entries=None,*,stamp=(2001,1,1,0,0,0),compression=zipfile.ZIP_STORED):
+    entries=entries or [('Persistence.xml',b'<Object/>'),('Shape.brp',b'geometry'),('Mesh.bin',b'mesh')]
+    payload=io.BytesIO()
+    with zipfile.ZipFile(payload,'w') as archive:
+        for name,data in entries:
+            item=zipfile.ZipInfo(name,date_time=stamp);item.compress_type=compression
+            archive.writestr(item,data)
+    return payload.getvalue()
 
 
 def fcstd(path, links=(), marker=b'original geometry'):
@@ -18,6 +29,29 @@ def fcstd(path, links=(), marker=b'original geometry'):
                          + properties + '</Properties></Object></Document>')
         archive.writestr('PartShape.brp', marker)
     return path
+
+
+def test_native_object_fingerprint_ignores_only_zip_framing():
+    a=NS(dumpContent=lambda:native_dump())
+    b=NS(dumpContent=lambda:native_dump(stamp=(2026,10,18,1,2,4),compression=zipfile.ZIP_DEFLATED))
+    assert a.dumpContent()!=b.dumpContent()
+    assert pre._native_dump_payload_sha256(a)==pre._native_dump_payload_sha256(b)
+
+
+@pytest.mark.parametrize('member',[0,1,2])
+def test_native_object_payload_changes_are_not_metadata(member):
+    entries=[('Persistence.xml',b'<Object/>'),('Shape.brp',b'geometry'),('Mesh.bin',b'mesh')]
+    changed=deepcopy(entries);name,data=changed[member];changed[member]=(name,data+b'changed')
+    assert pre._native_dump_payload_sha256(NS(dumpContent=lambda:native_dump(entries)))!=pre._native_dump_payload_sha256(
+        NS(dumpContent=lambda:native_dump(changed)))
+
+
+def test_native_object_missing_root_duplicate_or_malformed_dump_is_rejected():
+    for raw in (b'invalid',native_dump([('Shape.brp',b'geometry')])):
+        with pytest.raises((ValueError,zipfile.BadZipFile)):
+            pre._native_dump_payload_sha256(NS(dumpContent=lambda:raw))
+    with pytest.warns(UserWarning):raw=native_dump([('Persistence.xml',b'a'),('Persistence.xml',b'b')])
+    with pytest.raises(ValueError):pre._native_dump_payload_sha256(NS(dumpContent=lambda:raw))
 
 
 def test_raw_closure_repeated_occurrence_copied_bytes_and_tamper(tmp_path):
@@ -118,7 +152,7 @@ def test_import_identity_is_outside_user_undo_and_preserves_engineering_objects(
     from apps.desktop_pre import metadata
     from caelab import native_project_contract as contract
     path=tmp_path/'fresh.FCStd';path.write_bytes(b'controlled native file')
-    geometry=NS(Name='Boolean',TypeId='Part::Cut',dumpContent=lambda: b'unchanged whole native properties')
+    geometry=NS(Name='Boolean',TypeId='Part::Cut',dumpContent=native_dump)
     doc=NS(FileName=str(path),UndoMode=1,UndoCount=0,RedoCount=0,Transacting=False,Partial=False,Objects=[geometry])
     value={'schema':metadata.SCHEMA,'document_id':'PSource','links':[{'job_id':'JOriginal'}]}
     before=deepcopy(value);modes=[]

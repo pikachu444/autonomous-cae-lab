@@ -13,7 +13,7 @@ from .connection_graph_refs import TypedReference, document_references, comparis
 from .evaluation import file_hash, read_result
 from .jobs import TERMINAL
 from .portable_project_io import inside, json_file, no_links, fail
-from .storage import canonical_hash, check_id, load_json
+from .storage import canonical_hash, check_id, load_json, revision_read_cache
 
 KIND_LABELS = {'data': '데이터', 'material': '재료', 'numerical': '계산 계획',
                'pde': 'PDE', 'simulation': '해석', 'evaluation': '계산 절차',
@@ -66,6 +66,9 @@ class SnapshotReader:
             with owner._catalog_lock:
                 result.update(owner._documents)
         return sorted(result)
+
+    def revision_folder(self, identifier, revision):
+        return self.owner(identifier)._folder(identifier)/'revisions'/check_id(revision)
 
     def revision(self, identifier: str, revision: str) -> dict:
         key = (check_id(identifier), check_id(revision))
@@ -180,7 +183,39 @@ class SnapshotReader:
             raise FileNotFoundError('보존된 응답은 없습니다. 실패/중단 기록은 별도로 남아 있습니다.')
         self.revision(document['id'], ref['revision'])
         folder = self.owner(document['id'])._folder(document['id']) / 'revisions' / ref['revision'] / 'results' / check_id(run['job_id'])
-        return read_result(folder, verify='all', selection={'metadata_only': True} if metadata_only else None)
+        return self._immutable_result(document,run,folder,metadata_only=metadata_only)
+
+    def _immutable_result(self,document,run,folder,*,metadata_only=False):
+        """Reuse a verified immutable payload only inside the current read scope."""
+        cache=revision_read_cache()
+        key=('portable_retained_result',id(self.owner(document['id'])),str(folder.resolve()),
+             document['id'],run['job_id'],canonical_hash(run.get('retained_result')),
+             run['input_revision'],run['input_sha256'],bool(metadata_only))
+        if cache is not None and key in cache:return deepcopy(cache[key])
+        value=read_result(folder,verify='all',selection={'metadata_only':True} if metadata_only else None)
+        if cache is not None:cache[key]=deepcopy(value)
+        return value
+
+    def processing_folder(self, document, record):
+        revision=record.get('retained_revision')
+        if revision:
+            self.revision(document['id'],revision)
+            base=self.revision_folder(document['id'],revision)
+        else:
+            base=self.owner(document['id'])._folder(document['id'])
+        return inside(base,'processing/'+check_id(record['id'])+'/result.json').parent
+
+    def processing(self, document, revision, *, selection=None):
+        from .data_processing_document import read_snapshot
+        record=next((r for r in document.get('processing_revisions',[]) if r['id']==revision),None)
+        if document['kind']!='data' or record is None:
+            raise ValueError('Processing revision is not published by this Data owner')
+        folder=self.processing_folder(document,record)
+        retained=read_snapshot(folder,record,selection=selection)
+        from .portable_data_processing import source
+        source(document,record,retained,folder.parent.parent,
+            lambda revision:self.revision_folder(document['id'],revision))
+        return retained
 
     def resolve(self, typed: TypedReference) -> dict:
         """Availability and recency are independent; stale != broken."""
@@ -223,10 +258,16 @@ class SnapshotReader:
                 raise ValueError('저장된 결과 내용이 다릅니다.')
             if form == 'curve' and canonical_hash(result.get('responses', {}).get(ref['response'])) != ref['response_sha256']:
                 raise ValueError('비교한 응답 내용이 다릅니다.')
-            if form == 'observation' and (current['kind'] != 'data' or ref['response'] not in result.get('responses', {})):
-                raise ValueError('선택한 Data 응답이 없습니다.')
+            if form == 'observation':
+                if 'processing_revision' in ref:
+                    processed=self.processing(current,ref['processing_revision'],selection=[ref['response']])
+                    origin=processed['diagnostics']['processing_record']['source']
+                    if any(origin.get(k)!=ref[k] for k in ('document_id','job_id','input_revision','input_sha256')):
+                        raise ValueError('Processing revision belongs to a different frozen import')
+                elif current['kind'] != 'data' or ref['response'] not in result.get('responses', {}):
+                    raise ValueError('선택한 Data 응답이 없습니다.')
             exact = {k: deepcopy(v) for k, v in ref.items() if k in
-                     {'document_id', 'job_id', 'input_revision', 'input_sha256', 'response', 'selection'}}
+                     {'document_id', 'job_id', 'input_revision', 'input_sha256', 'response', 'selection','processing_revision'}}
             exact.update(kind='result', result_sha256=digest)
         elif form == 'adoption':
             saved = self.revision(identifier, ref['plan_revision'])

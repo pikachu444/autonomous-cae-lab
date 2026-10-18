@@ -45,7 +45,8 @@ def prepare_copy(window):
         if not copy_allowed(window) or (window.document['id'], window.document['session_id']) != owner_key:
             return False
         from .connection_window import ConnectionWindow
-        child = ConnectionWindow(window.client, document_id=window.document['id'])
+        child = ConnectionWindow(window.client, document_id=window.document['id'],
+            copy_draft_policy='saved_only' if selected[0] == 'kept' else 'acknowledged')
         child.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         children = getattr(window, '_portable_research_children', None)
         if children is None:

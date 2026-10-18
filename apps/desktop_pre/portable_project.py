@@ -109,8 +109,19 @@ def saved_owner_id_map(verified):
 def _non_metadata_fingerprint(doc):
     from .metadata import NAME
     return canonical_hash([{'name': obj.Name, 'type': obj.TypeId,
-                            'native_content': hashlib.sha256(bytes(obj.dumpContent())).hexdigest()}
+                            'native_content': _native_dump_payload_sha256(obj)}
                            for obj in doc.Objects if obj.Name != NAME])
+
+
+def _native_dump_payload_sha256(obj):
+    # FreeCAD dumpContent ZIP framing includes wall-clock DOS timestamps.
+    # Every member name/order and exact engineering payload remains checked.
+    with zipfile.ZipFile(io.BytesIO(bytes(obj.dumpContent()))) as archive:
+        names=archive.namelist()
+        if len(names)!=len(set(names)) or 'Persistence.xml' not in names:
+            raise ValueError('Invalid native object content archive')
+        return canonical_hash([{'name':info.filename,'sha256':hashlib.sha256(archive.read(info)).hexdigest()}
+                               for info in archive.infolist()])
 
 
 def initialize_import_identity(doc, binding, *, member_id):
@@ -139,9 +150,12 @@ def initialize_import_identity(doc, binding, *, member_id):
             doc.UndoMode = mode
     actual = metadata.read(doc)
     changed = sorted(key for key in set(before) | set(actual) if before.get(key) != actual.get(key))
-    if (actual != after or set(changed) - {'document_id', 'portable_origin'}
-            or _non_metadata_fingerprint(doc) != geometry or doc.UndoMode != mode):
-        raise ValueError('Native identity initialization changed non-metadata engineering data')
+    if actual!=after or set(changed)-{'document_id','portable_origin'}:
+        raise ValueError('Native identity initialization changed unapproved metadata')
+    if _non_metadata_fingerprint(doc)!=geometry:
+        raise ValueError('Native identity initialization changed native engineering payloads')
+    if doc.UndoMode!=mode:
+        raise ValueError('Native identity initialization did not restore Undo mode')
     return {'open_id': binding.open_id, 'member_id': member_id,
             'source_document_id': before.get('document_id'), 'owner_document_id': expected[0],
             'metadata_before_sha256': canonical_hash(before), 'metadata_after_sha256': canonical_hash(actual),

@@ -427,7 +427,7 @@ def require_result(owner, document, run):
 
 def extra_references(document):
     """Typed owner evidence in original turns/rounds, not arbitrary context JSON."""
-    from .connection_graph_refs import TypedReference, draft_references
+    from .connection_graph_refs import TypedReference, draft_references, expert_result_reference
     if document.get('kind') != 'expert':
         return
     team = document.get('discussion', {}).get('research_team') or {}
@@ -450,7 +450,9 @@ def extra_references(document):
             yield TypedReference(('discussion', 'rounds', i, 'draft', *ref.path), ref.role, ref.form, ref.value)
     for i, turn in enumerate(document.get('discussion', {}).get('turns', [])):
         for j, ref in enumerate(turn.get('evidence', [])):
-            if isinstance(ref, dict) and ref.get('kind') in {'document', 'result', 'expert_turn', 'knowledge'}:
+            if expert_result_reference(ref):
+                yield TypedReference(('discussion', 'turns', i, 'evidence', j), '원 대화 근거', 'result', deepcopy(ref))
+            elif isinstance(ref, dict) and ref.get('kind') in {'document', 'result', 'expert_turn', 'knowledge'}:
                 yield TypedReference(('discussion', 'turns', i, 'evidence', j), '원 대화 근거', 'exact', deepcopy(ref))
 
 
@@ -494,7 +496,10 @@ def navigation_view(owner, document):
         seen.add(digest)
         try:
             current = inspection_reference(folder, document, typed)
-            result.append({'reference': deepcopy(typed.value), 'navigation_reference': current.value,
+            navigation=deepcopy(current.value)
+            if current.form=='result' and navigation.get('kind') is None:
+                navigation={'kind':'result',**navigation}
+            result.append({'reference': deepcopy(typed.value), 'navigation_reference': navigation,
                            'navigation_status': 'VERIFIED_TYPED_SOURCE'})
         except (ValueError, OSError, KeyError, TypeError) as error:
             result.append({'reference': deepcopy(typed.value), 'navigation_reference': None,

@@ -38,7 +38,9 @@ def draft_references(kind: str, draft: dict) -> Iterator[TypedReference]:
             return TypedReference(tuple(path), role, form, deepcopy(value))
         return None
     found: list[TypedReference | None] = []
-    if kind == 'numerical':
+    if kind == 'data':
+        found.append(ref(('processing','source'),'처리 원자료',_object(draft.get('processing')).get('source'),'result'))
+    elif kind == 'numerical':
         if draft.get('mode') != 'request':
             found.append(ref(('material',), '재료 입력', draft.get('material'), 'material_input'))
             for i, row in enumerate(_rows(draft.get('experiments'))):
@@ -55,16 +57,18 @@ def draft_references(kind: str, draft: dict) -> Iterator[TypedReference]:
             for role, source in _object(inputs.get('result_refs')).items():
                 found.append(ref(('request', 'inputs', 'result_refs', role), '계산 입력 ' + role, source, 'result'))
             for i, experiment in enumerate(_rows(inputs.get('experiments'))):
-                original_data = _object(_object(experiment).get('observation_source')).get('data_source')
-                found.append(ref(('request', 'inputs', 'experiments', i, 'observation_source', 'data_source'),
+                source_key='current_data_source' if 'current_data_source' in _object(_object(experiment).get('observation_source')) else 'data_source'
+                original_data = _object(_object(experiment).get('observation_source')).get(source_key)
+                found.append(ref(('request', 'inputs', 'experiments', i, 'observation_source', source_key),
                                  '보존한 시험 원자료', original_data, 'observation'))
                 value = _object(_object(experiment).get('observation_ref')).get('result')
                 found.append(ref(('request', 'inputs', 'experiments', i, 'observation_ref', 'result'),
                                  '피팅 관측 결과', value, 'result'))
             for method, inputs in _object(draft.get('method_inputs')).items():
                 for i, experiment in enumerate(_rows(_object(inputs).get('experiments'))):
-                    original_data = _object(_object(experiment).get('observation_source')).get('data_source')
-                    found.append(ref(('method_inputs', method, 'experiments', i, 'observation_source', 'data_source'),
+                    source_key='current_data_source' if 'current_data_source' in _object(_object(experiment).get('observation_source')) else 'data_source'
+                    original_data = _object(_object(experiment).get('observation_source')).get(source_key)
+                    found.append(ref(('method_inputs', method, 'experiments', i, 'observation_source', source_key),
                                      '보존한 방법의 시험 원자료', original_data, 'observation'))
                     value = _object(_object(experiment).get('observation_ref')).get('result')
                     found.append(ref(('method_inputs', method, 'experiments', i, 'observation_ref', 'result'),
@@ -85,7 +89,8 @@ def draft_references(kind: str, draft: dict) -> Iterator[TypedReference]:
     # intentionally not crawled: it also holds arbitrary authored notes/tools.
     elif kind == 'expert':
         for i, source in enumerate(_rows(_object(draft.get('composer')).get('evidence'))):
-            found.append(ref(('composer', 'evidence', i), '질문의 근거', source))
+            form='result' if expert_result_reference(source) else 'exact'
+            found.append(ref(('composer', 'evidence', i), '질문의 근거', source, form))
         team = _object(_object(draft.get('context')).get('research_team'))
         if team.get('version') == 2:
             for i, assignment in enumerate(_rows(team.get('assignments'))):
@@ -93,6 +98,12 @@ def draft_references(kind: str, draft: dict) -> Iterator[TypedReference]:
                     found.append(ref(('context', 'research_team', 'assignments', i, 'result_refs', j, 'reference'),
                         '담당자가 검토할 계산 결과', _object(selection).get('reference'), 'result'))
     yield from (row for row in found if row is not None)
+
+
+def expert_result_reference(value):
+    """The established untagged result syntax at an explicit Expert evidence path."""
+    return (isinstance(value,dict) and value.get('kind') in (None,'result')
+            and all(key in value for key in ('document_id','job_id','input_revision','input_sha256','result_sha256')))
 
 
 def document_references(document: dict, *, include_history: bool = False) -> Iterator[TypedReference]:

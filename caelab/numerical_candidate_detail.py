@@ -315,13 +315,29 @@ def _source(owner, document_id: str, job_id: str, expected: dict | None = None):
     run = runs[0]
     if canonical_hash(plain(run.get('draft'))) != run.get('input_sha256'):
         raise DetailIdentityError('Original submitted Plan hash changed')
-    result = owner.result(document_id, job_id)
+    from .storage import revision_read_cache
+    cache=revision_read_cache();key=None
+    location=getattr(owner,'_verified_candidate_result_location',None)
+    if cache is not None and location is not None:
+        # Only an internal saved-owner facet supplies this verified immutable
+        # location. Client/live/Q archive facets retain their existing reads.
+        storage,folder=location(document_id,job_id)
+        key=('candidate_full_result',id(storage),str(folder.resolve()),document_id,job_id,
+             canonical_hash(run.get('retained_result')),run['input_revision'],run['input_sha256'],'FULL')
+    fresh=False
+    if key is not None and key in cache:
+        result,digest=deepcopy(cache[key])
+    else:
+        result=owner.result(document_id,job_id)
+        digest=canonical_hash(plain(result))
+        fresh=True
     if result.get('kind') != 'fit':
         raise DetailIdentityError('Source result is not the original fit result')
     reference = dict(document_id=document_id, job_id=job_id, input_revision=run['input_revision'],
-                     input_sha256=run['input_sha256'], result_sha256=canonical_hash(plain(result)))
+                     input_sha256=run['input_sha256'], result_sha256=digest)
     if expected is not None and reference != expected:
         raise DetailIdentityError('Stale result: the exact source reference no longer matches')
+    if key is not None and fresh:cache[key]=deepcopy((result,digest))
     return document, run, result, reference
 
 
@@ -427,7 +443,14 @@ def read_candidate_detail(owner, document_id: str, job_id: str, candidate_id: st
                            source=source, attempt_job_id=attempt_job_id)
     if portable is not None:
         return portable
-    document, run, result, reference = _source(owner, document_id, job_id, source)
+    return _read_verified_candidate_detail(owner, _source(owner, document_id, job_id, source),
+                                           candidate_id, attempt_job_id=attempt_job_id)
+
+
+def _read_verified_candidate_detail(owner, verified_source, candidate_id, *, attempt_job_id=None):
+    """Use an already identity-checked source within the same evidence read."""
+    document, run, result, reference = verified_source
+    document_id=reference['document_id']
     snapshot = _frozen_input(run, result)
     candidate = _candidate(result, candidate_id, snapshot)
     trials = _original_trials(result, candidate, snapshot)

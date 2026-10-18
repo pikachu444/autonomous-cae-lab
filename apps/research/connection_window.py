@@ -98,8 +98,12 @@ class CopyReviewDialog(QDialog):
 
 class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
     """Selection/list/graph have one shared action target, never an editable model."""
-    def __init__(self, client, *, document_id=None, auto_open=True, open_owner=None, open_reference=None, persist_view=True):
+    def __init__(self, client, *, document_id=None, auto_open=True, open_owner=None, open_reference=None,
+                 persist_view=True, copy_draft_policy='acknowledged'):
         super().__init__()
+        if copy_draft_policy not in {'acknowledged', 'saved_only'}:
+            raise ValueError('알려진 사본 내용 정책을 선택하세요.')
+        self._copy_draft_policy = copy_draft_policy
         self.client = client
         self._open_owner, self._open_reference = open_owner, open_reference
         self._initial = document_id
@@ -132,6 +136,12 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.reference_action = self._action(file_menu, '정확한 저장 참조 열기', self.open_reference, 'Ctrl+Return')
         file_menu.addSeparator()
         self.copy_action = self._action(file_menu, '선택 문서를 새 작업 사본으로…', self.prepare_copy, 'Ctrl+Shift+S')
+        if self._copy_draft_policy == 'saved_only':
+            self.copy_action.setText('선택 저장본만 새 작업 사본으로…')
+        other = 'saved_only' if self._copy_draft_policy == 'acknowledged' else 'acknowledged'
+        self.other_copy_action = self._action(file_menu,
+            '선택 저장본만 새 작업 사본으로…' if other == 'saved_only' else '현재 반영 초안도 새 작업 사본으로…',
+            lambda: self.prepare_copy(draft_policy=other))
         self.retry_copy_action = self._action(file_menu, '사본 생성 응답 확인 / 같은 요청 재시도', self.retry_copy)
         self.verify_action = self._action(file_menu, '작업 사본 확인 / 누락 파일 복구…', self.verify_copy)
         self._action(file_menu, '닫기', self.close, QKeySequence.StandardKey.Close)
@@ -220,7 +230,15 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.error = None
         self.message.setText('확인한 변경을 기록하고 있습니다. 완료 전에는 이 창을 닫을 수 없습니다.' if writing else '읽는 중…')
         self._actions()
-        worker = _Call(function)
+        failures = []
+        self._request_failures = failures
+        def retained_error():
+            try:
+                return function()
+            except Exception as error:
+                failures.append(error)
+                raise
+        worker = _Call(retained_error)
         self._workers.append(worker)
         worker.signals.finished.connect(self._finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
@@ -231,6 +249,8 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         sender = self.sender()
         self._workers = [worker for worker in self._workers if worker.signals is not sender]
         callback, self._callback = self._callback, None
+        original_error = next(iter(getattr(self, '_request_failures', [])), None)
+        self._request_failures = []
         self._busy = self._writing = False
         if self._closed:
             return
@@ -238,10 +258,35 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self._actions()
         if error:
             self._workflow_error()
-            self.message.setText('처리하지 못했습니다. 진단 상세와 서비스 연결을 확인하세요.')
-            self._text_dialog('처리 실패 — 원문서와 기존 사본은 보존됩니다', str(error))
+            if callback == self._copy_created and self._copy_pending and self._copy_not_applied(original_error):
+                self._copy_pending = None
+                self._actions()
+                self.message.setText('검토 뒤 원문서가 바뀌어 사본을 만들지 않았습니다. 포함 목록을 다시 확인하세요. 원문서와 편집은 유지됩니다.')
+            else:
+                self.message.setText('처리하지 못했습니다. 진단 상세와 서비스 연결을 확인하세요.')
+            self._text_dialog('처리 실패 — 원문서와 기존 사본은 보존됩니다',
+                str(getattr(original_error, 'service_message', error)))
         elif callback:
             callback(value)
+
+    @staticmethod
+    def _copy_not_applied(error):
+        """Only the service's pre-stage stale-review refusal releases this request."""
+        if getattr(error, 'code', None) != 400:
+            return False
+        try:
+            stream = error.fp
+            position = stream.tell()
+            try:
+                stream.seek(0)
+                payload = json.loads(error.read().decode('utf-8'))
+            finally:
+                stream.seek(position)
+            issues = payload.get('issues') if isinstance(payload, dict) else None
+            return (payload.get('not_applied') is True and isinstance(issues, list) and bool(issues)
+                and all(isinstance(row, dict) and row.get('code') == 'STALE_INSPECTION' for row in issues))
+        except (AttributeError, OSError, TypeError, ValueError, UnicodeError):
+            return False
 
     def _actions(self):
         row = self.rows.get(self.selected_key, {})
@@ -249,7 +294,9 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.owner_action.setText('실행 기록 열기' if row.get('node_type') == 'run' else '원문서 열기')
         self.owner_action.setEnabled(usable and bool(row.get('owner_id') and row.get('owner_kind')))
         self.reference_action.setEnabled(usable and bool(row.get('exact_reference')) and row.get('status') != 'BROKEN')
-        self.copy_action.setEnabled(usable and bool(self.checked_documents()))
+        can_copy = usable and self._copy_pending is None and bool(self.checked_documents())
+        self.copy_action.setEnabled(can_copy)
+        self.other_copy_action.setEnabled(can_copy)
         self.retry_copy_action.setEnabled(usable and self._copy_pending is not None)
         self.refresh_action.setEnabled(usable)
         self.verify_action.setEnabled(usable)
@@ -475,11 +522,14 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
             'issues': (self.graph or {}).get('issues'), 'error': self.error,
             'pending_copy': self._copy_pending}, ensure_ascii=False, indent=2))
 
-    def prepare_copy(self):
+    def prepare_copy(self, *, draft_policy=None):
+        if self._copy_pending is not None:
+            self.message.setText('이전 사본 생성 응답을 먼저 확인하세요. 「사본 생성 응답 확인 / 같은 요청 재시도」에서 이어갈 수 있습니다.')
+            return False
         chosen = self.checked_documents()
         if chosen:
             from .connection_window_recovery import prepare_copy
-            prepare_copy(self, chosen)
+            prepare_copy(self, chosen, draft_policy=draft_policy or self._copy_draft_policy)
 
     def _review_copy(self, inspection):
         review = CopyReviewDialog(inspection, self)
@@ -500,7 +550,10 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
     def retry_copy(self):
         if self._copy_pending:
             request = deepcopy(self._copy_pending)
-            self._call(lambda: self.client.portable_create(**request), self._copy_created, writing=True)
+            started = self._call(lambda: self.client.portable_create(**request), self._copy_created, writing=True)
+            if started:
+                self.message.setText('사본을 보관하고 있습니다. 큰 저장 결과는 시간이 걸릴 수 있습니다. 완료 전에는 이 창을 닫을 수 없습니다.')
+            return started
 
     def _copy_created(self, receipt):
         self._copy_pending = None
@@ -508,7 +561,8 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.message.setText('작업 사본을 만들었습니다. 원자료와 계산 기록은 보존되며 새 계산은 실행하지 않았습니다.')
         self._text_dialog('작업 사본 저장 완료', '새 폴더: ' + receipt['workspace'] + '\n\n'
             '현재 창은 원 보관소에 그대로 연결되어 있습니다. 새 폴더를 기존 제품 서비스의 --store로 열면 '
-            'Data·Material·Numerical·Study·Expert·Report에서 사본을 편집할 수 있습니다.\n'
+            'Data·Material·Numerical·PDE·Simulation·Evaluation·Study·Expert·Report에서 사본을 편집할 수 있습니다. '
+            '함께 보관한 FreeCAD·Post 프로젝트는 해당 도구에서 명시적으로 여세요. 필요한 실행 프로그램은 별도입니다.\n'
             '폴더 전체를 함께 이동하세요. 내부 파일을 따로 옮기지 마세요.')
 
     def verify_copy(self):

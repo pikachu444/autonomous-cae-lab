@@ -69,13 +69,26 @@ class RecoverySelectionDialog(QDialog):
                 if record['selectable'] and self.table.item(index,0).checkState()==Qt.CheckState.Checked]
 
 
-def prepare_copy(window, chosen):
+def prepare_copy(window, chosen, *, draft_policy='acknowledged'):
     chosen = list(chosen)
+    def inspect(archives):
+        if window.checked_documents() != chosen:
+            window.message.setText('문서 선택이 바뀌었습니다. 현재 선택으로 다시 검토하세요.'); return
+        started = window._call(lambda:window.client.portable_inspect(chosen,draft_policy=draft_policy,
+            recovery_archives=archives),window._review_copy)
+        if started:
+            window.message.setText('함께 옮길 파일을 확인하고 있습니다. 큰 저장 결과는 확인에 시간이 걸릴 수 있습니다.')
+        return started
     def received(payload):
         if window.checked_documents() != chosen:
             window.message.setText('문서 선택이 바뀌었습니다. 현재 선택으로 다시 검토하세요.'); return
         selector = RecoverySelectionDialog(payload, window)
         if selector.exec()!=QDialog.DialogCode.Accepted: return
         archives = selector.selections()
-        window._call(lambda:window.client.portable_inspect(chosen,recovery_archives=archives),window._review_copy)
-    window._call(lambda:window.client.portable_recovery_catalog(chosen),received)
+        inspect(archives)
+    recoverable = {row['owner_id'] for row in window.rows.values()
+        if row.get('node_type') == 'document' and row.get('kind') in KIND}
+    catalog = [identifier for identifier in chosen if identifier in recoverable]
+    if not catalog:
+        return inspect([])
+    return window._call(lambda:window.client.portable_recovery_catalog(catalog),received)

@@ -5,6 +5,11 @@ from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
+# Bounded file inventories/copies may verify many retained arrays. This is a
+# transport wait, independent of numerical budgets and immutable-file limits.
+_FILE_OPERATIONS=frozenset({'/api/workbench/portable-project/inspect',
+    '/api/workbench/portable-project/create','/api/workbench/portable-project/verify'})
+
 
 class WorkbenchHTTPError(HTTPError):
     """Keep HTTP status/receipt bytes and a validated service diagnostic."""
@@ -36,7 +41,8 @@ class Client:
             headers={'Content-Type':'application/json','X-CAE-Token':self.token}
             data=json.dumps(body,allow_nan=False).encode()
         try:
-            with urlopen(Request(self.url+path,data=data,headers=headers),timeout=30) as response:
+            with urlopen(Request(self.url+path,data=data,headers=headers),
+                         timeout=300 if path in _FILE_OPERATIONS else 30) as response:
                 return json.load(response)
         except HTTPError as error:
             payload=error.read()

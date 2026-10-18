@@ -72,17 +72,17 @@ def test_close_touches_only_helper_owned_child_windows():
 
 
 def test_copy_choice_and_poll_are_wired_to_explicit_existing_operations():
-    helper=Path(actions.__file__).read_text()
+    helper=Path(actions.__file__).read_text(encoding='utf-8')
     parsed=ast.parse(helper)
     method=next(n for n in parsed.body if isinstance(n,ast.FunctionDef) and n.name=='prepare_copy')
     called={n.func.attr for n in ast.walk(method) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
     assert 'save_document' in called
     assert not {'edited_draft','apply_inputs','expert_ask','submit','command'} & called
-    expert=Path(actions.__file__).with_name('expert_window.py').read_text()
+    expert=Path(actions.__file__).with_name('expert_window.py').read_text(encoding='utf-8')
     # Existing nonportable behavior is not changed; portable poll cannot advance.
     assert "dispatch_ready and not remote.get('portable_research_owner')" in expert
     assert "from .portable_research_actions import install" in expert
-    assert "from .portable_research_actions import install" in Path(actions.__file__).with_name('study_window.py').read_text()
+    assert "from .portable_research_actions import install" in Path(actions.__file__).with_name('study_window.py').read_text(encoding='utf-8')
 
 @pytest.mark.parametrize('choice',['취소','저장된 내용만','저장 후 계속'])
 def test_qt_explicit_copy_choice_keeps_unapplied_editor_and_owns_only_its_children(monkeypatch,choice):

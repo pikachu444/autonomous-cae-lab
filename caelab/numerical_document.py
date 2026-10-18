@@ -472,13 +472,15 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
         return draft['mode']
 
     def __init__(self, root, session_id, submit, manager, *, resolve_document, resolve_result,
-                 prepare_request=None, resolve_pde_revision=None, resolve_source_revision=None, resolve_processing=None):
+                 prepare_request=None, resolve_pde_revision=None, resolve_source_revision=None, resolve_processing=None,
+                 resolve_processing_context=None):
         super().__init__(root, session_id, submit, manager)
         self.resolve_document, self.resolve_result = resolve_document, resolve_result
         self.prepare_request = prepare_request
         self.resolve_pde_revision = resolve_pde_revision
         self.resolve_source_revision = resolve_source_revision
         self.resolve_processing = resolve_processing
+        self.resolve_processing_context = resolve_processing_context
 
     @staticmethod
     def _draft(value):
@@ -567,11 +569,17 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
                 channels = [source['response']]
                 if 'kinematics' in item:
                     channels.append(item['kinematics']['channel'])
+                compile_source=source
                 if 'processing_revision' in source:
                     if self.resolve_processing is None:
                         raise ValueError('The Data processing result resolver is unavailable')
-                    result = self.resolve_processing(source['document_id'], source['processing_revision'],
-                        selection=list(dict.fromkeys(channels)))
+                    if self.resolve_processing_context is not None:
+                        result,original_source=self.resolve_processing_context(source['document_id'],source['processing_revision'],
+                            selection=list(dict.fromkeys(channels)))
+                        compile_source={**source,**original_source}
+                    else:
+                        result = self.resolve_processing(source['document_id'], source['processing_revision'],
+                            selection=list(dict.fromkeys(channels)))
                     origin = result['diagnostics']['processing_record']['source']
                     if any(origin.get(k) != source[k] for k in ('document_id', 'job_id', 'input_revision', 'input_sha256')):
                         raise ValueError('Processing revision belongs to a different frozen import')
@@ -591,7 +599,11 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
                     driver_indexes = aligned_driver_indexes(observation, driver)
                 if 'selection' in item or 'processing_revision' in source:
                     from .data_processing import compile_plan_experiment
-                    compiled = compile_plan_experiment(item, observation, result, source)
+                    compiled = compile_plan_experiment(item, observation, result, compile_source)
+                    for experiment in compiled:
+                        # Navigation follows the current owner; sample/grid/lineage evidence remains original.
+                        if compile_source!=source:
+                            experiment['observation_source']['current_data_source']=deepcopy(source)
                 else:
                     # Preserve legacy import/experiment shape when no new row
                     # contract was requested, including historical fit IDs.

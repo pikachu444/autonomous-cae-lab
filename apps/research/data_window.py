@@ -2163,6 +2163,7 @@ class DataWindow(QMainWindow):
         self.axes.text(.5, .5, '가져온 결과를 선택하면 원래 값을 볼 수 있습니다.', ha='center', va='center', transform=self.axes.transAxes)
         self.canvas.draw_idle()
         self.result_label.setText('가져온 결과가 선택되지 않았습니다.')
+        self.result_label.setToolTip('')
 
     def _draw_result(self, receipt, key):
         same_page = key == getattr(self, '_drawn_result_key', None)
@@ -2183,7 +2184,15 @@ class DataWindow(QMainWindow):
         if not responses:
             error = receipt['status'].get('error')
             if error:
-                self.result_label.setText(self.result_label.text() + ' · ' + display(error))
+                message = error.get('message') if isinstance(error, dict) else error
+                summary = message if isinstance(message, str) else '실패 원인을 진단 상세에서 확인하세요.'
+                prefix = 'Missing or invalid table column:'
+                if isinstance(message, str) and message.startswith(prefix):
+                    token = message[len(prefix):].strip()
+                    if token and len(token.splitlines()) == 1:
+                        summary = '원자료 열 ‘' + token + '’의 지정과 가져오기 설정을 확인하세요.'
+                self.result_label.setText(self.result_label.text() + ' · ' + summary)
+                self.result_label.setToolTip(display(error))
             self._show_details()
             return
         name, response = next(iter(responses.items()))

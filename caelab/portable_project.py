@@ -28,7 +28,7 @@ from .evaluation import file_hash, read_result
 from .portable_project_io import (Issue, PortableProjectError, MAX_BYTES, MAX_FILES,
     copy_verified, extract_archive, fail, fingerprint_file, inside, json_file,
     no_links, relative_name, verify_inventory)
-from .storage import canonical_hash, check_id, load_json, save_json, utc_now
+from .storage import canonical_hash, check_id, load_json, save_json, utc_now, revision_read_scope
 
 FORMAT = 'caelab.portable-project/1'
 MANIFEST = 'portable-project.json'
@@ -53,6 +53,9 @@ def _asset_name(name: str, kind: str | None = None) -> str:
     if any(part.lower() in _DENIED_NAMES for part in parts):
         fail('PRIVATE_ASSET_REFUSED', name, '인증/환경설정 파일은 자동 수집하지 않습니다.', '인증/환경설정 자료를 제외하고 선택 목록을 다시 확인하세요. 공학 자료의 공개 여부는 제한하지 않습니다.')
     if kind == 'evaluation' and name == 'stage_inputs.json':
+        return name
+    if kind == 'data' and len(parts)>=3 and parts[0]=='processing':
+        check_id(parts[1])
         return name
     if kind == 'expert':
         from .portable_research_team import is_team_asset
@@ -97,6 +100,9 @@ def _selections(reader: SnapshotReader, selections: list[str | dict], draft_poli
 
 
 def _internal_revisions(document: dict):
+    for record in document.get('processing_revisions',[]):
+        if record.get('retained_revision'):
+            yield record['retained_revision']
     for source in document.get('retained_inputs', {}).values():
         yield source['revision']
     for run in document.get('runs', []):
@@ -245,6 +251,10 @@ def _inspect_research_copy(workbench, selections: list[str | dict], *, draft_pol
                         '원자료가 이 저장 개정에 보존되지 않았습니다.',
                         'Data에서 원파일을 명시적으로 다시 선택/가져온 뒤 저장하고 새 사본을 만드세요.', identifier))
             if document['kind'] == 'data':
+                from .portable_data_processing import input_draft
+                for processing in document.get('processing_revisions',[]):
+                    reader.processing(document,processing['id'])
+                    input_draft(reader,document,processing)
                 # Reuse Data's exact receipt/bytes validation; never search the
                 # source filesystem or fall back to the global input registry.
                 for data_id in document.get('retained_inputs', {}):
@@ -363,6 +373,7 @@ def _inspect_research_copy(workbench, selections: list[str | dict], *, draft_pol
     return result
 
 
+@revision_read_scope()
 def inspect_copy(workbench, selections: list[str | dict], *, draft_policy='acknowledged', recovery_archives=None):
     from .portable_project_native import inspect_union
     return inspect_union(workbench, selections, research_inspector=_inspect_research_copy,
@@ -390,7 +401,12 @@ class _Fork:
         self.execution_source_scope = (_manifest(wb.workspace)['project_id']
             if (wb.workspace / MANIFEST).is_file() else canonical_hash({'store': str(wb.workspace)}))
         for (identifier, _), document in self.snapshots.items():
-            for revision, draft in [(document['input_revision'], document['draft']),
+            processing_inputs=[]
+            if document['kind']=='data':
+                from .portable_data_processing import input_draft
+                processing_inputs=[(r['input_revision'],input_draft(self.reader,document,r))
+                    for r in document.get('processing_revisions',[])]
+            for revision, draft in [(document['input_revision'], document['draft']),*processing_inputs,
                                     *((r['input_revision'], r['draft']) for r in document.get('runs', []) if document['kind'] != 'expert')]:
                 key = (identifier, revision)
                 if key in self.inputs and canonical_hash(self.inputs[key]) != canonical_hash(draft):
@@ -449,7 +465,8 @@ class _Fork:
                 ref['candidate_evidence'] = self.reference(TypedReference((), '채택 증거', 'exact', ref['candidate_evidence']))
             run = self.run_for(target, ref['job_id'])
             ref['input_sha256'] = self.input_hash(target, run['input_revision'])
-        elif 'input_revision' in ref and not (ref.get('kind') == 'result' and target.startswith('X')):
+        elif 'input_revision' in ref and not (target.startswith('X') and
+                (ref.get('kind')=='result' or typed.form in ('result','proposal'))):
             old_revision = ref['input_revision']
             if 'input_sha256' in ref and canonical_hash(self.inputs[(target, old_revision)]) != ref['input_sha256']:
                 fail('INPUT_HASH_CONFLICT', target, '참조한 원입력 내용이 다릅니다.', '정확한 원본을 복구하세요.')
@@ -494,9 +511,10 @@ class _Fork:
         for i, experiment in enumerate(args.get('experiments', [])):
             if isinstance(experiment, dict) and isinstance(experiment.get('source'), dict) and 'document_id' in experiment['source']:
                 args['experiments'][i]['source'] = self.reference(TypedReference((), '시험 관측', 'observation', experiment['source']))
-            source = experiment.get('observation_source', {}).get('data_source') if isinstance(experiment, dict) else None
+            source_key='current_data_source' if isinstance(experiment,dict) and 'current_data_source' in experiment.get('observation_source',{}) else 'data_source'
+            source = experiment.get('observation_source', {}).get(source_key) if isinstance(experiment, dict) else None
             if isinstance(source, dict):
-                args['experiments'][i]['observation_source']['data_source'] = self.reference(
+                args['experiments'][i]['observation_source'][source_key] = self.reference(
                     TypedReference((), '보존한 시험 원자료', 'observation', source))
         # Request Plans retain prepared engine arguments, not an unresolved
         # request. Domain-source references outside this supported owner set
@@ -587,12 +605,17 @@ class _Fork:
             document.setdefault('portable_publication_history', []).append(
                 {'authority': 'HISTORY_ONLY', 'source_document_id': identifier,
                  'witnesses': document.pop('_candidate_evidence_publications')})
-        if document['kind'] == 'data' and (self.plan.get('recovery_archives') or
+        if document['kind'] == 'data' and (any(
+                d.get('processing_revisions') for (did,_),d in self.snapshots.items() if did==identifier)
+                or self.plan.get('recovery_archives') or
                 any(r.get('portable_data_execution') for r in original['runs'])):
             from .portable_data_execution import write as write_data_execution
             for source_run, run in zip(original['runs'], document['runs']):
                 if source_run.get('retention_complete'):
                     write_data_execution(self, identifier, revision, source_run, run, target)
+        if document['kind']=='data' and original.get('processing_revisions'):
+            from .portable_data_processing import write as write_processing
+            write_processing(self,identifier,revision,original,document,target)
         if document['kind'] == 'numerical':
             from .portable_project_execution import write_execution
             for source_run, run in zip(original['runs'], document['runs']):

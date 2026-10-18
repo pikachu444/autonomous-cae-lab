@@ -97,6 +97,10 @@ class DataDocuments(MaterialDocuments):
         from .data_processing_document import result
         return result(self, identifier, revision, selection=selection)
 
+    def processing_context(self, identifier, revision, *, selection=None):
+        from .data_processing_document import context
+        return context(self, identifier, revision, selection=selection)
+
     def __init__(self, root, session_id, submit, manager, *, resolve_input):
         super().__init__(root, session_id, submit, manager)
         self.resolve_input = resolve_input

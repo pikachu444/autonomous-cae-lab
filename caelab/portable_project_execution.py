@@ -119,7 +119,8 @@ class TypedProjection:
         revkey = 'plan_revision' if typed.form == 'adoption' else 'saved_revision'
         if revkey in ref:
             ref[revkey] = self.revisions[(doc, ref[revkey])]
-        if 'input_revision' in ref and not (ref.get('kind') == 'result' and self.docs[doc]['kind'] == 'expert'):
+        if 'input_revision' in ref and not (self.docs[doc]['kind']=='expert' and
+                (ref.get('kind')=='result' or typed.form in ('result','proposal'))):
             old = ref['input_revision']
             row = self.inputs[(doc, old)]
             if 'input_sha256' in ref and ref['input_sha256'] != row['source_input_sha256']:
@@ -151,7 +152,8 @@ class TypedProjection:
         for i, experiment in enumerate(value.get('experiments', [])):
             if not isinstance(experiment, dict):
                 continue
-            for path in [('source',), ('observation_source', 'data_source')]:
+            source_key='current_data_source' if 'current_data_source' in experiment.get('observation_source',{}) else 'data_source'
+            for path in [('source',), ('observation_source', source_key)]:
                 original = experiment
                 for field in path:
                     original = original.get(field) if isinstance(original, dict) else None
