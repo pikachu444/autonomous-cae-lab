@@ -141,7 +141,7 @@ class UpstreamSourceTests(unittest.TestCase):
 
     def test_installer_prepares_sources_before_editable_install(self):
         installer = (REPO / "scripts/install-windows.ps1").read_text(encoding="utf-8-sig")
-        call = "Invoke-Checked $python @((Join-Path $PSScriptRoot 'prepare_fixture_upstream.py')"
+        call = "Invoke-Checked $python @('-X','utf8',(Join-Path $PSScriptRoot 'prepare_fixture_upstream.py')"
         self.assertIn(call, installer)
         self.assertLess(installer.index("$pyVersion ="), installer.index(call))
         self.assertLess(installer.index(call), installer.index("Invoke-Checked $uv @('pip','install'"))

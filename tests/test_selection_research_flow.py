@@ -90,6 +90,17 @@ def test_context_exposes_actual_native_convergence_logs_without_execution(tmp_pa
         assert {row['label'] for row in context['logs']} == {'calculation.sta', 'calculation.cvg'}
         assert any('RESIDUAL 0.17' in row['text'] for row in context['logs'])
         assert wb.manager.list() == jobs
+        (folder / 'calculation.dat').write_text('ACTUAL CONTACT FORCE\n', encoding='utf-8')
+        for index in range(4):
+            (folder / f'a-writer-{index}.log').write_text('Writer diagnostic\n', encoding='utf-8')
+            (folder / f'a-writer-{index}.execution.json').write_text(
+                '{"status":"SUCCEEDED","stdout":"a-writer-' + str(index) + '.log"}', encoding='utf-8')
+        bounded = wb.engineering_context(job['id'])
+        assert len(bounded['logs']) == 6
+        assert {'calculation.sta', 'calculation.cvg', 'calculation.dat'} <= {
+            row['label'] for row in bounded['logs']}
+        assert bounded['limitations']
+        assert wb.manager.list() == jobs
         first = wb.desktop.selection_discussion(job_id=job['id'], session_id=wb.session_id,
             command_id='Cfirst')['document']
         (folder / 'calculation.cvg').write_text('ITERATION 13 RESIDUAL 0.12\n', encoding='utf-8')

@@ -254,6 +254,14 @@ _TOOL_INPUTS['calculations.plan'] = calculation_request_schema()
 _TOOL_INPUTS['calculations.submit'] = calculation_request_schema(submission=True)
 
 
+def _proposal_fields(request):
+    if isinstance(request, dict):
+        for key in ('request', 'editable_request'):
+            if isinstance(request.get(key), dict):
+                return request[key]
+    return request
+
+
 def editable_proposal(action):
     """Read an unexecuted proposal without treating completeness as authority."""
     if not isinstance(action, dict) or action.get('executed') is not False:
@@ -261,7 +269,7 @@ def editable_proposal(action):
     if action.get('status') not in {'PLANNED', 'INVALID_PLAN', 'PROPOSED'}:
         raise ValueError('This reply has no editable proposal')
     request = action.get('plan', action.get('proposal'))
-    candidate = request.get('request', request) if isinstance(request, dict) else None
+    candidate = _proposal_fields(request)
     if not isinstance(candidate, dict) or not ({'operation', 'inputs'} & candidate.keys()):
         raise ValueError('Choose a calculation proposal to complete in the editor')
     return deepcopy(request)
@@ -269,9 +277,7 @@ def editable_proposal(action):
 
 def proposal_request(action):
     """Seed missing fields in a separate draft; the original reply stays intact."""
-    request = editable_proposal(action)
-    if isinstance(request.get('request'), dict):
-        request = request['request']
+    request = _proposal_fields(editable_proposal(action))
     defaults = {'purpose': '', 'operation': 'evaluate', 'inputs': {}, 'budget': {'evaluations': 1}}
     return {key: deepcopy(request[key]) if isinstance(request.get(key), type(value)) else value
             for key, value in defaults.items()}

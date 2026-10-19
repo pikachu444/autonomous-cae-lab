@@ -94,13 +94,13 @@ def test_followup_preserves_prior_challenges_constraints_and_selected_results(di
     assert draft['composer']['evidence'] == discussion['draft']['composer']['evidence']
 
 
-@pytest.mark.parametrize('wrapped', [False, True])
+@pytest.mark.parametrize('wrapped', [None, 'request', 'editable_request'])
 def test_incomplete_proposal_retains_original_identity_and_can_be_completed(discussion, wrapped):
     from caelab.assist.experts import proposal_request, validate_plan_request
     action = {'status': 'PROPOSED', 'executed': False,
               'proposal': {'operation': 'evaluate', 'inputs': {'backend': 'material.felupe'}}}
     if wrapped:
-        action['proposal'] = {'tool': 'calculations.plan', 'request': action['proposal']}
+        action['proposal'] = {'tool': 'calculations.plan', wrapped: action['proposal']}
     discussion['turns'][0]['response']['proposed_actions'] = [action]
     before = deepcopy(discussion)
     origin = proposal_origin(discussion, 'Aturn', 0)

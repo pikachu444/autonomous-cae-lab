@@ -33,12 +33,16 @@ def read_context(workbench, identifier):
     else:
         context['model'] = {'settings': deepcopy(settings), 'values': deepcopy(arguments.get('values', {}))}
     monitor = workbench.job_monitor(identifier)
-    for log in monitor['logs'][:6]:
+    # Native writer/converter logs can sort before the actual solver histories.
+    # Keep the bounded payload while always including the convergence files.
+    logs = sorted(monitor['logs'], key=lambda row:
+        (not row['label'].lower().endswith(('.sta', '.cvg', '.dat')), row['label']))
+    for log in logs[:6]:
         selected = workbench.job_monitor(identifier, log=log['id'],
             offset=max(0, log['bytes'] - 6144), limit=6144)['selected_log']
         context['logs'].append({'label': log['label'], **selected})
     if len(monitor['logs']) > 6 or monitor.get('catalog_truncated'):
-        context['limitations'].append('Only the first six log tails are included; use the job monitor for more.')
+        context['limitations'].append('Only six log tails are included, prioritizing .sta/.cvg/.dat; use the job monitor for more.')
     try:
         from .research_operations import result_metadata
         result = workbench.result(identifier, selection={'metadata_only': True})
