@@ -105,8 +105,11 @@ class ContactFemCalculixAdapter:
 
     def run(self, settings, *, output, runtime=None):
         if (not isinstance(settings, dict) or set(settings)-{'snapshot_path', 'data_id'} or
-                not isinstance(settings.get('snapshot_path'), str) or runtime):
+                not isinstance(settings.get('snapshot_path'), str)):
             raise ValueError('Contact run requires the registered snapshot and configured CalculiX runtime')
+        if runtime and (not isinstance(runtime, dict) or set(runtime) != {'freecad_executable'}
+                        or not isinstance(runtime['freecad_executable'], str)):
+            raise ValueError('Native CalculiX accepts only the configured FreeCAD installation')
         if 'data_id' in settings:
             check_id(settings['data_id'])
         output = Path(output).absolute()
@@ -145,13 +148,11 @@ class ContactFemCalculixAdapter:
                           checks=[{'name': 'contact_mesh_and_deck', 'status': 'PASS', **gates}])
             result['execution_status'] = 'FAILED'
             check_cancelled()
-            command = shutil.which('ccx')
-            if not command:
-                raise RuntimeError('CalculiX requires ccx on configured PATH')
-            executable = Path(command).resolve(strict=True)
+            from ..native_tools import calculix_executable
+            executable, configuration = calculix_executable(runtime)
             executable_sha = _sha(executable)
             result['runtime'] = {'executable': str(executable), 'sha256': executable_sha,
-                                 'configuration': 'configured PATH', 'build_identity': 'UNKNOWN'}
+                                 'configuration': configuration, 'build_identity': 'UNKNOWN'}
             native = output / 'solver'
             native.mkdir()
             from ..contact_execution_extensions import require_runtime

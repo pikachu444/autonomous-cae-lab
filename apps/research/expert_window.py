@@ -16,7 +16,7 @@ import uuid
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+from PySide6.QtWidgets import (QApplication, QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFormLayout, QHBoxLayout, QInputDialog, QLabel, QListWidget, QListWidgetItem, QMainWindow,
     QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter, QTabWidget,
     QToolBar, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
@@ -382,18 +382,22 @@ class ExpertWindow(QMainWindow):
         evidence_layout.addWidget(technical)
         evidence_layout.addStretch()
         self.side.addTab(evidence_tab, '인용 자료')
-        plan_tab = QWidget()
+        plan_tab = self.proposal_panel = QWidget()
         plan_layout = QVBoxLayout(plan_tab)
+        plan_layout.setContentsMargins(0, 4, 0, 4)
+        plan_layout.addWidget(QLabel('선택 발언의 계산 제안'))
         self.plans = QListWidget()
+        self.plans.setMaximumHeight(76)
         self.plans.currentRowChanged.connect(self._update_actions)
-        plan_layout.addWidget(self.plans)
+        self.plans.itemDoubleClicked.connect(lambda *_: self.open_selected_plan())
+        proposal_actions = QHBoxLayout()
+        proposal_actions.addWidget(self.plans, 1)
         self.plan_button = QPushButton('계산 계획 열기')
         self.plan_button.clicked.connect(self.open_selected_plan)
-        plan_layout.addWidget(self.plan_button)
-        proposal_explanation = QLabel('')
-        proposal_explanation.setWordWrap(True)
-        plan_layout.addWidget(proposal_explanation)
-        self.side.addTab(plan_tab, '계산 계획')
+        proposal_actions.addWidget(self.plan_button)
+        plan_layout.addLayout(proposal_actions)
+        conversation.insertWidget(conversation.indexOf(self.editor), plan_tab)
+        plan_tab.hide()
         settings = self.transmission_settings = QWidget()
         form = QFormLayout(settings)
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
@@ -843,6 +847,7 @@ class ExpertWindow(QMainWindow):
         scope = self._buffer.setdefault('context', {}).setdefault('transmission_scope', {})
         ids = [item['job_id'] for item in self._buffer['composer']['evidence'] if 'job_id' in item]
         ids += self.research_team.result_ids()
+        ids += self._buffer.get('context', {}).get('selected_result_ids', [])
         scope['result_ids'] = list(dict.fromkeys(scope.get('result_ids', []) + ids)) if checked else []
         self._edited()
 
@@ -1215,6 +1220,7 @@ class ExpertWindow(QMainWindow):
         self.result_preview.clear()
         self.result_preview.hide()
         self._references, self._plans = [], []
+        self.proposal_panel.hide()
         self.turn_context.clear()
         self.selected_reply.setEnabled(bool(current and self.document))
         self.study_action.setEnabled(bool(current and self.document and not self._busy and not self.conflict))
@@ -1258,9 +1264,16 @@ class ExpertWindow(QMainWindow):
             item.setToolTip('진단 상세에서 원본 식별 정보를 확인할 수 있습니다.')
             self.sources.addItem(item)
         self._plans = turn.get('response', {}).get('proposed_actions', [])
+        self.proposal_panel.setVisible(bool(self._plans))
         for index, proposal in enumerate(self._plans):
-            plan = proposal.get('plan', {}) if isinstance(proposal, dict) else {}
-            self.plans.addItem(str(index + 1) + '. ' + str(plan.get('purpose') or '계산 제안'))
+            plan = proposal.get('plan', proposal.get('proposal', {})) if isinstance(proposal, dict) else {}
+            plan = plan if isinstance(plan, dict) else {}
+            suffix = ' (보완 필요)' if not isinstance(proposal, dict) or proposal.get('status') != 'PLANNED' else ''
+            self.plans.addItem(str(index + 1) + '. ' + str(plan.get('purpose') or '계산 제안') + suffix)
+        if self._plans:
+            self.plans.setCurrentRow(0)
+        QTimer.singleShot(0, lambda: self.turns.scrollToItem(current, QAbstractItemView.ScrollHint.PositionAtTop)
+                         if self.turns.currentItem() is current else None)
         self._update_actions()
 
     def organize_study(self):
@@ -1808,8 +1821,13 @@ class ExpertWindow(QMainWindow):
         self.source_open.setEnabled(source_enabled and self.selected_sources.currentRow() >= 0)
         self.reference_button.setEnabled(not self._busy and self.open_reference is not None and self.sources.currentRow() >= 0)
         proposal = self._plans[self.plans.currentRow()] if 0 <= self.plans.currentRow() < len(self._plans) else None
-        self.plan_button.setEnabled(not self._busy and not self.conflict and self.open_plan is not None and isinstance(proposal, dict) and
-                                    proposal.get('status') == 'PLANNED' and proposal.get('executed') is False)
+        from caelab.assist.experts import editable_proposal
+        try:
+            editable_proposal(proposal)
+            editable = True
+        except ValueError:
+            editable = False
+        self.plan_button.setEnabled(not self._busy and not self.conflict and self.open_plan is not None and editable)
         if present:
             paused = self.document.get('discussion', {}).get('paused', False)
             state = 'Paused; active calculations are independent' if paused else 'Discussion ready'

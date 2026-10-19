@@ -27,6 +27,13 @@ def native_objects(analysis, base=None, *, include_suppressed=False):
             and (include_suppressed or not getattr(obj, 'Suppressed', False))]
 
 
+def uses_custom_static(analysis, metadata):
+    """Sidecar options that the official writer cannot read from native objects."""
+    return any(row.get('analysis_id') == analysis.Name
+        for key in ('contacts', 'plasticity_drafts', 'contact_programs', 'convergence_drafts', 'periodic_constraints')
+        for row in metadata.get(key, []))
+
+
 def uses_solid_route(analysis, metadata=None):
     """Keep legacy single-solid linear inputs unchanged; reuse the contact runner."""
     active = [obj for obj in analysis.Group if not getattr(obj, 'Suppressed', False)]

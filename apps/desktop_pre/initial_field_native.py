@@ -110,7 +110,7 @@ def read(fem,analysis):
         from caelab.initial_field_conditions import static_program
         defaults=default_draft(model)
         steps=static_program(model)[0]['steps']
-    except (ValueError,KeyError,TypeError,AttributeError) as e:
+    except (ValueError,KeyError,TypeError,AttributeError,ImportError) as e:
         if str(e) not in errors:errors.append(str(e))
     return {'record':r,'errors':errors,'meshes':[{'id':o.Name,'label':o.Label} for o in analysis.Group if hasattr(o,'FemMesh')],
         'native_temperatures':temps,'default_draft':defaults,'static_steps':deepcopy(steps),'execution':'NOT_PERFORMED'}

@@ -1,7 +1,7 @@
 """Editable follow-up proposals for existing X/N/S owners; never submit or Ask."""
 from copy import deepcopy
 
-from .assist.experts import validate_plan_request
+from .assist.experts import editable_proposal
 from .research_operations import validate_result_reference
 from .storage import canonical_hash
 from .study_document import default_draft as study_draft
@@ -36,8 +36,7 @@ def proposal_origin(discussion, turn_id, proposal_index):
     proposals = turn.get('response', {}).get('proposed_actions', [])
     _need(type(proposal_index) is int and 0 <= proposal_index < len(proposals), 'Choose an exact proposal index')
     action = proposals[proposal_index]
-    _need(action.get('status') == 'PLANNED' and action.get('executed') is False, 'A prediction or executed action is not a Plan draft')
-    plan = validate_plan_request(action.get('plan'))['plan']
+    plan = editable_proposal(action)
     run = next((r for r in discussion.get('runs', []) if r['job_id'] == turn['job_id']), None)
     _need(run is not None and all(run.get(k) == turn.get(k) for k in ('input_revision', 'input_sha256')),
           'Reply and submitted input differ')
@@ -77,15 +76,20 @@ def result_review_draft(discussion, *, plan_link, result_reference, selector, cu
     team = draft.get('context', {}).get('research_team')
     _need(isinstance(team, dict) and team.get('version') == 2, 'Create an explicit research-team phase first')
     previous = team.get('phase_id')
-    team.update(parent_phase_id=previous, phase_id=None, carry_forward_turn_ids=[origin['source']['turn_id']], requested_next=None)
+    carried = list(dict.fromkeys(team.get('carry_forward_turn_ids', []) + [origin['source']['turn_id']]))
+    team.update(parent_phase_id=previous, phase_id=None, carry_forward_turn_ids=carried, requested_next=None)
     actors = checked.get('actor_ids')
     _need(isinstance(actors, list) and actors and set(actors) <= {a['expert_id'] for a in team.get('assignments', [])},
           'Explicitly select the roles allowed to receive the follow-up result')
     for assignment in team.get('assignments', []):
         if assignment['expert_id'] in actors:
-            assignment['result_refs'] = [deepcopy(selected)]
-    draft['composer'].update(text='원 가설과 판별 조건을 선택한 실제 결과와 대조해 유지·수정·철회 또는 미확인을 검토하세요.',
-                             reply_to=origin['source']['turn_id'], classification='question', evidence=[])
+            retained = assignment.setdefault('result_refs', [])
+            if selected not in retained:
+                retained.append(deepcopy(selected))
+    review_question = '원 가설과 판별 조건을 선택한 실제 결과와 대조해 유지·수정·철회 또는 미확인을 검토하세요.'
+    prior_question = draft['composer'].get('text', '').strip()
+    draft['composer'].update(text=(prior_question + '\n\n' if prior_question else '') + review_question,
+                             reply_to=origin['source']['turn_id'], classification='question')
     draft['context']['research_followup'] = {'plan_link': deepcopy(plan_link), 'result_reference': reference,
         'selector': deepcopy(selector), 'dependency_ids': list(dict.fromkeys(origin['dependency_ids'] + checked.get('dependency_ids', []))),
         'input_manifest_ids': deepcopy(origin['input_manifest_ids']), 'new_ask': False, 'executed': False}

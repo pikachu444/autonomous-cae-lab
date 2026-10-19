@@ -61,6 +61,10 @@ def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
     manifest = json.loads(payload)
     if manifest.get('kind') != kind or manifest.get('schema_version') != '1':
         raise ValueError('A completed FreeCAD FEM snapshot is required')
+    if kind == 'freecad-fem-frozen' and manifest.get('export_profile') == 'freecad-calculix-writer':
+        from .adapters.frozen_fem import validate_snapshot
+        _, _, pins, _ = validate_snapshot(source)
+        return [_within_root(source.parent / name, root) for name in pins], file_hash(source)
     if kind == 'freecad-contact-frozen' and manifest.get('backend') == 'structure.codeaster.contact':
         from .adapters.contact_aster_model import validate_snapshot
         _, _, pins, _ = validate_snapshot(source)

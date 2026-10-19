@@ -7,7 +7,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 from test_pre_frozen_analysis import native  # Native API double, not a native run.
-from apps.desktop_pre.freeze_analysis import freeze_analysis
+from apps.desktop_pre.freeze_analysis import _freeze_legacy_analysis as freeze_analysis
 from caelab.adapters import frozen_fem as adapter
 from caelab.execution_control import ExecutionCancelled
 

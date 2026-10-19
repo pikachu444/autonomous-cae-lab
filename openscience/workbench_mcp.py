@@ -464,6 +464,11 @@ def dynamic_reprocess_prepare(source_job_id: str) -> dict:
     return client().dynamic_reprocess_request(source_job_id)
 
 @mcp.tool()
+def calculation_context(job_id: str) -> dict:
+    """Read the selected calculation's actual model, solver logs and result summary."""
+    return client().engineering_context(job_id)
+
+@mcp.tool()
 def job_status(job_id: str) -> dict:
     """Read the same job ID shown by HTTP/GUI, without resubmission."""
     return client().status(job_id)

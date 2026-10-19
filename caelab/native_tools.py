@@ -14,6 +14,24 @@ TOOLS = {
 }
 
 
+def calculix_executable(runtime=None):
+    """Resolve the installed solver from trusted desktop configuration."""
+    if runtime and (not isinstance(runtime, dict) or set(runtime) != {'freecad_executable'}
+                    or not isinstance(runtime['freecad_executable'], str)):
+        raise ValueError('Native CalculiX accepts only the configured FreeCAD installation')
+    command = shutil.which('ccx')
+    configuration = 'configured PATH'
+    if not command and (runtime or {}).get('freecad_executable'):
+        app = Path(runtime['freecad_executable']).resolve(strict=True)
+        for candidate in (app.parent / 'ccx.exe', app.parent / 'bin' / 'ccx.exe'):
+            if candidate.is_file():
+                command, configuration = str(candidate), 'configured FreeCAD installation'
+                break
+    if not command:
+        raise RuntimeError('CalculiX was not found on PATH or in the configured FreeCAD installation')
+    return Path(command).resolve(strict=True), configuration
+
+
 def _windows_app_paths(filename):
     import winreg
     result = []

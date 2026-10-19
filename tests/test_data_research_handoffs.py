@@ -64,6 +64,9 @@ def test_retained_comparison_paged_raw_and_followup_save_reopen(tmp_path):
         discussion=wb.desktop.data_followup(source,'expert',session_id=wb.session_id,command_id='Cexpert_followup')
         assert discussion['document']['draft']['composer']['evidence'][0]['job_id']==ja
         assert not discussion['document']['runs']
+        again=wb.desktop.data_followup(source,'expert',session_id=wb.session_id,command_id='Cexpert_again')
+        assert again['document']['id']==discussion['document']['id']
+        assert len(again['document']['draft']['composer']['evidence'])==1
         saved=command(wb,a,'document.save')['document']
         old_input=wb.root/'inputs'/a['draft']['data_id']
         old_input.rename(old_input.with_name(old_input.name+'-retained-original'))

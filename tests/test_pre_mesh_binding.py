@@ -200,7 +200,7 @@ def test_other_document_or_cross_document_source_is_rejected(mesh):
 
 @pytest.mark.parametrize("problem", ["empty", "nonfinite", "bad_connectivity"])
 def test_invalid_native_mesh_never_gets_a_new_stamp(mesh, problem):
-    if problem == "empty": mesh.FemMesh.Volumes = []
+    if problem == "empty": mesh.FemMesh.Volumes, mesh.FemMesh.Faces, mesh.FemMesh.Edges = [], [], []
     elif problem == "nonfinite": mesh.FemMesh.Nodes[1].x = float("nan")
     else: mesh.FemMesh.connectivity[7][0] = 999
     observer = MeshBindingObserver(mesh.Document)
@@ -208,3 +208,19 @@ def test_invalid_native_mesh_never_gets_a_new_stamp(mesh, problem):
         observer.track(mesh)
     observer.slotChangedObject(mesh, "FemMesh")
     assert mesh.PropertiesList == [] and observer.last_error
+
+
+@pytest.mark.parametrize('family,identifier', [('Faces',8),('Edges',9)])
+def test_source_binding_retains_shell_and_beam_connectivity(mesh, family, identifier):
+    mesh.FemMesh.Volumes = []
+    if family == 'Edges':
+        mesh.FemMesh.Faces = []
+    observer = MeshBindingObserver(mesh.Document)
+    first = observer.track(mesh)
+    assert observer.validate(mesh)['mesh'] == first['mesh']
+    mesh.FemMesh.connectivity[identifier] = list(reversed(mesh.FemMesh.connectivity[identifier]))
+    with pytest.raises(ValueError, match='without an observed replacement'):
+        observer.validate(mesh)
+    observer.slotChangedObject(mesh,'FemMesh')
+    changed = observer.validate(mesh)
+    assert changed['status'] == REPLACED and changed['mesh'] != first['mesh']

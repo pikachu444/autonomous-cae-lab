@@ -170,10 +170,14 @@ def test_frd_dat_exact_frame_channels_order_and_raw_signs(model,tmp_path):
         read_frd(f,nodes,elements,contact_materials=materials)
 
 
-def test_managed_contact_adapter_retains_exact_outputs_and_series_without_physical_clock(model,snapshot,tmp_path,monkeypatch):
-    executable=tmp_path/'ccx'
+@pytest.mark.parametrize('installation', ['PATH', 'FreeCAD'])
+def test_managed_contact_adapter_retains_exact_outputs_and_series_without_physical_clock(model,snapshot,tmp_path,monkeypatch,installation):
+    executable=tmp_path/'ccx.exe'
     executable.write_bytes(b'EXPLICIT_SOLVER_PROCESS_DOUBLE')
-    monkeypatch.setattr(contact_fem.shutil,'which',lambda name:str(executable))
+    monkeypatch.setattr(contact_fem.shutil,'which',lambda name:str(executable) if installation == 'PATH' else None)
+    app=tmp_path/'FreeCAD.exe'
+    app.write_bytes(b'EXPLICIT_DESKTOP_INSTALLATION_DOUBLE')
+    runtime=None if installation == 'PATH' else {'freecad_executable':str(app)}
     frd,dat,_=native_outputs(model)
     calls=[]
     def command(argv,cwd,label):
@@ -183,8 +187,9 @@ def test_managed_contact_adapter_retains_exact_outputs_and_series_without_physic
         return NS(returncode=0)
     monkeypatch.setattr(contact_fem,'run_owned_command',command)
     result=normalize_evaluation(contact_fem.ContactFemCalculixAdapter().run(
-        {'snapshot_path':str(snapshot),'data_id':'Dcontact'},output=tmp_path/'run'))
+        {'snapshot_path':str(snapshot),'data_id':'Dcontact'},output=tmp_path/'run',runtime=runtime))
     assert result['execution_status']=='SUCCEEDED',result['diagnostics']
+    assert result['runtime']['configuration'] == ('configured PATH' if installation == 'PATH' else 'configured FreeCAD installation')
     assert len(calls)==1 and calls[0][0][-2:]==['-i','contact']
     curve=result['responses']['Contact.CF.FZ']
     assert curve['kind']=='series' and curve['value']==[1.5,3.]
@@ -195,12 +200,12 @@ def test_managed_contact_adapter_retains_exact_outputs_and_series_without_physic
     assert result['decision']=='NOT_RELEASED' and not result['engineering_valid']
     assert (tmp_path/'run/post/frame0002.vtu').exists()
     assert (tmp_path/'run/solver/contact.dat').read_text()==dat
-    old=json.loads((tmp_path/'run/contact_execution.json').read_text())
+    old=json.loads((tmp_path/'run/contact_execution.json').read_text(encoding='utf-8'))
     assert old['contact_outputs']['active_state']=='UNKNOWN'
     def cancel(*args):
         raise ExecutionCancelled('Explicit cancellation double')
     monkeypatch.setattr(contact_fem,'run_owned_command',cancel)
-    cancelled=contact_fem.ContactFemCalculixAdapter().run({'snapshot_path':str(snapshot)},output=tmp_path/'cancelled')
+    cancelled=contact_fem.ContactFemCalculixAdapter().run({'snapshot_path':str(snapshot)},output=tmp_path/'cancelled',runtime=runtime)
     assert cancelled['execution_status']=='CANCELLED' and cancelled['responses']=={}
     assert (tmp_path/'cancelled/frozen_input/contact.inp').exists()
     assert (tmp_path/'run/contact_execution.json').exists()
@@ -238,6 +243,63 @@ def test_contact_snapshot_reuses_registered_native_input_and_keeps_original_file
     assert contact_fem.validate_snapshot(retained)[0]['id']=='Fcontact'
     assert {'pre.contact.freeze','pre.contact.set','pre.contact.preview_rebind'} <= CAPABILITIES['pre']
     assert snapshot.exists()
+
+
+def test_contact_plan_refresh_and_single_evaluation_reuse_legacy_input_owner(snapshot,tmp_path,monkeypatch):
+    """Routing only: native input is a double and no solver is executed."""
+    import shutil,time
+    from caelab.workbench import Workbench
+    from caelab.numerical_document import request_draft
+    backend,operation='structure.calculix.contact','pre.contact.freeze'
+    calls=[]
+    def execution_double(selected,settings,**options):
+        calls.append((selected,settings))
+        return {'execution_status':'REJECTED','responses':{},'checks':[],
+                'diagnostics':{'reason':'TEST_ONLY no physics'}}
+    monkeypatch.setattr('caelab.workbench.run',execution_double)
+    wb=Workbench(tmp_path/'workspace')
+    try:
+        folder=wb.desktop.root/'Pnative'/'Fcontact'
+        shutil.copytree(snapshot.parent,folder)
+        manifest=json.loads((folder/'snapshot.json').read_text(encoding='utf-8'))
+        manifest.update(analysis_id='UserAnalysis',solver_id='UserSolver')
+        (folder/'snapshot.json').write_text(json.dumps(manifest),encoding='utf-8')
+        descriptor={'id':'Pnative','kind':'pre','generation':3,'view_generation':0,
+                    'title':'Native routing double','capabilities':[operation]}
+        auth=wb.native_commands.register(host_id='Hnative',session_id='Snative',application='freecad',
+            version='TEST_ONLY',execution_mode='headless',documents=[descriptor],registration_nonce='n'*32)
+        wb.document_command('Pnative',operation,{'analysis_id':'UserAnalysis','solver_id':'UserSolver'},
+            session_id='Snative',expected_generation=3,command_id='Cfreeze')
+        wb.native_commands.next('Hnative',session_id='Snative',host_token=auth['host_token'])
+        wb.native_commands.event('Hnative',session_id='Snative',host_token=auth['host_token'],event='finished',
+            command_id='Cfreeze',documents=[descriptor],outcome={'state':'SUCCEEDED','result':{'status':'COMPLETED',
+            'result':{'snapshot_relative':(folder/'snapshot.json').relative_to(wb.desktop.root).as_posix()}}})
+        frozen=wb.desktop.submit_frozen('Cfreeze')
+        until=time.monotonic()+5
+        while wb.manager.status(frozen['job']['id'])['state']!='FAILED':
+            assert time.monotonic()<until
+            time.sleep(.01)
+        discussion=wb.desktop.selection_discussion(job_id=frozen['job']['id'],
+            session_id=wb.session_id,command_id='Cdiscuss')['document']
+        plan=wb.document_open(kind='numerical',draft=request_draft({
+            'purpose':'Edit the existing native model','operation':'evaluate',
+            'inputs':{'backend':backend,'settings':{'data_id':frozen['input']['id']}},
+            'budget':{'evaluations':1}},source={'discussion_id':discussion['id']}))
+        refreshed=wb.desktop.native_plan_input(plan['id'],session_id=wb.session_id,
+            expected_generation=plan['generation'],command_id='Crefresh')
+        assert refreshed['status']=='PREPARING'
+        queued=wb.native_commands.next('Hnative',session_id='Snative',host_token=auth['host_token'])['command']
+        assert queued['operation']==operation
+        assert queued['arguments']['_public_arguments']=={'analysis_id':'UserAnalysis','solver_id':'UserSolver'}
+        job=wb.submit('evaluate',plan['draft']['request']['inputs'])
+        until=time.monotonic()+5
+        while wb.manager.status(job['id'])['state']!='FAILED':
+            assert time.monotonic()<until
+            time.sleep(.01)
+        assert wb.result(job['id'])['diagnostics']['reason']=='TEST_ONLY no physics'
+        assert [row[0] for row in calls]==[backend,backend]
+    finally:
+        assert wb.shutdown()['joined']
 
 
 def test_contact_coverage_and_invalid_tokens_remain_distinct_from_measured_zero(model,tmp_path):

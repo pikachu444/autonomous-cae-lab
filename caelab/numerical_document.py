@@ -582,7 +582,8 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
                 original = self.resolve_result(source['discussion_id'],source['job_id'])
                 actions = original.get('proposed_actions', [])
                 index = source['proposal_index']
-                if index >= len(actions) or canonical_hash(actions[index].get('plan')) != source['proposal_sha256']:
+                from .assist.experts import editable_proposal
+                if index >= len(actions) or canonical_hash(editable_proposal(actions[index])) != source['proposal_sha256']:
                     raise ValueError('The retained source proposal changed or is missing')
             from .research_operations import validate_result_refs
             validate_result_refs(draft['request']['operation'], draft['request']['inputs'])

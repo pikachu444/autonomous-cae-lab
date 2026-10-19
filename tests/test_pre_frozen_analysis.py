@@ -7,7 +7,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from apps.desktop_pre.freeze_analysis import freeze_analysis, _serialized_coordinate_close
+from apps.desktop_pre.freeze_analysis import _freeze_legacy_analysis as freeze_analysis, _serialized_coordinate_close
 
 
 class Quantity:

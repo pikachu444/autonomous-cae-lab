@@ -65,8 +65,8 @@ def _local_file(root, relative):
 def read_monitor(root, job, *, log=None, offset=0, limit=MAX_CHUNK):
     """Offsets/counts address bytes. Mutable logs have a chunk digest, not a seal.
 
-    Only stdout/stderr named by execution receipts in this job's native folder
-    are exposed. Missing receipts/logs are unavailable, never guessed paths.
+    Execution stdout/stderr and native convergence outputs in this job's own
+    folder are exposed. Callers select catalog entries, never filesystem paths.
     """
     from .storage import check_id
     identifier = check_id(job['id'])
@@ -135,6 +135,23 @@ def read_monitor(root, job, *, log=None, offset=0, limit=MAX_CHUNK):
                         files[log_id] = source
                         result['logs'].append({'id': log_id, 'label': log_relative,
                                                'bytes': source.stat().st_size})
+        for folder, directories, names in os.walk(native, followlinks=False):
+            directories[:] = sorted(name for name in directories
+                if not (Path(folder) / name).is_symlink() and not (
+                    hasattr(Path(folder) / name, 'is_junction') and (Path(folder) / name).is_junction()))
+            visited += 1 + len(names) + len(directories)
+            if visited > MAX_ENTRIES:
+                result['catalog_truncated'] = True
+                break
+            for name in sorted(names):
+                if Path(name).suffix.lower() not in {'.sta', '.cvg', '.dat'}:
+                    continue
+                relative = (Path(folder) / name).relative_to(native).as_posix()
+                source = _local_file(native, relative)
+                log_id = 'native:' + relative
+                if source is not None and log_id not in files:
+                    files[log_id] = source
+                    result['logs'].append({'id': log_id, 'label': relative, 'bytes': source.stat().st_size})
     if log is not None:
         if log not in files:
             raise ValueError('The selected log is not available in this job catalog')

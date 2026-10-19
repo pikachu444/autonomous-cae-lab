@@ -68,8 +68,8 @@ def _current(mesh, *, retain_brep=False):
         if not all(math.isfinite(value) for value in xyz):
             raise ValueError("Mesh association contains nonfinite coordinates")
         nodes.append([_identifier(identifier), xyz])
-    if not nodes or not native.Volumes:
-        raise ValueError("Mesh association requires a nonempty native solid mesh")
+    if not nodes or not any(getattr(native, family) for family in ("Volumes", "Faces", "Edges")):
+        raise ValueError("Mesh association requires a nonempty native mesh")
     known_nodes = {row[0] for row in nodes}
     elements = {}
     # Native IDs are sorted, but each element's native node order is retained.

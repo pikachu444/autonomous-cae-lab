@@ -72,6 +72,49 @@ def test_wrong_origin_or_selected_result_and_unverified_claim_are_rejected(discu
         study_proposal(discussion, ['Cmodel-invented'])
 
 
+def test_followup_preserves_prior_challenges_constraints_and_selected_results(discussion):
+    team = discussion['draft']['context']['research_team']
+    team['carry_forward_turn_ids'] = ['ApriorChallenge']
+    team['assignments'][0]['result_refs'] = [{'source_id': 'previous-comparison'}]
+    discussion['draft']['context']['user_constraints'] = ['Do not change the friction coefficient.']
+    discussion['draft']['composer']['evidence'] = [{'kind': 'authored', 'text': 'Earlier failure'}]
+    origin = proposal_origin(discussion, 'Aturn', 0)
+    plan = {'id': 'Nplan', 'kind': 'numerical', 'input_revision': 'Iplan',
+            'draft': {'mode': 'request', 'source': origin['source'], 'request': origin['proposal']}}
+    reference = {'document_id': 'Nplan', 'job_id': 'Jresult', 'input_revision': 'Ifrozen',
+        'input_sha256': 'b' * 64, 'result_sha256': 'c' * 64}
+    selected = {'reference': reference, 'selector': {'metadata_only': True}}
+    result = result_review_draft(discussion, plan_link=plan_link(origin, plan), result_reference=reference,
+        selector=selected['selector'], current_scope=lambda *args: {'status': 'AVAILABLE',
+            'result_selection': selected, 'actor_ids': ['reviewer'], 'submitted_plan_source': origin['source']})
+    draft = result['draft']
+    assert draft['context']['research_team']['carry_forward_turn_ids'] == ['ApriorChallenge', 'Aturn']
+    assert draft['context']['research_team']['assignments'][0]['result_refs'] == [{'source_id': 'previous-comparison'}, selected]
+    assert draft['context']['user_constraints'] == discussion['draft']['context']['user_constraints']
+    assert draft['composer']['evidence'] == discussion['draft']['composer']['evidence']
+
+
+@pytest.mark.parametrize('wrapped', [False, True])
+def test_incomplete_proposal_retains_original_identity_and_can_be_completed(discussion, wrapped):
+    from caelab.assist.experts import proposal_request, validate_plan_request
+    action = {'status': 'PROPOSED', 'executed': False,
+              'proposal': {'operation': 'evaluate', 'inputs': {'backend': 'material.felupe'}}}
+    if wrapped:
+        action['proposal'] = {'tool': 'calculations.plan', 'request': action['proposal']}
+    discussion['turns'][0]['response']['proposed_actions'] = [action]
+    before = deepcopy(discussion)
+    origin = proposal_origin(discussion, 'Aturn', 0)
+    request = proposal_request(action)
+    assert request['purpose'] == '' and request['budget'] == {'evaluations': 1}
+    assert origin['source']['proposal_sha256'] == canonical_hash(action['proposal'])
+    with pytest.raises(ValueError):
+        validate_plan_request(request)
+    request.update(purpose='Evaluate the edited model')
+    request['inputs']['settings'] = {}
+    assert validate_plan_request(request)['executed'] is False
+    assert discussion == before
+
+
 def test_one_redacted_response_does_not_block_another_allowed_claim(discussion):
     allowed = deepcopy(discussion['turns'][0]); allowed['id'] = 'Aallowed'; allowed['research_response_id'] = 'Rallowed'
     record = deepcopy(discussion['research_team']['responses']['Rsource']); record['id'] = 'Rallowed'

@@ -336,6 +336,8 @@ class RunnerWindow(QMainWindow):
         self.study_button = QPushButton('연구 기록에 추가…')
         self.study_button.clicked.connect(self.open_selected_study)
         self.job_menu = self.menuBar().addMenu('작업(&J)')
+        self.discuss_action = self.job_menu.addAction('선택 대상으로 논의…')
+        self.discuss_action.triggered.connect(self.discuss_selection)
         self.secondary_actions = []
         for button in (self.contact_steps_button, self.study_button):
             button.setParent(self);button.hide()
@@ -999,6 +1001,15 @@ class RunnerWindow(QMainWindow):
         return self._request('study:'+str(identifier),opened,
             lambda result,ticket:self.message.setText('선택한 저장 결과를 독립 연구 기록에 연결했습니다. 새 계산이나 추론은 요청하지 않았습니다.'),
             relevant=lambda:self.selected_job_id==identifier and self._selection_epoch==epoch)
+
+    def discuss_selection(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        if not identifier:
+            return
+        from .selection_discussion import open_discussion
+        self._request('discuss:' + identifier, lambda: open_discussion(self.client, job_id=identifier),
+            lambda _receipt, _ticket: self.message.setText('선택 계산의 설정·로그·결과로 토론을 열었습니다.'),
+            relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
 
     def open_tool(self, tool):
         from .desktop import launch_tool

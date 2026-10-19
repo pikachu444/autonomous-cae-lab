@@ -155,6 +155,7 @@ class RequestPlanWindow(NumericalWindow):
         self._candidate_table_key = None
         self._candidate_selection_serial = 0
         self._pde_adoption_request = None
+        self._native_input_request = None
         super().__init__(client, document_id=document_id, poll_interval=poll_interval, auto_open=auto_open)
         self._observation_read_timer = QTimer(self)
         self._observation_read_timer.setSingleShot(True)
@@ -232,6 +233,9 @@ class RequestPlanWindow(NumericalWindow):
         self.model_open_button=QPushButton('저장 입력 열기')
         self.model_open_button.clicked.connect(self.open_model_source)
         model_row.addWidget(self.model_open_button)
+        self.native_update_button = QPushButton('모델 입력 갱신')
+        self.native_update_button.clicked.connect(self.refresh_native_input)
+        model_row.addWidget(self.native_update_button)
         form.addRow('계산 모델', model_row)
         form.addRow('평가 횟수', self.evaluations)
         inputs_layout.addLayout(form)
@@ -2101,7 +2105,9 @@ class RequestPlanWindow(NumericalWindow):
                 self.message.setText({'numerical.update':'계획을 적용했습니다.','document.save':'계획을 저장했습니다.','numerical.run':'계산을 시작했습니다.'}.get(operation,'작업을 완료했습니다.'))
                 self.message.setToolTip(operation)
             if after and not late:
-                QTimer.singleShot(0, after)
+                # Complete Apply -> Save before a queued background refresh can
+                # claim the window and silently drop the requested save.
+                after()
             elif receipt.get('job'):
                 QTimer.singleShot(0, self.refresh_result)
         return self._call(lambda: self.client.document_command(document['id'], operation, deepcopy(arguments or {}),
@@ -2683,6 +2689,10 @@ class RequestPlanWindow(NumericalWindow):
         job = self.selected_job()
         if not self.document or not job:
             return
+        run = next((row for row in self.document.get('runs', []) if row['job_id'] == job), {})
+        origin = run.get('draft', {}).get('source') or self.document.get('draft', {}).get('source') or {}
+        if origin.get('discussion_id') and origin.get('turn_id') and 'proposal_index' in origin:
+            return self.return_result()
         identifier, session_id = self.document['id'], self.document['session_id']
         command_id = 'C' + uuid.uuid4().hex
         def opened(receipt):
@@ -2739,7 +2749,10 @@ class RequestPlanWindow(NumericalWindow):
         selected_run=next((row for row in self.document.get('runs',[]) if row['job_id']==self.selected_job()),{}) if present else {}
         frozen=selected_run.get('draft',{})
         source=frozen.get('model_source') or frozen.get('source')
-        self.model_open_button.setEnabled(enabled and bool(self.edited_draft(commit=False).get('model_source') or self._candidate_target(self.edited_draft(commit=False).get('source'))[1]))
+        native_model = self._uses_native_model()
+        self.native_update_button.setVisible(native_model)
+        self.native_update_button.setEnabled(enabled and not self.local_dirty)
+        self.model_open_button.setEnabled(enabled and (native_model or bool(self.edited_draft(commit=False).get('model_source') or self._candidate_target(self.edited_draft(commit=False).get('source'))[1])))
         target_kind, target_id = self._candidate_target(source)
         self.pde_adopt_button.setText('선택 후보를 PDE에 채택…' if target_kind == 'pde' else '선택 후보를 원본에 채택…')
         self.pde_adopt_button.setEnabled(read_available and not self._view_error and bool(target_id)
@@ -2921,7 +2934,54 @@ class RequestPlanWindow(NumericalWindow):
         if event.isAccepted() and receiver:
             receiver.close()
 
+    def _uses_native_model(self):
+        draft = self.document.get('draft', {}) if self.document else {}
+        source = draft.get('source')
+        return (draft.get('request', {}).get('inputs', {}).get('backend') in {
+                    'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}
+                and isinstance(source, dict) and bool(source.get('discussion_id')))
+
+    def refresh_native_input(self):
+        if not self._uses_native_model() or self._busy or self.local_dirty:
+            return
+        document = deepcopy(self.document)
+        signature = (document['id'], document['session_id'], document['generation'])
+        if not self._native_input_request or self._native_input_request['signature'] != signature:
+            self._native_input_request = {'signature': signature, 'command_id': 'C' + uuid.uuid4().hex}
+        command_id = self._native_input_request['command_id']
+        def prepare():
+            import time
+            deadline = time.monotonic() + 15
+            while True:
+                receipt = self.client.native_plan_input(document['id'], session_id=document['session_id'],
+                    expected_generation=document['generation'], command_id=command_id)
+                if receipt['status'] != 'PREPARING' or time.monotonic() >= deadline:
+                    return receipt
+                time.sleep(.2)
+        def received(receipt):
+            if receipt['status'] != 'READY':
+                self.message.setText('모델 입력을 생성하고 있습니다. 잠시 후 모델 입력 갱신을 누르세요.')
+                return
+            def replace(inputs):
+                inputs.update(backend=receipt['backend'], settings=deepcopy(receipt['settings']))
+                inputs.pop('values', None)
+            self._native_input_request = None
+            self._edit_structure(replace)
+            self.message.setText('편집한 모델 입력을 가져왔습니다. 변경 적용 후 계산을 실행하세요.')
+        self._call(prepare, received, relevant=lambda: self.document and
+            (self.document['id'], self.document['session_id'], self.document['generation']) == signature)
+
     def open_model_source(self):
+        if self._uses_native_model():
+            source = deepcopy(self.edited_draft(commit=False)['source'])
+            def open_native():
+                from .desktop import open_origin
+                discussion = self.client.document_read(source['discussion_id'])
+                submitted = next((run['draft'] for run in discussion.get('runs', [])
+                                  if run['job_id'] == source.get('job_id')), discussion['draft'])
+                context = submitted['context'].get('engineering_context') or {}
+                return open_origin(self.client, context['job_id'])
+            return self._call(open_native, lambda _: self.message.setText('FreeCAD 모델에서 조건을 편집한 뒤 모델 입력 갱신을 누르세요.'))
         draft=self.edited_draft()
         reference=deepcopy(draft.get('model_source') or draft.get('source'))
         kind,identifier=self._candidate_target(reference)

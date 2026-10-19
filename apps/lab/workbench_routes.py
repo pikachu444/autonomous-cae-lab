@@ -138,6 +138,14 @@ def handle(handler,method,path,query):
             if set(body)!={'reference'}:
                 raise ServiceError(400,'Select the exact saved evidence reference')
             return handler._json(200,workbench.research_reference(body['reference']))
+        if path=='/api/workbench/native-plan-input':
+            if set(body) != {'plan_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Choose the current Plan and its model input command')
+            return handler._json(200,workbench.desktop.native_plan_input(**body))
+        if path=='/api/workbench/selection-discussion':
+            if set(body)-{'session_id','command_id','document_id','job_id','expected_generation'}:
+                raise ServiceError(400,'Unknown discussion selection')
+            return handler._json(200,workbench.desktop.selection_discussion(**body))
         if path=='/api/workbench/domain-plan':
             if set(body)!={'document_id','session_id','expected_generation','command_id'}:
                 raise ServiceError(400,'Select the exact source owner generation')
@@ -401,6 +409,11 @@ def handle(handler,method,path,query):
         if not cursor.isascii() or not cursor.isdigit():
             raise ServiceError(400,'File cursor must be a nonnegative integer')
         return handler._json(200,workbench.local_inputs(root,relative,cursor=int(cursor)))
+    match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/context',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Job context takes no file paths or query options')
+        return handler._json(200,workbench.engineering_context(match.group(1)))
     match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/monitor',path)
     if match:
         if set(query)-{'log','offset','limit'} or any(len(values)!=1 for values in query.values()):

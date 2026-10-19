@@ -98,7 +98,8 @@ transfer is introduced by this design correction.
   A browser mock or exit code does not satisfy these gates.
 - No schema/API/MCP operation is added in this documentation change. Proposed
   document names are design vocabulary. Reuse existing declared-model, evaluator,
-  response and job contracts; avoid a replacement universal physics schema.
+  response and job contracts. Structural analyses use one common model and solver
+  translators under ADR0061; PDE, material-point and external evaluators keep their own formats.
 - Existing prototypes remain historical artifacts, including their incorrect
   non-CAD Pre modes. Do not relabel those screenshots as this design's acceptance.
 

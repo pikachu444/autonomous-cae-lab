@@ -4,7 +4,7 @@ No provider is used: request Plans execute the existing FELUPE calculation only
 when Run is clicked. A separate transport latency double checks callback races.
 """
 import os
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from copy import deepcopy
 import threading
 import time
@@ -65,12 +65,66 @@ def wait(app, predicate):
         if predicate():
             return
         time.sleep(.005)
-    raise AssertionError('request Plan Qt callback did not settle')
+    messages = [widget.message.text() for widget in app.topLevelWidgets() if isinstance(widget, RequestPlanWindow)]
+    raise AssertionError('request Plan Qt callback did not settle: ' + repr(messages))
 
 
 def valid_request():
     return request_draft({'purpose': 'Evaluate the actual material point', 'operation': 'evaluate',
         'inputs': material_draft(), 'budget': {'evaluations': 1}})
+
+
+@pytest.mark.parametrize('backend',['structure.calculix.frozen','structure.calculix.contact','structure.calculix.pretension'])
+def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, monkeypatch, backend):
+    client = InProcessClient(workbench)
+    calls = []
+    def refresh(plan_id, **arguments):
+        calls.append((plan_id, arguments))
+        return {'status': 'READY', 'executed': False, 'backend': backend,
+                'settings': {'data_id': 'Dupdated'}}
+    client.native_plan_input = refresh
+    draft = request_draft({'purpose': '사용자 모델의 접촉 조건 수정', 'operation': 'evaluate',
+        'inputs': {'backend': backend, 'settings': {'data_id': 'Doriginal'}},
+        'budget': {'evaluations': 1}}, source={'discussion_id': 'Xsource', 'turn_id': 'Aturn',
+        'proposal_index': 0, 'proposal_sha256': 'a' * 64, 'job_id': 'Jsource',
+        'input_revision': 'Isource', 'input_sha256': 'b' * 64})
+    window = RequestPlanWindow(client, auto_open=False, poll_interval=0)
+    try:
+        window.open_document(draft=draft)
+        wait(app, lambda: window.document is not None and not window._busy)
+        assert window.native_update_button.isEnabled()
+        # Adding a different result to the conversation cannot redirect this
+        # Plan away from the model selected when its source reply was requested.
+        original_read = client.document_read
+        client.document_read = lambda identifier: ({'draft': {'context': {
+            'engineering_context': {'job_id': 'JlaterModel'}}}, 'runs': [
+            {'job_id': 'Jsource', 'draft': {'context': {'engineering_context': {'job_id': 'JoriginalModel'}}}}]}
+            if identifier == 'Xsource' else original_read(identifier))
+        opened_models = []
+        monkeypatch.setattr('apps.research.desktop.open_origin',lambda selected,job:opened_models.append(job))
+        window.model_open_button.click()
+        wait(app,lambda:not window._busy and bool(opened_models))
+        assert opened_models == ['JoriginalModel']
+        window.native_update_button.click()
+        wait(app, lambda: not window._busy and window.local_dirty)
+        assert window.edited_draft()['request']['inputs']['settings'] == {'data_id': 'Dupdated'}
+        assert workbench.document_read(window.document['id'])['draft'] == draft
+        assert window.edited_draft()['source'] == draft['source']
+        assert len(calls) == 1 and workbench.manager.list() == []
+        if os.environ.get('CAELAB_GUI_CAPTURE_DIR'):
+            from pathlib import Path
+            captures = Path(os.environ['CAELAB_GUI_CAPTURE_DIR'])
+            captures.mkdir(parents=True, exist_ok=True)
+            window.show()
+            for width, height in ((1440, 900), (1100, 760)):
+                window.resize(width, height)
+                for _ in range(10):
+                    app.processEvents()
+                    time.sleep(.02)
+                assert window.screen().grabWindow(int(window.winId())).save(str(captures / ('native-plan-' + str(width) + '.png')))
+    finally:
+        window._allow_close = True
+        window.close()
 
 
 def find_input(window, path):
@@ -194,8 +248,11 @@ def retained_studies(app, workbench, monkeypatch):
 
 def choose_source(monkeypatch, document):
     def select(parent,title,label,items,**kwargs):
-        if title.startswith('Select retained '):
-            return next(item for item in items if document['id'] in item), True
+        if title == '저장 자료 선택':
+            candidates = [row for row in parent.client.documents()['documents']
+                          if row.get('kind') in {'data', 'material', 'numerical', 'pde', 'simulation', 'evaluation'}]
+            index = next(index for index, row in enumerate(candidates) if row['id'] == document['id'])
+            return items[index], True
         return items[0], True
     monkeypatch.setattr(QInputDialog, 'getItem', select)
 
@@ -224,7 +281,8 @@ def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, r
     assert window.edited_draft()['method_inputs'] == {'evaluate': original['request']['inputs']}
     before = len(workbench.manager.list())
     window.save_document()
-    wait(app,lambda:not window._busy and not window.local_dirty and window.document.get('saved_revision'))
+    wait(app,lambda:not window._busy and window.document.get('saved_revision'))
+    assert not window.local_dirty, {'edited': window.edited_draft(), 'saved': window.document['draft']}
     assert len(workbench.manager.list()) == before
     other = RequestPlanWindow(InProcessClient(workbench),auto_open=False,poll_interval=0)
     other.open_document(document_id=window.document['id'])
@@ -239,8 +297,8 @@ def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, r
     other.operation.setCurrentIndex(other.operation.findData('analyze'))
     assert other.edited_draft()['request'] == edited['request']
     assert other.edited_draft()['method_inputs'] == {'evaluate': original['request']['inputs']}
-    # The return to an edited method follows the normal explicit Apply boundary.
-    assert not other.run_button.isEnabled()
+    # Returning to the exact saved request has no unapplied change.
+    assert other.run_button.isEnabled() and not other.local_dirty
     other.apply_inputs()
     wait(app, lambda:not other._busy and not other.local_dirty)
     assert not other.document['diagnostics'] and len(workbench.manager.list()) == before
@@ -269,7 +327,7 @@ def test_surrogate_picker_requires_disjoint_retained_roles_and_keeps_typed_point
     window.choose_retained_result()
     wait(app,lambda:not window._busy)
     assert 'holdout' not in window.edited_draft()['request']['inputs']['result_refs']
-    assert 'distinct retained' in window.message.text()
+    assert '서로 다른 계산 결과' in window.message.text()
     holdout, _ = retained_studies[1]
     choose_source(monkeypatch,holdout)
     window.choose_retained_result()
@@ -632,7 +690,7 @@ def test_generic_doe_actual_candidate_scalar_pick_and_retained_curve(app, workbe
     retained_curve = result['candidates'][2]['responses']['trace']
     assert list(line.get_xdata()) == retained_curve['axes'][0]['values']
     assert list(line.get_ydata()) == retained_curve['value']
-    assert window.figure.axes[0].get_xlabel() == 'time [s]'
+    assert window.figure.axes[0].get_xlabel() == '시간 [s]'
     assert window.figure.axes[0].get_ylabel() == 'trace [MPa]'
     window.candidates.selectRow(1)
     assert not window.figure.axes[0].lines
@@ -660,7 +718,8 @@ def test_generic_optimize_worksheet_runs_existing_engine_with_physical_constrain
     window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
     window.open_document(draft=draft)
     wait(app, lambda: window.document is not None and not window._busy)
-    assert window.response_sheet.rowCount() == 2 and window.method_sheet.rowCount() == 4
+    assert window.response_sheet.rowCount() == 2 and window.method_sheet.rowCount() == 5
+    assert window.method_sheet.item(0, 0).text() == '최적화 방법'
     _edit_sheet_cell(app, window.response_sheet, 1, 4, '6e-1')
     _, result = run_edited_request(app, workbench, window)
     assert result['kind'] == 'optimization'

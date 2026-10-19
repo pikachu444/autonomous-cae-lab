@@ -523,8 +523,8 @@ class Connection:
                     panel.reload(selected=selected.Name)
                 panel.action('prepare' if export_only else 'run_prepared')
                 return
-            from .beam_menu import uses_beam, start_run
-            if uses_beam(selected, owner.read_metadata()):
+            from .beam_menu import start_run
+            if selected.Name in owner.read_metadata().get('beam_models', {}):
                 start_run(self, owner, selected.Name, export_only=export_only)
                 return
             dock = self.panels.get(doc.Name,{}).get('fem')
@@ -548,7 +548,7 @@ class Connection:
                 start_dynamic(self, owner, selected.Name, export_only=export_only)
                 return
             owner.refresh()
-            from .nonlinear_material import uses_solid_route
+            from .nonlinear_material import uses_custom_static
             from .freeze_contact_aster import uses_hard
             from .native_controls import transfer_pending
             if transfer_pending(self, owner):
@@ -568,7 +568,7 @@ class Connection:
                     'pre.contact.aster_freeze' if uses_hard(selected, owner.read_metadata()) else
                     'pre.pretension.freeze' if any(row.get('analysis_id') == selected.Name
                     for row in owner.read_metadata().get('pretension_sections', [])) else
-                    'pre.contact.freeze' if uses_solid_route(selected, owner.read_metadata()) else 'pre.freeze'),
+                    'pre.contact.freeze' if uses_custom_static(selected, owner.read_metadata()) else 'pre.freeze'),
                 'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name, **transfer_arguments}}
             self.send_command()
         except Exception as exc:

@@ -121,7 +121,7 @@ class CaelabDataBridge : public QObject {
     QJsonObject pendingApply;
     QMenu* menu;
     QAction *readAction, *excludeAction;
-    QAction *applyAction, *saveAction, *prepareAction, *materialAction, *retryAction;
+    QAction *applyAction, *saveAction, *prepareAction, *materialAction, *retryAction, *discussAction;
     QAction *settingsAction, *tableAction, *curveAction;
     QWidget* channelPane{nullptr};
     QLabel* channelSummary{nullptr};
@@ -324,6 +324,7 @@ class CaelabDataBridge : public QObject {
         saveAction->setEnabled(ready);
         prepareAction->setEnabled(ready && draft == baseline.value(text("draft")).toObject() && baseline.value(text("diagnostics")).toArray().isEmpty());
         materialAction->setEnabled(ready && !importedReference.value(text("job_id")).toString().isEmpty());
+        discussAction->setEnabled(ready && draft == baseline.value(text("draft")).toObject());
         retryAction->setEnabled(!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty());
     }
     bool eventFilter(QObject* watched, QEvent* event) override {
@@ -819,7 +820,7 @@ class CaelabDataBridge : public QObject {
             });
             headerConnection = QObject::connect(table->horizontalHeader(), &QHeaderView::sectionClicked, this, [this](int index) { selectSourceColumn(index); });
             headerEditConnection = QObject::connect(table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, this, [this](int index) { selectSourceColumn(index); if (index > 0 && index <= rawColumns.size()) { nextMappingSection = sourceColumnSection; settingsAction->trigger(); } });
-            table->addActions({settingsAction, excludeAction, applyAction, prepareAction, materialAction});
+            table->addActions({settingsAction, excludeAction, applyAction, prepareAction, materialAction, discussAction});
             table->setContextMenuPolicy(Qt::ActionsContextMenu);
             table->horizontalHeader()->addAction(settingsAction); table->horizontalHeader()->setContextMenuPolicy(Qt::ActionsContextMenu);
         }
@@ -1348,6 +1349,33 @@ class CaelabDataBridge : public QObject {
         if (!process.startDetached(&pid)) throw std::runtime_error("The Material process could not be requested. The saved source is preserved.");
         window->statusBar()->showMessage(text("Material window requested. Select a plan and review its test conditions; no fit or adoption has run."));
         return pid;
+    }
+    void discussSelection() {
+        if (!connected() || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("편집한 열과 단위를 적용한 뒤 논의하세요.");
+        const auto context = request(text("/api/workbench/desktop"));
+        QJsonObject payload{
+            {text("session_id"), baseline.value(text("session_id"))},
+            {text("command_id"), QString(text("C") + QUuid::createUuid().toString(QUuid::Id128))}};
+        QString endpoint;
+        if (importedReference.value(text("job_id")).toString().isEmpty()) {
+            payload.insert(text("document_id"), identifier);
+            payload.insert(text("expected_generation"), baseline.value(text("generation")));
+            endpoint = text("/api/workbench/selection-discussion");
+        } else {
+            payload.insert(text("source"), retainedSource());
+            payload.insert(text("kind"), text("expert"));
+            endpoint = text("/api/workbench/data-followup");
+        }
+        const auto receipt = request(endpoint, &payload);
+        if (receipt.value(text("executed")).toBool(true)) throw std::runtime_error("토론 열기에 예상하지 않은 실행 상태가 있습니다.");
+        QProcess process; process.setProcessEnvironment(pythonEnvironment());
+        process.setWorkingDirectory(context.value(text("repo_root")).toString());
+        process.setProgram(context.value(text("python")).toString());
+        process.setArguments({text("-m"), text("apps.research.desktop"), text("--service"), service,
+            text("expert"), text("--document-id"), receipt.value(text("document")).toObject().value(text("id")).toString()});
+        qint64 pid = 0;
+        if (!process.startDetached(&pid)) throw std::runtime_error("토론 창을 열지 못했습니다. 선택 자료는 저장되어 있습니다.");
+        window->statusBar()->showMessage(text("선택한 자료로 토론을 열었습니다. 질문을 확인하고 보내세요."));
     }
     qint64 launchDataTools(const QString& task) {
         if (!connected() || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("변경 적용 후 자료 도구를 여세요. 편집 중인 설정은 유지됩니다.");
@@ -2026,6 +2054,8 @@ public:
         auto* recovery = menu->addAction(text("중단된 작업 복구…"));
         auto* prepared = prepareAction = menu->addAction(text("자료 준비"));
         auto* material = materialAction = menu->addAction(text("재료에서 사용…"));
+        discussAction = menu->addAction(text("선택 대상으로 논의…"));
+        QObject::connect(discussAction, &QAction::triggered, this, [this] { guarded([this] { discussSelection(); }); });
         menu->addSeparator();
         auto* processing = menu->addAction(text("자료 처리…"));
         auto* acquisition = menu->addAction(text("자료 취득…"));

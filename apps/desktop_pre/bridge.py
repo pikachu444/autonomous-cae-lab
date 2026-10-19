@@ -73,8 +73,7 @@ class Owner:
         self.pose_candidates = PoseCandidates(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
-            if (hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None
-                    and not (obj.FemMesh.Edges and not obj.FemMesh.Faces and not obj.FemMesh.Volumes)):
+            if hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None:
                 try:
                     self.mesh_bindings.track(obj)
                 except Exception as error:
@@ -417,8 +416,7 @@ class Owner:
                     require_ready_model(self.doc, owner=self)
                     if args['analysis_id'] in self.read_metadata().get('dynamic_programs', {}):
                         raise ValueError('동해석 설정의 입력 생성/계산을 사용하세요. 일반 FEM 입력으로 초기조건과 시간 단계를 생략하지 않습니다.')
-                    from apps.desktop_pre.beam_menu import uses_beam
-                    if uses_beam(self._object(args['analysis_id']), self.read_metadata()):
+                    if args['analysis_id'] in self.read_metadata().get('beam_models', {}):
                         raise ValueError('빔 설정에서 입력을 생성하세요. 일반 FEM 입력으로 빔 끝 모멘트를 생략하지 않습니다.')
                     if args['analysis_id'] in self.read_metadata().get('initial_fields',{}) and operation != 'pre.initial.freeze':
                         raise ValueError('초기장이 있는 모델은 초기조건의 입력 생성/계산을 사용하세요.')
@@ -440,7 +438,6 @@ class Owner:
                             raise ValueError('체결 절단면과 조임값을 적용하고 진단을 확인하세요.')
                     saved = self.project.save()
                     frozen_generation = self.generation
-                    from apps.desktop_pre.nonlinear_material import uses_solid_route
                     if transfer_record is not None:
                         if operation == 'pre.pretension.freeze':
                             raise ValueError('변위 전달의 첫 수신 해석은 체결 단계를 지원하지 않습니다.')
@@ -472,7 +469,7 @@ class Owner:
                         from apps.desktop_pre.freeze_contact_aster import freeze
                         manifest = freeze(self._object(args['analysis_id']), self._object(args['solver_id']),
                                           self.export_root / self.document_id, fem=self.fem)
-                    elif operation in {'pre.contact.freeze','pre.initial.freeze'} or uses_solid_route(self._object(args['analysis_id']), self.fem._metadata()):
+                    elif operation in {'pre.contact.freeze', 'pre.initial.freeze'}:
                         from apps.desktop_pre.freeze_contact import freeze_contact
                         manifest = freeze_contact(self._object(args['analysis_id']), self._object(args['solver_id']),
                                                   self.export_root / self.document_id, fem=self.fem)

@@ -384,7 +384,7 @@ class DesktopLinks:
         replacing edits or creating duplicate Plans.
         """
         from .numerical_document import request_draft
-        from .assist.experts import validate_plan_request
+        from .assist.experts import editable_proposal, proposal_request
         wb = self.workbench
         discussion_id, turn_id, command_id = map(check_id, (discussion_id, turn_id, command_id))
         if session_id != wb.session_id:
@@ -405,12 +405,11 @@ class DesktopLinks:
                 if proposal_index >= len(actions):
                     raise ValueError('Proposal is not present in the actual retained reply')
                 action = actions[proposal_index]
-                if not isinstance(action, dict) or action.get('status') != 'PLANNED' or action.get('executed') is not False:
-                    raise ValueError('Only an actual editable, unexecuted Plan proposal can be opened')
-                request = validate_plan_request(action.get('plan'))['plan']
+                original = editable_proposal(action)
+                request = proposal_request(action)
                 source = {key: run[key] for key in ('job_id','input_revision','input_sha256')}
                 source.update(discussion_id=discussion_id, turn_id=turn_id, proposal_index=proposal_index,
-                              proposal_sha256=canonical_hash(request))
+                              proposal_sha256=canonical_hash(original))
                 signature = canonical_hash(source)
                 record = self.root / 'discussion_plans' / (command_id + '.json')
                 if record.exists():
@@ -483,7 +482,6 @@ class DesktopLinks:
     def data_followup(self, source, kind, *, session_id, command_id, material_document_id=None):
         """Open an actual unexecuted Plan/discussion from the selected Data run."""
         from .numerical_document import from_material_document
-        from .discussion_document import default_draft as discussion_draft
         wb=self.workbench
         command_id=check_id(command_id)
         if session_id!=wb.session_id or kind not in {'numerical','expert'}:
@@ -517,13 +515,19 @@ class DesktopLinks:
                         'response':response,'settings':deepcopy(material['draft']['settings']),'weight':1.0,'scale':1.0}]
                     title='Identify from '+document['title']
                 else:
-                    draft=discussion_draft()
-                    draft['topics'][0]['title']='Observed '+source['response']
-                    draft['composer'].update(text='Explain the retained observation and identify the next distinguishing measurement.',
-                        evidence=[{key:exact[key] for key in exact if key!='response'} | {'selection':[exact['response']]}])
-                    draft['context']={'test_metadata':metadata,'data_comparisons':deepcopy(document.get('comparisons',[]))}
-                    title='Discuss '+document['title']
-                prepared={'request_hash':signature,'document_id':('N' if kind=='numerical' else 'X')+canonical_hash({'command_id':command_id,'signature':signature})[:32],
+                    discussion=self.selection_discussion(document_id=document['id'], job_id=exact['job_id'],
+                        session_id=session_id, expected_generation=saved['generation'], command_id=command_id)['document']
+                    draft=deepcopy(discussion['draft'])
+                    evidence={key:exact[key] for key in exact if key!='response'} | {'selection':[exact['response']]}
+                    if evidence not in draft['composer']['evidence']:
+                        draft['composer']['evidence'].append(evidence)
+                    draft['context'].update(test_metadata=metadata,data_comparisons=deepcopy(document.get('comparisons',[])))
+                    discussion=wb.discussion_documents.command(discussion['id'],'expert.update',{'draft':draft},
+                        session_id=session_id,expected_generation=discussion['generation'])['document']
+                    wb.discussion_documents.command(discussion['id'],'document.save',{},
+                        session_id=session_id,expected_generation=discussion['generation'])
+                    title=discussion['title']
+                prepared={'request_hash':signature,'document_id':('N'+canonical_hash({'command_id':command_id,'signature':signature})[:32] if kind=='numerical' else discussion['id']),
                     'draft':draft,'title':title[:160],'source':exact,'saved_source_revision':saved['saved_revision'],'state':'APPLYING'}
                 save_json(path,prepared)
             owner=wb.numerical_documents if kind=='numerical' else wb.discussion_documents
@@ -602,6 +606,140 @@ class DesktopLinks:
                     owner.open(_new_id=target,title='계산 결과 검토' if kind=='study' else 'Follow-up — '+source_ref['job_id'],draft=prepared['draft']))
                 save_json(path,{**prepared,'state':'SUCCEEDED'})
             return {'document':document,'source':deepcopy(source_ref),'command_id':command_id,'executed':False}
+
+    def native_plan_input(self, plan_id, *, session_id, expected_generation, command_id):
+        """Freeze the edited original FreeCAD model for an explicit Plan rerun."""
+        wb = self.workbench
+        plan_id, command_id = check_id(plan_id), check_id(command_id)
+        if session_id != wb.session_id or type(expected_generation) is not int:
+            raise ValueError('Reread the current Plan before updating its model input')
+        with self._lock:
+            plan = wb.document_read(plan_id)
+            if plan.get('kind') != 'numerical' or plan['generation'] != expected_generation:
+                raise ValueError('The Plan changed. Apply its edits before updating the model input.')
+            exports = {'structure.calculix.frozen': 'pre.freeze',
+                       'structure.calculix.contact': 'pre.contact.freeze',
+                       'structure.calculix.pretension': 'pre.pretension.freeze'}
+            if plan['draft'].get('request', {}).get('inputs', {}).get('backend') not in exports:
+                raise ValueError('Choose a CalculiX Plan linked to its editable FreeCAD model')
+            source = plan['draft'].get('source') or {}
+            if not isinstance(source, dict) or not source.get('discussion_id'):
+                raise ValueError('Choose a Plan proposed in the original model discussion')
+            discussion = wb.document_read(source['discussion_id'])
+            submitted = next((run['draft'] for run in discussion.get('runs', [])
+                              if run['job_id'] == source.get('job_id')), discussion['draft'])
+            context = submitted['context'].get('engineering_context') or {}
+            job = self.job_record(check_id(context.get('job_id')))
+            backend = job.get('arguments', {}).get('backend')
+            if backend not in exports:
+                raise ValueError('The original discussion does not select a FreeCAD CalculiX calculation')
+            origin = job.get('arguments', {}).get('origin') or context.get('origin') or {}
+            if origin.get('kind') != 'pre':
+                raise ValueError('This Plan has no original FreeCAD model. Select its calculation in Runner first.')
+            snapshot = load_json(wb.input_path(job['arguments']['settings']['data_id']))
+            try:
+                owner = wb.document_read(origin['document_id'])
+            except KeyError:
+                owner = None
+            if not owner or not owner.get('connected'):
+                retained = Path(wb.native_input(job['arguments']['settings']['data_id'])['editable_path']).resolve()
+                matches = [row for row in wb.documents()['documents'] if row.get('kind') == 'pre'
+                    and row.get('connected') and row.get('project', {}).get('opened_source')
+                    and Path(row['project']['opened_source']).resolve() == retained]
+                if len(matches) != 1:
+                    raise ValueError('Open one retained FreeCAD model with this Plan before updating its input.')
+                owner = matches[0]
+            record = self.root / 'native_plan_inputs' / (command_id + '.json')
+            signature = canonical_hash({'plan_id': plan_id, 'generation': expected_generation, 'origin': origin})
+            if record.exists():
+                if load_json(record)['request_hash'] != signature:
+                    raise ValueError('This model input request belongs to another Plan edit')
+            else:
+                save_json(record, {'request_hash': signature})
+            arguments = ({'analysis_id': snapshot['analysis']['name'], 'solver_id': snapshot['solver']['name']}
+                         if backend == 'structure.calculix.frozen' else
+                         {key: snapshot[key] for key in ('analysis_id', 'solver_id')})
+            operation = exports[backend]
+            try:
+                command = wb.native_commands.status(command_id)
+            except KeyError:
+                command = wb.document_command(owner['id'], operation, arguments,
+                    session_id=owner['session_id'], expected_generation=owner['generation'], command_id=command_id)
+            effective = command.get('arguments', {})
+            public = effective.get('_public_arguments', effective)
+            if command.get('document_id') != owner['id'] or command.get('operation') != operation or public != arguments:
+                raise ValueError('The native input command differs from the selected model')
+            if command['state'] in {'FAILED', 'REJECTED', 'CANCELLED', 'STALE', 'INTERRUPTED'}:
+                raise ValueError('The edited model input could not be generated: ' + str(command.get('error') or command.get('outcome')))
+            if command['state'] != 'SUCCEEDED':
+                return {'status': 'PREPARING', 'executed': False}
+            frozen = self._frozen_export(command_id)
+            return {'status': 'READY', 'backend': frozen['backend'], 'settings': {'data_id': frozen['input']['id']},
+                    'origin': frozen['origin'], 'executed': False}
+
+    def selection_discussion(self, *, session_id, command_id, document_id=None, job_id=None,
+                             expected_generation=None):
+        """Open the selected model/job in its research; never ask or calculate."""
+        from .discussion_document import default_draft
+        from .evaluation_definition import document_reference
+        wb = self.workbench
+        check_id(command_id)
+        if session_id != wb.session_id or not (document_id or job_id):
+            raise ValueError('Select a model or calculation in the current session')
+        with self._lock:
+            source, context, original = None, {}, None
+            if document_id:
+                document = wb.document_read(check_id(document_id))
+                if document.get('kind') not in {'material', 'data', 'numerical', 'pde', 'simulation', 'evaluation'}:
+                    raise ValueError('Choose a research model or its calculation')
+                if expected_generation != document['generation']:
+                    raise ValueError('The selected model changed. Apply your edits and select it again.')
+                saved = wb.document_command(document_id, 'document.save', {}, session_id=session_id,
+                    expected_generation=expected_generation, command_id=command_id)['document']
+                source = document_id
+                original = saved['draft'].get('source') or {}
+                context['selected_model'] = {'reference': document_reference(saved), 'input': deepcopy(saved['draft'])}
+                title = saved['title']
+            if job_id:
+                job = self.job_record(check_id(job_id))
+                match = self.research_job(job_id)
+                if document_id and (not match or match[1]['id'] != document_id):
+                    raise ValueError('The selected calculation belongs to another model')
+                if match:
+                    original = match[2].get('draft', {}).get('source') or original
+                source = source or job.get('arguments', {}).get('origin', {}).get('document_id') or (match[1]['id'] if match else job_id)
+                title = job.get('label') or '해석 결과'
+                context['engineering_context'] = wb.engineering_context(job_id)
+                context['selected_result_ids'] = [job_id]
+            original = original or {}
+            target = original.get('discussion_id') or ('X' + canonical_hash({'selection': source})[:32])
+            owner = wb.discussion_documents
+            with owner._lock(target):
+                exists = (owner._folder(target) / 'working.json').exists() or owner._manifest(target)
+                if exists:
+                    discussion = owner.read(target)
+                    draft = deepcopy(discussion['draft'])
+                    old_jobs = draft['context'].get('selected_result_ids', [])
+                    changed_context = any(draft['context'].get(key) != value for key, value in context.items()
+                                          if key != 'selected_result_ids')
+                    if job_id and job_id not in old_jobs or changed_context:
+                        draft['context'].update({key: value for key, value in context.items() if key != 'selected_result_ids'})
+                        draft['context']['selected_result_ids'] = list(dict.fromkeys(old_jobs + context.get('selected_result_ids', [])))
+                        discussion = owner.command(target, 'expert.update', {'draft': draft}, session_id=session_id,
+                            expected_generation=discussion['generation'], command_id=command_id)['document']
+                else:
+                    draft = default_draft()
+                    draft['topics'][0]['title'] = title[:150]
+                    draft['composer']['text'] = '선택한 모델의 조건과 실제 계산 결과를 검토하고, 다음에 바꿀 가정과 확인 방법을 제안해 주세요.'
+                    draft['context'].update(context)
+                    policy = wb.config.get('runtime', {}).get('transmission') or {}
+                    draft['context']['transmission_scope'] = {
+                        'allow_question': bool(policy.get('allow_question')),
+                        'result_ids': context.get('selected_result_ids', []) if policy.get('allow_results') else []}
+                    discussion = owner.open(_new_id=target, title=title[:150] + ' 검토', draft=draft)
+                discussion = owner.command(target, 'document.save', {}, session_id=session_id,
+                    expected_generation=discussion['generation'])['document']
+            return {'document': discussion, 'executed': False, 'command_id': command_id}
 
     def domain_plan(self, document_id, *, session_id, expected_generation, command_id):
         """Save one actual source and open its unexecuted numerical request."""

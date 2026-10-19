@@ -344,6 +344,10 @@ def workbench_readers(wb, *, verification_receipts):
             response = {key: deepcopy(channel[key]) for key in ('unit', 'component', 'measure', 'frame', 'coordinate_system', 'association')}
             response.update(kind='candidate_rows', value=[deepcopy(r.get('value')) if r else None for r in responses],
                 candidate_ids=selected_ids, execution_statuses=[r['execution_status'] for r in result['candidates']],
+                failure_reasons=[deepcopy(r.get('failure_reason')) for r in result['candidates']],
+                failure_classifications=[deepcopy(r.get('failure_classification', r.get('failure_kind',
+                    r.get('diagnostics', {}).get('error_type', r['execution_status']))))
+                                         for r in result['candidates']],
                 original_rows=indices)
         elif definition['kind'] == 'scalar':
             result = wb.document_result(reference['document_id'], reference['job_id'],

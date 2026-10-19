@@ -1,8 +1,7 @@
-"""Execute a retained FreeCAD FEM deck without importing FreeCAD or remeshing.
+"""Execute retained native CalculiX input and publish its actual result fields.
 
-Admission is deliberately limited to one single-solid static linear C3D10
-analysis with isotropic elasticity, Fixed supports and resolved nodal Force.
-FRD provides displacement only; DAT totals are retained, never called nodal RF.
+New Analyses use FreeCAD's installed writer and result converter. The legacy
+reader remains available for previously saved single-solid C3D10 snapshots.
 """
 from __future__ import annotations
 
@@ -83,6 +82,35 @@ def _mesh(mesh):
         raise ValueError("Unsupported frozen mesh contract")
     if mesh.get("units") != {"position": "mm", "displacement": "mm", "force": "N", "stress": "MPa"}:
         raise ValueError("Frozen native units differ from the admitted writer")
+    if mesh.get("export_profile") == "freecad-calculix-writer":
+        from apps.desktop_pre.native_calculix import _ORDERS
+        nodes, elements = {}, {}
+        for row in mesh["nodes"]:
+            node = _id(row["node_id"])
+            xyz = tuple(_finite(v) for v in row["position_mm"])
+            native = row.get("native_position_mm")
+            if node in nodes or len(xyz) != 3 or (native is not None and len(native) != 3):
+                raise ValueError("Duplicate or invalid native mesh node")
+            if native is None and row.get("source") != "native_writer":
+                raise ValueError("Generated nodes must identify the native writer as their source")
+            if native is not None and any(not _serialized_coordinate_close(_finite(a), b)
+                                          for a, b in zip(native, xyz)):
+                raise ValueError("Native mesh coordinates differ from the saved model")
+            nodes[node] = xyz
+        for row in mesh["elements"]:
+            element, kind = _id(row["element_id"]), row["type"]
+            ids = tuple(_id(v) for v in row["node_ids"])
+            order = _ORDERS.get(kind)
+            if element in elements or order is None or len(ids) != len(order) or len(set(ids)) != len(ids):
+                raise ValueError("Invalid native writer element")
+            if "native_node_ids" in row and ids != tuple(row["native_node_ids"][i] for i in order):
+                raise ValueError("Native writer element order differs from the saved model")
+            if not set(ids) <= set(nodes):
+                raise ValueError("Native writer element references a missing node")
+            elements[element] = ids
+        if not nodes or not elements:
+            raise ValueError("The native model needs a mesh with elements")
+        return nodes, elements, set(), []
     nodes, elements, fixed, loads = {}, {}, set(), []
     for row in mesh["nodes"]:
         node = _id(row["node_id"])
@@ -194,6 +222,8 @@ def validate_snapshot(path):
         raise ValueError("Frozen manifest must be an object")
     if manifest.get("kind") != "freecad-fem-frozen" or str(manifest.get("schema_version")) != "1":
         raise ValueError("Unsupported frozen Analysis manifest")
+    if manifest.get("export_profile") == "freecad-calculix-writer":
+        return _validate_native_snapshot(path, manifest, raw)
     check_id(manifest["id"])
     if manifest["shape"]["solid_count"] != 1 or manifest["material"]["law"] != "isotropic_linear_elastic":
         raise ValueError("Only single-solid isotropic elasticity is admitted")
@@ -237,6 +267,46 @@ def validate_snapshot(path):
             or dfixed != fixed or sorted(dloads) != sorted(loads)):
         raise ValueError("Frozen native deck differs from ordered mesh/Fixed/Force record")
     return manifest, mesh, pins, _gates(nodes, elements, fixed)
+
+
+def _validate_native_snapshot(path, manifest, raw):
+    from apps.desktop_pre.native_calculix import read_deck, UNITS
+    check_id(manifest["id"])
+    if (manifest["solver"].get("native_type") != "Fem::SolverCcxTools"
+            or manifest["solver"]["settings"].get("AnalysisType") != "static" or manifest.get("units") != UNITS):
+        raise ValueError("The native connection requires a FreeCAD CalculiX static Analysis")
+    entry = _relative(manifest["input_file"])
+    if Path(entry).suffix.lower() != ".inp" or Path(entry).name != entry:
+        raise ValueError("The native input must be a CalculiX .inp file")
+    pins = {"snapshot.json": {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}}
+    for row in manifest["files"]:
+        name = _relative(row["relative"])
+        if (name in pins or type(row["bytes"]) is not int or row["bytes"] <= 0
+                or not re.fullmatch(r"[a-f0-9]{64}", row["sha256"])):
+            raise ValueError("Invalid or duplicate native input file")
+        data = _read(path.parent / name)
+        if len(data) != row["bytes"] or hashlib.sha256(data).hexdigest() != row["sha256"]:
+            raise ValueError("Saved native input changed: " + name)
+        pins[name] = {"bytes": row["bytes"], "sha256": row["sha256"]}
+    required = {"editable.FCStd", "mesh.json", entry, "snapshot.json"}
+    if not required <= set(pins) or path.name != "snapshot.json":
+        raise ValueError("The native Analysis needs its editable model, mesh and input file")
+    if manifest.get("editable_project") not in {None, "editable.caepre"}:
+        raise ValueError("Unsupported editable project filename")
+    if manifest.get("editable_project") and manifest["editable_project"] not in pins:
+        raise ValueError("The editable project is missing")
+    deck = read_deck(path.parent / entry)
+    if set(deck["files"]) != set(manifest["input_dependencies"]) or not set(deck["files"]) <= set(pins):
+        raise ValueError("Native input dependencies are missing from the saved Analysis")
+    mesh = json.loads(_read(path.parent / "mesh.json").decode("utf-8"))
+    nodes, elements, _, _ = _mesh(mesh)
+    if (mesh.get("export_profile") != manifest["export_profile"]
+            or deck["nodes"] != {n: list(xyz) for n, xyz in nodes.items()}
+            or {n: row["node_ids"] for n, row in deck["elements"].items()} != {n: list(ids) for n, ids in elements.items()}
+            or {n: row["type"] for n, row in deck["elements"].items()} != {row["element_id"]: row["type"] for row in mesh["elements"]}
+            or deck["steps"] != manifest["steps"]):
+        raise ValueError("Saved mesh or static steps differ from the native writer input")
+    return manifest, mesh, pins, {"input_check": "native_writer", "verification_case": manifest.get("verification_case", "없음")}
 
 
 class FrdTruncatedEOF(ValueError):
@@ -554,8 +624,9 @@ class FrozenFemCalculixAdapter:
     def run(self, settings, *, output, runtime=None):
         if not isinstance(settings, dict) or set(settings) - {"snapshot_path", "data_id"} or "snapshot_path" not in settings:
             raise ValueError("Frozen FEM settings require only snapshot_path and optional data_id")
-        if runtime:
-            raise ValueError("Frozen CalculiX uses ccx on configured PATH; runtime overrides unsupported")
+        if runtime and (not isinstance(runtime, dict) or set(runtime) != {"freecad_executable"}
+                        or not isinstance(runtime["freecad_executable"], str)):
+            raise ValueError("Native CalculiX accepts only the configured FreeCAD result converter")
         if not isinstance(settings["snapshot_path"], str):
             raise ValueError("snapshot_path must be an absolute path string")
         if "data_id" in settings:
@@ -572,6 +643,11 @@ class FrozenFemCalculixAdapter:
         try:
             source = Path(settings["snapshot_path"])
             manifest, mesh, pins, gates = validate_snapshot(source)
+            if manifest.get("export_profile") == "freecad-calculix-writer":
+                result.update(result_readability="NOT_READ", numerical_validity="NOT_ASSESSED",
+                              verification_case=manifest.get("verification_case", "없음"),
+                              limitations=["Input validation permits execution; engineering qualification is not assessed.",
+                                           "Solver logs and original outputs are retained, including failures."])
             retained = output / "frozen_input"
             retained.mkdir()
             for relative, pin in pins.items():
@@ -585,20 +661,22 @@ class FrozenFemCalculixAdapter:
                           checks=[{"name":"frozen_mesh_admission", "status":"PASS", **gates}])
             result["execution_status"] = "FAILED"
             check_cancelled()
-            command = shutil.which("ccx")
-            if not command:
-                raise RuntimeError("CalculiX requires ccx on configured PATH")
-            executable = Path(command).resolve(strict=True)
+            from ..native_tools import calculix_executable
+            executable, configuration = calculix_executable(runtime)
             binary_hash = _sha(executable)
             result["runtime"] = {"executable":str(executable), "sha256":binary_hash,
-                                 "configuration":"configured PATH", "build_identity":"UNKNOWN"}
+                                 "configuration":configuration, "build_identity":"UNKNOWN"}
             native = output / "solver"
             native.mkdir()
             deck = native / manifest["input_file"]
-            shutil.copyfile(retained / manifest["input_file"], deck)
+            for relative in manifest.get("input_dependencies", [manifest["input_file"]]):
+                target = native / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(retained / relative, target)
             result["execution_status"] = "FAILED"
             check_cancelled()
             solved = run_owned_command([str(executable), "-i", deck.stem], native, "ccx_frozen")
+            result["solver_exit_code"] = solved.returncode
             if solved.returncode:
                 raise RuntimeError("CalculiX failed; owned logs and raw outputs retained")
             check_cancelled()
@@ -607,6 +685,16 @@ class FrozenFemCalculixAdapter:
                     raise ValueError("Frozen input changed during execution")
             if _sha(deck) != pins[manifest["input_file"]]["sha256"] or _sha(executable) != binary_hash:
                 raise ValueError("Native deck/executable changed during execution")
+            if manifest.get("export_profile") == "freecad-calculix-writer":
+                from .native_calculix_results import convert
+                result["result_readability"] = "NOT_READ"
+                result.update(convert(deck.with_suffix(".frd"), output, manifest,
+                                      freecad_executable=(runtime or {}).get("freecad_executable")))
+                artifact = result["post_artifact"]
+                file = output / artifact["relative"]
+                artifact.update(bytes=file.stat().st_size, sha256=_sha(file))
+                result["execution_status"] = "SUCCEEDED"
+                return _finish_result(output, result)
             nodes, elements, fixed, loads = _mesh(mesh)
             observed = read_frd(deck.with_suffix(".frd"), nodes, elements)
             if not _printed_close(observed["load_parameter_token"], _deck_scope(deck, manifest)):
@@ -661,13 +749,17 @@ class FrozenFemCalculixAdapter:
         except (ValueError, KeyError, TypeError, AttributeError, IndexError, OverflowError, OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
             result["responses"] = {}
             result["diagnostics"] = {"type":type(exc).__name__, "reason":str(exc)}
-        result["limitations"] = ["Final complete step1 ASCII FRD displacement only",
+        result.setdefault("limitations", ["Final complete step1 ASCII FRD displacement only",
             "Stress, strain and reaction totals are raw output, not qualified responses",
-            "No physical acceptance, remesh, FreeCAD execution or nonlinear analysis"]
-        result["artifacts"] = [{"relative":p.relative_to(output).as_posix(), "bytes":p.stat().st_size,"sha256":_sha(p)}
-                               for p in sorted(output.rglob("*")) if p.is_file() and not p.is_symlink()]
-        save_json(output / "frozen_execution.json", result)
-        return result
+            "No physical acceptance, remesh, FreeCAD execution or nonlinear analysis"])
+        return _finish_result(output, result)
+
+
+def _finish_result(output, result):
+    result["artifacts"] = [{"relative":p.relative_to(output).as_posix(), "bytes":p.stat().st_size,"sha256":_sha(p)}
+                           for p in sorted(output.rglob("*")) if p.is_file() and not p.is_symlink()]
+    save_json(output / "frozen_execution.json", result)
+    return result
 
 
 # Public generic name; keep the backend-specific name for existing registry use.

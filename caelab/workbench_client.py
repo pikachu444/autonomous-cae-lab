@@ -245,6 +245,12 @@ class Client:
 
     def research_reference(self, reference):
         return self.request('/api/workbench/research-reference',{'reference':reference})
+    def native_plan_input(self, plan_id, *, session_id, expected_generation, command_id):
+        return self.request('/api/workbench/native-plan-input', dict(plan_id=plan_id,
+            session_id=session_id,expected_generation=expected_generation,command_id=command_id))
+    def selection_discussion(self, *, session_id, command_id, document_id=None, job_id=None, expected_generation=None):
+        return self.request('/api/workbench/selection-discussion', dict(session_id=session_id,
+            command_id=command_id,document_id=document_id,job_id=job_id,expected_generation=expected_generation))
     def domain_plan(self, document_id, *, session_id, expected_generation, command_id):
         return self.request('/api/workbench/domain-plan',dict(document_id=document_id,
             session_id=session_id,expected_generation=expected_generation,command_id=command_id))
@@ -337,6 +343,9 @@ class Client:
         if log is not None:
             query['log'] = log
         return self.request('/api/workbench/jobs/' + check_id(identifier) + '/monitor?' + urlencode(query))
+    def engineering_context(self, identifier):
+        from .storage import check_id
+        return self.request('/api/workbench/jobs/' + check_id(identifier) + '/context')
     def desktop_context(self):
         return self.request('/api/workbench/desktop')
     def cad_numerical_plan(self, command_id, *, operation='doe'):

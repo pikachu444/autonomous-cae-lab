@@ -136,6 +136,7 @@ class Project:
     def __init__(self, owner):
         self.owner = owner
         self.path = None
+        self.opened_source = None
         self.last_save = None
         self.last_failure = None
         self.in_save = False
@@ -147,6 +148,7 @@ class Project:
         opened = OPENED.pop(self.owner.doc.Name, None)
         if opened and opened[0] is self.owner.doc:
             manifest, source = opened[1:3]
+            self.opened_source = source
             if len(opened) > 3 and opened[3] is not None:
                 self.owner.portable_binding = opened[3]
                 self.owner.native_identity_initialization = deepcopy(manifest.get('_portable_identity_initialization', []))
@@ -164,7 +166,7 @@ class Project:
             # Opening a retained input never changes its original .caepre.
 
     def descriptor(self):
-        return {'project_file': str(self.path) if self.path else None,
+        return {'project_file': str(self.path) if self.path else None, 'opened_source': self.opened_source,
                 'saved': deepcopy(self.last_save), 'save_error': self.last_failure,
                 'dirty': not self.is_saved(), 'graph_version': self.graph_version(),
                 'links': deepcopy(self.owner.read_metadata().get('links', [])),

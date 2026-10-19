@@ -881,6 +881,10 @@ class Workbench:
         return read_monitor(self.root, self.desktop.job_record(identifier),
                             log=log, offset=offset, limit=limit)
 
+    def engineering_context(self, identifier):
+        from .engineering_context import read_context
+        return read_context(self, identifier)
+
     def result(self, identifier, *, selection=None):
         identifier=check_id(identifier)
         if not (self.root/'results'/identifier/'result.json').is_file():
@@ -1094,7 +1098,8 @@ class Workbench:
         callbacks={'calculations.inputs':self.describe_inputs,
                    'calculations.resources':lambda request:self.resource_request(request.get('inputs',request),request.get('resources')),
                    'calculations.submit':self._proposed_submit,
-                   'calculations.status':lambda request:self.manager.status(request['job_id']),
+                   'calculations.status':lambda request:{**self.desktop.job_record(request['job_id']),
+                       'engineering_context':self.engineering_context(request['job_id'])},
                    'results.read':lambda request:self.result(request.get('result_id',request.get('job_id',request.get('run_id'))),selection=request.get('selection',{'metadata_only':True})),
                    'numerical.doe':lambda request:self._numerical_submit('doe',request),
                    'numerical.analyze':lambda request:self._execute('analyze',request,'read'),
@@ -1265,11 +1270,21 @@ class Workbench:
             args=resolve_request_inputs(operation,args,resolve_document=self.document_read,
                                         resolve_result=self.document_result)
         backend=args.get('backend')
+        if operation == 'evaluate' and backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}:
+            if args.pop('values', None):
+                raise ValueError('Edit the native FreeCAD model and prepare its updated input before rerunning.')
+            operation = 'run'
         if operation=='detail_eval':
             from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
             validate_detail_arguments(self.numerical_documents, arguments, allow_active=True)
             validate_backend_binding(self, arguments)
         domain_adapter = None
+        if operation == 'evaluate' and backend in self.config.get('external_backends', {}):
+            from .adapters.external_files import FileEvaluationFactory
+            settings = self._settings(backend, args.get('settings', {}))
+            values = args.get('values', settings.pop('values', {}))
+            return evaluate(FileEvaluationFactory(backend, self.config['external_backends'][backend],
+                            self.root / 'native' / identifier), settings, values=values)
         if operation == 'evaluate' and backend not in {'evaluation.definition', 'material.mfront.prepared'}:
             candidate = get_backend(backend)
             if not callable(candidate) and not callable(getattr(candidate, 'prepare', None)):
@@ -1335,7 +1350,13 @@ class Workbench:
                 from .adapters.external_files import ExternalFilesAdapter
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
-            result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
+            native_runtime = None
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}:
+                executable = self.desktop.context().get('freecad_executable')
+                if executable:
+                    native_runtime = {'freecad_executable': executable}
+            options = {'runtime': native_runtime} if native_runtime is not None else {}
+            result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'),**options)
             if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
                     'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
@@ -1372,6 +1393,9 @@ class Workbench:
                     result.update(execution_status='FAILED', native_execution_status=native_status,
                                   post_registration={'status':'FAILED','type':type(error).__name__,'message':str(error)})
                     result.setdefault('diagnostics', {})['post_registration'] = str(error)
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}:
+                from .research_execution import retain_native_artifacts
+                retain_native_artifacts(result, output, self.root / 'results' / identifier)
             return result
         if operation=='import_table':
             mapping=args.get('mapping',{})

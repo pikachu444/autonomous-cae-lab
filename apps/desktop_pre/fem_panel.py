@@ -270,8 +270,8 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             form.addRow('요소 차원', self.dimension)
             self.element_type = QtWidgets.QComboBox()
             self.element_type.addItem('현재 차수와 차원 유지', None)
-            self.element_type.addItem('C3D10 2차 사면체 (실행 지원)', 'C3D10')
-            self.element_type.addItem('C3D4 1차 사면체 (실행 미지원)', 'C3D4')
+            self.element_type.addItem('C3D10 2차 사면체', 'C3D10')
+            self.element_type.addItem('C3D4 1차 사면체', 'C3D4')
             form.addRow('요소 종류', self.element_type)
             layout.addLayout(form)
             row = QtWidgets.QHBoxLayout()
@@ -825,8 +825,9 @@ def make_panel(QtWidgets, QtCore, editor, submit):
             self.quality.setColumnWidth(1, 110)
             self.quality.setColumnWidth(2, 180)
             self.quality.setColumnWidth(3, 150)
-            self.status.setPlainText(str(data['total_elements']) + ' native elements; ' + str(data['bad_element_count']) +
-                ' fail the preserved absolute/normalized Jacobian or C3D10 type gates. ' + data['limitation'])
+            self.status.setPlainText('요소 '+str(data['total_elements'])+'개, 입력 오류 '+
+                str(data.get('invalid_input_element_count',0))+'개. 품질 진단 '+str(data['bad_element_count'])+
+                '개는 측정 문턱에 따른 참고값입니다. '+data['limitation'])
             self.status_summary.setText('요소 '+str(data['total_elements'])+'개를 조회했습니다. 확인이 필요한 요소는 '+str(data['bad_element_count'])+'개입니다.')
 
         def highlight_quality(self):

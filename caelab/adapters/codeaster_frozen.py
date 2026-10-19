@@ -41,6 +41,8 @@ def _source_check(source, retained, pins):
 def prepare_input(source, output):
     """Prepare native files before runtime lookup, preserving editable source."""
     manifest,mesh,pins,gates = validate_snapshot(source)
+    if manifest.get('export_profile') == 'freecad-calculix-writer':
+        raise ValueError('이 FreeCAD 입력의 Code_Aster 변환은 아직 연결되지 않았습니다. CalculiX를 선택하세요.')
     retained = output/'frozen_input'
     retained.mkdir()
     for relative in pins:

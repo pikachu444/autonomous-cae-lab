@@ -110,16 +110,22 @@ def _det(a):
             + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]))
 
 
-def _element_quality(native, identifier, *, node_table=None):
+def _element_quality(native, identifier, *, node_table=None, family='Volumes'):
     """Same four C3D10 samples/floors as frozen_fem._gates, native mm/order."""
     node_table = native.Nodes if node_table is None else node_table
     ids = [_positive_id(key) for key in native.getElementNodes(identifier)]
+    types = {'Volumes': {4:'C3D4', 6:'C3D6', 8:'C3D8', 10:'C3D10', 15:'C3D15', 20:'C3D20'},
+             'Faces': {3:'S3', 4:'S4', 6:'S6', 8:'S8'}, 'Edges': {2:'B31', 3:'B32'}}[family]
     row = {'element_id': identifier, 'node_ids': ids, 'node_count': len(ids),
-           'element_type': {4: 'C3D4', 10: 'C3D10'}.get(len(ids), 'UNSUPPORTED'), 'errors': []}
-    if len(ids) != 10:
-        row['errors'].append('UNSUPPORTED_RUN_ELEMENT_TYPE')
-    if len(ids) not in (4, 10) or len(set(ids)) != len(ids) or any(key not in node_table for key in ids):
+           'element_type': types.get(len(ids), 'UNSUPPORTED'), 'errors': []}
+    if len(ids) not in types or len(set(ids)) != len(ids) or any(key not in node_table for key in ids):
         row['errors'].append('INVALID_OR_UNSUPPORTED_CONNECTIVITY')
+        return row
+    if family != 'Volumes' or len(ids) not in (4, 10):
+        points = [(node_table[key].x, node_table[key].y, node_table[key].z) for key in ids]
+        if any(not math.isfinite(float(v)) for point in points for v in point):
+            row['errors'].append('NONFINITE_NATIVE_COORDINATES')
+        row['jacobian_assessment'] = 'NOT_ASSESSED'
         return row
     points = [[float(v) for v in (node_table[key].x, node_table[key].y, node_table[key].z)]
               for key in (ids[slot] for slot in (CCX_FROM_NATIVE_TET10 if len(ids) == 10 else (1, 0, 2, 3)))]
@@ -361,22 +367,32 @@ class FEMEditor:
                 for obj in self.owner.doc.Objects if _native_type(obj) == 'Fem::FemMeshGmsh'],
             'active_mesh_generations': [{'history_id': item['id'], 'mesh_id': name,
             'state': 'CANCELLING' if item['cancelled'] else 'RUNNING'} for name, item in self._pending.items()],
-            'execution_scope': 'Single-solid C3D10 static linear isotropic Fixed/Force',
+            'execution_scope': 'FreeCAD CalculiX static analysis; native writer support is checked for the selected model',
             'engineering_release': 'NOT_RELEASED'}
 
     def quality(self, mesh, *, offset=0, limit=200):
         if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 4096:
             raise ValueError('Quality table needs offset>=0 and 1<=limit<=4096')
-        rows, bad, absolute, scaled = [], [], [], []
+        rows, bad, invalid, absolute, scaled = [], [], [], [], []
         native = mesh.FemMesh
         # FreeCAD materializes the entire node dictionary on each property read.
         # Keep one local snapshot for this synchronous quality/hash call only.
         node_table = native.Nodes
-        volumes = sorted(native.Volumes)
+        family = 'Volumes' if native.Volumes else 'Faces' if native.Faces else 'Edges'
+        volumes = sorted(getattr(native, family))
         for index, identifier in enumerate(volumes):
-            row = _element_quality(native, _positive_id(identifier), node_table=node_table)
+            row = _element_quality(native, _positive_id(identifier), node_table=node_table, family=family)
             if row['errors']:
                 bad.append(identifier)
+            # Legacy quality floors remain observations. Native admission uses
+            # connectivity, finite coordinates and the measured Jacobian sign.
+            input_errors = set(row['errors']) - {'JACOBIAN_AT_OR_BELOW_1E_10_MM3', 'NORMALIZED_JACOBIAN_SINGULAR'}
+            if row['element_type'] in {'C3D4', 'C3D10'}:
+                determinant = row.get('minimum_scaled_sampled_jacobian')
+                if determinant is None or determinant <= 0:
+                    input_errors.add('INVALID_SIGNED_JACOBIAN')
+            if input_errors:
+                invalid.append(identifier)
             for key, values in (('minimum_sampled_jacobian_mm3', absolute), ('minimum_scaled_sampled_jacobian', scaled)):
                 if row.get(key) is not None:
                     values.append(row[key])
@@ -388,11 +404,12 @@ class FEMEditor:
             mesh_hash = None  # Preserve quality rows/reasons even for invalid native coordinates.
         return {'mesh_id': mesh.Name, 'mesh_sha256': mesh_hash, 'offset': offset,
                 'total_elements': len(volumes), 'rows': rows, 'bad_element_count': len(bad),
+                'invalid_input_element_count': len(invalid), 'invalid_input_element_ids': invalid[:4096],
                 'bad_element_ids': bad[:4096], 'bad_ids_truncated': len(bad) > 4096,
                 'absolute_jacobian_mm3': _distribution(absolute), 'normalized_jacobian': _distribution(scaled),
                 'gates': {'absolute_jacobian_floor_mm3': ABSOLUTE_JACOBIAN_FLOOR_MM3,
                           'normalized_jacobian_floor': NORMALIZED_JACOBIAN_FLOOR},
-                'limitation': 'Four C3D10 Gauss-point samples are not proof over the entire element',
+                'limitation': 'Tetrahedra have sampled Jacobians; other native element families have connectivity checks only.',
                 'engineering_release': 'NOT_RELEASED'}
 
     def dispatch(self, operation, arguments, target):
@@ -532,7 +549,7 @@ class FEMEditor:
                 updates[prop] = args[key]
         if 'element_type' in args:
             if args['element_type'] not in ('C3D4', 'C3D10'):
-                raise ValueError('Only tetrahedral C3D4/C3D10 mesh editing is supported; run requires C3D10')
+                raise ValueError('Use the native Gmsh properties for shell, beam, wedge or hexahedral meshing')
             order = '2nd' if args['element_type'] == 'C3D10' else '1st'
             if 'ElementOrder' in updates and updates['ElementOrder'] != order:
                 raise ValueError('Element type and native order conflict')
@@ -549,7 +566,7 @@ class FEMEditor:
                 setattr(mesh, name, value)
         self._transaction('mesh settings', change)
         return {'mesh_id': mesh.Name, 'settings': self._mesh_settings(mesh), 'mesh_generated': False,
-                'run_admissibility': 'CHECK_ACTUAL_C3D10_MESH'}
+                'run_admissibility': 'CHECK_NATIVE_WRITER_INPUT'}
 
     def _mesh_settings(self, mesh):
         return {name: str(getattr(mesh, name)) for name in sorted(_MESH_FIELDS) if hasattr(mesh, name)}
@@ -798,8 +815,9 @@ class FEMEditor:
         errors = self._refinement_errors(mesh)
         if errors:
             raise ValueError(errors[0])
-        if not mesh.Shape.Shape.copy(True, False).isValid() or len(mesh.Shape.Shape.Solids) != 1:
-            raise ValueError('Generation requires one valid solid; run remains C3D10 static linear')
+        shape = mesh.Shape.Shape.copy(True, False)
+        if not shape.isValid() or not any(getattr(shape, family) for family in ('Solids', 'Faces', 'Edges')):
+            raise ValueError('메시를 만들 유효한 고체·면·선을 지정하세요.')
         from femmesh.gmshtools import GmshTools
         identifier = 'G' + uuid.uuid4().hex
         pending = {'id': identifier, 'mesh': mesh, 'old_mesh': mesh.FemMesh.copy(),
@@ -884,8 +902,8 @@ class FEMEditor:
             def apply():
                 nonlocal quality
                 tool.update_properties()
-                if not mesh.FemMesh.Nodes or not mesh.FemMesh.Volumes:
-                    raise ValueError('Native Gmsh produced an empty solid mesh; prior mesh retained')
+                if not mesh.FemMesh.Nodes or not any(getattr(mesh.FemMesh, family) for family in ('Volumes', 'Faces', 'Edges')):
+                    raise ValueError('Native Gmsh produced an empty mesh; prior mesh retained')
                 self.owner.mesh_bindings.slotChangedObject(mesh, 'FemMesh')
                 quality = self.quality(mesh, limit=1)
                 try:
@@ -903,7 +921,7 @@ class FEMEditor:
                               previous_mesh_object_id=archive.Name, previous_binding=pending['old_binding'],
                               run_admissibility='BLOCKED' if quality['bad_element_count'] or binding_error else 'QUALITY_GATES_PASSED',
                               binding_error=binding_error,
-                              quality={key: quality[key] for key in ('total_elements', 'bad_element_count',
+                              quality={key: quality[key] for key in ('total_elements', 'bad_element_count', 'invalid_input_element_count',
                                        'absolute_jacobian_mm3', 'normalized_jacobian')})
             try:
                 self._transaction('apply generated native mesh', apply)
@@ -970,6 +988,35 @@ class FEMEditor:
                 fail('displacement_transfer', str(error))
             # accepted_definition binds and strictly validates the final union
             # before any input is packaged. This capture alone cannot run.
+            return errors
+        data = self._metadata()
+        specialized = (analysis.Name in data.get('initial_fields', {})
+            or analysis.Name in data.get('pretension_editors', {})
+            or any(row.get('analysis_id') == analysis.Name for row in self.contact._data().get('contacts', []))
+            or any(row.get('analysis_id') == analysis.Name
+                   for key in ('pretension_sections', 'contact_programs', 'periodic_constraints',
+                               'convergence_drafts', 'plasticity_drafts') for row in data.get(key, [])))
+        if not specialized:
+            solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
+                       and not getattr(obj, 'Suppressed', False)]
+            if len(solvers) != 1:
+                fail('solver', 'CalculiX 솔버를 하나 지정하세요.')
+                return errors
+            try:
+                from .native_calculix import validate_analysis
+                from .mesh_binding import PROPERTY_NAME
+                mesh, _ = validate_analysis(analysis, solvers[0])
+                if PROPERTY_NAME in getattr(mesh, 'PropertiesList', []):
+                    self.owner.mesh_bindings.validate(mesh)
+                quality = self.quality(mesh, limit=1)
+                if not quality['total_elements'] or quality['invalid_input_element_count']:
+                    fail(mesh.Name, '메시의 연결·좌표 또는 사면체의 비양수 Jacobian을 확인하세요.')
+            except Exception as error:
+                fail(analysis.Name, str(error))
+            for obj in analysis.Group:
+                if any(row.get('object_id') == obj.Name for row in data.get('conditions', [])):
+                    for message in self._condition_errors(obj, data):
+                        fail(obj.Name, message)
             return errors
         programs = [row for row in self._metadata().get('contact_programs', [])
                     if row.get('analysis_id') == analysis.Name]

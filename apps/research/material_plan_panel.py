@@ -195,10 +195,8 @@ class MaterialPlanPanel(QWidget):
         self.restore_related_save_context(context_for(material,material.document['id']))
 
     def prepare_data(self):
-        from .data_window import DataWindow
-        window=DataWindow(self.client)
-        self.material.__dict__.setdefault('_data_windows',[]).append(window)
-        window.show()
+        from .desktop import launch_tool
+        launch_tool(self.client, 'data')
         self.message.setText('Data에서 파일의 열·단위를 확인하고 가져온 뒤, 이 창의 시험 추가를 누르세요.')
 
     def _whole_trial_row(self,row):
