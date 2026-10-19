@@ -45,7 +45,9 @@ class DesktopLinks:
         exports = {'pre.connector.freeze': ('frozen_connector', 'explicit.opencourant.connector'),
             'pre.freeze': ('frozen_fem', 'structure.calculix.frozen'),
             'pre.contact.freeze': ('frozen_contact', 'structure.calculix.contact'),
+            'pre.contact.aster_freeze': ('frozen_contact', 'structure.codeaster.contact'),
             'pre.pretension.freeze': ('frozen_contact', 'structure.calculix.pretension'),
+            'pre.initial.freeze': ('frozen_contact', 'structure.calculix.initial_fields'),
             'pre.shell.freeze': ('frozen_shell', 'structure.calculix.shell'),
             'pre.composite.freeze': ('frozen_composite_shell', 'structure.calculix.shell.composite'),
             'pre.beam.freeze': ('frozen_beam', 'structure.calculix.beam'),
@@ -55,7 +57,7 @@ class DesktopLinks:
             command = wb.native_commands.status(command_id)
             if command['operation'] not in exports or command['state'] != 'SUCCEEDED':
                 raise ValueError('A completed native FEM/contact/dynamic export command is required')
-            if solver == 'codeaster' and command['operation'] != 'pre.freeze':
+            if solver == 'codeaster' and command['operation'] not in {'pre.freeze','pre.initial.freeze','pre.contact.aster_freeze'}:
                 raise ValueError('Code_Aster currently accepts single-solid linear Fixed/Force snapshots only')
             envelope = command.get('outcome', {}).get('result', {})
             result = envelope.get('result', {})
@@ -92,7 +94,16 @@ class DesktopLinks:
                 if solver == 'codeaster':
                     raise ValueError('This prescribed-displacement receiver requires the admitted CalculiX writer.')
                 receipt_kind, backend = 'frozen_contact', 'structure.calculix.contact'
-            if solver == 'codeaster': backend = 'structure.codeaster.frozen'
+            if solver == 'codeaster' and command['operation'] == 'pre.freeze':
+                backend = 'structure.codeaster.frozen'
+            if command['operation'] == 'pre.initial.freeze':
+                from .adapters.contact_fem import validate_snapshot
+                from .initial_field_conditions import effective, BACKENDS
+                _, initial_model, _, _ = validate_snapshot(wb.input_path(receipt['id']))
+                initial = effective(initial_model)
+                if initial is None or (solver is not None and solver != initial['solver']):
+                    raise ValueError('선택한 솔버가 명시한 초기 상태 종류와 다릅니다.')
+                backend = BACKENDS[initial['solver']]
             if solver == 'calculix' and not backend.startswith('structure.calculix.'):
                 raise ValueError('This frozen input does not support the selected CalculiX backend')
             if receipt.get('kind') != receipt_kind:
@@ -205,7 +216,7 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.calculix.pretension', 'explicit.opencourant.connector'}:
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.calculix.pretension', 'explicit.opencourant.connector', 'structure.codeaster.contact', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
             result['retained_design_input_id'] = job['arguments']['settings'].get('data_id')
         if origin.get('kind') == 'pre':
             try:

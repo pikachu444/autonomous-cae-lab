@@ -147,9 +147,24 @@ def make_panel(W, C, editor, submit, *, Gui, on_run, on_results, on_runner, on_s
                 except Exception as exc:self.status.setText(str(exc))
             return call
         def discover(self):
+            previous_analysis=self.analysis_key;previous_solver=self.solver.currentData()
             data=editor.inspect();self.catalog=data['analyses'];self.loading=True
+            self.analysis.clear()
             for row in self.catalog:self.analysis.addItem(row['label'],row['id'])
-            self.loading=False;self.select_analysis()
+            self.analysis.setCurrentIndex(max(0,self.analysis.findData(previous_analysis)))
+            self.analysis_key=self.analysis.currentData()
+            self.fill_solvers(previous_solver if self.analysis_key==previous_analysis else None)
+            self.loading=False;self.load_current()
+        def fill_solvers(self,preferred=None):
+            self.solver.clear()
+            row=next((r for r in self.catalog if r['id']==self.analysis_key),None)
+            for s in row['solvers'] if row else []:self.solver.addItem(s['label'],s['id'])
+            self.solver.setCurrentIndex(max(0,self.solver.findData(preferred)))
+        def refresh_context(self):
+            if self.buffer.busy:return False
+            self.sync()
+            if self.buffer.pending():return False
+            self.discover();return True
         def discard(self):
             self.sync()
             return not self.buffer.pending() or W.QMessageBox.question(self,'미저장 수정',
@@ -159,12 +174,11 @@ def make_panel(W, C, editor, submit, *, Gui, on_run, on_results, on_runner, on_s
             if self.loading:return
             if not self.discard():
                 self.analysis.blockSignals(True);self.analysis.setCurrentIndex(self.analysis.findData(self.analysis_key));self.analysis.blockSignals(False);return
-            self.analysis_key=self.analysis.currentData();self.loading=True;self.solver.clear()
-            row=next((r for r in self.catalog if r['id']==self.analysis_key),None)
-            for s in row['solvers'] if row else []:self.solver.addItem(s['label'],s['id'])
+            self.analysis_key=self.analysis.currentData();self.loading=True;self.fill_solvers()
             self.loading=False;self.load_current()
         def reload(self):
-            if self.discard():self.load_current()
+            if self.buffer.busy or not self.discard():return False
+            self.discover();return True
         def load_current(self):
             all_info=editor.inspect()
             if self.analysis_key in all_info['models']:self.display(editor.inspect(self.analysis_key))
@@ -185,6 +199,9 @@ def make_panel(W, C, editor, submit, *, Gui, on_run, on_results, on_runner, on_s
             for error in info.get('errors',[]):
                 item=W.QListWidgetItem(error['message']);item.setData(C.Qt.UserRole,error['path']);self.errors.addItem(item)
             self.ready=info['can_freeze'];self.loading=False
+            # The initial widgets stringify numeric fields. This is the clean
+            # displayed baseline, without changing the owner's accepted record.
+            self.sync();self.buffer.saved=deepcopy(self.buffer.value)
             self.status.setText('입력 생성 가능 — 물리 검증은 별도입니다.' if self.ready else '초안 유지 — 오류를 수정하고 적용하세요.')
             self.update_buttons()
         def combo(self,options,value):

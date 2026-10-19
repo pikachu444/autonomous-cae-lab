@@ -334,3 +334,34 @@ def test_transfer_raw_buffer_blocks_save_and_survives_close_reconnect_cancel(con
     completed=[];c.guards.prepare_reconnect([owner],lambda:completed.append(True))
     assert not completed and not c.connection.pending and not c.originals
     assert not c.guards.closing and buffer=={'text':'1e','version':1}
+
+
+def test_initial_raw_buffer_is_in_close_reconnect_token_and_cancel_preserves_it(controls, monkeypatch):
+    c = controls; owner = c.owners[0]; owner.saved_generation = owner.generation
+    raw = {'text':'1e', 'edit':1}
+    page = NS(pending=False, pending_changes=lambda:True, token=lambda:deepcopy(raw))
+    c.connection.panels = {owner.doc.Name:{'fem':NS(widget=lambda:NS(initial_field_page=page))}}
+    from apps.desktop_pre.native_controls import _close_version
+    version = _close_version(owner, c.connection); assert not c.guards.saved(owner)
+    questions(monkeypatch, [QtWidgets.QMessageBox.Cancel, QtWidgets.QMessageBox.Cancel])
+    c.guards.replacements['Std_Close'][1].trigger()
+    completed = []; c.guards.prepare_reconnect([owner], lambda:completed.append(True))
+    assert not completed and not c.originals and not c.connection.pending
+    raw['edit'] += 1
+    assert _close_version(owner, c.connection) != version and raw['text'] == '1e'
+
+
+@pytest.mark.parametrize('operation', ['close', 'reconnect'])
+def test_unresolved_initial_request_cannot_be_discarded_by_host_close_or_reconnect(controls, monkeypatch, operation):
+    c = controls; owner = c.owners[0]; owner.saved_generation = owner.generation
+    raw = {'text':'1e', 'request':'same-pending-request'}
+    page = NS(pending=True, pending_changes=lambda:True, token=lambda:deepcopy(raw))
+    c.connection.panels = {owner.doc.Name:{'fem':NS(widget=lambda:NS(initial_field_page=page))}}
+    # Choosing Discard must not turn an unknown command into a known outcome.
+    seen = questions(monkeypatch, [QtWidgets.QMessageBox.Discard])
+    completed = []
+    if operation == 'close':c.guards.close_owners([owner], lambda:completed.append(True))
+    else:c.guards.prepare_reconnect([owner], lambda:completed.append(True))
+    assert not completed and not c.originals and not c.guards.approved_close
+    assert seen == []
+    assert page.pending and raw['text'] == '1e' and not c.connection.pending

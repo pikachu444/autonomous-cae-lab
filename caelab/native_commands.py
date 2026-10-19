@@ -45,6 +45,9 @@ CAPABILITIES['pre'].update(SHELL_OPERATIONS)
 from .pretension import OPERATIONS as PRETENSION_OPERATIONS
 CAPABILITIES['pre'].update(PRETENSION_OPERATIONS)
 CAPABILITIES['pre'].add('pre.pretension.freeze')
+from .initial_field_conditions import OPERATIONS as INITIAL_FIELD_OPERATIONS
+CAPABILITIES['pre'].update(INITIAL_FIELD_OPERATIONS)
+CAPABILITIES['pre'].update({'pre.initial.freeze', 'pre.contact.aster_freeze'})
 from apps.desktop_pre.composite_edit import OPERATIONS as COMPOSITE_OPERATIONS
 CAPABILITIES['pre'].update(COMPOSITE_OPERATIONS)
 # Capability names are the native adapter contract, not a native import.

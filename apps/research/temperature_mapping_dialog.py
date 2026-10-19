@@ -39,8 +39,10 @@ class TemperatureMappingDialog(QDialog):
                 self.candidates.append((caption, {'stage': stage['id'], 'output': name}))
         target = catalogs.get(row['to_stage'], {})
         target_port = target.get('ports', {}).get('inputs', {}).get(row['input'], {})
+        self.hex8_receiver = target_port.get('receiver_geometry') == 'Hex8'
+        receiver_clock = target_port.get('clock') or target.get('clock')
         initial = deepcopy(row.get('options') or default_options(row['from_stage'], row['output'],
-                                                                 receiver_time=target.get('clock')))
+                                                                 receiver_time=receiver_clock))
         if 'options' not in row:
             initial['target_quantity'] = target_port.get('quantity', ABSOLUTE)
             initial['target_unit'] = target_port.get('unit', 'K')
@@ -48,8 +50,16 @@ class TemperatureMappingDialog(QDialog):
         layout = QVBoxLayout(self)
         header = QLabel(names.get(row['to_stage'], row['to_stage']) + ' / ' + row['input'])
         header.setProperty('appearanceRole', 'section'); layout.addWidget(header)
-        note = QLabel('실제 원 삼각형 연결로 수신 P1 절점을 보간합니다. 보존적 전달이나 외삽이 아닙니다. '
+        note = QLabel(('실제 원 삼각형 연결로 수신 Hex8 절점의 x-y 좌표를 보간합니다. '
+                       'z 방향 불변 온도라는 수신 원본의 선언을 사용합니다. ' if self.hex8_receiver else
+                      '실제 원 삼각형 연결로 수신 P1 절점을 보간합니다. ') + '보존적 전달이나 외삽이 아닙니다. '
                       '단일 정상 snapshot은 과도 해석이 아닙니다.'); note.setWordWrap(True); layout.addWidget(note)
+        self.extrusion_note = QLabel()
+        self.extrusion_note.setWordWrap(True)
+        if self.hex8_receiver:
+            extrusion = target_port.get('extrusion') or {}
+            self.extrusion_note.setText('수신 원본의 가정: ' + str(extrusion.get('statement') or '수신 원본에서 z 방향 불변 선언을 확인하세요.'))
+            layout.addWidget(self.extrusion_note)
         form = QFormLayout(); form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.mode = QComboBox(); self.mode.setObjectName('temperatureTimePolicy')
         for value, text in MODES.items(): self.mode.addItem(text, value)
@@ -64,7 +74,7 @@ class TemperatureMappingDialog(QDialog):
         self.origin.setToolTip(clock_origin_label(initial['time']['receiver']['origin'])
                                + '\n원본과 대응하는 시계 원점의 식별값입니다. 저장 값은 그대로 유지합니다.')
         form.addRow('시계 원점', self.origin)
-        original_clock = target.get('clock') or {}
+        original_clock = receiver_clock or {}
         declared = QLabel('수신 원본 시각: ' + str(original_clock.get('value', '?')) + ' '
                           + str(original_clock.get('unit', '?')) + ' / '
                           + clock_origin_label(original_clock.get('origin', '?'))
@@ -73,10 +83,19 @@ class TemperatureMappingDialog(QDialog):
         declared.setWordWrap(True); form.addRow(declared)
         self.quantity = QComboBox(); self.quantity.setObjectName('temperatureTargetQuantity')
         self.quantity.addItem('절대 온도 [K]', (ABSOLUTE, 'K'))
-        self.quantity.addItem('구조 Tref를 뺀 온도차 [ΔK]', (DIFFERENCE, 'delta_K'))
-        self.quantity.setCurrentIndex(max(0, self.quantity.findData((initial['target_quantity'], initial['target_unit']))))
+        if not self.hex8_receiver:
+            self.quantity.addItem('구조 Tref를 뺀 온도차 [ΔK]', (DIFFERENCE, 'delta_K'))
+        selected = (initial['target_quantity'], initial['target_unit'])
+        index = next((i for i in range(self.quantity.count()) if self.quantity.itemData(i) == selected), -1)
+        if index < 0:
+            self.quantity.addItem('지원되지 않는 원래 온도 의미 [' + str(initial['target_unit']) + ']', selected)
+            index = self.quantity.count()-1
+        self.quantity.setCurrentIndex(index)
         form.addRow('수신 온도 의미', self.quantity)
-        region = QComboBox(); region.addItem('수신 계산 영역의 모든 P1 절점 (필수)', 'all_receiver_nodes')
+        if self.hex8_receiver:
+            reference = QLabel('절대 온도를 전달합니다. 각 재료 영역의 Tref는 구조 계산에서 한 번 적용합니다.')
+            reference.setWordWrap(True); form.addRow(reference)
+        region = QComboBox(); region.addItem('수신 계산 영역의 모든 ' + ('Hex8' if self.hex8_receiver else 'P1') + ' 절점 (필수)', 'all_receiver_nodes')
         region.setToolTip('이 첫 FE capability는 모든 수신 절점의 온도를 요구합니다. mask를 해제하거나 0으로 채울 수 없습니다.')
         form.addRow('필수 영역', region)
         layout.addLayout(form)
@@ -150,7 +169,10 @@ class TemperatureMappingDialog(QDialog):
                 'required': 'all_receiver_nodes', 'target_quantity': quantity, 'target_unit': unit}
 
     def _accept(self):
-        try: validate_options(self.options())
+        try:
+            options = validate_options(self.options())
+            if self.hex8_receiver and (options['target_quantity'], options['target_unit']) != (ABSOLUTE, 'K'):
+                raise ValueError('Hex8 온도 연결은 절대 온도 [K]를 선택하세요. Tref는 수신 재료 영역에 보존됩니다.')
         except (ValueError, KeyError, TypeError) as error:
             self.error.setText(str(error)); return
         self.accept()

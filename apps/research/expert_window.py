@@ -19,7 +19,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFormLayout, QHBoxLayout, QInputDialog, QLabel, QListWidget, QListWidgetItem, QMainWindow,
     QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter, QTabWidget,
-    QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+    QToolBar, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from caelab.discussion_document import diagnostics as discussion_diagnostics
 from caelab.storage import canonical_hash
@@ -134,15 +134,14 @@ class ExpertWindow(QMainWindow):
         self.resume_button = QPushButton('계속')
         self.pause_button.clicked.connect(self.pause_discussion)
         self.resume_button.clicked.connect(self.resume_discussion)
-        bar.addWidget(self.pause_button)
-        bar.addWidget(self.resume_button)
         self.connection_button = QPushButton('연결 설정…')
         self.connection_button.clicked.connect(self.open_connection)
-        bar.addWidget(self.connection_button)
         self.identity = QLabel()
         bar.addWidget(self.identity)
         root = QWidget()
         outer = QVBoxLayout(root)
+        outer.setContentsMargins(12, 8, 12, 8)
+        outer.setSpacing(8)
         self.message = QLabel('')
         self.message.setWordWrap(True)
         self.statusBar().addWidget(self.message, 1)
@@ -207,7 +206,6 @@ class ExpertWindow(QMainWindow):
         self.protocol_mode.addItem('역할별 답변', 'sequential')
         self.protocol_mode.addItem('자료 토론 (Co-STORM)', 'costorm')
         self.protocol_mode.currentIndexChanged.connect(self._edited)
-        conversation.addWidget(self.protocol_mode)
         self.discussion_title = QLabel('대화')
         self.discussion_title.setProperty('appearanceRole', 'title')
         self.discussion_title.setWordWrap(True)
@@ -231,7 +229,8 @@ class ExpertWindow(QMainWindow):
         self.study_retry_action.setVisible(False)
         from .common.commands import action_button
         selected_turn.addWidget(action_button(self.study_action, self))
-        selected_turn.addWidget(action_button(self.study_retry_action, self))
+        self.study_retry_button = action_button(self.study_retry_action, self)
+        selected_turn.addWidget(self.study_retry_button)
         conversation.addLayout(selected_turn)
         self.turns = ConversationList()
         self.turns.citation_requested.connect(self.open_turn_citation)
@@ -250,6 +249,10 @@ class ExpertWindow(QMainWindow):
         composer = QVBoxLayout(self.editor)
         composer.setContentsMargins(0, 4, 0, 0)
         composer.setSpacing(4)
+        self.composer_context = QLabel('질문 작성')
+        self.composer_context.setWordWrap(True)
+        self.composer_context.setProperty('appearanceRole', 'muted')
+        composer.addWidget(self.composer_context)
         selector = QHBoxLayout()
         self.reply = QComboBox()
         self.reply.setObjectName('discussionReplyTarget')
@@ -265,8 +268,8 @@ class ExpertWindow(QMainWindow):
         self.question = QPlainTextEdit()
         self.question.setObjectName('discussionQuestion')
         self.question.setPlaceholderText('질문이나 의견을 입력하세요.')
-        self.question.setMaximumHeight(80)
-        self.question.setMinimumHeight(56)
+        self.question.setMaximumHeight(140)
+        self.question.setMinimumHeight(72)
         self.question.textChanged.connect(self._edited)
         composer.addWidget(self.question)
         self.evidence_label = QLabel('첨부된 계산 결과 없음')
@@ -286,6 +289,8 @@ class ExpertWindow(QMainWindow):
         self.attach_button.clicked.connect(self.attach_result)
         self.apply_button = QPushButton('편집 적용')
         self.apply_button.clicked.connect(self.apply_inputs)
+        self.cancel_question_button = QPushButton('질문 수정 취소')
+        self.cancel_question_button.clicked.connect(self.cancel_question_edits)
         self.intervene_button = QPushButton('발언 남기기')
         self.intervene_button.clicked.connect(self.intervene)
         self.ask_button = QPushButton('토론 시작')
@@ -308,7 +313,10 @@ class ExpertWindow(QMainWindow):
         self.apply_button.setToolTip('현재 질문과 대화 설정을 적용합니다.')
         self.intervene_button.setToolTip('내 발언을 대화에 남깁니다. AI 응답은 요청하지 않습니다.')
         self.ask_button.setToolTip('선택한 참여 역할에 현재 질문을 보냅니다.')
-        for button in (self.attach_button, self.apply_button, self.intervene_button, self.next_button, self.retry_button, self.ask_button):
+        for button in (self.attach_button, self.intervene_button, self.next_button, self.retry_button):
+            actions.addWidget(button)
+        actions.addStretch()
+        for button in (self.cancel_question_button, self.apply_button, self.ask_button):
             actions.addWidget(button)
         composer.addLayout(actions)
         self.protocol_budget = QPushButton()
@@ -318,6 +326,8 @@ class ExpertWindow(QMainWindow):
         self.partial_responses_button = QPushButton('중단된 응답 보기…')
         self.partial_responses_button.clicked.connect(self.show_partial_responses)
         recovery.addWidget(self.partial_responses_button); recovery.addStretch(1)
+        recovery.addWidget(self.pause_button)
+        recovery.addWidget(self.resume_button)
         recovery.addWidget(self.protocol_budget)
         composer.addLayout(recovery)
         conversation.addWidget(self.editor)
@@ -386,6 +396,8 @@ class ExpertWindow(QMainWindow):
         self.side.addTab(plan_tab, '계산 계획')
         settings = self.transmission_settings = QWidget()
         form = QFormLayout(settings)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.addRow('대화 방식', self.protocol_mode)
         self.allow_question = QCheckBox('질문 전송 허용')
         self.allow_question.setToolTip('Permit question transmission for this request within the existing workspace/provider authorization.')
         self.allow_public = QCheckBox('공개 논문 검색 허용')
@@ -417,11 +429,19 @@ class ExpertWindow(QMainWindow):
         left.setMinimumWidth(230); left.setMaximumWidth(300)
         splitter.setSizes([270, 830, 340])
         self.side.hide()
+        view_menu = self.menuBar().addMenu('보기(&V)')
         for label, tab in (('참고 자료', self.source_tab), ('발언 근거', self.citation_tab), ('계산 계획', plan_tab),
                            ('참여 역할', participant_tab), ('전송 설정', settings)):
             action = QAction(label, self)
             action.triggered.connect(lambda checked=False, tab=tab: self.show_side(tab))
-            bar.addAction(action)
+            view_menu.addAction(action)
+        view_menu.addSeparator()
+        view_menu.addAction('연결 설정…', self.connection_button.click)
+        self.context_tools = QToolButton(self)
+        self.context_tools.setText('자료와 설정')
+        self.context_tools.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.context_tools.setMenu(view_menu)
+        bar.addWidget(self.context_tools)
         hide_side = QPushButton('닫기')
         hide_side.clicked.connect(self.side.hide)
         self.side.setCornerWidget(hide_side)
@@ -796,6 +816,23 @@ class ExpertWindow(QMainWindow):
         if not self._populating and self.document:
             self.local_dirty = True
             self._update_actions()
+
+    def cancel_question_edits(self):
+        if (not self.document or self._draft_problem or self._foreground_busy
+                or self._source_choosing or getattr(self, '_incoming_review', False)):
+            return False
+        composer = self.document['draft']['composer']
+        self._populating = True
+        try:
+            self.question.setPlainText(composer.get('text', ''))
+            self.reply.setCurrentIndex(self.reply.findData(composer.get('reply_to')))
+            self.classification.setCurrentIndex(self.classification.findData(composer.get('classification')))
+        finally:
+            self._populating = False
+        self.local_dirty = self.edited_draft() != self.document['draft']
+        self.message.setText('질문 수정을 취소했습니다. 첨부 자료와 다른 설정은 유지합니다.')
+        self._update_actions()
+        return True
 
     def _result_permission_toggled(self, checked):
         if self._populating or not self._buffer or self._draft_problem:
@@ -1742,11 +1779,19 @@ class ExpertWindow(QMainWindow):
         for button in (self.ask_button, self.intervene_button, self.apply_button, self.attach_button):
             button.setEnabled(enabled and not self._draft_problem)
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._draft_problem)
+        self.cancel_question_button.setEnabled(enabled and not self._draft_problem and self.local_dirty)
+        self.cancel_question_button.setVisible(self.local_dirty)
+        participants = [self.roles.item(row).text() for row in range(self.roles.count())
+                        if self.roles.item(row).checkState() == Qt.CheckState.Checked]
+        self.composer_context.setText('질문 받는 역할: ' + (' · '.join(participants[:2]) +
+            (' 외 ' + str(len(participants) - 2) + '명' if len(participants) > 2 else '') if participants else '참여 역할에서 선택'))
+        self.composer_context.setToolTip('\n'.join(participants))
         self.save_action.setEnabled(enabled)
         self.study_action.setEnabled(enabled and self.turns.currentItem() is not None)
         self.study_action.setToolTip('선택 발언과 발언 근거에서 고른 자료를 새 연구에 정리합니다.'
             if self.sources.currentRow() >= 0 else '선택 발언을 새 연구에 정리합니다. 발언 근거에서 자료를 함께 고를 수 있습니다.')
         self.study_retry_action.setVisible(self._study_transfer_pending is not None)
+        self.study_retry_button.setVisible(self._study_transfer_pending is not None)
         self.study_retry_action.setEnabled(enabled and self._study_transfer_pending is not None)
         self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
         self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))

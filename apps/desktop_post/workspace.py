@@ -865,7 +865,9 @@ class Workspace:
         self._touch()
         return {'status': 'SHOWN', 'object_ref': obj['id'], 'revision': record['id']}
 
-    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None, row_index=None, expected_revision=None):
+    def sample(self, *, object_ref, preview=True, offset=0, limit=100, point_index=None, row_index=None, expected_revision=None, table_block=None):
+        if table_block is not None and row_index is None:
+            raise ValueError('표 블록과 해당 표의 행 번호를 함께 선택하세요.')
         obj = self.object(object_ref)
         record, bundle = self._bundle(obj, preview=preview)
         if expected_revision is not None and record['id'] != expected_revision:
@@ -878,9 +880,13 @@ class Workspace:
         elif row_index is not None and obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('surface_average','surface_time','gauge_time'):
             if type(row_index) is not int or row_index < 0 or point_index is not None:
                 raise ValueError('측정 표의 행 번호를 선택하세요. 공간 점 번호와 함께 사용할 수 없습니다.')
-            result = measurements.sample_data(bundle['source'], offset=row_index, limit=1)
+            block = [] if table_block is None else table_block
+            if block != [] and (record['recipe'].get('aggregation') != 'per_leaf' or
+                    not any(row.get('table_block')==block for row in record.get('summary',{}).get('leaf_results',[]))):
+                raise ValueError('선택한 표 블록이 이 측정 결과의 원 leaf에 없습니다.')
+            result = measurements.sample_data(bundle['source'], offset=row_index, limit=1, block_path=block)
             if (len(result.get('rows', [])) != 1 or result['rows'][0].get('row') != row_index
-                    or result['rows'][0].get('block') != []):
+                    or result['rows'][0].get('block') != block):
                 raise ValueError('선택한 행이 현재 측정 표에 없습니다. 표를 다시 읽으세요.')
         elif row_index is not None:
             raise ValueError('이 분석은 시간표 행 선택을 지원하지 않습니다.')
@@ -928,11 +934,16 @@ class Workspace:
         if record and obj['kind'] == 'measurement' and record['recipe'].get('measurement') in ('surface_average','surface_time','gauge_time') and rows:
             if (obj.get('selection_revision') != record['id'] or not isinstance(rows, list) or len(rows) != 1
                     or not isinstance(rows[0], dict) or type(rows[0].get('row')) is not int
-                    or rows[0]['row'] < 0 or rows[0].get('block') != []):
+                    or rows[0]['row'] < 0):
+                return False
+            block = rows[0].get('block')
+            if (not isinstance(block, list) or any(type(i) is not int or i < 0 for i in block)
+                    or (block != [] and (record['recipe'].get('aggregation') != 'per_leaf'
+                        or not any(leaf.get('table_block') == block for leaf in record.get('summary', {}).get('leaf_results', []))))):
                 return False
             try:
                 _, bundle = self._bundle(obj)
-                actual = measurements.sample_data(bundle['source'], offset=rows[0]['row'], limit=1)
+                actual = measurements.sample_data(bundle['source'], offset=rows[0]['row'], limit=1, block_path=block)
                 if digest(actual['rows']) != obj.get('selection_hash') or digest(rows) != obj.get('selection_hash'):
                     raise ValueError('저장된 측정 행과 현재 원표가 다릅니다.')
                 return True
@@ -1107,8 +1118,8 @@ class Workspace:
             elif view.GetXMLName() == 'XYChartView':
                 display.UseIndexForXAxis = 0
                 measurement = record['recipe'].get('measurement')
-                display.XArrayName = {'time': 'Time', 'surface_time':'Time', 'gauge_time':'Time', 'contact_force': record['recipe'].get('axis_name','load_parameter')}.get(measurement, 'arc_length')
-                if measurement in ('contact_force','surface_time','gauge_time'):
+                display.XArrayName = {'time': 'Time', 'surface_time':'Time', 'surface_average':'SampleIndex', 'gauge_time':'Time', 'contact_force': record['recipe'].get('axis_name','load_parameter')}.get(measurement, 'arc_length')
+                if measurement in ('contact_force','surface_time','surface_average','gauge_time'):
                     display.AttributeType = 'Row Data'
                 array = (record['summary']['array'] if measurement in ('surface_average','surface_time','gauge_time') else
                          record['recipe'].get('array') or record['recipe'].get('settings', {}).get('array'))
@@ -1342,9 +1353,11 @@ class Workspace:
             raise RuntimeError('Native export produced no file')
         return {'file': str(output), 'sha256': external.sha(output), 'revision': record['id'], 'analysis_saved': False}
 
-    def capture_selection(self, *, source_ref, array, title=None, measurement='point', reference_time=None, offset=0, limit=200):
+    def capture_selection(self, *, source_ref, array, title=None, measurement='point', reference_time=None, offset=0, limit=200, leaf_paths=None):
         if measurement not in ('point', 'gauge', 'gauge_time', 'surface_time', 'surface_average'):
             raise ValueError('Choose an original point or two-point relative-displacement capture')
+        if leaf_paths is not None and measurement not in ('surface_time','surface_average'):
+            raise ValueError('Explicit leaf selection is currently supported for surface measurements')
         if source_ref not in self.document['sources']:
             raise ValueError('Original point selection requires an admitted original reader')
         source = self.resolve(source_ref)
@@ -1355,7 +1368,7 @@ class Workspace:
                 from .measurement_histories import surface_options
             except ImportError:
                 from measurement_histories import surface_options
-            return surface_options(source, reference_time if reference_time is not None else external.set_time(source), offset=offset, limit=limit)
+            return surface_options(source, reference_time if reference_time is not None else external.set_time(source), offset=offset, limit=limit, leaf_paths=leaf_paths)
         indices = measurements.capture_point_selection(source) if measurement == 'point' else []
         draft = {'source_ref': source_ref, 'measurement': 'point',
                  'array': array, 'association': 'POINTS', 'point_indices': indices}

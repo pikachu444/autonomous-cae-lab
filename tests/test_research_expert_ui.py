@@ -290,3 +290,24 @@ def test_choose_document_uses_client_documents_envelope(app, ui_owner, monkeypat
     window.choose_document()
     wait(app, lambda: window.document['id'] == other['id'] and not window._busy)
     assert window.document['title'] == 'Another saved discussion'
+
+
+def test_cancel_question_keeps_other_local_inputs_and_never_sends(app, ui_owner):
+    owner, manager, calls, _ = ui_owner
+    window = open_window(app, owner)
+    before = deepcopy(window.document)
+    window.question.setPlainText('취소할 긴 질문\n' * 40)
+    window.classification.setCurrentIndex(window.classification.findData('challenge'))
+    window.model_calls.setValue(window.model_calls.value() + 1)
+    budget = window.edited_draft()['budget']
+    window.question.selectAll()
+    window.show_side(window.source_tab)
+    window.side.hide()
+    assert window.question.toPlainText() == '취소할 긴 질문\n' * 40
+    assert window.question.textCursor().hasSelection()
+    assert window.cancel_question_edits()
+    assert window.question.toPlainText() == before['draft']['composer']['text']
+    assert window.edited_draft()['composer'] == before['draft']['composer']
+    assert window.edited_draft()['budget'] == budget and window.local_dirty
+    assert owner.read(before['id']) == before
+    assert window.client.operations == [] and not manager.list() and not calls

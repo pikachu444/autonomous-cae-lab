@@ -47,9 +47,17 @@ def _tracking(data):
 def _quadratic_owners(data):
     if not any(data.GetCellType(i) in (22,23,24,25,26,27) for i in range(data.GetNumberOfCells())):return None
     from vtkmodules.vtkCommonDataModel import vtkGenericCell
-    cell=vtkGenericCell();result={}
+    cell=vtkGenericCell();result={};connectivity={}
+    ghost=data.GetCellData().GetArray('vtkGhostType')
+    if ghost is not None and (ghost.GetNumberOfComponents()!=1 or ghost.GetNumberOfTuples()!=data.GetNumberOfCells()):
+        raise ValueError('Native cell ghost ownership must match the complete cell layout')
     for owner in range(data.GetNumberOfCells()):
         data.GetCell(owner,cell)
+        key=cell.GetCellType(),tuple(sorted(cell.GetPointId(i) for i in range(cell.GetNumberOfPoints())))
+        duplicate=ghost is not None and bool(int(ghost.GetTuple1(owner))&1)
+        if key in connectivity and (duplicate or connectivity[key]):
+            raise ValueError('Duplicate ghost cells make the selected native boundary coverage ambiguous')
+        connectivity[key]=duplicate
         for number in range(cell.GetNumberOfFaces()) if cell.GetCellDimension()==3 else (None,) if cell.GetCellDimension()==2 else ():
             face=cell.GetFace(number) if number is not None else cell
             kind=face.GetCellType()
@@ -131,7 +139,7 @@ def surface_catalog(data):
     return _surface_catalog(data)[0]
 
 
-def surface_options(source,reference_time,*,offset=0,limit=200):
+def surface_options(source,reference_time,*,offset=0,limit=200,leaf_paths=None):
     temporary=[];before=p.GetActiveSource(),p.GetActiveView()
     try:
         if type(offset) is not int or offset<0 or type(limit) is not int or not 1<=limit<=1000:
@@ -141,7 +149,23 @@ def surface_options(source,reference_time,*,offset=0,limit=200):
             raise ValueError('면을 선택하기 전에 실제 결과의 기준 시각을 선택하세요.')
         if not native and reference_time is not None:raise ValueError('정적 자료에는 기준 시각이 없습니다.')
         frozen=analysis._freeze(source,reference_time,'surface selection',temporary)
-        rows,total=_surface_catalog(analysis._fetch(frozen),offset=offset,limit=limit)
+        data=analysis._fetch(frozen)
+        if leaf_paths is not None or not hasattr(data,'GetPoints'):
+            try:from . import measurement_blocks as blocks
+            except ImportError:import measurement_blocks as blocks
+            catalog=blocks.leaves(data)
+            available=[{k:deepcopy(row[k]) for k in ('leaf_path','flat_index','empty')} for row in catalog]
+            selections=[]
+            if leaf_paths is not None:
+                if not isinstance(leaf_paths,list) or not leaf_paths or len({tuple(v) for v in leaf_paths})!=len(leaf_paths):
+                    raise ValueError('Select distinct explicit native leaf paths')
+                for path in leaf_paths:
+                    row=blocks.resolve(data,path);faces,total=_surface_catalog(row['data'],offset=offset,limit=limit)
+                    selections.append({'leaf_path':deepcopy(path),'flat_index':row['flat_index'],'surface_faces':faces,
+                                       'total':total,'has_more':offset+limit<total})
+            return {'reference_time':reference_time,'leaves':available,'leaf_selections':selections,
+                    'offset':offset,'limit':limit,'geometry':'fixed_reference'}
+        rows,total=_surface_catalog(data,offset=offset,limit=limit)
         return {'reference_time':reference_time,'faces':rows,'total':total,'offset':offset,'limit':limit,'has_more':offset+limit<total,
             'geometry':'fixed_reference','selection':'원 경계의 TRI3/QUAD4/TRI6/QUAD8 면을 중간절점까지 명시 선택'}
     finally:
@@ -193,6 +217,36 @@ def _valid(attrs,indices,size,*,ghost_bit,masks=(),policy=None,ghost_only=False)
 
 
 def surface_average(data,draft,faces=None):
+    if draft.get('geometry')=='fixed_reference':return _reference_surface_average(data,draft,faces)
+    if draft.get('geometry')!='current':raise ValueError('Choose reference or actual current measurement geometry')
+    try:from .measurement_geometry_state import reference_plus_displacement
+    except ImportError:from measurement_geometry_state import reference_plus_displacement
+    faces=_faces(data,draft) if faces is None else faces
+    identities=_point_ids(data,list(range(data.GetNumberOfPoints())))
+    if not identities:raise ValueError('Current geometry requires complete original native point IDs')
+    reference=_reference_surface_average(data,{**draft,'geometry':'fixed_reference'},faces)
+    definition=draft.get('geometry_state')
+    if isinstance(definition,dict):
+        masks=definition.get('validity_masks',[])
+        if not isinstance(masks,list) or any(not isinstance(mask,str) or not mask for mask in masks):
+            raise ValueError('Declare the actual displacement validity mask names')
+        valid,reason=_valid(data.GetPointData(),sorted({i for face in faces for i in face['point_indices']}),
+            data.GetNumberOfPoints(),ghost_bit=2,masks=masks,policy=definition.get('validity_policy'))
+        if not valid:return {'value':None,'area':None,'valid':False,'reason':'actual_displacement_'+reason,
+            'reference_geometry_area':reference.get('area'),'geometry':'current'}
+    current=reference_plus_displacement(data,faces,draft.get('geometry_state'),
+        coordinate_units=draft.get('coordinate_units'),coordinate_frame=draft.get('coordinate_frame'))
+    if not current['valid']:
+        return {'value':None,'area':None,'valid':False,'reason':current['reason'],
+                'reference_geometry_area':reference.get('area'),'geometry':'current'}
+    result=_reference_surface_average(current['data'],{**draft,'geometry':'fixed_reference'},current['faces'])
+    result.update(geometry='current',reference_geometry_area=reference.get('area'),
+        current_geometry_area=result.get('area'),normals=current['normals'],
+        geometry_state=deepcopy(current['definition']),display_scale_used=False)
+    return result
+
+
+def _reference_surface_average(data,draft,faces=None):
     """Linear native integral or full quadratic-shape integral over reference area."""
     from vtkmodules.vtkCommonDataModel import vtkPolyData,vtkCellArray
     from vtkmodules.vtkCommonCore import vtkDoubleArray
@@ -312,6 +366,10 @@ def _table(values,namespace):
 
 
 def build(source,draft,namespace):
+    if 'leaf_selections' in draft:
+        try:from .measurement_blocks import build as build_blocks
+        except ImportError:from measurement_blocks import build as build_blocks
+        return build_blocks(source,draft,namespace)
     m=_measurement_module();kind=draft['measurement'];single=kind=='surface_average'
     if single:
         native=external.times(source);reference=draft.get('time')
@@ -343,12 +401,16 @@ def build(source,draft,namespace):
                     if not valid:sample.update(value=None,valid=False,reason=reason)
                 rows.append({'time':time,'value':sample['value'],'valid':sample.get('valid',True),
                     'reason':sample.get('reason','valid'),'area':sample.get('area'),
+                    **({k:deepcopy(sample.get(k)) for k in ('reference_geometry_area','current_geometry_area','normals','geometry_state','display_scale_used')} if draft.get('geometry')=='current' else {}),
                     **({k:sample.get(k) for k in ('integral','area_difference','integral_difference','mean_difference','quadrature')} if sample.get('quadrature') else {})})
             finally:analysis.cleanup({'proxies':local})
         array=SURFACE_ARRAY if faces is not None else GAUGE_ARRAY
         values={'SampleIndex' if single else 'Time':[0] if single else times,array:[r['value'] for r in rows],'vtkValidMask':[int(r['valid']) for r in rows]}
         high_order=faces is not None and any(len(f['point_indices']) in (6,8) for f in faces)
         if faces is not None:values['SurfaceArea']=[r['area'] for r in rows]
+        if faces is not None and draft.get('geometry')=='current':
+            values['ReferenceSurfaceArea']=[r.get('reference_geometry_area') for r in rows]
+            values['CurrentSurfaceArea']=[r.get('current_geometry_area') for r in rows]
         if high_order:
             for column,key in [('SurfaceIntegral','integral'),('SurfaceAreaDifference','area_difference'),
                     ('SurfaceIntegralDifference','integral_difference'),('SurfaceAverageDifference','mean_difference')]:
@@ -362,7 +424,13 @@ def build(source,draft,namespace):
             'component_label':('projection '+json.dumps(draft['direction']) if draft.get('component')=='projection' or kind=='gauge_time' else 'scalar' if draft.get('component') is None else 'component '+str(draft['component'])),
             'location':json.dumps(faces if faces is not None else {k:draft[k] for k in ('point_indices','point1','point2')},sort_keys=True),
             'sample_semantics':'native_surface_triangulation_area_average' if faces is not None else 'signed_fixed_reference_two_point_displacement_difference',
-            'geometry':'fixed_reference','baseline_subtraction':False,'qualification':'UNKNOWN'}
+            'geometry':draft.get('geometry','fixed_reference'),'baseline_subtraction':False,'qualification':'UNKNOWN'}
+        if draft.get('geometry')=='current':
+            summary['geometry_state']=deepcopy(draft.get('geometry_state'))
+            observed=[row for row in rows if row['valid']]
+            verified=observed and all(row.get('display_scale_used') is False and
+                row.get('geometry_state')==draft['geometry_state'] for row in observed)
+            summary['display_scale_used']=False if verified else None
         if single:summary.update(time=reference,axis_name='SampleIndex',axis_unit='1',axis_values=[0])
         if faces is not None:summary.update(area_unit=draft['coordinate_units']+'^2',
             reduction='native_surface_triangulation_area_weighted_mean',

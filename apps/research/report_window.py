@@ -90,10 +90,14 @@ class ReportWindow(QMainWindow):
         action('전송 다시 시도', self.retry, files)
         action('서버 저장 상태 확인…', self.reconcile, files)
         center = QWidget(); root = QVBoxLayout(center); self.setCentralWidget(center)
+        root.setContentsMargins(12, 8, 12, 8); root.setSpacing(8)
         self.title = QLineEdit(self.draft['title']); self.title.setPlaceholderText('보고서 제목')
         self.title.editingFinished.connect(self.edit_title); root.addWidget(self.title)
         splitter = QSplitter()
         left = QWidget(); outline = QVBoxLayout(left); outline.setContentsMargins(0,0,0,0)
+        outline_heading = QLabel('보고서 구성')
+        outline_heading.setProperty('appearanceRole', 'section')
+        outline.addWidget(outline_heading)
         self.sections = QListWidget(); self.sections.currentRowChanged.connect(self.selected)
         self.sections.itemChanged.connect(self.include_section); outline.addWidget(self.sections, 1)
         row = QHBoxLayout()
@@ -109,11 +113,12 @@ class ReportWindow(QMainWindow):
         pages = QWidget(); page_layout = QVBoxLayout(pages); page_layout.setContentsMargins(0,0,0,0)
         navigation = QHBoxLayout()
         for label, callback in [('원자료 열기', self.open_source),
-                                ('이전 페이지', lambda: self.move_page(-1)),
-                                ('다음 페이지', lambda: self.move_page(1))]:
+                                ('이전', lambda: self.move_page(-1)),
+                                ('다음', lambda: self.move_page(1))]:
             button = QPushButton(label); button.clicked.connect(callback); navigation.addWidget(button)
         self.page_fit = QComboBox()
         self.page_fit.addItems(['페이지 맞춤', '너비 맞춤'])
+        self.page_fit.setCurrentIndex(1)
         self.page_fit.setToolTip('전체 페이지를 보거나 본문 너비를 확대합니다.')
         self.page_fit.currentIndexChanged.connect(self.fit_preview)
         navigation.addWidget(self.page_fit)
@@ -129,12 +134,21 @@ class ReportWindow(QMainWindow):
         root.addWidget(splitter,1)
         self.section_editor = QWidget()
         editor = QVBoxLayout(self.section_editor); editor.setContentsMargins(0,0,0,0)
+        self.section_context = QLabel()
+        self.section_context.setTextFormat(Qt.TextFormat.PlainText)
+        self.section_context.setWordWrap(True)
+        self.section_context.setProperty('appearanceRole', 'section')
+        editor.addWidget(self.section_context)
         self.section_title = QLineEdit(); editor.addWidget(self.section_title)
-        self.section_text = QPlainTextEdit(); self.section_text.setMaximumHeight(95); editor.addWidget(self.section_text)
+        self.section_title.setPlaceholderText('섹션 제목')
+        self.section_text = QPlainTextEdit()
+        self.section_text.setPlaceholderText('선택한 자료에 덧붙일 설명을 작성하세요.')
+        self.section_text.setMinimumHeight(96); self.section_text.setMaximumHeight(180)
+        editor.addWidget(self.section_text)
         commands = QHBoxLayout()
         self.section_table = QCheckBox('표'); self.section_curve = QCheckBox('곡선')
         commands.addWidget(self.section_table); commands.addWidget(self.section_curve)
-        for label,callback in [('설명 적용',self.apply_section),('수정 취소',self.cancel_section),('닫기',self.close_editor)]:
+        for label,callback in [('설명 적용',self.apply_section),('수정 취소',self.cancel_section),('접기',self.close_editor)]:
             button=QPushButton(label);button.clicked.connect(callback);commands.addWidget(button)
         editor.addLayout(commands);root.addWidget(self.section_editor);self.section_editor.hide()
         self.message = QLabel('자료를 추가하거나 설명을 작성하세요.'); self.message.setWordWrap(True)
@@ -287,6 +301,7 @@ class ReportWindow(QMainWindow):
         self.remember_editor()
         row=self.draft['sections'][i]
         self._editing_section=row['id']
+        self.section_context.setText('편집 중: ' + row['title'])
         value=self._edit_buffers.get(row['id'],row)
         self.section_title.setText(value['title']);self.section_text.setPlainText(value['text'])
         self.section_table.setChecked(value['table']);self.section_curve.setChecked(value['curve'])

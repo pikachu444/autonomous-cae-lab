@@ -6,6 +6,12 @@ import uuid
 
 from caelab.contact import CONTACT_FIELDS, default_contact, law_errors, number
 
+def effective_errors(draft):
+    if draft.get('normal_law') == 'hard':
+        from caelab.adapters.contact_aster_model import law_errors as hard_errors
+        return hard_errors(draft)
+    return law_errors(draft)
+
 OPERATIONS = ('pre.contact.set', 'pre.contact.remove', 'pre.contact.swap',
     'pre.contact.highlight', 'pre.contact.preview_rebind', 'pre.contact.apply_rebind',
     'pre.contact.cancel_rebind', 'pre.contact.prepare_meshes', 'pre.contact.inspect',
@@ -91,7 +97,7 @@ class ContactEditor:
         draft = record['draft']
         from .fem_edit import _native_type
         tied = _native_type(obj) == 'Fem::ConstraintTie'
-        if not law_errors(draft) and tied == (draft['normal_law'] == 'tie'):
+        if not effective_errors(draft) and tied == (draft['normal_law'] == 'tie'):
             if tied:
                 obj.Tolerance = self.owner.App.Units.Quantity(str(number(draft['tie_tolerance_mm'])) + ' mm')
                 obj.Adjust = draft.get('tie_adjust', False)
@@ -102,12 +108,15 @@ class ContactEditor:
         record['native_signature'] = self._native_signature(obj)
 
     def _native_contact(self, obj, draft):
-        obj.SurfaceBehavior = 'Linear'
-        obj.Slope = self.owner.App.Units.Quantity(str(number(draft['normal_stiffness_MPa_per_mm'])) + ' MPa/mm')
+        hard = draft['normal_law'] == 'hard'
+        obj.SurfaceBehavior = 'Hard' if hard else 'Linear'
+        if not hard:
+            obj.Slope = self.owner.App.Units.Quantity(str(number(draft['normal_stiffness_MPa_per_mm'])) + ' MPa/mm')
         obj.Friction = draft['tangential_law'] == 'coulomb'
         if obj.Friction:
             obj.FrictionCoefficient = number(draft['friction_coefficient'])
-            obj.StickSlope = self.owner.App.Units.Quantity(str(number(draft['stick_stiffness_MPa_per_mm'])) + ' MPa/mm')
+            if not hard:
+                obj.StickSlope = self.owner.App.Units.Quantity(str(number(draft['stick_stiffness_MPa_per_mm'])) + ' MPa/mm')
         obj.Adjust = self.owner.App.Units.Quantity('0 mm')
         obj.EnableThermalContact = False
 
@@ -169,7 +178,7 @@ class ContactEditor:
 
     def errors(self, record):
         from .fem_edit import _target, _native_type
-        errors = law_errors(record['draft'])
+        errors = effective_errors(record['draft'])
         def fail(path, message):
             errors.append({'path': path, 'message': message, 'severity': 'error', 'blocks_evaluation': True})
         for side in ('a', 'b'):

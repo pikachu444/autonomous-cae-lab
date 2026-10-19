@@ -16,13 +16,13 @@ from pathlib import Path
 import sys
 import uuid
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal, QRegularExpression
+from PySide6.QtGui import QAction, QKeySequence, QTextDocument, QTextCursor
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QFormLayout, QGridLayout,
-    QHBoxLayout, QHeaderView, QInputDialog, QLabel, QMainWindow, QPlainTextEdit, QPushButton,
+    QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QPushButton,
     QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTabWidget, QToolBar,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QTreeWidget, QTreeWidgetItem, QToolButton, QVBoxLayout, QWidget,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -287,6 +287,9 @@ class RunnerWindow(QMainWindow):
         self._ledger_kind = None
         self._on_open_origin = on_open_origin
         self._readback_requests = {}
+        self._monitor = None
+        self._log_epoch=0
+        self._log_offset=0
         self._build_ui()
         if on_open_origin is not None:
             self.open_origin.connect(on_open_origin)
@@ -321,47 +324,70 @@ class RunnerWindow(QMainWindow):
         toolbar.addAction(self.refresh_action)
         self.result_button = QPushButton("결과 보기")
         self.result_button.clicked.connect(self.read_result)
-        toolbar.addWidget(self.result_button)
         self.cancel_button = QPushButton("실행 취소")
         self.cancel_button.clicked.connect(self.cancel_selected)
-        toolbar.addWidget(self.cancel_button)
         self.contact_steps_button = QPushButton('계산 단계…')
         self.contact_steps_button.clicked.connect(self.open_contact_steps)
-        toolbar.addWidget(self.contact_steps_button)
-        self.origin_button = QPushButton("입력 문서 열기")
+        self.origin_button = QPushButton("입력 열기")
         self.origin_button.clicked.connect(self.open_selected_origin)
-        toolbar.addWidget(self.origin_button)
         self.post_button = QPushButton("후처리에서 열기")
         self.post_button.clicked.connect(self.open_selected_post)
-        toolbar.addWidget(self.post_button)
 
         self.study_button = QPushButton('연구 기록에 추가…')
         self.study_button.clicked.connect(self.open_selected_study)
-        toolbar.addWidget(self.study_button)
+        self.job_menu = self.menuBar().addMenu('작업(&J)')
+        self.secondary_actions = []
+        for button in (self.contact_steps_button, self.study_button):
+            button.setParent(self);button.hide()
+            action=self.job_menu.addAction(button.text())
+            action.triggered.connect(button.click)
+            self.secondary_actions.append((action,button))
         root = QWidget()
         layout = QVBoxLayout(root)
         self.message = QLabel("실행 목록을 읽고 있습니다…")
         self.message.setWordWrap(True)
-        layout.addWidget(self.message)
+        self.statusBar().addWidget(self.message,1)
         split = QSplitter(Qt.Orientation.Vertical)
         self.job_table = readonly_table(["작업", "실행 ID", "계산 방법", "상태", "시작 (UTC)", "경과 시간", "자원", "결과"])
         self.job_table.setObjectName("runnerJobs")
         for column, width in enumerate((190, 240, 200, 110, 185, 100, 140, 85)):
             self.job_table.setColumnWidth(column, width)
         self.job_table.setColumnHidden(1, True)
+        self.job_table.setColumnHidden(4, True)
+        self.job_table.setColumnHidden(6, True)
+        self.job_table.setColumnWidth(2,200)
+        self.job_table.setColumnWidth(3,140)
+        self.job_table.setColumnWidth(5,100)
+        self.job_table.horizontalHeader().setStretchLastSection(False)
+        self.job_table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
         self.job_table.itemSelectionChanged.connect(self._table_selected)
         split.addWidget(self.job_table)
-        self.tabs = QTabWidget()
-
-        monitor = QWidget()
-        monitor_layout = QVBoxLayout(monitor)
+        detail=QWidget();detail_layout=QVBoxLayout(detail)
+        detail_layout.setContentsMargins(0,4,0,0)
+        detail_layout.setSpacing(4)
+        self.job_title=QLabel('작업을 선택하세요.')
+        self.job_title.setProperty('appearanceRole','section')
+        self.job_title.setTextFormat(Qt.TextFormat.PlainText)
         self.state_label = QLabel("위 목록에서 작업을 선택하세요.")
+        self.state_label.setTextFormat(Qt.TextFormat.PlainText)
         self.state_label.setWordWrap(True)
         self.state_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        monitor_layout.addWidget(self.state_label)
+        title_row=QHBoxLayout()
+        title_row.addWidget(self.job_title,4);title_row.addWidget(self.state_label,3)
+        detail_layout.addLayout(title_row)
+        command_row=QHBoxLayout()
+        for button in (self.result_button,self.cancel_button,self.origin_button,self.post_button):
+            command_row.addWidget(button)
+        self.more_button=QToolButton();self.more_button.setText('기타')
+        self.more_button.setMenu(self.job_menu);self.more_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        command_row.addWidget(self.more_button);command_row.addStretch()
+        detail_layout.addLayout(command_row)
         self.scope_label = QLabel()
         self.scope_label.setWordWrap(True)
-        monitor_layout.addWidget(self.scope_label)
+        detail_layout.addWidget(self.scope_label)
+        self.tabs = QTabWidget();detail_layout.addWidget(self.tabs,1)
+        monitor = QWidget()
+        monitor_layout = QVBoxLayout(monitor)
         grid = QGridLayout()
         technical_grid = QGridLayout()
         technical_panel = self.technical_panel = QWidget()
@@ -391,11 +417,51 @@ class RunnerWindow(QMainWindow):
                 normal_index += 1
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
-        monitor_layout.addLayout(grid)
+        technical_layout.addLayout(grid)
+        self.progress_summary=QLabel('증분·진행 정보가 아직 보고되지 않았습니다.')
+        self.progress_summary.setTextFormat(Qt.TextFormat.PlainText)
+        self.progress_summary.setWordWrap(True)
+        monitor_layout.addWidget(self.progress_summary)
+        self.progress_table=readonly_table(['보고 항목','보고된 값'])
+        self.progress_table.setObjectName('runnerProgress')
+        self.progress_table.setMaximumHeight(145)
+        self.progress_table.setColumnWidth(0,190)
+        monitor_layout.addWidget(self.progress_table)
         self.error_label = QLabel()
+        self.error_label.setTextFormat(Qt.TextFormat.PlainText)
         self.error_label.setWordWrap(True)
         self.error_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         monitor_layout.addWidget(self.error_label)
+        log_controls=QHBoxLayout()
+        log_controls.addWidget(QLabel('원로그'))
+        self.log_source=QComboBox();self.log_source.setMinimumContentsLength(14)
+        self.log_source.currentIndexChanged.connect(self.read_log)
+        log_controls.addWidget(self.log_source,1)
+        self.log_refresh=QPushButton('로그 새로 읽기');self.log_refresh.clicked.connect(self.reload_logs)
+        log_controls.addWidget(self.log_refresh)
+        self.log_earlier=QPushButton('이전 구간');self.log_later=QPushButton('다음 구간')
+        self.log_earlier.clicked.connect(lambda:self.read_log_chunk(-1))
+        self.log_later.clicked.connect(lambda:self.read_log_chunk(1))
+        log_controls.addWidget(self.log_earlier);log_controls.addWidget(self.log_later)
+        monitor_layout.addLayout(log_controls)
+        search_row=QHBoxLayout()
+        self.log_search=QLineEdit();self.log_search.setPlaceholderText('원문에서 찾기')
+        self.log_search.returnPressed.connect(lambda:self.find_log())
+        search_row.addWidget(self.log_search,1)
+        self.log_previous=QPushButton('이전');self.log_next=QPushButton('다음')
+        self.log_previous.clicked.connect(lambda:self.find_log(backward=True))
+        self.log_next.clicked.connect(lambda:self.find_log())
+        self.log_error=QPushButton('오류 찾기');self.log_warning=QPushButton('경고 찾기')
+        self.log_error.clicked.connect(lambda:self.find_log(category='error'))
+        self.log_warning.clicked.connect(lambda:self.find_log(category='warning'))
+        for button in (self.log_previous,self.log_next,self.log_error,self.log_warning):search_row.addWidget(button)
+        monitor_layout.addLayout(search_row)
+        self.log_text=QPlainTextEdit();self.log_text.setReadOnly(True)
+        self.log_text.setObjectName('runnerRawLog')
+        self.log_text.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        monitor_layout.addWidget(self.log_text,1)
+        self.log_note=QLabel('원로그가 아직 제공되지 않았습니다.')
+        self.log_note.setWordWrap(True);monitor_layout.addWidget(self.log_note)
         self.readback_panel = QWidget()
         readback_layout = QVBoxLayout(self.readback_panel)
         readback_layout.setContentsMargins(0, 8, 0, 0)
@@ -414,8 +480,7 @@ class RunnerWindow(QMainWindow):
         readback_actions.addStretch()
         readback_layout.addLayout(readback_actions)
         monitor_layout.addWidget(self.readback_panel)
-        monitor_layout.addStretch()
-        self.tabs.addTab(monitor, "진행 상황")
+        self.tabs.addTab(monitor, "모니터")
 
         self.inputs = QTreeWidget()
         self.inputs.setHeaderLabels(["실행에 사용한 입력", "저장된 값"])
@@ -423,7 +488,9 @@ class RunnerWindow(QMainWindow):
         self.tabs.addTab(self.inputs, "입력")
         self.result_panel = QWidget()
         result_layout = QVBoxLayout(self.result_panel)
+        result_layout.setContentsMargins(8,6,8,6)
         self.result_summary = QLabel("결과 보기를 누르면 선택한 실행의 저장 결과를 읽습니다.")
+        self.result_summary.setTextFormat(Qt.TextFormat.PlainText)
         self.result_summary.setWordWrap(True)
         result_layout.addWidget(self.result_summary)
         self.response_controls = QWidget()
@@ -434,22 +501,29 @@ class RunnerWindow(QMainWindow):
         self.responses.currentIndexChanged.connect(self._response_changed)
         controls.addWidget(QLabel("결과 항목"))
         controls.addWidget(self.responses, 1)
+        self.row_range_panel=QWidget()
+        row_range=QHBoxLayout(self.row_range_panel);row_range.setContentsMargins(0,0,0,0)
         self.row_start = QSpinBox()
         self.row_start.setRange(0, 2_000_000_000)
         self.row_count = QSpinBox()
         self.row_count.setRange(1, MAX_SERIES_ROWS)
         self.row_count.setValue(MAX_SERIES_ROWS)
-        controls.addWidget(QLabel("시작 행"))
-        controls.addWidget(self.row_start)
-        controls.addWidget(QLabel("행 수"))
-        controls.addWidget(self.row_count)
+        row_range.addWidget(QLabel("시작 행"))
+        row_range.addWidget(self.row_start)
+        row_range.addWidget(QLabel("행 수"))
+        row_range.addWidget(self.row_count)
         self.read_rows_button = QPushButton("읽기")
         self.read_rows_button.clicked.connect(self.read_response)
-        controls.addWidget(self.read_rows_button)
+        row_range.addWidget(self.read_rows_button)
+        controls.addWidget(self.row_range_panel)
         result_layout.addWidget(self.response_controls)
         self.response_label = QLabel()
+        self.response_label.setTextFormat(Qt.TextFormat.PlainText)
         self.response_label.setWordWrap(True)
         result_layout.addWidget(self.response_label)
+        self.field_open_button=QPushButton('공간 결과 열기…')
+        self.field_open_button.clicked.connect(self.open_selected_post)
+        result_layout.addWidget(self.field_open_button,0,Qt.AlignmentFlag.AlignLeft)
         self.readback_result_actions = QWidget()
         readback_result_actions = QHBoxLayout(self.readback_result_actions)
         readback_result_actions.setContentsMargins(0, 0, 0, 0)
@@ -497,12 +571,13 @@ class RunnerWindow(QMainWindow):
         self.details.setReadOnly(True)
         technical_layout.addWidget(self.details, 1)
         self.tabs.addTab(technical_panel, "기술 상세")
-        split.addWidget(self.tabs)
+        split.addWidget(detail)
         split.setStretchFactor(0, 1)
-        split.setStretchFactor(1, 2)
-        split.setSizes([260, 600])
+        split.setStretchFactor(1, 3)
+        split.setSizes([210, 640])
         layout.addWidget(split, 1)
         self.setCentralWidget(root)
+        self._clear_monitor()
         self._clear_result()
         self._update_actions()
 
@@ -591,12 +666,158 @@ class RunnerWindow(QMainWindow):
         if rows:
             self.select_job(self.job_table.item(rows[0].row(), 0).data(Qt.ItemDataRole.UserRole))
 
+    def _clear_monitor(self):
+        self._monitor=None
+        self._log_epoch+=1;self._log_offset=0
+        self.progress_table.setColumnCount(2);self.progress_table.setHorizontalHeaderLabels(['보고 항목','보고된 값'])
+        self.progress_table.setRowCount(1)
+        table_row(self.progress_table,0,['증분·진행','아직 보고되지 않음'])
+        self._fit_progress_table()
+        self.progress_summary.setText('증분·진행 정보가 아직 보고되지 않았습니다.')
+        self.log_source.blockSignals(True);self.log_source.clear();self.log_source.blockSignals(False)
+        self.log_text.clear()
+        self.log_note.setText('원로그가 아직 제공되지 않았습니다.')
+        self.log_source.setEnabled(False);self.log_refresh.setEnabled(False)
+        self.log_earlier.setEnabled(False);self.log_later.setEnabled(False)
+        for widget in (self.log_search,self.log_previous,self.log_next,self.log_error,self.log_warning):
+            widget.setEnabled(False)
+        self.log_error.setToolTip('원문에서 ERROR, FATAL 또는 오류 표기를 찾습니다.')
+        self.log_warning.setToolTip('원문에서 WARNING 또는 경고 표기를 찾습니다.')
+
+    def _fit_progress_table(self):
+        height=self.progress_table.horizontalHeader().sizeHint().height()+2*self.progress_table.frameWidth()
+        height+=sum(self.progress_table.rowHeight(row) for row in range(min(3,self.progress_table.rowCount())))
+        self.progress_table.setFixedHeight(min(145,height))
+
+    def read_log(self,*_):
+        self._log_epoch+=1;self._log_offset=0
+        selected=(self._monitor or {}).get('selected_log')
+        if selected is not None and selected.get('id')!=self.log_source.currentData():
+            self._monitor['selected_log']=None
+            self.log_text.clear();self.log_note.setToolTip('')
+            self.log_note.setText('선택한 원로그를 읽고 있습니다…')
+            for widget in (self.log_earlier,self.log_later,self.log_search,self.log_previous,
+                           self.log_next,self.log_error,self.log_warning):widget.setEnabled(False)
+        self.refresh_monitor()
+
+    def reload_logs(self):
+        self._log_epoch+=1;self._log_offset=0
+        self.refresh_monitor(catalog_only=True)
+
+    def read_log_chunk(self,direction):
+        selected=(self._monitor or {}).get('selected_log') or {}
+        self._log_epoch+=1
+        self._log_offset=selected.get('next_offset',0) if direction>0 else max(0,selected.get('offset',0)-65536)
+        self.refresh_monitor()
+
+    def refresh_monitor(self,*,catalog_only=False):
+        # A service without the monitor reader must not imply a solver log exists.
+        if not callable(getattr(self.client,'job_monitor',None)):
+            return
+        identifier,epoch,log_epoch=self.selected_job_id,self._selection_epoch,self._log_epoch
+        if not identifier:return
+        log_id=None if catalog_only else self.log_source.currentData();offset=self._log_offset
+        def received(payload,_ticket):
+            if payload.get('job_id')!=identifier:
+                self.message.setText('선택한 작업과 원로그의 작업이 다릅니다. 새로 고침으로 확인하세요.');return
+            logs=payload.get('logs',[]);selected=payload.get('selected_log')
+            if selected is not None and (selected.get('id') not in {row['id'] for row in logs} or
+                    (log_id is not None and selected.get('id')!=log_id)):
+                self.message.setText('선택한 원로그와 응답이 다릅니다. 로그를 다시 선택하세요.');return
+            self._monitor=deepcopy(payload)
+            desired=selected['id'] if selected else self.log_source.currentData()
+            catalog=[(row['label'],row['id']) for row in logs]
+            if catalog!=[(self.log_source.itemText(i),self.log_source.itemData(i)) for i in range(self.log_source.count())]:
+                self.log_source.blockSignals(True);self.log_source.clear()
+                for label,candidate_id in catalog:self.log_source.addItem(label,candidate_id)
+                index=self.log_source.findData(desired)
+                self.log_source.setCurrentIndex(max(0,index));self.log_source.blockSignals(False)
+            elif selected is not None and self.log_source.currentData()!=selected['id']:
+                self.log_source.blockSignals(True)
+                self.log_source.setCurrentIndex(self.log_source.findData(selected['id']))
+                self.log_source.blockSignals(False)
+            self.log_source.setEnabled(bool(logs));self.log_refresh.setEnabled(True)
+            executions=payload.get('executions',[])
+            self.progress_summary.setText('진행 단계: '+self.monitor_fields['Phase'].text()+
+                ' / 증분·진행률은 아직 보고되지 않았습니다. 원 실행 기록 '+str(len(executions))+'개.')
+            if executions:
+                self.progress_table.setColumnCount(5)
+                self.progress_table.setHorizontalHeaderLabels(['실행','상태','시작 (UTC)','종료 (UTC)','종료 코드'])
+                self.progress_table.horizontalHeader().setStretchLastSection(False)
+                for column,width in enumerate((180,100,185,185,90)):self.progress_table.setColumnWidth(column,width)
+                self.progress_table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
+                self.progress_table.setRowCount(len(executions))
+                for row,entry in enumerate(executions):
+                    status=entry.get('status')
+                    shown={'COMPLETED':'프로세스 종료','FAILED_EXECUTION':'실행 실패',
+                           'BUDGET_EXHAUSTED':'시간 예산 소진','CLEANUP_PENDING':'종료 처리 중'}.get(status)
+                    if shown is None:
+                        shown=state_description({'state':status}) if status in TERMINAL|{'QUEUED','RUNNING'} else text_value(status)
+                    table_row(self.progress_table,row,[entry.get('label'),shown,timestamp_label(entry.get('started_utc')),
+                        timestamp_label(entry.get('finished_utc')),entry.get('return_code')])
+                    self.progress_table.item(row,0).setToolTip('실행 참조: '+str(entry.get('id')))
+            else:
+                self.progress_table.setColumnCount(2)
+                self.progress_table.setHorizontalHeaderLabels(['보고 항목','보고된 값'])
+                self.progress_table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Interactive)
+                self.progress_table.setColumnWidth(0,190)
+                self.progress_table.horizontalHeader().setStretchLastSection(True)
+                self.progress_table.setRowCount(1)
+                table_row(self.progress_table,0,['증분·진행','아직 보고되지 않음'])
+            self._fit_progress_table()
+            if selected is None:
+                self.log_text.clear()
+                self.log_note.setText('원로그 목록의 읽기 한도에 도달했습니다. 목록이 일부만 확인됐습니다.'
+                    if payload.get('catalog_truncated') else '원로그가 아직 제공되지 않았습니다.')
+                self.log_earlier.setEnabled(False);self.log_later.setEnabled(False)
+                for widget in (self.log_search,self.log_previous,self.log_next,self.log_error,self.log_warning):widget.setEnabled(False)
+                if logs:self.read_log()
+                return
+            # QTextDocument uses paragraph breaks for native CRLF/CR line endings.
+            # Keep the service chunk and digest intact; compare its displayed form
+            # so a poll of the same Windows log preserves cursor/selection.
+            text=selected['text'].replace('\r\n','\n').replace('\r','\n')
+            if text!=self.log_text.toPlainText():self.log_text.setPlainText(text)
+            self._log_offset=selected['offset']
+            self.log_note.setText(f"원로그 {selected['offset']}–{selected['next_offset']} / {selected['total_bytes']} byte"+
+                (' · 다음 구간에서 계속 읽을 수 있습니다.' if selected.get('truncated') else '')+
+                ' · 경고는 원문 검색으로 확인하세요.')
+            self.log_note.setToolTip('원 구간 SHA256: '+str(selected.get('chunk_sha256')))
+            if payload.get('catalog_truncated'):
+                self.log_note.setText(self.log_note.text()+' 원로그 목록은 읽기 한도까지 표시합니다.')
+            self.log_earlier.setEnabled(selected['offset']>0)
+            self.log_later.setEnabled(selected['next_offset']<selected['total_bytes'])
+            for widget in (self.log_search,self.log_previous,self.log_next,self.log_error,self.log_warning):widget.setEnabled(bool(text))
+        def failed(error):
+            self.log_note.setText(('표시된 원문은 이전에 읽은 구간입니다. ' if self.log_text.toPlainText() else '')+
+                '원로그를 갱신하지 못했습니다. 로그 새로 읽기로 목록을 확인하세요.')
+            self.log_refresh.setEnabled(True)
+            self.message.setText('원로그 읽기 실패: '+error)
+        self._request(f'monitor:{identifier}:{epoch}:{log_epoch}',
+            lambda:self.client.job_monitor(identifier,log=log_id,offset=offset,limit=65536),received,
+            relevant=lambda:(identifier,epoch,log_epoch)==(self.selected_job_id,self._selection_epoch,self._log_epoch),failed=failed)
+
+    def find_log(self,*,backward=False,category=None):
+        pattern=(r'\b(?:ERROR|FATAL)\b|오류' if category=='error' else
+                 r'\bWARNING\b|경고' if category=='warning' else self.log_search.text())
+        if not pattern:return
+        needle=QRegularExpression(pattern,QRegularExpression.PatternOption.CaseInsensitiveOption) if category else pattern
+        flags=QTextDocument.FindFlag.FindBackward if backward else QTextDocument.FindFlag(0)
+        if not self.log_text.find(needle,flags):
+            cursor=self.log_text.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End if backward else QTextCursor.MoveOperation.Start)
+            self.log_text.setTextCursor(cursor)
+            if not self.log_text.find(needle,flags):
+                self.message.setText('현재 읽은 원로그에서 찾을 수 없습니다.')
+        self.log_text.setFocus()
+
     def select_job(self, identifier):
         if identifier == self.selected_job_id:
             self.refresh_selected()
             return
         self.selected_job_id = identifier
         self._selection_epoch += 1
+        self._clear_monitor()
         self._clear_result()
         self._draw_jobs()
         self._show_job(self.jobs.get(identifier, {"id": identifier}))
@@ -615,9 +836,12 @@ class RunnerWindow(QMainWindow):
                 self._show_job(self.jobs[identifier])
         self._request(f"status:{identifier}:{epoch}", lambda: self.client.status(identifier), received,
                       relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+        self.refresh_monitor()
 
     def _show_job(self, job):
         arguments = job.get("arguments", {})
+        self.job_title.setText(arguments.get('label') or operation_label(job.get('operation')))
+        self.job_title.setToolTip(self.job_title.text())
         self.state_label.setText(state_description(job))
         self.state_label.setToolTip("실행 ID: " + str(job.get('id', self.selected_job_id)))
         operation = job.get("operation")
@@ -625,6 +849,7 @@ class RunnerWindow(QMainWindow):
             "실행 취소는 선택한 전체 계산에 적용됩니다. 개별 후보만 취소할 수는 없습니다."
             if operation in PARENT_OPERATIONS else
             "실행 취소는 선택한 작업에만 적용됩니다.")
+        self.scope_label.setVisible(operation in PARENT_OPERATIONS)
         values = {"Job ID": job.get("id"), "Operation": operation_label(operation),
             "Backend": "보존 출력 읽기" if operation == "dynamic.reprocess" else backend_label(arguments.get("backend")),
             "Phase": {"FINISHED": "종료", "RUNNING": "실행 중", "QUEUED": "대기 중", "CALCULATING": "계산 중",
@@ -636,11 +861,15 @@ class RunnerWindow(QMainWindow):
             "Source request": job.get("request_id"), "Input hash": job.get("request_hash"), "Result references": job.get("result_refs")}
         for name, field in self.monitor_fields.items():
             field.setText(text_value(values[name]))
+        if self._monitor is None:
+            self.progress_summary.setText('진행 단계: '+text_value(values['Phase'])+' / 경과 시간: '+wall_time(job)+
+                ' — 증분·수치 진행은 아직 보고되지 않았습니다.')
         error = job.get("error")
         messages = [job.get("message", "")]
         if error:
             messages.append("실행 오류: " + text_value(error.get("message", error) if isinstance(error, dict) else error))
         self.error_label.setText("\n".join(message for message in messages if message))
+        self.error_label.setVisible(bool(self.error_label.text()))
         inputs = {"job_id": job.get("id", self.selected_job_id), "operation": operation,
                   "arguments": arguments, "resources": job.get("resources", {}),
                   "request_id": job.get("request_id"), "request_hash": job.get("request_hash")}
@@ -737,7 +966,7 @@ class RunnerWindow(QMainWindow):
             return
         job = self.jobs.get(selected, {})
         identifier = job.get("arguments", {}).get("source_job_id") if job.get("operation") == "dynamic.reprocess" else selected
-        self.message.setText("선택한 실행의 입력 문서를 찾고 있습니다…")
+        self.message.setText("선택한 작업의 원본 입력을 찾고 있습니다…")
         def received(navigation, _ticket):
             origin = navigation.get("origin_document") or {}
             if origin.get("kind") == "material" and self._on_open_origin is not None:
@@ -746,8 +975,8 @@ class RunnerWindow(QMainWindow):
                 return
             from .desktop import open_origin
             def opened(receipt, _ticket):
-                self.message.setText("선택한 실행의 입력 문서를 열었습니다." if receipt.get("status") in {"ACTIVATED", "SHOWN"}
-                    else "선택한 실행의 입력 문서 열기를 요청했습니다.")
+                self.message.setText("선택한 작업의 원본 입력을 열었습니다." if receipt.get("status") in {"ACTIVATED", "SHOWN"}
+                    else "선택한 작업의 원본 입력 열기를 요청했습니다.")
             self._request("open-origin:" + selected,
                           lambda: open_origin(self.client, identifier), opened,
                           relevant=lambda: (selected, epoch) == (self.selected_job_id, self._selection_epoch))
@@ -845,10 +1074,12 @@ class RunnerWindow(QMainWindow):
         self.origin_button.setEnabled(bool(job) and not any(key.endswith(":" + str(self.selected_job_id)) and "origin" in key for key in self._pending))
         self.post_button.setEnabled(bool(job.get("result_refs")) and not any(key.endswith(":" + str(self.selected_job_id)) and "post" in key for key in self._pending))
         self.cancel_button.setEnabled(state in {"QUEUED", "RUNNING", "CLEANUP_PENDING"} and "cancel:" + str(self.selected_job_id) not in self._pending)
+        self.contact_steps_button.setEnabled(bool(job.get('result_refs')) and job.get('arguments',{}).get('backend')=='structure.calculix.contact')
+        self.study_button.setEnabled(bool(job.get('result_refs')))
         operation = job.get("operation")
         is_source = operation == "run" and job.get("arguments", {}).get("backend") == "structure.calculix.contact"
         is_readback = operation == "dynamic.reprocess"
-        self.origin_button.setText("원 입력 문서 열기" if is_readback else "입력 문서 열기")
+        self.origin_button.setText("원 실행 입력 열기" if is_readback else "입력 열기")
         self.readback_panel.setVisible(is_source or is_readback)
         self.reprocess_button.setVisible(is_source)
         self.source_job_button.setVisible(is_readback)
@@ -858,17 +1089,18 @@ class RunnerWindow(QMainWindow):
         self.reprocess_button.setText("등록 중…" if pending_readback else "같은 읽기 요청 확인" if uncertain else "결과 다시 읽기")
         if is_readback:
             source = self.jobs.get(job.get("arguments", {}).get("source_job_id"), {})
-            self.readback_label.setText("보존된 출력을 읽는 별도 작업입니다. 원 실행: " +
+            self.readback_label.setText("보존 출력을 읽는 별도 작업 · 원 실행: " +
                 (source.get("arguments", {}).get("label") or "원 구조 해석") + " / " + (state_description(source) if source else "상태 조회 필요") +
-                "\n솔버 계산은 다시 실행하지 않습니다. 결과 읽기 완료는 원 계산의 성공이나 공학적 승인을 뜻하지 않습니다.")
+                "\n새 솔버 계산 없음 · 원 계산의 성공과 공학적 승인은 별도로 확인합니다.")
             self.readback_label.setToolTip("원 실행 ID: " + str(job.get("arguments", {}).get("source_job_id")))
         elif is_source:
-            self.readback_label.setText("원 실행의 입력과 상태를 확인한 뒤, 보존된 동해석 출력을 별도 작업으로 다시 읽을 수 있습니다."
-                "\n원 실패와 취소 기록은 유지됩니다. 원 출력이 없거나 변경되었으면 서비스가 요청을 거절합니다." if self._can_reprocess(job)
+            self.readback_label.setText("보존 출력을 별도 작업으로 다시 읽습니다. 원 실패·취소 기록은 유지됩니다." if self._can_reprocess(job)
                 else "원 프로세스가 종료된 뒤 결과를 다시 읽을 수 있습니다. 프로세스 종료가 미확인인 작업은 먼저 종료 상태를 확인하세요.")
         self.cancel_button.setText("취소 요청됨" if state == "CANCEL_REQUESTED" else
             "종료 처리 다시 시도" if state == "CLEANUP_PENDING" else
             "전체 계산 취소" if operation in PARENT_OPERATIONS else "실행 취소")
+        for action,button in self.secondary_actions:
+            action.setEnabled(button.isEnabled())
 
     def _clear_result(self):
         self.result_metadata = None
@@ -880,7 +1112,9 @@ class RunnerWindow(QMainWindow):
         self.response_details.clear()
         self.response_label.clear()
         self.response_controls.show()
-        self.result_views.show()
+        self.result_views.hide()
+        self.field_open_button.hide()
+        self.row_range_panel.hide()
         self.readback_result_actions.hide()
         self.read_rows_button.setEnabled(False)
         self.row_start.setEnabled(False)
@@ -893,10 +1127,11 @@ class RunnerWindow(QMainWindow):
         self._blank_plot("위 목록에서 작업을 선택한 뒤 ‘결과 보기’를 누르세요.")
 
     def _blank_plot(self, message):
+        self.figure.set_layout_engine('none')
         self.axes.clear()
         self.axes.set_axis_off()
         self.axes.text(.5, .5, message, ha="center", va="center", wrap=True, transform=self.axes.transAxes)
-        self.canvas.draw_idle()
+        if self.canvas.isVisible():self.canvas.draw_idle()
 
     def read_result(self):
         identifier, epoch = self.selected_job_id, self._selection_epoch
@@ -910,6 +1145,8 @@ class RunnerWindow(QMainWindow):
             job = self.jobs.get(identifier, {})
             label = job.get('arguments', {}).get('label') or operation_label(job.get('operation'))
             details = [label + ' 결과: ' + state_description({'state': state})]
+            if state=='PREDICTED' or result.get('prediction_status')=='PREDICTED':
+                details[0]=label+' 결과: 예측값 (실제 평가 결과 아님)'
             if job.get("operation") == "dynamic.reprocess":
                 source_state = result.get("source_execution_status", result.get("source_job_state", "UNKNOWN"))
                 details.append("원 계산: " + state_description({"state": source_state}) +
@@ -919,7 +1156,7 @@ class RunnerWindow(QMainWindow):
                 if result.get(key):
                     details.append(("종료 사유" if key == "termination_reason" else "실패 사유") + ": " + text_value(result[key]))
             if state in {"FAILED", "PARTIAL_FAILURE", "REJECTED", "CANCELLED"}:
-                details.append("일부 결과만 남아 있을 수 있습니다. 전체 계산이 완료된 결과가 아닙니다.")
+                details[0] += " / 전체 계산이 완료된 결과가 아닙니다."
             self.result_summary.setText("\n".join(details))
             self.responses.blockSignals(True)
             self.responses.clear()
@@ -956,6 +1193,8 @@ class RunnerWindow(QMainWindow):
                 self.response_details.setPlainText(json.dumps(result, ensure_ascii=False, indent=2))
                 self.result_views.setCurrentWidget(self.canvas)
                 self._blank_plot("이 결과에는 표시할 단일 값이나 곡선이 없습니다.")
+                self.result_views.hide()
+                self.field_open_button.setVisible(bool(job.get('result_refs')))
         self._request(f"result:{identifier}:{epoch}", lambda: self.client.result(identifier, selection={"metadata_only": True}), received,
                       relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
 
@@ -975,15 +1214,30 @@ class RunnerWindow(QMainWindow):
         self.values.setRowCount(0)
         self._blank_plot("선택한 원 결과를 읽고 있습니다…")
         self.response_details.setPlainText(json.dumps(response, ensure_ascii=False, indent=2))
+        self.response_label.setToolTip(self.response_details.toPlainText())
         kind = response.get("kind")
+        self.field_open_button.setVisible(kind not in {'scalar','series'})
+        self.field_open_button.setEnabled(bool(self.jobs.get(identifier,{}).get('result_refs')))
+        self.row_range_panel.setVisible(kind=='series')
+        self.result_views.setMaximumHeight(16777215)
         self.read_rows_button.setEnabled(kind == "series")
         self.row_start.setEnabled(kind == "series")
         self.row_count.setEnabled(kind == "series")
         if kind not in {"scalar", "series"}:
-            self.response_label.setText(f"{name}: 단일 값이나 1차원 곡선으로 표시할 수 없는 결과입니다. 공간 결과는 후처리에서 열고 원 참조는 응답 기술 상세에서 확인하세요.")
+            raw_location=response.get('location')
+            location={'native_integration_point':'원 적분점','integration_point':'적분점',
+                      'native_node':'원 절점','node':'절점','nodal':'절점',
+                      'calculix_export_nodes':'내보낸 절점값'}.get(
+                          raw_location if isinstance(raw_location,str) else None,
+                          raw_location if isinstance(raw_location,str) else '위치 정보는 응답 기술 상세에서 확인' if raw_location else None)
+            self.response_label.setText(f"{name} [{response.get('unit','단위 미기록')}]"+
+                (' / '+text_value(location) if location else '')+
+                ': 공간 결과는 후처리에서 여세요. 원 참조는 응답 기술 상세에서 확인할 수 있습니다.')
             self._blank_plot("공간 분포 결과는 후처리에서 확인하세요.")
             self.result_views.setCurrentWidget(self.canvas)
+            self.result_views.hide()
             return
+        self.result_views.show()
         start, count = self.row_start.value(), self.row_count.value()
         selection = {"responses": [name]}
         if kind == "series":
@@ -1004,17 +1258,26 @@ class RunnerWindow(QMainWindow):
         captions = {'component': '성분', 'location': '위치', 'frame': '좌표계', 'measure': '물리량 정의', 'valid': '유효성'}
         meanings = {'material_point': '재료점', 'material_cartesian': '재료 직교좌표',
                     'laboratory': '실험실 좌표', 'infinitesimal_Cauchy': '미소변형 Cauchy 응력',
+                    'native_integration_point':'원 적분점','integration_point':'적분점',
+                    'native_node':'원 절점','node':'절점','nodal':'절점',
                     'true': '유효', 'false': '유효하지 않음'}
         labels = [captions[key] + ': ' + meanings.get(text_value(response[key]), text_value(response[key]))
                   for key in captions if key in response]
+        context=[('성분 ' if key=='component' else '')+meanings.get(text_value(response[key]),text_value(response[key]))
+                 for key in captions if key in response]
         unit = response.get("unit", "단위 미기록")
+        self.result_views.show()
+        self.row_range_panel.setVisible(response.get('kind')=='series')
+        self.field_open_button.hide()
         if response.get("kind") == "scalar":
             self.values.setRowCount(1)
             table_row(self.values, 0, ["단일 값", "—", f"{text_value(response.get('value'))} {unit}", "—"])
             self.response_label.setText(f"{name} = {text_value(response.get('value'))} {unit}" + ("\n" + ", ".join(labels) if labels else ""))
             self._blank_plot("단일 값은 계산값 표에서 확인하세요.")
             self.result_views.setCurrentWidget(self.values)
+            self.result_views.setMaximumHeight(170)
             return
+        self.result_views.setMaximumHeight(16777215)
         values, axes = response.get("value"), response.get("axes", [])
         if not isinstance(values, list) or len(axes) != 1 or not isinstance(axes[0].get("values"), list) or len(values) != len(axes[0]["values"]):
             self.response_label.setText("축과 값이 대응하는 1차원 계열이 아니므로 곡선을 그리지 않았습니다. 원 기록은 응답 기술 상세에 보존됩니다.")
@@ -1027,7 +1290,9 @@ class RunnerWindow(QMainWindow):
         for row, (coordinate, value) in enumerate(zip(axis["values"], values)):
             included = (("사용" if mask[row] else "제외") if type(mask[row]) is bool else "유효성 값 확인 필요") if isinstance(mask, list) and row < len(mask) else "유효성 미기록"
             table_row(self.values, row, [start + row, f"{text_value(coordinate)} {axis.get('unit', '단위 미기록')}", f"{text_value(value)} {unit}", included])
-        self.response_label.setText(f"원본 행 {start} 이상 {start + len(values)} 미만 ({len(values)}행)" + ("\n" + ", ".join(labels) if labels else ""))
+        self.response_label.setToolTip(', '.join(labels))
+        self.response_label.setText(f"원본 행 {start} 이상 {start + len(values)} 미만 ({len(values)}행)" +
+            (" / " + ", ".join(context) if context else ""))
         try:
             if mask is not None and (not isinstance(mask, list) or len(mask) != len(values) or any(type(value) is not bool for value in mask)):
                 raise ValueError("Unsupported mask")
@@ -1049,6 +1314,7 @@ class RunnerWindow(QMainWindow):
             return
         if mask is not None and not all(mask):
             self.response_label.setText(self.response_label.text() + f"\n제외 표본 {mask.count(False)}개는 빈 구간으로 표시합니다. 원값과 유효성은 표에서 확인하세요.")
+        self.figure.set_layout_engine('constrained')
         self.axes.clear()
         self.axes.set_axis_on()
         self.axes.plot(x, y, marker="o", markersize=3)

@@ -105,6 +105,24 @@ def native_outputs(model):
         'elements':{e:'M'+str(i) for e,i in material.items()}}
 
 
+def test_retained_legacy_global_output_spelling_keeps_exact_other_bytes(model, snapshot):
+    deck = snapshot.parent / 'contact.inp'
+    assert b'*NODE FILE,GLOBAL=YES' in deck.read_bytes()
+    legacy = deck.read_bytes().replace(b'*NODE FILE,GLOBAL=YES', b'*NODE FILE')
+    deck.write_bytes(legacy)
+    manifest = json.loads(snapshot.read_text(encoding='utf-8'))
+    pin = next(row for row in manifest['files'] if row['relative']=='contact.inp')
+    pin.update(bytes=len(legacy), sha256=hashlib.sha256(legacy).hexdigest())
+    snapshot.write_text(json.dumps(manifest), encoding='utf-8')
+    assert contact_fem.validate_snapshot(snapshot)[1] == json.loads((snapshot.parent/'mesh.json').read_text(encoding='utf-8'))
+    tampered = legacy.replace(b'*NODE FILE', b'*NODE FILE,GLOBAL=NO')
+    deck.write_bytes(tampered)
+    pin.update(bytes=len(tampered), sha256=hashlib.sha256(tampered).hexdigest())
+    snapshot.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='deck differs'):
+        contact_fem.validate_snapshot(snapshot)
+
+
 def test_body_sections_surface_union_and_prescribed_dof_conflicts(model,snapshot):
     manifest,retained,pins,gates=contact_fem.validate_snapshot(snapshot)
     assert len(retained['nodes'])==20 and gates['mesh_components']==2

@@ -221,8 +221,23 @@ def _mesh(mesh):
     if mesh.get('native_to_deck_slots')!=list(CCX_FROM_NATIVE_TET10):
         raise ValueError('The source must retain its original native-to-deck ordering identity.')
     nodes=mesh['nodes'];elements=mesh['elements']
+    mapped = any('native_node_id' in row or 'body_id' in row for row in nodes)
+    native_nodes = {}
+    if mapped:
+        for row in nodes:
+            if 'body_id' not in row or 'native_node_id' not in row:
+                raise ValueError('Reference mesh has incomplete body-local node identity.')
+            key = (row['body_id'], row['native_node_id'])
+            if key in native_nodes:
+                raise ValueError('Reference mesh has duplicate body-local node identity.')
+            native_nodes[key] = row['node_id']
     for row in elements:
-        if row['node_ids']!=[row['native_node_ids'][slot] for slot in CCX_FROM_NATIVE_TET10]:
+        try:
+            expected = [native_nodes[(row['body_id'], row['native_node_ids'][slot])] if mapped
+                        else row['native_node_ids'][slot] for slot in CCX_FROM_NATIVE_TET10]
+        except (KeyError, IndexError, TypeError) as error:
+            raise ValueError('Reference mesh has incomplete body-local connectivity.') from error
+        if row['node_ids']!=expected:
             raise ValueError('Reference C3D10 connectivity differs from the producer ordering.')
     ids=[row['node_id'] for row in nodes];coordinates=[row['position_mm'] for row in nodes]
     tetra10_boundary(ids,coordinates,elements)

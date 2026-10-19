@@ -341,23 +341,31 @@ def build_measurement(source, draft, namespace):
         p.SetActiveView(before[1])
 
 
-def sample_data(source, *, offset=0, limit=100, point_index=None, declarations=None):
+def sample_data(source, *, offset=0, limit=100, point_index=None, declarations=None, block_path=None):
+    if block_path is not None and (not isinstance(block_path,list) or len(block_path)>64 or
+            any(type(index) is not int or index<0 for index in block_path)):
+        raise ValueError('Choose an exact native table block path')
     data = analysis._fetch(source)
     if hasattr(data, 'GetPointData'):
+        if block_path not in (None,[]):
+            raise ValueError('The selected native table block is absent')
         return analysis.sample_data(source, offset=offset, limit=limit, point_index=point_index, declarations=declarations)
     if point_index is not None:
         raise ValueError('Time tables use result rows and block identity, not spatial point indexes')
     if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 1000:
         raise ValueError('Choose an offset and 1–1000 table rows')
-    rows, total = [], 0
+    rows, total, found = [], 0, False
     def visit(block, path):
-        nonlocal total
+        nonlocal total, found
         if block is None:
             return
         if hasattr(block, 'GetNumberOfBlocks'):
             for index in range(block.GetNumberOfBlocks()):
                 visit(block.GetBlock(index), path + [index])
             return
+        if block_path is not None and path != block_path:
+            return
+        found = True
         if hasattr(block, 'GetRowData'):
             fields, count = block.GetRowData(), block.GetNumberOfRows()
         elif hasattr(block, 'GetPointData'):
@@ -379,6 +387,8 @@ def sample_data(source, *, offset=0, limit=100, point_index=None, declarations=N
                 rows.append({'block': list(path), 'row': index, 'values': values})
             total += 1
     visit(data, [])
+    if block_path is not None and not found:
+        raise ValueError('The selected native table block is absent')
     return {'rows': rows, 'total': total, 'offset': offset, 'limit': limit, 'semantics': 'native_time_table'}
 
 

@@ -150,6 +150,16 @@ def setting_label(path):
     return context.capitalize() + ': ' + caption if context else caption
 
 
+def _record_caption(entry, path):
+    if isinstance(entry, dict):
+        title = next((entry[key] for key in ('label','name','side')
+                      if isinstance(entry.get(key), str) and entry[key].strip()), None)
+        if title:
+            unit = entry.get('unit')
+            return title + (' ['+unit+']' if isinstance(unit,str) and unit.strip() else '')
+    return setting_label(path)
+
+
 class _Signals(QObject):
     finished = Signal(object, object)
 
@@ -199,6 +209,7 @@ class PDEWindow(QMainWindow):
         self._draft = {}
         self.fields = {}
         self._workers = []
+        self._pending_command = None
         self._comparison_windows = []
         self._selected_job = None
         self._result = None
@@ -224,9 +235,12 @@ class PDEWindow(QMainWindow):
         self.new_action.triggered.connect(self.new_document)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
+        self.retry_action = QAction('요청 다시 확인', self)
+        self.retry_action.triggered.connect(self.retry_command)
         self.undo_action.triggered.connect(lambda: self.command('document.undo'))
         self.redo_action.triggered.connect(lambda: self.command('document.redo'))
         files.addActions([self.new_action, self.open_action, self.save_action])
+        files.addAction(self.retry_action)
         from .portable_research_actions import install
         install(self, files, self.document_kind)
         edit.addActions([self.undo_action, self.redo_action])
@@ -273,7 +287,12 @@ class PDEWindow(QMainWindow):
         self.message = QLabel()
         self.message.setWordWrap(True)
         layout.addWidget(self.identity)
-        layout.addWidget(self.message)
+        self.retry_button = QPushButton('요청 다시 확인')
+        self.retry_button.clicked.connect(self.retry_command)
+        message_row = QHBoxLayout()
+        message_row.addWidget(self.message, 1)
+        message_row.addWidget(self.retry_button)
+        layout.addLayout(message_row)
         self.issue_summary = QLabel()
         self.issue_summary.setWordWrap(True)
         self.issue_summary.setStyleSheet('color: #9a3412;')
@@ -286,8 +305,8 @@ class PDEWindow(QMainWindow):
         self.execution_hint.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Preferred)
         self.statusBar().addWidget(self.execution_hint,1)
         conflicts = QHBoxLayout()
-        self.reload_button = QPushButton('Reload service version')
-        self.copy_button = QPushButton('Keep edits as a new document')
+        self.reload_button = QPushButton('저장소의 모델 다시 읽기')
+        self.copy_button = QPushButton('편집 내용을 새 모델로 보관')
         self.reload_button.clicked.connect(self.reload_remote)
         self.copy_button.clicked.connect(self.copy_edits)
         conflicts.addWidget(self.reload_button)
@@ -407,7 +426,7 @@ class PDEWindow(QMainWindow):
         result_actions.addWidget(self.post_button)
         result_actions.addWidget(self.compare_button)
         graph_layout.addLayout(result_actions)
-        self.result_label = QLabel('No retained evaluation selected')
+        self.result_label = QLabel('계산 결과를 선택하세요.')
         self.result_label.setWordWrap(True)
         graph_layout.addWidget(self.result_label)
         horizontal.addWidget(graphics)
@@ -494,7 +513,7 @@ class PDEWindow(QMainWindow):
             self.result_label.setText(caption)
             self.result_label.setToolTip(display(run))
 
-    def _call(self, function, accepted):
+    def _call(self, function, accepted, *, rejected=None):
         if self._busy:
             return False
         self._busy = True
@@ -506,7 +525,10 @@ class PDEWindow(QMainWindow):
             self._busy = False
             self._workers.remove(worker)
             if error:
-                self.message.setText(error)
+                if rejected:
+                    rejected(error)
+                else:
+                    self.message.setText(error)
             else:
                 accepted(value)
             self._update_actions()
@@ -516,6 +538,9 @@ class PDEWindow(QMainWindow):
         return True
 
     def open_document(self, *, document_id=None, title=None, draft=None):
+        if self._pending_command:
+            self.message.setText('진행한 요청의 결과를 먼저 확인하세요. 현재 편집은 유지됩니다.')
+            return False
         return self._call(lambda: self.client.document_open(kind=self.document_kind, title=title or self.tool_label + ' research',
                           draft=draft, document_id=document_id), self._opened)
 
@@ -557,7 +582,7 @@ class PDEWindow(QMainWindow):
             ('함수 공간', ('settings', 'mesh', 'degree')),
             ('방정식', ('settings', 'problem', 'weak_form')),
             ('경계 조건', ('settings', 'problem', 'boundaries')),
-            ('Dirichlet — whole boundary', ('settings', 'problem', 'dirichlet')),
+            ('전체 경계의 Dirichlet 조건', ('settings', 'problem', 'dirichlet')),
             ('초기 조건', ('settings', 'problem', 'initial')),
             ('기준해', ('settings', 'problem', 'reference')),
             ('메시', ('settings', 'mesh')),
@@ -590,13 +615,21 @@ class PDEWindow(QMainWindow):
                     child.setToolTip(0, str(key))
                     child.setData(0, ROLE, {'path': child_path, 'label': caption})
                     self._nodes[child_path] = child
+            elif self.document_kind == 'pde' and isinstance(value, list):
+                for index, entry in enumerate(value):
+                    child_path = (*path, index)
+                    caption = _record_caption(entry, child_path)
+                    child = QTreeWidgetItem(item, [caption])
+                    child.setToolTip(0, '.'.join(map(str, child_path)))
+                    child.setData(0, ROLE, {'path': child_path, 'label': caption})
+                    self._nodes[child_path] = child
         # Every raw setting remains visible and saveable, including unsupported keys.
         known_settings = {path[1] for path in covered}
         settings = self._draft.get('settings')
         if isinstance(settings, dict):
             for key in set(settings) - known_settings:
                 path = ('settings', key)
-                item = QTreeWidgetItem(self.tree, ['Unsupported setting: ' + str(key)])
+                item = QTreeWidgetItem(self.tree, ['등록되지 않은 설정: ' + str(key)])
                 item.setData(0, ROLE, {'path': path, 'label': str(key)})
                 self._nodes[path] = item
             problem = settings.get('problem')
@@ -604,14 +637,14 @@ class PDEWindow(QMainWindow):
                 for key in problem:
                     path = ('settings', 'problem', key)
                     if path not in covered:
-                        item = QTreeWidgetItem(self.tree, ['Unsupported problem setting: ' + str(key)])
+                        item = QTreeWidgetItem(self.tree, ['등록되지 않은 방정식 설정: ' + str(key)])
                         item.setData(0, ROLE, {'path': path, 'label': str(key)})
                         self._nodes[path] = item
         results = QTreeWidgetItem(self.tree, ['계산 결과'])
-        results.setData(0, ROLE, {'label': 'Evaluations', 'path': None})
+        results.setData(0, ROLE, {'label': '계산 결과', 'path': None})
         for index, run in enumerate(document.get('runs', [])):
             item = QTreeWidgetItem(results, ['계산 ' + str(index + 1) + (' (현재 입력)' if run.get('is_current_input') else ' (이전 입력)')])
-            item.setData(0, ROLE, {'job_id': run['job_id'], 'label': 'Retained evaluation', 'path': None})
+            item.setData(0, ROLE, {'job_id': run['job_id'], 'label': '보존 계산', 'path': None})
             self._run_nodes[run['job_id']] = item
         self.tree.expandToDepth(0)
         target = (self._run_nodes.get(old['job_id']) if old and old.get('job_id') else
@@ -653,9 +686,10 @@ class PDEWindow(QMainWindow):
             try:
                 self._add_fields(form, at_path(self._draft, path), tuple(path))
             except (KeyError, TypeError):
-                form.addRow(QLabel('Original malformed settings remain preserved; use Undo or create a new model.'))
+                form.addRow(QLabel('원래 형식의 입력을 보존하고 있습니다. 되돌리기를 사용하거나 새 모델을 만드세요.'))
         else:
-            form.addRow(QLabel('Retained results belong to their exact submitted input revision.'))
+            text = QLabel('계산 당시의 입력에 연결된 보존 결과입니다. 현재 편집 내용은 이 결과에 반영되지 않습니다.')
+            text.setWordWrap(True); form.addRow(text)
         self.scroll.setWidget(widget)
         self._draw_domain(path)
         if data.get('job_id'):
@@ -664,14 +698,14 @@ class PDEWindow(QMainWindow):
                 self._result_key = None
                 self._accept_result({})
                 self._result = None
-                self.result_label.setText('Reading the selected retained evaluation: ' + self._selected_job)
+                self.result_label.setText('선택한 보존 계산의 결과를 읽는 중…')
             self.refresh_result()
         self._update_actions()
 
     def _add_fields(self, form, value, path):
         if isinstance(value, dict):
             if not value:
-                form.addRow(QLabel('Empty declared object (preserved).'))
+                form.addRow(QLabel('비어 있는 입력 항목을 그대로 보존합니다.'))
             for key, item in value.items():
                 self._add_fields(form, item, (*path, key))
             return
@@ -709,7 +743,7 @@ class PDEWindow(QMainWindow):
         field.setObjectName('pde.' + '.'.join(map(str, path)))
         if value is None:
             field.setPlaceholderText('미지정')
-        field.setToolTip(adapter_path + '\nNumbers are parsed without evaluating expressions. Invalid text can be saved.')
+        field.setToolTip(adapter_path + '\n숫자만 해석하며 식을 실행하지 않습니다. 미완성 원문도 저장할 수 있습니다.')
         if path[-1] == 'sha256':
             field.setToolTip(adapter_path + '\nExact mesh source content SHA-256. Editing bytes does not silently recompute or replace this identity.')
         self.fields[path] = (field, deepcopy(value))
@@ -758,6 +792,13 @@ class PDEWindow(QMainWindow):
         if self._populating:
             return
         self.local_dirty = True
+        current = self.tree.currentItem()
+        data = current.data(0, ROLE) if current is not None else None
+        path = data.get('path') if isinstance(data, dict) else None
+        if self.document_kind == 'pde' and path and isinstance(path[-1], int):
+            caption = _record_caption(at_path(self.edited_draft(), path), path)
+            current.setText(0, caption); current.setData(0, ROLE, {**data, 'label':caption})
+            self.settings_title.setText('속성 — ' + caption)
         self._update_actions()
 
     def validate_inputs(self):
@@ -843,38 +884,90 @@ class PDEWindow(QMainWindow):
         self._refresh_issue_summary()
 
     def command(self, operation, arguments=None, *, after=None):
-        if not self.document or self.conflict:
+        if not self.document or self.conflict or self._busy:
+            return False
+        if self._pending_command:
+            self.message.setText('진행한 요청의 결과를 먼저 확인하세요. 새 요청은 보내지 않았습니다.')
             return False
         if self.local_dirty and operation != self.document_kind + '.update':
             self.message.setText('편집한 내용을 먼저 변경 적용해 주세요.')
             return False
-        document = deepcopy(self.document)
-        submitted_buffer = self.edited_draft()
-        arguments = deepcopy(arguments or {})
-        owner_key = (document['id'], document['session_id'])
+        self._pending_command = dict(document=deepcopy(self.document), operation=operation,
+            arguments=deepcopy(arguments or {}), command_id='C'+uuid.uuid4().hex,
+            submitted_buffer=self.edited_draft(), selected_job=self._selected_job, after=after)
+        return self.retry_command()
+
+    def retry_command(self):
+        pending = self._pending_command
+        if not pending or self._busy or not self.document:
+            return False
+        document = pending['document']
+        owner_key = (document['id'], document['session_id'], document['generation'])
+        def same_owner():
+            return bool(self.document) and (self.document['id'], self.document['session_id'],
+                self.document['generation']) == owner_key and self._pending_command is pending
+        if not same_owner():
+            self.message.setText('원 요청의 문서 또는 버전이 달라 결과를 적용하지 않았습니다. 현재 편집은 유지됩니다.')
+            return False
+        operation = pending['operation']
+        label = {'update':'변경 적용', 'save':'저장', 'evaluate':'계산 요청',
+                 'undo':'되돌리기', 'redo':'다시 실행'}.get(operation.rsplit('.',1)[-1], '요청')
+        self.message.setText(label + ' 결과 확인 중…')
 
         def accepted(receipt):
-            if not self.document or (self.document['id'], self.document['session_id']) != owner_key:
+            if not same_owner():
+                self.message.setText('원 요청의 대상이 달라 결과를 적용하지 않았습니다. 현재 편집은 유지됩니다.')
+                return
+            received = receipt.get('document', {})
+            if (receipt.get('command_id') != pending['command_id'] or
+                    (received.get('id'), received.get('session_id')) != owner_key[:2]):
+                self.message.setText('원 요청과 일치하는 응답을 확인하지 못했습니다. 현재 편집은 유지됩니다.')
                 return
             current_buffer = self.edited_draft()
-            late_edit = current_buffer != submitted_buffer
+            late_edit = current_buffer != pending['submitted_buffer']
+            self._pending_command = None
             self.local_dirty, self.conflict = late_edit, False
             self._show_document(receipt['document'], preserve_draft=current_buffer if late_edit else None)
             job = receipt.get('job')
-            self.message.setText('요청한 내용은 적용했습니다. 그동안 편집한 내용은 아직 적용 전입니다.' if late_edit else
+            late_message = ('이전 입력을 저장했습니다. 현재 편집은 아직 적용 전입니다.' if operation=='document.save' else
+                            '요청한 내용은 적용했습니다. 그동안 편집한 내용은 아직 적용 전입니다.')
+            self.message.setText(late_message if late_edit else
                                  {'update': '변경을 적용했습니다.', 'save': '저장했습니다.',
                                   'undo': '이전 상태로 되돌렸습니다.', 'redo': '변경을 다시 적용했습니다.',
                                   'evaluate': '계산을 요청했습니다.'}.get(operation.rsplit('.', 1)[-1], '작업을 반영했습니다.'))
-            if job:
+            if job and self._selected_job == pending['selected_job']:
                 self._selected_job = job.get('id', job.get('job_id'))
                 self._result_key = None
                 QTimer.singleShot(0, self.refresh_result)
-            if after and not late_edit:
-                after()
+            if pending['after'] and not late_edit:
+                pending['after']()
 
-        return self._call(lambda: self.client.document_command(document['id'], operation, arguments,
-                          session_id=document['session_id'], expected_generation=document['generation'],
-                          command_id='C' + uuid.uuid4().hex), accepted)
+        def send():
+            try:
+                return self.client.document_command(document['id'], operation, deepcopy(pending['arguments']),
+                    session_id=document['session_id'], expected_generation=document['generation'],
+                    command_id=pending['command_id'])
+            except Exception as error:
+                from caelab.workbench_client import WorkbenchHTTPError
+                # MaterialDocuments rejects these before creating its command
+                # receipt. Other 400s can follow APPLYING and remain uncertain.
+                pending['not_applied'] = (not pending.get('uncertain') and isinstance(error, WorkbenchHTTPError) and error.code == 400 and
+                    error.service_message in {'ValueError: Document session is stale; reopen after service restart',
+                                             'ValueError: Document generation changed; reread before applying'})
+                raise
+
+        def rejected(error):
+            if not same_owner():
+                return
+            self.messages.appendPlainText(operation+'\n'+pending['command_id']+'\n'+error)
+            if pending.get('not_applied'):
+                self._pending_command = None
+                self.conflict = True
+                self.message.setText(label+' 요청을 적용하지 않았습니다. 모델을 다시 읽거나 편집 사본으로 보관하세요. 현재 편집은 유지됩니다.')
+            else:
+                pending['uncertain'] = True
+                self.message.setText(label+' 처리 여부를 확인하지 못했습니다. 요청 다시 확인으로 같은 요청의 결과를 확인하세요. 현재 편집은 유지됩니다.')
+        return self._call(send, accepted, rejected=rejected)
 
     def apply_inputs(self, *, after=None):
         return self.command(self.document_kind + '.update', {'draft': self.edited_draft()}, after=after)
@@ -914,7 +1007,7 @@ class PDEWindow(QMainWindow):
         return self.command(self.document_kind + '.evaluate')
 
     def refresh_document(self):
-        if not self.document or self._busy:
+        if not self.document or self._busy or self._pending_command:
             return
         identifier = self.document['id']
 
@@ -922,7 +1015,7 @@ class PDEWindow(QMainWindow):
             changed = (remote['session_id'], remote['generation']) != (self.document['session_id'], self.document['generation'])
             if changed and self.local_dirty:
                 self.conflict = True
-                self.message.setText('The owner changed during local editing. Your settings remain here; reload or keep a new copy.')
+                self.message.setText('편집하는 동안 저장소의 모델이 바뀌었습니다. 편집 내용은 유지됩니다. 저장소의 모델을 다시 읽거나 새 모델로 보관하세요.')
             elif not self.local_dirty and not self.conflict:
                 self._show_document(remote)
             QTimer.singleShot(0, self.refresh_result)
@@ -1296,9 +1389,14 @@ class PDEWindow(QMainWindow):
         self.domain_canvas.draw_idle()
 
     def _update_actions(self):
-        available = bool(self.document) and not self._busy and not self.conflict
-        self.new_action.setEnabled(not self._busy)
-        self.open_action.setEnabled(not self._busy)
+        pending = self._pending_command
+        available = bool(self.document) and not self._busy and not self.conflict and not pending
+        self.new_action.setEnabled(not self._busy and not pending)
+        self.open_action.setEnabled(not self._busy and not pending)
+        self.retry_action.setVisible(bool(pending))
+        self.retry_action.setEnabled(bool(pending) and not self._busy)
+        self.retry_button.setVisible(bool(pending))
+        self.retry_button.setEnabled(self.retry_action.isEnabled())
         self.save_action.setEnabled(available)
         self.undo_action.setEnabled(available and not self.local_dirty and bool(self.document.get('can_undo')))
         self.redo_action.setEnabled(available and not self.local_dirty and bool(self.document.get('can_redo')))
@@ -1331,7 +1429,7 @@ class PDEWindow(QMainWindow):
         self.result_label.setVisible(showing_result)
         self.runner_button.setToolTip('보존 계산을 선택하면 실행 상태를 열 수 있습니다.')
         self.post_button.setToolTip('선택한 계산에 등록된 native 결과 파일을 엽니다.')
-        self.save_state.setText('변경 적용 전' if self.local_dirty else '저장됨'
+        self.save_state.setText('요청 확인 필요' if pending else '변경 적용 전' if self.local_dirty else '저장됨'
                                if self.document and not self.document.get('dirty') else '저장 전')
         self._refresh_issue_summary()
         self._refresh_result_caption()
@@ -1345,7 +1443,7 @@ class PDEWindow(QMainWindow):
         self._mesh_study_windows.append(window);window.show()
 
     def open_numerical_plan(self):
-        if not self.document or self._busy or self.conflict:
+        if not self.document or self._busy or self.conflict or self._pending_command:
             return False
         if self.local_dirty:
             self.message.setText('수치 계산 계획을 만들기 전에 편집한 내용을 변경 적용해 주세요.')
@@ -1388,6 +1486,7 @@ class PDEWindow(QMainWindow):
             self.result_open(self.document['id'], self._selected_job, study_index=study_index)
 
     def new_document(self):
+        if self._pending_command or self._busy:return False
         labels={'pde.scipy.ode':'상태 방정식 (단위가 있는 ODE)',
                 'pde.fenicsx.dimensioned':'선형 약형식 (단위가 있는 스칼라 장)',
                 'pde.scikit_fem.dimensioned':'Windows 공간 약형식 (scikit-fem / 실제 SI 온도)'}
@@ -1398,6 +1497,7 @@ class PDEWindow(QMainWindow):
             self._abandon(lambda: self.open_document(draft=self.model_default(backend)))
 
     def choose_document(self):
+        if self._pending_command or self._busy:return False
         def accepted(documents):
             if isinstance(documents, dict):
                 documents = documents.get('documents', [])
@@ -1408,18 +1508,23 @@ class PDEWindow(QMainWindow):
         self._call(self.client.documents, accepted)
 
     def reload_remote(self):
-        if QMessageBox.question(self, 'Reload owner version', 'Discard unapplied local settings and reload the owner version?',
+        if self._pending_command or self._busy:return False
+        if QMessageBox.question(self, '모델 다시 읽기', '아직 적용하지 않은 편집 내용을 버리고 저장소의 모델을 다시 읽을까요?',
                                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel) == QMessageBox.StandardButton.Yes:
             self._call(lambda: self.client.document_read(self.document['id']), self._opened)
 
     def copy_edits(self):
-        self.open_document(title=self.document['title'] + ' — local edits', draft=self.edited_draft())
+        if self._pending_command or self._busy:return False
+        self.open_document(title=self.document['title'] + ' 편집 사본', draft=self.edited_draft())
 
     def _abandon(self, after):
+        if self._pending_command or self._busy:
+            self.message.setText('진행한 요청의 결과를 먼저 확인하세요. 현재 편집은 유지됩니다.')
+            return False
         if not self.local_dirty and not (self.document and self.document.get('dirty')):
             after()
             return True
-        answer = QMessageBox.question(self, 'PDE draft', 'Save the current model before closing this document?',
+        answer = QMessageBox.question(self, '모델 저장', '현재 모델의 변경 내용을 저장할까요?',
                                       QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
         if answer == QMessageBox.StandardButton.Save:
             self.save_document(after=after)
@@ -1432,11 +1537,14 @@ class PDEWindow(QMainWindow):
     def closeEvent(self, event):
         if self._allow_close:
             event.accept()
+        elif self._pending_command:
+            self.message.setText('진행한 요청의 결과를 먼저 확인하세요. 현재 편집은 유지됩니다.')
+            event.ignore()
         elif self._busy:
-            self.message.setText('Wait for the owner command to finish before closing.')
+            self.message.setText('진행 중인 작업이 끝나면 창을 닫을 수 있습니다.')
             event.ignore()
         elif self.local_dirty or self.document and self.document.get('dirty'):
-            answer = QMessageBox.question(self, 'Close PDE document', 'Save the current model before closing?',
+            answer = QMessageBox.question(self, self.tool_label + ' 닫기', '현재 모델의 변경 내용을 저장하고 닫을까요?',
                                           QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
             if answer == QMessageBox.StandardButton.Save:
                 event.ignore()

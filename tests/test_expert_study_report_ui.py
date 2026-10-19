@@ -2,12 +2,15 @@
 import os
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from copy import deepcopy
+import json
+from pathlib import Path
+import shutil
 import threading
 import time
 
 import pytest
 pytest.importorskip('PySide6')
-from PySide6.QtCore import QThreadPool
+from PySide6.QtCore import QThreadPool, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 from apps.lab.service import LabService
 from apps.research.report_window import ReportWindow, section
@@ -31,6 +34,116 @@ def wait(app, condition, window):
 def close(window):
     window._allow_close = True
     window.close()
+
+
+@pytest.mark.skipif(not os.environ.get('CAELAB_RETAINED_RESEARCH_FLOW'), reason='Explicit retained user-flow selection required')
+def test_retained_research_views_read_edit_cancel_without_new_jobs(tmp_path, monkeypatch):
+    """Read the same saved owners used by the earlier screenshots; no new AI fixture."""
+    flow_path = Path(os.environ['CAELAB_RETAINED_RESEARCH_FLOW']).resolve(strict=True)
+    flow = json.loads(flow_path.read_text(encoding='utf-8'))
+    store = tmp_path / 'same-saved-owners'
+    shutil.copytree(flow_path.parent / 'store', store)
+    renders = Path(os.environ['CAELAB_RETAINED_RESEARCH_RENDERS']).resolve()
+    renders.mkdir(parents=True, exist_ok=True)
+    app = QApplication.instance() or QApplication([])
+    from apps.research.appearance import apply_appearance
+    from apps.research.study_window import StudyWindow
+    apply_appearance(app)
+    windows = []
+    with running(LabService(store)) as transport:
+        wb = transport.server.workbench
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Retained reading/editing cannot submit a provider or numerical job')
+        monkeypatch.setattr(wb, 'submit', forbidden)
+        monkeypatch.setattr(wb.manager, 'submit', forbidden)
+        for owner in wb.research_owners():
+            monkeypatch.setattr(owner, 'submit', forbidden)
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        jobs = {job['id'] for job in wb.manager.list()}
+        retained_drafts = {}
+        saved_references = {}
+        def save_same_owner(window, identifier, draft):
+            window.save_document()
+            wait(app, lambda: not window._busy and bool(window.document.get('saved_revision')), window)
+            saved = client.document_read(identifier)
+            assert saved['draft'] == draft
+            retained_drafts[identifier] = deepcopy(draft)
+            saved_references[identifier] = saved['saved_revision']
+        try:
+            expert = ExpertWindow(client, document_id=flow['expert_id'], poll_interval=0)
+            windows.append(expert); expert.show()
+            wait(app, lambda: expert.document is not None and not expert._busy, expert)
+            before = deepcopy(expert.document['draft'])
+            row = next(i for i in range(expert.turns.count())
+                if expert.turns.item(i).data(Qt.ItemDataRole.UserRole) == flow['turn_id'])
+            expert.turns.setCurrentRow(row)
+            text = expert.question.toPlainText()
+            expert.question.insertPlainText('\n수정 취소를 확인하는 로컬 질문입니다.')
+            for label, size in [('normal', (1440, 900)), ('narrow', (960, 720))]:
+                expert.resize(*size); app.processEvents()
+                assert expert.turns.currentRow() == row and expert.local_dirty
+                assert expert.grab().save(str(renders / ('expert-' + label + '.png')))
+            assert expert.cancel_question_edits() and expert.question.toPlainText() == text
+            assert client.document_read(flow['expert_id'])['draft'] == before
+            save_same_owner(expert, flow['expert_id'], before)
+            close(expert); app.processEvents()
+
+            study = StudyWindow(client, document_id=flow['study_id'], poll_interval=0)
+            windows.append(study); study.show()
+            wait(app, lambda: study.document is not None and not study._busy and not study._callbacks, study)
+            before = deepcopy(study.document['draft'])
+            study.evidence.selectRow(0)
+            wait(app, lambda: not study._busy and not study._callbacks and study.reading.payload is not None, study)
+            decision = before['decisions'][0]
+            study._select(('decisions', decision['id'])); study._show_editor()
+            study.detail_text.insertPlainText('\n' + '명시 판단을 작성 중입니다. ' * 30)
+            reference = deepcopy(study._content_reference)
+            wait(app, lambda: not study._busy and not study._callbacks and study.reading.payload is not None, study)
+            for label, size in [('normal', (1440, 900)), ('narrow', (960, 720))]:
+                study.resize(*size); app.processEvents()
+                assert study._content_reference == reference and study.local_dirty
+                assert study.grab().save(str(renders / ('study-' + label + '.png')))
+            wait(app, lambda: not study._busy and not study._callbacks, study)
+            assert study.cancel_entry_edits()
+            assert study.edited_draft() == before
+            assert client.document_read(flow['study_id'])['draft'] == before
+            save_same_owner(study, flow['study_id'], before)
+            close(study); app.processEvents()
+
+            report = ReportWindow(client, document_id=flow['report_id'])
+            windows.append(report); report.show()
+            wait(app, lambda: report.document is not None and not report._busy and bool(report.assets), report)
+            before = deepcopy(report.draft)
+            report.sections.setCurrentRow(1); report.edit_section()
+            report.section_text.insertPlainText('\n' + '검토 중인 한국어 설명과 단위 MPa를 보존합니다. ' * 30)
+            for label, size in [('normal', (1440, 900)), ('narrow', (960, 720))]:
+                report.resize(*size); app.processEvents()
+                assert report._editing_section == before['sections'][1]['id']
+                assert report.grab().save(str(renders / ('report-' + label + '.png')))
+            report.cancel_section(); report.close_editor()
+            assert report.draft == before and not report._edit_buffers
+            assert client.document_read(flow['report_id'])['draft'] == before
+            from apps.research.report_pages import pdf_document, markdown
+            pdf_document(report._page, renders / 'report-retained.pdf')
+            assert (renders / 'report-retained.pdf').read_bytes().startswith(b'%PDF')
+            (renders / 'report-retained.md').write_text(markdown(report.draft, report.assets), encoding='utf-8')
+            save_same_owner(report, flow['report_id'], before)
+            assert {job['id'] for job in wb.manager.list()} == jobs
+        finally:
+            for window in windows:
+                close(window)
+            assert QThreadPool.globalInstance().waitForDone(5000)
+    # Reconstruct the service from disk: saved owner and pinned source refs must survive.
+    with running(LabService(store)) as cold:
+        client = Client('http://127.0.0.1:' + str(cold.server.server_port))
+        for identifier, draft in retained_drafts.items():
+            reopened = client.document_read(identifier)
+            assert reopened['draft'] == draft
+            assert reopened['saved_revision'] == saved_references[identifier]
+        assert {job['id'] for job in cold.server.workbench.manager.list()} == jobs
+    (renders / 'saved-owners.json').write_text(json.dumps({'source_flow':str(flow_path),
+        'saved_references':saved_references,'job_ids':sorted(jobs),
+        'retained_turn_id':flow['turn_id'],'cold_drafts_unchanged':True}, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
 def test_report_close_cancel_discard_save_buffers_and_lost_reply(tmp_path, monkeypatch):

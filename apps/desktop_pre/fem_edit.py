@@ -33,6 +33,8 @@ from caelab.periodic_constraints import OPERATIONS as PERIODIC_OPERATIONS
 OPERATIONS += PERIODIC_OPERATIONS
 from caelab.pretension import OPERATIONS as PRETENSION_OPERATIONS
 OPERATIONS += PRETENSION_OPERATIONS
+from caelab.initial_field_conditions import OPERATIONS as INITIAL_OPERATIONS
+OPERATIONS += INITIAL_OPERATIONS
 from caelab.structural_field_ports import OPERATIONS as DISPLACEMENT_OPERATIONS
 OPERATIONS += DISPLACEMENT_OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
@@ -406,6 +408,9 @@ class FEMEditor:
         if operation not in OPERATIONS or not isinstance(arguments, dict):
             raise ValueError('Unsupported typed FEM operation')
         args = deepcopy(arguments)
+        if operation in INITIAL_OPERATIONS:
+            from .initial_field_native import dispatch
+            return dispatch(self, operation, arguments, target)
         if operation in PRETENSION_OPERATIONS:
             from .pretension_native import dispatch
             return dispatch(self, operation, arguments, target)

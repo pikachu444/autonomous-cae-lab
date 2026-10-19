@@ -80,7 +80,7 @@ def test_invalid_selected_sample_never_shrinks_averaging_domain(histories,associ
 def test_reference_geometry_change_duplicate_face_and_unknown_current_are_rejected(histories):
     data=surface();draft=recipe(histories,data)
     with pytest.raises(ValueError):histories.surface_average(data,{**draft,'surface_faces':[draft['surface_faces'][0]]*2})
-    with pytest.raises(ValueError,match='현재 면적'):histories.surface_average(data,{**draft,'geometry':'current'})
+    with pytest.raises(ValueError,match='same-frame POINTS displacement'):histories.surface_average(data,{**draft,'geometry':'current'})
     data.GetPoints().SetPoint(1,1.1,0,0)
     with pytest.raises(ValueError,match='다시 선택'):histories.surface_average(data,draft,draft['surface_faces'])
 

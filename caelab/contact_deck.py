@@ -47,7 +47,25 @@ def contact_cards(pair):
     return '\n'.join(lines) + '\n'
 
 
-def validate_model(model, *, allow_unrestrained_capture=False):
+def validate_model(model, *, allow_unrestrained_capture=False, _profile=None):
+    if _profile not in (None, 'aster_hard', 'aster_interface'):
+        raise ValueError('Unsupported contact validation profile')
+    interface = _profile == 'aster_interface'
+    hard = _profile in ('aster_hard','aster_interface')
+    if hard:
+        if allow_unrestrained_capture:
+            raise ValueError('Aster contact cannot defer restraints for displacement capture')
+        from .adapters.contact_aster_model import face_slots, element_slots, law_errors as hard_errors
+        if interface:
+            from .implicit_interface import profile
+        else:
+            from .adapters.contact_aster_model import profile
+        profile(model)
+    else:
+        face_slots = lambda row: FACES
+        from apps.desktop_pre.freeze_analysis import CCX_FROM_NATIVE_TET10
+        element_slots = lambda row: CCX_FROM_NATIVE_TET10
+    effective_errors = hard_errors if hard else law_errors
     # A displacement import may supply the first restraint. Only its read-only
     # linear STATIC capture can defer this requirement; render remains strict.
     if allow_unrestrained_capture:
@@ -85,7 +103,8 @@ def validate_model(model, *, allow_unrestrained_capture=False):
         ids = row['node_ids']
         if (type(identifier) is not int or identifier <= 0 or identifier in elements or
                 type(native) is not int or native <= 0 or (body, native) in native_elements or
-                row.get('type') != 'C3D10' or body not in bodies or len(ids) != 10 or len(set(ids)) != 10 or
+                row.get('type') not in (('C3D10', 'C3D8') if hard else ('C3D10',)) or body not in bodies or
+                len(ids) != (8 if row.get('type') == 'C3D8' else 10) or len(set(ids)) != len(ids) or
                 any(type(n) is not int or n not in bodies[body]['nodes'] for n in ids)):
             raise ValueError('Invalid contact element or cross-body connectivity')
         elements[identifier] = list(ids)
@@ -100,7 +119,7 @@ def validate_model(model, *, allow_unrestrained_capture=False):
     if (single and len(bodies) != 1) or (not single and len(bodies) < 2) or not elements or set(nodes) != {n for ids in elements.values() for n in ids}:
         raise ValueError('Contact needs complete separate body meshes')
     from apps.desktop_pre.freeze_analysis import CCX_FROM_NATIVE_TET10
-    if model.get('native_to_deck_slots') != list(CCX_FROM_NATIVE_TET10) or model.get('interface_policy') != 'independent_body_dofs':
+    if model.get('native_to_deck_slots') != ({k:list(element_slots({'type':k})) for k in ('C3D10','C3D8')} if hard else list(CCX_FROM_NATIVE_TET10)) or model.get('interface_policy') != 'independent_body_dofs':
         raise ValueError('Contact mesh lost its explicit native ordering/separate DOFs')
     for body, membership in bodies.items():
         mapping = model['body_maps'][body]
@@ -111,7 +130,7 @@ def validate_model(model, *, allow_unrestrained_capture=False):
         if nmap != expected_n or emap != expected_e:
             raise ValueError('Contact inverse map differs from retained native identities')
         for row in model['elements']:
-            if row['body_id'] == body and row['node_ids'] != [nmap[row['native_node_ids'][i]] for i in CCX_FROM_NATIVE_TET10]:
+            if row['body_id'] == body and row['node_ids'] != [nmap[row['native_node_ids'][i]] for i in element_slots(row)]:
                 raise ValueError('Contact ordered connectivity differs from native mesh')
         visited, remaining = set(), set(membership['elements'])
         seed = next(iter(remaining))
@@ -133,9 +152,10 @@ def validate_model(model, *, allow_unrestrained_capture=False):
         plastic_cards(row)  # Check exact serialized curve, including the 200-point cap.
     if (single or has_plasticity(model)) and model.get('analysis_steps', {}).get('procedure', 'static') != 'static' and not enabled(model):
         raise ValueError('NS1 first support is STATIC; nonlinear dynamic material input is not admitted.')
+    element_records = {row['element_id']:row for row in model['elements']}
     pair_ids = set()
     for pair in model['contacts']:
-        if name(pair['object_id']).upper() in pair_ids or law_errors(pair['draft']):
+        if name(pair['object_id']).upper() in pair_ids or effective_errors(pair['draft']):
             raise ValueError('Duplicate or invalid effective contact law')
         pair_ids.add(pair['object_id'].upper())
         if pair['a']['body_id'] == pair['b']['body_id']:
@@ -147,13 +167,13 @@ def validate_model(model, *, allow_unrestrained_capture=False):
             if body not in bodies or not rows or len({tuple(v) for v in rows}) != len(rows):
                 raise ValueError('Contact side requires one nonempty deduplicated body surface')
             for e, face in rows:
-                if e not in bodies[body]['elements'] or type(face) is not int or face not in FACES:
+                if e not in bodies[body]['elements'] or type(face) is not int or face not in face_slots(element_records[e]):
                     raise ValueError('Contact side is outside its owning body')
             mapped = {tuple(v) for cad in surface['cad_faces'] for v in cad['element_faces']}
             if (mapped != {tuple(v) for v in rows} or not surface['cad_faces'] or
                     any(not cad['element_faces'] for cad in surface['cad_faces'])):
                 raise ValueError('A selected CAD face has no exact mapped union')
-    if not pair_ids and not single:
+    if not pair_ids and not single and not (interface and model.get('interfaces')):
         raise ValueError('This capability requires an explicit contact pair')
     if single and pair_ids:
         raise ValueError('A single-solid no-contact scope cannot contain a contact pair')
@@ -215,10 +235,12 @@ def validate_model(model, *, allow_unrestrained_capture=False):
         validate_effective(model)
     from .pretension import sections
     sections(model)
+    from .initial_field_conditions import effective
+    effective(model)
     return nodes, elements, bodies
 
 
-def render(model):
+def _render(model):
     nodes, elements, bodies = validate_model(model)
     if 'restart' in model:
         from .calculix_dynamic import render_restart
@@ -279,11 +301,16 @@ def render(model):
     return '\n'.join(lines)
 
 
+def render(model):
+    from .adapters.initial_field_deck import decorate
+    return decorate(model, _render(model))
+
+
 def solid_output_cards(model, frequency=''):
     """Request the real native nodal recovery; PE is the FRD name of scalar PEEQ."""
     ns1 = has_plasticity(model) or model.get('analysis_scope') == 'single_solid_static' or bool(model.get('pretension_sections'))
     tie = any(pair['draft']['normal_law'] == 'tie' for pair in model['contacts'])
-    lines = ['*NODE FILE' + frequency, 'U,RF' if ns1 or tie else 'U']
+    lines = ['*NODE FILE,GLOBAL=YES' + frequency, 'U,RF' if ns1 or tie else 'U']
     if ns1:
         lines += ['*EL FILE' + frequency, 'S,E,PEEQ' if has_plasticity(model) else 'S,E']
     elif tie:

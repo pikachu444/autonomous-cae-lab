@@ -127,6 +127,172 @@ def run(client, draft):
     return client.document_read(doc['id']),job,client.document_result(doc['id'],job)
 
 
+@pytest.fixture
+def controlled_hex8(controlled,monkeypatch):
+    from caelab.adapters.law_native_fe import LawNativeFEAdapter
+    from caelab.law_native_thermal_regions import validate_settings
+    state={'calls':[],'fail':False}
+    def receiver(self,s,*,output,runtime=None):
+        s=validate_settings(s)
+        state['calls'].append(deepcopy(s))
+        if state['fail']:
+            return {'execution_status':'FAILED','settings':deepcopy(s),'responses':{},'checks':[],
+                    'diagnostics':{'reason':'CONTROLLED_RECEIVER_FAILURE_NOT_FE','physical_qualification':'UNKNOWN'}}
+        history=s['thermal_regions']
+        return {'execution_status':'SUCCEEDED','settings':deepcopy(s),'checks':[],
+                'responses':{'mean_temperature':{'kind':'series','value':[float(np.mean(v)) for v in history['temperature']['values']],
+                    'unit':'K','axes':[{'name':'time','unit':'s','values':history['time_s']}],
+                    'component':'scalar','location':'controlled_receiver'}},
+                'diagnostics':{'numerical_boundary':'CONTROLLED_HEX8_SLOT_CONSUMER_NOT_FE',
+                               'physical_qualification':'UNKNOWN','decision':'NOT_RELEASED'}}
+    monkeypatch.setattr(LawNativeFEAdapter,'run',receiver)
+    return state
+
+
+def hex8_sources(client):
+    from test_s1_p1_temperature import _hex8_temperature_receiver
+    models=[(domain.THERMAL,settings(cells=(2,1),instant=0.)),
+            (domain.THERMAL,settings(cells=(4,2),instant=2.)),
+            ('structure.felupe.law_native',_hex8_temperature_receiver())]
+    docs=[]
+    for index,(backend,s) in enumerate(models):
+        doc=client.document_open(kind='simulation',title=['선택한 첫 온도','선택한 다음 온도','사용자 Hex8 수신 모델'][index],
+                                 draft={'backend':backend,'settings':s})
+        assert not doc['diagnostics'],doc
+        docs.append(change(client,doc,'document.save')['document'])
+    draft=default_draft()
+    draft['stages']=[{'id':name,'name':doc['title'],'source':document_reference(doc)}
+                     for name,doc in zip(('Start','End','Bulk'),docs)]
+    for slot,instant in enumerate((0.,1.,2.)):
+        opts=t.default_options('End' if slot==2 else 'Start',receiver_time={'value':instant,'unit':'s','origin':'test_origin'})
+        if slot==1:opts['time'].update(mode='linear',sources=[{'stage':'Start','output':'temperature'},{'stage':'End','output':'temperature'}])
+        draft['transfers'].append({'id':'Tslot'+str(slot),'from_stage':'End' if slot==2 else 'Start',
+            'output':'temperature','to_stage':'Bulk','input':'temperature_'+str(slot),'mapping':t.MAPPING,'lag':0,'options':opts})
+    draft['responses']=[{'id':'chosen_temperature','stage':'Bulk','response':'mean_temperature','unit':'K'}]
+    return docs,draft
+
+
+def test_hex8_response_provenance_guard_accepts_only_exact_response_name_without_jobs(service):
+    """Configuration admission only; exact saved-source ownership is tested above."""
+    from test_s1_p1_temperature import _hex8_temperature_receiver
+    wb,_=service
+    authored=_hex8_temperature_receiver()
+    reference={'stage':'UserTemperature','attempt_id':'Aselected', 'output':'temperature_1-K'}
+    authored['thermal_regions']['temperature']['source']=[{'source_refs':[reference]},None,None]
+    original=deepcopy(authored)
+    assert wb._settings('structure.felupe.law_native',authored)==original
+    assert authored==original and not wb.manager.list()
+
+    # The exception is a response identifier at this one typed location, never
+    # an executable, directory, path, arbitrary nested output, or other backend.
+    for key,value in [('command','temperature'),('output_root','temperature'),('path','temperature'),
+                      ('output','../temperature'),('output','folder/temperature'),
+                      ('output','C:\\temperature'),('output',''),('output',123)]:
+        rejected=deepcopy(original)
+        rejected['thermal_regions']['temperature']['source'][0]['source_refs'][0]={key:value}
+        before=deepcopy(rejected)
+        with pytest.raises(ValueError):wb._settings('structure.felupe.law_native',rejected)
+        assert rejected==before and not wb.manager.list()
+    misplaced=deepcopy(original);misplaced['thermal_regions']['temperature']['source'][0]['output']='temperature'
+    with pytest.raises(ValueError):wb._settings('structure.felupe.law_native',misplaced)
+    with pytest.raises(ValueError):wb._settings(domain.THERMAL,original)
+    assert authored==original and not wb.manager.list()
+
+
+def test_http_hex8_multiple_slots_saved_inspection_and_cold_read_without_solver(service,controlled,controlled_hex8,tmp_path):
+    wb,client=service;docs,draft=hex8_sources(client)
+    originals=[deepcopy(client.document_read(doc['id'])) for doc in docs]
+    doc,job,result=run(client,draft)
+    assert result['execution_status']=='SUCCEEDED',result
+    assert controlled['calls']==[('thermal',0.),('thermal',2.)]
+    assert len(controlled_hex8['calls'])==1
+    bound=controlled_hex8['calls'][0]
+    assert all(row is not None for row in bound['thermal_regions']['temperature']['values'])
+    inspections=[client.evaluation_transfer(doc['id'],job,'Tslot'+str(i),0) for i in range(3)]
+    for i,view in enumerate(inspections):
+        assert view['exact_values_match'] and view['metadata']['basis']=='Hex8_nodal_samples'
+        assert view['metadata']['time']==float(i) and view['metadata']['unit']=='K'
+        assert view['extrusion']['axis']=='z' and view['extrusion']['invariant'] is True
+        assert len(view['receiver_rows'])==len(bound['mesh']['points'])
+        for row in view['receiver_rows']:
+            x,y,z=row['coordinates']
+            assert abs(row['mapped']-(300.+5*i+4*x-2*y))<=1e-10
+            assert row['received']==row['mapped'] and row['difference']==0.
+        assert view['temperature']['reference_subtractions_in_mapping']==0
+    assert inspections[1]['clock']['weights']==[.5,.5]
+    assert len(inspections[0]['source_snapshots'])==1 and len(inspections[1]['source_snapshots'])==2
+    assert bound['thermal_regions']['temperature']['source'][0]['capture_sha256'] != bound['thermal_regions']['temperature']['source'][1]['capture_sha256']
+    for original in originals:
+        current=client.document_read(original['id'])
+        assert current['draft']==original['draft'] and current['saved_revision']==original['saved_revision']
+    saved=change(client,client.document_read(doc['id']),'document.save')['document']
+    expected={'workspace':str(wb.workspace),'document_id':saved['id'],'job_id':job,
+              'result_sha256':canonical_hash(result),'draft':saved['draft'],
+              'values':[[r['mapped'] for r in view['receiver_rows']] for view in inspections]}
+    request=tmp_path/'hex8-cold-request.json';request.write_text(json.dumps(expected),encoding='utf-8')
+    assert wb.shutdown()['joined']
+    code='''import builtins,json,sys
+from pathlib import Path
+from caelab.workbench import Workbench
+from caelab.storage import canonical_hash
+from caelab.adapters.scikit_fem_spatial import _Spatial
+from caelab.adapters.law_native_fe import LawNativeFEAdapter
+from caelab import p1_temperature_transfer as p1,temperature_receiver_3d as bridge
+def forbidden(*a,**k):raise AssertionError('Cold read cannot solve or remap')
+_Spatial.run=LawNativeFEAdapter.run=p1.map_temperature=bridge.map_temperature=forbidden
+original=builtins.__import__
+def guard(name,*a,**k):
+ if name.split('.')[0] in {'felupe','skfem','scipy','dolfinx','petsc4py'}:raise AssertionError('Cold read imported a solver')
+ return original(name,*a,**k)
+builtins.__import__=guard
+expected=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'));wb=Workbench(Path(expected['workspace']))
+try:
+ d=wb.document_open(kind='evaluation',document_id=expected['document_id'])
+ assert d['draft']==expected['draft']
+ r=wb.document_result(d['id'],expected['job_id']);assert canonical_hash(r)==expected['result_sha256']
+ before=wb.manager.list()
+ for slot in range(3):
+  v=wb.evaluation_transfer(d['id'],expected['job_id'],'Tslot'+str(slot),0)
+  assert v['exact_values_match'] and [row['mapped'] for row in v['receiver_rows']]==expected['values'][slot]
+ assert wb.manager.list()==before
+ print(json.dumps({'status':'PASS','new_process':True,'solver_calls':0,'mapping_calls':0}))
+finally:assert wb.shutdown()['joined']
+'''
+    child=None
+    try:
+        child=subprocess.Popen([sys.executable,'-c',code,str(request)],cwd=Path(__file__).parents[1],
+                               stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        stdout,stderr=child.communicate(timeout=30)
+        assert child.returncode==0,(stdout,stderr)
+        assert json.loads(stdout)['status']=='PASS'
+    finally:
+        if child is not None:
+            if child.poll() is None:child.kill()
+            child.wait(timeout=5)
+            if child.stdout:child.stdout.close()
+            if child.stderr:child.stderr.close()
+
+
+def test_http_hex8_duplicate_slot_and_failed_source_keep_provenance_before_dispatch(service,controlled,controlled_hex8):
+    wb,client=service;docs,draft=hex8_sources(client)
+    duplicate=deepcopy(draft['transfers'][0]);duplicate['id']='Tduplicate'
+    draft['transfers'].insert(1,duplicate)
+    doc=client.document_open(kind='evaluation',title='중복 슬롯 원문 보존',draft=draft)
+    assert any('destination port only once' in row['message'] for row in doc['diagnostics'])
+    from caelab.workbench_client import WorkbenchHTTPError
+    with pytest.raises(WorkbenchHTTPError):change(client,doc,'evaluation.run')
+    assert not wb.manager.list() and not controlled['calls'] and not controlled_hex8['calls']
+    assert client.document_read(doc['id'])['draft']==draft
+    assert client.document_read(docs[-1]['id'])['draft']['settings']['thermal_regions']['temperature']['values']==[None]*3
+    controlled['fault']='mask'
+    _,fresh=hex8_sources(client)
+    failed,failed_job,result=run(client,fresh)
+    assert result['execution_status']=='FAILED' and not controlled_hex8['calls']
+    failure=client.evaluation_transfer(failed['id'],failed_job,'Tslot0',0)
+    assert failure['transfer_confirmation']=='FAILED' and not failure['exact_values_match']
+    assert failure['source_snapshots'][0]['reference']['attempt_id']
+
+
 def test_http_two_snapshots_receipt_Post_CLI_and_cold_process(service,controlled,tmp_path):
     wb,client = service; docs,draft = sources(client)
     assert not controlled['calls'] and not wb.manager.list()

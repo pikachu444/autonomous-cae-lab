@@ -15,6 +15,86 @@ from apps.research.appearance import apply_appearance
 from test_s1_owner_transfer import service,controlled,sources,run
 
 
+def test_hex8_mapping_dialog_uses_selected_slot_clock_and_preserves_invalid_raw():
+    from caelab.p1_temperature_transfer import ABSOLUTE, DIFFERENCE
+    app=QApplication.instance() or QApplication([])
+    row={'id':'Tslot','from_stage':'Heat','output':'temperature','to_stage':'Bulk','input':'temperature_slot_1',
+         'mapping':'p1_temperature','lag':0}
+    stages=[{'id':'Heat','name':'선택한 온도 자료'},{'id':'Bulk','name':'사용자 이중층'}]
+    catalogs={'Heat':{'clock':{'value':1.,'unit':'s','origin':'user_clock'},
+        'ports':{'outputs':{'temperature':{'quantity':ABSOLUTE,'unit':'K','basis':'P1'}}}},
+        'Bulk':{'clock':{'value':0.,'unit':'s','origin':'wrong_global_clock'},'ports':{'inputs':{
+            'temperature_slot_1':{'quantity':ABSOLUTE,'unit':'K','receiver_geometry':'Hex8',
+                'clock':{'value':1.,'unit':'s','origin':'user_clock'},
+                'extrusion':{'axis':'z','invariant':True,'statement':'사용자가 정한 z 방향 불변 온도'}}}}}}
+    before=deepcopy((row,stages,catalogs))
+    editor=TemperatureMappingDialog(row,stages,catalogs)
+    try:
+        editor.show();app.processEvents()
+        assert editor.options()['time']['receiver']==catalogs['Bulk']['ports']['inputs']['temperature_slot_1']['clock']
+        assert editor.quantity.count()==1 and editor.quantity.currentData()==(ABSOLUTE,'K')
+        assert '사용자가 정한 z 방향 불변 온도' in editor.extrusion_note.text()
+        editor.instant.setText('1e');editor._accept()
+        assert editor.isVisible() and editor.options()['time']['receiver']['value']=='1e'
+        editor.reject();assert (row,stages,catalogs)==before
+    finally:editor.close()
+    invalid=deepcopy(row)
+    from caelab.p1_temperature_transfer import default_options
+    invalid['options']=default_options('Heat',receiver_time={'value':1.,'unit':'s','origin':'user_clock'})
+    invalid['options'].update(target_quantity=DIFFERENCE,target_unit='delta_K')
+    editor=TemperatureMappingDialog(invalid,stages,catalogs)
+    try:
+        editor.show();app.processEvents()
+        assert editor.options()==invalid['options']
+        editor._accept();assert editor.isVisible() and '절대 온도' in editor.error.text()
+        editor.quantity.setCurrentIndex(0);editor._accept()
+        assert editor.result()==QDialog.DialogCode.Accepted
+        assert editor.options()['target_quantity']==ABSOLUTE
+        assert invalid['options']['target_quantity']==DIFFERENCE
+    finally:editor.close();app.processEvents()
+    ordinary=deepcopy(catalogs)
+    target=ordinary['Bulk']['ports']['inputs']['temperature_slot_1']
+    target.pop('receiver_geometry');target.update(quantity=DIFFERENCE,unit='delta_K')
+    editor=TemperatureMappingDialog(invalid,stages,ordinary)
+    try:
+        assert editor.quantity.currentData()==(DIFFERENCE,'delta_K')
+        assert editor.options()==invalid['options']
+        editor._accept();assert editor.result()==QDialog.DialogCode.Accepted
+    finally:editor.close();app.processEvents()
+
+
+def test_hex8_transfer_view_projects_only_explicit_extrusion_and_keeps_xyz_values():
+    from apps.research.temperature_transfer_view import TemperatureTransferView
+    app=QApplication.instance() or QApplication([])
+    instant={'value':1.,'unit':'s','origin':'user_clock'}
+    rows=[{'node':i,'coordinates':xyz,'mapped':300.+i%2,'received':300.+i%2,
+        'valid_mask':True,'difference':0.,'spatial_sources':[{'weights':[1.,0.,0.]}]}
+        for i,xyz in enumerate([[0.,0.,0.],[.008,0.,0.],[0.,0.,.001],[.008,0.,.001]])]
+    data={'declaration':{'options':{'time':{'mode':'exact','receiver':instant}}},
+        'clock':{'weights':[1.]},'metadata':{'unit':'K','basis':'Hex8_nodal_samples'},
+        'receiver_mesh':{'element':'Hexahedron8'},'receiver_rows':rows,
+        'extrusion':{'axis':'z','invariant':True,'statement':'사용자 z 방향 불변 선언'},
+        'source_snapshots':[{'snapshot_index':0,'stage':'Heat','name':'공급 온도','reference':{'test':'CONTROLLED_DISPLAY'},
+            'metadata':{'unit':'K','time':1.,'time_units':'s'},
+            'rows':[{'node':0,'coordinates':[0.,0.],'value':300.,'mask':True,'finite':True}]}]}
+    original=deepcopy(data);view=TemperatureTransferView()
+    try:
+        view.show();view.set_data(data);app.processEvents()
+        assert len(view.plotted)==4 and view.figure.axes[0].collections
+        assert 'x-y 투영' in view.figure.axes[0].get_title()
+        assert view.table.item(2,1).text()=='0, 0, 0.001'
+        view.table.selectRow(2);app.processEvents()
+        assert '0.001' in view.point.text() and '겹칩니다' in view.point.text()
+        assert data==original
+        view.selector.setCurrentIndex(1);app.processEvents()
+        assert len(view.plotted)==1 and '투영' not in view.figure.axes[0].get_title()
+        undeclared=deepcopy(data);undeclared.pop('extrusion')
+        view.set_data(undeclared);view.selector.setCurrentIndex(0);app.processEvents()
+        assert not view.figure.axes[0].axison and not view.figure.axes[0].collections
+        assert view.table.item(2,1).text()=='0, 0, 0.001'
+    finally:view.close();app.processEvents()
+
+
 def settled(app,predicate,seconds=8):
     until=time.monotonic()+seconds
     while time.monotonic()<until:

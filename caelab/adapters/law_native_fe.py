@@ -18,8 +18,34 @@ class LawNativeFEAdapter:
     describe_model=staticmethod(domain.describe_model)
 
     def describe_ports(self,settings):
-        domain.validate_settings(settings)
-        return {'inputs':{},'outputs':{}}
+        settings = domain.validate_settings(settings)
+        inputs = {}
+        if 'thermal_regions' in settings:
+            history = settings['thermal_regions']
+            temperature = history['temperature']
+            if temperature['mode'] == 'port_history':
+                for index, instant in enumerate(history['time_s']):
+                    inputs['temperature_' + str(index)] = {
+                        'label': '온도 (' + format(instant, '.12g') + ' s)',
+                        'kind':'field', 'quantity':'absolute_temperature', 'unit':'K',
+                        'association':'POINTS', 'component':'scalar', 'location':'node',
+                        'measure':'thermodynamic_temperature', 'frame':'global_cartesian',
+                        'coordinate_units':'m', 'coordinate_frame':'global_cartesian',
+                        'basis':'Hex8_nodal_samples', 'receiver_geometry':'Hex8',
+                        'clock':{'value':instant,'unit':'s','origin':history['time_origin']},
+                        'extrusion':deepcopy(temperature['extrusion']),
+                        'required':temperature['values'][index] is None,
+                        'mappings':['p1_temperature']}
+        return {'inputs':inputs,'outputs':{}}
+
+    def bind_port(self, settings, name, field):
+        port = self.describe_ports(settings)['inputs'].get(name)
+        if port is None:
+            raise ValueError('Choose a declared temperature history slot')
+        if field.get('time') != port['clock']['value']:
+            raise ValueError('Temperature field time differs from the selected history slot')
+        from ..law_native_thermal_regions import bind_temperature_slot
+        return bind_temperature_slot(settings, field)
 
     def describe_inputs(self,settings):
         # FE fitting is deliberately not a new optimizer route: point fitting is

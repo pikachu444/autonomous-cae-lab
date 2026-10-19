@@ -401,6 +401,15 @@ def handle(handler,method,path,query):
         if not cursor.isascii() or not cursor.isdigit():
             raise ServiceError(400,'File cursor must be a nonnegative integer')
         return handler._json(200,workbench.local_inputs(root,relative,cursor=int(cursor)))
+    match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/monitor',path)
+    if match:
+        if set(query)-{'log','offset','limit'} or any(len(values)!=1 for values in query.values()):
+            raise ServiceError(400,'Unknown job monitor query')
+        values={key:query.get(key,[default])[0] for key,default in (('offset','0'),('limit','65536'))}
+        if any(not value.isascii() or not value.isdigit() or len(value)>12 for value in values.values()):
+            raise ServiceError(400,'Log offsets and limits must be bounded nonnegative integers')
+        return handler._json(200,workbench.job_monitor(match.group(1),log=query.get('log',[None])[0],
+            offset=int(values['offset']),limit=int(values['limit'])))
     match=re.fullmatch(r'/api/workbench/jobs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.desktop.job_record(match.group(1)))
@@ -415,9 +424,10 @@ def handle(handler,method,path,query):
         return handler._json(200,workbench.result(match.group(1),selection=selection))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)/native',path)
     if match:
-        if query:
-            raise ServiceError(400,'Native input lookup does not accept query arguments')
-        return handler._json(200,workbench.native_input(match.group(1)))
+        if set(query)-{'static'} or any(len(values)!=1 for values in query.values()):
+            raise ServiceError(400,'Unknown native input query')
+        options={'static':json.loads(query['static'][0])} if 'static' in query else {}
+        return handler._json(200,workbench.native_input(match.group(1),**options))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.input_preview(match.group(1)))

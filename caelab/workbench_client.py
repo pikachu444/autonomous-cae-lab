@@ -315,9 +315,11 @@ class Client:
     def input_preview(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/inputs/'+check_id(identifier))
-    def native_input(self,identifier):
+    def native_input(self,identifier,*,static=None):
         from .storage import check_id
-        return self.request('/api/workbench/inputs/'+check_id(identifier)+'/native')
+        from urllib.parse import urlencode
+        query='' if static is None else '?' + urlencode({'static':json.dumps(static,allow_nan=False)})
+        return self.request('/api/workbench/inputs/'+check_id(identifier)+'/native'+query)
     def structural_displacement_sources(self):
         return self.request('/api/workbench/structural-displacement',{'operation':'catalog','arguments':{}})
     def structural_displacement_source(self,reference):
@@ -328,6 +330,13 @@ class Client:
     def status(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier))
+    def job_monitor(self, identifier, *, log=None, offset=0, limit=65536):
+        from .storage import check_id
+        from urllib.parse import urlencode
+        query = {'offset': offset, 'limit': limit}
+        if log is not None:
+            query['log'] = log
+        return self.request('/api/workbench/jobs/' + check_id(identifier) + '/monitor?' + urlencode(query))
     def desktop_context(self):
         return self.request('/api/workbench/desktop')
     def cad_numerical_plan(self, command_id, *, operation='doe'):

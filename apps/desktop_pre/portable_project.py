@@ -1139,6 +1139,8 @@ def install_file_actions(config, *, connection=None, owner=None):
             if getattr(active, '_portable_pending_save', None) is None:
                 from .pretension_controls import store_native_pending
                 store_native_pending(active, connection=state['connection'])
+                from .initial_field_controls import store_native_pending as store_initial
+                store_initial(active, connection=state['connection'])
             ctx = context_for(active)
             pending = getattr(active, '_portable_pending_save', None)
             if pending is not None:
