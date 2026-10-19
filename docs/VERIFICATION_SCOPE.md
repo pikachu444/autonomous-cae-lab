@@ -146,6 +146,24 @@ owner/HTTP 관련 25PASS, 추가 CAS·기존 응답 유실·Client 관련 8PASS�
 1PASS는 겹치는 검사이며 전체 suite나 GUI 수용으로 합산하지 않는다. 저장 개정 누락이
 raw OSError로 드러난 core02 FAIL은 기존 거절 guard로 교정했고 원 실행은 보존했다.
 
+**Material GUI:** 공식 MCalibration 6.0.0 튜토리얼 5·12·13·14쪽을 직접 읽고 메뉴·아이콘,
+좌측 시험/모델·계수 표, 우측 큰 비교 곡선/실행 출력으로 구현했다. 기본 새 재료/열기,
+모델 설정의 변경 검토/취소, 원문 Esc·Undo, 상단의 기존 재료+Plan 저장과 별도 프로세스
+재열기를 확인했다. 최종 Windows Qt 1440×900/1100×780은
+`_workspace/material-numerical-ux-20261019/material-reference-cold-06/`의 실제 창이다.
+원관측/예측/단위·실제 원행/mask·물리 잔차, 현재/시작/최종/이전 계수와 표시 중인 시험을
+구별하며, 처리 시험의 fit/holdout 분할 그룹도 원 parent 시험으로 표시한다.
+
+actual03은 단회 Job 생성 뒤 잘못된 submit 카운터를 기다려 하네스 FAIL이었다.
+그 원 기록은 유지하고 같은 Job의 SUCCEEDED 결과만 이어 읽었다. actual04는 실제
+상단 2-owner 저장/재열기를, cold06은 같은 저장 개정·두 결과 해시를 새 프로세스에서
+복원했다. 이후 Jobs는 5→5이며 추가 계산은 없다. 최종 원 소스 4개 pin·모든 owned
+프로세스 종료를 확인했다. GUI 영향 묶음의 61PASS/2SKIP/2FAIL은 보존했고, 실패 두 건과
+표시 반례는 집중 4PASS, 최종 cold는 1PASS다. 같은 Astra의 한정 검토에서 남은 P1/P2는
+없으며 이 수치를 서로 더해 full suite나 전체 제품 수용으로 쓰지 않는다. 이번 확인에서
+새 피팅 캠페인·새 성공 채택·FE solver/provider·실물 qualification은 수행하지 않았다.
+기존 후보 검토/취소와 정당한 stale 거절을 보존하며 참조를 바꿔 성공으로 만들지 않았다.
+
 **절차:** 원행/단위/관측량 고정 → 처리·관측을 같은 Material 계획 검토로 전달 → 편집 중
 보류·취소·재전달·원 대상 보호 → 수치 계획의 원 입력/결과 대조 → 저장/재열기를 확인한다.
 

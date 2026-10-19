@@ -13,7 +13,7 @@ from PySide6.QtCore import QThreadPool, QTimer, Qt
 from shiboken6 import isValid
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QAbstractItemView, QComboBox, QDialog,
-    QDialogButtonBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow,
+    QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow,
     QMessageBox, QPushButton, QPlainTextEdit, QSizePolicy, QSplitter, QStyledItemDelegate, QTableWidget,
     QTableWidgetItem, QTabWidget, QToolBar, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -45,6 +45,24 @@ def cell_value(table, row, column):
     return number_or_raw(item.text())
 
 
+def size_table_to_rows(table, maximum_rows=6):
+    """Keep short engineering tables compact; longer input remains scrollable."""
+    rows=min(maximum_rows,table.rowCount())
+    height=max(table.horizontalHeader().height(),table.horizontalHeader().sizeHint().height())
+    height+=sum(table.rowHeight(row) for row in range(rows)) if rows else table.verticalHeader().defaultSectionSize()
+    height+=2*table.frameWidth()+table.horizontalScrollBar().sizeHint().height()
+    table.setMinimumHeight(height);table.setMaximumHeight(height)
+    table.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+    return height
+
+
+def axis_label(axis):
+    name=axis.get('label') or axis.get('name','축 미지정')
+    name={'time':'시간','Time':'시간','stretch':'신장비',
+        'engineering_strain':'공학 변형률','logarithmic_strain':'로그 변형률'}.get(name,name)
+    return str(name)+' ['+str(axis.get('unit','단위 미지정'))+']'
+
+
 def fit_trial_status(result, curve, *, include_reason=True):
     overall=result.get('execution_status','UNKNOWN')
     trial=curve.get('execution_status','UNKNOWN')
@@ -55,7 +73,8 @@ def fit_trial_status(result, curve, *, include_reason=True):
     return text+(' / '+str(reason) if include_reason and reason and (overall!='SUCCEEDED' or trial!='SUCCEEDED') else '')
 
 
-def plot_fit_trial(figure, result, curve, *, axis=None):
+def plot_fit_trial(figure, result, curve, *, axis=None, show_residual=True,
+                   prediction_label=None, observation_label='관측', axes_pair=None):
     """The same retained trial and interval gaps in Material and Numerical."""
     from caelab.material_test import physical_residual
     observed=curve.get('observations',{})
@@ -64,22 +83,31 @@ def plot_fit_trial(figure, result, curve, *, axis=None):
     prediction=curve.get('prediction',[])
     complete=result.get('execution_status')=='SUCCEEDED' and curve.get('execution_status')=='SUCCEEDED'
     label='최종 예측' if complete else '보존한 부분 예측' if curve.get('execution_status')=='SUCCEEDED' else '보존한 실패 출력'
-    top,bottom=figure.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
+    if prediction_label is not None:
+        label=prediction_label if complete else prediction_label+' (부분 출력)' if curve.get('execution_status')=='SUCCEEDED' else '보존한 실패 출력'
+    if axes_pair is not None:
+        top,bottom=axes_pair
+    elif show_residual:
+        top,bottom=figure.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
+    else:
+        top,bottom=figure.add_subplot(111),None
     segments=observed.get('segments') or [{'rows':[0,len(x)]}]
     _,residual=physical_residual(curve)
     for index,segment in enumerate(segments):
         first,last=segment.get('rows',[0,len(x)])
-        if len(x)==len(y):top.plot(x[first:last],y[first:last],'o',markersize=3,label='관측' if index==0 else None)
+        if len(x)==len(y):top.plot(x[first:last],y[first:last],'o',markersize=3,label=observation_label if index==0 else None)
         if isinstance(prediction,list) and len(prediction)==len(x):
             top.plot(x[first:last],prediction[first:last],label=label if index==0 else None)
-        if len(residual)==len(x):bottom.plot(x[first:last],residual[first:last],'o-',markersize=2)
-    bottom.axhline(0,color='gray',linewidth=.7)
+        if bottom is not None and len(residual)==len(x):bottom.plot(x[first:last],residual[first:last],'o-',markersize=2)
     unit=observed.get('unit','?')
     top.set_ylabel(str(observed.get('component',''))+' ['+unit+']')
-    bottom.set_ylabel('예측−관측\n['+unit+']')
-    bottom.set_xlabel(str(axis.get('name','time'))+' ['+str(axis.get('unit','?'))+']')
+    if bottom is not None:
+        bottom.axhline(0,color='gray',linewidth=.7)
+        bottom.set_ylabel('예측−관측\n['+unit+']')
+    (bottom if bottom is not None else top).set_xlabel(axis_label(axis))
     if top.lines:top.legend(fontsize=9)
-    for axes in (top,bottom):axes.grid(True,alpha=.2)
+    for axes in (top,bottom):
+        if axes is not None:axes.grid(True,alpha=.2)
     return top,bottom
 
 
@@ -380,6 +408,9 @@ class NumericalWindow(QMainWindow):
         self.experiments.itemSelectionChanged.connect(self._trial_selection_changed)
         self.input_splitter.addWidget(self.experiments_panel)
         self.operation_options=_OperationOptions(self); self.input_splitter.addWidget(self.operation_options)
+        self.input_splitter.setStretchFactor(0,0)
+        self.input_splitter.setStretchFactor(1,1)
+        self.input_splitter.setStretchFactor(2,1)
         self.input_splitter.setSizes([180,300,0])
         self.editor.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Preferred)
         self.editor.setMinimumWidth(320)
@@ -412,6 +443,10 @@ class NumericalWindow(QMainWindow):
         self.candidates.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.candidates.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.candidates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        from .numerical_methods import ResultDisplay
+        self.candidates.setItemDelegate(ResultDisplay(self.candidates))
+        self.candidates.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.candidates.horizontalHeader().setStretchLastSection(True)
         self.figure=Figure(constrained_layout=True); self.canvas=FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumSize(430,250)
         self.curve_selector=QComboBox(); self.curve_selector.currentIndexChanged.connect(self._curve_changed)
@@ -424,7 +459,13 @@ class NumericalWindow(QMainWindow):
         self.curve_selector.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Fixed)
         controls.addWidget(self.curve_selector,1); controls.addWidget(self.plot_axis)
         rl.insertWidget(0,curve_controls); rl.addWidget(self.curve_summary)
-        self.tabs.addTab(self.canvas,'관측과 최종 예측'); self.tabs.addTab(self.candidates,'평가한 후보')
+        comparison=QSplitter(Qt.Orientation.Vertical)
+        comparison.setChildrenCollapsible(False)
+        comparison.addWidget(self.canvas);comparison.addWidget(self.candidates)
+        comparison.setStretchFactor(0,1);comparison.setStretchFactor(1,0)
+        comparison.setSizes([430,180])
+        self.candidate_comparison_splitter=comparison
+        self.tabs.addTab(comparison,'관측과 최종 예측')
         self.details=QPlainTextEdit(); self.details.setReadOnly(True); self.tabs.addTab(self.details,'진단 상세')
         self.result_splitter.addWidget(self.tabs)
         self.result_splitter.setStretchFactor(0,0); self.result_splitter.setStretchFactor(1,1)
@@ -705,11 +746,10 @@ class NumericalWindow(QMainWindow):
                     self.variable_editor._identity(bound)==self.variable_editor._identity(document)):
                 self.variable_editor.bind_owner(adapter,document)
             else:self.variable_editor.reset_view(adapter,document)
-        header=self.variables.horizontalHeader()
-        rows=sum(self.variables.rowHeight(row) for row in range(min(2,self.variables.rowCount())))
-        rows+=max(0,2-self.variables.rowCount())*self.variables.verticalHeader().defaultSectionSize()
-        self.variables.setMinimumHeight(max(header.height(),header.sizeHint().height())+rows+
-            2*self.variables.frameWidth()+self.variables.horizontalScrollBar().sizeHint().height())
+        size_table_to_rows(self.variables)
+        self.variable_editor.layout().invalidate()
+        self.variable_editor.setMaximumHeight(self.variable_editor.layout().sizeHint().height()+
+            2*self.variable_editor.fontMetrics().lineSpacing())
 
     def _variable_owner_history_allowed(self):
         if not self.document or self._populating or self._busy or self.conflict:
@@ -1659,21 +1699,35 @@ class NumericalWindow(QMainWindow):
         selected = self.selected_candidate() if self._drawn_result_job == job else None
         self._drawn_result_job = job
         self.candidates.clearSelection()
-        self.candidates.setColumnHidden(4,result.get('kind')!='fit')
-        self.candidates.horizontalHeaderItem(3).setText('잔차 제곱합 [1]' if result.get('kind')=='fit' else '목적함수')
+        run=next((row for row in (self.document or {}).get('runs',[]) if row['job_id']==job),{})
+        definitions=result.get('variables') or run.get('draft',{}).get('variables',[])
+        definitions=definitions if isinstance(definitions,list) else []
+        units={row['id']:row.get('unit') for row in definitions if isinstance(row,dict) and isinstance(row.get('id'),str)}
+        names=list(dict.fromkeys(key for row in candidates for key in (row.get('values') or {})))
+        headers=['후보','상태']+[name+(' ['+str(units[name])+']' if units.get(name) else '') for name in names]
+        objective_unit=result.get('objective_definition',{}).get('unit')
+        headers+=['잔차 제곱합 [1]' if result.get('kind')=='fit' else
+            '목적값'+(' ['+str(objective_unit)+']' if objective_unit else ' (단위 미제공)')]
+        if result.get('kind')=='fit':headers+=['실패 잔차 벌점 [1]']
+        headers+=['실패 이유']
+        self.candidates.setColumnCount(len(headers));self.candidates.setHorizontalHeaderLabels(headers)
         self.candidates.setRowCount(len(candidates))
         for row, candidate in enumerate(candidates):
             objective=candidate.get('objective')
             if result.get('kind')=='fit' and (candidate.get('execution_status')!='SUCCEEDED' or 'penalty_applied' in candidate):
                 objective=None
-            values = [candidate['candidate_id'], candidate_state(candidate), candidate.get('values'), objective, candidate.get('penalty_applied'), candidate.get('failure_reason')]
+            values = [candidate['candidate_id'], candidate_state(candidate)]
+            values += [(candidate.get('values') or {}).get(name) for name in names]
+            values += [objective]
+            if result.get('kind')=='fit':values+=[candidate.get('penalty_applied')]
+            values += [candidate.get('failure_reason')]
             for col, value in enumerate(values):
                 self._set_cell(self.candidates, row, col, value, False)
             self.candidates.item(row,0).setText('후보 '+str(row+1))
             self.candidates.item(row,0).setToolTip(candidate['candidate_id'])
-            self.candidates.item(row,2).setText(', '.join(str(k)+'='+str(v) for k,v in (candidate.get('values') or {}).items()))
             if candidate['candidate_id'] == selected:
                 self.candidates.selectRow(row)
+        self.candidates.resizeColumnsToContents()
         self.figure.clear()
         if hasattr(self,'curve_summary'): self.curve_summary.clear()
         curves = result.get('curves', [])
@@ -1806,8 +1860,8 @@ class NumericalWindow(QMainWindow):
                     deviation = item.get('std')
                     axis.errorbar([0], [mean], yerr=deviation if type(deviation) in (int, float) and math.isfinite(deviation) else None, fmt='o', capsize=5)
                     axis.set_xticks([0], [str(item.get('response', 'response'))])
-                    axis.set_ylabel('mean ± sample std [' + str(item.get('unit', '?')) + ']')
-                    axis.set_title('Actual UQ: ' + str(item.get('valid_count', 0)) + ' valid, ' + str(item.get('failed_count', 0)) + ' failed; conditional on valid evaluations', fontsize=9)
+                    axis.set_ylabel('평균 ± 표본 표준편차 [' + str(item.get('unit', '?')) + ']')
+                    axis.set_title('유효 계산 '+str(item.get('valid_count',0))+'개 기준 / 실패 '+str(item.get('failed_count',0))+'개 제외',fontsize=9)
                 return
         if kind == 'optimization':
             rows = [(index, row) for index, row in enumerate(result.get('candidates', []))
@@ -1816,9 +1870,9 @@ class NumericalWindow(QMainWindow):
                 ax.scatter([index for index, _ in rows], [row['objective'] for _, row in rows],
                            c=['tab:blue' if row.get('feasible') else 'tab:orange' for _, row in rows], s=20)
                 definition = result.get('objective_definition', {})
-                ax.set_xlabel('Actual evaluated candidate order')
+                ax.set_xlabel('계산한 후보 순서')
                 ax.set_ylabel(str(definition.get('response', 'objective')) + ' [' + str(definition.get('unit', '?')) + ']')
-                ax.set_title('Actual optimization objectives · blue feasible / orange infeasible · ' + str(result.get('termination_reason', '')))
+                ax.set_title('목적값 / 파랑: 조건 충족, 주황: 위반\n'+str(result.get('termination_reason','')),fontsize=10)
                 return
         if kind == 'epsilon_optimization':
             run = next((row for row in self.document.get('runs', []) if row.get('job_id') == job), {}) if self.document else {}
@@ -1836,8 +1890,9 @@ class NumericalWindow(QMainWindow):
                     ax.scatter([point[0] for point in points], [point[1] for point in points],
                                c=['tab:blue' if point[2]['candidate_id'] in archive else 'tab:gray' for point in points], s=20)
                     for axis, definition in ((ax.set_xlabel, definitions[0]), (ax.set_ylabel, definitions[1])):
-                        axis(str(definition.get('response')) + ' / ' + str(definition.get('reduction')) + ' [' + str(definition.get('unit', '?')) + ']')
-                    ax.set_title('Actual epsilon search candidates · blue retained nondominated candidates; global optimality unproven')
+                        axis(str(definition.get('response'))+' ['+str(definition.get('unit','?'))+']'+
+                            (' / '+str(definition.get('reduction')) if definition.get('reduction') not in (None,'none') else ''))
+                    ax.set_title('다목적 후보 / 파랑: 보존한 비지배 후보\n전역 최적성은 확인하지 않았습니다.',fontsize=10)
                     return
         draft=self.document.get('draft',{}) if self.document else {}
         mode=draft.get('request',{}).get('operation') if draft.get('mode')=='request' else draft.get('mode')

@@ -72,6 +72,89 @@ def inputs():
         'thresholds':[dict(response='cost',unit='MPa',reduction='none',component='scalar',location='model',limit=.25,operator='>')]}
 
 
+def test_short_worksheets_leave_space_and_long_inputs_remain_scrollable(environment):
+    from apps.research.numerical_window import size_table_to_rows
+    app,wb,open_window=environment
+    value=inputs();value['variables']*=2
+    value['variables'][1]=dict(value['variables'][1],id='긴 사용자 계수 이름',unit='MPa')
+    w=open_window(request('uq',value))
+    w.resize(1100,780);app.processEvents()
+    assert w.variable_sheet.rowCount()==2
+    assert w.variable_sheet.maximumHeight()<180
+    assert w.response_sheet.maximumHeight()<220
+    assert w.method_sheet.maximumHeight()<280
+    original=deepcopy(w.edited_draft())
+    w.variable_sheet.item(0,2).setText('1e')
+    assert w.edited_draft()['request']['inputs']['variables'][0]['value']=='1e'
+    w._refresh_worksheet()
+    assert w.variable_sheet.item(0,2).text()=='1e'
+    table=QTableWidget(30,2)
+    height=size_table_to_rows(table)
+    assert height==sum(table.rowHeight(i) for i in range(6))+max(table.horizontalHeader().height(),table.horizontalHeader().sizeHint().height())+2*table.frameWidth()+table.horizontalScrollBar().sizeHint().height()
+    assert table.rowCount()==30 and height<400
+    assert original['request']['inputs']['variables'][1]['unit']=='MPa'
+    assert wb.manager.list()==[]
+
+
+def test_candidate_plot_labels_keep_exact_units_mask_and_user_axis():
+    """Presentation-only fixture; no solver/evaluator result is manufactured."""
+    from matplotlib.figure import Figure
+    from apps.research.numerical_window import axis_label
+    selected={'candidate_id':'opaque-test-candidate','execution_status':'SUCCEEDED',
+        'responses':{'측정 응력':{'kind':'series','unit':'MPa','value':[2.,7.,4.],
+            'axes':[{'name':'사용자 변형 축','unit':'1','values':[0.,.1,.2]}],'mask':[True,False,True]}}}
+    result={'candidates':[selected]};before=deepcopy(result)
+    view=SimpleNamespace(figure=Figure(),_selected_actual_candidate=lambda:selected)
+    RequestPlanWindow._plot_candidate_response(view,result,'측정 응력')
+    axis=view.figure.axes[0]
+    assert axis.get_title()=='후보 1 / 측정 응력'
+    assert axis.get_xlabel()=='사용자 변형 축 [1]'
+    assert axis.get_ylabel()=='측정 응력 [MPa]'
+    assert list(axis.lines[0].get_xdata())==[0.,.1,.2]
+    import math
+    assert math.isnan(axis.lines[0].get_ydata()[1])
+    assert result==before
+    assert axis_label({'name':'time','unit':'s'})=='시간 [s]'
+
+
+@pytest.mark.parametrize('repeat_component',[False,True])
+def test_pareto_projection_labels_and_candidate_selection_do_not_change_result(monkeypatch,repeat_component):
+    from caelab.storage import canonical_hash
+    app=QApplication.instance() or QApplication([])
+    definitions=[dict(response=name,unit='N',component=name if repeat_component else 'scalar',location='model',reduction='none',direction='minimize') for name in ('사용자 힘 A','사용자 힘 B')]
+    draft=request('epsilon',dict(objectives=definitions))
+    result={'kind':'epsilon_optimization','variables':[dict(id='x',unit='mm')],
+        'pareto':{'nondominated_ids':['Cfixture2']},'children':[],
+        'candidates':[dict(candidate_id='Cfixture'+str(i),execution_status='SUCCEEDED',values={'x':i},
+            responses={name:dict(kind='scalar',unit='N',component=name if repeat_component else 'scalar',location='model',value=float(i)) for name in ('사용자 힘 A','사용자 힘 B')}) for i in (1,2)]}
+    original=deepcopy(result);w=RequestPlanWindow(None,auto_open=False,poll_interval=0)
+    w.document=dict(id='Nfixture',session_id='Sfixture',draft=draft,runs=[dict(job_id='Jfixture',draft=draft)])
+    monkeypatch.setattr(w,'selected_job',lambda:'Jfixture');monkeypatch.setattr(w,'_update_actions',lambda:None)
+    w._result_cache['Jfixture']=result
+    try:
+        w._draw_result();w.candidates.selectRow(1);app.processEvents()
+        axis=w.figure.axes[0]
+        assert axis.get_xlabel()=='사용자 힘 A [N]' and axis.get_ylabel()=='사용자 힘 B [N]'
+        assert axis.get_title()=='다목적 후보 / 선택 후보 2'
+        assert '사용자 힘 A 사용자 힘 A' not in w.pareto_x.itemText(0)
+        assert w._selected_actual_candidate()['candidate_id']=='Cfixture2'
+        assert canonical_hash(result)==canonical_hash(original)
+        assert w.candidates.item(1,2).data(Qt.ItemDataRole.UserRole)==2
+        from matplotlib.layout_engine import TightLayoutEngine
+        for width,height in ((1440,900),(1100,780)):
+            w.resize(width,height);w.show();w.work_pages.setCurrentWidget(w.results_panel);app.processEvents()
+            w._plot_selected_result();w.canvas.draw()
+            assert isinstance(w.figure.get_layout_engine(),TightLayoutEngine)
+            renderer=w.canvas.get_renderer()
+            axis=w.figure.axes[0]
+            for label in (axis.title,axis.xaxis.label,axis.yaxis.label):
+                bounds=label.get_window_extent(renderer)
+                assert bounds.x0>=0 and bounds.y0>=0
+                assert bounds.x1<=w.canvas.width()+1 and bounds.y1<=w.canvas.height()+1
+            assert canonical_hash(result)==canonical_hash(original)
+    finally:w._allow_close=True;w.close();app.processEvents()
+
+
 @pytest.fixture
 def recovery_environment(tmp_path):
     """The existing HTTP recovery owner, without installing an evaluator."""
@@ -796,3 +879,107 @@ def test_saved_model_open_keeps_old_input_after_owner_edit(environment,monkeypat
     assert reads[0][1]['document']['draft']['settings']['parameters']['E']==1000.
     assert wb.document_read(model['id'])['draft']['settings']['parameters']['E']==2000.
     assert wb.manager.list()==[]
+
+
+@pytest.mark.skipif(not os.environ.get('CAE_NUMERICAL_UX_STORE'),reason='requires retained input and exclusive desktop lease')
+def test_actual_saved_numerical_workspace_ui(tmp_path,monkeypatch):
+    """Supplied actual retained candidates, existing HTTP read/edit/save only."""
+    import hashlib,json,shutil,threading
+    from pathlib import Path
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QLineEdit
+    from apps.lab.service import LabService
+    from apps.lab.server import LabHTTPServer
+    from caelab.workbench_client import Client as HttpClient
+    from caelab.storage import canonical_hash
+    source=Path(os.environ['CAE_NUMERICAL_UX_STORE']).resolve()
+    output=Path(os.environ['CAE_NUMERICAL_UX_OUTPUT']).resolve();output.mkdir(parents=True,exist_ok=False)
+    store=output/'store';shutil.copytree(source,store)
+    def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+    originals={str(path.relative_to(source)):digest(path) for path in source.rglob('*') if path.is_file()}
+    paths=['apps/research/numerical_window.py','apps/research/request_plan_window.py','tests/test_numerical_workflows_ui.py']
+    pins={name:digest(Path(name)) for name in paths}
+    (output/'source-launch.json').write_text(json.dumps(pins,indent=2),encoding='utf-8')
+    def wait(app,ready,window=None):
+        deadline=time.monotonic()+30
+        while time.monotonic()<deadline:
+            app.processEvents()
+            if ready():return
+            time.sleep(.005)
+        raise AssertionError(window.message.text() if window else 'retained HTTP/Qt read did not settle within 30 seconds')
+    app=QApplication.instance() or QApplication([])
+    from apps.research.appearance import apply_appearance
+    apply_appearance(app)
+    service=LabService(store);server=LabHTTPServer(service,0)
+    thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.01},daemon=True);thread.start()
+    client=HttpClient(f'http://127.0.0.1:{server.server_port}');windows=[]
+    def forbidden(*args,**kwargs):raise AssertionError('saved UI must not execute')
+    monkeypatch.setattr(server.workbench,'submit',forbidden);monkeypatch.setattr(server.workbench.manager,'submit',forbidden)
+    def capture(window,name):
+        window.raise_();window.activateWindow();app.processEvents();QTest.qWait(80)
+        assert window.grab().save(str(output/(name+'.png')))
+    try:
+        identifier=os.environ.get('CAE_NUMERICAL_UX_DOCUMENT')
+        documents=client.documents()['documents']
+        documents=[client.document_read(row['id']) for row in documents if row['kind']=='numerical']
+        document=client.document_read(identifier) if identifier else next(row for row in documents
+            if row.get('runs') and row['draft'].get('mode')=='request')
+        jobs=deepcopy(server.workbench.manager.list());job=document['runs'][-1]['job_id']
+        result=client.document_result(document['id'],job);result_hash=canonical_hash(result)
+        w=RequestPlanWindow(client,document_id=document['id'],poll_interval=0);windows.append(w);w.show()
+        wait(app,lambda:w.document is not None and not w._busy and not w._callbacks
+            and not getattr(w,'_retained_labels_scheduled',False),w)
+        w._populate_runs(job);w.refresh_result()
+        wait(app,lambda:job in w._result_cache and not w._busy and not w._callbacks,w)
+        for size,label in (((1440,900),'normal'),((1100,780),'narrow')):
+            w.resize(*size);w.work_pages.setCurrentWidget(w.plan_page);app.processEvents()
+            assert w.variable_sheet.height()<400
+            capture(w,'numerical-plan-'+label)
+            w.work_pages.setCurrentWidget(w.results_panel);w.candidates.selectRow(0)
+            names=sorted(w._candidate_plot_names)
+            if result.get('kind')=='epsilon_optimization':
+                w.plot_response.setCurrentIndex(0)
+                w.pareto_x.setCurrentIndex(min(2,w.pareto_x.count()-1));w.pareto_y.setCurrentIndex(min(1,w.pareto_y.count()-1))
+            elif names:w.plot_response.setCurrentIndex(w.plot_response.findData({'candidate_response':names[0]}))
+            capture(w,'numerical-results-'+label)
+        selected=w._selected_actual_candidate();assert selected is not None
+        assert selected==result['candidates'][0]
+        w._draw_result();app.processEvents()
+        assert w._selected_actual_candidate()['candidate_id']==selected['candidate_id']
+        if os.environ.get('CAE_NUMERICAL_UX_READ_ONLY')=='1':
+            assert canonical_hash(client.document_result(document['id'],job))==result_hash
+            assert server.workbench.manager.list()==jobs
+            assert originals=={str(path.relative_to(source)):digest(path) for path in source.rglob('*') if path.is_file()}
+            assert pins=={name:digest(Path(name)) for name in paths}
+            (output/'result.json').write_text(json.dumps(dict(platform=app.platformName(),source=str(source),
+                document_id=document['id'],job_id=job,result_sha256=result_hash,source_pins=pins,
+                candidate_id=selected['candidate_id'],read_only=True,new_jobs=0),ensure_ascii=False,indent=2),encoding='utf-8')
+            return
+        w.work_pages.setCurrentWidget(w.plan_page)
+        cell=w.variable_sheet.item(0,2);old=cell.text()
+        w.variable_sheet.setCurrentItem(cell);w.variable_sheet.editItem(cell);app.processEvents()
+        editor=QApplication.focusWidget();assert isinstance(editor,QLineEdit)
+        editor.setText('1e');capture(w,'numerical-unfinished-narrow')
+        QTest.keyClick(editor,Qt.Key.Key_Escape);app.processEvents();assert cell.text()==old
+        before=deepcopy(w.edited_draft());w.purpose.setText(w.purpose.text()+' 확인')
+        w.apply_inputs();wait(app,lambda:not w._busy and not w.local_dirty,w)
+        assert w.document['draft']['request']['inputs']==before['request']['inputs']
+        w.save_document();wait(app,lambda:not w._busy and not w.document['dirty'],w)
+        saved=deepcopy(w.document);w._allow_close=True;w.close();app.processEvents()
+        reopened=RequestPlanWindow(client,document_id=document['id'],poll_interval=0);windows.append(reopened);reopened.show()
+        wait(app,lambda:reopened.document is not None and not reopened._busy and not reopened._callbacks,reopened)
+        assert reopened.document['draft']==saved['draft'] and reopened.document['saved_revision']==saved['saved_revision']
+        reopened.resize(1100,780);capture(reopened,'numerical-reopened-narrow')
+        assert canonical_hash(client.document_result(document['id'],job))==result_hash
+        assert server.workbench.manager.list()==jobs
+        assert originals=={str(path.relative_to(source)):digest(path) for path in source.rglob('*') if path.is_file()}
+        assert pins=={name:digest(Path(name)) for name in paths}
+        record=dict(platform=app.platformName(),source=str(source),document_id=document['id'],job_id=job,
+            result_sha256=result_hash,source_pins=pins,candidate_id=selected['candidate_id'],raw_cancel=True,
+            apply_save_reopen=True,jobs_before=len(jobs),jobs_after=len(jobs),new_jobs=0,
+            scope='Qt events; no physical OS input or engineering qualification')
+        (output/'result.json').write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf-8')
+    finally:
+        for window in reversed(windows):window._allow_close=True;window.close()
+        assert QThreadPool.globalInstance().waitForDone(5000)
+        app.processEvents();server.shutdown();server.server_close();thread.join(3);service.shutdown()

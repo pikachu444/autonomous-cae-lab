@@ -17,7 +17,8 @@
 없애지 않는다. 원본/우리 실제 창의 같은 크기 대조와 작동 확인 전 GUI 완료는 아니다.
 
 첫 reference01은 실제 Windows Qt의 1440/1100 창과 원본/결과/Jobs 불변을 확인했지만
-메뉴를 가린 orphan 버튼, 좁은 시험표, 약한 선택 표시와 최종 계수 출처를 교정한다.
+메뉴를 가린 orphan 버튼, 좁은 시험표, 약한 선택 표시와 최종 계수 출처가 남았다. 이
+결함과 기본 진입·모델 설정·상단 저장, 이전 계수/시험 출처·mask/분할 시험 표시는 교정했다.
 계산 명령도 기존 Material 자체 조건 평가로 선택 시험 평가를 대신하지 않는다.
 Codex가 기존 `material.evaluate`에 정확한 Plan 입력/시험 참조만 선택 인자로 추가했다.
 기존 Numerical 관측/kinematics compiler와 FELUPE evaluate/비교를 재사용해 현재 계수와
@@ -25,20 +26,27 @@ Codex가 기존 `material.evaluate`에 정확한 Plan 입력/시험 참조만 �
 현재 지원은 FELUPE 선형 탄성/Neo-Hooke다. 사용자 CSV의 실제 단회 응답·같은 요청의
 같은 Job·저장/재읽기와 잘못된 참조/변형 이력·busy 거절을 포함한 영향 24PASS다.
 원 core02의 외부 저장 개정 누락 때 OSError가 노출된 실패는 보존했고 기존 ValueError
-거절로 교정한 뒤 core03에서 통과했다. 최종 GUI·별도 프로세스 재개와 같은 Astra의
-의미 있는 Material 통합 검토는 진행 중이다. 새 피팅 캠페인은 시작하지 않았다.
+거절로 교정한 뒤 core03에서 통과했다. 공통 기능은 `5b4be22`로 원격 main 일치를
+확인했다. 새 피팅 캠페인은 시작하지 않았다.
 
 같은 Astra가 발견한 선택 시험 자체의 모델/단위 불일치 제출과 확정 거절 뒤 요청이
 고착되는 P2는 교정했다. 원 요청과 일치하는 `REJECTED` 영수증만 종료로 취급하고
 접수 뒤 응답 유실은 같은 ID 확인을 유지한다. Core/실제 HTTP 25PASS와 CAS/기존 복구/
 Client 8PASS, 마지막 호환 HTTP 1PASS를 중복 합산하지 않는다. UI도 원 signature와
 typed 거절이 일치할 때만 해제한다. 최종 actual03은 실제 단회 Job을 만든 뒤 잘못된
-submit 카운터를 기다린 하네스 FAIL이며 원 상태로 보존한다. 새 계산 없이 같은 Job의
-결과·저장/새 프로세스 재개를 이어 확인한다. 이 상태는 GUI 전체 인수가 아니다.
+submit 카운터를 기다린 하네스 FAIL이며 원 상태로 보존한다. 같은 Job의 실제 응답을
+읽은 actual04에서 상단의 기존 재료+Plan 저장을, 별도 process cold06에서 동일 저장
+개정/결과 두 개를 복원했다. 이후 Jobs는 5→5, 원 네 작업 대비 단회 평가 하나만
+추가됐다. 최종 정상/좁은 실제 창과 원 source 4개 pin을 Codex와 같은 Astra가 확인했고
+현재 배정 범위에 남은 P1/P2는 없다. owned 프로세스는 모두 종료했다. 영향 61PASS/
+2SKIP/2FAIL의 원 기록은 보존했고 실패 두 건과 표시 반례는 집중 4PASS, cold06은
+1PASS다. 이 한정 GUI/실행 인도와 새 피팅·새 성공 채택·전체 OS 입력·공학적 적격성은
+구별한다. 후자는 이번 실행에서 확인하지 않았다. 사용법과 기존 검증 매뉴얼을 갱신했다.
 
 사용자는 `material-reopened-narrow`의 긴 제목·상하 그래프와 다음 조작을 이해할 수
 없다고 거부했다. 앞선 기능 검사·담당 인도·한정 검토의 무P1/P2를 GUI 수용으로 쓰지
-않으며 Material 게시를 보류한다. 채택한 주 기준은 PRODUCT_PLAN의 MCalibration
+않으며 기존 Material 화면의 인수를 철회했다. 위의 새 인도와 구별한다.
+채택한 주 기준은 PRODUCT_PLAN의 MCalibration
 Calibrate/Load Case다. 같은 desktop_specialist가 실제 공식 화면과 사용자 작업을
 대조해 Material 설계와 scoped Qt 구현을 함께 소유한다. 현재 계수·피팅 시작값·최종
 피팅 계수와 어느 계수의 응답인지 구별하고, 시험 선택→직접 평가→피팅→별도 시험 확인→
@@ -58,7 +66,8 @@ specialist에게 이관하고 기존 작성자는 쓰기 없이 실제 명령·�
 마감하고 새로운 전달·복수 owner 확장을 다음 우선 작업으로 자동 착수하지 않는다.
 새 전수 감사나 예제 캠페인을 만들지 않고 기존 구현과 실제 근거를 재사용한다.
 
-Material/DOE/Pareto의 마지막 실제 표시 delta와 Runner 원 로그의 실제 HTTP 확인03은
+Material의 새 GUI와 단회 평가/2-owner 저장/cold06은 위의 한정 인도를 마쳤다.
+DOE/Pareto의 마지막 실제 표시 delta와 Runner 원 로그의 실제 HTTP 확인03은
 담당 인도를 받았다. Runner의 로그 A→B 지연/실패 때 A 내용이 남는 P2는 교정·검토를
 마쳤으며 최종 표시 delta와 게시가 남는다. Data 후보05는 실제 표시 확인 후 설치했으나
 독립 검토에서 원값의 변환 후 단위 오표시와 저장한 시각 열배치/폭 유실을 발견해 이전
@@ -131,9 +140,10 @@ import하는 의존을 발견했다. factory만 기존 PDE/탄성/소성/명시 
 | desktop_integration_review / Astra-xhigh | 완성된 기능 묶음의 읽기 전용 통합 검토 | Codex 첫 확인 뒤 Runner/Report/Simulation-Evaluation → initial/contact/RF의 실제 통합 경계. 미완료 코드나 작은 편집마다 검토 의식0 |
 | native_delivery | 읽기 전용 잔여 접점 조사 | 기존 initial-fields/aster-hard-contact/conservative-load private 후보와 미통합 접점 전달 완료. 제품 코드 쓰기 역할 아님 |
 
-GUI foreground 실행권은 한 담당에게만 준다. 현재는 사용자 지시에 따라 Material 같은
-specialist가 공식 기준의 실제 GUI와 단회 평가·저장/cold를 우선 확인한다. Runner 실제04는
-끝나 게시를 기다리며, PDE 복구·Data 후보07 실제 확인은 이 실행권 반환 뒤 이어간다.
+GUI foreground 실행권은 한 담당에게만 준다. Material cold06과 한정 통합 검토를
+마치고 실행권을 반환했다. 현재 material_numerical_impl이 같은 private Q의 저장 응답
+유실/동일 ID 확인/late 원문/별도 cold만 실제 확인한다. 새 계산은 없다. 다음은 Data
+후보07의 원단위·시각 열배치/폭 저장/별도 cold다. Runner 실제04는 끝나 게시를 기다린다.
 각 offscreen 검사는 별도 소유 프로세스로
 병행할 수 있으나 한국어/실제 화면 인수를 대신하지 않는다. 모든 실행은 기존 native_check와
 정확 소유 프로세스 정리를 재사용한다.

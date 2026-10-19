@@ -13,15 +13,15 @@ import os
 import sys
 import uuid
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal, QSize
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QComboBox, QFormLayout, QHBoxLayout,
     QDockWidget, QHeaderView, QInputDialog, QLabel, QLineEdit, QMainWindow, QMessageBox,
     QPushButton, QPlainTextEdit, QSplitter, QTableWidget, QTableWidgetItem,
-    QTabWidget, QToolBar, QVBoxLayout, QWidget, QStyledItemDelegate,
+    QTabWidget, QToolBar, QVBoxLayout, QWidget, QStyledItemDelegate, QStyle, QStackedWidget,
 )
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 
 from caelab.workbench_client import Client
@@ -179,7 +179,7 @@ class MaterialWindow(QMainWindow):
         native_law.triggered.connect(self.new_native_law)
         files.insertAction(self.open_action, native_law)
         self.open_action.triggered.connect(self.choose_document)
-        self.save_action.triggered.connect(self.save_document)
+        self.save_action.triggered.connect(self.save_workspace)
         from .data_material_recovery_host import install_recovery_action
         self.recovery_action=install_recovery_action(self,files)
         from .portable_recovery_host import install_portable_recovery_action
@@ -191,11 +191,19 @@ class MaterialWindow(QMainWindow):
         self.undo_action.setIconText('실행 취소')
         self.redo_action.setIconText('다시 실행')
         edit.addActions([self.undo_action, self.redo_action])
-        view=self.menuBar().addMenu('보기(&V)')
+        data_menu=self.menuBar().addMenu('데이터(&D)')
+        trials_menu=self.menuBar().addMenu('시험(&L)')
+        model_menu=self.menuBar().addMenu('재료 모델(&M)')
+        calculation=self.menuBar().addMenu('계산(&S)')
+        graph_menu=self.menuBar().addMenu('그래프(&G)')
+        self.view_menu=view=self.menuBar().addMenu('보기(&V)')
+        help_menu=self.menuBar().addMenu('도움말(&H)')
+        help_menu.addAction('Material 사용 범위',lambda:QMessageBox.information(self,'Material',
+            '선형 탄성 및 Neo-Hooke 재료의 시험 평가와 피팅을 지원합니다.\n시험 데이터의 열·단위와 변형 조건을 명시해서 사용하세요.'))
         self.material_results_action=QAction('재료 계산 결과 보기',self)
         self.material_results_action.triggered.connect(self.show_material_results)
         view.addAction(self.material_results_action)
-        self.tools_menu = windows = self.menuBar().addMenu("도구(&T)")
+        self.tools_menu = windows = model_menu
         from .finite_measure_gui import install_material_action
         install_material_action(self, windows)
         self.runner_action = QAction("실행 관리…", self)
@@ -220,31 +228,50 @@ class MaterialWindow(QMainWindow):
         windows.addAction(self.constitutive_action)
         toolbar = QToolBar("Material commands", self)
         toolbar.setMovable(False)
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        toolbar.setIconSize(QSize(22,22))
         self.addToolBar(toolbar)
         toolbar.addActions([self.new_action, self.open_action, self.save_action])
         toolbar.addSeparator()
-        toolbar.addActions([self.undo_action, self.redo_action])
+        self.fit_action=QAction('피팅 실행',self)
+        self.fit_action.triggered.connect(lambda:self._plan_panel.run_fit() if self._plan_panel else self.open_plan_variables())
+        self.tests_action=QAction('시험 데이터 열기…',self)
+        self.tests_action.triggered.connect(lambda:self._plan_panel.prepare_data() if self._plan_panel else self.open_plan_variables())
+        toolbar.addAction(self.tests_action)
         self.apply_action = QAction('입력 적용', self)
-        self.run_action = QAction('계산 실행', self)
+        self.run_action = QAction('한 번 평가', self)
         self.apply_action.triggered.connect(self.apply_inputs)
         self.run_action.triggered.connect(self.evaluate)
         edit.addAction(self.apply_action)
-        calculation = self.menuBar().addMenu('계산(&C)')
+        calculation.addAction(self.fit_action)
         calculation.addAction(self.run_action)
         self.apply_button = action_button(self.apply_action, self)
-        self.run_button = action_button(self.run_action, self, primary=True)
-        toolbar.addWidget(self.apply_button)
-        toolbar.addWidget(self.run_button)
+        self.apply_button.deleteLater()
+        toolbar.addAction(self.apply_action)
+        self.apply_button=toolbar.widgetForAction(self.apply_action)
+        toolbar.addAction(self.run_action)
+        self.run_button=toolbar.widgetForAction(self.run_action)
+        toolbar.addAction(self.fit_action)
+        for action,pixmap in ((self.new_action,QStyle.StandardPixmap.SP_FileIcon),
+                (self.open_action,QStyle.StandardPixmap.SP_DialogOpenButton),
+                (self.save_action,QStyle.StandardPixmap.SP_DialogSaveButton),
+                (self.tests_action,QStyle.StandardPixmap.SP_FileDialogContentsView),
+                (self.apply_action,QStyle.StandardPixmap.SP_DialogApplyButton),
+                (self.run_action,QStyle.StandardPixmap.SP_MediaPlay),
+                (self.fit_action,QStyle.StandardPixmap.SP_BrowserReload)):
+            action.setIcon(self.style().standardIcon(pixmap))
+        self.run_action.setToolTip('현재 재료 계수로 선택한 시험을 한 번 평가합니다. 피팅은 실행하지 않습니다.')
+        self.fit_action.setToolTip('선택한 계획의 자유 계수와 범위로 피팅 실행')
         toolbar.addSeparator()
         self.identity_label = QLabel("문서 여는 중")
         self.identity_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        toolbar.addWidget(self.identity_label)
+        self.statusBar().addPermanentWidget(self.identity_label)
 
         root = QWidget()
         outer = QVBoxLayout(root)
         self.message = QLabel("재료 문서를 여는 중…")
         self.message.setWordWrap(True)
-        outer.addWidget(self.message)
+        self.statusBar().addWidget(self.message,1)
         conflict_row = QHBoxLayout()
         self.reload_button = QPushButton("최신 내용 다시 읽기")
         self.copy_button = QPushButton("편집 내용을 새 문서로 보관")
@@ -262,7 +289,10 @@ class MaterialWindow(QMainWindow):
         left = QVBoxLayout(self.editor)
         left.setContentsMargins(0, 0, 6, 0)
         form = QFormLayout()
+        self.model_form=form
         self.model = QComboBox()
+        self.model.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.model.setMinimumContentsLength(12)
         self.model.addItem("선형 탄성 (미소변형 Cauchy 응력)", "linear_elastic")
         self.model.addItem("Neo-Hooke (제1 Piola 응력)", "neo_hooke")
         self.stress_unit = QLineEdit()
@@ -274,7 +304,7 @@ class MaterialWindow(QMainWindow):
         coefficient_panel, protocol_panel = QWidget(), QWidget()
         coefficient_layout, protocol_layout = QVBoxLayout(coefficient_panel), QVBoxLayout(protocol_panel)
         coefficient_layout.addLayout(form)
-        self.input_tabs.addTab(coefficient_panel, '재료 계수')
+        self.input_tabs.addTab(coefficient_panel, '법칙과 계수')
         self.input_tabs.addTab(protocol_panel, '시험 조건')
         left.addWidget(self.input_tabs, 1)
         self.model.currentIndexChanged.connect(self._model_changed)
@@ -316,7 +346,17 @@ class MaterialWindow(QMainWindow):
         coefficient_layout.addWidget(self.coefficients, 1)
         plans_button = action_button(self.numerical_action, coefficient_panel)
         coefficient_layout.addWidget(plans_button)
-        main.addWidget(self.editor)
+        self.editor.setMinimumWidth(330)
+        self._material_dock=QDockWidget('재료',self)
+        self._material_dock.setObjectName('materialInputsDock')
+        self._material_dock.setWidget(self.editor)
+        self._material_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea|Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,self._material_dock)
+        self.setTabPosition(Qt.DockWidgetArea.LeftDockWidgetArea|Qt.DockWidgetArea.RightDockWidgetArea,QTabWidget.TabPosition.North)
+        self.material_inputs_action=self._material_dock.toggleViewAction()
+        self.material_inputs_action.setText('재료 계수와 시험 조건')
+        self.material_inputs_action.triggered.connect(lambda checked:self._material_dock.raise_() if checked else None)
+        view.addAction(self.material_inputs_action)
 
         right = QSplitter(Qt.Orientation.Vertical)
         plot_panel = QWidget()
@@ -329,11 +369,22 @@ class MaterialWindow(QMainWindow):
             self.response.addItem('응력 ' + component.removeprefix('stress_'), component)
         self.response.currentTextChanged.connect(self._draw_results)
         plot_controls.addWidget(self.response)
+        self.curve_view = QComboBox()
+        self.curve_view.addItem('관측과 모델',False)
+        self.curve_view.addItem('잔차 진단 포함',True)
+        self.curve_view.currentIndexChanged.connect(lambda:self._plan_panel.show_trial(force=True)
+            if self._plan_panel and self._active_result_view=='plan' else self._draw_results())
+        plot_controls.addWidget(self.curve_view)
         plot_controls.addStretch()
         plot_layout.addLayout(plot_controls)
+        self.curve_context=QLabel('현재 재료 계수의 직접 평가')
+        self.curve_context.setWordWrap(True)
+        plot_layout.addWidget(self.curve_context)
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.axes = self.figure.add_subplot(111)
+        self.plot_toolbar=NavigationToolbar2QT(self.canvas,self)
+        plot_layout.addWidget(self.plot_toolbar)
         plot_layout.addWidget(self.canvas, 1)
         right.addWidget(plot_panel)
         output = QWidget()
@@ -371,11 +422,34 @@ class MaterialWindow(QMainWindow):
         self.result_tabs.addTab(self.values, "계산값")
         self.result_tabs.addTab(self.diagnostics, "진단 상세")
         output_layout.addWidget(self.result_tabs, 1)
-        right.addWidget(output)
-        right.setSizes([520, 270])
+        self.output_stack=QStackedWidget()
+        self.output_stack.addWidget(output)
+        right.addWidget(self.output_stack)
+        self.result_splitter=right
+        right.setStretchFactor(0,1);right.setStretchFactor(1,0)
+        right.setSizes([570, 220])
         main.addWidget(right)
-        main.setSizes([485, 930])
+        self.resizeDocks([self._material_dock],[370],Qt.Orientation.Horizontal)
         self.setCentralWidget(root)
+        data_menu.addAction(self.tests_action)
+        trials_menu.addAction('시험 추가…',lambda:self._plan_panel.add_trial() if self._plan_panel else self.open_plan_variables())
+        trials_menu.addAction('조건 편집…',lambda:self._plan_panel.edit_trial() if self._plan_panel else self.open_plan_variables())
+        trials_menu.addAction(self.trial_action)
+        graph_menu.addAction(self.plot_toolbar.toggleViewAction())
+        self.residual_action=graph_menu.addAction('잔차 진단 포함')
+        self.residual_action.setCheckable(True)
+        self.residual_action.toggled.connect(lambda checked:self.curve_view.setCurrentIndex(1 if checked else 0))
+        self.curve_view.currentIndexChanged.connect(lambda index:self.residual_action.setChecked(index==1))
+        navigation=QToolBar('Material 작업',self)
+        navigation.setMovable(False);navigation.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        navigation.setIconSize(QSize(24,24))
+        for title,pixmap,callback in (('시작',QStyle.StandardPixmap.SP_DirHomeIcon,self.new_document),
+                ('데이터',QStyle.StandardPixmap.SP_FileDialogContentsView,lambda:self._plan_panel.prepare_data() if self._plan_panel else self.open_plan_variables()),
+                ('피팅',QStyle.StandardPixmap.SP_BrowserReload,self.open_plan_variables),
+                ('라이브러리',QStyle.StandardPixmap.SP_DirOpenIcon,self.choose_document)):
+            action=navigation.addAction(self.style().standardIcon(pixmap),title)
+            action.triggered.connect(callback)
+        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea,navigation)
         self.undo_router = FocusedUndoRedo(self, self.undo_action, self.redo_action)
         self.undo_router.register_target(self.editor, undo=self.undo_inputs, redo=self.redo_inputs,
             can_undo=lambda:not self._busy and (bool(self._local_undo) or bool(self.document and not self.conflict and not self.local_dirty and self.document.get('can_undo'))),
@@ -420,6 +494,8 @@ class MaterialWindow(QMainWindow):
         return True
 
     def open_document(self, *, document_id=None, title="Material study", draft=None):
+        if self._plan_panel and getattr(self._plan_panel,'has_pending_plan_request',lambda:False)():
+            self.message.setText('먼저 원래 요청의 결과를 확인하세요. 현재 재료와 편집을 유지했습니다.');return False
         if ((self._pending_observation_source or getattr(self._plan_panel,'_pending_observation',None)) and self.document and
                 document_id!=self.document['id']):
             self.message.setText('전달받은 시험의 대상 재료를 유지했습니다. 먼저 시험을 확인하세요.')
@@ -457,7 +533,9 @@ class MaterialWindow(QMainWindow):
         self._show_document(document)
         if self._plan_panel:
             self._plan_panel.refresh_plans()
-        self.message.setText("재료 계수와 변형 이력을 입력하고, 입력 적용 후 계산 실행을 누르세요.")
+        else:
+            self.open_plan_variables()
+        self.message.setText("현재 계수를 직접 평가하거나 시험을 추가해 피팅할 수 있습니다.")
         if self._pending_observation_source:
             source,self._pending_observation_source = self._pending_observation_source,None
             QTimer.singleShot(0,lambda:self.stage_observation(source))
@@ -512,6 +590,8 @@ class MaterialWindow(QMainWindow):
 
     def _populate_coefficients(self, values):
         self.coefficients.setRowCount(2)
+        self.coefficients.setMaximumHeight(self.coefficients.horizontalHeader().height()+
+            sum(self.coefficients.rowHeight(row) for row in range(2))+6)
         for row, name in enumerate(PARAMETERS[self.model.currentData()]):
             for column, value in enumerate((PARAMETER_LABELS[name], values.get(name, ""), "1" if name == "nu" else self.stress_unit.text())):
                 item = QTableWidgetItem(display_value(value))
@@ -672,8 +752,18 @@ class MaterialWindow(QMainWindow):
             return self.apply_inputs(after=lambda: self.command("document.save", after=after))
         return self.command("document.save", after=after)
 
+    def save_workspace(self):
+        panel=self._plan_panel
+        if panel and panel.has_pending_plan_request():
+            self.message.setText('원래 요청 결과를 확인한 뒤 저장하세요.');return False
+        if panel and panel.plans.currentData():
+            return panel.save_related()
+        return self.save_document()
+
     def evaluate(self):
         # Requiring Apply makes the submitted generation visible and explicit.
+        if self._plan_panel and self._plan_panel.trials.currentRow()>=0:
+            return self._plan_panel.evaluate_trial()
         return self.command("material.evaluate")
 
     def refresh_document(self):
@@ -703,6 +793,8 @@ class MaterialWindow(QMainWindow):
             self._call(lambda: self.client.document_read(self.document["id"]), self._opened)
 
     def copy_edits(self):
+        if self._plan_panel and getattr(self._plan_panel,'has_pending_plan_request',lambda:False)():
+            self.message.setText('원래 요청 결과를 확인한 뒤 편집을 복사하세요.');return False
         self._commit_cell_editor()
         self.open_document(title=self.document["title"] + " — local edits", draft=self.edited_draft())
 
@@ -713,12 +805,14 @@ class MaterialWindow(QMainWindow):
     def open_numerical(self):
         panel = self.open_plan_variables()
         if panel:
-            panel.message.setText('기존 계획을 선택하고 계획 창 열기를 누르세요. 새 계획은 계획 만들기로 만듭니다.')
+            panel.message.setText('시험을 선택하면 저장된 피팅 계수의 응답을 표시합니다.')
         return panel
 
     def show_material_results(self):
         self._result_view_serial += 1
         self._active_result_view='material'
+        self.output_stack.setCurrentIndex(0)
+        self.curve_context.setText('현재 재료 계수의 직접 평가 / 저장된 실행 선택')
         self._draw_results()
         self.refresh_results()
 
@@ -806,7 +900,7 @@ class MaterialWindow(QMainWindow):
             self._local_undo.append(deepcopy(before))
             self._local_redo.clear()
             self._restore_inputs(draft)
-        self.message.setText('시험 조건을 설정했습니다. 입력 적용 후 계산 실행을 누르세요.')
+        self.message.setText('시험 조건을 설정했습니다. 입력 적용 후 현재 계수로 평가를 누르세요.')
 
     def open_plan_variables(self):
         if not self.document or self._busy:
@@ -816,12 +910,20 @@ class MaterialWindow(QMainWindow):
             return
         if self._plan_panel is None:
             from .material_plan_panel import MaterialPlanPanel
-            self._plan_dock = QDockWidget('피팅 변수', self)
-            self._plan_panel = MaterialPlanPanel(self, self._plan_dock)
-            self._plan_dock.setWidget(self._plan_panel)
-            self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self._plan_dock)
+            self._plan_dock = self._material_dock
+            self._plan_panel = MaterialPlanPanel(self,compact=True)
+            # One persistent test list with three explicit coefficient contexts.
+            self.editor.setParent(None)
+            self._plan_panel.coefficient_tabs.insertTab(0,self.editor,'현재 재료')
+            self._plan_panel.coefficient_mode.insertItem(0,'현재 재료 계수')
+            self._plan_panel.coefficient_mode.setCurrentIndex(1)
+            self._plan_panel.coefficient_tabs.setCurrentIndex(1)
+            self.output_stack.addWidget(self._plan_panel.fit_output)
+            self.output_stack.setCurrentWidget(self._plan_panel.fit_output)
+            self._material_dock.setWidget(self._plan_panel)
+            self._material_dock.setWindowTitle('시험과 재료 모델')
+            self.resizeDocks([self._material_dock],[410],Qt.Orientation.Horizontal)
         self._plan_dock.show(); self._plan_dock.raise_()
-        self.resizeDocks([self._plan_dock],[300],Qt.Orientation.Vertical)
         self._plan_panel.refresh_plans()
         return self._plan_panel
 
@@ -877,8 +979,17 @@ class MaterialWindow(QMainWindow):
                      'PARTIAL_FAILURE': '일부 실패', 'CANCELLED': '취소됨', 'INTERRUPTED': '중단됨',
                      'QUEUED': '대기 중', 'RUNNING': '계산 중', 'SAVED': '저장됨'}.get(state, state)
             stale = not run.get("is_current_input", run["input_generation"] == self.document["generation"]) or self.local_dirty
+            trial=run.get('arguments',{}).get('material_trial')
+            comparison="입력이 달라짐" if stale else "현재 입력과 같음"
+            if isinstance(trial,dict):
+                from caelab.storage import canonical_hash
+                source=trial.get('material_source',{})
+                current=(source.get('document_id')==self.document['id'] and
+                    source.get('input_revision')==self.document['input_revision'] and
+                    source.get('input_sha256')==canonical_hash(self.document['draft']) and not self.local_dirty)
+                comparison='현재 계수' if current else '이전 계수'
             texts = (f"계산 {row + 1}", state, f"입력 {run['input_generation']}",
-                     "입력이 달라짐" if stale else "현재 입력과 같음")
+                     comparison)
             for column, value in enumerate(texts):
                 item = QTableWidgetItem(str(value))
                 item.setData(Qt.ItemDataRole.UserRole, identifier)
@@ -946,10 +1057,76 @@ class MaterialWindow(QMainWindow):
 
         self._call(read, received, background=True)
 
+    def _draw_trial_evaluation(self, job, result):
+        from .numerical_window import plot_fit_trial
+        from caelab.material_test import physical_residual
+        trial=result['material_trial'];curves=trial.get('curves',[])
+        if not curves:return False
+        run=next((run for run in self.document.get('runs',[]) if run['job_id']==job),{})
+        from caelab.storage import canonical_hash
+        source=trial.get('material_source',{})
+        current=bool(source.get('document_id')==self.document['id'] and
+            source.get('input_revision')==self.document['input_revision'] and
+            source.get('input_sha256')==canonical_hash(self.document['draft']) and not self.local_dirty)
+        prediction_name='현재 계수 예측' if current else '이전 계수 예측'
+        self.figure.clear();self.values.setRowCount(0)
+        self._plot_errors={}
+        pair=None;signature=None
+        for curve in curves:
+            observed=curve.get('observations',{});axes=observed.get('axes',[])
+            curve_signature=(axes[0].get('name'),axes[0].get('unit'),observed.get('unit'),observed.get('measure'),observed.get('component')) if len(axes)==1 else None
+            if curve_signature is None or signature is not None and curve_signature!=signature:
+                self._plot_errors[job]='시험의 축·물리량·단위가 달라 같은 그래프에 겹치지 않았습니다.';continue
+            signature=curve_signature
+            role='별도 확인' if curve.get('role')=='holdout' else '피팅'
+            pair=plot_fit_trial(self.figure,result,curve,show_residual=self.curve_view.currentData(),
+                prediction_label=prediction_name+' ('+role+')',observation_label='관측 ('+role+')',axes_pair=pair)
+            unit=observed.get('unit','미제공');axis_unit=axes[0].get('unit','미제공')
+            self.values.setColumnCount(7)
+            self.values.setHorizontalHeaderLabels(['용도','원자료\n행','시간/축\n['+axis_unit+']',
+                '관측\n['+unit+']','예측\n['+unit+']','잔차\n['+unit+']','포함'])
+            self.values.horizontalHeaderItem(5).setToolTip('원물리단위의 예측−관측 잔차입니다. 제외 표본은 미제공으로 표시합니다.')
+            self.values.horizontalHeaderItem(6).setToolTip('저장된 표본 mask만 표시합니다. 피팅/별도 확인 역할과는 별개입니다.')
+            times=axes[0].get('values',[]);values=observed.get('value',[]);predicted=curve.get('prediction',[])
+            source_rows=observed.get('source_rows',[]);mask=curve.get('mask',[])
+            _,residual=physical_residual(curve)
+            for index,time in enumerate(times):
+                def at(array):return array[index] if isinstance(array,list) and index<len(array) else None
+                items=(role,at(source_rows),time,at(values),at(predicted),at(residual),
+                    '포함' if at(mask) is True else '제외' if at(mask) is False else '미제공')
+                row=self.values.rowCount();self.values.insertRow(row)
+                for column,value in enumerate(items):
+                    shown='미제공' if value is None else format(value,'.8g') if type(value) in (int,float) else str(value)
+                    item=QTableWidgetItem(shown);item.setToolTip(display_value(value));self.values.setItem(row,column,item)
+        if pair is None:return False
+        self.axes=pair[0]
+        unit=run.get('draft',{}).get('settings',{}).get('stress_unit','미제공')
+        parameters=trial.get('parameters',{})
+        summary=self._plan_panel._parameter_summary({'parameters':parameters,
+            'parameter_units':{name:'1' if name=='nu' else unit for name in parameters}}) if self._plan_panel else ''
+        reference=trial.get('source',{})
+        plan=(self._plan_panel._documents.get(reference.get('document_id'),{}) if self._plan_panel else {})
+        experiments=plan.get('draft',{}).get('experiments',[])
+        number=next((i+1 for i,item in enumerate(experiments) if item.get('id')==reference.get('experiment_id')),1)
+        data_source=curves[0].get('observation_source',{}).get('data_source',{})
+        name=(self._plan_panel._source_titles.get(data_source.get('document_id'),'시험 '+str(number))
+            if self._plan_panel else '시험 '+str(number))
+        label=self.curve_context.fontMetrics().elidedText(name,Qt.TextElideMode.ElideRight,max(180,self.canvas.width()-70))
+        self.curve_context.setText(('현재 계수 평가: ' if current else '이전 계수 평가: ')+summary+'\n시험: '+label)
+        self.curve_context.setToolTip(name+'\n'+json.dumps(reference,ensure_ascii=False))
+        self.values.setToolTip('시험: '+name)
+        self.response.setEnabled(False)
+        self.canvas.draw_idle();self._show_diagnostics()
+        return True
+
     def _draw_results(self, *_):
         if self._active_result_view == 'plan':
             return
         self.material_results_panel.setVisible(bool(self.document and self.document.get('runs')))
+        selected=self._selected_jobs()
+        if len(selected)==1:
+            result=self._result_cache.get(selected[0],{})
+            if isinstance(result.get('material_trial'),dict) and self._draw_trial_evaluation(selected[0],result):return
         self.response.setEnabled(True)
         if self.axes not in self.figure.axes:
             self.figure.clear()
@@ -957,6 +1134,8 @@ class MaterialWindow(QMainWindow):
         self.axes.clear()
         self.axes.set_axis_on()
         self._plot_errors = {}
+        self.values.setColumnCount(3)
+        self.values.setHorizontalHeaderLabels(['계산','축 값','응력'])
         self.values.setRowCount(0)
         component = self.response.currentData()
         expected_axis = None
@@ -1043,6 +1222,7 @@ class MaterialWindow(QMainWindow):
         present = self.document is not None
         enabled = present and not self._busy and not self.conflict
         self.editor.setEnabled(present and not self._foreground_busy and not self._draft_problem)
+        self.model.setEnabled(present and not self._foreground_busy and not self._draft_problem)
         self.apply_action.setEnabled(enabled and self.local_dirty and not self._draft_problem)
         blocked = present and any(item.get("blocks_evaluation") for item in self.document.get("diagnostics", []))
         self.run_action.setEnabled(enabled and not self.local_dirty and not self._draft_problem and not blocked)
@@ -1053,6 +1233,10 @@ class MaterialWindow(QMainWindow):
         self.cancel_observation_action.setEnabled(bool(pending) and not getattr(self._plan_panel,'_staged_observation',None))
         if self._plan_panel:
             self._plan_panel.update_badge()
+            pending=getattr(self._plan_panel,'has_pending_plan_request',lambda:False)()
+            if pending:
+                for action in (self.run_action,self.apply_action,self.save_action):action.setEnabled(False)
+            self.fit_action.setEnabled(enabled and not pending and not self.local_dirty)
         self.undo_action.setEnabled(present and not self._busy and (bool(self._local_undo) or
             (enabled and not self.local_dirty and self.document.get("can_undo", False))))
         self.redo_action.setEnabled(present and not self._busy and (bool(self._local_redo) or
@@ -1077,6 +1261,9 @@ class MaterialWindow(QMainWindow):
             self.undo_router.refresh()
 
     def _leave(self, continuation):
+        if self._plan_panel and getattr(self._plan_panel,'has_pending_plan_request',lambda:False)():
+            self.message.setText('요청 결과가 아직 미확인입니다. 요청 다시 확인을 먼저 누르세요. 편집과 창은 유지했습니다.')
+            return False
         from .data_material_recovery_host import leave_with_recovery
         leave_with_recovery(self, continuation)
 
@@ -1131,6 +1318,12 @@ class MaterialWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self._allow_close:
+            if self._plan_panel:
+                self._plan_panel._adoption_timer.stop()
+            for window in self._numerical_windows:
+                if getattr(window,'_material_adoption_helper',False):
+                    for detail in window._candidate_detail_windows:detail.close()
+                    window._allow_close=True;window.close()
             from .result_return import close_receiver
             close_receiver(self)
             self.timer.stop()

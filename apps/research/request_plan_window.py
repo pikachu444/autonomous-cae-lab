@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
 
 from caelab.numerical_document import request_draft
 from caelab.storage import canonical_hash
-from .numerical_window import NumericalWindow
+from .numerical_window import NumericalWindow, axis_label, size_table_to_rows
 from .runner_window import RunnerWindow, readonly_table, fill_tree, candidate_state
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -806,7 +806,10 @@ class RequestPlanWindow(NumericalWindow):
             selector.blockSignals(True)
             selector.clear()
             for index, definition in enumerate(definitions):
-                selector.addItem(('가로: ' if default == 0 else '세로: ') + objective_label(definition), index)
+                shown=definition
+                if definition.get('component')==definition.get('response'):
+                    shown={key:value for key,value in definition.items() if key!='component'}
+                selector.addItem(('가로: ' if default == 0 else '세로: ') + objective_label(shown), index)
             selected_index = selector.findData(prior)
             selector.setCurrentIndex(selected_index if selected_index >= 0 else min(default, selector.count()-1))
             selector.blockSignals(False)
@@ -838,7 +841,7 @@ class RequestPlanWindow(NumericalWindow):
 
     def _fit_plot_layout(self, event):
         if event.canvas.width() >= 240 and event.canvas.height() >= 160 and event.canvas.figure.axes:
-            event.canvas.figure.tight_layout()
+            event.canvas.figure.set_layout_engine('tight')
 
     def selected_job(self):
         rows = sorted({item.row() for item in self.runs.selectedIndexes()})
@@ -1045,6 +1048,9 @@ class RequestPlanWindow(NumericalWindow):
             refresh_variable_sheet(self,value)
             from .numerical_methods import refresh_search_sheet
             refresh_search_sheet(self,value,operation)
+            for table in (self.variable_sheet,self.response_sheet,self.method_sheet):
+                size_table_to_rows(table)
+            self.sheet_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         finally:
             self._sheet_populating = False
 
@@ -2335,6 +2341,24 @@ class RequestPlanWindow(NumericalWindow):
             run = next((row for row in self.document.get('runs',[]) if row['job_id']==job),{}) if self.document else {}
             submitted = run.get('draft',{}).get('request',{}).get('inputs',{})
             if plot(self,result,submitted):
+                if result.get('kind')=='epsilon_optimization' and self.figure.axes:
+                    from .numerical_methods import CHOICE_LABELS
+                    definitions=submitted.get('objectives',[])
+                    axis=self.figure.axes[0]
+                    for default,(selector,set_label) in enumerate(((self.pareto_x,axis.set_xlabel),(self.pareto_y,axis.set_ylabel))):
+                        index=selector.currentData()
+                        index=index if type(index) is int and 0<=index<len(definitions) else default
+                        if index>=len(definitions):continue
+                        definition=definitions[index]
+                        label=str(definition.get('response','응답 미지정'))
+                        component=definition.get('component')
+                        if component and component not in ('scalar',definition.get('response')):label+=' '+str(component)
+                        reduction=definition.get('reduction')
+                        if reduction and reduction!='none':label+=' '+CHOICE_LABELS.get(reduction,str(reduction))
+                        set_label(label+' ['+str(definition.get('unit','단위 미지정'))+']')
+                    selected=self._selected_actual_candidate()
+                    position=next((i+1 for i,row in enumerate(rows) if selected and row.get('candidate_id')==selected['candidate_id']),None)
+                    axis.set_title('다목적 후보'+(' / 선택 후보 '+str(position) if position is not None else ''),fontsize=10)
                 analyses=result.get('sensitivity',[])
                 index=max(0,self.method_response.currentIndex())
                 item=analyses[min(index,len(analyses)-1)] if analyses else {}
@@ -2347,7 +2371,7 @@ class RequestPlanWindow(NumericalWindow):
                         ' / 조건수 '+('미제공' if item.get('condition_number') is None else str(item['condition_number']))+
                         ' / 사용 '+str(len(item.get('sample_ids',[])))+' / 제외 '+str(len(result.get('exclusions',[])))+
                         ' / 독립적인 변수 조합을 추가하고 실행 예산을 확인한 뒤 새 계획을 실행하세요.')
-                self.figure.tight_layout()
+                self.figure.set_layout_engine('tight')
                 self.canvas.draw_idle()
                 return
         if isinstance(name, dict) and 'candidate_response' in name:
@@ -2366,9 +2390,9 @@ class RequestPlanWindow(NumericalWindow):
                          and response.get('valid') is not False)
                 if valid:
                     ax.plot(coordinates, [value if mask is None or mask[index] else math.nan for index, value in enumerate(values)])
-                    ax.set_xlabel(str(axes[0].get('name', 'undeclared axis')) + ' [' + str(axes[0].get('unit', 'undeclared')) + ']')
+                    ax.set_xlabel(axis_label(axes[0]))
                     ax.set_ylabel(name + ' [' + str(response.get('unit', 'undeclared')) + ']')
-                    ax.set_title('Recorded response')
+                    ax.set_title('저장된 계산 응답')
                 else:
                     ax.text(.5, .5, 'Invalid retained coordinates, values or mask; inspect Responses.', ha='center', transform=ax.transAxes)
             elif response.get('kind') == 'scalar':
@@ -2400,7 +2424,7 @@ class RequestPlanWindow(NumericalWindow):
                 if finite_axis and recorded_values(observed) and has_fit_mask and not all(fit_mask):
                     ax.plot(coordinates,[value if not fit_mask[i] and value is not None else math.nan
                         for i,value in enumerate(observed)],'x',color='#667588',label='제외한 관측 원값')
-                ax.set_xlabel(str(source_axis.get('name', 'undeclared axis')) + ' [' + str(source_axis.get('unit', 'undeclared')) + ']')
+                ax.set_xlabel(axis_label(source_axis))
                 ax.set_ylabel(str(observation.get('component', 'response')) + ' [' + str(observation.get('unit', 'undeclared')) + ']')
                 title=str(curve.get('experiment_id', '시험'))+'  RMSE '+str(curve.get('rmse', '미계산'))
                 if result.get('kind')=='fit':
@@ -2416,9 +2440,9 @@ class RequestPlanWindow(NumericalWindow):
             points = [(index, item) for index, item in points if type(item.get('value')) in (int, float) and math.isfinite(item['value'])]
             if points:
                 ax.scatter([index for index, _ in points], [item['value'] for _, item in points])
-                ax.set_xlabel('Requested prediction point order')
-                ax.set_ylabel('PREDICTED response [' + str(points[0][1].get('unit', 'undeclared')) + ']')
-                ax.set_title('Surrogate predictions · independent holdout RMSE ' + str(result.get('validation', {}).get('rmse', 'unavailable')))
+                ax.set_xlabel('예측점 순서')
+                ax.set_ylabel('대리모델 예측 [' + str(points[0][1].get('unit', 'undeclared')) + ']')
+                ax.set_title('대리모델 예측 / 독립 확인 RMSE ' + str(result.get('validation', {}).get('rmse', '미제공')))
             else:
                 ax.text(.5, .5, 'No retained finite predictions.', ha='center', transform=ax.transAxes)
         elif result.get('method') == 'SALib.sobol':
@@ -2467,7 +2491,7 @@ class RequestPlanWindow(NumericalWindow):
                 ax.text(.5, .5, '응답 또는 후보를 선택하세요.' if rows else '아직 선택한 계산 결과가 없습니다.',
                         ha='center', va='center', wrap=True, transform=ax.transAxes)
                 ax.set_axis_off()
-        self.figure.tight_layout()
+        self.figure.set_layout_engine('tight')
         self.canvas.draw_idle()
 
     def _plot_candidate_response(self, result, name):
@@ -2500,7 +2524,7 @@ class RequestPlanWindow(NumericalWindow):
                 ax.scatter(*scalar_points[index], s=95, facecolors='none', edgecolors='#d56c22', linewidths=2)
             unit, reduction, *_ = next(iter(units))
             ax.set_xlabel('후보 순서')
-            ax.set_ylabel(name + ' [' + str(unit) + '] / ' + str(reduction))
+            ax.set_ylabel(name + ' [' + str(unit) + ']' + (' / '+str(reduction) if reduction!='none' else ''))
         elif scalar_points:
             ax.text(.5, .5, 'Candidate physical definitions differ; inspect each retained response.', ha='center', wrap=True, transform=ax.transAxes)
         elif selected:
@@ -2514,7 +2538,7 @@ class RequestPlanWindow(NumericalWindow):
                     and (mask is None or isinstance(mask, list) and len(mask) == len(values) and all(type(value) is bool for value in mask)))
                 if finite:
                     ax.plot(coordinates, [value if mask is None or mask[index] else math.nan for index, value in enumerate(values)])
-                    ax.set_xlabel(str(axes[0].get('name')) + ' [' + str(axes[0].get('unit')) + ']')
+                    ax.set_xlabel(axis_label(axes[0]))
                     ax.set_ylabel(name + ' [' + str(response.get('unit')) + ']')
                 else:
                     ax.text(.5, .5, 'No valid retained curve for this candidate.', ha='center', transform=ax.transAxes)
@@ -2523,7 +2547,8 @@ class RequestPlanWindow(NumericalWindow):
                         ha='center', wrap=True, transform=ax.transAxes)
         else:
             ax.text(.5, .5, '곡선을 볼 후보를 선택하세요.', ha='center', transform=ax.transAxes)
-        ax.set_title(str(selected['candidate_id']) if selected else '계산된 후보 응답')
+        position=next((index+1 for index,row in enumerate(rows) if selected and row.get('candidate_id')==selected['candidate_id']),None)
+        ax.set_title(('후보 '+str(position)+' / ' if position is not None else '')+name)
 
     def _select_return_channels(self, result):
         from PySide6.QtWidgets import QListWidget, QListWidgetItem
