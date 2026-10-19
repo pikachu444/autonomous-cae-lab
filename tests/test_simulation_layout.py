@@ -8,6 +8,7 @@ pytest.importorskip('PySide6')
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QCloseEvent, QFontDatabase
 from PySide6.QtTest import QTest
+from PySide6.QtCore import Qt
 from apps.research.simulation_window import SimulationWindow, MODELS
 from caelab.simulation_document import SimulationDocuments, default_draft
 
@@ -119,3 +120,37 @@ def test_result_visibility_keeps_selected_response_and_subclass_title(window):
     win.tool_label = 'Material'
     win._show_document(document)
     assert win.windowTitle().endswith(' — Material')
+
+
+def test_scalar_value_table_has_unit_and_exact_original_without_spatial_axes(window):
+    win, app = window
+    payload = {'execution_status':'FAILED', 'responses':{
+        'user_temperature':{'kind':'scalar','value':323.15000000000003,'unit':'K'},
+        'user_history':{'kind':'series','value':[2.,4.], 'unit':'N',
+                        'axes':[{'name':'time','unit':'s','values':[0.,1.]}]}},
+        'checks':[{'status':'UNKNOWN'}]}
+    win._selected_job = 'J-read-only-display'
+    win._accept_result(payload)
+    scalar_index = next(i for i in range(win.result_selector.count()) if win.result_selector.itemData(i) == ('response','user_temperature'))
+    win.result_selector.setCurrentIndex(scalar_index)
+    assert not win.result_axes.axison
+    assert win.result_value_table.isVisible()
+    value = win.result_value_table.item(0,1)
+    assert value.text() == '323.15'
+    assert value.data(Qt.ItemDataRole.UserRole) == 323.15000000000003
+    assert '323.15000000000003' in value.toolTip()
+    assert win.result_value_table.item(0,2).text() == 'K'
+    assert win._result == payload
+    series_index = next(i for i in range(win.result_selector.count()) if win.result_selector.itemData(i) == ('response','user_history'))
+    win.result_selector.setCurrentIndex(series_index)
+    assert win.result_value_table.isHidden() and win.result_axes.axison
+    assert list(win.result_axes.lines[0].get_ydata()) == [2.,4.]
+    assert win._result == payload
+    assert win.field_label(('settings','boundary_temperature','values',0)) == '경계 온도 1'
+    assert win.field_label(('settings','custom_quantity','values',1)) == 'custom quantity 2'
+    win._accept_result({'backend':'thermal.scikit_fem.rectangle', 'execution_status':'SUCCEEDED',
+                        'responses':{'mean_temperature':{'kind':'scalar','value':323.15,'unit':'K'}}})
+    assert win.result_value_table.item(0,0).text() == '평균 온도'
+    assert win.result_selector.currentData() == ('response','mean_temperature')
+    assert win.response_caption('custom_quantity', {'kind':'scalar'}) == 'custom_quantity'
+    assert win.response_caption('mean_temperature', {'metadata':{'label':'사용자가 정한 온도'}}) == '사용자가 정한 온도'

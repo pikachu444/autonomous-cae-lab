@@ -4,7 +4,7 @@ import json
 import uuid
 
 from PySide6.QtCore import QThreadPool, QTimer, Qt
-from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QKeySequence, QBrush, QColor
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QHBoxLayout, QInputDialog,
     QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton, QSplitter,
     QTableWidget, QTableWidgetItem, QTabWidget, QToolBar, QVBoxLayout, QWidget, QComboBox,
@@ -188,6 +188,8 @@ class EvaluationWindow(QMainWindow):
         self.stage_editor = left
         top.addWidget(left)
         self.tabs = QTabWidget()
+        self.selection_caption = QLabel('단계를 선택하세요.')
+        self.selection_caption.setWordWrap(True)
         self.tables = {}
         for key, title in [('stages', '단계'), ('transfers', '장 전달'), ('bindings', '변수'), ('responses', '응답')]:
             page = QWidget(); page_layout = QVBoxLayout(page)
@@ -200,7 +202,26 @@ class EvaluationWindow(QMainWindow):
             table.setObjectName('evaluation' + {'stages':'Stages','transfers':'Transfers','bindings':'Variables','responses':'Responses'}[key])
             table.itemChanged.connect(self._edited)
             self.tables[key] = table
-            page_layout.addWidget(table, 1)
+            if key == 'stages':
+                # One stage list navigates; this table remains the existing
+                # typed draft buffer rather than a second visible stage list.
+                table.setParent(page); table.hide()
+                self.stage_name = QLineEdit()
+                self.stage_name.setObjectName('evaluationSelectedStageName')
+                self.stage_name.textEdited.connect(self._stage_name_edited)
+                page_layout.addWidget(QLabel('선택 단계 이름'))
+                page_layout.addWidget(self.stage_name)
+                self.stage_source = QLabel()
+                self.stage_source.setWordWrap(True)
+                page_layout.addWidget(self.stage_source)
+                source_row = QHBoxLayout()
+                for caption, handler in [('원본 입력 열기', self.open_source), ('원본 교체…', self.replace_source)]:
+                    button = QPushButton(caption); button.clicked.connect(handler); source_row.addWidget(button)
+                source_row.addStretch(); page_layout.addLayout(source_row)
+                self.stage_ports = self._table([('direction','방향'),('name','선택 원본의 입출력'),('unit','단위')])
+                page_layout.addWidget(self.stage_ports, 1)
+            else:
+                page_layout.addWidget(table, 1)
             if key != 'stages':
                 row = QHBoxLayout(); add = QPushButton(title + ' 추가…'); remove = QPushButton('선택 행 삭제')
                 add.clicked.connect({'transfers': self.add_transfer, 'bindings': self.add_binding, 'responses': self.add_response}[key])
@@ -240,8 +261,14 @@ class EvaluationWindow(QMainWindow):
         self.reuse_label.setWordWrap(True); layout.addWidget(self.reuse_label)
         clear_reuse = QPushButton('재사용 선택 해제'); clear_reuse.clicked.connect(self.clear_reuse); layout.addWidget(clear_reuse)
         self.tabs.addTab(iteration, '반복 계산')
-        top.addWidget(self.tabs); top.setSizes([245, 1180]); vertical.addWidget(top)
+        selected_panel = QWidget(); selected_layout = QVBoxLayout(selected_panel)
+        selected_layout.setContentsMargins(0, 0, 0, 0)
+        selected_layout.addWidget(self.selection_caption); selected_layout.addWidget(self.tabs, 1)
+        top.addWidget(selected_panel); top.setSizes([245, 1180]); vertical.addWidget(top)
         bottom = QWidget(); layout = QVBoxLayout(bottom)
+        self.result_stage_caption = QLabel('보존 결과의 단계를 선택하세요.')
+        self.result_stage_caption.setWordWrap(True)
+        layout.addWidget(self.result_stage_caption)
         row = QHBoxLayout(); self.runs = QComboBox(); self.runs.setMinimumWidth(120)
         self.runs.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.runs.currentIndexChanged.connect(self._run_selected)
@@ -279,7 +306,7 @@ class EvaluationWindow(QMainWindow):
         result_tabs.addTab(self.channels, '선택 단계의 값')
         layout.addWidget(result_tabs, 1)
         self.results_panel = bottom
-        vertical.addWidget(bottom); vertical.setSizes([500, 290]); outer.addWidget(vertical, 1)
+        vertical.addWidget(bottom); vertical.setSizes([350, 440]); outer.addWidget(vertical, 1)
         outer.addWidget(self.support)
         self.details_toggle = QPushButton('기술 상세 펼치기')
         self.details_toggle.setCheckable(True)
@@ -346,14 +373,16 @@ class EvaluationWindow(QMainWindow):
                 elif name == 'kind':
                     text = {'scalar':'단일 값', 'series':'이력', 'field':'장'}.get(value, text)
                 elif key == 'channels' and name == 'name':
-                    text = {'temperature':'온도장','displacement':'변위장','stress':'응력장',
+                    text = {'temperature':'온도장' if row.get('kind')=='field' else '온도',
+                            'displacement':'변위장' if row.get('kind')=='field' else '변위',
+                            'stress':'응력장' if row.get('kind')=='field' else '응력',
                             'max_displacement':'최대 변위','relative_residual':'상대 대수 잔차'}.get(value,text)
                 elif key == 'channels' and name == 'component' and isinstance(value,str):
                     text = {'vector':'벡터','scalar':'스칼라','max_displacement':'최대 변위',
                             'relative_residual':'상대 대수 잔차'}.get(value,text)
                 elif name == 'location':
                     text = {'controlled_fixture':'계산 대역', 'material_point':'재료점',
-                            'node':'절점','cell':'요소','domain':'영역'}.get(value, text)
+                            'node':'절점','cell':'요소','domain':'영역','state':'상태 변수'}.get(value, text)
                 item = QTableWidgetItem(text); item.setData(ROLE, deepcopy(value))
                 item.setData(DISPLAY_ROLE, text)
                 item.setToolTip(display(value))
@@ -432,9 +461,18 @@ class EvaluationWindow(QMainWindow):
 
     def _refresh_stage_list(self):
         selected = self.stage_list.currentRow()
-        self.stage_list.clear()
-        for row in self._draft.get('stages', []): self.stage_list.addItem(self._stage_name(row.get('id')))
+        names = [self._stage_name(row.get('id')) for row in self._draft.get('stages', [])]
+        if self.stage_list.count() == len(names):
+            for index, name in enumerate(names): self.stage_list.item(index).setText(name)
+        else:
+            self.stage_list.clear()
+            for name in names: self.stage_list.addItem(name)
         if self.stage_list.count(): self.stage_list.setCurrentRow(max(0, min(selected, self.stage_list.count() - 1)))
+
+    def _stage_name_edited(self, text):
+        row = self.stage_list.currentRow()
+        if not self._populating and 0 <= row < self.tables['stages'].rowCount():
+            self.tables['stages'].item(row, 1).setText(text)
 
     def edited_draft(self):
         focus = QApplication.focusWidget()
@@ -514,8 +552,20 @@ class EvaluationWindow(QMainWindow):
         stages = self.edited_draft().get('stages', [])
         if not 0 <= index < len(stages):
             self.stage_summary.setText('저장한 원본 입력을 추가해 단계 순서를 정하세요.')
+            self.selection_caption.setText('단계를 추가하거나 선택하세요.')
+            self.stage_name.setEnabled(False); self.stage_name.clear()
+            self.stage_source.clear(); self.stage_ports.setRowCount(0)
+            self._shown_ports = None
+            self.result_stage_caption.setText('보존 결과의 단계를 선택하세요.')
             return
         stage = stages[index]
+        self.stage_name.setEnabled(True)
+        if self.stage_name.text() != stage['name']:
+            self.stage_name.setText(stage['name'])
+        self.selection_caption.setText('편집 단계: ' + stage['name'])
+        source = self._source_titles.get(stage['source'].get('document_id')) or '저장된 원본 입력'
+        self.stage_source.setText('선택한 원본: ' + source)
+        self.stage_source.setToolTip(display(stage['source']))
         catalog = self._catalog(stage['id']) or {}
         entries = catalog.get('inputs', [])
         inputs = ', '.join(str(INPUT_LABELS.get(e['id'], e.get('label') or e['id'])) + ' [' + str(e.get('unit', '?')) + ']' for e in entries[:3])
@@ -524,6 +574,32 @@ class EvaluationWindow(QMainWindow):
         self.stage_summary.setText(stage['name'] + '\n입력: ' + (inputs or '등록된 입력 확인 필요') +
                                    '\n출력: ' + (', '.join(str(e.get('label') or output_labels.get(name,name)) + ' [' + str(e.get('unit', '?')) + ']' for name, e in list(outputs.items())[:3]) or '응답에서 직접 지정'))
         self.stage_summary.setToolTip(display({'inputs':entries,'outputs':outputs}))
+        ports = [{'direction':'입력', 'name': e.get('label') or INPUT_LABELS.get(e.get('id'), e.get('id','')), 'unit': e.get('unit','단위 미제공')}
+                 for e in entries]
+        ports.extend({'direction':'출력','name': e.get('label') or output_labels.get(name,name), 'unit': e.get('unit','단위 미제공')}
+                     for name,e in outputs.items())
+        if ports != getattr(self, '_shown_ports', None):
+            self._put_rows(self.stage_ports, [('direction',''),('name',''),('unit','')], ports)
+            self._shown_ports = deepcopy(ports)
+        selected = stage['id']
+        tint = QColor(self.palette().highlight().color()); tint.setAlpha(24)
+        draft = self.edited_draft()
+        for key in ('transfers','bindings','responses','checks'):
+            rows = draft.get('iteration',{}).get('checks',[]) if key=='checks' else draft.get(key,[])
+            table = self.tables[key]
+            blocked = table.blockSignals(True)
+            for row, definition in enumerate(rows):
+                targets = definition.get('targets',[])
+                if not isinstance(targets,list): targets = []
+                related = selected in (definition.get('stage'), definition.get('from_stage'), definition.get('to_stage')) or any(
+                    target.get('stage') == selected for target in targets if isinstance(target,dict))
+                for column in range(table.columnCount()):
+                    item = table.item(row,column)
+                    if item: item.setBackground(QBrush(tint) if related else QBrush())
+            table.blockSignals(blocked)
+        attempt = next((a for a in self._progress.get('stages',[]) if a.get('attempt_id')==self._selected_attempt), None)
+        self.result_stage_caption.setText('보존 결과: ' + self._stage_name(attempt.get('stage_id'), frozen=True)
+                                          if attempt else '선택 단계의 보존 실행을 아래에서 고르세요.')
 
     def _call(self, function, accepted, *, relevant=None, background=False):
         if self._busy:
@@ -698,6 +774,17 @@ class EvaluationWindow(QMainWindow):
     def _stage_selected(self, index):
         if index >= 0: self.tables['stages'].selectRow(index)
         self._stage_context()
+        if self._populating: return
+        stages = self.edited_draft().get('stages',[])
+        if not 0 <= index < len(stages): return
+        identifier = stages[index]['id']
+        match = next((row for row in reversed(range(self.attempts.rowCount()))
+                      if self.attempts.item(row,1).data(ROLE)==identifier), None)
+        if match is not None:
+            self.attempts.selectRow(match)
+        else:
+            self._selected_attempt = None; self._result = None; self.channels.setRowCount(0)
+            self.attempts.clearSelection(); self._update_actions()
 
     def _catalog(self, stage_id):
         stage = next((row for row in self.edited_draft()['stages'] if row['id'] == stage_id), None)
@@ -875,6 +962,12 @@ class EvaluationWindow(QMainWindow):
         indexes = self.attempts.selectedIndexes()
         if not indexes: return
         row = indexes[0].row()
+        stage_id = self.attempts.item(row,1).data(ROLE)
+        stage_index = next((i for i, stage in enumerate(self.edited_draft().get('stages',[])) if stage['id']==stage_id), -1)
+        if stage_index >= 0:
+            blocked = self.stage_list.blockSignals(True)
+            self.stage_list.setCurrentRow(stage_index)
+            self.stage_list.blockSignals(blocked)
         attempt = self.attempts.item(row, 2).data(ROLE)
         changed = attempt != self._selected_attempt
         self._selected_attempt = attempt
@@ -900,6 +993,7 @@ class EvaluationWindow(QMainWindow):
                 elif isinstance(value, list): value = {'count': len(value), 'first_values': value[:6]}
                 rows.append({'name': name, **{key: response.get(key, '') for key in ('kind', 'unit', 'component', 'location')}, 'value': value, 'state': result.get('execution_status')})
             self._put_rows(self.channels, [('name', ''), ('kind', ''), ('unit', ''), ('component', ''), ('location', ''), ('value', ''), ('state', '')], rows, key='channels')
+            self.message.setText('선택 단계의 보존 결과를 읽었습니다.')
         return self._call(lambda: self.client.evaluation_stage_result(identity[0], identity[2], identity[3], selection={'metadata_only': True}), accepted,
             relevant=lambda: self.document and (self.document['id'], self.document['session_id'], self._selected_job, self._selected_attempt) == identity)
 

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QApplication, QComboBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel,
     QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit, QScrollArea, QSizePolicy,
     QSplitter, QTabWidget, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -352,6 +353,20 @@ class PDEWindow(QMainWindow):
         self.result_figure = Figure(constrained_layout=True)
         self.result_canvas = FigureCanvasQTAgg(self.result_figure)
         self.result_axes = self.result_figure.add_subplot(111)
+        # A scalar is a unit-bearing value, not a point in an invented spatial domain.
+        self.result_value_table = QTableWidget(0, 3, self.result_canvas)
+        self.result_value_table.setObjectName('retainedScalarValues')
+        self.result_value_table.setHorizontalHeaderLabels(['항목', '값', '단위'])
+        self.result_value_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.result_value_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.result_value_table.verticalHeader().hide()
+        self.result_value_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.result_value_table.setMaximumHeight(110)
+        scalar_layout = QVBoxLayout(self.result_canvas)
+        scalar_layout.setContentsMargins(16, 16, 16, 16)
+        scalar_layout.addWidget(self.result_value_table)
+        scalar_layout.addStretch()
+        self.result_value_table.hide()
         self.graph_tabs.addTab(self.domain_canvas, '모델 영역')
         self.graph_tabs.addTab(self.result_canvas, '계산 결과')
         self.graph_tabs.currentChanged.connect(self._update_actions)
@@ -988,8 +1003,11 @@ class PDEWindow(QMainWindow):
             field = entry.get('field', entry)
             components = field.get('components', ['u'])
             for component in range(len(components)):
-                self.result_selector.addItem(str(entry.get('name', 'Native field ' + str(index + 1))) + ' (' + components[component] + ')',
+                name = str(entry.get('name', 'Native field ' + str(index + 1)))
+                caption = self.response_caption(name, result.get('responses', {}).get(name, {}))
+                self.result_selector.addItem(caption + ('' if components == ['scalar'] else ' (' + components[component] + ')'),
                                              ('field', index, component))
+                self.result_selector.setItemData(self.result_selector.count()-1, name, Qt.ItemDataRole.ToolTipRole)
         restore_selection = False
         if pde_spatial and native_fields:
             selected_index = next((i for i in range(self.result_selector.count())
@@ -1132,6 +1150,7 @@ class PDEWindow(QMainWindow):
         self.result_figure.clear()
         self.result_axes = self.result_figure.add_subplot(111)
         axes = self.result_axes
+        self.result_value_table.hide()
         self.point_label.clear()
         selected = self.result_selector.currentData()
         if not self._result or not selected:
@@ -1157,8 +1176,17 @@ class PDEWindow(QMainWindow):
                 axes.set_ylabel(caption + ' [' + response.get('unit', '') + ']')
                 axes.legend()
             elif type(values) in (int, float):
-                axes.text(.5, .5, caption + '\n' + display(values) + ' [' + response.get('unit', '') + ']',
-                          ha='center', va='center', transform=axes.transAxes)
+                axes.set_axis_off()
+                self.result_value_table.setRowCount(1)
+                shown = format(values, '.12g') if type(values) is float else str(values)
+                for column, text in enumerate((caption, shown, response.get('unit') or '단위 미제공')):
+                    item = QTableWidgetItem(text)
+                    if column == 1:
+                        item.setData(ROLE, values)
+                        item.setToolTip('보존된 원값: ' + display(values))
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                    self.result_value_table.setItem(0, column, item)
+                self.result_value_table.show()
             else:
                 axes.text(.5, .5, 'This retained response has no supported 1D axis.\nOpen the exact native result in Post.',
                           ha='center', va='center', transform=axes.transAxes)

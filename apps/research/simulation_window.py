@@ -156,6 +156,10 @@ class SimulationWindow(PDEWindow):
             return '입력 유형' if key == 'origin' else '자료 참조'
         if isinstance(key, int):
             parent = next((k for k in reversed(path[:-1]) if isinstance(k, str)), '')
+            if parent == 'values' and len(path) > 2:
+                quantity = path[-3]
+                if isinstance(quantity, str):
+                    return _CAPTIONS.get(quantity, quantity.replace('_', ' ')) + ' ' + str(key + 1)
             return _CAPTIONS.get(parent, parent.replace('_', ' ')) + ' ' + str(key + 1)
         return _CAPTIONS.get(key, str(key).replace('_', ' '))
 
@@ -473,6 +477,10 @@ class SimulationWindow(PDEWindow):
         if self._result and self._result.get('backend') == 'explicit.opencourant.connector' and name in CONNECTOR_RESPONSES:
             return CONNECTOR_RESPONSES[name]
         caption = super().response_caption(name, response)
+        if caption == name and self._result and self._result.get('backend') in (
+                'thermal.scikit_fem.rectangle', 'structural.scikit_fem.thermoelastic_rectangle'):
+            return {'mean_temperature':'평균 온도', 'temperature':'온도',
+                    'relative_residual':'상대 대수 잔차'}.get(name, name)
         if caption == name and self._result and self._result.get('backend') == 'damage.rainflow' and name == 'stress_history':
             return '원 응력 이력'
         return caption

@@ -144,6 +144,19 @@ J2 재료점·DP FE·CCX의 실제9계산과 실행 전 거절1건, DP64 IP/CCX2
 
 ## PDE·Simulation·Evaluation와 장 전달
 
+**10월19일 선택/결과 화면 교정:** Simulation 단일 값은 가짜 그래프 축 대신 물리량·값·
+단위 표에 표시한다. 화면은 유효숫자로 읽되 원값은 tooltip/결과에 그대로 남긴다.
+Evaluation은 중복 단계표를 없애고 선택 단계의 원본·입출력과 계산 당시 선택 결과를
+구별한다. 기존 `test_simulation_layout.py`/`test_evaluation_window.py` 등 관련 Qt 37PASS,
+표시 교정 2PASS+1PASS. 같은 thermal 저장본에서 scalar↔field·미완성 편집/Cancel·명시
+저장, 같은 Evaluation 저장본에서 선택 단계·전달표·Cancel·저장, 별도 Python 재개를
+확인했다. 실제 series 곡선 전환은 표시용 unit 범위이며 새 thermal 계산은 하지 않았다.
+원 결과·이전 revision·원 store·Jobs 불변, 소유 프로세스 job_empty. 초기 Evaluation의
+busy 대기 하네스 실패는 원 로그에 보존한다. 같은 Astra가 다섯 파일과 최종 6PNG·
+저장/cold 근거를 읽어 scoped P1/P2 없음으로 검토했다. 전체 GUI/공학 적합성 수용은 아니다.
+근거는 `_workspace/gui-simulation-evaluation-20261019/{actual-01,actual-03,cold-01,cold-02}`와
+공개 [Simulation/Evaluation 화면](SCREEN_GUIDE_KO.md#해석에서-모델-조건과-결과-확인하기)이다.
+
 **절차:** 선언 backend/OS/profile의 편집/명시 적용 → 실행/실패/취소 → 마지막 수락 상태
 선택 → 저장/재열기를 확인한다. 전달은 source 결과/기준 메시·좌표계·단위·시각과 receiver
 경계를 고정해 mask/필수 DOF를 대조한다.

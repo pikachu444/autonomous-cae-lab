@@ -27,6 +27,51 @@
 
 ### 10월19일 이어서 실행 중인 배정
 
+#### 현재 실제 선배정 — 10월19일 사용자 재지시 이후
+
+앞 기능 완료 후 담당들이 유휴 상태였던 공백을 교정해 아래 후속을 실제 호출했다.
+아래 표가 이 절의 옛 배정표를 대체한다. 각 담당은 첫 기능을 인도한 뒤 다음 독립
+작업을 이어 준비한다. Codex가 기능별 diff·영향 검사·실제 사용자 동선을 확인해
+완료 범위와 남은 문제를 즉시 사용자에게 보고하며, 의미 있는 통합 경계에서 같은
+독립 검토자를 재사용한다. 대기나 단위검사만으로 기능 완료를 선언하지 않는다.
+
+| 실제 담당 | 단독 쓰기 범위 | 실행 중 → 후속 순서 / 완료 조건 |
+|---|---|---|
+| Codex | Core/공통 owner·API·registry·ports·adapter 접점·Workbench integration, 공개 문서·게시 | Runner 원 로그 monitor API → Report 공통 Markdown 조판 → initial/contact/RF 공통 접점. 담당 인도마다 정확 입력·저장/복구·실제 동선 확인, 기존 실패/UNKNOWN 보존 |
+| desktop_specialist | `connection_window.py`, `connection_window_items.py`, 전용 Qt tests | Workbench 선택 중심 연결/관계표·전체 배치 보존 → initial field native panel → contact pair/sliding native panel → Post 시각 동선. 후속 panel은 앞 묶음 인도 후 단독 소유. 실제 일반/좁은 창·선택/복구 확인 |
+| data_impl | `native/data_labplot/CaelabDataBridge.h`, 기존 patch0005 및 전용 native 검사 | Data 원표/채널/단위·표/곡선 배치 → Data 포함 B8.2 3-owner 저장 hook → B7.3 유한 calibration/measure/gauge/time-alignment Jacobian. 기존 값/원행/Undo/owner 보존, 같은 저장본 실제 창과 cold 확인 |
+| material_numerical_impl | `simulation_window.py`, `evaluation_window.py`, `pde_window.py` 표시 hunk와 전용 tests | Simulation 수치/곡선/장·Evaluation 단계 맥락 → PDE 선택/설정 → B6.3.L04 외부 P1 온도와 기존 3D thermal 연결. 기존 물리 엔진 재구현 없이 exact source·단위·시각·원 단계 보존 |
+| native_impl | `runner_window.py` 및 전용 Runner tests | 실제 상태/원 실행기록/원 로그·검색과 결과 형태 → B2 동적/재시작/readback의 남은 사용자 접점. 추정 진행률/ETA0, 새 Job 없는 선택/원 모델 복귀. 사용자 impact WIP는 읽기 전용 |
+| native_data_product_impl | `material_window.py`, `material_plan_panel.py`, `numerical_window.py`, `request_plan_window.py` 표시 hunk와 관련 tests | Material 계수/피팅 맥락 → Numerical DOE/Pareto 표/축/선택 → B8.2 기존 Material/DOE owner 협력. 원 값·계산/예산·실패·미완성 원문/복구 유지, 실제 같은 저장본 일반/좁은 창 확인 |
+| data_integration | `expert_window.py`, `study_window.py`, `report_window.py`, `discussion_view.py`, `research_team_panel.py` 표시 hunk와 전용 tests | Expert 질문/원문 읽기 → Study 판단/근거 → Report 편집/출력. 원 AI 본문·인용·exact ref를 고치지 않고 선택 대상/취소와 preview/PDF 공통 조판 확인. provider0 |
+| initial_state_impl / Sol-high | `initial_field_conditions.py`, 전용 `initial_field_*` adapter/native helpers·tests, `stress_state_transfer.py` | B1.4.L02 기존 후보 회수/일반 사용자 단계 보존 → B6.3.L02 exact native IP 초기응력 → B1.3.L02 실제 beam 회전/반력 모멘트/IP 간극. 공통/GUI는 별도 소유, 새 native 실행은 Codex의 구체 범위 지정 뒤 |
+| contact_product_impl / Sol-high | `contact_aster_model.py`, `contact_aster_worker.py`, `contact_aster_results.py`, `freeze_contact_aster.py`, 전용 helpers/tests | B1.5.L01/L05 hard contact/sliding → L02 cohesive/recontact → L03 다체 tie → L04/B1.6.L03 단계 연속/구속 해제 → B1.6.L01 pair 힘/모멘트. 기존 후보 저작/지원 경계·UNKNOWN 유지, 임의 사용자 이름/mesh/set/단계 보존 |
+| post_transfer_impl / Sol-high | `conservative_load_transfer.py`, `adapters/conservative_load.py`, `evaluation_load_mapping.py`, `load_transfer_inspection.py`, 전용 tests | B6.3.L03 RF/Hᵀ 회수·기존 하중 보존 → B3.3.L02/L03 multiblock/기준·현재 형상 측정 → B3.2.L03 고차 체적 비교. 새 mapper 중복0, exact frame/성분/좌표/핀·누락 판정 유지 |
+| native_cae_adviser / Astra-xhigh | 읽기 전용 primary manuals·현재 실제 입력/diagnostics | RF 물리 gate → initial/stress → P1 온도/접촉의 담당별 한정 자문. 새 solver/Pro/기준 조정0 |
+| desktop_integration_review / Astra-xhigh | 완성된 기능 묶음의 읽기 전용 통합 검토 | Codex 첫 확인 뒤 Runner/Report/Simulation-Evaluation → initial/contact/RF의 실제 통합 경계. 미완료 코드나 작은 편집마다 검토 의식0 |
+| native_delivery | 읽기 전용 잔여 접점 조사 | 기존 initial-fields/aster-hard-contact/conservative-load private 후보와 미통합 접점 전달 완료. 제품 코드 쓰기 역할 아님 |
+
+GUI foreground 실행권은 한 담당에게만 준다. 현재 Simulation/Evaluation 담당이 같은
+보존본을 확인하며 이후 Expert/Study/Report → Workbench → Data → Material/Numerical →
+Runner 순서로 준비 상태에 따라 조정한다. 각 offscreen 검사는 별도 소유 프로세스로
+병행할 수 있으나 한국어/실제 화면 인수를 대신하지 않는다. 모든 실행은 기존 native_check와
+정확 소유 프로세스 정리를 재사용한다.
+
+이 배정의 첫 인도인 Simulation/Evaluation의 단일 값 표·선택 단계 맥락은 관련 Qt
+37PASS+표시 2PASS+1PASS와 같은 저장본의 실제 일반/좁은 창·Cancel/저장·별도 Python
+재개를 Codex가 확인했다. 최종 6PNG/정확 refs·결과 불변/프로세스 정리를 같은 Astra가
+검토했고 scoped P1/P2는 없다. 실제 thermal은 scalar↔field, series 곡선은 unit 범위다.
+전체 제품 완료와 구별하며 PDE 후속과 다른 담당들의 작업은 계속한다. Expert/Study/Report는
+실제 저장/cold 기능 검사 뒤 최소 폭·미리보기 배율·독서 위치 문제가 남아 GUI 미완료다.
+
+후보 회수에서 발견한 두 상태 고정·사용자 단계/곡선 재작성·기존 하중 전체 덮어쓰기는
+범용 제품에 부적합해 그대로 통합하지 않는다. 사용자 선택 입력, 임의 이름/ID, 다른
+조건/하중/단계 보존과 편집→실행→결과→저장/재열기가 완료 조건이다. 예제 통과만으로
+이를 충족하지 않는다. 기존 완료한 thermal FE·B8.1·B8.2 첫 slice·TR-U는 재구현하지 않는다.
+B2.6.L03의 정확 .00225 checkpoint 부재와 기존 수치 FAIL은 보존한다. B8.4 외부 SSH/
+Slurm/PBS 및 B7.6 실제 장비는 필요한 호스트/접근/장비가 없어 NOT_RUN_EXTERNAL이며
+소프트웨어 대역 검사를 실제 외부 실행으로 세지 않는다.
+
 **현재 최우선: 사용자 지적에 따른 실제 GUI 교정.** 사용자는 상용 공학 앱 수준의 화면을
 요구한 기존 지시와 달리 새 변위 전달 창이 긴 폼·부자연스러운 ‘보존 변위’·3D를 밀어내는
 배치라고 거부했다. 지시 부재가 아니라 적용·검토 실패다. 기존 기능/저장/복구 검사와

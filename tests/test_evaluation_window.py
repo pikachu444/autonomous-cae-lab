@@ -12,8 +12,8 @@ import time
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QInputDialog, QLineEdit
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
 from PySide6.QtTest import QTest
 
 from apps.research.evaluation_window import EvaluationWindow
@@ -395,6 +395,52 @@ def test_partial_editor_focus_and_second_edit_preserve_unapplied_value(editor, a
     assert not client.stage_calls
 
 
+def test_selected_stage_settings_preserve_draft_tables_focus_and_owner(editor, application):
+    window, client, _ = editor
+    window.show(); application.processEvents()
+    before = deepcopy(client.document_read(window.document['id']))
+    original = deepcopy(window.edited_draft())
+    assert window.tables['stages'].isHidden()
+    assert window.stage_list.count() == 2
+    assert window.stage_ports.rowCount() > 0
+    window.stage_list.setCurrentRow(1)
+    window.stage_name.setFocus(); window.stage_name.selectAll()
+    QTest.keyClicks(window.stage_name, 'Renamed stage')
+    window.stage_name.setCursorPosition(4)
+    window._update_actions()
+    assert QApplication.focusWidget() is window.stage_name
+    assert window.stage_name.cursorPosition() == 4
+    assert window.stage_list.currentRow() == 1
+    assert window.stage_list.item(1).text() == 'Renamed stage'
+    assert window.edited_draft()['stages'][1]['name'] == 'Renamed stage'
+    assert window.edited_draft()['bindings'] == original['bindings']
+    assert window.edited_draft()['responses'] == original['responses']
+    assert window.tables['bindings'].rowCount() == 1
+    assert window.tables['responses'].rowCount() == 1
+    assert window.tables['responses'].item(0,0).background().color().alpha() == 24
+    window.stage_list.setCurrentRow(0)
+    assert window.stage_name.text() == original['stages'][0]['name']
+    assert window.tables['bindings'].item(0,0).background().color().alpha() == 24
+    assert window.edited_draft()['stages'][1]['name'] == 'Renamed stage'
+    assert client.document_read(before['id']) == before
+    assert not client.stage_calls
+    window.iteration_maximum.setText('1e'); window.iteration_maximum.textEdited.emit('1e')
+    continued = []
+    def cancel():
+        box = QApplication.activeModalWidget()
+        assert isinstance(box, QMessageBox)
+        box.button(QMessageBox.StandardButton.Cancel).click()
+    QTimer.singleShot(0, cancel)
+    window._leave(lambda: continued.append(True))
+    assert not continued and window.iteration_maximum.text() == '1e'
+    assert client.document_read(before['id']) == before
+    window.save_document(); wait(application, lambda: not window._busy)
+    reopened = client.owner.open(document_id=before['id'])
+    assert reopened['draft']['stages'][1]['name'] == 'Renamed stage'
+    assert reopened['draft']['iteration']['maximum'] == '1e'
+    assert not client.stage_calls and not reopened['runs']
+
+
 def test_display_names_preserve_raw_definition_and_frozen_attempt_meaning(editor, application):
     window, client, _ = editor
     original = window.edited_draft()
@@ -517,6 +563,12 @@ def test_stage_physical_labels_reuse_existing_names_and_keep_unknown_raw_inputs(
     assert window.channels.item(0,2).text()=='m' and window.channels.item(0,4).text()=='절점'
     assert window.channels.item(1,0).text()=='user_response'
     assert window.channels.item(1,3).data(Qt.ItemDataRole.UserRole)==['custom_x','custom_y']
+    window._put_rows(window.channels,columns,[{'name':'temperature','kind':'series','unit':'K',
+        'location':'state','value':{'retained_array':{}}}],key='channels')
+    assert window.channels.item(0,0).text() == '온도'
+    assert window.channels.item(0,0).data(Qt.ItemDataRole.UserRole) == 'temperature'
+    assert window.channels.item(0,1).text() == '이력'
+    assert window.channels.item(0,4).text() == '상태 변수'
 
 
 @pytest.mark.parametrize('target_state',['RUNNING','SUCCEEDED'])
