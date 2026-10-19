@@ -33,12 +33,15 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(native_tools, 'saved_executable', lambda key: None)
     preference_file = tmp_path / 'preferences.ini'
     monkeypatch.setattr(desktop, '_native_settings', lambda: QSettings(str(preference_file), QSettings.Format.IniFormat))
+    monkeypatch.setattr(desktop, '_choose_file', lambda *args: pytest.fail('Unexpected file picker for this installed-file fixture'))
 
 
 def installed(tmp_path, name='FreeCAD.exe'):
     path = tmp_path / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b'TEST_ONLY_NOT_AN_EXECUTABLE')
+    if os.name != 'nt':
+        path.chmod(0o755)
     return path.resolve()
 
 
