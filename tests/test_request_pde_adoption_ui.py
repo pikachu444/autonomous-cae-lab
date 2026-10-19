@@ -113,21 +113,36 @@ def test_declared_variables_actual_multiselect_dialog_keeps_model_and_bounds(app
     client = Client()
     window = setup(client)
     original = window.edited_draft()
+    errors=[]
+    deadline=time.monotonic()+5
     def select():
-        dialog = next(widget for widget in QApplication.topLevelWidgets() if isinstance(widget, QDialog) and widget.isVisible())
-        table = dialog.findChild(QTableWidget, 'declaredModelVariables')
-        assert table.rowCount() == 2
-        assert [table.item(0, col).text() for col in (2, 3, 4, 5)] == ['m2/s', '2', '1', '9']
-        assert not table.selectionModel().selectedRows()
-        table.selectRow(0)
-        # Timer refresh cannot occupy the foreground continuation in this modal.
-        window.refresh_document()
-        assert not any(call[0] == 'read' for call in client.calls)
-        dialog.accept()
-    QTimer.singleShot(50, select)
+        if time.monotonic()>=deadline:
+            timer.stop();errors.append(AssertionError('Declared variable dialog did not settle'))
+            modal=app.activeModalWidget()
+            if isinstance(modal,QDialog) and modal.parentWidget() is window:modal.reject()
+            return
+        dialog = next((widget for widget in QApplication.topLevelWidgets()
+                       if isinstance(widget,QDialog) and widget.isVisible()
+                       and widget.findChild(QTableWidget,'declaredModelVariables') is not None),None)
+        if dialog is None:return
+        timer.stop()
+        try:
+            table = dialog.findChild(QTableWidget, 'declaredModelVariables')
+            assert table.rowCount() == 2
+            assert [table.item(0, col).text() for col in (1, 2, 3, 4)] == ['m2/s', '2', '1', '9']
+            assert not table.selectionModel().selectedRows()
+            table.selectRow(0)
+            # Timer refresh cannot occupy the foreground continuation in this modal.
+            window.refresh_document()
+            assert not any(call[0] == 'read' for call in client.calls)
+            dialog.accept()
+        except BaseException as error:
+            errors.append(error);dialog.reject()
+    timer=QTimer(window);timer.setInterval(10);timer.timeout.connect(select);timer.start()
     try:
         window.choose_model_variables()
-        wait(app, lambda: window.local_dirty and not window._busy)
+        wait(app, lambda: bool(errors) or window.local_dirty and not window._busy)
+        if errors:raise errors[0]
         result = window.edited_draft()
         assert result['request']['inputs']['variables'] == [
             {key: client.descriptors[0][key] for key in ('id', 'unit', 'value', 'lower', 'upper')}]
@@ -136,6 +151,7 @@ def test_declared_variables_actual_multiselect_dialog_keeps_model_and_bounds(app
         assert result['source'] == original['source']
         assert client.calls == [('describe', deepcopy(client.target['draft']))]
     finally:
+        timer.stop()
         close(app, window, client)
 
 

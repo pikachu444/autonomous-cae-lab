@@ -8,6 +8,9 @@ from test_research_post_ui import app, window, edit, wait
 
 @pytest.mark.parametrize('size',[(1060,700),(1200,760)])
 def test_capture_editor_does_not_cover_the_native_view_controls(app,window,size):
+    window.client.document['state']['views']=[
+        {'view_id':'Vrender','type':'RenderView'},{'view_id':'Vchart','type':'XYChartView'}]
+    window.refresh_document();wait(app,lambda:not window._busy and window.view_selector.count()==3)
     window._source_ref='Sfirst'
     window.new_object('measurement')
     edit(window,('array',),'stress')
@@ -18,12 +21,15 @@ def test_capture_editor_does_not_cover_the_native_view_controls(app,window,size)
     QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
     app.processEvents();QTest.qWait(50)
     def bounds(widget):return QRect(widget.mapTo(window,QPoint(0,0)),widget.size())
-    buttons=(window.edit_button,window.preview_button,window.apply_button,window.reset_button)
-    views=(window.view_selector,window.show_applied_button,window.contact_button)
+    buttons=tuple(window.selected_toolbar.widgetForAction(action)
+                  for action in (window.preview_action,window.apply_action,window.keep_action))
     assert (window.width(),window.height())==size
-    assert window.view_selector.isVisible()
     for button in buttons:
         assert button.isVisible()
-        assert bounds(window.editor_area).contains(bounds(button))
-        assert all(not bounds(button).intersects(bounds(view)) for view in views if view.isVisible())
+        assert bounds(window.selected_toolbar).contains(bounds(button))
+        assert not bounds(button).intersects(bounds(window.editor_area))
     assert window.tabs.currentWidget().verticalScrollBar().maximum()>0
+    window.work_tabs.setCurrentIndex(1);app.processEvents()
+    assert window.view_selector.isVisible()
+    assert bounds(window.work_tabs).contains(bounds(window.view_selector))
+    assert all(not bounds(button).intersects(bounds(window.view_selector)) for button in buttons)
