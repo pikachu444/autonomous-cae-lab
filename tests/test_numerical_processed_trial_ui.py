@@ -18,7 +18,7 @@ from caelab.numerical_document import from_material_document
 def window():
     app=QApplication.instance() or QApplication([])
     model={'id':'Mmodel','input_revision':'Imodel','generation':0,'draft':default_draft()}
-    document={'id':'Nplan','session_id':'Sowner','generation':0,'title':'인장 시험 계획',
+    document={'id':'Nplan','session_id':'Sowner','generation':0,'input_revision':'Iplan','title':'인장 시험 계획',
         'draft':from_material_document(model),'runs':[],'diagnostics':[],'dirty':False}
     view=NumericalWindow(None,auto_open=False,poll_interval=0)
     view._show_document(document)

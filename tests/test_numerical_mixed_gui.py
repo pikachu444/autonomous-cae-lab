@@ -193,31 +193,33 @@ def test_unchanged_retained_poll_keeps_selection_receipt_and_legacy_combo(app):
     assert combo.currentData()=='original' and combo.count()==1
 
 
-def test_legacy_coefficient_checkbox_keeps_bool_owner_and_other_window_separate(app):
-    from apps.research.numerical_window import NumericalWindow,cell_value
+def test_coefficient_choice_keeps_bool_owner_and_other_window_separate(app):
+    from apps.research.numerical_window import NumericalWindow
     from apps.research.numerical_variable_display import refresh_frozen_material_display
     from caelab.material_document import default_draft
     from caelab.numerical_document import from_material_document
     material={'id':'Mfixture','input_revision':'Ifixture','generation':0,'draft':default_draft()}
-    document=dict(id='Nfixture',session_id='Sfixture',generation=0,title='인장 계획',
+    document=dict(id='Nfixture',session_id='Sfixture',generation=0,input_revision='Ifixture',title='인장 계획',
         draft=from_material_document(material),runs=[],diagnostics=[],dirty=False)
     left=NumericalWindow(None,auto_open=False,poll_interval=0)
     right=NumericalWindow(None,auto_open=False,poll_interval=0)
     try:
         for window in (left,right):window._show_document(deepcopy(document));refresh_frozen_material_display(window)
         assert left.material_label.text()=='선형 탄성 [MPa]'
-        assert left.variables.item(0,0).text()=='E'
-        assert left.variables.itemDelegateForColumn(0).displayText('E',None)=='탄성계수'
+        assert left.variables.item(0,0).text()=='탄성계수'
+        assert left.variable_editor.buffer_snapshot()['variables'][0]['id']=='E'
         left.show();left.variables.setCurrentCell(0,5);left.variables.setFocus();app.processEvents()
-        QTest.keyClick(left.variables,Qt.Key.Key_Space);app.processEvents()
-        assert cell_value(left.variables,0,5) is False
-        assert left.variables.item(0,5).checkState()==Qt.CheckState.Unchecked
-        assert left.variables.item(0,5).data(Qt.ItemDataRole.AccessibleTextRole)=='고정 변수'
-        assert cell_value(right.variables,0,5) is True
+        left.variables.editItem(left.variables.item(0,5));app.processEvents()
+        editor=next(widget for widget in left.variables.findChildren(QComboBox) if widget.isVisible())
+        editor.setCurrentIndex(editor.findData(False))
+        QTest.keyClick(editor,Qt.Key.Key_Tab);app.processEvents()
+        assert left.variable_editor.buffer_snapshot()['variables'][0]['free'] is False
+        assert left.variables.item(0,5).text()=='포함하지 않음'
+        assert right.variable_editor.buffer_snapshot()['variables'][0]['free'] is True
         assert document['draft']['variables'][0]['free'] is True
         assert left.edited_draft()['variables'][0]['free'] is False
-        assert left.variables.itemDelegateForColumn(6).displayText('linear',None)=='선형'
-        assert left.variables.item(0,6).text()=='linear'
+        assert left.variables.item(0,6).text()=='선형'
+        assert left.variable_editor.buffer_snapshot()['variables'][0]['transform']=='linear'
     finally:
         for window in (left,right):window._allow_close=True;window.close()
 

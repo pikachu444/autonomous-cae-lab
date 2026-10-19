@@ -636,7 +636,8 @@ class RequestPlanWindow(NumericalWindow):
             budget = 48 if action == 'search' else max(1,len(result.get('candidates',[]))) if action == 'doe' else 1
             draft = request_draft({'purpose':title,'operation':operation,'inputs':inputs,'budget':{'evaluations':budget}},source=source)
             if frozen.get('model_source'):draft['model_source']=deepcopy(frozen['model_source'])
-            self._leave(lambda:self.open_document(title=title,draft=draft))
+            QTimer.singleShot(0, lambda: self._leave(lambda: self.open_document(title=title, draft=draft))
+                              if not self._closed and relevant() else None)
         self._call(prepare,ready,relevant=relevant)
 
     def show_sobol_convergence(self):
@@ -696,7 +697,8 @@ class RequestPlanWindow(NumericalWindow):
                                  'budget':{'evaluations':1}},source=deepcopy(original.get('source')))
             if original.get('model_source'):draft['model_source']=deepcopy(original['model_source'])
             draft['method_inputs']={'surrogate':{'result_refs':{'model':reference},'points':[deepcopy(chosen['values'])]}}
-            self._leave(lambda:self.open_document(title='대리 예측 실제 확인',draft=draft))
+            QTimer.singleShot(0, lambda: self._leave(lambda: self.open_document(title='대리 예측 실제 확인', draft=draft))
+                              if not self._closed and relevant() else None)
         self._call(read_model,received,relevant=relevant)
 
     def compare_prediction(self):
