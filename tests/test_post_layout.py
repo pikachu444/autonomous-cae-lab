@@ -36,15 +36,17 @@ def test_source_browse_keeps_draft_and_blocked_object_restores_highlight(app, wi
     assert window.array_table.isVisible() and window.return_editor.isVisible() and not window.samples.isVisible()
     window.return_to_editor()
     assert window._tree_selection == ('object', 'Aretained')
+    assert window.editor_area.isVisible() and window.local_dirty
+    window.work_tabs.setCurrentIndex(1);window.output_tabs.setCurrentIndex(1);app.processEvents()
     assert window.samples.isVisible() and window.local_dirty
     assert window._sample_basis['draft'] == original
-    assert '0.25' in window.sample_context.text() and '미적용' in window.sample_context.text()
+    assert '이전 조회' in window.sample_context.text() and '0.25' in window.sample_context.toolTip()
     assert window._samples['rows'][0]['values']['stress'] == 0.0
     window.document['state']['analysis']['objects'][0]['draft']['time'] = .5
     window.local_dirty = False
     window._draft['time'] = .5
     window._update_actions()
-    assert '이전 조회' in window.sample_context.text() and '0.25' in window.sample_context.text()
+    assert '이전 조회' in window.sample_context.text() and '0.25' in window.sample_context.toolTip()
     window.document['state']['analysis']['objects'][0]['history'].append({'id': 'Vnew', 'recipe': deepcopy(original)})
     window.document['state']['analysis']['objects'][0]['position'] = 1
     window._draft = deepcopy(original); window._populate_editor()

@@ -165,12 +165,19 @@ def test_reply_from_previous_owner_does_not_move_clone_selection(selection_windo
 
 def test_choosing_another_owner_clears_old_table_without_native_selection(selection_window, monkeypatch):
     app, client, window = selection_window()
+    activations=[]
+    def absent(actual_client,identifier,**options):
+        assert actual_client is client
+        activations.append((identifier,options))
+        return {'status':'ABSENT'}
+    monkeypatch.setattr('apps.research.result_return.activate_existing',absent)
     client.document.update(id='Dclone', session_id='Sclone')
     client.documents = lambda: {'documents': [deepcopy(client.document)]}
     monkeypatch.setattr(QInputDialog, 'getItem', lambda *args, **options: (args[3][0], True))
     assert window.choose_document() is True
     wait(app, lambda: not window._busy and window.document is not None and window.document_id == 'Dclone')
     assert (window.document_id, window.session_id) == ('Dclone', 'Sclone')
+    assert activations==[('Dclone',{'session_id':'Sclone'})]
     assert window._samples is None and window._sample_basis is None
     assert window.samples.rowCount() == 0 and window.samples.columnCount() == 0
     assert client.calls == []

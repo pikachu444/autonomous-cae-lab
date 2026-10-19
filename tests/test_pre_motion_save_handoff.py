@@ -13,6 +13,7 @@ def setup():
     owner = NS(doc=NS(Name='Model'), document_id='Dmodel', session_id='Ssession', generation=1, refresh=lambda: None)
     broker = NS(stop=NS(is_set=lambda: False), registered=NS(is_set=lambda: True))
     connection = Connection.__new__(Connection)
+    connection.Gui=NS(getMainWindow=lambda:NS())
     connection.owners = {'Model': (owner, None, broker)}
     connection.panels = {'Model': {'motion': NS(widget=lambda: NS(motion_controller=controller))}}
     connection.native_requests = {}

@@ -175,7 +175,9 @@ def live(tmp_path):
     owner.motion = NS(descriptor=lambda: {}, before_design_action=lambda reason: None)
     owner.fem = NS(_pending={})
     owner.fem_descriptor = lambda: {'mesh_busy': False}
-    owner.project = NS(descriptor=lambda: {}, is_saved=lambda: False)
+    owner.project = NS(descriptor=lambda: {}, is_saved=lambda: False, last_save=None,
+                       graph_version=lambda: str(owner.generation))
+    owner.pose_candidates = NS(busy=False, descriptor=lambda: {})
     owner.Gui = NS(Selection=NS(getSelectionEx=lambda name: []), Control=NS(activeDialog=lambda: False),
                    activeDocument=lambda: NS(getInEdit=lambda: False))
     app = NS(Units=NS(Quantity=Quantity))

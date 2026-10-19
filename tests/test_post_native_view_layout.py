@@ -46,7 +46,7 @@ def layout_env(owner_workspace):
     views=[];active=[env.work.resolve('Sraw'),None];layouts=[];resets=[]
     def view(kind):
         item=SimpleNamespace(GetXMLName=lambda:kind,Representations=[],CameraPosition=[9,8,7],
-            ViewTime=.7,selected_points=[2,4]);item.SMProxy=item
+            ViewTime=.7,selected_points=[2,4],LeftAxisTitle='',BottomAxisTitle='');item.SMProxy=item
         views.append(('view'+str(len(views)),item));return item
     render=view('RenderView');raw_display=SimpleNamespace(Input=active[0],Visibility=1,ColorArrayName=['POINTS','stress'])
     render.Representations.append(raw_display);layout=Layout(render);layouts.append(layout);active[1]=render

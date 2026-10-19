@@ -335,7 +335,7 @@ def test_native_reopen_failed_spawn_releases_claim(tmp_path, monkeypatch):
         raise OSError('test executable unavailable')
     monkeypatch.setattr(desktop.subprocess, 'Popen', failed)
     args = SimpleNamespace(executable=None, prepare_only=False, research_source=None,
-        job_id=None, measurement_result=json.dumps({}), project=None, output=None)
+        job_id=None, measurement_result=json.dumps({}), project=None, output=None,input_path=None,input_id=None)
     with pytest.raises(OSError, match='test executable'):
         desktop._post(client, args)
     assert not (tmp_path / 'post.native-launch.json').exists()

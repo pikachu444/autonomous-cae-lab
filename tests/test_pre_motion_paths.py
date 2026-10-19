@@ -1,5 +1,6 @@
 """Recorded native samples through paging, Qt selection and ordinary Data save."""
 import time
+from copy import deepcopy
 from types import SimpleNamespace as NS
 
 import pytest
@@ -37,37 +38,58 @@ def test_path_pages_join_all_frames_without_crossing_traces_or_calculations():
 
 def test_native_shaped_path_save_cold_read_stale_and_failed_page_keep_original(setup):
     owner, motion, target, result, first = read_recorded(setup, count=1)
+    full = deepcopy(owner.metadata['motion_paths'][result['id']]['paths']['Tip'])
+    calls = list(owner.doc.calls)
     owner.doc.frame_error = 1
-    with pytest.raises(RuntimeError, match='native frame failure'):
-        motion.dispatch('pre.motion.path', {'calculation_id': result['id'], 'trace_id': 'Tip', 'start': 1, 'count': 2}, target)
-    assert motion.descriptor()['path']['rows'] == first['rows']
+    page = motion.dispatch('pre.motion.path', {'calculation_id': result['id'], 'trace_id': 'Tip', 'start': 1, 'count': 2}, target)
+    assert page['rows'] == full['rows'][:3] and owner.doc.calls == calls
+    with pytest.raises(ValueError, match='start must be in range'):
+        motion.dispatch('pre.motion.path', {'calculation_id': result['id'], 'trace_id': 'Tip', 'start': 4, 'count': 1}, target)
+    assert motion.descriptor()['path']['rows'] == page['rows']
     motion.before_design_action('save')
     reopened = Motion(owner); reopened._modules = native_modules(); calls = list(owner.doc.calls)
     saved = reopened.descriptor()['path_results'][0]
-    assert saved['paths']['Tip']['rows'] == first['rows'] and saved['source_status'] == 'CURRENT'
+    assert saved['paths']['Tip'] == full and saved['source_status'] == 'CURRENT'
     assert reopened.descriptor()['calculation'] is None and owner.doc.calls == calls
     owner.doc.moving.Placement.Base.x = 7; owner.generation += 1
     assert reopened.descriptor()['path_results'][0]['source_status'] == 'STALE'
-    assert reopened.descriptor()['path_results'][0]['paths']['Tip']['rows'] == first['rows']
+    assert reopened.descriptor()['path_results'][0]['paths']['Tip'] == full
     # Existing saves that only contain last_completed.path remain readable.
-    owner.metadata.pop('motion_paths'); owner.metadata['motion']['last_completed'].pop('paths')
+    owner.metadata.pop('motion_paths')
+    legacy = owner.metadata['motion']['last_completed']
+    legacy['path'] = deepcopy(first)
+    for key in ('paths', 'poses', 'replay_available'): legacy.pop(key, None)
     assert reopened.descriptor()['path_results'][0]['paths']['Tip']['rows'] == first['rows']
 
 
 def test_path_persistence_failure_keeps_exportable_buffer(setup):
     owner, motion, target, result, path = read_recorded(setup)
-    owner.write_metadata = lambda value: (_ for _ in ()).throw(ValueError('Native research metadata exceeds 8 MiB'))
-    with pytest.raises(ValueError, match='8 MiB'): motion.before_design_action('save')
-    assert motion._pending_summary['paths']['Tip']['rows'] == path['rows']
-    assert b'world_x_mm' in csv_payload(motion.descriptor()['path_results'][0]['paths']['Tip'])
+    retained = deepcopy(owner.metadata['motion_paths'])
+    write = owner.write_metadata
+    def reject_new(value):
+        if len(value.get('motion_paths', {})) > len(retained):
+            raise ValueError('Native research metadata exceeds 8 MiB')
+        write(value)
+    owner.write_metadata = reject_new
+    with pytest.raises(ValueError, match='8 MiB'):
+        motion.dispatch('pre.motion.calculate', {}, target)
+    assert owner.metadata['motion_paths'] == retained
+    assert owner.metadata['motion']['last_completed']['id'] == result['id']
+    assert owner.metadata['motion_attempts'][-1]['state'] == 'FAILED'
+    assert owner.metadata['motion_attempts'][-1]['stage'] == 'STORE'
+    assert owner.doc.moving.Placement.Base.x == 0
+    saved = motion.descriptor()['path_results'][0]['paths']['Tip']
+    assert saved == retained[result['id']]['paths']['Tip']
+    assert b'world_x_mm' in csv_payload(saved)
 
 
 def test_adopting_pose_retains_original_path_as_past_source(setup):
     owner, motion, target, result, path = read_recorded(setup)
+    full = deepcopy(owner.metadata['motion_paths'][result['id']]['paths']['Tip'])
     motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
     motion.dispatch('pre.motion.adopt_pose', {'calculation_id': result['id'], 'frame': 2}, target)
     saved = motion.descriptor()['path_results'][0]
-    assert saved['paths']['Tip']['rows'] == path['rows'] and saved['source_status'] == 'STALE'
+    assert saved['paths']['Tip'] == full and saved['source_status'] == 'STALE'
     assert motion.descriptor()['calculation'] is None
 
 
@@ -92,7 +114,7 @@ def test_qt_curve_table_pose_and_saved_selection(qt_panel, tmp_path, monkeypatch
     panel.accept_saved_editor(saved); motion.before_design_action('save')
     data = descriptor(); data['session_id'] = 'ColdPath'; widget.refresh(data)
     assert browser.current_view() == saved['editor']['path_view']
-    assert not browser.pose_button.isEnabled() and not panel._edited and not panel._joint_edited
+    assert browser.pose_button.isEnabled() and not panel._edited and not panel._joint_edited
     monkeypatch.setattr(panel.Q.QFileDialog, 'getSaveFileName', lambda *a: (str(tmp_path/'path.csv'), ''))
     browser._csv(); assert (tmp_path/'path.csv').read_bytes() == csv_payload(browser.path_value)
     widget.resize(720, 700); app.processEvents(); widget.grab()  # Actual injected Qt paint, no OS input claim.
@@ -101,9 +123,12 @@ def test_qt_curve_table_pose_and_saved_selection(qt_panel, tmp_path, monkeypatch
 def test_qt_full_read_advances_pages_without_recalculating(qt_panel):
     app, widget, panel, queued, descriptor, setup = qt_panel
     owner, motion, target, result, path = read_recorded(setup)
-    motion._calculation['frame_count'] = 401
-    motion._path_result = None; motion._pending_summary.pop('paths', None); motion._pending_summary.pop('path', None)
-    widget.refresh(descriptor()); before = len(queued)
+    descriptor_value = deepcopy(descriptor())
+    descriptor_value['motion']['calculation']['frame_count'] = 401
+    descriptor_value['motion']['path_results'] = []
+    descriptor_value['motion']['path'] = None
+    panel.read = lambda: deepcopy(descriptor_value)
+    widget.refresh(descriptor_value); before = len(queued)
     panel._read_path(all_frames=True)
     pages = []; value = None
     for start in (0, 200, 400):
@@ -111,10 +136,9 @@ def test_qt_full_read_advances_pages_without_recalculating(qt_panel):
         assert op == 'pre.motion.path' and args['start'] == start
         value = merge_path(value,
             samples(count=401, start=start, end=min(start+200, 401), calculation=result['id']))
-        descriptor_value = descriptor()
+        value['trace'] = deepcopy(path['trace'])
         descriptor_value['motion']['path_results'] = [{'id': result['id'], 'assembly_id': target['assembly_id'], 'paths': {'Tip': value}, 'source_status': 'CURRENT'}]
         descriptor_value['motion']['path'] = value
-        panel.read = lambda: descriptor_value
         done({'result': value})
     assert len(queued)-before == 3 and panel.path.rowCount() == 401
     assert panel._path_read_scope is None and '전체 경로' in panel.path_browser.notice.text()
@@ -173,6 +197,8 @@ def test_data_handoff_uploads_exact_csv_and_saved_source_reopens(tmp_path, parti
             from caelab.data_comparison import compare_data_curves
             missing_observation = dict(retained['X'], value=[.1], has_calculation_gaps=False,
                 axes=[{'name': 'nominal_time', 'unit': 's', 'values': [.25]}])
+            for key in ('segments', 'source_rows', 'raw_samples'):
+                missing_observation.pop(key, None)
             with pytest.raises(ValueError, match='exact matching'): compare_data_curves(retained['X'], missing_observation)
             import os
             os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
@@ -203,6 +229,7 @@ def test_first_path_selection_flows_through_general_connection_save(qt_panel):
     expected = browser.current_view()
     owner.document_id = 'Dnative'; owner.session_id = 'Snative'; owner.refresh = lambda: None
     connection = Connection.__new__(Connection)
+    connection.Gui=NS(getMainWindow=lambda:NS())
     connection.owners = {owner.doc.Name: (owner, None, NS(stop=NS(is_set=lambda: False), registered=NS(is_set=lambda: True)))}
     connection.panels = {owner.doc.Name: {'motion': NS(widget=lambda: widget)}}
     connection.native_requests = {}; connection.message = NS(setText=lambda text: None)
@@ -226,6 +253,7 @@ def test_connection_data_launch_failure_retries_saved_document(qt_panel, monkeyp
     app, widget, panel, queued, descriptor, setup = qt_panel
     owner, motion, target, result, path = read_recorded(setup)
     connection = Connection.__new__(Connection)
+    connection.Gui=NS(getMainWindow=lambda:NS())
     calls = []; document = {'id': 'Tpath', 'session_id': 'Sdata', 'generation': 0}
     connection.client = NS(upload=lambda name, content: calls.append(('upload', content)) or {'id': 'Dcsv'},
         document_open=lambda **kwargs: calls.append(('open', kwargs)) or document,

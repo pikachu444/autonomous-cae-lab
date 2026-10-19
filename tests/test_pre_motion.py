@@ -217,7 +217,10 @@ def test_native_construct_calculate_frames_path_save_restores(setup):
     assert owner.doc.moving.Placement.Base.x == 0
     motion.before_design_action('save')
     assert motion.descriptor()['calculation'] is None
-    assert owner.metadata['motion']['last_completed']['path'] == path
+    retained = owner.metadata['motion_paths'][result['id']]['paths']['Tip']
+    assert retained['rows'][:3] == path['rows']
+    assert [row['time'] for row in retained['rows']] == [None, 2, 2.5, 3]
+    assert retained['rows'][-1]['point'] == [13, 2, 0]
     reopened = Motion(owner)
     assert reopened.descriptor()['state'] == 'UNCOMPUTED'
     assert reopened.descriptor()['definition']['last_completed']['frame_count'] == 4

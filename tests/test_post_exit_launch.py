@@ -38,7 +38,7 @@ def test_post_exit_runtime_identity_before_native_work(
     monkeypatch.setattr(desktop, '_folder', prepared)
     monkeypatch.setattr(desktop.subprocess, 'Popen',
                         lambda *a, **k: pytest.fail('No native process may launch'))
-    client = SimpleNamespace(desktop_context=lambda: {
+    client = SimpleNamespace(url='http://127.0.0.1:18791',desktop_context=lambda: {
         'paraview_executable': str(selected), 'repo_root': str(tmp_path),
     })
     args = SimpleNamespace(executable=None, prepare_only=prepare_only, project=str(project),

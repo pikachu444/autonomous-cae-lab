@@ -45,8 +45,10 @@ def test_saved_draft_blocks_backend_execution(qt_panel, operation):
     owner, motion, target, definition = setup
     snapshot = edit_invalid(panel, setup)
     motion.dispatch('pre.motion.save_editor', {'editor': snapshot['editor']}, target)
+    arguments = {'frame': {'calculation_id': 'Kblocked', 'frame': 0},
+                 'play': {'calculation_id': 'Kblocked', 'direction': 1}}.get(operation, {})
     with pytest.raises(ValueError, match='편집을 적용하거나 취소'):
-        motion.dispatch('pre.motion.'+operation, {}, target)
+        motion.dispatch('pre.motion.'+operation, arguments, target)
     assert not any(c[0] == 'generateSimulation' for c in owner.doc.calls)
 
 
@@ -76,7 +78,7 @@ def test_cancel_saved_drafts_clears_backend_block_and_preserves_applied_definiti
     op, args, selected, done = queued[-1]; done({'result': motion.dispatch(op, args, selected)})
     assert not panel._edited and not panel._joint_edited
     assert owner.metadata['motion']['definition'] == definition
-    assert motion.dispatch('pre.motion.calculate', {}, target)['frame_count'] == 3
+    assert motion.dispatch('pre.motion.calculate', {}, target)['frame_count'] == 4
 
 
 def test_saved_editor_receipt_keeps_later_raw_edit_dirty(qt_panel):
@@ -123,6 +125,7 @@ def test_local_disconnected_save_uses_exact_owner_and_never_bypasses_execution(q
         return {'status': 'COMPLETED', 'result': motion.dispatch(request['operation'], request['arguments'], request['target'])}
     owner.dispatch = dispatch
     connection = Connection.__new__(Connection)
+    connection.Gui=NS(getMainWindow=lambda:NS())
     broker = NS(stop=NS(is_set=lambda: True), registered=NS(is_set=lambda: False))
     connection.owners = {owner.doc.Name: (owner, None, broker)}; connection.native_requests = {}
     connection.panels = {owner.doc.Name: {'motion': NS(widget=lambda: widget)}}
@@ -166,6 +169,7 @@ def test_offline_cancel_is_a_metadata_reduction_and_failure_preserves_raw(qt_pan
         return {'status': 'COMPLETED', 'result': motion.dispatch(request['operation'], request['arguments'], request['target'])}
     owner.dispatch = dispatch
     connection = Connection.__new__(Connection)
+    connection.Gui=NS(getMainWindow=lambda:NS())
     connection.native_requests = {}; connection.owners = {owner.doc.Name: (owner, None,
         NS(stop=NS(is_set=lambda: True), registered=NS(is_set=lambda: False)))}
     connection.panels = {owner.doc.Name: {'motion': NS(widget=lambda: widget)}}
@@ -179,7 +183,7 @@ def test_offline_cancel_is_a_metadata_reduction_and_failure_preserves_raw(qt_pan
         stored = owner.metadata['motion_editors'][target['assembly_id']]
         assert stored['joint_draft'] is None and stored['definition_draft'] == snapshot['editor']['definition_draft']
         panel._cancel_definition()
-        assert motion.dispatch('pre.motion.calculate', {}, target)['frame_count'] == 3
+        assert motion.dispatch('pre.motion.calculate', {}, target)['frame_count'] == 4
         assert calls == ['pre.motion.save_editor', 'pre.motion.save_editor']
     change = deepcopy(snapshot['editor']); change['definition_draft']['time']['end'] = 'another draft'
     with pytest.raises(ValueError, match='명시적 편집 취소'):
@@ -215,7 +219,8 @@ def test_unconfigured_saved_editor_is_readable_without_manual_inspect(qt_panel):
     motion.dispatch('pre.motion.save_editor', {'editor': snapshot['editor']}, target)
     data = descriptor(); data['session_id'] = 'ColdEditorOwner'; widget.refresh(data)
     assert panel.current_editor() == snapshot['editor'] and not panel.has_unsaved_editor()
-    assert '편집 (저장됨)' in panel.status.text()
+    assert '미적용 편집' in panel.status.text()
+    assert owner.metadata['motion_editors'][target['assembly_id']] == snapshot['editor']
 
 
 @pytest.mark.parametrize('field', ['joint_draft', 'definition_draft'])

@@ -100,7 +100,7 @@ def observed(tmp_path):
     app.changed = changed
     gui_docs = {doc.Name: NS(Modified=False, getInEdit=lambda: False) for doc in (a, b)}
     gui = NS(Selection=NS(getSelectionEx=lambda name: []), Control=NS(activeDialog=lambda: False),
-             activeDocument=lambda: gui_docs[a.Name], getDocument=gui_docs.__getitem__)
+             activeDocument=lambda: gui_docs[a.Name], getDocument=gui_docs.__getitem__,getMainWindow=lambda:NS())
     for doc in (a, b):
         doc.openTransaction = lambda title: None
         doc.recompute = doc.commitTransaction = doc.abortTransaction = lambda: None
@@ -188,7 +188,7 @@ def test_real_owner_reconnect_preserves_clean_or_dirty_dependency_baseline(obser
     connection = NS(pending=None, native_requests={},
         owners={row.doc.Name: (row, NS(close=row.close), None) for row in (parent, child)},
         panels={}, config={}, QtCore=NS(), log=lambda *a, **kw: None,
-        App=observed.app, client=NS(desktop_context=lambda: None),
+        App=observed.app,Gui=observed.Gui,client=NS(desktop_context=lambda: None),
         message=NS(setText=events.append), request=lambda key, call, accept: callbacks.append(accept),
         show_panel=lambda *a, **kw: pytest.fail('No panels were open'))
     Connection.reconnect(connection)
