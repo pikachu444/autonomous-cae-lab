@@ -58,9 +58,9 @@ def test_uq_actual_results_have_readable_share_of_window(study, app, dimensions)
     assert window.tabs.height() > window.centralWidget().height() / 4
     assert window.candidates.viewport().height() > 5 * window.candidates.rowHeight(0)
     assert window.candidates.item(1, 1).text() == '실패'
-    window.tabs.setCurrentWidget(window.canvas); app.processEvents()
+    window.tabs.setCurrentWidget(window.candidate_comparison_splitter); app.processEvents()
     assert window.canvas.height() > window.centralWidget().height() / 4
-    assert 'Actual UQ' in window.figure.axes[0].get_title()
+    assert window.figure.axes[0].get_title() == '유효 계산 1개 기준 / 실패 1개 제외'
     assert 'MPa' in window.figure.axes[0].get_ylabel()
 
 
@@ -68,7 +68,7 @@ def test_splitters_and_explicit_collapse_preserve_inputs_and_result_selection(st
     window, _ = study
     original = window.edited_draft()
     window.candidates.selectRow(0)
-    window.tabs.setCurrentWidget(window.canvas)
+    window.tabs.setCurrentWidget(window.candidate_comparison_splitter)
     before = window.tabs.height()
     window.study_splitter.setSizes([0, 1]); app.processEvents()
     assert window.study_splitter.sizes()[0] == 0 and window.tabs.height() > before
@@ -81,7 +81,7 @@ def test_splitters_and_explicit_collapse_preserve_inputs_and_result_selection(st
     assert window.results_panel.isHidden()
     window.inputs_panel_button.click(); app.processEvents()
     assert not window.results_panel.isHidden() and window.editor.isHidden()
-    assert window.tabs.currentWidget() is window.canvas
+    assert window.tabs.currentWidget() is window.candidate_comparison_splitter
     assert window.edited_draft() == original and window.selected_candidate() == 'C0001'
 
 
