@@ -289,6 +289,9 @@ def test_registered_user_interface_job_result_selection_and_cold_reopen(loaded_i
         selected = wb.document_result(document['id'],job,selection=dict(responses=responses))
         assert selected['responses'][responses[0]]['value'] == [12.]
         assert selected['responses'][responses[1]]['value'] == [1.]
+        navigation = wb.desktop.navigation(job)
+        assert navigation['retained_design_input_id'] == receipt['id']
+        assert navigation['origin_document']['id'] == document['id'] and navigation['post_inputs']
         document = wb.document_command(document['id'],'document.save',{},session_id=document['session_id'],expected_generation=document['generation'])['document']
         expected = canonical_hash(wb.document_result(document['id'],job,selection=dict(responses=responses)))
         jobs = len(wb.manager.list())

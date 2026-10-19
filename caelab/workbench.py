@@ -1201,13 +1201,13 @@ class Workbench:
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
             if receipt.get('kind')!='frozen_connector':raise ValueError('Select a registered connector input')
             return {'data_id':identifier,'snapshot_path':str(path)}
-        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
+        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')
             identifier=settings['data_id']
             path=self.input_path(identifier)
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
-            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
+            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.codeaster.implicit_interface':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
                                       'structure.calculix.shell':'frozen_shell', 'structure.calculix.shell.composite':'frozen_composite_shell', 'structure.calculix.beam':'frozen_beam'}[backend]:
                 raise ValueError('Select a registered frozen FEM snapshot')
             return {'data_id':identifier,'snapshot_path':str(path)}
@@ -1357,15 +1357,15 @@ class Workbench:
                     native_runtime = {'freecad_executable': executable}
             options = {'runtime': native_runtime} if native_runtime is not None else {}
             result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'),**options)
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
-                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
+                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.codeaster.implicit_interface':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
                             'structure.calculix.shell':'frozen_shell', 'structure.calculix.shell.composite':'frozen_composite_shell', 'structure.calculix.beam':'frozen_beam'}[backend]}
             publish_contact_prefix = (backend in {'structure.calculix.contact', 'structure.calculix.pretension'} and
                 result.get('partial_result',{}).get('status')=='CONVERGED_PREFIX' and
                 result.get('partial_result',{}).get('complete_analysis') is False)
             publish_shell_prefix = (backend in {'structure.calculix.shell','structure.calculix.shell.composite'} and bool(result.get('post_artifact')))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'} and (
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'} and (
                     result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix or publish_shell_prefix or
                     (backend=='structure.calculix.beam' and result.get('post_artifact') and
                      result.get('execution_status') in {'FAILED','CANCELLED'})):

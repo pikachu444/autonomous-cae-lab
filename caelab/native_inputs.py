@@ -69,6 +69,10 @@ def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
         from .adapters.contact_aster_model import validate_snapshot
         _, _, pins, _ = validate_snapshot(source)
         return [_within_root(source.parent / name, root) for name in pins], file_hash(source)
+    if kind == 'freecad-contact-frozen' and manifest.get('backend') == 'structure.codeaster.implicit_interface':
+        from .adapters.implicit_interface_aster import validate_snapshot
+        _, _, pins, _ = validate_snapshot(source)
+        return [_within_root(source.parent / name, root) for name in pins], file_hash(source)
     entries = manifest.get('files', [])
     names = [entry.get('relative') for entry in entries]
     inp = manifest.get('input_file', '')

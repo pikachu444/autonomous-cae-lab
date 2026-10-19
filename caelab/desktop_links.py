@@ -216,7 +216,7 @@ class DesktopLinks:
                   'retained_design_input_id': None}
         origin = job['arguments'].get('origin', {})
         match = None
-        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.calculix.pretension', 'explicit.opencourant.connector', 'structure.codeaster.contact', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
+        if job['arguments'].get('backend') in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.calculix.pretension', 'explicit.opencourant.connector', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
             result['retained_design_input_id'] = job['arguments']['settings'].get('data_id')
         if origin.get('kind') == 'pre':
             try:
