@@ -31,11 +31,12 @@ def demo():
 @pytest.fixture(scope='module')
 def bound(tmp_path_factory):
     from .c2_fixtures import make_workbench, make_processed_plan
-    w=make_workbench(tmp_path_factory.mktemp('bound_canonical'))
-    try:
-        b=make_processed_plan(w)
-        yield b['args']['experiments'], b['args']['frozen_inclusion']
-    finally: assert w.shutdown()['joined']
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        w=make_workbench(tmp_path_factory.mktemp('bound_canonical'),monkeypatch)
+        try:
+            b=make_processed_plan(w)
+            yield b['args']['experiments'], b['args']['frozen_inclusion']
+        finally: assert w.shutdown()['joined']
 
 
 def reseal(experiments, packet):

@@ -157,7 +157,10 @@ class MaterialPlanPanel(QWidget):
         law.addWidget(material.model,1);coefficient_layout.addLayout(law)
         self.bind_material_button=QPushButton('피팅 모델로 설정…')
         self.bind_material_button.clicked.connect(self.bind_current_material)
-        law.addWidget(self.bind_material_button)
+        if compact:
+            coefficient_layout.addWidget(self.bind_material_button,0,Qt.AlignmentFlag.AlignRight)
+        else:
+            law.addWidget(self.bind_material_button)
         self.coefficient_tabs=QTabWidget();self.coefficient_tabs.tabBar().hide()
         self.stack=QStackedWidget();self.empty=QLabel('계획을 만들거나 선택하세요.')
         self.stack.addWidget(self.empty);self.coefficient_tabs.addTab(self.stack,'시작값과 범위')

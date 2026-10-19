@@ -32,6 +32,8 @@ def host(tmp_path):
     from caelab.workbench_client import Client
     from caelab.numerical_document import from_material_document
     app = QApplication.instance() or QApplication([])
+    from apps.research.appearance import apply_appearance
+    apply_appearance(app)
     service = LabService(tmp_path)
     server = LabHTTPServer(service, 0)
     thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': .02}, daemon=True)

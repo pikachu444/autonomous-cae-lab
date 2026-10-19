@@ -17,9 +17,9 @@ from .c2_fixtures import SyntheticPoint, fit_and_detail, make_processed_plan, ma
 from .helpers import command
 
 
-def test_canonical_owner_fit_detail_holdout_saved_reader_without_recovery(tmp_path):
+def test_canonical_owner_fit_detail_holdout_saved_reader_without_recovery(tmp_path, monkeypatch):
     original = tmp_path / '원자료 보존'
-    w = make_workbench(original)
+    w = make_workbench(original, monkeypatch)
     SyntheticPoint.calls = []; SyntheticPoint.outcome = 'SUCCEEDED'
     try:
         bundle = fit_and_detail(w, make_processed_plan(w))
