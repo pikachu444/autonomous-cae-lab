@@ -109,12 +109,24 @@ def _same_source_geometry(reference_brep, current_shape):
     reference.importBrepFromString(reference_brep)
     current = current_shape.copy()
     limits = GEOMETRY_TOLERANCES.copy()
-    proof = _verify_geometry(current, reference, limits)
+    if any(shape.isNull() or not shape.isValid() for shape in (reference, current)):
+        raise ValueError('Native source geometry is invalid')
+    families = ('Solids', 'Shells', 'Faces', 'Wires', 'Edges', 'Vertexes')
+    if (reference.ShapeType != current.ShapeType or
+            any(len(getattr(reference, family)) != len(getattr(current, family)) for family in families)):
+        raise ValueError('Native source topology changed')
+    # The face-catalog helper requires one solid. Surface/line meshes have no
+    # solids, and a contact source can contain several: compare each SolidN.
+    solids = [_verify_geometry(new, old, limits)
+              for old, new in zip(reference.Solids, current.Solids)]
+    proof = {'status': 'PASS', 'method': 'Indexed native solid, face, edge and vertex geometry',
+             'tolerances': limits, 'solid_comparisons': solids}
     for old, new in zip(reference.Faces, current.Faces):
         if str(old.Orientation) != str(new.Orientation):
             raise ValueError('Native source face orientation changed')
         common = old.common(new)
-        if (common.isNull() or not common.isValid() or common.Area <= 0 or
+        if (common.isNull() or not common.isValid() or
+                not all(math.isfinite(v) and v > 0 for v in (old.Area, new.Area, common.Area)) or
                 abs(common.Area / old.Area - 1) > limits['relative'] or
                 abs(common.Area / new.Area - 1) > limits['relative']):
             raise ValueError('Native source FaceN correspondence changed')

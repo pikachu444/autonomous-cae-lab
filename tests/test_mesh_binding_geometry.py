@@ -83,8 +83,11 @@ def test_retained_brep_cannot_disagree_with_its_digest(mesh):
         observer.validate(mesh)
 
 
-@pytest.mark.parametrize('change', ['same', 'face_order', 'face_orientation', 'edge_order', 'vertex_order'])
-def test_global_equivalence_does_not_allow_subelement_remapping(monkeypatch, change):
+@pytest.mark.parametrize(('kind', 'change'), [
+    (kind, change) for kind in ('surface', 'wire', 'solid', 'compound')
+    for change in ('same', 'face_order', 'face_orientation', 'edge_order', 'vertex_order', 'topology', 'invalid')
+    if kind != 'wire' or change not in {'face_order', 'face_orientation'}])
+def test_global_equivalence_does_not_allow_subelement_remapping(monkeypatch, change, kind):
     import sys
     from caelab.adapters import freecad_face_catalog_worker as worker
     class Piece:
@@ -95,21 +98,31 @@ def test_global_equivalence_does_not_allow_subelement_remapping(monkeypatch, cha
             return NS(isNull=lambda: self.key != other.key, isValid=lambda: True,
                       Area=1.0, Length=1.0)
     def shape():
-        return NS(Faces=[Piece(1), Piece(2)], Edges=[Piece(1), Piece(2)],
+        return NS(ShapeType=kind, isNull=lambda: False, isValid=lambda: True,
+                  Solids=[NS()] * {'surface': 0, 'wire': 0, 'solid': 1, 'compound': 2}[kind],
+                  Shells=[], Wires=[], Faces=[] if kind == 'wire' else [Piece(1), Piece(2)], Edges=[Piece(1), Piece(2)],
                   Vertexes=[NS(Point=(0, 0, 0)), NS(Point=(1, 0, 0))])
     reference, current = shape(), shape()
     reference.importBrepFromString = lambda raw: None
     current.copy = lambda: current
     monkeypatch.setitem(sys.modules, 'Part', NS(Shape=lambda: reference))
-    monkeypatch.setattr(worker, '_verify_geometry', lambda *args: {'status': 'PASS'})
+    compared_solids = []
+    def verify(new, old, limits):
+        compared_solids.append((new, old))
+        assert new in current.Solids and old in reference.Solids
+        return {'status': 'PASS'}
+    monkeypatch.setattr(worker, '_verify_geometry', verify)
     if change == 'face_order': current.Faces.reverse()
     elif change == 'face_orientation': current.Faces[0].Orientation = 'Reversed'
     elif change == 'edge_order': current.Edges.reverse()
     elif change == 'vertex_order': current.Vertexes.reverse()
+    elif change == 'topology': current.Edges.append(Piece(3))
+    elif change == 'invalid': current.isValid = lambda: False
     if change == 'same':
         proof = binding._same_source_geometry('retained original', current)
         assert proof['status'] == 'PASS'
         assert proof['subelement_correspondence'] == 'SAME_FACE_EDGE_VERTEX_ORDER_AND_ORIENTATION'
+        assert len(compared_solids) == len(current.Solids)
         return
     with pytest.raises(ValueError):
         binding._same_source_geometry('retained original', current)

@@ -606,25 +606,36 @@ class ExpertWindow(QMainWindow):
 
     def _populate_roles(self, selected):
         from .expert_connection_dialog import is_example_role
+        by_id = {entry['id']: entry for entry in self._registry}
+        rows = []
+        for identifier in list(by_id) + [role for role in selected if role not in by_id]:
+            definition = by_id.get(identifier, {})
+            label = definition.get('label', definition.get('name', definition.get('title', identifier))) + (
+                ' · unavailable in registry' if identifier not in by_id else
+                ' (예제)' if is_example_role(definition) else '')
+            rows.append((identifier, label, identifier in selected))
+        current_rows = [(self.roles.item(row).data(Qt.ItemDataRole.UserRole),
+                         self.roles.item(row).text(),
+                         self.roles.item(row).checkState() == Qt.CheckState.Checked)
+                        for row in range(self.roles.count())]
+        self.registry_status.setText('No registered roles' if not by_id else '')
+        self.registry_status.setToolTip('Configure expert definitions in the existing workbench service. No role or provider response is inferred from an empty registry.')
+        self.registry_status.setVisible(not by_id)
+        # A clean poll must not replace the item under an in-progress click.
+        if rows == current_rows:
+            return
         current = self.roles.currentItem()
         current_id = current.data(Qt.ItemDataRole.UserRole) if current else None
         self._populating = True
         self.roles.clear()
-        by_id = {entry['id']: entry for entry in self._registry}
-        for identifier in list(by_id) + [role for role in selected if role not in by_id]:
-            definition = by_id.get(identifier, {})
-            item = QListWidgetItem(definition.get('label', definition.get('name', definition.get('title', identifier))) +
-                (' · unavailable in registry' if identifier not in by_id else
-                 ' (예제)' if is_example_role(definition) else ''))
+        for identifier, label, checked in rows:
+            item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, identifier)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(Qt.CheckState.Checked if identifier in selected else Qt.CheckState.Unchecked)
+            item.setCheckState(Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
             self.roles.addItem(item)
             if identifier == current_id:
                 self.roles.setCurrentItem(item)
-        self.registry_status.setText('No registered roles' if not by_id else '')
-        self.registry_status.setToolTip('Configure expert definitions in the existing workbench service. No role or provider response is inferred from an empty registry.')
-        self.registry_status.setVisible(not by_id)
         self._populating = False
 
     def _show_document(self, document, *, preserve_buffer=False):
