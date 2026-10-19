@@ -535,12 +535,16 @@ def test_background_read_preserves_typed_edit_then_stale_conflict(app, workbench
 
 def test_request_chooser_uses_envelope_filters_material_bound_plans(app, workbench, monkeypatch):
     window = opened(app, workbench)
-    other = workbench.document_open(kind='numerical', title='Exact request target', draft=valid_request())
+    draft = valid_request()
+    draft['request']['purpose'] = '보완한 압력 비교 ' + '재료·구속·자중 유지 ' * 80
+    other = workbench.document_open(kind='numerical', title='Exact request target', draft=draft)
     workbench.document_open(kind='numerical', title='Material-bound other editor')
     monkeypatch.setattr(window, '_leave', lambda callback: callback())
     def choose(parent, title, label, choices, **kwargs):
         assert not any('Material-bound' in item for item in choices)
-        return next(item for item in choices if other['id'] in item), True
+        assert not any(other['id'] in item for item in choices)
+        assert max(parent.fontMetrics().horizontalAdvance(item) for item in choices) < 700
+        return next(item for item in choices if '보완한 압력 비교' in item), True
     monkeypatch.setattr(QInputDialog, 'getItem', choose)
     window.choose_document()
     wait(app, lambda: not window._busy and window.document['id'] == other['id'])

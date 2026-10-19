@@ -3006,11 +3006,14 @@ class RequestPlanWindow(NumericalWindow):
         def choose():
             def listed(payload):
                 documents = [doc for doc in payload['documents'] if doc.get('kind') == 'numerical' and doc.get('draft', {}).get('mode') == 'request']
-                labels = [f"{doc['title']} · {doc['id']}" for doc in documents]
+                width = min(640, max(240, self.width() - 180))
+                labels = [str(index + 1) + '. ' + self.fontMetrics().elidedText(
+                    doc['draft']['request'].get('purpose') or doc['title'], Qt.TextElideMode.ElideRight, width)
+                    for index, doc in enumerate(documents)]
                 if not labels:
-                    self.message.setText('No request Plans are available; Material-bound Plans use their own editor.')
+                    self.message.setText('저장한 계산 계획이 없습니다.')
                     return
-                label, accepted = QInputDialog.getItem(self, 'Open request Plan', 'Document', labels, editable=False)
+                label, accepted = QInputDialog.getItem(self, '계산 계획 열기', '저장한 계획', labels, editable=False)
                 if accepted:
                     self.open_document(document_id=documents[labels.index(label)]['id'])
             self._call(self.client.documents, listed)

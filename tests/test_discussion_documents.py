@@ -149,6 +149,17 @@ def test_failed_provider_retains_question_and_stops_round(runtime_owner):
     resumed = command(owner, failed, 'expert.resume')['document']
     command(owner, resumed, 'expert.advance')
     assert len(manager.list()) == 1  # failure is never silently retried or delegated to next role
+    runtime.failure = False
+    next_question = deepcopy(resumed['draft'])
+    next_question['composer']['text'] = 'Continue with the previous failed response and its actual reason'
+    updated = command(owner, resumed, 'expert.update', {'draft': next_question})['document']
+    followup = command(owner, updated, 'expert.ask')
+    terminal(manager, followup['job']['id'])
+    history = runtime.calls[-1]['context']['discussion']['turns']
+    previous = next(turn for turn in history if turn['id'] == failed['turns'][1]['id'])
+    assert previous['failure'] == {'reason': 'CONTROLLED PROVIDER FAILURE'}
+    assert previous['text'] is None and previous['classification'] == 'expert_reply'
+    assert owner.read(document['id'])['turns'][1] == failed['turns'][1]
 
 
 def test_round_idempotency_stale_commands_and_registered_roles(runtime_owner):
