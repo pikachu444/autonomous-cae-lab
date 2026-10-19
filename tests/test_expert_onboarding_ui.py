@@ -1,4 +1,4 @@
-"""Actual Windows Qt/current HTTP/Knowledge ingest. No model/provider/native run.
+"""Actual Qt/current HTTP/Knowledge ingest. No model/provider/native run.
 
 Uses only a temporary operator config/store and explicitly fake installation
 files. It does not establish readiness of the user's real default settings.
@@ -28,7 +28,6 @@ CUSTOM={'id':'custom','label':'사용자 시험 검토','instructions':'사용�
 
 def app():
     value=QApplication.instance() or QApplication([])
-    assert value.platformName()=='windows'
     apply_appearance(value)
     return value
 

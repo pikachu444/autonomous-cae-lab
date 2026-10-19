@@ -173,7 +173,8 @@ def test_transport_guards_and_json_path_injection(tmp_path, monkeypatch):
         client.request("/api/native-import?path=C%3A%2Foutside.FCStd", raw,
                        headers={"Content-Type": "application/octet-stream"}, expected=400)
         client.request("/api/jobs", {"operation": "native_import", "arguments": {"source": "C:/outside.FCStd"}}, expected=400)
-        client.request("/api/jobs", b" " * (128 * 1024 + 1), expected=413)
+        for size in (128 * 1024 + 1, 256 * 1024, 1024 * 1024) * 3:
+            client.request("/api/jobs", b" " * size, expected=413)
     assert calls == [] and not (service._selected().path / "native_imports").exists()
 
 

@@ -94,7 +94,7 @@ jobs:
           print(f"PySide6 {PySide6.__version__}; Qt {QtCore.qVersion()}; "
                 f"platform={app.platformName()}; offscreen widget/event loop OK")
           PY
-      - run: python -m pytest -q
+      - run: python -m pytest -q -x -o faulthandler_timeout=120
       - name: Check forms, imported meshes and retained PDE/contact fields
         run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_native_structural_field.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
       - run: python scripts/verify_mcp.py

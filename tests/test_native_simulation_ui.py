@@ -30,14 +30,16 @@ class Client:
         self.value['generation']+=1
         if operation.endswith('.update'):self.value['draft']=deepcopy(arguments['draft'])
         if operation=='document.save':self.value['dirty']=False
-        return {'document':deepcopy(self.value)}
+        return {'document':deepcopy(self.value),'command_id':options['command_id']}
     def document_read(self,id):return deepcopy(self.value)
 
 
 class DisplayWindow(module.SimulationWindow):
-    # Domain admission is separately owned and still being integrated. These
+    # Domain admission and native runtime discovery are tested separately. These
     # doubles isolate visible commands, never certify a backend or native input.
     model_diagnostics=staticmethod(lambda draft:[])
+    _execution_environment=staticmethod(lambda: {
+        'blocked': False, 'label': 'TEST_ONLY', 'message': 'Controlled transport; no native runtime.'})
 
 
 @pytest.fixture
