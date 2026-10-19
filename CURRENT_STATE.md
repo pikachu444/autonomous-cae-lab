@@ -7,6 +7,69 @@
 
 ## 현재 목표와 작업 방식
 
+### 세션 마감과 새 세션 재개 — 2026-10-19 최신 사용자 지시
+
+사용자가 ‘작업 일단 마무리하고 저장소에 반영, 새 세션에서 작업’하라고 지시했다.
+이번 세션의 구현·native 실행은 종료한다. 아래 담당표는 이전 소유 경계와 인도 순서이며
+계속 실행 중이라는 뜻이 아니다. 새 세션은 이 절에서 재개하고 옛 대화·회차 전체를
+다시 감사하거나 기존 해석을 전수 재실행하지 않는다.
+
+- 검증된 게시 기준: `main`의 `6c77dcb`까지. Material 공통 단회 평가는 `5b4be22`,
+  공식 MCalibration 배치를 따른 실제 GUI/저장·재열기는 `06a943e`다. 사용자는 새
+  화면이 훨씬 낫다고 확인하고, 모르면 검증된 프로그램의 방식을 구체적으로 따라
+  구현하라는 지시를 재확인했다. 이 피드백은 제품 전체 완료나 새 피팅의 검증이 아니다.
+- **미완료 소스 재개 브랜치: `codex/session-handoff-20261019`.** 이 브랜치에는 아래
+  기존 구현·전용 검사·공통 연결을 WIP checkpoint로 함께 보존한다. 해당 브랜치의
+  CURRENT_STATE와 소스를 기준으로 이어가며, 아직 main에 병합하지 않는다.
+  main에는 마감 안내를 남긴다. 새 세션에서 main의 옛 코드로 미반영 소스를 재작성하지 않는다.
+- 제품 목표: 지원 범위의 사용자 모델·자료로 입력/편집→실행/오류→결과→저장/재열기를
+  끝내는 범용 독립 공학 데스크톱 제품이다. 예제의 고정 이름·경로·결과를 필수 입력으로
+  만들지 않는다. 후속 연결 확장보다 독립 도구의 남은 사용 결함을 먼저 마친다.
+- 사용자 파일은 공개 checkpoint에서 제외하고 로컬 원본을 보존한다:
+  `.codex-remote-attachments/`, `caelab/impact_continuation.py`,
+  `tests/test_impact_continuation.py`, `docs/images/manual/evaluation-case02-draft.png`.
+  `runs/`, `_workspace/`, 설치 runtime·실제 CAD/결과도 공개 커밋 대상이 아니다.
+  아래 로컬 근거가 다른 PC에도 있다고 가정하지 않는다.
+- 마감 시 모든 담당의 실행은 종료됐고 owned GUI/native 프로세스는 정리됐다.
+  실행권을 가진 담당은 없다. 새 세션이 실제 GUI 검사 하나에만 실행권을 배정한다.
+  마감 검사에서는 소스 Python 구문과 공개 경로·의존을 확인했으며 새 solver/GUI/
+  provider·전체 suite는 실행하지 않았다. 아래 기존 PASS와 원 FAIL을 구별한다.
+  일반 소스 diffcheck는 통과했다. patch0005의 diffcheck 경고는 패치 파일 안의
+  `공백+탭`/빈 context 행이며 원 패치 문법을 보존했다. 자격증명 패턴은 발견하지 않았다.
+  문법·스캔 통과를 동작/물리 인수로 쓰지 않는다.
+
+#### checkpoint의 인도 범위와 바로 다음 행동
+
+| 묶음/기존 소유자 | 보존한 구현과 기존 근거 | 미완료 및 재개할 첫 행동 |
+|---|---|---|
+| Material / desktop_specialist, Core는 Codex | main 게시 완료. 정상/좁은 실제 창, 선택 시험 단회 계산·관련 저장·별도 프로세스 cold06. 공식 기준 이미지와 우리 실제 이미지는 구별 | 새 피팅→후보 검토→명시 계수 채택 성공의 실제 사용 확인은 남음. 현재/시작/최종 계수와 이전 결과 출처 보존. 새 전체 수치 캠페인은 자동 시작하지 않음 |
+| PDE/Simulation / material_numerical_impl, 저장 공통은 Codex | 정확한 요청 ID의 저장 복구·편집/닫기 보호 구현. `recovery-actual-01/actual.json`에 원 저장/동일 ID 확인 모두 HTTP30초 초과 FAIL. 완료 영수증은 디스크에 남고 원 저장본·결과16파일 보존, 새 계산0 | Codex가 기존 저장/영수증 구간과 실제 driver의 이벤트 양보를 먼저 좁힘. 같은 프로세스의 QTest 대기가 HTTP thread를 막았던 기존 사례도 구별하며 성능 원인을 단정하지 않음. 추가 ID·timeout 증가·새 계산으로 덮지 않음. 복구/cold 미인수 |
+| Data / data_impl | Bridge/Settings/patch0005/checker 4파일. 후보07 build·package 검증 PASS, 실제 GUI0. 기본 설치는 rollback한 runtime10 유지 | 후보07의 기존 `check_summary_windows.py --clean-runtime --unit-layout`으로 원단위 반례와 열 순서/폭 Save→별도 process reopen 확인 후 설치 여부 판단 |
+| Runner / native_impl, monitor API는 Codex | `job_monitor.py`와 API/Client/route, Runner 검색/로그/결과 표시, 동해석 재열기 목록 갱신. 영향83PASS와 최종4/5PASS는 중복 합산하지 않음. actual04는 원로그2258bytes·native108파일 불변, Jobs1→1, cleanup 완료 | 실제04는 `runs/runner-monitor-20261019-04/cold-result.json`. 전체 UTF8 경계 actual과 `verifyall` 경로 한계, 기존 응력 FAIL/IP UNKNOWN 보존. 동해석의 실제 재열기 확인·사용법/최종 게시 범위 마무리 |
+| Initial / initial_state_impl, GUI는 desktop_specialist, common은 Codex | initial_field_conditions·stress_state_transfer·native/adapter helpers/전용 tests와 FEM/Connection 저장·종료 연결. 원 후보 작성자 dynamic_reprocess_gui의 구현을 회수·교정. 전용34PASS/HTTP저장3PASS와 실제03의 응력6성분·온도 편집 기능 근거 | 실제03 overlay/종료 복원 FAIL 미해결. `_workspace/initial-fields-delivery/ui-native-author-03/user-initial-raw.caepre`와 기존 cold_case.py/cold.FCMacro만으로 다음 좁은 cold 확인. 전체 author 반복·새 solver0. TR-S 공개 명령/수신 재평형 미완료, beam 원 관측 producer 없음 |
+| Hard/CZM / contact_product_impl, common은 Codex | contact_aster 전용5파일·implicit_interface 전용8파일과 native registry/입력/UI 공통 연결 후보. 기존 controlled/단위 검사와 Connection·Qt 입력보기2PASS | 실제 Hard cold mesh association FAIL(저장 UNV 요소ID와 binding 차이), 실제 Hard/CZM solver NOT_RUN. CZM registry/typed dispatch/GUI와 총 증분 상한 미완료. guard/실패를 유지하고 독립 해석 지원 범위부터 이어감 |
+| Post/RF/volume / post_transfer_impl, owner 공통은 Codex | Post block/현재 형상/측정 helpers, conservative_load_transfer/adapters/evaluation/load inspection/volume mapping과 tests. RF30PASS, 실VTK49PASS+선택1PASS, volume28PASS는 다른 범위 | 실제 ParaView 원 leaf 선택/저장/재열기 인수, RF 공개 제출·catalog/owner cold, volume 공통 비교 연결 미완료. 곡면 역변환/공학 qualification UNKNOWN, 기존 원 결과·실패 보존 |
+| Expert/Study/Report / data_integration, 공통 조판은 Codex | 읽기/선택·취소·원문/인용 보존, Markdown preview/PDF 공통화, Study 조작 배치·Report 너비 맞춤·읽던 위치 유지. 기존 관련36PASS/선택1SKIP와 앞 실제 기능 흐름은 분리 | 마지막 공통 시각 교정 뒤 정상/좁은 실제 화면 확인 남음. 기존 tests/test_expert_study_report_ui.py의 retained flow/render 경로를 사용하고 provider0. 원 AI 본문이나 근거를 새로 생성하지 않음 |
+| Thermal/전달 common / Codex | temperature_receiver_3d와 기존 field ports·source inspection·temperature GUI 연결 후보를 checkpoint에 보존 | 기존 두 영역 열·점탄성 곡률 기준 FAIL/물리 UNKNOWN 유지. 후보 코드를 새 수치 성공으로 취급하지 않고 기존 owner/명령·지원 범위를 확인한 뒤 필요한 접점만 이어감 |
+
+Data 후보07은 `_workspace/data-companion-owner-20261018/workspace-visual-package-07`,
+exe `AAD5720834EF513755C2ED054B46E9458ABE19A9FDAB8F1E84B99DF4F443B0FC`,
+manifest `5921AEE51CFE63DEB3583C05A5311210255149D0179ACE8A238C36D6CBF4AC9D`다.
+기본 runtime pointer는 `%LOCALAPPDATA%/AutonomousCAELab/data-runtime/current.json`의
+runtime10 `dae0c2996cb60d924c6389f6`이며 후보07을 설치한 상태가 아니다.
+PDE 근거는 `_workspace/gui-pde-context-20261019/recovery-actual-01/actual.json` 및
+`recovery-windows-01/native-check.json`이다. Material 최종 근거는
+`_workspace/material-numerical-ux-20261019/material-reference-cold-06/`이며 공개 실제 화면은
+`docs/images/manual/material.png`, `material-evaluation.png`다.
+고정 submodule은 `3e48bf6138f495299f45b1af254bfb4aaff307b8` 그대로다.
+
+새 세션은 checkpoint 브랜치·로컬 사용자 파일·이 절의 실패/소유 경계를 먼저 확인한다.
+재개가 지시되면 **Codex의 PDE 저장/영수증 지연 원인 확인**을 먼저 하고, 독립적으로
+**Data07의 한정 actual/cold**와 **Material 새 피팅/명시 채택 사용 확인**을 각 기존 담당에
+배정한다. GUI는 직렬, 공통 파일 쓰기는 Codex 한 명이다. 초기조건 overlay, Runner/연구
+도구 마감과 Post actual은 위 근거에서 이어가며 새 전체 감사·예제 캠페인을 만들지 않는다.
+원격 미게시·인수 미완료를 완료로 바꾸지 말고 확인한 묶음만 main에 통합한다.
+
 ### 최신 사용자 피드백 — Material 단독 작업과 화면 재설계 (2026-10-19)
 
 사용자는 뒤이어 제시한 MCalibration 공식 Quick Tutorial 12쪽의 실제 화면을 선호하고
