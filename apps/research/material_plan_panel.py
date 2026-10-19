@@ -846,7 +846,9 @@ class MaterialPlanPanel(QWidget):
                 signature=candidate_signature
                 role='별도 확인' if curve.get('role')=='holdout' else '피팅'
                 pair=plot_fit_trial(figure,result,curve,show_residual=self.material.curve_view.currentData(),
-                    axes_pair=pair,observation_label='관측 ('+role+')',prediction_label='최종 예측 ('+role+')')
+                    axes_pair=pair,observation_label='관측 ('+role+')',
+                    prediction_label='최종 예측 ('+role+')' if result.get('execution_status')=='SUCCEEDED'
+                    and curve.get('execution_status')=='SUCCEEDED' else None)
             prediction_ax,residual_ax=pair
             name=self._source_titles.get(frozen['source'].get('document_id'),'시험 '+str(row+1))
             stale=run.get('draft')!=document['draft']

@@ -167,9 +167,10 @@ def test_trial_plot_uses_frozen_input_and_clears_failed_or_other_plan(host):
     panel._trial_results[(identifier,'Jretained')]=dict(kind='fit',execution_status='SUCCEEDED',curves=[dict(experiment_id='Test1',role='fit',execution_status='SUCCEEDED',
         observations=dict(unit='MPa',axes=[dict(name='time',unit='s',values=[0,1])],value=[0,2]),prediction=[0,2],mask=[True,True])])
     panel._selected()
-    title=material.figure.axes[0].get_title()
-    assert '이전 계획 입력' in title and 'original.csv' in title and '피팅' in title
-    assert 'changed.csv' not in title and '별도 확인' not in title
+    context=material.curve_context.text()
+    assert '이전 계획 입력' in context and '피팅' in context
+    assert 'original.csv' in material.curve_context.toolTip()
+    assert 'changed.csv' not in material.curve_context.toolTip() and '별도 확인' not in context
     panel._documents[identifier]['runs'].append(dict(job_id='Jfailed',input_revision='Ifailed',input_sha256='b'*64,draft=deepcopy(document['draft'])))
     panel._trial_results[(identifier,'Jfailed')]=dict(execution_status='FAILED',error='Retained failure fixture')
     panel.show_trial(force=True)
@@ -200,6 +201,7 @@ def test_selecting_another_material_keeps_its_actual_variable_ids(host, monkeypa
 def test_trial_failure_cancelled_partial_and_segment_gaps_are_visible(host):
     """Controlled retained output tests UI meaning, never substitute physics."""
     app,client,material,panel,plans=host
+    material.curve_view.setCurrentIndex(material.curve_view.findData(True))
     identifier=panel.plans.currentData()
     document=deepcopy(panel._documents[identifier])
     trial=dict(id='Test1',role='fit',source=dict(document_id='Toriginal',job_id='Joriginal',response='stress'),
@@ -217,14 +219,14 @@ def test_trial_failure_cancelled_partial_and_segment_gaps_are_visible(host):
         panel._drawn_trial=None;panel._selected()
         top,bottom=material.figure.axes
         if overall=='FAILED':
-            assert '실패' in top.get_title() and 'Retained trial failure' in panel.message.text()
+            assert '실패' in panel.message.text() and 'Retained trial failure' in panel.message.text()
             assert not any(line.get_label()=='최종 예측' for line in top.lines)
         elif overall=='CANCELLED':
-            assert '취소' in top.get_title()
+            assert '취소' in panel.message.text()
             assert any(line.get_label()=='보존한 부분 예측' for line in top.lines)
             assert not any(line.get_label()=='최종 예측' for line in top.lines)
         else:
-            assert any(line.get_label()=='최종 예측' for line in top.lines)
+            assert any(line.get_label().startswith('최종 예측') for line in top.lines)
         assert all(list(line.get_xdata()) in ([0,1],[4,5]) for line in top.lines)
         if prediction:
             assert [list(line.get_xdata()) for line in bottom.lines[:2]]==[[0,1],[4,5]]
@@ -365,6 +367,7 @@ def test_public_trials_material_same_plan_felupe_adopt_and_new_process(tmp_path,
         numerical.refresh_document();wait_live(app,lambda:not numerical._busy)
         numerical.save_document();wait_live(app,lambda:not numerical._busy and not numerical.document['dirty'])
         panel.refresh_plans();wait_live(app,lambda:not panel._busy and panel._drawn_trial is not None)
+        material.curve_view.setCurrentIndex(material.curve_view.findData(True))
         assert len(material.figure.axes)==2
         assert len(material.figure.axes[0].lines)==2
         title=material.figure.axes[0].get_title();selection=panel.trials.currentRow()

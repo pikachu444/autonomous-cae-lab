@@ -44,7 +44,7 @@ def test_unknown_robust_and_underdetermined_null_direction_no_evaluation():
     a['observations'].update(source_rows=[1,3,5],source_column_identity=2,mapping={'column':'force'})
     b=deepcopy(a);b.update(id='recalibrated',role='holdout')
     b['observations']['mapping']['column']=2
-    with pytest.raises(ValueError,match='같은 원본'):require_independent_rows([a,b])
+    with pytest.raises(ValueError,match='RAW_CONTRIBUTOR_OVERLAP'):require_independent_rows([a,b])
 
 
 def test_event_scalar_diagnosis_uses_the_retained_mask_without_len_scalar():
@@ -64,15 +64,16 @@ def test_observation_job_keeps_raw_identity_for_holdout_check(tmp_path,monkeypat
     try:
         _,job,_,_=imported(wb)
         captured=[]
-        def inspected(backend,**args):
-            captured.extend(deepcopy(args['experiments']))
-            require_independent_rows(args['experiments'])
-            raise AssertionError('same raw rows must not pass the holdout boundary')
-        monkeypatch.setattr(numerical,'fit_model',inspected)
+        def inspected(experiments):
+            captured.extend(deepcopy(experiments))
+            return require_independent_rows(experiments)
+        monkeypatch.setattr('caelab.identification.require_independent_rows',inspected)
+        monkeypatch.setattr(numerical,'fit_model',lambda *a,**kw:
+                            pytest.fail('Overlapping rows reached the fitting engine'))
         experiments=[{'id':role,'role':role,'response':'force','observation_job':job,
             'observation_response':'force','settings':{},'weight':1.,'scale':1.}
             for role in ('fit','holdout')]
-        with pytest.raises(ValueError,match='같은 원본'):
+        with pytest.raises(ValueError,match='RAW_CONTRIBUTOR_OVERLAP'):
             wb._execute('fit',{'backend':'material.felupe','experiments':experiments},'Jread_binding')
         assert len(captured)==2 and captured[0]['observation_source']['job_id']==job
         assert captured[0]['observation_source']['source_sha256']
@@ -81,12 +82,12 @@ def test_observation_job_keeps_raw_identity_for_holdout_check(tmp_path,monkeypat
 
 def test_disjoint_fit_holdout_masks_on_same_raw_rows_are_independent():
     base={'id':'fit','role':'fit','observation_source':{'source_sha256':'a'*64},
-        'observations':{'source_column_identity':1,'source_rows':[1,2],'value':[2.,3.]},
+        'observations':{'kind':'series','source_column_identity':1,'source_rows':[1,2],'value':[2.,3.]},
         '_mask':np.array([True,False])}
     held=deepcopy(base);held.update(id='holdout',role='holdout',_mask=np.array([False,True]))
     require_independent_rows([base,held])
     held['_mask']=np.array([True,False])
-    with pytest.raises(ValueError,match='같은 원본'):require_independent_rows([base,held])
+    with pytest.raises(ValueError,match='RAW_CONTRIBUTOR_OVERLAP'):require_independent_rows([base,held])
     del held['_mask'];held['mask']=[False,True]
     held['observations']['raw_samples']={'display_visible':[False,False]}
     require_independent_rows([base,held])  # Hiding is unrelated to calculation selection.

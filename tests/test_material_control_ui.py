@@ -152,6 +152,8 @@ def test_stress_targets_visible_and_prefix_failure_is_distinct(owners, values):
         'axes': [{'name': 'time', 'unit': 's', 'values': [float(i) for i in range(len(values))]}], 'partial': True, 'valid': False}},
         'diagnostics': {'fixture': 'Retained accepted prefix, no physics qualification'}}
     first._populate_runs(prefer_job='Jfixture')
+    first._active_result_view = 'material'
+    first.response.setCurrentIndex(first.response.findData('stress_xx'))
     first._draw_results()
     if values:
         assert len(first.axes.lines) == 1

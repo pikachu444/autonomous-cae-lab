@@ -8,6 +8,7 @@ class RawEditorFocusGuard(QObject):
     def __init__(self, roots):
         super().__init__()
         self._editors = []
+        self._positions = {}
         self._active = False
         self._focus = QApplication.focusWidget()
         self.protect_current(roots)
@@ -21,6 +22,10 @@ class RawEditorFocusGuard(QObject):
                     added.extend(editor for editor in table.findChildren(kind)
                                  if editor.isVisible() and editor not in self._editors and editor not in added)
         self._editors.extend(added)
+        for editor in added:
+            if isinstance(editor, QLineEdit):
+                self._positions[editor] = (editor.text(), editor.cursorPosition(),
+                                           editor.selectionStart(), editor.selectionLength())
         if self._active:
             for editor in added: editor.installEventFilter(self)
         if restore_focus:
@@ -41,6 +46,16 @@ class RawEditorFocusGuard(QObject):
         self._active=False
         for editor in self._editors:
             if isValid(editor): editor.removeEventFilter(self)
+        self.restore_focus()
+
+    def restore_focus(self):
         if self._focus is not None and isValid(self._focus) and self._focus.isVisible():
             self._focus.window().activateWindow()
             self._focus.setFocus()
+        for editor, (text, cursor, start, count) in self._positions.items():
+            if not isValid(editor) or editor.text() != text:
+                continue
+            if count:
+                editor.setSelection(start + count, -count) if cursor == start else editor.setSelection(start, count)
+            else:
+                editor.setCursorPosition(cursor)

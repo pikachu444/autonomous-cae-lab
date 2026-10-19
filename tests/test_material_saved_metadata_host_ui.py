@@ -85,7 +85,7 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
             if errors:raise errors[0]
             if ready():return
             time.sleep(.01)
-        raise AssertionError('Pending-cell saved-metadata recovery did not settle')
+        raise AssertionError('Pending-cell saved-metadata recovery did not settle: '+window.message.text())
     def later(kind,action):
         def find():
             dialog=next((d for d in app.topLevelWidgets() if isinstance(d,kind) and d.isVisible()),None)
@@ -115,6 +115,8 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
         later(RelatedSaveDialog,save);assert panel.save_related()
         receipt_id=panel._related_save_receipts[plan['id']]
         widget.table.item(0,2).setText('2e')
+        panel.coefficient_mode.setCurrentIndex(0)
+        window.input_tabs.setCurrentIndex(0); app.processEvents()
         item=window.coefficients.item(0,1);window.coefficients.setCurrentItem(item);window.coefficients.editItem(item);app.processEvents()
         line=next(e for e in window.coefficients.findChildren(QLineEdit) if e.isVisible())
         line.setText('1e3');line.setSelection(2,-2)

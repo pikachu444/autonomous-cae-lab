@@ -188,10 +188,14 @@ def test_service_data_fit_doe_adoption_retention_and_undo(tmp_path):
         assert {curve['role'] for curve in result['curves']}=={'fit','holdout'}
         assert not material_doc['runs']
         candidate=min((r for r in result['candidates'] if r['execution_status']=='SUCCEEDED'),key=lambda r:r['objective'])
-        adopted=wb.desktop.adopt(plan_doc['id'],submitted['job']['id'],candidate['candidate_id'],material_document_id=material_doc['id'],session_id=material_doc['session_id'],expected_generation=0,command_id='Cadopt')['document']
+        from caelab.numerical_candidate_evidence import CAPTURE, SUCCESS
+        view=wb.numerical_candidate_detail(plan_doc['id'],submitted['job']['id'],candidate['candidate_id'])
+        evidence=command(wb.document_read(plan_doc['id']),CAPTURE,dict(source=view['source'],
+            candidate_id=candidate['candidate_id'],attempt_job_id=view['attempt_job_id'],purpose=SUCCESS))['reference']
+        adopted=wb.desktop.adopt(plan_doc['id'],submitted['job']['id'],candidate['candidate_id'],material_document_id=material_doc['id'],session_id=material_doc['session_id'],expected_generation=0,command_id='Cadopt',detail_evidence=evidence)['document']
         assert adopted['generation']==1 and adopted['draft']['settings']['parameters']['E']==pytest.approx(1000,rel=1e-6)
         retained_plan_revision=wb.document_read(plan_doc['id'])['saved_revision']
-        assert wb.desktop.adopt(plan_doc['id'],submitted['job']['id'],candidate['candidate_id'],material_document_id=material_doc['id'],session_id=material_doc['session_id'],expected_generation=0,command_id='Cadopt')['document']['generation']==1
+        assert wb.desktop.adopt(plan_doc['id'],submitted['job']['id'],candidate['candidate_id'],material_document_id=material_doc['id'],session_id=material_doc['session_id'],expected_generation=0,command_id='Cadopt',detail_evidence=evidence)['document']['generation']==1
         assert wb.document_read(plan_doc['id'])['saved_revision']==retained_plan_revision
         undone=command(adopted,'document.undo')['document']
         assert undone['draft']==material_doc['draft']

@@ -131,13 +131,15 @@ def install(monkeypatch=None):
             except (OSError,ValueError,RuntimeError) as error:
                 issues.append({'source_ref':ref,'input_id':record.get('input_id'),'reader_name':record['reader_name'],'message':str(error)})
         return issues
-    def verify_analysis_files(document):
+    def verify_analysis_files(document, *, allow_missing=False, project_path=None):
+        assert not allow_missing
         for obj in document.get('analysis',{}).get('objects',{}).values():
             for revision in obj.get('history',[]):
                 for record in revision.get('result_files',[]):
                     file=Path(record['path'])
                     if not file.is_file() or file.stat().st_size!=record['bytes'] or commands.sha(file)!=record['sha256']:
                         raise ValueError('Retained analysis result changed')
+        return []
     def partial_state(*args,**kwargs):raise AssertionError('Native PVSM repair is not part of this proxy double')
     repair.source_issues=source_issues;repair.verify_analysis_files=verify_analysis_files;repair.partial_state=partial_state
     put('apps.desktop_post.source_repair',repair)

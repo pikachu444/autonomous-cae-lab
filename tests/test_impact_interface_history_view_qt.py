@@ -1,4 +1,4 @@
-"""Retained real interface audits rendered through Qt, with read-only gap checks."""
+"""Synthetic observer output rendered through Qt; no native solver claim."""
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -14,13 +14,36 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox
 from apps.research.appearance import apply_appearance
 from apps.research.impact_interface_history_view import InterfaceHistoryView
 
-ROOT = Path(__file__).resolve().parents[1]
-JOBS = {'normal': 'Ja811346664c34be8a539a14d308ea77b', 'mixed': 'Je7acb3438a524b73a37ddafb7ae037a4'}
-
-
-def retained(case):
-    path = ROOT / 'runs/interface-history-20261018/native-01' / case / 'store/workbench/results' / JOBS[case] / 'calculation/interface_history_observations.json'
-    return path, json.loads(path.read_text(encoding='utf-8'))
+def retained(case, tmp_path):
+    from interface_history_fixtures import declared_settings
+    from test_impact_damage import frames
+    from caelab.impact_interface_history import observe
+    from caelab.impact_b import model_identity
+    from caelab.storage import canonical_hash
+    settings = declared_settings(case)
+    model, original, cohesive = frames(tmp_path)
+    count = 160 if case == 'normal' else 161
+    samples = []
+    for i in range(count):
+        raw = deepcopy(original[0][1]); raw['time'] = i * 2.5e-5
+        for xyz, node in zip(raw['points'], raw['POINTS']['NODE_ID']['values']):
+            if node >= 9:
+                xyz[2] += i * 1e-5
+                xyz[0] += i * 1e-6
+        raw['CELLS']['3DELEM_Damage']['values'][1] = i / (2 * count)
+        stress = raw['CELLS']['3DELEM_Stress']['values']
+        stress[17] = i * .01
+        stress[11] = stress[15] = i * 1e-10
+        source = tmp_path / f'synthetic-array-{i}.json'
+        source.write_text(json.dumps(raw), encoding='utf-8')
+        samples.append((source, raw))
+    histories = settings['interface_histories']
+    audit = observe(samples, model, settings, cohesive, {
+        'model_identity': model_identity(model), 'definition_sha256': canonical_hash(histories),
+        'histories': deepcopy(histories)})
+    path = tmp_path / 'synthetic-observations.json'
+    path.write_text(json.dumps(audit), encoding='utf-8')
+    return path, audit
 
 
 @pytest.fixture(scope='module')
@@ -31,13 +54,13 @@ def app():
 
 
 @pytest.mark.parametrize('case,count', [('normal', 160), ('mixed', 161)])
-def test_actual_retained_audit_table_curve_selection_close(app, tmp_path, monkeypatch, case, count):
+def test_observer_audit_table_curve_selection_close(app, tmp_path, monkeypatch, case, count):
     from caelab.workbench_client import Client
     calls = []
     def forbidden(*args, **kwargs):
         calls.append(True); raise AssertionError('Retained view must not create a Core client')
     monkeypatch.setattr(Client, '__init__', forbidden)
-    path, audit = retained(case); original = deepcopy(audit)
+    path, audit = retained(case, tmp_path); original = deepcopy(audit)
     pin = hashlib.sha256(path.read_bytes()).hexdigest()
     view = InterfaceHistoryView(audit)
     try:
@@ -68,16 +91,12 @@ def test_actual_retained_audit_table_curve_selection_close(app, tmp_path, monkey
         assert not calls and audit == original and hashlib.sha256(path.read_bytes()).hexdigest() == pin
         QTest.mouseClick(view.close_buttons.button(QDialogButtonBox.StandardButton.Close), Qt.MouseButton.LeftButton)
         assert not view.isVisible()
-        (tmp_path / 'receipt.json').write_text(json.dumps({'qt_platform': app.platformName(), 'case': case,
-            'sample_count': count, 'source_file': path.relative_to(ROOT).as_posix(), 'source_sha256': pin,
-            'audit_unchanged': audit == original, 'core_clients': len(calls), 'solver_runs': 0,
-            'selected_row': 55, 'closed': not view.isVisible()}, indent=2), encoding='utf-8')
     finally:
         view.close(); view.deleteLater(); app.processEvents()
 
 
 def test_missing_invalid_samples_are_gaps_and_unknown_not_zero(app, tmp_path):
-    _, audit = retained('mixed'); element = audit['elements'][0]
+    _, audit = retained('mixed', tmp_path); element = audit['elements'][0]
     element['samples'] = element['samples'][:8]
     missing = element['samples'].pop(4)
     audit['unavailable_frames'] = [{'frame_index': 4, 'time_s': missing['time_s'], 'reason': '원 프레임 읽기 불가'}]
@@ -109,8 +128,8 @@ def test_missing_invalid_samples_are_gaps_and_unknown_not_zero(app, tmp_path):
         view.close(); view.deleteLater(); app.processEvents()
 
 
-def test_unknown_missing_clock_keeps_points_without_joining_and_failure_visible(app):
-    _, audit = retained('normal'); element = audit['elements'][0]
+def test_unknown_missing_clock_keeps_points_without_joining_and_failure_visible(app, tmp_path):
+    _, audit = retained('normal', tmp_path); element = audit['elements'][0]
     element['samples'] = element['samples'][:4]
     element['sampled_damage_nondecrease'] = 'VIOLATED'
     element['sampled_initial_basis_compressive_sign'] = 'SIGN_MISMATCH'
@@ -139,7 +158,7 @@ def test_empty_audit_opens_with_unknown_and_no_fabricated_samples(app):
 
 
 def test_narrow715_axis_captions_fit_without_changing_retained_values(app, tmp_path):
-    _, audit = retained('mixed'); before = deepcopy(audit)
+    _, audit = retained('mixed', tmp_path); before = deepcopy(audit)
     view = InterfaceHistoryView(audit)
     try:
         view.show(); view.resize(800, 715); app.processEvents()

@@ -22,7 +22,7 @@ def native_launch(tmp_path, monkeypatch):
 
     def read(identifier):
         reads.append(identifier)
-        return {'id': identifier, 'kind': 'data'}
+        return {'id': identifier, 'kind': 'data', 'session_id': 'Sowner'}
 
     client = SimpleNamespace(url='http://127.0.0.1:8766', document_read=read)
     return client, executable, sdk, calls, reads
@@ -37,11 +37,11 @@ def test_exact_document_launch_isolates_qt_and_acceptance_environment(native_lau
     monkeypatch.setenv('QT_QPA_PLATFORM', 'offscreen')
     monkeypatch.setenv('QT_PLUGIN_PATH', 'primary-qt-plugins')
     before = dict(os.environ)
-    result = desktop.launch_native_data(client, executable=executable, sdk=sdk, document_id='Dexact')
+    result = desktop.launch_native_data(client, executable=executable, sdk=sdk, document_id='Texact')
     command, options = calls[0]
     environment = options['env']
-    assert command == [str(executable)] and reads == ['Dexact']
-    assert environment['CAELAB_DATA_DOCUMENT_ID'] == 'Dexact'
+    assert command == [str(executable)] and reads == ['Texact', 'Texact']
+    assert environment['CAELAB_DATA_DOCUMENT_ID'] == 'Texact'
     assert environment['CAELAB_SERVICE_URL'] == client.url
     assert environment['CAELAB_DONOR_SDK'] == str(sdk)
     assert environment['QT_PLUGIN_PATH'] == str(sdk / 'plugins')
@@ -86,5 +86,5 @@ def test_native_cli_routes_without_importing_primary_qt(native_launch, monkeypat
     client, executable, sdk, calls, reads = native_launch
     monkeypatch.setattr(desktop, 'Client', lambda service: client)
     assert desktop.main(['--service', client.url, 'data-native', '--executable', str(executable),
-                         '--sdk', str(sdk), '--document-id', 'Dexact']) == 0
-    assert reads == ['Dexact'] and len(calls) == 1
+                         '--sdk', str(sdk), '--document-id', 'Texact']) == 0
+    assert reads == ['Texact', 'Texact'] and len(calls) == 1

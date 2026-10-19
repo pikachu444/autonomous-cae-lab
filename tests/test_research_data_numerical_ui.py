@@ -32,7 +32,7 @@ def app():
 
 
 def data_document():
-    return {'id':'Tdata','session_id':'Sowner','generation':0,'input_revision':'Idata','title':'Data test',
+    return {'id':'Tdata','kind':'data','session_id':'Sowner','generation':0,'input_revision':'Idata','title':'Data test',
             'draft':data_draft(),'diagnostics':[],'can_undo':False,'can_redo':False,'dirty':False,
             'runs':[{'job_id':'Jimport','input_generation':0,'input_revision':'Idata','input_sha256':'a'*64}]}
 

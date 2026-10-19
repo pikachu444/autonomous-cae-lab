@@ -116,6 +116,7 @@ def leave_with_recovery(window,continuation):
         keep=question.addButton('편집 원문 보관',QMessageBox.ButtonRole.ActionRole)
         question.addButton('취소',QMessageBox.ButtonRole.RejectRole)
         question.exec()
+        session.guard.restore_focus()
         if question.clickedButton() is save:
             session.finish()
             if panel and panel.has_unconfirmed_save():
