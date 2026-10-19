@@ -92,7 +92,7 @@ def test_real_material_sets_output_cards_and_twenty_character_deck_fields(model,
     deck=render(model)
     assert deck.count('*PLASTIC')==1
     assert ('NLGEOM' in deck) is nlgeom
-    assert '*EL FILE\nS,E,PEEQ' in deck and '*NODE FILE\nU,RF' in deck
+    assert '*EL FILE\nS,E,PEEQ' in deck and '*NODE FILE,GLOBAL=YES\nU,RF' in deck
     assert ('*CONTACT PAIR' in deck) is not single
     assert 'STABILIZE' not in deck and 'LINE SEARCH' not in deck
     curve=deck.split('*PLASTIC,HARDENING=ISOTROPIC\n',1)[1].split('*SOLID SECTION',1)[0]

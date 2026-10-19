@@ -65,7 +65,8 @@ def native_fixture(model, monkeypatch, single):
              'femsolver.calculix':NS(write_constraint_contact=NS())}
     for key,module in modules.items(): monkeypatch.setitem(sys.modules,key,module)
     monkeypatch.setattr(exporter,'_target',lambda obj,names:{'object_id':obj.Name,'subelements':[{'name':name} for name in names]})
-    owner=NS(doc=doc,_object=objects.__getitem__,mesh_bindings=NS(validate=lambda mesh:{'state':'EXPLICIT_TEST_DOUBLE'}))
+    owner=NS(doc=doc,_object=objects.__getitem__,read_metadata=lambda:deepcopy(metadata),
+             mesh_bindings=NS(validate=lambda mesh:{'state':'EXPLICIT_TEST_DOUBLE'}))
     fem=NS(owner=owner,_assert_idle=lambda:None,_metadata=lambda:deepcopy(metadata),
            quality=lambda *a,**k:{'bad_element_count':0},_condition_errors=lambda *a:[],
            contact=NS(_data=lambda:{'contacts':records},errors=lambda record:[]))

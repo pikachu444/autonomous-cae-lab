@@ -184,19 +184,19 @@ from pathlib import Path
 from caelab.adapters.frozen_fem import read_frd
 from caelab.contact_deck import validate_model
 from caelab.contact_steps import profile
-root=Path(sys.argv[1]); model=json.loads((root/'frozen_input/mesh.json').read_text())
+root=Path(sys.argv[1]); model=json.loads((root/'frozen_input/mesh.json').read_text(encoding='utf-8'))
 nodes,elements,bodies=validate_model(model)
 materials=json.loads(sys.argv[2]); materials['elements']={int(k):v for k,v in materials['elements'].items()}
 result=read_frd(root/'partial/committed.frd',nodes,elements,contact_materials=materials,contact_profile=profile(model),require_contact=bool(model['contacts']))
 assert len(result['frames'])==1
 assert result['frames'][0]['static']['load_parameter']==.5
-record=json.loads((root/'contact_execution.json').read_text())
+record=json.loads((root/'contact_execution.json').read_text(encoding='utf-8'))
 assert record['execution_status'] in ('FAILED','CANCELLED')
 print('REOPEN_WITHOUT_SOLVER')
 '''
     # One representative fresh-process reopen is sufficient; all four adapter
     # failure/cancellation routes still check their persisted records and bytes.
-    persisted = json.loads((attempt/'contact_execution.json').read_text())
+    persisted = json.loads((attempt/'contact_execution.json').read_text(encoding='utf-8'))
     assert persisted['partial_result'] == result['partial_result']
     assert persisted['execution_status'] == result['execution_status']
     if single and cancelled:
