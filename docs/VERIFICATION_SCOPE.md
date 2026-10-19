@@ -157,8 +157,56 @@ python -m pytest tests/test_evaluation_window.py tests/test_research_pde_ui.py t
 
 **결과·제한:** TR-U `5216e37`은 보존 U를 다른35절점/8 C3D10에 전달해 수신1회를 실행했다.
 U PASS, 절점 응력262.497 대 기준262.5 MPa는 원 엄격 허용값에서 FAIL, IP 출력 부재는
-UNKNOWN이다. authoring GUI는 후속 작업이고 기준 FCStd는 매핑된 편집 모델이 아니다.
+UNKNOWN이다. 기준 FCStd는 매핑된 편집 모델이 아니다.
 [원 계약·실행](STRUCTURAL_U_TRANSFER_KO.md).
+
+원 수치 확인의 입력은 `Dthermalfree`의 CCX U와 같은 10×1×1 mm 영역의 35절점/8 C3D10
+수신이며 외곽 34절점 XYZ만 지정했다. E=210000 MPa, ν=0.3의 기계적 수신 기준은
+`u=.0005 X`, 정상응력262.5 MPa·전단0이다. 원본의 자유 열팽창 응력0은 이 수신의 응력
+기준이 아니다. 거리 `1e-10 mm`·자연좌표 `1e-12`·가중치 `1e-11`은 이 작은 직선 입력에
+명시한 값이며 일반 곡면의 기본값이나 공학 보증으로 확장하지 않는다. 원 수신
+`J5a04c25dc23643cf8df25191a7838cff`의 내부 절점35 U는 `[0.00125,0.000125,0.000125] mm`였다.
+절점 응력 FAIL의 원 허용값은 `rel=2e-6, abs=1e-6 MPa`이며 변경하지 않았다.
+`contact.dat`는 0 byte·IP print 요청 부재이므로 IP 대조는 UNKNOWN이다. 원 결과는
+`runs/structural-u-transfer-20261018-05/receiver-result.json`, 별도 Python/HTTP·Runner cold는
+`...-06/cold-result.json`에 있다. 같은 등록 필드의 ParaView 저장·별도 재열기는 새 Job/solver0이었다.
+
+```powershell
+python tests/check_structural_u_transfer_windows.py --prepare runs/structural-u-transfer-example
+```
+
+이 명령은 원본 읽기·선언·미리보기만 생성한다. 제품의 필수 입력이나 native 수신 실행이
+아니다. 실제 native 확인은 같은 기존 checker와 `scripts/native_check.py`를 사용하며,
+새 출력 폴더에서 소유 프로세스 정리까지 확인한다.
+
+10월19일 작성 기능은 실제 원 결과 선택→3D 면 선택→변위 확인/취소/적용→미확정 원문
+보호→저장→별도 FreeCAD 재열기와 입력 생성까지 확인했다. actual05와 새 배치의08은
+옛 102개 BC 중 15개의 마지막 비트 차이(최대 `6.5052e-19 mm`)로 기존 strict 입력 동일성
+검사의 마지막 단계가 FAIL이다. NumPy별 순수 mapper 차이는 재현했으나 직접 원인은
+UNKNOWN이며 원 기준·입력·응력 FAIL을 유지한다. 새 수신 CCX07은 미실행 보류다.
+08의 작은 3D 공간·빈 native 작업 overlay는 14의 실제 일반/좁은 화면에서 교정했다.
+native 종료 저장 전 Model/Tasks/계산/overlay 복원과 원 편집·저장본 불변을 확인해 같은
+Astra가 종료 P2를 폐쇄했다. 원14 전체 FAIL은 뒤 cleanup 호출까지 포함한 assertion 때문이며
+원 receipt는 그대로 둔다. 필터만 고치기 위한 별도 native 재실행은 하지 않았다.
+
+범용 수신의 실제15는 미리 만든 고정 조건0, 임의 native 객체 이름, 사용자가 작성한 단일
+STATIC(길이2.5·증분77·출력7)에서 원 결과/프레임→실제 면 선택→확인/취소/적용→미완성 원문
+보관/Undo→저장→별도 cold→기존 입력 생성까지 PASS였다. accepted U→frozen DOF와 원 단계
+보존을 검사했으며 옛 INP byte 동등성 검사를 이 다른 사용자 모델의 목표로 삼지 않았다.
+원15에서도 좁은 대상 이름이 잘렸으므로 그 화면 P2를 보존했고, 16에서 같은 저장본의
+일반/좁은 6화면을 읽기 전용으로 확인해 교정했다. 새 source copy/solver/provider0,
+Job0→0·원본/저장본 불변, 모든 소유 프로세스 exit0/job_empty였다. 구현·원 실행·UI delta의
+해시와 원 PNG는 `_workspace/tr-u-authoring-20261019/`의 해당 폴더에 구별해 보존한다.
+소스의 조건×DOF 부분 교체/다른 지지·힘·원 단계/곡선 보존과 실제 프레임2/step2의 local
+좌표·exact pin은 전용 순수 검사 근거이며, 기존 조건 선택 모달의 native 조작이나 새 수신
+solver 계산까지 확인했다고 확대하지 않는다. 같은 독립 검토의 관련 P1/P2는 없다.
+17은 같은 저장본의 이름/종류/좌표 표현만 읽기 전용으로 확인했다. 사용자 Label은 유지하며
+이름과 별도 실제 ‘정적 구조 해석 / CalculiX’를 표시하고, ‘대상 모델’·‘전역 좌표계’로 고쳤다.
+잘못된 이름에서 유형을 추정하지 않는 static/dynamic/mixed/다단계/nonlinear/frequency·
+설정 누락 반례를 포함한 UI 검사는 34PASS였다. 일반/좁은 6화면에서 해당 표시·대상 두 줄·
+선택/필수 명령을 확인했다. 원본·구현·저장본 불변, 새 source-array/preview/freeze/solver/provider0,
+Job0→0, 소유 outer/native exit0/job_empty다. 이 캡션 교정의 근거를 원15 기능 실행과 구분한다.
+저장/복구 기능 확인이나 실제 창 캡처를 전체 GUI 품질 수용으로 기록하지 않는다.
 
 **두 영역 열·점탄성:** 기존 `connector_code_review` 후보를 재사용하고 기존 FELUPE Hex8
 worker에 한정 통합했다. 명시 CTE/Tref/물성·온도 이력과 공유 full-face 완전 접합만 허용한다.

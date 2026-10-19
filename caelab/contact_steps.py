@@ -98,7 +98,7 @@ def _frd_clock(value):
         return float(format(value, '.' + str(places) + 'f'))
     return float(format(value, '.5E'))
 
-def compile_program(program, conditions):
+def compile_program(program, conditions, *, allow_unrestrained_capture=False):
     if not isinstance(program, dict) or program.get('schema_version') != '1':
         raise ValueError('지원되는 단계 정의가 아닙니다')
     procedure = program.get('procedure')
@@ -198,7 +198,7 @@ def compile_program(program, conditions):
         for c in conditions:
             for row in c.get('force_weights',[]):
                 loads.setdefault((row['node_id'],row['component']),[[0.,0.],[duration,0.]])
-        if not boundary:
+        if not boundary and not allow_unrestrained_capture:
             raise ValueError(label + ': 명시적인 구속이 필요합니다')
         # Recheck the compiled union, not only each authored condition: distinct
         # source knots can collapse when two conditions share a native DOF.

@@ -33,6 +33,8 @@ from caelab.periodic_constraints import OPERATIONS as PERIODIC_OPERATIONS
 OPERATIONS += PERIODIC_OPERATIONS
 from caelab.pretension import OPERATIONS as PRETENSION_OPERATIONS
 OPERATIONS += PRETENSION_OPERATIONS
+from caelab.structural_field_ports import OPERATIONS as DISPLACEMENT_OPERATIONS
+OPERATIONS += DISPLACEMENT_OPERATIONS
 ABSOLUTE_JACOBIAN_FLOOR_MM3 = 1e-10
 NORMALIZED_JACOBIAN_FLOOR = 256 * sys.float_info.epsilon
 _MESH_FIELDS = {'CharacteristicLengthMin', 'CharacteristicLengthMax', 'ElementOrder',
@@ -393,6 +395,11 @@ class FEMEditor:
 
     def dispatch(self, operation, arguments, target):
         self.owner.assert_thread()
+        if operation in DISPLACEMENT_OPERATIONS:
+            from .structural_transfer_native import dispatch
+            from caelab.structural_field_ports import consume_displacement_source
+            arguments, source = consume_displacement_source(arguments)
+            return dispatch(self, operation, arguments, target, source=source)
         if operation in LAW_NATIVE_OPERATIONS:
             from .law_native_material import dispatch
             return dispatch(self, operation, arguments, target)
@@ -929,7 +936,7 @@ class FEMEditor:
         finally:
             self._pending.pop(name, None)
 
-    def validate_for_run(self, analysis):
+    def validate_for_run(self, analysis, *, for_displacement_transfer=False):
         """Return admission errors; native freeze/writer/headless gates still apply."""
         self.owner.assert_thread()
         errors = []
@@ -944,6 +951,20 @@ class FEMEditor:
             fail('mesh', 'Native mesh generation is still running')
         if analysis.Document is not self.owner.doc or _native_type(analysis) != 'Fem::FemAnalysis':
             fail('analysis', 'Select the exact native Analysis in this document')
+            return errors
+        if for_displacement_transfer:
+            solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
+                       and not getattr(obj, 'Suppressed', False)]
+            if len(solvers) != 1:
+                fail('solver', '변위를 적용할 CalculiX 해석을 하나 선택하세요.')
+                return errors
+            try:
+                from .freeze_contact import collect
+                collect(analysis, solvers[0], self, capture_only=True, for_displacement_transfer=True)
+            except Exception as error:
+                fail('displacement_transfer', str(error))
+            # accepted_definition binds and strictly validates the final union
+            # before any input is packaged. This capture alone cannot run.
             return errors
         programs = [row for row in self._metadata().get('contact_programs', [])
                     if row.get('analysis_id') == analysis.Name]

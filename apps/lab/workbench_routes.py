@@ -48,6 +48,16 @@ def handle(handler,method,path,query):
                 raise ServiceError(400, '원격 목록/입력/보존 상태 명령을 지정하세요.')
             from caelab.remote_execution import dispatch
             return handler._json(200, dispatch(workbench, body['operation'], body['arguments']))
+        if path == '/api/workbench/structural-displacement':
+            if set(body)!={'operation','arguments'} or not isinstance(body['arguments'],dict):
+                raise ServiceError(400,'저장된 변위 목록 또는 정확한 원본 참조를 지정하세요.')
+            if body['operation']=='catalog' and body['arguments']=={}:
+                return handler._json(200,workbench.structural_displacement_sources())
+            if body['operation']=='read' and set(body['arguments'])=={'reference'}:
+                return handler._json(200,workbench.structural_displacement_source(**body['arguments']))
+            if body['operation']=='post' and set(body['arguments'])=={'reference'}:
+                return handler._json(200,workbench.structural_displacement_post_input(**body['arguments']))
+            raise ServiceError(400,'지원하는 변위 읽기 명령과 정확한 참조만 지정하세요.')
         if path == '/api/workbench/connection-graph':
             if set(body) - {'document_ids', 'include_history'} or type(body.get('include_history', False)) is not bool:
                 raise ServiceError(400, '실제 문서 목록과 편집 이력 포함 여부만 지정하세요.')

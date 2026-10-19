@@ -18,7 +18,7 @@ from apps.desktop_pre import bridge
 
 def command_status_text(operation, state):
     action = {'document.save': '저장', 'document.undo': '실행 취소',
-              'document.redo': '다시 실행', 'document.activate': '문서 전환',
+              'document.redo': '다시 실행', 'document.activate': '모델 전환',
               'pre.freeze': '입력 파일 생성', 'pre.contact.freeze': '접촉 입력 생성', 'pre.pretension.freeze': '체결 입력 생성',
               'pre.links.record': '계산 연결'}.get(operation)
     if action is None:
@@ -50,7 +50,7 @@ class Connection:
         layout = QtWidgets.QVBoxLayout(panel)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(8)
-        self.identity = QtWidgets.QLabel('현재 문서를 연결하는 중…')
+        self.identity = QtWidgets.QLabel('현재 모델을 연결하는 중…')
         self.identity.setWordWrap(True)
         self.message = QtWidgets.QLabel('솔버를 선택해 계산하고, 결과를 선택해 ParaView에서 여세요.')
         self.message.setWordWrap(True)
@@ -120,27 +120,31 @@ class Connection:
     def active_owner(self):
         doc = self.App.ActiveDocument
         if doc is None or doc.Name not in self.owners:
-            raise ValueError('CAD 문서를 만들거나 연 뒤 연결이 끝날 때까지 기다리세요.')
+            raise ValueError('CAD 모델을 만들거나 연 뒤 연결이 끝날 때까지 기다리세요.')
         return self.owners[doc.Name][0]
 
     def _native_selection(self, kind):
         doc = self.App.ActiveDocument
         selected = self.Gui.Selection.getSelection()
         if doc is None or len(selected) != 1 or getattr(selected[0], 'Document', None) is not doc:
-            raise ValueError('현재 문서의 ' + ('솔버' if kind == 'solver' else '계산 결과') + ' 하나를 모델 트리에서 선택하세요.')
+            raise ValueError('현재 모델의 ' + ('솔버' if kind == 'solver' else '계산 결과') + ' 하나를 모델 트리에서 선택하세요.')
         obj = selected[0]
         types = ('Fem::FemSolverObjectPython',) if kind == 'solver' else ('Fem::FemResultObject', 'Fem::FemPostObject')
         if not any(obj.isDerivedFrom(name) for name in types):
             raise ValueError('모델 트리에서 ' + ('솔버' if kind == 'solver' else '계산 결과') + ' 하나를 선택하세요.')
         binding = self.owners.get(doc.Name)
         if self.pending or (binding and any(row['document_id'] == binding[0].document_id for row in self.native_requests.values())):
-            raise ValueError('진행 중인 문서 작업을 마친 뒤 선택한 ' + ('솔버를 여세요.' if kind == 'solver' else '결과를 여세요.'))
+            raise ValueError('진행 중인 모델 작업을 마친 뒤 선택한 ' + ('솔버를 여세요.' if kind == 'solver' else '결과를 여세요.'))
         return obj
 
     def open_native_solver(self):
         try:
             solver = self._native_selection('solver')
             binding = self.owners.get(solver.Document.Name)
+            if binding:
+                transfers = binding[0].read_metadata().get('displacement_transfers', {})
+                if any(record.get('draft', {}).get('solver_id') == solver.Name for record in transfers.values()):
+                    raise ValueError('가져온 변위 경계조건은 계산 관리에서 입력을 생성해 실행하세요. FreeCAD 기본 솔버 창의 입력에는 가져온 변위가 포함되지 않습니다.')
             composites = binding[0].read_metadata().get('composite_shells', {}) if binding else {}
             targets = [aid for aid, record in composites.items() if record['draft'].get('solver_id') == solver.Name]
             if targets:
@@ -221,6 +225,10 @@ class Connection:
 
     def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None, _capture_motion_view=True, _capture_shell=True, _capture_beam=True, _capture_dynamic=True, _capture_composite=True, _capture_connector=True, _capture_pretension=True):
         owner = owner or self.active_owner()
+        if operation in {'document.save','pre.project.save'}:
+            from .native_controls import transfer_pending
+            if transfer_pending(self, owner):
+                raise ValueError('변위 가져오기 창에서 초안을 저장하거나 편집을 취소한 뒤 프로젝트를 저장하세요.')
         if operation == 'document.save' and _capture_composite:
             from .composite_controls import flush_before_save
             captured = flush_before_save(self, owner, arguments, target, on_done, _capture_motion_view=_capture_motion_view, _capture_shell=_capture_shell, _capture_beam=_capture_beam, _capture_dynamic=_capture_dynamic)
@@ -236,7 +244,7 @@ class Connection:
         owner.refresh()
         broker = self.owners[owner.doc.Name][2]
         if any(row['document_id'] == owner.document_id for row in self.native_requests.values()):
-            raise ValueError('이 문서의 이전 작업이 아직 진행 중입니다.')
+            raise ValueError('이 모델의 이전 작업이 아직 진행 중입니다.')
         if operation == 'document.save' and _capture_beam:
             from .beam_menu import flush_before_save
             queued = flush_before_save(self, owner, arguments, target, on_done, capture_motion=_capture_motion_view, capture_shell=_capture_shell)
@@ -250,7 +258,9 @@ class Connection:
                 return owner.dispatch({'command_id': 'C'+uuid.uuid4().hex, 'document_id': owner.document_id,
                     'session_id': owner.session_id, 'expected_generation': owner.generation,
                     'operation': op, 'arguments': args, 'target': selected})
-            if operation in {'pre.connector.draft', 'pre.fem.pretension_save_editor'} or operation.startswith(('pre.beam.', 'pre.dynamic.', 'pre.composite.')):
+            if operation in {'pre.connector.draft', 'pre.fem.pretension_save_editor',
+                             'pre.fem.displacement_read', 'pre.fem.displacement_save',
+                             'pre.fem.displacement_remove'} or operation.startswith(('pre.beam.', 'pre.dynamic.', 'pre.composite.')):
                 result = apply_local(operation, arguments, target or {})
                 value = result if result.get('status') == 'FAILED' else result.get('result', result)
                 if on_done: on_done(value)
@@ -268,7 +278,7 @@ class Connection:
                 value = result if result.get('status') == 'FAILED' else result.get('result', result)
                 if on_done: on_done(value)
                 return {'queued': True, 'completed': True, 'command_id': result.get('command_id')}
-            if operation != 'document.save': raise ValueError('문서 연결이 끊겼습니다. 다시 연결한 뒤 편집하세요.')
+            if operation != 'document.save': raise ValueError('모델 연결이 끊겼습니다. 다시 연결한 뒤 편집하세요.')
             snapshot = deepcopy(controller.pending_editor()) if controller is not None and _capture_motion_view else None
             if snapshot is not None:
                 result = apply_local('pre.motion.save_editor', {'editor': snapshot['editor']}, {'assembly_id': snapshot['assembly_id']})
@@ -430,25 +440,25 @@ class Connection:
             else:
                 self.records[name] = {'id': owner.document_id, 'working_file': owner.doc.FileName}
                 for dock in self.panels.get(name, {}).values():
-                    dock.document_label.setText('대상 문서: ' + str(owner.doc.Label))
+                    dock.document_label.setText('대상 모델: ' + str(owner.doc.Label))
         if self.records:
             # Small project identity record, not a copy of native CAD/mesh arrays.
             try:
                 if not self.project_path.exists() or load_json(self.project_path) != self.records:
                     save_json(self.project_path, self.records)
             except Exception as error:
-                self.message.setText('문서 연결 정보를 저장하지 못했습니다: ' + str(error) +
-                                     '\nCAD 문서와 이전 계산 결과는 그대로 남아 있습니다.')
+                self.message.setText('모델 연결 정보를 저장하지 못했습니다: ' + str(error) +
+                                     '\nCAD 모델과 이전 계산 결과는 그대로 남아 있습니다.')
         active = self.App.ActiveDocument
         binding = self.owners.get(active.Name) if active else None
         if binding:
             owner, _, broker = binding
             connected = broker.registered.is_set() and not broker.stop.is_set()
             self.identity.setText(str(active.Label) + '\n' +
-                ('연결됨' if connected else '문서 연결을 기다리는 중'))
+                ('연결됨' if connected else '모델 연결을 기다리는 중'))
         else:
             connected = False
-            self.identity.setText('CAD 문서를 만들거나 여세요.')
+            self.identity.setText('CAD 모델을 만들거나 여세요.')
         waiting = self.pending is not None
         self.native_solver_button.setEnabled(active is not None and not waiting)
         self.native_post_button.setEnabled(active is not None and not waiting)
@@ -473,7 +483,7 @@ class Connection:
             import FemGui
             doc = self.App.ActiveDocument
             if doc is None or doc.Name not in self.owners:
-                raise ValueError('먼저 CAD 문서를 열고 연결하세요.')
+                raise ValueError('먼저 CAD 모델을 열고 연결하세요.')
             selected = FemGui.getActiveAnalysis()
             if selected is None or selected.Document is not doc:
                 choices = [obj for obj in doc.Objects if femutils.type_of_obj(obj) == 'Fem::FemAnalysis']
@@ -518,13 +528,24 @@ class Connection:
                 return
             owner.refresh()
             from .nonlinear_material import uses_solid_route
+            from .native_controls import transfer_pending
+            if transfer_pending(self, owner):
+                raise ValueError('변위 가져오기에 미저장 편집 또는 진행 중 요청이 있습니다. 초안을 저장하거나 편집을 취소하세요.')
+            transfer = owner.read_metadata().get('displacement_transfers', {}).get(selected.Name)
+            transfer_arguments = {}
+            if transfer is not None:
+                from caelab.storage import canonical_hash
+                if (not isinstance(transfer.get('accepted'), dict) or
+                        transfer['accepted'].get('draft_sha256') != canonical_hash(transfer.get('draft'))):
+                    raise ValueError('가져올 변위를 확인하고 경계조건에 적용한 뒤 입력을 생성하세요.')
+                transfer_arguments['source_reference'] = deepcopy(transfer['draft']['source_reference'])
             self.pending = {'command_id': 'C' + uuid.uuid4().hex, 'stage': 'command', 'retry': False,
                 'document_id': owner.document_id, 'session_id': owner.session_id,
                 'generation': owner.generation, 'export_only': bool(export_only),
                 'operation': ('pre.pretension.freeze' if any(row.get('analysis_id') == selected.Name
                     for row in owner.read_metadata().get('pretension_sections', [])) else
                     'pre.contact.freeze' if uses_solid_route(selected, owner.read_metadata()) else 'pre.freeze'),
-                'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name}}
+                'arguments': {'analysis_id': selected.Name, 'solver_id': solvers[0].Name, **transfer_arguments}}
             self.send_command()
         except Exception as exc:
             self.message.setText(str(exc))
@@ -547,12 +568,12 @@ class Connection:
                 relative=value.get('snapshot_relative')
                 owner=next((v[0] for v in self.owners.values() if v[0].document_id==self.pending['document_id']),None)
                 if not relative or owner is None:
-                    self.message.setText('입력 생성 완료. 원 문서 연결을 확인한 뒤 같은 요청을 다시 조회하세요.')
+                    self.message.setText('입력 생성 완료. 원 모델 연결을 확인한 뒤 같은 요청을 다시 조회하세요.')
                     self.pending['retry']=True
                     return
                 path=(owner.export_root/relative).resolve(strict=True)
                 if not path.is_relative_to(owner.export_root.resolve()):
-                    raise ValueError('생성된 입력 파일의 경로가 현재 문서의 저장 폴더를 벗어났습니다.')
+                    raise ValueError('생성된 입력 파일의 경로가 현재 모델의 저장 폴더를 벗어났습니다.')
                 self.pending=None
                 self.message.setText('입력 파일을 생성했습니다. 계산은 실행하지 않았습니다.\n'+str(path.parent))
                 self.show_export(path)
@@ -717,9 +738,25 @@ class Connection:
             subprocess.Popen(command, cwd=str(Path(__file__).resolve().parents[2]), env=environment)
         self.request('post-navigation', lambda: self.client.job_navigation(identifier), resolved)
 
+    def open_structural_displacement_source(self, reference):
+        exact = deepcopy(reference)
+        def resolved(value):
+            if value.get('reference') != exact:
+                raise ValueError('선택한 저장 변위 원본과 다른 결과입니다.')
+            post = value['post_input']
+            command = [self.config['python'], '-m', 'apps.research.desktop', '--service',
+                       self.config['service_url'], 'post', '--input-id', post['id']]
+            environment = os.environ.copy()
+            for key in ('PYTHONHOME','PYTHONPATH','QT_PLUGIN_PATH','QML2_IMPORT_PATH','LD_LIBRARY_PATH'):
+                environment.pop(key, None)
+            subprocess.Popen(command, cwd=str(Path(__file__).resolve().parents[2]), env=environment)
+        self.request('displacement-source:'+uuid.uuid4().hex,
+                     lambda: self.client.structural_displacement_post_input(exact), resolved)
+
     def show_panel(self, kind, *, owner=None):
         owner = owner or self.active_owner()
         panels = self.panels.setdefault(owner.doc.Name, {})
+        existing = kind in panels
         if kind not in panels:
             from importlib import import_module
             modules = {'parameters': ('parameter_panel', owner.parameters, '설계 변수'),
@@ -730,6 +767,11 @@ class Connection:
                 from .composite_controls import make_panel
                 widget = make_panel(self, owner)
                 title = '적층 셸'
+            elif kind == 'structural_transfer':
+                from .structural_transfer_panel import make_panel
+                widget = make_panel(self, owner)
+                owner._structural_transfer_panel = widget
+                title = '변위 가져오기'
             elif kind == 'beam':
                 from .beam_menu import make_panel
                 widget = make_panel(self, owner)
@@ -764,17 +806,112 @@ class Connection:
                 else:
                     widget = factory(self.QtWidgets, self.QtCore, editor, submit)
                     if kind == 'shell': widget.shell_controller.attach(self)
-            dock = self.QtWidgets.QDockWidget(title, self.Gui.getMainWindow())
+            if kind == 'structural_transfer':
+                class TransferTaskDock(self.QtWidgets.QDockWidget):
+                    def closeEvent(task_dock, event):
+                        if getattr(task_dock, '_approved_task_close', False):
+                            super().closeEvent(event)
+                            return
+                        event.ignore()
+                        task_dock.widget().request_close()
+                dock = TransferTaskDock(title, self.Gui.getMainWindow())
+            else:
+                dock = self.QtWidgets.QDockWidget(title, self.Gui.getMainWindow())
             dock.setToolTip(owner.doc.Label)
-            dock.document_label = self.QtWidgets.QLabel('대상 문서: ' + str(owner.doc.Label))
+            dock.document_label = self.QtWidgets.QLabel('대상 모델: ' + str(owner.doc.Label))
             dock.document_label.setWordWrap(True)
             widget.layout().insertWidget(0, dock.document_label)
             dock.setObjectName('CAELab-' + kind + '-' + owner.document_id)
             dock.setWidget(widget); dock.resize(720, 520)
             self.Gui.getMainWindow().addDockWidget(self.QtCore.Qt.RightDockWidgetArea, dock)
             panels[kind] = dock
+            if kind == 'structural_transfer':
+                dock.visibilityChanged.connect(lambda visible, dock=dock: self._transfer_task_visibility(dock, visible))
+        if existing and kind == 'structural_transfer':
+            panels[kind].widget().refresh_context()
         panels[kind].show(); panels[kind].raise_()
+        if kind == 'structural_transfer':
+            self._transfer_task_visibility(panels[kind], True)
+            self.Gui.getMainWindow().resizeDocks([panels[kind]], [420], self.QtCore.Qt.Horizontal)
         return panels[kind].widget()
+
+    def structural_transfer_view_actions(self):
+        return [(item.windowTitle(), item.toggleViewAction()) for item in
+                self.Gui.getMainWindow().findChildren(self.QtWidgets.QDockWidget)
+                if item.objectName() == 'Model']
+
+    def _transfer_task_visibility(self, dock, visible):
+        tasks = getattr(self, '_transfer_tasks', None)
+        if tasks is None:
+            tasks = self._transfer_tasks = set()
+        if visible and dock not in tasks:
+            first = not tasks
+            tasks.add(dock)
+            if first:
+                self._transfer_hidden_docks = [item for item in [self.dock] if item.isVisible()]
+                self._transfer_hidden_overlay = None
+                try:
+                    active = self.Gui.activeDocument()
+                    idle = not self.Gui.Control.activeDialog() and not (active and active.getInEdit())
+                except (AttributeError, RuntimeError):
+                    idle = False
+                if idle:
+                    main = self.Gui.getMainWindow()
+                    native = [item for item in main.findChildren(self.QtWidgets.QDockWidget)
+                              if item.objectName() == 'Model' and item.isVisible()]
+                    self._transfer_hidden_docks.extend(native)
+                for item in self._transfer_hidden_docks:
+                    item.hide()
+                epoch = self._transfer_focus_epoch = getattr(self, '_transfer_focus_epoch', 0) + 1
+                def settled():
+                    if (not self.closed and self._transfer_tasks and self._transfer_focus_epoch == epoch):
+                        self._hide_structural_transfer_overlay()
+                self.QtCore.QTimer.singleShot(0, settled)
+        elif not visible and dock in tasks:
+            tasks.remove(dock)
+            if not tasks and not self.closed:
+                self.restore_structural_transfer_layout()
+
+    def _hide_structural_transfer_overlay(self):
+        active = self.Gui.activeDocument()
+        if self.Gui.Control.activeDialog() or (active and active.getInEdit()):return
+        for overlay in self.Gui.getMainWindow().findChildren(self.QtWidgets.QWidget):
+            if overlay.objectName() != 'OverlayRight' or not overlay.isVisible():continue
+            docks = overlay.findChildren(self.QtWidgets.QDockWidget)
+            if docks and all(item.objectName() == 'Tasks' for item in docks):
+                # FreeCAD 1.1's overlay uses splitter state rather than QAction's
+                # checked bit. Its standard command closes the overlay itself.
+                self._transfer_hidden_overlay = overlay
+                self.Gui.runCommand('Std_DockOverlayToggleRight', 0)
+            return
+
+    def restore_structural_transfer_layout(self):
+        self._transfer_focus_epoch = getattr(self, '_transfer_focus_epoch', 0) + 1
+        for item in reversed(getattr(self, '_transfer_hidden_docks', [])):
+            try:item.show()
+            except RuntimeError:pass
+        self._transfer_hidden_docks = []
+        overlay = getattr(self, '_transfer_hidden_overlay', None)
+        if overlay is not None:
+            try:
+                if not overlay.isVisible():
+                    self.Gui.runCommand('Std_DockOverlayToggleRight', 0)
+                    # Native Showing is animated; accepted Close must see the
+                    # restored visibility before FreeCAD saves its layout.
+                    overlay.show()
+            except RuntimeError:pass
+        self._transfer_hidden_overlay = None
+
+    def close_structural_transfer(self, owner):
+        dock = self.panels.get(owner.doc.Name, {}).get('structural_transfer')
+        if dock is not None:
+            def close_approved():
+                if self.closed:return
+                dock._approved_task_close = True
+                try:dock.close()
+                except RuntimeError:pass  # The document may have closed while its save completed.
+                finally:dock._approved_task_close = False
+            self.QtCore.QTimer.singleShot(0, close_approved)
 
     def reconnect(self):
         if self.pending or self.native_requests:
@@ -822,23 +959,23 @@ class Connection:
             from .connector_menu import rebind as rebind_connector
             for name, (previous_owner, _, _) in previous:
                 if name in self.owners: rebind_connector(self, previous_owner, self.owners[name][0])
-            self.message.setText('문서를 다시 연결했습니다.')
+            self.message.setText('모델을 다시 연결했습니다.')
         def request_context():
-            from .native_controls import _motion_controller
+            from .native_controls import _motion_controller, transfer_token
             from .beam_menu import editor_token as beam_token
             from .dynamic_menu import editor_token as dynamic_token
             from .shell_controls import editor_token as shell_token
             from .composite_controls import editor_token as composite_token
             from .connector_menu import editor_token as connector_token
             from .pretension_controls import editor_token as pretension_token
-            versions = {name: ((controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner), composite_token(self, owner), connector_token(self, owner), pretension_token(self, owner))
+            versions = {name: ((controller.editor_token() if (controller := _motion_controller(self, owner)) is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner), composite_token(self, owner), connector_token(self, owner), pretension_token(self, owner), transfer_token(self, owner))
                         for name, (owner, _, _) in self.owners.items()}
             def accepted(context):
                 for name, (owner, _, _) in self.owners.items():
                     controller = _motion_controller(self, owner)
-                    current = ((controller.editor_token() if controller is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner), composite_token(self, owner), connector_token(self, owner), pretension_token(self, owner))
+                    current = ((controller.editor_token() if controller is not None else None), beam_token(self, owner), shell_token(self, owner), dynamic_token(self, owner), composite_token(self, owner), connector_token(self, owner), pretension_token(self, owner), transfer_token(self, owner))
                     if name not in versions or current != versions[name]:
-                        self.message.setText('다시 연결하는 동안 편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
+                        self.message.setText('다시 연결하는 동안 편집이 바뀌었습니다. 현재 모델과 편집을 유지합니다.'); return
                 connected(context)
             self.request('reconnect', self.client.desktop_context, accepted)
         guards = getattr(self, 'guards', None)
@@ -849,6 +986,7 @@ class Connection:
         if self.closed:
             return
         self.closed = True
+        self.restore_structural_transfer_layout()
         self.timer.stop()
         for owner, dispatch, broker in self.owners.values():
             dispatch.close()

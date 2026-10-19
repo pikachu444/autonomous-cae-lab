@@ -16,7 +16,11 @@ def freeze_transfer(model, editable_fcstd, output_root, identity, *, native_vers
     model=deepcopy(model)
     validate_model(model)
     transfer=model.get('displacement_transfer',{})
-    if transfer.get('status')!='READY' or transfer.get('boundary_dofs')!=model['boundary_dofs']:
+    bound={(r['node_id'],r['component']):r['value_mm'] for r in model['boundary_dofs']}
+    transferred=transfer.get('boundary_dofs',[])
+    if (transfer.get('status')!='READY' or not transferred
+            or any((r['node_id'],r['component']) not in bound or
+                   bound[r['node_id'],r['component']]!=r['value_mm'] for r in transferred)):
         raise ValueError('An explicitly bound displacement-transfer receipt is required')
     source=Path(editable_fcstd).resolve(strict=True)
     if source.suffix.lower()!='.fcstd' or file_hash(source)!=expected_editable_sha256:

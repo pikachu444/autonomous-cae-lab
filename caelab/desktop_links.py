@@ -79,6 +79,19 @@ class DesktopLinks:
                     limit=wb.config.get('local_input_max_bytes', 2 * 1024 ** 3))
                 save_json(record, {'command_hash': command['request_hash'], 'input': receipt})
             receipt_kind, backend = exports[command['operation']]
+            if command['operation'] == 'pre.freeze' and receipt.get('kind') == 'frozen_contact':
+                # The bounded prescribed-U writer keeps the native zero CAD
+                # baseline and emits the existing contact/static input format.
+                from .adapters.contact_fem import validate_snapshot
+                _, model, _, _ = validate_snapshot(wb.input_path(receipt['id']))
+                transfer = model.get('displacement_transfer', {})
+                reference = command['arguments'].get('source_reference')
+                if (transfer.get('status') != 'READY' or reference is None or
+                        transfer.get('source', {}).get('reference') != reference):
+                    raise ValueError('The frozen displacement input differs from its exact source command.')
+                if solver == 'codeaster':
+                    raise ValueError('This prescribed-displacement receiver requires the admitted CalculiX writer.')
+                receipt_kind, backend = 'frozen_contact', 'structure.calculix.contact'
             if solver == 'codeaster': backend = 'structure.codeaster.frozen'
             if solver == 'calculix' and not backend.startswith('structure.calculix.'):
                 raise ValueError('This frozen input does not support the selected CalculiX backend')

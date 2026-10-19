@@ -216,6 +216,13 @@ class Workbench:
     def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         check_id(identifier)
         owner=self._document_owner(identifier)
+        from .structural_field_ports import OPERATIONS as DISPLACEMENT_OPERATIONS, enrich_displacement_command
+        if owner is self.native_commands and (operation in DISPLACEMENT_OPERATIONS or
+                operation in {'pre.freeze','pre.contact.freeze','pre.pretension.freeze'}):
+            previous, arguments = enrich_displacement_command(self, identifier, operation, arguments,
+                session_id, expected_generation, command_id)
+            if previous is not None:
+                return previous
         from .material_fe_transfer import OPERATIONS as LAW_OPERATIONS, enrich_command
         if owner is self.native_commands and operation in LAW_OPERATIONS:
             previous, arguments = enrich_command(self, identifier, operation, arguments,
@@ -612,6 +619,29 @@ class Workbench:
                 if not dependency.is_relative_to(folder) or dependency.stat().st_size!=item['bytes'] or file_hash(dependency)!=item['sha256']:
                     raise ValueError('Registered native input or dependency changed')
         return path
+
+    def structural_displacement_sources(self):
+        from .structural_field_ports import saved_displacement_sources
+        return saved_displacement_sources(self)
+
+    def structural_displacement_source(self, reference):
+        from .structural_field_ports import read_saved_displacement
+        return read_saved_displacement(self, reference)
+
+    def structural_displacement_post_input(self, reference):
+        from .structural_field_ports import read_saved_displacement, verify_displacement_source
+        envelope, proof = read_saved_displacement(self, reference, with_proof=True)
+        source = Path(proof['files']['vtu']['path'])
+        receipt = register_native_input(self.root, source.parent, source, 'D'+uuid.uuid4().hex,
+            root_id='retained:'+reference['job_id'], relative=source.name,
+            limit=self.config.get('local_input_max_bytes', 2*1024**3),
+            native_metadata={'structural_displacement_source':deepcopy(reference),
+                             'static':deepcopy(envelope['field']['static'])})
+        verify_displacement_source(envelope, proof)
+        if receipt['sha256'] != proof['files']['vtu']['sha256']:
+            raise ValueError('Registered displacement field differs from the exact retained frame.')
+        return {'post_input':{key:receipt[key] for key in ('id','sha256','format')},
+                'reference':deepcopy(reference)}
 
     def native_input(self, identifier):
         """Resolve a registered native set for a local reader after verification."""

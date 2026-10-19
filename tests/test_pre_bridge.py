@@ -17,6 +17,127 @@ import pytest
 from apps.desktop_pre.bridge import Owner, GuiDispatch
 
 
+def test_disconnected_displacement_draft_survives_project_save_and_cold_read(monkeypatch, tmp_path):
+    from apps.desktop_pre.connection import Connection
+    from caelab.storage import load_json, save_json
+    from test_structural_transfer_binding import authoring_case, _author_preview_apply
+    author, fem, state, _, draft = authoring_case(monkeypatch)
+    applied = _author_preview_apply(author, fem, draft)
+    accepted = deepcopy(applied['record']['accepted'])
+    raw = deepcopy(draft); raw['definition']['distance_tolerance'] = '1e'
+    owner = fem.owner
+    owner.doc = NS(Name='Receiver'); owner.document_id = 'Preceiver'
+    owner.session_id = 'Sreceiver'; owner.generation = 4; owner.refresh = lambda: None
+    pending = {'value': True}; sent = []; replies = []
+    panel = NS(_busy=False, pending_changes=lambda: pending['value'])
+    output = tmp_path / 'offline-project.json'
+    def dispatch(request):
+        sent.append(deepcopy(request))
+        if request['operation'] == 'document.save':
+            save_json(output, state['metadata']); value = {'status': 'SAVED'}
+        else:
+            value = author.dispatch(fem, request['operation'], request['arguments'], request['target'])
+        return {'status': 'SUCCEEDED', 'result': value}
+    owner.dispatch = dispatch
+    connection = Connection.__new__(Connection)
+    broker = NS(stop=NS(is_set=lambda: True), registered=NS(is_set=lambda: False))
+    connection.owners = {owner.doc.Name: (owner, None, broker)}
+    connection.native_requests = {}
+    connection.panels = {owner.doc.Name: {'structural_transfer': NS(widget=lambda: panel)}}
+    reads = state['source_reads']
+    with pytest.raises(ValueError, match='초안을 저장'):
+        connection.submit_native('document.save', {}, owner=owner)
+    def saved(value):
+        replies.append(value); pending['value'] = False
+    connection.submit_native('pre.fem.displacement_save',
+        {'draft': raw, 'expected_revision': applied['record']['revision']},
+        {'object_id': 'Analysis'}, owner=owner, on_done=saved)
+    connection.submit_native('document.save', {}, owner=owner,
+        _capture_motion_view=False, _capture_shell=False, _capture_beam=False,
+        _capture_dynamic=False, _capture_composite=False, _capture_connector=False,
+        _capture_pretension=False)
+    stored = load_json(output)
+    assert stored['displacement_transfers']['Analysis']['draft'] == raw
+    assert stored['displacement_transfers']['Analysis']['accepted'] == accepted
+    assert state['source_reads'] == reads and not connection.native_requests
+    assert [row['operation'] for row in sent] == ['pre.fem.displacement_save', 'document.save']
+    assert all(row['document_id'] == owner.document_id and row['session_id'] == owner.session_id
+               and row['expected_generation'] == 4 for row in sent)
+    _, cold, cold_state, _, _ = authoring_case(monkeypatch, stored)
+    assert author.descriptor(cold)[0]['record']['draft'] == raw
+    assert cold_state['source_reads'] == 0
+    for operation in ('pre.fem.displacement_preview', 'pre.fem.displacement_apply', 'pre.freeze'):
+        with pytest.raises(ValueError, match='연결이 끊겼습니다'):
+            connection.submit_native(operation, {}, {'object_id': 'Analysis'}, owner=owner)
+    assert len(sent) == 2
+
+
+def test_transfer_focus_restores_previous_docks_after_last_task_and_preserves_native_edit():
+    from apps.desktop_pre.connection import Connection
+    class Action:
+        def __init__(self, dock):self.dock, self.calls = dock, 0
+        def isChecked(self):return self.dock.visible
+        def trigger(self):
+            self.calls += 1
+            self.dock.visible = not self.dock.visible
+            if self.dock.name == 'Tasks':overlay.visible = self.dock.visible
+    class Dock:
+        def __init__(self, name, visible=True, parent=None):
+            self.name, self.visible, self.parent = name, visible, parent
+            self.action = Action(self)
+        def objectName(self): return self.name
+        def windowTitle(self): return self.name
+        def isVisible(self): return self.visible
+        def hide(self): self.visible = False
+        def show(self): self.visible = True
+        def parentWidget(self): return self.parent
+        def toggleViewAction(self): return self.action
+        def findChildren(self, kind): return [tasks]
+    main = NS()
+    overlay = Dock('OverlayRight', parent=main)
+    model = Dock('Model', parent=main); tasks = Dock('Tasks', parent=overlay)
+    hidden = Dock('Report view', False, main); calculation = Dock('CAELabCalculation', parent=main)
+    main.findChildren = lambda kind: [model, tasks, hidden, calculation]
+    editing = {'value': False}
+    connection = Connection.__new__(Connection)
+    connection.closed = False; connection.dock = calculation
+    connection.QtWidgets = NS(QDockWidget=Dock, QWidget=object)
+    main.findChildren = lambda kind: [model, tasks, hidden, calculation] if kind is Dock else [overlay]
+    queued = []; commands = []
+    connection.QtCore = NS(QTimer=NS(singleShot=lambda ms, callback: queued.append(callback)))
+    def run_command(name, argument):
+        commands.append(name)
+        overlay.visible = not overlay.visible; tasks.visible = overlay.visible
+    connection.Gui = NS(getMainWindow=lambda: main,
+        activeDocument=lambda: NS(getInEdit=lambda: None),
+        Control=NS(activeDialog=lambda: editing['value']), runCommand=run_command)
+    assert connection.structural_transfer_view_actions() == [('Model', model.action)]
+    one, two = object(), object()
+    connection._transfer_task_visibility(one, True)
+    queued.pop(0)()
+    assert not any(item.visible for item in (model, tasks, overlay, calculation, hidden))
+    connection._transfer_task_visibility(two, True)
+    connection._transfer_task_visibility(one, False)
+    assert not model.visible and not overlay.visible
+    connection._transfer_task_visibility(two, False)
+    assert all(item.visible for item in (model, tasks, overlay, calculation)) and not hidden.visible
+    assert commands == ['Std_DockOverlayToggleRight'] * 2
+    assert tasks.action.calls == model.action.calls == 0
+    editing['value'] = True
+    connection._transfer_task_visibility(one, True)
+    queued.pop(0)()
+    assert model.visible and tasks.visible and overlay.visible and not calculation.visible
+    connection._transfer_task_visibility(one, False)
+    assert calculation.visible
+    editing['value'] = False
+    connection._transfer_task_visibility(one, True)
+    queued.pop(0)()
+    connection.timer = NS(stop=lambda: None); connection.owners = {}
+    connection.close()
+    assert connection.closed and all(item.visible for item in (model, tasks, overlay, calculation))
+    assert commands == ['Std_DockOverlayToggleRight'] * 4
+
+
 class Quantity:
     dimensions={'mm':'length','cm':'length','m':'length','N':'force','kN':'force','deg':'angle','rad':'angle','s':'time'}
     def __init__(self, text):
@@ -139,6 +260,48 @@ def test_mesh_comparison_routes_without_design_change(native, monkeypatch):
     invalid = native.owner.dispatch(request(native, 'pre.fem.mesh_compare',
         {'history_id': 'Gprevious'}, {'object_id': mesh.Name}, command_id='Cinvalid'))
     assert invalid['status'] == 'FAILED' and len(calls) == 1
+
+
+def test_displacement_read_and_preview_use_typed_readonly_owner_routing(native,monkeypatch):
+    from caelab.native_commands import CAPABILITIES
+    calls=[]
+    def dispatch(fem,operation,args,target,*,source=None):
+        calls.append((operation,args,target,source));return {'state':'UNAPPLIED'}
+    monkeypatch.setattr('apps.desktop_pre.structural_transfer_native.dispatch',dispatch)
+    native.owner.before_design_action=lambda _:pytest.fail('Read/preview must not edit native CAD')
+    for index,operation in enumerate(('pre.fem.displacement_read','pre.fem.displacement_preview')):
+        public={} if index==0 else {'draft':{},'expected_revision':None}
+        args={**public,'_public_arguments':deepcopy(public)}
+        result=native.owner.dispatch(request(native,operation,args,{'object_id':'Analysis'},command_id='Cread'+str(index)))
+        assert result['status']=='COMPLETED' and operation in CAPABILITIES['pre']
+        assert calls[-1]==(operation,public,{'object_id':'Analysis'},None)
+    assert not native.doc.transactions
+
+
+def test_transfer_freeze_without_exact_source_is_blocked_before_project_save(native,monkeypatch):
+    reference={'document_id':'Vsource','saved_revision':'Rsource','job_id':'Jsource',
+               'input_revision':'Isource','input_sha256':'1'*64}
+    monkeypatch.setattr(native.owner,'read_metadata',lambda:{'displacement_transfers':{
+        'Analysis':{'draft':{'source_reference':reference},'accepted':{}}}})
+    monkeypatch.setattr(native.owner.project,'save',lambda:pytest.fail('Missing source reached Save'))
+    response=native.owner.dispatch(request(native,'pre.freeze',{'analysis_id':'Analysis','solver_id':'Solver'},{}))
+    assert response['status']=='FAILED' and '정확한 원본' in response['error']['message']
+
+
+@pytest.mark.parametrize('operation',['document.save','document.undo','document.redo','pre.freeze'])
+@pytest.mark.parametrize('busy',[False,True])
+def test_direct_owner_commands_preserve_transfer_raw_edits(native,monkeypatch,operation,busy):
+    editor=NS(raw='1e',pending_changes=lambda:not busy,_busy=busy)
+    native.owner._structural_transfer_panel=editor
+    monkeypatch.setattr(native.owner.project,'save',lambda:pytest.fail('Pending raw reached project Save'))
+    before=native.owner.generation
+    args={'analysis_id':'Analysis','solver_id':'Solver'} if operation=='pre.freeze' else {}
+    response=native.owner.dispatch(request(native,operation,args,{},command_id='Cpending'))
+    assert response['status']=='FAILED' and '변위 전달' in response['error']['message']
+    assert native.owner.generation==before and native.doc.transactions==[] and editor.raw=='1e'
+    editor.pending_changes=lambda:False;editor._busy=False
+    completed=native.owner.dispatch(request(native,'document.undo',{}, {},command_id='CafterCancel'))
+    assert completed['status']=='COMPLETED' and native.owner.generation==before+1
 
 
 def test_mesh_view_routes_without_design_edit_and_closes_with_owner(native, monkeypatch):
@@ -431,7 +594,7 @@ def test_connection_does_not_reuse_identity_for_a_different_unsaved_document(tmp
     connection.QtCore=None
     connection.log=lambda *args,**kwargs:None
     connection.identity=NS(setText=lambda text:None)
-    for name in ('run_button','export_button','cancel_button','retry_button'):
+    for name in ('run_button','export_button','cancel_button','retry_button','native_solver_button','native_post_button'):
         setattr(connection,name,NS(setEnabled=lambda value:None))
     connection.tick()
     assert captured==[None]

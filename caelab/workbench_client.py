@@ -310,6 +310,13 @@ class Client:
     def native_input(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/inputs/'+check_id(identifier)+'/native')
+    def structural_displacement_sources(self):
+        return self.request('/api/workbench/structural-displacement',{'operation':'catalog','arguments':{}})
+    def structural_displacement_source(self,reference):
+        return self.request('/api/workbench/structural-displacement',{'operation':'read','arguments':{'reference':reference}})
+
+    def structural_displacement_post_input(self,reference):
+        return self.request('/api/workbench/structural-displacement',{'operation':'post','arguments':{'reference':reference}})
     def status(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier))

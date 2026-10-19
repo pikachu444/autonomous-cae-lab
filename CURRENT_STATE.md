@@ -46,8 +46,32 @@ Runner는 진행/오류 표시의 부족을 확인했다. Expert/Study의 입력
 서식도 교정 대상이다. PDE의 트리/설정/해 구조는 비교적 맞지만 직접 영역 선택, 최신
 Material 주 화면 및 native Post의 시각 품질 등 직접 보지 못한 상태는 미확인으로 남긴다.
 이는 읽기 전용 비교 결과이며 각 도구의 전체 재검사나 상용 GUI 수용을 뜻하지 않는다.
-변위 작업창 08의 실제 일반/좁은 창에서도 빈 native 작업 overlay와 작은 3D 영역이
-남아 있어 담당자가 계속 교정한다. 원문/저장/복구 기능 확인을 화면 품질 완료로 세지 않는다.
+변위 작업창 14의 실제 일반/좁은 6화면에서 빈 native 작업 overlay 제거와 3D 영역을
+확인했다. 작업창 X 및 native 종료 저장 전의 Model/Tasks/계산/overlay 복원과 원 편집·저장본
+불변도 확인해 같은 Astra가 종료 복원의 P2를 폐쇄했다. 뒤 정리 호출까지 포함한 하네스
+assertion 때문에 원14 전체 FAIL은 유지하며, 필터 수정만을 위한 native 재실행은 하지 않는다.
+이 한정 기능·화면 근거를 전체 상용 GUI 수용으로 세지 않는다.
+
+현재 실제 후속은 예제 고정 이름·0 Fixed·기본 단계에 묶였던 수신을 일반 사용자 작업으로
+고치는 것이다. Codex가 선택 retained static frame의 실제 위치/핀, 자유 DOF 추가·명시한
+기존 조건의 교집합만 교체·다른 조건/하중/사용자 단일 STATIC 보존과 공통 입력 경로를
+구현했다. native_impl은 전용 capture/helper와 기존 검사, 같은 specialist는 명시 교체 선택과
+실제 프레임 표시를 구현했다. 순수/전용 검사와 실제15의 placeholder 없는 수신 모델에서
+선택→취소/적용→원문 저장/Undo→저장→cold→입력 생성을 확인했다. 수신의 사용자가 작성한
+정적 단계와 accepted→frozen DOF는 그대로였다. 16은 같은 저장본의 좁은 대상 이름 잘림을
+고친 읽기 전용 화면 확인이며 source/Job 불변·새 solver0·모든 소유 프로세스 정리를 확인했다.
+지원은 선형 탄성 C3D10·기준 외부 면·단일 STATIC 수신이며 접촉/비선형/다단계/초기 상태는
+확장하지 않았다. 같은 Astra는 부분 교체·원본 핀·동결 경로와 목록 갱신의 원본 표시명 P2를
+검토했고 현재 미해결 P1/P2는 없다. 전체 제품·상용 GUI·공학 적합성 완료와는 구별한다.
+
+추가 사용자 지적에 따라 확인용 모델에 임의로 붙인 ‘브래킷 정적 해석’을 실제 해석 종류로
+혼동시키는 표시와 Pre의 ‘대상 문서’를 교정한다. 사용자 모델/해석 설정의 이름과 native
+솔버·단계에서 확인한 실제 해석 종류를 구분하고, 모델·프로젝트·전역 좌표계 용어를 쓴다.
+기존 사용자의 Label이나 원15/16 파일을 덮어쓰지 않았다. 같은 specialist의 UI34PASS와
+실제17 읽기 전용 일반/좁은 6화면에서 이름·실제 종류·대상 모델/전역 좌표계 표시를 확인했다.
+미지원/미확인 구분을 보존하며 새 preview/freeze/solver/provider0·Job/원본/저장본 불변·
+모든 소유 프로세스 정리까지 확인했다. Word/PPT 입력 기능을 뜻하지 않는다. 해당 구현·
+지원 범위·실행과 수치 FAIL은 기존 사용법/검증 매뉴얼에 기록하고 통합 게시한다.
 
 새 CCX07은 시작하지 않고 보류했다. actual04의 선택/취소/적용/저장 및 actual05의 입력 생성·
 cold 복원은 기능 근거로 보존하지만, 옛 입력과 15/102 BC의 마지막 비트가 달라 INP까지
@@ -59,11 +83,11 @@ B8.1은 `b0bff6e`로 원격 게시했다. 사용자의 지적에 따라 중간 �
 
 | 실제 담당 | 단독 쓰기 범위 | 첫 접점과 완료 조건 |
 |---|---|---|
-| Codex | Core/owner/API·`remote_execution.py`, 공통 recovery host·adapter/runtime/Simulation 연결, 공개 문서·현재 상태·게시 | 원격 회수/작업 판정 분리와 독립 Numerical raw recovery hooks부터 통합. 원 실패·UNKNOWN 보존, 관련 검사와 사용자 동선 확인 뒤 게시 |
+| Codex | Core/owner/API·공통 recovery/adapter/runtime/Simulation·TR-U ports/binder/snapshot/공통 검증·bridge/fem_edit, 공개 문서·현재 상태·게시 | 사용자 모델의 선택 frame→명시 부분 교체→기존 writer 입력과 원본·조건/단계 보존을 통합. 원 실패·UNKNOWN 보존, 관련 검사·실제 동선·통합 검토 뒤 게시 |
 | data_impl / Sol-high | 현재 Data/Material/Numerical의 기존 화면·현재 구현 읽기 전용 비교 | 비교 완료. B8.4.L01 기능 인도는 `2b6a192`로 게시했으며 외부 승인 호스트 실행은 별도 미실행 |
 | desktop_specialist / Sol-high | `structural_transfer_panel.py`, 기존 `test_structural_transfer_authoring_ui.py` 단독 | 사용자 거부 화면을 native contextual task로 설계·구현. 구체 참조/조작과 실제 일반·좁은 창을 대조하며 글자/기능 통과를 GUI 수용으로 바꾸지 않음. 이전 B8.2 첫 slice는 별도 기능 근거 |
 | material_numerical_impl / Sol-high | 현재 PDE/Simulation/Evaluation/Runner의 기존 화면·현재 구현 읽기 전용 비교 | 비교 완료. B8.2 첫 slice의 원문 복구 기능 인도는 `2b6a192`로 게시했으며 전체 화면 품질 완료와 구별 |
-| native_impl / Sol-high | `structural_transfer_native.py`, 기존 binding test·`tests/check_structural_u_transfer_windows.py` | panel/UI test 쓰기를 specialist에 인도. 새 구조에 기존 native checker만 적응하며 새 CCX0/실행권은 specialist 단독. 실제05 strict FAIL/06 readonly와 원 파일을 보존 |
+| native_impl / Sol-high | `structural_transfer_native.py`, `freeze_contact.py`의 TR-U capture hunk, 기존 binding/export test·`tests/check_structural_u_transfer_windows.py` | source/step 보존과 bound_model 연결, 임의 이름·placeholder0 수신을 기존 checker로 확인. 새 CCX0/실행권은 specialist 단독. 원05 strict FAIL/14 하네스 FAIL과 원 파일 보존 |
 | native_data_product_impl / Sol-high | 기존 thermal-regions 후보 helper/조건 widget 재사용 및 `law_native_fe.py`/worker thermal 분기 hunk, 기존 기능별 tests | B4.5.L02: 두 영역 열·기존 SLS 상태를 같은 Simulation에 연결. 원 곡률 8% 기준 FAIL/timeout 보존, 기존 DP/J2 교정 보존. adapter/Simulation 공통 hunk는 Codex |
 | native_cae_adviser / Astra-xhigh | 읽기 전용 실제 후보·입력/diagnostics와 primary source 자문 | thermal strain/state·증분 수렴·곡률 불일치만 구현 담당과 논의. 새 실행/공개 보고서/허용값 조정 0 |
 | data_integration | 읽기 전용 FreeCAD/Abaqus의 동일 작업 공식 문서·실제 그림 비교 | 3D 대상 선택→성분 편집/원 결과→수신 경계 흐름을 specialist와 Codex에 전달 완료. 보지 못한 대화창 그림은 미확인 |

@@ -10,8 +10,7 @@ from apps.desktop_pre import freeze_contact as exporter
 from apps.desktop_pre.fem_edit import FEMEditor
 
 
-@pytest.mark.parametrize('zero_force_program,dynamic',[(False,False),(True,False),(True,True)])
-def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch,zero_force_program,dynamic):
+def _native_case(model, monkeypatch, *, zero_force_program=False, dynamic=False):
     class Quantity:
         def __init__(self, value, unit=None):
             self.Value = float(str(value).split()[0])
@@ -66,8 +65,10 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
     extra_displacements = []
     def members(a):
         assert a is analysis
-        return NS(mats_linear=[{'Object': material}], cons_fixed=[{'Object': fixed}],
-                  cons_displacement=[{'Object': displacement}, *[{'Object':o} for o in extra_displacements]], cons_force=[{'Object': force}])
+        return NS(mats_linear=[{'Object': material}],
+                  cons_fixed=[{'Object': fixed}] if fixed in analysis.Group else [],
+                  cons_displacement=[{'Object': o} for o in [displacement,*extra_displacements] if o in analysis.Group],
+                  cons_force=[{'Object': force}] if force in analysis.Group else [])
 
     class Getter:
         def __init__(self, a, s, mesh, member):
@@ -113,7 +114,8 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
     monkeypatch.setattr(exporter, '_target', lambda source, names: {
         'object_id': source.Name, 'subelements': [{'name': name} for name in names]})
     owner = NS(doc=doc, assert_thread=lambda: None, _object=objects.__getitem__,
-               mesh_bindings=NS(validate=lambda mesh: {'state': 'CURRENT_TEST_DOUBLE'}))
+               mesh_bindings=NS(validate=lambda mesh: {'state': 'CURRENT_TEST_DOUBLE'}),
+               read_metadata=lambda:fem._metadata())
     fem = NS(owner=owner, _pending={}, _assert_idle=lambda: None, _metadata=lambda: {},
              _condition_errors=lambda *a: [], quality=lambda *a, **kw: {'bad_element_count': 0},
              contact=NS(_data=lambda: {'contacts': [record]}, errors=lambda record: []))
@@ -126,6 +128,16 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
         program['procedure']='dynamic' if dynamic else 'static'
         program['steps'][0]['curves'][0]['points']=[[0,0],[.5,100],[1.,0]]
         fem._metadata=lambda:{'contact_programs':[{'analysis_id':analysis.Name,'draft':program}]}
+    return NS(**locals())
+
+
+@pytest.mark.parametrize('zero_force_program,dynamic',[(False,False),(True,False),(True,True)])
+def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are_native(model, monkeypatch,zero_force_program,dynamic):
+    case=_native_case(model,monkeypatch,zero_force_program=zero_force_program,dynamic=dynamic)
+    solver,analysis,fem=case.solver,case.analysis,case.fem
+    fixed,displacement,force=case.fixed,case.displacement,case.force
+    meshes,reads=case.meshes,case.reads
+    obj,extra_displacements,Quantity=case.obj,case.extra_displacements,case.Quantity
     actual, identity = exporter.collect(analysis, solver, fem)
     assert solver.AnalysisType=='static'  # Pinned CcxTools has no dynamic enum.
     if dynamic:
@@ -177,3 +189,54 @@ def test_current_condition_faces_override_stale_mesh_groups_and_force_values_are
     diagnostics = FEMEditor.validate_for_run(fem, analysis)
     assert diagnostics and diagnostics[0]['path'] == 'contact'
     assert diagnostics[0]['blocks_evaluation']
+
+
+@pytest.mark.parametrize('unrestrained',[False,True])
+def test_transfer_capture_preserves_authored_static_and_loads_without_inventing_a_support(model,monkeypatch,unrestrained):
+    from caelab.contact_steps import default_program,compile_program
+    case=_native_case(model,monkeypatch)
+    analysis,solver,fem=case.analysis,case.solver,case.fem
+    removed=[case.meshes['Base'],case.fixed,case.contact]+([case.displacement] if unrestrained else [])
+    analysis.Group[:]=[obj for obj in analysis.Group if all(obj is not old for old in removed)]
+    solver.GeometricalNonlinearity='linear'
+    fem.contact._data=lambda:{'contacts':[]}
+    inputs=[{'object_id':case.force.Name,'type':case.force.TypeId,'total_force_N':10.}]
+    if not unrestrained:
+        inputs.append({'object_id':case.displacement.Name,'type':case.displacement.TypeId,'components_mm':{1:-.02}})
+    program=default_program({'period':2.5,'initial':.25,'minimum':1e-6,'maximum':.75,'increments':77},inputs)
+    step=program['steps'][0]
+    step.update(id='UserCycle',label='사용자 하중 단계',output_frequency=7)
+    step['curves'][0]['points']=[[0,0],[.4,8.],[2.5,13.]]
+    metadata={'contact_programs':[{'analysis_id':analysis.Name,'draft':program}]}
+    fem._metadata=lambda:deepcopy(metadata)
+    before=deepcopy(metadata)
+    captured,_=exporter.collect(analysis,solver,fem,capture_only=True,for_displacement_transfer=True)
+    assert captured['analysis_steps']==program and metadata==before
+    assert sum(row['force_N'] for row in captured['loads'])==-10.
+    assert next(row for row in captured['conditions'] if row['object_id']=='Force')['force_weights']
+    assert bool(captured['boundary_dofs']) is not unrestrained
+    assert {row['object_id'] for row in captured['conditions']}=={row['object_id'] for row in inputs}
+    if unrestrained:
+        with pytest.raises(ValueError,match='restraints'):
+            exporter.collect(analysis,solver,fem)
+        with pytest.raises(ValueError,match='구속'):
+            compile_program(program,captured['conditions'])
+    else:
+        ordinary,_=exporter.collect(analysis,solver,fem)
+        assert ordinary==captured
+    # Capture postpones only missing support, not invalid authored curves/mesh.
+    step['curves'][0]['points'][-1][0]=2.
+    with pytest.raises(ValueError,match='곡선'):
+        exporter.collect(analysis,solver,fem,capture_only=True,for_displacement_transfer=True)
+    step['curves'][0]['points'][-1][0]=2.5
+    fem.quality=lambda *a,**kw:{'bad_element_count':1}
+    with pytest.raises(ValueError,match='quality'):
+        exporter.collect(analysis,solver,fem,capture_only=True,for_displacement_transfer=True)
+
+
+def test_transfer_capture_flag_does_not_admit_contact_or_executable_export(model,monkeypatch):
+    case=_native_case(model,monkeypatch)
+    with pytest.raises(ValueError,match='read-only'):
+        exporter.collect(case.analysis,case.solver,case.fem,for_displacement_transfer=True)
+    with pytest.raises(ValueError,match='without contact'):
+        exporter.collect(case.analysis,case.solver,case.fem,capture_only=True,for_displacement_transfer=True)

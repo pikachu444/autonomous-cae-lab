@@ -46,6 +46,7 @@ def controls(app, tmp_path, monkeypatch):
         owner.assert_thread = owner.refresh = owner._idle = lambda: None
         owner.completed, owner.view_generation = {}, 0
         owner.fem = NS(_pending={})
+        owner.pose_candidates = NS(busy=False)
         owner.descriptor = lambda owner=owner: {'id': owner.document_id, 'generation': owner.generation}
         owner.dispatch = MethodType(Owner.dispatch, owner)
         owners.append(owner)
@@ -113,6 +114,24 @@ def questions(monkeypatch, choices):
         return next(replies)
     monkeypatch.setattr(QtWidgets.QMessageBox, 'question', question)
     return seen
+
+
+@pytest.mark.parametrize('choice', ['cancel', 'discard', 'saved', 'empty'])
+def test_main_close_restores_task_layout_only_after_close_is_approved(controls, monkeypatch, app, choice):
+    c = controls; calls = []
+    c.connection.restore_structural_transfer_layout = lambda: calls.append('restore')
+    if choice == 'saved':
+        for owner in c.owners:owner.saved_generation = owner.generation
+    elif choice == 'empty':c.connection.owners.clear()
+    else:
+        button = QtWidgets.QMessageBox.Cancel if choice == 'cancel' else QtWidgets.QMessageBox.Discard
+        questions(monkeypatch, [button] * len(c.owners))
+    c.main.show(); app.processEvents()
+    c.main.close(); app.processEvents()
+    if choice == 'cancel':
+        assert c.main.isVisible() and calls == []
+    else:
+        assert not c.main.isVisible() and calls == ['restore']
 
 
 def test_native_save_action_replacement_preserves_order_shortcut_and_uses_async_owner(controls):
@@ -301,3 +320,17 @@ def test_reconnect_save_failure_keeps_editor_and_old_owner(controls, monkeypatch
     c.guards.prepare_reconnect(c.owners, lambda: completed.append(True)); c.complete(success=False)
     assert not completed and not c.guards.closing and state['version'] == 1
     assert c.connection.owners['One'][0] is c.owners[0]
+
+
+def test_transfer_raw_buffer_blocks_save_and_survives_close_reconnect_cancel(controls, monkeypatch):
+    c=controls;owner=c.owners[0];owner.saved_generation=owner.generation
+    buffer={'text':'1e','version':1}
+    panel=NS(_busy=False,pending_changes=lambda:True,editor_token=lambda:deepcopy(buffer))
+    c.connection.panels={owner.doc.Name:{'structural_transfer':NS(widget=lambda:panel)}}
+    with pytest.raises(ValueError,match='초안을 저장하거나 편집을 취소'):
+        c.guards.save(owner=owner)
+    questions(monkeypatch,[QtWidgets.QMessageBox.Cancel,QtWidgets.QMessageBox.Cancel])
+    c.guards.replacements['Std_Close'][1].trigger()
+    completed=[];c.guards.prepare_reconnect([owner],lambda:completed.append(True))
+    assert not completed and not c.connection.pending and not c.originals
+    assert not c.guards.closing and buffer=={'text':'1e','version':1}

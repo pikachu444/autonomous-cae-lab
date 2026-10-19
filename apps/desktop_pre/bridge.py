@@ -147,6 +147,11 @@ class Owner:
 
     def before_design_action(self, reason):
         self.assert_thread()
+        editor = getattr(self, '_structural_transfer_panel', None)
+        if (editor is not None and reason not in {'pre.fem.displacement_save',
+                'pre.fem.displacement_apply', 'pre.fem.displacement_remove'}
+                and (editor.pending_changes() or editor._busy)):
+            raise ValueError('변위 전달에 미저장 편집 또는 진행 중 요청이 있습니다. 전달 창에서 초안을 저장하거나 편집을 취소하세요.')
         if self.pose_candidates.busy:
             raise ValueError('선택 자세의 해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
         if self.fem._pending:
@@ -278,6 +283,7 @@ class Owner:
                             'pre.contact.preview_rebind', 'pre.contact.cancel_rebind', 'pre.contact.geometry', 'pre.contact.steps_read', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.fem.mesh_compare', 'pre.fem.mesh_view', 'pre.select'}
                 from caelab.material_fe_transfer import READ_ONLY as LAW_READ_ONLY
                 readonly |= LAW_READ_ONLY
+                readonly |= {'pre.fem.displacement_read', 'pre.fem.displacement_preview'}
                 readonly |= {'pre.fem.pretension_read', 'pre.fem.pretension_faces', 'pre.fem.pretension_highlight'}
                 readonly |= COMPOSITE_READ_ONLY | SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY | DYNAMIC_READ_ONLY | set(CONNECTOR_READ_ONLY)
                 if self.pose_candidates.busy and operation not in readonly | {'pre.assembly_candidate.cancel', 'document.activate'}:
@@ -389,8 +395,19 @@ class Owner:
                     diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
                     payload = {'diagnostics': diagnostics, 'can_freeze': not diagnostics, 'engineering_release': 'UNKNOWN'}
                 elif operation in {'pre.freeze', 'pre.contact.freeze', 'pre.pretension.freeze'}:
+                    from caelab.structural_field_ports import consume_displacement_source
+                    args, displacement_source = consume_displacement_source(args)
+                    requested_source = args.pop('source_reference', None)
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
+                    transfer_record = self.read_metadata().get('displacement_transfers', {}).get(args['analysis_id'])
+                    if transfer_record is not None:
+                        if (requested_source is None or displacement_source is None or
+                                transfer_record.get('draft', {}).get('source_reference') != requested_source or
+                                displacement_source['reference'] != requested_source):
+                            raise ValueError('적용한 변위 전달의 정확한 원본을 선택한 뒤 입력을 생성하세요.')
+                    elif requested_source is not None or displacement_source is not None:
+                        raise ValueError('현재 해석에 적용한 변위 전달 정의가 없습니다.')
                     from caelab.material_fe_transfer import guard_other_export
                     guard_other_export(self, args['analysis_id'])
                     from apps.desktop_pre.freeze_analysis import require_ready_model
@@ -406,7 +423,8 @@ class Owner:
                     if has_pretension and operation != 'pre.pretension.freeze':
                         raise ValueError('체결 조건이 있는 해석은 체결 입력 생성/계산을 사용하세요.')
                     from apps.desktop_pre.freeze_analysis import freeze_analysis
-                    diagnostics = (self.fem.validate_for_run(self._object(args['analysis_id']))
+                    diagnostics = (self.fem.validate_for_run(self._object(args['analysis_id']),
+                                       **({'for_displacement_transfer':True} if transfer_record is not None else {}))
                                    if operation in {'pre.freeze', 'pre.pretension.freeze'} else [])
                     if diagnostics:
                         raise ValueError('FEM_INPUT_INVALID: ' + '; '.join(item['path'] + ': ' + item['message'] for item in diagnostics))
@@ -418,7 +436,34 @@ class Owner:
                     saved = self.project.save()
                     frozen_generation = self.generation
                     from apps.desktop_pre.nonlinear_material import uses_solid_route
-                    if operation == 'pre.contact.freeze' or uses_solid_route(self._object(args['analysis_id']), self.fem._metadata()):
+                    if transfer_record is not None:
+                        if operation == 'pre.pretension.freeze':
+                            raise ValueError('변위 전달의 첫 수신 해석은 체결 단계를 지원하지 않습니다.')
+                        from .freeze_contact import collect
+                        from .structural_transfer_native import accepted_definition, canonical_capture
+                        from caelab.structural_transfer_snapshot import freeze_transfer
+                        from caelab.native_cad import sha
+                        import tempfile
+                        analysis, solver = self._object(args['analysis_id']), self._object(args['solver_id'])
+                        captured, identity = collect(analysis, solver, self.fem, capture_only=True,
+                                                     for_displacement_transfer=True)
+                        prepared = accepted_definition(self.fem, analysis.Name, captured, source=displacement_source)
+                        model = prepared['bound_model']
+                        output_root = self.export_root / self.document_id
+                        output_root.mkdir(parents=True, exist_ok=True)
+                        with tempfile.TemporaryDirectory(prefix='transfer-', dir=output_root) as temporary:
+                            baseline = Path(temporary) / 'baseline.FCStd'
+                            self.doc.saveCopy(str(baseline))
+                            manifest = freeze_transfer(model, baseline, output_root, identity,
+                                native_version=self.App.Version(), analysis_id=analysis.Name,
+                                solver_id=solver.Name, expected_editable_sha256=sha(baseline))
+                        after, after_identity = collect(analysis, solver, self.fem, capture_only=True,
+                                                       for_displacement_transfer=True)
+                        if canonical_capture(after) != prepared['captured'] or after_identity != identity:
+                            raise ValueError('변위 전달 입력 생성 중 수신 모델이 바뀌었습니다. 다시 확인하세요.')
+                        # Catch source replacement during packaging as well as queue wait.
+                        consume_displacement_source(request['arguments'])
+                    elif operation == 'pre.contact.freeze' or uses_solid_route(self._object(args['analysis_id']), self.fem._metadata()):
                         from apps.desktop_pre.freeze_contact import freeze_contact
                         manifest = freeze_contact(self._object(args['analysis_id']), self._object(args['solver_id']),
                                                   self.export_root / self.document_id, fem=self.fem)

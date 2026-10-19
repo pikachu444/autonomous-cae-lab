@@ -47,7 +47,21 @@ def contact_cards(pair):
     return '\n'.join(lines) + '\n'
 
 
-def validate_model(model):
+def validate_model(model, *, allow_unrestrained_capture=False):
+    # A displacement import may supply the first restraint. Only its read-only
+    # linear STATIC capture can defer this requirement; render remains strict.
+    if allow_unrestrained_capture:
+        program = model.get('analysis_steps', {})
+        stages = program.get('steps', [])
+        if (model.get('analysis_scope') != 'single_solid_static'
+                or model.get('step', {}).get('geometry') != 'linear'
+                or model.get('contacts') or program.get('procedure') != 'static'
+                or len(stages) != 1 or stages[0].get('procedure', 'static') != 'static'
+                or any(model.get(k) for k in ('restart', 'dynamic', 'periodic_constraints',
+                    'pretension_sections', 'initial_fields'))
+                or any(m.get('law') != 'isotropic_linear_elastic' or m.get('plasticity')
+                       for m in model.get('materials', []))):
+            raise ValueError('Displacement capture requires one linear elastic STATIC solid without coupled state.')
     if model.get('kind') != 'freecad-contact-mesh' or model.get('schema_version') != '1' or model.get('units') != UNITS:
         raise ValueError('Unsupported contact mesh/units')
     nodes, elements, bodies = {}, {}, {}
@@ -154,7 +168,7 @@ def validate_model(model):
         if type(key[0]) is not int or type(key[1]) is not int or key[0] not in nodes or key[1] not in (1, 2, 3) or key in loads or ('analysis_steps' not in model and key in boundaries and value != 0):
             raise ValueError('Force overlaps a prescribed displacement DOF or duplicates a load')
         loads[key] = value
-    if not boundaries or ('analysis_steps' not in model and not (any(value != 0 for value in loads.values()) or any(value != 0 for value in boundaries.values()))):
+    if (not boundaries and not allow_unrestrained_capture) or ('analysis_steps' not in model and not (any(value != 0 for value in loads.values()) or any(value != 0 for value in boundaries.values()))):
         raise ValueError('Provide explicit restraints and a nonzero force or prescribed displacement')
     dependent = set()
     for pair in model['contacts']:
@@ -184,7 +198,8 @@ def validate_model(model):
     if 'analysis_steps' in model:
         from .contact_steps import compile_program, validate_contributions
         validate_contributions(model)
-        compile_program(model['analysis_steps'], model['conditions'])
+        compile_program(model['analysis_steps'], model['conditions'],
+                        allow_unrestrained_capture=allow_unrestrained_capture)
         if has_dynamic(model['analysis_steps']):
             for material in model['materials']:
                 if number(material.get('density_tonne_per_mm3')) <= 0:

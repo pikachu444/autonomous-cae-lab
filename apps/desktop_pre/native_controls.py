@@ -11,6 +11,21 @@ from .connector_menu import editor_token as connector_token, pending_changes as 
 from .pretension_controls import editor_token as pretension_token, pending_changes as pretension_pending
 from .composite_controls import editor_token as composite_token, has_unsaved_editor as composite_pending
 
+def transfer_panel(connection, owner):
+    dock = getattr(connection, 'panels', {}).get(owner.doc.Name, {}).get('structural_transfer')
+    try: return dock.widget() if dock is not None else None
+    except RuntimeError: return None
+
+
+def transfer_token(connection, owner):
+    panel = transfer_panel(connection, owner)
+    return panel.editor_token() if panel is not None else None
+
+
+def transfer_pending(connection, owner):
+    panel = transfer_panel(connection, owner)
+    return panel is not None and (panel.pending_changes() or panel._busy)
+
 
 def _saved(owner):
     check = getattr(owner.project, 'is_saved', None)
@@ -34,7 +49,8 @@ def _close_version(owner, connection=None):
             dynamic_token(connection, owner) if connection is not None else None,
             composite_token(connection, owner) if connection is not None else None,
             connector_token(connection, owner) if connection is not None else None,
-            pretension_token(connection, owner) if connection is not None else None)
+            pretension_token(connection, owner) if connection is not None else None,
+            transfer_token(connection, owner) if connection is not None else None)
 
 
 def install(connection, open_model):
@@ -62,6 +78,7 @@ def install(connection, open_model):
                     ('조립 운동', lambda: connection.show_panel('motion')),
                     ('선택 자세 해석', lambda: connection.show_panel('assembly_candidate')),
                     ('해석 설정', lambda: connection.show_panel('fem')),
+                    ('변위 가져오기…', lambda: connection.show_panel('structural_transfer')),
                     ('빔 설정', lambda: connection.show_panel('beam')),
                     ('프로젝트', lambda: connection.show_panel('project'))]:
                 action = self.toolbar.addAction(title)
@@ -72,7 +89,7 @@ def install(connection, open_model):
             from .shell_controls import has_unsaved_editor
             controller = _motion_controller(connection, owner)
             return (_saved(owner) and (controller is None or not controller.has_unsaved_editor())
-                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner))
+                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner) and not transfer_pending(connection, owner))
 
         def invoke(self, callback):
             try: callback()
@@ -91,7 +108,7 @@ def install(connection, open_model):
                     proxy = QAction(action.icon(), action.text(), main)
                     proxy.setObjectName('CAELabManaged_' + name)
                     proxy.setShortcuts(action.shortcuts())
-                    proxy.setToolTip(action.toolTip() + '\nCAE Lab 프로젝트와 연결된 편집 문서를 함께 저장합니다.')
+                    proxy.setToolTip(action.toolTip() + '\nCAE Lab 프로젝트와 연결된 편집 모델을 함께 저장합니다.')
                     proxy.triggered.connect(lambda checked=False, name=name: self.invoke(lambda: self.trigger(name)))
                 else:
                     proxy = previous[1]
@@ -115,6 +132,8 @@ def install(connection, open_model):
 
         def save(self, *, owner=None, as_new=False, after=None):
             owner = owner or connection.active_owner()
+            if transfer_pending(connection, owner):
+                raise ValueError('변위 가져오기에 미저장 편집 또는 진행 중 요청이 있습니다. 초안을 저장하거나 편집을 취소한 뒤 프로젝트를 저장하세요.')
             if as_new or owner.project.path is None:
                 default = owner.project.path or owner.export_root / owner.document_id / (owner.doc.Name + '.caepre')
                 path, _ = QtWidgets.QFileDialog.getSaveFileName(main, '프로젝트 저장', str(default),
@@ -185,12 +204,12 @@ def install(connection, open_model):
                 if not pending:
                     if any(_close_version(owner, connection) != version for owner, version in accepted):
                         self.closing = False
-                        connection.message.setText('다시 연결 준비 중 편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
+                        connection.message.setText('다시 연결 준비 중 편집이 바뀌었습니다. 현재 모델과 편집을 유지합니다.'); return
                     self.closing = False; after(); return
                 owner = pending.pop(0)
                 controller = _motion_controller(connection, owner)
                 from .shell_controls import has_unsaved_editor
-                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner):
+                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner) and not transfer_pending(connection, owner):
                     advance(); return
                 version = _close_version(owner, connection)
                 choice = QtWidgets.QMessageBox.question(main, '다시 연결하기 전에 편집을 저장하시겠습니까?',
@@ -200,7 +219,7 @@ def install(connection, open_model):
                 if choice == QtWidgets.QMessageBox.Cancel:
                     self.closing = False; return
                 if _close_version(owner, connection) != version:
-                    self.closing = False; connection.message.setText('편집이 바뀌었습니다. 현재 문서와 편집을 유지합니다.'); return
+                    self.closing = False; connection.message.setText('편집이 바뀌었습니다. 현재 모델과 편집을 유지합니다.'); return
                 if choice == QtWidgets.QMessageBox.Discard:
                     accepted.append((owner, version)); advance(); return
                 try:
@@ -223,7 +242,7 @@ def install(connection, open_model):
                 if not pending:
                     if not all(unchanged(choice) for choice in accepted):
                         self.closing = False
-                        connection.message.setText('닫기 선택 후 편집이 바뀌었습니다. 모든 문서를 열어 둡니다. '
+                        connection.message.setText('닫기 선택 후 편집이 바뀌었습니다. 모든 모델을 열어 둡니다. '
                             '새 편집을 확인한 뒤 다시 닫으세요.')
                         return
                     for owner, _, version in accepted:
@@ -268,7 +287,11 @@ def install(connection, open_model):
         def eventFilter(self, watched, event):
             if event.type() == QtCore.QEvent.Close:
                 if watched in self.bypass:
-                    self.bypass.remove(watched); return False
+                    self.bypass.remove(watched)
+                    if watched is main:
+                        restore = getattr(connection, 'restore_structural_transfer_layout', None)
+                        if callable(restore):restore()
+                    return False
                 is_main = watched is main
                 is_view = isinstance(watched, QtWidgets.QMdiSubWindow)
                 if (is_main or is_view) and connection.owners:
@@ -279,6 +302,9 @@ def install(connection, open_model):
                         except ValueError: return False
                     else: owners = [item[0] for item in connection.owners.values()]
                     if all(self.approved_close.get(owner.document_id) == _close_version(owner, connection) for owner in owners):
+                        if is_main:
+                            restore = getattr(connection, 'restore_structural_transfer_layout', None)
+                            if callable(restore):restore()
                         return False
                     event.ignore()
                     def proceed():
@@ -286,6 +312,9 @@ def install(connection, open_model):
                         QtCore.QTimer.singleShot(0, watched.close)
                     self.close_owners(owners, proceed)
                     return True
+                if is_main:
+                    restore = getattr(connection, 'restore_structural_transfer_layout', None)
+                    if callable(restore):restore()
             # The native selector is a combo containing workbench IDs. Restore
             # before mouse/keyboard interaction, instead of reacting only after
             # FemWorkbench has already been activated.

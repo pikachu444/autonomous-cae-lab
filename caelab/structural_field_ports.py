@@ -7,6 +7,7 @@ from copy import deepcopy
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 from xml.etree import ElementTree as ET
@@ -14,9 +15,19 @@ import numpy as np
 
 from .post_spatial_mapping import tetra10_boundary, selected_boundary
 
+OPERATIONS = tuple('pre.fem.displacement_' + name for name in
+                   ('read', 'save', 'preview', 'apply', 'remove'))
+
 
 def _pinned(path, expected):
     path=Path(path)
+    # FreeCAD's embedded Python may lack the executable's longPathAware flag.
+    # Read the same exact Windows file with Win32's extended spelling; do not
+    # copy, shorten, discover or substitute another source.
+    if os.name=='nt':
+        absolute=os.path.abspath(path)
+        if len(absolute)>=248 and not absolute.startswith('\\\\?\\'):
+            path=Path('\\\\?\\UNC\\'+absolute[2:] if absolute.startswith('\\\\') else '\\\\?\\'+absolute)
     if (not isinstance(expected,str) or re.fullmatch('[0-9a-f]{64}',expected) is None
             or not path.is_file() or any(p.is_symlink() for p in (path,*path.parents))):
         raise ValueError('Select an existing regular retained source and its exact SHA256.')
@@ -32,6 +43,174 @@ def _static(value):
             or type(value['load_parameter']) not in (int,float) or not math.isfinite(value['load_parameter'])):
         raise ValueError('Select one complete native static step/increment/load_parameter.')
     return deepcopy(value)
+
+
+def saved_displacement_sources(workbench):
+    """List retained static frames; selection still requires an exact field read.
+
+    No array/native reader, solver or provider is invoked to populate a chooser.
+    Current working inputs never replace the saved run's input identity.
+    """
+    from .storage import load_json, check_id
+    rows=[]
+    owner=workbench.simulation_documents
+    for document in owner.list():
+        revision=document.get('saved_revision')
+        if not revision:continue
+        if not any(run.get('retained_result') and run.get('draft',{}).get('backend') in
+                {'structure.calculix.contact','structure.calculix.initial_fields'} for run in document.get('runs',[])):
+            continue
+        saved=owner._verify_revision(document['id'],revision)
+        for index,run in enumerate(saved.get('runs',[])):
+            if run.get('draft',{}).get('backend') not in {'structure.calculix.contact','structure.calculix.initial_fields'}:
+                continue
+            if not run.get('retained_result'):continue
+            reference={key:run[key] for key in ('job_id','input_revision','input_sha256')}
+            reference.update(document_id=saved['id'],saved_revision=revision)
+            retained=run['retained_result']
+            if retained.get('job_id')!=run['job_id']:
+                raise ValueError('Retained displacement result has a different job identity.')
+            retained_revision=check_id(retained['revision'])
+            owner._verify_revision(saved['id'],retained_revision)
+            root=owner._folder(saved['id'])/'revisions'/retained_revision/'results'/check_id(run['job_id'])
+            # Metadata and small frame sidecars only; never hydrate result arrays.
+            result=json.loads(_pinned(root/'result.json',load_json(root/'result.sha256.json')['sha256']))
+            if result.get('execution_status')!='SUCCEEDED':continue
+            artifacts=result.get('artifacts',[])
+            for artifact in sorted(artifacts,key=lambda a:a.get('path','')):
+                match=re.fullmatch(r'calculation/post/(frame[0-9]{4,8})\.vtu',artifact.get('path',''))
+                if match is None or int(match[1][5:])<1:continue
+                sidecars=[a for a in artifacts if a.get('path')=='calculation/post/'+match[1]+'.json']
+                if len(sidecars)!=1:continue
+                frame=json.loads(_pinned(root/sidecars[0]['path'],sidecars[0]['sha256']))
+                if frame.get('step_location',{}).get('axis')!={'name':'load_parameter','semantics':'STATIC_LOAD_PARAMETER','unit':'1'}:
+                    continue
+                rows.append({'reference':{**reference,'frame_id':match[1]},
+                    'label':saved['title']+' / 계산 '+str(index+1),'static':_static(frame.get('static')),
+                    'units':{'position':'mm','displacement':'mm'},
+                    'coordinate_frame':'FREECAD_DOCUMENT_GLOBAL','read_status':'NOT_READ'})
+    return rows
+
+
+def read_saved_displacement(workbench,reference,*,with_proof=False):
+    """Resolve pinned result/reference mesh from one immutable saved run.
+
+    Retained result artifacts include its frozen input, so no original registered
+    input path or another store is needed when reading a portable saved document.
+    """
+    from .storage import check_id
+    from .evaluation import read_result
+    keys={'document_id','saved_revision','job_id','input_revision','input_sha256'}
+    if (not isinstance(reference,dict) or set(reference) not in (keys,keys|{'frame_id'})
+            or not isinstance(reference['input_sha256'],str)
+            or re.fullmatch('[0-9a-f]{64}',reference['input_sha256']) is None):
+        raise ValueError('Choose the complete saved displacement result reference.')
+    frame_id=reference.get('frame_id','frame0001')
+    if (not isinstance(frame_id,str) or re.fullmatch(r'frame[0-9]{4,8}',frame_id) is None
+            or int(frame_id[5:])<1):
+        raise ValueError('Choose one exact retained displacement frame.')
+    for key in ('document_id','saved_revision','job_id','input_revision'):check_id(reference[key])
+    if not reference['document_id'].startswith('V'):
+        raise ValueError('Choose an existing saved Simulation displacement result.')
+    owner=workbench.simulation_documents
+    saved=owner._verify_revision(reference['document_id'],reference['saved_revision'])
+    runs=[run for run in saved.get('runs',[]) if run['job_id']==reference['job_id']]
+    if len(runs)!=1:raise ValueError('The selected job is not in this saved Simulation.')
+    run=runs[0]
+    if any(run.get(key)!=reference[key] for key in ('job_id','input_revision','input_sha256')):
+        raise ValueError('The saved displacement run has a different input identity.')
+    if run.get('draft',{}).get('backend') not in {'structure.calculix.contact','structure.calculix.initial_fields'}:
+        raise ValueError('This displacement authoring profile requires the existing CCX C3D10 producer.')
+    retained=run.get('retained_result')
+    if not retained or retained.get('job_id')!=reference['job_id']:
+        raise ValueError('Save and retain the exact source result before displacement transfer.')
+    owner._verify_revision(reference['document_id'],check_id(retained['revision']))
+    result_root=owner._folder(reference['document_id'])/'revisions'/retained['revision']/'results'/reference['job_id']
+    result=read_result(result_root,verify='all',selection=[])
+    if result.get('execution_status')!='SUCCEEDED':
+        raise ValueError('The selected retained displacement calculation did not succeed.')
+    files={}
+    for name in ('calculation/frozen_input/mesh.json','calculation/post/'+frame_id+'.vtu','calculation/post/'+frame_id+'.json'):
+        matches=[row for row in result.get('artifacts',[]) if row.get('path')==name]
+        if len(matches)!=1:raise ValueError('The retained result lacks one exact reference mesh/static frame artifact.')
+        files[name]=(result_root/name,matches[0]['sha256'])
+    mesh,mesh_pin=files['calculation/frozen_input/mesh.json']
+    vtu,vtu_pin=files['calculation/post/'+frame_id+'.vtu']
+    frame,frame_pin=files['calculation/post/'+frame_id+'.json']
+    field=read_ccx_vtu(vtu,mesh,frame,expected_vtu_sha256=vtu_pin,expected_mesh_sha256=mesh_pin,
+        expected_frame_sha256=frame_pin,source_reference=reference)
+    envelope={'reference':deepcopy(reference),'label':saved['title']+' / 정적 단계 '+str(field['static']['step']),'field':field}
+    if not with_proof:return envelope
+    from .storage import canonical_hash
+    proof={'files':{key:{'path':str(path.resolve()),'sha256':pin}
+                    for key,(path,pin) in zip(('mesh','vtu','frame'),
+                        ((mesh,mesh_pin),(vtu,vtu_pin),(frame,frame_pin)))},
+           'field_sha256':canonical_hash(field)}
+    return envelope,proof
+
+
+def verify_displacement_source(envelope,proof):
+    """Recheck the queued immutable source locally on the receiving owner.
+
+    The service alone supplies this private proof. No network, source discovery,
+    mutable owner lookup or alternative path is used on the native GUI thread.
+    """
+    from .storage import canonical_hash
+    if (not isinstance(envelope,dict) or set(envelope)!={'reference','label','field'}
+            or not isinstance(proof,dict) or set(proof)!={'files','field_sha256'}
+            or not isinstance(proof['files'],dict) or set(proof['files'])!={'mesh','vtu','frame'}):
+        raise ValueError('The verified retained displacement source is missing.')
+    files=proof['files']
+    for row in files.values():
+        if (not isinstance(row,dict) or set(row)!={'path','sha256'}
+                or not isinstance(row['path'],str) or not Path(row['path']).is_absolute()):
+            raise ValueError('The retained displacement file proof is incomplete.')
+    field=read_ccx_vtu(files['vtu']['path'],files['mesh']['path'],files['frame']['path'],
+        expected_vtu_sha256=files['vtu']['sha256'],expected_mesh_sha256=files['mesh']['sha256'],
+        expected_frame_sha256=files['frame']['sha256'],source_reference=envelope['reference'])
+    if (canonical_hash(field)!=proof['field_sha256'] or field!=envelope['field']
+            or not isinstance(envelope['label'],str)):
+        raise ValueError('The retained displacement source changed after command admission.')
+    return deepcopy(envelope)
+
+
+def enrich_displacement_command(wb,identifier,operation,arguments,session_id,generation,command_id):
+    """Resolve source once for a new command; exact retries retain its receipt."""
+    if not isinstance(arguments,dict) or any(not isinstance(k,str) or k.startswith('_') for k in arguments):
+        raise ValueError('Private displacement source injection is not allowed.')
+    if command_id:
+        try:previous=wb.native_commands.status(command_id)
+        except KeyError:previous=None
+        if previous is not None:
+            if ((previous['document_id'],previous['operation'],previous['session_id'],previous['expected_generation'])
+                    !=(identifier,operation,session_id,generation)
+                    or previous['arguments'].get('_public_arguments')!=arguments):
+                raise ValueError('command_id conflicts with an earlier displacement request.')
+            return previous,None
+    args=deepcopy(arguments)
+    args['_public_arguments']=deepcopy(arguments)
+    if operation in {'pre.fem.displacement_preview','pre.fem.displacement_apply'}:
+        reference=args.get('draft',{}).get('source_reference')
+    else:
+        reference=args.get('source_reference')
+    if reference is not None:
+        args['_displacement_source'],args['_displacement_proof']=read_saved_displacement(wb,reference,with_proof=True)
+    elif operation in {'pre.fem.displacement_preview','pre.fem.displacement_apply'}:
+        raise ValueError('Choose the exact retained displacement source before preview or apply.')
+    return None,args
+
+
+def consume_displacement_source(arguments):
+    """Strip only service-owned transport keys and return a locally checked source."""
+    args=deepcopy(arguments)
+    args.pop('_public_arguments',None)
+    envelope=args.pop('_displacement_source',None)
+    proof=args.pop('_displacement_proof',None)
+    if (envelope is None)!=(proof is None):
+        raise ValueError('The retained displacement proof is incomplete.')
+    if any(key.startswith('_') for key in args):
+        raise ValueError('Unknown private displacement argument.')
+    return args,verify_displacement_source(envelope,proof) if envelope is not None else None
 
 
 def _mesh(mesh):
@@ -71,23 +250,16 @@ def receiver_from_capture(model, boundary_faces, components, *, coordinate_frame
         'coordinate_frame':coordinate_frame,'geometry':'fixed_reference'}
 
 
-def bind_transfer_model(captured, receipt):
-    """Explicitly replace the selected zero baseline with the READY U trace.
+def bind_transfer_model(captured, receipt, *, replace_condition_ids=()):
+    """Add mapped U, replacing only explicitly selected overlapping DOFs.
 
-    Bounded first profile: one independently authored linear STATIC solid,
-    one zero Fixed ``TransferBoundary`` and no other loads/contact/step edits.
-    Original conditions, program and full mapping receipt remain provenance.
-    Existing condition/step compilers own every native card and conflict check.
+    Preserve unrelated supports, forces and the user's single STATIC program.
+    The native condition/step compilers still own conflicts and every card.
     """
-    from .contact_deck import validate_model
-    from .contact_steps import default_program, validate_contributions
+    from .contact_deck import validate_model, name
+    from .contact_steps import required_curves, validate_contributions
     from .storage import canonical_hash
-    validate_model(captured)
-    if (captured.get('analysis_scope')!='single_solid_static' or captured.get('contacts')
-            or captured.get('loads') or captured.get('restart')
-            or captured.get('step',{}).get('geometry')!='linear'
-            or any(m.get('law')!='isotropic_linear_elastic' or m.get('plasticity') for m in captured['materials'])):
-        raise ValueError('TR-U first receiver requires an independent linear STATIC solid without other loads/contact/state.')
+    validate_model(captured,allow_unrestrained_capture=True)
     if (not isinstance(receipt,dict) or receipt.get('status')!='READY'
             or receipt.get('invalid_required_node_ids')!=[] or receipt.get('units')!={'position':'mm','displacement':'mm'}):
         raise ValueError('Only a complete READY reference-boundary U receipt may bind a receiver.')
@@ -106,27 +278,66 @@ def bind_transfer_model(captured, receipt):
           for row in rows for d in components]
     if receipt.get('boundary_dofs')!=dofs:
         raise ValueError('Prescribed DOFs differ from the original mapped U component rows.')
-    conditions=captured.get('conditions',[])
-    if (len(conditions)!=1 or conditions[0].get('object_id')!='TransferBoundary'
-            or conditions[0].get('type')!='Fem::ConstraintFixed'
-            or any(row.get('value_mm')!=0. for row in captured['boundary_dofs'])
-            or {(r['node_id'],r['component']) for r in captured['boundary_dofs']}!={(r['node_id'],r['component']) for r in dofs}
-            or captured.get('analysis_steps')!=default_program(captured['step'],conditions)):
-        raise ValueError('Explicit replacement requires exactly the original zero TransferBoundary and unedited baseline program.')
-    model=deepcopy(captured);baseline=conditions[0];model['conditions']=[]
+    conditions=captured['conditions']
+    if (not isinstance(replace_condition_ids,(list,tuple))
+            or any(not isinstance(cid,str) for cid in replace_condition_ids)
+            or len(set(replace_condition_ids))!=len(replace_condition_ids)):
+        raise ValueError('교체할 기존 조건을 중복 없이 선택하세요.')
+    selected=set(replace_condition_ids)
+    target={(r['node_id'],r['component']) for r in dofs}
+    eligible={c['object_id'] for c in conditions if c['type'] in
+              ('Fem::ConstraintFixed','Fem::ConstraintDisplacement') and
+              any((r['node_id'],r['component']) in target for r in c['boundary_dofs'])}
+    if not selected<=eligible:
+        raise ValueError('교체할 조건이 없거나 선택한 면과 성분에 겹치지 않습니다. 조건을 다시 선택하세요.')
+    if eligible-selected:
+        labels=[c.get('label',c['object_id']) for c in conditions if c['object_id'] in eligible-selected]
+        raise ValueError('기존 조건과 겹칩니다. 교체할 조건을 명시적으로 선택하세요: '+', '.join(labels))
+    model=deepcopy(captured);model['conditions']=[]
+    for original in conditions:
+        condition=deepcopy(original)
+        if condition['object_id'] in selected:
+            condition['boundary_dofs']=[r for r in condition['boundary_dofs']
+                                       if (r['node_id'],r['component']) not in target]
+            if not condition['boundary_dofs']:continue
+            if condition['type']=='Fem::ConstraintDisplacement':
+                remaining={r['component'] for r in condition['boundary_dofs']}
+                condition['components_mm']={d:v for d,v in condition['components_mm'].items() if int(d) in remaining}
+        model['conditions'].append(condition)
+    node_bodies={r['node_id']:r['body_id'] for r in captured['nodes']}
+    names={c['object_id'].upper() for c in conditions}
+    mapped=[]
     for row in rows:
         n=row['node_id'];values={d:row['displacement_mm'][d-1] for d in components}
-        model['conditions'].append({'object_id':'TransferBoundaryNode'+str(n),'label':'전달 변위 '+str(n),
-            'type':'Fem::ConstraintDisplacement','body_id':baseline['body_id'],'targets':[],
+        identifier='ImportedDisplacementNode'+str(n)
+        suffix=1
+        while identifier.upper() in names:
+            identifier='ImportedDisplacementNode'+str(n)+'_'+str(suffix);suffix+=1
+        names.add(name(identifier).upper())
+        mapped.append({'object_id':identifier,'label':'가져온 변위 '+str(n),
+            'type':'Fem::ConstraintDisplacement','body_id':node_bodies[n],'targets':[],
             'components_mm':values,'boundary_dofs':[r for r in dofs if r['node_id']==n],
-            'source_condition_id':baseline['object_id']})
-    model['boundary_dofs']=deepcopy(dofs)
-    model['analysis_steps']=default_program(model['step'],model['conditions'])
+            'source_condition_ids':list(replace_condition_ids)})
+    model['conditions'].extend(mapped)
+    union={}
+    for condition in model['conditions']:
+        for row in condition.get('boundary_dofs',[]):
+            union.setdefault((row['node_id'],row['component']),deepcopy(row))
+    model['boundary_dofs']=list(union.values())
+    stage=model['analysis_steps']['steps'][0]
+    required=required_curves(model['conditions'])
+    stage['curves']=[r for r in stage['curves'] if (r['condition_id'],r['component']) in required]
+    for condition in mapped:
+        for d,value in condition['components_mm'].items():
+            stage['curves'].append({'condition_id':condition['object_id'],'component':d,'unit':'mm',
+                                    'points':[[0,0],[stage['duration'],value]]})
     model['displacement_transfer']=deepcopy(receipt)
     model['displacement_transfer'].update(captured_model_sha256=canonical_hash(captured),
         original_conditions=deepcopy(conditions),original_boundary_dofs=deepcopy(captured['boundary_dofs']),
         original_analysis_steps=deepcopy(captured['analysis_steps']),
-        replacement_policy='explicit_exact_selected_zero_fixed_boundary_dofs')
+        replacement_condition_ids=list(replace_condition_ids),
+        replacement_mask=deepcopy(dofs),
+        replacement_policy='explicit_selected_condition_dof_intersection')
     validate_contributions(model);validate_model(model)
     return model
 
@@ -155,8 +366,17 @@ def read_ccx_vtu(vtu_path, mesh_path, frame_path, *, expected_vtu_sha256,
     axis=frame.get('step_location',{}).get('axis')
     if axis!={'name':'load_parameter','semantics':'STATIC_LOAD_PARAMETER','unit':'1'}:
         raise ValueError('TR-U currently admits a static load parameter, not a physical-time field.')
-    if (frame['step_location'].get('index')!=static['step']
-            or frame['step_location'].get('coordinate')!=static['load_parameter']):
+    location=frame['step_location']
+    if 'analysis_steps' in mesh:
+        from .contact_steps import step_location, compile_program
+        expected=step_location(mesh,static['step'],static['load_parameter'])
+        stages=compile_program(mesh['analysis_steps'],mesh['conditions'])
+        coordinate=expected['coordinate']
+        if not 0<=coordinate<=stages[static['step']-1]['duration']:
+            raise ValueError('Static frame is outside its retained input step.')
+    else:
+        expected={'index':1,'coordinate':static['load_parameter'],'axis':axis}
+    if any(location.get(key)!=expected[key] for key in ('index','coordinate','axis')):
         raise ValueError('Native static step location differs from its actual saved frame coordinate.')
     xml=ET.fromstring(content)
     pieces=xml.findall('UnstructuredGrid/Piece')

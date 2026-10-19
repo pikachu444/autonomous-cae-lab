@@ -60,6 +60,8 @@ from .material_fe_transfer import OPERATIONS as LAW_NATIVE_OPERATIONS
 CAPABILITIES['pre'].update(LAW_NATIVE_OPERATIONS)
 from .periodic_constraints import OPERATIONS as PERIODIC_OPERATIONS
 CAPABILITIES['pre'].update(PERIODIC_OPERATIONS)
+from .structural_field_ports import OPERATIONS as DISPLACEMENT_OPERATIONS
+CAPABILITIES['pre'].update(DISPLACEMENT_OPERATIONS)
 
 
 from .beam_model import OPERATIONS as BEAM_OPERATIONS

@@ -10,6 +10,44 @@ from caelab.evaluation import file_hash
 from caelab.workbench import Workbench
 
 
+@pytest.mark.parametrize('source_binding',['exact','different','missing'])
+def test_prescribed_u_freeze_routes_only_its_exact_source_to_existing_contact_backend(tmp_path,source_binding):
+    from copy import deepcopy
+    from test_structural_transfer_binding import captured_case
+    from caelab.structural_field_ports import bind_transfer_model
+    from caelab.structural_transfer_snapshot import freeze_transfer
+    captured,preview=captured_case()
+    reference={'document_id':'Vsource','saved_revision':'Rsaved','job_id':'Jsource',
+               'input_revision':'Isource','input_sha256':'1'*64}
+    preview['source']['reference']=deepcopy(reference)
+    model=bind_transfer_model(captured,preview,replace_condition_ids=['TransferBoundary'])
+    baseline=tmp_path/'reference.FCStd';baseline.write_bytes(b'TEST_ONLY native member')
+    wb=Workbench(tmp_path/'workspace')
+    try:
+        manifest=freeze_transfer(model,baseline,wb.desktop.root/'Pdesign',[{'body_id':'Solid'}],native_version=['TEST_ONLY'],
+            analysis_id='Analysis',solver_id='Solver',expected_editable_sha256=file_hash(baseline))
+        descriptor={'id':'Pdesign','kind':'pre','generation':3,'view_generation':0,'title':'Test transfer',
+                    'capabilities':['pre.freeze']}
+        auth=wb.native_commands.register(host_id='Hpre',session_id='Snative',application='freecad',
+            version='TEST_ONLY',execution_mode='headless',documents=[descriptor],registration_nonce='n'*32)
+        args={'analysis_id':'Analysis','solver_id':'Solver'}
+        if source_binding!='missing':args['source_reference']={**reference,**({'job_id':'Jother'} if source_binding=='different' else {})}
+        wb.native_commands.submit('Pdesign','pre.freeze',args,session_id='Snative',expected_generation=3,command_id='Ctransfer')
+        wb.native_commands.next('Hpre',session_id='Snative',host_token=auth['host_token'])
+        wb.native_commands.event('Hpre',session_id='Snative',host_token=auth['host_token'],event='finished',
+            command_id='Ctransfer',outcome={'state':'SUCCEEDED','result':{'status':'COMPLETED','result':{
+                'snapshot_relative':manifest.relative_to(wb.desktop.root).as_posix()}}},documents=[descriptor])
+        if source_binding=='exact':
+            resolved=wb.desktop._frozen_export('Ctransfer')
+            assert resolved['input']['kind']=='frozen_contact' and resolved['backend']=='structure.calculix.contact'
+            assert wb.desktop._frozen_export('Ctransfer')['input']['id']==resolved['input']['id']
+            with pytest.raises(ValueError,match='CalculiX'):wb.desktop._frozen_export('Ctransfer',solver='codeaster')
+        else:
+            with pytest.raises(ValueError,match='exact source'):wb.desktop._frozen_export('Ctransfer')
+        assert wb.manager.list()==[]
+    finally:wb.shutdown(timeout=5)
+
+
 @pytest.mark.parametrize('publication_fails', [False, True])
 def test_native_export_submit_retry_and_post_registration(native, tmp_path, monkeypatch, publication_fails):
     wb=Workbench(tmp_path/'workspace')

@@ -52,7 +52,9 @@ def _native_force_table(node_load_table):
     return table
 
 
-def collect(analysis, solver, fem, *, capture_only=False):
+def collect(analysis, solver, fem, *, capture_only=False, for_displacement_transfer=False):
+    if type(for_displacement_transfer) is not bool or (for_displacement_transfer and not capture_only):
+        raise ValueError('Displacement transfer preparation requires an explicit read-only capture')
     from caelab.material_fe_transfer import guard_other_export
     guard_other_export(fem.owner, analysis.Name)
     if threading.current_thread() is not threading.main_thread():
@@ -74,7 +76,9 @@ def collect(analysis, solver, fem, *, capture_only=False):
     if len(programs) > 1:
         raise ValueError('Duplicate Analysis step definitions')
     dynamic_record = owner.read_metadata().get('dynamic_programs', {}).get(analysis.Name)
-    program = None if capture_only else (deepcopy(dynamic_record['draft']['program']) if dynamic_record else
+    if for_displacement_transfer and dynamic_record:
+        raise ValueError('Displacement transfer currently supports one linear STATIC stage without dynamic state')
+    program = None if capture_only and not for_displacement_transfer else (deepcopy(dynamic_record['draft']['program']) if dynamic_record else
                                          deepcopy(programs[0]['draft']) if programs else None)
     procedure = program.get('procedure') if program else 'static'
     if procedure not in ('static', 'dynamic', 'mixed'):
@@ -86,6 +90,10 @@ def collect(analysis, solver, fem, *, capture_only=False):
         raise ValueError('Unsupported native geometric formulation')
     records = [row for row in fem.contact._data()['contacts'] if row['analysis_id'] == analysis.Name
                and not getattr(owner._object(row['object_id']), 'Suppressed', False)]
+    if for_displacement_transfer and (records or procedure != 'static' or
+            solver.GeometricalNonlinearity != 'linear' or
+            (program is not None and (not isinstance(program.get('steps'), list) or len(program['steps']) != 1))):
+        raise ValueError('Displacement transfer currently supports one linear STATIC solid without contact')
     if not records and procedure != 'static' and not dynamic_record:
         raise ValueError('무접촉 단일 body의 첫 지원은 STATIC입니다.')
     for record in records:
@@ -315,7 +323,10 @@ def collect(analysis, solver, fem, *, capture_only=False):
     freeze_periodic(fem, analysis, bodies, model)
     from .pretension_native import freeze as freeze_pretension
     freeze_pretension(fem, analysis, bodies, model)
-    validate_model(model)
+    if for_displacement_transfer:
+        validate_model(model, allow_unrestrained_capture=True)
+    else:
+        validate_model(model)
     return model, identity
 
 
