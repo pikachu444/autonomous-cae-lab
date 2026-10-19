@@ -177,7 +177,12 @@ caelab/research_knowledge/licenses/** -text -whitespace
 examples/native-project-post/saved-example/** -text -whitespace
 
 # Native RAD cards and fixed-width fields retain their original bytes.
+examples/impact/**/*.rad text eol=crlf
+examples/impact/**/*.inc text eol=crlf
 examples/impact/input_a/native_pair/*.rad -text -whitespace
+
+# This frozen input's byte contract was authored with Windows line endings.
+tests/law_native/fixtures/c1-frozen-simulation.json text eol=crlf
 
 # Keep original fixed-width laminate outputs and their source bindings unchanged.
 tests/fixtures/composite_shell_ccx222/** -text -whitespace
