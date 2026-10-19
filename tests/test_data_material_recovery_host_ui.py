@@ -10,7 +10,8 @@ pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
 from PySide6.QtCore import Qt,QTimer,QThreadPool
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication,QLineEdit,QMessageBox
+from PySide6.QtWidgets import QApplication,QDialog,QLineEdit,QMessageBox
+from shiboken6 import isValid
 from apps.lab.service import LabService
 from apps.lab.server import LabHTTPServer
 from apps.research.data_window import DataWindow
@@ -26,14 +27,18 @@ from caelab.material_document import default_draft as material_draft
 @pytest.fixture
 def app():
     app=QApplication.instance() or QApplication([])
+    app._recovery_host_errors=[];app._recovery_host_timers=[]
     from apps.research.appearance import apply_appearance
     apply_appearance(app)
     yield app
+    for timer in app._recovery_host_timers:
+        if isValid(timer):timer.stop()
     for window in app.topLevelWidgets():
         if isinstance(window,(DataWindow,MaterialWindow)):
             window._allow_close=True; window.close()
     assert QThreadPool.globalInstance().waitForDone(5000)
     app.processEvents()
+    assert not app._recovery_host_errors, app._recovery_host_errors
 
 
 def test_independent_owner_supplies_its_raw_view_and_readiness():
@@ -68,17 +73,34 @@ def wait(app,condition):
     end=time.monotonic()+8
     while time.monotonic()<end:
         app.processEvents()
+        if app._recovery_host_errors:raise app._recovery_host_errors[0]
         if condition(): return
         QTest.qWait(5)
     raise AssertionError('Recovery host did not settle')
 
 
 def later(kind,action):
+    app=QApplication.instance();end=time.monotonic()+8
+    timer=QTimer(app);timer.setInterval(5);app._recovery_host_timers.append(timer)
+    def failed(dialog,error):
+        app._recovery_host_errors.append(error);timer.stop()
+        if isinstance(dialog,QDialog):dialog.done(QDialog.DialogCode.Rejected)
     def find():
         dialog=next((w for w in QApplication.topLevelWidgets() if isinstance(w,kind) and w.isVisible()),None)
-        if dialog is None:QTimer.singleShot(5,find);return
-        action(dialog)
-    QTimer.singleShot(5,find)
+        if dialog is None:
+            if time.monotonic()>=end:failed(app.activeModalWidget(),AssertionError('Expected recovery dialog did not open: '+kind.__name__))
+            return
+        timer.stop()
+        # A missed Qt callback must fail the test instead of trapping pytest in exec().
+        deadline=QTimer(dialog);deadline.setSingleShot(True);app._recovery_host_timers.append(deadline)
+        def expired():
+            if dialog.isVisible():
+                message=dialog.message.text() if hasattr(dialog,'message') else dialog.windowTitle()
+                failed(dialog,AssertionError('Recovery dialog did not settle: '+message))
+        deadline.timeout.connect(expired);deadline.start(8000)
+        try:action(dialog)
+        except BaseException as error:failed(dialog,error)
+    timer.timeout.connect(find);timer.start()
 
 
 def click_question(text):
@@ -122,6 +144,7 @@ def test_cancel_then_keep_and_explicit_reopen_exact_unfinished_cell(app,backend,
     click_question('편집 원문 보관')
     def keep(dialog):
         def ready():
+            if not isValid(dialog) or not dialog.isVisible():return
             if dialog.keep_button.isEnabled():
                 capture(dialog,kind+'-keep-normal',(720,340));capture(dialog,kind+'-keep-narrow',(600,320));dialog.keep()
             else:QTimer.singleShot(5,ready)
@@ -135,6 +158,7 @@ def test_cancel_then_keep_and_explicit_reopen_exact_unfinished_cell(app,backend,
     fresh._show_document(client.document_read(document['id']));fresh.show();wait(app,lambda:not fresh._busy)
     def resume(dialog):
         def ready():
+            if not isValid(dialog) or not dialog.isVisible():return
             if dialog.resume_button.isEnabled():dialog.resume()
             else:QTimer.singleShot(5,ready)
         ready()
@@ -170,6 +194,7 @@ def test_capsule_write_failure_keeps_window_and_exact_editor(app,backend,monkeyp
     observed=[]
     def keep(dialog):
         def ready():
+            if not isValid(dialog) or not dialog.isVisible():return
             if dialog.outcome is not None:
                 observed.append(dialog.outcome);dialog.reject()
             elif dialog.keep_button.isEnabled():dialog.keep();QTimer.singleShot(5,ready)
@@ -199,6 +224,7 @@ def test_material_and_two_plan_buffers_keep_independent_owner_capsules(app,backe
     click_question('편집 원문 보관')
     def keep(dialog):
         def ready():
+            if not isValid(dialog) or not dialog.isVisible():return
             if dialog.keep_button.isEnabled():dialog.keep()
             else:QTimer.singleShot(5,ready)
         ready()
