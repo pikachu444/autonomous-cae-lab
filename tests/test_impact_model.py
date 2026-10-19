@@ -140,6 +140,7 @@ def test_repeated_lowercase_sets_preserve_full_fixed_union_in_native_cards(tmp_p
     import caelab.adapters.inp2rad_worker as worker
     s=settings()
     s['source']['text']+='\n*NSET,NSET=fixed\n1\n*NSET,NSET=fixed\n2\n*BOUNDARY\nfixed,1,3\n'
+    s['motions']=[]  # This set-union test fixes nodes without prescribing an initial velocity.
     text,initial=render(s)
     assert text.count('*NSET,NSET=FIXED')==1 and 'fixed' not in text
     path=tmp_path/'impact.inp';path.write_text(text,encoding='ascii',newline='\n')

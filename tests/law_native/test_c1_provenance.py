@@ -18,7 +18,7 @@ FORBIDDEN = ('path', 'command', 'argv', 'module', 'factory', 'script', 'executab
 
 
 @pytest.fixture
-def settings():
+def settings(historical_installation):
     assert FROZEN.stat().st_size == 150563
     assert hashlib.sha256(FROZEN.read_bytes()).hexdigest() == SHA
     return json.loads(FROZEN.read_text(encoding='utf-8'))['simulation_draft']['settings']
@@ -61,7 +61,7 @@ def test_exact_native_input_two_gates_preserve_all_provenance(settings, wb):
     assert wb.manager.list() == []
 
 
-def test_execute_research_run_domain_both_settings_entries(settings, wb, monkeypatch):
+def test_execute_research_run_domain_validates_settings(settings, wb, monkeypatch):
     from caelab import research_execution
     calls = [];original = wb._settings
     def observed(backend, value):
@@ -74,7 +74,7 @@ def test_execute_research_run_domain_both_settings_entries(settings, wb, monkeyp
                 'diagnostics': {'FE_execution': 'NOT_RUN_CONTROLLED_ROUTING_FIXTURE'}}
     monkeypatch.setattr(research_execution.evaluation, 'run', adapter_fixture)
     result = wb._execute('simulation.run', {'backend': fe.law.FE, 'settings': settings}, 'JC1routing')
-    assert len(calls) == 2 and all(v == settings for v in calls)
+    assert calls == [settings]
     assert result['diagnostics']['FE_execution'] == 'NOT_RUN_CONTROLLED_ROUTING_FIXTURE'
     assert wb.manager.list() == []
 
@@ -171,3 +171,12 @@ def test_changed_current_kernel_blocks_fe_but_cold_assignment_stays_readable(set
         assert transfer.cold_assignment(record) == record
         with pytest.raises(ValueError, match='INTERFACE_SOURCE_CONFLICT'):
             Workbench._settings(None, fe.law.FE, settings)
+
+
+def test_current_installation_rejects_historical_execution_but_preserves_cold_read():
+    original = json.loads(FROZEN.read_text(encoding='utf-8'))['simulation_draft']['settings']
+    record = original['source_receipt']
+    assert transfer.cold_assignment(record) == record
+    assert transfer.source_identity()['files'].keys() != record['review']['source']['law_source']['files'].keys()
+    with pytest.raises(ValueError, match='INTERFACE_SOURCE_CONFLICT'):
+        Workbench._settings(None, fe.law.FE, original)

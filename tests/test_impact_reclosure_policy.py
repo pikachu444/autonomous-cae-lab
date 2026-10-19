@@ -21,6 +21,20 @@ def receipt():
             'trace_relative':TRACE}
 
 
+@pytest.fixture(autouse=True)
+def windows_module_query(tmp_path, monkeypatch):
+    import ctypes
+    from types import SimpleNamespace
+    dll = tmp_path / 'synthetic-python.dll'
+    dll.write_bytes(b'WINDOWS_MODULE_QUERY_DOUBLE_NOT_A_RUNTIME')
+    def query(handle, buffer, capacity):
+        assert handle == ctypes.pythonapi._handle and len(str(dll)) < capacity
+        buffer.value = str(dll)
+        return len(buffer.value)
+    monkeypatch.setattr(ctypes, 'WinDLL', lambda *a, **kw:
+                        SimpleNamespace(GetModuleFileNameW=query), raising=False)
+
+
 def callback(tmp_path,monkeypatch,*,phase='ENGINE',segment='0001'):
     monkeypatch.chdir(tmp_path);monkeypatch.setenv(PHASE_ENV,phase);monkeypatch.setenv(SEGMENT_ENV,segment)
     values={2:1.,1:1.,3:1.};namespace={'OFF':lambda eid:values[eid],'TIME':0.,'DT':1e-7,'sensors':{19:{'status':0}}}

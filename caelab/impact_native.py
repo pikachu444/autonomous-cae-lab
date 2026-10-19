@@ -143,8 +143,7 @@ def parse_source(source):
         fields.append({'id':identifier,
                        'role':card['role'],'card':card['key'],'field':field_name,'row':row_index,
                        'file':where['file'],'line':where['line'],'occurrence':where['occurrence'],
-                       'start':original_offset(source,where['file'],offset),
-                       'end':original_offset(source,where['file'],stop),
+                       'start':offset,'end':stop,
                        'width':end-start,'kind':kind,'unit':unit,'value':row['text'][start:end].strip(),
                        **({'label':label} if label else {})})
     def engine_field(card,field_name,index,unit):
@@ -437,6 +436,10 @@ def parse_source(source):
             raise SourceError('구속 자유도와 native 초기속도가 충돌합니다')
     from .impact_native_b import definition
     b_definition=definition(starter,graphs['starter']['text'],model,controls,material_projection)
+    # Report invalid cards before resolving edit anchors inside inserted text.
+    for item in fields:
+        item['start']=original_offset(source,item['file'],item['start'])
+        item['end']=original_offset(source,item['file'],item['end'])
     return {'model':model,'settings':controls,'initial':initial,'physics':physics,'fields':fields,'b_definition':b_definition,
             'cards':starter+engine,'starter_text':graphs['starter']['text'],'engine_text':graphs['engine']['text'],
             'name':run_name,'starter':bundle['starter'],'engine':bundle['engine'],

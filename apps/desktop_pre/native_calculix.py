@@ -198,12 +198,12 @@ def validate_analysis(analysis, solver):
     """Apply the installed writer's input checks to the selected native objects."""
     if threading.current_thread() is not threading.main_thread():
         raise ValueError("Finish the FreeCAD edit before exporting on its main thread")
-    import FreeCAD as App
-    from femtools import femutils, membertools, checksanalysis
-
     doc = analysis.Document
     from .freeze_analysis import require_ready_model
     require_ready_model(doc)
+    import FreeCAD as App
+    from femtools import femutils, membertools, checksanalysis
+
     if App.GuiUp:
         import FreeCADGui as Gui
         if Gui.Control.activeDialog() or (Gui.activeDocument() and Gui.activeDocument().getInEdit()):
@@ -252,11 +252,11 @@ def validate_analysis(analysis, solver):
 
 def export_analysis(analysis, solver, output_root, *, binding_validator=None):
     """Freeze an editable Analysis and the exact files its official writer emits."""
+    mesh, member = validate_analysis(analysis, solver)
     import FreeCAD as App
     from femtools import femutils
     from femmesh.meshsetsgetter import MeshSetsGetter
     from femsolver.calculix.writer import FemInputWriterCcx
-    mesh, member = validate_analysis(analysis, solver)
     doc = analysis.Document
     members = []
     for name, rows in vars(member).items():
