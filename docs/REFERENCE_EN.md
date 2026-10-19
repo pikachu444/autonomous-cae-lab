@@ -245,10 +245,11 @@ python -m pip install -e '.[numerical,material,assist,sensitivity,mcp,dev]'
 python -m pytest -q
 node --test tests/*.js openscience/tests/native_git_state.test.mjs
 python scripts/verify_mcp.py
-python scripts/verify_workbench_ui.py --help
+python tests/check_workbench_browser.py --help
 ```
 
-The browser script starts/stops its own service and tests material fit/holdout,
+The optional development browser check (moved from `scripts/verify_workbench_ui.py`)
+starts/stops its own service and tests material fit/holdout,
 DOE, actual influence, CSV mapping and report download. Chromium must be installed
 (or pass `--browser-executable`). Native CI jobs retain their scientific reference
 checks; no local mock certifies a native solver or actual product-host connection.

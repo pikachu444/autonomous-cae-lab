@@ -499,19 +499,19 @@ class LabService:
         raise ServiceError(404, "Unknown report format")
 
     def presets(self) -> dict:
-        from scripts.verify_pde import specification as pde_specification
+        from plugins.pde_elliptic.reference import unit_square_settings as pde_specification
         from plugins.pde_nonlinear.reference import manufactured_settings as nonlinear_pde_specification
         from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification, selected_settings as selected_pde_specification
         from plugins.pde_transient.reference import manufactured_settings as transient_pde_specification
         from plugins.pde_vector.reference import manufactured_settings as vector_pde_specification
         from plugins.pde_coupled.reference import manufactured_settings as coupled_pde_specification, selected_settings as selected_coupled_specification
         from caelab.adapters.fenicsx_imported import manufactured_settings as imported_pde_specification
-        from scripts.verify_codeaster import specification as codeaster_specification
-        from scripts.verify_plasticity import specification as plasticity_specification
+        from plugins.elasticity.reference import canonical_settings as codeaster_specification
+        from plugins.elasticity.plasticity_reference import canonical_settings as plasticity_specification
         from plugins.elasticity.plasticity_reference import selected_settings as selected_plasticity_specification
         from plugins.geometric_nonlinearity.reference import default_settings as geometric_specification
-        from scripts.verify_openradioss import specification as explicit_specification
-        from scripts.verify_compliant_drop import specification as compliant_specification
+        from plugins.explicit_dynamics.reference import canonical_settings as explicit_specification
+        from plugins.explicit_dynamics.reference import compliant_settings as compliant_specification
         from plugins.explicit_dynamics.reference import selected_history_settings as explicit_history_specification
         from plugins.material_point.reference import canonical_settings as material_specification
         from plugins.material_point.inverse_reference import canonical_settings as inverse_specification

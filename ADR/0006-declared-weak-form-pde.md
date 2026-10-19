@@ -77,7 +77,7 @@ Python execution, fake CAD prerequisites and solver exit as an accuracy proof.
 
 Advances R16, R19–R21, R28, R34 and R39/R43–R51 while preserving the complete
 52-section scope. CLI `pde` and MCP `pde_run` call the same Core. No UFL objects
-cross the OpenScience interface. See `docs/PDE_ACCEPTANCE.md` for exact input
+cross the OpenScience interface. See `docs/history/PDE_ACCEPTANCE.md` for exact input
 and runtime instructions, and `openscience/contract.md` for failure semantics.
 
 Primary references: [DOLFINx installation](https://github.com/FEniCS/dolfinx#installation),

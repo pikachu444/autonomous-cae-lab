@@ -684,3 +684,22 @@ def assess_compliant(s, rows):
             "TYPE4 IE is integrated signed constitutive work; its raw release residue is retained and checked against the fixed independent energy-error budget",
             "Declared .002 kg spring adds .001 kg moving and .001 kg fixed mass; original cube remains 1 kg at the canonical density",
             "Numerical finite-force/restitution evidence does not qualify material, stress, fracture, durability or release"]}
+
+
+def canonical_settings(case="rigid_cube_freefall"):
+    return {"case": case, "edge_m": .1, "mass_kg": 1., "center_height_m": 1., "gravity_m_s2": 9.81,
+            "initial_velocity_m_s": 0., "end_time_s": .2 if case == "rigid_cube_freefall" else .5,
+            "time_step_s": 1e-4, "history_interval_s": 1e-3 if case == "rigid_cube_freefall" else 1e-4,
+            "limits": {"displacement_abs_m": 2e-4, "velocity_abs_m_s": .002,
+                       "energy_abs_j": .01, "mass_relative": 1e-8, "impact_time_abs_s": 2e-4,
+                       "impulse_abs_n_s": .005, "penetration_abs_m": .001}}
+
+
+def compliant_settings(*, stiffness=10000., time_step=1e-4):
+    return {"case": "rigid_cube_compliant_stop", "edge_m": .1, "mass_kg": 1.,
+            "center_height_m": 1., "gravity_m_s2": 9.81, "initial_velocity_m_s": 0.,
+            "spring_stiffness_n_m": stiffness, "spring_mass_kg": .002,
+            "end_time_s": .5, "time_step_s": time_step, "history_interval_s": time_step,
+            "limits": {"displacement_abs_m": 2e-4, "velocity_abs_m_s": .002, "energy_abs_j": .01,
+                       "mass_relative": 1e-8, "impact_time_abs_s": 2e-4, "impulse_abs_n_s": .005,
+                       "force_abs_n": 2., "restitution_abs": .001}}

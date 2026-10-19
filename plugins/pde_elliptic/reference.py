@@ -429,3 +429,14 @@ def assess(settings, studies, native_fields):
                           "neumann_semantics": "diffusion*grad(u).outward_normal", "units": "dimensionless", "error_quadrature_degree": 8,
                           "h1_semantics": "gradient seminorm", "rate_semantics": "Every declared mesh pair must pass"},
             "mesh_studies": observed, "pending_validations": ["physical_validation", "model_qualification"], "limitations": list(LIMITATIONS)}
+
+
+def unit_square_settings():
+    return {"problem": {"domain": "unit_square",
+                        "weak_form": {"diffusion": 1.0, "reaction": 0.0,
+                                      "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"},
+                        "dirichlet": "0.0",
+                        "reference": {"solution": "sin(pi*x[0])*sin(pi*x[1])",
+                                      "source": "Analytical manufactured solution on the dimensionless unit square"}},
+            "mesh": {"cell_counts": [8, 16, 32], "degree": 1},
+            "validation": {"max_l2_error": .003, "min_l2_rate": 1.8, "max_residual_relative": 1e-10}}

@@ -10,14 +10,7 @@ from caelab.storage import load_json, save_json, source_identity
 from plugins.explicit_dynamics.reference import reference
 
 
-def specification(*, stiffness=10000., time_step=1e-4):
-    return {"case": "rigid_cube_compliant_stop", "edge_m": .1, "mass_kg": 1.,
-            "center_height_m": 1., "gravity_m_s2": 9.81, "initial_velocity_m_s": 0.,
-            "spring_stiffness_n_m": stiffness, "spring_mass_kg": .002,
-            "end_time_s": .5, "time_step_s": time_step, "history_interval_s": time_step,
-            "limits": {"displacement_abs_m": 2e-4, "velocity_abs_m_s": .002, "energy_abs_j": .01,
-                       "mass_relative": 1e-8, "impact_time_abs_s": 2e-4, "impulse_abs_n_s": .005,
-                       "force_abs_n": 2., "restitution_abs": .001}}
+from plugins.explicit_dynamics.reference import compliant_settings as specification
 
 
 def run(store):

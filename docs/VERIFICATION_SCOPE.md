@@ -155,6 +155,30 @@ J2 재료점·DP FE·CCX의 실제9계산과 실행 전 거절1건, DP64 IP/CCX2
 
 ## PDE·Simulation·Evaluation와 장 전달
 
+### Windows PDE의 독립 실행과 보존 결과 확인
+
+사용자 입력은 [PDE 사용법](PDE_WORKFLOW_KO.md)의 일반 새 모델/열기·편집·실행 경로를 따른다.
+회차별 Linux FEniCSx 원 기준·수치·실패·CI 관측은 [과거 PDE 기록](history/PDE_ACCEPTANCE.md)에
+보존한다. 그 기록의 Current/NEXT는 현재 작업 배정이 아니다. 기존 `scripts/verify_pde.py`는
+CI가 사용하는 canonical 네 사례 검사로 유지한다. 제품의 `/api/presets`는 기존 domain 모듈의
+입력 factory를 사용하며 검증 실행 파일을 import하지 않는다. 스크립트의 `specification`
+alias는 기존 검사/CI 호출과 동일한 입력·허용값을 유지한다.
+
+아래 기존 검사는 새 저장소에서 실제 HTTP·Qt 편집/검사/두 계산/저장과 별도 Python
+프로세스의 HTTP·Qt 재열기를 수행합니다. 기존 결과·입력 해시가 같고 읽기만으로
+새 작업이 생기지 않는지 확인합니다. `QT_QPA_PLATFORM=offscreen`이면 그 결과는
+화면 배치 검사이며 일반 Windows 창 캡처와 구분해야 합니다.
+
+```powershell
+$pdePython = (Get-Command python).Source
+python scripts/native_check.py --timeout 180 --output-dir runs/my-pde-check/supervisor -- $pdePython tests/test_pde_windows_workflow.py runs/my-pde-check/workflow
+python -m pytest -q tests/test_pde_layout.py tests/test_pde_study_selection_ui.py tests/test_dimensioned_research.py::test_actual_scipy_cancel_retains_accepted_clock_not_trial_rhs --basetemp runs/my-pde-check/pytest
+```
+
+`native_check`는 시작한 프로세스와 자식만 소유한 Windows Job에서 종료합니다.
+검사 디렉터리는 매번 새 경로를 사용합니다. `workflow.json`에는 문서·입력 개정·
+작업·저장 개정·결과 해시와 원 지표가 남고, PNG는 일반/좁은 창과 재열기 화면입니다.
+
 **10월19일 선택/결과 화면 교정:** Simulation 단일 값은 가짜 그래프 축 대신 물리량·값·
 단위 표에 표시한다. 화면은 유효숫자로 읽되 원값은 tooltip/결과에 그대로 남긴다.
 Evaluation은 중복 단계표를 없애고 선택 단계의 원본·입출력과 계산 당시 선택 결과를

@@ -624,3 +624,16 @@ def assess(settings: dict, mesh_records: list[dict]) -> dict:
                             "Affine constant-strain patch test; no mesh convergence order is inferred.",
                             "Derived stress-plastic-strain work is not a native energy field or physical energy balance.",
                             "Numerical agreement does not qualify strength, material, model, physical or fatigue requirements."]}
+
+
+def canonical_settings():
+    return {"case": "uniaxial_j2_isotropic_hardening", "dimensions_mm": [20., 4., 2.],
+        "material": {"youngs_modulus_mpa": 210000., "poisson_ratio": .3,
+                     "yield_stress_mpa": 250., "plastic_modulus_mpa": 1000.},
+        "history": {"times_s": list(range(10)),
+                    "axial_strain": [0., .0005, .001, .0015, .002, .003, .006, .0055, .005, .0045]},
+        "mesh_sizes_mm": [2., 1.],
+        "limits": {"displacement_relative": 1e-7, "displacement_absolute_mm": 1e-10,
+                   "stress_relative": 1e-7, "stress_absolute_mpa": 1e-8, "plastic_strain_absolute": 1e-9,
+                   "reaction_relative": 1e-7, "reaction_absolute_n": 1e-8, "mesh_agreement_relative": 1e-7,
+                   "plastic_dissipation_relative": 1e-6, "plastic_dissipation_absolute_mpa": 1e-8}}

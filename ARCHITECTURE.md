@@ -274,7 +274,7 @@ without a fictitious CAD parent. `run_pde` uses the common experiment/result
 envelope, model-revision extension and checked evidence/artifact ledger. The
 first FEniCSx adapter owns its bounded AST-to-UFL translation and separate
 system-Python process. Canonical error and convergence evidence remain distinct
-from physical qualification. See ADR 0006 and `docs/PDE_ACCEPTANCE.md`.
+from physical qualification. See ADR 0006 and `docs/history/PDE_ACCEPTANCE.md`.
 An optional pure PDE `describe_model`, explicitly enabled by the adapter's
 `pde_model_declaration = True`, uses the same declaration boundary
 as other independent models: settings plus declaration determine its revision,

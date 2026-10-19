@@ -9,13 +9,7 @@ from caelab.adapters.openradioss import OpenRadiossAdapter, runtime
 from caelab.storage import load_json, save_json, source_identity
 
 
-def specification(case="rigid_cube_freefall"):
-    return {"case": case, "edge_m": .1, "mass_kg": 1., "center_height_m": 1., "gravity_m_s2": 9.81,
-            "initial_velocity_m_s": 0., "end_time_s": .2 if case == "rigid_cube_freefall" else .5,
-            "time_step_s": 1e-4, "history_interval_s": 1e-3 if case == "rigid_cube_freefall" else 1e-4,
-            "limits": {"displacement_abs_m": 2e-4, "velocity_abs_m_s": .002,
-                       "energy_abs_j": .01, "mass_relative": 1e-8, "impact_time_abs_s": 2e-4,
-                       "impulse_abs_n_s": .005, "penetration_abs_m": .001}}
+from plugins.explicit_dynamics.reference import canonical_settings as specification
 
 
 def run(store):

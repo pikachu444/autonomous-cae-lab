@@ -260,6 +260,29 @@ def test_allowlisted_operations_change_actual_core_and_retain_verdicts(real_flow
     assert [row["status"] for row in comparison] == [accepted["status"], rejected["status"]]
 
 
+def test_presets_load_without_validation_scripts_and_return_fresh_inputs(client, monkeypatch):
+    import builtins
+    original = builtins.__import__
+    def product_import(name, *args, **kwargs):
+        if name == 'scripts' or name.startswith('scripts.'):
+            raise AssertionError('Product presets must not import validation entry points: ' + name)
+        return original(name, *args, **kwargs)
+    monkeypatch.setattr(builtins, '__import__', product_import)
+    first = client.request('/api/presets')
+    assert first['pde_selected']['settings']['mode'] == 'selected_mesh'
+    assert first['pde_selected']['settings']['problem']['reference'] is None
+    assert first['pde_canonical']['settings']['validation']['max_l2_error'] == .003
+    assert first['codeaster_linear']['settings']['traction_mpa'] == 10.
+    assert first['codeaster_plasticity']['settings']['material']['yield_stress_mpa'] == 250.
+    assert first['explicit_freefall']['settings']['end_time_s'] == .2
+    assert first['explicit_compliant_stop']['settings']['spring_stiffness_n_m'] == 10000.
+    first['pde_canonical']['settings']['mesh']['cell_counts'].append(99)
+    first['codeaster_linear']['settings']['material']['youngs_modulus_mpa'] = 123.
+    reopened = client.request('/api/presets')
+    assert reopened['pde_canonical']['settings']['mesh']['cell_counts'] == [8, 16, 32]
+    assert reopened['codeaster_linear']['settings']['material']['youngs_modulus_mpa'] == 210000.
+
+
 def test_existing_presets_and_core_campaign_inspection(real_flow):
     from scripts.verify_pde import specification as pde_spec
     from scripts.verify_codeaster import specification as aster_spec

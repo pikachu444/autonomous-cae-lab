@@ -32,7 +32,7 @@ python -m apps.research.pde_window --service http://127.0.0.1:18767
 
 단위는 지원하는 SI 식으로 선언합니다. `K`, `s`, `m`, `1/s`, `W/(m*K)`,
 `W/m**3` 등을 사용합니다. 임의 Python 실행은 지원하지 않습니다.
-열기·닫기에서 **Cancel**을 선택하면 현재 편집 내용과 선택한 보존 결과가 남습니다.
+열기·닫기에서 **취소**를 선택하면 현재 편집 내용과 선택한 보존 결과가 남습니다.
 
 ## ODE: 냉각 초기값 문제
 
@@ -107,20 +107,8 @@ FEniCSx 차원 약형식 및 확장 공간 모델은 설치된 Linux 서비스�
 어댑터입니다. Windows 서비스에서도 그 초안의 편집·저장·보존 결과 읽기는
 가능하지만 해당 계산은 플랫폼 안내와 함께 차단합니다.
 상세 식 규칙은 [차원 ODE와 약형식](RESEARCH_003.md),
-Linux 공간 모델의 원 범위·검증 기준은 [PDE 인수 기록](PDE_ACCEPTANCE.md)과
+Linux 공간 모델의 원 범위·검증 기준은 [기능별 검증 매뉴얼](VERIFICATION_SCOPE.md#pde·simulation·evaluation와-장-전달)과
 [공간장 명세](PDE_RESEARCH_FIELDS_PACKET.md)를 참고합니다.
 이 Windows 작업 흐름은 Linux 실행이나 PDE 앱 전체의 인수를 뜻하지 않습니다.
 
-아래 검사는 새 저장소에서 실제 HTTP·Qt 편집/검사/두 계산/저장과 별도 Python
-프로세스의 HTTP·Qt 재열기를 수행합니다. 기존 결과·입력 해시가 같고 읽기만으로
-새 작업이 생기지 않는지 확인합니다. `QT_QPA_PLATFORM=offscreen`이면 그 결과는
-화면 배치 검사이며 일반 Windows 창 캡처와 구분해야 합니다.
-
-```powershell
-python scripts/native_check.py --timeout 180 --output-dir runs/my-pde-check/supervisor -- python tests/test_pde_windows_workflow.py runs/my-pde-check/workflow
-python -m pytest -q tests/test_pde_layout.py tests/test_pde_study_selection_ui.py tests/test_dimensioned_research.py::test_actual_scipy_cancel_retains_accepted_clock_not_trial_rhs --basetemp runs/my-pde-check/pytest
-```
-
-`native_check`는 시작한 프로세스와 자식만 소유한 Windows Job에서 종료합니다.
-검사 디렉터리는 매번 새 경로를 사용합니다. `workflow.json`에는 문서·입력 개정·
-작업·저장 개정·결과 해시와 원 지표가 남고, PNG는 일반/좁은 창과 재열기 화면입니다.
+개발용 절차·기준·재현 명령과 실행 기록은 [기능별 검증 매뉴얼](VERIFICATION_SCOPE.md#pde·simulation·evaluation와-장-전달)에 모았습니다. 일반 사용에는 검사 스크립트 실행이 필요하지 않습니다.

@@ -1,3 +1,5 @@
+> 개발용 과거 기록입니다. 아래 Current/NEXT는 당시 관측과 지시를 보존한 것이며 현재 배정이 아닙니다. 현재 상태는 [CURRENT_STATE](../../CURRENT_STATE.md), 현행 절차·기준은 [검증 매뉴얼](../VERIFICATION_SCOPE.md#pde·simulation·evaluation와-장-전달)을 따릅니다.
+
 # Declared weak-form PDE acceptance
 
 ## Current connected PDEFields research — source8fe, D4.1 active
@@ -237,8 +239,8 @@ through existing Core.105 focused source checks PASS, plus169 separate legacy
 geometry-helper regressions;14 Python AST files PASS. Independent17-file final
 source review PASS,0 P1/P2. Actual form/tag/layout/BC/component-axis/zero-RHS and
 off-segment singularity tests perform no LinearProblem/solve.
-[development record](../benchmarks/records/20261003-coupled-pde-development.json)
-and [frozen packet](PDE_COUPLED_PACKET.md) retain exact inputs and fixed criteria.
+[development record](../../benchmarks/records/20261003-coupled-pde-development.json)
+and [frozen packet](../PDE_COUPLED_PACKET.md) retain exact inputs and fixed criteria.
 Native6/3/8 and9processes/27levels are PLANNED, NOT_RUN. Official Research
 NOT_ADMITTED, native-field GUI NOT_RUN, model/physical UNKNOWN/NOT_RELEASED.
 
@@ -253,7 +255,7 @@ REJECTED, all9 metrics invalid, remaining13 planned cases NOT_RUN and no
 acceptance.json. Independent complete-field5x5 Duffy L2/full-gradient H1/rates
 match (max norm differences2.57e-16/1.78e-15); native XDMF/H5/global-node/source/
 ledger hashes agree. No demonstrated source/runtime defect; deeper cause UNKNOWN.
-[actual failure/reference record](../benchmarks/records/20261003-vector-pde-native-failure.json).
+[actual failure/reference record](../../benchmarks/records/20261003-vector-pde-native-failure.json).
 Original6056files/81636858B retained unchanged; archive expires2026-11-01T15:46:02Z.
 No manual rerun, threshold/response/mesh or original vector runner modification.
 The new coupled CI step can run independently after runtime install success and
@@ -270,8 +272,8 @@ blocked DOF/BC mapping, actual constrained A*x-b, per-scalar state sync and
 complete XDMF/H5/DOF/geometry/binding/partial progress. Existing AST, Core,
 result/evidence schema and process ownership remain.84 distinct focused PASS,
 13 Python syntax files PASS and independent16-file source review0 P1/P2.
-[source record](../benchmarks/records/20261002-vector-pde-development.json).
-Frozen [packet](PDE_VECTOR_PACKET.md) defines .04/.8 finest vector errors,
+[source record](../../benchmarks/records/20261002-vector-pde-development.json).
+Frozen [packet](../PDE_VECTOR_PACKET.md) defines .04/.8 finest vector errors,
 all component/vector rates1.8/.9 and residual1e-10 before native output.
 Runner six accepted/three numerical negatives/five preflight,9 processes/27
 meshes are PLANNED. Vector actual native acceptance NOT_RUN, Research
@@ -285,7 +287,7 @@ L2 and full-gradient H1 pairs independently recomputed; max differences
 6.22e-15/1.24e-14, all refinement rates agree. Native field/time/source/ledger
 hashes and6079 original archive files match. No open P1/P2. Core2300 PASS/
 2optional skips; whole CI8SUCCESS/2FAIL retains Aster Fz and asset404 failures.
-[native CI/reference record](../benchmarks/records/20261002-transient-pde-native-ci.json).
+[native CI/reference record](../../benchmarks/records/20261002-transient-pde-native-ci.json).
 Residual normalization is independently checked; constrained matrices are not
 independently reassembled. Local fresh transient solve NOT_RUN; official
 Research/native field GUI remain NOT_ADMITTED/NOT_RUN. Model/physical
@@ -307,8 +309,8 @@ Existing pde.run/Core/declaration/Results and process ownership are reused.
 recheck is not counted twice. Actual native mutable-time/form/state compilation
 performs no solve. Independent17-file source review has0 open P1/P2; old PDE/
 schema/execution/guard implementations and fixture pin are unchanged.
-Record: [source integration](../benchmarks/records/20261002-transient-pde-development.json).
-The frozen [packet](PDE_TRANSIENT_PACKET.md) defines all numerical criteria
+Record: [source integration](../../benchmarks/records/20261002-transient-pde-development.json).
+The frozen [packet](../PDE_TRANSIENT_PACKET.md) defines all numerical criteria
 before output. The clean-source runner `python -m scripts.verify_transient_pde
 --store artifacts/new-transient-store` plans5 accepted/3 numerical negatives/
 5 no-native refusals and24 studies/872 snapshots/848 solves. These are planned,
@@ -335,8 +337,8 @@ completed8SUCCESS/2FAIL: Aster Fz native numerical checks fail (internal cause
 UNKNOWN from the scoped log); explicit pinned asset404 is retained. Earlier dd8 Core failure
 (2237PASS/2 stale registry expectation FAIL/1SKIP) and14 initial audit reader
 assumption failures are retained and closed without changing native fields or
-criteria. Records: [native/reference](../benchmarks/records/20261002-rectangle-pde-native.json)
-and [publication](../benchmarks/records/20261002-rectangle-pde-publication.json).
+criteria. Records: [native/reference](../../benchmarks/records/20261002-rectangle-pde-native.json)
+and [publication](../../benchmarks/records/20261002-rectangle-pde-publication.json).
 This is bounded manufactured mathematical acceptance, not NAFEMS or physical
 qualification; all decisions remain NOT_RELEASED and whole Phase4 stays open.
 
@@ -390,7 +392,7 @@ right-hand side and analytical solution are bounded mathematical expressions.
 The adapter compiles their AST to UFL. Arbitrary Python code is rejected.
 This is a bounded equation family; generic nonlinear/multiphysics, imported
 domains and parallel execution are not accepted yet. See
-[ADR 0006](../ADR/0006-declared-weak-form-pde.md).
+[ADR 0006](../../ADR/0006-declared-weak-form-pde.md).
 
 Example settings (used through Python `Lab.run_pde`, CLI `pde` or MCP `pde_run`):
 
@@ -423,7 +425,7 @@ worker uses `/usr/bin/python3` and the official Ubuntu FEniCS PPA's compatible
 real PETSc/NumPy packages. `CAELAB_FENICSX_PYTHON` selects this executable;
 isolated mode and removal of Python/venv/PETSc path overrides protect that
 package boundary. Installation details and actual versions are in
-[LOCAL_EXECUTION](LOCAL_EXECUTION.md); CI pins DOLFINx package
+[LOCAL_EXECUTION](../LOCAL_EXECUTION.md); CI pins DOLFINx package
 `1:0.11.0.post0-2~ppa1~noble1` and records all actual dependency versions.
 
 ```bash
@@ -444,6 +446,6 @@ rate `1.9934926491266785` and maximum relative residual
 CI 36656020195 passed the four cases with the same numerical observations.
 Raw symbolic errors, all pair rates, boundary/topology and residuals were
 independently inspected. See
-[the local record](../benchmarks/records/20260930-local-pde.json) and
-[NUMERICAL_CONTINUATION](NUMERICAL_CONTINUATION.md). Physical validation and
+[the local record](../../benchmarks/records/20260930-local-pde.json) and
+[NUMERICAL_CONTINUATION](../NUMERICAL_CONTINUATION.md). Physical validation and
 model qualification remain `UNKNOWN`, and every decision is `NOT_RELEASED`.

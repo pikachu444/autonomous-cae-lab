@@ -10,15 +10,7 @@ from caelab import Lab
 from caelab.storage import load_json, save_json
 
 
-def specification():
-    return {"problem": {"domain": "unit_square",
-                        "weak_form": {"diffusion": 1.0, "reaction": 0.0,
-                                      "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"},
-                        "dirichlet": "0.0",
-                        "reference": {"solution": "sin(pi*x[0])*sin(pi*x[1])",
-                                      "source": "Analytical manufactured solution on the dimensionless unit square"}},
-            "mesh": {"cell_counts": [8, 16, 32], "degree": 1},
-            "validation": {"max_l2_error": .003, "min_l2_rate": 1.8, "max_residual_relative": 1e-10}}
+from plugins.pde_elliptic.reference import unit_square_settings as specification
 
 
 def run(store: Path):

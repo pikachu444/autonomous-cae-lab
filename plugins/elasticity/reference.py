@@ -299,3 +299,12 @@ def assess(settings: dict, mesh_records: list[dict]) -> dict:
                               "agreement_statistic": "max_minus_min_across_all_meshes"},
             "limitations": ["Affine constant-strain patch test; no mesh convergence rate is inferred.",
                             "Numerical reference agreement does not qualify a component or material."]}
+
+
+def canonical_settings():
+    return {"case": "uniaxial_block", "dimensions_mm": [20.0, 4.0, 2.0],
+            "material": {"youngs_modulus_mpa": 210000.0, "poisson_ratio": .3},
+            "traction_mpa": 10.0, "mesh_sizes_mm": [2.0, 1.0],
+            "limits": {"displacement_relative": 1e-8, "displacement_absolute_mm": 1e-12,
+                       "stress_relative": 1e-8, "reaction_relative": 1e-8,
+                       "mesh_agreement_relative": 1e-8}}
