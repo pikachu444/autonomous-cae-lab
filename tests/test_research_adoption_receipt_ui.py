@@ -55,7 +55,7 @@ class LostReceipt:
                            'budget': {'evaluations': 2}}, source=self.source))
         if kind == 'material':
             # The coefficient preview validates a real plan before sending an adoption.
-            plan_draft.update(mode='doe', method='lhs', count=2, budget=2)
+            plan_draft.update(mode='doe', count=2, budget=2)
             self.result['kind'] = 'doe'
             for candidate, value in zip(self.result['candidates'], (1100, 1200)):
                 candidate['values'] = {'E': value}
@@ -107,6 +107,7 @@ def setup(client, monkeypatch):
     cls = NumericalWindow if client.kind == 'material' else RequestPlanWindow
     window = cls(client, auto_open=False, poll_interval=0)
     window._show_document(client.plan)
+    assert window.edited_draft() == client.plan['draft']
     window._result_cache['Joriginal'] = deepcopy(client.result)
     window._draw_result()
     window.candidates.selectRow(0)

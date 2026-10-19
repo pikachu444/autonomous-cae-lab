@@ -34,7 +34,8 @@ def wait(app, predicate):
 
 
 def document(identifier, draft):
-    return {'id': identifier, 'session_id': 'Sowner', 'generation': 0,
+    return {'id': identifier, 'kind': {'Q': 'pde', 'E': 'evaluation'}[identifier[0]],
+            'session_id': 'Sowner', 'generation': 0,
             'title': 'Controlled retained result', 'draft': deepcopy(draft),
             'diagnostics': [], 'dirty': False, 'runs': [], 'can_undo': False, 'can_redo': False}
 
@@ -217,16 +218,22 @@ def test_scalar_only_evaluation_transport_error_remains_visible(app, failure):
 
 def test_scalar_only_evaluation_post_open_failure_is_visible_and_retains_scalar_table(app):
     calls = []
+    class Client:
+        def evaluation_stage_result(self, document_id, job_id, attempt_id, *, selection):
+            assert (document_id, job_id, attempt_id) == ('Escalar', 'Jretained', 'Astored')
+            assert selection == {'metadata_only': True}
+            return {'execution_status': 'SUCCEEDED', 'responses': {'energy': {
+                'kind': 'scalar', 'unit': 'Pa', 'component': 'scalar',
+                'location': 'material', 'value': 12.}}}
     def open_result(document_id, job_id, attempt_id):
         calls.append((document_id, job_id, attempt_id))
         raise ValueError('Selected scalar-only stage has no captured native field to open in Post')
-    window = EvaluationWindow(object(), auto_open=False, poll_interval=0, result_open=open_result)
+    window = EvaluationWindow(Client(), auto_open=False, poll_interval=0, result_open=open_result)
     try:
         window._show_document(scalar_definition())
         window._selected_job, window._selected_attempt = 'Jretained', 'Astored'
-        window._put_rows(window.channels, [('name', ''), ('kind', ''), ('unit', ''), ('component', ''),
-            ('location', ''), ('value', ''), ('state', '')], [{'name': 'energy', 'kind': 'scalar',
-            'unit': 'Pa', 'component': 'scalar', 'location': 'material', 'value': 12., 'state': 'SUCCEEDED'}])
+        window.read_stage_result()
+        wait(app, lambda: not window._busy and window._result is not None)
         window._update_actions()
         assert window.result_button.isEnabled()
         QTest.mouseClick(window.result_button, Qt.MouseButton.LeftButton)

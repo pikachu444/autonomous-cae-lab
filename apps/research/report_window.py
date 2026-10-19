@@ -627,7 +627,7 @@ class ReportWindow(QMainWindow):
             self.message.setText('이 섹션에는 연결된 원자료가 없습니다.')
             return
         archived = self.assets.get(binding['id'], {})
-        if (binding['id'] in self.document.get('portable_report_assets', {}) and
+        if (binding['id'] in (self.document or {}).get('portable_report_assets', {}) and
                 ('navigation_reference' not in archived or archived.get('retained_preview_only')
                  or archived.get('navigation_status') == 'SOURCE_UNAVAILABLE')):
             self.message.setText('원자료 연결을 다시 확인합니다. 보고서에 보관한 자료는 계속 읽을 수 있습니다.')

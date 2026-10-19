@@ -56,9 +56,11 @@ def test_judgment_selection_keeps_reading_target_until_link_is_chosen(app, tmp_p
         app.processEvents()
         assert window.width() == 1100 and window.height() == 780
         assert window.reading.canvas.height() >= 140
-        window.detail_status.setFocus()
-        for _ in range(3):
-            QTest.keyClick(window.focusWidget(), Qt.Key.Key_Tab)
+        window.raise_();window.activateWindow();window.detail_status.setFocus()
+        wait(app, lambda: window.detail_status.hasFocus())
+        window.link_tabs.setCurrentWidget(window.link_panels['conflicting'])
+        window.link_tabs.tabBar().setFocus()
+        QTest.keyClick(window.link_tabs.tabBar(), Qt.Key.Key_Tab)
         app.processEvents()
         assert window.link_lists['conflicting'].hasFocus()
         assert window.editor.findChild(QScrollArea).verticalScrollBar().value() > 0

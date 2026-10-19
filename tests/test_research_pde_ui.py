@@ -397,6 +397,7 @@ def test_http_lost_ack_retry_keeps_same_request_late_edit_and_blocks_switch(http
 @pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)
 @pytest.mark.parametrize('rejection',['generation','session'])
 def test_http_definite_generation_rejection_preserves_buffer_and_unlocks_recovery(http_window,app,rejection):
+    from caelab.storage import canonical_hash, load_json
     win,client,wb,path=http_window
     doc=deepcopy(win.document)
     if rejection=='generation':
@@ -405,13 +406,28 @@ def test_http_definite_generation_rejection_preserves_buffer_and_unlocks_recover
         client.document_command(doc['id'],win.document_kind+'.update',{'draft':external},
             session_id=doc['session_id'],expected_generation=doc['generation'],command_id='CexternalEdit')
     else:wb._document_owner(doc['id']).session_id='SreplacementOwner'
-    edit(win,path,'1e');win.apply_inputs();settle(app,win)
+    before=client.document_read(doc['id'])
+    edit(win,path,'1e');win.apply_inputs()
+    pending=deepcopy(win._pending_command)
+    settle(app,win)
     assert win._pending_command is None and win.conflict
     assert win.fields[path][0].text()=='1e' and win.local_dirty
     assert win.reload_button.isVisible() and not wb.manager.list()
-    receipts=list(wb._document_owner(doc['id'])._folder(doc['id']).joinpath('commands').glob('*.json'))
-    assert len(receipts)==(1 if rejection=='generation' else 0)
-    if receipts:assert receipts[0].stem=='CexternalEdit'
+    receipts={p.stem:load_json(p) for p in wb._document_owner(doc['id'])._folder(doc['id']).joinpath('commands').glob('*.json')}
+    if rejection=='generation':
+        # The external edit applied once; the stale local command has its own
+        # definite rejection receipt so retrying that UUID cannot apply it.
+        assert set(receipts)=={'CexternalEdit',pending['command_id']}
+        assert 'response' in receipts['CexternalEdit']
+        rejected=receipts[pending['command_id']]
+        assert rejected['state']=='REJECTED' and 'response' not in rejected
+        assert rejected['operation']==win.document_kind+'.update'
+        assert rejected['rejection']=='Document generation changed; reread before applying'
+        assert rejected['request_hash']==canonical_hash(dict(document_id=doc['id'],operation=pending['operation'],
+            arguments=pending['arguments'],session_id=doc['session_id'],expected_generation=doc['generation']))
+    else:assert receipts=={}
+    after=client.document_read(doc['id'])
+    assert after['generation']==before['generation'] and after['draft']==before['draft']
 
 
 @pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)

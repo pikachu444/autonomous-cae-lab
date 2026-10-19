@@ -21,7 +21,7 @@ def test_new_session_keeps_live_generation_managed_save_and_rebinds_docks(monkey
         return new, NS(), NS()
     monkeypatch.setattr('apps.desktop_pre.connection.bridge.start', start)
     connection = NS(pending=None, native_requests={}, owners={doc.Name: (owner, dispatch, None)},
-        panels={doc.Name: {'motion': dock}}, config={}, QtCore=NS(), log=lambda *a, **kw: None,
+        panels={doc.Name: {'motion': dock}}, config={}, QtCore=NS(), Gui=NS(getMainWindow=lambda: NS()), log=lambda *a, **kw: None,
         App=NS(listDocuments=lambda: {doc.Name: doc}), client=NS(desktop_context=lambda: None),
         message=NS(setText=lambda value: events.append(('message', value))),
         request=lambda key, call, accepted: callbacks.append(accepted),
@@ -69,7 +69,7 @@ def test_new_raw_edit_during_reconnect_context_retains_same_owner_and_dock():
     dock = NS(widget=lambda: NS(motion_controller=controller))
     owner = NS(doc=doc)
     connection = NS(pending=None, native_requests={}, owners={doc.Name: (owner, NS(), NS())},
-        panels={doc.Name: {'motion': dock}}, client=NS(desktop_context=lambda: None),
+        panels={doc.Name: {'motion': dock}}, Gui=NS(getMainWindow=lambda: NS()), client=NS(desktop_context=lambda: None),
         message=NS(setText=events.append), request=lambda key, call, accepted: callbacks.append(accepted))
     Connection.reconnect(connection)
     state['token'] = 2

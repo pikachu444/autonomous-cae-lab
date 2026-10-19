@@ -194,8 +194,9 @@ def cheap_model(values, settings):
     return {'execution_status':'SUCCEEDED', 'responses':{'cost':response(x*x), 'opposite':response((1-x)**2)}}
 
 
-def retained(document_id, job_id, result):
-    run = {'job_id':job_id, 'input_revision':'I'+job_id, 'input_sha256':'a'*64,
+def retained(document_id, job_id, result, *, submitted=None):
+    draft = deepcopy(submitted if submitted is not None else request_draft())
+    run = {'job_id':job_id, 'input_revision':'I'+job_id, 'input_sha256':canonical_hash(draft), 'draft':draft,
            'retention_complete':True, 'retained_result':{'revision':'Rretained'}}
     document = {'id':document_id, 'kind':'numerical', 'runs':[run]}
     return document, result_reference(document, job_id, result)
@@ -412,12 +413,20 @@ def test_bound_operation_arguments_run_actual_existing_engine_with_hard_budget(t
 
 def test_sensitivity_resolver_preserves_exact_matched_plan_and_rows():
     table = numerical.run_doe(cheap_model, VARIABLES, candidates=[{'x':.1},{'x':.5},{'x':.9}])
-    doc, ref = retained('Nsensitivity','Jsobol',table)
-    _, _, callbacks = resolvers((doc,'Jsobol',table))
+    submitted = request_draft({'purpose':'Controlled cheap-model DOE', 'operation':'doe',
+        'inputs':{'backend':'test.synthetic.cheap_model', 'settings':{}, 'variables':deepcopy(VARIABLES),
+                  'candidates':[deepcopy(row['values']) for row in table['candidates']]},
+        'budget':{'evaluations':3}})
+    doc, ref = retained('Nsensitivity','Jsobol',table, submitted=submitted)
+    docs, _, callbacks = resolvers((doc,'Jsobol',table))
     plan = {'variables':VARIABLES,'sampling':{'method':'SALib.sobol'},
             'candidates':[{'candidate_id':row['candidate_id'],'values':deepcopy(row['values'])} for row in table['candidates']]}
     prepared = resolve_request_inputs('sensitivity',{'result_refs':{'table':ref},'plan':plan,'response':RESPONSE},**callbacks)
     assert prepared['plan'] == plan and prepared['table']['candidates'] == table['candidates']
+    assert prepared['evaluation_context']['backend'] == submitted['request']['inputs']['backend']
+    docs['Nsensitivity']['runs'][0]['draft']['request']['inputs']['settings']['changed'] = True
+    with pytest.raises(ValueError, match='exact saved submitted DOE input'):
+        resolve_request_inputs('sensitivity',{'result_refs':{'table':ref},'plan':plan,'response':RESPONSE},**callbacks)
     # Optional SALib is not installed here: do not substitute LHS sensitivity.
     import importlib.util
     if importlib.util.find_spec('SALib') is None:
@@ -435,7 +444,11 @@ def test_surrogate_never_relabels_holdout_parameter_units():
 
 def test_batch_export_and_sensitivity_plans_can_pin_large_rows_without_copying(tmp_path):
     table = numerical.run_doe(cheap_model,VARIABLES,candidates=[{'x':.1},{'x':.4}])
-    doc, ref = retained('Nrows','Jrows',table)
+    submitted = request_draft({'purpose':'Controlled cheap-model DOE', 'operation':'doe',
+        'inputs':{'backend':'test.synthetic.cheap_model', 'settings':{}, 'variables':deepcopy(VARIABLES),
+                  'candidates':[deepcopy(row['values']) for row in table['candidates']]},
+        'budget':{'evaluations':2}})
+    doc, ref = retained('Nrows','Jrows',table, submitted=submitted)
     plan = {'variables':VARIABLES,'sampling':{'method':'SALib.sobol'},
             'candidates':[{'candidate_id':row['candidate_id'],'values':row['values']} for row in table['candidates']]}
     pd, pref = retained('Nplan','Jplan',plan)

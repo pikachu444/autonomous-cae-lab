@@ -703,6 +703,14 @@ class RoleBindingMethods:
         if not read_receipts:
             read_receipts=[record_read(payload,tool=name,request=request,source_reference=request,
                 actual_selector=request.get('selection',request.get('locator')),input_dependencies=identifiers)]
+        if name=='knowledge.source' and isinstance(payload,dict):
+            # A whole-document read also supplies its returned chunks for exact citations.
+            for segment in payload.get('segments',[]):
+                reference={key:deepcopy(segment[key]) for key in ('document_id','revision','locator')}
+                if reference==request:continue
+                receipt=record_read(segment,tool=name,request=request,source_reference=reference,
+                    actual_selector=reference['locator'],input_dependencies=identifiers)
+                read_receipts.append(ledger.retain_read(receipt,segment))
         state=deepcopy(ledger.state)
         retained=[]
         for receipt in read_receipts:

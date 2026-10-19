@@ -506,8 +506,10 @@ def test_plan_return_button_original_and_independent_selection(app, loopback, mo
     chosen = []
     def choose_existing(parent, title, label, choices, **kwargs):
         chosen.append(title)
-        assert kind == 'independent' and title == 'Attach to existing research'
-        return next(item for item in choices if origin['id'] in item), True
+        assert kind == 'independent' and title == '계산 결과 전달'
+        matches = [item for item in choices if origin['title'] in item]
+        assert len(matches) == 1
+        return matches[0], True
     monkeypatch.setattr(QInputDialog, 'getItem', choose_existing)
     monkeypatch.setattr(source, '_select_return_channels', lambda result: [])
     assert source.return_result()

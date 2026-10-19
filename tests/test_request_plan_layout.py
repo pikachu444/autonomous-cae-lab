@@ -18,11 +18,16 @@ def test_advanced_inputs_do_not_enlarge_window_and_optional_source_stays_outside
     original = deepcopy(window.edited_draft())
     assert (window.width(), window.height()) == dimensions
     assert window.minimumSizeHint().height() < 780
-    assert window.input_tabs.currentWidget() is window.advanced_scroll
+    assert window.work_pages.currentWidget() is window.plan_page
+    assert window.input_tabs.currentWidget() is window.sheet
+    window.input_tabs.setCurrentWidget(window.advanced_scroll)
+    app.processEvents()
+    assert window.advanced_scroll.isVisible()
+    assert (window.width(), window.height()) == dimensions
     assert window.candidate_results_button.isHidden() and window.pde_adopt_button.isHidden()
     assert window.candidates.isHidden()
     assert not window.source.isVisible() and not window.source_context.isVisible()
-    assert window.figure.axes[0].texts[0].get_text() == 'No calculated result selected.'
+    assert window.figure.axes[0].texts[0].get_text() == '아직 선택한 계산 결과가 없습니다.'
     window.show_source_details()
     app.processEvents()
     assert window.source_dialog.isVisible() and window.source.isReadOnly()
@@ -30,33 +35,36 @@ def test_advanced_inputs_do_not_enlarge_window_and_optional_source_stays_outside
     assert window.edited_draft() == original and not workbench.manager.list()
 
 
-def test_collapse_resize_and_advanced_scroll_preserve_live_edit_and_method_buffers(app, workbench, edit_windows):
+def test_page_switch_resize_and_advanced_scroll_preserve_live_edit_and_method_buffers(app, workbench, edit_windows):
     window = opened(app, workbench)
     window.show()
     window.resize(1100, 780)
     app.processEvents()
+    window.input_tabs.setCurrentWidget(window.advanced_scroll)
     find_input(window, ('settings', 'parameters', 'E')).setText(1, '1e')
     original = deepcopy(window.edited_draft())
-    window.input_panel_action.setChecked(False)
+    window.work_pages.setCurrentWidget(window.results_panel)
     app.processEvents()
-    assert window.editor.isHidden() and window.tabs.width() > 900
-    assert window.input_panel_action.text() == '입력 펼치기'
+    assert not window.editor.isVisible() and window.tabs.isVisible()
+    assert window.tabs.width() > 900
     window.resize(1440, 900)
-    window.input_panel_action.setChecked(True)
+    window.work_pages.setCurrentWidget(window.plan_page)
     app.processEvents()
     assert window.edited_draft() == original
-    assert window.input_panel_action.text() == '입력 접기'
+    assert window.editor.isVisible() and window.advanced_scroll.isVisible()
     window.operation.setCurrentIndex(window.operation.findData('analyze'))
     window.resize(1100, 780)
     app.processEvents()
     assert window.advanced_scroll.verticalScrollBar().maximum() > 0
     window.operation.setCurrentIndex(window.operation.findData('evaluate'))
     assert window.edited_draft()['request'] == original['request']
+    assert find_input(window, ('settings', 'parameters', 'E')).text(1) == '1e'
     assert window.edited_draft()['method_inputs']['analyze'] == {'result_refs': {}, 'responses': []}
     assert not workbench.manager.list()
     window.operation.setCurrentIndex(window.operation.findData('doe'))
     app.processEvents()
-    assert not window.candidate_results_button.isHidden() and not window.pde_adopt_button.isHidden()
+    assert not window.candidate_results_button.isHidden()
+    assert window.pde_adopt_button.isHidden()  # No retained run with an original model to adopt into.
     assert not window.candidate_results_button.isEnabled() and not window.pde_adopt_button.isEnabled()
 
 

@@ -70,7 +70,7 @@ def test_changed_raw_shell_source_blocks_post_reopen(native,produced):
 def test_shell_legend_uses_units_and_preserves_native_component_when_unspecified(native,produced,monkeypatch,component):
     _,_,external=native
     _,source,metadata=produced
-    view=SimpleNamespace(GetXMLName=lambda:'RenderView')
+    view=external.p.CreateView('RenderView')
     bar=SimpleNamespace(Title='',ComponentTitle='Previous selection')
     updates=[]
     def update_component(transfer,display):
