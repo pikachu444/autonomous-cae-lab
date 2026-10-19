@@ -82,9 +82,9 @@ def test_windows_bounded_folders_app_paths_path_and_sdk_deduplicate_without_vers
     sdk=installed(tmp_path/'sdk'/'bin','paraview.exe')
     monkeypatch.setattr(native_tools,'_windows_app_paths',lambda name:[])
     env={'PATH':'','CAE_POST_PARAVIEW_ROOT':str(sdk.parent.parent)}
-    assert native_tools.discover('paraview_executable',environment=env)['status']=='NOT_FOUND'
+    assert native_tools.discover('paraview_executable',environment=env,platform='win32')['status']=='NOT_FOUND'
     env['CAE_POST_EXIT_PLUGIN']='explicit-plugin-path'
-    assert native_tools.discover('paraview_executable',environment=env)['path']==str(sdk)
+    assert native_tools.discover('paraview_executable',environment=env,platform='win32')['path']==str(sdk)
 
 
 def test_non_windows_uses_explicit_or_path_without_windows_registry(tmp_path,monkeypatch):

@@ -20,7 +20,9 @@ def windows_client(monkeypatch):
     reads = []
     client = SimpleNamespace(url='http://127.0.0.1:18767',
         desktop_context=lambda: deepcopy(context),
+        document_read=lambda identifier: {'id':identifier,'kind':'pde','session_id':'Sowner'},
         research_reference=lambda ref: reads.append(deepcopy(ref)))
+    monkeypatch.setattr('apps.research.result_return.send_message',lambda message:{'status':'ABSENT'})
     return client, context, calls, reads
 
 

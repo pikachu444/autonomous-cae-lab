@@ -462,10 +462,13 @@ def last_saved_file(owner):
 
 def capture_native_selection(owner, documents):
     """Optional native UI state, separate from geometry/source input metadata."""
+    selection = getattr(owner.Gui, 'Selection', None)
+    if selection is None:
+        return []
     members = {doc.Name: 'document' + str(index) for index, doc in enumerate(documents)}
     selections = []
     for doc in documents:
-        for selected in owner.Gui.Selection.getSelectionEx(doc.Name):
+        for selected in selection.getSelectionEx(doc.Name):
             obj = selected.Object
             if obj.Document is not doc:
                 raise ValueError('Native selection document changed during save')

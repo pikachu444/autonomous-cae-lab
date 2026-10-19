@@ -29,6 +29,7 @@ class ServiceHost:
         self.root=Path(root);self.root.mkdir(parents=True,exist_ok=True)
         w=self.core=Workbench.__new__(Workbench)
         w.workspace=self.root.parent;w.root=self.root;w.config=deepcopy(configuration or {});w.workspace_id='local'
+        w._portable_manifest=None
         w.session_id='S'+uuid.uuid4().hex
         w._assist_config_lock=threading.RLock();w._assistance=None;w._assistance_active=0;w._assistance_cleanup_pending=False
         self.original_fixture=None
