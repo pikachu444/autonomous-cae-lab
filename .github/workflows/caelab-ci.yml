@@ -48,9 +48,12 @@ jobs:
           tests/test_native_simulation_ui.py
           tests/test_native_event_transport.py
           tests/test_native_import_http.py::test_transport_guards_and_json_path_injection
+          tests/test_job_monitor.py
+          tests/test_research_runner_ui.py
           tests/test_discussion_documents.py
           tests/test_discussion_plan_integration.py
           tests/test_research_request_plan_ui.py
+          tests/test_numerical_workflows_ui.py::test_saved_prediction_to_explicit_actual_confirmation_and_paired_read
           tests/test_research_expert_ui.py
           tests/test_expert_onboarding_ui.py
           tests/test_expert_connection_ui.py
