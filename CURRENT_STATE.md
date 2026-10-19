@@ -141,9 +141,14 @@ import하는 의존을 발견했다. factory만 기존 PDE/탄성/소성/명시 
 | native_delivery | 읽기 전용 잔여 접점 조사 | 기존 initial-fields/aster-hard-contact/conservative-load private 후보와 미통합 접점 전달 완료. 제품 코드 쓰기 역할 아님 |
 
 GUI foreground 실행권은 한 담당에게만 준다. Material cold06과 한정 통합 검토를
-마치고 실행권을 반환했다. 현재 material_numerical_impl이 같은 private Q의 저장 응답
-유실/동일 ID 확인/late 원문/별도 cold만 실제 확인한다. 새 계산은 없다. 다음은 Data
-후보07의 원단위·시각 열배치/폭 저장/별도 cold다. Runner 실제04는 끝나 게시를 기다린다.
+마치고 실행권을 반환했고 `06a943e`로 게시했다. PDE recovery-actual-01은 원 저장과
+동일 ID 확인 한 번이 모두 기존 HTTP 30초를 넘겨 UI 미확정 상태로 끝났다. 원 요청의
+완료 영수증과 새 저장 개정은 디스크에 남았지만 GUI 복구 인수는 FAIL이며 별도 cold는
+실행하지 않았다. 원 저장본과 결과 16파일 hash, late 원문/닫기 차단은 보존했다.
+새 ID·계산·추가 재시도는 없고 소유 프로세스를 정리해 실행권을 반환했다. Codex가
+기존 공통 저장/영수증 구간의 지연 원인을 먼저 좁힌다. timeout을 늘려 PASS로 만들지
+않는다. 다음 GUI 실행권 후보는 Data07의 원단위·시각 열배치/폭 저장/별도 cold다.
+Runner 실제04는 끝나 게시를 기다린다.
 각 offscreen 검사는 별도 소유 프로세스로
 병행할 수 있으나 한국어/실제 화면 인수를 대신하지 않는다. 모든 실행은 기존 native_check와
 정확 소유 프로세스 정리를 재사용한다.
