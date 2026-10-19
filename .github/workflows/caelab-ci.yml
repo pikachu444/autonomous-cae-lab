@@ -5,16 +5,142 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Run the complete CI or selected existing pytest tests
+        type: choice
+        options: [full, selected]
+        default: full
+      test_selection:
+        description: 'Selected mode: space-separated tests/file.py or tests/file.py::node (quote names containing spaces; use /)'
+        type: string
+        default: ''
+      test_platform:
+        description: Platform for selected tests (native solver runtimes are not installed)
+        type: choice
+        options: [linux, windows, both]
+        default: linux
 
 permissions:
   contents: read
 
 concurrency:
-  group: caelab-${{ github.ref }}
+  group: caelab-${{ github.ref }}${{ inputs.mode == 'selected' && format('-selected-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
+  selected-tests:
+    name: Selected pytest (${{ matrix.os }})
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'selected' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.test_platform == 'both' && '["ubuntu-24.04","windows-2025"]' || inputs.test_platform == 'windows' && '["windows-2025"]' || '["ubuntu-24.04"]') }}
+    env:
+      PYTHONUTF8: '1'
+      MPLBACKEND: Agg
+      QT_QPA_PLATFORM: offscreen
+      CAELAB_FREECAD_REFERENCE_FEM: ${{ github.workspace }}/reference_FreeCAD_1.1.4/src/Mod/Fem
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Validate existing test file and node selections
+        id: selection
+        env:
+          TEST_SELECTION: ${{ inputs.test_selection }}
+          TEST_PLATFORM: ${{ inputs.test_platform }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path, PureWindowsPath
+          import shlex
+
+          if os.environ['TEST_PLATFORM'] not in {'linux', 'windows', 'both'}:
+              raise SystemExit('Select linux, windows or both.')
+          try:
+              targets = shlex.split(os.environ['TEST_SELECTION'])
+          except ValueError as exc:
+              raise SystemExit(f'Invalid quoted test selection: {exc}') from exc
+          if not targets:
+              raise SystemExit('Selected mode requires at least one existing tests/*.py file or node.')
+          root = Path.cwd().resolve()
+          tests_root = (root / 'tests').resolve()
+          for target in targets:
+              file_name = target.partition('::')[0]
+              path = Path(file_name)
+              if (target.startswith('-') or path.is_absolute()
+                      or PureWindowsPath(file_name).is_absolute()
+                      or not path.parts or path.parts[0] != 'tests'
+                      or '..' in path.parts or path.suffix != '.py'):
+                  raise SystemExit(f'Only repository-relative tests/*.py files or nodes are allowed: {target!r}')
+              try:
+                  resolved = (root / path).resolve(strict=True)
+              except (OSError, ValueError) as exc:
+                  raise SystemExit(f'Test file does not exist: {file_name!r}') from exc
+              if (not resolved.is_relative_to(root) or not resolved.is_relative_to(tests_root)
+                      or not resolved.is_file()):
+                  raise SystemExit(f'Test file must remain inside tests/: {file_name!r}')
+          print('Selected platform:', os.environ['TEST_PLATFORM'])
+          print('Selected existing tests:', json.dumps(targets, ensure_ascii=False))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('targets=' + json.dumps(targets) + '\n')
+      - name: Install pinned official FreeCAD FEM reference source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: FreeCAD/FreeCAD
+          ref: 4fd3bf320d9566a27e60069fc8387448aaa3a094 # 1.1.4
+          path: reference_FreeCAD_1.1.4
+          sparse-checkout: src/Mod/Fem
+          persist-credentials: false
+      - name: Install Linux Qt shared-library runtime
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libfontconfig1 \
+            libdbus-1-3 libglib2.0-0t64 libx11-6 fonts-noto-cjk
+      - name: Install existing project test and research UI dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e ".[numerical,material,assist,sensitivity,mcp,research-ui,dev]"
+      - name: Run selected tests and collect every failure
+        env:
+          VALIDATED_TARGETS: ${{ steps.selection.outputs.targets }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          Path('artifacts').mkdir(exist_ok=True)
+          targets = json.loads(os.environ['VALIDATED_TARGETS'])
+          raise SystemExit(subprocess.call([
+              sys.executable, '-m', 'pytest', '-q', '--maxfail=0',
+              '--continue-on-collection-errors',
+              '-o', 'faulthandler_timeout=120',
+              '-o', 'junit_suite_name=selected-tests-' + os.environ['RUNNER_OS'],
+              '--junitxml=artifacts/selected-tests.xml', *targets,
+          ]))
+      - name: Preserve selected test failures and skips
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: selected-tests-${{ matrix.os }}-${{ github.run_id }}
+          path: artifacts/selected-tests.xml
+          if-no-files-found: warn
+          retention-days: 30
+
   research-driver-source:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: windows-2025
     timeout-minutes: 25
     env:
@@ -97,6 +223,7 @@ jobs:
         run: .\scripts\verify-windows-install.ps1 -RuntimeRoot "$env:RUNNER_TEMP\cae-windows-runtime" -Port 18779
 
   core:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -166,8 +293,16 @@ jobs:
           print(f"PySide6 {PySide6.__version__}; Qt {QtCore.qVersion()}; "
                 f"platform={app.platformName()}; offscreen widget/event loop OK")
           PY
-      - run: python -m pytest -q -o faulthandler_timeout=120
+      - run: python -m pytest -q -o faulthandler_timeout=120 --junitxml=artifacts/core-tests.xml
         if: ${{ !cancelled() && steps.qt_preflight.outcome == 'success' && steps.freecad_reference.outcome == 'success' }}
+      - name: Preserve core test failures and skips
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: core-tests-${{ github.sha }}
+          path: artifacts/core-tests.xml
+          if-no-files-found: warn
+          retention-days: 30
       - name: Check forms, imported meshes and retained PDE/contact fields
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_native_structural_field.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
@@ -193,6 +328,7 @@ jobs:
           retention-days: 30
 
   native:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -254,6 +390,7 @@ jobs:
           retention-days: 30
 
   native-registration:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -299,6 +436,7 @@ jobs:
           retention-days: 30
 
   structural:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -344,6 +482,7 @@ jobs:
           retention-days: 30
 
   optimization:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -385,6 +524,7 @@ jobs:
           retention-days: 30
 
   pde:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -464,6 +604,7 @@ jobs:
           retention-days: 30
 
   codeaster:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -536,6 +677,7 @@ jobs:
           retention-days: 30
 
   explicit:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -613,6 +755,7 @@ jobs:
           retention-days: 30
 
   doe:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
