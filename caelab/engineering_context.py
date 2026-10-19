@@ -36,7 +36,7 @@ def read_context(workbench, identifier):
     # Native writer/converter logs can sort before the actual solver histories.
     # Keep the bounded payload while always including the convergence files.
     logs = sorted(monitor['logs'], key=lambda row:
-        (not row['label'].lower().endswith(('.sta', '.cvg', '.dat')), row['label']))
+        (not row['label'].lower().endswith(('.sta', '.cvg', '.dat')), row['bytes'] == 0, row['label']))
     for log in logs[:6]:
         selected = workbench.job_monitor(identifier, log=log['id'],
             offset=max(0, log['bytes'] - 6144), limit=6144)['selected_log']
