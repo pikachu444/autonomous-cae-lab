@@ -20,6 +20,11 @@ HOST_LOCALAPPDATA = os.environ.get('LOCALAPPDATA')
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
+    # These fixtures create Windows .exe installations on every test host.
+    # Keep real file discovery, with explicit platform overrides still honored.
+    discover = native_tools.discover
+    monkeypatch.setattr(native_tools, 'discover',
+        lambda key, **kwargs: discover(key, **{'platform': 'win32', **kwargs}))
     for key in ('CAELAB_FREECAD_EXE','CAELAB_PARAVIEW_EXE','CAE_POST_EXIT_PLUGIN',
                 'CAE_POST_PARAVIEW_ROOT','ProgramFiles','ProgramFiles(x86)','LOCALAPPDATA'):
         monkeypatch.delenv(key, raising=False)
