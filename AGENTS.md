@@ -24,6 +24,22 @@ invent previous conversations or assume another machine's files are available.
 
 ## Product and responsibilities
 
+The deliverable is a general-purpose engineering desktop product for user-provided
+models and data within its declared support. Examples and validation cases check
+that product; they do not define its runtime inputs, workflow or completion.
+Do not require test-case names, validation-case object names/IDs, sample paths or
+precomputed results for ordinary product use. Preserve real solver/physics compatibility
+limits and report unfinished support explicitly; a passing single-case bridge
+is not a completed general product feature.
+
+Every assignment and follow-up, including after context compaction or handoff,
+must restate this product goal and specify the user task, variable inputs and
+support boundaries, existing tools to reuse, product completion conditions and
+the minimal relevant checks. Use the shared assignment format in CODEX_WORKFLOW.
+Before accepting a delivery, inspect its real input/selection/edit/run path for
+accidental dependence on the example. Tests passing cannot replace that check
+or justify another round of example-only work instead of finishing the product.
+
 Build independently usable engineering research tools: FreeCAD CAD/FE, ParaView
 Post, Data, Material, PDE, Numerical, Runner, Expert and related research documents.
 Workbench is an optional connection view. Ordinary GUI, Python and CLI use must
