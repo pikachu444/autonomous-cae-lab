@@ -2363,7 +2363,10 @@ class RequestPlanWindow(NumericalWindow):
                         if component and component not in ('scalar',definition.get('response')):label+=' '+str(component)
                         reduction=definition.get('reduction')
                         if reduction and reduction!='none':label+=' '+CHOICE_LABELS.get(reduction,str(reduction))
-                        set_label(label+' ['+str(definition.get('unit','단위 미지정'))+']')
+                        label+=' ['+str(definition.get('unit','단위 미지정'))+']'
+                        direction=definition.get('direction')
+                        if direction:label+=' '+CHOICE_LABELS.get(direction,str(direction))
+                        set_label(label)
                     selected=self._selected_actual_candidate()
                     position=next((i+1 for i,row in enumerate(rows) if selected and row.get('candidate_id')==selected['candidate_id']),None)
                     axis.set_title('다목적 후보'+(' / 선택 후보 '+str(position) if position is not None else ''),fontsize=10)
