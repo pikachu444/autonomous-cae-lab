@@ -51,9 +51,9 @@
 | desktop_integration_review / Astra-xhigh | 완성된 기능 묶음의 읽기 전용 통합 검토 | Codex 첫 확인 뒤 Runner/Report/Simulation-Evaluation → initial/contact/RF의 실제 통합 경계. 미완료 코드나 작은 편집마다 검토 의식0 |
 | native_delivery | 읽기 전용 잔여 접점 조사 | 기존 initial-fields/aster-hard-contact/conservative-load private 후보와 미통합 접점 전달 완료. 제품 코드 쓰기 역할 아님 |
 
-GUI foreground 실행권은 한 담당에게만 준다. 현재 Simulation/Evaluation 담당이 같은
-보존본을 확인하며 이후 Expert/Study/Report → Workbench → Data → Material/Numerical →
-Runner 순서로 준비 상태에 따라 조정한다. 각 offscreen 검사는 별도 소유 프로세스로
+GUI foreground 실행권은 한 담당에게만 준다. Simulation/Evaluation·Workbench의 첫 실제
+확인은 끝났으며 현재 Data가 실제 열 이동/표시 결함을 교정한다. 이후 Material/Numerical →
+Runner → 연구3종 교정 delta → PDE 순서로 준비 상태에 따라 조정한다. 각 offscreen 검사는 별도 소유 프로세스로
 병행할 수 있으나 한국어/실제 화면 인수를 대신하지 않는다. 모든 실행은 기존 native_check와
 정확 소유 프로세스 정리를 재사용한다.
 
@@ -63,6 +63,10 @@ Runner 순서로 준비 상태에 따라 조정한다. 각 offscreen 검사는 �
 검토했고 scoped P1/P2는 없다. 실제 thermal은 scalar↔field, series 곡선은 unit 범위다.
 전체 제품 완료와 구별하며 PDE 후속과 다른 담당들의 작업은 계속한다. Expert/Study/Report는
 실제 저장/cold 기능 검사 뒤 최소 폭·미리보기 배율·독서 위치 문제가 남아 GUI 미완료다.
+Simulation/Evaluation 첫 묶음은 `a6ab07d`로 원격 main 일치를 확인했다. Workbench도 같은
+저장 묶음의 선택/전체 배치·관계/취소·수동 좌표 보존/새 창 복원과 최종 실제 4PNG를
+Codex와 같은 Astra가 읽어 scoped P1/P2 없이 인도했다. 자식 앱 실행/물리 계산은 별도다.
+같은 desktop_specialist는 다음 초기장 native 선택/상태 편집을 실제 착수했다.
 
 후보 회수에서 발견한 두 상태 고정·사용자 단계/곡선 재작성·기존 하중 전체 덮어쓰기는
 범용 제품에 부적합해 그대로 통합하지 않는다. 사용자 선택 입력, 임의 이름/ID, 다른

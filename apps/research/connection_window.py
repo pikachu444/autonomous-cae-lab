@@ -12,11 +12,11 @@ import sys
 import uuid
 from pathlib import Path
 
-from PySide6.QtCore import QPointF, QThreadPool, Qt, Slot
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import QPointF, QRectF, QThreadPool, Qt, Slot
+from PySide6.QtGui import QAction, QKeySequence, QPalette, QPen
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QDialog,
     QDialogButtonBox, QDockWidget, QFileDialog, QGraphicsScene, QHeaderView, QLabel,
-    QLineEdit, QMainWindow, QMenu, QMessageBox, QPlainTextEdit, QPushButton,
+    QHBoxLayout, QLineEdit, QMainWindow, QMenu, QMessageBox, QPlainTextEdit, QPushButton, QSplitter,
     QTabWidget, QTableWidget, QTableWidgetItem, QToolBar, QTreeWidget,
     QTreeWidgetItem, QVBoxLayout, QWidget)
 
@@ -113,8 +113,9 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.graph, self.error = None, None
         self.selected_key = None
         self.positions, self.items, self.rows = {}, {}, {}
+        self.edges = []; self._arranging = False
         self._copy_pending = None
-        self.setWindowTitle('문서 연결')
+        self.setWindowTitle('연결 보기')
         self.resize(1200, 780)
         self.setMinimumSize(720, 500)
         self._init_workflows(persist_view)
@@ -132,8 +133,8 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
 
     def _build(self):
         file_menu = self.menuBar().addMenu('파일(&F)')
-        self.owner_action = self._action(file_menu, '원문서 열기', self.open_owner, 'Return')
-        self.reference_action = self._action(file_menu, '정확한 저장 참조 열기', self.open_reference, 'Ctrl+Return')
+        self.owner_action = self._action(file_menu, '해당 앱에서 열기', self.open_owner, 'Return')
+        self.reference_action = self._action(file_menu, '저장본 열기', self.open_reference, 'Ctrl+Return')
         file_menu.addSeparator()
         self.copy_action = self._action(file_menu, '선택 문서를 새 작업 사본으로…', self.prepare_copy, 'Ctrl+Shift+S')
         if self._copy_draft_policy == 'saved_only':
@@ -146,10 +147,12 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         self.verify_action = self._action(file_menu, '작업 사본 확인 / 누락 파일 복구…', self.verify_copy)
         self._action(file_menu, '닫기', self.close, QKeySequence.StandardKey.Close)
         view_menu = self.menuBar().addMenu('보기(&V)')
-        self.refresh_action = self._action(view_menu, '연결 다시 읽기', self.refresh, QKeySequence.StandardKey.Refresh)
+        self.refresh_action = self._action(view_menu, '연결 새로고침', self.refresh, QKeySequence.StandardKey.Refresh)
         self._action(view_menu, '그래프', lambda: self.tabs.setCurrentIndex(0), 'Alt+1')
         self._action(view_menu, '연결 목록', lambda: self.tabs.setCurrentIndex(1), 'Alt+2')
         self._action(view_menu, '전체 배치 보기', self.fit_graph, 'Ctrl+0')
+        self.focus_action = self._action(view_menu, '선택 항목 중심 보기', self._graph_mode_changed)
+        self.focus_action.setCheckable(True); self.focus_action.setChecked(True)
         self._action(view_menu, '확대', lambda: self.view.zoom(1.2), 'Ctrl++')
         self._action(view_menu, '축소', lambda: self.view.zoom(1 / 1.2), 'Ctrl+-')
         self._action(view_menu, '선택 항목의 관계', self.show_relations, 'Alt+Return')
@@ -158,10 +161,11 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         toolbar = QToolBar('문서와 연결', self)
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
-        for action in (self.owner_action, self.reference_action, self.add_link_action, self.copy_action, self.refresh_action):
+        for action in (self.owner_action, self.reference_action, self.refresh_action):
             toolbar.addAction(action)
+        toolbar.addSeparator(); toolbar.addAction(self.focus_action)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(['포함할 문서', '종류'])
+        self.tree.setHeaderLabels(['포함할 항목', '종류'])
         self.tree.header().setStretchLastSection(False)
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -175,28 +179,59 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         dock_body = QWidget()
         dock_layout = QVBoxLayout(dock_body)
         self.search = QLineEdit()
-        self.search.setPlaceholderText('문서 이름으로 찾기')
+        self.search.setPlaceholderText('이름으로 찾기')
         self.search.textChanged.connect(self._filter_tree)
         dock_layout.addWidget(self.search)
         dock_layout.addWidget(self.tree, 1)
-        apply = QPushButton('체크한 문서의 연결 보기')
+        apply = QPushButton('체크한 항목의 연결 보기')
         apply.clicked.connect(self.apply_selection)
         dock_layout.addWidget(apply)
-        self.document_dock = QDockWidget('문서', self)
+        self.document_dock = QDockWidget('작업과 자료', self)
         self.document_dock.setObjectName('connectionDocumentDock')
         self.document_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.document_dock.setWidget(dock_body)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.document_dock)
-        self.resizeDocks([self.document_dock], [265], Qt.Orientation.Horizontal)
+        self.resizeDocks([self.document_dock], [230], Qt.Orientation.Horizontal)
         view_menu.addAction(self.document_dock.toggleViewAction())
         self.scene = QGraphicsScene(self)
         self.scene.selectionChanged.connect(self._scene_selection)
         self.view = ConnectionView(self.scene, on_open=self.open_owner)
         self.view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.view.customContextMenuRequested.connect(lambda p: self._context(self.view.viewport().mapToGlobal(p)))
+        self.selection_caption = QLabel('항목을 선택하면 입력과 결과의 관계가 표시됩니다.')
+        self.selection_caption.setWordWrap(True); self.selection_caption.setTextFormat(Qt.TextFormat.PlainText)
+        self.selection_caption.setStyleSheet('font-weight:600; padding:4px 2px;')
+        self.selection_caption.setMaximumHeight(self.fontMetrics().lineSpacing() * 2 + 14)
+        self.relations = QTableWidget(0, 4)
+        self.relations.setObjectName('selectedConnections')
+        self.relations.setHorizontalHeaderLabels(['방향', '관계', '연결된 항목', '상태'])
+        self.relations.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.relations.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.relations.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.relations.verticalHeader().hide(); self.relations.setMinimumHeight(110)
+        self.relations.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.relations.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+        self.relations.setColumnWidth(1, 170)
+        self.relations.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.relations.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self.relations.itemSelectionChanged.connect(self._relation_selection)
+        self.relations.itemDoubleClicked.connect(lambda *_: self._follow_relation())
+        relation_body = QWidget(); relation_layout = QVBoxLayout(relation_body)
+        relation_layout.setContentsMargins(0, 0, 0, 0); relation_layout.setSpacing(4)
+        relation_bar = QHBoxLayout(); self.relations_caption = QLabel('선택 항목의 관계')
+        relation_bar.addWidget(self.relations_caption, 1)
+        self.follow_relation = QPushButton('연결 항목 선택'); self.follow_relation.setEnabled(False)
+        self.follow_relation.clicked.connect(self._follow_relation); relation_bar.addWidget(self.follow_relation)
+        relation_layout.addLayout(relation_bar); relation_layout.addWidget(self.relations)
+        self.graph_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.graph_splitter.addWidget(self.view); self.graph_splitter.addWidget(relation_body)
+        self.graph_splitter.setChildrenCollapsible(False); self.graph_splitter.setSizes([450, 175])
+        graph_page = QWidget(); graph_layout = QVBoxLayout(graph_page)
+        graph_layout.setContentsMargins(6, 4, 6, 6); graph_layout.setSpacing(4)
+        graph_layout.addWidget(self.selection_caption); graph_layout.addWidget(self.graph_splitter, 1)
         self.table = QTableWidget(0, 4)
         self.table.setAccessibleName('그래프와 동일한 연결 목록')
-        self.table.setHorizontalHeaderLabels(['문서 / 자료', '종류', '연결 / 상태', '관계'])
+        self.table.setHorizontalHeaderLabels(['작업 / 자료', '종류', '연결 / 상태', '관계'])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -209,13 +244,13 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
             self.table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setMinimumSectionSize(80)
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.view, '연결 그래프')
+        self.tabs.addTab(graph_page, '연결 그래프')
         self.tabs.addTab(self.table, '연결 목록')
         self.setCentralWidget(self.tabs)
         self.tabs.currentChanged.connect(self._mark_layout)
         self.document_dock.visibilityChanged.connect(self._mark_layout)
         self.view.on_view_change = self._mark_layout
-        self.message = QLabel('문서를 체크하고 연결을 확인하세요. 원문서 값은 바뀌지 않습니다.')
+        self.message = QLabel('표시할 항목을 체크하고 연결을 확인하세요. 원래 자료는 바뀌지 않습니다.')
         self.message.setWordWrap(True)
         self.statusBar().addWidget(self.message, 1)
         QWidget.setTabOrder(self.search, self.tree)
@@ -291,7 +326,7 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
     def _actions(self):
         row = self.rows.get(self.selected_key, {})
         usable = not self._closed and not self._busy
-        self.owner_action.setText('실행 기록 열기' if row.get('node_type') == 'run' else '원문서 열기')
+        self.owner_action.setText('실행 기록 열기' if row.get('node_type') == 'run' else '해당 앱에서 열기')
         self.owner_action.setEnabled(usable and bool(row.get('owner_id') and row.get('owner_kind')))
         self.reference_action.setEnabled(usable and bool(row.get('exact_reference')) and row.get('status') != 'BROKEN')
         can_copy = usable and self._copy_pending is None and bool(self.checked_documents())
@@ -352,7 +387,7 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
             self.rows = {r['key']: r for r in graph['nodes']}
             catalog = {self.tree.topLevelItem(i).data(0, _USER): self.tree.topLevelItem(i).text(0)
                        for i in range(self.tree.topLevelItemCount())}
-            self.scene.clear(); self.items = {}
+            self.edges = []; self.scene.clear(); self.items = {}
             self.table.setRowCount(0)
             if initial or refresh_catalog:
                 self.tree.clear()
@@ -374,6 +409,9 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
                 self.items[key] = item
                 column = {'document': 0, 'reference': 1}.get(row['node_type'], 2)
                 position = self.positions.get(key, QPointF(column * 345., columns[column] * 140.))
+                # Qt emits no position change for the origin. Keep every global
+                # position before the temporary selection layout is displayed.
+                self.positions[key] = QPointF(position)
                 item.setPos(position)
                 columns[column] += 1
                 self.table.insertRow(index)
@@ -386,7 +424,9 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
                     self.table.setItem(index, col, cell)
             for row in graph['edges']:
                 if row['source'] in self.items and row['target'] in self.items:
-                    self.scene.addItem(ConnectionEdge(self.items[row['source']], self.items[row['target']], row))
+                    edge = ConnectionEdge(self.items[row['source']], self.items[row['target']], row)
+                    self.scene.addItem(edge); self.edges.append(edge)
+            for edge in self.edges: edge.update_path()
             self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-40, -40, 40, 40))
         finally:
             self._populating = False
@@ -400,11 +440,12 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
             self._layout_dirty = False
             self._layout_timer.stop()
         else:
-            self.fit_graph()
+            self._fit_current_graph()
         problems = sum(n['status'] == 'BROKEN' for n in graph['nodes'])
-        self.message.setText(f"문서 {self.tree.topLevelItemCount()}개 · 연결 항목 {len(self.rows)}개 · 끊긴 참조 {problems}개. 저장 참조와 현재 원문서는 별도로 엽니다.")
+        self.message.setText(f"항목 {len(self.rows)}개 / 연결 {len(graph['edges'])}개 / 끊긴 참조 {problems}개. 현재 작업과 저장본은 별도로 엽니다.")
 
     def _node_moved(self, key, value):
+        if self._arranging: return
         self.positions[key] = QPointF(value)
         # No document command is issued. Positions are not relationship data.
         if not self._populating:
@@ -432,6 +473,10 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         finally:
             self._populating = False
         self._actions()
+        self._show_graph()
+        self._show_relation_rows()
+        if key in self.items:
+            self.view.ensureVisible(self.items[key], 24, 24)
         if changed:
             self._mark_layout()
 
@@ -461,12 +506,108 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         menu.exec(position)
 
     def fit_graph(self):
+        self.focus_action.setChecked(False)
+        self._show_graph(); self._fit_current_graph()
+
+    def _graph_mode_changed(self, *_):
+        self._show_graph(); self._fit_current_graph()
+
+    def _visible_rect(self):
+        rect = QRectF()
+        for item in self.items.values():
+            if item.isVisible(): rect = rect.united(item.sceneBoundingRect())
+        return rect.adjusted(-35, -35, 35, 35)
+
+    def _fit_current_graph(self):
         if self.items:
-            self.view.fitInView(self.scene.itemsBoundingRect().adjusted(-25, -25, 25, 25), Qt.AspectRatioMode.KeepAspectRatio)
+            self.view.fitInView(self._visible_rect(), Qt.AspectRatioMode.KeepAspectRatio)
             # Prefer readable card text plus scrollbars over tiny fit-all text.
             scale = self.view.transform().m11()
             target = min(1.2, max(.85, scale))
             self.view.scale(target / scale, target / scale)
+            if self.selected_key in self.items:
+                self.view.ensureVisible(self.items[self.selected_key], 24, 24)
+
+    def _show_graph(self):
+        focused = self.focus_action.isChecked() and self.selected_key in self.items
+        key = self.selected_key
+        incoming = sorted({edge.row['source'] for edge in self.edges if edge.row['target'] == key} - {key},
+                          key=lambda value: (self.rows[value]['label'], value))
+        outgoing = sorted({edge.row['target'] for edge in self.edges if edge.row['source'] == key} - {key} - set(incoming),
+                          key=lambda value: (self.rows[value]['label'], value))
+        visible = {key, *incoming, *outgoing} if focused else set(self.items)
+        temporary = {value: QPointF(0, i * 144) for i, value in enumerate(incoming)}
+        temporary.update({value: QPointF(660, i * 144) for i, value in enumerate(outgoing)})
+        temporary[key] = QPointF(330, max(0, max(len(incoming), len(outgoing)) - 1) * 72)
+        self._arranging = True
+        try:
+            for value, item in self.items.items():
+                item.setVisible(value in visible)
+                item.setFlag(item.GraphicsItemFlag.ItemIsMovable, not focused)
+                item.setPos(temporary[value] if focused and value in temporary else self.positions.get(value, item.pos()))
+            for edge in self.edges:
+                related = key in (edge.row['source'], edge.row['target'])
+                edge.setVisible(not focused or related)
+                pen = QPen(self.palette().color(QPalette.ColorRole.Link) if related else self.palette().mid().color(),
+                           2.2 if related else 1.)
+                if edge.row.get('status') == 'BROKEN': pen.setStyle(Qt.PenStyle.DashLine)
+                edge.setPen(pen); edge.setOpacity(1. if related else .45)
+                edge.show_label = False; edge.update_path()
+            self.scene.setSceneRect(self._visible_rect())
+        finally:
+            self._arranging = False
+
+    def _show_relation_rows(self):
+        row = self.rows.get(self.selected_key)
+        self._selection_caption()
+        self.relations.setRowCount(0)
+        self.follow_relation.setEnabled(False)
+        for edge in self.edges:
+            source, target = edge.row['source'], edge.row['target']
+            if self.selected_key not in (source, target): continue
+            other = target if source == self.selected_key else source
+            neighbor = self.rows[other]; index = self.relations.rowCount(); self.relations.insertRow(index)
+            values = ('선택 → 항목' if source == self.selected_key else '항목 → 선택', edge.row['label'],
+                      neighbor['label'], neighbor['status_label'])
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(value); item.setToolTip(value); item.setData(_USER, other)
+                item.setData(_USER + 1, self.edges.index(edge)); self.relations.setItem(index, column, item)
+        self.relations.resizeRowsToContents()
+        self.relations_caption.setText('선택 항목의 관계 ' + str(self.relations.rowCount()) + '개' if self.relations.rowCount()
+                                       else '연결된 항목이 없습니다.')
+
+    def _selection_caption(self):
+        row = self.rows.get(self.selected_key)
+        width = max(240, self.view.viewport().width() - 18)
+        if row:
+            text = self.fontMetrics().elidedText(row['label'], Qt.TextElideMode.ElideMiddle, width)
+            text += '\n' + self.fontMetrics().elidedText((row.get('subtitle', '') + ' / ' if row.get('subtitle') else '') +
+                                                        row['status_label'], Qt.TextElideMode.ElideRight, width)
+            self.selection_caption.setText(text); self.selection_caption.setToolTip(row['label'])
+        else:
+            self.selection_caption.setText('항목을 선택하세요.'); self.selection_caption.setToolTip('')
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'selection_caption'):
+            self._selection_caption()
+            if self.selected_key in self.items: self.view.ensureVisible(self.items[self.selected_key], 24, 24)
+
+    def _relation_selection(self):
+        selected = self.relations.selectedItems()
+        self.follow_relation.setEnabled(bool(selected))
+        chosen = selected[0].data(_USER + 1) if selected else None
+        for index, edge in enumerate(self.edges):
+            edge.relation_selected = index == chosen
+            pen = edge.pen(); pen.setWidthF(3.6 if edge.relation_selected else
+                2.2 if self.selected_key in (edge.row['source'], edge.row['target']) else 1.)
+            edge.setOpacity(1. if edge.relation_selected else .15 if chosen is not None else
+                            1. if self.selected_key in (edge.row['source'], edge.row['target']) else .45)
+            edge.setPen(pen); edge.update()
+
+    def _follow_relation(self):
+        selected = self.relations.selectedItems()
+        if selected: self.select_key(selected[0].data(_USER))
 
     def open_owner(self, *_):
         row = deepcopy(self.rows.get(self.selected_key, {}))
@@ -496,7 +637,7 @@ class ConnectionWindow(ConnectionWorkflowMixin, QMainWindow):
         return True
 
     def _opened(self, receipt):
-        self.message.setText('선택한 원문서/저장 참조의 열기를 요청했습니다. 원입력은 변경하지 않았습니다.')
+        self.message.setText('선택한 항목의 앱/저장본 열기를 요청했습니다. 원래 입력은 변경하지 않았습니다.')
 
     def _text_dialog(self, title, text):
         dialog = QDialog(self)

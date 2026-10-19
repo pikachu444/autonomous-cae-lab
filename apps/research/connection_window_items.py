@@ -3,12 +3,12 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFontMetricsF, QPainter, QPainterPath, QPen, QPolygonF
+from PySide6.QtGui import QColor, QFontMetricsF, QPainter, QPainterPath, QPalette, QPen, QPolygonF
 from PySide6.QtWidgets import QApplication, QGraphicsItem, QGraphicsObject, QGraphicsPathItem, QGraphicsView
 
 
 class ConnectionNode(QGraphicsObject):
-    WIDTH, HEIGHT = 252., 100.
+    WIDTH, HEIGHT = 252., 112.
 
     def __init__(self, row, on_move=None):
         super().__init__()
@@ -27,8 +27,8 @@ class ConnectionNode(QGraphicsObject):
     def paint(self, painter, option, widget=None):
         palette = QApplication.palette()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setBrush(palette.base())
-        pen = QPen(palette.highlight().color() if self.isSelected() else palette.mid().color(),
+        painter.setBrush(palette.highlight() if self.isSelected() else palette.base())
+        pen = QPen(palette.color(QPalette.ColorRole.Link) if self.isSelected() else palette.mid().color(),
                    2.5 if self.isSelected() else 1.)
         if self.row['status'] == 'BROKEN':
             pen.setStyle(Qt.PenStyle.DashLine)
@@ -39,15 +39,17 @@ class ConnectionNode(QGraphicsObject):
         painter.setFont(font)
         painter.setPen(palette.text().color())
         metrics = QFontMetricsF(font)
-        title = metrics.elidedText(self.row['label'], Qt.TextElideMode.ElideRight, self.WIDTH - 24)
-        painter.drawText(QRectF(12, 9, self.WIDTH - 24, 26), Qt.AlignmentFlag.AlignVCenter, title)
+        title = metrics.elidedText(self.row['label'], Qt.TextElideMode.ElideRight, (self.WIDTH - 24) * 2 - 24)
+        painter.save(); painter.setClipRect(QRectF(12, 8, self.WIDTH - 24, 42))
+        painter.drawText(QRectF(12, 8, self.WIDTH - 24, 42), Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap, title)
+        painter.restore()
         font.setBold(False)
         painter.setFont(font)
         metrics = QFontMetricsF(font)
         subtitle = metrics.elidedText(self.row.get('subtitle', ''), Qt.TextElideMode.ElideRight, self.WIDTH - 24)
-        painter.drawText(QRectF(12, 37, self.WIDTH - 24, 24), Qt.AlignmentFlag.AlignVCenter, subtitle)
+        painter.drawText(QRectF(12, 53, self.WIDTH - 24, 24), Qt.AlignmentFlag.AlignVCenter, subtitle)
         # Status has a text label; failure/recency never relies only on colour.
-        painter.drawText(QRectF(12, 65, self.WIDTH - 24, 25), Qt.AlignmentFlag.AlignVCenter,
+        painter.drawText(QRectF(12, 81, self.WIDTH - 24, 25), Qt.AlignmentFlag.AlignVCenter,
                          self.row['status_label'])
 
     def itemChange(self, change, value):
@@ -63,6 +65,7 @@ class ConnectionEdge(QGraphicsPathItem):
     def __init__(self, source, target, row):
         super().__init__()
         self.source, self.target, self.row = source, target, row
+        self.show_label = False
         source.links.append(self)
         target.links.append(self)
         self.setZValue(-1)
@@ -75,8 +78,12 @@ class ConnectionEdge(QGraphicsPathItem):
 
     def update_path(self):
         forward = self.target.scenePos().x() >= self.source.scenePos().x()
-        start = self.source.mapToScene(QPointF(self.source.WIDTH if forward else 0, self.source.HEIGHT / 2))
-        end = self.target.mapToScene(QPointF(0 if forward else self.target.WIDTH, self.target.HEIGHT / 2))
+        def port(node, outgoing):
+            links = sorted((edge for edge in node.links if (edge.source is node if outgoing else edge.target is node)),
+                           key=lambda edge: (edge.row['label'], edge.row['source'], edge.row['target']))
+            return node.HEIGHT * (links.index(self) + 1) / (len(links) + 1)
+        start = self.source.mapToScene(QPointF(self.source.WIDTH if forward else 0, port(self.source, True)))
+        end = self.target.mapToScene(QPointF(0 if forward else self.target.WIDTH, port(self.target, False)))
         delta = max(60., abs(end.x() - start.x()) / 2) * (1 if forward else -1)
         path = QPainterPath(start)
         path.cubicTo(start + QPointF(delta, 0), end - QPointF(delta, 0), end)
@@ -94,6 +101,7 @@ class ConnectionEdge(QGraphicsPathItem):
                   end - QPointF(9 * math.cos(angle + .45), 9 * math.sin(angle + .45))]
         painter.setBrush(self.pen().color())
         painter.drawPolygon(QPolygonF(points))
+        if not self.show_label: return
         center = path.pointAtPercent(.5)
         label = QRectF(center.x() - 80, center.y() - 13, 160, 26)
         painter.fillRect(label, QApplication.palette().window())
@@ -113,7 +121,7 @@ class ConnectionView(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setAccessibleName('선택 문서 연결 그래프')
-        self.setToolTip('문서를 선택하고 Enter로 엽니다. 카드를 끌어 배치합니다. Ctrl+휠로 확대합니다.')
+        self.setToolTip('항목을 선택하고 Enter로 엽니다. 전체 배치에서 카드를 이동합니다. Ctrl+휠로 확대합니다.')
 
     def zoom(self, factor):
         current = self.transform().m11()

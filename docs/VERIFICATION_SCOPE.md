@@ -10,6 +10,17 @@
 
 ## 검증의 구분
 
+**10월19일 Workbench 연결 표시:** 선택 항목과 직접 연결된 카드/관계표를 기본으로 하고
+전체 배치·수동 좌표·정확한 owner/ref 열기를 유지한다. 관련 Qt 13PASS, 같은 저장 묶음의
+실제 Windows 동선 1PASS와 최종 전체 배치 1PASS, 이동·새 창 복원 1PASS. 51항목/59연결의
+일반·1100 창에서 카드·관계·한국어를 읽었고, 실제 원본 선택 목록 Esc 취소와 원 파일/Jobs
+불변을 확인했다. 원점 좌표 누락으로 임시 좌표가 전체 배치에 남던 시각 P2를 초기 좌표의
+명시 보관으로 고쳤다. 같은 Astra의 한정 통합 검토에 미해결 P1/P2는 없다. 앱 열기는
+정확 ref를 받은 callback 범위이며 자식 앱 실제 실행은 이번에 확인하지 않았다. 복원은
+새 창 범위다. 물리 계산/새 solver/provider0. 이전 49연결 그림과는 데이터 시점이 다르다.
+근거는 `_workspace/connection-ux-20261019/{actual-02,actual-final,process-overview-04,process-resume-final-08}`의
+실제 캡처·원 실행 기록과 [연결 화면](SCREEN_GUIDE_KO.md#문서-연결에서-관계와-이동-사본-확인하기)이다.
+
 The established solvers' published verification cases and documented limits
 are upstream evidence. Reuse that evidence for the applicable solver version,
 formulation and feature; the Lab is not a replacement certification programme

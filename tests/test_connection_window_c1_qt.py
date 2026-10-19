@@ -150,6 +150,7 @@ def test_shared_menu_keyboard_cancel_then_unlink_then_add(app,view):
 def test_real_drag_persist_filter_selection_and_new_window_resume(app,view):
     window,wb,docs=view
     window.tabs.setCurrentIndex(0)
+    window.fit_graph()
     key='document/'+docs['material']['id']; item=window.items[key]
     window.view.ensureVisible(item);app.processEvents()
     before=documents(wb);position=item.pos()
@@ -168,6 +169,8 @@ def test_real_drag_persist_filter_selection_and_new_window_resume(app,view):
     other=ConnectionWindow(wb,auto_open=False)
     try:
         other.set_graph(build_graph(wb));other.show();app.processEvents()
+        assert other.positions[key]==moved
+        other.fit_graph()
         assert other.selected_key==key and other.items[key].pos()==moved
         assert other.search.text()=='재료' and other.tabs.currentIndex()==1
         assert documents(wb)==before
