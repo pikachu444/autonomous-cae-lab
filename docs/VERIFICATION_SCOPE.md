@@ -132,6 +132,20 @@ Data 포함 3-owner 및 전체 B8.2 종료로 확대하지 않는다.
 
 ## Data·Material·Numerical
 
+Material 선택 시험의 **한 번 평가**는 피팅을 호출하지 않는다. 정확한 Plan 입력/시험을
+기존 관측·변형 이력 compiler로 확인하고 현재 재료 계수로 전체 이력을 한 번 계산한다.
+Material/Plan draft와 입력 개정은 그대로이며 실제 사용한 계수·관측·mask·weight·원자료
+출처와 응답은 기존 Job/저장 개정에 남는다. 현재 지원은 FELUPE 선형 탄성/Neo-Hooke다.
+시작값의 미완성과 시험 자체의 모델/단위 불일치는 구별하며 후자는 제출 전에 막는다.
+
+기존 `tests/test_material_test_workflow.py`의 사용자 CSV 단회 검사와
+`tests/test_material_documents.py`를 사용한다. 실제 예측·같은 ID 중복 제출 0·보관 응답
+재읽기·원 입력 불변을 확인한다. 확실한 prepare/CAS 거절은 원 요청 hash에 맞는
+`REJECTED` 영수증으로 전달하고, 접수 뒤 응답 유실과 동일하게 취급하지 않는다.
+owner/HTTP 관련 25PASS, 추가 CAS·기존 응답 유실·Client 관련 8PASS와 최종 호환 HTTP
+1PASS는 겹치는 검사이며 전체 suite나 GUI 수용으로 합산하지 않는다. 저장 개정 누락이
+raw OSError로 드러난 core02 FAIL은 기존 거절 guard로 교정했고 원 실행은 보존했다.
+
 **절차:** 원행/단위/관측량 고정 → 처리·관측을 같은 Material 계획 검토로 전달 → 편집 중
 보류·취소·재전달·원 대상 보호 → 수치 계획의 원 입력/결과 대조 → 저장/재열기를 확인한다.
 

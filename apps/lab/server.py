@@ -183,7 +183,12 @@ class LabHandler(BaseHTTPRequestHandler):
         except FileNotFoundError as exc:
             self._json(404, {"error": f"{type(exc).__name__}: {exc}"})
         except (ValueError, TypeError, KeyError, UnicodeError) as exc:
-            self._json(400, {"error": f"{type(exc).__name__}: {exc}"})
+            payload = {"error": f"{type(exc).__name__}: {exc}"}
+            rejection = getattr(exc, 'command_rejection', None)
+            if isinstance(rejection, dict):
+                payload['error'] = f'ValueError: {exc}'
+                payload['command_rejection'] = rejection
+            self._json(400, payload)
         except Exception as exc:
             self._json(500, {"error": f"{type(exc).__name__}: {exc}"})
 

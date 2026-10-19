@@ -65,8 +65,12 @@ def recover_saved_commands(owner, identifier):
         return False
     from .evaluation import file_hash
     path = owner._folder(identifier) / 'revisions' / manifest['revision'] / 'revision.json'
-    if file_hash(path) != manifest['revision_sha256']:
-        raise ValueError('Published revision manifest changed')
+    try:
+        digest = file_hash(path)
+    except OSError as error:
+        raise ValueError('Published revision changed outside this owner or is missing') from error
+    if digest != manifest['revision_sha256']:
+        raise ValueError('Published revision manifest changed outside this owner')
     saved = owner._verify_revision(identifier, manifest['revision'])
     marker = saved.get('_save_command')
     if not isinstance(marker, dict):

@@ -45,6 +45,148 @@ def completed(wb,job):
     raise AssertionError(wb.manager.status(job['id']))
 
 
+def test_selected_trial_once_uses_current_coefficients_without_editing_owners(tmp_path):
+    pytest.importorskip('felupe')
+    from caelab.storage import canonical_hash
+    wb=Workbench(tmp_path)
+    def command(doc,op,args=None,**kw):
+        return wb.document_command(doc['id'],op,args or {},session_id=doc['session_id'],
+            expected_generation=doc['generation'],**kw)
+    try:
+        material=wb.document_open(kind='material',title='사용자 재료')
+        receipt=wb.upload('user-cycle.csv',b'time,strain,stress\n0,0,0\n0.5,0.003,5\n2,0.001,2\n')
+        data=wb.document_open(kind='data',title='사용자 반복 이력',draft={'data_id':receipt['id'],
+            'mapping':{'delimiter':',','skip_header':1,'columns':mapping()}})
+        imported=command(data,'data.import');observation=completed(wb,imported['job'])
+        data=wb.document_read(data['id']);run=data['runs'][0]
+        recipe=dict(channel='deformation',kind='engineering_strain',lateral_22=1.,lateral_33=1.)
+        draft=from_material_document(material)
+        draft['experiments']=[{'id':'UserCycle','role':'holdout','source':{
+            'document_id':data['id'],'job_id':run['job_id'],'response':'stress',
+            'input_revision':run['input_revision'],'input_sha256':run['input_sha256']},
+            'response':'stress_xx','settings':measured_protocol(material['draft']['settings'],observation,recipe),
+            'weight':2.,'scale':3.,'kinematics':recipe}]
+        # Run Once is independent of the optimizer's unfinished starting values.
+        for variable in draft['variables']:variable.update(value='1e',free=False)
+        plan=wb.document_open(kind='numerical',title='사용자 동정 계획',draft=draft)
+        changed=deepcopy(material['draft']);changed['settings']['parameters']['E']=1500.
+        material=command(material,'material.update',{'draft':changed})['document']
+        before_material=deepcopy(material);before_plan=deepcopy(plan)
+        reference={'document_id':plan['id'],'input_revision':plan['input_revision'],
+            'input_sha256':canonical_hash(plan['draft']),'experiment_id':'UserCycle'}
+        submitted=command(material,'material.evaluate',{'trial':reference},command_id='Cuseronce')
+        result=completed(wb,submitted['job'])
+        assert submitted['job']['operation']=='evaluate'
+        context=result['material_trial'];curve=context['curves'][0]
+        assert context['parameters']=={'E':1500.,'nu':.25}
+        assert curve['role']=='holdout' and curve['observations']['value']==[0.,5.,2.]
+        assert curve['prediction']==pytest.approx([0.,5.4,1.8])
+        assert curve['weight']==2. and curve['scale']==3.
+        assert curve['observations']['axes'][0]['values']==[0.,.5,2.]
+        current=wb.document_read(material['id'])
+        assert all(current[key]==before_material[key] for key in ('draft','generation','input_revision'))
+        assert wb.document_read(plan['id'])==before_plan
+        retained=current['runs'][-1]
+        assert retained['draft']['settings']['time']==[0.,.5,2.]
+        assert retained['draft']['settings']['parameters']==context['parameters']
+        assert retained['arguments']['material_trial']['source']==reference
+        assert retained['arguments']['material_trial']['material_source']['input_sha256']==canonical_hash(changed)
+        assert command(material,'material.evaluate',{'trial':reference},command_id='Cuseronce')['job']['id']==submitted['job']['id']
+        assert len(wb.manager.list())==2
+        saved=command(current,'document.save')['document']
+        wb.material_documents._documents.clear()
+        reopened=wb.document_open(kind='material',document_id=material['id'])
+        assert reopened['saved_revision']==saved['saved_revision'] and reopened['draft']==changed
+        assert wb.document_result(material['id'],submitted['job']['id'])['material_trial']==context
+        jobs=len(wb.manager.list())
+        for invalid in ({**reference,'input_sha256':'0'*64},
+                        {**reference,'input_revision':'Iother'},
+                        {**reference,'experiment_id':'Missing'},
+                        {**reference,'settings':changed['settings']}):
+            with pytest.raises(ValueError):command(reopened,'material.evaluate',{'trial':invalid})
+        with pytest.raises(ValueError):command(reopened,'material.evaluate',{'settings':changed['settings']})
+        invalid=deepcopy(plan['draft'])
+        invalid['experiments'][0]['settings']['deformation_gradient'][1][0][0]=1.2
+        edited=command(plan,'numerical.update',{'draft':invalid})['document']
+        exact={**reference,'input_revision':edited['input_revision'],'input_sha256':canonical_hash(invalid)}
+        with pytest.raises(ValueError,match='저장된 변형'):
+            command(reopened,'material.evaluate',{'trial':exact})
+        for field,value in (('stress_unit','Pa'),('time_unit','ms'),('model','neo_hooke')):
+            invalid=deepcopy(plan['draft']);invalid['experiments'][0]['settings'][field]=value
+            edited=command(edited,'numerical.update',{'draft':invalid})['document']
+            exact={**reference,'input_revision':edited['input_revision'],'input_sha256':canonical_hash(invalid)}
+            with pytest.raises(ValueError,match='trial model and units'):
+                command(reopened,'material.evaluate',{'trial':exact})
+        assert len(wb.manager.list())==jobs
+    finally:
+        assert wb.shutdown()['joined']
+
+
+def test_trial_evaluation_does_not_wait_on_busy_plan(tmp_path):
+    import threading
+    from caelab.storage import canonical_hash
+    wb=Workbench(tmp_path);held=threading.Event();release=threading.Event()
+    material=wb.document_open(kind='material')
+    plan=wb.document_open(kind='numerical',draft=from_material_document(material))
+    def occupy():
+        with wb.numerical_documents._lock(plan['id']):
+            held.set();release.wait(5)
+    thread=threading.Thread(target=occupy);thread.start()
+    try:
+        assert held.wait(1)
+        reference={'document_id':plan['id'],'input_revision':plan['input_revision'],
+            'input_sha256':canonical_hash(plan['draft']),'experiment_id':'UserCycle'}
+        start=time.monotonic()
+        with pytest.raises(ValueError,match='busy'):
+            wb.material_documents.resolve_trial(reference,material)
+        assert time.monotonic()-start<1 and not wb.manager.list()
+    finally:
+        release.set();thread.join(2)
+        assert not thread.is_alive() and wb.shutdown()['joined']
+
+
+def test_http_preparation_rejection_has_a_terminal_matching_receipt(tmp_path):
+    import threading
+    from apps.lab.server import LabHTTPServer
+    from apps.lab.service import LabService
+    from caelab.storage import canonical_hash, load_json
+    from caelab.workbench_client import Client, WorkbenchHTTPError
+    service=LabService(tmp_path);server=LabHTTPServer(service,0)
+    thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.01},daemon=True)
+    thread.start();client=Client(f'http://127.0.0.1:{server.server_port}')
+    try:
+        material=client.document_open(kind='material')
+        draft=from_material_document(material)
+        for variable in draft['variables']:variable['free']=False
+        plan=client.document_open(kind='numerical',draft=draft)
+        request=dict(document_id=plan['id'],operation='numerical.run',arguments={},
+            session_id=plan['session_id'],expected_generation=plan['generation'])
+        expected=dict(document_id=plan['id'],command_id='Crejectedfit',
+            request_hash=canonical_hash(request),outcome='REJECTED')
+        for _ in range(2):
+            with pytest.raises(WorkbenchHTTPError) as caught:
+                client.document_command(plan['id'],'numerical.run',{},session_id=plan['session_id'],
+                    expected_generation=plan['generation'],command_id='Crejectedfit')
+            assert caught.value.code==400 and caught.value.command_rejection==expected
+            assert caught.value.service_message.startswith('ValueError: ')
+        assert not server.workbench.manager.list()
+        path=server.workbench.root/'documents'/plan['id']/'commands/Crejectedfit.json'
+        assert load_json(path)['state']=='REJECTED'
+        edited=deepcopy(draft);edited['variables'][0]['free']=True
+        updated=client.document_command(plan['id'],'numerical.update',{'draft':edited},
+            session_id=plan['session_id'],expected_generation=plan['generation'],command_id='Ccorrectfit')
+        assert updated['document']['draft']==edited
+        for _ in range(2):
+            with pytest.raises(WorkbenchHTTPError) as caught:
+                client.document_command(plan['id'],'numerical.run',{},session_id=plan['session_id'],
+                    expected_generation=plan['generation'],command_id='Cstalefit')
+            assert caught.value.command_rejection=={**expected,'command_id':'Cstalefit'}
+        assert client.document_read(plan['id'])['draft']==edited and not server.workbench.manager.list()
+    finally:
+        server.shutdown();server.server_close();thread.join(3);service.shutdown()
+        assert not thread.is_alive()
+
+
 def test_csv_two_coefficients_holdout_exact_protocol_and_adoption_reopen(tmp_path):
     pytest.importorskip('felupe')
     root=tmp_path/'store'

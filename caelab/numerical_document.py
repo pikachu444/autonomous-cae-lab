@@ -490,6 +490,64 @@ class NumericalDocuments(CandidateDetailMixin, MaterialDocuments):
             return PDEDocuments._draft(value)
         return MaterialDocuments._draft(value)
 
+    def material_trial(self, reference, material):
+        """Compile one exact test with current coefficients, without changing either owner."""
+        if (not isinstance(reference, dict) or set(reference) != {
+                'document_id', 'input_revision', 'input_sha256', 'experiment_id'}):
+            raise ValueError('Select an exact Plan input and trial')
+        identifier = check_id(reference['document_id'])
+        if not identifier.startswith(self.prefix):
+            raise ValueError('The selected trial must belong to a Numerical Plan')
+        # Numerical submission also reads Material; never wait in the opposite lock order.
+        lock = self._lock(identifier)
+        if not lock.acquire(blocking=False):
+            raise ValueError('The selected Plan is busy; confirm its operation before evaluating the trial')
+        try:
+            plan = self.read(identifier)
+        finally:
+            lock.release()
+        if (plan['input_revision'] != reference['input_revision']
+                or canonical_hash(plan['draft']) != reference['input_sha256']
+                or plan['draft'].get('mode') != 'fit'):
+            raise ValueError('The selected trial input changed; reload the Plan')
+        original = plan['draft'].get('material') or {}
+        original_draft = original.get('draft') or {}
+        current = material['draft']
+        settings = current['settings']
+        if (current.get('backend') != 'material.felupe'
+                or settings.get('model') not in {'linear_elastic', 'neo_hooke'}
+                or original.get('document_id') != material['id']
+                or original_draft.get('backend') != current['backend']
+                or any(original_draft.get('settings', {}).get(key) != settings.get(key)
+                       for key in ('model', 'stress_unit', 'time_unit'))):
+            raise ValueError('The test and current Material must use the same supported model and units')
+        selected = [trial for trial in plan['draft'].get('experiments', [])
+                    if trial.get('id') == reference['experiment_id']]
+        if len(selected) != 1:
+            raise ValueError('Select one existing trial')
+        if any(selected[0].get('settings', {}).get(key) != settings.get(key)
+               for key in ('model', 'stress_unit', 'time_unit')):
+            raise ValueError('The selected trial model and units must match the current Material')
+        draft = deepcopy(plan['draft'])
+        draft['material'] = material_reference(material)
+        draft['variables'] = from_material_document(material)['variables']
+        for variable in draft['variables']:
+            variable['free'] = False
+        draft['experiments'] = deepcopy(selected)
+        compiled = self.job_arguments(draft)
+        experiments = compiled['experiments']
+        if (not experiments or any(canonical_hash(trial['settings']) != canonical_hash(experiments[0]['settings'])
+                                   for trial in experiments)):
+            raise ValueError('The selected test must have one common loading history')
+        context = {'source': deepcopy(reference), 'material_source': {
+            'document_id': material['id'], 'input_revision': material['input_revision'],
+            'input_sha256': canonical_hash(current), 'generation': material['generation']},
+            'parameters': deepcopy(settings['parameters']), 'experiments': experiments}
+        if 'frozen_inclusion' in compiled:
+            context['frozen_inclusion'] = compiled['frozen_inclusion']
+        return {'backend': current['backend'], 'settings': deepcopy(experiments[0]['settings']),
+                'material_trial': context}
+
     def job_arguments(self, draft):
         if draft.get('mode') == 'request':
             if self.prepare_request is None:

@@ -16,6 +16,14 @@ OPERATIONS = {'material.update', 'material.evaluate', 'document.undo', 'document
 NATIVE_LAWS = ('material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic', 'material.mfront.user')
 
 
+class CommandRejected(ValueError):
+    """A retained command outcome proving that no evaluation was submitted."""
+    def __init__(self, message, identifier, command_id, request_hash):
+        super().__init__(message)
+        self.command_rejection = {'document_id': identifier, 'command_id': command_id,
+                                  'request_hash': request_hash, 'outcome': 'REJECTED'}
+
+
 def default_draft():
     return {'backend': 'material.felupe', 'settings': {
         'model': 'linear_elastic', 'stress_unit': 'MPa', 'time_unit': 's',
@@ -66,11 +74,19 @@ class MaterialDocuments(RetainedComparisons):
         return {self.update_operation, 'document.undo', 'document.redo', 'document.save'} | self.evaluation_commands
 
     def prepare_command_job(self, operation, arguments, document):
-        if arguments:
-            raise ValueError('Evaluate requires empty arguments')
         errors = self.diagnostics(document['draft'])
         if errors:
             raise ValueError('Invalid draft blocks evaluation: ' + errors[0]['message'])
+        if arguments:
+            if (self.kind != 'material' or operation != 'material.evaluate'
+                    or set(arguments) != {'trial'} or not callable(getattr(self, 'resolve_trial', None))):
+                raise ValueError('Evaluate accepts only an exact selected Material trial reference')
+            prepared = self.resolve_trial(arguments['trial'], document)
+            snapshot = {key: deepcopy(prepared[key]) for key in ('backend', 'settings')}
+            errors = self.diagnostics(snapshot)
+            if errors:
+                raise ValueError('Invalid trial blocks evaluation: ' + errors[0]['message'])
+            return snapshot, self.evaluation_for(snapshot), prepared
         snapshot = deepcopy(document['draft'])
         return snapshot, self.evaluation_for(snapshot), self.prepare_job_arguments(snapshot, document)
 
@@ -325,7 +341,8 @@ class MaterialDocuments(RetainedComparisons):
         """A submitted job survives a lost document write; attach it without resubmitting."""
         for path in (self._folder(document['id']) / 'commands').glob('*.json'):
             prior = load_json(path)
-            if 'response' in prior or prior.get('operation') not in self.evaluation_commands:
+            if ('response' in prior or prior.get('state') == 'REJECTED'
+                    or prior.get('operation') not in self.evaluation_commands):
                 continue
             request_id = self.kind + ':' + document['id'] + ':' + path.stem
             job = next((job for job in self.manager.list() if job.get('request_id') == request_id), None)
@@ -386,11 +403,16 @@ class MaterialDocuments(RetainedComparisons):
                 prior = load_json(receipt)
                 if prior['request_hash'] != signature:
                     raise ValueError('command_id conflicts with an earlier request')
+                if prior.get('state') == 'REJECTED':
+                    raise CommandRejected(prior['rejection'], identifier, command_id, signature)
                 if 'response' not in prior:
                     raise ValueError('Previous command outcome is unconfirmed; reread the document before a new command')
                 return prior['response']
             if document['generation'] != expected_generation:
-                raise ValueError('Document generation changed; reread before applying')
+                message = 'Document generation changed; reread before applying'
+                save_json(receipt, {'request_hash': signature, 'state': 'REJECTED',
+                                    'operation': operation, 'rejection': message})
+                raise CommandRejected(message, identifier, command_id, signature)
             if self.kind == 'expert' and operation == self.update_operation:
                 from .research_team_results import prepare_result_update
                 prepare_result_update(self, document, arguments)
@@ -429,7 +451,13 @@ class MaterialDocuments(RetainedComparisons):
                 raise ValueError('Save/evaluate requires empty arguments')
             job = None
             if operation in self.evaluation_commands:
-                snapshot, operation_to_run, arguments_to_run = self.prepare_command_job(operation, arguments, document)
+                try:
+                    snapshot, operation_to_run, arguments_to_run = self.prepare_command_job(operation, arguments, document)
+                except (ValueError, TypeError, KeyError, UnicodeError) as error:
+                    rejected = load_json(receipt)
+                    rejected.update(state='REJECTED', rejection=str(error))
+                    save_json(receipt, rejected)
+                    raise CommandRejected(str(error), identifier, command_id, signature) from error
                 input_context = self.command_input_context(operation, arguments_to_run, document, snapshot)
                 prepared = load_json(receipt)
                 prepared.update(submitted_operation=operation_to_run, submitted_arguments=arguments_to_run,

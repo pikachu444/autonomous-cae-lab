@@ -7,6 +7,47 @@
 
 ## 현재 목표와 작업 방식
 
+### 최신 사용자 피드백 — Material 단독 작업과 화면 재설계 (2026-10-19)
+
+사용자는 뒤이어 제시한 MCalibration 공식 Quick Tutorial 12쪽의 실제 화면을 선호하고
+‘메뉴나 아이콘 레이아웃’과 각 항목을 그대로 따라 구현하라고 명시했다. 이 이미지는
+우리 산출물이 아니라 MCalibration 6.0.0 공식 화면임을 밝혔다. 같은 specialist가
+상단 메뉴/아이콘 명령, 좌측 위 시험 목록·아래 계수/값/범위/최적화 표, 우측 큰 비교
+그래프·아래 실행 출력을 항목별로 대응한다. 임의의 새 탭 구성으로 동시 가시성을
+없애지 않는다. 원본/우리 실제 창의 같은 크기 대조와 작동 확인 전 GUI 완료는 아니다.
+
+첫 reference01은 실제 Windows Qt의 1440/1100 창과 원본/결과/Jobs 불변을 확인했지만
+메뉴를 가린 orphan 버튼, 좁은 시험표, 약한 선택 표시와 최종 계수 출처를 교정한다.
+계산 명령도 기존 Material 자체 조건 평가로 선택 시험 평가를 대신하지 않는다.
+Codex가 기존 `material.evaluate`에 정확한 Plan 입력/시험 참조만 선택 인자로 추가했다.
+기존 Numerical 관측/kinematics compiler와 FELUPE evaluate/비교를 재사용해 현재 계수와
+선택 시험 전체 이력을 한 번 계산하며 두 owner의 draft/입력 개정은 바꾸지 않는다.
+현재 지원은 FELUPE 선형 탄성/Neo-Hooke다. 사용자 CSV의 실제 단회 응답·같은 요청의
+같은 Job·저장/재읽기와 잘못된 참조/변형 이력·busy 거절을 포함한 영향 24PASS다.
+원 core02의 외부 저장 개정 누락 때 OSError가 노출된 실패는 보존했고 기존 ValueError
+거절로 교정한 뒤 core03에서 통과했다. 최종 GUI·별도 프로세스 재개와 같은 Astra의
+의미 있는 Material 통합 검토는 진행 중이다. 새 피팅 캠페인은 시작하지 않았다.
+
+같은 Astra가 발견한 선택 시험 자체의 모델/단위 불일치 제출과 확정 거절 뒤 요청이
+고착되는 P2는 교정했다. 원 요청과 일치하는 `REJECTED` 영수증만 종료로 취급하고
+접수 뒤 응답 유실은 같은 ID 확인을 유지한다. Core/실제 HTTP 25PASS와 CAS/기존 복구/
+Client 8PASS, 마지막 호환 HTTP 1PASS를 중복 합산하지 않는다. UI도 원 signature와
+typed 거절이 일치할 때만 해제한다. 최종 actual03은 실제 단회 Job을 만든 뒤 잘못된
+submit 카운터를 기다린 하네스 FAIL이며 원 상태로 보존한다. 새 계산 없이 같은 Job의
+결과·저장/새 프로세스 재개를 이어 확인한다. 이 상태는 GUI 전체 인수가 아니다.
+
+사용자는 `material-reopened-narrow`의 긴 제목·상하 그래프와 다음 조작을 이해할 수
+없다고 거부했다. 앞선 기능 검사·담당 인도·한정 검토의 무P1/P2를 GUI 수용으로 쓰지
+않으며 Material 게시를 보류한다. 채택한 주 기준은 PRODUCT_PLAN의 MCalibration
+Calibrate/Load Case다. 같은 desktop_specialist가 실제 공식 화면과 사용자 작업을
+대조해 Material 설계와 scoped Qt 구현을 함께 소유한다. 현재 계수·피팅 시작값·최종
+피팅 계수와 어느 계수의 응답인지 구별하고, 시험 선택→직접 평가→피팅→별도 시험 확인→
+명시 계수 채택/저장까지 기존 명령을 재사용한다. 긴 계획/파일/상태 제목을 정리하고
+관측/예측 비교를 중심으로 잔차 진단을 분리한다. 실제 원자료의 축·단위·원값/실패·
+편집/취소는 보존한다. Material2파일·전용test와 Numerical의 `plot_fit_trial` hunk는
+specialist에게 이관하고 기존 작성자는 쓰기 없이 실제 명령·결과 의미의 재사용을 돕는다.
+초기조건은 실제03의 기능 확인과 overlay 가림/닫기 복원 FAIL을 구분해 미인수로 둔다.
+
 ### 최신 우선순위 — 개별 도구의 단독 사용 완결부터 (2026-10-19)
 
 사용자는 연결 해석 절차에 치우친 진행을 지적하고, 개별 해석은 문제가 없는지와 남은
@@ -77,11 +118,11 @@ import하는 의존을 발견했다. factory만 기존 PDE/탄성/소성/명시 
 | 실제 담당 | 단독 쓰기 범위 | 실행 중 → 후속 순서 / 완료 조건 |
 |---|---|---|
 | Codex | Core/공통 owner·API·registry·ports·adapter 접점·Workbench integration, 공개 문서·게시 | Runner 원 로그 monitor API → Report 공통 Markdown 조판 → initial/contact/RF 공통 접점. 담당 인도마다 정확 입력·저장/복구·실제 동선 확인, 기존 실패/UNKNOWN 보존 |
-| desktop_specialist | `connection_window.py`, `connection_window_items.py`, 전용 Qt tests | Workbench 선택 중심 연결/관계표·전체 배치 보존 → initial field native panel → contact pair/sliding native panel → Post 시각 동선. 후속 panel은 앞 묶음 인도 후 단독 소유. 실제 일반/좁은 창·선택/복구 확인 |
-| data_impl | `native/data_labplot/CaelabDataBridge.h`, 기존 patch0005 및 전용 native 검사 | Data 원표/채널/단위·표/곡선 배치 → Data 포함 B8.2 3-owner 저장 hook → B7.3 유한 calibration/measure/gauge/time-alignment Jacobian. 기존 값/원행/Undo/owner 보존, 같은 저장본 실제 창과 cold 확인 |
+| desktop_specialist | 현재 `material_window.py`, `material_plan_panel.py`, 전용 Qt test 및 `numerical_window.py`의 공유 plot helper hunk. 앞 Workbench 완료·initial panel은 동결 | 사용자 지정 MCalibration 실제 화면을 항목별 구현 → 선택 시험 단회 평가/피팅/모델 설정/저장·재개. 정상·좁은 실제 창과 기본 진입·Cancel/실패·현재/시작/최종 계수 확인. 이후 initial overlay/복원 FAIL 교정 재개 |
+| data_impl | `native/data_labplot/CaelabDataBridge.h`, `CaelabDataSettings.h`, 기존 patch0005 및 전용 native 검사 | 원단위/저장한 시각 열배치 P2 교정 후보07의 실제 확인이 먼저이며 설치 기본은 이전 runtime10. Data 단독 사용 후 3-owner/미분 확장은 보류. 기존 값/원행/Undo/owner 보존, 같은 저장본 실제 창과 cold 확인 |
 | material_numerical_impl | `simulation_window.py`, `evaluation_window.py`, `pde_window.py` 표시 hunk와 전용 tests | Simulation 수치/곡선/장·Evaluation 단계 맥락 → PDE 선택/설정 → B6.3.L04 외부 P1 온도와 기존 3D thermal 연결. 기존 물리 엔진 재구현 없이 exact source·단위·시각·원 단계 보존 |
 | native_impl | `runner_window.py` 및 전용 Runner tests | 실제 상태/원 실행기록/원 로그·검색과 결과 형태 → B2 동적/재시작/readback의 남은 사용자 접점. 추정 진행률/ETA0, 새 Job 없는 선택/원 모델 복귀. 사용자 impact WIP는 읽기 전용 |
-| native_data_product_impl | `material_window.py`, `material_plan_panel.py`, `numerical_window.py`, `request_plan_window.py` 표시 hunk와 관련 tests | Material 계수/피팅 맥락 → Numerical DOE/Pareto 표/축/선택 → B8.2 기존 Material/DOE owner 협력. 원 값·계산/예산·실패·미완성 원문/복구 유지, 실제 같은 저장본 일반/좁은 창 확인 |
+| native_data_product_impl | 현재 읽기 전용 Material 의미/기존 명령 재사용 자문. Material/공유 plot 쓰기는 같은 specialist에게 이관 | 앞 DOE/Pareto 실제 표시 인도와 원 저작을 보존. 현재/시작/최종 계수·실제 명령·evidence/CAS 소비를 specialist에 전달 완료. 새로운 B8.2 확장 자동 착수 없음 |
 | data_integration | `expert_window.py`, `study_window.py`, `report_window.py`, `discussion_view.py`, `research_team_panel.py` 표시 hunk와 전용 tests | Expert 질문/원문 읽기 → Study 판단/근거 → Report 편집/출력. 원 AI 본문·인용·exact ref를 고치지 않고 선택 대상/취소와 preview/PDF 공통 조판 확인. provider0 |
 | initial_state_impl / Sol-high | `initial_field_conditions.py`, 전용 `initial_field_*` adapter/native helpers·tests, `stress_state_transfer.py` | B1.4.L02 기존 후보 회수/일반 사용자 단계 보존 → B6.3.L02 exact native IP 초기응력 → B1.3.L02 실제 beam 회전/반력 모멘트/IP 간극. 공통/GUI는 별도 소유, 새 native 실행은 Codex의 구체 범위 지정 뒤 |
 | contact_product_impl / Sol-high | `contact_aster_model.py`, `contact_aster_worker.py`, `contact_aster_results.py`, `freeze_contact_aster.py`, 전용 helpers/tests | B1.5.L01/L05 hard contact/sliding → L02 cohesive/recontact → L03 다체 tie → L04/B1.6.L03 단계 연속/구속 해제 → B1.6.L01 pair 힘/모멘트. 기존 후보 저작/지원 경계·UNKNOWN 유지, 임의 사용자 이름/mesh/set/단계 보존 |
@@ -90,9 +131,10 @@ import하는 의존을 발견했다. factory만 기존 PDE/탄성/소성/명시 
 | desktop_integration_review / Astra-xhigh | 완성된 기능 묶음의 읽기 전용 통합 검토 | Codex 첫 확인 뒤 Runner/Report/Simulation-Evaluation → initial/contact/RF의 실제 통합 경계. 미완료 코드나 작은 편집마다 검토 의식0 |
 | native_delivery | 읽기 전용 잔여 접점 조사 | 기존 initial-fields/aster-hard-contact/conservative-load private 후보와 미통합 접점 전달 완료. 제품 코드 쓰기 역할 아님 |
 
-GUI foreground 실행권은 한 담당에게만 준다. Simulation/Evaluation·Workbench의 첫 실제
-확인은 끝났으며 현재 Data가 실제 열 이동/표시 결함을 교정한다. 이후 Material/Numerical →
-Runner → 연구3종 교정 delta → PDE 순서로 준비 상태에 따라 조정한다. 각 offscreen 검사는 별도 소유 프로세스로
+GUI foreground 실행권은 한 담당에게만 준다. 현재는 사용자 지시에 따라 Material 같은
+specialist가 공식 기준의 실제 GUI와 단회 평가·저장/cold를 우선 확인한다. Runner 실제04는
+끝나 게시를 기다리며, PDE 복구·Data 후보07 실제 확인은 이 실행권 반환 뒤 이어간다.
+각 offscreen 검사는 별도 소유 프로세스로
 병행할 수 있으나 한국어/실제 화면 인수를 대신하지 않는다. 모든 실행은 기존 native_check와
 정확 소유 프로세스 정리를 재사용한다.
 

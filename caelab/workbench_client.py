@@ -13,9 +13,10 @@ _FILE_OPERATIONS=frozenset({'/api/workbench/portable-project/inspect',
 
 class WorkbenchHTTPError(HTTPError):
     """Keep HTTP status/receipt bytes and a validated service diagnostic."""
-    def __init__(self, error, payload, message):
+    def __init__(self, error, payload, message, command_rejection=None):
         super().__init__(error.url, error.code, error.reason, error.headers, io.BytesIO(payload))
         self.service_message = message
+        self.command_rejection = command_rejection
 
     def __str__(self):
         return f'HTTP {self.code}: {self.service_message}'
@@ -58,7 +59,14 @@ class Client:
                 return self.request(path,body,_retry_auth=False)
             message = refusal.get('error') if isinstance(refusal, dict) else None
             if isinstance(message, str) and message.strip():
-                raise WorkbenchHTTPError(error, payload, message) from error
+                rejection = refusal.get('command_rejection')
+                if (not isinstance(rejection, dict) or set(rejection) != {
+                        'document_id', 'command_id', 'request_hash', 'outcome'}
+                        or rejection.get('outcome') != 'REJECTED'
+                        or any(not isinstance(rejection.get(key), str) for key in rejection)
+                        or len(rejection.get('request_hash', '')) != 64):
+                    rejection = None
+                raise WorkbenchHTTPError(error, payload, message, rejection) from error
             raise error
 
     def connection_graph(self, document_ids=None, *, include_history=False):

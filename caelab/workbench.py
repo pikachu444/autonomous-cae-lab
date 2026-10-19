@@ -82,6 +82,7 @@ class Workbench:
             prepare_request=self._request_plan_arguments,
             resolve_source_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision),
             resolve_pde_revision=lambda identifier,revision:self.pde_documents._verify_revision(identifier,revision))
+        self.material_documents.resolve_trial = self.numerical_documents.material_trial
         self.pde_documents=PDEDocuments(self.root,self.session_id,self.submit,self.manager)
         self.discussion_documents=DiscussionDocuments(self.root,self.session_id,self.submit,self.manager,
             list_experts=lambda:self.assistance_call('experts.list',{}),
@@ -1287,7 +1288,14 @@ class Workbench:
                            if backend in {'explicit.opencourant.model', 'explicit.opencourant.connector'} else None)
                 return run_domain(self, {'backend': backend, 'settings': settings}, self.root/'results'/identifier,
                                   runtime=runtime)
-            return evaluate(backend,args.get('settings',{}),values=args.get('values'))
+            result = evaluate(backend,args.get('settings',{}),values=args.get('values'))
+            if 'material_trial' in args:
+                from .numerical import _experiment, _fit_curve
+                context = deepcopy(args['material_trial'])
+                context['curves'] = [_fit_curve(_experiment(trial), result)
+                                     for trial in context['experiments']]
+                result['material_trial'] = context
+            return result
         if operation=='run':
             if backend=='material.mfront.prepared':
                 from .adapters.native_evaluation import NativeEvaluationFactory
