@@ -69,3 +69,43 @@ def test_existing_custom_and_cpp_native_presentation_is_preserved(monkeypatch, c
     original_view = getattr(view, 'Proxy', None)
     assert restore_fem_viewproviders(NS(Objects=[obj])) == []
     assert obj.Proxy is proxy and getattr(view, 'Proxy', None) is original_view
+
+
+def test_native_subsequent_file_open_repairs_after_restore_without_an_owner(monkeypatch):
+    from apps.desktop_pre import native_presentation
+    queued, registered, removed, callbacks, restored = [], [], [], [], []
+    main = NS()
+    documents = {}
+    app = NS(addDocumentObserver=registered.append, removeDocumentObserver=removed.append,
+             listDocuments=lambda: documents, Console=NS(PrintError=lambda text: pytest.fail(text)))
+    core = NS(QTimer=NS(singleShot=lambda delay, callback: queued.append(callback)))
+    widgets = NS(QApplication=NS(instance=lambda: NS(aboutToQuit=NS(connect=callbacks.append))))
+    monkeypatch.setattr(native_presentation, 'restore_fem_viewproviders', restored.append)
+    observer = native_presentation.install_restore_observer(app, NS(getMainWindow=lambda: main), core, widgets)
+    assert native_presentation.install_restore_observer(app, NS(getMainWindow=lambda: main), core, widgets) is observer
+    assert registered == [observer]
+    first = NS(Name='First', Label='First model', FileName='first.FCStd', Restoring=True)
+    documents[first.Name] = first
+    observer.slotActivateDocument(first)
+    observer.slotActivateDocument(first)
+    assert len(queued) == 1 and not restored
+    first.Restoring = False
+    queued.pop(0)()
+    second = NS(Name='Second', Label='Second model', FileName='second.FCStd', Restoring=False)
+    documents[second.Name] = second
+    observer.slotActivateDocument(second)
+    queued.pop(0)()
+    assert restored == [first, second]
+    observer.slotActivateDocument(second)
+    assert not queued  # Switching back to an existing tab performs no repair.
+    third = NS(Name='Third', Label='Third model', FileName='third.FCStd', Restoring=False)
+    documents[third.Name] = third
+    observer.slotActivateDocument(third)
+    documents.pop(third.Name)  # Closed before the queued callback.
+    queued.pop(0)()
+    assert restored == [first, second]
+    observer.slotDeletedDocument(first)
+    observer.slotActivateDocument(first)
+    callbacks[0]()
+    queued.pop(0)()
+    assert removed == [observer] and restored == [first, second]

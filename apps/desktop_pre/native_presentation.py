@@ -1,5 +1,6 @@
 """Restore absent GUI proxies using FreeCAD's own FEM ViewProviders."""
 from importlib import import_module
+from pathlib import Path
 
 
 _PROVIDERS = {
@@ -39,3 +40,57 @@ def restore_fem_viewproviders(doc):
             view.Proxy.attach(view)
         restored.append(obj.Name)
     return restored
+
+
+def install_restore_observer(App, Gui, QtCore, QtWidgets):
+    """Follow native File Open/recent files with the same presentation repair."""
+    main = Gui.getMainWindow()
+    existing = getattr(main, '_caelab_fem_presentation_observer', None)
+    if existing is not None:
+        return existing
+
+    class Observer:
+        def __init__(self):
+            self.pending = {}
+            self.completed = {}
+            self.closed = False
+
+        def slotActivateDocument(self, doc):
+            if (self.closed or self.pending.get(doc.Name) is doc
+                    or self.completed.get(doc.Name) is doc):
+                return
+            self.pending[doc.Name] = doc
+            QtCore.QTimer.singleShot(0, lambda: self.restore(doc))
+
+        def restore(self, doc):
+            if self.pending.get(doc.Name) is not doc:
+                return
+            self.pending.pop(doc.Name, None)
+            if (self.closed or App.listDocuments().get(doc.Name) is not doc or doc.Restoring
+                    or Path(doc.FileName).suffix.lower() != '.fcstd'):
+                return
+            try:
+                restore_fem_viewproviders(doc)
+                self.completed[doc.Name] = doc
+            except Exception as error:
+                App.Console.PrintError(f'{doc.Label}: FEM 편집 화면을 복원하지 못했습니다. '
+                                       f'보고서 보기에서 설치된 FreeCAD 모듈을 확인하세요. {error}\n')
+
+        def slotDeletedDocument(self, doc):
+            if self.pending.get(doc.Name) is doc:
+                self.pending.pop(doc.Name, None)
+            if self.completed.get(doc.Name) is doc:
+                self.completed.pop(doc.Name, None)
+
+        def close(self):
+            if not self.closed:
+                self.closed = True
+                self.pending.clear()
+                self.completed.clear()
+                App.removeDocumentObserver(self)
+
+    observer = Observer()
+    App.addDocumentObserver(observer)
+    main._caelab_fem_presentation_observer = observer
+    QtWidgets.QApplication.instance().aboutToQuit.connect(observer.close)
+    return observer

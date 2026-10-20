@@ -398,6 +398,8 @@ def start(config_path):
             Gui.activateWorkbench('FemWorkbench')
             from apps.desktop_pre.native_solver_guard import install as install_solver_guard
             install_solver_guard()
+            from apps.desktop_pre.native_presentation import install_restore_observer
+            install_restore_observer(App, Gui, QtCore, QtWidgets)
             if CONFIG.get('entry_mode', 'native') == 'managed':
                 add_toolbar()
             add_native_actions()

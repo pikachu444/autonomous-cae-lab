@@ -10,6 +10,8 @@ import pytest
 
 @pytest.fixture
 def prep(monkeypatch):
+    from apps.desktop_pre import native_presentation
+    monkeypatch.setattr(native_presentation, 'install_restore_observer', lambda *args: None)
     queued = []
     doc = NS(Name='NativeModel', Label='Native model', Objects=[], FileName='')
     view = NS(viewAxonometric=lambda: None, fitAll=lambda: None)
