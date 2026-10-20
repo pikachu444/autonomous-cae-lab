@@ -90,3 +90,29 @@ def test_changed_load_cannot_pass_with_half_sized_but_unverified_feedback(monkey
     if failure == "summary_mismatch": summary["model_revision"] = "wrong-revision"
     with pytest.raises(AssertionError):
         acceptance._checked_completed(lab, tmp_path, identifier, {}, result, source)
+
+
+@pytest.mark.parametrize("status,solver_status,converged", [
+    ("FAILED_EXECUTION", "FAILED", False),
+    ("FAILED_EXECUTION", "COMPLETED", None),
+    ("REJECTED", "COMPLETED", True),
+])
+def test_native_failure_identifies_actual_states_observations_and_result_path(
+        tmp_path, source, completed, status, solver_status, converged):
+    identifier, lab, result, _, _ = completed
+    failed = {"code": "native_check", "status": "FAIL", "observed": 0.125,
+              "limit": 0.01, "expected": "complete native fields"}
+    result.update(status=status, solver_status=solver_status, converged=converged,
+                  evidence=[{"observation": failed},
+                            {"observation": {"code": "passing_check", "status": "PASS"}}])
+    original = deepcopy(result)
+    with pytest.raises(AssertionError) as error:
+        acceptance._checked_completed(lab, tmp_path, identifier, {}, result, source)
+    message = str(error.value)
+    assert identifier in message
+    for key in ("status", "solver_status", "converged"):
+        assert f"{key}={result[key]!r}" in message
+    assert repr(failed) in message
+    assert "passing_check" not in message
+    assert str(tmp_path / "experiments" / identifier / "result.json") in message
+    assert result == original

@@ -75,8 +75,15 @@ def _checked_completed(lab: Lab, store: Path, identifier: str, settings: dict,
                        result: dict, source: dict) -> tuple[dict, list[dict]]:
     """Apply identical evidence and qualification gates to baseline and changed loads."""
     _check_source(source, result)
+    failed_observations = [observation for item in result.get("evidence", [])
+                           if isinstance(observation := item.get("observation"), dict)
+                           and observation.get("status") == "FAIL"]
     _require(result["status"] == "COMPLETED_REVIEW_REQUIRED" and result["solver_status"] == "COMPLETED"
-             and result["converged"] is True, f"Native numerical checks failed: {identifier}")
+             and result["converged"] is True,
+             f"Native numerical checks failed: {identifier}; "
+             f"status={result['status']!r}, solver_status={result['solver_status']!r}, "
+             f"converged={result['converged']!r}; FAIL observations={failed_observations!r}; "
+             f"result.json={store / 'experiments' / identifier / 'result.json'}")
     _require(result["decision"] == "NOT_RELEASED" and result["cad_revision"] is None,
              "Independent model qualification/CAD identity is invalid")
     _require(lab.inspect_experiment(identifier) == result, "Checked Core inspection differs")
