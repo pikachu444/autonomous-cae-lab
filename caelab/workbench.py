@@ -14,8 +14,9 @@ from .evaluation import evaluate, run, read_result, file_hash
 from .jobs import JobManager
 from .storage import save_json, load_json, check_id, utc_now, canonical_hash, revision_read_scope
 from .native_inputs import NATIVE_EXTENSIONS, register_native_input, register_frozen_input
+from .assist.knowledge import TEXT_EXTENSIONS
 
-INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
+INPUT_EXTENSIONS = TEXT_EXTENSIONS | {'.npz', '.pdf'}
 
 OPERATIONS = {'detail_eval','evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
               'batch_export','batch_import','remote.run','remote.reconnect','remote.cancel','remote.collect','surrogate','epsilon','sensitivity',
@@ -881,9 +882,9 @@ class Workbench:
         return read_monitor(self.root, self.desktop.job_record(identifier),
                             log=log, offset=offset, limit=limit)
 
-    def engineering_context(self, identifier):
+    def engineering_context(self, identifier=None, *, selection=None):
         from .engineering_context import read_context
-        return read_context(self, identifier)
+        return read_context(self, identifier, selection=selection)
 
     def result(self, identifier, *, selection=None):
         identifier=check_id(identifier)

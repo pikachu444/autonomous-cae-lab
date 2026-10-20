@@ -245,6 +245,12 @@ class PDEWindow(QMainWindow):
         install(self, files, self.document_kind)
         edit.addActions([self.undo_action, self.redo_action])
         research = self.menuBar().addMenu('연구(&R)')
+        self.discuss_action = QAction('모델 선택 항목으로 논의…', self)
+        self.discuss_action.triggered.connect(self.discuss_selection)
+        research.addAction(self.discuss_action)
+        self.discuss_result_action = QAction('결과 선택 항목으로 논의…', self)
+        self.discuss_result_action.triggered.connect(lambda: self.discuss_selection(use_result=True))
+        research.addAction(self.discuss_result_action)
         self.plan_action = QAction('수치 계산 계획 열기', self)
         self.plan_action.triggered.connect(self.open_numerical_plan)
         research.addAction(self.plan_action)
@@ -972,6 +978,26 @@ class PDEWindow(QMainWindow):
     def apply_inputs(self, *, after=None):
         return self.command(self.document_kind + '.update', {'draft': self.edited_draft()}, after=after)
 
+    def discuss_selection(self, *, use_result=False):
+        if not self.document or self.local_dirty or self.conflict or self._busy or self._pending_command:
+            self.message.setText('모델 편집을 적용한 뒤 논의하세요.')
+            return
+        from .selection_discussion import open_discussion
+        item = self.tree.currentItem()
+        selected = (item.data(0, ROLE) or {}) if item else {}
+        result = use_result and self._selected_job
+        if use_result and not result:
+            return
+        scope = ({'kind': 'result', 'response': self.result_selector.currentData(),
+                  'channel': self.channel.currentData(), 'node': self.node.currentData(),
+                  'field_node': self.field_node.currentData(),
+                  'rows': sorted({index.row() for index in self.result_value_table.selectedIndexes()})}
+                 if result else {'kind': 'model', 'path': selected.get('path', [])})
+        document = deepcopy(self.document)
+        self._call(lambda: open_discussion(self.client, document=document,
+            job_id=self._selected_job if result else None, selection={'scope': scope}),
+            lambda _: self.message.setText('선택 대상으로 토론을 열었습니다. 질문을 확인하고 보내세요.'))
+
     def save_document(self, *, after=None):
         if self.local_dirty:
             return self.apply_inputs(after=lambda: self.command('document.save', after=after))
@@ -1398,6 +1424,8 @@ class PDEWindow(QMainWindow):
         self.retry_button.setVisible(bool(pending))
         self.retry_button.setEnabled(self.retry_action.isEnabled())
         self.save_action.setEnabled(available)
+        self.discuss_action.setEnabled(available and not self.local_dirty)
+        self.discuss_result_action.setEnabled(available and not self.local_dirty and bool(self._selected_job))
         self.undo_action.setEnabled(available and not self.local_dirty and bool(self.document.get('can_undo')))
         self.redo_action.setEnabled(available and not self.local_dirty and bool(self.document.get('can_redo')))
         self.apply_button.setEnabled(available and self.local_dirty)

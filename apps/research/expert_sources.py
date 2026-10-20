@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 import re
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 import uuid
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog
     QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
     QStackedWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from caelab.assist.knowledge import selected_source_refs
+from caelab.assist.knowledge import TEXT_EXTENSIONS, selected_source_refs
 
 DATA = Qt.ItemDataRole.UserRole
 
@@ -38,6 +39,50 @@ def _reading_markdown(text):
 def assist(client, operation, arguments=None):
     return client.request('/api/workbench/assist',
                           {'operation': operation, 'arguments': arguments or {}})
+
+
+def source_collection(client, discussion_id=None):
+    """Choose an existing shared role collection without changing any grants."""
+    roles = assist(client, 'experts.list')['experts']
+    if not roles:
+        return 'research'  # Unassigned local drafts remain usable before AI setup.
+    participants = client.document_read(discussion_id)['draft']['participants'] if discussion_id else []
+    if participants:
+        roles = [role for role in roles if role['id'] in participants]
+        if {role['id'] for role in roles} != set(participants):
+            raise ValueError('참여 역할을 다시 확인하세요. 연결 설정에서 사용할 역할을 선택하세요.')
+    common = [name for name in (roles[0].get('collections', []) if roles else [])
+              if all(name in role.get('collections', []) for role in roles)]
+    if not common:
+        raise ValueError('참여 역할이 함께 읽을 보관함이 없습니다. 연결 설정에서 역할의 보관함을 확인하거나 참고 자료에서 직접 가져오세요.')
+    return common[0]
+
+
+def snapshot_source(client, filename, *, collection='research', timeout=120):
+    """Archive new bytes through the normal import API; never replace an old pin."""
+    path = Path(filename)
+    if path.suffix.lower() not in TEXT_EXTENSIONS | {'.pdf'}:
+        raise ValueError('PDF, Markdown, CSV 또는 UTF-8 해석 텍스트를 선택하세요.')
+    with path.open('rb') as stream:
+        data = stream.read(16 * 1024 * 1024 + 1)
+    uploaded = client.upload(path.name, data)
+    job = client.submit('knowledge.ingest', {'data_id': uploaded['id'], 'collection': collection},
+                        request_id='source-' + uuid.uuid4().hex)
+    deadline = time.monotonic() + timeout
+    while True:
+        status = client.status(job['id'])
+        if status['state'] == 'SUCCEEDED':
+            result = client.result(job['id'])
+            reference = {key: result[key] for key in ('document_id', 'revision')}
+            source = assist(client, 'knowledge.source', reference)
+            if not source.get('segments') or source.get('revision') != reference['revision']:
+                raise ValueError(path.name + ': 읽을 수 있는 본문이 없습니다. 원문을 확인하세요.')
+            return reference
+        if status['state'] in {'FAILED', 'REJECTED', 'CANCELLED', 'INTERRUPTED'}:
+            raise ValueError(path.name + ': 자료를 가져오지 못했습니다. ' + str(status.get('error') or status['state']))
+        if time.monotonic() >= deadline:
+            raise TimeoutError(path.name + ': 자료를 가져오는 중입니다. 문헌 목록에서 상태를 확인하세요.')
+        time.sleep(.1)
 
 
 class SourcePreview(QWidget):
@@ -419,7 +464,7 @@ class SourceDialog(QDialog):
 
     def choose_file(self):
         filename, _ = QFileDialog.getOpenFileName(self, '연구 문헌 가져오기', '',
-            '연구 문헌 (*.pdf *.md *.txt *.csv)')
+            '연구 문헌·해석 텍스트 ('+' '.join('*'+suffix for suffix in sorted(TEXT_EXTENSIONS | {'.pdf'}))+')')
         if filename:
             self.import_file(filename)
 
@@ -431,8 +476,8 @@ class SourceDialog(QDialog):
             self.message.setText('보관함 이름을 입력하세요.')
             return False
         path = Path(filename)
-        if path.suffix.lower() not in {'.pdf', '.md', '.txt', '.csv'}:
-            self.message.setText('PDF, Markdown(.md), UTF-8 텍스트 또는 CSV를 선택하세요.')
+        if path.suffix.lower() not in TEXT_EXTENSIONS | {'.pdf'}:
+            self.message.setText('PDF, Markdown, CSV 또는 UTF-8 해석 텍스트를 선택하세요.')
             return False
         self.message.setText('가져오는 중: ' + path.name + '…')
         self._import_request = self._upload = None

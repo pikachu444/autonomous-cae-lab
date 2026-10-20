@@ -678,16 +678,36 @@ class DesktopLinks:
                     'origin': frozen['origin'], 'executed': False}
 
     def selection_discussion(self, *, session_id, command_id, document_id=None, job_id=None,
-                             expected_generation=None):
+                             expected_generation=None, selection=None, source_refs=None,
+                             discussion_id=None, workbench=None):
         """Open the selected model/job in its research; never ask or calculate."""
         from .discussion_document import default_draft
         from .evaluation_definition import document_reference
         wb = self.workbench
         check_id(command_id)
-        if session_id != wb.session_id or not (document_id or job_id):
+        if session_id != wb.session_id or not (document_id or job_id or selection or source_refs or discussion_id):
             raise ValueError('Select a model or calculation in the current session')
+        from .assist.knowledge import selected_source_refs
+        references = selected_source_refs({'selected_sources': source_refs or []})
+        # Use the same exact source admission as an explicit Expert question.
+        wb.discussion_documents._validate_sources({'selected_sources': references})
         with self._lock:
             source, context, original = None, {}, None
+            title = '모델 연구'
+            if selection is not None:
+                if not isinstance(selection, dict) or not selection:
+                    raise ValueError('Select an explicit model, input, log or result')
+                if not (document_id or job_id):
+                    context['engineering_context'] = wb.engineering_context(selection=selection)
+                    source = selection.get('path') or selection.get('source') or selection
+                    title = Path(source).name if isinstance(source, str) else '선택 자료'
+            if references:
+                context['selected_sources'] = references
+                source = source or references[0]['document_id']
+            if workbench is not None:
+                if not isinstance(workbench, dict) or set(workbench) - {'model', 'sources'}:
+                    raise ValueError('Choose the connected model and research sources')
+                context['workbench'] = deepcopy(workbench)
             if document_id:
                 document = wb.document_read(check_id(document_id))
                 if document.get('kind') not in {'material', 'data', 'numerical', 'pde', 'simulation', 'evaluation'}:
@@ -699,6 +719,8 @@ class DesktopLinks:
                 source = document_id
                 original = saved['draft'].get('source') or {}
                 context['selected_model'] = {'reference': document_reference(saved), 'input': deepcopy(saved['draft'])}
+                if selection:
+                    context['selected_model']['scope'] = deepcopy(selection.get('scope', selection))
                 title = saved['title']
             if job_id:
                 job = self.job_record(check_id(job_id))
@@ -710,15 +732,48 @@ class DesktopLinks:
                 source = source or job.get('arguments', {}).get('origin', {}).get('document_id') or (match[1]['id'] if match else job_id)
                 title = job.get('label') or '해석 결과'
                 context['engineering_context'] = wb.engineering_context(job_id)
+                if selection:
+                    context['engineering_context']['selection_scope'] = deepcopy(selection.get('scope', selection))
                 context['selected_result_ids'] = [job_id]
             original = original or {}
-            target = original.get('discussion_id') or ('X' + canonical_hash({'selection': source})[:32])
+            target = check_id(discussion_id) if discussion_id else (original.get('discussion_id') or
+                ('X' + canonical_hash({'selection': source})[:32]))
             owner = wb.discussion_documents
+            if not target.startswith(owner.prefix):
+                raise ValueError('Choose an Expert research discussion')
             with owner._lock(target):
                 exists = (owner._folder(target) / 'working.json').exists() or owner._manifest(target)
+                if discussion_id and not exists:
+                    raise ValueError('The original discussion is missing; reconnect the saved research')
                 if exists:
                     discussion = owner.read(target)
                     draft = deepcopy(discussion['draft'])
+                    if references:
+                        retained = selected_source_refs(draft['context'])
+                        by_id = {item['document_id']: item for item in retained}
+                        for item in references:
+                            previous = by_id.get(item['document_id'])
+                            if previous is not None and previous != item:
+                                raise ValueError('Import changed evidence as a new source to preserve the original revision')
+                            by_id[item['document_id']] = item
+                        context['selected_sources'] = list(by_id.values())
+                        selected_source_refs({'selected_sources': context['selected_sources']})
+                        if 'selected_document_ids' in draft['context']:
+                            context['selected_document_ids'] = list(by_id)
+                    if workbench is not None:
+                        retained = deepcopy(draft['context'].get('workbench', {}))
+                        retained.update({key: value for key, value in workbench.items() if key != 'sources'})
+                        paths = {item['path']: item for item in retained.get('sources', [])}
+                        paths.update({item['path']: item for item in workbench.get('sources', [])})
+                        retained['sources'] = list(paths.values())
+                        context['workbench'] = retained
+                    incoming = context.get('engineering_context')
+                    previous = draft['context'].get('engineering_context')
+                    if incoming is not None and previous is not None and incoming != previous:
+                        history = deepcopy(draft['context'].get('engineering_context_history', []))
+                        if previous not in history:
+                            history.append(previous)
+                        context['engineering_context_history'] = history
                     old_jobs = draft['context'].get('selected_result_ids', [])
                     changed_context = any(draft['context'].get(key) != value for key, value in context.items()
                                           if key != 'selected_result_ids')

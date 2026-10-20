@@ -248,9 +248,12 @@ class Client:
     def native_plan_input(self, plan_id, *, session_id, expected_generation, command_id):
         return self.request('/api/workbench/native-plan-input', dict(plan_id=plan_id,
             session_id=session_id,expected_generation=expected_generation,command_id=command_id))
-    def selection_discussion(self, *, session_id, command_id, document_id=None, job_id=None, expected_generation=None):
+    def selection_discussion(self, *, session_id, command_id, document_id=None, job_id=None,
+                             expected_generation=None, selection=None, source_refs=None,
+                             discussion_id=None, workbench=None):
         return self.request('/api/workbench/selection-discussion', dict(session_id=session_id,
-            command_id=command_id,document_id=document_id,job_id=job_id,expected_generation=expected_generation))
+            command_id=command_id,document_id=document_id,job_id=job_id,expected_generation=expected_generation,
+            selection=selection,source_refs=source_refs,discussion_id=discussion_id,workbench=workbench))
     def domain_plan(self, document_id, *, session_id, expected_generation, command_id):
         return self.request('/api/workbench/domain-plan',dict(document_id=document_id,
             session_id=session_id,expected_generation=expected_generation,command_id=command_id))
@@ -343,8 +346,12 @@ class Client:
         if log is not None:
             query['log'] = log
         return self.request('/api/workbench/jobs/' + check_id(identifier) + '/monitor?' + urlencode(query))
-    def engineering_context(self, identifier):
+    def engineering_context(self, identifier=None, *, selection=None):
         from .storage import check_id
+        if selection is not None:
+            if identifier is not None:
+                raise ValueError('Choose a job or independent selection, not both')
+            return self.request('/api/workbench/engineering-context', {'selection': selection})
         return self.request('/api/workbench/jobs/' + check_id(identifier) + '/context')
     def desktop_context(self):
         return self.request('/api/workbench/desktop')

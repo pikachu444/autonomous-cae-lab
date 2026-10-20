@@ -15,6 +15,8 @@ import caelab.workbench_client as workbench_client
 @pytest.mark.parametrize("tool", sorted(desktop.TOOLS))
 @pytest.mark.parametrize("selected", [False, True])
 def test_research_entrypoint_preserves_service_and_typed_selection(monkeypatch, tool, selected):
+    if tool == 'workbench' and selected:
+        pytest.skip('Workbench starts from local files, without a service document selection')
     from apps.research import native_data_runtime
     monkeypatch.setattr(native_data_runtime, 'installed_runtime', lambda: None)
     monkeypatch.setattr(desktop.subprocess, 'Popen', lambda *a, **kw: pytest.fail('Compatibility routing must not launch a native app'))
@@ -46,6 +48,13 @@ def test_research_entrypoint_preserves_service_and_typed_selection(monkeypatch, 
         ("module", "apps.research." + tool + "_window"),
         ("arguments", ["--service", url, *selection]),
     ]
+
+
+@pytest.mark.parametrize('flag', ['--job-id', '--document-id'])
+def test_workbench_rejects_service_selection_before_opening_window(monkeypatch, flag):
+    monkeypatch.setattr(desktop, 'Client', lambda *args: pytest.fail('Invalid selection must not contact service'))
+    with pytest.raises(SystemExit):
+        desktop.main(['--service', 'http://127.0.0.1:8877', 'workbench', flag, 'Jselection'])
 
 
 @pytest.mark.parametrize("tool,flag", [("runner", "--job-id"), ("numerical", "--document-id")])

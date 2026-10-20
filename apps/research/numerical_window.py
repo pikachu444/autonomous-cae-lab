@@ -323,6 +323,12 @@ class NumericalWindow(QMainWindow):
         self.stop_action=QAction('계산 중단',self); self.stop_action.triggered.connect(self.cancel_run)
         edits.addAction(self.apply_action)
         calculation=self.menuBar().addMenu('계산(&C)'); calculation.addActions([self.run_action,self.stop_action])
+        self.discuss_action = QAction('모델 선택 항목으로 논의…', self)
+        self.discuss_action.triggered.connect(self.discuss_selection)
+        calculation.addAction(self.discuss_action)
+        self.discuss_result_action = QAction('결과 선택 항목으로 논의…', self)
+        self.discuss_result_action.triggered.connect(lambda: self.discuss_selection(use_result=True))
+        calculation.addAction(self.discuss_result_action)
         self.derivative_support_action=calculation.addAction('미분법 지원…')
         self.derivative_support_action.triggered.connect(self.check_derivative_support)
         self.apply_button=action_button(self.apply_action,self)
@@ -1605,6 +1611,26 @@ class NumericalWindow(QMainWindow):
         rows = sorted({item.row() for item in self.runs.selectedIndexes()})
         return (self.runs.item(rows[0],0).data(Qt.ItemDataRole.UserRole) or self.runs.item(rows[0],0).text()) if len(rows)==1 else None
 
+    def discuss_selection(self, *, use_result=False):
+        if (not self.document or self.local_dirty or self.conflict or self._busy or self._callbacks
+                or self._pending_adoption or self.variable_editor._busy):
+            self.message.setText('계획 편집을 적용한 뒤 논의하세요.')
+            return
+        from .selection_discussion import open_discussion
+        job = self.selected_job() if use_result else None
+        if use_result and not job:
+            return
+        scope = {'kind': 'result' if job else 'model'}
+        if job:
+            scope.update(candidate_id=self.selected_candidate(), response=self.curve_selector.currentData())
+        else:
+            scope['variables'] = sorted({index.row() for index in self.variables.selectedIndexes()})
+            scope['experiments'] = sorted({index.row() for index in self.experiments.selectedIndexes()})
+        document = deepcopy(self.document)
+        self._call(lambda: open_discussion(self.client, document=document, job_id=job,
+            selection={'scope': scope}),
+            lambda _: self.message.setText('선택 대상으로 토론을 열었습니다. 질문을 확인하고 보내세요.'))
+
     def _populate_runs(self, prefer_job=None):
         selected = prefer_job or self.selected_job()
         self.runs.blockSignals(True)
@@ -2134,6 +2160,8 @@ class NumericalWindow(QMainWindow):
         blocked = present and bool(self.document.get('diagnostics'))
         (self.run_action if hasattr(self,'run_action') else self.run_button).setEnabled(enabled and not variable_pending and not self.local_dirty and not blocked)
         self.save_action.setEnabled(enabled and not variable_pending)
+        self.discuss_action.setEnabled(enabled and not variable_pending and not self.local_dirty and not self._view_error)
+        self.discuss_result_action.setEnabled(self.discuss_action.isEnabled() and bool(self.selected_job()))
         self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))
         self.redo_action.setEnabled(enabled and (self._draft_history_index + 1 < len(self._draft_history) or not self.local_dirty and self.document.get('can_redo', False)))
         self.new_action.setEnabled(available)

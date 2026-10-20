@@ -51,12 +51,14 @@ def drain_closed(app, *views):
     assert all(view._closed for view in views if view is not None)
 
 @pytest.mark.parametrize('attach', [False, True])
-def test_native_file_choice_import_preview_cancel_or_attach_and_reopen(attach, tmp_path, monkeypatch):
+@pytest.mark.parametrize('suffix', ['.md', '.log'])
+def test_native_file_choice_import_preview_cancel_or_attach_and_reopen(attach, suffix, tmp_path, monkeypatch):
     app = QApplication.instance() or QApplication([])
-    path = tmp_path / '공개 연구 자료.md'
+    path = tmp_path / ('공개 연구 자료'+suffix)
     path.write_text('# Measured observation\nPublic fixture: beam displacement 0.2294 mm.', encoding='utf-8')
     chosen = []
     def choose(*args, **kwargs):
+        assert '*'+suffix in args[-1]
         # Initial library reads are complete: the next request is binary upload.
         client.token = 'EXPIRED_TEST_TOKEN'
         chosen.append(True)
@@ -248,3 +250,152 @@ def test_blank_pdf_preview_reports_extraction_and_blocks_attach(tmp_path):
             assert all(job['operation'] == 'knowledge.ingest' for job in transport.server.workbench.manager.list())
         finally:
             drain_closed(app, dialog)
+
+
+def test_file_question_snapshots_rerun_in_origin_discussion(tmp_path, monkeypatch):
+    from apps.research.selection_discussion import open_file_discussion
+    from apps.research.expert_sources import assist
+    launches = []
+    monkeypatch.setattr('apps.research.desktop.launch_tool',
+        lambda client, tool, **arguments: launches.append((tool, arguments)) or {'launched': True})
+    path = tmp_path / 'solver.log'
+    path.write_text('ITERATION 4 RESIDUAL 0.17\n', encoding='utf-8')
+    with running(LabService(tmp_path / 'store')) as transport:
+        wb = transport.server.workbench
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        runtime = wb.assistance().experts
+        runtime.definitions = {identifier: {'id': identifier, 'collections': [identifier, 'shared-project']}
+                               for identifier in ('materials', 'testing')}
+        first = open_file_discussion(client, [path])
+        document = first['document']
+        draft = deepcopy(document['draft'])
+        draft['composer']['text'] = 'Unsent: preserve the measured density.'
+        draft['context']['constraints'] = ['Keep the existing material law']
+        draft['context']['failure_reasons'] = ['Contact increment did not converge']
+        changed = client.document_command(document['id'], 'expert.update', {'draft': draft},
+            session_id=document['session_id'], expected_generation=document['generation'])['document']
+        path.write_text('ITERATION 5 RESIDUAL 0.12\n', encoding='utf-8')
+        second = open_file_discussion(client, [path], discussion_id=document['id'])
+        assert second['document_id'] == first['document_id']
+        assert second['executed'] is False
+        current = second['document']['draft']
+        assert current['composer'] == changed['draft']['composer']
+        assert current['context']['constraints'] == draft['context']['constraints']
+        assert current['context']['failure_reasons'] == draft['context']['failure_reasons']
+        old = document['draft']['context']['selected_sources'][0]
+        assert assist(client, 'knowledge.source', old)['collection'] == 'shared-project'
+        for role in runtime.definitions.values():
+            allowed, _ = runtime._knowledge_context(current['context'], wb.workspace_id, role['collections'])
+            assert allowed['selected_sources'] == current['context']['selected_sources']
+        assert current['context']['transmission_scope'] == document['draft']['context']['transmission_scope']
+        selected = current['context']['selected_sources']
+        assert len(selected) == 2 and selected[0] == old and selected[1]['document_id'] != old['document_id']
+        assert 'RESIDUAL 0.17' in assist(client, 'knowledge.source', old)['segments'][0]['text']
+        assert 'RESIDUAL 0.12' in assist(client, 'knowledge.source', selected[1])['segments'][0]['text']
+        assert launches == [('expert', {'document_id': document['id']})] * 2
+        assert all(job['operation'] == 'knowledge.ingest' for job in wb.manager.list())
+        assert wb.document_read(document['id'])['draft'] == current
+
+
+def test_workbench_sources_require_existing_common_role_collection_before_upload(tmp_path, monkeypatch):
+    from apps.research.selection_discussion import open_file_discussion
+    from apps.research.expert_sources import source_collection
+    path = tmp_path / 'solver.log'
+    path.write_text('Actual solver diagnostic\n', encoding='utf-8')
+    with running(LabService(tmp_path / 'store')) as transport:
+        wb = transport.server.workbench
+        runtime = wb.assistance().experts
+        runtime.definitions = {identifier: {'id': identifier, 'collections': [identifier]}
+                               for identifier in ('materials', 'testing')}
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        uploaded = []
+        monkeypatch.setattr(client, 'upload', lambda *args: uploaded.append(args))
+        with pytest.raises(ValueError, match='함께 읽을 보관함'):
+            open_file_discussion(client, [path])
+        assert uploaded == [] and wb.manager.list() == []
+        assert runtime.definitions['materials']['collections'] == ['materials']
+        from caelab.discussion_document import default_draft
+        draft = default_draft()
+        draft['participants'] = ['materials']
+        doc = wb.document_open(kind='expert', draft=draft)
+        assert source_collection(client, doc['id']) == 'materials'
+
+
+def test_live_unsaved_model_question_does_not_require_file_or_ingestion(tmp_path, monkeypatch):
+    from apps.research.selection_discussion import open_file_discussion
+    monkeypatch.setattr('apps.research.desktop.launch_tool', lambda *args, **kwargs: {'launched': True})
+    with running(LabService(tmp_path / 'store')) as transport:
+        wb = transport.server.workbench
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        receipt = open_file_discussion(client, [], selection={
+            'model_snapshot': {'kind': 'native-structural-model', 'materials': [{'name': 'User material'}]},
+            'scope': {'objects': ['SelectedBody'], 'subelements': ['Face2']}})
+        context = receipt['document']['draft']['context']['engineering_context']
+        assert context['source']['path'] is None
+        assert context['model']['model_state'] == 'current_editing_model'
+        assert context['source']['scope']['subelements'] == ['Face2']
+        assert wb.manager.list() == []
+
+
+def test_unconfigured_research_can_archive_files_without_model_or_role_grants(tmp_path, monkeypatch):
+    from apps.research.selection_discussion import open_file_discussion
+    from apps.research.expert_sources import assist
+    monkeypatch.setattr('apps.research.desktop.launch_tool', lambda *args, **kwargs: {'launched': True})
+    path = tmp_path / 'unassigned.log'
+    path.write_text('Retained local observation\n', encoding='utf-8')
+    with running(LabService(tmp_path / 'store')) as transport:
+        wb = transport.server.workbench
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        receipt = open_file_discussion(client, [path])
+        draft = receipt['document']['draft']
+        assert draft['participants'] == []
+        source = assist(client, 'knowledge.source', draft['context']['selected_sources'][0])
+        assert source['collection'] == 'research'
+        assert source['segments'][0]['text'] == path.read_bytes().decode('utf-8')
+        assert not draft['context']['transmission_scope'].get('source_refs')
+        assert all(job['operation'] == 'knowledge.ingest' for job in wb.manager.list())
+
+
+def test_source_role_scope_notice_preserves_existing_grants(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    with running(LabService(tmp_path / 'store')) as transport:
+        wb = transport.server.workbench
+        wb.assistance().experts.definitions = {'selected': {'id': 'selected', 'label': '선택 담당자',
+            'collections': ['permitted'], 'tools': []}}
+        upload = wb.upload('original.log', b'Actual archived diagnostic\n')
+        source = wb.assistance().knowledge.ingest(wb.input_path(upload['id']), 'different', workspace_id=wb.workspace_id)
+        from caelab.discussion_document import default_draft
+        draft = default_draft()
+        draft['participants'] = ['selected']
+        draft['context']['selected_sources'] = [{key: source[key] for key in ('document_id', 'revision')}]
+        draft['context']['transmission_scope'] = {'source_refs': []}
+        doc = wb.document_open(kind='expert', draft=draft)
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        window = ExpertWindow(client, document_id=doc['id'], poll_interval=0)
+        try:
+            window.show()
+            wait(app, lambda: not window._busy and bool(window._registry) and bool(window._source_collections))
+            assert '선택 담당자' in window.source_scope_notice.text()
+            assert not window.source_scope_notice.isHidden()
+            assert window.edited_draft()['context']['transmission_scope'] == {'source_refs': []}
+            assert wb.assistance().experts.definitions['selected']['collections'] == ['permitted']
+        finally:
+            drain_closed(app, window)
+
+
+def test_native_question_cli_reads_utf8_selection_and_origin(monkeypatch, capsys):
+    import io
+    import json
+    from apps.research import selection_discussion
+    selected = {'path': 'C:/models/사용자.FCStd', 'scope': {'objects': ['고체'], 'faces': ['Face2']}}
+    state = {'model': {'original_path': selected['path'], 'saved_path': selected['path']}}
+    calls = []
+    client = object()
+    monkeypatch.setattr('caelab.workbench_client.Client', lambda url: client)
+    monkeypatch.setattr('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(selected, ensure_ascii=False).encode('utf-8'))))
+    monkeypatch.setattr(selection_discussion, 'open_file_discussion',
+        lambda *args, **kwargs: calls.append((args, kwargs)) or {'document_id': 'Xorigin'})
+    selection_discussion.main(['--service', 'http://127.0.0.1:8765', '--selection-stdin',
+        '--workbench', json.dumps(state), '--discussion', 'Xorigin', selected['path']])
+    assert calls == [((client, [selected['path']], 'Xorigin'), {'selection': selected, 'workbench': state})]
+    assert json.loads(capsys.readouterr().out) == {'document_id': 'Xorigin', 'executed': False}

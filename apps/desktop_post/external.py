@@ -119,6 +119,10 @@ def pins(files):
 
 def verify_sources(path, doc, *, full=False):
     for record in doc["sources"].values():
+        for pin in record.get('conversion', {}).get('source_pins', []):
+            file = Path(pin['path'])
+            if file.stat().st_size != pin['bytes'] or sha(file) != pin['sha256']:
+                raise RuntimeError('Retained FRD source changed: ' + str(file))
         recorded = record["source_pins"]
         if (record.get('native_metadata') or {}).get('dynamic_locations') is not None:
             dynamic_api().verify_saved_source(record['entry_path'], record['native_metadata'],
@@ -379,6 +383,40 @@ def _source_metadata(source):
 
 def inspect_result(source, time=None):
     return _inspect_result(source, time, _source_metadata(source))
+
+
+def selected_context(source=None):
+    """Read the exact displayed pipeline target; no export or native mutation."""
+    source = p.GetActiveSource() if source is None else source
+    if source is None:
+        raise ValueError('토론할 ParaView 결과를 선택하세요.')
+    files = reader_input_files(source)
+    project = os.environ.get('CAE_POST_PROJECT')
+    if not files and not project:
+        raise ValueError('선택한 결과의 원 파일을 확인할 수 없습니다. 결과 프로젝트를 여세요.')
+    view = p.GetActiveView()
+    display = p.GetDisplayProperties(source, view=view) if view is not None and hasattr(p, 'GetDisplayProperties') else None
+    color = list(getattr(display, 'ColorArrayName', [])) if display is not None else []
+    scope = {'kind': 'post-selection', 'pipeline': next((name for (name, _), value in p.GetSources().items()
+             if _same_proxy(value, source)), None), 'time': float(p.GetAnimationScene().AnimationTime)}
+    if len(color) == 2 and color[1]:
+        scope.update(association=color[0], array=color[1])
+        transfer = getattr(display, 'LookupTable', None)
+        if transfer is not None:
+            scope['component'] = (getattr(transfer, 'VectorComponent', None)
+                                  if getattr(transfer, 'VectorMode', None) == 'Component' else 'Magnitude')
+    metadata = inspect_result(source)
+    scope['static'] = deepcopy(metadata.get('static'))
+    # Native selection is retained as its own descriptor, never promoted to all mesh points.
+    if hasattr(source, 'GetSelectionInput'):
+        selected = source.GetSelectionInput(0)
+        if selected is not None:
+            scope['native_selection'] = {'type': selected.GetXMLName(),
+                **{key: list(getattr(selected, key)) for key in ('IDs', 'Blocks', 'QueryString')
+                   if hasattr(selected, key) and key != 'QueryString'},
+                **({'query': str(selected.QueryString)} if hasattr(selected, 'QueryString') else {})}
+    return {'path': str(files[0]) if files else str(project), 'scope': scope,
+            'result_metadata': metadata}
 
 
 def _inspect_result(source, time=None, native_metadata=None):
@@ -724,12 +762,25 @@ def restore_selection(doc):
         if view is not None: p.SetActiveView(view)
 
 
-def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None, registration_origin=None, *, display_name=None):
+def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None, registration_origin=None, *, display_name=None, conversion_directory=None):
     """Admit one immutable reader without creating a document, view or layout."""
     if input_id is not None and source_pins is None:
         raise ValueError("A registered input ID requires its complete verified source pins")
     if native_metadata is not None and (not input_id or source_pins is None):
         raise ValueError("Declared native metadata requires a verified registered input receipt")
+    conversion = None
+    if Path(input_path).suffix.lower() == '.frd':
+        if input_id is not None or source_pins is not None or native_metadata is not None:
+            raise ValueError('Registered FRD inputs must be converted before registration')
+        from caelab.adapters.native_calculix_results import convert_independent
+        if conversion_directory is None:
+            current = os.environ.get('CAE_POST_PROJECT')
+            root = Path(current).parent if current and Path(current).is_file() else Path.home() / '.caelab' / 'post'
+            conversion_directory = root / 'sources' / ('F' + uuid.uuid4().hex)
+        conversion = convert_independent(input_path, conversion_directory)
+        conversion['source_pins'] = pins([Path(conversion['retained_path'])])
+        display_name = display_name or Path(input_path).name
+        input_path = conversion['entry_path']
     files = source_files(input_path, native_metadata)
     entry = files[0]
     if (native_metadata or {}).get('dynamic_locations') is not None:
@@ -777,6 +828,8 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
                              "sha256": pin["sha256"], "bytes": pin["bytes"]} for pin in pinned], key=lambda row: row['relative'])})}
     if registration_origin is not None:
         record['registration_origin'] = deepcopy(registration_origin)
+    if conversion is not None:
+        record['conversion'] = conversion
     if declaration is not None:
         record.update(native_metadata=declaration, native_metadata_sha256=_metadata_hash(declaration))
     return source, record
@@ -784,10 +837,14 @@ def admit_result(input_path, input_id=None, source_pins=None, native_metadata=No
 
 def open_result(input_path, project_directory, input_id=None, source_pins=None, native_metadata=None, registration_origin=None):
     # Admission is also used by Add result in an already open analysis.
-    source, record = admit_result(input_path, input_id, source_pins, native_metadata, registration_origin)
+    if Path(input_path).suffix.lower() == '.frd' and Path(project_directory).exists():
+        raise FileExistsError('새 결과 프로젝트 폴더를 선택하세요: ' + str(project_directory))
+    conversion = ({'conversion_directory': Path(project_directory).resolve() / 'sources' / ('F' + uuid.uuid4().hex)}
+                  if Path(input_path).suffix.lower() == '.frd' else {})
+    source, record = admit_result(input_path, input_id, source_pins, native_metadata, registration_origin, **conversion)
     record['label'] = Path(input_path).name
     folder = Path(project_directory).resolve()
-    folder.mkdir(parents=True, exist_ok=False)
+    folder.mkdir(parents=True, exist_ok=bool(conversion))
     scene = p.GetAnimationScene()
     scene.UpdateAnimationUsingDataTimeSteps()
     set_time(source)

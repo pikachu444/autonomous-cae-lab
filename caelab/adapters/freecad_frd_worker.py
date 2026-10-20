@@ -11,8 +11,16 @@ def main():
     output = Path(request["output"])
     temporary = output / "native.frd"
     result = {}
+    document = None
     try:
         import FreeCAD
+        if request.get('mode') == 'model_context':
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+            from apps.desktop_pre.native_context import model_snapshot
+            document = FreeCAD.openDocument(request['source'])
+            result['model'] = model_snapshot(document)
+            return
         import Fem
         shutil.copyfile(request["source"], temporary)
         Fem.frdToVTK(str(temporary), False)
@@ -23,6 +31,8 @@ def main():
         result["error"] = str(error)
         traceback.print_exc()
     finally:
+        if document is not None:
+            FreeCAD.closeDocument(document.Name)
         if temporary.is_file():
             temporary.unlink()
         (output / "converted.json").write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")

@@ -37,6 +37,28 @@ def data_document():
             'runs':[{'job_id':'Jimport','input_generation':0,'input_revision':'Idata','input_sha256':'a'*64}]}
 
 
+def test_numerical_model_question_preserves_selected_input_rows(app, monkeypatch):
+    opened = []
+    monkeypatch.setattr('apps.research.selection_discussion.open_discussion',
+        lambda client, **arguments: opened.append(arguments))
+    model = {'id': 'Mmodel', 'generation': 0, 'input_revision': 'Imodel', 'draft': material_draft()}
+    document = {'id': 'Nplan', 'session_id': 'Sowner', 'generation': 0, 'title': 'Plan',
+        'draft': from_material_document(model), 'runs': [], 'diagnostics': [], 'dirty': False}
+    window = NumericalWindow(None, auto_open=False, poll_interval=0)
+    try:
+        window.show()
+        window._show_document(document)
+        window.variables.selectRow(0)
+        window.discuss_action.trigger()
+        wait(app, lambda: not window._busy and bool(opened))
+        assert opened[0]['document']['id'] == document['id']
+        assert opened[0]['job_id'] is None
+        assert opened[0]['selection'] == {'scope': {'kind': 'model', 'variables': [0], 'experiments': []}}
+    finally:
+        window._allow_close = True
+        window.close()
+
+
 def test_failed_result_releases_pending_marker_and_manual_retry(app):
     class Client:
         calls=0

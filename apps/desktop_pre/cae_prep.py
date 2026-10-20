@@ -6,7 +6,9 @@ Run only inside FreeCAD; the launcher gives it a private profile and output fold
 from pathlib import Path
 import hashlib
 import json
+import os
 import shutil
+import subprocess
 import sys
 import time
 import traceback
@@ -71,7 +73,16 @@ def working_copy(path, approved_root=None):
 
 def load(path, approved_root=None):
     started = time.perf_counter()
-    copy, manifest = working_copy(path, approved_root)
+    source = Path(path).resolve(strict=True)
+    if CONFIG.get('entry_mode', 'native') == 'native' and source.suffix.lower() == '.fcstd':
+        copy, manifest = source, {}
+    else:
+        copy, manifest = working_copy(path, approved_root)
+    original = path
+    if (CONFIG.get('source_origin') and CONFIG.get('source')
+            and source == Path(CONFIG['source']).resolve()):
+        original = CONFIG['source_origin']
+        manifest = CONFIG.get('source_manifest') or manifest
     if copy.suffix.lower() == '.fcstd':
         doc = App.openDocument(str(copy))
     else:
@@ -82,7 +93,7 @@ def load(path, approved_root=None):
         doc.saveAs(str(copy.with_suffix('.FCStd')))
     doc.UndoMode = 1
     from apps.desktop_pre.projects import remember_open
-    remember_open(doc, manifest, path)
+    remember_open(doc, manifest, original)
     Gui.activeDocument().activeView().viewAxonometric()
     Gui.activeDocument().activeView().fitAll()
     record('open', document=doc.Name, objects=len(doc.Objects), seconds=time.perf_counter()-started,
@@ -92,7 +103,7 @@ def load(path, approved_root=None):
 
 
 def open_model():
-    path, _ = QtWidgets.QFileDialog.getOpenFileName(Gui.getMainWindow(), '모델 열기 — 원본은 보존됩니다', '',
+    path, _ = QtWidgets.QFileDialog.getOpenFileName(Gui.getMainWindow(), '모델 열기', '',
                                                   'CAD/project (*.caepre *.FCStd *.step *.stp *.iges *.igs);;All files (*)')
     if path:
         try:
@@ -272,9 +283,89 @@ def add_toolbar():
     compare_action.triggered.connect(guarded(compare_mesh_quality))
 
 
+def enable_managed(initial_owners=()):
+    """Opt in to the existing managed tools; a service URL is not consent."""
+    global CONNECTION
+    if CONNECTION is not None:
+        CONNECTION.dock.show()
+        CONNECTION.dock.raise_()
+        return CONNECTION
+    if not CONFIG.get('service_url'):
+        raise ValueError('Workbench에서 모델을 연 뒤 CAE 연구의 저장된 확장 조건 편집을 선택하세요.')
+    file_actions = getattr(Gui.getMainWindow(), '_caelab_native_file_actions', None)
+    if file_actions is not None and not initial_owners:
+        file_actions['reconcile']()
+        initial_owners = tuple(file_actions['owners'])
+    from apps.desktop_pre.connection import Connection
+    from apps.desktop_pre.native_controls import install
+    CONNECTION = Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record,
+                            initial_owners=initial_owners)
+    CONNECTION.guards = install(CONNECTION, guarded(open_model))
+    from apps.desktop_pre.beam_menu import install as install_beam
+    from apps.desktop_pre.dynamic_menu import install as install_dynamic
+    install_beam(CONNECTION)
+    install_dynamic(CONNECTION)
+    from apps.desktop_pre.portable_project import install_file_actions
+    file_actions = install_file_actions(CONFIG, connection=CONNECTION)
+    from apps.desktop_pre.connector_menu import install as install_connectors
+    install_connectors(CONFIG, connection=CONNECTION, file_actions=file_actions)
+    KEEP.append(CONNECTION)
+    return CONNECTION
+
+
+def add_native_actions():
+    menu = Gui.getMainWindow().menuBar().addMenu('CAE 연구')
+    discussion = menu.addAction('선택 대상으로 논의…')
+    discussion.setObjectName('CAELabSelectionDiscussion')
+    discussion.triggered.connect(guarded(discuss_selection))
+    action = menu.addAction('저장된 확장 조건 편집…')
+    action.setObjectName('CAELabManagedConditions')
+    action.triggered.connect(guarded(enable_managed))
+
+
+def discuss_selection():
+    doc = App.ActiveDocument
+    if doc is None:
+        raise ValueError('논의할 FreeCAD 모델을 열고 대상을 선택하세요.')
+    if not CONFIG.get('python') or not CONFIG.get('service_url'):
+        raise ValueError('Workbench에서 모델을 열어 토론 연결을 준비하세요.')
+    from apps.desktop_pre.native_context import model_snapshot
+    selected = [{'object': row.Object.Name, 'subelements': list(row.SubElementNames)}
+                for row in Gui.Selection.getSelectionEx(doc.Name)]
+    scope = {'scope': {'kind': 'native_objects' if selected else 'document', 'objects': selected},
+             'model_snapshot': model_snapshot(doc, selected)}
+    if doc.FileName and Path(doc.FileName).is_file():
+        scope['path'] = str(Path(doc.FileName).resolve())
+    command = [CONFIG['python'], '-m', 'apps.research.selection_discussion',
+               '--service', CONFIG['service_url'], '--selection-stdin']
+    if CONFIG.get('discussion_id'):
+        command.extend(['--discussion', CONFIG['discussion_id']])
+    if CONFIG.get('workbench'):
+        command.extend(['--workbench', json.dumps(CONFIG['workbench'], ensure_ascii=False)])
+    if scope.get('path'):
+        command.append(scope['path'])
+    env = os.environ.copy()
+    for name in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
+        env.pop(name, None)
+    output = Path(CONFIG['output']) / 'discussion.log'
+    with output.open('ab') as log:
+        process = subprocess.Popen(command,
+                                   cwd=repository, env=env, stdin=subprocess.PIPE,
+                                   stdout=log, stderr=log,
+                                   creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+        process.stdin.write(json.dumps(scope, ensure_ascii=False).encode('utf-8'))
+        process.stdin.close()
+    Gui.getMainWindow().statusBar().showMessage('선택한 모델과 설정으로 Expert 대화를 여는 중입니다.')
+    return process
+
+
 def start(config_path):
     global CONFIG
     CONFIG = json.loads(Path(config_path).read_text(encoding='utf-8-sig'))
+    if CONFIG.get('entry_mode', 'native') not in ('native', 'managed'):
+        raise ValueError('Unknown FreeCAD entry mode')
+    if CONFIG.get('input_receipt') and CONFIG.get('entry_mode', 'native') != 'managed':
+        raise ValueError('보존한 계산 입력은 managed 진입으로 여세요.')
     output = Path(CONFIG['output'])
     output.mkdir(parents=True, exist_ok=True)
     def setup():
@@ -286,7 +377,9 @@ def start(config_path):
             Gui.activateWorkbench('FemWorkbench')
             from apps.desktop_pre.native_solver_guard import install as install_solver_guard
             install_solver_guard()
-            add_toolbar()
+            if CONFIG.get('entry_mode', 'native') == 'managed':
+                add_toolbar()
+            add_native_actions()
             for dock in Gui.getMainWindow().findChildren(QtWidgets.QDockWidget):
                 if dock.objectName() in ('Python console', 'Report view'):
                     dock.hide()
@@ -309,32 +402,24 @@ def start(config_path):
             if Gui.activeDocument() and opened_native_owner is None:
                 Gui.activeDocument().activeView().viewAxonometric()
                 Gui.activeDocument().activeView().fitAll()
-            if CONFIG.get('service_url'):
-                from apps.desktop_pre.connection import Connection
-                from apps.desktop_pre.native_controls import install
-                CONNECTION = Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record,
-                                        initial_owners=(() if opened_native_owner is None else (opened_native_owner,)))
-                CONNECTION.guards = install(CONNECTION, guarded(open_model))
-                from apps.desktop_pre.beam_menu import install as install_beam
-                install_beam(CONNECTION)
-                from apps.desktop_pre.dynamic_menu import install as install_dynamic
-                install_dynamic(CONNECTION)
-                KEEP.append(CONNECTION)
+            if CONFIG.get('entry_mode', 'native') == 'managed':
+                enable_managed(() if opened_native_owner is None else (opened_native_owner,))
                 if CONFIG.get('input_receipt'):
                     owner = CONNECTION.active_owner()
                     owner.project.open(CONFIG['input_receipt'])
                     CONNECTION.tick()
             from apps.desktop_pre.portable_project import install_file_actions
-            native_file_actions = install_file_actions(CONFIG, connection=CONNECTION)
-            from apps.desktop_pre.connector_menu import install as install_connectors
-            install_connectors(CONFIG, connection=CONNECTION, file_actions=native_file_actions)
+            native_file_actions = install_file_actions(CONFIG, connection=CONNECTION, owner=opened_native_owner)
+            if CONNECTION is not None:
+                from apps.desktop_pre.connector_menu import install as install_connectors
+                install_connectors(CONFIG, connection=CONNECTION, file_actions=native_file_actions)
             def final_view():
                 if Gui.activeDocument() and opened_native_owner is None:
                     Gui.activeDocument().activeView().viewAxonometric()
                     Gui.activeDocument().activeView().fitAll()
             QtCore.QTimer.singleShot(1500, final_view)
             update_caption()
-            Gui.getMainWindow().statusBar().showMessage('CAD·FEM 편집 · 계산 입력 동결 · 원본/이전 결과 보존')
+            Gui.getMainWindow().statusBar().showMessage('FreeCAD FEM에서 모델을 편집하고 저장·계산하세요.')
             record('ready', freecad='.'.join(App.Version()[:3]), commands=list(Gui.listCommands()))
         except Exception:
             record('startup_error', error=traceback.format_exc())

@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from caelab.assist.knowledge import selected_source_refs
+from caelab.assist.knowledge import TEXT_EXTENSIONS, selected_source_refs
 from caelab.assist.experts import ExpertRuntime, RuntimeConfig
 from caelab.discussion_document import default_draft
 from caelab.workbench import Workbench
@@ -17,6 +17,33 @@ def pins(*documents):
     return {'selected_sources': [{'document_id': doc['document_id'], 'revision': doc['revision']}
                                  for doc in documents],
             'selected_document_ids': [doc['document_id'] for doc in documents]}
+
+
+@pytest.mark.parametrize('suffix', sorted(TEXT_EXTENSIONS))
+def test_uploaded_solver_text_is_read_through_existing_knowledge_archive(tmp_path, suffix):
+    import hashlib
+    text='*HEADING\r\n해석 입력과 진단\r\nINCREMENT 2: residual = 1.25e-6\r\n'
+    payload=text.encode('utf-8')
+    wb=Workbench(tmp_path/'store')
+    try:
+        upload=wb.upload('사용자 해석'+suffix,payload)
+        job=wb.submit('knowledge.ingest',{'data_id':upload['id'],'collection':'research'})
+        deadline=time.monotonic()+10
+        while wb.manager.status(job['id'])['state'] not in {'SUCCEEDED','FAILED'} and time.monotonic()<deadline:
+            time.sleep(.005)
+        assert wb.manager.status(job['id'])['state']=='SUCCEEDED'
+        result=wb.manager.result(job['id'])
+        source=wb.assistance_call('knowledge.source',
+            {'document_id':result['document_id'],'revision':result['revision']})
+        assert ''.join(row['text'] for row in source['segments'])==text
+        assert source['sha256']==hashlib.sha256(payload).hexdigest()
+        original=wb.assistance().knowledge.root/result['document_id']/'1'/('original'+suffix)
+        assert original.read_bytes()==payload and wb.input_path(upload['id']).read_bytes()==payload
+        assert source['segments'][0]['locator']['line_start']==1
+        assert source['segments'][-1]['locator']['line_end']==3
+        assert [item['operation'] for item in wb.manager.list()]==['knowledge.ingest']
+    finally:
+        assert wb.shutdown()['joined']
 
 
 def test_exact_revision_search_source_and_same_collection_isolation(tmp_path):

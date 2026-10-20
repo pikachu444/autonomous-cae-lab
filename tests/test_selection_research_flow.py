@@ -128,6 +128,38 @@ def test_context_exposes_actual_native_convergence_logs_without_execution(tmp_pa
         assert wb.shutdown()['joined']
 
 
+def test_independent_file_context_history_save_restart_has_no_execution(tmp_path):
+    source = tmp_path / 'user.inp'
+    source.write_text('*NODE\n1,0,0,0\n*STEP\n*STATIC\n*END STEP\n')
+    log = source.with_suffix('.cvg')
+    log.write_text('ITERATION 4 RESIDUAL 0.17\n')
+    with running(LabService(tmp_path / 'store')) as transport:
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        wb = transport.server.workbench
+        workspace = wb.workspace
+        selection = {'path': str(source), 'scope': {'step': 1}}
+        observed = client.engineering_context(selection=selection)
+        assert 'job_id' not in observed
+        assert observed['source']['scope'] == {'step': 1}
+        first = client.selection_discussion(session_id=wb.session_id, command_id='Cinput',
+            selection=selection, workbench={'model': {'original_path': str(source), 'saved_path': str(source)}})['document']
+        log.write_text('ITERATION 5 RESIDUAL 0.12\n')
+        second = client.selection_discussion(session_id=wb.session_id, command_id='Cupdated',
+            selection=selection, discussion_id=first['id'])['document']
+        context = second['draft']['context']
+        assert '0.17' in context['engineering_context_history'][0]['logs'][0]['text']
+        assert '0.12' in context['engineering_context']['logs'][0]['text']
+        assert context['workbench']['model']['saved_path'] == str(source)
+        assert wb.manager.list() == []
+        identifier = second['id']
+    reopened = Workbench(workspace)
+    try:
+        assert reopened.document_read(identifier)['draft']['context'] == context
+        assert reopened.manager.list() == []
+    finally:
+        assert reopened.shutdown()['joined']
+
+
 def test_product_modules_do_not_import_test_or_example_code():
     root = Path(__file__).resolve().parents[1]
     violations = []

@@ -84,11 +84,11 @@ def test_native_solver_entry_writer_and_existing_task_reject_omitted_saved_condi
     before = api.saved.Definition
     assert api.view.setEdit(NS(Object=api.solver)) is False
     assert api.warnings[-1][0] == 'native-main-window'
-    assert '사용자 해석' in api.warnings[-1][2] and '계산 관리' in api.warnings[-1][2]
-    with pytest.raises(ValueError, match='사용자 해석.*계산 관리'):
+    assert '사용자 해석' in api.warnings[-1][2] and '저장된 확장 조건 편집' in api.warnings[-1][2]
+    with pytest.raises(ValueError, match='사용자 해석.*저장된 확장 조건 편집'):
         api.writer.write_solver_input()
     assert api.task.runCalculix() is None
-    assert api.errors[-1][1] == 'Error' and '계산 관리' in api.errors[-1][0]
+    assert api.errors[-1][1] == 'Error' and '저장된 확장 조건 편집' in api.errors[-1][0]
     assert not api.calls
     assert api.saved.Definition == before
     assert api.analysis.Group == [api.solver] and api.solver.MaterialNonlinearity == 'nonlinear'

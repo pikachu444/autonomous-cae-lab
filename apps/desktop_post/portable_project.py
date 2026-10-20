@@ -151,6 +151,7 @@ def finalize_saved_history(project, document, *, owner=None):
     roots = {Path(project).parent.resolve()}
     for record in document.get('sources', {}).values():
         roots.update(Path(pin['path']).resolve().parent for pin in record['source_pins'])
+        roots.update(Path(pin['path']).resolve().parent for pin in record.get('conversion', {}).get('source_pins', []))
     roots.update(Path(path).resolve().parent for path in document.get('native_reader_files', {}))
     if document.get('native_import'):
         roots.add(Path(document['native_import']['state_pin']['path']).resolve().parent)
@@ -562,6 +563,12 @@ def _project_paths(document, relocate, *, preserve_histories=()):
             source['input_paths'] = [relocate(path) for path in source['input_paths']]
         for pin in source['source_pins']:
             pin['path'] = relocate(pin['path'])
+        conversion = source.get('conversion')
+        if conversion:
+            conversion['entry_path'] = source['entry_path']
+            conversion['retained_path'] = relocate(conversion['retained_path'])
+            for pin in conversion.get('source_pins', []):
+                pin['path'] = relocate(pin['path'])
     document['native_reader_files'] = {relocate(path): hashed for path, hashed in document.get('native_reader_files', {}).items()}
     for reader in document.get('native_readers', []):
         reader['input_paths'] = [relocate(path) for path in reader['input_paths']]

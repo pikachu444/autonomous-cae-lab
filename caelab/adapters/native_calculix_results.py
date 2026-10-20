@@ -10,7 +10,7 @@ from ..storage import load_json, save_json
 from .vtu import data_array
 
 
-def inspect_frd(path):
+def inspect_frd(path, *, require_displacement=True):
     """Observe record coverage so the native converter cannot fill missing data with zero.
 
     FreeCAD FemVTKTools.cpp initializes arrays with zero. This reader retains
@@ -34,10 +34,12 @@ def inspect_frd(path):
             elif line.startswith("  100C"):
                 value = float(line[12:24])
                 count = int(line[24:36])
+                analysis_type = line[56:58].strip()
                 increment = int(line[58:63])
                 if not math.isfinite(value) or count < 0:
                     raise ValueError("Invalid CalculiX result frame")
-                current = frames.setdefault(increment, {"value": value, "fields": {}})
+                current = frames.setdefault((increment, analysis_type), {
+                    "value": value, "step": increment, "analysis_type": analysis_type, "fields": {}})
                 if current["value"] != value:
                     raise ValueError("CalculiX fields disagree on their output increment")
                 digits = 10 if line[74:75] == "1" else 5
@@ -47,7 +49,7 @@ def inspect_frd(path):
                 name = parts[1]
                 if name in current["fields"]:
                     raise ValueError("Duplicate CalculiX field in one output increment")
-                field = {"name": name, "ids": set(), "arrays": set(), "expected": count}
+                field = {"name": name, "ids": set(), "arrays": set(), "components": {}, "expected": count}
                 current["fields"][name] = field
             elif parts[0] == "-5" and field is not None:
                 # Native entity columns: name, menu, type, row, column, existence.
@@ -55,7 +57,9 @@ def inspect_frd(path):
                     raise ValueError("Incomplete CalculiX component declaration")
                 if len(parts) > 6 and parts[6].startswith("1"):
                     continue  # Predefined magnitude has no stored values.
-                field["arrays"].add(parts[1] if parts[3] == "1" or int(parts[4]) < 1 else field["name"])
+                array_name = parts[1] if parts[3] == "1" or int(parts[4]) < 1 else field["name"]
+                field['arrays'].add(array_name)
+                field['components'].setdefault(array_name, []).append(parts[1])
             elif parts[0] == "-1":
                 identifier = int(line[3:3 + digits])
                 if section == "2C":
@@ -78,7 +82,7 @@ def inspect_frd(path):
                 ended = True
     if not ended or not nodes or not frames:
         raise ValueError("CalculiX did not write a complete result file; inspect its original logs")
-    for frame in frames.values():
+    for frame in frames.values() if require_displacement else ():
         displacement = frame["fields"].get("DISP")
         if displacement is None or not set(nodes) <= displacement["ids"]:
             raise ValueError("CalculiX displacement output is missing mesh nodes")
@@ -110,7 +114,12 @@ def convert(frd, output, manifest, *, freecad_executable=None):
     if not math.isclose(frames[-1]["value"], expected_end, rel_tol=5e-6, abs_tol=1e-12):
         raise ValueError("The solver stopped before the requested final static increment; original output is retained")
     post = output / "post"
-    post.mkdir()
+    _convert_native(frd, post, freecad_executable=freecad_executable)
+    return publish_conversion(post, manifest, node_ids, frames)
+
+
+def _convert_native(frd, post, *, freecad_executable=None):
+    post.mkdir(parents=True)
     request = post / "conversion.json"
     save_json(request, {"source": str(frd.resolve()), "output": str(post.resolve())})
     worker = Path(__file__).with_name("freecad_frd_worker.py")
@@ -125,10 +134,25 @@ def convert(frd, output, manifest, *, freecad_executable=None):
     receipt = load_json(post / "converted.json")
     if receipt.get("error"):
         raise ValueError(receipt["error"])
-    return publish_conversion(post, manifest, node_ids, frames)
 
 
-def publish_conversion(post, manifest, node_ids, frames):
+def convert_independent(frd, output, *, freecad_executable=None):
+    """Convert observed output without assigning a model's units or run status."""
+    frd, output = Path(frd).resolve(strict=True), Path(output)
+    output.mkdir(parents=True, exist_ok=False)
+    retained = output / frd.name
+    shutil.copyfile(frd, retained)
+    node_ids, frames = inspect_frd(retained, require_displacement=False)
+    post = output / 'post'
+    _convert_native(retained, post, freecad_executable=freecad_executable)
+    result = publish_conversion(post, {}, node_ids, frames, managed=False)
+    return {'entry_path': str(post / 'results.pvd'), 'original_path': str(frd),
+            'retained_path': str(retained), 'summary': result['native_field_summary'],
+            'output_increment_count': len(frames), 'execution_status': None,
+            'units': None, 'time_semantics': None}
+
+
+def publish_conversion(post, manifest, node_ids, frames, *, managed=True):
     """Index native VTU blocks without rebuilding or approximating their topology."""
     files = []
     for path in sorted(Path(post).rglob("*.vtu")):
@@ -138,12 +162,16 @@ def publish_conversion(post, manifest, node_ids, frames):
             raise ValueError("FreeCAD result has no native output increment value")
         files.append((float(time.text.strip()), path, tree))
     files.sort(key=lambda row: row[0])
+    ordered_frames = sorted(frames, key=lambda frame: frame['value'])
     if len(files) != len(frames):
         raise ValueError("FreeCAD conversion omitted or duplicated a solver output increment")
     collection = ET.Element("VTKFile", type="Collection", version="0.1", byte_order="LittleEndian")
     datasets = ET.SubElement(collection, "Collection")
-    final_arrays, vectors, coordinates, field_summary = [], [], [], []
-    for (value, path, tree), frame in zip(files, frames):
+    final_arrays, vectors, coordinates, field_summary, frame_summaries = [], [], [], [], []
+    if not managed and any(b['value'] <= a['value'] for a, b in zip(ordered_frames, ordered_frames[1:])):
+        raise ValueError('Repeated FRD output coordinates cannot be represented unambiguously by this PVD reader; open the native VTM result in ParaView')
+    for (value, path, tree), frame in zip(files, ordered_frames if not managed else frames):
+        vectors = []
         if not math.isclose(value, frame["value"], rel_tol=1e-6, abs_tol=1e-12):
             raise ValueError("FreeCAD output increment differs from the native result")
         piece = tree.find(".//Piece")
@@ -171,10 +199,17 @@ def publish_conversion(post, manifest, node_ids, frames):
                     values[i * width:(i + 1) * width] = [math.nan] * width
                 point_data.remove(array)
                 array = data_array(point_data, name, values, width)
+            component_names = field.get('components', {}).get(name, [])
+            if len(component_names) == width:
+                for i, component_name in enumerate(component_names):
+                    array.set('ComponentName' + str(i), component_name)
             unit, measure = _field_meaning(field["name"], name)
             arrays.append({"name": name, "association": "POINTS", "components": width,
-                           "units": unit, "frame": "FREECAD_DOCUMENT_GLOBAL" if field["name"] != "CONTACT" else "CONTACT_LOCAL",
+                           "units": unit if managed else None,
+                           "frame": ("FREECAD_DOCUMENT_GLOBAL" if field["name"] != "CONTACT" else "CONTACT_LOCAL") if managed else None,
                            "measure": measure})
+            if len(component_names) == width:
+                arrays[-1]['component_names'] = component_names
             ranges = []
             for component in range(width):
                 column = values[component::width]
@@ -184,7 +219,7 @@ def publish_conversion(post, manifest, node_ids, frames):
                                "finite_count": len(finite), "missing_count": len(column) - len(finite)})
             field_summary.append({**arrays[-1], "ranges": ranges})
             if name == "DISP":
-                if width != 3 or not all(math.isfinite(v) for v in values):
+                if managed and (width != 3 or not all(math.isfinite(v) for v in values)):
                     raise ValueError("Native displacement contains failed or missing values")
                 vectors = [values[i:i + 3] for i in range(0, len(values), 3)]
         data_array(point_data, "NativeNodeId", node_ids, integer=True)
@@ -197,10 +232,20 @@ def publish_conversion(post, manifest, node_ids, frames):
         xyz = [float(v) for v in position.text.split()]
         coordinates = [xyz[i:i + 3] for i in range(0, len(xyz), 3)]
         final_arrays = arrays
-    if not vectors:
+        frame_summaries.append({**{key: frame.get(key) for key in ('value', 'step', 'analysis_type')},
+                                'fields': field_summary})
+    if managed and not vectors:
         raise ValueError("No readable native displacement field was returned")
     path = Path(post) / "results.pvd"
     ET.ElementTree(collection).write(path, encoding="utf-8", xml_declaration=True)
+    if not managed:
+        return {'native_field_summary': {'output_value': frame_summaries[-1]['value'],
+            'output_values': [frame['value'] for frame in frame_summaries],
+            'native_output_order': [{key: frame.get(key) for key in ('value', 'step', 'analysis_type')} for frame in frames],
+            'time_units': None,
+            'frames': frame_summaries,
+            'time_semantics': None, 'association': 'POINTS', 'fields': field_summary,
+            'limitations': 'Units, coordinate basis, clock meaning and solver completion are not established by this FRD file.'}}
     metadata = {"coordinate_units": "mm", "coordinate_frame": "FREECAD_DOCUMENT_GLOBAL", "static": None,
                 "time": {"unit": "1", "semantics": "STATIC_LOAD_PARAMETER", "values": [frame["value"] for frame in frames]},
                 "arrays": final_arrays}

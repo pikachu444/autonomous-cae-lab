@@ -31,7 +31,8 @@ def source_issues(document):
             issues.append({'source_ref': ref, 'input_id': record.get('input_id'),
                            'reader_name': record['reader_name'], 'message': str(error),
                            'code': 'MISSING_DEPENDENCY' if any(not Path(pin['path']).is_file()
-                               for pin in record.get('source_pins', [])) else 'CONTENT_CHANGED'})
+                               for pin in [*record.get('source_pins', []),
+                                           *record.get('conversion', {}).get('source_pins', [])]) else 'CONTENT_CHANGED'})
     return issues
 
 

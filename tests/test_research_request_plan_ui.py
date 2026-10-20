@@ -74,6 +74,35 @@ def valid_request():
         'inputs': material_draft(), 'budget': {'evaluations': 1}})
 
 
+@pytest.mark.parametrize('same_model', [False, True])
+def test_plan_reopens_bound_native_model_or_its_relinked_save(app, workbench, monkeypatch, same_model):
+    client = InProcessClient(workbench)
+    draft = valid_request()
+    draft['source'] = {'discussion_id': 'Xsource', 'job_id': 'Jsource'}
+    model = {'original_path': 'C:/models/original.FCStd', 'saved_path': 'C:/models/saved.FCStd'}
+    latest = {'original_path': model['original_path'] if same_model else 'C:/models/other.FCStd',
+              'saved_path': 'C:/models/relocated.FCStd'}
+    read = client.document_read
+    client.document_read = lambda identifier: ({'id': 'Xsource',
+        'draft': {'context': {'workbench': {'model': latest}}}, 'runs': [{'job_id': 'Jsource',
+        'draft': {'context': {'workbench': {'model': model}}}}]} if identifier == 'Xsource' else read(identifier))
+    opened = []
+    monkeypatch.setattr('apps.research.desktop.launch_pre',
+        lambda client, **kwargs: opened.append(kwargs) or {'status': 'LAUNCH_REQUESTED'})
+    window = RequestPlanWindow(client, auto_open=False, poll_interval=0)
+    try:
+        window.open_document(draft=draft)
+        wait(app, lambda: window.document is not None and not window._busy)
+        window.model_open_button.click()
+        wait(app, lambda: not window._busy and bool(opened))
+        assert opened[0]['source'] == (latest['saved_path'] if same_model else model['saved_path'])
+        assert opened[0]['discussion_id'] == 'Xsource'
+        assert workbench.manager.list() == []
+    finally:
+        window._allow_close = True
+        window.close()
+
+
 @pytest.mark.parametrize('backend',['structure.calculix.frozen','structure.calculix.contact','structure.calculix.pretension'])
 def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, monkeypatch, backend):
     client = InProcessClient(workbench)

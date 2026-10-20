@@ -947,35 +947,39 @@ foreach ($command in $commands) {
                 "Sobol sampling/analysis package imports OK; no study executed"):
             self.assertIn("".join(message.split()), output)
 
-    def test_default_prepares_qt_before_one_service_and_runner(self):
-        result, events, spec = self.run_case([self.phase()])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        actions = [event["kind"] for event in events if event["kind"] != "health"]
-        self.assertEqual(actions, ["install", "server", "desktop"])
-        self.assertIs(events[0]["ResearchUI"], True)
-        desktop = self.events_of(events, "desktop")[0]
-        self.assertEqual(desktop["argv"], ["--service", "http://127.0.0.1:8877", "runner"])
-        self.assertEqual(desktop["cwd"], spec["source"])
-        server = self.events_of(events, "server")[0]
-        self.assertIn('"' + spec["store"] + '"', server["argv"])
+    def test_default_prepares_qt_before_one_service_and_workbench(self):
+        for entry in ("start-windows.ps1", "start_cae_research.ps1"):
+            with self.subTest(entry=entry):
+                result, events, spec = self.run_case([self.phase(entry)])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                actions = [event["kind"] for event in events if event["kind"] != "health"]
+                self.assertEqual(actions, ["install", "server", "desktop"])
+                self.assertIs(events[0]["ResearchUI"], True)
+                desktop = self.events_of(events, "desktop")[0]
+                self.assertEqual(desktop["argv"], ["--service", "http://127.0.0.1:8877", "workbench"])
+                self.assertEqual(desktop["cwd"], spec["source"])
+                server = self.events_of(events, "server")[0]
+                self.assertIn('"' + spec["store"] + '"', server["argv"])
 
     def test_all_direct_tools_preserve_exact_selection_and_shared_url(self):
-        tools = ("material", "data", "numerical", "pde", "expert",
+        tools = ("workbench", "material", "data", "numerical", "pde", "expert",
                  "runner", "simulation", "evaluation", "study", "report", "connection")
         for entry in ("start-windows.ps1", "start_cae_research.ps1"):
             for tool in tools:
                 with self.subTest(entry=entry, tool=tool):
                     key, flag, value = (("JobId", "--job-id", "Jexact_02") if tool == "runner"
                                         else ("DocumentId", "--document-id", "Dexact_02"))
+                    selection = {} if tool == "workbench" else {key: value}
                     result, events, spec = self.run_case([
-                        self.phase(entry, Tool=tool.upper(), **{key: value})])
+                        self.phase(entry, Tool=tool.upper(), **selection)])
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(len(self.events_of(events, "install")), 1)
                     self.assertEqual(len(self.events_of(events, "server")), 1)
                     desktops = self.events_of(events, "desktop")
                     self.assertEqual(len(desktops), 1)
                     self.assertEqual(desktops[0]["argv"],
-                                     ["--service", "http://127.0.0.1:8877", tool, flag, value])
+                                     ["--service", "http://127.0.0.1:8877", tool] +
+                                     ([] if tool == "workbench" else [flag, value]))
                     self.assertEqual(desktops[0]["cwd"], spec["source"])
 
     def test_report_reuses_service_and_opens_exact_saved_document(self):
@@ -1002,6 +1006,7 @@ foreach ($command in $commands) {
             (self.phase(InstallOnly=True), False, False, False),
             (self.phase(InstallOnly=True, PrepareOnly=True), False, False, False),
             (self.phase(InstallOnly=True, ResearchUI=True), True, False, False),
+            (self.phase("start_cae_research.ps1", PrepareOnly=True), True, True, True),
             (self.phase("start_cae_research.ps1", PrepareOnly=True,
                         Tool="Numerical", DocumentId="Dexact_02"), True, True, True),
             (self.phase("start_cae_research.ps1", PrepareOnly=True,
@@ -1025,7 +1030,7 @@ foreach ($command in $commands) {
                     value = receipts[0]["value"]
                     self.assertEqual(value["ServiceUrl"], "http://127.0.0.1:8877")
                     self.assertEqual(value["Python"], str(self.runtime / "venv/Scripts/python.exe"))
-                    self.assertEqual(value["Tool"], phase["options"].get("Tool", "runner"))
+                    self.assertEqual(value["Tool"], phase["options"].get("Tool", "workbench"))
                     for key in ("DocumentId", "JobId"):
                         self.assertEqual(value[key] or "", phase["options"].get(key, ""))
 
@@ -1075,7 +1080,11 @@ foreach ($command in $commands) {
     def test_wrong_selector_fails_before_install_or_service(self):
         for entry in ("start-windows.ps1", "start_cae_research.ps1"):
             for options in ({"Tool": "runner", "DocumentId": "Dexact_02"},
-                            {"Tool": "data", "JobId": "Jexact_02"}):
+                            {"Tool": "data", "JobId": "Jexact_02"},
+                            {"Tool": "workbench", "JobId": "Jexact_02"},
+                            {"Tool": "workbench", "DocumentId": "Dexact_02"},
+                            {"Tool": "workbench", "JobId": ""},
+                            {"Tool": "workbench", "DocumentId": ""}):
                 with self.subTest(entry=entry, options=options):
                     result, events, _ = self.run_case([self.phase(entry, **options)])
                     self.assertNotEqual(result.returncode, 0)
@@ -1090,7 +1099,7 @@ foreach ($command in $commands) {
                 self.assertEqual(len(self.events_of(events, "desktop")), 1)
                 # Windows PowerShell may wrap Write-Error even within a word.
                 diagnostic = "".join(result.stderr.split()).lower()
-                self.assertIn("runnerdesktopexitedwithcode17.", diagnostic)
+                self.assertIn("workbenchdesktopexitedwithcode17.", diagnostic)
 
     def run_cmd_with_open_stdin(self, arguments, folder, environment):
         # Keep stdin open through wait(): communicate() would close it and hide pause bugs.

@@ -352,6 +352,10 @@ class ExpertWindow(QMainWindow):
         self.selected_sources.setMaximumHeight(140)
         self.selected_sources.currentRowChanged.connect(self._update_actions)
         source_layout.addWidget(self.selected_sources)
+        self.source_scope_notice = QLabel()
+        self.source_scope_notice.setWordWrap(True)
+        self.source_scope_notice.hide()
+        source_layout.addWidget(self.source_scope_notice)
         actions = QHBoxLayout()
         self.source_open, self.source_remove = QPushButton('원문 읽기'), QPushButton('제거')
         self.source_open.clicked.connect(self.read_selected_source)
@@ -1516,6 +1520,21 @@ class ExpertWindow(QMainWindow):
         self.allow_sources.blockSignals(True)
         self.allow_sources.setChecked(bool(refs) and all(reference in grants for reference in refs))
         self.allow_sources.blockSignals(False)
+        self._update_source_scope()
+
+    def _update_source_scope(self):
+        if not hasattr(self, 'source_scope_notice'):
+            return
+        context = (self._buffer or {}).get('context', {})
+        collections = {self._source_collections.get(ref.get('document_id'))
+                       for ref in context.get('selected_sources', []) if isinstance(ref, dict)} - {None}
+        selected = {self.roles.item(row).data(Qt.ItemDataRole.UserRole) for row in range(self.roles.count())
+                    if self.roles.item(row).checkState() == Qt.CheckState.Checked}
+        missing = [role.get('label') or role.get('name') or role['id'] for role in self._registry
+                   if role['id'] in selected and collections - set(role.get('collections', []))]
+        self.source_scope_notice.setText('선택 자료 일부를 읽을 수 없는 역할: ' + ', '.join(missing) +
+            '. 연결 설정에서 보관함을 확인하거나 참고 자료에서 읽기 범위에 맞는 자료를 선택하세요.' if missing else '')
+        self.source_scope_notice.setVisible(bool(missing))
 
     def refresh_source_titles(self):
         if self._closed or not self.document:
@@ -1789,6 +1808,7 @@ class ExpertWindow(QMainWindow):
     def _update_actions(self, *_):
         if self._closed:
             return
+        self._update_source_scope()
         present = self.document is not None
         enabled = present and not self._busy and not self._source_choosing and not self.conflict and not getattr(self, '_incoming_review', False)
         if enabled and self._source_titles_pending:

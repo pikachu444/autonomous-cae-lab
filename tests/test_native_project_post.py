@@ -68,6 +68,28 @@ def test_registered_copy_opens_without_original_folder_and_detects_raw_tamper(tm
         verify_registered(new_context, reference)
 
 
+def test_converted_frd_original_is_packaged_and_relocated_with_the_result(tmp_path):
+    project, document = saved_project(tmp_path / 'source')
+    original_frd = write(project.parent / 'native' / 'user.frd', b'actual FRD bytes\x00\xff')
+    from caelab.native_post_dependencies import file_pin
+    document['sources']['A']['conversion'] = {
+        'entry_path': document['sources']['A']['entry_path'], 'original_path': 'C:/user-model/calculation.frd',
+        'retained_path': str(original_frd), 'source_pins': [file_pin(original_frd)],
+        'summary': {'time_units': None}, 'execution_status': None}
+    project.write_text(json.dumps(document), encoding='utf-8')
+    context, reference = registered(tmp_path, project)
+    project.parent.rename(tmp_path / 'original-unavailable')
+    prepared = ticket(context, reference)
+    derived = json.loads(Path(prepared.derived['project_path']).read_text(encoding='utf-8'))
+    conversion = derived['sources']['A']['conversion']
+    assert conversion['original_path'] == 'C:/user-model/calculation.frd'
+    assert conversion['entry_path'] == derived['sources']['A']['entry_path']
+    assert conversion['source_pins'][0]['path'] == conversion['retained_path']
+    assert Path(conversion['retained_path']).is_relative_to(prepared.binding.working_root)
+    assert Path(conversion['retained_path']).read_bytes() == b'actual FRD bytes\x00\xff'
+    assert conversion['execution_status'] is None
+
+
 def test_declared_partial_and_raw_pvsm_require_explicit_actions(tmp_path):
     project, document = saved_project(tmp_path / 'source')
     Path(document['sources']['B']['entry_path']).unlink()

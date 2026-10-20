@@ -9,6 +9,9 @@ import re
 import threading
 import uuid
 
+TEXT_EXTENSIONS = frozenset({'.md', '.markdown', '.txt', '.csv', '.dat', '.asc', '.json',
+                             '.log', '.sta', '.cvg', '.inp', '.out', '.mess', '.comm'})
+
 
 def selected_source_refs(context):
     """Exact source pins for a new request; saved legacy drafts remain readable."""
@@ -61,10 +64,14 @@ def read_segments(path, *, data=None):
             else:
                 failed.append({'page': number, 'reason': 'No extractable text; OCR was not performed.'})
         return segments, failed
-    if suffix not in {'.md', '.markdown', '.txt', '.csv'}:
-        raise ValueError('Supported sources: PDF, Markdown, UTF-8 text and CSV')
-    with io.TextIOWrapper(io.BytesIO(data), encoding='utf-8') as stream:
+    if suffix not in TEXT_EXTENSIONS:
+        raise ValueError('Supported sources: PDF, Markdown, CSV and UTF-8 solver text')
+    with io.TextIOWrapper(io.BytesIO(data), encoding='utf-8', newline='') as stream:
         text = stream.read()
+    if any((ord(char) < 32 and char not in '\t\n\r\f') or 127 <= ord(char) < 160 for char in text):
+        raise ValueError('Select plain UTF-8 text; binary/control bytes are not supported')
+    if not text.strip():
+        raise ValueError('Select a nonempty UTF-8 text source')
     section, start, lines, segments = '', 1, [], []
     def flush(end):
         if ''.join(lines).strip():

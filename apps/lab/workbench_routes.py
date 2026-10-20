@@ -143,9 +143,14 @@ def handle(handler,method,path,query):
                 raise ServiceError(400,'Choose the current Plan and its model input command')
             return handler._json(200,workbench.desktop.native_plan_input(**body))
         if path=='/api/workbench/selection-discussion':
-            if set(body)-{'session_id','command_id','document_id','job_id','expected_generation'}:
+            if set(body)-{'session_id','command_id','document_id','job_id','expected_generation',
+                          'selection','source_refs','discussion_id','workbench'}:
                 raise ServiceError(400,'Unknown discussion selection')
             return handler._json(200,workbench.desktop.selection_discussion(**body))
+        if path=='/api/workbench/engineering-context':
+            if set(body) != {'selection'} or not isinstance(body['selection'], dict):
+                raise ServiceError(400,'Select the model, input, log or result to read')
+            return handler._json(200,workbench.engineering_context(selection=body['selection']))
         if path=='/api/workbench/domain-plan':
             if set(body)!={'document_id','session_id','expected_generation','command_id'}:
                 raise ServiceError(400,'Select the exact source owner generation')

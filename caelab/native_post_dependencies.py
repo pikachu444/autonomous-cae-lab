@@ -791,6 +791,23 @@ def post_project_files(project_path, *, approved_roots, limits, _replacements=No
         for ref, record in document.get('sources', {}).items():
             groups.append([str(Path(pin['path']).resolve()) for pin in record['source_pins']])
             dataset(record['entry_path'], record['source_pins'], 'source', entry_member, 'sources/' + ref + '/entry_path')
+            conversion_pins = record.get('conversion', {}).get('source_pins', [])
+            if conversion_pins:
+                groups.append([str(Path(record['entry_path']).resolve()),
+                               *[str(Path(pin['path']).resolve()) for pin in conversion_pins]])
+            for index, pin in enumerate(conversion_pins):
+                field = 'sources/%s/conversion/source_pins/%d/path' % (ref, index)
+                locator = {'codec': 'post_manifest_v1', 'field': field}
+                try:
+                    child = add(pin['path'], 'source_data', pin)
+                except FileNotFoundError:
+                    child = None
+                    unavailable.append({'parent_member': entry_member, 'locator': locator,
+                        'expected_child': {'relative': 'pending/' + Path(pin['path']).name,
+                                           'bytes': pin['bytes'], 'sha256': pin['sha256']},
+                        'required': True, 'code': 'MISSING_DEPENDENCY'})
+                    issues.append({'code': 'MISSING_DEPENDENCY', 'path': pin['path']})
+                edge(entry_member, child, locator, pin['path'])
             try:
                 companions = declared_companions(record['entry_path'], record.get('native_metadata'),
                     record.get('registration_origin'), record['source_pins'])

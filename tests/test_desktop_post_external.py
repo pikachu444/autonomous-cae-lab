@@ -170,6 +170,68 @@ def test_new_document_title_uses_input_filename(native, tmp_path):
     assert json.loads(project.read_text(encoding='utf-8'))['title'] == entry.name
 
 
+def test_independent_frd_open_uses_converter_and_retains_original_without_declared_units(native, tmp_path, monkeypatch):
+    _, _, external = native
+    frd = tmp_path / 'calculation.frd'; frd.write_bytes(b'actual native source')
+    converted = pvd_files(tmp_path)
+    def convert(source, output):
+        assert Path(source) == frd
+        output.mkdir(parents=True)
+        retained = output / 'calculation.frd'; retained.write_bytes(frd.read_bytes())
+        return {'entry_path': str(converted), 'original_path': str(frd), 'retained_path': str(retained),
+                'summary': {'time_units': None}, 'execution_status': None}
+    monkeypatch.setattr('caelab.adapters.native_calculix_results.convert_independent', convert)
+    project = external.open_result(frd, tmp_path / 'analysis')
+    doc = json.loads(project.read_text(encoding='utf-8'))
+    record = doc['sources']['result']
+    assert doc['title'] == frd.name and record['label'] == frd.name
+    assert record['conversion']['execution_status'] is None
+    assert record['metadata']['coordinate_units'] is None and 'native_metadata' not in record
+    frd.write_bytes(b'next run same name')
+    external.verify_sources(project, doc)
+    with pytest.raises(FileExistsError):
+        external.open_result(frd, tmp_path / 'analysis')
+    Path(record['conversion']['retained_path']).write_bytes(b'changed retained source')
+    with pytest.raises(RuntimeError, match='Retained FRD'):
+        external.verify_sources(project, doc)
+    from apps.desktop_post import source_repair
+    monkeypatch.setattr(source_repair, 'external', external)
+    assert source_repair.source_issues(doc)[0]['code'] == 'CONTENT_CHANGED'
+    Path(record['conversion']['retained_path']).unlink()
+    assert source_repair.source_issues(doc)[0]['code'] == 'MISSING_DEPENDENCY'
+
+
+def test_selected_context_retains_displayed_array_component_and_native_time(native, tmp_path):
+    fake, _, external = native
+    entry = pvd_files(tmp_path)
+    external.open_result(entry, tmp_path / 'analysis')
+    fake.GetDisplayProperties = lambda source, view: SimpleNamespace(
+        ColorArrayName=['POINTS', 'velocity'], LookupTable=SimpleNamespace(VectorMode='Component', VectorComponent=2))
+    fake.scene.AnimationTime = 1.
+    context = external.selected_context()
+    assert context['path'] == str(entry)
+    assert context['scope']['array'] == 'velocity' and context['scope']['component'] == 2
+    assert context['scope']['time'] == 1. and context['scope']['static'] is None
+    assert 'native_selection' not in context['scope']
+
+
+def test_post_discussion_navigation_uses_primary_runtime_and_original_discussion(tmp_path, monkeypatch):
+    from apps.desktop_post.navigation import discuss_selection
+    import sys
+    calls = []
+    monkeypatch.setattr('apps.desktop_post.navigation.subprocess.Popen',
+        lambda command, **kwargs: calls.append((command, kwargs)) or SimpleNamespace(pid=42))
+    selection = {'path': str(tmp_path / 'native.pvd'), 'scope': {'array': 'STRESS', 'component': 3, 'time': .2}}
+    environment = {'CAE_POST_SERVICE_URL': 'http://127.0.0.1:8766', 'CAELAB_DESKTOP_PYTHON': sys.executable,
+        'CAELAB_REPO_ROOT': str(tmp_path), 'PYTHONPATH': 'foreign-runtime', 'CAELAB_DISCUSSION_ID': 'Eoriginal'}
+    result = discuss_selection({}, selection, environment=environment)
+    command, settings = calls[0]
+    assert command[:3] == [sys.executable, '-m', 'apps.research.selection_discussion']
+    assert json.loads(command[command.index('--selection') + 1]) == selection
+    assert command[-3:] == ['--discussion', 'Eoriginal', selection['path']]
+    assert 'PYTHONPATH' not in settings['env'] and result['pid'] == 42
+
+
 def test_temporal_open_selection_save_restore_and_dependency_guards(native, tmp_path, monkeypatch):
     fake, commands, external = native
     entry = pvd_files(tmp_path)

@@ -83,6 +83,20 @@ def edit(window, path, value):
     QTest.keyClicks(widget, value)
 
 
+def test_selected_property_question_keeps_exact_scope(window, app, monkeypatch):
+    opened = []
+    monkeypatch.setattr('apps.research.selection_discussion.open_discussion',
+        lambda client, **arguments: opened.append(arguments))
+    path = ('settings', 'problem', 'weak_form')
+    window.tree.setCurrentItem(window._nodes[path])
+    window.discuss_action.trigger()
+    settle(app, window, lambda: bool(opened))
+    assert opened[0]['document']['id'] == window.document['id']
+    assert opened[0]['job_id'] is None
+    assert opened[0]['selection'] == {'scope': {'kind': 'model', 'path': path}}
+    assert all(call[0] != 'pde.evaluate' for call in window.client.calls)
+
+
 def test_actual_typed_equation_invalid_save_undo_reopen(window, app):
     window.tree.setCurrentItem(window._nodes[('settings', 'problem', 'weak_form')])
     original = deepcopy(window.document['draft'])

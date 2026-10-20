@@ -205,6 +205,24 @@ def test_converter_preserves_native_topology_and_missing_field_coverage(tmp_path
     assert tree.find('.//DataArray[@Name="CPRESS"]').get('format') == 'binary'
 
 
+def test_independent_converter_retains_missing_fields_without_invented_units_or_completion(tmp_path):
+    post = tmp_path / 'post'; post.mkdir()
+    (post / 'frame.vtu').write_text('''<VTKFile><UnstructuredGrid>
+<FieldData><DataArray Name="TimeValue">0.25</DataArray></FieldData>
+<Piece NumberOfPoints="2" NumberOfCells="1"><PointData>
+<DataArray Name="TEMP" format="ascii">72 0</DataArray></PointData>
+<Points><DataArray>0 0 0 1 0 0</DataArray></Points></Piece></UnstructuredGrid></VTKFile>''')
+    frames = [{'value': .25, 'fields': {'NDTEMP': {'name': 'NDTEMP', 'ids': {3}, 'arrays': {'TEMP'}}}}]
+    result = publish_conversion(post, {}, [3, 9], frames, managed=False)
+    summary = result['native_field_summary']
+    assert summary['output_values'] == [.25]
+    assert summary['time_units'] is None and summary['time_semantics'] is None
+    assert summary['fields'][0]['units'] is None and summary['fields'][0]['frame'] is None
+    assert summary['fields'][0]['ranges'][0] == {
+        'minimum': 72., 'maximum': 72., 'finite_count': 1, 'missing_count': 1}
+    assert 'responses' not in result and 'execution_status' not in result
+
+
 @pytest.mark.parametrize('installation', ['PATH', 'root', 'bin'])
 def test_adapter_runs_split_native_deck_and_uses_native_conversion(native, tmp_path, monkeypatch, installation):
     record = freeze_analysis(native.analysis, native.solver, tmp_path / 'input')
@@ -238,7 +256,7 @@ def test_adapter_runs_split_native_deck_and_uses_native_conversion(native, tmp_p
 
 @pytest.mark.skipif(not os.environ.get('CAELAB_TEST_FREECADCMD'), reason='Native FreeCAD converter is opt-in')
 def test_installed_freecad_converts_original_solver_result(tmp_path, monkeypatch):
-    from caelab.adapters.native_calculix_results import convert
+    from caelab.adapters.native_calculix_results import convert, convert_independent
     monkeypatch.setenv('FREECAD_CMD', os.environ['CAELAB_TEST_FREECADCMD'])
     source = Path(__file__).parent / 'fixtures/calculix_221_structural_family/family.frd'
     result = convert(source, tmp_path, {'steps': [{'period': 1.}], 'verification_case': '없음'})
@@ -246,6 +264,14 @@ def test_installed_freecad_converts_original_solver_result(tmp_path, monkeypatch
     assert len(result['responses']['displacement']['value']) == 80
     assert (tmp_path / 'post/results.pvd').is_file()
     assert result['post_artifact']['native_metadata']['time']['values'] == [1.]
+    standalone = convert_independent(source, tmp_path / 'independent')
+    assert Path(standalone['entry_path']).is_file()
+    assert standalone['units'] is None and standalone['execution_status'] is None
+    summary = standalone['summary']
+    assert summary['output_values'] == [1.]
+    assert summary['frames'][0]['analysis_type'] is not None
+    assert next(row for row in summary['fields'] if row['name'] == 'DISP')['component_names'] == ['D1', 'D2', 'D3']
+    assert Path(standalone['retained_path']).read_bytes() == source.read_bytes()
 
 
 @pytest.mark.parametrize('changed_during_write', [False, True])

@@ -71,6 +71,22 @@ def test_pvd_occurrences_order_and_raw_leaf_bytes(tmp_path):
     assert codec.verify_snapshot_members(snapshot, {row['member_id']: row['source'] for row in result['files']})['complete']
 
 
+def test_frd_provenance_missing_and_changed_bytes_remain_distinct(tmp_path):
+    project, document = saved_project(tmp_path)
+    original = write(tmp_path / 'raw.frd', b'native FRD')
+    document['sources']['A']['conversion'] = {'retained_path': str(original), 'source_pins': [codec.file_pin(original)]}
+    project.write_text(json.dumps(document), encoding='utf-8')
+    result = codec.post_project_files(project, approved_roots=[tmp_path], limits={})
+    assert any(row['source'] == original for row in result['files'])
+    original.unlink()
+    missing = codec.post_project_files(project, approved_roots=[tmp_path], limits={})
+    assert missing['snapshot']['validation']['closure'] == 'DECLARED_PARTIAL'
+    assert any(row['message'] == str(original) and row['code'] == 'MISSING_DEPENDENCY' for row in missing['issues'])
+    original.write_bytes(b'changed result')
+    with pytest.raises(ValueError, match='CONTENT_CHANGED'):
+        codec.post_project_files(project, approved_roots=[tmp_path], limits={})
+
+
 @pytest.mark.parametrize('extension,kind,leaf', [(key, *value) for key, value in codec.PARALLEL.items()])
 def test_parallel_source_attribute_and_unpinned_child(tmp_path, extension, kind, leaf):
     child = write(tmp_path / ('piece' + leaf), b'raw appended leaf\x00\xff')

@@ -26,7 +26,8 @@ def _check(analysis):
         raise ValueError(
             f'{getattr(analysis, "Label", analysis.Name)}: 저장된 {", ".join(conditions)}은 '
             'FreeCAD 솔버 작업창의 입력에 포함되지 않습니다. '
-            '계산 관리에서 입력 파일 생성 또는 입력 보존 후 계산을 선택하세요.')
+            'CAE 연구 ▸ 저장된 확장 조건 편집…에서 해당 조건을 확인하고 '
+            '입력 파일 생성 또는 입력 보존 후 계산을 선택하세요. 미완성 조건은 그대로 보존됩니다.')
 
 
 def install():

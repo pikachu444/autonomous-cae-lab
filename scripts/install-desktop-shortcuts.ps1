@@ -25,7 +25,7 @@ if (-not [IO.File]::Exists($launcher)) {
     throw "Start-CAE-Lab.cmd was not found. Keep the source folder intact: $source"
 }
 $tools = [ordered]@{
-    runner = '실행 관리'; data = '데이터'; material = '재료'; pde = '방정식'
+    workbench = '워크벤치'; runner = '실행 관리'; data = '데이터'; material = '재료'; pde = '방정식'
     numerical = '수치 연구'; expert = '전문가 토론'; simulation = '해석'
     evaluation = '계산 절차'; study = '연구 기록'; report = '보고서'
     pre = '전처리'; post = '후처리'; connection = '문서 연결'

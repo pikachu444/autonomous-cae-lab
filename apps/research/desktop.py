@@ -20,7 +20,7 @@ from caelab.storage import check_id, save_json
 from caelab.workbench_client import Client
 
 
-TOOLS = {'material', 'data', 'numerical', 'pde', 'expert', 'runner', 'simulation', 'evaluation', 'study', 'report', 'connection'}
+TOOLS = {'workbench', 'material', 'data', 'numerical', 'pde', 'expert', 'runner', 'simulation', 'evaluation', 'study', 'report', 'connection'}
 
 
 def _research_context(client):
@@ -58,6 +58,19 @@ def launch_post(client, input_id, job_id=None, parent=None, *, research_source=N
         if not job_id:
             raise ValueError('A retained stage source requires its exact parent job')
         arguments += ['--research-source', json.dumps(research_source, ensure_ascii=False)]
+    return _spawn(client, arguments)
+
+
+def launch_result_file(client, path, *, discussion_id=None, workbench=None):
+    """Open a user-selected result through the existing native Post launcher."""
+    source = Path(path).resolve(strict=True)
+    if not source.is_file() or source.suffix.lower() not in {'.vtu', '.pvd', '.vtt', '.frd'}:
+        raise ValueError('ParaView에서 열 해석 결과 파일을 선택하세요.')
+    arguments = ['post', '--input-path', str(source)]
+    if discussion_id:
+        arguments += ['--discussion-id', check_id(discussion_id)]
+    if workbench is not None:
+        arguments += ['--workbench-context', json.dumps(workbench, ensure_ascii=False)]
     return _spawn(client, arguments)
 
 
@@ -216,12 +229,31 @@ def open_evidence_reference(client, reference):
     raise ValueError('This reference has no supported saved document/result locator; its citation remains visible')
 
 
-def launch_pre(client, source=None, parent=None):
+def launch_pre(client, source=None, parent=None, *, entry_mode='native', discussion_id=None, workbench=None):
     """Start a new editable Pre document, optionally from an exact local source."""
-    arguments = ['pre']
+    if entry_mode not in {'native', 'managed'}:
+        raise ValueError('Choose native FEM editing or the managed research connection')
+    arguments = ['pre', '--entry-mode', entry_mode]
+    if discussion_id:
+        arguments += ['--discussion-id', check_id(discussion_id)]
+    if workbench is not None:
+        arguments += ['--workbench-context', json.dumps(workbench, ensure_ascii=False)]
+    saved_path = None
+    original_path = None
     if source:
-        arguments += ['--source', str(Path(source).resolve(strict=True))]
-    return _spawn(client, arguments)
+        source = Path(source).resolve(strict=True)
+        original_path = str(source)
+        if source.suffix.lower() == '.caepre':
+            from caelab.native_cad import working_copy
+            context = _research_context(client)
+            folder = Path(context['export_root']) / 'desktop' / ('pre-import-' + uuid.uuid4().hex)
+            manifest, source = working_copy(source, folder)
+            manifest_path = folder / 'source-project.json'
+            save_json(manifest_path, manifest)
+            arguments += ['--source-origin', original_path, '--source-manifest', str(manifest_path)]
+        saved_path = str(source)
+        arguments += ['--source', saved_path]
+    return {**_spawn(client, arguments), 'original_path': original_path, 'saved_path': saved_path}
 
 
 def launch_tool(client, tool, job_id=None, document_id=None, parent=None):
@@ -250,6 +282,8 @@ def launch_tool(client, tool, job_id=None, document_id=None, parent=None):
         return _spawn(client, ['post'])
     if tool not in TOOLS:
         raise ValueError('Choose an independently supported research editor or Runner')
+    if tool == 'workbench' and (job_id or document_id):
+        raise ValueError('Workbench opens local files and folders; select jobs in Runner')
     if (tool == 'runner' and document_id) or (tool != 'runner' and job_id):
         raise ValueError('Runner selects a job; research editors select a document')
     if tool in {'material','data','numerical','pde','simulation','evaluation','expert','study','report'} and document_id:
@@ -611,6 +645,7 @@ def _pre(client, args, *, _native_project_ticket=None, _local_context=None):
     executable = _executable(context, 'freecad_executable', args.executable, not args.prepare_only)
     folder = _folder(context, 'pre', args.output)
     config = {'output':str(folder), 'service_url':client.url if client is not None else None,
+              'entry_mode': 'managed' if ticket is not None or getattr(args, 'input_id', None) else getattr(args, 'entry_mode', 'native'),
               'export_root':context['export_root'], 'python':context['python']}
     if ticket is not None:
         config['native_project_open'] = ticket.derived['launch_config']
@@ -635,6 +670,14 @@ def _pre(client, args, *, _native_project_ticket=None, _local_context=None):
             config[name] = str(source)
     if args.source_label:
         config['source_label'] = args.source_label
+    if getattr(args, 'source_origin', None):
+        config['source_origin'] = str(Path(args.source_origin).resolve(strict=True))
+    if getattr(args, 'source_manifest', None):
+        config['source_manifest'] = json.loads(Path(args.source_manifest).read_text(encoding='utf-8'))
+    if getattr(args, 'discussion_id', None):
+        config['discussion_id'] = check_id(args.discussion_id)
+    if getattr(args, 'workbench_context', None):
+        config['workbench'] = json.loads(args.workbench_context)
     if args.gmsh:
         config['gmsh'] = str(Path(args.gmsh).resolve(strict=True))
     else:
@@ -789,8 +832,13 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
         else:
             source = Path(args.input_path).resolve(strict=True)
             command += [str(source), str(workspace)]
+        preparation_environment = os.environ.copy()
+        if args.input_path and Path(args.input_path).suffix.lower() == '.frd':
+            from caelab.adapters.native_calculix_results import _freecad_command
+            preparation_environment['FREECAD_CMD'] = _freecad_command(context.get('freecad_executable'))
         with (folder / 'prepare.stdout.log').open('wb') as stdout, (folder / 'prepare.stderr.log').open('wb') as stderr:
-            completed = subprocess.run(command, cwd=folder, stdout=stdout, stderr=stderr, check=False)
+            completed = subprocess.run(command, cwd=folder, stdout=stdout, stderr=stderr, check=False,
+                                       env=preparation_environment)
         if completed.returncode:
             raise RuntimeError('Native Post preparation failed; inspect ' + str(folder / 'prepare.stderr.log'))
         project = workspace / 'project.json'
@@ -813,6 +861,10 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
         document['origin_job_id'] = check_id(origin_job_id)
         if research_source is not None:
             document['origin_research_source'] = research_source
+    if getattr(args, 'discussion_id', None):
+        document['discussion_id'] = check_id(args.discussion_id)
+    if getattr(args, 'workbench_context', None):
+        document['workbench'] = json.loads(args.workbench_context)
     # Native save_project preserves these top-level fields, allowing an explicit
     # saved/reopened analysis to return to its design through the same helper.
     if not args.project:
@@ -824,12 +876,21 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
         CAE_POST_HOME=str(home), CAE_POST_PROJECT=str(project),
         CAE_POST_LAUNCH_DIR=str(folder),
         CAELAB_DESKTOP_PYTHON=context['python'], CAELAB_REPO_ROOT=context['repo_root'])
+    if context.get('freecad_executable'):
+        from caelab.adapters.native_calculix_results import _freecad_command
+        try:
+            environment['FREECAD_CMD'] = _freecad_command(context['freecad_executable'])
+        except (OSError, ValueError, RuntimeError):
+            pass  # Existing ParaView data remains usable without the optional FRD converter.
     # Prevent an inherited Post origin from attaching itself to an unrelated input.
     environment.pop('CAELAB_ORIGIN_JOB_ID', None)
     environment.pop('CAE_POST_MEASUREMENT', None)
     environment.pop('CAE_POST_REPORT_ORIGIN', None)
     environment.pop('CAE_POST_NATIVE_OPEN', None)
     environment.pop('CAE_POST_SERVICE_URL', None)
+    environment.pop('CAELAB_DISCUSSION_ID', None)
+    if document.get('discussion_id'):
+        environment['CAELAB_DISCUSSION_ID'] = check_id(document['discussion_id'])
     if service_url:
         environment['CAE_POST_SERVICE_URL'] = service_url
     else:
@@ -920,6 +981,11 @@ def _arguments(argv=None):
     pre = sub.add_parser('pre', allow_abbrev=False)
     pre.add_argument('--source'); pre.add_argument('--assembly'); pre.add_argument('--source-label'); pre.add_argument('--gmsh')
     pre.add_argument('--input-id')
+    pre.add_argument('--entry-mode', choices=('native', 'managed'), default='native')
+    pre.add_argument('--source-origin')
+    pre.add_argument('--source-manifest')
+    pre.add_argument('--discussion-id')
+    pre.add_argument('--workbench-context')
     post = sub.add_parser('post', allow_abbrev=False)
     choice = post.add_mutually_exclusive_group()
     choice.add_argument('--measurement-result')
@@ -935,7 +1001,8 @@ def _arguments(argv=None):
     native_selection.add_argument('--project')
     for name in sorted(TOOLS):
         tool = sub.add_parser(name, allow_abbrev=False)
-        tool.add_argument('--job-id' if name == 'runner' else '--document-id')
+        if name != 'workbench':
+            tool.add_argument('--job-id' if name == 'runner' else '--document-id')
         if name == 'material':
             tool.add_argument('--observation')
         elif name == 'data':
@@ -947,6 +1014,8 @@ def _arguments(argv=None):
         tool.add_argument('--native-project-open-id')
     post.add_argument('--job-id')
     post.add_argument('--research-source')
+    post.add_argument('--discussion-id')
+    post.add_argument('--workbench-context')
     return parser.parse_args(argv)
 
 
@@ -990,7 +1059,7 @@ def main(argv=None):
                 raise ValueError('저장한 native Data 작업을 열려면 Data runtime을 설치하세요.')
         from importlib import import_module
         arguments = ['--service', client.url]
-        identifier = args.job_id if args.tool == 'runner' else args.document_id
+        identifier = getattr(args, 'job_id' if args.tool == 'runner' else 'document_id', None)
         if identifier:
             arguments += ['--job-id' if args.tool == 'runner' else '--document-id', check_id(identifier)]
         if args.tool == 'material' and args.observation is not None:

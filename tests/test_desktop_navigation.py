@@ -121,6 +121,28 @@ def test_pre_config_has_service_export_primary_python_and_no_fixture_defaults(cl
     assert 'source' not in config and 'assembly' not in config and 'gmsh' not in config
     assert processes[0][0][0] == str(executable)
     assert '-u' in processes[0][0] and '-s' in processes[0][0]
+    assert config['entry_mode'] == 'native'
+
+
+def test_launch_pre_bundle_returns_actual_editable_path_and_keeps_original(client, processes, tmp_path):
+    from test_pre_project_bundle import fcstd
+    from caelab import native_cad
+    source = fcstd(tmp_path / 'original.FCStd')
+    manifest = {'kind': native_cad.KIND, 'schema_version': 1, 'revision': 1,
+        'entry': 'model.FCStd', 'documents': [{'file': 'model.FCStd',
+            'bytes': source.stat().st_size, 'sha256': native_cad.sha(source)}]}
+    archive = tmp_path / 'saved.caepre'
+    native_cad.publish_project(archive, manifest, {'model.FCStd': source})
+    before = archive.read_bytes()
+    receipt = desktop.launch_pre(client, archive, discussion_id='Xresearch', workbench={'sources': []})
+    saved = Path(receipt['saved_path'])
+    assert saved != archive and saved.is_file() and saved.read_bytes() == source.read_bytes()
+    assert receipt['original_path'] == str(archive)
+    assert archive.read_bytes() == before
+    command = processes[0][0]
+    assert command[command.index('--source') + 1] == str(saved)
+    assert command[command.index('--source-origin') + 1] == str(archive)
+    assert command[command.index('--discussion-id') + 1] == 'Xresearch'
 
 
 @pytest.mark.parametrize('entry', ['FreeCAD.exe', 'bin/FreeCAD.exe', 'bin/freecad'])

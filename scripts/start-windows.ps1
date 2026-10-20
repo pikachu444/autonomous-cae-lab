@@ -11,12 +11,15 @@ param(
     [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
     [ValidateRange(1024,65535)][int]$Port = 8766,
     [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store'),
-    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study','report','connection')][string]$Tool = 'runner',
+    [ValidateSet('workbench','material','data','numerical','pde','expert','runner','simulation','evaluation','study','report','connection')][string]$Tool = 'workbench',
     [string]$DocumentId,
     [string]$JobId,
     [switch]$PrepareOnly
 )
 $ErrorActionPreference = 'Stop'
+if ($Tool -eq 'workbench' -and ($PSBoundParameters.ContainsKey('JobId') -or $PSBoundParameters.ContainsKey('DocumentId'))) {
+    throw 'Workbench does not accept -JobId or -DocumentId. Use -Tool runner for a job or a document editor for a saved document.'
+}
 if ($Tool -eq 'runner' -and $DocumentId) { throw 'Use -JobId to select a Runner job.' }
 if ($Tool -ne 'runner' -and $JobId) { throw 'Use -DocumentId to select a research document.' }
 # The normal desktop and Research PrepareOnly paths prepare Qt automatically.

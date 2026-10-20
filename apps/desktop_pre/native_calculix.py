@@ -28,7 +28,7 @@ for _names, _order in (
         _ORDERS[_name] = _order
 
 
-def read_deck(path):
+def read_sections(path):
     """Read mesh identity and static clock from the writer, retaining all cards.
 
     Material/contact/load syntax remains owned by the installed native writer
@@ -72,6 +72,12 @@ def read_deck(path):
                 raise ValueError("CalculiX input data has no keyword")
 
     visit(path)
+    return sections, files
+
+
+def read_deck(path):
+    sections, files = read_sections(path)
+    root = Path(path).resolve().parent
     nodes, elements, steps, current = {}, {}, [], None
     for card, options, rows in sections:
         if card == "*NODE":

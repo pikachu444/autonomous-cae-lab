@@ -1,7 +1,7 @@
 ﻿# Independent research tools share the existing private Python and local service.
 [CmdletBinding()]
 param(
-    [ValidateSet('material','data','numerical','pde','expert','runner','simulation','evaluation','study','report','connection')][string]$Tool = 'runner',
+    [ValidateSet('workbench','material','data','numerical','pde','expert','runner','simulation','evaluation','study','report','connection')][string]$Tool = 'workbench',
     [string]$DocumentId,
     [string]$JobId,
     [switch]$Documents,
@@ -22,6 +22,9 @@ trap {
         exit 1
     }
     break
+}
+if ($Tool -eq 'workbench' -and ($PSBoundParameters.ContainsKey('JobId') -or $PSBoundParameters.ContainsKey('DocumentId'))) {
+    throw 'Workbench does not accept -JobId or -DocumentId. Use -Tool runner for a job or a document editor for a saved document.'
 }
 if ($Tool -eq 'runner' -and $DocumentId) { throw 'Use -JobId to select a Runner job.' }
 if ($Tool -ne 'runner' -and $JobId) { throw 'Use -DocumentId to select a research document.' }

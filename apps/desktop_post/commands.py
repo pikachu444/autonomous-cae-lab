@@ -59,6 +59,12 @@ def open_analysis_editor():
     return navigate(document, _save_owner.document_id, _save_owner.session_id)
 
 
+def discuss_selection():
+    from apps.desktop_post.navigation import discuss_selection as navigate
+    _, document = project()
+    return navigate(document, external_module().selected_context())
+
+
 def verify_sources():
     path, doc = project()
     if doc.get("kind") == "external-result":

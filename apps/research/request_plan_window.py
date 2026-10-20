@@ -172,6 +172,11 @@ class RequestPlanWindow(NumericalWindow):
         self.redo_action = QAction('다시 실행', self, shortcut=QKeySequence.Redo)
         file_menu, edit_menu = self.menuBar().addMenu('파일(&F)'), self.menuBar().addMenu('편집(&E)')
         file_menu.addActions([self.new_action, self.open_action, self.save_action])
+        self.discuss_action = QAction('계획으로 논의…', self)
+        self.discuss_result_action = QAction('선택 결과로 논의…', self)
+        self.discuss_action.triggered.connect(lambda: self.discuss_selection())
+        self.discuss_result_action.triggered.connect(lambda: self.discuss_selection(use_result=True))
+        self.menuBar().addMenu('연구(&R)').addActions([self.discuss_action, self.discuss_result_action])
         from .data_material_recovery_host import install_recovery_action
         self.recovery_action = install_recovery_action(self, file_menu)
         edit_menu.addActions([self.undo_action, self.redo_action])
@@ -2757,7 +2762,12 @@ class RequestPlanWindow(NumericalWindow):
         native_model = self._uses_native_model()
         self.native_update_button.setVisible(native_model)
         self.native_update_button.setEnabled(enabled and not self.local_dirty)
-        self.model_open_button.setEnabled(enabled and (native_model or bool(self.edited_draft(commit=False).get('model_source') or self._candidate_target(self.edited_draft(commit=False).get('source'))[1])))
+        plan_source = (self.edited_draft(commit=False).get('source') or {}) if present else {}
+        self.model_open_button.setEnabled(enabled and (native_model or bool(
+            self.edited_draft(commit=False).get('model_source') or self._candidate_target(plan_source)[1]
+            or plan_source.get('discussion_id'))))
+        self.discuss_action.setEnabled(enabled)
+        self.discuss_result_action.setEnabled(enabled and bool(self.selected_job()))
         target_kind, target_id = self._candidate_target(source)
         self.pde_adopt_button.setText('선택 후보를 PDE에 채택…' if target_kind == 'pde' else '선택 후보를 원본에 채택…')
         self.pde_adopt_button.setEnabled(read_available and not self._view_error and bool(target_id)
@@ -2977,16 +2987,31 @@ class RequestPlanWindow(NumericalWindow):
             (self.document['id'], self.document['session_id'], self.document['generation']) == signature)
 
     def open_model_source(self):
-        if self._uses_native_model():
-            source = deepcopy(self.edited_draft(commit=False)['source'])
+        draft = self.edited_draft(commit=False)
+        source = deepcopy(draft.get('source') or {})
+        if source.get('discussion_id'):
             def open_native():
-                from .desktop import open_origin
+                from .desktop import open_origin, launch_pre
                 discussion = self.client.document_read(source['discussion_id'])
                 submitted = next((run['draft'] for run in discussion.get('runs', [])
                                   if run['job_id'] == source.get('job_id')), discussion['draft'])
+                original_state = submitted['context'].get('workbench') or {}
+                current_state = discussion['draft']['context'].get('workbench') or {}
+                original_model = original_state.get('model') or {}
+                current_model = current_state.get('model') or {}
+                state = deepcopy(current_state if (not original_model or
+                    current_model.get('original_path') == original_model.get('original_path')) else original_state)
+                model = state.get('model') or {}
+                path = model.get('saved_path') or model.get('original_path')
+                if path:
+                    return launch_pre(self.client, source=path,
+                        discussion_id=discussion['id'], workbench=state)
                 context = submitted['context'].get('engineering_context') or {}
-                return open_origin(self.client, context['job_id'])
-            return self._call(open_native, lambda _: self.message.setText('FreeCAD 모델에서 조건을 편집한 뒤 모델 입력 갱신을 누르세요.'))
+                if context.get('job_id'):
+                    return open_origin(self.client, context['job_id'])
+                raise ValueError('연결 모델이 없습니다. Workbench에서 저장 모델을 다시 연결하세요.')
+            return self._call(open_native, lambda _: self.message.setText(
+                'FreeCAD에서 제안을 확인해 조건을 적용하고 계산하세요. 새 결과는 원 토론에 추가하세요.'))
         draft=self.edited_draft()
         reference=deepcopy(draft.get('model_source') or draft.get('source'))
         kind,identifier=self._candidate_target(reference)
@@ -2994,6 +3019,22 @@ class RequestPlanWindow(NumericalWindow):
         from .desktop import open_saved_reference
         self._call(lambda:open_saved_reference(self.client,reference),
                    lambda _:self.message.setText('계획에 선택한 저장 입력을 열었습니다.'))
+
+    def discuss_selection(self, *, use_result=False):
+        if not self.document or self._busy:
+            return
+        from .selection_discussion import open_discussion
+        job_id = self.selected_job() if use_result else None
+        if use_result and not job_id:
+            return
+        selection = {'scope': {'surface': 'plan_result' if use_result else 'plan', 'job_id': job_id,
+                              'request': deepcopy(self.edited_draft(commit=False).get('request'))}}
+        def opened():
+            document = deepcopy(self.document)
+            self._call(lambda: open_discussion(self.client, document=document,
+                job_id=job_id, selection=selection),
+                lambda _: self.message.setText('선택 계획으로 원 연구 토론을 열었습니다.'))
+        return self.apply_inputs(after=opened) if self.local_dirty else opened()
 
     def open_source(self):
         source = deepcopy(self.edited_draft().get('source'))

@@ -64,6 +64,12 @@ def test_ingest_limits_and_pdf_page_extraction(tmp_path):
     assert result['failed_segments'][0]['page'] == 1
     with pytest.raises(ValueError):
         knowledge.search('source', filters={'arbitrary': 'filter'})
+    for filename,payload in [('binary.log',b'\xff\xfe\x00\x01'),('nul.dat',b'text\x00binary'),
+                             ('control.out',b'text\x01binary'),('empty.inp',b' \r\n\t'),
+                             ('unsupported.frd',b'ASCII native FRD is not a source text format')]:
+        path=tmp_path/filename;path.write_bytes(payload)
+        with pytest.raises((ValueError,UnicodeDecodeError)):
+            knowledge.ingest(path,'materials')
 
 
 def test_ingest_preserves_the_bytes_used_for_extraction_if_source_changes(tmp_path, monkeypatch):
@@ -88,7 +94,7 @@ def test_ingest_preserves_the_bytes_used_for_extraction_if_source_changes(tmp_pa
     assert path.read_bytes() == replacement
     assert result['sha256'] == retained['sha256'] == hashlib.sha256(original).hexdigest()
     assert (knowledge.root / result['document_id'] / '1' / 'original.md').read_bytes() == original
-    assert retained['segments'][0]['text'] == '# Original\n기존 판단의 근거\n'
+    assert retained['segments'][0]['text'] == original.decode('utf-8')
     assert retained['segments'][0]['locator']['line_end'] == 2
 
 
