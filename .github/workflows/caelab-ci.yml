@@ -137,10 +137,10 @@ jobs:
 
           Path('artifacts').mkdir(exist_ok=True)
           targets = json.loads(os.environ['VALIDATED_TARGETS'])
+          # Keep pytest's fatal-signal handler without the async watchdog (CPython #116008).
           raise SystemExit(subprocess.call([
               sys.executable, '-m', 'pytest', '-v', '--durations=20', '--maxfail=0',
               '--continue-on-collection-errors',
-              '-o', 'faulthandler_timeout=120',
               '-o', 'junit_suite_name=selected-tests-' + os.environ['RUNNER_OS'],
               '--junitxml=artifacts/selected-tests.xml', *targets,
           ]))
@@ -340,10 +340,10 @@ jobs:
           if not selected:
               raise SystemExit('Core shard has no test files; refusing an unfiltered run.')
           print(f'Core shard {shard + 1}/4: {len(selected)} test files', flush=True)
+          # Keep pytest's fatal-signal handler without the async watchdog (CPython #116008).
           raise SystemExit(subprocess.call([
               sys.executable, '-m', 'pytest', '-v', '--durations=20',
               '--maxfail=0', '--continue-on-collection-errors',
-              '-o', 'faulthandler_timeout=120',
               '--junitxml=artifacts/core-tests.xml', *selected,
           ]))
       - name: Preserve core test failures and skips
