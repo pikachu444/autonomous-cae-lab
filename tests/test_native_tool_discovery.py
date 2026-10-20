@@ -185,7 +185,10 @@ def test_powershell_given_or_managed_python_uses_same_finder_and_reports_invalid
         if not explicit and not Path(HOST_LOCALAPPDATA or '', 'AutonomousCAELab/windows-runtime/venv/Scripts/python.exe').is_file():
             continue
         python=" -Python '"+sys.executable.replace("'","''")+"'" if explicit else ''
-        code="[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding($false); & '"+str(script).replace("'","''")+"'"+python+" -ConfigPath '"+str(config).replace("'","''")+"' -FreeCADExe '"+str(missing).replace("'","''")+"' | ConvertTo-Json -Depth 6 -Compress"
+        code=("$ErrorActionPreference='Stop'; "
+              "function Get-ItemProperty { throw 'Unexpected registry fallback after finder selection' }; "
+              "function Get-Command { throw 'Unexpected PATH fallback after finder selection' }; "
+              "[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding($false); & '"+str(script).replace("'","''")+"'"+python+" -ConfigPath '"+str(config).replace("'","''")+"' -FreeCADExe '"+str(missing).replace("'","''")+"' | ConvertTo-Json -Depth 6 -Compress")
         result=subprocess.run([str(powershell),'-NoProfile','-Command',code],capture_output=True,timeout=15,
                               env={**os.environ,'LOCALAPPDATA':HOST_LOCALAPPDATA or ''})
         assert result.returncode==0,result.stderr
@@ -193,6 +196,32 @@ def test_powershell_given_or_managed_python_uses_same_finder_and_reports_invalid
         assert rows[0]['Status']=='경로 복구 필요' and rows[0]['Path']==str(missing)
         assert rows[1]['Path']==str(pv) and rows[1]['PathSource']=='연결 설정'
         assert '같은 경로 탐색' in rows[1]['CheckScope']
+
+
+@pytest.mark.skipif(sys.platform!='win32',reason='Windows PowerShell report')
+@pytest.mark.parametrize('source,origin', [('config','연결 설정'),('saved','이전에 선택한 위치'),('path','PATH')])
+def test_powershell_without_python_preserves_native_path_fallback(tmp_path,source,origin):
+    powershell=Path(os.environ['SYSTEMROOT'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+    script=Path(__file__).parents[1]/'scripts/check-native-tools.ps1'
+    fc=installed(tmp_path,'FreeCAD.exe'); pv=installed(tmp_path,'paraview.exe')
+    config=tmp_path/'config.json'
+    paths={'freecad_executable':str(fc),'paraview_executable':str(pv)}
+    if source=='config':
+        config.write_text(json.dumps({'desktop':paths}),encoding='utf-8')
+    saved=';'.join(key+"='"+value.replace("'","''")+"'" for key,value in paths.items())
+    registry="[pscustomobject]@{"+saved+"}" if source=='saved' else '$null'
+    code=("$ErrorActionPreference='Stop'; function Get-ItemProperty { "+registry+" }; "
+          "[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding($false); & '"+
+          str(script).replace("'","''")+"' -ConfigPath '"+str(config).replace("'","''")+
+          "' | ConvertTo-Json -Depth 6 -Compress")
+    result=subprocess.run([str(powershell),'-NoProfile','-Command',code],capture_output=True,timeout=15,
+                          env={**os.environ,'LOCALAPPDATA':str(tmp_path/'appdata'),
+                               'PATH':str(tmp_path) if source=='path' else ''})
+    assert result.returncode==0,result.stderr
+    rows=json.loads(result.stdout.decode('utf-8-sig'))
+    assert [(row['Path'],row['PathSource'],row['Status']) for row in rows]==[
+        (str(path),origin,'실행 파일 있음') for path in (fc,pv)]
+    assert all('Python 미지정' in row['CheckScope'] for row in rows)
 
 
 def test_pre_native_post_invalid_explicit_does_not_use_saved_or_prompt(tmp_path,monkeypatch):

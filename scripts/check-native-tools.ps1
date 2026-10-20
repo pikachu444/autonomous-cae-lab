@@ -28,7 +28,9 @@ if (-not $discovery -and (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
     try { $desktop = (Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json).desktop }
     catch { Write-Warning "설정 파일을 읽지 못했습니다. 실행 경로를 직접 지정하세요: $ConfigPath" }
 }
-$saved = Get-ItemProperty -LiteralPath 'HKCU:\Software\AutonomousCAELab\DesktopLaunchers' -ErrorAction SilentlyContinue
+$saved = if (-not $discovery) {
+    Get-ItemProperty -LiteralPath 'HKCU:\Software\AutonomousCAELab\DesktopLaunchers' -ErrorAction SilentlyContinue
+}
 $tools = @(
     @{ Name='FreeCAD'; Key='freecad_executable'; Explicit=$FreeCADExe; Environment=$env:CAELAB_FREECAD_EXE; Commands=@('FreeCAD','freecad'); Option='-FreeCADExe'; License='https://github.com/FreeCAD/FreeCAD/blob/main/LICENSE' },
     @{ Name='ParaView'; Key='paraview_executable'; Explicit=$ParaViewExe; Environment=$env:CAELAB_PARAVIEW_EXE; Commands=@('paraview'); Option='-ParaViewExe'; License='https://www.paraview.org/license/' }
@@ -39,22 +41,6 @@ foreach ($tool in $tools) {
         $selection = $discovery.tools | Where-Object { $_.key -eq $tool.Key } | Select-Object -First 1
         if (-not $selection) { throw "실행 경로 확인 결과가 없습니다: $($tool.Key)" }
     }
-    $candidate = $tool.Explicit
-    $origin = '직접 지정'
-    if (-not $candidate -and $desktop) { $candidate = $desktop.($tool.Key); $origin = '연결 설정' }
-    if (-not $candidate) { $candidate = $tool.Environment; $origin = '환경 변수' }
-    if (-not $candidate -and $saved) {
-        $remembered = $saved.($tool.Key)
-        if ($remembered -and (Test-Path -LiteralPath $remembered -PathType Leaf)) {
-            $candidate = $remembered; $origin = '이전에 선택한 위치'
-        }
-    }
-    if (-not $candidate) {
-        foreach ($command in $tool.Commands) {
-            $found = Get-Command -Name $command -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($found) { $candidate = $found.Source; $origin = 'PATH'; break }
-        }
-    }
     if ($selection) {
         $candidate = $selection.path
         $origin = switch -Wildcard ($selection.source) {
@@ -64,8 +50,26 @@ foreach ($tool in $tools) {
             'CAELAB_*' { '환경 변수' }
             default { [string]$selection.source }
         }
+        $exists = $selection.status -eq 'FOUND'
+    } else {
+        $candidate = $tool.Explicit
+        $origin = '직접 지정'
+        if (-not $candidate -and $desktop) { $candidate = $desktop.($tool.Key); $origin = '연결 설정' }
+        if (-not $candidate) { $candidate = $tool.Environment; $origin = '환경 변수' }
+        if (-not $candidate -and $saved) {
+            $remembered = $saved.($tool.Key)
+            if ($remembered -and (Test-Path -LiteralPath $remembered -PathType Leaf)) {
+                $candidate = $remembered; $origin = '이전에 선택한 위치'
+            }
+        }
+        if (-not $candidate) {
+            foreach ($command in $tool.Commands) {
+                $found = Get-Command -Name $command -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($found) { $candidate = $found.Source; $origin = 'PATH'; break }
+            }
+        }
+        $exists = $candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)
     }
-    $exists = $candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)
     $version = '미확인'
     if ($exists) {
         $candidate = (Resolve-Path -LiteralPath $candidate).Path
