@@ -89,7 +89,7 @@ _TOOL_INPUTS = {
         _object({'page': _POSITIVE}, ['page']),
         _object({'archive_id': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'},
                  'kind': {'const': 'abstract'}, 'url': _STRING, 'page': _POSITIVE}, ['archive_id'])]}}, ['paper_id']),
-    'calculations.inputs': _object({'backend': _STRING, 'settings': _OBJECT}, ['backend']),
+    'calculations.inputs': _object({'backend': _STRING, 'settings': _OBJECT}),
     'calculations.status': _object({'job_id': _STRING}, ['job_id']),
     'results.read': _object({'job_id': _STRING, 'selection': _SELECTION}, ['job_id']),
     'numerical.doe': _object({'backend': _STRING, 'settings': _OBJECT,
@@ -1012,10 +1012,14 @@ class ExpertRuntime:
                     continue
             tool_schemas[name] = schema
             call = make_call(name)
+            description = ('Call with {} to list registered backend IDs without executing a calculation. '
+                'Then pass an exact returned backend ID and optional settings to describe its inputs; '
+                'a solver name is not a backend ID.' if name == 'calculations.inputs' else
+                'Use ' + name + ' with the named fields. Invalid fields return INVALID_TOOL_INPUT for correction.')
             scoped_calls[name.replace('.', '_')] = {'call': call, 'parameters': schema,
-                'description': 'Use ' + name + ' with the named fields. Invalid fields return INVALID_TOOL_INPUT for correction.'}
+                'description': description}
             tools.append(Tool(name=name.replace('.', '_'),
-                              description='Use ' + name + ' with the named fields. Invalid fields return INVALID_TOOL_INPUT for correction.',
+                              description=description,
                               parameters=schema, function=call))
         def recheck_sources():
             for source in sources:

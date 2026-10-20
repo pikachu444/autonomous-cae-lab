@@ -490,6 +490,44 @@ def test_model_sees_named_tool_fields_and_recovers_from_invalid_input(tmp_path):
     assert list(read.iter_errors({'paper_id':'doi:example','locator':{'kind':'metadata_only'}}))
 
 
+def test_inputs_tool_discovers_exact_registered_backends_without_execution(tmp_path, monkeypatch):
+    from caelab.workbench import Workbench
+    from caelab.contracts import CapabilityUnavailable
+    import caelab.assist.openscience_host as host
+    wb = Workbench(tmp_path / 'workbench')
+    try:
+        requests = []
+        def describe(request):
+            requests.append(request)
+            return wb.describe_inputs(request)
+        def provider(_prompt, tools, _budget, _model, **_kwargs):
+            tool = tools['calculations_inputs']
+            assert '{}' in tool['description'] and 'exact returned backend ID' in tool['description']
+            listing = tool['call']()
+            identifiers = [row['id'] for row in listing['backends']]
+            assert 'structure.calculix.frozen' in identifiers and 'calculix' not in identifiers
+            selected = tool['call'](backend='structure.calculix.frozen')
+            assert selected['backend'] == 'structure.calculix.frozen'
+            assert tool['call'](backend='')['status'] == 'INVALID_TOOL_INPUT'
+            with pytest.raises(CapabilityUnavailable, match='Unknown backend: calculix'):
+                tool['call'](backend='calculix')
+            return json.dumps({'answer': 'Read the registered input descriptions; no calculation was run.',
+                               'sources': [], 'proposed_actions': []})
+        monkeypatch.setattr(host, 'run_openscience', provider)
+        runtime = ExpertRuntime(store(tmp_path), Literature(), experts=definitions(['calculations.inputs']),
+            callbacks={'calculations.inputs': describe},
+            runtime=RuntimeConfig(provider='openscience', model='openai-codex/test-model',
+                transmission={'allow_external_model': True, 'allow_question': True}))
+        response = runtime.ask('materials', 'Discover supported inputs',
+            {'transmission_scope': {'allow_question': True}}, workspace_id='alpha')
+        assert response['status'] == 'ANSWERED', response
+        assert requests == [{}, {'backend': 'structure.calculix.frozen'}, {'backend': 'calculix'}]
+        assert wb.manager.list() == [] and response['proposed_actions'] == []
+        assert response['budget_used']['evaluations_requested'] == 0
+    finally:
+        assert wb.shutdown()['joined']
+
+
 def test_scoped_tool_name_cannot_be_rebound_by_mcp_arguments(tmp_path, monkeypatch):
     import caelab.assist.openscience_host as host
     submissions = []
