@@ -7,7 +7,7 @@ ParaView Post remain separate native processes with their own runtimes.
 
 ## Start on Windows
 
-Double-click `Start-CAE-Lab.cmd` to open the existing Qt Runner, or choose a
+Double-click `Start-CAE-Lab.cmd` to open Workbench, or choose a
 Research tool directly from the repository:
 
 ```powershell
@@ -20,11 +20,12 @@ Research tool directly from the repository:
 .\Start-CAE-Lab.cmd -Tool runner -JobId JOB_ID
 ```
 
-Available `-Tool` values are `data`, `material`, `pde`, `numerical`, `expert`,
-`runner`, `simulation`, `evaluation` and `study`. Runner is only the default
-selection; another tool can start independently. Use an actual saved document/job
+Available `-Tool` values are `workbench`, `data`, `material`, `pde`, `numerical`, `expert`,
+`runner`, `simulation`, `evaluation`, `study`, `report` and `connection`.
+Each tool can start independently. Workbench opens saved research from its
+Continue list. For document editors or Runner, use an actual saved document/job
 ID or omit that option to enter the selected tool. Runner accepts `-JobId`;
-the other Research tools accept `-DocumentId`. Tool names are case-insensitive
+the document editors accept `-DocumentId`. Tool names are case-insensitive
 at the PowerShell entry; document and job IDs retain their exact spelling.
 
 The root launcher prepares the private runtime, verifies the shared service,

@@ -1,6 +1,6 @@
 # Windows에서 Research 데스크톱 시작하기
 
-`Start-CAE-Lab.cmd`의 기본 진입은 **Qt Runner 창**이다. Numerical·Expert·Data·
+`Start-CAE-Lab.cmd`의 기본 진입은 **Workbench 시작 화면**이다. Numerical·Expert·Data·
 PDE 등 다른 도구도 `-Tool`로 직접 시작한다. 각 창은 같은 로컬 서비스의
 문서와 작업을 사용하므로, 따로 시작한 연구를 기존 도구 간 이동으로 이어갈 수 있다.
 [Research 실행 안내](../apps/research/README.md)에 전체 도구와 선택 인수가 있다.
@@ -10,7 +10,7 @@ PDE 등 다른 도구도 `-Tool`로 직접 시작한다. 각 창은 같은 로�
 1. 저장소의 **Code → Download ZIP**으로 내려받아 사용자 폴더에 압축을 푼다.
 2. **Start-CAE-Lab.cmd**를 더블클릭한다. 첫 실행은 기존 설치기를 통해 uv,
    전용 Python 3.12, 수치·재료 패키지와 Qt Research 의존성을 준비한다.
-3. Runner에서 기존 작업을 열거나, 아래 명령으로 원하는 도구를 직접 연다.
+3. **모델 열기…**로 자기 FreeCAD 모델을 선택하거나 **연구 계속하기**에서 저장한 연구를 연다. 아래 명령으로 필요한 도구를 직접 열 수도 있다.
 
 Windows 10/11 x64의 기본 Windows PowerShell 5.1을 사용한다. 기본 Research
 진입에는 WSL, Git, 미리 설치한 Python, 관리자 권한이 필요하지 않다. 설치에는
@@ -27,7 +27,7 @@ GitHub와 Python 패키지·런타임 다운로드 서버에 대한 인터넷 �
 .\Start-CAE-Lab.cmd -Tool simulation
 ```
 
-Runner는 기본 선택일 뿐이다. 연구를 Runner나 Material에서 먼저 만들 필요는 없다.
+Workbench에서는 모델 연결, 결과·로그 선택, ParaView 열기, 원 대화 이어가기와 연구 저장을 제공한다.
 Data의 표·채널, Numerical의 연구 계획, Expert의 논의, PDE의 모델 등 필요한
 도구에서 시작한다. FreeCAD CAD/FE와 ParaView Post는 기존
 `start_cae_pre.ps1` / `start_cae_post.ps1`와 각 도구의 이동 명령을 통해
@@ -42,7 +42,8 @@ Data의 표·채널, Numerical의 연구 계획, Expert의 논의, PDE의 모델
 ```
 
 `DOCUMENT_ID`와 `JOB_ID`는 실제 저장한 ID로 바꾼다. ID를 생략하면 해당
-도구에 진입한다. Runner는 작업 ID, 나머지 Research 도구는 문서 ID를 받는다.
+도구에 진입한다. Runner는 작업 ID, 문서 편집 도구는 문서 ID를 받는다.
+Workbench의 저장 연구는 시작 화면의 **연구 계속하기**에서 고른다.
 파일명을 문서 ID로 바꾸거나 기존 파일을 자동으로 이름 변경하지 않는다.
 
 같은 서비스에서 열면 기존 문서 소유자가 편집·저장·재열기를 처리한다. 선택한
@@ -64,9 +65,11 @@ Core 입력을 읽으며, native 창에만 남은 편집을 처리한 것으로 
 전달 자체를 포기하려면 **도구 → 전달받은 시험 취소**를 사용한다. 등록 요청의
 결과가 아직 확인되지 않았다면 원 요청을 먼저 확인한다. 전달만으로 계산하지 않는다.
 
-FreeCAD/ParaView는 연결된 작업 문서의 정확한 owner를 재사용한다. 저장 파일을
-새 편집 사본으로 열거나 외부 결과를 처음 읽는 작업은 별도 문서를 만드는 기존
-동작을 따른다. 파일 이름만으로 두 문서를 합치지 않는다. ParaView의 전경 활성화가
+일반 FCStd는 선택한 디스크 파일을 FreeCAD에서 직접 열고 기본 FEM 기능으로 계산한다.
+FreeCAD의 저장·계산에 Workbench 작업 등록은 필요하지 않다. 이동용 caepre는 기존
+작업 사본으로 연다. 다른 이름으로 저장했다면 Workbench의 **저장 모델 다시 연결…**에서
+마지막 저장 파일을 지정한다. 연결된 ParaView 문서는 기존 owner를 재사용한다.
+파일 이름만으로 두 문서를 합치지 않는다. ParaView의 전경 활성화가
 Windows에서 거절되면 그 결과를 그대로 알린다. 전체 문서 유형의 실제 인수와
 남은 제한은 [현재 상태](../CURRENT_STATE.md)에서 확인한다.
 

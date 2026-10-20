@@ -24,7 +24,7 @@ WSL 없이 실행할 수 있습니다. 실제 화면과 계산·저장·재열�
 
 1. [소스 ZIP](https://github.com/pikachu444/autonomous-cae-lab/archive/refs/heads/main.zip)을 내려받아 압축을 풉니다.
 2. 폴더 안의 **Install-CAE-Lab.cmd**를 더블클릭해 전용 실행 환경을 설치합니다.
-3. Windows 시작 메뉴의 **Autonomous CAE Lab**에서 **전처리**, **후처리**, **데이터** 등 사용할 프로그램을 엽니다.
+3. Windows 시작 메뉴의 **Autonomous CAE Lab → 워크벤치**에서 모델을 열거나 저장한 연구를 이어갑니다. **전처리**, **후처리**, **데이터**도 직접 열 수 있습니다.
 
 Windows 10/11 x64를 사용합니다. 처음 설치할 때는 인터넷이 필요합니다.
 기본 Research 앱에는 관리자 권한, 시스템 Python, Git, WSL이 필요하지 않습니다.
@@ -42,7 +42,7 @@ FreeCAD·ParaView·Gmsh·외부 솔버와 AI 연결은 별도로 준비합니다
 .\Start-CAE-Lab.cmd -Tool data
 ```
 
-`Start-CAE-Lab.cmd`를 더블클릭하면 기존 방식대로 Runner를 엽니다.
+`Start-CAE-Lab.cmd`를 더블클릭하면 Workbench의 시작 화면을 엽니다.
 설치 후에도 소스 폴더는 남겨 두세요. 저장 위치와 바로가기 복구는 [설치 안내](docs/INSTALL_KO.md)에 있습니다.
 
 FreeCAD·ParaView가 설치되어 있다면 시작 메뉴의 **전처리**, **후처리** 또는
