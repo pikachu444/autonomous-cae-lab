@@ -204,6 +204,27 @@ def test_selected_role_runtime_does_not_expand_transmission_or_fall_back():
     assert runtime.selected_generator('testing') is None
 
 
+@pytest.mark.parametrize('runtime', [None, {'external_model': False},
+    {'transmission': {'allow_external_model': True, 'allow_question': True,
+                      'collections': ['project-current']}}])
+def test_status_exposes_only_current_transmission_policy_without_granting(tmp_path, runtime):
+    config = {'runtime': deepcopy(runtime)}
+    wb = Workbench(tmp_path / 'store', configuration=config)
+    try:
+        state = setup.status(wb)
+        policy = (runtime or {}).get('transmission') or {}
+        assert state['external_model'] is (runtime or {}).get('external_model', True)
+        assert state['transmission'] == {
+            'allow_external_model': bool(policy.get('allow_external_model')),
+            'allow_question': bool(policy.get('allow_question')),
+            'collections': policy.get('collections', [])}
+        state['transmission']['collections'].append('not-approved')
+        assert wb.config == config
+        assert wb._assistance is None and wb.manager.list() == []
+    finally:
+        wb.shutdown()
+
+
 def test_uninitialized_legacy_config_can_be_replaced_without_opening_missing_roles(tmp_path):
     path = tmp_path / 'operator.json'
     original = {'experts': str(tmp_path / 'removed roles.json'), 'workers': 1}

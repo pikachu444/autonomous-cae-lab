@@ -144,6 +144,9 @@ class ExpertWindow(QMainWindow):
         outer.setSpacing(8)
         self.message = QLabel('')
         self.message.setWordWrap(True)
+        self.message.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse |
+                                             Qt.TextInteractionFlag.LinksAccessibleByKeyboard)
+        self.message.linkActivated.connect(self._open_transmission_settings)
         self.statusBar().addWidget(self.message, 1)
         conflict = QHBoxLayout()
         self.reload_button, self.copy_button = QPushButton('저장된 내용 다시 열기'), QPushButton('다른 이름으로 보관')
@@ -459,13 +462,18 @@ class ExpertWindow(QMainWindow):
         install_research_team(self, splitter, left)
         self._update_actions()
 
-    def open_connection(self):
+    def open_connection(self, _checked=False, *, transmission=False):
         if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
             return False
         from .expert_connection_dialog import ConnectionDialog
         self._source_choosing = True
         self._update_actions()
         dialog = self._connection_dialog = ConnectionDialog(self.client, self)
+        if transmission:
+            for index in range(dialog.tabs.count()):
+                if dialog.tabs.tabText(index) == '자료 전송':
+                    dialog.tabs.setCurrentIndex(index)
+                    break
         try:
             dialog.exec()
         finally:
@@ -474,6 +482,53 @@ class ExpertWindow(QMainWindow):
             if not self._closed:
                 self.refresh_registry()
         return True
+
+    def _open_transmission_settings(self, destination):
+        if destination == 'source-transmission':
+            self.show_side(self.transmission_settings)
+            self.allow_sources.setFocus()
+        elif destination == 'connection-transmission':
+            self.open_connection(transmission=True)
+
+    def _preflight_source_transmission(self, after):
+        """Read the current connection and exact archives; consent stays authored."""
+        if not self.document or self._closed or self.conflict or self._draft_problem:
+            return False
+        from caelab.assist.knowledge import selected_source_refs
+        from .expert_sources import assist
+        submitted = self.edited_draft()
+        references = selected_source_refs(submitted['context'])
+        if not references:
+            return after()
+        owner = (self.document['id'], self.document['session_id'])
+        def read():
+            connection = self.client.expert_connection()
+            if not connection.get('external_model', True):
+                return connection, []
+            return connection, [assist(self.client, 'knowledge.source', reference) for reference in references]
+        def received(payload):
+            if (not self.document or (self.document['id'], self.document['session_id']) != owner
+                    or self.conflict or self.edited_draft() != submitted):
+                self.message.setText('질문이나 자료 선택이 바뀌었습니다. 현재 내용을 확인하고 다시 질문하세요.')
+                return
+            connection, records = payload
+            if connection.get('external_model', True):
+                scope = submitted['context'].get('transmission_scope', {})
+                policy = connection.get('transmission', {})
+                if (not policy.get('allow_external_model') or not policy.get('allow_question') or
+                        any(record['collection'] not in policy.get('collections', []) for record in records)):
+                    self.message.setText('선택 자료의 모델 전송이 연결에서 허용되지 않았습니다. '
+                                         '<a href="connection-transmission">연결 설정 · 자료 전송 열기</a>')
+                    return
+                if (not scope.get('allow_question') or
+                        any(ref not in scope.get('source_refs', []) for ref in references) or
+                        any(record['collection'] not in scope.get('collections', []) for record in records)):
+                    self.message.setText('선택 자료의 전송 허용을 확인해야 질문할 수 있습니다. '
+                                         '<a href="source-transmission">이 대화의 전송 설정 열기</a>')
+                    return
+            self.message.setText('')
+            after()
+        return self._call(read, received)
 
     def _call(self, function, success, *, background=False, failure=None):
         if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
@@ -1004,7 +1059,7 @@ class ExpertWindow(QMainWindow):
             self.next_button.setEnabled(False)
             self.report_view.generate.setEnabled(False)
 
-    def protocol_action(self, operation, *, participate=False, after=None):
+    def protocol_action(self, operation, *, participate=False, after=None, _transmission_checked=False):
         if (not self.document or self._closed or self.conflict or self._draft_problem
                 or self._protocol_steps or self._protocol_delivery):
             return False
@@ -1013,6 +1068,12 @@ class ExpertWindow(QMainWindow):
             if active or discussion.get('paused'):
                 self.message.setText('현재 응답이 끝난 뒤 계속하세요.' if active else '먼저 일시 정지를 해제하세요.')
                 return False
+        intervention_only = participate and (active or discussion.get('paused') or
+                                              discussion.get('costorm', {}).get('can_retry'))
+        if (operation in {'expert.ask', 'expert.advance', 'expert.report', 'expert.retry'}
+                and not intervention_only and not _transmission_checked):
+            return self._preflight_source_transmission(lambda: self.protocol_action(
+                operation, participate=participate, after=after, _transmission_checked=True))
         draft = self.edited_draft()
         self._protocol_owner = (self.document['id'], self.document['session_id'])
         steps = []
@@ -1109,6 +1170,9 @@ class ExpertWindow(QMainWindow):
                           for row in local_rounds(self.document))
             return self.protocol_action('expert.advance' if started else 'expert.ask',
                                         participate=started)
+        return self._preflight_source_transmission(self._ask_round)
+
+    def _ask_round(self):
         def request():
             self.command('expert.ask', after=self.refresh_document)
         if self.local_dirty:

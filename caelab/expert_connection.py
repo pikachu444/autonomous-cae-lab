@@ -216,10 +216,15 @@ def status(workbench):
             definitions = definitions.get('experts', [])
         if not isinstance(definitions, list):
             definitions = []  # Legacy external role file is not reread by status.
+        policy = runtime.get('transmission') or {}
         return {'service_session_id': workbench.session_id,
                 'operator_config_path': str(workbench._operator_config_path) if workbench._operator_config_path else None,
                 'config_sha256': workbench._operator_config_sha,
                 'provider': runtime.get('provider'), 'model': runtime.get('model'),
+                'external_model': runtime.get('external_model', True),
+                'transmission': {'allow_external_model': bool(policy.get('allow_external_model')),
+                                 'allow_question': bool(policy.get('allow_question')),
+                                 'collections': list(policy.get('collections', []))},
                 'roles': [{'id': row['id'], 'label': row.get('label', row['id']),
                            'model': model_roles.get(row['id'], {}).get('model', runtime.get('model'))}
                           for row in definitions],

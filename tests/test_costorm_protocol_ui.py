@@ -37,6 +37,10 @@ class LocalClient:
     def document_read(self, identifier):
         return self.wb.document_read(identifier)
 
+    def expert_connection(self):
+        from caelab.expert_connection import status
+        return status(self.wb)
+
     def document_command(self, identifier, operation, arguments, **kwargs):
         self.operations.append(operation)
         return self.wb.document_command(identifier, operation, arguments, **kwargs)

@@ -432,6 +432,112 @@ def test_source_role_scope_notice_preserves_existing_grants(tmp_path):
             drain_closed(app, window)
 
 
+@pytest.mark.parametrize('case', ['missing-revision', 'old-revision', 'missing-collection',
+                                  'operator-collection', 'allowed', 'local'])
+def test_question_transmission_preflight_preserves_permissions_and_opens_existing_settings(case, tmp_path, monkeypatch):
+    from caelab import expert_connection as setup
+    from caelab.discussion_document import default_draft
+    from apps.research.expert_connection_dialog import ConnectionDialog
+    from test_expert_connection import public_installation, connection_config, transport
+    app = QApplication.instance() or QApplication([])
+    profile, runtime = public_installation(tmp_path)
+    config = connection_config({}, profile, runtime)
+    config['runtime']['transmission']['collections'] = [] if case == 'operator-collection' else ['project-current']
+    config['runtime']['external_model'] = case != 'local'
+    path = tmp_path / 'operator.json'
+    setup.save_local(path, None, config)
+    monkeypatch.setattr(setup, 'default_config_path', lambda: path)
+    original_config = path.read_bytes()
+    with transport(tmp_path, path) as (client, wb):
+        upload = wb.upload('actual.log', b'Solver diagnostic retained for discussion\n')
+        source = wb.assistance().knowledge.ingest(wb.input_path(upload['id']), 'project-current', workspace_id=wb.workspace_id)
+        ref = {key: source[key] for key in ('document_id', 'revision')}
+        draft = default_draft()
+        draft['participants'] = ['testing']
+        draft['composer']['text'] = 'Read the selected diagnostic while preserving the model.'
+        draft['context']['selected_sources'] = [ref]
+        draft['context']['transmission_scope'] = {'allow_question': True,
+            'source_refs': [] if case in ('missing-revision', 'local') else [deepcopy(ref)],
+            'collections': [] if case in ('missing-collection', 'local') else ['project-current']}
+        if case == 'old-revision':
+            draft['context']['transmission_scope']['source_refs'][0]['revision'] += 1
+        document = wb.document_open(kind='expert', draft=draft)
+        requested, dialogs = [], []
+        command = client.document_command
+        def bounded_command(identifier, operation, arguments, **kwargs):
+            if operation == 'expert.ask':
+                # Provider boundary double: preflight wiring only, no inference.
+                requested.append(operation)
+                return {'document': wb.document_read(identifier)}
+            return command(identifier, operation, arguments, **kwargs)
+        monkeypatch.setattr(client, 'document_command', bounded_command)
+        def inspect_dialog(dialog):
+            dialogs.append(dialog)
+            wait(app, lambda: dialog.loaded and not dialog._busy, lambda: dialog.message.text())
+            assert dialog.tabs.tabText(dialog.tabs.currentIndex()) == '자료 전송'
+            assert dialog._selected_collections() == []
+            dialog.reject()
+            return QDialog.DialogCode.Rejected
+        monkeypatch.setattr(ConnectionDialog, 'exec', inspect_dialog)
+        window = ExpertWindow(client, document_id=document['id'], poll_interval=0)
+        try:
+            window.show()
+            wait(app, lambda: window.document is not None and not window._busy and bool(window._registry))
+            window.question.appendPlainText('Keep this unsent constraint.')
+            before = deepcopy(window.edited_draft())
+            window.ask_button.click()
+            wait(app, lambda: not window._busy)
+            if case in ('allowed', 'local'):
+                wait(app, lambda: requested == ['expert.ask'] and not window._busy)
+            else:
+                assert requested == [] and wb.manager.list() == []
+                destination = 'connection-transmission' if case == 'operator-collection' else 'source-transmission'
+                assert destination in window.message.text()
+                window.message.linkActivated.emit(destination)
+                if case == 'operator-collection':
+                    assert len(dialogs) == 1
+                else:
+                    assert window.side.currentWidget() is window.transmission_settings and not window.side.isHidden()
+                    assert window.allow_sources.isChecked() is (case == 'missing-collection')
+            assert window.edited_draft() == before
+            assert path.read_bytes() == original_config and wb.config == config
+            assert wb.manager.list() == []
+        finally:
+            drain_closed(app, window, *dialogs)
+
+
+def test_paused_local_opinion_does_not_require_source_transmission(tmp_path, monkeypatch):
+    from caelab.discussion_document import default_draft
+    import uuid
+    app = QApplication.instance() or QApplication([])
+    with running(LabService(tmp_path / 'store')) as transport:
+        wb = transport.server.workbench
+        upload = wb.upload('diagnostic.log', b'Retained local diagnostic\n')
+        source = wb.assistance().knowledge.ingest(wb.input_path(upload['id']), 'research', workspace_id=wb.workspace_id)
+        draft = default_draft()
+        draft['context']['discussion_mode'] = 'costorm'
+        draft['context']['selected_sources'] = [{key: source[key] for key in ('document_id', 'revision')}]
+        document = wb.document_open(kind='expert', draft=draft)
+        wb.document_command(document['id'], 'expert.pause', {}, session_id=document['session_id'],
+                            expected_generation=document['generation'], command_id='C' + uuid.uuid4().hex)
+        client = Client('http://127.0.0.1:' + str(transport.server.server_port))
+        def no_model_request():
+            raise AssertionError('A local authored opinion does not transmit selected sources')
+        monkeypatch.setattr(client, 'expert_connection', no_model_request)
+        window = ExpertWindow(client, document_id=document['id'], poll_interval=0)
+        try:
+            wait(app, lambda: window.document is not None and not window._busy)
+            window.question.setPlainText('Retain this objection until I resume the discussion.')
+            window.protocol_action('expert.advance', participate=True)
+            wait(app, lambda: not window._busy and not window._protocol_steps)
+            assert window.document['turns'][-1]['text'] == 'Retain this objection until I resume the discussion.'
+            assert window.document['discussion']['paused'] is True
+            assert wb.manager.list() == []
+            assert not window.edited_draft()['context'].get('transmission_scope', {}).get('source_refs')
+        finally:
+            drain_closed(app, window)
+
+
 def test_native_question_cli_reads_utf8_selection_and_origin(monkeypatch, capsys):
     import io
     import json
