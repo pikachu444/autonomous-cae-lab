@@ -232,3 +232,91 @@ def test_installed_freecad_converts_original_solver_result(tmp_path, monkeypatch
     assert len(result['responses']['displacement']['value']) == 80
     assert (tmp_path / 'post/results.pvd').is_file()
     assert result['post_artifact']['native_metadata']['time']['values'] == [1.]
+
+
+@pytest.mark.parametrize('changed_during_write', [False, True])
+def test_applied_material_uses_official_writer_with_hex_pressure_and_gravity(native, tmp_path, monkeypatch,
+                                                                          changed_during_write):
+    import importlib.util
+    import io
+    from copy import deepcopy
+    from test_b13_native_boundaries import reference_writers, Quantity
+    from test_ns1_native_edit import draft
+    from apps.desktop_pre import nonlinear_material as nm
+    saved_modules = {name: sys.modules[name] for name in ('FreeCAD', 'femtools', 'femsolver', 'femsolver.calculix')}
+    reference_writers(monkeypatch)
+    from femsolver.calculix.write_femelement_material import write_femelement_material
+    from femsolver.calculix import write_constraint_pressure
+    spec = importlib.util.spec_from_file_location('reference_selfweight',
+        Path(write_constraint_pressure.__file__).with_name('write_constraint_selfweight.py'))
+    selfweight_writer = importlib.util.module_from_spec(spec); spec.loader.exec_module(selfweight_writer)
+    for name, module in saved_modules.items(): monkeypatch.setitem(sys.modules, name, module)
+    n = native; stored = {}
+    for obj in n.doc.Objects: obj.Label = obj.Name
+    n.doc.getObject = lambda name: next((obj for obj in n.doc.Objects if obj.Name == name), None)
+    monkeypatch.setattr('apps.desktop_pre.metadata.read', lambda doc: deepcopy(stored))
+    n.analysis.addObject = lambda obj: n.analysis.Group.append(obj)
+    def make_plastic(doc, base):
+        obj = NS(Name='AppliedPlastic', Label='Applied plasticity', TypeId=nm.KIND, Document=doc,
+                 State=[], Suppressed=False)
+        doc.Objects.append(obj); return obj
+    monkeypatch.setitem(sys.modules, 'ObjectsFem', NS(makeMaterialMechanicalNonlinear=make_plastic))
+    def store(value): stored.clear(); stored.update(deepcopy(value))
+    fem = NS(owner=NS(doc=n.doc, _object=n.doc.getObject, write_metadata=store),
+             _metadata=lambda: deepcopy(stored), _transaction=lambda title, change: change())
+    n.material.Material.update(Name='User steel', Density='7.85e-9 t/mm^3')
+    source = draft(); nm.apply(fem, n.material, n.analysis.Name, source)
+    plastic, = nm.native_objects(n.analysis)
+    original_source = n.source.read_bytes(); original_metadata = deepcopy(stored)
+    pressure = NS(Name='UserPressure', Label='User pressure', TypeId='Fem::ConstraintPressure', Document=n.doc,
+        State=[], Suppressed=False, Pressure=Quantity('1.2 MPa'), EnableAmplitude=False, Reversed=False)
+    gravity = NS(Name='UserGravity', Label='User gravity', TypeId='Fem::ConstraintSelfWeight', Document=n.doc,
+        State=[], Suppressed=False, GravityAcceleration=Quantity('9810 mm/s^2'), GravityDirection=NS(x=0., y=0., z=-1.))
+    n.doc.Objects.extend([pressure, gravity]); n.analysis.Group.remove(n.force)
+    n.analysis.Group.extend([pressure, gravity])
+    hex_points = [(0., 0., 0.), (1., 0., 0.), (1., 1., 0.), (0., 1., 0.),
+                  (0., 0., 1.), (1., 0., 1.), (1., 1., 1.), (0., 1., 1.)]
+    n.mesh.FemMesh.Nodes = {i: NS(x=x, y=y, z=z) for i, (x, y, z) in enumerate(hex_points, 1)}
+    inverse = [None] * 8
+    for index, slot in enumerate(_ORDERS['C3D8']): inverse[slot] = index + 1
+    n.mesh.FemMesh.getElementNodes = lambda identifier: inverse
+    member = NS(mats_linear=[{'Object': n.material}], mats_nonlinear=[{'Object': plastic}],
+                cons_fixed=[{'Object': n.fixed}], cons_force=[], cons_pressure=[{'Object': pressure}],
+                cons_selfweight=[{'Object': gravity}], cons_centrif=[])
+    monkeypatch.setattr(sys.modules['femtools'].membertools, 'AnalysisMember', lambda analysis: member)
+    monkeypatch.setattr(sys.modules['femmesh.meshsetsgetter'], 'MeshSetsGetter',
+        lambda *args: NS(member=member, mat_geo_sets=[], get_mesh_sets=lambda: None))
+    class Writer:
+        def __init__(self, analysis, solver, mesh, members, folder, sets):
+            self.root = Path(folder); self.member = members; self.solver_obj = solver
+            self.analysis_type = 'static'; self.ccx_eall = 'Eall'
+        def write_solver_input(self):
+            stream = io.StringIO()
+            stream.write('*NODE\n' + '\n'.join(f'{i},{x},{y},{z}' for i, (x, y, z) in enumerate(hex_points, 1)))
+            stream.write('\n*ELEMENT,TYPE=C3D8,ELSET=Eall\n7,1,2,3,4,5,6,7,8\n')
+            write_femelement_material(stream, self)
+            stream.write('*SOLID SECTION,ELSET=Eall,MATERIAL=UserMaterial\n*STEP\n*STATIC\n.1,1\n')
+            write_constraint_pressure.write_meshdata_constraint(stream,
+                {'PressureFaces': [((n.shape, ['Face2']), [(7, 2)], True)]}, pressure, self)
+            selfweight_writer.write_constraint(stream, {}, gravity, self)
+            stream.write('*NODE FILE\nU\n*END STEP\n')
+            path = self.root / 'native.inp'; path.write_text(stream.getvalue(), encoding='utf-8')
+            if changed_during_write: stored['plasticity_drafts'][0]['draft']['definitions_confirmed'] = False
+            return str(path)
+    monkeypatch.setattr(sys.modules['femsolver.calculix.writer'], 'FemInputWriterCcx', Writer)
+    output = tmp_path / 'applied'
+    if changed_during_write:
+        with pytest.raises(ValueError, match='확인'):
+            freeze_analysis(n.analysis, n.solver, output)
+        assert not list(output.glob('*/snapshot.json'))
+    else:
+        record = freeze_analysis(n.analysis, n.solver, output)
+        manifest, mesh, _, _ = frozen_fem.validate_snapshot(record)
+        text = (record.parent / manifest['input_file']).read_text()
+        assert '*PLASTIC\n' + '\n'.join(plastic.YieldPoints) + '\n' in text
+        assert float(text.split('*DENSITY\n')[1].splitlines()[0]) == 7.85e-9
+        assert '7,P2,1.2\n' in text and 'Eall,GRAV,9810,0,0,-1\n' in text
+        assert mesh['elements'][0]['type'] == 'C3D8'
+        assert {'*PLASTIC', '*DENSITY', '*DLOAD'} <= set(manifest['native_cards'])
+        assert stored == original_metadata and stored['plasticity_drafts'][0]['draft'] == source
+    assert n.source.read_bytes() == original_source

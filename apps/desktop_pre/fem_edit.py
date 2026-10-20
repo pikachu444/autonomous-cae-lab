@@ -995,7 +995,7 @@ class FEMEditor:
             or any(row.get('analysis_id') == analysis.Name for row in self.contact._data().get('contacts', []))
             or any(row.get('analysis_id') == analysis.Name
                    for key in ('pretension_sections', 'contact_programs', 'periodic_constraints',
-                               'convergence_drafts', 'plasticity_drafts') for row in data.get(key, [])))
+                               'convergence_drafts') for row in data.get(key, [])))
         if not specialized:
             solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
                        and not getattr(obj, 'Suppressed', False)]

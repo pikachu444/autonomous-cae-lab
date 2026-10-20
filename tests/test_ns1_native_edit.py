@@ -8,6 +8,7 @@ import pytest
 from test_pre_fem_edit import native, Object
 from apps.desktop_pre import nonlinear_material as nm
 from apps.desktop_pre.fem_edit import FEMEditor
+from apps.desktop_pre.native_calculix import validate_analysis as native_validate_analysis
 from caelab.calculix_material import J2, LINEAR, default_plasticity
 
 
@@ -248,3 +249,96 @@ def test_elastic_native_addition_is_blocked_at_collect_and_freeze(model, monkeyp
     with pytest.raises(ValueError, match='native'):
         exporter.freeze_contact(n.analysis, n.solver, tmp_path/'frozen', fem=n.fem)
     assert n.metadata == before and not (tmp_path/'frozen').exists()
+
+
+def test_applied_plasticity_draft_keeps_native_run_route(nonlinear_factory, monkeypatch):
+    from PySide6.QtWidgets import QApplication, QLabel
+    from apps.desktop_pre.connection import Connection
+    n = nonlinear_factory
+    app = QApplication.instance() or QApplication([])
+    nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    kind = lambda obj: getattr(getattr(obj, 'Proxy', None), 'Type', obj.TypeId)
+    monkeypatch.setitem(sys.modules, 'FemGui', NS(getActiveAnalysis=lambda: n.analysis))
+    monkeypatch.setitem(sys.modules, 'femtools', NS(femutils=NS(type_of_obj=kind)))
+    owner = NS(doc=n.doc, document_id='UserModel', session_id='UserSession', generation=7,
+               refresh=lambda: None, read_metadata=n.read_metadata)
+    calls = []
+    connection = NS(pending=None, App=n.App, owners={n.doc.Name: (owner, None, None)}, panels={},
+                    message=QLabel(), send_command=lambda: calls.append(deepcopy(connection.pending)))
+    for export_only in (True, False):
+        connection.pending = None
+        Connection.run(connection, export_only=export_only)
+        assert calls[-1]['operation'] == 'pre.freeze', connection.message.text()
+        assert calls[-1]['arguments'] == {'analysis_id': n.analysis.Name, 'solver_id': n.solver.Name}
+        assert calls[-1]['export_only'] is export_only
+    app.processEvents()
+
+
+@pytest.fixture
+def saved_native_admission(nonlinear_factory, monkeypatch):
+    """Use real native admission with explicit FreeCAD property/accessor doubles."""
+    n = nonlinear_factory
+    n.App.GuiUp = False
+    n.doc.isTouched = lambda: False
+    n.doc.getObject = lambda name: next((obj for obj in n.doc.Objects if obj.Name == name), None)
+    for obj in n.doc.Objects: obj.State = []
+    def stored(doc):
+        assert doc is n.doc
+        return n.read_metadata()
+    monkeypatch.setattr('apps.desktop_pre.metadata.read', stored)
+    monkeypatch.setitem(sys.modules, 'FreeCAD', n.App)
+    def members(analysis):
+        groups = {'mats_linear': 'Fem::MaterialCommon', 'mats_nonlinear': nm.KIND,
+                  'cons_fixed': 'Fem::ConstraintFixed', 'cons_force': 'Fem::ConstraintForce'}
+        return NS(**{key: [{'Object': obj} for obj in analysis.Group
+                          if nm.native_type(obj) == kind and not getattr(obj, 'Suppressed', False)]
+                     for key, kind in groups.items()})
+    monkeypatch.setitem(sys.modules, 'femtools', NS(femutils=NS(type_of_obj=nm.native_type),
+        membertools=NS(get_mesh_to_solve=lambda analysis: (n.mesh, ''), AnalysisMember=members),
+        checksanalysis=NS(check_member_for_solver_calculix=lambda *args: '')))
+    monkeypatch.setattr('apps.desktop_pre.native_calculix.validate_analysis', native_validate_analysis)
+    return n
+
+
+@pytest.mark.parametrize('changed', ['draft', 'native_curve', 'solver', 'missing_base', 'foreign_base',
+                                      'suppressed_base', 'duplicate_record'])
+def test_native_run_admission_preserves_saved_plasticity_guards(saved_native_admission, changed):
+    n = saved_native_admission
+    nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    nm.native_objects(n.analysis)[0].State = []
+    assert nm.validate_applied_materials(n.analysis, n.solver, n.metadata) == n.metadata['plasticity_drafts']
+    assert n.editor.validate_for_run(n.analysis) == []
+    if changed == 'draft':
+        value = draft(); value['plasticity']['yield_points'][1][0] = '290'
+        nm.save(n.editor, n.material, n.analysis.Name, value)
+    elif changed == 'native_curve':
+        nm.native_objects(n.analysis)[0].YieldPoints = ['300,0', '350,.01']
+    elif changed == 'solver':
+        n.solver.MaterialNonlinearity = 'linear'
+    elif changed == 'missing_base':
+        n.analysis.Group.remove(n.material)
+    elif changed == 'foreign_base':
+        n.material.Document = NS(Name='ForeignDocument')
+    elif changed == 'suppressed_base':
+        n.material.Suppressed = True
+    else:
+        n.metadata['plasticity_drafts'].append(deepcopy(n.metadata['plasticity_drafts'][0]))
+    before = deepcopy(n.metadata)
+    with pytest.raises(ValueError):
+        nm.validate_applied_materials(n.analysis, n.solver, n.metadata)
+    errors = n.editor.validate_for_run(n.analysis)
+    assert errors and all(row['blocks_evaluation'] for row in errors)
+    assert n.metadata == before
+
+
+def test_native_only_kinematic_material_is_not_reinterpreted_as_app_j2(saved_native_admission):
+    n = saved_native_admission
+    nm.apply(n.editor, n.material, n.analysis.Name, draft())
+    nm.native_objects(n.analysis)[0].State = []
+    n.metadata.clear()
+    nonlinear, = nm.native_objects(n.analysis)
+    nonlinear.MaterialModelNonlinearity = 'kinematic hardening'
+    before = list(nonlinear.YieldPoints)
+    assert nm.validate_applied_materials(n.analysis, n.solver, n.metadata) == []
+    assert n.editor.validate_for_run(n.analysis) == []
+    assert nonlinear.MaterialModelNonlinearity == 'kinematic hardening' and nonlinear.YieldPoints == before

@@ -26,6 +26,7 @@ def native(monkeypatch, tmp_path):
     source = tmp_path / "original.FCStd"
     source.write_bytes(b"original document")
     doc = NS(Name="UserDocument", FileName=str(source), Objects=[], touched=False)
+    doc.getObject = lambda name: next((obj for obj in doc.Objects if obj.Name == name), None)
     doc.isTouched = lambda: doc.touched
     copies, writes = [], []
     def save_copy(path):
