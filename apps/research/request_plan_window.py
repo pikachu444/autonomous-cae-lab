@@ -2327,7 +2327,10 @@ class RequestPlanWindow(NumericalWindow):
             index = 1  # A direct evaluation opens its actual response, not an empty candidate summary.
         self.plot_response.setCurrentIndex(max(0, index))
         self.plot_response.blockSignals(False)
-        self._method_result_view(result)
+        if unchanged:
+            self._plot_selected_result()
+        else:
+            self._method_result_view(result)
         from .numerical_mixed_results import project_mixed_result
         project_mixed_result(self,result,key)
         self.details.setPlainText(json.dumps({'document_diagnostics': self.document.get('diagnostics') if self.document else [],

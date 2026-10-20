@@ -448,7 +448,7 @@ def test_distribution_draft_cancel_partial_save_reopen_repair(environment,monkey
 
 
 def test_actual_uq_linked_rows_full_width_and_late_read_preserves_edit(environment,monkeypatch):
-    from PySide6.QtCore import QModelIndex, QItemSelectionModel
+    from PySide6.QtCore import QItemSelectionModel
     app,wb,open_window=environment
     install_algebra(monkeypatch)
     value=inputs();value['settings']['fail']=True
@@ -467,14 +467,21 @@ def test_actual_uq_linked_rows_full_width_and_late_read_preserves_edit(environme
         assert w.width()==size[0] and w.height()==size[1]
         assert w.canvas.width()>700
         assert w.canvas.height()>170
+        assert w._selected_actual_candidate()['candidate_id']==identifier
     w._edit_structure(lambda current:current['thresholds'][0].update(unit='Pa'))
     draft=deepcopy(w.edited_draft())
-    # Losing the keyboard's current index must not discard the highlighted row.
-    w.candidates.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
     assert w._selected_actual_candidate()['candidate_id']==identifier
+    # Keyboard focus and the highlighted result can refer to different rows.
+    selected_row=w.candidates.selectionModel().selectedRows()[0].row()
+    other_row=(selected_row+1)%w.candidates.rowCount()
+    w.candidates.selectionModel().setCurrentIndex(w.candidates.model().index(other_row,0),
+        QItemSelectionModel.SelectionFlag.NoUpdate)
+    assert w._selected_actual_candidate()['candidate_id']==identifier
+    selected_item=w.candidates.item(selected_row,0)
     w._draw_result()  # A result callback only redraws the frozen run.
     assert w.edited_draft()==draft and w.work_pages.currentWidget() is w.results_panel
     assert w._selected_actual_candidate()['candidate_id']==identifier
+    assert w.candidates.item(selected_row,0) is selected_item
     assert '[MPa]' in w.figure.axes[0].get_xlabel()
     assert result['probability_statistics'][0]['threshold']['unit']=='MPa'
     w._result_cache.pop(job)
