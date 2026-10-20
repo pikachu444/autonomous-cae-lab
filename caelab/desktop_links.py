@@ -629,6 +629,13 @@ class DesktopLinks:
             submitted = next((run['draft'] for run in discussion.get('runs', [])
                               if run['job_id'] == source.get('job_id')), discussion['draft'])
             context = submitted['context'].get('engineering_context') or {}
+            if not context.get('job_id'):
+                state = discussion['draft']['context'].get('workbench') or submitted['context'].get('workbench') or {}
+                model = state.get('model') or {}
+                path = model.get('saved_path') or model.get('original_path')
+                if path:
+                    return {'status': 'NATIVE_EDIT_REQUIRED', 'model_path': path, 'executed': False}
+                raise ValueError('Workbench에서 이 연구의 저장 모델을 다시 연결하세요.')
             job = self.job_record(check_id(context.get('job_id')))
             backend = job.get('arguments', {}).get('backend')
             if backend not in exports:

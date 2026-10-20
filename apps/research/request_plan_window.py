@@ -2974,6 +2974,10 @@ class RequestPlanWindow(NumericalWindow):
                     return receipt
                 time.sleep(.2)
         def received(receipt):
+            if receipt['status'] == 'NATIVE_EDIT_REQUIRED':
+                self._native_input_request = None
+                self.open_model_source()
+                return
             if receipt['status'] != 'READY':
                 self.message.setText('모델 입력을 생성하고 있습니다. 잠시 후 모델 입력 갱신을 누르세요.')
                 return

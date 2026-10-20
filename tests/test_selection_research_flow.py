@@ -128,6 +128,30 @@ def test_context_exposes_actual_native_convergence_logs_without_execution(tmp_pa
         assert wb.shutdown()['joined']
 
 
+def test_independent_plan_keeps_native_editing_without_a_managed_job(tmp_path):
+    from caelab.discussion_document import default_draft
+    from caelab.numerical_document import request_draft
+    wb = Workbench(tmp_path)
+    try:
+        model_path = str(tmp_path / 'saved.FCStd')
+        draft = default_draft()
+        draft['context']['workbench'] = {'model': {'original_path': model_path, 'saved_path': model_path}}
+        discussion = wb.document_open(kind='expert', draft=draft)
+        source = {'discussion_id': discussion['id'], 'turn_id': 'Aoriginal', 'proposal_index': 0,
+            'job_id': 'Jquestion', 'input_revision': 'Ioriginal', 'input_sha256': 'a' * 64,
+            'proposal_sha256': 'b' * 64}
+        plan = wb.document_open(kind='numerical', draft=request_draft({
+            'purpose': 'Edit the native model', 'operation': 'evaluate',
+            'inputs': {'backend': 'structure.calculix.frozen', 'settings': {'data_id': 'Doriginal'}},
+            'budget': {'evaluations': 1}}, source=source))
+        receipt = wb.desktop.native_plan_input(plan['id'], session_id=plan['session_id'],
+            expected_generation=plan['generation'], command_id='CnativeEdit')
+        assert receipt == {'status': 'NATIVE_EDIT_REQUIRED', 'model_path': model_path, 'executed': False}
+        assert wb.manager.list() == [] and wb.native_commands.documents() == []
+    finally:
+        assert wb.shutdown()['joined']
+
+
 def test_independent_file_context_history_save_restart_has_no_execution(tmp_path):
     source = tmp_path / 'user.inp'
     source.write_text('*NODE\n1,0,0,0\n*STEP\n*STATIC\n*END STEP\n')

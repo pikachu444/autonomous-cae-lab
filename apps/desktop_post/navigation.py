@@ -49,11 +49,15 @@ def open_analysis_editor(document, document_id, session_id, *, environment=None)
 def return_to_design(document, *, environment=None):
     environment = dict(os.environ if environment is None else environment)
     job_id = environment.get('CAELAB_ORIGIN_JOB_ID') or document.get('origin_job_id')
-    if not job_id:
+    discussion = document.get('discussion_id') or environment.get('CAELAB_DISCUSSION_ID')
+    state = document.get('workbench') or {}
+    model = state.get('model') or {}
+    model_path = model.get('saved_path') or model.get('original_path')
+    if not job_id and not (discussion and model_path):
         raise ValueError('This independent result has no recorded design job. Its analysis remains open.')
     from caelab.storage import check_id
     from caelab.workbench_client import Client
-    check_id(job_id)
+    check_id(job_id or discussion)
     service = environment.get('CAE_POST_SERVICE_URL') or document.get('service_url')
     Client(service)  # Validate loopback scope; no network/native access on this thread.
     python = Path(environment.get('CAELAB_DESKTOP_PYTHON') or document.get('desktop_python') or '')
@@ -62,6 +66,8 @@ def return_to_design(document, *, environment=None):
         raise ValueError('Open this saved Post project through the CAE Post launcher to reconnect its desktop tools.')
     for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
         environment.pop(key, None)
+    arguments = ['origin', '--job-id', job_id] if job_id else ['pre', '--source', model_path,
+        '--discussion-id', discussion, '--workbench-context', json.dumps(state, ensure_ascii=False)]
     process = subprocess.Popen([str(python), '-m', 'apps.research.desktop', '--service', service,
-                                'origin', '--job-id', job_id], cwd=repository, env=environment)
+                                *arguments], cwd=repository, env=environment)
     return {'status': 'NAVIGATION_REQUESTED', 'job_id': job_id, 'pid': process.pid}
