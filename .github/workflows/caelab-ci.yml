@@ -231,6 +231,10 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'core') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     env:
       MPLBACKEND: Agg
       QT_QPA_PLATFORM: offscreen
@@ -298,32 +302,54 @@ jobs:
           print(f"PySide6 {PySide6.__version__}; Qt {QtCore.qVersion()}; "
                 f"platform={app.platformName()}; offscreen widget/event loop OK")
           PY
-      - run: python -m pytest -v --durations=20 -o faulthandler_timeout=120 --junitxml=artifacts/core-tests.xml
+      - name: Run each test file on one core shard
         if: ${{ !cancelled() && steps.qt_preflight.outcome == 'success' && steps.freecad_reference.outcome == 'success' }}
+        env:
+          TEST_SHARD: ${{ matrix.shard }}
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          files = sorted({path.as_posix() for pattern in ('test_*.py', '*_test.py')
+                          for path in Path('tests').rglob(pattern) if path.is_file()})
+          shard = int(os.environ['TEST_SHARD'])
+          selected = files[shard::4]
+          if not selected:
+              raise SystemExit('Core shard has no test files; refusing an unfiltered run.')
+          print(f'Core shard {shard + 1}/4: {len(selected)} test files', flush=True)
+          raise SystemExit(subprocess.call([
+              sys.executable, '-m', 'pytest', '-v', '--durations=20',
+              '--maxfail=0', '--continue-on-collection-errors',
+              '-o', 'faulthandler_timeout=120',
+              '--junitxml=artifacts/core-tests.xml', *selected,
+          ]))
       - name: Preserve core test failures and skips
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: core-tests-${{ github.sha }}
+          name: core-tests-${{ github.sha }}-${{ matrix.shard }}
           path: artifacts/core-tests.xml
           if-no-files-found: warn
           retention-days: 30
       - name: Check forms, imported meshes and retained PDE/contact fields
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        if: ${{ matrix.shard == 0 && !cancelled() && steps.checkout.outcome == 'success' }}
         run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_native_structural_field.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
       - run: python scripts/verify_mcp.py
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' }}
+        if: ${{ matrix.shard == 0 && !cancelled() && steps.python_deps.outcome == 'success' }}
       - name: Check current workbench UI
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        if: ${{ matrix.shard == 0 && !cancelled() && steps.checkout.outcome == 'success' }}
         run: node --test tests/test_workbench_ui.js
       - name: Check generic Git identity reader
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        if: ${{ matrix.shard == 0 && !cancelled() && steps.checkout.outcome == 'success' }}
         run: node --test openscience/tests/native_git_state.test.mjs
       - name: Connect the local HTTP research, CAD gates and verified evidence exports
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' }}
+        if: ${{ matrix.shard == 0 && !cancelled() && steps.python_deps.outcome == 'success' }}
         run: python -m scripts.verify_lab_ui --store artifacts/http-core-lab --skip-pde
       - name: Preserve common HTTP acceptance and portable evidence
-        if: always()
+        if: ${{ always() && matrix.shard == 0 }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: http-core-cae-lab-${{ github.sha }}
