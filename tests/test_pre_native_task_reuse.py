@@ -168,6 +168,30 @@ def test_generic_native_face_edit_does_not_require_legacy_condition_repair(nativ
     assert native.force.References == [(native.shape, ['Face1'])]
 
 
+@pytest.mark.parametrize('sidecar',['initial_fields','pretension_editors','contacts','pretension_sections',
+                                   'contact_programs','periodic_constraints','convergence_drafts'])
+def test_condition_descriptor_scopes_legacy_tracking_to_its_analysis(native,sidecar):
+    from test_pre_fem_edit import Object
+    repair_conditions(native)
+    other=Object(native.doc,'OtherForce','Fem::ConstraintForce',References=[(native.shape,['Face2'])],
+        Force=Quantity('30 N'),Direction=None,Reversed=False,EnableAmplitude=False)
+    analysis=Object(native.doc,'OtherAnalysis','Fem::FemAnalysis',Group=[other])
+    native.editor._record_condition(other,None)
+    native.force.References=[(native.shape,['Face1'])];other.References=[(native.shape,['Face1'])]
+    native.metadata[sidecar]=({analysis.Name:{}} if sidecar in ('initial_fields','pretension_editors')
+                             else [{'analysis_id':analysis.Name}])
+    before=deepcopy(native.metadata)
+    # The contact descriptor has its own detailed editor checks; this test
+    # isolates which Analysis owns condition-target tracking.
+    native.editor.contact.descriptor=lambda:{}
+    rows={row['object_id']:row for row in native.editor.descriptor()['conditions']}
+    assert rows[native.force.Name]['errors']==[]
+    assert rows[native.force.Name]['native_references']==[{'object_id':native.shape.Name,'subelements':['Face1']}]
+    assert rows[other.Name]['errors'] and 'STALE_CONDITION_TARGET' in rows[other.Name]['errors'][0]
+    assert native.editor.validate_for_run(native.analysis)==[]
+    assert native.metadata==before
+
+
 def test_generic_native_admission_keeps_native_validator_refusal(native,monkeypatch):
     repair_conditions(native)
     native.force.References=[]

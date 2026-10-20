@@ -261,7 +261,9 @@ def test_region_geometry_edit_needs_explicit_repair_then_condition_confirmation(
 
 def test_current_native_condition_can_be_confirmed_without_recreating_it(native):
     before = list(native.doc.Objects)
-    assert all(row['errors'][0].startswith('UNTRACKED_TARGET') for row in native.editor.descriptor()['conditions'])
+    assert all(native.editor._condition_errors(obj, native.editor._metadata())[0].startswith('UNTRACKED_TARGET')
+               for obj in (native.fixed, native.force))
+    assert all(not row['errors'] for row in native.editor.descriptor()['conditions'])
     repair_conditions(native)
     assert native.doc.Objects == before
     assert not native.editor.validate_for_run(native.analysis)

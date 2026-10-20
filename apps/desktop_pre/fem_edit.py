@@ -208,6 +208,15 @@ class FEMEditor:
             raise ValueError('Target belongs to another native document')
         return obj
 
+    def _sidecar_analyses(self, data):
+        contacts = data.get('contacts', [])
+        if not isinstance(contacts, list) or not isinstance(data.get('contact_history', []), list):
+            raise ValueError('Malformed contact metadata is retained; restore a valid saved draft')
+        return (set(data.get('initial_fields', {})) | set(data.get('pretension_editors', {})) |
+                {row.get('analysis_id') for key in ('pretension_sections', 'contact_programs',
+                    'periodic_constraints', 'convergence_drafts') for row in data.get(key, [])} |
+                {row.get('analysis_id') for row in contacts})
+
     def _mesh(self, target):
         obj = self._object(target)
         if _native_type(obj) != 'Fem::FemMeshGmsh':
@@ -326,6 +335,10 @@ class FEMEditor:
     def descriptor(self):
         self.owner.assert_thread()
         data = self._metadata()
+        sidecars = self._sidecar_analyses(data)
+        tracked_conditions = {obj.Name for analysis in self.owner.doc.Objects
+            if _native_type(analysis) == 'Fem::FemAnalysis' and analysis.Name in sidecars
+            for obj in analysis.Group}
         active = {item['id'] for item in self._pending.values()}
         for row in data['mesh_history']:
             if row['state'] in ('RUNNING', 'CANCELLING') and row['id'] not in active:
@@ -341,14 +354,15 @@ class FEMEditor:
         for row in data['conditions']:
             try:
                 obj = self.owner._object(row['object_id'])
-                row['errors'] = self._condition_errors(obj, data)
+                row['errors'] = self._condition_errors(obj, data) if obj.Name in tracked_conditions else []
             except Exception as error:
                 row['errors'] = [str(error)]
         for obj in self.owner.doc.Objects:
             if (_native_type(obj) in ('Fem::ConstraintFixed', 'Fem::ConstraintForce', 'Fem::ConstraintDisplacement')
                     and not any(row['object_id'] == obj.Name for row in data['conditions'])):
                 data['conditions'].append({'object_id': obj.Name, 'native_type': _native_type(obj),
-                    'qualification': 'UNKNOWN', 'errors': self._condition_errors(obj, data)})
+                    'qualification': 'UNKNOWN', 'errors': self._condition_errors(obj, data)
+                    if obj.Name in tracked_conditions else []})
         for row in data['conditions']:
             try:
                 obj = self.owner._object(row['object_id'])
@@ -990,12 +1004,7 @@ class FEMEditor:
             # before any input is packaged. This capture alone cannot run.
             return errors
         data = self._metadata()
-        specialized = (analysis.Name in data.get('initial_fields', {})
-            or analysis.Name in data.get('pretension_editors', {})
-            or any(row.get('analysis_id') == analysis.Name for row in self.contact._data().get('contacts', []))
-            or any(row.get('analysis_id') == analysis.Name
-                   for key in ('pretension_sections', 'contact_programs', 'periodic_constraints',
-                               'convergence_drafts') for row in data.get(key, [])))
+        specialized = analysis.Name in self._sidecar_analyses(data)
         if not specialized:
             solvers = [obj for obj in analysis.Group if _native_type(obj) == 'Fem::SolverCcxTools'
                        and not getattr(obj, 'Suppressed', False)]

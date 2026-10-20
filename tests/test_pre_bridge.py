@@ -376,6 +376,40 @@ def test_open_pre_document_registers_all_native_operations(native,tmp_path):
     assert owner not in native.app.observers
 
 
+def test_public_native_document_read_reports_current_condition_without_old_tracking_errors(native,tmp_path,monkeypatch):
+    from test_pre_fem_edit import Shape
+    from caelab.workbench import Workbench
+    owner=native.owner;stored={}
+    monkeypatch.setattr(owner,'read_metadata',lambda:deepcopy(stored))
+    def save(value):stored.clear();stored.update(deepcopy(value))
+    monkeypatch.setattr(owner,'write_metadata',save)
+    native.pad.Shape=Shape()
+    native.pad.getGlobalPlacement=lambda:NS(Base=NS(x=0,y=0,z=0),Rotation=NS(Q=[0,0,0,1]))
+    native.force.References=[(native.pad,['Face1'])]
+    native.force.Direction=None;native.force.Reversed=False;native.force.EnableAmplitude=False
+    owner.fem._record_condition(native.force,None)
+    before=deepcopy(stored)
+    wb=Workbench(tmp_path/'public-read')
+    try:
+        registered=wb.native_commands.register(host_id='Hpre',session_id=owner.session_id,
+            application='freecad',version='1.1.4',execution_mode='gui',documents=[owner.descriptor()],registration_nonce='n'*32)
+        native.force.References=[(native.pad,['Face2'])]
+        owner.slotChangedObject(native.force,'References')
+        descriptor=owner.descriptor()
+        wb.native_commands.event('Hpre',session_id=owner.session_id,host_token=registered['host_token'],
+            event='heartbeat',documents=[descriptor])
+        public=wb.document_read(owner.document_id)
+        inspected=owner.dispatch(request(native,'pre.inspect',{},{}))
+        assert inspected['status']=='COMPLETED'
+        for view in (public,inspected['result']):
+            row=next(row for row in view['fem']['conditions'] if row['object_id']==native.force.Name)
+            assert row['native_references']==[{'object_id':native.pad.Name,'subelements':['Face2']}]
+            assert row['force']=='20 N' and row['errors']==[]
+        assert stored==before and native.doc.transactions==[]
+    finally:
+        assert wb.shutdown()['joined']
+
+
 @pytest.mark.parametrize('object_id,property_name,value,unit',[('Pad','Length',25,'mm'),('Load','Force',50,'N')])
 def test_real_owner_transaction_and_idempotent_same_request(native,object_id,property_name,value,unit):
     command=request(native,arguments={'property':property_name,'value':value,'unit':unit},target={'object_id':object_id})
