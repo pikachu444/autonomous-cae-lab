@@ -104,7 +104,8 @@ def test_plan_reopens_bound_native_model_or_its_relinked_save(app, workbench, mo
 
 
 @pytest.mark.parametrize('backend',['structure.calculix.frozen','structure.calculix.contact','structure.calculix.pretension'])
-def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, monkeypatch, backend):
+@pytest.mark.parametrize('missing_input',[False,True])
+def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, monkeypatch, backend, missing_input):
     client = InProcessClient(workbench)
     calls = []
     def refresh(plan_id, **arguments):
@@ -113,7 +114,7 @@ def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, 
                 'settings': {'data_id': 'Dupdated'}}
     client.native_plan_input = refresh
     draft = request_draft({'purpose': '사용자 모델의 접촉 조건 수정', 'operation': 'evaluate',
-        'inputs': {'backend': backend, 'settings': {'data_id': 'Doriginal'}},
+        'inputs': {'backend': backend, 'settings': {} if missing_input else {'data_id': 'Doriginal'}},
         'budget': {'evaluations': 1}}, source={'discussion_id': 'Xsource', 'turn_id': 'Aturn',
         'proposal_index': 0, 'proposal_sha256': 'a' * 64, 'job_id': 'Jsource',
         'input_revision': 'Isource', 'input_sha256': 'b' * 64})
@@ -122,6 +123,7 @@ def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, 
         window.open_document(draft=draft)
         wait(app, lambda: window.document is not None and not window._busy)
         assert window.native_update_button.isEnabled()
+        assert window.run_button.text()==('모델에서 계산 준비…' if missing_input else '현재 계획 실행')
         # Adding a different result to the conversation cannot redirect this
         # Plan away from the model selected when its source reply was requested.
         original_read = client.document_read
@@ -134,7 +136,7 @@ def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, 
         window.model_open_button.click()
         wait(app,lambda:not window._busy and bool(opened_models))
         assert opened_models == ['JoriginalModel']
-        window.native_update_button.click()
+        (window.run_button if missing_input else window.native_update_button).click()
         wait(app, lambda: not window._busy and window.local_dirty)
         assert window.edited_draft()['request']['inputs']['settings'] == {'data_id': 'Dupdated'}
         assert workbench.document_read(window.document['id'])['draft'] == draft
@@ -154,6 +156,45 @@ def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, 
     finally:
         window._allow_close = True
         window.close()
+
+
+@pytest.mark.parametrize('backend',['structure.calculix.frozen','structure.calculix.shell','structure.calculix.beam'])
+def test_independent_native_primary_action_opens_existing_fem_without_job(app,workbench,monkeypatch,backend):
+    from caelab.discussion_document import default_draft
+    discussion_draft=default_draft()
+    state={'model':{'original_path':'C:/models/user.FCStd','saved_path':'C:/models/user-save.FCStd'}}
+    discussion_draft['context']['workbench']=state
+    discussion=workbench.document_open(kind='expert',draft=discussion_draft)
+    draft=request_draft({'purpose':'Inspect and rerun the same native model','operation':'evaluate',
+        'inputs':{'backend':backend,'settings':{}},'budget':{'evaluations':1}},
+        source={'discussion_id':discussion['id'],'turn_id':'Aturn','proposal_index':0,
+            'job_id':'Jsource','input_revision':'Isource','input_sha256':'a'*64,'proposal_sha256':'b'*64})
+    client=InProcessClient(workbench)
+    client.native_plan_input=lambda plan_id,**options:workbench.desktop.native_plan_input(plan_id,**options)
+    launched=[]
+    monkeypatch.setattr('apps.research.desktop.launch_pre',
+        lambda client,**arguments:launched.append(arguments) or {'status':'LAUNCH_REQUESTED'})
+    window=RequestPlanWindow(client,auto_open=False,poll_interval=0)
+    try:
+        window.open_document(draft=draft)
+        wait(app,lambda:window.document is not None and not window._busy)
+        assert window.run_button.isEnabled() and window.run_button.text()=='모델에서 계산 준비…'
+        window.run_button.click()
+        wait(app,lambda:not window._busy and bool(launched))
+        assert launched==[{'source':state['model']['saved_path'],'discussion_id':discussion['id'],'workbench':state}]
+        assert workbench.manager.list()==[]
+        assert not window.local_dirty and window.edited_draft()==draft
+        # A retained input switches the same primary action back to normal Run.
+        updated=deepcopy(draft)
+        updated['request']['inputs']['settings']={'data_id':'Dretained'}
+        window._show_document({**window.document,'draft':updated})
+        commands=[]
+        monkeypatch.setattr(window,'command',lambda operation:commands.append(operation))
+        assert window.run_button.text()=='현재 계획 실행'
+        window.run_button.click()
+        assert commands==['numerical.run']
+    finally:
+        window._allow_close=True;window.close()
 
 
 def find_input(window, path):

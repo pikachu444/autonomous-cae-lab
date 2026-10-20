@@ -128,7 +128,9 @@ def test_context_exposes_actual_native_convergence_logs_without_execution(tmp_pa
         assert wb.shutdown()['joined']
 
 
-def test_independent_plan_keeps_native_editing_without_a_managed_job(tmp_path):
+@pytest.mark.parametrize('backend', ['structure.calculix.frozen', 'structure.calculix.contact',
+    'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam'])
+def test_independent_plan_keeps_native_editing_without_a_managed_job(tmp_path, backend):
     from caelab.discussion_document import default_draft
     from caelab.numerical_document import request_draft
     wb = Workbench(tmp_path)
@@ -142,11 +144,30 @@ def test_independent_plan_keeps_native_editing_without_a_managed_job(tmp_path):
             'proposal_sha256': 'b' * 64}
         plan = wb.document_open(kind='numerical', draft=request_draft({
             'purpose': 'Edit the native model', 'operation': 'evaluate',
-            'inputs': {'backend': 'structure.calculix.frozen', 'settings': {'data_id': 'Doriginal'}},
+            'inputs': {'backend': backend, 'settings': {'data_id': 'Doriginal'}},
             'budget': {'evaluations': 1}}, source=source))
         receipt = wb.desktop.native_plan_input(plan['id'], session_id=plan['session_id'],
             expected_generation=plan['generation'], command_id='CnativeEdit')
         assert receipt == {'status': 'NATIVE_EDIT_REQUIRED', 'model_path': model_path, 'executed': False}
+        assert wb.manager.list() == [] and wb.native_commands.documents() == []
+        for invalid in ('structure.calculix.unknown', 'structure.codeaster.frozen'):
+            rejected = wb.document_open(kind='numerical', draft=request_draft({
+                'purpose': 'Inspect a bound model', 'operation': 'evaluate',
+                'inputs': {'backend': invalid, 'settings': {}},
+                'budget': {'evaluations': 1}}, source=source))
+            with pytest.raises(ValueError, match='Choose a CalculiX Plan'):
+                wb.desktop.native_plan_input(rejected['id'], session_id=rejected['session_id'],
+                    expected_generation=rejected['generation'], command_id='Cinvalid')
+        managed_draft = deepcopy(draft)
+        managed_draft['context']['engineering_context'] = {'job_id': 'Jmanaged'}
+        managed = wb.document_open(kind='expert', draft=managed_draft)
+        managed_plan = wb.document_open(kind='numerical', draft=request_draft({
+            'purpose': 'Refresh a managed shell export', 'operation': 'evaluate',
+            'inputs': {'backend': 'structure.calculix.shell', 'settings': {}},
+            'budget': {'evaluations': 1}}, source={**source, 'discussion_id': managed['id']}))
+        with pytest.raises(ValueError, match='supported managed model export'):
+            wb.desktop.native_plan_input(managed_plan['id'], session_id=managed_plan['session_id'],
+                expected_generation=managed_plan['generation'], command_id='CmanagedUnsupported')
         assert wb.manager.list() == [] and wb.native_commands.documents() == []
     finally:
         assert wb.shutdown()['joined']

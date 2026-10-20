@@ -188,7 +188,7 @@ class RequestPlanWindow(NumericalWindow):
         self.apply_button, self.run_button = QPushButton('변경 적용'), QPushButton('계산 실행')
         self.run_button.setProperty('appearanceRole', 'primary')
         self.apply_button.clicked.connect(self.apply_inputs)
-        self.run_button.clicked.connect(lambda: self.command('numerical.run'))
+        self.run_button.clicked.connect(self.run_current_plan)
         bar.addWidget(self.apply_button)
         bar.addWidget(self.run_button)
         self.identity = QLabel()
@@ -2724,6 +2724,10 @@ class RequestPlanWindow(NumericalWindow):
         # local edits and never disable the editor or force its value to commit.
         self.editor.setEnabled(present and not self._view_error and not (self._busy and not self._busy_background))
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
+        needs_native_input = self._requires_native_input()
+        self.run_button.setText('모델에서 계산 준비…' if needs_native_input else '현재 계획 실행')
+        self.run_button.setToolTip('연결 모델을 열거나 계산 입력을 준비합니다. 계산은 자동 실행하지 않습니다.'
+                                  if needs_native_input else '')
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._view_error and not self.document.get('diagnostics'))
         self.save_action.setEnabled(enabled)
         self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))
@@ -2957,8 +2961,23 @@ class RequestPlanWindow(NumericalWindow):
                     'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}
                 and isinstance(source, dict) and bool(source.get('discussion_id')))
 
+    def _requires_native_input(self):
+        draft = self.document.get('draft', {}) if self.document else {}
+        inputs = draft.get('request', {}).get('inputs', {})
+        settings = inputs.get('settings') or {}
+        source = draft.get('source')
+        backend = inputs.get('backend')
+        return (isinstance(source, dict) and bool(source.get('discussion_id'))
+                and isinstance(backend, str) and backend.startswith('structure.calculix.')
+                and isinstance(settings, dict) and not settings.get('data_id'))
+
+    def run_current_plan(self):
+        if self._requires_native_input():
+            return self.refresh_native_input()
+        return self.command('numerical.run')
+
     def refresh_native_input(self):
-        if not self._uses_native_model() or self._busy or self.local_dirty:
+        if not (self._uses_native_model() or self._requires_native_input()) or self._busy or self.local_dirty:
             return
         document = deepcopy(self.document)
         signature = (document['id'], document['session_id'], document['generation'])

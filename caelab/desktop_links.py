@@ -12,6 +12,7 @@ import threading
 import uuid
 
 from .native_inputs import register_frozen_input
+from .backends import list_backends
 from .storage import canonical_hash, check_id, load_json, save_json
 
 
@@ -608,7 +609,7 @@ class DesktopLinks:
             return {'document':document,'source':deepcopy(source_ref),'command_id':command_id,'executed':False}
 
     def native_plan_input(self, plan_id, *, session_id, expected_generation, command_id):
-        """Freeze the edited original FreeCAD model for an explicit Plan rerun."""
+        """Prepare a managed model input or request independent native editing."""
         wb = self.workbench
         plan_id, command_id = check_id(plan_id), check_id(command_id)
         if session_id != wb.session_id or type(expected_generation) is not int:
@@ -620,7 +621,10 @@ class DesktopLinks:
             exports = {'structure.calculix.frozen': 'pre.freeze',
                        'structure.calculix.contact': 'pre.contact.freeze',
                        'structure.calculix.pretension': 'pre.pretension.freeze'}
-            if plan['draft'].get('request', {}).get('inputs', {}).get('backend') not in exports:
+            requested_backend = plan['draft'].get('request', {}).get('inputs', {}).get('backend')
+            if (not isinstance(requested_backend, str)
+                    or not requested_backend.startswith('structure.calculix.')
+                    or requested_backend not in {row['id'] for row in list_backends()}):
                 raise ValueError('Choose a CalculiX Plan linked to its editable FreeCAD model')
             source = plan['draft'].get('source') or {}
             if not isinstance(source, dict) or not source.get('discussion_id'):
@@ -636,6 +640,8 @@ class DesktopLinks:
                 if path:
                     return {'status': 'NATIVE_EDIT_REQUIRED', 'model_path': path, 'executed': False}
                 raise ValueError('Workbench에서 이 연구의 저장 모델을 다시 연결하세요.')
+            if requested_backend not in exports:
+                raise ValueError('Choose a CalculiX Plan with a supported managed model export')
             job = self.job_record(check_id(context.get('job_id')))
             backend = job.get('arguments', {}).get('backend')
             if backend not in exports:
