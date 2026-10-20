@@ -242,18 +242,18 @@ def _catalogue(mesh: dict) -> tuple[dict, dict, dict, dict]:
     if not isinstance(mesh, dict) or mesh.get("schema_version") != "1" or mesh.get("element_type") != "HEXA20":
         raise ValueError("Only the checked full HEXA20 catalogue is admitted")
     rows, cells = mesh.get("nodes"), mesh.get("elements")
-    if (not isinstance(rows, list) or not 20 <= len(rows) <= 12000 or
-            not isinstance(cells, list) or not 1 <= len(cells) <= 2048):
+    if (not isinstance(rows, list) or not 20 <= len(rows) <= 10000 or
+            not isinstance(cells, list) or not 1 <= len(cells) <= 1024):
         raise ValueError("Incomplete or unbounded structural catalogue")
     nodes, elements = {}, {}
     for row in rows:
-        if not isinstance(row, dict) or type(row.get("id")) is not int or not 1 <= row["id"] <= 12000 or row["id"] in nodes:
+        if not isinstance(row, dict) or type(row.get("id")) is not int or not 1 <= row["id"] <= 10000 or row["id"] in nodes:
             raise ValueError("Duplicate, missing or unbounded catalogue node ID")
         nodes[row["id"]] = _vector(row.get("coordinates_mm"))
     if len({tuple(value) for value in nodes.values()}) != len(nodes):
         raise ValueError("Duplicate catalogue node coordinates")
     for row in cells:
-        if not isinstance(row, dict) or type(row.get("id")) is not int or not 1 <= row["id"] <= 2048 or row["id"] in elements:
+        if not isinstance(row, dict) or type(row.get("id")) is not int or not 1 <= row["id"] <= 1024 or row["id"] in elements:
             raise ValueError("Duplicate, missing or unbounded catalogue element ID")
         ids = row.get("node_ids")
         if (not isinstance(ids, list) or len(ids) != 20 or

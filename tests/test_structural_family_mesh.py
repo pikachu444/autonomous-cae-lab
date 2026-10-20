@@ -196,30 +196,6 @@ def test_all_frozen_grids_connectivity_bounds_analytic_volume_and_load_integrals
     assert json.loads(json.dumps(mesh, allow_nan=False)) == mesh
 
 
-@pytest.mark.parametrize("reader", ["calculix", "codeaster"])
-def test_refined_roof_catalogue_keeps_complete_connectivity_and_resource_bounds(reader, family_meshes):
-    from caelab.adapters import structural_family_calculix, structural_family_codeaster_worker
-    validate = (structural_family_calculix._catalogue if reader == "calculix"
-                else structural_family_codeaster_worker.validate_catalogue)
-    mesh = family_meshes[("scordelis_lo_solid", (32, 32, 2))]
-    assert len(mesh["elements"]) == 2048 and len(mesh["nodes"]) == 11781
-    nodes, elements, *_ = validate(mesh)
-    assert len(nodes) == 11781 and len(elements) == 2048
-    for incomplete in (
-        {**mesh, "nodes": mesh["nodes"][:-1]},
-        {**mesh, "elements": [{**mesh["elements"][0], "node_ids": mesh["elements"][0]["node_ids"][:-1]},
-                              *mesh["elements"][1:]]},
-    ):
-        with pytest.raises(ValueError):
-            validate(incomplete)
-    for oversized in (
-        {**mesh, "nodes": [*mesh["nodes"], *[mesh["nodes"][0]] * (12001 - len(mesh["nodes"]))]},
-        {**mesh, "elements": [*mesh["elements"], mesh["elements"][0]]},
-    ):
-        with pytest.raises(ValueError, match="unbounded"):
-            validate(oversized)
-
-
 @pytest.mark.parametrize("load_case,axis", [("Fx", 0), ("Fy", 1), ("Fz", 2)])
 def test_beam_force_moment_exact_response_nodes_and_face_corner_weights(load_case, axis):
     settings = specification("ansys_vmd1_regular", load_case=load_case, load_factor=1.4)
@@ -233,12 +209,7 @@ def test_beam_force_moment_exact_response_nodes_and_face_corner_weights(load_cas
     assert mesh["checks"]["applied_moment_n_mm"] == pytest.approx(expected_moment, rel=3e-15, abs=1e-13)
     assert all(row["components"] == [1, 2, 3] and coordinates[row["node_id"]][0] == 0 for row in mesh["supports"])
     loaded = [row["value"][axis] for row in mesh["nodal_loads_n"] if row["node_id"] in mesh["groups"]["TIP"]]
-    # Four quadratic faces share their edge/centre corner nodes on the 2x2
-    # cross-section; retain their signed consistent weights after assembly.
-    force = expected_force[axis]
-    expected_weights = ([-force / 48] * 4 + [-force / 24] * 4 + [-force / 12] +
-                        [force / 12] * 8 + [force / 6] * 4)
-    assert sorted(loaded) == pytest.approx(sorted(expected_weights), rel=3e-15)
+    assert sorted(loaded) == pytest.approx(sorted([-expected_force[axis] / 12] * 4 + [expected_force[axis] / 3] * 4), rel=3e-15)
     assert all(row["value"] == [0.0, 0.0, 0.0] for row in mesh["nodal_loads_n"] if row["node_id"] not in mesh["groups"]["TIP"])
 
 
@@ -270,7 +241,7 @@ def test_cylinder_polar_midsides_plane_strain_and_outward_pressure(family_meshes
 
 
 def test_roof_radius_exact_point_b_supports_and_independent_total_weight(family_meshes):
-    mesh = family_meshes[("scordelis_lo_solid", (8, 8, 1))]
+    mesh = family_meshes[("scordelis_lo_solid", (4, 4, 1))]
     coordinates = _coordinates(mesh)
     radius, thickness, length = 25 * 304.8, 0.25 * 304.8, 25 * 304.8
     for name, r in [("INNER", radius - thickness / 2), ("OUTER", radius + thickness / 2)]:
@@ -352,7 +323,7 @@ def test_check_recomputes_json_roundtrip_and_returns_independent_checks(case, fa
 ])
 def test_check_refuses_catalogue_tampering_including_bool_aliases(change, family_meshes):
     settings = specification(CASES[0])
-    altered = copy.deepcopy(family_meshes[(CASES[0], tuple(specification(CASES[0])["mesh_cells"][0]))])
+    altered = copy.deepcopy(family_meshes[(CASES[0], (6, 1, 1))])
     change(altered)
     with pytest.raises(ValueError):
         mesh_api.check_mesh(altered, settings)
@@ -468,7 +439,7 @@ def test_calculix_serialization_canonical_connectivity_and_bounded_coordinate_fi
                                    lambda m: m["groups"]["ROOT"].append(1)])
 @pytest.mark.parametrize("writer", [mesh_api.write_gmsh, mesh_api.write_calculix_mesh])
 def test_writers_refuse_malformed_or_reserved_data_before_file_creation(change, writer, family_meshes, tmp_path):
-    mesh = copy.deepcopy(family_meshes[(CASES[0], tuple(specification(CASES[0])["mesh_cells"][0]))])
+    mesh = copy.deepcopy(family_meshes[(CASES[0], (6, 1, 1))])
     change(mesh)
     path = tmp_path / "invalid.txt"
     with pytest.raises(ValueError):

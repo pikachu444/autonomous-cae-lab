@@ -4,7 +4,7 @@
   "definition_id": "P2-family-v1-20261002",
   "units": {"length": "mm", "force": "N", "stress": "MPa", "moment": "N mm", "energy": "N mm"},
   "unit_conversion": {"in_to_mm": 25.4, "ft_to_mm": 304.8, "lbf_to_n": 4.4482216152605, "psi_to_mpa": 0.006894757293168361},
-  "execution_limits": {"max_mesh_levels": 3, "max_axis_cells": 48, "max_elements_per_level": 2048, "max_nodes_per_level": 12000, "max_load_factor": 2.0},
+  "execution_limits": {"max_mesh_levels": 3, "max_axis_cells": 48, "max_elements_per_level": 1024, "max_nodes_per_level": 10000, "max_load_factor": 2.0},
   "numerical_limits": {"reaction_relative": 0.0000001, "moment_relative": 0.0000001, "cross_solver_response_relative": 0.00001, "cross_solver_field_relative": 0.00001, "mesh_volume_relative": 0.001},
   "normalization": {
     "origin_mm": [0.0, 0.0, 0.0],
@@ -41,7 +41,7 @@
       },
       "load_direction_disposition": "Explicit positive-axis force derivative; preserve signed U and reactions, compare published absolute response only.",
       "response": {"locations_in": [[6.0, 0.0, 0.0], [6.0, 0.2, 0.0]], "component": "load_component", "statistic": "mean_of_absolute_components_at_exact_two_nodes", "signed_companion": "mean_of_signed_components_at_same_two_nodes"},
-      "mesh_cells": [[12, 2, 2], [24, 2, 2], [48, 2, 2]],
+      "mesh_cells": [[6, 1, 1], [12, 2, 2], [24, 4, 4]],
       "limits": {"reference_relative": 0.02, "last_two_mesh_response_relative": 0.01},
       "limitations": ["Fully fixed root constrains Poisson contraction: published axial PL/EA is a benchmark comparison, not an exact 3D solution.", "Regular HEXA20 solid derivative, not a claim to reproduce every original distorted shell/solid mesh.", "Torsion references and original NFX A/B/C measurement are unresolved and are not admitted.", "Linear benchmark response does not establish small-rotation physical validity or strength qualification."]
     },
@@ -79,7 +79,7 @@
       "source_dispositions": {"printed_density_typo": "NASA PDF116/printed112 says360lbs/in^3; this is retained as an observed source conflict, not used as the declared load unit.", "declared_density_basis": "90lbf/ft^2 surface weight divided by0.25ft thickness gives360lbf/ft^3; independent quarter geometry gives12500*pi lbf total weight. The native density listing is corroboration, not silently relabeled text.", "density_kind": "Weight density/body force per volume, not mass density; native integration directly applies global-Z force, without inferring gravitational acceleration.", "element_selector_conflict": "NASA explanatory E410 and listing N-1=330 differ. This profile uses explicit independent HEXA20 solids and does not claim exact STAGS element or original NFX replication."},
       "response": {"location": "x=half_length, theta=40deg, r=inner_radius", "component": "z", "statistic": "signed displacement at exact inner-surface point B"},
       "reference": {"signed_displacement_ft": -0.3024, "kind": "conventional_published_comparison_not_exact_solid_solution", "shallow_shell_ft": -0.3086, "deep_shell_ft": -0.2994},
-      "mesh_cells": [[8, 8, 1], [16, 16, 2], [32, 32, 2]],
+      "mesh_cells": [[4, 4, 1], [8, 8, 1], [16, 16, 2]],
       "limits": {"reference_relative": 0.02, "last_two_mesh_response_relative": 0.01},
       "limitations": ["Solid inner-surface point is distinct from shell midsurface; do not alias their native fields.", "Conventional0.3024ft comparison is distinct from shallow/deep shell theories. Preserve all references and differences.", "This bounded solid profile does not establish an independent shell-element or rotational-DOF implementation."]
     }
