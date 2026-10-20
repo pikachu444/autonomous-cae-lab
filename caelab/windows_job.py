@@ -94,6 +94,15 @@ def spawn_gated(command, *, cwd, stdout, stderr, env, label):
     # Embedded native interpreters (pvpython) replace stdin; the gate needs CPython.
     configured = (os.environ if env is None else env).get('CAELAB_DESKTOP_PYTHON')
     interpreter = Path(configured or getattr(sys, '_base_executable', sys.executable)).resolve(strict=True)
+    if configured and interpreter.parent.name.lower() == 'scripts':
+        configuration = interpreter.parent.parent / 'pyvenv.cfg'
+        if configuration.is_file():
+            values = dict(line.partition('=')[::2] for line in configuration.read_text(encoding='utf-8').splitlines() if '=' in line)
+            home = next((value.strip() for key, value in values.items() if key.strip().lower() == 'home'), None)
+            if not home:
+                raise ValueError('The configured Python environment has no base interpreter home')
+            # Windows venv python.exe redirects to a child, defeating exact PID ownership.
+            interpreter = (Path(home) / 'python.exe').resolve(strict=True)
     ready = Path(cwd) / (label + '.gate-ready.json')
     if ready.exists():
         raise ValueError('Candidate process gate requires a fresh receipt')

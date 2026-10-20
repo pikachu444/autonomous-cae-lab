@@ -88,12 +88,19 @@ def test_normal_exit_waits_for_descendant_before_sealing(tmp_path):
     assert result.returncode == 0 and marker.read_text(encoding='utf-8') == 'done'
 
 
-def test_embedded_native_runtime_uses_primary_python_for_owned_gate(tmp_path, monkeypatch):
+@pytest.mark.parametrize('primary_runtime', ['base', 'venv'])
+def test_embedded_native_runtime_uses_primary_python_for_owned_gate(tmp_path, monkeypatch, primary_runtime):
     base = str(Path(getattr(sys, '_base_executable', sys.executable)).resolve())
+    primary = base
+    if primary_runtime == 'venv':
+        import venv
+        venv_root = tmp_path / 'primary environment'
+        venv.EnvBuilder(with_pip=False).create(venv_root)
+        primary = str(venv_root / 'Scripts' / 'python.exe')
     embedded = tmp_path / 'pvpython.exe'
     embedded.write_bytes(b'embedded-runtime-must-not-host-stdlib-gate')
     monkeypatch.setattr(sys, '_base_executable', str(embedded))
-    environment = dict(os.environ, CAELAB_DESKTOP_PYTHON=base)
+    environment = dict(os.environ, CAELAB_DESKTOP_PYTHON=primary)
     result = run_owned_command([base, '-I', '-S', '-c', "print('native child completed')"],
                               tmp_path, 'embedded', env=environment, owned_tree=True)
     assert result.returncode == 0 and result.stdout.strip() == 'native child completed'
