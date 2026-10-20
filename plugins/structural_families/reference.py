@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 _DEFINITION_PATH = Path(__file__).resolve().parents[2] / "benchmarks/specifications/structural-families-v1.json"
 # Canonical JSON, not platform-specific line endings. Adapters additionally pin
 # actual source bytes before/after execution. A new definition needs admission.
-_DEFINITION_SHA256 = "3f198843b47b6f93c8ad81e4dfc86ce75c547ced983492f01d2210d386459038"
+_DEFINITION_SHA256 = "efd5582ff4181198e44a24bd176eed5b6401f4023b8134c35d9ea63d86823e94"
 _SETTING_KEYS = {"case", "load_case", "load_factor", "mesh_cells"}
 _RECORD_KEYS = {"cells", "node_ids", "coordinates_mm", "displacements_mm", "reaction_n",
                 "reaction_moment_n_mm", "applied_force_n", "applied_moment_n_mm", "stress_points",

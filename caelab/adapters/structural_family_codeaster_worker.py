@@ -46,7 +46,7 @@ def validate_catalogue(mesh: dict) -> tuple[dict[int, list[float]], dict[int, li
     if not isinstance(mesh, dict) or mesh.get("schema_version") != "1" or mesh.get("element_type") != "HEXA20":
         raise ValueError("Missing shared HEXA20 catalogue")
     rows, cells = mesh.get("nodes"), mesh.get("elements")
-    if not isinstance(rows, list) or not 20 <= len(rows) <= 10000 or not isinstance(cells, list) or not 1 <= len(cells) <= 1024:
+    if not isinstance(rows, list) or not 20 <= len(rows) <= 12000 or not isinstance(cells, list) or not 1 <= len(cells) <= 2048:
         raise ValueError("Incomplete or unbounded shared node/element catalogue")
     nodes = {}
     for row in rows:

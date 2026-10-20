@@ -135,9 +135,9 @@ def selected(record, targets, tolerance=1e-8):
 
 
 @pytest.mark.parametrize("case,load,expected_cells", [
-    (BEAM, "Fx", [[6, 1, 1], [12, 2, 2], [24, 4, 4]]),
+    (BEAM, "Fx", [[12, 2, 2], [24, 2, 2], [48, 2, 2]]),
     (CYLINDER, "pressure", [[2, 4, 1], [4, 8, 1], [8, 16, 2]]),
-    (ROOF, "gravity", [[4, 4, 1], [8, 8, 1], [16, 16, 2]]),
+    (ROOF, "gravity", [[8, 8, 1], [16, 16, 2], [32, 32, 2]]),
 ])
 def test_defaults_are_frozen_and_independent(case, load, expected_cells):
     value = specification(case)
@@ -158,7 +158,8 @@ def test_defaults_are_frozen_and_independent(case, load, expected_cells):
     {"mesh_cells": [[1, 1, 1]]}, {"mesh_cells": [[1, 1, 1]]*4},
     {"mesh_cells": [[1, 1, 1], [1, 1, 1]]}, {"mesh_cells": [[2, 2, 1], [1, 2, 2]]},
     {"mesh_cells": [[1, 1, 1], [True, 2, 1]]}, {"mesh_cells": [[1, 1, 1], [2.0, 2, 1]]},
-    {"mesh_cells": [[1, 1, 1], [49, 1, 1]]}, {"mesh_cells": [[1, 1, 1], [16, 16, 8]]},
+    {"mesh_cells": [[1, 1, 1], [49, 1, 1]]}, {"mesh_cells": [[1, 1, 1], [16, 16, 9]]},
+    {"mesh_cells": [[1, 1, 1], [48, 40, 1]]},
     {"mesh_cells": [[1, 1, 1], [0, 2, 1]]}, {"numerical_tolerance": 1.0},
 ])
 def test_invalid_settings_refuse_before_numerical_feedback(change):
@@ -185,7 +186,7 @@ def test_common_declaration_is_solver_independent_and_uses_mpa(case):
     assert declaration["model"]["mesh"]["element_type"] == "HEXA20"
     assert declaration["model"]["mesh"]["order"] == 2
     assert {row["field"] for row in declaration["outputs"]["fields"]} == {"displacement", "stress", "reactions"}
-    assert declaration["definition_sha256"] == "3f198843b47b6f93c8ad81e4dfc86ce75c547ced983492f01d2210d386459038"
+    assert declaration["definition_sha256"] == "efd5582ff4181198e44a24bd176eed5b6401f4023b8134c35d9ea63d86823e94"
     encoded = json.dumps(declaration).lower()
     assert all(word not in encoded for word in ("c3d20", "calculix", "code_aster", "native_path", "c:/", "docker"))
 
